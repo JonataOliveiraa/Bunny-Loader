@@ -11,14 +11,18 @@ find_package(shadowhook REQUIRED CONFIG)
 # --- QuickJS (fontes locais, ver third_party/README.md) ---
 set(QUICKJS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/quickjs)
 set(BL_QUICKJS_SOURCES "")
+# quickjs-ng v0.17: fontes sao quickjs.c/libregexp.c/libunicode.c/dtoa.c
+# (nao ha mais cutils.c nem libbf). Precisa de _GNU_SOURCE.
 if(EXISTS ${QUICKJS_DIR}/quickjs.c)
     list(APPEND BL_QUICKJS_SOURCES
         ${QUICKJS_DIR}/quickjs.c
         ${QUICKJS_DIR}/libregexp.c
         ${QUICKJS_DIR}/libunicode.c
-        ${QUICKJS_DIR}/cutils.c)
+        ${QUICKJS_DIR}/dtoa.c)
+    set_source_files_properties(${BL_QUICKJS_SOURCES} PROPERTIES
+        COMPILE_DEFINITIONS "_GNU_SOURCE")
     add_compile_definitions(BL_HAVE_QUICKJS=1)
-    message(STATUS "QuickJS encontrado — motor de script habilitado.")
+    message(STATUS "QuickJS (quickjs-ng) encontrado — motor de script habilitado.")
 else()
     message(WARNING "QuickJS ausente em third_party/quickjs — ScriptEngine será stub. Ver third_party/README.md")
 endif()

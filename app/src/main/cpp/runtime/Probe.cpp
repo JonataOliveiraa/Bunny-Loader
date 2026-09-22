@@ -4,6 +4,7 @@
 #include "runtime/GameRefs.h"
 
 namespace bl::runtime { void installHookTest(); }
+#include "script/ScriptEngine.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -49,6 +50,16 @@ void probeThread() {
                 // Testa o hook por endereco (deve funcionar sob houdini, ao
                 // contrario do hook pendente por nome).
                 installHookTest();
+
+                // Fase 4: sobe o QuickJS dentro do jogo e roda um script.
+                if (script::engine().init()) {
+                    BL_INFO("sonda: QuickJS iniciado; rodando script de teste");
+                    script::engine().eval(
+                        "tl.log('QuickJS vivo dentro do Terraria! 1+2=' + (1+2));",
+                        "teste");
+                } else {
+                    BL_ERROR("sonda: QuickJS nao iniciou");
+                }
             } else {
                 BL_ERROR("sonda: resolveGameRefs falhou");
             }

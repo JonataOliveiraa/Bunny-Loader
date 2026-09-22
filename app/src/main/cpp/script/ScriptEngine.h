@@ -13,6 +13,9 @@ public:
     // Avalia um arquivo .js como módulo. Retorna false e loga em caso de erro.
     bool evalFile(const std::string& path, const std::string& moduleName);
 
+    // Avalia um trecho de código (global scope). Para testes rápidos.
+    bool eval(const std::string& code, const std::string& name);
+
     bool ready() const { return ready_; }
 
 private:

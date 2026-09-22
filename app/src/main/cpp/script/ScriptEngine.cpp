@@ -71,6 +71,23 @@ bool ScriptEngine::evalFile(const std::string& path, const std::string& moduleNa
     return ok;
 }
 
+bool ScriptEngine::eval(const std::string& code, const std::string& name) {
+    if (!ready_) return false;
+    auto* ctx = static_cast<JSContext*>(context_);
+    JSValue result = JS_Eval(ctx, code.c_str(), code.size(),
+                             name.c_str(), JS_EVAL_TYPE_GLOBAL);
+    bool ok = !JS_IsException(result);
+    if (!ok) {
+        JSValue err = JS_GetException(ctx);
+        const char* text = JS_ToCString(ctx, err);
+        BL_ERROR("erro em %s: %s", name.c_str(), text ? text : "?");
+        if (text) JS_FreeCString(ctx, text);
+        JS_FreeValue(ctx, err);
+    }
+    JS_FreeValue(ctx, result);
+    return ok;
+}
+
 #else // sem QuickJS: stub para o projeto compilar antes do vendoring
 
 bool ScriptEngine::init() {
@@ -80,6 +97,7 @@ bool ScriptEngine::init() {
 }
 void ScriptEngine::shutdown() {}
 bool ScriptEngine::evalFile(const std::string&, const std::string&) { return false; }
+bool ScriptEngine::eval(const std::string&, const std::string&) { return false; }
 
 #endif
 
