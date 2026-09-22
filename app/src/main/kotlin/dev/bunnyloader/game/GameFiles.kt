@@ -15,14 +15,18 @@ import java.util.zip.ZipFile
  *  2. **Versão fixa.** Quem controla a cópia controla a versão que roda, que é o
  *     que mantém mods estáveis quando o jogo atualiza.
  *
- * Copiamos a pilha nativa da Unity — e, quando existir, a `libpairipcore.so`.
+ * Copiamos a pilha nativa da Unity — e a `libpairipcore.so` SÓ se a libunity
+ * daquela versão realmente linkar contra ela:
  *
- * CORREÇÃO: em 1.4.5.6.4 a libunity NÃO dependia do PairIP, e eu afirmei que
- * dava para deixá-lo fora. Em 1.4.5.8.6 depende:
- *   dlopen failed: library "libpairipcore.so" not found: needed by libunity.so
- * Então ela entra na cópia, como dependência nativa. Isso NÃO traz o PairIP de
- * volta ao jogo: o license check e as strings cifradas vivem na camada Java
- * (com.pairip.*), e o dex do jogo continua sem ser carregado.
+ *   1.4.5.6.4 → não linka. Descartamos a .so.
+ *   1.4.5.8.6 → linka, e sem ela o dlopen falha:
+ *       dlopen failed: library "libpairipcore.so" not found: needed by libunity.so
+ *     ...mas COM ela o anti-tamper derruba o processo (SIGSEGV). É esse o beco
+ *     sem saída que o pinning resolve.
+ *
+ * A .so está no APK das duas versões, então "existe" não é critério; quem
+ * decide é o DT_NEEDED da libunity (ver [ElfInfo]). Descartá-la quando ninguém
+ * precisa é o que a cópia distribuída pelo TL Pro também faz.
  *
  * Não redistribui nada: a fonte é a cópia instalada do próprio usuário.
  */
@@ -104,8 +108,41 @@ object GameFiles {
 
         val missing = pending intersect LIBS.toSet()
         if (missing.isNotEmpty()) error("libs não encontradas no APK do jogo: $missing")
+
+        // A libpairipcore está no APK das DUAS versões, então a presença dela
+        // não diz nada. Quem decide é a libunity: se ela não linka contra a
+        // libpairipcore, carregá-la é acordar o anti-tamper sem necessidade —
+        // e a cópia que o TL Pro distribui simplesmente não tem essa .so.
+        val pairip = File(dest, PAIRIP)
+        if (pairip.isFile) {
+            if (needsPairip(dest)) {
+                onStep("libunity LINKA $PAIRIP (versão nova; é aqui que dá SIGSEGV)")
+            } else {
+                onStep("libunity não precisa de $PAIRIP — descartada")
+                pairip.setWritable(true, true)
+                pairip.delete()
+            }
+        }
+
         Log.i(TAG, "GameFiles: ${LIBS.size} libs em $dest")
         return dest
+    }
+
+    private const val PAIRIP = "libpairipcore.so"
+
+    /**
+     * A libunity desta cópia depende do PairIP?
+     *
+     *   1.4.5.6.4 → não (só libmain/libandroid/liblog/libz/libEGL/libm/libdl/libc)
+     *   1.4.5.8.6 → sim
+     *
+     * Na dúvida (ELF ilegível) devolvemos `true`: melhor tentar carregar e ver
+     * o erro do que deixar a libunity sem uma dependência real.
+     */
+    fun needsPairip(dir: File): Boolean {
+        val deps = ElfInfo.needed(File(dir, "libunity.so"))
+        if (deps.isEmpty()) return true
+        return PAIRIP in deps
     }
 
     /**
@@ -161,8 +198,11 @@ object GameFiles {
         val p = pinnedApk(ctx)
         if (!p.isFile) {
             return "Versão: a instalada no aparelho.\n" +
-                "Para fixar outra (ex.: 1.4.5.6, a que o hosting suporta), copie o " +
-                "APK dela para:\nAndroid/data/${ctx.packageName}/files/terraria.apk"
+                "O hosting suporta a 1.4.5.6.4 — na 1.4.5.8.6 a libunity exige a " +
+                "libpairipcore, que derruba o processo fora do boot do jogo.\n" +
+                "Para fixar a 1.4.5.6.4, copie o APK dela (o seu, extraído do seu " +
+                "próprio aparelho) para:\n" +
+                "Android/data/${ctx.packageName}/files/terraria.apk"
         }
         val v = runCatching {
             ctx.packageManager.getPackageArchiveInfo(p.absolutePath, 0)
