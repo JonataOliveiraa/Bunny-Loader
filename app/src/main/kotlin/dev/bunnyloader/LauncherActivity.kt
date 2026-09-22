@@ -7,6 +7,8 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,8 +26,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -76,15 +80,19 @@ private fun installApk(ctx: Context, apk: File) {
 private fun LauncherScreen() {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
+    val clipboard = LocalClipboardManager.current
     var modded by remember { mutableStateOf(isInstalled(ctx, ApkPatcher.NEW_PKG)) }
     val terraria = remember { isInstalled(ctx, ApkPatcher.TERRARIA) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.Top,
     ) {
         Image(
             painter = painterResource(R.drawable.ic_bunny),
@@ -166,6 +174,11 @@ private fun LauncherScreen() {
             modifier = Modifier.padding(top = 8.dp),
         ) { Text("Ver log do último boot") }
         if (status.isNotEmpty()) {
+            // Copiar vence print: stack longo cabe inteiro no texto.
+            Button(
+                onClick = { clipboard.setText(AnnotatedString(status)) },
+                modifier = Modifier.padding(top = 8.dp),
+            ) { Text("Copiar log") }
             Text(
                 status,
                 style = MaterialTheme.typography.bodySmall,
