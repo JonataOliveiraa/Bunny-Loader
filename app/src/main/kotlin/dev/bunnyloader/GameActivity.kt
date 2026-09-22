@@ -80,6 +80,7 @@ class GameActivity : Activity() {
         super.onCreate(savedInstanceState)
         BootLog.reset(this)
         BootLog.installCrashHandler(this)
+        BootLog.captureLogcat(this)
         BootLog.add(this, "=== GameActivity.onCreate ===")
 
         val install = GameInstall.locate(this)

@@ -63,9 +63,47 @@ object BootLog {
         }
     }
 
+    private fun logcatFile(ctx: Context) = File(ctx.filesDir, "hosted-logcat.log")
+
+    /**
+     * Captura o logcat DO PRÓPRIO processo para arquivo.
+     *
+     * A Unity imprime o motivo do erro no logcat imediatamente antes de abortar,
+     * e um app pode ler os próprios logs sem permissão especial. Isso é bem mais
+     * confiável que o tombstone, que desde o Android 12 vem em protobuf e chegou
+     * truncado aqui.
+     */
+    fun captureLogcat(ctx: Context) {
+        val out = logcatFile(ctx)
+        runCatching { out.writeText("") }
+        Thread {
+            runCatching {
+                val pid = android.os.Process.myPid()
+                val p = Runtime.getRuntime().exec(
+                    arrayOf("logcat", "-v", "brief", "--pid=$pid"),
+                )
+                p.inputStream.bufferedReader().forEachLine { line ->
+                    val keep = line.contains("Unity") || line.contains("IL2CPP") ||
+                        line.contains("DEBUG") || line.contains("libc") ||
+                        line.contains("Fatal") || line.contains("FATAL") ||
+                        line.contains("Error") || line.contains("error")
+                    // Limite de tamanho: interessa a causa, não o histórico todo.
+                    if (keep && out.length() < 60_000) out.appendText(line + "\n")
+                }
+            }
+        }.apply { isDaemon = true }.start()
+    }
+
     fun read(ctx: Context): String =
         (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
+            "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx) +
             "\n--- por que o processo morreu ---\n" + exitReasons(ctx)
+
+    /** Últimas linhas relevantes — é onde a Unity diz o que não conseguiu fazer. */
+    private fun lastLogcat(ctx: Context): String = runCatching {
+        val lines = logcatFile(ctx).readLines()
+        if (lines.isEmpty()) "(vazio)" else lines.takeLast(40).joinToString("\n")
+    }.getOrElse { "(sem captura)" }
 
     /**
      * Motivo das últimas mortes de processo do app. Crash NATIVO não passa por
