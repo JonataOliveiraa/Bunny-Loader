@@ -78,6 +78,7 @@ class GameActivity : Activity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
         BootLog.reset(this)
+        BootLog.installCrashHandler(this)
         BootLog.add(this, "=== GameActivity.onCreate ===")
 
         val install = GameInstall.locate(this)

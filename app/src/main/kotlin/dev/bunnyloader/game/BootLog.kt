@@ -35,6 +35,30 @@ object BootLog {
         root?.stackTrace?.take(6)?.forEach { add(ctx, "     at $it") }
     }
 
+    /**
+     * Captura exceções de QUALQUER thread do processo.
+     *
+     * Os try/catch da GameActivity só cobrem o onCreate; a Unity estoura depois,
+     * nas threads dela, e aí só sobra "CRASH (Java)" no exit reason — sem stack.
+     * Este handler grava o stack na trilha antes de deixar o processo morrer.
+     */
+    fun installCrashHandler(ctx: Context) {
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { thread, t ->
+            runCatching {
+                add(ctx, "CRASH na thread '${thread.name}'")
+                var e: Throwable? = t
+                var depth = 0
+                while (e != null && depth++ < 3) {
+                    add(ctx, "  ${e.javaClass.name}: ${e.message}")
+                    e.stackTrace.take(8).forEach { add(ctx, "    at $it") }
+                    e = e.cause?.also { add(ctx, "  causado por:") }
+                }
+            }
+            previous?.uncaughtException(thread, t)
+        }
+    }
+
     fun read(ctx: Context): String =
         (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
             "\n--- por que o processo morreu ---\n" + exitReasons(ctx)
