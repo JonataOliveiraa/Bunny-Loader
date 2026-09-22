@@ -1,0 +1,233 @@
+# Decisão de arquitetura: como colocar o Bunny Loader dentro do Terraria
+
+Status: **em aberto**. Escrito depois que a Fase 1 esbarrou no PairIP.
+Referência técnica: [UNITY-HOSTING.md](UNITY-HOSTING.md).
+
+---
+
+## 1. O problema, medido
+
+O objetivo do projeto nunca foi hospedar a `UnityPlayer` — foi **colocar a
+`libbunny.so` dentro do processo do jogo** para hookar métodos gerados pelo
+IL2CPP. Hospedar era só o meio escolhido.
+
+Esse meio bateu num muro. O que está comprovado no dispositivo:
+
+| Fato | Evidência |
+|---|---|
+| O APK usa PairIP | `application:name = com.pairip.application.Application` |
+| As constantes de string do app são criptografadas | `uk.co.drstudios.lvl.yh.sHQPfQqKk`: 13 campos `static String`, **zero métodos** |
+| Sem elas, a Unity quebra | `getNaturalOrientation` lê `sHQPfQqKk.pPb` (deveria ser `"window"`) → `getSystemService(null)` → NPE |
+| Acionar o `StartupLauncher` direto não resolve | Sonda antes e depois: `null`. Tudo "ok", nada populado, no mesmo milissegundo |
+| Porque o `invoke` do dex é um stub | `VMRunner.invoke` começa com `const/4 v0, 0; return-object v0`; corpo real no offset 0002, inalcançável |
+
+A conclusão: **a `libpairipcore.so` reescreve esse método em memória, e só faz
+isso quando inicializada pelo caminho de boot legítimo do app.** Carregar a lib
+não basta.
+
+---
+
+## 2. Os caminhos
+
+### A. Hospedar no nosso processo (o desenho atual)
+
+Continuar como está e fazer o nosso processo passar por legítimo para a
+`libpairipcore.so`.
+
+O que falta descobrir: o que exatamente ela verifica. Candidatos prováveis são
+nome do pacote, assinatura do APK e se o `Application` real rodou. Cada um
+desses é um item a contornar, e nenhum está mapeado ainda.
+
+- **Root:** não precisa
+- **Distribuição:** a mais limpa — nosso APK sozinho, usuário usa a cópia dele
+- **Fragilidade:** alta. É uma corrida armamentista contra uma proteção que a
+  Google atualiza; cada update do jogo pode quebrar
+- **Esforço:** indeterminado, e esse é o problema — pode ser uma tarde ou pode
+  não ter fim
+
+### B. Lançar o jogo e injetar no processo dele
+
+O launcher inicia o Terraria normalmente. O `Application` dele roda, o PairIP
+inicializa, as strings se populam, tudo funciona como projetado. Aí a gente
+injeta a `libbunny.so` nesse processo.
+
+O problema da camada Java **desaparece por completo** — a gente deixa de
+disputar com o PairIP e passa a conviver com ele.
+
+- **Root:** **sim**, para injeção em processo alheio (ptrace, ou módulo estilo
+  Zygisk)
+- **Distribuição:** o APK é livre, mas só funciona em aparelho rooteado. Para
+  Terraria mobile isso corta a maioria esmagadora do público
+- **Fragilidade:** baixa no lado Java. A parte nativa (offsets) já é resolvida
+  em runtime e validada pelo `GameRefs`
+- **Esforço:** moderado e previsível
+
+### C. Repackaging do APK
+
+**Atenção a um mal-entendido:** repackaging **não é remover o PairIP**. As
+strings estão criptografadas e só a `libpairipcore.so` as decifra — sem PairIP
+o app não funciona. Repackaging significa **manter o PairIP intacto** e apenas
+acrescentar a nossa `libbunny.so` mais um gancho que a carregue.
+
+Mas ao reassinar o APK, o `SignatureCheck` (que compara com a assinatura
+embutida) passa a falhar. Ele vive em `Application.attachBaseContext` e **não**
+está protegido por VM, então dá para neutralizar. Fica o desconhecido de se a
+`libpairipcore.so` faz a própria verificação por dentro.
+
+- **Root:** não precisa
+- **Distribuição:** aqui está o ponto delicado. O APK modificado é uma cópia
+  alterada de um jogo pago — **não pode ser distribuído**. O que se distribui é
+  a *ferramenta* que faz o patch, e cada usuário aplica na cópia dele. Isso é
+  viável e é um padrão conhecido, mas muda o produto: o Bunny Loader deixaria de
+  ser só um app e passaria a ter um patcher
+- **Efeitos colaterais:** assinatura diferente da Play Store (perde updates
+  automáticos, pode conflitar com a instalação original), e o Play Integrity
+  quebra — irrelevante offline, relevante se o jogo checar algo online
+- **Fragilidade:** média. Refazer o patch a cada update do jogo
+- **Esforço:** alto
+
+### D. Desenvolver primeiro contra uma versão sem PairIP
+
+Não é um caminho final, é uma forma de reduzir risco. Versões mais antigas do
+Terraria mobile são anteriores ao PairIP. Rodar o pipeline inteiro nelas
+(Fases 1 a 4) prova a arquitetura de ponta a ponta, e o PairIP vira um problema
+isolado, atacado depois com o resto já funcionando.
+
+- **Custo:** um dump a mais, e os offsets mudam entre versões (o `GameRefs` já
+  recusa iniciar se algo não resolver, então isso é detectado, não silencioso)
+- **Risco:** resolver o fácil e descobrir tarde que o difícil não tem solução
+
+---
+
+## 3. Comparação
+
+| | A. Hospedar | B. Lançar + injetar | C. Repackaging | D. Versão antiga |
+|---|---|---|---|---|
+| Precisa root | não | **sim** | não | não |
+| Público alcançável | todos | só rooteados | todos | todos |
+| Distribui o quê | só o app | só o app | app + patcher | só o app |
+| Redistribui o jogo | não | não | **não** (patch local) | não |
+| Esforço | indeterminado | moderado | alto | baixo |
+| Fragilidade por update | alta | baixa | média | — |
+| Bloqueio conhecido | sim | nenhum | assinatura | nenhum |
+
+---
+
+## 4. O que vale independente da escolha
+
+Nada do que foi feito se perde:
+
+- **Fase 0 inteira** — `tools/dump.sh`, `tools/dumpgrep.sh`, o dump validado,
+  os offsets conferidos. Isso sempre foi sobre o lado nativo
+- **`GameRefs`** e a disciplina de resolver tudo em runtime com validação
+- **O núcleo nativo** (`libbunny.so`): LibWatcher, HookManager, Il2CppApi,
+  ScriptEngine. Todos operam dentro do processo do jogo, não importa como a
+  gente chegou lá
+- **O diagnóstico** — sem ele a gente ainda estaria olhando para `null`
+
+O que é específico do caminho A é a camada de hosting: `GameEnvironment`,
+`UnityHost`, os overrides de Context na `GameActivity`, o `PairipBootstrap`.
+
+---
+
+## 5. O que eu não sei
+
+Honestidade sobre os limites do que está estabelecido:
+
+- **Como o TL Pro faz.** Ele roda sem root e carrega mods no Terraria. Não
+  investiguei, e não vou chutar. Ele está instalado no emulador
+  (`com.pixelcurves.terlauncher`), então é uma fonte disponível se você quiser
+  que eu olhe
+- **O que a `libpairipcore.so` verifica.** Sem isso, o esforço do caminho A é
+  um número desconhecido
+- **Se ela faz verificação própria de assinatura**, o que afeta o caminho C
+- **Se versões antigas do Terraria realmente não têm PairIP** — plausível pela
+  época, não conferido
+
+---
+
+## 6. Recomendação
+
+**B para desbloquear agora, com C como caminho de distribuição depois.**
+
+O raciocínio: o valor do projeto está no núcleo nativo e na API de mods, e nada
+disso foi testado ainda. O caminho B chega lá rápido e com risco previsível,
+porque para de brigar com o PairIP. Com root no MuMu, dá para percorrer as
+Fases 2, 3 e 4 inteiras e ter mods JS rodando.
+
+Só então a pergunta de distribuição fica madura — e aí o caminho C resolve o
+alcance, com o núcleo já provado e a única incógnita sendo a assinatura.
+
+O caminho A é o único que entrega tudo de uma vez, e é justamente por isso que
+desconfio dele: o esforço é indeterminado e a manutenção é uma corrida contra
+atualizações que não controlamos.
+
+**Se o alcance sem root for requisito inegociável do produto**, então a ordem
+inverte e C vira o caminho principal desde já — vale dizer isso agora, porque
+muda o que construir em seguida.
+
+---
+
+# DECISAO TOMADA: caminho B (lançar + injetar)
+
+Escolhido para desbloquear as Fases 2-4. Distribuição sem root fica para depois
+(provavelmente caminho C).
+
+## Mecanismo de injeção: propriedade `wrap.<pacote>`, não ptrace
+
+Medido no MuMu (device emulator-5554):
+
+| Item | Valor |
+|---|---|
+| SELinux | Permissive |
+| root (`su`) | funciona |
+| `ro.debuggable` | 0 (build user) |
+| Magisk/Zygisk | ausente |
+| `setprop wrap.com.and.games505.TerrariaPaid ...` | aceita e lê de volta |
+
+`wrap.<pacote>` é um recurso de startup padrão do Android (o mesmo do `wrap.sh`
+de profiling/debug). Com ele o Zygote lança o app sob um wrapper, o que permite
+`LD_PRELOAD` da `libbunny.so` no processo do próprio jogo.
+
+Por que não ptrace: sob a tradução ARM→x86 do MuMu, mexer em processo por
+ptrace é frágil (mesma razão pela qual os hooks nativos precisam de ARM real).
+O `wrap.` opera no nível de startup do Zygote, não instrução a instrução, então
+não depende do tradutor.
+
+## O que isso muda na base já escrita
+
+- **Sai** a camada de hosting: `GameEnvironment`, `UnityHost`, os overrides de
+  Context na `GameActivity`, o `PairipBootstrap`. Não os apago ainda — ficam de
+  referência até o novo caminho estar de pé
+- **Fica** tudo do núcleo nativo e da Fase 0
+- **Entra:** o launcher passa a (1) setar a `wrap.` via root, (2) iniciar a
+  Activity real do jogo, (3) o `LibWatcher` já registra o hook pendente de
+  `il2cpp_init` assim que a `libbunny.so` for pré-carregada
+
+## Sequência nova de boot
+
+```
+LauncherActivity (nosso processo, sem root pra UI)
+  └─ "Jogar"
+       ├─ via root: setprop wrap.<pkg> = LD_PRELOAD=.../libbunny.so
+       ├─ via root: am start com.and.games505.TerrariaPaid/.UnityPlayerActivity
+       └─ Zygote sobe o jogo com a libbunny.so pré-carregada
+             ├─ Application do jogo roda → PairIP inicializa → strings OK
+             ├─ constructor da libbunny (ou JNI_OnLoad) → LibWatcher
+             │     └─ hook pendente em il2cpp_init (ShadowHook)
+             └─ Unity carrega libil2cpp.so → il2cpp_init → runtime::boot()
+```
+
+O ponto elegante: a `libbunny.so` é carregada **antes** da `libil2cpp.so`
+porque o `LD_PRELOAD` acontece no exec. O hook pendente do ShadowHook, que já
+está no código, era feito exatamente pra isso.
+
+## Pendências desta virada
+
+- Onde a `libbunny.so` roda o bootstrap: precisa de um ponto de entrada no
+  load da lib (constructor `__attribute__((constructor))` ou `JNI_OnLoad`), já
+  que não há mais o `NativeBridge.init` do Java chamando `installWatcher`
+- Como passar a config (modsDir, etc.) para um processo que não é o nosso:
+  provavelmente um arquivo em local acordado (ex: `/data/local/tmp/bunny/`) que
+  a lib lê no load
+- Copiar a `libbunny.so` para um caminho que o processo do jogo consiga ler
