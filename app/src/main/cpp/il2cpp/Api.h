@@ -26,6 +26,13 @@ struct Api {
     Il2CppObject* (*runtime_invoke)(const MethodInfo*, void*, void**, Il2CppObject**) = nullptr;
     const char* (*method_get_name)(const MethodInfo*) = nullptr;
     uint32_t (*method_get_flags)(const MethodInfo*, uint32_t*) = nullptr;
+    // Iteracao de metodos + tipos dos parametros (para desambiguar overloads
+    // que so diferem no tipo, nao na contagem — ex.: Item.NewItem).
+    const MethodInfo* (*class_get_methods)(Il2CppClass*, void**) = nullptr;
+    uint32_t (*method_get_param_count)(const MethodInfo*) = nullptr;
+    const Il2CppType* (*method_get_param)(const MethodInfo*, uint32_t) = nullptr;
+    char* (*type_get_name)(const Il2CppType*) = nullptr;  // malloc; liberar com free
+    void (*il2cpp_free)(void*) = nullptr;
     Il2CppObject* (*object_new)(Il2CppClass*) = nullptr;
     Il2CppClass* (*object_get_class)(Il2CppObject*) = nullptr;
     Il2CppString* (*string_new)(const char*) = nullptr;

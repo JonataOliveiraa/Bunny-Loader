@@ -30,6 +30,24 @@ int unboxInt(Il2CppObject* boxed) {
     return *reinterpret_cast<int*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
 }
 
+// Item.NewItem tem varios overloads com 9 parametros (um so-primitivo, outros
+// comecam com IEntitySource/Vector2). class_get_method_from_name so casa por
+// nome+contagem, entao iteramos e pegamos aquele cujo 1o parametro e int.
+const MethodInfo* findPrimitiveNewItem(Il2CppClass* item) {
+    using namespace il2cpp;
+    auto& a = api();
+    void* iter = nullptr;
+    while (const MethodInfo* m = a.class_get_methods(item, &iter)) {
+        if (std::strcmp(a.method_get_name(m), "NewItem") != 0) continue;
+        if (a.method_get_param_count(m) != 9) continue;
+        char* pname = a.type_get_name(a.method_get_param(m, 0));
+        bool isInt = pname && std::strcmp(pname, "System.Int32") == 0;
+        if (pname) a.il2cpp_free(pname);
+        if (isInt) return m;
+    }
+    return nullptr;
+}
+
 bool resolveCheatRefs() {
     using namespace il2cpp;
     auto& a = api();
@@ -40,7 +58,7 @@ bool resolveCheatRefs() {
     g_playerField = a.class_get_field_from_name(main, "player");
     g_getMyPlayer = a.class_get_method_from_name(main, "get_myPlayer", 0);
     // Overload so-primitivo: NewItem(X,Y,Width,Height,Type,Stack,noBroadcast,pfix,noGrabDelay)
-    g_newItem = a.class_get_method_from_name(item, "NewItem", 9);
+    g_newItem = findPrimitiveNewItem(item);
 
     if (!g_playerField || !g_getMyPlayer || !g_newItem) {
         BL_ERROR("cheats: refs faltando (player=%p get_myPlayer=%p NewItem=%p)",
@@ -54,14 +72,20 @@ bool resolveCheatRefs() {
 using DoUpdateFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
 DoUpdateFn g_origDoUpdate = nullptr;
 
+char g_lastCmd[128] = {0};  // trava anti-repeticao caso remove() falhe (dono != app)
+
 void pollCommands() {
     FILE* f = fopen(kCmdPath, "r");
     if (!f) return;
     char buf[128] = {0};
     size_t n = fread(buf, 1, sizeof(buf) - 1, f);
     fclose(f);
-    remove(kCmdPath);  // executa uma vez
-    if (n == 0) return;
+    if (n == 0) { g_lastCmd[0] = 0; return; }
+
+    // Se remove() falhar (arquivo de outro dono), nao reexecuta o mesmo comando.
+    remove(kCmdPath);
+    if (std::strcmp(buf, g_lastCmd) == 0) return;
+    std::strncpy(g_lastCmd, buf, sizeof(g_lastCmd) - 1);
 
     // formato: "give <type>"
     if (std::strncmp(buf, "give ", 5) == 0) {
