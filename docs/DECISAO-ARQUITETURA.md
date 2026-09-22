@@ -270,3 +270,31 @@ A camada de injecao esta pronta e reproduzivel (tools/repack.py). O motor de
 hook so pode ser validado em ARM de verdade — aparelho Android ARM (idealmente
 com root/Magisk para voltar ao caminho B limpo, mas o repackage tambem roda sem
 root) ou um host ARM. Tudo ate o il2cpp_init esta feito no emulador.
+
+---
+
+# FASE 3a VALIDADA no emulador: camada de resolucao funciona
+
+A sonda (runtime/Probe.cpp) rodou no processo do jogo e resolveu tudo por nome,
+com os offsets batendo com o dump 1.4.5.6.4:
+
+```
+sonda: il2cpp pronto; carregando API
+GameRefs ok | Entity.velocity=0x1C (esp 0x1C) Projectile.type=0x64 (esp 0x64) active=0x49 (esp 0x49)
+sonda: RESOLUCAO OK — camada de bind validada no processo do jogo
+```
+
+Provado sob houdini (emulador):
+- Chamadas a API do IL2CPP (il2cpp_*) funcionam traduzidas.
+- Api::load() acha Assembly-CSharp.dll + mscorlib.dll.
+- resolveGameRefs() resolve classes/campos/metodos -> offsets corretos.
+
+Detalhe critico: chamar il2cpp_domain_get() DURANTE o il2cpp_init crasha
+(SIGSEGV). A sonda espera o jogo assentar (10s) antes de tocar na API. O
+caminho do hook (ARM) nao tem esse problema porque so roda depois do init.
+
+Falta so o inline hook, que e ARM-only. Ordem de trabalho daqui:
+- ARM real: instalar o watcher (ShadowHook) e rodar runtime::boot() de verdade
+  -> Projectile.AI/SetDefaults hookados -> Fase 4 (QuickJS).
+- No emulador: dá para adiantar tudo que nao depende do hook — os bindings
+  QuickJS, o registro de conteudo, e ler/escrever estado do jogo via a sonda.

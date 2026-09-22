@@ -13,44 +13,45 @@ namespace {
 
 using DomainGetFn = Il2CppDomain* (*)();
 
-// Espera a libil2cpp.so carregar E o il2cpp_init terminar. Antes do init,
-// il2cpp_domain_get() retorna null. Timeout generoso: o jogo demora a subir.
-bool waitForIl2cpp(int timeoutMs) {
-    const int stepMs = 200;
-    for (int waited = 0; waited < timeoutMs; waited += stepMs) {
-        void* lib = dlopen("libil2cpp.so", RTLD_NOLOAD | RTLD_NOW);
-        if (lib) {
-            auto domain_get = reinterpret_cast<DomainGetFn>(dlsym(lib, "il2cpp_domain_get"));
-            if (domain_get && domain_get() != nullptr) {
-                return true;
-            }
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(stepMs));
-    }
-    return false;
+// IMPORTANTE: chamar il2cpp_domain_get() durante a janela de inicializacao do
+// il2cpp crasha (SIGSEGV) — o caminho do hook so tocaria a API DEPOIS do
+// il2cpp_init. Sem poder hookar (houdini), a sonda espera o jogo assentar por
+// um tempo fixo antes de tocar em qualquer coisa do il2cpp, e nunca faz poll
+// apertado.
+constexpr int kSettleMs = 10000;  // tempo ate o jogo chegar ao menu
+constexpr int kRetries = 12;
+constexpr int kRetryGapMs = 2500;
+
+bool il2cppReady() {
+    void* lib = dlopen("libil2cpp.so", RTLD_NOLOAD | RTLD_NOW);
+    if (!lib) return false;
+    auto domain_get = reinterpret_cast<DomainGetFn>(dlsym(lib, "il2cpp_domain_get"));
+    return domain_get && domain_get() != nullptr;
 }
 
 void probeThread() {
-    BL_INFO("sonda: aguardando il2cpp_init...");
-    if (!waitForIl2cpp(60000)) {
-        BL_ERROR("sonda: il2cpp nao inicializou em 60s");
-        return;
-    }
-    BL_INFO("sonda: il2cpp pronto; carregando API");
+    BL_INFO("sonda: aguardando o jogo assentar (%d ms)...", kSettleMs);
+    std::this_thread::sleep_for(std::chrono::milliseconds(kSettleMs));
 
-    auto& a = il2cpp::api();
-    if (!a.load()) {
-        BL_ERROR("sonda: Api::load() falhou");
-        return;
+    for (int i = 0; i < kRetries; ++i) {
+        if (il2cppReady()) {
+            BL_INFO("sonda: il2cpp pronto; carregando API");
+            auto& a = il2cpp::api();
+            if (!a.load()) {
+                BL_ERROR("sonda: Api::load() falhou");
+                return;
+            }
+            a.thread_attach(a.domain_get());
+            if (resolveGameRefs()) {
+                BL_INFO("sonda: RESOLUCAO OK — camada de bind validada no processo do jogo");
+            } else {
+                BL_ERROR("sonda: resolveGameRefs falhou");
+            }
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(kRetryGapMs));
     }
-    // A thread precisa estar anexada ao dominio para chamar a API com seguranca.
-    a.thread_attach(a.domain_get());
-
-    if (resolveGameRefs()) {
-        BL_INFO("sonda: RESOLUCAO OK — camada de bind validada no processo do jogo");
-    } else {
-        BL_ERROR("sonda: resolveGameRefs falhou");
-    }
+    BL_ERROR("sonda: il2cpp nao ficou pronto a tempo");
 }
 
 } // namespace
