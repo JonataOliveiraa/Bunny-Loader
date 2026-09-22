@@ -32,6 +32,10 @@ endif()
 # no celular. Le samples/HelloMod/main.js (raiz do repo: 4 niveis acima de cpp/).
 set(BL_MINISHARK_JS ${CMAKE_CURRENT_SOURCE_DIR}/../../../../samples/HelloMod/main.js)
 file(READ ${BL_MINISHARK_JS} BL_BUILTIN_MINISHARK_JS)
+# file(READ) nao cria dependencia: sem isto o CMake nao reconfigura quando o
+# .js muda e a lib segue embutindo a versao anterior — descoberto quando
+# tl.log virou bl.log e o mod continuou chamando tl.
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BL_MINISHARK_JS})
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/mods/BuiltinMods.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/gen/mods/BuiltinMods.h @ONLY)

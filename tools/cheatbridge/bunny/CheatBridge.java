@@ -51,7 +51,81 @@ public class CheatBridge {
         1,
     };
 
+    // --- painel de erro ------------------------------------------------------
+    //
+    // Chamado do nativo quando aparece o primeiro BL_ERROR. Quem joga no
+    // celular nao tem logcat: sem isto, um mod que quebra vira "nao funcionou"
+    // sem texto nenhum. Mostra o log, com OK e Copiar.
+    private static Activity sActivity;
+
+    public static void showError(final String text) {
+        final Activity act = sActivity;
+        if (act == null) return;
+        act.runOnUiThread(new Runnable() {
+            @Override public void run() {
+                try { buildError(act, text); } catch (Throwable t) { /* nunca derruba o jogo */ }
+            }
+        });
+    }
+
+    private static void buildError(final Activity act, String text) {
+        final float d = act.getResources().getDisplayMetrics().density;
+        final String body = text;
+
+        final LinearLayout box = new LinearLayout(act);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackgroundColor(0xF21B1726);
+        box.setPadding(px(16, d), px(16, d), px(16, d), px(16, d));
+
+        TextView head = new TextView(act);
+        head.setText("Bunny Loader — erro");
+        head.setTextColor(0xFFFF8A80);
+        head.setTextSize(16);
+        box.addView(head);
+
+        TextView msg = new TextView(act);
+        msg.setText(body);
+        msg.setTextColor(Color.WHITE);
+        msg.setTextSize(11);
+        msg.setPadding(0, px(8, d), 0, px(8, d));
+        ScrollView sc = new ScrollView(act);
+        sc.addView(msg);
+        box.addView(sc, new LinearLayout.LayoutParams(px(300, d), px(200, d)));
+
+        LinearLayout row = new LinearLayout(act);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button copy = new Button(act);
+        copy.setText("Copiar");
+        copy.setAllCaps(false);
+        copy.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                android.content.ClipboardManager cm =
+                        (android.content.ClipboardManager) act.getSystemService(
+                                Activity.CLIPBOARD_SERVICE);
+                if (cm != null) {
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("bunny", body));
+                }
+                Toast.makeText(act, "Log copiado", Toast.LENGTH_SHORT).show();
+            }
+        });
+        row.addView(copy);
+
+        Button ok = new Button(act);
+        ok.setText("OK");
+        ok.setAllCaps(false);
+        ok.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { box.setVisibility(View.GONE); }
+        });
+        row.addView(ok);
+        box.addView(row);
+
+        FrameLp lp = new FrameLp(act, Gravity.CENTER, 0, 0, d);
+        act.addContentView(box, lp.get());
+    }
+
     public static void install(final Activity act) {
+        sActivity = act;
         act.runOnUiThread(new Runnable() {
             @Override public void run() {
                 try { build(act); } catch (Throwable t) { /* nunca derruba o jogo */ }

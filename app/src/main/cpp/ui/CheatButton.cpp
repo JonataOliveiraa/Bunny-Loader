@@ -3,9 +3,11 @@
 #include "runtime/Cheats.h"
 #include "ui/CheatBridgeDex.h"
 
+#include <atomic>
 #include <dlfcn.h>
 #include <initializer_list>
 #include <jni.h>
+#include <string>
 
 namespace bl::ui {
 
@@ -40,6 +42,34 @@ bool checkExc(JNIEnv* env, const char* where) {
     env->ExceptionDescribe();
     env->ExceptionClear();
     return true;
+}
+
+// --- painel de erro ---------------------------------------------------------
+//
+// Mostrado UMA vez, no primeiro erro, com tudo que ja se acumulou. Um hook que
+// falha a cada frame dispararia milhares de chamadas; e o texto acumulado ja
+// traz os erros seguintes de qualquer jeito.
+jclass g_bridge = nullptr;
+jmethodID g_showError = nullptr;
+std::atomic<bool> g_errorShown{false};
+
+void onNativeError(const char*) {
+    if (g_errorShown.exchange(true)) return;
+    JavaVM* vm = getJavaVM();
+    if (!vm || !g_bridge || !g_showError) return;
+
+    JNIEnv* env = nullptr;
+    bool attached = false;
+    if (vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
+        if (vm->AttachCurrentThread(&env, nullptr) != JNI_OK) return;
+        attached = true;
+    }
+    std::string text = log::errorsSoFar();
+    jstring js = env->NewStringUTF(text.c_str());
+    env->CallStaticVoidMethod(g_bridge, g_showError, js);
+    env->ExceptionClear();
+    env->DeleteLocalRef(js);
+    if (attached) vm->DetachCurrentThread();
 }
 
 // Metodo nativo ligado a CheatBridge.nOnGive(int, int).
@@ -148,8 +178,15 @@ void installCheatButton() {
     }
     env->CallStaticVoidMethod(bridge, mInstall, activity);
     if (!checkExc(env, "install()")) {
-        BL_INFO("botao: instalado na Activity do jogo (Minishark)");
+        BL_INFO("botao: instalado na Activity do jogo");
     }
+
+    // 6. Painel de erro: guarda a classe e passa a escutar BL_ERROR. A partir
+    // daqui um erro do nucleo aparece DENTRO do jogo, com texto e botao de
+    // copiar — quem joga no celular nao tem logcat.
+    g_bridge = reinterpret_cast<jclass>(env->NewGlobalRef(bridge));
+    g_showError = env->GetStaticMethodID(g_bridge, "showError", "(Ljava/lang/String;)V");
+    if (g_showError) log::onError(&onNativeError);
 
     if (attached) vm->DetachCurrentThread();
 }

@@ -17,7 +17,7 @@ const Item = new NativeClass('Terraria', 'Item');
 const ItemID = new NativeClass('Terraria.ID', 'ItemID');
 
 const MINISHARK = ItemID.getStaticInt('Minishark');
-tl.log('HelloMod: Minishark = ' + MINISHARK + '; hookando Item.SetDefaults');
+bl.log('HelloMod: Minishark = ' + MINISHARK + '; hookando Item.SetDefaults');
 
 const SetDefaults = Item.method('SetDefaults', 2);
 
@@ -27,6 +27,6 @@ SetDefaults.hook((original, self, type, variant) => {
         self.setInt('useTime', 4);        // cadencia (menor = mais rapido)
         self.setInt('useAnimation', 4);
         self.setFloat('shootSpeed', 10.0); // velocidade do projetil
-        tl.log('HelloMod: Minishark turbinada!');
+        bl.log('HelloMod: Minishark turbinada!');
     }
 });

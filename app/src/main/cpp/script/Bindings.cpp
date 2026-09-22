@@ -13,7 +13,7 @@
 #endif
 
 // Ponte JavaScript <-> IL2CPP. Espelha a API do TL Pro. Estado atual:
-//   [ok] tl.log
+//   [ok] bl.log
 //   [ok] NativeClass('Ns','Class'); .getStaticInt/Float, .setStaticInt/Float
 //   [ok] NativeClass.new() -> NativeObject (il2cpp_object_new)
 //   [ok] NativeObject.getInt/setInt/getFloat/setFloat (campo de instancia)
@@ -47,8 +47,8 @@ Il2CppObject* objOf(JSValueConst v) {
     return static_cast<Il2CppObject*>(JS_GetOpaque(v, g_nativeObjectId));
 }
 
-// --- tl.log ---
-JSValue js_tl_log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+// --- bl.log ---
+JSValue js_bl_log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     for (int i = 0; i < argc; ++i) {
         const char* text = JS_ToCString(ctx, argv[i]);
         BL_INFO("[mod] %s", text ? text : "undefined");
@@ -311,9 +311,11 @@ void installBindings(void* context) {
     JSRuntime* rt = JS_GetRuntime(ctx);
     JSValue global = JS_GetGlobalObject(ctx);
 
-    JSValue tl = JS_NewObject(ctx);
-    JS_SetPropertyStr(ctx, tl, "log", JS_NewCFunction(ctx, js_tl_log, "log", 1));
-    JS_SetPropertyStr(ctx, global, "tl", tl);
+    // `bl` de Bunny Loader. Era `tl`, herdado de espelhar a API do TL Pro —
+    // nome de outro produto na API pública do nosso não faz sentido.
+    JSValue bl = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, bl, "log", JS_NewCFunction(ctx, js_bl_log, "log", 1));
+    JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass
     JS_NewClassID(rt, &g_nativeClassId);
@@ -343,7 +345,7 @@ void installBindings(void* context) {
     JS_SetClassProto(ctx, g_nativeMethodId, nmProto);
 
     JS_FreeValue(ctx, global);
-    BL_INFO("bindings instalados (tl.log, NativeClass, NativeObject)");
+    BL_INFO("bindings instalados (bl.log, NativeClass, NativeObject)");
 }
 
 #else

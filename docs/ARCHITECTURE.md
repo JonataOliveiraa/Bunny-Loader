@@ -31,7 +31,7 @@ O ponto central é **esperar o `il2cpp_init` terminar**: antes disso a
 
 1. **JNI** (`NativeBridge`): Kotlin → C++, chamado UMA vez antes da Unity subir.
 2. **API de mod JS**: `NativeClass`, `NativeObject`, `NativeMethod` (com `hook()`),
-   `NativeArray`, `tl.*`, `require`. Espelha o TL Pro.
+   `NativeArray`, `bl.*`, `require`. Espelha o TL Pro.
 3. **IL2CPP embedding API**: funções `il2cpp_*` resolvidas via `dlsym`.
 
 ## 3. Núcleo nativo (libbunny.so)
