@@ -32,6 +32,7 @@ app/src/main/
 refs/                       Dump local do jogo (NÃO versionado)
 samples/HelloMod/           Mod de exemplo (JS)
 docs/ARCHITECTURE.md        Arquitetura detalhada
+docs/UNITY-HOSTING.md       Como hospedar a UnityPlayer (análise do dex)
 tools/                      Ferramentas de PC (packer, etc. — futuro)
 ```
 
@@ -44,13 +45,35 @@ tools/                      Ferramentas de PC (packer, etc. — futuro)
 4. Motor QuickJS + primeiro mod real
 5. Loader completo (importar `.bmod`, ativar, log)
 
-## Build (resumo)
+## Build
 
-1. Abrir a pasta no Android Studio (deixe o Gradle Sync gerar o wrapper).
-2. Instalar **NDK** e **CMake** (SDK Manager).
-3. Adicionar QuickJS em `app/src/main/cpp/third_party/quickjs/` (ver README de lá).
-4. Gerar o dump em `refs/` (ver `refs/README.md`).
-5. `Run` no dispositivo/emulador.
+Abra a pasta no Android Studio e deixe o **Gradle Sync** rodar — ele gera o
+wrapper, baixa o Gradle e oferece instalar a plataforma SDK que faltar.
+
+### Só a Fase 1 (launcher, sem núcleo nativo)
+
+Não precisa de NDK nem CMake. Ponha em `gradle.properties`:
+
+```properties
+bl.nativeBuild=false
+```
+
+e rode. O launcher sobe o Terraria sem carregar a `libbunny.so`.
+
+### Fase 2 em diante (com o núcleo nativo)
+
+1. SDK Manager → aba **SDK Tools** → instalar **NDK (Side by side)** e **CMake**.
+2. Remover (ou pôr `true` em) `bl.nativeBuild`.
+3. QuickJS só na Fase 4 — ver `app/src/main/cpp/third_party/README.md`.
+   Sem ele o build passa e o motor de script fica em modo stub.
+
+### Dump do jogo
+
+```bash
+tools/dump.sh
+```
+
+Ver `refs/README.md`.
 
 > **Emulador:** MuMuPlayer serve para iterar a UI/launcher (Fase 1). A injeção
 > nativa e os hooks (Fase 2+) devem ser validados em **dispositivo ARM real** ou

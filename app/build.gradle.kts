@@ -1,3 +1,8 @@
+// Fase 1 nao precisa da libbunny.so. Desligue o build nativo com
+//   -Pbl.nativeBuild=false   (ou a mesma linha em gradle.properties)
+// para compilar e rodar o launcher sem instalar NDK/CMake.
+val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean() ?: true
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -21,17 +26,21 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
         }
-        externalNativeBuild {
-            cmake {
-                cppFlags += "-std=c++20"
+        if (nativeBuild) {
+            externalNativeBuild {
+                cmake {
+                    cppFlags += "-std=c++20"
+                }
             }
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+    if (nativeBuild) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
         }
     }
 
@@ -77,7 +86,9 @@ dependencies {
 
     // Hooking nativo (ARM32/ARM64). Consumido via prefab.
     // Confirme a versão mais recente em Maven Central.
-    implementation("com.bytedance.android:shadowhook:1.0.10")
+    if (nativeBuild) {
+        implementation("com.bytedance.android:shadowhook:1.0.10")
+    }
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

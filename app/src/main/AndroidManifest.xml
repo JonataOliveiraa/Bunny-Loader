@@ -13,7 +13,17 @@
         android:label="@string/app_name"
         android:extractNativeLibs="true"
         android:largeHeap="true"
+        android:isGame="true"
         android:theme="@style/Theme.BunnyLoader">
+
+        <!-- A Unity le estes meta-data do pacote HOSPEDEIRO (o nosso), via
+             PackageManager. Copiados do manifest do Terraria para a UnityPlayer
+             se comportar igual ao jogo original. -->
+        <meta-data android:name="unity.splash-mode" android:value="1" />
+        <meta-data android:name="unity.splash-enable" android:value="true" />
+        <meta-data android:name="unity.launch-fullscreen" android:value="true" />
+        <meta-data android:name="unity.auto-report-fully-drawn" android:value="true" />
+        <meta-data android:name="notch.config" android:value="portrait|landscape" />
 
         <activity
             android:name=".LauncherActivity"
@@ -24,15 +34,22 @@
             </intent-filter>
         </activity>
 
-        <!-- Roda em processo separado: fechar o jogo destrói Unity+IL2CPP+VM
-             sem derrubar a UI do launcher, e cada partida começa limpa. -->
+        <!-- Config espelhada da com.unity3d.player.UnityPlayerActivity do jogo
+             (launchMode=singleTask, sensorLandscape, hardwareAccelerated=false,
+             resizeableActivity=false). Roda em processo separado: fechar o jogo
+             destrói Unity+IL2CPP+VM sem derrubar a UI do launcher. -->
         <activity
             android:name=".GameActivity"
             android:exported="false"
             android:process=":game"
-            android:screenOrientation="landscape"
-            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|navigation|uiMode|screenLayout|density"
             android:launchMode="singleTask"
-            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" />
+            android:screenOrientation="sensorLandscape"
+            android:hardwareAccelerated="false"
+            android:resizeableActivity="false"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
+            <meta-data android:name="android.notch_support" android:value="true" />
+        </activity>
     </application>
 </manifest>

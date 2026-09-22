@@ -2,62 +2,93 @@ package dev.bunnyloader.game
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
+import android.view.InputEvent
 import android.view.View
+import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 
 /**
- * Encapsula a criação da UnityPlayer e repassa o ciclo de vida. O construtor
- * muda entre versões da Unity, então a busca é por reflection com alternativas.
+ * Cria a UnityPlayer e repassa o ciclo de vida. Tudo por reflection, porque a
+ * classe vem do DexClassLoader do jogo.
  *
- * TODO(Fase 1): abrir o APK do jogo no jadx e comparar com a UnityPlayerActivity
- * original — reproduzir aqui tudo que ela faz em onCreate/onKeyDown/onTouchEvent/
- * onNewIntent.
+ * Assinaturas conferidas no dex de Terraria 1.4.5.6.4 (Unity 2021.3.56f2):
+ *   UnityPlayer extends android.widget.FrameLayout
+ *   <init>(Context)
+ *   <init>(Context, IUnityPlayerLifecycleEvents)
+ *   onStart/onResume/onPause/onStop/destroy/quit/lowMemory : ()V
+ *   windowFocusChanged(boolean) / configurationChanged(Configuration)
+ *   newIntent(Intent) / injectEvent(InputEvent):boolean / getView():View
+ *
+ * A UnityPlayerActivity de fábrica usa onStart/onResume/onPause/onStop — NÃO os
+ * legados resume()/pause(). Seguimos o que ela faz.
  */
 class UnityHost(
     private val activity: Activity,
-    private val context: Context,
     private val loader: ClassLoader,
 ) {
     private lateinit var playerClass: Class<*>
     private lateinit var player: Any
+    private val methods = HashMap<String, Method?>()
 
-    fun create(): View {
+    var onQuit: (() -> Unit)? = null
+
+    /** @param context precisa ser a própria Activity (ver GameEnvironment). */
+    fun create(context: Context): View {
         playerClass = loader.loadClass("com.unity3d.player.UnityPlayer")
-        player = newPlayer()
-        return player as View
+        player = newPlayer(context)
+        return runCatching { method("getView")?.invoke(player) as? View }.getOrNull()
+            ?: player as View // UnityPlayer é um FrameLayout neste build
     }
 
-    private fun newPlayer(): Any {
+    private fun newPlayer(context: Context): Any {
         val lifecycle = runCatching {
             loader.loadClass("com.unity3d.player.IUnityPlayerLifecycleEvents")
         }.getOrNull()
+
         if (lifecycle != null) {
-            val proxy = Proxy.newProxyInstance(loader, arrayOf(lifecycle)) { _, method, _ ->
-                if (method.name == "onUnityPlayerQuitted") activity.finish()
+            val proxy = Proxy.newProxyInstance(loader, arrayOf(lifecycle)) { _, m, _ ->
+                // onUnityPlayerQuitted() / onUnityPlayerUnloaded()
+                if (m.name == "onUnityPlayerQuitted") onQuit?.invoke()
                 null
             }
-            val ctor = playerClass.getConstructor(Context::class.java, lifecycle)
-            return ctor.newInstance(context, proxy)
+            return playerClass.getConstructor(Context::class.java, lifecycle)
+                .newInstance(context, proxy)
         }
         return playerClass.getConstructor(Context::class.java).newInstance(context)
     }
 
-    fun resume() = call("resume")
-    fun pause() = call("pause")
+    // --- ciclo de vida ---
+    fun start() = call("onStart")
+    fun resume() = call("onResume")
+    fun pause() = call("onPause")
+    fun stop() = call("onStop")
     fun destroy() = call("destroy")
-    fun windowFocusChanged(focus: Boolean) = call("windowFocusChanged", focus)
-    fun configurationChanged(config: Configuration) = call("configurationChanged", config)
     fun lowMemory() = call("lowMemory")
+    fun windowFocusChanged(focus: Boolean) = call("windowFocusChanged", Boolean::class.java, focus)
+    fun configurationChanged(c: Configuration) = call("configurationChanged", Configuration::class.java, c)
+    fun newIntent(intent: Intent) = call("newIntent", Intent::class.java, intent)
 
-    private fun call(name: String, vararg args: Any) {
-        val types = args.map {
-            when (it) {
-                is Boolean -> java.lang.Boolean.TYPE
-                is Configuration -> Configuration::class.java
-                else -> it.javaClass
-            }
-        }.toTypedArray()
-        runCatching { playerClass.getMethod(name, *types).invoke(player, *args) }
+    /** Encaminha teclas/toque/motion, como a UnityPlayerActivity faz. */
+    fun injectEvent(event: InputEvent): Boolean =
+        runCatching {
+            method("injectEvent", InputEvent::class.java)?.invoke(player, event) as? Boolean
+        }.getOrNull() ?: false
+
+    // --- reflection ---
+    private fun method(name: String, vararg types: Class<*>): Method? {
+        val key = name + types.joinToString(",") { it.name }
+        return methods.getOrPut(key) {
+            runCatching { playerClass.getMethod(name, *types) }.getOrNull()
+        }
+    }
+
+    private fun call(name: String) {
+        runCatching { method(name)?.invoke(player) }
+    }
+
+    private fun <T> call(name: String, type: Class<*>, arg: T) {
+        runCatching { method(name, type)?.invoke(player, arg) }
     }
 }
