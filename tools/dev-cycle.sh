@@ -34,6 +34,7 @@ unzip -o -j app/build/outputs/apk/debug/app-debug.apk \
 echo "==> repackage"
 python tools/repack.py --apk refs/base.apk \
     --lib "$(cygpath -w "$SP/libbunny.so")" --dep "$(cygpath -w "$SP/libshadowhook.so")" \
+    --icon "$(cygpath -w "$ROOT/Icon.png")" \
     --out "$(cygpath -w "$ROOT/out/terraria-bunny.apk")" >/dev/null
 echo "    out/terraria-bunny.apk"
 

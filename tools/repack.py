@@ -48,9 +48,42 @@ def patch_needed(src, dst, needed):
     print(f"  libmain.so NEEDED: {', '.join(now)}")
 
 
-def rebuild_apk(apk, abi, patched_main, extra_libs, out_unsigned):
+def _png_size(data):
+    # width/height do cabecalho IHDR do PNG (big-endian em [16:24]).
+    import struct
+    return struct.unpack(">II", data[16:24])
+
+
+def _remap_icon(filename, orig_data, icon_img):
+    """Se `filename` for uma camada do icone adaptativo, devolve o PNG novo
+    (background = nosso icone redimensionado; foreground = transparente),
+    mantendo as dimensoes originais. Senao, devolve None."""
+    from PIL import Image
+    base = os.path.basename(filename)
+    if "mipmap" not in filename:
+        return None
+    w, h = _png_size(orig_data)
+    if base == "ic_launcher_background.png":
+        # Pixel-art: NEAREST pra nao borrar. Cena quadrada -> full-bleed.
+        layer = icon_img.convert("RGBA").resize((w, h), Image.NEAREST)
+    elif base == "ic_launcher_foreground.png":
+        layer = Image.new("RGBA", (w, h), (0, 0, 0, 0))  # transparente
+    else:
+        return None
+    import io
+    buf = io.BytesIO()
+    layer.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def rebuild_apk(apk, abi, patched_main, extra_libs, out_unsigned, icon_path=None):
     main_entry = f"lib/{abi}/libmain.so"
     add = {f"lib/{abi}/{os.path.basename(p)}": p for p in extra_libs}
+
+    icon_img = None
+    if icon_path:
+        from PIL import Image
+        icon_img = Image.open(icon_path)
 
     with zipfile.ZipFile(apk) as zin, \
          zipfile.ZipFile(out_unsigned, "w") as zout:
@@ -60,6 +93,12 @@ def rebuild_apk(apk, abi, patched_main, extra_libs, out_unsigned):
                item.filename.rsplit(".", 1)[-1] in ("RSA", "SF", "MF"):
                 continue
             data = patched_main if item.filename == main_entry else zin.read(item.filename)
+            # Troca as camadas do icone, se pedido.
+            if icon_img is not None:
+                new_icon = _remap_icon(item.filename, data, icon_img)
+                if new_icon is not None:
+                    data = new_icon
+                    print(f"  icone: {item.filename}")
             # Preserva o tipo de compressao original de cada entrada.
             zi = zipfile.ZipInfo(item.filename, date_time=item.date_time)
             zi.compress_type = item.compress_type
@@ -86,6 +125,8 @@ def main():
     ap.add_argument("--dep", required=True, help="libshadowhook.so (abi correta)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--abi", default="arm64-v8a")
+    ap.add_argument("--icon", default=None,
+                    help="PNG quadrado; vira o icone (camada de fundo adaptativa)")
     ap.add_argument("--build-tools", default=os.path.expandvars(
         r"$LOCALAPPDATA/Android/Sdk/build-tools/36.1.0"))
     ap.add_argument("--keystore", default="tools/debug.keystore")
@@ -117,7 +158,8 @@ def main():
         # 3. remonta
         print("remontando APK:")
         unsigned = os.path.join(tmp, "unsigned.apk")
-        rebuild_apk(args.apk, args.abi, patched_bytes, [args.lib, args.dep], unsigned)
+        rebuild_apk(args.apk, args.abi, patched_bytes, [args.lib, args.dep],
+                    unsigned, icon_path=args.icon)
 
         # 4. zipalign
         print("zipalign:")
