@@ -18,7 +18,15 @@ struct Vector2 { float x; float y; };
 
 // Pedido pendente de "dar item", setado de qualquer thread (UI) e consumido na
 // thread do jogo pelo hook de DoUpdate. 0 = nada pendente.
-std::atomic<int> g_pendingGive{0};
+// Empacotado num unico atomico (type << 32 | stack) para que tipo e quantidade
+// sejam publicados juntos — com dois atomicos o frame poderia ler o tipo novo
+// com a quantidade velha.
+std::atomic<uint64_t> g_pendingGive{0};
+
+uint64_t packGive(int type, int stack) {
+    return (static_cast<uint64_t>(static_cast<uint32_t>(type)) << 32) |
+           static_cast<uint32_t>(stack);
+}
 
 // Canal de DEV por arquivo (adb push). O do BOTAO e requestGive(), em processo.
 //
@@ -30,6 +38,7 @@ const std::string& cmdPath() { return config().cmdPath; }
 
 // Refs resolvidas uma vez.
 FieldInfo* g_playerField = nullptr;      // Terraria.Main.player  (Player[])
+FieldInfo* g_itemArrayField = nullptr;   // Terraria.Main.item    (Item[]) — diagnostico
 const MethodInfo* g_getMyPlayer = nullptr; // Main.get_myPlayer() — myPlayer e property
 const MethodInfo* g_newItem = nullptr;   // Item.NewItem(9 args, tudo primitivo)
 bool g_refsOk = false;
@@ -67,6 +76,7 @@ bool resolveCheatRefs() {
     if (!main || !item) { BL_ERROR("cheats: Main/Item nao resolvidos"); return false; }
 
     g_playerField = a.class_get_field_from_name(main, "player");
+    g_itemArrayField = a.class_get_field_from_name(main, "item");  // opcional
     g_getMyPlayer = a.class_get_method_from_name(main, "get_myPlayer", 0);
     // Overload so-primitivo: NewItem(X,Y,Width,Height,Type,Stack,noBroadcast,pfix,noGrabDelay)
     g_newItem = findPrimitiveNewItem(item);
@@ -100,11 +110,43 @@ void pollCommands() {
     if (std::strcmp(buf, g_lastCmd) == 0) return;
     std::strncpy(g_lastCmd, buf, sizeof(g_lastCmd) - 1);
 
-    // formato: "give <type>"
+    // formato: "give <type> [stack]"
     if (std::strncmp(buf, "give ", 5) == 0) {
-        int type = std::atoi(buf + 5);
-        if (type > 0) giveItem(type);
+        char* end = nullptr;
+        int type = static_cast<int>(std::strtol(buf + 5, &end, 10));
+        int stack = end ? static_cast<int>(std::strtol(end, nullptr, 10)) : 0;
+        if (type > 0) giveItem(type, stack > 0 ? stack : 1);
     }
+}
+
+// Diagnostico: o item recem-criado saiu com os defaults aplicados?
+//
+// Motivado por "itens do cheat vem sem tooltip, so o nome". Um item cujo
+// SetDefaults rodou tem damage/useTime/maxStack preenchidos; tudo zero aponta
+// para o item ter sido criado e nao inicializado. Le Main.item[idx] por offset
+// de campo, sem chamar nada do jogo.
+void describeSpawned(int idx) {
+    using namespace il2cpp;
+    if (!g_itemArrayField || idx < 0) return;
+    auto& a = api();
+
+    Il2CppArray* items = nullptr;
+    a.field_static_get_value(g_itemArrayField, &items);
+    if (!items) return;
+    auto** elems = reinterpret_cast<Il2CppObject**>(arrayData(items));
+    Il2CppObject* it = elems[idx];
+    if (!it) { BL_WARN("giveItem: item[%d] nulo apos NewItem", idx); return; }
+
+    Il2CppClass* cls = a.object_get_class(it);
+    auto readInt = [&](const char* name) -> int {
+        FieldInfo* f = findField(cls, name);
+        if (!f) return -1;
+        return *reinterpret_cast<int32_t*>(
+            reinterpret_cast<char*>(it) + a.field_get_offset(f));
+    };
+    BL_INFO("giveItem: item[%d] type=%d stack=%d maxStack=%d damage=%d useTime=%d",
+            idx, readInt("type"), readInt("stack"), readInt("maxStack"),
+            readInt("damage"), readInt("useTime"));
 }
 
 // Prova de que runtime_invoke chama codigo do jogo. Roda no PRIMEIRO DoUpdate,
@@ -125,18 +167,20 @@ void runSelftestOnce() {
 void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     runSelftestOnce();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
-    if (int type = g_pendingGive.exchange(0)) giveItem(type);
+    if (uint64_t req = g_pendingGive.exchange(0)) {
+        giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));
+    }
     pollCommands();  // canal por arquivo (dev/adb) continua valendo
     g_origDoUpdate(self, gt, m);
 }
 
 } // namespace
 
-void requestGive(int type) {
-    if (type > 0) g_pendingGive.store(type);
+void requestGive(int type, int stack) {
+    if (type > 0) g_pendingGive.store(packGive(type, stack > 0 ? stack : 1));
 }
 
-void giveItem(int type) {
+void giveItem(int type, int stack) {
     using namespace il2cpp;
     if (!g_refsOk) { BL_ERROR("cheats: refs nao prontas"); return; }
     auto& a = api();
@@ -153,14 +197,15 @@ void giveItem(int type) {
 
     Vector2 pos = field<Vector2>(p, game().entity.position);
     int x = static_cast<int>(pos.x), y = static_cast<int>(pos.y);
-    int w = 10, h = 10, t = type, stack = 1, pfix = 0;
+    int w = 10, h = 10, t = type, n = stack > 0 ? stack : 1, pfix = 0;
     uint8_t noBroadcast = 0, noGrab = 0;
-    void* args[9] = { &x, &y, &w, &h, &t, &stack, &noBroadcast, &pfix, &noGrab };
+    void* args[9] = { &x, &y, &w, &h, &t, &n, &noBroadcast, &pfix, &noGrab };
 
     Il2CppObject* exc = nullptr;
-    a.runtime_invoke(g_newItem, nullptr, args, &exc);
-    if (exc) BL_ERROR("giveItem: NewItem lancou excecao");
-    else BL_INFO("giveItem: type=%d dado em (%d,%d)", t, x, y);
+    int idx = unboxInt(a.runtime_invoke(g_newItem, nullptr, args, &exc));
+    if (exc) { BL_ERROR("giveItem: NewItem lancou excecao"); return; }
+    BL_INFO("giveItem: type=%d x%d dado em (%d,%d) -> item[%d]", t, n, x, y, idx);
+    describeSpawned(idx);
 }
 
 void installCheats() {

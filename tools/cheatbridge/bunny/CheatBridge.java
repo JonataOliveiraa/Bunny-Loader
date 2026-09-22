@@ -20,20 +20,35 @@ import android.widget.Toast;
 // funciona sozinho. Overlay ImGui via render-hook fica pra polimento futuro.
 public class CheatBridge {
 
-    // Implementado em C++ -> bl::runtime::requestGive(type).
-    public static native void nOnGive(int type);
+    // Implementado em C++ -> bl::runtime::requestGive(type, stack).
+    public static native void nOnGive(int type, int stack);
 
-    // Itens do menu v1 (curados do dump). Depois: picker completo + categorias
-    // populadas por mods (tl.cheatMenu).
+    // Itens do menu v1. IDs CONFERIDOS contra ItemID no dump de 1.4.5.6.4 —
+    // "Life Crystal" estava como 12, que e Minerio de Ferro; o certo e 29.
+    // Depois: picker completo + categorias populadas por mods (tl.cheatMenu).
+    //
+    // Arma sem municao nao atira, entao a lista traz balas, e empilhaveis vem
+    // com STACK cheio: uma bala de mosquete so nao serve pra nada.
     private static final String[] NAMES = {
         "Minishark", "Megashark", "Star Cannon", "Space Gun", "Muramasa",
         "Terra Blade", "Meowmere", "Zenith", "Demon Wings",
         "Life Crystal", "Mana Crystal", "Gravitation Potion",
+        "Musket Ball x999", "Silver Bullet x999", "Crystal Bullet x999",
+        "Endless Musket Pouch",
     };
     private static final int[] IDS = {
         98, 533, 197, 127, 155,
         757, 3063, 4956, 492,
-        12, 109, 305,
+        29, 109, 305,
+        97, 278, 515,
+        3104,
+    };
+    private static final int[] STACKS = {
+        1, 1, 1, 1, 1,
+        1, 1, 1, 1,
+        1, 1, 1,
+        999, 999, 999,
+        1,
     };
 
     public static void install(final Activity act) {
@@ -66,13 +81,14 @@ public class CheatBridge {
         list.setOrientation(LinearLayout.VERTICAL);
         for (int i = 0; i < NAMES.length; i++) {
             final int id = IDS[i];
+            final int stack = STACKS[i];
             final String name = NAMES[i];
             Button b = new Button(act);
             b.setText(name);
             b.setAllCaps(false);
             b.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
-                    nOnGive(id);
+                    nOnGive(id, stack);
                     Toast.makeText(act, name + " +1", Toast.LENGTH_SHORT).show();
                 }
             });
