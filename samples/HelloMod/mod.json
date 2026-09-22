@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "author": "Jonata",
   "blVersion": 1,
-  "gameVersion": [300543, 400000],
+  "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []
 }
