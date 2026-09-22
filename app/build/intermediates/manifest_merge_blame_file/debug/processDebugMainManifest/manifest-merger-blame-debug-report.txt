@@ -1,0 +1,220 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="dev.bunnyloader"
+4    android:versionCode="1"
+5    android:versionName="0.1.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="34" />
+10
+11    <!-- Precisamos consultar o pacote do Terraria instalado. -->
+12    <queries>
+12-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:5:5-9:15
+13        <package android:name="com.and.games505.TerrariaPaid" />
+13-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:6:9-65
+13-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:6:18-62
+14        <!--
+15        Variante gratuita, se for dar suporte:
+16        <package android:name="com.and.games505.TerrariaFree" />
+17        -->
+18    </queries>
+19
+20    <permission
+20-->[androidx.core:core:1.13.1] C:\Users\nadek\.gradle\caches\8.9\transforms\760927ce037121bf0feb73d12d96af7f\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+21        android:name="dev.bunnyloader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+21-->[androidx.core:core:1.13.1] C:\Users\nadek\.gradle\caches\8.9\transforms\760927ce037121bf0feb73d12d96af7f\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+22        android:protectionLevel="signature" />
+22-->[androidx.core:core:1.13.1] C:\Users\nadek\.gradle\caches\8.9\transforms\760927ce037121bf0feb73d12d96af7f\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+23
+24    <uses-permission android:name="dev.bunnyloader.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+24-->[androidx.core:core:1.13.1] C:\Users\nadek\.gradle\caches\8.9\transforms\760927ce037121bf0feb73d12d96af7f\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+24-->[androidx.core:core:1.13.1] C:\Users\nadek\.gradle\caches\8.9\transforms\760927ce037121bf0feb73d12d96af7f\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+25
+26    <application
+26-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:11:5-54:19
+27        android:allowBackup="true"
+27-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:12:9-35
+28        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+28-->[androidx.core:core:1.13.1] C:\Users\nadek\.gradle\caches\8.9\transforms\760927ce037121bf0feb73d12d96af7f\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+29        android:debuggable="true"
+30        android:extractNativeLibs="true"
+30-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:14:9-41
+31        android:isGame="true"
+31-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:16:9-30
+32        android:label="@string/app_name"
+32-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:13:9-41
+33        android:largeHeap="true"
+33-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:15:9-33
+34        android:testOnly="true"
+35        android:theme="@style/Theme.BunnyLoader" >
+35-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:17:9-49
+36
+37        <!--
+38             A Unity le estes meta-data do pacote HOSPEDEIRO (o nosso), via
+39             PackageManager. Copiados do manifest do Terraria para a UnityPlayer
+40             se comportar igual ao jogo original.
+41        -->
+42        <meta-data
+42-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:22:9-73
+43            android:name="unity.splash-mode"
+43-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:22:20-52
+44            android:value="1" />
+44-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:22:53-70
+45        <meta-data
+45-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:23:9-78
+46            android:name="unity.splash-enable"
+46-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:23:20-54
+47            android:value="true" />
+47-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:23:55-75
+48        <meta-data
+48-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:24:9-82
+49            android:name="unity.launch-fullscreen"
+49-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:24:20-58
+50            android:value="true" />
+50-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:24:59-79
+51        <meta-data
+51-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:25:9-88
+52            android:name="unity.auto-report-fully-drawn"
+52-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:25:20-64
+53            android:value="true" />
+53-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:25:65-85
+54        <meta-data
+54-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:26:9-85
+55            android:name="notch.config"
+55-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:26:20-47
+56            android:value="portrait|landscape" />
+56-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:26:48-82
+57
+58        <activity
+58-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:28:9-35:20
+59            android:name="dev.bunnyloader.LauncherActivity"
+59-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:29:13-45
+60            android:exported="true" >
+60-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:30:13-36
+61            <intent-filter>
+61-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:31:13-34:29
+62                <action android:name="android.intent.action.MAIN" />
+62-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:32:17-69
+62-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:32:25-66
+63
+64                <category android:name="android.intent.category.LAUNCHER" />
+64-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:33:17-77
+64-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:33:27-74
+65            </intent-filter>
+66        </activity>
+67
+68        <!--
+69             Config espelhada da com.unity3d.player.UnityPlayerActivity do jogo
+70             (launchMode=singleTask, sensorLandscape, hardwareAccelerated=false,
+71             resizeableActivity=false). Roda em processo separado: fechar o jogo
+72             destrói Unity+IL2CPP+VM sem derrubar a UI do launcher.
+73        -->
+74        <activity
+74-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:41:9-53:20
+75            android:name="dev.bunnyloader.GameActivity"
+75-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:42:13-41
+76            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
+76-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:49:13-194
+77            android:exported="false"
+77-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:43:13-37
+78            android:hardwareAccelerated="false"
+78-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:47:13-48
+79            android:launchMode="singleTask"
+79-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:45:13-44
+80            android:process=":game"
+80-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:44:13-36
+81            android:resizeableActivity="false"
+81-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:48:13-47
+82            android:screenOrientation="sensorLandscape"
+82-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:46:13-56
+83            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+83-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:50:13-71
+84            <meta-data
+84-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:51:13-88
+85                android:name="unityplayer.UnityActivity"
+85-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:51:24-64
+86                android:value="true" />
+86-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:51:65-85
+87            <meta-data
+87-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:52:13-84
+88                android:name="android.notch_support"
+88-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:52:24-60
+89                android:value="true" />
+89-->C:\Scripts\Bunny Loader\app\src\main\AndroidManifest.xml:52:61-81
+90        </activity>
+91        <activity
+91-->[androidx.compose.ui:ui-tooling-android:1.7.2] C:\Users\nadek\.gradle\caches\8.9\transforms\508bef547373c15debe11e277b39212b\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+92            android:name="androidx.compose.ui.tooling.PreviewActivity"
+92-->[androidx.compose.ui:ui-tooling-android:1.7.2] C:\Users\nadek\.gradle\caches\8.9\transforms\508bef547373c15debe11e277b39212b\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+93            android:exported="true" />
+93-->[androidx.compose.ui:ui-tooling-android:1.7.2] C:\Users\nadek\.gradle\caches\8.9\transforms\508bef547373c15debe11e277b39212b\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+94
+95        <provider
+95-->[androidx.emoji2:emoji2:1.3.0] C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+96            android:name="androidx.startup.InitializationProvider"
+96-->[androidx.emoji2:emoji2:1.3.0] C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+97            android:authorities="dev.bunnyloader.androidx-startup"
+97-->[androidx.emoji2:emoji2:1.3.0] C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+98            android:exported="false" >
+98-->[androidx.emoji2:emoji2:1.3.0] C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+99            <meta-data
+99-->[androidx.emoji2:emoji2:1.3.0] C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+100                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+100-->[androidx.emoji2:emoji2:1.3.0] C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+101                android:value="androidx.startup" />
+101-->[androidx.emoji2:emoji2:1.3.0] C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+102            <meta-data
+102-->[androidx.lifecycle:lifecycle-process:2.8.6] C:\Users\nadek\.gradle\caches\8.9\transforms\1e1853fe35ab87d082c698db0558998f\transformed\lifecycle-process-2.8.6\AndroidManifest.xml:29:13-31:52
+103                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+103-->[androidx.lifecycle:lifecycle-process:2.8.6] C:\Users\nadek\.gradle\caches\8.9\transforms\1e1853fe35ab87d082c698db0558998f\transformed\lifecycle-process-2.8.6\AndroidManifest.xml:30:17-78
+104                android:value="androidx.startup" />
+104-->[androidx.lifecycle:lifecycle-process:2.8.6] C:\Users\nadek\.gradle\caches\8.9\transforms\1e1853fe35ab87d082c698db0558998f\transformed\lifecycle-process-2.8.6\AndroidManifest.xml:31:17-49
+105            <meta-data
+105-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+106                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+106-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+107                android:value="androidx.startup" />
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+108        </provider>
+109
+110        <receiver
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+111            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+111-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+112            android:directBootAware="false"
+112-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+113            android:enabled="true"
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+114            android:exported="true"
+114-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+115            android:permission="android.permission.DUMP" >
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+116            <intent-filter>
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+117                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+117-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+117-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+118            </intent-filter>
+119            <intent-filter>
+119-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+120                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+120-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+121            </intent-filter>
+122            <intent-filter>
+122-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+123                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+123-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+123-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+124            </intent-filter>
+125            <intent-filter>
+125-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+126                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+126-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+126-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+127            </intent-filter>
+128        </receiver>
+129    </application>
+130
+131</manifest>

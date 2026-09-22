@@ -1,6 +1,7 @@
 package dev.bunnyloader
 
 import android.app.Activity
+import android.content.ComponentCallbacks2
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.res.AssetManager
@@ -8,12 +9,14 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.os.Bundle
 import android.os.Process
+import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Window
 import android.widget.Toast
 import dev.bunnyloader.game.GameEnvironment
 import dev.bunnyloader.game.GameInstall
+import dev.bunnyloader.game.PairipBootstrap
 import dev.bunnyloader.game.UnityHost
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.nativebridge.NativeBridge
@@ -27,9 +30,6 @@ import java.io.File
  * assets, ApplicationInfo e ClassLoader do jogo nos próprios getters. Isso é
  * obrigatório — a UnityPlayer faz `instanceof Activity` direto no Context, sem
  * desembrulhar ContextWrapper (ver GameEnvironment).
- *
- * O ciclo de vida e o encaminhamento de input reproduzem a
- * com.unity3d.player.UnityPlayerActivity de fábrica, conferida no dex do jogo.
  */
 class GameActivity : Activity() {
 
@@ -39,8 +39,7 @@ class GameActivity : Activity() {
 
     // --- Context do jogo -----------------------------------------------------
     // Enquanto env for null (durante super.onCreate), cai no comportamento
-    // normal do launcher. O tema da Activity é de framework, então não depende
-    // dos nossos recursos.
+    // normal do launcher. O tema da Activity vem do framework.
 
     override fun getResources(): Resources = env?.resources ?: super.getResources()
 
@@ -54,41 +53,92 @@ class GameActivity : Activity() {
             .also { gameAppInfo = it }
     }
 
+    // O VMRunner do PairIP abre o APK por estes caminhos para ler os programas
+    // da VM; precisam apontar para o do jogo, nao para o nosso.
+    override fun getPackageCodePath(): String =
+        env?.install?.apkPath ?: super.getPackageCodePath()
+
+    override fun getPackageResourcePath(): String =
+        env?.install?.apkPath ?: super.getPackageResourcePath()
+
     // --- boot ----------------------------------------------------------------
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
+        Log.i(TAG, "=== GameActivity.onCreate ===")
 
         val install = GameInstall.locate(this)
-            ?: return finishWithError("Terraria não encontrado")
+        if (install == null) {
+            fail("Terraria nao encontrado", null)
+            return
+        }
+        Log.i(TAG, "jogo: ${install.packageName} v${install.versionCode} abi=${install.abi}")
+        Log.i(TAG, "  apk=${install.apkPath}")
+        Log.i(TAG, "  libs=${install.nativeLibDir}")
+        dumpNativeLibs(install)
 
         startNativeCore(install)
 
-        val environment = runCatching {
+        val environment = try {
             GameEnvironment.create(this, install, codeCacheDir)
-        }.getOrElse { return finishWithError("Falha ao abrir os recursos do jogo: ${it.message}") }
+        } catch (t: Throwable) {
+            fail("Falha ao abrir os recursos do jogo", t)
+            return
+        }
         env = environment
+        Log.i(TAG, "GameEnvironment pronto (classLoader=${environment.classLoader})")
+
+        // Precisa vir ANTES da Unity: sem isso as constantes de string do jogo
+        // ficam nulas e a UnityPlayer estoura em getSystemService(null).
+        try {
+            PairipBootstrap.run(environment.classLoader, this)
+        } catch (t: Throwable) {
+            fail("Falha no bootstrap do PairIP", t)
+            return
+        }
 
         val unity = UnityHost(this, environment.classLoader)
         unity.onQuit = { finish() }
 
-        val view = runCatching { unity.create(this) }
-            .getOrElse { return finishWithError("Falha ao criar a UnityPlayer: ${it.message}") }
+        val view = try {
+            unity.create(this)
+        } catch (t: Throwable) {
+            fail("Falha ao criar a UnityPlayer", t)
+            return
+        }
 
         host = unity
         setContentView(view)
         view.requestFocus()
+        Log.i(TAG, "=== UnityPlayer no ar ===")
+    }
+
+    /** Confirma que as .so que a Unity vai carregar estao onde dizemos que estao. */
+    private fun dumpNativeLibs(install: GameInstall) {
+        val dir = File(install.nativeLibDir)
+        Log.i(TAG, "libs existe=${dir.isDirectory} legivel=${dir.canRead()}")
+        val names = dir.list()
+        if (names == null) {
+            Log.w(TAG, "  nao foi possivel listar ${dir.absolutePath}")
+            return
+        }
+        for (name in names.sorted()) {
+            val f = File(dir, name)
+            Log.i(TAG, "  $name (${f.length()} bytes, legivel=${f.canRead()})")
+        }
     }
 
     /**
      * Fase 2+. Precisa rodar ANTES da Unity carregar a libil2cpp.so, para o
-     * watcher pendente de il2cpp_init já estar registrado. Falha aqui não é
+     * watcher pendente de il2cpp_init ja estar registrado. Falha aqui nao e
      * fatal: o jogo sobe sem mods.
      */
     private fun startNativeCore(install: GameInstall) {
-        if (!NativeBridge.ensureLoaded()) return
-
+        if (!NativeBridge.ensureLoaded()) {
+            Log.i(TAG, "nucleo nativo ausente (bl.nativeBuild=false) - seguindo sem mods")
+            return
+        }
         val repo = ModRepository(this)
         val logDir = File(filesDir, "logs").apply { mkdirs() }
         val ok = runCatching {
@@ -101,10 +151,10 @@ class GameActivity : Activity() {
                     gameVersion = install.versionCode,
                 ),
             )
-        }.getOrDefault(false)
+        }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)
 
         if (!ok) {
-            Toast.makeText(this, "Núcleo não iniciado — rodando sem mods", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Nucleo nao iniciado - rodando sem mods", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -116,10 +166,12 @@ class GameActivity : Activity() {
     override fun onStop() { super.onStop(); host?.stop() }
 
     override fun onDestroy() {
+        val hadHost = host != null
         host?.destroy()
         super.onDestroy()
-        // Processo :game dedicado: derruba Unity + IL2CPP + VM de uma vez.
-        Process.killProcess(Process.myPid())
+        // So derruba o processo se a Unity chegou a subir; num erro de boot,
+        // matar na hora atrapalha a leitura do log.
+        if (hadHost) Process.killProcess(Process.myPid())
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -142,11 +194,10 @@ class GameActivity : Activity() {
 
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
-        if (level >= android.content.ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) host?.lowMemory()
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL) host?.lowMemory()
     }
 
     // --- input ---------------------------------------------------------------
-    // A UnityPlayerActivity encaminha tudo via injectEvent.
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.action == KeyEvent.ACTION_MULTIPLE && host?.injectEvent(event) == true) return true
@@ -167,8 +218,10 @@ class GameActivity : Activity() {
 
     // -------------------------------------------------------------------------
 
-    private fun finishWithError(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+    private fun fail(what: String, t: Throwable?) {
+        if (t != null) logFailure(what, t) else Log.e(TAG, "FALHA em $what")
+        val detail = t?.describe() ?: "sem detalhes"
+        Toast.makeText(this, "$what: $detail", Toast.LENGTH_LONG).show()
         finish()
     }
 }

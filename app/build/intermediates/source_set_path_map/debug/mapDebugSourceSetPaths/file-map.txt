@@ -1,0 +1,48 @@
+dev.bunnyloader.app-pngs-0 C:\Scripts\Bunny Loader\app\build\generated\res\pngs\debug
+dev.bunnyloader.app-resValues-1 C:\Scripts\Bunny Loader\app\build\generated\res\resValues\debug
+dev.bunnyloader.app-packageDebugResources-2 C:\Scripts\Bunny Loader\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+dev.bunnyloader.app-packageDebugResources-3 C:\Scripts\Bunny Loader\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+dev.bunnyloader.app-debug-4 C:\Scripts\Bunny Loader\app\build\intermediates\merged_res\debug\mergeDebugResources
+dev.bunnyloader.app-debug-5 C:\Scripts\Bunny Loader\app\src\debug\res
+dev.bunnyloader.app-main-6 C:\Scripts\Bunny Loader\app\src\main\res
+dev.bunnyloader.app-core-runtime-2.2.0-7 C:\Users\nadek\.gradle\caches\8.9\transforms\1818a543fd4d876f8726399b5234329b\transformed\core-runtime-2.2.0\res
+dev.bunnyloader.app-lifecycle-process-2.8.6-8 C:\Users\nadek\.gradle\caches\8.9\transforms\1e1853fe35ab87d082c698db0558998f\transformed\lifecycle-process-2.8.6\res
+dev.bunnyloader.app-ui-tooling-preview-release-9 C:\Users\nadek\.gradle\caches\8.9\transforms\22f6e9b385ca530aa60c880d4a44fd3f\transformed\ui-tooling-preview-release\res
+dev.bunnyloader.app-savedstate-ktx-1.2.1-10 C:\Users\nadek\.gradle\caches\8.9\transforms\2436f76bb22b17af66675b9e4565230f\transformed\savedstate-ktx-1.2.1\res
+dev.bunnyloader.app-animation-release-11 C:\Users\nadek\.gradle\caches\8.9\transforms\2b0152d450f02694b46e6e0f7c42ff6b\transformed\animation-release\res
+dev.bunnyloader.app-emoji2-1.3.0-12 C:\Users\nadek\.gradle\caches\8.9\transforms\2fb02624f0df7793c970cb5db616eb8e\transformed\emoji2-1.3.0\res
+dev.bunnyloader.app-savedstate-1.2.1-13 C:\Users\nadek\.gradle\caches\8.9\transforms\418f2a6c7219f1a125d1cceffac07cfc\transformed\savedstate-1.2.1\res
+dev.bunnyloader.app-lifecycle-runtime-compose-release-14 C:\Users\nadek\.gradle\caches\8.9\transforms\4c825d790d0c00f0afb0dc22d50de3ad\transformed\lifecycle-runtime-compose-release\res
+dev.bunnyloader.app-lifecycle-viewmodel-release-15 C:\Users\nadek\.gradle\caches\8.9\transforms\4c89f234c428523c8596e4189b90145e\transformed\lifecycle-viewmodel-release\res
+dev.bunnyloader.app-ui-tooling-release-16 C:\Users\nadek\.gradle\caches\8.9\transforms\508bef547373c15debe11e277b39212b\transformed\ui-tooling-release\res
+dev.bunnyloader.app-customview-poolingcontainer-1.0.0-17 C:\Users\nadek\.gradle\caches\8.9\transforms\514a31b6669908a119745568bba6866c\transformed\customview-poolingcontainer-1.0.0\res
+dev.bunnyloader.app-lifecycle-livedata-core-2.8.6-18 C:\Users\nadek\.gradle\caches\8.9\transforms\5429c3a0edc14e2e0c31296a0e3f8050\transformed\lifecycle-livedata-core-2.8.6\res
+dev.bunnyloader.app-ui-geometry-release-19 C:\Users\nadek\.gradle\caches\8.9\transforms\5b7ea2878eb7baba9bf1ac4d019d0ea4\transformed\ui-geometry-release\res
+dev.bunnyloader.app-foundation-release-20 C:\Users\nadek\.gradle\caches\8.9\transforms\5dedde1f9ea6cba54dfd79e3d5cfe88d\transformed\foundation-release\res
+dev.bunnyloader.app-profileinstaller-1.3.1-21 C:\Users\nadek\.gradle\caches\8.9\transforms\607e2e816a4617ee68c805d015728236\transformed\profileinstaller-1.3.1\res
+dev.bunnyloader.app-material-ripple-release-22 C:\Users\nadek\.gradle\caches\8.9\transforms\61b1b9012b90c2bb0d40c7b75f74e4c3\transformed\material-ripple-release\res
+dev.bunnyloader.app-activity-compose-1.9.2-23 C:\Users\nadek\.gradle\caches\8.9\transforms\686ee44f550b38d9e4904a08fc5a67bd\transformed\activity-compose-1.9.2\res
+dev.bunnyloader.app-annotation-experimental-1.4.1-24 C:\Users\nadek\.gradle\caches\8.9\transforms\7380a05281deb7de6ca0cbae4f48d1a3\transformed\annotation-experimental-1.4.1\res
+dev.bunnyloader.app-core-1.13.1-25 C:\Users\nadek\.gradle\caches\8.9\transforms\760927ce037121bf0feb73d12d96af7f\transformed\core-1.13.1\res
+dev.bunnyloader.app-graphics-path-1.0.1-26 C:\Users\nadek\.gradle\caches\8.9\transforms\79661ab19543cadef4606ff3a15271f6\transformed\graphics-path-1.0.1\res
+dev.bunnyloader.app-ui-unit-release-27 C:\Users\nadek\.gradle\caches\8.9\transforms\7e0713d4e8eedfa57269b0ae4f47aeee\transformed\ui-unit-release\res
+dev.bunnyloader.app-animation-core-release-28 C:\Users\nadek\.gradle\caches\8.9\transforms\851d51fe704b3d5fb21f67f1e7de2187\transformed\animation-core-release\res
+dev.bunnyloader.app-ui-util-release-29 C:\Users\nadek\.gradle\caches\8.9\transforms\87e4d4b8c4077a9ed4e9d2c1d5f77cce\transformed\ui-util-release\res
+dev.bunnyloader.app-lifecycle-runtime-release-30 C:\Users\nadek\.gradle\caches\8.9\transforms\92ec12b1b1896a7a19be9de462ae1b9c\transformed\lifecycle-runtime-release\res
+dev.bunnyloader.app-ui-graphics-release-31 C:\Users\nadek\.gradle\caches\8.9\transforms\9569523913cca984d6060b34c467d054\transformed\ui-graphics-release\res
+dev.bunnyloader.app-lifecycle-viewmodel-savedstate-2.8.6-32 C:\Users\nadek\.gradle\caches\8.9\transforms\9e14dd30cbe75ad139b07a3ed017f7f3\transformed\lifecycle-viewmodel-savedstate-2.8.6\res
+dev.bunnyloader.app-material3-release-33 C:\Users\nadek\.gradle\caches\8.9\transforms\a0de9c947a8a32a051f7ed7cb5438737\transformed\material3-release\res
+dev.bunnyloader.app-lifecycle-runtime-ktx-release-34 C:\Users\nadek\.gradle\caches\8.9\transforms\ac5a7fe76d0b66c7c6863ad0cc97b6f4\transformed\lifecycle-runtime-ktx-release\res
+dev.bunnyloader.app-material-icons-core-release-35 C:\Users\nadek\.gradle\caches\8.9\transforms\af54d36ea6c63d1de34263df414148c4\transformed\material-icons-core-release\res
+dev.bunnyloader.app-core-ktx-1.13.1-36 C:\Users\nadek\.gradle\caches\8.9\transforms\b122a2dde4d44222295004856aa93be4\transformed\core-ktx-1.13.1\res
+dev.bunnyloader.app-material-release-37 C:\Users\nadek\.gradle\caches\8.9\transforms\b2d880dc8a2db407de4043a2aafbcee2\transformed\material-release\res
+dev.bunnyloader.app-runtime-saveable-release-38 C:\Users\nadek\.gradle\caches\8.9\transforms\c2460ba3a9dbcf52ab44e4801c012916\transformed\runtime-saveable-release\res
+dev.bunnyloader.app-startup-runtime-1.1.1-39 C:\Users\nadek\.gradle\caches\8.9\transforms\c5b74af0965e7609a2c74d979d98652f\transformed\startup-runtime-1.1.1\res
+dev.bunnyloader.app-ui-text-release-40 C:\Users\nadek\.gradle\caches\8.9\transforms\cef7abcec7248145290606c1d1cd0bec\transformed\ui-text-release\res
+dev.bunnyloader.app-runtime-release-41 C:\Users\nadek\.gradle\caches\8.9\transforms\df0db0b79dde9d192ed124615e737e4b\transformed\runtime-release\res
+dev.bunnyloader.app-lifecycle-viewmodel-ktx-2.8.6-42 C:\Users\nadek\.gradle\caches\8.9\transforms\e6ff22999338f584fa4780873c706d40\transformed\lifecycle-viewmodel-ktx-2.8.6\res
+dev.bunnyloader.app-activity-1.9.2-43 C:\Users\nadek\.gradle\caches\8.9\transforms\e8fe3f6e5d7fb939bd3d3522c2683222\transformed\activity-1.9.2\res
+dev.bunnyloader.app-foundation-layout-release-44 C:\Users\nadek\.gradle\caches\8.9\transforms\e993ad63d22b35e4ad1ed30bec5a3307\transformed\foundation-layout-release\res
+dev.bunnyloader.app-ui-tooling-data-release-45 C:\Users\nadek\.gradle\caches\8.9\transforms\ee3ea6d29529ec147c5e9577ae2e089b\transformed\ui-tooling-data-release\res
+dev.bunnyloader.app-activity-ktx-1.9.2-46 C:\Users\nadek\.gradle\caches\8.9\transforms\f54d53fa8f4dcf80dc71dc9ce65ad4bf\transformed\activity-ktx-1.9.2\res
+dev.bunnyloader.app-ui-release-47 C:\Users\nadek\.gradle\caches\8.9\transforms\fcb5a0ef83ef9910e366183f9df0ad33\transformed\ui-release\res

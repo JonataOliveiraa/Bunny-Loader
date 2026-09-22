@@ -4,8 +4,12 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.util.Log
 import android.view.InputEvent
 import android.view.View
+import dev.bunnyloader.TAG
+import dev.bunnyloader.describe
+import dev.bunnyloader.rootCause
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 
@@ -15,14 +19,13 @@ import java.lang.reflect.Proxy
  *
  * Assinaturas conferidas no dex de Terraria 1.4.5.6.4 (Unity 2021.3.56f2):
  *   UnityPlayer extends android.widget.FrameLayout
- *   <init>(Context)
- *   <init>(Context, IUnityPlayerLifecycleEvents)
+ *   <init>(Context) / <init>(Context, IUnityPlayerLifecycleEvents)
  *   onStart/onResume/onPause/onStop/destroy/quit/lowMemory : ()V
  *   windowFocusChanged(boolean) / configurationChanged(Configuration)
  *   newIntent(Intent) / injectEvent(InputEvent):boolean / getView():View
  *
  * A UnityPlayerActivity de fábrica usa onStart/onResume/onPause/onStop — NÃO os
- * legados resume()/pause(). Seguimos o que ela faz.
+ * legados resume()/pause(). Seguimos a de fábrica.
  */
 class UnityHost(
     private val activity: Activity,
@@ -34,12 +37,28 @@ class UnityHost(
 
     var onQuit: (() -> Unit)? = null
 
-    /** @param context precisa ser a própria Activity (ver GameEnvironment). */
+    /**
+     * @param context precisa ser a própria Activity (ver GameEnvironment).
+     * @throws Throwable já desembrulhado — reflection esconde a causa real
+     *   dentro de InvocationTargetException, que tem message nula.
+     */
     fun create(context: Context): View {
-        playerClass = loader.loadClass("com.unity3d.player.UnityPlayer")
+        Log.i(TAG, "UnityHost: carregando com.unity3d.player.UnityPlayer")
+        playerClass = try {
+            loader.loadClass("com.unity3d.player.UnityPlayer")
+        } catch (t: Throwable) {
+            throw IllegalStateException("nao carregou a classe UnityPlayer: ${t.describe()}", t)
+        }
+        Log.i(TAG, "UnityHost: classe ok (super=${playerClass.superclass?.name})")
+
         player = newPlayer(context)
-        return runCatching { method("getView")?.invoke(player) as? View }.getOrNull()
-            ?: player as View // UnityPlayer é um FrameLayout neste build
+        Log.i(TAG, "UnityHost: UnityPlayer instanciada")
+
+        val view = runCatching { method("getView")?.invoke(player) as? View }.getOrNull()
+            ?: player as? View
+            ?: error("UnityPlayer nao e uma View e getView() nao respondeu")
+        Log.i(TAG, "UnityHost: view obtida (${view.javaClass.name})")
+        return view
     }
 
     private fun newPlayer(context: Context): Any {
@@ -47,16 +66,24 @@ class UnityHost(
             loader.loadClass("com.unity3d.player.IUnityPlayerLifecycleEvents")
         }.getOrNull()
 
-        if (lifecycle != null) {
-            val proxy = Proxy.newProxyInstance(loader, arrayOf(lifecycle)) { _, m, _ ->
-                // onUnityPlayerQuitted() / onUnityPlayerUnloaded()
-                if (m.name == "onUnityPlayerQuitted") onQuit?.invoke()
-                null
+        try {
+            if (lifecycle != null) {
+                val proxy = Proxy.newProxyInstance(loader, arrayOf(lifecycle)) { _, m, _ ->
+                    // onUnityPlayerQuitted() / onUnityPlayerUnloaded()
+                    Log.i(TAG, "UnityPlayer lifecycle: ${m.name}")
+                    if (m.name == "onUnityPlayerQuitted") onQuit?.invoke()
+                    null
+                }
+                Log.i(TAG, "UnityHost: ctor(Context, IUnityPlayerLifecycleEvents)")
+                return playerClass.getConstructor(Context::class.java, lifecycle)
+                    .newInstance(context, proxy)
             }
-            return playerClass.getConstructor(Context::class.java, lifecycle)
-                .newInstance(context, proxy)
+            Log.i(TAG, "UnityHost: ctor(Context)")
+            return playerClass.getConstructor(Context::class.java).newInstance(context)
+        } catch (t: Throwable) {
+            // Desembrulha aqui: quem chama precisa da causa, não do wrapper.
+            throw t.rootCause()
         }
-        return playerClass.getConstructor(Context::class.java).newInstance(context)
     }
 
     // --- ciclo de vida ---
@@ -86,9 +113,11 @@ class UnityHost(
 
     private fun call(name: String) {
         runCatching { method(name)?.invoke(player) }
+            .onFailure { Log.w(TAG, "UnityPlayer.$name() falhou: ${it.describe()}") }
     }
 
     private fun <T> call(name: String, type: Class<*>, arg: T) {
         runCatching { method(name, type)?.invoke(player, arg) }
+            .onFailure { Log.w(TAG, "UnityPlayer.$name() falhou: ${it.describe()}") }
     }
 }

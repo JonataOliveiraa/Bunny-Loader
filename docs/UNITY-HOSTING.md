@@ -109,3 +109,68 @@ A Unity lê `unity.splash-mode`, `unity.splash-enable`, `unity.launch-fullscreen
 `unity.auto-report-fully-drawn`, `notch.config` e `android.notch_support` do
 pacote **hospedeiro** via PackageManager — ou seja, do *nosso* manifest.
 Por isso eles estão replicados lá.
+
+---
+
+# CORRECAO IMPORTANTE (sessao seguinte)
+
+A secao 1 acima estava **certa sobre a protecao de VM e errada sobre o que
+importava**. Contar chamadas a `VMRunner.invoke` mede so uma das duas coisas que
+o PairIP faz. A outra derruba a abordagem.
+
+## O PairIP criptografa as constantes de string do app inteiro
+
+Elas moram em classes-deposito injetadas que nao tem **nenhum metodo**. Exemplo
+real, `uk.co.drstudios.lvl.yh.sHQPfQqKk`: 13 campos `public static String`,
+zero metodos, zero `<clinit>`. Alguem de fora preenche em runtime.
+
+Sem esse alguem, codigo trivial quebra em lugares improvaveis:
+
+```
+UnityPlayer.getNaturalOrientation():
+    iget-object   v0, v3, UnityPlayer.mContext
+    sget-object   v1, sHQPfQqKk.pPb              <- deveria ser "window", esta null
+    invoke-virtual Context.getSystemService(v1)  -> null
+    invoke-interface WindowManager.getDefaultDisplay()  -> NullPointerException
+```
+
+## Chamar o StartupLauncher direto NAO resolve
+
+A ideia era acionar so a descriptografia, sem passar pelo `attachBaseContext`
+(onde vive o `SignatureCheck`). Implementado em `PairipBootstrap`. Resultado
+medido no dispositivo:
+
+```
+PairIP: antes do bootstrap, sHQPfQqKk.pPb = null
+PairIP: VMRunner carregada (libpairipcore ok)
+PairIP: VMRunner.setContext() ok
+PairIP: StartupLauncher.launch() ok
+PairIP: depois do bootstrap, sHQPfQqKk.pPb = null
+```
+
+Tudo "ok", nada populado, e no mesmo milissegundo. O motivo esta no dex:
+
+```
+com.pairip.VMRunner.invoke:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;
+    0000: const/4       v0, #int 0
+    0001: return-object v0      <- retorna null na primeira instrucao
+    0002: sget-object   v0, VMRunner.context   <- corpo real, inalcancavel
+```
+
+O `invoke` gravado no dex e um **stub**. O corpo verdadeiro comeca no offset
+0002 e nunca roda. A `libpairipcore.so` reescreve esse metodo em memoria quando
+inicializada pelo caminho legitimo do app. Carregar a lib (o que acontece no
+`<clinit>` do VMRunner) nao e suficiente.
+
+## Consequencia para a arquitetura
+
+Hospedar a `UnityPlayer` dentro do nosso processo exige fazer o processo passar
+por legitimo para a `libpairipcore.so`. Isso e fragil e quebra a cada
+atualizacao do jogo.
+
+A alternativa e inverter o desenho: em vez de **hospedar** o jogo, **lancar** o
+jogo no processo dele (onde o PairIP inicializa normalmente e as strings sao
+populadas) e injetar a `libbunny.so` nesse processo. O custo e que injecao em
+processo alheio pede root.
+
+Decisao pendente.
