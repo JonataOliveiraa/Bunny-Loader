@@ -1,0 +1,17 @@
+# Normaliza finais de linha: LF no repositorio para tudo que e texto.
+* text=auto eol=lf
+
+# Scripts que rodam no Android/Linux precisam de LF mesmo no checkout.
+*.sh  text eol=lf
+gradlew text eol=lf
+
+# Binarios: nunca mexer.
+*.png   binary
+*.jpg   binary
+*.ttf   binary
+*.TTF   binary
+*.jar   binary
+*.apk   binary
+*.so    binary
+*.dat   binary
+*.dll   binary
