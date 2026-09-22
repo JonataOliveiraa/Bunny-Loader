@@ -29,6 +29,15 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- A Unity lê estes meta-data do pacote HOSPEDEIRO (o nosso) via
+             PackageManager, então precisam existir aqui. Copiados do manifest
+             do Terraria. Ver docs/UNITY-HOSTING.md §5. -->
+        <meta-data android:name="unity.splash-mode" android:value="1" />
+        <meta-data android:name="unity.splash-enable" android:value="true" />
+        <meta-data android:name="unity.launch-fullscreen" android:value="true" />
+        <meta-data android:name="unity.auto-report-fully-drawn" android:value="true" />
+        <meta-data android:name="notch.config" android:value="portrait|landscape" />
+
         <activity
             android:name=".LauncherActivity"
             android:exported="true">
@@ -36,6 +45,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!-- Hospeda o Terraria no NOSSO processo. Config espelhada da
+             com.unity3d.player.UnityPlayerActivity do jogo. Processo separado:
+             fechar o jogo derruba Unity+IL2CPP sem matar a UI do launcher. -->
+        <activity
+            android:name=".GameActivity"
+            android:exported="false"
+            android:process=":game"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
+            android:hardwareAccelerated="false"
+            android:resizeableActivity="false"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|fontScale|layoutDirection|density"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
+            <meta-data android:name="unityplayer.UnityActivity" android:value="true" />
+            <meta-data android:name="android.notch_support" android:value="true" />
         </activity>
     </application>
 </manifest>

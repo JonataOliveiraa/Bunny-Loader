@@ -151,11 +151,18 @@ private fun LauncherScreen() {
             modifier = Modifier.padding(top = 12.dp),
         ) { Text("Verificar de novo") }
 
-        // ESTÁGIO 0: spike do PairIP (roda o boot do jogo no NOSSO processo).
+        // ESTÁGIO 2: hospedar o Terraria no NOSSO processo (um app só).
+        Button(
+            onClick = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },
+            enabled = !busy,
+            modifier = Modifier.padding(top = 24.dp),
+        ) { Text("Jogar (hospedado)") }
+
+        // ESTÁGIO 0: spike do PairIP (diagnóstico).
         Button(
             onClick = { status = dev.bunnyloader.game.PairipSpike.run(ctx) },
             enabled = !busy,
-            modifier = Modifier.padding(top = 24.dp),
+            modifier = Modifier.padding(top = 8.dp),
         ) { Text("Spike PairIP") }
         if (status.isNotEmpty()) {
             Text(

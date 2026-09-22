@@ -22,18 +22,27 @@ import java.io.File
  */
 class GameEnvironment private constructor(
     val install: GameInstall,
-    private val gameContext: Context,
+    /** ContextImpl do pacote do jogo — guarda a LoadedApk real (ver AppBoot). */
+    val gameContext: Context,
     val classLoader: ClassLoader,
 ) {
     val resources: Resources get() = gameContext.resources
     val assets: AssetManager get() = gameContext.assets
 
-    /** Copia do ApplicationInfo do launcher, apontando para os binários do jogo. */
+    /**
+     * Híbrido: identidade e binários do JOGO (a Unity consulta packageName e os
+     * caminhos do APK), mas os diretórios de dados continuam sendo os NOSSOS —
+     * não temos permissão de escrever no dataDir do jogo (uid diferente).
+     */
     fun applicationInfo(base: ApplicationInfo): ApplicationInfo =
         ApplicationInfo(base).apply {
-            nativeLibraryDir = gameContext.applicationInfo.nativeLibraryDir
-            sourceDir = gameContext.applicationInfo.sourceDir
-            publicSourceDir = gameContext.applicationInfo.publicSourceDir
+            val game = gameContext.applicationInfo
+            packageName = game.packageName
+            nativeLibraryDir = game.nativeLibraryDir
+            sourceDir = game.sourceDir
+            publicSourceDir = game.publicSourceDir
+            splitSourceDirs = game.splitSourceDirs
+            splitPublicSourceDirs = game.splitPublicSourceDirs
         }
 
     companion object {
@@ -46,14 +55,12 @@ class GameEnvironment private constructor(
                 install.packageName,
                 Context.CONTEXT_INCLUDE_CODE or Context.CONTEXT_IGNORE_SECURITY,
             )
-            // ClassLoader próprio: precisa enxergar as classes E as .so do jogo.
-            val loader = DexClassLoader(
-                install.apkPath,
-                codeCacheDir.absolutePath,
-                install.nativeLibDir,
-                base.classLoader,
-            )
-            return GameEnvironment(install, gameContext, loader)
+            // Usar o ClassLoader DO SISTEMA (o da LoadedApk real do jogo), NÃO um
+            // DexClassLoader caseiro. Esse foi o erro central da Fase 1: com o
+            // loader caseiro o PairIP nunca inicializa e as strings do app ficam
+            // nulas. O do sistema também já traz o caminho de busca das .so —
+            // inclusive dos splits (base.apk + split_config.arm64_v8a.apk).
+            return GameEnvironment(install, gameContext, gameContext.classLoader)
         }
     }
 }

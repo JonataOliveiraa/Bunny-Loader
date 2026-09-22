@@ -14,9 +14,9 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Window
 import android.widget.Toast
+import dev.bunnyloader.game.AppBoot
 import dev.bunnyloader.game.GameEnvironment
 import dev.bunnyloader.game.GameInstall
-import dev.bunnyloader.game.PairipBootstrap
 import dev.bunnyloader.game.UnityHost
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.nativebridge.NativeBridge
@@ -46,6 +46,11 @@ class GameActivity : Activity() {
     override fun getAssets(): AssetManager = env?.assets ?: super.getAssets()
 
     override fun getClassLoader(): ClassLoader = env?.classLoader ?: super.getClassLoader()
+
+    // A Unity resolve recursos por nome de pacote (getIdentifier). Sem isto ela
+    // procura recursos do jogo dentro do pacote do launcher, recebe id 0 e
+    // estoura em Resources.getString(0) — visto em GetGlViewContentDescription.
+    override fun getPackageName(): String = env?.install?.packageName ?: super.getPackageName()
 
     override fun getApplicationInfo(): ApplicationInfo {
         val environment = env ?: return super.getApplicationInfo()
@@ -91,10 +96,12 @@ class GameActivity : Activity() {
 
         // Precisa vir ANTES da Unity: sem isso as constantes de string do jogo
         // ficam nulas e a UnityPlayer estoura em getSystemService(null).
+        // Deixar o Android bootar a Application do jogo (ver AppBoot) é o que
+        // funciona — chamar o StartupLauncher na mão, como na Fase 1, não basta.
         try {
-            PairipBootstrap.run(environment.classLoader, this)
+            AppBoot.makeApplication(environment.gameContext)
         } catch (t: Throwable) {
-            fail("Falha no bootstrap do PairIP", t)
+            fail("Falha ao bootar a Application do jogo", t)
             return
         }
 
