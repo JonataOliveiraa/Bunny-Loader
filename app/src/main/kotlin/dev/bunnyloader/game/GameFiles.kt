@@ -40,8 +40,8 @@ object GameFiles {
         "libc++_shared.so",
     )
 
-    /** Podem não existir conforme a versão do jogo — copiamos se houver. */
-    private val OPTIONAL_LIBS = listOf("libpairipcore.so")
+    /** Só entra na cópia quando a libunity da versão pede — ver [needsPairip]. */
+    private val OPTIONAL_LIBS = listOf(PAIRIP)
 
     fun libDir(ctx: Context, abi: String): File =
         File(ctx.filesDir, "game/lib/$abi")
@@ -135,14 +135,52 @@ object GameFiles {
             if (isPinned(ctx)) "fonte: APK fixado (${pinnedApk(ctx).length() / 1_000_000} MB)"
             else "fonte: Terraria instalado (v${install.versionCode})",
         )
-        val pending = (LIBS + OPTIONAL_LIBS).toMutableSet()
+        val missing = copy(LIBS, sources, install.abi, dest, onStep)
+        if (missing.isNotEmpty()) error("libs não encontradas no APK do jogo: $missing")
 
-        // Já copiado antes? Tamanho igual basta — o APK de origem é imutável.
+        // A libpairipcore está no APK das DUAS versões, então a presença dela
+        // não diz nada. Quem decide é a libunity: se ela não linka contra a
+        // libpairipcore, copiá-la e carregá-la é acordar o anti-tamper sem
+        // necessidade — e a cópia que o TL Pro distribui nem tem essa .so.
+        // Por isso a decisão vem DEPOIS da libunity estar aqui, e não antes.
+        val pairip = File(dest, PAIRIP)
+        if (needsPairip(dest)) {
+            onStep("libunity LINKA $PAIRIP (versão nova; é aqui que dá SIGSEGV)")
+            copy(listOf(PAIRIP), sources, install.abi, dest, onStep)
+        } else if (pairip.exists()) {
+            onStep("libunity não precisa de $PAIRIP — descartada")
+            pairip.setWritable(true, true)
+            pairip.delete()
+        }
+
+        Log.i(TAG, "GameFiles: ${LIBS.size} libs em $dest")
+        return dest
+    }
+
+    private const val PAIRIP = "libpairipcore.so"
+
+    /**
+     * Extrai `names` do primeiro APK que os tiver.
+     *
+     * Idempotente por TAMANHO — o APK de origem é imutável, então tamanho igual
+     * significa a mesma .so. (Trocar o APK fixado apaga o diretório inteiro,
+     * ver [importPinned], justamente porque aí a premissa deixa de valer.)
+     *
+     * @return o que não foi encontrado em nenhum APK.
+     */
+    private fun copy(
+        names: List<String>,
+        sources: List<String>,
+        abi: String,
+        dest: File,
+        onStep: (String) -> Unit,
+    ): Set<String> {
+        val pending = names.toMutableSet()
         for (apk in sources) {
             if (pending.isEmpty()) break
             ZipFile(apk).use { zip ->
                 for (name in pending.toList()) {
-                    val entry = zip.getEntry("lib/${install.abi}/$name") ?: continue
+                    val entry = zip.getEntry("lib/$abi/$name") ?: continue
                     val out = File(dest, name)
                     if (out.exists() && out.length() == entry.size) {
                         pending -= name
@@ -161,30 +199,8 @@ object GameFiles {
                 }
             }
         }
-
-        val missing = pending intersect LIBS.toSet()
-        if (missing.isNotEmpty()) error("libs não encontradas no APK do jogo: $missing")
-
-        // A libpairipcore está no APK das DUAS versões, então a presença dela
-        // não diz nada. Quem decide é a libunity: se ela não linka contra a
-        // libpairipcore, carregá-la é acordar o anti-tamper sem necessidade —
-        // e a cópia que o TL Pro distribui simplesmente não tem essa .so.
-        val pairip = File(dest, PAIRIP)
-        if (pairip.isFile) {
-            if (needsPairip(dest)) {
-                onStep("libunity LINKA $PAIRIP (versão nova; é aqui que dá SIGSEGV)")
-            } else {
-                onStep("libunity não precisa de $PAIRIP — descartada")
-                pairip.setWritable(true, true)
-                pairip.delete()
-            }
-        }
-
-        Log.i(TAG, "GameFiles: ${LIBS.size} libs em $dest")
-        return dest
+        return pending
     }
-
-    private const val PAIRIP = "libpairipcore.so"
 
     /**
      * A libunity desta cópia depende do PairIP?
@@ -229,7 +245,8 @@ object GameFiles {
         for (name in LIBS_IN_LOAD_ORDER) {
             val f = File(dir, name)
             if (!f.exists()) {
-                // Opcional ausente é normal (varia por versão do jogo).
+                // Ausência da opcional é o caso NORMAL na 1.4.5.6.4: a
+                // libunity não a lista em DT_NEEDED e nós não a copiamos.
                 if (name in OPTIONAL_LIBS) continue
                 return "$name ausente em $dir"
             }

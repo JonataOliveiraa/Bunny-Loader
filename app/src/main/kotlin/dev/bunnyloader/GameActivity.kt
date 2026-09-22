@@ -75,13 +75,14 @@ class GameActivity : Activity() {
     /** Nossa cópia das .so do jogo — é daqui que a Unity carrega a libunity.so. */
     private var localLibs: File? = null
 
-    // O VMRunner do PairIP abre o APK por estes caminhos para ler os programas
-    // da VM; precisam apontar para o do jogo, nao para o nosso.
+    // A Unity monta daqui o caminho do APK de onde lê assets/bin/Data. Tem de
+    // ser o MESMO APK de onde saíram as libs: global-metadata.dat e libil2cpp
+    // são um par. Com versão fixada, é o APK fixado.
     override fun getPackageCodePath(): String =
-        env?.install?.apkPath ?: super.getPackageCodePath()
+        env?.codePath ?: super.getPackageCodePath()
 
     override fun getPackageResourcePath(): String =
-        env?.install?.apkPath ?: super.getPackageResourcePath()
+        env?.codePath ?: super.getPackageResourcePath()
 
     // --- boot ----------------------------------------------------------------
 
@@ -108,14 +109,15 @@ class GameActivity : Activity() {
         // realmente instala (no emulador o houdini o rejeita), então ele dispara
         // no meio do boot da Unity e é suspeito nº 1 do "tela preta e volta".
         // Religar depois de resolver os símbolos via /proc/self/maps.
+        val pinned = if (GameFiles.isPinned(this)) GameFiles.pinnedApk(this) else null
         val environment = try {
-            GameEnvironment.create(this, install, codeCacheDir)
+            GameEnvironment.create(this, install, pinned)
         } catch (t: Throwable) {
             fail("Falha ao abrir os recursos do jogo", t)
             return
         }
         env = environment
-        BootLog.add(this, "GameEnvironment pronto")
+        BootLog.add(this, "GameEnvironment pronto (assets de ${environment.codePath})")
 
         // Nossa cópia da pilha nativa do jogo (ver GameFiles): é dela que a
         // UnityPlayer vai carregar libmain.so. Copiar é obrigatório — o linker
