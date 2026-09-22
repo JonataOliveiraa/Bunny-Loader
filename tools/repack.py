@@ -76,9 +76,25 @@ def _remap_icon(filename, orig_data, icon_img):
     return buf.getvalue()
 
 
-def rebuild_apk(apk, abi, patched_main, extra_libs, out_unsigned, icon_path=None):
+def _rename_pkg_bytes(data, old_pkg, new_pkg):
+    """Troca o nome do pacote em bytes (AXML/arsc). Exige MESMO comprimento pra
+    nao recalcular offsets do string pool. Cobre UTF-8 e UTF-16LE (as duas
+    codificacoes possiveis no pool). A mesma troca renomeia tambem a authority
+    do ContentProvider (que embute o pacote), evitando conflito ao coexistir."""
+    for enc in ("utf-8", "utf-16-le"):
+        data = data.replace(old_pkg.encode(enc), new_pkg.encode(enc))
+    return data
+
+
+def rebuild_apk(apk, abi, patched_main, extra_libs, out_unsigned,
+                icon_path=None, rename=None):
     main_entry = f"lib/{abi}/libmain.so"
     add = {f"lib/{abi}/{os.path.basename(p)}": p for p in extra_libs}
+    OLD_PKG = "com.and.games505.TerrariaPaid"
+    if rename and len(rename) != len(OLD_PKG):
+        raise SystemExit(
+            f"ERRO: --rename precisa ter {len(OLD_PKG)} chars (mesmo tamanho de "
+            f"{OLD_PKG}); '{rename}' tem {len(rename)}")
 
     icon_img = None
     if icon_path:
@@ -93,6 +109,11 @@ def rebuild_apk(apk, abi, patched_main, extra_libs, out_unsigned, icon_path=None
                item.filename.rsplit(".", 1)[-1] in ("RSA", "SF", "MF"):
                 continue
             data = patched_main if item.filename == main_entry else zin.read(item.filename)
+            # Renomeia o pacote (AndroidManifest + resources.arsc) pra coexistir
+            # com o Terraria original em vez de substitui-lo.
+            if rename and item.filename in ("AndroidManifest.xml", "resources.arsc"):
+                data = _rename_pkg_bytes(data, OLD_PKG, rename)
+                print(f"  rename[{item.filename}]: {OLD_PKG} -> {rename}")
             # Troca as camadas do icone, se pedido.
             if icon_img is not None:
                 new_icon = _remap_icon(item.filename, data, icon_img)
@@ -127,6 +148,9 @@ def main():
     ap.add_argument("--abi", default="arm64-v8a")
     ap.add_argument("--icon", default=None,
                     help="PNG quadrado; vira o icone (camada de fundo adaptativa)")
+    ap.add_argument("--rename", default=None,
+                    help="novo nome de pacote (MESMO tamanho de com.and.games505."
+                         "TerrariaPaid = 29 chars) pra coexistir com o original")
     ap.add_argument("--build-tools", default=os.path.expandvars(
         r"$LOCALAPPDATA/Android/Sdk/build-tools/36.1.0"))
     ap.add_argument("--keystore", default="tools/debug.keystore")
@@ -159,7 +183,7 @@ def main():
         print("remontando APK:")
         unsigned = os.path.join(tmp, "unsigned.apk")
         rebuild_apk(args.apk, args.abi, patched_bytes, [args.lib, args.dep],
-                    unsigned, icon_path=args.icon)
+                    unsigned, icon_path=args.icon, rename=args.rename)
 
         # 4. zipalign
         print("zipalign:")
