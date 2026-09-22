@@ -119,8 +119,25 @@ class GameActivity : Activity() {
         // código Java do Terraria, o PairIP simplesmente não entra em cena.
         try {
             val libs = GameFiles.prepare(this, install) { BootLog.add(this, it) }
-            val ok = GameFiles.addLibraryPath(classLoader, libs)
-            BootLog.add(this, "libs do jogo em ${libs.name} (path estendido=$ok)")
+            var ok = GameFiles.addLibraryPath(classLoader, libs)
+            BootLog.add(this, "libs copiadas (path estendido=$ok)")
+
+            // Testa o dlopen ANTES da Unity: assim um bloqueio do SELinux vira
+            // mensagem em vez de SIGABRT mudo lá dentro do engine.
+            var err = GameFiles.preload(libs)
+            if (err != null) {
+                BootLog.add(this, "dlopen da NOSSA copia falhou -> $err")
+                // Plano B: a pasta original do jogo é executável (/data/app),
+                // ao contrário do nosso diretório de dados. Perde-se o controle
+                // de versão, mas responde se a hipótese do SELinux procede.
+                val orig = java.io.File(install.nativeLibDir)
+                ok = GameFiles.addLibraryPath(classLoader, orig)
+                err = GameFiles.preload(orig)
+                BootLog.add(this, "fallback pasta do jogo: " + (err ?: "OK") + " (path=$ok)")
+                if (err != null) { fail("Não consegui carregar as libs do jogo", null); return }
+            } else {
+                BootLog.add(this, "dlopen da nossa copia OK")
+            }
         } catch (t: Throwable) {
             fail("Falha ao preparar os binários do jogo", t)
             return

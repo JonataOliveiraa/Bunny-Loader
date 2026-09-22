@@ -77,6 +77,31 @@ object GameFiles {
      * acrescentamos o nosso ao DexPathList por reflection — é assim que a Unity
      * consegue achar a libmain.so da nossa cópia.
      */
+    /**
+     * Carrega as .so explicitamente, em ordem de dependência, relatando cada
+     * uma. Sem isto um dlopen que falha vira SIGABRT mudo lá dentro da Unity.
+     *
+     * Suspeita principal de falha: desde o Android 10 o SELinux nega `execute`
+     * em `app_data_file` para apps de targetSdk alto — ou seja, .so no nosso
+     * diretório de dados pode simplesmente não poder ser mapeada executável.
+     * (No emulador o SELinux é permissive, por isso lá passa.)
+     *
+     * @return null se tudo carregou; senão a descrição do primeiro erro.
+     */
+    fun preload(dir: File): String? {
+        for (name in listOf("libc++_shared.so", "libmain.so")) {
+            val f = File(dir, name)
+            if (!f.exists()) return "$name ausente em $dir"
+            try {
+                System.load(f.absolutePath)
+                Log.i(TAG, "GameFiles: carregou $name")
+            } catch (t: Throwable) {
+                return "$name: ${t.javaClass.simpleName}: ${t.message}"
+            }
+        }
+        return null
+    }
+
     fun addLibraryPath(loader: ClassLoader, dir: File): Boolean = runCatching {
         val pathList = Class.forName("dalvik.system.BaseDexClassLoader")
             .getDeclaredField("pathList").apply { isAccessible = true }.get(loader)!!
