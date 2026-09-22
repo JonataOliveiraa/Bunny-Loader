@@ -46,75 +46,170 @@ object GameFiles {
     fun libDir(ctx: Context, abi: String): File =
         File(ctx.filesDir, "game/lib/$abi")
 
+    // --- versão congelada ----------------------------------------------------
+    //
+    // A cópia congelada é NOSSA e fica no nosso armazenamento. Nem a Play nem uma
+    // atualização do jogo alcançam esses arquivos: é isso que garante que uma
+    // versão nova do Terraria não muda o que roda aqui.
+    //
+    // O layout é base + splits porque é assim que a Play instala o jogo (as .so
+    // vêm no split de ABI, os assets no base). Congelar só o base pegaria um
+    // conjunto incompleto.
+
+    private fun pinnedDir(ctx: Context): File = File(ctx.getExternalFilesDir(null), "pinned")
+
+    /** Layout antigo: um arquivo único solto. Migrado na primeira leitura. */
+    private fun legacyPinned(ctx: Context): File =
+        File(ctx.getExternalFilesDir(null), "terraria.apk")
+
     /**
-     * Garante a cópia local das libs, extraindo do APK do jogo (base + splits).
-     * Idempotente: pula o que já está lá com o mesmo tamanho.
-     *
-     * @return diretório com as libs.
+     * APKs congelados, base primeiro, ou vazio se não há versão congelada.
      */
-    /** APK fixado pelo usuário, se houver. Ver [pinnedApk]. */
-    fun pinnedApk(ctx: Context): File = File(ctx.getExternalFilesDir(null), "terraria.apk")
+    fun pinnedApks(ctx: Context): List<File> {
+        val dir = pinnedDir(ctx)
+        val base = File(dir, "base.apk")
 
-    fun isPinned(ctx: Context): Boolean = pinnedApk(ctx).isFile
+        val legacy = legacyPinned(ctx)
+        if (legacy.isFile && !base.isFile) {
+            dir.mkdirs()
+            legacy.renameTo(base)
+        }
+        if (!base.isFile) return emptyList()
+
+        val splits = dir.listFiles { f -> f.name.startsWith("split") && f.name.endsWith(".apk") }
+            ?.sortedBy { it.name }?.toList() ?: emptyList()
+        return listOf(base) + splits
+    }
+
+    fun isPinned(ctx: Context): Boolean = pinnedApks(ctx).isNotEmpty()
+
+    /** Tamanho total no disco, para a UI. */
+    private fun pinnedSize(ctx: Context): Long = pinnedApks(ctx).sumOf { it.length() }
 
     /**
-     * Importa o APK escolhido pelo usuário como a versão fixada.
+     * Importa o APK escolhido pelo usuário como a versão congelada.
      *
      * Existe porque desde o Android 11 nenhum gerenciador de arquivos escreve em
      * `Android/data/...`: mandar o usuário "copiar o APK para lá" não funciona no
      * aparelho dele. Com o seletor de documentos ele aponta o arquivo (Downloads,
      * Drive, o que for) e nós é que gravamos no nosso diretório.
      *
-     * Só aceita um APK do Terraria: isto é para fixar a versão da cópia do
-     * próprio usuário, não para carregar um pacote qualquer.
+     * Aqui exigimos um APK COMPLETO (com as libs dentro), porque um arquivo
+     * escolhido à mão não tem splits para acompanhá-lo. Congelar o que está
+     * instalado é o caminho para installs divididos — ver [pinInstalled].
      *
      * @return descrição da versão aceita.
      */
     fun importPinned(ctx: Context, uri: Uri): String {
-        val dest = pinnedApk(ctx)
-        val tmp = File(dest.parentFile, "terraria.apk.part")
+        val dir = pinnedDir(ctx).apply { mkdirs() }
+        val tmp = File(dir, "base.apk.part")
         tmp.delete()
         ctx.contentResolver.openInputStream(uri).use { input ->
             requireNotNull(input) { "não consegui ler o arquivo escolhido" }
             tmp.outputStream().use { input.copyTo(it, 1 shl 16) }
         }
 
-        val info = ctx.packageManager.getPackageArchiveInfo(tmp.absolutePath, 0)
-        if (info == null) {
-            tmp.delete()
-            error("isso não é um APK válido")
-        }
-        if (info.packageName != TERRARIA) {
-            tmp.delete()
-            error("esse APK é ${info.packageName}, não o Terraria")
-        }
-        if (ZipFile(tmp).use { it.getEntry("lib/arm64-v8a/libil2cpp.so") } == null) {
-            tmp.delete()
-            error("esse APK não tem as libs arm64 (é um split parcial?)")
-        }
-
-        dest.delete()
-        check(tmp.renameTo(dest)) { "não consegui gravar em ${dest.name}" }
-
-        // As libs já copiadas são da versão anterior. A cópia é idempotente por
-        // TAMANHO, e duas versões podem ter uma .so de tamanho igual — apagar é
-        // mais barato que descobrir isso num SIGSEGV.
-        File(ctx.filesDir, "game/lib").deleteRecursively()
-
+        val info = validate(ctx, tmp, needsLibs = true) { tmp.delete() }
+        replacePinned(ctx, dir) { check(tmp.renameTo(File(dir, "base.apk"))) { "não consegui gravar" } }
         return "${info.versionName} (${info.longVersionCode})"
+    }
+
+    /**
+     * Congela a versão instalada: copia o APK do jogo (base + splits) para a
+     * nossa área.
+     *
+     * A partir daí o jogo pode atualizar à vontade — o que roda é esta cópia.
+     * É a mesma garantia de versão fixa que o TL Pro tem, com a diferença de que
+     * a cópia é do próprio usuário e nunca sai deste aparelho.
+     *
+     * @return descrição da versão congelada.
+     */
+    fun pinInstalled(ctx: Context, install: GameInstall, onStep: (String) -> Unit = {}): String {
+        val dir = pinnedDir(ctx).apply { mkdirs() }
+        val staged = ArrayList<Pair<File, File>>()  // temporário -> final
+        try {
+            install.allApks().forEachIndexed { i, path ->
+                val src = File(path)
+                val finalName = if (i == 0) "base.apk" else "split-%02d.apk".format(i)
+                val tmp = File(dir, "$finalName.part")
+                onStep("copiando $finalName (${src.length() / 1_000_000} MB)")
+                tmp.delete()
+                src.inputStream().use { input ->
+                    tmp.outputStream().use { input.copyTo(it, 1 shl 16) }
+                }
+                staged += tmp to File(dir, finalName)
+            }
+
+            val base = staged.first().first
+            // Os assets estão no base; as .so podem estar nele ou no split.
+            val info = validate(ctx, base, needsLibs = false) { staged.forEach { it.first.delete() } }
+            val hasLibs = staged.any { (tmp, _) ->
+                ZipFile(tmp).use { it.getEntry("lib/${install.abi}/libil2cpp.so") } != null
+            }
+            if (!hasLibs) {
+                staged.forEach { it.first.delete() }
+                error("não achei libil2cpp.so para ${install.abi} no que está instalado")
+            }
+
+            replacePinned(ctx, dir) {
+                staged.forEach { (tmp, dest) ->
+                    dest.delete()
+                    check(tmp.renameTo(dest)) { "não consegui gravar ${dest.name}" }
+                }
+            }
+            return "${info.versionName} (${info.longVersionCode})"
+        } catch (t: Throwable) {
+            staged.forEach { it.first.delete() }
+            throw t
+        }
+    }
+
+    /** Rejeita cedo o que não é o Terraria — com o motivo, não um crash depois. */
+    private fun validate(
+        ctx: Context,
+        apk: File,
+        needsLibs: Boolean,
+        onReject: () -> Unit,
+    ): android.content.pm.PackageInfo {
+        fun reject(msg: String): Nothing { onReject(); error(msg) }
+        val info = ctx.packageManager.getPackageArchiveInfo(apk.absolutePath, 0)
+            ?: reject("isso não é um APK válido")
+        if (info.packageName != TERRARIA) {
+            reject("esse APK é ${info.packageName}, não o Terraria")
+        }
+        if (needsLibs && ZipFile(apk).use { it.getEntry("lib/arm64-v8a/libil2cpp.so") } == null) {
+            reject("esse APK não tem as libs arm64 (é só o base de um install dividido?)")
+        }
+        return info
+    }
+
+    /**
+     * Troca o conteúdo congelado, limpando o anterior.
+     *
+     * Duas coisas têm de sumir juntas: os APKs antigos (senão sobra um split de
+     * outra versão) e as libs já extraídas (a extração é idempotente por tamanho,
+     * e duas versões podem ter uma .so de tamanho igual — descobrir isso num
+     * SIGSEGV sai caro).
+     */
+    private fun replacePinned(ctx: Context, dir: File, install: () -> Unit) {
+        dir.listFiles()?.forEach { if (!it.name.endsWith(".part")) it.delete() }
+        install()
+        legacyPinned(ctx).delete()
+        File(ctx.filesDir, "game/lib").deleteRecursively()
     }
 
     /** Volta a usar a versão instalada no aparelho. */
     fun clearPinned(ctx: Context) {
-        pinnedApk(ctx).delete()
+        pinnedDir(ctx).deleteRecursively()
+        legacyPinned(ctx).delete()
         File(ctx.filesDir, "game/lib").deleteRecursively()
     }
 
     private const val TERRARIA = "com.and.games505.TerrariaPaid"
 
-    /** APKs de origem: o fixado, se houver; senão o instalado (base + splits). */
+    /** APKs de origem: os congelados, se houver; senão o instalado. */
     fun sourceApks(ctx: Context, install: GameInstall): List<String> =
-        if (isPinned(ctx)) listOf(pinnedApk(ctx).absolutePath) else install.allApks()
+        pinnedApks(ctx).map { it.absolutePath }.ifEmpty { install.allApks() }
 
     /**
      * De onde saem as libs: do APK FIXADO, se o usuário colocou um; senão do
@@ -132,7 +227,7 @@ object GameFiles {
         val dest = libDir(ctx, install.abi).apply { mkdirs() }
         val sources = sourceApks(ctx, install)
         onStep(
-            if (isPinned(ctx)) "fonte: APK fixado (${pinnedApk(ctx).length() / 1_000_000} MB)"
+            if (isPinned(ctx)) "fonte: cópia congelada (${pinnedSize(ctx) / 1_000_000} MB)"
             else "fonte: Terraria instalado (v${install.versionCode})",
         )
         val missing = copy(LIBS, sources, install.abi, dest, onStep)
@@ -266,21 +361,21 @@ object GameFiles {
         "libunity.so", "libil2cpp.so",
     )
 
-    /** Texto para a UI: qual versão vai rodar e como fixar outra. */
+    /** Texto para a UI: qual versão vai rodar, e o que fazer a respeito. */
     fun pinStatus(ctx: Context): String {
-        val p = pinnedApk(ctx)
-        if (!p.isFile) {
-            return "Versão: a instalada no aparelho.\n" +
-                "O hosting suporta a 1.4.5.6.4 — na 1.4.5.8.6 a libunity exige a " +
-                "libpairipcore, que derruba o processo fora do boot do jogo.\n" +
-                "Se a sua for a 1.4.5.8, toque em \"Fixar versão\" e aponte o APK " +
-                "da 1.4.5.6.4 — a sua cópia."
+        val apks = pinnedApks(ctx)
+        if (apks.isEmpty()) {
+            return "Versão: a instalada no aparelho — e ela pode mudar sozinha " +
+                "numa atualização da Play.\n" +
+                "O hosting suporta a 1.4.5.6.4; na 1.4.5.8.6 a libunity exige a " +
+                "libpairipcore, que derruba o processo fora do boot do jogo."
         }
         val v = runCatching {
-            ctx.packageManager.getPackageArchiveInfo(p.absolutePath, 0)
+            ctx.packageManager.getPackageArchiveInfo(apks.first().absolutePath, 0)
         }.getOrNull()
-        return "Versão FIXADA: ${v?.versionName ?: "?"} (${v?.longVersionCode ?: "?"})\n" +
-            "de ${p.name}, ${p.length() / 1_000_000} MB"
+        val parts = if (apks.size > 1) ", ${apks.size} arquivos" else ""
+        return "Versão CONGELADA: ${v?.versionName ?: "?"} (${v?.longVersionCode ?: "?"})\n" +
+            "${pinnedSize(ctx) / 1_000_000} MB$parts — atualizações do jogo não mexem nisto."
     }
 
     /** Listagem para a trilha de boot — confirma o que realmente está lá. */

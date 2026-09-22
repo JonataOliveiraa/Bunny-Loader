@@ -31,10 +31,12 @@ class GameEnvironment private constructor(
     /** ContextImpl do pacote do jogo — guarda a LoadedApk real (ver AppBoot). */
     val gameContext: Context,
     val classLoader: ClassLoader,
-    /** Recursos do APK fixado, ou null quando rodamos o jogo instalado. */
+    /** Recursos da cópia congelada, ou null quando rodamos o jogo instalado. */
     private val pinnedResources: Resources?,
-    /** APK que a Unity deve enxergar como "o app": o fixado, ou o instalado. */
+    /** APK que a Unity deve enxergar como "o app": o congelado, ou o instalado. */
     val codePath: String,
+    /** Splits da cópia congelada, ou null. */
+    private val pinnedSplits: Array<String>?,
 ) {
     val resources: Resources get() = pinnedResources ?: gameContext.resources
     val assets: AssetManager get() = resources.assets
@@ -61,10 +63,10 @@ class GameEnvironment private constructor(
             sourceDir = codePath
             publicSourceDir = codePath
             if (pinnedResources != null) {
-                // O fixado é um APK único: anunciar splits do install faria a
-                // Unity procurar assets numa versão que não é a que vai rodar.
-                splitSourceDirs = null
-                splitPublicSourceDirs = null
+                // Os splits da cópia congelada, não os do install: apontar para
+                // o instalado faria a Unity ler assets de outra versão.
+                splitSourceDirs = pinnedSplits
+                splitPublicSourceDirs = pinnedSplits
             } else {
                 splitSourceDirs = game.splitSourceDirs
                 splitPublicSourceDirs = game.splitPublicSourceDirs
@@ -75,9 +77,9 @@ class GameEnvironment private constructor(
         /**
          * @param base a GameActivity. Nada aqui toca em getResources() dela,
          *   para não recursar antes do ambiente estar pronto.
-         * @param pinned APK fixado pelo usuário, se houver.
+         * @param pinned APKs congelados (base primeiro), ou vazio.
          */
-        fun create(base: Context, install: GameInstall, pinned: File?): GameEnvironment {
+        fun create(base: Context, install: GameInstall, pinned: List<File>): GameEnvironment {
             // SEM CONTEXT_INCLUDE_CODE — de propósito.
             //
             // Queremos os recursos/assets do jogo, NUNCA o dex dele. O PairIP
@@ -92,10 +94,12 @@ class GameEnvironment private constructor(
                 install.packageName,
                 Context.CONTEXT_IGNORE_SECURITY,
             )
-            val res = pinned?.let { openResources(base, it) }
+            val res = if (pinned.isEmpty()) null else openResources(base, pinned)
             return GameEnvironment(
                 install, gameContext, base.classLoader, res,
-                if (res != null) pinned.absolutePath else install.apkPath,
+                if (res != null) pinned.first().absolutePath else install.apkPath,
+                if (res != null) pinned.drop(1).map { it.absolutePath }.toTypedArray()
+                    .takeIf { it.isNotEmpty() } else null,
             )
         }
 
@@ -111,17 +115,21 @@ class GameEnvironment private constructor(
          * Lança com mensagem própria: rodar com os assets da versão errada é
          * pior que não rodar.
          */
-        private fun openResources(base: Context, apk: File): Resources {
+        private fun openResources(base: Context, apks: List<File>): Resources {
             val pm = base.packageManager
-            val info = pm.getPackageArchiveInfo(apk.absolutePath, 0)
-                ?: error("APK fixado ilegível: ${apk.name}")
-            val app = info.applicationInfo ?: error("APK fixado sem ApplicationInfo")
-            app.sourceDir = apk.absolutePath
-            app.publicSourceDir = apk.absolutePath
-            app.splitSourceDirs = null
-            app.splitPublicSourceDirs = null
+            val baseApk = apks.first()
+            val info = pm.getPackageArchiveInfo(baseApk.absolutePath, 0)
+                ?: error("APK congelado ilegível: ${baseApk.name}")
+            val app = info.applicationInfo ?: error("APK congelado sem ApplicationInfo")
+            app.sourceDir = baseApk.absolutePath
+            app.publicSourceDir = baseApk.absolutePath
+            // Os splits entram junto: num install da Play os assets estão no
+            // base, mas recursos do jogo podem estar em qualquer um deles.
+            val splits = apks.drop(1).map { it.absolutePath }.toTypedArray()
+            app.splitSourceDirs = splits.takeIf { it.isNotEmpty() }
+            app.splitPublicSourceDirs = splits.takeIf { it.isNotEmpty() }
             return runCatching { pm.getResourcesForApplication(app) }.getOrElse {
-                error("não consegui abrir os assets do APK fixado: ${it.javaClass.simpleName}: ${it.message}")
+                error("não consegui abrir os assets da cópia congelada: ${it.javaClass.simpleName}: ${it.message}")
             }
         }
     }

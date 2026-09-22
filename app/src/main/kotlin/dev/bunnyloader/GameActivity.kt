@@ -109,7 +109,7 @@ class GameActivity : Activity() {
         // realmente instala (no emulador o houdini o rejeita), então ele dispara
         // no meio do boot da Unity e é suspeito nº 1 do "tela preta e volta".
         // Religar depois de resolver os símbolos via /proc/self/maps.
-        val pinned = if (GameFiles.isPinned(this)) GameFiles.pinnedApk(this) else null
+        val pinned = GameFiles.pinnedApks(this)
         val environment = try {
             GameEnvironment.create(this, install, pinned)
         } catch (t: Throwable) {
