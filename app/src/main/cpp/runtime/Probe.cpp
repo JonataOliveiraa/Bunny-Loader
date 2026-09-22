@@ -6,6 +6,7 @@
 #include "script/ScriptEngine.h"
 #include "mods/ModLoader.h"
 #include "core/Config.h"
+#include "runtime/Cheats.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -59,6 +60,9 @@ void probeThread() {
             }
             mods::loadAll(config().modsDir, config().enabledMods);
             BL_INFO("sonda: mods carregados");
+
+            // Menu de cheats (acoes nativas via arquivo de comando).
+            installCheats();
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(kRetryGapMs));
