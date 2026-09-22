@@ -26,6 +26,12 @@ struct Api {
     // Tipo do campo: sem ele nao da para saber se um campo de instancia e int
     // ou float, e ler float como int devolve lixo.
     const Il2CppType* (*field_get_type)(FieldInfo*) = nullptr;
+    // Enums: o type_get_name devolve o nome do enum (Terraria.ItemVariant), nao
+    // o do tipo subjacente. Sem isto, um parametro enum seria tratado como
+    // referencia e iria como ponteiro nulo.
+    Il2CppClass* (*class_from_il2cpp_type)(const Il2CppType*) = nullptr;
+    bool (*class_is_enum)(const Il2CppClass*) = nullptr;
+    bool (*class_is_valuetype)(const Il2CppClass*) = nullptr;
     size_t (*field_get_offset)(FieldInfo*) = nullptr;
     void (*field_static_get_value)(FieldInfo*, void*) = nullptr;
     void (*field_static_set_value)(FieldInfo*, void*) = nullptr;

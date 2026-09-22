@@ -13,6 +13,9 @@ namespace bl::script {
 // que detem o JSClassID). Usado pelo dispatcher de hook para entregar o `self`.
 JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj);
 
+// Inverso: o valor JS e um objeto do jogo? nullptr se nao for.
+Il2CppObject* objectFromJS(JSValueConst v);
+
 // Instala um hook JS num metodo do jogo. O callback recebe
 // (original, self, ...args) como no TL Pro. Retorna false se nao houver slot
 // livre ou o hook nativo falhar. Definido em JsHook.cpp.

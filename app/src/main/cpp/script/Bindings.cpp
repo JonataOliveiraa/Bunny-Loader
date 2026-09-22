@@ -5,6 +5,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "script/Marshal.h"
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -45,8 +46,11 @@ struct MethodRef {
 
 // Embrulha um MethodInfo num NativeMethod para o JS.
 JSValue makeMethod(JSContext* ctx, const MethodInfo* m) {
-    uint32_t flags = 0;
-    il2cpp::api().method_get_flags(m, &flags);
+    // CUIDADO: il2cpp_method_get_flags DEVOLVE as flags e escreve as de
+    // IMPLEMENTACAO no parametro de saida. Ler o parametro (o que este codigo
+    // fazia) dava isInstance errado para todo metodo estatico.
+    uint32_t iflags = 0;
+    uint32_t flags = il2cpp::api().method_get_flags(m, &iflags);
     auto* ref = static_cast<MethodRef*>(std::malloc(sizeof(MethodRef)));
     if (!ref) return JS_ThrowOutOfMemory(ctx);
     ref->method = m;
@@ -490,6 +494,58 @@ void nm_finalizer(JSRuntime*, JSValue val) {
         std::free(r);
 }
 
+/**
+ * Chamar o método do jogo, como função JS.
+ *
+ *   Terraria.Main['void NewText(string text)']('oi');     // estático
+ *   item['void SetDefaults(int Type)'](98);               // de instância
+ *
+ * De onde sai a instância, nesta ordem:
+ *   1. `this` — é o caso natural de `obj.Metodo(args)`;
+ *   2. o primeiro argumento, se for objeto do jogo — é a forma do
+ *      `original(self, ...)` do callback de hook.
+ *
+ * Exceção do lado do jogo NÃO é ignorada: vira exceção JS. Os devs do TL Pro
+ * avisam que engolir isso derruba o jogo quando um invariante falha dentro de
+ * um hook.
+ */
+JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
+                int argc, JSValueConst* argv, int) {
+    auto* r = static_cast<MethodRef*>(JS_GetOpaque(func, g_nativeMethodId));
+    if (!r) return JS_ThrowTypeError(ctx, "metodo invalido");
+
+    Il2CppObject* instance = nullptr;
+    if (r->isInstance) {
+        instance = objectFromJS(thisVal);
+        if (!instance && argc > 0) {
+            instance = objectFromJS(argv[0]);
+            if (instance) { ++argv; --argc; }
+        }
+        if (!instance) {
+            return JS_ThrowTypeError(
+                ctx, "'%s' e metodo de instancia: chame obj.Metodo(...) ou passe o objeto como 1o argumento",
+                il2cpp::api().method_get_name(r->method));
+        }
+    }
+
+    if (argc < r->paramCount) {
+        return JS_ThrowTypeError(ctx, "'%s' espera %d argumento(s), recebeu %d",
+                                 il2cpp::api().method_get_name(r->method),
+                                 r->paramCount, argc);
+    }
+
+    ArgPack pack;
+    if (!pack.build(ctx, r->method, argc, argv)) return JS_EXCEPTION;
+
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* ret = il2cpp::api().runtime_invoke(r->method, instance, pack.data(), &exc);
+    if (exc) {
+        return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo",
+                                     il2cpp::api().method_get_name(r->method));
+    }
+    return fromReturn(ctx, r->method, ret);
+}
+
 // NativeMethod.hook(callback)
 JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
     auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
@@ -518,14 +574,7 @@ JSValue nc_method(JSContext* ctx, JSValueConst self, int argc, JSValueConst* arg
     if (!m) {
         r = JS_ThrowTypeError(ctx, "metodo '%s'(%d args) nao encontrado", name, paramCount);
     } else {
-        uint32_t flags = 0;
-        il2cpp::api().method_get_flags(m, &flags);
-        bool isInstance = !(flags & 0x0010);  // METHOD_ATTRIBUTE_STATIC
-        auto* ref = static_cast<MethodRef*>(std::malloc(sizeof(MethodRef)));
-        ref->method = m; ref->paramCount = paramCount; ref->isInstance = isInstance;
-        r = JS_NewObjectClass(ctx, g_nativeMethodId);
-        if (JS_IsException(r)) std::free(ref);
-        else JS_SetOpaque(r, ref);
+        r = makeMethod(ctx, m);
     }
     JS_FreeCString(ctx, name);
     return r;
@@ -534,6 +583,10 @@ JSValue nc_method(JSContext* ctx, JSValueConst self, int argc, JSValueConst* arg
 } // namespace
 
 // Exportado (Bridge.h): usado pelo dispatcher de hook para entregar o `self`.
+Il2CppObject* objectFromJS(JSValueConst v) {
+    return static_cast<Il2CppObject*>(JS_GetOpaque(v, g_nativeObjectId));
+}
+
 JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj) {
     JSValue o = JS_NewObjectClass(ctx, g_nativeObjectId);
     if (!JS_IsException(o)) JS_SetOpaque(o, obj);
@@ -666,7 +719,7 @@ void installBindings(void* context) {
 
     // NativeMethod (criado por NativeClass.method; tem finalizador)
     JS_NewClassID(rt, &g_nativeMethodId);
-    static const JSClassDef nmDef = { "GameMethod", nm_finalizer, nullptr, nullptr, nullptr };
+    static const JSClassDef nmDef = { "GameMethod", nm_finalizer, nullptr, gm_call, nullptr };
     JS_NewClass(rt, g_nativeMethodId, &nmDef);
     JSValue nmProto = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, nmProto, nm_proto, sizeof(nm_proto)/sizeof(nm_proto[0]));
