@@ -87,6 +87,11 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
+    // Unity Android Player 2021.3.56f2 (il2cpp/Release) — hospedamos o jogo no
+    // nosso processo e precisamos de uma UnityPlayer LIMPA; a do APK do Terraria
+    // vem com as strings cifradas pelo PairIP. Ver app/libs/README.md.
+    implementation(files("libs/unity-classes.jar"))
+
     // Assinatura de APK on-device (patch do Terraria instalado). Lib pura Java
     // do proprio Android build, roda em runtime no aparelho.
     implementation("com.android.tools.build:apksig:8.5.2")

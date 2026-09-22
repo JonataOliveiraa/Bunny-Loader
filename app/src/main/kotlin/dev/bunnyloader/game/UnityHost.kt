@@ -37,6 +37,16 @@ class UnityHost(
 
     var onQuit: (() -> Unit)? = null
 
+    /** A instância da UnityPlayer — o jogo lê isto no campo mUnityPlayer. */
+    fun playerInstance(): Any? = if (::player.isInitialized) player else null
+
+    /** SurfaceView da Unity, exposta ao jogo via Activity.getSurfaceView(). */
+    fun surfaceView(): android.view.SurfaceView? = runCatching {
+        (method("getView")?.invoke(player) as? android.view.ViewGroup)
+            ?.let { vg -> (0 until vg.childCount).map { vg.getChildAt(it) } }
+            ?.filterIsInstance<android.view.SurfaceView>()?.firstOrNull()
+    }.getOrNull()
+
     /**
      * @param context precisa ser a própria Activity (ver GameEnvironment).
      * @throws Throwable já desembrulhado — reflection esconde a causa real

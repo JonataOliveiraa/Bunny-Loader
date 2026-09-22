@@ -12,11 +12,12 @@ import android.os.Process
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.SurfaceView
 import android.view.Window
 import android.widget.Toast
-import dev.bunnyloader.game.AppBoot
 import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.GameEnvironment
+import dev.bunnyloader.game.GameFiles
 import dev.bunnyloader.game.GameInstall
 import dev.bunnyloader.game.UnityHost
 import dev.bunnyloader.mods.ModRepository
@@ -108,20 +109,20 @@ class GameActivity : Activity() {
         env = environment
         BootLog.add(this, "GameEnvironment pronto")
 
-        // Precisa vir ANTES da Unity: sem isso as constantes de string do jogo
-        // ficam nulas e a UnityPlayer estoura em getSystemService(null).
-        // Deixar o Android bootar a Application do jogo (ver AppBoot) é o que
-        // funciona — chamar o StartupLauncher na mão, como na Fase 1, não basta.
+        // Nossa cópia da pilha nativa do jogo (ver GameFiles): é dela que a
+        // UnityPlayer vai carregar libmain.so. Copiar é obrigatório — o linker
+        // não deixa carregar .so do diretório de outro app — e é o que dá o
+        // controle de versão. libpairipcore.so fica de fora: ninguém depende
+        // dela, e é o PairIP que derrubou as tentativas anteriores.
+        //
+        // NÃO bootamos a Application do jogo e NÃO carregamos o dex dele. Sem
+        // código Java do Terraria, o PairIP simplesmente não entra em cena.
         try {
-            val gameApp = AppBoot.makeApplication(environment.gameContext)
-            BootLog.add(this, "Application do jogo criada")
-            // O contexto do jogo se diz "com.and.games505.TerrariaPaid" mas roda
-            // no nosso uid; sem alinhar isso, o startActivity do license check
-            // do PairIP morre com SecurityException e derruba o processo.
-            val fixed = AppBoot.alignCallingIdentity(gameApp, super.getPackageName())
-            BootLog.add(this, "identidade alinhada: $fixed")
+            val libs = GameFiles.prepare(this, install) { BootLog.add(this, it) }
+            val ok = GameFiles.addLibraryPath(classLoader, libs)
+            BootLog.add(this, "libs do jogo em ${libs.name} (path estendido=$ok)")
         } catch (t: Throwable) {
-            fail("Falha ao bootar a Application do jogo", t)
+            fail("Falha ao preparar os binários do jogo", t)
             return
         }
 
@@ -135,6 +136,7 @@ class GameActivity : Activity() {
             return
         }
 
+        mUnityPlayer = unity.playerInstance()
         BootLog.add(this, "UnityPlayer criada")
         host = unity
         setContentView(view)
@@ -186,6 +188,46 @@ class GameActivity : Activity() {
         }
     }
 
+
+    // --- glue que o C# do Terraria acessa por JNI NA ACTIVITY --------------
+    //
+    // O Terraria customizou a com.unity3d.player.UnityPlayerActivity dele com
+    // campos e métodos próprios, e o código IL2CPP os procura por nome na
+    // Activity corrente. Sem eles o boot morre em:
+    //   NoSuchFieldError: no "Ljava/lang/Object;" field "PressedStates"
+    // Conferido no dex de 1.4.5.6.4 (dexdump da UnityPlayerActivity).
+    // @JvmField é obrigatório: precisam ser CAMPOS Java com estes nomes exatos.
+
+    @JvmField var MouseInside: Boolean = false
+    @JvmField var MouseMode: Int = 0
+    @JvmField val PressedStates = BooleanArray(330)   // tamanho conferido no dex
+    @JvmField var mUnityPlayer: Any? = null
+
+    fun IsKeyPressed(code: Int): Boolean =
+        code >= 0 && code < PressedStates.size && PressedStates[code]
+
+    /**
+     * Mapeia keycode do Android -> keycode da Unity.
+     * TODO: a tabela real está no dex do jogo; por ora identidade, o suficiente
+     * para bootar. Teclado/gamepad ficam imprecisos até portarmos a tabela.
+     */
+    fun GetUnityKeyCode(androidKeyCode: Int): Int = androidKeyCode
+
+    fun SetMouseCursorMode(mode: Int) { MouseMode = mode }
+
+    fun SetSurfaceFrameRate(fps: Float) {
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            runCatching { getSurfaceView()?.holder?.surface?.setFrameRate(fps, 0) }
+        }
+    }
+
+    fun getSurfaceView(): SurfaceView? = host?.surfaceView()
+
+    private fun setPressed(code: Int, down: Boolean) {
+        val u = GetUnityKeyCode(code)
+        if (u >= 0 && u < PressedStates.size) PressedStates[u] = down
+    }
+
     // --- ciclo de vida (espelha a UnityPlayerActivity) -----------------------
 
     override fun onStart() { super.onStart(); host?.start() }
@@ -232,11 +274,15 @@ class GameActivity : Activity() {
         return super.dispatchKeyEvent(event)
     }
 
-    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean =
-        host?.injectEvent(event) ?: super.onKeyDown(keyCode, event)
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        setPressed(keyCode, true)
+        return host?.injectEvent(event) ?: super.onKeyDown(keyCode, event)
+    }
 
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean =
-        host?.injectEvent(event) ?: super.onKeyUp(keyCode, event)
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        setPressed(keyCode, false)
+        return host?.injectEvent(event) ?: super.onKeyUp(keyCode, event)
+    }
 
     override fun onTouchEvent(event: MotionEvent): Boolean =
         host?.injectEvent(event) ?: super.onTouchEvent(event)
