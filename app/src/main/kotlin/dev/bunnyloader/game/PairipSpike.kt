@@ -48,9 +48,9 @@ object PairipSpike {
         val deposits = runCatching { findDeposits(loader) }
             .getOrElse { log("2) varredura do dex FALHOU: ${desc(it)}"); emptyList() }
         if (deposits.isEmpty()) {
-            log("2) nenhuma classe-depósito encontrada — sonda indisponível")
+            log("2) nenhum depósito em $lastScanned classes varridas")
         } else {
-            log("2) ${deposits.size} classe(s)-depósito achada(s):")
+            log("2) ${deposits.size} depósito(s) em $lastScanned classes varridas:")
             deposits.forEach { log("   ${it.first.name} (${it.second.size} campos)") }
             log("   ANTES: ${summarize(deposits)}")
         }
@@ -85,22 +85,29 @@ object PairipSpike {
         var scanned = 0
         for (name in dexClassNames(loader)) {
             if (scanned++ > MAX_SCAN || found.size >= WANT_DEPOSITS) break
-            // initialize=false: não dispara <clinit> de classes alheias.
-            val c = runCatching { Class.forName(name, false, loader) }.getOrNull() ?: continue
-            if (c.declaredMethods.isNotEmpty()) continue
-            val fields = runCatching {
-                c.declaredFields.filter {
+            // TUDO por classe vai dentro do runCatching: além do forName,
+            // getDeclaredMethods()/getDeclaredFields() também estouram
+            // (NoClassDefFoundError) quando uma assinatura referencia classe
+            // ausente do dex do jogo. Uma classe ruim não pode matar a varredura.
+            runCatching {
+                // initialize=false: não dispara <clinit> de classes alheias.
+                val c = Class.forName(name, false, loader)
+                if (c.declaredMethods.isNotEmpty()) return@runCatching
+                val fields = c.declaredFields.filter {
                     it.type == String::class.java && Modifier.isStatic(it.modifiers)
                 }
-            }.getOrNull() ?: continue
-            if (fields.size < 3) continue
-            fields.forEach { it.isAccessible = true }
-            // Ler força o <clinit>: constante comum vira não-null e é descartada.
-            val allNull = runCatching { fields.all { it.get(null) == null } }.getOrDefault(false)
-            if (allNull) found.add(c to fields)
+                if (fields.size < 3) return@runCatching
+                fields.forEach { it.isAccessible = true }
+                // Ler força o <clinit>: constante comum vira não-null e é descartada.
+                if (fields.all { it.get(null) == null }) found.add(c to fields)
+            }
         }
+        Log.i(TAG, "spike:    varridas $scanned classes, ${found.size} depósito(s)")
+        lastScanned = scanned
         return found
     }
+
+    private var lastScanned = 0
 
     /** Nomes de classe do dex do jogo (via DexPathList do PathClassLoader). */
     private fun dexClassNames(loader: ClassLoader): Sequence<String> = sequence {
