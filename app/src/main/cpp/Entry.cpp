@@ -22,18 +22,19 @@ namespace {
 
 __attribute__((constructor))
 void bl_on_load() {
-    // Se o arquivo de config nao existir, este provavelmente NAO e o processo
-    // do jogo (a lib pode ter sido carregada em outro contexto). Sai quieto.
-    if (!bl::loadConfigFromFile(bl::kDefaultConfigPath)) {
-        return;
-    }
-
+    // A config e opcional. No modo repackage a libbunny so e carregada dentro
+    // do processo do jogo (esta no APK dele), entao seguimos mesmo sem config —
+    // logando no logcat. No modo preload (wrap), a config identifica o processo.
+    bool hasConfig = bl::loadConfigFromFile(bl::kDefaultConfigPath);
     auto& c = bl::config();
+
     bl::log::open(c.logPath.empty() ? nullptr : c.logPath.c_str());
-    BL_INFO("libbunny carregada no processo do jogo (versao alvo %lld)",
-            (long long)c.gameVersion);
-    BL_INFO("  modsDir=%s  mods habilitados=%zu",
-            c.modsDir.c_str(), c.enabledMods.size());
+    BL_INFO("libbunny carregada no processo do jogo (config=%s, versao alvo %lld)",
+            hasConfig ? "sim" : "ausente", (long long)c.gameVersion);
+    if (hasConfig) {
+        BL_INFO("  modsDir=%s  mods habilitados=%zu",
+                c.modsDir.c_str(), c.enabledMods.size());
+    }
 
     if (!bl::loader::installWatcher()) {
         BL_ERROR("falha ao registrar o watcher de il2cpp_init");

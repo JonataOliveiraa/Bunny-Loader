@@ -20,3 +20,7 @@ refs/*
 
 # QuickJS vendored sources (baixados localmente, ver third_party/README.md)
 app/src/main/cpp/third_party/quickjs/
+
+# APK modificado do jogo (copia alterada de jogo pago) e chaves — NUNCA versionar
+/out/
+*.keystore
