@@ -25,6 +25,7 @@ struct Api {
     // bridges por assinatura e funciona sob houdini (e chamada normal).
     Il2CppObject* (*runtime_invoke)(const MethodInfo*, void*, void**, Il2CppObject**) = nullptr;
     const char* (*method_get_name)(const MethodInfo*) = nullptr;
+    uint32_t (*method_get_flags)(const MethodInfo*, uint32_t*) = nullptr;
     Il2CppObject* (*object_new)(Il2CppClass*) = nullptr;
     Il2CppClass* (*object_get_class)(Il2CppObject*) = nullptr;
     Il2CppString* (*string_new)(const char*) = nullptr;

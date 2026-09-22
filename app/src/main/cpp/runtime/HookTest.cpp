@@ -47,15 +47,11 @@ void installHookTest() {
     auto& g = game();
     auto& a = il2cpp::api();
 
-    // 1. Projectile.SetDefaults (dispara ao atirar, no jogo).
-    if (g.proj.setDefaults) {
-        if (hook::install(g.proj.setDefaults, hkSetDefaults, &origSetDefaults))
-            BL_INFO(">>> hooktest: Projectile.SetDefaults hookado (por endereco)");
-        else
-            BL_ERROR("hooktest: hook de Projectile.SetDefaults falhou");
-    }
+    // Projectile.SetDefaults agora e hookado pelo lado JS (ver script da sonda),
+    // entao nao duplicamos aqui. Mantemos so o DoUpdate como prova de vida.
+    (void)origSetDefaults; (void)hkSetDefaults;
 
-    // 2. Main.DoUpdate (dispara todo frame, ja no menu) — prova de disparo.
+    // Main.DoUpdate (dispara todo frame, ja no menu) — prova de disparo.
     Il2CppClass* mainCls = il2cpp::findClass({"Terraria", "Main", {}});
     const MethodInfo* doUpdate = mainCls
         ? a.class_get_method_from_name(mainCls, "DoUpdate", 1) : nullptr;

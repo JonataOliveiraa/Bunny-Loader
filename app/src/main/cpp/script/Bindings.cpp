@@ -1,4 +1,5 @@
 #include "script/ScriptEngine.h"
+#include "script/Bridge.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -8,6 +9,7 @@
 #include "quickjs.h"
 #include <cstdint>
 #include <cstring>
+#include <cstdlib>
 #endif
 
 // Ponte JavaScript <-> IL2CPP. Espelha a API do TL Pro. Estado atual:
@@ -29,6 +31,14 @@ namespace {
 
 JSClassID g_nativeClassId;
 JSClassID g_nativeObjectId;
+JSClassID g_nativeMethodId;
+
+// NativeMethod guarda isto (heap; liberado no finalizador).
+struct MethodRef {
+    const MethodInfo* method;
+    int paramCount;
+    bool isInstance;
+};
 
 Il2CppClass* classOf(JSValueConst v) {
     return static_cast<Il2CppClass*>(JS_GetOpaque(v, g_nativeClassId));
@@ -120,6 +130,7 @@ JSValue nc_setStaticFloat(JSContext* ctx, JSValueConst self, int argc, JSValueCo
 }
 
 JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*);
+JSValue nc_method(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv);
 
 JSValue js_NativeClass(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 2) return JS_ThrowTypeError(ctx, "NativeClass(namespace, nome)");
@@ -146,6 +157,7 @@ const JSCFunctionListEntry nc_proto[] = {
     JS_CFUNC_DEF("setStaticInt", 2, nc_setStaticInt),
     JS_CFUNC_DEF("setStaticFloat", 2, nc_setStaticFloat),
     JS_CFUNC_DEF("new", 0, nc_new),
+    JS_CFUNC_DEF("method", 2, nc_method),
 };
 
 // ============================ NativeObject ============================
@@ -234,12 +246,65 @@ JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
     if (!cls) return JS_EXCEPTION;
     Il2CppObject* obj = il2cpp::api().object_new(cls);
     if (!obj) return JS_ThrowInternalError(ctx, "object_new falhou");
+    return makeNativeObject(ctx, obj);
+}
+
+// ============================ NativeMethod ============================
+
+void nm_finalizer(JSRuntime*, JSValue val) {
+    if (auto* r = static_cast<MethodRef*>(JS_GetOpaque(val, g_nativeMethodId)))
+        std::free(r);
+}
+
+// NativeMethod.hook(callback)
+JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
+    if (!r || argc < 1) return JS_EXCEPTION;
+    if (!JS_IsFunction(ctx, argv[0]))
+        return JS_ThrowTypeError(ctx, "hook(callback): callback deve ser funcao");
+    if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0]))
+        return JS_ThrowInternalError(ctx, "hook: falha ao instalar");
+    return JS_UNDEFINED;
+}
+
+const JSCFunctionListEntry nm_proto[] = {
+    JS_CFUNC_DEF("hook", 1, nm_hook),
+};
+
+// NativeClass.method(nome, paramCount) -> NativeMethod
+JSValue nc_method(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    Il2CppClass* cls = classOf(self);
+    if (!cls || argc < 2) return JS_ThrowTypeError(ctx, "method(nome, paramCount)");
+    const char* name = JS_ToCString(ctx, argv[0]);
+    int paramCount = 0; JS_ToInt32(ctx, &paramCount, argv[1]);
+    JSValue r;
+    if (!name) return JS_EXCEPTION;
+
+    const MethodInfo* m = il2cpp::api().class_get_method_from_name(cls, name, paramCount);
+    if (!m) {
+        r = JS_ThrowTypeError(ctx, "metodo '%s'(%d args) nao encontrado", name, paramCount);
+    } else {
+        uint32_t flags = 0;
+        il2cpp::api().method_get_flags(m, &flags);
+        bool isInstance = !(flags & 0x0010);  // METHOD_ATTRIBUTE_STATIC
+        auto* ref = static_cast<MethodRef*>(std::malloc(sizeof(MethodRef)));
+        ref->method = m; ref->paramCount = paramCount; ref->isInstance = isInstance;
+        r = JS_NewObjectClass(ctx, g_nativeMethodId);
+        if (JS_IsException(r)) std::free(ref);
+        else JS_SetOpaque(r, ref);
+    }
+    JS_FreeCString(ctx, name);
+    return r;
+}
+
+} // namespace
+
+// Exportado (Bridge.h): usado pelo dispatcher de hook para entregar o `self`.
+JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj) {
     JSValue o = JS_NewObjectClass(ctx, g_nativeObjectId);
     if (!JS_IsException(o)) JS_SetOpaque(o, obj);
     return o;
 }
-
-} // namespace
 
 void installBindings(void* context) {
     auto* ctx = static_cast<JSContext*>(context);
@@ -268,6 +333,14 @@ void installBindings(void* context) {
     JSValue noProto = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, noProto, no_proto, sizeof(no_proto)/sizeof(no_proto[0]));
     JS_SetClassProto(ctx, g_nativeObjectId, noProto);
+
+    // NativeMethod (criado por NativeClass.method; tem finalizador)
+    JS_NewClassID(rt, &g_nativeMethodId);
+    static const JSClassDef nmDef = { "NativeMethod", nm_finalizer, nullptr, nullptr, nullptr };
+    JS_NewClass(rt, g_nativeMethodId, &nmDef);
+    JSValue nmProto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, nmProto, nm_proto, sizeof(nm_proto)/sizeof(nm_proto[0]));
+    JS_SetClassProto(ctx, g_nativeMethodId, nmProto);
 
     JS_FreeValue(ctx, global);
     BL_INFO("bindings instalados (tl.log, NativeClass, NativeObject)");

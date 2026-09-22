@@ -72,7 +72,18 @@ void probeThread() {
                         "it.setInt('useTime', 4);\n"
                         "it.setFloat('shootSpeed', 10.5);\n"
                         "tl.log('item.type=' + it.getInt('type') + ' useTime=' + it.getInt('useTime')"
-                        " + ' shootSpeed=' + it.getFloat('shootSpeed') + ' (esp 42/4/10.5)');\n",
+                        " + ' shootSpeed=' + it.getFloat('shootSpeed') + ' (esp 42/4/10.5)');\n"
+                        "\n"
+                        "// HOOK via JS: intercepta Projectile.SetDefaults (dispara no boot)\n"
+                        "const Projectile = new NativeClass('Terraria', 'Projectile');\n"
+                        "const SetDefaults = Projectile.method('SetDefaults', 1);\n"
+                        "let n = 0;\n"
+                        "SetDefaults.hook((original, self, type) => {\n"
+                        "  original(self, type);\n"
+                        "  if (n < 3) { tl.log('JS hook SetDefaults: type=' + type +"
+                        " ' whoAmI=' + self.getInt('whoAmI')); n++; }\n"
+                        "});\n"
+                        "tl.log('hook JS instalado; aguardando disparos...');\n",
                         "teste");
                 } else {
                     BL_ERROR("sonda: QuickJS nao iniciou");
