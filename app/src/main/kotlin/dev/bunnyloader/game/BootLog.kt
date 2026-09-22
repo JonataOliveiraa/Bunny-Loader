@@ -86,7 +86,9 @@ object BootLog {
                     val keep = line.contains("Unity") || line.contains("IL2CPP") ||
                         line.contains("DEBUG") || line.contains("libc") ||
                         line.contains("Fatal") || line.contains("FATAL") ||
-                        line.contains("Error") || line.contains("error")
+                        line.contains("Error") || line.contains("error") ||
+                        line.contains("JNI") || line.contains("dlopen") ||
+                        line.contains("art")
                     // Limite de tamanho: interessa a causa, não o histórico todo.
                     if (keep && out.length() < 60_000) out.appendText(line + "\n")
                 }
@@ -99,10 +101,33 @@ object BootLog {
             "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx) +
             "\n--- por que o processo morreu ---\n" + exitReasons(ctx)
 
-    /** Últimas linhas relevantes — é onde a Unity diz o que não conseguiu fazer. */
+    /**
+     * A CAUSA primeiro, depois o resto.
+     *
+     * Quando a Unity aborta via JNI FatalError, a ART despeja um stack enorme
+     * logo depois — e cortar pelo fim justamente esconde a mensagem, que vem
+     * antes. Então destacamos as linhas de causa e só depois mostramos a cauda.
+     */
     private fun lastLogcat(ctx: Context): String = runCatching {
         val lines = logcatFile(ctx).readLines()
-        if (lines.isEmpty()) "(vazio)" else lines.takeLast(40).joinToString("\n")
+        if (lines.isEmpty()) return@runCatching "(vazio)"
+        val causes = lines.filter { l ->
+            l.contains("FatalError called") || l.contains("JNI DETECTED") ||
+                l.contains("Abort message") || l.contains("UnsatisfiedLink") ||
+                l.contains("dlopen") || l.contains("Unable to") ||
+                l.contains("Failed to") || l.contains("E/Unity") ||
+                l.contains("E Unity") || l.contains("could not")
+        }.distinct().take(15)
+        buildString {
+            if (causes.isNotEmpty()) {
+                append(">>> CAUSA:\n")
+                causes.forEach { append("  ").append(it.trim()).append("\n") }
+                append(">>> resto:\n")
+            }
+            // Sem os quadros de stack repetidos, que não acrescentam nada.
+            lines.filterNot { it.contains("native: #") || it.contains("runtime.cc:") }
+                .takeLast(25).forEach { append(it).append("\n") }
+        }
     }.getOrElse { "(sem captura)" }
 
     /**
