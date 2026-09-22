@@ -4,6 +4,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 #include "runtime/GameRefs.h"
 #include <atomic>
 #include <cstdio>
@@ -50,24 +51,6 @@ int unboxInt(Il2CppObject* boxed) {
     return *reinterpret_cast<int*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
 }
 
-// Item.NewItem tem varios overloads com 9 parametros (um so-primitivo, outros
-// comecam com IEntitySource/Vector2). class_get_method_from_name so casa por
-// nome+contagem, entao iteramos e pegamos aquele cujo 1o parametro e int.
-const MethodInfo* findPrimitiveNewItem(Il2CppClass* item) {
-    using namespace il2cpp;
-    auto& a = api();
-    void* iter = nullptr;
-    while (const MethodInfo* m = a.class_get_methods(item, &iter)) {
-        if (std::strcmp(a.method_get_name(m), "NewItem") != 0) continue;
-        if (a.method_get_param_count(m) != 9) continue;
-        char* pname = a.type_get_name(a.method_get_param(m, 0));
-        bool isInt = pname && std::strcmp(pname, "System.Int32") == 0;
-        if (pname) a.il2cpp_free(pname);
-        if (isInt) return m;
-    }
-    return nullptr;
-}
-
 bool resolveCheatRefs() {
     using namespace il2cpp;
     auto& a = api();
@@ -78,8 +61,13 @@ bool resolveCheatRefs() {
     g_playerField = a.class_get_field_from_name(main, "player");
     g_itemArrayField = a.class_get_field_from_name(main, "item");  // opcional
     g_getMyPlayer = a.class_get_method_from_name(main, "get_myPlayer", 0);
-    // Overload so-primitivo: NewItem(X,Y,Width,Height,Type,Stack,noBroadcast,pfix,noGrabDelay)
-    g_newItem = findPrimitiveNewItem(item);
+    // Por ASSINATURA: NewItem tem quatro overloads de 9 parametros e
+    // class_get_method_from_name (nome + aridade) pegava o errado, dando
+    // excecao a cada frame. Antes isto era uma peneira manual iterando metodos;
+    // agora e a mesma resolucao que os mods usam em JS.
+    g_newItem = findMethodBySignature(item, parseSignature(
+        "int NewItem(int X, int Y, int Width, int Height, int Type, int Stack, "
+        "bool noBroadcast, int pfix, bool noGrabDelay)"));
 
     if (!g_playerField || !g_getMyPlayer || !g_newItem) {
         BL_ERROR("cheats: refs faltando (player=%p get_myPlayer=%p NewItem=%p)",

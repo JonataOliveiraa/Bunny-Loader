@@ -4,6 +4,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -39,6 +40,21 @@ struct MethodRef {
     int paramCount;
     bool isInstance;
 };
+
+// Embrulha um MethodInfo num NativeMethod para o JS.
+JSValue makeMethod(JSContext* ctx, const MethodInfo* m) {
+    uint32_t flags = 0;
+    il2cpp::api().method_get_flags(m, &flags);
+    auto* ref = static_cast<MethodRef*>(std::malloc(sizeof(MethodRef)));
+    if (!ref) return JS_ThrowOutOfMemory(ctx);
+    ref->method = m;
+    ref->paramCount = static_cast<int>(il2cpp::api().method_get_param_count(m));
+    ref->isInstance = !(flags & 0x0010);  // METHOD_ATTRIBUTE_STATIC
+    JSValue v = JS_NewObjectClass(ctx, g_nativeMethodId);
+    if (JS_IsException(v)) std::free(ref);
+    else JS_SetOpaque(v, ref);
+    return v;
+}
 
 Il2CppClass* classOf(JSValueConst v) {
     return static_cast<Il2CppClass*>(JS_GetOpaque(v, g_nativeClassId));
@@ -150,6 +166,116 @@ JSValue js_NativeClass(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
     if (name) JS_FreeCString(ctx, name);
     return r;
 }
+
+/**
+ * Acesso por propriedade e por ASSINATURA no NativeClass.
+ *
+ *   Item['void SetDefaults(int Type, ItemVariant variant)']  -> NativeMethod
+ *   Item.SetDefaults                                          -> NativeMethod (se único)
+ *   Player.defaultItemGrabRange                               -> valor do campo estático
+ *
+ * Substitui o `.method(nome, nParams)`, que casava por ARIDADE e por isso não
+ * desambiguava overloads — o `Item.NewItem` tem quatro com 9 parâmetros.
+ * Quando o nome puro é ambíguo NÃO escolhemos um: erramos, listando os
+ * overloads. Escolher em silêncio foi o bug que deu exceção a cada frame.
+ */
+JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
+    // 1. O que é nosso (method, new, getStaticInt, toString...) vem do
+    //    protótipo. Sem isto o exotic engoliria a API inteira.
+    JSValue proto = JS_GetClassProto(ctx, g_nativeClassId);
+    JSValue fromProto = JS_GetProperty(ctx, proto, atom);
+    JS_FreeValue(ctx, proto);
+    if (!JS_IsUndefined(fromProto)) return fromProto;
+    JS_FreeValue(ctx, fromProto);
+
+    Il2CppClass* cls = classOf(obj);
+    const char* key = JS_AtomToCString(ctx, atom);
+    if (!cls || !key) {
+        if (key) JS_FreeCString(ctx, key);
+        return JS_UNDEFINED;
+    }
+    std::string name(key);
+    JS_FreeCString(ctx, key);
+
+    // 2. Tem parêntese? É assinatura.
+    if (name.find('(') != std::string::npos) {
+        il2cpp::Signature sig = il2cpp::parseSignature(name);
+        if (!sig.valid) return JS_ThrowTypeError(ctx, "assinatura invalida: '%s'", name.c_str());
+        bool ambiguous = false;
+        const MethodInfo* m = il2cpp::findMethodBySignature(cls, sig, &ambiguous);
+        if (m) return makeMethod(ctx, m);
+
+        std::string msg = ambiguous ? "assinatura ambigua: '" : "metodo nao encontrado: '";
+        msg += name + "'";
+        auto overloads = il2cpp::listOverloads(cls, sig.name);
+        if (!overloads.empty()) {
+            msg += ". Existem: ";
+            for (size_t i = 0; i < overloads.size(); ++i) {
+                if (i) msg += " | ";
+                msg += overloads[i];
+            }
+        }
+        return JS_ThrowTypeError(ctx, "%s", msg.c_str());
+    }
+
+    // 3. Campo estático.
+    if (FieldInfo* f = il2cpp::findField(cls, name)) {
+        uint8_t buf[16] = {0};
+        il2cpp::api().field_static_get_value(f, buf);
+        int64_t v = 0;
+        std::memcpy(&v, buf, sizeof(v));
+        return JS_NewInt64(ctx, v);
+    }
+
+    // 4. Método pelo nome puro — só se houver UM.
+    auto overloads = il2cpp::listOverloads(cls, name);
+    if (overloads.size() == 1) {
+        il2cpp::Signature bare;
+        bare.name = name;
+        bare.valid = true;
+        // Um overload só: casa por nome + aridade dele mesmo.
+        auto& a = il2cpp::api();
+        for (Il2CppClass* c = cls; c; c = a.class_get_parent(c)) {
+            void* iter = nullptr;
+            while (const MethodInfo* m = a.class_get_methods(c, &iter)) {
+                if (name == a.method_get_name(m)) return makeMethod(ctx, m);
+            }
+        }
+    }
+    if (overloads.size() > 1) {
+        std::string msg = "'" + name + "' tem " + std::to_string(overloads.size()) +
+            " overloads; use a assinatura. Existem: ";
+        for (size_t i = 0; i < overloads.size(); ++i) {
+            if (i) msg += " | ";
+            msg += overloads[i];
+        }
+        return JS_ThrowTypeError(ctx, "%s", msg.c_str());
+    }
+    return JS_UNDEFINED;
+}
+
+int nc_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
+                  JSValueConst value, JSValueConst, int) {
+    Il2CppClass* cls = classOf(obj);
+    const char* key = JS_AtomToCString(ctx, atom);
+    if (!cls || !key) { if (key) JS_FreeCString(ctx, key); return -1; }
+    FieldInfo* f = il2cpp::findField(cls, key);
+    JS_FreeCString(ctx, key);
+    if (!f) {
+        // Não é campo do jogo: vira propriedade JS comum no objeto.
+        return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value),
+                                      JS_PROP_C_W_E) < 0 ? -1 : true;
+    }
+    int64_t v = 0;
+    if (JS_ToInt64(ctx, &v, value) < 0) return -1;
+    il2cpp::api().field_static_set_value(f, &v);
+    return true;
+}
+
+const JSClassExoticMethods nc_exotic = {
+    nullptr, nullptr, nullptr, nullptr, nullptr,
+    nc_exotic_get, nc_exotic_set,
+};
 
 const JSCFunctionListEntry nc_proto[] = {
     JS_CFUNC_DEF("getStaticInt", 1, nc_getStaticInt),
@@ -319,7 +445,10 @@ void installBindings(void* context) {
 
     // NativeClass
     JS_NewClassID(rt, &g_nativeClassId);
-    static const JSClassDef ncDef = { "NativeClass", nullptr, nullptr, nullptr, nullptr };
+    static const JSClassDef ncDef = {
+        "NativeClass", nullptr, nullptr, nullptr,
+        const_cast<JSClassExoticMethods*>(&nc_exotic),
+    };
     JS_NewClass(rt, g_nativeClassId, &ncDef);
     JSValue ncProto = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, ncProto, nc_proto, sizeof(nc_proto)/sizeof(nc_proto[0]));
