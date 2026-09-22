@@ -57,8 +57,22 @@ void probeThread() {
                     script::engine().eval(
                         "const ItemID = new NativeClass('Terraria.ID', 'ItemID');\n"
                         "tl.log('Minishark id = ' + ItemID.getStaticInt('Minishark') + ' (esperado 98)');\n"
+                        "\n"
+                        "// escrita de estatico: muda e restaura netMode\n"
                         "const Main = new NativeClass('Terraria', 'Main');\n"
-                        "tl.log('Main.netMode = ' + Main.getStaticInt('netMode'));\n",
+                        "tl.log('netMode antes = ' + Main.getStaticInt('netMode'));\n"
+                        "Main.setStaticInt('netMode', 2);\n"
+                        "tl.log('netMode depois de set(2) = ' + Main.getStaticInt('netMode'));\n"
+                        "Main.setStaticInt('netMode', 0);\n"
+                        "\n"
+                        "// instancia: cria um Item e escreve/le campos\n"
+                        "const Item = new NativeClass('Terraria', 'Item');\n"
+                        "const it = Item.new();\n"
+                        "it.setInt('type', 42);\n"
+                        "it.setInt('useTime', 4);\n"
+                        "it.setFloat('shootSpeed', 10.5);\n"
+                        "tl.log('item.type=' + it.getInt('type') + ' useTime=' + it.getInt('useTime')"
+                        " + ' shootSpeed=' + it.getFloat('shootSpeed') + ' (esp 42/4/10.5)');\n",
                         "teste");
                 } else {
                     BL_ERROR("sonda: QuickJS nao iniciou");

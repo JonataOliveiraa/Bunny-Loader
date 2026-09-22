@@ -45,6 +45,7 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_runtime_invoke", &runtime_invoke);
     ok &= bind(lib, "il2cpp_method_get_name", &method_get_name);
     ok &= bind(lib, "il2cpp_object_new", &object_new);
+    ok &= bind(lib, "il2cpp_object_get_class", &object_get_class);
     ok &= bind(lib, "il2cpp_string_new", &string_new);
     ok &= bind(lib, "il2cpp_gchandle_new", &gchandle_new);
     ok &= bind(lib, "il2cpp_gchandle_free", &gchandle_free);
