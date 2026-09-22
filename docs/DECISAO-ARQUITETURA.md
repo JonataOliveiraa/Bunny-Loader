@@ -231,3 +231,42 @@ está no código, era feito exatamente pra isso.
   provavelmente um arquivo em local acordado (ex: `/data/local/tmp/bunny/`) que
   a lib lê no load
 - Copiar a `libbunny.so` para um caminho que o processo do jogo consiga ler
+
+---
+
+# RESULTADO: repackage funciona; hook precisa de ARM real
+
+Medido no MuMu com o APK repackaged (libmain.so com NEEDED libbunny.so):
+
+```
+BunnyLoader: libbunny carregada no processo do jogo (config=sim, versao alvo 301543)
+BunnyLoader: Falha ao registrar hook de il2cpp_init: Linker with an unsupported architecture
+IL2CPP: JNI_OnLoad
+Unity: 2021.3.56f2 ... CPU 'arm64-v8a' ... Backend 'il2cpp'
+IL2CPP: Locale pt-PT
+shadowhook_tag: shadowhook init(mode: UNIQUE), return: 0, real-init: yes
+```
+
+No processo do jogo: libbunny (3), libshadowhook (3), libil2cpp (6) mapeadas;
+jogo chega ao menu.
+
+## Provado
+- Injecao por repackage (DT_NEEDED em libmain.so) coloca a nossa lib no
+  processo do jogo — nosso constructor roda.
+- PairIP contornado: rodar dentro do processo do jogo faz as strings serem
+  decifradas normalmente. O re-sign com chave de dev NAO abortou o boot
+  (nenhum SignatureTamperedException). Ou seja, neste build a checagem de
+  assinatura do PairIP nao derruba o app repackaged.
+- Nenhum dex alterado.
+
+## Bloqueio restante (do emulador, nao do design)
+`shadowhook_init` retorna 0, mas registrar o hook falha com "Linker with an
+unsupported architecture". Sob o houdini (tradução ARM->x86 do MuMu), o
+ShadowHook nao reconhece o linker para fazer o inline hook. Este e exatamente
+o alerta repetido desde a Fase 0: **hooks nativos precisam de ARM real.**
+
+## Proximo passo
+A camada de injecao esta pronta e reproduzivel (tools/repack.py). O motor de
+hook so pode ser validado em ARM de verdade — aparelho Android ARM (idealmente
+com root/Magisk para voltar ao caminho B limpo, mas o repackage tambem roda sem
+root) ou um host ARM. Tudo ate o il2cpp_init esta feito no emulador.
