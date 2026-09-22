@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="app_name">Bunny Loader</string>
-    <style name="Theme.BunnyLoader" parent="android:Theme.Material.NoActionBar"/>
-</resources>
