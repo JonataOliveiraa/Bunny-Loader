@@ -15,21 +15,28 @@ import java.util.zip.ZipFile
  *  2. **Versão fixa.** Quem controla a cópia controla a versão que roda, que é o
  *     que mantém mods estáveis quando o jogo atualiza.
  *
- * Copiamos só a pilha nativa da Unity. `libpairipcore.so` fica de fora de
- * propósito: conferido que ninguém depende dela (libmain/libunity/libil2cpp só
- * dependem de libs do sistema), e é o PairIP que derrubou as tentativas
- * anteriores. Nada do dex do jogo é carregado.
+ * Copiamos a pilha nativa da Unity — e, quando existir, a `libpairipcore.so`.
+ *
+ * CORREÇÃO: em 1.4.5.6.4 a libunity NÃO dependia do PairIP, e eu afirmei que
+ * dava para deixá-lo fora. Em 1.4.5.8.6 depende:
+ *   dlopen failed: library "libpairipcore.so" not found: needed by libunity.so
+ * Então ela entra na cópia, como dependência nativa. Isso NÃO traz o PairIP de
+ * volta ao jogo: o license check e as strings cifradas vivem na camada Java
+ * (com.pairip.*), e o dex do jogo continua sem ser carregado.
  *
  * Não redistribui nada: a fonte é a cópia instalada do próprio usuário.
  */
 object GameFiles {
-    /** Pilha nativa da Unity. Sem libpairipcore — nada depende dela. */
+    /** Obrigatórias: sem elas não há jogo. */
     private val LIBS = listOf(
         "libmain.so",        // ponto de entrada; libunity depende dele
         "libunity.so",
         "libil2cpp.so",      // o jogo em si (não é cifrado)
         "libc++_shared.so",
     )
+
+    /** Podem não existir conforme a versão do jogo — copiamos se houver. */
+    private val OPTIONAL_LIBS = listOf("libpairipcore.so")
 
     fun libDir(ctx: Context, abi: String): File =
         File(ctx.filesDir, "game/lib/$abi")
@@ -43,7 +50,7 @@ object GameFiles {
     fun prepare(ctx: Context, install: GameInstall, onStep: (String) -> Unit = {}): File {
         val dest = libDir(ctx, install.abi).apply { mkdirs() }
         val sources = install.allApks()
-        val pending = LIBS.toMutableSet()
+        val pending = (LIBS + OPTIONAL_LIBS).toMutableSet()
 
         // Já copiado antes? Tamanho igual basta — o APK de origem é imutável.
         for (apk in sources) {
@@ -70,7 +77,8 @@ object GameFiles {
             }
         }
 
-        if (pending.isNotEmpty()) error("libs não encontradas no APK do jogo: $pending")
+        val missing = pending intersect LIBS.toSet()
+        if (missing.isNotEmpty()) error("libs não encontradas no APK do jogo: $missing")
         Log.i(TAG, "GameFiles: ${LIBS.size} libs em $dest")
         return dest
     }
@@ -102,7 +110,11 @@ object GameFiles {
         // devolve a mesma quando a Unity pedir pelo soname.
         for (name in LIBS_IN_LOAD_ORDER) {
             val f = File(dir, name)
-            if (!f.exists()) return "$name ausente em $dir"
+            if (!f.exists()) {
+                // Opcional ausente é normal (varia por versão do jogo).
+                if (name in OPTIONAL_LIBS) continue
+                return "$name ausente em $dir"
+            }
             try {
                 System.load(f.absolutePath)
                 Log.i(TAG, "GameFiles: carregou $name")
@@ -113,8 +125,10 @@ object GameFiles {
         return null
     }
 
+    /** libpairipcore antes da libunity: nas versões novas ela é dependência. */
     private val LIBS_IN_LOAD_ORDER = listOf(
-        "libc++_shared.so", "libmain.so", "libunity.so", "libil2cpp.so",
+        "libc++_shared.so", "libpairipcore.so", "libmain.so",
+        "libunity.so", "libil2cpp.so",
     )
 
     /** Listagem para a trilha de boot — confirma o que realmente está lá. */
