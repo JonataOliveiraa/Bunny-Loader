@@ -64,10 +64,18 @@ object Eligibility {
             return Result(false, "O Terraria instalado não veio da Play (origem: ${installer ?: "desconhecida"}).")
         }
 
-        if (OFFICIAL_CERT_SHA256.isEmpty()) {
-            return Result(true, "Terraria da Play encontrado (certificado NÃO conferido: digest oficial não configurado).")
-        }
         val digests = certDigests(info)
+        if (OFFICIAL_CERT_SHA256.isEmpty()) {
+            // Mostra o que ESTE aparelho tem. Só um install genuíno da Play
+            // serve de referência, e quem roda o app é quem tem um — é daqui
+            // que sai o valor para OFFICIAL_CERT_SHA256.
+            return Result(
+                true,
+                "Terraria da Play encontrado, certificado NÃO conferido " +
+                    "(digest oficial não configurado).\n" +
+                    "Digest observado: " + digests.joinToString(", ").ifBlank { "(nenhum)" },
+            )
+        }
         if (digests.none { it in OFFICIAL_CERT_SHA256 }) {
             return Result(false, "A assinatura do Terraria instalado não é a oficial.")
         }
