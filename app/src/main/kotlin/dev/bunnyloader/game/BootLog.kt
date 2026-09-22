@@ -51,7 +51,7 @@ object BootLog {
                 var depth = 0
                 while (e != null && depth++ < 3) {
                     add(ctx, "  ${e.javaClass.name}: ${e.message}")
-                    e.stackTrace.take(8).forEach { add(ctx, "    at $it") }
+                    e.stackTrace.take(24).forEach { add(ctx, "    at $it") }
                     e = e.cause?.also { add(ctx, "  causado por:") }
                 }
             }

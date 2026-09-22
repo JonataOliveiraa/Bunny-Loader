@@ -48,4 +48,49 @@ object AppBoot {
         Log.i(TAG, "AppBoot: Application do jogo = ${app.javaClass.name}")
         return app
     }
+
+    /**
+     * Alinha a identidade que o contexto do JOGO usa ao falar com o sistema.
+     *
+     * O ContextImpl da Application do jogo se identifica como
+     * `com.and.games505.TerrariaPaid`, mas o processo roda no uid do launcher.
+     * Qualquer chamada ao ActivityTaskManager (o license check do PairIP faz
+     * `startActivity`) bate em:
+     *
+     *   SecurityException: package=com.and.games505.TerrariaPaid
+     *                      does not belong to uid=10498
+     *
+     * Estes campos só valem para as chamadas IPC de permissão — recursos,
+     * assets e ClassLoader vêm da LoadedApk e não são afetados.
+     *
+     * @return o que conseguiu ajustar, para a trilha de boot.
+     */
+    fun alignCallingIdentity(app: Any, hostPackage: String): String {
+        val base = (app as android.content.ContextWrapper).baseContext
+        val done = mutableListOf<String>()
+
+        for (name in listOf("mBasePackageName", "mOpPackageName")) {
+            runCatching {
+                base.javaClass.getDeclaredField(name)
+                    .apply { isAccessible = true }.set(base, hostPackage)
+                done += name
+            }
+        }
+
+        // Android 12+ leva a identidade num AttributionSource.
+        runCatching {
+            val f = base.javaClass.getDeclaredField("mAttributionSource")
+                .apply { isAccessible = true }
+            val current = f.get(base)!!
+            val builderCls = Class.forName("android.content.AttributionSource\$Builder")
+            val builder = builderCls.getConstructor(Int::class.javaPrimitiveType)
+                .newInstance(android.os.Process.myUid())
+            builderCls.getMethod("setPackageName", String::class.java)
+                .invoke(builder, hostPackage)
+            f.set(base, builderCls.getMethod("build").invoke(builder))
+            done += "mAttributionSource(${current.javaClass.simpleName})"
+        }
+
+        return if (done.isEmpty()) "nada ajustado" else done.joinToString(", ")
+    }
 }

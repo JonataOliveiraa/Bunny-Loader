@@ -113,8 +113,13 @@ class GameActivity : Activity() {
         // Deixar o Android bootar a Application do jogo (ver AppBoot) é o que
         // funciona — chamar o StartupLauncher na mão, como na Fase 1, não basta.
         try {
-            AppBoot.makeApplication(environment.gameContext)
+            val gameApp = AppBoot.makeApplication(environment.gameContext)
             BootLog.add(this, "Application do jogo criada")
+            // O contexto do jogo se diz "com.and.games505.TerrariaPaid" mas roda
+            // no nosso uid; sem alinhar isso, o startActivity do license check
+            // do PairIP morre com SecurityException e derruba o processo.
+            val fixed = AppBoot.alignCallingIdentity(gameApp, super.getPackageName())
+            BootLog.add(this, "identidade alinhada: $fixed")
         } catch (t: Throwable) {
             fail("Falha ao bootar a Application do jogo", t)
             return
