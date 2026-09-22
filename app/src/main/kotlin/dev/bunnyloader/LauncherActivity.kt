@@ -1,6 +1,7 @@
 package dev.bunnyloader
 
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -19,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,14 +28,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
+import dev.bunnyloader.patch.ApkPatcher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
- * Launcher do Bunny Loader — app proprio (com.bunnyloader), separado do jogo.
+ * Launcher do Bunny Loader — um app só (com.bunnyloader).
  *
- * O botao inicia o Terraria MODIFICADO, que e instalado ao lado do original com
- * pacote renomeado (com.bunnyloader.terraria.paid, ver tools/repack.py --rename)
- * — a libbunny ja vem embutida nele. Sem root: o launcher so dispara o Intent de
- * abertura; a injecao aconteceu no repackage.
+ * Modelo TL Pro, sem root: lê o Terraria instalado, cria a versão modificada NO
+ * APARELHO (ApkPatcher) e a instala ao lado do original (pacote renomeado). O
+ * botão então inicia essa versão. Não redistribui o Terraria — usa a sua cópia.
  */
 class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,18 +49,13 @@ class LauncherActivity : ComponentActivity() {
             MaterialTheme { Surface(Modifier.fillMaxSize()) { LauncherScreen() } }
         }
     }
-
-    companion object {
-        // Pacote do Terraria modificado (coexiste com o original).
-        const val MODDED_GAME = "com.bunnyloader.terraria.paid"
-    }
 }
 
 private fun isInstalled(ctx: Context, pkg: String): Boolean =
     runCatching { ctx.packageManager.getPackageInfo(pkg, 0) }.isSuccess
 
-private fun launchGame(ctx: Context, pkg: String) {
-    val intent = ctx.packageManager.getLaunchIntentForPackage(pkg)
+private fun launchGame(ctx: Context) {
+    val intent = ctx.packageManager.getLaunchIntentForPackage(ApkPatcher.NEW_PKG)
     if (intent == null) {
         Toast.makeText(ctx, "Não consegui abrir o jogo.", Toast.LENGTH_LONG).show()
         return
@@ -61,10 +63,23 @@ private fun launchGame(ctx: Context, pkg: String) {
     ctx.startActivity(intent)
 }
 
+private fun installApk(ctx: Context, apk: File) {
+    val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", apk)
+    val intent = Intent(Intent.ACTION_VIEW).apply {
+        setDataAndType(uri, "application/vnd.android.package-archive")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    ctx.startActivity(intent)
+}
+
 @Composable
 private fun LauncherScreen() {
     val ctx = LocalContext.current
-    var installed by remember { mutableStateOf(isInstalled(ctx, LauncherActivity.MODDED_GAME)) }
+    val scope = rememberCoroutineScope()
+    var modded by remember { mutableStateOf(isInstalled(ctx, ApkPatcher.NEW_PKG)) }
+    val terraria = remember { isInstalled(ctx, ApkPatcher.TERRARIA) }
+    var busy by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -76,34 +91,63 @@ private fun LauncherScreen() {
             contentDescription = null,
             modifier = Modifier.size(96.dp),
         )
+        Text("Bunny Loader", style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(top = 12.dp))
+
+        if (!terraria) {
+            Text("Instale o Terraria (original) primeiro.",
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp))
+            return@Column
+        }
+
         Text(
-            "Bunny Loader",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(top = 12.dp),
-        )
-        Text(
-            if (installed) "Terraria (Bunny) instalado" else "Terraria (Bunny) não instalado",
+            when {
+                busy -> status
+                modded -> "Terraria com mods pronto."
+                else -> "Vamos preparar o Terraria com mods (uma vez)."
+            },
             style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
         )
 
-        Button(
-            onClick = { launchGame(ctx, LauncherActivity.MODDED_GAME) },
-            enabled = installed,
-        ) { Text("Iniciar Terraria com mods") }
-
-        if (!installed) {
-            Text(
-                "Instale primeiro o terraria-bunny-coexist.apk (o Terraria com mods). " +
-                    "Ele fica ao lado do Terraria original, sem substituí-lo.",
-                style = MaterialTheme.typography.bodySmall,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 16.dp),
-            )
+        if (modded) {
+            Button(onClick = { launchGame(ctx) }, enabled = !busy) {
+                Text("Iniciar Terraria com mods")
+            }
+        } else {
             Button(
-                onClick = { installed = isInstalled(ctx, LauncherActivity.MODDED_GAME) },
-                modifier = Modifier.padding(top = 12.dp),
-            ) { Text("Verificar de novo") }
+                enabled = !busy,
+                onClick = {
+                    busy = true
+                    scope.launch {
+                        val result = runCatching {
+                            withContext(Dispatchers.IO) {
+                                ApkPatcher.build(ctx) { p ->
+                                    status = "${p.step}… ${p.pct}%"
+                                }
+                            }
+                        }
+                        busy = false
+                        result.onSuccess { apk ->
+                            status = "Instalando…"
+                            installApk(ctx, apk)
+                        }.onFailure {
+                            android.util.Log.e("BunnyLoader", "patch falhou", it)
+                            status = "Erro: ${it.message}"
+                            Toast.makeText(ctx, "Falhou: ${it.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                },
+            ) { Text(if (busy) "Preparando…" else "Criar Terraria com mods") }
         }
+
+        Button(
+            onClick = { modded = isInstalled(ctx, ApkPatcher.NEW_PKG) },
+            enabled = !busy,
+            modifier = Modifier.padding(top = 12.dp),
+        ) { Text("Verificar de novo") }
     }
 }
