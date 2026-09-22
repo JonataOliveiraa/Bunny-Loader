@@ -537,8 +537,21 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     ArgPack pack;
     if (!pack.build(ctx, r->method, argc, argv)) return JS_EXCEPTION;
 
+    // STRUCT: para tipo por valor o runtime_invoke quer o ponteiro para os
+    // DADOS, nao para o objeto que os encaixota. Passar o objeto faz o metodo
+    // ler o cabecalho como se fosse o campo — sem erro, com lixo. Vale para
+    // Vector2, Color, Rectangle e companhia.
+    void* thisPtr = instance;
+    auto& a = il2cpp::api();
+    if (instance && a.method_get_class && a.class_is_valuetype) {
+        Il2CppClass* owner = a.method_get_class(r->method);
+        if (owner && a.class_is_valuetype(owner)) {
+            thisPtr = reinterpret_cast<char*>(instance) + sizeof(Il2CppObject);
+        }
+    }
+
     Il2CppObject* exc = nullptr;
-    Il2CppObject* ret = il2cpp::api().runtime_invoke(r->method, instance, pack.data(), &exc);
+    Il2CppObject* ret = il2cpp::api().runtime_invoke(r->method, thisPtr, pack.data(), &exc);
     if (exc) {
         return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo",
                                      il2cpp::api().method_get_name(r->method));

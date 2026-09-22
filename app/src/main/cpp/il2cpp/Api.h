@@ -32,6 +32,7 @@ struct Api {
     Il2CppClass* (*class_from_il2cpp_type)(const Il2CppType*) = nullptr;
     bool (*class_is_enum)(const Il2CppClass*) = nullptr;
     bool (*class_is_valuetype)(const Il2CppClass*) = nullptr;
+    Il2CppClass* (*method_get_class)(const MethodInfo*) = nullptr;
     size_t (*field_get_offset)(FieldInfo*) = nullptr;
     void (*field_static_get_value)(FieldInfo*, void*) = nullptr;
     void (*field_static_set_value)(FieldInfo*, void*) = nullptr;

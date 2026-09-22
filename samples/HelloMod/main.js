@@ -16,10 +16,13 @@
 //   Terraria.Main['int get_myPlayer()']()           // estático
 //   item['void SetDefaults(int Type, ItemVariant variant)'](98, null)
 //
-// Criar objeto, equivalente a `new Item()` em C#:
+// Criar objeto, equivalente a `new Item()` / `new Vector2(5,10)` em C#:
 //
 //   const it = Terraria.Item.new();
 //   it['void .ctor()']();
+//
+//   const v = Microsoft.Xna.Framework.Vector2.new();
+//   v['void .ctor(float x, float y)'](5.0, 10.0);   // struct também
 //
 // A assinatura vem do dump, copiada como está lá. Prefira-a ao nome puro:
 // nome + contagem de parâmetros não desambigua overloads. Quando o nome é
