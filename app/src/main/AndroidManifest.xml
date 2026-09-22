@@ -4,6 +4,13 @@
     <!-- Instalar o APK modificado gerado no aparelho. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- O jogo hospedado roda com AS NOSSAS permissões, não com as dele. Estas
+         são as que o Terraria declara; sem elas o license check do PairIP e a
+         rede do jogo falham. Ver `aapt dump badging` do APK do jogo. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="com.android.vending.CHECK_LICENSE" />
+
     <!-- Consultamos o Terraria original e o modificado (coexistente) — no
          Android 11+ e preciso declarar visibilidade de pacotes. -->
     <queries>

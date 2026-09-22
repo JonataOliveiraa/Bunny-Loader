@@ -36,5 +36,34 @@ object BootLog {
     }
 
     fun read(ctx: Context): String =
-        runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }
+        (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
+            "\n--- por que o processo morreu ---\n" + exitReasons(ctx)
+
+    /**
+     * Motivo das últimas mortes de processo do app. Crash NATIVO não passa por
+     * try/catch nem aparece na trilha acima; esta API pública (Android 11+)
+     * entrega o motivo e a descrição, que é o que falta para diagnosticar sem adb.
+     */
+    private fun exitReasons(ctx: Context): String = runCatching {
+        if (android.os.Build.VERSION.SDK_INT < 30) return@runCatching "(precisa Android 11+)"
+        val am = ctx.getSystemService(android.app.ActivityManager::class.java)
+        val list = am.getHistoricalProcessExitReasons(ctx.packageName, 0, 5)
+        if (list.isEmpty()) return@runCatching "(nenhum registro)"
+        list.joinToString("\n") { i ->
+            "${i.processName}: ${reasonName(i.reason)} status=${i.status}" +
+                (i.description?.let { "\n   $it" } ?: "")
+        }
+    }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})" }
+
+    private fun reasonName(r: Int): String = when (r) {
+        android.app.ApplicationExitInfo.REASON_CRASH -> "CRASH (Java)"
+        android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH NATIVO"
+        android.app.ApplicationExitInfo.REASON_ANR -> "ANR"
+        android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "SEM MEMORIA"
+        android.app.ApplicationExitInfo.REASON_SIGNALED -> "SINAL"
+        android.app.ApplicationExitInfo.REASON_EXIT_SELF -> "saiu sozinho"
+        android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "usuario"
+        android.app.ApplicationExitInfo.REASON_OTHER -> "outro"
+        else -> "codigo $r"
+    }
 }
