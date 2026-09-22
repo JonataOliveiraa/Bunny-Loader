@@ -1,6 +1,7 @@
 package dev.bunnyloader.game
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import dev.bunnyloader.TAG
 import java.io.File
@@ -56,6 +57,61 @@ object GameFiles {
 
     fun isPinned(ctx: Context): Boolean = pinnedApk(ctx).isFile
 
+    /**
+     * Importa o APK escolhido pelo usuário como a versão fixada.
+     *
+     * Existe porque desde o Android 11 nenhum gerenciador de arquivos escreve em
+     * `Android/data/...`: mandar o usuário "copiar o APK para lá" não funciona no
+     * aparelho dele. Com o seletor de documentos ele aponta o arquivo (Downloads,
+     * Drive, o que for) e nós é que gravamos no nosso diretório.
+     *
+     * Só aceita um APK do Terraria: isto é para fixar a versão da cópia do
+     * próprio usuário, não para carregar um pacote qualquer.
+     *
+     * @return descrição da versão aceita.
+     */
+    fun importPinned(ctx: Context, uri: Uri): String {
+        val dest = pinnedApk(ctx)
+        val tmp = File(dest.parentFile, "terraria.apk.part")
+        tmp.delete()
+        ctx.contentResolver.openInputStream(uri).use { input ->
+            requireNotNull(input) { "não consegui ler o arquivo escolhido" }
+            tmp.outputStream().use { input.copyTo(it, 1 shl 16) }
+        }
+
+        val info = ctx.packageManager.getPackageArchiveInfo(tmp.absolutePath, 0)
+        if (info == null) {
+            tmp.delete()
+            error("isso não é um APK válido")
+        }
+        if (info.packageName != TERRARIA) {
+            tmp.delete()
+            error("esse APK é ${info.packageName}, não o Terraria")
+        }
+        if (ZipFile(tmp).use { it.getEntry("lib/arm64-v8a/libil2cpp.so") } == null) {
+            tmp.delete()
+            error("esse APK não tem as libs arm64 (é um split parcial?)")
+        }
+
+        dest.delete()
+        check(tmp.renameTo(dest)) { "não consegui gravar em ${dest.name}" }
+
+        // As libs já copiadas são da versão anterior. A cópia é idempotente por
+        // TAMANHO, e duas versões podem ter uma .so de tamanho igual — apagar é
+        // mais barato que descobrir isso num SIGSEGV.
+        File(ctx.filesDir, "game/lib").deleteRecursively()
+
+        return "${info.versionName} (${info.longVersionCode})"
+    }
+
+    /** Volta a usar a versão instalada no aparelho. */
+    fun clearPinned(ctx: Context) {
+        pinnedApk(ctx).delete()
+        File(ctx.filesDir, "game/lib").deleteRecursively()
+    }
+
+    private const val TERRARIA = "com.and.games505.TerrariaPaid"
+
     /** APKs de origem: o fixado, se houver; senão o instalado (base + splits). */
     fun sourceApks(ctx: Context, install: GameInstall): List<String> =
         if (isPinned(ctx)) listOf(pinnedApk(ctx).absolutePath) else install.allApks()
@@ -70,7 +126,7 @@ object GameFiles {
      * Pro roda 1.4.5.6 mesmo em quem tem 1.4.5.8 instalado.
      *
      * Nada é redistribuído: o APK fixado é uma cópia do próprio usuário, que ele
-     * coloca em Android/data/<nós>/files/terraria.apk.
+     * aponta pelo seletor de documentos (ver [importPinned]).
      */
     fun prepare(ctx: Context, install: GameInstall, onStep: (String) -> Unit = {}): File {
         val dest = libDir(ctx, install.abi).apply { mkdirs() }
@@ -200,9 +256,8 @@ object GameFiles {
             return "Versão: a instalada no aparelho.\n" +
                 "O hosting suporta a 1.4.5.6.4 — na 1.4.5.8.6 a libunity exige a " +
                 "libpairipcore, que derruba o processo fora do boot do jogo.\n" +
-                "Para fixar a 1.4.5.6.4, copie o APK dela (o seu, extraído do seu " +
-                "próprio aparelho) para:\n" +
-                "Android/data/${ctx.packageName}/files/terraria.apk"
+                "Se a sua for a 1.4.5.8, toque em \"Fixar versão\" e aponte o APK " +
+                "da 1.4.5.6.4 — a sua cópia."
         }
         val v = runCatching {
             ctx.packageManager.getPackageArchiveInfo(p.absolutePath, 0)

@@ -2,10 +2,13 @@ package dev.bunnyloader
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +23,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,6 +37,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import dev.bunnyloader.game.GameFiles
 import dev.bunnyloader.patch.ApkPatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -85,6 +90,30 @@ private fun LauncherScreen() {
     val terraria = remember { isInstalled(ctx, ApkPatcher.TERRARIA) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
+
+    // Muda a cada import/remoção para recalcular o texto da versão fixada.
+    var pinGen by remember { mutableIntStateOf(0) }
+    val pinned = remember(pinGen) { GameFiles.isPinned(ctx) }
+
+    val pickApk = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri: Uri? ->
+        if (uri != null) {
+            busy = true
+            status = "Importando APK…"
+            scope.launch {
+                val r = runCatching {
+                    withContext(Dispatchers.IO) { GameFiles.importPinned(ctx, uri) }
+                }
+                busy = false
+                pinGen++
+                status = r.fold(
+                    { "Versão fixada: $it" },
+                    { "Não deu para fixar: ${it.message ?: it.javaClass.simpleName}" },
+                )
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -162,11 +191,30 @@ private fun LauncherScreen() {
         // Versão fixada: o PairIP nativo da 1.4.5.8 trava o hosting; a 1.4.5.6
         // não. Por isso o TL Pro roda uma versão fixa. Aqui o usuário escolhe.
         Text(
-            dev.bunnyloader.game.GameFiles.pinStatus(ctx),
+            remember(pinGen) { GameFiles.pinStatus(ctx) },
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp),
         )
+        Button(
+            // Seletor de documentos, e não um caminho para o usuário copiar à
+            // mão: desde o Android 11 nenhum gerenciador de arquivos escreve em
+            // Android/data. Ele aponta o APK, nós gravamos.
+            onClick = { pickApk.launch(arrayOf("*/*")) },
+            enabled = !busy,
+            modifier = Modifier.padding(top = 8.dp),
+        ) { Text(if (pinned) "Trocar versão fixada" else "Fixar versão (escolher APK)") }
+        if (pinned) {
+            Button(
+                onClick = {
+                    GameFiles.clearPinned(ctx)
+                    status = "Voltou a usar a versão instalada."
+                    pinGen++
+                },
+                enabled = !busy,
+                modifier = Modifier.padding(top = 8.dp),
+            ) { Text("Usar a versão instalada") }
+        }
 
         // ESTÁGIO 2: hospedar o Terraria no NOSSO processo (um app só).
         Button(
