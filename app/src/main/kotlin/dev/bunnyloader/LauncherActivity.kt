@@ -159,6 +159,15 @@ private fun LauncherScreen() {
             modifier = Modifier.padding(top = 12.dp),
         ) { Text("Verificar de novo") }
 
+        // Versão fixada: o PairIP nativo da 1.4.5.8 trava o hosting; a 1.4.5.6
+        // não. Por isso o TL Pro roda uma versão fixa. Aqui o usuário escolhe.
+        Text(
+            dev.bunnyloader.game.GameFiles.pinStatus(ctx),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 16.dp),
+        )
+
         // ESTÁGIO 2: hospedar o Terraria no NOSSO processo (um app só).
         Button(
             onClick = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },

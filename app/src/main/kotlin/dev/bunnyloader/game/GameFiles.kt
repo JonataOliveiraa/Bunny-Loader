@@ -47,9 +47,34 @@ object GameFiles {
      *
      * @return diretório com as libs.
      */
+    /** APK fixado pelo usuário, se houver. Ver [pinnedApk]. */
+    fun pinnedApk(ctx: Context): File = File(ctx.getExternalFilesDir(null), "terraria.apk")
+
+    fun isPinned(ctx: Context): Boolean = pinnedApk(ctx).isFile
+
+    /** APKs de origem: o fixado, se houver; senão o instalado (base + splits). */
+    fun sourceApks(ctx: Context, install: GameInstall): List<String> =
+        if (isPinned(ctx)) listOf(pinnedApk(ctx).absolutePath) else install.allApks()
+
+    /**
+     * De onde saem as libs: do APK FIXADO, se o usuário colocou um; senão do
+     * jogo instalado.
+     *
+     * Por que fixar importa: em 1.4.5.6.4 a libunity não depende da
+     * libpairipcore; em 1.4.5.8.6 depende — e essa lib SEGFAULTA ao ser
+     * carregada fora do boot legítimo do app (anti-tamper). É por isso que o TL
+     * Pro roda 1.4.5.6 mesmo em quem tem 1.4.5.8 instalado.
+     *
+     * Nada é redistribuído: o APK fixado é uma cópia do próprio usuário, que ele
+     * coloca em Android/data/<nós>/files/terraria.apk.
+     */
     fun prepare(ctx: Context, install: GameInstall, onStep: (String) -> Unit = {}): File {
         val dest = libDir(ctx, install.abi).apply { mkdirs() }
-        val sources = install.allApks()
+        val sources = sourceApks(ctx, install)
+        onStep(
+            if (isPinned(ctx)) "fonte: APK fixado (${pinnedApk(ctx).length() / 1_000_000} MB)"
+            else "fonte: Terraria instalado (v${install.versionCode})",
+        )
         val pending = (LIBS + OPTIONAL_LIBS).toMutableSet()
 
         // Já copiado antes? Tamanho igual basta — o APK de origem é imutável.
@@ -130,6 +155,21 @@ object GameFiles {
         "libc++_shared.so", "libpairipcore.so", "libmain.so",
         "libunity.so", "libil2cpp.so",
     )
+
+    /** Texto para a UI: qual versão vai rodar e como fixar outra. */
+    fun pinStatus(ctx: Context): String {
+        val p = pinnedApk(ctx)
+        if (!p.isFile) {
+            return "Versão: a instalada no aparelho.\n" +
+                "Para fixar outra (ex.: 1.4.5.6, a que o hosting suporta), copie o " +
+                "APK dela para:\nAndroid/data/${ctx.packageName}/files/terraria.apk"
+        }
+        val v = runCatching {
+            ctx.packageManager.getPackageArchiveInfo(p.absolutePath, 0)
+        }.getOrNull()
+        return "Versão FIXADA: ${v?.versionName ?: "?"} (${v?.longVersionCode ?: "?"})\n" +
+            "de ${p.name}, ${p.length() / 1_000_000} MB"
+    }
 
     /** Listagem para a trilha de boot — confirma o que realmente está lá. */
     fun describe(dir: File): String =
