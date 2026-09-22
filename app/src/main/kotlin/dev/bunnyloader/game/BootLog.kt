@@ -83,7 +83,12 @@ object BootLog {
                     arrayOf("logcat", "-v", "brief", "--pid=$pid"),
                 )
                 p.inputStream.bufferedReader().forEachLine { line ->
-                    val keep = line.contains("Unity") || line.contains("IL2CPP") ||
+                    // TAG é o primeiro da lista de propósito: sem ele o filtro
+                    // descartava as linhas do nosso próprio núcleo (giveItem,
+                    // cheats, mods), que são justamente as que o usuário
+                    // precisa conseguir mandar quando algo não funciona.
+                    val keep = line.contains(TAG) ||
+                        line.contains("Unity") || line.contains("IL2CPP") ||
                         line.contains("DEBUG") || line.contains("libc") ||
                         line.contains("Fatal") || line.contains("FATAL") ||
                         line.contains("Error") || line.contains("error") ||
@@ -116,7 +121,8 @@ object BootLog {
                 l.contains("Abort message") || l.contains("UnsatisfiedLink") ||
                 l.contains("dlopen") || l.contains("Unable to") ||
                 l.contains("Failed to") || l.contains("E/Unity") ||
-                l.contains("E Unity") || l.contains("could not")
+                l.contains("E Unity") || l.contains("could not") ||
+                l.contains("giveItem")  // o que o usuário toca e reporta
         }.distinct().take(15)
         buildString {
             if (causes.isNotEmpty()) {
