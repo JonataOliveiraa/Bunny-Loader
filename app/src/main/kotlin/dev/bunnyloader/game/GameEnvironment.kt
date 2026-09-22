@@ -51,16 +51,21 @@ class GameEnvironment private constructor(
          *   para não recursar antes do ambiente estar pronto.
          */
         fun create(base: Context, install: GameInstall, codeCacheDir: File): GameEnvironment {
+            // SEM CONTEXT_INCLUDE_CODE — de propósito.
+            //
+            // Queremos os recursos/assets do jogo, NUNCA o dex dele. O PairIP
+            // protege a camada Java: carregar as classes do jogo traz junto as
+            // strings cifradas (que derrubaram a Fase 1) e o license check (que
+            // derrubou o Estágio 2). A pilha nativa não tem nada disso.
+            //
+            // O ClassLoader é o NOSSO: as classes com.unity3d.player.* limpas
+            // vêm no nosso APK, e as .so saem da nossa cópia (ver GameFiles).
+            // É o mesmo desenho do TL Pro.
             val gameContext = base.createPackageContext(
                 install.packageName,
-                Context.CONTEXT_INCLUDE_CODE or Context.CONTEXT_IGNORE_SECURITY,
+                Context.CONTEXT_IGNORE_SECURITY,
             )
-            // Usar o ClassLoader DO SISTEMA (o da LoadedApk real do jogo), NÃO um
-            // DexClassLoader caseiro. Esse foi o erro central da Fase 1: com o
-            // loader caseiro o PairIP nunca inicializa e as strings do app ficam
-            // nulas. O do sistema também já traz o caminho de busca das .so —
-            // inclusive dos splits (base.apk + split_config.arm64_v8a.apk).
-            return GameEnvironment(install, gameContext, gameContext.classLoader)
+            return GameEnvironment(install, gameContext, base.classLoader)
         }
     }
 }
