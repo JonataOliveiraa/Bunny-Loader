@@ -150,5 +150,19 @@ private fun LauncherScreen() {
             enabled = !busy,
             modifier = Modifier.padding(top = 12.dp),
         ) { Text("Verificar de novo") }
+
+        // ESTÁGIO 0: spike do PairIP (roda o boot do jogo no NOSSO processo).
+        Button(
+            onClick = { status = dev.bunnyloader.game.PairipSpike.run(ctx) },
+            enabled = !busy,
+            modifier = Modifier.padding(top = 24.dp),
+        ) { Text("Spike PairIP") }
+        if (status.isNotEmpty()) {
+            Text(
+                status,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
     }
 }
