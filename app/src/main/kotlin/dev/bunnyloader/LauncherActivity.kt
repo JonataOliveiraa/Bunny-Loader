@@ -38,6 +38,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import dev.bunnyloader.game.GameFiles
+import dev.bunnyloader.game.GameInstall
 import dev.bunnyloader.patch.ApkPatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -95,21 +96,25 @@ private fun LauncherScreen() {
     var pinGen by remember { mutableIntStateOf(0) }
     val pinned = remember(pinGen) { GameFiles.isPinned(ctx) }
 
+    // Vários arquivos: a Play instala o jogo dividido, e o base sozinho não
+    // tem as .so. Quem exportou pelo botão abaixo seleciona os dois de uma vez.
     val pickApk = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri: Uri? ->
-        if (uri != null) {
+        ActivityResultContracts.OpenMultipleDocuments(),
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
             busy = true
-            status = "Importando APK…"
+            status = "Importando…"
             scope.launch {
                 val r = runCatching {
-                    withContext(Dispatchers.IO) { GameFiles.importPinned(ctx, uri) }
+                    withContext(Dispatchers.IO) {
+                        GameFiles.importPinned(ctx, uris) { status = it }
+                    }
                 }
                 busy = false
                 pinGen++
                 status = r.fold(
-                    { "Versão fixada: $it" },
-                    { "Não deu para fixar: ${it.message ?: it.javaClass.simpleName}" },
+                    { "Versão congelada: $it" },
+                    { "Não deu para importar: ${it.message ?: it.javaClass.simpleName}" },
                 )
             }
         }
@@ -207,6 +212,29 @@ private fun LauncherScreen() {
             enabled = !busy,
             modifier = Modifier.padding(top = 8.dp),
         ) { Text("Usar outra versão (APK)…") }
+
+        // Guardar a própria cópia antes que a Play atualize o jogo — depois do
+        // update não há mais de onde tirar a versão antiga.
+        Button(
+            onClick = {
+                busy = true
+                scope.launch {
+                    val r = runCatching {
+                        withContext(Dispatchers.IO) {
+                            val install = GameInstall.locate(ctx) ?: error("Terraria não encontrado")
+                            GameFiles.exportInstalled(ctx, install) { status = it }
+                        }
+                    }
+                    busy = false
+                    status = r.fold(
+                        { "Exportado para $it" },
+                        { "Não deu para exportar: ${it.message ?: it.javaClass.simpleName}" },
+                    )
+                }
+            },
+            enabled = !busy,
+            modifier = Modifier.padding(top = 8.dp),
+        ) { Text("Exportar meu APK do Terraria") }
         if (pinned) {
             Button(
                 onClick = {

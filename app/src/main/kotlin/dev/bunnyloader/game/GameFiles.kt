@@ -1,7 +1,11 @@
 package dev.bunnyloader.game
 
+import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Log
 import dev.bunnyloader.TAG
 import java.io.File
@@ -94,24 +98,54 @@ object GameFiles {
      * aparelho dele. Com o seletor de documentos ele aponta o arquivo (Downloads,
      * Drive, o que for) e nós é que gravamos no nosso diretório.
      *
-     * Aqui exigimos um APK COMPLETO (com as libs dentro), porque um arquivo
-     * escolhido à mão não tem splits para acompanhá-lo. Congelar o que está
-     * instalado é o caminho para installs divididos — ver [pinInstalled].
+     * Aceita VÁRIOS arquivos porque a Play instala o jogo dividido: os assets
+     * ficam no base e as .so no split de ABI. Quem exportou pelo [exportInstalled]
+     * seleciona os dois de uma vez.
+     *
+     * Quem é o base não sai do nome do arquivo — sai do conteúdo: base é o que
+     * tem `assets/bin/Data/data.unity3d`. Nome o usuário renomeia; conteúdo não.
      *
      * @return descrição da versão aceita.
      */
-    fun importPinned(ctx: Context, uri: Uri): String {
+    fun importPinned(ctx: Context, uris: List<Uri>, onStep: (String) -> Unit = {}): String {
+        require(uris.isNotEmpty()) { "nenhum arquivo escolhido" }
         val dir = pinnedDir(ctx).apply { mkdirs() }
-        val tmp = File(dir, "base.apk.part")
-        tmp.delete()
-        ctx.contentResolver.openInputStream(uri).use { input ->
-            requireNotNull(input) { "não consegui ler o arquivo escolhido" }
-            tmp.outputStream().use { input.copyTo(it, 1 shl 16) }
-        }
+        val staged = ArrayList<File>()
+        try {
+            uris.forEachIndexed { i, uri ->
+                onStep("lendo arquivo ${i + 1} de ${uris.size}")
+                val tmp = File(dir, "import-%02d.part".format(i))
+                tmp.delete()
+                ctx.contentResolver.openInputStream(uri).use { input ->
+                    requireNotNull(input) { "não consegui ler o arquivo escolhido" }
+                    tmp.outputStream().use { input.copyTo(it, 1 shl 16) }
+                }
+                staged += tmp
+            }
 
-        val info = validate(ctx, tmp, needsLibs = true) { tmp.delete() }
-        replacePinned(ctx, dir) { check(tmp.renameTo(File(dir, "base.apk"))) { "não consegui gravar" } }
-        return "${info.versionName} (${info.longVersionCode})"
+            fun has(f: File, entry: String) =
+                runCatching { ZipFile(f).use { it.getEntry(entry) } != null }.getOrDefault(false)
+
+            val base = staged.firstOrNull { has(it, "assets/bin/Data/data.unity3d") }
+                ?: error("nenhum dos arquivos é o APK base do Terraria (sem data.unity3d)")
+            if (staged.none { has(it, "lib/arm64-v8a/libil2cpp.so") }) {
+                error("falta o split com as libs arm64 — selecione o base E o split_config.arm64_v8a")
+            }
+            val info = validate(ctx, base, needsLibs = false) {}
+
+            val splits = staged.filter { it != base }
+            replacePinned(ctx, dir) {
+                check(base.renameTo(File(dir, "base.apk"))) { "não consegui gravar base.apk" }
+                splits.forEachIndexed { i, f ->
+                    val dest = File(dir, "split-%02d.apk".format(i + 1))
+                    check(f.renameTo(dest)) { "não consegui gravar ${dest.name}" }
+                }
+            }
+            return "${info.versionName} (${info.longVersionCode})"
+        } finally {
+            // Sobrou .part? Foi erro no caminho, ou arquivo que não entrou.
+            staged.forEach { if (it.exists()) it.delete() }
+        }
     }
 
     /**
@@ -162,6 +196,69 @@ object GameFiles {
             staged.forEach { it.first.delete() }
             throw t
         }
+    }
+
+    /**
+     * Exporta o APK do Terraria instalado (base + splits) para Downloads.
+     *
+     * Serve a duas coisas. Primeira: guardar a sua cópia ANTES que a Play
+     * atualize o jogo — depois do update não há de onde tirar a versão antiga.
+     * Segunda: é assim que se leva a própria cópia de um aparelho para outro,
+     * sem adb e sem baixar APK de terceiro.
+     *
+     * Vai por MediaStore porque desde o Android 10 um app não escreve direto em
+     * Downloads.
+     *
+     * @return onde os arquivos ficaram.
+     */
+    fun exportInstalled(
+        ctx: Context,
+        install: GameInstall,
+        onStep: (String) -> Unit = {},
+    ): String {
+        val dirName = "BunnyLoader"
+        val written = ArrayList<String>()
+        install.allApks().forEachIndexed { i, path ->
+            val src = File(path)
+            val name = if (i == 0) "terraria-${install.versionCode}-base.apk"
+            else "terraria-${install.versionCode}-split-%02d.apk".format(i)
+            onStep("exportando $name (${src.length() / 1_000_000} MB)")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val values = ContentValues().apply {
+                    put(MediaStore.Downloads.DISPLAY_NAME, name)
+                    put(MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive")
+                    put(
+                        MediaStore.Downloads.RELATIVE_PATH,
+                        Environment.DIRECTORY_DOWNLOADS + "/" + dirName,
+                    )
+                    put(MediaStore.Downloads.IS_PENDING, 1)
+                }
+                val resolver = ctx.contentResolver
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: error("o sistema recusou criar $name em Downloads")
+                resolver.openOutputStream(uri).use { out ->
+                    requireNotNull(out) { "não consegui escrever $name" }
+                    src.inputStream().use { it.copyTo(out, 1 shl 16) }
+                }
+                resolver.update(
+                    uri,
+                    ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) },
+                    null, null,
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    dirName,
+                ).apply { mkdirs() }
+                src.inputStream().use { input ->
+                    File(dir, name).outputStream().use { input.copyTo(it, 1 shl 16) }
+                }
+            }
+            written += name
+        }
+        return "Downloads/$dirName — ${written.joinToString(", ")}"
     }
 
     /**
