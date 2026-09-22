@@ -19,48 +19,47 @@ object RawApk {
     )
 
     fun rebuild(
-        srcApk: String, out: java.io.File, abi: String,
+        sources: List<String>, out: java.io.File,
         modifiers: Map<String, () -> ByteArray>, extra: Map<String, java.io.File>,
         onProgress: (ApkPatcher.Progress) -> Unit,
     ) {
-        RandomAccessFile(srcApk, "r").use { raf ->
-            val entries = readCentralDir(raf)
-            val cw = CountingOutput(BufferedOutputStream(out.outputStream(), 1 shl 20))
-            val central = ArrayList<ByteArray>()
+        val cw = CountingOutput(BufferedOutputStream(out.outputStream(), 1 shl 20))
+        val central = ArrayList<ByteArray>()
+        val written = HashSet<String>()
+        var done = 0
 
-            var done = 0
-            for (e in entries) {
-                if (isOldSig(e.name)) { done++; continue }
-                if (modifiers.containsKey(e.name)) continue  // escritas depois
-                // cópia crua: acha o offset dos dados no local header e copia compSize bytes
-                raf.seek(e.localOff)
-                val lh = ByteArray(30); raf.readFully(lh)
-                val nLen = u16(lh, 26); val xLen = u16(lh, 28)
-                val dataOff = e.localOff + 30 + nLen + xLen
-                val off = cw.count
-                writeLocal(cw, e.name, e.method, e.crc, e.compSize, e.uncompSize, alignFor(e.method, cw.count, e.name))
-                raf.seek(dataOff)
-                copyN(raf, cw, e.compSize)
-                central.add(centralRec(e.name, e.method, e.crc, e.compSize, e.uncompSize, off))
-                if (++done % 40 == 0) onProgress(ApkPatcher.Progress("Montando", 5 + done * 75 / entries.size))
+        // Copia crua de cada fonte (base + splits), deduplicando por nome.
+        for (src in sources) {
+            RandomAccessFile(src, "r").use { raf ->
+                for (e in readCentralDir(raf)) {
+                    if (isOldSig(e.name) || e.name in written || e.name in modifiers) continue
+                    if (e.name.endsWith("/")) continue  // pula diretórios
+                    written.add(e.name)
+                    raf.seek(e.localOff)
+                    val lh = ByteArray(30); raf.readFully(lh)
+                    val dataOff = e.localOff + 30 + u16(lh, 26) + u16(lh, 28)
+                    val off = cw.count
+                    writeLocal(cw, e.name, e.method, e.crc, e.compSize, e.uncompSize, alignFor(e.method, cw.count, e.name))
+                    raf.seek(dataOff)
+                    copyN(raf, cw, e.compSize)
+                    central.add(centralRec(e.name, e.method, e.crc, e.compSize, e.uncompSize, off))
+                    if (++done % 40 == 0) onProgress(ApkPatcher.Progress("Montando", 5 + minOf(done, 300) / 4))
+                }
             }
-
-            // entradas modificadas
-            for ((name, provider) in modifiers) {
-                val data = provider()
-                val stored = name == "resources.arsc"  // precisa STORED+alinhado (targetSdk 35)
-                writeMember(cw, central, name, data, stored)
-            }
-            onProgress(ApkPatcher.Progress("Adicionando libs", 82))
-            for ((name, file) in extra) writeMember(cw, central, name, file.readBytes(), false)
-
-            // diretório central + EOCD
-            val cdOff = cw.count
-            for (rec in central) cw.write(rec)
-            val cdSize = cw.count - cdOff
-            writeEocd(cw, central.size, cdSize, cdOff)
-            cw.flush(); cw.close()
         }
+
+        // entradas modificadas
+        for ((name, provider) in modifiers) {
+            writeMember(cw, central, name, provider(), stored = name == "resources.arsc")
+        }
+        onProgress(ApkPatcher.Progress("Adicionando libs", 82))
+        for ((name, file) in extra) if (name !in written) writeMember(cw, central, name, file.readBytes(), false)
+
+        // diretório central + EOCD
+        val cdOff = cw.count
+        for (rec in central) cw.write(rec)
+        writeEocd(cw, central.size, cw.count - cdOff, cdOff)
+        cw.flush(); cw.close()
     }
 
     // --- membros novos (deflate, ou store+align p/ resources.arsc) ---

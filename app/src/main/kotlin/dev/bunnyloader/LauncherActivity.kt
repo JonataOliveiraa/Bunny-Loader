@@ -136,8 +136,9 @@ private fun LauncherScreen() {
                             installApk(ctx, apk)
                         }.onFailure {
                             android.util.Log.e("BunnyLoader", "patch falhou", it)
-                            status = "Erro: ${it.message}"
-                            Toast.makeText(ctx, "Falhou: ${it.message}", Toast.LENGTH_LONG).show()
+                            val msg = "${it.javaClass.simpleName}: ${it.message}"
+                            status = "Erro: $msg"
+                            Toast.makeText(ctx, "Falhou: $msg", Toast.LENGTH_LONG).show()
                         }
                     }
                 },

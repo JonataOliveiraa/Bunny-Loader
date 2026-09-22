@@ -33,7 +33,15 @@ object ApkPatcher {
 
     fun build(ctx: Context, onProgress: (Progress) -> Unit = {}): File {
         val pm = ctx.packageManager
-        val gameApk = pm.getApplicationInfo(TERRARIA, 0).sourceDir
+        val ai = pm.getApplicationInfo(TERRARIA, 0)
+        // Terraria da Play costuma ser SPLIT: base.apk (manifest/arsc/dex) +
+        // split de libs (lib/arm64-v8a/*). Junta base + o split que tem libmain.
+        val base = ai.sourceDir
+        val allApks = listOf(base) + (ai.splitSourceDirs?.toList() ?: emptyList())
+        val libApk = allApks.firstOrNull { hasEntry(it, "lib/$ABI/libmain.so") }
+            ?: error("libmain.so ($ABI) não encontrada em nenhum APK do Terraria (${allApks.size} apks)")
+        val sources = if (libApk == base) listOf(base) else listOf(base, libApk)
+
         val libDir = ctx.applicationInfo.nativeLibraryDir
         val libbunny = File(libDir, "libbunny.so")
         val libshadow = File(libDir, "libshadowhook.so")
@@ -44,7 +52,7 @@ object ApkPatcher {
 
         val t0 = System.currentTimeMillis()
         onProgress(Progress("Lendo Terraria", 5))
-        RawApk.rebuild(gameApk, unsigned, ABI, modifiers(gameApk), extra(libbunny, libshadow), onProgress)
+        RawApk.rebuild(sources, unsigned, modifiers(base, libApk), extra(libbunny, libshadow), onProgress)
         val t1 = System.currentTimeMillis()
         onProgress(Progress("Assinando", 90))
         sign(ctx, unsigned, signed)
@@ -57,15 +65,16 @@ object ApkPatcher {
     }
 
     /** Bytes novos para as entradas que mudam (calculados sob demanda). */
-    private fun modifiers(gameApk: String): Map<String, () -> ByteArray> = mapOf(
+    private fun modifiers(baseApk: String, libApk: String): Map<String, () -> ByteArray> = mapOf(
         "lib/$ABI/libmain.so" to {
-            ZipFile(gameApk).use { z ->
-                ElfPatch.addNeeded(z.getInputStream(z.getEntry("lib/$ABI/libmain.so")).readBytes(), "libbunny.so")
-            }
+            ElfPatch.addNeeded(readEntry(libApk, "lib/$ABI/libmain.so"), "libbunny.so")
         },
-        "AndroidManifest.xml" to { renamePkg(readEntry(gameApk, "AndroidManifest.xml")) },
-        "resources.arsc" to { renamePkg(readEntry(gameApk, "resources.arsc")) },
+        "AndroidManifest.xml" to { renamePkg(readEntry(baseApk, "AndroidManifest.xml")) },
+        "resources.arsc" to { renamePkg(readEntry(baseApk, "resources.arsc")) },
     )
+
+    private fun hasEntry(apk: String, name: String): Boolean =
+        ZipFile(apk).use { it.getEntry(name) != null }
 
     private fun extra(libbunny: File, libshadow: File): Map<String, File> = mapOf(
         "lib/$ABI/libbunny.so" to libbunny,
