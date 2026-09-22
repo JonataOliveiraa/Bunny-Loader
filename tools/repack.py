@@ -151,6 +151,9 @@ def main():
     ap.add_argument("--rename", default=None,
                     help="novo nome de pacote (MESMO tamanho de com.and.games505."
                          "TerrariaPaid = 29 chars) pra coexistir com o original")
+    ap.add_argument("--elfpatch", action="store_true",
+                    help="usa o patcher ELF proprio (sem LIEF), p/ validar o "
+                         "algoritmo do patch on-device")
     ap.add_argument("--build-tools", default=os.path.expandvars(
         r"$LOCALAPPDATA/Android/Sdk/build-tools/36.1.0"))
     ap.add_argument("--keystore", default="tools/debug.keystore")
@@ -175,7 +178,14 @@ def main():
         # 2. patch NEEDED
         patched = os.path.join(tmp, "libmain.patched.so")
         print("patch DT_NEEDED:")
-        patch_needed(raw_main, patched, "libbunny.so")
+        if args.elfpatch:
+            # Patcher proprio, sem LIEF (portavel p/ on-device). Ver elfpatch.py.
+            import elfpatch
+            data = bytearray(open(raw_main, "rb").read())
+            open(patched, "wb").write(elfpatch.add_needed(data, "libbunny.so"))
+            print("  (elfpatch: sem LIEF)")
+        else:
+            patch_needed(raw_main, patched, "libbunny.so")
         with open(patched, "rb") as f:
             patched_bytes = f.read()
 
