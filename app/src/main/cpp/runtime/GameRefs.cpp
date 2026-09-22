@@ -1,6 +1,7 @@
 #include "runtime/GameRefs.h"
 #include "core/Log.h"
 #include "il2cpp/Resolver.h"
+#include <atomic>
 
 namespace bl::runtime {
 
@@ -8,6 +9,10 @@ GameRefs& game() {
     static GameRefs instance;
     return instance;
 }
+
+// Idempotente: o hook (ARM) e a sonda de resolucao (emulador) podem ambos
+// chamar resolveGameRefs; so resolve de fato uma vez.
+namespace { std::atomic<bool> g_resolved{false}; }
 
 namespace {
 
@@ -25,6 +30,7 @@ void needPointer(const char* what, const void* value) {
 } // namespace
 
 bool resolveGameRefs() {
+    if (g_resolved.load()) return true;
     using namespace il2cpp;
     auto& g = game();
     auto& a = api();
@@ -80,8 +86,11 @@ bool resolveGameRefs() {
         return false;
     }
 
-    BL_INFO("GameRefs ok | Entity.velocity=0x%X Projectile.type=0x%X active=0x%X",
+    // Confere contra o dump (1.4.5.6.4) para provar que a resolucao bateu com
+    // a realidade: velocity=0x1C, Projectile.type=0x64, active=0x49.
+    BL_INFO("GameRefs ok | Entity.velocity=0x%X (esp 0x1C) Projectile.type=0x%X (esp 0x64) active=0x%X (esp 0x49)",
             g.entity.velocity, g.proj.type, g.proj.active);
+    g_resolved.store(true);
     return true;
 }
 

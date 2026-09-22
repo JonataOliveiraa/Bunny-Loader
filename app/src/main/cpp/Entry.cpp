@@ -1,6 +1,7 @@
 #include "core/Config.h"
 #include "core/Log.h"
 #include "loader/LibWatcher.h"
+#include "runtime/Probe.h"
 
 // Ponto de entrada do caminho B (lançar + injetar).
 //
@@ -36,11 +37,17 @@ void bl_on_load() {
                 c.modsDir.c_str(), c.enabledMods.size());
     }
 
-    if (!bl::loader::installWatcher()) {
-        BL_ERROR("falha ao registrar o watcher de il2cpp_init");
-        return;
+    // Caminho ARM real: hook pendente de il2cpp_init dispara runtime::boot().
+    if (bl::loader::installWatcher()) {
+        BL_INFO("watcher instalado; aguardando il2cpp_init");
+    } else {
+        // Esperado no MuMu: ShadowHook nao opera sob houdini. Nao e fatal —
+        // a sonda abaixo ainda valida a resolucao via chamadas normais a API.
+        BL_WARN("watcher nao instalado (esperado no emulador); seguindo com a sonda");
     }
-    BL_INFO("watcher instalado; aguardando il2cpp_init");
+
+    // Valida a camada de resolucao mesmo sem hook (funciona no emulador).
+    bl::runtime::startResolutionProbe();
 }
 
 } // namespace

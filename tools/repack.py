@@ -93,7 +93,9 @@ def main():
 
     bt = args.build_tools
     zipalign = os.path.join(bt, "zipalign.exe")
-    apksigner = os.path.join(bt, "apksigner.bat")
+    # Chama o apksigner.jar direto: o apksigner.bat, via subprocess com caminho
+    # que tem espaco ("Bunny Loader"), e reparseado errado pelo cmd.exe.
+    apksigner_jar = os.path.join(bt, "lib", "apksigner.jar")
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
     tmp = tempfile.mkdtemp(prefix="bunnyrepack_")
@@ -130,7 +132,7 @@ def main():
                  "-alias", "bunny", "-keyalg", "RSA", "-keysize", "2048",
                  "-validity", "10000", "-dname", "CN=Bunny Loader Dev"])
         print("assinando:")
-        run([apksigner, "sign", "--ks", args.keystore,
+        run(["java", "-jar", apksigner_jar, "sign", "--ks", args.keystore,
              "--ks-pass", "pass:android", "--key-pass", "pass:android",
              "--out", args.out, aligned])
         print(f"\nOK -> {args.out}")
