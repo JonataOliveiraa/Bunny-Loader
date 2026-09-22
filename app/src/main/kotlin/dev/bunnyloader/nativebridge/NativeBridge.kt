@@ -6,6 +6,8 @@ class NativeConfig(
     @JvmField val modsDir: String,
     @JvmField val enabledMods: Array<String>,
     @JvmField val logPath: String,
+    /** Canal de dev por arquivo (adb push). Vazio desliga. */
+    @JvmField val cmdPath: String,
     @JvmField val gameVersion: Long,
 )
 

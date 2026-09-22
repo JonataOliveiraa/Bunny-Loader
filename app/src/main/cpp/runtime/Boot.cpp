@@ -1,10 +1,7 @@
 #include "runtime/Boot.h"
-#include "core/Config.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
-#include "mods/ModLoader.h"
 #include "runtime/GameRefs.h"
-#include "script/ScriptEngine.h"
 
 namespace bl::runtime {
 
@@ -22,15 +19,24 @@ void boot() {
         return;
     }
 
-    if (!script::engine().init()) {
-        BL_ERROR("Falha ao iniciar o motor de script.");
-        return;
-    }
-
-    mods::loadAll(config().modsDir, config().enabledMods);
+    // Script e mods NAO sobem aqui — quem faz isso e a sonda (Probe.cpp).
+    //
+    // Estavam nos dois lugares, e o resultado era pior que duplicacao: o
+    // QuickJS nascia nesta thread (o hook de il2cpp_init) e os mods eram
+    // avaliados na thread da sonda. O QuickJS fixa o limite de pilha a partir
+    // do ponteiro de pilha de quando o runtime e criado, entao avaliar noutra
+    // thread faz a checagem concluir que a pilha acabou:
+    //
+    //     erro em minishark: Maximum call stack size exceeded
+    //
+    // ...na primeira chamada, com um script de 20 linhas. Deixando uma dona so,
+    // criacao e avaliacao ficam na mesma thread.
+    //
+    // A sonda tambem espera o jogo assentar antes de tocar no il2cpp, o que
+    // aqui, dentro do proprio il2cpp_init, nao daria para fazer.
 
     // TODO(Fase 3): installProjectileHooks() e demais hooks de runtime.
-    BL_INFO("Bunny Loader pronto");
+    BL_INFO("runtime pronto; mods ficam a cargo da sonda");
 }
 
 } // namespace bl::runtime

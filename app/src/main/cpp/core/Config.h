@@ -10,6 +10,10 @@ struct Config {
     std::string modsDir;
     std::vector<std::string> enabledMods;
     std::string logPath;
+    // Arquivo de comando do canal de DEV (adb). Fica na pasta externa do
+    // proprio Bunny Loader; o caminho vem de cima porque o nativo nao conhece
+    // o nome do pacote. Vazio = canal desligado.
+    std::string cmdPath;
     int64_t gameVersion = 0;
 };
 

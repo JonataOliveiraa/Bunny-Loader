@@ -131,6 +131,11 @@ class GameActivity : Activity() {
                     modsDir = repo.modsDir.absolutePath,
                     enabledMods = repo.enabledIds().toTypedArray(),
                     logPath = File(logDir, "bunny.log").absolutePath,
+                    // Canal de dev: adb push <arquivo> para a NOSSA pasta
+                    // externa. A do Terraria nao serve — desde o Android 11
+                    // um app nao escreve em Android/data de outro.
+                    cmdPath = File(getExternalFilesDir(null), "bunny/cmd")
+                        .also { it.parentFile?.mkdirs() }.absolutePath,
                     gameVersion = BundledRuntime.VERSION_CODE,
                 ),
             )

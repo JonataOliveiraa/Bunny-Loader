@@ -49,6 +49,7 @@ bool loadConfigFromFile(const char* path) {
         if (key == "gameLibDir")       c.gameLibDir = val;
         else if (key == "modsDir")     c.modsDir = val;
         else if (key == "logPath")     c.logPath = val;
+        else if (key == "cmdPath")     c.cmdPath = val;
         else if (key == "gameVersion") c.gameVersion = strtoll(val.c_str(), nullptr, 10);
         else if (key == "enabledMods") splitCsv(val, c.enabledMods);
     }

@@ -1,4 +1,5 @@
 #include "runtime/Cheats.h"
+#include "core/Config.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -19,10 +20,13 @@ struct Vector2 { float x; float y; };
 // thread do jogo pelo hook de DoUpdate. 0 = nada pendente.
 std::atomic<int> g_pendingGive{0};
 
-// Arquivo de comando na pasta externa do proprio app (mesma base da config),
-// legivel/gravavel sem root sob SELinux Enforcing. Ver core/Config.h.
-constexpr const char* kCmdPath =
-    "/sdcard/Android/data/com.and.games505.TerrariaPaid/files/bunny/cmd";
+// Canal de DEV por arquivo (adb push). O do BOTAO e requestGive(), em processo.
+//
+// O caminho vem da config, nao fixo no codigo: ele apontava para a pasta
+// externa do Terraria, de quando rodavamos dentro do processo dele. Agora o
+// processo e o nosso, e desde o Android 11 um app nao escreve em Android/data
+// de outro — o arquivo nunca chegaria.
+const std::string& cmdPath() { return config().cmdPath; }
 
 // Refs resolvidas uma vez.
 FieldInfo* g_playerField = nullptr;      // Terraria.Main.player  (Player[])
@@ -82,7 +86,9 @@ DoUpdateFn g_origDoUpdate = nullptr;
 char g_lastCmd[128] = {0};  // trava anti-repeticao caso remove() falhe (dono != app)
 
 void pollCommands() {
-    FILE* f = fopen(kCmdPath, "r");
+    const std::string& path = cmdPath();
+    if (path.empty()) return;  // canal de dev desligado
+    FILE* f = fopen(path.c_str(), "r");
     if (!f) return;
     char buf[128] = {0};
     size_t n = fread(buf, 1, sizeof(buf) - 1, f);
@@ -90,7 +96,7 @@ void pollCommands() {
     if (n == 0) { g_lastCmd[0] = 0; return; }
 
     // Se remove() falhar (arquivo de outro dono), nao reexecuta o mesmo comando.
-    remove(kCmdPath);
+    remove(path.c_str());
     if (std::strcmp(buf, g_lastCmd) == 0) return;
     std::strncpy(g_lastCmd, buf, sizeof(g_lastCmd) - 1);
 
@@ -101,7 +107,23 @@ void pollCommands() {
     }
 }
 
+// Prova de que runtime_invoke chama codigo do jogo. Roda no PRIMEIRO DoUpdate,
+// nao no installCheats: la estamos logo apos o il2cpp_init, Terraria.Main ainda
+// nao rodou, e get_myPlayer() so podia estourar. O selftest antigo reportava
+// "(excecao!)" sempre e por isso nao provava nada.
+void runSelftestOnce() {
+    static bool done = false;
+    if (done) return;
+    done = true;
+
+    Il2CppObject* exc = nullptr;
+    int me = unboxInt(il2cpp::api().runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
+    if (exc) BL_ERROR("cheats: selftest runtime_invoke get_myPlayer() lancou excecao");
+    else BL_INFO("cheats: selftest runtime_invoke get_myPlayer() = %d (ok)", me);
+}
+
 void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
+    runSelftestOnce();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (int type = g_pendingGive.exchange(0)) giveItem(type);
     pollCommands();  // canal por arquivo (dev/adb) continua valendo
@@ -149,16 +171,14 @@ void installCheats() {
     const MethodInfo* doUpdate = main
         ? il2cpp::api().class_get_method_from_name(main, "DoUpdate", 1) : nullptr;
     if (doUpdate && hook::install(doUpdate, hkDoUpdate, &g_origDoUpdate)) {
-        BL_INFO("cheats: pronto (comando em %s)", kCmdPath);
+        // O canal do BOTAO e requestGive() -> g_pendingGive, em processo. O
+        // arquivo abaixo e so o canal de dev (adb), por isso vem marcado.
+        const std::string& cmd = cmdPath();
+        BL_INFO("cheats: pronto (canal dev por arquivo: %s)",
+                cmd.empty() ? "desligado" : cmd.c_str());
     } else {
         BL_ERROR("cheats: falha ao hookar Main.DoUpdate");
     }
-
-    // Prova do runtime_invoke (chamar metodo do jogo): get_myPlayer() estatico.
-    Il2CppObject* exc = nullptr;
-    int me = unboxInt(il2cpp::api().runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
-    BL_INFO("cheats: selftest runtime_invoke get_myPlayer() = %d%s",
-            me, exc ? " (excecao!)" : "");
 }
 
 } // namespace bl::runtime
