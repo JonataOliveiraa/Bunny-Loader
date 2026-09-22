@@ -38,7 +38,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import dev.bunnyloader.game.GameFiles
-import dev.bunnyloader.game.GameInstall
 import dev.bunnyloader.patch.ApkPatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -197,31 +196,9 @@ private fun LauncherScreen() {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp),
         )
-        // O caminho de zero passos: congela o que já está instalado. A partir
-        // daí uma atualização do jogo não muda o que roda.
-        Button(
-            onClick = {
-                busy = true
-                status = "Congelando a versão instalada…"
-                scope.launch {
-                    val r = runCatching {
-                        withContext(Dispatchers.IO) {
-                            val install = GameInstall.locate(ctx) ?: error("Terraria não encontrado")
-                            GameFiles.pinInstalled(ctx, install) { status = it }
-                        }
-                    }
-                    busy = false
-                    pinGen++
-                    status = r.fold(
-                        { "Congelada a versão $it." },
-                        { "Não deu para congelar: ${it.message ?: it.javaClass.simpleName}" },
-                    )
-                }
-            },
-            enabled = !busy,
-            modifier = Modifier.padding(top = 8.dp),
-        ) { Text("Congelar a versão instalada") }
-
+        // Sem botão de congelar: o congelamento acontece sozinho no primeiro
+        // boot (ver GameActivity). Isto aqui é só para o caso em que a versão
+        // instalada não serve e o usuário precisa apontar a dele.
         Button(
             // Seletor de documentos, e não um caminho para o usuário copiar à
             // mão: desde o Android 11 nenhum gerenciador de arquivos escreve em
@@ -229,7 +206,7 @@ private fun LauncherScreen() {
             onClick = { pickApk.launch(arrayOf("*/*")) },
             enabled = !busy,
             modifier = Modifier.padding(top = 8.dp),
-        ) { Text("Congelar de um APK…") }
+        ) { Text("Usar outra versão (APK)…") }
         if (pinned) {
             Button(
                 onClick = {

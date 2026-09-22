@@ -109,6 +109,41 @@ class GameActivity : Activity() {
         // realmente instala (no emulador o houdini o rejeita), então ele dispara
         // no meio do boot da Unity e é suspeito nº 1 do "tela preta e volta".
         // Religar depois de resolver os símbolos via /proc/self/maps.
+        // Congelar é automático, não um botão — e vem ANTES do GameEnvironment,
+        // que resolve os assets a partir do que estiver congelado. Na primeira
+        // vez em que o aparelho tem uma versão que roda, guardamos uma cópia e
+        // passamos a usar só ela: daí em diante uma atualização do Terraria não
+        // muda o que abre aqui.
+        //
+        // Quando a versão instalada não serve (a libunity dela exige a
+        // libpairipcore, que derruba o processo), isso vira mensagem em vez de
+        // SIGSEGV. Só o próprio usuário pode fornecer o APK da versão
+        // suportada: nós não distribuímos o jogo.
+        if (!GameFiles.isPinned(this)) {
+            val supported = try {
+                GameFiles.installedIsSupported(this, install)
+            } catch (t: Throwable) {
+                fail("Não consegui inspecionar o Terraria instalado", t); return
+            }
+            if (!supported) {
+                fail(
+                    "A versão instalada (${install.versionCode}) não roda aqui: a " +
+                        "libunity dela exige a libpairipcore. No launcher, use " +
+                        "\"Usar outra versão (APK)…\" e aponte o APK da 1.4.5.6.4.",
+                    null,
+                )
+                return
+            }
+            BootLog.add(this, "primeira vez: congelando a versão instalada")
+            try {
+                BootLog.add(this, "congelada: " + GameFiles.pinInstalled(this, install) {
+                    BootLog.add(this, it)
+                })
+            } catch (t: Throwable) {
+                fail("Falha ao congelar a versão instalada", t); return
+            }
+        }
+
         val pinned = GameFiles.pinnedApks(this)
         val environment = try {
             GameEnvironment.create(this, install, pinned)

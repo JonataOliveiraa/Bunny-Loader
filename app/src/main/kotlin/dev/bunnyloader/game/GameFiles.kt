@@ -164,6 +164,23 @@ object GameFiles {
         }
     }
 
+    /**
+     * A versão INSTALADA é uma que o hosting consegue rodar?
+     *
+     * Extrai só a libunity para um temporário e lê o DT_NEEDED dela. Precisa ser
+     * respondido ANTES de congelar, porque congelar copia 200 MB — e porque a
+     * resposta "não" tem de virar mensagem, não o SIGSEGV do anti-tamper.
+     */
+    fun installedIsSupported(ctx: Context, install: GameInstall): Boolean {
+        val probe = File(ctx.cacheDir, "probe").apply { mkdirs() }
+        return try {
+            val missing = copy(listOf("libunity.so"), install.allApks(), install.abi, probe) {}
+            if (missing.isNotEmpty()) false else !needsPairip(probe)
+        } finally {
+            probe.deleteRecursively()
+        }
+    }
+
     /** Rejeita cedo o que não é o Terraria — com o motivo, não um crash depois. */
     private fun validate(
         ctx: Context,
@@ -365,10 +382,11 @@ object GameFiles {
     fun pinStatus(ctx: Context): String {
         val apks = pinnedApks(ctx)
         if (apks.isEmpty()) {
-            return "Versão: a instalada no aparelho — e ela pode mudar sozinha " +
-                "numa atualização da Play.\n" +
-                "O hosting suporta a 1.4.5.6.4; na 1.4.5.8.6 a libunity exige a " +
-                "libpairipcore, que derruba o processo fora do boot do jogo."
+            return "Nenhuma versão congelada ainda. No primeiro \"Jogar\" o app " +
+                "congela sozinho a versão instalada, se ela for suportada.\n" +
+                "Suportada é a 1.4.5.6.4; na 1.4.5.8.6 a libunity exige a " +
+                "libpairipcore, que derruba o processo fora do boot do jogo — " +
+                "aí é preciso apontar o APK da 1.4.5.6.4 abaixo."
         }
         val v = runCatching {
             ctx.packageManager.getPackageArchiveInfo(apks.first().absolutePath, 0)
