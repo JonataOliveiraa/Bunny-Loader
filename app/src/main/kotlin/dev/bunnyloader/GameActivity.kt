@@ -36,8 +36,14 @@ import java.io.File
 class GameActivity : Activity() {
 
     private companion object {
-        /** Núcleo de mods: desligado até o hosting puro estar validado. */
-        const val ENABLE_NATIVE_CORE = false
+        /**
+         * Núcleo de mods. Religado agora que o hosting está provado (o jogo
+         * renderiza dentro do nosso processo). Detalhe importante: a libil2cpp
+         * do jogo passa a viver no NOSSO namespace de linker, então o
+         * dlopen(RTLD_NOLOAD) da sonda deve enxergá-la — era justamente isso que
+         * faltava quando o jogo rodava no processo dele.
+         */
+        const val ENABLE_NATIVE_CORE = true
     }
 
     private var env: GameEnvironment? = null
@@ -102,9 +108,6 @@ class GameActivity : Activity() {
         // realmente instala (no emulador o houdini o rejeita), então ele dispara
         // no meio do boot da Unity e é suspeito nº 1 do "tela preta e volta".
         // Religar depois de resolver os símbolos via /proc/self/maps.
-        if (ENABLE_NATIVE_CORE) startNativeCore(install) else
-            BootLog.add(this, "nucleo nativo DESLIGADO (isolando o hosting)")
-
         val environment = try {
             GameEnvironment.create(this, install, codeCacheDir)
         } catch (t: Throwable) {
@@ -153,6 +156,10 @@ class GameActivity : Activity() {
             fail("Falha ao preparar os binários do jogo", t)
             return
         }
+
+        // Depois das libs do jogo carregadas: a sonda precisa achar a libil2cpp.
+        if (ENABLE_NATIVE_CORE) startNativeCore(install) else
+            BootLog.add(this, "nucleo nativo DESLIGADO")
 
         val unity = UnityHost(this, environment.classLoader)
         unity.onQuit = { finish() }
