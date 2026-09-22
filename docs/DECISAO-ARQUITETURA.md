@@ -298,3 +298,35 @@ Falta so o inline hook, que e ARM-only. Ordem de trabalho daqui:
   -> Projectile.AI/SetDefaults hookados -> Fase 4 (QuickJS).
 - No emulador: dá para adiantar tudo que nao depende do hook — os bindings
   QuickJS, o registro de conteudo, e ler/escrever estado do jogo via a sonda.
+
+---
+
+# CORRECAO: hook FUNCIONA no emulador (por endereco)
+
+A observacao do usuario (TL Pro roda no MuMu) estava certa e derrubou a
+conclusao anterior de "hooks so em ARM real". Medido:
+
+```
+hooktest: Projectile.SetDefaults hookado (por endereco)
+hooktest: Main.DoUpdate hookado — aguardando disparo
+>>> HOOK Main.DoUpdate DISPAROU (frame 0) — hook funciona sob houdini!
+```
+
+O jogo segue vivo, nosso codigo roda todo frame e chama o original.
+
+## O que realmente falha sob houdini
+So o modo PENDENTE por nome: `shadowhook_hook_sym_name("libil2cpp.so", ...)`,
+que inspeciona o linker x86 -> erro 35. O `shadowhook_init` em si passa.
+
+## O que funciona sob houdini
+`shadowhook_hook_func_addr` num metodo JA carregado: reescreve o prologo da
+funcao ARM (o houdini traduz), sem tocar no linker. Como o inline hook patcha o
+prologo do alvo, TODOS os chamadores sao redirecionados — inclusive as chamadas
+diretas compiladas pelo AOT (nao e swap de ponteiro).
+
+## Consequencia no design
+Nao precisamos hookar il2cpp_init. O gatilho de boot passa a ser "esperar o
+il2cpp ficar pronto" (como a sonda ja faz) e entao instalar os hooks de runtime
+por endereco. O mesmo codigo roda no emulador E em ARM real. O caminho A/B/C de
+distribuicao continua valendo; o desenvolvimento inteiro (Fases 3 e 4) fica
+desbloqueado no MuMu, sem root e sem ARM.

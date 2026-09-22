@@ -3,6 +3,8 @@
 #include "il2cpp/Api.h"
 #include "runtime/GameRefs.h"
 
+namespace bl::runtime { void installHookTest(); }
+
 #include <chrono>
 #include <dlfcn.h>
 #include <thread>
@@ -44,6 +46,9 @@ void probeThread() {
             a.thread_attach(a.domain_get());
             if (resolveGameRefs()) {
                 BL_INFO("sonda: RESOLUCAO OK — camada de bind validada no processo do jogo");
+                // Testa o hook por endereco (deve funcionar sob houdini, ao
+                // contrario do hook pendente por nome).
+                installHookTest();
             } else {
                 BL_ERROR("sonda: resolveGameRefs falhou");
             }
