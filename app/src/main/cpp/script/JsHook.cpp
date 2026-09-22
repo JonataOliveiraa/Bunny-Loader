@@ -45,6 +45,11 @@ volatile int bl_hook_slot = 0;
 struct Frame { HookCtx* c; intptr_t a[8]; };
 static thread_local std::vector<Frame> g_frames;
 
+// Profundidade de reentrancia por slot, por thread. Evita que um metodo cujo
+// corpo real (rodado via original()) rechama a si mesmo pela entrada patcheada
+// dispare o callback JS repetidamente ate estourar a pilha do QuickJS.
+static thread_local int g_depth[kMaxHooks];
+
 using RawFn8 = intptr_t (*)(intptr_t, intptr_t, intptr_t, intptr_t,
                             intptr_t, intptr_t, intptr_t, intptr_t);
 
@@ -63,6 +68,16 @@ extern "C" intptr_t bl_hook_repl(intptr_t a0, intptr_t a1, intptr_t a2, intptr_t
     int slot = bl_hook_slot;
     if (slot < 0 || slot >= kMaxHooks) return 0;
     HookCtx* c = &g_hooks[slot];
+
+    // Reentrancia: ja estamos dentro deste hook nesta thread (o corpo real,
+    // rodando via original(), rechamou o metodo pela entrada patcheada). Nao
+    // dispara o callback de novo — executa direto o original e volta.
+    if (g_depth[slot] > 0) {
+        auto fn = reinterpret_cast<RawFn8>(c->original);
+        return fn ? fn(a0, a1, a2, a3, a4, a5, a6, a7) : 0;
+    }
+    ++g_depth[slot];
+
     JSContext* ctx = c->ctx;
 
     Frame f{c, {a0, a1, a2, a3, a4, a5, a6, a7}};
@@ -94,6 +109,7 @@ extern "C" intptr_t bl_hook_repl(intptr_t a0, intptr_t a1, intptr_t a2, intptr_t
     JS_FreeValue(ctx, ret);
 
     g_frames.pop_back();
+    --g_depth[slot];
     return 0;
 }
 
