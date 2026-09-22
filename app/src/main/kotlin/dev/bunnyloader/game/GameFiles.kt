@@ -57,9 +57,14 @@ object GameFiles {
                         continue
                     }
                     onStep("copiando $name")
+                    out.setWritable(true, true)
                     zip.getInputStream(entry).use { input ->
                         out.outputStream().use { input.copyTo(it, 1 shl 16) }
                     }
+                    // O Android avisa: "Attempt to load writable file ... This
+                    // will throw on a future Android version". Deixar somente
+                    // leitura evita depender desse comportamento.
+                    out.setReadOnly()
                     pending -= name
                 }
             }

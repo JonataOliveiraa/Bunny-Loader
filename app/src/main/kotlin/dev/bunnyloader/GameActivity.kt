@@ -61,9 +61,13 @@ class GameActivity : Activity() {
 
     override fun getApplicationInfo(): ApplicationInfo {
         val environment = env ?: return super.getApplicationInfo()
-        return gameAppInfo ?: environment.applicationInfo(super.getApplicationInfo())
+        val libs = localLibs ?: return super.getApplicationInfo()
+        return gameAppInfo ?: environment.applicationInfo(super.getApplicationInfo(), libs)
             .also { gameAppInfo = it }
     }
+
+    /** Nossa cópia das .so do jogo — é daqui que a Unity carrega a libunity.so. */
+    private var localLibs: File? = null
 
     // O VMRunner do PairIP abre o APK por estes caminhos para ler os programas
     // da VM; precisam apontar para o do jogo, nao para o nosso.
@@ -120,6 +124,8 @@ class GameActivity : Activity() {
         // código Java do Terraria, o PairIP simplesmente não entra em cena.
         try {
             val libs = GameFiles.prepare(this, install) { BootLog.add(this, it) }
+            localLibs = libs
+            gameAppInfo = null   // recalcula com o nativeLibraryDir certo
             var ok = GameFiles.addLibraryPath(classLoader, libs)
             BootLog.add(this, "libs copiadas (path estendido=$ok)")
 

@@ -30,15 +30,21 @@ class GameEnvironment private constructor(
     val assets: AssetManager get() = gameContext.assets
 
     /**
-     * Híbrido: identidade e binários do JOGO (a Unity consulta packageName e os
-     * caminhos do APK), mas os diretórios de dados continuam sendo os NOSSOS —
-     * não temos permissão de escrever no dataDir do jogo (uid diferente).
+     * Híbrido: identidade e APK do JOGO (a Unity consulta packageName e os
+     * caminhos do APK), dados NOSSOS (não podemos escrever no dataDir do jogo).
+     *
+     * `nativeLibraryDir` aponta para a NOSSA cópia das .so, não para a pasta do
+     * jogo. A Unity monta o caminho da libunity.so a partir deste campo, e do
+     * diretório do outro app o dlopen falha por namespace de linker:
+     *
+     *   JNI FatalError: Unable to load library: /data/app/...TerrariaPaid.../
+     *     lib/arm64/libunity.so [dlopen failed: library "libunity.so" not found]
      */
-    fun applicationInfo(base: ApplicationInfo): ApplicationInfo =
+    fun applicationInfo(base: ApplicationInfo, localLibDir: File): ApplicationInfo =
         ApplicationInfo(base).apply {
             val game = gameContext.applicationInfo
             packageName = game.packageName
-            nativeLibraryDir = game.nativeLibraryDir
+            nativeLibraryDir = localLibDir.absolutePath
             sourceDir = game.sourceDir
             publicSourceDir = game.publicSourceDir
             splitSourceDirs = game.splitSourceDirs
