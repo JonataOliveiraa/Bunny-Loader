@@ -23,7 +23,7 @@ import java.lang.reflect.Modifier
 object PairipSpike {
     private const val TAG = "BunnyLoader"
     private const val TERRARIA = "com.and.games505.TerrariaPaid"
-    private const val MAX_SCAN = 4000   // classes inspecionadas no máximo
+    private const val MAX_SCAN = 15000  // agora descartamos muito mais candidatos
     private const val WANT_DEPOSITS = 3 // amostras suficientes
 
     fun run(host: Context): String {
@@ -72,6 +72,14 @@ object PairipSpike {
 
     // --- descoberta das classes-depósito ---
 
+    /**
+     * Depósito do PairIP = classe cujas strings estáticas começam TODAS `null`
+     * (quem preenche é a libpairipcore, de fora).
+     *
+     * Cuidado: `getDeclaredMethods()` NÃO inclui o `<clinit>`, então "zero
+     * métodos" sozinho deixa passar classes de constantes comuns, que já nascem
+     * preenchidas. Por isso o critério decisivo é o valor ser null aqui.
+     */
     private fun findDeposits(loader: ClassLoader): List<Pair<Class<*>, List<java.lang.reflect.Field>>> {
         val found = ArrayList<Pair<Class<*>, List<java.lang.reflect.Field>>>()
         var scanned = 0
@@ -85,10 +93,11 @@ object PairipSpike {
                     it.type == String::class.java && Modifier.isStatic(it.modifiers)
                 }
             }.getOrNull() ?: continue
-            if (fields.size >= 3) {
-                fields.forEach { it.isAccessible = true }
-                found.add(c to fields)
-            }
+            if (fields.size < 3) continue
+            fields.forEach { it.isAccessible = true }
+            // Ler força o <clinit>: constante comum vira não-null e é descartada.
+            val allNull = runCatching { fields.all { it.get(null) == null } }.getOrDefault(false)
+            if (allNull) found.add(c to fields)
         }
         return found
     }
