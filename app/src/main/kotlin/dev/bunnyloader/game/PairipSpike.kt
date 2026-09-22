@@ -2,108 +2,145 @@ package dev.bunnyloader.game
 
 import android.content.Context
 import android.util.Log
+import java.lang.reflect.Modifier
 
 /**
- * ESTÁGIO 0 — descobrir o que faz a libpairipcore popular as strings do app.
+ * ESTÁGIO 0 — confirmar que a libpairipcore popula as strings do app quando o
+ * boot acontece no NOSSO processo.
  *
- * O PairIP criptografa as constantes de string; elas vivem em classes-depósito
- * sem métodos e são preenchidas em runtime. O `VMRunner.invoke` gravado no dex é
- * um stub (`return null` na 1ª instrução); a libpairipcore reescreve o método em
- * memória quando o app boota pelo caminho legítimo. Sem isso a Unity estoura.
+ * O PairIP cifra as constantes de string; elas vivem em classes-depósito
+ * (só campos `static String`, zero métodos) preenchidas em runtime pela
+ * libpairipcore, que reescreve `VMRunner.invoke` (no dex é um stub
+ * `return null`) durante o boot legítimo do app.
  *
- * A Fase 1 falhou usando um DexClassLoader CASEIRO. Aqui testamos, em degraus,
- * usando o ClassLoader do SISTEMA (o da LoadedApk real do jogo, via
- * createPackageContext), e medimos a mesma sonda a cada passo:
+ * A Fase 1 falhou por usar um DexClassLoader CASEIRO e chamar o PairIP na mão.
+ * A receita que funciona: ClassLoader do SISTEMA (createPackageContext) + deixar
+ * o Android criar a Application via `LoadedApk.makeApplication`.
  *
- *   uk.co.drstudios.lvl.yh.sHQPfQqKk.pPb  deve virar "window"
+ * A sonda NÃO pode ter nome de classe fixo: o PairIP ofusca com nomes diferentes
+ * a cada build do jogo. Então descobrimos as classes-depósito varrendo o dex.
  */
 object PairipSpike {
     private const val TAG = "BunnyLoader"
     private const val TERRARIA = "com.and.games505.TerrariaPaid"
-    private const val PROBE_CLASS = "uk.co.drstudios.lvl.yh.sHQPfQqKk"
-    private const val PROBE_FIELD = "pPb"
-    private const val EXPECTED = "window"
+    private const val MAX_SCAN = 4000   // classes inspecionadas no máximo
+    private const val WANT_DEPOSITS = 3 // amostras suficientes
 
-    /** Roda os degraus e devolve um resumo curto (também vai pro logcat). */
     fun run(host: Context): String {
         val out = StringBuilder()
         fun log(s: String) { Log.i(TAG, "spike: $s"); out.appendLine(s) }
-        fun step(n: String, body: () -> Unit) {
-            runCatching(body)
-                .onSuccess { log("$n OK  -> probe=${probe()}") }
-                .onFailure { log("$n FALHOU (${it.javaClass.simpleName}: ${it.message})") }
-        }
 
-        var cl: ClassLoader? = null
-        var gameCtx: Context? = null
-
-        step("1) createPackageContext(INCLUDE_CODE|IGNORE_SECURITY)") {
-            val c = host.createPackageContext(
+        // 1) Contexto + ClassLoader do SISTEMA para o pacote do jogo.
+        val gameCtx = runCatching {
+            host.createPackageContext(
                 TERRARIA, Context.CONTEXT_INCLUDE_CODE or Context.CONTEXT_IGNORE_SECURITY)
-            gameCtx = c
-            cl = c.classLoader
-            loader = c.classLoader
-            Log.i(TAG, "spike:    classLoader=${c.classLoader}")
-            Log.i(TAG, "spike:    nativeLibraryDir=${c.applicationInfo.nativeLibraryDir}")
-        }
-        val loaderRef = cl ?: run { log("abortado: sem ClassLoader"); return out.toString() }
-        val ctxRef = gameCtx!!
+        }.getOrElse { log("1) createPackageContext FALHOU: ${desc(it)}"); return out.toString() }
+        val loader = gameCtx.classLoader
+        log("1) contexto+classloader do jogo OK")
 
-        // 2) força o <clinit> do VMRunner -> System.loadLibrary("pairipcore")
-        step("2) loadClass(com.pairip.VMRunner)") { loaderRef.loadClass("com.pairip.VMRunner") }
-
-        // 3) VMRunner.setContext(contexto do JOGO)
-        step("3) VMRunner.setContext(gameCtx)") {
-            loaderRef.loadClass("com.pairip.VMRunner")
-                .getMethod("setContext", Context::class.java).invoke(null, ctxRef)
+        // Versão do jogo instalado (o dump nosso é 1.4.5.6.4 / 301543).
+        runCatching {
+            val pi = host.packageManager.getPackageInfo(TERRARIA, 0)
+            log("   Terraria instalado: ${pi.versionName} (${pi.longVersionCode})")
         }
 
-        // 4) StartupLauncher.launch() — o que a Fase 1 tentou e não bastou
-        step("4) StartupLauncher.launch()") {
-            loaderRef.loadClass("com.pairip.StartupLauncher").getMethod("launch").invoke(null)
+        // 2) Descobre classes-depósito do PairIP pelo FORMATO (sem nome fixo).
+        val deposits = runCatching { findDeposits(loader) }
+            .getOrElse { log("2) varredura do dex FALHOU: ${desc(it)}"); emptyList() }
+        if (deposits.isEmpty()) {
+            log("2) nenhuma classe-depósito encontrada — sonda indisponível")
+        } else {
+            log("2) ${deposits.size} classe(s)-depósito achada(s):")
+            deposits.forEach { log("   ${it.first.name} (${it.second.size} campos)") }
+            log("   ANTES: ${summarize(deposits)}")
         }
 
-        // 5) O PULO DO GATO: criar a Application do jogo pela máquina REAL do
-        //    Android (LoadedApk.makeApplication), em vez de chamar o PairIP na
-        //    mão. É isso que dispara attachBaseContext + <clinit> de verdade.
-        step("5) LoadedApk.makeApplication()") { makeApplication(ctxRef) }
+        // 3) O pulo do gato: deixar o Android construir a Application do jogo.
+        runCatching { makeApplication(gameCtx) }
+            .onSuccess { log("3) LoadedApk.makeApplication() OK") }
+            .onFailure { log("3) LoadedApk.makeApplication() FALHOU: ${desc(it)}") }
 
-        val v = probe()
-        log(if (v == EXPECTED) "RESULTADO: SUCESSO — strings populadas ($v)"
-            else "RESULTADO: falhou — probe=$v (esperado \"$EXPECTED\")")
+        if (deposits.isNotEmpty()) {
+            val after = summarize(deposits)
+            log("   DEPOIS: $after")
+            val populated = countNonNull(deposits)
+            log(if (populated > 0) "RESULTADO: SUCESSO — $populated string(s) populada(s)"
+                else "RESULTADO: falhou — nenhuma string populada")
+        }
         return out.toString()
     }
 
-    private var loader: ClassLoader? = null
+    // --- descoberta das classes-depósito ---
 
-    private fun probe(): String? = runCatching {
-        loader?.loadClass(PROBE_CLASS)?.getDeclaredField(PROBE_FIELD)?.apply { isAccessible = true }
-            ?.get(null) as? String
-    }.getOrElse { "<erro ${it.javaClass.simpleName}>" }
+    private fun findDeposits(loader: ClassLoader): List<Pair<Class<*>, List<java.lang.reflect.Field>>> {
+        val found = ArrayList<Pair<Class<*>, List<java.lang.reflect.Field>>>()
+        var scanned = 0
+        for (name in dexClassNames(loader)) {
+            if (scanned++ > MAX_SCAN || found.size >= WANT_DEPOSITS) break
+            // initialize=false: não dispara <clinit> de classes alheias.
+            val c = runCatching { Class.forName(name, false, loader) }.getOrNull() ?: continue
+            if (c.declaredMethods.isNotEmpty()) continue
+            val fields = runCatching {
+                c.declaredFields.filter {
+                    it.type == String::class.java && Modifier.isStatic(it.modifiers)
+                }
+            }.getOrNull() ?: continue
+            if (fields.size >= 3) {
+                fields.forEach { it.isAccessible = true }
+                found.add(c to fields)
+            }
+        }
+        return found
+    }
 
-    /**
-     * Cria a Application do jogo pelo caminho do sistema. O ContextImpl devolvido
-     * pelo createPackageContext guarda a LoadedApk real do jogo em `mPackageInfo`;
-     * `makeApplication` nela roda attachBaseContext + onCreate como o Android faz.
-     * Usa APIs ocultas — pode ser bloqueado (o próprio bloqueio é informação).
-     */
+    /** Nomes de classe do dex do jogo (via DexPathList do PathClassLoader). */
+    private fun dexClassNames(loader: ClassLoader): Sequence<String> = sequence {
+        val pathList = Class.forName("dalvik.system.BaseDexClassLoader")
+            .getDeclaredField("pathList").apply { isAccessible = true }.get(loader)!!
+        val elements = pathList.javaClass
+            .getDeclaredField("dexElements").apply { isAccessible = true }
+            .get(pathList) as Array<*>
+        for (el in elements) {
+            val dexFile = el?.javaClass?.getDeclaredField("dexFile")
+                ?.apply { isAccessible = true }?.get(el) ?: continue
+            @Suppress("UNCHECKED_CAST")
+            val entries = dexFile.javaClass.getMethod("entries")
+                .invoke(dexFile) as java.util.Enumeration<String>
+            while (entries.hasMoreElements()) yield(entries.nextElement())
+        }
+    }
+
+    private fun countNonNull(deposits: List<Pair<Class<*>, List<java.lang.reflect.Field>>>): Int =
+        deposits.sumOf { (_, fs) -> fs.count { runCatching { it.get(null) != null }.getOrDefault(false) } }
+
+    private fun summarize(deposits: List<Pair<Class<*>, List<java.lang.reflect.Field>>>): String {
+        val total = deposits.sumOf { it.second.size }
+        val nonNull = countNonNull(deposits)
+        val sample = deposits.firstOrNull()?.second?.firstOrNull()
+            ?.let { runCatching { it.get(null) as? String }.getOrNull() }
+        return "$nonNull/$total preenchidas" + (sample?.let { " (ex.: \"$it\")" } ?: "")
+    }
+
+    // --- boot legítimo da Application do jogo ---
+
     private fun makeApplication(gameCtx: Context) {
-        val fPackageInfo = gameCtx.javaClass.getDeclaredField("mPackageInfo").apply { isAccessible = true }
-        val loadedApk = fPackageInfo.get(gameCtx) ?: error("mPackageInfo nulo")
-        Log.i(TAG, "spike:    LoadedApk=${loadedApk.javaClass.name}")
-
+        val loadedApk = gameCtx.javaClass.getDeclaredField("mPackageInfo")
+            .apply { isAccessible = true }.get(gameCtx) ?: error("mPackageInfo nulo")
         val at = Class.forName("android.app.ActivityThread")
             .getMethod("currentActivityThread").invoke(null)
         val instrumentation = at?.javaClass?.getDeclaredField("mInstrumentation")
             ?.apply { isAccessible = true }?.get(at)
-
-        // Android mudou o nome/assinatura ao longo das versões.
         val m = loadedApk.javaClass.declaredMethods.firstOrNull {
             (it.name == "makeApplication" || it.name == "makeApplicationInner") &&
                 it.parameterTypes.size == 2
         } ?: error("makeApplication não encontrado")
         m.isAccessible = true
         val app = m.invoke(loadedApk, false, instrumentation)
-        Log.i(TAG, "spike:    Application criada = ${app?.javaClass?.name}")
+        Log.i(TAG, "spike:    Application = ${app?.javaClass?.name}")
+    }
+
+    private fun desc(t: Throwable): String {
+        val r = generateSequence(t) { it.cause }.last()
+        return "${r.javaClass.simpleName}: ${r.message}"
     }
 }
