@@ -1,6 +1,9 @@
 package dev.bunnyloader.game
 
+import android.app.ActivityManager
+import android.app.ApplicationExitInfo
 import android.content.Context
+import android.os.Build
 import android.util.Log
 import dev.bunnyloader.TAG
 import java.io.File
@@ -19,7 +22,9 @@ object BootLog {
     private fun file(ctx: Context) = File(ctx.filesDir, FILE)
 
     /** Começa uma trilha nova (chamar no início do boot). */
-    fun reset(ctx: Context) = runCatching { file(ctx).writeText("") }.let {}
+    fun reset(ctx: Context) {
+        runCatching { file(ctx).writeText("") }
+    }
 
     fun add(ctx: Context, line: String) {
         Log.i(TAG, "boot: $line")
@@ -40,7 +45,6 @@ object BootLog {
      *
      * Os try/catch da GameActivity só cobrem o onCreate; a Unity estoura depois,
      * nas threads dela, e aí só sobra "CRASH (Java)" no exit reason — sem stack.
-     * Este handler grava o stack na trilha antes de deixar o processo morrer.
      */
     fun installCrashHandler(ctx: Context) {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
@@ -66,28 +70,54 @@ object BootLog {
     /**
      * Motivo das últimas mortes de processo do app. Crash NATIVO não passa por
      * try/catch nem aparece na trilha acima; esta API pública (Android 11+)
-     * entrega o motivo e a descrição, que é o que falta para diagnosticar sem adb.
+     * entrega o motivo e, para crash nativo, o tombstone.
      */
     private fun exitReasons(ctx: Context): String = runCatching {
-        if (android.os.Build.VERSION.SDK_INT < 30) return@runCatching "(precisa Android 11+)"
-        val am = ctx.getSystemService(android.app.ActivityManager::class.java)
+        if (Build.VERSION.SDK_INT < 30) return@runCatching "(precisa Android 11+)"
+        val am = ctx.getSystemService(ActivityManager::class.java)
         val list = am.getHistoricalProcessExitReasons(ctx.packageName, 0, 5)
         if (list.isEmpty()) return@runCatching "(nenhum registro)"
-        list.joinToString("\n") { i ->
-            "${i.processName}: ${reasonName(i.reason)} status=${i.status}" +
-                (i.description?.let { "\n   $it" } ?: "")
+        list.joinToString("\n") { info ->
+            buildString {
+                append(info.processName).append(": ").append(reasonName(info.reason))
+                append(" status=").append(info.status)
+                info.description?.let { append("\n   ").append(it) }
+                append(tombstone(info))
+            }
         }
     }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})" }
 
+    /**
+     * Para crash NATIVO o sistema guarda o tombstone (mensagem de abort +
+     * backtrace) e o entrega por getTraceInputStream(). É a única forma de saber
+     * por que o processo abortou sem ter adb no aparelho.
+     */
+    private fun tombstone(info: ApplicationExitInfo): String {
+        if (info.reason != ApplicationExitInfo.REASON_CRASH_NATIVE) return ""
+        return runCatching {
+            val text = info.traceInputStream?.bufferedReader()?.use { it.readText() }
+                ?: return "\n   (sem tombstone)"
+            val frame = Regex("""^\s+#\d\d """)
+            val useful = text.lineSequence()
+                .filter {
+                    it.contains("signal") || it.contains("Abort message") ||
+                        it.contains("Cause:") || frame.containsMatchIn(it)
+                }
+                .take(18)
+                .joinToString("\n") { "   " + it.trim() }
+            if (useful.isBlank()) "\n   (tombstone sem linhas úteis)" else "\n$useful"
+        }.getOrElse { "\n   (tombstone ilegível: ${it.javaClass.simpleName})" }
+    }
+
     private fun reasonName(r: Int): String = when (r) {
-        android.app.ApplicationExitInfo.REASON_CRASH -> "CRASH (Java)"
-        android.app.ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH NATIVO"
-        android.app.ApplicationExitInfo.REASON_ANR -> "ANR"
-        android.app.ApplicationExitInfo.REASON_LOW_MEMORY -> "SEM MEMORIA"
-        android.app.ApplicationExitInfo.REASON_SIGNALED -> "SINAL"
-        android.app.ApplicationExitInfo.REASON_EXIT_SELF -> "saiu sozinho"
-        android.app.ApplicationExitInfo.REASON_USER_REQUESTED -> "usuario"
-        android.app.ApplicationExitInfo.REASON_OTHER -> "outro"
+        ApplicationExitInfo.REASON_CRASH -> "CRASH (Java)"
+        ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH NATIVO"
+        ApplicationExitInfo.REASON_ANR -> "ANR"
+        ApplicationExitInfo.REASON_LOW_MEMORY -> "SEM MEMORIA"
+        ApplicationExitInfo.REASON_SIGNALED -> "SINAL"
+        ApplicationExitInfo.REASON_EXIT_SELF -> "saiu sozinho"
+        ApplicationExitInfo.REASON_USER_REQUESTED -> "usuario"
+        ApplicationExitInfo.REASON_OTHER -> "outro"
         else -> "codigo $r"
     }
 }
