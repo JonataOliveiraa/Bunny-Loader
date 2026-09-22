@@ -18,6 +18,14 @@ struct Api {
     FieldInfo* (*class_get_field_from_name)(Il2CppClass*, const char*) = nullptr;
     Il2CppClass* (*class_get_parent)(Il2CppClass*) = nullptr;
     const char* (*class_get_name)(Il2CppClass*) = nullptr;
+    const char* (*class_get_namespace)(Il2CppClass*) = nullptr;
+    // Enumeracao de classes da imagem: usada uma vez, no boot, para descobrir
+    // os namespaces RAIZ e publicar cada um como global (Terraria.*, System.*).
+    size_t (*image_get_class_count)(const Il2CppImage*) = nullptr;
+    Il2CppClass* (*image_get_class)(const Il2CppImage*, size_t) = nullptr;
+    // Tipo do campo: sem ele nao da para saber se um campo de instancia e int
+    // ou float, e ler float como int devolve lixo.
+    const Il2CppType* (*field_get_type)(FieldInfo*) = nullptr;
     size_t (*field_get_offset)(FieldInfo*) = nullptr;
     void (*field_static_get_value)(FieldInfo*, void*) = nullptr;
     void (*field_static_set_value)(FieldInfo*, void*) = nullptr;

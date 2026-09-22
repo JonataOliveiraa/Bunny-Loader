@@ -16,6 +16,14 @@ Il2CppClass* findClass(const TypeRef& ref) {
     return cls;
 }
 
+Il2CppClass* findClassQuiet(const std::string& ns, const std::string& name) {
+    auto& a = api();
+    if (!a.gameImage) return nullptr;
+    Il2CppClass* cls = a.class_from_name(a.gameImage, ns.c_str(), name.c_str());
+    if (!cls && a.corlibImage) cls = a.class_from_name(a.corlibImage, ns.c_str(), name.c_str());
+    return cls;
+}
+
 FieldInfo* findField(Il2CppClass* cls, std::string_view name) {
     auto& a = api();
     std::string n(name);
