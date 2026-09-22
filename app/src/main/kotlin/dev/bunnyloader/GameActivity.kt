@@ -126,6 +126,7 @@ class GameActivity : Activity() {
             val libs = GameFiles.prepare(this, install) { BootLog.add(this, it) }
             localLibs = libs
             gameAppInfo = null   // recalcula com o nativeLibraryDir certo
+            BootLog.add(this, "conteudo: " + GameFiles.describe(libs))
             var ok = GameFiles.addLibraryPath(classLoader, libs)
             BootLog.add(this, "libs copiadas (path estendido=$ok)")
 

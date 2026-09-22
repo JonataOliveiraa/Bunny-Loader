@@ -94,7 +94,13 @@ object GameFiles {
      * @return null se tudo carregou; senão a descrição do primeiro erro.
      */
     fun preload(dir: File): String? {
-        for (name in listOf("libc++_shared.so", "libmain.so")) {
+        // Ordem de dependência: libunity precisa de libmain, que precisa da
+        // libc++_shared. Carregamos TODAS por caminho absoluto de propósito:
+        // o System.loadLibrary("unity") da Unity procura por NOME no caminho do
+        // ClassLoader e não acha a nossa cópia (estender esse caminho por
+        // reflection não surtiu efeito no Android 16). Já carregada, o linker
+        // devolve a mesma quando a Unity pedir pelo soname.
+        for (name in LIBS_IN_LOAD_ORDER) {
             val f = File(dir, name)
             if (!f.exists()) return "$name ausente em $dir"
             try {
@@ -106,6 +112,16 @@ object GameFiles {
         }
         return null
     }
+
+    private val LIBS_IN_LOAD_ORDER = listOf(
+        "libc++_shared.so", "libmain.so", "libunity.so", "libil2cpp.so",
+    )
+
+    /** Listagem para a trilha de boot — confirma o que realmente está lá. */
+    fun describe(dir: File): String =
+        dir.listFiles()?.sortedBy { it.name }
+            ?.joinToString(", ") { "${it.name}=${it.length()}" }
+            ?: "(pasta vazia/inacessivel)"
 
     fun addLibraryPath(loader: ClassLoader, dir: File): Boolean = runCatching {
         val pathList = Class.forName("dalvik.system.BaseDexClassLoader")
