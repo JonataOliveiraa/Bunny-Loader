@@ -1,0 +1,10 @@
+{
+  "id": "hellomod",
+  "name": "Hello Mod",
+  "version": "1.0.0",
+  "author": "Jonata",
+  "blVersion": 1,
+  "gameVersion": [300543, 400000],
+  "entry": "main.js",
+  "dependencies": []
+}

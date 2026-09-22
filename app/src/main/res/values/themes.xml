@@ -1,0 +1,4 @@
+<resources>
+    <!-- Tema base do launcher. Compose desenha por cima; parent sem ActionBar. -->
+    <style name="Theme.BunnyLoader" parent="android:Theme.Material.NoActionBar" />
+</resources>
