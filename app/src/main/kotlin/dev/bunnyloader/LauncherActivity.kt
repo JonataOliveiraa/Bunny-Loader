@@ -158,12 +158,13 @@ private fun LauncherScreen() {
             modifier = Modifier.padding(top = 24.dp),
         ) { Text("Jogar (hospedado)") }
 
-        // ESTÁGIO 0: spike do PairIP (diagnóstico).
+        // Diagnóstico remoto: a GameActivity roda noutro processo e, quando
+        // falha, só deixa um Toast. Ela grava a trilha em arquivo; aqui a gente lê.
         Button(
-            onClick = { status = dev.bunnyloader.game.PairipSpike.run(ctx) },
+            onClick = { status = dev.bunnyloader.game.BootLog.read(ctx) },
             enabled = !busy,
             modifier = Modifier.padding(top = 8.dp),
-        ) { Text("Spike PairIP") }
+        ) { Text("Ver log do último boot") }
         if (status.isNotEmpty()) {
             Text(
                 status,

@@ -15,6 +15,7 @@ import android.view.MotionEvent
 import android.view.Window
 import android.widget.Toast
 import dev.bunnyloader.game.AppBoot
+import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.GameEnvironment
 import dev.bunnyloader.game.GameInstall
 import dev.bunnyloader.game.UnityHost
@@ -32,6 +33,11 @@ import java.io.File
  * desembrulhar ContextWrapper (ver GameEnvironment).
  */
 class GameActivity : Activity() {
+
+    private companion object {
+        /** Núcleo de mods: desligado até o hosting puro estar validado. */
+        const val ENABLE_NATIVE_CORE = false
+    }
 
     private var env: GameEnvironment? = null
     private var gameAppInfo: ApplicationInfo? = null
@@ -71,19 +77,26 @@ class GameActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
-        Log.i(TAG, "=== GameActivity.onCreate ===")
+        BootLog.reset(this)
+        BootLog.add(this, "=== GameActivity.onCreate ===")
 
         val install = GameInstall.locate(this)
         if (install == null) {
             fail("Terraria nao encontrado", null)
             return
         }
-        Log.i(TAG, "jogo: ${install.packageName} v${install.versionCode} abi=${install.abi}")
+        BootLog.add(this, "jogo ${install.packageName} v${install.versionCode} abi=${install.abi}")
         Log.i(TAG, "  apk=${install.apkPath}")
         Log.i(TAG, "  libs=${install.nativeLibDir}")
         dumpNativeLibs(install)
 
-        startNativeCore(install)
+        // ISOLAMENTO (temporário): o núcleo nativo fica DESLIGADO enquanto
+        // validamos o hosting puro. Em ARM real o hook pendente de il2cpp_init
+        // realmente instala (no emulador o houdini o rejeita), então ele dispara
+        // no meio do boot da Unity e é suspeito nº 1 do "tela preta e volta".
+        // Religar depois de resolver os símbolos via /proc/self/maps.
+        if (ENABLE_NATIVE_CORE) startNativeCore(install) else
+            BootLog.add(this, "nucleo nativo DESLIGADO (isolando o hosting)")
 
         val environment = try {
             GameEnvironment.create(this, install, codeCacheDir)
@@ -92,7 +105,7 @@ class GameActivity : Activity() {
             return
         }
         env = environment
-        Log.i(TAG, "GameEnvironment pronto (classLoader=${environment.classLoader})")
+        BootLog.add(this, "GameEnvironment pronto")
 
         // Precisa vir ANTES da Unity: sem isso as constantes de string do jogo
         // ficam nulas e a UnityPlayer estoura em getSystemService(null).
@@ -100,6 +113,7 @@ class GameActivity : Activity() {
         // funciona — chamar o StartupLauncher na mão, como na Fase 1, não basta.
         try {
             AppBoot.makeApplication(environment.gameContext)
+            BootLog.add(this, "Application do jogo criada")
         } catch (t: Throwable) {
             fail("Falha ao bootar a Application do jogo", t)
             return
@@ -115,10 +129,11 @@ class GameActivity : Activity() {
             return
         }
 
+        BootLog.add(this, "UnityPlayer criada")
         host = unity
         setContentView(view)
         view.requestFocus()
-        Log.i(TAG, "=== UnityPlayer no ar ===")
+        BootLog.add(this, "=== UnityPlayer no ar ===")
     }
 
     /** Confirma que as .so que a Unity vai carregar estao onde dizemos que estao. */
@@ -226,6 +241,7 @@ class GameActivity : Activity() {
     // -------------------------------------------------------------------------
 
     private fun fail(what: String, t: Throwable?) {
+        BootLog.fail(this, what, t)
         if (t != null) logFailure(what, t) else Log.e(TAG, "FALHA em $what")
         val detail = t?.describe() ?: "sem detalhes"
         Toast.makeText(this, "$what: $detail", Toast.LENGTH_LONG).show()
