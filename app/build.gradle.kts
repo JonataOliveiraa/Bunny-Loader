@@ -64,10 +64,32 @@ android {
 
     sourceSets["main"].java.srcDir("src/main/kotlin")
 
+    // Asset pack install-time NÃO entra num APK gerado por assembleDebug — ele
+    // só materializa via bundle (bundletool/Play). Testar no aparelho exigiria
+    // bundletool --local-testing, que não vem pronto no SDK.
+    //
+    // Com -Pbl.assetsInApk=true os assets do pack entram direto no APK de
+    // debug, que fica grande (~200 MB) mas roda por adb install. Fora dessa
+    // flag nada muda, então o AAB de release continua com os assets só no pack
+    // e sem duplicação.
+    if ((project.findProperty("bl.assetsInApk") as String?)?.toBoolean() == true) {
+        sourceSets["debug"].assets.srcDir("../terraria1456_assets/src/main/assets")
+    }
+
     packaging {
         jniLibs {
             useLegacyPackaging = true // extractNativeLibs=true
         }
+    }
+
+    androidResources {
+        // A Unity abre data.unity3d e resources.resource por mmap. Comprimidos,
+        // ela tem de inflar ~150 MB a cada boot — o APK do próprio jogo guarda
+        // esses dois STORED justamente por isso. É a mesma lista que o Gradle
+        // exportado pela Unity usa.
+        noCompress += listOf(
+            ".unity3d", ".ress", ".resource", ".obb", ".bundle", ".unityexp",
+        )
     }
 
     buildTypes {
@@ -77,6 +99,8 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }
+
+    assetPacks += listOf(":terraria1456_assets")
 }
 
 dependencies {

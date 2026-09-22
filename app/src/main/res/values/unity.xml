@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Recursos que a UnityPlayer resolve POR NOME, com
+  Resources.getIdentifier(nome, tipo, getPackageName()).
+
+  Antes isso vinha de graça: a GameActivity devolvia o packageName do jogo e os
+  recursos do APK dele. Com o runtime integrado o pacote é o nosso, então esses
+  nomes precisam existir aqui — senão getIdentifier devolve 0 e a Unity estoura:
+
+      NotFoundException: String resource ID #0x0
+        at com.unity3d.player.UnityPlayer.GetGlViewContentDescription
+        at com.unity3d.player.UnityPlayer.<init>
+
+  A lista saiu de uma varredura do unity-classes.jar por chamadas a
+  getIdentifier (Unity Android Player 2021.3.56f2); são exatamente três:
+
+    string/game_view_content_description   obrigatório, é o que estourava
+    id/unitySurfaceView                    opcional: com 0 vira setId(0)
+    drawable/unity_static_splash           opcional: o código faz ifeq e sai
+
+  A splash fica de fora de propósito — é arte do jogo, e a Unity trata a
+  ausência dela sem reclamar.
+-->
+<resources>
+    <string name="game_view_content_description">Game view</string>
+    <item name="unitySurfaceView" type="id" />
+</resources>
