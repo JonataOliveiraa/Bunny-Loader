@@ -1,0 +1,14 @@
+#pragma once
+// GERADO pelo CMake a partir de samples/HelloMod/main.js — NAO editar a mao.
+// Ver CMakeLists.txt (configure_file). O delimitador do raw string e )BUNNYJS".
+namespace bl::mods {
+
+struct BuiltinMod { const char* id; const char* source; };
+
+inline const BuiltinMod kBuiltinMods[] = {
+    { "minishark", R"BUNNYJS(@BL_BUILTIN_MINISHARK_JS@)BUNNYJS" },
+};
+inline constexpr int kBuiltinModCount =
+    sizeof(kBuiltinMods) / sizeof(kBuiltinMods[0]);
+
+} // namespace bl::mods

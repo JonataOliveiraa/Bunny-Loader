@@ -59,7 +59,12 @@ void probeThread() {
                 return;
             }
             mods::loadAll(config().modsDir, config().enabledMods);
-            BL_INFO("sonda: mods carregados");
+            // Sem mods externos (celular sem adb/config): usa os embutidos.
+            if (mods::loadedCount() == 0) {
+                BL_INFO("sonda: sem mods externos; usando embutidos");
+                mods::loadBuiltins();
+            }
+            BL_INFO("sonda: %zu mod(s) carregado(s)", mods::loadedCount());
 
             // Menu de cheats (acoes nativas via arquivo de comando).
             installCheats();

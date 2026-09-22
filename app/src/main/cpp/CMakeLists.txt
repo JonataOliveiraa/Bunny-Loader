@@ -27,12 +27,23 @@ else()
     message(WARNING "QuickJS ausente em third_party/quickjs — ScriptEngine será stub. Ver third_party/README.md")
 endif()
 
+# --- Mods embutidos (gerados a partir do .js; fonte unica de verdade) ---
+# Embute o JS do mod padrao dentro da libbunny para funcionar SEM adb/arquivos
+# no celular. Le samples/HelloMod/main.js (raiz do repo: 4 niveis acima de cpp/).
+set(BL_MINISHARK_JS ${CMAKE_CURRENT_SOURCE_DIR}/../../../../samples/HelloMod/main.js)
+file(READ ${BL_MINISHARK_JS} BL_BUILTIN_MINISHARK_JS)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/mods/BuiltinMods.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/gen/mods/BuiltinMods.h @ONLY)
+
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 add_library(bunny SHARED ${BL_SOURCES} ${BL_QUICKJS_SOURCES})
 
-target_include_directories(bunny PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(bunny PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}/gen)
 if(EXISTS ${QUICKJS_DIR}/quickjs.h)
     target_include_directories(bunny PRIVATE ${QUICKJS_DIR})
 endif()
