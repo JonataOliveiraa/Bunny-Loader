@@ -27,7 +27,15 @@ inline Config& config() {
 // deve abortar o boot silenciosamente (o processo pode nem ser o do jogo).
 bool loadConfigFromFile(const char* path);
 
-// Local acordado entre o launcher e a lib injetada.
-constexpr const char* kDefaultConfigPath = "/data/local/tmp/bunny/config";
+// Pasta base acordada entre o provisionamento e a lib injetada.
+//
+// Fica na pasta externa DO PROPRIO app do jogo: o processo do jogo (mesmo uid)
+// sempre pode ler a sua getExternalFilesDir sob SELinux Enforcing, sem root, em
+// qualquer Android. O adb push tambem escreve la sem root. (/data/local/tmp so
+// funciona em emulador Permissive ou com root.)
+constexpr const char* kBunnyBaseDir =
+    "/sdcard/Android/data/com.and.games505.TerrariaPaid/files/bunny";
+constexpr const char* kDefaultConfigPath =
+    "/sdcard/Android/data/com.and.games505.TerrariaPaid/files/bunny/config";
 
 } // namespace bl

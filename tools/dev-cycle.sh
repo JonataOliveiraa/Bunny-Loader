@@ -42,10 +42,17 @@ adb "${D[@]}" uninstall "$PKG" >/dev/null 2>&1 || true
 adb "${D[@]}" install "$(cygpath -w "$ROOT/out/terraria-bunny.apk")" >/dev/null
 
 echo "==> provisionando config + mod (samples/HelloMod)"
-adb "${D[@]}" shell "su -c 'mkdir -p /data/local/tmp/bunny/mods/hellomod'" >/dev/null 2>&1
-adb "${D[@]}" push "$(cygpath -w "$ROOT/samples/HelloMod/main.js")" /data/local/tmp/bunny/mods/hellomod/main.js >/dev/null
-adb "${D[@]}" push "$(cygpath -w "$ROOT/samples/HelloMod/mod.json")" /data/local/tmp/bunny/mods/hellomod/mod.json >/dev/null
-adb "${D[@]}" shell "su -c 'printf \"modsDir=/data/local/tmp/bunny/mods\nenabledMods=hellomod\nlogPath=/data/local/tmp/bunny/bunny.log\ngameVersion=301543\n\" > /data/local/tmp/bunny/config; chmod -R a+rx /data/local/tmp/bunny'" >/dev/null 2>&1
+# Pasta externa do proprio app do jogo: legivel pelo processo do jogo sem root
+# (SELinux Enforcing OK) e gravavel via adb push. Igual em emulador e celular.
+BASE="/sdcard/Android/data/$PKG/files/bunny"
+adb "${D[@]}" shell "mkdir -p $BASE/mods/hellomod" >/dev/null 2>&1
+adb "${D[@]}" push "$(cygpath -w "$ROOT/samples/HelloMod/main.js")" "$BASE/mods/hellomod/main.js" >/dev/null
+adb "${D[@]}" push "$(cygpath -w "$ROOT/samples/HelloMod/mod.json")" "$BASE/mods/hellomod/mod.json" >/dev/null
+adb "${D[@]}" shell "printf 'modsDir=$BASE/mods\nenabledMods=hellomod\nlogPath=$BASE/bunny.log\ngameVersion=301543\n' > $BASE/config" >/dev/null 2>&1
+# No MuMu a pasta externa e um ext4 real: arquivos criados pelo adb ficam
+# shell:ext_data_rw 0660 e o uid do jogo nao le. Liberamos leitura pra todos.
+# (Num celular real, com FUSE, isso e no-op — o app ja le a propria Android/data.)
+adb "${D[@]}" shell "chmod -R a+rX $BASE" >/dev/null 2>&1
 
 echo "==> lancando"
 adb "${D[@]}" logcat -c

@@ -14,8 +14,10 @@ namespace {
 
 struct Vector2 { float x; float y; };
 
-// Caminho do comando escrito pelo botao do launcher (via root).
-constexpr const char* kCmdPath = "/data/local/tmp/bunny/cmd";
+// Arquivo de comando na pasta externa do proprio app (mesma base da config),
+// legivel/gravavel sem root sob SELinux Enforcing. Ver core/Config.h.
+constexpr const char* kCmdPath =
+    "/sdcard/Android/data/com.and.games505.TerrariaPaid/files/bunny/cmd";
 
 // Refs resolvidas uma vez.
 FieldInfo* g_playerField = nullptr;      // Terraria.Main.player  (Player[])
