@@ -313,7 +313,19 @@ JSValue readField(JSContext* ctx, void* base, FieldInfo* f) {
     if (t == "System.Int32" || t == "System.UInt32") {
         return JS_NewInt32(ctx, *reinterpret_cast<int32_t*>(p));
     }
-    // Referencia: devolve NativeObject (ou null). Structs por valor ainda nao.
+    // Struct por valor (Vector2, Color, Rectangle) fica GUARDADO EM LINHA no
+    // objeto — nao ha ponteiro ali. Ler os primeiros 8 bytes como ponteiro
+    // devolveria um GameObject apontando para dois floats, e o proximo acesso
+    // leria memoria arbitraria. Recusa em vez de fabricar.
+    if (a.class_from_il2cpp_type && a.class_is_valuetype) {
+        if (Il2CppClass* fc = a.class_from_il2cpp_type(a.field_get_type(f))) {
+            if (a.class_is_valuetype(fc)) {
+                return JS_ThrowTypeError(
+                    ctx, "campo do tipo %s e struct por valor — ainda nao suportado",
+                    t.c_str());
+            }
+        }
+    }
     auto* ref = *reinterpret_cast<Il2CppObject**>(p);
     if (!ref) return JS_NULL;
     return makeNativeObject(ctx, ref);
