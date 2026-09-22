@@ -33,8 +33,11 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* m)
 using SetDefaultsFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
 SetDefaultsFn origSetDefaults = nullptr;
 
+std::atomic<int> g_setDefaults{0};
 void hkSetDefaults(Il2CppObject* self, int32_t type, const MethodInfo* m) {
-    BL_INFO(">>> HOOK Projectile.SetDefaults DISPAROU: type=%d", type);
+    if (g_setDefaults.fetch_add(1) < 3) {  // evita floodar o logcat
+        BL_INFO(">>> HOOK Projectile.SetDefaults DISPAROU: type=%d", type);
+    }
     origSetDefaults(self, type, m);
 }
 

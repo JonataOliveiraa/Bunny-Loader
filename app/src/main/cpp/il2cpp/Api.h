@@ -19,6 +19,11 @@ struct Api {
     Il2CppClass* (*class_get_parent)(Il2CppClass*) = nullptr;
     const char* (*class_get_name)(Il2CppClass*) = nullptr;
     size_t (*field_get_offset)(FieldInfo*) = nullptr;
+    void (*field_static_get_value)(FieldInfo*, void*) = nullptr;
+    void (*field_static_set_value)(FieldInfo*, void*) = nullptr;
+    // Invoca qualquer metodo (boxing/unboxing automatico). Evita precisar de
+    // bridges por assinatura e funciona sob houdini (e chamada normal).
+    Il2CppObject* (*runtime_invoke)(const MethodInfo*, void*, void**, Il2CppObject**) = nullptr;
     const char* (*method_get_name)(const MethodInfo*) = nullptr;
     Il2CppObject* (*object_new)(Il2CppClass*) = nullptr;
     Il2CppString* (*string_new)(const char*) = nullptr;

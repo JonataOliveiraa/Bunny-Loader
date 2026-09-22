@@ -40,6 +40,9 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_class_get_parent", &class_get_parent);
     ok &= bind(lib, "il2cpp_class_get_name", &class_get_name);
     ok &= bind(lib, "il2cpp_field_get_offset", &field_get_offset);
+    ok &= bind(lib, "il2cpp_field_static_get_value", &field_static_get_value);
+    ok &= bind(lib, "il2cpp_field_static_set_value", &field_static_set_value);
+    ok &= bind(lib, "il2cpp_runtime_invoke", &runtime_invoke);
     ok &= bind(lib, "il2cpp_method_get_name", &method_get_name);
     ok &= bind(lib, "il2cpp_object_new", &object_new);
     ok &= bind(lib, "il2cpp_string_new", &string_new);

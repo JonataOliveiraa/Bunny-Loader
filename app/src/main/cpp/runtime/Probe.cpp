@@ -55,7 +55,10 @@ void probeThread() {
                 if (script::engine().init()) {
                     BL_INFO("sonda: QuickJS iniciado; rodando script de teste");
                     script::engine().eval(
-                        "tl.log('QuickJS vivo dentro do Terraria! 1+2=' + (1+2));",
+                        "const ItemID = new NativeClass('Terraria.ID', 'ItemID');\n"
+                        "tl.log('Minishark id = ' + ItemID.getStaticInt('Minishark') + ' (esperado 98)');\n"
+                        "const Main = new NativeClass('Terraria', 'Main');\n"
+                        "tl.log('Main.netMode = ' + Main.getStaticInt('netMode'));\n",
                         "teste");
                 } else {
                     BL_ERROR("sonda: QuickJS nao iniciou");
