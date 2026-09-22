@@ -67,30 +67,50 @@ object AppBoot {
      */
     fun alignCallingIdentity(app: Any, hostPackage: String): String {
         val base = (app as android.content.ContextWrapper).baseContext
-        val done = mutableListOf<String>()
+        val gamePackage = base.packageName
+        val report = mutableListOf<String>()
 
-        for (name in listOf("mBasePackageName", "mOpPackageName")) {
-            runCatching {
-                base.javaClass.getDeclaredField(name)
-                    .apply { isAccessible = true }.set(base, hostPackage)
-                done += name
+        // Varre TODO campo String do ContextImpl que ainda carrega o pacote do
+        // jogo. Os nomes mudam por versão do Android, então não dá para fixar
+        // uma lista — procuramos pelo valor.
+        var cls: Class<*>? = base.javaClass
+        while (cls != null && cls != Any::class.java) {
+            for (f in cls.declaredFields) {
+                if (f.type != String::class.java) continue
+                runCatching {
+                    f.isAccessible = true
+                    if (f.get(base) == gamePackage) {
+                        f.set(base, hostPackage)
+                        report += f.name
+                    }
+                }
             }
+            cls = cls.superclass
         }
 
-        // Android 12+ leva a identidade num AttributionSource.
-        runCatching {
-            val f = base.javaClass.getDeclaredField("mAttributionSource")
-                .apply { isAccessible = true }
-            val current = f.get(base)!!
+        // Android 12+: a identidade das chamadas IPC vive num AttributionSource.
+        report += runCatching {
+            val f = findField(base.javaClass, "mAttributionSource")
+                ?: return@runCatching "mAttributionSource(ausente)"
+            f.isAccessible = true
             val builderCls = Class.forName("android.content.AttributionSource\$Builder")
             val builder = builderCls.getConstructor(Int::class.javaPrimitiveType)
                 .newInstance(android.os.Process.myUid())
             builderCls.getMethod("setPackageName", String::class.java)
                 .invoke(builder, hostPackage)
             f.set(base, builderCls.getMethod("build").invoke(builder))
-            done += "mAttributionSource(${current.javaClass.simpleName})"
-        }
+            "mAttributionSource=OK"
+        }.getOrElse { "mAttributionSource FALHOU(${it.javaClass.simpleName}: ${it.message})" }
 
-        return if (done.isEmpty()) "nada ajustado" else done.joinToString(", ")
+        return report.joinToString(", ").ifEmpty { "nada ajustado" }
+    }
+
+    private fun findField(start: Class<*>, name: String): java.lang.reflect.Field? {
+        var c: Class<*>? = start
+        while (c != null) {
+            c.declaredFields.firstOrNull { it.name == name }?.let { return it }
+            c = c.superclass
+        }
+        return null
     }
 }
