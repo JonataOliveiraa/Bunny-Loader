@@ -127,6 +127,9 @@ class GameActivity : Activity() {
             localLibs = libs
             gameAppInfo = null   // recalcula com o nativeLibraryDir certo
             BootLog.add(this, "conteudo: " + GameFiles.describe(libs))
+            // A libpairipcore procura as classes Java dela no JNI_OnLoad; sem
+            // elas a ART aborta em RegisterNatives(NULL). Só torna resolvível.
+            BootLog.add(this, GameFiles.addGameDex(this, classLoader, install.allApks()))
             var ok = GameFiles.addLibraryPath(classLoader, libs)
             BootLog.add(this, "libs copiadas (path estendido=$ok)")
 

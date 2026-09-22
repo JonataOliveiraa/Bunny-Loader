@@ -137,6 +137,53 @@ object GameFiles {
             ?.joinToString(", ") { "${it.name}=${it.length()}" }
             ?: "(pasta vazia/inacessivel)"
 
+    /**
+     * Anexa o dex do jogo ao NOSSO ClassLoader, DEPOIS dos nossos elementos.
+     *
+     * Motivo: o `JNI_OnLoad` da libpairipcore procura as classes Java dela e,
+     * sem achá-las, chama RegisterNatives com jclass nulo — e a ART aborta:
+     *   JNI DETECTED ERROR IN APPLICATION: RegisterNatives received NULL jclass
+     *
+     * Anexar (e não prefixar) é o ponto: `com.unity3d.player.*` continua vindo
+     * da NOSSA cópia limpa, que aparece antes na lista; só o que não existe em
+     * nós — `com.pairip.*` — cai no dex do jogo.
+     *
+     * Isto apenas torna as classes RESOLVÍVEIS. Não instanciamos a Application
+     * do jogo nem o license check; nada do PairIP Java é executado por nós.
+     */
+    fun addGameDex(ctx: Context, loader: ClassLoader, apks: List<String>): String {
+        return runCatching {
+            val pathListField = Class.forName("dalvik.system.BaseDexClassLoader")
+                .getDeclaredField("pathList").apply { isAccessible = true }
+            val ourPathList = pathListField.get(loader)!!
+            val elementsField = ourPathList.javaClass
+                .getDeclaredField("dexElements").apply { isAccessible = true }
+            val ours = elementsField.get(ourPathList) as Array<*>
+
+            // Um DexClassLoader filho faz o trabalho pesado de abrir/otimizar;
+            // pegamos os elementos prontos dele em vez de chamar makeDexElements,
+            // cuja assinatura muda de versão para versão do Android.
+            val child = dalvik.system.DexClassLoader(
+                apks.joinToString(File.pathSeparator),
+                File(ctx.codeCacheDir, "gamedex").apply { mkdirs() }.absolutePath,
+                null,
+                loader,
+            )
+            val theirs = elementsField.get(pathListField.get(child)!!) as Array<*>
+
+            val merged = java.lang.reflect.Array.newInstance(
+                ours.javaClass.componentType, ours.size + theirs.size,
+            )
+            System.arraycopy(ours, 0, merged, 0, ours.size)
+            System.arraycopy(theirs, 0, merged, ours.size, theirs.size)
+            elementsField.set(ourPathList, merged)
+
+            val probe = runCatching { loader.loadClass("com.pairip.VMRunner").name }
+                .getOrElse { "VMRunner NAO resolveu (${it.javaClass.simpleName})" }
+            "dex do jogo anexado (${theirs.size} elementos); $probe"
+        }.getOrElse { "FALHOU: ${it.javaClass.simpleName}: ${it.message}" }
+    }
+
     fun addLibraryPath(loader: ClassLoader, dir: File): Boolean = runCatching {
         val pathList = Class.forName("dalvik.system.BaseDexClassLoader")
             .getDeclaredField("pathList").apply { isAccessible = true }.get(loader)!!
