@@ -24,10 +24,12 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
-        // O processo herda a arquitetura das .so do app: precisa das ABIs ARM
-        // para conseguir carregar as libs do jogo.
+        // Só arm64. O runtime do jogo é integrado e existe apenas para
+        // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em
+        // aparelhos onde o jogo nunca poderia subir.
         ndk {
-            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            abiFilters.clear()
+            abiFilters += "arm64-v8a"
         }
         if (nativeBuild) {
             externalNativeBuild {

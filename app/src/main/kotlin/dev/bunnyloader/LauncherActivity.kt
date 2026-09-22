@@ -2,13 +2,10 @@ package dev.bunnyloader
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,7 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -37,8 +33,8 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import dev.bunnyloader.game.GameFiles
-import dev.bunnyloader.game.GameInstall
+import dev.bunnyloader.game.BundledRuntime
+import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.patch.ApkPatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -91,34 +87,6 @@ private fun LauncherScreen() {
     val terraria = remember { isInstalled(ctx, ApkPatcher.TERRARIA) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("") }
-
-    // Muda a cada import/remoção para recalcular o texto da versão fixada.
-    var pinGen by remember { mutableIntStateOf(0) }
-    val pinned = remember(pinGen) { GameFiles.isPinned(ctx) }
-
-    // Vários arquivos: a Play instala o jogo dividido, e o base sozinho não
-    // tem as .so. Quem exportou pelo botão abaixo seleciona os dois de uma vez.
-    val pickApk = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenMultipleDocuments(),
-    ) { uris: List<Uri> ->
-        if (uris.isNotEmpty()) {
-            busy = true
-            status = "Importando…"
-            scope.launch {
-                val r = runCatching {
-                    withContext(Dispatchers.IO) {
-                        GameFiles.importPinned(ctx, uris) { status = it }
-                    }
-                }
-                busy = false
-                pinGen++
-                status = r.fold(
-                    { "Versão congelada: $it" },
-                    { "Não deu para importar: ${it.message ?: it.javaClass.simpleName}" },
-                )
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -193,59 +161,23 @@ private fun LauncherScreen() {
             modifier = Modifier.padding(top = 12.dp),
         ) { Text("Verificar de novo") }
 
-        // Versão fixada: o PairIP nativo da 1.4.5.8 trava o hosting; a 1.4.5.6
-        // não. Por isso o TL Pro roda uma versão fixa. Aqui o usuário escolhe.
+        // O runtime do jogo vem NA BUILD; não há versão a escolher, importar
+        // ou congelar. O que resta é dizer em que pé estão as duas condições
+        // para o botão funcionar: o runtime estar integrado e o jogador ter o
+        // Terraria oficial instalado.
         Text(
-            remember(pinGen) { GameFiles.pinStatus(ctx) },
+            remember {
+                val rt = if (BundledRuntime.isPresent(ctx)) {
+                    "Runtime integrado: ${BundledRuntime.VERSION_NAME}"
+                } else {
+                    "ESTA BUILD NÃO TEM O RUNTIME DO JOGO."
+                }
+                rt + System.lineSeparator() + Eligibility.check(ctx).detail
+            },
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp),
         )
-        // Sem botão de congelar: o congelamento acontece sozinho no primeiro
-        // boot (ver GameActivity). Isto aqui é só para o caso em que a versão
-        // instalada não serve e o usuário precisa apontar a dele.
-        Button(
-            // Seletor de documentos, e não um caminho para o usuário copiar à
-            // mão: desde o Android 11 nenhum gerenciador de arquivos escreve em
-            // Android/data. Ele aponta o APK, nós gravamos.
-            onClick = { pickApk.launch(arrayOf("*/*")) },
-            enabled = !busy,
-            modifier = Modifier.padding(top = 8.dp),
-        ) { Text("Usar outra versão (APK)…") }
-
-        // Guardar a própria cópia antes que a Play atualize o jogo — depois do
-        // update não há mais de onde tirar a versão antiga.
-        Button(
-            onClick = {
-                busy = true
-                scope.launch {
-                    val r = runCatching {
-                        withContext(Dispatchers.IO) {
-                            val install = GameInstall.locate(ctx) ?: error("Terraria não encontrado")
-                            GameFiles.exportInstalled(ctx, install) { status = it }
-                        }
-                    }
-                    busy = false
-                    status = r.fold(
-                        { "Exportado para $it" },
-                        { "Não deu para exportar: ${it.message ?: it.javaClass.simpleName}" },
-                    )
-                }
-            },
-            enabled = !busy,
-            modifier = Modifier.padding(top = 8.dp),
-        ) { Text("Exportar meu APK do Terraria") }
-        if (pinned) {
-            Button(
-                onClick = {
-                    GameFiles.clearPinned(ctx)
-                    status = "Descongelado: volta a usar a versão instalada."
-                    pinGen++
-                },
-                enabled = !busy,
-                modifier = Modifier.padding(top = 8.dp),
-            ) { Text("Descongelar") }
-        }
 
         // ESTÁGIO 2: hospedar o Terraria no NOSSO processo (um app só).
         Button(

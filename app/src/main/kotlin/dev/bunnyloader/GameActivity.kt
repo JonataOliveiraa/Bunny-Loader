@@ -3,10 +3,7 @@ package dev.bunnyloader
 import android.app.Activity
 import android.content.ComponentCallbacks2
 import android.content.Intent
-import android.content.pm.ApplicationInfo
-import android.content.res.AssetManager
 import android.content.res.Configuration
-import android.content.res.Resources
 import android.os.Bundle
 import android.os.Process
 import android.util.Log
@@ -16,9 +13,8 @@ import android.view.SurfaceView
 import android.view.Window
 import android.widget.Toast
 import dev.bunnyloader.game.BootLog
-import dev.bunnyloader.game.GameEnvironment
-import dev.bunnyloader.game.GameFiles
-import dev.bunnyloader.game.GameInstall
+import dev.bunnyloader.game.BundledRuntime
+import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.game.UnityHost
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.nativebridge.NativeBridge
@@ -26,12 +22,17 @@ import dev.bunnyloader.nativebridge.NativeConfig
 import java.io.File
 
 /**
- * Sobe o Terraria dentro do processo :game.
+ * Sobe o jogo dentro do processo :game.
  *
- * Esta Activity **é** o Context que a Unity recebe: ela devolve os recursos,
- * assets, ApplicationInfo e ClassLoader do jogo nos próprios getters. Isso é
- * obrigatório — a UnityPlayer faz `instanceof Activity` direto no Context, sem
- * desembrulhar ContextWrapper (ver GameEnvironment).
+ * Com o runtime INTEGRADO não há Context alheio para forjar: as .so vêm do
+ * nosso próprio `nativeLibraryDir` e os assets do nosso próprio AssetManager.
+ * Sumiram daqui os overrides de getResources/getAssets/getApplicationInfo/
+ * getPackageCodePath — eles existiam apenas para apontar a Unity aos arquivos
+ * de outro app.
+ *
+ * O que continua valendo: esta Activity precisa SER o Context passado à
+ * UnityPlayer, porque o construtor dela faz `instanceof Activity` direto, sem
+ * desembrulhar ContextWrapper.
  */
 class GameActivity : Activity() {
 
@@ -46,43 +47,7 @@ class GameActivity : Activity() {
         const val ENABLE_NATIVE_CORE = true
     }
 
-    private var env: GameEnvironment? = null
-    private var gameAppInfo: ApplicationInfo? = null
     private var host: UnityHost? = null
-
-    // --- Context do jogo -----------------------------------------------------
-    // Enquanto env for null (durante super.onCreate), cai no comportamento
-    // normal do launcher. O tema da Activity vem do framework.
-
-    override fun getResources(): Resources = env?.resources ?: super.getResources()
-
-    override fun getAssets(): AssetManager = env?.assets ?: super.getAssets()
-
-    override fun getClassLoader(): ClassLoader = env?.classLoader ?: super.getClassLoader()
-
-    // A Unity resolve recursos por nome de pacote (getIdentifier). Sem isto ela
-    // procura recursos do jogo dentro do pacote do launcher, recebe id 0 e
-    // estoura em Resources.getString(0) — visto em GetGlViewContentDescription.
-    override fun getPackageName(): String = env?.install?.packageName ?: super.getPackageName()
-
-    override fun getApplicationInfo(): ApplicationInfo {
-        val environment = env ?: return super.getApplicationInfo()
-        val libs = localLibs ?: return super.getApplicationInfo()
-        return gameAppInfo ?: environment.applicationInfo(super.getApplicationInfo(), libs)
-            .also { gameAppInfo = it }
-    }
-
-    /** Nossa cópia das .so do jogo — é daqui que a Unity carrega a libunity.so. */
-    private var localLibs: File? = null
-
-    // A Unity monta daqui o caminho do APK de onde lê assets/bin/Data. Tem de
-    // ser o MESMO APK de onde saíram as libs: global-metadata.dat e libil2cpp
-    // são um par. Com versão fixada, é o APK fixado.
-    override fun getPackageCodePath(): String =
-        env?.codePath ?: super.getPackageCodePath()
-
-    override fun getPackageResourcePath(): String =
-        env?.codePath ?: super.getPackageResourcePath()
 
     // --- boot ----------------------------------------------------------------
 
@@ -94,111 +59,42 @@ class GameActivity : Activity() {
         BootLog.captureLogcat(this)
         BootLog.add(this, "=== GameActivity.onCreate ===")
 
-        val install = GameInstall.locate(this)
-        if (install == null) {
-            fail("Terraria nao encontrado", null)
+        // Elegibilidade: os binários são nossos, mas o jogo só abre para quem
+        // tem o Terraria oficial da Play no aparelho. Ver Eligibility para o
+        // que isso prova de fato — e o que não prova.
+        val gate = Eligibility.check(this)
+        BootLog.add(this, "elegibilidade: ${gate.detail}")
+        if (!gate.ok) { fail(gate.detail, null); return }
+
+        // O runtime integrado está nesta build? Um APK sem os arquivos compila
+        // e instala igual; sem esta checagem o sintoma seria um SIGSEGV dentro
+        // da Unity.
+        if (!BundledRuntime.isPresent(this)) {
+            fail(
+                "Esta build não contém o runtime do jogo (libil2cpp.so ausente " +
+                    "em nativeLibraryDir).",
+                null,
+            )
             return
         }
-        BootLog.add(this, "jogo ${install.packageName} v${install.versionCode} abi=${install.abi}")
-        Log.i(TAG, "  apk=${install.apkPath}")
-        Log.i(TAG, "  libs=${install.nativeLibDir}")
-        dumpNativeLibs(install)
+        BootLog.add(this, "runtime integrado: " + BundledRuntime.describe(this))
+        BundledRuntime.pairipCheck(this)?.let { fail(it, null); return }
 
-        // ISOLAMENTO (temporário): o núcleo nativo fica DESLIGADO enquanto
-        // validamos o hosting puro. Em ARM real o hook pendente de il2cpp_init
-        // realmente instala (no emulador o houdini o rejeita), então ele dispara
-        // no meio do boot da Unity e é suspeito nº 1 do "tela preta e volta".
-        // Religar depois de resolver os símbolos via /proc/self/maps.
-        // Congelar é automático, não um botão — e vem ANTES do GameEnvironment,
-        // que resolve os assets a partir do que estiver congelado. Na primeira
-        // vez em que o aparelho tem uma versão que roda, guardamos uma cópia e
-        // passamos a usar só ela: daí em diante uma atualização do Terraria não
-        // muda o que abre aqui.
-        //
-        // Quando a versão instalada não serve (a libunity dela exige a
-        // libpairipcore, que derruba o processo), isso vira mensagem em vez de
-        // SIGSEGV. Só o próprio usuário pode fornecer o APK da versão
-        // suportada: nós não distribuímos o jogo.
-        if (!GameFiles.isPinned(this)) {
-            val supported = try {
-                GameFiles.installedIsSupported(this, install)
-            } catch (t: Throwable) {
-                fail("Não consegui inspecionar o Terraria instalado", t); return
-            }
-            if (!supported) {
-                fail(
-                    "A versão instalada (${install.versionCode}) não roda aqui: a " +
-                        "libunity dela exige a libpairipcore. No launcher, use " +
-                        "\"Usar outra versão (APK)…\" e aponte o APK da 1.4.5.6.4.",
-                    null,
-                )
-                return
-            }
-            BootLog.add(this, "primeira vez: congelando a versão instalada")
-            try {
-                BootLog.add(this, "congelada: " + GameFiles.pinInstalled(this, install) {
-                    BootLog.add(this, it)
-                })
-            } catch (t: Throwable) {
-                fail("Falha ao congelar a versão instalada", t); return
-            }
-        }
-
-        val pinned = GameFiles.pinnedApks(this)
-        val environment = try {
-            GameEnvironment.create(this, install, pinned)
-        } catch (t: Throwable) {
-            fail("Falha ao abrir os recursos do jogo", t)
+        // Carrega a pilha nativa POR NOME: as .so estão no nosso próprio
+        // nativeLibraryDir, já no caminho de busca do ClassLoader. Toda a
+        // ginástica de cópia e de caminho absoluto existia só porque os
+        // binários viviam em outro app.
+        BundledRuntime.load()?.let {
+            fail("Não consegui carregar o runtime do jogo: $it", null)
             return
         }
-        env = environment
-        BootLog.add(this, "GameEnvironment pronto (assets de ${environment.codePath})")
-
-        // Nossa cópia da pilha nativa do jogo (ver GameFiles): é dela que a
-        // UnityPlayer vai carregar libmain.so. Copiar é obrigatório — o linker
-        // não deixa carregar .so do diretório de outro app — e é o que dá o
-        // controle de versão. libpairipcore.so fica de fora: ninguém depende
-        // dela, e é o PairIP que derrubou as tentativas anteriores.
-        //
-        // NÃO bootamos a Application do jogo e NÃO carregamos o dex dele. Sem
-        // código Java do Terraria, o PairIP simplesmente não entra em cena.
-        try {
-            val libs = GameFiles.prepare(this, install) { BootLog.add(this, it) }
-            localLibs = libs
-            gameAppInfo = null   // recalcula com o nativeLibraryDir certo
-            BootLog.add(this, "conteudo: " + GameFiles.describe(libs))
-            // A libpairipcore procura as classes Java dela no JNI_OnLoad; sem
-            // elas a ART aborta em RegisterNatives(NULL). Só torna resolvível.
-            BootLog.add(this, GameFiles.addGameDex(this, classLoader, GameFiles.sourceApks(this, install)))
-            var ok = GameFiles.addLibraryPath(classLoader, libs)
-            BootLog.add(this, "libs copiadas (path estendido=$ok)")
-
-            // Testa o dlopen ANTES da Unity: assim um bloqueio do SELinux vira
-            // mensagem em vez de SIGABRT mudo lá dentro do engine.
-            var err = GameFiles.preload(libs)
-            if (err != null) {
-                BootLog.add(this, "dlopen da NOSSA copia falhou -> $err")
-                // Plano B: a pasta original do jogo é executável (/data/app),
-                // ao contrário do nosso diretório de dados. Perde-se o controle
-                // de versão, mas responde se a hipótese do SELinux procede.
-                val orig = java.io.File(install.nativeLibDir)
-                ok = GameFiles.addLibraryPath(classLoader, orig)
-                err = GameFiles.preload(orig)
-                BootLog.add(this, "fallback pasta do jogo: " + (err ?: "OK") + " (path=$ok)")
-                if (err != null) { fail("Não consegui carregar as libs do jogo", null); return }
-            } else {
-                BootLog.add(this, "dlopen da nossa copia OK")
-            }
-        } catch (t: Throwable) {
-            fail("Falha ao preparar os binários do jogo", t)
-            return
-        }
+        BootLog.add(this, "runtime carregado")
 
         // Depois das libs do jogo carregadas: a sonda precisa achar a libil2cpp.
-        if (ENABLE_NATIVE_CORE) startNativeCore(install) else
+        if (ENABLE_NATIVE_CORE) startNativeCore() else
             BootLog.add(this, "nucleo nativo DESLIGADO")
 
-        val unity = UnityHost(this, environment.classLoader)
+        val unity = UnityHost(this, classLoader)
         unity.onQuit = { finish() }
 
         val view = try {
@@ -216,27 +112,12 @@ class GameActivity : Activity() {
         BootLog.add(this, "=== UnityPlayer no ar ===")
     }
 
-    /** Confirma que as .so que a Unity vai carregar estao onde dizemos que estao. */
-    private fun dumpNativeLibs(install: GameInstall) {
-        val dir = File(install.nativeLibDir)
-        Log.i(TAG, "libs existe=${dir.isDirectory} legivel=${dir.canRead()}")
-        val names = dir.list()
-        if (names == null) {
-            Log.w(TAG, "  nao foi possivel listar ${dir.absolutePath}")
-            return
-        }
-        for (name in names.sorted()) {
-            val f = File(dir, name)
-            Log.i(TAG, "  $name (${f.length()} bytes, legivel=${f.canRead()})")
-        }
-    }
-
     /**
      * Fase 2+. Precisa rodar ANTES da Unity carregar a libil2cpp.so, para o
      * watcher pendente de il2cpp_init ja estar registrado. Falha aqui nao e
      * fatal: o jogo sobe sem mods.
      */
-    private fun startNativeCore(install: GameInstall) {
+    private fun startNativeCore() {
         if (!NativeBridge.ensureLoaded()) {
             Log.i(TAG, "nucleo nativo ausente (bl.nativeBuild=false) - seguindo sem mods")
             return
@@ -246,11 +127,11 @@ class GameActivity : Activity() {
         val ok = runCatching {
             NativeBridge.init(
                 NativeConfig(
-                    gameLibDir = install.nativeLibDir,
+                    gameLibDir = BundledRuntime.libDir(this).absolutePath,
                     modsDir = repo.modsDir.absolutePath,
                     enabledMods = repo.enabledIds().toTypedArray(),
                     logPath = File(logDir, "bunny.log").absolutePath,
-                    gameVersion = install.versionCode,
+                    gameVersion = BundledRuntime.VERSION_CODE,
                 ),
             )
         }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)
