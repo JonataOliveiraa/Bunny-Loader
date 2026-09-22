@@ -18,7 +18,7 @@ android {
     ndkVersion = "30.0.16248370"
 
     defaultConfig {
-        applicationId = "dev.bunnyloader"
+        applicationId = "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

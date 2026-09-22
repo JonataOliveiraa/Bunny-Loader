@@ -1,88 +1,109 @@
 package dev.bunnyloader
 
+import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import dev.bunnyloader.game.GameInstall
-import dev.bunnyloader.game.GameLauncher
-import dev.bunnyloader.game.Root
 
 /**
- * Tela inicial. Caminho B: o botao lanca o Terraria no processo dele com a
- * libbunny.so pre-carregada (ver GameLauncher). Precisa de root.
+ * Launcher do Bunny Loader — app proprio (com.bunnyloader), separado do jogo.
  *
- * "Jogar limpo" sobe o jogo sem o wrap — util para confirmar que o launch por
- * root funciona antes de a lib nativa existir, e para comparar comportamento.
- *
- * TODO(Fase 5): lista de mods, importar (.bmod), toggles, visualizador de log.
+ * O botao inicia o Terraria MODIFICADO, que e instalado ao lado do original com
+ * pacote renomeado (com.bunnyloader.terraria.paid, ver tools/repack.py --rename)
+ * — a libbunny ja vem embutida nele. Sem root: o launcher so dispara o Intent de
+ * abertura; a injecao aconteceu no repackage.
  */
 class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val install = GameInstall.locate(this)
-        val hasRoot = Root.available()
         setContent {
-            MaterialTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    LauncherScreen(
-                        install = install,
-                        hasRoot = hasRoot,
-                        onPlay = { withMods -> play(install, withMods) },
-                    )
-                }
-            }
+            MaterialTheme { Surface(Modifier.fillMaxSize()) { LauncherScreen() } }
         }
     }
 
-    private fun play(install: GameInstall?, withMods: Boolean) {
-        if (install == null) return
-        val r = GameLauncher.launch(this, install, withMods)
-        Toast.makeText(this, r.detail, Toast.LENGTH_LONG).show()
+    companion object {
+        // Pacote do Terraria modificado (coexiste com o original).
+        const val MODDED_GAME = "com.bunnyloader.terraria.paid"
     }
 }
 
+private fun isInstalled(ctx: Context, pkg: String): Boolean =
+    runCatching { ctx.packageManager.getPackageInfo(pkg, 0) }.isSuccess
+
+private fun launchGame(ctx: Context, pkg: String) {
+    val intent = ctx.packageManager.getLaunchIntentForPackage(pkg)
+    if (intent == null) {
+        Toast.makeText(ctx, "Não consegui abrir o jogo.", Toast.LENGTH_LONG).show()
+        return
+    }
+    ctx.startActivity(intent)
+}
+
 @Composable
-private fun LauncherScreen(
-    install: GameInstall?,
-    hasRoot: Boolean,
-    onPlay: (withMods: Boolean) -> Unit,
-) {
-    val gameFound = install != null
+private fun LauncherScreen() {
+    val ctx = LocalContext.current
+    var installed by remember { mutableStateOf(isInstalled(ctx, LauncherActivity.MODDED_GAME)) }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text("Bunny Loader", style = MaterialTheme.typography.headlineMedium)
+        Image(
+            painter = painterResource(R.drawable.ic_bunny),
+            contentDescription = null,
+            modifier = Modifier.size(96.dp),
+        )
         Text(
-            buildString {
-                append(if (gameFound) "Terraria ${install!!.versionCode}" else "Terraria NÃO encontrado")
-                append(if (hasRoot) " · root OK" else " · SEM root")
-            },
+            "Bunny Loader",
+            style = MaterialTheme.typography.headlineMedium,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+        Text(
+            if (installed) "Terraria (Bunny) instalado" else "Terraria (Bunny) não instalado",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
         )
+
         Button(
-            onClick = { onPlay(true) },
-            enabled = gameFound && hasRoot,
-        ) { Text("Jogar com mods") }
-        Button(
-            onClick = { onPlay(false) },
-            enabled = gameFound && hasRoot,
-            modifier = Modifier.padding(top = 12.dp),
-        ) { Text("Jogar limpo") }
+            onClick = { launchGame(ctx, LauncherActivity.MODDED_GAME) },
+            enabled = installed,
+        ) { Text("Iniciar Terraria com mods") }
+
+        if (!installed) {
+            Text(
+                "Instale primeiro o terraria-bunny-coexist.apk (o Terraria com mods). " +
+                    "Ele fica ao lado do Terraria original, sem substituí-lo.",
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 16.dp),
+            )
+            Button(
+                onClick = { installed = isInstalled(ctx, LauncherActivity.MODDED_GAME) },
+                modifier = Modifier.padding(top = 12.dp),
+            ) { Text("Verificar de novo") }
+        }
     }
 }
