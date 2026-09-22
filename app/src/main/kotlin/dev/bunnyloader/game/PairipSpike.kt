@@ -55,10 +55,18 @@ object PairipSpike {
             log("   ANTES: ${summarize(deposits)}")
         }
 
+        // SONDA DIRETA (não depende de heurística nem da versão do jogo):
+        // no dex, `VMRunner.invoke` é um stub que retorna null na 1ª instrução;
+        // a libpairipcore reescreve o método em memória no boot legítimo. Então
+        // "retorna null" = ainda stub; qualquer outro comportamento = reescrito.
+        log("   VMRunner.invoke ANTES: ${invokeState(loader)}")
+
         // 3) O pulo do gato: deixar o Android construir a Application do jogo.
         runCatching { makeApplication(gameCtx) }
             .onSuccess { log("3) LoadedApk.makeApplication() OK") }
             .onFailure { log("3) LoadedApk.makeApplication() FALHOU: ${desc(it)}") }
+
+        log("   VMRunner.invoke DEPOIS: ${invokeState(loader)}")
 
         if (deposits.isNotEmpty()) {
             val after = summarize(deposits)
@@ -136,6 +144,20 @@ object PairipSpike {
             ?.let { runCatching { it.get(null) as? String }.getOrNull() }
         return "$nonNull/$total preenchidas" + (sample?.let { " (ex.: \"$it\")" } ?: "")
     }
+
+    /**
+     * Estado do `com.pairip.VMRunner.invoke`. No dex ele é:
+     *     0000: const/4 v0, #int 0
+     *     0001: return-object v0      <- corpo real (0002+) inalcançável
+     * Se responder null a um nome inexistente, continua stub → a libpairipcore
+     * NÃO inicializou. Qualquer outra reação indica que o método foi reescrito.
+     */
+    private fun invokeState(loader: ClassLoader): String = runCatching {
+        val vm = loader.loadClass("com.pairip.VMRunner")
+        val m = vm.getMethod("invoke", String::class.java, Array<Any>::class.java)
+        val r = m.invoke(null, "__bunny_probe__", arrayOfNulls<Any>(0))
+        if (r == null) "null -> AINDA STUB" else "retornou $r -> REESCRITO"
+    }.getOrElse { "lançou ${desc(it)} -> REESCRITO" }
 
     // --- boot legítimo da Application do jogo ---
 
