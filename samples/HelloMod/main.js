@@ -1,27 +1,32 @@
-// Hello Mod — alvo de aceite da Fase 4.
+// Hello Mod — turbina a Minishark (firerate + velocidade do projetil).
 //
-// Assinaturas conferidas contra o dump de Terraria 1.4.5.6.4 (versionCode
-// 301543). ATENÇÃO: a wiki do TL Pro documenta a 1.4.0.5.2.1, onde a assinatura
-// era `SetDefaults(int Type, bool noMatCheck)`. Essa sobrecarga NÃO existe mais
-// neste build — virou `SetDefaults(int Type, ItemVariant variant)`.
+// Conferido no dump de Terraria 1.4.5.6.4: a assinatura e
+//   Item.SetDefaults(int Type, ItemVariant variant)   (2 params, instancia)
+// A wiki do TL Pro mostra (int Type, bool noMatCheck) da 1.4.0.5.2.1 — mudou.
+//
+// API do Bunny Loader disponivel nesta versao:
+//   new NativeClass(ns, nome)          -> classe
+//   cls.getStaticInt/Float(campo)      -> ler estatico
+//   cls.setStaticInt/Float(campo, v)   -> escrever estatico
+//   cls.new()                          -> instancia (NativeObject)
+//   cls.method(nome, nParams)          -> NativeMethod
+//   metodo.hook((original, self, ...args) => { ... })
+//   obj.getInt/Float(campo), obj.setInt/Float(campo, v)
 
-// Etapa 1 (só precisa de tl.log): prova que o QuickJS roda dentro do jogo.
-tl.log('Hello Mod carregado!');
+const Item = new NativeClass('Terraria', 'Item');
+const ItemID = new NativeClass('Terraria.ID', 'ItemID');
 
-// Etapa 2 (precisa de NativeClass + hook): altera o firerate e a velocidade do
-// projétil da Minishark. Descomente quando os bindings existirem.
-//
-// const Item   = new NativeClass('Terraria', 'Item');
-// const ItemID = new NativeClass('Terraria.ID', 'ItemID');
-//
-// // Minishark = 98 (Terraria.ID.ItemID)
-// const SetDefaults = Item['void SetDefaults(int Type, ItemVariant variant)'];
-//
-// SetDefaults.hook((original, self, type, variant) => {
-//     original(self, type, variant);
-//     if (type === ItemID.Minishark) {
-//         self.useTime      = 4;   // 0x5C
-//         self.useAnimation = 4;   // 0x58
-//         self.shootSpeed   = 10.0; // 0xFC
-//     }
-// });
+const MINISHARK = ItemID.getStaticInt('Minishark');
+tl.log('HelloMod: Minishark = ' + MINISHARK + '; hookando Item.SetDefaults');
+
+const SetDefaults = Item.method('SetDefaults', 2);
+
+SetDefaults.hook((original, self, type, variant) => {
+    original(self, type, variant);        // deixa o jogo aplicar os defaults
+    if (type === MINISHARK) {
+        self.setInt('useTime', 4);        // cadencia (menor = mais rapido)
+        self.setInt('useAnimation', 4);
+        self.setFloat('shootSpeed', 10.0); // velocidade do projetil
+        tl.log('HelloMod: Minishark turbinada!');
+    }
+});

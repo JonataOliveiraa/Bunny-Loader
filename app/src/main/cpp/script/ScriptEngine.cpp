@@ -57,8 +57,10 @@ bool ScriptEngine::evalFile(const std::string& path, const std::string& moduleNa
     fclose(f);
 
     auto* ctx = static_cast<JSContext*>(context_);
+    // GLOBAL por ora: mods usam os globais (NativeClass, tl). require/import
+    // (modulos) fica para quando a resolucao de modulos existir.
     JSValue result = JS_Eval(ctx, buffer.data(), static_cast<size_t>(size),
-                             moduleName.c_str(), JS_EVAL_TYPE_MODULE);
+                             moduleName.c_str(), JS_EVAL_TYPE_GLOBAL);
     bool ok = !JS_IsException(result);
     if (!ok) {
         JSValue err = JS_GetException(ctx);
