@@ -33,6 +33,11 @@ struct Api {
     bool (*class_is_enum)(const Il2CppClass*) = nullptr;
     bool (*class_is_valuetype)(const Il2CppClass*) = nullptr;
     Il2CppClass* (*method_get_class)(const MethodInfo*) = nullptr;
+    // Arrays: tipo e tamanho do elemento. Um Player[] guarda ponteiros (8 B);
+    // um Vector2[] guarda os structs em linha (8 B de dados). Sem o tamanho
+    // certo o indice anda errado.
+    Il2CppClass* (*class_get_element_class)(Il2CppClass*) = nullptr;
+    int32_t (*class_value_size)(Il2CppClass*, uint32_t*) = nullptr;
     size_t (*field_get_offset)(FieldInfo*) = nullptr;
     void (*field_static_get_value)(FieldInfo*, void*) = nullptr;
     void (*field_static_set_value)(FieldInfo*, void*) = nullptr;

@@ -4,6 +4,7 @@
 //
 //   Terraria.Item                    classe, pela árvore de namespaces
 //   Terraria.ID.ItemID.Minishark     campo estático como propriedade
+//   Terraria.Main.myPlayer           PROPRIEDADE C# (vira get_myPlayer())
 //   Classe['ret Nome(T a, U b)']     método, por ASSINATURA (recomendado)
 //   Classe.Nome                      método, se houver um só overload
 //   obj.campo / obj.campo = v        campo de instância como propriedade
@@ -11,9 +12,15 @@
 //   bl.log(...)
 //   bl.classOf(ns, nome)             escape hatch, quando a árvore não ajuda
 //
+// Arrays:
+//
+//   const p = Terraria.Main.player[Terraria.Main.myPlayer];
+//   p.statLife = p.statLifeMax;
+//   Terraria.Main.player.length
+//
 // Chamar método do jogo — o objeto é `this`, como em JS:
 //
-//   Terraria.Main['int get_myPlayer()']()           // estático
+//   Terraria.Main['int get_myPlayer()']()
 //   item['void SetDefaults(int Type, ItemVariant variant)'](98, null)
 //
 // Criar objeto, equivalente a `new Item()` / `new Vector2(5,10)` em C#:
@@ -23,6 +30,12 @@
 //
 //   const v = Microsoft.Xna.Framework.Vector2.new();
 //   v['void .ctor(float x, float y)'](5.0, 10.0);   // struct também
+//
+// Hook com argumento float e com retorno:
+//
+//   MathHelper['float ToRadians(float degrees)'].hook((original, degrees) => {
+//       return original(degrees);      // o retorno do callback é o do método
+//   });
 //
 // A assinatura vem do dump, copiada como está lá. Prefira-a ao nome puro:
 // nome + contagem de parâmetros não desambigua overloads. Quando o nome é

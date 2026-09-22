@@ -6,6 +6,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "script/Marshal.h"
+#include "il2cpp/Types.h"
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -60,6 +61,22 @@ JSValue makeMethod(JSContext* ctx, const MethodInfo* m) {
     if (JS_IsException(v)) std::free(ref);
     else JS_SetOpaque(v, ref);
     return v;
+}
+
+// Declaradas adiante: o exotic da classe e o leitor de campo precisam delas
+// antes de as secoes GameArray/campo existirem no arquivo.
+JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr);
+JSValue readStaticField(JSContext* ctx, FieldInfo* f);
+
+/**
+ * Propriedade C# é açúcar sobre métodos: `Main.myPlayer` é `get_myPlayer()`.
+ * Sem isto, metade do que o modder lê no dump como campo não existe no JS —
+ * `Main.myPlayer` voltava undefined e o índice de array virava lixo.
+ */
+const MethodInfo* accessor(Il2CppClass* cls, const std::string& prefix,
+                           const std::string& name, int params) {
+    if (!cls) return nullptr;
+    return il2cpp::api().class_get_method_from_name(cls, (prefix + name).c_str(), params);
 }
 
 Il2CppClass* classOf(JSValueConst v) {
@@ -224,13 +241,16 @@ JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         return JS_ThrowTypeError(ctx, "%s", msg.c_str());
     }
 
-    // 3. Campo estático.
-    if (FieldInfo* f = il2cpp::findField(cls, name)) {
-        uint8_t buf[16] = {0};
-        il2cpp::api().field_static_get_value(f, buf);
-        int64_t v = 0;
-        std::memcpy(&v, buf, sizeof(v));
-        return JS_NewInt64(ctx, v);
+    // 3. Campo estático, pelo tipo declarado (array vira GameArray, float vira
+    //    número, string vira string — antes tudo saía como int64).
+    if (FieldInfo* f = il2cpp::findField(cls, name)) return readStaticField(ctx, f);
+
+    // 3b. Propriedade estática: get_<nome>().
+    if (const MethodInfo* g = accessor(cls, "get_", name, 0)) {
+        Il2CppObject* exc = nullptr;
+        Il2CppObject* r = il2cpp::api().runtime_invoke(g, nullptr, nullptr, &exc);
+        if (exc) return JS_ThrowInternalError(ctx, "get_%s lancou excecao no jogo", name.c_str());
+        return fromReturn(ctx, g, r);
     }
 
     // 4. Método pelo nome puro — só se houver UM.
@@ -294,12 +314,14 @@ const JSCFunctionListEntry nc_proto[] = {
 
 // Le/escreve um campo pelo TIPO dele. Ler um float como int devolve lixo, e o
 // acesso por propriedade (obj.useTime) nao tem como o modder dizer qual e.
-JSValue readField(JSContext* ctx, void* base, FieldInfo* f) {
+// Nucleo: interpreta `p` conforme o tipo `ft`. Serve para campo de instancia
+// (p = objeto + offset) e para estatico (p = buffer preenchido por
+// field_static_get_value) — o mesmo tipo, duas origens de memoria.
+JSValue valueAt(JSContext* ctx, char* p, const Il2CppType* ft) {
     auto& a = il2cpp::api();
-    char* tn = a.type_get_name(a.field_get_type(f));
+    char* tn = a.type_get_name(ft);
     std::string t(tn ? tn : "");
     if (tn) a.il2cpp_free(tn);
-    char* p = reinterpret_cast<char*>(base) + a.field_get_offset(f);
 
     if (t == "System.Single")  return JS_NewFloat64(ctx, *reinterpret_cast<float*>(p));
     if (t == "System.Double")  return JS_NewFloat64(ctx, *reinterpret_cast<double*>(p));
@@ -313,12 +335,22 @@ JSValue readField(JSContext* ctx, void* base, FieldInfo* f) {
     if (t == "System.Int32" || t == "System.UInt32") {
         return JS_NewInt32(ctx, *reinterpret_cast<int32_t*>(p));
     }
-    // Struct por valor (Vector2, Color, Rectangle) fica GUARDADO EM LINHA no
-    // objeto — nao ha ponteiro ali. Ler os primeiros 8 bytes como ponteiro
-    // devolveria um GameObject apontando para dois floats, e o proximo acesso
-    // leria memoria arbitraria. Recusa em vez de fabricar.
+    // Array: entrega um GameArray em vez de um objeto opaco.
+    if (t.size() > 2 && t.compare(t.size() - 2, 2, "[]") == 0) {
+        auto* arr = *reinterpret_cast<Il2CppArray**>(p);
+        return arr ? makeGameArray(ctx, arr) : JS_NULL;
+    }
+    if (t == "System.String") {
+        auto* str = *reinterpret_cast<Il2CppString**>(p);
+        return str ? JS_NewString(ctx, stringToUtf8(str).c_str()) : JS_NULL;
+    }
+
+    // Struct por valor (Vector2, Color, Rectangle) fica GUARDADO EM LINHA —
+    // nao ha ponteiro ali. Ler os primeiros 8 bytes como ponteiro devolveria um
+    // GameObject apontando para dois floats, e o proximo acesso leria memoria
+    // arbitraria. Recusa em vez de fabricar.
     if (a.class_from_il2cpp_type && a.class_is_valuetype) {
-        if (Il2CppClass* fc = a.class_from_il2cpp_type(a.field_get_type(f))) {
+        if (Il2CppClass* fc = a.class_from_il2cpp_type(ft)) {
             if (a.class_is_valuetype(fc)) {
                 return JS_ThrowTypeError(
                     ctx, "campo do tipo %s e struct por valor — ainda nao suportado",
@@ -329,6 +361,20 @@ JSValue readField(JSContext* ctx, void* base, FieldInfo* f) {
     auto* ref = *reinterpret_cast<Il2CppObject**>(p);
     if (!ref) return JS_NULL;
     return makeNativeObject(ctx, ref);
+}
+
+JSValue readField(JSContext* ctx, void* base, FieldInfo* f) {
+    auto& a = il2cpp::api();
+    return valueAt(ctx, reinterpret_cast<char*>(base) + a.field_get_offset(f),
+                   a.field_get_type(f));
+}
+
+/** Estatico: o valor vem por copia, nao por offset num objeto. */
+JSValue readStaticField(JSContext* ctx, FieldInfo* f) {
+    auto& a = il2cpp::api();
+    uint8_t buf[32] = {0};
+    a.field_static_get_value(f, buf);
+    return valueAt(ctx, reinterpret_cast<char*>(buf), a.field_get_type(f));
 }
 
 int writeField(JSContext* ctx, void* base, FieldInfo* f, JSValueConst value) {
@@ -459,6 +505,13 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         return JS_ThrowTypeError(ctx, "metodo nao encontrado: '%s'", name.c_str());
     }
     if (FieldInfo* f = il2cpp::findField(cls, name)) return readField(ctx, o, f);
+
+    if (const MethodInfo* g = accessor(cls, "get_", name, 0)) {
+        Il2CppObject* exc = nullptr;
+        Il2CppObject* r = il2cpp::api().runtime_invoke(g, o, nullptr, &exc);
+        if (exc) return JS_ThrowInternalError(ctx, "get_%s lancou excecao no jogo", name.c_str());
+        return fromReturn(ctx, g, r);
+    }
     return JS_UNDEFINED;
 }
 
@@ -467,7 +520,19 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     Il2CppObject* o = objOf(obj);
     const char* key = JS_AtomToCString(ctx, atom);
     if (!o || !key) { if (key) JS_FreeCString(ctx, key); return -1; }
-    FieldInfo* f = il2cpp::findField(il2cpp::api().object_get_class(o), key);
+    Il2CppClass* ocls = il2cpp::api().object_get_class(o);
+    FieldInfo* f = il2cpp::findField(ocls, key);
+    if (!f) {
+        if (const MethodInfo* sm = accessor(ocls, "set_", key, 1)) {
+            JS_FreeCString(ctx, key);
+            ArgPack pack;
+            if (!pack.build(ctx, sm, 1, &value)) return -1;
+            Il2CppObject* exc = nullptr;
+            il2cpp::api().runtime_invoke(sm, o, pack.data(), &exc);
+            if (exc) { JS_ThrowInternalError(ctx, "setter lancou excecao no jogo"); return -1; }
+            return true;
+        }
+    }
     JS_FreeCString(ctx, key);
     if (!f) {
         return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value),
@@ -604,6 +669,134 @@ JSValue nc_method(JSContext* ctx, JSValueConst self, int argc, JSValueConst* arg
     JS_FreeCString(ctx, name);
     return r;
 }
+
+// ============================ GameArray ============================
+//
+// `Main.player[Main.myPlayer]`, `arr.length`. Sem isto metade dos mods
+// clássicos de Terraria é impossível: pegar o jogador, varrer inimigos, mexer
+// no inventário — tudo passa por array.
+//
+// O índice vira offset com o TAMANHO DO ELEMENTO, que difere: um Player[]
+// guarda ponteiros (8 B); um Vector2[] guarda os structs em linha. Errar isso
+// anda na memória errada sem dar erro.
+
+JSClassID g_gameArrayId;
+
+Il2CppArray* arrayOf(JSValueConst v) {
+    return static_cast<Il2CppArray*>(JS_GetOpaque(v, g_gameArrayId));
+}
+
+/** Classe do elemento e quantos bytes ele ocupa dentro do array. */
+struct ElemInfo { Il2CppClass* cls; size_t size; bool byValue; };
+
+ElemInfo elemInfoOf(Il2CppArray* arr) {
+    auto& a = il2cpp::api();
+    ElemInfo e{nullptr, sizeof(void*), false};
+    if (!arr || !a.class_get_element_class) return e;
+    Il2CppClass* arrCls = a.object_get_class(reinterpret_cast<Il2CppObject*>(arr));
+    e.cls = a.class_get_element_class(arrCls);
+    if (e.cls && a.class_is_valuetype && a.class_is_valuetype(e.cls)) {
+        e.byValue = true;
+        uint32_t align = 0;
+        e.size = a.class_value_size ? static_cast<size_t>(a.class_value_size(e.cls, &align))
+                                    : sizeof(void*);
+    }
+    return e;
+}
+
+JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
+    Il2CppArray* arr = arrayOf(obj);
+    const char* key = JS_AtomToCString(ctx, atom);
+    if (!arr || !key) { if (key) JS_FreeCString(ctx, key); return JS_UNDEFINED; }
+    std::string name(key);
+    JS_FreeCString(ctx, key);
+
+    if (name == "length") return JS_NewInt64(ctx, static_cast<int64_t>(arr->length));
+
+    // Índice numérico?
+    char* end = nullptr;
+    long idx = std::strtol(name.c_str(), &end, 10);
+    if (!end || *end != '\0' || name.empty()) return JS_UNDEFINED;
+    if (idx < 0 || static_cast<uintptr_t>(idx) >= arr->length) {
+        return JS_ThrowRangeError(ctx, "indice %ld fora de 0..%llu", idx,
+                                  static_cast<unsigned long long>(arr->length));
+    }
+
+    ElemInfo e = elemInfoOf(arr);
+    char* p = reinterpret_cast<char*>(arrayData(arr)) + static_cast<size_t>(idx) * e.size;
+    if (!e.byValue) {
+        auto* o = *reinterpret_cast<Il2CppObject**>(p);
+        return o ? makeNativeObject(ctx, o) : JS_NULL;
+    }
+    // Elemento por valor: primitivo sai como número; struct ainda não.
+    auto& a = il2cpp::api();
+    const char* cn = a.class_get_name(e.cls);
+    std::string n(cn ? cn : "");
+    if (n == "Single") return JS_NewFloat64(ctx, *reinterpret_cast<float*>(p));
+    if (n == "Double") return JS_NewFloat64(ctx, *reinterpret_cast<double*>(p));
+    if (n == "Boolean") return JS_NewBool(ctx, *p != 0);
+    if (n == "Byte" || n == "SByte") return JS_NewInt32(ctx, *reinterpret_cast<int8_t*>(p));
+    if (n == "Int16" || n == "UInt16") return JS_NewInt32(ctx, *reinterpret_cast<int16_t*>(p));
+    if (n == "Int64" || n == "UInt64") return JS_NewInt64(ctx, *reinterpret_cast<int64_t*>(p));
+    if (n == "Int32" || n == "UInt32") return JS_NewInt32(ctx, *reinterpret_cast<int32_t*>(p));
+    return JS_ThrowTypeError(ctx, "elemento do tipo %s (struct) ainda nao suportado", n.c_str());
+}
+
+int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
+                  JSValueConst value, JSValueConst, int) {
+    Il2CppArray* arr = arrayOf(obj);
+    const char* key = JS_AtomToCString(ctx, atom);
+    if (!arr || !key) { if (key) JS_FreeCString(ctx, key); return -1; }
+    std::string name(key);
+    JS_FreeCString(ctx, key);
+
+    char* end = nullptr;
+    long idx = std::strtol(name.c_str(), &end, 10);
+    if (!end || *end != '\0' || name.empty()) {
+        return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value),
+                                      JS_PROP_C_W_E) < 0 ? -1 : true;
+    }
+    if (idx < 0 || static_cast<uintptr_t>(idx) >= arr->length) {
+        JS_ThrowRangeError(ctx, "indice %ld fora de 0..%llu", idx,
+                           static_cast<unsigned long long>(arr->length));
+        return -1;
+    }
+
+    ElemInfo e = elemInfoOf(arr);
+    char* p = reinterpret_cast<char*>(arrayData(arr)) + static_cast<size_t>(idx) * e.size;
+    if (!e.byValue) {
+        *reinterpret_cast<Il2CppObject**>(p) = objectFromJS(value);
+        return true;
+    }
+    auto& a = il2cpp::api();
+    const char* cn = a.class_get_name(e.cls);
+    std::string n(cn ? cn : "");
+    if (n == "Single" || n == "Double") {
+        double d = 0; if (JS_ToFloat64(ctx, &d, value) < 0) return -1;
+        if (n == "Single") *reinterpret_cast<float*>(p) = static_cast<float>(d);
+        else *reinterpret_cast<double*>(p) = d;
+        return true;
+    }
+    if (n == "Boolean") { *p = JS_ToBool(ctx, value) ? 1 : 0; return true; }
+    int64_t v = 0;
+    if (JS_ToInt64(ctx, &v, value) < 0) return -1;
+    if (n == "Byte" || n == "SByte") *reinterpret_cast<int8_t*>(p) = static_cast<int8_t>(v);
+    else if (n == "Int16" || n == "UInt16") *reinterpret_cast<int16_t*>(p) = static_cast<int16_t>(v);
+    else if (n == "Int64" || n == "UInt64") *reinterpret_cast<int64_t*>(p) = v;
+    else *reinterpret_cast<int32_t*>(p) = static_cast<int32_t>(v);
+    return true;
+}
+
+const JSClassExoticMethods ga_exotic = {
+    nullptr, nullptr, nullptr, nullptr, nullptr, ga_exotic_get, ga_exotic_set,
+};
+
+JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr) {
+    JSValue v = JS_NewObjectClass(ctx, g_gameArrayId);
+    if (!JS_IsException(v)) JS_SetOpaque(v, arr);
+    return v;
+}
+
 
 } // namespace
 
@@ -749,6 +942,15 @@ void installBindings(void* context) {
     JSValue nmProto = JS_NewObject(ctx);
     JS_SetPropertyFunctionList(ctx, nmProto, nm_proto, sizeof(nm_proto)/sizeof(nm_proto[0]));
     JS_SetClassProto(ctx, g_nativeMethodId, nmProto);
+
+    // GameArray
+    JS_NewClassID(rt, &g_gameArrayId);
+    static const JSClassDef gaDef = {
+        "GameArray", nullptr, nullptr, nullptr,
+        const_cast<JSClassExoticMethods*>(&ga_exotic),
+    };
+    JS_NewClass(rt, g_gameArrayId, &gaDef);
+    JS_SetClassProto(ctx, g_gameArrayId, JS_NewObject(ctx));
 
     // Namespace (arvore Terraria.*) — depois do g_nativeClassId existir.
     JS_NewClassID(rt, &g_namespaceId);

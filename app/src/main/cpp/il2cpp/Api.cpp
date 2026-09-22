@@ -57,6 +57,8 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_class_is_enum", &class_is_enum);
     ok &= bind(lib, "il2cpp_class_is_valuetype", &class_is_valuetype);
     ok &= bind(lib, "il2cpp_method_get_class", &method_get_class);
+    ok &= bind(lib, "il2cpp_class_get_element_class", &class_get_element_class);
+    ok &= bind(lib, "il2cpp_class_value_size", &class_value_size);
     ok &= bind(lib, "il2cpp_type_get_name", &type_get_name);
     ok &= bind(lib, "il2cpp_free", &il2cpp_free);
     ok &= bind(lib, "il2cpp_object_new", &object_new);
