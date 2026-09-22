@@ -51,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true // Eligibility usa BuildConfig.DEBUG
         prefab = true // necessário para consumir o ShadowHook via prefab
     }
 

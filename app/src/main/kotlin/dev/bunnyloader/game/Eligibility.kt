@@ -3,6 +3,7 @@ package dev.bunnyloader.game
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import dev.bunnyloader.BuildConfig
 import java.security.MessageDigest
 
 /**
@@ -26,16 +27,20 @@ object Eligibility {
     /**
      * SHA-256 do certificado de assinatura oficial do Terraria mobile.
      *
-     * VAZIO de propósito. Preencher com o digest de um install GENUÍNO vindo da
-     * Play — não de um APK extraído e reassinado. O `refs/base.apk` deste repo,
-     * por exemplo, está assinado com a chave de teste do AOSP
-     * (a40da80a…bf5dc), que é o que qualquer repack produz.
+     * Só vale digest de install GENUÍNO vindo da Play. Um APK extraído e
+     * reassinado não serve: o `refs/base.apk` deste repo, por exemplo, está com
+     * a chave de teste do AOSP (a40da80a…bf5dc), que é o que qualquer repack
+     * produz.
      *
-     * Enquanto estiver vazio, a checagem de certificado é PULADA e o motivo
-     * aparece no resultado, para não virar um gate que aprova qualquer coisa
-     * silenciosamente.
+     * Se um dia ficar vazio, a checagem é PULADA e o motivo aparece no
+     * resultado — um gate que aprova em silêncio é pior que gate nenhum.
      */
-    private val OFFICIAL_CERT_SHA256 = emptySet<String>()
+    private val OFFICIAL_CERT_SHA256 = setOf(
+        // Lido de um Terraria instalado pela Play (Samsung SM-A156M, 1.4.5.8.6).
+        // Não confira com o refs/base.apk do repo: aquele está assinado com a
+        // chave de teste do AOSP (a40da80a…bf5dc), como qualquer repack.
+        "df4faf826627a08e6b24489f4ef64b7330debe6c1d5dc5834bf422dfc19a8542",
+    )
 
     /** Só a Play — evita aceitar um sideload arbitrário como prova. */
     private const val PLAY = "com.android.vending"
@@ -65,6 +70,17 @@ object Eligibility {
         }
 
         val digests = certDigests(info)
+        if (digests.none { it in OFFICIAL_CERT_SHA256 } && BuildConfig.DEBUG) {
+            // Build de desenvolvimento: o Terraria do emulador é sideloadado e
+            // reassinado, então nunca casaria. Passa, mas diz alto que passou —
+            // em release BuildConfig.DEBUG é false e a checagem vale.
+            return Result(
+                true,
+                "DEBUG: assinatura do Terraria NÃO confere e foi ignorada." +
+                    System.lineSeparator() +
+                    "Observado: " + digests.joinToString(", ").ifBlank { "(nenhum)" },
+            )
+        }
         if (OFFICIAL_CERT_SHA256.isEmpty()) {
             // Mostra o que ESTE aparelho tem. Só um install genuíno da Play
             // serve de referência, e quem roda o app é quem tem um — é daqui

@@ -42,7 +42,9 @@ extern "C" volatile int bl_hook_slot;
 volatile int bl_hook_slot = 0;
 
 // Frame por invocacao (para original() reexecutar com os args salvos).
-struct Frame { HookCtx* c; intptr_t a[8]; };
+// `ranOriginal` existe para o caso de o callback JS falhar: aí chamamos o
+// metodo real no lugar dele, em vez de engolir a chamada.
+struct Frame { HookCtx* c; intptr_t a[8]; bool ranOriginal = false; };
 static thread_local std::vector<Frame> g_frames;
 
 // Profundidade de reentrancia por slot, por thread. Evita que um metodo cujo
@@ -57,6 +59,7 @@ using RawFn8 = intptr_t (*)(intptr_t, intptr_t, intptr_t, intptr_t,
 static JSValue js_original(JSContext*, JSValueConst, int, JSValueConst*) {
     if (g_frames.empty()) return JS_UNDEFINED;
     Frame& f = g_frames.back();
+    f.ranOriginal = true;
     auto fn = reinterpret_cast<RawFn8>(f.c->original);
     fn(f.a[0], f.a[1], f.a[2], f.a[3], f.a[4], f.a[5], f.a[6], f.a[7]);
     return JS_UNDEFINED;
@@ -97,6 +100,17 @@ extern "C" intptr_t bl_hook_repl(intptr_t a0, intptr_t a1, intptr_t a2, intptr_t
         argv[argc++] = JS_NewInt64(ctx, f.a[base + i]);
     }
 
+    // O QuickJS deduz o limite de pilha do ponteiro de pilha de quando o
+    // runtime nasce. Os mods sao carregados na thread da sonda, mas os hooks
+    // disparam na thread do JOGO — e ali a checagem concluia que a pilha tinha
+    // acabado, rejeitando o callback na primeira chamada:
+    //
+    //     hook: excecao no callback: Maximum call stack size exceeded
+    //
+    // Isto realinha o limite com a thread corrente. Nao ha concorrencia a
+    // proteger: depois da carga, JS so roda por hooks, na thread do jogo.
+    JS_UpdateStackTop(JS_GetRuntime(ctx));
+
     JSValue ret = JS_Call(ctx, c->callback, JS_UNDEFINED, argc, argv);
     if (JS_IsException(ret)) {
         JSValue e = JS_GetException(ctx);
@@ -104,6 +118,18 @@ extern "C" intptr_t bl_hook_repl(intptr_t a0, intptr_t a1, intptr_t a2, intptr_t
         BL_ERROR("hook: excecao no callback: %s", t ? t : "?");
         if (t) JS_FreeCString(ctx, t);
         JS_FreeValue(ctx, e);
+
+        // Mod quebrado NAO pode quebrar o jogo. Sem isto, um callback que
+        // estoura engole a chamada ao metodo real — e foi exatamente o que
+        // aconteceu com Item.SetDefaults: todo item passou a nascer sem os
+        // defaults, aparecendo so com o nome e sem funcionar.
+        //
+        // Só no caminho de EXCECAO: um callback que roda inteiro e escolhe nao
+        // chamar original() esta suprimindo o metodo de proposito.
+        if (!g_frames.back().ranOriginal && c->original) {
+            auto fn = reinterpret_cast<RawFn8>(c->original);
+            fn(a0, a1, a2, a3, a4, a5, a6, a7);
+        }
     }
     for (int i = 0; i < argc; ++i) JS_FreeValue(ctx, argv[i]);
     JS_FreeValue(ctx, ret);
