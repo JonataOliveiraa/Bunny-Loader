@@ -27,3 +27,6 @@ app/src/main/cpp/third_party/quickjs/
 
 # artefatos temporarios do dev-cycle
 /.devcycle/
+
+# dir de trabalho do dex do CheatBridge (o header gerado E versionado)
+.cheatbridge/

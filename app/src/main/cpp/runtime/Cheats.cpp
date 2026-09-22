@@ -4,6 +4,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "runtime/GameRefs.h"
+#include <atomic>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -13,6 +14,10 @@ namespace bl::runtime {
 namespace {
 
 struct Vector2 { float x; float y; };
+
+// Pedido pendente de "dar item", setado de qualquer thread (UI) e consumido na
+// thread do jogo pelo hook de DoUpdate. 0 = nada pendente.
+std::atomic<int> g_pendingGive{0};
 
 // Arquivo de comando na pasta externa do proprio app (mesma base da config),
 // legivel/gravavel sem root sob SELinux Enforcing. Ver core/Config.h.
@@ -97,11 +102,17 @@ void pollCommands() {
 }
 
 void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
-    pollCommands();
+    // Pedido do botao (in-process): consome e executa na thread do jogo.
+    if (int type = g_pendingGive.exchange(0)) giveItem(type);
+    pollCommands();  // canal por arquivo (dev/adb) continua valendo
     g_origDoUpdate(self, gt, m);
 }
 
 } // namespace
+
+void requestGive(int type) {
+    if (type > 0) g_pendingGive.store(type);
+}
 
 void giveItem(int type) {
     using namespace il2cpp;

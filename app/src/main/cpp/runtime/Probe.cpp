@@ -7,6 +7,7 @@
 #include "mods/ModLoader.h"
 #include "core/Config.h"
 #include "runtime/Cheats.h"
+#include "ui/CheatButton.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -66,8 +67,9 @@ void probeThread() {
             }
             BL_INFO("sonda: %zu mod(s) carregado(s)", mods::loadedCount());
 
-            // Menu de cheats (acoes nativas via arquivo de comando).
+            // Menu de cheats (acoes nativas) + botao flutuante na Activity.
             installCheats();
+            ui::installCheatButton();
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(kRetryGapMs));
