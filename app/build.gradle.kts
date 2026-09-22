@@ -13,6 +13,9 @@ plugins {
 android {
     namespace = "dev.bunnyloader"
     compileSdk = 34
+    // NDK 26.1 veio incompleto no SDK Manager (sem source.properties); fixa a
+    // versao integra instalada.
+    ndkVersion = "30.0.16248370"
 
     defaultConfig {
         applicationId = "dev.bunnyloader"

@@ -30,6 +30,7 @@ object GameLauncher {
     private const val WORK_DIR = "/data/local/tmp/bunny"
     private const val CONFIG_PATH = "$WORK_DIR/config"
     private const val LIB_DEST = "$WORK_DIR/libbunny.so"
+    private const val DEP_DEST = "$WORK_DIR/libshadowhook.so"
     private const val LOG_PATH = "$WORK_DIR/bunny.log"
     private const val GAME_ACTIVITY = "com.unity3d.player.UnityPlayerActivity"
 
@@ -41,7 +42,11 @@ object GameLauncher {
      * @param withMods false = inicia o jogo limpo (sem wrap), util para comparar.
      */
     fun launch(context: Context, install: GameInstall, withMods: Boolean = true): Result {
-        val libSrc = File(context.applicationInfo.nativeLibraryDir, "libbunny.so")
+        val libDir = File(context.applicationInfo.nativeLibraryDir)
+        val libSrc = File(libDir, "libbunny.so")
+        // libbunny.so tem NEEDED libshadowhook.so; ambas precisam estar num
+        // caminho que o linker do processo do jogo alcance (LD_LIBRARY_PATH).
+        val depSrc = File(libDir, "libshadowhook.so")
         if (withMods && !libSrc.exists()) {
             return Result(false, "libbunny.so nao encontrada (compile com bl.nativeBuild=true)")
         }
@@ -53,9 +58,11 @@ object GameLauncher {
             appendLine("set -e")
             appendLine("mkdir -p $WORK_DIR")
             if (withMods) {
-                // Copia a lib para um caminho que o uid do jogo consiga ler.
+                // Copia a lib e sua dependencia para um caminho legivel pelo
+                // uid do jogo.
                 appendLine("cp '${libSrc.absolutePath}' $LIB_DEST")
-                appendLine("chmod 755 $WORK_DIR $LIB_DEST")
+                appendLine("cp '${depSrc.absolutePath}' $DEP_DEST")
+                appendLine("chmod 755 $WORK_DIR $LIB_DEST $DEP_DEST")
 
                 // Config lida pela lib no constructor (ver Entry.cpp).
                 appendLine("cat > $CONFIG_PATH <<'BLCFG'")
@@ -67,8 +74,9 @@ object GameLauncher {
                 appendLine("BLCFG")
                 appendLine("chmod 644 $CONFIG_PATH")
 
-                // Faz o jogo subir com a nossa lib pre-carregada.
-                appendLine("setprop wrap.${install.packageName} 'LD_PRELOAD=$LIB_DEST'")
+                // Faz o jogo subir com a nossa lib pre-carregada. LD_LIBRARY_PATH
+                // para o linker achar a libshadowhook.so ao lado.
+                appendLine("setprop wrap.${install.packageName} 'LD_LIBRARY_PATH=$WORK_DIR LD_PRELOAD=$LIB_DEST'")
             } else {
                 // Garante que nao ha wrap pendente de uma execucao anterior.
                 appendLine("setprop wrap.${install.packageName} ''")

@@ -29,21 +29,14 @@ import dev.bunnyloader.rootCause
  * nativeLibraryDir do jogo, que ja e o caminho de busca do nosso DexClassLoader.
  */
 object PairipBootstrap {
-
-    /** Uma string conhecida, usada so para provar que a descriptografia rodou. */
     private const val PROBE_CLASS = "uk.co.drstudios.lvl.yh.sHQPfQqKk"
     private const val PROBE_FIELD = "pPb"
     private const val PROBE_EXPECTED = "window"
 
-    /**
-     * @return true se as strings do jogo foram populadas.
-     * @throws Throwable ja desembrulhado se o bootstrap falhar.
-     */
     fun run(loader: ClassLoader, context: Context): Boolean {
         Log.i(TAG, "PairIP: antes do bootstrap, $PROBE_CLASS.$PROBE_FIELD = ${probe(loader)}")
 
         try {
-            // Carregar a classe ja dispara o <clinit> -> System.loadLibrary("pairipcore").
             val vmRunner = loader.loadClass("com.pairip.VMRunner")
             Log.i(TAG, "PairIP: VMRunner carregada (libpairipcore ok)")
 
