@@ -46,3 +46,11 @@ _icons/*
 
 # Saida de build: APKs de 180+ MB, nada disso vai para o repositorio.
 out/
+
+# Sprites do jogo por ID: arte do Terraria, nao vai para o repositorio.
+# So o README, que explica a convencao.
+_sprites/*
+!_sprites/README.md
+
+# Log de erro do compilador Kotlin, gerado no build.
+.kotlin/

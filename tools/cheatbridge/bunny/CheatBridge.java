@@ -8,6 +8,7 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
@@ -16,9 +17,16 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.BaseAdapter;
 import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.SeekBar;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.view.ViewGroup;
+import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,7 +51,12 @@ public class CheatBridge {
 
     // Implementados em C++ -> bl::runtime::requestGive / requestSpawn.
     public static native void nOnGive(int type, int stack);
-    public static native void nOnSpawn(int type);
+    public static native void nOnSpawn(int type, int count);
+    /** Nomes vindos da Localization do jogo. null enquanto ainda moem. */
+    public static native String[] nItemNames();
+    public static native String[] nNpcNames();
+    /** Quadros da tira de cada NPC (Main.npcFrameCount). */
+    public static native int[] nNpcFrames();
 
     // --- paleta ---
     private static final int PANEL      = 0xFF3F5297;
@@ -65,40 +78,74 @@ public class CheatBridge {
     /** Uma secao do menu. `npc` troca "dar item" por "invocar". */
     private static final class Section {
         final String group, title, subtitle;
-        final String[] names;
-        final int[] ids;
+        String[] names;
+        int[] ids;
         final int[] stacks;   // null quando e NPC
         final boolean npc;
+        /** Catalogo inteiro: os nomes vem do jogo, e o id E o indice. */
+        final boolean todos;
+        /** Sprite do jogo que anuncia a secao, em res/drawable. */
+        final String icone;
 
         Section(String group, String title, String subtitle,
-                String[] names, int[] ids, int[] stacks, boolean npc) {
+                String[] names, int[] ids, int[] stacks, boolean npc, String icone) {
+            this(group, title, subtitle, names, ids, stacks, npc, false, icone);
+        }
+
+        Section(String group, String title, String subtitle,
+                String[] names, int[] ids, int[] stacks, boolean npc, boolean todos,
+                String icone) {
             this.group = group; this.title = title; this.subtitle = subtitle;
-            this.names = names; this.ids = ids; this.stacks = stacks; this.npc = npc;
+            this.names = names; this.ids = ids; this.stacks = stacks;
+            this.npc = npc; this.todos = todos; this.icone = icone;
+        }
+
+        int count() { return names == null ? 0 : names.length; }
+
+        /**
+         * Puxa a tabela de nomes do nativo, uma vez.
+         *
+         * Pode nao estar pronta: sao ~6800 nomes moidos em fatias, algumas
+         * centenas por quadro, para nao engasgar o jogo. Ate la devolve false e
+         * a tela diz isso, em vez de mostrar uma lista vazia sem explicacao.
+         */
+        boolean carregar() {
+            if (names != null) return true;
+            String[] n = npc ? nNpcNames() : nItemNames();
+            if (n == null) return false;
+            names = n;
+            ids = new int[n.length];
+            for (int i = 0; i < n.length; i++) ids[i] = i;
+            return true;
         }
     }
 
     private static Section[] sections() {
         return new Section[] {
             new Section("ITENS", "Corpo a corpo", "Espadas, lancas e tudo que bate de perto.",
-                CheatData.CORPO_A_CORPO_N, CheatData.CORPO_A_CORPO_I, CheatData.CORPO_A_CORPO_S, false),
+                CheatData.CORPO_A_CORPO_N, CheatData.CORPO_A_CORPO_I, CheatData.CORPO_A_CORPO_S, false, "ic_sec_melee"),
             new Section("ITENS", "A distancia", "Armas de fogo e arcos. Levam municao junto.",
-                CheatData.A_DISTANCIA_N, CheatData.A_DISTANCIA_I, CheatData.A_DISTANCIA_S, false),
+                CheatData.A_DISTANCIA_N, CheatData.A_DISTANCIA_I, CheatData.A_DISTANCIA_S, false, "ic_sec_ranged"),
             new Section("ITENS", "Magia", "Cajados, livros e armas de mana.",
-                CheatData.MAGIA_N, CheatData.MAGIA_I, CheatData.MAGIA_S, false),
+                CheatData.MAGIA_N, CheatData.MAGIA_I, CheatData.MAGIA_S, false, "ic_sec_magia"),
             new Section("ITENS", "Invocacao", "Cajados que chamam servos para lutar por voce.",
-                CheatData.INVOCACAO_N, CheatData.INVOCACAO_I, CheatData.INVOCACAO_S, false),
+                CheatData.INVOCACAO_N, CheatData.INVOCACAO_I, CheatData.INVOCACAO_S, false, "ic_sec_invoc"),
             new Section("ITENS", "Acessorios", "Botas, asas, escudos e emblemas.",
-                CheatData.ACESSORIOS_N, CheatData.ACESSORIOS_I, CheatData.ACESSORIOS_S, false),
+                CheatData.ACESSORIOS_N, CheatData.ACESSORIOS_I, CheatData.ACESSORIOS_S, false, "ic_sec_acess"),
             new Section("ITENS", "Blocos e moveis", "Material de construcao e estacoes de trabalho.",
-                CheatData.BLOCOS_E_MOVEIS_N, CheatData.BLOCOS_E_MOVEIS_I, CheatData.BLOCOS_E_MOVEIS_S, false),
+                CheatData.BLOCOS_E_MOVEIS_N, CheatData.BLOCOS_E_MOVEIS_I, CheatData.BLOCOS_E_MOVEIS_S, false, "ic_sec_blocos"),
             new Section("ITENS", "Uteis", "Cristais, pocoes e municao infinita.",
-                CheatData.UTEIS_N, CheatData.UTEIS_I, CheatData.UTEIS_S, false),
+                CheatData.UTEIS_N, CheatData.UTEIS_I, CheatData.UTEIS_S, false, "ic_sec_util"),
             new Section("MUNDO", "Chefes", "Invoca o chefe ao seu lado. Prepare-se antes.",
-                CheatData.CHEFES_N, CheatData.CHEFES_I, null, true),
+                CheatData.CHEFES_N, CheatData.CHEFES_I, null, true, "ic_sec_chefe"),
             new Section("MUNDO", "Monstros", "Inimigos comuns, para testar arma nova.",
-                CheatData.MONSTROS_N, CheatData.MONSTROS_I, null, true),
+                CheatData.MONSTROS_N, CheatData.MONSTROS_I, null, true, "ic_sec_monstro"),
             new Section("MUNDO", "Moradores", "Traz um NPC da cidade. Ele ainda precisa de casa.",
-                CheatData.MORADORES_N, CheatData.MORADORES_I, null, true),
+                CheatData.MORADORES_N, CheatData.MORADORES_I, null, true, "ic_sec_morador"),
+            new Section("TUDO", "Todos os itens", "Os 6147 ids do jogo, com o nome no seu idioma.",
+                null, null, null, false, true, "ic_sec_tudo_item"),
+            new Section("TUDO", "Todos os NPCs", "Os 697 ids do jogo, chefe e bicho incluidos.",
+                null, null, null, true, true, "ic_sec_tudo_npc"),
         };
     }
 
@@ -110,6 +157,13 @@ public class CheatBridge {
     }
 
     /** Painel do Terraria: contorno escuro, corpo azul, luz em cima. */
+    /** Painel de fora: mesma cara, canto mais generoso. */
+    private static GradientDrawable panelBig(Activity a, int fill, int stroke) {
+        GradientDrawable d = panel(a, fill, stroke);
+        d.setCornerRadius(px(a, 12));
+        return d;
+    }
+
     private static GradientDrawable panel(Activity a, int fill, int stroke) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(fill);
@@ -123,7 +177,28 @@ public class CheatBridge {
         t.setText(s);
         t.setTextSize(size);
         t.setTextColor(color);
+        t.setTypeface(fonte(a));
         return t;
+    }
+
+    /**
+     * A fonte do Terraria, a mesma do launcher.
+     *
+     * Vem dos assets e nao de res/font: este menu roda de um dex carregado em
+     * memoria, sem a classe R do app, e `Resources.getFont` so existe da API 26
+     * para cima enquanto o app vai ate a 24.
+     */
+    private static Typeface sFonte;
+
+    private static Typeface fonte(Activity a) {
+        if (sFonte == null) {
+            try {
+                sFonte = Typeface.createFromAsset(a.getAssets(), "fonte/bunny.ttf");
+            } catch (Throwable t) {
+                sFonte = Typeface.DEFAULT;
+            }
+        }
+        return sFonte;
     }
 
     /** Sprite do res/drawable do app — o jogo roda no NOSSO processo. */
@@ -138,6 +213,65 @@ public class CheatBridge {
         } catch (Throwable t) {
             return null;
         }
+    }
+
+    /**
+     * Sprite do jogo por ID, de assets/sprites/{item,npc}/<id>.png.
+     *
+     * Vem de arquivo porque nao da para vir do jogo: as texturas dele estao so
+     * na GPU (medido — o atlas e 2048x2048 com isReadable = 0, e Blit/
+     * ReadPixels/GetNativeTexturePtr sairam deste binario no strip do IL2CPP).
+     *
+     * O cache e pequeno de proposito: a lista recicla, entao o que importa e
+     * nao redecodificar o que esta na tela agora. Segurar 6000 bitmaps seria
+     * trocar um engasgo por um estouro de memoria.
+     */
+    private static final int CACHE_SPRITES = 192;
+    private static final Map<String, Bitmap> sCache =
+        new LinkedHashMap<String, Bitmap>(64, 0.75f, true) {
+            @Override protected boolean removeEldestEntry(Map.Entry<String, Bitmap> e) {
+                return size() > CACHE_SPRITES;
+            }
+        };
+
+    private static int[] sNpcFrames;
+
+    /** Quadros da tira do NPC. 1 quando o jogo ainda nao disse. */
+    private static int framesDe(int id) {
+        if (sNpcFrames == null) sNpcFrames = nNpcFrames();
+        if (sNpcFrames == null || id < 0 || id >= sNpcFrames.length) return 1;
+        return sNpcFrames[id] < 1 ? 1 : sNpcFrames[id];
+    }
+
+    private static Bitmap spriteById(Activity a, boolean npc, int id) {
+        final String caminho = "sprites/" + (npc ? "npc/" : "item/") + id + ".png";
+        if (sCache.containsKey(caminho)) return sCache.get(caminho);
+        Bitmap bmp = null;
+        InputStream in = null;
+        try {
+            in = a.getAssets().open(caminho);
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inScaled = false;   // pixel art nao escala no decode
+            bmp = BitmapFactory.decodeStream(in, null, o);
+            // O PNG de NPC e uma TIRA VERTICAL de quadros. Mostrar a tira
+            // inteira espremida num quadradinho deixava a Geleia Azul com duas
+            // cabecas. Fica so o primeiro quadro.
+            if (bmp != null && npc) {
+                int q = framesDe(id);
+                int alt = bmp.getHeight() / q;
+                if (q > 1 && alt > 0) {
+                    Bitmap corte = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), alt);
+                    if (corte != bmp) bmp.recycle();
+                    bmp = corte;
+                }
+            }
+        } catch (Throwable t) {
+            bmp = null;           // id sem sprite: a linha fica so com o nome
+        } finally {
+            if (in != null) try { in.close(); } catch (Throwable ignored) { }
+        }
+        sCache.put(caminho, bmp);
+        return bmp;
     }
 
     private static ImageView icon(Activity a, Bitmap bmp, int dp) {
@@ -211,13 +345,13 @@ public class CheatBridge {
         // ---- coluna da direita (criada antes: o aside precisa preenche-la) ----
         final LinearLayout content = new LinearLayout(act);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setBackground(panel(act, PANEL, OUTLINE));
+        content.setBackground(panelBig(act, PANEL, OUTLINE));
         content.setPadding(px(act, 12), px(act, 12), px(act, 12), px(act, 12));
 
         // ---- coluna da esquerda ----
         LinearLayout aside = new LinearLayout(act);
         aside.setOrientation(LinearLayout.VERTICAL);
-        aside.setBackground(panel(act, PANEL, OUTLINE));
+        aside.setBackground(panelBig(act, PANEL, OUTLINE));
         aside.setPadding(px(act, 10), px(act, 10), px(act, 10), px(act, 10));
 
         LinearLayout head = new LinearLayout(act);
@@ -251,8 +385,14 @@ public class CheatBridge {
                 asideList.addView(g);
             }
             final int index = i;
-            TextView b = text(act, s.title, 14, INK);
-            b.setPadding(px(act, 10), px(act, 9), px(act, 10), px(act, 9));
+            LinearLayout b = new LinearLayout(act);
+            b.setOrientation(LinearLayout.HORIZONTAL);
+            b.setGravity(Gravity.CENTER_VERTICAL);
+            b.setPadding(px(act, 8), px(act, 7), px(act, 10), px(act, 7));
+            b.addView(icon(act, sprite(act, s.icone), 22));
+            TextView rot = text(act, s.title, 14, INK);
+            rot.setPadding(px(act, 8), 0, 0, 0);
+            b.addView(rot);
             b.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
                     select(act, content, all, buttons, index);
@@ -266,26 +406,29 @@ public class CheatBridge {
             buttons[i] = b;
         }
 
-        TextView close = text(act, "Fechar", 14, INK);
-        close.setGravity(Gravity.CENTER);
-        close.setPadding(0, px(act, 10), 0, px(act, 10));
-        close.setBackground(panel(act, 0xFF8B3A3A, OUTLINE));
-        close.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (sOverlay != null) sOverlay.setVisibility(View.GONE);
-            }
-        });
-        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        clp.topMargin = px(act, 8);
-        aside.addView(close, clp);
-
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
             px(act, 190), LinearLayout.LayoutParams.MATCH_PARENT);
         alp.rightMargin = px(act, 10);
         body.addView(aside, alp);
         body.addView(content, new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+
+        // Fechar: icone no canto superior direito, sobre tudo. Era uma barra
+        // vermelha no pe da coluna, que comia altura de lista e ficava longe do
+        // polegar de quem segura o aparelho deitado.
+        ImageView fechar = icon(act, sprite(act, "ic_fechar"), 30);
+        fechar.setPadding(px(act, 5), px(act, 5), px(act, 5), px(act, 5));
+        fechar.setBackground(panel(act, 0xFF8B3A3A, OUTLINE));
+        fechar.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (sOverlay != null) sOverlay.setVisibility(View.GONE);
+            }
+        });
+        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(px(act, 42), px(act, 42));
+        flp.gravity = Gravity.TOP | Gravity.END;
+        flp.topMargin = px(act, 24);
+        flp.rightMargin = px(act, 24);
+        root.addView(fechar, flp);
 
         select(act, content, all, buttons, 0);
         return root;
@@ -302,6 +445,22 @@ public class CheatBridge {
         return v;
     }
 
+    /** Teto do slider. NPC e baixo de proposito: 10 chefes de uma vez trava. */
+    private static final int MAX_ITEM = 999;
+    private static final int MAX_NPC = 10;
+
+    /** O valor que mais se repete — para o slider comecar onde era o padrao. */
+    private static int maisComum(int[] v) {
+        if (v == null || v.length == 0) return 1;
+        int melhor = v[0], melhorN = 0;
+        for (int a : v) {
+            int n = 0;
+            for (int b : v) if (a == b) n++;
+            if (n > melhorN) { melhorN = n; melhor = a; }
+        }
+        return melhor < 1 ? 1 : melhor;
+    }
+
     /** Troca a secao mostrada e marca o botao escolhido. */
     private static void select(final Activity act, LinearLayout content,
                                Section[] all, View[] buttons, int index) {
@@ -309,7 +468,7 @@ public class CheatBridge {
             buttons[i].setBackground(
                 i == index ? panel(act, PANEL_LIT, GRASS) : panel(act, PANEL_DARK, OUTLINE));
         }
-        Section s = all[index];
+        final Section s = all[index];
         content.removeAllViews();
 
         LinearLayout head = new LinearLayout(act);
@@ -319,63 +478,173 @@ public class CheatBridge {
         content.addView(head);
         content.addView(rule(act));
 
-        ScrollView scroll = new ScrollView(act);
-        LinearLayout list = new LinearLayout(act);
-        list.setOrientation(LinearLayout.VERTICAL);
-        for (int i = 0; i < s.names.length; i++) {
-            list.addView(row(act, s, i));
+        if (!s.carregar()) {
+            // A primeira pergunta e o gatilho: o nativo so comeca a moer quando
+            // alguem pede. Em vez de mandar o jogador tocar de novo, voltamos
+            // sozinhos ate ficar pronto.
+            content.addView(text(act,
+                "Lendo os nomes do jogo, no seu idioma. Sao ~6800, moidos aos "
+                + "poucos para nao engasgar o jogo...", 13, INK_DIM));
+            final LinearLayout alvo = content;
+            final Section[] todas = all;
+            final View[] bts = buttons;
+            final int idx = index;
+            content.postDelayed(new Runnable() {
+                @Override public void run() { select(act, alvo, todas, bts, idx); }
+            }, 600);
+            return;
         }
-        scroll.addView(list);
-        content.addView(scroll, new LinearLayout.LayoutParams(
+
+        // ---- quantidade ----
+        final int max = s.npc ? MAX_NPC : MAX_ITEM;
+        int inicial = s.npc ? 1 : maisComum(s.stacks);
+        if (inicial > max) inicial = max;
+        final int[] qtd = { inicial };
+
+        final TextView rotulo = text(act, "Quantidade: " + inicial, 12, INK);
+        rotulo.setWidth(px(act, 112));
+        SeekBar barra = new SeekBar(act);
+        barra.setMax(max);
+        barra.setProgress(inicial);
+        barra.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar sb, int valor, boolean doUsuario) {
+                // setMin() so existe da API 26 para cima e o app vai ate a 24,
+                // entao o piso e aqui: zero nao da item nem NPC nenhum.
+                qtd[0] = valor < 1 ? 1 : valor;
+                rotulo.setText("Quantidade: " + qtd[0]);
+            }
+            @Override public void onStartTrackingTouch(SeekBar sb) { }
+            @Override public void onStopTrackingTouch(SeekBar sb) { }
+        });
+
+        LinearLayout linhaQtd = new LinearLayout(act);
+        linhaQtd.setOrientation(LinearLayout.HORIZONTAL);
+        linhaQtd.setGravity(Gravity.CENTER_VERTICAL);
+        linhaQtd.setPadding(0, px(act, 4), 0, px(act, 4));
+        linhaQtd.addView(rotulo);
+        linhaQtd.addView(barra, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        content.addView(linhaQtd);
+        content.addView(rule(act));
+
+        // ---- lista ----
+        //
+        // ListView, e nao ScrollView com tudo dentro: "Todos os itens" tem 6147
+        // linhas, e montar 6147 Views de uma vez trava o jogo por segundos. A
+        // ListView so monta o que cabe na tela e reaproveita ao rolar.
+        ListView lista = new ListView(act);
+        lista.setDivider(null);
+        lista.setCacheColorHint(0);
+        lista.setAdapter(new BaseAdapter() {
+            @Override public int getCount() { return s.count(); }
+            @Override public Object getItem(int i) { return null; }
+            @Override public long getItemId(int i) { return i; }
+            @Override public View getView(int i, View reuso, ViewGroup pai) {
+                return row(act, s, i, qtd, reuso);
+            }
+        });
+        content.addView(lista, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
     }
 
-    /** Uma linha: nome, quantidade e o botao de acao. */
-    private static View row(final Activity act, final Section s, final int i) {
-        final String name = s.names[i];
+    /** As partes de uma linha, para trocar o conteudo em vez de remontar. */
+    private static final class Linha {
+        ImageView sprite;
+        TextView nome, detalhe;
+        Button acao;
+    }
+
+    /** Uma linha: sprite, nome, id e o botao de acao. */
+    private static View row(final Activity act, final Section s, final int i,
+                            final int[] qtd, View reuso) {
+        final Linha L;
+        LinearLayout r;
+        if (reuso instanceof LinearLayout && reuso.getTag() instanceof Linha) {
+            r = (LinearLayout) reuso;
+            L = (Linha) reuso.getTag();
+        } else {
+            L = new Linha();
+            r = new LinearLayout(act);
+            r.setOrientation(LinearLayout.HORIZONTAL);
+            r.setGravity(Gravity.CENTER_VERTICAL);
+            r.setBackground(panel(act, PANEL_DARK, OUTLINE));
+            r.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
+
+            L.sprite = icon(act, null, 34);
+            L.sprite.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            r.addView(L.sprite);
+
+            LinearLayout rotulos = new LinearLayout(act);
+            rotulos.setOrientation(LinearLayout.VERTICAL);
+            rotulos.setPadding(px(act, 8), 0, 0, 0);
+            L.nome = text(act, "", 14, INK);
+            L.detalhe = text(act, "", 10, INK_DIM);
+            rotulos.addView(L.nome);
+            rotulos.addView(L.detalhe);
+            r.addView(rotulos, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            L.acao = new Button(act);
+            L.acao.setAllCaps(false);
+            L.acao.setTextColor(Color.WHITE);
+            L.acao.setTextSize(13);
+            L.acao.setTypeface(fonte(act));
+            r.addView(L.acao, new LinearLayout.LayoutParams(
+                px(act, 82), LinearLayout.LayoutParams.WRAP_CONTENT));
+
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.bottomMargin = px(act, 4);
+            r.setLayoutParams(lp);
+            r.setTag(L);
+        }
+
         final int id = s.ids[i];
-        final int stack = s.stacks == null ? 1 : s.stacks[i];
+        final String bruto = s.names[i];
+        // Id sem nome na Localization (buraco na tabela): mostra o id, que e o
+        // que o jogador precisa para saber o que pediu.
+        final String nome = (bruto == null || bruto.length() == 0) ? ("#" + id) : bruto;
 
-        LinearLayout r = new LinearLayout(act);
-        r.setOrientation(LinearLayout.HORIZONTAL);
-        r.setGravity(Gravity.CENTER_VERTICAL);
-        r.setBackground(panel(act, PANEL_DARK, OUTLINE));
-        r.setPadding(px(act, 10), px(act, 8), px(act, 8), px(act, 8));
+        Bitmap bmp = spriteById(act, s.npc, id);
+        if (bmp != null) {
+            BitmapDrawable d = new BitmapDrawable(act.getResources(), bmp);
+            d.getPaint().setFilterBitmap(false);   // vizinho-mais-proximo
+            L.sprite.setImageDrawable(d);
+        } else {
+            L.sprite.setImageDrawable(null);
+        }
 
-        LinearLayout labels = new LinearLayout(act);
-        labels.setOrientation(LinearLayout.VERTICAL);
-        labels.addView(text(act, name, 14, INK));
-        labels.addView(text(act,
-            s.npc ? ("NPC " + id) : (stack > 1 ? ("x" + stack + "  ·  id " + id) : ("id " + id)),
-            10, INK_DIM));
-        r.addView(labels, new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        Button go = new Button(act);
-        go.setText(s.npc ? "Invocar" : "Pegar");
-        go.setAllCaps(false);
-        go.setTextColor(Color.WHITE);
-        go.setTextSize(13);
-        go.setBackground(panel(act, s.npc ? DIRT : GRASS, OUTLINE));
-        go.setOnClickListener(new View.OnClickListener() {
+        L.nome.setText(nome);
+        L.detalhe.setText(s.npc ? ("NPC " + id) : ("id " + id));
+        L.acao.setText(s.npc ? "Invocar" : "Pegar");
+        L.acao.setBackground(panel(act, s.npc ? DIRT : GRASS, OUTLINE));
+        Bitmap bAcao = sprite(act, s.npc ? "ic_invocar" : "ic_pegar");
+        if (bAcao != null) {
+            BitmapDrawable dAcao = new BitmapDrawable(act.getResources(), bAcao);
+            dAcao.getPaint().setFilterBitmap(false);
+            int lado = px(act, 18);
+            dAcao.setBounds(0, 0, lado, lado);
+            L.acao.setCompoundDrawables(dAcao, null, null, null);
+            L.acao.setCompoundDrawablePadding(px(act, 4));
+        }
+        L.acao.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
+                int n = qtd[0] < 1 ? 1 : qtd[0];
                 if (s.npc) {
-                    nOnSpawn(id);
-                    Toast.makeText(act, name + " invocado", Toast.LENGTH_SHORT).show();
+                    // A contagem vai JUNTO: o nativo guarda o pedido num slot
+                    // so, consumido uma vez por quadro, entao dez chamadas
+                    // seguidas viravam um NPC.
+                    nOnSpawn(id, n);
+                    Toast.makeText(act, nome + (n > 1 ? " x" + n : "") + " invocado",
+                        Toast.LENGTH_SHORT).show();
                 } else {
-                    nOnGive(id, stack);
-                    Toast.makeText(act, name + (stack > 1 ? " x" + stack : ""),
+                    nOnGive(id, n);
+                    Toast.makeText(act, nome + (n > 1 ? " x" + n : ""),
                         Toast.LENGTH_SHORT).show();
                 }
             }
         });
-        r.addView(go, new LinearLayout.LayoutParams(
-            px(act, 82), LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = px(act, 4);
-        r.setLayoutParams(lp);
         return r;
     }
 

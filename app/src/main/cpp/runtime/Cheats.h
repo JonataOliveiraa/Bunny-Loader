@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <vector>
 
 namespace bl::runtime {
 
@@ -29,6 +31,31 @@ void requestGive(int type, int stack);
  * de DoUpdate executa no próximo quadro, na thread do jogo.
  */
 void spawnNpc(int type);
-void requestSpawn(int type);
+
+/**
+ * Nomes de TODO item e TODO NPC, vindos da Localization do jogo.
+ *
+ * Sao ~6800 chamadas a Lang.GetItemNameValue/GetNPCNameValue, e elas so podem
+ * acontecer na thread do jogo. Feitas de uma vez, seriam um engasgo visivel no
+ * primeiro quadro; entao saem em fatias, algumas centenas por quadro, a partir
+ * do DoUpdate. Ate ficarem prontas, `namesReady()` e false e o menu mostra que
+ * esta carregando.
+ *
+ * UTF-16 porque e o que o C# guarda e o que o Java quer: converter para UTF-8
+ * no meio so perderia tempo e acentos.
+ */
+bool namesReady();
+const std::vector<std::u16string>& itemNames();
+const std::vector<std::u16string>& npcNames();
+
+/**
+ * Quantos quadros tem a tira de cada NPC (Main.npcFrameCount).
+ *
+ * O PNG de um NPC e uma tira vertical de quadros; sem isto a lista mostra o
+ * bicho repetido varias vezes espremido. So o jogo sabe o numero — ele preenche
+ * esse array no Initialize.
+ */
+const std::vector<int>& npcFrames();
+void requestSpawn(int type, int count = 1);
 
 } // namespace bl::runtime

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -66,19 +67,24 @@ private val EdgePad = 14.dp
 fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
     val scroll = rememberScrollState()
     Box {
-        Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
+        Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+            // O título vai de ponta a ponta, FORA do padding da coluna.
+            //
+            // O `aspectRatio` é o que faz a coisa funcionar, e a falta dele era
+            // o bug: com só `fillMaxWidth()`, a ALTURA colapsava para os 133 px
+            // da arte e o ContentScale.Fit passava a caber por ela — a imagem
+            // ficava em tamanho 1:1 no meio de uma faixa larga, e o `heightIn`
+            // que parecia ser o limitador nunca chegava a valer. Travando a
+            // proporção, a altura segue a largura e o título ocupa o que tem.
             Image(
                 bitmap = ImageBitmap.imageResource(R.drawable.img_title),
                 contentDescription = "Bunny Loader",
                 filterQuality = FilterQuality.None,
                 contentScale = ContentScale.Fit,
-                // ContentScale.Fit respeita o limite que apertar primeiro. A
-                // arte é 414x133 (3,1:1), então numa coluna de 560dp a largura
-                // pede 180dp de altura — é o `heightIn` que manda aqui, e era
-                // ele que estava segurando o título em tamanho de subtítulo.
-                modifier = Modifier.fillMaxWidth().heightIn(max = 190.dp)
-                    .padding(top = 12.dp, bottom = 4.dp),
+                modifier = Modifier.fillMaxWidth().aspectRatio(414f / 133f)
+                    .padding(top = 10.dp, bottom = 6.dp),
             )
+            Column(Modifier.padding(horizontal = EdgePad)) {
 
             val featured = shell.entries.firstOrNull { it.manifest.featured }
                 ?: shell.entries.firstOrNull()
@@ -95,6 +101,7 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
                 }
             }
             Spacer(Modifier.height(16.dp))
+            }
         }
         PixelScrollbar(scroll, Modifier.fillMaxSize())
     }

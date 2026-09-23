@@ -118,6 +118,9 @@ android {
         // exportado pela Unity usa.
         noCompress += listOf(
             ".unity3d", ".ress", ".resource", ".obb", ".bundle", ".unityexp",
+            // PNG ja e comprimido: deflatar de novo nao ganha byte e faz o
+            // menu pagar uma inflada por miniatura aberta. Sao ~6800 arquivos.
+            ".png",
         )
     }
 
@@ -136,8 +139,31 @@ val syncSampleMods by tasks.registering(Sync::class) {
     from(rootProject.file("samples"))
     into(layout.buildDirectory.dir("generated/blAssets/mods"))
 }
+
+/**
+ * _sprites/{item,npc}/<id>.png -> assets/sprites/, para o menu de cheats.
+ *
+ * Vem de fora porque nao da para tirar de dentro: o atlas do jogo vive so na
+ * GPU (medido — isReadable = 0, e Blit/ReadPixels/GetNativeTexturePtr foram
+ * removidos deste binario). Sao 3,9 MB num APK de 184.
+ */
+val syncSprites by tasks.registering(Sync::class) {
+    from(rootProject.file("_sprites")) { exclude("README.md") }
+    into(layout.buildDirectory.dir("generated/blAssets/sprites"))
+}
+/**
+ * res/font/bunny.ttf -> assets/fonte/, para o menu de cheats.
+ *
+ * O menu roda de um dex carregado em memoria, sem a classe R do app, entao nao
+ * alcanca res/font — e `Resources.getFont` so existe da API 26 para cima,
+ * enquanto o app vai ate a 24. Pelos assets funciona em todas.
+ */
+val syncFonte by tasks.registering(Sync::class) {
+    from(file("src/main/res/font"))
+    into(layout.buildDirectory.dir("generated/blAssets/fonte"))
+}
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
-    .configureEach { dependsOn(syncSampleMods) }
+    .configureEach { dependsOn(syncSampleMods, syncSprites, syncFonte) }
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))

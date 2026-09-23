@@ -131,8 +131,11 @@ private fun LauncherScreen() {
  *
  * Era chão de terra com um véu escuro por cima, e o véu roubava a cor: de longe
  * virava uma faixa preta translúcida. Agora é o painel do jogo — o mesmo
- * #3f5297 com contorno #131625 do menu de dentro —, e só o topo fica
- * arredondado, porque a barra encosta na borda de baixo da tela.
+ * #3f5297 com contorno #131625 do menu de dentro.
+ *
+ * Reta e de cor chapada, de propósito: o degradê vertical dava um brilho de
+ * plástico que destoa do resto, e o canto arredondado deixava dois buracos na
+ * quina de baixo da tela, onde a barra encosta.
  */
 @Composable
 private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
@@ -142,20 +145,12 @@ private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
                 .fillMaxWidth()
                 .height(84.dp)
                 .drawBehind {
-                    val r = CornerRadius(20.dp.toPx(), 20.dp.toPx())
                     val b = 3.dp.toPx()
-                    drawRoundRect(Bl.Outline, cornerRadius = r)
-                    // Claro em cima, escuro embaixo: é o que dá volume à barra
-                    // sem precisar de sombra por baixo, que não caberia.
-                    drawRoundRect(
-                        Brush.verticalGradient(listOf(
-                            Bl.GamePanel.mix(Color.White, 0.22f),
-                            Bl.GamePanel,
-                            Bl.GamePanel.mix(Bl.Night, 0.25f),
-                        )),
+                    drawRect(Bl.Outline)
+                    drawRect(
+                        Bl.GamePanel,
                         topLeft = Offset(b, b),
                         size = Size(size.width - b * 2, size.height),
-                        cornerRadius = r,
                     )
                 }
                 .navigationBarsPadding(),
@@ -178,10 +173,12 @@ private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
                     // em vez de flutuar sobre ela.
                     drawCircle(Bl.Shadow, center = center.copy(
                         x = center.x + 3.dp.toPx(), y = center.y + 5.dp.toPx()))
+                    // Contorno fino: 4dp de preto num círculo de 86 viravam um
+                    // anel, não uma borda.
                     drawCircle(Bl.Outline)
                     drawCircle(
                         Brush.verticalGradient(listOf(Bl.Grass4, Bl.Grass1)),
-                        radius = size.minDimension / 2 - 4.dp.toPx(),
+                        radius = size.minDimension / 2 - 1.5.dp.toPx(),
                     )
                 }
                 .clip(CircleShape)

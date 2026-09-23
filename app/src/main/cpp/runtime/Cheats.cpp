@@ -1,3 +1,5 @@
+#include <string>
+#include <vector>
 #include "runtime/Boot.h"
 #include "runtime/Cheats.h"
 #include "core/Config.h"
@@ -26,7 +28,9 @@ struct Vector2 { float x; float y; };
 std::atomic<uint64_t> g_pendingGive{0};
 
 // Pedido pendente de invocar NPC. 0 = nada.
-std::atomic<int> g_pendingSpawn{0};
+// (tipo << 32 | quantidade), como o de item. Era so o tipo, e o menu
+// pedindo 10 vezes seguidas sobrescrevia o slot: saia UM NPC.
+std::atomic<uint64_t> g_pendingSpawn{0};
 
 uint64_t packGive(int type, int stack) {
     return (static_cast<uint64_t>(static_cast<uint32_t>(type)) << 32) |
@@ -156,28 +160,137 @@ void runSelftestOnce() {
     else BL_INFO("cheats: selftest runtime_invoke get_myPlayer() = %d (ok)", me);
 }
 
+// ----------------------- nomes de item e NPC -----------------------
+//
+// Do dump: ItemID.Count = 6147, NPCID.Count = 697. Sao `const` do C#, que o
+// IL2CPP resolve em tempo de compilacao e nao deixa como campo para ler — por
+// isso vem daqui, com o dump como fonte, do mesmo jeito que os ids do
+// CheatData.
+constexpr int kItemCount = 6147;
+constexpr int kNpcCount = 697;
+// Por quadro. 250 x ~28 quadros = meio segundo, sem engasgo perceptivel.
+constexpr int kNomesPorQuadro = 250;
+
+std::vector<std::u16string> g_itemNames;
+std::vector<std::u16string> g_npcNames;
+std::vector<int> g_npcFrames;
+const MethodInfo* g_itemNameOf = nullptr;
+const MethodInfo* g_npcNameOf = nullptr;
+int g_nomeProgresso = -1;   // -1 = nem comecou; >= kItemCount+kNpcCount = pronto
+std::atomic<bool> g_namesReady{false};
+// So mói quando alguem pede. Moer desde o primeiro DoUpdate parecia esperto e
+// estava errado: naquele instante a Localization do jogo ainda nao carregou, e
+// as 6800 chamadas voltavam com texto vazio — a lista saia com "#0, #1, #2".
+// Quando o menu abre, o jogo ja esta de pe ha muito.
+std::atomic<bool> g_querNomes{false};
+
+std::u16string textoDe(Il2CppString* s) {
+    if (!s || s->length <= 0) return {};
+    return std::u16string(reinterpret_cast<const char16_t*>(s->chars),
+                          static_cast<size_t>(s->length));
+}
+
+/** Uma fatia de nomes por quadro. Volta rapido quando ja acabou. */
+void moerNomesUmaFatia() {
+    if (!g_querNomes.load(std::memory_order_relaxed)) return;
+    if (g_namesReady.load(std::memory_order_relaxed)) return;
+    auto& a = il2cpp::api();
+
+    if (g_nomeProgresso < 0) {
+        Il2CppClass* lang = il2cpp::findClass({"Terraria", "Lang", {}});
+        g_itemNameOf = lang ? a.class_get_method_from_name(lang, "GetItemNameValue", 1) : nullptr;
+        g_npcNameOf  = lang ? a.class_get_method_from_name(lang, "GetNPCNameValue", 1) : nullptr;
+        if (!g_itemNameOf || !g_npcNameOf) {
+            BL_ERROR("cheats: Lang.GetItemNameValue/GetNPCNameValue nao encontrados; "
+                     "o menu fica so com os ids");
+            g_namesReady.store(true, std::memory_order_release);
+            return;
+        }
+        g_itemNames.assign(kItemCount, std::u16string());
+        g_npcNames.assign(kNpcCount, std::u16string());
+        g_nomeProgresso = 0;
+    }
+
+    const int total = kItemCount + kNpcCount;
+    int fim = g_nomeProgresso + kNomesPorQuadro;
+    if (fim > total) fim = total;
+    for (; g_nomeProgresso < fim; ++g_nomeProgresso) {
+        const bool item = g_nomeProgresso < kItemCount;
+        int id = item ? g_nomeProgresso : g_nomeProgresso - kItemCount;
+        void* args[1] = {&id};
+        Il2CppObject* exc = nullptr;
+        Il2CppObject* r = a.runtime_invoke(item ? g_itemNameOf : g_npcNameOf,
+                                           nullptr, args, &exc);
+        if (exc) continue;   // id sem nome: fica vazio, o menu mostra so o id
+        std::u16string nome = textoDe(reinterpret_cast<Il2CppString*>(r));
+        if (item) g_itemNames[id] = std::move(nome);
+        else g_npcNames[id] = std::move(nome);
+    }
+    if (g_nomeProgresso >= total) {
+        // Main.npcFrameCount, de uma vez: sao 697 ints ja prontos na memoria do
+        // jogo, nao ha o que fatiar.
+        Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+        FieldInfo* f = main ? il2cpp::findField(main, "npcFrameCount") : nullptr;
+        Il2CppArray* arr = nullptr;
+        if (f) a.field_static_get_value(f, &arr);
+        if (arr) {
+            const int32_t* v = static_cast<const int32_t*>(arrayData(arr));
+            size_t n = static_cast<size_t>(arr->length);
+            g_npcFrames.assign(v, v + n);
+        } else {
+            BL_ERROR("cheats: Main.npcFrameCount nao veio; a lista vai mostrar a "
+                     "tira inteira de cada NPC");
+        }
+        g_namesReady.store(true, std::memory_order_release);
+        int vazios = 0;
+        for (const auto& n : g_itemNames) if (n.empty()) ++vazios;
+        BL_INFO("cheats: nomes prontos (%d itens, %d NPCs; %d itens sem nome)",
+                kItemCount, kNpcCount, vazios);
+    }
+}
+
 void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     // Daqui sai a identidade da thread do jogo: e a unica em que se pode criar
     // objeto de Unity (ver bl.loadTexture).
     runtime::noteGameThread();
     runSelftestOnce();
+    moerNomesUmaFatia();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {
         giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));
     }
-    if (int npc = g_pendingSpawn.exchange(0)) spawnNpc(npc);
+    if (uint64_t req = g_pendingSpawn.exchange(0)) {
+        int tipo = static_cast<int>(req >> 32);
+        int quantos = static_cast<int>(req & 0xffffffffu);
+        for (int i = 0; i < quantos; ++i) spawnNpc(tipo);
+    }
     pollCommands();  // canal por arquivo (dev/adb) continua valendo
     g_origDoUpdate(self, gt, m);
 }
 
 } // namespace
 
+bool namesReady() {
+    // Pedir e o gatilho: quem pergunta e o menu abrindo, e ai o jogo ja carregou
+    // a Localization. Quem nunca abre o menu nao paga nada.
+    g_querNomes.store(true, std::memory_order_relaxed);
+    return g_namesReady.load(std::memory_order_acquire);
+}
+const std::vector<std::u16string>& itemNames() { return g_itemNames; }
+const std::vector<std::u16string>& npcNames() { return g_npcNames; }
+const std::vector<int>& npcFrames() { return g_npcFrames; }
+
 void requestGive(int type, int stack) {
     if (type > 0) g_pendingGive.store(packGive(type, stack > 0 ? stack : 1));
 }
 
-void requestSpawn(int type) {
-    if (type > 0) g_pendingSpawn.store(type);
+void requestSpawn(int type, int count) {
+    if (count < 1) count = 1;
+    if (count > 10) count = 10;   // teto do slider; 10 chefes ja e demais
+    if (type > 0) {
+        g_pendingSpawn.store((static_cast<uint64_t>(type) << 32) |
+                             static_cast<uint32_t>(count));
+    }
 }
 
 void spawnNpc(int type) {

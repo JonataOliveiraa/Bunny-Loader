@@ -1,6 +1,9 @@
 #include "ui/CheatButton.h"
 #include "core/Config.h"
 #include "core/Log.h"
+#include <string>
+#include <vector>
+
 #include "runtime/Cheats.h"
 #include "ui/CheatBridgeDex.h"
 
@@ -78,8 +81,48 @@ void JNICALL jni_onGive(JNIEnv*, jclass, jint type, jint stack) {
     bl::runtime::requestGive(type, stack);
 }
 
-void JNICALL jni_onSpawn(JNIEnv*, jclass, jint type) {
-    bl::runtime::requestSpawn(type);
+/**
+ * As tabelas de nome, do nativo para o dex. null enquanto ainda moem.
+ *
+ * Uma copia so, quando o menu abre: e String[] de ~6800 posicoes, e o Java
+ * segura a referencia depois disso. Passar nome a nome por JNI, por linha
+ * visivel, custaria uma travessia por rolagem — e pior, viria da thread de UI,
+ * que nao pode tocar no il2cpp.
+ */
+jobjectArray comoArray(JNIEnv* env, const std::vector<std::u16string>& nomes) {
+    if (!runtime::namesReady()) return nullptr;
+    jclass sc = env->FindClass("java/lang/String");
+    if (!sc) return nullptr;
+    jobjectArray out = env->NewObjectArray(static_cast<jsize>(nomes.size()), sc, nullptr);
+    if (!out) return nullptr;
+    for (size_t i = 0; i < nomes.size(); ++i) {
+        if (nomes[i].empty()) continue;   // fica null: o menu mostra so o id
+        jstring js = env->NewString(reinterpret_cast<const jchar*>(nomes[i].data()),
+                                    static_cast<jsize>(nomes[i].size()));
+        env->SetObjectArrayElement(out, static_cast<jsize>(i), js);
+        env->DeleteLocalRef(js);
+    }
+    return out;
+}
+
+jobjectArray JNICALL jni_itemNames(JNIEnv* env, jclass) {
+    return comoArray(env, runtime::itemNames());
+}
+
+jobjectArray JNICALL jni_npcNames(JNIEnv* env, jclass) {
+    return comoArray(env, runtime::npcNames());
+}
+
+jintArray JNICALL jni_npcFrames(JNIEnv* env, jclass) {
+    const std::vector<int>& v = runtime::npcFrames();
+    if (v.empty()) return nullptr;
+    jintArray out = env->NewIntArray(static_cast<jsize>(v.size()));
+    if (out) env->SetIntArrayRegion(out, 0, static_cast<jsize>(v.size()), v.data());
+    return out;
+}
+
+void JNICALL jni_onSpawn(JNIEnv*, jclass, jint type, jint count) {
+    bl::runtime::requestSpawn(type, count);
 }
 
 // Classloader do app (acha classes do app, ao contrario do FindClass de uma
@@ -169,9 +212,12 @@ void installCheatButton() {
     // 4. Liga o metodo nativo.
     JNINativeMethod nm[] = {
         {"nOnGive", "(II)V", reinterpret_cast<void*>(&jni_onGive)},
-        {"nOnSpawn", "(I)V", reinterpret_cast<void*>(&jni_onSpawn)},
+        {"nOnSpawn", "(II)V", reinterpret_cast<void*>(&jni_onSpawn)},
+        {"nItemNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_itemNames)},
+        {"nNpcNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_npcNames)},
+        {"nNpcFrames", "()[I", reinterpret_cast<void*>(&jni_npcFrames)},
     };
-    if (env->RegisterNatives(bridge, nm, 2) != JNI_OK) {
+    if (env->RegisterNatives(bridge, nm, 5) != JNI_OK) {
         checkExc(env, "RegisterNatives");
         if (attached) vm->DetachCurrentThread();
         return;
