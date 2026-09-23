@@ -40,13 +40,58 @@ namespace bl::script {
 // valor em d0 — por isso ha TRES familias de funcao geradas, e a instalacao
 // escolhe a familia pelo tipo de retorno do metodo.
 
+// STRUCT DE RETORNO: o AAPCS64 tem tres formas, e a forma faz parte da
+// assinatura da funcao — nao da para escolher em tempo de execucao. Entao ha
+// uma familia de funcoes geradas por forma, e cada uma devolve um TIPO
+// CARREGADOR com o mesmo formato do struct do jogo. O compilador cuida da ABI:
+//
+//   HFA de 1..4 floats   -> s0..s3    (Vector2 = {float,float} -> s0,s1)
+//   HFA de 1..4 doubles  -> d0..d3
+//   <= 8 bytes           -> x0
+//   9..16 bytes          -> x0, x1
+//   > 16 bytes           -> MEMORIA: o chamador passa o endereco em x8, que
+//                           nao e registrador de argumento. Recusado.
+struct S8  { uint64_t a; };
+struct S16 { uint64_t a, b; };
+struct H1F { float a; };
+struct H2F { float a, b; };
+struct H3F { float a, b, c; };
+struct H4F { float a, b, c, d; };
+struct H1D { double a; };
+struct H2D { double a, b; };
+struct H3D { double a, b, c; };
+struct H4D { double a, b, c, d; };
+
 constexpr int kIntHooks = 64;                              // slots 0..63
 constexpr int kFltHooks = 16;                              // slots 64..79
 constexpr int kDblHooks = 16;                              // slots 80..95
-constexpr int kMaxHooks = kIntHooks + kFltHooks + kDblHooks;
+// Hook em metodo que devolve struct e minoria: no dump do jogo sao ~2100
+// metodos com retorno de struct pequeno contra dezenas de milhares no total, e
+// um mod hooka um punhado. Quatro por forma, e a mensagem de erro diz qual
+// forma esgotou.
+constexpr int kStructSlots = 4;
+constexpr int kBaseStruct = kIntHooks + kFltHooks + kDblHooks;   // 96
+constexpr int kStructForms = 10;
+constexpr int kMaxHooks = kBaseStruct + kStructForms * kStructSlots;
 
-/** Onde o valor de retorno do metodo viaja. */
-enum class Ret { Int, F32, F64 };
+/**
+ * Onde o valor de retorno viaja. A ordem importa: H1F..H4F e H1D..H4D sao
+ * consecutivos para o buildPlan indexar pela contagem do HFA.
+ */
+enum class Ret { Int, F32, F64, S8, S16, H1F, H2F, H3F, H4F, H1D, H2D, H3D, H4D };
+
+/** Primeiro slot da familia, e quantos ela tem. */
+static void slotRange(Ret r, int* from, int* count) {
+    switch (r) {
+        case Ret::Int: *from = 0;         *count = kIntHooks; return;
+        case Ret::F32: *from = kIntHooks; *count = kFltHooks; return;
+        case Ret::F64: *from = kIntHooks + kFltHooks; *count = kDblHooks; return;
+        default: break;
+    }
+    int forma = static_cast<int>(r) - static_cast<int>(Ret::S8);
+    *from = kBaseStruct + forma * kStructSlots;
+    *count = kStructSlots;
+}
 
 /**
  * Onde cada parametro viaja, decidido UMA vez na instalacao.
@@ -91,10 +136,12 @@ struct HookCtx {
 
 static HookCtx g_hooks[kMaxHooks];
 
-/** Retorno bruto: um dos dois campos vale, conforme HookCtx::ret. */
+/** Retorno bruto: o campo que vale depende de HookCtx::ret. */
 struct Outcome {
     intptr_t i = 0;
     double f = 0.0;
+    // 32 bytes cobrem a maior forma que viaja em registrador: HFA de 4 doubles.
+    uint8_t s[32] = {0};
 };
 
 struct Frame {
@@ -131,30 +178,45 @@ using RawI = intptr_t (*)(BL_HOOK_PARAMS);
 using RawF = float (*)(BL_HOOK_PARAMS);
 using RawD = double (*)(BL_HOOK_PARAMS);
 
-/** Chama o metodo real com um conjunto de registradores. */
+/**
+ * Chama o metodo real com um conjunto de registradores.
+ *
+ * Solta o motor JS enquanto isso: o corpo do metodo do jogo nao e tempo de JS,
+ * e segurar a trava ali e o que fazia um hook em metodo quente bloquear as
+ * outras threads por 3 s ate elas desistirem do mod. Fora do callback (a
+ * reentrancia, o timeout) a trava nem esta nossa e o JsSuspend nao faz nada.
+ */
 static Outcome callOriginal(HookCtx* c, const intptr_t a[8], const uint64_t d[8]) {
     Outcome o;
     void* fn = __atomic_load_n(&c->original, __ATOMIC_ACQUIRE);
     if (!fn) return o;
+    JsSuspend solta;
     double f[8];
     std::memcpy(f, d, sizeof(f));
+
+#define BL_ARGS_OUT a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],                     f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]
+    // O tipo de retorno do ponteiro de funcao E a ABI: chamar um metodo que
+    // devolve Vector2 atraves de um ponteiro que devolve intptr_t leria x0
+    // enquanto o valor esta em s0/s1.
+#define BL_CALL_STRUCT(T)                                                         do {                                                                              T r = reinterpret_cast<T (*)(BL_HOOK_PARAMS)>(fn)(BL_ARGS_OUT);               std::memcpy(o.s, &r, sizeof(r));                                          } while (0)
+
     switch (c->ret) {
-        case Ret::F32:
-            o.f = reinterpret_cast<RawF>(fn)(
-                a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
-                f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
-            break;
-        case Ret::F64:
-            o.f = reinterpret_cast<RawD>(fn)(
-                a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
-                f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
-            break;
-        default:
-            o.i = reinterpret_cast<RawI>(fn)(
-                a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
-                f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
-            break;
+        case Ret::F32: o.f = reinterpret_cast<RawF>(fn)(BL_ARGS_OUT); break;
+        case Ret::F64: o.f = reinterpret_cast<RawD>(fn)(BL_ARGS_OUT); break;
+        case Ret::S8:  BL_CALL_STRUCT(S8);  break;
+        case Ret::S16: BL_CALL_STRUCT(S16); break;
+        case Ret::H1F: BL_CALL_STRUCT(H1F); break;
+        case Ret::H2F: BL_CALL_STRUCT(H2F); break;
+        case Ret::H3F: BL_CALL_STRUCT(H3F); break;
+        case Ret::H4F: BL_CALL_STRUCT(H4F); break;
+        case Ret::H1D: BL_CALL_STRUCT(H1D); break;
+        case Ret::H2D: BL_CALL_STRUCT(H2D); break;
+        case Ret::H3D: BL_CALL_STRUCT(H3D); break;
+        case Ret::H4D: BL_CALL_STRUCT(H4D); break;
+        case Ret::Int: o.i = reinterpret_cast<RawI>(fn)(BL_ARGS_OUT); break;
     }
+#undef BL_CALL_STRUCT
+#undef BL_ARGS_OUT
     return o;
 }
 
@@ -264,10 +326,14 @@ static int jsToParam(JSContext* ctx, JSValueConst v, const ParamPlan& p,
 
 static JSValue returnToJs(HookCtx* c, const Outcome& o) {
     JSContext* ctx = c->ctx;
-    if (c->retDesc.prim == Prim::Void) return JS_UNDEFINED;
-    if (c->ret != Ret::Int) return JS_NewFloat64(ctx, o.f);
+    const TypeDesc& d = c->retDesc;
+    if (d.prim == Prim::Void) return JS_UNDEFINED;
+    // Copia, nao vista: os bytes estao num Outcome da nossa pilha, que some
+    // quando a chamada volta.
+    if (d.prim == Prim::Struct) return makeStructCopy(ctx, d.cls, o.s, d.size);
+    if (c->ret == Ret::F32 || c->ret == Ret::F64) return JS_NewFloat64(ctx, o.f);
     intptr_t raw = o.i;
-    return readAt(ctx, &raw, c->retDesc, JS_UNDEFINED);
+    return readAt(ctx, &raw, d, JS_UNDEFINED);
 }
 
 /** O que o callback devolveu vira o retorno do metodo. */
@@ -276,7 +342,18 @@ static Outcome jsToReturn(HookCtx* c, JSValueConst v, const Outcome& fallback) {
     if (JS_IsUndefined(v) || JS_IsException(v)) return fallback;
     if (c->retDesc.prim == Prim::Void) return fallback;
     Outcome o;
-    if (c->ret != Ret::Int) {
+    if (c->retDesc.prim == Prim::Struct) {
+        Il2CppClass* src = nullptr;
+        size_t n = 0;
+        void* p = structDataOf(v, &src, &n);
+        // Devolveu outra coisa que nao um struct do tipo certo: fica o do
+        // original, como acontece com qualquer retorno que nao converte.
+        if (!p || (src && c->retDesc.cls && src != c->retDesc.cls)) return fallback;
+        size_t cap = c->retDesc.size < sizeof(o.s) ? c->retDesc.size : sizeof(o.s);
+        std::memcpy(o.s, p, n < cap ? n : cap);
+        return o;
+    }
+    if (c->ret == Ret::F32 || c->ret == Ret::F64) {
         double x = 0;
         if (JS_ToFloat64(ctx, &x, v) < 0) {
             JS_FreeValue(ctx, JS_GetException(ctx));
@@ -467,6 +544,47 @@ BL_LIST_16
 BL_LIST_16
 #undef X
 
+/** Os bytes do Outcome no formato do carregador. */
+template <class T>
+static inline T carry(const Outcome& o) {
+    T r;
+    std::memcpy(&r, o.s, sizeof(r));
+    return r;
+}
+
+// Quatro slots por forma. O numero da forma multiplica kStructSlots, entao a
+// ordem aqui tem de bater com a do enum Ret (S8, S16, H1F..H4F, H1D..H4D) — e
+// a mesma que o slotRange usa para achar o intervalo.
+#define BL_GEN_STRUCT(sufixo, T, forma)                                      \
+    static T bl_hook_##sufixo##0(BL_HOOK_PARAMS) {                           \
+        return carry<T>(dispatch(BL_HOOK_ARGS,                               \
+                        kBaseStruct + (forma) * kStructSlots + 0));          \
+    }                                                                        \
+    static T bl_hook_##sufixo##1(BL_HOOK_PARAMS) {                           \
+        return carry<T>(dispatch(BL_HOOK_ARGS,                               \
+                        kBaseStruct + (forma) * kStructSlots + 1));          \
+    }                                                                        \
+    static T bl_hook_##sufixo##2(BL_HOOK_PARAMS) {                           \
+        return carry<T>(dispatch(BL_HOOK_ARGS,                               \
+                        kBaseStruct + (forma) * kStructSlots + 2));          \
+    }                                                                        \
+    static T bl_hook_##sufixo##3(BL_HOOK_PARAMS) {                           \
+        return carry<T>(dispatch(BL_HOOK_ARGS,                               \
+                        kBaseStruct + (forma) * kStructSlots + 3));          \
+    }
+
+BL_GEN_STRUCT(s8,  S8,  0)
+BL_GEN_STRUCT(s16, S16, 1)
+BL_GEN_STRUCT(h1f, H1F, 2)
+BL_GEN_STRUCT(h2f, H2F, 3)
+BL_GEN_STRUCT(h3f, H3F, 4)
+BL_GEN_STRUCT(h4f, H4F, 5)
+BL_GEN_STRUCT(h1d, H1D, 6)
+BL_GEN_STRUCT(h2d, H2D, 7)
+BL_GEN_STRUCT(h3d, H3D, 8)
+BL_GEN_STRUCT(h4d, H4D, 9)
+#undef BL_GEN_STRUCT
+
 static void* const g_stubs[kMaxHooks] = {
 #define X(n) reinterpret_cast<void*>(&bl_hook_i##n),
     BL_LIST_64
@@ -477,7 +595,18 @@ static void* const g_stubs[kMaxHooks] = {
 #define X(n) reinterpret_cast<void*>(&bl_hook_d##n),
     BL_LIST_16
 #undef X
+#define BL_PTRS(sufixo)                            \
+    reinterpret_cast<void*>(&bl_hook_##sufixo##0), \
+    reinterpret_cast<void*>(&bl_hook_##sufixo##1), \
+    reinterpret_cast<void*>(&bl_hook_##sufixo##2), \
+    reinterpret_cast<void*>(&bl_hook_##sufixo##3),
+    BL_PTRS(s8) BL_PTRS(s16)
+    BL_PTRS(h1f) BL_PTRS(h2f) BL_PTRS(h3f) BL_PTRS(h4f)
+    BL_PTRS(h1d) BL_PTRS(h2d) BL_PTRS(h3d) BL_PTRS(h4d)
+#undef BL_PTRS
 };
+static_assert(sizeof(g_stubs) / sizeof(g_stubs[0]) == kMaxHooks,
+              "a tabela de stubs tem de cobrir exatamente os slots");
 
 // ---------------------------- instalacao ----------------------------
 
@@ -488,19 +617,36 @@ static void* const g_stubs[kMaxHooks] = {
 static std::string buildPlan(HookCtx& c) {
     auto& api = il2cpp::api();
     c.retDesc = describe(api.method_get_return_type(c.method));
-    if (c.retDesc.prim == Prim::Struct) {
-        // Struct de retorno viaja de tres jeitos conforme o tamanho (d0-d3,
-        // x0/x1, ou um buffer cujo endereco vem em x8). Nenhum deles cabe numa
-        // funcao C que devolve um escalar, e chutar corrompe o chamador.
-        return "metodo que devolve struct (" + c.retDesc.name + ") ainda nao pode ser hookado";
-    }
     if (c.isInstance && api.method_get_class && api.class_is_valuetype) {
         Il2CppClass* owner = api.method_get_class(c.method);
         if (owner && api.class_is_valuetype(owner)) c.selfStruct = owner;
     }
-    c.ret = c.retDesc.prim == Prim::F32 ? Ret::F32
-          : c.retDesc.prim == Prim::F64 ? Ret::F64
-                                        : Ret::Int;
+
+    if (c.retDesc.prim == Prim::Struct) {
+        bool dbl = false;
+        int hfa = hfaOf(c.retDesc.cls, &dbl);
+        if (hfa >= 1 && hfa <= 4) {
+            // O enum tem H1F..H4F e H1D..H4D consecutivos justamente para isto.
+            int base = static_cast<int>(dbl ? Ret::H1D : Ret::H1F);
+            c.ret = static_cast<Ret>(base + hfa - 1);
+        } else if (c.retDesc.size <= 8) {
+            c.ret = Ret::S8;
+        } else if (c.retDesc.size <= 16) {
+            c.ret = Ret::S16;
+        } else {
+            // Acima de 16 bytes (e sem ser HFA) o valor volta pela MEMORIA: o
+            // chamador reserva o espaco e passa o endereco em x8, que nao e
+            // registrador de argumento e nao chega numa funcao C sem asm.
+            return "metodo devolve " + c.retDesc.name + ", de " +
+                   std::to_string(c.retDesc.size) +
+                   " bytes: acima de 16 o struct volta pela memoria (endereco em"
+                   " x8), que a nossa captura nao alcanca";
+        }
+    } else {
+        c.ret = c.retDesc.prim == Prim::F32 ? Ret::F32
+              : c.retDesc.prim == Prim::F64 ? Ret::F64
+                                            : Ret::Int;
+    }
 
     int x = c.isInstance ? 1 : 0;  // `this` ocupa x0
     int dq = 0;
@@ -563,12 +709,12 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
         return false;
     }
 
-    // A familia depende do tipo de retorno: cada uma tem seu proprio pool.
-    int from = 0, to = kIntHooks;
-    if (probe.ret == Ret::F32) { from = kIntHooks; to = kIntHooks + kFltHooks; }
-    else if (probe.ret == Ret::F64) { from = kIntHooks + kFltHooks; to = kMaxHooks; }
+    // A familia depende do tipo de retorno: cada uma tem seu proprio pool,
+    // porque o tipo de retorno da funcao de substituicao faz parte da ABI.
+    int from = 0, count = 0;
+    slotRange(probe.ret, &from, &count);
 
-    for (int i = from; i < to; ++i) {
+    for (int i = from; i < from + count; ++i) {
         if (g_hooks[i].used) continue;
         HookCtx& c = g_hooks[i];
         c = probe;
@@ -588,7 +734,9 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
         BL_INFO("hook JS no slot %d: %s", i, il2cpp::describeMethod(method).c_str());
         return true;
     }
-    JS_ThrowInternalError(ctx, "hook: sem slots livres para esse tipo de retorno");
+    JS_ThrowInternalError(ctx, "hook: sem slots livres para retorno '%s' "
+                               "(%d nessa forma, todos em uso)",
+                          probe.retDesc.name.c_str(), count);
     return false;
 }
 

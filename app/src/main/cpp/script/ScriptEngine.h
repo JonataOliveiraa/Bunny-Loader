@@ -38,9 +38,7 @@ ScriptEngine& engine();
  * Recursiva por thread: callback -> metodo do jogo -> outro metodo hookado ->
  * callback de novo, tudo na mesma thread, e legitimo.
  *
- * A trava NAO e solta durante original(): o QuickJS guarda a pilha de frames
- * no runtime, nao na thread. Outra thread entrando no meio empilharia frames
- * por cima dos nossos e o desempilhar sairia fora de ordem.
+ * Para soltar a trava enquanto roda o metodo do jogo, ver JsSuspend.
  *
  * Ao adquirir (e so entao), realinha o limite de pilha do QuickJS com a thread
  * corrente — ele o deduz do ponteiro de pilha de quando o runtime nasceu.
@@ -63,6 +61,45 @@ public:
 
 private:
     bool held_ = false;
+};
+
+/**
+ * Solta o motor JS enquanto roda algo que NAO e JS — na pratica, o metodo
+ * original do jogo dentro de um hook.
+ *
+ * O problema: sem isto, um hook em metodo quente (Player.Update) segura o
+ * motor durante o CORPO INTEIRO do metodo. Outra thread que caia noutro hook
+ * espera 3 s e roda sem o mod. O tempo gasto ali dentro nao e tempo de JS.
+ *
+ * Por que nao e so dar unlock: o QuickJS guarda a pilha de frames no RUNTIME
+ * (`rt->current_stack_frame`), nao na thread, e o desempilhar e uma atribuicao
+ * absoluta (`rt->current_stack_frame = sf->prev_frame`), nao uma verificacao.
+ * Uma thread que entre no meio empilha e desempilha de forma BALANCEADA, entao
+ * devolve a corrente como achou — isso e seguro. O que quebra e DUAS threads
+ * estacionarem frames ao mesmo tempo: a corrente deixa de ser pilha e cada uma
+ * restaura por cima da outra.
+ *
+ * Entao a regra e uma so: no maximo uma thread por vez pode deixar frames
+ * estacionados. Quem chega depois nao solta a trava e se comporta como antes —
+ * nunca pior que hoje, e melhor sempre que so uma thread estiver no original().
+ *
+ * O jeito limpo seria salvar e restaurar `current_stack_frame`, mas isso pede
+ * uma funcao a mais no QuickJS, que aqui NAO e versionado (clonado no build,
+ * ver third_party/README.md): o patch se perderia no proximo clone.
+ */
+class JsSuspend {
+public:
+    JsSuspend();
+    ~JsSuspend();
+    JsSuspend(const JsSuspend&) = delete;
+    JsSuspend& operator=(const JsSuspend&) = delete;
+
+    /** false = a trava continua nossa (outra thread ja estava estacionada). */
+    bool released() const { return released_; }
+
+private:
+    int depth_ = 0;
+    bool released_ = false;
 };
 
 // Registra NativeClass / NativeObject / NativeMethod / NativeArray / tl.* no

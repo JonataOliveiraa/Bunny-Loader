@@ -34,14 +34,23 @@ public:
      */
     bool build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst* argv);
 
-    void** data() { return slots_.empty() ? nullptr : slots_.data(); }
+    void** data() { return count_ ? slots_ : nullptr; }
 
 private:
-    // Os valores por cópia precisam sobreviver até a chamada; guardamos aqui e
-    // apontamos para dentro. O vetor pode realocar sem perigo: o que ele move
-    // são os unique_ptr, não os buffers para onde slots_ aponta.
-    std::vector<std::unique_ptr<uint8_t[]>> storage_;
-    std::vector<void*> slots_;
+    /** Espaço para o valor de um argumento, alinhado para qualquer tipo. */
+    void* reserve(size_t bytes);
+
+    // Os valores por cópia precisam sobreviver até a chamada. Quase toda
+    // chamada cabe aqui dentro, sem tocar no heap: 16 argumentos é o limite da
+    // ABI que a ponte captura, e 256 bytes atendem mesmo um punhado de structs.
+    // O que não couber cai no `grandes_`, que aí sim aloca.
+    static constexpr size_t kArena = 256;
+    static constexpr int kMaxArgs = 16;
+    alignas(16) uint8_t arena_[kArena];
+    size_t usado_ = 0;
+    void* slots_[kMaxArgs];
+    int count_ = 0;
+    std::vector<std::unique_ptr<uint8_t[]>> grandes_;
     // Referencias CRIADAS aqui (a string de um argumento) vivem so neste
     // buffer do malloc ate a chamada — o coletor do jogo nao as ve. Seguramos
     // um gchandle de cada ate o ArgPack morrer.

@@ -62,10 +62,20 @@
 //
 // Método do jogo que lança vira exceção JS — não é engolido.
 //
-// O que ainda NÃO dá: hookar método que devolve struct, e hookar método com
-// mais de 8 argumentos inteiros ou 8 de ponto flutuante (o excedente viaja
-// pela pilha, que não capturamos). Os dois são recusados com mensagem, nunca
-// adivinhados.
+// Método que devolve STRUCT pode ser hookado, e o callback pode trocar o
+// retorno devolvendo outro struct:
+//
+//   Add.hook((original, a, b) => original(a, b));   // repassa
+//   Add.hook(() => vetor(99, -1));                  // troca
+//
+// Vale enquanto o struct couber em registrador: até 4 floats ou 4 doubles
+// (Vector2, Vector3, Color), ou até 16 bytes. Acima disso ele volta pela
+// MEMÓRIA, num endereço que a nossa captura não alcança, e o hook é recusado
+// dizendo o tipo e o tamanho.
+//
+// O que ainda NÃO dá: hookar método com mais de 8 argumentos inteiros ou 8 de
+// ponto flutuante (o excedente viaja pela pilha, que não capturamos). Recusado
+// com mensagem, nunca adivinhado.
 
 const MINISHARK = Terraria.ID.ItemID.Minishark;
 bl.log('HelloMod: Minishark = ' + MINISHARK + '; hookando Item.SetDefaults');

@@ -35,16 +35,41 @@ struct StructRef {
     JSValue owner = JS_UNDEFINED;
     void* owned = nullptr;
     FieldInfo* staticField = nullptr;
+    StructRef* next = nullptr;   // so enquanto esta na lista de reuso
 };
 
 StructRef* refOf(JSValueConst v) {
     return static_cast<StructRef*>(JS_GetOpaque(v, g_structId));
 }
 
+// `npc.position.X` cria uma vista, le e joga fora — e o padrao mais comum de
+// mod. Reciclar o StructRef tira um malloc/free de cada leitura dessas. Nao
+// precisa de trava: so se chega aqui com o motor JS travado, e o finalizador
+// roda dentro da coleta, que tambem e.
+StructRef* g_livres = nullptr;
+int g_livresN = 0;
+constexpr int kPoolMax = 64;
+
+StructRef* takeRef() {
+    if (!g_livres) return new StructRef();
+    StructRef* r = g_livres;
+    g_livres = r->next;
+    --g_livresN;
+    *r = StructRef{};
+    return r;
+}
+
+void giveRef(StructRef* r) {
+    if (g_livresN >= kPoolMax) { delete r; return; }
+    r->next = g_livres;
+    g_livres = r;
+    ++g_livresN;
+}
+
 StructRef* newRef(JSContext* ctx, JSValue* out, Il2CppClass* cls, size_t size) {
     JSValue v = JS_NewObjectClass(ctx, g_structId);
     if (JS_IsException(v)) { *out = v; return nullptr; }
-    auto* r = new StructRef();
+    auto* r = takeRef();
     r->cls = cls;
     r->size = size;
     JS_SetOpaque(v, r);
@@ -57,7 +82,7 @@ void gs_finalizer(JSRuntime* rt, JSValue val) {
     if (!r) return;
     JS_FreeValueRT(rt, r->owner);
     std::free(r->owned);
-    delete r;
+    giveRef(r);
 }
 
 /** Depois de escrever: um estatico so existe no jogo se for devolvido. */
@@ -352,7 +377,7 @@ JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner) {
             // Sem dono conhecido a vista ficaria pendurada quando o buffer
             // sumisse; copia e o unico desfecho seguro.
             if (JS_IsUndefined(owner)) return makeStructCopy(ctx, d.cls, b, d.size);
-            return makeStructView(ctx, d.cls, b, owner);
+            return makeStructView(ctx, d.cls, b, owner, d.size);
         case Prim::Object: {
             auto* o = *reinterpret_cast<Il2CppObject**>(b);
             return o ? makeNativeObject(ctx, o) : JS_NULL;
@@ -389,9 +414,22 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
         case Prim::Array:
             *reinterpret_cast<Il2CppArray**>(b) = arrayFromJS(v);
             return true;
-        case Prim::Object:
-            *reinterpret_cast<Il2CppObject**>(b) = objectFromJS(v);
+        case Prim::Object: {
+            Il2CppObject* o = objectFromJS(v);
+            // Sem esta conferencia, `player.someItem = algumNPC` gravava o
+            // ponteiro e so quebrava depois, no jogo, longe da linha culpada.
+            // O IL2CPP sabe responder; era so perguntar.
+            if (o && d.cls && a.class_is_assignable_from && a.object_get_class) {
+                Il2CppClass* src = a.object_get_class(o);
+                if (src && !a.class_is_assignable_from(d.cls, src)) {
+                    JS_ThrowTypeError(ctx, "esperava %s, recebeu %s", d.name.c_str(),
+                                      a.class_get_name(src));
+                    return -1;
+                }
+            }
+            *reinterpret_cast<Il2CppObject**>(b) = o;
             return true;
+        }
         case Prim::Struct: {
             Il2CppClass* src = nullptr;
             size_t srcSize = 0;
@@ -418,10 +456,16 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
 
 // ============================== GameStruct ==============================
 
-JSValue makeStructView(JSContext* ctx, Il2CppClass* cls, void* data, JSValueConst owner) {
-    uint32_t align = 0;
-    auto& a = il2cpp::api();
-    size_t n = a.class_value_size ? static_cast<size_t>(a.class_value_size(cls, &align)) : 0;
+JSValue makeStructView(JSContext* ctx, Il2CppClass* cls, void* data, JSValueConst owner,
+                       size_t size) {
+    // O TypeDesc de quem chama ja tem o tamanho; so perguntamos ao IL2CPP
+    // quando ninguem sabe. Era uma chamada ao runtime por leitura de campo.
+    size_t n = size;
+    if (!n) {
+        uint32_t align = 0;
+        auto& a = il2cpp::api();
+        n = a.class_value_size ? static_cast<size_t>(a.class_value_size(cls, &align)) : 0;
+    }
     JSValue v;
     StructRef* r = newRef(ctx, &v, cls, n);
     if (!r) return v;

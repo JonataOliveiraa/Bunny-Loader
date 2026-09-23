@@ -56,8 +56,12 @@ const TypeDesc& describe(const Il2CppType* t);
 JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner);
 int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v);
 
-/** Vista sobre um struct que vive dentro de `owner`. Escrever altera o jogo. */
-JSValue makeStructView(JSContext* ctx, Il2CppClass* cls, void* data, JSValueConst owner);
+/**
+ * Vista sobre um struct que vive dentro de `owner`. Escrever altera o jogo.
+ * `size` = 0 pergunta o tamanho ao IL2CPP; passe o do TypeDesc quando tiver.
+ */
+JSValue makeStructView(JSContext* ctx, Il2CppClass* cls, void* data, JSValueConst owner,
+                       size_t size = 0);
 
 /** Copia independente. Escrever NAO volta pro jogo — semantica de valor do C#. */
 JSValue makeStructCopy(JSContext* ctx, Il2CppClass* cls, const void* src, size_t n);

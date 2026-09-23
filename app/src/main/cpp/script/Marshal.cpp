@@ -52,11 +52,26 @@ ArgPack::~ArgPack() {
     for (uint32_t h : handles_) a.gchandle_free(h);
 }
 
+void* ArgPack::reserve(size_t bytes) {
+    size_t alinhado = (usado_ + 15u) & ~static_cast<size_t>(15u);
+    if (alinhado + bytes <= kArena) {
+        usado_ = alinhado + bytes;
+        void* p = arena_ + alinhado;
+        std::memset(p, 0, bytes);
+        return p;
+    }
+    grandes_.push_back(std::make_unique<uint8_t[]>(bytes));
+    std::memset(grandes_.back().get(), 0, bytes);
+    return grandes_.back().get();
+}
+
 bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst* argv) {
     auto& a = il2cpp::api();
     uint32_t n = a.method_get_param_count(m);
-    storage_.reserve(n);
-    slots_.reserve(n);
+    if (n > static_cast<uint32_t>(kMaxArgs)) {
+        JS_ThrowTypeError(ctx, "metodo com %u parametros; o limite da ponte e %d", n, kMaxArgs);
+        return false;
+    }
 
     for (uint32_t i = 0; i < n; ++i) {
         const TypeDesc& d = describe(a.method_get_param(m, i));
@@ -73,20 +88,18 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
         // O buffer tem no minimo 8 bytes: um tipo por referencia escreve o
         // ponteiro aqui antes de a gente extrai-lo.
         size_t sz = d.size < sizeof(void*) ? sizeof(void*) : d.size;
-        auto buf = std::make_unique<uint8_t[]>(sz);
-        std::memset(buf.get(), 0, sz);
-        if (writeAt(ctx, buf.get(), d, v) < 0) return false;
+        void* buf = reserve(sz);
+        if (writeAt(ctx, buf, d, v) < 0) return false;
 
         // A convencao do runtime_invoke: tipo por VALOR entra pelo endereco do
         // valor; tipo por REFERENCIA entra pelo proprio ponteiro do objeto.
         // Isto vale inclusive para struct — passar a CAIXA faz o metodo ler o
         // cabecalho como se fosse o primeiro campo, sem erro e com lixo.
-        slots_.push_back(d.byValue ? static_cast<void*>(buf.get())
-                                   : *reinterpret_cast<void**>(buf.get()));
-        if (d.prim == Prim::String && slots_.back() && a.gchandle_new) {
-            handles_.push_back(a.gchandle_new(static_cast<Il2CppObject*>(slots_.back()), false));
+        void* slot = d.byValue ? buf : *reinterpret_cast<void**>(buf);
+        slots_[count_++] = slot;
+        if (d.prim == Prim::String && slot && a.gchandle_new) {
+            handles_.push_back(a.gchandle_new(static_cast<Il2CppObject*>(slot), false));
         }
-        storage_.push_back(std::move(buf));
     }
     return true;
 }

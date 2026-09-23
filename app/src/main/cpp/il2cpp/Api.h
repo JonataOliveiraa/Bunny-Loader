@@ -32,6 +32,9 @@ struct Api {
     Il2CppClass* (*class_from_il2cpp_type)(const Il2CppType*) = nullptr;
     bool (*class_is_enum)(const Il2CppClass*) = nullptr;
     bool (*class_is_valuetype)(const Il2CppClass*) = nullptr;
+    // Conferir atribuicao de objeto: sem isto, gravar um NPC num campo
+    // de Item passava batido e quebrava longe dali.
+    bool (*class_is_assignable_from)(Il2CppClass*, Il2CppClass*) = nullptr;
     // Tipo SUBJACENTE do enum (int32 quase sempre, mas ha byte e long). Sem
     // ele um enum de 1 byte seria lido como 4 e pegaria o campo vizinho junto.
     const Il2CppType* (*class_enum_basetype)(Il2CppClass*) = nullptr;

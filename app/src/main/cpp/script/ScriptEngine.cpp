@@ -22,6 +22,9 @@ ScriptEngine& engine() {
 
 namespace {
 std::timed_mutex g_jsMutex;
+// Quem segura este pode deixar frames do QuickJS estacionados enquanto solta
+// o motor. So um por vez — ver JsSuspend.
+std::mutex g_parkMutex;
 thread_local int t_jsDepth = 0;
 
 void alignStackTop() {
@@ -52,6 +55,29 @@ JsLock::JsLock(int timeoutMs) {
 JsLock::~JsLock() {
     if (!held_) return;
     if (--t_jsDepth == 0) g_jsMutex.unlock();
+}
+
+JsSuspend::JsSuspend() {
+    if (t_jsDepth == 0) return;            // nao seguramos o motor: nada a soltar
+    if (!g_parkMutex.try_lock()) return;   // outra thread ja esta estacionada
+    depth_ = t_jsDepth;
+    t_jsDepth = 0;
+    released_ = true;
+    g_jsMutex.unlock();
+}
+
+JsSuspend::~JsSuspend() {
+    if (!released_) return;
+    // Readquire ANTES de largar o estacionamento: soltar na ordem inversa
+    // deixaria outra thread estacionar enquanto ainda esperamos, e voltariamos
+    // com os frames dela por cima dos nossos.
+    //
+    // Espera sem prazo, de proposito: nao ha o que fazer com um "desistir" aqui
+    // — a nossa chamada JS esta no meio e precisa terminar de desempilhar.
+    g_jsMutex.lock();
+    t_jsDepth = depth_;
+    alignStackTop();
+    g_parkMutex.unlock();
 }
 
 #if BL_HAVE_QUICKJS
