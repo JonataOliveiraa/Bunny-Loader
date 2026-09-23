@@ -155,9 +155,25 @@ public class CheatBridge {
 
     // ------------------------------ desenho ------------------------------
 
+    /**
+     * O menu estava na metade da escala do jogo.
+     *
+     * Medido na mesma tela de 1600x900: o MENOR texto que o Terraria desenha (a
+     * versao no rodape) tem 25 px de altura, e o nome de item aqui tinha 13. Ou
+     * seja, o texto de leitura do menu era menor que qualquer coisa que o jogo
+     * mostra — daí a sensacao de miniatura.
+     *
+     * Dois fatores, e nao um: o TEXTO precisa quase dobrar para alcancar o
+     * jogo, mas dobrar tambem as medidas jogaria a coluna da esquerda para 40%
+     * da largura da tela. As caixas crescem o suficiente para caber o texto
+     * maior, e so.
+     */
+    private static final float ESCALA_TEXTO = 1.9f;
+    private static final float ESCALA_DIM = 1.3f;
+
     private static int px(Activity a, float dp) {
         return (int) TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, dp, a.getResources().getDisplayMetrics());
+            TypedValue.COMPLEX_UNIT_DIP, dp * ESCALA_DIM, a.getResources().getDisplayMetrics());
     }
 
     /** Painel do Terraria: contorno escuro, corpo azul, luz em cima. */
@@ -232,7 +248,7 @@ public class CheatBridge {
     private static TextView text(Activity a, String s, int size, int color) {
         TextView t = new Contornado(a);
         t.setText(s);
-        t.setTextSize(size);
+        t.setTextSize(size * ESCALA_TEXTO);
         t.setTextColor(color);
         t.setTypeface(fonte(a));
         return t;
@@ -464,7 +480,7 @@ public class CheatBridge {
         }
 
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
-            px(act, 190), LinearLayout.LayoutParams.MATCH_PARENT);
+            px(act, 200), LinearLayout.LayoutParams.MATCH_PARENT);
         alp.rightMargin = px(act, 10);
         body.addView(aside, alp);
         body.addView(content, new LinearLayout.LayoutParams(
