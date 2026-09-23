@@ -1,5 +1,6 @@
 #pragma once
 #include "script/ScriptEngine.h"
+#include <string>
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -16,6 +17,12 @@ namespace bl::script {
  * Aceita o que a Unity decodifica: PNG e JPG.
  */
 JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv);
+
+/** Caminho relativo a pasta do mod de quem chamou (a mesma regra do loadTexture). */
+std::string resolveModPath(JSContext* ctx, const std::string& caminho);
+
+/** Uid do mod de quem chamou, pelo modulo JS. Vazio se nao da para saber. */
+std::string callerModId(JSContext* ctx);
 
 } // namespace bl::script
 #endif

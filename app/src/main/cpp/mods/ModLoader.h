@@ -39,6 +39,15 @@ const std::string& currentDir();
 /** Pasta do entry de um mod ja carregado, pelo id. Vazio se nao conhece. */
 const std::string& dirOf(const std::string& id);
 
+/** Id (uid) do mod que esta carregando agora, ou vazio fora da carga. */
+const std::string& currentId();
+
+/** Pasta raiz do pacote (onde mora o manifest.json). Vazio se nao conhece. */
+std::string rootOf(const std::string& id);
+
+/** O "name" do manifesto, para mostrar a gente; o id se nao houver. */
+std::string displayName(const std::string& id);
+
 // Um mod que falha demais é desativado em runtime; falha NUNCA derruba o jogo.
 constexpr uint32_t MaxErrors = 20;
 

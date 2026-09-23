@@ -38,11 +38,29 @@ Il2CppClass* procurar(const char* ns, const char* name) {
 
 } // namespace
 
+Il2CppClass* findNested(Il2CppClass* outer, std::string_view name) {
+    auto& a = api();
+    if (!outer || !a.class_get_nested_types) return nullptr;
+    void* it = nullptr;
+    while (Il2CppClass* c = a.class_get_nested_types(outer, &it)) {
+        const char* n = a.class_get_name(c);
+        if (n && name == n) return c;
+    }
+    return nullptr;
+}
+
 Il2CppClass* findClass(const TypeRef& ref) {
     std::string ns(ref.ns);
     std::string name(ref.name);
     Il2CppClass* cls = procurar(ns.c_str(), name.c_str());
-    // TODO(Fase 3): resolver ref.nested via class_get_nested_types.
+    if (cls && !ref.nested.empty()) {
+        Il2CppClass* inner = findNested(cls, ref.nested);
+        if (!inner) {
+            BL_ERROR("classe aninhada nao encontrada: %s.%s.%.*s", ns.c_str(), name.c_str(),
+                     static_cast<int>(ref.nested.size()), ref.nested.data());
+        }
+        return inner;
+    }
     if (!cls) BL_ERROR("classe nao encontrada: %s.%s", ns.c_str(), name.c_str());
     return cls;
 }

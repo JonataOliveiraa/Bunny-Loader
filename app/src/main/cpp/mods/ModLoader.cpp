@@ -14,14 +14,19 @@ std::vector<LoadedMod>& registry() {
 }
 
 std::string& currentDirSlot() {
-    static std::string atual;
-    return atual;
+    static std::string current;
+    return current;
+}
+
+std::string& currentIdSlot() {
+    static std::string current;
+    return current;
 }
 
 // id do mod -> pasta do entry. O id e tambem o nome do MODULO no QuickJS, e e
 // assim que bl.loadTexture descobre de qual mod veio a chamada mesmo depois da
 // carga, la dentro de um hook.
-std::map<std::string, std::string>& dirsPorId() {
+std::map<std::string, std::string>& dirsById() {
     static std::map<std::string, std::string> m;
     return m;
 }
@@ -57,13 +62,13 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         // a raiz continua valendo depois de content/, para o formato antigo,
         // que deixava o main.js sem pasta.
         std::string path;
-        const std::string nome = spec.entry.empty() ? std::string("main.js") : spec.entry;
-        for (const std::string& tentativa : {mod.dir + "/content/" + nome, mod.dir + "/" + nome}) {
-            if (fileExists(tentativa)) { path = tentativa; break; }
+        const std::string name = spec.entry.empty() ? std::string("main.js") : spec.entry;
+        for (const std::string& candidate : {mod.dir + "/content/" + name, mod.dir + "/" + name}) {
+            if (fileExists(candidate)) { path = candidate; break; }
         }
         if (path.empty()) {
             BL_ERROR("mod %s: nao achei o entry '%s' (nem em content/ nem na raiz)",
-                     id.c_str(), nome.c_str());
+                     id.c_str(), name.c_str());
             registry().back().enabled = false;
             continue;
         }
@@ -71,11 +76,13 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         registry().back().entry = mod.entry;
         // A pasta do ARQUIVO, nao a do pacote: o main.js mora em content/, e
         // "ao lado do main.js" e onde o autor poe as imagens dele.
-        size_t barra = path.rfind('/');
-        currentDirSlot() = barra == std::string::npos ? mod.dir : path.substr(0, barra);
-        dirsPorId()[id] = currentDirSlot();
+        size_t slash = path.rfind('/');
+        currentDirSlot() = slash == std::string::npos ? mod.dir : path.substr(0, slash);
+        dirsById()[id] = currentDirSlot();
+        currentIdSlot() = id;
         bool ok = script::engine().evalFile(path, id);
         currentDirSlot().clear();
+        currentIdSlot().clear();
         if (!ok) {
             BL_ERROR("mod %s falhou ao carregar (%s)", id.c_str(), path.c_str());
             registry().back().enabled = false;
@@ -84,11 +91,41 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
 }
 
 const std::string& currentDir() { return currentDirSlot(); }
+const std::string& currentId() { return currentIdSlot(); }
+
+std::string rootOf(const std::string& id) {
+    for (const LoadedMod& m : registry()) if (m.id == id) return m.dir;
+    return {};
+}
+
+std::string displayName(const std::string& id) {
+    // O "name" do manifesto, lido a mao: e um campo so, e puxar um parser de
+    // JSON para o nucleo por causa dele nao se paga.
+    const std::string root = rootOf(id);
+    FILE* f = root.empty() ? nullptr : std::fopen((root + "/manifest.json").c_str(), "rb");
+    if (!f) return id;
+    std::string txt;
+    char buf[1024];
+    size_t n;
+    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) txt.append(buf, n);
+    std::fclose(f);
+    size_t k = txt.find("\"name\"");
+    if (k == std::string::npos) return id;
+    k = txt.find(':', k);
+    k = k == std::string::npos ? k : txt.find('"', k);
+    if (k == std::string::npos) return id;
+    std::string name;
+    for (size_t i = k + 1; i < txt.size() && txt[i] != '"'; ++i) {
+        if (txt[i] == '\\' && i + 1 < txt.size()) ++i;
+        name += txt[i];
+    }
+    return name.empty() ? id : name;
+}
 
 const std::string& dirOf(const std::string& id) {
-    static const std::string vazio;
-    auto it = dirsPorId().find(id);
-    return it == dirsPorId().end() ? vazio : it->second;
+    static const std::string none;
+    auto it = dirsById().find(id);
+    return it == dirsById().end() ? none : it->second;
 }
 
 void loadBuiltins() {

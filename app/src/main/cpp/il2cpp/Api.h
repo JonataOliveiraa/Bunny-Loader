@@ -53,6 +53,9 @@ struct Api {
     // classe, e quem sabe ler memoria trabalha com Il2CppType.
     const Il2CppType* (*class_get_type)(Il2CppClass*) = nullptr;
     size_t (*field_get_offset)(FieldInfo*) = nullptr;
+    // Classe aninhada (ItemID.Sets): o IL2CPP nao a acha por nome, so
+    // iterando as aninhadas da de fora.
+    Il2CppClass* (*class_get_nested_types)(Il2CppClass*, void**) = nullptr;
     void (*field_static_get_value)(FieldInfo*, void*) = nullptr;
     void (*field_static_set_value)(FieldInfo*, void*) = nullptr;
     // Invoca qualquer metodo (boxing/unboxing automatico). Evita precisar de

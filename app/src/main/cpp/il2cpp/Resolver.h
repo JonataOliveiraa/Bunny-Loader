@@ -13,6 +13,8 @@ struct TypeRef {
 
 // Resolve por nome. Chamado SÓ no carregamento; nunca no caminho quente.
 Il2CppClass* findClass(const TypeRef& ref);
+// A aninhada `name` dentro de `outer` (ItemID -> Sets). nullptr se nao ha.
+Il2CppClass* findNested(Il2CppClass* outer, std::string_view name);
 
 // Igual, mas SEM logar quando nao acha. A arvore de namespaces (Terraria.*)
 // consulta a cada acesso de propriedade para decidir se o nome e uma classe ou

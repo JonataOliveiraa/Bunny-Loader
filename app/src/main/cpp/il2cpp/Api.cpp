@@ -88,6 +88,7 @@ bool Api::load() {
     bindSoft(lib, "il2cpp_class_get_fields", &class_get_fields);
     bindSoft(lib, "il2cpp_field_get_name", &field_get_name);
     bindSoft(lib, "il2cpp_field_get_flags", &field_get_flags);
+    bindSoft(lib, "il2cpp_class_get_nested_types", &class_get_nested_types);
     if (!ok) return false;
 
     size_t count = 0;

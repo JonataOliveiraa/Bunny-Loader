@@ -34,7 +34,7 @@ namespace {
  * JPG. Nao passa por atlas nem por AssetBundle.
  */
 struct Refs {
-    bool tentou = false;
+    bool tried = false;
     bool ok = false;
     Il2CppClass* byteCls = nullptr;
     Il2CppClass* unityTex = nullptr;
@@ -46,8 +46,8 @@ struct Refs {
 
 Refs& refs() {
     static Refs r;
-    if (r.tentou) return r;
-    r.tentou = true;
+    if (r.tried) return r;
+    r.tried = true;
 
     r.byteCls  = il2cpp::findClass({"System", "Byte", {}});
     r.unityTex = il2cpp::findClass({"UnityEngine", "Texture2D", {}});
@@ -85,16 +85,16 @@ Refs& refs() {
  * acabou ha muito. O QuickJS sabe de qual modulo veio a chamada, e o nome do
  * modulo e o uid do mod — que e a chave da pasta.
  */
-std::string resolver(JSContext* ctx, const char* caminho) {
-    std::string p = caminho ? caminho : "";
+std::string resolvePath(JSContext* ctx, const char* path) {
+    std::string p = path ? path : "";
     if (p.empty() || p[0] == '/') return p;
 
-    for (int nivel = 0; nivel < 3; ++nivel) {
-        JSAtom atom = JS_GetScriptOrModuleName(ctx, nivel);
+    for (int level = 0; level < 3; ++level) {
+        JSAtom atom = JS_GetScriptOrModuleName(ctx, level);
         if (atom == JS_ATOM_NULL) continue;
-        const char* nome = JS_AtomToCString(ctx, atom);
-        std::string base = nome ? mods::dirOf(nome) : std::string();
-        if (nome) JS_FreeCString(ctx, nome);
+        const char* name = JS_AtomToCString(ctx, atom);
+        std::string base = name ? mods::dirOf(name) : std::string();
+        if (name) JS_FreeCString(ctx, name);
         JS_FreeAtom(ctx, atom);
         if (!base.empty()) return base + "/" + p;
     }
@@ -104,11 +104,11 @@ std::string resolver(JSContext* ctx, const char* caminho) {
 }
 
 /** Le o arquivo direto para dentro de um byte[] do heap do jogo. */
-Il2CppArray* lerParaArray(JSContext* ctx, const std::string& caminho) {
+Il2CppArray* readIntoByteArray(JSContext* ctx, const std::string& path) {
     auto& a = il2cpp::api();
-    FILE* f = std::fopen(caminho.c_str(), "rb");
+    FILE* f = std::fopen(path.c_str(), "rb");
     if (!f) {
-        JS_ThrowInternalError(ctx, "loadTexture: nao abri '%s'", caminho.c_str());
+        JS_ThrowInternalError(ctx, "loadTexture: nao abri '%s'", path.c_str());
         return nullptr;
     }
     std::fseek(f, 0, SEEK_END);
@@ -116,7 +116,7 @@ Il2CppArray* lerParaArray(JSContext* ctx, const std::string& caminho) {
     std::fseek(f, 0, SEEK_SET);
     if (n <= 0) {
         std::fclose(f);
-        JS_ThrowInternalError(ctx, "loadTexture: '%s' esta vazio", caminho.c_str());
+        JS_ThrowInternalError(ctx, "loadTexture: '%s' esta vazio", path.c_str());
         return nullptr;
     }
     Il2CppArray* arr = a.array_new(refs().byteCls, static_cast<uintptr_t>(n));
@@ -125,25 +125,42 @@ Il2CppArray* lerParaArray(JSContext* ctx, const std::string& caminho) {
         JS_ThrowInternalError(ctx, "loadTexture: array_new falhou (%ld bytes)", n);
         return nullptr;
     }
-    size_t lido = std::fread(arrayData(arr), 1, static_cast<size_t>(n), f);
+    size_t bytesRead = std::fread(arrayData(arr), 1, static_cast<size_t>(n), f);
     std::fclose(f);
-    if (lido != static_cast<size_t>(n)) {
-        JS_ThrowInternalError(ctx, "loadTexture: li %zu de %ld bytes", lido, n);
+    if (bytesRead != static_cast<size_t>(n)) {
+        JS_ThrowInternalError(ctx, "loadTexture: li %zu de %ld bytes", bytesRead, n);
         return nullptr;
     }
     return arr;
 }
 
 /** Chama um metodo e devolve false com a excecao ja posta no ctx. */
-bool chamar(JSContext* ctx, const MethodInfo* m, void* self, int argc, JSValueConst* argv,
-            JSValue* saida) {
+bool callMethod(JSContext* ctx, const MethodInfo* m, void* self, int argc, JSValueConst* argv,
+            JSValue* out) {
     JSValue r = invokeMethod(ctx, m, self, argc, argv);
     if (JS_IsException(r)) return false;
-    if (saida) *saida = r; else JS_FreeValue(ctx, r);
+    if (out) *out = r; else JS_FreeValue(ctx, r);
     return true;
 }
 
 } // namespace
+
+std::string resolveModPath(JSContext* ctx, const std::string& path) {
+    return resolvePath(ctx, path.c_str());
+}
+
+std::string callerModId(JSContext* ctx) {
+    for (int level = 0; level < 3; ++level) {
+        JSAtom atom = JS_GetScriptOrModuleName(ctx, level);
+        if (atom == JS_ATOM_NULL) continue;
+        const char* name = JS_AtomToCString(ctx, atom);
+        std::string id = name && !mods::dirOf(name).empty() ? name : std::string();
+        if (name) JS_FreeCString(ctx, name);
+        JS_FreeAtom(ctx, atom);
+        if (!id.empty()) return id;
+    }
+    return mods::currentId();
+}
 
 JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
     if (argc < 1 || !JS_IsString(argv[0])) {
@@ -157,8 +174,8 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
     // carga dos mods o DoUpdate ainda nao rodou uma vez sequer, entao a thread
     // do jogo e desconhecida — e deixar passar "na duvida" e exatamente o caso
     // que derruba o processo.
-    const int jogo = runtime::gameThreadId();
-    if (jogo == 0 || static_cast<int>(gettid()) != jogo) {
+    const int gameThread = runtime::gameThreadId();
+    if (gameThread == 0 || static_cast<int>(gettid()) != gameThread) {
         return JS_ThrowInternalError(
             ctx, "bl.loadTexture so vale na thread do jogo, com o jogo ja rodando "
                  "— e mods carregam antes disso, noutra thread. Carregue dentro "
@@ -174,11 +191,11 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
 
     const char* cs = JS_ToCString(ctx, argv[0]);
     if (!cs) return JS_EXCEPTION;
-    std::string caminho = resolver(ctx, cs);
+    std::string path = resolvePath(ctx, cs);
     JS_FreeCString(ctx, cs);
 
     auto& a = il2cpp::api();
-    Il2CppArray* bytes = lerParaArray(ctx, caminho);
+    Il2CppArray* bytes = readIntoByteArray(ctx, path);
     if (!bytes) return JS_EXCEPTION;
 
     // 1. textura vazia da Unity. O 2x2 e provisorio: o LoadImage redimensiona
@@ -188,22 +205,22 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
     JSValue jsUt = makeNativeObject(ctx, ut);
     JSValue jsArr = makeGameArray(ctx, bytes);
 
-    JSValue dois[2] = {JS_NewInt32(ctx, 2), JS_NewInt32(ctx, 2)};
-    bool ok = chamar(ctx, r.unityCtor, ut, 2, dois, nullptr);
-    JS_FreeValue(ctx, dois[0]);
-    JS_FreeValue(ctx, dois[1]);
+    JSValue two[2] = {JS_NewInt32(ctx, 2), JS_NewInt32(ctx, 2)};
+    bool ok = callMethod(ctx, r.unityCtor, ut, 2, two, nullptr);
+    JS_FreeValue(ctx, two[0]);
+    JS_FreeValue(ctx, two[1]);
 
     // 2. decodifica o PNG/JPG dentro dela.
     JSValue res = JS_UNDEFINED;
     if (ok) {
         JSValue args[3] = {jsUt, jsArr, JS_FALSE};
-        ok = chamar(ctx, r.loadImage, nullptr, 3, args, &res);
+        ok = callMethod(ctx, r.loadImage, nullptr, 3, args, &res);
     }
-    bool decodificou = ok && JS_ToBool(ctx, res) > 0;
+    bool decoded = ok && JS_ToBool(ctx, res) > 0;
     JS_FreeValue(ctx, res);
-    if (ok && !decodificou) {
+    if (ok && !decoded) {
         JS_ThrowInternalError(ctx, "loadTexture: '%s' nao e um PNG/JPG que a Unity leia",
-                              caminho.c_str());
+                              path.c_str());
         ok = false;
     }
 
@@ -211,14 +228,14 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
     Il2CppObject* gt = nullptr;
     if (ok) {
         gt = a.object_new(r.gameTex);
-        ok = gt && chamar(ctx, r.gameCtor, gt, 1, &jsUt, nullptr);
+        ok = gt && callMethod(ctx, r.gameCtor, gt, 1, &jsUt, nullptr);
     }
 
     JS_FreeValue(ctx, jsUt);
     JS_FreeValue(ctx, jsArr);
     if (!ok) return JS_EXCEPTION;
 
-    BL_INFO("loadTexture: %s", caminho.c_str());
+    BL_INFO("loadTexture: %s", path.c_str());
     return makeNativeObject(ctx, gt);
 }
 
