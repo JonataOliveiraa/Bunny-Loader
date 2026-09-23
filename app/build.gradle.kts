@@ -77,6 +77,12 @@ android {
         sourceSets["debug"].assets.srcDir("../terraria1456_assets/src/main/assets")
     }
 
+    // Os mods de samples/ viram o catálogo embutido do launcher. Uma cópia, não
+    // uma segunda fonte: samples/ continua sendo a verdade (o CMake também lê
+    // de lá para embutir o JS na libbunny), e o que o app lista é exatamente o
+    // que o motor carrega.
+    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/blAssets"))
+
     packaging {
         jniLibs {
             useLegacyPackaging = true // extractNativeLibs=true
@@ -103,6 +109,14 @@ android {
 
     assetPacks += listOf(":terraria1456_assets")
 }
+
+/** samples/<Mod>/ -> assets/mods/<Mod>/, antes do merge de assets. */
+val syncSampleMods by tasks.registering(Sync::class) {
+    from(rootProject.file("samples"))
+    into(layout.buildDirectory.dir("generated/blAssets/mods"))
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
+    .configureEach { dependsOn(syncSampleMods) }
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))

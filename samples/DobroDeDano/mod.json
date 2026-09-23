@@ -1,0 +1,14 @@
+{
+  "id": "dobrodedano",
+  "name": "Dobro de Dano",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Armas",
+  "summary": "Toda arma nasce com o dobro do dano.",
+  "description": "Engancha no momento em que o jogo define os atributos de um item e dobra o dano antes de ele chegar ao inventário. Vale para tudo que causa dano — espada, arco, cajado, até a picareta. Itens sem dano não são tocados.",
+  "updated": "2026-09-22",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -1,0 +1,14 @@
+{
+  "id": "semqueda",
+  "name": "Sem Dano de Queda",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Jogabilidade",
+  "summary": "Cair de qualquer altura deixou de doer.",
+  "description": "O Terraria mede a queda pela distância entre onde ela começou e onde você parou. Este mod cola esse ponto de partida em você a cada quadro, então a conta dá sempre zero. Não mexe em gravidade nem em velocidade: você cai igual, só não se machuca.",
+  "updated": "2026-09-22",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}
