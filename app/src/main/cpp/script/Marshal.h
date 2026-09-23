@@ -23,6 +23,11 @@ namespace bl::script {
  */
 class ArgPack {
 public:
+    ArgPack() = default;
+    ~ArgPack();
+    ArgPack(const ArgPack&) = delete;
+    ArgPack& operator=(const ArgPack&) = delete;
+
     /**
      * Converte `argv` conforme os tipos declarados de `m`.
      * @return false e deixa uma exceção no ctx se algo não converter.
@@ -37,6 +42,10 @@ private:
     // são os unique_ptr, não os buffers para onde slots_ aponta.
     std::vector<std::unique_ptr<uint8_t[]>> storage_;
     std::vector<void*> slots_;
+    // Referencias CRIADAS aqui (a string de um argumento) vivem so neste
+    // buffer do malloc ate a chamada — o coletor do jogo nao as ve. Seguramos
+    // um gchandle de cada ate o ArgPack morrer.
+    std::vector<uint32_t> handles_;
 };
 
 /** Boxed/objeto -> valor JS, conforme o tipo de retorno de `m`. */

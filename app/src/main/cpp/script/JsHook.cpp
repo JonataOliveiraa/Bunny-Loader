@@ -8,6 +8,7 @@
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
+#include <atomic>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -69,9 +70,19 @@ struct HookCtx {
     JSContext* ctx = nullptr;
     const MethodInfo* method = nullptr;
     JSValue callback = JS_UNDEFINED;
+    // A funcao `original` entregue ao callback. Criada uma vez na instalacao,
+    // nao a cada chamada: o Item.SetDefaults dispara milhares de vezes no
+    // carregamento, e cada disparo alocava um objeto-funcao novo.
+    JSValue originalFn = JS_UNDEFINED;
+    // Para onde original() salta. Pode mudar depois da instalacao: se outro
+    // mod hookar o mesmo metodo, o HookManager encadeia e isto passa a apontar
+    // para o hook dele. Por isso e lido atomicamente a cada chamada.
     void* original = nullptr;
     int paramCount = 0;
     bool isInstance = false;
+    // Metodo de instancia de um STRUCT: o x0 aponta para os dados, nao para um
+    // objeto. Embrulhar como GameObject leria o comeco dos dados como classe.
+    Il2CppClass* selfStruct = nullptr;
     bool used = false;
     Ret ret = Ret::Int;
     TypeDesc retDesc;
@@ -104,6 +115,12 @@ static thread_local std::vector<Frame> g_frames;
 // dispare o callback JS repetidamente ate estourar a pilha do QuickJS.
 static thread_local int g_depth[kMaxHooks];
 
+// Quanto um hook espera pelo motor JS antes de desistir do mod naquela
+// chamada. Ver JsLock: esperar para sempre transformaria um impasse entre
+// threads num jogo congelado.
+constexpr int kLockTimeoutMs = 3000;
+static std::atomic<bool> g_lockWarned[kMaxHooks];
+
 #define BL_HOOK_PARAMS                                                    \
     intptr_t a0, intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4,      \
     intptr_t a5, intptr_t a6, intptr_t a7, double f0, double f1,          \
@@ -117,22 +134,23 @@ using RawD = double (*)(BL_HOOK_PARAMS);
 /** Chama o metodo real com um conjunto de registradores. */
 static Outcome callOriginal(HookCtx* c, const intptr_t a[8], const uint64_t d[8]) {
     Outcome o;
-    if (!c->original) return o;
+    void* fn = __atomic_load_n(&c->original, __ATOMIC_ACQUIRE);
+    if (!fn) return o;
     double f[8];
     std::memcpy(f, d, sizeof(f));
     switch (c->ret) {
         case Ret::F32:
-            o.f = reinterpret_cast<RawF>(c->original)(
+            o.f = reinterpret_cast<RawF>(fn)(
                 a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
                 f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
             break;
         case Ret::F64:
-            o.f = reinterpret_cast<RawD>(c->original)(
+            o.f = reinterpret_cast<RawD>(fn)(
                 a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
                 f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
             break;
         default:
-            o.i = reinterpret_cast<RawI>(c->original)(
+            o.i = reinterpret_cast<RawI>(fn)(
                 a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7],
                 f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]);
             break;
@@ -159,20 +177,23 @@ static JSValue paramToJs(JSContext* ctx, const Frame& f, const ParamPlan& p) {
             return makeStructCopy(ctx, p.d.cls,
                                   reinterpret_cast<void*>(f.a[p.reg]), p.d.size);
         }
-        std::vector<uint8_t> buf(p.d.size, 0);
+        // Struct em registrador cabe em 32 bytes: HFA de ate 4 doubles, ou
+        // ate 16 bytes na fila inteira (maior que isso vai por ponteiro).
+        uint8_t buf[32] = {0};
+        const size_t cap = p.d.size < sizeof(buf) ? p.d.size : sizeof(buf);
         if (p.floatQueue) {
             size_t slot = hfaSlot(p.d);
             for (int i = 0; i < p.regs; ++i) {
                 size_t at = static_cast<size_t>(i) * slot;
-                if (at + slot > buf.size()) break;
-                std::memcpy(buf.data() + at, &f.d[p.reg + i], slot);
+                if (at + slot > cap) break;
+                std::memcpy(buf + at, &f.d[p.reg + i], slot);
             }
         } else {
-            size_t n = p.d.size < static_cast<size_t>(p.regs) * 8
-                           ? p.d.size : static_cast<size_t>(p.regs) * 8;
-            std::memcpy(buf.data(), &f.a[p.reg], n);
+            size_t n = cap < static_cast<size_t>(p.regs) * 8
+                           ? cap : static_cast<size_t>(p.regs) * 8;
+            std::memcpy(buf, &f.a[p.reg], n);
         }
-        return makeStructCopy(ctx, p.d.cls, buf.data(), p.d.size);
+        return makeStructCopy(ctx, p.d.cls, buf, p.d.size);
     }
 
     if (p.floatQueue) {
@@ -289,8 +310,15 @@ static Outcome jsToReturn(HookCtx* c, JSValueConst v, const Outcome& fallback) {
  * lista de parametros. Por isso partimos dos registradores salvos em vez de
  * montar um conjunto novo do zero.
  */
-static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    if (g_frames.empty()) return JS_UNDEFINED;
+static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv,
+                           int slot) {
+    // Cada hook tem a SUA funcao original, marcada com o slot. Guardada numa
+    // variavel e chamada depois — fora do callback, ou dentro do hook de outro
+    // metodo — ela rodaria com os registradores de outra chamada.
+    if (g_frames.empty() || g_frames.back().c != &g_hooks[slot]) {
+        return JS_ThrowTypeError(ctx, "original() so vale dentro do proprio hook, "
+                                      "durante a chamada");
+    }
     Frame& f = g_frames.back();
     HookCtx* c = f.c;
 
@@ -333,6 +361,16 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     // rodando via original(), rechamou o metodo pela entrada patcheada). Nao
     // dispara o callback de novo — executa direto o original e volta.
     if (g_depth[slot] > 0) return callOriginal(c, rawA, rawD);
+
+    JsLock lock(kLockTimeoutMs);
+    if (!lock.held()) {
+        if (!g_lockWarned[slot].exchange(true)) {
+            BL_ERROR("hook %s: motor JS ocupado por outra thread ha %d ms; "
+                     "rodando o metodo sem o mod (aviso unico por hook)",
+                     il2cpp::api().method_get_name(c->method), kLockTimeoutMs);
+        }
+        return callOriginal(c, rawA, rawD);
+    }
     ++g_depth[slot];
 
     JSContext* ctx = c->ctx;
@@ -344,8 +382,14 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     // argv: [0]=original, [1]=self (se instancia), [2..]=parametros
     JSValue argv[2 + 16];
     int argc = 0;
-    argv[argc++] = JS_NewCFunction(ctx, js_original, "original", 0);
-    if (c->isInstance) {
+    argv[argc++] = JS_DupValue(ctx, c->originalFn);
+    if (c->selfStruct) {
+        // Vista, nao copia: original(self) precisa repassar o MESMO endereco,
+        // senao um metodo que altera o struct alteraria a nossa copia. Sem
+        // dono conhecido, vale so durante o callback.
+        argv[argc++] = makeStructView(ctx, c->selfStruct, reinterpret_cast<void*>(rawA[0]),
+                                      JS_UNDEFINED);
+    } else if (c->isInstance) {
         argv[argc++] = makeNativeObject(ctx, reinterpret_cast<Il2CppObject*>(rawA[0]));
     }
     for (const ParamPlan& p : c->params) {
@@ -353,16 +397,10 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
         argv[argc++] = paramToJs(ctx, g_frames.back(), p);
     }
 
-    // O QuickJS deduz o limite de pilha do ponteiro de pilha de quando o
-    // runtime nasce. Os mods sao carregados na thread da sonda, mas os hooks
-    // disparam na thread do JOGO — e ali a checagem concluia que a pilha tinha
-    // acabado, rejeitando o callback na primeira chamada:
-    //
-    //     hook: excecao no callback: Maximum call stack size exceeded
-    //
-    // Isto realinha o limite com a thread corrente.
-    JS_UpdateStackTop(JS_GetRuntime(ctx));
-
+    // O limite de pilha do QuickJS ja foi realinhado com esta thread pelo
+    // JsLock (ver ScriptEngine.h). Sem isso os mods, carregados na thread da
+    // sonda, recusavam o callback na thread do jogo com "Maximum call stack
+    // size exceeded".
     JSValue ret = JS_Call(ctx, c->callback, JS_UNDEFINED, argc, argv);
     if (JS_IsException(ret)) {
         JSValue e = JS_GetException(ctx);
@@ -456,6 +494,10 @@ static std::string buildPlan(HookCtx& c) {
         // funcao C que devolve um escalar, e chutar corrompe o chamador.
         return "metodo que devolve struct (" + c.retDesc.name + ") ainda nao pode ser hookado";
     }
+    if (c.isInstance && api.method_get_class && api.class_is_valuetype) {
+        Il2CppClass* owner = api.method_get_class(c.method);
+        if (owner && api.class_is_valuetype(owner)) c.selfStruct = owner;
+    }
     c.ret = c.retDesc.prim == Prim::F32 ? Ret::F32
           : c.retDesc.prim == Prim::F64 ? Ret::F64
                                         : Ret::Int;
@@ -532,10 +574,13 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
         c = probe;
         c.ctx = ctx;
         c.callback = JS_DupValue(ctx, callback);  // mantem vivo
+        c.originalFn = JS_NewCFunctionMagic(ctx, js_original, "original", 0,
+                                            JS_CFUNC_generic_magic, i);
         c.paramCount = paramCount;
         c.used = true;
         if (!hook::install(method, g_stubs[i], &c.original)) {
             JS_FreeValue(ctx, c.callback);
+            JS_FreeValue(ctx, c.originalFn);
             c.used = false;
             JS_ThrowInternalError(ctx, "hook: o ShadowHook recusou o metodo");
             return false;

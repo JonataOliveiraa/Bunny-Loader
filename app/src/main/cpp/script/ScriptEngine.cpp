@@ -5,7 +5,9 @@
 #include "quickjs.h"
 #endif
 
+#include <chrono>
 #include <cstdio>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -16,10 +18,47 @@ ScriptEngine& engine() {
     return instance;
 }
 
+// ------------------------------- JsLock -------------------------------
+
+namespace {
+std::timed_mutex g_jsMutex;
+thread_local int t_jsDepth = 0;
+
+void alignStackTop() {
+#if BL_HAVE_QUICKJS
+    if (void* rt = engine().runtime()) JS_UpdateStackTop(static_cast<JSRuntime*>(rt));
+#endif
+}
+} // namespace
+
+JsLock::JsLock() {
+    if (t_jsDepth == 0) {
+        g_jsMutex.lock();
+        alignStackTop();
+    }
+    ++t_jsDepth;
+    held_ = true;
+}
+
+JsLock::JsLock(int timeoutMs) {
+    if (t_jsDepth == 0) {
+        if (!g_jsMutex.try_lock_for(std::chrono::milliseconds(timeoutMs))) return;
+        alignStackTop();
+    }
+    ++t_jsDepth;
+    held_ = true;
+}
+
+JsLock::~JsLock() {
+    if (!held_) return;
+    if (--t_jsDepth == 0) g_jsMutex.unlock();
+}
+
 #if BL_HAVE_QUICKJS
 
 bool ScriptEngine::init() {
     if (ready_) return true;
+    JsLock lock;
 
     auto* rt = JS_NewRuntime();
     if (!rt) { BL_ERROR("JS_NewRuntime falhou"); return false; }
@@ -37,12 +76,82 @@ bool ScriptEngine::init() {
 
 void ScriptEngine::shutdown() {
     if (!ready_) return;
+    JsLock lock;
     JS_FreeContext(static_cast<JSContext*>(context_));
     JS_FreeRuntime(static_cast<JSRuntime*>(runtime_));
     context_ = nullptr;
     runtime_ = nullptr;
     ready_ = false;
 }
+
+namespace {
+
+/** Loga a excecao pendente, com a pilha JS quando houver. */
+void logException(JSContext* ctx, JSValueConst err, const std::string& name) {
+    const char* text = JS_ToCString(ctx, err);
+    std::string msg = text ? text : "?";
+    if (text) JS_FreeCString(ctx, text);
+    JSValue stack = JS_GetPropertyStr(ctx, err, "stack");
+    if (JS_IsString(stack)) {
+        const char* st = JS_ToCString(ctx, stack);
+        if (st && *st) { msg += "\n"; msg += st; }
+        if (st) JS_FreeCString(ctx, st);
+    }
+    JS_FreeValue(ctx, stack);
+    BL_ERROR("erro em %s: %s", name.c_str(), msg.c_str());
+}
+
+/**
+ * Avalia o codigo de um mod como MODULO ES.
+ *
+ * Antes era JS_EVAL_TYPE_GLOBAL, e todos os mods dividiam o mesmo escopo: o
+ * Sem Queda declarava `const Update` e o Vida Cheia, carregado depois, morria
+ * com "redeclaration of 'Update'". Dois mods quaisquer com um nome em comum no
+ * topo do arquivo nao conviviam. Modulo tem escopo proprio; os globais da API
+ * (Terraria, bl) continuam visiveis.
+ *
+ * Custo: modulo e strict mode. Atribuir a variavel nao declarada vira erro —
+ * o que, num mod, quase sempre era um bug mesmo.
+ *
+ * O resultado de um modulo e uma PROMISE (top-level await existe). Um erro no
+ * mod nao vem como excecao do JS_Eval, e sim como promise rejeitada — sem
+ * olhar para ela, mod quebrado pareceria carregado.
+ */
+bool evalModule(JSContext* ctx, const char* code, size_t len, const std::string& name) {
+    JSValue result = JS_Eval(ctx, code, len, name.c_str(), JS_EVAL_TYPE_MODULE);
+    if (JS_IsException(result)) {
+        JSValue err = JS_GetException(ctx);
+        logException(ctx, err, name);
+        JS_FreeValue(ctx, err);
+        return false;
+    }
+    // Drena os jobs: e o que assenta a promise do modulo.
+    JSContext* jobCtx = nullptr;
+    while (JS_ExecutePendingJob(JS_GetRuntime(ctx), &jobCtx) > 0) {}
+
+    bool ok = true;
+    switch (JS_PromiseState(ctx, result)) {
+        case JS_PROMISE_REJECTED: {
+            JSValue err = JS_PromiseResult(ctx, result);
+            logException(ctx, err, name);
+            JS_FreeValue(ctx, err);
+            ok = false;
+            break;
+        }
+        case JS_PROMISE_PENDING:
+            // Top-level await esperando algo que nunca vem: o mod ficaria
+            // pela metade. Nao ha loop de eventos para completar isso.
+            BL_ERROR("erro em %s: o modulo ficou pendente (await no topo?)", name.c_str());
+            ok = false;
+            break;
+        default:
+            break;
+    }
+    JS_FreeValue(ctx, result);
+    return ok;
+}
+
+} // namespace
 
 bool ScriptEngine::evalFile(const std::string& path, const std::string& moduleName) {
     if (!ready_) return false;
@@ -56,38 +165,15 @@ bool ScriptEngine::evalFile(const std::string& path, const std::string& moduleNa
     fread(buffer.data(), 1, static_cast<size_t>(size), f);
     fclose(f);
 
-    auto* ctx = static_cast<JSContext*>(context_);
-    // GLOBAL por ora: mods usam os globais (NativeClass, tl). require/import
-    // (modulos) fica para quando a resolucao de modulos existir.
-    JSValue result = JS_Eval(ctx, buffer.data(), static_cast<size_t>(size),
-                             moduleName.c_str(), JS_EVAL_TYPE_GLOBAL);
-    bool ok = !JS_IsException(result);
-    if (!ok) {
-        JSValue err = JS_GetException(ctx);
-        const char* text = JS_ToCString(ctx, err);
-        BL_ERROR("erro em %s: %s", moduleName.c_str(), text ? text : "?");
-        if (text) JS_FreeCString(ctx, text);
-        JS_FreeValue(ctx, err);
-    }
-    JS_FreeValue(ctx, result);
-    return ok;
+    JsLock lock;
+    return evalModule(static_cast<JSContext*>(context_), buffer.data(),
+                      static_cast<size_t>(size), moduleName);
 }
 
 bool ScriptEngine::eval(const std::string& code, const std::string& name) {
     if (!ready_) return false;
-    auto* ctx = static_cast<JSContext*>(context_);
-    JSValue result = JS_Eval(ctx, code.c_str(), code.size(),
-                             name.c_str(), JS_EVAL_TYPE_GLOBAL);
-    bool ok = !JS_IsException(result);
-    if (!ok) {
-        JSValue err = JS_GetException(ctx);
-        const char* text = JS_ToCString(ctx, err);
-        BL_ERROR("erro em %s: %s", name.c_str(), text ? text : "?");
-        if (text) JS_FreeCString(ctx, text);
-        JS_FreeValue(ctx, err);
-    }
-    JS_FreeValue(ctx, result);
-    return ok;
+    JsLock lock;
+    return evalModule(static_cast<JSContext*>(context_), code.c_str(), code.size(), name);
 }
 
 #else // sem QuickJS: stub para o projeto compilar antes do vendoring

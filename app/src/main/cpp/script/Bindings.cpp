@@ -5,6 +5,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "script/Marshal.h"
+#include "script/Members.h"
 #include "script/Value.h"
 #include "il2cpp/Types.h"
 
@@ -50,25 +51,82 @@ struct MethodRef {
 
 // Declaradas adiante: o exotic da classe precisa delas antes de a secao de
 // campos existir no arquivo. (makeGameArray/makeGameMethod vem de Bridge.h.)
-JSValue readStaticField(JSContext* ctx, FieldInfo* f);
-int writeStaticField(JSContext* ctx, FieldInfo* f, JSValueConst value);
+JSValue readStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d);
+int writeStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d, JSValueConst value);
 
 /**
- * Propriedade C# é açúcar sobre métodos: `Main.myPlayer` é `get_myPlayer()`.
- * Sem isto, metade do que o modder lê no dump como campo não existe no JS —
- * `Main.myPlayer` voltava undefined e o índice de array virava lixo.
+ * Objeto do jogo segurado pelo JS.
+ *
+ * O coletor do IL2CPP (Boehm) varre a pilha e as raizes do jogo, nao a memoria
+ * do QuickJS. Um objeto que so o mod segura — `Item.new()` guardado numa
+ * variavel, um array guardado para depois — seria recolhido e o ponteiro
+ * ficaria pendurado. O gchandle e a raiz que diz ao coletor que alguem ainda
+ * usa o objeto; o finalizador do JS o solta.
  */
-const MethodInfo* accessor(Il2CppClass* cls, const std::string& prefix,
-                           const std::string& name, int params) {
-    if (!cls) return nullptr;
-    return il2cpp::api().class_get_method_from_name(cls, (prefix + name).c_str(), params);
+struct Pinned {
+    void* ptr;
+    uint32_t handle;
+};
+
+Pinned* pin(void* p) {
+    auto& a = il2cpp::api();
+    uint32_t h = (p && a.gchandle_new) ? a.gchandle_new(static_cast<Il2CppObject*>(p), false) : 0;
+    return new Pinned{p, h};
+}
+
+void unpin(Pinned* p) {
+    if (!p) return;
+    if (p->handle && il2cpp::api().gchandle_free) il2cpp::api().gchandle_free(p->handle);
+    delete p;
 }
 
 Il2CppClass* classOf(JSValueConst v) {
     return static_cast<Il2CppClass*>(JS_GetOpaque(v, g_nativeClassId));
 }
 Il2CppObject* objOf(JSValueConst v) {
-    return static_cast<Il2CppObject*>(JS_GetOpaque(v, g_nativeObjectId));
+    auto* p = static_cast<Pinned*>(JS_GetOpaque(v, g_nativeObjectId));
+    return p ? static_cast<Il2CppObject*>(p->ptr) : nullptr;
+}
+
+/** Propriedade C#: get_<nome>() em `self` (nullptr = estatica). */
+JSValue invokeGetter(JSContext* ctx, const MethodInfo* g, void* self) {
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* r = il2cpp::api().runtime_invoke(g, self, nullptr, &exc);
+    if (exc) {
+        return JS_ThrowInternalError(ctx, "%s lancou excecao no jogo",
+                                     il2cpp::api().method_get_name(g));
+    }
+    return fromReturn(ctx, g, r);
+}
+
+/** Propriedade C#: set_<nome>(v). @return 1 ok, -1 com excecao posta. */
+int invokeSetter(JSContext* ctx, const MethodInfo* sm, void* self, JSValueConst value) {
+    ArgPack pack;
+    if (!pack.build(ctx, sm, 1, &value)) return -1;
+    Il2CppObject* exc = nullptr;
+    il2cpp::api().runtime_invoke(sm, self, pack.data(), &exc);
+    if (exc) {
+        JS_ThrowInternalError(ctx, "%s lancou excecao no jogo", il2cpp::api().method_get_name(sm));
+        return -1;
+    }
+    return true;
+}
+
+/** Nome sem nada do jogo por tras: vira propriedade JS comum no objeto. */
+int defineJsProperty(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst value) {
+    return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value), JS_PROP_C_W_E) < 0
+               ? -1 : true;
+}
+
+/** "a | b | c" — so no caminho de erro. */
+std::string overloadList(Il2CppClass* cls, const std::string& name) {
+    auto overloads = il2cpp::listOverloads(cls, name);
+    std::string msg;
+    for (size_t i = 0; i < overloads.size(); ++i) {
+        if (i) msg += " | ";
+        msg += overloads[i];
+    }
+    return msg;
 }
 
 // --- bl.log ---
@@ -117,76 +175,36 @@ JSValue js_NativeClass(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
  * overloads. Escolher em silêncio foi o bug que deu exceção a cada frame.
  */
 JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
-    // 1. O que é nosso (`new`) vem do protótipo. Sem isto o exotic engoliria a
-    //    API inteira.
-    JSValue proto = JS_GetClassProto(ctx, g_nativeClassId);
-    JSValue fromProto = JS_GetProperty(ctx, proto, atom);
-    JS_FreeValue(ctx, proto);
-    if (!JS_IsUndefined(fromProto)) return fromProto;
-    JS_FreeValue(ctx, fromProto);
-
     Il2CppClass* cls = classOf(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!cls || !key) {
-        if (key) JS_FreeCString(ctx, key);
-        return JS_UNDEFINED;
-    }
-    std::string name(key);
-    JS_FreeCString(ctx, key);
+    if (!cls) return JS_UNDEFINED;
+    const Member& m = member(ctx, cls, atom, Space::Static, g_nativeClassId);
 
-    // 2. Tem parêntese? É assinatura.
-    if (name.find('(') != std::string::npos) {
+    // O que é nosso (`new`) vem do protótipo. Sem isto o exotic engoliria a
+    // API inteira.
+    if (m.proto) return protoGet(ctx, g_nativeClassId, atom);
+    if (m.method) return makeGameMethod(ctx, m.method);
+    // Campo estático, pelo tipo declarado (array vira GameArray, float vira
+    // número, string vira string — antes tudo saía como int64).
+    if (m.field) return readStaticField(ctx, m.field, *m.type);
+    if (m.getter) return invokeGetter(ctx, m.getter, nullptr);
+
+    // Daqui para baixo é só erro: pode ser lento, recalcula o que precisar.
+    if (m.signature) {
+        std::string name = atomName(ctx, atom);
         il2cpp::Signature sig = il2cpp::parseSignature(name);
         if (!sig.valid) return JS_ThrowTypeError(ctx, "assinatura invalida: '%s'", name.c_str());
         bool ambiguous = false;
-        const MethodInfo* m = il2cpp::findMethodBySignature(cls, sig, &ambiguous);
-        if (m) return makeGameMethod(ctx, m);
-
+        il2cpp::findMethodBySignature(cls, sig, &ambiguous);
         std::string msg = ambiguous ? "assinatura ambigua: '" : "metodo nao encontrado: '";
         msg += name + "'";
-        auto overloads = il2cpp::listOverloads(cls, sig.name);
-        if (!overloads.empty()) {
-            msg += ". Existem: ";
-            for (size_t i = 0; i < overloads.size(); ++i) {
-                if (i) msg += " | ";
-                msg += overloads[i];
-            }
-        }
+        std::string list = overloadList(cls, sig.name);
+        if (!list.empty()) msg += ". Existem: " + list;
         return JS_ThrowTypeError(ctx, "%s", msg.c_str());
     }
-
-    // 3. Campo estático, pelo tipo declarado (array vira GameArray, float vira
-    //    número, string vira string — antes tudo saía como int64).
-    if (FieldInfo* f = il2cpp::findField(cls, name)) return readStaticField(ctx, f);
-
-    // 3b. Propriedade estática: get_<nome>().
-    if (const MethodInfo* g = accessor(cls, "get_", name, 0)) {
-        Il2CppObject* exc = nullptr;
-        Il2CppObject* r = il2cpp::api().runtime_invoke(g, nullptr, nullptr, &exc);
-        if (exc) return JS_ThrowInternalError(ctx, "get_%s lancou excecao no jogo", name.c_str());
-        return fromReturn(ctx, g, r);
-    }
-
-    // 4. Método pelo nome puro — só se houver UM.
-    auto overloads = il2cpp::listOverloads(cls, name);
-    if (overloads.size() == 1) {
-        // Um overload só: o nome basta.
-        auto& a = il2cpp::api();
-        for (Il2CppClass* c = cls; c; c = a.class_get_parent(c)) {
-            void* iter = nullptr;
-            while (const MethodInfo* m = a.class_get_methods(c, &iter)) {
-                if (name == a.method_get_name(m)) return makeGameMethod(ctx, m);
-            }
-        }
-    }
-    if (overloads.size() > 1) {
-        std::string msg = "'" + name + "' tem " + std::to_string(overloads.size()) +
-            " overloads; use a assinatura. Existem: ";
-        for (size_t i = 0; i < overloads.size(); ++i) {
-            if (i) msg += " | ";
-            msg += overloads[i];
-        }
-        return JS_ThrowTypeError(ctx, "%s", msg.c_str());
+    if (m.overloads > 1) {
+        std::string name = atomName(ctx, atom);
+        return JS_ThrowTypeError(ctx, "'%s' tem %d overloads; use a assinatura. Existem: %s",
+                                 name.c_str(), m.overloads, overloadList(cls, name).c_str());
     }
     return JS_UNDEFINED;
 }
@@ -194,25 +212,11 @@ JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
 int nc_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
                   JSValueConst value, JSValueConst, int) {
     Il2CppClass* cls = classOf(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!cls || !key) { if (key) JS_FreeCString(ctx, key); return -1; }
-    FieldInfo* f = il2cpp::findField(cls, key);
-    std::string name(key);
-    JS_FreeCString(ctx, key);
-    if (f) return writeStaticField(ctx, f, value);
-
-    // Propriedade estática: set_<nome>(v).
-    if (const MethodInfo* sm = accessor(cls, "set_", name, 1)) {
-        ArgPack pack;
-        if (!pack.build(ctx, sm, 1, &value)) return -1;
-        Il2CppObject* exc = nullptr;
-        il2cpp::api().runtime_invoke(sm, nullptr, pack.data(), &exc);
-        if (exc) { JS_ThrowInternalError(ctx, "set_%s lancou excecao no jogo", name.c_str()); return -1; }
-        return true;
-    }
-    // Não é campo do jogo: vira propriedade JS comum no objeto.
-    return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value),
-                                  JS_PROP_C_W_E) < 0 ? -1 : true;
+    if (!cls) return -1;
+    const Member& m = member(ctx, cls, atom, Space::Static, g_nativeClassId);
+    if (m.field) return writeStaticField(ctx, m.field, *m.type, value);
+    if (m.setter) return invokeSetter(ctx, m.setter, nullptr, value);
+    return defineJsProperty(ctx, obj, atom, value);
 }
 
 const JSClassExoticMethods nc_exotic = {
@@ -228,41 +232,22 @@ const JSCFunctionListEntry nc_proto[] = {
     JS_CFUNC_DEF("new", 0, nc_new),
 };
 
-// Campo de objeto: o TIPO decide como ler e escrever. O modder não tem como
-// dizer isso numa atribuição (`item.useTime = 4`), e ler float como int
-// devolve lixo. A interpretação inteira mora em Value.cpp — aqui só calculamos
-// o endereço. `owner` é o objeto JS que hospeda a memória: quem receber uma
-// vista de struct (`item.position`) precisa dele vivo.
-JSValue readField(JSContext* ctx, JSValueConst owner, void* base, FieldInfo* f) {
-    auto& a = il2cpp::api();
-    return readAt(ctx, reinterpret_cast<char*>(base) + a.field_get_offset(f),
-                  describe(a.field_get_type(f)), owner);
-}
-
-int writeField(JSContext* ctx, void* base, FieldInfo* f, JSValueConst value) {
-    auto& a = il2cpp::api();
-    return writeAt(ctx, reinterpret_cast<char*>(base) + a.field_get_offset(f),
-                   describe(a.field_get_type(f)), value);
-}
-
 /**
  * Campo estático: o IL2CPP só entrega CÓPIA do bloco de estáticos, nunca o
  * endereço. Para struct isso muda tudo — a vista tem de guardar o FieldInfo e
  * devolver o valor a cada escrita, senão `Main.screenPosition.X = 0` não faz
  * nada e o modder passa a tarde procurando o motivo.
  */
-JSValue readStaticField(JSContext* ctx, FieldInfo* f) {
+JSValue readStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d) {
     auto& a = il2cpp::api();
-    TypeDesc d = describe(a.field_get_type(f));
     if (d.prim == Prim::Struct) return makeStaticStruct(ctx, d.cls, f, d.size);
     uint8_t buf[16] = {0};  // primitivo ou ponteiro: no máximo 8 bytes
     a.field_static_get_value(f, buf);
     return readAt(ctx, buf, d, JS_UNDEFINED);
 }
 
-int writeStaticField(JSContext* ctx, FieldInfo* f, JSValueConst value) {
+int writeStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d, JSValueConst value) {
     auto& a = il2cpp::api();
-    TypeDesc d = describe(a.field_get_type(f));
     std::vector<uint8_t> buf(d.size < sizeof(void*) ? sizeof(void*) : d.size, 0);
     // Lê antes: trocar um struct inteiro copia só os bytes dele, e o resto do
     // buffer iria por cima do valor atual.
@@ -278,39 +263,24 @@ int writeStaticField(JSContext* ctx, FieldInfo* f, JSValueConst value) {
 /**
  * Campos de instância como propriedade: `item.useTime`, `item.useTime = 4`.
  *
- * O tipo do campo decide como ler/escrever (ver readField/writeField) — o
- * modder não tem como informar isso numa atribuição, e ler float como int
- * devolve lixo.
+ * O TIPO do campo decide como ler e escrever — o modder não tem como dizer
+ * isso numa atribuição, e ler float como int devolve lixo. A interpretação
+ * mora em Value.cpp; o que o nome É (campo, propriedade, método) vem do cache
+ * de Members.cpp. `obj` é o dono da memória: quem receber uma vista de struct
+ * (`item.position`) precisa dele vivo.
  */
 JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
-    JSValue proto = JS_GetClassProto(ctx, g_nativeObjectId);
-    JSValue fromProto = JS_GetProperty(ctx, proto, atom);
-    JS_FreeValue(ctx, proto);
-    if (!JS_IsUndefined(fromProto)) return fromProto;
-    JS_FreeValue(ctx, fromProto);
-
     Il2CppObject* o = objOf(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!o || !key) { if (key) JS_FreeCString(ctx, key); return JS_UNDEFINED; }
-    std::string name(key);
-    JS_FreeCString(ctx, key);
-
+    if (!o) return JS_UNDEFINED;
     Il2CppClass* cls = il2cpp::api().object_get_class(o);
-    if (name.find('(') != std::string::npos) {
-        il2cpp::Signature sig = il2cpp::parseSignature(name);
-        bool amb = false;
-        if (const MethodInfo* m = il2cpp::findMethodBySignature(cls, sig, &amb)) {
-            return makeGameMethod(ctx, m);
-        }
-        return JS_ThrowTypeError(ctx, "metodo nao encontrado: '%s'", name.c_str());
-    }
-    if (FieldInfo* f = il2cpp::findField(cls, name)) return readField(ctx, obj, o, f);
+    const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
 
-    if (const MethodInfo* g = accessor(cls, "get_", name, 0)) {
-        Il2CppObject* exc = nullptr;
-        Il2CppObject* r = il2cpp::api().runtime_invoke(g, o, nullptr, &exc);
-        if (exc) return JS_ThrowInternalError(ctx, "get_%s lancou excecao no jogo", name.c_str());
-        return fromReturn(ctx, g, r);
+    if (m.proto) return protoGet(ctx, g_nativeObjectId, atom);
+    if (m.field) return readAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, obj);
+    if (m.method) return makeGameMethod(ctx, m.method);
+    if (m.getter) return invokeGetter(ctx, m.getter, o);
+    if (m.signature) {
+        return JS_ThrowTypeError(ctx, "metodo nao encontrado: '%s'", atomName(ctx, atom).c_str());
     }
     return JS_UNDEFINED;
 }
@@ -318,27 +288,16 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
 int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
                   JSValueConst value, JSValueConst, int) {
     Il2CppObject* o = objOf(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!o || !key) { if (key) JS_FreeCString(ctx, key); return -1; }
-    Il2CppClass* ocls = il2cpp::api().object_get_class(o);
-    FieldInfo* f = il2cpp::findField(ocls, key);
-    if (!f) {
-        if (const MethodInfo* sm = accessor(ocls, "set_", key, 1)) {
-            JS_FreeCString(ctx, key);
-            ArgPack pack;
-            if (!pack.build(ctx, sm, 1, &value)) return -1;
-            Il2CppObject* exc = nullptr;
-            il2cpp::api().runtime_invoke(sm, o, pack.data(), &exc);
-            if (exc) { JS_ThrowInternalError(ctx, "setter lancou excecao no jogo"); return -1; }
-            return true;
-        }
-    }
-    JS_FreeCString(ctx, key);
-    if (!f) {
-        return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value),
-                                      JS_PROP_C_W_E) < 0 ? -1 : true;
-    }
-    return writeField(ctx, o, f, value);
+    if (!o) return -1;
+    Il2CppClass* cls = il2cpp::api().object_get_class(o);
+    const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
+    if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
+    if (m.setter) return invokeSetter(ctx, m.setter, o, value);
+    return defineJsProperty(ctx, obj, atom, value);
+}
+
+void no_finalizer(JSRuntime*, JSValue val) {
+    unpin(static_cast<Pinned*>(JS_GetOpaque(val, g_nativeObjectId)));
 }
 
 const JSClassExoticMethods no_exotic = {
@@ -467,19 +426,18 @@ const JSCFunctionListEntry nm_proto[] = {
 JSClassID g_gameArrayId;
 
 /** Tipo do elemento. É ele que dá o passo: ponteiro (8 B) ou struct em linha. */
-TypeDesc elemTypeOf(JSContext* ctx, Il2CppArray* arr) {
+const TypeDesc& elemTypeOf(JSContext* ctx, Il2CppArray* arr) {
+    static const TypeDesc kUnknown = [] { TypeDesc d; d.size = 0; return d; }();
     auto& a = il2cpp::api();
-    TypeDesc d;
-    d.size = 0;
     if (!arr || !a.class_get_element_class || !a.class_get_type) {
         JS_ThrowInternalError(ctx, "array: API de tipo de elemento ausente");
-        return d;
+        return kUnknown;
     }
     Il2CppClass* arrCls = a.object_get_class(reinterpret_cast<Il2CppObject*>(arr));
     Il2CppClass* elem = a.class_get_element_class(arrCls);
     if (!elem) {
         JS_ThrowInternalError(ctx, "array: tipo do elemento desconhecido");
-        return d;
+        return kUnknown;
     }
     return describe(a.class_get_type(elem));
 }
@@ -504,7 +462,7 @@ JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
                                   static_cast<unsigned long long>(arr->length));
     }
 
-    TypeDesc d = elemTypeOf(ctx, arr);
+    const TypeDesc& d = elemTypeOf(ctx, arr);
     if (!d.size) return JS_EXCEPTION;
     // O dono é o próprio array: um elemento struct sai como VISTA para dentro
     // dele, então `Main.rain[3].position.X = 0` altera o jogo de verdade.
@@ -533,11 +491,15 @@ int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
         return -1;
     }
 
-    TypeDesc d = elemTypeOf(ctx, arr);
+    const TypeDesc& d = elemTypeOf(ctx, arr);
     if (!d.size) return -1;
     return writeAt(ctx, reinterpret_cast<char*>(arrayData(arr)) +
                             static_cast<size_t>(idx) * strideOf(d),
                    d, value);
+}
+
+void ga_finalizer(JSRuntime*, JSValue val) {
+    unpin(static_cast<Pinned*>(JS_GetOpaque(val, g_gameArrayId)));
 }
 
 const JSClassExoticMethods ga_exotic = {
@@ -549,22 +511,23 @@ const JSClassExoticMethods ga_exotic = {
 // --- Exportado (Bridge.h): quem detém os JSClassID é este arquivo. ---
 
 Il2CppObject* objectFromJS(JSValueConst v) {
-    return static_cast<Il2CppObject*>(JS_GetOpaque(v, g_nativeObjectId));
+    return objOf(v);
 }
 
 Il2CppArray* arrayFromJS(JSValueConst v) {
-    return static_cast<Il2CppArray*>(JS_GetOpaque(v, g_gameArrayId));
+    auto* p = static_cast<Pinned*>(JS_GetOpaque(v, g_gameArrayId));
+    return p ? static_cast<Il2CppArray*>(p->ptr) : nullptr;
 }
 
 JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj) {
     JSValue o = JS_NewObjectClass(ctx, g_nativeObjectId);
-    if (!JS_IsException(o)) JS_SetOpaque(o, obj);
+    if (!JS_IsException(o)) JS_SetOpaque(o, pin(obj));
     return o;
 }
 
 JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr) {
     JSValue v = JS_NewObjectClass(ctx, g_gameArrayId);
-    if (!JS_IsException(v)) JS_SetOpaque(v, arr);
+    if (!JS_IsException(v)) JS_SetOpaque(v, pin(arr));
     return v;
 }
 
@@ -701,7 +664,7 @@ void installBindings(void* context) {
     // NativeObject (sem constructor JS; criado por NativeClass.new)
     JS_NewClassID(rt, &g_nativeObjectId);
     static const JSClassDef noDef = {
-        "GameObject", nullptr, nullptr, nullptr,
+        "GameObject", no_finalizer, nullptr, nullptr,
         const_cast<JSClassExoticMethods*>(&no_exotic),
     };
     JS_NewClass(rt, g_nativeObjectId, &noDef);
@@ -720,7 +683,7 @@ void installBindings(void* context) {
     // GameArray
     JS_NewClassID(rt, &g_gameArrayId);
     static const JSClassDef gaDef = {
-        "GameArray", nullptr, nullptr, nullptr,
+        "GameArray", ga_finalizer, nullptr, nullptr,
         const_cast<JSClassExoticMethods*>(&ga_exotic),
     };
     JS_NewClass(rt, g_gameArrayId, &gaDef);

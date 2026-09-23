@@ -3,6 +3,9 @@
 
 namespace bl::hook {
 
+// Mais de um hook no mesmo endereco e permitido: eles se encadeiam, o primeiro
+// instalado roda por fora. `*original` pode MUDAR depois da instalacao (quando
+// outro elo entra na cadeia) — leia-o a cada chamada, nunca guarde uma copia.
 bool install(void* address, void* replacement, void** original);
 bool install(const MethodInfo* method, void* replacement, void** original);
 void removeAll();

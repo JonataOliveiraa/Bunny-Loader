@@ -1,4 +1,5 @@
 #include "ui/CheatButton.h"
+#include "core/Config.h"
 #include "core/Log.h"
 #include "runtime/Cheats.h"
 #include "ui/CheatBridgeDex.h"
@@ -193,7 +194,8 @@ void installCheatButton() {
     // copiar — quem joga no celular nao tem logcat.
     g_bridge = reinterpret_cast<jclass>(env->NewGlobalRef(bridge));
     g_showError = env->GetStaticMethodID(g_bridge, "showError", "(Ljava/lang/String;)V");
-    if (g_showError) log::onError(&onNativeError);
+    // Desligado nas Configuracoes, o erro fica so no logcat.
+    if (g_showError && config().showErrors) log::onError(&onNativeError);
 
     if (attached) vm->DetachCurrentThread();
 }

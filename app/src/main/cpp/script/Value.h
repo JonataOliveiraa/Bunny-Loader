@@ -35,7 +35,16 @@ struct TypeDesc {
     std::string name;             // nome do CLR, para mensagens de erro
 };
 
-TypeDesc describe(const Il2CppType* t);
+/**
+ * O tipo, resolvido uma vez por Il2CppType e guardado.
+ *
+ * Sem o cache, cada `item.damage` pagava um il2cpp_type_get_name (malloc +
+ * free) e uma fileira de comparacoes de string. A referencia devolvida vale
+ * para sempre: os tipos do jogo nao somem, e o mapa nunca remove.
+ *
+ * So chamar com o motor JS travado (JsLock) — e o que protege o mapa.
+ */
+const TypeDesc& describe(const Il2CppType* t);
 
 /**
  * Le/escreve um valor de tipo `d` no endereco `p`.

@@ -3,10 +3,9 @@
 #if BL_HAVE_QUICKJS
 #include "core/Log.h"
 #include "il2cpp/Api.h"
-#include "il2cpp/Resolver.h"
-#include "il2cpp/Signature.h"
 #include "script/Bridge.h"
 #include "script/Marshal.h"
+#include "script/Members.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -78,7 +77,7 @@ JSValue gs_toString(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
         bool first = true;
         while (FieldInfo* f = a.class_get_fields(r->cls, &iter)) {
             if (a.field_get_flags && (a.field_get_flags(f) & 0x0010)) continue;  // estatico
-            TypeDesc d = describe(a.field_get_type(f));
+            const TypeDesc& d = describe(a.field_get_type(f));
             if (d.prim == Prim::Struct) continue;
             JSValue v = readAt(ctx, static_cast<char*>(r->data) +
                                         structFieldOffset(r->cls, a.field_get_offset(f)),
@@ -97,39 +96,26 @@ JSValue gs_toString(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
 }
 
 JSValue gs_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
-    JSValue proto = JS_GetClassProto(ctx, g_structId);
-    JSValue fromProto = JS_GetProperty(ctx, proto, atom);
-    JS_FreeValue(ctx, proto);
-    if (!JS_IsUndefined(fromProto)) return fromProto;
-    JS_FreeValue(ctx, fromProto);
-
     auto* r = refOf(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!r || !key) { if (key) JS_FreeCString(ctx, key); return JS_UNDEFINED; }
-    std::string name(key);
-    JS_FreeCString(ctx, key);
+    if (!r) return JS_UNDEFINED;
+    const Member& m = member(ctx, r->cls, atom, Space::Struct, g_structId);
 
-    auto& a = il2cpp::api();
-    if (name.find('(') != std::string::npos) {
-        il2cpp::Signature sig = il2cpp::parseSignature(name);
-        bool amb = false;
-        if (const MethodInfo* m = il2cpp::findMethodBySignature(r->cls, sig, &amb)) {
-            return makeGameMethod(ctx, m);
-        }
-        return JS_ThrowTypeError(ctx, "metodo nao encontrado em %s: %s",
-                                 a.class_get_name(r->cls), name.c_str());
-    }
-    if (FieldInfo* f = il2cpp::findField(r->cls, name)) {
-        return readAt(ctx,
-                      static_cast<char*>(r->data) + structFieldOffset(r->cls, a.field_get_offset(f)),
-                      describe(a.field_get_type(f)), obj);
-    }
-    // Propriedade C# do struct.
-    if (const MethodInfo* g = a.class_get_method_from_name(r->cls, ("get_" + name).c_str(), 0)) {
+    if (m.proto) return protoGet(ctx, g_structId, atom);
+    if (m.field) return readAt(ctx, static_cast<char*>(r->data) + m.offset, *m.type, obj);
+    if (m.method) return makeGameMethod(ctx, m.method);
+    // Propriedade C# do struct: o `this` de um value type sao os dados.
+    if (m.getter) {
         Il2CppObject* exc = nullptr;
-        Il2CppObject* ret = a.runtime_invoke(g, r->data, nullptr, &exc);
-        if (exc) return JS_ThrowInternalError(ctx, "get_%s lancou excecao no jogo", name.c_str());
-        return fromReturn(ctx, g, ret);
+        Il2CppObject* ret = il2cpp::api().runtime_invoke(m.getter, r->data, nullptr, &exc);
+        if (exc) {
+            return JS_ThrowInternalError(ctx, "%s lancou excecao no jogo",
+                                         il2cpp::api().method_get_name(m.getter));
+        }
+        return fromReturn(ctx, m.getter, ret);
+    }
+    if (m.signature) {
+        return JS_ThrowTypeError(ctx, "metodo nao encontrado em %s: %s",
+                                 il2cpp::api().class_get_name(r->cls), atomName(ctx, atom).c_str());
     }
     return JS_UNDEFINED;
 }
@@ -137,32 +123,28 @@ JSValue gs_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
 int gs_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
                   JSValueConst value, JSValueConst, int) {
     auto* r = refOf(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!r || !key) { if (key) JS_FreeCString(ctx, key); return -1; }
-    std::string name(key);
-    JS_FreeCString(ctx, key);
-
+    if (!r) return -1;
     auto& a = il2cpp::api();
-    if (FieldInfo* f = il2cpp::findField(r->cls, name)) {
-        int ok = writeAt(ctx,
-                         static_cast<char*>(r->data) + structFieldOffset(r->cls, a.field_get_offset(f)),
-                         describe(a.field_get_type(f)), value);
+    const Member& m = member(ctx, r->cls, atom, Space::Struct, g_structId);
+    if (m.field) {
+        int ok = writeAt(ctx, static_cast<char*>(r->data) + m.offset, *m.type, value);
         if (ok > 0) flush(r);
         return ok;
     }
-    if (const MethodInfo* sm = a.class_get_method_from_name(r->cls, ("set_" + name).c_str(), 1)) {
+    if (m.setter) {
         ArgPack pack;
-        if (!pack.build(ctx, sm, 1, &value)) return -1;
+        if (!pack.build(ctx, m.setter, 1, &value)) return -1;
         Il2CppObject* exc = nullptr;
-        a.runtime_invoke(sm, r->data, pack.data(), &exc);
+        a.runtime_invoke(m.setter, r->data, pack.data(), &exc);
         if (exc) {
-            JS_ThrowInternalError(ctx, "set_%s lancou excecao no jogo", name.c_str());
+            JS_ThrowInternalError(ctx, "%s lancou excecao no jogo", a.method_get_name(m.setter));
             return -1;
         }
         flush(r);
         return true;
     }
-    JS_ThrowTypeError(ctx, "%s nao tem o campo %s", a.class_get_name(r->cls), name.c_str());
+    JS_ThrowTypeError(ctx, "%s nao tem o campo %s", a.class_get_name(r->cls),
+                      atomName(ctx, atom).c_str());
     return -1;
 }
 
@@ -205,7 +187,7 @@ size_t headerAdjustOf(Il2CppClass* cls) {
         void* iter = nullptr;
         while (FieldInfo* f = a.class_get_fields(cls, &iter)) {
             if (a.field_get_flags && (a.field_get_flags(f) & 0x0010)) continue;  // estatico
-            TypeDesc d = describe(a.field_get_type(f));
+            const TypeDesc& d = describe(a.field_get_type(f));
             if (a.field_get_offset(f) + d.size > valueSize) {
                 adjust = sizeof(Il2CppObject);
                 break;
@@ -224,7 +206,9 @@ size_t structFieldOffset(Il2CppClass* cls, size_t fieldOffset) {
     return fieldOffset >= adjust ? fieldOffset - adjust : fieldOffset;
 }
 
-TypeDesc describe(const Il2CppType* t) {
+namespace {
+
+TypeDesc describeUncached(const Il2CppType* t) {
     auto& a = il2cpp::api();
     TypeDesc d;
     if (!t) return d;
@@ -296,6 +280,20 @@ TypeDesc describe(const Il2CppType* t) {
     return d;
 }
 
+} // namespace
+
+const TypeDesc& describe(const Il2CppType* t) {
+    static const TypeDesc kNone{};
+    if (!t) return kNone;
+    // unordered_map guarda cada par num no proprio: a referencia sobrevive a
+    // rehash, e a recursao (enum -> tipo subjacente) pode inserir a vontade.
+    static std::unordered_map<const Il2CppType*, TypeDesc> cache;
+    auto it = cache.find(t);
+    if (it != cache.end()) return it->second;
+    TypeDesc d = describeUncached(t);
+    return cache.emplace(t, std::move(d)).first->second;
+}
+
 int hfaOf(Il2CppClass* cls, bool* isDouble) {
     auto& a = il2cpp::api();
     if (!cls || !a.class_get_fields) return 0;
@@ -304,7 +302,7 @@ int hfaOf(Il2CppClass* cls, bool* isDouble) {
     void* iter = nullptr;
     while (FieldInfo* f = a.class_get_fields(cls, &iter)) {
         if (a.field_get_flags && (a.field_get_flags(f) & 0x0010)) continue;  // estatico
-        TypeDesc d = describe(a.field_get_type(f));
+        const TypeDesc& d = describe(a.field_get_type(f));
         if (d.prim == Prim::F32) { sawFloat = true; ++count; }
         else if (d.prim == Prim::F64) { sawDouble = true; ++count; }
         else if (d.prim == Prim::Struct) {

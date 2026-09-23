@@ -46,6 +46,12 @@ std::string stringToUtf8(Il2CppString* s) {
     return out;
 }
 
+ArgPack::~ArgPack() {
+    auto& a = il2cpp::api();
+    if (!a.gchandle_free) return;
+    for (uint32_t h : handles_) a.gchandle_free(h);
+}
+
 bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst* argv) {
     auto& a = il2cpp::api();
     uint32_t n = a.method_get_param_count(m);
@@ -53,7 +59,7 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
     slots_.reserve(n);
 
     for (uint32_t i = 0; i < n; ++i) {
-        TypeDesc d = describe(a.method_get_param(m, i));
+        const TypeDesc& d = describe(a.method_get_param(m, i));
         JSValueConst v = (static_cast<int>(i) < argc) ? argv[i] : JS_UNDEFINED;
 
         if (d.byRef) {
@@ -77,13 +83,16 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
         // cabecalho como se fosse o primeiro campo, sem erro e com lixo.
         slots_.push_back(d.byValue ? static_cast<void*>(buf.get())
                                    : *reinterpret_cast<void**>(buf.get()));
+        if (d.prim == Prim::String && slots_.back() && a.gchandle_new) {
+            handles_.push_back(a.gchandle_new(static_cast<Il2CppObject*>(slots_.back()), false));
+        }
         storage_.push_back(std::move(buf));
     }
     return true;
 }
 
 JSValue fromReturn(JSContext* ctx, const MethodInfo* m, Il2CppObject* ret) {
-    TypeDesc d = describe(il2cpp::api().method_get_return_type(m));
+    const TypeDesc& d = describe(il2cpp::api().method_get_return_type(m));
     if (d.prim == Prim::Void) return JS_UNDEFINED;
 
     // Referencia: `ret` JA e o objeto; o leitor espera o endereco de onde ler

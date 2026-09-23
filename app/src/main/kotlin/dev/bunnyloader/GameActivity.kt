@@ -141,6 +141,7 @@ class GameActivity : Activity() {
                         File(getExternalFilesDir(null), "bunny/cmd")
                             .also { it.parentFile?.mkdirs() }.absolutePath
                     } else "",
+                    showErrors = prefs.errorPanel,
                     gameVersion = BundledRuntime.VERSION_CODE,
                 ),
             )

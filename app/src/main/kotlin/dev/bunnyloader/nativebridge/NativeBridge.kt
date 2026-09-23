@@ -8,6 +8,8 @@ class NativeConfig(
     @JvmField val logPath: String,
     /** Canal de dev por arquivo (adb push). Vazio desliga. */
     @JvmField val cmdPath: String,
+    /** Painel de erro dentro do jogo (Configuracoes). */
+    @JvmField val showErrors: Boolean,
     @JvmField val gameVersion: Long,
 )
 

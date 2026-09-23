@@ -19,9 +19,18 @@ class ModRepository(private val context: Context) {
     private val prefs = context.getSharedPreferences("mods", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
 
+    /**
+     * Ordenada pelo uid, nao pela ordem do sistema de arquivos.
+     *
+     * A ordem de carga vira a ordem da CADEIA de hooks: quando dois mods
+     * hookam o mesmo metodo, o primeiro carregado roda por fora e decide se o
+     * segundo chega a rodar. Deixar isso a cargo do `listFiles()` faria dois
+     * aparelhos se comportarem diferente com os mesmos mods.
+     */
     fun list(): List<ModManifest> = modsDir.listFiles().orEmpty()
         .filter { it.isDirectory }
         .mapNotNull { dir -> readManifest(dir) }
+        .sortedBy { it.key }
 
     /**
      * Instala um `.bmod` escolhido pelo seletor de arquivos.
