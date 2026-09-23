@@ -1,62 +1,386 @@
 package bunny;
 
 import android.app.Activity;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-// Menu de cheats do Bunny Loader: um overlay de Views do Android na Activity do
-// jogo (mesmo mecanismo do botao, provado sem root). Um botao-toggle abre um
-// painel rolavel de itens; tocar num item chama o nativo (RegisterNatives) que
-// enfileira o "dar item", executado na thread do jogo pelo hook de DoUpdate.
-//
-// Compilada para um dex embutido na libbunny (tools/build-cheatbridge-dex.sh).
-// UI do Android por cima da SurfaceView: independe de GLES/Vulkan e o input
-// funciona sozinho. Overlay ImGui via render-hook fica pra polimento futuro.
+/**
+ * Mod Menu do Bunny Loader: as ferramentas de dentro do jogo.
+ *
+ * Um overlay de Views do Android sobre a Activity — o mesmo mecanismo do botao
+ * flutuante, que ja se provou sem root. UI do Android por cima da SurfaceView
+ * independe de GLES/Vulkan e o input funciona sozinho.
+ *
+ * Duas colunas: a da esquerda lista as secoes, a da direita mostra o conteudo
+ * da secao escolhida. E a forma que um menu de ferramentas com dez secoes pede
+ * — a lista unica anterior ja nao cabia na tela com dezesseis itens, quanto
+ * mais com cento e cinquenta.
+ *
+ * As cores sao as do painel do proprio jogo (#3f5297 com contorno #131625),
+ * para o menu parecer parte do Terraria e nao uma janela do Android por cima.
+ *
+ * Compilada para um dex embutido na libbunny (tools/build-cheatbridge-dex.sh).
+ */
 public class CheatBridge {
 
-    // Implementado em C++ -> bl::runtime::requestGive(type, stack).
+    // Implementados em C++ -> bl::runtime::requestGive / requestSpawn.
     public static native void nOnGive(int type, int stack);
+    public static native void nOnSpawn(int type);
 
-    // Itens do menu v1. IDs CONFERIDOS contra ItemID no dump de 1.4.5.6.4 —
-    // "Life Crystal" estava como 12, que e Minerio de Ferro; o certo e 29.
-    // Depois: picker completo + categorias populadas por mods (tl.cheatMenu).
-    //
-    // Arma sem municao nao atira, entao a lista traz balas, e empilhaveis vem
-    // com STACK cheio: uma bala de mosquete so nao serve pra nada.
-    private static final String[] NAMES = {
-        "Minishark", "Megashark", "Star Cannon", "Space Gun", "Muramasa",
-        "Terra Blade", "Meowmere", "Zenith", "Demon Wings",
-        "Life Crystal", "Mana Crystal", "Gravitation Potion",
-        "Musket Ball x999", "Silver Bullet x999", "Crystal Bullet x999",
-        "Endless Musket Pouch",
-    };
-    private static final int[] IDS = {
-        98, 533, 197, 127, 155,
-        757, 3063, 4956, 492,
-        29, 109, 305,
-        97, 278, 515,
-        3104,
-    };
-    private static final int[] STACKS = {
-        1, 1, 1, 1, 1,
-        1, 1, 1, 1,
-        1, 1, 1,
-        999, 999, 999,
-        1,
-    };
+    // --- paleta ---
+    private static final int PANEL      = 0xFF3F5297;
+    private static final int PANEL_DARK = 0xFF2C3A6B;
+    private static final int PANEL_LIT  = 0xFF5468B4;
+    private static final int OUTLINE    = 0xFF131625;
+    private static final int GRASS      = 0xFF22A851;
+    private static final int GRASS_LIT  = 0xFF2EED52;
+    private static final int DIRT       = 0xFF875F41;
+    private static final int INK        = 0xFFFFFFFF;
+    private static final int INK_DIM    = 0xFFC3CBEA;
+    private static final int SCRIM      = 0xC0000000;
+
+    private static Activity sActivity;
+    private static View sOverlay;
+
+    // ------------------------------ secoes ------------------------------
+
+    /** Uma secao do menu. `npc` troca "dar item" por "invocar". */
+    private static final class Section {
+        final String group, title, subtitle;
+        final String[] names;
+        final int[] ids;
+        final int[] stacks;   // null quando e NPC
+        final boolean npc;
+
+        Section(String group, String title, String subtitle,
+                String[] names, int[] ids, int[] stacks, boolean npc) {
+            this.group = group; this.title = title; this.subtitle = subtitle;
+            this.names = names; this.ids = ids; this.stacks = stacks; this.npc = npc;
+        }
+    }
+
+    private static Section[] sections() {
+        return new Section[] {
+            new Section("ITENS", "Corpo a corpo", "Espadas, lancas e tudo que bate de perto.",
+                CheatData.CORPO_A_CORPO_N, CheatData.CORPO_A_CORPO_I, CheatData.CORPO_A_CORPO_S, false),
+            new Section("ITENS", "A distancia", "Armas de fogo e arcos. Levam municao junto.",
+                CheatData.A_DISTANCIA_N, CheatData.A_DISTANCIA_I, CheatData.A_DISTANCIA_S, false),
+            new Section("ITENS", "Magia", "Cajados, livros e armas de mana.",
+                CheatData.MAGIA_N, CheatData.MAGIA_I, CheatData.MAGIA_S, false),
+            new Section("ITENS", "Invocacao", "Cajados que chamam servos para lutar por voce.",
+                CheatData.INVOCACAO_N, CheatData.INVOCACAO_I, CheatData.INVOCACAO_S, false),
+            new Section("ITENS", "Acessorios", "Botas, asas, escudos e emblemas.",
+                CheatData.ACESSORIOS_N, CheatData.ACESSORIOS_I, CheatData.ACESSORIOS_S, false),
+            new Section("ITENS", "Blocos e moveis", "Material de construcao e estacoes de trabalho.",
+                CheatData.BLOCOS_E_MOVEIS_N, CheatData.BLOCOS_E_MOVEIS_I, CheatData.BLOCOS_E_MOVEIS_S, false),
+            new Section("ITENS", "Uteis", "Cristais, pocoes e municao infinita.",
+                CheatData.UTEIS_N, CheatData.UTEIS_I, CheatData.UTEIS_S, false),
+            new Section("MUNDO", "Chefes", "Invoca o chefe ao seu lado. Prepare-se antes.",
+                CheatData.CHEFES_N, CheatData.CHEFES_I, null, true),
+            new Section("MUNDO", "Monstros", "Inimigos comuns, para testar arma nova.",
+                CheatData.MONSTROS_N, CheatData.MONSTROS_I, null, true),
+            new Section("MUNDO", "Moradores", "Traz um NPC da cidade. Ele ainda precisa de casa.",
+                CheatData.MORADORES_N, CheatData.MORADORES_I, null, true),
+        };
+    }
+
+    // ------------------------------ desenho ------------------------------
+
+    private static int px(Activity a, float dp) {
+        return (int) TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP, dp, a.getResources().getDisplayMetrics());
+    }
+
+    /** Painel do Terraria: contorno escuro, corpo azul, luz em cima. */
+    private static GradientDrawable panel(Activity a, int fill, int stroke) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(fill);
+        d.setStroke(px(a, 2), stroke);
+        d.setCornerRadius(px(a, 3));
+        return d;
+    }
+
+    private static TextView text(Activity a, String s, int size, int color) {
+        TextView t = new TextView(a);
+        t.setText(s);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        return t;
+    }
+
+    /** Sprite do res/drawable do app — o jogo roda no NOSSO processo. */
+    private static Bitmap sprite(Activity a, String name) {
+        try {
+            Resources r = a.getResources();
+            int id = r.getIdentifier(name, "drawable", a.getPackageName());
+            if (id == 0) return null;
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inScaled = false;   // pixel art nao escala no decode
+            return BitmapFactory.decodeResource(r, id, o);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    private static ImageView icon(Activity a, Bitmap bmp, int dp) {
+        ImageView v = new ImageView(a);
+        if (bmp != null) {
+            BitmapDrawable d = new BitmapDrawable(a.getResources(), bmp);
+            d.getPaint().setFilterBitmap(false);  // vizinho-mais-proximo
+            v.setImageDrawable(d);
+        }
+        v.setLayoutParams(new LinearLayout.LayoutParams(px(a, dp), px(a, dp)));
+        return v;
+    }
+
+    // ------------------------------ menu ------------------------------
+
+    public static void install(final Activity act) {
+        sActivity = act;
+        act.runOnUiThread(new Runnable() {
+            @Override public void run() {
+                try { buildToggle(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
+            }
+        });
+    }
+
+    /** Botao flutuante que abre o menu. */
+    private static void buildToggle(final Activity act) {
+        ImageView b = icon(act, sprite(act, "ic_bunny_head"), 40);
+        b.setPadding(px(act, 6), px(act, 6), px(act, 6), px(act, 6));
+        b.setBackground(panel(act, PANEL, OUTLINE));
+        b.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { toggleMenu(act); }
+        });
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+            px(act, 52), px(act, 52));
+        lp.gravity = Gravity.TOP | Gravity.START;
+        lp.leftMargin = px(act, 16);
+        lp.topMargin = px(act, 56);
+        act.addContentView(b, lp);
+    }
+
+    private static void toggleMenu(Activity act) {
+        if (sOverlay != null) {
+            sOverlay.setVisibility(
+                sOverlay.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+            return;
+        }
+        sOverlay = buildMenu(act);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+        act.addContentView(sOverlay, lp);
+    }
+
+    private static View buildMenu(final Activity act) {
+        final Section[] all = sections();
+
+        FrameLayout root = new FrameLayout(act);
+        root.setBackgroundColor(SCRIM);
+        // Clique no escuro nao atravessa para o jogo.
+        root.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { }
+        });
+
+        LinearLayout body = new LinearLayout(act);
+        body.setOrientation(LinearLayout.HORIZONTAL);
+        FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
+        blp.setMargins(px(act, 16), px(act, 16), px(act, 16), px(act, 16));
+        body.setLayoutParams(blp);
+        root.addView(body);
+
+        // ---- coluna da direita (criada antes: o aside precisa preenche-la) ----
+        final LinearLayout content = new LinearLayout(act);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setBackground(panel(act, PANEL, OUTLINE));
+        content.setPadding(px(act, 12), px(act, 12), px(act, 12), px(act, 12));
+
+        // ---- coluna da esquerda ----
+        LinearLayout aside = new LinearLayout(act);
+        aside.setOrientation(LinearLayout.VERTICAL);
+        aside.setBackground(panel(act, PANEL, OUTLINE));
+        aside.setPadding(px(act, 10), px(act, 10), px(act, 10), px(act, 10));
+
+        LinearLayout head = new LinearLayout(act);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(icon(act, sprite(act, "ic_bunny_head"), 32));
+        LinearLayout titles = new LinearLayout(act);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        titles.setPadding(px(act, 8), 0, 0, 0);
+        titles.addView(text(act, "Mod Menu", 17, INK));
+        titles.addView(text(act, "BUNNY LOADER", 9, INK_DIM));
+        head.addView(titles);
+        aside.addView(head);
+        aside.addView(rule(act));
+
+        final ScrollView asideScroll = new ScrollView(act);
+        final LinearLayout asideList = new LinearLayout(act);
+        asideList.setOrientation(LinearLayout.VERTICAL);
+        asideScroll.addView(asideList);
+        aside.addView(asideScroll, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        final View[] buttons = new View[all.length];
+        String group = null;
+        for (int i = 0; i < all.length; i++) {
+            final Section s = all[i];
+            if (!s.group.equals(group)) {
+                group = s.group;
+                TextView g = text(act, group, 10, INK_DIM);
+                g.setPadding(px(act, 4), px(act, 10), 0, px(act, 4));
+                asideList.addView(g);
+            }
+            final int index = i;
+            TextView b = text(act, s.title, 14, INK);
+            b.setPadding(px(act, 10), px(act, 9), px(act, 10), px(act, 9));
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    select(act, content, all, buttons, index);
+                }
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+            lp.bottomMargin = px(act, 3);
+            asideList.addView(b, lp);
+            buttons[i] = b;
+        }
+
+        TextView close = text(act, "Fechar", 14, INK);
+        close.setGravity(Gravity.CENTER);
+        close.setPadding(0, px(act, 10), 0, px(act, 10));
+        close.setBackground(panel(act, 0xFF8B3A3A, OUTLINE));
+        close.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (sOverlay != null) sOverlay.setVisibility(View.GONE);
+            }
+        });
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        clp.topMargin = px(act, 8);
+        aside.addView(close, clp);
+
+        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
+            px(act, 190), LinearLayout.LayoutParams.MATCH_PARENT);
+        alp.rightMargin = px(act, 10);
+        body.addView(aside, alp);
+        body.addView(content, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+
+        select(act, content, all, buttons, 0);
+        return root;
+    }
+
+    private static View rule(Activity act) {
+        View v = new View(act);
+        v.setBackgroundColor(OUTLINE);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 2));
+        lp.topMargin = px(act, 8);
+        lp.bottomMargin = px(act, 4);
+        v.setLayoutParams(lp);
+        return v;
+    }
+
+    /** Troca a secao mostrada e marca o botao escolhido. */
+    private static void select(final Activity act, LinearLayout content,
+                               Section[] all, View[] buttons, int index) {
+        for (int i = 0; i < buttons.length; i++) {
+            buttons[i].setBackground(
+                i == index ? panel(act, PANEL_LIT, GRASS) : panel(act, PANEL_DARK, OUTLINE));
+        }
+        Section s = all[index];
+        content.removeAllViews();
+
+        LinearLayout head = new LinearLayout(act);
+        head.setOrientation(LinearLayout.VERTICAL);
+        head.addView(text(act, s.title, 19, INK));
+        head.addView(text(act, s.subtitle, 11, INK_DIM));
+        content.addView(head);
+        content.addView(rule(act));
+
+        ScrollView scroll = new ScrollView(act);
+        LinearLayout list = new LinearLayout(act);
+        list.setOrientation(LinearLayout.VERTICAL);
+        for (int i = 0; i < s.names.length; i++) {
+            list.addView(row(act, s, i));
+        }
+        scroll.addView(list);
+        content.addView(scroll, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+    }
+
+    /** Uma linha: nome, quantidade e o botao de acao. */
+    private static View row(final Activity act, final Section s, final int i) {
+        final String name = s.names[i];
+        final int id = s.ids[i];
+        final int stack = s.stacks == null ? 1 : s.stacks[i];
+
+        LinearLayout r = new LinearLayout(act);
+        r.setOrientation(LinearLayout.HORIZONTAL);
+        r.setGravity(Gravity.CENTER_VERTICAL);
+        r.setBackground(panel(act, PANEL_DARK, OUTLINE));
+        r.setPadding(px(act, 10), px(act, 8), px(act, 8), px(act, 8));
+
+        LinearLayout labels = new LinearLayout(act);
+        labels.setOrientation(LinearLayout.VERTICAL);
+        labels.addView(text(act, name, 14, INK));
+        labels.addView(text(act,
+            s.npc ? ("NPC " + id) : (stack > 1 ? ("x" + stack + "  ·  id " + id) : ("id " + id)),
+            10, INK_DIM));
+        r.addView(labels, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        Button go = new Button(act);
+        go.setText(s.npc ? "Invocar" : "Pegar");
+        go.setAllCaps(false);
+        go.setTextColor(Color.WHITE);
+        go.setTextSize(13);
+        go.setBackground(panel(act, s.npc ? DIRT : GRASS, OUTLINE));
+        go.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (s.npc) {
+                    nOnSpawn(id);
+                    Toast.makeText(act, name + " invocado", Toast.LENGTH_SHORT).show();
+                } else {
+                    nOnGive(id, stack);
+                    Toast.makeText(act, name + (stack > 1 ? " x" + stack : ""),
+                        Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        r.addView(go, new LinearLayout.LayoutParams(
+            px(act, 82), LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = px(act, 4);
+        r.setLayoutParams(lp);
+        return r;
+    }
 
     // --- painel de erro ------------------------------------------------------
     //
     // Chamado do nativo quando aparece o primeiro BL_ERROR. Quem joga no
     // celular nao tem logcat: sem isto, um mod que quebra vira "nao funcionou"
     // sem texto nenhum. Mostra o log, com OK e Copiar.
-    private static Activity sActivity;
 
     public static void showError(final String text) {
         final Activity act = sActivity;
@@ -69,28 +393,20 @@ public class CheatBridge {
     }
 
     private static void buildError(final Activity act, String text) {
-        final float d = act.getResources().getDisplayMetrics().density;
         final String body = text;
 
         final LinearLayout box = new LinearLayout(act);
         box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackgroundColor(0xF21B1726);
-        box.setPadding(px(16, d), px(16, d), px(16, d), px(16, d));
+        box.setBackground(panel(act, 0xF2202436, 0xFFFF8A80));
+        box.setPadding(px(act, 16), px(act, 16), px(act, 16), px(act, 16));
 
-        TextView head = new TextView(act);
-        head.setText("Bunny Loader — erro");
-        head.setTextColor(0xFFFF8A80);
-        head.setTextSize(16);
-        box.addView(head);
+        box.addView(text(act, "Bunny Loader — erro", 16, 0xFFFF8A80));
 
-        TextView msg = new TextView(act);
-        msg.setText(body);
-        msg.setTextColor(Color.WHITE);
-        msg.setTextSize(11);
-        msg.setPadding(0, px(8, d), 0, px(8, d));
+        TextView msg = text(act, body, 11, INK);
+        msg.setPadding(0, px(act, 8), 0, px(act, 8));
         ScrollView sc = new ScrollView(act);
         sc.addView(msg);
-        box.addView(sc, new LinearLayout.LayoutParams(px(300, d), px(200, d)));
+        box.addView(sc, new LinearLayout.LayoutParams(px(act, 300), px(act, 200)));
 
         LinearLayout row = new LinearLayout(act);
         row.setOrientation(LinearLayout.HORIZONTAL);
@@ -101,8 +417,8 @@ public class CheatBridge {
         copy.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 android.content.ClipboardManager cm =
-                        (android.content.ClipboardManager) act.getSystemService(
-                                Activity.CLIPBOARD_SERVICE);
+                    (android.content.ClipboardManager) act.getSystemService(
+                        Activity.CLIPBOARD_SERVICE);
                 if (cm != null) {
                     cm.setPrimaryClip(android.content.ClipData.newPlainText("bunny", body));
                 }
@@ -120,94 +436,9 @@ public class CheatBridge {
         row.addView(ok);
         box.addView(row);
 
-        FrameLp lp = new FrameLp(act, Gravity.CENTER, 0, 0, d);
-        act.addContentView(box, lp.get());
-    }
-
-    public static void install(final Activity act) {
-        sActivity = act;
-        act.runOnUiThread(new Runnable() {
-            @Override public void run() {
-                try { build(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
-            }
-        });
-    }
-
-    private static void build(final Activity act) {
-        final float d = act.getResources().getDisplayMetrics().density;
-
-        // Painel (escondido por padrao).
-        final LinearLayout panel = new LinearLayout(act);
-        panel.setOrientation(LinearLayout.VERTICAL);
-        panel.setBackgroundColor(0xE6141414);
-        panel.setPadding(px(12, d), px(12, d), px(12, d), px(12, d));
-        panel.setVisibility(View.GONE);
-
-        TextView title = new TextView(act);
-        title.setText("Bunny Loader — Itens");
-        title.setTextColor(Color.WHITE);
-        title.setTextSize(16);
-        title.setPadding(0, 0, 0, px(8, d));
-        panel.addView(title);
-
-        final ScrollView scroll = new ScrollView(act);
-        LinearLayout list = new LinearLayout(act);
-        list.setOrientation(LinearLayout.VERTICAL);
-        for (int i = 0; i < NAMES.length; i++) {
-            final int id = IDS[i];
-            final int stack = STACKS[i];
-            final String name = NAMES[i];
-            Button b = new Button(act);
-            b.setText(name);
-            b.setAllCaps(false);
-            b.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    nOnGive(id, stack);
-                    Toast.makeText(act, name + " +1", Toast.LENGTH_SHORT).show();
-                }
-            });
-            list.addView(b);
-        }
-        scroll.addView(list);
-        // Limita a altura pra rolar em vez de ocupar a tela toda.
-        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(
-                px(200, d), px(280, d));
-        panel.addView(scroll, slp);
-
-        // Botao-toggle.
-        final Button toggle = new Button(act);
-        toggle.setText("🐰");
-        toggle.setAllCaps(false);
-        toggle.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                panel.setVisibility(
-                        panel.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
-            }
-        });
-
-        // Posicionamento: toggle no topo-esquerda; painel logo abaixo.
-        FrameLp tglp = new FrameLp(act, Gravity.TOP | Gravity.START, 24, 60, d);
-        FrameLp pnlp = new FrameLp(act, Gravity.TOP | Gravity.START, 24, 120, d);
-        act.addContentView(panel, pnlp.get());
-        act.addContentView(toggle, tglp.get());
-    }
-
-    private static int px(int dp, float density) {
-        return (int) (dp * density + 0.5f);
-    }
-
-    // Helper pra montar FrameLayout.LayoutParams (addContentView usa o layout do
-    // content, tipicamente FrameLayout).
-    private static final class FrameLp {
-        final android.widget.FrameLayout.LayoutParams lp;
-        FrameLp(Activity act, int gravity, int leftDp, int topDp, float d) {
-            lp = new android.widget.FrameLayout.LayoutParams(
-                    android.widget.FrameLayout.LayoutParams.WRAP_CONTENT,
-                    android.widget.FrameLayout.LayoutParams.WRAP_CONTENT);
-            lp.gravity = gravity;
-            lp.leftMargin = (int) (leftDp * d + 0.5f);
-            lp.topMargin = (int) (topDp * d + 0.5f);
-        }
-        android.widget.FrameLayout.LayoutParams get() { return lp; }
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        lp.gravity = Gravity.CENTER;
+        act.addContentView(box, lp);
     }
 }

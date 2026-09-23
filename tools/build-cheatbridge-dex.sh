@@ -12,14 +12,14 @@ JAVA_HOME="${JAVA_HOME:-/c/Program Files/Android/Android Studio/jbr}"
 SDK="${ANDROID_SDK:-$LOCALAPPDATA/Android/Sdk}"
 AJAR="$SDK/platforms/android-34/android.jar"
 D8JAR="$SDK/build-tools/36.1.0/lib/d8.jar"
-SRC="tools/cheatbridge/bunny/CheatBridge.java"
+SRC="tools/cheatbridge/bunny/CheatBridge.java tools/cheatbridge/bunny/CheatData.java"
 OUT=".cheatbridge"
 
 echo "==> javac"
 rm -rf "$OUT"; mkdir -p "$OUT/classes"
 "$JAVA_HOME/bin/javac" -source 8 -target 8 -nowarn \
     -classpath "$(cygpath -w "$AJAR")" \
-    -d "$(cygpath -w "$OUT/classes")" "$(cygpath -w "$SRC")"
+    -d "$(cygpath -w "$OUT/classes")" $(for f in $SRC; do cygpath -w "$f"; done)
 
 echo "==> d8 (min-api 26)"
 CLASSES=$(find "$OUT/classes" -name "*.class" | while read -r f; do cygpath -w "$f"; done)

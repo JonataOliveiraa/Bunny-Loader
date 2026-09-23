@@ -22,4 +22,13 @@ void giveItem(int type, int stack);
 // chamadas il2cpp sao validas).
 void requestGive(int type, int stack);
 
+/**
+ * Invoca o NPC `type` perto do jogador (chefe, monstro ou morador).
+ *
+ * Mesma mecânica do item: `requestSpawn` pode vir de qualquer thread e o hook
+ * de DoUpdate executa no próximo quadro, na thread do jogo.
+ */
+void spawnNpc(int type);
+void requestSpawn(int type);
+
 } // namespace bl::runtime

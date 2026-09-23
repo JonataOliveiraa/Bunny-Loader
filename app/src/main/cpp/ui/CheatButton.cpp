@@ -72,9 +72,13 @@ void onNativeError(const char*) {
     if (attached) vm->DetachCurrentThread();
 }
 
-// Metodo nativo ligado a CheatBridge.nOnGive(int, int).
+// Metodos nativos ligados ao CheatBridge.
 void JNICALL jni_onGive(JNIEnv*, jclass, jint type, jint stack) {
     bl::runtime::requestGive(type, stack);
+}
+
+void JNICALL jni_onSpawn(JNIEnv*, jclass, jint type) {
+    bl::runtime::requestSpawn(type);
 }
 
 // Classloader do app (acha classes do app, ao contrario do FindClass de uma
@@ -162,8 +166,11 @@ void installCheatButton() {
     if (!bridge) { if (attached) vm->DetachCurrentThread(); return; }
 
     // 4. Liga o metodo nativo.
-    JNINativeMethod nm = {"nOnGive", "(II)V", reinterpret_cast<void*>(&jni_onGive)};
-    if (env->RegisterNatives(bridge, &nm, 1) != JNI_OK) {
+    JNINativeMethod nm[] = {
+        {"nOnGive", "(II)V", reinterpret_cast<void*>(&jni_onGive)},
+        {"nOnSpawn", "(I)V", reinterpret_cast<void*>(&jni_onSpawn)},
+    };
+    if (env->RegisterNatives(bridge, nm, 2) != JNI_OK) {
         checkExc(env, "RegisterNatives");
         if (attached) vm->DetachCurrentThread();
         return;
