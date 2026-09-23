@@ -43,3 +43,6 @@ __pycache__/
 # So o README, que explica a convencao de nomes.
 _icons/*
 !_icons/README.md
+
+# Saida de build: APKs de 180+ MB, nada disso vai para o repositorio.
+out/
