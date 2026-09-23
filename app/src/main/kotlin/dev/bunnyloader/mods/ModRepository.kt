@@ -94,7 +94,15 @@ class ModRepository(private val context: Context) {
     private val defaultEnabled: Boolean
         get() = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             .getBoolean("enableOnInstall", true)
-    fun enabledIds(): List<String> = list().filter { isEnabled(it.uid) }.map { it.uid }
+    /**
+     * O que vai para o núcleo nativo: `uid=entry`, um por mod habilitado.
+     *
+     * Os dois juntos na mesma entrada, e não em duas listas alinhadas por
+     * índice, que é uma dessincronização esperando acontecer. O núcleo parte
+     * no primeiro `=`.
+     */
+    fun enabledSpecs(): List<String> =
+        list().filter { isEnabled(it.uid) }.map { "${it.uid}=${it.entry}" }
 
     /** O arquivo de entrada, em `content/` ou na raiz (formato antigo). */
     private fun entryOf(dir: File): File? {

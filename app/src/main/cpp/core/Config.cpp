@@ -16,20 +16,26 @@ std::string trim(const std::string& s) {
     return s.substr(a, b - a + 1);
 }
 
-void splitCsv(const std::string& value, std::vector<std::string>& out) {
+void splitCsv(const std::string& value, std::vector<ModSpec>& out) {
     out.clear();
     size_t start = 0;
     while (start <= value.size()) {
         size_t comma = value.find(',', start);
         std::string part = trim(value.substr(
             start, comma == std::string::npos ? std::string::npos : comma - start));
-        if (!part.empty()) out.push_back(part);
+        if (!part.empty()) out.push_back(parseModSpec(part));
         if (comma == std::string::npos) break;
         start = comma + 1;
     }
 }
 
 } // namespace
+
+ModSpec parseModSpec(const std::string& texto) {
+    size_t eq = texto.find('=');
+    if (eq == std::string::npos) return {texto, {}};
+    return {trim(texto.substr(0, eq)), trim(texto.substr(eq + 1))};
+}
 
 bool loadConfigFromFile(const char* path) {
     FILE* f = fopen(path, "r");

@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "core/Config.h"  // ModSpec
+
 namespace bl::mods {
 
 struct LoadedMod {
@@ -14,7 +16,7 @@ struct LoadedMod {
 };
 
 // Carrega os mods habilitados de modsDir, na ordem de dependências.
-void loadAll(const std::string& modsDir, const std::vector<std::string>& enabled);
+void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled);
 
 // Carrega os mods embutidos na libbunny (JS compilado no binário). Usado como
 // fallback no celular quando não há mods externos provisionados (sem adb).

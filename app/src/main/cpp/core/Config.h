@@ -5,10 +5,25 @@
 
 namespace bl {
 
+/**
+ * Um mod habilitado: a pasta dele e o arquivo por onde comecar.
+ *
+ * Os dois vem juntos num par, e nao em duas listas paralelas, porque duas
+ * listas alinhadas por indice sao uma dessincronizacao esperando acontecer.
+ * Na fronteira (JNI e arquivo) isto viaja como `id=entry`.
+ */
+struct ModSpec {
+    std::string id;
+    std::string entry;   // relativo a pasta do mod; vazio = descobrir
+};
+
+/** "uid=content/main.js" -> {uid, content/main.js}. Sem `=`, entry vazio. */
+ModSpec parseModSpec(const std::string& texto);
+
 struct Config {
     std::string gameLibDir;
     std::string modsDir;
-    std::vector<std::string> enabledMods;
+    std::vector<ModSpec> enabledMods;
     std::string logPath;
     // Arquivo de comando do canal de DEV (adb). Fica na pasta externa do
     // proprio Bunny Loader; o caminho vem de cima porque o nativo nao conhece
@@ -28,7 +43,9 @@ inline Config& config() {
 // Caminho B (lançar + injetar): a libbunny.so e pre-carregada no processo do
 // jogo, sem codigo Java nosso la dentro. Entao a config nao vem por JNI — vem
 // de um arquivo texto simples (key=value por linha) que o launcher grava antes
-// de iniciar o jogo. enabledMods e uma lista separada por virgula.
+// de iniciar o jogo. enabledMods e uma lista separada por virgula, cada item
+// no formato `id=entry` (o `=` interno nao atrapalha: a linha e partida no
+// PRIMEIRO `=`, que e o do `enabledMods=`).
 //
 // Retorna false se o arquivo nao existir/nao abrir; nesse caso o chamador
 // deve abortar o boot silenciosamente (o processo pode nem ser o do jogo).

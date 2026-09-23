@@ -4,6 +4,7 @@ package dev.bunnyloader.nativebridge
 class NativeConfig(
     @JvmField val gameLibDir: String,
     @JvmField val modsDir: String,
+    /** Um por mod habilitado, no formato `uid=entry`. Ver ModRepository. */
     @JvmField val enabledMods: Array<String>,
     @JvmField val logPath: String,
     /** Canal de dev por arquivo (adb push). Vazio desliga. */

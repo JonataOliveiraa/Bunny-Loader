@@ -41,7 +41,7 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
             auto js = reinterpret_cast<jstring>(env->GetObjectArrayElement(arr, i));
             const char* chars = env->GetStringUTFChars(js, nullptr);
             if (chars) {
-                c.enabledMods.emplace_back(chars);
+                c.enabledMods.push_back(bl::parseModSpec(chars));
                 env->ReleaseStringUTFChars(js, chars);
             }
             env->DeleteLocalRef(js);

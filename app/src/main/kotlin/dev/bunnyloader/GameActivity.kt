@@ -130,7 +130,7 @@ class GameActivity : Activity() {
                 NativeConfig(
                     gameLibDir = BundledRuntime.libDir(this).absolutePath,
                     modsDir = repo.modsDir.absolutePath,
-                    enabledMods = repo.enabledIds().toTypedArray(),
+                    enabledMods = repo.enabledSpecs().toTypedArray(),
                     logPath = File(logDir, "bunny.log").absolutePath,
                     // Canal de dev: adb push <arquivo> para a NOSSA pasta
                     // externa. A do Terraria nao serve — desde o Android 11

@@ -34,32 +34,41 @@ bool fileExists(const std::string& path) {
 }
 }
 
-void loadAll(const std::string& modsDir, const std::vector<std::string>& enabled) {
+void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     registry().clear();
     BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());
 
-    // TODO(Fase 5):
-    //  1. ler mod.json de cada mod habilitado
-    //  2. ordenação topológica por dependências (ciclo/faltante => desativa e loga)
-    //  3. evalFile do entry de cada um
-    for (const auto& id : enabled) {
+    // TODO(Fase 5): ordenação topológica por dependências (ciclo/faltante =>
+    // desativa e loga).
+    for (const auto& spec : enabled) {
+        const std::string& id = spec.id;
         LoadedMod mod;
         mod.id = id;
         mod.dir = modsDir + "/" + id;
-        mod.entry = "content/main.js";
         registry().push_back(mod);
 
         if (!script::engine().ready()) continue;
 
-        // O pacote .bmod guarda o codigo em content/. Pacote antigo deixava o
-        // main.js na raiz; tentamos os dois em vez de exigir migracao de quem
-        // ja tem mod instalado.
-        std::string path = mod.dir + "/content/main.js";
-        if (!fileExists(path)) {
-            path = mod.dir + "/main.js";
-            mod.entry = "main.js";
-            registry().back().entry = mod.entry;
+        // O `entry` do manifesto manda, e e relativo a content/. Ele era
+        // IGNORADO: o carregador abria content/main.js fixo, entao um mod que
+        // declarasse outro arquivo rodava o main.js e ninguem avisava.
+        //
+        // Sem entry (config antiga, ou pacote sem o campo) caimos no padrao. E
+        // a raiz continua valendo depois de content/, para o formato antigo,
+        // que deixava o main.js sem pasta.
+        std::string path;
+        const std::string nome = spec.entry.empty() ? std::string("main.js") : spec.entry;
+        for (const std::string& tentativa : {mod.dir + "/content/" + nome, mod.dir + "/" + nome}) {
+            if (fileExists(tentativa)) { path = tentativa; break; }
         }
+        if (path.empty()) {
+            BL_ERROR("mod %s: nao achei o entry '%s' (nem em content/ nem na raiz)",
+                     id.c_str(), nome.c_str());
+            registry().back().enabled = false;
+            continue;
+        }
+        mod.entry = path.substr(mod.dir.size() + 1);
+        registry().back().entry = mod.entry;
         // A pasta do ARQUIVO, nao a do pacote: o main.js mora em content/, e
         // "ao lado do main.js" e onde o autor poe as imagens dele.
         size_t barra = path.rfind('/');
