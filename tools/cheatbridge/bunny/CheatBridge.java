@@ -8,6 +8,9 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.text.TextPaint;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
@@ -23,6 +26,7 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 import java.io.InputStream;
 import java.util.LinkedHashMap;
@@ -172,8 +176,47 @@ public class CheatBridge {
         return d;
     }
 
+    /**
+     * Texto com contorno preto, como o do jogo.
+     *
+     * Desenha a mesma linha duas vezes — uma em STROKE preto, uma em FILL na
+     * cor — em vez de mexer no setTextColor no meio do onDraw, que chama
+     * invalidate() e poe a View a se redesenhar para sempre.
+     *
+     * Quebra de linha cai no desenho normal do TextView: contornar texto
+     * multilinha na mao pediria refazer o layout inteiro, e aqui multilinha e
+     * so o subtitulo, que nao precisa.
+     */
+    private static final class Contornado extends TextView {
+        private final float traco;
+
+        Contornado(Activity a) {
+            super(a);
+            traco = px(a, 2);
+        }
+
+        @Override protected void onDraw(Canvas c) {
+            if (getLineCount() != 1) { super.onDraw(c); return; }
+            final String txt = getText().toString();
+            final TextPaint pt = getPaint();
+            final int cor = getCurrentTextColor();
+            final float x = getPaddingLeft();
+            final float y = getBaseline();
+
+            pt.setStyle(Paint.Style.STROKE);
+            pt.setStrokeWidth(traco);
+            pt.setStrokeJoin(Paint.Join.ROUND);
+            pt.setColor(0xFF000000);
+            c.drawText(txt, x, y, pt);
+
+            pt.setStyle(Paint.Style.FILL);
+            pt.setColor(cor);
+            c.drawText(txt, x, y, pt);
+        }
+    }
+
     private static TextView text(Activity a, String s, int size, int color) {
-        TextView t = new TextView(a);
+        TextView t = new Contornado(a);
         t.setText(s);
         t.setTextSize(size);
         t.setTextColor(color);
@@ -445,6 +488,95 @@ public class CheatBridge {
         return v;
     }
 
+    /**
+     * Barra de quantidade desenhada a mao, com a cara do jogo.
+     *
+     * A SeekBar do Android traz o tema do aparelho junto — pilula cinza, bolinha
+     * com halo de toque, a cor de destaque do sistema — e destoa de tudo em
+     * volta. Aqui e um sulco escuro, o preenchido em verde e uma alca quadrada
+     * com contorno, que e como o Terraria desenha barra.
+     */
+    private static final class Range extends View {
+        private final int max;
+        private final Paint tinta = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final float borda, alca;
+        private int valor;
+        Runnable aoMudar;
+
+        Range(Activity a, int max, int inicial) {
+            super(a);
+            this.max = max < 1 ? 1 : max;
+            this.valor = inicial;
+            this.borda = px(a, 2);
+            this.alca = px(a, 15);
+            setPadding(0, px(a, 7), 0, px(a, 7));
+        }
+
+        int valor() { return valor; }
+
+        @Override protected void onMeasure(int wSpec, int hSpec) {
+            setMeasuredDimension(resolveSize(px((Activity) getContext(), 200), wSpec),
+                                 resolveSize((int) (alca + px((Activity) getContext(), 12)), hSpec));
+        }
+
+        @Override protected void onDraw(Canvas c) {
+            final float meio = getHeight() / 2f;
+            final float sulco = px((Activity) getContext(), 12);
+            final float x0 = alca / 2f, x1 = getWidth() - alca / 2f;
+            final float topo = meio - sulco / 2f, base = meio + sulco / 2f;
+            final float raio = sulco / 2f;
+
+            tinta.setStyle(Paint.Style.FILL);
+            tinta.setColor(OUTLINE);
+            c.drawRoundRect(x0 - borda, topo - borda, x1 + borda, base + borda, raio, raio, tinta);
+            tinta.setColor(PANEL_DARK);
+            c.drawRoundRect(x0, topo, x1, base, raio, raio, tinta);
+
+            final float t = (valor - 1) / (float) (max - 1 == 0 ? 1 : max - 1);
+            final float cx = x0 + (x1 - x0) * t;
+            if (cx > x0) {
+                tinta.setColor(GRASS);
+                c.drawRoundRect(x0, topo, cx, base, raio, raio, tinta);
+            }
+
+            // A alca e MAIS ALTA que o sulco e nao e verde: dentro do verde do
+            // preenchido, uma alca verde sumia — virava uma listra e ninguem
+            // via onde pegar.
+            final float ah = alca * 1.45f;
+            tinta.setColor(OUTLINE);
+            c.drawRect(cx - alca / 2f, meio - ah / 2f, cx + alca / 2f, meio + ah / 2f, tinta);
+            tinta.setColor(0xFFCBCBCB);
+            c.drawRect(cx - alca / 2f + borda, meio - ah / 2f + borda,
+                       cx + alca / 2f - borda, meio + ah / 2f - borda, tinta);
+            // Meia sombra embaixo, que e como o jogo da volume a um botao.
+            tinta.setColor(0xFF808080);
+            c.drawRect(cx - alca / 2f + borda, meio,
+                       cx + alca / 2f - borda, meio + ah / 2f - borda, tinta);
+        }
+
+        @Override public boolean onTouchEvent(MotionEvent e) {
+            switch (e.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_MOVE:
+                case MotionEvent.ACTION_UP:
+                    final float x0 = alca / 2f, x1 = getWidth() - alca / 2f;
+                    float t = (e.getX() - x0) / Math.max(1f, x1 - x0);
+                    if (t < 0) t = 0; else if (t > 1) t = 1;
+                    int novo = 1 + Math.round(t * (max - 1));
+                    if (novo != valor) {
+                        valor = novo;
+                        invalidate();
+                        if (aoMudar != null) aoMudar.run();
+                    }
+                    // Segura o gesto: sem isto a ListView rouba o arrasto.
+                    getParent().requestDisallowInterceptTouchEvent(true);
+                    return true;
+                default:
+                    return super.onTouchEvent(e);
+            }
+        }
+    }
+
     /** Teto do slider. NPC e baixo de proposito: 10 chefes de uma vez trava. */
     private static final int MAX_ITEM = 999;
     private static final int MAX_NPC = 10;
@@ -502,20 +634,14 @@ public class CheatBridge {
         final int[] qtd = { inicial };
 
         final TextView rotulo = text(act, "Quantidade: " + inicial, 12, INK);
-        rotulo.setWidth(px(act, 112));
-        SeekBar barra = new SeekBar(act);
-        barra.setMax(max);
-        barra.setProgress(inicial);
-        barra.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar sb, int valor, boolean doUsuario) {
-                // setMin() so existe da API 26 para cima e o app vai ate a 24,
-                // entao o piso e aqui: zero nao da item nem NPC nenhum.
-                qtd[0] = valor < 1 ? 1 : valor;
+        rotulo.setWidth(px(act, 118));
+        final Range barra = new Range(act, max, inicial);
+        barra.aoMudar = new Runnable() {
+            @Override public void run() {
+                qtd[0] = barra.valor();
                 rotulo.setText("Quantidade: " + qtd[0]);
             }
-            @Override public void onStartTrackingTouch(SeekBar sb) { }
-            @Override public void onStopTrackingTouch(SeekBar sb) { }
-        });
+        };
 
         LinearLayout linhaQtd = new LinearLayout(act);
         linhaQtd.setOrientation(LinearLayout.HORIZONTAL);
@@ -533,7 +659,11 @@ public class CheatBridge {
         // linhas, e montar 6147 Views de uma vez trava o jogo por segundos. A
         // ListView so monta o que cabe na tela e reaproveita ao rolar.
         ListView lista = new ListView(act);
-        lista.setDivider(null);
+        // Uma linha quase invisivel entre as linhas, no lugar da borda preta
+        // arredondada que cada card tinha: com 6147 deles, a tela virava uma
+        // grade de caixinhas em vez de uma lista.
+        lista.setDivider(new android.graphics.drawable.ColorDrawable(0x22FFFFFF));
+        lista.setDividerHeight(px(act, 1));
         lista.setCacheColorHint(0);
         lista.setAdapter(new BaseAdapter() {
             @Override public int getCount() { return s.count(); }
@@ -551,7 +681,7 @@ public class CheatBridge {
     private static final class Linha {
         ImageView sprite;
         TextView nome, detalhe;
-        Button acao;
+        ImageView acao;
     }
 
     /** Uma linha: sprite, nome, id e o botao de acao. */
@@ -567,8 +697,7 @@ public class CheatBridge {
             r = new LinearLayout(act);
             r.setOrientation(LinearLayout.HORIZONTAL);
             r.setGravity(Gravity.CENTER_VERTICAL);
-            r.setBackground(panel(act, PANEL_DARK, OUTLINE));
-            r.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
+            r.setPadding(px(act, 8), px(act, 7), px(act, 8), px(act, 7));
 
             L.sprite = icon(act, null, 34);
             L.sprite.setScaleType(ImageView.ScaleType.FIT_CENTER);
@@ -584,19 +713,16 @@ public class CheatBridge {
             r.addView(rotulos, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            L.acao = new Button(act);
-            L.acao.setAllCaps(false);
-            L.acao.setTextColor(Color.WHITE);
-            L.acao.setTextSize(13);
-            L.acao.setTypeface(fonte(act));
-            r.addView(L.acao, new LinearLayout.LayoutParams(
-                px(act, 82), LinearLayout.LayoutParams.WRAP_CONTENT));
+            // So o sinal, sem palavra: a acao ja esta dita pela secao, e o
+            // texto roubava metade da largura de cada linha.
+            L.acao = new ImageView(act);
+            L.acao.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            L.acao.setPadding(px(act, 6), px(act, 6), px(act, 6), px(act, 6));
+            r.addView(L.acao, new LinearLayout.LayoutParams(px(act, 46), px(act, 38)));
 
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            r.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.bottomMargin = px(act, 4);
-            r.setLayoutParams(lp);
+                LinearLayout.LayoutParams.WRAP_CONTENT));
             r.setTag(L);
         }
 
@@ -617,16 +743,13 @@ public class CheatBridge {
 
         L.nome.setText(nome);
         L.detalhe.setText(s.npc ? ("NPC " + id) : ("id " + id));
-        L.acao.setText(s.npc ? "Invocar" : "Pegar");
         L.acao.setBackground(panel(act, s.npc ? DIRT : GRASS, OUTLINE));
+        L.acao.setContentDescription(s.npc ? "Invocar" : "Pegar");
         Bitmap bAcao = sprite(act, s.npc ? "ic_invocar" : "ic_pegar");
         if (bAcao != null) {
             BitmapDrawable dAcao = new BitmapDrawable(act.getResources(), bAcao);
             dAcao.getPaint().setFilterBitmap(false);
-            int lado = px(act, 18);
-            dAcao.setBounds(0, 0, lado, lado);
-            L.acao.setCompoundDrawables(dAcao, null, null, null);
-            L.acao.setCompoundDrawablePadding(px(act, 4));
+            L.acao.setImageDrawable(dAcao);
         }
         L.acao.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
