@@ -18,6 +18,22 @@
 //   p.statLife = p.statLifeMax;
 //   Terraria.Main.player.length
 //
+// Enum sai como NÚMERO, direto — sem `.value__`:
+//
+//   Terraria.PartyHatColor.Pink      // 2
+//
+// Struct (Vector2, Color, Rectangle) é uma VISTA para dentro do dono, então
+// escrever nela altera o jogo:
+//
+//   npc.position.X = 100;            // move o NPC
+//   item.color.R = 255;
+//   npc.position = outroVector2;     // troca o struct inteiro
+//   bl.log(npc.position)             // Vector2(X=100, Y=42)
+//
+// Duas exceções, de propósito: o struct que volta de um MÉTODO e o que chega
+// como ARGUMENTO de hook são cópias — escrever neles não vai a lugar nenhum,
+// que é a semântica de valor do C#.
+//
 // Chamar método do jogo — o objeto é `this`, como em JS:
 //
 //   Terraria.Main['int get_myPlayer()']()
@@ -31,17 +47,25 @@
 //   const v = Microsoft.Xna.Framework.Vector2.new();
 //   v['void .ctor(float x, float y)'](5.0, 10.0);   // struct também
 //
-// Hook com argumento float e com retorno:
+// No hook, `original` aceita ARGUMENTOS — é assim que se edita uma entrada
+// antes de deixar o jogo processá-la. O que você não passar fica como veio:
 //
-//   MathHelper['float ToRadians(float degrees)'].hook((original, degrees) => {
-//       return original(degrees);      // o retorno do callback é o do método
-//   });
+//   Dano.hook((original, self, dano) => original(self, dano * 2));
+//
+// E o que o callback devolver vira o retorno do método, float inclusive:
+//
+//   Distance.hook((original, a, b) => original(a, b) * 10);
 //
 // A assinatura vem do dump, copiada como está lá. Prefira-a ao nome puro:
 // nome + contagem de parâmetros não desambigua overloads. Quando o nome é
 // ambíguo o loader RECUSA e lista os overloads, em vez de escolher um.
 //
 // Método do jogo que lança vira exceção JS — não é engolido.
+//
+// O que ainda NÃO dá: hookar método que devolve struct, e hookar método com
+// mais de 8 argumentos inteiros ou 8 de ponto flutuante (o excedente viaja
+// pela pilha, que não capturamos). Os dois são recusados com mensagem, nunca
+// adivinhados.
 
 const MINISHARK = Terraria.ID.ItemID.Minishark;
 bl.log('HelloMod: Minishark = ' + MINISHARK + '; hookando Item.SetDefaults');

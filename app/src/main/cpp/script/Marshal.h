@@ -33,8 +33,8 @@ public:
 
 private:
     // Os valores por cópia precisam sobreviver até a chamada; guardamos aqui e
-    // apontamos para dentro. `storage_` é uma deque-like: nunca realoca, senão
-    // os ponteiros em slots_ ficariam pendurados.
+    // apontamos para dentro. O vetor pode realocar sem perigo: o que ele move
+    // são os unique_ptr, não os buffers para onde slots_ aponta.
     std::vector<std::unique_ptr<uint8_t[]>> storage_;
     std::vector<void*> slots_;
 };

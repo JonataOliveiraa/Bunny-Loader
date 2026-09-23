@@ -20,6 +20,18 @@ bool bind(void* lib, const char* name, void* slot) {
     *reinterpret_cast<void**>(slot) = sym;
     return true;
 }
+
+// Simbolo que NAO derruba a carga se faltar. Quem usa checa o ponteiro e cai
+// num caminho pior porem correto. Um simbolo novo no `ok &=` faria o jogo
+// inteiro rodar sem mods por causa de um recurso acessorio.
+void bindSoft(void* lib, const char* name, void* slot) {
+    void* sym = dlsym(lib, name);
+    if (!sym) {
+        BL_WARN("Simbolo opcional ausente: %s", name);
+        return;
+    }
+    *reinterpret_cast<void**>(slot) = sym;
+}
 }
 
 bool Api::load() {
@@ -59,6 +71,7 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_method_get_class", &method_get_class);
     ok &= bind(lib, "il2cpp_class_get_element_class", &class_get_element_class);
     ok &= bind(lib, "il2cpp_class_value_size", &class_value_size);
+    ok &= bind(lib, "il2cpp_class_get_type", &class_get_type);
     ok &= bind(lib, "il2cpp_type_get_name", &type_get_name);
     ok &= bind(lib, "il2cpp_free", &il2cpp_free);
     ok &= bind(lib, "il2cpp_object_new", &object_new);
@@ -68,7 +81,10 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_gchandle_free", &gchandle_free);
     ok &= bind(lib, "il2cpp_gchandle_get_target", &gchandle_get_target);
     ok &= bind(lib, "il2cpp_thread_attach", &thread_attach);
-    // TODO(Fase 2/3): expandir (class_get_methods, method_get_param, arrays...).
+    bindSoft(lib, "il2cpp_class_enum_basetype", &class_enum_basetype);
+    bindSoft(lib, "il2cpp_class_get_fields", &class_get_fields);
+    bindSoft(lib, "il2cpp_field_get_name", &field_get_name);
+    bindSoft(lib, "il2cpp_field_get_flags", &field_get_flags);
     if (!ok) return false;
 
     size_t count = 0;

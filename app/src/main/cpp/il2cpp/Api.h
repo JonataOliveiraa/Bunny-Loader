@@ -32,12 +32,23 @@ struct Api {
     Il2CppClass* (*class_from_il2cpp_type)(const Il2CppType*) = nullptr;
     bool (*class_is_enum)(const Il2CppClass*) = nullptr;
     bool (*class_is_valuetype)(const Il2CppClass*) = nullptr;
+    // Tipo SUBJACENTE do enum (int32 quase sempre, mas ha byte e long). Sem
+    // ele um enum de 1 byte seria lido como 4 e pegaria o campo vizinho junto.
+    const Il2CppType* (*class_enum_basetype)(Il2CppClass*) = nullptr;
+    // Iteracao de campos: usada para detectar HFA (struct so de floats, que o
+    // AAPCS passa em d0-d3) e para o toString de struct.
+    FieldInfo* (*class_get_fields)(Il2CppClass*, void**) = nullptr;
+    const char* (*field_get_name)(FieldInfo*) = nullptr;
+    uint32_t (*field_get_flags)(FieldInfo*) = nullptr;
     Il2CppClass* (*method_get_class)(const MethodInfo*) = nullptr;
     // Arrays: tipo e tamanho do elemento. Um Player[] guarda ponteiros (8 B);
     // um Vector2[] guarda os structs em linha (8 B de dados). Sem o tamanho
     // certo o indice anda errado.
     Il2CppClass* (*class_get_element_class)(Il2CppClass*) = nullptr;
     int32_t (*class_value_size)(Il2CppClass*, uint32_t*) = nullptr;
+    // Caminho de volta classe -> tipo: o elemento de um array chega como
+    // classe, e quem sabe ler memoria trabalha com Il2CppType.
+    const Il2CppType* (*class_get_type)(Il2CppClass*) = nullptr;
     size_t (*field_get_offset)(FieldInfo*) = nullptr;
     void (*field_static_get_value)(FieldInfo*, void*) = nullptr;
     void (*field_static_set_value)(FieldInfo*, void*) = nullptr;

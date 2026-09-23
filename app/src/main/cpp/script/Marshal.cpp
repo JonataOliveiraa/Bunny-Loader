@@ -4,34 +4,12 @@
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "script/Bridge.h"
+#include "script/Value.h"
 
 #include <cstring>
 #include <memory>
 
 namespace bl::script {
-
-namespace {
-
-std::string typeNameOf(const Il2CppType* t) {
-    if (!t) return {};
-    auto& a = il2cpp::api();
-    char* raw = a.type_get_name(t);
-    if (!raw) return {};
-    std::string s(raw);
-    a.il2cpp_free(raw);
-    return s;
-}
-
-/** Tamanho do tipo por valor, ou 0 se for referência. */
-size_t valueSize(const std::string& t) {
-    if (t == "System.Boolean" || t == "System.Byte" || t == "System.SByte") return 1;
-    if (t == "System.Int16" || t == "System.UInt16" || t == "System.Char") return 2;
-    if (t == "System.Int32" || t == "System.UInt32" || t == "System.Single") return 4;
-    if (t == "System.Int64" || t == "System.UInt64" || t == "System.Double") return 8;
-    return 0;
-}
-
-} // namespace
 
 std::string stringToUtf8(Il2CppString* s) {
     if (!s || s->length <= 0) return {};
@@ -75,85 +53,50 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
     slots_.reserve(n);
 
     for (uint32_t i = 0; i < n; ++i) {
-        const Il2CppType* pt = a.method_get_param(m, i);
-        std::string t = typeNameOf(pt);
+        TypeDesc d = describe(a.method_get_param(m, i));
         JSValueConst v = (static_cast<int>(i) < argc) ? argv[i] : JS_UNDEFINED;
 
-        size_t sz = valueSize(t);
-        // Enum: o nome e o do enum, nao o do subjacente. Trata como int32 —
-        // cobre praticamente todos os enums do Terraria.
-        if (sz == 0 && a.class_from_il2cpp_type && a.class_is_enum) {
-            if (Il2CppClass* pc = a.class_from_il2cpp_type(pt)) {
-                if (a.class_is_enum(pc)) sz = 4;
-            }
-        }
-        if (sz == 0) {
-            // Referência: entra o ponteiro do objeto, não o endereço dele.
-            if (JS_IsNull(v) || JS_IsUndefined(v)) {
-                slots_.push_back(nullptr);
-            } else if (t == "System.String") {
-                const char* cs = JS_ToCString(ctx, v);
-                if (!cs) return false;
-                Il2CppString* s = a.string_new(cs);
-                JS_FreeCString(ctx, cs);
-                slots_.push_back(s);
-            } else if (Il2CppObject* o = objectFromJS(v)) {
-                slots_.push_back(o);
-            } else {
-                JS_ThrowTypeError(ctx, "argumento %u: esperava %s (passe um objeto do jogo ou null)",
-                                  i + 1, t.c_str());
-                return false;
-            }
-            continue;
+        if (d.byRef) {
+            // `ref`/`out` quer o ENDERECO de uma variavel do chamador, e o JS
+            // nao tem isso. Recusa em vez de mandar um ponteiro qualquer.
+            JS_ThrowTypeError(ctx, "argumento %u e ref/out (%s) — ainda nao suportado",
+                              i + 1, d.name.c_str());
+            return false;
         }
 
-        auto buf = std::make_unique<uint8_t[]>(8);
-        std::memset(buf.get(), 0, 8);
-        if (t == "System.Single") {
-            double d = 0; if (JS_ToFloat64(ctx, &d, v) < 0) return false;
-            float f = static_cast<float>(d); std::memcpy(buf.get(), &f, 4);
-        } else if (t == "System.Double") {
-            double d = 0; if (JS_ToFloat64(ctx, &d, v) < 0) return false;
-            std::memcpy(buf.get(), &d, 8);
-        } else if (t == "System.Boolean") {
-            buf[0] = JS_ToBool(ctx, v) ? 1 : 0;
-        } else {
-            int64_t iv = 0; if (JS_ToInt64(ctx, &iv, v) < 0) return false;
-            std::memcpy(buf.get(), &iv, sz);
-        }
-        slots_.push_back(buf.get());
+        // O buffer tem no minimo 8 bytes: um tipo por referencia escreve o
+        // ponteiro aqui antes de a gente extrai-lo.
+        size_t sz = d.size < sizeof(void*) ? sizeof(void*) : d.size;
+        auto buf = std::make_unique<uint8_t[]>(sz);
+        std::memset(buf.get(), 0, sz);
+        if (writeAt(ctx, buf.get(), d, v) < 0) return false;
+
+        // A convencao do runtime_invoke: tipo por VALOR entra pelo endereco do
+        // valor; tipo por REFERENCIA entra pelo proprio ponteiro do objeto.
+        // Isto vale inclusive para struct — passar a CAIXA faz o metodo ler o
+        // cabecalho como se fosse o primeiro campo, sem erro e com lixo.
+        slots_.push_back(d.byValue ? static_cast<void*>(buf.get())
+                                   : *reinterpret_cast<void**>(buf.get()));
         storage_.push_back(std::move(buf));
     }
     return true;
 }
 
 JSValue fromReturn(JSContext* ctx, const MethodInfo* m, Il2CppObject* ret) {
-    auto& a = il2cpp::api();
-    std::string t = typeNameOf(a.method_get_return_type(m));
-    if (t.empty() || t == "System.Void") return JS_UNDEFINED;
-    if (!ret) return JS_NULL;
+    TypeDesc d = describe(il2cpp::api().method_get_return_type(m));
+    if (d.prim == Prim::Void) return JS_UNDEFINED;
 
-    // Valor volta BOXED: o dado fica logo depois do cabeçalho do objeto.
-    auto* p = reinterpret_cast<uint8_t*>(ret) + sizeof(Il2CppObject);
-    if (t == "System.Single")  { float f; std::memcpy(&f, p, 4); return JS_NewFloat64(ctx, f); }
-    if (t == "System.Double")  { double d; std::memcpy(&d, p, 8); return JS_NewFloat64(ctx, d); }
-    if (t == "System.Boolean") return JS_NewBool(ctx, *p != 0);
-    if (t == "System.Byte")    return JS_NewInt32(ctx, *p);
-    if (t == "System.SByte")   return JS_NewInt32(ctx, *reinterpret_cast<int8_t*>(p));
-    if (t == "System.Int16")   { int16_t x; std::memcpy(&x, p, 2); return JS_NewInt32(ctx, x); }
-    if (t == "System.UInt16" || t == "System.Char") {
-        uint16_t x; std::memcpy(&x, p, 2); return JS_NewInt32(ctx, x);
-    }
-    if (t == "System.Int32" || t == "System.UInt32") {
-        int32_t x; std::memcpy(&x, p, 4); return JS_NewInt32(ctx, x);
-    }
-    if (t == "System.Int64" || t == "System.UInt64") {
-        int64_t x; std::memcpy(&x, p, 8); return JS_NewInt64(ctx, x);
-    }
-    if (t == "System.String") {
-        return JS_NewString(ctx, stringToUtf8(reinterpret_cast<Il2CppString*>(ret)).c_str());
-    }
-    return makeNativeObject(ctx, ret);
+    // Referencia: `ret` JA e o objeto; o leitor espera o endereco de onde ler
+    // o ponteiro, entao passamos o endereco da variavel local.
+    if (!d.byValue) return readAt(ctx, &ret, d, JS_UNDEFINED);
+
+    if (!ret) return JS_NULL;
+    // Valor volta ENCAIXOTADO: o dado fica logo depois do cabecalho.
+    void* data = reinterpret_cast<char*>(ret) + sizeof(Il2CppObject);
+    // A caixa e do coletor do jogo e ninguem mais aponta pra ela; copiamos em
+    // vez de virar uma vista que pode ser recolhida a qualquer momento.
+    if (d.prim == Prim::Struct) return makeStructCopy(ctx, d.cls, data, d.size);
+    return readAt(ctx, data, d, JS_UNDEFINED);
 }
 
 } // namespace bl::script
