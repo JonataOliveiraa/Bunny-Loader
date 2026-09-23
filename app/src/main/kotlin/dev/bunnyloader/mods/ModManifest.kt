@@ -21,9 +21,9 @@ data class ModManifest(
      * permite reconhecer uma ATUALIZAÇÃO do mesmo mod em vez de um mod
      * diferente, e o que impede um autor de sequestrar o pacote de outro.
      *
-     * Formato: `<apelido>.<8 hex>`, minúsculo. O campo é lido como opcional de
-     * propósito — um manifesto sem uid tem de ser recusado com uma frase que o
-     * autor entenda, não estourar um erro de desserialização.
+     * Formato: UUID na forma canônica, minúsculo. O campo é lido como opcional
+     * de propósito — um manifesto sem uid tem de ser recusado com uma frase que
+     * o autor entenda, não estourar um erro de desserialização.
      */
     val uid: String = "",
     val id: String,
@@ -50,15 +50,21 @@ data class ModManifest(
 
     companion object {
         /**
-         * `hellomod.cac3da16` — apelido minúsculo, ponto, oito hexadecimais.
+         * `dfac5a5e-dd9a-4e57-a306-4147d34693cd` — UUID canônico, minúsculo.
          *
          * A forma é conferida, e não só a presença, porque o uid vira NOME DE
          * PASTA em `filesDir/mods/`. Sem isto, um manifesto com
          * `"uid": "../databases"` faria o import apagar e reescrever fora da
          * pasta de mods — o guarda de zip slip cuida das entradas do zip, mas
-         * o diretório de destino sai daqui.
+         * o diretório de destino sai daqui. Hexadecimal e hífen não escapam de
+         * pasta nenhuma.
+         *
+         * Qualquer versão de UUID serve: quem emite é o site, e prender a
+         * versão aqui seria amarrar o app a uma decisão que é dele.
          */
-        private val UID = Regex("^[a-z0-9]+(?:[-_][a-z0-9]+)*[.][0-9a-f]{8}$")
+        private val UID = Regex(
+            "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        )
 
         fun isValidUid(uid: String): Boolean = UID.matches(uid)
     }

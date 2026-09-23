@@ -1,5 +1,5 @@
 {
-  "uid": "hellomod.cac3da16",
+  "uid": "fc731e9a-2844-433b-ade1-5a0ab23165c4",
   "id": "hellomod",
   "name": "Minishark Turbo",
   "version": "1.1.0",
@@ -10,7 +10,10 @@
   "updated": "2026-09-22",
   "featured": true,
   "blVersion": 1,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [
+    301543,
+    301543
+  ],
   "entry": "main.js",
   "dependencies": []
 }

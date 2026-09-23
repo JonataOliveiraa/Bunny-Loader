@@ -1,5 +1,5 @@
 {
-  "uid": "semqueda.c8d506b9",
+  "uid": "15b99fa4-580f-40c6-9a26-78e3928876d7",
   "id": "semqueda",
   "name": "Sem Dano de Queda",
   "version": "1.0.0",
@@ -9,7 +9,10 @@
   "description": "O Terraria mede a queda pela distância entre onde ela começou e onde você parou. Este mod cola esse ponto de partida em você a cada quadro, então a conta dá sempre zero. Não mexe em gravidade nem em velocidade: você cai igual, só não se machuca.",
   "updated": "2026-09-22",
   "blVersion": 1,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [
+    301543,
+    301543
+  ],
   "entry": "main.js",
   "dependencies": []
 }

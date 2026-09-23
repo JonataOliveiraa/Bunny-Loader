@@ -1,5 +1,5 @@
 {
-  "uid": "vidacheia.d9e2bd47",
+  "uid": "ddc6440e-bcaf-4bc9-9e21-9633b49bd1bf",
   "id": "vidacheia",
   "name": "Vida Cheia",
   "version": "1.0.0",
@@ -9,7 +9,10 @@
   "description": "Repõe a vida logo depois do jogo processar o quadro, então veneno, queda e dano continuam acontecendo — você é que não morre. Respeita os bônus de acessório: enche até o máximo COM os corações extras, não até o máximo cru.",
   "updated": "2026-09-22",
   "blVersion": 1,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [
+    301543,
+    301543
+  ],
   "entry": "main.js",
   "dependencies": []
 }

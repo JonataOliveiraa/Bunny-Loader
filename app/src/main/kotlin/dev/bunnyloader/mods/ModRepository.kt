@@ -65,8 +65,8 @@ class ModRepository(private val context: Context) {
                     "do Bunny Loader — sem ele não dá para saber se isto é uma " +
                     "atualização do seu mod ou o mod de outra pessoa."
             } else {
-                "uid inválido: \"${manifest.uid}\". O formato é apelido.8 " +
-                    "hexadecimais, tudo minúsculo."
+                "uid inválido: \"${manifest.uid}\". O formato é um UUID " +
+                    "minúsculo, como dfac5a5e-dd9a-4e57-a306-4147d34693cd."
             }
         }
         require(manifest.id.isNotBlank()) { "manifesto sem id" }
