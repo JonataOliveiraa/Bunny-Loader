@@ -69,7 +69,11 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
                 contentDescription = "Bunny Loader",
                 filterQuality = FilterQuality.None,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxWidth(0.88f).heightIn(max = 148.dp)
+                // ContentScale.Fit respeita o limite que apertar primeiro. A
+                // arte é 414x133 (3,1:1), então numa coluna de 560dp a largura
+                // pede 180dp de altura — é o `heightIn` que manda aqui, e era
+                // ele que estava segurando o título em tamanho de subtítulo.
+                modifier = Modifier.fillMaxWidth().heightIn(max = 190.dp)
                     .padding(top = 12.dp, bottom = 4.dp),
             )
 

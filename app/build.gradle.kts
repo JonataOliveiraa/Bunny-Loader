@@ -86,6 +86,20 @@ android {
     packaging {
         jniLibs {
             useLegacyPackaging = true // extractNativeLibs=true
+
+            // Iteração de UI: -Pbl.uiOnly=true tira as libs do jogo do pacote.
+            // Elas são 66 MB dos ~190 MB do APK e nunca mudam enquanto se mexe
+            // em tela — zipar e instalar isso a cada ajuste de layout é o que
+            // fazia o ciclo levar meia dúzia de dezenas de segundos.
+            //
+            // O launcher funciona inteiro assim; só o JOGAR não sobe, porque a
+            // libil2cpp não está lá. Para voltar a jogar, refaça sem a flag.
+            if ((project.findProperty("bl.uiOnly") as String?)?.toBoolean() == true) {
+                excludes += listOf(
+                    "**/libil2cpp.so", "**/libunity.so",
+                    "**/libmain.so", "**/libc++_shared.so",
+                )
+            }
         }
     }
 
