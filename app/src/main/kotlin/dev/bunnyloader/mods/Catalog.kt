@@ -28,7 +28,8 @@ class Catalog(private val context: Context) {
         val previews: List<String>,
         val iconAsset: String?,
     ) {
-        val id get() = manifest.id
+        /** Identidade do pacote. Ver ModManifest.uid. */
+        val uid get() = manifest.key
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -41,39 +42,55 @@ class Catalog(private val context: Context) {
         return dirs.mapNotNull { dir ->
             val base = "$ROOT/$dir"
             val files = runCatching { context.assets.list(base)?.toList() }.getOrNull().orEmpty()
-            if ("mod.json" !in files) return@mapNotNull null
+            val manifestName = MANIFESTS.firstOrNull { it in files } ?: return@mapNotNull null
             val manifest = runCatching {
-                json.decodeFromString<ModManifest>(read(base, "mod.json").decodeToString())
+                json.decodeFromString<ModManifest>(read(base, manifestName).decodeToString())
             }.getOrNull() ?: return@mapNotNull null
 
-            val previews = runCatching { context.assets.list("$base/preview")?.toList() }
-                .getOrNull().orEmpty()
-                .filter { it.endsWith(".png") || it.endsWith(".jpg") }
-                .sorted()
-                .map { "$base/preview/$it" }
+            val shots = THUMBS.firstOrNull { it in files }
+            val previews = shots?.let {
+                runCatching { context.assets.list("$base/$it")?.toList() }.getOrNull().orEmpty()
+                    .filter { f -> f.endsWith(".png") || f.endsWith(".jpg") }
+                    .sorted()
+                    .map { f -> "$base/$it/$f" }
+            }.orEmpty()
 
             Entry(
                 manifest = manifest,
                 assetDir = base,
-                sizeBytes = files.sumOf { read(base, it).size.toLong() },
+                sizeBytes = treeSize(base),
                 previews = previews,
-                iconAsset = if ("icon.png" in files) "$base/icon.png" else null,
+                iconAsset = if (ICON in files) "$base/$ICON" else null,
             )
         }.sortedBy { it.manifest.name }
     }
 
-    fun isInstalled(id: String): Boolean = File(repo.modsDir, "$id/main.js").isFile
+    /** Bytes de tudo no pacote — é o número que a ficha do mod mostra. */
+    private fun treeSize(dir: String): Long {
+        val children = runCatching { context.assets.list(dir)?.toList() }.getOrNull().orEmpty()
+        if (children.isEmpty()) return 0
+        return children.sumOf { child ->
+            val path = "$dir/$child"
+            val sub = runCatching { context.assets.list(path)?.toList() }.getOrNull().orEmpty()
+            if (sub.isEmpty()) runCatching { read(dir, child).size.toLong() }.getOrDefault(0L)
+            else treeSize(path)
+        }
+    }
+
+    fun isInstalled(uid: String): Boolean =
+        File(repo.modsDir, "$uid/content/main.js").isFile ||
+            File(repo.modsDir, "$uid/main.js").isFile
 
     /** Copia o pacote para onde o motor procura. Substitui se já existir. */
     fun install(entry: Entry) {
-        val target = File(repo.modsDir, entry.id)
+        val target = File(repo.modsDir, entry.uid)
         target.deleteRecursively()
         target.mkdirs()
         copyTree(entry.assetDir, target)
     }
 
-    fun uninstall(id: String) {
-        File(repo.modsDir, id).deleteRecursively()
+    fun uninstall(uid: String) {
+        File(repo.modsDir, uid).deleteRecursively()
     }
 
     /**
@@ -116,9 +133,26 @@ class Catalog(private val context: Context) {
         }
     }
 
-    private companion object {
+    companion object {
         const val ROOT = "mods"
-        const val SEEDED = "seeded"
+        private const val SEEDED = "seeded"
+
+        /**
+         * O formato de pacote (.bmod é um zip com isto dentro):
+         *
+         *     manifest.json    id, nome, autor, categoria, descrição, versão
+         *     icon.png         ícone do mod (opcional)
+         *     thumbnails/      imagens da vitrine (opcional)
+         *     content/         o mod em si — main.js e o que mais ele precisar
+         *
+         * Os nomes antigos continuam aceitos: quem já tem pacote com `mod.json`
+         * e `preview/` não precisa reempacotar, e o custo disso é uma lista de
+         * dois nomes em cada lugar.
+         */
+        val MANIFESTS = listOf("manifest.json", "mod.json")
+        val THUMBS = listOf("thumbnails", "preview")
+        const val ICON = "icon.png"
+        const val CONTENT = "content"
     }
 }
 

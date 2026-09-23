@@ -33,7 +33,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
@@ -44,9 +46,11 @@ import dev.bunnyloader.ui.ExplorarTab
 import dev.bunnyloader.ui.InicioTab
 import dev.bunnyloader.ui.ModDetail
 import dev.bunnyloader.ui.PacotesTab
-import dev.bunnyloader.ui.PerfilTab
+import dev.bunnyloader.ui.ConfigTab
 import dev.bunnyloader.ui.PixelFont
 import dev.bunnyloader.ui.PixelIcon
+import dev.bunnyloader.ui.PixelText
+import dev.bunnyloader.ui.mix
 import dev.bunnyloader.ui.Shell
 import dev.bunnyloader.ui.Ts
 import dev.bunnyloader.ui.drawTileGround
@@ -70,9 +74,7 @@ private enum class Tab(val icon: Int, val label: String) {
     INICIO(R.drawable.ic_tab_inicio, "Início"),
     EXPLORAR(R.drawable.ic_tab_explorar, "Explorar"),
     PACOTES(R.drawable.ic_tab_pacotes, "Pacotes"),
-    // User.png e azul-escuro: sobre a terra do rodape ele some. O coelho e
-    // claro, e de todo jeito e o mascote do app.
-    PERFIL(R.drawable.ic_bunny_head, "Perfil"),
+    CONFIG(R.drawable.ic_config, "Config"),
 }
 
 @Composable
@@ -109,7 +111,7 @@ private fun LauncherScreen() {
                         Tab.INICIO -> InicioTab(shell) { openMod = it }
                         Tab.EXPLORAR -> ExplorarTab(shell) { openMod = it }
                         Tab.PACOTES -> PacotesTab(shell) { openMod = it }
-                        Tab.PERFIL -> PerfilTab(shell)
+                        Tab.CONFIG -> ConfigTab(shell)
                     }
                 }
             }
@@ -125,24 +127,36 @@ private fun LauncherScreen() {
 // ------------------------------- rodapé -------------------------------
 
 /**
- * O rodapé é o CHÃO: terra repetida com uma linha de grama em cima. O botão de
- * jogar fica plantado nele, meio para fora — é o que dá a hierarquia da tela
- * sem precisar de nenhum rótulo dizendo qual é o botão principal.
+ * Barra azul do Terraria, com o botão de jogar erguido no meio.
+ *
+ * Era chão de terra com um véu escuro por cima, e o véu roubava a cor: de longe
+ * virava uma faixa preta translúcida. Agora é o painel do jogo — o mesmo
+ * #3f5297 com contorno #131625 do menu de dentro —, e só o topo fica
+ * arredondado, porque a barra encosta na borda de baixo da tela.
  */
 @Composable
 private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
-    val grass = ImageBitmap.imageResource(R.drawable.tile_grass)
-    Box(Modifier.fillMaxWidth().height(96.dp)) {
+    Box(Modifier.fillMaxWidth().height(106.dp)) {
         Row(
             Modifier.align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(76.dp)
+                .height(84.dp)
                 .drawBehind {
-                    // O rodapé é chão de verdade: os tiles de grama do próprio
-                    // jogo, escurecidos o bastante para o texto ficar legível.
-                    drawTileGround(grass, 0f, 20.dp.toPx())
-                    drawRect(Bl.Night.copy(alpha = 0.52f), Offset(0f, 20.dp.toPx()),
-                        Size(size.width, size.height - 20.dp.toPx()))
+                    val r = CornerRadius(20.dp.toPx(), 20.dp.toPx())
+                    val b = 3.dp.toPx()
+                    drawRoundRect(Bl.Outline, cornerRadius = r)
+                    // Claro em cima, escuro embaixo: é o que dá volume à barra
+                    // sem precisar de sombra por baixo, que não caberia.
+                    drawRoundRect(
+                        Brush.verticalGradient(listOf(
+                            Bl.GamePanel.mix(Color.White, 0.22f),
+                            Bl.GamePanel,
+                            Bl.GamePanel.mix(Bl.Night, 0.25f),
+                        )),
+                        topLeft = Offset(b, b),
+                        size = Size(size.width - b * 2, size.height),
+                        cornerRadius = r,
+                    )
                 }
                 .navigationBarsPadding(),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -150,32 +164,31 @@ private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
         ) {
             TabButton(Tab.INICIO, current, onSelect)
             TabButton(Tab.EXPLORAR, current, onSelect)
-            Spacer(Modifier.width(72.dp))
+            Spacer(Modifier.width(84.dp))
             TabButton(Tab.PACOTES, current, onSelect)
-            TabButton(Tab.PERFIL, current, onSelect)
+            TabButton(Tab.CONFIG, current, onSelect)
         }
 
-        // Botão de jogar, erguido acima da linha da grama.
         Box(
             Modifier.align(Alignment.TopCenter)
                 .padding(bottom = 8.dp)
-                .size(76.dp)
+                .size(86.dp)
                 .drawBehind {
-                    // Sombra redonda antes do botao, para ele pousar no chao
-                    // em vez de flutuar sobre a grama.
+                    // Sombra redonda antes do botão, para ele pousar na barra
+                    // em vez de flutuar sobre ela.
                     drawCircle(Bl.Shadow, center = center.copy(
                         x = center.x + 3.dp.toPx(), y = center.y + 5.dp.toPx()))
                     drawCircle(Bl.Outline)
                     drawCircle(
                         Brush.verticalGradient(listOf(Bl.Grass4, Bl.Grass1)),
-                        radius = size.minDimension / 2 - 3.dp.toPx(),
+                        radius = size.minDimension / 2 - 4.dp.toPx(),
                     )
                 }
                 .clip(CircleShape)
                 .clickable(onClick = onStart),
             contentAlignment = Alignment.Center,
         ) {
-            PixelIcon(R.drawable.ic_start, 38.dp)
+            PixelIcon(R.drawable.ic_start, 44.dp)
         }
     }
 }
@@ -185,15 +198,14 @@ private fun TabButton(tab: Tab, current: Tab, onSelect: (Tab) -> Unit) {
     val selected = tab == current
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onSelect(tab) }.padding(horizontal = 6.dp),
+        modifier = Modifier.clickable { onSelect(tab) }.padding(horizontal = 4.dp),
     ) {
-        PixelIcon(tab.icon, if (selected) 30.dp else 26.dp, alpha = if (selected) 1f else 0.8f)
-        Text(
+        PixelIcon(tab.icon, if (selected) 38.dp else 32.dp, alpha = if (selected) 1f else 0.75f)
+        PixelText(
             tab.label,
-            fontFamily = PixelFont,
-            fontSize = Ts.Small.sp,
-            color = if (selected) Bl.Grass4 else Bl.Stone4.copy(alpha = 0.85f),
-            modifier = Modifier.padding(top = 3.dp),
+            size = Ts.Small,
+            color = if (selected) Bl.Grass4 else Color.White,
+            modifier = Modifier.padding(top = 2.dp),
         )
     }
 }

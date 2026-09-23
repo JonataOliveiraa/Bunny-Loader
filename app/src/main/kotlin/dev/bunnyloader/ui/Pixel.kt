@@ -11,6 +11,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,6 +37,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -179,6 +182,49 @@ fun DrawScope.drawBunny(sheet: ImageBitmap, frame: Int, x: Float, y: Float, scal
         )
     }
 }
+
+// -------------------------------- texto --------------------------------
+
+/**
+ * Texto branco com contorno preto, do jeito do Terraria.
+ *
+ * O jogo desenha cada string cinco vezes: preto deslocado um pixel para cada
+ * lado e a cor por cima. É o que faz o texto continuar legível sobre céu claro,
+ * sobre pedra e sobre grama, sem precisar de caixa atrás.
+ *
+ * Sombra com desfoque resolveria o contraste mas entregaria que o texto não é
+ * do mesmo material que o resto — o mesmo motivo de a sombra dos painéis ser um
+ * retângulo sólido.
+ */
+@Composable
+fun PixelText(
+    text: String,
+    size: Int = Ts.Body,
+    color: Color = Color.White,
+    modifier: Modifier = Modifier,
+    outline: Color = Bl.Ink,
+    maxLines: Int = Int.MAX_VALUE,
+    overflow: TextOverflow = TextOverflow.Clip,
+    align: TextAlign? = null,
+) {
+    Box(modifier) {
+        val body: @Composable (Color, Modifier) -> Unit = { c, m ->
+            Text(
+                text, color = c, modifier = m,
+                fontFamily = PixelFont, fontSize = size.sp,
+                maxLines = maxLines, overflow = overflow, textAlign = align,
+            )
+        }
+        for ((dx, dy) in OUTLINE_OFFSETS) {
+            body(outline, Modifier.offset(dx.dp, dy.dp))
+        }
+        body(color, Modifier)
+    }
+}
+
+// Quatro lados. As diagonais engrossariam o contorno a ponto de fechar os
+// vãos da fonte, que é pixelada e estreita.
+private val OUTLINE_OFFSETS = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
 
 // ------------------------------- painéis -------------------------------
 

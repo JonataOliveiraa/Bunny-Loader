@@ -29,8 +29,8 @@ endif()
 
 # --- Mods embutidos (gerados a partir do .js; fonte unica de verdade) ---
 # Embute o JS do mod padrao dentro da libbunny para funcionar SEM adb/arquivos
-# no celular. Le samples/HelloMod/main.js (raiz do repo: 4 niveis acima de cpp/).
-set(BL_MINISHARK_JS ${CMAKE_CURRENT_SOURCE_DIR}/../../../../samples/HelloMod/main.js)
+# no celular. Le samples/HelloMod/content/main.js (raiz do repo: 4 niveis acima de cpp/).
+set(BL_MINISHARK_JS ${CMAKE_CURRENT_SOURCE_DIR}/../../../../samples/HelloMod/content/main.js)
 file(READ ${BL_MINISHARK_JS} BL_BUILTIN_MINISHARK_JS)
 # file(READ) nao cria dependencia: sem isto o CMake nao reconfigura quando o
 # .js muda e a lib segue embutindo a versao anterior — descoberto quando

@@ -123,6 +123,7 @@ class GameActivity : Activity() {
             return
         }
         val repo = ModRepository(this)
+        val prefs = dev.bunnyloader.ui.Prefs(this)
         val logDir = File(filesDir, "logs").apply { mkdirs() }
         val ok = runCatching {
             NativeBridge.init(
@@ -133,9 +134,13 @@ class GameActivity : Activity() {
                     logPath = File(logDir, "bunny.log").absolutePath,
                     // Canal de dev: adb push <arquivo> para a NOSSA pasta
                     // externa. A do Terraria nao serve — desde o Android 11
-                    // um app nao escreve em Android/data de outro.
-                    cmdPath = File(getExternalFilesDir(null), "bunny/cmd")
-                        .also { it.parentFile?.mkdirs() }.absolutePath,
+                    // um app nao escreve em Android/data de outro. Desligado
+                    // nas Configuracoes, vai vazio e o nucleo nem tenta abrir
+                    // o arquivo a cada quadro.
+                    cmdPath = if (prefs.devChannel) {
+                        File(getExternalFilesDir(null), "bunny/cmd")
+                            .also { it.parentFile?.mkdirs() }.absolutePath
+                    } else "",
                     gameVersion = BundledRuntime.VERSION_CODE,
                 ),
             )

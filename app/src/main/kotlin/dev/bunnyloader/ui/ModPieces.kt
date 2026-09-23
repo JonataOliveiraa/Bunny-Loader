@@ -114,7 +114,7 @@ fun ModBanner(entry: Catalog.Entry, modifier: Modifier = Modifier, animate: Bool
             val px = 16.dp.toPx()          // um tile na tela
             val groundTop = size.height - px * 2
             val hillTop = groundTop - px
-            var seed = (entry.id.hashCode().toLong() and 0x7fffffff) or 1L
+            var seed = (entry.uid.hashCode().toLong() and 0x7fffffff) or 1L
             fun rnd(n: Int): Int {
                 seed = (seed * 1103515245 + 12345) and 0x7fffffff
                 return (seed % n).toInt()
@@ -201,23 +201,23 @@ fun ModRow(
         ) {
             ModIcon(entry, catalog, 44.dp)
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                Text(
+                PixelText(
                     entry.manifest.name,
-                    fontFamily = PixelFont, fontSize = Ts.Item.sp, color = Bl.Text,
+                    size = Ts.Item, color = Bl.Text,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
-                Text(
+                PixelText(
                     "por ${entry.manifest.author}",
-                    fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint,
+                    size = Ts.Small, color = Bl.TextFaint,
                 )
                 Row(
                     Modifier.padding(top = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
-                    Text(
+                    PixelText(
                         formatSize(entry.sizeBytes),
-                        fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint,
+                        size = Ts.Small, color = Bl.TextFaint,
                         modifier = Modifier.padding(start = 12.dp),
                     )
                 }
@@ -238,9 +238,9 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         Box(Modifier.width(3.dp).height(16.dp).pixelPanel(
             fill = Bl.Grass2, light = Bl.Grass4, dark = Bl.Grass0,
         ))
-        Text(
+        PixelText(
             text,
-            fontFamily = PixelFont, fontSize = Ts.Head.sp, color = Bl.Text,
+            size = Ts.Head, color = Bl.Text,
             modifier = Modifier.padding(start = 8.dp),
         )
     }

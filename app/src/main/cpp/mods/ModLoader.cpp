@@ -2,6 +2,7 @@
 #include "core/Log.h"
 #include "script/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
+#include <cstdio>
 
 namespace bl::mods {
 
@@ -9,6 +10,13 @@ namespace {
 std::vector<LoadedMod>& registry() {
     static std::vector<LoadedMod> list;
     return list;
+}
+
+bool fileExists(const std::string& path) {
+    FILE* f = std::fopen(path.c_str(), "rb");
+    if (!f) return false;
+    std::fclose(f);
+    return true;
 }
 }
 
@@ -24,13 +32,22 @@ void loadAll(const std::string& modsDir, const std::vector<std::string>& enabled
         LoadedMod mod;
         mod.id = id;
         mod.dir = modsDir + "/" + id;
-        mod.entry = "main.js";
+        mod.entry = "content/main.js";
         registry().push_back(mod);
 
         if (!script::engine().ready()) continue;
-        const std::string path = mod.dir + "/" + mod.entry;
+
+        // O pacote .bmod guarda o codigo em content/. Pacote antigo deixava o
+        // main.js na raiz; tentamos os dois em vez de exigir migracao de quem
+        // ja tem mod instalado.
+        std::string path = mod.dir + "/content/main.js";
+        if (!fileExists(path)) {
+            path = mod.dir + "/main.js";
+            mod.entry = "main.js";
+            registry().back().entry = mod.entry;
+        }
         if (!script::engine().evalFile(path, id)) {
-            BL_ERROR("mod %s falhou ao carregar", id.c_str());
+            BL_ERROR("mod %s falhou ao carregar (%s)", id.c_str(), path.c_str());
             registry().back().enabled = false;
         }
     }

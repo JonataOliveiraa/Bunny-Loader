@@ -44,13 +44,18 @@ object Bl {
     /** Sombra projetada dos cartões. Preta e opaca — sem desfoque. */
     val Shadow = Color(0xB3000000)
 
+    /** Contorno do texto. Preto puro: qualquer cinza some sobre o fundo. */
+    val Ink = Color(0xFF000000)
+
     /** Painel dentro do JOGO (a tela de ferramentas, sobre o cenário). */
     val GamePanel = Color(0xFF3F5297)
 
     // --- texto ---
-    val Text = Stone4
-    val TextDim = Stone3
-    val TextFaint = Stone2
+    // Branco puro na frente, porque todo texto da interface leva contorno
+    // preto (ver PixelText): com o contorno, cinza claro so perde legibilidade.
+    val Text = Color.White
+    val TextDim = Stone4
+    val TextFaint = Stone3
 }
 
 /** Fonte pixelada de _icons/font.TTF — a mesma identidade do título. */

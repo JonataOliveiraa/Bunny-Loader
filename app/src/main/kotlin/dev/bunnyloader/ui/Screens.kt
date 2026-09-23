@@ -1,5 +1,7 @@
 package dev.bunnyloader.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,6 +50,7 @@ import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.mods.Catalog
+import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.formatSize
 
 private val EdgePad = 14.dp
@@ -84,11 +87,11 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
                 FeaturedCard(featured, shell, onOpen)
             }
 
-            val populares = shell.entries.filter { it.id != featured?.id }.take(3)
+            val populares = shell.entries.filter { it.uid != featured?.uid }.take(3)
             if (populares.isNotEmpty()) {
                 SectionTitle("Populares")
                 for (e in populares) {
-                    ModRow(e, shell.catalog, { onOpen(e.id) }, Modifier.padding(bottom = 8.dp))
+                    ModRow(e, shell.catalog, { onOpen(e.uid) }, Modifier.padding(bottom = 8.dp))
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -103,7 +106,7 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
  */
 @Composable
 private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) -> Unit) {
-    PixelCard(Modifier.fillMaxWidth(), onClick = { onOpen(entry.id) }) {
+    PixelCard(Modifier.fillMaxWidth(), onClick = { onOpen(entry.uid) }) {
         Column(Modifier.padding(6.dp)) {
             // O ícone pende para FORA do banner, não empurra o layout: fica
             // como sobreposição, e o texto abaixo só reserva a margem dele.
@@ -114,11 +117,10 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
                 }
             }
             Column(Modifier.padding(start = 80.dp, top = 6.dp, end = 4.dp)) {
-                Text(entry.manifest.name, fontFamily = PixelFont, fontSize = Ts.Head.sp,
+                PixelText(entry.manifest.name, size = Ts.Head,
                     color = Bl.Text)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("por ${entry.manifest.author}", fontFamily = PixelFont,
-                        fontSize = Ts.Small.sp, color = Bl.TextFaint)
+                    PixelText("por ${entry.manifest.author}",                         size = Ts.Small, color = Bl.TextFaint)
                     PixelTag(
                         entry.manifest.category,
                         categoryColor(entry.manifest.category),
@@ -126,9 +128,9 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
                     )
                 }
             }
-            Text(
+            PixelText(
                 entry.manifest.summary,
-                fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.TextDim,
+                size = Ts.Body, color = Bl.TextDim,
                 modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 4.dp),
             )
         }
@@ -160,9 +162,9 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(list, key = { it.id }) { e ->
-                    ModRow(e, shell.catalog, { onOpen(e.id) }) {
-                        if (e.id in shell.installed) PixelTag("Instalado", Bl.Grass1)
+                items(list, key = { it.uid }) { e ->
+                    ModRow(e, shell.catalog, { onOpen(e.uid) }) {
+                        if (e.uid in shell.installed) PixelTag("Instalado", Bl.Grass1)
                     }
                 }
                 if (list.isEmpty()) {
@@ -179,7 +181,7 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
     Box(modifier.fillMaxWidth().pixelPanel(fill = Bl.Night, raised = false)
         .padding(horizontal = 12.dp, vertical = 10.dp)) {
         if (value.isEmpty()) {
-            Text("Procurar mod...", fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.Stone1)
+            PixelText("Procurar mod...", size = Ts.Body, color = Bl.Stone1)
         }
         BasicTextField(
             value = value,
@@ -197,25 +199,54 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
 // =============================== Pacotes ===============================
 
 /**
- * O que está instalado em `filesDir/mods` — exatamente a pasta de onde o
- * núcleo nativo carrega. O interruptor grava a preferência que vai no
- * NativeConfig no próximo boot do jogo.
+ * O que está instalado em `filesDir/mods` — exatamente a pasta de onde o núcleo
+ * nativo carrega. O interruptor grava a preferência que vai no NativeConfig no
+ * próximo boot do jogo.
+ *
+ * Importar traz um `.bmod` de fora: o seletor do sistema devolve uma Uri e o
+ * repositório desempacota. Um pacote que não é do catálogo aparece aqui do
+ * mesmo jeito, só sem banner — não temos os metadados de vitrine dele.
  */
 @Composable
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
-    val list = shell.entries.filter { it.id in shell.installed }
+    val doCatalogo = shell.entries.filter { it.uid in shell.installed }
     val state = rememberLazyListState()
+    var aviso by remember { mutableStateOf<String?>(null) }
+
+    val picker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            aviso = shell.importPackage(uri).fold(
+                onSuccess = { "${it.name} instalado" },
+                onFailure = { "Não deu: ${it.message}" },
+            )
+        }
+    }
 
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.fillMaxWidth().padding(start = EdgePad, end = EdgePad, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Pacotes", fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Text,
-                modifier = Modifier.weight(1f))
-            Text("${shell.enabled.size}/${list.size} ligados", fontFamily = PixelFont,
-                fontSize = Ts.Body.sp, color = Bl.TextFaint)
+            PixelText("Pacotes", size = Ts.Big, modifier = Modifier.weight(1f))
+            PixelText("${shell.enabled.size}/${shell.installed.size} ligados",
+                size = Ts.Body, color = Bl.TextFaint)
         }
+
+        Box(Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp)) {
+            PixelButton(
+                "Importar pacote",
+                { picker.launch(arrayOf("*/*")) },
+                Modifier.fillMaxWidth(),
+                icon = R.drawable.ic_folder,
+            )
+        }
+        aviso?.let {
+            PixelText(it, size = Ts.Small, color = Bl.Grass3,
+                modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp))
+        }
+
         Box(Modifier.weight(1f)) {
             LazyColumn(
                 state = state,
@@ -225,18 +256,52 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                 ),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                items(list, key = { it.id }) { e ->
-                    ModRow(e, shell.catalog, { onOpen(e.id) }) {
-                        SwitchSprite(e.id in shell.enabled) {
-                            shell.setEnabled(e.id, e.id !in shell.enabled)
+                items(doCatalogo, key = { it.uid }) { e ->
+                    ModRow(e, shell.catalog, { onOpen(e.uid) }) {
+                        SwitchSprite(e.uid in shell.enabled) {
+                            shell.setEnabled(e.uid, e.uid !in shell.enabled)
                         }
                     }
                 }
-                if (list.isEmpty()) {
-                    item { Empty("Nenhum mod instalado. Pegue um em Explorar.") }
+                items(shell.imported, key = { it.uid }) { m ->
+                    ImportedRow(m, shell)
+                }
+                if (shell.installed.isEmpty()) {
+                    item { Empty("Nenhum pacote. Pegue um em Explorar ou importe um .bmod.") }
                 }
             }
             PixelScrollbar(state, Modifier.fillMaxSize())
+        }
+    }
+}
+
+/** Mod que veio de fora: sem banner, porque não temos vitrine dele. */
+@Composable
+private fun ImportedRow(m: ModManifest, shell: Shell) {
+    PixelCard(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier.padding(10.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier.size(44.dp).pixelPanel(
+                    fill = Bl.Stone0, light = categoryColor(m.category), dark = Bl.Night,
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                PixelIcon(categoryIcon(m.category), 26.dp)
+            }
+            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+                PixelText(m.name, size = Ts.Item)
+                PixelText("por ${m.author}  -  v${m.version}",
+                    size = Ts.Small, color = Bl.TextFaint)
+            }
+            SwitchSprite(m.uid in shell.enabled) {
+                shell.setEnabled(m.uid, m.uid !in shell.enabled)
+            }
+            Box(Modifier.clickable { shell.uninstallImported(m.uid) }.padding(6.dp)) {
+                PixelIcon(R.drawable.ic_trash, 22.dp)
+            }
         }
     }
 }
@@ -245,18 +310,22 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
 @Composable
 fun SwitchSprite(on: Boolean, onToggle: () -> Unit) {
     Box(Modifier.clickable(onClick = onToggle).padding(4.dp)) {
-        SpriteFrame(R.drawable.ic_switch, 43, 20, if (on) 1 else 0, 48.dp)
+        SpriteFrame(R.drawable.ic_switch, 43, 20, if (on) 1 else 0, 52.dp)
     }
 }
 
-// =============================== Perfil ===============================
+// =========================== Configurações ===========================
 
 @Composable
-fun PerfilTab(shell: Shell) {
+fun ConfigTab(shell: Shell) {
     val ctx = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scroll = rememberScrollState()
     var log by remember { mutableStateOf("") }
+    val prefs = remember { Prefs(ctx) }
+    var novosLigados by remember { mutableStateOf(prefs.enableOnInstall) }
+    var canalDev by remember { mutableStateOf(prefs.devChannel) }
+    var erroNoJogo by remember { mutableStateOf(prefs.errorPanel) }
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
@@ -264,14 +333,21 @@ fun PerfilTab(shell: Shell) {
                 Modifier.fillMaxWidth().padding(top = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(64.dp).pixelPanel(fill = Bl.Stone1),
-                    contentAlignment = Alignment.Center) {
-                    PixelIcon(R.drawable.ic_tab_perfil, 42.dp)
+                // A arte ocupa os 104x96 inteiros dela, sem margem transparente:
+                // encolher para caber dentro do quadro só deixava buraco.
+                Box(Modifier.size(72.dp).pixelPanel(fill = Bl.Stone1).padding(3.dp)) {
+                    Image(
+                        bitmap = ImageBitmap.imageResource(R.drawable.ic_tab_perfil),
+                        contentDescription = null,
+                        filterQuality = FilterQuality.None,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
                 }
                 Column(Modifier.padding(start = 12.dp)) {
-                    Text("Jogador", fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Text)
-                    Text("Terraria ${BundledRuntime.VERSION_NAME}", fontFamily = PixelFont,
-                        fontSize = Ts.Body.sp, color = Bl.TextFaint)
+                    PixelText("Jogador", size = Ts.Big)
+                    PixelText("Terraria ${BundledRuntime.VERSION_NAME}",
+                        size = Ts.Body, color = Bl.TextFaint)
                 }
             }
 
@@ -282,15 +358,32 @@ fun PerfilTab(shell: Shell) {
                 Stat("${shell.entries.size}", "no catálogo", Modifier.weight(1f))
             }
 
+            SectionTitle("Mods")
+            Setting(
+                "Ligar ao instalar",
+                "Um pacote recém-instalado já entra valendo no próximo boot.",
+                novosLigados,
+            ) { novosLigados = it; prefs.enableOnInstall = it }
+            Setting(
+                "Mostrar erro dentro do jogo",
+                "Quando um mod quebra, o log aparece na tela em vez de só no logcat.",
+                erroNoJogo,
+            ) { erroNoJogo = it; prefs.errorPanel = it }
+            Setting(
+                "Canal de comando por arquivo",
+                "Aceita comandos via adb durante o jogo. Só para desenvolver.",
+                canalDev,
+            ) { canalDev = it; prefs.devChannel = it }
+
             SectionTitle("Diagnóstico")
             PixelCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
-                    Text(
-                        remember { Eligibility.check(ctx).detail },
-                        fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextDim,
-                    )
-                    Row(Modifier.padding(top = 10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PixelText(remember { Eligibility.check(ctx).detail },
+                        size = Ts.Small, color = Bl.TextDim)
+                    Row(
+                        Modifier.padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         PixelButton("Ver log", { log = BootLog.read(ctx) },
                             fill = Bl.Stone1, fontSize = Ts.Small)
                         if (log.isNotEmpty()) {
@@ -300,16 +393,47 @@ fun PerfilTab(shell: Shell) {
                         }
                     }
                     if (log.isNotEmpty()) {
-                        Box(Modifier.fillMaxWidth().padding(top = 10.dp)
-                            .pixelPanel(fill = Bl.Night, raised = false).padding(8.dp)) {
+                        Box(
+                            Modifier.fillMaxWidth().padding(top = 10.dp)
+                                .pixelPanel(fill = Bl.Night, raised = false).padding(8.dp)
+                        ) {
                             Text(log, fontSize = Ts.Tiny.sp, color = Bl.TextDim)
                         }
                     }
                 }
             }
+
+            SectionTitle("Sobre")
+            PixelCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
+                    Field("Bunny Loader", "v${dev.bunnyloader.BuildConfig.VERSION_NAME}")
+                    Spacer(Modifier.height(8.dp))
+                    Field(
+                        "Terraria embutido",
+                        "${BundledRuntime.VERSION_NAME} (${BundledRuntime.VERSION_CODE})",
+                    )
+                }
+            }
             Spacer(Modifier.height(16.dp))
         }
         PixelScrollbar(scroll, Modifier.fillMaxSize())
+    }
+}
+
+/** Uma linha de ajuste: nome, o que ela faz, e o interruptor. */
+@Composable
+private fun Setting(title: String, help: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Row(
+            Modifier.padding(12.dp).fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                PixelText(title, size = Ts.Item)
+                PixelText(help, size = Ts.Small, color = Bl.TextFaint)
+            }
+            SwitchSprite(on, { onChange(!on) })
+        }
     }
 }
 
@@ -320,8 +444,8 @@ private fun Stat(value: String, label: String, modifier: Modifier = Modifier) {
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(value, fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Grass3)
-            Text(label, fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint)
+            PixelText(value, size = Ts.Big, color = Bl.Grass3)
+            PixelText(label, size = Ts.Small, color = Bl.TextFaint)
         }
     }
 }
@@ -332,7 +456,7 @@ private fun Stat(value: String, label: String, modifier: Modifier = Modifier) {
 fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
     val scroll = rememberScrollState()
     var favorite by remember { mutableStateOf(false) }
-    val installed = entry.id in shell.installed
+    val installed = entry.uid in shell.installed
     val m = entry.manifest
 
     Box {
@@ -359,8 +483,8 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                 ) {
                     ModIcon(entry, shell.catalog, 56.dp)
                     Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                        Text(m.name, fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Text)
-                        Text("por ${m.author}", fontFamily = PixelFont, fontSize = Ts.Body.sp,
+                        PixelText(m.name, size = Ts.Big, color = Bl.Text)
+                        PixelText("por ${m.author}", size = Ts.Body,
                             color = Bl.TextFaint)
                     }
                     PixelTag(m.category, categoryColor(m.category))
@@ -370,14 +494,14 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                 // servidor que não existe, e número inventado é pior que nada.
                 Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     PixelIcon(R.drawable.ic_folder, 16.dp)
-                    Text(formatSize(entry.sizeBytes), fontFamily = PixelFont, fontSize = Ts.Body.sp,
+                    PixelText(formatSize(entry.sizeBytes), size = Ts.Body,
                         color = Bl.TextDim, modifier = Modifier.padding(start = 6.dp))
                 }
 
                 SectionTitle("Descrição")
-                Text(
+                PixelText(
                     m.description.ifBlank { m.summary },
-                    fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.TextDim,
+                    size = Ts.Body, color = Bl.TextDim,
                 )
 
                 if (entry.previews.isNotEmpty()) {
@@ -400,6 +524,10 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                     Field("Última atualização",
                         dev.bunnyloader.mods.formatDate(m.updated), Modifier.weight(1f))
                 }
+                // O uid é a identidade real do pacote; aparece pequeno porque
+                // quem precisa dele está depurando ou empacotando.
+                PixelText(entry.uid, size = Ts.Tiny, color = Bl.Stone2,
+                    modifier = Modifier.padding(top = 10.dp))
 
                 Spacer(Modifier.height(18.dp))
                 if (!installed) {
@@ -410,17 +538,17 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                         Box(Modifier.weight(1f).pixelPanel(fill = Bl.Stone0)
                             .padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    if (entry.id in shell.enabled) "Ligado" else "Desligado",
-                                    fontFamily = PixelFont, fontSize = Ts.Item.sp,
-                                    color = if (entry.id in shell.enabled) Bl.Grass3 else Bl.TextFaint,
+                                PixelText(
+                                    if (entry.uid in shell.enabled) "Ligado" else "Desligado",
+                                    size = Ts.Item,
+                                    color = if (entry.uid in shell.enabled) Bl.Grass3 else Bl.TextFaint,
                                 )
-                                SwitchSprite(entry.id in shell.enabled) {
-                                    shell.setEnabled(entry.id, entry.id !in shell.enabled)
+                                SwitchSprite(entry.uid in shell.enabled) {
+                                    shell.setEnabled(entry.uid, entry.uid !in shell.enabled)
                                 }
                             }
                         }
-                        PixelButton("Remover", { shell.uninstall(entry.id) },
+                        PixelButton("Remover", { shell.uninstall(entry.uid) },
                             fill = Bl.Dirt1, icon = R.drawable.ic_trash, fontSize = Ts.Body)
                     }
                 }
@@ -447,14 +575,14 @@ private fun RoundIcon(res: Int, onClick: () -> Unit, flip: Boolean = false) {
 @Composable
 private fun Field(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(label, fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint)
-        Text(value, fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.Text)
+        PixelText(label, size = Ts.Small, color = Bl.TextFaint)
+        PixelText(value, size = Ts.Body, color = Bl.Text)
     }
 }
 
 @Composable
 private fun Empty(text: String) {
     Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
-        Text(text, fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.TextFaint)
+        PixelText(text, size = Ts.Body, color = Bl.TextFaint)
     }
 }
