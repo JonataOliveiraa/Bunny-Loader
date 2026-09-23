@@ -4,17 +4,24 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.SharedPreferences;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Process;
+import android.os.SystemClock;
+import android.util.Log;
+import android.view.ViewConfiguration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.text.TextPaint;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
-import android.graphics.drawable.LayerDrawable;
+import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
@@ -26,15 +33,23 @@ import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.SeekBar;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
 import java.io.InputStream;
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Locale;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingDeque;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -65,6 +80,21 @@ public class CheatBridge {
     public static native String[] nNpcNames();
     /** Quadros da tira de cada NPC (Main.npcFrameCount). */
     public static native int[] nNpcFrames();
+    /** Secao de cada item, pelos campos do jogo (runtime::ItemClass). */
+    public static native byte[] nItemClasses();
+    /** Teto de pilha de cada item: 1 para arma e equipamento (runtime::itemMaxStacks). */
+    public static native int[] nItemStacks();
+    /** bl::runtime::setPower — o nivel de um superpoder, 0 = desligado. */
+    public static native void nSetPower(int id, int level);
+    /** bl::runtime::inWorld — o jogador esta num mundo (nao na tela de titulo). */
+    public static native boolean nInWorld();
+    /** ItemID.Count: dali para cima, o id e de item de mod. */
+    public static native int nVanillaItemCount();
+    /** PNG de cada item de mod, indice = tipo - nVanillaItemCount(). */
+    public static native String[] nModItemTextures();
+    /** Categorias do catalogo de mod, achatadas: nome, icone, nome, icone... */
+    public static native String[] nModCategories();
+    public static native int[] nModCategoryItems(int category);
 
     // --- paleta ---
     private static final int PANEL      = 0xFF3F5297;
@@ -73,7 +103,6 @@ public class CheatBridge {
     private static final int OUTLINE    = 0xFF131625;
     private static final int GRASS      = 0xFF22A851;
     private static final int GRASS_LIT  = 0xFF2EED52;
-    private static final int DIRT       = 0xFF875F41;
     private static final int INK        = 0xFFFFFFFF;
     private static final int INK_DIM    = 0xFFC3CBEA;
     private static final int SCRIM      = 0xC0000000;
@@ -81,51 +110,256 @@ public class CheatBridge {
     private static Activity sActivity;
     private static View sOverlay;
 
+    // ------------------------------ catalogo ------------------------------
+    //
+    // Tudo que as listas leem do jogo, montado UMA vez por partida numa thread
+    // de fundo e guardado: nomes, pilhas, os ids de cada secao ja separados e
+    // o texto de busca ja sem acento.
+    //
+    // Antes cada secao montava a sua na UI thread, na hora do toque: uma
+    // passada por 6146 itens por secao, ~6800 strings atravessando o JNI e a
+    // normalizacao da busca inteira na primeira tecla. Num aparelho fraco,
+    // cada uma dessas era um engasgo com o menu na mao.
+
+    // Contrato com runtime::ItemClass (Cheats.h).
+    private static final int CL_OTHER = 0, CL_MELEE = 1, CL_RANGED = 2,
+        CL_MAGIC = 3, CL_SUMMON = 4, CL_AMMO = 5, CL_TOOL = 6,
+        CL_ACCESSORY = 7, CL_ARMOR = 8, CL_POTION = 9, CL_BLOCK = 10;
+    private static final int N_CLASSES = 11;
+    /** Sem filtro de classe: o catalogo inteiro. */
+    private static final int ALL_CLASSES = -1;
+
+    /** O que o menu sabe do jogo. Nao muda depois de montado. */
+    private static final class Catalog {
+        String[] itemNames, npcNames;
+        /** Os mesmos nomes, minusculos e sem acento, para a busca. */
+        String[] itemSearch, npcSearch;
+        /** Ids de cada secao de item (indice = CL_*), na ordem do jogo. */
+        int[][] byClass;
+        int[] allItems, allNpcs;
+        /** Teto de pilha por item (runtime::itemMaxStacks). */
+        int[] maxStacks;
+        /** Quadros da tira de cada NPC (Main.npcFrameCount). */
+        int[] npcFrames;
+    }
+
+    private static volatile Catalog sCatalog;
+    /** Quem espera o catalogo. So a UI thread mexe. */
+    private static final ArrayList<Runnable> sOnCatalogReady = new ArrayList<Runnable>();
+    private static boolean sCatalogLoading;
+
+    /**
+     * Garante o catalogo e chama `pronto` na UI thread quando ele existir — na
+     * hora, se ja existe. Pedir duas vezes nao monta duas vezes.
+     */
+    private static void withCatalog(final Activity act, Runnable onReady) {
+        if (sCatalog != null) {
+            if (onReady != null) onReady.run();
+            return;
+        }
+        if (onReady != null) sOnCatalogReady.add(onReady);
+        if (sCatalogLoading) return;
+        sCatalogLoading = true;
+        Thread t = new Thread(new Runnable() {
+            @Override public void run() {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                final Catalog c = buildCatalog();
+                act.runOnUiThread(new Runnable() {
+                    @Override public void run() {
+                        sCatalog = c;
+                        sCatalogLoading = false;
+                        ArrayList<Runnable> queue = new ArrayList<Runnable>(sOnCatalogReady);
+                        sOnCatalogReady.clear();
+                        for (Runnable r : queue) r.run();
+                    }
+                });
+            }
+        }, "bunny-catalog");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /**
+     * Espera o nativo terminar os nomes e monta tudo de uma vez.
+     *
+     * Roda fora da UI thread. As chamadas nativas daqui so copiam tabelas ja
+     * prontas — nenhuma toca o il2cpp, que e da thread do jogo. O primeiro
+     * pedido e o gatilho: o nativo so comeca a ler os nomes quando alguem
+     * pergunta, e le num orcamento de tempo por quadro, entao num aparelho
+     * lento isto demora mais em vez de engasgar o jogo.
+     */
+    private static Catalog buildCatalog() {
+        final long t0 = SystemClock.elapsedRealtime();
+        String[] items, npcs;
+        while ((items = nItemNames()) == null) sleepQuietly(80);
+        while ((npcs = nNpcNames()) == null) sleepQuietly(80);
+        final long t1 = SystemClock.elapsedRealtime();
+        Catalog c = new Catalog();
+        c.itemNames = items;
+        c.npcNames = npcs;
+        c.maxStacks = nItemStacks();
+        c.npcFrames = nNpcFrames();
+        c.allItems = sequence(items.length);
+        c.allNpcs = sequence(npcs.length);
+        c.byClass = splitByClass(nItemClasses(), items);
+        c.itemSearch = normalizeAll(items);
+        c.npcSearch = normalizeAll(npcs);
+        Log.i("BunnyLoader", "menu: catalogo pronto; esperou o nativo " + (t1 - t0)
+            + " ms, montou em " + (SystemClock.elapsedRealtime() - t1) + " ms");
+        return c;
+    }
+
+    private static void sleepQuietly(long ms) {
+        try { Thread.sleep(ms); } catch (InterruptedException e) { /* segue */ }
+    }
+
+    /** 1..n-1: o id 0 e "nada" nos dois catalogos (era uma linha "#0" no topo). */
+    private static int[] sequence(int n) {
+        int[] v = new int[Math.max(0, n - 1)];
+        for (int k = 0; k < v.length; k++) v[k] = k + 1;
+        return v;
+    }
+
+    /**
+     * Os ids de cada classe numa passada so: conta, aloca, preenche. Id sem
+     * nome e buraco da tabela e fica de fora. Sem classes (o jogo nao as
+     * entregou) as secoes saem vazias e "Todos os itens" continua.
+     */
+    private static int[][] splitByClass(byte[] cls, String[] names) {
+        int[] counts = new int[N_CLASSES];
+        int end = cls == null ? 0 : Math.min(cls.length, names.length);
+        for (int i = 1; i < end; i++) {
+            int c = cls[i] & 0xFF;
+            if (c < N_CLASSES && names[i] != null) counts[c]++;
+        }
+        int[][] out = new int[N_CLASSES][];
+        for (int c = 0; c < N_CLASSES; c++) out[c] = new int[counts[c]];
+        int[] k = new int[N_CLASSES];
+        for (int i = 1; i < end; i++) {
+            int c = cls[i] & 0xFF;
+            if (c < N_CLASSES && names[i] != null) out[c][k[c]++] = i;
+        }
+        return out;
+    }
+
+    private static String[] normalizeAll(String[] names) {
+        String[] b = new String[names.length];
+        for (int i = 0; i < names.length; i++) b[i] = foldAccents(names[i]);
+        return b;
+    }
+
+    // ---- itens de mod ----
+    //
+    // Registrados no boot, antes de o menu existir, entao as tabelas daqui sao
+    // lidas uma vez so e na hora: nao tocam o il2cpp, so copiam listas.
+
+    private static int sVanilla = -1;
+    private static String[] sModTextures;
+
+    private static void loadModItems() {
+        if (sVanilla >= 0) return;
+        sVanilla = nVanillaItemCount();
+        sModTextures = nModItemTextures();
+    }
+
+    /** O PNG do item de mod `id`, ou null se o id e do jogo. */
+    private static String modTexture(int id) {
+        if (sVanilla < 0 || id < sVanilla || sModTextures == null) return null;
+        int i = id - sVanilla;
+        return i < sModTextures.length ? sModTextures[i] : null;
+    }
+
+    /** Uma secao por categoria que os mods puseram no catalogo. */
+    private static void addModSections(ArrayList<Section> l) {
+        String[] cats = nModCategories();
+        if (cats == null) return;
+        for (int c = 0; c + 1 < cats.length; c += 2) {
+            int[] ids = nModCategoryItems(c / 2);
+            if (ids == null || ids.length == 0) continue;
+            l.add(Section.mod(cats[c], cats[c + 1], ids));
+        }
+    }
+
+    /** Quanto sai de fato: o nativo corta a pilha no teto do item. */
+    private static int actualStack(int id, int requested) {
+        Catalog c = sCatalog;
+        if (c == null || c.maxStacks == null || id < 0 || id >= c.maxStacks.length) return requested;
+        int max = c.maxStacks[id];
+        return max > 0 && requested > max ? max : requested;
+    }
+
     // ------------------------------ secoes ------------------------------
 
-    /** Uma secao do menu. `npc` troca "dar item" por "invocar". */
+    /** Uma secao do menu: lista de item, lista de NPC ou a grade de poderes. */
     private static final class Section {
-        final String group, title, subtitle;
-        String[] names;
+        static final int ITEM = 0, NPC = 1, POWER = 2;
+
+        final String group, title;
+        final int kind;
+        /** Item: a classe do jogo que entra aqui, ou ALL_CLASSES. */
+        final int itemClass;
+        /** Lista escolhida a mao (chefes, moradores). null = vem do catalogo. */
+        final String[] fixedNames;
+        final int[] fixedIds;
+        /** Icone: drawable do app, ou sprite de item quando nao ha drawable. */
+        final String icon;
+        final int iconItem;
+        /** Ou um PNG em disco (o icone que um mod deu a categoria dele). */
+        String iconFile;
+        /** Onde o slider comeca. Espada vem uma; bloco vem a pilha. */
+        final int defaultQty;
+
+        /** Os ids que a lista mostra, na ordem. Do catalogo, sem copia. */
         int[] ids;
-        final int[] stacks;   // null quando e NPC
-        final boolean npc;
-        /** Catalogo inteiro: os nomes vem do jogo, e o id E o indice. */
-        final boolean todos;
-        /** Sprite do jogo que anuncia a secao, em res/drawable. */
-        final String icone;
+        private String[] fixedSearch;
 
-        Section(String group, String title, String subtitle,
-                String[] names, int[] ids, int[] stacks, boolean npc, String icone) {
-            this(group, title, subtitle, names, ids, stacks, npc, false, icone);
+        private Section(String group, String title, int kind, int itemClass,
+                        String[] fixedNames, int[] fixedIds, String icon, int iconItem,
+                        int defaultQty) {
+            this.group = group; this.title = title; this.kind = kind;
+            this.itemClass = itemClass; this.fixedNames = fixedNames; this.fixedIds = fixedIds;
+            this.icon = icon; this.iconItem = iconItem; this.defaultQty = defaultQty;
         }
 
-        Section(String group, String title, String subtitle,
-                String[] names, int[] ids, int[] stacks, boolean npc, boolean todos,
-                String icone) {
-            this.group = group; this.title = title; this.subtitle = subtitle;
-            this.names = names; this.ids = ids; this.stacks = stacks;
-            this.npc = npc; this.todos = todos; this.icone = icone;
+        static Section items(String title, int itemClass, String icon, int iconItem, int qty) {
+            return new Section("ITENS", title, ITEM, itemClass, null, null, icon, iconItem, qty);
         }
 
-        /** Nomes sem acento e em minuscula, calculados UMA vez. */
-        String[] busca;
-        /** Indices visiveis depois do filtro. null = todos. */
-        int[] filtro;
+        static Section npcs(String title, String[] n, int[] i, String icon) {
+            return new Section("MUNDO", title, NPC, ALL_CLASSES, n, i, icon, 0, 1);
+        }
 
-        int total() { return names == null ? 0 : names.length; }
-        int count() { return filtro != null ? filtro.length : total(); }
-        int indiceDe(int posicao) { return filtro != null ? filtro[posicao] : posicao; }
+        static Section powers(String title, int iconItem) {
+            return new Section("PODERES", title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
+        }
 
-        /**
-         * Monta o indice de busca. Uma passada por 6147 nomes, na primeira vez
-         * que alguem digita — normalizar a cada tecla seria refazer isso a cada
-         * letra.
-         */
-        void prepararBusca() {
-            if (busca != null) return;
-            busca = new String[total()];
-            for (int i = 0; i < busca.length; i++) busca[i] = semAcento(names[i]);
+        /** Categoria do catalogo de mod: os ids que o mod pos nela. */
+        static Section mod(String title, String icon, int[] ids) {
+            Section s = new Section("MODS", title, ITEM, ALL_CLASSES, null, ids, null, ids[0], 1);
+            s.iconFile = icon == null || icon.length() == 0 ? null : icon;
+            return s;
+        }
+
+        boolean npc() { return kind == NPC; }
+
+        /** Posicoes visiveis depois do filtro. null = todas. */
+        int[] filtered;
+
+        int total() { return ids == null ? 0 : ids.length; }
+        int count() { return filtered != null ? filtered.length : total(); }
+        int indexAt(int position) { return filtered != null ? filtered[position] : position; }
+
+        String nameAt(int k) {
+            if (fixedNames != null) return fixedNames[k];
+            return (npc() ? sCatalog.npcNames : sCatalog.itemNames)[ids[k]];
+        }
+
+        String searchText(int k) {
+            if (fixedNames != null) {
+                if (fixedSearch == null) fixedSearch = normalizeAll(fixedNames);
+                return fixedSearch[k];
+            }
+            return (npc() ? sCatalog.npcSearch : sCatalog.itemSearch)[ids[k]];
         }
 
         /**
@@ -133,113 +367,233 @@ public class CheatBridge {
          *
          * Procurar "espada" com 6147 itens devolve dezenas; quem digitou quer
          * "Espada Larga" antes de "Suporte de Espada". Duas passadas resolvem,
-         * sem ordenar nada.
+         * sem ordenar nada. O id e comparado como numero: converter cada id em
+         * texto a cada tecla eram 6000 strings jogadas fora.
          */
-        void filtrar(String termo) {
-            String t = semAcento(termo).trim();
-            if (t.length() == 0) { filtro = null; return; }
-            prepararBusca();
+        void applyFilter(String term) {
+            String t = foldAccents(term).trim();
+            if (t.length() == 0) { filtered = null; return; }
+            int id = -1;
+            try { id = Integer.parseInt(t); } catch (NumberFormatException e) { /* nao e id */ }
 
-            int[] achados = new int[total()];
+            final int total = total();
+            int[] hits = new int[total];
             int n = 0;
-            for (int i = 0; i < busca.length; i++) {
-                if (busca[i].startsWith(t) || String.valueOf(ids[i]).equals(t)) achados[n++] = i;
+            for (int k = 0; k < total; k++) {
+                if (ids[k] == id || searchText(k).startsWith(t)) hits[n++] = k;
             }
-            for (int i = 0; i < busca.length; i++) {
-                if (!busca[i].startsWith(t) && busca[i].contains(t) && t.length() > 1) {
-                    achados[n++] = i;
+            if (t.length() > 1) {
+                for (int k = 0; k < total; k++) {
+                    String b = searchText(k);
+                    if (ids[k] != id && !b.startsWith(t) && b.contains(t)) hits[n++] = k;
                 }
             }
-            int[] fim = new int[n];
-            System.arraycopy(achados, 0, fim, 0, n);
-            filtro = fim;
+            filtered = Arrays.copyOf(hits, n);
         }
 
         /**
-         * Puxa a tabela de nomes do nativo, uma vez.
-         *
-         * Pode nao estar pronta: sao ~6800 nomes moidos em fatias, algumas
-         * centenas por quadro, para nao engasgar o jogo. Ate la devolve false e
-         * a tela diz isso, em vez de mostrar uma lista vazia sem explicacao.
+         * Pega a lista no catalogo. false enquanto ele monta — ate as listas a
+         * mao esperam, porque o recorte do sprite de NPC vem de la.
          */
-        boolean carregar() {
-            if (names != null) return true;
-            String[] n = npc ? nNpcNames() : nItemNames();
-            if (n == null) return false;
-            names = n;
-            ids = new int[n.length];
-            for (int i = 0; i < n.length; i++) ids[i] = i;
+        boolean load() {
+            if (ids != null) return true;
+            Catalog c = sCatalog;
+            if (c == null) return false;
+            ids = fixedIds != null ? fixedIds
+                : npc() ? c.allNpcs
+                : itemClass == ALL_CLASSES ? c.allItems
+                : c.byClass[itemClass];
             return true;
         }
     }
 
     /** Minuscula e sem acento: "Poção" acha com "pocao". */
-    private static String semAcento(String s) {
+    private static String foldAccents(String s) {
         if (s == null) return "";
+        // Sem nada fora do ASCII nao ha acento a tirar, e o Normalizer era a
+        // maior parte do custo de montar a busca de ~6800 nomes.
+        boolean ascii = true;
+        for (int i = 0; i < s.length() && ascii; i++) ascii = s.charAt(i) < 128;
+        if (ascii) return s.toLowerCase(Locale.ROOT);
         String d = Normalizer.normalize(s, Normalizer.Form.NFD);
         StringBuilder b = new StringBuilder(d.length());
         for (int i = 0; i < d.length(); i++) {
             char c = d.charAt(i);
             if (Character.getType(c) != Character.NON_SPACING_MARK) b.append(c);
         }
-        return b.toString().toLowerCase();
+        return b.toString().toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * "Todos" fica NO grupo, em cima, e nao num grupo seu no pe da coluna: e a
+     * mesma lista das secoes de baixo, sem o filtro de classe.
+     */
     private static Section[] sections() {
-        return new Section[] {
-            new Section("ITENS", "Corpo a corpo", "Espadas, lancas e tudo que bate de perto.",
-                CheatData.CORPO_A_CORPO_N, CheatData.CORPO_A_CORPO_I, CheatData.CORPO_A_CORPO_S, false, "ic_sec_melee"),
-            new Section("ITENS", "A distancia", "Armas de fogo e arcos. Levam municao junto.",
-                CheatData.A_DISTANCIA_N, CheatData.A_DISTANCIA_I, CheatData.A_DISTANCIA_S, false, "ic_sec_ranged"),
-            new Section("ITENS", "Magia", "Cajados, livros e armas de mana.",
-                CheatData.MAGIA_N, CheatData.MAGIA_I, CheatData.MAGIA_S, false, "ic_sec_magia"),
-            new Section("ITENS", "Invocacao", "Cajados que chamam servos para lutar por voce.",
-                CheatData.INVOCACAO_N, CheatData.INVOCACAO_I, CheatData.INVOCACAO_S, false, "ic_sec_invoc"),
-            new Section("ITENS", "Acessorios", "Botas, asas, escudos e emblemas.",
-                CheatData.ACESSORIOS_N, CheatData.ACESSORIOS_I, CheatData.ACESSORIOS_S, false, "ic_sec_acess"),
-            new Section("ITENS", "Blocos e moveis", "Material de construcao e estacoes de trabalho.",
-                CheatData.BLOCOS_E_MOVEIS_N, CheatData.BLOCOS_E_MOVEIS_I, CheatData.BLOCOS_E_MOVEIS_S, false, "ic_sec_blocos"),
-            new Section("ITENS", "Uteis", "Cristais, pocoes e municao infinita.",
-                CheatData.UTEIS_N, CheatData.UTEIS_I, CheatData.UTEIS_S, false, "ic_sec_util"),
-            new Section("MUNDO", "Chefes", "Invoca o chefe ao seu lado. Prepare-se antes.",
-                CheatData.CHEFES_N, CheatData.CHEFES_I, null, true, "ic_sec_chefe"),
-            new Section("MUNDO", "Monstros", "Inimigos comuns, para testar arma nova.",
-                CheatData.MONSTROS_N, CheatData.MONSTROS_I, null, true, "ic_sec_monstro"),
-            new Section("MUNDO", "Moradores", "Traz um NPC da cidade. Ele ainda precisa de casa.",
-                CheatData.MORADORES_N, CheatData.MORADORES_I, null, true, "ic_sec_morador"),
-            new Section("TUDO", "Todos os itens", "Os 6147 ids do jogo, com o nome no seu idioma.",
-                null, null, null, false, true, "ic_sec_tudo_item"),
-            new Section("TUDO", "Todos os NPCs", "Os 697 ids do jogo, chefe e bicho incluidos.",
-                null, null, null, true, true, "ic_sec_tudo_npc"),
-        };
+        ArrayList<Section> l = new ArrayList<Section>();
+        // Sigilo Celestial. A Estrela Cadente era a primeira ideia, mas o PNG
+        // dela e uma tira de 8 quadros e saia como um risco.
+        l.add(Section.powers("Superpoderes", 3601));
+        // O que os mods trouxeram vem logo depois dos poderes: e o que a pessoa
+        // instalou para ver, e no meio de doze secoes do jogo sumiria.
+        addModSections(l);
+        l.addAll(Arrays.asList(new Section[] {
+            Section.items("Todos os itens", ALL_CLASSES, "ic_sec_tudo_item", 0, 999),
+            Section.items("Corpo a corpo", CL_MELEE, "ic_sec_melee", 0, 1),
+            Section.items("À distância", CL_RANGED, "ic_sec_ranged", 0, 1),
+            Section.items("Magia", CL_MAGIC, "ic_sec_magia", 0, 1),
+            Section.items("Invocação", CL_SUMMON, "ic_sec_invoc", 0, 1),
+            Section.items("Munição", CL_AMMO, null, 40, 999),         // Flecha de Madeira
+            Section.items("Ferramentas", CL_TOOL, null, 3521, 1),  // Picareta de Ouro
+            Section.items("Acessórios", CL_ACCESSORY, "ic_sec_acess", 0, 1),
+            Section.items("Armaduras", CL_ARMOR, null, 231, 1),       // Elmo Derretido
+            Section.items("Poções e comida", CL_POTION, "ic_sec_util", 0, 999),
+            Section.items("Blocos e móveis", CL_BLOCK, "ic_sec_blocos", 0, 999),
+            Section.items("Outros", CL_OTHER, null, 29, 999),           // Cristal de Vida
+            new Section("MUNDO", "Todos os NPCs", Section.NPC, ALL_CLASSES, null, null,
+                "ic_sec_tudo_npc", 0, 1),
+            Section.npcs("Chefes", CheatData.BOSSES_N, CheatData.BOSSES_I, "ic_sec_chefe"),
+            Section.npcs("Monstros", CheatData.MONSTERS_N, CheatData.MONSTERS_I, "ic_sec_monstro"),
+            Section.npcs("Moradores", CheatData.TOWN_NPCS_N, CheatData.TOWN_NPCS_I, "ic_sec_morador"),
+        }));
+        return l.toArray(new Section[0]);
     }
+
+    // ------------------------------ poderes ------------------------------
+    //
+    // A ordem e o contrato com bl::runtime::Power (Powers.h).
+
+    private static final String[] POWER_NAME = {
+        "Dano extra", "Super velocidade", "Super pulo", "Parar o tempo", "Imortal",
+        "Mana infinita", "Pulo infinito", "Mineração turbo", "Visão total",
+    };
+    private static final String[] POWER_DESC = {
+        "Toda arma bate mais forte",
+        "Corre muito mais rápido",
+        "Pula alto, sem dano de queda",
+        "Inimigos, tiros e relógio param",
+        "Nada tira sua vida",
+        "Magia de graça, sempre cheia",
+        "Toque no ar e pule de novo",
+        "Picareta e machado 4x",
+        "Minério, inimigo e perigo",
+    };
+    /** Rotulo de cada nivel. Um so = liga/desliga. */
+    private static final String[][] POWER_LEVELS = {
+        {"x2", "x5", "x10"}, {"x2", "x3"}, {"x2", "x3"},
+        {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"},
+    };
+    /** Sprite de item que representa cada poder. */
+    private static final int[] POWER_ICON = {
+        1301,   // Emblema do Destruidor
+        54,     // Botas de Hermes
+        2423,   // Perna de Sapo
+        3099,   // Cronometro
+        1613,   // Escudo de Ankh
+        109,    // Cristal de Mana
+        53,     // Nuvem na Garrafa
+        1294,   // Picosserra
+        296,    // Pocao de Espeleologo
+    };
+    /** Nivel atual. O processo do jogo morre junto com o nativo, entao os dois
+     *  nascem desligados e so este lado escreve. */
+    private static final int[] sPowerLevels = new int[POWER_NAME.length];
 
     // ------------------------------ desenho ------------------------------
 
     /**
-     * O menu estava na metade da escala do jogo.
+     * A unidade de medida do menu, em pixels. Tres regras, nesta ordem:
      *
-     * Medido na mesma tela de 1600x900: o MENOR texto que o Terraria desenha (a
-     * versao no rodape) tem 25 px de altura, e o nome de item aqui tinha 13. Ou
-     * seja, o texto de leitura do menu era menor que qualquer coisa que o jogo
-     * mostra — daí a sensacao de miniatura.
+     * PROPORCIONAL: 1/560 do lado menor da tela. E como o jogo escala a propria
+     * interface — o padrao dele e altura/1080 vezes uma constante
+     * (Main.TryPickingDefaultUIScale) —, entao o menu ocupa a mesma fracao da
+     * tela que a interface do jogo.
      *
-     * Dois fatores, e nao um: o TEXTO precisa quase dobrar para alcancar o
-     * jogo, mas dobrar tambem as medidas jogaria a coluna da esquerda para 40%
-     * da largura da tela. As caixas crescem o suficiente para caber o texto
-     * maior, e so.
+     * PISO FISICO: nunca menos que 0,95 dp. So a proporcao encolhia demais num
+     * celular: 1080 px numa tela de 6,5" sao ~410 dp, e 1/560 disso da 0,7 dp
+     * por unidade — letra de 3 mm e alvo de toque menor que o dedo. Medido em dp
+     * puro (1,3 dp) era grande demais; o piso fica entre os dois.
+     *
+     * TETO: a largura tem de caber 760 unidades, que e o que o menu ocupa de
+     * ponta a ponta (coluna, busca, barra, X). Em tela estreita o piso nao pode
+     * empurrar metade do menu para fora.
+     *
+     * No MuMu (900 px a 240 dpi) vale a proporcao; num celular, o piso.
      */
-    private static final float ESCALA_TEXTO = 1.9f;
-    private static final float ESCALA_DIM = 1.3f;
+    private static final float UNITS_TALL = 560f;
+    private static final float MIN_DP = 0.95f;
+    private static final float UNITS_WIDE = 760f;
+    /**
+     * Texto em relacao as medidas. O texto precisou crescer mais que as caixas
+     * para alcancar o do jogo (medido: nome de item com a altura do menor texto
+     * que o Terraria desenha); essa proporcao continua valendo.
+     */
+    private static final float TEXT_SCALE = 1.46f;
 
-    private static int px(Activity a, float dp) {
-        return (int) TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, dp * ESCALA_DIM, a.getResources().getDisplayMetrics());
+    private static float sUnit;
+
+    private static float unit(Activity a) {
+        if (sUnit == 0) {
+            DisplayMetrics m = a.getResources().getDisplayMetrics();
+            float shortSide = Math.min(m.widthPixels, m.heightPixels);
+            float longSide = Math.max(m.widthPixels, m.heightPixels);
+            float u = Math.max(shortSide / UNITS_TALL, MIN_DP * m.density);
+            sUnit = Math.min(u, longSide / UNITS_WIDE);
+        }
+        return sUnit;
     }
 
-    /** Painel do Terraria: contorno escuro, corpo azul, luz em cima. */
+    private static int px(Activity a, float u) {
+        return Math.round(u * unit(a));
+    }
+
+    // ---- o que cabe lado a lado ----
+    //
+    // A unidade acerta o TAMANHO; a largura em unidades muda de aparelho para
+    // aparelho (o MuMu tem ~1000, um celular 19,5:9 no piso tem ~940, uma tela
+    // estreita bem menos). O que fica lado a lado se ajusta a ela.
+
+    /** Largura da tela, em unidades. */
+    private static float widthUnits(Activity a) {
+        DisplayMetrics m = a.getResources().getDisplayMetrics();
+        return Math.max(m.widthPixels, m.heightPixels) / unit(a);
+    }
+
+    /**
+     * Coluna das secoes. Fixa: mais estreita, "Superpoderes" e "Poções e comida"
+     * quebravam em duas linhas.
+     */
+    private static final float ASIDE = 200;
+
+    /** O que sobra para a coluna da direita: tira coluna, margens e respiros. */
+    private static float contentUnits(Activity a) {
+        return widthUnits(a) - ASIDE - 58;
+    }
+
+    /** Barra de quantidade: encolhe antes de espremer a busca. */
+    private static float barUnits(Activity a) {
+        return contentUnits(a) < 620 ? 90 : 140;
+    }
+
+    /**
+     * Colunas da grade de poderes: cada cartao pede ~240 unidades para o nome
+     * mais comprido ("Super velocidade x3") caber inteiro.
+     */
+    private static int powerColumns(Activity a) {
+        int n = (int) (contentUnits(a) / 240);
+        return n < 2 ? 2 : n > 4 ? 4 : n;
+    }
+
+    /**
+     * Tamanho de texto em pixels, e nao em sp: sp soma a escala de fonte do
+     * sistema, e o jogo nao soma. Com a fonte do aparelho em "grande", o menu
+     * crescia e o jogo em volta nao.
+     */
+    private static void applyTextSize(Activity a, TextView t, float size) {
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, size * TEXT_SCALE * unit(a));
+    }
+
     /** Marca do item escolhido na coluna: faixa clara, sem moldura preta. */
-    private static GradientDrawable destaque(Activity a) {
+    private static GradientDrawable highlight(Activity a) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(PANEL_LIT);
         d.setCornerRadius(px(a, 6));
@@ -253,6 +607,7 @@ public class CheatBridge {
         return d;
     }
 
+    /** Painel do Terraria: contorno escuro, corpo azul. */
     private static GradientDrawable panel(Activity a, int fill, int stroke) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(fill);
@@ -270,19 +625,19 @@ public class CheatBridge {
      *
      * Quebra de linha cai no desenho normal do TextView: contornar texto
      * multilinha na mao pediria refazer o layout inteiro, e aqui multilinha e
-     * so o subtitulo, que nao precisa.
+     * so a descricao de poder, que nao precisa.
      */
-    private static final class Contornado extends TextView {
-        private final float traco;
+    private static final class OutlinedText extends TextView {
+        private final float strokeWidth;
 
-        Contornado(Activity a) {
+        OutlinedText(Activity a) {
             super(a);
-            traco = px(a, 2);
+            strokeWidth = px(a, 2);
             // O TextView mede o texto em FILL; o contorno e STROKE e passa
             // metade da espessura para FORA do glifo, nos quatro lados. Sem
             // esta folga a ultima letra e as descidas (g, p, q) saiam raspadas.
-            int folga = (int) Math.ceil(traco / 2f) + 1;
-            setPadding(folga, folga, folga, folga);
+            int inset = (int) Math.ceil(strokeWidth / 2f) + 1;
+            setPadding(inset, inset, inset, inset);
             setIncludeFontPadding(true);
         }
 
@@ -290,28 +645,31 @@ public class CheatBridge {
             if (getLineCount() != 1) { super.onDraw(c); return; }
             final String txt = getText().toString();
             final TextPaint pt = getPaint();
-            final int cor = getCurrentTextColor();
-            final float x = getPaddingLeft();
+            final int color = getCurrentTextColor();
+            // Pelo layout, e nao pelo padding: o layout ja sabe a gravidade, e
+            // um rotulo alinhado a direita saia colado a esquerda.
+            final float x = getCompoundPaddingLeft()
+                + (getLayout() != null ? getLayout().getLineLeft(0) : 0);
             final float y = getBaseline();
 
             pt.setStyle(Paint.Style.STROKE);
-            pt.setStrokeWidth(traco);
+            pt.setStrokeWidth(strokeWidth);
             pt.setStrokeJoin(Paint.Join.ROUND);
             pt.setColor(0xFF000000);
             c.drawText(txt, x, y, pt);
 
             pt.setStyle(Paint.Style.FILL);
-            pt.setColor(cor);
+            pt.setColor(color);
             c.drawText(txt, x, y, pt);
         }
     }
 
-    private static TextView text(Activity a, String s, int size, int color) {
-        TextView t = new Contornado(a);
+    private static TextView text(Activity a, String s, float size, int color) {
+        TextView t = new OutlinedText(a);
         t.setText(s);
-        t.setTextSize(size * ESCALA_TEXTO);
+        applyTextSize(a, t, size);
         t.setTextColor(color);
-        t.setTypeface(fonte(a));
+        t.setTypeface(font(a));
         return t;
     }
 
@@ -322,35 +680,47 @@ public class CheatBridge {
      * memoria, sem a classe R do app, e `Resources.getFont` so existe da API 26
      * para cima enquanto o app vai ate a 24.
      */
-    private static Typeface sFonte;
+    private static Typeface sFont;
 
-    private static Typeface fonte(Activity a) {
-        if (sFonte == null) {
+    private static Typeface font(Activity a) {
+        if (sFont == null) {
             try {
-                sFonte = Typeface.createFromAsset(a.getAssets(), "fonte/bunny.ttf");
+                sFont = Typeface.createFromAsset(a.getAssets(), "fonte/bunny.ttf");
             } catch (Throwable t) {
-                sFonte = Typeface.DEFAULT;
+                sFont = Typeface.DEFAULT;
             }
         }
-        return sFonte;
-    }
-
-    /** Sprite do res/drawable do app — o jogo roda no NOSSO processo. */
-    private static Bitmap sprite(Activity a, String name) {
-        try {
-            Resources r = a.getResources();
-            int id = r.getIdentifier(name, "drawable", a.getPackageName());
-            if (id == 0) return null;
-            BitmapFactory.Options o = new BitmapFactory.Options();
-            o.inScaled = false;   // pixel art nao escala no decode
-            return BitmapFactory.decodeResource(r, id, o);
-        } catch (Throwable t) {
-            return null;
-        }
+        return sFont;
     }
 
     /**
-     * Sprite do jogo por ID, de assets/sprites/{item,npc}/<id>.png.
+     * Sprite do res/drawable do app — o jogo roda no NOSSO processo.
+     *
+     * Decodificado uma vez e guardado: o + e o invocar eram decodificados de
+     * novo a CADA linha que a lista montava ou reciclava.
+     */
+    private static final HashMap<String, Bitmap> sRes = new HashMap<String, Bitmap>();
+
+    private static Bitmap sprite(Activity a, String name) {
+        if (sRes.containsKey(name)) return sRes.get(name);
+        Bitmap b = null;
+        try {
+            Resources r = a.getResources();
+            int id = r.getIdentifier(name, "drawable", a.getPackageName());
+            if (id != 0) {
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inScaled = false;   // pixel art nao escala no decode
+                b = BitmapFactory.decodeResource(r, id, o);
+            }
+        } catch (Throwable t) {
+            b = null;
+        }
+        sRes.put(name, b);
+        return b;
+    }
+
+    /**
+     * Sprites do jogo por ID, de assets/sprites/{item,npc}/<id>.png.
      *
      * Vem de arquivo porque nao da para vir do jogo: as texturas dele estao so
      * na GPU (medido — o atlas e 2048x2048 com isReadable = 0, e Blit/
@@ -358,7 +728,7 @@ public class CheatBridge {
      *
      * O cache e pequeno de proposito: a lista recicla, entao o que importa e
      * nao redecodificar o que esta na tela agora. Segurar 6000 bitmaps seria
-     * trocar um engasgo por um estouro de memoria.
+     * trocar um engasgo por um estouro de memoria. So a UI thread mexe nele.
      */
     private static final int CACHE_SPRITES = 192;
     private static final Map<String, Bitmap> sCache =
@@ -368,22 +738,31 @@ public class CheatBridge {
             }
         };
 
-    private static int[] sNpcFrames;
-
-    /** Quadros da tira do NPC. 1 quando o jogo ainda nao disse. */
-    private static int framesDe(int id) {
-        if (sNpcFrames == null) sNpcFrames = nNpcFrames();
-        if (sNpcFrames == null || id < 0 || id >= sNpcFrames.length) return 1;
-        return sNpcFrames[id] < 1 ? 1 : sNpcFrames[id];
+    private static String spriteKey(boolean npc, int id) {
+        return (npc ? "npc/" : "item/") + id;
     }
 
-    private static Bitmap spriteById(Activity a, boolean npc, int id) {
-        final String caminho = "sprites/" + (npc ? "npc/" : "item/") + id + ".png";
-        if (sCache.containsKey(caminho)) return sCache.get(caminho);
+    /** Quadros da tira do NPC, do catalogo. 1 enquanto ele nao existe. */
+    private static int framesOf(int id) {
+        Catalog c = sCatalog;
+        if (c == null || c.npcFrames == null || id < 0 || id >= c.npcFrames.length) return 1;
+        return c.npcFrames[id] < 1 ? 1 : c.npcFrames[id];
+    }
+
+    /** Abre e descomprime um sprite. Pode rodar em qualquer thread. */
+    private static Bitmap decode(Activity a, String key) {
+        final boolean npc = key.startsWith("npc/");
         Bitmap bmp = null;
         InputStream in = null;
         try {
-            in = a.getAssets().open(caminho);
+            // Item de mod nao tem sprite no APK: vem do PNG do proprio mod.
+            String file = npc ? null : modTexture(Integer.parseInt(key.substring(5)));
+            if (file != null) {
+                BitmapFactory.Options o = new BitmapFactory.Options();
+                o.inScaled = false;
+                return BitmapFactory.decodeFile(file, o);
+            }
+            in = a.getAssets().open("sprites/" + key + ".png");
             BitmapFactory.Options o = new BitmapFactory.Options();
             o.inScaled = false;   // pixel art nao escala no decode
             bmp = BitmapFactory.decodeStream(in, null, o);
@@ -391,12 +770,12 @@ public class CheatBridge {
             // inteira espremida num quadradinho deixava a Geleia Azul com duas
             // cabecas. Fica so o primeiro quadro.
             if (bmp != null && npc) {
-                int q = framesDe(id);
-                int alt = bmp.getHeight() / q;
-                if (q > 1 && alt > 0) {
-                    Bitmap corte = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), alt);
-                    if (corte != bmp) bmp.recycle();
-                    bmp = corte;
+                int q = framesOf(Integer.parseInt(key.substring(4)));
+                int frameH = bmp.getHeight() / q;
+                if (q > 1 && frameH > 0) {
+                    Bitmap frame = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), frameH);
+                    if (frame != bmp) bmp.recycle();
+                    bmp = frame;
                 }
             }
         } catch (Throwable t) {
@@ -404,19 +783,178 @@ public class CheatBridge {
         } finally {
             if (in != null) try { in.close(); } catch (Throwable ignored) { }
         }
-        sCache.put(caminho, bmp);
         return bmp;
     }
 
-    private static ImageView icon(Activity a, Bitmap bmp, int dp) {
-        ImageView v = new ImageView(a);
-        if (bmp != null) {
-            BitmapDrawable d = new BitmapDrawable(a.getResources(), bmp);
-            d.getPaint().setFilterBitmap(false);  // vizinho-mais-proximo
-            v.setImageDrawable(d);
+    /**
+     * Na hora, na UI thread. So para os poucos icones fixos (coluna, cartoes
+     * de poder), que aparecem uma vez; a lista usa `requestSprite`.
+     */
+    private static Bitmap spriteJa(Activity a, boolean npc, int id) {
+        String k = spriteKey(npc, id);
+        if (sCache.containsKey(k)) return sCache.get(k);
+        Bitmap b = decode(a, k);
+        sCache.put(k, b);
+        return b;
+    }
+
+    // ---- sprites da lista, fora da UI thread ----
+    //
+    // Decodificar PNG na UI thread era o custo de ROLAR: cada linha nova que
+    // entrava na tela abria e descomprimia um arquivo antes de desenhar. Numa
+    // rolada rapida por "Todos os itens" sao dezenas por segundo.
+    //
+    // Agora a linha aparece na hora, sem sprite, e uma thread de fundo o
+    // decodifica. A fila sai pelo pedido MAIS NOVO (o que acabou de entrar na
+    // tela), e a cada pedido o que ninguem mais esta mostrando e jogado fora —
+    // numa rolada longa, a fila nao acumula as centenas de linhas que so
+    // passaram.
+
+    private static final LinkedBlockingDeque<String> sQueue = new LinkedBlockingDeque<String>();
+    private static final Set<String> sQueued =
+        Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    /** Quem espera cada sprite. A ImageView guarda na tag o que quer AGORA. */
+    private static final HashMap<String, ArrayList<ImageView>> sWaiting =
+        new HashMap<String, ArrayList<ImageView>>();
+    private static Thread sDecoder;
+
+    /** Pinta `v` com o sprite, agora se ja esta no cache, senao quando chegar. */
+    private static void requestSprite(Activity a, ImageView v, boolean npc, int id) {
+        final String k = spriteKey(npc, id);
+        v.setTag(k);
+        if (sCache.containsKey(k)) { setBitmap(a, v, sCache.get(k)); return; }
+        setBitmap(a, v, null);
+        ArrayList<ImageView> vs = sWaiting.get(k);
+        if (vs == null) { vs = new ArrayList<ImageView>(2); sWaiting.put(k, vs); }
+        if (!vs.contains(v)) vs.add(v);
+        dropOrphans();
+        if (sQueued.add(k)) sQueue.offerLast(k);
+        startDecoder(a);
+    }
+
+    private static boolean isWanted(String k) {
+        ArrayList<ImageView> vs = sWaiting.get(k);
+        if (vs == null) return false;
+        for (ImageView v : vs) if (k.equals(v.getTag())) return true;
+        return false;
+    }
+
+    /** Tira da fila o que nenhuma linha visivel quer mais. */
+    private static void dropOrphans() {
+        Iterator<String> it = sQueue.iterator();
+        while (it.hasNext()) {
+            String k = it.next();
+            if (isWanted(k)) continue;
+            it.remove();
+            sQueued.remove(k);
+            sWaiting.remove(k);
         }
-        v.setLayoutParams(new LinearLayout.LayoutParams(px(a, dp), px(a, dp)));
+    }
+
+    private static void startDecoder(final Activity act) {
+        if (sDecoder != null) return;
+        sDecoder = new Thread(new Runnable() {
+            @Override public void run() {
+                Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+                while (true) {
+                    final String k;
+                    try { k = sQueue.takeLast(); } catch (InterruptedException e) { return; }
+                    final Bitmap b = decode(act, k);
+                    act.runOnUiThread(new Runnable() {
+                        @Override public void run() { deliver(act, k, b); }
+                    });
+                }
+            }
+        }, "bunny-sprites");
+        sDecoder.setDaemon(true);
+        sDecoder.start();
+    }
+
+    private static void deliver(Activity a, String k, Bitmap b) {
+        sQueued.remove(k);
+        sCache.put(k, b);
+        ArrayList<ImageView> vs = sWaiting.remove(k);
+        if (vs == null) return;
+        for (ImageView v : vs) if (k.equals(v.getTag())) setBitmap(a, v, b);
+    }
+
+    private static ImageView icon(Activity a, Bitmap bmp, float u) {
+        ImageView v = new ImageView(a);
+        v.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        setBitmap(a, v, bmp);
+        v.setLayoutParams(new LinearLayout.LayoutParams(px(a, u), px(a, u)));
         return v;
+    }
+
+    /** Pixel art sem borrar: vizinho-mais-proximo. */
+    private static void setBitmap(Activity a, ImageView v, Bitmap bmp) {
+        if (bmp == null) { v.setImageDrawable(null); return; }
+        BitmapDrawable d = new BitmapDrawable(a.getResources(), bmp);
+        d.getPaint().setFilterBitmap(false);
+        v.setImageDrawable(d);
+    }
+
+    private static ImageView sectionIcon(Activity a, Section s, float u) {
+        if (s.iconFile != null) {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inScaled = false;
+            Bitmap b = BitmapFactory.decodeFile(s.iconFile, o);
+            if (b != null) return icon(a, b, u);
+        }
+        return icon(a, s.icon != null ? sprite(a, s.icon)
+                                       : spriteJa(a, false, s.iconItem), u);
+    }
+
+    /**
+     * O girassol do jogo abrindo e fechando, enquanto o catalogo monta.
+     *
+     * spr_loading.png e uma tira vertical de 19 quadros de 52x54: o botao
+     * abre, as petalas crescem, murcham e sobra a semente — e volta. Desenhado
+     * a mao, quadro a quadro, porque AnimationDrawable pede um drawable por
+     * quadro e este menu roda sem a classe R do app.
+     */
+    private static final class Sunflower extends View {
+        private static final int FRAMES = 19, FRAME_W = 52, FRAME_H = 54, FRAME_MS = 60;
+        private final Bitmap strip;
+        private final Paint paint = new Paint();
+        private final Rect src = new Rect(), dst = new Rect();
+        private int frame;
+
+        Sunflower(Activity a) {
+            super(a);
+            strip = sprite(a, "spr_loading");
+            paint.setFilterBitmap(false);   // pixel art: vizinho-mais-proximo
+        }
+
+        @Override protected void onMeasure(int wSpec, int hSpec) {
+            Activity a = (Activity) getContext();
+            setMeasuredDimension(px(a, FRAME_W), px(a, FRAME_H));
+        }
+
+        @Override protected void onDraw(Canvas c) {
+            if (strip == null) return;
+            int y = frame * FRAME_H;
+            src.set(0, y, FRAME_W, Math.min(strip.getHeight(), y + FRAME_H));
+            dst.set(0, 0, getWidth(), getHeight() * src.height() / FRAME_H);
+            c.drawBitmap(strip, src, dst, paint);
+            frame = (frame + 1) % FRAMES;
+            // Some da tela (secao trocada) e a View e solta: o invalidate cai
+            // no vazio e a animacao para sozinha.
+            postInvalidateDelayed(FRAME_MS);
+        }
+    }
+
+    /** O girassol com o recado embaixo, no meio da coluna. */
+    private static View loadingView(Activity act, String message) {
+        LinearLayout box = new LinearLayout(act);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setGravity(Gravity.CENTER);
+        box.addView(new Sunflower(act));
+        TextView t = text(act, message, 11, INK_DIM);
+        t.setGravity(Gravity.CENTER);
+        t.setPadding(0, px(act, 8), 0, 0);
+        box.addView(t);
+        return box;
     }
 
     // ------------------------------ menu ------------------------------
@@ -430,20 +968,147 @@ public class CheatBridge {
         });
     }
 
-    /** Botao flutuante que abre o menu. */
+    /** Lado do botao, em unidades. Era 52: cobria meia coluna do inventario. */
+    private static final float BUTTON_SIZE = 40;
+    /** Onde o botao foi deixado. So este processo usa o arquivo. */
+    private static final String PREFS = "bunny_menu";
+    /** De quanto em quanto tempo o botao pergunta se o jogador esta num mundo. */
+    private static final int WORLD_POLL_MS = 400;
+
+    /**
+     * Botao flutuante que abre o menu.
+     *
+     * Nasce escondido: na tela de titulo nao ha o que dar nem em quem, e ele
+     * ficava por cima do menu do jogo. Aparece quando o jogador entra num mundo.
+     */
     private static void buildToggle(final Activity act) {
-        ImageView b = icon(act, sprite(act, "ic_bunny_head"), 40);
-        b.setPadding(px(act, 6), px(act, 6), px(act, 6), px(act, 6));
+        ImageView b = icon(act, sprite(act, "ic_bunny_head"), BUTTON_SIZE);
+        b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         b.setBackground(panel(act, PANEL, OUTLINE));
-        b.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { toggleMenu(act); }
-        });
+        b.setContentDescription("Mod Menu");
+        b.setOnTouchListener(new DragHandler(act));
+        b.setVisibility(View.GONE);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-            px(act, 52), px(act, 52));
+            px(act, BUTTON_SIZE), px(act, BUTTON_SIZE));
         lp.gravity = Gravity.TOP | Gravity.START;
-        lp.leftMargin = px(act, 16);
-        lp.topMargin = px(act, 56);
+        restorePosition(act, lp);
         act.addContentView(b, lp);
+        watchWorld(act, b);
+    }
+
+    private static int clamp(float v, int min, int max) {
+        if (max < min) max = min;
+        return Math.round(v < min ? min : v > max ? max : v);
+    }
+
+    /**
+     * Onde o botao ficou da ultima vez; na primeira, no alto e no meio, que e o
+     * trecho da tela que o jogo deixa livre (o inventario fica a esquerda, a
+     * vida e o mapa a direita).
+     */
+    private static void restorePosition(Activity act, FrameLayout.LayoutParams lp) {
+        DisplayMetrics m = act.getResources().getDisplayMetrics();
+        int x = (m.widthPixels - lp.width) / 2, y = px(act, 6);
+        try {
+            SharedPreferences p = act.getSharedPreferences(PREFS, Activity.MODE_PRIVATE);
+            x = p.getInt("x", x);
+            y = p.getInt("y", y);
+        } catch (Throwable t) { /* fica no padrao */ }
+        // Outra tela (outro aparelho, outra resolucao): nunca fora dela.
+        lp.leftMargin = clamp(x, 0, m.widthPixels - lp.width);
+        lp.topMargin = clamp(y, 0, m.heightPixels - lp.height);
+    }
+
+    /**
+     * Toque curto abre o menu; arrastar leva o botao junto.
+     *
+     * Os dois no MESMO ouvinte: com um OnClickListener a parte, soltar depois de
+     * arrastar ainda contava como clique e o menu abria no fim de todo arrasto.
+     * So vira arrasto depois de passar da folga de toque do sistema, senao o
+     * tremor do dedo num toque ja deslocava o botao.
+     *
+     * Move pelas MARGENS, e nao por setX/setY. A Activity do jogo desenha por
+     * software (hardwareAccelerated=false, como a Unity pede), e ali a View
+     * transladada so era redesenhada dentro do quadrado onde estava: no
+     * celular o botao sumia assim que saia dele. Mudar o layout move o quadro
+     * de verdade, e o Android redesenha o lugar velho e o novo. Custa um layout
+     * por movimento, so enquanto o dedo arrasta.
+     */
+    private static final class DragHandler implements View.OnTouchListener {
+        private final Activity act;
+        private final int touchSlop;
+        private float x0, y0;
+        private int m0x, m0y;
+        private boolean dragging;
+
+        DragHandler(Activity a) {
+            act = a;
+            touchSlop = ViewConfiguration.get(a).getScaledTouchSlop();
+        }
+
+        @Override public boolean onTouch(View v, MotionEvent e) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    x0 = e.getRawX();
+                    y0 = e.getRawY();
+                    m0x = lp.leftMargin;
+                    m0y = lp.topMargin;
+                    dragging = false;
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    float dx = e.getRawX() - x0, dy = e.getRawY() - y0;
+                    if (!dragging && Math.abs(dx) < touchSlop && Math.abs(dy) < touchSlop) return true;
+                    dragging = true;
+                    View parent = (View) v.getParent();
+                    lp.leftMargin = clamp(m0x + dx, 0, parent.getWidth() - v.getWidth());
+                    lp.topMargin = clamp(m0y + dy, 0, parent.getHeight() - v.getHeight());
+                    v.setLayoutParams(lp);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    if (dragging) savePosition(act, lp); else toggleMenu(act);
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    if (dragging) savePosition(act, lp);
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+
+    /** Lembra onde o botao ficou, para a proxima partida. */
+    private static void savePosition(Activity act, FrameLayout.LayoutParams lp) {
+        try {
+            act.getSharedPreferences(PREFS, Activity.MODE_PRIVATE).edit()
+                .putInt("x", lp.leftMargin).putInt("y", lp.topMargin).apply();
+        } catch (Throwable t) { /* so nao lembra na proxima vez */ }
+    }
+
+    /**
+     * Mostra o botao so dentro de um mundo, perguntando ao nativo.
+     *
+     * Perguntar, e nao ser avisado: quem sabe e a thread do jogo, e chamar a UI
+     * de la pediria anexar a thread a JVM a cada troca. O nativo ja le o
+     * gameMenu todo quadro; aqui e so um booleano a cada 400 ms.
+     */
+    private static void watchWorld(final Activity act, final View b) {
+        final Handler h = new Handler(Looper.getMainLooper());
+        h.post(new Runnable() {
+            @Override public void run() {
+                if (act.isFinishing() || act.isDestroyed()) return;
+                boolean inWorld;
+                try { inWorld = nInWorld(); } catch (Throwable t) { inWorld = true; }
+                int vis = inWorld ? View.VISIBLE : View.GONE;
+                if (b.getVisibility() != vis) b.setVisibility(vis);
+                // Saiu do mundo com o menu aberto: fecha junto, senao ele
+                // ficava por cima da tela de titulo sem botao para fechar.
+                if (!inWorld && sOverlay != null && sOverlay.getVisibility() == View.VISIBLE) {
+                    sOverlay.setVisibility(View.GONE);
+                }
+                h.postDelayed(this, WORLD_POLL_MS);
+            }
+        });
     }
 
     private static void toggleMenu(Activity act) {
@@ -459,7 +1124,12 @@ public class CheatBridge {
     }
 
     private static View buildMenu(final Activity act) {
+        loadModItems();
         final Section[] all = sections();
+        // O menu abre nos poderes, que nao dependem de nome nenhum. Pedir o
+        // catalogo ja aqui o monta em segundo plano enquanto a pessoa olha a
+        // grade: quando ela for aos itens, a lista ja esta pronta.
+        withCatalog(act, null);
 
         FrameLayout root = new FrameLayout(act);
         root.setBackgroundColor(SCRIM);
@@ -472,7 +1142,7 @@ public class CheatBridge {
         body.setOrientation(LinearLayout.HORIZONTAL);
         FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
-        blp.setMargins(px(act, 16), px(act, 16), px(act, 16), px(act, 16));
+        blp.setMargins(px(act, 14), px(act, 14), px(act, 14), px(act, 14));
         body.setLayoutParams(blp);
         root.addView(body);
 
@@ -480,7 +1150,7 @@ public class CheatBridge {
         final LinearLayout content = new LinearLayout(act);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setBackground(panelBig(act, PANEL, OUTLINE));
-        content.setPadding(px(act, 12), px(act, 12), px(act, 12), px(act, 12));
+        content.setPadding(px(act, 10), px(act, 8), px(act, 10), px(act, 8));
 
         // ---- coluna da esquerda ----
         LinearLayout aside = new LinearLayout(act);
@@ -522,11 +1192,12 @@ public class CheatBridge {
             LinearLayout b = new LinearLayout(act);
             b.setOrientation(LinearLayout.HORIZONTAL);
             b.setGravity(Gravity.CENTER_VERTICAL);
-            b.setPadding(px(act, 8), px(act, 8), px(act, 10), px(act, 8));
-            b.addView(icon(act, sprite(act, s.icone), 22));
-            TextView rot = text(act, s.title, 14, INK);
-            rot.setPadding(px(act, 8), 0, 0, 0);
-            b.addView(rot);
+            b.setPadding(px(act, 8), px(act, 6), px(act, 10), px(act, 6));
+            b.addView(sectionIcon(act, s, 22));
+            TextView label = text(act, s.title, 14, INK);
+            label.setSingleLine(true);
+            label.setPadding(px(act, 8), 0, 0, 0);
+            b.addView(label);
             b.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
                     select(act, content, all, buttons, index);
@@ -541,7 +1212,7 @@ public class CheatBridge {
         }
 
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
-            px(act, 200), LinearLayout.LayoutParams.MATCH_PARENT);
+            px(act, ASIDE), LinearLayout.LayoutParams.MATCH_PARENT);
         alp.rightMargin = px(act, 10);
         body.addView(aside, alp);
         body.addView(content, new LinearLayout.LayoutParams(
@@ -550,18 +1221,20 @@ public class CheatBridge {
         // Fechar: icone no canto superior direito, sobre tudo. Era uma barra
         // vermelha no pe da coluna, que comia altura de lista e ficava longe do
         // polegar de quem segura o aparelho deitado.
-        ImageView fechar = icon(act, sprite(act, "ic_fechar"), 34);
-        fechar.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
-        fechar.setOnClickListener(new View.OnClickListener() {
+        ImageView closeButton = icon(act, sprite(act, "ic_fechar"), 36);
+        closeButton.setPadding(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
+        closeButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (sOverlay != null) sOverlay.setVisibility(View.GONE);
             }
         });
-        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(px(act, 42), px(act, 42));
+        // Na altura do topo da coluna, que reserva o canto para ele: mais baixo,
+        // cobria o + da primeira linha da lista.
+        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(px(act, 36), px(act, 36));
         flp.gravity = Gravity.TOP | Gravity.END;
-        flp.topMargin = px(act, 24);
-        flp.rightMargin = px(act, 24);
-        root.addView(fechar, flp);
+        flp.topMargin = px(act, 16);
+        flp.rightMargin = px(act, 18);
+        root.addView(closeButton, flp);
 
         select(act, content, all, buttons, 0);
         return root;
@@ -588,61 +1261,60 @@ public class CheatBridge {
      */
     private static final class Range extends View {
         private final int max;
-        private final Paint tinta = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final float borda, alca;
-        private int valor;
-        Runnable aoMudar;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final float border, handle;
+        private int value;
+        Runnable onChange;
 
-        Range(Activity a, int max, int inicial) {
+        Range(Activity a, int max, int initial) {
             super(a);
             this.max = max < 1 ? 1 : max;
-            this.valor = inicial;
-            this.borda = px(a, 2);
-            this.alca = px(a, 15);
-            setPadding(0, px(a, 7), 0, px(a, 7));
+            this.value = initial;
+            this.border = px(a, 2);
+            this.handle = px(a, 13);
         }
 
-        int valor() { return valor; }
+        int value() { return value; }
 
         @Override protected void onMeasure(int wSpec, int hSpec) {
-            setMeasuredDimension(resolveSize(px((Activity) getContext(), 200), wSpec),
-                                 resolveSize((int) (alca + px((Activity) getContext(), 12)), hSpec));
+            setMeasuredDimension(resolveSize(px((Activity) getContext(), barUnits((Activity) getContext())), wSpec),
+                                 resolveSize((int) (handle * 1.7f + px((Activity) getContext(), 4)), hSpec));
         }
 
         @Override protected void onDraw(Canvas c) {
-            final float meio = getHeight() / 2f;
-            final float sulco = px((Activity) getContext(), 12);
-            final float x0 = alca / 2f, x1 = getWidth() - alca / 2f;
-            final float topo = meio - sulco / 2f, base = meio + sulco / 2f;
-            final float raio = sulco / 2f;
+            final float mid = getHeight() / 2f;
+            final float groove = px((Activity) getContext(), 10);
+            final float x0 = handle / 2f, x1 = getWidth() - handle / 2f;
+            final float top = mid - groove / 2f, base = mid + groove / 2f;
+            final float radius = groove / 2f;
 
-            tinta.setStyle(Paint.Style.FILL);
-            tinta.setColor(OUTLINE);
-            c.drawRoundRect(x0 - borda, topo - borda, x1 + borda, base + borda, raio, raio, tinta);
-            tinta.setColor(PANEL_DARK);
-            c.drawRoundRect(x0, topo, x1, base, raio, raio, tinta);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(OUTLINE);
+            c.drawRoundRect(x0 - border, top - border, x1 + border, base + border, radius, radius, paint);
+            paint.setColor(PANEL_DARK);
+            c.drawRoundRect(x0, top, x1, base, radius, radius, paint);
 
-            final float t = (valor - 1) / (float) (max - 1 == 0 ? 1 : max - 1);
+            final float t = (value - 1) / (float) (max - 1 == 0 ? 1 : max - 1);
             final float cx = x0 + (x1 - x0) * t;
             if (cx > x0) {
-                tinta.setColor(GRASS);
-                c.drawRoundRect(x0, topo, cx, base, raio, raio, tinta);
+                paint.setColor(GRASS);
+                c.drawRoundRect(x0, top, cx, base, radius, radius, paint);
             }
 
             // A alca e MAIS ALTA que o sulco e e BRANCA: dentro do verde do
             // preenchido, uma alca verde sumia — virava uma listra e ninguem
             // via onde pegar.
-            final float ah = alca * 1.7f;
-            final float ax = cx - alca / 2f, ay = meio - ah / 2f;
-            final float ar = px((Activity) getContext(), 3);
-            tinta.setColor(OUTLINE);
-            c.drawRoundRect(ax, ay, ax + alca, ay + ah, ar, ar, tinta);
-            tinta.setColor(0xFFFFFFFF);
-            c.drawRoundRect(ax + borda, ay + borda, ax + alca - borda, ay + ah - borda,
-                            ar, ar, tinta);
+            final float handleH = handle * 1.7f;
+            final float ax = cx - handle / 2f, ay = mid - handleH / 2f;
+            final float handleRadius = px((Activity) getContext(), 3);
+            paint.setColor(OUTLINE);
+            c.drawRoundRect(ax, ay, ax + handle, ay + handleH, handleRadius, handleRadius, paint);
+            paint.setColor(0xFFFFFFFF);
+            c.drawRoundRect(ax + border, ay + border, ax + handle - border, ay + handleH - border,
+                            handleRadius, handleRadius, paint);
             // Meia sombra embaixo: e assim que o jogo da volume a um botao.
-            tinta.setColor(0xFFB9C0D4);
-            c.drawRect(ax + borda, meio + ah / 6f, ax + alca - borda, ay + ah - borda, tinta);
+            paint.setColor(0xFFB9C0D4);
+            c.drawRect(ax + border, mid + handleH / 6f, ax + handle - border, ay + handleH - border, paint);
         }
 
         @Override public boolean onTouchEvent(MotionEvent e) {
@@ -650,14 +1322,14 @@ public class CheatBridge {
                 case MotionEvent.ACTION_DOWN:
                 case MotionEvent.ACTION_MOVE:
                 case MotionEvent.ACTION_UP:
-                    final float x0 = alca / 2f, x1 = getWidth() - alca / 2f;
+                    final float x0 = handle / 2f, x1 = getWidth() - handle / 2f;
                     float t = (e.getX() - x0) / Math.max(1f, x1 - x0);
                     if (t < 0) t = 0; else if (t > 1) t = 1;
-                    int novo = 1 + Math.round(t * (max - 1));
-                    if (novo != valor) {
-                        valor = novo;
+                    int next = 1 + Math.round(t * (max - 1));
+                    if (next != value) {
+                        value = next;
                         invalidate();
-                        if (aoMudar != null) aoMudar.run();
+                        if (onChange != null) onChange.run();
                     }
                     // Segura o gesto: sem isto a ListView rouba o arrasto.
                     getParent().requestDisallowInterceptTouchEvent(true);
@@ -672,189 +1344,223 @@ public class CheatBridge {
     private static final int MAX_ITEM = 999;
     private static final int MAX_NPC = 10;
 
-    /** O valor que mais se repete — para o slider comecar onde era o padrao. */
-    private static int maisComum(int[] v) {
-        if (v == null || v.length == 0) return 1;
-        int melhor = v[0], melhorN = 0;
-        for (int a : v) {
-            int n = 0;
-            for (int b : v) if (a == b) n++;
-            if (n > melhorN) { melhorN = n; melhor = a; }
+    /**
+     * O topo da coluna, numa linha so: icone, titulo e contagem a esquerda.
+     *
+     * Eram tres faixas empilhadas de ponta a ponta — titulo com subtitulo, a
+     * barra de quantidade esticada na largura inteira, a busca tambem. Nenhuma
+     * das tres precisa da largura toda, e cada faixa era uma linha de lista a
+     * menos na tela. Lado a lado, o que e fixo fica do tamanho que tem.
+     */
+    private static LinearLayout buildHeader(Activity act, Section s, TextView countLabel) {
+        LinearLayout t = new LinearLayout(act);
+        t.setOrientation(LinearLayout.HORIZONTAL);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        // O X de fechar fica por cima deste canto; a linha para antes dele.
+        t.setPadding(0, 0, px(act, 40), 0);
+        t.addView(sectionIcon(act, s, 26));
+        TextView titleView = text(act, s.title, 17, INK);
+        titleView.setPadding(px(act, 8), 0, 0, 0);
+        titleView.setSingleLine(true);
+        t.addView(titleView);
+        if (countLabel != null) {
+            countLabel.setPadding(px(act, 8), 0, 0, 0);
+            t.addView(countLabel);
         }
-        return melhor < 1 ? 1 : melhor;
+        return t;
     }
 
+    /** A secao na tela agora: quem espera o catalogo so redesenha se for ela. */
+    private static int sCurrentSection = -1;
+    /** Espera depois da ultima tecla antes de filtrar. */
+    private static final int SEARCH_DELAY_MS = 150;
+
     /** Troca a secao mostrada e marca o botao escolhido. */
-    private static void select(final Activity act, LinearLayout content,
-                               Section[] all, View[] buttons, int index) {
+    private static void select(final Activity act, final LinearLayout content,
+                               final Section[] all, final View[] buttons, final int index) {
+        sCurrentSection = index;
         for (int i = 0; i < buttons.length; i++) {
             // So o escolhido tem fundo. Antes cada item da coluna era um
             // retangulo azul-escuro com contorno preto, e onze deles empilhados
             // viravam uma parede de caixas — o que se via era a moldura, nao a
             // lista.
-            buttons[i].setBackground(i == index ? destaque(act) : null);
+            buttons[i].setBackground(i == index ? highlight(act) : null);
         }
         final Section s = all[index];
-        s.filtro = null;   // filtro e da visita, nao da secao
+        s.filtered = null;   // filtro e da visita, nao da secao
         content.removeAllViews();
 
-        LinearLayout head = new LinearLayout(act);
-        head.setOrientation(LinearLayout.VERTICAL);
-        head.addView(text(act, s.title, 19, INK));
-        head.addView(text(act, s.subtitle, 11, INK_DIM));
-        content.addView(head);
+        if (s.kind == Section.POWER) { showPowers(act, content, s); return; }
 
-        if (!s.carregar()) {
-            // A primeira pergunta e o gatilho: o nativo so comeca a moer quando
-            // alguem pede. Em vez de mandar o jogador tocar de novo, voltamos
-            // sozinhos ate ficar pronto.
-            content.addView(text(act,
-                "Lendo os nomes do jogo, no seu idioma. Sao ~6800, moidos aos "
-                + "poucos para nao engasgar o jogo...", 13, INK_DIM));
-            final LinearLayout alvo = content;
-            final Section[] todas = all;
-            final View[] bts = buttons;
-            final int idx = index;
-            content.postDelayed(new Runnable() {
-                @Override public void run() { select(act, alvo, todas, bts, idx); }
-            }, 600);
+        if (!s.load()) {
+            // O girassol gira enquanto o catalogo monta em segundo plano; quando
+            // ele fica pronto, a secao se redesenha sozinha — se a pessoa ainda
+            // estiver nela.
+            content.addView(buildHeader(act, s, null));
+            content.addView(loadingView(act, "Lendo o catálogo do jogo, no seu idioma..."),
+                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+            withCatalog(act, new Runnable() {
+                @Override public void run() {
+                    if (sCurrentSection == index) select(act, content, all, buttons, index);
+                }
+            });
             return;
         }
 
-        // ---- quantidade ----
-        final int max = s.npc ? MAX_NPC : MAX_ITEM;
-        int inicial = s.npc ? 1 : maisComum(s.stacks);
-        if (inicial > max) inicial = max;
-        final int[] qtd = { inicial };
+        // ---- topo: titulo | busca | quantidade ----
+        final TextView countLabel = text(act, String.valueOf(s.total()), 10, INK_DIM);
+        LinearLayout headerRow = buildHeader(act, s, countLabel);
 
-        final TextView rotulo = text(act, "Quantidade: " + inicial, 12, INK);
-        rotulo.setWidth(px(act, 118));
-        final Range barra = new Range(act, max, inicial);
-        barra.aoMudar = new Runnable() {
+        LinearLayout searchBox = new LinearLayout(act);
+        searchBox.setOrientation(LinearLayout.HORIZONTAL);
+        searchBox.setGravity(Gravity.CENTER_VERTICAL);
+        searchBox.setBackground(panel(act, PANEL_DARK, OUTLINE));
+        searchBox.setPadding(px(act, 6), 0, px(act, 6), 0);
+        searchBox.addView(icon(act, sprite(act, "ic_lupa"), 16));
+
+        final EditText searchField = new EditText(act);
+        searchField.setSingleLine(true);
+        searchField.setBackground(null);
+        searchField.setTextColor(INK);
+        searchField.setHintTextColor(INK_DIM);
+        searchField.setHint("Nome ou id");
+        applyTextSize(act, searchField, 11);
+        searchField.setTypeface(font(act));
+        searchField.setPadding(px(act, 6), px(act, 3), 0, px(act, 3));
+        searchBox.addView(searchField, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
+        bp.leftMargin = px(act, 12);
+        bp.rightMargin = px(act, 12);
+        headerRow.addView(searchBox, bp);
+
+        final int max = s.npc() ? MAX_NPC : MAX_ITEM;
+        final int initial = Math.min(max, Math.max(1, s.defaultQty));
+        final int[] qty = { initial };
+        final TextView qtyLabel = text(act, "x" + initial, 12, INK);
+        // Largura de "x999" fixa: sem isto a barra pulava para o lado a cada
+        // digito que o numero ganhava ou perdia.
+        qtyLabel.setWidth(px(act, 40));
+        qtyLabel.setGravity(Gravity.END);
+        final Range qtyBar = new Range(act, max, initial);
+        qtyBar.onChange = new Runnable() {
             @Override public void run() {
-                qtd[0] = barra.valor();
-                rotulo.setText("Quantidade: " + qtd[0]);
+                qty[0] = qtyBar.value();
+                qtyLabel.setText("x" + qty[0]);
             }
         };
+        headerRow.addView(qtyLabel);
+        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+            px(act, barUnits(act)), LinearLayout.LayoutParams.WRAP_CONTENT);
+        rp.leftMargin = px(act, 6);
+        headerRow.addView(qtyBar, rp);
 
-        LinearLayout linhaQtd = new LinearLayout(act);
-        linhaQtd.setOrientation(LinearLayout.HORIZONTAL);
-        linhaQtd.setGravity(Gravity.CENTER_VERTICAL);
-        linhaQtd.setPadding(0, px(act, 4), 0, px(act, 4));
-        linhaQtd.addView(rotulo);
-        linhaQtd.addView(barra, new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-        content.addView(linhaQtd);
-
-        // ---- busca ----
-        LinearLayout linhaBusca = new LinearLayout(act);
-        linhaBusca.setOrientation(LinearLayout.HORIZONTAL);
-        linhaBusca.setGravity(Gravity.CENTER_VERTICAL);
-        linhaBusca.setBackground(panel(act, PANEL_DARK, OUTLINE));
-        linhaBusca.setPadding(px(act, 8), px(act, 2), px(act, 8), px(act, 2));
-        linhaBusca.addView(icon(act, sprite(act, "ic_lupa"), 20));
-
-        final EditText campo = new EditText(act);
-        campo.setSingleLine(true);
-        campo.setBackground(null);
-        campo.setTextColor(INK);
-        campo.setHintTextColor(INK_DIM);
-        campo.setHint(s.npc ? "Buscar NPC por nome ou id" : "Buscar item por nome ou id");
-        campo.setTextSize(13 * ESCALA_TEXTO);
-        campo.setTypeface(fonte(act));
-        campo.setPadding(px(act, 8), px(act, 6), 0, px(act, 6));
-        linhaBusca.addView(campo, new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-        LinearLayout.LayoutParams lbp = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lbp.topMargin = px(act, 4);
-        lbp.bottomMargin = px(act, 6);
-        content.addView(linhaBusca, lbp);
+        lp.bottomMargin = px(act, 6);
+        content.addView(headerRow, lp);
+
+        if (s.total() == 0) {
+            content.addView(text(act, s.npc() ? "Nenhum NPC aqui."
+                : "O jogo não entregou a classe dos itens. \"Todos os itens\" "
+                + "continua com a lista inteira.", 12, INK_DIM));
+            return;
+        }
 
         // ---- lista ----
         //
         // ListView, e nao ScrollView com tudo dentro: "Todos os itens" tem 6147
         // linhas, e montar 6147 Views de uma vez trava o jogo por segundos. A
         // ListView so monta o que cabe na tela e reaproveita ao rolar.
-        ListView lista = new ListView(act);
+        final ListView list = new ListView(act);
         // Uma linha quase invisivel entre as linhas, no lugar da borda preta
         // arredondada que cada card tinha: com 6147 deles, a tela virava uma
         // grade de caixinhas em vez de uma lista.
-        lista.setDivider(new android.graphics.drawable.ColorDrawable(0x22FFFFFF));
-        lista.setDividerHeight(px(act, 1));
-        lista.setCacheColorHint(0);
-        final BaseAdapter adaptador = new BaseAdapter() {
+        list.setDivider(new android.graphics.drawable.ColorDrawable(0x22FFFFFF));
+        list.setDividerHeight(Math.max(1, px(act, 1)));
+        list.setCacheColorHint(0);
+        final BaseAdapter adapter = new BaseAdapter() {
             @Override public int getCount() { return s.count(); }
             @Override public Object getItem(int i) { return null; }
             @Override public long getItemId(int i) { return i; }
-            @Override public View getView(int i, View reuso, ViewGroup pai) {
-                return row(act, s, s.indiceDe(i), qtd, reuso);
+            @Override public View getView(int i, View recycled, ViewGroup parent) {
+                return row(act, s, s.indexAt(i), qty, recycled);
             }
         };
-        lista.setAdapter(adaptador);
-        campo.addTextChangedListener(new TextWatcher() {
+        list.setAdapter(adapter);
+        // Filtra quando a pessoa PARA de digitar, e nao a cada letra: "espada"
+        // eram seis passadas por 6146 nomes, cinco delas jogadas fora.
+        final Runnable[] pending = { null };
+        searchField.addTextChangedListener(new TextWatcher() {
             @Override public void onTextChanged(CharSequence t, int a1, int b1, int c1) {
-                s.filtrar(t.toString());
-                adaptador.notifyDataSetChanged();
-                lista.setSelection(0);
+                if (pending[0] != null) list.removeCallbacks(pending[0]);
+                final String term = t.toString();
+                pending[0] = new Runnable() {
+                    @Override public void run() {
+                        s.applyFilter(term);
+                        countLabel.setText(s.filtered == null ? String.valueOf(s.total())
+                                                          : s.count() + " de " + s.total());
+                        adapter.notifyDataSetChanged();
+                        list.setSelection(0);
+                    }
+                };
+                list.postDelayed(pending[0], SEARCH_DELAY_MS);
             }
             @Override public void beforeTextChanged(CharSequence t, int a1, int b1, int c1) { }
             @Override public void afterTextChanged(Editable e) { }
         });
-        content.addView(lista, new LinearLayout.LayoutParams(
+        content.addView(list, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
     }
 
     /** As partes de uma linha, para trocar o conteudo em vez de remontar. */
-    private static final class Linha {
+    private static final class RowViews {
         ImageView sprite;
-        TextView nome, detalhe;
-        ImageView acao;
+        TextView name, detail;
+        ImageView action;
     }
 
     /** Uma linha: sprite, nome, id e o botao de acao. */
     private static View row(final Activity act, final Section s, final int i,
-                            final int[] qtd, View reuso) {
-        final Linha L;
+                            final int[] qty, View recycled) {
+        final RowViews L;
         LinearLayout r;
-        if (reuso instanceof LinearLayout && reuso.getTag() instanceof Linha) {
-            r = (LinearLayout) reuso;
-            L = (Linha) reuso.getTag();
+        if (recycled instanceof LinearLayout && recycled.getTag() instanceof RowViews) {
+            r = (LinearLayout) recycled;
+            L = (RowViews) recycled.getTag();
         } else {
-            L = new Linha();
+            L = new RowViews();
             r = new LinearLayout(act);
             r.setOrientation(LinearLayout.HORIZONTAL);
             r.setGravity(Gravity.CENTER_VERTICAL);
-            r.setPadding(px(act, 8), px(act, 7), px(act, 8), px(act, 7));
+            r.setPadding(px(act, 6), px(act, 4), px(act, 6), px(act, 4));
 
-            L.sprite = icon(act, null, 34);
-            L.sprite.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            L.sprite = icon(act, null, 30);
             r.addView(L.sprite);
 
             // Nome e id na MESMA linha: empilhados, cada linha da lista gastava
             // uma altura de texto a mais, e na escala do jogo isso e uma linha
             // inteira de lista a menos por tela.
-            LinearLayout rotulos = new LinearLayout(act);
-            rotulos.setOrientation(LinearLayout.HORIZONTAL);
-            rotulos.setGravity(Gravity.BOTTOM);
-            rotulos.setPadding(px(act, 8), 0, 0, 0);
-            L.nome = text(act, "", 14, INK);
-            L.detalhe = text(act, "", 10, INK_DIM);
-            L.detalhe.setPadding(px(act, 8), 0, 0, px(act, 2));
-            rotulos.addView(L.nome);
-            rotulos.addView(L.detalhe);
-            r.addView(rotulos, new LinearLayout.LayoutParams(
+            LinearLayout labels = new LinearLayout(act);
+            labels.setOrientation(LinearLayout.HORIZONTAL);
+            labels.setGravity(Gravity.BOTTOM);
+            labels.setPadding(px(act, 8), 0, 0, 0);
+            L.name = text(act, "", 14, INK);
+            L.detail = text(act, "", 10, INK_DIM);
+            L.detail.setPadding(px(act, 8), 0, 0, px(act, 2));
+            labels.addView(L.name);
+            labels.addView(L.detail);
+            r.addView(labels, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            // So o sinal, sem palavra: a acao ja esta dita pela secao, e o
-            // texto roubava metade da largura de cada linha.
-            // So o sinal, sem caixa nenhuma atras: a moldura verde competia
-            // com o sprite do item na mesma linha.
-            L.acao = new ImageView(act);
-            L.acao.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            L.acao.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
-            r.addView(L.acao, new LinearLayout.LayoutParams(px(act, 40), px(act, 34)));
+            // So o sinal, sem palavra e sem caixa atras: a acao ja esta dita
+            // pela secao, e a moldura competia com o sprite do item.
+            L.action = new ImageView(act);
+            L.action.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            L.action.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+            r.addView(L.action, new LinearLayout.LayoutParams(px(act, 36), px(act, 30)));
 
             r.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -863,47 +1569,165 @@ public class CheatBridge {
         }
 
         final int id = s.ids[i];
-        final String bruto = s.names[i];
+        final String rawName = s.nameAt(i);
         // Id sem nome na Localization (buraco na tabela): mostra o id, que e o
         // que o jogador precisa para saber o que pediu.
-        final String nome = (bruto == null || bruto.length() == 0) ? ("#" + id) : bruto;
+        final String name = (rawName == null || rawName.length() == 0) ? ("#" + id) : rawName;
 
-        Bitmap bmp = spriteById(act, s.npc, id);
-        if (bmp != null) {
-            BitmapDrawable d = new BitmapDrawable(act.getResources(), bmp);
-            d.getPaint().setFilterBitmap(false);   // vizinho-mais-proximo
-            L.sprite.setImageDrawable(d);
-        } else {
-            L.sprite.setImageDrawable(null);
-        }
-
-        L.nome.setText(nome);
-        L.detalhe.setText(s.npc ? ("NPC " + id) : ("id " + id));
-        L.acao.setContentDescription(s.npc ? "Invocar" : "Pegar");
-        Bitmap bAcao = sprite(act, s.npc ? "ic_invocar" : "ic_pegar");
-        if (bAcao != null) {
-            BitmapDrawable dAcao = new BitmapDrawable(act.getResources(), bAcao);
-            dAcao.getPaint().setFilterBitmap(false);
-            L.acao.setImageDrawable(dAcao);
-        }
-        L.acao.setOnClickListener(new View.OnClickListener() {
+        requestSprite(act, L.sprite, s.npc(), id);
+        L.name.setText(name);
+        L.detail.setText(s.npc() ? ("NPC " + id) : ("id " + id));
+        L.action.setContentDescription(s.npc() ? "Invocar" : "Pegar");
+        setBitmap(act, L.action, sprite(act, s.npc() ? "ic_invocar" : "ic_pegar"));
+        L.action.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                int n = qtd[0] < 1 ? 1 : qtd[0];
-                if (s.npc) {
+                int n = qty[0] < 1 ? 1 : qty[0];
+                if (s.npc()) {
                     // A contagem vai JUNTO: o nativo guarda o pedido num slot
                     // so, consumido uma vez por quadro, entao dez chamadas
                     // seguidas viravam um NPC.
                     nOnSpawn(id, n);
-                    Toast.makeText(act, nome + (n > 1 ? " x" + n : "") + " invocado",
+                    Toast.makeText(act, name + (n > 1 ? " x" + n : "") + " invocado",
                         Toast.LENGTH_SHORT).show();
                 } else {
                     nOnGive(id, n);
-                    Toast.makeText(act, nome + (n > 1 ? " x" + n : ""),
+                    int given = actualStack(id, n);
+                    Toast.makeText(act, name + (given > 1 ? " x" + given : ""),
                         Toast.LENGTH_SHORT).show();
                 }
             }
         });
         return r;
+    }
+
+    // ------------------------------ grade de poderes ------------------------------
+
+    /**
+     * Cartoes de liga/desliga. Tocar avanca o nivel: desligado, x2, x5, x10,
+     * desligado. Um cartao so por poder, em vez de um botao por nivel, porque a
+     * grade inteira tem de caber sem rolar.
+     */
+    private static void showPowers(final Activity act, LinearLayout content, Section s) {
+        final TextView activeLabel = text(act, "", 10, INK_DIM);
+        LinearLayout headerRow = buildHeader(act, s, activeLabel);
+
+        final View[] cards = new View[POWER_NAME.length];
+        View spacer = new View(act);
+        headerRow.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
+        TextView offButton = text(act, "Desligar tudo", 11, INK);
+        offButton.setBackground(panel(act, PANEL_DARK, OUTLINE));
+        offButton.setPadding(px(act, 10), px(act, 5), px(act, 10), px(act, 5));
+        offButton.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                for (int i = 0; i < sPowerLevels.length; i++) {
+                    if (sPowerLevels[i] == 0) continue;
+                    sPowerLevels[i] = 0;
+                    nSetPower(i, 0);
+                    paintPowerCard(act, cards[i], i);
+                }
+                updateActiveCount(activeLabel);
+            }
+        });
+        headerRow.addView(offButton);
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = px(act, 6);
+        content.addView(headerRow, lp);
+
+        final int columns = powerColumns(act);
+        LinearLayout grid = new LinearLayout(act);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout queue = null;
+        for (int i = 0; i < POWER_NAME.length; i++) {
+            if (i % columns == 0) {
+                queue = new LinearLayout(act);
+                queue.setOrientation(LinearLayout.HORIZONTAL);
+                grid.addView(queue, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT));
+            }
+            final int id = i;
+            final View c = powerCard(act, i);
+            c.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    sPowerLevels[id] = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
+                    nSetPower(id, sPowerLevels[id]);
+                    paintPowerCard(act, c, id);
+                    updateActiveCount(activeLabel);
+                }
+            });
+            cards[i] = c;
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+            cp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
+            queue.addView(c, cp);
+        }
+        // Fila incompleta: o que falta vira espaco, para os cartoes da ultima
+        // fila terem a largura dos de cima.
+        int remainder = (columns - POWER_NAME.length % columns) % columns;
+        for (int i = 0; i < remainder; i++) {
+            queue.addView(new View(act), new LinearLayout.LayoutParams(0, 1, 1f));
+        }
+
+        ScrollView scroll = new ScrollView(act);
+        scroll.addView(grid);
+        content.addView(scroll, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+        updateActiveCount(activeLabel);
+    }
+
+    /** As partes de um cartao de poder, para repintar sem remontar. */
+    private static final class PowerCardViews {
+        TextView nameLabel, levelLabel, desc;
+    }
+
+    private static View powerCard(Activity act, int id) {
+        PowerCardViews k = new PowerCardViews();
+        LinearLayout c = new LinearLayout(act);
+        c.setOrientation(LinearLayout.HORIZONTAL);
+        c.setGravity(Gravity.CENTER_VERTICAL);
+        c.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
+        c.addView(icon(act, spriteJa(act, false, POWER_ICON[id]), 30));
+
+        LinearLayout texts = new LinearLayout(act);
+        texts.setOrientation(LinearLayout.VERTICAL);
+        texts.setPadding(px(act, 8), 0, 0, 0);
+        LinearLayout topRow = new LinearLayout(act);
+        topRow.setOrientation(LinearLayout.HORIZONTAL);
+        topRow.setGravity(Gravity.BOTTOM);
+        k.nameLabel = text(act, POWER_NAME[id], 13, INK);
+        k.nameLabel.setSingleLine(true);
+        k.levelLabel = text(act, "", 11, GRASS_LIT);
+        k.levelLabel.setPadding(px(act, 6), 0, 0, 0);
+        topRow.addView(k.nameLabel);
+        topRow.addView(k.levelLabel);
+        texts.addView(topRow);
+        k.desc = text(act, POWER_DESC[id], 9, INK_DIM);
+        texts.addView(k.desc);
+        c.addView(texts, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        c.setTag(k);
+        paintPowerCard(act, c, id);
+        return c;
+    }
+
+    /** Desligado e painel escuro; ligado e verde, como o jogo marca o que esta ativo. */
+    private static void paintPowerCard(Activity act, View c, int id) {
+        PowerCardViews k = (PowerCardViews) c.getTag();
+        int n = sPowerLevels[id];
+        boolean on = n > 0;
+        c.setBackground(panel(act, on ? GRASS : PANEL_DARK, OUTLINE));
+        k.levelLabel.setText(on && POWER_LEVELS[id].length > 1 ? POWER_LEVELS[id][n - 1] : "");
+        k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
+        k.desc.setTextColor(on ? INK : INK_DIM);
+    }
+
+    private static void updateActiveCount(TextView t) {
+        int n = 0;
+        for (int v : sPowerLevels) if (v > 0) n++;
+        t.setText(n == 0 ? "" : n == 1 ? "1 ligado" : n + " ligados");
     }
 
     // --- painel de erro ------------------------------------------------------
@@ -952,9 +1776,9 @@ public class CheatBridge {
         // Todo botao de AlertDialog fecha o dialogo ao ser tocado, e Copiar nao
         // pode: quem copia o log quase sempre quer continuar lendo. Trocar o
         // ouvinte DEPOIS do show() e a forma de ter um botao que nao fecha.
-        Button copiar = dlg.getButton(AlertDialog.BUTTON_NEUTRAL);
-        if (copiar == null) return;
-        copiar.setOnClickListener(new View.OnClickListener() {
+        Button copyButton = dlg.getButton(AlertDialog.BUTTON_NEUTRAL);
+        if (copyButton == null) return;
+        copyButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 ClipboardManager cm =
                     (ClipboardManager) act.getSystemService(Activity.CLIPBOARD_SERVICE);

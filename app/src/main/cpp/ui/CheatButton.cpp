@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "runtime/Cheats.h"
+#include "runtime/ModItems.h"
+#include "runtime/Powers.h"
 #include "ui/CheatBridgeDex.h"
 
 #include <atomic>
@@ -89,16 +91,16 @@ void JNICALL jni_onGive(JNIEnv*, jclass, jint type, jint stack) {
  * visivel, custaria uma travessia por rolagem — e pior, viria da thread de UI,
  * que nao pode tocar no il2cpp.
  */
-jobjectArray comoArray(JNIEnv* env, const std::vector<std::u16string>& nomes) {
+jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& names) {
     if (!runtime::namesReady()) return nullptr;
     jclass sc = env->FindClass("java/lang/String");
     if (!sc) return nullptr;
-    jobjectArray out = env->NewObjectArray(static_cast<jsize>(nomes.size()), sc, nullptr);
+    jobjectArray out = env->NewObjectArray(static_cast<jsize>(names.size()), sc, nullptr);
     if (!out) return nullptr;
-    for (size_t i = 0; i < nomes.size(); ++i) {
-        if (nomes[i].empty()) continue;   // fica null: o menu mostra so o id
-        jstring js = env->NewString(reinterpret_cast<const jchar*>(nomes[i].data()),
-                                    static_cast<jsize>(nomes[i].size()));
+    for (size_t i = 0; i < names.size(); ++i) {
+        if (names[i].empty()) continue;   // fica null: o menu mostra so o id
+        jstring js = env->NewString(reinterpret_cast<const jchar*>(names[i].data()),
+                                    static_cast<jsize>(names[i].size()));
         env->SetObjectArrayElement(out, static_cast<jsize>(i), js);
         env->DeleteLocalRef(js);
     }
@@ -106,11 +108,11 @@ jobjectArray comoArray(JNIEnv* env, const std::vector<std::u16string>& nomes) {
 }
 
 jobjectArray JNICALL jni_itemNames(JNIEnv* env, jclass) {
-    return comoArray(env, runtime::itemNames());
+    return toJavaStringArray(env, runtime::itemNames());
 }
 
 jobjectArray JNICALL jni_npcNames(JNIEnv* env, jclass) {
-    return comoArray(env, runtime::npcNames());
+    return toJavaStringArray(env, runtime::npcNames());
 }
 
 jintArray JNICALL jni_npcFrames(JNIEnv* env, jclass) {
@@ -123,6 +125,74 @@ jintArray JNICALL jni_npcFrames(JNIEnv* env, jclass) {
 
 void JNICALL jni_onSpawn(JNIEnv*, jclass, jint type, jint count) {
     bl::runtime::requestSpawn(type, count);
+}
+
+/** Secao de cada item (runtime::ItemClass). null enquanto os nomes moem. */
+jbyteArray JNICALL jni_itemClasses(JNIEnv* env, jclass) {
+    if (!runtime::namesReady()) return nullptr;
+    const std::vector<uint8_t>& v = runtime::itemClasses();
+    if (v.empty()) return nullptr;
+    jbyteArray out = env->NewByteArray(static_cast<jsize>(v.size()));
+    if (out) {
+        env->SetByteArrayRegion(out, 0, static_cast<jsize>(v.size()),
+                                reinterpret_cast<const jbyte*>(v.data()));
+    }
+    return out;
+}
+
+/** Pilha maxima de cada item, para o aviso dizer quanto saiu de verdade. */
+jintArray JNICALL jni_itemStacks(JNIEnv* env, jclass) {
+    if (!runtime::namesReady()) return nullptr;
+    const std::vector<int32_t>& v = runtime::itemMaxStacks();
+    if (v.empty()) return nullptr;
+    jintArray out = env->NewIntArray(static_cast<jsize>(v.size()));
+    if (out) env->SetIntArrayRegion(out, 0, static_cast<jsize>(v.size()), v.data());
+    return out;
+}
+
+void JNICALL jni_setPower(JNIEnv*, jclass, jint id, jint level) {
+    bl::runtime::setPower(id, level);
+}
+
+jboolean JNICALL jni_inWorld(JNIEnv*, jclass) {
+    return runtime::inWorld() ? JNI_TRUE : JNI_FALSE;
+}
+
+jobjectArray toJavaStrings(JNIEnv* env, const std::vector<std::string>& v) {
+    jclass sc = env->FindClass("java/lang/String");
+    jobjectArray out = sc ? env->NewObjectArray(static_cast<jsize>(v.size()), sc, nullptr) : nullptr;
+    if (!out) return nullptr;
+    for (size_t i = 0; i < v.size(); ++i) {
+        jstring js = env->NewStringUTF(v[i].c_str());
+        env->SetObjectArrayElement(out, static_cast<jsize>(i), js);
+        env->DeleteLocalRef(js);
+    }
+    return out;
+}
+
+jint JNICALL jni_vanillaItemCount(JNIEnv*, jclass) { return runtime::kVanillaItemCount; }
+
+/** O PNG de cada item de mod, na ordem do tipo (indice = tipo - vanilla). */
+jobjectArray JNICALL jni_modItemTextures(JNIEnv* env, jclass) {
+    std::vector<std::string> v;
+    for (const auto& i : runtime::modItems()) v.push_back(i.texture);
+    return toJavaStrings(env, v);
+}
+
+/** Categorias do catalogo de mod, achatadas: nome0, icone0, nome1, icone1... */
+jobjectArray JNICALL jni_modCategories(JNIEnv* env, jclass) {
+    std::vector<std::string> v;
+    for (const auto& c : runtime::modCategories()) { v.push_back(c.name); v.push_back(c.icon); }
+    return toJavaStrings(env, v);
+}
+
+jintArray JNICALL jni_modCategoryItems(JNIEnv* env, jclass, jint i) {
+    const auto cats = runtime::modCategories();
+    if (i < 0 || static_cast<size_t>(i) >= cats.size()) return nullptr;
+    const std::vector<int>& t = cats[static_cast<size_t>(i)].types;
+    jintArray out = env->NewIntArray(static_cast<jsize>(t.size()));
+    if (out) env->SetIntArrayRegion(out, 0, static_cast<jsize>(t.size()), t.data());
+    return out;
 }
 
 // Classloader do app (acha classes do app, ao contrario do FindClass de uma
@@ -216,8 +286,16 @@ void installCheatButton() {
         {"nItemNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_itemNames)},
         {"nNpcNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_npcNames)},
         {"nNpcFrames", "()[I", reinterpret_cast<void*>(&jni_npcFrames)},
+        {"nItemClasses", "()[B", reinterpret_cast<void*>(&jni_itemClasses)},
+        {"nItemStacks", "()[I", reinterpret_cast<void*>(&jni_itemStacks)},
+        {"nSetPower", "(II)V", reinterpret_cast<void*>(&jni_setPower)},
+        {"nInWorld", "()Z", reinterpret_cast<void*>(&jni_inWorld)},
+        {"nVanillaItemCount", "()I", reinterpret_cast<void*>(&jni_vanillaItemCount)},
+        {"nModItemTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modItemTextures)},
+        {"nModCategories", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modCategories)},
+        {"nModCategoryItems", "(I)[I", reinterpret_cast<void*>(&jni_modCategoryItems)},
     };
-    if (env->RegisterNatives(bridge, nm, 5) != JNI_OK) {
+    if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");
         if (attached) vm->DetachCurrentThread();
         return;

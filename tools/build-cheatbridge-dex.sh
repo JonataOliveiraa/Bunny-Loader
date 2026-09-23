@@ -15,9 +15,11 @@ D8JAR="$SDK/build-tools/36.1.0/lib/d8.jar"
 SRC="tools/cheatbridge/bunny/CheatBridge.java tools/cheatbridge/bunny/CheatData.java"
 OUT=".cheatbridge"
 
+# -encoding UTF-8: sem ele o javac le o fonte na pagina de codigo do Windows e
+# "Poções" sai "PoÃ§Ãµes" no menu.
 echo "==> javac"
 rm -rf "$OUT"; mkdir -p "$OUT/classes"
-"$JAVA_HOME/bin/javac" -source 8 -target 8 -nowarn \
+"$JAVA_HOME/bin/javac" -source 8 -target 8 -nowarn -encoding UTF-8 \
     -classpath "$(cygpath -w "$AJAR")" \
     -d "$(cygpath -w "$OUT/classes")" $(for f in $SRC; do cygpath -w "$f"; done)
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -57,5 +58,47 @@ const std::vector<std::u16string>& npcNames();
  */
 const std::vector<int>& npcFrames();
 void requestSpawn(int type, int count = 1);
+
+/**
+ * Secao do menu de cada item, decidida pelo PROPRIO jogo.
+ *
+ * Vem dos campos que o SetDefaults preenche (`melee`, `magic`, `ranged`,
+ * `summon`, `pick`, `accessory`...), lidos nos itens-amostra que o jogo monta no
+ * boot (ContentSamples.ItemsByType). Lista escolhida a mao deixava de fora
+ * quase tudo: eram 15 magias num jogo que tem centenas.
+ *
+ * Os numeros sao o contrato com o CheatBridge.java (constantes CL_*): mudar um
+ * aqui sem mudar la troca a secao dos itens.
+ */
+enum ItemClass : uint8_t {
+    kClassOther = 0,
+    kClassMelee = 1,
+    kClassRanged = 2,
+    kClassMagic = 3,
+    kClassSummon = 4,
+    kClassAmmo = 5,
+    kClassTool = 6,
+    kClassAccessory = 7,
+    kClassArmor = 8,
+    kClassPotion = 9,
+    kClassBlock = 10,
+    kClassNone = 255,   // id sem amostra (vazio ou removido do jogo)
+};
+
+/**
+ * O jogador esta dentro de um mundo (Main.gameMenu falso)?
+ *
+ * Lido uma vez por quadro no DoUpdate e guardado: a UI thread pergunta a toda
+ * hora para esconder o botao do menu na tela de titulo, e ela nao pode chamar
+ * o il2cpp.
+ */
+bool inWorld();
+
+// Prontas junto com os nomes (`namesReady`). Vazias se a leitura falhou.
+const std::vector<uint8_t>& itemClasses();
+// Teto de pilha que o menu entrega: 1 para arma, ferramenta, acessorio e
+// armadura; o maxStack do jogo para o resto. NAO e o Item.maxStack puro, que
+// nesta versao vale 9999 ate para espada.
+const std::vector<int32_t>& itemMaxStacks();
 
 } // namespace bl::runtime

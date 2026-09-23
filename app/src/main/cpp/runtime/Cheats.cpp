@@ -9,7 +9,10 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "runtime/GameRefs.h"
+#include "runtime/ModItems.h"
+#include "runtime/Powers.h"
 #include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -48,6 +51,7 @@ const std::string& cmdPath() { return config().cmdPath; }
 // Refs resolvidas uma vez.
 FieldInfo* g_playerField = nullptr;      // Terraria.Main.player  (Player[])
 const MethodInfo* g_getMyPlayer = nullptr; // Main.get_myPlayer() — myPlayer e property
+const MethodInfo* g_getGameMenu = nullptr; // Main.get_gameMenu(), tambem property
 const MethodInfo* g_newItem = nullptr;   // Item.NewItem(9 args, tudo primitivo)
 const MethodInfo* g_newNpc = nullptr;    // NPC.NewNPC(source, X, Y, Type, ...)
 const MethodInfo* g_sourceCtor = nullptr;  // EntitySource_DebugCommand.ctor()
@@ -70,6 +74,8 @@ bool resolveCheatRefs() {
 
     g_playerField = a.class_get_field_from_name(main, "player");
     g_getMyPlayer = a.class_get_method_from_name(main, "get_myPlayer", 0);
+    g_getGameMenu = a.class_get_method_from_name(main, "get_gameMenu", 0);
+    if (!g_getGameMenu) BL_WARN("cheats: get_gameMenu nao encontrado; o botao fica sempre visivel");
     // Por ASSINATURA: NewItem tem quatro overloads de 9 parametros e
     // class_get_method_from_name (nome + aridade) pegava o errado, dando
     // excecao a cada frame. Antes isto era uma peneira manual iterando metodos;
@@ -113,6 +119,18 @@ Il2CppObject* localPlayer() {
     int me = unboxInt(a.runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
     if (exc || me < 0 || static_cast<uintptr_t>(me) >= players->length) return nullptr;
     return reinterpret_cast<Il2CppObject**>(arrayData(players))[me];
+}
+
+// Comeca true: sem get_gameMenu o botao nunca apareceria.
+std::atomic<bool> g_inWorld{true};
+
+void updateInWorld() {
+    if (!g_getGameMenu) return;
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* r = il2cpp::api().runtime_invoke(g_getGameMenu, nullptr, nullptr, &exc);
+    if (exc || !r) return;
+    const bool menu = *(reinterpret_cast<uint8_t*>(r) + sizeof(Il2CppObject)) != 0;
+    g_inWorld.store(!menu, std::memory_order_relaxed);
 }
 
 // DoUpdate hook: le o arquivo de comando a cada frame e despacha.
@@ -166,37 +184,249 @@ void runSelftestOnce() {
 // IL2CPP resolve em tempo de compilacao e nao deixa como campo para ler — por
 // isso vem daqui, com o dump como fonte, do mesmo jeito que os ids do
 // CheatData.
-constexpr int kItemCount = 6147;
+// Itens do jogo + itens de mod JA instalados; fixado quando a leitura dos nomes
+// comeca (o menu so abre dentro do mundo, e os de mod entram na tela de titulo).
+int g_itemTotal = kVanillaItemCount;
 constexpr int kNpcCount = 697;
-// Por quadro. 250 x ~28 quadros = meio segundo, sem engasgo perceptivel.
-constexpr int kNomesPorQuadro = 250;
+// Quanto do quadro a leitura dos nomes pode tomar. Era uma conta fixa (250
+// nomes por quadro), que num aparelho lento viraria um quadro inteiro perdido
+// a cada vez; por TEMPO, o aparelho lento so demora mais para terminar. 2 ms
+// sao 12% de um quadro a 60 fps.
+constexpr auto kBudgetPerFrame = std::chrono::microseconds(2000);
 
 std::vector<std::u16string> g_itemNames;
 std::vector<std::u16string> g_npcNames;
 std::vector<int> g_npcFrames;
 const MethodInfo* g_itemNameOf = nullptr;
 const MethodInfo* g_npcNameOf = nullptr;
-int g_nomeProgresso = -1;   // -1 = nem comecou; >= kItemCount+kNpcCount = pronto
+int g_nameProgress = -1;   // -1 = nem comecou; >= g_itemTotal+kNpcCount = pronto
+// Para o log de quanto a leitura custou: do primeiro quadro ao ultimo, quantos
+// quadros e o pior deles.
+std::chrono::steady_clock::time_point g_nameReadStart;
+int g_nameReadFrames = 0;
+int64_t g_nameReadWorstUs = 0;
 std::atomic<bool> g_namesReady{false};
 // So mói quando alguem pede. Moer desde o primeiro DoUpdate parecia esperto e
 // estava errado: naquele instante a Localization do jogo ainda nao carregou, e
 // as 6800 chamadas voltavam com texto vazio — a lista saia com "#0, #1, #2".
 // Quando o menu abre, o jogo ja esta de pe ha muito.
-std::atomic<bool> g_querNomes{false};
+std::atomic<bool> g_namesWanted{false};
 
-std::u16string textoDe(Il2CppString* s) {
+std::vector<uint8_t> g_itemClass;
+std::vector<int32_t> g_itemStack;
+
+/** A secao de UM item, pelos campos que o SetDefaults preencheu. */
+struct ItemFields {
+    int32_t damage, pick, axe, hammer, fishingPole, ammo, notAmmo,
+        melee, ranged, magic, summon, sentry, accessory, headSlot, bodySlot,
+        legSlot, potion, consumable, healLife, healMana, buffType, createTile,
+        createWall, maxStack;
+};
+
+/**
+ * A ORDEM das perguntas e a decisao. Uma picareta e `melee` com dano, mas quem
+ * procura espada nao quer 80 picaretas no meio; bala e `ranged` com dano, mas
+ * e municao; chicote vem marcado `summon`. Por isso ferramenta e municao sao
+ * perguntadas antes das classes de dano, e invocacao antes de corpo a corpo.
+ */
+uint8_t classOf(Il2CppObject* it, const ItemFields& o) {
+    auto i32 = [&](int32_t off) { return field<int32_t>(it, off); };
+    auto b = [&](int32_t off) { return field<uint8_t>(it, off) != 0; };
+    const bool hasDamage = i32(o.damage) > 0;
+
+    if (i32(o.pick) > 0 || i32(o.axe) > 0 || i32(o.hammer) > 0 || i32(o.fishingPole) > 0)
+        return kClassTool;
+    // Areia e municao da Arma de Areia, mas e bloco antes de tudo.
+    if (i32(o.ammo) > 0 && !b(o.notAmmo) && i32(o.createTile) < 0) return kClassAmmo;
+    if (b(o.summon) || b(o.sentry)) return kClassSummon;
+    if (hasDamage && b(o.melee)) return kClassMelee;
+    if (hasDamage && b(o.ranged)) return kClassRanged;
+    if (hasDamage && b(o.magic)) return kClassMagic;
+    if (b(o.accessory)) return kClassAccessory;
+    // Slot 0 e peca de verdade (FamiliarWig); "sem slot" e -1.
+    if (i32(o.headSlot) >= 0 || i32(o.bodySlot) >= 0 || i32(o.legSlot) >= 0) return kClassArmor;
+    if (b(o.potion) || (b(o.consumable) &&
+        (i32(o.healLife) > 0 || i32(o.healMana) > 0 || i32(o.buffType) > 0)))
+        return kClassPotion;
+    if (i32(o.createTile) >= 0 || i32(o.createWall) > 0) return kClassBlock;
+    return kClassOther;
+}
+
+/**
+ * Le ContentSamples.ItemsByType (Dictionary<int, Item>) em fatias.
+ *
+ * Direto nas entradas do dicionario, sem `get_Item` por id: sao ~6000 itens e
+ * o dicionario ja esta montado na memoria desde o boot. Os nomes dos campos
+ * internos (`_entries`, `_count`, `key`, `value`) sao resolvidos pelo il2cpp,
+ * como tudo o mais — so o LAYOUT de uma entrada e deduzido, porque o offset de
+ * campo de struct pode vir contando o cabecalho de objeto.
+ *
+ * Em fatias, no mesmo orcamento dos nomes: de uma vez eram 9,4 ms num quadro
+ * so no MuMu, um tranco visivel. A resolucao fica guardada entre um quadro e
+ * outro; o array de entradas e relido a cada fatia, para nunca segurar um
+ * ponteiro que o jogo tenha trocado no meio.
+ */
+struct Classification {
+    bool failed = false;
+    FieldInfo* fDict = nullptr;
+    int32_t offEntries = -1, offCount = -1;
+    size_t stride = 0, oKey = 0, oVal = 0, oHash = 0;
+    ItemFields o{};
+    int32_t pos = -1;   // -1 = ainda nao preparada
+    int32_t readCount = 0;
+} g_class;
+
+void failClassification(const char* reason) {
+    BL_ERROR("cheats: %s; as secoes de item ficam vazias (Todos os itens continua)", reason);
+    g_class.failed = true;
+}
+
+/** O dicionario e o array de entradas AGORA. nullptr se sumiram. */
+Il2CppArray* dictionaryEntries(int32_t* count) {
+    auto& a = il2cpp::api();
+    Il2CppObject* dict = nullptr;
+    a.field_static_get_value(g_class.fDict, &dict);
+    if (!dict) return nullptr;
+    *count = field<int32_t>(dict, g_class.offCount);
+    return field<Il2CppArray*>(dict, g_class.offEntries);
+}
+
+bool prepareClassification() {
+    using namespace il2cpp;
+    auto& a = api();
+    Classification& k = g_class;
+
+    Il2CppClass* cs = findClass({"Terraria.ID", "ContentSamples", {}});
+    k.fDict = cs ? findField(cs, "ItemsByType") : nullptr;
+    Il2CppObject* dict = nullptr;
+    if (k.fDict) a.field_static_get_value(k.fDict, &dict);
+    Il2CppClass* itemCls = findClass({"Terraria", "Item", {}});
+    if (!dict || !itemCls) { failClassification("ContentSamples.ItemsByType nao encontrado"); return false; }
+
+    Il2CppClass* dc = a.object_get_class(dict);
+    FieldInfo* fEntries = a.class_get_field_from_name(dc, "_entries");
+    FieldInfo* fCount = a.class_get_field_from_name(dc, "_count");
+    if (!fEntries || !fCount) { failClassification("layout do Dictionary diferente do esperado"); return false; }
+    k.offEntries = static_cast<int32_t>(a.field_get_offset(fEntries));
+    k.offCount = static_cast<int32_t>(a.field_get_offset(fCount));
+
+    int32_t count = 0;
+    Il2CppArray* entries = dictionaryEntries(&count);
+    Il2CppClass* ec = entries ? a.class_get_element_class(
+                                    a.object_get_class(reinterpret_cast<Il2CppObject*>(entries)))
+                              : nullptr;
+    if (!ec) { failClassification("entradas do dicionario sem tipo"); return false; }
+    FieldInfo* fKey = a.class_get_field_from_name(ec, "key");
+    FieldInfo* fVal = a.class_get_field_from_name(ec, "value");
+    FieldInfo* fHash = a.class_get_field_from_name(ec, "hashCode");
+    if (!fKey || !fVal || !fHash) { failClassification("Entry sem key/value/hashCode"); return false; }
+
+    uint32_t align = 0;
+    k.stride = static_cast<size_t>(a.class_value_size(ec, &align));
+    k.oKey = a.field_get_offset(fKey);
+    k.oVal = a.field_get_offset(fVal);
+    k.oHash = a.field_get_offset(fHash);
+    // `value` e um ponteiro e e o ultimo campo: se ele "termina" depois do
+    // tamanho da entrada, os offsets estao contando o cabecalho de objeto.
+    if (k.oVal + sizeof(void*) > k.stride) {
+        k.oKey -= sizeof(Il2CppObject);
+        k.oVal -= sizeof(Il2CppObject);
+        k.oHash -= sizeof(Il2CppObject);
+    }
+
+    ItemFields& o = k.o;
+    struct { int32_t* dst; const char* name; } fields[] = {
+        {&o.damage, "damage"}, {&o.pick, "pick"}, {&o.axe, "axe"},
+        {&o.hammer, "hammer"}, {&o.fishingPole, "fishingPole"}, {&o.ammo, "ammo"},
+        {&o.notAmmo, "notAmmo"}, {&o.melee, "melee"}, {&o.ranged, "ranged"},
+        {&o.magic, "magic"}, {&o.summon, "summon"}, {&o.sentry, "sentry"},
+        {&o.accessory, "accessory"}, {&o.headSlot, "headSlot"}, {&o.bodySlot, "bodySlot"},
+        {&o.legSlot, "legSlot"}, {&o.potion, "potion"}, {&o.consumable, "consumable"},
+        {&o.healLife, "healLife"}, {&o.healMana, "healMana"}, {&o.buffType, "buffType"},
+        {&o.createTile, "createTile"}, {&o.createWall, "createWall"}, {&o.maxStack, "maxStack"},
+    };
+    for (auto& c : fields) {
+        *c.dst = fieldOffset(itemCls, c.name);
+        if (*c.dst < 0) {
+            BL_ERROR("cheats: Item.%s nao encontrado; as secoes de item ficam vazias", c.name);
+            k.failed = true;
+            return false;
+        }
+    }
+
+    g_itemClass.assign(g_itemTotal, kClassNone);
+    g_itemStack.assign(g_itemTotal, 0);
+    k.pos = 0;
+    return true;
+}
+
+/**
+ * Classifica ate `limite`. true quando acabou (ou falhou: ai as secoes ficam
+ * vazias e o menu segue so com "Todos").
+ */
+template <typename TimePoint>
+bool classifyUntil(TimePoint deadline) {
+    Classification& k = g_class;
+    if (k.failed) return true;
+    if (k.pos < 0 && !prepareClassification()) return true;
+
+    int32_t count = 0;
+    Il2CppArray* entries = dictionaryEntries(&count);
+    if (!entries) { failClassification("o dicionario de amostras sumiu no meio"); return true; }
+    const char* base = static_cast<const char*>(arrayData(entries));
+    const ItemFields& o = k.o;
+    for (; k.pos < count && static_cast<uintptr_t>(k.pos) < entries->length; ++k.pos) {
+        if ((k.pos & 63) == 0 && k.pos > 0 && std::chrono::steady_clock::now() > deadline) {
+            return false;
+        }
+        const char* ent = base + static_cast<size_t>(k.pos) * k.stride;
+        // Entrada liberada tem hashCode -1 (o de uma valida e mascarado para
+        // ficar >= 0). Este dicionario nunca perde item, mas nao custa.
+        if (*reinterpret_cast<const int32_t*>(ent + k.oHash) < 0) continue;
+        const int32_t id = *reinterpret_cast<const int32_t*>(ent + k.oKey);
+        auto* item = *reinterpret_cast<Il2CppObject* const*>(ent + k.oVal);
+        if (!item || id <= 0 || id >= g_itemTotal) continue;
+        const uint8_t c = classOf(item, o);
+        g_itemClass[id] = c;
+        // O maxStack nao separa nada nesta versao: o ResetStats poe
+        // Item.CommonMaxStack (9999) em TODO item, espada inclusive, e o jogo
+        // aceita uma Lamina da Terra com pilha 999 no inventario (visto no
+        // MuMu). Quem nao empilha e decidido pela secao: arma, ferramenta,
+        // acessorio e armadura saem um so — menos o que se gasta ao usar,
+        // como faca de arremesso e granada.
+        const bool unique = (c == kClassMelee || c == kClassRanged || c == kClassMagic ||
+                            c == kClassSummon || c == kClassTool || c == kClassAccessory ||
+                            c == kClassArmor) && !field<uint8_t>(item, o.consumable);
+        g_itemStack[id] = unique ? 1 : field<int32_t>(item, o.maxStack);
+        ++k.readCount;
+    }
+
+    int perClass[11] = {};
+    for (uint8_t c : g_itemClass) if (c < 11) ++perClass[c];
+    BL_INFO("cheats: %d itens classificados | corpo %d, distancia %d, magia %d, "
+            "invocacao %d, municao %d, ferramenta %d, acessorio %d, armadura %d, "
+            "pocao %d, bloco %d, outros %d", k.readCount, perClass[1], perClass[2],
+            perClass[3], perClass[4], perClass[5], perClass[6], perClass[7],
+            perClass[8], perClass[9], perClass[10], perClass[0]);
+    return true;
+}
+
+std::u16string toU16(Il2CppString* s) {
     if (!s || s->length <= 0) return {};
     return std::u16string(reinterpret_cast<const char16_t*>(s->chars),
                           static_cast<size_t>(s->length));
 }
 
-/** Uma fatia de nomes por quadro. Volta rapido quando ja acabou. */
-void moerNomesUmaFatia() {
-    if (!g_querNomes.load(std::memory_order_relaxed)) return;
+/**
+ * Uma fatia por quadro, no orcamento: primeiro os nomes, depois as classes.
+ * Volta rapido quando ja acabou.
+ */
+void readNamesSlice() {
+    if (!g_namesWanted.load(std::memory_order_relaxed)) return;
     if (g_namesReady.load(std::memory_order_relaxed)) return;
     auto& a = il2cpp::api();
 
-    if (g_nomeProgresso < 0) {
+    if (g_nameProgress < 0) {
         Il2CppClass* lang = il2cpp::findClass({"Terraria", "Lang", {}});
         g_itemNameOf = lang ? a.class_get_method_from_name(lang, "GetItemNameValue", 1) : nullptr;
         g_npcNameOf  = lang ? a.class_get_method_from_name(lang, "GetNPCNameValue", 1) : nullptr;
@@ -206,27 +436,42 @@ void moerNomesUmaFatia() {
             g_namesReady.store(true, std::memory_order_release);
             return;
         }
-        g_itemNames.assign(kItemCount, std::u16string());
+        g_itemTotal = itemTypeCount();
+        g_itemNames.assign(g_itemTotal, std::u16string());
         g_npcNames.assign(kNpcCount, std::u16string());
-        g_nomeProgresso = 0;
+        g_nameProgress = 0;
+        g_nameReadStart = std::chrono::steady_clock::now();
     }
 
-    const int total = kItemCount + kNpcCount;
-    int fim = g_nomeProgresso + kNomesPorQuadro;
-    if (fim > total) fim = total;
-    for (; g_nomeProgresso < fim; ++g_nomeProgresso) {
-        const bool item = g_nomeProgresso < kItemCount;
-        int id = item ? g_nomeProgresso : g_nomeProgresso - kItemCount;
+    using Clock = std::chrono::steady_clock;
+    const auto t0 = Clock::now();
+    const int total = g_itemTotal + kNpcCount;
+    for (; g_nameProgress < total; ++g_nameProgress) {
+        // O relogio a cada 16 nomes, e nao a cada um: perguntar a hora tambem
+        // custa. O primeiro lote sempre passa, entao todo quadro anda.
+        if ((g_nameProgress & 15) == 0 && g_nameProgress > 0 &&
+            Clock::now() - t0 > kBudgetPerFrame) {
+            break;
+        }
+        const bool item = g_nameProgress < g_itemTotal;
+        int id = item ? g_nameProgress : g_nameProgress - g_itemTotal;
         void* args[1] = {&id};
         Il2CppObject* exc = nullptr;
         Il2CppObject* r = a.runtime_invoke(item ? g_itemNameOf : g_npcNameOf,
                                            nullptr, args, &exc);
         if (exc) continue;   // id sem nome: fica vazio, o menu mostra so o id
-        std::u16string nome = textoDe(reinterpret_cast<Il2CppString*>(r));
-        if (item) g_itemNames[id] = std::move(nome);
-        else g_npcNames[id] = std::move(nome);
+        std::u16string name = toU16(reinterpret_cast<Il2CppString*>(r));
+        if (item) g_itemNames[id] = std::move(name);
+        else g_npcNames[id] = std::move(name);
     }
-    if (g_nomeProgresso >= total) {
+    // Nomes prontos: o que sobra do orcamento vai para a classificacao, que
+    // tambem para no limite e continua no proximo quadro.
+    const bool classified = g_nameProgress >= total && classifyUntil(t0 + kBudgetPerFrame);
+    ++g_nameReadFrames;
+    const int64_t us = std::chrono::duration_cast<std::chrono::microseconds>(
+        Clock::now() - t0).count();
+    if (us > g_nameReadWorstUs) g_nameReadWorstUs = us;
+    if (classified) {
         // Main.npcFrameCount, de uma vez: sao 697 ints ja prontos na memoria do
         // jogo, nao ha o que fatiar.
         Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
@@ -242,10 +487,13 @@ void moerNomesUmaFatia() {
                      "tira inteira de cada NPC");
         }
         g_namesReady.store(true, std::memory_order_release);
-        int vazios = 0;
-        for (const auto& n : g_itemNames) if (n.empty()) ++vazios;
-        BL_INFO("cheats: nomes prontos (%d itens, %d NPCs; %d itens sem nome)",
-                kItemCount, kNpcCount, vazios);
+        int unnamed = 0;
+        for (const auto& n : g_itemNames) if (n.empty()) ++unnamed;
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            Clock::now() - g_nameReadStart).count();
+        BL_INFO("cheats: nomes e classes prontos (%d itens, %d NPCs; %d itens sem "
+                "nome) em %lld ms, %d quadros, pior quadro %.1f ms", g_itemTotal, kNpcCount,
+                unnamed, static_cast<long long>(ms), g_nameReadFrames, g_nameReadWorstUs / 1000.0);
     }
 }
 
@@ -254,15 +502,18 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     // objeto de Unity (ver bl.loadTexture).
     runtime::noteGameThread();
     runSelftestOnce();
-    moerNomesUmaFatia();
+    updateInWorld();
+    readNamesSlice();
+    tickPowers();
+    tickModItems();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {
         giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));
     }
     if (uint64_t req = g_pendingSpawn.exchange(0)) {
-        int tipo = static_cast<int>(req >> 32);
-        int quantos = static_cast<int>(req & 0xffffffffu);
-        for (int i = 0; i < quantos; ++i) spawnNpc(tipo);
+        int npcType = static_cast<int>(req >> 32);
+        int spawnCount = static_cast<int>(req & 0xffffffffu);
+        for (int i = 0; i < spawnCount; ++i) spawnNpc(npcType);
     }
     pollCommands();  // canal por arquivo (dev/adb) continua valendo
     g_origDoUpdate(self, gt, m);
@@ -273,12 +524,15 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
 bool namesReady() {
     // Pedir e o gatilho: quem pergunta e o menu abrindo, e ai o jogo ja carregou
     // a Localization. Quem nunca abre o menu nao paga nada.
-    g_querNomes.store(true, std::memory_order_relaxed);
+    g_namesWanted.store(true, std::memory_order_relaxed);
     return g_namesReady.load(std::memory_order_acquire);
 }
 const std::vector<std::u16string>& itemNames() { return g_itemNames; }
 const std::vector<std::u16string>& npcNames() { return g_npcNames; }
 const std::vector<int>& npcFrames() { return g_npcFrames; }
+bool inWorld() { return g_inWorld.load(std::memory_order_relaxed); }
+const std::vector<uint8_t>& itemClasses() { return g_itemClass; }
+const std::vector<int32_t>& itemMaxStacks() { return g_itemStack; }
 
 void requestGive(int type, int stack) {
     if (type > 0) g_pendingGive.store(packGive(type, stack > 0 ? stack : 1));
@@ -344,6 +598,12 @@ void giveItem(int type, int stack) {
     Vector2 pos = field<Vector2>(p, game().entity.position);
     int x = static_cast<int>(pos.x), y = static_cast<int>(pos.y);
     int w = 10, h = 10, t = type, n = stack > 0 ? stack : 1, pfix = 0;
+    // O NewItem aceita qualquer pilha, e 999 espadas viravam UMA espada com
+    // pilha 999. O teto vem da classificacao (ver classifyUntil).
+    if (type > 0 && static_cast<size_t>(type) < g_itemStack.size() &&
+        g_itemStack[type] > 0 && n > g_itemStack[type]) {
+        n = g_itemStack[type];
+    }
     uint8_t noBroadcast = 0, noGrab = 0;
     void* args[9] = { &x, &y, &w, &h, &t, &n, &noBroadcast, &pfix, &noGrab };
 
