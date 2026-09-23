@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Instalar o APK modificado gerado no aparelho. -->
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
     <!-- O jogo hospedado roda com AS NOSSAS permissões, não com as dele. Estas
          são as que o Terraria declara; sem elas o license check do PairIP e a
          rede do jogo falham. Ver `aapt dump badging` do APK do jogo. -->
@@ -11,11 +8,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.android.vending.CHECK_LICENSE" />
 
-    <!-- Consultamos o Terraria original e o modificado (coexistente) — no
-         Android 11+ e preciso declarar visibilidade de pacotes. -->
+    <!-- O gate de elegibilidade consulta o Terraria instalado — no Android 11+
+         é preciso declarar visibilidade de pacotes. -->
     <queries>
         <package android:name="com.and.games505.TerrariaPaid" />
-        <package android:name="com.bunnyloader.terraria.paid" />
     </queries>
 
     <application
@@ -25,16 +21,6 @@
         android:roundIcon="@drawable/ic_bunny"
         android:largeHeap="true"
         android:theme="@style/Theme.BunnyLoader">
-
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
 
         <!-- A Unity lê estes meta-data do pacote HOSPEDEIRO (o nosso) via
              PackageManager, então precisam existir aqui. Copiados do manifest

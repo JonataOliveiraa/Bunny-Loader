@@ -154,10 +154,6 @@ dependencies {
     // vem com as strings cifradas pelo PairIP. Ver app/libs/README.md.
     implementation(files("libs/unity-classes.jar"))
 
-    // Assinatura de APK on-device (patch do Terraria instalado). Lib pura Java
-    // do proprio Android build, roda em runtime no aparelho.
-    implementation("com.android.tools.build:apksig:8.5.2")
-
     // Hooking nativo (ARM32/ARM64). Consumido via prefab.
     // Confirme a versão mais recente em Maven Central.
     if (nativeBuild) {
