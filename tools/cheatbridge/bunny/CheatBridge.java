@@ -1,6 +1,9 @@
 package bunny;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -392,53 +395,45 @@ public class CheatBridge {
         });
     }
 
+    /**
+     * O erro vai num AlertDialog, nao numa caixa nossa.
+     *
+     * O menu de cheats e desenhado a mao porque tem de parecer o Terraria. Um
+     * erro nao: quem esta lendo quer ler, e o dialogo do sistema ja traz rolagem
+     * que se ajusta a tela, botao Voltar, tema claro/escuro e o desenho que a
+     * pessoa reconhece. A caixa que havia aqui era 300x200 dp fixos — em tela
+     * de tablet sobrava borda, em tela pequena deitada cortava —, o OK so fazia
+     * setVisibility(GONE) e deixava a View pendurada na hierarquia para sempre,
+     * e Voltar nao fechava nada.
+     *
+     * Nao existe "diálogo de erro do sistema" para chamar: aquele "o app parou"
+     * e gerado pelo system server para excecao nao tratada, e nenhum app o
+     * invoca. AlertDialog e o componente padrao equivalente.
+     */
     private static void buildError(final Activity act, String text) {
+        if (act.isFinishing()) return;
         final String body = text;
 
-        final LinearLayout box = new LinearLayout(act);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setBackground(panel(act, 0xF2202436, 0xFFFF8A80));
-        box.setPadding(px(act, 16), px(act, 16), px(act, 16), px(act, 16));
+        final AlertDialog dlg = new AlertDialog.Builder(act)
+            .setTitle("Bunny Loader — erro")
+            .setMessage(body)
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Copiar", null)
+            .create();
+        dlg.show();
 
-        box.addView(text(act, "Bunny Loader — erro", 16, 0xFFFF8A80));
-
-        TextView msg = text(act, body, 11, INK);
-        msg.setPadding(0, px(act, 8), 0, px(act, 8));
-        ScrollView sc = new ScrollView(act);
-        sc.addView(msg);
-        box.addView(sc, new LinearLayout.LayoutParams(px(act, 300), px(act, 200)));
-
-        LinearLayout row = new LinearLayout(act);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-
-        Button copy = new Button(act);
-        copy.setText("Copiar");
-        copy.setAllCaps(false);
-        copy.setOnClickListener(new View.OnClickListener() {
+        // Todo botao de AlertDialog fecha o dialogo ao ser tocado, e Copiar nao
+        // pode: quem copia o log quase sempre quer continuar lendo. Trocar o
+        // ouvinte DEPOIS do show() e a forma de ter um botao que nao fecha.
+        Button copiar = dlg.getButton(AlertDialog.BUTTON_NEUTRAL);
+        if (copiar == null) return;
+        copiar.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                android.content.ClipboardManager cm =
-                    (android.content.ClipboardManager) act.getSystemService(
-                        Activity.CLIPBOARD_SERVICE);
-                if (cm != null) {
-                    cm.setPrimaryClip(android.content.ClipData.newPlainText("bunny", body));
-                }
+                ClipboardManager cm =
+                    (ClipboardManager) act.getSystemService(Activity.CLIPBOARD_SERVICE);
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("bunny", body));
                 Toast.makeText(act, "Log copiado", Toast.LENGTH_SHORT).show();
             }
         });
-        row.addView(copy);
-
-        Button ok = new Button(act);
-        ok.setText("OK");
-        ok.setAllCaps(false);
-        ok.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { box.setVisibility(View.GONE); }
-        });
-        row.addView(ok);
-        box.addView(row);
-
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
-        lp.gravity = Gravity.CENTER;
-        act.addContentView(box, lp);
     }
 }
