@@ -20,7 +20,10 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.widget.BaseAdapter;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -29,6 +32,7 @@ import android.widget.ScrollView;
 import android.view.MotionEvent;
 import android.view.ViewGroup;
 import java.io.InputStream;
+import java.text.Normalizer;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import android.widget.TextView;
@@ -104,7 +108,52 @@ public class CheatBridge {
             this.npc = npc; this.todos = todos; this.icone = icone;
         }
 
-        int count() { return names == null ? 0 : names.length; }
+        /** Nomes sem acento e em minuscula, calculados UMA vez. */
+        String[] busca;
+        /** Indices visiveis depois do filtro. null = todos. */
+        int[] filtro;
+
+        int total() { return names == null ? 0 : names.length; }
+        int count() { return filtro != null ? filtro.length : total(); }
+        int indiceDe(int posicao) { return filtro != null ? filtro[posicao] : posicao; }
+
+        /**
+         * Monta o indice de busca. Uma passada por 6147 nomes, na primeira vez
+         * que alguem digita — normalizar a cada tecla seria refazer isso a cada
+         * letra.
+         */
+        void prepararBusca() {
+            if (busca != null) return;
+            busca = new String[total()];
+            for (int i = 0; i < busca.length; i++) busca[i] = semAcento(names[i]);
+        }
+
+        /**
+         * Filtra por nome OU por id, e poe o que COMECA com o termo na frente.
+         *
+         * Procurar "espada" com 6147 itens devolve dezenas; quem digitou quer
+         * "Espada Larga" antes de "Suporte de Espada". Duas passadas resolvem,
+         * sem ordenar nada.
+         */
+        void filtrar(String termo) {
+            String t = semAcento(termo).trim();
+            if (t.length() == 0) { filtro = null; return; }
+            prepararBusca();
+
+            int[] achados = new int[total()];
+            int n = 0;
+            for (int i = 0; i < busca.length; i++) {
+                if (busca[i].startsWith(t) || String.valueOf(ids[i]).equals(t)) achados[n++] = i;
+            }
+            for (int i = 0; i < busca.length; i++) {
+                if (!busca[i].startsWith(t) && busca[i].contains(t) && t.length() > 1) {
+                    achados[n++] = i;
+                }
+            }
+            int[] fim = new int[n];
+            System.arraycopy(achados, 0, fim, 0, n);
+            filtro = fim;
+        }
 
         /**
          * Puxa a tabela de nomes do nativo, uma vez.
@@ -122,6 +171,18 @@ public class CheatBridge {
             for (int i = 0; i < n.length; i++) ids[i] = i;
             return true;
         }
+    }
+
+    /** Minuscula e sem acento: "Poção" acha com "pocao". */
+    private static String semAcento(String s) {
+        if (s == null) return "";
+        String d = Normalizer.normalize(s, Normalizer.Form.NFD);
+        StringBuilder b = new StringBuilder(d.length());
+        for (int i = 0; i < d.length(); i++) {
+            char c = d.charAt(i);
+            if (Character.getType(c) != Character.NON_SPACING_MARK) b.append(c);
+        }
+        return b.toString().toLowerCase();
     }
 
     private static Section[] sections() {
@@ -634,6 +695,7 @@ public class CheatBridge {
             buttons[i].setBackground(i == index ? destaque(act) : null);
         }
         final Section s = all[index];
+        s.filtro = null;   // filtro e da visita, nao da secao
         content.removeAllViews();
 
         LinearLayout head = new LinearLayout(act);
@@ -684,6 +746,32 @@ public class CheatBridge {
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         content.addView(linhaQtd);
 
+        // ---- busca ----
+        LinearLayout linhaBusca = new LinearLayout(act);
+        linhaBusca.setOrientation(LinearLayout.HORIZONTAL);
+        linhaBusca.setGravity(Gravity.CENTER_VERTICAL);
+        linhaBusca.setBackground(panel(act, PANEL_DARK, OUTLINE));
+        linhaBusca.setPadding(px(act, 8), px(act, 2), px(act, 8), px(act, 2));
+        linhaBusca.addView(icon(act, sprite(act, "ic_lupa"), 20));
+
+        final EditText campo = new EditText(act);
+        campo.setSingleLine(true);
+        campo.setBackground(null);
+        campo.setTextColor(INK);
+        campo.setHintTextColor(INK_DIM);
+        campo.setHint(s.npc ? "Buscar NPC por nome ou id" : "Buscar item por nome ou id");
+        campo.setTextSize(13 * ESCALA_TEXTO);
+        campo.setTypeface(fonte(act));
+        campo.setPadding(px(act, 8), px(act, 6), 0, px(act, 6));
+        linhaBusca.addView(campo, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        LinearLayout.LayoutParams lbp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lbp.topMargin = px(act, 4);
+        lbp.bottomMargin = px(act, 6);
+        content.addView(linhaBusca, lbp);
+
         // ---- lista ----
         //
         // ListView, e nao ScrollView com tudo dentro: "Todos os itens" tem 6147
@@ -696,13 +784,23 @@ public class CheatBridge {
         lista.setDivider(new android.graphics.drawable.ColorDrawable(0x22FFFFFF));
         lista.setDividerHeight(px(act, 1));
         lista.setCacheColorHint(0);
-        lista.setAdapter(new BaseAdapter() {
+        final BaseAdapter adaptador = new BaseAdapter() {
             @Override public int getCount() { return s.count(); }
             @Override public Object getItem(int i) { return null; }
             @Override public long getItemId(int i) { return i; }
             @Override public View getView(int i, View reuso, ViewGroup pai) {
-                return row(act, s, i, qtd, reuso);
+                return row(act, s, s.indiceDe(i), qtd, reuso);
             }
+        };
+        lista.setAdapter(adaptador);
+        campo.addTextChangedListener(new TextWatcher() {
+            @Override public void onTextChanged(CharSequence t, int a1, int b1, int c1) {
+                s.filtrar(t.toString());
+                adaptador.notifyDataSetChanged();
+                lista.setSelection(0);
+            }
+            @Override public void beforeTextChanged(CharSequence t, int a1, int b1, int c1) { }
+            @Override public void afterTextChanged(Editable e) { }
         });
         content.addView(lista, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -734,11 +832,16 @@ public class CheatBridge {
             L.sprite.setScaleType(ImageView.ScaleType.FIT_CENTER);
             r.addView(L.sprite);
 
+            // Nome e id na MESMA linha: empilhados, cada linha da lista gastava
+            // uma altura de texto a mais, e na escala do jogo isso e uma linha
+            // inteira de lista a menos por tela.
             LinearLayout rotulos = new LinearLayout(act);
-            rotulos.setOrientation(LinearLayout.VERTICAL);
+            rotulos.setOrientation(LinearLayout.HORIZONTAL);
+            rotulos.setGravity(Gravity.BOTTOM);
             rotulos.setPadding(px(act, 8), 0, 0, 0);
             L.nome = text(act, "", 14, INK);
             L.detalhe = text(act, "", 10, INK_DIM);
+            L.detalhe.setPadding(px(act, 8), 0, 0, px(act, 2));
             rotulos.addView(L.nome);
             rotulos.addView(L.detalhe);
             r.addView(rotulos, new LinearLayout.LayoutParams(
