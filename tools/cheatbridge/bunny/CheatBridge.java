@@ -161,6 +161,14 @@ public class CheatBridge {
     }
 
     /** Painel do Terraria: contorno escuro, corpo azul, luz em cima. */
+    /** Marca do item escolhido na coluna: faixa clara, sem moldura preta. */
+    private static GradientDrawable destaque(Activity a) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(PANEL_LIT);
+        d.setCornerRadius(px(a, 6));
+        return d;
+    }
+
     /** Painel de fora: mesma cara, canto mais generoso. */
     private static GradientDrawable panelBig(Activity a, int fill, int stroke) {
         GradientDrawable d = panel(a, fill, stroke);
@@ -193,6 +201,12 @@ public class CheatBridge {
         Contornado(Activity a) {
             super(a);
             traco = px(a, 2);
+            // O TextView mede o texto em FILL; o contorno e STROKE e passa
+            // metade da espessura para FORA do glifo, nos quatro lados. Sem
+            // esta folga a ultima letra e as descidas (g, p, q) saiam raspadas.
+            int folga = (int) Math.ceil(traco / 2f) + 1;
+            setPadding(folga, folga, folga, folga);
+            setIncludeFontPadding(true);
         }
 
         @Override protected void onDraw(Canvas c) {
@@ -431,7 +445,7 @@ public class CheatBridge {
             LinearLayout b = new LinearLayout(act);
             b.setOrientation(LinearLayout.HORIZONTAL);
             b.setGravity(Gravity.CENTER_VERTICAL);
-            b.setPadding(px(act, 8), px(act, 7), px(act, 10), px(act, 7));
+            b.setPadding(px(act, 8), px(act, 8), px(act, 10), px(act, 8));
             b.addView(icon(act, sprite(act, s.icone), 22));
             TextView rot = text(act, s.title, 14, INK);
             rot.setPadding(px(act, 8), 0, 0, 0);
@@ -444,7 +458,7 @@ public class CheatBridge {
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.bottomMargin = px(act, 3);
+            lp.bottomMargin = px(act, 1);
             asideList.addView(b, lp);
             buttons[i] = b;
         }
@@ -459,9 +473,8 @@ public class CheatBridge {
         // Fechar: icone no canto superior direito, sobre tudo. Era uma barra
         // vermelha no pe da coluna, que comia altura de lista e ficava longe do
         // polegar de quem segura o aparelho deitado.
-        ImageView fechar = icon(act, sprite(act, "ic_fechar"), 30);
-        fechar.setPadding(px(act, 5), px(act, 5), px(act, 5), px(act, 5));
-        fechar.setBackground(panel(act, 0xFF8B3A3A, OUTLINE));
+        ImageView fechar = icon(act, sprite(act, "ic_fechar"), 34);
+        fechar.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         fechar.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (sOverlay != null) sOverlay.setVisibility(View.GONE);
@@ -539,19 +552,20 @@ public class CheatBridge {
                 c.drawRoundRect(x0, topo, cx, base, raio, raio, tinta);
             }
 
-            // A alca e MAIS ALTA que o sulco e nao e verde: dentro do verde do
+            // A alca e MAIS ALTA que o sulco e e BRANCA: dentro do verde do
             // preenchido, uma alca verde sumia — virava uma listra e ninguem
             // via onde pegar.
-            final float ah = alca * 1.45f;
+            final float ah = alca * 1.7f;
+            final float ax = cx - alca / 2f, ay = meio - ah / 2f;
+            final float ar = px((Activity) getContext(), 3);
             tinta.setColor(OUTLINE);
-            c.drawRect(cx - alca / 2f, meio - ah / 2f, cx + alca / 2f, meio + ah / 2f, tinta);
-            tinta.setColor(0xFFCBCBCB);
-            c.drawRect(cx - alca / 2f + borda, meio - ah / 2f + borda,
-                       cx + alca / 2f - borda, meio + ah / 2f - borda, tinta);
-            // Meia sombra embaixo, que e como o jogo da volume a um botao.
-            tinta.setColor(0xFF808080);
-            c.drawRect(cx - alca / 2f + borda, meio,
-                       cx + alca / 2f - borda, meio + ah / 2f - borda, tinta);
+            c.drawRoundRect(ax, ay, ax + alca, ay + ah, ar, ar, tinta);
+            tinta.setColor(0xFFFFFFFF);
+            c.drawRoundRect(ax + borda, ay + borda, ax + alca - borda, ay + ah - borda,
+                            ar, ar, tinta);
+            // Meia sombra embaixo: e assim que o jogo da volume a um botao.
+            tinta.setColor(0xFFB9C0D4);
+            c.drawRect(ax + borda, meio + ah / 6f, ax + alca - borda, ay + ah - borda, tinta);
         }
 
         @Override public boolean onTouchEvent(MotionEvent e) {
@@ -597,8 +611,11 @@ public class CheatBridge {
     private static void select(final Activity act, LinearLayout content,
                                Section[] all, View[] buttons, int index) {
         for (int i = 0; i < buttons.length; i++) {
-            buttons[i].setBackground(
-                i == index ? panel(act, PANEL_LIT, GRASS) : panel(act, PANEL_DARK, OUTLINE));
+            // So o escolhido tem fundo. Antes cada item da coluna era um
+            // retangulo azul-escuro com contorno preto, e onze deles empilhados
+            // viravam uma parede de caixas — o que se via era a moldura, nao a
+            // lista.
+            buttons[i].setBackground(i == index ? destaque(act) : null);
         }
         final Section s = all[index];
         content.removeAllViews();
@@ -608,7 +625,6 @@ public class CheatBridge {
         head.addView(text(act, s.title, 19, INK));
         head.addView(text(act, s.subtitle, 11, INK_DIM));
         content.addView(head);
-        content.addView(rule(act));
 
         if (!s.carregar()) {
             // A primeira pergunta e o gatilho: o nativo so comeca a moer quando
@@ -651,7 +667,6 @@ public class CheatBridge {
         linhaQtd.addView(barra, new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
         content.addView(linhaQtd);
-        content.addView(rule(act));
 
         // ---- lista ----
         //
@@ -715,10 +730,12 @@ public class CheatBridge {
 
             // So o sinal, sem palavra: a acao ja esta dita pela secao, e o
             // texto roubava metade da largura de cada linha.
+            // So o sinal, sem caixa nenhuma atras: a moldura verde competia
+            // com o sprite do item na mesma linha.
             L.acao = new ImageView(act);
-            L.acao.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-            L.acao.setPadding(px(act, 6), px(act, 6), px(act, 6), px(act, 6));
-            r.addView(L.acao, new LinearLayout.LayoutParams(px(act, 46), px(act, 38)));
+            L.acao.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            L.acao.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+            r.addView(L.acao, new LinearLayout.LayoutParams(px(act, 40), px(act, 34)));
 
             r.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -743,7 +760,6 @@ public class CheatBridge {
 
         L.nome.setText(nome);
         L.detalhe.setText(s.npc ? ("NPC " + id) : ("id " + id));
-        L.acao.setBackground(panel(act, s.npc ? DIRT : GRASS, OUTLINE));
         L.acao.setContentDescription(s.npc ? "Invocar" : "Pegar");
         Bitmap bAcao = sprite(act, s.npc ? "ic_invocar" : "ic_pegar");
         if (bAcao != null) {
