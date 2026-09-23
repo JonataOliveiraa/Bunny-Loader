@@ -35,3 +35,6 @@ app/src/main/cpp/third_party/quickjs/
 app/src/main/jniLibs/arm64-v8a/*.so
 terraria1456_assets/src/main/assets/
 licensing-classes/
+
+# Cache do Python das ferramentas
+__pycache__/
