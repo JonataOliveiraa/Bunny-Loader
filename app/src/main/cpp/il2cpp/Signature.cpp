@@ -63,7 +63,19 @@ bool typeMatches(const std::string& want, const char* got) {
     std::string g(got);
     size_t dot = g.rfind('.');
     if (dot != std::string::npos && g.substr(dot + 1) == want) return true;
-    return false;
+
+    // Apelido DENTRO de um array ou de um ref: `byte[]` tem de casar com
+    // `System.Byte[]`, e não casava — a tabela só conhecia o nome cru. Quem
+    // escrevesse `int[]` numa assinatura não achava o método e não recebia
+    // pista do porquê.
+    size_t fim = want.size();
+    while (fim > 0 && (want[fim - 1] == '&' || want[fim - 1] == ']' || want[fim - 1] == '[')) {
+        --fim;
+    }
+    if (fim == want.size() || fim == 0) return false;
+    const char* clr = keywordToClr(want.substr(0, fim));
+    if (!clr) return false;
+    return (std::string(clr) + want.substr(fim)) == got;
 }
 
 /** Nome do tipo (malloc do il2cpp) como std::string, já liberado. */

@@ -3,6 +3,7 @@
 #include "script/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
 #include <cstdio>
+#include <map>
 
 namespace bl::mods {
 
@@ -10,6 +11,19 @@ namespace {
 std::vector<LoadedMod>& registry() {
     static std::vector<LoadedMod> list;
     return list;
+}
+
+std::string& currentDirSlot() {
+    static std::string atual;
+    return atual;
+}
+
+// id do mod -> pasta do entry. O id e tambem o nome do MODULO no QuickJS, e e
+// assim que bl.loadTexture descobre de qual mod veio a chamada mesmo depois da
+// carga, la dentro de um hook.
+std::map<std::string, std::string>& dirsPorId() {
+    static std::map<std::string, std::string> m;
+    return m;
 }
 
 bool fileExists(const std::string& path) {
@@ -46,11 +60,26 @@ void loadAll(const std::string& modsDir, const std::vector<std::string>& enabled
             mod.entry = "main.js";
             registry().back().entry = mod.entry;
         }
-        if (!script::engine().evalFile(path, id)) {
+        // A pasta do ARQUIVO, nao a do pacote: o main.js mora em content/, e
+        // "ao lado do main.js" e onde o autor poe as imagens dele.
+        size_t barra = path.rfind('/');
+        currentDirSlot() = barra == std::string::npos ? mod.dir : path.substr(0, barra);
+        dirsPorId()[id] = currentDirSlot();
+        bool ok = script::engine().evalFile(path, id);
+        currentDirSlot().clear();
+        if (!ok) {
             BL_ERROR("mod %s falhou ao carregar (%s)", id.c_str(), path.c_str());
             registry().back().enabled = false;
         }
     }
+}
+
+const std::string& currentDir() { return currentDirSlot(); }
+
+const std::string& dirOf(const std::string& id) {
+    static const std::string vazio;
+    auto it = dirsPorId().find(id);
+    return it == dirsPorId().end() ? vazio : it->second;
 }
 
 void loadBuiltins() {

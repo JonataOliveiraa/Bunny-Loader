@@ -73,6 +73,8 @@ struct Api {
     void (*il2cpp_free)(void*) = nullptr;
     Il2CppObject* (*object_new)(Il2CppClass*) = nullptr;
     Il2CppClass* (*object_get_class)(Il2CppObject*) = nullptr;
+    // Criar array no heap do jogo (byte[] para carregar textura).
+    Il2CppArray* (*array_new)(Il2CppClass* elementType, uintptr_t length) = nullptr;
     Il2CppString* (*string_new)(const char*) = nullptr;
     uint32_t (*gchandle_new)(Il2CppObject*, bool) = nullptr;
     void (*gchandle_free)(uint32_t) = nullptr;

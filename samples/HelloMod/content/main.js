@@ -11,6 +11,26 @@
 //   metodo.hook((original, self, ...args) => { ... })
 //   bl.log(...)
 //   bl.classOf(ns, nome)             escape hatch, quando a árvore não ajuda
+//   bl.loadTexture(caminho)          PNG/JPG -> Texture2D do jogo
+//
+// A textura é um Texture2D do jogo, pronto para o SpriteBatch. Caminho
+// relativo vale a partir da pasta do seu main.js.
+//
+// DUAS REGRAS, e as duas vêm da Unity, não de nós:
+//
+//  1. só funciona com o jogo já rodando, na thread dele — carregue dentro de
+//     um hook, na primeira chamada, nunca no topo do arquivo;
+//  2. desenhar exige um SpriteBatch aberto.
+//
+//   let tex = null;
+//   Terraria.Main['void DrawInterface(GameTime gameTime)'].hook((o, self, gt) => {
+//       o(self, gt);
+//       if (!tex) tex = bl.loadTexture('meu.png');
+//       const sb = Terraria.Main.spriteBatch;
+//       sb['void Begin(SpriteSortMode sortMode, bool defferedBatch)'](0, true);
+//       sb['void Draw(Texture2D texture, Vector2 position, Color color)'](tex, pos, cor);
+//       sb['void End()']();
+//   });
 //
 // Arrays:
 //

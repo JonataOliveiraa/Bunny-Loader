@@ -1,3 +1,4 @@
+#include "runtime/Boot.h"
 #include "runtime/Cheats.h"
 #include "core/Config.h"
 #include "core/Log.h"
@@ -156,6 +157,9 @@ void runSelftestOnce() {
 }
 
 void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
+    // Daqui sai a identidade da thread do jogo: e a unica em que se pode criar
+    // objeto de Unity (ver bl.loadTexture).
+    runtime::noteGameThread();
     runSelftestOnce();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {

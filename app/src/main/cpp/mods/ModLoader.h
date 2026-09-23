@@ -26,6 +26,17 @@ size_t loadedCount();
 LoadedMod* get(uint16_t index);
 void disableAtRuntime(uint16_t index);
 
+/**
+ * Pasta do mod que está sendo carregado agora, ou vazio fora da carga.
+ *
+ * É o que deixa `bl.loadTexture('icone.png')` achar o arquivo ao lado do
+ * main.js sem o autor precisar saber o caminho absoluto do aparelho.
+ */
+const std::string& currentDir();
+
+/** Pasta do entry de um mod ja carregado, pelo id. Vazio se nao conhece. */
+const std::string& dirOf(const std::string& id);
+
 // Um mod que falha demais é desativado em runtime; falha NUNCA derruba o jogo.
 constexpr uint32_t MaxErrors = 20;
 

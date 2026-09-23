@@ -1,0 +1,226 @@
+#include "script/Texture.h"
+
+#if BL_HAVE_QUICKJS
+#include "core/Log.h"
+#include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
+#include "mods/ModLoader.h"
+#include "script/Bridge.h"
+#include "runtime/Boot.h"
+#include "script/Invoke.h"
+
+#include <unistd.h>
+
+#include <cstdio>
+#include <string>
+#include <vector>
+
+namespace bl::script {
+
+namespace {
+
+/**
+ * Este build do Terraria NAO e XNA de prateleira: e uma reimplementacao sobre a
+ * Unity, e o `Texture2D` do jogo EMBRULHA um `UnityEngine.Texture2D`. Nao ha
+ * `Texture2D.FromStream`. O caminho que existe e:
+ *
+ *   1. UnityEngine.Texture2D(2, 2)            textura vazia, o tamanho e
+ *                                             corrigido pelo passo 2
+ *   2. ImageConversion.LoadImage(tex, bytes)  decodifica o PNG/JPG
+ *   3. Terraria Texture2D(.ctor(Texture2D))   embrulha para o jogo desenhar
+ *
+ * O passo 2 e da Unity, nao do jogo, entao aceita o que a Unity aceita: PNG e
+ * JPG. Nao passa por atlas nem por AssetBundle.
+ */
+struct Refs {
+    bool tentou = false;
+    bool ok = false;
+    Il2CppClass* byteCls = nullptr;
+    Il2CppClass* unityTex = nullptr;
+    Il2CppClass* gameTex = nullptr;
+    const MethodInfo* unityCtor = nullptr;
+    const MethodInfo* loadImage = nullptr;
+    const MethodInfo* gameCtor = nullptr;
+};
+
+Refs& refs() {
+    static Refs r;
+    if (r.tentou) return r;
+    r.tentou = true;
+
+    r.byteCls  = il2cpp::findClass({"System", "Byte", {}});
+    r.unityTex = il2cpp::findClass({"UnityEngine", "Texture2D", {}});
+    r.gameTex  = il2cpp::findClass({"Microsoft.Xna.Framework.Graphics", "Texture2D", {}});
+    Il2CppClass* conv = il2cpp::findClass({"UnityEngine", "ImageConversion", {}});
+    if (!r.byteCls || !r.unityTex || !r.gameTex || !conv) {
+        BL_ERROR("loadTexture: classe faltando (Byte=%p UnityTexture2D=%p GameTexture2D=%p "
+                 "ImageConversion=%p)", (void*)r.byteCls, (void*)r.unityTex,
+                 (void*)r.gameTex, (void*)conv);
+        return r;
+    }
+
+    r.unityCtor = il2cpp::findMethodBySignature(
+        r.unityTex, il2cpp::parseSignature("void .ctor(int width, int height)"));
+    r.loadImage = il2cpp::findMethodBySignature(
+        conv, il2cpp::parseSignature(
+            "bool LoadImage(Texture2D tex, byte[] data, bool markNonReadable)"));
+    // O jogo tem varios .ctor(Texture2D ...); este e o de um argumento so.
+    r.gameCtor = il2cpp::findMethodBySignature(
+        r.gameTex, il2cpp::parseSignature("void .ctor(Texture2D texture)"));
+
+    r.ok = r.unityCtor && r.loadImage && r.gameCtor;
+    if (!r.ok) {
+        BL_ERROR("loadTexture: metodo faltando (ctor=%p LoadImage=%p wrap=%p)",
+                 (void*)r.unityCtor, (void*)r.loadImage, (void*)r.gameCtor);
+    }
+    return r;
+}
+
+/**
+ * Caminho relativo vale a partir da pasta do mod de QUEM CHAMOU.
+ *
+ * Nao da para usar so "o mod que esta carregando": o jeito recomendado de
+ * carregar textura e dentro de um hook, na primeira chamada, e ai a carga ja
+ * acabou ha muito. O QuickJS sabe de qual modulo veio a chamada, e o nome do
+ * modulo e o uid do mod — que e a chave da pasta.
+ */
+std::string resolver(JSContext* ctx, const char* caminho) {
+    std::string p = caminho ? caminho : "";
+    if (p.empty() || p[0] == '/') return p;
+
+    for (int nivel = 0; nivel < 3; ++nivel) {
+        JSAtom atom = JS_GetScriptOrModuleName(ctx, nivel);
+        if (atom == JS_ATOM_NULL) continue;
+        const char* nome = JS_AtomToCString(ctx, atom);
+        std::string base = nome ? mods::dirOf(nome) : std::string();
+        if (nome) JS_FreeCString(ctx, nome);
+        JS_FreeAtom(ctx, atom);
+        if (!base.empty()) return base + "/" + p;
+    }
+    // Durante a carga o modulo ainda nao esta no mapa; a pasta corrente serve.
+    const std::string& base = mods::currentDir();
+    return base.empty() ? p : base + "/" + p;
+}
+
+/** Le o arquivo direto para dentro de um byte[] do heap do jogo. */
+Il2CppArray* lerParaArray(JSContext* ctx, const std::string& caminho) {
+    auto& a = il2cpp::api();
+    FILE* f = std::fopen(caminho.c_str(), "rb");
+    if (!f) {
+        JS_ThrowInternalError(ctx, "loadTexture: nao abri '%s'", caminho.c_str());
+        return nullptr;
+    }
+    std::fseek(f, 0, SEEK_END);
+    long n = std::ftell(f);
+    std::fseek(f, 0, SEEK_SET);
+    if (n <= 0) {
+        std::fclose(f);
+        JS_ThrowInternalError(ctx, "loadTexture: '%s' esta vazio", caminho.c_str());
+        return nullptr;
+    }
+    Il2CppArray* arr = a.array_new(refs().byteCls, static_cast<uintptr_t>(n));
+    if (!arr) {
+        std::fclose(f);
+        JS_ThrowInternalError(ctx, "loadTexture: array_new falhou (%ld bytes)", n);
+        return nullptr;
+    }
+    size_t lido = std::fread(arrayData(arr), 1, static_cast<size_t>(n), f);
+    std::fclose(f);
+    if (lido != static_cast<size_t>(n)) {
+        JS_ThrowInternalError(ctx, "loadTexture: li %zu de %ld bytes", lido, n);
+        return nullptr;
+    }
+    return arr;
+}
+
+/** Chama um metodo e devolve false com a excecao ja posta no ctx. */
+bool chamar(JSContext* ctx, const MethodInfo* m, void* self, int argc, JSValueConst* argv,
+            JSValue* saida) {
+    JSValue r = invokeMethod(ctx, m, self, argc, argv);
+    if (JS_IsException(r)) return false;
+    if (saida) *saida = r; else JS_FreeValue(ctx, r);
+    return true;
+}
+
+} // namespace
+
+JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsString(argv[0])) {
+        return JS_ThrowTypeError(ctx, "bl.loadTexture(caminho) espera um texto");
+    }
+    // A Unity aborta o processo inteiro se uma textura nascer fora da thread do
+    // jogo — nao lanca excecao, chama abort() dentro da libunity, e o log so
+    // mostra frames sem nome.
+    //
+    // A recusa e FECHADA: so passa quando sabemos estar na thread certa. Na
+    // carga dos mods o DoUpdate ainda nao rodou uma vez sequer, entao a thread
+    // do jogo e desconhecida — e deixar passar "na duvida" e exatamente o caso
+    // que derruba o processo.
+    const int jogo = runtime::gameThreadId();
+    if (jogo == 0 || static_cast<int>(gettid()) != jogo) {
+        return JS_ThrowInternalError(
+            ctx, "bl.loadTexture so vale na thread do jogo, com o jogo ja rodando "
+                 "— e mods carregam antes disso, noutra thread. Carregue dentro "
+                 "de um hook, na primeira chamada, em vez de no topo do arquivo.");
+    }
+
+    Refs& r = refs();
+    if (!r.ok) {
+        return JS_ThrowInternalError(
+            ctx, "bl.loadTexture: o runtime do jogo nao tem as classes de textura "
+                 "esperadas; ver o log");
+    }
+
+    const char* cs = JS_ToCString(ctx, argv[0]);
+    if (!cs) return JS_EXCEPTION;
+    std::string caminho = resolver(ctx, cs);
+    JS_FreeCString(ctx, cs);
+
+    auto& a = il2cpp::api();
+    Il2CppArray* bytes = lerParaArray(ctx, caminho);
+    if (!bytes) return JS_EXCEPTION;
+
+    // 1. textura vazia da Unity. O 2x2 e provisorio: o LoadImage redimensiona
+    //    para o tamanho real do arquivo.
+    Il2CppObject* ut = a.object_new(r.unityTex);
+    if (!ut) return JS_ThrowInternalError(ctx, "loadTexture: object_new falhou");
+    JSValue jsUt = makeNativeObject(ctx, ut);
+    JSValue jsArr = makeGameArray(ctx, bytes);
+
+    JSValue dois[2] = {JS_NewInt32(ctx, 2), JS_NewInt32(ctx, 2)};
+    bool ok = chamar(ctx, r.unityCtor, ut, 2, dois, nullptr);
+    JS_FreeValue(ctx, dois[0]);
+    JS_FreeValue(ctx, dois[1]);
+
+    // 2. decodifica o PNG/JPG dentro dela.
+    JSValue res = JS_UNDEFINED;
+    if (ok) {
+        JSValue args[3] = {jsUt, jsArr, JS_FALSE};
+        ok = chamar(ctx, r.loadImage, nullptr, 3, args, &res);
+    }
+    bool decodificou = ok && JS_ToBool(ctx, res) > 0;
+    JS_FreeValue(ctx, res);
+    if (ok && !decodificou) {
+        JS_ThrowInternalError(ctx, "loadTexture: '%s' nao e um PNG/JPG que a Unity leia",
+                              caminho.c_str());
+        ok = false;
+    }
+
+    // 3. embrulha no Texture2D do jogo, que e o que o SpriteBatch aceita.
+    Il2CppObject* gt = nullptr;
+    if (ok) {
+        gt = a.object_new(r.gameTex);
+        ok = gt && chamar(ctx, r.gameCtor, gt, 1, &jsUt, nullptr);
+    }
+
+    JS_FreeValue(ctx, jsUt);
+    JS_FreeValue(ctx, jsArr);
+    if (!ok) return JS_EXCEPTION;
+
+    BL_INFO("loadTexture: %s", caminho.c_str());
+    return makeNativeObject(ctx, gt);
+}
+
+} // namespace bl::script
+#endif

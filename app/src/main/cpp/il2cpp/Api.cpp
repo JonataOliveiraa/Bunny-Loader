@@ -78,6 +78,7 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_free", &il2cpp_free);
     ok &= bind(lib, "il2cpp_object_new", &object_new);
     ok &= bind(lib, "il2cpp_object_get_class", &object_get_class);
+    bind(lib, "il2cpp_array_new", &array_new);
     ok &= bind(lib, "il2cpp_string_new", &string_new);
     ok &= bind(lib, "il2cpp_gchandle_new", &gchandle_new);
     ok &= bind(lib, "il2cpp_gchandle_free", &gchandle_free);

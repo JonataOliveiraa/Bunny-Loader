@@ -3,7 +3,24 @@
 #include "il2cpp/Api.h"
 #include "runtime/GameRefs.h"
 
+#include <unistd.h>
+
+#include <atomic>
+
 namespace bl::runtime {
+
+namespace {
+std::atomic<int> g_gameTid{0};
+}
+
+int gameThreadId() { return g_gameTid.load(std::memory_order_relaxed); }
+
+void noteGameThread() {
+    int eu = static_cast<int>(gettid());
+    if (g_gameTid.load(std::memory_order_relaxed) != eu) {
+        g_gameTid.store(eu, std::memory_order_relaxed);
+    }
+}
 
 void boot() {
     auto& a = il2cpp::api();

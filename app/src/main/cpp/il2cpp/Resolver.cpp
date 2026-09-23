@@ -4,24 +4,51 @@
 
 namespace bl::il2cpp {
 
-Il2CppClass* findClass(const TypeRef& ref) {
+namespace {
+
+/**
+ * Procura em TODOS os assemblies carregados, nao so no do jogo e no corlib.
+ *
+ * `UnityEngine.Texture2D` mora na CoreModule e `ImageConversion` na
+ * ImageConversionModule: nenhuma das duas aparecia, e por tabela nada de
+ * UnityEngine era alcancavel — nem pelo nucleo, nem por um mod.
+ *
+ * O jogo e o corlib vem primeiro porque sao a esmagadora maioria das buscas; o
+ * resto e varredura, so quando os dois primeiros falham.
+ */
+Il2CppClass* procurar(const char* ns, const char* name) {
     auto& a = api();
     if (!a.gameImage) return nullptr;
+    if (Il2CppClass* c = a.class_from_name(a.gameImage, ns, name)) return c;
+    if (a.corlibImage) {
+        if (Il2CppClass* c = a.class_from_name(a.corlibImage, ns, name)) return c;
+    }
+    if (!a.domain_get || !a.domain_get_assemblies || !a.assembly_get_image) return nullptr;
+
+    size_t n = 0;
+    const Il2CppAssembly** todos = a.domain_get_assemblies(a.domain_get(), &n);
+    if (!todos) return nullptr;
+    for (size_t i = 0; i < n; ++i) {
+        const Il2CppImage* img = a.assembly_get_image(todos[i]);
+        if (!img || img == a.gameImage || img == a.corlibImage) continue;
+        if (Il2CppClass* c = a.class_from_name(img, ns, name)) return c;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+Il2CppClass* findClass(const TypeRef& ref) {
     std::string ns(ref.ns);
     std::string name(ref.name);
-    Il2CppClass* cls = a.class_from_name(a.gameImage, ns.c_str(), name.c_str());
-    if (!cls && a.corlibImage) cls = a.class_from_name(a.corlibImage, ns.c_str(), name.c_str());
+    Il2CppClass* cls = procurar(ns.c_str(), name.c_str());
     // TODO(Fase 3): resolver ref.nested via class_get_nested_types.
     if (!cls) BL_ERROR("classe nao encontrada: %s.%s", ns.c_str(), name.c_str());
     return cls;
 }
 
 Il2CppClass* findClassQuiet(const std::string& ns, const std::string& name) {
-    auto& a = api();
-    if (!a.gameImage) return nullptr;
-    Il2CppClass* cls = a.class_from_name(a.gameImage, ns.c_str(), name.c_str());
-    if (!cls && a.corlibImage) cls = a.class_from_name(a.corlibImage, ns.c_str(), name.c_str());
-    return cls;
+    return procurar(ns.c_str(), name.c_str());
 }
 
 FieldInfo* findField(Il2CppClass* cls, std::string_view name) {

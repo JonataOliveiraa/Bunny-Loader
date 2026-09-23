@@ -5,6 +5,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "script/Invoke.h"
+#include "script/Texture.h"
 #include "script/Marshal.h"
 #include "script/Members.h"
 #include "script/Value.h"
@@ -587,6 +588,10 @@ const JSClassExoticMethods ns_exotic = {
 };
 
 /** bl.classOf(ns, nome) — quando a árvore não ajuda. */
+JSValue js_loadTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return loadTexture(ctx, argc, argv);
+}
+
 JSValue js_classOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 2) return JS_ThrowTypeError(ctx, "bl.classOf(namespace, nome)");
     return js_NativeClass(ctx, JS_UNDEFINED, argc, argv);
@@ -634,6 +639,8 @@ void installBindings(void* context) {
     JSValue bl = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, bl, "log", JS_NewCFunction(ctx, js_bl_log, "log", 1));
     JS_SetPropertyStr(ctx, bl, "classOf", JS_NewCFunction(ctx, js_classOf, "classOf", 2));
+    JS_SetPropertyStr(ctx, bl, "loadTexture",
+                      JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass
