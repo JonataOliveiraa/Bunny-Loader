@@ -4,14 +4,14 @@
 #   tools/ui.sh              # abre o launcher e printa
 #   tools/ui.sh out.png      # salva o print onde voce quiser
 #
-# Por que existe: o APK completo tem ~190 MB, quase tudo libil2cpp.so e
-# libunity.so, que nunca mudam enquanto se mexe em tela. Com -Pbl.uiOnly=true
-# elas ficam de fora, o pacote cai para ~11 MB e o ciclo vai de ~55s para ~6s.
+# Por que existe: o APK completo passa de 230 MB, quase tudo assets do jogo,
+# libil2cpp.so e libunity.so — nada disso muda enquanto se mexe em tela. Com
+# -Pbl.uiOnly=true ficam de fora e o ciclo vai de ~55s para ~6s.
 #
-# O JOGAR nao funciona nesse modo (a lib do jogo nao esta no pacote). Para
-# voltar a jogar:
+# O JOGAR nao funciona nesse modo (o jogo nao esta no pacote). Para voltar a
+# jogar:
 #
-#   gradle :app:installDebug -Pbl.assetsInApk=true
+#   gradle :app:installDebug
 #
 # Se o ciclo comecar a demorar de novo sem motivo, apague o zip: o
 # empacotamento incremental do AGP acumula lixo morto dentro do APK e ele volta

@@ -15,4 +15,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "BunnyLoader"
 include(":app")
-include(":terraria1456_assets")

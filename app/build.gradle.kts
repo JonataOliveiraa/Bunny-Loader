@@ -65,16 +65,23 @@ android {
 
     sourceSets["main"].java.srcDir("src/main/kotlin")
 
-    // Asset pack install-time NÃO entra num APK gerado por assembleDebug — ele
-    // só materializa via bundle (bundletool/Play). Testar no aparelho exigiria
-    // bundletool --local-testing, que não vem pronto no SDK.
+    // Os assets do jogo vão no APK, sempre.
     //
-    // Com -Pbl.assetsInApk=true os assets do pack entram direto no APK de
-    // debug, que fica grande (~200 MB) mas roda por adb install. Fora dessa
-    // flag nada muda, então o AAB de release continua com os assets só no pack
-    // e sem duplicação.
-    if ((project.findProperty("bl.assetsInApk") as String?)?.toBoolean() == true) {
-        sourceSets["debug"].assets.srcDir("../terraria1456_assets/src/main/assets")
+    // Eles já moraram num asset pack install-time, para caber no teto de
+    // 200 MB da Play. Não funciona: a Unity 2021.3 deste build localiza
+    // bin/Data abrindo o APK BASE pelo sourceDir e lendo o zip por mmap — é o
+    // mesmo motivo de os assets precisarem de noCompress. Num split de asset
+    // pack ela não olha, e o jogo morre em "Unable to initialize the Unity
+    // Engine". Provado com bundletool: o pack instalou como
+    // split_terraria1456_assets.apk e a Unity não achou nada.
+    //
+    // Como a distribuição é APK pelo GitHub, o teto da Play não se aplica e o
+    // caminho do bundle não tem para que existir.
+    //
+    // -Pbl.uiOnly=true deixa os assets de fora (ver `packaging`): é o modo de
+    // iterar em tela, onde o jogo nem sobe.
+    if ((project.findProperty("bl.uiOnly") as String?)?.toBoolean() != true) {
+        sourceSets["main"].assets.srcDir("../terraria1456_assets/src/main/assets")
     }
 
     // Os mods de samples/ viram o catálogo embutido do launcher. Uma cópia, não
@@ -87,13 +94,14 @@ android {
         jniLibs {
             useLegacyPackaging = true // extractNativeLibs=true
 
-            // Iteração de UI: -Pbl.uiOnly=true tira as libs do jogo do pacote.
-            // Elas são 66 MB dos ~190 MB do APK e nunca mudam enquanto se mexe
+            // A outra metade do -Pbl.uiOnly=true: aqui saem as libs do jogo
+            // (os assets saem lá em cima, não entrando no source set). Juntos
+            // são ~225 MB de um APK de ~236 MB e nunca mudam enquanto se mexe
             // em tela — zipar e instalar isso a cada ajuste de layout é o que
-            // fazia o ciclo levar meia dúzia de dezenas de segundos.
+            // fazia o ciclo levar quase um minuto.
             //
-            // O launcher funciona inteiro assim; só o JOGAR não sobe, porque a
-            // libil2cpp não está lá. Para voltar a jogar, refaça sem a flag.
+            // O launcher funciona inteiro assim; só o JOGAR não sobe. Para
+            // voltar a jogar, refaça sem a flag.
             if ((project.findProperty("bl.uiOnly") as String?)?.toBoolean() == true) {
                 excludes += listOf(
                     "**/libil2cpp.so", "**/libunity.so",
@@ -121,7 +129,6 @@ android {
         }
     }
 
-    assetPacks += listOf(":terraria1456_assets")
 }
 
 /** samples/<Mod>/ -> assets/mods/<Mod>/, antes do merge de assets. */
