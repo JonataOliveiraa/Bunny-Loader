@@ -93,7 +93,7 @@ fun ModIcon(entry: Catalog.Entry, catalog: Catalog, size: androidx.compose.ui.un
 fun ModBanner(entry: Catalog.Entry, modifier: Modifier = Modifier, animate: Boolean = true) {
     val grassTiles = ImageBitmap.imageResource(R.drawable.tile_grass)
     val stoneTiles = ImageBitmap.imageResource(R.drawable.tile_stone)
-    val plants = ImageBitmap.imageResource(R.drawable.spr_grass)
+    val plants = ImageBitmap.imageResource(R.drawable.spr_grass_tuft)
     val bunny = ImageBitmap.imageResource(R.drawable.spr_bunny)
     val tree = ImageBitmap.imageResource(R.drawable.ic_tab_inicio)
 

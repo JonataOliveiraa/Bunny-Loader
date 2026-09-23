@@ -38,3 +38,8 @@ licensing-classes/
 
 # Cache do Python das ferramentas
 __pycache__/
+
+# Texturas de origem: arte do Terraria, nao vai para o repositorio.
+# So o README, que explica a convencao de nomes.
+_icons/*
+!_icons/README.md

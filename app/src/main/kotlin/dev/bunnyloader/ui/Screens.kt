@@ -338,7 +338,7 @@ fun ConfigTab(shell: Shell) {
                 // encolher para caber dentro do quadro só deixava buraco.
                 Box(Modifier.size(72.dp).pixelPanel(fill = Bl.Stone1).padding(3.dp)) {
                     Image(
-                        bitmap = ImageBitmap.imageResource(R.drawable.ic_tab_perfil),
+                        bitmap = ImageBitmap.imageResource(R.drawable.ic_tab_config),
                         contentDescription = null,
                         filterQuality = FilterQuality.None,
                         contentScale = ContentScale.Crop,
