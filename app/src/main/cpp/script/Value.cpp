@@ -4,9 +4,11 @@
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "script/Bridge.h"
+#include "script/Invoke.h"
 #include "script/Marshal.h"
 #include "script/Members.h"
 
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <unordered_map>
@@ -129,15 +131,7 @@ JSValue gs_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (m.field) return readAt(ctx, static_cast<char*>(r->data) + m.offset, *m.type, obj);
     if (m.method) return makeGameMethod(ctx, m.method);
     // Propriedade C# do struct: o `this` de um value type sao os dados.
-    if (m.getter) {
-        Il2CppObject* exc = nullptr;
-        Il2CppObject* ret = il2cpp::api().runtime_invoke(m.getter, r->data, nullptr, &exc);
-        if (exc) {
-            return JS_ThrowInternalError(ctx, "%s lancou excecao no jogo",
-                                         il2cpp::api().method_get_name(m.getter));
-        }
-        return fromReturn(ctx, m.getter, ret);
-    }
+    if (m.getter) return invokeMethod(ctx, m.getter, r->data, 0, nullptr);
     if (m.signature) {
         return JS_ThrowTypeError(ctx, "metodo nao encontrado em %s: %s",
                                  il2cpp::api().class_get_name(r->cls), atomName(ctx, atom).c_str());
@@ -157,14 +151,9 @@ int gs_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
         return ok;
     }
     if (m.setter) {
-        ArgPack pack;
-        if (!pack.build(ctx, m.setter, 1, &value)) return -1;
-        Il2CppObject* exc = nullptr;
-        a.runtime_invoke(m.setter, r->data, pack.data(), &exc);
-        if (exc) {
-            JS_ThrowInternalError(ctx, "%s lancou excecao no jogo", a.method_get_name(m.setter));
-            return -1;
-        }
+        JSValue got = invokeMethod(ctx, m.setter, r->data, 1, &value);
+        if (JS_IsException(got)) return -1;
+        JS_FreeValue(ctx, got);
         flush(r);
         return true;
     }
@@ -348,6 +337,87 @@ int hfaOf(Il2CppClass* cls, bool* isDouble) {
 
 // ============================ ler / escrever ============================
 
+namespace {
+
+/** Como chamar o que veio do JS, numa mensagem de erro. */
+const char* kindOf(JSContext* ctx, JSValueConst v) {
+    if (JS_IsNull(v)) return "null";
+    if (JS_IsUndefined(v)) return "undefined";
+    if (JS_IsFunction(ctx, v)) return "uma funcao";
+    if (JS_IsString(v)) return "um texto que nao e numero";
+    if (structDataOf(v, nullptr, nullptr)) return "um struct do jogo";
+    if (objectFromJS(v)) return "um objeto do jogo";
+    if (JS_IsObject(v)) return "um objeto";
+    return "isso";
+}
+
+/**
+ * JS -> numero, RECUSANDO o que nao e numero.
+ *
+ * Sem isto, `JS_ToInt64` engolia qualquer coisa: objeto virava 0, "abc" virava
+ * 0, NaN virava 0 e 1e20 virava 1661992960 — tudo escrito no campo do jogo sem
+ * um pio. Um `item.damage = algumNPC` que devolve zero e pior que um erro,
+ * porque so aparece como comportamento estranho horas depois.
+ */
+int toNumber(JSContext* ctx, JSValueConst v, const TypeDesc& d, double* out) {
+    double x = 0;
+    if (JS_IsNumber(v)) {
+        JS_ToFloat64(ctx, &x, v);
+    } else if (JS_IsBool(v)) {
+        x = JS_ToBool(ctx, v) ? 1.0 : 0.0;
+    } else if (JS_IsString(v)) {
+        // So aceita se o texto INTEIRO for um numero: "42" passa, "42abc" nao.
+        const char* cs = JS_ToCString(ctx, v);
+        if (!cs) return -1;
+        char* fim = nullptr;
+        x = std::strtod(cs, &fim);
+        bool inteiro = fim && fim != cs;
+        while (inteiro && *fim == ' ') ++fim;
+        if (!inteiro || *fim != ' ') {
+            JS_ThrowTypeError(ctx, "%s espera um numero, recebeu o texto \"%s\"",
+                              d.name.c_str(), cs);
+            JS_FreeCString(ctx, cs);
+            return -1;
+        }
+        JS_FreeCString(ctx, cs);
+    } else {
+        JS_ThrowTypeError(ctx, "%s espera um numero, recebeu %s", d.name.c_str(),
+                          kindOf(ctx, v));
+        return -1;
+    }
+
+    // NaN e infinito dentro de um campo do jogo envenenam a fisica em silencio:
+    // a posicao vira NaN e a entidade some do mundo sem erro nenhum.
+    if (std::isnan(x) || std::isinf(x)) {
+        JS_ThrowRangeError(ctx, "%s nao aceita %s", d.name.c_str(),
+                           std::isnan(x) ? "NaN" : "infinito");
+        return -1;
+    }
+    *out = x;
+    return true;
+}
+
+/** Limites do inteiro de destino, para recusar o que nao cabe. */
+bool fits(Prim p, double x, double* lo, double* hi) {
+    switch (p) {
+        case Prim::I8:  *lo = -128.0; *hi = 127.0; break;
+        case Prim::U8:  *lo = 0.0; *hi = 255.0; break;
+        case Prim::I16: *lo = -32768.0; *hi = 32767.0; break;
+        case Prim::U16:
+        case Prim::Char: *lo = 0.0; *hi = 65535.0; break;
+        case Prim::I32: *lo = -2147483648.0; *hi = 2147483647.0; break;
+        case Prim::U32: *lo = 0.0; *hi = 4294967295.0; break;
+        case Prim::I64: *lo = -9223372036854775808.0; *hi = 9223372036854775807.0; break;
+        case Prim::U64: *lo = 0.0; *hi = 18446744073709551615.0; break;
+        default: *lo = 0; *hi = 0; return true;
+    }
+    // Trunca como o C# faria; o que se recusa e o que nao CABE.
+    double t = x < 0 ? std::ceil(x) : std::floor(x);
+    return t >= *lo && t <= *hi;
+}
+
+} // namespace
+
 JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner) {
     auto* b = static_cast<char*>(p);
     switch (d.prim) {
@@ -395,7 +465,7 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
         case Prim::F32:
         case Prim::F64: {
             double x = 0;
-            if (JS_ToFloat64(ctx, &x, v) < 0) return -1;
+            if (toNumber(ctx, v, d, &x) < 0) return -1;
             if (d.prim == Prim::F32) *reinterpret_cast<float*>(b) = static_cast<float>(x);
             else *reinterpret_cast<double*>(b) = x;
             return true;
@@ -448,8 +518,14 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
         }
         default: break;
     }
-    int64_t x = 0;
-    if (JS_ToInt64(ctx, &x, v) < 0) return -1;
+    double n = 0;
+    if (toNumber(ctx, v, d, &n) < 0) return -1;
+    double lo = 0, hi = 0;
+    if (!fits(d.prim, n, &lo, &hi)) {
+        JS_ThrowRangeError(ctx, "%g nao cabe em %s (de %g a %g)", n, d.name.c_str(), lo, hi);
+        return -1;
+    }
+    int64_t x = static_cast<int64_t>(n);
     std::memcpy(b, &x, d.size);  // little-endian: os bytes baixos sao os certos
     return true;
 }

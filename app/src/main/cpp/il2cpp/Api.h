@@ -60,6 +60,9 @@ struct Api {
     Il2CppObject* (*runtime_invoke)(const MethodInfo*, void*, void**, Il2CppObject**) = nullptr;
     const char* (*method_get_name)(const MethodInfo*) = nullptr;
     uint32_t (*method_get_flags)(const MethodInfo*, uint32_t*) = nullptr;
+    // Estatico ou de instancia, sem deduzir de `self != nullptr`: um getter
+    // estatico tambem chega com self nulo.
+    bool (*method_is_instance)(const MethodInfo*) = nullptr;
     // Iteracao de metodos + tipos dos parametros (para desambiguar overloads
     // que so diferem no tipo, nao na contagem — ex.: Item.NewItem).
     const MethodInfo* (*class_get_methods)(Il2CppClass*, void**) = nullptr;

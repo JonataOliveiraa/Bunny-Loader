@@ -4,6 +4,7 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "script/Invoke.h"
 #include "script/Marshal.h"
 #include "script/Members.h"
 #include "script/Value.h"
@@ -90,25 +91,14 @@ Il2CppObject* objOf(JSValueConst v) {
 
 /** Propriedade C#: get_<nome>() em `self` (nullptr = estatica). */
 JSValue invokeGetter(JSContext* ctx, const MethodInfo* g, void* self) {
-    Il2CppObject* exc = nullptr;
-    Il2CppObject* r = il2cpp::api().runtime_invoke(g, self, nullptr, &exc);
-    if (exc) {
-        return JS_ThrowInternalError(ctx, "%s lancou excecao no jogo",
-                                     il2cpp::api().method_get_name(g));
-    }
-    return fromReturn(ctx, g, r);
+    return invokeMethod(ctx, g, self, 0, nullptr);
 }
 
 /** Propriedade C#: set_<nome>(v). @return 1 ok, -1 com excecao posta. */
 int invokeSetter(JSContext* ctx, const MethodInfo* sm, void* self, JSValueConst value) {
-    ArgPack pack;
-    if (!pack.build(ctx, sm, 1, &value)) return -1;
-    Il2CppObject* exc = nullptr;
-    il2cpp::api().runtime_invoke(sm, self, pack.data(), &exc);
-    if (exc) {
-        JS_ThrowInternalError(ctx, "%s lancou excecao no jogo", il2cpp::api().method_get_name(sm));
-        return -1;
-    }
+    JSValue r = invokeMethod(ctx, sm, self, 1, &value);
+    if (JS_IsException(r)) return -1;
+    JS_FreeValue(ctx, r);
     return true;
 }
 
@@ -293,7 +283,13 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
     if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
     if (m.setter) return invokeSetter(ctx, m.setter, o, value);
-    return defineJsProperty(ctx, obj, atom, value);
+    // Nome que a classe nao tem: RECUSA, como ja fazia o caminho do struct.
+    // Antes isto virava uma propriedade JS comum no wrapper, entao um
+    // `item.useTmie = 4` dava certo, nao mudava nada no jogo e nao dizia nada
+    // — o tipo de erro que se procura por uma tarde inteira.
+    JS_ThrowTypeError(ctx, "%s nao tem o campo %s",
+                      il2cpp::api().class_get_name(cls), atomName(ctx, atom).c_str());
+    return -1;
 }
 
 void no_finalizer(JSRuntime*, JSValue val) {
@@ -383,16 +379,7 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
                                  r->paramCount, argc);
     }
 
-    ArgPack pack;
-    if (!pack.build(ctx, r->method, argc, argv)) return JS_EXCEPTION;
-
-    Il2CppObject* exc = nullptr;
-    Il2CppObject* ret = il2cpp::api().runtime_invoke(r->method, thisPtr, pack.data(), &exc);
-    if (exc) {
-        return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo",
-                                     il2cpp::api().method_get_name(r->method));
-    }
-    return fromReturn(ctx, r->method, ret);
+    return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
 // NativeMethod.hook(callback)

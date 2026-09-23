@@ -64,8 +64,18 @@ int errorCount() {
 }
 
 void onError(void (*fn)(const char*)) {
-    std::lock_guard<std::mutex> guard(g_mutex);
-    g_onError = fn;
+    bool atrasados = false;
+    {
+        std::lock_guard<std::mutex> guard(g_mutex);
+        g_onError = fn;
+        atrasados = fn && g_errorCount > 0;
+    }
+    // O painel so nasce depois que a Activity do jogo existe, e a sonda carrega
+    // os mods ANTES disso. Sem este aviso, o erro mais importante do boot — um
+    // mod que nao carregou — era justamente o unico que nunca chegava a tela.
+    // O ouvinte ignora a linha e mostra log::errorsSoFar(), entao um toque
+    // basta para trazer tudo o que ficou para tras.
+    if (atrasados) fn("(erros anteriores ao painel)");
 }
 
 } // namespace bl::log

@@ -53,4 +53,11 @@ if(EXISTS ${QUICKJS_DIR}/quickjs.h)
 endif()
 
 target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
+
+# Abi.cpp e o UNICO que entra no codigo do jogo por chamada direta, e uma
+# excecao gerida pelo IL2CPP e uma excecao C++ de verdade. Sem tabela de
+# desenrolar aqui, ela passaria por um frame -fno-exceptions e chamaria
+# std::terminate. -fexceptions so neste arquivo custa as tabelas dele e nada
+# mais; -fno-rtti continua valendo (catch(...) nao precisa de RTTI).
+set_source_files_properties(script/Abi.cpp PROPERTIES COMPILE_OPTIONS -fexceptions)
 target_link_libraries(bunny shadowhook::shadowhook log dl)

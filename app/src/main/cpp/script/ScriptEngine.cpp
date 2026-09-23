@@ -91,6 +91,16 @@ bool ScriptEngine::init() {
     auto* ctx = JS_NewContext(rt);
     if (!ctx) { BL_ERROR("JS_NewContext falhou"); JS_FreeRuntime(rt); return false; }
 
+    // O QuickJS assume 1 MB de pilha (JS_DEFAULT_STACK_SIZE) e a thread do
+    // Android tem exatamente isso, entao a guarda dele so disparava DEPOIS do
+    // estouro de verdade: um mod com recursao infinita matava o processo do
+    // jogo em silencio, sem excecao e sem tombstone — so os frames repetidos
+    // da libbunny no logcat. Com folga, o mesmo mod leva um "Maximum call
+    // stack size exceeded" e o jogo segue.
+    //
+    // Vale tambem para as threads do jogo, cuja pilha nao e nossa para medir.
+    JS_SetMaxStackSize(rt, 256 * 1024);
+
     runtime_ = rt;
     context_ = ctx;
     installBindings(ctx);
