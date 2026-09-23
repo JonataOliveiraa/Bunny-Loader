@@ -5,6 +5,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "script/Invoke.h"
+#include "script/Items.h"
 #include "script/Texture.h"
 #include "script/Marshal.h"
 #include "script/Members.h"
@@ -641,6 +642,7 @@ void installBindings(void* context) {
     JS_SetPropertyStr(ctx, bl, "classOf", JS_NewCFunction(ctx, js_classOf, "classOf", 2));
     JS_SetPropertyStr(ctx, bl, "loadTexture",
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
+    installItemsApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass
