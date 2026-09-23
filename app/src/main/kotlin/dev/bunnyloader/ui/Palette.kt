@@ -55,3 +55,20 @@ object Bl {
 
 /** Fonte pixelada de _icons/font.TTF — a mesma identidade do título. */
 val PixelFont = FontFamily(Font(R.font.bunny))
+
+/**
+ * Escala de texto, num lugar só.
+ *
+ * Esta fonte desenha pequeno para o corpo que declara: 12sp nela parece 10sp de
+ * uma fonte comum. Como o ajuste vale para a tela inteira, os tamanhos ficam
+ * nomeados aqui — mexer na escala é mexer nesta lista, não caçar `fontSize` em
+ * quatro arquivos.
+ */
+object Ts {
+    val Tiny = 12   // legenda de grupo, id
+    val Small = 14  // autor, etiqueta, rótulo de campo
+    val Body = 16   // texto corrido, descrição
+    val Item = 18   // nome numa linha de lista
+    val Head = 22   // título de seção, nome do mod
+    val Big = 26    // título de aba
+}

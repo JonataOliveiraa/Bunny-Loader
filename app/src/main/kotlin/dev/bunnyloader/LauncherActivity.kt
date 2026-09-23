@@ -48,6 +48,7 @@ import dev.bunnyloader.ui.PerfilTab
 import dev.bunnyloader.ui.PixelFont
 import dev.bunnyloader.ui.PixelIcon
 import dev.bunnyloader.ui.Shell
+import dev.bunnyloader.ui.Ts
 import dev.bunnyloader.ui.drawTileGround
 import dev.bunnyloader.ui.drawTileWall
 import dev.bunnyloader.ui.pixelShadow
@@ -190,7 +191,7 @@ private fun TabButton(tab: Tab, current: Tab, onSelect: (Tab) -> Unit) {
         Text(
             tab.label,
             fontFamily = PixelFont,
-            fontSize = 11.sp,
+            fontSize = Ts.Small.sp,
             color = if (selected) Bl.Grass4 else Bl.Stone4.copy(alpha = 0.85f),
             modifier = Modifier.padding(top = 3.dp),
         )

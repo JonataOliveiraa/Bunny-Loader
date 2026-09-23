@@ -148,15 +148,20 @@ fun DrawScope.drawTileWall(atlas: ImageBitmap, px: Float, tint: Color) {
     drawRect(tint)
 }
 
-/** Um quadro da folha do coelho (NPC_46: 7 quadros de 48x40). */
+/**
+ * Um quadro da folha do coelho (NPC_46: 7 quadros de 48x40).
+ *
+ * A folha é desenhada virada para a ESQUERDA — é a convenção dos NPCs do
+ * Terraria, que espelha quando o bicho anda para a direita. Então quem espelha
+ * aqui é `facingRight`, não o contrário.
+ */
 fun DrawScope.drawBunny(sheet: ImageBitmap, frame: Int, x: Float, y: Float, scale: Float,
-                        facingLeft: Boolean) {
+                        facingRight: Boolean) {
     val fw = 48
     val fh = sheet.height / 7
     val w = fw * scale
     val h = fh * scale
-    // Espelhar: o Terraria só tem o coelho virado para um lado.
-    if (facingLeft) {
+    if (facingRight) {
         scale(scaleX = -1f, scaleY = 1f, pivot = Offset(x + w / 2, y + h / 2)) {
             drawImage(
                 sheet, srcOffset = IntOffset(0, frame * fh), srcSize = IntSize(fw, fh),
@@ -266,7 +271,7 @@ fun PixelButton(
     fill: Color = Bl.Grass2,
     textColor: Color = Color.White,
     icon: Int? = null,
-    fontSize: Int = 16,
+    fontSize: Int = Ts.Item,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -314,7 +319,7 @@ fun PixelTag(text: String, fill: Color, modifier: Modifier = Modifier) {
             )
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
-        Text(text, fontFamily = PixelFont, fontSize = 11.sp, color = Color.White)
+        Text(text, fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Color.White)
     }
 }
 

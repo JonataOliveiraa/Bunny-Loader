@@ -69,8 +69,8 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
                 contentDescription = "Bunny Loader",
                 filterQuality = FilterQuality.None,
                 contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxWidth(0.62f).heightIn(max = 96.dp)
-                    .padding(top = 10.dp),
+                modifier = Modifier.fillMaxWidth(0.88f).heightIn(max = 148.dp)
+                    .padding(top = 12.dp, bottom = 4.dp),
             )
 
             val featured = shell.entries.firstOrNull { it.manifest.featured }
@@ -110,11 +110,11 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
                 }
             }
             Column(Modifier.padding(start = 80.dp, top = 6.dp, end = 4.dp)) {
-                Text(entry.manifest.name, fontFamily = PixelFont, fontSize = 18.sp,
+                Text(entry.manifest.name, fontFamily = PixelFont, fontSize = Ts.Head.sp,
                     color = Bl.Text)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("por ${entry.manifest.author}", fontFamily = PixelFont,
-                        fontSize = 11.sp, color = Bl.TextFaint)
+                        fontSize = Ts.Small.sp, color = Bl.TextFaint)
                     PixelTag(
                         entry.manifest.category,
                         categoryColor(entry.manifest.category),
@@ -124,7 +124,7 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
             }
             Text(
                 entry.manifest.summary,
-                fontFamily = PixelFont, fontSize = 12.sp, color = Bl.TextDim,
+                fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.TextDim,
                 modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 4.dp),
             )
         }
@@ -175,14 +175,14 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
     Box(modifier.fillMaxWidth().pixelPanel(fill = Bl.Night, raised = false)
         .padding(horizontal = 12.dp, vertical = 10.dp)) {
         if (value.isEmpty()) {
-            Text("Procurar mod...", fontFamily = PixelFont, fontSize = 13.sp, color = Bl.Stone1)
+            Text("Procurar mod...", fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.Stone1)
         }
         BasicTextField(
             value = value,
             onValueChange = onChange,
             singleLine = true,
             textStyle = TextStyle(
-                fontFamily = PixelFont, fontSize = 13.sp, color = Bl.Text,
+                fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.Text,
             ),
             cursorBrush = SolidColor(Bl.Grass3),
             modifier = Modifier.fillMaxWidth(),
@@ -207,10 +207,10 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             Modifier.fillMaxWidth().padding(start = EdgePad, end = EdgePad, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Pacotes", fontFamily = PixelFont, fontSize = 22.sp, color = Bl.Text,
+            Text("Pacotes", fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Text,
                 modifier = Modifier.weight(1f))
             Text("${shell.enabled.size}/${list.size} ligados", fontFamily = PixelFont,
-                fontSize = 12.sp, color = Bl.TextFaint)
+                fontSize = Ts.Body.sp, color = Bl.TextFaint)
         }
         Box(Modifier.weight(1f)) {
             LazyColumn(
@@ -265,9 +265,9 @@ fun PerfilTab(shell: Shell) {
                     PixelIcon(R.drawable.ic_tab_perfil, 42.dp)
                 }
                 Column(Modifier.padding(start = 12.dp)) {
-                    Text("Jogador", fontFamily = PixelFont, fontSize = 20.sp, color = Bl.Text)
+                    Text("Jogador", fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Text)
                     Text("Terraria ${BundledRuntime.VERSION_NAME}", fontFamily = PixelFont,
-                        fontSize = 12.sp, color = Bl.TextFaint)
+                        fontSize = Ts.Body.sp, color = Bl.TextFaint)
                 }
             }
 
@@ -283,22 +283,22 @@ fun PerfilTab(shell: Shell) {
                 Column(Modifier.padding(12.dp)) {
                     Text(
                         remember { Eligibility.check(ctx).detail },
-                        fontFamily = PixelFont, fontSize = 11.sp, color = Bl.TextDim,
+                        fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextDim,
                     )
                     Row(Modifier.padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         PixelButton("Ver log", { log = BootLog.read(ctx) },
-                            fill = Bl.Stone1, fontSize = 13)
+                            fill = Bl.Stone1, fontSize = Ts.Small)
                         if (log.isNotEmpty()) {
                             PixelButton("Copiar", {
                                 clipboard.setText(AnnotatedString(log))
-                            }, fill = Bl.Stone1, fontSize = 13)
+                            }, fill = Bl.Stone1, fontSize = Ts.Small)
                         }
                     }
                     if (log.isNotEmpty()) {
                         Box(Modifier.fillMaxWidth().padding(top = 10.dp)
                             .pixelPanel(fill = Bl.Night, raised = false).padding(8.dp)) {
-                            Text(log, fontSize = 10.sp, color = Bl.TextDim)
+                            Text(log, fontSize = Ts.Tiny.sp, color = Bl.TextDim)
                         }
                     }
                 }
@@ -316,8 +316,8 @@ private fun Stat(value: String, label: String, modifier: Modifier = Modifier) {
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(value, fontFamily = PixelFont, fontSize = 22.sp, color = Bl.Grass3)
-            Text(label, fontFamily = PixelFont, fontSize = 11.sp, color = Bl.TextFaint)
+            Text(value, fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Grass3)
+            Text(label, fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint)
         }
     }
 }
@@ -355,8 +355,8 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                 ) {
                     ModIcon(entry, shell.catalog, 56.dp)
                     Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                        Text(m.name, fontFamily = PixelFont, fontSize = 20.sp, color = Bl.Text)
-                        Text("por ${m.author}", fontFamily = PixelFont, fontSize = 12.sp,
+                        Text(m.name, fontFamily = PixelFont, fontSize = Ts.Big.sp, color = Bl.Text)
+                        Text("por ${m.author}", fontFamily = PixelFont, fontSize = Ts.Body.sp,
                             color = Bl.TextFaint)
                     }
                     PixelTag(m.category, categoryColor(m.category))
@@ -366,14 +366,14 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                 // servidor que não existe, e número inventado é pior que nada.
                 Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     PixelIcon(R.drawable.ic_folder, 16.dp)
-                    Text(formatSize(entry.sizeBytes), fontFamily = PixelFont, fontSize = 13.sp,
+                    Text(formatSize(entry.sizeBytes), fontFamily = PixelFont, fontSize = Ts.Body.sp,
                         color = Bl.TextDim, modifier = Modifier.padding(start = 6.dp))
                 }
 
                 SectionTitle("Descrição")
                 Text(
                     m.description.ifBlank { m.summary },
-                    fontFamily = PixelFont, fontSize = 12.sp, color = Bl.TextDim,
+                    fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.TextDim,
                 )
 
                 if (entry.previews.isNotEmpty()) {
@@ -408,7 +408,7 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     if (entry.id in shell.enabled) "Ligado" else "Desligado",
-                                    fontFamily = PixelFont, fontSize = 14.sp,
+                                    fontFamily = PixelFont, fontSize = Ts.Item.sp,
                                     color = if (entry.id in shell.enabled) Bl.Grass3 else Bl.TextFaint,
                                 )
                                 SwitchSprite(entry.id in shell.enabled) {
@@ -417,7 +417,7 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                             }
                         }
                         PixelButton("Remover", { shell.uninstall(entry.id) },
-                            fill = Bl.Dirt1, icon = R.drawable.ic_trash, fontSize = 14)
+                            fill = Bl.Dirt1, icon = R.drawable.ic_trash, fontSize = Ts.Body)
                     }
                 }
                 Spacer(Modifier.height(20.dp))
@@ -443,14 +443,14 @@ private fun RoundIcon(res: Int, onClick: () -> Unit, flip: Boolean = false) {
 @Composable
 private fun Field(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Text(label, fontFamily = PixelFont, fontSize = 11.sp, color = Bl.TextFaint)
-        Text(value, fontFamily = PixelFont, fontSize = 13.sp, color = Bl.Text)
+        Text(label, fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint)
+        Text(value, fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.Text)
     }
 }
 
 @Composable
 private fun Empty(text: String) {
     Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
-        Text(text, fontFamily = PixelFont, fontSize = 13.sp, color = Bl.TextFaint)
+        Text(text, fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.TextFaint)
     }
 }

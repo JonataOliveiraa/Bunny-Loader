@@ -170,9 +170,8 @@ fun ModBanner(entry: Catalog.Entry, modifier: Modifier = Modifier, animate: Bool
                 x += (20 + rnd(30)).dp.toPx()
             }
 
-            // O coelho. Ida com o rosto para a direita, volta espelhado; o
-            // quadro do pulo vem do próprio deslocamento, então ele acelera as
-            // patas na mesma medida em que anda.
+            // O coelho atravessa e volta. O quadro do pulo vem do próprio
+            // deslocamento, então ele mexe as patas na medida em que anda.
             val scale = 1.6f
             val bw = 48 * scale
             val bh = (bunny.height / 7) * scale
@@ -181,7 +180,7 @@ fun ModBanner(entry: Catalog.Entry, modifier: Modifier = Modifier, animate: Bool
             val t = if (goingBack) 2f - walk else walk
             val bx = t * span
             val frame = 1 + ((walk * 40).toInt() % 6)
-            drawBunny(bunny, frame, bx, groundTop - bh + 4, scale, facingLeft = goingBack)
+            drawBunny(bunny, frame, bx, groundTop - bh + 4, scale, facingRight = !goingBack)
         }
     }
 }
@@ -204,12 +203,12 @@ fun ModRow(
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                 Text(
                     entry.manifest.name,
-                    fontFamily = PixelFont, fontSize = 15.sp, color = Bl.Text,
+                    fontFamily = PixelFont, fontSize = Ts.Item.sp, color = Bl.Text,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     "por ${entry.manifest.author}",
-                    fontFamily = PixelFont, fontSize = 11.sp, color = Bl.TextFaint,
+                    fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint,
                 )
                 Row(
                     Modifier.padding(top = 5.dp),
@@ -218,7 +217,7 @@ fun ModRow(
                     PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
                     Text(
                         formatSize(entry.sizeBytes),
-                        fontFamily = PixelFont, fontSize = 11.sp, color = Bl.TextFaint,
+                        fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Bl.TextFaint,
                         modifier = Modifier.padding(start = 12.dp),
                     )
                 }
@@ -241,7 +240,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         ))
         Text(
             text,
-            fontFamily = PixelFont, fontSize = 16.sp, color = Bl.Text,
+            fontFamily = PixelFont, fontSize = Ts.Head.sp, color = Bl.Text,
             modifier = Modifier.padding(start = 8.dp),
         )
     }
