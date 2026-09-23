@@ -72,8 +72,8 @@ class Shell(context: Context) {
     private fun refresh() {
         val catalogIds = catalog.entries.map { it.uid }.toSet()
         val onDisk = repo.list()
-        installed = onDisk.map { it.key }.toSet()
-        imported = onDisk.filter { it.key !in catalogIds }.sortedBy { it.name }
+        installed = onDisk.map { it.uid }.toSet()
+        imported = onDisk.filter { it.uid !in catalogIds }.sortedBy { it.name }
         enabled = installed.filter { repo.isEnabled(it) }.toSet()
     }
 }

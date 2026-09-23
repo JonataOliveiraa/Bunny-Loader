@@ -26,11 +26,16 @@ class ModRepository(private val context: Context) {
      * hookam o mesmo metodo, o primeiro carregado roda por fora e decide se o
      * segundo chega a rodar. Deixar isso a cargo do `listFiles()` faria dois
      * aparelhos se comportarem diferente com os mesmos mods.
+     *
+     * Pasta sem uid valido e ignorada aqui, e nao so recusada no import: o
+     * disco pode ter sobra de uma versao anterior, e o que esta funcao devolve
+     * e exatamente a lista que vai para o nucleo nativo carregar.
      */
     fun list(): List<ModManifest> = modsDir.listFiles().orEmpty()
         .filter { it.isDirectory }
         .mapNotNull { dir -> readManifest(dir) }
-        .sortedBy { it.key }
+        .filter { it.hasValidUid }
+        .sortedBy { it.uid }
 
     /**
      * Instala um `.bmod` escolhido pelo seletor de arquivos.
@@ -54,13 +59,23 @@ class ModRepository(private val context: Context) {
 
         val manifest = readManifest(root)
             ?: error("pacote sem ${Catalog.MANIFESTS.first()}")
+        require(manifest.hasValidUid) {
+            if (manifest.uid.isBlank()) {
+                "pacote sem uid. Todo mod precisa de um uid emitido pelo site " +
+                    "do Bunny Loader — sem ele não dá para saber se isto é uma " +
+                    "atualização do seu mod ou o mod de outra pessoa."
+            } else {
+                "uid inválido: \"${manifest.uid}\". O formato é apelido.8 " +
+                    "hexadecimais, tudo minúsculo."
+            }
+        }
         require(manifest.id.isNotBlank()) { "manifesto sem id" }
         require(manifest.blVersion <= BL_VERSION) {
             "o pacote pede o Bunny Loader ${manifest.blVersion}; este é o $BL_VERSION"
         }
         require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
 
-        val target = File(modsDir, manifest.key)
+        val target = File(modsDir, manifest.uid)
         target.deleteRecursively()
         target.parentFile?.mkdirs()
         if (!root.renameTo(target)) root.copyRecursively(target, overwrite = true)
@@ -79,7 +94,7 @@ class ModRepository(private val context: Context) {
     private val defaultEnabled: Boolean
         get() = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             .getBoolean("enableOnInstall", true)
-    fun enabledIds(): List<String> = list().filter { isEnabled(it.key) }.map { it.key }
+    fun enabledIds(): List<String> = list().filter { isEnabled(it.uid) }.map { it.uid }
 
     /** O arquivo de entrada, em `content/` ou na raiz (formato antigo). */
     private fun entryOf(dir: File): File? {

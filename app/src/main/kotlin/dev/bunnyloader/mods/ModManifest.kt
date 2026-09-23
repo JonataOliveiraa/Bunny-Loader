@@ -12,15 +12,18 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class ModManifest(
     /**
-     * Identidade do pacote no mundo. É por ela que o mod é instalado, ligado e
-     * desinstalado.
+     * Identidade do pacote no mundo, e o único nome pelo qual ele é instalado,
+     * ligado e desinstalado. **Obrigatório**: pacote sem uid não carrega.
      *
      * O `id` é um apelido legível e dois autores podem escolher o mesmo — se a
      * identidade fosse ele, instalar o "vidacheia" de alguém apagaria o seu. O
-     * uid é gerado uma vez, ao empacotar, e nunca muda: é o que permite
-     * reconhecer uma ATUALIZAÇÃO do mesmo mod em vez de um mod diferente.
+     * uid é emitido uma vez pelo site do Bunny Loader e nunca muda: é o que
+     * permite reconhecer uma ATUALIZAÇÃO do mesmo mod em vez de um mod
+     * diferente, e o que impede um autor de sequestrar o pacote de outro.
      *
-     * Formato: `<apelido>.<8 hex>`. Pacote antigo sem uid cai de volta no id.
+     * Formato: `<apelido>.<8 hex>`, minúsculo. O campo é lido como opcional de
+     * propósito — um manifesto sem uid tem de ser recusado com uma frase que o
+     * autor entenda, não estourar um erro de desserialização.
      */
     val uid: String = "",
     val id: String,
@@ -43,6 +46,20 @@ data class ModManifest(
     val entry: String = "main.js",
     val dependencies: List<String> = emptyList(),
 ) {
-    /** A identidade de verdade, com a saída para pacote antigo. */
-    val key: String get() = uid.ifBlank { id }
+    val hasValidUid: Boolean get() = isValidUid(uid)
+
+    companion object {
+        /**
+         * `hellomod.cac3da16` — apelido minúsculo, ponto, oito hexadecimais.
+         *
+         * A forma é conferida, e não só a presença, porque o uid vira NOME DE
+         * PASTA em `filesDir/mods/`. Sem isto, um manifesto com
+         * `"uid": "../databases"` faria o import apagar e reescrever fora da
+         * pasta de mods — o guarda de zip slip cuida das entradas do zip, mas
+         * o diretório de destino sai daqui.
+         */
+        private val UID = Regex("^[a-z0-9]+(?:[-_][a-z0-9]+)*[.][0-9a-f]{8}$")
+
+        fun isValidUid(uid: String): Boolean = UID.matches(uid)
+    }
 }

@@ -56,6 +56,8 @@ object Bl {
     val Text = Color.White
     val TextDim = Stone4
     val TextFaint = Stone3
+    /** Recusa e erro. O vermelho de dano do Terraria. */
+    val Bad = Color(0xFFE0603F)
 }
 
 /** Fonte pixelada de _icons/font.TTF — a mesma identidade do título. */

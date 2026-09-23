@@ -211,15 +211,16 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
     val doCatalogo = shell.entries.filter { it.uid in shell.installed }
     val state = rememberLazyListState()
-    var aviso by remember { mutableStateOf<String?>(null) }
+    // texto + deu certo? Uma recusa em verde de sucesso se le como sucesso.
+    var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
             aviso = shell.importPackage(uri).fold(
-                onSuccess = { "${it.name} instalado" },
-                onFailure = { "Não deu: ${it.message}" },
+                onSuccess = { "${it.name} instalado" to true },
+                onFailure = { "Não deu: ${it.message}" to false },
             )
         }
     }
@@ -242,8 +243,8 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                 icon = R.drawable.ic_folder,
             )
         }
-        aviso?.let {
-            PixelText(it, size = Ts.Small, color = Bl.Grass3,
+        aviso?.let { (texto, ok) ->
+            PixelText(texto, size = Ts.Small, color = if (ok) Bl.Grass3 else Bl.Bad,
                 modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp))
         }
 

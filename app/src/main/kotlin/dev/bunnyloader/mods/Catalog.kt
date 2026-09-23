@@ -29,7 +29,7 @@ class Catalog(private val context: Context) {
         val iconAsset: String?,
     ) {
         /** Identidade do pacote. Ver ModManifest.uid. */
-        val uid get() = manifest.key
+        val uid get() = manifest.uid
     }
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -46,6 +46,11 @@ class Catalog(private val context: Context) {
             val manifest = runCatching {
                 json.decodeFromString<ModManifest>(read(base, manifestName).decodeToString())
             }.getOrNull() ?: return@mapNotNull null
+            // A mesma regra do import vale para os nossos: um mod embutido sem
+            // uid valido nao aparece na vitrine. Se um dia um sample for
+            // empacotado errado, ele some da lista em vez de instalar numa
+            // pasta que o `list()` do repositorio depois ignora.
+            if (!manifest.hasValidUid) return@mapNotNull null
 
             val shots = THUMBS.firstOrNull { it in files }
             val previews = shots?.let {
@@ -140,10 +145,14 @@ class Catalog(private val context: Context) {
         /**
          * O formato de pacote (.bmod é um zip com isto dentro):
          *
-         *     manifest.json    id, nome, autor, categoria, descrição, versão
+         *     manifest.json    uid, id, nome, autor, categoria, descrição...
          *     icon.png         ícone do mod (opcional)
          *     thumbnails/      imagens da vitrine (opcional)
          *     content/         o mod em si — main.js e o que mais ele precisar
+         *
+         * O `uid` é obrigatório e é emitido pelo site do Bunny Loader, não pelo
+         * autor: é o que garante que dois mods de pessoas diferentes nunca
+         * ocupem a mesma pasta. Pacote sem uid não instala e não carrega.
          *
          * Os nomes antigos continuam aceitos: quem já tem pacote com `mod.json`
          * e `preview/` não precisa reempacotar, e o custo disso é uma lista de
