@@ -4,13 +4,13 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,12 +21,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -34,7 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -58,6 +59,10 @@ import kotlinx.coroutines.delay
  *  2. Painel com BISEL, não com sombra. O contorno escuro vem de fora, a luz
  *     de cima-esquerda e a sombra de baixo-direita, cada um com um pixel. É o
  *     que faz a superfície parecer recortada em vez de desenhada.
+ *
+ * E uma de toque: tudo que se aperta ganha a borda amarela enquanto o dedo
+ * está nele (`pixelClickable`), no lugar da onda do Material, que não tem
+ * nada de pixel.
  */
 
 // ------------------------------- sprites -------------------------------
@@ -93,91 +98,6 @@ fun SpriteFrame(res: Int, frameW: Int, frameH: Int, index: Int, size: Dp,
             srcSize = IntSize(frameW, frameH),
             dstOffset = IntOffset.Zero,
             dstSize = IntSize(this.size.width.toInt(), this.size.height.toInt()),
-            filterQuality = FilterQuality.None,
-        )
-    }
-}
-
-// --------------------------- tiles do Terraria ---------------------------
-//
-// Os atlas de tile (Tiles_1 = pedra, Tiles_2 = grama) têm a grade de 18x18 do
-// Terraria: 16 pixels de tile e 2 de respiro. As três colunas 1..3 são as
-// variações de um mesmo estado — alternar entre elas é o que tira a cara de
-// papel de parede repetido.
-//
-// Linha 0 = borda de cima (grama por cima da terra); linha 1 = miolo.
-
-const val TILE = 18
-const val TILE_PX = 16
-
-private fun DrawScope.drawTile(atlas: ImageBitmap, col: Int, row: Int, x: Float, y: Float,
-                               px: Float) {
-    drawImage(
-        image = atlas,
-        srcOffset = IntOffset(col * TILE, row * TILE),
-        srcSize = IntSize(TILE_PX, TILE_PX),
-        dstOffset = IntOffset(x.toInt(), y.toInt()),
-        // +1 fecha a costura que aparece quando px não é inteiro.
-        dstSize = IntSize(px.toInt() + 1, px.toInt() + 1),
-        filterQuality = FilterQuality.None,
-    )
-}
-
-/** Faixa de chão: uma linha de borda e o miolo até o fim da área. */
-fun DrawScope.drawTileGround(atlas: ImageBitmap, top: Float, px: Float, seed: Int = 0) {
-    val cols = (size.width / px).toInt() + 2
-    var y = top
-    var row = 0
-    var line = 0
-    while (y < size.height) {
-        for (i in 0 until cols) {
-            drawTile(atlas, 1 + (i + line * 2 + seed).mod(3), row, i * px, y, px)
-        }
-        y += px
-        row = 1
-        line++
-    }
-}
-
-/** Parede de tiles cobrindo tudo — o fundo em que os cartões se apoiam. */
-fun DrawScope.drawTileWall(atlas: ImageBitmap, px: Float, tint: Color) {
-    val cols = (size.width / px).toInt() + 2
-    val rows = (size.height / px).toInt() + 2
-    for (r in 0 until rows) {
-        for (c in 0 until cols) {
-            drawTile(atlas, 1 + (c + r * 2).mod(3), 1, c * px, r * px, px)
-        }
-    }
-    drawRect(tint)
-}
-
-/**
- * Um quadro da folha do coelho (NPC_46: 7 quadros de 48x40).
- *
- * A folha é desenhada virada para a ESQUERDA — é a convenção dos NPCs do
- * Terraria, que espelha quando o bicho anda para a direita. Então quem espelha
- * aqui é `facingRight`, não o contrário.
- */
-fun DrawScope.drawBunny(sheet: ImageBitmap, frame: Int, x: Float, y: Float, scale: Float,
-                        facingRight: Boolean) {
-    val fw = 48
-    val fh = sheet.height / 7
-    val w = fw * scale
-    val h = fh * scale
-    if (facingRight) {
-        scale(scaleX = -1f, scaleY = 1f, pivot = Offset(x + w / 2, y + h / 2)) {
-            drawImage(
-                sheet, srcOffset = IntOffset(0, frame * fh), srcSize = IntSize(fw, fh),
-                dstOffset = IntOffset(x.toInt(), y.toInt()),
-                dstSize = IntSize(w.toInt(), h.toInt()),
-                filterQuality = FilterQuality.None,
-            )
-        }
-    } else {
-        drawImage(
-            sheet, srcOffset = IntOffset(0, frame * fh), srcSize = IntSize(fw, fh),
-            dstOffset = IntOffset(x.toInt(), y.toInt()),
-            dstSize = IntSize(w.toInt(), h.toInt()),
             filterQuality = FilterQuality.None,
         )
     }
@@ -240,21 +160,20 @@ fun Modifier.pixelShadow(dx: Dp = 4.dp, dy: Dp = 5.dp): Modifier = drawBehind {
 }
 
 /**
- * Superfície de pedra com bisel. `raised = false` afunda (para campo de
- * entrada, poço de lista), `true` levanta (para cartão, botão).
+ * Painel com bisel. `raised = false` afunda (para campo de entrada, poço de
+ * lista), `true` levanta (para cartão, botão).
  *
- * O preenchimento é um degradê de cima para baixo, não uma cor chapada: uma
- * pedra iluminada de cima é o que faz a superfície parecer material, e não
- * retângulo. A borda tem três camadas — contorno, luz e sombra — que é o que o
- * próprio Terraria usa nos painéis dele.
+ * A cor é chapada: é a da paleta, e um degradê por cima a tiraria do tom. Quem
+ * dá o volume é a borda de três camadas — contorno, luz e sombra — que é o que
+ * o próprio Terraria usa nos painéis dele.
  */
 fun Modifier.pixelPanel(
-    fill: Color = Bl.Stone0,
+    fill: Color = Bl.Panel,
     raised: Boolean = true,
     outline: Color = Bl.Outline,
-    light: Color = Bl.Stone1,
-    dark: Color = Bl.Night,
-    gradient: Boolean = true,
+    light: Color = fill.mix(Color.White, 0.14f),
+    dark: Color = fill.mix(Bl.Night, 0.45f),
+    gradient: Boolean = false,
 ): Modifier = drawBehind {
     val b = 2.dp.toPx()
     val e = 2.dp.toPx()
@@ -282,6 +201,38 @@ fun Modifier.pixelPanel(
     drawRect(bottom, Offset(w - b - e, b), Size(e, h - 2 * b))
 }
 
+/**
+ * Moldura de imagem: borda lisa e fundo escuro, sem bisel. Um bisel em volta
+ * de uma arte compete com ela; a moldura só a separa do painel.
+ */
+fun Modifier.framePanel(
+    border: Color = Bl.FrameBorder,
+    fill: Color = Bl.FrameFill,
+): Modifier = drawBehind {
+    val b = 2.dp.toPx()
+    drawRect(border)
+    drawRect(fill, Offset(b, b), Size(size.width - 2 * b, size.height - 2 * b))
+}
+
+/**
+ * Clique com a borda amarela do toque, desenhada POR CIMA do conteúdo: assim
+ * vale para cartão, moldura e botão sem cada um saber disso.
+ */
+fun Modifier.pixelClickable(onClick: () -> Unit): Modifier = composed {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    drawWithContent {
+        drawContent()
+        if (pressed) drawPressBorder()
+    }.clickable(interaction, indication = null, onClick = onClick)
+}
+
+fun DrawScope.drawPressBorder() {
+    val b = 2.dp.toPx()
+    drawRect(Bl.PressedBorder, Offset(b / 2, b / 2), Size(size.width - b, size.height - b),
+        style = Stroke(b))
+}
+
 fun Color.mix(other: Color, t: Float) = Color(
     red + (other.red - red) * t,
     green + (other.green - green) * t,
@@ -296,25 +247,25 @@ fun Color.mix(other: Color, t: Float) = Color(
 @Composable
 fun PixelCard(
     modifier: Modifier = Modifier,
-    fill: Color = Bl.Stone0,
+    fill: Color = Bl.Panel,
     shadow: Boolean = true,
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val base = (if (shadow) modifier.pixelShadow() else modifier).pixelPanel(fill = fill)
-    Box(if (onClick != null) base.clickable(onClick = onClick) else base, content = content)
+    Box(if (onClick != null) base.pixelClickable(onClick) else base, content = content)
 }
 
 /**
- * Botão de ação. Verde porque ação é o que está VIVO na interface; afunda um
- * pixel enquanto pressionado, que é o retorno que um botão de pixel dá.
+ * Botão de ação. Enquanto pressionado, afunda até a sombra, clareia e ganha a
+ * borda amarela — o retorno que um botão de pixel dá.
  */
 @Composable
 fun PixelButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    fill: Color = Bl.Grass2,
+    fill: Color = Bl.Button,
     textColor: Color = Color.White,
     icon: Int? = null,
     fontSize: Int = Ts.Item,
@@ -328,10 +279,9 @@ fun PixelButton(
             .then(if (pressed) Modifier.padding(start = 3.dp, top = 4.dp)
                   else Modifier.pixelShadow(3.dp, 4.dp))
             .pixelPanel(
-                fill = if (pressed) fill.mix(Bl.Night, 0.15f) else fill,
+                fill = if (pressed) Bl.ButtonPressed else fill,
                 raised = !pressed,
-                light = fill.mix(Color.White, 0.45f),
-                dark = fill.mix(Bl.Night, 0.55f),
+                outline = if (pressed) Bl.PressedBorder else Bl.Outline,
             )
             .clickable(interaction, indication = null, onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 10.dp),
@@ -354,15 +304,11 @@ fun PixelButton(
 
 /** Etiqueta de categoria (Textura, Armas, Cheat...). */
 @Composable
-fun PixelTag(text: String, fill: Color, modifier: Modifier = Modifier) {
+fun PixelTag(text: String, fill: Color = Bl.TitleFill, modifier: Modifier = Modifier) {
     Box(
         modifier
             .pixelShadow(2.dp, 3.dp)
-            .pixelPanel(
-                fill = fill,
-                light = fill.mix(Color.White, 0.4f),
-                dark = fill.mix(Bl.Night, 0.5f),
-            )
+            .pixelPanel(fill = fill)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {
         Text(text, fontFamily = PixelFont, fontSize = Ts.Small.sp, color = Color.White)
@@ -427,7 +373,31 @@ private fun Scrollbar(
         val total = port + m
         val thumb = size.height * (port.toFloat() / total).coerceAtMost(1f)
         val y = (v.toFloat() / m).coerceIn(0f, 1f) * (size.height - thumb)
-        drawRect(Bl.Stone2.copy(alpha = alpha * 0.9f), Offset(0f, y), Size(size.width, thumb))
+        drawRect(Bl.ButtonPressed.copy(alpha = alpha * 0.9f), Offset(0f, y), Size(size.width, thumb))
     }
 }
 
+
+// ------------------------------- seletor -------------------------------
+
+/**
+ * Campo de escolha: o valor no meio e as setas do jogo (TexturePackButtons)
+ * nas pontas. Afundado, como campo de entrada, no tom próprio dos seletores.
+ */
+@Composable
+fun PixelSelect(value: String, onPrev: () -> Unit, onNext: () -> Unit,
+                modifier: Modifier = Modifier) {
+    androidx.compose.foundation.layout.Row(
+        modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false).padding(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.pixelClickable(onPrev).padding(8.dp)) {
+            PixelIcon(dev.bunnyloader.R.drawable.ic_seta_esq, 22.dp)
+        }
+        PixelText(value, size = Ts.Item, align = TextAlign.Center,
+            modifier = Modifier.weight(1f))
+        Box(Modifier.pixelClickable(onNext).padding(8.dp)) {
+            PixelIcon(dev.bunnyloader.R.drawable.ic_seta_dir, 22.dp)
+        }
+    }
+}

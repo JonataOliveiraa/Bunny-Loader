@@ -53,7 +53,7 @@ data class ModManifest(
          * `dfac5a5e-dd9a-4e57-a306-4147d34693cd` — UUID canônico, minúsculo.
          *
          * A forma é conferida, e não só a presença, porque o uid vira NOME DE
-         * PASTA em `filesDir/mods/`. Sem isto, um manifesto com
+         * PASTA em `bunny_packs/`. Sem isto, um manifesto com
          * `"uid": "../databases"` faria o import apagar e reescrever fora da
          * pasta de mods — o guarda de zip slip cuida das entradas do zip, mas
          * o diretório de destino sai daqui. Hexadecimal e hífen não escapam de

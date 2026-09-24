@@ -17,7 +17,10 @@ void installCheats();
 //
 // `stack` importa: municao a 1 unidade e inutil — a Minishark nao atira com uma
 // bala so. O menu pede 999 para itens empilhaveis.
-void giveItem(int type, int stack);
+//
+// `player` e o indice em Main.player (-1 = o local). No servidor, e para quem
+// pediu pela rede; no cliente, vira pedido ao servidor (ver NetRequests).
+void giveItem(int type, int stack, int player = -1);
 
 // Pede pra dar `type` ao jogador. THREAD-SAFE: pode ser chamada de qualquer
 // thread (ex.: a UI thread, no onClick do botao). Apenas registra o pedido; o
@@ -31,7 +34,7 @@ void requestGive(int type, int stack);
  * Mesma mecânica do item: `requestSpawn` pode vir de qualquer thread e o hook
  * de DoUpdate executa no próximo quadro, na thread do jogo.
  */
-void spawnNpc(int type);
+void spawnNpc(int type, int player = -1);
 
 /**
  * Nomes de TODO item e TODO NPC, vindos da Localization do jogo.

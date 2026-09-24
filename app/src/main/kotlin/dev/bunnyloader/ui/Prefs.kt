@@ -30,8 +30,26 @@ class Prefs(context: Context) {
         get() = p.getBoolean(DEV_CHANNEL, false)
         set(v) = p.edit().putBoolean(DEV_CHANNEL, v).apply()
 
+    /**
+     * O cenário do fundo: o nome de um [Biome], ou vazio para trocar a cada vez
+     * que o launcher abre (o próximo da lista, guardado em [LAST_SCENERY]).
+     */
+    var scenery: String
+        get() = p.getString(SCENERY, "") ?: ""
+        set(v) = p.edit().putString(SCENERY, v).apply()
+
+    /** O cenário que vale agora. No automático, avança um e grava. */
+    fun resolveScenery(choice: String): Biome {
+        Biome.entries.firstOrNull { it.name == choice }?.let { return it }
+        val next = (p.getInt(LAST_SCENERY, -1) + 1).mod(Biome.entries.size)
+        p.edit().putInt(LAST_SCENERY, next).apply()
+        return Biome.entries[next]
+    }
+
     companion object {
         const val NAME = "settings"
+        const val SCENERY = "scenery"
+        const val LAST_SCENERY = "lastScenery"
         const val ENABLE_ON_INSTALL = "enableOnInstall"
         const val ERROR_PANEL = "errorPanel"
         const val DEV_CHANNEL = "devChannel"

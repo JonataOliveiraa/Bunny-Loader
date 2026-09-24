@@ -11,6 +11,17 @@ próprio processo, intercepta métodos nativos gerados pelo IL2CPP e executa mod
 > cópia instalada e comprada pelo usuário. Os dumps em `refs/` são gerados
 > localmente e nunca publicados.
 
+## Criando mods
+
+Os guias estão em [`docs/mods/`](docs/mods/README.md):
+
+1. [Do zero, com hooks](docs/mods/01-hooks-do-zero.md) — mudar o que o jogo já tem.
+2. [Conteúdo novo: ModItem, ModNPC...](docs/mods/02-moditem-modnpc.md) — criar item, projétil e NPC.
+
+Os mods instalados ficam em `Android/data/com.bunnyloader/bunny_packs/<uid>/`,
+e o jogo carrega de lá: dá para editar um mod direto no aparelho e só reabrir
+o jogo.
+
 ## Stack
 
 | Camada | Tecnologia |
@@ -30,7 +41,7 @@ app/src/main/
   cpp/                      Núcleo nativo (libbunny.so)
   res/                      Recursos Android
 refs/                       Dump local do jogo (NÃO versionado)
-samples/HelloMod/           Mod de exemplo (JS)
+samples/                    Mods de exemplo (JS), do mais simples ao ExampleMod
 docs/ARCHITECTURE.md        Arquitetura detalhada
 docs/UNITY-HOSTING.md       Como hospedar a UnityPlayer (análise do dex)
 tools/                      Ferramentas de PC (packer, etc. — futuro)

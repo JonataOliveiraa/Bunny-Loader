@@ -56,7 +56,7 @@ object Eligibility {
         }
 
         val info = runCatching { pm.getPackageInfo(GameInstall.PACKAGE, flags) }.getOrNull()
-            ?: return Result(false, "O Terraria não está instalado neste aparelho.")
+            ?: return debugPass("O Terraria não está instalado neste aparelho.")
 
         val installer = runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -66,7 +66,7 @@ object Eligibility {
             }
         }.getOrNull()
         if (installer != PLAY) {
-            return Result(false, "O Terraria instalado não veio da Play (origem: ${installer ?: "desconhecida"}).")
+            return debugPass("O Terraria instalado não veio da Play (origem: ${installer ?: "desconhecida"}).")
         }
 
         val digests = certDigests(info)
@@ -97,6 +97,16 @@ object Eligibility {
         }
         return Result(true, "Terraria oficial da Play encontrado.")
     }
+
+    /**
+     * Recusa em release; em debug passa, dizendo alto o que faltou. É o que
+     * deixa um segundo emulador (sem conta Google, logo sem Terraria da Play)
+     * entrar nos testes de multijogador. O APK distribuído é release, e nele
+     * BuildConfig.DEBUG é false: a checagem vale inteira.
+     */
+    private fun debugPass(reason: String): Result =
+        if (BuildConfig.DEBUG) Result(true, "DEBUG: checagem ignorada. $reason")
+        else Result(false, reason)
 
     private fun certDigests(info: android.content.pm.PackageInfo): List<String> {
         val raw = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

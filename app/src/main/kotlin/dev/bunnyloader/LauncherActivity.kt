@@ -5,7 +5,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -53,9 +60,9 @@ import dev.bunnyloader.ui.PixelText
 import dev.bunnyloader.ui.mix
 import dev.bunnyloader.ui.Shell
 import dev.bunnyloader.ui.Ts
-import dev.bunnyloader.ui.drawTileGround
-import dev.bunnyloader.ui.drawTileWall
-import dev.bunnyloader.ui.pixelShadow
+import dev.bunnyloader.ui.Biome
+import dev.bunnyloader.ui.Prefs
+import dev.bunnyloader.ui.Scenery
 
 /**
  * Launcher do Bunny Loader.
@@ -81,46 +88,66 @@ private enum class Tab(val icon: Int, val label: String) {
 private fun LauncherScreen() {
     val ctx = LocalContext.current
     val shell = remember { Shell(ctx) }
+    val prefs = remember { Prefs(ctx) }
     var tab by remember { mutableStateOf(Tab.INICIO) }
     var openMod by remember { mutableStateOf<String?>(null) }
+    var sceneryChoice by remember { mutableStateOf(prefs.scenery) }
+    // Saveable: girar a tela recria a Activity, e no automático isso trocaria
+    // o cenário no meio do uso.
+    val biome = Biome.entries[rememberSaveable(sceneryChoice) {
+        prefs.resolveScenery(sceneryChoice).ordinal
+    }]
 
     BackHandler(enabled = openMod != null) { openMod = null }
 
-    val stone = ImageBitmap.imageResource(R.drawable.tile_stone)
+    // Voltou do jogo ou do gerenciador de arquivos: relê bunny_packs, que pode
+    // ter pacote novo ou editado à mão.
+    val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.DisposableEffect(lifecycle) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) shell.rescan()
+        }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
 
-    Column(
-        Modifier.fillMaxSize()
-            .drawBehind {
-                // Parede de pedra, bem escurecida. Um fundo liso deixava os
-                // cartões boiando: sem textura atrás, sombra não tem em que
-                // cair e a tela inteira parece um esboço.
-                drawTileWall(stone, 20.dp.toPx(), Bl.Night.copy(alpha = 0.78f))
-            }
-            .statusBarsPadding(),
-    ) {
-        // Teto de largura: o layout foi pensado para um celular em pé. Solto num
-        // tablet ou no emulador deitado, uma linha de mod com 1600px vira uma
-        // faixa vazia com um ícone perdido na esquerda.
-        Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            Box(Modifier.widthIn(max = 560.dp).fillMaxSize()) {
-                val detail = openMod?.let { shell.entry(it) }
-                if (detail != null) {
-                    ModDetail(detail, shell) { openMod = null }
-                } else {
-                    when (tab) {
-                        Tab.INICIO -> InicioTab(shell) { openMod = it }
-                        Tab.EXPLORAR -> ExplorarTab(shell) { openMod = it }
-                        Tab.PACOTES -> PacotesTab(shell) { openMod = it }
-                        Tab.CONFIG -> ConfigTab(shell)
+    // A câmera do cenário dá um passo por aba (e meio ao abrir um mod): é o
+    // que faz as camadas deslizarem cada uma no seu ritmo.
+    val pan by animateFloatAsState(
+        tab.ordinal * 240f + (if (openMod != null) 120f else 0f),
+        tween(1400, easing = FastOutSlowInEasing), label = "camera",
+    )
+
+    Box(Modifier.fillMaxSize()) {
+        Scenery(biome, { pan }, Modifier.fillMaxSize())
+        Column(Modifier.fillMaxSize().statusBarsPadding()) {
+            // Teto de largura: o layout foi pensado para um celular em pé. Solto num
+            // tablet ou no emulador deitado, uma linha de mod com 1600px vira uma
+            // faixa vazia com um ícone perdido na esquerda.
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                Box(Modifier.widthIn(max = 560.dp).fillMaxSize()) {
+                    val detail = openMod?.let { shell.entry(it) }
+                    if (detail != null) {
+                        ModDetail(detail, shell) { openMod = null }
+                    } else {
+                        when (tab) {
+                            Tab.INICIO -> InicioTab(shell) { openMod = it }
+                            Tab.EXPLORAR -> ExplorarTab(shell) { openMod = it }
+                            Tab.PACOTES -> PacotesTab(shell) { openMod = it }
+                            Tab.CONFIG -> ConfigTab(shell, sceneryChoice) {
+                                sceneryChoice = it
+                                prefs.scenery = it
+                            }
+                        }
                     }
                 }
             }
+            NavBar(
+                current = tab,
+                onSelect = { tab = it; openMod = null },
+                onStart = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },
+            )
         }
-        NavBar(
-            current = tab,
-            onSelect = { tab = it; openMod = null },
-            onStart = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },
-        )
     }
 }
 
@@ -139,6 +166,8 @@ private fun LauncherScreen() {
  */
 @Composable
 private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
+    val startInteraction = remember { MutableInteractionSource() }
+    val startPressed by startInteraction.collectIsPressedAsState()
     Box(Modifier.fillMaxWidth().height(106.dp)) {
         Row(
             Modifier.align(Alignment.BottomCenter)
@@ -169,23 +198,23 @@ private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
                 .padding(bottom = 8.dp)
                 .size(86.dp)
                 .drawBehind {
-                    // Sombra redonda antes do botão, para ele pousar na barra
-                    // em vez de flutuar sobre ela.
-                    drawCircle(Bl.Shadow, center = center.copy(
-                        x = center.x + 3.dp.toPx(), y = center.y + 5.dp.toPx()))
-                    // Contorno fino: 4dp de preto num círculo de 86 viravam um
-                    // anel, não uma borda.
-                    drawCircle(Bl.Outline)
+                    // Só o contorno fino. A sombra deslocada que ele tinha
+                    // embaixo lia como uma borda grossa de um lado só.
+                    // No toque, a borda é a amarela.
+                    drawCircle(if (startPressed) Bl.PressedBorder else Bl.Outline)
                     drawCircle(
-                        Brush.verticalGradient(listOf(Bl.Grass4, Bl.Grass1)),
-                        radius = size.minDimension / 2 - 1.5.dp.toPx(),
+                        if (startPressed) Bl.ButtonPressed else Bl.TitleFill,
+                        radius = size.minDimension / 2 - 2.dp.toPx(),
                     )
                 }
                 .clip(CircleShape)
-                .clickable(onClick = onStart),
+                .clickable(startInteraction, indication = null, onClick = onStart),
             contentAlignment = Alignment.Center,
         ) {
-            PixelIcon(R.drawable.ic_start, 44.dp)
+            // Centro ótico, não geométrico: o triângulo tem a massa na base
+            // (à esquerda) e a arte traz a sombra embaixo à direita. Centrado
+            // pela caixa, ele parecia puxado para a esquerda e para cima.
+            PixelIcon(R.drawable.ic_start, 44.dp, Modifier.offset(x = 3.dp, y = 1.dp))
         }
     }
 }
@@ -193,15 +222,19 @@ private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
 @Composable
 private fun TabButton(tab: Tab, current: Tab, onSelect: (Tab) -> Unit) {
     val selected = tab == current
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    // Botão sem caixa: quem acende no toque (e na aba atual) é o texto.
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onSelect(tab) }.padding(horizontal = 4.dp),
+        modifier = Modifier.clickable(interaction, indication = null) { onSelect(tab) }
+            .padding(horizontal = 4.dp),
     ) {
         PixelIcon(tab.icon, if (selected) 38.dp else 32.dp, alpha = if (selected) 1f else 0.75f)
         PixelText(
             tab.label,
             size = Ts.Small,
-            color = if (selected) Bl.Grass4 else Color.White,
+            color = if (selected || pressed) Bl.PressedText else Color.White,
             modifier = Modifier.padding(top = 2.dp),
         )
     }

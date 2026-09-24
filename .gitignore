@@ -59,3 +59,7 @@ _sprites/*
 tools/disasm/*.pkl
 tools/disasm/fstarts.txt
 tools/disasm/dynsym.txt
+
+# Codigo do tModLoader/ExampleMod usado so como referencia local.
+exmod_tmod/
+exmod_tl/

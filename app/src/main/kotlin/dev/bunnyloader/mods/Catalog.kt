@@ -15,18 +15,26 @@ import java.io.File
  * literalmente o arquivo que o motor vai avaliar, então tamanho, versão e data
  * são o arquivo de verdade e não uma tabela que envelhece sozinha.
  *
- * Instalar é copiar para `filesDir/mods/<id>/`, que já é de onde o núcleo
+ * Instalar é copiar para `bunny_packs/<uid>/`, que já é de onde o núcleo
  * nativo carrega (`ModLoader::loadAll`). Nenhum caminho novo: a vitrine só põe
  * arquivo onde o motor já procurava.
  */
 class Catalog(private val context: Context) {
 
+    /**
+     * Um mod para a vitrine. Os do catálogo apontam para `assets/` (caminho
+     * relativo); os que só existem no disco — importados ou colados à mão em
+     * bunny_packs — apontam para arquivos (caminho absoluto). `loadBitmap`
+     * entende os dois.
+     */
     data class Entry(
         val manifest: ModManifest,
         val assetDir: String,
         val sizeBytes: Long,
         val previews: List<String>,
         val iconAsset: String?,
+        val bannerAsset: String?,
+        val onDisk: Boolean = false,
     ) {
         /** Identidade do pacote. Ver ModManifest.uid. */
         val uid get() = manifest.uid
@@ -66,6 +74,7 @@ class Catalog(private val context: Context) {
                 sizeBytes = treeSize(base),
                 previews = previews,
                 iconAsset = if (ICON in files) "$base/$ICON" else null,
+                bannerAsset = if (BANNER in files) "$base/$BANNER" else null,
             )
         }.sortedBy { it.manifest.name }
     }
@@ -113,8 +122,27 @@ class Catalog(private val context: Context) {
         prefs.edit().putBoolean(SEEDED, true).apply()
     }
 
-    fun loadBitmap(assetPath: String): ImageBitmap? = runCatching {
-        context.assets.open(assetPath).use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
+    /** A entrada de um mod que está só no disco (a pasta dele em bunny_packs). */
+    fun fromDisk(manifest: ModManifest, dir: File): Entry {
+        val shots = THUMBS.map { File(dir, it) }.firstOrNull { it.isDirectory }
+        return Entry(
+            manifest = manifest,
+            assetDir = dir.path,
+            sizeBytes = dir.walkTopDown().filter { it.isFile }.sumOf { it.length() },
+            previews = shots?.listFiles().orEmpty()
+                .filter { it.name.endsWith(".png") || it.name.endsWith(".jpg") }
+                .sortedBy { it.name }
+                .map { it.path },
+            iconAsset = File(dir, ICON).takeIf { it.isFile }?.path,
+            bannerAsset = File(dir, BANNER).takeIf { it.isFile }?.path,
+            onDisk = true,
+        )
+    }
+
+    /** Caminho absoluto = arquivo no disco; relativo = dentro de `assets/`. */
+    fun loadBitmap(path: String): ImageBitmap? = runCatching {
+        if (path.startsWith("/")) BitmapFactory.decodeFile(path)?.asImageBitmap()
+        else context.assets.open(path).use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
     }.getOrNull()
 
     private fun read(dir: String, name: String): ByteArray =
@@ -146,7 +174,8 @@ class Catalog(private val context: Context) {
          * O formato de pacote (.bmod é um zip com isto dentro):
          *
          *     manifest.json    uid, id, nome, autor, categoria, descrição...
-         *     icon.png         ícone do mod (opcional)
+         *     icon.png         ícone do mod, quadrado (opcional; sem ele, o da categoria)
+         *     banner.png       capa da vitrine, ~3,4:1 (opcional)
          *     thumbnails/      imagens da vitrine (opcional)
          *     content/         o mod em si — main.js e o que mais ele precisar
          *
@@ -161,6 +190,7 @@ class Catalog(private val context: Context) {
         val MANIFESTS = listOf("manifest.json", "mod.json")
         val THUMBS = listOf("thumbnails", "preview")
         const val ICON = "icon.png"
+        const val BANNER = "banner.png"
         const val CONTENT = "content"
     }
 }

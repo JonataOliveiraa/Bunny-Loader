@@ -8,14 +8,20 @@ import java.io.InputStream
 import java.util.zip.ZipInputStream
 
 /**
- * Os mods instalados, em `filesDir/mods/<id>/` — a mesma pasta de onde o núcleo
- * nativo carrega. Importar é desempacotar ali; não há segundo lugar nem índice
- * paralelo que possa discordar do disco.
+ * Os mods instalados, em `Android/data/com.bunnyloader/bunny_packs/<uid>/` — a
+ * mesma pasta de onde o núcleo nativo carrega. Importar é desempacotar ali; não
+ * há segundo lugar nem índice paralelo que possa discordar do disco.
  *
- * Um pacote é um `.bmod` (zip). O conteúdo esperado está em Catalog.Companion.
+ * Fica no armazenamento externo do app, ao lado de `Players/` e `Worlds/`, de
+ * propósito: dá para abrir num gerenciador de arquivos (ou `adb push`), mexer
+ * no `main.js` ou numa textura e só reabrir o jogo. Pasta colada ali à mão
+ * aparece na lista como qualquer pacote importado.
+ *
+ * Um pacote é um zip (`.bmod` ou `.zip`). O conteúdo esperado está em
+ * Catalog.Companion.
  */
 class ModRepository(private val context: Context) {
-    val modsDir: File = File(context.filesDir, "mods").apply { mkdirs() }
+    val modsDir: File = packsDir(context).also { migrateFrom(File(context.filesDir, "mods"), it) }
     private val prefs = context.getSharedPreferences("mods", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -47,9 +53,13 @@ class ModRepository(private val context: Context) {
      */
     fun import(uri: Uri): Result<ModManifest> = runCatching {
         val temp = File(context.cacheDir, "import").apply { deleteRecursively(); mkdirs() }
-        context.contentResolver.openInputStream(uri)
+        val entries = context.contentResolver.openInputStream(uri)
             ?.use { unzip(it, temp) }
             ?: error("não consegui abrir o arquivo")
+        require(entries > 0) {
+            "isto não é um pacote: o arquivo precisa ser um zip (.bmod ou .zip) com " +
+                "manifest.json, icon.png e a pasta content/"
+        }
 
         // Alguns compactadores põem tudo dentro de uma pasta com o nome do
         // pacote. Se a raiz só tem um diretório e o manifesto está lá, sobe um
@@ -116,19 +126,55 @@ class ModRepository(private val context: Context) {
         .firstOrNull { it.isFile }
         ?.let { f -> runCatching { json.decodeFromString<ModManifest>(f.readText()) }.getOrNull() }
 
-    /** Protege contra zip slip: nenhuma entrada pode escrever fora do alvo. */
-    private fun unzip(input: InputStream, target: File) {
+    /**
+     * Protege contra zip slip: nenhuma entrada pode escrever fora do alvo.
+     * Devolve quantas entradas leu — zero é "não era zip", que o
+     * ZipInputStream não acusa sozinho.
+     */
+    private fun unzip(input: InputStream, target: File): Int {
+        var count = 0
         ZipInputStream(input).use { zip ->
             generateSequence { zip.nextEntry }.forEach { entry ->
+                count++
                 val out = File(target, entry.name).canonicalFile
                 require(out.path.startsWith(target.canonicalPath)) { "caminho inválido no zip" }
                 if (entry.isDirectory) out.mkdirs()
                 else { out.parentFile?.mkdirs(); out.outputStream().use { zip.copyTo(it) } }
             }
         }
+        return count
     }
+
+    /** A pasta de um mod instalado, se ele está no disco. */
+    fun dirOf(uid: String): File? = File(modsDir, uid).takeIf { it.isDirectory }
 
     companion object {
         const val BL_VERSION = 1
+        const val PACKS_DIR = "bunny_packs"
+
+        /**
+         * `Android/data/<pacote>/bunny_packs`. getExternalFilesDir aponta para
+         * `.../<pacote>/files`; o pai é a pasta do app, a mesma dos saves. Sem
+         * armazenamento externo (raro), cai na pasta interna.
+         */
+        fun packsDir(context: Context): File {
+            val base = context.getExternalFilesDir(null)?.parentFile ?: context.filesDir
+            return File(base, PACKS_DIR).apply { mkdirs() }
+        }
+
+        /**
+         * Até 2026-09-24 os mods moravam em `filesDir/mods`, invisível para o
+         * usuário. Muda uma vez: o que já existe no destino ganha (é mais novo).
+         */
+        private fun migrateFrom(old: File, target: File) {
+            val children = old.listFiles() ?: return
+            for (dir in children) {
+                val dest = File(target, dir.name)
+                if (!dest.exists() && !dir.renameTo(dest)) {
+                    dir.copyRecursively(dest, overwrite = true)
+                }
+            }
+            old.deleteRecursively()
+        }
     }
 }

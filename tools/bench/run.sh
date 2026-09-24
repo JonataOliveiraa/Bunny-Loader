@@ -16,16 +16,15 @@ export MSYS_NO_PATHCONV=1
 uid() { python -c "import json,sys; print(json.load(open(sys.argv[1]))['uid'])" "$1/manifest.json"; }
 
 adb -s "$D" shell am force-stop com.bunnyloader
-# Logo depois de um `adb install` o run-as pode falhar por alguns segundos
-# (o pacote ainda esta sendo registrado); espera ele responder.
-for i in $(seq 1 15); do
-    adb -s "$D" shell "run-as com.bunnyloader true" 2>/dev/null && break
-    sleep 2
-done
+# Os mods moram em Android/data/com.bunnyloader/bunny_packs/<uid>. Arquivo
+# posto ali pelo adb e do usuario `shell`: sem o chmod o app le, mas nao
+# consegue apagar nem sobrescrever (o mesmo problema dos saves).
+PACKS=/sdcard/Android/data/com.bunnyloader/bunny_packs
 for dir in "$@"; do
     u=$(uid "$dir")
-    adb -s "$D" push "$(cygpath -w "$dir")" /data/local/tmp/blmod >/dev/null
-    adb -s "$D" shell "run-as com.bunnyloader sh -c 'rm -rf files/mods/$u; cp -r /data/local/tmp/blmod files/mods/$u'; rm -rf /data/local/tmp/blmod"
+    adb -s "$D" shell "rm -rf $PACKS/$u; mkdir -p $PACKS"
+    adb -s "$D" push "$(cygpath -w "$dir")" "$PACKS/$u" >/dev/null
+    adb -s "$D" shell "chmod -R 777 $PACKS/$u"
 done
 adb -s "$D" logcat -c
 adb -s "$D" shell monkey -p com.bunnyloader -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1

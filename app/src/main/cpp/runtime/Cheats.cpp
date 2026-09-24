@@ -13,6 +13,7 @@
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
 #include "runtime/ModProjectiles.h"
+#include "runtime/NetRequests.h"
 #include "runtime/Powers.h"
 #include <atomic>
 #include <chrono>
@@ -60,6 +61,8 @@ const MethodInfo* g_newNpc = nullptr;    // NPC.NewNPC(source, X, Y, Type, ...)
 const MethodInfo* g_sourceCtor = nullptr;  // EntitySource_DebugCommand.ctor()
 Il2CppClass* g_sourceClass = nullptr;
 bool g_refsOk = false;
+
+constexpr int kMsgSyncNpc = 23;           // MessageID.SyncNPC
 
 // Desempacota um int boxed (retorno de runtime_invoke). O valor vem logo apos
 // o cabecalho do objeto.
@@ -112,17 +115,26 @@ bool resolveCheatRefs() {
     return true;
 }
 
-/** O jogador local, ou nullptr fora do mundo. */
-Il2CppObject* localPlayer() {
+/**
+ * Main.player[index], ou o jogador local com index < 0. nullptr fora do mundo
+ * ou com indice fora do array (o indice pode vir da rede).
+ */
+Il2CppObject* playerAt(int index) {
     auto& a = il2cpp::api();
     Il2CppArray* players = nullptr;
     a.field_static_get_value(g_playerField, &players);
     if (!players) return nullptr;
-    Il2CppObject* exc = nullptr;
-    int me = unboxInt(a.runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
-    if (exc || me < 0 || static_cast<uintptr_t>(me) >= players->length) return nullptr;
-    return reinterpret_cast<Il2CppObject**>(arrayData(players))[me];
+    if (index < 0) {
+        Il2CppObject* exc = nullptr;
+        index = unboxInt(a.runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
+        if (exc) return nullptr;
+    }
+    if (index < 0 || static_cast<uintptr_t>(index) >= players->length) return nullptr;
+    return reinterpret_cast<Il2CppObject**>(arrayData(players))[index];
 }
+
+/** O jogador local, ou nullptr fora do mundo. */
+Il2CppObject* localPlayer() { return playerAt(-1); }
 
 // Comeca true: sem get_gameMenu o botao nunca apareceria.
 std::atomic<bool> g_inWorld{true};
@@ -517,6 +529,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModProjectiles();
     tickModNpcs();
     tickContentReady();
+    tickNetRequests();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {
         giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));
@@ -558,14 +571,22 @@ void requestSpawn(int type, int count) {
     }
 }
 
-void spawnNpc(int type) {
+void spawnNpc(int type, int player) {
     auto& a = il2cpp::api();
     if (!g_refsOk || !g_newNpc || !g_sourceCtor) {
         BL_ERROR("cheats: invocar NPC indisponivel");
         return;
     }
-    Il2CppObject* p = localPlayer();
-    if (!p) { BL_WARN("spawnNpc: sem jogador (fora do mundo?)"); return; }
+    // No cliente, NewNPC cria o NPC so no Main.npc DELE: ninguem mais ve, mas
+    // ele bate no jogador (o dano ao jogador e sincronizado). Quem cria NPC e
+    // o servidor, entao o cliente pede (ver NetRequests).
+    const int mode = netMode();
+    if (mode == 1) {
+        sendToServer("npc " + std::to_string(type));
+        return;
+    }
+    Il2CppObject* p = playerAt(player);
+    if (!p) { BL_WARN("spawnNpc: sem jogador %d (fora do mundo?)", player); return; }
 
     // Uma fonte so, reaproveitada: criar a cada invocacao geraria lixo por
     // nada, e ela nao guarda estado.
@@ -588,23 +609,27 @@ void spawnNpc(int type) {
     Il2CppObject* exc = nullptr;
     int idx = unboxInt(a.runtime_invoke(g_newNpc, nullptr, args, &exc));
     if (exc) { BL_ERROR("spawnNpc: NewNPC lancou excecao (type=%d)", type); return; }
-    BL_INFO("spawnNpc: type=%d em (%d,%d) -> npc[%d]", type, x, y, idx);
+    // No servidor (NetHost), o NewNPC so marca spawnNeedsSyncing e o NPC chega aos
+    // clientes na proxima rodada de sincronizacao. Mandar agora evita o
+    // intervalo em que ele existe so para quem hospeda.
+    if ((mode & 2) && idx >= 0 && idx < 200) sendData(kMsgSyncNpc, idx);
+    BL_INFO("spawnNpc: type=%d em (%d,%d) -> npc[%d] (netMode %d, jogador %d)",
+            type, x, y, idx, mode, player);
 }
 
-void giveItem(int type, int stack) {
+void giveItem(int type, int stack, int player) {
     using namespace il2cpp;
     if (!g_refsOk) { BL_ERROR("cheats: refs nao prontas"); return; }
     auto& a = api();
 
-    Il2CppArray* players = nullptr;
-    a.field_static_get_value(g_playerField, &players);
-    Il2CppObject* exc0 = nullptr;
-    int me = unboxInt(a.runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc0));
-    if (!players) { BL_WARN("giveItem: sem array de players (fora do mundo?)"); return; }
-
-    auto** elems = reinterpret_cast<Il2CppObject**>(arrayData(players));
-    Il2CppObject* p = elems[me];
-    if (!p) { BL_WARN("giveItem: player[%d] nulo (fora do mundo?)", me); return; }
+    // No cliente, o item criado pelo NewItem nao chegava ao inventario (o
+    // servidor e o dono dos itens do mundo). Pede a ele, como o NPC.
+    if (netMode() == 1) {
+        sendToServer("item " + std::to_string(type) + " " + std::to_string(stack));
+        return;
+    }
+    Il2CppObject* p = playerAt(player);
+    if (!p) { BL_WARN("giveItem: sem jogador %d (fora do mundo?)", player); return; }
 
     Vector2 pos = field<Vector2>(p, game().entity.position);
     int x = static_cast<int>(pos.x), y = static_cast<int>(pos.y);
@@ -621,10 +646,11 @@ void giveItem(int type, int stack) {
     Il2CppObject* exc = nullptr;
     int idx = unboxInt(a.runtime_invoke(g_newItem, nullptr, args, &exc));
     if (exc) { BL_ERROR("giveItem: NewItem lancou excecao"); return; }
-    BL_INFO("giveItem: type=%d x%d dado em (%d,%d) -> item[%d]", t, n, x, y, idx);
+    BL_INFO("giveItem: type=%d x%d dado em (%d,%d) -> item[%d] (jogador %d)", t, n, x, y, idx, player);
 }
 
 void installCheats() {
+    installNetRequests();
     g_refsOk = resolveCheatRefs();
     if (!g_refsOk) { BL_ERROR("cheats: desabilitado (refs faltando)"); return; }
 

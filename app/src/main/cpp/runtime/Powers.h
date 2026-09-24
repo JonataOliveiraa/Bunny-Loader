@@ -47,6 +47,13 @@ enum class Power : int {
 void setPower(int id, int level);
 
 /**
+ * Pedido de um cliente (ver NetRequests): so aceita os poderes de MUNDO
+ * (tempo parado, chuva, vento, sem inimigos, hardmode, dificuldade). Os de
+ * jogador sao de cada um e nao vem pela rede. false = recusado.
+ */
+bool setWorldPowerFromNet(int id, int level);
+
+/**
  * Hora do dia, como os botoes da Jornada: 0 amanhecer, 1 meio-dia,
  * 2 anoitecer, 3 meia-noite. THREAD-SAFE; roda no proximo quadro, no mundo.
  */

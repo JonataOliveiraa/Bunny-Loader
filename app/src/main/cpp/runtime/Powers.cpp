@@ -1,4 +1,5 @@
 #include "runtime/Powers.h"
+#include "runtime/NetRequests.h"
 #include "runtime/Cheats.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -98,6 +99,29 @@ constexpr int kTeleportSearchTiles = 150;
 constexpr int kWorldMarginTiles = 41;
 
 constexpr int32_t kNetClient = 1;      // Main.netMode de quem entrou num servidor
+
+// Mensagens do jogo usadas para mandar o mundo aos clientes (MessageID).
+constexpr int kMsgWorldData = 7;
+constexpr int kMsgTimeSync = 18;
+// Com poder de mundo segurando algo (tempo parado, chuva, vento), o servidor
+// reenvia o mundo nesse intervalo, em quadros: o cliente simula o relogio e o
+// clima sozinho entre uma sincronizacao e outra.
+constexpr int kWorldResyncFrames = 60;
+
+/**
+ * Os poderes que mexem no MUNDO, nao no jogador. No cliente eles valem na
+ * tela dele, mas quem manda no mundo e o servidor: o menu do cliente tambem
+ * pede a ele (ver forwardWorldPowers).
+ */
+bool isWorldPower(Power p) {
+    switch (p) {
+    case Power::TimeStop: case Power::Rain: case Power::Wind: case Power::NoSpawns:
+    case Power::Hardmode: case Power::Difficulty:
+        return true;
+    default:
+        return false;
+    }
+}
 
 std::atomic<int> g_level[kPowerCount];
 
@@ -897,6 +921,18 @@ void updateWorldState() {
 }
 
 /** O botao de hora: o mesmo SkipToTime dos botoes da Jornada. */
+/**
+ * Mundo mudou no servidor: manda o estado aos clientes. A 7 (WorldData) leva
+ * hora, dia/noite, chuva, vento, hardmode e modo de jogo; a 18 e a da hora,
+ * com a altura do sol e da lua. Sem isto o cliente so ve na proxima rodada
+ * de sincronizacao, e o relogio dele segue andando por conta propria.
+ */
+void broadcastWorld(bool time) {
+    if (!isNetHost()) return;
+    sendData(kMsgWorldData, 0);
+    if (time) sendData(kMsgTimeSync, 0);
+}
+
 void applyTimeOfDay(int which) {
     TimeOfDay t = kTimesOfDay[which];
     Il2CppObject* exc = nullptr;
@@ -905,6 +941,7 @@ void applyTimeOfDay(int which) {
     if (exc) { BL_ERROR("poderes: SkipToTime lancou excecao"); return; }
     // Com o tempo parado, e a hora nova que fica parada.
     g_haveFrozenTime = false;
+    broadcastWorld(true);
     BL_INFO("poderes: hora -> %d (%s)", t.time, t.day ? "dia" : "noite");
 }
 
@@ -928,6 +965,7 @@ void applyHardmode(int command) {
         writeStatic<bool>(W.hardMode, false);
         BL_INFO("poderes: hardmode desligado");
     }
+    broadcastWorld(false);
 }
 
 /**
@@ -943,6 +981,7 @@ void applyDifficulty(int level) {
     il2cpp::api().runtime_invoke(W.setGameMode, nullptr, args, &exc);
     if (exc) BL_ERROR("poderes: set_GameMode lancou excecao");
     else BL_INFO("poderes: modo de jogo -> %d", mode);
+    broadcastWorld(false);
 }
 
 // ------------------------------ spawn ------------------------------
@@ -1187,7 +1226,72 @@ void tickWorldPowers() {
     else g_hold.down = false;
 }
 
+// O nivel de cada poder de mundo que o servidor ja conhece (-1 = nunca mandado).
+int g_sentLevel[kPowerCount];
+bool g_sentInit = false;
+int g_heldLevel[kPowerCount];   // no servidor: o nivel do quadro anterior
+int g_resyncFrame = 0;
+
+/**
+ * Cliente: o que mexe no mundo vira pedido ao servidor. Estado (tempo parado,
+ * chuva, vento, sem inimigos) vai quando muda; comando (hora, hardmode,
+ * dificuldade) vai e e consumido aqui, porque aplicado no cliente nao faz nada.
+ */
+void forwardWorldPowers() {
+    if (!g_sentInit) {
+        for (int& v : g_sentLevel) v = -1;
+        g_sentInit = true;
+    }
+    if (!inWorld()) {
+        // Ao entrar de novo num servidor, o que estiver ligado vai de novo.
+        for (int& v : g_sentLevel) v = -1;
+        return;
+    }
+    const int time = g_timeRequest.exchange(-1, std::memory_order_relaxed);
+    if (time >= 0) sendToServer("time " + std::to_string(time));
+    for (Power p : {Power::Hardmode, Power::Difficulty}) {
+        const int v = g_level[static_cast<int>(p)].exchange(0);
+        if (v > 0) sendToServer("power " + std::to_string(static_cast<int>(p)) + " " + std::to_string(v));
+    }
+    for (Power p : {Power::TimeStop, Power::Rain, Power::Wind, Power::NoSpawns}) {
+        const int i = static_cast<int>(p);
+        const int v = levelOf(p);
+        if (v == g_sentLevel[i]) continue;
+        // Desligado e nunca mandado: nada a pedir.
+        if (!(v == 0 && g_sentLevel[i] < 0)) {
+            sendToServer("power " + std::to_string(i) + " " + std::to_string(v));
+        }
+        g_sentLevel[i] = v;
+    }
+}
+
+/**
+ * Servidor: poder de mundo mudou, ou segue segurando algo, manda o mundo aos
+ * clientes. Vale para o que veio do menu dele e do pedido de um cliente.
+ */
+void resyncWorldFromHost() {
+    if (!isNetHost() || !inWorld()) return;
+    bool changed = false, holding = false;
+    for (Power p : {Power::TimeStop, Power::Rain, Power::Wind}) {
+        const int i = static_cast<int>(p);
+        const int v = levelOf(p);
+        if (v != g_heldLevel[i]) changed = true;
+        if (v > 0) holding = true;
+        g_heldLevel[i] = v;
+    }
+    if (changed || (holding && ++g_resyncFrame >= kWorldResyncFrames)) {
+        g_resyncFrame = 0;
+        broadcastWorld(true);
+    }
+}
+
 } // namespace
+
+bool setWorldPowerFromNet(int id, int level) {
+    if (id < 0 || id >= kPowerCount || !isWorldPower(static_cast<Power>(id))) return false;
+    setPower(id, level);
+    return true;
+}
 
 void setPower(int id, int level) {
     if (id < 0 || id >= kPowerCount) return;
@@ -1206,6 +1310,8 @@ int worldGameMode() { return g_stateGameMode.load(std::memory_order_relaxed); }
 
 void tickPowers() {
     updateWorldState();
+    if (isNetClientOnly()) forwardWorldPowers();
+    else resyncWorldFromHost();
     bool any = false, resetHook = false;
     for (int i = 0; i < kPowerCount; ++i) {
         if (g_level[i].load(std::memory_order_relaxed) == 0) continue;
