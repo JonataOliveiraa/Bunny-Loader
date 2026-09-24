@@ -225,6 +225,38 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     return JS_NewInt32(ctx, type);
 }
 
+/** bl.npcs.typeOf(nome) — o tipo de um npc DESTE mod pelo nome, ou -1. */
+JSValue js_typeOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.npcs.typeOf(nome)");
+    const int type = runtime::modNpcTypeByName(callerModId(ctx), name);
+    JS_FreeCString(ctx, name);
+    return JS_NewInt32(ctx, type);
+}
+
+/** bl.npcs.setFrames(tipo, quadros) — quadros definidos depois do registro. */
+JSValue js_setFrames(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t type = -1, frames = 0;
+    if (argc < 2 || JS_ToInt32(ctx, &type, argv[0]) < 0 || JS_ToInt32(ctx, &frames, argv[1]) < 0) {
+        return JS_ThrowTypeError(ctx, "bl.npcs.setFrames(tipo, quadros)");
+    }
+    runtime::setModNpcFrames(type, frames);
+    return JS_UNDEFINED;
+}
+
+/** bl.npcs.setAnimationType(tipo, npcDoJogo) — AnimationType definido depois do registro. */
+JSValue js_setAnimationType(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t type = -1, animation = 0;
+    if (argc < 2 || JS_ToInt32(ctx, &type, argv[0]) < 0 || JS_ToInt32(ctx, &animation, argv[1]) < 0) {
+        return JS_ThrowTypeError(ctx, "bl.npcs.setAnimationType(tipo, npcDoJogo)");
+    }
+    if (animation < 0 || animation >= runtime::kVanillaNpcCount) {
+        return JS_ThrowRangeError(ctx, "bl.npcs.setAnimationType: tem de ser um NPC do jogo");
+    }
+    runtime::setModNpcAnimation(type, animation);
+    return JS_UNDEFINED;
+}
+
 /** bl.npcs.isModNpc(tipo) */
 JSValue js_isModNpc(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t t = -1;
@@ -238,6 +270,10 @@ void installNpcsApi(JSContext* ctx, JSValue bl) {
     JSValue npcs = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, npcs, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, npcs, "isModNpc", JS_NewCFunction(ctx, js_isModNpc, "isModNpc", 1));
+    JS_SetPropertyStr(ctx, npcs, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
+    JS_SetPropertyStr(ctx, npcs, "setFrames", JS_NewCFunction(ctx, js_setFrames, "setFrames", 2));
+    JS_SetPropertyStr(ctx, npcs, "setAnimationType",
+                      JS_NewCFunction(ctx, js_setAnimationType, "setAnimationType", 2));
     JS_SetPropertyStr(ctx, bl, "npcs", npcs);
 }
 

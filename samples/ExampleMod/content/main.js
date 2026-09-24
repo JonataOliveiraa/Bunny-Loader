@@ -5,6 +5,10 @@ import { ExampleGun } from './Content/Items/Weapons/Ranged/ExampleGun.js';
 import { ExampleBulletProjectile } from './Content/Projectiles/ExampleBulletProjectile.js';
 import { ExampleSlimeNPC } from './Content/NPCs/ExampleSlimeNPC.js';
 
+ModNPC.register(ExampleSlimeNPC);
+
+ModProjectile.register(ExampleBulletProjectile);
+
 ModItem.register(ExampleItem);
 ModItem.register(ExampleMeleeWeapon);
 ModItem.register(ExampleBullet);
@@ -14,4 +18,5 @@ bl.log(`Example Mod: ExampleItem = ${ModItem.getTypeByName('ExampleItem')}, ` +
        `Espada = ${ModItem.getTypeByName('ExampleMeleeWeapon')}, ` +
        `Bala = ${ModItem.getTypeByName('ExampleBullet')}, ` +
        `Arma = ${ModItem.getTypeByName('ExampleGun')}, ` +
-       `projetil da bala = ${ExampleBulletProjectile}, slime = ${ExampleSlimeNPC}`);
+       `projetil da bala = ${ModProjectile.getTypeByName('ExampleBulletProjectile')}, ` +
+       `slime = ${ModNPC.getTypeByName('ExampleSlimeNPC')}`);

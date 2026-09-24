@@ -20,6 +20,9 @@ namespace {
 // tipo -> a definicao que o mod passou (com o setDefaults dele).
 std::map<int, JSValue> g_defs;
 bool g_hook = false;
+// O contexto do motor: o setStaticDefaults roda fora de qualquer chamada JS.
+JSContext* g_ctx = nullptr;
+void onProjectilesInstalled(int first, int last);   // mais abaixo, com o register
 
 std::string stringProp(JSContext* ctx, JSValueConst obj, const char* prop) {
     JSValue v = JS_GetPropertyStr(ctx, obj, prop);
@@ -98,13 +101,37 @@ bool installSetDefaultsHook(JSContext* ctx) {
     return g_hook;
 }
 
+/** Na instalacao (thread do jogo, fora do JS): o setStaticDefaults de cada projetil. */
+void onProjectilesInstalled(int first, int last) {
+    if (!g_ctx) return;
+    JsLock lock;
+    for (int type = first; type <= last; ++type) {
+        auto it = g_defs.find(type);
+        if (it == g_defs.end()) continue;
+        JSValue fn = JS_GetPropertyStr(g_ctx, it->second, "setStaticDefaults");
+        if (JS_IsFunction(g_ctx, fn)) {
+            JSValue t = JS_NewInt32(g_ctx, type);
+            JSValue r = JS_Call(g_ctx, fn, it->second, 1, &t);
+            if (JS_IsException(r)) {
+                const std::string name = stringProp(g_ctx, it->second, "name");
+                BL_ERROR("projetil de mod %s: setStaticDefaults lancou: %s", name.c_str(),
+                         exceptionText(g_ctx).c_str());
+            }
+            JS_FreeValue(g_ctx, r);
+        }
+        JS_FreeValue(g_ctx, fn);
+    }
+}
+
 /**
- * bl.projectiles.register({ name, texture, displayName, frames, setDefaults }) -> tipo
+ * bl.projectiles.register({ name, texture, displayName, frames, setDefaults,
+ *                           setStaticDefaults }) -> tipo
  *
  * Como bl.items.register: o tipo sai na hora (ProjectileID.Count + a ordem de
  * registro) e da para usar no `shoot` de um item desde o topo do arquivo; o
  * jogo passa a conhecer o projetil na tela de titulo. `frames`: quadros de
- * animacao empilhados na vertical na textura (padrao 1).
+ * animacao empilhados na vertical na textura (padrao 1). `setStaticDefaults(type)`
+ * roda uma vez, quando o jogo ja conhece o tipo.
  */
 JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 1 || !JS_IsObject(argv[0])) {
@@ -170,8 +197,29 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
                                   name.c_str());
     }
     g_defs[type] = JS_DupValue(ctx, def);
+    g_ctx = ctx;
+    runtime::setProjectilesInstalledHook(onProjectilesInstalled);
     BL_INFO("projetil de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
     return JS_NewInt32(ctx, type);
+}
+
+/** bl.projectiles.typeOf(nome) — o tipo de um projectile DESTE mod pelo nome, ou -1. */
+JSValue js_typeOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.projectiles.typeOf(nome)");
+    const int type = runtime::modProjectileTypeByName(callerModId(ctx), name);
+    JS_FreeCString(ctx, name);
+    return JS_NewInt32(ctx, type);
+}
+
+/** bl.projectiles.setFrames(tipo, quadros) — quadros definidos depois do registro. */
+JSValue js_setFrames(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t type = -1, frames = 0;
+    if (argc < 2 || JS_ToInt32(ctx, &type, argv[0]) < 0 || JS_ToInt32(ctx, &frames, argv[1]) < 0) {
+        return JS_ThrowTypeError(ctx, "bl.projectiles.setFrames(tipo, quadros)");
+    }
+    runtime::setModProjectileFrames(type, frames);
+    return JS_UNDEFINED;
 }
 
 /** bl.projectiles.isModProjectile(tipo) */
@@ -188,6 +236,8 @@ void installProjectilesApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, projectiles, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, projectiles, "isModProjectile",
                       JS_NewCFunction(ctx, js_isModProjectile, "isModProjectile", 1));
+    JS_SetPropertyStr(ctx, projectiles, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
+    JS_SetPropertyStr(ctx, projectiles, "setFrames", JS_NewCFunction(ctx, js_setFrames, "setFrames", 2));
     JS_SetPropertyStr(ctx, bl, "projectiles", projectiles);
 }
 

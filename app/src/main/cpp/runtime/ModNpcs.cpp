@@ -20,6 +20,7 @@ namespace {
 struct Entry {
     ModNpcDef def;
     int width = 0, height = 0;   // de UM quadro
+    int textureHeight = 0;       // a tira inteira
     uint32_t asset = 0;          // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
 };
 
@@ -437,6 +438,7 @@ void tickModNpcs() {
                                                             e.def.mod + "/" + e.def.name, &w, &h);
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
             e.width = w;
+            e.textureHeight = h;
             e.height = e.def.frames > 1 ? h / e.def.frames : h;
             applyTexture(type, e);
             applyName(type, e);
@@ -464,6 +466,37 @@ std::vector<ModNpcInfo> modNpcs() {
         v.push_back({kVanillaNpcCount + static_cast<int>(i), d.mod, d.name, d.texture, d.frames});
     }
     return v;
+}
+
+void setModNpcFrames(int type, int frames) {
+    if (frames < 1) return;
+    std::lock_guard<std::mutex> l(g_mx);
+    const size_t i = static_cast<size_t>(type - kVanillaNpcCount);
+    if (type < kVanillaNpcCount || i >= g_regs.size()) return;
+    Entry& e = g_regs[i];
+    e.def.frames = frames;
+    if (e.textureHeight > 0) e.height = e.textureHeight / frames;
+    if (static_cast<int>(i) < g_installed.load(std::memory_order_relaxed)) applyFrames(type, e);
+}
+
+void setModNpcAnimation(int type, int animationType) {
+    if (animationType < 0 || animationType >= kVanillaNpcCount) return;
+    std::lock_guard<std::mutex> l(g_mx);
+    const size_t i = static_cast<size_t>(type - kVanillaNpcCount);
+    if (type < kVanillaNpcCount || i >= g_regs.size()) return;
+    g_regs[i].def.animationType = animationType;
+    // O FindFrame le sem trava: um int trocado por inteiro, na mesma thread.
+    if (i < g_animation.size()) g_animation[i] = animationType;
+}
+
+int modNpcTypeByName(const std::string& mod, const std::string& name) {
+    std::lock_guard<std::mutex> l(g_mx);
+    for (size_t i = 0; i < g_regs.size(); ++i) {
+        if (g_regs[i].def.mod == mod && g_regs[i].def.name == name) {
+            return kVanillaNpcCount + static_cast<int>(i);
+        }
+    }
+    return -1;
 }
 
 void finishModNpc(Il2CppObject* npc, int type) {

@@ -34,8 +34,8 @@ JSValue js_readJson(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
 }
 
 /**
- * As classes base dos mods, no formato do ExMod (TL Pro), que e o do
- * tModLoader: o mod ESTENDE a classe e a registra.
+ * As classes base dos mods (ModItem, ModProjectile, ModNPC), no formato do
+ * ExMod (TL Pro), que e o do tModLoader: o mod ESTENDE a classe e a registra.
  *
  *   export class ExampleItem extends ModItem {
  *       SetDefaults() { this.Item.maxStack = ModItem.CommonMaxStack; }
@@ -225,7 +225,164 @@ class ModItem {
     static getByName(name) { return byType.get(bl.items.typeOf(name)); }
 }
 
+const projectilesByType = new Map();
+
+class ModProjectile {
+    // O Projectile do jogo durante o SetDefaults; fora dele, undefined.
+    Projectile = undefined;
+    Type = undefined;
+    // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: ProjectileName.<Classe>
+    // em Localization/*.json, e sem isso o nome da classe.
+    DisplayName = '';
+    // Relativo a Textures/, sem .png. Padrao: o nome da classe.
+    Texture = this.constructor.name;
+
+    // Uma vez, com o tipo ja no jogo. Main.projFrames[this.Type] escrito aqui
+    // vale como a quantidade de quadros da textura.
+    SetStaticDefaults() {}
+    SetDefaults(proj) {}
+    PostStaticDefaults() {}
+    PostSetDefaults(proj) {}
+    PostSetupContent() {}
+
+    static register(cls) {
+        if (typeof cls !== 'function' || !(cls.prototype instanceof ModProjectile)) {
+            throw new TypeError('ModProjectile.register(Classe): passe a classe, que estende ModProjectile');
+        }
+        const inst = new cls();
+        const name = cls.name;
+        const type = bl.projectiles.register({
+            name,
+            texture: texturePath(inst.Texture || name),
+            displayName: inst.DisplayName || localized('ProjectileName', name) || name,
+            setDefaults(proj) {
+                inst.Projectile = proj;
+                try {
+                    inst.SetDefaults(proj);
+                    inst.PostSetDefaults(proj);
+                } finally {
+                    inst.Projectile = undefined;
+                }
+            },
+            setStaticDefaults(t) {
+                inst.SetStaticDefaults();
+                inst.PostStaticDefaults();
+                bl.projectiles.setFrames(t, Terraria.Main.projFrames[t]);
+                inst.PostSetupContent();
+            },
+        });
+        inst.Type = type;
+        projectilesByType.set(type, inst);
+        return type;
+    }
+
+    static isModType(type) { return bl.projectiles.isModProjectile(type); }
+    static isModProjectile(proj) { return !!proj && bl.projectiles.isModProjectile(proj.type); }
+    static getTypeByName(name) { return bl.projectiles.typeOf(name); }
+    static getModProjectile(type) { return projectilesByType.get(type); }
+    static getByName(name) { return projectilesByType.get(bl.projectiles.typeOf(name)); }
+}
+
+// A tabela de drop de um NPC, como o NPCLoot do ExMod: Add(regra).
+class NPCLoot {
+    constructor(type) { this.type = type; }
+    Add(rule) {
+        Terraria.Main.ItemDropsDB['IItemDropRule RegisterToNPC(int type, IItemDropRule entry)'](this.type, rule);
+        return rule;
+    }
+}
+
+const npcsByType = new Map();
+
+class ModNPC {
+    // O NPC do jogo durante o SetDefaults; fora dele, undefined.
+    NPC = undefined;
+    Type = undefined;
+    // Anima como este NPC do jogo (0 = nao anima). Pode vir do SetDefaults.
+    AnimationType = 0;
+    // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: NPCName.<Classe> em
+    // Localization/*.json, e sem isso o nome da classe.
+    DisplayName = '';
+    // Relativo a Textures/, sem .png. Padrao: o nome da classe.
+    Texture = this.constructor.name;
+
+    // Uma vez, com o tipo e a tabela de drop ja no jogo.
+    // Main.npcFrameCount[this.Type] escrito aqui vale como a quantidade de
+    // quadros da textura.
+    SetStaticDefaults() {}
+    // Vida, dano e defesa de base, e a escala de dificuldade, saem DEPOIS dele.
+    SetDefaults(npc) {}
+    PostStaticDefaults() {}
+    PostSetDefaults(npc) {}
+    PostSetupContent() {}
+    // Depois do SetDefaults, para cada NPC: npc.buffImmune[...] = true.
+    ApplyBuffImmunity(npc) {}
+    // Uma vez: npcLoot.Add(ItemDropRule...).
+    ModifyNPCLoot(npcLoot) {}
+    // A cada acerto, depois do efeito do jogo.
+    HitEffect(npc, hitDirection, damage) {}
+
+    static NPCValue(p = 0, g = 0, s = 0, c = 0) {
+        return p * 1000000 + g * 10000 + s * 100 + c;
+    }
+
+    static register(cls) {
+        if (typeof cls !== 'function' || !(cls.prototype instanceof ModNPC)) {
+            throw new TypeError('ModNPC.register(Classe): passe a classe, que estende ModNPC');
+        }
+        const inst = new cls();
+        const name = cls.name;
+        let animation = inst.AnimationType | 0;
+        let type = -1;
+        const def = {
+            name,
+            texture: texturePath(inst.Texture || name),
+            animationType: animation,
+            displayName: inst.DisplayName || localized('NPCName', name) || name,
+            setDefaults(npc) {
+                inst.NPC = npc;
+                try {
+                    inst.SetDefaults(npc);
+                    inst.ApplyBuffImmunity(npc);
+                    inst.PostSetDefaults(npc);
+                } finally {
+                    inst.NPC = undefined;
+                }
+                // O ExMod poe o AnimationType dentro do SetDefaults.
+                const now = inst.AnimationType | 0;
+                if (now !== animation && type >= 0) {
+                    animation = now;
+                    bl.npcs.setAnimationType(type, now);
+                }
+            },
+            setStaticDefaults(t) {
+                inst.SetStaticDefaults();
+                inst.PostStaticDefaults();
+                bl.npcs.setFrames(t, Terraria.Main.npcFrameCount[t]);
+                inst.ModifyNPCLoot(new NPCLoot(t));
+                inst.PostSetupContent();
+            },
+        };
+        // So quem escreveu HitEffect paga o hook dele.
+        if (cls.prototype.HitEffect !== ModNPC.prototype.HitEffect) {
+            def.hitEffect = (npc, hitDirection, damage) => inst.HitEffect(npc, hitDirection, damage);
+        }
+        type = bl.npcs.register(def);
+        inst.Type = type;
+        npcsByType.set(type, inst);
+        return type;
+    }
+
+    static isModType(type) { return bl.npcs.isModNpc(type); }
+    static isModNPC(npc) { return !!npc && bl.npcs.isModNpc(npc.type); }
+    static getTypeByName(name) { return bl.npcs.typeOf(name); }
+    static getModNPC(type) { return npcsByType.get(type); }
+    static getByName(name) { return npcsByType.get(bl.npcs.typeOf(name)); }
+}
+
 globalThis.ModItem = ModItem;
+globalThis.ModProjectile = ModProjectile;
+globalThis.ModNPC = ModNPC;
 })();
 )JS";
 
@@ -244,11 +401,11 @@ void installModClasses(void* context) {
     if (JS_IsException(r)) {
         JSValue e = JS_GetException(ctx);
         const char* t = JS_ToCString(ctx, e);
-        BL_ERROR("classes dos mods (ModItem) nao carregaram: %s", t ? t : "?");
+        BL_ERROR("classes dos mods (ModItem...) nao carregaram: %s", t ? t : "?");
         if (t) JS_FreeCString(ctx, t);
         JS_FreeValue(ctx, e);
     } else {
-        BL_INFO("classes dos mods instaladas (ModItem)");
+        BL_INFO("classes dos mods instaladas (ModItem, ModProjectile, ModNPC)");
     }
     JS_FreeValue(ctx, r);
 }

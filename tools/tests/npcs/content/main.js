@@ -1,13 +1,17 @@
 // Teste dos NPCs de mod (runtime/ModNpcs.cpp). Precisa do Example Mod ligado:
-// ele registra o ExampleSlimeNPC, o primeiro NPC de mod (tipo 697 = NPCID.Count).
+// ele registra o ExampleSlimeNPC, o primeiro NPC de mod (tipo 697 = NPCID.Count),
+// como classe ModNPC (quadros no SetStaticDefaults, AnimationType no
+// SetDefaults, drop no ModifyNPCLoot, gosma no HitEffect).
 //
 // Invoca o slime ao lado do jogador e confere: nasce ativo com os valores do
 // setDefaults do mod e a vida calculada DEPOIS dele; tem nome; anima (o quadro
 // muda: animationType) e se mexe (aiStyle de slime); morre, conta no Bestiario e
-// da o drop da tabela (gel sempre). Loga "npcs <caso>: ok | FALHOU".
+// da o drop da tabela (gel sempre) e a gosma do HitEffect. Loga
+// "npcs <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 const SLIME = 697;
 const GEL = Terraria.ID.ItemID.Gel;
+const SLIME_DUST = Terraria.ID.DustID.TintableDust;
 const newNpc = Terraria.NPC['int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, ' +
                             'float ai0, float ai1, float ai2, float ai3, int Target)'];
 
@@ -35,6 +39,16 @@ function gelNear(x, y) {
         if (it.active && it.type === GEL && Math.abs(it.position.X - x) < 300 && Math.abs(it.position.Y - y) < 300) {
             n += it.stack;
         }
+    }
+    return n;
+}
+
+function dustNear(x, y) {
+    let n = 0;
+    const dust = Main.dust;
+    for (let i = 0; i < dust.length; i++) {
+        const d = dust[i];
+        if (d.active && d.type === SLIME_DUST && Math.abs(d.position.X - x) < 300 && Math.abs(d.position.Y - y) < 300) n++;
     }
     return n;
 }
@@ -106,6 +120,10 @@ function afterDeath() {
     check('drop (gel)', () => {
         const n = gelNear(deathX, deathY) - gelBefore;
         return n >= 1 || 'gel novo perto: ' + n;
+    });
+    check('HitEffect (gosma)', () => {
+        const n = dustNear(deathX, deathY);
+        return n >= 10 || 'gosma perto: ' + n;
     });
     bl.log('npcs FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
 }

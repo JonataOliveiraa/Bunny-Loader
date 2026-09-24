@@ -17,11 +17,13 @@ namespace {
 struct Entry {
     ModProjectileDef def;
     int width = 0, height = 0;   // de UM quadro
+    int textureHeight = 0;       // a tira inteira
     uint32_t asset = 0;          // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
 };
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;               // indice = type - kVanillaProjectileCount
+std::atomic<ProjectilesInstalledHook> g_installedHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
@@ -214,22 +216,55 @@ void tickModProjectiles() {
     g_installed.store(total, std::memory_order_release);
     growPlayers(to);
 
-    std::lock_guard<std::mutex> l(g_mx);
-    for (int i = installed; i < total; ++i) {
-        Entry& e = g_regs[static_cast<size_t>(i)];
-        const int type = kVanillaProjectileCount + i;
-        int w = 0, h = 0;
-        Il2CppObject* asset = content::loadTextureAsset(e.def.texture, nullptr, 0,
-                                                        e.def.mod + "/" + e.def.name, &w, &h);
-        if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
-        e.width = w;
-        e.height = e.def.frames > 1 ? h / e.def.frames : h;
-        applyTexture(type, e);
-        applyName(type, e);
-        applyFrames(type, e);
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        for (int i = installed; i < total; ++i) {
+            Entry& e = g_regs[static_cast<size_t>(i)];
+            const int type = kVanillaProjectileCount + i;
+            int w = 0, h = 0;
+            Il2CppObject* asset = content::loadTextureAsset(e.def.texture, nullptr, 0,
+                                                            e.def.mod + "/" + e.def.name, &w, &h);
+            if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
+            e.width = w;
+            e.textureHeight = h;
+            e.height = e.def.frames > 1 ? h / e.def.frames : h;
+            applyTexture(type, e);
+            applyName(type, e);
+            applyFrames(type, e);
+        }
     }
     BL_INFO("projeteis de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
+    // FORA da trava: o SetStaticDefaults entra no JS do mod, que pode pedir
+    // setModProjectileFrames.
+    if (ProjectilesInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
+        hook(from, to - 1);
+    }
+}
+
+void setProjectilesInstalledHook(ProjectilesInstalledHook hook) {
+    g_installedHook.store(hook, std::memory_order_release);
+}
+
+void setModProjectileFrames(int type, int frames) {
+    if (frames < 1) return;
+    std::lock_guard<std::mutex> l(g_mx);
+    const size_t i = static_cast<size_t>(type - kVanillaProjectileCount);
+    if (type < kVanillaProjectileCount || i >= g_regs.size()) return;
+    Entry& e = g_regs[i];
+    e.def.frames = frames;
+    if (e.textureHeight > 0) e.height = e.textureHeight / frames;
+    if (static_cast<int>(i) < g_installed.load(std::memory_order_relaxed)) applyFrames(type, e);
+}
+
+int modProjectileTypeByName(const std::string& mod, const std::string& name) {
+    std::lock_guard<std::mutex> l(g_mx);
+    for (size_t i = 0; i < g_regs.size(); ++i) {
+        if (g_regs[i].def.mod == mod && g_regs[i].def.name == name) {
+            return kVanillaProjectileCount + static_cast<int>(i);
+        }
+    }
+    return -1;
 }
 
 void finishModProjectile(Il2CppObject* projectile, int type) {

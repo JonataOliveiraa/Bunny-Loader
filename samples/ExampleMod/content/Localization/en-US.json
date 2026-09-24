@@ -4,5 +4,11 @@
     "ExampleMeleeWeapon": "Sword",
     "ExampleGun": "Example Gun",
     "ExampleBullet": "Example Bullet"
+  },
+  "ProjectileName": {
+    "ExampleBulletProjectile": "Example Bullet"
+  },
+  "NPCName": {
+    "ExampleSlimeNPC": "Example Slime"
   }
 }

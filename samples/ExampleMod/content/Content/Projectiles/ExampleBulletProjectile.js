@@ -1,28 +1,24 @@
-// ExampleBulletProjectile: o tiro. Voa com a IA de flecha do jogo (aiStyle 1;
-// o ExMod usa ProjAIStyleID.Arrow, outro enum dele que este Terraria nao tem),
-// atravessa 5 inimigos e cada um so leva dano uma vez.
-//
-// Projetil ainda nao tem classe (ModProjectile): registra com bl.projectiles,
-// e o tipo sai deste modulo para a bala que o dispara.
-export const ExampleBulletProjectile = bl.projectiles.register({
-    name: 'ExampleBulletProjectile',
-    texture: 'Textures/Projectiles/ExampleBulletProjectile.png',
-    displayName: { 'pt-BR': 'Bala de Exemplo', 'en-US': 'Example Bullet' },
-    setDefaults(projectile) {
-        projectile.width = 8;
-        projectile.height = 8;
-        projectile.scale = 1;
-        projectile.aiStyle = 1;
-        projectile.friendly = true;
-        projectile.hostile = false;
-        projectile.ranged = true;
-        projectile.penetrate = 5;
-        projectile.timeLeft = 600;
-        projectile.light = 0.5;
-        projectile.ignoreWater = true;
-        projectile.tileCollide = true;
-        projectile.extraUpdates = 1;
-        projectile.usesLocalNPCImmunity = true;
-        projectile.localNPCHitCooldown = -1;
-    },
-});
+export class ExampleBulletProjectile extends ModProjectile {
+    constructor() {
+        super();
+        this.Texture = 'Projectiles/' + this.constructor.name;
+    }
+
+    SetDefaults() {
+        this.Projectile.width = 8;
+        this.Projectile.height = 8;
+        this.Projectile.scale = 1;
+        this.Projectile.aiStyle = 1;
+        this.Projectile.friendly = true;
+        this.Projectile.hostile = false;
+        this.Projectile.ranged = true;
+        this.Projectile.penetrate = 5;
+        this.Projectile.timeLeft = 600;
+        this.Projectile.light = 0.5;
+        this.Projectile.ignoreWater = true;
+        this.Projectile.tileCollide = true;
+        this.Projectile.extraUpdates = 1;
+        this.Projectile.usesLocalNPCImmunity = true;
+        this.Projectile.localNPCHitCooldown = -1;
+    }
+}

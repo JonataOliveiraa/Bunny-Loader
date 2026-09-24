@@ -44,4 +44,21 @@ void tickModProjectiles();
 /** Depois do setDefaults do mod: reativa, e tamanho pela textura se ele nao disse. */
 void finishModProjectile(Il2CppObject* projectile, int type);
 
+/**
+ * Chamado uma vez por lote instalado (thread do jogo), com os tipos novos ja
+ * nas tabelas do jogo: a hora do SetStaticDefaults.
+ */
+using ProjectilesInstalledHook = void (*)(int first, int last);
+void setProjectilesInstalledHook(ProjectilesInstalledHook hook);
+
+/**
+ * Quadros definidos depois do registro — o SetStaticDefaults do mod escreve
+ * Main.projFrames[tipo], como no tModLoader. Vale para a altura de um quadro
+ * e para a tabela refeita. Thread do jogo.
+ */
+void setModProjectileFrames(int type, int frames);
+
+/** O tipo do projetil `name` do mod `mod`, ou -1. */
+int modProjectileTypeByName(const std::string& mod, const std::string& name);
+
 } // namespace bl::runtime

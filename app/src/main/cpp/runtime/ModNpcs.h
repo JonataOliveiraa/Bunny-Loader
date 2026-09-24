@@ -75,6 +75,18 @@ struct ModNpcInfo {
 std::vector<ModNpcInfo> modNpcs();
 
 /**
+ * Quadros definidos depois do registro — o SetStaticDefaults do mod escreve
+ * Main.npcFrameCount[tipo], como no tModLoader. Thread do jogo.
+ */
+void setModNpcFrames(int type, int frames);
+
+/** AnimationType definido depois do registro (o SetDefaults do ModNPC). */
+void setModNpcAnimation(int type, int animationType);
+
+/** O tipo do NPC `name` do mod `mod`, ou -1. */
+int modNpcTypeByName(const std::string& mod, const std::string& name);
+
+/**
  * Depois do setDefaults do mod: o final do SetDefaults do jogo de novo (vida,
  * dano e defesa de base, netID, escala de dificuldade), ativo, e tamanho pela
  * textura se o mod nao disse.
