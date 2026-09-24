@@ -3,7 +3,7 @@ import { RARITY_GREEN } from '../../../Rarity.js';
 const { SoundID, AmmoID, ProjectileID } = Terraria.ID;
 
 // ExampleGun: a arma. O `shoot` dela e o de qualquer arma de fogo do jogo (o
-// ExMod poe PurificationPowder); com municao, vale o da municao.
+// tModLoader poe PurificationPowder); com municao, vale o da municao.
 export class ExampleGun extends ModItem {
     constructor() {
         super();

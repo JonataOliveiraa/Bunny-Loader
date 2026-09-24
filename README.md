@@ -3,8 +3,8 @@
 Launcher de mods para **Terraria Mobile**. Sobe o jogo já instalado dentro do
 próprio processo, intercepta métodos nativos gerados pelo IL2CPP e executa mods.
 
-- **v1:** mods escritos em **JavaScript** (motor **QuickJS**, sem JIT), no espírito
-  do TL Pro. API `NativeClass` / `hook()`.
+- **v1:** mods escritos em **JavaScript** (motor **QuickJS**, sem JIT), com acesso
+  direto às classes do jogo e `hook()` em qualquer método.
 - **futuro:** motor próprio de bytecode (LRVM) para mods em C#.
 
 > Este repositório **não** inclui os binários nem os assets do Terraria

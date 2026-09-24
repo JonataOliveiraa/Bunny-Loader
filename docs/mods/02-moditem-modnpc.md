@@ -2,7 +2,7 @@
 
 Para **criar** coisas que o jogo não tem — um item, uma arma que atira um
 projétil seu, um inimigo com drop e spawn natural — o Bunny Loader traz as
-classes do tModLoader (no formato do ExMod do TL Pro): o mod **estende** a
+classes no formato do tModLoader: o mod **estende** a
 classe, preenche o que quer e **registra**. O Bunny Loader dá um número ao tipo
 novo, põe a textura e o nome no jogo e liga os hooks por você.
 

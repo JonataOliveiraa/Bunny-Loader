@@ -32,7 +32,7 @@ de estourar dentro da Unity.
 
 - **Asset pack** com `assets/bin/Data/` (`data.unity3d`, `resources.resource`,
   `global-metadata.dat`, `boot.config`, `globalgamemanagers`, ...).
-- **Classes Java que o código IL2CPP chama por JNI.** O TL Pro embute estas, e
+- **Classes Java que o código IL2CPP chama por JNI.** Precisam ir junto:
   sem elas o jogo quebra em lookup de classe:
   - `com.and.games505.TerrariaPaid.BuildConfig`
   - `uk.co.drstudios.lvl.BuildConfig`

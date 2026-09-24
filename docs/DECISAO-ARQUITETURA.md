@@ -134,10 +134,8 @@ O que é específico do caminho A é a camada de hosting: `GameEnvironment`,
 
 Honestidade sobre os limites do que está estabelecido:
 
-- **Como o TL Pro faz.** Ele roda sem root e carrega mods no Terraria. Não
-  investiguei, e não vou chutar. Ele está instalado no emulador
-  (`com.pixelcurves.terlauncher`), então é uma fonte disponível se você quiser
-  que eu olhe
+- **Como outros launchers fazem.** Existem launchers que rodam sem root e
+  carregam mods no Terraria. Não investiguei, e não vou chutar
 - **O que a `libpairipcore.so` verifica.** Sem isso, o esforço do caminho A é
   um número desconhecido
 - **Se ela faz verificação própria de assinatura**, o que afeta o caminho C
@@ -303,7 +301,7 @@ Falta so o inline hook, que e ARM-only. Ordem de trabalho daqui:
 
 # CORRECAO: hook FUNCIONA no emulador (por endereco)
 
-A observacao do usuario (TL Pro roda no MuMu) estava certa e derrubou a
+A observacao do usuario (outro launcher de mods roda no MuMu) estava certa e derrubou a
 conclusao anterior de "hooks so em ARM real". Medido:
 
 ```

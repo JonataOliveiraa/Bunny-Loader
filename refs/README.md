@@ -80,10 +80,10 @@ tools/dumpgrep.sh ItemID Terraria.ID | grep -i minishark
 
 ## ⚠️ Assinaturas mudam entre versões
 
-A wiki do TL Pro documenta o Terraria **1.4.0.5.2.1**. Neste build (1.4.5.6.4)
+Documentação antiga da comunidade descreve o Terraria **1.4.0.5.2.1**. Neste build (1.4.5.6.4)
 várias assinaturas são diferentes. Exemplo já encontrado:
 
-| TL Pro (1.4.0.5.2.1) | Este build (1.4.5.6.4) |
+| 1.4.0.5.2.1 | Este build (1.4.5.6.4) |
 |---|---|
 | `Item.SetDefaults(int Type, bool noMatCheck)` | `Item.SetDefaults(int Type, ItemVariant variant)` |
 

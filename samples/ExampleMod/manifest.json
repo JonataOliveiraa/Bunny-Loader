@@ -6,7 +6,7 @@
   "author": "Bunny Loader",
   "category": "Itens",
   "summary": "Dois itens NOVOS: uma espada e o Exemplo de Item.",
-  "description": "A parte de itens do ExampleMod do TL Pro (que por sua vez vem do ExampleMod do tModLoader), refeita para o Bunny Loader. Não troca item do jogo: cria dois tipos novos, com textura, nome e atributos próprios. Os dois aparecem no Mod Menu, na categoria do mod. Ainda não sobrevivem a sair do mundo e voltar.",
+  "description": "Uma parte do ExampleMod do tModLoader, refeita para o Bunny Loader. Não troca item do jogo: cria dois tipos novos, com textura, nome e atributos próprios. Os dois aparecem no Mod Menu, na categoria do mod. Ainda não sobrevivem a sair do mundo e voltar.",
   "updated": "2026-09-23",
   "blVersion": 1,
   "gameVersion": [

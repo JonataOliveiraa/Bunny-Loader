@@ -31,7 +31,7 @@ O ponto central é **esperar o `il2cpp_init` terminar**: antes disso a
 
 1. **JNI** (`NativeBridge`): Kotlin → C++, chamado UMA vez antes da Unity subir.
 2. **API de mod JS**: `NativeClass`, `NativeObject`, `NativeMethod` (com `hook()`),
-   `NativeArray`, `bl.*`, `require`. Espelha o TL Pro.
+   `NativeArray`, `bl.*`, `require`.
 3. **IL2CPP embedding API**: funções `il2cpp_*` resolvidas via `dlsym`.
 
 ## 3. Núcleo nativo (libbunny.so)
@@ -62,7 +62,7 @@ cpp/
 - `metodo.hook(cb)` → instala inline hook via HookManager; o trampolim nativo
   entra no QuickJS, chama o callback do mod, e `original(...)` chama a função real.
 - Conversão de tipos primitivos C# ↔ JS automática; `NativeObject.wrap/unwrap`
-  para boxing explícito (igual à API do TL Pro).
+  para boxing explícito.
 
 ## 5. Regras de robustez
 
