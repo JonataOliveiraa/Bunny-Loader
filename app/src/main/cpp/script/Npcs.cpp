@@ -257,6 +257,31 @@ JSValue js_setAnimationType(JSContext* ctx, JSValueConst, int argc, JSValueConst
     return JS_UNDEFINED;
 }
 
+/**
+ * bl.npcs.freeSlot() — o primeiro Main.npc[] inativo (o que o NPC.NewNPC
+ * usaria), ou -1. O spawn natural de mod olha esta vaga antes e depois do
+ * SpawnNPC do jogo, todo quadro: pela ponte seriam 200 leituras.
+ */
+JSValue js_freeSlot(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    static FieldInfo* npcs = nullptr;
+    static int32_t offActive = -2;
+    if (offActive == -2) {
+        Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+        Il2CppClass* npc = il2cpp::findClass({"Terraria", "NPC", {}});
+        npcs = main ? il2cpp::findField(main, "npc") : nullptr;
+        offActive = npc ? il2cpp::fieldOffset(npc, "active") : -1;
+    }
+    Il2CppArray* arr = nullptr;
+    if (npcs) il2cpp::api().field_static_get_value(npcs, &arr);
+    if (!arr || offActive < 0) return JS_NewInt32(ctx, -1);
+    auto** all = static_cast<Il2CppObject**>(arrayData(arr));
+    // O ultimo e o "vazio" de retorno do jogo (Main.npc tem 201).
+    for (uintptr_t i = 0; i + 1 < arr->length; ++i) {
+        if (all[i] && !*(reinterpret_cast<uint8_t*>(all[i]) + offActive)) return JS_NewInt32(ctx, static_cast<int32_t>(i));
+    }
+    return JS_NewInt32(ctx, -1);
+}
+
 /** bl.npcs.isModNpc(tipo) */
 JSValue js_isModNpc(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t t = -1;
@@ -271,6 +296,8 @@ void installNpcsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, npcs, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, npcs, "isModNpc", JS_NewCFunction(ctx, js_isModNpc, "isModNpc", 1));
     JS_SetPropertyStr(ctx, npcs, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
+    JS_SetPropertyStr(ctx, npcs, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaNpcCount));
+    JS_SetPropertyStr(ctx, npcs, "freeSlot", JS_NewCFunction(ctx, js_freeSlot, "freeSlot", 0));
     JS_SetPropertyStr(ctx, npcs, "setFrames", JS_NewCFunction(ctx, js_setFrames, "setFrames", 2));
     JS_SetPropertyStr(ctx, npcs, "setAnimationType",
                       JS_NewCFunction(ctx, js_setAnimationType, "setAnimationType", 2));

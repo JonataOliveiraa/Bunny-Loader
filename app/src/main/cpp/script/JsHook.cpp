@@ -5,6 +5,7 @@
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 
 #if BL_HAVE_QUICKJS
@@ -87,6 +88,10 @@ struct HookCtx {
     // plano que a chamada direta usa, do mesmo lugar (Abi.cpp) — enquanto eram
     // duas copias, uma delas estava sempre errada sobre algum tipo.
     AbiPlan abi;
+    // Filtro nativo (HookFilter): o x onde vem o objeto, e o offset do campo.
+    int filterReg = -1;
+    int32_t filterOffset = -1;
+    int32_t filterMin = 0;
 };
 
 static HookCtx g_hooks[kMaxHooks];
@@ -215,6 +220,14 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     const double rawF[8] = {f0, f1, f2, f3, f4, f5, f6, f7};
     uint64_t rawD[8];
     std::memcpy(rawD, rawF, sizeof(rawD));
+
+    // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
+    if (c->filterReg >= 0) {
+        auto* o = reinterpret_cast<const uint8_t*>(rawA[c->filterReg]);
+        int32_t v = 0;
+        if (o) std::memcpy(&v, o + c->filterOffset, sizeof(v));
+        if (!o || v < c->filterMin) return callOriginal(c, rawA, rawD);
+    }
 
     // Reentrancia: ja estamos dentro deste hook nesta thread (o corpo real,
     // rodando via original(), rechamou o metodo pela entrada patcheada). Nao
@@ -428,14 +441,38 @@ static std::string buildPlan(HookCtx& c) {
     return planAbi(c.method, c.isInstance, &c.abi);
 }
 
+/** O x e o offset do filtro. Mensagem de erro, ou vazio. */
+static std::string resolveFilter(HookCtx& c, const HookFilter& f) {
+    auto& api = il2cpp::api();
+    Il2CppClass* cls = nullptr;
+    if (f.on == -1) {
+        if (!c.isInstance || c.selfStruct) return "filtro 'self' so vale em metodo de instancia de classe";
+        c.filterReg = 0;
+        cls = api.method_get_class(c.method);
+    } else {
+        if (f.on < 0 || static_cast<size_t>(f.on) >= c.abi.params.size()) return "filtro: parametro fora da faixa";
+        const ParamPlan& p = c.abi.params[static_cast<size_t>(f.on)];
+        if (p.floatQueue || p.structByRef || p.opaque || p.d.byValue || p.reg >= 8) {
+            return "filtro: o parametro tem de ser um objeto";
+        }
+        c.filterReg = p.reg;
+        cls = p.d.cls;
+    }
+    c.filterOffset = cls ? il2cpp::fieldOffset(cls, f.field) : -1;
+    if (c.filterOffset < 0) return "filtro: campo '" + f.field + "' nao existe";
+    c.filterMin = f.minType;
+    return {};
+}
+
 bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
-                   bool isInstance, JSValueConst callback) {
+                   bool isInstance, JSValueConst callback, const HookFilter* filter) {
     if (!method) return false;
 
     HookCtx probe;
     probe.method = method;
     probe.isInstance = isInstance;
     std::string err = buildPlan(probe);
+    if (err.empty() && filter && filter->on != -2) err = resolveFilter(probe, *filter);
     if (!err.empty()) {
         JS_ThrowTypeError(ctx, "hook em '%s': %s",
                           il2cpp::api().method_get_name(method), err.c_str());
@@ -475,7 +512,7 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
 
 #else // arquitetura != arm64: hook JS indisponivel (stub)
 
-bool installJsHook(JSContext* ctx, const MethodInfo*, int, bool, JSValueConst) {
+bool installJsHook(JSContext* ctx, const MethodInfo*, int, bool, JSValueConst, const HookFilter*) {
     JS_ThrowInternalError(ctx, "hook JS: so implementado em arm64");
     return false;
 }

@@ -13,6 +13,8 @@
 
 #include <cstdio>
 #include <map>
+#include <utility>
+#include <vector>
 #include <string>
 
 namespace bl::script {
@@ -212,6 +214,73 @@ void onItemsInstalled(int first, int last) {
     }
 }
 
+/** Texto, ou { 'pt-BR': ..., 'en-US': ... } -> pares (cultura, texto). */
+std::vector<std::pair<std::string, std::string>> cultureTexts(JSContext* ctx, JSValueConst v) {
+    std::vector<std::pair<std::string, std::string>> out;
+    if (JS_IsString(v)) {
+        const char* c = JS_ToCString(ctx, v);
+        if (c) { out.push_back({"", c}); JS_FreeCString(ctx, c); }
+    } else if (JS_IsObject(v)) {
+        JSPropertyEnum* props = nullptr;
+        uint32_t n = 0;
+        if (JS_GetOwnPropertyNames(ctx, &props, &n, v, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) == 0) {
+            for (uint32_t i = 0; i < n; ++i) {
+                const char* k = JS_AtomToCString(ctx, props[i].atom);
+                JSValue e = JS_GetProperty(ctx, v, props[i].atom);
+                const char* s = JS_IsString(e) ? JS_ToCString(ctx, e) : nullptr;
+                if (k && s) out.push_back({k, s});
+                if (s) JS_FreeCString(ctx, s);
+                if (k) JS_FreeCString(ctx, k);
+                JS_FreeValue(ctx, e);
+                JS_FreeAtom(ctx, props[i].atom);
+            }
+            js_free(ctx, props);
+        }
+    }
+    return out;
+}
+
+/** bl.items.setTooltip(tipo, texto | { cultura: texto }) — linhas separadas por '\n'. */
+JSValue js_setTooltip(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t type = -1;
+    if (argc < 2 || JS_ToInt32(ctx, &type, argv[0]) < 0) {
+        return JS_ThrowTypeError(ctx, "bl.items.setTooltip(tipo, texto)");
+    }
+    if (!runtime::isModItem(type)) return JS_ThrowRangeError(ctx, "bl.items.setTooltip: %d nao e item de mod", type);
+    runtime::setModItemTooltip(type, cultureTexts(ctx, argv[1]));
+    return JS_UNDEFINED;
+}
+
+/**
+ * bl.items.modItemsIn(player) — os itens de mod no inventario (os 58
+ * espacos), como objetos. O UpdateInventory de cada ModItem sai daqui: o
+ * inventario inteiro pela ponte, todo quadro, custaria 58 leituras a toa.
+ */
+JSValue js_modItemsIn(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    static int32_t offInventory = -2, offType = -1;
+    if (offInventory == -2) {
+        Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
+        Il2CppClass* item = il2cpp::findClass({"Terraria", "Item", {}});
+        offInventory = player ? il2cpp::fieldOffset(player, "inventory") : -1;
+        offType = item ? il2cpp::fieldOffset(item, "type") : -1;
+    }
+    Il2CppObject* p = argc >= 1 ? objectFromJS(argv[0]) : nullptr;
+    JSValue out = JS_NewArray(ctx);
+    if (!p || offInventory < 0 || offType < 0) return out;
+    auto* inv = *reinterpret_cast<Il2CppArray**>(reinterpret_cast<char*>(p) + offInventory);
+    if (!inv) return out;
+    auto** items = static_cast<Il2CppObject**>(arrayData(inv));
+    uint32_t n = 0;
+    for (uintptr_t i = 0; i < inv->length && i < 58; ++i) {
+        Il2CppObject* it = items[i];
+        if (!it) continue;
+        const int32_t type = *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(it) + offType);
+        if (!runtime::isModItem(type)) continue;
+        JS_SetPropertyUint32(ctx, out, n++, makeNativeObject(ctx, it));
+    }
+    return out;
+}
+
 /** bl.items.typeOf(nome) — o tipo de um item DESTE mod pelo nome, ou -1. */
 JSValue js_typeOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
@@ -278,6 +347,9 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, items, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, items, "isModItem", JS_NewCFunction(ctx, js_isModItem, "isModItem", 1));
     JS_SetPropertyStr(ctx, items, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
+    JS_SetPropertyStr(ctx, items, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaItemCount));
+    JS_SetPropertyStr(ctx, items, "setTooltip", JS_NewCFunction(ctx, js_setTooltip, "setTooltip", 2));
+    JS_SetPropertyStr(ctx, items, "modItemsIn", JS_NewCFunction(ctx, js_modItemsIn, "modItemsIn", 1));
     JS_SetPropertyStr(ctx, bl, "items", items);
 
     JSValue menu = JS_NewObject(ctx);

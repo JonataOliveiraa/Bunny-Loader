@@ -65,6 +65,9 @@ void setNpcsInstalledHook(NpcsInstalledHook hook);
 /** Instala o registrado quando o jogo ja criou as tabelas; vigia as refeitas. Thread do jogo. */
 void tickModNpcs();
 
+/** Instalados e com o SetStaticDefaults ja rodado (ou falhou de vez). */
+bool modNpcsSettled();
+
 struct ModNpcInfo {
     int type;
     std::string mod, name, texture;

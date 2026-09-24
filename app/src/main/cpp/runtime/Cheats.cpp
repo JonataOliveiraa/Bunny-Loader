@@ -9,6 +9,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "runtime/GameRefs.h"
+#include "runtime/ModContent.h"
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
 #include "runtime/ModProjectiles.h"
@@ -515,6 +516,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModItems();
     tickModProjectiles();
     tickModNpcs();
+    tickContentReady();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {
         giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));

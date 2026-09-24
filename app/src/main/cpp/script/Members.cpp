@@ -95,9 +95,11 @@ Member resolve(JSContext* ctx, Il2CppClass* cls, JSAtom atom, Space space, JSCla
     m.getter = a.class_get_method_from_name(cls, ("get_" + name).c_str(), 0);
     m.setter = a.class_get_method_from_name(cls, ("set_" + name).c_str(), 1);
 
-    // So na classe o nome puro vira metodo (Item.SetDefaults), e so se for
-    // unico. Com overloads, quem acessa recebe o erro listando todos.
-    if (space == Space::Static && !m.getter) {
+    // O nome puro vira metodo (Item.SetDefaults, item.TurnToAir,
+    // entry.Info.Add) so se for unico. Com overloads, quem acessa recebe o
+    // erro listando todos. Em instancia tambem: e como o codigo do ExMod (e do
+    // tModLoader) chama — sem isto, `entry.Info.Add(x)` era "not a function".
+    if ((space == Space::Static || space == Space::Instance) && !m.getter) {
         m.overloads = static_cast<int>(il2cpp::listOverloads(cls, name).size());
         if (m.overloads == 1) m.method = uniqueMethodNamed(cls, name);
     }

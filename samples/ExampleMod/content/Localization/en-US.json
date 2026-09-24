@@ -10,5 +10,11 @@
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime"
+  },
+  "ItemTooltip": {
+    "ExampleItem": "Item description"
+  },
+  "Bestiary": {
+    "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."
   }
 }

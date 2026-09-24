@@ -21,7 +21,11 @@ struct Entry {
     ModNpcDef def;
     int width = 0, height = 0;   // de UM quadro
     int textureHeight = 0;       // a tira inteira
-    uint32_t asset = 0;          // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
+    uint32_t asset = 0;
+    // A amostra em ContentSamples.NpcsByNetId (gchandle). E ela que o
+    // retrato do Bestiario desenha; nasce antes do SetStaticDefaults do mod,
+    // entao os quadros definidos la precisam chegar nela depois.
+    uint32_t sample = 0;          // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
 };
 
 std::mutex g_mx;
@@ -63,7 +67,7 @@ struct Refs {
     FieldInfo* sorting = nullptr;        // ContentSamples.NpcBestiarySortingId
     Il2CppClass* npcCls = nullptr;
     int32_t noAggro = -1;                // Player.npcTypeNoAggro
-    int32_t type = -1, netId = -1, active = -1, width = -1, height = -1;
+    int32_t type = -1, netId = -1, active = -1, width = -1, height = -1, frame = -1;
     int32_t life = -1, lifeMax = -1, damage = -1, defense = -1, defDamage = -1, defDefense = -1;
     const MethodInfo* npcCtor = nullptr;
     const MethodInfo* setDefaults = nullptr;
@@ -105,6 +109,7 @@ Refs& refs() {
         r.active = fieldOffset(npc, "active");
         r.width = fieldOffset(npc, "width");
         r.height = fieldOffset(npc, "height");
+        r.frame = fieldOffset(npc, "frame");   // Rectangle: X, Y, Width, Height
         r.life = fieldOffset(npc, "life");
         r.lifeMax = fieldOffset(npc, "lifeMax");
         r.damage = fieldOffset(npc, "damage");
@@ -214,6 +219,11 @@ void registerSample(int type, const std::string& key) {
     void* sd[2] = {&t, spawnParams};
     invoke(r.setDefaults, npc, sd, "SetDefaults da amostra");   // passa pelo hook do mod
     setDictionaryEntry(r.samples, &t, npc, "ContentSamples.NpcsByNetId");
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        const size_t i = static_cast<size_t>(type - kVanillaNpcCount);
+        if (i < g_regs.size()) g_regs[i].sample = a.gchandle_new(npc, false);
+    }
     Il2CppString* id = a.string_new(key.c_str());
     setDictionaryEntry(r.creditIds, &t, id, "ContentSamples.NpcBestiaryCreditIdsByNpcNetIds");
     setDictionaryEntry(r.persistentById, &t, id, "ContentSamples.NpcPersistentIdsByNetIds");
@@ -374,6 +384,11 @@ void prepareModNpcs() {
     if (total > 0) patchLimits(kVanillaNpcCount + total);
 }
 
+bool modNpcsSettled() {
+    return g_failed || (g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire) &&
+                        !g_staticDefaultsPending);
+}
+
 void setNpcsInstalledHook(NpcsInstalledHook hook) {
     g_installedHook = hook;
 }
@@ -474,9 +489,19 @@ void setModNpcFrames(int type, int frames) {
     const size_t i = static_cast<size_t>(type - kVanillaNpcCount);
     if (type < kVanillaNpcCount || i >= g_regs.size()) return;
     Entry& e = g_regs[i];
+    const int oldHeight = e.height;
     e.def.frames = frames;
     if (e.textureHeight > 0) e.height = e.textureHeight / frames;
     if (static_cast<int>(i) < g_installed.load(std::memory_order_relaxed)) applyFrames(type, e);
+
+    // A amostra: o quadro que o Bestiario desenha, e a altura que veio da
+    // textura (so se o mod nao tinha dito a dele).
+    const Refs& r = refs();
+    Il2CppObject* sample = e.sample ? il2cpp::api().gchandle_get_target(e.sample) : nullptr;
+    if (sample && r.frame >= 0 && e.height > 0) {
+        field<int32_t>(sample, r.frame + 12) = e.height;
+        if (field<int32_t>(sample, r.height) == oldHeight) field<int32_t>(sample, r.height) = e.height;
+    }
 }
 
 void setModNpcAnimation(int type, int animationType) {

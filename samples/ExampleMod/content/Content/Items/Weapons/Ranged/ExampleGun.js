@@ -26,4 +26,8 @@ export class ExampleGun extends ModItem {
         this.Item.rare = RARITY_GREEN;
         this.Item.UseSound = SoundID.Item41;
     }
+
+    HoldoutOffset(item, player) {
+        return { X: -18, Y: 0 };
+    }
 }

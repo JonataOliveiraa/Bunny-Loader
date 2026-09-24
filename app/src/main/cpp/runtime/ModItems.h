@@ -36,6 +36,8 @@ struct ModItemDef {
     size_t textureSize = 0;
     /** Nome por cultura ("pt-BR" -> "Espada"), UTF-8. "" = serve para qualquer uma. */
     std::vector<std::pair<std::string, std::string>> names;
+    /** Tooltip por cultura, linhas separadas por '\n'. Vazio = sem tooltip. */
+    std::vector<std::pair<std::string, std::string>> tooltips;
 };
 
 /**
@@ -45,6 +47,13 @@ struct ModItemDef {
 int registerModItem(ModItemDef def);
 
 bool isModItem(int type);
+
+/**
+ * O tooltip de um item de mod, por cultura. Vale a qualquer hora: antes da
+ * instalacao fica guardado; depois, entra no cache de tooltips do jogo
+ * (Lang._itemTooltipCache) e e reaplicado se a troca de idioma o refizer.
+ */
+void setModItemTooltip(int type, std::vector<std::pair<std::string, std::string>> tooltips);
 
 /**
  * Nome estavel do item de mod, "<uid do mod>/<nome>", ou "" se `type` nao e
@@ -91,6 +100,9 @@ int itemTypeCount();
  * idioma refaz os caches de nome) e a aumenta de novo. Thread do jogo.
  */
 void tickModItems();
+
+/** Tudo que foi registrado ja esta nas tabelas do jogo (ou falhou de vez). */
+bool modItemsSettled();
 
 /**
  * Chamado uma vez por lote instalado (thread do jogo), com os tipos novos —

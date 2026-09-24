@@ -41,6 +41,9 @@ int projectileTypeCount();
 /** Instala o registrado quando o jogo ja criou as tabelas; vigia as refeitas. Thread do jogo. */
 void tickModProjectiles();
 
+/** Tudo que foi registrado ja esta nas tabelas do jogo (ou falhou de vez). */
+bool modProjectilesSettled();
+
 /** Depois do setDefaults do mod: reativa, e tamanho pela textura se ele nao disse. */
 void finishModProjectile(Il2CppObject* projectile, int type);
 

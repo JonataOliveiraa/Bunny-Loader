@@ -40,6 +40,15 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/mods/BuiltinMods.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/gen/mods/BuiltinMods.h @ONLY)
 
+# As classes base dos mods (ModItem, ModProjectile, ModNPC...), em JS de
+# verdade num arquivo proprio e embutidas do mesmo jeito.
+set(BL_MOD_CLASSES_FILE ${CMAKE_CURRENT_SOURCE_DIR}/script/ModClasses.js)
+file(READ ${BL_MOD_CLASSES_FILE} BL_MOD_CLASSES_JS)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BL_MOD_CLASSES_FILE})
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/script/ModClassesJs.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/gen/script/ModClassesJs.h @ONLY)
+
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 

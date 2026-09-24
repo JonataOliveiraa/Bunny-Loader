@@ -1,5 +1,6 @@
 const { SoundID, NPCID, ItemID, DustID } = Terraria.ID;
 const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
+const { BestiaryDatabaseNPCsPopulator, FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
 
 const Common = ItemDropRule['IItemDropRule Common(int itemId, int chanceDenominator, int minimumDropped, int maximumDropped)'];
 const NormalvsExpert = ItemDropRule['IItemDropRule NormalvsExpert(int itemId, int chanceDenominatorInNormal, int chanceDenominatorInExpert)'];
@@ -34,6 +35,24 @@ export class ExampleSlimeNPC extends ModNPC {
 
     ApplyBuffImmunity(npc) {
         npc.buffImmune[20] = true;
+    }
+
+    SetBestiary(database, bestiaryEntry) {
+        const { SpawnConditions } = BestiaryDatabaseNPCsPopulator.CommonTags;
+        bestiaryEntry.Info.Add(SpawnConditions.Biomes.Surface);
+        bestiaryEntry.Info.Add(SpawnConditions.Times.DayTime);
+        bestiaryEntry.Info.Add(SpawnConditions.Visuals.Sun);
+
+        const flavorText = FlavorTextBestiaryInfoElement.new();
+        flavorText['void .ctor(string languageKey)'](ModLocalization.Translate('Bestiary.ExampleSlimeNPC'));
+        bestiaryEntry.Info.Add(flavorText);
+    }
+
+    SpawnChance(info) {
+        if (!info.CommonEnemy || !info.Day || !info.AboveSurface) return 0;
+        let chance = info.Rain ? 0.05 : 0.1;
+        if (info.HardMode) chance += 0.05;
+        return chance;
     }
 
     ModifyNPCLoot(npcLoot) {

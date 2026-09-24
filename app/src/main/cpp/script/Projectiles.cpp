@@ -236,6 +236,7 @@ void installProjectilesApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, projectiles, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, projectiles, "isModProjectile",
                       JS_NewCFunction(ctx, js_isModProjectile, "isModProjectile", 1));
+    JS_SetPropertyStr(ctx, projectiles, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaProjectileCount));
     JS_SetPropertyStr(ctx, projectiles, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
     JS_SetPropertyStr(ctx, projectiles, "setFrames", JS_NewCFunction(ctx, js_setFrames, "setFrames", 2));
     JS_SetPropertyStr(ctx, bl, "projectiles", projectiles);

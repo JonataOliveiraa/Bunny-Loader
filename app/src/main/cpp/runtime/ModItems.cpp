@@ -39,6 +39,9 @@ struct Refs {
     bool tried = false, ok = false;
     FieldInfo* itemTextures = nullptr;        // TextureAssets.Item (Asset<Texture2D>[])
     FieldInfo* nameCache = nullptr;      // Lang._itemNameCache (LocalizedText[])
+    FieldInfo* tooltipCache = nullptr;   // Lang._itemTooltipCache (ItemTooltip[])
+    const MethodInfo* tooltipFromText = nullptr;   // ItemTooltip.FromHardcodedText(string[])
+    Il2CppClass* stringCls = nullptr;
     FieldInfo* itemsByType = nullptr;       // ContentSamples.ItemsByType
     FieldInfo* persistentIdById = nullptr;   // ContentSamples.ItemPersistentIdsByNetIds
     FieldInfo* idByPersistentId = nullptr;   // ContentSamples.ItemNetIdsByPersistentIds
@@ -91,6 +94,10 @@ Refs& refs() {
 
     r.itemTextures = tex ? findField(tex, "Item") : nullptr;
     r.nameCache = lang ? findField(lang, "_itemNameCache") : nullptr;
+    r.tooltipCache = lang ? findField(lang, "_itemTooltipCache") : nullptr;
+    r.tooltipFromText = sig(findClass({"Terraria.UI", "ItemTooltip", {}}),
+                            "ItemTooltip FromHardcodedText(string[] text)");
+    r.stringCls = findClass({"System", "String", {}});
     r.itemsByType = cs ? findField(cs, "ItemsByType") : nullptr;
     r.persistentIdById = cs ? findField(cs, "ItemPersistentIdsByNetIds") : nullptr;
     r.idByPersistentId = cs ? findField(cs, "ItemNetIdsByPersistentIds") : nullptr;
@@ -202,6 +209,34 @@ TypeTables g_tables("itens de mod", kVanillaItemCount, {
 // ------------------------------ conteudo ------------------------------
 
 
+/** O tooltip na cultura atual, uma linha por '\n'. Sem tooltip, nao mexe. */
+void applyTooltip(int type, const Entry& reg) {
+    const Refs& r = refs();
+    if (reg.def.tooltips.empty() || !r.tooltipCache || !r.tooltipFromText || !r.stringCls) return;
+    const std::string text = content::textForCulture(reg.def.tooltips, "");
+    std::vector<std::string> lines;
+    size_t start = 0;
+    while (start <= text.size()) {
+        const size_t end = text.find('\n', start);
+        lines.push_back(text.substr(start, end == std::string::npos ? std::string::npos : end - start));
+        if (end == std::string::npos) break;
+        start = end + 1;
+    }
+    auto& a = il2cpp::api();
+    Il2CppArray* arr = a.array_new(r.stringCls, lines.size());
+    if (!arr) return;
+    for (size_t i = 0; i < lines.size(); ++i) {
+        a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(arr),
+                                reinterpret_cast<void**>(static_cast<Il2CppString**>(arrayData(arr)) + i),
+                                a.string_new(lines[i].c_str()));
+    }
+    void* args[1] = {arr};
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* tip = a.runtime_invoke(r.tooltipFromText, nullptr, args, &exc);
+    if (exc || !tip) { BL_ERROR("itens de mod: FromHardcodedText lancou (%s)", reg.def.name.c_str()); return; }
+    content::setTableElement(r.tooltipCache, type, tip);
+}
+
 void applyName(int type, const Entry& reg) {
     const std::string name = content::textForCulture(reg.def.names, reg.def.name);
     if (Il2CppObject* text = content::makeLocalizedText("ItemName." + reg.def.name, name)) {
@@ -295,12 +330,13 @@ bool gameReady(int size) {
 /** Tabela que o jogo refez (a troca de idioma refaz os caches de nome): reaplica o nosso. */
 void onTableRegrown(FieldInfo* f, int size) {
     Refs& r = refs();
-    if (f != r.nameCache && f != r.itemTextures) return;
+    if (f != r.nameCache && f != r.itemTextures && f != r.tooltipCache) return;
     std::lock_guard<std::mutex> l(g_mx);
     for (size_t i = 0; i < g_regs.size() && static_cast<int>(i) < size - kVanillaItemCount; ++i) {
         const int type = kVanillaItemCount + static_cast<int>(i);
         if (f == r.nameCache) applyName(type, g_regs[i]);
         if (f == r.itemTextures) applyTexture(type, g_regs[i]);
+        if (f == r.tooltipCache) applyTooltip(type, g_regs[i]);
     }
 }
 
@@ -530,6 +566,7 @@ void tickModItems() {
             if (asset) reg.asset = a.gchandle_new(asset, false);
             applyTexture(type, reg);
             applyName(type, reg);
+            applyTooltip(type, reg);
             pending.push_back({type, reg.def.mod, reg.def.name});
         }
     }
@@ -540,6 +577,18 @@ void tickModItems() {
     BL_INFO("itens de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
     if (ItemsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) hook(from, to - 1);
+}
+
+void setModItemTooltip(int type, std::vector<std::pair<std::string, std::string>> tooltips) {
+    std::lock_guard<std::mutex> l(g_mx);
+    const size_t i = static_cast<size_t>(type - kVanillaItemCount);
+    if (type < kVanillaItemCount || i >= g_regs.size()) return;
+    g_regs[i].def.tooltips = std::move(tooltips);
+    if (static_cast<int>(i) < g_installed.load(std::memory_order_relaxed)) applyTooltip(type, g_regs[i]);
+}
+
+bool modItemsSettled() {
+    return g_failed || g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire);
 }
 
 void setItemsInstalledHook(ItemsInstalledHook hook) {

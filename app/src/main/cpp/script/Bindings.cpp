@@ -480,21 +480,49 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
-// NativeMethod.hook(callback)
+// NativeMethod.hook(callback[, { minType, on, field }])
+//
+// Com o segundo argumento, o hook so chama o JS quando o objeto `on` ('self',
+// o padrao, ou o indice de um parametro) tem `field` (padrao 'type') >=
+// minType. Ex.: NPC.AI so para NPC de mod — os do jogo nem entram no JS.
 JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
     auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
     if (!r || argc < 1) return JS_EXCEPTION;
     if (!JS_IsFunction(ctx, argv[0]))
         return JS_ThrowTypeError(ctx, "hook(callback): callback deve ser funcao");
+    HookFilter filter;
+    if (argc >= 2 && JS_IsObject(argv[1])) {
+        JSValue min = JS_GetPropertyStr(ctx, argv[1], "minType");
+        JSValue on = JS_GetPropertyStr(ctx, argv[1], "on");
+        JSValue field = JS_GetPropertyStr(ctx, argv[1], "field");
+        int32_t n = 0;
+        const bool ok = JS_ToInt32(ctx, &n, min) == 0;
+        filter.minType = n;
+        filter.on = -1;
+        if (JS_IsNumber(on)) {
+            int32_t i = 0;
+            JS_ToInt32(ctx, &i, on);
+            filter.on = i;
+        }
+        if (JS_IsString(field)) {
+            const char* s = JS_ToCString(ctx, field);
+            if (s) { filter.field = s; JS_FreeCString(ctx, s); }
+        }
+        JS_FreeValue(ctx, min);
+        JS_FreeValue(ctx, on);
+        JS_FreeValue(ctx, field);
+        if (!ok) return JS_EXCEPTION;
+    }
     // installJsHook deixa a exceção posta, com o motivo exato (retorno struct,
     // argumentos demais, sem slot). Repetir aqui só apagaria a informação.
-    if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0]))
+    if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0],
+                       filter.on == -2 ? nullptr : &filter))
         return JS_EXCEPTION;
     return JS_UNDEFINED;
 }
 
 const JSCFunctionListEntry nm_proto[] = {
-    JS_CFUNC_DEF("hook", 1, nm_hook),
+    JS_CFUNC_DEF("hook", 2, nm_hook),
 };
 
 

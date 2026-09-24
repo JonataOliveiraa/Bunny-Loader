@@ -3,6 +3,9 @@
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
+
+#include <cstdint>
+#include <string>
 #endif
 
 namespace bl::script {
@@ -21,12 +24,24 @@ Il2CppArray* arrayFromJS(JSValueConst v);
 /** O objeto e um array (de qualquer tipo de elemento)? */
 bool isArrayObject(Il2CppObject* o);
 
+/**
+ * Filtro NATIVO de um hook JS: so vai ao JS a chamada em que o objeto `on`
+ * (o self, ou o parametro de indice `on`) tem o campo int `field` >= minType.
+ * As outras vao direto ao original, sem trava nem JS — o NPC.AI roda por
+ * NPC por quadro, e so os de mod interessam ao mod.
+ */
+struct HookFilter {
+    int on = -2;              // -2 = sem filtro, -1 = self, >= 0 = parametro
+    std::string field = "type";
+    int32_t minType = 0;
+};
+
 // Instala um hook JS num metodo do jogo. O callback recebe
 // (original, self, ...args). Retorna false (com excecao posta no ctx) se nao
 // houver slot livre, se o hook nativo falhar ou se a assinatura do metodo nao
 // couber na convencao de chamada que sabemos reproduzir. Ver JsHook.cpp.
 bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
-                   bool isInstance, JSValueConst callback);
+                   bool isInstance, JSValueConst callback, const HookFilter* filter = nullptr);
 
 #endif
 

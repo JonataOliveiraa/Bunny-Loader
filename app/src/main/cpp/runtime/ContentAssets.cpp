@@ -192,13 +192,47 @@ std::string textForCulture(const CultureNames& names, const std::string& fallbac
     return match ? *match : fallback;
 }
 
+namespace {
+
+/**
+ * O texto tambem vai para o dicionario do idioma (LanguageManager.Instance.
+ * _localizedTexts), sob a mesma chave. O jogo guarda o nome de item e de NPC
+ * em tabelas por tipo, mas partes dele buscam pela CHAVE: a plaquinha do
+ * Bestiario (Language.GetTextValue("NPCName.X")) mostrava a chave crua.
+ */
+void registerLanguageKey(Il2CppString* key, Il2CppObject* text) {
+    auto& a = il2cpp::api();
+    static FieldInfo* instance = nullptr;
+    static int32_t offTexts = -2;
+    static const MethodInfo* setItem = nullptr;
+    if (offTexts == -2) {
+        Il2CppClass* lm = il2cpp::findClass({"Terraria.Localization", "LanguageManager", {}});
+        instance = lm ? il2cpp::findField(lm, "Instance") : nullptr;
+        offTexts = lm ? il2cpp::fieldOffset(lm, "_localizedTexts") : -1;
+    }
+    Il2CppObject* manager = nullptr;
+    if (instance) a.field_static_get_value(instance, &manager);
+    if (!manager || offTexts < 0) return;
+    Il2CppObject* dict = *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(manager) + offTexts);
+    if (!dict) return;
+    if (!setItem) setItem = a.class_get_method_from_name(a.object_get_class(dict), "set_Item", 2);
+    if (!setItem) return;
+    void* args[2] = {key, text};
+    invoke(setItem, dict, args, "LanguageManager._localizedTexts[chave]");
+}
+
+} // namespace
+
 Il2CppObject* makeLocalizedText(const std::string& key, const std::string& text) {
     auto& a = il2cpp::api();
     const Refs& r = refs();
     if (!r.ok) return nullptr;
     Il2CppObject* t = a.object_new(r.localizedTextCls);
-    void* c[2] = {a.string_new(key.c_str()), a.string_new(text.c_str())};
-    return invoke(r.localizedTextCtor, t, c, "LocalizedText.ctor") ? t : nullptr;
+    Il2CppString* k = a.string_new(key.c_str());
+    void* c[2] = {k, a.string_new(text.c_str())};
+    if (!invoke(r.localizedTextCtor, t, c, "LocalizedText.ctor")) return nullptr;
+    registerLanguageKey(k, t);
+    return t;
 }
 
 bool setTableElement(FieldInfo* table, int index, Il2CppObject* value) {

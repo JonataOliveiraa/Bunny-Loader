@@ -1,0 +1,15 @@
+{
+  "uid": "d3a1f6c2-7b84-4e59-a0c1-5e2f9b7d4a63",
+  "id": "test-hooks",
+  "name": "Teste: hooks das classes de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "IA, spawn natural, Bestiario, tooltip, receita e os hooks de uso.",
+  "description": "Teste de script/ModClasses.js. Precisa do Example Mod ligado. Loga 'hooks ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -242,6 +242,10 @@ void tickModProjectiles() {
     }
 }
 
+bool modProjectilesSettled() {
+    return g_failed || g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire);
+}
+
 void setProjectilesInstalledHook(ProjectilesInstalledHook hook) {
     g_installedHook.store(hook, std::memory_order_release);
 }
