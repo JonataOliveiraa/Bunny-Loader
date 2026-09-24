@@ -7,9 +7,13 @@ próprio processo, intercepta métodos nativos gerados pelo IL2CPP e executa mod
   do TL Pro. API `NativeClass` / `hook()`.
 - **futuro:** motor próprio de bytecode (LRVM) para mods em C#.
 
-> O Bunny Loader **não** inclui nem redistribui arquivos do Terraria. Ele usa a
-> cópia instalada e comprada pelo usuário. Os dumps em `refs/` são gerados
-> localmente e nunca publicados.
+> Este repositório **não** inclui os binários nem os assets do Terraria
+> (`libil2cpp.so`, `libunity.so`, dados do jogo): eles ficam fora do Git e são
+> integrados localmente, e o jogo só abre para quem tem o Terraria oficial da
+> Play instalado. Os dumps em `refs/` são gerados localmente e nunca publicados.
+> Algumas texturas da interface (fundos, ícones do menu, capas dos mods de
+> exemplo) são recortes da arte do Terraria, gerados por `tools/ui-sprites.py`
+> e `tools/mod-art.py`.
 
 ## Criando mods
 
