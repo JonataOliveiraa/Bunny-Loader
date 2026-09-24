@@ -7,6 +7,9 @@
 #include "mods/ModLoader.h"
 #include "core/Config.h"
 #include "runtime/Cheats.h"
+#include "runtime/ModItemSave.h"
+#include "runtime/ModItems.h"
+#include "runtime/ModNpcs.h"
 #include "ui/CheatButton.h"
 
 #include <chrono>
@@ -66,9 +69,13 @@ void probeThread() {
                 mods::loadBuiltins();
             }
             BL_INFO("sonda: %zu mod(s) carregado(s)", mods::loadedCount());
+            // Depois dos mods: os ids deles ficam os mesmos de sempre.
+            registerUnloadedPool();
+            prepareModNpcs();
 
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.
             installCheats();
+            installModItemSave();
             ui::installCheatButton();
             return;
         }

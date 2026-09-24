@@ -10,6 +10,8 @@
 #include "il2cpp/Signature.h"
 #include "runtime/GameRefs.h"
 #include "runtime/ModItems.h"
+#include "runtime/ModNpcs.h"
+#include "runtime/ModProjectiles.h"
 #include "runtime/Powers.h"
 #include <atomic>
 #include <chrono>
@@ -187,7 +189,8 @@ void runSelftestOnce() {
 // Itens do jogo + itens de mod JA instalados; fixado quando a leitura dos nomes
 // comeca (o menu so abre dentro do mundo, e os de mod entram na tela de titulo).
 int g_itemTotal = kVanillaItemCount;
-constexpr int kNpcCount = 697;
+// NPCs do jogo + NPCs de mod ja instalados; fixado junto com g_itemTotal.
+int g_npcTotal = kVanillaNpcCount;
 // Quanto do quadro a leitura dos nomes pode tomar. Era uma conta fixa (250
 // nomes por quadro), que num aparelho lento viraria um quadro inteiro perdido
 // a cada vez; por TEMPO, o aparelho lento so demora mais para terminar. 2 ms
@@ -199,7 +202,7 @@ std::vector<std::u16string> g_npcNames;
 std::vector<int> g_npcFrames;
 const MethodInfo* g_itemNameOf = nullptr;
 const MethodInfo* g_npcNameOf = nullptr;
-int g_nameProgress = -1;   // -1 = nem comecou; >= g_itemTotal+kNpcCount = pronto
+int g_nameProgress = -1;   // -1 = nem comecou; >= g_itemTotal+g_npcTotal = pronto
 // Para o log de quanto a leitura custou: do primeiro quadro ao ultimo, quantos
 // quadros e o pior deles.
 std::chrono::steady_clock::time_point g_nameReadStart;
@@ -437,15 +440,19 @@ void readNamesSlice() {
             return;
         }
         g_itemTotal = itemTypeCount();
+        // A reserva de "?" (item de mod ausente) e a ultima faixa de ids e nao
+        // e item que se pega: fica fora do menu.
+        while (g_itemTotal > kVanillaItemCount && isUnloadedType(g_itemTotal - 1)) --g_itemTotal;
         g_itemNames.assign(g_itemTotal, std::u16string());
-        g_npcNames.assign(kNpcCount, std::u16string());
+        g_npcTotal = npcTypeCount();
+        g_npcNames.assign(g_npcTotal, std::u16string());
         g_nameProgress = 0;
         g_nameReadStart = std::chrono::steady_clock::now();
     }
 
     using Clock = std::chrono::steady_clock;
     const auto t0 = Clock::now();
-    const int total = g_itemTotal + kNpcCount;
+    const int total = g_itemTotal + g_npcTotal;
     for (; g_nameProgress < total; ++g_nameProgress) {
         // O relogio a cada 16 nomes, e nao a cada um: perguntar a hora tambem
         // custa. O primeiro lote sempre passa, entao todo quadro anda.
@@ -492,7 +499,7 @@ void readNamesSlice() {
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             Clock::now() - g_nameReadStart).count();
         BL_INFO("cheats: nomes e classes prontos (%d itens, %d NPCs; %d itens sem "
-                "nome) em %lld ms, %d quadros, pior quadro %.1f ms", g_itemTotal, kNpcCount,
+                "nome) em %lld ms, %d quadros, pior quadro %.1f ms", g_itemTotal, g_npcTotal,
                 unnamed, static_cast<long long>(ms), g_nameReadFrames, g_nameReadWorstUs / 1000.0);
     }
 }
@@ -506,6 +513,8 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     readNamesSlice();
     tickPowers();
     tickModItems();
+    tickModProjectiles();
+    tickModNpcs();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {
         giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));

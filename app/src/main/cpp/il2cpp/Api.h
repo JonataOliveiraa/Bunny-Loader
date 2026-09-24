@@ -48,6 +48,12 @@ struct Api {
     // um Vector2[] guarda os structs em linha (8 B de dados). Sem o tamanho
     // certo o indice anda errado.
     Il2CppClass* (*class_get_element_class)(Il2CppClass*) = nullptr;
+    // Dimensoes de um array (0 = nao e array). Um metodo que DECLARA devolver
+    // System.Array ou object pode devolver um T[] de verdade.
+    int (*class_get_rank)(const Il2CppClass*) = nullptr;
+    // Encaixota um struct: metodo de System.Object/ValueType chamado num struct
+    // (GetType, Equals herdado) quer o objeto com cabecalho, nao os dados.
+    Il2CppObject* (*value_box)(Il2CppClass*, void*) = nullptr;
     int32_t (*class_value_size)(Il2CppClass*, uint32_t*) = nullptr;
     // Caminho de volta classe -> tipo: o elemento de um array chega como
     // classe, e quem sabe ler memoria trabalha com Il2CppType.
@@ -81,6 +87,20 @@ struct Api {
     Il2CppString* (*string_new)(const char*) = nullptr;
     uint32_t (*gchandle_new)(Il2CppObject*, bool) = nullptr;
     void (*gchandle_free)(uint32_t) = nullptr;
+    // Memoria que o coletor VARRE mas nao recolhe (GC_MALLOC_UNCOLLECTABLE):
+    // ponteiro gravado nela segura o objeto vivo. Base da tabela de raizes
+    // (script/Roots.cpp), que substitui um gchandle por wrapper.
+    void* (*gc_alloc_fixed)(size_t) = nullptr;
+    void (*gc_free_fixed)(void*) = nullptr;
+    // Grava um ponteiro avisando o coletor incremental (senao ele pode ja ter
+    // varrido aquela memoria nesta coleta e perder o objeto).
+    void (*gc_wbarrier_set_field)(Il2CppObject*, void**, void*) = nullptr;
+    bool (*gc_is_incremental)() = nullptr;
+    // Roda o construtor estatico da classe se ainda nao rodou (o que o C# faz
+    // no primeiro acesso a um estatico). Chamada direta pelo methodPointer e
+    // leitura de campo estatico NAO fazem isso sozinhas.
+    void (*runtime_class_init)(Il2CppClass*) = nullptr;
+    Il2CppClass* (*field_get_parent)(FieldInfo*) = nullptr;
     Il2CppObject* (*gchandle_get_target)(uint32_t) = nullptr;
     Il2CppThread* (*thread_attach)(Il2CppDomain*) = nullptr;
 

@@ -106,4 +106,8 @@ private:
 // contexto. Implementado em Bindings.cpp.
 void installBindings(void* context);
 
+// As classes base dos mods (ModItem...), escritas em JS e avaliadas no escopo
+// global depois dos bindings. Implementado em ModClasses.cpp.
+void installModClasses(void* context);
+
 } // namespace bl::script

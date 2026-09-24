@@ -93,6 +93,16 @@
 // MEMÓRIA, num endereço que a nossa captura não alcança, e o hook é recusado
 // dizendo o tipo e o tamanho.
 //
+// Nullable (`float?`, `Rectangle?`) é `null` ou o próprio valor — em
+// argumento, retorno, campo e hook. Na assinatura vale qualquer grafia:
+// `Nullable\`1` (como o TL escreve), `Nullable<float>` ou `float?`:
+//
+//   Main['void StartRain(bool instant, Nullable`1 strengthOverride, bool garenteeCoinRain)'](true, 0.7, false);
+//   Main['void StartRain(bool instant, float? strengthOverride, bool garenteeCoinRain)'](true, null, false);
+//   sb['void Draw(Texture2D texture, Rectangle destinationRectangle, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, SpriteEffects effects, float layerDepth)'](tex, dest, null, cor, 0, origem, 0, 0);
+//
+// Classe aninhada é propriedade da de fora: `SpriteFont.Glyph.new()`.
+//
 // O que ainda NÃO dá: hookar método com mais de 8 argumentos inteiros ou 8 de
 // ponto flutuante (o excedente viaja pela pilha, que não capturamos). Recusado
 // com mensagem, nunca adivinhado.

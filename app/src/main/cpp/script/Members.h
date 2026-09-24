@@ -34,6 +34,8 @@ struct Member {
     const MethodInfo* setter = nullptr;   // set_<nome>, 1 parametro
     const MethodInfo* method = nullptr;   // por assinatura; ou, em Static, nome de overload unico
     int overloads = 0;                    // Static, nome puro: quantos metodos tem o nome
+    Il2CppClass* nested = nullptr;        // Static: classe aninhada (SpriteFont.Glyph)
+    mutable bool classReady = false;      // Static, campo: construtor estatico ja garantido
 };
 
 /**

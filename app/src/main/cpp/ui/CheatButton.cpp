@@ -6,6 +6,8 @@
 
 #include "runtime/Cheats.h"
 #include "runtime/ModItems.h"
+#include "runtime/ModMenu.h"
+#include "runtime/ModNpcs.h"
 #include "runtime/Powers.h"
 #include "ui/CheatBridgeDex.h"
 
@@ -154,6 +156,18 @@ void JNICALL jni_setPower(JNIEnv*, jclass, jint id, jint level) {
     bl::runtime::setPower(id, level);
 }
 
+void JNICALL jni_setTimeOfDay(JNIEnv*, jclass, jint which) {
+    bl::runtime::setTimeOfDay(which);
+}
+
+/** {hardmode 0/1, modo de jogo 0..3}; -1 fora do mundo. */
+jintArray JNICALL jni_worldState(JNIEnv* env, jclass) {
+    const jint v[] = {bl::runtime::worldHardmode(), bl::runtime::worldGameMode()};
+    jintArray out = env->NewIntArray(2);
+    if (out) env->SetIntArrayRegion(out, 0, 2, v);
+    return out;
+}
+
 jboolean JNICALL jni_inWorld(JNIEnv*, jclass) {
     return runtime::inWorld() ? JNI_TRUE : JNI_FALSE;
 }
@@ -179,15 +193,34 @@ jobjectArray JNICALL jni_modItemTextures(JNIEnv* env, jclass) {
     return toJavaStrings(env, v);
 }
 
-/** Categorias do catalogo de mod, achatadas: nome0, icone0, nome1, icone1... */
+jint JNICALL jni_vanillaNpcCount(JNIEnv*, jclass) { return runtime::kVanillaNpcCount; }
+
+/** O PNG de cada NPC de mod, na ordem do tipo (indice = tipo - vanilla). */
+jobjectArray JNICALL jni_modNpcTextures(JNIEnv* env, jclass) {
+    std::vector<std::string> v;
+    for (const auto& n : runtime::modNpcs()) v.push_back(n.texture);
+    return toJavaStrings(env, v);
+}
+
+/**
+ * As pastas do catalogo de mod, achatadas, SEIS textos por pasta: uid do mod,
+ * nome do mod, icone do mod, nome da pasta, icone da pasta, "npc" ou "item".
+ */
 jobjectArray JNICALL jni_modCategories(JNIEnv* env, jclass) {
     std::vector<std::string> v;
-    for (const auto& c : runtime::modCategories()) { v.push_back(c.name); v.push_back(c.icon); }
+    for (const auto& f : runtime::modMenuFolders()) {
+        v.push_back(f.mod);
+        v.push_back(f.modName);
+        v.push_back(f.modIcon);
+        v.push_back(f.name);
+        v.push_back(f.icon);
+        v.push_back(f.npc ? "npc" : "item");
+    }
     return toJavaStrings(env, v);
 }
 
 jintArray JNICALL jni_modCategoryItems(JNIEnv* env, jclass, jint i) {
-    const auto cats = runtime::modCategories();
+    const auto cats = runtime::modMenuFolders();
     if (i < 0 || static_cast<size_t>(i) >= cats.size()) return nullptr;
     const std::vector<int>& t = cats[static_cast<size_t>(i)].types;
     jintArray out = env->NewIntArray(static_cast<jsize>(t.size()));
@@ -290,10 +323,14 @@ void installCheatButton() {
         {"nItemStacks", "()[I", reinterpret_cast<void*>(&jni_itemStacks)},
         {"nSetPower", "(II)V", reinterpret_cast<void*>(&jni_setPower)},
         {"nInWorld", "()Z", reinterpret_cast<void*>(&jni_inWorld)},
+        {"nSetTimeOfDay", "(I)V", reinterpret_cast<void*>(&jni_setTimeOfDay)},
+        {"nWorldState", "()[I", reinterpret_cast<void*>(&jni_worldState)},
         {"nVanillaItemCount", "()I", reinterpret_cast<void*>(&jni_vanillaItemCount)},
         {"nModItemTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modItemTextures)},
         {"nModCategories", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modCategories)},
         {"nModCategoryItems", "(I)[I", reinterpret_cast<void*>(&jni_modCategoryItems)},
+        {"nVanillaNpcCount", "()I", reinterpret_cast<void*>(&jni_vanillaNpcCount)},
+        {"nModNpcTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modNpcTextures)},
     };
     if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");

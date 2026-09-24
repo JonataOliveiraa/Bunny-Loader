@@ -82,12 +82,20 @@ public class CheatBridge {
     public static native int[] nNpcFrames();
     /** Secao de cada item, pelos campos do jogo (runtime::ItemClass). */
     public static native byte[] nItemClasses();
+    /** NPCID.Count: daqui para cima e NPC de mod. */
+    public static native int nVanillaNpcCount();
+    /** O PNG de cada NPC de mod, na ordem do tipo. */
+    public static native String[] nModNpcTextures();
     /** Teto de pilha de cada item: 1 para arma e equipamento (runtime::itemMaxStacks). */
     public static native int[] nItemStacks();
     /** bl::runtime::setPower — o nivel de um superpoder, 0 = desligado. */
     public static native void nSetPower(int id, int level);
     /** bl::runtime::inWorld — o jogador esta num mundo (nao na tela de titulo). */
     public static native boolean nInWorld();
+    /** bl::runtime::setTimeOfDay — 0 amanhecer, 1 meio-dia, 2 anoitecer, 3 meia-noite. */
+    public static native void nSetTimeOfDay(int which);
+    /** {hardmode 0/1, modo de jogo 0..3 (3 = Jornada)}; -1 fora do mundo. */
+    public static native int[] nWorldState();
     /** ItemID.Count: dali para cima, o id e de item de mod. */
     public static native int nVanillaItemCount();
     /** PNG de cada item de mod, indice = tipo - nVanillaItemCount(). */
@@ -253,30 +261,52 @@ public class CheatBridge {
     // Registrados no boot, antes de o menu existir, entao as tabelas daqui sao
     // lidas uma vez so e na hora: nao tocam o il2cpp, so copiam listas.
 
-    private static int sVanilla = -1;
-    private static String[] sModTextures;
+    private static int sVanilla = -1, sVanillaNpc = -1;
+    private static String[] sModTextures, sModNpcTextures;
 
     private static void loadModItems() {
         if (sVanilla >= 0) return;
         sVanilla = nVanillaItemCount();
         sModTextures = nModItemTextures();
+        sVanillaNpc = nVanillaNpcCount();
+        sModNpcTextures = nModNpcTextures();
     }
 
-    /** O PNG do item de mod `id`, ou null se o id e do jogo. */
-    private static String modTexture(int id) {
-        if (sVanilla < 0 || id < sVanilla || sModTextures == null) return null;
-        int i = id - sVanilla;
-        return i < sModTextures.length ? sModTextures[i] : null;
+    /** O PNG do item (ou NPC) de mod `id`, ou null se o id e do jogo. */
+    private static String modTexture(boolean npc, int id) {
+        int vanilla = npc ? sVanillaNpc : sVanilla;
+        String[] files = npc ? sModNpcTextures : sModTextures;
+        if (vanilla < 0 || id < vanilla || files == null) return null;
+        int i = id - vanilla;
+        return i < files.length ? files[i] : null;
     }
 
-    /** Uma secao por categoria que os mods puseram no catalogo. */
+    /** Campos por pasta em nModCategories: uid, nome do mod, icone do mod, pasta, icone, tipo. */
+    private static final int FOLDER_FIELDS = 6;
+
+    /**
+     * Uma entrada por mod, com as pastas dele dentro ("Itens", "NPCs" e as que
+     * o mod criou). O nativo manda as pastas ja agrupadas por mod.
+     */
     private static void addModSections(ArrayList<Section> l) {
-        String[] cats = nModCategories();
-        if (cats == null) return;
-        for (int c = 0; c + 1 < cats.length; c += 2) {
-            int[] ids = nModCategoryItems(c / 2);
+        String[] f = nModCategories();
+        if (f == null) return;
+        String mod = null, modName = null, modIcon = null;
+        ArrayList<Section> folders = new ArrayList<Section>();
+        for (int c = 0; c + FOLDER_FIELDS - 1 < f.length; c += FOLDER_FIELDS) {
+            if (mod != null && !mod.equals(f[c])) {
+                l.add(Section.modGroup(modName, modIcon, folders.toArray(new Section[0])));
+                folders.clear();
+            }
+            mod = f[c];
+            modName = f[c + 1];
+            modIcon = f[c + 2];
+            int[] ids = nModCategoryItems(c / FOLDER_FIELDS);
             if (ids == null || ids.length == 0) continue;
-            l.add(Section.mod(cats[c], cats[c + 1], ids));
+            folders.add(Section.modFolder(f[c + 3], f[c + 4], "npc".equals(f[c + 5]), ids));
+        }
+        if (mod != null && !folders.isEmpty()) {
+            l.add(Section.modGroup(modName, modIcon, folders.toArray(new Section[0])));
         }
     }
 
@@ -290,9 +320,12 @@ public class CheatBridge {
 
     // ------------------------------ secoes ------------------------------
 
-    /** Uma secao do menu: lista de item, lista de NPC ou a grade de poderes. */
+    /**
+     * Uma secao do menu: lista de item, lista de NPC, a grade de poderes, ou a
+     * entrada de um mod (FOLDERS), que abre as pastas dele.
+     */
     private static final class Section {
-        static final int ITEM = 0, NPC = 1, POWER = 2;
+        static final int ITEM = 0, NPC = 1, POWER = 2, FOLDERS = 3;
 
         final String group, title;
         final int kind;
@@ -306,8 +339,12 @@ public class CheatBridge {
         final int iconItem;
         /** Ou um PNG em disco (o icone que um mod deu a categoria dele). */
         String iconFile;
+        /** O icone e o sprite de um NPC (iconItem e o id dele), nao de um item. */
+        boolean iconNpc;
         /** Onde o slider comeca. Espada vem uma; bloco vem a pilha. */
         final int defaultQty;
+        /** FOLDERS: as pastas do mod. */
+        Section[] children;
 
         /** Os ids que a lista mostra, na ordem. Do catalogo, sem copia. */
         int[] ids;
@@ -333,10 +370,23 @@ public class CheatBridge {
             return new Section("PODERES", title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
         }
 
-        /** Categoria do catalogo de mod: os ids que o mod pos nela. */
-        static Section mod(String title, String icon, int[] ids) {
-            Section s = new Section("MODS", title, ITEM, ALL_CLASSES, null, ids, null, ids[0], 1);
+        /** Uma pasta de mod: os itens (ou NPCs) que estao nela. */
+        static Section modFolder(String title, String icon, boolean npc, int[] ids) {
+            Section s = new Section("MODS", title, npc ? NPC : ITEM, ALL_CLASSES, null, ids,
+                null, ids[0], 1);
             s.iconFile = icon == null || icon.length() == 0 ? null : icon;
+            s.iconNpc = npc;
+            return s;
+        }
+
+        /** A entrada do mod na coluna: abre as pastas. Icone do mod, ou o da 1a pasta. */
+        static Section modGroup(String title, String icon, Section[] folders) {
+            Section first = folders[0];
+            Section s = new Section("MODS", title, FOLDERS, ALL_CLASSES, null, null, null,
+                first.iconItem, 0);
+            s.iconFile = icon == null || icon.length() == 0 ? first.iconFile : icon;
+            s.iconNpc = first.iconNpc;
+            s.children = folders;
             return s;
         }
 
@@ -465,6 +515,9 @@ public class CheatBridge {
     private static final String[] POWER_NAME = {
         "Dano extra", "Super velocidade", "Super pulo", "Parar o tempo", "Imortal",
         "Mana infinita", "Pulo infinito", "Mineração turbo", "Visão total",
+        "Voar", "Raio-X", "Lacaios infinitos", "Chuva", "Vento", "Bestiário",
+        "Sem inimigos", "Teleporte no mapa", "Limpar inventário", "Revelar mapa",
+        "Hardmode", "Dificuldade",
     };
     private static final String[] POWER_DESC = {
         "Toda arma bate mais forte",
@@ -476,11 +529,28 @@ public class CheatBridge {
         "Toque no ar e pule de novo",
         "Picareta e machado 4x",
         "Minério, inimigo e perigo",
+        "Voa e atravessa paredes",
+        "Ilumina a tela inteira",
+        "Invoque quantos quiser",
+        "Garoa, forte ou tempestade",
+        "Calmo, brisa ou ventania",
+        "Libera todas as criaturas",
+        "Nenhum nasce, ou some com todos",
+        "Segure 2 s no mapa grande",
+        "Fica favorito, moeda e munição",
+        "O mundo inteiro no mapa",
+        "Como vencer a Parede de Carne",
+        "Clássico, Expert, Mestre, Jornada",
     };
-    /** Rotulo de cada nivel. Um so = liga/desliga. */
+    /** Rotulo de cada nivel. Um so = liga/desliga; nenhum = acao (ver isAction). */
     private static final String[][] POWER_LEVELS = {
         {"x2", "x5", "x10"}, {"x2", "x3"}, {"x2", "x3"},
         {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"},
+        {"Normal", "Rápido"}, {"Ligado"}, {"Ligado"},
+        {"Garoa", "Forte", "Tempestade"}, {"Calmo", "Brisa", "Ventania"},
+        {},
+        {"Novos", "Todos"}, {"Ligado"}, {}, {},
+        {"Ligado"}, {"Clássico", "Expert", "Mestre", "Jornada"},
     };
     /** Sprite de item que representa cada poder. */
     private static final int[] POWER_ICON = {
@@ -493,7 +563,78 @@ public class CheatBridge {
         53,     // Nuvem na Garrafa
         1294,   // Picosserra
         296,    // Pocao de Espeleologo
+        493,    // Asas de Anjo
+        298,    // Pocao de Brilho
+        1158,   // Colar Pigmeu
+        1244,   // Cetro Nimbus
+        4367,   // Pipa Azul
+        3095,   // Contador de Abates
+        0,      // (a taxa de inimigos da Jornada: POWER_RES)
+        2997,   // Pocao de Buraco de Minhoca
+        348,    // Lixeira
+        1315,   // Mapa do Tesouro
+        367,    // Martelo Pwn
+        3335,   // (trocado pelo icone do modo: GAME_MODE_ICON)
     };
+
+    // Ids que o Java precisa conhecer, na ordem de bl::runtime::Power.
+    private static final int P_NO_SPAWNS = 15;
+    private static final int P_HARDMODE = 19;
+    private static final int P_DIFFICULTY = 20;
+
+    /** Poder com icone de interface do jogo em vez de sprite de item. */
+    private static String powerRes(int id) {
+        return id == P_NO_SPAWNS ? "ic_poder_spawn" : null;
+    }
+
+    /**
+     * Poder que e o ESTADO do mundo (hardmode, dificuldade): o cartao mostra o
+     * que o mundo esta agora, e tocar manda mudar. Nao conta como ligado, e o
+     * "Desligar tudo" nao mexe — desligar o hardmode e decisao, nao faxina.
+     */
+    private static boolean isWorldState(int id) {
+        return id == P_HARDMODE || id == P_DIFFICULTY;
+    }
+
+    private static final String[] GAME_MODE = {"Clássico", "Expert", "Mestre", "Jornada"};
+    /** O icone de cada modo, o da criacao de mundo (UI/WorldCreation). */
+    private static final String[] GAME_MODE_ICON = {
+        "ic_dif_normal", "ic_dif_expert", "ic_dif_master", "ic_dif_creative",
+    };
+    /** A ultima leitura de nWorldState, corrigida na hora pelo toque. */
+    private static int[] sWorld = {-1, -1};
+
+    /**
+     * Poder que e uma ACAO: roda uma vez no jogo e acabou, nao fica ligado. O
+     * nativo zera o nivel sozinho depois de executar; aqui ele nunca entra em
+     * sPowerLevels, entao nao conta como ligado nem no "Desligar tudo".
+     */
+    private static boolean isAction(int id) {
+        return POWER_LEVELS[id].length == 0;
+    }
+
+    /** Toque num cartao de estado do mundo: pede a mudanca e ja mostra o resultado. */
+    private static void toggleWorldState(Activity act, int id) {
+        if (id == P_HARDMODE) {
+            int hm = sWorld[0];
+            if (hm < 0) { toast(act, "Entre num mundo primeiro"); return; }
+            nSetPower(id, hm == 1 ? 2 : 1);
+            sWorld[0] = hm == 1 ? 0 : 1;
+        } else {
+            int mode = sWorld[1];
+            if (mode < 0) { toast(act, "Entre num mundo primeiro"); return; }
+            int next = (mode + 1) % GAME_MODE.length;
+            nSetPower(id, next + 1);
+            sWorld[1] = next;
+        }
+    }
+
+    private static void toast(Activity act, String msg) {
+        Toast.makeText(act, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    /** Quanto tempo o cartao de uma acao fica verde, dizendo que foi. */
+    private static final long ACTION_FLASH_MS = 1500;
     /** Nivel atual. O processo do jogo morre junto com o nativo, entao os dois
      *  nascem desligados e so este lado escreve. */
     private static final int[] sPowerLevels = new int[POWER_NAME.length];
@@ -755,17 +896,16 @@ public class CheatBridge {
         Bitmap bmp = null;
         InputStream in = null;
         try {
-            // Item de mod nao tem sprite no APK: vem do PNG do proprio mod.
-            String file = npc ? null : modTexture(Integer.parseInt(key.substring(5)));
-            if (file != null) {
-                BitmapFactory.Options o = new BitmapFactory.Options();
-                o.inScaled = false;
-                return BitmapFactory.decodeFile(file, o);
-            }
-            in = a.getAssets().open("sprites/" + key + ".png");
+            // Item e NPC de mod nao tem sprite no APK: vem do PNG do proprio mod.
+            String file = modTexture(npc, Integer.parseInt(key.substring(npc ? 4 : 5)));
             BitmapFactory.Options o = new BitmapFactory.Options();
             o.inScaled = false;   // pixel art nao escala no decode
-            bmp = BitmapFactory.decodeStream(in, null, o);
+            if (file != null) {
+                bmp = BitmapFactory.decodeFile(file, o);
+            } else {
+                in = a.getAssets().open("sprites/" + key + ".png");
+                bmp = BitmapFactory.decodeStream(in, null, o);
+            }
             // O PNG de NPC e uma TIRA VERTICAL de quadros. Mostrar a tira
             // inteira espremida num quadradinho deixava a Geleia Azul com duas
             // cabecas. Fica so o primeiro quadro.
@@ -902,7 +1042,7 @@ public class CheatBridge {
             if (b != null) return icon(a, b, u);
         }
         return icon(a, s.icon != null ? sprite(a, s.icon)
-                                       : spriteJa(a, false, s.iconItem), u);
+                                       : spriteJa(a, s.iconNpc, s.iconItem), u);
     }
 
     /**
@@ -1169,7 +1309,7 @@ public class CheatBridge {
         titles.addView(text(act, "BUNNY LOADER", 9, INK_DIM));
         head.addView(titles);
         aside.addView(head);
-        aside.addView(rule(act));
+        aside.addView(timeButtons(act));
 
         final ScrollView asideScroll = new ScrollView(act);
         final LinearLayout asideList = new LinearLayout(act);
@@ -1240,16 +1380,49 @@ public class CheatBridge {
         return root;
     }
 
-    private static View rule(Activity act) {
-        View v = new View(act);
-        v.setBackgroundColor(OUTLINE);
+    /** Os quatro botoes de hora da Jornada, com os icones dela (UI/Creative/Infinite_Powers). */
+    private static final String[] TIME_ICON = {
+        "ic_hora_amanhecer", "ic_hora_meiodia", "ic_hora_anoitecer", "ic_hora_meianoite",
+    };
+    private static final String[] TIME_NAME = {"Amanhecer", "Meio-dia", "Anoitecer", "Meia-noite"};
+
+    /**
+     * Onde ficava a linha embaixo do titulo: a hora do dia a um toque, em
+     * qualquer secao. Tocar pisca o botao de verde; fora do mundo, avisa.
+     */
+    private static View timeButtons(final Activity act) {
+        LinearLayout row = new LinearLayout(act);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        for (int i = 0; i < TIME_ICON.length; i++) {
+            final int which = i;
+            final ImageView b = icon(act, sprite(act, TIME_ICON[i]), 34);
+            b.setContentDescription(TIME_NAME[i]);
+            b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+            b.setBackground(panel(act, PANEL_DARK, OUTLINE));
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    if (!nInWorld()) { toast(act, "Entre num mundo primeiro"); return; }
+                    nSetTimeOfDay(which);
+                    b.setBackground(panel(act, GRASS, OUTLINE));
+                    b.postDelayed(new Runnable() {
+                        @Override public void run() { b.setBackground(panel(act, PANEL_DARK, OUTLINE)); }
+                    }, TIME_FLASH_MS);
+                    toast(act, TIME_NAME[which]);
+                }
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, px(act, 34), 1f);
+            lp.setMargins(i == 0 ? 0 : px(act, 2), 0, i == TIME_ICON.length - 1 ? 0 : px(act, 2), 0);
+            row.addView(b, lp);
+        }
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 2));
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.topMargin = px(act, 8);
-        lp.bottomMargin = px(act, 4);
-        v.setLayoutParams(lp);
-        return v;
+        lp.bottomMargin = px(act, 2);
+        row.setLayoutParams(lp);
+        return row;
     }
+
+    private static final long TIME_FLASH_MS = 400;
 
     /**
      * Barra de quantidade desenhada a mao, com a cara do jogo.
@@ -1353,11 +1526,28 @@ public class CheatBridge {
      * menos na tela. Lado a lado, o que e fixo fica do tamanho que tem.
      */
     private static LinearLayout buildHeader(Activity act, Section s, TextView countLabel) {
+        return buildHeader(act, s, countLabel, null);
+    }
+
+    /** Com `back`, uma seta de voltar na frente (dentro das pastas de um mod). */
+    private static LinearLayout buildHeader(Activity act, Section s, TextView countLabel,
+                                            final Runnable back) {
         LinearLayout t = new LinearLayout(act);
         t.setOrientation(LinearLayout.HORIZONTAL);
         t.setGravity(Gravity.CENTER_VERTICAL);
         // O X de fechar fica por cima deste canto; a linha para antes dele.
         t.setPadding(0, 0, px(act, 40), 0);
+        if (back != null) {
+            // A seta do jogo (UI/TexturePackButtons), a mesma do pacote de texturas.
+            ImageView arrow = icon(act, sprite(act, "ic_seta_esq"), 34);
+            arrow.setContentDescription("Voltar");
+            // Area de toque maior que o desenho: a seta fica no canto.
+            arrow.setPadding(px(act, 6), px(act, 6), px(act, 10), px(act, 6));
+            arrow.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { back.run(); }
+            });
+            t.addView(arrow);
+        }
         t.addView(sectionIcon(act, s, 26));
         TextView titleView = text(act, s.title, 17, INK);
         titleView.setPadding(px(act, 8), 0, 0, 0);
@@ -1387,29 +1577,100 @@ public class CheatBridge {
             buttons[i].setBackground(i == index ? highlight(act) : null);
         }
         final Section s = all[index];
+        final Runnable redraw = new Runnable() {
+            @Override public void run() {
+                if (sCurrentSection == index) select(act, content, all, buttons, index);
+            }
+        };
+        if (s.kind == Section.POWER) { content.removeAllViews(); showPowers(act, content, s); return; }
+        if (s.kind == Section.FOLDERS) { showFolders(act, content, s, index); return; }
+        showList(act, content, s, redraw, null);
+    }
+
+    /**
+     * A entrada de um mod: as pastas dele, uma por linha. Tocar abre a lista
+     * da pasta, que tem a seta de voltar para ca.
+     */
+    private static void showFolders(final Activity act, final LinearLayout content,
+                                    final Section mod, final int index) {
+        content.removeAllViews();
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = px(act, 6);
+        content.addView(buildHeader(act, mod, text(act, mod.children.length == 1 ? "1 pasta"
+            : mod.children.length + " pastas", 10, INK_DIM)), lp);
+
+        final Runnable back = new Runnable() {
+            @Override public void run() {
+                if (sCurrentSection == index) showFolders(act, content, mod, index);
+            }
+        };
+        LinearLayout rows = new LinearLayout(act);
+        rows.setOrientation(LinearLayout.VERTICAL);
+        for (final Section folder : mod.children) {
+            LinearLayout r = new LinearLayout(act);
+            r.setOrientation(LinearLayout.HORIZONTAL);
+            r.setGravity(Gravity.CENTER_VERTICAL);
+            r.setPadding(px(act, 6), px(act, 6), px(act, 6), px(act, 6));
+            r.addView(sectionIcon(act, folder, 30));
+            TextView name = text(act, folder.title, 14, INK);
+            name.setPadding(px(act, 8), 0, 0, 0);
+            r.addView(name);
+            final int n = folder.fixedIds.length;
+            TextView count = text(act, n + (folder.npc() ? (n == 1 ? " NPC" : " NPCs")
+                                                         : (n == 1 ? " item" : " itens")), 10, INK_DIM);
+            count.setPadding(px(act, 8), 0, 0, px(act, 2));
+            r.addView(count, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            ImageView enter = icon(act, sprite(act, "ic_seta_dir"), 20);   // seta de entrar
+            r.addView(enter);
+            r.setBackground(panel(act, PANEL_DARK, OUTLINE));
+            r.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    final Runnable[] redraw = { null };
+                    redraw[0] = new Runnable() {
+                        @Override public void run() {
+                            if (sCurrentSection == index) showList(act, content, folder, redraw[0], back);
+                        }
+                    };
+                    showList(act, content, folder, redraw[0], back);
+                }
+            });
+            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rp.bottomMargin = px(act, 4);
+            rows.addView(r, rp);
+        }
+        ScrollView scroll = new ScrollView(act);
+        scroll.addView(rows);
+        content.addView(scroll, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+    }
+
+    /**
+     * A lista de uma secao (ou pasta): busca, quantidade, linhas. `redraw`
+     * mostra de novo quando o catalogo fica pronto; `back`, se houver, e a seta
+     * de voltar (pasta de mod).
+     */
+    private static void showList(final Activity act, final LinearLayout content, final Section s,
+                                 final Runnable redraw, final Runnable back) {
         s.filtered = null;   // filtro e da visita, nao da secao
         content.removeAllViews();
-
-        if (s.kind == Section.POWER) { showPowers(act, content, s); return; }
 
         if (!s.load()) {
             // O girassol gira enquanto o catalogo monta em segundo plano; quando
             // ele fica pronto, a secao se redesenha sozinha — se a pessoa ainda
             // estiver nela.
-            content.addView(buildHeader(act, s, null));
+            content.addView(buildHeader(act, s, null, back));
             content.addView(loadingView(act, "Lendo o catálogo do jogo, no seu idioma..."),
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-            withCatalog(act, new Runnable() {
-                @Override public void run() {
-                    if (sCurrentSection == index) select(act, content, all, buttons, index);
-                }
-            });
+            withCatalog(act, redraw);
             return;
         }
 
         // ---- topo: titulo | busca | quantidade ----
         final TextView countLabel = text(act, String.valueOf(s.total()), 10, INK_DIM);
-        LinearLayout headerRow = buildHeader(act, s, countLabel);
+        LinearLayout headerRow = buildHeader(act, s, countLabel, back);
 
         LinearLayout searchBox = new LinearLayout(act);
         searchBox.setOrientation(LinearLayout.HORIZONTAL);
@@ -1608,6 +1869,8 @@ public class CheatBridge {
      * grade inteira tem de caber sem rolar.
      */
     private static void showPowers(final Activity act, LinearLayout content, Section s) {
+        int[] w = nWorldState();
+        if (w != null && w.length == 2) sWorld = w;
         final TextView activeLabel = text(act, "", 10, INK_DIM);
         LinearLayout headerRow = buildHeader(act, s, activeLabel);
 
@@ -1651,6 +1914,16 @@ public class CheatBridge {
             final View c = powerCard(act, i);
             c.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
+                    if (isAction(id)) {
+                        nSetPower(id, 1);
+                        flashActionCard(act, c, id);
+                        return;
+                    }
+                    if (isWorldState(id)) {
+                        toggleWorldState(act, id);
+                        paintPowerCard(act, c, id);
+                        return;
+                    }
                     sPowerLevels[id] = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
                     nSetPower(id, sPowerLevels[id]);
                     paintPowerCard(act, c, id);
@@ -1680,6 +1953,7 @@ public class CheatBridge {
     /** As partes de um cartao de poder, para repintar sem remontar. */
     private static final class PowerCardViews {
         TextView nameLabel, levelLabel, desc;
+        ImageView icon;
     }
 
     private static View powerCard(Activity act, int id) {
@@ -1688,7 +1962,9 @@ public class CheatBridge {
         c.setOrientation(LinearLayout.HORIZONTAL);
         c.setGravity(Gravity.CENTER_VERTICAL);
         c.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
-        c.addView(icon(act, spriteJa(act, false, POWER_ICON[id]), 30));
+        String res = powerRes(id);
+        k.icon = icon(act, res != null ? sprite(act, res) : spriteJa(act, false, POWER_ICON[id]), 30);
+        c.addView(k.icon);
 
         LinearLayout texts = new LinearLayout(act);
         texts.setOrientation(LinearLayout.VERTICAL);
@@ -1716,12 +1992,50 @@ public class CheatBridge {
     /** Desligado e painel escuro; ligado e verde, como o jogo marca o que esta ativo. */
     private static void paintPowerCard(Activity act, View c, int id) {
         PowerCardViews k = (PowerCardViews) c.getTag();
+        if (isWorldState(id)) { paintWorldCard(act, c, k, id); return; }
         int n = sPowerLevels[id];
         boolean on = n > 0;
         c.setBackground(panel(act, on ? GRASS : PANEL_DARK, OUTLINE));
         k.levelLabel.setText(on && POWER_LEVELS[id].length > 1 ? POWER_LEVELS[id][n - 1] : "");
         k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
         k.desc.setTextColor(on ? INK : INK_DIM);
+    }
+
+    /**
+     * Hardmode verde quando ligado; dificuldade verde acima do Classico, com o
+     * icone do modo em que o mundo esta.
+     */
+    private static void paintWorldCard(Activity act, View c, PowerCardViews k, int id) {
+        int v = sWorld[id == P_HARDMODE ? 0 : 1];
+        boolean on = v > 0;
+        if (id == P_DIFFICULTY) {
+            int m = v < 0 ? 0 : Math.min(v, GAME_MODE_ICON.length - 1);
+            setBitmap(act, k.icon, sprite(act, GAME_MODE_ICON[m]));
+        }
+        c.setBackground(panel(act, on ? GRASS : PANEL_DARK, OUTLINE));
+        String label = v < 0 ? "" : id == P_HARDMODE ? (v == 1 ? "Ligado" : "")
+                                                     : GAME_MODE[Math.min(v, GAME_MODE.length - 1)];
+        k.levelLabel.setText(label);
+        k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
+        k.desc.setText(v < 0 ? "Entre num mundo" : POWER_DESC[id]);
+        k.desc.setTextColor(on ? INK : INK_DIM);
+    }
+
+    /**
+     * Acao executada: o cartao fica verde com "Feito!" e volta sozinho. O jogo
+     * roda o pedido no proximo quadro; se falhar, o painel de erro abre.
+     */
+    private static void flashActionCard(final Activity act, final View c, final int id) {
+        PowerCardViews k = (PowerCardViews) c.getTag();
+        c.setBackground(panel(act, GRASS, OUTLINE));
+        k.levelLabel.setText("Feito!");
+        k.levelLabel.setTextColor(0xFFFFF36B);
+        k.desc.setTextColor(INK);
+        c.postDelayed(new Runnable() {
+            @Override public void run() {
+                paintPowerCard(act, c, id);
+            }
+        }, ACTION_FLASH_MS);
     }
 
     private static void updateActiveCount(TextView t) {

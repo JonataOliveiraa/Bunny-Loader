@@ -7,6 +7,7 @@
 #include "il2cpp/Signature.h"
 #include "mods/ModLoader.h"
 #include "runtime/ModItems.h"
+#include "runtime/ModMenu.h"
 #include "script/Bridge.h"
 #include "script/Texture.h"
 
@@ -21,6 +22,10 @@ namespace {
 // tipo -> a definicao que o mod passou (com o setDefaults dele). Vive o
 // runtime inteiro: o jogo cria item de mod a qualquer hora.
 std::map<int, JSValue> g_defs;
+// O contexto do motor: o setStaticDefaults roda fora de qualquer chamada JS
+// (na instalacao, chamada pelo nativo), e nao ha outro jeito de chega-lo.
+JSContext* g_ctx = nullptr;
+void onItemsInstalled(int first, int last);   // mais abaixo, com o register
 bool g_hook = false;
 
 std::string stringProp(JSContext* ctx, JSValueConst obj, const char* prop) {
@@ -98,17 +103,21 @@ bool installSetDefaultsHook(JSContext* ctx) {
     }
     JSValue cb = JS_NewCFunction(ctx, js_modSetDefaults, "modSetDefaults", 4);
     g_hook = installJsHook(ctx, m, 2, true, cb);
-    JS_FreeValue(ctx, cb);   // o hook guarda a copia dele
+    JS_FreeValue(ctx, cb);
     return g_hook;
 }
 
-/** A categoria do mod: o nome do manifesto, o icon.png da raiz (se houver). */
-int modCategoryFor(const std::string& mod, const std::string& fallbackIcon) {
+} // namespace
+
+/** O mod no menu: o nome do manifesto e o icon.png da raiz (se houver). */
+void noteModForMenu(const std::string& mod) {
     const std::string root = mods::rootOf(mod);
     std::string icon = root.empty() ? std::string() : root + "/icon.png";
-    if (icon.empty() || !fileExists(icon)) icon = fallbackIcon;
-    return runtime::modCategory(mod, mods::displayName(mod), icon);
+    if (!icon.empty() && !fileExists(icon)) icon.clear();
+    runtime::setModMenuInfo(mod, mods::displayName(mod), icon);
 }
+
+namespace {
 
 /**
  * bl.items.register({ name, texture, displayName, setDefaults }) -> tipo
@@ -163,15 +172,52 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     JS_FreeValue(ctx, dn);
 
     if (!installSetDefaultsHook(ctx)) return JS_EXCEPTION;
-    const std::string mod = d.mod, name = d.name, icon = d.texture;
+    const std::string mod = d.mod, name = d.name;
     const int type = runtime::registerModItem(std::move(d));
     if (type < 0) {
         return JS_ThrowRangeError(ctx, "bl.items.register: '%s' ja foi registrado por este mod",
                                   name.c_str());
     }
     g_defs[type] = JS_DupValue(ctx, def);
-    runtime::addToModCategory(modCategoryFor(mod, icon), type);
+    g_ctx = ctx;
+    runtime::setItemsInstalledHook(onItemsInstalled);
+    noteModForMenu(mod);   // a pasta "Itens" do mod e montada sozinha
     BL_INFO("item de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
+    return JS_NewInt32(ctx, type);
+}
+
+/**
+ * O setStaticDefaults(type) de cada item, quando o jogo ja conhece os tipos
+ * (thread do jogo, fora de qualquer chamada JS). O ModItem.register passa o
+ * SetStaticDefaults e o PostSetupContent da classe por aqui.
+ */
+void onItemsInstalled(int first, int last) {
+    if (!g_ctx) return;
+    JsLock lock;
+    for (int type = first; type <= last; ++type) {
+        auto it = g_defs.find(type);
+        if (it == g_defs.end()) continue;
+        JSValue fn = JS_GetPropertyStr(g_ctx, it->second, "setStaticDefaults");
+        if (JS_IsFunction(g_ctx, fn)) {
+            JSValue t = JS_NewInt32(g_ctx, type);
+            JSValue r = JS_Call(g_ctx, fn, it->second, 1, &t);
+            if (JS_IsException(r)) {
+                const std::string name = stringProp(g_ctx, it->second, "name");
+                BL_ERROR("item de mod %s: setStaticDefaults lancou: %s", name.c_str(),
+                         exceptionText(g_ctx).c_str());
+            }
+            JS_FreeValue(g_ctx, r);
+        }
+        JS_FreeValue(g_ctx, fn);
+    }
+}
+
+/** bl.items.typeOf(nome) — o tipo de um item DESTE mod pelo nome, ou -1. */
+JSValue js_typeOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.items.typeOf(nome)");
+    const int type = runtime::modItemTypeByKey(callerModId(ctx) + "/" + name);
+    JS_FreeCString(ctx, name);
     return JS_NewInt32(ctx, type);
 }
 
@@ -183,31 +229,44 @@ JSValue js_isModItem(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
 }
 
 /**
- * bl.menu.itemCategory(nome, icone?) -> categoria
+ * bl.menu.itemCategory(nome, icone?) / bl.menu.npcCategory(nome, icone?) -> pasta
  *
- * Uma categoria a mais no catalogo do menu, alem da que o mod ja ganha com o
- * nome dele. O icone e um PNG do mod; sem ele, a categoria usa o do primeiro
- * item posto nela.
+ * Uma pasta a mais na entrada do mod no menu, alem de "Itens" e "NPCs", que
+ * ele ja ganha com tudo que registrou. O icone e um PNG do mod; sem ele, a
+ * pasta usa o do primeiro posto nela.
  */
-JSValue js_itemCategory(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+JSValue makeFolder(JSContext* ctx, int argc, JSValueConst* argv, bool npc) {
     const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
-    if (!name) return JS_ThrowTypeError(ctx, "bl.menu.itemCategory(nome, icone?)");
+    if (!name) {
+        return JS_ThrowTypeError(ctx, npc ? "bl.menu.npcCategory(nome, icone?)"
+                                          : "bl.menu.itemCategory(nome, icone?)");
+    }
     std::string icon;
     if (argc >= 2 && JS_IsString(argv[1])) {
         const char* c = JS_ToCString(ctx, argv[1]);
         if (c) { icon = resolveModPath(ctx, c); JS_FreeCString(ctx, c); }
     }
-    const int cat = runtime::modCategory(callerModId(ctx), name, icon);
+    const std::string mod = callerModId(ctx);
+    noteModForMenu(mod);
+    const int folder = runtime::addModMenuFolder(mod, name, icon, npc);
     JS_FreeCString(ctx, name);
-    return JS_NewInt32(ctx, cat);
+    return JS_NewInt32(ctx, folder);
 }
 
-/** bl.menu.addItem(categoria, tipo) */
-JSValue js_addItem(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    int32_t cat = -1, t = -1;
-    if (argc >= 2) { JS_ToInt32(ctx, &cat, argv[0]); JS_ToInt32(ctx, &t, argv[1]); }
-    if (!runtime::addToModCategory(cat, t)) {
-        return JS_ThrowRangeError(ctx, "bl.menu.addItem: categoria %d nao existe", cat);
+JSValue js_itemCategory(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return makeFolder(ctx, argc, argv, false);
+}
+
+JSValue js_npcCategory(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return makeFolder(ctx, argc, argv, true);
+}
+
+/** bl.menu.addItem(pasta, tipo) / bl.menu.addNpc(pasta, tipo) */
+JSValue js_addToFolder(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t folder = -1, t = -1;
+    if (argc >= 2) { JS_ToInt32(ctx, &folder, argv[0]); JS_ToInt32(ctx, &t, argv[1]); }
+    if (!runtime::addToModMenuFolder(folder, t)) {
+        return JS_ThrowRangeError(ctx, "bl.menu: pasta %d nao existe", folder);
     }
     return JS_UNDEFINED;
 }
@@ -218,12 +277,16 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JSValue items = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, items, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, items, "isModItem", JS_NewCFunction(ctx, js_isModItem, "isModItem", 1));
+    JS_SetPropertyStr(ctx, items, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
     JS_SetPropertyStr(ctx, bl, "items", items);
 
     JSValue menu = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, menu, "itemCategory",
                       JS_NewCFunction(ctx, js_itemCategory, "itemCategory", 2));
-    JS_SetPropertyStr(ctx, menu, "addItem", JS_NewCFunction(ctx, js_addItem, "addItem", 2));
+    JS_SetPropertyStr(ctx, menu, "npcCategory",
+                      JS_NewCFunction(ctx, js_npcCategory, "npcCategory", 2));
+    JS_SetPropertyStr(ctx, menu, "addItem", JS_NewCFunction(ctx, js_addToFolder, "addItem", 2));
+    JS_SetPropertyStr(ctx, menu, "addNpc", JS_NewCFunction(ctx, js_addToFolder, "addNpc", 2));
     JS_SetPropertyStr(ctx, bl, "menu", menu);
 }
 

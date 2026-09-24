@@ -1,0 +1,63 @@
+nullable: carregado
+bench pronto
+wrappers: carregado
+nullable Draw com Rectangle? (null e Rectangle): chamado sem erro
+wrappers criar 200 itens so no JS: ok
+wrappers self guardado pelo hook: ok
+wrappers array so no JS: ok
+wrappers 200 itens intactos depois do coletor: ok
+wrappers itens guardados pelo hook intactos: ok
+wrappers array intacto: ok
+wrappers metodo num item sobrevivente: ok
+wrappers mapa de wrappers: 8 voltas em Main.item: ok
+wrappers identidade Main.player[0] === Main.player[0]: true
+wrappers identidade kept[0] === array[0]: true
+wrappers FIM: tudo ok
+bench N=20000 base=0.74ms
+bench fieldReadInt = 37 ns/op (1.48 ms)
+bench fieldWriteInt = 40 ns/op (1.55 ms)
+bench fieldReadFloat = 37 ns/op (1.47 ms)
+bench structView = 171 ns/op (4.17 ms)
+bench staticField = 43 ns/op (1.60 ms)
+bench propGetter = 91 ns/op (2.55 ms)
+bench methodLookupAndCall = 147 ns/op (3.68 ms)
+bench methodCached = 93 ns/op (2.60 ms)
+bench staticMethod2Float = 151 ns/op (3.77 ms)
+bench arrayElemObject = 68 ns/op (2.10 ms)
+bench arrayElemFresh = 159 ns/op (3.93 ms)
+bench arrayElemInt = 52 ns/op (1.77 ms)
+bench staticArrayAndElem = 147 ns/op (3.68 ms)
+bench jsCompute10 = 957 ns/op (19.89 ms)
+bench jsAlloc = 173 ns/op (4.21 ms)
+bench chamada sem hook: instancia 117, 2 floats 187, 1 int 108/120 ns (inclui o laco)
+bench hook estatico 1 int SEM original = +266 ns/chamada
+bench hook estatico 1 int passthrough = +521 ns/chamada
+bench hook estatico 2 floats passthrough = +641 ns/chamada
+bench hook instancia (self) passthrough = +906 ns/chamada
+bench micro total 1435 ms; sink=0
+nullable assinatura Nullable`1: ok
+nullable assinatura float?: ok
+nullable assinatura Nullable<float>: ok
+nullable StartRain(0.7) via Nullable`1: ok
+nullable StartRain(null) via float?: o jogo sorteia (0,05..0,9): ok
+nullable StartRain(0.35) via Nullable<float>: ok
+nullable   (erro esperado: TypeError: System.Single espera um numero, recebeu o texto "muito")
+nullable float? recusa texto: ok
+nullable StopRain: ok
+nullable classe aninhada SpriteFont.Glyph: ok
+nullable arrays por Array.CreateInstance: ok
+nullable ctor com char? = null: ok
+nullable ctor com char? = 65 (assinatura char?): ok
+nullable campo Nullable<char> lido direto: ok
+nullable propriedade recebe null: ok
+nullable campo escrito com 65: ok
+nullable hook em StartRain instalado: ok
+nullable hook recebe 0.6 e repassa: ok
+nullable hook recebe null e troca por 0.25 no original(): ok
+nullable hook em get_DefaultCharacter instalado: ok
+nullable retorno repassado (null do original): ok
+nullable retorno trocado por 66: ok
+nullable retorno trocado por null: ok
+nullable FIM dos testes logicos: tudo ok
+bench quadro (300): DoUpdate media 3.77 ms pior 15.32 | DoDraw media 6.29 ms pior 16.40
+segfaults: 0

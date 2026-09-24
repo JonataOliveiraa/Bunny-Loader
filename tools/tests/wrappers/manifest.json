@@ -1,0 +1,15 @@
+{
+  "uid": "8e4b2c7a-1d3f-4a5b-9e6c-7f8a9b0c1d2e",
+  "id": "test-wrappers",
+  "name": "Teste: wrappers e coletor",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Objeto segurado so pelo JS sobrevive ao coletor; identidade.",
+  "description": "Teste da ponte. Loga 'wrappers ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -1,5 +1,6 @@
 #include "script/ScriptEngine.h"
 #include "core/Log.h"
+#include "mods/ModLoader.h"
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -82,6 +83,96 @@ JsSuspend::~JsSuspend() {
 
 #if BL_HAVE_QUICKJS
 
+namespace {
+
+// ---------------------------- import entre arquivos ----------------------------
+//
+// Um mod pode dividir o codigo em arquivos, como o ExMod (um item por arquivo
+// em Content/Items/...): `import { X } from './Content/Items/X.js'`.
+//
+// O nome de cada modulo diz de qual mod ele e: o main.js se chama so "<uid>"
+// (e o que o ModLoader passa), e um arquivo importado "<uid>/<caminho dentro
+// da pasta do mod>". E por esse prefixo que callerModId e resolvePath
+// (Texture.cpp) acham a pasta do mod de quem chamou.
+//
+// So caminho relativo, e so dentro da pasta do mod: um mod nao le arquivo de
+// outro nem do aparelho por import.
+
+/** "<uid>/<rel>" -> {uid, rel}; o main.js ("<uid>") tem rel vazio. */
+void splitModuleName(const std::string& name, std::string* uid, std::string* rel) {
+    const size_t slash = name.find('/');
+    *uid = name.substr(0, slash);
+    *rel = slash == std::string::npos ? std::string() : name.substr(slash + 1);
+}
+
+char* normalizeModule(JSContext* ctx, const char* baseName, const char* spec, void*) {
+    const std::string s = spec ? spec : "";
+    if (s.rfind("./", 0) != 0 && s.rfind("../", 0) != 0) {
+        JS_ThrowReferenceError(ctx, "import '%s': so arquivo do proprio mod, com caminho "
+                                    "relativo ('./pasta/arquivo.js')", s.c_str());
+        return nullptr;
+    }
+    std::string uid, rel;
+    splitModuleName(baseName ? baseName : "", &uid, &rel);
+
+    // A pasta de quem importa: a do arquivo dele, ou a raiz para o main.js.
+    std::vector<std::string> parts;
+    auto push = [&](const std::string& path, bool dropLast) {
+        size_t start = 0;
+        std::vector<std::string> segs;
+        while (start <= path.size()) {
+            const size_t end = path.find('/', start);
+            segs.push_back(path.substr(start, end == std::string::npos ? std::string::npos : end - start));
+            if (end == std::string::npos) break;
+            start = end + 1;
+        }
+        if (dropLast && !segs.empty()) segs.pop_back();
+        for (const std::string& seg : segs) {
+            if (seg.empty() || seg == ".") continue;
+            if (seg == "..") {
+                if (parts.empty()) return false;   // subiu alem da pasta do mod
+                parts.pop_back();
+            } else {
+                parts.push_back(seg);
+            }
+        }
+        return true;
+    };
+    if (!push(rel, true) || !push(s, false) || parts.empty()) {
+        JS_ThrowReferenceError(ctx, "import '%s': sai da pasta do mod", s.c_str());
+        return nullptr;
+    }
+    std::string out = uid;
+    for (const std::string& p : parts) out += "/" + p;
+    return js_strdup(ctx, out.c_str());
+}
+
+JSModuleDef* loadModule(JSContext* ctx, const char* name, void*) {
+    std::string uid, rel;
+    splitModuleName(name, &uid, &rel);
+    const std::string& dir = mods::dirOf(uid);
+    const std::string path = dir + "/" + rel;
+    FILE* f = dir.empty() || rel.empty() ? nullptr : std::fopen(path.c_str(), "rb");
+    if (!f) {
+        JS_ThrowReferenceError(ctx, "import: arquivo nao existe: %s", rel.c_str());
+        return nullptr;
+    }
+    std::string code;
+    char buf[4096];
+    size_t n;
+    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) code.append(buf, n);
+    std::fclose(f);
+
+    JSValue fn = JS_Eval(ctx, code.c_str(), code.size(), name,
+                         JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+    if (JS_IsException(fn)) return nullptr;
+    auto* m = static_cast<JSModuleDef*>(JS_VALUE_GET_PTR(fn));
+    JS_FreeValue(ctx, fn);
+    return m;
+}
+
+} // namespace
+
 bool ScriptEngine::init() {
     if (ready_) return true;
     JsLock lock;
@@ -100,10 +191,12 @@ bool ScriptEngine::init() {
     //
     // Vale tambem para as threads do jogo, cuja pilha nao e nossa para medir.
     JS_SetMaxStackSize(rt, 256 * 1024);
+    JS_SetModuleLoaderFunc(rt, normalizeModule, loadModule, nullptr);
 
     runtime_ = rt;
     context_ = ctx;
     installBindings(ctx);
+    installModClasses(ctx);
 
     ready_ = true;
     BL_INFO("QuickJS iniciado");

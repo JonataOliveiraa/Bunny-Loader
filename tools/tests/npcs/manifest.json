@@ -1,0 +1,15 @@
+{
+  "uid": "4b6d8f0a-1c3e-4f5a-9b7c-2d4e6f8a0b1c",
+  "id": "test-npcs",
+  "name": "Teste: NPCs de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "NPC de mod nasce, anima, apanha, morre e da drop.",
+  "description": "Teste do runtime (ModNpcs.cpp). Precisa do Example Mod ligado. Loga 'npcs ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

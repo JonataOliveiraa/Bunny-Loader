@@ -1,0 +1,15 @@
+{
+  "uid": "9c3e5a7b-2d4f-4e6a-8b1c-0d2e3f4a5b6c",
+  "id": "test-projectiles",
+  "name": "Teste: projeteis de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Projetil de mod nasce, voa e conta no jogador.",
+  "description": "Teste do runtime (ModProjectiles.cpp). Precisa do Example Mod ligado. Loga 'projeteis ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

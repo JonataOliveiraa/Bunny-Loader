@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Um ciclo de medicao no MuMu: instala os mods pedidos, abre o jogo, entra no
+# PRIMEIRO mundo da lista e salva as linhas de resultado.
+#
+#   tools/bench/run.sh <saida.txt> <pasta-de-mod>...
+#   tools/bench/run.sh /tmp/r.txt tools/bench tools/tests/wrappers tools/tests/nullable
+#
+# Pre-condicoes: APK ja instalado; existe ao menos um mundo e o personagem de
+# teste ("Bench") e o primeiro da lista. NAO crie mundo com estes mods
+# instalados: hook JS na thread principal + mods de exemplo e a combinacao do
+# crash em aberto (docs/AVALIACAO-PONTE-E-CRASH.md).
+set -euo pipefail
+D="${BL_DEVICE:-127.0.0.1:16384}"
+OUT="$1"; shift
+export MSYS_NO_PATHCONV=1
+uid() { python -c "import json,sys; print(json.load(open(sys.argv[1]))['uid'])" "$1/manifest.json"; }
+
+adb -s "$D" shell am force-stop com.bunnyloader
+# Logo depois de um `adb install` o run-as pode falhar por alguns segundos
+# (o pacote ainda esta sendo registrado); espera ele responder.
+for i in $(seq 1 15); do
+    adb -s "$D" shell "run-as com.bunnyloader true" 2>/dev/null && break
+    sleep 2
+done
+for dir in "$@"; do
+    u=$(uid "$dir")
+    adb -s "$D" push "$(cygpath -w "$dir")" /data/local/tmp/blmod >/dev/null
+    adb -s "$D" shell "run-as com.bunnyloader sh -c 'rm -rf files/mods/$u; cp -r /data/local/tmp/blmod files/mods/$u'; rm -rf /data/local/tmp/blmod"
+done
+adb -s "$D" logcat -c
+adb -s "$D" shell monkey -p com.bunnyloader -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+sleep 4;  adb -s "$D" shell input tap 800 805     # JOGAR (launcher)
+sleep 28; adb -s "$D" shell input tap 808 330     # Um Jogador
+sleep 3;  adb -s "$D" shell input tap 997 327     # Jogar (personagem)
+sleep 3;  adb -s "$D" shell input tap 997 318     # Jogar (primeiro mundo)
+sleep 22; adb -s "$D" shell input tap 590 517     # "Mais tarde" (aviso de controles)
+# O benchmark roda no primeiro quadro dentro do mundo e ainda mede 300 quadros.
+for i in $(seq 1 40); do
+    sleep 2
+    adb -s "$D" logcat -d -s BunnyLoader | grep -q "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM" && break
+done
+sleep 8
+adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\)" \
+    | sed 's/.*\[mod\] //' > "$OUT"
+echo "segfaults: $(adb -s "$D" logcat -d | grep -a -c 'Forwarding signal')" >> "$OUT"
+cat "$OUT"

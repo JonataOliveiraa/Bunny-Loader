@@ -1,11 +1,15 @@
 #include "script/ScriptEngine.h"
 #include "script/Bridge.h"
+#include "script/Roots.h"
+#include "script/WrapperMap.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "script/Invoke.h"
 #include "script/Items.h"
+#include "script/Npcs.h"
+#include "script/Projectiles.h"
 #include "script/Texture.h"
 #include "script/Marshal.h"
 #include "script/Members.h"
@@ -18,6 +22,7 @@
 #include <cstring>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include <cstdlib>
 #endif
@@ -50,11 +55,20 @@ struct MethodRef {
     const MethodInfo* method;
     int paramCount;
     bool isInstance;
+    /**
+     * O `this` e um OBJETO, mesmo quando chamado num struct: o metodo foi
+     * declarado num tipo de referencia (GetType e Equals de System.Object,
+     * ToString de ValueType). Metodo do proprio struct recebe os DADOS; esse
+     * recebe a caixa, com cabecalho — dar os dados a ele faz o runtime ler o
+     * primeiro campo como se fosse a classe.
+     */
+    bool thisIsObject;
 };
 
 // Declaradas adiante: o exotic da classe precisa delas antes de a secao de
 // campos existir no arquivo. (makeGameArray/makeGameMethod vem de Bridge.h.)
 JSValue readStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d);
+void ensureStaticsReady(const Member& m);
 int writeStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d, JSValueConst value);
 
 /**
@@ -63,24 +77,65 @@ int writeStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d, JSValueCon
  * O coletor do IL2CPP (Boehm) varre a pilha e as raizes do jogo, nao a memoria
  * do QuickJS. Um objeto que so o mod segura — `Item.new()` guardado numa
  * variavel, um array guardado para depois — seria recolhido e o ponteiro
- * ficaria pendurado. O gchandle e a raiz que diz ao coletor que alguem ainda
- * usa o objeto; o finalizador do JS o solta.
+ * ficaria pendurado. A ancora (Roots: um slot numa tabela que o coletor
+ * varre) diz a ele que alguem ainda usa o objeto; o finalizador do JS a solta.
  */
 struct Pinned {
     void* ptr;
     uint32_t handle;
+    // So em GameArray: o tipo do elemento, descoberto no primeiro acesso.
+    // Perguntar ao IL2CPP a classe e o elemento a cada `arr[i]` custava mais
+    // que ler o elemento (docs/PONTE-OTIMIZACAO.md, passo 4).
+    const TypeDesc* elem = nullptr;
 };
 
+// Pinned soltos, reusados: um wrapper novo por acesso (elemento de array que o
+// JS nao guarda, `self` de hook) era um new/delete a mais por objeto. Mesmo
+// esquema do pool de StructRef (Value.cpp); so com o motor travado.
+std::vector<Pinned*> g_freePinned;
+constexpr size_t kPinnedPoolMax = 256;
+
 Pinned* pin(void* p) {
-    auto& a = il2cpp::api();
-    uint32_t h = (p && a.gchandle_new) ? a.gchandle_new(static_cast<Il2CppObject*>(p), false) : 0;
-    return new Pinned{p, h};
+    Pinned* r;
+    if (g_freePinned.empty()) {
+        r = new Pinned;
+    } else {
+        r = g_freePinned.back();
+        g_freePinned.pop_back();
+    }
+    *r = Pinned{p, Roots::add(p), nullptr};
+    return r;
 }
 
 void unpin(Pinned* p) {
     if (!p) return;
-    if (p->handle && il2cpp::api().gchandle_free) il2cpp::api().gchandle_free(p->handle);
-    delete p;
+    Roots::remove(p->handle);
+    if (g_freePinned.size() < kPinnedPoolMax) g_freePinned.push_back(p);
+    else delete p;
+}
+
+/**
+ * Um wrapper por objeto do jogo: `Main.player[0]` lido duas vezes devolve o
+ * MESMO objeto JS. Economiza a alocacao e a ancora da segunda leitura em
+ * diante, e faz `Main.player[0] === self` dar true, como no C#.
+ *
+ * O mapa NAO segura o wrapper (nao conta referencia): quem o mantem vivo e o
+ * JS. Quando a ultima referencia cai, o QuickJS finaliza na hora — antes de
+ * qualquer outro codigo rodar — e o finalizador tira a entrada; entao o mapa
+ * nunca devolve um wrapper morto. A chave e estavel porque o coletor do
+ * IL2CPP (Boehm) nao move objetos, e a ancora do wrapper impede que o
+ * endereco seja recolhido e reusado enquanto a entrada existir.
+ *
+ * So com o motor travado (JsLock), como o resto da ponte.
+ */
+WrapperMap g_objectWrappers;   // GameObject
+WrapperMap g_arrayWrappers;    // GameArray
+
+/** Tira a entrada do wrapper que esta sendo finalizado — so se for ele. */
+void forgetWrapper(WrapperMap& map, JSValue val, const Pinned* p) {
+    if (!p || !p->ptr) return;
+    JSValue* known = map.find(p->ptr);
+    if (known && JS_VALUE_GET_PTR(*known) == JS_VALUE_GET_PTR(val)) map.erase(p->ptr);
 }
 
 Il2CppClass* classOf(JSValueConst v) {
@@ -177,8 +232,16 @@ JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (m.method) return makeGameMethod(ctx, m.method);
     // Campo estático, pelo tipo declarado (array vira GameArray, float vira
     // número, string vira string — antes tudo saía como int64).
-    if (m.field) return readStaticField(ctx, m.field, *m.type);
+    if (m.field) {
+        ensureStaticsReady(m);
+        return readStaticField(ctx, m.field, *m.type);
+    }
     if (m.getter) return invokeGetter(ctx, m.getter, nullptr);
+    if (m.nested) {
+        JSValue r = JS_NewObjectClass(ctx, g_nativeClassId);
+        if (!JS_IsException(r)) JS_SetOpaque(r, m.nested);
+        return r;
+    }
 
     // Daqui para baixo é só erro: pode ser lento, recalcula o que precisar.
     if (m.signature) {
@@ -206,7 +269,10 @@ int nc_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     Il2CppClass* cls = classOf(obj);
     if (!cls) return -1;
     const Member& m = member(ctx, cls, atom, Space::Static, g_nativeClassId);
-    if (m.field) return writeStaticField(ctx, m.field, *m.type, value);
+    if (m.field) {
+        ensureStaticsReady(m);
+        return writeStaticField(ctx, m.field, *m.type, value);
+    }
     if (m.setter) return invokeSetter(ctx, m.setter, nullptr, value);
     return defineJsProperty(ctx, obj, atom, value);
 }
@@ -230,6 +296,20 @@ const JSCFunctionListEntry nc_proto[] = {
  * devolver o valor a cada escrita, senão `Main.screenPosition.X = 0` não faz
  * nada e o modder passa a tarde procurando o motivo.
  */
+/**
+ * O C# roda o construtor estatico de uma classe no primeiro acesso a um
+ * estatico dela; o field_static_get_value do IL2CPP nao. Sem isto,
+ * `AmmoID.Sets.IsArrow` lido antes de o jogo usar municao vinha null: o array
+ * so nasce no construtor estatico. Uma vez por membro (o cache e perpetuo).
+ */
+void ensureStaticsReady(const Member& m) {
+    if (m.classReady) return;
+    m.classReady = true;
+    auto& a = il2cpp::api();
+    if (!a.runtime_class_init || !a.field_get_parent) return;
+    if (Il2CppClass* owner = a.field_get_parent(m.field)) a.runtime_class_init(owner);
+}
+
 JSValue readStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d) {
     auto& a = il2cpp::api();
     if (d.prim == Prim::Struct) return makeStaticStruct(ctx, d.cls, f, d.size);
@@ -295,7 +375,9 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
 }
 
 void no_finalizer(JSRuntime*, JSValue val) {
-    unpin(static_cast<Pinned*>(JS_GetOpaque(val, g_nativeObjectId)));
+    auto* p = static_cast<Pinned*>(JS_GetOpaque(val, g_nativeObjectId));
+    forgetWrapper(g_objectWrappers, val, p);
+    unpin(p);
 }
 
 const JSClassExoticMethods no_exotic = {
@@ -321,7 +403,10 @@ const JSCFunctionListEntry no_proto[] = {
 JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
     Il2CppClass* cls = classOf(self);
     if (!cls) return JS_EXCEPTION;
-    Il2CppObject* obj = il2cpp::api().object_new(cls);
+    auto& a = il2cpp::api();
+    // Como o `new` do C#: o construtor estatico roda antes da primeira instancia.
+    if (a.runtime_class_init) a.runtime_class_init(cls);
+    Il2CppObject* obj = a.object_new(cls);
     if (!obj) return JS_ThrowInternalError(ctx, "object_new falhou");
     return makeNativeObject(ctx, obj);
 }
@@ -360,8 +445,19 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     void* thisPtr = nullptr;
     if (r->isInstance) {
         auto self = [&](JSValueConst v) -> void* {
+            if (r->thisIsObject) {
+                if (Il2CppObject* o = objectFromJS(v)) return o;
+                if (Il2CppArray* arr = arrayFromJS(v)) return arr;
+                // Vista de struct sem caixa: encaixota uma copia. O metodo e
+                // de System.Object/ValueType e nao muda o struct.
+                Il2CppClass* cls = nullptr;
+                void* data = structDataOf(v, &cls, nullptr);
+                auto& a = il2cpp::api();
+                return data && cls && a.value_box ? a.value_box(cls, data) : nullptr;
+            }
             if (void* s = structDataOf(v, nullptr, nullptr)) return s;
-            return objectFromJS(v);
+            if (Il2CppObject* o = objectFromJS(v)) return o;
+            return arrayFromJS(v);
         };
         thisPtr = self(thisVal);
         if (!thisPtr && argc > 0) {
@@ -433,25 +529,64 @@ const TypeDesc& elemTypeOf(JSContext* ctx, Il2CppArray* arr) {
 
 size_t strideOf(const TypeDesc& d) { return d.byValue ? d.size : sizeof(void*); }
 
+/** Tipo do elemento, guardado no wrapper do array depois da primeira vez. */
+const TypeDesc& elemOf(JSContext* ctx, JSValueConst obj, Il2CppArray* arr) {
+    auto* p = static_cast<Pinned*>(JS_GetOpaque(obj, g_gameArrayId));
+    if (p && p->elem) return *p->elem;
+    const TypeDesc& d = elemTypeOf(ctx, arr);
+    if (p && d.size) p->elem = &d;   // describe() e perpetuo: o ponteiro vale sempre
+    return d;
+}
+
+/**
+ * O indice que o atomo representa, sem passar por texto. -1 = nao e indice.
+ *
+ * Antes cada `arr[i]` virava C string, std::string e strtol. No QuickJS um
+ * indice pequeno ja E um atomo inteiro: bit 31 ligado + o valor. Essa
+ * codificacao e interna, e o QuickJS e baixado no build (nao fica versionado
+ * aqui) — entao ela e CONFERIDA uma vez contra a API publica
+ * (JS_NewAtomUInt32). Se um dia mudar, cai no caminho por texto em vez de ler
+ * o indice errado. (JS_AtomToValue nao serve: monta uma string para atomo
+ * inteiro.)
+ */
+int64_t indexOf(JSContext* ctx, JSAtom atom) {
+    constexpr uint32_t kTagInt = 1u << 31;
+    static int tagged = -1;
+    if (tagged < 0) {
+        const JSAtom probe = JS_NewAtomUInt32(ctx, 12345);
+        tagged = probe == (kTagInt | 12345u) ? 1 : 0;
+        JS_FreeAtom(ctx, probe);
+        if (!tagged) BL_WARN("arrays: codificacao de atomo inteiro mudou; indice por texto");
+    }
+    if (tagged) return (atom & kTagInt) ? static_cast<int64_t>(atom & ~kTagInt) : -1;
+
+    const char* key = JS_AtomToCString(ctx, atom);
+    if (!key) return -1;
+    char* end = nullptr;
+    const long idx = std::strtol(key, &end, 10);
+    const bool ok = end && *end == '\0' && end != key && idx >= 0;
+    JS_FreeCString(ctx, key);
+    return ok ? idx : -1;
+}
+
+JSAtom lengthAtom(JSContext* ctx) {
+    static JSAtom atom = JS_NewAtom(ctx, "length");   // referencia para sempre
+    return atom;
+}
+
 JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
     Il2CppArray* arr = arrayFromJS(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!arr || !key) { if (key) JS_FreeCString(ctx, key); return JS_UNDEFINED; }
-    std::string name(key);
-    JS_FreeCString(ctx, key);
-
-    if (name == "length") return JS_NewInt64(ctx, static_cast<int64_t>(arr->length));
-
-    // Índice numérico?
-    char* end = nullptr;
-    long idx = std::strtol(name.c_str(), &end, 10);
-    if (!end || *end != '\0' || name.empty()) return JS_UNDEFINED;
-    if (idx < 0 || static_cast<uintptr_t>(idx) >= arr->length) {
-        return JS_ThrowRangeError(ctx, "indice %ld fora de 0..%llu", idx,
+    if (!arr) return JS_UNDEFINED;
+    const int64_t idx = indexOf(ctx, atom);
+    if (idx < 0) {
+        if (atom == lengthAtom(ctx)) return JS_NewInt64(ctx, static_cast<int64_t>(arr->length));
+        return JS_UNDEFINED;
+    }
+    if (static_cast<uint64_t>(idx) >= arr->length) {
+        return JS_ThrowRangeError(ctx, "indice %lld fora de 0..%llu", static_cast<long long>(idx),
                                   static_cast<unsigned long long>(arr->length));
     }
-
-    const TypeDesc& d = elemTypeOf(ctx, arr);
+    const TypeDesc& d = elemOf(ctx, obj, arr);
     if (!d.size) return JS_EXCEPTION;
     // O dono é o próprio array: um elemento struct sai como VISTA para dentro
     // dele, então `Main.rain[3].position.X = 0` altera o jogo de verdade.
@@ -463,24 +598,18 @@ JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
 int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
                   JSValueConst value, JSValueConst, int) {
     Il2CppArray* arr = arrayFromJS(obj);
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!arr || !key) { if (key) JS_FreeCString(ctx, key); return -1; }
-    std::string name(key);
-    JS_FreeCString(ctx, key);
-
-    char* end = nullptr;
-    long idx = std::strtol(name.c_str(), &end, 10);
-    if (!end || *end != '\0' || name.empty()) {
+    if (!arr) return -1;
+    const int64_t idx = indexOf(ctx, atom);
+    if (idx < 0) {
         return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value),
                                       JS_PROP_C_W_E) < 0 ? -1 : true;
     }
-    if (idx < 0 || static_cast<uintptr_t>(idx) >= arr->length) {
-        JS_ThrowRangeError(ctx, "indice %ld fora de 0..%llu", idx,
+    if (static_cast<uint64_t>(idx) >= arr->length) {
+        JS_ThrowRangeError(ctx, "indice %lld fora de 0..%llu", static_cast<long long>(idx),
                            static_cast<unsigned long long>(arr->length));
         return -1;
     }
-
-    const TypeDesc& d = elemTypeOf(ctx, arr);
+    const TypeDesc& d = elemOf(ctx, obj, arr);
     if (!d.size) return -1;
     return writeAt(ctx, reinterpret_cast<char*>(arrayData(arr)) +
                             static_cast<size_t>(idx) * strideOf(d),
@@ -488,7 +617,9 @@ int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
 }
 
 void ga_finalizer(JSRuntime*, JSValue val) {
-    unpin(static_cast<Pinned*>(JS_GetOpaque(val, g_gameArrayId)));
+    auto* p = static_cast<Pinned*>(JS_GetOpaque(val, g_gameArrayId));
+    forgetWrapper(g_arrayWrappers, val, p);
+    unpin(p);
 }
 
 const JSClassExoticMethods ga_exotic = {
@@ -504,23 +635,55 @@ Il2CppObject* objectFromJS(JSValueConst v) {
 }
 
 Il2CppArray* arrayFromJS(JSValueConst v) {
-    auto* p = static_cast<Pinned*>(JS_GetOpaque(v, g_gameArrayId));
-    return p ? static_cast<Il2CppArray*>(p->ptr) : nullptr;
+    if (auto* p = static_cast<Pinned*>(JS_GetOpaque(v, g_gameArrayId))) {
+        return static_cast<Il2CppArray*>(p->ptr);
+    }
+    // Array que chegou como objeto comum (veio de um metodo que declara
+    // devolver System.Array ou object, como Array.CreateInstance).
+    Il2CppObject* o = objOf(v);
+    return o && isArrayObject(o) ? reinterpret_cast<Il2CppArray*>(o) : nullptr;
 }
 
-JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj) {
-    JSValue o = JS_NewObjectClass(ctx, g_nativeObjectId);
-    if (!JS_IsException(o)) JS_SetOpaque(o, pin(obj));
-    return o;
+bool isArrayObject(Il2CppObject* o) {
+    auto& a = il2cpp::api();
+    if (!o || !a.class_get_rank) return false;
+    return a.class_get_rank(a.object_get_class(o)) > 0;
 }
 
-JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr) {
-    JSValue v = JS_NewObjectClass(ctx, g_gameArrayId);
-    if (!JS_IsException(v)) JS_SetOpaque(v, pin(arr));
+namespace {
+
+/** O wrapper que ja existe para `ptr`, ou um novo, ancorado e registrado. */
+JSValue wrapperFor(JSContext* ctx, WrapperMap& map, JSClassID cls, void* ptr) {
+    if (ptr) {
+        if (JSValue* known = map.find(ptr)) return JS_DupValue(ctx, *known);
+    }
+    JSValue v = JS_NewObjectClass(ctx, cls);
+    if (JS_IsException(v)) return v;
+    JS_SetOpaque(v, pin(ptr));
+    if (ptr) map.insert(ptr, v);   // sem Dup: o mapa nao segura o wrapper
     return v;
 }
 
+} // namespace
+
+JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj) {
+    return wrapperFor(ctx, g_objectWrappers, g_nativeObjectId, obj);
+}
+
+JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr) {
+    return wrapperFor(ctx, g_arrayWrappers, g_gameArrayId, arr);
+}
+
 JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m) {
+    // Um GameMethod por metodo, criado uma vez: `obj['void Foo()']()` num laco
+    // montava um objeto novo (malloc + objeto JS + method_get_flags) a cada
+    // volta — 290 ns jogados fora por chamada (docs/PONTE-OTIMIZACAO.md,
+    // passo 3). O cache segura a referencia para sempre, como os callbacks de
+    // hook: o runtime JS vive ate o processo morrer (shutdown() nao e chamado).
+    static std::unordered_map<const MethodInfo*, JSValue> cache;
+    auto hit = cache.find(m);
+    if (hit != cache.end()) return JS_DupValue(ctx, hit->second);
+
     // CUIDADO: il2cpp_method_get_flags DEVOLVE as flags e escreve as de
     // IMPLEMENTACAO no parâmetro de saída. Ler o parâmetro (o que este código
     // fazia) dava isInstance errado para todo método estático.
@@ -531,9 +694,17 @@ JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m) {
     ref->method = m;
     ref->paramCount = static_cast<int>(il2cpp::api().method_get_param_count(m));
     ref->isInstance = !(flags & 0x0010);  // METHOD_ATTRIBUTE_STATIC
+    auto& a = il2cpp::api();
+    Il2CppClass* declaring = a.method_get_class(m);
+    ref->thisIsObject = ref->isInstance && declaring && a.class_is_valuetype &&
+                        !a.class_is_valuetype(declaring);
     JSValue v = JS_NewObjectClass(ctx, g_nativeMethodId);
-    if (JS_IsException(v)) std::free(ref);
-    else JS_SetOpaque(v, ref);
+    if (JS_IsException(v)) {
+        std::free(ref);
+        return v;
+    }
+    JS_SetOpaque(v, ref);
+    cache.emplace(m, JS_DupValue(ctx, v));
     return v;
 }
 
@@ -643,6 +814,8 @@ void installBindings(void* context) {
     JS_SetPropertyStr(ctx, bl, "loadTexture",
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
     installItemsApi(ctx, bl);
+    installProjectilesApi(ctx, bl);
+    installNpcsApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass

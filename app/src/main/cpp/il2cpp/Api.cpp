@@ -72,6 +72,8 @@ bool Api::load() {
     bind(lib, "il2cpp_method_is_instance", &method_is_instance);
     ok &= bind(lib, "il2cpp_method_get_class", &method_get_class);
     ok &= bind(lib, "il2cpp_class_get_element_class", &class_get_element_class);
+    bindSoft(lib, "il2cpp_class_get_rank", &class_get_rank);
+    bindSoft(lib, "il2cpp_value_box", &value_box);
     ok &= bind(lib, "il2cpp_class_value_size", &class_value_size);
     ok &= bind(lib, "il2cpp_class_get_type", &class_get_type);
     ok &= bind(lib, "il2cpp_type_get_name", &type_get_name);
@@ -82,6 +84,12 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_string_new", &string_new);
     ok &= bind(lib, "il2cpp_gchandle_new", &gchandle_new);
     ok &= bind(lib, "il2cpp_gchandle_free", &gchandle_free);
+    bindSoft(lib, "il2cpp_gc_alloc_fixed", &gc_alloc_fixed);
+    bindSoft(lib, "il2cpp_gc_free_fixed", &gc_free_fixed);
+    bindSoft(lib, "il2cpp_gc_wbarrier_set_field", &gc_wbarrier_set_field);
+    bindSoft(lib, "il2cpp_gc_is_incremental", &gc_is_incremental);
+    bindSoft(lib, "il2cpp_runtime_class_init", &runtime_class_init);
+    bindSoft(lib, "il2cpp_field_get_parent", &field_get_parent);
     ok &= bind(lib, "il2cpp_gchandle_get_target", &gchandle_get_target);
     ok &= bind(lib, "il2cpp_thread_attach", &thread_attach);
     bindSoft(lib, "il2cpp_class_enum_basetype", &class_enum_basetype);

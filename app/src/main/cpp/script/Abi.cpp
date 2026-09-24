@@ -99,7 +99,9 @@ JSValue paramToJs(JSContext* ctx, const intptr_t a[8], const uint64_t d[8],
         if (p.structByRef) {
             // Struct grande: o registrador tem o endereco de uma copia feita
             // pelo chamador. Copiamos de novo — semantica de valor do C#.
-            return makeStructCopy(ctx, p.d.cls, reinterpret_cast<void*>(a[p.reg]), p.d.size);
+            void* src = reinterpret_cast<void*>(a[p.reg]);
+            if (p.d.nullable()) return readAt(ctx, src, p.d, JS_UNDEFINED);
+            return makeStructCopy(ctx, p.d.cls, src, p.d.size);
         }
         uint8_t buf[32] = {0};
         const size_t cap = p.d.size < sizeof(buf) ? p.d.size : sizeof(buf);
@@ -115,6 +117,8 @@ JSValue paramToJs(JSContext* ctx, const intptr_t a[8], const uint64_t d[8],
                            ? cap : static_cast<size_t>(p.regs) * 8;
             std::memcpy(buf, &a[p.reg], n);
         }
+        // `float?` chega como null ou numero, nao como struct {hasValue, value}.
+        if (p.d.nullable()) return readAt(ctx, buf, p.d, JS_UNDEFINED);
         return makeStructCopy(ctx, p.d.cls, buf, p.d.size);
     }
 
@@ -140,8 +144,32 @@ JSValue paramToJs(JSContext* ctx, const intptr_t a[8], const uint64_t d[8],
 }
 
 int jsToParam(JSContext* ctx, JSValueConst v, const ParamPlan& p,
-              intptr_t a[8], uint64_t d[8]) {
+              intptr_t a[8], uint64_t d[8], ArgScratch* scratch) {
     if (p.opaque) return true;  // ref/out: mantem o que o chamador mandou
+
+    if (p.d.nullable()) {
+        // Monta os bytes do Nullable (null, o T, ou outro Nullable) e so
+        // entao decide o caminho: nunca e HFA (tem o bool), entao e fila
+        // inteira ou endereco.
+        uint8_t local[16];
+        void* dst = local;
+        if (p.structByRef) {
+            dst = scratch ? scratch->take(p.d.size) : nullptr;
+            if (!dst) {
+                JS_ThrowInternalError(ctx, "sem espaco para montar o %s desta chamada",
+                                      p.d.name.c_str());
+                return -1;
+            }
+        }
+        if (writeAt(ctx, dst, p.d, v) < 0) return -1;
+        if (p.structByRef) {
+            a[p.reg] = reinterpret_cast<intptr_t>(dst);
+        } else {
+            for (int i = 0; i < p.regs; ++i) a[p.reg + i] = 0;
+            std::memcpy(&a[p.reg], dst, p.d.size);
+        }
+        return true;
+    }
 
     if (p.d.prim == Prim::Struct) {
         Il2CppClass* cls = nullptr;
@@ -194,6 +222,7 @@ JSValue outcomeToJs(JSContext* ctx, const AbiPlan& p, const Outcome& o) {
     const TypeDesc& d = p.retDesc;
     if (d.prim == Prim::Void) return JS_UNDEFINED;
     // Copia, nao vista: os bytes estao num Outcome de pilha que ja foi embora.
+    if (d.nullable()) return readAt(ctx, const_cast<uint8_t*>(o.s), d, JS_UNDEFINED);
     if (d.prim == Prim::Struct) return makeStructCopy(ctx, d.cls, o.s, d.size);
     if (p.ret == Ret::F32 || p.ret == Ret::F64) return JS_NewFloat64(ctx, o.f);
     intptr_t raw = o.i;
@@ -207,6 +236,14 @@ Outcome jsToOutcome(JSContext* ctx, const AbiPlan& p, JSValueConst v,
     if (d.prim == Prim::Void) return fallback;
 
     Outcome o;
+    if (d.nullable()) {
+        // `return null` e resposta valida para um `float?`: sem valor.
+        if (d.size > sizeof(o.s) || writeAt(ctx, o.s, d, v) < 0) {
+            JS_FreeValue(ctx, JS_GetException(ctx));
+            return fallback;
+        }
+        return o;
+    }
     if (d.prim == Prim::Struct) {
         Il2CppClass* src = nullptr;
         size_t n = 0;

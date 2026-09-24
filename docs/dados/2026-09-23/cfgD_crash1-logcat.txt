@@ -1,0 +1,93 @@
+09-23 22:43:03.323  9655  9683 I Unity   : Disk Space:123506896896
+09-23 22:43:03.323  9655  9683 I Unity   : GUILowDiskSpacePopup:DiskSpace()
+09-23 22:43:03.323  9655  9683 I Unity   : GUILowDiskSpacePopup:CheckDiskSpace(Action)
+09-23 22:43:03.323  9655  9683 I Unity   : GUIWorldCreateMenu:DrawMainButtons()
+09-23 22:43:03.323  9655  9683 I Unity   : GUIWorldCreateMenu:Draw()
+09-23 22:43:03.323  9655  9683 I Unity   : Terraria.Main:DrawMenu(GameTime)
+09-23 22:43:03.323  9655  9683 I Unity   : Terraria.Main:DoDraw(GameTime)
+09-23 22:43:03.323  9655  9683 I Unity   : 
+09-23 22:43:03.337  9655  9683 I Unity   : Boost:True
+09-23 22:43:03.337  9655  9683 I Unity   : Switch:SetCpuBoostMode(Object)
+09-23 22:43:03.337  9655  9683 I Unity   : MainThreadExecution:Execute()
+09-23 22:43:03.337  9655  9683 I Unity   : MainThreadExecution:ExecuteSnippetsOnly()
+09-23 22:43:03.337  9655  9683 I Unity   : MainThreadExecution:ExecuteSnippets()
+09-23 22:43:03.337  9655  9683 I Unity   : DrPlatform:Update(Single)
+09-23 22:43:03.337  9655  9683 I Unity   : XNAUnityRunner:ExecuteFrame(Single)
+09-23 22:43:03.337  9655  9683 I Unity   : 
+09-23 22:43:03.487  9655  9683 I Unity   : Memory Usage 6860800
+09-23 22:43:03.487  9655  9683 I Unity   : Terraria.Map.WorldMap:Allocate(Int32, Int32)
+09-23 22:43:03.487  9655  9683 I Unity   : MainThreadExecution:Execute()
+09-23 22:43:03.487  9655  9683 I Unity   : MainThreadExecution:ExecuteSnippetsOnly()
+09-23 22:43:03.487  9655  9683 I Unity   : MainThreadExecution:ExecuteSnippets()
+09-23 22:43:03.487  9655  9683 I Unity   : DrPlatform:Update(Single)
+09-23 22:43:03.487  9655  9683 I Unity   : XNAUnityRunner:ExecuteFrame(Single)
+09-23 22:43:03.487  9655  9683 I Unity   : 
+09-23 22:43:03.505  9655  9770 I IL2CPP  : Creating world - Seed: 1505727917, Width: 4200, Height: 1200, Evil: -1, Difficulty: 0
+09-23 22:43:12.281  9655  9770 E CRASH   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+09-23 22:43:12.281  9655  9770 E CRASH   : Version '2021.3.56f2 (667925324b48)', Build type 'Release', Scripting Backend 'il2cpp', CPU 'arm64-v8a'
+09-23 22:43:12.281  9655  9770 E CRASH   : Build fingerprint: 'Samsung/a52sxq/a52sxq:12/V417IR/375:user/release-keys'
+09-23 22:43:12.281  9655  9770 E CRASH   : Revision: '0'
+09-23 22:43:12.281  9655  9770 E CRASH   : ABI: 'arm64'
+09-23 22:43:12.281  9655  9770 E CRASH   : Timestamp: 2026-09-23 22:43:12-0300
+09-23 22:43:12.281  9655  9770 E CRASH   : pid: 9655, tid: 9770, name: UnityMain  >>> com.bunnyloader:game <<<
+09-23 22:43:12.281  9655  9770 E CRASH   : uid: 10095
+09-23 22:43:12.281  9655  9770 E CRASH   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0
+09-23 22:43:12.281  9655  9770 E CRASH   : Cause: null pointer dereference
+09-23 22:43:12.282  9655  9770 E CRASH   :     x0  0000785147c31cf0  x1  000000000a2305f0  x2  0000000000000000  x3  000000000000000c
+09-23 22:43:12.282  9655  9770 E CRASH   :     x4  0000000007a26878  x5  0080800000000000  x6  0000000000000010  x7  7f7f7f7f7f7fff7f
+09-23 22:43:12.282  9655  9770 E CRASH   :     x8  0000000000000000  x9  000000000000000c  x10 0000000000000000  x11 000000000000000f
+09-23 22:43:12.282  9655  9770 E CRASH   :     x12 0000785458958a0e  x13 0000000000000004  x14 00000000078ff9f4  x15 0000000000005065
+09-23 22:43:12.282  9655  9770 E CRASH   :     x16 0000000000000000  x17 0000000000000000  x18 00007851f0b97c28  x19 0000000000000000
+09-23 22:43:12.282  9655  9770 E CRASH   :     x20 000000000a2305f0  x21 0000000000016c44  x22 00007853088e1350  x23 0000000000000024
+09-23 22:43:12.283  9655  9770 E CRASH   :     x24 000000000001ffff  x25 0000000000000013  x26 ffffffffffffffff  x27 aaaaaaaaaaaaaaab
+09-23 22:43:12.283  9655  9770 E CRASH   :     x28 0000000000000030  x29 0000000000000001
+09-23 22:43:12.283  9655  9770 E CRASH   :     sp  0000785147d2f2e0  lr  0000000007a3386c  pc  00000000079f87ac
+09-23 22:43:12.283  9655  9770 E CRASH   : backtrace:
+09-23 22:43:12.283  9655  9770 E CRASH   :       #00 pc 00000000006ac7ac  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.283  9655  9770 E CRASH   :       #01 pc 00000000006e7868  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #02 pc 00000000006e773c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #03 pc 00000000006d9d4c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #04 pc 000000000073134c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #05 pc 00000000006ac1a8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #06 pc 00000000006abdb8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #07 pc 0000000000731350  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #08 pc 00000000006ac1a8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #09 pc 00000000006abdb8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #10 pc 0000000000731350  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #11 pc 00000000006d7048  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #12 pc 00000000006d4c78  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #13 pc 00000000006a0508  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.284  9655  9770 E CRASH   :       #14 pc 00000000006a0538  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #15 pc 0000000000734c50  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #16 pc 0000000000734a24  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #17 pc 00000000006e945c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #18 pc 0000000000a215cc  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #19 pc 0000000000a1a16c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #20 pc 000000000188eeb0  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #21 pc 000000000190cefc  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #22 pc 000000000190c910  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #23 pc 000000000167cc40  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #24 pc 000000000167b700  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #25 pc 00000000007c3f78  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #26 pc 000000000235c218  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #27 pc 00000000006cd7b0  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #28 pc 00000000006cd624  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #29 pc 0000000000694de8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #30 pc 00000000006d056c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #31 pc 00000000006a7ac8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:43:12.285  9655  9770 E CRASH   :       #32 pc 00000000001133dc  /system/lib64/arm64/nb/libtcb.so
+09-23 22:43:12.656  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.672  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.680  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.691  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.704  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.725  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.741  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.755  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.767  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.782  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.796  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.811  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.825  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.838  9655  9770 E CRASH   : Forwarding signal 11
+09-23 22:43:12.850  9655  9770 E CRASH   : Forwarding signal 11

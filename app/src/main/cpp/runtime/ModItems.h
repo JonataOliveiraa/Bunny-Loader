@@ -20,8 +20,8 @@ namespace bl::runtime {
  *   - Item.SetDefaults zera o tipo: o hook de SetDefaults dos itens de mod
  *     (Bindings.cpp) nao chama o original para eles;
  *   - toda tabela nasce com ItemID.Count posicoes: `tickModItems` as aumenta;
- *   - Player.LoadPlayer transforma tipo desconhecido em nada: item de mod NAO
- *     sobrevive a salvar e voltar ao mundo. Ainda nao ha persistencia.
+ *   - Player.LoadPlayer transforma tipo desconhecido em nada: o save dos
+ *     itens de mod vai num arquivo ao lado do personagem (ModItemSave.cpp).
  */
 
 /** ItemID.Count do jogo. E `const` no C#, nao ha campo para ler: vem do dump. */
@@ -31,6 +31,9 @@ struct ModItemDef {
     std::string mod;      // uid do mod que registrou
     std::string name;     // chave estavel dentro do mod
     std::string texture;  // caminho absoluto do PNG
+    // Ou o PNG em memoria (itens do proprio loader, como o "?"): tem precedencia.
+    const unsigned char* textureData = nullptr;
+    size_t textureSize = 0;
     /** Nome por cultura ("pt-BR" -> "Espada"), UTF-8. "" = serve para qualquer uma. */
     std::vector<std::pair<std::string, std::string>> names;
 };
@@ -43,6 +46,42 @@ int registerModItem(ModItemDef def);
 
 bool isModItem(int type);
 
+/**
+ * Nome estavel do item de mod, "<uid do mod>/<nome>", ou "" se `type` nao e
+ * de mod. E o que o save guarda: o numero muda com os mods instalados.
+ */
+std::string modItemKey(int type);
+
+/** O tipo de "<uid>/<nome>" nesta sessao, ou -1 se nenhum mod carregado o registrou. */
+int modItemTypeByKey(const std::string& key);
+
+/**
+ * Item de mod AUSENTE (o mod foi desligado ou removido): vira um "?" sem uso
+ * nenhum, que guarda o lugar, a pilha e o prefixo, e volta a ser o item quando
+ * o mod voltar. Como o UnloadedItem do tModLoader.
+ *
+ * O "?" nao pode guardar de quem era num campo do item: o bau desta versao
+ * guarda ChestItem (tipo, pilha, prefixo, favorito — 6 bytes), e mover para o
+ * bau copia so isso. Entao a identidade vai no TIPO: uma reserva de tipos
+ * "?", e cada item ausente distinto ganha um deles na sessao.
+ */
+constexpr int kUnloadedPoolSize = 64;
+
+/** Registra a reserva. Uma vez, DEPOIS dos mods (os ids deles nao mudam). */
+void registerUnloadedPool();
+
+bool isUnloadedType(int type);
+
+/**
+ * O "?" que representa `key` nesta sessao (o mesmo para a mesma chave); -1 se
+ * a reserva acabou ou ainda nao esta nas tabelas do jogo. modItemKey() de um
+ * "?" devolve a chave original, entao quem salva nao precisa saber dele.
+ */
+int unloadedTypeFor(const std::string& key);
+
+/** O setDefaults do "?": sem JS, e o jogo so tem o hook dos mods. */
+void setupUnloadedItem(Il2CppObject* item, int type);
+
 /** Vanilla + itens de mod JA instalados nas tabelas do jogo. */
 int itemTypeCount();
 
@@ -52,6 +91,14 @@ int itemTypeCount();
  * idioma refaz os caches de nome) e a aumenta de novo. Thread do jogo.
  */
 void tickModItems();
+
+/**
+ * Chamado uma vez por lote instalado (thread do jogo), com os tipos novos —
+ * o jogo ja conhece o item: sets e amostras existem. E onde roda o
+ * SetStaticDefaults do mod. Inclui a reserva "?", que nao e de mod nenhum.
+ */
+using ItemsInstalledHook = void (*)(int first, int last);
+void setItemsInstalledHook(ItemsInstalledHook hook);
 
 /**
  * O que o SetDefaults do jogo faria antes dos SetDefaultsN: ResetStats e o
@@ -70,21 +117,6 @@ struct ModItemInfo {
 /** Os registrados, na ordem do id. Copia: serve a qualquer thread. */
 std::vector<ModItemInfo> modItems();
 
-/**
- * Catalogo de itens de mod no menu, como o do TL Pro: cada mod ganha a sua
- * categoria (o nome dele, o icone dele) e pode criar outras.
- */
-struct ModCategory {
-    std::string mod, name, icon;   // icone: caminho absoluto de PNG, ou vazio
-    std::vector<int> types;
-};
-
-/** A categoria `nome` do mod, criada se ainda nao existe. Devolve o indice. */
-int modCategory(const std::string& mod, const std::string& name, const std::string& icon);
-
-/** Poe o item na categoria (uma vez so). false se o indice nao existe. */
-bool addToModCategory(int categoria, int type);
-
-std::vector<ModCategory> modCategories();
+// O catalogo do menu (pastas por mod) esta em ModMenu.h.
 
 } // namespace bl::runtime

@@ -39,6 +39,79 @@ const char* keywordToClr(const std::string& kw) {
     return nullptr;
 }
 
+std::vector<std::string> splitParams(std::string_view inner);
+
+/**
+ * Um nome de tipo genérico, separado: "System.Nullable`1<System.Single>" ->
+ * base "System.Nullable", argumentos {"System.Single"}. A aridade (`1) sai
+ * da base porque ninguém a escreve ao ler o dump, e o TL a escreve sem os
+ * argumentos. Aceita <...> e [...] (os dois formatos do runtime); "[]" de
+ * array não é genérico.
+ */
+struct Generic {
+    std::string base;
+    std::vector<std::string> args;
+    bool hasArgs = false;
+};
+
+Generic splitGeneric(const std::string& name) {
+    Generic g;
+    size_t open = std::string::npos;
+    for (size_t i = 0; i < name.size(); ++i) {
+        if (name[i] == '<' || (name[i] == '[' && i + 1 < name.size() && name[i + 1] != ']')) {
+            open = i;
+            break;
+        }
+    }
+    std::string base = open == std::string::npos ? name : name.substr(0, open);
+    size_t tick = base.find('`');
+    if (tick != std::string::npos) base.erase(tick);
+    g.base = base;
+    if (open != std::string::npos) {
+        size_t close = name.find_last_of(name[open] == '<' ? '>' : ']');
+        if (close != std::string::npos && close > open) {
+            g.args = splitParams(std::string_view(name).substr(open + 1, close - open - 1));
+            g.hasArgs = true;
+        }
+    }
+    return g;
+}
+
+/** "SpriteFont.Glyph" casa com "Microsoft.Xna.Framework.Graphics.SpriteFont/Glyph". */
+bool nameEndsWith(std::string got, const std::string& want) {
+    for (char& c : got) if (c == '/' || c == '+') c = '.';
+    if (got == want) return true;
+    return got.size() > want.size() && got[got.size() - want.size() - 1] == '.' &&
+           got.compare(got.size() - want.size(), want.size(), want) == 0;
+}
+
+bool typeMatches(const std::string& want, const char* got);
+
+/**
+ * Tipo genérico: `Nullable\`1` (como o TL escreve), `Nullable<float>` e
+ * `float?` casam com o Nullable<Single> do runtime. Sem argumentos, a base
+ * basta; com argumentos, cada um é conferido.
+ */
+bool genericMatches(const std::string& want, const std::string& got) {
+    Generic g = splitGeneric(got);
+    if (!g.hasArgs) return false;
+    Generic w;
+    if (want.size() > 1 && want.back() == '?') {
+        w.base = "Nullable";
+        w.args = {want.substr(0, want.size() - 1)};
+        w.hasArgs = true;
+    } else {
+        w = splitGeneric(want);
+    }
+    if (w.base.empty() || !nameEndsWith(g.base, w.base)) return false;
+    if (!w.hasArgs) return true;
+    if (w.args.size() != g.args.size()) return false;
+    for (size_t i = 0; i < w.args.size(); ++i) {
+        if (!typeMatches(w.args[i], g.args[i].c_str())) return false;
+    }
+    return true;
+}
+
 /**
  * O tipo escrito pelo modder casa com o que o IL2CPP reporta?
  *
@@ -46,6 +119,8 @@ const char* keywordToClr(const std::string& kw) {
  *   1. igual              ("System.Int32" == "System.Int32")
  *   2. palavra-chave C#   ("int"          -> "System.Int32")
  *   3. só o nome curto    ("ItemVariant"  -> "Terraria.ItemVariant")
+ *   4. genérico           ("Nullable`1", "Nullable<float>", "float?"
+ *                          -> Nullable<Single>; ver genericMatches)
  *
  * A terceira existe porque ninguém escreve o namespace inteiro ao ler o dump,
  * e é segura o bastante: o conjunto candidato já está limitado aos overloads
@@ -59,10 +134,12 @@ bool typeMatches(const std::string& want, const char* got) {
         if (std::strcmp(clr, got) == 0) return true;
     }
 
-    // Sufixo após o último ponto, preservando "[]"/"&" que vierem junto.
+    if (genericMatches(want, got)) return true;
+
+    // Sufixo após o último ponto, preservando "[]"/"&" que vierem junto — e
+    // tipo aninhado, que o runtime separa com '/'.
     std::string g(got);
-    size_t dot = g.rfind('.');
-    if (dot != std::string::npos && g.substr(dot + 1) == want) return true;
+    if (nameEndsWith(g, want)) return true;
 
     // Apelido DENTRO de um array ou de um ref: `byte[]` tem de casar com
     // `System.Byte[]`, e não casava — a tabela só conhecia o nome cru. Quem

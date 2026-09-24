@@ -2,6 +2,7 @@
 
 #if BL_HAVE_QUICKJS
 #include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 
 #include <unordered_map>
@@ -99,6 +100,11 @@ Member resolve(JSContext* ctx, Il2CppClass* cls, JSAtom atom, Space space, JSCla
     if (space == Space::Static && !m.getter) {
         m.overloads = static_cast<int>(il2cpp::listOverloads(cls, name).size());
         if (m.overloads == 1) m.method = uniqueMethodNamed(cls, name);
+    }
+    // `SpriteFont.Glyph`: o C# nao deixa um membro e um tipo aninhado com o
+    // mesmo nome, entao so resta olhar aqui quando nada acima casou.
+    if (space == Space::Static && !m.getter && !m.setter && !m.method && m.overloads == 0) {
+        m.nested = il2cpp::findNested(cls, name);
     }
     return m;
 }

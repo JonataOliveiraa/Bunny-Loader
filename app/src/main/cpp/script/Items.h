@@ -12,5 +12,8 @@ namespace bl::script {
  */
 void installItemsApi(JSContext* ctx, JSValue bl);
 
+/** O mod aparece no menu com o nome do manifesto e o icon.png (itens e NPCs chamam). */
+void noteModForMenu(const std::string& mod);
+
 } // namespace bl::script
 #endif

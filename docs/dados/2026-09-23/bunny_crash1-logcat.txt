@@ -1,0 +1,429 @@
+09-23 22:24:03.974  6623  6652 I Unity   : Disk Space:123576193024
+09-23 22:24:03.974  6623  6652 I Unity   : GUILowDiskSpacePopup:DiskSpace()
+09-23 22:24:03.974  6623  6652 I Unity   : GUILowDiskSpacePopup:CheckDiskSpace(Action)
+09-23 22:24:03.974  6623  6652 I Unity   : GUIWorldCreateMenu:DrawMainButtons()
+09-23 22:24:03.974  6623  6652 I Unity   : GUIWorldCreateMenu:Draw()
+09-23 22:24:03.974  6623  6652 I Unity   : Terraria.Main:DrawMenu(GameTime)
+09-23 22:24:03.974  6623  6652 I Unity   : Terraria.Main:DoDraw(GameTime)
+09-23 22:24:03.974  6623  6652 I Unity   : 
+09-23 22:24:03.991  6623  6652 I Unity   : Boost:True
+09-23 22:24:03.991  6623  6652 I Unity   : Switch:SetCpuBoostMode(Object)
+09-23 22:24:03.991  6623  6652 I Unity   : MainThreadExecution:Execute()
+09-23 22:24:03.991  6623  6652 I Unity   : MainThreadExecution:ExecuteSnippetsOnly()
+09-23 22:24:03.991  6623  6652 I Unity   : MainThreadExecution:ExecuteSnippets()
+09-23 22:24:03.991  6623  6652 I Unity   : DrPlatform:Update(Single)
+09-23 22:24:03.991  6623  6652 I Unity   : XNAUnityRunner:ExecuteFrame(Single)
+09-23 22:24:03.991  6623  6652 I Unity   : 
+09-23 22:24:04.011  6623  6652 E CRASH   : *** *** *** *** *** *** *** *** *** *** *** *** *** *** *** ***
+09-23 22:24:04.011  6623  6652 E CRASH   : Version '2021.3.56f2 (667925324b48)', Build type 'Release', Scripting Backend 'il2cpp', CPU 'arm64-v8a'
+09-23 22:24:04.011  6623  6652 E CRASH   : Build fingerprint: 'Samsung/a52sxq/a52sxq:12/V417IR/375:user/release-keys'
+09-23 22:24:04.011  6623  6652 E CRASH   : Revision: '0'
+09-23 22:24:04.011  6623  6652 E CRASH   : ABI: 'arm64'
+09-23 22:24:04.011  6623  6652 E CRASH   : Timestamp: 2026-09-23 22:24:04-0300
+09-23 22:24:04.011  6623  6652 E CRASH   : pid: 6623, tid: 6652, name: UnityMain  >>> com.bunnyloader:game <<<
+09-23 22:24:04.011  6623  6652 E CRASH   : uid: 10095
+09-23 22:24:04.011  6623  6652 E CRASH   : signal 11 (SIGSEGV), code 1 (SEGV_MAPERR), fault addr 0x0
+09-23 22:24:04.011  6623  6652 E CRASH   : Cause: null pointer dereference
+09-23 22:24:04.011  6623  6652 E CRASH   :     x0  0000785230f4ecf0  x1  000000000a1244a0  x2  0000000000000000  x3  0000000000000001
+09-23 22:24:04.012  6623  6652 E CRASH   :     x4  000078540954f3b0  x5  0000000008e10cc8  x6  fefefefefefeff5c  x7  7f7f7f7f7f7f7f7f
+09-23 22:24:04.012  6623  6652 E CRASH   :     x8  0000000000000004  x9  0000000000000008  x10 0000000000000000  x11 000000000000000f
+09-23 22:24:04.012  6623  6652 E CRASH   :     x12 0000785458952c2c  x13 0000000000000004  x14 0000000008f7b924  x15 0000000000000000
+09-23 22:24:04.012  6623  6652 E CRASH   :     x16 000000000a1d0e68  x17 000000000ba81b40  x18 00007851f109dea8  x19 0000000000000000
+09-23 22:24:04.012  6623  6652 E CRASH   :     x20 000000000a1244a0  x21 0000000000005294  x22 0000785328a97750  x23 0000000000000014
+09-23 22:24:04.013  6623  6652 E CRASH   :     x24 000000000001ffff  x25 000000000000000a  x26 ffffffffffffffff  x27 aaaaaaaaaaaaaaab
+09-23 22:24:04.013  6623  6652 E CRASH   :     x28 0000000000000030  x29 0000000000000001
+09-23 22:24:04.013  6623  6652 E CRASH   :     sp  0000785230e46e30  lr  000000000792b86c  pc  00000000078f07ac
+09-23 22:24:04.013  6623  6652 E CRASH   : backtrace:
+09-23 22:24:04.013  6623  6652 E CRASH   :       #00 pc 00000000006ac7ac  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.013  6623  6652 E CRASH   :       #01 pc 00000000006e7868  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.013  6623  6652 E CRASH   :       #02 pc 00000000006e773c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.013  6623  6652 E CRASH   :       #03 pc 00000000006d9d4c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.013  6623  6652 E CRASH   :       #04 pc 00000000006ac080  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #05 pc 00000000006abdb8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #06 pc 00000000006abcc0  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #07 pc 00000000006b74a0  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #08 pc 00000000006d6e38  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #09 pc 00000000006d4c78  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #10 pc 00000000006a0508  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #11 pc 0000000001bcc0a8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #12 pc 0000000001940cac  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #13 pc 0000000000bf0664  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #14 pc 0000000000bf035c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #15 pc 0000000000d598ec  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #16 pc 0000000001032ba0  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.014  6623  6652 E CRASH   :       #17 pc 000000000106cd74  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.015  6623  6652 E CRASH   :       #18 pc 0000000000083ab8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.016  6623  6652 E CRASH   :       #19 pc 000000000008aa34  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.016  6623  6652 E CRASH   :       #20 pc 0000000000098134  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.016  6623  6652 E CRASH   :       #21 pc 00000000000afae4  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.016  6623  6652 E CRASH   :       #22 pc 00000000000b288c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.017  6623  6652 E CRASH   :       #23 pc 00000000000af7b8  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (JS_Call+40) (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.017  6623  6652 E CRASH   :       #24 pc 000000000008ed4c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.018  6623  6652 E CRASH   :       #25 pc 000000000008b070  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libbunny.so (BuildId: fdf9af649ed9d80c213fe628bd4c80ed1ca830f7)
+09-23 22:24:04.018  6623  6652 E CRASH   :       #26 pc 0000000001067e84  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #27 pc 0000000000e0ed6c  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #28 pc 0000000000df82dc  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #29 pc 00000000006cd7b0  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #30 pc 00000000006cd624  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libil2cpp.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #31 pc 00000000002508c4  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #32 pc 000000000025e988  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #33 pc 000000000026c384  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #34 pc 00000000001262d0  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #35 pc 00000000001b4314  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #36 pc 00000000001b4354  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #37 pc 00000000001b45a4  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #38 pc 00000000002da324  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #39 pc 00000000002f22fc  /data/app/~~fTRc6bL3ljhIQy2hGuZBZw==/com.bunnyloader-ns4mGAjaZ0b4lDg2ubz54g==/lib/arm64/libunity.so
+09-23 22:24:04.018  6623  6652 E CRASH   :       #40 pc 00000000001133dc  /system/lib64/arm64/nb/libtcb.so
+09-23 22:24:04.297  6623  6652 E CRASH   : Tombstone written to: /storage/emulated/0/Android/data/com.bunnyloader/files/tombstone_00
+09-23 22:24:04.298  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.306  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.314  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.323  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.330  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.339  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.347  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.356  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.364  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.374  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.381  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.390  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.397  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.407  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.414  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.423  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.430  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.439  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.446  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.455  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.462  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.471  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.478  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.487  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.495  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.504  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.512  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.520  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.527  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.536  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.543  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.551  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.558  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.565  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.574  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.580  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.589  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.595  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.603  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.610  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.619  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.627  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.636  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.644  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.652  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.660  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.688  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.696  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.705  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.713  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.722  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.730  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.738  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.746  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.754  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.761  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.768  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.776  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.783  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.791  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.799  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.810  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.818  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.826  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.833  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.841  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.848  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.857  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.864  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.873  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.880  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.888  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.896  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.903  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.911  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.918  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.926  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.932  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.941  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.949  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.957  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.965  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.973  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.983  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:04.991  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.000  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.013  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.021  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.028  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.036  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.043  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.050  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.058  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.065  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.073  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.080  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.088  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.095  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.104  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.111  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.120  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.128  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.137  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.144  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.151  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.158  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.165  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.173  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.180  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.188  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.195  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.203  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.210  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.217  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.225  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.231  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.240  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.246  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.254  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.261  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.269  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.276  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.282  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.290  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.296  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.304  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.311  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.320  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.327  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.336  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.345  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.353  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.362  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.371  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.381  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.392  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.402  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.412  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.422  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.432  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.442  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.453  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.463  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.474  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.484  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.497  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.509  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.520  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.530  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.540  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.548  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.557  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.564  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.572  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.580  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.588  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.595  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.602  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.610  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.617  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.624  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.631  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.639  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.646  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.679  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.699  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.718  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.734  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.744  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.754  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.762  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.772  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.780  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.789  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.796  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.804  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.812  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.819  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.827  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.835  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.842  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.849  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.857  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.864  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.872  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.880  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.888  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.895  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.902  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.910  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.917  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.924  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.931  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.939  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.946  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.953  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.960  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.968  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.975  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.982  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.991  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:05.997  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.005  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.012  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.020  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.027  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.036  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.043  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.049  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.057  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.064  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.072  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.079  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.087  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.094  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.102  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.110  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.117  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.125  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.131  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.139  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.146  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.154  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.161  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.168  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.175  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.181  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.190  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.197  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.204  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.211  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.219  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.226  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.232  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.240  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.247  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.255  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.264  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.273  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.281  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.291  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.299  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.309  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.318  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.327  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.336  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.344  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.351  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.360  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.368  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.375  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.382  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.390  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.397  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.405  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.412  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.420  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.427  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.435  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.442  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.449  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.458  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.465  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.473  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.479  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.488  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.494  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.502  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.509  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.516  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.524  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.530  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.538  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.545  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.552  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.559  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.566  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.573  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.580  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.588  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.594  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.601  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.608  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.616  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.625  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.633  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.641  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.649  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.658  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.665  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.673  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.681  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.690  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.697  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.705  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.712  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.720  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.728  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.735  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.742  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.749  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.758  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.765  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.773  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.780  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.789  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.796  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.803  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.810  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.817  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.825  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.834  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.841  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.848  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.855  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.862  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.871  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.878  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.887  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.894  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.902  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.909  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.916  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.924  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.931  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.939  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.946  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.954  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.961  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.969  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.976  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.983  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.992  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:06.999  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.009  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.019  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.031  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.041  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.051  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.062  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.076  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.090  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.105  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.120  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.131  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.143  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.157  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.168  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.181  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.193  6623  6652 E CRASH   : Forwarding signal 11
+09-23 22:24:07.208  6623  6652 E CRASH   : Forwarding signal 11

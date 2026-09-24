@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -78,6 +79,22 @@ Refs& refs() {
 }
 
 /**
+ * O uid do mod dono de um modulo. O main.js tem o uid como nome; um arquivo
+ * que ele importa, "<uid>/<caminho dentro do mod>" (ver o carregador de
+ * modulos em ScriptEngine.cpp).
+ */
+std::string modIdOfModule(const char* name) {
+    if (!name) return {};
+    const char* slash = std::strchr(name, '/');
+    return slash ? std::string(name, static_cast<size_t>(slash - name)) : std::string(name);
+}
+
+// Quantos frames da pilha JS olhar atras do mod. Chamadas que passam pelas
+// classes do loader (ModItem.register -> bl.items.register) poem frames
+// delas no meio.
+constexpr int kCallerLevels = 8;
+
+/**
  * Caminho relativo vale a partir da pasta do mod de QUEM CHAMOU.
  *
  * Nao da para usar so "o mod que esta carregando": o jeito recomendado de
@@ -89,11 +106,11 @@ std::string resolvePath(JSContext* ctx, const char* path) {
     std::string p = path ? path : "";
     if (p.empty() || p[0] == '/') return p;
 
-    for (int level = 0; level < 3; ++level) {
+    for (int level = 0; level < kCallerLevels; ++level) {
         JSAtom atom = JS_GetScriptOrModuleName(ctx, level);
         if (atom == JS_ATOM_NULL) continue;
         const char* name = JS_AtomToCString(ctx, atom);
-        std::string base = name ? mods::dirOf(name) : std::string();
+        std::string base = name ? mods::dirOf(modIdOfModule(name)) : std::string();
         if (name) JS_FreeCString(ctx, name);
         JS_FreeAtom(ctx, atom);
         if (!base.empty()) return base + "/" + p;
@@ -150,11 +167,12 @@ std::string resolveModPath(JSContext* ctx, const std::string& path) {
 }
 
 std::string callerModId(JSContext* ctx) {
-    for (int level = 0; level < 3; ++level) {
+    for (int level = 0; level < kCallerLevels; ++level) {
         JSAtom atom = JS_GetScriptOrModuleName(ctx, level);
         if (atom == JS_ATOM_NULL) continue;
         const char* name = JS_AtomToCString(ctx, atom);
-        std::string id = name && !mods::dirOf(name).empty() ? name : std::string();
+        std::string id = name ? modIdOfModule(name) : std::string();
+        if (!id.empty() && mods::dirOf(id).empty()) id.clear();
         if (name) JS_FreeCString(ctx, name);
         JS_FreeAtom(ctx, atom);
         if (!id.empty()) return id;

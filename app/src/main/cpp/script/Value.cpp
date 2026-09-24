@@ -12,6 +12,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <unordered_map>
+#include <vector>
 
 namespace bl::script {
 
@@ -222,6 +223,39 @@ size_t structFieldOffset(Il2CppClass* cls, size_t fieldOffset) {
 
 namespace {
 
+/**
+ * `System.Nullable<T>`: acha o T e onde moram `hasValue` e `value`.
+ *
+ * Pelos campos, e nao por um layout suposto: o valor de um `double?` fica em
+ * 8, o de um `char?` em 2 — o alinhamento e do T.
+ */
+void describeNullable(TypeDesc& d) {
+    auto& a = il2cpp::api();
+    const char* name = a.class_get_name(d.cls);
+    const char* ns = a.class_get_namespace(d.cls);
+    if (!name || !ns || std::strcmp(name, "Nullable`1") != 0 || std::strcmp(ns, "System") != 0) {
+        return;
+    }
+    if (!a.class_get_fields) return;
+    FieldInfo* hasValue = nullptr;
+    FieldInfo* value = nullptr;
+    void* iter = nullptr;
+    while (FieldInfo* f = a.class_get_fields(d.cls, &iter)) {
+        if (a.field_get_flags && (a.field_get_flags(f) & 0x0010)) continue;  // estatico
+        const char* fn = a.field_get_name(f);
+        if (!fn) continue;
+        if (std::strcmp(fn, "hasValue") == 0) hasValue = f;
+        else if (std::strcmp(fn, "value") == 0) value = f;
+    }
+    if (!hasValue || !value) {
+        BL_WARN("tipos: %s sem hasValue/value; tratado como struct comum", d.name.c_str());
+        return;
+    }
+    d.hasValueOffset = structFieldOffset(d.cls, a.field_get_offset(hasValue));
+    d.valueOffset = structFieldOffset(d.cls, a.field_get_offset(value));
+    d.inner = &describe(a.field_get_type(value));
+}
+
 TypeDesc describeUncached(const Il2CppType* t) {
     auto& a = il2cpp::api();
     TypeDesc d;
@@ -287,6 +321,7 @@ TypeDesc describeUncached(const Il2CppType* t) {
         uint32_t align = 0;
         d.size = a.class_value_size ? static_cast<size_t>(a.class_value_size(d.cls, &align))
                                     : sizeof(void*);
+        describeNullable(d);
         return d;
     }
     d.prim = Prim::Object;
@@ -373,7 +408,7 @@ int toNumber(JSContext* ctx, JSValueConst v, const TypeDesc& d, double* out) {
         x = std::strtod(cs, &fim);
         bool inteiro = fim && fim != cs;
         while (inteiro && *fim == ' ') ++fim;
-        if (!inteiro || *fim != ' ') {
+        if (!inteiro || *fim != '\0') {
             JS_ThrowTypeError(ctx, "%s espera um numero, recebeu o texto \"%s\"",
                               d.name.c_str(), cs);
             JS_FreeCString(ctx, cs);
@@ -416,6 +451,33 @@ bool fits(Prim p, double x, double* lo, double* hi) {
     return t >= *lo && t <= *hi;
 }
 
+/**
+ * `null`/`undefined` -> sem valor; um Nullable do mesmo tipo -> copiado; o
+ * resto e o T, com hasValue ligado.
+ *
+ * Monta num temporario: um T recusado (texto para um `float?`) nao pode
+ * deixar hasValue ligado com o valor antigo.
+ */
+int writeNullable(JSContext* ctx, char* b, const TypeDesc& d, JSValueConst v) {
+    if (JS_IsNull(v) || JS_IsUndefined(v)) {
+        std::memset(b, 0, d.size);
+        return true;
+    }
+    Il2CppClass* src = nullptr;
+    size_t srcSize = 0;
+    if (void* data = structDataOf(v, &src, &srcSize)) {
+        if (src == d.cls) {
+            std::memcpy(b, data, d.size < srcSize ? d.size : srcSize);
+            return true;
+        }
+    }
+    std::vector<char> tmp(d.size, 0);
+    if (writeAt(ctx, tmp.data() + d.valueOffset, *d.inner, v) < 0) return -1;
+    tmp[d.hasValueOffset] = 1;
+    std::memcpy(b, tmp.data(), d.size);
+    return true;
+}
+
 } // namespace
 
 JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner) {
@@ -444,13 +506,23 @@ JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner) {
             return arr ? makeGameArray(ctx, arr) : JS_NULL;
         }
         case Prim::Struct:
+            if (d.nullable()) {
+                // Copia, nao vista: `Nullable<T>.Value` do C# tambem e copia,
+                // e escrever no T sem mexer em hasValue deixaria os dois
+                // desencontrados.
+                if (!*reinterpret_cast<uint8_t*>(b + d.hasValueOffset)) return JS_NULL;
+                return readAt(ctx, b + d.valueOffset, *d.inner, JS_UNDEFINED);
+            }
             // Sem dono conhecido a vista ficaria pendurada quando o buffer
             // sumisse; copia e o unico desfecho seguro.
             if (JS_IsUndefined(owner)) return makeStructCopy(ctx, d.cls, b, d.size);
             return makeStructView(ctx, d.cls, b, owner, d.size);
         case Prim::Object: {
             auto* o = *reinterpret_cast<Il2CppObject**>(b);
-            return o ? makeNativeObject(ctx, o) : JS_NULL;
+            if (!o) return JS_NULL;
+            // Declarado object/System.Array, mas e um T[]: indexavel no JS.
+            if (isArrayObject(o)) return makeGameArray(ctx, reinterpret_cast<Il2CppArray*>(o));
+            return makeNativeObject(ctx, o);
         }
     }
     return JS_UNDEFINED;
@@ -481,11 +553,26 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
             JS_FreeCString(ctx, cs);
             return true;
         }
-        case Prim::Array:
-            *reinterpret_cast<Il2CppArray**>(b) = arrayFromJS(v);
+        case Prim::Array: {
+            Il2CppArray* arr = arrayFromJS(v);
+            // Antes qualquer coisa que nao fosse array virava null, calada, e o
+            // metodo do jogo recebia null no lugar do que o mod mandou.
+            if (!arr && !JS_IsNull(v) && !JS_IsUndefined(v)) {
+                JS_ThrowTypeError(ctx, "esperava um %s, recebeu %s", d.name.c_str(), JS_IsString(v) ? "um texto" : kindOf(ctx, v));
+                return -1;
+            }
+            *reinterpret_cast<Il2CppArray**>(b) = arr;
             return true;
+        }
         case Prim::Object: {
             Il2CppObject* o = objectFromJS(v);
+            // Array tambem e objeto (parametro `object` ou `System.Array`).
+            if (!o) o = reinterpret_cast<Il2CppObject*>(arrayFromJS(v));
+            if (!o && !JS_IsNull(v) && !JS_IsUndefined(v)) {
+                JS_ThrowTypeError(ctx, "esperava %s (objeto do jogo), recebeu %s",
+                                  d.name.c_str(), JS_IsString(v) ? "um texto" : kindOf(ctx, v));
+                return -1;
+            }
             // Sem esta conferencia, `player.someItem = algumNPC` gravava o
             // ponteiro e so quebrava depois, no jogo, longe da linha culpada.
             // O IL2CPP sabe responder; era so perguntar.
@@ -501,6 +588,7 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
             return true;
         }
         case Prim::Struct: {
+            if (d.nullable()) return writeNullable(ctx, b, d, v);
             Il2CppClass* src = nullptr;
             size_t srcSize = 0;
             void* data = structDataOf(v, &src, &srcSize);

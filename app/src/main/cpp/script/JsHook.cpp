@@ -102,6 +102,14 @@ struct Frame {
     bool ranOriginal = false;
     Outcome originalResult;
 };
+// NUNCA segure `Frame&` atravessando uma chamada ao jogo: o original pode
+// disparar outro hook nesta thread, o push_back realoca o vector e a
+// referencia passa a apontar para memoria liberada. Use o INDICE.
+//
+// Foi o crash ao criar e ao carregar mundo: dois hooks JS encadeados no
+// Item.SetDefaults (HelloMod + itens de mod) aninham na primeira chamada de
+// cada thread nova, e a gravacao do resultado caia em memoria ja devolvida —
+// que o IL2CPP reusava nas tabelas de genericos (docs/PONTE-OTIMIZACAO.md).
 static thread_local std::vector<Frame> g_frames;
 
 // Profundidade de reentrancia por slot, por thread. Evita que um metodo cujo
@@ -168,13 +176,13 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         return JS_ThrowTypeError(ctx, "original() so vale dentro do proprio hook, "
                                       "durante a chamada");
     }
-    Frame& f = g_frames.back();
-    HookCtx* c = f.c;
+    const size_t frame = g_frames.size() - 1;
+    HookCtx* c = g_frames[frame].c;
 
     intptr_t a[8];
     uint64_t d[8];
-    std::memcpy(a, f.a, sizeof(a));
-    std::memcpy(d, f.d, sizeof(d));
+    std::memcpy(a, g_frames[frame].a, sizeof(a));
+    std::memcpy(d, g_frames[frame].d, sizeof(d));
 
     int at = 0;
     if (c->isInstance && at < argc) {
@@ -185,13 +193,15 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
         }
         ++at;
     }
+    ArgScratch scratch;   // vive ate o original voltar
     for (size_t i = 0; i < c->abi.params.size() && at < argc; ++i, ++at) {
-        if (jsToParam(ctx, argv[at], c->abi.params[i], a, d) < 0) return JS_EXCEPTION;
+        if (jsToParam(ctx, argv[at], c->abi.params[i], a, d, &scratch) < 0) return JS_EXCEPTION;
     }
 
-    f.ranOriginal = true;
-    f.originalResult = callOriginal(c, a, d);
-    return outcomeToJs(c->ctx, c->abi, f.originalResult);
+    g_frames[frame].ranOriginal = true;
+    const Outcome result = callOriginal(c, a, d);   // pode empilhar outros frames
+    g_frames[frame].originalResult = result;
+    return outcomeToJs(c->ctx, c->abi, result);
 }
 
 // ---------------------------- dispatcher ----------------------------
@@ -266,7 +276,8 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
         // So no caminho de EXCECAO: um callback que roda inteiro e escolhe nao
         // chamar original() esta suprimindo o metodo de proposito.
         if (!g_frames.back().ranOriginal) {
-            g_frames.back().originalResult = callOriginal(c, rawA, rawD);
+            const Outcome o = callOriginal(c, rawA, rawD);
+            g_frames.back().originalResult = o;
         }
     }
     // O que o metodo devolve: o valor do callback tem prioridade; senao o do

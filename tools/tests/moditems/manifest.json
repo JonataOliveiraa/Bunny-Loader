@@ -1,0 +1,15 @@
+{
+  "uid": "7a1c4e2b-9d3f-4b8a-a6e5-1c2d3e4f5a6b",
+  "id": "test-moditems",
+  "name": "Teste: tabelas de item de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Confere as tabelas do jogo indexadas por tipo de item.",
+  "description": "Teste do runtime. Poe os itens de mod no inventario e loga 'moditems ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

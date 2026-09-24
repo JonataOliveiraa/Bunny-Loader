@@ -24,3 +24,15 @@ tools/dumpgrep.sh Projectile Terraria           # inspecionar uma classe
 
 Não haverá empacotador de `.bmod`: o pacote é montado à mão pelo autor, com a
 wiki como referência, e o `uid` é emitido pelo site.
+
+## Medição e investigação
+
+Ver [`docs/AVALIACAO-PONTE-E-CRASH.md`](../docs/AVALIACAO-PONTE-E-CRASH.md).
+
+| Pasta | O que é |
+|---|---|
+| [`bench/`](bench) | Mod de benchmark da ponte JS → IL2CPP. `run.sh` instala mods, entra no mundo e salva o log; `compare.py` compara rodadas. Ver [`docs/PONTE-OTIMIZACAO.md`](../docs/PONTE-OTIMIZACAO.md). |
+| [`tests/`](tests) | Mods de teste: da ponte (`nullable`, `wrappers`), das tabelas de item de mod (`moditems`), do save de item de mod com o mod ligado e desligado (`modsave`, rodar mais de uma vez), dos projeteis de mod (`projectiles`) e dos NPCs de mod (`npcs`) — os dois ultimos precisam do Example Mod ligado. Rodam por `bench/run.sh`. Mais o fuzz do `WrapperMap` (`wrappermap/run.sh`). |
+| [`ui-sprites.py`](ui-sprites.py) | Recorta as texturas de interface do jogo que o menu usa (horas da Jornada, setas) e o "?" do item de mod ausente (`runtime/UnloadedIcon.h`). Recebe a pasta `Images` do jogo. |
+| [`crash-trials/`](crash-trials) | Cria mundos em série no MuMu, reiniciando o app a cada tentativa, e conta crashes. |
+| [`disasm/`](disasm) | Desassembly anotado do `libil2cpp.so` (`prep.sh` gera os caches a partir de `refs/`). |

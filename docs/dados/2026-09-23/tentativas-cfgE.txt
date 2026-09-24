@@ -1,0 +1,8 @@
+tentativa 1: OK em 33 s
+tentativa 2: OK em 41 s
+tentativa 3: TIMEOUT em 268 s
+tentativa 4: OK em 33 s
+tentativa 5: OK em 37 s
+tentativa 6: OK em 33 s
+tentativa 7: OK em 27 s
+tentativa 8: OK em 32 s

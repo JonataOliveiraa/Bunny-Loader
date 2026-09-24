@@ -1,0 +1,4 @@
+# gerados por prep.sh a partir de refs/ (que nao e versionado)
+*.pkl
+dynsym.txt
+fstarts.txt

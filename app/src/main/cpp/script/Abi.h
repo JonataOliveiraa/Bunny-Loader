@@ -92,9 +92,10 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out);
  * para a excecao aqui, que e o mesmo que o runtime_invoke faz.
  *
  * `suspend` solta o motor JS durante a chamada (ver JsSuspend). Vale a pena
- * num HOOK, onde o corpo do metodo pode ser Player.Update inteiro. NAO vale
+ * num HOOK, onde o corpo do metodo pode ser DoDraw inteiro e outra thread
+ * (a geracao de mundo, no SetDefaults) ficaria esperando a trava. NAO vale
  * numa chamada que o proprio mod fez: soltar e reaver a trava custa mais que
- * um getter, e o mod ja esta segurando o motor para rodar o codigo dele.
+ * um getter. Medido: ~100 ns por chamada (docs/PONTE-OTIMIZACAO.md).
  */
 Outcome callRaw(void* fn, const AbiPlan& p, const intptr_t a[8], const uint64_t d[8],
                 bool* threw = nullptr, bool suspend = false);
@@ -103,9 +104,25 @@ Outcome callRaw(void* fn, const AbiPlan& p, const intptr_t a[8], const uint64_t 
 JSValue paramToJs(JSContext* ctx, const intptr_t a[8], const uint64_t d[8],
                   const ParamPlan& p);
 
+/**
+ * Espaco para struct que viaja por ENDERECO e que nos mesmos montamos — um
+ * `Rectangle?` vindo de `null` ou de um Rectangle nao existe em lugar nenhum
+ * antes da chamada. Mora na pilha de quem chama e vive ate o metodo voltar.
+ */
+struct ArgScratch {
+    alignas(16) uint8_t buf[512];
+    size_t used = 0;
+    void* take(size_t n) {
+        const size_t at = (used + 15) & ~size_t{15};
+        if (at + n > sizeof(buf)) return nullptr;
+        used = at + n;
+        return buf + at;
+    }
+};
+
 /** Valor JS -> registrador(es). @return -1 com excecao posta. */
 int jsToParam(JSContext* ctx, JSValueConst v, const ParamPlan& p,
-              intptr_t a[8], uint64_t d[8]);
+              intptr_t a[8], uint64_t d[8], ArgScratch* scratch = nullptr);
 
 /** Retorno bruto -> valor JS. */
 JSValue outcomeToJs(JSContext* ctx, const AbiPlan& p, const Outcome& o);

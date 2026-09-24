@@ -1,0 +1,7 @@
+tentativa 1: CRASH em 10 s
+tentativa 2: OK em 26 s
+tentativa 3: OK em 26 s
+tentativa 4: OK em 26 s
+tentativa 5: OK em 22 s
+tentativa 6: OK em 26 s
+FIM: 1 crash(es) em 6

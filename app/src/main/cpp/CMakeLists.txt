@@ -59,5 +59,8 @@ target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 # desenrolar aqui, ela passaria por um frame -fno-exceptions e chamaria
 # std::terminate. -fexceptions so neste arquivo custa as tabelas dele e nada
 # mais; -fno-rtti continua valendo (catch(...) nao precisa de RTTI).
-set_source_files_properties(script/Abi.cpp PROPERTIES COMPILE_OPTIONS -fexceptions)
+# MapReveal.cpp pelo mesmo motivo: chama o WorldMap.UpdateLighting direto,
+# milhoes de vezes, e ele lanca se o mapa nao tiver onde guardar o pedaco.
+set_source_files_properties(script/Abi.cpp runtime/MapReveal.cpp
+    PROPERTIES COMPILE_OPTIONS -fexceptions)
 target_link_libraries(bunny shadowhook::shadowhook log dl)

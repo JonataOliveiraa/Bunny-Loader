@@ -1,0 +1,15 @@
+{
+  "uid": "5e2d7c1a-3b4f-4a6e-9d8c-7b6a5f4e3d2c",
+  "id": "test-modsave",
+  "name": "Teste: save de item de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Item de mod tem de voltar depois de salvar e reabrir o jogo.",
+  "description": "Teste do runtime (ModItemSave.cpp). Rode duas vezes; loga 'modsave ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

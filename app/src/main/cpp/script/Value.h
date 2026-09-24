@@ -33,6 +33,16 @@ struct TypeDesc {
     bool isEnum = false;          // `prim` ja e o tipo SUBJACENTE
     bool byRef = false;           // `ref`/`out` — recusado, nao adivinhado
     std::string name;             // nome do CLR, para mensagens de erro
+
+    /**
+     * `System.Nullable<T>` (o `float?` do C#): um struct {hasValue, value}.
+     * No JS ele e `null` ou o proprio T — nunca um struct com esses dois
+     * campos, que ninguem escreveria de proposito. `inner` e o T.
+     */
+    const TypeDesc* inner = nullptr;
+    size_t hasValueOffset = 0;    // nos DADOS do struct, sem cabecalho
+    size_t valueOffset = 0;
+    bool nullable() const { return inner != nullptr; }
 };
 
 /**

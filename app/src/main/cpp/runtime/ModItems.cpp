@@ -4,7 +4,10 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "hook/HookManager.h"
+#include "runtime/ContentAssets.h"
 #include "runtime/GameRefs.h"
+#include "runtime/TypeTables.h"
+#include "runtime/UnloadedIcon.h"
 
 #include <atomic>
 #include <cstdio>
@@ -20,6 +23,7 @@ struct Entry {
     ModItemDef def;
     int width = 0, height = 0;
     uint32_t asset = 0;   // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
+    std::string unloadedKey;   // so da reserva "?": a chave do item ausente que ele representa
 };
 
 std::mutex g_mx;
@@ -27,6 +31,7 @@ std::vector<Entry> g_regs;          // indice = type - kVanillaItemCount
 std::atomic<int> g_total{0};           // registrados
 std::atomic<int> g_installed{0};      // ja nas tabelas do jogo
 bool g_failed = false;
+int g_poolFirst = -1;   // primeiro tipo da reserva "?", -1 sem reserva
 
 // ------------------------------ refs ------------------------------
 
@@ -57,7 +62,7 @@ struct Refs {
     const MethodInfo* gameCtor = nullptr;
     const MethodInfo* arrayCopy = nullptr;
     const MethodInfo* arraySet = nullptr;
-    int32_t offType = -1, offNetId = -1, offWidth = -1, offHeight = -1;
+    int32_t offType = -1, offNetId = -1, offWidth = -1, offHeight = -1, offMaxStack = -1;
 };
 
 Refs& refs() {
@@ -113,6 +118,7 @@ Refs& refs() {
         r.offNetId = netId ? static_cast<int32_t>(a.field_get_offset(netId)) : -1;
         r.offWidth = fieldOffset(r.itemCls, "width");
         r.offHeight = fieldOffset(r.itemCls, "height");
+        r.offMaxStack = fieldOffset(r.itemCls, "maxStack");
     }
 
     r.ok = r.itemTextures && r.nameCache && r.itemsByType && r.itemCls && r.localizedTextCls && r.byteCls &&
@@ -164,212 +170,48 @@ Il2CppArray* readStatic(FieldInfo* f) {
 
 // ------------------------------ tabelas ------------------------------
 //
-// Toda tabela do jogo indexada por tipo de item nasce com ItemID.Count
-// posicoes, e o jogo le `tabela[tipo]` sem conferir: um id novo estoura o
-// array na primeira consulta. O ExMod do TL Pro aumenta umas trinta a mao;
-// aqui elas sao ACHADAS: em cada classe que guarda tabelas de item, todo array
-// estatico com exatamente ItemID.Count posicoes e uma delas.
+// Tudo que e indexado por tipo de item nasce com ItemID.Count posicoes; a
+// maquinaria que acha e aumenta esta em TypeTables. Aqui, so ONDE procurar.
 //
-// So nestas classes, e nao no jogo inteiro: ler um campo estatico roda o
-// construtor estatico da classe, e rodar o de uma classe que o jogo ainda nao
-// tocou e arriscar efeito colateral. Estas o jogo ja inicializou no menu.
+// Esquecer uma classe NAO da erro, le ou escreve alem do fim: foi assim que o
+// tooltip de item de mod sumiu (ArmorSetBonuses.SetsContaining ficou de fora,
+// a leitura pegou lixo nulo e o jogo lancou NullReference a cada quadro). A
+// lista foi conferida contra TODA alocacao de 6147 posicoes na libil2cpp
+// (`mov #0x1803` antes de um new[]); o que nao e campo estatico esta em
+// "tabelas de instancia", mais abaixo.
 
-struct TableClass { const char* ns; const char* name; const char* nested; };
-constexpr TableClass kTableClasses[] = {
+TypeTables g_tables("itens de mod", kVanillaItemCount, {
     {"Terraria.ID", "ItemID", "Sets"},
     {"Terraria.ID", "ItemID", ""},
+    {"Terraria.ID", "AmmoID", "Sets"},
     {"Terraria", "Item", ""},
     {"Terraria", "Lang", ""},
     {"Terraria", "Main", ""},
     {"Terraria", "Player", ""},
     {"Terraria", "Recipe", ""},
     {"Terraria.GameContent", "TextureAssets", ""},
+    {"Terraria.GameContent", "EmergencyStacking", ""},
+    {"Terraria.GameContent.Items", "ItemVariants", ""},
     {"Terraria.GameContent.Prefixes", "PrefixLegacy", "ItemSets"},
+    {"Terraria.DataStructures", "ArmorSetBonuses", ""},
     {"Terraria.UI", "ItemSorting", ""},
     {"Terraria.UI", "ItemSlot", ""},
-};
-
-std::vector<FieldInfo*> g_tables;
-
-/** Novo array com `newLength` posicoes: copia o velho e enche o resto com o [0]. */
-Il2CppArray* grow(Il2CppArray* old, uintptr_t newLength) {
-    auto& a = il2cpp::api();
-    Refs& r = refs();
-    Il2CppClass* arrCls = a.object_get_class(reinterpret_cast<Il2CppObject*>(old));
-    Il2CppClass* elem = a.class_get_element_class(arrCls);
-    Il2CppArray* n = a.array_new(elem, newLength);
-    if (!n) return nullptr;
-    const uintptr_t len = old->length;
-
-    if (a.class_is_valuetype(elem)) {
-        // Tipo de valor: bytes. O [0] (o "nada") e o valor de quem ainda nao
-        // disse nada — o mesmo que o item de mod teria se o jogo o conhecesse.
-        uint32_t align = 0;
-        const size_t elemSize = static_cast<size_t>(a.class_value_size(elem, &align));
-        char* d = static_cast<char*>(arrayData(n));
-        const char* s = static_cast<const char*>(arrayData(old));
-        std::memcpy(d, s, elemSize * len);
-        for (uintptr_t i = len; i < newLength; ++i) std::memcpy(d + i * elemSize, s, elemSize);
-        return n;
-    }
-    // Referencia: pelo proprio runtime (Array.Copy / SetValue), que passa pela
-    // barreira de escrita do coletor. Copiar ponteiro com memcpy num heap com
-    // GC incremental pode deixar o objeto sem ninguem que o marque.
-    int copyLength = static_cast<int>(len);
-    void* args[3] = {old, n, &copyLength};
-    if (!invoke(r.arrayCopy, nullptr, args, "Array.Copy")) return nullptr;
-    Il2CppObject* zero = len > 0 ? reinterpret_cast<Il2CppObject**>(arrayData(old))[0] : nullptr;
-    for (uintptr_t i = len; i < newLength; ++i) {
-        int idx = static_cast<int>(i);
-        void* sv[2] = {zero, &idx};
-        if (!invoke(r.arraySet, n, sv, "Array.SetValue")) return nullptr;
-    }
-    return n;
-}
-
-/** As tabelas: todo array estatico com `tamanho` posicoes nas classes acima. */
-void findTables(uintptr_t size) {
-    auto& a = il2cpp::api();
-    if (!a.class_get_fields || !a.field_get_flags) {
-        BL_ERROR("itens de mod: il2cpp sem enumeracao de campos; nao da para achar as tabelas");
-        return;
-    }
-    for (const TableClass& c : kTableClasses) {
-        // Quieto: classe que nao existe nesta versao so fica de fora.
-        Il2CppClass* cls = il2cpp::findClassQuiet(c.ns, c.name);
-        if (cls && c.nested[0]) cls = il2cpp::findNested(cls, c.nested);
-        if (!cls) continue;
-        int found = 0;
-        void* it = nullptr;
-        while (FieldInfo* f = a.class_get_fields(cls, &it)) {
-            const uint32_t flags = a.field_get_flags(f);
-            if (!(flags & 0x10) || (flags & 0x40)) continue;          // so estatico, sem const
-            if (static_cast<int64_t>(a.field_get_offset(f)) == -1) continue;  // thread-static
-            char* typeName = a.type_get_name(a.field_get_type(f));
-            const bool isArray = typeName && std::strlen(typeName) > 2 &&
-                                 std::strcmp(typeName + std::strlen(typeName) - 2, "[]") == 0;
-            if (typeName) a.il2cpp_free(typeName);
-            if (!isArray) continue;
-            Il2CppArray* arr = readStatic(f);
-            if (!arr || arr->length != size) continue;
-            g_tables.push_back(f);
-            ++found;
-        }
-        BL_INFO("itens de mod: %s.%s%s%s: %d tabela(s) de item", c.ns, c.name,
-                c.nested[0] ? "." : "", c.nested, found);
-    }
-}
+    {"", "VirtualControllerInputState", ""},   // controles de toque
+});
 
 // ------------------------------ conteudo ------------------------------
 
-/** O PNG do mod virou Texture2D do jogo (ver Texture.cpp: e o mesmo caminho). */
-Il2CppObject* loadPngTexture(const std::string& path, int* w, int* h) {
-    auto& a = il2cpp::api();
-    Refs& r = refs();
-    FILE* f = std::fopen(path.c_str(), "rb");
-    if (!f) { BL_ERROR("itens de mod: textura nao abre: %s", path.c_str()); return nullptr; }
-    std::fseek(f, 0, SEEK_END);
-    long n = std::ftell(f);
-    std::fseek(f, 0, SEEK_SET);
-    Il2CppArray* bytes = n > 0 ? a.array_new(r.byteCls, static_cast<uintptr_t>(n)) : nullptr;
-    size_t bytesRead = bytes ? std::fread(arrayData(bytes), 1, static_cast<size_t>(n), f) : 0;
-    std::fclose(f);
-    if (!bytes || bytesRead != static_cast<size_t>(n)) {
-        BL_ERROR("itens de mod: textura ilegivel: %s", path.c_str());
-        return nullptr;
-    }
-
-    Il2CppObject* ut = a.object_new(r.unityTex);
-    int two = 2;
-    void* c1[2] = {&two, &two};
-    if (!invoke(r.unityCtor, ut, c1, "Texture2D(2,2)")) return nullptr;
-    uint8_t nonReadable = 0;
-    void* c2[3] = {ut, bytes, &nonReadable};
-    Il2CppObject* ok = invokeValue(r.loadImage, nullptr, c2, "ImageConversion.LoadImage");
-    if (!ok || !*(reinterpret_cast<uint8_t*>(ok) + sizeof(Il2CppObject))) {
-        BL_ERROR("itens de mod: a Unity nao decodificou %s", path.c_str());
-        return nullptr;
-    }
-    // Pixel art: vizinho-mais-proximo. A Unity nasce bilinear e o item sairia
-    // borrado ao lado dos do jogo.
-    if (r.setFilterMode) {
-        int point = 0;   // FilterMode.Point
-        void* c3[1] = {&point};
-        invoke(r.setFilterMode, ut, c3, "Texture.filterMode");
-    }
-    if (r.getWidth) *w = unboxInt(invokeValue(r.getWidth, ut, nullptr, "Texture.width"));
-    if (r.getHeight) *h = unboxInt(invokeValue(r.getHeight, ut, nullptr, "Texture.height"));
-
-    Il2CppObject* gt = a.object_new(r.gameTex);
-    void* c4[1] = {ut};
-    if (!invoke(r.gameCtor, gt, c4, "Texture2D do jogo")) return nullptr;
-    return gt;
-}
-
-/**
- * Asset<Texture2D> ja CARREGADO. O jogo so desenha item pelo asset, e antes
- * de desenhar pergunta o estado: NotLoaded o faria pedir "Images/Item_6147" ao
- * disco, que nao existe.
- */
-Il2CppObject* createAsset(Il2CppObject* tex, const std::string& name) {
-    auto& a = il2cpp::api();
-    Il2CppArray* table = readStatic(refs().itemTextures);
-    Il2CppClass* assetCls = a.class_get_element_class(
-        a.object_get_class(reinterpret_cast<Il2CppObject*>(table)));
-    const MethodInfo* ctor = a.class_get_method_from_name(assetCls, ".ctor", 1);
-    const MethodInfo* submit = a.class_get_method_from_name(assetCls, "SubmitLoadedContent", 2);
-    if (!ctor || !submit) {
-        BL_ERROR("itens de mod: Asset<Texture2D> sem .ctor/SubmitLoadedContent");
-        return nullptr;
-    }
-    Il2CppObject* asset = a.object_new(assetCls);
-    void* c1[1] = {a.string_new(name.c_str())};
-    if (!invoke(ctor, asset, c1, "Asset.ctor")) return nullptr;
-    void* c2[2] = {tex, nullptr};
-    if (!invoke(submit, asset, c2, "Asset.SubmitLoadedContent")) return nullptr;
-    return asset;
-}
-
-/** O nome na cultura do jogo agora: exata, depois pela lingua, depois qualquer. */
-std::string nameForCulture(const ModItemDef& d) {
-    Refs& r = refs();
-    std::string culture;
-    if (r.activeCulture && r.cultureName) {
-        Il2CppObject* c = invokeValue(r.activeCulture, nullptr, nullptr, "Language.ActiveCulture");
-        auto* s = c ? reinterpret_cast<Il2CppString*>(invokeValue(r.cultureName, c, nullptr, "GameCulture.Name"))
-                    : nullptr;
-        if (s) for (int i = 0; i < s->length; ++i) culture += static_cast<char>(s->chars[i]);
-    }
-    const std::string languagePrefix = culture.substr(0, culture.find('-'));
-    const std::string* match = nullptr;
-    for (const auto& n : d.names) if (n.first == culture) match = &n.second;
-    if (!match) for (const auto& n : d.names) if (n.first.substr(0, n.first.find('-')) == languagePrefix) match = &n.second;
-    if (!match) for (const auto& n : d.names) if (n.first.empty() || n.first == "en-US") match = &n.second;
-    if (!match && !d.names.empty()) match = &d.names.front().second;
-    return match ? *match : d.name;
-}
-
-bool writeToTable(FieldInfo* fieldInfo, int index, Il2CppObject* value, const char* what) {
-    Il2CppArray* arr = readStatic(fieldInfo);
-    if (!arr || static_cast<uintptr_t>(index) >= arr->length) return false;
-    void* sv[2] = {value, &index};
-    return invoke(refs().arraySet, arr, sv, what);
-}
 
 void applyName(int type, const Entry& reg) {
-    Refs& r = refs();
-    Il2CppObject* text = il2cpp::api().object_new(r.localizedTextCls);
-    const std::string key = "ItemName." + reg.def.name;
-    const std::string name = nameForCulture(reg.def);
-    void* c[2] = {il2cpp::api().string_new(key.c_str()), il2cpp::api().string_new(name.c_str())};
-    if (invoke(r.localizedTextCtor, text, c, "LocalizedText.ctor")) {
-        writeToTable(r.nameCache, type, text, "nome do item");
+    const std::string name = content::textForCulture(reg.def.names, reg.def.name);
+    if (Il2CppObject* text = content::makeLocalizedText("ItemName." + reg.def.name, name)) {
+        content::setTableElement(refs().nameCache, type, text);
     }
 }
 
 void applyTexture(int type, const Entry& reg) {
     Il2CppObject* asset = reg.asset ? il2cpp::api().gchandle_get_target(reg.asset) : nullptr;
-    if (asset) writeToTable(refs().itemTextures, type, asset, "textura do item");
+    if (asset) content::setTableElement(refs().itemTextures, type, asset);
 }
 
 /** Chama um metodo de um Dictionary pelo objeto (a classe genérica e a dele). */
@@ -450,27 +292,84 @@ bool gameReady(int size) {
            names->length >= static_cast<uintptr_t>(size);
 }
 
-/**
- * Tabela refeita pelo jogo com o tamanho de fabrica (a troca de idioma refaz
- * os caches de nome): aumenta de novo e reaplica o que era nosso nela.
- */
-void watchTables(int size) {
+/** Tabela que o jogo refez (a troca de idioma refaz os caches de nome): reaplica o nosso. */
+void onTableRegrown(FieldInfo* f, int size) {
     Refs& r = refs();
-    for (FieldInfo* f : g_tables) {
-        Il2CppArray* arr = readStatic(f);
-        if (!arr || arr->length >= static_cast<uintptr_t>(size)) continue;
-        if (arr->length != static_cast<uintptr_t>(kVanillaItemCount)) continue;   // nao e nossa
-        Il2CppArray* grownArr = grow(arr, static_cast<uintptr_t>(size));
-        if (!grownArr) continue;
-        il2cpp::api().field_static_set_value(f, grownArr);
-        BL_INFO("itens de mod: tabela %s refeita pelo jogo; aumentada de novo",
-                il2cpp::api().field_get_name ? il2cpp::api().field_get_name(f) : "?");
-        std::lock_guard<std::mutex> l(g_mx);
-        for (size_t i = 0; i < g_regs.size() && static_cast<int>(i) < size - kVanillaItemCount; ++i) {
-            const int type = kVanillaItemCount + static_cast<int>(i);
-            if (f == r.nameCache) applyName(type, g_regs[i]);
-            if (f == r.itemTextures) applyTexture(type, g_regs[i]);
-        }
+    if (f != r.nameCache && f != r.itemTextures) return;
+    std::lock_guard<std::mutex> l(g_mx);
+    for (size_t i = 0; i < g_regs.size() && static_cast<int>(i) < size - kVanillaItemCount; ++i) {
+        const int type = kVanillaItemCount + static_cast<int>(i);
+        if (f == r.nameCache) applyName(type, g_regs[i]);
+        if (f == r.itemTextures) applyTexture(type, g_regs[i]);
+    }
+}
+
+// ---- tabelas de instancia ----
+//
+// Duas tabelas por tipo moram num OBJETO, nao num campo estatico, e a busca
+// acima nao as ve:
+//  - QuickStacking.MatchingItemTypeDestinationList.firstEntryForType (int[]):
+//    o empilhamento rapido ESCREVE nela pelo tipo. Um objeto so, criado no
+//    construtor estatico de QuickStacking, que ainda nao rodou na tela de
+//    titulo.
+//  - ItemFilters.MiscFallback._fitsFilterByItemType (Nullable<bool>[]): cache
+//    do filtro "Diversos" do inventario, tambem escrito pelo tipo. Criado sob
+//    demanda, ja dentro do mundo.
+// As duas: hook no construtor, que aumenta logo depois do original, e o objeto
+// que por acaso ja exista e aumentado na instalacao.
+// As duas sao de tipo de valor e o zero e o "ainda nao sei" de ambas, entao o
+// que cresce nasce zerado, e nao copia do [0] como nas estaticas.
+
+
+using DestinationListCtorFn = void (*)(Il2CppObject*, const MethodInfo*);
+using MiscFallbackCtorFn = void (*)(Il2CppObject*, Il2CppObject*, const MethodInfo*);
+DestinationListCtorFn g_origDestinationListCtor = nullptr;
+MiscFallbackCtorFn g_origMiscFallbackCtor = nullptr;
+int32_t g_offFirstEntryForType = -1;
+int32_t g_offMiscFallbackTable = -1;
+
+void hkDestinationListCtor(Il2CppObject* self, const MethodInfo* m) {
+    g_origDestinationListCtor(self, m);
+    TypeTables::growInstanceTable(self, g_offFirstEntryForType, kVanillaItemCount, itemTypeCount(),
+                                  "itens de mod: QuickStacking.firstEntryForType");
+}
+
+void hkMiscFallbackCtor(Il2CppObject* self, Il2CppObject* otherFilters, const MethodInfo* m) {
+    g_origMiscFallbackCtor(self, otherFilters, m);
+    TypeTables::growInstanceTable(self, g_offMiscFallbackTable, kVanillaItemCount, itemTypeCount(),
+                                  "itens de mod: MiscFallback._fitsFilterByItemType");
+}
+
+void growInstanceTables(int size) {
+    static bool done = false;
+    if (done) return;
+    done = true;
+    auto& a = il2cpp::api();
+
+    Il2CppClass* qs = il2cpp::findClassQuiet("Terraria.GameContent", "QuickStacking");
+    Il2CppClass* list = qs ? il2cpp::findNested(qs, "MatchingItemTypeDestinationList") : nullptr;
+    const MethodInfo* listCtor = list ? a.class_get_method_from_name(list, ".ctor", 0) : nullptr;
+    g_offFirstEntryForType = list ? il2cpp::fieldOffset(list, "firstEntryForType") : -1;
+    if (!listCtor || g_offFirstEntryForType < 0 ||
+        !hook::install(listCtor, hkDestinationListCtor, &g_origDestinationListCtor)) {
+        BL_ERROR("itens de mod: sem hook em QuickStacking.MatchingItemTypeDestinationList; "
+                 "empilhar item de mod escreve fora da tabela");
+    }
+    if (FieldInfo* scratch = qs ? il2cpp::findField(qs, "matchingItemTypeScratch") : nullptr) {
+        Il2CppObject* obj = nullptr;
+        a.field_static_get_value(scratch, &obj);
+        TypeTables::growInstanceTable(obj, g_offFirstEntryForType, kVanillaItemCount, size,
+                                      "itens de mod: QuickStacking.firstEntryForType");
+    }
+
+    Il2CppClass* filters = il2cpp::findClassQuiet("Terraria.GameContent.Creative", "ItemFilters");
+    Il2CppClass* misc = filters ? il2cpp::findNested(filters, "MiscFallback") : nullptr;
+    const MethodInfo* miscCtor = misc ? a.class_get_method_from_name(misc, ".ctor", 1) : nullptr;
+    g_offMiscFallbackTable = misc ? il2cpp::fieldOffset(misc, "_fitsFilterByItemType") : -1;
+    if (!miscCtor || g_offMiscFallbackTable < 0 ||
+        !hook::install(miscCtor, hkMiscFallbackCtor, &g_origMiscFallbackCtor)) {
+        BL_ERROR("itens de mod: sem hook em ItemFilters.MiscFallback; o filtro Diversos "
+                 "escreve fora da tabela com item de mod");
     }
 }
 
@@ -493,9 +392,98 @@ bool isModItem(int type) {
            type < kVanillaItemCount + g_total.load(std::memory_order_acquire);
 }
 
+std::string modItemKey(int type) {
+    if (!isModItem(type)) return {};
+    std::lock_guard<std::mutex> l(g_mx);
+    const Entry& e = g_regs[static_cast<size_t>(type - kVanillaItemCount)];
+    // O "?" responde pelo item que representa; um "?" livre nao e nada.
+    if (isUnloadedType(type)) return e.unloadedKey;
+    return e.def.mod + "/" + e.def.name;
+}
+
+int modItemTypeByKey(const std::string& key) {
+    const size_t slash = key.find('/');
+    if (slash == std::string::npos) return -1;
+    std::lock_guard<std::mutex> l(g_mx);
+    for (size_t i = 0; i < g_regs.size(); ++i) {
+        const ModItemDef& d = g_regs[i].def;
+        if (isUnloadedType(kVanillaItemCount + static_cast<int>(i))) continue;
+        if (key.compare(0, slash, d.mod) == 0 && slash == d.mod.size() &&
+            key.compare(slash + 1, std::string::npos, d.name) == 0) {
+            return kVanillaItemCount + static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+// ------------------------------ o "?" ------------------------------
+
+constexpr const char* kLoaderMod = "bunnyloader";
+
+void registerUnloadedPool() {
+    if (g_poolFirst >= 0) return;
+    for (int i = 0; i < kUnloadedPoolSize; ++i) {
+        ModItemDef d;
+        d.mod = kLoaderMod;
+        d.name = "Unloaded" + std::to_string(i);
+        d.textureData = bl_unloaded_icon_png;
+        d.textureSize = bl_unloaded_icon_png_len;
+        d.names = {{"pt-BR", "Item não carregado"}, {"en-US", "Unloaded item"}};
+        const int type = registerModItem(std::move(d));
+        if (i == 0) g_poolFirst = type;
+    }
+    BL_INFO("itens de mod: reserva de %d item(ns) \"?\" a partir do id %d", kUnloadedPoolSize, g_poolFirst);
+}
+
+bool isUnloadedType(int type) {
+    return g_poolFirst >= 0 && type >= g_poolFirst && type < g_poolFirst + kUnloadedPoolSize;
+}
+
+int unloadedTypeFor(const std::string& key) {
+    if (g_poolFirst < 0 || key.empty() || g_poolFirst + kUnloadedPoolSize > itemTypeCount()) return -1;
+    Entry named;
+    int type = -1;
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        for (int i = 0; i < kUnloadedPoolSize; ++i) {
+            Entry& e = g_regs[static_cast<size_t>(g_poolFirst - kVanillaItemCount + i)];
+            if (e.unloadedKey == key) return g_poolFirst + i;
+            if (type < 0 && e.unloadedKey.empty()) type = g_poolFirst + i;
+        }
+        if (type < 0) {
+            BL_ERROR("itens de mod: reserva \"?\" esgotada (%d itens ausentes distintos); %s "
+                     "fica so no arquivo", kUnloadedPoolSize, key.c_str());
+            return -1;
+        }
+        Entry& e = g_regs[static_cast<size_t>(type - kVanillaItemCount)];
+        e.unloadedKey = key;
+        // O nome diz o que era, ja que o mod nao esta aqui para dizer.
+        const std::string name = key.substr(key.find('/') + 1);
+        e.def.names = {{"pt-BR", "Item não carregado (" + name + ")"},
+                       {"en-US", "Unloaded item (" + name + ")"}};
+        named = e;
+    }
+    applyName(type, named);
+    return type;
+}
+
+void setupUnloadedItem(Il2CppObject* item, int type) {
+    Refs& r = refs();
+    if (!r.ok || !item) return;
+    prepareModItem(item, type);
+    // Nao se usa nem se coloca (o ResetStats ja deixou assim); so a pilha, que
+    // tem de caber a do item original.
+    if (r.offMaxStack >= 0) field<int32_t>(item, r.offMaxStack) = 9999;
+    finishModItem(item, type);
+}
+
 int itemTypeCount() {
     return kVanillaItemCount + g_installed.load(std::memory_order_acquire);
 }
+
+namespace {
+std::atomic<ItemsInstalledHook> g_installedHook{nullptr};
+} // namespace
 
 void tickModItems() {
     const int total = g_total.load(std::memory_order_acquire);
@@ -506,11 +494,12 @@ void tickModItems() {
     if (installed == total) {
         // Um quadro a cada ~2 s basta para tabela refeita — menos o cache de
         // nomes, que a troca de idioma refaz na hora e o inventario le logo.
+        g_tables.checkPending(from);
         static int frame = 0;
-        if (++frame % 120 == 0) watchTables(from);
+        if (++frame % 120 == 0) g_tables.watch(from, onTableRegrown);
         else {
             Il2CppArray* names = readStatic(refs().nameCache);
-            if (names && names->length < static_cast<uintptr_t>(from)) watchTables(from);
+            if (names && names->length < static_cast<uintptr_t>(from)) g_tables.watch(from, onTableRegrown);
         }
         return;
     }
@@ -518,25 +507,15 @@ void tickModItems() {
 
     auto& a = il2cpp::api();
     const int to = kVanillaItemCount + total;
-    if (g_tables.empty()) {
-        findTables(static_cast<uintptr_t>(from));
-        if (g_tables.empty()) {
-            BL_ERROR("itens de mod: nenhuma tabela de item achada; itens de mod desligados");
-            g_failed = true;
-            return;
-        }
-    }
-    int grown = 0;
-    for (FieldInfo* f : g_tables) {
-        Il2CppArray* arr = readStatic(f);
-        if (!arr || arr->length != static_cast<uintptr_t>(from)) continue;
-        Il2CppArray* grownArr = grow(arr, static_cast<uintptr_t>(to));
-        if (!grownArr) continue;
-        a.field_static_set_value(f, grownArr);
-        ++grown;
+    const int grown = g_tables.grow(from, to);
+    if (grown < 0) {
+        BL_ERROR("itens de mod: nenhuma tabela de item achada; itens de mod desligados");
+        g_failed = true;
+        return;
     }
     g_installed.store(total, std::memory_order_release);
     hookItemNames();
+    growInstanceTables(to);
 
     struct PendingSample { int type; std::string mod, name; };
     std::vector<PendingSample> pending;
@@ -545,8 +524,9 @@ void tickModItems() {
         for (int i = installed; i < total; ++i) {
             Entry& reg = g_regs[static_cast<size_t>(i)];
             const int type = kVanillaItemCount + i;
-            Il2CppObject* tex = loadPngTexture(reg.def.texture, &reg.width, &reg.height);
-            Il2CppObject* asset = tex ? createAsset(tex, reg.def.mod + "/" + reg.def.name) : nullptr;
+            Il2CppObject* asset = content::loadTextureAsset(
+                reg.def.texture, reg.def.textureData, reg.def.textureSize,
+                reg.def.mod + "/" + reg.def.name, &reg.width, &reg.height);
             if (asset) reg.asset = a.gchandle_new(asset, false);
             applyTexture(type, reg);
             applyName(type, reg);
@@ -559,6 +539,11 @@ void tickModItems() {
     for (const PendingSample& n : pending) registerSample(n.type, n.mod, n.name);
     BL_INFO("itens de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
+    if (ItemsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) hook(from, to - 1);
+}
+
+void setItemsInstalledHook(ItemsInstalledHook hook) {
+    g_installedHook.store(hook, std::memory_order_release);
 }
 
 void prepareModItem(Il2CppObject* item, int type) {
@@ -585,40 +570,13 @@ void finishModItem(Il2CppObject* item, int type) {
     if (r.rebuildTooltip) invoke(r.rebuildTooltip, item, nullptr, "Item.RebuildTooltip");
 }
 
-static std::vector<ModCategory> g_categories;   // protegido por g_mx
-
-int modCategory(const std::string& mod, const std::string& name, const std::string& icon) {
-    std::lock_guard<std::mutex> l(g_mx);
-    for (size_t i = 0; i < g_categories.size(); ++i) {
-        ModCategory& c = g_categories[i];
-        if (c.mod == mod && c.name == name) {
-            if (c.icon.empty()) c.icon = icon;
-            return static_cast<int>(i);
-        }
-    }
-    g_categories.push_back({mod, name, icon, {}});
-    return static_cast<int>(g_categories.size()) - 1;
-}
-
-bool addToModCategory(int category, int type) {
-    std::lock_guard<std::mutex> l(g_mx);
-    if (category < 0 || static_cast<size_t>(category) >= g_categories.size()) return false;
-    std::vector<int>& t = g_categories[static_cast<size_t>(category)].types;
-    for (int x : t) if (x == type) return true;
-    t.push_back(type);
-    return true;
-}
-
-std::vector<ModCategory> modCategories() {
-    std::lock_guard<std::mutex> l(g_mx);
-    return g_categories;
-}
 
 std::vector<ModItemInfo> modItems() {
     std::lock_guard<std::mutex> l(g_mx);
     std::vector<ModItemInfo> v;
     v.reserve(g_regs.size());
     for (size_t i = 0; i < g_regs.size(); ++i) {
+        if (isUnloadedType(kVanillaItemCount + static_cast<int>(i))) continue;   // nao vai para o menu
         v.push_back({kVanillaItemCount + static_cast<int>(i), g_regs[i].def.mod,
                      g_regs[i].def.name, g_regs[i].def.texture});
     }

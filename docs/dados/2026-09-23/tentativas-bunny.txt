@@ -1,0 +1,2 @@
+tentativa 1: CRASH em 4 s
+FIM

@@ -54,3 +54,8 @@ _sprites/*
 
 # Log de erro do compilador Kotlin, gerado no build.
 .kotlin/
+
+# Caches do tools/disasm: saem do refs/ (dump do jogo) pelo prep.sh.
+tools/disasm/*.pkl
+tools/disasm/fstarts.txt
+tools/disasm/dynsym.txt

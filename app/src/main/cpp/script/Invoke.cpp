@@ -45,6 +45,7 @@ void* methodPointerOf(const MethodInfo* m) {
 struct Cached {
     bool direct = false;
     bool isInstance = false;
+    mutable bool classReady = false;   // construtor estatico da classe ja garantido
     void* fn = nullptr;
     AbiPlan plan;
 };
@@ -97,15 +98,25 @@ JSValue invokeMethod(JSContext* ctx, const MethodInfo* m, void* self,
 #if defined(__aarch64__)
     const Cached& c = planFor(m);
     if (c.direct) {
+        // O runtime_invoke roda o construtor estatico da classe; o salto
+        // direto nao, e o codigo do IL2CPP deixa isso para quem CHAMA. Sem
+        // isto, QuickStacking['int GetCategory(int type)'] rodava com os
+        // estaticos da classe ainda nulos.
+        if (!c.classReady) {
+            c.classReady = true;
+            auto& api = il2cpp::api();
+            if (api.runtime_class_init) api.runtime_class_init(api.method_get_class(m));
+        }
         const AbiPlan& p = c.plan;
         intptr_t a[8] = {0};
         uint64_t d[8] = {0};
         if (c.isInstance) a[0] = reinterpret_cast<intptr_t>(self);
 
         const int n = static_cast<int>(p.params.size());
+        ArgScratch scratch;   // vive ate o metodo voltar (Rectangle? por endereco)
         for (int i = 0; i < n; ++i) {
             JSValueConst v = (i < argc) ? argv[i] : JS_UNDEFINED;
-            if (jsToParam(ctx, v, p.params[i], a, d) < 0) return JS_EXCEPTION;
+            if (jsToParam(ctx, v, p.params[i], a, d, &scratch) < 0) return JS_EXCEPTION;
         }
         // Todo metodo gerado pelo IL2CPP recebe o proprio MethodInfo como
         // ultimo argumento. No hook ele vem de graca nos registradores do

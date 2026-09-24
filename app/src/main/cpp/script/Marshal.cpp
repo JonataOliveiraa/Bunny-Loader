@@ -113,6 +113,12 @@ JSValue fromReturn(JSContext* ctx, const MethodInfo* m, Il2CppObject* ret) {
     if (!d.byValue) return readAt(ctx, &ret, d, JS_UNDEFINED);
 
     if (!ret) return JS_NULL;
+    // Regra de encaixotamento do CLR: um Nullable<T> encaixotado e `null` (ja
+    // tratado acima) ou um T encaixotado — nunca um Nullable encaixotado.
+    if (d.nullable()) {
+        return readAt(ctx, reinterpret_cast<char*>(ret) + sizeof(Il2CppObject), *d.inner,
+                      JS_UNDEFINED);
+    }
     // Valor volta ENCAIXOTADO: o dado fica logo depois do cabecalho.
     void* data = reinterpret_cast<char*>(ret) + sizeof(Il2CppObject);
     // A caixa e do coletor do jogo e ninguem mais aponta pra ela; copiamos em
