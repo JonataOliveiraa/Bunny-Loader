@@ -268,12 +268,44 @@ export class ExampleBulletProjectile extends ModProjectile {
 |---|---|
 | `SetStaticDefaults()` | Uma vez. `Terraria.Main.projFrames[this.Type] = n` aqui diz quantos quadros a textura tem. |
 | `SetDefaults(proj)` | Todo projétil deste tipo que nasce. |
+| `OnSpawn(proj)` | Uma vez, no primeiro quadro de vida. |
 | `PreAI(proj)` | Antes da IA. `false` pula a IA do jogo. |
 | `AI(proj)` | A IA sua, todo quadro. |
 | `PostAI(proj)` | Depois da IA. |
 | `PreKill(proj, timeLeft)` | `false` tira os efeitos do jogo na morte (poeira, som); o projétil morre igual. |
 | `OnKill(proj, timeLeft)` | Ao morrer (poeira, som, fragmentos). |
+| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco e ia morrer: `false` o mantém vivo (para quicar, mude `proj.velocity`). |
 | `OnHitNPC(proj, npc)`, `OnHitPlayer(proj, player)` | Ao acertar. |
+| `Colliding(proj, projHitbox, targetHitbox)` | `true`/`false` decide o acerto; `undefined` deixa o do jogo. |
+| `CanDamage(proj)` | `false`: não causa dano. |
+| `ModifyDamageHitbox(proj, hitbox)` | Mude o `hitbox` (Rectangle) para o dano usar outra área. |
+| `CanCutTiles(proj)`, `CutTiles(proj)` | Cortar grama e teia. |
+| `GetAlpha(proj, lightColor)` | A cor final (uma `Color`), ou `undefined` para a do jogo. |
+| `PreDraw(proj, lightColor)`, `PostDraw(proj, lightColor)` | Desenho: `false` no `PreDraw` não desenha o do jogo — desenhe o seu com `Main.EntitySpriteDraw`. |
+
+Campos e atalhos:
+
+- `this.AIType = ProjectileID.Sunfury`: usa a IA daquele projétil do jogo (o
+  tipo é trocado só durante a IA). É o que faz um mangual de mod balançar
+  como o Sol Fundido.
+- `this.CloneDefaults(ProjectileID.Spear)`: copia os valores de um projétil do jogo.
+- `this.DefaultToSpear()`, `DefaultToYoyo()`, `DefaultToFlail()`, `DefaultToWhip()`,
+  `DefaultToDrillOrChainsaw()`, `DefaultToKite()`: os padrões do jogo para cada
+  família de projétil segurado. No item, `this.DefaultToWhip(projType, dano,
+  repulsao, velocidade)` e `this.DefaultToSpear(projType, velocidade, tempo)`.
+- `new ProjAI(proj)` (ou `new ProjAI(proj, true)` para o `localAI`): o vetor
+  `ai` como `ai[0]`, `ai[1]`, `ai[2]` — no jogo ele é um struct de 3 floats.
+
+No `Shoot` do item, `position` e `velocity` são `Vector2` do jogo: dá para
+repassá-los direto a um `NewProjectile`.
+
+Método de instância guardado numa variável perde o objeto: use uma função que
+o chama nele.
+
+```js
+const sb = Terraria.Main.spriteBatch;
+const Draw = (...args) => sb['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'](...args);
+```
 
 Com `aiStyle` de um projétil do jogo, ele já se comporta como aquele; com
 `aiStyle = 0`, o movimento é todo seu no `AI`.
@@ -434,6 +466,22 @@ Item de mod no inventário, no cofre e nos baús é salvo pelo **nome** (mod +
 classe), num arquivo ao lado do save do jogo. Desligar o mod não perde nada: o
 item vira um "?" e volta ao normal quando o mod é religado.
 
+## Genéricos
+
+`List<Vector2>`, `Dictionary<int, int>`: `makeGeneric` na classe genérica, com
+as classes dos tipos:
+
+```js
+const List = System.Collections.Generic.List.makeGeneric(Vector2.Type);
+const pontos = List.new();
+pontos['void .ctor()']();
+
+const Dict = System.Collections.Generic.Dictionary.makeGeneric(System.Int32, System.Int32);
+```
+
+Só vale para uma combinação que o próprio jogo usa (o código dela precisa
+existir no binário); para as outras, `makeGeneric` lança dizendo qual.
+
 ## Ajudantes
 
 Globais, com os nomes do tModLoader:
@@ -444,6 +492,8 @@ Globais, com os nomes do tModLoader:
 | `MathHelper` | `Pi`, `TwoPi`, `PiOver2`, `ToRadians`, `ToDegrees`, `Clamp`, `Lerp`, `SmoothStep`, `WrapAngle`. |
 | `Rand` | O sorteio do jogo: `Next(max)`, `Next(min, max)`, `NextFloat()`, `NextFloat(max)`, `NextBool(umEm)`, `NextChance(p)`, `NextSign()`, `NextFromList(lista)`, `NextVector2Circular(rx, ry)`, `NextVector2Unit()`. |
 | `Color` | `Color.new(r, g, b, a)`, `Color.White`, `Color.SkyBlue`... (qualquer cor do XNA, sempre uma cópia), `Multiply`, `Lerp`, `ToVector3`. |
+| `Rectangle` | `Rectangle.new(x, y, w, h)`, `Size`, `Center`, `Contains`, `Intersects`. |
+| `ProjAI` | `new ProjAI(proj)`: `proj.ai` como vetor (ver ModProjectile). |
 | `ItemRarityID`, `ProjAIStyleID`, `NPCAIStyleID` | Os números que este Terraria não traz: `ItemRarityID.Pink`, `ProjAIStyleID.GolfBall`, `NPCAIStyleID.Slime`... |
 
 ```js

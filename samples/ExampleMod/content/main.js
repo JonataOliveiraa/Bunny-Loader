@@ -11,11 +11,32 @@ import { ExampleGolfBall } from './Content/Items/ExampleGolfBall.js';
 import { ExampleGolfBallProjectile } from './Content/Projectiles/ExampleGolfBallProjectile.js';
 import { ExampleShotgun } from './Content/Items/Weapons/Ranged/ExampleShotgun.js';
 import { ExampleRocketLauncher } from './Content/Items/Weapons/Ranged/ExampleRocketLauncher.js';
+import { ExampleSpearProjectile } from './Content/Projectiles/ExampleSpearProjectile.js';
+import { ExampleFlailProjectile } from './Content/Projectiles/ExampleFlailProjectile.js';
+import { ExampleYoyoProjectile } from './Content/Projectiles/ExampleYoyoProjectile.js';
+import { ExampleWhipProjectile } from './Content/Projectiles/ExampleWhipProjectile.js';
+import { ExampleSwingingEnergySwordProjectile } from './Content/Projectiles/ExampleSwingingEnergySwordProjectile.js';
+import { ExampleDrillProjectile } from './Content/Projectiles/ExampleDrillProjectile.js';
+import { ExampleAdvancedAnimatedProjectile } from './Content/Projectiles/ExampleAdvancedAnimatedProjectile.js';
+import { ExampleSpear } from './Content/Items/Weapons/Melee/ExampleSpear.js';
+import { ExampleFlail } from './Content/Items/Weapons/Melee/ExampleFlail.js';
+import { ExampleYoyo } from './Content/Items/Weapons/Melee/ExampleYoyo.js';
+import { ExampleWhip } from './Content/Items/Weapons/Melee/ExampleWhip.js';
+import { ExampleSwingingEnergySword } from './Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js';
+import { ExampleDrill } from './Content/Items/Tools/ExampleDrill.js';
+import { ExampleMagicWeapon } from './Content/Items/Weapons/Magic/ExampleMagicWeapon.js';
 
 ModNPC.register(ExampleSlimeNPC);
 
 ModProjectile.register(ExampleBulletProjectile);
 ModProjectile.register(ExampleGolfBallProjectile);
+ModProjectile.register(ExampleSpearProjectile);
+ModProjectile.register(ExampleFlailProjectile);
+ModProjectile.register(ExampleYoyoProjectile);
+ModProjectile.register(ExampleWhipProjectile);
+ModProjectile.register(ExampleSwingingEnergySwordProjectile);
+ModProjectile.register(ExampleDrillProjectile);
+ModProjectile.register(ExampleAdvancedAnimatedProjectile);
 
 ModItem.register(ExampleItem);
 ModItem.register(ExampleMeleeWeapon);
@@ -27,6 +48,13 @@ ModItem.register(ExampleHamaxe);
 ModItem.register(ExampleGolfBall);
 ModItem.register(ExampleShotgun);
 ModItem.register(ExampleRocketLauncher);
+ModItem.register(ExampleSpear);
+ModItem.register(ExampleFlail);
+ModItem.register(ExampleYoyo);
+ModItem.register(ExampleWhip);
+ModItem.register(ExampleSwingingEnergySword);
+ModItem.register(ExampleDrill);
+ModItem.register(ExampleMagicWeapon);
 
 bl.log(`Example Mod: ExampleItem = ${ModItem.getTypeByName('ExampleItem')}, ` +
        `Espada = ${ModItem.getTypeByName('ExampleMeleeWeapon')}, ` +

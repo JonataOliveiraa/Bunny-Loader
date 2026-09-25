@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstring>
 #include <set>
+#include <cctype>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -190,6 +191,7 @@ JSValue js_bl_log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
 // ============================ NativeClass ============================
 
 JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*);
+JSValue nc_makeGeneric(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv);
 
 JSValue js_NativeClass(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 2) return JS_ThrowTypeError(ctx, "NativeClass(namespace, nome)");
@@ -289,6 +291,7 @@ const JSClassExoticMethods nc_exotic = {
 // nomes reais da classe do jogo, então quanto menos, melhor.
 const JSCFunctionListEntry nc_proto[] = {
     JS_CFUNC_DEF("new", 0, nc_new),
+    JS_CFUNC_DEF("makeGeneric", 1, nc_makeGeneric),
 };
 
 /**
@@ -413,6 +416,51 @@ JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
     Il2CppObject* obj = a.object_new(cls);
     if (!obj) return JS_ThrowInternalError(ctx, "object_new falhou");
     return makeNativeObject(ctx, obj);
+}
+
+/**
+ * List.makeGeneric(Vector2) = List<Vector2>; Dictionary.makeGeneric(Int32,
+ * Int32) = Dictionary<int, int>. Pelo caminho do proprio .NET:
+ * Type.MakeGenericType sobre os System.Type das classes. So da certo para uma
+ * combinacao que o jogo ja usa (o IL2CPP compilou o codigo dela) — para as
+ * outras o runtime lanca, e a mensagem diz qual.
+ */
+JSValue nc_makeGeneric(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    Il2CppClass* open = classOf(self);
+    auto& a = il2cpp::api();
+    if (!open) return JS_EXCEPTION;
+    if (!a.type_get_object || !a.class_from_system_type) {
+        return JS_ThrowInternalError(ctx, "makeGeneric: este runtime nao expoe a reflexao de tipos");
+    }
+    if (argc < 1) return JS_ThrowTypeError(ctx, "makeGeneric(Tipo, ...): passe os tipos");
+    static Il2CppClass* typeCls = il2cpp::findClassQuiet("System", "Type");
+    if (!typeCls) return JS_ThrowInternalError(ctx, "makeGeneric: System.Type nao encontrado");
+    Il2CppArray* args = a.array_new(typeCls, static_cast<uintptr_t>(argc));
+    for (int i = 0; i < argc; ++i) {
+        Il2CppClass* c = classOf(argv[i]);
+        if (!c) return JS_ThrowTypeError(ctx, "makeGeneric: argumento %d nao e uma classe", i);
+        Il2CppObject* t = a.type_get_object(a.class_get_type(c));
+        auto** slot = reinterpret_cast<Il2CppObject**>(arrayData(args)) + i;
+        if (a.gc_wbarrier_set_field) {
+            a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(args), reinterpret_cast<void**>(slot), t);
+        } else {
+            *slot = t;
+        }
+    }
+    Il2CppObject* openType = a.type_get_object(a.class_get_type(open));
+    const MethodInfo* make = a.class_get_method_from_name(a.object_get_class(openType), "MakeGenericType", 1);
+    if (!make) return JS_ThrowInternalError(ctx, "makeGeneric: Type.MakeGenericType nao encontrado");
+    void* params[1] = {args};
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* closed = a.runtime_invoke(make, openType, params, &exc);
+    if (exc || !closed) {
+        return JS_ThrowTypeError(ctx, "makeGeneric: %s nao aceitou esses tipos", a.class_get_name(open));
+    }
+    Il2CppClass* cls = a.class_from_system_type(closed);
+    if (!cls) return JS_ThrowInternalError(ctx, "makeGeneric: classe generica nao resolvida");
+    JSValue v = JS_NewObjectClass(ctx, g_nativeClassId);
+    if (!JS_IsException(v)) JS_SetOpaque(v, cls);
+    return v;
 }
 
 // ============================ NativeMethod ============================
@@ -781,7 +829,18 @@ JSValue ns_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         return JS_UNDEFINED;
     }
 
-    if (Il2CppClass* cls = il2cpp::findClassQuiet(*prefix, name)) {
+    Il2CppClass* cls = il2cpp::findClassQuiet(*prefix, name);
+    // Generico aberto: no metadado, `List` e ``List`1``. So nas duas imagens
+    // principais, que e busca por hash; varrer todas a cada `Terraria.ID`
+    // custaria caro.
+    auto& a = il2cpp::api();
+    for (int n = 1; !cls && n <= 4 && std::isupper(static_cast<unsigned char>(name[0])); ++n) {
+        const std::string generic = name + "`" + std::to_string(n);
+        for (const Il2CppImage* img : {a.gameImage, a.corlibImage}) {
+            if (img && !cls) cls = a.class_from_name(img, prefix->c_str(), generic.c_str());
+        }
+    }
+    if (cls) {
         JSValue v = JS_NewObjectClass(ctx, g_nativeClassId);
         if (!JS_IsException(v)) JS_SetOpaque(v, cls);
         return v;

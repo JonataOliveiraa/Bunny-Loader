@@ -132,6 +132,7 @@ const Vector2 = Object.freeze({
     DistanceSquared: (a, b) => (a.X - b.X) ** 2 + (a.Y - b.Y) ** 2,
     Dot: (a, b) => a.X * b.X + a.Y * b.Y,
     Lerp: (a, b, t) => Vector2.new(a.X + (b.X - a.X) * t, a.Y + (b.Y - a.Y) * t),
+    SmoothStep: (a, b, t) => Vector2.Lerp(a, b, MathHelper.SmoothStep(0, 1, t)),
 
     Normalize(a) {
         const len = Math.hypot(a.X, a.Y);
@@ -193,6 +194,42 @@ const Color = new Proxy(ColorBase, {
         return ColorBase.new(c.R, c.G, c.B, c.A);
     },
 });
+
+// =============================== Rectangle ===============================
+
+let xRectangle = null;
+const XRectangle = () => xRectangle || (xRectangle = Microsoft.Xna.Framework.Rectangle);
+
+const Rectangle = Object.freeze({
+    get Type() { return XRectangle(); },
+    new(x = 0, y = 0, width = 0, height = 0) {
+        const r = XRectangle().new();
+        r['void .ctor(int x, int y, int width, int height)'](x | 0, y | 0, width | 0, height | 0);
+        return r;
+    },
+    Size: (r) => Vector2.new(r.Width, r.Height),
+    Center: (r) => Vector2.new(r.X + r.Width / 2, r.Y + r.Height / 2),
+    Contains: (r, x, y) => x >= r.X && x < r.X + r.Width && y >= r.Y && y < r.Y + r.Height,
+    Intersects: (a, b) => a.X < b.X + b.Width && b.X < a.X + a.Width &&
+                          a.Y < b.Y + b.Height && b.Y < a.Y + a.Height,
+});
+
+// ================================ ProjAI ================================
+
+// O proj.ai (ou proj.localAI) como vetor: ai[0]++ em vez de
+// proj.ai.val0 = proj.ai.val0 + 1. No jogo e um struct de 3 floats.
+class ProjAI {
+    constructor(proj, local = false) {
+        this.proj = proj;
+        this.key = local ? 'localAI' : 'ai';
+    }
+    get 0() { return this.proj[this.key].val0; }
+    set 0(v) { this.proj[this.key].val0 = v; }
+    get 1() { return this.proj[this.key].val1; }
+    set 1(v) { this.proj[this.key].val1 = v; }
+    get 2() { return this.proj[this.key].val2; }
+    set 2(v) { this.proj[this.key].val2 = v; }
+}
 
 // ================================== IDs ==================================
 // Tirados de patches/tModLoader/Terraria/ID do tModLoader (MIT).
@@ -280,6 +317,8 @@ globalThis.MathHelper = MathHelper;
 globalThis.Rand = Rand;
 globalThis.Vector2 = Vector2;
 globalThis.Color = Color;
+globalThis.Rectangle = Rectangle;
+globalThis.ProjAI = ProjAI;
 globalThis.ItemRarityID = ItemRarityID;
 globalThis.ProjAIStyleID = ProjAIStyleID;
 globalThis.NPCAIStyleID = NPCAIStyleID;

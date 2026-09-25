@@ -9,18 +9,33 @@
     "ExampleHamaxe": "Martelo-Machado de Exemplo",
     "ExampleGolfBall": "Bola de Golfe de Exemplo",
     "ExampleShotgun": "Espingarda de Exemplo",
-    "ExampleRocketLauncher": "Lança-Foguetes de Exemplo"
+    "ExampleRocketLauncher": "Lança-Foguetes de Exemplo",
+    "ExampleSpear": "Lança de Exemplo",
+    "ExampleFlail": "Mangual de Exemplo",
+    "ExampleYoyo": "Ioiô de Exemplo",
+    "ExampleWhip": "Chicote de Exemplo",
+    "ExampleSwingingEnergySword": "Espada de Energia de Exemplo",
+    "ExampleDrill": "Broca de Exemplo",
+    "ExampleMagicWeapon": "Cajado de Exemplo"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
-    "ExampleGolfBallProjectile": "Bola de Golfe de Exemplo"
+    "ExampleGolfBallProjectile": "Bola de Golfe de Exemplo",
+    "ExampleSpearProjectile": "Lança de Exemplo",
+    "ExampleFlailProjectile": "Mangual de Exemplo",
+    "ExampleYoyoProjectile": "Ioiô de Exemplo",
+    "ExampleWhipProjectile": "Chicote de Exemplo",
+    "ExampleSwingingEnergySwordProjectile": "Espada de Energia de Exemplo",
+    "ExampleDrillProjectile": "Broca de Exemplo",
+    "ExampleAdvancedAnimatedProjectile": "Onda Mágica de Exemplo"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Slime de Exemplo"
   },
   "ItemTooltip": {
     "ExampleItem": "Descrição do item",
-    "ExampleShotgun": "Dispara oito balas de uma vez"
+    "ExampleShotgun": "Dispara oito balas de uma vez",
+    "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n10 de dano de marcação"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."

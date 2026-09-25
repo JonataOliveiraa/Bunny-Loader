@@ -336,6 +336,16 @@ class ModItem {
         return anim;
     }
 
+    // Chicote e lanca, com os numeros de uso do jogo.
+    DefaultToWhip(projType, damage, knockBack, shootSpeed, animationTime = 30) {
+        this.Item['void DefaultToWhip(int projectileId, int dmg, float kb, float shootspeed, int animationTotalTime)'](
+            projType, damage, knockBack, shootSpeed, animationTime);
+    }
+    DefaultToSpear(projType, pushForwardSpeed, animationTime) {
+        this.Item['void DefaultToSpear(int projType, float pushForwardSpeed, int animationTime)'](
+            projType, pushForwardSpeed, animationTime);
+    }
+
     // Bola de golfe: tee, taco e o projetil `projType`, como as do jogo.
     DefaultToGolfBall(projType) {
         this.Item['void DefaultToGolfBall(int projid)'](projType);
@@ -487,7 +497,8 @@ function hookItem(cls) {
                 shooting = null;   // o projetil que ELE criar nao e mais do tiro
                 try {
                     const n = s.m.constructor.name;
-                    const stats = { position: { X: x, Y: y }, velocity: { X: sx, Y: sy }, type, damage, knockBack };
+                    // Vector2 do jogo: o Shoot pode repassa-los ao NewProjectile.
+                    const stats = { position: Vector2.new(x, y), velocity: Vector2.new(sx, sy), type, damage, knockBack };
                     guard(n + '.ModifyShootStats', () => s.m.ModifyShootStats(s.item, s.player, stats));
                     const go = guard(n + '.Shoot', () => s.m.Shoot(s.item, s.player, stats.position, stats.velocity,
                                                                     stats.type, stats.damage, stats.knockBack));
@@ -652,6 +663,22 @@ function finishRecipes() {
 // ============================== ModProjectile ==============================
 
 const projectilesByType = new Map();
+
+// Os campos que o CloneDefaults copia (os do ProjectileLoader do ExMod, mais
+// tamanho).
+const CLONED_PROJECTILE_FIELDS = [
+    'width', 'height', 'ownerHitCheckDistance', 'counterweight', 'sentry', 'arrow', 'bobber',
+    'numHits', 'netImportant', 'manualDirectionChange', 'decidesManualFallThrough',
+    'shouldFallThrough', 'bannerIdToRespondTo', 'stopsDealingDamageAfterPenetrateHits',
+    'localNPCHitCooldown', 'idStaticNPCHitCooldown', 'usesLocalNPCImmunity',
+    'usesIDStaticNPCImmunity', 'usesOwnerMeleeHitCD', 'appliesImmunityTimeOnSingleHits',
+    'noDropItem', 'minion', 'minionSlots', 'soundDelay', 'spriteDirection', 'melee', 'ranged',
+    'magic', 'ownerHitCheck', 'drawLayer', 'usesOwnerLight', 'hide', 'ignoreWater', 'hostile',
+    'reflected', 'extraUpdates', 'light', 'penetrate', 'tileCollide', 'aiStyle', 'alpha',
+    'rotation', 'scale', 'timeLeft', 'friendly', 'damage', 'originalDamage', 'knockBack',
+    'coldDamage', 'noEnchantments', 'noEnchantmentVisuals', 'trap', 'npcProj',
+    'tagEffectType', 'bonusTagDamage', 'armorPenetration', 'bonusCritChance',
+];
 const projectileOf = (p) => instanceOf(p, 'ModProjectile', projectilesByType);
 
 class ModProjectile {
@@ -675,6 +702,12 @@ class ModProjectile {
     PostSetDefaults(proj) {}
     PostSetupContent() {}
 
+    // Usa a IA de outro projetil do jogo: o tipo e trocado so durante a IA
+    // do jogo (o aiStyle sozinho nao basta para mangual, gancho...).
+    AIType = 0;
+
+    // Uma vez, no primeiro quadro de vida do projetil.
+    OnSpawn(proj) {}
     // IA: false no PreAI pula a IA do jogo (a do aiStyle) e o AI.
     PreAI(proj) { return true; }
     AI(proj) {}
@@ -682,9 +715,45 @@ class ModProjectile {
     // Morte: false no PreKill tira os efeitos do jogo (poeira, som); morre igual.
     PreKill(proj, timeLeft) { return true; }
     OnKill(proj, timeLeft) {}
+    // Bateu num bloco (tileCollide) e o jogo ia mata-lo: false o mantem vivo
+    // (para quicar, mude proj.velocity aqui). oldVelocity e a de antes do choque.
+    OnTileCollide(proj, oldVelocity) { return true; }
     // Acertou um NPC / um jogador.
     OnHitNPC(proj, npc) {}
     OnHitPlayer(proj, player) {}
+    // true/false decide o acerto contra targetRect; undefined = o do jogo.
+    Colliding(proj, projHitbox, targetHitbox) { return undefined; }
+    // false: nao causa dano (nem chama o Damage do jogo).
+    CanDamage(proj) { return true; }
+    // Mude hitbox (Rectangle) para o dano usar outra area.
+    ModifyDamageHitbox(proj, hitbox) {}
+    // true/false: corta grama, teia...; undefined = o do jogo.
+    CanCutTiles(proj) { return undefined; }
+    CutTiles(proj) {}
+    // A cor final do projetil (uma Color), ou undefined para a do jogo.
+    GetAlpha(proj, lightColor) { return undefined; }
+    // Desenho: false no PreDraw nao desenha o do jogo (desenhe o seu aqui,
+    // com Main.EntitySpriteDraw). PostDraw roda depois do desenho do jogo.
+    PreDraw(proj, lightColor) { return true; }
+    PostDraw(proj, lightColor) {}
+
+    // Copia os valores de um projetil do jogo para este.
+    CloneDefaults(type) {
+        const source = Terraria.Projectile.new();
+        source['void .ctor()']();
+        source['void SetDefaults(int Type)'](type);
+        for (const key of CLONED_PROJECTILE_FIELDS) {
+            try { this.Projectile[key] = source[key]; } catch (e) { /* campo que esta versao nao tem */ }
+        }
+    }
+
+    // Os padroes do jogo para cada familia de projetil segurado.
+    DefaultToSpear() { this.Projectile['void DefaultToSpear()'](); }
+    DefaultToYoyo() { this.Projectile['void DefaultToYoyo()'](); }
+    DefaultToFlail() { this.Projectile['void DefaultToFlail()'](); }
+    DefaultToWhip() { this.Projectile['void DefaultToWhip()'](); }
+    DefaultToDrillOrChainsaw() { this.Projectile['void DefaultToDrillOrChainsaw()'](); }
+    DefaultToKite() { this.Projectile['void DefaultToKite()'](); }
 
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModProjectile)) {
@@ -727,24 +796,48 @@ function hookProjectile(cls) {
     const has = (name) => overrides(cls, ModProjectile, name);
     const self = { minType: FIRST_PROJECTILE };
 
-    if (has('PreAI') || has('AI') || has('PostAI')) once('proj.AI', () => {
+    // Sempre: o AIType e o OnSpawn podem vir de qualquer projetil, e o AIType
+    // so se sabe depois do SetDefaults.
+    once('proj.AI', () => {
         Pr['void AI()'].hook((original, p) => {
             const m = projectileOf(p);
             if (!m) return original(p);
             const n = m.constructor.name;
+            if (!m.__spawned) {
+                m.__spawned = true;
+                guard(n + '.OnSpawn', () => m.OnSpawn(p));
+            }
             if (guard(n + '.PreAI', () => m.PreAI(p)) !== false) {
-                original(p);
+                const aiType = m.AIType | 0;
+                if (aiType > 0) {
+                    const type = p.type;
+                    p.type = aiType;
+                    try { original(p); } finally { p.type = type; }
+                } else {
+                    original(p);
+                }
                 guard(n + '.AI', () => m.AI(p));
             }
             guard(n + '.PostAI', () => m.PostAI(p));
         }, self);
     });
 
-    if (has('PreKill') || has('OnKill')) once('proj.Kill', () => {
+    if (has('PreKill') || has('OnKill') || has('OnTileCollide')) once('proj.Kill', () => {
+        const solid = Terraria.Collision['bool SolidCollision(Vector2 Position, int Width, int Height)'];
         Pr['void Kill()'].hook((original, p) => {
             const m = projectileOf(p);
             if (!m || !p.active) return original(p);
             const n = m.constructor.name;
+            // Morte por bloco: o jogo mata o projetil que bate com tileCollide.
+            if (p.tileCollide && overrides(m.constructor, ModProjectile, 'OnTileCollide')) {
+                const v = p.velocity;
+                const len = Math.hypot(v.X, v.Y) || 1;
+                const ahead = Vector2.new(p.position.X + v.X / len, p.position.Y + v.Y / len);
+                if (solid(ahead, p.width, p.height) &&
+                    guard(n + '.OnTileCollide', () => m.OnTileCollide(p, Vector2.Clone(v))) === false) {
+                    return undefined;
+                }
+            }
             const timeLeft = p.timeLeft;
             if (guard(n + '.PreKill', () => m.PreKill(p, timeLeft)) === false) {
                 p.active = false;
@@ -769,6 +862,74 @@ function hookProjectile(cls) {
             const m = projectileOf(p);
             if (m) guard(m.constructor.name + '.OnHitPlayer', () => m.OnHitPlayer(p, player));
         }, self);
+    });
+
+    if (has('Colliding')) once('proj.Colliding', () => {
+        Pr['bool Colliding(Rectangle myRect, Rectangle targetRect)'].hook((original, p, mine, target) => {
+            const m = projectileOf(p);
+            const r = m ? guard(m.constructor.name + '.Colliding', () => m.Colliding(p, mine, target)) : undefined;
+            return typeof r === 'boolean' ? r : original(p, mine, target);
+        }, self);
+    });
+
+    if (has('CanDamage')) once('proj.CanDamage', () => {
+        Pr['void Damage()'].hook((original, p) => {
+            const m = projectileOf(p);
+            if (m && guard(m.constructor.name + '.CanDamage', () => m.CanDamage(p)) === false) return undefined;
+            return original(p);
+        }, self);
+    });
+
+    if (has('ModifyDamageHitbox')) once('proj.Hitbox', () => {
+        Pr['Rectangle Damage_GetHitbox()'].hook((original, p) => {
+            const box = original(p);
+            const m = projectileOf(p);
+            if (m) {
+                const r = Rectangle.new(box.X, box.Y, box.Width, box.Height);
+                guard(m.constructor.name + '.ModifyDamageHitbox', () => m.ModifyDamageHitbox(p, r));
+                return r;
+            }
+            return box;
+        }, self);
+    });
+
+    if (has('CanCutTiles')) once('proj.CanCutTiles', () => {
+        Pr['bool CanCutTiles()'].hook((original, p) => {
+            const m = projectileOf(p);
+            const r = m ? guard(m.constructor.name + '.CanCutTiles', () => m.CanCutTiles(p)) : undefined;
+            return typeof r === 'boolean' ? r : original(p);
+        }, self);
+    });
+
+    if (has('CutTiles')) once('proj.CutTiles', () => {
+        Pr['void CutTiles()'].hook((original, p) => {
+            original(p);
+            const m = projectileOf(p);
+            if (m) guard(m.constructor.name + '.CutTiles', () => m.CutTiles(p));
+        }, self);
+    });
+
+    if (has('GetAlpha')) once('proj.GetAlpha', () => {
+        Pr['Color GetAlpha(Color newColor)'].hook((original, p, color) => {
+            const m = projectileOf(p);
+            const c = m ? guard(m.constructor.name + '.GetAlpha', () => m.GetAlpha(p, color)) : undefined;
+            return c || original(p, color);
+        }, self);
+    });
+
+    if (has('PreDraw') || has('PostDraw')) once('proj.Draw', () => {
+        const lightAt = Terraria.Lighting['Color GetColor(int x, int y)'];
+        Terraria.Main['void DrawProjDirect(Projectile proj, Player overridePlayer)'].hook((original, main, p, player) => {
+            const m = projectileOf(p);
+            if (!m) return original(main, p, player);
+            const n = m.constructor.name;
+            const c = p.Center;
+            const light = lightAt(Math.floor(c.X / 16), Math.floor(c.Y / 16));
+            if (guard(n + '.PreDraw', () => m.PreDraw(p, light)) === false) return undefined;
+            original(main, p, player);
+            guard(n + '.PostDraw', () => m.PostDraw(p, light));
+            return undefined;
+        }, { minType: FIRST_PROJECTILE, on: 0 });
     });
 }
 

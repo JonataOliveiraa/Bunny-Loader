@@ -9,18 +9,33 @@
     "ExampleHamaxe": "Example Hamaxe",
     "ExampleGolfBall": "Example Golf Ball",
     "ExampleShotgun": "Example Shotgun",
-    "ExampleRocketLauncher": "Example Rocket Launcher"
+    "ExampleRocketLauncher": "Example Rocket Launcher",
+    "ExampleSpear": "Example Spear",
+    "ExampleFlail": "Example Flail",
+    "ExampleYoyo": "Example Yoyo",
+    "ExampleWhip": "Example Whip",
+    "ExampleSwingingEnergySword": "Example Energy Sword",
+    "ExampleDrill": "Example Drill",
+    "ExampleMagicWeapon": "Example Magic Staff"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
-    "ExampleGolfBallProjectile": "Example Golf Ball"
+    "ExampleGolfBallProjectile": "Example Golf Ball",
+    "ExampleSpearProjectile": "Example Spear",
+    "ExampleFlailProjectile": "Example Flail",
+    "ExampleYoyoProjectile": "Example Yoyo",
+    "ExampleWhipProjectile": "Example Whip",
+    "ExampleSwingingEnergySwordProjectile": "Example Energy Sword",
+    "ExampleDrillProjectile": "Example Drill",
+    "ExampleAdvancedAnimatedProjectile": "Example Magic Wave"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime"
   },
   "ItemTooltip": {
     "ExampleItem": "Item description",
-    "ExampleShotgun": "Fires eight bullets at once"
+    "ExampleShotgun": "Fires eight bullets at once",
+    "ExampleWhip": "Your summons will focus struck enemies\n10 summon tag damage"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."

@@ -1,0 +1,15 @@
+{
+  "uid": "c8f3a1e6-2d4b-4b97-8a15-6e0c9d7f3b21",
+  "id": "test-exmod2",
+  "name": "Teste: etapa 2a do Example Mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Lanca, mangual, ioio, chicote, espada de energia, broca, cajado e os ganchos de projetil.",
+  "description": "Precisa do Example Mod ligado. Loga 'exmod2 ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

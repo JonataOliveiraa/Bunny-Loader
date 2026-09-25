@@ -45,10 +45,10 @@ sleep 22; adb -s "$D" shell input tap 590 517     # "Mais tarde" (aviso de contr
 # O benchmark roda no primeiro quadro dentro do mundo e ainda mede 300 quadros.
 for i in $(seq 1 40); do
     sleep 2
-    adb -s "$D" logcat -d -s BunnyLoader | grep -q "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM\|exmod1 FIM\|extrafields FIM" && break
+    adb -s "$D" logcat -d -s BunnyLoader | grep -q "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM\|exmod1 FIM\|extrafields FIM\|exmod2 FIM" && break
 done
 sleep 8
-adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\|exmod1\|extrafields\)" \
+adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\|exmod1\|extrafields\|exmod2\)" \
     | sed 's/.*\[mod\] //' > "$OUT"
 echo "segfaults: $(adb -s "$D" logcat -d | grep -a -c 'Forwarding signal')" >> "$OUT"
 cat "$OUT"
