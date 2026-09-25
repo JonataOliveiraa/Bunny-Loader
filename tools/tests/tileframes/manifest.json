@@ -1,0 +1,15 @@
+{
+  "uid": "c8f8d436-de98-49fa-87a2-a17fbfc471d2",
+  "id": "test-tileframes",
+  "name": "Teste: quadro do tile de mod ao reabrir",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um bloco 3x3 de ExampleTile e um de pedra: o quadro de cada tile e o mesmo depois de sair e entrar no mundo.",
+  "description": "Loga 'tileframes ...'. Rodar duas vezes: a primeira poe os blocos e salva, a segunda confere.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

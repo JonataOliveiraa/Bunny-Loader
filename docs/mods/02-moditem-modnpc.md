@@ -507,6 +507,13 @@ lado guarda os tiles para quando o mod voltar. Se alguém construir no lugar
 enquanto isso, vale o que foi construído. A ordem dos mods pode mudar à vontade:
 o tile volta pelo nome, não pelo número.
 
+Ao reabrir o mundo, o jogo reenquadra todo bloco comum e **sorteia de novo a
+variante** (cada formato tem 3 desenhos). Isso vale para terra, pedra e tile de
+mod: um bloco pode aparecer com outro desenho, no mesmo formato. Com uma
+textura de variantes bem diferentes, como a do `ExampleTile`, dá para ver. O
+tModLoader faz igual: só guarda o quadro de tile com `tileFrameImportant`
+(móveis e objetos).
+
 ### Mapa
 
 O `.map` do celular guarda o **índice** de cor de cada ponto. Uma cor nova
