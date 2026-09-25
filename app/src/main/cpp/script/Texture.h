@@ -18,6 +18,13 @@ namespace bl::script {
  */
 JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv);
 
+/**
+ * bl.loadTextureAsset(caminho) -> Asset<Texture2D> do jogo, ja carregado: o que
+ * as tabelas e os perfis do jogo guardam (TextureAssets, retrato de morador).
+ * Thread do jogo.
+ */
+JSValue loadTextureAsset(JSContext* ctx, int argc, JSValueConst* argv);
+
 /** Caminho relativo a pasta do mod de quem chamou (a mesma regra do loadTexture). */
 std::string resolveModPath(JSContext* ctx, const std::string& caminho);
 

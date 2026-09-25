@@ -8,6 +8,7 @@
 #include "mods/ModLoader.h"
 #include "script/Bridge.h"
 #include "runtime/Boot.h"
+#include "runtime/ContentAssets.h"
 #include "script/Invoke.h"
 
 #include <unistd.h>
@@ -255,6 +256,26 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
 
     BL_INFO("loadTexture: %s", path.c_str());
     return makeNativeObject(ctx, gt);
+}
+
+JSValue loadTextureAsset(JSContext* ctx, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsString(argv[0])) {
+        return JS_ThrowTypeError(ctx, "bl.loadTextureAsset(caminho) espera um texto");
+    }
+    // A mesma trava do loadTexture: textura da Unity so nasce na thread do jogo.
+    const int gameThread = runtime::gameThreadId();
+    if (gameThread == 0 || static_cast<int>(gettid()) != gameThread) {
+        return JS_ThrowInternalError(ctx, "bl.loadTextureAsset so vale na thread do jogo, com o jogo ja "
+                                          "rodando (num hook, ou no bl.onContentReady)");
+    }
+    const char* cs = JS_ToCString(ctx, argv[0]);
+    if (!cs) return JS_EXCEPTION;
+    const std::string path = resolvePath(ctx, cs);
+    JS_FreeCString(ctx, cs);
+    int w = 0, h = 0;
+    Il2CppObject* asset = runtime::content::loadTextureAsset(path, nullptr, 0, callerModId(ctx) + ":" + path, &w, &h);
+    if (!asset) return JS_ThrowReferenceError(ctx, "bl.loadTextureAsset: nao consegui carregar %s", path.c_str());
+    return makeNativeObject(ctx, asset);
 }
 
 } // namespace bl::script

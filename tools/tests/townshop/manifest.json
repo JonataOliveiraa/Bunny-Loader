@@ -1,0 +1,15 @@
+{
+  "uid": "a03d25fa-6ac8-4e43-8b21-b5c022885cd2",
+  "id": "test-townshop",
+  "name": "Teste: loja do morador de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Conversa com a Pessoa do Example Mod: botao Loja, a loja aberta pelo botao e os itens dela.",
+  "description": "Loga 'townshop ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

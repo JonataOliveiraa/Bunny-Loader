@@ -217,13 +217,18 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     // arquivo, o NPC so nao tem cabeca.
     const std::string headProp = stringProp(ctx, def, "head");
     const std::string head = headProp.empty() ? std::string() : resolveModPath(ctx, headProp);
+    const std::string shimmerProp = stringProp(ctx, def, "shimmerHead");
+    const std::string shimmerHead = shimmerProp.empty() ? std::string() : resolveModPath(ctx, shimmerProp);
 
     const std::string mod = d.mod, name = d.name;
     const int type = runtime::registerModNpc(std::move(d));
     if (type < 0) {
         return JS_ThrowRangeError(ctx, "bl.npcs.register: '%s' ja foi registrado por este mod", name.c_str());
     }
-    if (!head.empty() && fileExists(head)) runtime::setModNpcHead(type, head, mod + "/" + name + "_Head");
+    if (!head.empty() && fileExists(head)) runtime::setModNpcHead(type, 0, head, mod + "/" + name + "_Head");
+    if (!shimmerHead.empty() && fileExists(shimmerHead)) {
+        runtime::setModNpcHead(type, 1, shimmerHead, mod + "/" + name + "_Shimmer_Head");
+    }
     g_ctx = ctx;
     runtime::setNpcsInstalledHook(onNpcsInstalled);
     g_defs[type] = JS_DupValue(ctx, def);
@@ -241,11 +246,15 @@ JSValue js_typeOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     return JS_NewInt32(ctx, type);
 }
 
-/** bl.npcs.headSlot(tipo) — o indice da cabeca do NPC de mod em TextureAssets.NpcHead, ou -1. */
+/**
+ * bl.npcs.headSlot(tipo, shimmer) — o indice da cabeca do NPC de mod em
+ * TextureAssets.NpcHead (a de depois do shimmer com `shimmer` true), ou -1.
+ */
 JSValue js_headSlot(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t type = -1;
     if (argc < 1 || JS_ToInt32(ctx, &type, argv[0]) < 0) return JS_ThrowTypeError(ctx, "bl.npcs.headSlot(tipo)");
-    return JS_NewInt32(ctx, runtime::modNpcHeadSlot(type));
+    const bool shimmer = argc >= 2 && JS_ToBool(ctx, argv[1]) > 0;
+    return JS_NewInt32(ctx, runtime::modNpcHeadSlot(type, shimmer ? 1 : 0));
 }
 
 /** bl.npcs.setFrames(tipo, quadros) — quadros definidos depois do registro. */

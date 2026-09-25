@@ -2120,6 +2120,8 @@ class ModNPC {
     // .png. Padrao: a Texture + '_Head'; sem o arquivo, sem cabeca. Morador
     // sem cabeca nunca se muda (como no tModLoader).
     HeadTexture = '';
+    // A cabeca depois do shimmer. Padrao: a Texture + '_Shimmer_Head'.
+    ShimmerHeadTexture = '';
 
     // Uma vez, com o tipo e a tabela de drop ja no jogo.
     // Main.npcFrameCount[this.Type] escrito aqui vale como a quantidade de
@@ -2171,6 +2173,17 @@ class ModNPC {
     GetChat(npc) { return undefined; }
     // O indice da cabeca em TextureAssets.NpcHead (-1 sem cabeca).
     NPCHeadSlot() { return bl.npcs.headSlot(this.Type); }
+    // Os botoes da conversa (o celular mostra ate dois): buttons.button e
+    // buttons.button2 recebem o texto; vazio = sem botao.
+    SetChatButtons(npc, buttons) {}
+    // Tocou num botao (firstButton: o primeiro). Devolva o nome de uma loja
+    // registrada deste NPC (NPCShop) para abri-la.
+    OnChatButtonClicked(npc, firstButton) { return undefined; }
+    // As lojas, uma vez: new NPCShop(this.Type, 'Shop').Add(tipo).Register().
+    AddShops() {}
+    // Gostos e desgostos do morador (felicidade e preco da loja), no
+    // SetStaticDefaults: this.Happiness.SetNPCAffection(NPCID.Nurse, AffectionLevel.Love).
+    get Happiness() { return new NPCHappiness(this.Type); }
 
     static NPCValue(p = 0, g = 0, s = 0, c = 0) {
         return p * 1000000 + g * 10000 + s * 100 + c;
@@ -2190,6 +2203,7 @@ class ModNPC {
             name,
             texture: texturePath(inst.Texture || name),
             head: texturePath(inst.HeadTexture || (inst.Texture || name) + '_Head'),
+            shimmerHead: texturePath(inst.ShimmerHeadTexture || (inst.Texture || name) + '_Shimmer_Head'),
             animationType: animation,
             displayName: inst.DisplayName || localized('NPCName', name) || name,
             setDefaults(npc) {
@@ -2223,9 +2237,29 @@ class ModNPC {
         type = bl.npcs.register(def);
         inst.Type = type;
         npcsByType.set(type, inst);
+        // O nome de busca do jogo (NPCID.Search), como o do tModLoader:
+        // 'ExampleMod/ExamplePerson'. A felicidade monta com ele a chave dos
+        // textos (TownNPCMood_<nome>.<texto>), e sem ele o jogo lanca excecao.
+        const searchName = String(bl.mod.name).replace(/\s+/g, '') + '/' + name;
+        const moods = townMoodTexts(name);
+        const looks = townLookFiles(inst.Texture || name);
         if (overrides(cls, ModNPC, 'SpawnChance')) spawnable.push(inst);
         whenReady(() => {
+            // A amostra do jogo ja passou pelo SetDefaults do mod: e dela que
+            // sai se e morador (o setDefaults acima pode ainda nao ter rodado).
+            townNpc = townNpc || guard(name + ' amostra', () =>
+                !!Terraria.ID.ContentSamples.NpcsByNetId.get_Item(type).townNPC) === true;
+            guard(name + ' NPCID.Search', () => {
+                const search = Terraria.ID.NPCID.Search;
+                if (!search.ContainsName(searchName)) search['void Add(string name, int id)'](searchName, type);
+            });
+            for (const [key, texts] of moods) {
+                ModLocalization.Register('TownNPCMood_' + searchName + '.' + key, texts);
+                ModLocalization.Register('TownNPCMood_' + searchName + 'Transformed.' + key, texts);
+            }
             if (!inst.HideFromBestiary) guard(name + '.SetBestiary', () => registerBestiary(inst, townNpc));
+            if (overrides(cls, ModNPC, 'AddShops')) guard(name + '.AddShops', () => inst.AddShops());
+            if (townNpc) guard(name + ' (perfil de morador)', () => setupTownLooks(inst, looks));
             inst.PostSetupContent();
         });
         hookNpc(cls);
@@ -2267,6 +2301,236 @@ function finishBestiary() {
     bestiaryFinished = true;
     guard('Bestiario', () => Terraria.ID.ContentSamples['void CreateBestiarySortingIds(BestiaryDatabase database)'](Terraria.Main.BestiaryDB));
     bl.log('Bestiario: ' + bestiaryAdded + ' NPC(s) de mod');
+}
+
+// ============================== Felicidade ==============================
+
+// Os niveis do jogo (Terraria.GameContent.Personalities.AffectionLevel).
+const AffectionLevel = Object.freeze({ Hate: -100, Dislike: -50, Like: 50, Love: 100 });
+
+// Gostos do morador, no banco de personalidades do proprio jogo
+// (Main.ShopHelper._database): o jogo calcula felicidade e preco com eles,
+// como faz com os moradores dele. Como o NPCHappiness do tModLoader.
+class NPCHappiness {
+    constructor(npcType) { this.NpcType = npcType; }
+
+    static database() { return Terraria.Main.ShopHelper._database; }
+
+    SetNPCAffection(npcType, level) {
+        const P = Terraria.GameContent.Personalities;
+        const trait = P.NPCPreferenceTrait.new();
+        trait['void .ctor()']();
+        trait.Level = level;
+        trait.NpcId = npcType;
+        NPCHappiness.database()['void Register(int npcId, IShopPersonalityTrait trait)'](this.NpcType, trait);
+        return this;
+    }
+
+    // biome: 'Forest', 'Desert', 'Snow', 'Jungle', 'Ocean', 'Underground',
+    // 'Hallow', 'Mushroom', 'Dungeon', 'Corruption', 'Crimson'.
+    SetBiomeAffection(biome, level) {
+        const P = Terraria.GameContent.Personalities;
+        const name = String(biome).endsWith('Biome') ? String(biome) : biome + 'Biome';
+        const shopping = P[name].new();
+        shopping['void .ctor()']();
+        const list = P.BiomePreferenceListTrait.new();
+        list['void .ctor()']();
+        const preference = P.BiomePreferenceListTrait.BiomePreference.new();
+        preference['void .ctor(AffectionLevel affection, AShoppingBiome biome)'](level, shopping);
+        list['void Add(BiomePreferenceListTrait.BiomePreference preference)'](preference);
+        NPCHappiness.database()['void Register(int npcId, IShopPersonalityTrait trait)'](this.NpcType, list);
+        return this;
+    }
+}
+
+// TownNPCMood.<Classe> de Localization/<cultura>.json: [[texto, {cultura:
+// texto}], ...]. O {0} do ExMod vira o {BiomeName}/{NPCName} do jogo.
+function townMoodTexts(className) {
+    const byKey = new Map();
+    for (const c of CULTURES) {
+        const json = bl.readJson('Localization/' + c + '.json');
+        const moods = json && json.TownNPCMood && json.TownNPCMood[className];
+        if (!moods || typeof moods !== 'object') continue;
+        for (const [key, text] of Object.entries(moods)) {
+            if (typeof text !== 'string') continue;
+            const slot = /Biome$/.test(key) ? '{BiomeName}' : /NPC$/.test(key) ? '{NPCName}' : '{0}';
+            if (!byKey.has(key)) byKey.set(key, {});
+            byKey.get(key)[c] = text.replace(/\{0\}/g, slot);
+        }
+    }
+    return byKey;
+}
+
+// ========================== Aparencia do morador ==========================
+
+// As texturas do morador ao lado da Texture: _Party (festa), _Shimmer,
+// _Shimmer_Party e o retrato da conversa, _Portrait e _Shimmer_Portrait. Como
+// o NPCLoader do TL 1.7.1: um perfil do jogo (TownNPCProfiles, que escolhe a
+// textura por festa e shimmer e a cabeca por variante) e o retrato em
+// NPCID.Sets.NPCPortraits (sem ele, a conversa mostra o quadro do sprite).
+// No registro, com o mod na pilha: caminho relativo e do mod que chama, e no
+// bl.onContentReady quem chama e este arquivo. Guarda os absolutos que existem.
+const LOOK_SUFFIXES = ['_Party', '_Shimmer', '_Shimmer_Party', '_Portrait', '_Shimmer_Portrait'];
+function townLookFiles(base) {
+    const files = {};
+    for (const suffix of LOOK_SUFFIXES) {
+        const rel = texturePath(base + suffix);
+        if (bl.file.exists(rel)) files[suffix] = bl.mod.path + '/' + rel;
+    }
+    return files;
+}
+
+function setupTownLooks(inst, files) {
+    const type = inst.Type;
+    const has = (suffix) => suffix in files;
+    const asset = (suffix) => bl.loadTextureAsset(files[suffix]);
+    const head = bl.npcs.headSlot(type);
+    const shimmerHead = bl.npcs.headSlot(type, true);
+
+    if (has('_Party') || has('_Shimmer')) {
+        const Profiles = Terraria.GameContent.TownNPCProfiles;
+        const profile = Profiles['ITownNPCProfile LegacyWithSimpleShimmer(string subPath, int headIdNormal, int headIdShimmered, bool uniquePartyTexture, bool uniquePartyTextureShimmered)'](
+            inst.constructor.name, head, shimmerHead >= 0 ? shimmerHead : head, true, true);
+        const normal = Terraria.GameContent.TextureAssets.Npc[type];
+        const plain = profile._profiles[0], shimmer = profile._profiles[1];
+        plain._defaultNoAlt = normal;
+        plain._defaultParty = has('_Party') ? asset('_Party') : normal;
+        shimmer._defaultNoAlt = has('_Shimmer') ? asset('_Shimmer') : normal;
+        shimmer._defaultParty = has('_Shimmer_Party') ? asset('_Shimmer_Party') : shimmer._defaultNoAlt;
+        Profiles.Instance._townNPCProfiles.Add(type, profile);
+    }
+
+    if (has('_Portrait')) {
+        const Sets = Terraria.ID.NPCID.Sets;
+        const portrait = (suffix) => {
+            const p = Sets.BasicPortrait('Images/TownNPCs/Portraits/Portrait_Guide');
+            p._image = asset(suffix);
+            return p;
+        };
+        let provider = Sets.PrioritizedPortrait();
+        if (has('_Shimmer_Portrait')) {
+            // A condicao "depois do shimmer" do Guia vale para qualquer morador.
+            const condition = Sets.NPCPortraits.get_Item(22)._entries.get_Item(0).Condition;
+            provider = provider.With(condition, portrait('_Shimmer_Portrait'));
+        }
+        Sets.NPCPortraits.Add(type, provider.Default(portrait('_Portrait')));
+    }
+}
+
+// ================================ NPCShop ================================
+
+// Loja de morador de mod, como o NPCShop do tModLoader. Cada loja registrada
+// ganha um indice livre de Main.shop (de 99 para baixo; as do jogo vao ate
+// ~25) e o InventoryStorage.SetupShop desse indice e preenchido aqui.
+const shopsByKey = new Map();     // "tipo/nome" -> NPCShop
+const shopsByIndex = new Map();   // indice de Main.shop -> NPCShop
+let nextShopIndex = 99;
+
+class NPCShop {
+    constructor(npcType, name = 'Shop') {
+        this.NpcType = npcType;
+        this.Name = name;
+        this.Entries = [];
+        this.Index = -1;
+    }
+
+    // Um item. options: { condition: () => bool, price: preco em cobre (ou na
+    // moeda), currency: id de CustomCurrencyManager.RegisterCurrency }.
+    Add(type, options = {}) {
+        this.Entries.push({ type, ...options });
+        return this;
+    }
+
+    Register() {
+        const key = this.NpcType + '/' + this.Name;
+        if (shopsByKey.has(key)) throw new Error('NPCShop: ' + key + ' ja registrada');
+        this.Index = nextShopIndex--;
+        shopsByKey.set(key, this);
+        shopsByIndex.set(this.Index, this);
+        hookShops();
+        return this;
+    }
+
+    static get(npcType, name) { return shopsByKey.get(npcType + '/' + name); }
+
+    // Abre esta loja para o jogador local, como o botao "Loja" do jogo.
+    Open() {
+        Terraria.Main.instance['void OpenShop(int shopIndex)'](this.Index);
+        const pages = bl.classOf('', 'GUIInstance').Active.GUIPageIcons;
+        pages['void OpenUI(GUIPageIcons.Category left, GUIPageIcons.Category right)'](2, 4);
+    }
+}
+
+function hookShops() {
+    once('npc.Shops', () => {
+        Terraria.InventoryStorage['void SetupShop(int type)'].hook((original, self, type) => {
+            const shop = shopsByIndex.get(type);
+            original(self, type);
+            if (!shop) return;
+            const items = self.item;
+            for (let i = 0; i < items.length; i++) items[i]['void SetDefaults(int Type, ItemVariant variant)'](0, null);
+            let slot = 0;
+            for (const e of shop.Entries) {
+                if (slot >= items.length - 1) break;
+                if (e.condition && guard('NPCShop ' + shop.Name, () => e.condition()) !== true) continue;
+                const item = items[slot++];
+                item['void SetDefaults(int Type, ItemVariant variant)'](e.type, null);
+                item.isAShopItem = true;
+                if (e.currency !== undefined) item.shopSpecialCurrency = e.currency;
+                if (e.price !== undefined) item.shopCustomPrice = e.price;
+            }
+        });
+    });
+}
+
+// O NPC com quem o jogador local conversa, e o ModNPC dele.
+function talkingTo() {
+    const player = Terraria.Main.player[Terraria.Main.myPlayer];
+    const i = player ? player.talkNPC : -1;
+    const npc = i >= 0 && i < Terraria.Main.npc.length - 1 ? Terraria.Main.npc[i] : null;
+    const m = npc ? npcOf(npc) : undefined;
+    return m ? { npc, m } : null;
+}
+
+// O Mercador: o morador de mod pega dele o icone de loja e o botao de felicidade.
+const NPCID_MERCHANT = 17;
+
+// A conversa do celular (GUINPCDialogue): o SetupButtonText e um switch pelo
+// tipo do NPC que devolve, por ref, texto e icone de cada botao, custo e se
+// mostra o botao de felicidade. Para o morador de mod ele roda como se fosse o
+// Mercador, e o texto vem do SetChatButtons do mod.
+function hookChatButtons() {
+    once('npc.ChatButtons', () => {
+        const Dialogue = bl.classOf('', 'GUINPCDialogue');
+        Dialogue['void SetupButtonText(ref string focusText, ref Texture2D option1Tex, ref string focusText3, ref Texture2D option2Tex, ref int cost, ref bool showHappiness)'].hook(
+            (original, self, text1, tex1, text2, tex2, cost, happy) => {
+                const t = talkingTo();
+                if (!t) return original(self, text1, tex1, text2, tex2, cost, happy);
+                const type = t.npc.type;
+                t.npc.type = NPCID_MERCHANT;
+                try { original(self, text1, tex1, text2, tex2, cost, happy); } finally { t.npc.type = type; }
+                const buttons = { button: '', button2: '' };
+                guard(t.m.constructor.name + '.SetChatButtons', () => t.m.SetChatButtons(t.npc, buttons));
+                const icon = tex1.value;
+                text1.value = buttons.button || '';
+                tex1.value = buttons.button ? icon : null;
+                text2.value = buttons.button2 || '';
+                tex2.value = buttons.button2 ? icon : null;
+                cost.value = 0;
+            });
+        const clicked = (first) => (original, self, ...args) => {
+            const t = talkingTo();
+            if (!t) return original(self, ...args);
+            const shopName = guard(t.m.constructor.name + '.OnChatButtonClicked', () => t.m.OnChatButtonClicked(t.npc, first));
+            if (typeof shopName !== 'string') return undefined;
+            const shop = NPCShop.get(t.npc.type, shopName);
+            if (shop) shop.Open();
+            else bl.log('NPCShop: ' + t.m.constructor.name + ' pediu a loja "' + shopName + '", nao registrada');
+            return undefined;
+        };
+        Dialogue['void Option1Clicked(int healCost)'].hook(clicked(true));
+        Dialogue['void Option2Clicked()'].hook(clicked(false));
+    });
 }
 
 // Moradores vivos (o numTownNPCs do CanTownNPCSpawn). 368 = mercador viajante.
@@ -2326,6 +2590,8 @@ function hookNpc(cls) {
             return String(names[Math.floor(Math.random() * names.length)]);
         });
     });
+
+    if (has('SetChatButtons') || has('OnChatButtonClicked')) hookChatButtons();
 
     // A fala: a do jogo roda antes (o que ela registra continua), a do mod vale.
     if (has('GetChat')) once('npc.GetChat', () => {
@@ -2431,6 +2697,9 @@ globalThis.ModTile = ModTile;
 globalThis.ModPlayer = ModPlayer;
 globalThis.ModProjectile = ModProjectile;
 globalThis.ModNPC = ModNPC;
+globalThis.NPCShop = NPCShop;
+globalThis.NPCHappiness = NPCHappiness;
+globalThis.AffectionLevel = AffectionLevel;
 globalThis.NPCLoot = NPCLoot;
 globalThis.TooltipLine = TooltipLine;
 globalThis.NPCSpawnInfo = NPCSpawnInfo;

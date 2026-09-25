@@ -973,6 +973,10 @@ JSValue js_loadTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
     return loadTexture(ctx, argc, argv);
 }
 
+JSValue js_loadTextureAsset(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return loadTextureAsset(ctx, argc, argv);
+}
+
 JSValue js_classOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 2) return JS_ThrowTypeError(ctx, "bl.classOf(namespace, nome)");
     return js_NativeClass(ctx, JS_UNDEFINED, argc, argv);
@@ -1094,6 +1098,8 @@ void installBindings(void* context) {
     JS_SetPropertyStr(ctx, bl, "classOf", JS_NewCFunction(ctx, js_classOf, "classOf", 2));
     JS_SetPropertyStr(ctx, bl, "loadTexture",
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
+    JS_SetPropertyStr(ctx, bl, "loadTextureAsset",
+                      JS_NewCFunction(ctx, js_loadTextureAsset, "loadTextureAsset", 1));
     installExtraFields(ctx, bl);
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);

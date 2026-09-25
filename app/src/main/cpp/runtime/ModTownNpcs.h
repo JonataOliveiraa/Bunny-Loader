@@ -18,11 +18,14 @@ namespace bl::runtime {
  *     (TownRoomManager._hasRoom, o nearbyNPCsByType do ShopHelper.ProcessMood).
  */
 
-/** A cabeca do NPC `type` (PNG). Antes da instalacao; sem arquivo, nada. */
-void setModNpcHead(int type, const std::string& texturePath, const std::string& assetName);
+/**
+ * A cabeca do NPC `type` (PNG). `variant` 0: a normal (TypeToDefaultHeadIndex);
+ * 1: a de depois do shimmer (o perfil de morador a usa). Antes da instalacao.
+ */
+void setModNpcHead(int type, int variant, const std::string& texturePath, const std::string& assetName);
 
-/** O indice da cabeca do NPC de mod `type` em TextureAssets.NpcHead, ou -1. */
-int modNpcHeadSlot(int type);
+/** O indice da cabeca do NPC de mod `type` (variante 0/1) em TextureAssets.NpcHead, ou -1. */
+int modNpcHeadSlot(int type, int variant = 0);
 
 /**
  * Os lacos e alocacoes compilados, para `totalTypes` tipos. Cedo, com o

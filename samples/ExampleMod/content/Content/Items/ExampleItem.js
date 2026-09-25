@@ -1,3 +1,19 @@
+export class ExampleCustomCurrency {
+    static #id = -1;
+
+    static get CurrencyId() {
+        if (ExampleCustomCurrency.#id < 0) {
+            const { CustomCurrencyManager, CustomCurrencySingleCoin } = Terraria.GameContent.UI;
+            const currency = CustomCurrencySingleCoin.new();
+            currency['void .ctor(int coinItemID, long currencyCap)'](ModItem.getTypeByName('ExampleItem'), 999);
+            currency.CurrencyTextKey = ModLocalization.Translate('CustomCurrency.ExampleItemCurrency');
+            currency.CurrencyTextColor = Color.new(240, 100, 120);
+            ExampleCustomCurrency.#id = CustomCurrencyManager.RegisterCurrency(currency);
+        }
+        return ExampleCustomCurrency.#id;
+    }
+}
+
 export class ExampleItem extends ModItem {
     constructor() {
         super();

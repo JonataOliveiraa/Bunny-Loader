@@ -1,3 +1,5 @@
+import { ExampleCustomCurrency } from '../Items/ExampleItem.js';
+
 const { DustID, NPCID, SoundID } = Terraria.ID;
 const { BestiaryDatabaseNPCsPopulator, FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
@@ -19,6 +21,12 @@ export class ExamplePerson extends ModNPC {
         NPCID.Sets.HatOffsetY[this.Type] = 4;
         NPCID.Sets.ShimmerTownTransform[this.Type] = true;
         NPCID.Sets.NPCBestiaryDrawOffset.Add(this.Type, NPCID.Sets.NPCBestiaryDrawOffset.get_Item(NPCID.Guide));
+
+        this.Happiness
+            .SetNPCAffection(NPCID.Nurse, AffectionLevel.Love)
+            .SetNPCAffection(NPCID.Guide, AffectionLevel.Like)
+            .SetNPCAffection(NPCID.Merchant, AffectionLevel.Dislike)
+            .SetBiomeAffection('Desert', AffectionLevel.Hate);
     }
 
     SetDefaults() {
@@ -66,6 +74,24 @@ export class ExamplePerson extends ModNPC {
 
     CheckConditions(left, right, top, bottom) {
         return bottom <= Terraria.Main.worldSurface;
+    }
+
+    SetChatButtons(npc, buttons) {
+        buttons.button = Terraria.Localization.Language['string GetTextValue(string key)']('LegacyInterface.28');
+    }
+
+    OnChatButtonClicked(npc, firstButton) {
+        if (firstButton) return 'Shop';
+    }
+
+    AddShops() {
+        new NPCShop(this.Type, 'Shop')
+            .Add(ModItem.getTypeByName('ExampleMeleeWeapon'))
+            .Add(ModItem.getTypeByName('ExampleGun'))
+            .Add(ModItem.getTypeByName('ExampleMagicWeapon'))
+            .Add(ModItem.getTypeByName('ExampleYoyo'), { condition: () => !Terraria.Main.dayTime })
+            .Add(ModItem.getTypeByName('ExampleSwingingEnergySword'), { currency: ExampleCustomCurrency.CurrencyId, price: 10 })
+            .Register();
     }
 
     GetChat(npc) {
