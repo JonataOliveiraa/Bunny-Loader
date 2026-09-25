@@ -39,9 +39,25 @@ class ModRepository(private val context: Context) {
      */
     fun list(): List<ModManifest> = modsDir.listFiles().orEmpty()
         .filter { it.isDirectory }
-        .mapNotNull { dir -> readManifest(dir) }
-        .filter { it.hasValidUid }
+        .mapNotNull { dir -> readManifest(dir)?.let { dir to it } }
+        .filter { (_, m) -> m.hasValidUid }
+        .mapNotNull { (dir, m) -> m.takeIf { settle(dir, it) } }
+        .distinctBy { it.uid }
         .sortedBy { it.uid }
+
+    /**
+     * Pasta colada à mão com outro nome (`bunny_packs/MeuMod/`) vira
+     * `bunny_packs/<uid>/`: é por esse nome que o núcleo carrega e a lista
+     * acha o pacote. Antes ela entrava na contagem de ligados, mas não
+     * aparecia na lista nem carregava. Se já existe a pasta do uid, a cópia
+     * fica de fora (a do uid vale).
+     */
+    private fun settle(dir: File, manifest: ModManifest): Boolean {
+        if (dir.name == manifest.uid) return true
+        val target = File(modsDir, manifest.uid)
+        if (target.exists()) return false
+        return dir.renameTo(target)
+    }
 
     /**
      * Instala um `.bmod` escolhido pelo seletor de arquivos.

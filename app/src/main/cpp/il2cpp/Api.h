@@ -109,6 +109,8 @@ struct Api {
     // System.Type, e System.Type -> classe.
     Il2CppObject* (*type_get_object)(const Il2CppType*) = nullptr;
     Il2CppClass* (*class_from_system_type)(Il2CppObject*) = nullptr;
+    // Classe aninhada -> a de fora (nullptr se nao e aninhada).
+    Il2CppClass* (*class_get_declaring_type)(Il2CppClass*) = nullptr;
     Il2CppThread* (*thread_attach)(Il2CppDomain*) = nullptr;
 
     const Il2CppImage* gameImage = nullptr;   // Assembly-CSharp.dll

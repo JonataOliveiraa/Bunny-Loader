@@ -1,6 +1,7 @@
 #include "core/Log.h"
 #include <cstdarg>
 #include <cstdio>
+#include <ctime>
 #include <mutex>
 #include <string>
 
@@ -23,8 +24,21 @@ void open(const char* path) {
     g_file = path ? fopen(path, "w") : nullptr;
 }
 
+/** A letra do nivel, como no logcat: I, W, E... */
+static char levelLetter(int level) {
+    switch (level) {
+        case ANDROID_LOG_VERBOSE: return 'V';
+        case ANDROID_LOG_DEBUG: return 'D';
+        case ANDROID_LOG_WARN: return 'W';
+        case ANDROID_LOG_ERROR: return 'E';
+        case ANDROID_LOG_FATAL: return 'F';
+        default: return 'I';
+    }
+}
+
 void write(int level, const char* fmt, ...) {
-    char buffer[1024];
+    // Uma pilha de erro de mod passa facil de 1 KB; o logcat corta em ~4 KB.
+    char buffer[4096];
     va_list args;
     va_start(args, fmt);
     vsnprintf(buffer, sizeof(buffer), fmt, args);
@@ -36,7 +50,13 @@ void write(int level, const char* fmt, ...) {
     {
         std::lock_guard<std::mutex> guard(g_mutex);
         if (g_file) {
-            fprintf(g_file, "%s\n", buffer);
+            // No arquivo, com hora e nivel: e ele que o modder abre, sem logcat.
+            timespec ts{};
+            clock_gettime(CLOCK_REALTIME, &ts);
+            tm t{};
+            localtime_r(&ts.tv_sec, &t);
+            fprintf(g_file, "%02d:%02d:%02d.%03ld %c %s\n", t.tm_hour, t.tm_min, t.tm_sec,
+                    ts.tv_nsec / 1000000, levelLetter(level), buffer);
             fflush(g_file);
         }
         if (level >= ANDROID_LOG_ERROR) {

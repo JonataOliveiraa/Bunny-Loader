@@ -47,7 +47,8 @@ bl.log('Dano em Dobro: ativo');
 ```
 
 Instale (ver o [README](README.md#instalando)), abra o jogo e toda arma nasce com
-o dobro do dano. `adb logcat -s BunnyLoader` mostra `Dano em Dobro: ativo`.
+o dobro do dano. O log (`Android/data/com.bunnyloader/logs/`, ou
+`adb logcat -s BunnyLoader`) mostra `Dano em Dobro: ativo`.
 
 As quatro linhas do hook são a anatomia de quase todo mod:
 
@@ -81,8 +82,11 @@ Microsoft.Xna.Framework.Vector2
 Terraria.GameContent.ItemDropRules.ItemDropRule
 ```
 
+Classe **sem namespace** (a interface do celular: `GUIBuffs`, `GUIInstance`,
+`GUIChest`...) é global, pelo nome: `GUIBuffs['void Draw()']`.
+
 Quando a árvore não chega numa classe (nome estranho, classe gerada), use
-`bl.classOf('Terraria', 'Player')`.
+`bl.classOf('Terraria', 'Player')` (sem namespace: `bl.classOf('', 'GUIBuffs')`).
 
 Classe aninhada é propriedade da de fora: `SpriteFont.Glyph`.
 
@@ -266,6 +270,43 @@ import { dobra } from './util/dano.js';
 
 `bl.readJson('config.json')` lê um JSON do mod (ou `undefined`, se não existe).
 
+## Arquivos
+
+Caminho relativo é relativo à pasta do `main.js`; absoluto vale como está.
+
+```js
+bl.mod.name            // "Dano em Dobro" (do manifest.json)
+bl.mod.uuid            // o uid
+bl.mod.path            // a pasta do main.js
+bl.mod.root            // a pasta do pacote (a do manifest.json)
+bl.mod.dataDirectory   // Android/data/com.bunnyloader/mod_data/<uid>
+
+bl.info.appDirectory   // Android/data/com.bunnyloader (Players/, Worlds/...)
+bl.info.logsDirectory
+bl.info.terrariaVersionCode
+
+bl.file.exists('config.json')
+bl.file.read('config.json')              // texto, ou undefined
+bl.file.readBytes('dados.bin')           // Uint8Array, ou undefined
+bl.file.write(caminho, 'texto')          // ou Uint8Array; cria as pastas
+bl.file.append(caminho, 'mais texto')
+bl.file.delete(caminho)                  // true se apagou
+
+bl.directory.exists('Textures')
+bl.directory.create(caminho)             // com as pastas do meio
+bl.directory.delete(caminho)             // e tudo dentro
+bl.directory.listFiles('Textures/Bg')    // ['Textures/Bg/a.png', ...]
+bl.directory.listDirectories('Textures')
+
+bl.path.join('a', 'b', 'c.png')          // 'a/b/c.png'
+bl.path.getName('x/y/z.png')             // 'z.png'
+bl.path.getParentPath('x/y/z.png')       // 'x/y'
+bl.path.getExtension('z.png')            // '.png'
+```
+
+Para guardar dados do mod (configuração, progresso), use `bl.mod.dataDirectory`:
+a pasta do pacote é trocada inteira quando o mod é atualizado.
+
 ## Referência rápida
 
 | | |
@@ -278,9 +319,12 @@ import { dobra } from './util/dano.js';
 | `Classe.new()` + `['void .ctor(...)']` | criar objeto |
 | `metodo.hook((original, self, ...args) => ...)` | interceptar |
 | `metodo.hook(cb, { minType })` | interceptar só a partir de um tipo |
-| `bl.log(...)` | escreve no logcat (tag `BunnyLoader`) |
+| `bl.log(...)` | escreve em `logs/bunny_<data>.txt` e no logcat |
 | `bl.loadTexture(caminho)` | PNG/JPG do mod → `Texture2D` |
 | `bl.readJson(caminho)` | JSON do mod |
+| `bl.file`, `bl.directory`, `bl.path` | ler e escrever arquivos (ver *Arquivos*) |
+| `bl.mod`, `bl.info` | o mod que chama; a pasta do app |
+| `GUIBuffs`, `GUIInstance`... | classe sem namespace, global |
 | `import ... from './x.js'` | outro arquivo do mod |
 
 O comentário do topo de `samples/HelloMod/content/main.js` tem esta mesma API

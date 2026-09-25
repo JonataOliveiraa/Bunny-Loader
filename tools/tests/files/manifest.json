@@ -1,0 +1,15 @@
+{
+  "uid": "fb946d3a-5473-4209-9767-c680168b26e3",
+  "id": "test-files",
+  "name": "Teste: arquivos, bl.mod e globais",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "bl.file, bl.directory, bl.path, bl.mod, bl.info, classes sem namespace e bl.log.",
+  "description": "Loga 'files ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

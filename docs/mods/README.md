@@ -86,8 +86,8 @@ Três jeitos de pôr um mod lá:
    dentro de uma pasta só, que o app ignora. Se o manifesto estiver errado, o
    app diz o quê e não instala nada.
 2. **Copiar a pasta** — com um gerenciador de arquivos, ponha a pasta do mod em
-   `bunny_packs/` com o `uid` como nome. Ela aparece na lista quando o app volta
-   à frente.
+   `bunny_packs/`. Ela aparece na lista quando o app volta à frente. Com outro
+   nome (`bunny_packs/MeuMod/`), o app renomeia para o `uid` do manifesto.
 3. **adb**, o mais rápido para desenvolver. Mande um `.tar` e extraia no
    aparelho — em alguns aparelhos e emuladores o `adb push` de uma pasta com
    subpastas para `Android/data` chega pela metade:
@@ -108,11 +108,28 @@ O interruptor na aba *Pacotes* liga e desliga o mod para o próximo boot.
 ## Vendo o que o mod faz
 
 Tudo que o mod escreve com `bl.log(...)`, e todo erro de JavaScript, vai para
-o logcat com a tag `BunnyLoader`:
+um arquivo de texto, um por vez que o jogo abre:
+
+```
+Android/data/com.bunnyloader/logs/bunny_2026-09-25_14-03-27.txt
+```
+
+Ficam os 3 mais recentes (o mais velho é apagado), então o log da vez em que o
+jogo fechou sozinho ainda está lá quando você reabre. Cada linha tem a hora e o
+nível (`I` informação, `W` aviso, `E` erro):
+
+```
+14:03:31.204 I [mod] Dano em Dobro: ativo
+```
+
+Pelo computador, o mesmo sai no logcat, com a tag `BunnyLoader`:
 
 ```bash
 adb logcat -s BunnyLoader
 ```
+
+`bl.log` aceita vários valores, como o `console.log`, e objeto ou array vira
+JSON: `bl.log('vida', player.statLife, { x: 1 })` escreve `vida 400 {"x":1}`.
 
 Um erro no topo do `main.js` impede o mod de carregar e aparece ali com a linha.
 Um erro dentro de um hook não derruba o jogo:

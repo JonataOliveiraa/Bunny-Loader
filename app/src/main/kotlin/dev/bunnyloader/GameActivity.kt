@@ -37,6 +37,9 @@ import java.io.File
 class GameActivity : Activity() {
 
     private companion object {
+        /** Logs de sessao guardados em logs/ (o desta mais os anteriores). */
+        const val LOGS_KEPT = 3
+
         /**
          * Núcleo de mods. Religado agora que o hosting está provado (o jogo
          * renderiza dentro do nosso processo). Detalhe importante: a libil2cpp
@@ -117,6 +120,24 @@ class GameActivity : Activity() {
      * watcher pendente de il2cpp_init ja estar registrado. Falha aqui nao e
      * fatal: o jogo sobe sem mods.
      */
+    /**
+     * `logs/bunny_2026-09-25_14-03-27.txt`, um por sessao, ao lado de
+     * bunny_packs, Players e Worlds: o modder abre no gerenciador de arquivos.
+     * Ficam os [LOGS_KEPT] mais novos (o desta sessao e os anteriores, para
+     * quando o jogo fechou sozinho); o mais velho e apagado.
+     */
+    private fun newLogFile(dir: File): File {
+        dir.mkdirs()
+        dir.listFiles { f -> f.isFile && f.name.startsWith("bunny_") && f.name.endsWith(".txt") }
+            .orEmpty()
+            .sortedByDescending { it.name }   // o nome e a data: ordem de texto = ordem de tempo
+            .drop(LOGS_KEPT - 1)
+            .forEach { it.delete() }
+        val stamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.US)
+            .format(java.util.Date())
+        return File(dir, "bunny_$stamp.txt")
+    }
+
     private fun startNativeCore() {
         if (!NativeBridge.ensureLoaded()) {
             Log.i(TAG, "nucleo nativo ausente (bl.nativeBuild=false) - seguindo sem mods")
@@ -124,14 +145,14 @@ class GameActivity : Activity() {
         }
         val repo = ModRepository(this)
         val prefs = dev.bunnyloader.ui.Prefs(this)
-        val logDir = File(filesDir, "logs").apply { mkdirs() }
+        val logFile = newLogFile(File(repo.modsDir.parentFile ?: filesDir, "logs"))
         val ok = runCatching {
             NativeBridge.init(
                 NativeConfig(
                     gameLibDir = BundledRuntime.libDir(this).absolutePath,
                     modsDir = repo.modsDir.absolutePath,
                     enabledMods = repo.enabledSpecs().toTypedArray(),
-                    logPath = File(logDir, "bunny.log").absolutePath,
+                    logPath = logFile.absolutePath,
                     // Canal de dev: adb push <arquivo> para a NOSSA pasta
                     // externa. A do Terraria nao serve — desde o Android 11
                     // um app nao escreve em Android/data de outro. Desligado

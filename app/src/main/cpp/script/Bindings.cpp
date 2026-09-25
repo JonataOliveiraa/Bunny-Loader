@@ -12,6 +12,7 @@
 #include "script/Npcs.h"
 #include "script/Projectiles.h"
 #include "script/Buffs.h"
+#include "script/Files.h"
 #include "script/Texture.h"
 #include "script/Marshal.h"
 #include "script/Members.h"
@@ -181,12 +182,35 @@ std::string overloadList(Il2CppClass* cls, const std::string& name) {
 }
 
 // --- bl.log ---
-JSValue js_bl_log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    for (int i = 0; i < argc; ++i) {
-        const char* text = JS_ToCString(ctx, argv[i]);
-        BL_INFO("[mod] %s", text ? text : "undefined");
-        if (text) JS_FreeCString(ctx, text);
+/** Um valor como texto de log: objeto e array JS em JSON, o resto pelo toString. */
+std::string logText(JSContext* ctx, JSValueConst v) {
+    std::string out;
+    const char* text = JS_ToCString(ctx, v);
+    if (text) out = text;
+    else { JS_FreeValue(ctx, JS_GetException(ctx)); out = "?"; }
+    if (text) JS_FreeCString(ctx, text);
+    if (JS_IsArray(v) || (JS_IsObject(v) && !JS_IsFunction(ctx, v) && out == "[object Object]")) {
+        JSValue json = JS_JSONStringify(ctx, v, JS_UNDEFINED, JS_UNDEFINED);
+        if (JS_IsException(json)) {
+            JS_FreeValue(ctx, JS_GetException(ctx));   // ciclo, BigInt...: fica o toString
+        } else if (const char* j = JS_ToCString(ctx, json)) {
+            out = j;
+            JS_FreeCString(ctx, j);
+        }
+        JS_FreeValue(ctx, json);
     }
+    return out;
+}
+
+// bl.log(a, b, ...) — uma linha, os valores separados por espaco (como o
+// console.log). Vai para o logcat e para logs/bunny.txt.
+JSValue js_bl_log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    std::string line;
+    for (int i = 0; i < argc; ++i) {
+        if (i) line += ' ';
+        line += logText(ctx, argv[i]);
+    }
+    BL_INFO("[mod] %s", line.c_str());
     return JS_UNDEFINED;
 }
 
@@ -892,6 +916,77 @@ JSValue js_classOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     return js_NativeClass(ctx, JS_UNDEFINED, argc, argv);
 }
 
+// data[0] = o nome da classe. Resolve e troca o acessor pelo valor.
+JSValue globalClassGet(JSContext* ctx, JSValueConst thisVal, int, JSValueConst*, int, JSValueConst* data) {
+    const char* name = JS_ToCString(ctx, data[0]);
+    if (!name) return JS_EXCEPTION;
+    Il2CppClass* cls = il2cpp::findClassQuiet("", name);
+    JSValue v = JS_UNDEFINED;
+    if (cls) {
+        v = JS_NewObjectClass(ctx, g_nativeClassId);
+        if (!JS_IsException(v)) JS_SetOpaque(v, cls);
+    }
+    JSAtom atom = JS_NewAtom(ctx, name);
+    JS_FreeCString(ctx, name);
+    JS_DefinePropertyValue(ctx, thisVal, atom, JS_DupValue(ctx, v), JS_PROP_C_W_E);
+    JS_FreeAtom(ctx, atom);
+    return v;
+}
+
+// `globalThis.X = ...` de quem chega depois (ajudantes, mods) vence a classe.
+JSValue globalClassSet(JSContext* ctx, JSValueConst thisVal, int argc, JSValueConst* argv, int, JSValueConst* data) {
+    const char* name = JS_ToCString(ctx, data[0]);
+    if (!name) return JS_EXCEPTION;
+    JSAtom atom = JS_NewAtom(ctx, name);
+    JS_FreeCString(ctx, name);
+    JS_DefinePropertyValue(ctx, thisVal, atom, JS_DupValue(ctx, argc > 0 ? argv[0] : JS_UNDEFINED),
+                           JS_PROP_C_W_E);
+    JS_FreeAtom(ctx, atom);
+    return JS_UNDEFINED;
+}
+
+bool isPlainName(const char* n) {
+    if (!n || !std::isalpha(static_cast<unsigned char>(n[0]))) return false;
+    for (const char* p = n; *p; ++p) {
+        if (!std::isalnum(static_cast<unsigned char>(*p)) && *p != '_') return false;
+    }
+    return true;
+}
+
+/**
+ * As classes do jogo SEM namespace (GUIBuffs, GUIInstance, Main_Layout...)
+ * como globais: `GUIBuffs['void Draw()'].hook(...)`. Preguicosas: o getter
+ * acha a classe no primeiro acesso e vira valor. Nome que ja existe (Math,
+ * bl, Terraria...) fica como esta; aninhada e gerada pelo compilador, fora.
+ */
+void installGlobalClasses(JSContext* ctx, JSValue global) {
+    auto& a = il2cpp::api();
+    const Il2CppImage* img = a.gameImage;
+    if (!img) return;
+    int published = 0;
+    const size_t n = a.image_get_class_count(img);
+    for (size_t i = 0; i < n; ++i) {
+        Il2CppClass* c = a.image_get_class(img, i);
+        if (!c) continue;
+        const char* ns = a.class_get_namespace(c);
+        if (ns && *ns) continue;
+        if (a.class_get_declaring_type && a.class_get_declaring_type(c)) continue;
+        const char* name = a.class_get_name(c);
+        if (!isPlainName(name)) continue;
+        JSAtom atom = JS_NewAtom(ctx, name);
+        const int has = JS_HasProperty(ctx, global, atom);
+        if (has == 0) {
+            JSValue key = JS_NewString(ctx, name);
+            JSValue get = JS_NewCFunctionData(ctx, globalClassGet, 0, 0, 1, &key);
+            JSValue set = JS_NewCFunctionData(ctx, globalClassSet, 1, 0, 1, &key);
+            JS_FreeValue(ctx, key);
+            if (JS_DefinePropertyGetSet(ctx, global, atom, get, set, JS_PROP_CONFIGURABLE) >= 0) ++published;
+        }
+        JS_FreeAtom(ctx, atom);
+    }
+    BL_INFO("namespaces: %d classe(s) sem namespace publicadas como globais", published);
+}
+
 /**
  * Publica um global por namespace RAIZ encontrado nas imagens do jogo.
  *
@@ -922,6 +1017,7 @@ void installNamespaceRoots(JSContext* ctx, JSValue global) {
         JS_SetPropertyStr(ctx, global, r.c_str(), makeNamespace(ctx, r));
     }
     BL_INFO("namespaces: %zu raizes publicadas", roots.size());
+    installGlobalClasses(ctx, global);
 }
 
 void installBindings(void* context) {
@@ -940,6 +1036,7 @@ void installBindings(void* context) {
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);
     installBuffsApi(ctx, bl);
+    installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
