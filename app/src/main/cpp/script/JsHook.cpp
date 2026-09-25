@@ -93,6 +93,8 @@ struct HookCtx {
     int filterReg = -1;
     int32_t filterOffset = -1;
     int32_t filterMin = 0;
+    // HookFilter::whileIn: o slot do hook de fora; -1 = sem esse filtro.
+    int gateSlot = -1;
 };
 
 static HookCtx g_hooks[kMaxHooks];
@@ -229,6 +231,8 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     std::memcpy(rawD, rawF, sizeof(rawD));
 
     // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
+    // g_depth do hook de fora > 0 = esta thread esta dentro do callback dele.
+    if (c->gateSlot >= 0 && g_depth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
     if (c->filterReg >= 0) {
         auto* o = reinterpret_cast<const uint8_t*>(rawA[c->filterReg]);
         int32_t v = 0;
@@ -494,6 +498,15 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
     probe.isInstance = isInstance;
     std::string err = buildPlan(probe);
     if (err.empty() && filter && filter->on != -2) err = resolveFilter(probe, *filter);
+    if (err.empty() && filter && filter->whileIn) {
+        for (int i = 0; i < kMaxHooks; ++i) {
+            if (g_hooks[i].used && g_hooks[i].method == filter->whileIn) { probe.gateSlot = i; break; }
+        }
+        if (probe.gateSlot < 0) {
+            err = std::string("whileIn: '") + il2cpp::api().method_get_name(filter->whileIn) +
+                  "' precisa ter um hook JS antes";
+        }
+    }
     if (!err.empty()) {
         JS_ThrowTypeError(ctx, "hook em '%s': %s",
                           il2cpp::api().method_get_name(method), err.c_str());

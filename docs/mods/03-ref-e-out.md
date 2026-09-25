@@ -138,6 +138,30 @@ Terraria.Main['bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeValue)'
 });
 ```
 
+### Um caso real: o tooltip
+
+O tooltip do celular sai de um método com seis `ref`:
+`Main.MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int
+researchLine, ref int materialsLine, float oldKB, ref int numLines, string[]
+toolTipLine, ...)`. Ele acrescenta as linhas ao `toolTipLine` e devolve quantas
+são em `numLines`. Hookando, dá para inserir uma linha logo abaixo do nome:
+
+```js
+Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour)'].hook(
+    (original, item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor) => {
+        original(item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor);
+        const n = numLines.value;
+        for (let i = n; i > 1; i--) { lines[i] = lines[i - 1]; pre[i] = pre[i - 1]; bad[i] = bad[i - 1]; }
+        lines[1] = 'Logo abaixo do nome';
+        pre[1] = bad[1] = false;
+        numLines.value = n + 1;
+        for (const r of [yoyo, research, materials, setBonus]) if (r.value >= 1) r.value += 1;
+    });
+```
+
+Na prática, um item de mod não precisa disso: o `ModifyTooltips` do `ModItem`
+já é esse hook, com cor por linha e por trecho (guia 2, *Tooltip colorido*).
+
 ## Struct por `ref`
 
 Com struct (`ref Vector2`, `ref FishingAttempt`), `.value` devolve uma

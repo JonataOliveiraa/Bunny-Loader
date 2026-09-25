@@ -272,6 +272,17 @@ metodo.hook(callback, { minType: bl.items.vanillaCount });
 
 `minType` compara o campo `type` do objeto; só chama o callback a partir dele.
 
+`whileIn` liga o hook só **dentro de outro**: o callback roda só enquanto a
+thread está no hook JS daquele método (que precisa já ter um). É assim que um
+método chamado milhares de vezes por quadro, como o `SpriteBatch.DrawString`,
+só custa JS durante o desenho do tooltip:
+
+```js
+const tooltip = Terraria.Main['void MouseText_DrawItemTooltip(Main.MouseTextCache info, int rare, byte diff, int X, int Y)'];
+tooltip.hook((original) => original());
+drawString.hook(callback, { whileIn: tooltip });
+```
+
 ### O que ainda não dá
 
 - Hookar método com mais de 16 argumentos inteiros (8 em registrador e 8 na
@@ -365,6 +376,7 @@ a pasta do pacote é trocada inteira quando o mod é atualizado.
 | `Classe.new()` + `['void .ctor(...)']` | criar objeto |
 | `metodo.hook((original, self, ...args) => ...)` | interceptar |
 | `metodo.hook(cb, { minType })` | interceptar só a partir de um tipo |
+| `metodo.hook(cb, { whileIn: outro })` | interceptar só dentro do hook de outro método |
 | `new Ref(v)` / `ref.value` | parâmetro `ref`/`out`, na chamada e no hook |
 | `bl.log(...)` | escreve em `logs/bunny_<data>.txt` e no logcat |
 | `bl.loadTexture(caminho)` | PNG/JPG do mod → `Texture2D` |

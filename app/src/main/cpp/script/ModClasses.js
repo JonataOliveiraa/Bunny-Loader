@@ -241,6 +241,10 @@ class ModItem {
     PostSetupContent() {}
     // Uma vez por cultura, com this.TooltipLines ja preenchido.
     ModifyTooltipLines() {}
+    // Na hora de mostrar: as linhas do tooltip (TooltipLine) — mude o texto,
+    // a cor (OverrideColor), insira e tire linhas. Tags [c/RRGGBB:texto] no
+    // texto pintam trechos.
+    ModifyTooltips(item, tooltips) {}
     // Uma vez, antes de qualquer receita: ModRecipe.CreateRecipeGroup(...).
     AddRecipeGroups() {}
     // Uma vez, quando as receitas do jogo ja existem: this.CreateRecipe(...).
@@ -590,6 +594,8 @@ function hookItem(cls) {
         });
     });
 
+    if (has('ModifyTooltips')) once('item.Tooltips', hookTooltips);
+
     if (has('UpdateInventory')) once('item.Inventory', () => {
         P['void UpdateEquips(int i)'].hook((original, self, i) => {
             original(self, i);
@@ -599,6 +605,122 @@ function hookItem(cls) {
             }
         });
     });
+}
+
+// ================================ tooltips ================================
+
+// Uma linha do tooltip, como a do tModLoader. `new TooltipLine(Mod, nome,
+// texto)` tambem vale (o Mod e ignorado).
+class TooltipLine {
+    constructor(...args) {
+        const [name, text] = args.length >= 3 ? [args[1], args[2]] : args;
+        this.Name = String(name);
+        this.Text = text === undefined ? '' : String(text);
+        this.OverrideColor = undefined;
+        this.IsModifier = false;
+        this.IsModifierBad = false;
+    }
+    // '[c/RRGGBB:texto]': a tag de cor que o tooltip entende.
+    static colorTag(text, color) { return '[c/' + hexOf(color) + ':' + text + ']'; }
+}
+
+function hexOf(color) {
+    if (typeof color === 'string') return color.replace(/^#/, '').slice(0, 6).toUpperCase();
+    const h = (v) => Math.min(Math.max(Math.round(v || 0), 0), 255).toString(16).padStart(2, '0');
+    return (h(color.R) + h(color.G) + h(color.B)).toUpperCase();
+}
+
+const COLOR_TAG = /\[c\/([0-9a-fA-F]{6}):([^\]]*)\]/g;
+const hasTags = (t) => typeof t === 'string' && t.indexOf('[c/') >= 0;
+const stripTags = (t) => t.replace(COLOR_TAG, '$2');
+
+// Texto com tags -> trechos { text, rgb } (rgb ausente = cor da linha).
+function colorSegments(text) {
+    const out = [];
+    let at = 0;
+    COLOR_TAG.lastIndex = 0;
+    for (let m; (m = COLOR_TAG.exec(text));) {
+        if (m.index > at) out.push({ text: text.slice(at, m.index) });
+        const v = parseInt(m[1], 16);
+        out.push({ text: m[2], rgb: [(v >> 16) & 255, (v >> 8) & 255, v & 255] });
+        at = m.index + m[0].length;
+    }
+    if (at < text.length) out.push({ text: text.slice(at) });
+    return out;
+}
+
+// O celular monta as linhas no MouseText_DrawItemTooltip_GetLinesInfo, que
+// devolve tudo por `ref` (numLines, as linhas especiais), e desenha cada linha
+// com um SpriteBatch.DrawString (4 vezes em preto, a sombra, e 1 na cor da
+// linha) — o texto sai cru, sem o parser de tags do PC. Entao: as linhas vao
+// ao ModifyTooltips; a linha com tag e desenhada por nos, trecho a trecho, e
+// a medida dela (a largura da caixa) ignora as tags.
+function hookTooltips() {
+    const Main = Terraria.Main;
+    const G = Microsoft.Xna.Framework.Graphics;
+    const drawTooltip = Main['void MouseText_DrawItemTooltip(Main.MouseTextCache info, int rare, byte diff, int X, int Y)'];
+    let drawing = 0;
+    drawTooltip.hook((original) => {
+        drawing++;
+        try { return original(); } finally { drawing--; }
+    });
+
+    Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour)'].hook(
+        (original, item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor) => {
+            original(item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor);
+            const m = itemOf(item);
+            if (!m || !overrides(m.constructor, ModItem, 'ModifyTooltips')) return;
+            const special = new Map([[yoyo.value, 'OneDropLogo'], [research.value, 'JourneyResearch'],
+                                     [materials.value, 'Material'], [setBonus.value, 'SetBonus'], [0, 'ItemName']]);
+            const list = [];
+            for (let i = 0; i < numLines.value; i++) {
+                const line = new TooltipLine(special.get(i) || 'Line' + i, lines[i]);
+                line.IsModifier = !!pre[i];
+                line.IsModifierBad = !!bad[i];
+                list.push(line);
+            }
+            guard(m.constructor.name + '.ModifyTooltips', () => m.ModifyTooltips(item, list));
+
+            // Fora do tooltip (guia de criacao, busca) ninguem desenha as
+            // cores: vai o texto limpo.
+            const colored = drawing > 0;
+            const count = Math.min(list.length, lines.length);
+            for (let i = 0; i < count; i++) {
+                const line = list[i];
+                let text = String(line.Text);
+                if (line.OverrideColor) text = TooltipLine.colorTag(stripTags(text), line.OverrideColor);
+                lines[i] = colored ? text : stripTags(text);
+                pre[i] = !!line.IsModifier;
+                bad[i] = !!line.IsModifierBad;
+            }
+            numLines.value = count;
+            const at = (name) => { const i = list.findIndex((l) => l.Name === name); return i < count ? i : -1; };
+            yoyo.value = at('OneDropLogo');
+            research.value = at('JourneyResearch');
+            materials.value = at('Material');
+            setBonus.value = at('SetBonus');
+        });
+
+    const measure = 'Vector2 MeasureString(string text)';
+    G.SpriteFont[measure].hook((original, font, text) =>
+        hasTags(text) ? original(font, stripTags(text)) : original(), { whileIn: drawTooltip });
+
+    G.SpriteBatch['void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'].hook(
+        (original, batch, font, text, pos, color, rotation, origin, scale, effects, depth) => {
+            if (!hasTags(text)) return original();
+            // A sombra (preta) fica preta; o texto da linha pega a cor de cada
+            // trecho, com o alfa da linha (as cores do jogo sao pre-multiplicadas).
+            const shadow = color.R === 0 && color.G === 0 && color.B === 0;
+            const k = color.A / 255;
+            let x = pos.X;
+            for (const seg of colorSegments(text)) {
+                if (!seg.text) continue;
+                const c = !shadow && seg.rgb ? Color.new(seg.rgb[0] * k, seg.rgb[1] * k, seg.rgb[2] * k, color.A) : color;
+                original(batch, font, seg.text, Vector2.new(x, pos.Y), c, rotation, origin, scale, effects, depth);
+                x += font[measure](seg.text).X * scale;
+            }
+            return undefined;
+        }, { whileIn: drawTooltip });
 }
 
 // Item.Clone (o MemberwiseClone do jogo) copia os campos nativos, mas o
@@ -2004,6 +2126,7 @@ globalThis.ModPlayer = ModPlayer;
 globalThis.ModProjectile = ModProjectile;
 globalThis.ModNPC = ModNPC;
 globalThis.NPCLoot = NPCLoot;
+globalThis.TooltipLine = TooltipLine;
 globalThis.NPCSpawnInfo = NPCSpawnInfo;
 globalThis.ModLocalization = ModLocalization;
 })();

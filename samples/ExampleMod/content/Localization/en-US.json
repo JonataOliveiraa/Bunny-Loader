@@ -24,7 +24,8 @@
     "ExampleShield": "Example Shield",
     "ExampleStatAccessory": "Stat Accessory",
     "ExampleBoots": "Example Boots",
-    "WaspNest": "Wasp Nest"
+    "WaspNest": "Wasp Nest",
+    "ExampleTooltipItem": "Example Tooltip"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -53,7 +54,8 @@
     "ExampleShield": "Double tap in any direction to dash",
     "ExampleStatAccessory": "{0}% increased damage",
     "ExampleBoots": "Allows flight, super fast running, even faster running on sand, and extra mobility on ice\nProvides the ability to walk on water, honey, lava, and shimmer\nGrants immunity to fire blocks and {0} seconds of immunity to lava\nReduces damage from touching lava\nPrevents fall damage\nLeaves a trail of flames in your wake",
-    "WaspNest": "Bees become stronger"
+    "WaspNest": "Bees become stronger",
+    "ExampleTooltipItem": "Above, one color per letter. This line, in gold"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."

@@ -42,6 +42,7 @@ import { ExampleShield } from './Content/Items/Accessories/ExampleShield.js';
 import { ExampleStatAccessory } from './Content/Items/Accessories/ExampleStatAccessory.js';
 import { ExampleBoots } from './Content/Items/Accessories/ExampleBoots.js';
 import { WaspNest } from './Content/Items/Accessories/WaspNest.js';
+import { ExampleTooltipItem } from './Content/Items/ExampleTooltipItem.js';
 
 ModBuff.register(ExampleDefenseBuff);
 ModBuff.register(ExampleDefenseDebuff);
@@ -90,6 +91,7 @@ ModItem.register(ExampleShield);
 ModItem.register(ExampleStatAccessory);
 ModItem.register(ExampleBoots);
 ModItem.register(WaspNest);
+ModItem.register(ExampleTooltipItem);
 
 ModSystem.register(ExampleRecipes);
 

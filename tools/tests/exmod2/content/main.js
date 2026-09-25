@@ -205,6 +205,25 @@ function laserCheck() {
 function late() {
     const got = (k) => (count[k] || 0) >= 1 || `${k} = 0`;
     const all = (...r) => r.find((x) => x !== true) || true;
+    check('tooltip: ModifyTooltips pelo GetLinesInfo (ref) insere e tira as tags fora do desenho', () => {
+        let t = bl.items.vanillaCount;
+        while (bl.items.isModItem(t) && !(ModItem.getModItem(t) && ModItem.getModItem(t).constructor.name === 'ExampleTooltipItem')) t++;
+        if (!bl.items.isModItem(t)) return 'ExampleTooltipItem nao existe';
+        const it = Terraria.Item.new();
+        it['void .ctor()']();
+        it['void SetDefaults(int Type, ItemVariant variant)'](t, null);
+        const lines = Terraria.Main.keyString.cloneResized(30);
+        const pre = Terraria.Main.tileSolid.cloneResized(30), bad = Terraria.Main.tileSolid.cloneResized(30);
+        for (let i = 0; i < 30; i++) { lines[i] = ''; pre[i] = false; bad[i] = false; }
+        lines[0] = it.Name;
+        const n = new Ref(1), yoyo = new Ref(-1), research = new Ref(-1), materials = new Ref(-1), setBonus = new Ref(-1);
+        Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour)'](
+            it, yoyo, research, materials, it.knockBack, n, lines, pre, bad, setBonus, new Ref(Color.White));
+        const got = [];
+        for (let i = 0; i < n.value; i++) got.push(String(lines[i]));
+        return (n.value >= 3 && got[0] === it.Name && got[1] === 'Bunny Loader!' && !got.some((l) => l.includes('[c/'))) ||
+            `n ${n.value}: ${got.join(' | ')}`;
+    });
     check('projetil: OnSpawn', () => count.OnSpawn === 1 || 'OnSpawn = ' + count.OnSpawn);
     check('projetil: AIType', () => got('AIType restaurado'));
     check('projetil: OnTileCollide', () => got('OnTileCollide'));

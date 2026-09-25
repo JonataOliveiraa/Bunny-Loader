@@ -570,11 +570,13 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
-// NativeMethod.hook(callback[, { minType, on, field }])
+// NativeMethod.hook(callback[, { minType, on, field, whileIn }])
 //
-// Com o segundo argumento, o hook so chama o JS quando o objeto `on` ('self',
-// o padrao, ou o indice de um parametro) tem `field` (padrao 'type') >=
-// minType. Ex.: NPC.AI so para NPC de mod — os do jogo nem entram no JS.
+// Com `minType`, o hook so chama o JS quando o objeto `on` ('self', o padrao,
+// ou o indice de um parametro) tem `field` (padrao 'type') >= minType. Ex.:
+// NPC.AI so para NPC de mod — os do jogo nem entram no JS.
+// Com `whileIn` (outro metodo, ja hookado), so chama o JS enquanto a thread
+// esta dentro do hook dele.
 JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
     auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
     if (!r || argc < 1) return JS_EXCEPTION;
@@ -582,6 +584,21 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
         return JS_ThrowTypeError(ctx, "hook(callback): callback deve ser funcao");
     HookFilter filter;
     if (argc >= 2 && JS_IsObject(argv[1])) {
+        JSValue gate = JS_GetPropertyStr(ctx, argv[1], "whileIn");
+        if (!JS_IsUndefined(gate)) {
+            auto* g = static_cast<MethodRef*>(JS_GetOpaque(gate, g_nativeMethodId));
+            JS_FreeValue(ctx, gate);
+            if (!g) return JS_ThrowTypeError(ctx, "hook: whileIn tem de ser um metodo do jogo");
+            filter.whileIn = g->method;
+        }
+    }
+    bool hasMin = false;
+    if (argc >= 2 && JS_IsObject(argv[1])) {
+        const JSAtom at = JS_NewAtom(ctx, "minType");
+        hasMin = JS_HasProperty(ctx, argv[1], at) > 0;
+        JS_FreeAtom(ctx, at);
+    }
+    if (hasMin) {
         JSValue min = JS_GetPropertyStr(ctx, argv[1], "minType");
         JSValue on = JS_GetPropertyStr(ctx, argv[1], "on");
         JSValue field = JS_GetPropertyStr(ctx, argv[1], "field");
@@ -606,7 +623,7 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
     // installJsHook deixa a exceção posta, com o motivo exato (retorno struct,
     // argumentos demais, sem slot). Repetir aqui só apagaria a informação.
     if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0],
-                       filter.on == -2 ? nullptr : &filter))
+                       filter.on == -2 && !filter.whileIn ? nullptr : &filter))
         return JS_EXCEPTION;
     return JS_UNDEFINED;
 }

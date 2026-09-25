@@ -178,6 +178,7 @@ export class ExampleItem extends ModItem {
 | `OnCraft(item, player, recipe)` | Ao criar este item no menu; `item` é o que o jogador vai receber, e ainda dá para mudar. |
 | `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. |
 | `ModifyTooltipLines()` | Por idioma, com `this.TooltipLines` preenchido — mude as linhas. |
+| `ModifyTooltips(item, tooltips)` | Toda vez que o tooltip aparece: mude, pinte, insira e tire linhas (ver [Tooltip colorido](#tooltip-colorido)). |
 | `CanUseItem(item, player)` | Devolva `false` para impedir o uso. |
 | `UseItem(item, player)` | A cada uso. |
 | `HoldItem(item, player)` | Todo quadro com o item na mão. |
@@ -239,6 +240,47 @@ E a munição aponta para o projétil de mod:
 this.Item.shoot = ModProjectile.getTypeByName('ExampleBulletProjectile');
 this.Item.ammo = Terraria.ID.AmmoID.Bullet;
 ```
+
+### Tooltip colorido
+
+`ModifyTooltips(item, tooltips)` roda **toda vez** que o tooltip do item
+aparece, com as linhas que o jogo montou: uma lista de `TooltipLine`, cada uma
+com `Name`, `Text`, `OverrideColor`, `IsModifier` e `IsModifierBad`. Mude à
+vontade: troque o texto, pinte a linha inteira com `OverrideColor`, insira linhas
+novas (`splice`) ou tire as que não quer.
+
+```js
+ModifyTooltips(item, tooltips) {
+    tooltips.splice(1, 0, new TooltipLine('Aviso', 'Logo abaixo do nome'));
+    const aviso = tooltips.find((line) => line.Name === 'Aviso');
+    aviso.OverrideColor = Color.new(255, 80, 80);
+}
+```
+
+Para pintar **trechos**, use a tag `[c/RRGGBB:texto]` dentro do texto.
+`TooltipLine.colorTag(texto, cor)` monta a tag de um `Color`, de `{ R, G, B }`
+ou de `'#RRGGBB'`:
+
+```js
+const vermelho = TooltipLine.colorTag('fogo', Color.new(255, 60, 30));
+tooltips.push(new TooltipLine('Elemento', 'Dano de ' + vermelho));
+```
+
+O `ExampleTooltipItem` do Example Mod escreve "Bunny Loader!" com uma cor por
+letra, girando no arco-íris, logo abaixo do nome.
+
+Os nomes das linhas: `ItemName` (a 0), `Material`, `JourneyResearch`,
+`SetBonus`, `OneDropLogo`; as outras são `Line1`, `Line2`... pela posição em que o
+jogo as montou. Uma linha nova precisa de um nome seu. Até 30 linhas.
+
+No guia de criação e na busca de itens, as linhas chegam sem cor: o texto das
+tags fica, as tags somem.
+
+Por trás: o celular monta as linhas num método com seis parâmetros `ref`
+(`Main.MouseText_DrawItemTooltip_GetLinesInfo`), que a ponte hooka (ver o
+[guia 3](03-ref-e-out.md)). O celular desenha o texto cru, sem o leitor de tags
+do PC, então o Bunny Loader desenha a linha com tag trecho a trecho, e a caixa
+do tooltip é medida sem as tags.
 
 ## ModPlayer
 

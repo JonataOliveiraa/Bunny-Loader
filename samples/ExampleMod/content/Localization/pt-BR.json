@@ -24,7 +24,8 @@
     "ExampleShield": "Escudo de Exemplo",
     "ExampleStatAccessory": "Acessório de Estatísticas",
     "ExampleBoots": "Botas de Exemplo",
-    "WaspNest": "Ninho de Vespas"
+    "WaspNest": "Ninho de Vespas",
+    "ExampleTooltipItem": "Exemplo de Tooltip"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -53,7 +54,8 @@
     "ExampleShield": "Toque duas vezes numa direção para dar um impulso",
     "ExampleStatAccessory": "{0}% de aumento nos danos",
     "ExampleBoots": "Permite voar, correr super rápido, correr ainda mais rápido na areia e ter mobilidade extra no gelo\nProporciona a habilidade de andar sobre água, mel, lava e brilho\nConcede imunidade a blocos de fogo e {0} segundos de imunidade à lava\nReduz o dano causado pelo contato com lava\nPrevine dano por queda\nDeixa um rastro de chamas por onde você passar",
-    "WaspNest": "As abelhas ficam mais fortes"
+    "WaspNest": "As abelhas ficam mais fortes",
+    "ExampleTooltipItem": "Acima, uma cor por letra. Esta linha, em dourado"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."

@@ -36,6 +36,10 @@ struct HookFilter {
     int on = -2;              // -2 = sem filtro, -1 = self, >= 0 = parametro
     std::string field = "type";
     int32_t minType = 0;
+    // So chama o JS enquanto esta thread esta dentro do hook JS deste outro
+    // metodo (que precisa ja ter um). Ex.: SpriteBatch.DrawString so durante
+    // o desenho do tooltip, sem pagar o JS nos outros milhares de textos.
+    const MethodInfo* whileIn = nullptr;
 };
 
 // Instala um hook JS num metodo do jogo. O callback recebe
