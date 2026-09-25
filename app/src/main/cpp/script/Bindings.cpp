@@ -1,5 +1,6 @@
 #include "script/ScriptEngine.h"
 #include "script/Bridge.h"
+#include "script/ExtraFields.h"
 #include "script/Roots.h"
 #include "script/WrapperMap.h"
 #include "core/Log.h"
@@ -354,6 +355,8 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (m.signature) {
         return JS_ThrowTypeError(ctx, "metodo nao encontrado: '%s'", atomName(ctx, atom).c_str());
     }
+    // Campo que um mod pos na classe (bl.defineField): `item.ModItem`.
+    if (isExtraField(cls, atom)) return extraFieldGet(ctx, o, atom);
     return JS_UNDEFINED;
 }
 
@@ -365,6 +368,7 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
     if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
     if (m.setter) return invokeSetter(ctx, m.setter, o, value);
+    if (isExtraField(cls, atom)) return extraFieldSet(ctx, o, atom, value);
     // Nome que a classe nao tem: RECUSA, como ja fazia o caminho do struct.
     // Antes isto virava uma propriedade JS comum no wrapper, entao um
     // `item.useTmie = 4` dava certo, nao mudava nada no jogo e nao dizia nada
@@ -658,6 +662,8 @@ const JSClassExoticMethods ga_exotic = {
 
 // --- Exportado (Bridge.h): quem detém os JSClassID é este arquivo. ---
 
+Il2CppClass* classFromJS(JSValueConst v) { return classOf(v); }
+
 Il2CppObject* objectFromJS(JSValueConst v) {
     return objOf(v);
 }
@@ -841,6 +847,7 @@ void installBindings(void* context) {
     JS_SetPropertyStr(ctx, bl, "classOf", JS_NewCFunction(ctx, js_classOf, "classOf", 2));
     JS_SetPropertyStr(ctx, bl, "loadTexture",
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
+    installExtraFields(ctx, bl);
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);
     installNpcsApi(ctx, bl);

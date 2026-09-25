@@ -58,6 +58,66 @@ multijogador — é, desde que todos tenham os mesmos mods.
 `register` devolve o número do tipo novo. Depois dá para pegá-lo pelo nome da
 classe: `ModItem.getTypeByName('ExampleItem')`.
 
+### Uma instância por entidade
+
+Como no tModLoader, a classe que você registra é um **molde**. Cada item,
+projétil ou NPC do jogo daquele tipo ganha a **própria** instância, copiada do
+molde, e é nela que os métodos rodam:
+
+- `this.Item`, `this.Projectile`, `this.NPC` é a entidade daquela instância;
+- `item.ModItem`, `proj.ModProjectile`, `npc.ModNPC` é a instância da entidade;
+- campo que você puser em `this` é **daquele** item: dá para guardar carga,
+  contador, alvo, sem uma variável global indexada por item.
+
+```js
+export class Carregavel extends ModItem {
+    SetDefaults() {
+        this.carga = 0;               // cada item começa com a sua
+    }
+    UseItem(item, player) {
+        this.carga++;                 // só deste item
+    }
+}
+
+// de fora: o ModItem de um item qualquer
+const m = player.inventory[0].ModItem;
+if (m instanceof Carregavel) bl.log(m.carga);
+```
+
+`ModItem.getModItem(tipo)` devolve o **molde**, não a instância de um item.
+
+Quando o jogo copia um item (`Item.Clone`), a cópia ganha um `Clone()` da
+instância do original, com o estado dela. O `Clone` padrão copia os campos
+rasos (o `MemberwiseClone` do C#); sobrescreva se tiver array ou objeto seu
+que precise de cópia própria:
+
+```js
+Clone(newItem) {
+    const c = super.Clone(newItem);
+    c.historico = [...this.historico];
+    return c;
+}
+```
+
+O estado da instância **não** vai para o save nem para a rede, e se perde quando
+o item passa por um baú (que guarda só tipo, pilha e prefixo): nesses casos a
+entidade nasce de novo pelo `SetDefaults`.
+
+### Campos em classes do jogo
+
+O `item.ModItem` é um caso de algo geral: `bl.defineField` põe um campo novo
+numa classe do jogo, para o mod guardar o que quiser em cada objeto:
+
+```js
+bl.defineField(Terraria.Player, 'combo');
+const p = Terraria.Main.player[Terraria.Main.myPlayer];
+p.combo = (p.combo || 0) + 1;
+```
+
+O valor fica numa tabela ao lado do objeto (o jogo não deixa a classe crescer)
+e some sozinho quando o jogo descarta o objeto. Vale também para as classes
+filhas: um campo em `Terraria.Entity` aparece em `Player`, `NPC` e `Projectile`.
+
 ## ModItem
 
 ```js
@@ -81,8 +141,8 @@ export class ExampleItem extends ModItem {
 }
 ```
 
-`this.Item` é o `Item` do jogo durante o `SetDefaults`: todo campo do C# está
-ali (`damage`, `useTime`, `shoot`, `rare`...). Ele também chega como argumento,
+`this.Item` é o `Item` do jogo desta instância: todo campo do C# está ali
+(`damage`, `useTime`, `shoot`, `rare`...). Ele também chega como argumento,
 `SetDefaults(item)`.
 
 ### Campos da classe
@@ -92,7 +152,7 @@ ali (`damage`, `useTime`, `shoot`, `rare`...). Ele também chega como argumento,
 | `Texture` | Caminho em `Textures/`, sem `.png`. Padrão: o nome da classe. |
 | `DisplayName` | Texto, ou `{ 'pt-BR': ..., 'en-US': ... }`. Vazio: vem de `ItemName.<Classe>` em `Localization/*.json`, e sem isso é o nome da classe. |
 | `Tooltip` | A descrição, linhas separadas por `\n`. Vazio: `ItemTooltip.<Classe>`. |
-| `Item` | O item do jogo, durante `SetDefaults`. |
+| `Item` | O item do jogo desta instância (no molde, `undefined`). |
 | `Type` | O número deste item, depois do `register`. |
 
 ### Métodos que você pode escrever
@@ -268,7 +328,7 @@ export class ExampleSlimeNPC extends ModNPC {
 | `Texture`, `DisplayName` | Como no item. O nome vem de `NPCName.<Classe>`. |
 | `AnimationType` | Anima como este NPC do jogo (`0` = não anima). Vale no `SetDefaults`. |
 | `HideFromBestiary` | `true`: sem entrada no Bestiário. |
-| `NPC`, `Type` | O NPC do jogo durante o `SetDefaults`, e o número do tipo. |
+| `NPC`, `Type` | O NPC do jogo desta instância, e o número do tipo. |
 
 ### Métodos que você pode escrever
 

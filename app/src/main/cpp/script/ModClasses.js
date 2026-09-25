@@ -83,6 +83,54 @@ function whenReady(task) {
     });
 }
 
+// ========================= instancia por entidade =========================
+//
+// Como no tModLoader: a classe registrada e o MOLDE (um por tipo), e cada
+// Item, Projectile e NPC do jogo desse tipo ganha a PROPRIA instancia, copiada
+// do molde (Clone), em `item.ModItem`, `proj.ModProjectile` e `npc.ModNPC`.
+// Dentro dela, `this.Item` (`this.Projectile`, `this.NPC`) e aquela entidade.
+//
+// O campo mora ao lado do objeto do jogo (bl.defineField: o IL2CPP nao deixa
+// crescer a classe), e a instancia guarda o ENDERECO da entidade, nao o
+// objeto: nada do lado do mod segura vivo um item que o jogo ja descartou.
+
+const definedFields = new Set();
+function defineEntityField(cls, field) {
+    if (definedFields.has(field)) return;
+    definedFields.add(field);
+    bl.defineField(cls, field);
+}
+
+function bindInstance(inst, entity, field) {
+    inst.__entity = bl.addressOf(entity);
+    entity[field] = inst;
+    return inst;
+}
+
+// A instancia da entidade. Sem ela (entidade que nao passou pelo SetDefaults
+// com o mod carregado), uma copia do molde, na hora.
+function instanceOf(entity, field, byType) {
+    if (!entity) return undefined;
+    const type = entity.type;
+    const template = byType.get(type);
+    if (!template) return undefined;
+    const current = entity[field];
+    if (current && current.Type === type) return current;
+    return bindInstance(template.Clone(entity), entity, field);
+}
+
+// O MemberwiseClone do C#: os mesmos campos, rasos, noutra instancia.
+function cloneInstance(inst) {
+    const c = Object.create(Object.getPrototypeOf(inst));
+    Object.assign(c, inst);
+    c.__entity = 0;
+    return c;
+}
+
+function entityOf(inst) {
+    return inst.__entity ? bl.objectAt(inst.__entity) : undefined;
+}
+
 // ============================= ModLocalization =============================
 
 // O texto na cultura do jogo agora: { 'pt-BR': ..., 'en-US': ... } -> texto.
@@ -158,13 +206,17 @@ function registerItemAnimation(type, animation) {
         }
     });
 }
-const itemOf = (item) => item ? itemsByType.get(item.type) : undefined;
+const itemOf = (item) => instanceOf(item, 'ModItem', itemsByType);
 
 class ModItem {
     static CommonMaxStack = 9999;
 
-    // O Item do jogo durante o SetDefaults; fora dele, undefined.
-    Item = undefined;
+    // O Item do jogo DESTA instancia (no molde, undefined). Ver "instancia por
+    // entidade", acima.
+    get Item() { return entityOf(this); }
+    // A instancia de uma entidade nova, a partir desta (o molde, ou a de um
+    // item que o jogo copiou). Sobrescreva para copiar fundo o que for seu.
+    Clone(newItem) { return cloneInstance(this); }
     // O tipo (ItemID) deste item, a partir do register.
     Type = undefined;
     // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: ItemName.<Classe> em
@@ -302,14 +354,15 @@ class ModItem {
     }
 
     /**
-     * Instancia a classe e registra o item. Uma instancia por classe: o
-     * SetDefaults dela roda para cada Item desse tipo que o jogo criar, com
-     * this.Item apontando para ele. Devolve o tipo.
+     * Instancia a classe (o molde) e registra o item. Cada Item desse tipo
+     * que o jogo criar ganha uma copia do molde em item.ModItem, e o
+     * SetDefaults roda nela, com this.Item apontando para ele. Devolve o tipo.
      */
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModItem)) {
             throw new TypeError('ModItem.register(Classe): passe a classe, que estende ModItem');
         }
+        defineEntityField(Terraria.Item, 'ModItem');
         const inst = new cls();
         const name = cls.name;
         const type = bl.items.register({
@@ -317,13 +370,9 @@ class ModItem {
             texture: texturePath(inst.Texture || name),
             displayName: inst.DisplayName || localized('ItemName', name) || name,
             setDefaults(item) {
-                inst.Item = item;
-                try {
-                    inst.SetDefaults(item);
-                    inst.PostSetDefaults(item);
-                } finally {
-                    inst.Item = undefined;
-                }
+                const m = bindInstance(inst.Clone(item), item, 'ModItem');
+                m.SetDefaults(item);
+                m.PostSetDefaults(item);
             },
             setStaticDefaults() {
                 inst.SetStaticDefaults();
@@ -339,6 +388,7 @@ class ModItem {
             inst.PostSetupContent();
         });
         hookItem(cls);
+        once('item.Clone', hookItemClone);
         return type;
     }
 
@@ -484,7 +534,7 @@ function hookItem(cls) {
     // escreveu GetAlpha, e o item do chao do jogo sai no primeiro `if`.
     if (has('GetAlpha')) once('item.GetAlpha', () => {
         Terraria.WorldItem['Color GetAlpha(Color newColor)'].hook((original, self, color) => {
-            const m = itemsByType.get(self.type);
+            const m = itemsByType.has(self.type) ? itemOf(self.inner) : undefined;
             if (!m || !overrides(m.constructor, ModItem, 'GetAlpha')) return original(self, color);
             const c = guard(m.constructor.name + '.GetAlpha', () => m.GetAlpha(self, color));
             return original(self, c || color);
@@ -500,6 +550,20 @@ function hookItem(cls) {
             }
         });
     });
+}
+
+// Item.Clone (o MemberwiseClone do jogo) copia os campos nativos, mas o
+// ModItem mora ao lado: a copia ganha um Clone da instancia do original, com
+// o estado dela, como o Item.Clone do tModLoader.
+function hookItemClone() {
+    Terraria.Item['Item Clone()'].hook((original, self) => {
+        const copy = original(self);
+        const m = copy ? self.ModItem : undefined;
+        if (m && m.Type === self.type) {
+            guard(m.constructor.name + '.Clone', () => bindInstance(m.Clone(copy), copy, 'ModItem'));
+        }
+        return copy;
+    }, { minType: FIRST_ITEM, on: -1 });
 }
 
 // A arma na mao: o deslocamento gira com o item, como no tModLoader.
@@ -588,11 +652,14 @@ function finishRecipes() {
 // ============================== ModProjectile ==============================
 
 const projectilesByType = new Map();
-const projectileOf = (p) => p ? projectilesByType.get(p.type) : undefined;
+const projectileOf = (p) => instanceOf(p, 'ModProjectile', projectilesByType);
 
 class ModProjectile {
-    // O Projectile do jogo durante o SetDefaults; fora dele, undefined.
-    Projectile = undefined;
+    // O Projectile do jogo desta instancia (no molde, undefined).
+    get Projectile() { return entityOf(this); }
+    // A instancia de uma entidade nova, a partir desta (o molde, ou a de um
+    // item que o jogo copiou). Sobrescreva para copiar fundo o que for seu.
+    Clone(newProjectile) { return cloneInstance(this); }
     Type = undefined;
     // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: ProjectileName.<Classe>
     // em Localization/*.json, e sem isso o nome da classe.
@@ -623,6 +690,7 @@ class ModProjectile {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModProjectile)) {
             throw new TypeError('ModProjectile.register(Classe): passe a classe, que estende ModProjectile');
         }
+        defineEntityField(Terraria.Projectile, 'ModProjectile');
         const inst = new cls();
         const name = cls.name;
         const type = bl.projectiles.register({
@@ -630,13 +698,9 @@ class ModProjectile {
             texture: texturePath(inst.Texture || name),
             displayName: inst.DisplayName || localized('ProjectileName', name) || name,
             setDefaults(proj) {
-                inst.Projectile = proj;
-                try {
-                    inst.SetDefaults(proj);
-                    inst.PostSetDefaults(proj);
-                } finally {
-                    inst.Projectile = undefined;
-                }
+                const m = bindInstance(inst.Clone(proj), proj, 'ModProjectile');
+                m.SetDefaults(proj);
+                m.PostSetDefaults(proj);
             },
             setStaticDefaults(t) {
                 inst.SetStaticDefaults();
@@ -781,13 +845,16 @@ class NPCSpawnInfo {
 }
 
 const npcsByType = new Map();
-const npcOf = (npc) => npc ? npcsByType.get(npc.type) : undefined;
+const npcOf = (npc) => instanceOf(npc, 'ModNPC', npcsByType);
 // Os que tem SpawnChance: o sorteio do spawn natural olha so estes.
 const spawnable = [];
 
 class ModNPC {
-    // O NPC do jogo durante o SetDefaults; fora dele, undefined.
-    NPC = undefined;
+    // O NPC do jogo desta instancia (no molde, undefined).
+    get NPC() { return entityOf(this); }
+    // A instancia de uma entidade nova, a partir desta (o molde, ou a de um
+    // item que o jogo copiou). Sobrescreva para copiar fundo o que for seu.
+    Clone(newNPC) { return cloneInstance(this); }
     Type = undefined;
     // Anima como este NPC do jogo (0 = nao anima). Pode vir do SetDefaults.
     AnimationType = 0;
@@ -845,6 +912,7 @@ class ModNPC {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModNPC)) {
             throw new TypeError('ModNPC.register(Classe): passe a classe, que estende ModNPC');
         }
+        defineEntityField(Terraria.NPC, 'ModNPC');
         const inst = new cls();
         const name = cls.name;
         let animation = inst.AnimationType | 0;
@@ -856,19 +924,16 @@ class ModNPC {
             animationType: animation,
             displayName: inst.DisplayName || localized('NPCName', name) || name,
             setDefaults(npc) {
-                inst.NPC = npc;
-                try {
-                    inst.SetDefaults(npc);
-                    inst.ApplyBuffImmunity(npc);
-                    inst.PostSetDefaults(npc);
-                    townNpc = !!npc.townNPC;
-                } finally {
-                    inst.NPC = undefined;
-                }
-                // O ExMod poe o AnimationType dentro do SetDefaults.
-                const now = inst.AnimationType | 0;
+                const m = bindInstance(inst.Clone(npc), npc, 'ModNPC');
+                m.SetDefaults(npc);
+                m.ApplyBuffImmunity(npc);
+                m.PostSetDefaults(npc);
+                townNpc = !!npc.townNPC;
+                // O AnimationType costuma vir de dentro do SetDefaults.
+                const now = m.AnimationType | 0;
                 if (now !== animation && type >= 0) {
                     animation = now;
+                    inst.AnimationType = now;
                     bl.npcs.setAnimationType(type, now);
                 }
             },
@@ -881,7 +946,10 @@ class ModNPC {
         };
         // So quem escreveu HitEffect paga o hook dele.
         if (overrides(cls, ModNPC, 'HitEffect')) {
-            def.hitEffect = (npc, hitDirection, damage) => inst.HitEffect(npc, hitDirection, damage);
+            def.hitEffect = (npc, hitDirection, damage) => {
+                const m = npcOf(npc);
+                if (m) m.HitEffect(npc, hitDirection, damage);
+            };
         }
         type = bl.npcs.register(def);
         inst.Type = type;

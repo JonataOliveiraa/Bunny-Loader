@@ -102,6 +102,9 @@ struct Api {
     void (*runtime_class_init)(Il2CppClass*) = nullptr;
     Il2CppClass* (*field_get_parent)(FieldInfo*) = nullptr;
     Il2CppObject* (*gchandle_get_target)(uint32_t) = nullptr;
+    // Referencia FRACA: o alvo vira nulo quando o objeto e recolhido, sem
+    // segura-lo vivo (script/ExtraFields.cpp).
+    uint32_t (*gchandle_new_weakref)(Il2CppObject*, bool trackResurrection) = nullptr;
     Il2CppThread* (*thread_attach)(Il2CppDomain*) = nullptr;
 
     const Il2CppImage* gameImage = nullptr;   // Assembly-CSharp.dll

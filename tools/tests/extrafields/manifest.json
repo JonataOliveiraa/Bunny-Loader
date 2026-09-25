@@ -1,0 +1,15 @@
+{
+  "uid": "5b9e2d17-c4a3-4f80-9e6b-1a7d3c8f2e45",
+  "id": "test-extrafields",
+  "name": "Teste: campos extras sob carga",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Milhares de itens com ModItem, coleta forcada, varredura da tabela.",
+  "description": "Teste de script/ExtraFields.cpp. Precisa do Example Mod ligado. Loga 'extrafields ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

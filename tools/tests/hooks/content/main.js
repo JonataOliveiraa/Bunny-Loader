@@ -24,7 +24,11 @@ class TestShot extends ModProjectile {
         this.Projectile.timeLeft = 40;
         this.Projectile.tileCollide = false;
     }
-    PreAI(p) { bump('proj.PreAI'); return true; }
+    PreAI(p) {
+        bump('proj.PreAI');
+        if (this.Projectile && bl.addressOf(this.Projectile) === bl.addressOf(p)) bump('proj.self');
+        return true;
+    }
     AI(p) { bump('proj.AI'); }
     PostAI(p) { bump('proj.PostAI'); }
     OnKill(p, timeLeft) { bump('proj.OnKill'); }
@@ -46,7 +50,11 @@ class TestBlob extends ModNPC {
         this.NPC.noGravity = true;
     }
     SetBestiary(database, entry) { bump('npc.SetBestiary'); }
-    PreAI(npc) { bump('npc.PreAI'); return true; }
+    PreAI(npc) {
+        bump('npc.PreAI');
+        if (this.NPC && bl.addressOf(this.NPC) === bl.addressOf(npc)) bump('npc.self');
+        return true;
+    }
     AI(npc) { bump('npc.AI'); npc.velocity.X = 0; }
     PostAI(npc) { bump('npc.PostAI'); }
     FindFrame(npc, frameHeight) {
@@ -144,6 +152,34 @@ function setup() {
         for (let i = 0; i < tip.Lines; i++) lines.push(tip.GetLine(i));
         return lines.join('|') === 'linha 1|linha 2|linha 3' || 'linhas: ' + lines.join('|');
     });
+    check('instancia por item', () => {
+        const a = Terraria.Item.new();
+        a['void .ctor()']();
+        a['void SetDefaults(int Type, ItemVariant variant)'](GUN, null);
+        const b = Terraria.Item.new();
+        b['void .ctor()']();
+        b['void SetDefaults(int Type, ItemVariant variant)'](GUN, null);
+        const ma = a.ModItem, mb = b.ModItem;
+        if (!ma || !mb) return 'item.ModItem vazio';
+        if (ma === mb) return 'os dois itens dividem a instancia';
+        if (!(ma instanceof TestGun)) return 'instancia nao e TestGun';
+        if (ma === ModItem.getModItem(GUN)) return 'item.ModItem e o molde';
+        if (bl.addressOf(ma.Item) !== bl.addressOf(a)) return 'this.Item nao e o item';
+        ma.charge = 7;
+        if (mb.charge !== undefined) return 'estado vazou para outro item';
+        const c = a.Clone();
+        const mc = c.ModItem;
+        if (!mc || mc === ma) return 'Clone nao ganhou instancia propria';
+        if (mc.charge !== 7) return 'Clone perdeu o estado: ' + mc.charge;
+        return bl.addressOf(mc.Item) === bl.addressOf(c) || 'this.Item do clone errado';
+    });
+    check('campo extra do mod', () => {
+        bl.defineField(Terraria.Player, 'testeContador');
+        const p = me();
+        p.testeContador = 41;
+        p.testeContador++;
+        return p.testeContador === 42 || 'valor ' + p.testeContador;
+    });
     check('receita', () => {
         const recipes = Main.recipe;
         let gun = false, example = false;
@@ -215,6 +251,12 @@ function finalChecks() {
         return r === undefined ? true : r;
     });
     check('projetil: OnKill', () => got('proj.OnKill'));
+    check('projetil: this.Projectile', () => got('proj.self', 5));
+    check('NPC: this.NPC e npc.ModNPC', () => {
+        if (got('npc.self', 5) !== true) return got('npc.self', 5);
+        const m = blob.ModNPC;
+        return (m instanceof TestBlob && m !== ModNPC.getModNPC(BLOB)) || 'npc.ModNPC ' + m;
+    });
     check('projetil: OnHitNPC', () => got('proj.OnHitNPC'));
     check('NPC: PreAI, AI, PostAI', () => {
         const r = [got('npc.PreAI', 30), got('npc.AI', 30), got('npc.PostAI', 30)].find(x => x !== true);

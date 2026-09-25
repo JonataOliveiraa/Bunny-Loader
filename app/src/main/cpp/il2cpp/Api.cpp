@@ -91,6 +91,7 @@ bool Api::load() {
     bindSoft(lib, "il2cpp_runtime_class_init", &runtime_class_init);
     bindSoft(lib, "il2cpp_field_get_parent", &field_get_parent);
     ok &= bind(lib, "il2cpp_gchandle_get_target", &gchandle_get_target);
+    bindSoft(lib, "il2cpp_gchandle_new_weakref", &gchandle_new_weakref);
     ok &= bind(lib, "il2cpp_thread_attach", &thread_attach);
     bindSoft(lib, "il2cpp_class_enum_basetype", &class_enum_basetype);
     bindSoft(lib, "il2cpp_class_get_fields", &class_get_fields);

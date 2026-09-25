@@ -21,6 +21,8 @@ JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m);
 // Inverso: o valor JS e um objeto/array do jogo? nullptr se nao for.
 Il2CppObject* objectFromJS(JSValueConst v);
 Il2CppArray* arrayFromJS(JSValueConst v);
+/** A classe de um valor como `Terraria.Item`; nullptr se nao for classe. */
+Il2CppClass* classFromJS(JSValueConst v);
 /** O objeto e um array (de qualquer tipo de elemento)? */
 bool isArrayObject(Il2CppObject* o);
 
