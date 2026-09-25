@@ -27,8 +27,13 @@ Main[tryGetBuffTime].hook((original, slot, time) => {
     return r;
 });
 
-let forcedPos = null;
+let forcedPos = null, forwardSlot = -1, forwardError = '';
 NPC[getLocation].hook((original, i, seekHead, avg, index, pos) => {
+    // Repassa o `out int index` recebido a outro metodo, como em C#.
+    if (forwardSlot >= 0) {
+        try { Main[tryGetBuffTime](forwardSlot, pos); } catch (e) { forwardError = String(e); }
+        return Main[tryGetBuffTime](forwardSlot, index);
+    }
     const r = original(i, seekHead, avg, index, pos);
     if (forcedPos) {
         index.value = 77;
@@ -117,6 +122,16 @@ function run() {
         const p = pos.value;
         return (ok === true && idx.value === 77 && p.X === 123 && p.Y === 456) || `ok ${ok}, idx ${idx.value}, pos ${p && p.X},${p && p.Y}`;
     });
+    check('Ref do hook repassado a outra chamada escreve na variavel de quem chamou', () => {
+        forwardSlot = slot;
+        bump = 0;
+        const idx = new Ref(-5), pos = new Ref();
+        const ok = NPC[getLocation](0, false, false, idx, pos);
+        forwardSlot = -1;
+        return (ok === true && idx.value > 0 && idx.value <= 600) || `ok ${ok}, idx ${idx.value}`;
+    });
+    check('Ref do hook de outro tipo e recusado', () =>
+        (forwardError.includes('Ref aponta para') && forwardError.includes('Vector2')) || 'erro: ' + forwardError);
     check('argumento ref sem Ref da erro claro', () => {
         try { Main[tryGetBuffTime](slot, 5); return 'aceitou numero'; }
         catch (e) { return String(e).includes('Ref') || String(e); }

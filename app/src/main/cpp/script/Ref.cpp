@@ -130,6 +130,13 @@ void unbindRef(JSContext* ctx, JSValueConst ref) {
 
 bool isRef(JSValueConst v) { return refOf(v) != nullptr; }
 
+void* boundRefPtr(JSValueConst ref, const TypeDesc** type) {
+    GameRef* r = refOf(ref);
+    if (!r || !r->ptr) return nullptr;
+    if (type) *type = &r->pointee;
+    return r->ptr;
+}
+
 JSValue refStoredValue(JSContext* ctx, JSValueConst ref) {
     GameRef* r = refOf(ref);
     return r ? JS_DupValue(ctx, r->stored) : JS_UNDEFINED;

@@ -162,6 +162,23 @@ Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yo
 Na prática, um item de mod não precisa disso: o `ModifyTooltips` do `ModItem`
 já é esse hook, com cor por linha e por trecho (guia 2, *Tooltip colorido*).
 
+### Repassar o `ref` a outra chamada
+
+Dentro do hook, dá para passar o `Ref` recebido **direto** a outro método que
+também quer `ref`/`out` do mesmo tipo, como em C#. O método de dentro escreve na
+variável de quem chamou o hook, sem cópia no meio:
+
+```js
+Terraria.NPC['bool GetNPCLocation(int i, bool seekHead, bool averageDirection, out int index, out Vector2 pos)'].hook(
+    (original, i, seekHead, avg, index, pos) => {
+        return Terraria.Main['bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeValue)'](0, index);
+    });
+```
+
+Quem chamou o `GetNPCLocation` recebe no `index` o que o `TryGetBuffTime`
+escreveu. O tipo tem de bater: repassar o `pos` (um `Vector2`) onde o método quer
+`out int` dá erro, que diz os dois tipos.
+
 ## Struct por `ref`
 
 Com struct (`ref Vector2`, `ref FishingAttempt`), `.value` devolve uma
@@ -226,9 +243,10 @@ Para mudar o jogo, faça isso **dentro** do hook.
 | `r.value`, `r.value = v` | ler, escrever |
 | `'... (out int x)'`, `'... (ref Vector2 v)'` | assinatura com `ref`/`out`/`in` |
 | no hook, o parâmetro | `Ref` preso à variável do jogo, até o callback voltar |
+| repassar o `Ref` do hook | outra chamada escreve direto na variável de quem chamou |
 | struct por `ref` | `.value` é cópia; escreva de volta com `.value = copia` |
 
 O teste `tools/tests/refs` cobre cada caso deste guia: `out` numa chamada,
 hook mudando `out`, os seis `out bool` da pesca, `ref FishingAttempt`, o
-`GetSpawnRate` chamado pelo jogo, `ref Vector2` no `Collision.StepUp` e o `Ref`
-depois do hook.
+`GetSpawnRate` chamado pelo jogo, `ref Vector2` no `Collision.StepUp`, o `Ref`
+repassado a outra chamada e o `Ref` depois do hook.

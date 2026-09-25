@@ -17,7 +17,8 @@ namespace bl::script {
  *
  * Numa CHAMADA do mod, o parametro ref/out recebe um Ref solto
  * (`new Ref(valor)`): a ponte da ao metodo uma variavel com esse valor e, na
- * volta, poe no Ref o que o metodo deixou la.
+ * volta, poe no Ref o que o metodo deixou la. Um Ref ainda preso (repassado
+ * de dentro do hook) vai como o endereco da variavel de quem chamou.
  *
  * Struct por ref (`ref FishingAttempt`) sai como COPIA a cada leitura:
  * `const a = r.value; a.crate = true; r.value = a;`. Uma vista direta ficaria
@@ -35,6 +36,13 @@ void unbindRef(JSContext* ctx, JSValueConst ref);
 
 /** E um Ref? */
 bool isRef(JSValueConst v);
+
+/**
+ * Endereco de um Ref PRESO (dentro do hook), ou nullptr se solto. `type` sai
+ * com o tipo da variavel. Serve para repassar o `ref` adiante numa chamada,
+ * como em C#: o metodo de dentro escreve direto na variavel de quem chamou.
+ */
+void* boundRefPtr(JSValueConst ref, const TypeDesc** type);
 
 /** O valor guardado de um Ref solto (nova referencia). */
 JSValue refStoredValue(JSContext* ctx, JSValueConst ref);

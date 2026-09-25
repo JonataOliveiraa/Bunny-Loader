@@ -120,6 +120,18 @@ JSValue invokeMethod(JSContext* ctx, const MethodInfo* m, void* self,
                     return JS_ThrowTypeError(ctx, "argumento %d e ref/out (%s): passe um new Ref(valor)",
                                              i + 1, pp.d.name.c_str());
                 }
+                // Ref preso (recebido num hook): repassa a variavel de quem
+                // chamou, sem copia — o metodo escreve direto nela.
+                const TypeDesc* bound = nullptr;
+                if (void* var = boundRefPtr(v, &bound)) {
+                    if (bound->prim != pp.d.prim || bound->size != pp.d.size ||
+                        (pp.d.prim == Prim::Struct && bound->cls != pp.d.cls)) {
+                        return JS_ThrowTypeError(ctx, "argumento %d e ref/out %s, mas o Ref aponta para %s",
+                                                 i + 1, pp.d.name.c_str(), bound->name.c_str());
+                    }
+                    a[pp.reg] = reinterpret_cast<intptr_t>(var);
+                    continue;
+                }
                 RefArg r{i, nullptr, pp.d};
                 r.pointee.byRef = false;
                 const size_t sz = r.pointee.size < sizeof(void*) ? sizeof(void*) : r.pointee.size;
