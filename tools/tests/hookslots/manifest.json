@@ -1,0 +1,15 @@
+{
+  "uid": "942158c1-10b7-48aa-b0fb-2c8503654b7f",
+  "id": "test-hookslots",
+  "name": "Teste: muitos hooks",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "400 hooks de retorno int/objeto, 40 de float, 40 de double e 40 de Vector2, encadeados; cada callback roda uma vez, na ordem, sem mudar o resultado.",
+  "description": "Loga 'hookslots ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

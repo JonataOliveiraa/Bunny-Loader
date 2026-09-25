@@ -15,6 +15,7 @@
 #include <atomic>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace bl::script {
@@ -44,16 +45,17 @@ namespace bl::script {
 // valor em d0 — por isso ha TRES familias de funcao geradas, e a instalacao
 // escolhe a familia pelo tipo de retorno do metodo.
 
-// Os de retorno inteiro/void sao a maioria: com o Example Mod inteiro, os
-// testes e os tiles, 64 acabaram (o mod seguinte nao carregava).
-constexpr int kIntHooks = 128;                             // slots 0..127
-constexpr int kFltHooks = 16;                              // slots 128..143
-constexpr int kDblHooks = 16;                              // slots 144..159
-// Oito por forma. Comecou em quatro e a propria bateria de testes esgotou a
-// forma do Vector2 com quatro hooks — que nao e numero grande para um mod que
-// mexa em movimento. A mensagem de erro diz qual forma acabou.
-constexpr int kStructSlots = 8;
-constexpr int kBaseStruct = kIntHooks + kFltHooks + kDblHooks;   // 160
+// Quantos slots por forma de retorno. Nao custam nada na chamada (a funcao do
+// slot ja sabe o proprio numero e vai direto em g_hooks[slot]); custam ~108
+// bytes de codigo e ~240 de tabela cada. 64 de int/void acabaram com o Example
+// Mod inteiro, os testes e os tiles juntos; o de hoje fica longe do uso real.
+constexpr int kIntHooks = 1024;                            // slots 0..1023
+constexpr int kFltHooks = 64;                              // slots 1024..1087
+constexpr int kDblHooks = 64;                              // slots 1088..1151
+// Por forma de struct (Vector2, Color, Rectangle...). Comecou em quatro e a
+// propria bateria esgotou a do Vector2; a mensagem de erro diz qual acabou.
+constexpr int kStructSlots = 32;
+constexpr int kBaseStruct = kIntHooks + kFltHooks + kDblHooks;   // 1152
 constexpr int kStructForms = 10;
 constexpr int kMaxHooks = kBaseStruct + kStructForms * kStructSlots;
 
@@ -343,43 +345,18 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
 }
 
 // --- funcoes de substituicao geradas em tempo de compilacao ---
-// Uma por slot, em tres familias, porque o tipo de RETORNO faz parte da ABI.
+// Uma por slot, instanciadas por template: stubInt<37> e a funcao do slot 37.
+// O tipo de RETORNO faz parte da ABI (x0, s0, d0, ou os registradores do
+// struct), entao ha uma familia por forma de retorno.
 
-#define BL_LIST_INT \
- X(0)X(1)X(2)X(3)X(4)X(5)X(6)X(7)X(8)X(9)X(10)X(11)X(12)X(13)X(14)X(15) \
- X(16)X(17)X(18)X(19)X(20)X(21)X(22)X(23)X(24)X(25)X(26)X(27)X(28)X(29)X(30)X(31) \
- X(32)X(33)X(34)X(35)X(36)X(37)X(38)X(39)X(40)X(41)X(42)X(43)X(44)X(45)X(46)X(47) \
- X(48)X(49)X(50)X(51)X(52)X(53)X(54)X(55)X(56)X(57)X(58)X(59)X(60)X(61)X(62)X(63) \
- X(64)X(65)X(66)X(67)X(68)X(69)X(70)X(71)X(72)X(73)X(74)X(75)X(76)X(77)X(78)X(79) \
- X(80)X(81)X(82)X(83)X(84)X(85)X(86)X(87)X(88)X(89)X(90)X(91)X(92)X(93)X(94)X(95) \
- X(96)X(97)X(98)X(99)X(100)X(101)X(102)X(103)X(104)X(105)X(106)X(107)X(108)X(109)X(110)X(111) \
- X(112)X(113)X(114)X(115)X(116)X(117)X(118)X(119)X(120)X(121)X(122)X(123)X(124)X(125)X(126)X(127)
+template <int Slot>
+static intptr_t stubInt(BL_HOOK_PARAMS) { return dispatch(BL_HOOK_ARGS, Slot).i; }
 
-#define BL_LIST_16 \
- X(0)X(1)X(2)X(3)X(4)X(5)X(6)X(7)X(8)X(9)X(10)X(11)X(12)X(13)X(14)X(15)
+template <int Slot>
+static float stubFlt(BL_HOOK_PARAMS) { return static_cast<float>(dispatch(BL_HOOK_ARGS, Slot).f); }
 
-// O parametro da macro NAO pode se chamar `i`: o pre-processador substituiria
-// tambem o `.i` do acesso ao campo de Outcome, virando `.0`.
-#define X(n) \
-    static intptr_t bl_hook_i##n(BL_HOOK_PARAMS) { \
-        return dispatch(BL_HOOK_ARGS, n).i; \
-    }
-BL_LIST_INT
-#undef X
-
-#define X(n) \
-    static float bl_hook_f##n(BL_HOOK_PARAMS) { \
-        return static_cast<float>(dispatch(BL_HOOK_ARGS, kIntHooks + n).f); \
-    }
-BL_LIST_16
-#undef X
-
-#define X(n) \
-    static double bl_hook_d##n(BL_HOOK_PARAMS) { \
-        return dispatch(BL_HOOK_ARGS, kIntHooks + kFltHooks + n).f; \
-    }
-BL_LIST_16
-#undef X
+template <int Slot>
+static double stubDbl(BL_HOOK_PARAMS) { return dispatch(BL_HOOK_ARGS, Slot).f; }
 
 /** Os bytes do Outcome no formato do carregador. */
 template <class T>
@@ -389,81 +366,54 @@ static inline T carry(const Outcome& o) {
     return r;
 }
 
-// Quatro slots por forma. O numero da forma multiplica kStructSlots, entao a
-// ordem aqui tem de bater com a do enum Ret (S8, S16, H1F..H4F, H1D..H4D) — e
-// a mesma que o slotRange usa para achar o intervalo.
-#define BL_GEN_STRUCT(sufixo, T, forma)                             \
-    static T bl_hook_##sufixo##0(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 0)); \
-    }                                                               \
-    static T bl_hook_##sufixo##1(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 1)); \
-    }                                                               \
-    static T bl_hook_##sufixo##2(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 2)); \
-    }                                                               \
-    static T bl_hook_##sufixo##3(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 3)); \
-    }                                                               \
-    static T bl_hook_##sufixo##4(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 4)); \
-    }                                                               \
-    static T bl_hook_##sufixo##5(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 5)); \
-    }                                                               \
-    static T bl_hook_##sufixo##6(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 6)); \
-    }                                                               \
-    static T bl_hook_##sufixo##7(BL_HOOK_PARAMS) {                  \
-        return carry<T>(dispatch(BL_HOOK_ARGS,                      \
-                        kBaseStruct + (forma) * kStructSlots + 7)); \
+template <class T, int Slot>
+static T stubStruct(BL_HOOK_PARAMS) { return carry<T>(dispatch(BL_HOOK_ARGS, Slot)); }
+
+// A tabela slot -> funcao, montada uma vez. A ordem das formas de struct tem
+// de bater com a do enum Ret (S8, S16, H1F..H4F, H1D..H4D), que e a que o
+// slotRange usa para achar o intervalo.
+static void* g_stubs[kMaxHooks];
+
+template <int From, size_t... I>
+static void putInt(std::index_sequence<I...>) {
+    ((g_stubs[From + I] = reinterpret_cast<void*>(&stubInt<From + static_cast<int>(I)>)), ...);
+}
+template <int From, size_t... I>
+static void putFlt(std::index_sequence<I...>) {
+    ((g_stubs[From + I] = reinterpret_cast<void*>(&stubFlt<From + static_cast<int>(I)>)), ...);
+}
+template <int From, size_t... I>
+static void putDbl(std::index_sequence<I...>) {
+    ((g_stubs[From + I] = reinterpret_cast<void*>(&stubDbl<From + static_cast<int>(I)>)), ...);
+}
+template <class T, int Forma, size_t... I>
+static void putStruct(std::index_sequence<I...>) {
+    constexpr int from = kBaseStruct + Forma * kStructSlots;
+    ((g_stubs[from + I] = reinterpret_cast<void*>(&stubStruct<T, from + static_cast<int>(I)>)), ...);
+}
+
+static bool fillStubs() {
+    putInt<0>(std::make_index_sequence<kIntHooks>{});
+    putFlt<kIntHooks>(std::make_index_sequence<kFltHooks>{});
+    putDbl<kIntHooks + kFltHooks>(std::make_index_sequence<kDblHooks>{});
+    using Seq = std::make_index_sequence<kStructSlots>;
+    putStruct<S8, 0>(Seq{});
+    putStruct<S16, 1>(Seq{});
+    putStruct<H1F, 2>(Seq{});
+    putStruct<H2F, 3>(Seq{});
+    putStruct<H3F, 4>(Seq{});
+    putStruct<H4F, 5>(Seq{});
+    putStruct<H1D, 6>(Seq{});
+    putStruct<H2D, 7>(Seq{});
+    putStruct<H3D, 8>(Seq{});
+    putStruct<H4D, 9>(Seq{});
+    for (void* p : g_stubs) {
+        if (!p) return false;
     }
-
-BL_GEN_STRUCT(s8,  S8,  0)
-BL_GEN_STRUCT(s16, S16, 1)
-BL_GEN_STRUCT(h1f, H1F, 2)
-BL_GEN_STRUCT(h2f, H2F, 3)
-BL_GEN_STRUCT(h3f, H3F, 4)
-BL_GEN_STRUCT(h4f, H4F, 5)
-BL_GEN_STRUCT(h1d, H1D, 6)
-BL_GEN_STRUCT(h2d, H2D, 7)
-BL_GEN_STRUCT(h3d, H3D, 8)
-BL_GEN_STRUCT(h4d, H4D, 9)
-#undef BL_GEN_STRUCT
-
-static void* const g_stubs[kMaxHooks] = {
-#define X(n) reinterpret_cast<void*>(&bl_hook_i##n),
-    BL_LIST_INT
-#undef X
-#define X(n) reinterpret_cast<void*>(&bl_hook_f##n),
-    BL_LIST_16
-#undef X
-#define X(n) reinterpret_cast<void*>(&bl_hook_d##n),
-    BL_LIST_16
-#undef X
-#define BL_PTRS(sufixo)                            \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##0), \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##1), \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##2), \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##3), \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##4), \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##5), \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##6), \
-    reinterpret_cast<void*>(&bl_hook_##sufixo##7),
-    BL_PTRS(s8) BL_PTRS(s16)
-    BL_PTRS(h1f) BL_PTRS(h2f) BL_PTRS(h3f) BL_PTRS(h4f)
-    BL_PTRS(h1d) BL_PTRS(h2d) BL_PTRS(h3d) BL_PTRS(h4d)
-#undef BL_PTRS
-};
-static_assert(sizeof(g_stubs) / sizeof(g_stubs[0]) == kMaxHooks,
-              "a tabela de stubs tem de cobrir exatamente os slots");
+    return true;
+}
+static_assert(static_cast<int>(Ret::H4D) - static_cast<int>(Ret::S8) + 1 == kStructForms,
+              "uma forma de struct por Ret de struct");
 
 // ---------------------------- instalacao ----------------------------
 
@@ -543,6 +493,11 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
         return false;
     }
 
+    static const bool stubsReady = fillStubs();
+    if (!stubsReady) {
+        JS_ThrowInternalError(ctx, "hook: tabela de funcoes de slot incompleta");
+        return false;
+    }
     // A familia depende do tipo de retorno: cada uma tem seu proprio pool,
     // porque o tipo de retorno da funcao de substituicao faz parte da ABI.
     int from = 0, count = 0;

@@ -283,6 +283,39 @@ tooltip.hook((original) => original());
 drawString.hook(callback, { whileIn: tooltip });
 ```
 
+### Vários hooks no mesmo método
+
+Dois mods (ou o mesmo mod duas vezes) podem hookar o mesmo método. Eles se
+**encadeiam**: o `original` do primeiro hook instalado chama o segundo, e assim
+por diante até o método do jogo. Então o mod carregado antes vê a chamada antes.
+
+Cada hook da cadeia fica aninhado dentro do anterior e gasta pilha do motor
+JS. No teste (`tools/tests/hookslots`), **53** hooks encadeados no mesmo método
+couberam. Passando disso, os que não cabem dão erro no log e a ponte roda o
+original por eles, então o jogo segue. Na prática, dezenas de mods no mesmo método
+funcionam.
+
+### Quantos hooks
+
+Cada `.hook()` ocupa um slot, e os slots são separados pela forma do retorno
+do método:
+
+| Retorno | Slots |
+|---|---|
+| int, bool, objeto, string, void | 1024 |
+| float | 64 |
+| double | 64 |
+| struct pequeno (`Vector2`, `Color`, `Rectangle`...) | 32 por forma |
+
+Os hooks das classes de mod (`ModItem`, `ModTile`...) são instalados uma vez e
+servem a todos os mods. O que gasta slot é cada `.hook()` escrito direto num mod.
+Com o Example Mod e todos os mods de teste juntos, são cerca de 80. O teste de
+estresse instala mais de 430 de uma vez.
+
+Ter mais slots não pesa: um hook instalado não custa nada enquanto o método não
+for chamado. O que custa é o JS rodar a cada chamada, então é preciso cuidado
+com hook em método de todo quadro (ver *Custo*).
+
 ### O que ainda não dá
 
 - Hookar método com mais de 16 argumentos inteiros (8 em registrador e 8 na
