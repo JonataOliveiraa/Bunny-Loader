@@ -25,6 +25,13 @@ import { ExampleWhip } from './Content/Items/Weapons/Melee/ExampleWhip.js';
 import { ExampleSwingingEnergySword } from './Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js';
 import { ExampleDrill } from './Content/Items/Tools/ExampleDrill.js';
 import { ExampleMagicWeapon } from './Content/Items/Weapons/Magic/ExampleMagicWeapon.js';
+import { ExampleLaserHoldout } from './Content/Projectiles/ExampleLaserHoldout.js';
+import { ExampleLaserBeam } from './Content/Projectiles/ExampleLaserBeam.js';
+import { ExampleHookProjectile } from './Content/Projectiles/ExampleHookProjectile.js';
+import { ExampleBobber } from './Content/Projectiles/ExampleBobber.js';
+import { ExampleLaserWeapon } from './Content/Items/Weapons/Magic/ExampleLaserWeapon.js';
+import { ExampleHookItem } from './Content/Items/Tools/ExampleHookItem.js';
+import { ExampleFishingRod } from './Content/Items/Tools/ExampleFishingRod.js';
 
 ModNPC.register(ExampleSlimeNPC);
 
@@ -37,6 +44,10 @@ ModProjectile.register(ExampleWhipProjectile);
 ModProjectile.register(ExampleSwingingEnergySwordProjectile);
 ModProjectile.register(ExampleDrillProjectile);
 ModProjectile.register(ExampleAdvancedAnimatedProjectile);
+ModProjectile.register(ExampleLaserHoldout);
+ModProjectile.register(ExampleLaserBeam);
+ModProjectile.register(ExampleHookProjectile);
+ModProjectile.register(ExampleBobber);
 
 ModItem.register(ExampleItem);
 ModItem.register(ExampleMeleeWeapon);
@@ -55,6 +66,9 @@ ModItem.register(ExampleWhip);
 ModItem.register(ExampleSwingingEnergySword);
 ModItem.register(ExampleDrill);
 ModItem.register(ExampleMagicWeapon);
+ModItem.register(ExampleLaserWeapon);
+ModItem.register(ExampleHookItem);
+ModItem.register(ExampleFishingRod);
 
 bl.log(`Example Mod: ExampleItem = ${ModItem.getTypeByName('ExampleItem')}, ` +
        `Espada = ${ModItem.getTypeByName('ExampleMeleeWeapon')}, ` +

@@ -736,6 +736,12 @@ class ModProjectile {
     // com Main.EntitySpriteDraw). PostDraw roda depois do desenho do jogo.
     PreDraw(proj, lightColor) { return true; }
     PostDraw(proj, lightColor) {}
+    // Gancho de escalar. No MOLDE, antes de o projetil existir: false impede
+    // o lancamento; UseGrapple devolve o tipo a lancar (ou o mesmo).
+    CanUseGrapple(player, type) { return true; }
+    UseGrapple(player, type) { return type; }
+    // true/false: agarra neste bloco; undefined = o do jogo (bloco solido).
+    GrappleCanLatchOnTo(proj, player, tile) { return undefined; }
 
     // Copia os valores de um projetil do jogo para este.
     CloneDefaults(type) {
@@ -915,6 +921,34 @@ function hookProjectile(cls) {
             const c = m ? guard(m.constructor.name + '.GetAlpha', () => m.GetAlpha(p, color)) : undefined;
             return c || original(p, color);
         }, self);
+    });
+
+    if (has('GrappleCanLatchOnTo')) once('proj.Latch', () => {
+        Pr['bool AI_007_GrapplingHooks_CanTileBeLatchedOnTo(Tile theTile)'].hook((original, p, tile) => {
+            const vanilla = original(p, tile);
+            const m = projectileOf(p);
+            if (!m) return vanilla;
+            const r = guard(m.constructor.name + '.GrappleCanLatchOnTo',
+                            () => m.GrappleCanLatchOnTo(p, Terraria.Main.player[p.owner], tile));
+            return typeof r === 'boolean' ? r : vanilla;
+        }, self);
+    });
+
+    // O item de gancho lanca o item.shoot: filtro nativo pelo shoot do Item.
+    if (has('CanUseGrapple') || has('UseGrapple')) once('proj.Grapple', () => {
+        Terraria.Player['void FireGrapple(Item grappleItem)'].hook((original, player, item) => {
+            const template = projectilesByType.get(item.shoot);
+            if (!template) return original(player, item);
+            const n = template.constructor.name;
+            const shoot = item.shoot;
+            if (guard(n + '.CanUseGrapple', () => template.CanUseGrapple(player, shoot)) === false) return undefined;
+            const t = guard(n + '.UseGrapple', () => template.UseGrapple(player, shoot));
+            const type = typeof t === 'number' ? t : shoot;
+            if (type === shoot) return original(player, item);
+            item.shoot = type;
+            try { original(player, item); } finally { item.shoot = shoot; }
+            return undefined;
+        }, { minType: FIRST_PROJECTILE, on: 0, field: 'shoot' });
     });
 
     if (has('PreDraw') || has('PostDraw')) once('proj.Draw', () => {

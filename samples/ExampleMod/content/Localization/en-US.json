@@ -16,7 +16,10 @@
     "ExampleWhip": "Example Whip",
     "ExampleSwingingEnergySword": "Example Energy Sword",
     "ExampleDrill": "Example Drill",
-    "ExampleMagicWeapon": "Example Magic Staff"
+    "ExampleMagicWeapon": "Example Magic Staff",
+    "ExampleLaserWeapon": "Example Prism",
+    "ExampleHookItem": "Example Hook",
+    "ExampleFishingRod": "Example Fishing Rod"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -27,7 +30,11 @@
     "ExampleWhipProjectile": "Example Whip",
     "ExampleSwingingEnergySwordProjectile": "Example Energy Sword",
     "ExampleDrillProjectile": "Example Drill",
-    "ExampleAdvancedAnimatedProjectile": "Example Magic Wave"
+    "ExampleAdvancedAnimatedProjectile": "Example Magic Wave",
+    "ExampleLaserHoldout": "Example Prism",
+    "ExampleLaserBeam": "Example Laser",
+    "ExampleHookProjectile": "Example Hook",
+    "ExampleBobber": "Example Bobber"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime"
@@ -35,7 +42,9 @@
   "ItemTooltip": {
     "ExampleItem": "Item description",
     "ExampleShotgun": "Fires eight bullets at once",
-    "ExampleWhip": "Your summons will focus struck enemies\n10 summon tag damage"
+    "ExampleWhip": "Your summons will focus struck enemies\n10 summon tag damage",
+    "ExampleHookItem": "Also latches onto tree trunks",
+    "ExampleFishingRod": "Can fish in lava"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."

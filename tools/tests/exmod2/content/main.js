@@ -73,7 +73,7 @@ function killAll(type) {
 }
 
 // Dispara a arma como o jogador: ela no slot 9, na mao, e o ItemCheck_Shoot.
-function fire(type) {
+function fire(type, keep = false) {
     const p = me();
     const it = p.inventory[9];
     const saved = { type: it.type, stack: it.stack };
@@ -86,6 +86,7 @@ function fire(type) {
     killAll(shoot);
     p['void ItemCheck_Shoot(int i, Item sItem, int weaponDamage, bool withAudioVisualFeedback)'](Main.myPlayer, it, it.damage, false);
     const n = countOf(shoot);
+    if (keep) return { shoot, n };
     p.selectedItemState.selected = savedSel;
     it['void SetDefaults(int Type, ItemVariant variant)'](saved.type, null);
     it.stack = saved.stack;
@@ -144,6 +145,57 @@ function run() {
 
     const c = me().Center;
     newProj(null, c.X, c.Y - 48, 0, 6, BOUNCE, 1, 0, Main.myPlayer, 0, 0, 0, null);
+
+    check('vara de pesca: boia', () => {
+        const t = itemType('Vara de Pesca de Exemplo');
+        if (!ItemID.Sets.CanFishInLava[t]) return 'CanFishInLava falso';
+        const { shoot, n } = fire(t);
+        killAll(shoot);
+        return n >= 1 || `boia ${shoot}: ${n}`;
+    });
+
+    check('gancho: no maximo 2', () => {
+        const t = itemType('Gancho de Exemplo');
+        const hook = sample(t);
+        killAll(hook.shoot);
+        const p = me();
+        for (let i = 0; i < 3; i++) {
+            p['void FireGrapple(Item grappleItem)'](hook);
+            p.ownedProjectileCounts[hook.shoot] = countOf(hook.shoot);
+        }
+        const n = countOf(hook.shoot);
+        killAll(hook.shoot);
+        return n === 2 || n + ' gancho(s)';
+    });
+
+    // O prisma: segurado (channel) por alguns quadros, ate o raio nascer.
+    const laser = itemType('Prisma de Exemplo');
+    laserSlot = me().inventory[9].type;
+    me().inventory[9]['void SetDefaults(int Type, ItemVariant variant)'](laser, null);
+    holding = true;
+    me().channel = true;
+    fire(laser, true);
+}
+
+let holding = false;
+let laserSlot = 0;
+
+function projType(name) {
+    for (let t = bl.projectiles.vanillaCount; t < bl.projectiles.vanillaCount + 64; t++) {
+        if (!bl.projectiles.isModProjectile(t)) break;
+        if (Terraria.Lang['LocalizedText GetProjectileName(int type)'](t).Value === name) return t;
+    }
+    return -1;
+}
+
+function laserCheck() {
+    holding = false;
+    check('prisma: raio', () => {
+        const beam = projType('Raio de Exemplo');
+        const n = countOf(beam);
+        return n >= 1 || `raio ${beam}: ${n}, prisma: ${countOf(me().inventory[9].shoot)}`;
+    });
+    me().inventory[9]['void SetDefaults(int Type, ItemVariant variant)'](laserSlot, null);
 }
 
 function late() {
@@ -162,7 +214,13 @@ let frames = 0;
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     original(self, i);
     if (i !== Main.myPlayer || Main.gameMenu) return;
+    if (holding) {
+        self.channel = true;
+        self.selectedItemState.selected = 9;
+        self.statMana = self.statManaMax2;
+    }
     ++frames;
+    if (frames === 150) laserCheck();
     if (frames === 90) run();
     if (frames === 210) late();
 });

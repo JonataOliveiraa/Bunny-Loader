@@ -16,7 +16,10 @@
     "ExampleWhip": "Chicote de Exemplo",
     "ExampleSwingingEnergySword": "Espada de Energia de Exemplo",
     "ExampleDrill": "Broca de Exemplo",
-    "ExampleMagicWeapon": "Cajado de Exemplo"
+    "ExampleMagicWeapon": "Cajado de Exemplo",
+    "ExampleLaserWeapon": "Prisma de Exemplo",
+    "ExampleHookItem": "Gancho de Exemplo",
+    "ExampleFishingRod": "Vara de Pesca de Exemplo"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -27,7 +30,11 @@
     "ExampleWhipProjectile": "Chicote de Exemplo",
     "ExampleSwingingEnergySwordProjectile": "Espada de Energia de Exemplo",
     "ExampleDrillProjectile": "Broca de Exemplo",
-    "ExampleAdvancedAnimatedProjectile": "Onda Mágica de Exemplo"
+    "ExampleAdvancedAnimatedProjectile": "Onda Mágica de Exemplo",
+    "ExampleLaserHoldout": "Prisma de Exemplo",
+    "ExampleLaserBeam": "Raio de Exemplo",
+    "ExampleHookProjectile": "Gancho de Exemplo",
+    "ExampleBobber": "Boia de Exemplo"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Slime de Exemplo"
@@ -35,7 +42,9 @@
   "ItemTooltip": {
     "ExampleItem": "Descrição do item",
     "ExampleShotgun": "Dispara oito balas de uma vez",
-    "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n10 de dano de marcação"
+    "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n10 de dano de marcação",
+    "ExampleHookItem": "Agarra também em troncos de árvore",
+    "ExampleFishingRod": "Pesca na lava"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."

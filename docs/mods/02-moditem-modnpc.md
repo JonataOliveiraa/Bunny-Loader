@@ -282,6 +282,8 @@ export class ExampleBulletProjectile extends ModProjectile {
 | `CanCutTiles(proj)`, `CutTiles(proj)` | Cortar grama e teia. |
 | `GetAlpha(proj, lightColor)` | A cor final (uma `Color`), ou `undefined` para a do jogo. |
 | `PreDraw(proj, lightColor)`, `PostDraw(proj, lightColor)` | Desenho: `false` no `PreDraw` não desenha o do jogo — desenhe o seu com `Main.EntitySpriteDraw`. |
+| `CanUseGrapple(player, type)`, `UseGrapple(player, type)` | Gancho de escalar, no **molde**, antes de lançar: `false` impede; `UseGrapple` devolve o tipo a lançar (e pode recolher um gancho velho para limitar quantos ficam presos). |
+| `GrappleCanLatchOnTo(proj, player, tile)` | `true`/`false`: o gancho agarra neste bloco; `undefined` = o do jogo (bloco sólido). |
 
 Campos e atalhos:
 
