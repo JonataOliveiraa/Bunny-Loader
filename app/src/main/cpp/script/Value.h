@@ -31,7 +31,7 @@ struct TypeDesc {
     size_t size = sizeof(void*);  // bytes que o valor ocupa em linha
     bool byValue = false;         // mora em linha; senao e um ponteiro
     bool isEnum = false;          // `prim` ja e o tipo SUBJACENTE
-    bool byRef = false;           // `ref`/`out` — recusado, nao adivinhado
+    bool byRef = false;           // `ref`/`out`: vira um Ref no JS (Ref.h)
     std::string name;             // nome do CLR, para mensagens de erro
 
     /**

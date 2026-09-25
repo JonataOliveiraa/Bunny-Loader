@@ -63,7 +63,7 @@ struct ParamPlan {
     int reg = 0;               // indice inicial na fila (inteiros: >= 8 e pilha)
     int regs = 1;              // quantos registradores ocupa
     bool structByRef = false;  // o registrador guarda um PONTEIRO pro struct
-    bool opaque = false;       // ref/out: repassado intacto, invisivel ao JS
+    bool opaque = false;       // ref/out: o ponteiro vai intacto; o JS ve um Ref (Ref.h)
 };
 
 /** Retorno bruto: o campo que vale depende do Ret. */

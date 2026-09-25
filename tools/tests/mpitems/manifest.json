@@ -1,0 +1,15 @@
+{
+  "uid": "26cb976f-2d52-41dc-b07c-bf93f921a691",
+  "id": "test-mpitems",
+  "name": "Teste: itens do Example Mod no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O cliente usa cada item de mod que atira e bebe a pocao; o host confere item, projetil e buff pela rede. Depois, registra o dash do escudo dos dois lados.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpi ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

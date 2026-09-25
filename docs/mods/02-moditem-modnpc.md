@@ -311,6 +311,19 @@ Outros:
 Mais de um mod com `ModPlayer`: roda na ordem de carga dos mods (pelo uid) e,
 dentro de um mod, na ordem do `register`.
 
+### Dash e toque duplo no celular
+
+No celular, o primeiro toque numa direção põe o `player.doubleTapCardinalTimer`
+em **30**, e não em 15 como no PC. O segundo toque só conta com o timer abaixo de
+30. Um dash copiado do tModLoader com `timer < 15` não sai no aparelho. O
+`ExampleDashPlayer` usa 30 e aceita também o botão de dash do jogo
+(`player.controlDash`).
+
+No multijogador, **só o dono** decide o dash (`player.whoAmI === Main.myPlayer`).
+Os outros aparelhos recebem os controles pela rede com atraso, e o timer de lá
+dá toque duplo onde não houve. O movimento chega aos outros pela posição do
+jogador.
+
 ### Dados salvos
 
 O que o jogador deve lembrar entre sessões vai no `SaveData` e volta no

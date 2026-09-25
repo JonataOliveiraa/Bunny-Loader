@@ -196,9 +196,20 @@ std::string paramTypeOf(const std::string& decl) {
     size_t eq = d.find('=');
     if (eq != std::string::npos) d = trim(d.substr(0, eq));
 
+    // `ref int x` / `out Vector2 pos` / `in T x`: o runtime chama de "Int32&".
+    std::string suffix;
+    for (const char* kw : {"ref ", "out ", "in "}) {
+        const size_t n = std::strlen(kw);
+        if (d.compare(0, n, kw) == 0) {
+            d = trim(d.substr(n));
+            suffix = "&";
+            break;
+        }
+    }
+
     size_t sp = d.find_last_of(" \t");
-    if (sp == std::string::npos) return d;  // só o tipo, sem nome
-    return trim(d.substr(0, sp));
+    if (sp == std::string::npos) return d + suffix;  // só o tipo, sem nome
+    return trim(d.substr(0, sp)) + suffix;
 }
 
 } // namespace

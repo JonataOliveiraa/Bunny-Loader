@@ -15,6 +15,7 @@
 #include "script/Files.h"
 #include "script/Texture.h"
 #include "script/Marshal.h"
+#include "script/Ref.h"
 #include "script/Members.h"
 #include "script/Value.h"
 #include "il2cpp/Types.h"
@@ -1086,6 +1087,7 @@ void installBindings(void* context) {
     // GameStruct (Value.cpp) — precisa existir antes de qualquer leitura de
     // campo, que é de onde saem as vistas de struct.
     installStructClass(ctx);
+    installRefClass(ctx, global);   // ref/out (Ref.h)
 
     // Namespace (arvore Terraria.*) — depois do g_nativeClassId existir.
     JS_NewClassID(rt, &g_namespaceId);

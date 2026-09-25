@@ -16,17 +16,27 @@ export class ExampleDashPlayer extends ModPlayer {
     DashDelay = 0;
     DashTimer = 0;
 
+    static DoubleTapWindow = 30;
+
     ResetEffects(player) {
         this.DashAccessoryEquipped = false;
+        if (player.whoAmI !== Terraria.Main.myPlayer) {
+            this.DashDir = -1;
+            return;
+        }
 
         const timer = player.doubleTapCardinalTimer;
-        if (player.controlDown && player.releaseDown && timer[0] < 15) {
+        const window = ExampleDashPlayer.DoubleTapWindow;
+        if (player.controlDash && player.releaseDash) {
+            const dir = player.controlRight ? 1 : player.controlLeft ? -1 : player.direction;
+            this.DashDir = dir > 0 ? ExampleDashPlayer.DashRight : ExampleDashPlayer.DashLeft;
+        } else if (player.controlDown && player.releaseDown && timer[0] < window) {
             this.DashDir = ExampleDashPlayer.DashDown;
-        } else if (player.controlUp && player.releaseUp && timer[1] < 15) {
+        } else if (player.controlUp && player.releaseUp && timer[1] < window) {
             this.DashDir = ExampleDashPlayer.DashUp;
-        } else if (player.controlRight && player.releaseRight && timer[2] < 15 && timer[3] === 0) {
+        } else if (player.controlRight && player.releaseRight && timer[2] < window && timer[3] === 0) {
             this.DashDir = ExampleDashPlayer.DashRight;
-        } else if (player.controlLeft && player.releaseLeft && timer[3] < 15 && timer[2] === 0) {
+        } else if (player.controlLeft && player.releaseLeft && timer[3] < window && timer[2] === 0) {
             this.DashDir = ExampleDashPlayer.DashLeft;
         } else {
             this.DashDir = -1;

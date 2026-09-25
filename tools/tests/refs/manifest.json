@@ -1,0 +1,15 @@
+{
+  "uid": "6c2f7d0e-4b1a-4f7e-9a53-2d8e1b7c9f41",
+  "id": "test-refs",
+  "name": "Teste: ref e out",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Ref preso num hook (int, bool, Vector2), Ref solto numa chamada, e o Ref depois do hook.",
+  "description": "Loga 'refs ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

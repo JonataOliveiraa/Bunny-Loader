@@ -1665,7 +1665,10 @@ function hookProjectile(cls) {
             if (!m) return original(main, p, player);
             const n = m.constructor.name;
             const c = p.Center;
-            const light = lightAt(Math.floor(c.X / 16), Math.floor(c.Y / 16));
+            // Um projetil pode passar um quadro com a posicao NaN (a lanca com
+            // itemAnimationMax 0 ao trocar de item): luz cheia, sem ler o tile.
+            const light = Number.isFinite(c.X) && Number.isFinite(c.Y)
+                ? lightAt(Math.floor(c.X / 16), Math.floor(c.Y / 16)) : Color.White;
             if (guard(n + '.PreDraw', () => m.PreDraw(p, light)) === false) return undefined;
             original(main, p, player);
             guard(n + '.PostDraw', () => m.PostDraw(p, light));

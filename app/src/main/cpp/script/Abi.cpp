@@ -3,6 +3,7 @@
 #if BL_HAVE_QUICKJS && defined(__aarch64__)
 #include "il2cpp/Api.h"
 #include "script/Bridge.h"
+#include "script/Ref.h"
 
 #include <cstring>
 #include <new>
@@ -98,7 +99,9 @@ Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[kIntSlots], con
 
 JSValue paramToJs(JSContext* ctx, const intptr_t a[kIntSlots], const uint64_t d[8],
                   const ParamPlan& p) {
-    if (p.opaque) return JS_UNDEFINED;
+    // ref/out: um Ref preso a variavel do chamador (ver Ref.h). Quem chama
+    // (o dispatcher do hook) solta o Ref quando o callback volta.
+    if (p.opaque) return makeBoundRef(ctx, reinterpret_cast<void*>(a[p.reg]), p.d);
 
     if (p.d.prim == Prim::Struct) {
         if (p.structByRef) {

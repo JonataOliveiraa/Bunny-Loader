@@ -1,6 +1,7 @@
 #include "script/Abi.h"
 #include "script/Bridge.h"
 #include "script/Marshal.h"
+#include "script/Ref.h"
 #include "script/Value.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -270,6 +271,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     } else if (c->isInstance) {
         argv[argc++] = makeNativeObject(ctx, reinterpret_cast<Il2CppObject*>(rawA[0]));
     }
+    const int firstParam = argc;
     for (const ParamPlan& p : c->abi.params) {
         if (argc >= static_cast<int>(sizeof(argv) / sizeof(argv[0]))) break;
         argv[argc++] = paramToJs(ctx, f.a, f.d, p);
@@ -283,7 +285,15 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     if (JS_IsException(ret)) {
         JSValue e = JS_GetException(ctx);
         const char* t = JS_ToCString(ctx, e);
-        BL_ERROR("hook: excecao no callback: %s", t ? t : "?");
+        // O nome do metodo e a pilha JS: sem eles, "nao aceita NaN" nao diz
+        // de qual mod nem de qual linha veio.
+        JSValue st = JS_IsError(e) ? JS_GetPropertyStr(ctx, e, "stack") : JS_UNDEFINED;
+        const char* s = JS_IsString(st) ? JS_ToCString(ctx, st) : nullptr;
+        BL_ERROR("hook %s.%s: excecao no callback: %s%s%s",
+                 il2cpp::api().class_get_name(il2cpp::api().method_get_class(c->method)),
+                 il2cpp::api().method_get_name(c->method), t ? t : "?", s ? "\n" : "", s ? s : "");
+        if (s) JS_FreeCString(ctx, s);
+        JS_FreeValue(ctx, st);
         if (t) JS_FreeCString(ctx, t);
         JS_FreeValue(ctx, e);
 
@@ -303,6 +313,11 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     // original, se ele foi chamado.
     result = jsToOutcome(ctx, c->abi, ret, g_frames.back().originalResult);
 
+    // Os ref/out apontam para a pilha de quem chamou: o Ref que o mod guardou
+    // fica com o ultimo valor, sem o endereco.
+    for (int i = firstParam; i < argc; ++i) {
+        if (c->abi.params[static_cast<size_t>(i - firstParam)].opaque) unbindRef(ctx, argv[i]);
+    }
     for (int i = 0; i < argc; ++i) JS_FreeValue(ctx, argv[i]);
     JS_FreeValue(ctx, ret);
 

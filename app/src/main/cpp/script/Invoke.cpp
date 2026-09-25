@@ -4,13 +4,16 @@
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "script/Marshal.h"
+#include "script/Ref.h"
 #include "script/Value.h"
 
 #if defined(__aarch64__)
 #include "script/Abi.h"
 #endif
 
+#include <cstring>
 #include <unordered_map>
+#include <vector>
 
 namespace bl::script {
 
@@ -72,15 +75,6 @@ const Cached& planFor(const MethodInfo* m) {
     } else {
         erro = planAbi(m, c.isInstance, &c.plan);
     }
-    if (erro.empty()) {
-        // `ref`/`out` vira parametro opaco: no hook ele e repassado como
-        // chegou, mas numa chamada NOSSA nao ha valor de onde tira-lo. O
-        // ArgPack ja recusa com uma frase que o modder entende; deixamos o
-        // caminho lento dar a mensagem em vez de inventarmos outra.
-        for (const ParamPlan& p : c.plan.params) {
-            if (p.opaque) { erro = "tem parametro ref/out"; break; }
-        }
-    }
     c.direct = erro.empty();
     if (!c.direct) {
         BL_INFO("invoke: '%s' vai pelo runtime_invoke (%s)",
@@ -114,9 +108,34 @@ JSValue invokeMethod(JSContext* ctx, const MethodInfo* m, void* self,
 
         const int n = static_cast<int>(p.params.size());
         ArgScratch scratch;   // vive ate o metodo voltar (Rectangle? por endereco)
+        // ref/out: o metodo recebe o endereco de uma variavel nossa, com o
+        // valor do Ref; na volta, o que ele deixou la vai para o Ref.
+        struct RefArg { int param; void* var; TypeDesc pointee; };
+        std::vector<RefArg> refs;
         for (int i = 0; i < n; ++i) {
             JSValueConst v = (i < argc) ? argv[i] : JS_UNDEFINED;
-            if (jsToParam(ctx, v, p.params[i], a, d, &scratch) < 0) return JS_EXCEPTION;
+            const ParamPlan& pp = p.params[i];
+            if (pp.opaque) {
+                if (!isRef(v)) {
+                    return JS_ThrowTypeError(ctx, "argumento %d e ref/out (%s): passe um new Ref(valor)",
+                                             i + 1, pp.d.name.c_str());
+                }
+                RefArg r{i, nullptr, pp.d};
+                r.pointee.byRef = false;
+                const size_t sz = r.pointee.size < sizeof(void*) ? sizeof(void*) : r.pointee.size;
+                r.var = scratch.take(sz);
+                if (!r.var) return JS_ThrowInternalError(ctx, "sem espaco para o ref/out do argumento %d", i + 1);
+                std::memset(r.var, 0, sz);
+                JSValue init = refStoredValue(ctx, v);
+                // `out` costuma vir de new Ref() sem valor: a variavel comeca zerada.
+                const int ok = JS_IsUndefined(init) ? 1 : writeAt(ctx, r.var, r.pointee, init);
+                JS_FreeValue(ctx, init);
+                if (ok < 0) return JS_EXCEPTION;
+                a[pp.reg] = reinterpret_cast<intptr_t>(r.var);
+                refs.push_back(std::move(r));
+                continue;
+            }
+            if (jsToParam(ctx, v, pp, a, d, &scratch) < 0) return JS_EXCEPTION;
         }
         // Todo metodo gerado pelo IL2CPP recebe o proprio MethodInfo como
         // ultimo argumento. No hook ele vem de graca nos registradores do
@@ -128,6 +147,14 @@ JSValue invokeMethod(JSContext* ctx, const MethodInfo* m, void* self,
         if (threw) {
             return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo",
                                          il2cpp::api().method_get_name(m));
+        }
+        for (const RefArg& r : refs) {
+            const TypeDesc& t = r.pointee;
+            JSValue back = (t.prim == Prim::Struct && !t.nullable())
+                               ? makeStructCopy(ctx, t.cls, r.var, t.size)
+                               : readAt(ctx, r.var, t, JS_UNDEFINED);
+            if (JS_IsException(back)) return back;
+            refStore(ctx, argv[r.param], back);
         }
         return outcomeToJs(ctx, p, o);
     }

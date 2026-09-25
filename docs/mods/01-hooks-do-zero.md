@@ -152,6 +152,21 @@ Terraria.Main['void StartRain(bool instant, float? strengthOverride, bool garent
 
 Método do jogo que lança exceção vira exceção JS.
 
+### `ref` e `out`
+
+Um parâmetro `ref`/`out` recebe um `Ref`, e o valor fica em `.value`. Na
+assinatura, escreva como no dump: `out int`, `ref Vector2`.
+
+```js
+const tempo = new Ref();
+if (Terraria.Main['bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeValue)'](0, tempo)) {
+    bl.log('o primeiro buff ainda dura', tempo.value, 'quadros');
+}
+```
+
+`new Ref(valor)` começa com um valor, para `ref`. Passar um número direto
+onde o método quer `ref`/`out` dá erro, que diz para usar o `Ref`.
+
 ### Criando objetos
 
 `new Item()` do C# é `.new()` e depois o construtor:
@@ -194,6 +209,33 @@ struct pequeno:
 ```js
 Distancia.hook((original, a, b) => original(a, b) * 10);
 ```
+
+### `ref` e `out` no hook
+
+No hook, o parâmetro `ref`/`out` chega como um `Ref` **preso à variável de quem
+chamou**. Ler `.value` lê a variável; escrever muda o que o jogo vai usar,
+como o `ref int damage` do tModLoader:
+
+```js
+Terraria.Main['bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeValue)'].hook((original, slot, tempo) => {
+    const r = original(slot, tempo);
+    tempo.value += 60;   // quem perguntou ve um segundo a mais
+    return r;
+});
+```
+
+Struct por `ref` (`ref Vector2`, `ref FishingAttempt`) sai como **cópia** a
+cada leitura. Mude a cópia e devolva:
+
+```js
+const pos = position.value;
+pos.Y -= 16;
+position.value = pos;
+```
+
+Quando o callback volta, o `Ref` se solta: se você o guardou, ele fica com o
+último valor e deixa de tocar o jogo. A variável era da pilha de quem chamou.
+Um `out` só tem valor depois do `original`.
 
 ### Hook roda para todos
 
@@ -320,6 +362,7 @@ a pasta do pacote é trocada inteira quando o mod é atualizado.
 | `Classe.new()` + `['void .ctor(...)']` | criar objeto |
 | `metodo.hook((original, self, ...args) => ...)` | interceptar |
 | `metodo.hook(cb, { minType })` | interceptar só a partir de um tipo |
+| `new Ref(v)` / `ref.value` | parâmetro `ref`/`out`, na chamada e no hook |
 | `bl.log(...)` | escreve em `logs/bunny_<data>.txt` e no logcat |
 | `bl.loadTexture(caminho)` | PNG/JPG do mod → `Texture2D` |
 | `bl.readJson(caminho)` | JSON do mod |
