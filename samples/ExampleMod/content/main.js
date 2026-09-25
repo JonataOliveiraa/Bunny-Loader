@@ -60,6 +60,8 @@ import { ExampleSentryItem } from './Content/Items/Weapons/Summon/ExampleSentryI
 import { ExampleSentry } from './Content/Projectiles/ExampleSentry.js';
 import { ExampleSentryShot } from './Content/Projectiles/ExampleSentryShot.js';
 import { ExamplePerson } from './Content/NPCs/ExamplePerson.js';
+import { ExampleBoss } from './Content/NPCs/ExampleBoss.js';
+import { ExampleBossSummonItem } from './Content/Items/Consumables/ExampleBossSummonItem.js';
 
 ModBuff.register(ExampleDefenseBuff);
 ModBuff.register(ExampleDefenseDebuff);
@@ -72,6 +74,7 @@ ModPlayer.register(ExampleDashPlayer);
 
 ModNPC.register(ExampleSlimeNPC);
 ModNPC.register(ExamplePerson);
+ModNPC.register(ExampleBoss);
 
 ModProjectile.register(ExampleBulletProjectile);
 ModProjectile.register(ExampleGolfBallProjectile);
@@ -124,6 +127,7 @@ ModItem.register(ExamplePetItem);
 ModItem.register(ExampleLightPetItem);
 ModItem.register(ExampleMinionItem);
 ModItem.register(ExampleSentryItem);
+ModItem.register(ExampleBossSummonItem);
 
 ModTile.register(ExampleTile);
 ModTile.register(ExampleOre);

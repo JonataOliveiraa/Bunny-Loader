@@ -1,0 +1,15 @@
+{
+  "uid": "c4ff3f94-b840-4366-91bc-bbfb2f1e55ae",
+  "id": "test-boss",
+  "name": "Teste: chefe de mod nasce",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O Olho de ??? do Example Mod nasce pelo item de invocacao, a noite, anda e anima. So isso: o resto do chefe e testado a mao.",
+  "description": "Loga 'boss ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

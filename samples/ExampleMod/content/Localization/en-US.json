@@ -31,7 +31,8 @@
     "ExamplePetItem": "Paper Airplane",
     "ExampleLightPetItem": "Annoying Light",
     "ExampleMinionItem": "Example Minion Item",
-    "ExampleSentryItem": "Example Sentry Item"
+    "ExampleSentryItem": "Example Sentry Item",
+    "ExampleBossSummonItem": "Eye of ???"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -55,7 +56,8 @@
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime",
-    "ExamplePerson": "Person"
+    "ExamplePerson": "Person",
+    "ExampleBoss": "Eye of ???"
   },
   "ItemTooltip": {
     "ExampleItem": "Item description",
@@ -71,11 +73,13 @@
     "ExamplePetItem": "Summons a Paper Airplane to follow aimlessly behind you",
     "ExampleLightPetItem": "Summons an annoying light",
     "ExampleMinionItem": "Summons an example minion to fight for you",
-    "ExampleSentryItem": "Summons an example sentry to fight for you"
+    "ExampleSentryItem": "Summons an example sentry to fight for you",
+    "ExampleBossSummonItem": "???"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
-    "ExamplePerson": "ExamplePerson Bestiary Text"
+    "ExamplePerson": "ExamplePerson Bestiary Text",
+    "ExampleBoss": "Eye of something"
   },
   "RecipeGroups": {
     "ExampleItem": "Example Item"

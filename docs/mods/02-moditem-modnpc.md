@@ -1038,6 +1038,14 @@ ele, então o mundo abre sem o mod, e o morador volta quando o mod volta.
 - O alvo do tiro é o inimigo à vista mais perto (o do jogo fica em variáveis
   que o mod não alcança).
 
+## Chefe
+
+O Example Mod tem um chefe, o **Olho de ???** (`ExampleBoss`): `npc.boss = true`,
+`aiStyle = -1` e a IA no `AI` (persegue o jogador; na metade da vida acelera e
+troca a animação), invocado à noite pelo `ExampleBossSummonItem` com
+`Terraria.NPC.SpawnOnPlayer`. Ícone de chefe no mapa, música, sacola de
+tesouro e a marca de chefe derrotado ainda não têm atalho no Bunny Loader.
+
 ## Tradução
 
 `Localization/<idioma>.json`, um por idioma (`pt-BR`, `en-US`, `es-ES`, `de-DE`,

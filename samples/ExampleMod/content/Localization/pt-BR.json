@@ -31,7 +31,8 @@
     "ExamplePetItem": "Aviãozinho",
     "ExampleLightPetItem": "Luz Irritante",
     "ExampleMinionItem": "Cajado do Lacaio de Exemplo",
-    "ExampleSentryItem": "Cajado da Sentinela de Exemplo"
+    "ExampleSentryItem": "Cajado da Sentinela de Exemplo",
+    "ExampleBossSummonItem": "Olho de ???"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -55,7 +56,8 @@
   },
   "NPCName": {
     "ExampleSlimeNPC": "Slime de Exemplo",
-    "ExamplePerson": "Pessoa"
+    "ExamplePerson": "Pessoa",
+    "ExampleBoss": "Olho de ???"
   },
   "ItemTooltip": {
     "ExampleItem": "Descrição do item",
@@ -71,11 +73,13 @@
     "ExamplePetItem": "Invoca um aviãozinho de papel que te segue sem rumo",
     "ExampleLightPetItem": "Invoca uma luz irritante",
     "ExampleMinionItem": "Invoca um lacaio de exemplo que luta por você",
-    "ExampleSentryItem": "Invoca uma sentinela de exemplo que luta por você"
+    "ExampleSentryItem": "Invoca uma sentinela de exemplo que luta por você",
+    "ExampleBossSummonItem": "???"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
-    "ExamplePerson": "Texto de Pessoa para o bestiário"
+    "ExamplePerson": "Texto de Pessoa para o bestiário",
+    "ExampleBoss": "Um olho de alguma coisa"
   },
   "RecipeGroups": {
     "ExampleItem": "Item de Exemplo"
