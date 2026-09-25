@@ -90,4 +90,35 @@ int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit,
     return patched;
 }
 
+int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd) {
+    if (!m || newEnd > 0xFFF || oldEnd > 0xFFF) return 0;
+    const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
+    if (!start) return 0;
+    const uintptr_t end = methodEnd(m, start);
+    int patched = 0;
+    for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 1) < end; ++p) {
+        // cmp xN, #imm (SUBS XZR, Xn, #imm12, sf=1) + b.ne/b.lt de volta ao laco
+        if ((*p & 0xFFC0001Fu) != 0xF100001Fu || ((*p >> 10) & 0xFFFu) != oldEnd) continue;
+        if ((p[1] & 0xFF000010u) != 0x54000000u) continue;
+        const uint32_t cond = p[1] & 0xFu;
+        if (cond != 0x1 && cond != 0xB && cond != 0x3) continue;   // NE, LT, LO
+        if (writeInstruction(p, (*p & ~(0xFFFu << 10)) | (newEnd << 10))) ++patched;
+    }
+    return patched;
+}
+
+int patchMovImmediate(const MethodInfo* m, uint32_t oldValue, uint32_t newValue) {
+    if (!m || newValue > 0xFFFF || oldValue > 0xFFFF) return 0;
+    const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
+    if (!start) return 0;
+    const uintptr_t end = methodEnd(m, start);
+    int patched = 0;
+    for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p) < end; ++p) {
+        // movz wN, #imm16 (sf=0, hw=0)
+        if ((*p & 0xFFE00000u) != 0x52800000u || ((*p >> 5) & 0xFFFFu) != oldValue) continue;
+        if (writeInstruction(p, (*p & ~(0xFFFFu << 5)) | (newValue << 5))) ++patched;
+    }
+    return patched;
+}
+
 } // namespace bl::runtime

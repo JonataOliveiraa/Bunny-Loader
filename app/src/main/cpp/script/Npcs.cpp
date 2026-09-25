@@ -6,6 +6,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "runtime/ModNpcs.h"
+#include "runtime/ModTownNpcs.h"
 #include "script/Bridge.h"
 #include "script/Items.h"
 #include "script/Texture.h"
@@ -131,7 +132,7 @@ void onNpcsInstalled(int first, int last) {
 }
 
 /**
- * bl.npcs.register({ name, texture, frames, animationType, displayName,
+ * bl.npcs.register({ name, texture, head, frames, animationType, displayName,
  *                    setDefaults, setStaticDefaults, hitEffect }) -> tipo
  *
  * O tipo sai na hora (NPCID.Count + a ordem de registro). `setDefaults(npc)`
@@ -212,11 +213,17 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
         if (!g_hitEffectHook) return JS_EXCEPTION;
     }
 
+    // A cabeca (o morador precisa dela para ter casa): opcional; sem o
+    // arquivo, o NPC so nao tem cabeca.
+    const std::string headProp = stringProp(ctx, def, "head");
+    const std::string head = headProp.empty() ? std::string() : resolveModPath(ctx, headProp);
+
     const std::string mod = d.mod, name = d.name;
     const int type = runtime::registerModNpc(std::move(d));
     if (type < 0) {
         return JS_ThrowRangeError(ctx, "bl.npcs.register: '%s' ja foi registrado por este mod", name.c_str());
     }
+    if (!head.empty() && fileExists(head)) runtime::setModNpcHead(type, head, mod + "/" + name + "_Head");
     g_ctx = ctx;
     runtime::setNpcsInstalledHook(onNpcsInstalled);
     g_defs[type] = JS_DupValue(ctx, def);
@@ -232,6 +239,13 @@ JSValue js_typeOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     const int type = runtime::modNpcTypeByName(callerModId(ctx), name);
     JS_FreeCString(ctx, name);
     return JS_NewInt32(ctx, type);
+}
+
+/** bl.npcs.headSlot(tipo) — o indice da cabeca do NPC de mod em TextureAssets.NpcHead, ou -1. */
+JSValue js_headSlot(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t type = -1;
+    if (argc < 1 || JS_ToInt32(ctx, &type, argv[0]) < 0) return JS_ThrowTypeError(ctx, "bl.npcs.headSlot(tipo)");
+    return JS_NewInt32(ctx, runtime::modNpcHeadSlot(type));
 }
 
 /** bl.npcs.setFrames(tipo, quadros) — quadros definidos depois do registro. */
@@ -299,6 +313,7 @@ void installNpcsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, npcs, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaNpcCount));
     JS_SetPropertyStr(ctx, npcs, "freeSlot", JS_NewCFunction(ctx, js_freeSlot, "freeSlot", 0));
     JS_SetPropertyStr(ctx, npcs, "setFrames", JS_NewCFunction(ctx, js_setFrames, "setFrames", 2));
+    JS_SetPropertyStr(ctx, npcs, "headSlot", JS_NewCFunction(ctx, js_headSlot, "headSlot", 1));
     JS_SetPropertyStr(ctx, npcs, "setAnimationType",
                       JS_NewCFunction(ctx, js_setAnimationType, "setAnimationType", 2));
     JS_SetPropertyStr(ctx, bl, "npcs", npcs);

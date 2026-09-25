@@ -59,6 +59,7 @@ import { ExampleMinion } from './Content/Projectiles/ExampleMinion.js';
 import { ExampleSentryItem } from './Content/Items/Weapons/Summon/ExampleSentryItem.js';
 import { ExampleSentry } from './Content/Projectiles/ExampleSentry.js';
 import { ExampleSentryShot } from './Content/Projectiles/ExampleSentryShot.js';
+import { ExamplePerson } from './Content/NPCs/ExamplePerson.js';
 
 ModBuff.register(ExampleDefenseBuff);
 ModBuff.register(ExampleDefenseDebuff);
@@ -70,6 +71,7 @@ ModPlayer.register(ExamplePlayer);
 ModPlayer.register(ExampleDashPlayer);
 
 ModNPC.register(ExampleSlimeNPC);
+ModNPC.register(ExamplePerson);
 
 ModProjectile.register(ExampleBulletProjectile);
 ModProjectile.register(ExampleGolfBallProjectile);

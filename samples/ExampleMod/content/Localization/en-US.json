@@ -54,7 +54,8 @@
     "ExampleSentryShot": "Example Sentry Shot"
   },
   "NPCName": {
-    "ExampleSlimeNPC": "Example Slime"
+    "ExampleSlimeNPC": "Example Slime",
+    "ExamplePerson": "Person"
   },
   "ItemTooltip": {
     "ExampleItem": "Item description",
@@ -73,7 +74,8 @@
     "ExampleSentryItem": "Summons an example sentry to fight for you"
   },
   "Bestiary": {
-    "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."
+    "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
+    "ExamplePerson": "ExamplePerson Bestiary Text"
   },
   "RecipeGroups": {
     "ExampleItem": "Example Item"
@@ -94,5 +96,31 @@
   },
   "CustomText": {
     "WelcomeMessage": "Welcome to {WorldName}!"
+  },
+  "NPCChat": {
+    "ExamplePerson_1": "Hello, how are you?",
+    "ExamplePerson_2": "Hello!"
+  },
+  "TownNPCMood": {
+    "ExamplePerson": {
+      "Content": "I am well thanks.",
+      "DislikeBiome": "I don't like {0}.",
+      "DislikeCrowded": "It's getting very crowded in here.",
+      "DislikeNPC": "I don't like {0}.",
+      "HateBiome": "I hate {0}.",
+      "HateCrowded": "There are a lot of people here.",
+      "HateNPC": "I hate {0}.",
+      "LikeBiome": "I like {0}.",
+      "LikeNPC": "I like {0}.",
+      "LoveBiome": "I really like {0}.",
+      "LoveNPC": "I really like {0}.",
+      "LoveSpace": "I like it here.",
+      "NoHome": "I need a house.",
+      "FarFromHome": "I'm a long way from home.",
+      "ExampleSpecialMoodText": "I don't like selling products overnight."
+    }
+  },
+  "CustomCurrency": {
+    "ExampleItemCurrency": "credits"
   }
 }

@@ -31,4 +31,20 @@ namespace bl::runtime {
 int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo = false,
                       bool shifted = false);
 
+/**
+ * O fim de um laco que anda pelo array em BYTES: o IL2CPP compila
+ * `for (i = 0; i < 697; i++) a[i]` como `x = 32; ...; x++; cmp x, #729; b.ne`
+ * (32 = o cabecalho do array). Troca o `cmp xN, #oldEnd` (64 bits) seguido de
+ * b.ne/b.lt/b.lo. A scan_limits.py nao acha essa forma; a scan_loops.py
+ * (tools/disasm) acha. Chamar na thread do jogo, uma vez.
+ */
+int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd);
+
+/**
+ * O tamanho de um `new T[697]`: `mov wN, #697` antes do il2cpp_array_new.
+ * Troca TODO `movz wN, #oldValue` do metodo: so para metodo conferido, em que
+ * o numero so aparece ali.
+ */
+int patchMovImmediate(const MethodInfo* m, uint32_t oldValue, uint32_t newValue);
+
 } // namespace bl::runtime

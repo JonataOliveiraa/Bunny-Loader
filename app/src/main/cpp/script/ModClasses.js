@@ -161,6 +161,14 @@ class ModLocalization {
         return ModLocalization.Register('Mods.' + path, map);
     }
 
+    // O TEXTO (na lingua do jogo) de 'NPCChat.ExamplePerson_1', para o que o
+    // jogo pede como texto (a fala do morador). Sem texto, o proprio caminho.
+    static GetTextValue(path) {
+        const dot = path.indexOf('.');
+        const map = dot > 0 ? localized(path.slice(0, dot), path.slice(dot + 1)) : undefined;
+        return map ? pickCulture(map) : path;
+    }
+
     // Registra `text` (texto ou { cultura: texto }) sob `key`. Devolve a chave.
     static Register(key, text) {
         const value = pickCulture(text);
@@ -2108,6 +2116,10 @@ class ModNPC {
     Texture = this.constructor.name;
     // true: sem entrada no Bestiario.
     HideFromBestiary = false;
+    // A cabeca (morador: mapa e menu de casas), relativa a Textures/, sem
+    // .png. Padrao: a Texture + '_Head'; sem o arquivo, sem cabeca. Morador
+    // sem cabeca nunca se muda (como no tModLoader).
+    HeadTexture = '';
 
     // Uma vez, com o tipo e a tabela de drop ja no jogo.
     // Main.npcFrameCount[this.Type] escrito aqui vale como a quantidade de
@@ -2147,6 +2159,19 @@ class ModNPC {
                                    Math.floor(spawnX), Math.floor(spawnY), this.Type, 0, 0, 0, 0, 0, 255);
     }
 
+    // ---- morador (npc.townNPC = true no SetDefaults, aiStyle 7) ----
+    // Pode se mudar agora? Checado de tempos em tempos pelo jogo, so enquanto
+    // nao ha um deste tipo no mundo. numTownNPCs: moradores vivos.
+    CanTownNPCSpawn(numTownNPCs) { return false; }
+    // A sala serve? (left, right, top, bottom) em tiles. true = qualquer sala valida.
+    CheckConditions(left, right, top, bottom) { return true; }
+    // Nomes proprios: um e sorteado quando ele chega. Vazio: o nome do tipo.
+    SetNPCNameList() { return []; }
+    // A fala ao conversar (texto), ou undefined para a do jogo.
+    GetChat(npc) { return undefined; }
+    // O indice da cabeca em TextureAssets.NpcHead (-1 sem cabeca).
+    NPCHeadSlot() { return bl.npcs.headSlot(this.Type); }
+
     static NPCValue(p = 0, g = 0, s = 0, c = 0) {
         return p * 1000000 + g * 10000 + s * 100 + c;
     }
@@ -2164,6 +2189,7 @@ class ModNPC {
         const def = {
             name,
             texture: texturePath(inst.Texture || name),
+            head: texturePath(inst.HeadTexture || (inst.Texture || name) + '_Head'),
             animationType: animation,
             displayName: inst.DisplayName || localized('NPCName', name) || name,
             setDefaults(npc) {
@@ -2243,10 +2269,73 @@ function finishBestiary() {
     bl.log('Bestiario: ' + bestiaryAdded + ' NPC(s) de mod');
 }
 
+// Moradores vivos (o numTownNPCs do CanTownNPCSpawn). 368 = mercador viajante.
+function countTownNPCs() {
+    const npcs = Terraria.Main.npc;
+    let n = 0;
+    for (let i = 0; i < npcs.length - 1; i++) {
+        const npc = npcs[i];
+        if (npc.active && npc.townNPC && npc.type !== 368) n++;
+    }
+    return n;
+}
+
 function hookNpc(cls) {
     const N = Terraria.NPC;
     const has = (name) => overrides(cls, ModNPC, name);
     const self = { minType: FIRST_NPC };
+
+    // ---- morador ----
+    // Quem pode se mudar: o jogo zera Main.townNPCCanSpawn e marca os dele a
+    // cada checagem (o contador checkForSpawns volta a 0 nela); os de mod sao
+    // marcados logo depois, como no NPCLoader.CanTownNPCSpawn do tModLoader.
+    if (has('CanTownNPCSpawn')) once('npc.TownSpawn', () => {
+        const Main = Terraria.Main;
+        const WorldGen = Terraria.WorldGen;
+        const anyNPCs = N['bool AnyNPCs(int Type)'];
+        Main['void UpdateTime_SpawnTownNPCs(bool forceUpdate)'].hook((original, force) => {
+            original(force);
+            if (Main.netMode === 1 || Main.checkForSpawns !== 0) return;
+            let towns = -1;
+            for (const [type, m] of npcsByType) {
+                if (!overrides(m.constructor, ModNPC, 'CanTownNPCSpawn') || m.NPCHeadSlot() < 0 || anyNPCs(type)) continue;
+                if (towns < 0) towns = countTownNPCs();
+                if (guard(m.constructor.name + '.CanTownNPCSpawn', () => m.CanTownNPCSpawn(towns)) !== true) continue;
+                Main.townNPCCanSpawn[type] = true;
+                if (WorldGen.prioritizedTownNPCType === 0) WorldGen.prioritizedTownNPCType = type;
+            }
+        });
+    });
+
+    // A sala serve para ele (a mudanca e o menu de casas passam por aqui).
+    if (has('CheckConditions')) once('npc.TownRoom', () => {
+        const WorldGen = Terraria.WorldGen;
+        WorldGen['bool CheckSpecialTownNPCSpawningConditions(int type)'].hook((original, type) => {
+            const m = npcsByType.get(type);
+            if (!m) return original(type);
+            return guard(m.constructor.name + '.CheckConditions',
+                () => m.CheckConditions(WorldGen.roomX1, WorldGen.roomX2, WorldGen.roomY1, WorldGen.roomY2)) !== false;
+        });
+    });
+
+    if (has('SetNPCNameList')) once('npc.Names', () => {
+        N['string getNewNPCName(int npcType)'].hook((original, type) => {
+            const m = npcsByType.get(type);
+            const names = m ? guard(m.constructor.name + '.SetNPCNameList', () => m.SetNPCNameList()) : undefined;
+            if (!Array.isArray(names) || names.length === 0) return original(type);
+            return String(names[Math.floor(Math.random() * names.length)]);
+        });
+    });
+
+    // A fala: a do jogo roda antes (o que ela registra continua), a do mod vale.
+    if (has('GetChat')) once('npc.GetChat', () => {
+        N['string GetChat()'].hook((original, npc) => {
+            const chat = original(npc);
+            const m = npcOf(npc);
+            const text = m ? guard(m.constructor.name + '.GetChat', () => m.GetChat(npc)) : undefined;
+            return typeof text === 'string' ? text : chat;
+        }, self);
+    });
 
     if (has('PreAI') || has('AI') || has('PostAI')) once('npc.AI', () => {
         N['void AI()'].hook((original, npc) => {

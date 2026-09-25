@@ -7,6 +7,7 @@
 #include "runtime/CodePatch.h"
 #include "runtime/ContentAssets.h"
 #include "runtime/GameRefs.h"
+#include "runtime/ModTownNpcs.h"
 #include "runtime/TypeTables.h"
 
 #include <atomic>
@@ -381,7 +382,10 @@ int npcTypeCount() {
 
 void prepareModNpcs() {
     const int total = g_total.load(std::memory_order_acquire);
-    if (total > 0) patchLimits(kVanillaNpcCount + total);
+    if (total > 0) {
+        patchLimits(kVanillaNpcCount + total);
+        prepareTownNpcs(kVanillaNpcCount + total);
+    }
 }
 
 bool modNpcsSettled() {
@@ -414,7 +418,10 @@ void tickModNpcs() {
         }
         g_tables.checkPending(from);
         static int frame = 0;
-        if (++frame % 120 == 0) g_tables.watch(from, onTableRegrown);
+        if (++frame % 120 == 0) {
+            g_tables.watch(from, onTableRegrown);
+            watchTownNpcs();
+        }
         else {
             Il2CppArray* names = readStatic(refs().names);
             if (names && names->length < static_cast<uintptr_t>(from)) g_tables.watch(from, onTableRegrown);
@@ -465,6 +472,7 @@ void tickModNpcs() {
     if (!hook::install(refs().findFrame, hkFindFrame, &g_origFindFrame)) {
         BL_ERROR("NPCs de mod: sem hook em NPC.FindFrame; NPC de mod nao anima");
     }
+    installTownNpcs(to);
     // FORA da trava: o SetDefaults da amostra entra no JS do mod.
     for (const auto& s : samples) registerSample(s.first, s.second);
     BL_INFO("NPCs de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",

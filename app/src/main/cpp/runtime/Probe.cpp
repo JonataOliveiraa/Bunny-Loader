@@ -9,6 +9,7 @@
 #include "runtime/Cheats.h"
 #include "runtime/ModItemSave.h"
 #include "runtime/ModTileSave.h"
+#include "runtime/ModNpcSave.h"
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
 #include "ui/CheatButton.h"
@@ -78,6 +79,7 @@ void probeThread() {
             installCheats();
             installModItemSave();
             installModTileSave();
+            installModNpcSave();
             ui::installCheatButton();
             return;
         }

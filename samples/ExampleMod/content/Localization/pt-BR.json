@@ -54,7 +54,8 @@
     "ExampleSentryShot": "Tiro da Sentinela"
   },
   "NPCName": {
-    "ExampleSlimeNPC": "Slime de Exemplo"
+    "ExampleSlimeNPC": "Slime de Exemplo",
+    "ExamplePerson": "Pessoa"
   },
   "ItemTooltip": {
     "ExampleItem": "Descrição do item",
@@ -73,7 +74,8 @@
     "ExampleSentryItem": "Invoca uma sentinela de exemplo que luta por você"
   },
   "Bestiary": {
-    "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."
+    "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
+    "ExamplePerson": "Texto de Pessoa para o bestiário"
   },
   "RecipeGroups": {
     "ExampleItem": "Item de Exemplo"
@@ -94,5 +96,31 @@
   },
   "CustomText": {
     "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"
+  },
+  "NPCChat": {
+    "ExamplePerson_1": "Olá, como vai?",
+    "ExamplePerson_2": "Olá!"
+  },
+  "TownNPCMood": {
+    "ExamplePerson": {
+      "Content": "Estou bem, obrigado.",
+      "DislikeBiome": "Não gosto de {0}.",
+      "DislikeCrowded": "Está ficando muito cheio aqui.",
+      "DislikeNPC": "Não gosto do {0}.",
+      "HateBiome": "Odeio {0}.",
+      "HateCrowded": "Tem muita gente aqui.",
+      "HateNPC": "Odeio o {0}.",
+      "LikeBiome": "Gosto de {0}.",
+      "LikeNPC": "Gosto de {0}.",
+      "LoveBiome": "Gosto muito de {0}.",
+      "LoveNPC": "Gosto muito de {0}.",
+      "LoveSpace": "Eu gosto daqui.",
+      "NoHome": "Preciso de uma casa.",
+      "FarFromHome": "Estou muito longe de casa.",
+      "ExampleSpecialMoodText": "Não gosto de vender produtos durante a noite."
+    }
+  },
+  "CustomCurrency": {
+    "ExampleItemCurrency": "créditos"
   }
 }

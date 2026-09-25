@@ -1,0 +1,15 @@
+{
+  "uid": "a4c3ba84-cfe3-4526-bef8-46cf3dcdd7eb",
+  "id": "test-townnpc",
+  "name": "Teste: morador de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A Pessoa do Example Mod se muda para uma casa, fala e volta ao reabrir o mundo (com e sem o mod).",
+  "description": "Loga 'townnpc ...'. Rodar quatro vezes: com o Example Mod, com, sem e com de novo.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}
