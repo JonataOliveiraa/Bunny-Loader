@@ -61,6 +61,8 @@ const std::vector<std::u16string>& npcNames();
  */
 const std::vector<int>& npcFrames();
 void requestSpawn(int type, int count = 1);
+/** O buff `type` no jogador local por `seconds`. THREAD-SAFE, como o requestGive. */
+void requestBuff(int type, int seconds);
 
 /**
  * Secao do menu de cada item, decidida pelo PROPRIO jogo.
@@ -99,6 +101,8 @@ bool inWorld();
 
 // Prontas junto com os nomes (`namesReady`). Vazias se a leitura falhou.
 const std::vector<uint8_t>& itemClasses();
+// A subcategoria dentro da secao (0 = Outros); contrato com SUB_NAMES no Java.
+const std::vector<uint8_t>& itemSubClasses();
 // Teto de pilha que o menu entrega: 1 para arma, ferramenta, acessorio e
 // armadura; o maxStack do jogo para o resto. NAO e o Item.maxStack puro, que
 // nesta versao vale 9999 ate para espada.

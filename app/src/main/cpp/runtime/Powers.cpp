@@ -24,7 +24,7 @@ namespace {
 constexpr int kPowerCount = static_cast<int>(Power::Count);
 
 // Quantos niveis cada poder tem, na ordem do enum. Liga/desliga = 1.
-constexpr int kMaxLevel[] = {3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 3, 3, 1, 2, 1, 1, 1, 2, 4};
+constexpr int kMaxLevel[] = {3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 3, 3, 1, 2, 1, 1, 1, 2, 4, 1};
 static_assert(std::size(kMaxLevel) == kPowerCount, "um nivel maximo por poder");
 
 // Indice 0 = desligado.
@@ -133,7 +133,7 @@ bool usesResetHook(Power p) {
     case Power::TimeStop: case Power::XRay: case Power::Rain: case Power::Wind:
     case Power::Bestiary: case Power::NoSpawns: case Power::MapTeleport:
     case Power::ClearInventory: case Power::RevealMap: case Power::Hardmode:
-    case Power::Difficulty:
+    case Power::Difficulty: case Power::FastRespawn:
         return false;
     default:
         return true;
@@ -149,7 +149,7 @@ struct PlayerFields {
         jumpSpeedBoost, noFallDmg, creativeGodMode, statLife, statLifeMax2, statMana,
         statManaMax2, manaCost, breath, breathMax, hasJumpOption_Cloud,
         canJumpAgain_Cloud, pickSpeed, nightVision, findTreasure, detectCreature,
-        dangerSense, maxMinions, maxTurrets;
+        dangerSense, maxMinions, maxTurrets, dead, respawnTimer;
 } P;
 
 // So o voo usa. Separado para um campo faltando desligar o voo, e nao tudo.
@@ -426,6 +426,7 @@ bool resolveRefs() {
         {&P.nightVision, "nightVision"}, {&P.findTreasure, "findTreasure"},
         {&P.detectCreature, "detectCreature"}, {&P.dangerSense, "dangerSense"},
         {&P.maxMinions, "maxMinions"}, {&P.maxTurrets, "maxTurrets"},
+        {&P.dead, "dead"}, {&P.respawnTimer, "respawnTimer"},
     };
     bool ok = resolveOffsets(player, fields);
     g_npcImmune = fieldOffset(npc, "immune");
@@ -1363,6 +1364,15 @@ void tickPowers() {
     }
     holdClock();
     if (g_weatherRefs) holdWeather();
+
+    // Reviver rapido: o UpdateDead conta o respawnTimer ate 0 e so entao chama
+    // o Spawn. Zerado aqui, antes do quadro, o jogador volta neste quadro.
+    if (levelOf(Power::FastRespawn) > 0 && inWorld()) {
+        Il2CppObject* p = localPlayer();
+        if (p && field<uint8_t>(p, P.dead) && field<int32_t>(p, P.respawnTimer) > 0) {
+            field<int32_t>(p, P.respawnTimer) = 0;
+        }
+    }
 
     // Acao, nao estado: roda uma vez e o nivel volta a 0 sozinho.
     if (g_level[static_cast<int>(Power::Bestiary)].exchange(0) > 0 && inWorld() &&

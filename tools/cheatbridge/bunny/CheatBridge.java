@@ -103,6 +103,20 @@ public class CheatBridge {
     /** Categorias do catalogo de mod, achatadas: nome, icone, nome, icone... */
     public static native String[] nModCategories();
     public static native int[] nModCategoryItems(int category);
+    /** Subcategoria de cada item dentro da secao (runtime::subOf; 0 = Outros). */
+    public static native byte[] nItemSubClasses();
+    /** Classe de cada NPC (runtime::NpcClass). */
+    public static native byte[] nNpcClasses();
+    /** Nome de cada buff (Lang.GetBuffName); [0] vazio. */
+    public static native String[] nBuffNames();
+    /** Classe de cada buff (runtime::BuffClass). */
+    public static native byte[] nBuffClasses();
+    /** O buff `type` no jogador local por `seconds`. */
+    public static native void nOnBuff(int type, int seconds);
+    /** BuffID.Count: dali para cima, buff de mod. */
+    public static native int nVanillaBuffCount();
+    /** PNG de cada buff de mod, indice = tipo - nVanillaBuffCount(). */
+    public static native String[] nModBuffTextures();
 
     // --- paleta ---
     private static final int PANEL      = 0xFF3F5297;
@@ -149,7 +163,47 @@ public class CheatBridge {
         int[] maxStacks;
         /** Quadros da tira de cada NPC (Main.npcFrameCount). */
         int[] npcFrames;
+        /** [classe][subcategoria] -> ids (runtime::subOf). */
+        int[][][] bySub;
+        /** [classe de NPC] -> ids (runtime::NpcClass). */
+        int[][] npcByClass;
+        String[] buffNames, buffSearch;
+        int[] allBuffs;
+        /** [classe de buff] -> ids (runtime::BuffClass). */
+        int[][] buffByClass;
     }
+
+    // Contrato com runtime::NpcClass e runtime::BuffClass (MenuCatalog.h).
+    private static final int NPC_OTHER = 0, NPC_BOSS = 1, NPC_MONSTER = 2, NPC_TOWN = 3,
+        NPC_CRITTER = 4, N_NPC_CLASSES = 5;
+    private static final int N_BUFF_CLASSES = 7;
+
+    /**
+     * O nome de cada subcategoria, por secao (indice = o numero que o nativo
+     * da, runtime::subOf). A [0] e sempre "Outros" e vai por ultimo na tela.
+     */
+    private static final String[][] SUB_NAMES = new String[N_CLASSES][];
+    static {
+        SUB_NAMES[CL_OTHER] = new String[] {"Outros", "Materiais", "Tintas e corantes", "Iscas",
+            "Montarias", "Bolsas e caixas"};
+        SUB_NAMES[CL_MELEE] = new String[] {"Outros", "Espadas", "Espadas curtas", "Lanças",
+            "Manguais e maças", "Ioiôs", "Bumerangues"};
+        SUB_NAMES[CL_RANGED] = new String[] {"Outros", "Arcos", "Armas de fogo", "Lança-foguetes",
+            "Arremessáveis"};
+        SUB_NAMES[CL_MAGIC] = new String[] {"Outros", "Cajados"};
+        SUB_NAMES[CL_SUMMON] = new String[] {"Outros", "Lacaios", "Sentinelas", "Chicotes"};
+        SUB_NAMES[CL_AMMO] = new String[] {"Outras", "Flechas", "Balas", "Foguetes"};
+        SUB_NAMES[CL_TOOL] = new String[] {"Outras", "Picaretas", "Machados", "Martelos",
+            "Brocas e serras", "Varas de pesca", "Ganchos"};
+        SUB_NAMES[CL_ACCESSORY] = new String[] {"Outros", "Asas", "Calçados", "Escudos"};
+        SUB_NAMES[CL_ARMOR] = new String[] {"Outras", "Capacetes", "Peitorais", "Calças", "Vaidade"};
+        SUB_NAMES[CL_POTION] = new String[] {"Outras", "Cura", "Mana", "Comida", "Buffs"};
+        SUB_NAMES[CL_BLOCK] = new String[] {"Outros", "Blocos", "Paredes", "Tochas", "Móveis e objetos"};
+    }
+    private static final String[] NPC_CLASS_NAMES = {"Outros", "Chefes", "Monstros", "Moradores",
+        "Criaturas"};
+    private static final String[] BUFF_CLASS_NAMES = {"Outros", "Buffs", "Debuffs", "Comida",
+        "Frascos", "Pets e luzes", "Invocações e montarias"};
 
     private static volatile Catalog sCatalog;
     /** Quem espera o catalogo. So a UI thread mexe. */
@@ -210,8 +264,15 @@ public class CheatBridge {
         c.allItems = sequence(items.length);
         c.allNpcs = sequence(npcs.length);
         c.byClass = splitByClass(nItemClasses(), items);
+        c.bySub = splitBySub(nItemClasses(), nItemSubClasses(), items);
+        c.npcByClass = splitGroups(nNpcClasses(), npcs, N_NPC_CLASSES);
         c.itemSearch = normalizeAll(items);
         c.npcSearch = normalizeAll(npcs);
+        String[] buffs = nBuffNames();
+        c.buffNames = buffs != null ? buffs : new String[0];
+        c.buffSearch = normalizeAll(c.buffNames);
+        c.allBuffs = named(c.buffNames);
+        c.buffByClass = splitGroups(nBuffClasses(), c.buffNames, N_BUFF_CLASSES);
         Log.i("BunnyLoader", "menu: catalogo pronto; esperou o nativo " + (t1 - t0)
             + " ms, montou em " + (SystemClock.elapsedRealtime() - t1) + " ms");
         return c;
@@ -250,6 +311,59 @@ public class CheatBridge {
         return out;
     }
 
+    /** [classe][sub] -> ids, numa passada por classe. Sem subcategorias, tudo vazio. */
+    private static int[][][] splitBySub(byte[] cls, byte[] sub, String[] names) {
+        int[][][] out = new int[N_CLASSES][][];
+        for (int c = 0; c < N_CLASSES; c++) {
+            int subs = SUB_NAMES[c].length;
+            int[] counts = new int[subs];
+            int end = cls == null || sub == null ? 0 : Math.min(Math.min(cls.length, sub.length), names.length);
+            for (int i = 1; i < end; i++) {
+                if ((cls[i] & 0xFF) != c || names[i] == null) continue;
+                int k = sub[i] & 0xFF;
+                counts[k < subs ? k : 0]++;
+            }
+            out[c] = new int[subs][];
+            for (int k = 0; k < subs; k++) out[c][k] = new int[counts[k]];
+            int[] at = new int[subs];
+            for (int i = 1; i < end; i++) {
+                if ((cls[i] & 0xFF) != c || names[i] == null) continue;
+                int k = sub[i] & 0xFF;
+                if (k >= subs) k = 0;
+                out[c][k][at[k]++] = i;
+            }
+        }
+        return out;
+    }
+
+    /** ids com nome, separados pela classe de cada um (NPC, buff). */
+    private static int[][] splitGroups(byte[] cls, String[] names, int n) {
+        int[] counts = new int[n];
+        int end = cls == null ? 0 : Math.min(cls.length, names.length);
+        for (int i = 1; i < end; i++) {
+            int c = cls[i] & 0xFF;
+            if (c < n && names[i] != null) counts[c]++;
+        }
+        int[][] out = new int[n][];
+        for (int c = 0; c < n; c++) out[c] = new int[counts[c]];
+        int[] k = new int[n];
+        for (int i = 1; i < end; i++) {
+            int c = cls[i] & 0xFF;
+            if (c < n && names[i] != null) out[c][k[c]++] = i;
+        }
+        return out;
+    }
+
+    /** Os ids 1..n-1 que tem nome. */
+    private static int[] named(String[] names) {
+        int n = 0;
+        for (int i = 1; i < names.length; i++) if (names[i] != null) n++;
+        int[] v = new int[n];
+        int k = 0;
+        for (int i = 1; i < names.length; i++) if (names[i] != null) v[k++] = i;
+        return v;
+    }
+
     private static String[] normalizeAll(String[] names) {
         String[] b = new String[names.length];
         for (int i = 0; i < names.length; i++) b[i] = foldAccents(names[i]);
@@ -261,8 +375,8 @@ public class CheatBridge {
     // Registrados no boot, antes de o menu existir, entao as tabelas daqui sao
     // lidas uma vez so e na hora: nao tocam o il2cpp, so copiam listas.
 
-    private static int sVanilla = -1, sVanillaNpc = -1;
-    private static String[] sModTextures, sModNpcTextures;
+    private static int sVanilla = -1, sVanillaNpc = -1, sVanillaBuff = -1;
+    private static String[] sModTextures, sModNpcTextures, sModBuffTextures;
 
     private static void loadModItems() {
         if (sVanilla >= 0) return;
@@ -270,12 +384,18 @@ public class CheatBridge {
         sModTextures = nModItemTextures();
         sVanillaNpc = nVanillaNpcCount();
         sModNpcTextures = nModNpcTextures();
+        sVanillaBuff = nVanillaBuffCount();
+        sModBuffTextures = nModBuffTextures();
     }
 
-    /** O PNG do item (ou NPC) de mod `id`, ou null se o id e do jogo. */
-    private static String modTexture(boolean npc, int id) {
-        int vanilla = npc ? sVanillaNpc : sVanilla;
-        String[] files = npc ? sModNpcTextures : sModTextures;
+    // O que um sprite mostra: define a pasta do PNG e a tabela de mod.
+    private static final int SPR_ITEM = 0, SPR_NPC = 1, SPR_BUFF = 2;
+    private static final String[] SPR_DIR = {"item/", "npc/", "buff/"};
+
+    /** O PNG do item, NPC ou buff de mod `id`, ou null se o id e do jogo. */
+    private static String modTexture(int kind, int id) {
+        int vanilla = kind == SPR_NPC ? sVanillaNpc : kind == SPR_BUFF ? sVanillaBuff : sVanilla;
+        String[] files = kind == SPR_NPC ? sModNpcTextures : kind == SPR_BUFF ? sModBuffTextures : sModTextures;
         if (vanilla < 0 || id < vanilla || files == null) return null;
         int i = id - vanilla;
         return i < files.length ? files[i] : null;
@@ -303,7 +423,8 @@ public class CheatBridge {
             modIcon = f[c + 2];
             int[] ids = nModCategoryItems(c / FOLDER_FIELDS);
             if (ids == null || ids.length == 0) continue;
-            folders.add(Section.modFolder(f[c + 3], f[c + 4], "npc".equals(f[c + 5]), ids));
+            int kind = "npc".equals(f[c + 5]) ? Section.NPC : "buff".equals(f[c + 5]) ? Section.BUFF : Section.ITEM;
+            folders.add(Section.modFolder(f[c + 3], f[c + 4], kind, ids));
         }
         if (mod != null && !folders.isEmpty()) {
             l.add(Section.modGroup(modName, modIcon, folders.toArray(new Section[0])));
@@ -325,7 +446,7 @@ public class CheatBridge {
      * entrada de um mod (FOLDERS), que abre as pastas dele.
      */
     private static final class Section {
-        static final int ITEM = 0, NPC = 1, POWER = 2, FOLDERS = 3;
+        static final int ITEM = 0, NPC = 1, POWER = 2, FOLDERS = 3, BUFF = 4;
 
         final String group, title;
         final int kind;
@@ -336,11 +457,13 @@ public class CheatBridge {
         final int[] fixedIds;
         /** Icone: drawable do app, ou sprite de item quando nao ha drawable. */
         final String icon;
-        final int iconItem;
+        int iconItem;
         /** Ou um PNG em disco (o icone que um mod deu a categoria dele). */
         String iconFile;
-        /** O icone e o sprite de um NPC (iconItem e o id dele), nao de um item. */
-        boolean iconNpc;
+        /** De que e o sprite do icone (SPR_*; iconItem e o id). */
+        int iconKind = SPR_ITEM;
+        /** Item: a subcategoria (-1 = a classe toda). NPC e buff: a classe (-1 = todos). */
+        int subClass = -1;
         /** Onde o slider comeca. Espada vem uma; bloco vem a pilha. */
         final int defaultQty;
         /** FOLDERS: as pastas do mod. */
@@ -362,6 +485,46 @@ public class CheatBridge {
             return new Section("ITENS", title, ITEM, itemClass, null, null, icon, iconItem, qty);
         }
 
+        /** Uma subcategoria de item (sub = -1: a classe inteira, "Todos"). */
+        static Section itemSub(String title, int itemClass, int sub, int qty) {
+            Section s = new Section("ITENS", title, ITEM, itemClass, null, null, null, 0, qty);
+            s.subClass = sub;
+            return s;
+        }
+
+        /** Classe de NPC (-1 = todos). */
+        static Section npcClass(String title, int cls) {
+            Section s = new Section("MUNDO", title, NPC, ALL_CLASSES, null, null, null, 0, 1);
+            s.subClass = cls;
+            s.iconKind = SPR_NPC;
+            return s;
+        }
+
+        /** Classe de buff (-1 = todos). */
+        static Section buffClass(String title, int cls) {
+            Section s = new Section("BUFFS", title, BUFF, ALL_CLASSES, null, null, null, 0, 5);
+            s.subClass = cls;
+            s.iconKind = SPR_BUFF;
+            return s;
+        }
+
+        /**
+         * Uma entrada da coluna que abre subcategorias (Corpo a corpo -> Todos,
+         * Espadas...). As listas vem do catalogo: as vazias somem quando ele fica
+         * pronto.
+         */
+        static Section group(String group, String title, String icon, int iconItem, int iconKind,
+                             Section[] children) {
+            Section s = new Section(group, title, FOLDERS, ALL_CLASSES, null, null, icon, iconItem, 0);
+            s.iconKind = iconKind;
+            s.children = children;
+            s.fromCatalog = true;
+            return s;
+        }
+
+        /** FOLDERS cujas pastas vem do catalogo (e nao de um mod). */
+        boolean fromCatalog;
+
         static Section npcs(String title, String[] n, int[] i, String icon) {
             return new Section("MUNDO", title, NPC, ALL_CLASSES, n, i, icon, 0, 1);
         }
@@ -370,12 +533,12 @@ public class CheatBridge {
             return new Section("PODERES", title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
         }
 
-        /** Uma pasta de mod: os itens (ou NPCs) que estao nela. */
-        static Section modFolder(String title, String icon, boolean npc, int[] ids) {
-            Section s = new Section("MODS", title, npc ? NPC : ITEM, ALL_CLASSES, null, ids,
-                null, ids[0], 1);
+        /** Uma pasta de mod: os itens (NPCs, buffs) que estao nela. */
+        static Section modFolder(String title, String icon, int kind, int[] ids) {
+            Section s = new Section("MODS", title, kind, ALL_CLASSES, null, ids,
+                null, ids[0], kind == BUFF ? 5 : 1);
             s.iconFile = icon == null || icon.length() == 0 ? null : icon;
-            s.iconNpc = npc;
+            s.iconKind = kind == NPC ? SPR_NPC : kind == BUFF ? SPR_BUFF : SPR_ITEM;
             return s;
         }
 
@@ -385,12 +548,15 @@ public class CheatBridge {
             Section s = new Section("MODS", title, FOLDERS, ALL_CLASSES, null, null, null,
                 first.iconItem, 0);
             s.iconFile = icon == null || icon.length() == 0 ? first.iconFile : icon;
-            s.iconNpc = first.iconNpc;
+            s.iconKind = first.iconKind;
             s.children = folders;
             return s;
         }
 
         boolean npc() { return kind == NPC; }
+        boolean buff() { return kind == BUFF; }
+        /** De que e o sprite de cada linha. */
+        int spriteKind() { return npc() ? SPR_NPC : buff() ? SPR_BUFF : SPR_ITEM; }
 
         /** Posicoes visiveis depois do filtro. null = todas. */
         int[] filtered;
@@ -401,7 +567,7 @@ public class CheatBridge {
 
         String nameAt(int k) {
             if (fixedNames != null) return fixedNames[k];
-            return (npc() ? sCatalog.npcNames : sCatalog.itemNames)[ids[k]];
+            return (npc() ? sCatalog.npcNames : buff() ? sCatalog.buffNames : sCatalog.itemNames)[ids[k]];
         }
 
         String searchText(int k) {
@@ -409,7 +575,7 @@ public class CheatBridge {
                 if (fixedSearch == null) fixedSearch = normalizeAll(fixedNames);
                 return fixedSearch[k];
             }
-            return (npc() ? sCatalog.npcSearch : sCatalog.itemSearch)[ids[k]];
+            return (npc() ? sCatalog.npcSearch : buff() ? sCatalog.buffSearch : sCatalog.itemSearch)[ids[k]];
         }
 
         /**
@@ -449,12 +615,32 @@ public class CheatBridge {
             if (ids != null) return true;
             Catalog c = sCatalog;
             if (c == null) return false;
-            ids = fixedIds != null ? fixedIds
-                : npc() ? c.allNpcs
-                : itemClass == ALL_CLASSES ? c.allItems
-                : c.byClass[itemClass];
+            if (fixedIds != null) ids = fixedIds;
+            else if (buff()) ids = subClass < 0 ? c.allBuffs : c.buffByClass[subClass];
+            else if (npc()) ids = subClass < 0 ? c.allNpcs
+                : subClass == NPC_BOSS ? bosses(c) : c.npcByClass[subClass];
+            else if (itemClass == ALL_CLASSES) ids = c.allItems;
+            else ids = subClass < 0 ? c.byClass[itemClass] : c.bySub[itemClass][subClass];
+            if (ids == null) ids = new int[0];
+            // Subcategoria sem icone proprio: o primeiro da lista.
+            if (icon == null && iconFile == null && iconItem == 0 && ids.length > 0) iconItem = ids[0];
             return true;
         }
+    }
+
+    /**
+     * Chefes: a lista a mao do jogo (so a cabeca de quem tem partes, e o que
+     * da para invocar) e os NPCs de mod com a flag boss.
+     */
+    private static int[] bosses(Catalog c) {
+        int[] fixed = CheatData.BOSSES_I;
+        int[] mod = c.npcByClass[NPC_BOSS];
+        int extra = 0;
+        for (int id : mod) if (id >= sVanillaNpc) extra++;
+        int[] out = Arrays.copyOf(fixed, fixed.length + extra);
+        int k = fixed.length;
+        for (int id : mod) if (id >= sVanillaNpc) out[k++] = id;
+        return out;
     }
 
     /** Minuscula e sem acento: "Poção" acha com "pocao". */
@@ -486,26 +672,41 @@ public class CheatBridge {
         // O que os mods trouxeram vem logo depois dos poderes: e o que a pessoa
         // instalou para ver, e no meio de doze secoes do jogo sumiria.
         addModSections(l);
-        l.addAll(Arrays.asList(new Section[] {
-            Section.items("Todos os itens", ALL_CLASSES, "ic_sec_tudo_item", 0, 999),
-            Section.items("Corpo a corpo", CL_MELEE, "ic_sec_melee", 0, 1),
-            Section.items("À distância", CL_RANGED, "ic_sec_ranged", 0, 1),
-            Section.items("Magia", CL_MAGIC, "ic_sec_magia", 0, 1),
-            Section.items("Invocação", CL_SUMMON, "ic_sec_invoc", 0, 1),
-            Section.items("Munição", CL_AMMO, null, 40, 999),         // Flecha de Madeira
-            Section.items("Ferramentas", CL_TOOL, null, 3521, 1),  // Picareta de Ouro
-            Section.items("Acessórios", CL_ACCESSORY, "ic_sec_acess", 0, 1),
-            Section.items("Armaduras", CL_ARMOR, null, 231, 1),       // Elmo Derretido
-            Section.items("Poções e comida", CL_POTION, "ic_sec_util", 0, 999),
-            Section.items("Blocos e móveis", CL_BLOCK, "ic_sec_blocos", 0, 999),
-            Section.items("Outros", CL_OTHER, null, 29, 999),           // Cristal de Vida
-            new Section("MUNDO", "Todos os NPCs", Section.NPC, ALL_CLASSES, null, null,
-                "ic_sec_tudo_npc", 0, 1),
-            Section.npcs("Chefes", CheatData.BOSSES_N, CheatData.BOSSES_I, "ic_sec_chefe"),
-            Section.npcs("Monstros", CheatData.MONSTERS_N, CheatData.MONSTERS_I, "ic_sec_monstro"),
-            Section.npcs("Moradores", CheatData.TOWN_NPCS_N, CheatData.TOWN_NPCS_I, "ic_sec_morador"),
-        }));
+        l.add(Section.items("Todos os itens", ALL_CLASSES, "ic_sec_tudo_item", 0, 999));
+        l.add(classGroup("Corpo a corpo", CL_MELEE, "ic_sec_melee", 0, 1));
+        l.add(classGroup("À distância", CL_RANGED, "ic_sec_ranged", 0, 1));
+        l.add(classGroup("Magia", CL_MAGIC, "ic_sec_magia", 0, 1));
+        l.add(classGroup("Invocação", CL_SUMMON, "ic_sec_invoc", 0, 1));
+        l.add(classGroup("Munição", CL_AMMO, null, 40, 999));          // Flecha de Madeira
+        l.add(classGroup("Ferramentas", CL_TOOL, null, 3521, 1));      // Picareta de Ouro
+        l.add(classGroup("Acessórios", CL_ACCESSORY, "ic_sec_acess", 0, 1));
+        l.add(classGroup("Armaduras", CL_ARMOR, null, 231, 1));        // Elmo Derretido
+        l.add(classGroup("Poções e comida", CL_POTION, "ic_sec_util", 0, 999));
+        l.add(classGroup("Blocos e móveis", CL_BLOCK, "ic_sec_blocos", 0, 999));
+        l.add(classGroup("Outros", CL_OTHER, null, 29, 999));           // Cristal de Vida
+        // NPCs: uma entrada, com Chefes, Monstros... dentro.
+        Section[] npcs = {
+            Section.npcClass("Todos", -1), Section.npcClass("Chefes", NPC_BOSS),
+            Section.npcClass("Monstros", NPC_MONSTER), Section.npcClass("Moradores", NPC_TOWN),
+            Section.npcClass("Criaturas", NPC_CRITTER), Section.npcClass("Outros", NPC_OTHER),
+        };
+        l.add(Section.group("MUNDO", "NPCs", "ic_sec_tudo_npc", 0, SPR_NPC, npcs));
+        Section[] buffs = new Section[BUFF_CLASS_NAMES.length + 1];
+        buffs[0] = Section.buffClass("Todos", -1);
+        for (int c = 1; c < BUFF_CLASS_NAMES.length; c++) buffs[c] = Section.buffClass(BUFF_CLASS_NAMES[c], c);
+        buffs[BUFF_CLASS_NAMES.length] = Section.buffClass(BUFF_CLASS_NAMES[0], 0);
+        l.add(Section.group("BUFFS", "Buffs", null, 3, SPR_BUFF, buffs));   // Regeneracao
         return l.toArray(new Section[0]);
+    }
+
+    /** Uma classe de item como entrada: Todos, e as subcategorias; "Outros" por ultimo. */
+    private static Section classGroup(String title, int cls, String icon, int iconItem, int qty) {
+        String[] names = SUB_NAMES[cls];
+        Section[] children = new Section[names.length + 1];
+        children[0] = Section.itemSub("Todos", cls, -1, qty);
+        for (int k = 1; k < names.length; k++) children[k] = Section.itemSub(names[k], cls, k, qty);
+        children[names.length] = Section.itemSub(names[0], cls, 0, qty);
+        return Section.group("ITENS", title, icon, iconItem, SPR_ITEM, children);
     }
 
     // ------------------------------ poderes ------------------------------
@@ -517,7 +718,7 @@ public class CheatBridge {
         "Mana infinita", "Pulo infinito", "Mineração turbo", "Visão total",
         "Voar", "Raio-X", "Lacaios infinitos", "Chuva", "Vento", "Bestiário",
         "Sem inimigos", "Teleporte no mapa", "Limpar inventário", "Revelar mapa",
-        "Hardmode", "Dificuldade",
+        "Hardmode", "Dificuldade", "Reviver rápido",
     };
     private static final String[] POWER_DESC = {
         "Toda arma bate mais forte",
@@ -541,6 +742,7 @@ public class CheatBridge {
         "O mundo inteiro no mapa",
         "Como vencer a Parede de Carne",
         "Clássico, Expert, Mestre, Jornada",
+        "Morreu, volta na hora",
     };
     /** Rotulo de cada nivel. Um so = liga/desliga; nenhum = acao (ver isAction). */
     private static final String[][] POWER_LEVELS = {
@@ -551,6 +753,7 @@ public class CheatBridge {
         {},
         {"Novos", "Todos"}, {"Ligado"}, {}, {},
         {"Ligado"}, {"Clássico", "Expert", "Mestre", "Jornada"},
+        {"Ligado"},
     };
     /** Sprite de item que representa cada poder. */
     private static final int[] POWER_ICON = {
@@ -575,6 +778,7 @@ public class CheatBridge {
         1315,   // Mapa do Tesouro
         367,    // Martelo Pwn
         3335,   // (trocado pelo icone do modo: GAME_MODE_ICON)
+        1291,   // Fruta da Vida
     };
 
     // Ids que o Java precisa conhecer, na ordem de bl::runtime::Power.
@@ -638,6 +842,41 @@ public class CheatBridge {
     /** Nivel atual. O processo do jogo morre junto com o nativo, entao os dois
      *  nascem desligados e so este lado escreve. */
     private static final int[] sPowerLevels = new int[POWER_NAME.length];
+
+    // ---- poderes salvos ----
+    //
+    // O que estava ligado volta ligado na proxima vez que o jogo abre, sem
+    // precisar abrir o menu: o nativo guarda o nivel e aplica quando entra no
+    // mundo. Acao (roda uma vez) e estado do mundo (hardmode, dificuldade) nao
+    // entram: sao pedidos, nao interruptores.
+
+    private static final String POWER_PREFS = "bunny_powers";
+
+    private static boolean isSaved(int id) {
+        return !isAction(id) && !isWorldState(id);
+    }
+
+    private static void restorePowers(Activity act) {
+        android.content.SharedPreferences p = act.getSharedPreferences(POWER_PREFS, Activity.MODE_PRIVATE);
+        int n = 0;
+        for (int id = 0; id < sPowerLevels.length; id++) {
+            if (!isSaved(id)) continue;
+            int lv = p.getInt("p" + id, 0);
+            if (lv < 0 || lv > POWER_LEVELS[id].length) lv = 0;
+            sPowerLevels[id] = lv;
+            if (lv > 0) { nSetPower(id, lv); n++; }
+        }
+        if (n > 0) Log.i("BunnyLoader", "menu: " + n + " poder(es) salvo(s) religado(s)");
+    }
+
+    private static void savePowers(Activity act) {
+        android.content.SharedPreferences.Editor e =
+            act.getSharedPreferences(POWER_PREFS, Activity.MODE_PRIVATE).edit();
+        for (int id = 0; id < sPowerLevels.length; id++) {
+            if (isSaved(id)) e.putInt("p" + id, sPowerLevels[id]);
+        }
+        e.apply();
+    }
 
     // ------------------------------ desenho ------------------------------
 
@@ -879,8 +1118,8 @@ public class CheatBridge {
             }
         };
 
-    private static String spriteKey(boolean npc, int id) {
-        return (npc ? "npc/" : "item/") + id;
+    private static String spriteKey(int kind, int id) {
+        return SPR_DIR[kind] + id;
     }
 
     /** Quadros da tira do NPC, do catalogo. 1 enquanto ele nao existe. */
@@ -893,11 +1132,12 @@ public class CheatBridge {
     /** Abre e descomprime um sprite. Pode rodar em qualquer thread. */
     private static Bitmap decode(Activity a, String key) {
         final boolean npc = key.startsWith("npc/");
+        final int kind = npc ? SPR_NPC : key.startsWith("buff/") ? SPR_BUFF : SPR_ITEM;
         Bitmap bmp = null;
         InputStream in = null;
         try {
-            // Item e NPC de mod nao tem sprite no APK: vem do PNG do proprio mod.
-            String file = modTexture(npc, Integer.parseInt(key.substring(npc ? 4 : 5)));
+            // Item, NPC e buff de mod nao tem sprite no APK: vem do PNG do proprio mod.
+            String file = modTexture(kind, Integer.parseInt(key.substring(SPR_DIR[kind].length())));
             BitmapFactory.Options o = new BitmapFactory.Options();
             o.inScaled = false;   // pixel art nao escala no decode
             if (file != null) {
@@ -930,8 +1170,8 @@ public class CheatBridge {
      * Na hora, na UI thread. So para os poucos icones fixos (coluna, cartoes
      * de poder), que aparecem uma vez; a lista usa `requestSprite`.
      */
-    private static Bitmap spriteJa(Activity a, boolean npc, int id) {
-        String k = spriteKey(npc, id);
+    private static Bitmap spriteJa(Activity a, int kind, int id) {
+        String k = spriteKey(kind, id);
         if (sCache.containsKey(k)) return sCache.get(k);
         Bitmap b = decode(a, k);
         sCache.put(k, b);
@@ -959,8 +1199,8 @@ public class CheatBridge {
     private static Thread sDecoder;
 
     /** Pinta `v` com o sprite, agora se ja esta no cache, senao quando chegar. */
-    private static void requestSprite(Activity a, ImageView v, boolean npc, int id) {
-        final String k = spriteKey(npc, id);
+    private static void requestSprite(Activity a, ImageView v, int kind, int id) {
+        final String k = spriteKey(kind, id);
         v.setTag(k);
         if (sCache.containsKey(k)) { setBitmap(a, v, sCache.get(k)); return; }
         setBitmap(a, v, null);
@@ -1042,7 +1282,7 @@ public class CheatBridge {
             if (b != null) return icon(a, b, u);
         }
         return icon(a, s.icon != null ? sprite(a, s.icon)
-                                       : spriteJa(a, s.iconNpc, s.iconItem), u);
+                                       : spriteJa(a, s.iconKind, s.iconItem), u);
     }
 
     /**
@@ -1101,6 +1341,7 @@ public class CheatBridge {
 
     public static void install(final Activity act) {
         sActivity = act;
+        try { restorePowers(act); } catch (Throwable t) { /* sem os salvos, tudo desligado */ }
         act.runOnUiThread(new Runnable() {
             @Override public void run() {
                 try { buildToggle(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
@@ -1516,6 +1757,12 @@ public class CheatBridge {
     /** Teto do slider. NPC e baixo de proposito: 10 chefes de uma vez trava. */
     private static final int MAX_ITEM = 999;
     private static final int MAX_NPC = 10;
+    /** Buff: o slider e a duracao, em minutos. */
+    private static final int MAX_BUFF_MIN = 60;
+
+    private static String qtyText(Section s, int n) {
+        return s.buff() ? n + " min" : "x" + n;
+    }
 
     /**
      * O topo da coluna, numa linha so: icone, titulo e contagem a esquerda.
@@ -1594,11 +1841,29 @@ public class CheatBridge {
     private static void showFolders(final Activity act, final LinearLayout content,
                                     final Section mod, final int index) {
         content.removeAllViews();
+        if (mod.fromCatalog && sCatalog == null) {
+            // As subcategorias vem do catalogo: o girassol ate ele ficar pronto.
+            content.addView(buildHeader(act, mod, null));
+            content.addView(loadingView(act, "Lendo o catálogo do jogo, no seu idioma..."),
+                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+            withCatalog(act, new Runnable() {
+                @Override public void run() {
+                    if (sCurrentSection == index) showFolders(act, content, mod, index);
+                }
+            });
+            return;
+        }
+        // Subcategoria vazia (nenhum item dela neste jogo) nao aparece.
+        final ArrayList<Section> shown = new ArrayList<Section>();
+        for (Section f : mod.children) {
+            f.load();
+            if (!mod.fromCatalog || f.subClass < 0 || f.total() > 0) shown.add(f);
+        }
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = px(act, 6);
-        content.addView(buildHeader(act, mod, text(act, mod.children.length == 1 ? "1 pasta"
-            : mod.children.length + " pastas", 10, INK_DIM)), lp);
+        content.addView(buildHeader(act, mod, text(act, mod.fromCatalog ? ""
+            : shown.size() == 1 ? "1 pasta" : shown.size() + " pastas", 10, INK_DIM)), lp);
 
         final Runnable back = new Runnable() {
             @Override public void run() {
@@ -1607,7 +1872,7 @@ public class CheatBridge {
         };
         LinearLayout rows = new LinearLayout(act);
         rows.setOrientation(LinearLayout.VERTICAL);
-        for (final Section folder : mod.children) {
+        for (final Section folder : shown) {
             LinearLayout r = new LinearLayout(act);
             r.setOrientation(LinearLayout.HORIZONTAL);
             r.setGravity(Gravity.CENTER_VERTICAL);
@@ -1616,9 +1881,10 @@ public class CheatBridge {
             TextView name = text(act, folder.title, 14, INK);
             name.setPadding(px(act, 8), 0, 0, 0);
             r.addView(name);
-            final int n = folder.fixedIds.length;
+            final int n = folder.total();
             TextView count = text(act, n + (folder.npc() ? (n == 1 ? " NPC" : " NPCs")
-                                                         : (n == 1 ? " item" : " itens")), 10, INK_DIM);
+                                          : folder.buff() ? (n == 1 ? " buff" : " buffs")
+                                          : (n == 1 ? " item" : " itens")), 10, INK_DIM);
             count.setPadding(px(act, 8), 0, 0, px(act, 2));
             r.addView(count, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
@@ -1697,19 +1963,20 @@ public class CheatBridge {
         bp.rightMargin = px(act, 12);
         headerRow.addView(searchBox, bp);
 
-        final int max = s.npc() ? MAX_NPC : MAX_ITEM;
+        final int max = s.npc() ? MAX_NPC : s.buff() ? MAX_BUFF_MIN : MAX_ITEM;
         final int initial = Math.min(max, Math.max(1, s.defaultQty));
         final int[] qty = { initial };
-        final TextView qtyLabel = text(act, "x" + initial, 12, INK);
+        final TextView qtyLabel = text(act, qtyText(s, initial), 12, INK);
         // Largura de "x999" fixa: sem isto a barra pulava para o lado a cada
         // digito que o numero ganhava ou perdia.
-        qtyLabel.setWidth(px(act, 40));
+        qtyLabel.setWidth(px(act, s.buff() ? 58 : 40));
+        qtyLabel.setSingleLine(true);
         qtyLabel.setGravity(Gravity.END);
         final Range qtyBar = new Range(act, max, initial);
         qtyBar.onChange = new Runnable() {
             @Override public void run() {
                 qty[0] = qtyBar.value();
-                qtyLabel.setText("x" + qty[0]);
+                qtyLabel.setText(qtyText(s, qty[0]));
             }
         };
         headerRow.addView(qtyLabel);
@@ -1724,7 +1991,7 @@ public class CheatBridge {
         content.addView(headerRow, lp);
 
         if (s.total() == 0) {
-            content.addView(text(act, s.npc() ? "Nenhum NPC aqui."
+            content.addView(text(act, s.npc() ? "Nenhum NPC aqui." : s.buff() ? "Nenhum buff aqui."
                 : "O jogo não entregou a classe dos itens. \"Todos os itens\" "
                 + "continua com a lista inteira.", 12, INK_DIM));
             return;
@@ -1835,15 +2102,18 @@ public class CheatBridge {
         // que o jogador precisa para saber o que pediu.
         final String name = (rawName == null || rawName.length() == 0) ? ("#" + id) : rawName;
 
-        requestSprite(act, L.sprite, s.npc(), id);
+        requestSprite(act, L.sprite, s.spriteKind(), id);
         L.name.setText(name);
-        L.detail.setText(s.npc() ? ("NPC " + id) : ("id " + id));
-        L.action.setContentDescription(s.npc() ? "Invocar" : "Pegar");
+        L.detail.setText(s.npc() ? ("NPC " + id) : s.buff() ? ("buff " + id) : ("id " + id));
+        L.action.setContentDescription(s.npc() ? "Invocar" : s.buff() ? "Aplicar" : "Pegar");
         setBitmap(act, L.action, sprite(act, s.npc() ? "ic_invocar" : "ic_pegar"));
         L.action.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 int n = qty[0] < 1 ? 1 : qty[0];
-                if (s.npc()) {
+                if (s.buff()) {
+                    nOnBuff(id, n * 60);
+                    Toast.makeText(act, name + " (" + n + " min)", Toast.LENGTH_SHORT).show();
+                } else if (s.npc()) {
                     // A contagem vai JUNTO: o nativo guarda o pedido num slot
                     // so, consumido uma vez por quadro, entao dez chamadas
                     // seguidas viravam um NPC.
@@ -1888,6 +2158,7 @@ public class CheatBridge {
                     nSetPower(i, 0);
                     paintPowerCard(act, cards[i], i);
                 }
+                savePowers(act);
                 updateActiveCount(activeLabel);
             }
         });
@@ -1927,6 +2198,7 @@ public class CheatBridge {
                     sPowerLevels[id] = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
                     nSetPower(id, sPowerLevels[id]);
                     paintPowerCard(act, c, id);
+                    savePowers(act);
                     updateActiveCount(activeLabel);
                 }
             });
@@ -1938,9 +2210,18 @@ public class CheatBridge {
         }
         // Fila incompleta: o que falta vira espaco, para os cartoes da ultima
         // fila terem a largura dos de cima.
+        //
+        // Com cartoes INVISIVEIS, e nao com espacadores: dentro da rolagem a
+        // altura da fila vem dos cartoes, e um espacador de 1 px deixava o
+        // cartao sozinho da ultima fila com altura zero (ele sumia).
         int remainder = (columns - POWER_NAME.length % columns) % columns;
         for (int i = 0; i < remainder; i++) {
-            queue.addView(new View(act), new LinearLayout.LayoutParams(0, 1, 1f));
+            View filler = powerCard(act, 0);
+            filler.setVisibility(View.INVISIBLE);
+            LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+            fp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
+            queue.addView(filler, fp);
         }
 
         ScrollView scroll = new ScrollView(act);
@@ -1963,7 +2244,7 @@ public class CheatBridge {
         c.setGravity(Gravity.CENTER_VERTICAL);
         c.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
         String res = powerRes(id);
-        k.icon = icon(act, res != null ? sprite(act, res) : spriteJa(act, false, POWER_ICON[id]), 30);
+        k.icon = icon(act, res != null ? sprite(act, res) : spriteJa(act, SPR_ITEM, POWER_ICON[id]), 30);
         c.addView(k.icon);
 
         LinearLayout texts = new LinearLayout(act);

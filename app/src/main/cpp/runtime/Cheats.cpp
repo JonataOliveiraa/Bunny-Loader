@@ -13,10 +13,12 @@
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
 #include "runtime/ModBuffs.h"
+#include "runtime/MenuCatalog.h"
 #include "runtime/ModProjectiles.h"
 #include "runtime/NetRequests.h"
 #include "runtime/Powers.h"
 #include <atomic>
+#include <unordered_map>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -39,6 +41,9 @@ std::atomic<uint64_t> g_pendingGive{0};
 // (tipo << 32 | quantidade), como o de item. Era so o tipo, e o menu
 // pedindo 10 vezes seguidas sobrescrevia o slot: saia UM NPC.
 std::atomic<uint64_t> g_pendingSpawn{0};
+
+// Pedido pendente de buff no jogador local: (tipo << 32 | segundos).
+std::atomic<uint64_t> g_pendingBuff{0};
 
 uint64_t packGive(int type, int stack) {
     return (static_cast<uint64_t>(static_cast<uint32_t>(type)) << 32) |
@@ -230,6 +235,7 @@ std::atomic<bool> g_namesReady{false};
 std::atomic<bool> g_namesWanted{false};
 
 std::vector<uint8_t> g_itemClass;
+std::vector<uint8_t> g_itemSub;
 std::vector<int32_t> g_itemStack;
 
 /** A secao de UM item, pelos campos que o SetDefaults preencheu. */
@@ -238,7 +244,68 @@ struct ItemFields {
         melee, ranged, magic, summon, sentry, accessory, headSlot, bodySlot,
         legSlot, potion, consumable, healLife, healMana, buffType, createTile,
         createWall, maxStack;
+    // Para a subcategoria (useStyle, dye e paint sao byte; os slots, sbyte).
+    int32_t useStyle, shoot, useAmmo, wingSlot, shoeSlot, shieldSlot, vanity, dye, paint,
+        bait, material, mountType;
 };
+
+/**
+ * As tabelas do jogo que dizem o que o item E (ioio, cajado, broca...), lidas
+ * uma vez no comeco da classificacao. Tabela ausente = pergunta que responde
+ * "nao"; a subcategoria cai em "Outros".
+ */
+struct KindTables {
+    Il2CppArray *staff = nullptr, *yoyo = nullptr, *drill = nullptr, *chainsaw = nullptr,
+        *food = nullptr, *torches = nullptr, *bossBag = nullptr, *crate = nullptr,
+        *boomerangs = nullptr, *whip = nullptr, *projHook = nullptr, *tileSolid = nullptr;
+    int arrow = 40, bullet = 97, rocket = 771;   // AmmoID (estaticos, lidos no preparo)
+} g_kinds;
+
+bool flagAt(Il2CppArray* t, int i) {
+    return t && i >= 0 && static_cast<uintptr_t>(i) < t->length && static_cast<const uint8_t*>(arrayData(t))[i];
+}
+
+/**
+ * aiStyle do projetil `type` — e o que separa lanca (19), mangual (15) e
+ * bumerangue (3), inclusive nos itens de mod. Nao ha amostra de projetil no
+ * jogo: um Projectile de rascunho recebe o SetDefaults de cada tipo, uma vez.
+ */
+int projectileAi(int type) {
+    static std::unordered_map<int, int> cache;
+    static Il2CppObject* scratch = nullptr;
+    static const MethodInfo* setDefaults = nullptr;
+    static int32_t offAi = -1;
+    static bool tried = false;
+    if (type <= 0) return -1;
+    auto it = cache.find(type);
+    if (it != cache.end()) return it->second;
+    auto& a = il2cpp::api();
+    if (!tried) {
+        tried = true;
+        Il2CppClass* proj = il2cpp::findClass({"Terraria", "Projectile", {}});
+        const MethodInfo* ctor = proj ? a.class_get_method_from_name(proj, ".ctor", 0) : nullptr;
+        setDefaults = proj ? il2cpp::findMethodBySignature(
+            proj, il2cpp::parseSignature("void SetDefaults(int Type)")) : nullptr;
+        offAi = proj ? il2cpp::fieldOffset(proj, "aiStyle") : -1;
+        if (proj && ctor && setDefaults && offAi >= 0) {
+            scratch = a.object_new(proj);
+            Il2CppObject* exc = nullptr;
+            a.runtime_invoke(ctor, scratch, nullptr, &exc);
+            if (exc) scratch = nullptr;
+            else a.gchandle_new(scratch, false);   // vive para sempre, como o cache
+        }
+    }
+    int ai = -1;
+    if (scratch) {
+        int t = type;
+        void* args[1] = {&t};
+        Il2CppObject* exc = nullptr;
+        a.runtime_invoke(setDefaults, scratch, args, &exc);
+        if (!exc) ai = field<int32_t>(scratch, offAi);
+    }
+    cache[type] = ai;
+    return ai;
+}
 
 /**
  * A ORDEM das perguntas e a decisao. Uma picareta e `melee` com dano, mas quem
@@ -253,6 +320,8 @@ uint8_t classOf(Il2CppObject* it, const ItemFields& o) {
 
     if (i32(o.pick) > 0 || i32(o.axe) > 0 || i32(o.hammer) > 0 || i32(o.fishingPole) > 0)
         return kClassTool;
+    // Gancho e ferramenta, nao "Outros": dispara um projetil de gancho.
+    if (flagAt(g_kinds.projHook, i32(o.shoot))) return kClassTool;
     // Areia e municao da Arma de Areia, mas e bloco antes de tudo.
     if (i32(o.ammo) > 0 && !b(o.notAmmo) && i32(o.createTile) < 0) return kClassAmmo;
     if (b(o.summon) || b(o.sentry)) return kClassSummon;
@@ -267,6 +336,169 @@ uint8_t classOf(Il2CppObject* it, const ItemFields& o) {
         return kClassPotion;
     if (i32(o.createTile) >= 0 || i32(o.createWall) > 0) return kClassBlock;
     return kClassOther;
+}
+
+/**
+ * A subcategoria do item dentro da secao dele. Os numeros sao o contrato com
+ * o CheatBridge.java (SUB_NAMES, por secao): 0 e sempre "Outros".
+ */
+uint8_t subOf(Il2CppObject* it, int id, uint8_t cls, const ItemFields& o) {
+    auto i32 = [&](int32_t off) { return field<int32_t>(it, off); };
+    auto i8 = [&](int32_t off) { return static_cast<int>(field<int8_t>(it, off)); };
+    auto u8 = [&](int32_t off) { return static_cast<int>(field<uint8_t>(it, off)); };
+    const KindTables& k = g_kinds;
+    const int shoot = i32(o.shoot);
+    switch (cls) {
+        case kClassMelee: {
+            if (flagAt(k.yoyo, id)) return 5;                          // Ioios
+            const int ai = shoot > 0 ? projectileAi(shoot) : -1;
+            if (flagAt(k.boomerangs, id) || ai == 3) return 6;       // Bumerangues
+            if (ai == 19) return 3;                                   // Lancas
+            if (ai == 15) return 4;                                   // Manguais
+            if (u8(o.useStyle) == 13) return 2;                       // Espadas curtas
+            if (u8(o.useStyle) == 1) return 1;                        // Espadas
+            return 0;
+        }
+        case kClassRanged: {
+            const int ammo = i32(o.useAmmo);
+            if (ammo == k.arrow) return 1;                            // Arcos
+            if (ammo == k.bullet) return 2;                           // Armas de fogo
+            if (ammo == k.rocket) return 3;                           // Lanca-foguetes
+            if (u8(o.consumable)) return 4;                           // Arremessaveis
+            return 0;
+        }
+        case kClassMagic:
+            return flagAt(k.staff, id) ? 1 : 0;                       // Cajados
+        case kClassSummon:
+            if (flagAt(k.whip, shoot)) return 3;                      // Chicotes
+            if (u8(o.sentry)) return 2;                               // Sentinelas
+            if (i32(o.buffType) > 0) return 1;                        // Lacaios
+            return 0;
+        case kClassAmmo: {
+            const int ammo = i32(o.ammo);
+            if (ammo == k.arrow) return 1;                            // Flechas
+            if (ammo == k.bullet) return 2;                           // Balas
+            if (ammo == k.rocket) return 3;                           // Foguetes
+            return 0;
+        }
+        case kClassTool:
+            if (flagAt(k.drill, id) || flagAt(k.chainsaw, id)) return 4;   // Brocas e serras
+            if (i32(o.fishingPole) > 0) return 5;                     // Varas de pesca
+            if (flagAt(k.projHook, shoot)) return 6;                  // Ganchos
+            if (i32(o.pick) > 0) return 1;                            // Picaretas
+            if (i32(o.axe) > 0) return 2;                             // Machados
+            if (i32(o.hammer) > 0) return 3;                          // Martelos
+            return 0;
+        case kClassAccessory:
+            if (i8(o.wingSlot) > 0) return 1;                         // Asas
+            if (i8(o.shoeSlot) > 0) return 2;                         // Calcados
+            if (i8(o.shieldSlot) > 0) return 3;                       // Escudos
+            return 0;
+        case kClassArmor:
+            if (u8(o.vanity)) return 4;                               // Vaidade
+            if (i32(o.headSlot) >= 0) return 1;                       // Capacetes
+            if (i32(o.bodySlot) >= 0) return 2;                       // Peitorais
+            if (i32(o.legSlot) >= 0) return 3;                        // Calcas
+            return 0;
+        case kClassPotion:
+            if (i32(o.healLife) > 0) return 1;                        // Cura
+            if (i32(o.healMana) > 0) return 2;                        // Mana
+            if (flagAt(k.food, id)) return 3;                         // Comida
+            if (i32(o.buffType) > 0) return 4;                        // Buffs
+            return 0;
+        case kClassBlock: {
+            if (flagAt(k.torches, id)) return 3;                      // Tochas
+            if (i32(o.createWall) > 0) return 2;                      // Paredes
+            const int tile = i32(o.createTile);
+            if (tile >= 0 && flagAt(k.tileSolid, tile)) return 1;     // Blocos
+            if (tile >= 0) return 4;                                  // Moveis e objetos
+            return 0;
+        }
+        case kClassOther:
+            if (flagAt(k.bossBag, id) || flagAt(k.crate, id)) return 5;    // Bolsas e caixas
+            if (i32(o.mountType) >= 0) return 4;                      // Montarias
+            if (i32(o.bait) > 0) return 3;                            // Iscas
+            if (u8(o.dye) > 0 || u8(o.paint) > 0) return 2;          // Tintas e corantes
+            if (u8(o.material)) return 1;                             // Materiais
+            return 0;
+        default:
+            return 0;
+    }
+}
+
+Il2CppArray* staticArray(const char* ns, const char* cls, const char* nested, const char* name) {
+    // Em silencio: tabela ausente e subcategoria vazia, nao erro na tela.
+    Il2CppClass* c = il2cpp::findClassQuiet(ns, cls);
+    if (c && nested) c = il2cpp::findNested(c, nested);
+    FieldInfo* f = c ? il2cpp::findField(c, name) : nullptr;
+    Il2CppArray* arr = nullptr;
+    if (f) {
+        il2cpp::api().runtime_class_init(c);
+        il2cpp::api().field_static_get_value(f, &arr);
+    }
+    if (!arr) BL_WARN("cheats: %s.%s nao encontrado; essa subcategoria fica vazia", cls, name);
+    return arr;
+}
+
+int staticInt(const char* ns, const char* cls, const char* name, int fallback) {
+    Il2CppClass* c = il2cpp::findClassQuiet(ns, cls);
+    FieldInfo* f = c ? il2cpp::findField(c, name) : nullptr;
+    int v = fallback;
+    if (f) il2cpp::api().field_static_get_value(f, &v);
+    return v;
+}
+
+void loadKindTables() {
+    KindTables& k = g_kinds;
+    k.staff = staticArray("Terraria", "Item", nullptr, "staff");
+    k.yoyo = staticArray("Terraria.ID", "ItemID", "Sets", "Yoyo");
+    k.drill = staticArray("Terraria.ID", "ItemID", "Sets", "IsDrill");
+    k.chainsaw = staticArray("Terraria.ID", "ItemID", "Sets", "IsChainsaw");
+    k.food = staticArray("Terraria.ID", "ItemID", "Sets", "IsFood");
+    k.torches = staticArray("Terraria.ID", "ItemID", "Sets", "Torches");
+    k.bossBag = staticArray("Terraria.ID", "ItemID", "Sets", "BossBag");
+    k.crate = staticArray("Terraria.ID", "ItemID", "Sets", "IsFishingCrate");
+    k.boomerangs = staticArray("Terraria.GameContent.Prefixes", "PrefixLegacy", "ItemSets", "BoomerangsChakrams");
+    k.whip = staticArray("Terraria.ID", "ProjectileID", "Sets", "IsAWhip");
+    k.projHook = staticArray("Terraria", "Main", nullptr, "projHook");
+    k.tileSolid = staticArray("Terraria", "Main", nullptr, "tileSolid");
+    k.arrow = staticInt("Terraria.ID", "AmmoID", "Arrow", 40);
+    k.bullet = staticInt("Terraria.ID", "AmmoID", "Bullet", 97);
+    k.rocket = staticInt("Terraria.ID", "AmmoID", "Rocket", 771);
+}
+
+void classifyModItems(const ItemFields& o) {
+    auto& a = il2cpp::api();
+    Il2CppClass* itemCls = il2cpp::findClass({"Terraria", "Item", {}});
+    const MethodInfo* ctor = itemCls ? a.class_get_method_from_name(itemCls, ".ctor", 0) : nullptr;
+    const MethodInfo* setDefaults = itemCls ? il2cpp::findMethodBySignature(
+        itemCls, il2cpp::parseSignature("void SetDefaults(int Type, ItemVariant variant)")) : nullptr;
+    if (!ctor || !setDefaults) return;
+    Il2CppObject* scratch = nullptr;
+    int done = 0;
+    for (int id = kVanillaItemCount; id < g_itemTotal; ++id) {
+        if (g_itemClass[static_cast<size_t>(id)] != kClassNone || isUnloadedType(id)) continue;
+        if (!scratch) {
+            scratch = a.object_new(itemCls);
+            Il2CppObject* exc = nullptr;
+            a.runtime_invoke(ctor, scratch, nullptr, &exc);
+            if (exc) return;
+        }
+        int t = id;
+        void* args[2] = {&t, nullptr};
+        Il2CppObject* exc = nullptr;
+        a.runtime_invoke(setDefaults, scratch, args, &exc);
+        if (exc || field<int32_t>(scratch, o.maxStack) <= 0) continue;
+        const uint8_t c = classOf(scratch, o);
+        g_itemClass[static_cast<size_t>(id)] = c;
+        g_itemSub[static_cast<size_t>(id)] = subOf(scratch, id, c, o);
+        const bool unique = (c == kClassMelee || c == kClassRanged || c == kClassMagic ||
+                            c == kClassSummon || c == kClassTool || c == kClassAccessory ||
+                            c == kClassArmor) && !field<uint8_t>(scratch, o.consumable);
+        g_itemStack[static_cast<size_t>(id)] = unique ? 1 : field<int32_t>(scratch, o.maxStack);
+        ++done;
+    }
+    if (done) BL_INFO("cheats: %d item(ns) de mod classificado(s)", done);
 }
 
 /**
@@ -361,6 +593,10 @@ bool prepareClassification() {
         {&o.legSlot, "legSlot"}, {&o.potion, "potion"}, {&o.consumable, "consumable"},
         {&o.healLife, "healLife"}, {&o.healMana, "healMana"}, {&o.buffType, "buffType"},
         {&o.createTile, "createTile"}, {&o.createWall, "createWall"}, {&o.maxStack, "maxStack"},
+        {&o.useStyle, "useStyle"}, {&o.shoot, "shoot"}, {&o.useAmmo, "useAmmo"},
+        {&o.wingSlot, "wingSlot"}, {&o.shoeSlot, "shoeSlot"}, {&o.shieldSlot, "shieldSlot"},
+        {&o.vanity, "vanity"}, {&o.dye, "dye"}, {&o.paint, "paint"}, {&o.bait, "bait"},
+        {&o.material, "material"}, {&o.mountType, "mountType"},
     };
     for (auto& c : fields) {
         *c.dst = fieldOffset(itemCls, c.name);
@@ -372,7 +608,9 @@ bool prepareClassification() {
     }
 
     g_itemClass.assign(g_itemTotal, kClassNone);
+    g_itemSub.assign(g_itemTotal, 0);
     g_itemStack.assign(g_itemTotal, 0);
+    loadKindTables();
     k.pos = 0;
     return true;
 }
@@ -405,6 +643,7 @@ bool classifyUntil(TimePoint deadline) {
         if (!item || id <= 0 || id >= g_itemTotal) continue;
         const uint8_t c = classOf(item, o);
         g_itemClass[id] = c;
+        g_itemSub[id] = subOf(item, id, c, o);
         // O maxStack nao separa nada nesta versao: o ResetStats poe
         // Item.CommonMaxStack (9999) em TODO item, espada inclusive, e o jogo
         // aceita uma Lamina da Terra com pilha 999 no inventario (visto no
@@ -417,6 +656,10 @@ bool classifyUntil(TimePoint deadline) {
         g_itemStack[id] = unique ? 1 : field<int32_t>(item, o.maxStack);
         ++k.readCount;
     }
+
+    // Item de mod nao tem amostra no ContentSamples: um Item de rascunho recebe
+    // o SetDefaults de cada um (o do mod roda junto) e e classificado igual.
+    classifyModItems(o);
 
     int perClass[11] = {};
     for (uint8_t c : g_itemClass) if (c < 11) ++perClass[c];
@@ -507,6 +750,8 @@ void readNamesSlice() {
             BL_ERROR("cheats: Main.npcFrameCount nao veio; a lista vai mostrar a "
                      "tira inteira de cada NPC");
         }
+        // Subcategorias de NPC e a aba de buffs: juntos, antes de dizer pronto.
+        buildMenuCatalogExtras();
         g_namesReady.store(true, std::memory_order_release);
         int unnamed = 0;
         for (const auto& n : g_itemNames) if (n.empty()) ++unnamed;
@@ -516,6 +761,29 @@ void readNamesSlice() {
                 "nome) em %lld ms, %d quadros, pior quadro %.1f ms", g_itemTotal, g_npcTotal,
                 unnamed, static_cast<long long>(ms), g_nameReadFrames, g_nameReadWorstUs / 1000.0);
     }
+}
+
+/**
+ * O buff `type` no jogador local, por `seconds`. No multijogador o proprio
+ * AddBuff do jogo avisa o servidor (o jogador e dono dos buffs dele).
+ */
+void giveBuff(int type, int seconds) {
+    auto& a = il2cpp::api();
+    static const MethodInfo* addBuff = nullptr;
+    if (!addBuff) {
+        Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
+        addBuff = player ? il2cpp::findMethodBySignature(
+            player, il2cpp::parseSignature("void AddBuff(int type, int time, bool fromNetPvP)")) : nullptr;
+        if (!addBuff) { BL_ERROR("cheats: Player.AddBuff nao encontrado"); return; }
+    }
+    Il2CppObject* p = playerAt(-1);
+    if (!p) return;
+    int t = type, time = seconds * 60;
+    uint8_t fromNet = 0;
+    void* args[3] = {&t, &time, &fromNet};
+    Il2CppObject* exc = nullptr;
+    a.runtime_invoke(addBuff, p, args, &exc);
+    if (exc) BL_ERROR("cheats: AddBuff(%d) lancou excecao", type);
 }
 
 void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
@@ -535,6 +803,9 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {
         giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));
+    }
+    if (uint64_t req = g_pendingBuff.exchange(0)) {
+        giveBuff(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));
     }
     if (uint64_t req = g_pendingSpawn.exchange(0)) {
         int npcType = static_cast<int>(req >> 32);
@@ -558,10 +829,17 @@ const std::vector<std::u16string>& npcNames() { return g_npcNames; }
 const std::vector<int>& npcFrames() { return g_npcFrames; }
 bool inWorld() { return g_inWorld.load(std::memory_order_relaxed); }
 const std::vector<uint8_t>& itemClasses() { return g_itemClass; }
+const std::vector<uint8_t>& itemSubClasses() { return g_itemSub; }
 const std::vector<int32_t>& itemMaxStacks() { return g_itemStack; }
 
 void requestGive(int type, int stack) {
     if (type > 0) g_pendingGive.store(packGive(type, stack > 0 ? stack : 1));
+}
+
+void requestBuff(int type, int seconds) {
+    if (type <= 0) return;
+    if (seconds < 1) seconds = 1;
+    g_pendingBuff.store((static_cast<uint64_t>(type) << 32) | static_cast<uint32_t>(seconds));
 }
 
 void requestSpawn(int type, int count) {

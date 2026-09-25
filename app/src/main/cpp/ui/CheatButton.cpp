@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "runtime/Cheats.h"
+#include "runtime/MenuCatalog.h"
+#include "runtime/ModBuffs.h"
 #include "runtime/ModItems.h"
 #include "runtime/ModMenu.h"
 #include "runtime/ModNpcs.h"
@@ -142,6 +144,38 @@ jbyteArray JNICALL jni_itemClasses(JNIEnv* env, jclass) {
     return out;
 }
 
+jbyteArray toJavaBytes(JNIEnv* env, const std::vector<uint8_t>& v) {
+    if (!runtime::namesReady() || v.empty()) return nullptr;
+    jbyteArray out = env->NewByteArray(static_cast<jsize>(v.size()));
+    if (out) {
+        env->SetByteArrayRegion(out, 0, static_cast<jsize>(v.size()),
+                                reinterpret_cast<const jbyte*>(v.data()));
+    }
+    return out;
+}
+
+/** Subcategoria de cada item dentro da secao (0 = Outros). */
+jbyteArray JNICALL jni_itemSubClasses(JNIEnv* env, jclass) {
+    return toJavaBytes(env, runtime::itemSubClasses());
+}
+
+/** Classe de cada NPC (runtime::NpcClass). */
+jbyteArray JNICALL jni_npcClasses(JNIEnv* env, jclass) {
+    return toJavaBytes(env, runtime::npcClasses());
+}
+
+jobjectArray JNICALL jni_buffNames(JNIEnv* env, jclass) {
+    return toJavaStringArray(env, runtime::buffNames());
+}
+
+jbyteArray JNICALL jni_buffClasses(JNIEnv* env, jclass) {
+    return toJavaBytes(env, runtime::buffClasses());
+}
+
+void JNICALL jni_onBuff(JNIEnv*, jclass, jint type, jint seconds) {
+    bl::runtime::requestBuff(type, seconds);
+}
+
 /** Pilha maxima de cada item, para o aviso dizer quanto saiu de verdade. */
 jintArray JNICALL jni_itemStacks(JNIEnv* env, jclass) {
     if (!runtime::namesReady()) return nullptr;
@@ -195,6 +229,15 @@ jobjectArray JNICALL jni_modItemTextures(JNIEnv* env, jclass) {
 
 jint JNICALL jni_vanillaNpcCount(JNIEnv*, jclass) { return runtime::kVanillaNpcCount; }
 
+jint JNICALL jni_vanillaBuffCount(JNIEnv*, jclass) { return runtime::kVanillaBuffCount; }
+
+/** O PNG de cada buff de mod, na ordem do tipo (indice = tipo - vanilla). */
+jobjectArray JNICALL jni_modBuffTextures(JNIEnv* env, jclass) {
+    std::vector<std::string> v;
+    for (const auto& b : runtime::modBuffs()) v.push_back(b.texture);
+    return toJavaStrings(env, v);
+}
+
 /** O PNG de cada NPC de mod, na ordem do tipo (indice = tipo - vanilla). */
 jobjectArray JNICALL jni_modNpcTextures(JNIEnv* env, jclass) {
     std::vector<std::string> v;
@@ -204,7 +247,7 @@ jobjectArray JNICALL jni_modNpcTextures(JNIEnv* env, jclass) {
 
 /**
  * As pastas do catalogo de mod, achatadas, SEIS textos por pasta: uid do mod,
- * nome do mod, icone do mod, nome da pasta, icone da pasta, "npc" ou "item".
+ * nome do mod, icone do mod, nome da pasta, icone da pasta, "item", "npc" ou "buff".
  */
 jobjectArray JNICALL jni_modCategories(JNIEnv* env, jclass) {
     std::vector<std::string> v;
@@ -214,7 +257,7 @@ jobjectArray JNICALL jni_modCategories(JNIEnv* env, jclass) {
         v.push_back(f.modIcon);
         v.push_back(f.name);
         v.push_back(f.icon);
-        v.push_back(f.npc ? "npc" : "item");
+        v.push_back(f.buff ? "buff" : f.npc ? "npc" : "item");
     }
     return toJavaStrings(env, v);
 }
@@ -331,6 +374,13 @@ void installCheatButton() {
         {"nModCategoryItems", "(I)[I", reinterpret_cast<void*>(&jni_modCategoryItems)},
         {"nVanillaNpcCount", "()I", reinterpret_cast<void*>(&jni_vanillaNpcCount)},
         {"nModNpcTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modNpcTextures)},
+        {"nItemSubClasses", "()[B", reinterpret_cast<void*>(&jni_itemSubClasses)},
+        {"nNpcClasses", "()[B", reinterpret_cast<void*>(&jni_npcClasses)},
+        {"nBuffNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_buffNames)},
+        {"nBuffClasses", "()[B", reinterpret_cast<void*>(&jni_buffClasses)},
+        {"nOnBuff", "(II)V", reinterpret_cast<void*>(&jni_onBuff)},
+        {"nVanillaBuffCount", "()I", reinterpret_cast<void*>(&jni_vanillaBuffCount)},
+        {"nModBuffTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modBuffTextures)},
     };
     if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");

@@ -6,9 +6,10 @@ que e a chave que o menu de cheats tem em maos:
 ```
 item/98.png     Item_98.png    -> Minishark
 npc/50.png      NPC_50.png     -> King Slime
+buff/3.png      Buff_3.png     -> Regeneracao
 ```
 
-`item/` tem 6083 arquivos e `npc/` 697 — 3,9 MB somados. O nome de cada um NAO
+`item/` tem 6083 arquivos, `npc/` 697 e `buff/` 388 — 3,9 MB somados. O nome de cada um NAO
 vem daqui: vem do proprio jogo, pela Localization (`Lang.GetItemNameValue`),
 entao sai no idioma do aparelho e nunca desatualiza.
 

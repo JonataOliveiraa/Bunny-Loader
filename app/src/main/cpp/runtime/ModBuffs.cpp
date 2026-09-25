@@ -330,6 +330,16 @@ std::string modBuffKey(int type) {
     return g_regs[i].def.mod + "/" + g_regs[i].def.name;
 }
 
+std::vector<ModBuffInfo> modBuffs() {
+    std::lock_guard<std::mutex> l(g_mx);
+    std::vector<ModBuffInfo> out;
+    for (size_t i = 0; i < g_regs.size(); ++i) {
+        const ModBuffDef& d = g_regs[i].def;
+        out.push_back({kVanillaBuffCount + static_cast<int>(i), d.mod, d.name, d.texture});
+    }
+    return out;
+}
+
 int modBuffTypeByKey(const std::string& key) {
     const size_t slash = key.find('/');
     if (slash == std::string::npos) return -1;

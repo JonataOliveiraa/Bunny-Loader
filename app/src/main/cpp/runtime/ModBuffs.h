@@ -55,6 +55,14 @@ int modBuffTypeByName(const std::string& mod, const std::string& name);
 /** "<uid>/<nome>" do buff de mod `type`, ou "". */
 std::string modBuffKey(int type);
 
+struct ModBuffInfo {
+    int type;
+    std::string mod, name, texture;
+};
+
+/** Os registrados, na ordem do id. Copia: serve a qualquer thread (menu). */
+std::vector<ModBuffInfo> modBuffs();
+
 /** O tipo pela chave "<uid>/<nome>", ou -1 (mod nao carregado). */
 int modBuffTypeByKey(const std::string& key);
 

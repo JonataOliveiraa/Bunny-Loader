@@ -40,6 +40,7 @@ enum class Power : int {
     RevealMap = 18,  // ACAO: revela o mapa inteiro, em partes, quadro a quadro
     Hardmode = 19,   // COMANDO: 1 liga (o evento do jogo), 2 desliga
     Difficulty = 20, // COMANDO: 1..4 = Classico, Expert, Mestre, Jornada
+    FastRespawn = 21,// morto, volta no quadro seguinte (sem a contagem)
     Count
 };
 

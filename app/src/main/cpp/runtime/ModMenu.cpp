@@ -1,4 +1,5 @@
 #include "runtime/ModMenu.h"
+#include "runtime/ModBuffs.h"
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
 
@@ -63,6 +64,7 @@ std::vector<ModMenuFolder> modMenuFolders() {
     // Fora da trava: cada uma tem a sua.
     const std::vector<ModItemInfo> items = modItems();
     const std::vector<ModNpcInfo> npcs = modNpcs();
+    const std::vector<ModBuffInfo> buffs = modBuffs();
 
     std::lock_guard<std::mutex> l(g_mx);
     std::vector<ModMenuFolder> out;
@@ -82,6 +84,12 @@ std::vector<ModMenuFolder> modMenuFolders() {
         npcsFolder.npc = true;
         for (const ModNpcInfo& n : npcs) if (n.mod == m.mod) npcsFolder.types.push_back(n.type);
         if (!npcsFolder.types.empty()) out.push_back(std::move(npcsFolder));
+
+        ModMenuFolder buffsFolder = all;
+        buffsFolder.name = "Buffs";
+        buffsFolder.buff = true;
+        for (const ModBuffInfo& b : buffs) if (b.mod == m.mod) buffsFolder.types.push_back(b.type);
+        if (!buffsFolder.types.empty()) out.push_back(std::move(buffsFolder));
 
         for (const ModMenuFolder& f : g_custom) {
             if (f.mod != m.mod || f.types.empty()) continue;

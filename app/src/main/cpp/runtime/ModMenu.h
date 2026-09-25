@@ -20,6 +20,7 @@ struct ModMenuFolder {
     std::string name;      // nome da pasta
     std::string icon;      // PNG que o mod deu a pasta, ou vazio (usa o 1o da lista)
     bool npc = false;
+    bool buff = false;     // pasta de buffs (so a automatica, por ora)
     std::vector<int> types;
 };
 
@@ -34,7 +35,8 @@ bool addToModMenuFolder(int folder, int type);
 
 /**
  * Todas as pastas, agrupadas por mod na ordem em que os mods apareceram: as
- * automaticas ("Itens", "NPCs", so se tiverem algo) e depois as do mod. Copia.
+ * automaticas ("Itens", "NPCs", "Buffs", so se tiverem algo) e depois as do
+ * mod. Copia.
  */
 std::vector<ModMenuFolder> modMenuFolders();
 
