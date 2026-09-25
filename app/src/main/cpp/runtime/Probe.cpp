@@ -8,6 +8,7 @@
 #include "core/Config.h"
 #include "runtime/Cheats.h"
 #include "runtime/ModItemSave.h"
+#include "runtime/ModTileSave.h"
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
 #include "ui/CheatButton.h"
@@ -76,6 +77,7 @@ void probeThread() {
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.
             installCheats();
             installModItemSave();
+            installModTileSave();
             ui::installCheatButton();
             return;
         }

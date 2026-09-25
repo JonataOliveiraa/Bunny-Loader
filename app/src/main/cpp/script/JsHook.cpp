@@ -2,6 +2,7 @@
 #include "script/Bridge.h"
 #include "script/Marshal.h"
 #include "script/Ref.h"
+#include "runtime/TileAccess.h"
 #include "script/Value.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -43,14 +44,16 @@ namespace bl::script {
 // valor em d0 — por isso ha TRES familias de funcao geradas, e a instalacao
 // escolhe a familia pelo tipo de retorno do metodo.
 
-constexpr int kIntHooks = 64;                              // slots 0..63
-constexpr int kFltHooks = 16;                              // slots 64..79
-constexpr int kDblHooks = 16;                              // slots 80..95
+// Os de retorno inteiro/void sao a maioria: com o Example Mod inteiro, os
+// testes e os tiles, 64 acabaram (o mod seguinte nao carregava).
+constexpr int kIntHooks = 128;                             // slots 0..127
+constexpr int kFltHooks = 16;                              // slots 128..143
+constexpr int kDblHooks = 16;                              // slots 144..159
 // Oito por forma. Comecou em quatro e a propria bateria de testes esgotou a
 // forma do Vector2 com quatro hooks — que nao e numero grande para um mod que
 // mexa em movimento. A mensagem de erro diz qual forma acabou.
 constexpr int kStructSlots = 8;
-constexpr int kBaseStruct = kIntHooks + kFltHooks + kDblHooks;   // 96
+constexpr int kBaseStruct = kIntHooks + kFltHooks + kDblHooks;   // 160
 constexpr int kStructForms = 10;
 constexpr int kMaxHooks = kBaseStruct + kStructForms * kStructSlots;
 
@@ -95,6 +98,8 @@ struct HookCtx {
     int32_t filterMin = 0;
     // HookFilter::whileIn: o slot do hook de fora; -1 = sem esse filtro.
     int gateSlot = -1;
+    // Filtro pelo tipo do tile: o x do `Tile` (offset), ou os x de i e j.
+    int tileReg = -1, tileAtIReg = -1, tileAtJReg = -1;
 };
 
 static HookCtx g_hooks[kMaxHooks];
@@ -233,6 +238,13 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
     // g_depth do hook de fora > 0 = esta thread esta dentro do callback dele.
     if (c->gateSlot >= 0 && g_depth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
+    if (c->tileReg >= 0 || c->tileAtIReg >= 0) {
+        const int t = c->tileReg >= 0
+            ? runtime::tileTypeAtOffset(static_cast<int32_t>(rawA[c->tileReg]))
+            : runtime::tileTypeAt(static_cast<int32_t>(rawA[c->tileAtIReg]),
+                                  static_cast<int32_t>(rawA[c->tileAtJReg]));
+        if (t < c->filterMin) return callOriginal(c, rawA, rawD);
+    }
     if (c->filterReg >= 0) {
         auto* o = reinterpret_cast<const uint8_t*>(rawA[c->filterReg]);
         int32_t v = 0;
@@ -333,11 +345,15 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
 // --- funcoes de substituicao geradas em tempo de compilacao ---
 // Uma por slot, em tres familias, porque o tipo de RETORNO faz parte da ABI.
 
-#define BL_LIST_64 \
+#define BL_LIST_INT \
  X(0)X(1)X(2)X(3)X(4)X(5)X(6)X(7)X(8)X(9)X(10)X(11)X(12)X(13)X(14)X(15) \
  X(16)X(17)X(18)X(19)X(20)X(21)X(22)X(23)X(24)X(25)X(26)X(27)X(28)X(29)X(30)X(31) \
  X(32)X(33)X(34)X(35)X(36)X(37)X(38)X(39)X(40)X(41)X(42)X(43)X(44)X(45)X(46)X(47) \
- X(48)X(49)X(50)X(51)X(52)X(53)X(54)X(55)X(56)X(57)X(58)X(59)X(60)X(61)X(62)X(63)
+ X(48)X(49)X(50)X(51)X(52)X(53)X(54)X(55)X(56)X(57)X(58)X(59)X(60)X(61)X(62)X(63) \
+ X(64)X(65)X(66)X(67)X(68)X(69)X(70)X(71)X(72)X(73)X(74)X(75)X(76)X(77)X(78)X(79) \
+ X(80)X(81)X(82)X(83)X(84)X(85)X(86)X(87)X(88)X(89)X(90)X(91)X(92)X(93)X(94)X(95) \
+ X(96)X(97)X(98)X(99)X(100)X(101)X(102)X(103)X(104)X(105)X(106)X(107)X(108)X(109)X(110)X(111) \
+ X(112)X(113)X(114)X(115)X(116)X(117)X(118)X(119)X(120)X(121)X(122)X(123)X(124)X(125)X(126)X(127)
 
 #define BL_LIST_16 \
  X(0)X(1)X(2)X(3)X(4)X(5)X(6)X(7)X(8)X(9)X(10)X(11)X(12)X(13)X(14)X(15)
@@ -348,7 +364,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     static intptr_t bl_hook_i##n(BL_HOOK_PARAMS) { \
         return dispatch(BL_HOOK_ARGS, n).i; \
     }
-BL_LIST_64
+BL_LIST_INT
 #undef X
 
 #define X(n) \
@@ -424,7 +440,7 @@ BL_GEN_STRUCT(h4d, H4D, 9)
 
 static void* const g_stubs[kMaxHooks] = {
 #define X(n) reinterpret_cast<void*>(&bl_hook_i##n),
-    BL_LIST_64
+    BL_LIST_INT
 #undef X
 #define X(n) reinterpret_cast<void*>(&bl_hook_f##n),
     BL_LIST_16
@@ -498,6 +514,20 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
     probe.isInstance = isInstance;
     std::string err = buildPlan(probe);
     if (err.empty() && filter && filter->on != -2) err = resolveFilter(probe, *filter);
+    if (err.empty() && filter && (filter->tileParam >= 0 || filter->tileAtI >= 0)) {
+        auto intReg = [&](int index, int* reg) -> bool {
+            if (index < 0 || static_cast<size_t>(index) >= probe.abi.params.size()) return false;
+            const ParamPlan& p = probe.abi.params[static_cast<size_t>(index)];
+            if (p.floatQueue || p.structByRef || p.opaque || p.d.size > 8) return false;
+            *reg = p.reg;
+            return true;
+        };
+        const bool ok = filter->tileParam >= 0
+            ? intReg(filter->tileParam, &probe.tileReg)
+            : intReg(filter->tileAtI, &probe.tileAtIReg) && intReg(filter->tileAtJ, &probe.tileAtJReg);
+        if (!ok) err = "filtro de tile: parametro fora da faixa ou que nao e Tile/int";
+        probe.filterMin = filter->minType;
+    }
     if (err.empty() && filter && filter->whileIn) {
         for (int i = 0; i < kMaxHooks; ++i) {
             if (g_hooks[i].used && g_hooks[i].method == filter->whileIn) { probe.gateSlot = i; break; }

@@ -16,6 +16,7 @@ const FIRST_ITEM = bl.items.vanillaCount;
 const FIRST_PROJECTILE = bl.projectiles.vanillaCount;
 const FIRST_NPC = bl.npcs.vanillaCount;
 const FIRST_BUFF = bl.buffs.vanillaCount;
+const FIRST_TILE = bl.tiles.vanillaCount;
 
 // As culturas do jogo. Nome e tooltip saem de Localization/<cultura>.json do mod.
 const CULTURES = ['en-US', 'pt-BR', 'de-DE', 'it-IT', 'fr-FR', 'es-ES', 'ru-RU',
@@ -1489,6 +1490,154 @@ function hookBuff(cls) {
     });
 }
 
+// ================================ ModTile ================================
+
+const tilesByType = new Map();
+
+/**
+ * Um tile novo (bloco), como o ModTile do tModLoader. Uma instancia por tipo:
+ * os metodos recebem a posicao (i, j) em tiles.
+ */
+class ModTile {
+    Type = undefined;
+    // Relativo a Textures/, sem .png: a folha de quadros, como as do jogo.
+    Texture = this.constructor.name;
+    // A poeira ao bater e quebrar (Terraria.ID.DustID).
+    DustType = 0;
+    // O som ao bater: um SoundID (numero ou estilo). undefined = o do jogo.
+    HitSound = undefined;
+    // Picareta minima para quebrar, e quanto o tile resiste (2 = o dobro de golpes).
+    MinPick = 0;
+    MineResist = 1;
+    // O item que cai. undefined = o item de mod que coloca este tile.
+    ItemDrop = undefined;
+
+    // Uma vez, com o tipo ja nas tabelas: Main.tileSolid[this.Type] = true...
+    SetStaticDefaults() {}
+    PostSetupContent() {}
+    // A cor no mapa: a do jogo mais proxima (o .map so leva cor que o jogo
+    // conhece). Sem AddMapEntry, o tile fica fora do mapa.
+    AddMapEntry(color, name) {
+        (this.mapEntries || (this.mapEntries = [])).push({ color, name });
+        if (this.mapEntries.length === 1) bl.tiles.setMapColor(this.Type, color.R, color.G, color.B);
+    }
+
+    // false: a picareta nao quebra.
+    CanKillTile(i, j) { return true; }
+    // Antes de o tile sair (fail: so o golpe, sem quebrar).
+    KillTile(i, j, fail, effectOnly, noItem) {}
+    // false: sem poeira; false no KillSound: sem som.
+    CreateDust(i, j) { return true; }
+    KillSound(i, j, fail) { return true; }
+
+    static register(cls) {
+        if (typeof cls !== 'function' || !(cls.prototype instanceof ModTile)) {
+            throw new TypeError('ModTile.register(Classe): passe a classe, que estende ModTile');
+        }
+        const inst = new cls();
+        const name = cls.name;
+        const type = bl.tiles.register({
+            name,
+            texture: texturePath(inst.Texture || name),
+            setStaticDefaults() {
+                inst.SetStaticDefaults();
+            },
+        });
+        inst.Type = type;
+        tilesByType.set(type, inst);
+        whenReady(() => guard(name + '.PostSetupContent', () => inst.PostSetupContent()));
+        hookTiles();
+        return type;
+    }
+
+    static isModType(type) { return bl.tiles.isModTile(type); }
+    // O tipo de um tile DESTE mod pelo nome da classe; -1 se nao ha.
+    static getTypeByName(name) { return bl.tiles.typeOf(name); }
+    static getModTile(type) { return tilesByType.get(type); }
+}
+
+// O item que cai do tile: o ItemDrop, ou o item de mod que o coloca.
+let tileItems = null;
+function tileItemDrop(m) {
+    if (m.ItemDrop !== undefined) return m.ItemDrop;
+    if (!tileItems) {
+        tileItems = new Map();
+        const it = Terraria.Item.new();
+        it['void .ctor()']();
+        for (const t of itemsByType.keys()) {
+            it['void SetDefaults(int Type, ItemVariant variant)'](t, null);
+            if (it.createTile >= FIRST_TILE && !tileItems.has(it.createTile)) tileItems.set(it.createTile, t);
+        }
+    }
+    return tileItems.get(m.Type) || 0;
+}
+
+// Os hooks do jogo, uma vez. O filtro nativo pelo tipo do tile (tile/tileAt)
+// deixa os tiles do jogo fora do JS: bater em terra nao paga nada.
+function hookTiles() {
+    once('tile.hooks', () => {
+        const W = Terraria.WorldGen;
+        const at = (i, j) => tilesByType.get(bl.tiles.typeAt(i, j));
+
+        Terraria.Player['int GetPickaxeDamage(int x, int y, int pickPower, int hitBufferIndex, Tile tileTarget)'].hook(
+            (original, self, x, y, pickPower, hit, tile) => {
+                const damage = original(self, x, y, pickPower, hit, tile);
+                const m = at(x, y);
+                if (!m) return damage;
+                if (pickPower < m.MinPick) return 0;
+                return m.MineResist > 0 ? Math.floor(damage / m.MineResist) : damage;
+            }, { minType: FIRST_TILE, tile: 4 });
+
+        W['bool CanKillTile(int i, int j, out bool blockDamaged)'].hook((original, i, j, blockDamaged) => {
+            const m = at(i, j);
+            if (m && guard(m.constructor.name + '.CanKillTile', () => m.CanKillTile(i, j)) === false) {
+                blockDamaged.value = false;
+                return false;
+            }
+            return original(i, j, blockDamaged);
+        }, { minType: FIRST_TILE, tileAt: [0, 1] });
+
+        W['void KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)'].hook(
+            (original, i, j, fail, effectOnly, noItem) => {
+                const m = at(i, j);
+                if (m) guard(m.constructor.name + '.KillTile', () => m.KillTile(i, j, fail, effectOnly, noItem));
+                return original(i, j, fail, effectOnly, noItem);
+            }, { minType: FIRST_TILE, tileAt: [0, 1] });
+
+        W['void KillTile_GetItemDrops(int x, int y, Tile tileCache, out int dropItem, out int dropItemStack, out int secondaryItem, out int secondaryItemStack, out bool noPrefix, bool includeLargeObjectDrops)'].hook(
+            (original, x, y, tile, drop, stack, second, secondStack, noPrefix, large) => {
+                original(x, y, tile, drop, stack, second, secondStack, noPrefix, large);
+                const m = at(x, y);
+                const item = m ? tileItemDrop(m) : 0;
+                if (item > 0) {
+                    drop.value = item;
+                    stack.value = 1;
+                }
+            }, { minType: FIRST_TILE, tile: 2 });
+
+        const newDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
+        W['int KillTile_MakeTileDust(int i, int j, Tile tileCache)'].hook((original, i, j, tile) => {
+            const m = at(i, j);
+            if (!m) return original(i, j, tile);
+            if (guard(m.constructor.name + '.CreateDust', () => m.CreateDust(i, j)) === false) return 6000;
+            return newDust(Vector2.new(i * 16, j * 16), 16, 16, m.DustType, 0, 0, 0, Color.White, 1);
+        }, { minType: FIRST_TILE, tile: 2 });
+
+        const playInt = Terraria.Audio.SoundEngine['SoundEffectInstance PlaySound(int type, int x, int y, int Style, float volumeScale, float pitchOffset)'];
+        const playStyle = Terraria.Audio.SoundEngine['SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)'];
+        W['void KillTile_PlaySounds(int i, int j, bool fail, Tile tileCache)'].hook((original, i, j, fail, tile) => {
+            const m = at(i, j);
+            if (!m) return original(i, j, fail, tile);
+            if (guard(m.constructor.name + '.KillSound', () => m.KillSound(i, j, fail)) === false) return undefined;
+            const s = m.HitSound;
+            if (s === undefined || s === null) return original(i, j, fail, tile);
+            if (typeof s === 'number') playInt(s, i * 16, j * 16, 1, 1, 0);
+            else playStyle(s, Vector2.new(i * 16, j * 16), 0, 1);
+            return undefined;
+        }, { minType: FIRST_TILE, tile: 3 });
+    });
+}
+
 // ============================== ModProjectile ==============================
 
 const projectilesByType = new Map();
@@ -2122,6 +2271,7 @@ globalThis.ModItem = ModItem;
 globalThis.ModRecipe = ModRecipe;
 globalThis.ModSystem = ModSystem;
 globalThis.ModBuff = ModBuff;
+globalThis.ModTile = ModTile;
 globalThis.ModPlayer = ModPlayer;
 globalThis.ModProjectile = ModProjectile;
 globalThis.ModNPC = ModNPC;

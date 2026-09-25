@@ -1,0 +1,15 @@
+{
+  "uid": "5790bdd0-12fa-405c-83f1-1050f56407f5",
+  "id": "test-mptiles",
+  "name": "Teste: tiles de mod no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O host poe uma fileira de tiles de mod e o cliente a ve; o cliente poe e quebra um bloco e o host ve.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpt ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -25,7 +25,9 @@
     "ExampleStatAccessory": "Stat Accessory",
     "ExampleBoots": "Example Boots",
     "WaspNest": "Wasp Nest",
-    "ExampleTooltipItem": "Example Tooltip"
+    "ExampleTooltipItem": "Example Tooltip",
+    "ExampleTileItem": "Example Block",
+    "ExampleOreItem": "Example Ore"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",

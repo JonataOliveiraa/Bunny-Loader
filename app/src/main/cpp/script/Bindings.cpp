@@ -12,6 +12,7 @@
 #include "script/Npcs.h"
 #include "script/Projectiles.h"
 #include "script/Buffs.h"
+#include "script/Tiles.h"
 #include "script/Files.h"
 #include "script/Texture.h"
 #include "script/Marshal.h"
@@ -602,10 +603,25 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
         JSValue min = JS_GetPropertyStr(ctx, argv[1], "minType");
         JSValue on = JS_GetPropertyStr(ctx, argv[1], "on");
         JSValue field = JS_GetPropertyStr(ctx, argv[1], "field");
+        JSValue tile = JS_GetPropertyStr(ctx, argv[1], "tile");
+        JSValue tileAt = JS_GetPropertyStr(ctx, argv[1], "tileAt");
         int32_t n = 0;
         const bool ok = JS_ToInt32(ctx, &n, min) == 0;
         filter.minType = n;
-        filter.on = -1;
+        // `tile: indice` ou `tileAt: [i, j]`: o tipo vem do mundo, nao de um
+        // campo de objeto.
+        const bool byTile = JS_IsNumber(tile) || JS_IsArray(tileAt);
+        if (JS_IsNumber(tile)) JS_ToInt32(ctx, &filter.tileParam, tile);
+        if (JS_IsArray(tileAt)) {
+            JSValue i = JS_GetPropertyUint32(ctx, tileAt, 0), j = JS_GetPropertyUint32(ctx, tileAt, 1);
+            JS_ToInt32(ctx, &filter.tileAtI, i);
+            JS_ToInt32(ctx, &filter.tileAtJ, j);
+            JS_FreeValue(ctx, i);
+            JS_FreeValue(ctx, j);
+        }
+        JS_FreeValue(ctx, tile);
+        JS_FreeValue(ctx, tileAt);
+        filter.on = byTile ? -2 : -1;
         if (JS_IsNumber(on)) {
             int32_t i = 0;
             JS_ToInt32(ctx, &i, on);
@@ -623,7 +639,8 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
     // installJsHook deixa a exceção posta, com o motivo exato (retorno struct,
     // argumentos demais, sem slot). Repetir aqui só apagaria a informação.
     if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0],
-                       filter.on == -2 && !filter.whileIn ? nullptr : &filter))
+                       filter.on == -2 && !filter.whileIn && filter.tileParam < 0 && filter.tileAtI < 0
+                           ? nullptr : &filter))
         return JS_EXCEPTION;
     return JS_UNDEFINED;
 }
@@ -1057,6 +1074,7 @@ void installBindings(void* context) {
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);
     installBuffsApi(ctx, bl);
+    installTilesApi(ctx, bl);
     installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);

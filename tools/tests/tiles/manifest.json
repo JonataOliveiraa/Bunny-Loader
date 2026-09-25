@@ -1,0 +1,15 @@
+{
+  "uid": "29a90b80-e634-4363-b9ec-d44bdb156980",
+  "id": "test-tiles",
+  "name": "Teste: tiles de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Tabelas de tile, colocar, quebrar, drop, minerio com picareta minima e resistencia.",
+  "description": "Precisa do Example Mod. Loga 'tiles ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

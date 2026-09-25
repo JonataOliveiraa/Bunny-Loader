@@ -281,13 +281,24 @@ function killChecks() {
     });
 }
 
+// Taxa de spawn no maximo durante a checagem (o `out` do jogo, pela ponte): perto
+// de morador, no mundo novo, o jogo quase nao faz nascer nada.
+let forceSpawns = false;
+Terraria.NPC.Spawner['void GetSpawnRate(Player player, out int spawnRate, out int maxSpawns)'].hook(
+    (original, self, player, rate, max) => {
+        original(self, player, rate, max);
+        if (forceSpawns) { rate.value = 1; max.value = 200; }
+    });
+
 function spawnChecks() {
     check('spawn natural', () => {
         spawnWeight = 1e6;
+        forceSpawns = true;
         const before = countBlobs();
         const spawn = Terraria.NPC['void SpawnNPC()'];
         for (let i = 0; i < 3000 && countBlobs() === before; i++) spawn();
         spawnWeight = 0;
+        forceSpawns = false;
         const after = countBlobs();
         return after > before || `nenhum NPC de teste nasceu (${before} -> ${after})`;
     });

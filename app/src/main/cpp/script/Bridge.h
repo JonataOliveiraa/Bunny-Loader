@@ -40,6 +40,11 @@ struct HookFilter {
     // metodo (que precisa ja ter um). Ex.: SpriteBatch.DrawString so durante
     // o desenho do tooltip, sem pagar o JS nos outros milhares de textos.
     const MethodInfo* whileIn = nullptr;
+    // Filtro pelo TIPO DO TILE (>= minType, e tile ativo), lido direto do
+    // mundo: `tileParam` e o indice de um parametro `Tile` (struct);
+    // `tileAtI`/`tileAtJ`, os indices dos parametros int da posicao.
+    int tileParam = -1;
+    int tileAtI = -1, tileAtJ = -1;
 };
 
 // Instala um hook JS num metodo do jogo. O callback recebe

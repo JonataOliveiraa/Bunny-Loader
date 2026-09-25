@@ -24,8 +24,11 @@ namespace bl::runtime {
  * `belowToo` aceita tambem b.lo/b.hs/b.lt/b.ge (`tipo < Count`): so para
  * metodo cujo codigo foi conferido (o GUIBuffs.Draw usa as duas formas).
  *
- * `newLimit` cabe em 12 bits (ate 4095). Chamar na thread do jogo, uma vez.
+ * `newLimit` cabe em 12 bits (ate 4095). `shifted`: o `cmp wN, #imm, lsl #12`
+ * (limite imm * 4096; o TileData compara assim a chave tipo << 12). Chamar na
+ * thread do jogo, uma vez.
  */
-int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo = false);
+int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo = false,
+                      bool shifted = false);
 
 } // namespace bl::runtime

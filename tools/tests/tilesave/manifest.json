@@ -1,0 +1,15 @@
+{
+  "uid": "b2b08620-4b1a-4976-a3f7-ad3690a3a421",
+  "id": "test-tilesave",
+  "name": "Teste: tile de mod no mundo salvo",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Tres rodadas: com o Example Mod poe e salva; sem ele o mundo abre com ar no lugar; com ele de novo os tiles voltam.",
+  "description": "Loga 'tilesave ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

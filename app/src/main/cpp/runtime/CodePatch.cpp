@@ -33,9 +33,13 @@ uintptr_t methodEnd(const MethodInfo* m, uintptr_t start) {
     return end;
 }
 
-/** `cmp wN, #imm` sem deslocamento: SUBS WZR, Wn, #imm12 (sf=0, sh=0). */
-bool isCompareImmediate(uint32_t insn, uint32_t imm) {
-    return (insn & 0xFFC0001Fu) == 0x7100001Fu && ((insn >> 10) & 0xFFFu) == imm;
+/**
+ * `cmp wN, #imm`: SUBS WZR, Wn, #imm12 (sf=0). `shifted`: a forma
+ * `#imm, lsl #12` (sh=1), em que o limite vale imm * 4096.
+ */
+bool isCompareImmediate(uint32_t insn, uint32_t imm, bool shifted = false) {
+    const uint32_t op = shifted ? 0x7140001Fu : 0x7100001Fu;
+    return (insn & 0xFFC0001Fu) == op && ((insn >> 10) & 0xFFFu) == imm;
 }
 
 /**
@@ -71,14 +75,15 @@ bool writeInstruction(uint32_t* at, uint32_t insn) {
 
 } // namespace
 
-int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo) {
+int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo,
+                      bool shifted) {
     if (!m || newLimit > 0xFFF || oldLimit > 0xFFF) return 0;
     const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
     if (!start) return 0;
     const uintptr_t end = methodEnd(m, start);
     int patched = 0;
     for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 1) < end; ++p) {
-        if (!isCompareImmediate(*p, oldLimit) || !isLimitBranch(p[1], belowToo)) continue;
+        if (!isCompareImmediate(*p, oldLimit, shifted) || !isLimitBranch(p[1], belowToo)) continue;
         const uint32_t insn = (*p & ~(0xFFFu << 10)) | (newLimit << 10);
         if (writeInstruction(p, insn)) ++patched;
     }

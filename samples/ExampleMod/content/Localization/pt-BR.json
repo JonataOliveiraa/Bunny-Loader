@@ -25,7 +25,9 @@
     "ExampleStatAccessory": "Acessório de Estatísticas",
     "ExampleBoots": "Botas de Exemplo",
     "WaspNest": "Ninho de Vespas",
-    "ExampleTooltipItem": "Exemplo de Tooltip"
+    "ExampleTooltipItem": "Exemplo de Tooltip",
+    "ExampleTileItem": "Bloco de Exemplo",
+    "ExampleOreItem": "Minério de Exemplo"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
