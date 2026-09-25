@@ -1,0 +1,15 @@
+{
+  "uid": "12b0f069-78ac-406e-b8c9-12898a1dfe98",
+  "id": "test-buffs",
+  "name": "Teste: buffs de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Tabelas, barra de buffs, Update/Apply/ReApply, NPC, defesa do Example Mod e save pelo nome.",
+  "description": "Precisa do Example Mod ligado. Rode duas vezes: a segunda confere o buff salvo. Loga 'buffs ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

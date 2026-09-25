@@ -15,6 +15,7 @@
 const FIRST_ITEM = bl.items.vanillaCount;
 const FIRST_PROJECTILE = bl.projectiles.vanillaCount;
 const FIRST_NPC = bl.npcs.vanillaCount;
+const FIRST_BUFF = bl.buffs.vanillaCount;
 
 // As culturas do jogo. Nome e tooltip saem de Localization/<cultura>.json do mod.
 const CULTURES = ['en-US', 'pt-BR', 'de-DE', 'it-IT', 'fr-FR', 'es-ES', 'ru-RU',
@@ -802,6 +803,190 @@ class ModSystem {
     }
 }
 
+// ================================= ModBuff =================================
+
+const buffsByType = new Map();
+
+// { cultura: texto } passado por `modify` (ModifyDisplayName/ModifyDescription
+// do mod, que mexe no campo como no ExMod), cultura por cultura.
+function modifyPerCulture(inst, field, texts, modify) {
+    if (!texts || typeof texts !== 'object') {
+        inst[field] = texts || '';
+        guard(inst.constructor.name + '.' + modify, () => inst[modify]());
+        return inst[field];
+    }
+    const out = {};
+    for (const c of Object.keys(texts)) {
+        inst[field] = texts[c];
+        guard(inst.constructor.name + '.' + modify, () => inst[modify]());
+        out[c] = inst[field];
+    }
+    return out;
+}
+
+/**
+ * Um buff novo, como o ModBuff do ExMod. Uma instancia por tipo (buff nao e
+ * entidade): os metodos recebem o jogador/NPC e o indice na lista dele.
+ */
+class ModBuff {
+    Type = undefined;
+    // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: BuffName.<Classe> e
+    // BuffDescription.<Classe> em Localization/*.json.
+    DisplayName = '';
+    Description = '';
+    // Relativo a Textures/, sem .png. Padrao: o nome da classe.
+    Texture = this.constructor.name;
+
+    // Uma vez, com o tipo ja nas tabelas: Main.debuff[this.Type] = true...
+    SetStaticDefaults() {}
+    PostStaticDefaults() {}
+    PostSetupContent() {}
+    // Mexa em this.DisplayName / this.Description (uma vez por idioma).
+    ModifyDisplayName() {}
+    ModifyDescription() {}
+
+    // Todo quadro, com o buff ativo.
+    UpdatePlayer(player, buffIndex) {}
+    UpdateNPC(npc, buffIndex) {}
+    // Quando o buff entra (nao estava ativo).
+    ApplyPlayer(player, buffTime) {}
+    ApplyNPC(npc, buffTime) {}
+    // Quando entra de novo, ja ativo; false impede o jogo de renovar o tempo.
+    ReApplyPlayer(player, buffTime, buffIndex) { return true; }
+    ReApplyNPC(npc, buffTime, buffIndex) { return true; }
+    // Tocar no icone para tirar: true/false decide; null = o do jogo (debuff nao sai).
+    CanRemove(player, buffTime, buffIndex, debuff) { return null; }
+    OnRemove(player, buffTime, buffIndex) {}
+
+    static register(cls) {
+        if (typeof cls !== 'function' || !(cls.prototype instanceof ModBuff)) {
+            throw new TypeError('ModBuff.register(Classe): passe a classe, que estende ModBuff');
+        }
+        const inst = new cls();
+        const name = cls.name;
+        const displayName = modifyPerCulture(inst, 'DisplayName',
+            inst.DisplayName || localized('BuffName', name) || name, 'ModifyDisplayName');
+        const description = modifyPerCulture(inst, 'Description',
+            inst.Description || localized('BuffDescription', name) || '', 'ModifyDescription');
+        const type = bl.buffs.register({
+            name,
+            texture: texturePath(inst.Texture || name),
+            displayName,
+            description,
+            setStaticDefaults() {
+                inst.SetStaticDefaults();
+                inst.PostStaticDefaults();
+            },
+        });
+        inst.Type = type;
+        buffsByType.set(type, inst);
+        whenReady(() => inst.PostSetupContent());
+        hookBuff(cls);
+        return type;
+    }
+
+    static isModType(type) { return bl.buffs.isModBuff(type); }
+    // O tipo de um buff DESTE mod pelo nome da classe; -1 se nao ha.
+    static getTypeByName(name) { return bl.buffs.typeOf(name); }
+    static getModBuff(type) { return buffsByType.get(type); }
+}
+
+// Os buffs de mod ativos de `entity` (jogador ou NPC): fn(m, i).
+function forEachModBuff(entity, fn) {
+    const types = entity.buffType;
+    const times = entity.buffTime;
+    for (let i = 0; i < types.length; i++) {
+        const t = types[i];
+        if (t < FIRST_BUFF || times[i] <= 0) continue;
+        const m = buffsByType.get(t);
+        if (m) fn(m, i);
+    }
+}
+
+function hookBuff(cls) {
+    const P = Terraria.Player;
+    const has = (name) => overrides(cls, ModBuff, name);
+
+    // Dentro do UpdateBuffs: depois do ResetEffects e antes dos acessorios,
+    // como os buffs do jogo (defesa somada aqui vale no quadro).
+    if (has('UpdatePlayer')) once('buff.UpdatePlayer', () => {
+        P['void UpdateBuffs(int i)'].hook((original, self, i) => {
+            original(self, i);
+            forEachModBuff(self, (m, idx) =>
+                guard(m.constructor.name + '.UpdatePlayer', () => m.UpdatePlayer(self, idx)));
+        });
+    });
+
+    if (has('UpdateNPC')) once('buff.UpdateNPC', () => {
+        Terraria.NPC['void UpdateNPC_BuffSetFlags(bool lowerBuffTime)'].hook((original, self, lower) => {
+            original(self, lower);
+            forEachModBuff(self, (m, idx) =>
+                guard(m.constructor.name + '.UpdateNPC', () => m.UpdateNPC(self, idx)));
+        });
+    });
+
+    if (has('ApplyPlayer')) once('buff.ApplyPlayer', () => {
+        P['bool AddBuff_ActuallyTryToAddTheBuff(int type, int time)'].hook((original, self, type, time) => {
+            const ok = original(self, type, time);
+            const m = ok ? buffsByType.get(type) : undefined;
+            if (m) guard(m.constructor.name + '.ApplyPlayer', () => m.ApplyPlayer(self, time));
+            return ok;
+        });
+    });
+
+    if (has('ReApplyPlayer')) once('buff.ReApplyPlayer', () => {
+        P['bool AddBuff_TryUpdatingExistingBuffTime(int type, int time)'].hook((original, self, type, time) => {
+            const m = buffsByType.get(type);
+            if (m) {
+                const idx = self['int FindBuffIndex(int type)'](type);
+                if (idx >= 0 && guard(m.constructor.name + '.ReApplyPlayer',
+                    () => m.ReApplyPlayer(self, time, idx)) === false) {
+                    return true;   // "ja estava": o jogo nao poe outro
+                }
+            }
+            return original(self, type, time);
+        });
+    });
+
+    if (has('ApplyNPC') || has('ReApplyNPC')) once('buff.NPC', () => {
+        Terraria.NPC['void AddBuff(int type, int time, bool quiet)'].hook((original, self, type, time, quiet) => {
+            const m = buffsByType.get(type);
+            if (!m) return original(self, type, time, quiet);
+            const idx = self['int FindBuffIndex(int type)'](type);
+            if (idx >= 0) {
+                if (guard(m.constructor.name + '.ReApplyNPC', () => m.ReApplyNPC(self, time, idx)) === false) return;
+                return original(self, type, time, quiet);
+            }
+            original(self, type, time, quiet);
+            if (self['int FindBuffIndex(int type)'](type) >= 0) {
+                guard(m.constructor.name + '.ApplyNPC', () => m.ApplyNPC(self, time));
+            }
+        });
+    });
+
+    // O toque no icone da barra. Com o jogador; o indice e o da lista dele.
+    if (has('CanRemove') || has('OnRemove')) once('buff.Remove', () => {
+        bl.classOf('', 'GUIBuffs')['void RemoveBuff(int buff)'].hook((original, self, idx) => {
+            const player = Terraria.Main.player[Terraria.Main.myPlayer];
+            const type = player.buffType[idx];
+            const time = player.buffTime[idx];
+            const m = buffsByType.get(type);
+            if (!m) return original(self, idx);
+            const can = guard(m.constructor.name + '.CanRemove',
+                () => m.CanRemove(player, time, idx, !!Terraria.Main.debuff[type]));
+            if (can === false) return;
+            if (can === true && Terraria.Main.debuff[type]) {
+                player['void DelBuff(int b)'](idx);
+            } else {
+                original(self, idx);
+            }
+            if (player.buffType[idx] !== type) {
+                guard(m.constructor.name + '.OnRemove', () => m.OnRemove(player, time, idx));
+            }
+        });
+    });
+}
+
 // ============================== ModProjectile ==============================
 
 const projectilesByType = new Map();
@@ -1431,6 +1616,7 @@ function hookNaturalSpawn() {
 globalThis.ModItem = ModItem;
 globalThis.ModRecipe = ModRecipe;
 globalThis.ModSystem = ModSystem;
+globalThis.ModBuff = ModBuff;
 globalThis.ModProjectile = ModProjectile;
 globalThis.ModNPC = ModNPC;
 globalThis.NPCLoot = NPCLoot;

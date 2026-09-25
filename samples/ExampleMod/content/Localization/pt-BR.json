@@ -19,7 +19,8 @@
     "ExampleMagicWeapon": "Cajado de Exemplo",
     "ExampleLaserWeapon": "Prisma de Exemplo",
     "ExampleHookItem": "Gancho de Exemplo",
-    "ExampleFishingRod": "Vara de Pesca de Exemplo"
+    "ExampleFishingRod": "Vara de Pesca de Exemplo",
+    "ExampleBuffPotion": "Poção de Buff"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -51,5 +52,11 @@
   },
   "RecipeGroups": {
     "ExampleItem": "Item de Exemplo"
+  },
+  "BuffName": {
+    "ExampleDefenseBuff": "Defesa"
+  },
+  "BuffDescription": {
+    "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}"
   }
 }

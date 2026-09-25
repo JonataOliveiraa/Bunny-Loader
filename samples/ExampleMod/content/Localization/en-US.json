@@ -19,7 +19,8 @@
     "ExampleMagicWeapon": "Example Magic Staff",
     "ExampleLaserWeapon": "Example Prism",
     "ExampleHookItem": "Example Hook",
-    "ExampleFishingRod": "Example Fishing Rod"
+    "ExampleFishingRod": "Example Fishing Rod",
+    "ExampleBuffPotion": "Buff Potion"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -51,5 +52,11 @@
   },
   "RecipeGroups": {
     "ExampleItem": "Example Item"
+  },
+  "BuffName": {
+    "ExampleDefenseBuff": "Defense"
+  },
+  "BuffDescription": {
+    "ExampleDefenseBuff": "Increases the player's defense by {0}"
   }
 }

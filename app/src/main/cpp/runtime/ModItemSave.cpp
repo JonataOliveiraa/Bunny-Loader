@@ -5,6 +5,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "runtime/GameRefs.h"
+#include "runtime/ModBuffs.h"
 #include "runtime/ModItems.h"
 
 #include <cstdio>
@@ -20,8 +21,12 @@ namespace {
 
 constexpr const char* kHeader = "bunnyloader itens 1";
 constexpr const char* kSuffix = ".bl";
+constexpr const char* kBuffContainer = "buff";
 
-/** Um item de mod guardado: onde estava e o que era. */
+/**
+ * Um item de mod guardado: onde estava e o que era. Buff de mod vai no mesmo
+ * arquivo, com container "buff": slot na lista, `stack` = tempo restante.
+ */
 struct SavedItem {
     std::string container;   // "inventory", "armor", "bank2", "loadout1.dye", "trash"...
     int slot = 0;
@@ -226,6 +231,9 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
                              field<uint8_t>(item, r.favorited) != 0, modItemKey(type)});
         }
     }
+    for (const SavedBuff& b : collectModBuffs(player)) {
+        items.push_back({kBuffContainer, b.slot, b.time, 0, false, b.key});
+    }
     size_t kept = 0;
     {
         std::lock_guard<std::mutex> l(g_mx);
@@ -307,6 +315,18 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
 
     std::vector<SavedItem> saved = readFile(path + kSuffix);
     std::vector<SavedItem> kept;
+    // Os buffs primeiro, e fora da lista de itens (a chave nao e de item).
+    std::vector<SavedBuff> buffs;
+    for (auto it = saved.begin(); it != saved.end();) {
+        if (it->container != kBuffContainer) { ++it; continue; }
+        buffs.push_back({it->slot, it->stack, it->key});
+        it = saved.erase(it);
+    }
+    const size_t buffCount = buffs.size();
+    for (const SavedBuff& b : restoreModBuffs(player, buffs)) {
+        kept.push_back({kBuffContainer, b.slot, b.time, 0, false, b.key});
+    }
+    const size_t buffsKept = kept.size();
     int restored = 0, moved = 0, unloaded = 0, stray = 0;
     if (!saved.empty()) {
         const std::vector<Container> containers = containersOf(player);
@@ -357,6 +377,9 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
         std::lock_guard<std::mutex> l(g_mx);
         if (kept.empty()) g_kept.erase(path);
         else g_kept[path] = kept;
+    }
+    if (buffCount) {
+        BL_INFO("save de buffs de mod: %zu reposto(s), %zu so no arquivo", buffCount - buffsKept, buffsKept);
     }
     if (!saved.empty() || stray) {
         BL_INFO("save de itens de mod: personagem: %d reposto(s) (%d como \"?\")%s, %zu so no "

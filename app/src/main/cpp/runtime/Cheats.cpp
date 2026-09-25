@@ -12,6 +12,7 @@
 #include "runtime/ModContent.h"
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
+#include "runtime/ModBuffs.h"
 #include "runtime/ModProjectiles.h"
 #include "runtime/NetRequests.h"
 #include "runtime/Powers.h"
@@ -528,6 +529,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModItems();
     tickModProjectiles();
     tickModNpcs();
+    tickModBuffs();
     tickContentReady();
     tickNetRequests();
     // Pedido do botao (in-process): consome e executa na thread do jogo.

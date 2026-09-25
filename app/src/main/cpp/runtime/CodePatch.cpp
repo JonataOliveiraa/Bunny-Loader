@@ -45,10 +45,13 @@ bool isCompareImmediate(uint32_t insn, uint32_t imm) {
  * troca-lo mandava o NPC de mod para aquele ramo (ficava invisivel) e tirava
  * o desenho do NPC 696.
  */
-bool isLimitBranch(uint32_t insn) {
+bool isLimitBranch(uint32_t insn, bool belowToo) {
     if ((insn & 0xFF000010u) != 0x54000000u) return false;   // b.cond: 0101 0100 imm19 0 cond
     const uint32_t cond = insn & 0xFu;
-    return cond == 0x8 || cond == 0x9 || cond == 0xC || cond == 0xD;   // HI, LS, GT, LE
+    if (cond == 0x8 || cond == 0x9 || cond == 0xC || cond == 0xD) return true;   // HI, LS, GT, LE
+    // `tipo < Count` (LO/HS sem sinal, LT/GE com sinal): so quando quem chama
+    // conferiu o metodo — nos NPCs isso nunca foi olhado.
+    return belowToo && (cond == 0x2 || cond == 0x3 || cond == 0xA || cond == 0xB);
 }
 
 bool writeInstruction(uint32_t* at, uint32_t insn) {
@@ -68,14 +71,14 @@ bool writeInstruction(uint32_t* at, uint32_t insn) {
 
 } // namespace
 
-int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit) {
+int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo) {
     if (!m || newLimit > 0xFFF || oldLimit > 0xFFF) return 0;
     const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
     if (!start) return 0;
     const uintptr_t end = methodEnd(m, start);
     int patched = 0;
     for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 1) < end; ++p) {
-        if (!isCompareImmediate(*p, oldLimit) || !isLimitBranch(p[1])) continue;
+        if (!isCompareImmediate(*p, oldLimit) || !isLimitBranch(p[1], belowToo)) continue;
         const uint32_t insn = (*p & ~(0xFFFu << 10)) | (newLimit << 10);
         if (writeInstruction(p, insn)) ++patched;
     }

@@ -11,6 +11,7 @@
 #include "script/Items.h"
 #include "script/Npcs.h"
 #include "script/Projectiles.h"
+#include "script/Buffs.h"
 #include "script/Texture.h"
 #include "script/Marshal.h"
 #include "script/Members.h"
@@ -938,6 +939,7 @@ void installBindings(void* context) {
     installExtraFields(ctx, bl);
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);
+    installBuffsApi(ctx, bl);
     installNpcsApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 

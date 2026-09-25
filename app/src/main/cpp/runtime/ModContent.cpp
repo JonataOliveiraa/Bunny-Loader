@@ -4,6 +4,7 @@
 #include "il2cpp/Resolver.h"
 #include "runtime/ModItems.h"
 #include "runtime/ModNpcs.h"
+#include "runtime/ModBuffs.h"
 #include "runtime/ModProjectiles.h"
 
 #include <atomic>
@@ -52,7 +53,7 @@ void tickContentReady() {
     if (g_done) return;
     ContentReadyHook hook = g_hook.load(std::memory_order_acquire);
     if (!hook) return;
-    if (!modItemsSettled() || !modProjectilesSettled() || !modNpcsSettled()) return;
+    if (!modItemsSettled() || !modProjectilesSettled() || !modNpcsSettled() || !modBuffsSettled()) return;
     const Refs& r = refs();
     if (!r.ok) { g_done = true; return; }
     if (!readStatic<Il2CppObject*>(r.itemDrops) || !readStatic<Il2CppObject*>(r.bestiary)) return;

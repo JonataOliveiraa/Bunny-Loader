@@ -33,6 +33,10 @@ import { ExampleLaserWeapon } from './Content/Items/Weapons/Magic/ExampleLaserWe
 import { ExampleHookItem } from './Content/Items/Tools/ExampleHookItem.js';
 import { ExampleFishingRod } from './Content/Items/Tools/ExampleFishingRod.js';
 import { ExampleRecipes } from './Content/Global/ExampleRecipes.js';
+import { ExampleDefenseBuff } from './Content/Buffs/ExampleDefenseBuff.js';
+import { ExampleBuffPotion } from './Content/Items/Consumables/ExampleBuffPotion.js';
+
+ModBuff.register(ExampleDefenseBuff);
 
 ModNPC.register(ExampleSlimeNPC);
 
@@ -70,6 +74,7 @@ ModItem.register(ExampleMagicWeapon);
 ModItem.register(ExampleLaserWeapon);
 ModItem.register(ExampleHookItem);
 ModItem.register(ExampleFishingRod);
+ModItem.register(ExampleBuffPotion);
 
 ModSystem.register(ExampleRecipes);
 

@@ -21,8 +21,11 @@ namespace bl::runtime {
  * versao nova do jogo mudar o codigo, nada e escrito e quem chama fica sabendo
  * pelo retorno (quantas instrucoes trocou).
  *
+ * `belowToo` aceita tambem b.lo/b.hs/b.lt/b.ge (`tipo < Count`): so para
+ * metodo cujo codigo foi conferido (o GUIBuffs.Draw usa as duas formas).
+ *
  * `newLimit` cabe em 12 bits (ate 4095). Chamar na thread do jogo, uma vez.
  */
-int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit);
+int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo = false);
 
 } // namespace bl::runtime

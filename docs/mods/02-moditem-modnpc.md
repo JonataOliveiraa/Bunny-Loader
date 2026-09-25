@@ -6,7 +6,7 @@ classes no formato do tModLoader: o mod **estende** a
 classe, preenche o que quer e **registra**. O Bunny Loader dá um número ao tipo
 novo, põe a textura e o nome no jogo e liga os hooks por você.
 
-As classes são globais: `ModItem`, `ModProjectile`, `ModNPC`, `ModRecipe`, `ModSystem`,
+As classes são globais: `ModItem`, `ModProjectile`, `ModNPC`, `ModBuff`, `ModRecipe`, `ModSystem`,
 `NPCLoot`, `NPCSpawnInfo`, `ModLocalization`. Nada de `import` para elas —
 nem para os [ajudantes](#ajudantes) (`Vector2`, `Rand`, `ItemRarityID`...).
 
@@ -227,6 +227,52 @@ E a munição aponta para o projétil de mod:
 this.Item.shoot = ModProjectile.getTypeByName('ExampleBulletProjectile');
 this.Item.ammo = Terraria.ID.AmmoID.Bullet;
 ```
+
+## ModBuff
+
+Um buff (ou debuff) novo. Uma instância por tipo: os métodos recebem o
+jogador ou o NPC e a posição do buff na lista dele.
+
+```js
+export class ExampleDefenseBuff extends ModBuff {
+    constructor() {
+        super();
+        this.Texture = 'Buffs/' + this.constructor.name;   // 32x32
+        this.DefenseBonus = 10;
+    }
+
+    ModifyDescription() {
+        this.Description = this.Description.replace('{0}', this.DefenseBonus);
+    }
+
+    UpdatePlayer(player, buffIndex) {
+        player.statDefense += this.DefenseBonus;
+    }
+}
+
+ModBuff.register(ExampleDefenseBuff);
+```
+
+Um item que dá o buff: `this.Item.buffType = ModBuff.getTypeByName('ExampleDefenseBuff')`
+e `this.Item.buffTime = 5400` (em quadros; 60 = 1 segundo). Registre o buff
+antes do item.
+
+Nome e descrição vêm de `BuffName.<Classe>` e `BuffDescription.<Classe>` em
+`Localization/*.json` (ou de `this.DisplayName`/`this.Description`).
+`ModifyDisplayName`/`ModifyDescription` rodam uma vez por idioma.
+
+| Método | Quando |
+|---|---|
+| `SetStaticDefaults()` | Uma vez, com o tipo nas tabelas: `Terraria.Main.debuff[this.Type] = true`, `buffNoSave`, `buffNoTimeDisplay`, `persistentBuff`, `BuffID.Sets...`. |
+| `UpdatePlayer(player, i)` | Todo quadro, com o buff ativo no jogador (depois do `ResetEffects`, como os do jogo). |
+| `UpdateNPC(npc, i)` | Todo quadro, com o buff ativo no NPC. |
+| `ApplyPlayer(player, tempo)`, `ApplyNPC(npc, tempo)` | Quando o buff entra. |
+| `ReApplyPlayer(player, tempo, i)`, `ReApplyNPC(npc, tempo, i)` | Quando entra de novo, já ativo. `false` impede o jogo de renovar o tempo. |
+| `CanRemove(player, tempo, i, debuff)` | Ao tocar no ícone para tirar. `true`/`false` decide; `null` deixa com o jogo (debuff não sai). |
+| `OnRemove(player, tempo, i)` | Depois de tirado pelo toque. |
+
+Buff de mod ativo no personagem é salvo pelo **nome**, como o item. Com o mod
+desligado, ele fica guardado no arquivo e volta quando o mod é religado.
 
 ## Receitas
 
@@ -593,7 +639,7 @@ Shoot(item, player, position, velocity, type, damage, knockBack) {
 Estas partes do tModLoader ainda não têm classe no Bunny Loader — dá para fazer
 na mão, com hooks (guia 1), mas não há atalho:
 
-- `ModBuff`, `ModPlayer`, `ModTile`, `ModPrefix`, `ModMount`, `ModBiome`;
+- `ModPlayer`, `ModTile`, `ModPrefix`, `ModMount`, `ModBiome`;
 - no `ModSystem`, por enquanto só `AddRecipeGroups`, `AddRecipes` e `PostSetupContent`;
 - `GlobalItem`, `GlobalNPC`, `GlobalProjectile`;
 - armadura vestida (textura no corpo) e conjuntos (`IsArmorSet`/`UpdateArmorSet`);
