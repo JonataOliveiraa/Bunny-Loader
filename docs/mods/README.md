@@ -88,11 +88,14 @@ Três jeitos de pôr um mod lá:
 2. **Copiar a pasta** — com um gerenciador de arquivos, ponha a pasta do mod em
    `bunny_packs/` com o `uid` como nome. Ela aparece na lista quando o app volta
    à frente.
-3. **adb**, o mais rápido para desenvolver:
+3. **adb**, o mais rápido para desenvolver. Mande um `.tar` e extraia no
+   aparelho — em alguns aparelhos e emuladores o `adb push` de uma pasta com
+   subpastas para `Android/data` chega pela metade:
 
    ```bash
-   adb push MeuMod /sdcard/Android/data/com.bunnyloader/bunny_packs/7c2e9d41-5b3a-4f8e-9a61-2d0c4e8b7f15
-   adb shell chmod -R 777 /sdcard/Android/data/com.bunnyloader/bunny_packs/7c2e9d41-5b3a-4f8e-9a61-2d0c4e8b7f15
+   tar -C MeuMod -cf mod.tar .
+   adb push mod.tar /data/local/tmp/mod.tar
+   adb shell "P=/sdcard/Android/data/com.bunnyloader/bunny_packs/7c2e9d41-5b3a-4f8e-9a61-2d0c4e8b7f15; rm -rf \$P; mkdir -p \$P && tar -xf /data/local/tmp/mod.tar -C \$P && chmod -R 777 \$P"
    ```
 
    O `chmod` importa: arquivo posto pelo adb pertence ao usuário `shell`, e sem

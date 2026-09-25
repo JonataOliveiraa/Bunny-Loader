@@ -3,16 +3,24 @@
     "ExampleItem": "Exemplo de Item",
     "ExampleMeleeWeapon": "Espada",
     "ExampleGun": "Arma de Exemplo",
-    "ExampleBullet": "Bala de Exemplo"
+    "ExampleBullet": "Bala de Exemplo",
+    "ExampleSoul": "Alma de Exemplo",
+    "ExamplePickaxe": "Picareta de Exemplo",
+    "ExampleHamaxe": "Martelo-Machado de Exemplo",
+    "ExampleGolfBall": "Bola de Golfe de Exemplo",
+    "ExampleShotgun": "Espingarda de Exemplo",
+    "ExampleRocketLauncher": "Lança-Foguetes de Exemplo"
   },
   "ProjectileName": {
-    "ExampleBulletProjectile": "Bala de Exemplo"
+    "ExampleBulletProjectile": "Bala de Exemplo",
+    "ExampleGolfBallProjectile": "Bola de Golfe de Exemplo"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Slime de Exemplo"
   },
   "ItemTooltip": {
-    "ExampleItem": "Descrição do item"
+    "ExampleItem": "Descrição do item",
+    "ExampleShotgun": "Dispara oito balas de uma vez"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."

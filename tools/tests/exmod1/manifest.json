@@ -1,0 +1,15 @@
+{
+  "uid": "a4e7c2d9-1f3b-4c6a-8e05-7b9d2f1c6e38",
+  "id": "test-exmod1",
+  "name": "Teste: etapa 1 do Example Mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Alma, picareta, martelo-machado, bola de golfe, espingarda e lanca-foguetes.",
+  "description": "Confere os itens da etapa 1 pelos numeros do jogo. Precisa do Example Mod ligado. Loga 'exmod1 ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

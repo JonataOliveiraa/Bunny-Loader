@@ -139,6 +139,25 @@ const CLONED_FIELDS = [
 ];
 
 const itemsByType = new Map();
+
+// Animacao de item (Main.RegisterItemAnimation): o jogo zera todas no
+// InitializeItemAnimations, que roda DEPOIS do SetStaticDefaults dos mods.
+// Guardadas aqui e reaplicadas a cada vez que ele roda.
+const itemAnimations = new Map();
+let animationsHooked = false;
+function registerItemAnimation(type, animation) {
+    itemAnimations.set(type, animation);
+    Terraria.Main['void RegisterItemAnimation(int index, DrawAnimation animation)'](type, animation);
+    if (animationsHooked) return;
+    animationsHooked = true;
+    Terraria.Main['void InitializeItemAnimations()'].hook((original) => {
+        original();
+        for (const [t, a] of itemAnimations) {
+            guard('RegisterItemAnimation', () =>
+                Terraria.Main['void RegisterItemAnimation(int index, DrawAnimation animation)'](t, a));
+        }
+    });
+}
 const itemOf = (item) => item ? itemsByType.get(item.type) : undefined;
 
 class ModItem {
@@ -194,6 +213,9 @@ class ModItem {
     UpdateAccessory(item, player, hideVisual) {}
     // No inventario, todo quadro.
     UpdateInventory(item, player) {}
+    // No chao: a cor com que o item e desenhado. Devolva uma Color (ou nada,
+    // para a do jogo). `item` e o WorldItem; a luz do lugar chega em lightColor.
+    GetAlpha(item, lightColor) { return undefined; }
 
     // Copia os valores de um item do jogo para este.
     CloneDefaults(type) {
@@ -251,6 +273,20 @@ class ModItem {
         this.Item.buffTime = buffTime;
         this.Item.rare = 1;
         this.Item.value = Terraria.Item.buyPrice(0, 0, 20, 0);
+    }
+
+    // Quadros do item (tira vertical), como a alma: ticksPerFrame por quadro.
+    // Vale no inventario, no chao e na mao.
+    SetItemAnimation(frameCount, ticksPerFrame = 5, pingPong = false) {
+        const anim = Terraria.DataStructures.DrawAnimationVertical.new();
+        anim['void .ctor(int ticksperframe, int frameCount, bool pingPong)'](ticksPerFrame, frameCount, pingPong);
+        registerItemAnimation(this.Type, anim);
+        return anim;
+    }
+
+    // Bola de golfe: tee, taco e o projetil `projType`, como as do jogo.
+    DefaultToGolfBall(projType) {
+        this.Item['void DefaultToGolfBall(int projid)'](projType);
     }
 
     // Receita que da este item: this.CreateRecipe(stack).AddIngredient(...).AddTile(...).Register().
@@ -443,6 +479,17 @@ function hookItem(cls) {
             }, onItem(0));
         });
     }
+
+    // WorldItem.type e propriedade, nao campo: sem filtro nativo. So entra quem
+    // escreveu GetAlpha, e o item do chao do jogo sai no primeiro `if`.
+    if (has('GetAlpha')) once('item.GetAlpha', () => {
+        Terraria.WorldItem['Color GetAlpha(Color newColor)'].hook((original, self, color) => {
+            const m = itemsByType.get(self.type);
+            if (!m || !overrides(m.constructor, ModItem, 'GetAlpha')) return original(self, color);
+            const c = guard(m.constructor.name + '.GetAlpha', () => m.GetAlpha(self, color));
+            return original(self, c || color);
+        });
+    });
 
     if (has('UpdateInventory')) once('item.Inventory', () => {
         P['void UpdateEquips(int i)'].hook((original, self, i) => {

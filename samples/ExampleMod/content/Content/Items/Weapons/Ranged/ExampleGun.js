@@ -1,5 +1,3 @@
-import { RARITY_GREEN } from '../../../Rarity.js';
-
 const { SoundID, AmmoID, ProjectileID } = Terraria.ID;
 
 // ExampleGun: a arma. O `shoot` dela e o de qualquer arma de fogo do jogo (o
@@ -23,7 +21,7 @@ export class ExampleGun extends ModItem {
 
         this.Item.noMelee = true;   // o corpo da arma nao bate, so o tiro
         this.Item.value = Terraria.Item.sellPrice(0, 10, 0, 0);
-        this.Item.rare = RARITY_GREEN;
+        this.Item.rare = ItemRarityID.Green;
         this.Item.UseSound = SoundID.Item41;
     }
 

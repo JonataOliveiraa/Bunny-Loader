@@ -7,7 +7,8 @@ classe, preenche o que quer e **registra**. O Bunny Loader dá um número ao tip
 novo, põe a textura e o nome no jogo e liga os hooks por você.
 
 As classes são globais: `ModItem`, `ModProjectile`, `ModNPC`, `ModRecipe`,
-`NPCLoot`, `NPCSpawnInfo`, `ModLocalization`. Nada de `import` para elas.
+`NPCLoot`, `NPCSpawnInfo`, `ModLocalization`. Nada de `import` para elas —
+nem para os [ajudantes](#ajudantes) (`Vector2`, `Rand`, `ItemRarityID`...).
 
 O guia usa o `samples/ExampleMod` do começo ao fim — abra-o ao lado. Tudo do
 [guia 1](01-hooks-do-zero.md) (campos, métodos, structs) vale aqui dentro.
@@ -114,6 +115,7 @@ ali (`damage`, `useTime`, `shoot`, `rare`...). Ele também chega como argumento,
 | `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. |
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. |
 | `UpdateEquip(item, player)`, `UpdateAccessory(item, player, hideVisual)` | Todo quadro, equipado. |
+| `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). |
 
 Só os métodos que você escrever custam alguma coisa: o hook do jogo por trás de
 cada um só é instalado quando alguma classe o sobrescreve, e só é chamado para
@@ -128,11 +130,13 @@ this.SetShopValues(2, Terraria.Item.sellPrice(0, 1, 0, 0));  // raridade, preço
 this.CloneDefaults(Terraria.ID.ItemID.Minishark);            // copia um item do jogo
 this.DefaultToPlaceableTile(tileType);
 this.DefaultToFood(buffType, buffTime);
+this.DefaultToGolfBall(projType);                            // tee e taco, como as do jogo
+this.SetItemAnimation(4, 6);                                 // no SetStaticDefaults: 4 quadros, 6 ticks cada
 ModItem.sellPrice(platina, ouro, prata, cobre);
 ModItem.buyPrice(platina, ouro, prata, cobre);
 ```
 
-Raridade é número (`2` é verde): `ItemRarityID` não existe neste Terraria.
+Raridade: `ItemRarityID.Green`, `ItemRarityID.Pink`... (ver [ajudantes](#ajudantes)).
 
 ### Uma arma que atira
 
@@ -369,6 +373,30 @@ bl.menu.addItem(armas, ModItem.getTypeByName('ExampleGun'));
 Item de mod no inventário, no cofre e nos baús é salvo pelo **nome** (mod +
 classe), num arquivo ao lado do save do jogo. Desligar o mod não perde nada: o
 item vira um "?" e volta ao normal quando o mod é religado.
+
+## Ajudantes
+
+Globais, com os nomes do tModLoader:
+
+| | |
+|---|---|
+| `Vector2` | `Vector2.new(x, y)`, `Add`, `Subtract`, `Multiply`, `Divide` (vetor ou número), `Length`, `Distance`, `Normalize`, `SafeNormalize`, `DirectionTo`, `RotatedBy`, `RotatedByRandom`, `ToRotation`, `ToRotationVector2`, `Lerp`, `Dot`, `ToTileCoordinates`, `Clone`. Devolvem o `Vector2` do jogo; aceitam também `{ X, Y }`. |
+| `MathHelper` | `Pi`, `TwoPi`, `PiOver2`, `ToRadians`, `ToDegrees`, `Clamp`, `Lerp`, `SmoothStep`, `WrapAngle`. |
+| `Rand` | O sorteio do jogo: `Next(max)`, `Next(min, max)`, `NextFloat()`, `NextFloat(max)`, `NextBool(umEm)`, `NextChance(p)`, `NextSign()`, `NextFromList(lista)`, `NextVector2Circular(rx, ry)`, `NextVector2Unit()`. |
+| `Color` | `Color.new(r, g, b, a)`, `Color.White`, `Color.SkyBlue`... (qualquer cor do XNA, sempre uma cópia), `Multiply`, `Lerp`, `ToVector3`. |
+| `ItemRarityID`, `ProjAIStyleID`, `NPCAIStyleID` | Os números que este Terraria não traz: `ItemRarityID.Pink`, `ProjAIStyleID.GolfBall`, `NPCAIStyleID.Slime`... |
+
+```js
+Shoot(item, player, position, velocity, type, damage, knockBack) {
+    for (let i = 0; i < 8; i++) {
+        let v = Vector2.RotatedByRandom(velocity, MathHelper.ToRadians(15));
+        v = Vector2.Multiply(v, 1 - Rand.NextFloat(0.3));
+        NewProjectile(player.GetProjectileSource_Item(item), position.X, position.Y, v.X, v.Y,
+                      type, damage, knockBack, player.whoAmI, 0, 0, 0, null);
+    }
+    return false;
+}
+```
 
 ## O que ainda não existe
 

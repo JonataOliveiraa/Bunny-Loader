@@ -16,15 +16,18 @@ export MSYS_NO_PATHCONV=1
 uid() { python -c "import json,sys; print(json.load(open(sys.argv[1]))['uid'])" "$1/manifest.json"; }
 
 adb -s "$D" shell am force-stop com.bunnyloader
-# Os mods moram em Android/data/com.bunnyloader/bunny_packs/<uid>. Arquivo
-# posto ali pelo adb e do usuario `shell`: sem o chmod o app le, mas nao
-# consegue apagar nem sobrescrever (o mesmo problema dos saves).
+# Os mods moram em Android/data/com.bunnyloader/bunny_packs/<uid>. Vao num
+# .tar extraido la dentro: o `adb push` de uma pasta com subpastas falha nesse
+# caminho no MuMu ("secure_mkdirs failed"), e so a raiz chega. Arquivo posto
+# pelo shell precisa do chmod: sem ele o app le, mas nao consegue apagar nem
+# sobrescrever (o mesmo problema dos saves).
 PACKS=/sdcard/Android/data/com.bunnyloader/bunny_packs
 for dir in "$@"; do
     u=$(uid "$dir")
-    adb -s "$D" shell "rm -rf $PACKS/$u; mkdir -p $PACKS"
-    adb -s "$D" push "$(cygpath -w "$dir")" "$PACKS/$u" >/dev/null
-    adb -s "$D" shell "chmod -R 777 $PACKS/$u"
+    tar -C "$dir" -cf blmod.tar .
+    adb -s "$D" push blmod.tar /data/local/tmp/blmod.tar >/dev/null
+    rm -f blmod.tar
+    adb -s "$D" shell "rm -rf $PACKS/$u; mkdir -p $PACKS/$u && tar -xf /data/local/tmp/blmod.tar -C $PACKS/$u && chmod -R 777 $PACKS/$u; rm -f /data/local/tmp/blmod.tar"
 done
 adb -s "$D" logcat -c
 adb -s "$D" shell monkey -p com.bunnyloader -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
@@ -42,10 +45,10 @@ sleep 22; adb -s "$D" shell input tap 590 517     # "Mais tarde" (aviso de contr
 # O benchmark roda no primeiro quadro dentro do mundo e ainda mede 300 quadros.
 for i in $(seq 1 40); do
     sleep 2
-    adb -s "$D" logcat -d -s BunnyLoader | grep -q "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM" && break
+    adb -s "$D" logcat -d -s BunnyLoader | grep -q "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM\|exmod1 FIM" && break
 done
 sleep 8
-adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\)" \
+adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\|exmod1\)" \
     | sed 's/.*\[mod\] //' > "$OUT"
 echo "segfaults: $(adb -s "$D" logcat -d | grep -a -c 'Forwarding signal')" >> "$OUT"
 cat "$OUT"

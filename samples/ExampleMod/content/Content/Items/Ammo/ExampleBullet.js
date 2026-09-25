@@ -1,5 +1,3 @@
-import { RARITY_GREEN } from '../../Rarity.js';
-
 const { AmmoID } = Terraria.ID;
 
 export class ExampleBullet extends ModItem {
@@ -15,7 +13,7 @@ export class ExampleBullet extends ModItem {
         this.Item.consumable = true;
         this.Item.knockBack = 1.0;
         this.Item.value = Terraria.Item.sellPrice(0, 0, 10, 0);
-        this.Item.rare = RARITY_GREEN;
+        this.Item.rare = ItemRarityID.Green;
         this.Item.shoot = ModProjectile.getTypeByName('ExampleBulletProjectile');
         this.Item.shootSpeed = 4.5;
         this.Item.ammo = AmmoID.Bullet;

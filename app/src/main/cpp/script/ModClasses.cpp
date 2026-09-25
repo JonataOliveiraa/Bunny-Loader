@@ -6,6 +6,7 @@
 #include "runtime/ModContent.h"
 #include "script/Texture.h"
 #include "script/ModClassesJs.h"   // gerado: CMakeLists, de script/ModClasses.js
+#include "script/ModHelpersJs.h"   // gerado: CMakeLists, de script/ModHelpers.js
 
 #include <cstdio>
 #include <string>
@@ -82,6 +83,18 @@ void installModClasses(void* context) {
                       JS_NewCFunction(ctx, js_onContentReady, "onContentReady", 1));
     JS_FreeValue(ctx, bl);
     JS_FreeValue(ctx, global);
+
+    // Os ajudantes primeiro: as classes e os mods podem usar Vector2, Rand...
+    JSValue h = JS_Eval(ctx, kModHelpersJs, sizeof(kModHelpersJs) - 1, "bunny:ModHelpers.js",
+                        JS_EVAL_TYPE_GLOBAL);
+    if (JS_IsException(h)) {
+        JSValue e = JS_GetException(ctx);
+        const char* t = JS_ToCString(ctx, e);
+        BL_ERROR("ajudantes dos mods (Vector2, Rand...) nao carregaram: %s", t ? t : "?");
+        if (t) JS_FreeCString(ctx, t);
+        JS_FreeValue(ctx, e);
+    }
+    JS_FreeValue(ctx, h);
 
     JSValue r = JS_Eval(ctx, kModClassesJs, sizeof(kModClassesJs) - 1, "bunny:ModClasses.js",
                         JS_EVAL_TYPE_GLOBAL);

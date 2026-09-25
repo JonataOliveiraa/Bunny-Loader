@@ -49,6 +49,15 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/script/ModClassesJs.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/gen/script/ModClassesJs.h @ONLY)
 
+# Os ajudantes (Vector2, MathHelper, Rand, Color, ItemRarityID...), avaliados
+# antes das classes.
+set(BL_MOD_HELPERS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/script/ModHelpers.js)
+file(READ ${BL_MOD_HELPERS_FILE} BL_MOD_HELPERS_JS)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BL_MOD_HELPERS_FILE})
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/script/ModHelpersJs.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/gen/script/ModHelpersJs.h @ONLY)
+
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 

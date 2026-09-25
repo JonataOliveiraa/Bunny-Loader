@@ -108,6 +108,12 @@ void TypeTables::find(uintptr_t size) {
         Il2CppClass* cls = il2cpp::findClassQuiet(c.ns, c.name);
         if (cls && c.nested[0]) cls = il2cpp::findNested(cls, c.nested);
         if (!cls) continue;
+        // O construtor estatico primeiro: sem ele as tabelas da classe ainda
+        // sao nulas (ProjectileID.Sets inteira, na primeira vez), ficam como
+        // "pendentes" e so crescem no quadro seguinte — depois do
+        // SetStaticDefaults do mod, que a esta altura ja leu e escreveu alem
+        // do fim. Com a classe iniciada aqui, elas crescem junto com o resto.
+        if (a.runtime_class_init) a.runtime_class_init(cls);
         int found = 0, pending = 0;
         void* it = nullptr;
         while (FieldInfo* f = a.class_get_fields(cls, &it)) {

@@ -3,16 +3,24 @@
     "ExampleItem": "Example Item",
     "ExampleMeleeWeapon": "Sword",
     "ExampleGun": "Example Gun",
-    "ExampleBullet": "Example Bullet"
+    "ExampleBullet": "Example Bullet",
+    "ExampleSoul": "Example Soul",
+    "ExamplePickaxe": "Example Pickaxe",
+    "ExampleHamaxe": "Example Hamaxe",
+    "ExampleGolfBall": "Example Golf Ball",
+    "ExampleShotgun": "Example Shotgun",
+    "ExampleRocketLauncher": "Example Rocket Launcher"
   },
   "ProjectileName": {
-    "ExampleBulletProjectile": "Example Bullet"
+    "ExampleBulletProjectile": "Example Bullet",
+    "ExampleGolfBallProjectile": "Example Golf Ball"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime"
   },
   "ItemTooltip": {
-    "ExampleItem": "Item description"
+    "ExampleItem": "Item description",
+    "ExampleShotgun": "Fires eight bullets at once"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."
