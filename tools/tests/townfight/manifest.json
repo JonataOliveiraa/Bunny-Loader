@@ -1,0 +1,15 @@
+{
+  "uid": "755cad77-7cd6-49f5-be9b-93d75ebc3f22",
+  "id": "test-townfight",
+  "name": "Teste: ataque e gore do morador de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A Pessoa do Example Mod ataca um slime com o projetil do mod e, ao morrer, solta os gores do mod.",
+  "description": "Loga 'townfight ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

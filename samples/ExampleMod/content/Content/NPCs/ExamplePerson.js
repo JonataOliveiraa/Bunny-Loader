@@ -3,6 +3,7 @@ import { ExampleCustomCurrency } from '../Items/ExampleItem.js';
 const { DustID, NPCID, SoundID } = Terraria.ID;
 const { BestiaryDatabaseNPCsPopulator, FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
+const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];
 
 export class ExamplePerson extends ModNPC {
     constructor() {
@@ -60,6 +61,18 @@ export class ExamplePerson extends ModNPC {
         for (let k = 0; k < dusts; k++) {
             NewDust(npc.position, npc.width, npc.height, DustID.Blood, 0, 0, 0, Color.White, 1);
         }
+        if (npc.life > 0 || Terraria.Main.netMode === 2) return;
+
+        let variant = '';
+        if (npc.IsShimmerVariant) variant += '_Shimmer';
+        if (npc.altTexture === 1) variant += '_Party';
+        const gore = (part) => ModGore.getTypeByName('ExamplePerson_Gore' + variant + '_' + part);
+        const at = (dy) => Vector2.new(npc.position.X, npc.position.Y + dy);
+        NewGore(at(0), npc.velocity, gore('Head'), 1);
+        NewGore(at(20), npc.velocity, gore('Arm'), 1);
+        NewGore(at(20), npc.velocity, gore('Arm'), 1);
+        NewGore(at(34), npc.velocity, gore('Leg'), 1);
+        NewGore(at(34), npc.velocity, gore('Leg'), 1);
     }
 
     CanTownNPCSpawn(numTownNPCs) {
@@ -92,6 +105,19 @@ export class ExamplePerson extends ModNPC {
             .Add(ModItem.getTypeByName('ExampleYoyo'), { condition: () => !Terraria.Main.dayTime })
             .Add(ModItem.getTypeByName('ExampleSwingingEnergySword'), { currency: ExampleCustomCurrency.CurrencyId, price: 10 })
             .Register();
+    }
+
+    TownNPCAttackStrength(npc, attack) {
+        attack.damage = 20;
+        attack.knockback = 4;
+    }
+
+    TownNPCAttackProj(npc, attack) {
+        attack.projType = ModProjectile.getTypeByName('ExampleAdvancedAnimatedProjectile');
+    }
+
+    TownNPCAttackProjSpeed(npc, attack) {
+        attack.speed = 10;
     }
 
     GetChat(npc) {

@@ -401,6 +401,7 @@ class ModItem {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModItem)) {
             throw new TypeError('ModItem.register(Classe): passe a classe, que estende ModItem');
         }
+        autoloadGores();
         defineEntityField(Terraria.Item, 'ModItem');
         const inst = new cls();
         const name = cls.name;
@@ -1758,6 +1759,7 @@ class ModProjectile {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModProjectile)) {
             throw new TypeError('ModProjectile.register(Classe): passe a classe, que estende ModProjectile');
         }
+        autoloadGores();
         defineEntityField(Terraria.Projectile, 'ModProjectile');
         const inst = new cls();
         const name = cls.name;
@@ -2181,6 +2183,17 @@ class ModNPC {
     OnChatButtonClicked(npc, firstButton) { return undefined; }
     // As lojas, uma vez: new NPCShop(this.Type, 'Shop').Add(tipo).Register().
     AddShops() {}
+    // Ataque do morador (NPCID.Sets.AttackType 0 arremesso, 1 tiro, 2 magia,
+    // com AttackTime, AttackAverageChance e DangerDetectRange): o jogo escolhe
+    // o alvo, a hora e a animacao; o projetil que ele dispara passa por aqui.
+    // attack.damage e attack.knockback.
+    TownNPCAttackStrength(npc, attack) {}
+    // attack.projType: o projetil (o jogo nao tem um para morador de mod);
+    // attack.attackDelay: em que quadro do ataque ele sai (padrao 1).
+    TownNPCAttackProj(npc, attack) {}
+    // attack.speed (a velocidade do tiro), attack.gravityCorrection (quanto
+    // mirar acima do alvo) e attack.randomOffset (espalhamento).
+    TownNPCAttackProjSpeed(npc, attack) {}
     // Gostos e desgostos do morador (felicidade e preco da loja), no
     // SetStaticDefaults: this.Happiness.SetNPCAffection(NPCID.Nurse, AffectionLevel.Love).
     get Happiness() { return new NPCHappiness(this.Type); }
@@ -2193,6 +2206,7 @@ class ModNPC {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModNPC)) {
             throw new TypeError('ModNPC.register(Classe): passe a classe, que estende ModNPC');
         }
+        autoloadGores();
         defineEntityField(Terraria.NPC, 'ModNPC');
         const inst = new cls();
         const name = cls.name;
@@ -2417,6 +2431,63 @@ function setupTownLooks(inst, files) {
     }
 }
 
+// ================================ ModGore ================================
+
+// Gore de mod, como o GoreLoader do tModLoader: todo PNG em Textures/Gores/ do
+// mod vira um tipo novo, depois dos do jogo, com o nome do arquivo. Achados no
+// registro de conteudo (com o mod na pilha); instalados quando o jogo esta
+// pronto: TextureAssets.Gore, GoreID.Sets e ChildSafety.SafeGore crescem. O
+// GoreID.Count do jogo fica como esta (o Gore.NewGore so o usa para as gotas).
+const goresByMod = new Map();     // uuid -> Map(nome -> tipo)
+const pendingGores = [];          // { mod, name, file }
+let goresInstalled = false;
+
+function autoloadGores() {
+    const mod = bl.mod && bl.mod.uuid;
+    if (!mod || goresByMod.has(mod)) return;
+    goresByMod.set(mod, new Map());
+    let files = [];
+    try { files = bl.directory.exists('Textures/Gores') ? bl.directory.listFiles('Textures/Gores') : []; } catch (e) { files = []; }
+    for (const f of files) {
+        if (!f.endsWith('.png')) continue;
+        const name = f.slice(f.lastIndexOf('/') + 1, -4);
+        pendingGores.push({ mod, name, file: bl.mod.path + '/' + f });
+    }
+    if (pendingGores.length) whenReady(installGores);
+}
+
+function installGores() {
+    if (goresInstalled || pendingGores.length === 0) return;
+    goresInstalled = true;
+    const TA = Terraria.GameContent.TextureAssets;
+    const Sets = Terraria.ID.GoreID.Sets;
+    const Safety = Terraria.GameContent.ChildSafety;
+    const first = TA.Gore.length;
+    const total = first + pendingGores.length;
+    TA.Gore = TA.Gore.cloneResized(total);
+    Sets.SpecialAI = Sets.SpecialAI.cloneResized(total);
+    Sets.DisappearSpeed = Sets.DisappearSpeed.cloneResized(total);
+    Sets.DisappearSpeedAlpha = Sets.DisappearSpeedAlpha.cloneResized(total);
+    Sets.IsDrip = Sets.IsDrip.cloneResized(total);
+    Safety.SafeGore = Safety.SafeGore.cloneResized(total);
+    pendingGores.forEach((g, i) => {
+        const type = first + i;
+        guard('gore ' + g.name, () => { TA.Gore[type] = bl.loadTextureAsset(g.file); });
+        Sets.DisappearSpeed[type] = 1;
+        Sets.DisappearSpeedAlpha[type] = 1;
+        goresByMod.get(g.mod).set(g.name, type);
+    });
+    bl.log('gores de mod: ' + pendingGores.length + ' (tipos ' + first + '..' + (total - 1) + ')');
+}
+
+class ModGore {
+    // O tipo do gore 'Textures/Gores/<nome>.png' deste mod, ou 0 (nenhum).
+    static getTypeByName(name) {
+        const map = goresByMod.get(bl.mod && bl.mod.uuid);
+        return (map && map.get(name)) || 0;
+    }
+}
+
 // ================================ NPCShop ================================
 
 // Loja de morador de mod, como o NPCShop do tModLoader. Cada loja registrada
@@ -2593,6 +2664,68 @@ function hookNpc(cls) {
 
     if (has('SetChatButtons') || has('OnChatButtonClicked')) hookChatButtons();
 
+    // O ataque: a IA 7 do jogo leva o morador ao estado de ataque (ai[0] 10
+    // arremesso, 12 tiro, 14 magia) e conta localAI[3] ate a hora do tiro,
+    // mas o projetil sai de um switch pelo tipo, e para tipo de mod nao sai
+    // nada. Na hora em que o jogo atiraria (localAI[3] == attackDelay), o tiro
+    // do mod sai daqui, no inimigo a vista mais perto, com o dano escalado
+    // pelo jogo. Os TownNPCAttack* do tModLoader trocam os mesmos valores.
+    if (has('TownNPCAttackProj')) once('npc.TownAttack', () => {
+        const NewProjectile = Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)'];
+        const canHit = Terraria.Collision['bool CanHit(Vector2 Position1, int Width1, int Height1, Vector2 Position2, int Width2, int Height2)'];
+        N['void AI()'].hook((original, npc) => {
+            original(npc);
+            const m = npcOf(npc);
+            if (!m || !npc.townNPC || Terraria.Main.netMode === 1) return;
+            const state = npc.ai[0];
+            if (state !== 10 && state !== 12 && state !== 14) return;
+            const n = m.constructor.name;
+            const attack = { projType: 0, attackDelay: 1, damage: npc.damage, knockback: 3, speed: 10,
+                             gravityCorrection: 0, randomOffset: 0 };
+            guard(n + '.TownNPCAttackProj', () => m.TownNPCAttackProj(npc, attack));
+            if (npc.localAI[3] !== attack.attackDelay || attack.projType <= 0) return;
+            guard(n + '.TownNPCAttackStrength', () => m.TownNPCAttackStrength(npc, attack));
+            guard(n + '.TownNPCAttackProjSpeed', () => m.TownNPCAttackProjSpeed(npc, attack));
+
+            const range = Terraria.ID.NPCID.Sets.DangerDetectRange[npc.type] || 700;
+            const here = npc.Center;
+            let target = null, best = range;
+            const npcs = Terraria.Main.npc;
+            for (let i = 0; i < npcs.length - 1; i++) {
+                const o = npcs[i];
+                if (!o.active || o.friendly || o.damage <= 0 || o.townNPC) continue;
+                const c = o.Center;
+                const d = Math.hypot(c.X - here.X, c.Y - here.Y);
+                if (d < best && canHit(npc.position, npc.width, npc.height, o.position, o.width, o.height)) {
+                    best = d;
+                    target = o;
+                }
+            }
+            let dx = npc.spriteDirection, dy = 0;
+            if (target) {
+                const c = target.Center;
+                dx = c.X - here.X;
+                dy = c.Y - attack.gravityCorrection - here.Y;
+                const len = Math.hypot(dx, dy) || 1;
+                dx /= len;
+                dy /= len;
+            }
+            let vx = dx * attack.speed, vy = dy * attack.speed;
+            if (attack.randomOffset) {
+                vx += (Math.random() * 2 - 1) * attack.randomOffset;
+                vy += (Math.random() * 2 - 1) * attack.randomOffset;
+            }
+            const damage = npc['int GetAttackDamage_ForTownNPC(float normalDamage)'](attack.damage);
+            const i = NewProjectile(npc.GetSpawnSource_ForProjectile(), here.X + npc.spriteDirection * 16, here.Y - 2,
+                                    vx, vy, attack.projType, damage, attack.knockback, Terraria.Main.myPlayer, 0, 0, 0, null);
+            const proj = Terraria.Main.projectile[i];
+            if (proj) {
+                proj.npcProj = true;
+                proj.noDropItem = true;
+            }
+        }, self);
+    });
+
     // A fala: a do jogo roda antes (o que ela registra continua), a do mod vale.
     if (has('GetChat')) once('npc.GetChat', () => {
         N['string GetChat()'].hook((original, npc) => {
@@ -2698,6 +2831,7 @@ globalThis.ModPlayer = ModPlayer;
 globalThis.ModProjectile = ModProjectile;
 globalThis.ModNPC = ModNPC;
 globalThis.NPCShop = NPCShop;
+globalThis.ModGore = ModGore;
 globalThis.NPCHappiness = NPCHappiness;
 globalThis.AffectionLevel = AffectionLevel;
 globalThis.NPCLoot = NPCLoot;

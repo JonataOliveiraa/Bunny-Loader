@@ -893,6 +893,151 @@ SetBestiary(database, bestiaryEntry) {
 
 O retrato, os drops e a contagem de mortes o Bestiário monta sozinho.
 
+## Morador
+
+Um NPC que se muda para uma casa, conversa, vende e tem humor, como os do
+jogo. O Example Mod tem a **Pessoa** (`ExamplePerson`), a do ExMod.
+
+```js
+export class ExamplePerson extends ModNPC {
+    constructor() {
+        super();
+        this.Texture = 'NPCs/ExamplePerson/' + this.constructor.name;
+    }
+
+    SetStaticDefaults() {
+        Terraria.Main.npcFrameCount[this.Type] = 25;
+        NPCID.Sets.ExtraFramesCount[this.Type] = 9;
+        NPCID.Sets.AttackFrameCount[this.Type] = 4;
+        NPCID.Sets.DangerDetectRange[this.Type] = 700;
+        NPCID.Sets.AttackType[this.Type] = 1;        // 0 arremesso, 1 tiro, 2 magia
+        NPCID.Sets.AttackTime[this.Type] = 60;
+        NPCID.Sets.AttackAverageChance[this.Type] = 35;
+        this.Happiness
+            .SetNPCAffection(NPCID.Nurse, AffectionLevel.Love)
+            .SetBiomeAffection('Desert', AffectionLevel.Hate);
+    }
+
+    SetDefaults() {
+        this.NPC.townNPC = true;
+        this.NPC.friendly = true;
+        this.NPC.aiStyle = 7;                        // a IA de morador do jogo
+        this.AnimationType = NPCID.Guide;
+        // ...vida, defesa, sons
+    }
+
+    CanTownNPCSpawn(numTownNPCs) { /* true: pode se mudar */ }
+    CheckConditions(left, right, top, bottom) { return bottom <= Terraria.Main.worldSurface; }
+    SetNPCNameList() { return ['Someone', 'Somebody', 'Blocky', 'Colorless']; }
+    GetChat(npc) { return ModLocalization.GetTextValue('NPCChat.ExamplePerson_1'); }
+}
+```
+
+| Método | Quando |
+|---|---|
+| `CanTownNPCSpawn(numTownNPCs)` | De tempos em tempos, enquanto não há um deste tipo no mundo: `true` e ele se muda para a próxima casa vaga. |
+| `CheckConditions(left, right, top, bottom)` | A sala (em tiles) serve para ele? Vale na mudança e no menu de casas. |
+| `SetNPCNameList()` | Os nomes próprios; um é sorteado quando ele chega. |
+| `GetChat(npc)` | A fala ao conversar (texto). |
+| `SetChatButtons(npc, buttons)` | Os botões da conversa: `buttons.button` e `buttons.button2` (o celular mostra até dois). |
+| `OnChatButtonClicked(npc, firstButton)` | Tocou num botão. Devolva o nome de uma loja para abri-la. |
+| `AddShops()` | As lojas, uma vez (ver abaixo). |
+| `TownNPCAttackProj(npc, attack)` | O projétil do ataque: `attack.projType` e `attack.attackDelay`. |
+| `TownNPCAttackStrength(npc, attack)` | `attack.damage` e `attack.knockback`. |
+| `TownNPCAttackProjSpeed(npc, attack)` | `attack.speed`, `attack.gravityCorrection` (mirar acima) e `attack.randomOffset`. |
+
+`ModLocalization.GetTextValue('Secao.Chave')` dá o **texto** do
+`Localization/<cultura>.json` na língua do jogo (o `Translate` dá a chave, que
+é o que o Bestiário pede).
+
+### Cabeça e texturas
+
+Ao lado da `Texture`, pelo nome:
+
+| Arquivo | Para quê |
+|---|---|
+| `_Head.png` | A cabeça no mapa e no menu de casas. **Sem ela o morador nunca se muda.** |
+| `_Shimmer_Head.png` | A cabeça depois do shimmer. |
+| `_Party.png`, `_Shimmer.png`, `_Shimmer_Party.png` | Com festa, depois do shimmer e os dois. |
+| `_Portrait.png`, `_Shimmer_Portrait.png` | O retrato da conversa (200x200). Sem ele, a conversa mostra o quadro do sprite. |
+
+### Loja
+
+```js
+SetChatButtons(npc, buttons) {
+    buttons.button = Terraria.Localization.Language['string GetTextValue(string key)']('LegacyInterface.28');   // "Loja"
+}
+
+OnChatButtonClicked(npc, firstButton) {
+    if (firstButton) return 'Shop';
+}
+
+AddShops() {
+    new NPCShop(this.Type, 'Shop')
+        .Add(ModItem.getTypeByName('ExampleGun'))
+        .Add(ModItem.getTypeByName('ExampleYoyo'), { condition: () => !Terraria.Main.dayTime })
+        .Add(ModItem.getTypeByName('ExampleSwingingEnergySword'), { currency: ExampleCustomCurrency.CurrencyId, price: 10 })
+        .Register();
+}
+```
+
+Opções de cada item: `condition` (uma função; `false` e ele não aparece),
+`price` (o preço) e `currency` (uma moeda própria). O preço passa pela
+felicidade do morador, como nas lojas do jogo.
+
+Moeda própria, paga com um item (a do Example Mod é o Exemplo de Item):
+
+```js
+const { CustomCurrencyManager, CustomCurrencySingleCoin } = Terraria.GameContent.UI;
+const currency = CustomCurrencySingleCoin.new();
+currency['void .ctor(int coinItemID, long currencyCap)'](ModItem.getTypeByName('ExampleItem'), 999);
+currency.CurrencyTextKey = ModLocalization.Translate('CustomCurrency.ExampleItemCurrency');
+const id = CustomCurrencyManager.RegisterCurrency(currency);
+```
+
+### Felicidade
+
+`this.Happiness` (no `SetStaticDefaults`) grava os gostos no banco de
+personalidades do próprio jogo, que calcula o humor e o preço da loja:
+`SetNPCAffection(npcDoJogo, nível)` e `SetBiomeAffection('Forest' | 'Desert' |
+'Snow' | 'Jungle' | 'Ocean' | 'Underground' | 'Hallow' | 'Mushroom' | 'Dungeon'
+| 'Corruption' | 'Crimson', nível)`, com `AffectionLevel.Love`, `Like`,
+`Dislike` ou `Hate`.
+
+As falas de humor vêm de `TownNPCMood.<Classe>` no `Localization/<cultura>.json`:
+`Content`, `NoHome`, `FarFromHome`, `LoveSpace`, `LikeBiome`, `LoveNPC`,
+`DislikeCrowded`... O `{0}` vira o nome do bioma ou do NPC.
+
+### Ataque
+
+Com `NPCID.Sets.AttackType` e os outros sets de ataque, a IA de morador do jogo
+leva ele a atacar: escolhe a hora e anima. O projétil vem do
+`TownNPCAttackProj` e sai no inimigo à vista mais perto, com o dano escalado
+pelo jogo.
+
+### Gore
+
+Todo PNG em `Textures/Gores/` do mod vira um gore, com o nome do arquivo:
+
+```js
+const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];
+NewGore(npc.position, npc.velocity, ModGore.getTypeByName('ExamplePerson_Gore_Head'), 1);
+```
+
+### Save
+
+O morador vai para `<mundo>.wld.npcs.bl`, **pelo nome**: posição, casa, nome
+próprio, variação, a sala guardada e se passou pelo shimmer. O `.wld` fica sem
+ele, então o mundo abre sem o mod, e o morador volta quando o mod volta.
+
+### Diferenças do tModLoader
+
+- O celular mostra até dois botões na conversa (`SetChatButtons`).
+- Ainda não há `ModifyNPCHappiness`, `CanGoToStatue` (estátua do rei ou da
+  rainha) nem os ataques `TownNPCAttackCooldown`, `Shoot`, `Magic` e `Swing`.
+- O alvo do tiro é o inimigo à vista mais perto (o do jogo fica em variáveis
+  que o mod não alcança).
+
 ## Tradução
 
 `Localization/<idioma>.json`, um por idioma (`pt-BR`, `en-US`, `es-ES`, `de-DE`,
@@ -999,5 +1144,5 @@ na mão, com hooks (guia 1), mas não há atalho:
 - no `ModSystem`, por enquanto só `AddRecipeGroups`, `AddRecipes` e `PostSetupContent`;
 - `GlobalItem`, `GlobalNPC`, `GlobalProjectile`;
 - armadura vestida (textura no corpo) e conjuntos (`IsArmorSet`/`UpdateArmorSet`);
-- morador: conversa, loja e felicidade;
+- morador: `ModifyNPCHappiness`, `CanGoToStatue` e os ataques além do projétil;
 - condições de receita do tModLoader (`AddCondition`) e estação de mod (`ModTile`).
