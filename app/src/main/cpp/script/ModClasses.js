@@ -1402,7 +1402,11 @@ function forEachModBuff(entity, fn) {
         const t = types[i];
         if (t < FIRST_BUFF || times[i] <= 0) continue;
         const m = buffsByType.get(t);
-        if (m) fn(m, i);
+        if (!m) continue;
+        fn(m, i);
+        // O fn tirou o buff (DelBuff): o jogo puxa os de tras uma posicao, e
+        // o que veio para i ainda nao rodou (o buffIndex-- do tModLoader).
+        if (types[i] !== t) i--;
     }
 }
 
@@ -1703,6 +1707,9 @@ class ModProjectile {
     Colliding(proj, projHitbox, targetHitbox) { return undefined; }
     // false: nao causa dano (nem chama o Damage do jogo).
     CanDamage(proj) { return true; }
+    // Pet e lacaio (Main.projPet) nao ferem ao encostar; true libera o dano
+    // de contato do lacaio.
+    MinionContactDamage(proj) { return false; }
     // Mude hitbox (Rectangle) para o dano usar outra area.
     ModifyDamageHitbox(proj, hitbox) {}
     // true/false: corta grama, teia...; undefined = o do jogo.
@@ -1806,6 +1813,43 @@ function hookProjectile(cls) {
         }, self);
     });
 
+    // O dano base do lacaio e da sentinela: o jogo recalcula o dano deles a
+    // cada quadro a partir do originalDamage, e so o preenche nos tipos dele.
+    // Como o ApplyStatsFromSource do tModLoader: o dano do item que criou o
+    // projetil, ou o dano com que ele nasceu.
+    once('proj.OriginalDamage', () => {
+        Pr['void ApplyStatsFromSource(IEntitySource spawnSource)'].hook((original, p, source) => {
+            original(p, source);
+            if (!projectileOf(p) || p.originalDamage !== 0) return;
+            const item = source ? source.Item : undefined;
+            p.originalDamage = item && item.damage >= 0 ? item.damage : p.damage;
+        }, self);
+    });
+
+    // Um Kill dentro do HandleMovement e o choque com bloco, e o
+    // OnTileCollide recebe a velocidade de antes dele. O jogo, antes desse
+    // Kill, empurra o projetil mais uma velocidade (para morrer na parede); o
+    // tModLoader pula essa resposta toda quando o OnTileCollide devolve false,
+    // e aqui ela ja rodou: a posicao volta a ser a do comeco mais a velocidade
+    // de agora (a que o OnTileCollide deixou, para quicar). Sem isto, a
+    // sentinela afundava no chao 2 px a cada choque.
+    if (has('OnTileCollide')) once('proj.Movement', () => {
+        Pr['void HandleMovement(Vector2 wetVelocity)'].hook((original, p, wet) => {
+            const m = projectileOf(p);
+            if (!m) return original(p, wet);
+            const outer = m.__moving;
+            const start = Vector2.Clone(p.position);
+            const moving = { velocity: Vector2.Clone(p.velocity), kept: false };
+            m.__moving = moving;
+            try {
+                original(p, wet);
+                if (moving.kept && p.active) p.position = Vector2.Add(start, p.velocity);
+            } finally {
+                m.__moving = outer;
+            }
+        }, self);
+    });
+
     if (has('PreKill') || has('OnKill') || has('OnTileCollide')) once('proj.Kill', () => {
         const solid = Terraria.Collision['bool SolidCollision(Vector2 Position, int Width, int Height)'];
         Pr['void Kill()'].hook((original, p) => {
@@ -1813,12 +1857,19 @@ function hookProjectile(cls) {
             if (!m || !p.active) return original(p);
             const n = m.constructor.name;
             // Morte por bloco: o jogo mata o projetil que bate com tileCollide.
+            // No movimento, e o choque (a velocidade ja foi zerada nele: vale
+            // a de antes). Fora dele (a IA de alguns aiStyle mata ao bater),
+            // olha se ha bloco logo a frente.
             if (p.tileCollide && overrides(m.constructor, ModProjectile, 'OnTileCollide')) {
-                const v = p.velocity;
-                const len = Math.hypot(v.X, v.Y) || 1;
-                const ahead = Vector2.new(p.position.X + v.X / len, p.position.Y + v.Y / len);
-                if (solid(ahead, p.width, p.height) &&
-                    guard(n + '.OnTileCollide', () => m.OnTileCollide(p, Vector2.Clone(v))) === false) {
+                let hit = m.__moving ? m.__moving.velocity : undefined;
+                if (!hit) {
+                    const v = p.velocity;
+                    const len = Math.hypot(v.X, v.Y) || 1;
+                    const ahead = Vector2.new(p.position.X + v.X / len, p.position.Y + v.Y / len);
+                    if (solid(ahead, p.width, p.height)) hit = Vector2.Clone(v);
+                }
+                if (hit && guard(n + '.OnTileCollide', () => m.OnTileCollide(p, hit)) === false) {
+                    if (m.__moving) m.__moving.kept = true;
                     return undefined;
                 }
             }
@@ -1861,6 +1912,22 @@ function hookProjectile(cls) {
             const m = projectileOf(p);
             if (m && guard(m.constructor.name + '.CanDamage', () => m.CanDamage(p)) === false) return undefined;
             return original(p);
+        }, self);
+    });
+
+    // O Damage do jogo sai no comeco para todo Main.projPet (le a tabela uma
+    // vez so, ali): desligado so durante a chamada, o lacaio fere ao encostar.
+    if (has('MinionContactDamage')) once('proj.MinionContactDamage', () => {
+        Pr['void Damage()'].hook((original, p) => {
+            const m = projectileOf(p);
+            const pet = Terraria.Main.projPet;
+            const type = p.type;
+            if (!m || !pet[type] ||
+                guard(m.constructor.name + '.MinionContactDamage', () => m.MinionContactDamage(p)) !== true) {
+                return original(p);
+            }
+            pet[type] = false;
+            try { return original(p); } finally { pet[type] = true; }
         }, self);
     });
 

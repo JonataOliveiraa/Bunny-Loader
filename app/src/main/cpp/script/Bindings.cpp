@@ -252,6 +252,30 @@ JSValue js_NativeClass(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
  * Quando o nome puro é ambíguo NÃO escolhemos um: erramos, listando os
  * overloads. Escolher em silêncio foi o bug que deu exceção a cada frame.
  */
+/**
+ * Um nome que a classe do jogo nao tem, mas o tModLoader tem
+ * (`DustID.PinkFairy`): a tabela `__blExtraStatics` do ModHelpers.js, por
+ * "Namespace.Classe". So no caminho do "nao achou".
+ */
+JSValue extraStatic(JSContext* ctx, Il2CppClass* cls, JSAtom atom) {
+    auto& a = il2cpp::api();
+    const char* ns = a.class_get_namespace(cls);
+    const char* name = a.class_get_name(cls);
+    if (!name) return JS_UNDEFINED;
+    const std::string key = (ns && *ns) ? std::string(ns) + "." + name : std::string(name);
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue extras = JS_GetPropertyStr(ctx, global, "__blExtraStatics");
+    JS_FreeValue(ctx, global);
+    JSValue r = JS_UNDEFINED;
+    if (JS_IsObject(extras)) {
+        JSValue table = JS_GetPropertyStr(ctx, extras, key.c_str());
+        if (JS_IsObject(table)) r = JS_GetProperty(ctx, table, atom);
+        JS_FreeValue(ctx, table);
+    }
+    JS_FreeValue(ctx, extras);
+    return r;
+}
+
 JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
     Il2CppClass* cls = classOf(obj);
     if (!cls) return JS_UNDEFINED;
@@ -292,7 +316,7 @@ JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         return JS_ThrowTypeError(ctx, "'%s' tem %d overloads; use a assinatura. Existem: %s",
                                  name.c_str(), m.overloads, overloadList(cls, name).c_str());
     }
-    return JS_UNDEFINED;
+    return extraStatic(ctx, cls, atom);
 }
 
 int nc_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,

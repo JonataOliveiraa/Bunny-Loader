@@ -47,9 +47,24 @@ import { ExampleTile } from './Content/Tiles/ExampleTile.js';
 import { ExampleOre } from './Content/Tiles/ExampleOre.js';
 import { ExampleTileItem } from './Content/Items/Placeable/ExampleTileItem.js';
 import { ExampleOreItem } from './Content/Items/Placeable/ExampleOreItem.js';
+import { ExamplePetBuff } from './Content/Pets/ExamplePet/ExamplePetBuff.js';
+import { ExamplePetItem } from './Content/Pets/ExamplePet/ExamplePetItem.js';
+import { ExamplePetProjectile } from './Content/Pets/ExamplePet/ExamplePetProjectile.js';
+import { ExampleLightPetBuff } from './Content/Pets/ExampleLightPet/ExampleLightPetBuff.js';
+import { ExampleLightPetItem } from './Content/Pets/ExampleLightPet/ExampleLightPetItem.js';
+import { ExampleLightPetProjectile } from './Content/Pets/ExampleLightPet/ExampleLightPetProjectile.js';
+import { ExampleMinionBuff } from './Content/Buffs/ExampleMinionBuff.js';
+import { ExampleMinionItem } from './Content/Items/Weapons/Summon/ExampleMinionItem.js';
+import { ExampleMinion } from './Content/Projectiles/ExampleMinion.js';
+import { ExampleSentryItem } from './Content/Items/Weapons/Summon/ExampleSentryItem.js';
+import { ExampleSentry } from './Content/Projectiles/ExampleSentry.js';
+import { ExampleSentryShot } from './Content/Projectiles/ExampleSentryShot.js';
 
 ModBuff.register(ExampleDefenseBuff);
 ModBuff.register(ExampleDefenseDebuff);
+ModBuff.register(ExamplePetBuff);
+ModBuff.register(ExampleLightPetBuff);
+ModBuff.register(ExampleMinionBuff);
 
 ModPlayer.register(ExamplePlayer);
 ModPlayer.register(ExampleDashPlayer);
@@ -69,6 +84,11 @@ ModProjectile.register(ExampleLaserHoldout);
 ModProjectile.register(ExampleLaserBeam);
 ModProjectile.register(ExampleHookProjectile);
 ModProjectile.register(ExampleBobber);
+ModProjectile.register(ExamplePetProjectile);
+ModProjectile.register(ExampleLightPetProjectile);
+ModProjectile.register(ExampleMinion);
+ModProjectile.register(ExampleSentry);
+ModProjectile.register(ExampleSentryShot);
 
 ModItem.register(ExampleItem);
 ModItem.register(ExampleMeleeWeapon);
@@ -98,6 +118,10 @@ ModItem.register(WaspNest);
 ModItem.register(ExampleTooltipItem);
 ModItem.register(ExampleTileItem);
 ModItem.register(ExampleOreItem);
+ModItem.register(ExamplePetItem);
+ModItem.register(ExampleLightPetItem);
+ModItem.register(ExampleMinionItem);
+ModItem.register(ExampleSentryItem);
 
 ModTile.register(ExampleTile);
 ModTile.register(ExampleOre);

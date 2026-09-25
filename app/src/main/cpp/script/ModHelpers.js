@@ -286,6 +286,52 @@ const ProjAIStyleID = Object.freeze({
     ChlorophyteClaymoreBladeSlam: 209, YoyoShots: 210,
 });
 
+// Nomes de poeira que o tModLoader acrescenta (DustID.TML.cs) e este
+// Terraria nao tem: `Terraria.ID.DustID.PinkFairy` cai aqui quando a classe
+// do jogo nao tem o nome (o nc_exotic_get da ponte le esta tabela).
+const DustIDExtras = Object.freeze({
+    WoodFurniture: 7, HeartCrystal: 12, Demonite: 14, MagicMirror: 15, Sunflower: 19,
+    PurificationPowder: 20, VilePowder: 21, Pot: 22, PiggyBank: 23, Meteorite: 23,
+    CorruptionThorns: 24, MeteorHead: 25, GoblinSorcerer: 27, Clay: 28, Water: 33,
+    BreatheBubble: 34, Obsidian: 37, Mud: 38, JungleGrass: 39, GlowingMushroom: 41, Harpy: 42,
+    JungleSpore: 44, ManaRegeneration: 45, Poisoned: 46, Cobalt: 48, Mythril: 49, Adamantite: 50,
+    SnowBlock: 51, Pearlsand: 51, UnholyWater: 52, Silt: 53, Wraith: 54, Pixie: 55, BlueFairy: 56,
+    Enchanted_Gold: 57, HallowedWeapons: 57, Enchanted_Pink: 58, RainbowRod: 66, IceRod: 67,
+    UndergroundHallowedEnemies: 71, Gastropod: 72, PinkFairy: 73, GreenFairy: 74, Snow: 76,
+    Ebonwood: 77, RichMahogany: 78, Pearlwood: 79, UnusedBrown: 85, Frost: 92, FrostStaff: 92,
+    Water_Corruption: 98, Water_Jungle: 99, Water_Hallowed: 100, Water_Snow: 101, Water_Desert: 102,
+    Water_Space: 103, Water_GlowingMushroom: 103, Water_Cavern: 104, Water_BloodMoon: 105,
+    RuneWizard: 106, TerraBlade: 107, RainCloud: 108, Asphalt: 109, Clentaminator_Green: 110,
+    Clentaminator_Cyan: 111, Clentaminator_Purple: 112, Clentaminator_Blue: 113,
+    Clentaminator_Red: 114, CrimtaneWeapons: 115, Skyware: 116, Crimstone: 117, Ice_Purple: 118,
+    Ice_Pink: 119, Ice_Red: 120, Shadewood_Tree: 121, BorealWood: 122, Water_Crimson: 123,
+    SandstormInABottle: 124, Shadewood: 126, Rope: 129, Firework_Red: 130, Firework_Green: 131,
+    Firework_Blue: 132, Firework_Yellow: 133, Firework_Pink: 134, Crimslime: 136, IcyMerman: 137,
+    Confetti_Blue: 139, Confetti_Green: 140, Confetti_Pink: 141, Confetti_Yellow: 142, Paint: 143,
+    Palladium: 144, Orichalcum: 145, Titanium: 146, Hive: 147, Lihzahrd: 148, Slush: 149, Bee: 150,
+    SeaSnail: 151, Squid: 151, Honey2: 153, Rain: 154, Ambient_DarkBrown: 155,
+    ChlorophyteWeapon: 157, Teleporter: 159, MagnetSphere: 160, IceGolem: 161, PoisonStaff: 163,
+    DryadsWard: 163, TeleportationPotion: 164, FungiHit: 165, Plantera_Pink: 166,
+    Plantera_Green: 167, Ichor: 170, Venom: 171, DungeonWater: 172, ShadowbeamStaff: 173,
+    InfernoFork: 174, SpectreStaff: 175, BubbleBurst_Blue: 176, BubbleBurst_Pink: 177,
+    BubbleBurst_Green: 178, BubbleBurst_Purple: 179, DungeonSpirit: 180, GiantCursedSkullBolt: 181,
+    TheDestroyer: 182, VampireHeal: 183, ScourgeOfTheCorruptor: 184, RedsWingsRun: 186,
+    Flare_Blue: 187, FartInAJar: 188, Pumpkin: 189, Hay: 190, SpookyWood: 191, Ghost: 192,
+    BunnySlime: 192, SlimeBunny: 193, Scarecrow: 194, BatScepter: 195, Everscream: 196,
+    NorthPole: 197, FireflyHit: 198, Butterfly: 199, Worm: 200, Snail: 201, GlowingSnail: 202,
+    Scorpion: 203, TreasureSparkle: 204, SpelunkerGlowstickSparkle: 204, VenomStaff: 205,
+    UnusedWhiteBluePurple: 206, DynastyWood: 207, DynastyShingle_Red: 208, DynastyShingle_Blue: 209,
+    DynastyWall: 210, Wet: 211, BubbleBurst_White: 212, MinecartSpark: 213, BorealWood_Small: 214,
+    PalmWood: 215, PirateStaff: 216, FishronWings: 217, RazorbladeTyphoon: 217, Rain_BloodMoon: 218,
+    FireworkFountain_Red: 219, FireworkFountain_Green: 220, FireworkFountain_Blue: 221,
+    FireworkFountain_Yellow: 222, FireworkFountain_Pink: 223, Shiverthorn: 224, Coralstone: 225,
+    MartianHit: 227, MartianSaucerSpark: 228, InfluxWaver: 229, Phantasmal: 229,
+    DrillContainmentUnit: 230, CosmicCarKeys: 230, ViciousPowder: 231, GoldCritter: 232,
+    GoldCritter_LessOutline: 233, LifeDrain: 235, FrostDaggerfish: 252, TsunamiInABottle: 253,
+    SailfishBoots: 253, CrystalSerpent: 254, CrystalSerpent_Pink: 255, Toxikarp: 256,
+    MechanicalCart: 260, BloodWater: 266, LastPrism: 267,
+});
+
 const NPCAIStyleID = Object.freeze({
     FaceClosestPlayer: 0, Slime: 1, DemonEye: 2, Fighter: 3, EyeOfCthulhu: 4, Flying: 5,
     Worm: 6, Passive: 7, Caster: 8, Spell: 9, CursedSkull: 10, SkeletronHead: 11,
@@ -322,4 +368,5 @@ globalThis.ProjAI = ProjAI;
 globalThis.ItemRarityID = ItemRarityID;
 globalThis.ProjAIStyleID = ProjAIStyleID;
 globalThis.NPCAIStyleID = NPCAIStyleID;
+globalThis.__blExtraStatics = Object.freeze({ 'Terraria.ID.DustID': DustIDExtras });
 })();

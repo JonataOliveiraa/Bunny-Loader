@@ -421,7 +421,7 @@ Nome e descrição vêm de `BuffName.<Classe>` e `BuffDescription.<Classe>` em
 | Método | Quando |
 |---|---|
 | `SetStaticDefaults()` | Uma vez, com o tipo nas tabelas: `Terraria.Main.debuff[this.Type] = true`, `buffNoSave`, `buffNoTimeDisplay`, `persistentBuff`, `BuffID.Sets...`. |
-| `UpdatePlayer(player, i)` | Todo quadro, com o buff ativo no jogador (depois do `ResetEffects`, como os do jogo). |
+| `UpdatePlayer(player, i)` | Todo quadro, com o buff ativo no jogador (depois do `ResetEffects`, como os do jogo). Pode tirar o próprio buff com `player.DelBuff(i)`: o buff que vier para a posição `i` ainda roda no mesmo quadro. |
 | `UpdateNPC(npc, i)` | Todo quadro, com o buff ativo no NPC. |
 | `ApplyPlayer(player, tempo)`, `ApplyNPC(npc, tempo)` | Quando o buff entra. |
 | `ReApplyPlayer(player, tempo, i)`, `ReApplyNPC(npc, tempo, i)` | Quando entra de novo, já ativo. `false` impede o jogo de renovar o tempo. |
@@ -430,6 +430,98 @@ Nome e descrição vêm de `BuffName.<Classe>` e `BuffDescription.<Classe>` em
 
 Buff de mod ativo no personagem é salvo pelo **nome**, como o item. Com o mod
 desligado, ele fica guardado no arquivo e volta quando o mod é religado.
+
+## Pets, lacaios e sentinelas
+
+São um buff, um item e um projétil trabalhando juntos, como no tModLoader. O
+Example Mod tem os quatro: o **Aviãozinho** (pet), a **Luz Irritante** (pet de
+luz), o **Cajado do Lacaio de Exemplo** e o **Cajado da Sentinela de Exemplo**.
+
+### Pet
+
+O buff mantém o pet vivo. O jogo tem o método que cria o pet se faltar e
+renova o buff; ele tem um parâmetro `ref bool`, então vai um `Ref` (guia 3):
+
+```js
+const SpawnPet = Terraria.Player['void BuffHandle_SpawnPetIfNeededAndSetTime(int buffIndex, ref bool petBool, int petProjID, int buffTimeToGive)'];
+
+export class ExamplePetBuff extends ModBuff {
+    SetStaticDefaults() {
+        Terraria.Main.buffNoTimeDisplay[this.Type] = true;
+        Terraria.Main.vanityPet[this.Type] = true;     // lightPet para pet de luz
+    }
+
+    UpdatePlayer(player, buffIndex) {
+        SpawnPet(player, buffIndex, new Ref(false), ModProjectile.getTypeByName('ExamplePetProjectile'), 18000);
+    }
+}
+```
+
+No item, `shoot` é o pet e `buffType` é o buff; no `UseItem`, o buff entra com
+`player.AddBuff(item.buffType, 3600, false)`. O projétil marca
+`Main.projPet[this.Type] = true` e, a cada quadro, fica vivo enquanto o dono
+tiver o buff:
+
+```js
+AI(proj) {
+    const player = Terraria.Main.player[proj.owner];
+    if (!player.dead && player.FindBuffIndex(ModBuff.getTypeByName('ExamplePetBuff')) >= 0) proj.timeLeft = 2;
+}
+```
+
+Com `Main.vanityPet` (ou `Main.lightPet`) no buff, o item também entra no
+**slot de pet** (ou de luz) do equipamento, e o jogo põe o buff sozinho. O
+Aviãozinho usa a IA do Zephyr Fish: `this.CloneDefaults(ProjectileID.ZephyrFish)`
+e `this.AIType = ProjectileID.ZephyrFish`. A IA do Zephyr Fish mantém o pet
+vivo pelo `player.zephyrfish`; com ele em `false` no `PreAI`, quem decide é o
+buff do mod.
+
+### Lacaio
+
+- No projétil: `Main.projPet[this.Type] = true`,
+  `ProjectileID.Sets.MinionSacrificable` (o jogo troca o mais velho quando
+  faltam vagas), `ProjectileID.Sets.MinionTargetingFeature` (segue o alvo
+  marcado pelo chicote) e, no `SetDefaults`, `minion = true` e `minionSlots = 1`.
+- No buff: `buffNoSave` e, no `UpdatePlayer`, `buffTime[i] = 18000` enquanto
+  `player.ownedProjectileCounts[lacaio] > 0`; sem lacaio, `player.DelBuff(i)`.
+- No item: `summon = true`, `buffType` e `shoot`; o `Shoot` põe o buff
+  (`player.AddBuff(item.buffType, 2, false)`) e devolve `true` para o jogo
+  criar o lacaio. No `ModifyShootStats`, `stats.position = Main.MouseWorld`
+  põe o lacaio onde se tocou.
+- `MinionContactDamage(proj)` devolvendo `true`: o lacaio fere ao encostar
+  (o jogo não deixa pet nem lacaio ferir por contato).
+
+O dano do lacaio sai do `originalDamage`, que o jogo recalcula a cada quadro
+com os bônus de invocação. O Bunny Loader o preenche com o dano do item que
+criou o projétil, como o tModLoader.
+
+O contador de lacaios sob o ícone do buff:
+
+```js
+const counter = Terraria.DataStructures.CachedProjectileCounterBuffTextHandler.new(ModProjectile.getTypeByName('ExampleMinion'));
+Terraria.ID.BuffID.Sets.BuffTextHandlers.Add(this.Type, counter);
+```
+
+### Sentinela
+
+No item, `sentry = true`; no projétil, `sentry = true` e `timeLeft = 36000`
+(10 minutos). O `Shoot` do Example Mod acha o chão com
+`player.FindSentryRestingSpot(type, x, y, empurrao)` (três `out`), cria a
+sentinela e chama `player.UpdateMaxTurrets()`, que tira a mais velha quando
+passa do limite.
+
+Para a sentinela pousar em plataforma: `decidesManualFallThrough = true` e
+`shouldFallThrough = false` no `SetDefaults` (é o `TileCollideStyle` do
+tModLoader). E `OnTileCollide` devolvendo `false`, para o chão não matá-la.
+
+### Diferenças do tModLoader
+
+- `player.HasBuff(t)` não existe no celular: `player.FindBuffIndex(t) >= 0`.
+- `Main.ActiveNPCs` não existe: percorra `Terraria.Main.npc` (o último é vazio)
+  e pule os `!npc.active`.
+- `proj.ai[0]` é `new ProjAI(proj)[0]` (ver ModProjectile).
+- O projétil não tem `DamageType`: `minion` e `sentry` já dizem que o dano é de
+  invocação. No item, `summon = true`.
 
 ## ModTile
 
@@ -646,10 +738,11 @@ export class ExampleBulletProjectile extends ModProjectile {
 | `PostAI(proj)` | Depois da IA. |
 | `PreKill(proj, timeLeft)` | `false` tira os efeitos do jogo na morte (poeira, som); o projétil morre igual. |
 | `OnKill(proj, timeLeft)` | Ao morrer (poeira, som, fragmentos). |
-| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco e ia morrer: `false` o mantém vivo (para quicar, mude `proj.velocity`). |
+| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco e ia morrer: `false` o mantém vivo (para quicar, mude `proj.velocity`). `oldVelocity` é a de antes do choque. |
 | `OnHitNPC(proj, npc)`, `OnHitPlayer(proj, player)` | Ao acertar. |
 | `Colliding(proj, projHitbox, targetHitbox)` | `true`/`false` decide o acerto; `undefined` deixa o do jogo. |
 | `CanDamage(proj)` | `false`: não causa dano. |
+| `MinionContactDamage(proj)` | `true`: o lacaio (ou pet) fere ao encostar. |
 | `ModifyDamageHitbox(proj, hitbox)` | Mude o `hitbox` (Rectangle) para o dano usar outra área. |
 | `CanCutTiles(proj)`, `CutTiles(proj)` | Cortar grama e teia. |
 | `GetAlpha(proj, lightColor)` | A cor final (uma `Color`), ou `undefined` para a do jogo. |
@@ -883,6 +976,7 @@ Globais, com os nomes do tModLoader:
 | `Rectangle` | `Rectangle.new(x, y, w, h)`, `Size`, `Center`, `Contains`, `Intersects`. |
 | `ProjAI` | `new ProjAI(proj)`: `proj.ai` como vetor (ver ModProjectile). |
 | `ItemRarityID`, `ProjAIStyleID`, `NPCAIStyleID` | Os números que este Terraria não traz: `ItemRarityID.Pink`, `ProjAIStyleID.GolfBall`, `NPCAIStyleID.Slime`... |
+| `Terraria.ID.DustID` | Além dos nomes do jogo, os que o tModLoader acrescenta: `DustID.PinkFairy`, `DustID.Firework_Blue`... |
 
 ```js
 Shoot(item, player, position, velocity, type, damage, knockBack) {

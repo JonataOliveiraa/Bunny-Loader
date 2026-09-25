@@ -1,0 +1,15 @@
+{
+  "uid": "60b1b788-9c51-425d-a91a-28809cf03b01",
+  "id": "test-summons",
+  "name": "Teste: pets, lacaio e sentinela",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Usa os pets, o lacaio e a sentinela do Example Mod como o dedo usaria e confere o que o jogo faz com eles.",
+  "description": "Loga 'summons ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -27,7 +27,11 @@
     "WaspNest": "Wasp Nest",
     "ExampleTooltipItem": "Example Tooltip",
     "ExampleTileItem": "Example Block",
-    "ExampleOreItem": "Example Ore"
+    "ExampleOreItem": "Example Ore",
+    "ExamplePetItem": "Paper Airplane",
+    "ExampleLightPetItem": "Annoying Light",
+    "ExampleMinionItem": "Example Minion Item",
+    "ExampleSentryItem": "Example Sentry Item"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -42,7 +46,12 @@
     "ExampleLaserHoldout": "Example Prism",
     "ExampleLaserBeam": "Example Laser",
     "ExampleHookProjectile": "Example Hook",
-    "ExampleBobber": "Example Bobber"
+    "ExampleBobber": "Example Bobber",
+    "ExamplePetProjectile": "Paper Airplane",
+    "ExampleLightPetProjectile": "Annoying Light",
+    "ExampleMinion": "Example Minion",
+    "ExampleSentry": "Example Sentry",
+    "ExampleSentryShot": "Example Sentry Shot"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime"
@@ -57,7 +66,11 @@
     "ExampleStatAccessory": "{0}% increased damage",
     "ExampleBoots": "Allows flight, super fast running, even faster running on sand, and extra mobility on ice\nProvides the ability to walk on water, honey, lava, and shimmer\nGrants immunity to fire blocks and {0} seconds of immunity to lava\nReduces damage from touching lava\nPrevents fall damage\nLeaves a trail of flames in your wake",
     "WaspNest": "Bees become stronger",
-    "ExampleTooltipItem": "Above, one color per letter. This line, in gold"
+    "ExampleTooltipItem": "Above, one color per letter. This line, in gold",
+    "ExamplePetItem": "Summons a Paper Airplane to follow aimlessly behind you",
+    "ExampleLightPetItem": "Summons an annoying light",
+    "ExampleMinionItem": "Summons an example minion to fight for you",
+    "ExampleSentryItem": "Summons an example sentry to fight for you"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."
@@ -67,11 +80,17 @@
   },
   "BuffName": {
     "ExampleDefenseBuff": "Defense",
-    "ExampleDefenseDebuff": "Reduced Defense"
+    "ExampleDefenseDebuff": "Reduced Defense",
+    "ExamplePetBuff": "Paper Airplane",
+    "ExampleLightPetBuff": "Annoying Light",
+    "ExampleMinionBuff": "Example Minion"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Increases the player's defense by {0}",
-    "ExampleDefenseDebuff": "Reduces the player's defense by {0}%"
+    "ExampleDefenseDebuff": "Reduces the player's defense by {0}%",
+    "ExamplePetBuff": "\"Let this pet be an example to you!\"",
+    "ExampleLightPetBuff": "Ugh, soooo annoying",
+    "ExampleMinionBuff": "The example minion will fight for you"
   },
   "CustomText": {
     "WelcomeMessage": "Welcome to {WorldName}!"

@@ -27,7 +27,11 @@
     "WaspNest": "Ninho de Vespas",
     "ExampleTooltipItem": "Exemplo de Tooltip",
     "ExampleTileItem": "Bloco de Exemplo",
-    "ExampleOreItem": "Minério de Exemplo"
+    "ExampleOreItem": "Minério de Exemplo",
+    "ExamplePetItem": "Aviãozinho",
+    "ExampleLightPetItem": "Luz Irritante",
+    "ExampleMinionItem": "Cajado do Lacaio de Exemplo",
+    "ExampleSentryItem": "Cajado da Sentinela de Exemplo"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -42,7 +46,12 @@
     "ExampleLaserHoldout": "Prisma de Exemplo",
     "ExampleLaserBeam": "Raio de Exemplo",
     "ExampleHookProjectile": "Gancho de Exemplo",
-    "ExampleBobber": "Boia de Exemplo"
+    "ExampleBobber": "Boia de Exemplo",
+    "ExamplePetProjectile": "Aviãozinho",
+    "ExampleLightPetProjectile": "Luz Irritante",
+    "ExampleMinion": "Lacaio de Exemplo",
+    "ExampleSentry": "Sentinela de Exemplo",
+    "ExampleSentryShot": "Tiro da Sentinela"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Slime de Exemplo"
@@ -57,7 +66,11 @@
     "ExampleStatAccessory": "{0}% de aumento nos danos",
     "ExampleBoots": "Permite voar, correr super rápido, correr ainda mais rápido na areia e ter mobilidade extra no gelo\nProporciona a habilidade de andar sobre água, mel, lava e brilho\nConcede imunidade a blocos de fogo e {0} segundos de imunidade à lava\nReduz o dano causado pelo contato com lava\nPrevine dano por queda\nDeixa um rastro de chamas por onde você passar",
     "WaspNest": "As abelhas ficam mais fortes",
-    "ExampleTooltipItem": "Acima, uma cor por letra. Esta linha, em dourado"
+    "ExampleTooltipItem": "Acima, uma cor por letra. Esta linha, em dourado",
+    "ExamplePetItem": "Invoca um aviãozinho de papel que te segue sem rumo",
+    "ExampleLightPetItem": "Invoca uma luz irritante",
+    "ExampleMinionItem": "Invoca um lacaio de exemplo que luta por você",
+    "ExampleSentryItem": "Invoca uma sentinela de exemplo que luta por você"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."
@@ -67,11 +80,17 @@
   },
   "BuffName": {
     "ExampleDefenseBuff": "Defesa",
-    "ExampleDefenseDebuff": "Defesa Reduzida"
+    "ExampleDefenseDebuff": "Defesa Reduzida",
+    "ExamplePetBuff": "Aviãozinho",
+    "ExampleLightPetBuff": "Luz Irritante",
+    "ExampleMinionBuff": "Lacaio de Exemplo"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}",
-    "ExampleDefenseDebuff": "Reduz a defesa do jogador em {0}%"
+    "ExampleDefenseDebuff": "Reduz a defesa do jogador em {0}%",
+    "ExamplePetBuff": "\"Que este pet sirva de exemplo para você!\"",
+    "ExampleLightPetBuff": "Argh, muuuito irritante",
+    "ExampleMinionBuff": "O lacaio de exemplo vai lutar por você"
   },
   "CustomText": {
     "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"
