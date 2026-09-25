@@ -167,6 +167,9 @@ if (Terraria.Main['bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeVal
 `new Ref(valor)` começa com um valor, para `ref`. Passar um número direto
 onde o método quer `ref`/`out` dá erro, que diz para usar o `Ref`.
 
+O [guia 3](03-ref-e-out.md) trata de `ref`/`out` com calma, com exemplos de pesca
+e de taxa de spawn.
+
 ### Criando objetos
 
 `new Item()` do C# é `.new()` e depois o construtor:

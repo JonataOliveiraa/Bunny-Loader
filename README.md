@@ -21,6 +21,7 @@ Os guias estão em [`docs/mods/`](docs/mods/README.md):
 
 1. [Do zero, com hooks](docs/mods/01-hooks-do-zero.md) — mudar o que o jogo já tem.
 2. [Conteúdo novo: ModItem, ModNPC...](docs/mods/02-moditem-modnpc.md) — criar item, projétil e NPC.
+3. [`ref` e `out`](docs/mods/03-ref-e-out.md) — chamar e hookar método com parâmetro `ref`/`out`.
 
 Os mods instalados ficam em `Android/data/com.bunnyloader/bunny_packs/<uid>/`,
 e o jogo carrega de lá: dá para editar um mod direto no aparelho e só reabrir

@@ -11,6 +11,7 @@ Há dois jeitos de escrever um mod. Dá para misturar os dois no mesmo pacote.
 |---|---|
 | [1. Do zero, com hooks](01-hooks-do-zero.md) | Mudar o que o jogo **já tem**: dano, vida, queda, a Minishark... A ponte JS ↔ jogo inteira: classes, campos, métodos, hooks, structs, texturas. |
 | [2. Conteúdo novo: ModItem, ModNPC...](02-moditem-modnpc.md) | **Criar** item, projétil e NPC novos, com textura, nome, receita, drop, spawn natural e Bestiário, no formato do tModLoader. |
+| [3. `ref` e `out`](03-ref-e-out.md) | Chamar e hookar método com parâmetro `ref`/`out`: pesca, taxa de spawn, colisão. O `Ref` e o que ele pode e não pode. |
 
 Os mods de `samples/` são exemplos completos, e curtos:
 
