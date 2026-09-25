@@ -229,8 +229,9 @@ metodo.hook(callback, { minType: bl.items.vanillaCount });
 
 ### O que ainda não dá
 
-- Hookar método com mais de 8 argumentos inteiros ou 8 de ponto flutuante: o
-  excedente viaja pela pilha, que o hook não captura. É recusado, com mensagem.
+- Hookar método com mais de 16 argumentos inteiros (8 em registrador e 8 na
+  pilha, contando `this`) ou mais de 8 de ponto flutuante. É recusado, com
+  mensagem. O `Player.Hurt`, com 10, funciona.
 - Hookar método que devolve struct grande (mais de 16 bytes, ou mais de 4
   floats): também recusado, dizendo o tipo e o tamanho.
 

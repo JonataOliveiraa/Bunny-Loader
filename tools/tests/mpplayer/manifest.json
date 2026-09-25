@@ -1,0 +1,15 @@
+{
+  "uid": "17050ce5-a796-4391-831f-8bed76a3127c",
+  "id": "test-mpplayer",
+  "name": "Teste: ModPlayer no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Cada jogador com a propria instancia dos dois lados; o escudo do cliente liga o dash so dele; o host ve o dash.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpp ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

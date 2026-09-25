@@ -108,7 +108,7 @@ JSValue invokeMethod(JSContext* ctx, const MethodInfo* m, void* self,
             if (api.runtime_class_init) api.runtime_class_init(api.method_get_class(m));
         }
         const AbiPlan& p = c.plan;
-        intptr_t a[8] = {0};
+        intptr_t a[kIntSlots] = {0};
         uint64_t d[8] = {0};
         if (c.isInstance) a[0] = reinterpret_cast<intptr_t>(self);
 

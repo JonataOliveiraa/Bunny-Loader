@@ -6,7 +6,7 @@ classes no formato do tModLoader: o mod **estende** a
 classe, preenche o que quer e **registra**. O Bunny Loader dá um número ao tipo
 novo, põe a textura e o nome no jogo e liga os hooks por você.
 
-As classes são globais: `ModItem`, `ModProjectile`, `ModNPC`, `ModBuff`, `ModRecipe`, `ModSystem`,
+As classes são globais: `ModItem`, `ModProjectile`, `ModNPC`, `ModBuff`, `ModPlayer`, `ModRecipe`, `ModSystem`,
 `NPCLoot`, `NPCSpawnInfo`, `ModLocalization`. Nada de `import` para elas —
 nem para os [ajudantes](#ajudantes) (`Vector2`, `Rand`, `ItemRarityID`...).
 
@@ -118,6 +118,18 @@ O valor fica numa tabela ao lado do objeto (o jogo não deixa a classe crescer)
 e some sozinho quando o jogo descarta o objeto. Vale também para as classes
 filhas: um campo em `Terraria.Entity` aparece em `Player`, `NPC` e `Projectile`.
 
+`bl.defineMethod` faz o mesmo com um método: `this` é o objeto do jogo. É daí
+que sai o `player.GetModPlayer(...)`.
+
+```js
+bl.defineMethod(Terraria.Player, 'estaNoChao', function () {
+    return this.velocity.Y === 0;
+});
+if (player.estaNoChao()) { /* ... */ }
+```
+
+Nome que a classe já tem (campo ou método do jogo) vence o do mod.
+
 ## ModItem
 
 ```js
@@ -176,7 +188,7 @@ export class ExampleItem extends ModItem {
 | `Shoot(item, player, position, velocity, type, damage, knockBack)` | `false`: o projétil do jogo não nasce (crie os seus aqui). |
 | `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. |
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. |
-| `UpdateEquip(item, player)`, `UpdateAccessory(item, player, hideVisual)` | Todo quadro, equipado. |
+| `UpdateEquip(item, player)`, `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, equipado. No acessório, `vanity` é o slot de vaidade (só o visual) e `hideVisual` o olho fechado. |
 | `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). |
 
 Só os métodos que você escrever custam alguma coisa: o hook do jogo por trás de
@@ -227,6 +239,96 @@ E a munição aponta para o projétil de mod:
 this.Item.shoot = ModProjectile.getTypeByName('ExampleBulletProjectile');
 this.Item.ammo = Terraria.ID.AmmoID.Bullet;
 ```
+
+## ModPlayer
+
+Dados e comportamento de cada **jogador**. Cada jogador tem a própria instância
+de cada `ModPlayer`, criada na primeira vez que alguém pergunta por ela. No
+multijogador, o escudo de um jogador liga o dash só dele, e não o de todos.
+
+```js
+export class ExampleDashPlayer extends ModPlayer {
+    DashAccessoryEquipped = false;
+
+    ResetEffects(player) {
+        this.DashAccessoryEquipped = false;   // o acessório liga de novo, se estiver equipado
+    }
+
+    UpdateMovement(player) {
+        if (this.DashAccessoryEquipped) { /* ... */ }
+    }
+}
+
+ModPlayer.register(ExampleDashPlayer);
+```
+
+E no acessório:
+
+```js
+UpdateAccessory(item, player, vanity, hideVisual) {
+    player.GetModPlayer(ExampleDashPlayer).DashAccessoryEquipped = true;
+}
+```
+
+| | |
+|---|---|
+| `player.GetModPlayer(Classe)` | A instância daquele jogador (também por nome: `GetModPlayer('ExampleDashPlayer')`). |
+| `Classe.get(player)` | O mesmo. |
+| `this.Player` | O jogador desta instância. Os métodos também o recebem como primeiro argumento. |
+| `ModPlayer.getByName(nome)` | A instância do jogador **local**. Serve para código de uma só tela (interface), não para lógica de jogo. |
+
+Os métodos, na ordem em que rodam num quadro:
+
+| Método | Quando |
+|---|---|
+| `PreUpdate(player)` | Início do quadro do jogador. |
+| `ResetEffects(player)` | Logo depois do jogo zerar os efeitos: zere aqui o que os acessórios ligam. |
+| `ModifyMaxStats(player)` | Depois do `ResetEffects`: `this.CumulativeHealth`/`CumulativeMana` somam à vida/mana máxima. |
+| `PreUpdateBuffs(player)`, `PostUpdateBuffs(player)` | Em volta dos buffs. |
+| `UpdateEquips(player)` (ou `PostUpdateEquips`) | Depois dos equipamentos e acessórios. |
+| `UpdateBadLifeRegen(player)`, `UpdateLifeRegen(player)` | Antes e depois da regeneração de vida. |
+| `UpdateManaRegen(player)` | Depois da regeneração de mana. |
+| `UpdateMovement(player)` | Movimento próprio (dash): perto do fim do quadro. |
+| `PostUpdate(player)` | Fim do quadro. |
+| `UpdateDead(player)` | Todo quadro morto. |
+
+Outros:
+
+| Método | Quando |
+|---|---|
+| `Initialize()` | Uma vez, quando a instância nasce. |
+| `OnEnterWorld(player)` | O jogador entrou no mundo. |
+| `OnRespawn(player)` | Voltou a viver. |
+| `CanUseItem(player, item)` | `false` impede usar. |
+| `ModifyWeaponDamage(player, item, dano)` | Devolva o dano novo (ou ponha em `this.WeaponDamage`). |
+| `ImmuneTo(player, fonte, cooldown, esquivavel)` | `true`: o golpe não acontece. |
+| `FreeDodge(player, fonte, dano, ...)` | `true`: esquiva. |
+| `ModifyHurt(player, mod)` | Mude `mod.damage`, `mod.hitDirection`, `mod.crit`... antes do golpe. |
+| `OnHurt(player, fonte, dano, ...)`, `PostHurt(...)` | Depois do golpe (`PostHurt`, só se sobreviveu). |
+| `PreKill(player, fonte, dano, direcao, pvp)` | `false` impede a morte (dê vida ao jogador, senão ele segue com 0). |
+| `Kill(player, fonte, dano, direcao, pvp)` | Morreu. |
+
+Mais de um mod com `ModPlayer`: roda na ordem de carga dos mods (pelo uid) e,
+dentro de um mod, na ordem do `register`.
+
+### Dados salvos
+
+O que o jogador deve lembrar entre sessões vai no `SaveData` e volta no
+`LoadData`:
+
+```js
+SaveData(data) {
+    data.mortes = this.mortes;
+}
+
+LoadData(data) {
+    this.mortes = data.mortes ?? 0;
+}
+```
+
+`data` é um objeto JS comum (vira JSON), gravado em `Players/<personagem>.plr.bl.json`.
+Com o mod desligado, os dados dele ficam guardados no arquivo e voltam quando ele
+é religado. Personagem salvo na nuvem fica de fora.
 
 ## ModBuff
 
@@ -639,7 +741,7 @@ Shoot(item, player, position, velocity, type, damage, knockBack) {
 Estas partes do tModLoader ainda não têm classe no Bunny Loader — dá para fazer
 na mão, com hooks (guia 1), mas não há atalho:
 
-- `ModPlayer`, `ModTile`, `ModPrefix`, `ModMount`, `ModBiome`;
+- `ModTile`, `ModPrefix`, `ModMount`, `ModBiome`;
 - no `ModSystem`, por enquanto só `AddRecipeGroups`, `AddRecipes` e `PostSetupContent`;
 - `GlobalItem`, `GlobalNPC`, `GlobalProjectile`;
 - armadura vestida (textura no corpo) e conjuntos (`IsArmorSet`/`UpdateArmorSet`);

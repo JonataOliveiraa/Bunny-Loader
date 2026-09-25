@@ -271,7 +271,8 @@ class ModItem {
     // Equipado (armadura ou acessorio), todo quadro.
     UpdateEquip(item, player) {}
     // Acessorio equipado, todo quadro.
-    UpdateAccessory(item, player, hideVisual) {}
+    // vanity: slot de vaidade (so visual). hideVisual: o olho do slot fechado.
+    UpdateAccessory(item, player, vanity, hideVisual) {}
     // No inventario, todo quadro.
     UpdateInventory(item, player) {}
     // No chao: a cor com que o item e desenhado. Devolva uma Color (ou nada,
@@ -554,7 +555,19 @@ function hookItem(cls) {
                 const m = itemOf(item);
                 if (!m) return;
                 guard(m.constructor.name + '.UpdateEquip', () => m.UpdateEquip(item, self));
-                if (item.accessory) guard(m.constructor.name + '.UpdateAccessory', () => m.UpdateAccessory(item, self, false));
+                if (item.accessory) {
+                    const hide = !!self.hideVisibleAccessory[slot];
+                    guard(m.constructor.name + '.UpdateAccessory', () => m.UpdateAccessory(item, self, false, hide));
+                }
+            }, onItem(1));
+        });
+        if (has('UpdateAccessory')) once('item.AccessoryVanity', () => {
+            P['void ApplyEquipVanity(int itemSlot, Item currentItem)'].hook((original, self, slot, item) => {
+                original(self, slot, item);
+                const m = itemOf(item);
+                if (m && item.accessory) {
+                    guard(m.constructor.name + '.UpdateAccessory', () => m.UpdateAccessory(item, self, true, false));
+                }
             }, onItem(1));
         });
         once('item.Armor', () => {
@@ -801,6 +814,373 @@ class ModSystem {
         });
         return inst;
     }
+}
+
+// ================================ ModPlayer ================================
+//
+// Como no tModLoader: cada JOGADOR tem a propria instancia de cada ModPlayer
+// registrado, criada na primeira vez que alguem pergunta por ela. Mora ao lado
+// do Player do jogo (campo extra `ModPlayers`); `this.Player` e o jogador dela.
+// No multijogador cada jogador da tela tem a sua: o escudo de um nao liga o
+// dash do outro.
+//
+// Os metodos recebem o jogador como primeiro argumento (como no ExMod), que e
+// o mesmo `this.Player`.
+
+const modPlayerClasses = [];
+// Classe -> "<uid do mod>/<Classe>": a chave dos dados salvos dela.
+const modPlayerKeys = new Map();
+
+function modPlayersOf(player) {
+    let all = player.ModPlayers;
+    if (all === undefined || all.__count !== modPlayerClasses.length) {
+        const fresh = all === undefined;
+        if (fresh) {
+            all = Object.create(null);
+            Object.defineProperty(all, '__count', { value: 0, writable: true });
+        }
+        const addr = bl.addressOf(player);
+        const created = [];
+        for (const cls of modPlayerClasses) {
+            if (all[cls.name]) continue;
+            const inst = new cls();
+            inst.__entity = addr;
+            all[cls.name] = inst;
+            created.push(inst);
+        }
+        all.__count = modPlayerClasses.length;
+        if (fresh) player.ModPlayers = all;
+        for (const inst of created) guard(inst.constructor.name + '.Initialize', () => inst.Initialize());
+    }
+    return all;
+}
+
+// As classes registradas que escreveram `method` (as outras nem sao chamadas).
+const modPlayerOverriders = new Map();
+function overridersOf(method) {
+    let list = modPlayerOverriders.get(method);
+    if (!list) {
+        list = modPlayerClasses.filter((c) => overrides(c, ModPlayer, method));
+        modPlayerOverriders.set(method, list);
+    }
+    return list;
+}
+
+// fn(inst) para cada ModPlayer do jogador que escreveu `method`.
+function eachModPlayer(player, method, fn) {
+    const list = overridersOf(method);
+    if (list.length === 0) return;
+    const all = modPlayersOf(player);
+    for (const cls of list) {
+        const inst = all[cls.name];
+        guard(cls.name + '.' + method, () => fn(inst));
+    }
+}
+
+// Algum ModPlayer do jogador devolveu `value`?
+function anyModPlayer(player, method, value, fn) {
+    let hit = false;
+    eachModPlayer(player, method, (inst) => { if (fn(inst) === value) hit = true; });
+    return hit;
+}
+
+class ModPlayer {
+    // O Player do jogo desta instancia.
+    get Player() { return entityOf(this); }
+
+    // ExMod: somados ao maximo de vida/mana no ModifyMaxStats.
+    CumulativeHealth = 0;
+    CumulativeMana = 0;
+    WeaponDamage = 0;
+
+    // Uma vez, quando a instancia nasce (o jogador pergunta por ela).
+    Initialize() {}
+    // O jogador entrou no mundo (o seu e os outros, no multijogador).
+    OnEnterWorld(player) {}
+    // Voltou a viver depois de morrer.
+    OnRespawn(player) {}
+
+    // Todo quadro, antes de tudo: zere aqui o que os acessorios ligam.
+    ResetEffects(player) {}
+    // Depois do ResetEffects: this.CumulativeHealth/Mana somam ao maximo.
+    ModifyMaxStats(player) {
+        this.CumulativeHealth = 0;
+        this.CumulativeMana = 0;
+    }
+    PreUpdate(player) {}
+    PostUpdate(player) {}
+    PreUpdateBuffs(player) {}
+    PostUpdateBuffs(player) {}
+    // Depois dos equipamentos e acessorios (o PostUpdateEquips do tModLoader).
+    UpdateEquips(player) {}
+    PostUpdateEquips(player) {}
+    // Antes (Bad) e depois da regeneracao de vida do jogo; de mana, depois.
+    UpdateBadLifeRegen(player) {}
+    UpdateLifeRegen(player) {}
+    UpdateManaRegen(player) {}
+    // Todo quadro morto.
+    UpdateDead(player) {}
+    // Movimento proprio (dash...): no fim do quadro, antes das bordas do mundo.
+    UpdateMovement(player) {}
+
+    // false impede usar o item.
+    CanUseItem(player, item) { return true; }
+    // Dano da arma: devolva o novo, ou ponha em this.WeaponDamage.
+    ModifyWeaponDamage(player, item, damage) { this.WeaponDamage = damage; }
+
+    // true: o golpe nao acontece (nem tira vida, nem da imunidade).
+    ImmuneTo(player, damageSource, cooldownCounter, dodgeable) { return false; }
+    // true: esquiva (como o Cinto Negro).
+    FreeDodge(player, damageSource, damage, hitDirection, pvp, quiet, crit, cooldownCounter, dodgeable) { return false; }
+    // modifiers = { damage, hitDirection, quiet, crit, dodgeable }: mude o que quiser.
+    ModifyHurt(player, modifiers) {}
+    // Depois de tomar dano (damage = o que tirou de verdade).
+    OnHurt(player, damageSource, damage, hitDirection, pvp, quiet, crit, cooldownCounter, dodgeable) {}
+    // Idem, so se continuou vivo.
+    PostHurt(player, damageSource, damage, hitDirection, pvp, quiet, crit, cooldownCounter, dodgeable) {}
+    // false impede a morte (ponha player.statLife > 0, senao ele segue com 0).
+    PreKill(player, damageSource, damage, hitDirection, pvp) { return true; }
+    Kill(player, damageSource, damage, hitDirection, pvp) {}
+
+    // Dados do jogador que ficam no personagem: ponha em `data` (objeto JS
+    // comum, vira JSON) e leia de volta no LoadData. Chamado a cada save.
+    SaveData(data) {}
+    // Ao carregar o personagem, com o que o SaveData gravou (so se gravou).
+    LoadData(data) {}
+
+    // A instancia desta classe no jogador: ExampleDashPlayer.get(player).
+    static get(player) { return modPlayersOf(player)[this.name]; }
+
+    // ExMod: a instancia do jogador LOCAL (a da tela deste aparelho).
+    static getByName(name) {
+        return modPlayersOf(Terraria.Main.player[Terraria.Main.myPlayer])[name];
+    }
+
+    static register(cls) {
+        if (typeof cls !== 'function' || !(cls.prototype instanceof ModPlayer)) {
+            throw new TypeError('ModPlayer.register(Classe): passe a classe, que estende ModPlayer');
+        }
+        if (modPlayerClasses.some((c) => c.name === cls.name)) {
+            throw new TypeError('ModPlayer.register: ja existe um ModPlayer chamado ' + cls.name);
+        }
+        once('player.fields', () => {
+            defineEntityField(Terraria.Player, 'ModPlayers');
+            // player.GetModPlayer(Classe) ou player.GetModPlayer('Nome').
+            bl.defineMethod(Terraria.Player, 'GetModPlayer', function (which) {
+                const name = typeof which === 'string' ? which : which && which.name;
+                return modPlayersOf(this)[name];
+            });
+        });
+        modPlayerClasses.push(cls);
+        modPlayerKeys.set(cls.name, (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + cls.name);
+        modPlayerOverriders.clear();
+        hookModPlayer(cls);
+        if (overrides(cls, ModPlayer, 'SaveData') || overrides(cls, ModPlayer, 'LoadData')) {
+            once('player.save', installModPlayerSave);
+        }
+        return cls;
+    }
+}
+
+// ------------------------- dados salvos do ModPlayer -------------------------
+//
+// `<personagem>.plr.bl.json`, ao lado do save do jogo: { "<uid>/<Classe>": data }.
+// Dados de um mod que nao esta carregado agora continuam no arquivo (o save
+// le o que havia e so troca as chaves que conhece).
+
+function modPlayerDataFile(fileData) {
+    if (!fileData || fileData.IsCloudSave) return null;
+    const path = fileData.Path;
+    return path ? path + '.bl.json' : null;
+}
+
+function readModPlayerData(file) {
+    const txt = bl.file.read(file);
+    if (!txt) return {};
+    try {
+        return JSON.parse(txt) || {};
+    } catch (e) {
+        bl.log('ModPlayer: ' + file + ' esta quebrado (' + e + '); os dados salvos foram ignorados');
+        return {};
+    }
+}
+
+function installModPlayerSave() {
+    const P = Terraria.Player;
+    P['void InternalSavePlayerFile(PlayerFileData playerFile)'].hook((original, fileData) => {
+        original(fileData);
+        const file = modPlayerDataFile(fileData);
+        const player = file ? fileData.Player : null;
+        if (!player) return;
+        const all = readModPlayerData(file);
+        const mine = modPlayersOf(player);
+        for (const cls of modPlayerClasses) {
+            if (!overrides(cls, ModPlayer, 'SaveData')) continue;
+            const key = modPlayerKeys.get(cls.name);
+            const data = {};
+            guard(cls.name + '.SaveData', () => mine[cls.name].SaveData(data));
+            if (Object.keys(data).length) all[key] = data;
+            else delete all[key];
+        }
+        guard('ModPlayer: gravar ' + file, () => {
+            if (Object.keys(all).length) bl.file.write(file, JSON.stringify(all));
+            else bl.file.delete(file);
+        });
+    });
+    P['PlayerFileData LoadPlayer(string playerPath, bool cloudSave)'].hook((original, path, cloud) => {
+        const fileData = original(path, cloud);
+        const file = modPlayerDataFile(fileData);
+        const player = file ? fileData.Player : null;
+        if (!player) return fileData;
+        const all = readModPlayerData(file);
+        const mine = modPlayersOf(player);
+        for (const cls of modPlayerClasses) {
+            const data = all[modPlayerKeys.get(cls.name)];
+            if (data !== undefined) guard(cls.name + '.LoadData', () => mine[cls.name].LoadData(data));
+        }
+        return fileData;
+    });
+}
+
+function hookModPlayer(cls) {
+    const P = Terraria.Player;
+    const has = (name) => overrides(cls, ModPlayer, name);
+
+    if (has('ResetEffects') || has('ModifyMaxStats')) once('player.ResetEffects', () => {
+        P['void ResetEffects()'].hook((original, self) => {
+            original(self);
+            eachModPlayer(self, 'ResetEffects', (m) => m.ResetEffects(self));
+            let life = 0, mana = 0;
+            eachModPlayer(self, 'ModifyMaxStats', (m) => {
+                m.ModifyMaxStats(self);
+                life += m.CumulativeHealth || 0;
+                mana += m.CumulativeMana || 0;
+            });
+            if (life) self.statLifeMax2 = Math.max(1, self.statLifeMax2 + life);
+            if (mana) self.statManaMax2 = Math.max(0, self.statManaMax2 + mana);
+        });
+    });
+
+    if (has('PreUpdate') || has('PostUpdate')) once('player.Update', () => {
+        P['void Update(int i)'].hook((original, self, i) => {
+            eachModPlayer(self, 'PreUpdate', (m) => m.PreUpdate(self));
+            original(self, i);
+            eachModPlayer(self, 'PostUpdate', (m) => m.PostUpdate(self));
+        });
+    });
+
+    if (has('PreUpdateBuffs') || has('PostUpdateBuffs')) once('player.UpdateBuffs', () => {
+        P['void UpdateBuffs(int i)'].hook((original, self, i) => {
+            eachModPlayer(self, 'PreUpdateBuffs', (m) => m.PreUpdateBuffs(self));
+            original(self, i);
+            eachModPlayer(self, 'PostUpdateBuffs', (m) => m.PostUpdateBuffs(self));
+        });
+    });
+
+    if (has('UpdateEquips') || has('PostUpdateEquips')) once('player.UpdateEquips', () => {
+        P['void UpdateEquips(int i)'].hook((original, self, i) => {
+            original(self, i);
+            eachModPlayer(self, 'UpdateEquips', (m) => m.UpdateEquips(self));
+            eachModPlayer(self, 'PostUpdateEquips', (m) => m.PostUpdateEquips(self));
+        });
+    });
+
+    if (has('UpdateBadLifeRegen') || has('UpdateLifeRegen')) once('player.LifeRegen', () => {
+        P['void UpdateLifeRegen()'].hook((original, self) => {
+            eachModPlayer(self, 'UpdateBadLifeRegen', (m) => m.UpdateBadLifeRegen(self));
+            original(self);
+            eachModPlayer(self, 'UpdateLifeRegen', (m) => m.UpdateLifeRegen(self));
+        });
+    });
+
+    if (has('UpdateManaRegen')) once('player.ManaRegen', () => {
+        P['void UpdateManaRegen()'].hook((original, self) => {
+            original(self);
+            eachModPlayer(self, 'UpdateManaRegen', (m) => m.UpdateManaRegen(self));
+        });
+    });
+
+    if (has('UpdateDead')) once('player.UpdateDead', () => {
+        P['void UpdateDead()'].hook((original, self) => {
+            original(self);
+            eachModPlayer(self, 'UpdateDead', (m) => m.UpdateDead(self));
+        });
+    });
+
+    if (has('UpdateMovement')) once('player.Movement', () => {
+        P['void BordersMovement()'].hook((original, self) => {
+            eachModPlayer(self, 'UpdateMovement', (m) => m.UpdateMovement(self));
+            original(self);
+        });
+    });
+
+    if (has('OnEnterWorld')) once('player.EnterWorld', () => {
+        P.Hooks['void EnterWorld(int playerIndex)'].hook((original, index) => {
+            original(index);
+            const player = Terraria.Main.player[index];
+            eachModPlayer(player, 'OnEnterWorld', (m) => m.OnEnterWorld(player));
+        });
+    });
+
+    if (has('OnRespawn')) once('player.Spawn', () => {
+        const REVIVE = Terraria.PlayerSpawnContext.ReviveFromDeath;
+        P['void Spawn(PlayerSpawnContext context)'].hook((original, self, context) => {
+            original(self, context);
+            if (context === REVIVE) eachModPlayer(self, 'OnRespawn', (m) => m.OnRespawn(self));
+        });
+    });
+
+    if (has('CanUseItem')) once('player.CanUseItem', () => {
+        P['bool ItemCheck_CheckCanUse_Inner(Item sItem, bool ignoreCursed)'].hook((original, self, item, ignoreCursed) => {
+            if (anyModPlayer(self, 'CanUseItem', false, (m) => m.CanUseItem(self, item))) return false;
+            return original(self, item, ignoreCursed);
+        });
+    });
+
+    if (has('ModifyWeaponDamage')) once('player.WeaponDamage', () => {
+        P['int GetWeaponDamage(Item sItem)'].hook((original, self, item) => {
+            let damage = original(self, item);
+            eachModPlayer(self, 'ModifyWeaponDamage', (m) => {
+                m.WeaponDamage = damage;
+                const r = m.ModifyWeaponDamage(self, item, damage);
+                damage = typeof r === 'number' ? r : (typeof m.WeaponDamage === 'number' ? m.WeaponDamage : damage);
+            });
+            return Math.floor(damage);
+        });
+    });
+
+    const hurt = ['ImmuneTo', 'FreeDodge', 'ModifyHurt', 'OnHurt', 'PostHurt'];
+    if (hurt.some(has)) once('player.Hurt', () => {
+        P['double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)'].hook(
+            (original, self, src, damage, dir, pvp, quiet, crit, cooldown, dodgeable) => {
+                if (anyModPlayer(self, 'ImmuneTo', true, (m) => m.ImmuneTo(self, src, cooldown, dodgeable))) return 0;
+                if (anyModPlayer(self, 'FreeDodge', true,
+                    (m) => m.FreeDodge(self, src, damage, dir, pvp, quiet, crit, cooldown, dodgeable))) return 0;
+                const mod = { damage, hitDirection: dir, quiet, crit, dodgeable };
+                eachModPlayer(self, 'ModifyHurt', (m) => m.ModifyHurt(self, mod));
+                const done = original(self, src, Math.floor(mod.damage), mod.hitDirection, pvp,
+                                      mod.quiet, mod.crit, cooldown, mod.dodgeable);
+                if (done > 0) {
+                    eachModPlayer(self, 'OnHurt',
+                        (m) => m.OnHurt(self, src, done, mod.hitDirection, pvp, mod.quiet, mod.crit, cooldown, mod.dodgeable));
+                    if (!self.dead && self.statLife > 0) {
+                        eachModPlayer(self, 'PostHurt',
+                            (m) => m.PostHurt(self, src, done, mod.hitDirection, pvp, mod.quiet, mod.crit, cooldown, mod.dodgeable));
+                    }
+                }
+                return done;
+            });
+    });
+
+    if (has('PreKill') || has('Kill')) once('player.KillMe', () => {
+        P['void KillMe(PlayerDeathReason damageSource, double dmg, int hitDirection, bool pvp)'].hook(
+            (original, self, src, dmg, dir, pvp) => {
+                const dies = !self.dead && !self.creativeGodMode;
+                if (dies && anyModPlayer(self, 'PreKill', false, (m) => m.PreKill(self, src, dmg, dir, pvp))) return;
+                original(self, src, dmg, dir, pvp);
+                if (dies && self.dead) eachModPlayer(self, 'Kill', (m) => m.Kill(self, src, dmg, dir, pvp));
+            });
+    });
 }
 
 // ================================= ModBuff =================================
@@ -1617,6 +1997,7 @@ globalThis.ModItem = ModItem;
 globalThis.ModRecipe = ModRecipe;
 globalThis.ModSystem = ModSystem;
 globalThis.ModBuff = ModBuff;
+globalThis.ModPlayer = ModPlayer;
 globalThis.ModProjectile = ModProjectile;
 globalThis.ModNPC = ModNPC;
 globalThis.NPCLoot = NPCLoot;

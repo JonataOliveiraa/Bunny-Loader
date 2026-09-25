@@ -20,7 +20,11 @@
     "ExampleLaserWeapon": "Example Prism",
     "ExampleHookItem": "Example Hook",
     "ExampleFishingRod": "Example Fishing Rod",
-    "ExampleBuffPotion": "Buff Potion"
+    "ExampleBuffPotion": "Buff Potion",
+    "ExampleShield": "Example Shield",
+    "ExampleStatAccessory": "Stat Accessory",
+    "ExampleBoots": "Example Boots",
+    "WaspNest": "Wasp Nest"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -45,7 +49,11 @@
     "ExampleShotgun": "Fires eight bullets at once",
     "ExampleWhip": "Your summons will focus struck enemies\n10 summon tag damage",
     "ExampleHookItem": "Also latches onto tree trunks",
-    "ExampleFishingRod": "Can fish in lava"
+    "ExampleFishingRod": "Can fish in lava",
+    "ExampleShield": "Double tap in any direction to dash",
+    "ExampleStatAccessory": "{0}% increased damage",
+    "ExampleBoots": "Allows flight, super fast running, even faster running on sand, and extra mobility on ice\nProvides the ability to walk on water, honey, lava, and shimmer\nGrants immunity to fire blocks and {0} seconds of immunity to lava\nReduces damage from touching lava\nPrevents fall damage\nLeaves a trail of flames in your wake",
+    "WaspNest": "Bees become stronger"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface."
@@ -54,9 +62,14 @@
     "ExampleItem": "Example Item"
   },
   "BuffName": {
-    "ExampleDefenseBuff": "Defense"
+    "ExampleDefenseBuff": "Defense",
+    "ExampleDefenseDebuff": "Reduced Defense"
   },
   "BuffDescription": {
-    "ExampleDefenseBuff": "Increases the player's defense by {0}"
+    "ExampleDefenseBuff": "Increases the player's defense by {0}",
+    "ExampleDefenseDebuff": "Reduces the player's defense by {0}%"
+  },
+  "CustomText": {
+    "WelcomeMessage": "Welcome to {WorldName}!"
   }
 }

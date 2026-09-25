@@ -35,8 +35,19 @@ import { ExampleFishingRod } from './Content/Items/Tools/ExampleFishingRod.js';
 import { ExampleRecipes } from './Content/Global/ExampleRecipes.js';
 import { ExampleDefenseBuff } from './Content/Buffs/ExampleDefenseBuff.js';
 import { ExampleBuffPotion } from './Content/Items/Consumables/ExampleBuffPotion.js';
+import { ExamplePlayer } from './Content/Players/ExamplePlayer.js';
+import { ExampleDashPlayer } from './Content/Players/ExampleDashPlayer.js';
+import { ExampleDefenseDebuff } from './Content/Buffs/ExampleDefenseDebuff.js';
+import { ExampleShield } from './Content/Items/Accessories/ExampleShield.js';
+import { ExampleStatAccessory } from './Content/Items/Accessories/ExampleStatAccessory.js';
+import { ExampleBoots } from './Content/Items/Accessories/ExampleBoots.js';
+import { WaspNest } from './Content/Items/Accessories/WaspNest.js';
 
 ModBuff.register(ExampleDefenseBuff);
+ModBuff.register(ExampleDefenseDebuff);
+
+ModPlayer.register(ExamplePlayer);
+ModPlayer.register(ExampleDashPlayer);
 
 ModNPC.register(ExampleSlimeNPC);
 
@@ -75,6 +86,10 @@ ModItem.register(ExampleLaserWeapon);
 ModItem.register(ExampleHookItem);
 ModItem.register(ExampleFishingRod);
 ModItem.register(ExampleBuffPotion);
+ModItem.register(ExampleShield);
+ModItem.register(ExampleStatAccessory);
+ModItem.register(ExampleBoots);
+ModItem.register(WaspNest);
 
 ModSystem.register(ExampleRecipes);
 

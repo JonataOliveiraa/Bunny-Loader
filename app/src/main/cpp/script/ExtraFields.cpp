@@ -17,6 +17,14 @@ struct Def {
 };
 std::vector<Def> g_defs;
 
+// bl.defineMethod: (classe, nome) -> funcao JS, para sempre.
+struct MethodDef {
+    Il2CppClass* cls;
+    JSAtom atom;
+    JSValue fn;
+};
+std::vector<MethodDef> g_methods;
+
 struct Entry {
     uint32_t weak = 0;             // referencia fraca ao objeto
     JSValue fields = JS_UNDEFINED; // objeto JS com os campos
@@ -83,6 +91,37 @@ JSValue js_defineField(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
     return JS_UNDEFINED;
 }
 
+/**
+ * bl.defineMethod(Classe, nome, fn): `obj.nome(...)` num objeto do jogo
+ * chama fn com `this` = o objeto. Nao muda o jogo: e so do lado do JS, como
+ * o defineField. Nome que a classe ja tem (campo, metodo) vence.
+ */
+JSValue js_defineMethod(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    Il2CppClass* cls = argc >= 3 ? classFromJS(argv[0]) : nullptr;
+    const char* name = argc >= 3 ? JS_ToCString(ctx, argv[1]) : nullptr;
+    if (!cls || !name || !JS_IsFunction(ctx, argv[2])) {
+        if (name) JS_FreeCString(ctx, name);
+        return JS_ThrowTypeError(ctx, "bl.defineMethod(Classe, nome, funcao)");
+    }
+    JSAtom atom = JS_NewAtom(ctx, name);
+    JS_FreeCString(ctx, name);
+    for (MethodDef& d : g_methods) {
+        if (d.cls == cls && d.atom == atom) {
+            JS_FreeValue(ctx, d.fn);
+            d.fn = JS_DupValue(ctx, argv[2]);
+            JS_FreeAtom(ctx, atom);
+            return JS_UNDEFINED;
+        }
+    }
+    g_methods.push_back({cls, atom, JS_DupValue(ctx, argv[2])});
+    return JS_UNDEFINED;
+}
+
+// data[0] = a funcao do mod, data[1] = o objeto do jogo.
+JSValue callBound(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv, int, JSValueConst* data) {
+    return JS_Call(ctx, data[0], data[1], argc, argv);
+}
+
 /** O endereco do objeto do jogo, como numero (cabe num double: 48 bits). */
 JSValue js_addressOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     Il2CppObject* o = argc >= 1 ? objectFromJS(argv[0]) : nullptr;
@@ -115,6 +154,20 @@ bool isExtraField(Il2CppClass* cls, JSAtom atom) {
     return false;
 }
 
+bool extraMethodGet(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom atom, JSValue* out) {
+    if (g_methods.empty()) return false;
+    auto& a = il2cpp::api();
+    for (Il2CppClass* c = cls; c; c = a.class_get_parent(c)) {
+        for (const MethodDef& d : g_methods) {
+            if (d.cls != c || d.atom != atom) continue;
+            JSValueConst data[2] = {d.fn, self};
+            *out = JS_NewCFunctionData(ctx, callBound, 0, 0, 2, const_cast<JSValue*>(data));
+            return true;
+        }
+    }
+    return false;
+}
+
 JSValue extraFieldGet(JSContext* ctx, Il2CppObject* obj, JSAtom atom) {
     Entry* e = find(obj);
     if (!e) return JS_UNDEFINED;
@@ -141,6 +194,7 @@ int extraFieldSet(JSContext* ctx, Il2CppObject* obj, JSAtom atom, JSValueConst v
 void installExtraFields(JSContext* ctx, JSValueConst bl) {
     g_ctx = ctx;
     JS_SetPropertyStr(ctx, bl, "defineField", JS_NewCFunction(ctx, js_defineField, "defineField", 2));
+    JS_SetPropertyStr(ctx, bl, "defineMethod", JS_NewCFunction(ctx, js_defineMethod, "defineMethod", 3));
     JS_SetPropertyStr(ctx, bl, "addressOf", JS_NewCFunction(ctx, js_addressOf, "addressOf", 1));
     JS_SetPropertyStr(ctx, bl, "objectAt", JS_NewCFunction(ctx, js_objectAt, "objectAt", 1));
 }

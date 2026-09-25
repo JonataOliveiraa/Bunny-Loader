@@ -98,7 +98,7 @@ static HookCtx g_hooks[kMaxHooks];
 
 struct Frame {
     HookCtx* c;
-    intptr_t a[8];
+    intptr_t a[kIntSlots];   // x0-x7 e as casas da pilha
     // BITS crus de v0-v7, nao "doubles". Um argumento `float` viaja nos 32 bits
     // BAIXOS do registrador (s0), entao ler os 64 como double da um denormal
     // (180.0f virou 5.57e-315). Guardamos o padrao de bits e interpretamos
@@ -128,11 +128,17 @@ static thread_local int g_depth[kMaxHooks];
 constexpr int kLockTimeoutMs = 3000;
 static std::atomic<bool> g_lockWarned[kMaxHooks];
 
+// s0-s7: as 8 primeiras casas da PILHA de argumentos (o 9o inteiro em
+// diante). Um metodo com menos argumentos deixa ali o que o chamador tinha:
+// so lemos, e so repassamos ao original, que ignora o que nao declarou.
 #define BL_HOOK_PARAMS                                                    \
     intptr_t a0, intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4,      \
     intptr_t a5, intptr_t a6, intptr_t a7, double f0, double f1,          \
-    double f2, double f3, double f4, double f5, double f6, double f7
-#define BL_HOOK_ARGS a0, a1, a2, a3, a4, a5, a6, a7, f0, f1, f2, f3, f4, f5, f6, f7
+    double f2, double f3, double f4, double f5, double f6, double f7,     \
+    intptr_t s0, intptr_t s1, intptr_t s2, intptr_t s3, intptr_t s4,      \
+    intptr_t s5, intptr_t s6, intptr_t s7
+#define BL_HOOK_ARGS a0, a1, a2, a3, a4, a5, a6, a7, f0, f1, f2, f3, f4, f5, f6, f7, \
+                     s0, s1, s2, s3, s4, s5, s6, s7
 
 /**
  * Chama o metodo real com um conjunto de registradores.
@@ -141,7 +147,7 @@ static std::atomic<bool> g_lockWarned[kMaxHooks];
  * metodo, o HookManager encadeia e isto passa a apontar para o hook dele. Por
  * isso e lido atomicamente a cada chamada.
  */
-static Outcome callOriginal(HookCtx* c, const intptr_t a[8], const uint64_t d[8]) {
+static Outcome callOriginal(HookCtx* c, const intptr_t a[kIntSlots], const uint64_t d[8]) {
     void* fn = __atomic_load_n(&c->original, __ATOMIC_ACQUIRE);
     bool threw = false;
     Outcome o = callRaw(fn, c->abi, a, d, &threw, /*suspend=*/true);
@@ -184,7 +190,7 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     const size_t frame = g_frames.size() - 1;
     HookCtx* c = g_frames[frame].c;
 
-    intptr_t a[8];
+    intptr_t a[kIntSlots];
     uint64_t d[8];
     std::memcpy(a, g_frames[frame].a, sizeof(a));
     std::memcpy(d, g_frames[frame].d, sizeof(d));
@@ -216,7 +222,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     if (slot < 0 || slot >= kMaxHooks) return result;
     HookCtx* c = &g_hooks[slot];
 
-    const intptr_t rawA[8] = {a0, a1, a2, a3, a4, a5, a6, a7};
+    const intptr_t rawA[kIntSlots] = {a0, a1, a2, a3, a4, a5, a6, a7, s0, s1, s2, s3, s4, s5, s6, s7};
     const double rawF[8] = {f0, f1, f2, f3, f4, f5, f6, f7};
     uint64_t rawD[8];
     std::memcpy(rawD, rawF, sizeof(rawD));

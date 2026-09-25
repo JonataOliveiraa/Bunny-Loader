@@ -28,6 +28,12 @@ namespace bl::script {
 /** O nome e um campo definido para `cls` (ou uma classe base)? */
 bool isExtraField(Il2CppClass* cls, JSAtom atom);
 
+/**
+ * Metodo que um mod pos na classe (bl.defineMethod), ja ligado a `self`.
+ * false se `atom` nao e um deles.
+ */
+bool extraMethodGet(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom atom, JSValue* out);
+
 /** Le o campo: undefined se o objeto nunca recebeu valor. */
 JSValue extraFieldGet(JSContext* ctx, Il2CppObject* obj, JSAtom atom);
 

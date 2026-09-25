@@ -20,7 +20,11 @@
     "ExampleLaserWeapon": "Prisma de Exemplo",
     "ExampleHookItem": "Gancho de Exemplo",
     "ExampleFishingRod": "Vara de Pesca de Exemplo",
-    "ExampleBuffPotion": "Poção de Buff"
+    "ExampleBuffPotion": "Poção de Buff",
+    "ExampleShield": "Escudo de Exemplo",
+    "ExampleStatAccessory": "Acessório de Estatísticas",
+    "ExampleBoots": "Botas de Exemplo",
+    "WaspNest": "Ninho de Vespas"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -45,7 +49,11 @@
     "ExampleShotgun": "Dispara oito balas de uma vez",
     "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n10 de dano de marcação",
     "ExampleHookItem": "Agarra também em troncos de árvore",
-    "ExampleFishingRod": "Pesca na lava"
+    "ExampleFishingRod": "Pesca na lava",
+    "ExampleShield": "Toque duas vezes numa direção para dar um impulso",
+    "ExampleStatAccessory": "{0}% de aumento nos danos",
+    "ExampleBoots": "Permite voar, correr super rápido, correr ainda mais rápido na areia e ter mobilidade extra no gelo\nProporciona a habilidade de andar sobre água, mel, lava e brilho\nConcede imunidade a blocos de fogo e {0} segundos de imunidade à lava\nReduz o dano causado pelo contato com lava\nPrevine dano por queda\nDeixa um rastro de chamas por onde você passar",
+    "WaspNest": "As abelhas ficam mais fortes"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."
@@ -54,9 +62,14 @@
     "ExampleItem": "Item de Exemplo"
   },
   "BuffName": {
-    "ExampleDefenseBuff": "Defesa"
+    "ExampleDefenseBuff": "Defesa",
+    "ExampleDefenseDebuff": "Defesa Reduzida"
   },
   "BuffDescription": {
-    "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}"
+    "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}",
+    "ExampleDefenseDebuff": "Reduz a defesa do jogador em {0}%"
+  },
+  "CustomText": {
+    "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"
   }
 }

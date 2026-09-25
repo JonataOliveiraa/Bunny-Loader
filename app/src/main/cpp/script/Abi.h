@@ -48,11 +48,19 @@ struct H4D { double a, b, c, d; };
  */
 enum class Ret { Int, F32, F64, S8, S16, H1F, H2F, H3F, H4F, H1D, H2D, H3D, H4D };
 
+/**
+ * A fila de inteiros: x0-x7 e mais 8 casas da PILHA. Pelo AAPCS64 (Android),
+ * o 9o inteiro em diante vai para a pilha, uma casa de 8 bytes cada, na ordem
+ * dos parametros — numa funcao C isso e so "mais parametros". O Player.Hurt
+ * (self + 8 + MethodInfo) precisa de 10.
+ */
+constexpr int kIntSlots = 16;
+
 /** Onde um parametro viaja. Decidido UMA vez, nao a cada chamada. */
 struct ParamPlan {
     TypeDesc d;
     bool floatQueue = false;   // usa d0-d7 em vez de x0-x7
-    int reg = 0;               // indice inicial na fila
+    int reg = 0;               // indice inicial na fila (inteiros: >= 8 e pilha)
     int regs = 1;              // quantos registradores ocupa
     bool structByRef = false;  // o registrador guarda um PONTEIRO pro struct
     bool opaque = false;       // ref/out: repassado intacto, invisivel ao JS
@@ -97,11 +105,11 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out);
  * numa chamada que o proprio mod fez: soltar e reaver a trava custa mais que
  * um getter. Medido: ~100 ns por chamada (docs/PONTE-OTIMIZACAO.md).
  */
-Outcome callRaw(void* fn, const AbiPlan& p, const intptr_t a[8], const uint64_t d[8],
+Outcome callRaw(void* fn, const AbiPlan& p, const intptr_t a[kIntSlots], const uint64_t d[8],
                 bool* threw = nullptr, bool suspend = false);
 
 /** Registrador(es) -> valor JS, conforme o plano do parametro. */
-JSValue paramToJs(JSContext* ctx, const intptr_t a[8], const uint64_t d[8],
+JSValue paramToJs(JSContext* ctx, const intptr_t a[kIntSlots], const uint64_t d[8],
                   const ParamPlan& p);
 
 /**
@@ -122,7 +130,7 @@ struct ArgScratch {
 
 /** Valor JS -> registrador(es). @return -1 com excecao posta. */
 int jsToParam(JSContext* ctx, JSValueConst v, const ParamPlan& p,
-              intptr_t a[8], uint64_t d[8], ArgScratch* scratch = nullptr);
+              intptr_t a[kIntSlots], uint64_t d[8], ArgScratch* scratch = nullptr);
 
 /** Retorno bruto -> valor JS. */
 JSValue outcomeToJs(JSContext* ctx, const AbiPlan& p, const Outcome& o);

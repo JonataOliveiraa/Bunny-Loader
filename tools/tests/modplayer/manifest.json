@@ -1,0 +1,15 @@
+{
+  "uid": "a2906241-2c04-41f4-b662-7ba00e162fe6",
+  "id": "test-modplayer",
+  "name": "Teste: ModPlayer",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Instancia por jogador, ordem dos ganchos, dano, morte, e o conteudo da etapa 4 do Example Mod.",
+  "description": "Precisa do Example Mod ligado. Loga 'modplayer ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

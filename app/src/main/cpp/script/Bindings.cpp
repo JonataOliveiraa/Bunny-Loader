@@ -394,6 +394,9 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     }
     // Campo que um mod pos na classe (bl.defineField): `item.ModItem`.
     if (isExtraField(cls, atom)) return extraFieldGet(ctx, o, atom);
+    // Metodo que um mod pos na classe (bl.defineMethod): `player.GetModPlayer(X)`.
+    JSValue method;
+    if (extraMethodGet(ctx, cls, obj, atom, &method)) return method;
     return JS_UNDEFINED;
 }
 

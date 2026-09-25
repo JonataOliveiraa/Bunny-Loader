@@ -9,12 +9,16 @@
 
 namespace bl::script {
 
-// A assinatura de captura: 8 inteiros seguidos de 8 doubles. Pelo AAPCS isso
-// entrega exatamente x0-x7 e d0-d7, sem asm nenhum.
+// A assinatura de chamada: 8 inteiros, 8 doubles e mais 8 inteiros. Pelo
+// AAPCS isso entrega exatamente x0-x7, d0-d7 e as 8 primeiras casas da pilha,
+// sem asm nenhum. Mandar casas a mais do que o metodo le e inofensivo: no
+// arm64 quem CHAMA reserva e limpa a area de argumentos da pilha.
 #define BL_RAW_PARAMS                                                     \
     intptr_t a0, intptr_t a1, intptr_t a2, intptr_t a3, intptr_t a4,      \
     intptr_t a5, intptr_t a6, intptr_t a7, double f0, double f1,          \
-    double f2, double f3, double f4, double f5, double f6, double f7
+    double f2, double f3, double f4, double f5, double f6, double f7,     \
+    intptr_t s0, intptr_t s1, intptr_t s2, intptr_t s3, intptr_t s4,      \
+    intptr_t s5, intptr_t s6, intptr_t s7
 
 namespace {
 using RawI = intptr_t (*)(BL_RAW_PARAMS);
@@ -29,7 +33,7 @@ size_t hfaSlot(const TypeDesc& d) {
 }
 } // namespace
 
-Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[8], const uint64_t d[8],
+Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[kIntSlots], const uint64_t d[8],
                 bool* threw, bool suspend) {
     const Ret ret = plano.ret;
     Outcome o;
@@ -46,7 +50,8 @@ Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[8], const uint6
     std::memcpy(f, d, sizeof(f));
 
 #define BL_ARGS a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], \
-                f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7]
+                f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], \
+                a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15]
     // O tipo de retorno do ponteiro de funcao E a ABI: chamar um metodo que
     // devolve Vector2 por um ponteiro que devolve intptr_t leria x0 enquanto o
     // valor esta em s0/s1.
@@ -91,7 +96,7 @@ Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[8], const uint6
     return o;
 }
 
-JSValue paramToJs(JSContext* ctx, const intptr_t a[8], const uint64_t d[8],
+JSValue paramToJs(JSContext* ctx, const intptr_t a[kIntSlots], const uint64_t d[8],
                   const ParamPlan& p) {
     if (p.opaque) return JS_UNDEFINED;
 
@@ -144,7 +149,7 @@ JSValue paramToJs(JSContext* ctx, const intptr_t a[8], const uint64_t d[8],
 }
 
 int jsToParam(JSContext* ctx, JSValueConst v, const ParamPlan& p,
-              intptr_t a[8], uint64_t d[8], ArgScratch* scratch) {
+              intptr_t a[kIntSlots], uint64_t d[8], ArgScratch* scratch) {
     if (p.opaque) return true;  // ref/out: mantem o que o chamador mandou
 
     if (p.d.nullable()) {
@@ -344,6 +349,9 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out) {
                 pp.reg = x++;
             } else {
                 pp.regs = pp.d.size > 8 ? 2 : 1;
+                // Struct de 2 casas nao se divide entre x7 e a pilha: vai
+                // inteiro para a pilha, e o x7 fica sem uso (AAPCS, NGRN=8).
+                if (pp.regs == 2 && x == 7) x = 8;
                 pp.reg = x;
                 x += pp.regs;
             }
@@ -358,11 +366,14 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out) {
     p.methodInfoReg = x++;
     p.intRegs = x;
     p.fltRegs = dq;
-    if (x > 8 || dq > 8) {
+    // Inteiros: 8 em registrador e 8 na pilha. Ponto flutuante que passa de
+    // d7 tambem iria para a pilha, INTERCALADO com os inteiros na ordem dos
+    // parametros — isso nao montamos.
+    if (x > kIntSlots || dq > 8) {
         return "tem argumentos demais para a captura (" + std::to_string(x) +
                " inteiros, " + std::to_string(dq) +
-               " de ponto flutuante; o limite e 8 de cada) — o resto viaja pela"
-               " pilha, que nao capturamos";
+               " de ponto flutuante; o limite e " + std::to_string(kIntSlots) +
+               " inteiros, contando a pilha, e 8 de ponto flutuante)";
     }
     *out = std::move(p);
     return {};
