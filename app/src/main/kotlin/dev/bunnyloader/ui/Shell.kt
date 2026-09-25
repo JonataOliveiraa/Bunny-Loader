@@ -40,6 +40,7 @@ class Shell(context: Context) {
 
     init {
         catalog.seedOnFirstRun()
+        catalog.refreshInstalledOnUpdate()
         refresh()
     }
 

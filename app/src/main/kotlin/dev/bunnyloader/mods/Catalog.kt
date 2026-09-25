@@ -122,6 +122,24 @@ class Catalog(private val context: Context) {
         prefs.edit().putBoolean(SEEDED, true).apply()
     }
 
+    /**
+     * Quando o app é atualizado, recopia os mods do catálogo que já estão
+     * instalados. Sem isto a cópia em bunny_packs ficava a da primeira
+     * instalação: o APK novo trazia o Example Mod com tiles e o aparelho seguia
+     * com o antigo. Ligado/desligado fica em prefs pelo uid e não se perde.
+     */
+    fun refreshInstalledOnUpdate() {
+        val prefs = context.getSharedPreferences("catalog", Context.MODE_PRIVATE)
+        val stamp = runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
+        }.getOrDefault(0L)
+        if (stamp == 0L || prefs.getLong(APP_STAMP, 0L) == stamp) return
+        for (entry in entries) {
+            if (isInstalled(entry.uid)) runCatching { install(entry) }
+        }
+        prefs.edit().putLong(APP_STAMP, stamp).apply()
+    }
+
     /** A entrada de um mod que está só no disco (a pasta dele em bunny_packs). */
     fun fromDisk(manifest: ModManifest, dir: File): Entry {
         val shots = THUMBS.map { File(dir, it) }.firstOrNull { it.isDirectory }
@@ -169,6 +187,7 @@ class Catalog(private val context: Context) {
     companion object {
         const val ROOT = "mods"
         private const val SEEDED = "seeded"
+        private const val APP_STAMP = "appUpdateTime"
 
         /**
          * O formato de pacote (.bmod é um zip com isto dentro):

@@ -30,7 +30,10 @@ for dir in "$@"; do
     tar -C "$dir" -cf blmod.tar .
     adb -s "$D" push blmod.tar /data/local/tmp/blmod.tar >/dev/null
     rm -f blmod.tar
-    adb -s "$D" shell "rm -rf $PACKS/$u; mkdir -p $PACKS/$u && tar -xf /data/local/tmp/blmod.tar -C $PACKS/$u && chmod -R 777 $PACKS/$u; rm -f /data/local/tmp/blmod.tar"
+    # A pasta que o launcher recopiou (app atualizado) e do app, modo 0770: o
+    # shell nao apaga. Com su (o host do MuMu), apaga como root.
+    adb -s "$D" shell "rm -rf $PACKS/$u 2>/dev/null || su -c 'rm -rf $PACKS/$u'" >/dev/null 2>&1
+    adb -s "$D" shell "mkdir -p $PACKS/$u && tar -xf /data/local/tmp/blmod.tar -C $PACKS/$u && chmod -R 777 $PACKS/$u; rm -f /data/local/tmp/blmod.tar"
 done
 adb -s "$D" logcat -c
 adb -s "$D" shell monkey -p com.bunnyloader -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
