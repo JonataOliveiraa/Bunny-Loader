@@ -75,6 +75,25 @@ Il2CppArray* TypeTables::growArray(Il2CppArray* old, uintptr_t newLength) {
     return n;
 }
 
+Il2CppArray* TypeTables::resizedCopy(Il2CppArray* old, uintptr_t newLength) {
+    auto& a = il2cpp::api();
+    Il2CppClass* elem = a.class_get_element_class(a.object_get_class(reinterpret_cast<Il2CppObject*>(old)));
+    Il2CppArray* n = a.array_new(elem, newLength);   // ja zerado
+    if (!n) return nullptr;
+    int copyLength = static_cast<int>(old->length < newLength ? old->length : newLength);
+    if (copyLength == 0) return n;
+    // Pelo Array.Copy do jogo: referencia (ou struct com referencia dentro)
+    // passa pela barreira de escrita do coletor.
+    static const MethodInfo* copy = nullptr;
+    if (!copy) {
+        Il2CppClass* array = il2cpp::findClass({"System", "Array", {}});
+        copy = array ? il2cpp::findMethodBySignature(
+            array, il2cpp::parseSignature("void Copy(Array sourceArray, Array destinationArray, int length)")) : nullptr;
+    }
+    void* args[3] = {old, n, &copyLength};
+    return invoke(copy, nullptr, args) ? n : nullptr;
+}
+
 void TypeTables::growInstanceTable(Il2CppObject* obj, int32_t offset, int vanillaCount, int size,
                                    const char* what) {
     if (!obj || offset < 0) return;

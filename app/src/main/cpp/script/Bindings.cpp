@@ -16,6 +16,7 @@
 #include "script/Members.h"
 #include "script/Value.h"
 #include "il2cpp/Types.h"
+#include "runtime/TypeTables.h"
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -330,6 +331,14 @@ int writeStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d, JSValueCon
     a.field_static_get_value(f, buf.data());
     int ok = writeAt(ctx, buf.data(), d, value);
     if (ok < 0) return ok;
+    // Referencia (objeto, array, texto): o IL2CPP grava o PROPRIO ponteiro
+    // recebido (StaticSetValue nao desreferencia), nao o que ha nele. Passar o
+    // buffer punha o endereco da pilha no estatico: `Main.recipe = x` lia
+    // length 0 depois, e o jogo escrevia fora do array.
+    if (!d.byValue) {
+        a.field_static_set_value(f, *reinterpret_cast<void**>(buf.data()));
+        return true;
+    }
     a.field_static_set_value(f, buf.data());
     return true;
 }
@@ -654,12 +663,32 @@ JSAtom lengthAtom(JSContext* ctx) {
     return atom;
 }
 
+/**
+ * arr.cloneResized(n): um array NOVO do mesmo tipo, com n posicoes — o que
+ * cabe vem de `arr`, o resto fica 0/null. O original nao muda; para trocar a
+ * tabela do jogo, atribua: `Main.recipe = Main.recipe.cloneResized(n)`.
+ */
+JSValue ga_cloneResized(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    Il2CppArray* arr = arrayFromJS(self);
+    if (!arr) return JS_ThrowTypeError(ctx, "cloneResized: chame num array do jogo");
+    int64_t n = -1;
+    if (argc < 1 || JS_ToInt64(ctx, &n, argv[0]) < 0) return JS_EXCEPTION;
+    if (n < 0 || n > 0x7fffffff) return JS_ThrowRangeError(ctx, "cloneResized: tamanho %lld invalido", static_cast<long long>(n));
+    Il2CppArray* copy = runtime::TypeTables::resizedCopy(arr, static_cast<uintptr_t>(n));
+    if (!copy) return JS_ThrowInternalError(ctx, "cloneResized: o jogo recusou a copia");
+    return makeGameArray(ctx, copy);
+}
+
 JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
     Il2CppArray* arr = arrayFromJS(obj);
     if (!arr) return JS_UNDEFINED;
     const int64_t idx = indexOf(ctx, atom);
     if (idx < 0) {
         if (atom == lengthAtom(ctx)) return JS_NewInt64(ctx, static_cast<int64_t>(arr->length));
+        // Uma funcao so, para sempre (o runtime JS vive ate o processo morrer).
+        static JSAtom cloneAtom = JS_NewAtom(ctx, "cloneResized");
+        static JSValue cloneFn = JS_NewCFunction(ctx, ga_cloneResized, "cloneResized", 1);
+        if (atom == cloneAtom) return JS_DupValue(ctx, cloneFn);
         return JS_UNDEFINED;
     }
     if (static_cast<uint64_t>(idx) >= arr->length) {

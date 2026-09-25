@@ -1,0 +1,15 @@
+{
+  "uid": "1c7b2a40-c224-46e3-9f77-cf0900d1a89a",
+  "id": "test-recipes",
+  "name": "Teste: receitas e grupos",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "cloneResized, array JS para int[], grupos de receita, ModSystem e o limite de receitas.",
+  "description": "Precisa do Example Mod ligado. Loga 'recipes ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -48,5 +48,8 @@
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície."
+  },
+  "RecipeGroups": {
+    "ExampleItem": "Item de Exemplo"
   }
 }

@@ -32,6 +32,7 @@ import { ExampleBobber } from './Content/Projectiles/ExampleBobber.js';
 import { ExampleLaserWeapon } from './Content/Items/Weapons/Magic/ExampleLaserWeapon.js';
 import { ExampleHookItem } from './Content/Items/Tools/ExampleHookItem.js';
 import { ExampleFishingRod } from './Content/Items/Tools/ExampleFishingRod.js';
+import { ExampleRecipes } from './Content/Global/ExampleRecipes.js';
 
 ModNPC.register(ExampleSlimeNPC);
 
@@ -69,6 +70,8 @@ ModItem.register(ExampleMagicWeapon);
 ModItem.register(ExampleLaserWeapon);
 ModItem.register(ExampleHookItem);
 ModItem.register(ExampleFishingRod);
+
+ModSystem.register(ExampleRecipes);
 
 bl.log(`Example Mod: ExampleItem = ${ModItem.getTypeByName('ExampleItem')}, ` +
        `Espada = ${ModItem.getTypeByName('ExampleMeleeWeapon')}, ` +

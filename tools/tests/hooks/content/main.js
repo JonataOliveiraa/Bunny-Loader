@@ -200,14 +200,14 @@ function setup() {
     });
 
     // A arma no inventario, o acessorio equipado.
-    // Na barra rapida (o HoldItem precisa dela na mao); sem espaco, o 9 fica
-    // emprestado e volta no fim.
-    for (let i = 0; i < 10; i++) {
+    // Na barra rapida (o HoldItem precisa dela na mao); sem espaco, o 8 fica
+    // emprestado e volta no fim (o 9 e do prisma do exmod2, que pode rodar junto).
+    for (let i = 0; i < 9; i++) {
         if (p.inventory[i].type === 0) { gunSlot = i; break; }
     }
     if (gunSlot < 0) {
-        gunSlot = 9;
-        const it = p.inventory[9];
+        gunSlot = 8;
+        const it = p.inventory[8];
         savedSlot = { type: it.type, stack: it.stack, prefix: it.prefix };
     }
     p.inventory[gunSlot]['void SetDefaults(int Type, ItemVariant variant)'](GUN, null);
@@ -264,7 +264,12 @@ function finalChecks() {
     });
     check('NPC: FindFrame', () => got('npc.FindFrame', 10) === true ? (count.frameHeight > 0 || 'frameHeight 0') : got('npc.FindFrame', 10));
     check('NPC: CheckActive', () => got('npc.CheckActive', 10));
-    check('HoldItem e HoldoutOffset', () => got('item.HoldItem') === true ? got('item.HoldoutOffset') : got('item.HoldItem'));
+    check('HoldItem e HoldoutOffset', () => {
+        if (got('item.HoldItem') === true) return got('item.HoldoutOffset');
+        const p = me();
+        return got('item.HoldItem') + ` (sel ${p.selectedItemState.selected}/${gunSlot}, na mao ${p.HeldItem.type}, ` +
+            `mouse ${Main['Item get_mouseItem()']().type}, morto ${p.dead}, arma ${GUN})`;
+    });
 }
 
 function killChecks() {
@@ -299,7 +304,7 @@ function cleanup() {
     const p = me();
     p.selectedItemState.selected = savedSelected;
     if (savedSlot) {
-        const it = p.inventory[9];
+        const it = p.inventory[gunSlot];
         it['void SetDefaults(int Type, ItemVariant variant)'](savedSlot.type, null);
         it.stack = savedSlot.stack;
         it.prefix = savedSlot.prefix;
@@ -316,6 +321,10 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     original(self, i);
     if (i !== Main.myPlayer || Main.gameMenu) return;
     ++frames;
+    // O mundo de teste pode estar de noite, com zumbis: morto, o jogador nao
+    // segura item e o HoldItem nunca roda.
+    if (frames === 1) { Main.dayTime = true; Main.time = 27000; }
+    if (frames <= 180 && !self.dead) self.statLife = self.statLifeMax2;
     if (frames === 60) setup();
     if (frames === 90) useChecks();
     if (frames === 150) finalChecks();

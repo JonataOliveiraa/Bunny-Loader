@@ -294,6 +294,9 @@ TypeDesc describeUncached(const Il2CppType* t) {
     if (n.size() > 2 && n.compare(n.size() - 2, 2, "[]") == 0) {
         d.prim = Prim::Array;
         d.size = sizeof(void*);
+        // A classe do array (int[]): e dela que sai o elemento quando um
+        // array JS chega onde o jogo quer um array (listFromJS).
+        d.cls = a.class_from_il2cpp_type ? a.class_from_il2cpp_type(t) : nullptr;
         return d;
     }
 
@@ -478,6 +481,40 @@ int writeNullable(JSContext* ctx, char* b, const TypeDesc& d, JSValueConst v) {
     return true;
 }
 
+/**
+ * Array JS onde o jogo quer um array: `new RecipeGroup(nome, [1, 2])` sem
+ * montar o int[] na mao. Um array novo do tipo que o parametro declara, cada
+ * elemento escrito como um campo desse tipo (numero, texto, objeto, struct).
+ */
+Il2CppArray* listFromJS(JSContext* ctx, JSValueConst v, const TypeDesc& d) {
+    auto& a = il2cpp::api();
+    Il2CppClass* elem = d.cls && a.class_get_element_class ? a.class_get_element_class(d.cls) : nullptr;
+    if (!elem) {
+        JS_ThrowTypeError(ctx, "%s: tipo do elemento desconhecido", d.name.c_str());
+        return nullptr;
+    }
+    int64_t len = 0;
+    JSValue lv = JS_GetPropertyStr(ctx, v, "length");
+    const int bad = JS_ToInt64(ctx, &len, lv);
+    JS_FreeValue(ctx, lv);
+    if (bad < 0 || len < 0) return nullptr;
+    Il2CppArray* arr = a.array_new(elem, static_cast<uintptr_t>(len));
+    if (!arr) {
+        JS_ThrowInternalError(ctx, "%s: array_new falhou", d.name.c_str());
+        return nullptr;
+    }
+    const TypeDesc& ed = describe(a.class_get_type(elem));
+    const size_t stride = ed.byValue ? ed.size : sizeof(void*);
+    auto* data = static_cast<char*>(arrayData(arr));
+    for (int64_t i = 0; i < len; ++i) {
+        JSValue x = JS_GetPropertyUint32(ctx, v, static_cast<uint32_t>(i));
+        const int r = writeAt(ctx, data + static_cast<size_t>(i) * stride, ed, x);
+        JS_FreeValue(ctx, x);
+        if (r < 0) return nullptr;
+    }
+    return arr;
+}
+
 } // namespace
 
 JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner) {
@@ -555,6 +592,10 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
         }
         case Prim::Array: {
             Il2CppArray* arr = arrayFromJS(v);
+            if (!arr && JS_IsArray(v)) {
+                arr = listFromJS(ctx, v, d);
+                if (!arr) return -1;
+            }
             // Antes qualquer coisa que nao fosse array virava null, calada, e o
             // metodo do jogo recebia null no lugar do que o mod mandou.
             if (!arr && !JS_IsNull(v) && !JS_IsUndefined(v)) {

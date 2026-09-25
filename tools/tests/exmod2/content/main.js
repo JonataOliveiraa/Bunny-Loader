@@ -168,7 +168,11 @@ function run() {
         return n === 2 || n + ' gancho(s)';
     });
 
-    // O prisma: segurado (channel) por alguns quadros, ate o raio nascer.
+}
+
+// O prisma: segurado (channel) por alguns quadros, ate o raio nascer. Depois
+// do quadro 180: antes disso o teste hooks usa a mao do jogador.
+function laserStart() {
     const laser = itemType('Prisma de Exemplo');
     laserSlot = me().inventory[9].type;
     me().inventory[9]['void SetDefaults(int Type, ItemVariant variant)'](laser, null);
@@ -220,8 +224,9 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
         self.statMana = self.statManaMax2;
     }
     ++frames;
-    if (frames === 150) laserCheck();
     if (frames === 90) run();
-    if (frames === 210) late();
+    if (frames === 200) laserStart();
+    if (frames === 260) laserCheck();
+    if (frames === 270) late();
 });
 bl.log('exmod2: carregado');

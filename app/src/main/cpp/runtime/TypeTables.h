@@ -54,6 +54,12 @@ public:
     static Il2CppArray* growArray(Il2CppArray* old, uintptr_t newLength);
 
     /**
+     * Copia com `newLength` posicoes (maior ou menor): o que cabe vem de
+     * `old`, o resto fica no padrao do tipo (0/null). O `cloneResized` do JS.
+     */
+    static Il2CppArray* resizedCopy(Il2CppArray* old, uintptr_t newLength);
+
+    /**
      * Tabela de tipo de valor que mora num OBJETO (campo em `offset`), e nao
      * num estatico: aumenta com o resto ZERADO, se ainda tem `vanillaCount`.
      */

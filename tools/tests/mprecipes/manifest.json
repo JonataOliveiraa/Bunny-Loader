@@ -1,0 +1,15 @@
+{
+  "uid": "5ecc2a4f-a3c5-4e94-9f35-addff801ade4",
+  "id": "test-mprecipes",
+  "name": "Teste: receitas e itens de mod no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Cliente: receitas de mod e grupo; item de mod largado de um lado aparece do outro.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mp ...'.",
+  "updated": "2026-09-24",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

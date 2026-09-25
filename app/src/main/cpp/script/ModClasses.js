@@ -70,14 +70,17 @@ function guard(label, fn) {
 
 // O que roda quando todo o conteudo de mod ja esta no jogo (receitas do
 // jogo montadas, Bestiario criado): receitas, Bestiario, PostSetupContent.
-const readyTasks = [];
+// Os grupos de receita ('groups') rodam antes de tudo: uma receita pode usar
+// o grupo de outro mod.
+const readyTasks = { groups: [], content: [] };
 let readyHooked = false;
-function whenReady(task) {
-    readyTasks.push(task);
+function whenReady(task, phase = 'content') {
+    readyTasks[phase].push(task);
     if (readyHooked) return;
     readyHooked = true;
     bl.onContentReady(() => {
-        for (const t of readyTasks) guard('PostSetupContent', t);
+        for (const t of readyTasks.groups) guard('AddRecipeGroups', t);
+        for (const t of readyTasks.content) guard('PostSetupContent', t);
         finishBestiary();
         finishRecipes();
     });
@@ -237,8 +240,13 @@ class ModItem {
     PostSetupContent() {}
     // Uma vez por cultura, com this.TooltipLines ja preenchido.
     ModifyTooltipLines() {}
+    // Uma vez, antes de qualquer receita: ModRecipe.CreateRecipeGroup(...).
+    AddRecipeGroups() {}
     // Uma vez, quando as receitas do jogo ja existem: this.CreateRecipe(...).
     AddRecipes() {}
+    // Ao criar este item no menu de criacao; `item` e o que o jogador vai
+    // receber (ainda da para mudar).
+    OnCraft(item, player, recipe) {}
 
     // false impede o uso.
     CanUseItem(item, player) { return true; }
@@ -356,6 +364,12 @@ class ModItem {
         return new ModRecipe().SetResult(this.Type, stack);
     }
 
+    // Grupo com o nome do primeiro item ("Qualquer <nome>"), como no ExMod.
+    CreateRecipeGroup(itemTypes = []) {
+        const name = Terraria.Lang['LocalizedText GetItemName(int id)'](itemTypes[0]).Value;
+        return ModRecipe.CreateRecipeGroup(name, itemTypes);
+    }
+
     static sellPrice(platinum = 0, gold = 0, silver = 0, copper = 0) {
         return Terraria.Item.sellPrice(platinum, gold, silver, copper);
     }
@@ -393,6 +407,7 @@ class ModItem {
         itemsByType.set(type, inst);
 
         setupTooltip(inst, name, type);
+        whenReady(() => inst.AddRecipeGroups(), 'groups');
         whenReady(() => {
             inst.AddRecipes();
             inst.PostSetupContent();
@@ -447,6 +462,15 @@ function hookItem(cls) {
             if (m && guard(m.constructor.name + '.CanUseItem', () => m.CanUseItem(item, self)) === false) return false;
             return original(self, item, ignoreCursed);
         }, onItem(0));
+    });
+
+    if (has('OnCraft')) once('item.OnCraft', () => {
+        Terraria.Main['void CraftItem_GrantItem(Recipe recipe, Item result, bool quickCraft)'].hook(
+            (original, recipe, result, quickCraft) => {
+                const m = itemOf(result);
+                if (m) guard(m.constructor.name + '.OnCraft', () => m.OnCraft(result, Terraria.Main.player[Terraria.Main.myPlayer], recipe));
+                original(recipe, result, quickCraft);
+            }, onItem(1));
     });
 
     if (has('UseItem')) once('item.Use', () => {
@@ -592,6 +616,12 @@ function applyHoldout(offset, player) {
 // ================================ receitas ================================
 
 let recipesAdded = 0;
+let recipesHidden = 0;
+const recipeGroupsByName = new Map();
+
+// O jogo (mobile) percorre as receitas ate a posicao 3600, fixo no codigo:
+// uma receita alem disso existe, mas o menu de criacao nao a encontra.
+const VISIBLE_RECIPES = 3600;
 
 /**
  * Uma receita do jogo, como o ModRecipe do ExMod. So vale no AddRecipes (ou
@@ -603,12 +633,18 @@ class ModRecipe {
     constructor() {
         this.recipe = Terraria.Recipe.currentRecipe;
         this.ingredients = 0;
+        this.craftingStation = -1;
+        this.customShimmerResults = [];
+    }
+
+    static clampStack(it, stack) {
+        return Math.max(1, Math.min(stack | 0, it.maxStack || 9999));
     }
 
     SetResult(type, stack = 1) {
         const it = this.recipe.createItem;
         it['void SetDefaults(int Type, ItemVariant variant)'](type, null);
-        it.stack = Math.max(1, stack | 0);
+        it.stack = ModRecipe.clampStack(it, stack);
         return this;
     }
 
@@ -619,29 +655,109 @@ class ModRecipe {
         }
         const it = this.recipe.requiredItem[this.ingredients++];
         it['void SetDefaults(int Type, ItemVariant variant)'](type, null);
-        it.stack = Math.max(1, stack | 0);
+        it.stack = ModRecipe.clampStack(it, stack);
         Terraria.ID.ItemID.Sets.IsAMaterial[type] = true;
         return this;
     }
 
-    AddTile(tileType) {
-        this.recipe['void SetCraftingStation(int tileType)'](tileType);
+    /**
+     * Aceita qualquer item do grupo no lugar do ingrediente: o grupo (objeto,
+     * nome de um do jogo como 'IronBar', ou um criado com CreateRecipeGroup).
+     * Se nenhum ingrediente ja posto e do grupo, poe o item-modelo dele com
+     * `stack` (como o AddRecipeGroup do tModLoader).
+     */
+    AddRecipeGroup(group, stack = 1) {
+        const g = ModRecipe.GetGroup(group);
+        if (!g) {
+            bl.log('ModRecipe: grupo de receita "' + group + '" nao existe');
+            return this;
+        }
+        let covered = false;
+        for (let i = 0; i < this.ingredients && !covered; i++) {
+            covered = g.Contains(this.recipe.requiredItem[i].type);
+        }
+        if (!covered) this.AddIngredient(g.GetPlaceholderItemType(), stack);
+        this.recipe['void RequireGroup(RecipeGroup group)'](g);
         return this;
     }
 
-    // needWater, needLava, needHoney, needSnowBiome, needGraveyardBiome, alchemy...
+    // Uma estacao so por receita (o jogo guarda um numero).
+    AddTile(tileType) {
+        if (this.craftingStation !== -1) {
+            bl.log('ModRecipe: a receita ja tem a estacao ' + this.craftingStation + '; ' + tileType + ' ficou de fora');
+            return this;
+        }
+        this.recipe['void SetCraftingStation(int tileType)'](tileType);
+        this.craftingStation = tileType;
+        return this;
+    }
+
+    // O que sai ao jogar o item no Brilho (shimmer), no lugar dos ingredientes.
+    AddCustomShimmerResult(type, stack = 1) {
+        if (type > 0) {
+            this.customShimmerResults.push(
+                this.recipe['Item AddCustomShimmerResult(int itemType, int itemStack)'](type, stack));
+        }
+        return this;
+    }
+
+    // needWater, needLava, needHoney, needSnowBiome, needGraveyardBiome,
+    // needTorchGodsFavor, needMechdusa, notDecraftable, crimson, corruption,
+    // alchemy (sai sozinho com a mesa de alquimia).
     SetProperty(name, value) {
         this.recipe[name] = value;
         return this;
     }
 
     Register() {
-        if (Terraria.Recipe.numRecipes >= Terraria.Main.recipe.length) {
-            bl.log('ModRecipe: limite de receitas do jogo (' + Terraria.Main.recipe.length + ') atingido');
-            return;
+        const Main = Terraria.Main;
+        const index = Terraria.Recipe.numRecipes;
+        if (index >= Main.recipe.length) {
+            // Como o ExMod: a tabela cresce, e a receita existe (decraft,
+            // Guia) mesmo que o menu nao chegue nela.
+            Main.recipe = Main.recipe.cloneResized(index + 1);
         }
+        if (index >= VISIBLE_RECIPES) recipesHidden++;
         Terraria.Recipe['void AddRecipe()']();
         recipesAdded++;
+    }
+
+    // O grupo: objeto, nome de um do jogo ('IronBar', 'Wood'...), nome de
+    // um criado com CreateRecipeGroup, ou o numero registrado.
+    static GetGroup(groupOrName) {
+        if (groupOrName && typeof groupOrName === 'object') return groupOrName;
+        if (typeof groupOrName === 'number') {
+            const all = Terraria.RecipeGroup.recipeGroups;
+            return all.ContainsKey(groupOrName) ? all.get_Item(groupOrName) : undefined;
+        }
+        const mine = recipeGroupsByName.get(groupOrName);
+        if (mine) return mine;
+        try {
+            return Terraria.ID.RecipeGroups[groupOrName] || undefined;
+        } catch (e) {
+            return undefined;
+        }
+    }
+
+    static GetGroupByName(name) { return ModRecipe.GetGroup(name); }
+
+    /**
+     * Um grupo novo: 'Qualquer <nome>' no menu. O nome vem de
+     * Localization (RecipeGroups.<name>) se houver; senao, o proprio `name`.
+     * So vale no AddRecipeGroups (ModSystem) ou antes das receitas que o usam.
+     */
+    static CreateRecipeGroup(name, itemTypes = []) {
+        const known = recipeGroupsByName.get(name);
+        if (known) return known;
+        const key = ModLocalization.Translate('RecipeGroups.' + name);
+        const g = Terraria.RecipeGroup.new();
+        g['void .ctor(string groupDescriptorKey, int[] validItems)'](key.startsWith('Mods.') ? key : name, itemTypes);
+        for (const t of itemTypes) Terraria.ID.ItemID.Sets.IsAMaterial[t] = true;
+        g.Register();
+        // O item que sai quando uma receita com o grupo e desfeita (Brilho).
+        guard('grupo de receita ' + name, () => g['void SortDecraftingEntries()']());
+        recipeGroupsByName.set(name, g);
+        return g;
     }
 }
 
@@ -657,7 +773,33 @@ function finishRecipes() {
         () => Terraria.ID.ContentSamples.FixItemsAfterRecipesAreAdded(),
     ];
     for (const s of steps) guard('receitas', s);
-    bl.log('receitas de mod: ' + recipesAdded);
+    bl.log('receitas de mod: ' + recipesAdded + ' (total ' + Terraria.Recipe.numRecipes + ')');
+    if (recipesHidden) {
+        bl.log('receitas de mod: ' + recipesHidden + ' alem da posicao ' + VISIBLE_RECIPES +
+               ' nao aparecem no menu de criacao (limite do jogo)');
+    }
+}
+
+// ================================ ModSystem ================================
+
+/**
+ * O que e do mod inteiro, nao de um item: grupos de receita e receitas de
+ * itens do jogo. Os grupos (de todos os mods) vem antes de qualquer receita.
+ */
+class ModSystem {
+    AddRecipeGroups() {}
+    AddRecipes() {}
+    PostSetupContent() {}
+
+    static register(cls) {
+        const inst = new cls();
+        whenReady(() => inst.AddRecipeGroups(), 'groups');
+        whenReady(() => {
+            inst.AddRecipes();
+            inst.PostSetupContent();
+        });
+        return inst;
+    }
 }
 
 // ============================== ModProjectile ==============================
@@ -1288,6 +1430,7 @@ function hookNaturalSpawn() {
 
 globalThis.ModItem = ModItem;
 globalThis.ModRecipe = ModRecipe;
+globalThis.ModSystem = ModSystem;
 globalThis.ModProjectile = ModProjectile;
 globalThis.ModNPC = ModNPC;
 globalThis.NPCLoot = NPCLoot;

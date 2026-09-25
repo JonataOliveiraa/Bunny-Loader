@@ -6,7 +6,7 @@ classes no formato do tModLoader: o mod **estende** a
 classe, preenche o que quer e **registra**. O Bunny Loader dá um número ao tipo
 novo, põe a textura e o nome no jogo e liga os hooks por você.
 
-As classes são globais: `ModItem`, `ModProjectile`, `ModNPC`, `ModRecipe`,
+As classes são globais: `ModItem`, `ModProjectile`, `ModNPC`, `ModRecipe`, `ModSystem`,
 `NPCLoot`, `NPCSpawnInfo`, `ModLocalization`. Nada de `import` para elas —
 nem para os [ajudantes](#ajudantes) (`Vector2`, `Rand`, `ItemRarityID`...).
 
@@ -161,7 +161,9 @@ export class ExampleItem extends ModItem {
 |---|---|
 | `SetStaticDefaults()` | Uma vez, com o tipo já no jogo. Para tabelas por tipo (`Terraria.ID.ItemID.Sets...[this.Type]`). |
 | `SetDefaults(item)` | Todo item deste tipo que nasce. Aqui vão os atributos. |
+| `AddRecipeGroups()` | Uma vez, antes de qualquer receita (de todos os mods). |
 | `AddRecipes()` | Uma vez, quando as receitas do jogo já existem. |
+| `OnCraft(item, player, recipe)` | Ao criar este item no menu; `item` é o que o jogador vai receber, e ainda dá para mudar. |
 | `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. |
 | `ModifyTooltipLines()` | Por idioma, com `this.TooltipLines` preenchido — mude as linhas. |
 | `CanUseItem(item, player)` | Devolva `false` para impedir o uso. |
@@ -235,13 +237,75 @@ this.CreateRecipe()
     .AddIngredient(Terraria.ID.ItemID.IronBar, 5)
     .AddIngredient(ModItem.getTypeByName('ExampleItem'), 10)
     .AddTile(Terraria.ID.TileID.Anvils)
-    .SetProperty('needWater', true)   // needLava, needHoney, needSnowBiome, alchemy...
+    .SetProperty('needWater', true)
     .Register();
 ```
 
-Até 15 ingredientes por receita. Receita para um item **do jogo** também vale:
-`new ModRecipe().SetResult(tipo, n).AddIngredient(...).Register()`, dentro de um
-`AddRecipes`.
+| Método | O que faz |
+|---|---|
+| `SetResult(tipo, n)` | O que a receita dá (o `CreateRecipe` já chama). |
+| `AddIngredient(tipo, n)` | Até 15 ingredientes. |
+| `AddRecipeGroup(grupo, n)` | Aceita qualquer item do grupo (veja abaixo). |
+| `AddTile(tipo)` | A estação. Uma só por receita (o jogo guarda um número). |
+| `SetProperty(nome, valor)` | `needWater`, `needLava`, `needHoney`, `needSnowBiome`, `needGraveyardBiome`, `needTorchGodsFavor`, `needMechdusa`, `notDecraftable`, `crimson`, `corruption`, `alchemy`. |
+| `AddCustomShimmerResult(tipo, n)` | O que sai ao jogar o item no Brilho, no lugar dos ingredientes. |
+| `Register()` | Põe a receita no jogo. |
+
+Receita para um item **do jogo** também vale:
+`new ModRecipe().SetResult(tipo, n).AddIngredient(...).Register()`.
+
+### Grupos de receita
+
+Um grupo faz a receita aceitar qualquer item de uma lista ("Qualquer barra de
+ferro"). Os do jogo vão pelo nome, como estão em `Terraria.ID.RecipeGroups`
+(`'IronBar'`, `'Wood'`, `'Sand'`, `'Fragment'`...):
+
+```js
+new ModRecipe()
+    .SetResult(Terraria.ID.ItemID.SpikyBall, 50)
+    .AddRecipeGroup('IronBar')          // barra de ferro OU de chumbo
+    .AddTile(Terraria.ID.TileID.Anvils)
+    .Register();
+```
+
+Grupo novo: `ModRecipe.CreateRecipeGroup(nome, [tipos])`, no `AddRecipeGroups`
+(que roda antes de qualquer receita). O menu mostra "Qualquer <nome>". O nome
+vem da tradução, em `RecipeGroups.<nome>`, e sem ela fica o próprio `nome`:
+
+```js
+AddRecipeGroups() {
+    this.constructor.Group = ModRecipe.CreateRecipeGroup('ExampleItem', [
+        ModItem.getTypeByName('ExampleItem'),
+        ModItem.getTypeByName('ExampleSoul'),
+    ]);
+}
+```
+
+`AddRecipeGroup(grupo, n)` aceita o objeto, o nome de um grupo do jogo ou o nome
+de um criado por mod. Se nenhum ingrediente já posto é do grupo, ele põe o
+primeiro item do grupo com `n`. Se já há um, esse ingrediente passa a aceitar
+o grupo todo (`.AddIngredient(ExampleItem, 50).AddRecipeGroup(grupo)`).
+
+### ModSystem
+
+Para o que é do mod inteiro, não de um item (receitas de itens do jogo, grupos):
+
+```js
+export class ExampleRecipes extends ModSystem {
+    AddRecipeGroups() { /* ModRecipe.CreateRecipeGroup(...) */ }
+    AddRecipes() { /* new ModRecipe()... */ }
+    PostSetupContent() {}
+}
+
+ModSystem.register(ExampleRecipes);
+```
+
+### Limite
+
+O jogo tem 3600 posições de receita, e as dele ocupam 3570. Passando disso, a
+tabela cresce e a receita existe (Guia, Brilho), mas o menu de criação não a
+mostra: o laço do jogo para em 3600, fixo no código. O log avisa quantas
+ficaram de fora.
 
 ## ModProjectile
 
@@ -468,6 +532,20 @@ Item de mod no inventário, no cofre e nos baús é salvo pelo **nome** (mod +
 classe), num arquivo ao lado do save do jogo. Desligar o mod não perde nada: o
 item vira um "?" e volta ao normal quando o mod é religado.
 
+## Arrays do jogo
+
+Um array do jogo (`Main.recipe`, `ItemID.Sets.IsAMaterial`...) tem índice e
+`.length`, e `cloneResized(n)`: uma cópia do mesmo tipo com `n` posições. O que
+cabe vem do original, e o resto fica 0/null. Para trocar a tabela do jogo,
+atribua:
+
+```js
+Terraria.Main.recipe = Terraria.Main.recipe.cloneResized(4000);
+```
+
+Onde o jogo espera um array (`int[]`, `string[]`...), um array JS também serve:
+`new RecipeGroup(nome, [1, 2, 3])` recebe um `int[]` montado na hora.
+
 ## Genéricos
 
 `List<Vector2>`, `Dictionary<int, int>`: `makeGeneric` na classe genérica, com
@@ -515,8 +593,9 @@ Shoot(item, player, position, velocity, type, damage, knockBack) {
 Estas partes do tModLoader ainda não têm classe no Bunny Loader — dá para fazer
 na mão, com hooks (guia 1), mas não há atalho:
 
-- `ModBuff`, `ModPlayer`, `ModSystem`, `ModTile`, `ModPrefix`, `ModMount`, `ModBiome`;
+- `ModBuff`, `ModPlayer`, `ModTile`, `ModPrefix`, `ModMount`, `ModBiome`;
+- no `ModSystem`, por enquanto só `AddRecipeGroups`, `AddRecipes` e `PostSetupContent`;
 - `GlobalItem`, `GlobalNPC`, `GlobalProjectile`;
 - armadura vestida (textura no corpo) e conjuntos (`IsArmorSet`/`UpdateArmorSet`);
 - morador: conversa, loja e felicidade;
-- grupos de receita (`RecipeGroup`) e `OnTileCollide`.
+- condições de receita do tModLoader (`AddCondition`) e estação de mod (`ModTile`).
