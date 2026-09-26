@@ -97,7 +97,7 @@ def main():
     header = subprocess.run(
         [sys.executable, os.path.join(ROOT, "tools", "bin2header.py"), png, "bl_unloaded_icon_png"],
         check=True, capture_output=True, text=True).stdout
-    out = os.path.join(ROOT, "app", "src", "main", "cpp", "runtime", "UnloadedIcon.h")
+    out = os.path.join(ROOT, "app", "src", "main", "cpp", "content", "items", "UnloadedIcon.h")
     with open(out, "w", newline="\n") as f:
         f.write(header)
     print(f"{len(POWER_FRAMES) + len(ARROWS) + 4 + len(SCENERY)} drawables, icone ausente {locked.size} -> {out}")

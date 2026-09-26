@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Compila tools/cheatbridge/bunny/CheatBridge.java -> dex -> header C embutido.
 # Rode quando mudar o CheatBridge.java. Gera:
-#   app/src/main/cpp/ui/CheatBridgeDex.h  (bytes do classes.dex)
+#   app/src/main/cpp/menu/CheatBridgeDex.h  (bytes do classes.dex)
 #
 #   tools/build-cheatbridge-dex.sh
 set -euo pipefail
@@ -31,5 +31,5 @@ CLASSES=$(find "$OUT/classes" -name "*.class" | while read -r f; do cygpath -w "
 
 echo "==> header embutido"
 python tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex \
-    > app/src/main/cpp/ui/CheatBridgeDex.h
-echo "    app/src/main/cpp/ui/CheatBridgeDex.h ($(wc -c < "$OUT/classes.dex") bytes de dex)"
+    > app/src/main/cpp/menu/CheatBridgeDex.h
+echo "    app/src/main/cpp/menu/CheatBridgeDex.h ($(wc -c < "$OUT/classes.dex") bytes de dex)"

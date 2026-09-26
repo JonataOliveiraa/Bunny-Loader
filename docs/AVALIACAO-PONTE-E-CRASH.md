@@ -49,7 +49,7 @@ Laço vazio (`s += i`): **55 ns** por iteração. Custo *acima* dele:
 ### O que os números dizem
 
 1. **Campo e propriedade estão bons.** Ler ou escrever um campo custa o mesmo
-   que uma iteração de laço vazio. O cache de membro de `script/Members.cpp`
+   que uma iteração de laço vazio. O cache de membro de `script/bridge/Members.cpp`
    funciona.
 2. **O caro é criar wrapper.** Toda vez que um objeto do jogo entra no JS
    (elemento de array, `self` do hook, retorno de método) nasce um objeto JS,
@@ -120,7 +120,7 @@ por velocidade de fronteira.
 ## Parte 2 — crash ao criar mundo
 
 > **Atualização (2026-09-24): causa encontrada e corrigida** — referência
-> pendurada no `original()` dos hooks (`script/JsHook.cpp`): com hooks
+> pendurada no `original()` dos hooks (`script/bridge/JsHook.cpp`): com hooks
 > aninhados na mesma thread, o resultado era gravado em memória já liberada.
 > Ver [`PONTE-OTIMIZACAO.md`](PONTE-OTIMIZACAO.md), passo 2 (0 crashes em 10
 > rodadas depois da correção). O `JsSuspend`, que cheguei a apontar, era
@@ -200,7 +200,7 @@ mods de exemplo) não caiu nenhuma vez.
 - **Não é uma thread nossa**: a sonda termina ~10 s depois do boot e a UI do
   menu só lê valores prontos. Mas código nosso roda, sim, no instante do
   crash: os hooks JS executam dentro das threads do jogo (ver hipótese 1).
-- **Não é a troca das 127 tabelas de item** (`runtime/ModItems.cpp`): a cópia
+- **Não é a troca das 127 tabelas de item** (`content/items/ModItems.cpp`): a cópia
   respeita o tamanho do elemento (tipo de valor por `class_value_size`,
   referência por `Array.Copy`), e nenhuma tabela foi refeita durante a geração.
 

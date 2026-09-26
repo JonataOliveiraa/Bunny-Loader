@@ -42,21 +42,21 @@ configure_file(
 
 # As classes base dos mods (ModItem, ModProjectile, ModNPC...), em JS de
 # verdade num arquivo proprio e embutidas do mesmo jeito.
-set(BL_MOD_CLASSES_FILE ${CMAKE_CURRENT_SOURCE_DIR}/script/ModClasses.js)
+set(BL_MOD_CLASSES_FILE ${CMAKE_CURRENT_SOURCE_DIR}/script/js/ModClasses.js)
 file(READ ${BL_MOD_CLASSES_FILE} BL_MOD_CLASSES_JS)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BL_MOD_CLASSES_FILE})
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/script/ModClassesJs.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/gen/script/ModClassesJs.h @ONLY)
+    ${CMAKE_CURRENT_SOURCE_DIR}/script/js/ModClassesJs.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/gen/script/js/ModClassesJs.h @ONLY)
 
 # Os ajudantes (Vector2, MathHelper, Rand, Color, ItemRarityID...), avaliados
 # antes das classes.
-set(BL_MOD_HELPERS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/script/ModHelpers.js)
+set(BL_MOD_HELPERS_FILE ${CMAKE_CURRENT_SOURCE_DIR}/script/js/ModHelpers.js)
 file(READ ${BL_MOD_HELPERS_FILE} BL_MOD_HELPERS_JS)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BL_MOD_HELPERS_FILE})
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/script/ModHelpersJs.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/gen/script/ModHelpersJs.h @ONLY)
+    ${CMAKE_CURRENT_SOURCE_DIR}/script/js/ModHelpersJs.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/gen/script/js/ModHelpersJs.h @ONLY)
 
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
@@ -79,6 +79,6 @@ target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 # mais; -fno-rtti continua valendo (catch(...) nao precisa de RTTI).
 # MapReveal.cpp pelo mesmo motivo: chama o WorldMap.UpdateLighting direto,
 # milhoes de vezes, e ele lanca se o mapa nao tiver onde guardar o pedaco.
-set_source_files_properties(script/Abi.cpp runtime/MapReveal.cpp
+set_source_files_properties(script/bridge/Abi.cpp menu/MapReveal.cpp
     PROPERTIES COMPILE_OPTIONS -fexceptions)
 target_link_libraries(bunny shadowhook::shadowhook log dl)

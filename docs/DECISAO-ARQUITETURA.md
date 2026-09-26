@@ -273,7 +273,7 @@ root) ou um host ARM. Tudo ate o il2cpp_init esta feito no emulador.
 
 # FASE 3a VALIDADA no emulador: camada de resolucao funciona
 
-A sonda (runtime/Probe.cpp) rodou no processo do jogo e resolveu tudo por nome,
+A sonda (boot/Probe.cpp) rodou no processo do jogo e resolveu tudo por nome,
 com os offsets batendo com o dump 1.4.5.6.4:
 
 ```

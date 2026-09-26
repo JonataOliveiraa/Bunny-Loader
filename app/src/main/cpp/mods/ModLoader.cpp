@@ -1,6 +1,6 @@
 #include "mods/ModLoader.h"
 #include "core/Log.h"
-#include "script/ScriptEngine.h"
+#include "script/bridge/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
 #include <cstdio>
 #include <map>

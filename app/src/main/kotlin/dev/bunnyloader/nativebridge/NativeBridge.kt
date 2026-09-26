@@ -33,7 +33,7 @@ object NativeBridge {
         }
     }
 
-    // TODO(Fase 2): implementar em jni_entry.cpp
+    // TODO(Fase 2): implementar em boot/jni_entry.cpp
     external fun init(config: NativeConfig): Boolean
     external fun lastError(): String
 }

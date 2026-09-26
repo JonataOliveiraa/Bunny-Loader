@@ -6,7 +6,7 @@
   "author": "teste",
   "category": "Utilidade",
   "summary": "Milhares de itens com ModItem, coleta forcada, varredura da tabela.",
-  "description": "Teste de script/ExtraFields.cpp. Precisa do Example Mod ligado. Loga 'extrafields ...'.",
+  "description": "Teste de script/bridge/ExtraFields.cpp. Precisa do Example Mod ligado. Loga 'extrafields ...'.",
   "updated": "2026-09-24",
   "blVersion": 1,
   "gameVersion": [301543, 301543],

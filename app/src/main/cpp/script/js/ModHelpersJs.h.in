@@ -1,0 +1,8 @@
+#pragma once
+// GERADO pelo CMake a partir de script/js/ModHelpers.js — NAO editar a mao.
+// Ver CMakeLists.txt (configure_file). O delimitador do raw string e )BUNNYJS".
+namespace bl::script {
+
+inline const char kModHelpersJs[] = R"BUNNYJS(@BL_MOD_HELPERS_JS@)BUNNYJS";
+
+} // namespace bl::script

@@ -1,4 +1,4 @@
-// Fuzz do WrapperMap (script/WrapperMap.h) contra std::unordered_map.
+// Fuzz do WrapperMap (script/bridge/WrapperMap.h) contra std::unordered_map.
 //
 // Compila para Android x86_64 (o MuMu roda nativo) e roda por adb:
 //   tools/tests/wrappermap/run.sh
@@ -6,7 +6,7 @@
 // Chaves de um conjunto pequeno de enderecos alinhados, para forcar colisao,
 // aglomerado e a volta do fim da tabela para o comeco — onde a remocao por
 // deslocamento para tras costuma errar.
-#include "script/WrapperMap.h"
+#include "script/bridge/WrapperMap.h"
 
 #include <cstdio>
 #include <random>

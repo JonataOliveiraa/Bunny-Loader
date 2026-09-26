@@ -89,7 +89,7 @@ struct Api {
     void (*gchandle_free)(uint32_t) = nullptr;
     // Memoria que o coletor VARRE mas nao recolhe (GC_MALLOC_UNCOLLECTABLE):
     // ponteiro gravado nela segura o objeto vivo. Base da tabela de raizes
-    // (script/Roots.cpp), que substitui um gchandle por wrapper.
+    // (script/bridge/Roots.cpp), que substitui um gchandle por wrapper.
     void* (*gc_alloc_fixed)(size_t) = nullptr;
     void (*gc_free_fixed)(void*) = nullptr;
     // Grava um ponteiro avisando o coletor incremental (senao ele pode ja ter
@@ -103,7 +103,7 @@ struct Api {
     Il2CppClass* (*field_get_parent)(FieldInfo*) = nullptr;
     Il2CppObject* (*gchandle_get_target)(uint32_t) = nullptr;
     // Referencia FRACA: o alvo vira nulo quando o objeto e recolhido, sem
-    // segura-lo vivo (script/ExtraFields.cpp).
+    // segura-lo vivo (script/bridge/ExtraFields.cpp).
     uint32_t (*gchandle_new_weakref)(Il2CppObject*, bool trackResurrection) = nullptr;
     // Genericos em tempo de execucao (NativeClass.makeGeneric): classe ->
     // System.Type, e System.Type -> classe.

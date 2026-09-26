@@ -1,4 +1,4 @@
-// Teste dos NPCs de mod (runtime/ModNpcs.cpp). Precisa do Example Mod ligado:
+// Teste dos NPCs de mod (content/npcs/ModNpcs.cpp). Precisa do Example Mod ligado:
 // ele registra o ExampleSlimeNPC, o primeiro NPC de mod (tipo 697 = NPCID.Count),
 // como classe ModNPC (quadros no SetStaticDefaults, AnimationType no
 // SetDefaults, drop no ModifyNPCLoot, gosma no HitEffect).

@@ -44,7 +44,7 @@ Média de duas rodadas; ns acima do laço vazio.
 
 ### Passo 0 → 1: tabela de raízes
 
-`Roots` ([`script/Roots.cpp`](../app/src/main/cpp/script/Roots.cpp)): blocos
+`Roots` ([`script/bridge/Roots.cpp`](../app/src/main/cpp/script/bridge/Roots.cpp)): blocos
 de 4096 ponteiros em `il2cpp_gc_alloc_fixed` (o coletor varre, não recolhe),
 lista de slots livres, gravação pela barreira de escrita. Coletor deste
 Terraria: **não incremental** (log do boot).
@@ -60,7 +60,7 @@ Testes: `wrappers` e `nullable` verdes, 0 segfaults.
 
 ### Passo 1 → 2: um wrapper por objeto — e a causa do crash em aberto
 
-Mapa ponteiro → wrapper em `script/Bindings.cpp` (`wrapperFor`), sem contar
+Mapa ponteiro → wrapper em `script/bridge/Bindings.cpp` (`wrapperFor`), sem contar
 referência; o finalizador tira a entrada. Identidade passou a valer:
 `Main.player[0] === Main.player[0]` e `kept[0] === array[0]` dão `true`.
 
@@ -77,7 +77,7 @@ Primeiro experimento: o mesmo código com o `JsSuspend` desligado (o
 (1 crash e 1 rodada com métodos vindo `undefined`: corrupção de memória).
 
 **A causa real: referência pendurada no `original()` do hook**
-([`script/JsHook.cpp`](../app/src/main/cpp/script/JsHook.cpp)). O
+([`script/bridge/JsHook.cpp`](../app/src/main/cpp/script/bridge/JsHook.cpp)). O
 `js_original` guardava `Frame& f = g_frames.back()` e gravava o resultado nele
 depois de chamar o método do jogo. Se o método disparava outro hook na mesma
 thread, o `push_back` realocava o `vector`, e a gravação (~200 bytes) caía em
@@ -177,7 +177,7 @@ passo 5 atacou isso, em três partes medidas separadamente:
 | antes (passo 4) | ~403 | |
 | 5a: sem a barreira de escrita quando o coletor não é incremental (o deste Terraria) | ~381 | −5% |
 | 5b: `Pinned` reusados numa lista livre, em vez de `new`/`delete` | ~301 | −21% |
-| 5c: [`WrapperMap`](../app/src/main/cpp/script/WrapperMap.h) — endereçamento aberto, sem alocação por entrada | **~154** | **−49%** |
+| 5c: [`WrapperMap`](../app/src/main/cpp/script/bridge/WrapperMap.h) — endereçamento aberto, sem alocação por entrada | **~154** | **−49%** |
 
 O `WrapperMap` tem fuzz próprio contra `std::unordered_map`
 ([`tools/tests/wrappermap`](../tools/tests/wrappermap), 9 milhões de operações,

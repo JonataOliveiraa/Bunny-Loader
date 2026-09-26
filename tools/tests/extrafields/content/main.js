@@ -1,4 +1,4 @@
-// Carga na tabela de campos extras (script/ExtraFields.cpp): milhares de
+// Carga na tabela de campos extras (script/bridge/ExtraFields.cpp): milhares de
 // itens de mod, cada um com o seu item.ModItem, largados; coleta forcada; e
 // mais itens, para a varredura rodar e descartar as entradas dos recolhidos.
 // Os vivos tem de manter a instancia. Loga "extrafields <caso>: ok | FALHOU".

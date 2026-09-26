@@ -38,19 +38,32 @@ O ponto central é **esperar o `il2cpp_init` terminar**: antes disso a
 
 ```
 cpp/
-  jni_entry.cpp        Ponto JNI (NativeBridge.init)
-  core/Config.h        Config global (paths, versão)
-  core/Log.*           Log para logcat + arquivo
-  loader/LibWatcher.*  Hook pendente em il2cpp_init (ShadowHook)
-  il2cpp/Types.h       Layouts (Il2CppObject/Array/String) + tipos opacos
-  il2cpp/Api.*         Struct de ponteiros de função il2cpp_* + load()
-  il2cpp/Resolver.*    nome → classe/método/offset (só no carregamento)
-  hook/HookManager.*   Inline hooks centralizados
-  script/ScriptEngine.* Wrapper do QuickJS (JSRuntime/JSContext)
-  script/Bindings.cpp  NativeClass/NativeMethod/hook ↔ IL2CPP
-  runtime/Boot.*       Sequência de boot pós il2cpp_init
-  runtime/GameRefs.*   Classes/campos/métodos do jogo resolvidos 1x
-  mods/ModLoader.*     Carrega mods, roda main.js
+  boot/            Entrada e sequência de boot
+    Entry.cpp        construtor da libbunny
+    jni_entry.cpp    ponto JNI (NativeBridge.init)
+    LibWatcher.*     hook pendente em il2cpp_init (ShadowHook)
+    Boot.*, Probe.*  o que roda depois do il2cpp_init: ponte, mods, loaders
+  core/            Config global, log (logcat + arquivo)
+  il2cpp/          Api (il2cpp_* por dlsym), Resolver (nome → classe/método/campo),
+                   Signature, Types
+  hook/            HookManager (inline hooks encadeados) e CodePatch (os limites
+                   de tipo compilados no código do jogo)
+  mods/            ModLoader: acha os pacotes e roda o main.js de cada um
+  content/         O loader de conteúdo de mod: tipos novos nas tabelas do jogo
+    common/          ModContent (bl.onContentReady), TypeTables (crescer as
+                     tabelas por tipo), ContentAssets (textura, nome), GameRefs
+    items/  npcs/  tiles/  projectiles/  buffs/
+                     um por tipo de conteúdo, com o save dele ao lado
+  menu/            Mod Menu dentro do jogo: CheatButton (a ponte com o Java),
+                   Cheats, Powers, MapReveal, MenuCatalog, ModMenu, NetRequests
+  script/
+    bridge/          A ponte JS ↔ IL2CPP: ScriptEngine (QuickJS), Bindings,
+                     JsHook, Invoke/Abi, Marshal/Value/Ref, Members, Roots
+    api/             O bl.* dos mods: itens, NPCs, projéteis, buffs, tiles,
+                     texturas, arquivos; ModClasses.cpp embute o JS
+    js/              ModClasses.js (ModItem, ModNPC... e os hooks das classes)
+                     e ModHelpers.js (Vector2, Color...)
+  third_party/     QuickJS
 ```
 
 ## 4. Motor de mod (QuickJS)

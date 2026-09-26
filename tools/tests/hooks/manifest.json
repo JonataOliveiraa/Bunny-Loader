@@ -6,7 +6,7 @@
   "author": "teste",
   "category": "Utilidade",
   "summary": "IA, spawn natural, Bestiario, tooltip, receita e os hooks de uso.",
-  "description": "Teste de script/ModClasses.js. Precisa do Example Mod ligado. Loga 'hooks ...'.",
+  "description": "Teste de script/js/ModClasses.js. Precisa do Example Mod ligado. Loga 'hooks ...'.",
   "updated": "2026-09-24",
   "blVersion": 1,
   "gameVersion": [301543, 301543],

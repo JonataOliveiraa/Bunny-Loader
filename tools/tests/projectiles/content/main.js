@@ -1,4 +1,4 @@
-// Teste dos projeteis de mod (runtime/ModProjectiles.cpp). Precisa do Example
+// Teste dos projeteis de mod (content/projectiles/ModProjectiles.cpp). Precisa do Example
 // Mod ligado: ele registra o projetil ExampleBulletProjectile, o primeiro de
 // mod (tipo 1111 = ProjectileID.Count), e a arma e a bala.
 //

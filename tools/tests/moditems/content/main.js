@@ -1,4 +1,4 @@
-// Teste das tabelas de item de mod (runtime/ModItems.cpp).
+// Teste das tabelas de item de mod (content/items/ModItems.cpp).
 //
 // O jogo indexa dezenas de arrays pelo tipo do item, todos nascidos com
 // ItemID.Count (6147) posicoes, e esta build do IL2CPP NAO confere limite:

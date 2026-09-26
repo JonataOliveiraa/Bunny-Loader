@@ -1,4 +1,4 @@
-// Teste do save de itens de mod (runtime/ModItemSave.cpp): personagem e baus
+// Teste do save de itens de mod (content/items/ModItemSave.cpp): personagem e baus
 // do mundo. Cada rodada num processo novo (tools/bench/run.sh reabre o jogo).
 //
 // Com o Example Mod ligado:

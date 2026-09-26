@@ -1,4 +1,4 @@
-// Teste das classes de mod (script/ModClasses.js): IA, spawn natural,
+// Teste das classes de mod (script/js/ModClasses.js): IA, spawn natural,
 // Bestiario, tooltip, receita e os hooks de uso. Precisa do Example Mod ligado
 // (o Bestiario e a receita dele tambem sao conferidos).
 //
