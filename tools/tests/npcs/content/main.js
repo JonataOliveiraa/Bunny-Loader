@@ -100,6 +100,9 @@ function kill() {
     killsBefore = Main.BestiaryTracker.Kills['int GetKillCount(NPC npc)'](npc);
     check('anima', () => framesSeen.size >= 2 || 'quadros vistos: ' + [...framesSeen].join(','));
     check('se mexe', () => maxSpeed > 0.5 || 'velocidade max ' + maxSpeed.toFixed(2));
+    // Longe do jogador: colado nele (o slime persegue), o gel ia para o
+    // inventario antes da conferencia.
+    npc.position.X = Main.player[Main.myPlayer].position.X + 400;
     deathX = npc.position.X;
     deathY = npc.position.Y;
     gelBefore = gelNear(deathX, deathY);
