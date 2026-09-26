@@ -8,7 +8,7 @@
 # Pre-condicoes: APK ja instalado; existe ao menos um mundo e o personagem de
 # teste ("Bench") e o primeiro da lista. NAO crie mundo com estes mods
 # instalados: hook JS na thread principal + mods de exemplo e a combinacao do
-# crash em aberto (docs/AVALIACAO-PONTE-E-CRASH.md).
+# crash em aberto (docs/historico/AVALIACAO-PONTE-E-CRASH.md).
 set -euo pipefail
 # Com set -e, um comando que falha encerrava o script calado.
 trap 'echo "run.sh: falhou na linha $LINENO: $BASH_COMMAND" >&2' ERR
@@ -71,8 +71,11 @@ tap() {
 [ "$shown" = 1 ] || { echo "run.sh: o launcher nao abriu em $D em 30 s" >&2; exit 1; }
 sleep 2;  tap 800 805 "JOGAR (launcher)"
 sleep 28; tap 808 330 "Um Jogador"
-sleep 3;  tap 997 327 "Jogar (personagem)"
-sleep 3;  tap 997 318 "Jogar (primeiro mundo)"
+# As listas de personagem e de mundo aparecem antes de aceitar toque: com
+# muitos hooks nos nomes (hookslots), o toque 3 s depois caia no vazio e o
+# teste nunca entrava no mundo.
+sleep 6;  tap 997 327 "Jogar (personagem)"
+sleep 6;  tap 997 318 "Jogar (primeiro mundo)"
 sleep 22; tap 590 517 "Mais tarde (aviso de controles)"
 # O benchmark roda no primeiro quadro dentro do mundo e ainda mede 300 quadros.
 # Espera o FIM de CADA teste instalado (os de tools/tests/), nao so o

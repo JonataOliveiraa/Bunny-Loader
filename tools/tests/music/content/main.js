@@ -41,7 +41,7 @@ check('arquivo que nao existe da 0', () =>
     (MusicLoader.GetMusicSlot('Music/nao-existe') === 0 && !MusicLoader.MusicExists('Music/nao-existe') &&
      MusicLoader.MusicExists(exampleMod, 'Music/Ropocalypse2')) || 'nao');
 
-let frames = 0, done = false, boss = null, bossMusic = 0, old = 0, savedTime = null;
+let frames = 0, done = false, boss = null, bossSlot = -1, bossMusic = 0, old = 0, savedTime = null;
 const fadeOf = (music) => Terraria.Main.musicFade[music];
 const playing = () => MusicLoader.IsMusicPlaying(bossMusic);
 // Os NPCs de mod com Music no mundo agora: "slot:tipo:Music".
@@ -56,7 +56,8 @@ function musicNpcsNow() {
 }
 const state = () => `newMusic ${Main.newMusic}, cur ${Main.curMusic}, fade da velha (${old}) ` +
     `${fadeOf(old).toFixed(3)}, fade Boss2 ${fadeOf(Terraria.ID.MusicID.Boss2).toFixed(3)}, dele tocando ${playing()}, ` +
-    `NPCs com musica: ${musicNpcsNow()}`;
+    `NPCs com musica: ${musicNpcsNow()}, chefe do teste no slot ${bossSlot}` +
+    (bossSlot >= 0 ? ` (ativo ${Main.npc[bossSlot].active}, tipo ${Main.npc[bossSlot].type})` : '');
 
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     original(self, i);
@@ -89,6 +90,7 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
             const src = Terraria.DataStructures.EntitySource_DebugCommand.new();
             boss = Main.npc[newNpc(src, Math.floor(p.Center.X), Math.floor(p.Center.Y) - 300, type, 0, 0, 0, 0, 0, Main.myPlayer)];
             bossMusic = boss.ModNPC ? boss.ModNPC.Music : -1;
+            bossSlot = boss.whoAmI;
             // O mesmo arquivo: o mesmo slot, pedido pelo chefe ou por este teste.
             return (boss.active && bossMusic === slot) || `ativo ${boss.active}, Music ${bossMusic}, slot ${slot}`;
         });

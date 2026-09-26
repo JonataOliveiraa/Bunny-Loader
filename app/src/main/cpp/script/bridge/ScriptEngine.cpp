@@ -32,8 +32,10 @@ std::timed_mutex g_jsMutex;
 // e emulado (uma chamada a __emutls_get_address por variavel, por funcao), e
 // cada chamada a mais pesava no hook com original() no bench do MuMu.
 struct JsThread {
-    int depth = 0;   // entradas aninhadas no motor
-    int tid = 0;     // o gettid(), lido uma vez
+    int depth = 0;           // entradas aninhadas no motor
+    int tid = 0;             // o gettid(), lido uma vez
+    int parked = 0;          // original() em andamento (JsSuspend) nesta thread
+    uintptr_t baseTop = 0;   // de onde o limite de pilha dela e contado
 };
 thread_local JsThread t_js;
 
@@ -62,6 +64,36 @@ void alignStackTop() {
     if (void* rt = engine().runtime()) JS_UpdateStackTop(static_cast<JSRuntime*>(rt));
 #endif
 }
+
+// O limite de pilha do motor e contado de onde a thread ENTROU nele, uma vez
+// por thread: o hook aninhado que chega de dentro de um original() (o motor foi
+// solto, a entrada e "do zero") e a volta do JsSuspend usam o mesmo topo.
+// Realinhar pelo ponteiro de pilha de AGORA, mais fundo, dava 256 KB novos a
+// cada original() aninhado, e uma cadeia de hooks podia estourar a pilha nativa
+// sem o "Maximum call stack size exceeded" (o hookslots foi de 53 para 120).
+uintptr_t stackTopNow() {
+#if BL_HAVE_QUICKJS
+    if (void* rt = engine().runtime()) return bl_js_stack_top(static_cast<JSRuntime*>(rt));
+#endif
+    return 0;
+}
+
+void restoreStackTop(uintptr_t top) {
+#if BL_HAVE_QUICKJS
+    if (void* rt = engine().runtime()) bl_js_set_stack_top(static_cast<JSRuntime*>(rt), top);
+#else
+    (void)top;
+#endif
+}
+
+void alignStackFor(JsThread& t) {
+    if (t.parked == 0) {
+        alignStackTop();
+        t.baseTop = stackTopNow();
+    } else {
+        restoreStackTop(t.baseTop);
+    }
+}
 } // namespace
 
 JsLock::JsLock() {
@@ -69,7 +101,7 @@ JsLock::JsLock() {
     if (t.depth == 0) {
         g_jsMutex.lock();
         markOwner(t);
-        alignStackTop();
+        alignStackFor(t);
     }
     ++t.depth;
     held_ = true;
@@ -80,7 +112,7 @@ JsLock::JsLock(int timeoutMs) {
     if (t.depth == 0) {
         if (!g_jsMutex.try_lock_for(std::chrono::milliseconds(timeoutMs))) return;
         markOwner(t);
-        alignStackTop();
+        alignStackFor(t);
     }
     ++t.depth;
     held_ = true;
@@ -110,6 +142,7 @@ JsSuspend::JsSuspend() {
         frames_ = *g_frameSlot;
         *g_frameSlot = nullptr;
     }
+    ++t.parked;
     hook_ = g_ownerHook.load(std::memory_order_relaxed);
     released_ = true;
     clearOwner();
@@ -127,7 +160,8 @@ JsSuspend::~JsSuspend() {
     markOwner(t);
     g_ownerHook.store(hook_, std::memory_order_relaxed);
     t.depth = depth_;
-    alignStackTop();
+    restoreStackTop(t.baseTop);
+    --t.parked;
 }
 
 int jsOwnerThread() { return g_ownerTid.load(std::memory_order_relaxed); }
