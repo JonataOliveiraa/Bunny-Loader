@@ -93,7 +93,7 @@ struct Pinned {
     uint32_t handle;
     // So em GameArray: o tipo do elemento, descoberto no primeiro acesso.
     // Perguntar ao IL2CPP a classe e o elemento a cada `arr[i]` custava mais
-    // que ler o elemento (docs/PONTE-OTIMIZACAO.md, passo 4).
+    // que ler o elemento (docs/historico/PONTE-OTIMIZACAO.md, passo 4).
     const TypeDesc* elem = nullptr;
 };
 
@@ -861,7 +861,7 @@ JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr) {
 JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m) {
     // Um GameMethod por metodo, criado uma vez: `obj['void Foo()']()` num laco
     // montava um objeto novo (malloc + objeto JS + method_get_flags) a cada
-    // volta — 290 ns jogados fora por chamada (docs/PONTE-OTIMIZACAO.md,
+    // volta — 290 ns jogados fora por chamada (docs/historico/PONTE-OTIMIZACAO.md,
     // passo 3). O cache segura a referencia para sempre, como os callbacks de
     // hook: o runtime JS vive ate o processo morrer (shutdown() nao e chamado).
     static std::unordered_map<const MethodInfo*, JSValue> cache;

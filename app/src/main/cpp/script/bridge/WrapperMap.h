@@ -12,7 +12,7 @@ namespace bl::script {
  *
  * Era um std::unordered_map: um no alocado a cada wrapper novo e liberado a
  * cada wrapper morto — e wrapper novo e o caso de `self` de hook e de elemento
- * de array que o JS nao guarda (docs/PONTE-OTIMIZACAO.md, passo 5c).
+ * de array que o JS nao guarda (docs/historico/PONTE-OTIMIZACAO.md, passo 5c).
  *
  * Enderecamento aberto com sondagem linear e remocao por deslocamento para
  * tras (sem lapides): a busca para no primeiro balde vazio, entao remover

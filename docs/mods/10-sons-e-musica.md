@@ -1,11 +1,11 @@
-# 5. Sons e música
+# 10. Sons e música
 
 Um mod pode trazer os próprios sons e músicas: o tiro de uma arma, o grito de
 um NPC, a música de um chefe. O jeito é o do tModLoader: `SoundStyle` para
 sons, `SoundEngine.PlaySound` para tocar na hora e `MusicLoader` com
 `ModNPC.Music` para música.
 
-Pré-requisito: o [guia 2](02-moditem-modnpc.md), até `ModItem` e `ModNPC`.
+Pré-requisito: os guias de [itens](05-itens.md) e de [NPCs](07-npcs.md).
 
 ## Os arquivos
 

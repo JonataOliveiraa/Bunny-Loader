@@ -15,7 +15,7 @@ As classes que vêm no APK do Terraria NÃO servem: o PairIP cifra as constantes
 string de todo o app, inclusive dentro das classes do Unity — por exemplo
 `UnityPlayer.getNaturalOrientation()` lê uma string que deveria ser `"window"` e
 recebe `null`, estourando em `getSystemService(null)`. Foi o que derrubou a Fase 1.
-Ver `docs/UNITY-HOSTING.md`.
+Ver `docs/historico/UNITY-HOSTING.md`.
 
 ## Procedência (reproduzir)
 

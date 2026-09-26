@@ -1,9 +1,13 @@
-# 3. `ref` e `out`
+# 2. `ref` e `out`
 
-Muitos métodos do jogo devolvem resultado por um parâmetro `ref` ou `out`: a
-rolagem da pesca, a taxa de spawn, a colisão ao subir degrau. No Bunny Loader
-dá para **chamar** esses métodos e **hookar** esses métodos, lendo e mudando o
-parâmetro. Este guia mostra como.
+Muitos métodos do jogo devolvem resultado por um parâmetro `ref` ou `out`, e
+não pelo `return`: a rolagem da pesca, a taxa de spawn, a colisão ao subir
+degrau, as linhas do tooltip. São alguns dos melhores pontos para um mod mexer,
+porque é por eles que o jogo passa as decisões de um método para outro.
+
+No Bunny Loader dá para **chamar** esses métodos e **hookar** esses métodos,
+lendo e mudando o parâmetro. Este guia mostra como, e explica a única
+armadilha: o `Ref` de um hook "se solta" quando o hook termina.
 
 Pré-requisito: o [guia 1](01-hooks-do-zero.md), até *Hooks*.
 
@@ -160,7 +164,7 @@ Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yo
 ```
 
 Na prática, um item de mod não precisa disso: o `ModifyTooltips` do `ModItem`
-já é esse hook, com cor por linha e por trecho (guia 2, *Tooltip colorido*).
+já é esse hook, com cor por linha e por trecho ([guia 5, *Tooltip colorido*](05-itens.md#tooltip-colorido)).
 
 ### Repassar o `ref` a outra chamada
 

@@ -1,11 +1,11 @@
-# 4. Conversa entre mods
+# 11. Conversa entre mods
 
 Um mod pode achar outro mod instalado e chamar o que ele oferece. É assim que,
 no PC, o Wikithis recebe o endereço da wiki de cada mod, e um mod de lista de
 chefes aprende os chefes dos outros. O jeito é o do tModLoader:
 `ModLoader.TryGetMod` acha o outro mod e `Call` chama o que ele oferece.
 
-Pré-requisito: o [guia 2](02-moditem-modnpc.md), até o `ModSystem`.
+Pré-requisito: o [guia 4](04-conteudo-novo.md) e o `ModSystem` do [guia 5](05-itens.md#modsystem).
 
 ## Chamando outro mod
 
@@ -24,7 +24,7 @@ ModSystem.register(WikiCompat);
 - O nome é o **`id` do manifesto** do outro mod (não o `name`). O `uid` também
   serve.
 - `TryGetMod(id, ref)` devolve `true` e põe o `Mod` em `ref.value`, ou devolve
-  `false` e põe `null`. É o `out Mod` do C#, com o [`Ref`](03-ref-e-out.md).
+  `false` e põe `null`. É o `out Mod` do C#, com o [`Ref`](02-ref-e-out.md).
 - Sem o outro mod instalado, o `if` não entra e nada acontece. Por isso a
   compatibilidade fica opcional: quem não tem o Wikithis joga igual.
 

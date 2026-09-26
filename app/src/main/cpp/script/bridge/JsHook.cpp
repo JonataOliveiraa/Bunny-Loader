@@ -128,7 +128,7 @@ struct Frame {
 // Foi o crash ao criar e ao carregar mundo: dois hooks JS encadeados no
 // Item.SetDefaults (HelloMod + itens de mod) aninham na primeira chamada de
 // cada thread nova, e a gravacao do resultado caia em memoria ja devolvida —
-// que o IL2CPP reusava nas tabelas de genericos (docs/PONTE-OTIMIZACAO.md).
+// que o IL2CPP reusava nas tabelas de genericos (docs/historico/PONTE-OTIMIZACAO.md).
 static thread_local std::vector<Frame> g_frames;
 
 // Profundidade de reentrancia por slot, por thread. Evita que um metodo cujo

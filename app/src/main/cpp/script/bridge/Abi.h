@@ -103,7 +103,7 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out);
  * num HOOK, onde o corpo do metodo pode ser DoDraw inteiro e outra thread
  * (a geracao de mundo, no SetDefaults) ficaria esperando a trava. NAO vale
  * numa chamada que o proprio mod fez: soltar e reaver a trava custa mais que
- * um getter. Medido: ~100 ns por chamada (docs/PONTE-OTIMIZACAO.md).
+ * um getter. Medido: ~100 ns por chamada (docs/historico/PONTE-OTIMIZACAO.md).
  */
 Outcome callRaw(void* fn, const AbiPlan& p, const intptr_t a[kIntSlots], const uint64_t d[8],
                 bool* threw = nullptr, bool suspend = false);

@@ -1,7 +1,7 @@
 # Otimização da ponte JS → IL2CPP
 
 Continuação de [`AVALIACAO-PONTE-E-CRASH.md`](AVALIACAO-PONTE-E-CRASH.md). Um
-passo por vez, cada um medido com [`tools/bench`](../tools/bench) e conferido
+passo por vez, cada um medido com [`tools/bench`](../../tools/bench) e conferido
 com os mods de teste antes do próximo. Tudo no MuMu (ver a ressalva de lá: os
 números absolutos são de ARM traduzido; o que vale é a comparação).
 
@@ -18,16 +18,16 @@ números absolutos são de ARM traduzido; o que vale é a comparação).
 
 Cada passo tem de manter verdes:
 
-- [`tools/tests/nullable`](../tools/tests/nullable) (a ponte inteira: tipos,
+- [`tools/tests/nullable`](../../tools/tests/nullable) (a ponte inteira: tipos,
   structs, arrays, hooks);
-- [`tools/tests/wrappers`](../tools/tests/wrappers) (criado para esta rodada):
+- [`tools/tests/wrappers`](../../tools/tests/wrappers) (criado para esta rodada):
   objeto segurado só pelo JS sobrevive a `GC.Collect()`, identidade, `self`
   guardado depois do hook continua válido.
 
 ## Método
 
-- [`tools/bench/run.sh`](../tools/bench/run.sh) instala os mods, abre o jogo,
-  entra no mundo de teste e salva o log; [`compare.py`](../tools/bench/compare.py)
+- [`tools/bench/run.sh`](../../tools/bench/run.sh) instala os mods, abre o jogo,
+  entra no mundo de teste e salva o log; [`compare.py`](../../tools/bench/compare.py)
   faz a média das rodadas e o delta contra a linha de base.
 - O benchmark pega o **menor de 7** para cada item, e a bateria inteira roda
   duas vezes por sessão. Com "melhor de 3" o mesmo código variava até 70% entre
@@ -44,7 +44,7 @@ Média de duas rodadas; ns acima do laço vazio.
 
 ### Passo 0 → 1: tabela de raízes
 
-`Roots` ([`script/bridge/Roots.cpp`](../app/src/main/cpp/script/bridge/Roots.cpp)): blocos
+`Roots` ([`script/bridge/Roots.cpp`](../../app/src/main/cpp/script/bridge/Roots.cpp)): blocos
 de 4096 ponteiros em `il2cpp_gc_alloc_fixed` (o coletor varre, não recolhe),
 lista de slots livres, gravação pela barreira de escrita. Coletor deste
 Terraria: **não incremental** (log do boot).
@@ -77,7 +77,7 @@ Primeiro experimento: o mesmo código com o `JsSuspend` desligado (o
 (1 crash e 1 rodada com métodos vindo `undefined`: corrupção de memória).
 
 **A causa real: referência pendurada no `original()` do hook**
-([`script/bridge/JsHook.cpp`](../app/src/main/cpp/script/bridge/JsHook.cpp)). O
+([`script/bridge/JsHook.cpp`](../../app/src/main/cpp/script/bridge/JsHook.cpp)). O
 `js_original` guardava `Frame& f = g_frames.back()` e gravava o resultado nele
 depois de chamar o método do jogo. Se o método disparava outro hook na mesma
 thread, o `push_back` realocava o `vector`, e a gravação (~200 bytes) caía em
@@ -131,6 +131,15 @@ trava; o custo de ~100 ns por hook vale isso.
 > da diferença é onde o código caiu, sentido pela tradução ARM→x86 do MuMu,
 > não o que ele faz. O `enginethreads` na regra antiga: 0 quadros em 1,5 s
 > e a pilha JS do save com frames da thread do jogo; na nova, 14 quadros.
+>
+> Corrigido no mesmo dia: com o motor solto dentro de um `original()`, o hook
+> aninhado entrava "do zero" e o `JsLock` realinhava o limite de pilha do
+> QuickJS pelo ponteiro de pilha de AGORA (`JS_UpdateStackTop`), mais fundo
+> que o do começo da cadeia; cada nível ganhava 256 KB novos (o `hookslots`
+> foi de 53 para 120 níveis). Agora cada thread guarda o topo de onde entrou no
+> motor e o reusa em toda entrada aninhada e em toda volta de `original()`: 55
+> níveis, e o que passa disso cai no "Maximum call stack size exceeded" com o
+> original rodando por ele.
 
 Medição final do passo 2 (correção + `JsSuspend`, 5 rodadas,
 [`frame-fix-comsuspend-*`](dados/otimizacao/)):
@@ -193,10 +202,10 @@ passo 5 atacou isso, em três partes medidas separadamente:
 | antes (passo 4) | ~403 | |
 | 5a: sem a barreira de escrita quando o coletor não é incremental (o deste Terraria) | ~381 | −5% |
 | 5b: `Pinned` reusados numa lista livre, em vez de `new`/`delete` | ~301 | −21% |
-| 5c: [`WrapperMap`](../app/src/main/cpp/script/bridge/WrapperMap.h) — endereçamento aberto, sem alocação por entrada | **~154** | **−49%** |
+| 5c: [`WrapperMap`](../../app/src/main/cpp/script/bridge/WrapperMap.h) — endereçamento aberto, sem alocação por entrada | **~154** | **−49%** |
 
 O `WrapperMap` tem fuzz próprio contra `std::unordered_map`
-([`tools/tests/wrappermap`](../tools/tests/wrappermap), 9 milhões de operações,
+([`tools/tests/wrappermap`](../../tools/tests/wrappermap), 9 milhões de operações,
 roda no MuMu como binário x86_64), com controle negativo: invertendo a condição
 da remoção, falha na operação 185. O teste de wrappers ganhou um estresse do
 mapa (8 voltas nos 400 itens de `Main.item`, conferindo `whoAmI`).

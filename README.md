@@ -1,87 +1,117 @@
 # Bunny Loader
 
-Launcher de mods para **Terraria Mobile**. Sobe o jogo já instalado dentro do
-próprio processo, intercepta métodos nativos gerados pelo IL2CPP e executa mods.
+Loader de mods para o **Terraria Mobile**. É um app Android que sobe o jogo
+dentro do próprio processo, intercepta métodos do código nativo gerado pelo
+IL2CPP e roda mods escritos em **JavaScript**, no formato do tModLoader
+(`ModItem`, `ModNPC`, `ModProjectile`, `SetDefaults`, `AI`...).
 
-- **v1:** mods escritos em **JavaScript** (motor **QuickJS**, sem JIT), com acesso
-  direto às classes do jogo e `hook()` em qualquer método.
-- **futuro:** motor próprio de bytecode (LRVM) para mods em C#.
+![A tela inicial do Bunny Loader](docs/imagens/launcher-inicio.jpg)
+
+- Mods em JavaScript (motor [QuickJS](https://github.com/quickjs-ng/quickjs),
+  sem JIT), com acesso direto às classes do jogo e `hook()` em qualquer método.
+- Conteúdo novo como no tModLoader: itens, armas, projéteis, pets, lacaios,
+  inimigos, moradores com loja, chefes com música, blocos, buffs, receitas.
+- Save limpo: o conteúdo de mod vai ao lado do save do jogo, pelo nome, e o
+  mundo abre sem o mod.
+- Mod Menu dentro do jogo: itens e NPCs de cada mod, e superpoderes.
+
+![O Mod Menu, com os superpoderes](docs/imagens/mod-menu-superpoderes.jpg)
 
 > Este repositório **não** inclui os binários nem os assets do Terraria
-> (`libil2cpp.so`, `libunity.so`, dados do jogo): eles ficam fora do Git e são
-> integrados localmente, e o jogo só abre para quem tem o Terraria oficial da
-> Play instalado. Os dumps em `refs/` são gerados localmente e nunca publicados.
-> Algumas texturas da interface (fundos, ícones do menu, capas dos mods de
-> exemplo) são recortes da arte do Terraria, gerados por `tools/ui-sprites.py`
-> e `tools/mod-art.py`.
+> (`libil2cpp.so`, `libunity.so`, os dados do jogo): eles ficam fora do Git e
+> são integrados localmente, e o jogo só abre para quem tem o Terraria oficial
+> da Play instalado. Os dumps em `refs/` são gerados localmente e nunca
+> publicados. Algumas texturas da interface (fundos, ícones do menu, capas dos
+> mods de exemplo) são recortes da arte do Terraria, gerados por
+> `tools/ui-sprites.py` e `tools/mod-art.py`.
 
-## Criando mods
+## Documentação
 
-Os guias estão em [`docs/mods/`](docs/mods/README.md):
+Tudo em [`docs/`](docs/README.md):
 
-1. [Do zero, com hooks](docs/mods/01-hooks-do-zero.md) — mudar o que o jogo já tem.
-2. [Conteúdo novo: ModItem, ModNPC...](docs/mods/02-moditem-modnpc.md) — criar item, projétil e NPC.
-3. [`ref` e `out`](docs/mods/03-ref-e-out.md) — chamar e hookar método com parâmetro `ref`/`out`.
+- **[Criando mods](docs/mods/README.md)**: do primeiro hook ao chefe com
+  música, em 11 guias.
+  1. [Hooks: mudar o que o jogo já tem](docs/mods/01-hooks-do-zero.md)
+  2. [`ref` e `out`](docs/mods/02-ref-e-out.md)
+  3. [Custo e desempenho](docs/mods/03-custo-e-desempenho.md)
+  4. [Conteúdo novo: as ideias](docs/mods/04-conteudo-novo.md)
+  5. [Itens](docs/mods/05-itens.md) · 6. [Projéteis](docs/mods/06-projeteis.md) ·
+     7. [NPCs](docs/mods/07-npcs.md) · 8. [Jogador e buffs](docs/mods/08-jogador-e-buffs.md) ·
+     9. [Blocos](docs/mods/09-blocos.md) · 10. [Sons e música](docs/mods/10-sons-e-musica.md)
+  11. [Conversa entre mods](docs/mods/11-conversa-entre-mods.md)
+- **Referência**: [o que cada classe tem hoje](docs/referencia/classes.md) e
+  [a ponte e o `bl`](docs/referencia/ponte-e-bl.md).
+- **[O núcleo nativo](docs/nucleo/README.md)**, para quem mexe no Bunny
+  Loader: [hooks](docs/nucleo/hooks.md), [threads e o motor JS](docs/nucleo/threads-e-motor-js.md),
+  [a ponte](docs/nucleo/ponte.md), [conteúdo novo](docs/nucleo/conteudo.md).
+- **[Histórico](docs/historico/README.md)**: decisões, investigações e
+  medições.
 
 Os mods instalados ficam em `Android/data/com.bunnyloader/bunny_packs/<uid>/`,
 e o jogo carrega de lá: dá para editar um mod direto no aparelho e só reabrir
 o jogo.
 
+## Um mod em 10 linhas
+
+```js
+// content/main.js: toda arma bate o dobro
+Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'].hook((original, self, type, variant) => {
+    original(self, type, variant);
+    if (self.damage > 0) self.damage *= 2;
+});
+
+bl.log('Dano em Dobro: ativo');
+```
+
+Os exemplos completos estão em [`samples/`](samples), do menor
+([`DobroDeDano`](samples/DobroDeDano)) ao [`ExampleMod`](samples/ExampleMod),
+o do tModLoader portado.
+
 ## Stack
 
 | Camada | Tecnologia |
 |---|---|
-| App / UI | Kotlin + Jetpack Compose |
+| App e launcher | Kotlin + Jetpack Compose |
 | Núcleo nativo | C++20 (NDK + CMake) → `libbunny.so` |
-| Hooking | ShadowHook (ARM64 + ARM32, hook pendente por símbolo) |
-| IL2CPP | `dlsym` das funções `il2cpp_*` |
-| Motor de mod | QuickJS |
-| Dump do jogo | Il2CppDumper / Cpp2IL |
+| Hooks | [ShadowHook](https://github.com/bytedance/android-inline-hook) (inline, ARM64), com cadeia própria |
+| IL2CPP | a API de embutir (`il2cpp_*`), por `dlsym`; tudo resolvido por nome |
+| Motor de mod | QuickJS (quickjs-ng) |
+| Dump do jogo | Il2CppDumper |
 
 ## Estrutura
 
 ```
 app/src/main/
-  kotlin/dev/bunnyloader/   App Android (launcher + host da Unity)
-  cpp/                      Núcleo nativo (libbunny.so)
+  kotlin/dev/bunnyloader/   App Android: launcher e a GameActivity que sobe a Unity
+  cpp/                      Núcleo nativo (libbunny.so); mapa em docs/nucleo/README.md
   res/                      Recursos Android
+samples/                    Mods de exemplo, do mais simples ao ExampleMod
+docs/                       Documentação (guias, referência, núcleo, histórico)
+tools/                      Ferramentas de PC: build rápido, dump, testes, benchmark
 refs/                       Dump local do jogo (NÃO versionado)
-samples/                    Mods de exemplo (JS), do mais simples ao ExampleMod
-docs/ARCHITECTURE.md        Arquitetura detalhada
-docs/UNITY-HOSTING.md       Como hospedar a UnityPlayer (análise do dex)
-tools/                      Ferramentas de PC (packer, etc. — futuro)
 ```
-
-## Fases (ver docs/ARCHITECTURE.md §Roadmap)
-
-0. Ambiente + dump do jogo
-1. Launcher que sobe o Terraria (maior de-risk)
-2. Núcleo que se anexa (`il2cpp_init` + `Il2CppApi.load()`)
-3. Primeiro hook (`Projectile.AI`)
-4. Motor QuickJS + primeiro mod real
-5. Loader completo (importar `.bmod`, ativar, log)
 
 ## Build
 
-Abra a pasta no Android Studio e deixe o **Gradle Sync** rodar — ele gera o
-wrapper, baixa o Gradle e oferece instalar a plataforma SDK que faltar.
+Abra a pasta no Android Studio e deixe o **Gradle Sync** rodar: ele baixa o
+Gradle e oferece instalar a plataforma SDK que faltar.
 
-### Só a Fase 1 (launcher, sem núcleo nativo)
+1. SDK Manager → aba **SDK Tools** → instale **NDK (Side by side)** e
+   **CMake**.
+2. Clone o QuickJS em `app/src/main/cpp/third_party/quickjs/` (ver o
+   [README de lá](app/src/main/cpp/third_party/README.md)). Sem ele, o build
+   passa e o motor de mods fica em modo stub.
+3. O runtime do jogo (as `.so` em `app/src/main/jniLibs/arm64-v8a/` e os
+   dados em `terraria1456_assets/`) não está no repositório; ver o
+   [README da pasta](app/src/main/jniLibs/arm64-v8a/README.md). Sem ele, o app
+   compila e instala, e a `GameActivity` diz que o runtime falta.
 
-Não precisa de NDK nem CMake. Ponha em `gradle.properties`:
+Atalhos:
 
-```properties
-bl.nativeBuild=false
-```
-
-e rode. O launcher sobe o Terraria sem carregar a `libbunny.so`.
-
-### Fase 2 em diante (com o núcleo nativo)
-
-1. SDK Manager → aba **SDK Tools** → instalar **NDK (Side by side)** e **CMake**.
-2. Remover (ou pôr `true` em) `bl.nativeBuild`.
-3. QuickJS só na Fase 4 — ver `app/src/main/cpp/third_party/README.md`.
-   Sem ele o build passa e o motor de script fica em modo stub.
+| | |
+|---|---|
+| `-Pbl.nativeBuild=false` | Só o launcher, sem NDK nem CMake. |
+| `-Pbl.uiOnly=true` | Sem os assets e as `.so` do jogo: o ciclo de interface cai para ~6 s ([`tools/ui.sh`](tools/ui.sh)). |
 
 ### Dump do jogo
 
@@ -89,8 +119,12 @@ e rode. O launcher sobe o Terraria sem carregar a `libbunny.so`.
 tools/dump.sh
 ```
 
-Ver `refs/README.md`.
+Gera `refs/` (o `dump.cs` com todas as classes, campos e métodos do jogo) a
+partir do Terraria instalado. Ver [`refs/README.md`](refs/README.md).
 
-> **Emulador:** MuMuPlayer serve para iterar a UI/launcher (Fase 1). A injeção
-> nativa e os hooks (Fase 2+) devem ser validados em **dispositivo ARM real** ou
-> emulador ARM — tradução ARM→x86 torna inline hooks instáveis.
+### Testes
+
+Os testes são mods em [`tools/tests/`](tools/tests), rodados no emulador por
+[`tools/bench/run.sh`](tools/bench/run.sh). Ver [`tools/README.md`](tools/README.md).
+O desenvolvimento é feito no MuMu Player (que roda o ARM do jogo por tradução,
+e onde os hooks funcionam) e conferido em aparelho ARM de verdade.

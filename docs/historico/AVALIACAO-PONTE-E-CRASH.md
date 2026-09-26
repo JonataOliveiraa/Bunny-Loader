@@ -4,8 +4,8 @@ Rodada de 2026-09-23, no MuMu (x86_64 traduzindo ARM pelo houdini), Terraria
 1.4.5.6.4, `libbunny` compilada com `-O2` (vale também para o APK de debug:
 conferido no `compile_commands.json`). Dados brutos em
 [`dados/2026-09-23/`](dados/2026-09-23/); ferramentas em
-[`tools/bench`](../tools/bench), [`tools/crash-trials`](../tools/crash-trials)
-e [`tools/disasm`](../tools/disasm).
+[`tools/bench`](../../tools/bench), [`tools/crash-trials`](../../tools/crash-trials)
+e [`tools/disasm`](../../tools/disasm).
 
 > **O MuMu não é o aparelho.** Tudo aqui roda traduzido de ARM, e o
 > interpretador do QuickJS (despacho indireto a cada bytecode) é justamente o
@@ -17,7 +17,7 @@ e [`tools/disasm`](../tools/disasm).
 
 ### Como foi medido
 
-[`tools/bench`](../tools/bench) é um mod: na primeira atualização do jogador
+[`tools/bench`](../../tools/bench) é um mod: na primeira atualização do jogador
 dentro do mundo, na thread do jogo, roda cada operação 20 000 vezes (melhor de
 3) e desconta um laço vazio. O custo do hook é (chamada com hook) − (a mesma
 chamada sem hook), medido antes e depois de instalar hooks que só repassam ao
