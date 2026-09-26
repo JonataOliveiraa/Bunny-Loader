@@ -83,7 +83,7 @@ sequenceDiagram
     A->>B: NativeBridge.init(config: pasta dos mods, ligados, log)
     A->>U: cria a UnityPlayer
     U->>B: il2cpp_init (hookado)
-    B->>U: deixa terminar; carrega a API do IL2CPP, resolve GameRefs
+    B->>U: deixa terminar, depois carrega a API do IL2CPP e resolve GameRefs
     S->>S: espera o jogo assentar
     S->>B: QuickJS + bindings + ModClasses.js
     S->>B: ModLoader: roda o main.js de cada mod ligado
