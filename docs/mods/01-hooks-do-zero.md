@@ -366,6 +366,8 @@ Caminho relativo é relativo à pasta do `main.js`; absoluto vale como está.
 
 ```js
 bl.mod.name            // "Dano em Dobro" (do manifest.json)
+bl.mod.id              // "dobrodedano": o id do manifest.json
+bl.mod.version         // "1.0.0"
 bl.mod.uuid            // o uid
 bl.mod.path            // a pasta do main.js
 bl.mod.root            // a pasta do pacote (a do manifest.json)
@@ -416,6 +418,7 @@ a pasta do pacote é trocada inteira quando o mod é atualizado.
 | `bl.readJson(caminho)` | JSON do mod |
 | `bl.file`, `bl.directory`, `bl.path` | ler e escrever arquivos (ver *Arquivos*) |
 | `bl.mod`, `bl.info` | o mod que chama; a pasta do app |
+| `ModLoader.TryGetMod(id, ref)`, `mod.Call(...)` | achar e chamar outro mod ([guia 4](04-conversa-entre-mods.md)) |
 | `GUIBuffs`, `GUIInstance`... | classe sem namespace, global |
 | `import ... from './x.js'` | outro arquivo do mod |
 

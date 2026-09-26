@@ -12,6 +12,7 @@ Há dois jeitos de escrever um mod. Dá para misturar os dois no mesmo pacote.
 | [1. Do zero, com hooks](01-hooks-do-zero.md) | Mudar o que o jogo **já tem**: dano, vida, queda, a Minishark... A ponte JS ↔ jogo inteira: classes, campos, métodos, hooks, structs, texturas. |
 | [2. Conteúdo novo: ModItem, ModNPC...](02-moditem-modnpc.md) | **Criar** item, projétil, NPC, buff e bloco novos, com textura, nome, receita, drop, spawn natural e Bestiário, no formato do tModLoader. |
 | [3. `ref` e `out`](03-ref-e-out.md) | Chamar e hookar método com parâmetro `ref`/`out`: pesca, taxa de spawn, colisão. O `Ref` e o que ele pode e não pode. |
+| [4. Conversa entre mods](04-conversa-entre-mods.md) | Achar outro mod instalado e chamar o que ele oferece (`ModLoader.TryGetMod` + `Call`), como a compatibilidade com o Wikithis no PC. |
 
 Os mods de `samples/` são exemplos completos, e curtos:
 
@@ -64,7 +65,7 @@ da própria pasta.
 | Campo | |
 |---|---|
 | `uid` | **Obrigatório.** Um UUID minúsculo. É a identidade do mod e o nome da pasta dele: dois mods com o mesmo `uid` são o mesmo mod (instalar um substitui o outro). Gere um uma vez e nunca mude: `python -c "import uuid; print(uuid.uuid4())"`. |
-| `id` | Apelido curto, só letras. Não precisa ser único. |
+| `id` | Apelido curto, só letras. É por ele que outro mod acha o seu (`ModLoader.TryGetMod`, [guia 4](04-conversa-entre-mods.md)). Não precisa ser único, mas dois mods instalados com o mesmo `id` só se acham pelo `uid`. |
 | `name`, `author`, `version` | O que a lista mostra. |
 | `category` | Texto livre. `Textura`, `Armas`, `Jogabilidade`, `Cheat`, `Utilidade` e `Itens` ganham cor e ícone próprios. |
 | `summary`, `description`, `updated` | O cartão e a ficha do mod. `updated` é `AAAA-MM-DD`. |

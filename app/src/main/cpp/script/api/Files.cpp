@@ -273,23 +273,48 @@ void setStr(JSContext* ctx, JSValue obj, const char* key, const std::string& v) 
     JS_SetPropertyStr(ctx, obj, key, JS_NewString(ctx, v.c_str()));
 }
 
+// O `bl.mod` e o `ModLoader` moram no ModClasses.js (o objeto Mod de cada
+// pacote e JS: a classe que o mod registra vira ele). Daqui saem so os dados.
+
 /**
- * O mod de QUEM PERGUNTA (o bl e um so para todos): nome, uuid, a pasta do
- * main.js (`path`), a do pacote (`root`) e a de dados (`dataDirectory`,
- * `Android/data/com.bunnyloader/mod_data/<uuid>`, criada no primeiro acesso).
+ * bl.__mods(): todos os mods do registro, na ordem de carga — uuid, id (do
+ * manifesto), name, version, path (pasta do main.js), root (a do pacote) e
+ * state: 'pending' (o main.js ainda nao rodou), 'loaded' ou 'failed'.
  */
-JSValue mod_get(JSContext* ctx, JSValueConst) {
+JSValue mods_list(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    JSValue arr = JS_NewArray(ctx);
+    uint32_t n = 0;
+    for (size_t i = 0; i < mods::loadedCount(); ++i) {
+        const mods::LoadedMod* m = mods::get(static_cast<uint16_t>(i));
+        JSValue o = JS_NewObject(ctx);
+        setStr(ctx, o, "uuid", m->id);
+        setStr(ctx, o, "id", m->internalName);
+        setStr(ctx, o, "name", m->displayName);
+        setStr(ctx, o, "version", m->version);
+        setStr(ctx, o, "path", mods::dirOf(m->id));
+        setStr(ctx, o, "root", m->dir);
+        setStr(ctx, o, "state", !m->enabled ? "failed" : m->loaded ? "loaded" : "pending");
+        JS_SetPropertyUint32(ctx, arr, n++, o);
+    }
+    return arr;
+}
+
+/** bl.__callerMod(): o uuid do mod de QUEM CHAMA (o bl e um so para todos). */
+JSValue mods_caller(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     const std::string id = callerModId(ctx);
-    if (id.empty()) return JS_UNDEFINED;
-    JSValue o = JS_NewObject(ctx);
+    return id.empty() ? JS_UNDEFINED : JS_NewString(ctx, id.c_str());
+}
+
+/**
+ * bl.__modDataDirectory(uuid): `Android/data/com.bunnyloader/mod_data/<uuid>`,
+ * criada aqui. So para mod do registro: o uuid vira nome de pasta.
+ */
+JSValue mods_dataDirectory(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    std::string id;
+    if (argc < 1 || !argString(ctx, argv[0], &id) || !mods::find(id)) return JS_UNDEFINED;
     const std::string data = joinTwo(appDirectory(), "mod_data/" + id);
     makeDirs(data);
-    setStr(ctx, o, "name", mods::displayName(id));
-    setStr(ctx, o, "uuid", id);
-    setStr(ctx, o, "path", mods::dirOf(id));
-    setStr(ctx, o, "root", mods::rootOf(id));
-    setStr(ctx, o, "dataDirectory", data);
-    return o;
+    return JS_NewString(ctx, data.c_str());
 }
 
 } // namespace
@@ -325,11 +350,12 @@ void installFilesApi(JSContext* ctx, JSValue bl) {
     group("directory", dirFns, sizeof dirFns / sizeof dirFns[0]);
     group("path", pathFns, sizeof pathFns / sizeof pathFns[0]);
 
-    JSAtom modAtom = JS_NewAtom(ctx, "mod");
-    JS_DefinePropertyGetSet(ctx, bl, modAtom, JS_NewCFunction2(ctx, reinterpret_cast<JSCFunction*>(mod_get),
-                                                               "mod", 0, JS_CFUNC_getter, 0),
-                            JS_UNDEFINED, JS_PROP_CONFIGURABLE | JS_PROP_ENUMERABLE);
-    JS_FreeAtom(ctx, modAtom);
+    static const JSCFunctionListEntry modFns[] = {
+        JS_CFUNC_DEF("__mods", 0, mods_list),
+        JS_CFUNC_DEF("__callerMod", 0, mods_caller),
+        JS_CFUNC_DEF("__modDataDirectory", 1, mods_dataDirectory),
+    };
+    JS_SetPropertyFunctionList(ctx, bl, modFns, sizeof modFns / sizeof modFns[0]);
 
     JSValue info = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, info, "terrariaVersionCode",

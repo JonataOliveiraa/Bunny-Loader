@@ -1,0 +1,15 @@
+{
+  "uid": "ffc0ffee-7e57-4c0d-9a11-000000000002",
+  "id": "test-crossmod-alvo",
+  "name": "Teste: conversa entre mods (alvo)",
+  "version": "2.1.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O mod chamado pelo tools/tests/crossmod: define um Call e chama o outro na carga.",
+  "description": "Loga 'crossmodtarget ...'. Rodar junto com tools/tests/crossmod.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

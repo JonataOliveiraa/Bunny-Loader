@@ -8,14 +8,23 @@
 namespace bl::mods {
 
 struct LoadedMod {
-    std::string id;
+    std::string id;             // o uid: nome da pasta e do modulo no QuickJS
+    std::string internalName;   // o "id" do manifesto: por ele outro mod o acha (ModLoader.TryGetMod)
+    std::string displayName;    // o "name" do manifesto
+    std::string version;
     std::string dir;
     std::string entry;   // ex: "main.js"
     uint32_t errorCount = 0;
     bool enabled = true;
+    bool loaded = false;        // o main.js ja rodou sem erro
 };
 
-// Carrega os mods habilitados de modsDir, na ordem de dependências.
+/**
+ * Carrega os mods habilitados de modsDir.
+ *
+ * Todos entram no registro ANTES de o primeiro main.js rodar: um mod que
+ * pergunta por outro (ModLoader.TryGetMod) acha o que ainda vai carregar.
+ */
 void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled);
 
 // Carrega os mods embutidos na libbunny (JS compilado no binário). Usado como
@@ -47,6 +56,9 @@ std::string rootOf(const std::string& id);
 
 /** O "name" do manifesto, para mostrar a gente; o id se nao houver. */
 std::string displayName(const std::string& id);
+
+/** O mod pelo uid, ou nullptr. */
+const LoadedMod* find(const std::string& id);
 
 // Um mod que falha demais é desativado em runtime; falha NUNCA derruba o jogo.
 constexpr uint32_t MaxErrors = 20;

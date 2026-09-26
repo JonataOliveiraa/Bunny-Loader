@@ -37,12 +37,59 @@ bool fileExists(const std::string& path) {
     std::fclose(f);
     return true;
 }
+
+/**
+ * O texto de uma chave do manifesto ("id", "name"...), lido a mao: sao tres
+ * campos, e puxar um parser de JSON para o nucleo por causa deles nao se paga.
+ * A chave so conta seguida de ':' — o mesmo texto entre aspas dentro de um
+ * valor nao engana.
+ */
+std::string manifestString(const std::string& txt, const char* key) {
+    const std::string quoted = std::string("\"") + key + "\"";
+    auto skipSpace = [&](size_t i) {
+        while (i < txt.size() && (txt[i] == ' ' || txt[i] == '\t' || txt[i] == '\r' || txt[i] == '\n')) ++i;
+        return i;
+    };
+    for (size_t k = txt.find(quoted); k != std::string::npos; k = txt.find(quoted, k + 1)) {
+        size_t i = skipSpace(k + quoted.size());
+        if (i >= txt.size() || txt[i] != ':') continue;
+        i = skipSpace(i + 1);
+        if (i >= txt.size() || txt[i] != '"') return {};
+        std::string out;
+        for (++i; i < txt.size() && txt[i] != '"'; ++i) {
+            if (txt[i] == '\\' && i + 1 < txt.size()) ++i;
+            out += txt[i];
+        }
+        return out;
+    }
+    return {};
+}
+
+void readManifest(LoadedMod* mod) {
+    FILE* f = std::fopen((mod->dir + "/manifest.json").c_str(), "rb");
+    std::string txt;
+    if (f) {
+        char buf[1024];
+        size_t n;
+        while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) txt.append(buf, n);
+        std::fclose(f);
+    }
+    mod->internalName = manifestString(txt, "id");
+    mod->displayName = manifestString(txt, "name");
+    mod->version = manifestString(txt, "version");
+    if (mod->displayName.empty()) mod->displayName = mod->id;
+}
 }
 
 void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     registry().clear();
     BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());
 
+    // 1a passada: todos no registro, com manifesto e entry, antes de qualquer
+    // main.js rodar. A ordem de carga e a do uid (aleatoria na pratica), entao
+    // sem isto o ModLoader.TryGetMod de um mod dependeria do sorteio do uid do
+    // outro.
+    //
     // TODO(Fase 5): ordenação topológica por dependências (ciclo/faltante =>
     // desativa e loga).
     for (const auto& spec : enabled) {
@@ -50,9 +97,8 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         LoadedMod mod;
         mod.id = id;
         mod.dir = modsDir + "/" + id;
+        readManifest(&mod);
         registry().push_back(mod);
-
-        if (!script::engine().ready()) continue;
 
         // O `entry` do manifesto manda, e e relativo a content/. Ele era
         // IGNORADO: o carregador abria content/main.js fixo, entao um mod que
@@ -72,20 +118,32 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
             registry().back().enabled = false;
             continue;
         }
-        mod.entry = path.substr(mod.dir.size() + 1);
-        registry().back().entry = mod.entry;
+        registry().back().entry = path.substr(mod.dir.size() + 1);
         // A pasta do ARQUIVO, nao a do pacote: o main.js mora em content/, e
         // "ao lado do main.js" e onde o autor poe as imagens dele.
         size_t slash = path.rfind('/');
-        currentDirSlot() = slash == std::string::npos ? mod.dir : path.substr(0, slash);
-        dirsById()[id] = currentDirSlot();
+        dirsById()[id] = slash == std::string::npos ? mod.dir : path.substr(0, slash);
+    }
+
+    if (!script::engine().ready()) return;
+
+    // 2a passada: os main.js, na mesma ordem. Por indice: o registro nao muda
+    // durante a carga, mas uma referencia guardada atravessando o evalFile
+    // seria a mesma armadilha do g_frames.back() do JsHook.
+    for (size_t i = 0; i < registry().size(); ++i) {
+        if (!registry()[i].enabled) continue;
+        const std::string id = registry()[i].id;
+        const std::string path = registry()[i].dir + "/" + registry()[i].entry;
+        currentDirSlot() = dirsById()[id];
         currentIdSlot() = id;
         bool ok = script::engine().evalFile(path, id);
         currentDirSlot().clear();
         currentIdSlot().clear();
         if (!ok) {
             BL_ERROR("mod %s falhou ao carregar (%s)", id.c_str(), path.c_str());
-            registry().back().enabled = false;
+            registry()[i].enabled = false;
+        } else {
+            registry()[i].loaded = true;
         }
     }
 }
@@ -99,27 +157,13 @@ std::string rootOf(const std::string& id) {
 }
 
 std::string displayName(const std::string& id) {
-    // O "name" do manifesto, lido a mao: e um campo so, e puxar um parser de
-    // JSON para o nucleo por causa dele nao se paga.
-    const std::string root = rootOf(id);
-    FILE* f = root.empty() ? nullptr : std::fopen((root + "/manifest.json").c_str(), "rb");
-    if (!f) return id;
-    std::string txt;
-    char buf[1024];
-    size_t n;
-    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) txt.append(buf, n);
-    std::fclose(f);
-    size_t k = txt.find("\"name\"");
-    if (k == std::string::npos) return id;
-    k = txt.find(':', k);
-    k = k == std::string::npos ? k : txt.find('"', k);
-    if (k == std::string::npos) return id;
-    std::string name;
-    for (size_t i = k + 1; i < txt.size() && txt[i] != '"'; ++i) {
-        if (txt[i] == '\\' && i + 1 < txt.size()) ++i;
-        name += txt[i];
-    }
-    return name.empty() ? id : name;
+    const LoadedMod* m = find(id);
+    return m ? m->displayName : id;
+}
+
+const LoadedMod* find(const std::string& id) {
+    for (const LoadedMod& m : registry()) if (m.id == id) return &m;
+    return nullptr;
 }
 
 const std::string& dirOf(const std::string& id) {
@@ -134,17 +178,23 @@ void loadBuiltins() {
         return;
     }
     BL_INFO("carregando %d mod(s) embutido(s) na libbunny", kBuiltinModCount);
+    // Como no loadAll: todos registrados antes de o primeiro rodar.
+    const size_t first = registry().size();
     for (int i = 0; i < kBuiltinModCount; ++i) {
-        const auto& b = kBuiltinMods[i];
         LoadedMod mod;
-        mod.id = b.id;
+        mod.id = kBuiltinMods[i].id;
+        mod.internalName = mod.id;
+        mod.displayName = mod.id;
         mod.dir = "(builtin)";
         mod.entry = "(builtin)";
         registry().push_back(mod);
-        if (!script::engine().eval(b.source, b.id)) {
-            BL_ERROR("mod embutido %s falhou ao carregar", b.id);
-            registry().back().enabled = false;
-        }
+    }
+    for (int i = 0; i < kBuiltinModCount; ++i) {
+        const auto& b = kBuiltinMods[i];
+        const bool ok = script::engine().eval(b.source, b.id);
+        if (!ok) BL_ERROR("mod embutido %s falhou ao carregar", b.id);
+        registry()[first + i].enabled = ok;
+        registry()[first + i].loaded = ok;
     }
 }
 

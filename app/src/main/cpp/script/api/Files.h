@@ -7,7 +7,10 @@
 namespace bl::script {
 
 /**
- * Arquivos para os mods: bl.file, bl.directory, bl.path, bl.mod e bl.info.
+ * Arquivos para os mods: bl.file, bl.directory, bl.path e bl.info, e os
+ * dados do registro de mods de que o `bl.mod` e o `ModLoader` (ModClasses.js)
+ * precisam: bl.__mods, bl.__callerMod, bl.__modDataDirectory (o
+ * ModClasses.js os guarda e tira do bl; mod nenhum os ve).
  *
  * Caminho relativo e relativo a pasta do main.js do mod que chama (como o
  * bl.loadTexture); absoluto vale como esta. `bl.mod.dataDirectory` e a

@@ -1,0 +1,15 @@
+{
+  "uid": "00c0ffee-7e57-4c0d-9a11-000000000001",
+  "id": "test-crossmod",
+  "name": "Teste: conversa entre mods",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModLoader.TryGetMod, GetMod, HasMod, Mods, Mod.register, Mod.Call e bl.mod, com o par crossmodtarget.",
+  "description": "Loga 'crossmod ...'. Rodar junto com tools/tests/crossmodtarget.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

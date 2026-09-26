@@ -992,6 +992,175 @@ class ModSystem {
     }
 }
 
+// ============================= Mod e ModLoader =============================
+//
+// Conversa entre mods, como no tModLoader: `ModLoader.TryGetMod('outro', ref)`
+// acha o Mod de outro pacote pelo `id` do manifesto, e `mod.Call(...)` roda o
+// Call que ele definiu. Todos os mods moram no MESMO QuickJS, entao o Call e
+// uma chamada de funcao comum: objeto, funcao e classe passam como estao.
+//
+// Cada mod do registro tem UM objeto Mod, e o registro ja tem todos os mods
+// ligados antes de o primeiro main.js rodar (ModLoader.cpp). A classe que o
+// mod registra com `Mod.register` vira ESSE objeto — o construtor da base o
+// devolve —, entao quem guardou a referencia antes de o mod carregar ve o Call
+// dele depois. `bl.mod` e o Mod de quem pergunta.
+//
+// A ordem de carga e a do uid, aleatoria na pratica: o Call so e garantido do
+// PostSetupContent em diante. Antes disso, chamar um mod cujo main.js ainda
+// nao rodou lanca um erro que diz isso, em vez de devolver "nada" calado.
+
+const nativeMods = bl.__mods;
+const nativeCallerMod = bl.__callerMod;
+const nativeDataDirectory = bl.__modDataDirectory;
+delete bl.__mods;
+delete bl.__callerMod;
+delete bl.__modDataDirectory;
+
+const MOD_INFO = Symbol('modInfo');
+const modsByUuid = new Map();   // uuid -> Mod, na ordem de carga
+let modTableFinal = false;      // nenhum mod pendente: o registro nao muda mais
+let adopting = null;            // o objeto que o proximo `new` de um Mod devolve
+
+// Rele o registro nativo enquanto algum mod esta pendente; depois, so o cache.
+function syncMods() {
+    if (modTableFinal) return;
+    let pending = false;
+    for (const row of nativeMods()) {
+        const mod = modsByUuid.get(row.uuid);
+        if (mod) Object.assign(mod[MOD_INFO], row);
+        else modsByUuid.set(row.uuid, Object.create(Mod.prototype, { [MOD_INFO]: { value: row } }));
+        if (row.state === 'pending') pending = true;
+    }
+    modTableFinal = !pending && modsByUuid.size > 0;
+}
+
+class Mod {
+    constructor() {
+        const target = adopting;
+        adopting = null;
+        if (!target) throw new TypeError('Mod: registre a classe com Mod.register(Classe), sem new');
+        Object.setPrototypeOf(target, new.target.prototype);
+        return target;
+    }
+
+    get id() { return this[MOD_INFO].id; }            // o "id" do manifesto (o Name do tModLoader)
+    get uuid() { return this[MOD_INFO].uuid; }
+    get name() { return this[MOD_INFO].name; }        // o "name" do manifesto, para gente ler
+    get version() { return this[MOD_INFO].version; }
+    get path() { return this[MOD_INFO].path; }        // a pasta do main.js
+    get root() { return this[MOD_INFO].root; }        // a pasta do pacote
+    get dataDirectory() { return nativeDataDirectory(this.uuid); }
+    toString() { return 'Mod(' + (this.id || this.uuid) + ')'; }
+
+    Load() {}
+    AddRecipeGroups() {}
+    AddRecipes() {}
+    PostSetupContent() {}
+
+    // Quem nao define um Call responde nada, como o `return null` do
+    // tModLoader. Mas um mod que ainda nao carregou (ou quebrou) nao pode
+    // responder nada calado: quem chamou acharia que ele nao tem o comando.
+    Call(...args) {
+        syncMods();
+        const info = this[MOD_INFO];
+        if (info.state === 'pending') {
+            throw new Error("Mod '" + (info.id || info.uuid) + "' ainda nao carregou: chame o Call a partir do PostSetupContent");
+        }
+        if (info.state === 'failed') throw new Error("Mod '" + (info.id || info.uuid) + "' falhou ao carregar");
+        return undefined;
+    }
+
+    // Um por pacote. Load roda na hora; o resto quando o conteudo esta pronto,
+    // como no ModSystem.
+    static register(cls) {
+        if (typeof cls !== 'function' || !(cls === Mod || cls.prototype instanceof Mod)) {
+            throw new TypeError('Mod.register: espera uma classe que estende Mod');
+        }
+        const mod = bl.mod;
+        if (!mod) throw new Error('Mod.register: chamado fora de um mod');
+        const info = mod[MOD_INFO];
+        if (info.cls) throw new Error("Mod.register: '" + mod.id + "' ja registrou " + info.cls.name + ' (um Mod por pacote)');
+        adopting = mod;
+        try {
+            new cls();
+        } catch (e) {
+            Object.setPrototypeOf(mod, Mod.prototype);
+            throw e;
+        } finally {
+            adopting = null;
+        }
+        info.cls = cls;
+        const name = cls.name;
+        guard(name + '.Load', () => mod.Load());
+        whenReady(() => guard(name + '.AddRecipeGroups', () => mod.AddRecipeGroups()), 'groups');
+        whenReady(() => {
+            guard(name + '.AddRecipes', () => mod.AddRecipes());
+            guard(name + '.PostSetupContent', () => mod.PostSetupContent());
+        });
+        return mod;
+    }
+}
+
+// Pelo id do manifesto ou pelo uuid. Mod que falhou ao carregar nao conta. Dois
+// mods com o mesmo id (o id e so um apelido, o site nao garante que e unico):
+// nenhum, e o log manda usar o uuid.
+function findMod(name, api) {
+    if (typeof name !== 'string' || !name) throw new TypeError(api + ': espera o id do mod (texto)');
+    syncMods();
+    let found = null;
+    let count = 0;
+    for (const mod of modsByUuid.values()) {
+        const info = mod[MOD_INFO];
+        if (info.state === 'failed') continue;
+        if (info.uuid === name) return mod;
+        if (info.id === name) { found = mod; count++; }
+    }
+    if (count < 2) return found;
+    if (!reported.has('ModLoader:' + name)) {
+        reported.add('ModLoader:' + name);
+        bl.log("ModLoader: " + count + " mods com o id '" + name + "'; peca pelo uuid");
+    }
+    return null;
+}
+
+const ModLoader = Object.freeze({
+    // Como o `TryGetMod(string, out Mod)` do tModLoader: o Mod vai no Ref.
+    TryGetMod(name, result) {
+        const mod = findMod(name, 'ModLoader.TryGetMod');
+        if (result !== undefined) {
+            if (result === null || typeof result !== 'object') {
+                throw new TypeError('ModLoader.TryGetMod(id, ref): o segundo argumento e um Ref (new Ref())');
+            }
+            result.value = mod;
+        }
+        return mod !== null;
+    },
+    // Para dependencia obrigatoria: lanca se o mod nao esta.
+    GetMod(name) {
+        const mod = findMod(name, 'ModLoader.GetMod');
+        if (!mod) throw new Error("ModLoader.GetMod: nenhum mod '" + name + "' carregado (se ele e opcional, use TryGetMod)");
+        return mod;
+    },
+    HasMod(name) {
+        return findMod(name, 'ModLoader.HasMod') !== null;
+    },
+    get Mods() {
+        syncMods();
+        return [...modsByUuid.values()].filter((m) => m[MOD_INFO].state !== 'failed');
+    },
+});
+
+Object.defineProperty(bl, 'mod', {
+    get() {
+        const uuid = nativeCallerMod();
+        if (!uuid) return undefined;
+        syncMods();
+        return modsByUuid.get(uuid);
+    },
+    configurable: true,
+    enumerable: true,
+});
+
 // ================================ ModPlayer ================================
 //
 // Como no tModLoader: cada JOGADOR tem a propria instancia de cada ModPlayer
@@ -2869,6 +3038,8 @@ function hookNaturalSpawn() {
 globalThis.ModItem = ModItem;
 globalThis.ModRecipe = ModRecipe;
 globalThis.ModSystem = ModSystem;
+globalThis.Mod = Mod;
+globalThis.ModLoader = ModLoader;
 globalThis.ModBuff = ModBuff;
 globalThis.ModTile = ModTile;
 globalThis.ModPlayer = ModPlayer;
