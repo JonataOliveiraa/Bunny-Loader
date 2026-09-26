@@ -15,6 +15,7 @@
 #include "script/api/Tiles.h"
 #include "script/api/Files.h"
 #include "script/api/Texture.h"
+#include "script/api/Sounds.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
 #include "script/bridge/Members.h"
@@ -1079,6 +1080,7 @@ void installBindings(void* context) {
     installTilesApi(ctx, bl);
     installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
+    installSoundsApi(ctx, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass

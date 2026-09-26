@@ -30,6 +30,7 @@ export class ExampleBoss extends ModNPC {
         this.NPC.HitSound = SoundID.NPCHit1;
         this.NPC.DeathSound = SoundID.NPCDeath1;
         this.NPC.value = ModNPC.NPCValue(0, 3, 0, 0);
+        this.Music = MusicLoader.GetMusicSlot('Music/Ropocalypse2');
     }
 
     SetBestiary(database, bestiaryEntry) {

@@ -1,0 +1,15 @@
+{
+  "uid": "9ac43aa4-4c11-456a-9b51-18635c6a6f84",
+  "id": "test-sounds",
+  "name": "Teste: som de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "SoundStyle e SoundEngine: o tiro da ExampleGun (.ogg do Example Mod) toca pelo Android, sem posicao, perto e longe, com MaxInstances, e como UseSound de um item.",
+  "description": "Loga 'sounds ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

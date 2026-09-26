@@ -63,3 +63,6 @@ tools/disasm/dynsym.txt
 # Codigo do tModLoader/ExampleMod usado so como referencia local.
 exmod_tmod/
 exmod_tl/
+
+# Audio de teste do usuario, de origem desconhecida: fica fora do repositorio publico.
+/sounds/

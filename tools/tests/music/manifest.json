@@ -1,0 +1,15 @@
+{
+  "uid": "ed79ebe3-c2ed-478c-9334-9132be9d1810",
+  "id": "test-music",
+  "name": "Teste: musica de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "MusicLoader e ModNPC.Music: o Olho de ??? do Example Mod perto da tela troca a musica do jogo pela dele, e ela volta quando ele some.",
+  "description": "Loga 'music ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

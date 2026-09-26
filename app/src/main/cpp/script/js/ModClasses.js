@@ -2337,6 +2337,11 @@ class ModNPC {
     HeadTexture = '';
     // A cabeca depois do shimmer. Padrao: a Texture + '_Shimmer_Head'.
     ShimmerHeadTexture = '';
+    // A musica enquanto ele esta perto da tela: MusicLoader.GetMusicSlot(...)
+    // ou um MusicID do jogo. -1 = a do jogo. Pode mudar na IA (fase 2).
+    Music = -1;
+    // Entre dois NPCs com musica, ganha o de prioridade maior.
+    SceneEffectPriority = SceneEffectPriority.BossLow;
 
     // Uma vez, com o tipo e a tabela de drop ja no jogo.
     // Main.npcFrameCount[this.Type] escrito aqui vale como a quantidade de
@@ -2438,6 +2443,7 @@ class ModNPC {
                 m.SetDefaults(npc);
                 m.ApplyBuffImmunity(npc);
                 m.PostSetDefaults(npc);
+                trackMusicNpc(npc, m);
                 townNpc = !!npc.townNPC;
                 // O AnimationType costuma vir de dentro do SetDefaults.
                 const now = m.AnimationType | 0;
@@ -3035,11 +3041,316 @@ function hookNaturalSpawn() {
     });
 }
 
+// ============================ Sons e musicas ============================
+//
+// A Unity deste build nao cria AudioClip novo (o Strip Engine Code tirou o
+// AudioClip.Create e as icalls por baixo dele), entao o audio de mod toca pelo
+// Android: bl.sounds (SoundPool) e bl.music (MediaPlayer), ver ModAudio.kt. O
+// jogo continua mandando em quando e quanto:
+//
+//  - SoundStyle, como o do tModLoader. O `new` devolve um LegacySoundStyle
+//    MARCADOR do jogo (SoundId 1000, fora dos do jogo; Style = o indice do
+//    som), porque e esse o tipo de Item.UseSound e de NPC.HitSound. Todo som
+//    do jogo passa por LegacySoundPlayer.PlaySound(int ...): o hook ali toca o
+//    nosso com o volume e o pan que o jogo daria (distancia ao centro da
+//    tela, volume de efeitos).
+//  - MusicLoader + ModNPC.Music, como o tModLoader: o NPC com musica mais
+//    prioritario perto da tela ganha. A musica do jogo vai a 0 (some com o
+//    fade dela) e a nossa entra com fade proprio, no volume de musica. O
+//    fade roda depois do Main.UpdateAudio, que roda sempre; a escolha, nos
+//    UpdateAudio_DecideOn*Music, que ele pula com o volume de musica em 0.
+
+const MOD_SOUND_ID = 1000;
+const AUDIO_EXTENSIONS = ['.ogg', '.wav', '.mp3'];
+const SoundLimitBehavior = Object.freeze({ IgnoreNew: 0, ReplaceOldest: 1 });
+const SceneEffectPriority = Object.freeze({
+    None: 0, BiomeLow: 1, BiomeMedium: 2, BiomeHigh: 3, Environment: 4, Event: 5,
+    BossLow: 6, BossMedium: 7, BossHigh: 8,
+});
+
+// 'Sounds/Tiro' -> o arquivo, com ou sem extensao (.ogg, .wav, .mp3, como no
+// tModLoader), na pasta do mod de quem chama (ou em `base`). null se nao ha.
+function findAudioFile(base, path) {
+    const rel = String(path);
+    const root = base || (bl.mod && bl.mod.path);
+    const names = /\.[a-z0-9]{2,4}$/i.test(rel) ? [rel] : AUDIO_EXTENSIONS.map((e) => rel + e);
+    for (const name of names) {
+        const file = name.startsWith('/') || !root ? name : bl.path.join(root, name);
+        if (bl.file.exists(file)) return file;
+    }
+    return null;
+}
+
+function reportOnce(key, text) {
+    if (reported.has(key)) return;
+    reported.add(key);
+    bl.log(text);
+}
+
+// ------------------------------- efeitos -------------------------------
+
+const modSounds = [];              // indice (o Style do marcador) -> som
+const soundStyles = new Map();     // arquivo + opcoes -> marcador
+const soundIds = new Map();        // arquivo -> id do bl.sounds (um load por arquivo)
+let attenuation = 0;
+
+class SoundStyle {
+    /**
+     * new SoundStyle('Sounds/Tiro', { Volume, Pitch, PitchVariance,
+     * MaxInstances, SoundLimitBehavior }), como o do tModLoader (as chaves
+     * tambem valem em minusculas). Vai no Item.UseSound, no NPC.HitSound e no
+     * SoundEngine.PlaySound. O mesmo arquivo com as mesmas opcoes devolve o
+     * mesmo objeto: criar no SetDefaults nao custa nada.
+     */
+    constructor(path, options) {
+        const o = options || {};
+        const opt = (k, fallback) => {
+            const v = o[k] !== undefined ? o[k] : o[k[0].toLowerCase() + k.slice(1)];
+            return v === undefined ? fallback : v;
+        };
+        const s = {
+            file: findAudioFile(null, path),
+            volume: Number(opt('Volume', 1)),
+            pitch: Number(opt('Pitch', 0)),
+            pitchVariance: Number(opt('PitchVariance', 0)),
+            maxInstances: opt('MaxInstances', 1) | 0,
+            limit: opt('SoundLimitBehavior', SoundLimitBehavior.ReplaceOldest),
+        };
+        const key = [s.file || path, s.volume, s.pitch, s.pitchVariance, s.maxInstances, s.limit].join('|');
+        const cached = soundStyles.get(key);
+        if (cached) return cached;
+
+        s.id = 0;
+        if (!s.file) {
+            // Sem lancar: um SoundStyle no SetDefaults que lancasse deixaria o
+            // item pela metade. Fica mudo, e o log diz por que.
+            reportOnce('som:' + path, "SoundStyle: nao achei '" + path + "' (" + AUDIO_EXTENSIONS.join(', ') + ') na pasta do mod');
+        } else {
+            s.id = soundIds.get(s.file) || 0;
+            if (!s.id) {
+                s.id = guard('SoundStyle ' + path, () => bl.sounds.load(s.file)) || 0;
+                soundIds.set(s.file, s.id);
+            }
+        }
+        s.duration = 0;
+        s.playing = [];      // { stream, end } dos que ainda soam
+        const index = modSounds.length;
+        modSounds.push(s);
+        const marker = Terraria.Audio.LegacySoundStyle.new();
+        marker['void .ctor(int soundId, int style, SoundType type, int maxTrackedInstances)'](MOD_SOUND_ID, index, 0, 0);
+        soundStyles.set(key, marker);
+        hookModSounds();
+        return marker;
+    }
+}
+
+// O som de mod por tras de um marcador, ou undefined.
+function modSoundOf(style) {
+    if (!style || typeof style !== 'object' || style.SoundId !== MOD_SOUND_ID) return undefined;
+    return modSounds[style.Style];
+}
+
+// Volume e pan como o LegacySoundPlayer: sem posicao (x = -1), cheio no meio;
+// com posicao, cai com a distancia ao centro da tela ate o
+// SoundAttenuationDistance; o pan e o lado da tela. O stream, ou 0.
+function playModSound(s, x, y, volumeScale, pitchOffset) {
+    if (!s || !s.id) return 0;
+    const Main = Terraria.Main;
+    let volume = 1, pan = 0;
+    if (x !== -1 && y !== -1) {
+        if (!attenuation) attenuation = Terraria.Audio.LegacySoundPlayer.SoundAttenuationDistance || 2500;
+        const sp = Main.screenPosition;
+        const halfW = Main.screenWidth / 2;
+        const cx = sp.X + halfW, cy = sp.Y + Main.screenHeight / 2;
+        const dist = Math.hypot(x - cx, y - cy);
+        if (dist >= attenuation) return 0;
+        pan = Math.max(-1, Math.min(1, (x - cx) / halfW));
+        volume = 1 - dist / attenuation;
+    }
+    volume *= s.volume * volumeScale * Main.soundVolume;
+    if (!(volume > 0)) return 0;
+
+    // MaxInstances: quantos deste soam juntos (0 = sem limite).
+    const now = Date.now();
+    s.playing = s.playing.filter((p) => p.end > now);
+    if (s.maxInstances > 0 && s.playing.length >= s.maxInstances) {
+        if (s.limit === SoundLimitBehavior.IgnoreNew) return 0;
+        bl.sounds.stop(s.playing.shift().stream);
+    }
+    // Tom em oitavas, como o SoundEffectInstance.Pitch: velocidade = 2^tom.
+    const rate = Math.pow(2, s.pitch + (Math.random() - 0.5) * s.pitchVariance + pitchOffset);
+    const stream = bl.sounds.play(s.id, volume * Math.min(1, 1 - pan), volume * Math.min(1, 1 + pan), rate);
+    if (stream > 0) {
+        if (!s.duration) s.duration = bl.sounds.duration(s.id) || 1000;
+        s.playing.push({ stream, end: now + s.duration / Math.max(0.5, Math.min(2, rate)) });
+    }
+    return stream;
+}
+
+function hookModSounds() {
+    once('sound.Play', () => {
+        Terraria.Audio.LegacySoundPlayer['SoundEffectInstance PlaySound(int type, int x, int y, int Style, float volumeScale, float pitchOffset)'].hook(
+            (original, self, type, x, y, style, volumeScale, pitchOffset) => {
+                if (type !== MOD_SOUND_ID) return original(self, type, x, y, style, volumeScale, pitchOffset);
+                playModSound(modSounds[style], x, y, volumeScale, pitchOffset);
+                return null;
+            });
+    });
+}
+
+const SoundEngine = Object.freeze({
+    /**
+     * SoundEngine.PlaySound(estilo, posicao), como o do tModLoader: um
+     * SoundStyle de mod ou um SoundID do jogo, na posicao (Vector2) ou, sem
+     * ela, sem distancia. Som de mod devolve o stream (0 = nao tocou).
+     */
+    PlaySound(style, position) {
+        const s = modSoundOf(style);
+        if (s) return position ? playModSound(s, position.X, position.Y, 1, 0) : playModSound(s, -1, -1, 1, 0);
+        const E = Terraria.Audio.SoundEngine;
+        return position
+            ? E['SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)'](style, position, 0, 1)
+            : E['SoundEffectInstance PlaySound(LegacySoundStyle type, int x, int y, float pitchOffset, float volumeScale)'](style, -1, -1, 0, 1);
+    },
+    // O stream mais novo deste SoundStyle que ainda soa, ou 0.
+    FindActiveSound(style) {
+        const s = modSoundOf(style);
+        if (!s) return 0;
+        const now = Date.now();
+        s.playing = s.playing.filter((p) => p.end > now);
+        return s.playing.length ? s.playing[s.playing.length - 1].stream : 0;
+    },
+    StopSound(stream) { if (stream > 0) bl.sounds.stop(stream); },
+});
+
+// ------------------------------- musica -------------------------------
+
+// O primeiro slot de mod: MusicID.Count, como no tModLoader. Lido na
+// primeira vez: o topo deste arquivo roda antes de o jogo estar pronto.
+let musicBaseCache = 0;
+const musicBase = () => musicBaseCache || (musicBaseCache = guard('MusicID.Count', () => Terraria.ID.MusicID.Count) || 105);
+const MUSIC_FADE = 1 / 80;           // por quadro
+const musicTracks = [];              // slot - musicBase() -> { id, file, fade, sent }
+const musicSlots = new Map();        // arquivo -> slot
+const musicNpcs = new Set();         // NPCs de mod vivos (o ModNPC.Music pode mudar na IA)
+let wantedMusic = -1;
+let musicHooked = false;
+
+// O NPC de mod entra na conta da musica no SetDefaults. Nasce com Music (um
+// MusicID do jogo tambem, que nao passa pelo GetMusicSlot): liga a musica de
+// mod. Sem Music, so entra se ela ja esta ligada (o Music pode mudar na IA).
+// Sem musica de mod nenhuma, o conjunto nao guarda NPC nenhum: ele segura os
+// objetos, e so a escolha da musica, a cada quadro, tira os mortos.
+function trackMusicNpc(npc, m) {
+    if ((m.Music | 0) >= 0) hookMusic();
+    else if (!musicHooked) return;
+    musicNpcs.add(npc);
+}
+
+const MusicLoader = Object.freeze({
+    /**
+     * O slot de uma musica do mod: GetMusicSlot('Music/Chefe') ou, como no
+     * tModLoader, GetMusicSlot(mod, 'Music/Chefe'). Sem extensao ou com
+     * (.ogg, .wav, .mp3). 0 se o arquivo nao existe. Vai no ModNPC.Music.
+     */
+    GetMusicSlot(modOrPath, path) {
+        const base = path !== undefined && modOrPath && modOrPath.path ? modOrPath.path : null;
+        const rel = path !== undefined ? path : modOrPath;
+        const file = findAudioFile(base, rel);
+        if (!file) {
+            reportOnce('musica:' + rel, "MusicLoader: nao achei '" + rel + "' (" + AUDIO_EXTENSIONS.join(', ') + ') na pasta do mod');
+            return 0;
+        }
+        let slot = musicSlots.get(file);
+        if (slot) return slot;
+        const id = guard('MusicLoader ' + rel, () => bl.music.register(file)) || 0;
+        if (!id) return 0;
+        slot = musicBase() + musicTracks.length;
+        musicTracks.push({ id, file, fade: 0, sent: 0 });
+        musicSlots.set(file, slot);
+        hookMusic();
+        return slot;
+    },
+    MusicExists(modOrPath, path) {
+        const base = path !== undefined && modOrPath && modOrPath.path ? modOrPath.path : null;
+        return !!findAudioFile(base, path !== undefined ? path : modOrPath);
+    },
+    // Esta musica de mod esta tocando agora?
+    IsMusicPlaying(slot) {
+        const t = musicTracks[slot - musicBase()];
+        return !!t && bl.music.state(t.id) === 2;
+    },
+    get MusicCount() { return musicBase() + musicTracks.length; },
+});
+
+// Como o Main.UpdateAudio_DecideOnNewMusic do tModLoader: dos NPCs de mod com
+// Music (>= 0) perto da tela (o retangulo dela com 5000 px de folga), o de
+// maior SceneEffectPriority. -1 = nenhum.
+function chooseModMusic() {
+    const Main = Terraria.Main;
+    if (Main.gameMenu || !musicNpcs.size) return -1;
+    const sp = Main.screenPosition;
+    const R = 5000;
+    const x0 = sp.X - R, x1 = sp.X + Main.screenWidth + R;
+    const y0 = sp.Y - R, y1 = sp.Y + Main.screenHeight + R;
+    let best = -1, bestPriority = -1;
+    for (const npc of musicNpcs) {
+        // So o que esta no mundo: a amostra do ContentSamples tambem passa
+        // pelo SetDefaults.
+        const live = npc.active && Main.npc[npc.whoAmI] === npc;
+        const m = live ? npcOf(npc) : undefined;
+        if (!m) { musicNpcs.delete(npc); continue; }
+        const music = m.Music | 0;
+        if (music < 0) continue;
+        const c = npc.Center;
+        if (c.X < x0 || c.X > x1 || c.Y < y0 || c.Y > y1) continue;
+        const priority = m.SceneEffectPriority | 0;
+        if (priority > bestPriority) { best = music; bestPriority = priority; }
+    }
+    return best;
+}
+
+function hookMusic() {
+    once('music', () => {
+        musicHooked = true;
+        const Main = Terraria.Main;
+        const decide = (original, self) => {
+            original(self);
+            wantedMusic = chooseModMusic();
+            // Musica do jogo pedida por um NPC de mod (MusicID): o jogo toca.
+            // A nossa: a do jogo vai a 0, que e silencio com o fade dela.
+            if (wantedMusic >= 0) Main.newMusic = wantedMusic >= musicBase() ? 0 : wantedMusic;
+        };
+        Main['void UpdateAudio_DecideOnNewMusic()'].hook(decide);
+        Main['void UpdateAudio_DecideOnTOWMusic()'].hook(decide);
+        Main['void UpdateAudio()'].hook((original, self) => {
+            original(self);
+            const target = Main.gameMenu ? -1 : wantedMusic;
+            const volume = Main.musicVolume;
+            for (let i = 0; i < musicTracks.length; i++) {
+                const t = musicTracks[i];
+                const goal = musicBase() + i === target ? 1 : 0;
+                if (t.fade !== goal) t.fade = goal > t.fade ? Math.min(1, t.fade + MUSIC_FADE) : Math.max(0, t.fade - MUSIC_FADE);
+                const v = t.fade * volume;
+                if (v !== t.sent) {
+                    bl.music.setVolume(t.id, v);
+                    t.sent = v;
+                }
+            }
+        });
+    });
+}
+
 globalThis.ModItem = ModItem;
 globalThis.ModRecipe = ModRecipe;
 globalThis.ModSystem = ModSystem;
 globalThis.Mod = Mod;
 globalThis.ModLoader = ModLoader;
+globalThis.SoundStyle = SoundStyle;
+globalThis.SoundEngine = SoundEngine;
+globalThis.SoundLimitBehavior = SoundLimitBehavior;
+globalThis.MusicLoader = MusicLoader;
+globalThis.SceneEffectPriority = SceneEffectPriority;
 globalThis.ModBuff = ModBuff;
 globalThis.ModTile = ModTile;
 globalThis.ModPlayer = ModPlayer;

@@ -13,6 +13,7 @@ Há dois jeitos de escrever um mod. Dá para misturar os dois no mesmo pacote.
 | [2. Conteúdo novo: ModItem, ModNPC...](02-moditem-modnpc.md) | **Criar** item, projétil, NPC, buff e bloco novos, com textura, nome, receita, drop, spawn natural e Bestiário, no formato do tModLoader. |
 | [3. `ref` e `out`](03-ref-e-out.md) | Chamar e hookar método com parâmetro `ref`/`out`: pesca, taxa de spawn, colisão. O `Ref` e o que ele pode e não pode. |
 | [4. Conversa entre mods](04-conversa-entre-mods.md) | Achar outro mod instalado e chamar o que ele oferece (`ModLoader.TryGetMod` + `Call`), como a compatibilidade com o Wikithis no PC. |
+| [5. Sons e música](05-sons-e-musica.md) | Som próprio de item e NPC (`SoundStyle`), tocar na hora (`SoundEngine.PlaySound`) e música de chefe (`MusicLoader`, `ModNPC.Music`). |
 
 Os mods de `samples/` são exemplos completos, e curtos:
 

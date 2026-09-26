@@ -15,6 +15,7 @@ import android.widget.Toast
 import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.Eligibility
+import dev.bunnyloader.game.ModAudio
 import dev.bunnyloader.game.UnityHost
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.nativebridge.NativeBridge
@@ -217,8 +218,8 @@ class GameActivity : Activity() {
     // --- ciclo de vida (espelha a UnityPlayerActivity) -----------------------
 
     override fun onStart() { super.onStart(); host?.start() }
-    override fun onResume() { super.onResume(); host?.resume() }
-    override fun onPause() { super.onPause(); host?.pause() }
+    override fun onResume() { super.onResume(); host?.resume(); ModAudio.resumeAll() }
+    override fun onPause() { super.onPause(); host?.pause(); ModAudio.pauseAll() }
     override fun onStop() { super.onStop(); host?.stop() }
 
     override fun onDestroy() {
