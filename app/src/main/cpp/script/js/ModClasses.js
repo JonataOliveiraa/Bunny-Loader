@@ -3055,9 +3055,10 @@ function hookNaturalSpawn() {
 //    nosso com o volume e o pan que o jogo daria (distancia ao centro da
 //    tela, volume de efeitos).
 //  - MusicLoader + ModNPC.Music, como o tModLoader: o NPC com musica mais
-//    prioritario perto da tela ganha. A musica do jogo vai a 0 (some com o
-//    fade dela) e a nossa entra com fade proprio, no volume de musica. O
-//    fade roda depois do Main.UpdateAudio, que roda sempre; a escolha, nos
+//    prioritario perto da tela ganha. A troca e a do jogo entre duas faixas:
+//    a nova sobe 0,005 por quadro e a que tocava so comeca a descer (no
+//    mesmo passo) quando a nova passa de 0,25 — ~4 s, sem corte. O fade
+//    roda depois do Main.UpdateAudio, que roda sempre; a escolha, nos
 //    UpdateAudio_DecideOn*Music, que ele pula com o volume de musica em 0.
 
 const MOD_SOUND_ID = 1000;
@@ -3229,12 +3230,17 @@ const SoundEngine = Object.freeze({
 // primeira vez: o topo deste arquivo roda antes de o jogo estar pronto.
 let musicBaseCache = 0;
 const musicBase = () => musicBaseCache || (musicBaseCache = guard('MusicID.Count', () => Terraria.ID.MusicID.Count) || 105);
-const MUSIC_FADE = 1 / 80;           // por quadro
+// O passo e o limiar do jogo (LegacyAudioSystem.UpdateCommonTrack e
+// UpdateCommonTrackTowardStopping; isMainTrackAudible no Main.UpdateAudio):
+// 0 a 1 em 200 quadros, e a faixa que sai espera a nova chegar a 0,25.
+const MUSIC_FADE = 0.005;
+const MUSIC_AUDIBLE = 0.25;
 const musicTracks = [];              // slot - musicBase() -> { id, file, fade, sent }
 const musicSlots = new Map();        // arquivo -> slot
 const musicNpcs = new Set();         // NPCs de mod vivos (o ModNPC.Music pode mudar na IA)
 let wantedMusic = -1;
 let musicHooked = false;
+let savedSilenceFade = null;         // o musicFade[0] do jogo, enquanto a nossa manda
 
 // O NPC de mod entra na conta da musica no SetDefaults. Nasce com Music (um
 // MusicID do jogo tambem, que nao passa pelo GetMusicSlot): liga a musica de
@@ -3310,34 +3316,71 @@ function chooseModMusic() {
     return best;
 }
 
+// O silencio do jogo (newMusic 0) enquanto a nossa toca. Com o musicFade[0]
+// em 0, que e como o jogo o deixa, o curMusic 0 CORTA as faixas dele num
+// quadro (UpdateCommonTrackTowardStopping); em 1 elas saem com o fade.
+function silenceGame(on) {
+    const fade = Terraria.Main.musicFade;
+    if (on) {
+        if (savedSilenceFade === null) savedSilenceFade = fade[0];
+        fade[0] = 1;
+        Terraria.Main.newMusic = 0;
+    } else if (savedSilenceFade !== null) {
+        fade[0] = savedSilenceFade;
+        savedSilenceFade = null;
+    }
+}
+
+// A escolha, depois da do jogo. A nossa so cala o jogo quando ja se ouve;
+// ate la segura o que estava tocando, como o jogo faz ao trocar de faixa.
+function decideMusic() {
+    const Main = Terraria.Main;
+    wantedMusic = chooseModMusic();
+    const t = wantedMusic >= musicBase() ? musicTracks[wantedMusic - musicBase()] : null;
+    if (t && t.fade > MUSIC_AUDIBLE) return silenceGame(true);
+    silenceGame(false);
+    if (t) Main.newMusic = Main.curMusic;
+    else if (wantedMusic >= 0) Main.newMusic = wantedMusic;   // MusicID do jogo pedido por NPC de mod
+}
+
+// O fade das nossas, como o do jogo: a principal sobe; as outras so descem
+// quando a principal ja se ouve. Sem faixa nenhuma do jogo (curMusic 0), a
+// nossa desce na hora — o jogo cortaria.
+function stepModMusic() {
+    const Main = Terraria.Main;
+    const target = Main.gameMenu ? -1 : wantedMusic;
+    const main = target >= musicBase() ? musicTracks[target - musicBase()] : null;
+    const cur = Main.curMusic;
+    const mainAudible = main ? main.fade > MUSIC_AUDIBLE : cur <= 0 || Main.musicFade[cur] > MUSIC_AUDIBLE;
+    const volume = Main.musicVolume;
+    for (const t of musicTracks) {
+        if (t === main) t.fade = Math.min(1, t.fade + MUSIC_FADE);
+        else if (mainAudible) t.fade = Math.max(0, t.fade - MUSIC_FADE);
+        const v = t.fade * volume;
+        if (v !== t.sent) {
+            bl.music.setVolume(t.id, v);
+            t.sent = v;
+        }
+    }
+}
+
+// Os tres hooks rodam em todo quadro, ate na tela de carregamento, e nenhum
+// espera o motor JS ocupado por outra thread (carga de mundo, save): sem a
+// escolha, vale a do quadro anterior; sem o fade, o volume fica.
 function hookMusic() {
     once('music', () => {
         musicHooked = true;
         const Main = Terraria.Main;
         const decide = (original, self) => {
             original(self);
-            wantedMusic = chooseModMusic();
-            // Musica do jogo pedida por um NPC de mod (MusicID): o jogo toca.
-            // A nossa: a do jogo vai a 0, que e silencio com o fade dela.
-            if (wantedMusic >= 0) Main.newMusic = wantedMusic >= musicBase() ? 0 : wantedMusic;
+            decideMusic();
         };
-        Main['void UpdateAudio_DecideOnNewMusic()'].hook(decide);
-        Main['void UpdateAudio_DecideOnTOWMusic()'].hook(decide);
+        Main['void UpdateAudio_DecideOnNewMusic()'].hook(decide, { ifBusy: 'skip' });
+        Main['void UpdateAudio_DecideOnTOWMusic()'].hook(decide, { ifBusy: 'skip' });
         Main['void UpdateAudio()'].hook((original, self) => {
             original(self);
-            const target = Main.gameMenu ? -1 : wantedMusic;
-            const volume = Main.musicVolume;
-            for (let i = 0; i < musicTracks.length; i++) {
-                const t = musicTracks[i];
-                const goal = musicBase() + i === target ? 1 : 0;
-                if (t.fade !== goal) t.fade = goal > t.fade ? Math.min(1, t.fade + MUSIC_FADE) : Math.max(0, t.fade - MUSIC_FADE);
-                const v = t.fade * volume;
-                if (v !== t.sent) {
-                    bl.music.setVolume(t.id, v);
-                    t.sent = v;
-                }
-            }
-        });
+            stepModMusic();
+        }, { ifBusy: 'original' });
     });
 }
 

@@ -96,9 +96,11 @@ SetDefaults() {
   (`SceneEffectPriority.BossLow` é o padrão; vão de `None` a `BossHigh`).
 - "Perto" é o mesmo do tModLoader: a até 5000 px da tela.
 
-A música do jogo some com o fade dela, a do mod entra com fade, em laço, no
-volume de música do jogo. Quando o NPC some (ou você sai do mundo), a do mod
-some e a do jogo volta.
+A troca é igual à do jogo entre duas músicas dele: a nova entra baixinho e
+vai subindo, e a que tocava só começa a sair quando a nova já se ouve — uns 4
+segundos, sem corte. Vale na chegada do chefe e no fim da luta (ou quando você
+sai do mundo), quando a do jogo volta do mesmo jeito. A do mod toca em laço,
+no volume de música do jogo.
 
 `MusicLoader.MusicExists(caminho)` diz se o arquivo existe, e
 `MusicLoader.IsMusicPlaying(slot)` se a música está tocando agora.
