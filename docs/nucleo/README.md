@@ -120,7 +120,14 @@ Em ordem:
    ([`menu/Cheats.cpp`](../../app/src/main/cpp/menu/Cheats.cpp), `hkDoUpdate`).
    No primeiro quadro, ele marca qual é a thread do jogo; em todos, roda os
    *ticks*: instalação de conteúdo na tela de título, tabelas pendentes,
-   `bl.onContentReady`, superpoderes, pedidos do Mod Menu e da rede.
+   `bl.onContentReady`, superpoderes, pedidos do Mod Menu e da rede, o código
+   do console JS e o save antes de um "Reiniciar".
+
+O **Reiniciar** do Mod Menu ([`menu/DevTools.cpp`](../../app/src/main/cpp/menu/DevTools.cpp)
+e `DevTools.java`) salva, se pedido, na thread do jogo; depois o Java abre a
+`RestartActivity` no processo do launcher e mata o `:game`. A `RestartActivity`
+espera o processo antigo sumir e abre a `GameActivity` num processo novo, que
+sobe tudo do zero e lê os mods da pasta outra vez.
 
 ### Os mods: módulos, em duas passadas
 

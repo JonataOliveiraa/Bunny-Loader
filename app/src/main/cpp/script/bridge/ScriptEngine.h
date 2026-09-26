@@ -18,6 +18,7 @@ public:
 
     bool ready() const { return ready_; }
     void* runtime() const { return runtime_; }
+    void* context() const { return context_; }   // JSContext*
 
 private:
     bool ready_ = false;

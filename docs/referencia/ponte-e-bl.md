@@ -61,6 +61,8 @@ Detalhes no [guia de custo](../mods/03-custo-e-desempenho.md#filtros-nativos).
 | | |
 |---|---|
 | `bl.log(...valores)` | Uma linha no log do jogo e no logcat. Objeto e array JS saem em JSON. |
+| `print(...valores)` | Uma linha no **chat do jogo** (os valores juntos como no `bl.log`). De qualquer thread; aparece no próximo quadro. |
+| `bl.chat(texto, cor?)` | O mesmo, com cor: `'#RRGGBB'`, `{ R, G, B }`, `[r, g, b]` ou um `Color`. |
 | `bl.mod` | O `Mod` de quem chama: `id`, `name`, `version`, `uuid`, `path`, `root`, `dataDirectory`. |
 | `bl.info.appDirectory` | `Android/data/com.bunnyloader` (onde ficam `Players/`, `Worlds/`). |
 | `bl.info.logsDirectory` | A pasta dos logs. |
@@ -142,5 +144,6 @@ Além do padrão do JavaScript (ES2020):
 | | |
 |---|---|
 | `performance.now()` | Tempo em ms, com fração: para medir. |
+| `print(...)` | Chat do jogo (ver acima). |
 | `import`/`export` | Entre arquivos do mesmo mod, com caminho relativo. |
 | `Terraria`, `Microsoft`, `System`, `ReLogic`... | As raízes de namespace do jogo. |

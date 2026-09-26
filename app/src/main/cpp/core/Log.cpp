@@ -22,6 +22,7 @@ std::atomic<bool> g_verbose{false};
 std::string g_errors;
 int g_errorCount = 0;
 void (*g_onError)(const char*) = nullptr;
+std::atomic<void (*)(int, const char*)> g_onLine{nullptr};
 
 /** Ao logcat, em pedacos que nao cortam um caractere UTF-8 ao meio. */
 void toLogcat(int level, const char* text, size_t len) {
@@ -110,6 +111,9 @@ void write(int level, const char* fmt, ...) {
     }
     // Fora do lock: quem escuta vai mexer em UI e pode logar de volta.
     if (notify) notify(buffer);
+    if (level >= ANDROID_LOG_INFO) {
+        if (auto line = g_onLine.load(std::memory_order_acquire)) line(level, buffer);
+    }
 }
 
 std::string errorsSoFar() {
@@ -120,6 +124,10 @@ std::string errorsSoFar() {
 int errorCount() {
     std::lock_guard<std::mutex> guard(g_mutex);
     return g_errorCount;
+}
+
+void onLine(void (*fn)(int level, const char* line)) {
+    g_onLine.store(fn, std::memory_order_release);
 }
 
 void onError(void (*fn)(const char*)) {

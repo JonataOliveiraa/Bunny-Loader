@@ -28,6 +28,11 @@ int errorCount();
 // Chamado a cada BL_ERROR. Quem instala decide o que fazer (mostrar o painel).
 void onError(void (*fn)(const char* line));
 
+// Chamado a cada linha INFO, WARN ou ERROR (as do arquivo de sessao, sem o
+// detalhe D): o console do Mod Menu mostra o log ao vivo. De qualquer thread,
+// fora da trava do log.
+void onLine(void (*fn)(int level, const char* line));
+
 } // namespace bl::log
 
 // DEBUG: detalhe do nucleo (tabela por tabela, hook por hook). INFO: o que o

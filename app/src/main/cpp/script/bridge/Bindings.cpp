@@ -16,6 +16,7 @@
 #include "script/api/Files.h"
 #include "script/api/Texture.h"
 #include "script/api/Sounds.h"
+#include "script/api/Console.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
 #include "script/bridge/Members.h"
@@ -1072,6 +1073,8 @@ void installNamespaceRoots(JSContext* ctx, JSValue global) {
     installGlobalClasses(ctx, global);
 }
 
+std::string valueToLogText(JSContext* ctx, JSValueConst v) { return logText(ctx, v); }
+
 void installBindings(void* context) {
     auto* ctx = static_cast<JSContext*>(context);
     JSRuntime* rt = JS_GetRuntime(ctx);
@@ -1094,6 +1097,7 @@ void installBindings(void* context) {
     installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
     installSoundsApi(ctx, bl);
+    installConsoleApi(ctx, global, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
     // NativeClass

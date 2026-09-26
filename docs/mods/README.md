@@ -153,6 +153,45 @@ Para mudar um mod instalado, edite os arquivos dentro de `bunny_packs/<uid>/` e
 **reabra o jogo**: os mods são lidos quando o jogo sobe, não enquanto ele
 roda. O interruptor na aba *Pacotes* liga e desliga o mod para o próximo boot.
 
+## Testando rápido: Reiniciar e o console
+
+O jogo lê os mods **uma vez**, ao abrir. O ciclo de quem desenvolve é:
+
+1. editar os arquivos do mod direto em `bunny_packs/<uid>/` (com root, pelo
+   gerenciador de arquivos, ou `adb push`);
+2. no jogo, abrir o **Mod Menu** (o coelho) e tocar em **Reiniciar**. O jogo
+   fecha e abre de novo, lendo os mods da pasta. Dentro de um mundo, **Salvar e
+   reiniciar** salva o jogador e o mundo antes, como o "Salvar e Sair".
+
+![O diálogo de reiniciar](../imagens/reiniciar.jpg)
+
+Para testar uma linha sem reiniciar, há o **Console JS**: no Mod Menu, ou
+**segurando** o botão do coelho. Ele fica no pé da tela, e o jogo continua
+visível e jogável acima dele.
+
+![O console JS, com o resultado de cada linha, o chat e o log](../imagens/console.jpg)
+
+- O código roda na **thread do jogo**, no próximo quadro, como num hook. `Main`,
+  `ID` e `player` (o seu jogador) já estão prontos:
+  `player.statLife = 500`, `Main.dayTime = false`.
+- A saída mostra o resultado de cada execução (`←`), os erros com a linha
+  (`×`), o que foi ao chat, e o **log ao vivo**: o `bl.log` dos mods, e os erros
+  dos hooks e das classes deles.
+- `print(...valores)` escreve no **chat do jogo**; `bl.chat(texto, cor)` faz o
+  mesmo com cor (`'#ff5050'`, `{ R, G, B }` ou um `Color`). Os dois valem em
+  qualquer mod, não só no console.
+- `let` e `const` valem só naquela execução, e o mesmo trecho roda de novo sem
+  erro de redeclaração. Para guardar algo de uma execução para a outra: `var`
+  ou `globalThis.x`.
+- Um laço sem fim para sozinho depois de **8 s**, com um aviso, e o jogo segue.
+- O editor tem cores de sintaxe, recuo automático, uma barra com os símbolos
+  que o teclado do celular esconde (`{ } ( ) [ ] ; =>`...), e o histórico nas
+  setas ▲▼. O histórico e o rascunho sobrevivem ao Reiniciar. Num teclado
+  físico, Ctrl+Enter roda.
+- Com o teclado aberto, o painel sobe junto e fica logo acima dele, sem a tela
+  cheia de edição do Android e sem empurrar o jogo. `_` recolhe o painel até
+  sobrar só a barra do topo.
+
 ## Vendo o que o mod faz
 
 Tudo o que o mod escreve com `bl.log(...)`, e todo erro de JavaScript, vai para

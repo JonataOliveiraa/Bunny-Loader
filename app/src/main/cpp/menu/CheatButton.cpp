@@ -12,6 +12,8 @@
 #include "content/npcs/ModNpcs.h"
 #include "menu/Powers.h"
 #include "menu/CheatBridgeDex.h"
+#include "menu/DevTools.h"
+#include "script/api/Console.h"
 
 #include <atomic>
 #include <dlfcn.h>
@@ -80,6 +82,100 @@ void onNativeError(const char*) {
     env->ExceptionClear();
     env->DeleteLocalRef(js);
     if (attached) vm->DetachCurrentThread();
+}
+
+// ---- texto entre o Java (UTF-16) e o nucleo (UTF-8) ----
+//
+// NewStringUTF/GetStringUTFChars falam o UTF-8 MODIFICADO do Java: um emoji
+// (fora do plano basico) num bl.log ou no codigo digitado derrubava o processo
+// com o CheckJNI ligado, ou virava lixo. A conversao e feita aqui, inteira.
+
+std::string fromJava(JNIEnv* env, jstring s) {
+    std::string out;
+    if (!s) return out;
+    const jsize n = env->GetStringLength(s);
+    const jchar* c = env->GetStringChars(s, nullptr);
+    if (!c) return out;
+    out.reserve(static_cast<size_t>(n));
+    for (jsize i = 0; i < n; ++i) {
+        uint32_t cp = c[i];
+        if (cp >= 0xD800 && cp <= 0xDBFF && i + 1 < n && c[i + 1] >= 0xDC00 && c[i + 1] <= 0xDFFF) {
+            cp = 0x10000 + ((cp - 0xD800) << 10) + (c[i + 1] - 0xDC00);
+            ++i;
+        }
+        if (cp < 0x80) {
+            out += static_cast<char>(cp);
+        } else if (cp < 0x800) {
+            out += static_cast<char>(0xC0 | (cp >> 6));
+            out += static_cast<char>(0x80 | (cp & 0x3F));
+        } else if (cp < 0x10000) {
+            out += static_cast<char>(0xE0 | (cp >> 12));
+            out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            out += static_cast<char>(0x80 | (cp & 0x3F));
+        } else {
+            out += static_cast<char>(0xF0 | (cp >> 18));
+            out += static_cast<char>(0x80 | ((cp >> 12) & 0x3F));
+            out += static_cast<char>(0x80 | ((cp >> 6) & 0x3F));
+            out += static_cast<char>(0x80 | (cp & 0x3F));
+        }
+    }
+    env->ReleaseStringChars(s, c);
+    return out;
+}
+
+jstring toJava(JNIEnv* env, const std::string& s) {
+    std::u16string u;
+    u.reserve(s.size());
+    for (size_t i = 0; i < s.size();) {
+        const auto b = static_cast<unsigned char>(s[i]);
+        uint32_t cp = 0xFFFD;
+        size_t len = 1;
+        if (b < 0x80) { cp = b; }
+        else if ((b >> 5) == 0x6 && i + 1 < s.size()) { cp = ((b & 0x1F) << 6) | (s[i + 1] & 0x3F); len = 2; }
+        else if ((b >> 4) == 0xE && i + 2 < s.size()) {
+            cp = ((b & 0x0F) << 12) | ((s[i + 1] & 0x3F) << 6) | (s[i + 2] & 0x3F); len = 3;
+        } else if ((b >> 3) == 0x1E && i + 3 < s.size()) {
+            cp = ((b & 0x07) << 18) | ((s[i + 1] & 0x3F) << 12) | ((s[i + 2] & 0x3F) << 6) | (s[i + 3] & 0x3F);
+            len = 4;
+        }
+        i += len;
+        if (cp >= 0x10000) {
+            cp -= 0x10000;
+            u += static_cast<char16_t>(0xD800 + (cp >> 10));
+            u += static_cast<char16_t>(0xDC00 + (cp & 0x3FF));
+        } else {
+            u += static_cast<char16_t>(cp);
+        }
+    }
+    return env->NewString(reinterpret_cast<const jchar*>(u.data()), static_cast<jsize>(u.size()));
+}
+
+// ---- console e reiniciar (DevTools.java) ----
+
+void JNICALL jni_consoleRun(JNIEnv* env, jclass, jstring code) {
+    bl::script::consoleSubmit(fromJava(env, code));
+}
+
+jobjectArray JNICALL jni_consoleTake(JNIEnv* env, jclass) {
+    const std::vector<std::string> entries = bl::script::consoleTake();
+    jclass sc = env->FindClass("java/lang/String");
+    if (!sc) return nullptr;
+    jobjectArray out = env->NewObjectArray(static_cast<jsize>(entries.size()), sc, nullptr);
+    if (!out) return nullptr;
+    for (size_t i = 0; i < entries.size(); ++i) {
+        jstring js = toJava(env, entries[i]);
+        env->SetObjectArrayElement(out, static_cast<jsize>(i), js);
+        env->DeleteLocalRef(js);
+    }
+    return out;
+}
+
+void JNICALL jni_requestRestart(JNIEnv*, jclass, jboolean save) {
+    bl::runtime::requestRestart(save == JNI_TRUE);
+}
+
+jboolean JNICALL jni_restartReady(JNIEnv*, jclass) {
+    return bl::runtime::restartReady() ? JNI_TRUE : JNI_FALSE;
 }
 
 // Metodos nativos ligados ao CheatBridge.
@@ -374,6 +470,10 @@ void installCheatButton() {
         {"nOnBuff", "(II)V", reinterpret_cast<void*>(&jni_onBuff)},
         {"nVanillaBuffCount", "()I", reinterpret_cast<void*>(&jni_vanillaBuffCount)},
         {"nModBuffTextures", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_modBuffTextures)},
+        {"nConsoleRun", "(Ljava/lang/String;)V", reinterpret_cast<void*>(&jni_consoleRun)},
+        {"nConsoleTake", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_consoleTake)},
+        {"nRequestRestart", "(Z)V", reinterpret_cast<void*>(&jni_requestRestart)},
+        {"nRestartReady", "()Z", reinterpret_cast<void*>(&jni_restartReady)},
     };
     if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");

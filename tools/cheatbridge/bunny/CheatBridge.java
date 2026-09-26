@@ -116,20 +116,27 @@ public class CheatBridge {
     public static native int nVanillaBuffCount();
     /** PNG de cada buff de mod, indice = tipo - nVanillaBuffCount(). */
     public static native String[] nModBuffTextures();
+    /** Console JS: o codigo roda no proximo quadro, na thread do jogo (script/api/Console.h). */
+    public static native void nConsoleRun(String code);
+    /** A saida do console desde a ultima vez; a especie no primeiro caractere (Console.h). */
+    public static native String[] nConsoleTake();
+    /** Reiniciar o jogo: pede (salvando antes, se `save`) e pergunta se ja pode fechar. */
+    public static native void nRequestRestart(boolean save);
+    public static native boolean nRestartReady();
 
     // --- paleta ---
-    private static final int PANEL      = 0xFF3F5297;
-    private static final int PANEL_DARK = 0xFF2C3A6B;
-    private static final int PANEL_LIT  = 0xFF5468B4;
-    private static final int OUTLINE    = 0xFF131625;
-    private static final int GRASS      = 0xFF22A851;
-    private static final int GRASS_LIT  = 0xFF2EED52;
-    private static final int INK        = 0xFFFFFFFF;
-    private static final int INK_DIM    = 0xFFC3CBEA;
-    private static final int SCRIM      = 0xC0000000;
+    static final int PANEL      = 0xFF3F5297;
+    static final int PANEL_DARK = 0xFF2C3A6B;
+    static final int PANEL_LIT  = 0xFF5468B4;
+    static final int OUTLINE    = 0xFF131625;
+    static final int GRASS      = 0xFF22A851;
+    static final int GRASS_LIT  = 0xFF2EED52;
+    static final int INK        = 0xFFFFFFFF;
+    static final int INK_DIM    = 0xFFC3CBEA;
+    static final int SCRIM      = 0xC0000000;
 
     private static Activity sActivity;
-    private static View sOverlay;
+    static View sOverlay;
 
     // ------------------------------ catalogo ------------------------------
     //
@@ -821,7 +828,7 @@ public class CheatBridge {
         }
     }
 
-    private static void toast(Activity act, String msg) {
+    static void toast(Activity act, String msg) {
         Toast.makeText(act, msg, Toast.LENGTH_SHORT).show();
     }
 
@@ -899,7 +906,7 @@ public class CheatBridge {
 
     private static float sUnit;
 
-    private static float unit(Activity a) {
+    static float unit(Activity a) {
         if (sUnit == 0) {
             DisplayMetrics m = a.getResources().getDisplayMetrics();
             float shortSide = Math.min(m.widthPixels, m.heightPixels);
@@ -910,7 +917,7 @@ public class CheatBridge {
         return sUnit;
     }
 
-    private static int px(Activity a, float u) {
+    static int px(Activity a, float u) {
         return Math.round(u * unit(a));
     }
 
@@ -956,7 +963,7 @@ public class CheatBridge {
      * sistema, e o jogo nao soma. Com a fonte do aparelho em "grande", o menu
      * crescia e o jogo em volta nao.
      */
-    private static void applyTextSize(Activity a, TextView t, float size) {
+    static void applyTextSize(Activity a, TextView t, float size) {
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, size * TEXT_SCALE * unit(a));
     }
 
@@ -969,14 +976,14 @@ public class CheatBridge {
     }
 
     /** Painel de fora: mesma cara, canto mais generoso. */
-    private static GradientDrawable panelBig(Activity a, int fill, int stroke) {
+    static GradientDrawable panelBig(Activity a, int fill, int stroke) {
         GradientDrawable d = panel(a, fill, stroke);
         d.setCornerRadius(px(a, 12));
         return d;
     }
 
     /** Painel do Terraria: contorno escuro, corpo azul. */
-    private static GradientDrawable panel(Activity a, int fill, int stroke) {
+    static GradientDrawable panel(Activity a, int fill, int stroke) {
         GradientDrawable d = new GradientDrawable();
         d.setColor(fill);
         d.setStroke(px(a, 2), stroke);
@@ -1032,7 +1039,7 @@ public class CheatBridge {
         }
     }
 
-    private static TextView text(Activity a, String s, float size, int color) {
+    static TextView text(Activity a, String s, float size, int color) {
         TextView t = new OutlinedText(a);
         t.setText(s);
         applyTextSize(a, t, size);
@@ -1050,7 +1057,7 @@ public class CheatBridge {
      */
     private static Typeface sFont;
 
-    private static Typeface font(Activity a) {
+    static Typeface font(Activity a) {
         if (sFont == null) {
             try {
                 sFont = Typeface.createFromAsset(a.getAssets(), "fonte/bunny.ttf");
@@ -1069,7 +1076,7 @@ public class CheatBridge {
      */
     private static final HashMap<String, Bitmap> sRes = new HashMap<String, Bitmap>();
 
-    private static Bitmap sprite(Activity a, String name) {
+    static Bitmap sprite(Activity a, String name) {
         if (sRes.containsKey(name)) return sRes.get(name);
         Bitmap b = null;
         try {
@@ -1246,7 +1253,7 @@ public class CheatBridge {
         for (ImageView v : vs) if (k.equals(v.getTag())) setBitmap(a, v, b);
     }
 
-    private static ImageView icon(Activity a, Bitmap bmp, float u) {
+    static ImageView icon(Activity a, Bitmap bmp, float u) {
         ImageView v = new ImageView(a);
         v.setScaleType(ImageView.ScaleType.FIT_CENTER);
         setBitmap(a, v, bmp);
@@ -1255,7 +1262,7 @@ public class CheatBridge {
     }
 
     /** Pixel art sem borrar: vizinho-mais-proximo. */
-    private static void setBitmap(Activity a, ImageView v, Bitmap bmp) {
+    static void setBitmap(Activity a, ImageView v, Bitmap bmp) {
         if (bmp == null) { v.setImageDrawable(null); return; }
         BitmapDrawable d = new BitmapDrawable(a.getResources(), bmp);
         d.getPaint().setFilterBitmap(false);
@@ -1281,7 +1288,7 @@ public class CheatBridge {
      * a mao, quadro a quadro, porque AnimationDrawable pede um drawable por
      * quadro e este menu roda sem a classe R do app.
      */
-    private static final class Sunflower extends View {
+    static final class Sunflower extends View {
         private static final int FRAMES = 19, FRAME_W = 52, FRAME_H = 54, FRAME_MS = 60;
         private final Bitmap strip;
         private final Paint paint = new Paint();
@@ -1409,6 +1416,15 @@ public class CheatBridge {
         private float x0, y0;
         private int m0x, m0y;
         private boolean dragging;
+        // Toque longo, parado: abre o console JS direto, sem passar pelo menu.
+        private boolean longFired;
+        private final Runnable longPress = new Runnable() {
+            @Override public void run() {
+                if (dragging) return;
+                longFired = true;
+                DevTools.openConsole(act);
+            }
+        };
 
         DragHandler(Activity a) {
             act = a;
@@ -1424,20 +1440,26 @@ public class CheatBridge {
                     m0x = lp.leftMargin;
                     m0y = lp.topMargin;
                     dragging = false;
+                    longFired = false;
+                    v.postDelayed(longPress, ViewConfiguration.getLongPressTimeout());
                     return true;
                 case MotionEvent.ACTION_MOVE:
                     float dx = e.getRawX() - x0, dy = e.getRawY() - y0;
                     if (!dragging && Math.abs(dx) < touchSlop && Math.abs(dy) < touchSlop) return true;
                     dragging = true;
+                    v.removeCallbacks(longPress);
                     View parent = (View) v.getParent();
                     lp.leftMargin = clamp(m0x + dx, 0, parent.getWidth() - v.getWidth());
                     lp.topMargin = clamp(m0y + dy, 0, parent.getHeight() - v.getHeight());
                     v.setLayoutParams(lp);
                     return true;
                 case MotionEvent.ACTION_UP:
+                    v.removeCallbacks(longPress);
+                    if (longFired) return true;
                     if (dragging) savePosition(act, lp); else toggleMenu(act);
                     return true;
                 case MotionEvent.ACTION_CANCEL:
+                    v.removeCallbacks(longPress);
                     if (dragging) savePosition(act, lp);
                     return true;
                 default:
@@ -1539,6 +1561,7 @@ public class CheatBridge {
         head.addView(titles);
         aside.addView(head);
         aside.addView(timeButtons(act));
+        aside.addView(DevTools.menuButtons(act));
 
         final ScrollView asideScroll = new ScrollView(act);
         final LinearLayout asideList = new LinearLayout(act);
@@ -1941,6 +1964,11 @@ public class CheatBridge {
         applyTextSize(act, searchField, 11);
         searchField.setTypeface(font(act));
         searchField.setPadding(px(act, 6), px(act, 3), 0, px(act, 3));
+        // Sem a tela cheia de edicao que o Android poe por cima do jogo com o
+        // aparelho deitado: o teclado abre embaixo e a busca fica a vista.
+        searchField.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            | android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN
+            | android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
         searchBox.addView(searchField, new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 

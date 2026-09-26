@@ -40,6 +40,16 @@
             </intent-filter>
         </activity>
 
+        <!-- O "Reiniciar" do Mod Menu: no processo do launcher, espera o
+             processo do jogo sumir e abre a GameActivity num processo novo. -->
+        <activity
+            android:name=".RestartActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- Hospeda o Terraria no NOSSO processo. Config espelhada da
              com.unity3d.player.UnityPlayerActivity do jogo. Processo separado:
              fechar o jogo derruba Unity+IL2CPP sem matar a UI do launcher. -->

@@ -12,7 +12,7 @@ JAVA_HOME="${JAVA_HOME:-/c/Program Files/Android/Android Studio/jbr}"
 SDK="${ANDROID_SDK:-$LOCALAPPDATA/Android/Sdk}"
 AJAR="$SDK/platforms/android-34/android.jar"
 D8JAR="$SDK/build-tools/36.1.0/lib/d8.jar"
-SRC="tools/cheatbridge/bunny/CheatBridge.java tools/cheatbridge/bunny/CheatData.java"
+SRC="tools/cheatbridge/bunny/CheatBridge.java tools/cheatbridge/bunny/CheatData.java tools/cheatbridge/bunny/DevTools.java"
 OUT=".cheatbridge"
 
 # -encoding UTF-8: sem ele o javac le o fonte na pagina de codigo do Windows e

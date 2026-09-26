@@ -18,6 +18,9 @@ JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj);
 JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr);
 JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m);
 
+/** Um valor como o bl.log o escreve: objeto e array JS em JSON, o resto pelo toString. */
+std::string valueToLogText(JSContext* ctx, JSValueConst v);
+
 // Inverso: o valor JS e um objeto/array do jogo? nullptr se nao for.
 Il2CppObject* objectFromJS(JSValueConst v);
 Il2CppArray* arrayFromJS(JSValueConst v);

@@ -16,7 +16,9 @@
 #include "content/tiles/ModTiles.h"
 #include "menu/MenuCatalog.h"
 #include "content/projectiles/ModProjectiles.h"
+#include "menu/DevTools.h"
 #include "menu/NetRequests.h"
+#include "script/api/Console.h"
 #include "menu/Powers.h"
 #include <atomic>
 #include <unordered_map>
@@ -802,6 +804,8 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModTiles();
     tickContentReady();
     tickNetRequests();
+    script::tickConsole();
+    tickRestart();
     // Pedido do botao (in-process): consome e executa na thread do jogo.
     if (uint64_t req = g_pendingGive.exchange(0)) {
         giveItem(static_cast<int>(req >> 32), static_cast<int>(req & 0xffffffffu));
