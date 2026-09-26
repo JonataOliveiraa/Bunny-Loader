@@ -106,6 +106,22 @@ function defineEntityField(cls, field) {
     bl.defineField(cls, field);
 }
 
+// O modelo de cada classe registrada (ModItem, ModNPC...): o do
+// ModContent.GetInstance. E `this.Mod`, como no tModLoader: o Mod de quem
+// registrou, que vai junto nas copias.
+const contentByClass = new Map();
+function adoptTemplate(cls, inst) {
+    inst.Mod = bl.mod;
+    contentByClass.set(cls, inst);
+}
+
+// Fora do Mod Menu: `HideFromModMenu`, ou o jeito do tModLoader que o jogo
+// tambem entende (`fromGame`). Depois do SetStaticDefaults, onde o mod pede.
+function applyMenuVisibility(kind, inst, type, fromGame) {
+    const hide = inst.HideFromModMenu || guard(inst.constructor.name + ' (Mod Menu)', fromGame);
+    if (hide) bl.menu.hide(kind, type);
+}
+
 function bindInstance(inst, entity, field) {
     inst.__entity = bl.addressOf(entity);
     entity[field] = inst;
@@ -232,6 +248,9 @@ class ModItem {
     Clone(newItem) { return cloneInstance(this); }
     // O tipo (ItemID) deste item, a partir do register.
     Type = undefined;
+    // true: fora do Mod Menu (o jeito do tModLoader tambem vale:
+    // ItemID.Sets.Deprecated[this.Type] = true no SetStaticDefaults).
+    HideFromModMenu = false;
     // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: ItemName.<Classe> em
     // Localization/*.json, e sem isso o nome da classe.
     DisplayName = '';
@@ -291,10 +310,12 @@ class ModItem {
     // No chao: a cor com que o item e desenhado. Devolva uma Color (ou nada,
     // para a do jogo). `item` e o WorldItem; a luz do lugar chega em lightColor.
     GetAlpha(item, lightColor) { return undefined; }
-    // Vara de pesca na mao, a cada boia: line.lineOriginOffset (de onde a
-    // linha sai, em pixels a partir do centro do jogador olhando para a
-    // direita) e line.lineColor (a cor; a linha colorida do jogador ganha).
-    ModifyFishingLine(item, bobber, line) {}
+    // Vara de pesca na mao, a cada boia. Como no tModLoader: dois Ref.
+    // lineOriginOffset.value e de onde a linha sai, em pixels a partir do
+    // centro do jogador olhando para a direita; lineColor.value, a cor (a
+    // linha colorida do jogador ganha). O jeito antigo, com tres parametros
+    // (item, bobber, line) e line.lineOriginOffset / line.lineColor, continua.
+    ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {}
 
     // Copia os valores de um item do jogo para este.
     CloneDefaults(type) {
@@ -408,6 +429,7 @@ class ModItem {
         autoloadGores();
         defineEntityField(Terraria.Item, 'ModItem');
         const inst = new cls();
+        adoptTemplate(cls, inst);
         const name = cls.name;
         const type = bl.items.register({
             name,
@@ -421,6 +443,7 @@ class ModItem {
             setStaticDefaults() {
                 inst.SetStaticDefaults();
                 inst.PostStaticDefaults();
+                applyMenuVisibility('item', inst, inst.Type, () => Terraria.ID.ItemID.Sets.Deprecated[inst.Type]);
             },
         });
         inst.Type = type;
@@ -636,8 +659,19 @@ function hookFishingLine() {
         const item = owner.inventory[owner.selectedItem];
         const m = item ? itemOf(item) : undefined;
         if (!m) return original();
+        // Como o ItemLoader do tModLoader: o deslocamento e a cor por Ref. Com
+        // tres parametros, o jeito antigo: um objeto com os dois campos.
+        const name = m.constructor.name + '.ModifyFishingLine';
         const line = { lineOriginOffset: Vector2.new(0, 0), lineColor: Color.new(200, 200, 200, 100) };
-        guard(m.constructor.name + '.ModifyFishingLine', () => m.ModifyFishingLine(item, proj, line));
+        if (m.ModifyFishingLine.length === 3) {
+            guard(name, () => m.ModifyFishingLine(item, proj, line));
+        } else {
+            const offsetRef = new Ref(line.lineOriginOffset);
+            const colorRef = new Ref(line.lineColor);
+            guard(name, () => m.ModifyFishingLine(item, proj, offsetRef, colorRef));
+            line.lineOriginOffset = offsetRef.value;
+            line.lineColor = colorRef.value;
+        }
         const offset = line.lineOriginOffset || { X: 0, Y: 0 };
         const dir = owner.direction;
         const x = center.X + offset.X * dir - (dir < 0 ? 13 : 0);
@@ -1555,6 +1589,8 @@ function modifyPerCulture(inst, field, texts, modify) {
  */
 class ModBuff {
     Type = undefined;
+    // true: fora do Mod Menu.
+    HideFromModMenu = false;
     // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: BuffName.<Classe> e
     // BuffDescription.<Classe> em Localization/*.json.
     DisplayName = '';
@@ -1588,6 +1624,7 @@ class ModBuff {
             throw new TypeError('ModBuff.register(Classe): passe a classe, que estende ModBuff');
         }
         const inst = new cls();
+        adoptTemplate(cls, inst);
         const name = cls.name;
         const displayName = modifyPerCulture(inst, 'DisplayName',
             inst.DisplayName || localized('BuffName', name) || name, 'ModifyDisplayName');
@@ -1601,6 +1638,7 @@ class ModBuff {
             setStaticDefaults() {
                 inst.SetStaticDefaults();
                 inst.PostStaticDefaults();
+                applyMenuVisibility('buff', inst, inst.Type, () => false);
             },
         });
         inst.Type = type;
@@ -1761,6 +1799,7 @@ class ModTile {
             throw new TypeError('ModTile.register(Classe): passe a classe, que estende ModTile');
         }
         const inst = new cls();
+        adoptTemplate(cls, inst);
         const name = cls.name;
         const type = bl.tiles.register({
             name,
@@ -1975,6 +2014,7 @@ class ModProjectile {
         autoloadGores();
         defineEntityField(Terraria.Projectile, 'ModProjectile');
         const inst = new cls();
+        adoptTemplate(cls, inst);
         const name = cls.name;
         const type = bl.projectiles.register({
             name,
@@ -2322,6 +2362,9 @@ class ModNPC {
     // item que o jogo copiou). Sobrescreva para copiar fundo o que for seu.
     Clone(newNPC) { return cloneInstance(this); }
     Type = undefined;
+    // true: fora do Mod Menu (o jeito do tModLoader tambem vale: um
+    // NPCBestiaryDrawModifiers com Hide = true no NPCID.Sets.NPCBestiaryDrawOffset).
+    HideFromModMenu = false;
     // Anima como este NPC do jogo (0 = nao anima). Pode vir do SetDefaults.
     AnimationType = 0;
     // Texto, ou { 'pt-BR': ..., 'en-US': ... }. Vazio: NPCName.<Classe> em
@@ -2427,6 +2470,7 @@ class ModNPC {
         autoloadGores();
         defineEntityField(Terraria.NPC, 'ModNPC');
         const inst = new cls();
+        adoptTemplate(cls, inst);
         const name = cls.name;
         let animation = inst.AnimationType | 0;
         let type = -1;
@@ -2457,6 +2501,10 @@ class ModNPC {
                 inst.SetStaticDefaults();
                 inst.PostStaticDefaults();
                 bl.npcs.setFrames(t, Terraria.Main.npcFrameCount[t]);
+                applyMenuVisibility('npc', inst, t, () => {
+                    const drawn = Terraria.ID.NPCID.Sets.NPCBestiaryDrawOffset;
+                    return drawn.ContainsKey(t) && drawn.get_Item(t).Hide;
+                });
                 inst.ModifyNPCLoot(new NPCLoot(t));
             },
         };
@@ -3384,11 +3432,138 @@ function hookMusic() {
     });
 }
 
+// ============================== ModContent ==============================
+//
+// Como o ModContent do tModLoader. O tipo e o modelo de um conteudo de mod:
+//  - pela classe, o <T> de la: ModContent.ProjectileType(ExampleBobber);
+//  - pelo nome: 'ExampleBobber', no mod de quem chama, ou no unico mod que
+//    tem esse nome;
+//  - por 'mod/Nome', com o id (ou uid) do manifesto: conteudo de outro mod.
+// Tipo nao carrega nada: e so consultar o registro. Nao achou: 0, como la.
+//
+// E os arquivos do mod: ModContent.Request('Textures/brilho') carrega a
+// textura na primeira vez e devolve a mesma depois (.Value e a Texture2D);
+// ModContent.Texture(caminho) e o atalho para a Texture2D.
+
+const textureAssets = new Map();   // arquivo -> Asset<Texture2D>
+
+function contentRegistry(base) {
+    if (base === ModItem) return itemsByType;
+    if (base === ModProjectile) return projectilesByType;
+    if (base === ModNPC) return npcsByType;
+    if (base === ModBuff) return buffsByType;
+    if (base === ModTile) return tilesByType;
+    throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff ou ModTile');
+}
+
+function findContent(byType, which) {
+    if (typeof which === 'function') {
+        const inst = contentByClass.get(which);
+        return inst && byType.get(inst.Type) === inst ? inst : undefined;
+    }
+    const name = String(which);
+    const slash = name.lastIndexOf('/');
+    if (slash > 0) {
+        const mod = findMod(name.slice(0, slash), 'ModContent');
+        const want = name.slice(slash + 1);
+        for (const inst of byType.values()) {
+            if (mod && inst.Mod === mod && inst.constructor.name === want) return inst;
+        }
+        return undefined;
+    }
+    const caller = bl.mod;
+    let found;
+    let count = 0;
+    for (const inst of byType.values()) {
+        if (inst.constructor.name !== name) continue;
+        if (caller && inst.Mod === caller) return inst;
+        found = found || inst;
+        count++;
+    }
+    if (count > 1) reportOnce('ModContent:' + name, "ModContent: '" + name + "' existe em " + count + " mods; peca por 'mod/" + name + "'");
+    return count === 1 ? found : undefined;
+}
+
+const typeOfContent = (byType, which) => {
+    const inst = findContent(byType, which);
+    return inst ? inst.Type : 0;
+};
+
+// O arquivo de uma textura do mod, ou null. Aceita 'Textures/brilho.png',
+// 'Textures/brilho' e 'Items/Espada' (dentro de Textures/, como o Texture do
+// ModItem); e, como no tModLoader, 'mod/...' com o id de outro mod na frente.
+function findModTexture(path) {
+    const rel = String(path).replace(/^\/+/, '');
+    const inRoot = (root, r) => {
+        const file = /\.[a-z0-9]{2,4}$/i.test(r) ? r : r + '.png';
+        for (const candidate of [file, 'Textures/' + file]) {
+            const full = bl.path.join(root, candidate);
+            if (bl.file.exists(full)) return full;
+        }
+        return null;
+    };
+    const own = bl.mod && bl.mod.path;
+    const mine = own ? inRoot(own, rel) : null;
+    if (mine) return mine;
+    const slash = rel.indexOf('/');
+    if (slash > 0) {
+        const mod = findMod(rel.slice(0, slash), 'ModContent');
+        if (mod && mod.path) return inRoot(mod.path, rel.slice(slash + 1));
+    }
+    return null;
+}
+
+const ModContent = Object.freeze({
+    ItemType: (which) => typeOfContent(itemsByType, which),
+    ProjectileType: (which) => typeOfContent(projectilesByType, which),
+    NPCType: (which) => typeOfContent(npcsByType, which),
+    BuffType: (which) => typeOfContent(buffsByType, which),
+    TileType: (which) => typeOfContent(tilesByType, which),
+
+    // O modelo da classe (o do register), ou undefined.
+    GetInstance(cls) { return contentByClass.get(cls); },
+    // Por nome, como o Find<T> do tModLoader: ModContent.Find(ModItem,
+    // 'examplemod/ExampleItem'). Lanca se nao ha; o TryFind poe no Ref.
+    Find(base, name) {
+        const inst = findContent(contentRegistry(base), name);
+        if (!inst) throw new Error("ModContent.Find: nao ha '" + name + "'");
+        return inst;
+    },
+    TryFind(base, name, result) {
+        const inst = findContent(contentRegistry(base), name);
+        if (result && typeof result === 'object') result.value = inst;
+        return inst !== undefined;
+    },
+    GetModItem: (type) => itemsByType.get(type),
+    GetModProjectile: (type) => projectilesByType.get(type),
+    GetModNPC: (type) => npcsByType.get(type),
+    GetModBuff: (type) => buffsByType.get(type),
+    GetModTile: (type) => tilesByType.get(type),
+
+    // A textura do mod, carregada uma vez (so na thread do jogo, com o jogo
+    // rodando: num hook, no SetStaticDefaults ou no PostSetupContent).
+    Request(path) {
+        const file = findModTexture(path);
+        if (!file) throw new Error("ModContent.Request: nao achei a textura '" + path + "' na pasta do mod");
+        let asset = textureAssets.get(file);
+        if (!asset) {
+            asset = bl.loadTextureAsset(file);
+            textureAssets.set(file, asset);
+        }
+        return asset;
+    },
+    Texture(path) { return ModContent.Request(path).Value; },
+    HasAsset: (path) => findModTexture(path) !== null,
+    // O mesmo que new SoundStyle(caminho, opcoes), que ja guarda o som.
+    SoundStyle: (path, options) => new SoundStyle(path, options),
+});
+
 globalThis.ModItem = ModItem;
 globalThis.ModRecipe = ModRecipe;
 globalThis.ModSystem = ModSystem;
 globalThis.Mod = Mod;
 globalThis.ModLoader = ModLoader;
+globalThis.ModContent = ModContent;
 globalThis.SoundStyle = SoundStyle;
 globalThis.SoundEngine = SoundEngine;
 globalThis.SoundLimitBehavior = SoundLimitBehavior;

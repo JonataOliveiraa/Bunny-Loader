@@ -340,6 +340,43 @@ JSValue js_addToFolder(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
     return JS_UNDEFINED;
 }
 
+/**
+ * bl.menu.hide('item' | 'npc' | 'buff', tipo) — tira do Mod Menu (das pastas
+ * do mod e das listas gerais). O ModClasses chama no SetStaticDefaults, com o
+ * HideFromModMenu ou o jeito do tModLoader.
+ */
+/** 'item' | 'npc' | 'buff' -> MenuKind; false se o texto e outro. */
+bool menuKindOf(JSContext* ctx, JSValueConst v, runtime::MenuKind* out) {
+    const char* kind = JS_ToCString(ctx, v);
+    const std::string k = kind ? kind : "";
+    if (kind) JS_FreeCString(ctx, kind);
+    if (k == "item") *out = runtime::MenuKind::Item;
+    else if (k == "npc") *out = runtime::MenuKind::Npc;
+    else if (k == "buff") *out = runtime::MenuKind::Buff;
+    else return false;
+    return true;
+}
+
+JSValue js_hideFromMenu(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    runtime::MenuKind kind;
+    int32_t type = -1;
+    if (argc < 2 || !menuKindOf(ctx, argv[0], &kind) || JS_ToInt32(ctx, &type, argv[1]) < 0) {
+        return JS_ThrowTypeError(ctx, "bl.menu.hide('item' | 'npc' | 'buff', tipo)");
+    }
+    runtime::hideFromModMenu(kind, type);
+    return JS_UNDEFINED;
+}
+
+/** bl.menu.isHidden('item' | 'npc' | 'buff', tipo) -> o tipo esta fora do Mod Menu? */
+JSValue js_isHiddenFromMenu(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    runtime::MenuKind kind;
+    int32_t type = -1;
+    if (argc < 2 || !menuKindOf(ctx, argv[0], &kind) || JS_ToInt32(ctx, &type, argv[1]) < 0) {
+        return JS_ThrowTypeError(ctx, "bl.menu.isHidden('item' | 'npc' | 'buff', tipo)");
+    }
+    return JS_NewBool(ctx, runtime::hiddenFromModMenu(kind).count(type) > 0);
+}
+
 } // namespace
 
 void installItemsApi(JSContext* ctx, JSValue bl) {
@@ -359,6 +396,8 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
                       JS_NewCFunction(ctx, js_npcCategory, "npcCategory", 2));
     JS_SetPropertyStr(ctx, menu, "addItem", JS_NewCFunction(ctx, js_addToFolder, "addItem", 2));
     JS_SetPropertyStr(ctx, menu, "addNpc", JS_NewCFunction(ctx, js_addToFolder, "addNpc", 2));
+    JS_SetPropertyStr(ctx, menu, "hide", JS_NewCFunction(ctx, js_hideFromMenu, "hide", 2));
+    JS_SetPropertyStr(ctx, menu, "isHidden", JS_NewCFunction(ctx, js_isHiddenFromMenu, "isHidden", 2));
     JS_SetPropertyStr(ctx, bl, "menu", menu);
 }
 

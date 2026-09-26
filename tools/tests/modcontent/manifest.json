@@ -1,0 +1,15 @@
+{
+  "uid": "9d1c4e7a-2b8f-4a63-8e15-7f0a3c6b2d48",
+  "id": "test-modcontent",
+  "name": "Teste: ModContent e Mod Menu",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModContent (tipo pela classe, pelo nome e por mod/Nome; modelos; textura carregada uma vez) e o que fica fora do Mod Menu.",
+  "description": "Loga 'modcontent ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

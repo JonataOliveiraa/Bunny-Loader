@@ -56,7 +56,41 @@ números saem nessa ordem, ela também precisa ser a mesma em todo aparelho do
 multijogador — é, desde que todos tenham os mesmos mods.
 
 `register` devolve o número do tipo novo. Depois dá para pegá-lo pelo nome da
-classe: `ModItem.getTypeByName('ExampleItem')`.
+classe: `ModItem.getTypeByName('ExampleItem')`, ou pelo `ModContent`, como no
+tModLoader (abaixo).
+
+### ModContent
+
+O `ModContent` do tModLoader, com os mesmos nomes. O tipo de um conteúdo de mod
+sai pela **classe** (o `<T>` de lá), pelo **nome** ou por `'mod/Nome'` (o `id`
+do manifesto de outro mod); não achou, devolve 0:
+
+```js
+const boia = ModContent.ProjectileType(ExampleBobber);          // a classe
+const mesmo = ModContent.ProjectileType('ExampleBobber');       // o nome
+const deOutro = ModContent.ItemType('outromod/EspadaDeFogo');   // outro mod
+```
+
+Pelo nome, vale o do seu mod; se não houver, o único mod que tem um conteúdo com
+esse nome (se dois têm, peça por `'mod/Nome'`). Há `ItemType`, `ProjectileType`,
+`NPCType`, `BuffType` e `TileType`; `GetInstance(Classe)` devolve o modelo (a
+instância do `register`), `Find(ModItem, 'mod/Nome')` e `TryFind(ModItem,
+'mod/Nome', ref)` o procuram pelo nome, e `GetModItem(tipo)` (e os outros) pelo
+tipo. Todo modelo tem `this.Mod`, o `Mod` de quem registrou.
+
+Texturas do mod carregam na primeira chamada e as seguintes reusam a mesma:
+
+```js
+const brilho = ModContent.Texture('Textures/brilho.png');   // a Texture2D
+const asset = ModContent.Request('Textures/brilho');        // como no tModLoader: asset.Value
+```
+
+O caminho é a partir da pasta do mod (com ou sem `.png`; `'Items/Espada'` também
+acha `Textures/Items/Espada.png`); `'outromod/...'` pega de outro mod.
+`ModContent.HasAsset(caminho)` diz se existe. Carregue dentro de um hook, no
+`SetStaticDefaults` ou no `PostSetupContent` — textura só nasce com o jogo
+rodando. `ModContent.SoundStyle(caminho, opções)` é o mesmo que
+`new SoundStyle(caminho, opções)` ([guia 5](05-sons-e-musica.md)).
 
 ### Uma instância por entidade
 
@@ -191,7 +225,7 @@ export class ExampleItem extends ModItem {
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. |
 | `UpdateEquip(item, player)`, `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, equipado. No acessório, `vanity` é o slot de vaidade (só o visual) e `hideVisual` o olho fechado. |
 | `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). |
-| `ModifyFishingLine(item, bobber, line)` | Vara de pesca: de onde a linha sai e a cor dela (ver [Vara de pesca](#vara-de-pesca)). |
+| `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara de pesca: de onde a linha sai e a cor dela, por `Ref` (ver [Vara de pesca](#vara-de-pesca)). |
 
 Só os métodos que você escrever custam alguma coisa: o hook do jogo por trás de
 cada um só é instalado quando alguma classe o sobrescreve, e só é chamado para
@@ -245,17 +279,21 @@ this.Item.ammo = Terraria.ID.AmmoID.Bullet;
 ### Vara de pesca
 
 O jogo só sabe onde fica a ponta das varas dele; sem o `ModifyFishingLine`, a
-linha de uma vara de mod sai do centro do jogador. `line.lineOriginOffset` é
-de onde ela sai, em pixels a partir do centro do jogador olhando para a
-direita (o Bunny Loader espelha para a esquerda e para a gravidade invertida);
-`line.lineColor` é a cor, e a linha colorida que o jogador equipou ganha dela.
+linha de uma vara de mod sai do centro do jogador. Como no tModLoader, os dois
+últimos parâmetros são `Ref`: `lineOriginOffset.value` é de onde a linha sai,
+em pixels a partir do centro do jogador olhando para a direita (o Bunny Loader
+espelha para a esquerda e para a gravidade invertida); `lineColor.value` é a
+cor, e a linha colorida que o jogador equipou ganha dela.
 
 ```js
-ModifyFishingLine(item, bobber, line) {
-    line.lineOriginOffset = Vector2.new(43, -30);
-    line.lineColor = Color.new(255, 215, 0);
+ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {
+    lineOriginOffset.value = Vector2.new(43, -30);
+    lineColor.value = Color.new(255, 215, 0);
 }
 ```
+
+O jeito antigo, com três parâmetros (`item, bobber, line`) e
+`line.lineOriginOffset` / `line.lineColor`, continua valendo.
 
 `bobber` é a boia (o projétil): a `ExampleFishingRod` pinta a linha com a cor
 que a `ExampleBobber` sorteou ao nascer (`bobber.ModProjectile`).
@@ -1118,6 +1156,20 @@ bl.menu.addItem(armas, ModItem.getTypeByName('ExampleGun'));
 ```
 
 (`bl.menu.npcCategory` e `bl.menu.addNpc` para NPCs.)
+
+Para **esconder** um item, NPC ou buff do Mod Menu (das pastas do mod e das
+listas gerais), diga no `SetStaticDefaults`:
+
+```js
+SetStaticDefaults() {
+    this.HideFromModMenu = true;   // ModItem, ModNPC ou ModBuff
+}
+```
+
+O jeito do tModLoader também esconde, e o jogo o entende nas listas dele:
+`ItemID.Sets.Deprecated[this.Type] = true` para item, e um
+`NPCBestiaryDrawModifiers` com `Hide = true` no
+`NPCID.Sets.NPCBestiaryDrawOffset` para NPC (que também some do Bestiário).
 
 ## Save
 

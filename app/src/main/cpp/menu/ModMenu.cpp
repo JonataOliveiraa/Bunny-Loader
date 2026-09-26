@@ -16,6 +16,7 @@ struct ModInfo {
 std::mutex g_mx;
 std::vector<ModInfo> g_mods;              // na ordem em que apareceram
 std::vector<ModMenuFolder> g_custom;      // as pastas que os mods criaram
+std::unordered_set<int> g_hidden[3];      // por MenuKind: fora do menu
 
 ModInfo& infoOf(const std::string& mod) {
     for (ModInfo& m : g_mods) if (m.mod == mod) return m;
@@ -60,6 +61,16 @@ bool addToModMenuFolder(int folder, int type) {
     return true;
 }
 
+void hideFromModMenu(MenuKind kind, int type) {
+    std::lock_guard<std::mutex> l(g_mx);
+    g_hidden[static_cast<int>(kind)].insert(type);
+}
+
+std::unordered_set<int> hiddenFromModMenu(MenuKind kind) {
+    std::lock_guard<std::mutex> l(g_mx);
+    return g_hidden[static_cast<int>(kind)];
+}
+
 std::vector<ModMenuFolder> modMenuFolders() {
     // Fora da trava: cada uma tem a sua.
     const std::vector<ModItemInfo> items = modItems();
@@ -67,6 +78,9 @@ std::vector<ModMenuFolder> modMenuFolders() {
     const std::vector<ModBuffInfo> buffs = modBuffs();
 
     std::lock_guard<std::mutex> l(g_mx);
+    const auto shown = [](MenuKind kind, int type) {
+        return g_hidden[static_cast<int>(kind)].count(type) == 0;
+    };
     std::vector<ModMenuFolder> out;
     for (const ModInfo& m : g_mods) {
         ModMenuFolder all;
@@ -76,24 +90,34 @@ std::vector<ModMenuFolder> modMenuFolders() {
 
         ModMenuFolder itemsFolder = all;
         itemsFolder.name = "Itens";
-        for (const ModItemInfo& i : items) if (i.mod == m.mod) itemsFolder.types.push_back(i.type);
+        for (const ModItemInfo& i : items) {
+            if (i.mod == m.mod && shown(MenuKind::Item, i.type)) itemsFolder.types.push_back(i.type);
+        }
         if (!itemsFolder.types.empty()) out.push_back(std::move(itemsFolder));
 
         ModMenuFolder npcsFolder = all;
         npcsFolder.name = "NPCs";
         npcsFolder.npc = true;
-        for (const ModNpcInfo& n : npcs) if (n.mod == m.mod) npcsFolder.types.push_back(n.type);
+        for (const ModNpcInfo& n : npcs) {
+            if (n.mod == m.mod && shown(MenuKind::Npc, n.type)) npcsFolder.types.push_back(n.type);
+        }
         if (!npcsFolder.types.empty()) out.push_back(std::move(npcsFolder));
 
         ModMenuFolder buffsFolder = all;
         buffsFolder.name = "Buffs";
         buffsFolder.buff = true;
-        for (const ModBuffInfo& b : buffs) if (b.mod == m.mod) buffsFolder.types.push_back(b.type);
+        for (const ModBuffInfo& b : buffs) {
+            if (b.mod == m.mod && shown(MenuKind::Buff, b.type)) buffsFolder.types.push_back(b.type);
+        }
         if (!buffsFolder.types.empty()) out.push_back(std::move(buffsFolder));
 
         for (const ModMenuFolder& f : g_custom) {
-            if (f.mod != m.mod || f.types.empty()) continue;
+            if (f.mod != m.mod) continue;
             ModMenuFolder c = f;
+            c.types.clear();
+            const MenuKind kind = f.buff ? MenuKind::Buff : f.npc ? MenuKind::Npc : MenuKind::Item;
+            for (int t : f.types) if (shown(kind, t)) c.types.push_back(t);
+            if (c.types.empty()) continue;
             c.modName = all.modName;
             c.modIcon = all.modIcon;
             out.push_back(std::move(c));

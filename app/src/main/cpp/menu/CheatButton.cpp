@@ -95,14 +95,16 @@ void JNICALL jni_onGive(JNIEnv*, jclass, jint type, jint stack) {
  * visivel, custaria uma travessia por rolagem — e pior, viria da thread de UI,
  * que nao pode tocar no il2cpp.
  */
-jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& names) {
+jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& names,
+                               runtime::MenuKind kind) {
     if (!runtime::namesReady()) return nullptr;
+    const std::unordered_set<int> hidden = runtime::hiddenFromModMenu(kind);
     jclass sc = env->FindClass("java/lang/String");
     if (!sc) return nullptr;
     jobjectArray out = env->NewObjectArray(static_cast<jsize>(names.size()), sc, nullptr);
     if (!out) return nullptr;
     for (size_t i = 0; i < names.size(); ++i) {
-        if (names[i].empty()) continue;   // fica null: o menu mostra so o id
+        if (names[i].empty() || hidden.count(static_cast<int>(i))) continue;   // fica null
         jstring js = env->NewString(reinterpret_cast<const jchar*>(names[i].data()),
                                     static_cast<jsize>(names[i].size()));
         env->SetObjectArrayElement(out, static_cast<jsize>(i), js);
@@ -111,12 +113,14 @@ jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& n
     return out;
 }
 
+// O menu pula o tipo sem nome: e assim que o escondido (HideFromModMenu,
+// ItemID.Sets.Deprecated...) sai das listas gerais.
 jobjectArray JNICALL jni_itemNames(JNIEnv* env, jclass) {
-    return toJavaStringArray(env, runtime::itemNames());
+    return toJavaStringArray(env, runtime::itemNames(), runtime::MenuKind::Item);
 }
 
 jobjectArray JNICALL jni_npcNames(JNIEnv* env, jclass) {
-    return toJavaStringArray(env, runtime::npcNames());
+    return toJavaStringArray(env, runtime::npcNames(), runtime::MenuKind::Npc);
 }
 
 jintArray JNICALL jni_npcFrames(JNIEnv* env, jclass) {
@@ -165,7 +169,7 @@ jbyteArray JNICALL jni_npcClasses(JNIEnv* env, jclass) {
 }
 
 jobjectArray JNICALL jni_buffNames(JNIEnv* env, jclass) {
-    return toJavaStringArray(env, runtime::buffNames());
+    return toJavaStringArray(env, runtime::buffNames(), runtime::MenuKind::Buff);
 }
 
 jbyteArray JNICALL jni_buffClasses(JNIEnv* env, jclass) {

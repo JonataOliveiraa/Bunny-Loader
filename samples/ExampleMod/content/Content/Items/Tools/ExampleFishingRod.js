@@ -23,14 +23,14 @@ export class ExampleFishingRod extends ModItem {
         player.accFishingLine = true;
     }
 
-    ModifyFishingLine(item, bobber, line) {
-        line.lineOriginOffset = Vector2.new(43, -30);
+    ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {
+        lineOriginOffset.value = Vector2.new(43, -30);
         const m = bobber.ModProjectile;
         if (m instanceof ExampleBobber) {
-            line.lineColor = m.FishingLineColor;
+            lineColor.value = m.FishingLineColor;
         } else {
             const Main = Terraria.Main;
-            line.lineColor = Color.new(Main.DiscoR, Main.DiscoG, Main.DiscoB);
+            lineColor.value = Color.new(Main.DiscoR, Main.DiscoG, Main.DiscoB);
         }
     }
 }

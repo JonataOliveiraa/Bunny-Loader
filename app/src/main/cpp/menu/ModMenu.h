@@ -1,5 +1,7 @@
 #pragma once
+#include <cstdint>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace bl::runtime {
@@ -39,5 +41,18 @@ bool addToModMenuFolder(int folder, int type);
  * mod. Copia.
  */
 std::vector<ModMenuFolder> modMenuFolders();
+
+/** O que o menu lista: itens, NPCs, buffs. */
+enum class MenuKind : uint8_t { Item, Npc, Buff };
+
+/**
+ * Tira o tipo do Mod Menu: das pastas do mod e das listas gerais ("Todos os
+ * itens"...). O mod pede no SetStaticDefaults (HideFromModMenu, ou o
+ * ItemID.Sets.Deprecated / o Hide do Bestiario, como no tModLoader).
+ */
+void hideFromModMenu(MenuKind kind, int type);
+
+/** Os tipos escondidos de `kind`. Copia. */
+std::unordered_set<int> hiddenFromModMenu(MenuKind kind);
 
 } // namespace bl::runtime
