@@ -1,3 +1,5 @@
+import { ExampleBobber } from '../../Projectiles/ExampleBobber.js';
+
 const { ItemID } = Terraria.ID;
 
 export class ExampleFishingRod extends ModItem {
@@ -19,5 +21,16 @@ export class ExampleFishingRod extends ModItem {
 
     HoldItem(item, player) {
         player.accFishingLine = true;
+    }
+
+    ModifyFishingLine(item, bobber, line) {
+        line.lineOriginOffset = Vector2.new(43, -30);
+        const m = bobber.ModProjectile;
+        if (m instanceof ExampleBobber) {
+            line.lineColor = m.FishingLineColor;
+        } else {
+            const Main = Terraria.Main;
+            line.lineColor = Color.new(Main.DiscoR, Main.DiscoG, Main.DiscoB);
+        }
     }
 }

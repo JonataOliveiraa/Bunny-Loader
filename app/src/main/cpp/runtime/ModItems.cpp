@@ -4,6 +4,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "hook/HookManager.h"
+#include "runtime/CodePatch.h"
 #include "runtime/ContentAssets.h"
 #include "runtime/GameRefs.h"
 #include "runtime/TypeTables.h"
@@ -315,6 +316,37 @@ void hookItemNames() {
     }
 }
 
+// O drop do jogo recusa item de mod: os CommonCode.DropItem* comecam com
+// `if (itemId > 0 && itemId < ItemID.Count)`, compilado pela metade
+// (`(itemId - 1) >> 1 <= 0xC00`; ver patchHalvedLimit). O tModLoader troca o
+// ItemID.Count por ItemLoader.ItemCount nos mesmos metodos. Aceita de 1 a
+// 2*imm+2, entao imm = (total-3)/2 nunca passa do ultimo tipo; com `total`
+// par sobra o ultimo, que e da reserva "?" (registrada depois dos mods).
+uint32_t g_dropLimit = 0xC00;
+
+void patchDropLimits(int total) {
+    const uint32_t imm = static_cast<uint32_t>((total - 3) / 2);
+    if (imm == g_dropLimit) return;
+    if (imm > 0xFFF) {
+        BL_ERROR("itens de mod: %d tipos de item passam do limite do drop do jogo (8193)", total);
+        return;
+    }
+    auto& a = il2cpp::api();
+    Il2CppClass* cls = il2cpp::findClass({"Terraria.GameContent.ItemDropRules", "CommonCode", {}});
+    int patched = 0;
+    void* it = nullptr;
+    while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
+        patched += patchHalvedLimit(m, g_dropLimit, imm);
+    }
+    if (patched == 0) {
+        BL_ERROR("itens de mod: limite do drop (CommonCode.DropItem*) nao achado no codigo; "
+                 "NPC nenhum solta item de mod");
+        return;
+    }
+    BL_INFO("itens de mod: drop do jogo aceita ate o id %u (%d metodo(s) do CommonCode)", 2 * imm + 2, patched);
+    g_dropLimit = imm;
+}
+
 /** O jogo ja criou as tabelas de agora? (Sao feitas no carregamento, nao no boot.) */
 bool gameReady(int size) {
     Refs& r = refs();
@@ -551,6 +583,7 @@ void tickModItems() {
     }
     g_installed.store(total, std::memory_order_release);
     hookItemNames();
+    patchDropLimits(to);
     growInstanceTables(to);
 
     struct PendingSample { int type; std::string mod, name; };

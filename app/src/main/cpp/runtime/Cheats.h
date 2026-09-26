@@ -103,9 +103,5 @@ bool inWorld();
 const std::vector<uint8_t>& itemClasses();
 // A subcategoria dentro da secao (0 = Outros); contrato com SUB_NAMES no Java.
 const std::vector<uint8_t>& itemSubClasses();
-// Teto de pilha que o menu entrega: 1 para arma, ferramenta, acessorio e
-// armadura; o maxStack do jogo para o resto. NAO e o Item.maxStack puro, que
-// nesta versao vale 9999 ate para espada.
-const std::vector<int32_t>& itemMaxStacks();
 
 } // namespace bl::runtime

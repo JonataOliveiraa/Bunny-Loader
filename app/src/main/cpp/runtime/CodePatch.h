@@ -41,6 +41,16 @@ int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit,
 int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd);
 
 /**
+ * O `0 < x < N` com N PAR, que o clang compila pela metade:
+ * `sub wA, wX, #1; lsr wB, wA, #1; cmp wB, #(N-2)/2; b.hi` — aceita x de 1 a
+ * 2*imm+2. O `itemId < ItemID.Count` (6147) dos CommonCode.DropItem* e assim
+ * (imm 0xC00), e a scan_limits.py nao acha; a scan_halved.py (tools/disasm)
+ * acha. Troca o imediato do `cmp` que vem logo depois de um `lsr #1` no mesmo
+ * registrador e antes de um b.hi. Chamar na thread do jogo.
+ */
+int patchHalvedLimit(const MethodInfo* m, uint32_t oldImm, uint32_t newImm);
+
+/**
  * O tamanho de um `new T[697]`: `mov wN, #697` antes do il2cpp_array_new.
  * Troca TODO `movz wN, #oldValue` do metodo: so para metodo conferido, em que
  * o numero so aparece ali.

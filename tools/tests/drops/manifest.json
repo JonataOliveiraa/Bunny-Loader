@@ -1,0 +1,15 @@
+{
+  "uid": "7e2a9c41-5b3d-4f86-a0c2-9d1e4b7f3a58",
+  "id": "test-drops",
+  "name": "Teste: drop de item de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O sistema de drop do jogo solta o item de mod quando um NPC de mod morre (slime e chefe do Example Mod).",
+  "description": "Precisa do Example Mod ligado. Loga 'drops ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

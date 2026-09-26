@@ -87,7 +87,6 @@ public class CheatBridge {
     /** O PNG de cada NPC de mod, na ordem do tipo. */
     public static native String[] nModNpcTextures();
     /** Teto de pilha de cada item: 1 para arma e equipamento (runtime::itemMaxStacks). */
-    public static native int[] nItemStacks();
     /** bl::runtime::setPower — o nivel de um superpoder, 0 = desligado. */
     public static native void nSetPower(int id, int level);
     /** bl::runtime::inWorld — o jogador esta num mundo (nao na tela de titulo). */
@@ -159,8 +158,6 @@ public class CheatBridge {
         /** Ids de cada secao de item (indice = CL_*), na ordem do jogo. */
         int[][] byClass;
         int[] allItems, allNpcs;
-        /** Teto de pilha por item (runtime::itemMaxStacks). */
-        int[] maxStacks;
         /** Quadros da tira de cada NPC (Main.npcFrameCount). */
         int[] npcFrames;
         /** [classe][subcategoria] -> ids (runtime::subOf). */
@@ -259,7 +256,6 @@ public class CheatBridge {
         Catalog c = new Catalog();
         c.itemNames = items;
         c.npcNames = npcs;
-        c.maxStacks = nItemStacks();
         c.npcFrames = nNpcFrames();
         c.allItems = sequence(items.length);
         c.allNpcs = sequence(npcs.length);
@@ -429,14 +425,6 @@ public class CheatBridge {
         if (mod != null && !folders.isEmpty()) {
             l.add(Section.modGroup(modName, modIcon, folders.toArray(new Section[0])));
         }
-    }
-
-    /** Quanto sai de fato: o nativo corta a pilha no teto do item. */
-    private static int actualStack(int id, int requested) {
-        Catalog c = sCatalog;
-        if (c == null || c.maxStacks == null || id < 0 || id >= c.maxStacks.length) return requested;
-        int max = c.maxStacks[id];
-        return max > 0 && requested > max ? max : requested;
     }
 
     // ------------------------------ secoes ------------------------------
@@ -1648,7 +1636,6 @@ public class CheatBridge {
                     b.postDelayed(new Runnable() {
                         @Override public void run() { b.setBackground(panel(act, PANEL_DARK, OUTLINE)); }
                     }, TIME_FLASH_MS);
-                    toast(act, TIME_NAME[which]);
                 }
             });
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, px(act, 34), 1f);
@@ -2112,19 +2099,13 @@ public class CheatBridge {
                 int n = qty[0] < 1 ? 1 : qty[0];
                 if (s.buff()) {
                     nOnBuff(id, n * 60);
-                    Toast.makeText(act, name + " (" + n + " min)", Toast.LENGTH_SHORT).show();
                 } else if (s.npc()) {
                     // A contagem vai JUNTO: o nativo guarda o pedido num slot
                     // so, consumido uma vez por quadro, entao dez chamadas
                     // seguidas viravam um NPC.
                     nOnSpawn(id, n);
-                    Toast.makeText(act, name + (n > 1 ? " x" + n : "") + " invocado",
-                        Toast.LENGTH_SHORT).show();
                 } else {
                     nOnGive(id, n);
-                    int given = actualStack(id, n);
-                    Toast.makeText(act, name + (given > 1 ? " x" + given : ""),
-                        Toast.LENGTH_SHORT).show();
                 }
             }
         });

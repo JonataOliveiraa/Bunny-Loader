@@ -1,7 +1,19 @@
+const PossibleLineColors = [
+    [255, 215, 0],
+    [0, 191, 255],
+];
+
 export class ExampleBobber extends ModProjectile {
+    fishingLineColorIndex = 0;
+
     constructor() {
         super();
         this.Texture = 'Projectiles/' + this.constructor.name;
+    }
+
+    get FishingLineColor() {
+        const [r, g, b] = PossibleLineColors[this.fishingLineColorIndex];
+        return Color.new(r, g, b);
     }
 
     SetDefaults() {
@@ -12,5 +24,9 @@ export class ExampleBobber extends ModProjectile {
         this.Projectile.bobber = true;
         this.Projectile.penetrate = -1;
         this.Projectile.netImportant = true;
+    }
+
+    OnSpawn(proj) {
+        this.fishingLineColorIndex = Math.floor(Math.random() * PossibleLineColors.length);
     }
 }

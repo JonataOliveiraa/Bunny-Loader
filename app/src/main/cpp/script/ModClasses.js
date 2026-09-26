@@ -291,6 +291,10 @@ class ModItem {
     // No chao: a cor com que o item e desenhado. Devolva uma Color (ou nada,
     // para a do jogo). `item` e o WorldItem; a luz do lugar chega em lightColor.
     GetAlpha(item, lightColor) { return undefined; }
+    // Vara de pesca na mao, a cada boia: line.lineOriginOffset (de onde a
+    // linha sai, em pixels a partir do centro do jogador olhando para a
+    // direita) e line.lineColor (a cor; a linha colorida do jogador ganha).
+    ModifyFishingLine(item, bobber, line) {}
 
     // Copia os valores de um item do jogo para este.
     CloneDefaults(type) {
@@ -606,6 +610,8 @@ function hookItem(cls) {
 
     if (has('ModifyTooltips')) once('item.Tooltips', hookTooltips);
 
+    if (has('ModifyFishingLine')) once('item.FishingLine', hookFishingLine);
+
     if (has('UpdateInventory')) once('item.Inventory', () => {
         P['void UpdateEquips(int i)'].hook((original, self, i) => {
             original(self, i);
@@ -615,6 +621,38 @@ function hookItem(cls) {
             }
         });
     });
+}
+
+// A linha da vara. O Main.DrawProj_FishingLine poe a ponta da linha no
+// mountedCenter e so a desloca para as varas do jogo (um switch pelo tipo): a
+// de mod saia do centro do jogador. O deslocamento entra pelo mountedCenter,
+// na conta do ItemLoader.ModifyFishingLine do tModLoader; a cor, pelo
+// TryApplyingPlayerStringColor, que recebe a da vara antes da do jogador.
+function hookFishingLine() {
+    const Main = Terraria.Main;
+    const draw = Main['void DrawProj_FishingLine(Projectile proj, Player theOwner, ref float polePosX, ref float polePosY, Vector2 mountedCenter)'];
+    let lineColor = null;
+    draw.hook((original, proj, owner, polePosX, polePosY, center) => {
+        const item = owner.inventory[owner.selectedItem];
+        const m = item ? itemOf(item) : undefined;
+        if (!m) return original();
+        const line = { lineOriginOffset: Vector2.new(0, 0), lineColor: Color.new(200, 200, 200, 100) };
+        guard(m.constructor.name + '.ModifyFishingLine', () => m.ModifyFishingLine(item, proj, line));
+        const offset = line.lineOriginOffset || { X: 0, Y: 0 };
+        const dir = owner.direction;
+        const x = center.X + offset.X * dir - (dir < 0 ? 13 : 0);
+        const y = center.Y + offset.Y * owner.gravDir;
+        const outer = lineColor;
+        lineColor = line.lineColor || null;
+        try {
+            return original(proj, owner, polePosX, polePosY, Vector2.new(x, y));
+        } finally {
+            lineColor = outer;
+        }
+    });
+    Main['Color TryApplyingPlayerStringColor(int playerStringColor, Color stringColor)'].hook(
+        (original, playerColor, color) => (lineColor ? original(playerColor, lineColor) : original()),
+        { whileIn: draw });
 }
 
 // ================================ tooltips ================================
@@ -629,6 +667,8 @@ class TooltipLine {
         this.OverrideColor = undefined;
         this.IsModifier = false;
         this.IsModifierBad = false;
+        // true: a linha e o logo da One Drop (o dos ioios do jogo), sem texto.
+        this.OneDropLogo = false;
     }
     // '[c/RRGGBB:texto]': a tag de cor que o tooltip entende.
     static colorTag(text, color) { return '[c/' + hexOf(color) + ':' + text + ']'; }
@@ -687,6 +727,7 @@ function hookTooltips() {
                 const line = new TooltipLine(special.get(i) || 'Line' + i, lines[i]);
                 line.IsModifier = !!pre[i];
                 line.IsModifierBad = !!bad[i];
+                line.OneDropLogo = i === yoyo.value;
                 list.push(line);
             }
             guard(m.constructor.name + '.ModifyTooltips', () => m.ModifyTooltips(item, list));
@@ -705,7 +746,10 @@ function hookTooltips() {
             }
             numLines.value = count;
             const at = (name) => { const i = list.findIndex((l) => l.Name === name); return i < count ? i : -1; };
-            yoyo.value = at('OneDropLogo');
+            // Um logo so, como no tModLoader (o ultimo marcado ganha).
+            let logo = -1;
+            for (let i = 0; i < count; i++) if (list[i].OneDropLogo) logo = i;
+            yoyo.value = logo;
             research.value = at('JourneyResearch');
             materials.value = at('Material');
             setBonus.value = at('SetBonus');

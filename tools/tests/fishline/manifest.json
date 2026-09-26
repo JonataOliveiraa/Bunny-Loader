@@ -1,0 +1,15 @@
+{
+  "uid": "3c8e1f27-9a4b-4d6c-b5e2-7f0a1d9c4e63",
+  "id": "test-fishline",
+  "name": "Teste: linha da vara e logo do ioio",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Poe a vara e o ioio do Example Mod no inventario e lanca a boia: a linha sai da ponta da vara (ModifyFishingLine). Visual.",
+  "description": "Precisa do Example Mod ligado. Loga 'fishline ...'.",
+  "updated": "2026-09-25",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

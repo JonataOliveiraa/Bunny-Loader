@@ -832,7 +832,6 @@ const std::vector<int>& npcFrames() { return g_npcFrames; }
 bool inWorld() { return g_inWorld.load(std::memory_order_relaxed); }
 const std::vector<uint8_t>& itemClasses() { return g_itemClass; }
 const std::vector<uint8_t>& itemSubClasses() { return g_itemSub; }
-const std::vector<int32_t>& itemMaxStacks() { return g_itemStack; }
 
 void requestGive(int type, int stack) {
     if (type > 0) g_pendingGive.store(packGive(type, stack > 0 ? stack : 1));

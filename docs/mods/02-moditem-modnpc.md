@@ -191,6 +191,7 @@ export class ExampleItem extends ModItem {
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. |
 | `UpdateEquip(item, player)`, `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, equipado. No acessório, `vanity` é o slot de vaidade (só o visual) e `hideVisual` o olho fechado. |
 | `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). |
+| `ModifyFishingLine(item, bobber, line)` | Vara de pesca: de onde a linha sai e a cor dela (ver [Vara de pesca](#vara-de-pesca)). |
 
 Só os métodos que você escrever custam alguma coisa: o hook do jogo por trás de
 cada um só é instalado quando alguma classe o sobrescreve, e só é chamado para
@@ -241,6 +242,24 @@ this.Item.shoot = ModProjectile.getTypeByName('ExampleBulletProjectile');
 this.Item.ammo = Terraria.ID.AmmoID.Bullet;
 ```
 
+### Vara de pesca
+
+O jogo só sabe onde fica a ponta das varas dele; sem o `ModifyFishingLine`, a
+linha de uma vara de mod sai do centro do jogador. `line.lineOriginOffset` é
+de onde ela sai, em pixels a partir do centro do jogador olhando para a
+direita (o Bunny Loader espelha para a esquerda e para a gravidade invertida);
+`line.lineColor` é a cor, e a linha colorida que o jogador equipou ganha dela.
+
+```js
+ModifyFishingLine(item, bobber, line) {
+    line.lineOriginOffset = Vector2.new(43, -30);
+    line.lineColor = Color.new(255, 215, 0);
+}
+```
+
+`bobber` é a boia (o projétil): a `ExampleFishingRod` pinta a linha com a cor
+que a `ExampleBobber` sorteou ao nascer (`bobber.ModProjectile`).
+
 ### Tooltip colorido
 
 `ModifyTooltips(item, tooltips)` roda **toda vez** que o tooltip do item
@@ -272,6 +291,17 @@ letra, girando no arco-íris, logo abaixo do nome.
 Os nomes das linhas: `ItemName` (a 0), `Material`, `JourneyResearch`,
 `SetBonus`, `OneDropLogo`; as outras são `Line1`, `Line2`... pela posição em que o
 jogo as montou. Uma linha nova precisa de um nome seu. Até 30 linhas.
+
+O logo da One Drop, o dos ioiôs licenciados do jogo, é uma linha sem texto com
+`OneDropLogo = true`. O `ExampleYoyo` põe o dele no fim:
+
+```js
+ModifyTooltips(item, tooltips) {
+    const logo = new TooltipLine('OneDropLogo', '');
+    logo.OneDropLogo = true;
+    tooltips.push(logo);
+}
+```
 
 No guia de criação e na busca de itens, as linhas chegam sem cor: o texto das
 tags fica, as tags somem.
@@ -859,6 +889,10 @@ npcLoot.Add(Common(ItemID.Gel, 1, 1, 2));              // sempre, 1 a 2
 npcLoot.Add(Common(meuItem, 3, 5, 10));                // 1 em 3, 5 a 10
 npcLoot.Add(NormalvsExpert(ItemID.SlimeStaff, 10000, 7000));
 ```
+
+Item de mod vale em qualquer regra. O drop do jogo (`CommonCode.DropItem*`)
+recusava tipo acima dos do jogo, com o limite fixo no código; o Bunny Loader
+troca esse limite pelo total de itens, como o tModLoader.
 
 ### Spawn natural
 

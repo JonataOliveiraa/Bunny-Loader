@@ -107,6 +107,23 @@ int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd) {
     return patched;
 }
 
+int patchHalvedLimit(const MethodInfo* m, uint32_t oldImm, uint32_t newImm) {
+    if (!m || newImm > 0xFFF || oldImm > 0xFFF) return 0;
+    const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
+    if (!start) return 0;
+    const uintptr_t end = methodEnd(m, start);
+    int patched = 0;
+    for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 2) < end; ++p) {
+        // lsr wB, wA, #1 = UBFM wB, wA, #1, #31
+        if ((*p & 0xFFFFFC00u) != 0x53017C00u) continue;
+        const uint32_t reg = *p & 31u;
+        if (!isCompareImmediate(p[1], oldImm) || ((p[1] >> 5) & 31u) != reg) continue;
+        if ((p[2] & 0xFF00001Fu) != 0x54000008u) continue;   // b.hi
+        if (writeInstruction(p + 1, (p[1] & ~(0xFFFu << 10)) | (newImm << 10))) ++patched;
+    }
+    return patched;
+}
+
 int patchMovImmediate(const MethodInfo* m, uint32_t oldValue, uint32_t newValue) {
     if (!m || newValue > 0xFFFF || oldValue > 0xFFFF) return 0;
     const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));

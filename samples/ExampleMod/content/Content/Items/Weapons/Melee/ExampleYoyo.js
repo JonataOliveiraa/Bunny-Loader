@@ -25,4 +25,10 @@ export class ExampleYoyo extends ModItem {
         this.Item.rare = ItemRarityID.Green;
         this.Item.UseSound = SoundID.Item1;
     }
+
+    ModifyTooltips(item, tooltips) {
+        const logo = new TooltipLine('OneDropLogo', '');
+        logo.OneDropLogo = true;
+        tooltips.push(logo);
+    }
 }

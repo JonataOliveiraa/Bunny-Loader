@@ -176,16 +176,6 @@ void JNICALL jni_onBuff(JNIEnv*, jclass, jint type, jint seconds) {
     bl::runtime::requestBuff(type, seconds);
 }
 
-/** Pilha maxima de cada item, para o aviso dizer quanto saiu de verdade. */
-jintArray JNICALL jni_itemStacks(JNIEnv* env, jclass) {
-    if (!runtime::namesReady()) return nullptr;
-    const std::vector<int32_t>& v = runtime::itemMaxStacks();
-    if (v.empty()) return nullptr;
-    jintArray out = env->NewIntArray(static_cast<jsize>(v.size()));
-    if (out) env->SetIntArrayRegion(out, 0, static_cast<jsize>(v.size()), v.data());
-    return out;
-}
-
 void JNICALL jni_setPower(JNIEnv*, jclass, jint id, jint level) {
     bl::runtime::setPower(id, level);
 }
@@ -363,7 +353,6 @@ void installCheatButton() {
         {"nNpcNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_npcNames)},
         {"nNpcFrames", "()[I", reinterpret_cast<void*>(&jni_npcFrames)},
         {"nItemClasses", "()[B", reinterpret_cast<void*>(&jni_itemClasses)},
-        {"nItemStacks", "()[I", reinterpret_cast<void*>(&jni_itemStacks)},
         {"nSetPower", "(II)V", reinterpret_cast<void*>(&jni_setPower)},
         {"nInWorld", "()Z", reinterpret_cast<void*>(&jni_inWorld)},
         {"nSetTimeOfDay", "(I)V", reinterpret_cast<void*>(&jni_setTimeOfDay)},
