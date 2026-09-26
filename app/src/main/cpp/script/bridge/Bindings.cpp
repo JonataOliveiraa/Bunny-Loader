@@ -168,23 +168,6 @@ int invokeSetter(JSContext* ctx, const MethodInfo* sm, void* self, JSValueConst 
     return true;
 }
 
-/** Nome sem nada do jogo por tras: vira propriedade JS comum no objeto. */
-int defineJsProperty(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst value) {
-    return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value), JS_PROP_C_W_E) < 0
-               ? -1 : true;
-}
-
-/** "a | b | c" — so no caminho de erro. */
-std::string overloadList(Il2CppClass* cls, const std::string& name) {
-    auto overloads = il2cpp::listOverloads(cls, name);
-    std::string msg;
-    for (size_t i = 0; i < overloads.size(); ++i) {
-        if (i) msg += " | ";
-        msg += overloads[i];
-    }
-    return msg;
-}
-
 // --- bl.log ---
 /** Um valor como texto de log: objeto e array JS em JSON, o resto pelo toString. */
 std::string logText(JSContext* ctx, JSValueConst v) {
@@ -259,23 +242,21 @@ JSValue js_NativeClass(JSContext* ctx, JSValueConst, int argc, JSValueConst* arg
  * (`DustID.PinkFairy`): a tabela `__blExtraStatics` do ModHelpers.js, por
  * "Namespace.Classe". So no caminho do "nao achou".
  */
-JSValue extraStatic(JSContext* ctx, Il2CppClass* cls, JSAtom atom) {
-    auto& a = il2cpp::api();
-    const char* ns = a.class_get_namespace(cls);
-    const char* name = a.class_get_name(cls);
-    if (!name) return JS_UNDEFINED;
-    const std::string key = (ns && *ns) ? std::string(ns) + "." + name : std::string(name);
+bool extraStatic(JSContext* ctx, Il2CppClass* cls, JSAtom atom, JSValue* out) {
     JSValue global = JS_GetGlobalObject(ctx);
     JSValue extras = JS_GetPropertyStr(ctx, global, "__blExtraStatics");
     JS_FreeValue(ctx, global);
-    JSValue r = JS_UNDEFINED;
+    bool found = false;
     if (JS_IsObject(extras)) {
-        JSValue table = JS_GetPropertyStr(ctx, extras, key.c_str());
-        if (JS_IsObject(table)) r = JS_GetProperty(ctx, table, atom);
+        JSValue table = JS_GetPropertyStr(ctx, extras, className(cls).c_str());
+        if (JS_IsObject(table) && JS_HasProperty(ctx, table, atom) > 0) {
+            found = true;
+            if (out) *out = JS_GetProperty(ctx, table, atom);
+        }
         JS_FreeValue(ctx, table);
     }
     JS_FreeValue(ctx, extras);
-    return r;
+    return found;
 }
 
 JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
@@ -301,24 +282,10 @@ JSValue nc_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     }
 
     // Daqui para baixo é só erro: pode ser lento, recalcula o que precisar.
-    if (m.signature) {
-        std::string name = atomName(ctx, atom);
-        il2cpp::Signature sig = il2cpp::parseSignature(name);
-        if (!sig.valid) return JS_ThrowTypeError(ctx, "assinatura invalida: '%s'", name.c_str());
-        bool ambiguous = false;
-        il2cpp::findMethodBySignature(cls, sig, &ambiguous);
-        std::string msg = ambiguous ? "assinatura ambigua: '" : "metodo nao encontrado: '";
-        msg += name + "'";
-        std::string list = overloadList(cls, sig.name);
-        if (!list.empty()) msg += ". Existem: " + list;
-        return JS_ThrowTypeError(ctx, "%s", msg.c_str());
-    }
-    if (m.overloads > 1) {
-        std::string name = atomName(ctx, atom);
-        return JS_ThrowTypeError(ctx, "'%s' tem %d overloads; use a assinatura. Existem: %s",
-                                 name.c_str(), m.overloads, overloadList(cls, name).c_str());
-    }
-    return extraStatic(ctx, cls, atom);
+    if (m.signature) return missingSignature(ctx, cls, atom);
+    JSValue extra;
+    if (extraStatic(ctx, cls, atom, &extra)) return extra;
+    return missingMember(ctx, cls, atom, m, Space::Static);
 }
 
 int nc_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
@@ -331,12 +298,24 @@ int nc_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
         return writeStaticField(ctx, m.field, *m.type, value);
     }
     if (m.setter) return invokeSetter(ctx, m.setter, nullptr, value);
-    return defineJsProperty(ctx, obj, atom, value);
+    // Antes virava propriedade JS no wrapper — que e novo a cada
+    // `Terraria.Main`, entao `Main.dayTme = true` sumia sem dizer nada.
+    missingMember(ctx, cls, atom, m, Space::Static, true);
+    return -1;
+}
+
+/** `'Glyph' in SpriteFont`, `'PinkFairy' in DustID`: o mesmo que a leitura acha. */
+int nc_exotic_has(JSContext* ctx, JSValueConst obj, JSAtom atom) {
+    Il2CppClass* cls = classOf(obj);
+    if (!cls) return false;
+    const Member& m = member(ctx, cls, atom, Space::Static, g_nativeClassId);
+    if (m.proto || m.found()) return true;
+    return !m.quiet && extraStatic(ctx, cls, atom, nullptr);
 }
 
 const JSClassExoticMethods nc_exotic = {
-    nullptr, nullptr, nullptr, nullptr, nullptr,
-    nc_exotic_get, nc_exotic_set,
+    nullptr, nullptr, nullptr, nullptr,
+    nc_exotic_has, nc_exotic_get, nc_exotic_set,
 };
 
 // Tudo que estava aqui — getStaticInt, setStaticFloat, method(nome, aridade) —
@@ -417,15 +396,13 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (m.field) return readAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, obj);
     if (m.method) return makeGameMethod(ctx, m.method);
     if (m.getter) return invokeGetter(ctx, m.getter, o);
-    if (m.signature) {
-        return JS_ThrowTypeError(ctx, "metodo nao encontrado: '%s'", atomName(ctx, atom).c_str());
-    }
+    if (m.signature) return missingSignature(ctx, cls, atom);
     // Campo que um mod pos na classe (bl.defineField): `item.ModItem`.
     if (isExtraField(cls, atom)) return extraFieldGet(ctx, o, atom);
     // Metodo que um mod pos na classe (bl.defineMethod): `player.GetModPlayer(X)`.
     JSValue method;
     if (extraMethodGet(ctx, cls, obj, atom, &method)) return method;
-    return JS_UNDEFINED;
+    return missingMember(ctx, cls, atom, m, Space::Instance);
 }
 
 int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
@@ -441,9 +418,22 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     // Antes isto virava uma propriedade JS comum no wrapper, entao um
     // `item.useTmie = 4` dava certo, nao mudava nada no jogo e nao dizia nada
     // — o tipo de erro que se procura por uma tarde inteira.
-    JS_ThrowTypeError(ctx, "%s nao tem o campo %s",
-                      il2cpp::api().class_get_name(cls), atomName(ctx, atom).c_str());
+    missingMember(ctx, cls, atom, m, Space::Instance, true);
     return -1;
+}
+
+/**
+ * `'ModItem' in item`, `'Item' in source`: sem isto o `in` so via o
+ * prototipo JS e dizia false ate para `statLife`. E o jeito de perguntar por
+ * um membro que pode nao existir, agora que ler um que falta e erro.
+ */
+int no_exotic_has(JSContext* ctx, JSValueConst obj, JSAtom atom) {
+    Il2CppObject* o = objOf(obj);
+    if (!o) return false;
+    Il2CppClass* cls = il2cpp::api().object_get_class(o);
+    const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
+    if (m.proto || m.found()) return true;
+    return !m.quiet && (isExtraField(cls, atom) || hasExtraMethod(cls, atom));
 }
 
 void no_finalizer(JSRuntime*, JSValue val) {
@@ -453,8 +443,8 @@ void no_finalizer(JSRuntime*, JSValue val) {
 }
 
 const JSClassExoticMethods no_exotic = {
-    nullptr, nullptr, nullptr, nullptr, nullptr,
-    no_exotic_get, no_exotic_set,
+    nullptr, nullptr, nullptr, nullptr,
+    no_exotic_has, no_exotic_get, no_exotic_set,
 };
 
 /** `bl.log(item)` mostrando a classe, em vez de [object Object]. */
@@ -753,6 +743,23 @@ JSValue ga_cloneResized(JSContext* ctx, JSValueConst self, int argc, JSValueCons
     return makeGameArray(ctx, copy);
 }
 
+/** O nome e do prototipo do array (toString, e o que vem de Object)? */
+bool gaProtoHas(JSContext* ctx, JSAtom atom) {
+    JSValue proto = JS_GetClassProto(ctx, g_gameArrayId);
+    const int has = JS_HasProperty(ctx, proto, atom);
+    JS_FreeValue(ctx, proto);
+    return has > 0;
+}
+
+/** Um array do jogo so tem [i], length e cloneResized — nao os metodos do Array do JS. */
+JSValue missingArrayMember(JSContext* ctx, Il2CppArray* arr, JSAtom atom) {
+    const std::string owner =
+        className(il2cpp::api().object_get_class(reinterpret_cast<Il2CppObject*>(arr)));
+    return JS_ThrowTypeError(ctx, "Member with name '%s' is not found in %s "
+                                  "(um array do jogo tem [i], length e cloneResized)",
+                             atomName(ctx, atom).c_str(), owner.c_str());
+}
+
 JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
     Il2CppArray* arr = arrayFromJS(obj);
     if (!arr) return JS_UNDEFINED;
@@ -763,7 +770,9 @@ JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         static JSAtom cloneAtom = JS_NewAtom(ctx, "cloneResized");
         static JSValue cloneFn = JS_NewCFunction(ctx, ga_cloneResized, "cloneResized", 1);
         if (atom == cloneAtom) return JS_DupValue(ctx, cloneFn);
-        return JS_UNDEFINED;
+        if (gaProtoHas(ctx, atom)) return protoGet(ctx, g_gameArrayId, atom);
+        if (engineProbe(ctx, atom)) return JS_UNDEFINED;
+        return missingArrayMember(ctx, arr, atom);
     }
     if (static_cast<uint64_t>(idx) >= arr->length) {
         return JS_ThrowRangeError(ctx, "indice %lld fora de 0..%llu", static_cast<long long>(idx),
@@ -784,8 +793,15 @@ int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     if (!arr) return -1;
     const int64_t idx = indexOf(ctx, atom);
     if (idx < 0) {
-        return JS_DefinePropertyValue(ctx, obj, atom, JS_DupValue(ctx, value),
-                                      JS_PROP_C_W_E) < 0 ? -1 : true;
+        if (atom == lengthAtom(ctx)) {
+            JS_ThrowTypeError(ctx, "%s: length e somente leitura; para outro tamanho, "
+                                   "atribua arr.cloneResized(n) ao campo do jogo",
+                              className(il2cpp::api().object_get_class(
+                                  reinterpret_cast<Il2CppObject*>(arr))).c_str());
+            return -1;
+        }
+        missingArrayMember(ctx, arr, atom);
+        return -1;
     }
     if (static_cast<uint64_t>(idx) >= arr->length) {
         JS_ThrowRangeError(ctx, "indice %lld fora de 0..%llu", static_cast<long long>(idx),
@@ -805,8 +821,35 @@ void ga_finalizer(JSRuntime*, JSValue val) {
     unpin(p);
 }
 
+/** `i in arr` e `'length' in arr`. */
+int ga_exotic_has(JSContext* ctx, JSValueConst obj, JSAtom atom) {
+    Il2CppArray* arr = arrayFromJS(obj);
+    if (!arr) return false;
+    const int64_t idx = indexOf(ctx, atom);
+    if (idx >= 0) return static_cast<uint64_t>(idx) < arr->length;
+    static JSAtom cloneAtom = JS_NewAtom(ctx, "cloneResized");
+    return atom == lengthAtom(ctx) || atom == cloneAtom || gaProtoHas(ctx, atom);
+}
+
+/** "Item[400]", em vez do "?" que o bl.log mostrava. */
+JSValue ga_toString(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
+    Il2CppArray* arr = arrayFromJS(self);
+    if (!arr) return JS_ThrowTypeError(ctx, "toString: chame num array do jogo");
+    auto& a = il2cpp::api();
+    const char* cn = a.class_get_name(a.object_get_class(reinterpret_cast<Il2CppObject*>(arr)));
+    std::string name = cn ? cn : "?";
+    if (name.size() > 2 && name.compare(name.size() - 2, 2, "[]") == 0) name.resize(name.size() - 2);
+    name += "[" + std::to_string(static_cast<unsigned long long>(arr->length)) + "]";
+    return JS_NewString(ctx, name.c_str());
+}
+
+const JSCFunctionListEntry ga_proto[] = {
+    JS_CFUNC_DEF("toString", 0, ga_toString),
+};
+
 const JSClassExoticMethods ga_exotic = {
-    nullptr, nullptr, nullptr, nullptr, nullptr, ga_exotic_get, ga_exotic_set,
+    nullptr, nullptr, nullptr, nullptr,
+    ga_exotic_has, ga_exotic_get, ga_exotic_set,
 };
 
 } // namespace
@@ -1138,7 +1181,9 @@ void installBindings(void* context) {
         const_cast<JSClassExoticMethods*>(&ga_exotic),
     };
     JS_NewClass(rt, g_gameArrayId, &gaDef);
-    JS_SetClassProto(ctx, g_gameArrayId, JS_NewObject(ctx));
+    JSValue gaProto = JS_NewObject(ctx);
+    JS_SetPropertyFunctionList(ctx, gaProto, ga_proto, sizeof(ga_proto)/sizeof(ga_proto[0]));
+    JS_SetClassProto(ctx, g_gameArrayId, gaProto);
 
     // GameStruct (Value.cpp) — precisa existir antes de qualquer leitura de
     // campo, que é de onde saem as vistas de struct.

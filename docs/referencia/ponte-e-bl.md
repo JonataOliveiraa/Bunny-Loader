@@ -14,11 +14,13 @@ no [guia 1](../mods/01-hooks-do-zero.md); as classes de mod estão em
 | `bl.classOf(ns, nome)` | Classe, quando a árvore não chega (`bl.classOf('', 'GUIBuffs')`). |
 | `Classe.campo`, `Classe.campo = v` | Campo ou propriedade **estática**. |
 | `obj.campo`, `obj.campo = v` | Campo ou propriedade de **instância**. O tipo do campo decide a conversão. |
+| `obj.nomeQueNaoExiste` | **Erro**: `Member with name 'x' is not found in Classe`, com o nome parecido se houver. Nomes com a caixa do C#. |
+| `'nome' in obj` | Pergunta sem erro se a classe do jogo (ou um mod, `bl.defineField`) tem o membro. |
 | `obj.position.X = 1` | Struct dentro de objeto é **vista**: escrever muda o jogo. |
 | `proj.ai[0]`, `proj.oldPos[3].X` | Struct de campos numerados aceita índice. |
 | `arr[i]`, `arr.length` | Array do jogo. |
 | `arr.cloneResized(n)` | Cópia do array com `n` posições. |
-| `Classe['ret Nome(T a, U b)']` | Método, pela **assinatura** do dump. |
+| `Classe['ret Nome(T a, U b)']` | Método, pela **assinatura** do dump, com os nomes exatos dos parâmetros. |
 | `Classe.Nome`, `obj.Nome` | Método, se houver **um só** com esse nome. |
 | `metodo(args)`, `obj['...'](args)` | Chamar. Em método de instância, o objeto é o `this` ou o 1º argumento. |
 | `Classe.new()` + `['void .ctor(...)']()` | Criar um objeto (memória zerada, depois o construtor). |
@@ -34,6 +36,11 @@ Copiadas do dump como estão, com os nomes de tipo do C#: `void`, `bool`,
 sem namespace (`Item`, `Vector2`), arrays (`int[]`), genéricos (`List<Item>`),
 `Nullable` em qualquer grafia (`float?`, `Nullable<float>`, ``Nullable`1``) e
 `ref`/`out`/`in` antes do tipo. Construtor é `.ctor`.
+
+O **nome de cada parâmetro** faz parte da assinatura e tem de ser o do jogo,
+com a mesma caixa: `PlayerDrawSet drawinfo` casa, `PlayerDrawSet drawInfo` e
+`PlayerDrawSet` (sem nome) não. O erro diz qual parâmetro difere e mostra a
+assinatura do jogo.
 
 ```js
 'void SetDefaults(int Type, ItemVariant variant)'

@@ -1,5 +1,6 @@
 #include "il2cpp/Signature.h"
 #include "il2cpp/Api.h"
+#include "core/Log.h"
 
 #include <algorithm>
 #include <cstring>
@@ -186,11 +187,16 @@ std::vector<std::string> splitParams(std::string_view inner) {
     return out;
 }
 
+struct ParamDecl {
+    std::string type;
+    std::string name;  // "" = so o tipo
+};
+
 /**
- * "int Type" -> "int". O NOME do parâmetro é decorativo: o modder copia do
- * dump e nós casamos só por tipo.
+ * "int Type" -> {"int", "Type"}. O nome tem de ser o do jogo, letra por
+ * letra: e ele que diz que o modder leu o metodo certo.
  */
-std::string paramTypeOf(const std::string& decl) {
+ParamDecl paramOf(const std::string& decl) {
     // Corta um valor default, se o modder esqueceu de tirar ("int a = 0").
     std::string d = decl;
     size_t eq = d.find('=');
@@ -208,8 +214,62 @@ std::string paramTypeOf(const std::string& decl) {
     }
 
     size_t sp = d.find_last_of(" \t");
-    if (sp == std::string::npos) return d + suffix;  // só o tipo, sem nome
-    return trim(d.substr(0, sp)) + suffix;
+    if (sp == std::string::npos) return {d + suffix, {}};  // só o tipo, sem nome
+    return {trim(d.substr(0, sp)) + suffix, trim(d.substr(sp + 1))};
+}
+
+/** O nome do parametro `i` de `m` no jogo; "" se o runtime nao diz. */
+std::string paramName(const MethodInfo* m, uint32_t i) {
+    auto& a = api();
+    const char* n = a.method_get_param_name ? a.method_get_param_name(m, i) : nullptr;
+    return n ? n : "";
+}
+
+/** Os nomes escritos sao os do jogo, exatos? */
+bool namesMatch(const MethodInfo* m, const Signature& sig) {
+    // Sem il2cpp_method_get_param_name nao ha com o que comparar: fica o tipo.
+    if (!api().method_get_param_name) return true;
+    for (size_t i = 0; i < sig.paramNames.size(); ++i) {
+        if (sig.paramNames[i] != paramName(m, static_cast<uint32_t>(i))) return false;
+    }
+    return true;
+}
+
+/** "System.Int32" -> "int", "Terraria.DataStructures.PlayerDrawSet" -> "PlayerDrawSet". */
+std::string displayType(std::string t) {
+    std::string prefix, suffix;
+    if (!t.empty() && t.back() == '&') {
+        t.pop_back();
+        prefix = "ref ";
+    }
+    while (t.size() > 2 && t.compare(t.size() - 2, 2, "[]") == 0) {
+        suffix += "[]";
+        t.resize(t.size() - 2);
+    }
+    // Generico fica inteiro: o nome completo casa, e encurtar os argumentos
+    // um a um nao vale o risco de escrever algo que nao casa.
+    if (t.find_first_of("<[`") == std::string::npos) {
+        static const struct { const char* clr; const char* cs; } kMap[] = {
+            {"System.Void", "void"},       {"System.Boolean", "bool"},  {"System.Byte", "byte"},
+            {"System.SByte", "sbyte"},     {"System.Int16", "short"},   {"System.UInt16", "ushort"},
+            {"System.Int32", "int"},       {"System.UInt32", "uint"},   {"System.Int64", "long"},
+            {"System.UInt64", "ulong"},    {"System.Single", "float"},  {"System.Double", "double"},
+            {"System.Decimal", "decimal"}, {"System.Char", "char"},     {"System.String", "string"},
+            {"System.Object", "object"},
+        };
+        bool keyword = false;
+        for (const auto& k : kMap) {
+            if (t == k.clr) { t = k.cs; keyword = true; break; }
+        }
+        if (!keyword) {
+            // Aninhado: "Microsoft.Xna.Framework.Graphics.SpriteFont/Glyph" -> "SpriteFont.Glyph".
+            const size_t slash = t.find('/');
+            const size_t dot = t.rfind('.', slash == std::string::npos ? std::string::npos : slash);
+            if (dot != std::string::npos) t.erase(0, dot + 1);
+            for (char& c : t) if (c == '/') c = '.';
+        }
+    }
+    return prefix + t + suffix;
 }
 
 } // namespace
@@ -233,19 +293,23 @@ Signature parseSignature(std::string_view text) {
     if (sig.name.empty()) return sig;
 
     for (const auto& p : splitParams(text.substr(open + 1, close - open - 1))) {
-        sig.paramTypes.push_back(paramTypeOf(p));
+        ParamDecl d = paramOf(p);
+        sig.paramTypes.push_back(std::move(d.type));
+        sig.paramNames.push_back(std::move(d.name));
     }
     sig.valid = true;
     return sig;
 }
 
 const MethodInfo* findMethodBySignature(Il2CppClass* cls, const Signature& sig,
-                                        bool* ambiguous) {
+                                        bool* ambiguous, const MethodInfo** nameMismatch) {
     if (ambiguous) *ambiguous = false;
+    if (nameMismatch) *nameMismatch = nullptr;
     if (!cls || !sig.valid) return nullptr;
     auto& a = api();
 
     const MethodInfo* found = nullptr;
+    const MethodInfo* almost = nullptr;
     for (Il2CppClass* c = cls; c; c = a.class_get_parent(c)) {
         void* iter = nullptr;
         while (const MethodInfo* m = a.class_get_methods(c, &iter)) {
@@ -262,6 +326,13 @@ const MethodInfo* findMethodBySignature(Il2CppClass* cls, const Signature& sig,
                 }
             }
             if (!ok) continue;
+            // Os tipos casaram; o nome de cada parametro tambem tem de casar.
+            // Nao desempata nada (dois overloads nunca tem os mesmos tipos):
+            // so recusa o que foi escrito diferente do jogo.
+            if (!namesMatch(m, sig)) {
+                if (!almost) almost = m;
+                continue;
+            }
             if (found && found != m) {
                 if (ambiguous) *ambiguous = true;
                 return nullptr;
@@ -270,7 +341,30 @@ const MethodInfo* findMethodBySignature(Il2CppClass* cls, const Signature& sig,
         }
         if (found) break;  // classe derivada ganha da base
     }
+    if (!found && almost) {
+        if (nameMismatch) {
+            *nameMismatch = almost;
+        } else {
+            // Busca interna (C++): quem chamou so ve nullptr, entao o motivo
+            // vai ao log — e o que muda quando o jogo renomeia um parametro.
+            BL_WARN("assinatura '%s': %s", sig.name.c_str(), explainParamNames(almost, sig).c_str());
+        }
+    }
     return found;
+}
+
+std::string explainParamNames(const MethodInfo* m, const Signature& sig) {
+    std::string out;
+    for (size_t i = 0; i < sig.paramNames.size(); ++i) {
+        const std::string real = paramName(m, static_cast<uint32_t>(i));
+        const std::string& wrote = sig.paramNames[i];
+        if (wrote == real) continue;
+        if (!out.empty()) out += "; ";
+        out += "o parametro " + std::to_string(i + 1);
+        out += wrote.empty() ? " esta sem nome (e '" + real + "')"
+                             : " se chama '" + real + "', nao '" + wrote + "'";
+    }
+    return out + ". No jogo: " + describeMethod(m);
 }
 
 std::vector<std::string> listOverloads(Il2CppClass* cls, std::string_view name) {
@@ -291,14 +385,16 @@ std::vector<std::string> listOverloads(Il2CppClass* cls, std::string_view name) 
 std::string describeMethod(const MethodInfo* m) {
     if (!m) return "(null)";
     auto& a = api();
-    std::string s = typeName(a.method_get_return_type(m));
+    std::string s = displayType(typeName(a.method_get_return_type(m)));
     s += " ";
     s += a.method_get_name(m);
     s += "(";
     uint32_t n = a.method_get_param_count(m);
     for (uint32_t i = 0; i < n; ++i) {
         if (i) s += ", ";
-        s += typeName(a.method_get_param(m, i));
+        s += displayType(typeName(a.method_get_param(m, i)));
+        const std::string pn = paramName(m, i);
+        if (!pn.empty()) s += " " + pn;
     }
     s += ")";
     return s;

@@ -6,6 +6,7 @@
 #include "il2cpp/Signature.h"
 #include "core/Log.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <cstring>
@@ -74,6 +75,10 @@ Member resolve(JSContext* ctx, Il2CppClass* cls, JSAtom atom, Space space, JSCla
         m.proto = true;
         return m;
     }
+    if (engineProbe(ctx, atom)) {
+        m.quiet = true;
+        return m;
+    }
 
     auto& a = il2cpp::api();
     std::string name = atomName(ctx, atom);
@@ -83,7 +88,8 @@ Member resolve(JSContext* ctx, Il2CppClass* cls, JSAtom atom, Space space, JSCla
         il2cpp::Signature sig = il2cpp::parseSignature(name);
         if (sig.valid) {
             bool ambiguous = false;
-            m.method = il2cpp::findMethodBySignature(cls, sig, &ambiguous);
+            const MethodInfo* nameMismatch = nullptr;  // o erro vai ao JS (missingSignature)
+            m.method = il2cpp::findMethodBySignature(cls, sig, &ambiguous, &nameMismatch);
         }
         return m;
     }
@@ -264,6 +270,146 @@ std::string atomName(JSContext* ctx, JSAtom atom) {
     std::string out = s ? s : "";
     if (s) JS_FreeCString(ctx, s);
     return out;
+}
+
+std::string className(Il2CppClass* cls) {
+    auto& a = il2cpp::api();
+    const char* ns = a.class_get_namespace ? a.class_get_namespace(cls) : nullptr;
+    const char* name = a.class_get_name(cls);
+    std::string out = ns && *ns ? std::string(ns) + "." : std::string();
+    return out + (name ? name : "?");
+}
+
+bool engineProbe(JSContext* ctx, JSAtom atom) {
+    static const JSAtom toJSON = JS_NewAtom(ctx, "toJSON");
+    static const JSAtom then = JS_NewAtom(ctx, "then");
+    if (atom == toJSON || atom == then) return true;
+    JSValue v = JS_AtomToValue(ctx, atom);
+    const bool symbol = JS_IsSymbol(v);
+    JS_FreeValue(ctx, v);
+    return symbol;
+}
+
+namespace {
+
+constexpr uint32_t kMethodStatic = 0x0010;  // METHOD_ATTRIBUTE_STATIC
+
+std::string lower(const std::string& s) {
+    std::string out(s);
+    for (char& c : out) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    return out;
+}
+
+/** Distancia de edicao, parando cedo: acima de `cap` tanto faz quanto. */
+size_t editDistance(const std::string& x, const std::string& y, size_t cap) {
+    const size_t n = x.size(), k = y.size();
+    if ((n > k ? n - k : k - n) > cap) return cap + 1;
+    std::vector<size_t> prev(k + 1), cur(k + 1);
+    for (size_t j = 0; j <= k; ++j) prev[j] = j;
+    for (size_t i = 1; i <= n; ++i) {
+        cur[0] = i;
+        size_t rowMin = cur[0];
+        for (size_t j = 1; j <= k; ++j) {
+            const size_t sub = prev[j - 1] + (x[i - 1] == y[j - 1] ? 0 : 1);
+            cur[j] = std::min({prev[j] + 1, cur[j - 1] + 1, sub});
+            rowMin = std::min(rowMin, cur[j]);
+        }
+        if (rowMin > cap) return cap + 1;
+        prev.swap(cur);
+    }
+    return prev[k];
+}
+
+/**
+ * O membro de nome mais parecido com `name`: primeiro o mesmo nome em outra
+ * caixa (`whoami` -> `whoAmI`), depois ate 2 letras trocadas. Campos, as
+ * propriedades (sem o get_/set_), metodos e, na classe, os tipos aninhados.
+ */
+std::string closestMember(Il2CppClass* cls, const std::string& name, Space space) {
+    auto& a = il2cpp::api();
+    const bool wantStatic = space == Space::Static;
+    const std::string target = lower(name);
+    const size_t cap = std::min<size_t>(2, target.size() / 3);
+    std::string best;
+    size_t bestScore = cap + 1;
+    auto consider = [&](const char* raw) {
+        if (!raw) return;
+        std::string candidate(raw);
+        if (candidate.rfind("get_", 0) == 0 || candidate.rfind("set_", 0) == 0) candidate.erase(0, 4);
+        // `.ctor`, `<Foo>k__BackingField`, implementacao explicita de interface.
+        if (candidate.empty() || candidate.find_first_of("<>.") != std::string::npos) return;
+        const size_t d = editDistance(lower(candidate), target, cap);
+        if (d < bestScore) { bestScore = d; best = candidate; }
+    };
+    for (Il2CppClass* c = cls; c && bestScore > 0; c = a.class_get_parent(c)) {
+        void* it = nullptr;
+        while (a.class_get_fields && a.field_get_name) {
+            FieldInfo* f = a.class_get_fields(c, &it);
+            if (!f) break;
+            if (a.field_get_flags && ((a.field_get_flags(f) & kFieldStatic) != 0) != wantStatic) continue;
+            consider(a.field_get_name(f));
+        }
+        it = nullptr;
+        while (const MethodInfo* mi = a.class_get_methods(c, &it)) {
+            if (a.method_get_flags && ((a.method_get_flags(mi, nullptr) & kMethodStatic) != 0) != wantStatic) continue;
+            consider(a.method_get_name(mi));
+        }
+        if (wantStatic && a.class_get_nested_types) {
+            it = nullptr;
+            while (Il2CppClass* n = a.class_get_nested_types(c, &it)) consider(a.class_get_name(n));
+        }
+    }
+    return best;
+}
+
+} // namespace
+
+JSValue missingMember(JSContext* ctx, Il2CppClass* cls, JSAtom atom, const Member& m, Space space,
+                      bool write) {
+    if (m.quiet && !write) return JS_UNDEFINED;
+    const std::string name = atomName(ctx, atom);
+    const std::string owner = className(cls);
+    if (write && (m.getter || m.method || m.overloads > 0)) {
+        return m.getter
+            ? JS_ThrowTypeError(ctx, "'%s' em %s e somente leitura (so tem get_%s)",
+                                name.c_str(), owner.c_str(), name.c_str())
+            : JS_ThrowTypeError(ctx, "'%s' em %s e um metodo; nao da para atribuir",
+                                name.c_str(), owner.c_str());
+    }
+    if (!write && m.overloads > 1) {
+        std::string list;
+        for (const std::string& o : il2cpp::listOverloads(cls, name)) list += (list.empty() ? "" : " | ") + o;
+        return JS_ThrowTypeError(ctx, "'%s' em %s tem %d overloads; use a assinatura. Existem: %s",
+                                 name.c_str(), owner.c_str(), m.overloads, list.c_str());
+    }
+    if (!write && m.setter) {
+        return JS_ThrowTypeError(ctx, "'%s' em %s e somente escrita (so tem set_%s)",
+                                 name.c_str(), owner.c_str(), name.c_str());
+    }
+    std::string msg = "Member with name '" + name + "' is not found in " + owner;
+    const std::string near = closestMember(cls, name, space);
+    if (!near.empty()) msg += ". Did you mean '" + near + "'?";
+    return JS_ThrowTypeError(ctx, "%s", msg.c_str());
+}
+
+JSValue missingSignature(JSContext* ctx, Il2CppClass* cls, JSAtom atom) {
+    const std::string name = atomName(ctx, atom);
+    const std::string owner = className(cls);
+    il2cpp::Signature sig = il2cpp::parseSignature(name);
+    if (!sig.valid) return JS_ThrowTypeError(ctx, "assinatura invalida: '%s'", name.c_str());
+    bool ambiguous = false;
+    const MethodInfo* nameMismatch = nullptr;
+    il2cpp::findMethodBySignature(cls, sig, &ambiguous, &nameMismatch);
+    if (nameMismatch) {
+        return JS_ThrowTypeError(ctx, "assinatura '%s' em %s: %s", name.c_str(), owner.c_str(),
+                                 il2cpp::explainParamNames(nameMismatch, sig).c_str());
+    }
+    std::string msg = (ambiguous ? "assinatura ambigua: '" : "metodo nao encontrado: '") + name +
+                      "' em " + owner;
+    std::string list;
+    for (const std::string& o : il2cpp::listOverloads(cls, sig.name)) list += (list.empty() ? "" : " | ") + o;
+    if (!list.empty()) msg += ". Existem: " + list;
+    return JS_ThrowTypeError(ctx, "%s", msg.c_str());
 }
 
 } // namespace bl::script

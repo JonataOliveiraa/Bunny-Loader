@@ -1,0 +1,15 @@
+{
+  "uid": "2dd04e14-d1bf-4ed4-9150-8cc6d80ea51d",
+  "id": "test-strictnames",
+  "name": "Teste: nomes exatos",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Membro que a classe do jogo nao tem da erro; assinatura so casa com os nomes exatos dos parametros.",
+  "description": "Loga 'strictnames ...'.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

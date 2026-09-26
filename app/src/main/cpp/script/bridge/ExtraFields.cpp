@@ -168,6 +168,16 @@ bool extraMethodGet(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom 
     return false;
 }
 
+bool hasExtraMethod(Il2CppClass* cls, JSAtom atom) {
+    auto& a = il2cpp::api();
+    for (Il2CppClass* c = cls; c && !g_methods.empty(); c = a.class_get_parent(c)) {
+        for (const MethodDef& d : g_methods) {
+            if (d.cls == c && d.atom == atom) return true;
+        }
+    }
+    return false;
+}
+
 JSValue extraFieldGet(JSContext* ctx, Il2CppObject* obj, JSAtom atom) {
     Entry* e = find(obj);
     if (!e) return JS_UNDEFINED;

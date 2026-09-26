@@ -58,6 +58,7 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `wrappers` | Objeto segurado só pelo JS sobrevive ao coletor; identidade (`===`). | |
 | `structindex` | `proj.ai[0]`, `localAI.get_Item`, `oldPos[i].X`, `hideMisc[i]` e os limites; uma linha de log de 6 KB inteira no arquivo. | |
 | `extrafields` | `bl.defineField`, `bl.defineMethod`. | |
+| `strictnames` | Membro que a classe não tem é erro (com sugestão), `in`, consultas do motor sem erro; assinatura só com os nomes exatos dos parâmetros. | |
 | `refs` | `ref`/`out` na chamada e no hook, struct por `ref`, `Ref` repassado e solto. | |
 | `files` | `bl.file`, `bl.directory`, `bl.path`. | |
 | `hookslots` | Centenas de hooks de uma vez, e a profundidade de hooks encadeados no mesmo método. Com 25 hooks nos nomes, as listas do menu demoram a aceitar toque: se parar na seleção de mundo, toque em Jogar. | sim |

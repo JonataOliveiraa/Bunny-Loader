@@ -82,6 +82,35 @@ puro de método vale se houver **um só** método com aquele nome; com mais de
 um, a ponte **recusa** e lista os overloads na mensagem. Escolher um em
 silêncio já produziu uma exceção a cada quadro.
 
+Os **nomes dos parâmetros** também são conferidos, exatos
+(`il2cpp_method_get_param_name`), em
+[`Signature.cpp`](../../app/src/main/cpp/il2cpp/Signature.cpp). Eles não
+desempatam nada, porque dois overloads nunca têm os mesmos tipos. Servem para
+recusar uma assinatura escrita diferente do jogo: `drawInfo` onde o jogo diz
+`drawinfo`, ou só os tipos. O método que quase casou volta para a mensagem
+(`o parametro 1 se chama 'drawinfo', nao 'drawInfo'`, mais a assinatura do
+jogo). Nas buscas internas do C++, que só recebem `nullptr`, o motivo vai ao
+log: é o que aparece quando uma atualização do jogo renomeia um parâmetro.
+
+### O nome que não existe
+
+Quando o cache não acha nada (nem campo, nem propriedade, nem método, nem os
+campos e métodos que os mods põem com `bl.defineField`/`defineMethod`, nem
+os extras estáticos do `ModHelpers.js`), a leitura **lança**
+`Member with name 'x' is not found in Classe`, e a escrita também. A sugestão
+(`Did you mean 'whoAmI'?`) sai de uma varredura da classe: o mesmo nome em
+outra caixa, ou até duas letras trocadas. Isso só roda no caminho do erro;
+o do acerto continua sendo uma consulta de hash.
+
+Três exceções ficam com `undefined`, porque é o **motor** que pergunta, não
+o mod: símbolos (`Symbol.toPrimitive` numa soma com texto, `Symbol.iterator`
+num `for...of`), `toJSON` (`JSON.stringify`) e `then` (um `await` ou
+`Promise.resolve`). O cache marca esses nomes (`quiet`) na primeira vez.
+
+O `in` tem resposta própria (o `has_property` do exótico): verdadeiro para o
+que a leitura acharia. Sem isso, `'statLife' in player` olhava só o protótipo
+JS e dava `false`. É o jeito de perguntar sem erro: `'Item' in source`.
+
 O C# roda o construtor estático de uma classe no primeiro acesso a um
 estático dela; o `field_static_get_value` do IL2CPP não. Sem cuidado,
 `AmmoID.Sets.IsArrow` lido antes de o jogo usar munição vinha `null`. A ponte

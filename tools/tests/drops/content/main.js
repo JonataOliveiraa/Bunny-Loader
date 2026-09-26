@@ -44,7 +44,7 @@ function describeRules(type) {
     for (let i = 0; i < rules.Count; i++) {
         const r = rules.get_Item(i);
         const cls = r.GetType().Name;
-        out.push(cls + (r.itemId !== undefined ? '(' + r.itemId + ')' : ''));
+        out.push(cls + ('itemId' in r ? '(' + r.itemId + ')' : ''));
     }
     return out.join(', ');
 }

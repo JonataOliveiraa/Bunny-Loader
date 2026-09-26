@@ -60,6 +60,7 @@ bool Api::load() {
     ok &= bind(lib, "il2cpp_class_get_methods", &class_get_methods);
     ok &= bind(lib, "il2cpp_method_get_param_count", &method_get_param_count);
     ok &= bind(lib, "il2cpp_method_get_param", &method_get_param);
+    bindSoft(lib, "il2cpp_method_get_param_name", &method_get_param_name);
     ok &= bind(lib, "il2cpp_method_get_return_type", &method_get_return_type);
     ok &= bind(lib, "il2cpp_class_get_namespace", &class_get_namespace);
     ok &= bind(lib, "il2cpp_image_get_class_count", &image_get_class_count);

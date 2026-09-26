@@ -160,6 +160,34 @@ p.statLife = p.statLifeMax2;           // de instância: vida cheia
   é sempre o mesmo objeto JS: `Main.player[0] === self` dá `true`.
 - `bl.log(objeto)` mostra a classe: `[Player]`.
 
+### Nome errado é erro
+
+Os nomes são os do C#, com a mesma caixa: `player.whoAmI`, não
+`player.whoami`. Ler ou escrever um nome que a classe do jogo não tem dá erro
+na hora, com o nome parecido quando há um:
+
+```
+TypeError: Member with name 'whoami' is not found in Terraria.Player. Did you mean 'whoAmI'?
+```
+
+Vale para objeto, classe (`Terraria.Main.dayTme`), struct (`pos.Z`) e array
+(`Main.player.foo`: um array do jogo só tem `[i]`, `length` e
+`cloneResized`). Sem isso, a leitura devolveria `undefined` calada, e o erro
+só apareceria longe dali: um `NaN`, um `if` que nunca entra.
+
+Para **perguntar** se um membro existe, sem erro, use `in`:
+
+```js
+const item = 'Item' in source ? source.Item : null;   // nem toda IEntitySource tem Item
+'whoAmI' in player                                    // true
+```
+
+Os campos que os mods põem nas classes do jogo (`item.ModItem`, `npc.ModNPC`,
+`proj.ModProjectile`) sempre existem e valem `undefined` no que não é de mod.
+Também dão erro, com o motivo: escrever numa propriedade só de leitura
+(`player.HeldItem = x`), atribuir a um método e ler pelo nome um método com
+vários overloads (a mensagem lista as assinaturas).
+
 ### Structs são vistas, não cópias
 
 `Vector2`, `Color`, `Rectangle` são **structs**: valores guardados dentro do
@@ -191,6 +219,19 @@ Terraria.Main['int get_myPlayer()']();
 item['void SetDefaults(int Type, ItemVariant variant)'](98, null);
 ```
 
+- A assinatura é **a do jogo, exata**: os tipos e **o nome de cada
+  parâmetro, com a mesma caixa**. `PlayerDrawSet drawinfo` casa;
+  `PlayerDrawSet drawInfo`, ou só o tipo sem o nome, não. Um nome diferente
+  quer dizer que a assinatura veio de outro lugar (outra versão do jogo,
+  outro método), e o erro mostra a certa, pronta para copiar:
+
+  ```
+  assinatura 'void DrawPlayer_UseNormalLayers(PlayerDrawSet drawInfo)' em Terraria.Graphics.Renderers.LegacyPlayerRenderer:
+  o parametro 1 se chama 'drawinfo', nao 'drawInfo'. No jogo: void DrawPlayer_UseNormalLayers(PlayerDrawSet drawinfo)
+  ```
+
+  Os tipos aceitam a grafia do dump (`int`, `ItemVariant`) ou a completa
+  (`System.Int32`), e o tipo de retorno pode faltar.
 - O objeto é o `this`, como em qualquer método JS: `item['...'](98, null)`.
   Chamando pela variável, o objeto vai como primeiro argumento:
   `Update(player, 0)`.

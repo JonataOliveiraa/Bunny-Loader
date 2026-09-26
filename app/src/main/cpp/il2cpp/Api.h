@@ -77,6 +77,8 @@ struct Api {
     const MethodInfo* (*class_get_methods)(Il2CppClass*, void**) = nullptr;
     uint32_t (*method_get_param_count)(const MethodInfo*) = nullptr;
     const Il2CppType* (*method_get_param)(const MethodInfo*, uint32_t) = nullptr;
+    // O nome do parametro no C# (`drawinfo`): a assinatura tem de trazer o exato.
+    const char* (*method_get_param_name)(const MethodInfo*, uint32_t) = nullptr;
     const Il2CppType* (*method_get_return_type)(const MethodInfo*) = nullptr;
     char* (*type_get_name)(const Il2CppType*) = nullptr;  // malloc; liberar com free
     void (*il2cpp_free)(void*) = nullptr;

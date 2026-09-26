@@ -91,7 +91,7 @@ function run() {
         me.hideMisc.value = orig;
         return (on && off) || `on ${on}, off ${off}, value ${me.hideMisc.value}`;
     });
-    check('struct sem indexador: position[0] e undefined', () => me.position[0] === undefined || String(me.position[0]));
+    check('struct sem indexador: ler position[0] e TypeError', () => throws('TypeError', () => me.position[0]));
     check('struct sem indexador: position[0] = 1 e TypeError', () => throws('TypeError', () => { me.position[0] = 1; }));
     check('metodo por nome puro num struct comum (position.Length())', () => {
         const v = me.position;

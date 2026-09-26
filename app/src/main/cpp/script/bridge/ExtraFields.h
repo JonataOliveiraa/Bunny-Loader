@@ -34,6 +34,9 @@ bool isExtraField(Il2CppClass* cls, JSAtom atom);
  */
 bool extraMethodGet(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom atom, JSValue* out);
 
+/** O nome e um metodo definido para `cls` (ou uma classe base)? (`in`) */
+bool hasExtraMethod(Il2CppClass* cls, JSAtom atom);
+
 /** Le o campo: undefined se o objeto nunca recebeu valor. */
 JSValue extraFieldGet(JSContext* ctx, Il2CppObject* obj, JSAtom atom);
 

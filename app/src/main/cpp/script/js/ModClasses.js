@@ -106,6 +106,14 @@ function defineEntityField(cls, field) {
     bl.defineField(cls, field);
 }
 
+// Como no tModLoader, `item.ModItem`, `proj.ModProjectile` e `npc.ModNPC`
+// existem desde o comeco (undefined no que nao e de mod). Ler um nome que a
+// classe do jogo nao tem e erro, e um GlobalItem de um mod sem ModItem nao
+// pode depender de outro mod ter registrado um.
+defineEntityField(Terraria.Item, 'ModItem');
+defineEntityField(Terraria.Projectile, 'ModProjectile');
+defineEntityField(Terraria.NPC, 'ModNPC');
+
 // O modelo de cada classe registrada (ModItem, ModNPC...): o do
 // ModContent.GetInstance. E `this.Mod`, como no tModLoader: o Mod de quem
 // registrou, que vai junto nas copias.
@@ -2084,7 +2092,7 @@ function hookProjectile(cls) {
         Pr['void ApplyStatsFromSource(IEntitySource spawnSource)'].hook((original, p, source) => {
             original(p, source);
             if (!projectileOf(p) || p.originalDamage !== 0) return;
-            const item = source ? source.Item : undefined;
+            const item = source && 'Item' in source ? source.Item : undefined;
             p.originalDamage = item && item.damage >= 0 ? item.damage : p.damage;
         }, self);
     });

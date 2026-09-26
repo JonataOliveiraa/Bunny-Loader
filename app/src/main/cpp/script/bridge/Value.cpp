@@ -147,7 +147,7 @@ int64_t methodBound(JSContext* ctx, StructRef* r, const Indexer& ix) {
 
 JSValue indexGet(JSContext* ctx, JSValueConst obj, StructRef* r, int64_t idx) {
     const Indexer* ix = indexerOf(r->cls);
-    if (!ix) return JS_UNDEFINED;
+    if (!ix) return JS_ThrowTypeError(ctx, "%s nao tem indexador ([i])", className(r));
     const int64_t bound = ix->fields() ? ix->count : methodBound(ctx, r, *ix);
     if (bound >= 0 && idx >= bound) {
         return JS_ThrowRangeError(ctx, "%s: indice %lld fora de 0..%lld", className(r),
@@ -208,18 +208,14 @@ JSValue gs_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (m.method) return makeGameMethod(ctx, m.method);
     // Propriedade C# do struct: o `this` de um value type sao os dados.
     if (m.getter) return invokeMethod(ctx, m.getter, r->data, 0, nullptr);
-    if (m.signature) {
-        return JS_ThrowTypeError(ctx, "metodo nao encontrado em %s: %s",
-                                 il2cpp::api().class_get_name(r->cls), atomName(ctx, atom).c_str());
-    }
-    return JS_UNDEFINED;
+    if (m.signature) return missingSignature(ctx, r->cls, atom);
+    return missingMember(ctx, r->cls, atom, m, Space::Struct);
 }
 
 int gs_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
                   JSValueConst value, JSValueConst, int) {
     auto* r = refOf(obj);
     if (!r) return -1;
-    auto& a = il2cpp::api();
     const int64_t idx = indexOf(ctx, atom);
     if (idx >= 0) return indexSet(ctx, r, idx, value);
     const Member& m = member(ctx, r->cls, atom, Space::Struct, g_structId);
@@ -235,13 +231,25 @@ int gs_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
         flush(r);
         return true;
     }
-    JS_ThrowTypeError(ctx, "%s nao tem o campo %s", a.class_get_name(r->cls),
-                      atomName(ctx, atom).c_str());
+    missingMember(ctx, r->cls, atom, m, Space::Struct, true);
     return -1;
 }
 
+/** `'X' in pos`, `3 in proj.oldPos`. */
+int gs_exotic_has(JSContext* ctx, JSValueConst obj, JSAtom atom) {
+    auto* r = refOf(obj);
+    if (!r) return false;
+    const int64_t idx = indexOf(ctx, atom);
+    if (idx >= 0) {
+        const Indexer* ix = indexerOf(r->cls);
+        return ix && (!ix->fields() || idx < ix->count);
+    }
+    const Member& m = member(ctx, r->cls, atom, Space::Struct, g_structId);
+    return m.proto || m.found();
+}
+
 const JSClassExoticMethods gs_exotic = {
-    nullptr, nullptr, nullptr, nullptr, nullptr, gs_exotic_get, gs_exotic_set,
+    nullptr, nullptr, nullptr, nullptr, gs_exotic_has, gs_exotic_get, gs_exotic_set,
 };
 
 const JSCFunctionListEntry gs_proto[] = {
