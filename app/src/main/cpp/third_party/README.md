@@ -22,7 +22,10 @@ git clone --depth 1 --branch v0.17.0   https://github.com/quickjs-ng/quickjs.git
 ```
 
 Nosso `CMakeLists.txt` compila os fontes do quickjs-ng v0.17:
-`quickjs.c`, `libregexp.c`, `libunicode.c`, `dtoa.c` (com `_GNU_SOURCE`).
+`quickjs.c`, `libregexp.c`, `libunicode.c`, `dtoa.c` (com `_GNU_SOURCE`). O
+`quickjs.c` entra pelo nosso `script/bridge/QuickJsExt.c`, que o inclui e
+acrescenta o acesso à pilha de frames do runtime (o motor compartilhado entre
+threads, ver `JsSuspend`); o clone fica intacto.
 Não há mais `cutils.c`/`libbf` como no QuickJS clássico.
 
 Sem a pasta, o build ainda funciona: o `ScriptEngine` compila em modo stub

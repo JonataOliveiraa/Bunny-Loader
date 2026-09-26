@@ -4,13 +4,17 @@
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
+#include "script/bridge/QuickJsExt.h"
 #endif
 
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <mutex>
 #include <string>
 #include <vector>
+
+#include <unistd.h>
 
 namespace bl::script {
 
@@ -23,10 +27,35 @@ ScriptEngine& engine() {
 
 namespace {
 std::timed_mutex g_jsMutex;
-// Quem segura este pode deixar frames do QuickJS estacionados enquanto solta
-// o motor. So um por vez — ver JsSuspend.
-std::mutex g_parkMutex;
-thread_local int t_jsDepth = 0;
+
+// O que a thread sabe do motor, num bloco so: com o minSdk 24 o thread_local
+// e emulado (uma chamada a __emutls_get_address por variavel, por funcao), e
+// cada chamada a mais pesava no hook com original() no bench do MuMu.
+struct JsThread {
+    int depth = 0;   // entradas aninhadas no motor
+    int tid = 0;     // o gettid(), lido uma vez
+};
+thread_local JsThread t_js;
+
+// Quem esta com o motor agora (0/nulo = ninguem) e o hook em que ele esta: so
+// para o aviso de quem esperou demais. O hook e global, nao por thread: quem
+// solta o motor leva o seu (JsSuspend) e o devolve ao voltar.
+std::atomic<int> g_ownerTid{0};
+std::atomic<const void*> g_ownerHook{nullptr};
+
+// O rt->current_stack_frame do QuickJS, pego no init (QuickJsExt.c): guardar
+// e devolver a pilha de uma thread e uma leitura e uma escrita, sem chamada.
+void** g_frameSlot = nullptr;
+
+void markOwner(JsThread& t) {
+    if (!t.tid) t.tid = gettid();
+    g_ownerTid.store(t.tid, std::memory_order_relaxed);
+}
+
+void clearOwner() {
+    g_ownerTid.store(0, std::memory_order_relaxed);
+    g_ownerHook.store(nullptr, std::memory_order_relaxed);
+}
 
 void alignStackTop() {
 #if BL_HAVE_QUICKJS
@@ -36,49 +65,80 @@ void alignStackTop() {
 } // namespace
 
 JsLock::JsLock() {
-    if (t_jsDepth == 0) {
+    JsThread& t = t_js;
+    if (t.depth == 0) {
         g_jsMutex.lock();
+        markOwner(t);
         alignStackTop();
     }
-    ++t_jsDepth;
+    ++t.depth;
     held_ = true;
 }
 
 JsLock::JsLock(int timeoutMs) {
-    if (t_jsDepth == 0) {
+    JsThread& t = t_js;
+    if (t.depth == 0) {
         if (!g_jsMutex.try_lock_for(std::chrono::milliseconds(timeoutMs))) return;
+        markOwner(t);
         alignStackTop();
     }
-    ++t_jsDepth;
+    ++t.depth;
     held_ = true;
 }
 
 JsLock::~JsLock() {
     if (!held_) return;
-    if (--t_jsDepth == 0) g_jsMutex.unlock();
+    if (--t_js.depth == 0) {
+        // Todo JS desta entrada ja desempilhou; sobrar frame aqui e defeito
+        // nosso, e o proximo a entrar herdaria uma pilha que nao e dele.
+        if (g_frameSlot && *g_frameSlot) {
+            static std::atomic<bool> warned{false};
+            if (!warned.exchange(true)) BL_ERROR("motor JS: frames sobrando ao soltar o motor; pilha zerada");
+            *g_frameSlot = nullptr;
+        }
+        clearOwner();
+        g_jsMutex.unlock();
+    }
 }
 
 JsSuspend::JsSuspend() {
-    if (t_jsDepth == 0) return;            // nao seguramos o motor: nada a soltar
-    if (!g_parkMutex.try_lock()) return;   // outra thread ja esta estacionada
-    depth_ = t_jsDepth;
-    t_jsDepth = 0;
+    JsThread& t = t_js;
+    if (t.depth == 0) return;   // nao seguramos o motor: nada a soltar
+    depth_ = t.depth;
+    t.depth = 0;
+    if (g_frameSlot) {
+        frames_ = *g_frameSlot;
+        *g_frameSlot = nullptr;
+    }
+    hook_ = g_ownerHook.load(std::memory_order_relaxed);
     released_ = true;
+    clearOwner();
     g_jsMutex.unlock();
 }
 
 JsSuspend::~JsSuspend() {
     if (!released_) return;
-    // Readquire ANTES de largar o estacionamento: soltar na ordem inversa
-    // deixaria outra thread estacionar enquanto ainda esperamos, e voltariamos
-    // com os frames dela por cima dos nossos.
-    //
     // Espera sem prazo, de proposito: nao ha o que fazer com um "desistir" aqui
-    // — a nossa chamada JS esta no meio e precisa terminar de desempilhar.
+    // — a nossa chamada JS esta no meio e precisa terminar de desempilhar. E
+    // espera pouco: quem esta com o motor so o segura enquanto roda JS.
     g_jsMutex.lock();
-    t_jsDepth = depth_;
+    if (g_frameSlot) *g_frameSlot = frames_;
+    JsThread& t = t_js;
+    markOwner(t);
+    g_ownerHook.store(hook_, std::memory_order_relaxed);
+    t.depth = depth_;
     alignStackTop();
-    g_parkMutex.unlock();
+}
+
+int jsOwnerThread() { return g_ownerTid.load(std::memory_order_relaxed); }
+
+const void* jsOwnerHook() { return g_ownerHook.load(std::memory_order_relaxed); }
+
+const void* setJsOwnerHook(const void* method) {
+    // So quem esta com o motor escreve: ler e gravar basta, sem troca atomica.
+    const void* outer = g_ownerHook.load(std::memory_order_relaxed);
+    g_ownerHook.store(method, std::memory_order_relaxed);
+    return outer;
 }
 
 #if BL_HAVE_QUICKJS
@@ -194,6 +254,7 @@ bool ScriptEngine::init() {
     JS_SetModuleLoaderFunc(rt, normalizeModule, loadModule, nullptr);
 
     runtime_ = rt;
+    g_frameSlot = bl_js_stack_frame_slot(rt);
     context_ = ctx;
     installBindings(ctx);
     installModClasses(ctx);
@@ -206,6 +267,7 @@ bool ScriptEngine::init() {
 void ScriptEngine::shutdown() {
     if (!ready_) return;
     JsLock lock;
+    g_frameSlot = nullptr;   // e do runtime que vai embora
     JS_FreeContext(static_cast<JSContext*>(context_));
     JS_FreeRuntime(static_cast<JSRuntime*>(runtime_));
     context_ = nullptr;

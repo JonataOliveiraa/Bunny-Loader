@@ -14,8 +14,10 @@ set(BL_QUICKJS_SOURCES "")
 # quickjs-ng v0.17: fontes sao quickjs.c/libregexp.c/libunicode.c/dtoa.c
 # (nao ha mais cutils.c nem libbf). Precisa de _GNU_SOURCE.
 if(EXISTS ${QUICKJS_DIR}/quickjs.c)
+    # O quickjs.c entra pelo QuickJsExt.c, que o inclui e acrescenta o acesso
+    # a pilha de frames do runtime (motor compartilhado entre threads).
     list(APPEND BL_QUICKJS_SOURCES
-        ${QUICKJS_DIR}/quickjs.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/script/bridge/QuickJsExt.c
         ${QUICKJS_DIR}/libregexp.c
         ${QUICKJS_DIR}/libunicode.c
         ${QUICKJS_DIR}/dtoa.c)

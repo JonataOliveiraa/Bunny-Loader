@@ -1,0 +1,18 @@
+{
+  "uid": "3f8b6d20-9c4e-4a17-b5d2-8e0f1a7c6b94",
+  "id": "test-enginethreads",
+  "name": "Teste: motor JS entre threads",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Duas threads no original() de um hook ao mesmo tempo: a do jogo e a do save seguem, e a pilha JS de cada uma volta inteira.",
+  "description": "Loga 'enginethreads ...'.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [
+    301543,
+    301543
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

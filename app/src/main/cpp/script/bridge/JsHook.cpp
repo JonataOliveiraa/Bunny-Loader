@@ -2,6 +2,7 @@
 #include "script/bridge/Bridge.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
+#include "script/bridge/ScriptEngine.h"
 #include "content/tiles/TileAccess.h"
 #include "script/bridge/Value.h"
 #include "core/Log.h"
@@ -13,6 +14,7 @@
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
 #include <atomic>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <utility>
@@ -102,6 +104,8 @@ struct HookCtx {
     int gateSlot = -1;
     // Filtro pelo tipo do tile: o x do `Tile` (offset), ou os x de i e j.
     int tileReg = -1, tileAtIReg = -1, tileAtJReg = -1;
+    // HookFilter::ifBusy: com o motor JS noutra thread, nao espera.
+    IfBusy ifBusy = IfBusy::Wait;
 };
 
 static HookCtx g_hooks[kMaxHooks];
@@ -137,6 +141,35 @@ static thread_local int g_depth[kMaxHooks];
 // threads num jogo congelado.
 constexpr int kLockTimeoutMs = 3000;
 static std::atomic<bool> g_lockWarned[kMaxHooks];
+
+/** `Classe.Metodo`, para o log. */
+static std::string hookName(const MethodInfo* m) {
+    auto& a = il2cpp::api();
+    if (!m) return "?";
+    Il2CppClass* cls = a.method_get_class ? a.method_get_class(m) : nullptr;
+    const char* c = cls ? a.class_get_name(cls) : nullptr;
+    return std::string(c ? c : "?") + "." + a.method_get_name(m);
+}
+
+/** O nome da thread `tid` (o comm do Linux), ou "?". */
+static std::string threadName(int tid) {
+    char path[64], name[32] = "?";
+    std::snprintf(path, sizeof(path), "/proc/self/task/%d/comm", tid);
+    if (FILE* f = std::fopen(path, "r")) {
+        if (std::fgets(name, sizeof(name), f)) name[std::strcspn(name, "\n")] = '\0';
+        std::fclose(f);
+    }
+    return name;
+}
+
+/** Quem esta com o motor: "thread 15840 (Thread-7), no hook Player.InternalSavePlayerFile". */
+static std::string describeJsOwner() {
+    const int tid = jsOwnerThread();
+    if (!tid) return "ninguem agora";
+    const auto* m = static_cast<const MethodInfo*>(jsOwnerHook());
+    return "thread " + std::to_string(tid) + " (" + threadName(tid) + "), " +
+           (m ? "no hook " + hookName(m) : std::string("fora de hook (carga de mod ou de conteudo)"));
+}
 
 // s0-s7: as 8 primeiras casas da PILHA de argumentos (o 9o inteiro em
 // diante). Um metodo com menos argumentos deixa ali o que o chamador tinha:
@@ -259,15 +292,19 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     // dispara o callback de novo — executa direto o original e volta.
     if (g_depth[slot] > 0) return callOriginal(c, rawA, rawD);
 
-    JsLock lock(kLockTimeoutMs);
+    // ifBusy: o hook de todo quadro que pode ficar um quadro sem o mod nao
+    // espera nada (a musica: esperar 3 s congelava a tela de carregamento).
+    JsLock lock(c->ifBusy == IfBusy::Wait ? kLockTimeoutMs : 0);
     if (!lock.held()) {
-        if (!g_lockWarned[slot].exchange(true)) {
-            BL_ERROR("hook %s: motor JS ocupado por outra thread ha %d ms; "
-                     "rodando o metodo sem o mod (aviso unico por hook)",
-                     il2cpp::api().method_get_name(c->method), kLockTimeoutMs);
+        if (c->ifBusy == IfBusy::Skip) return result;
+        if (c->ifBusy == IfBusy::Wait && !g_lockWarned[slot].exchange(true)) {
+            BL_ERROR("hook %s: motor JS ocupado ha %d ms por %s; rodando o metodo sem o mod "
+                     "(aviso unico por hook)", hookName(c->method).c_str(), kLockTimeoutMs,
+                     describeJsOwner().c_str());
         }
         return callOriginal(c, rawA, rawD);
     }
+    const void* outerHook = setJsOwnerHook(c->method);
     ++g_depth[slot];
 
     JSContext* ctx = c->ctx;
@@ -341,6 +378,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
 
     g_frames.pop_back();
     --g_depth[slot];
+    setJsOwnerHook(outerHook);
     return result;
 }
 
@@ -477,6 +515,10 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             : intReg(filter->tileAtI, &probe.tileAtIReg) && intReg(filter->tileAtJ, &probe.tileAtJReg);
         if (!ok) err = "filtro de tile: parametro fora da faixa ou que nao e Tile/int";
         probe.filterMin = filter->minType;
+    }
+    if (filter) probe.ifBusy = filter->ifBusy;
+    if (err.empty() && probe.ifBusy == IfBusy::Skip && probe.abi.retDesc.prim != Prim::Void) {
+        err = "ifBusy 'skip' so vale em metodo void (sem o JS, nao ha o que devolver)";
     }
     if (err.empty() && filter && filter->whileIn) {
         for (int i = 0; i < kMaxHooks; ++i) {

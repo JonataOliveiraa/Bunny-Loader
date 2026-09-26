@@ -596,13 +596,15 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
-// NativeMethod.hook(callback[, { minType, on, field, whileIn }])
+// NativeMethod.hook(callback[, { minType, on, field, whileIn, ifBusy }])
 //
 // Com `minType`, o hook so chama o JS quando o objeto `on` ('self', o padrao,
 // ou o indice de um parametro) tem `field` (padrao 'type') >= minType. Ex.:
 // NPC.AI so para NPC de mod — os do jogo nem entram no JS.
 // Com `whileIn` (outro metodo, ja hookado), so chama o JS enquanto a thread
 // esta dentro do hook dele.
+// Com `ifBusy` ('original' ou 'skip'), nao espera o motor JS que esta noutra
+// thread: roda so o metodo do jogo, ou nada (metodo void). Ver IfBusy.
 JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
     auto* r = static_cast<MethodRef*>(JS_GetOpaque(self, g_nativeMethodId));
     if (!r || argc < 1) return JS_EXCEPTION;
@@ -616,6 +618,16 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
             JS_FreeValue(ctx, gate);
             if (!g) return JS_ThrowTypeError(ctx, "hook: whileIn tem de ser um metodo do jogo");
             filter.whileIn = g->method;
+        }
+        JSValue busy = JS_GetPropertyStr(ctx, argv[1], "ifBusy");
+        if (!JS_IsUndefined(busy)) {
+            const char* s = JS_ToCString(ctx, busy);
+            const std::string mode = s ? s : "";
+            if (s) JS_FreeCString(ctx, s);
+            JS_FreeValue(ctx, busy);
+            if (mode == "original") filter.ifBusy = IfBusy::Original;
+            else if (mode == "skip") filter.ifBusy = IfBusy::Skip;
+            else if (mode != "wait") return JS_ThrowTypeError(ctx, "hook: ifBusy e 'wait', 'original' ou 'skip'");
         }
     }
     bool hasMin = false;
@@ -664,7 +676,8 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
     // installJsHook deixa a exceção posta, com o motivo exato (retorno struct,
     // argumentos demais, sem slot). Repetir aqui só apagaria a informação.
     if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0],
-                       filter.on == -2 && !filter.whileIn && filter.tileParam < 0 && filter.tileAtI < 0
+                       filter.on == -2 && !filter.whileIn && filter.tileParam < 0 && filter.tileAtI < 0 &&
+                               filter.ifBusy == IfBusy::Wait
                            ? nullptr : &filter))
         return JS_EXCEPTION;
     return JS_UNDEFINED;

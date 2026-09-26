@@ -32,6 +32,14 @@ bool isArrayObject(Il2CppObject* o);
  * As outras vao direto ao original, sem trava nem JS — o NPC.AI roda por
  * NPC por quadro, e so os de mod interessam ao mod.
  */
+// Com o motor JS noutra thread, o que o hook faz em vez de esperar (ate 3 s).
+// Para hook de todo quadro que pode ficar um quadro sem o mod.
+enum class IfBusy : uint8_t {
+    Wait,       // espera ate 3 s e, se nao der, roda sem o mod (com aviso)
+    Original,   // roda na hora o metodo do jogo, sem o mod
+    Skip,       // nao roda nada (so metodo void): fica valendo o quadro anterior
+};
+
 struct HookFilter {
     int on = -2;              // -2 = sem filtro, -1 = self, >= 0 = parametro
     std::string field = "type";
@@ -45,6 +53,7 @@ struct HookFilter {
     // `tileAtI`/`tileAtJ`, os indices dos parametros int da posicao.
     int tileParam = -1;
     int tileAtI = -1, tileAtJ = -1;
+    IfBusy ifBusy = IfBusy::Wait;
 };
 
 // Instala um hook JS num metodo do jogo. O callback recebe

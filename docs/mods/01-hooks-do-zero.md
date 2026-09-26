@@ -283,6 +283,18 @@ tooltip.hook((original) => original());
 drawString.hook(callback, { whileIn: tooltip });
 ```
 
+`ifBusy` é para hook de todo quadro que pode ficar um quadro sem o mod. O
+motor JS é um só, e às vezes outra thread do jogo está com ele (carregando o
+mundo, salvando). Sem a opção, o hook espera até 3 s e depois roda sem o mod,
+com um aviso. Com `ifBusy: 'original'`, roda na hora só o método do jogo; com
+`'skip'` (só em método `void`), não roda nada, e fica valendo o que o quadro
+anterior fez. A música de mod usa as duas:
+
+```js
+Main['void UpdateAudio_DecideOnNewMusic()'].hook(decide, { ifBusy: 'skip' });
+Main['void UpdateAudio()'].hook(fade, { ifBusy: 'original' });
+```
+
 ### Vários hooks no mesmo método
 
 Dois mods (ou o mesmo mod duas vezes) podem hookar o mesmo método. Eles se
@@ -412,6 +424,7 @@ a pasta do pacote é trocada inteira quando o mod é atualizado.
 | `metodo.hook((original, self, ...args) => ...)` | interceptar |
 | `metodo.hook(cb, { minType })` | interceptar só a partir de um tipo |
 | `metodo.hook(cb, { whileIn: outro })` | interceptar só dentro do hook de outro método |
+| `metodo.hook(cb, { ifBusy: 'original' })` | hook de todo quadro que não espera o motor JS ocupado |
 | `new Ref(v)` / `ref.value` | parâmetro `ref`/`out`, na chamada e no hook |
 | `bl.log(...)` | escreve em `logs/bunny_<data>.txt` e no logcat |
 | `bl.loadTexture(caminho)` | PNG/JPG do mod → `Texture2D` |

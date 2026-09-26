@@ -116,6 +116,22 @@ Testes `wrappers` e `nullable` verdes nas 5 rodadas que chegaram ao fim.
 (desenho) não fazer os hooks de outras threads (geração de mundo) esperarem a
 trava; o custo de ~100 ns por hook vale isso.
 
+> **2026-09-26:** o `JsSuspend` deixou de ser "uma thread estacionada por
+> vez". Com a thread do jogo quase sempre estacionada, um hook na thread do
+> save ou da carga do mundo não conseguia soltar o motor e o segurava o
+> método inteiro. O hook da música esperou 3 s no aparelho do usuário. Agora
+> cada thread leva a sua pilha de frames do QuickJS (`QuickJsExt.c`, que
+> compila o `quickjs.c` com acesso a `rt->current_stack_frame`), e qualquer
+> número de threads pode estar no `original()` ao mesmo tempo.
+>
+> Custo, no bench do MuMu (3 rodadas alternadas por build): hook com
+> `original()` de ~595 para ~750 ns; sem `original()`, igual (~300); tempo de
+> quadro igual. Uma variante só para medir, que fazia MENOS que a antiga (sem
+> pilha nem dono, sem a trava de estacionar), ficou em ~700: a maior parte
+> da diferença é onde o código caiu, sentido pela tradução ARM→x86 do MuMu,
+> não o que ele faz. O `enginethreads` na regra antiga: 0 quadros em 1,5 s
+> e a pilha JS do save com frames da thread do jogo; na nova, 14 quadros.
+
 Medição final do passo 2 (correção + `JsSuspend`, 5 rodadas,
 [`frame-fix-comsuspend-*`](dados/otimizacao/)):
 

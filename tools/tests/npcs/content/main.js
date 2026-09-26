@@ -108,8 +108,11 @@ function kill() {
     gelBefore = gelNear(deathX, deathY);
     // Golpe DO jogador: o Bestiario so credita morte com participacao de um.
     npc.playerInteraction[Main.myPlayer] = true;
-    npc['double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)'](
+    const before = `ativo=${npc.active} tipo=${npc.type} vida=${npc.life}`;
+    const dmg = npc['double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)'](
         9999, 0, 1, false, false, false, Main.myPlayer);
+    // Para a falha intermitente (o slime some sem morte, gel e gosma).
+    bl.log(`npcs golpe: antes ${before}; dano ${dmg}, depois ativo=${npc.active} vida=${npc.life}`);
 }
 
 function afterDeath() {

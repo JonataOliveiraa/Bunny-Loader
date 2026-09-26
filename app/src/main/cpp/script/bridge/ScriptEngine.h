@@ -68,24 +68,23 @@ private:
  * original do jogo dentro de um hook.
  *
  * O problema: sem isto, um hook em metodo quente (Player.Update) segura o
- * motor durante o CORPO INTEIRO do metodo. Outra thread que caia noutro hook
- * espera 3 s e roda sem o mod. O tempo gasto ali dentro nao e tempo de JS.
+ * motor durante o CORPO INTEIRO do metodo, e um hook na thread do save ou da
+ * carga do mundo, durante o save ou a carga inteira. Quem cai noutro hook
+ * espera esse tempo todo (ate 3 s, e depois roda sem o mod). O tempo gasto ali
+ * dentro nao e tempo de JS.
  *
  * Por que nao e so dar unlock: o QuickJS guarda a pilha de frames no RUNTIME
  * (`rt->current_stack_frame`), nao na thread, e o desempilhar e uma atribuicao
- * absoluta (`rt->current_stack_frame = sf->prev_frame`), nao uma verificacao.
- * Uma thread que entre no meio empilha e desempilha de forma BALANCEADA, entao
- * devolve a corrente como achou — isso e seguro. O que quebra e DUAS threads
- * estacionarem frames ao mesmo tempo: a corrente deixa de ser pilha e cada uma
- * restaura por cima da outra.
+ * absoluta (`rt->current_stack_frame = sf->prev_frame`). Duas threads com
+ * frames estacionados ao mesmo tempo, cada uma voltando por cima da outra,
+ * deixariam a pilha apontando para frames que ja nao existem.
  *
- * Entao a regra e uma so: no maximo uma thread por vez pode deixar frames
- * estacionados. Quem chega depois nao solta a trava e se comporta como antes —
- * nunca pior que hoje, e melhor sempre que so uma thread estiver no original().
- *
- * O jeito limpo seria salvar e restaurar `current_stack_frame`, mas isso pede
- * uma funcao a mais no QuickJS, que aqui NAO e versionado (clonado no build,
- * ver third_party/README.md): o patch se perderia no proximo clone.
+ * Entao cada thread leva a SUA pilha: ao soltar, guarda o topo e deixa a do
+ * runtime vazia; ao pegar de volta, devolve o topo (QuickJsExt.c, que
+ * compila o quickjs.c com esse acesso). Quem entra do zero comeca de uma
+ * pilha vazia e sai deixando-a vazia. Com isso qualquer numero de threads
+ * pode estar no original() ao mesmo tempo, e o motor fica preso so enquanto
+ * o JS roda de fato.
  */
 class JsSuspend {
 public:
@@ -94,13 +93,26 @@ public:
     JsSuspend(const JsSuspend&) = delete;
     JsSuspend& operator=(const JsSuspend&) = delete;
 
-    /** false = a trava continua nossa (outra thread ja estava estacionada). */
+    /** false = esta thread nao estava com o motor: nao havia o que soltar. */
     bool released() const { return released_; }
 
 private:
     int depth_ = 0;
+    void* frames_ = nullptr;        // o topo da pilha de frames JS desta thread
+    const void* hook_ = nullptr;    // o hook em que ela estava (diagnostico)
     bool released_ = false;
 };
+
+/**
+ * Quem esta com o motor JS agora, so para diagnostico: o aviso de quem esperou
+ * demais diz a thread (tid; 0 = ninguem) e o hook em que ela esta (o
+ * MethodInfo; nulo = fora de hook, carregando mod ou conteudo).
+ */
+int jsOwnerThread();
+const void* jsOwnerHook();
+
+/** Marca o hook em que quem esta com o motor entrou. Devolve o de fora. */
+const void* setJsOwnerHook(const void* method);
 
 // Registra NativeClass / NativeObject / NativeMethod / NativeArray / tl.* no
 // contexto. Implementado em Bindings.cpp.

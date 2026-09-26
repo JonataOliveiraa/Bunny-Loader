@@ -1,0 +1,18 @@
+{
+  "uid": "7c2e9a41-5d3b-4f86-9b0e-2a6c1d8e4f53",
+  "id": "test-ifbusy",
+  "name": "Teste: hook que nao espera o motor JS",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ifBusy 'skip' e 'original' com o motor JS preso noutra thread (o save da morte).",
+  "description": "Loga 'ifbusy ...'. Rodar SEM o Example Mod.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [
+    301543,
+    301543
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -56,11 +56,11 @@ for dir in "$@"; do case "$dir" in *tests/*) expected=$((expected + 1)) ;; esac;
 [ "$expected" -gt 0 ] || expected=1
 for i in $(seq 1 60); do
     sleep 2
-    got=$(adb -s "$D" logcat -d -s BunnyLoader | grep -c "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM\|exmod1 FIM\|extrafields FIM\|exmod2 FIM\|recipes FIM\|buffs FIM\|files FIM\|modplayer FIM\|refs FIM\|tiles FIM\|tilesave FIM\|hookslots FIM\|tileframes FIM\|summons FIM\|townnpc FIM\|townshop FIM\|townfight FIM\|boss FIM\|drops FIM\|fishline FIM\|crossmod FIM\|crossmodtarget FIM\|sounds FIM\|music FIM\|structindex FIM" || true)
+    got=$(adb -s "$D" logcat -d -s BunnyLoader | grep -c "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM\|exmod1 FIM\|extrafields FIM\|exmod2 FIM\|recipes FIM\|buffs FIM\|files FIM\|modplayer FIM\|refs FIM\|tiles FIM\|tilesave FIM\|hookslots FIM\|tileframes FIM\|summons FIM\|townnpc FIM\|townshop FIM\|townfight FIM\|boss FIM\|drops FIM\|fishline FIM\|crossmod FIM\|crossmodtarget FIM\|sounds FIM\|music FIM\|structindex FIM\|ifbusy FIM\|enginethreads FIM" || true)
     [ "$got" -ge "$expected" ] && break
 done
 sleep 4
-adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\|exmod1\|extrafields\|exmod2\|recipes\|buffs\|files\|modplayer\|refs\|tiles\|tilesave\|hookslots\|tileframes\|summons\|townnpc\|townshop\|townfight\|boss\|drops\|fishline\|crossmod\|sounds\|music\|structindex\)" \
+adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\|exmod1\|extrafields\|exmod2\|recipes\|buffs\|files\|modplayer\|refs\|tiles\|tilesave\|hookslots\|tileframes\|summons\|townnpc\|townshop\|townfight\|boss\|drops\|fishline\|crossmod\|sounds\|music\|structindex\|ifbusy\|enginethreads\)" \
     | sed 's/.*\[mod\] //' > "$OUT"
 echo "segfaults: $(adb -s "$D" logcat -d | grep -a -c 'Forwarding signal')" >> "$OUT"
 cat "$OUT"
