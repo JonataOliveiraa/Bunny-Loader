@@ -156,21 +156,28 @@ constexpr LimitPatch kLimitPatches[] = {
 
 void patchLimits(int total) {
     auto& a = il2cpp::api();
+    int methodsOk = 0;
     for (const LimitPatch& p : kLimitPatches) {
         Il2CppClass* cls = il2cpp::findClass({p.ns, p.cls, {}});
+        const uint32_t to = static_cast<uint32_t>(total + p.offset);
         int patched = 0;
+        const MethodInfo* last = nullptr;
         void* it = nullptr;
         while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
             if (std::strcmp(a.method_get_name(m), p.method) != 0) continue;
-            patched += patchCompareLimit(m, p.vanilla, static_cast<uint32_t>(total + p.offset), p.belowToo);
+            last = m;
+            patched += patchCompareLimit(m, p.vanilla, to, p.belowToo);
         }
         if (patched > 0) {
-            BL_INFO("buffs de mod: %s.%s: %d limite(s) de %u para %d", p.cls, p.method, patched,
-                    p.vanilla, total + p.offset);
+            ++methodsOk;
+            BL_DEBUG("buffs de mod: %s.%s: %d limite(s) de %u para %u", p.cls, p.method, patched, p.vanilla, to);
         } else {
-            BL_ERROR("buffs de mod: %s.%s: limite %u nao achado no codigo", p.cls, p.method, p.vanilla);
+            BL_ERROR("buffs de mod: %s.%s: limite %u nao trocado: %s", p.cls, p.method, p.vanilla,
+                     describeCompareMiss(last, p.vanilla, to, p.belowToo).c_str());
         }
     }
+    const int methods = static_cast<int>(sizeof(kLimitPatches) / sizeof(kLimitPatches[0]));
+    BL_INFO("buffs de mod: limites do codigo trocados em %d de %d metodo(s)", methodsOk, methods);
 }
 
 // ---- buffImmune: bool[389] em cada Player e NPC ----
@@ -223,7 +230,7 @@ void growInstances(int size) {
     }
     const int players = growAll(r.players, r.playerImmune, size);
     const int npcs = growAll(r.npcs, r.npcImmune, size);
-    BL_INFO("buffs de mod: buffImmune aumentada em %d jogador(es) e %d NPC(s)", players, npcs);
+    BL_DEBUG("buffs de mod: buffImmune aumentada em %d jogador(es) e %d NPC(s)", players, npcs);
 }
 
 } // namespace

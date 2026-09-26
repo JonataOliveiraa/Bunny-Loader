@@ -163,6 +163,7 @@ class GameActivity : Activity() {
                             .also { it.parentFile?.mkdirs() }.absolutePath
                     } else "",
                     showErrors = prefs.errorPanel,
+                    verboseLog = prefs.verboseLog,
                     gameVersion = BundledRuntime.VERSION_CODE,
                 ),
             )

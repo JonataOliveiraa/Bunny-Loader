@@ -220,8 +220,8 @@ void prepareTownNpcs(int totalTypes) {
                 : patchMovImmediate(m, kVanillaNpcCount, static_cast<uint32_t>(totalTypes));
         }
         if (patched > 0) {
-            BL_INFO("moradores de mod: %s.%s: %d troca(s) de %d para %d", p.cls, p.method, patched,
-                    kVanillaNpcCount, totalTypes);
+            BL_DEBUG("moradores de mod: %s.%s: %d troca(s) de %d para %d", p.cls, p.method, patched,
+                     kVanillaNpcCount, totalTypes);
         } else {
             BL_ERROR("moradores de mod: %s.%s: %d nao achado no codigo; morador de mod fica sem isso",
                      p.cls, p.method, kVanillaNpcCount);
@@ -269,8 +269,8 @@ void installTownNpcs(int totalTypes) {
         BL_ERROR("moradores de mod: sem hook em NPC.TypeToDefaultHeadIndex; morador de mod sem cabeca");
         return;
     }
-    BL_INFO("moradores de mod: %zu cabeca(s) em TextureAssets.NpcHead (%d..%d)",
-            g_slotOf.size() + g_shimmerSlotOf.size(), g_vanillaHeads, slot - 1);
+    BL_DEBUG("moradores de mod: %zu cabeca(s) em TextureAssets.NpcHead (%d..%d)",
+             g_slotOf.size() + g_shimmerSlotOf.size(), g_vanillaHeads, slot - 1);
 }
 
 void watchTownNpcs() {
@@ -282,7 +282,7 @@ void watchTownNpcs() {
         std::lock_guard<std::mutex> l(g_mx);
         if (heads && heads->length < static_cast<uintptr_t>(total)) {
             applyHeads();
-            BL_INFO("moradores de mod: o jogo refez TextureAssets.NpcHead; cabecas de mod devolvidas");
+            BL_DEBUG("moradores de mod: o jogo refez TextureAssets.NpcHead; cabecas de mod devolvidas");
         }
         growHeadTables(total);   // so muda o que o jogo refez
     }

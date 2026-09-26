@@ -105,7 +105,7 @@ void installModClasses(void* context) {
         if (t) JS_FreeCString(ctx, t);
         JS_FreeValue(ctx, e);
     } else {
-        BL_INFO("classes dos mods instaladas (ModItem, ModProjectile, ModNPC)");
+        BL_DEBUG("classes dos mods instaladas (ModItem, ModProjectile, ModNPC)");
     }
     JS_FreeValue(ctx, r);
 }

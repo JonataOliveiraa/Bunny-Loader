@@ -88,8 +88,8 @@ bool resolveGameRefs() {
 
     // Confere contra o dump (1.4.5.6.4) para provar que a resolucao bateu com
     // a realidade: velocity=0x1C, Projectile.type=0x64, active=0x49.
-    BL_INFO("GameRefs ok | Entity.velocity=0x%X (esp 0x1C) Projectile.type=0x%X (esp 0x64) active=0x%X (esp 0x49)",
-            g.entity.velocity, g.proj.type, g.proj.active);
+    BL_DEBUG("GameRefs ok | Entity.velocity=0x%X (esp 0x1C) Projectile.type=0x%X (esp 0x64) active=0x%X (esp 0x49)",
+             g.entity.velocity, g.proj.type, g.proj.active);
     g_resolved.store(true);
     return true;
 }

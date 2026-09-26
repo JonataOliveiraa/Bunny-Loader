@@ -520,7 +520,7 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             JS_ThrowInternalError(ctx, "hook: o ShadowHook recusou o metodo");
             return false;
         }
-        BL_INFO("hook JS no slot %d: %s", i, il2cpp::describeMethod(method).c_str());
+        BL_DEBUG("hook JS no slot %d: %s", i, il2cpp::describeMethod(method).c_str());
         return true;
     }
     JS_ThrowInternalError(ctx, "hook: sem slots livres para retorno '%s' "

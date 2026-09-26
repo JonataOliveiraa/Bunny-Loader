@@ -184,7 +184,7 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     g_ctx = ctx;
     runtime::setItemsInstalledHook(onItemsInstalled);
     noteModForMenu(mod);   // a pasta "Itens" do mod e montada sozinha
-    BL_INFO("item de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
+    BL_DEBUG("item de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
     return JS_NewInt32(ctx, type);
 }
 

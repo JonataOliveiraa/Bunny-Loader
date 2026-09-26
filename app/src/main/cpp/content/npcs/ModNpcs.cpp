@@ -261,23 +261,29 @@ void patchLimits(int total) {
     if (g_limitsPatched) return;
     g_limitsPatched = true;
     auto& a = il2cpp::api();
+    int methodsOk = 0;
     for (const LimitPatch& p : kLimitPatches) {
         Il2CppClass* cls = il2cpp::findClass({"Terraria", p.cls, {}});
+        const uint32_t to = static_cast<uint32_t>(total + p.offset);
         int patched = 0;
+        const MethodInfo* last = nullptr;
         void* it = nullptr;
         while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
             if (std::strcmp(a.method_get_name(m), p.method) != 0) continue;
             if (p.argCount >= 0 && static_cast<int>(a.method_get_param_count(m)) != p.argCount) continue;
-            patched += patchCompareLimit(m, p.vanilla, static_cast<uint32_t>(total + p.offset));
+            last = m;
+            patched += patchCompareLimit(m, p.vanilla, to);
         }
         if (patched > 0) {
-            BL_INFO("NPCs de mod: %s.%s: %d limite(s) de %u para %d", p.cls, p.method, patched,
-                    p.vanilla, total + p.offset);
+            ++methodsOk;
+            BL_DEBUG("NPCs de mod: %s.%s: %d limite(s) de %u para %u", p.cls, p.method, patched, p.vanilla, to);
         } else {
-            BL_ERROR("NPCs de mod: %s.%s: limite %u nao achado no codigo; o NPC de mod fica "
-                     "sem isso", p.cls, p.method, p.vanilla);
+            BL_ERROR("NPCs de mod: %s.%s: limite %u nao trocado (o NPC de mod fica sem isso): %s", p.cls,
+                     p.method, p.vanilla, describeCompareMiss(last, p.vanilla, to).c_str());
         }
     }
+    const int methods = static_cast<int>(sizeof(kLimitPatches) / sizeof(kLimitPatches[0]));
+    BL_INFO("NPCs de mod: limites do codigo trocados em %d de %d metodo(s)", methodsOk, methods);
 }
 
 // ---- NPC.FindFrame: animacao emprestada ----

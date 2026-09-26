@@ -15,7 +15,7 @@ void* initStub = nullptr;
 int hkInit(const char* domainName) {
     // Deixa o IL2CPP terminar: só depois existem domínio, classes e metadados.
     int result = origInit(domainName);
-    BL_INFO("il2cpp_init concluido (domain=%s)", domainName ? domainName : "?");
+    BL_DEBUG("il2cpp_init concluido (domain=%s)", domainName ? domainName : "?");
     runtime::boot();
     return result;
 }
@@ -46,7 +46,7 @@ bool installWatcher() {
         return false;
     }
     installed = true;
-    BL_INFO("watcher de il2cpp_init registrado");
+    BL_DEBUG("watcher de il2cpp_init registrado");
     return true;
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 #include "il2cpp/Types.h"
 
@@ -30,6 +31,23 @@ namespace bl::runtime {
  */
 int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo = false,
                       bool shifted = false);
+
+/**
+ * Por que o patchCompareLimit de `m` nao trocou nada, em texto para o log.
+ *
+ * "Nao achado" escondia causas diferentes: o padrao nao esta no metodo (outra
+ * versao do jogo), ja foi trocado antes (instalacao repetida) ou esta la e a
+ * escrita foi recusada (mprotect). So le; chamar depois do patch que falhou,
+ * com os mesmos argumentos. Termina com describeMethodCode.
+ */
+std::string describeCompareMiss(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit,
+                                bool belowToo = false, bool shifted = false);
+
+/**
+ * Onde o metodo esta (`libil2cpp.so+0x165c6a4`), o tamanho que a busca
+ * considera e as 4 primeiras instrucoes — um hook na entrada aparece ai.
+ */
+std::string describeMethodCode(const MethodInfo* m);
 
 /**
  * O fim de um laco que anda pelo array em BYTES: o IL2CPP compila

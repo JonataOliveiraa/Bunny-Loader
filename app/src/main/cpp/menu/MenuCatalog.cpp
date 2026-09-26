@@ -150,10 +150,10 @@ void buildMenuCatalogExtras() {
     int perNpc[5] = {}, perBuff[7] = {};
     for (uint8_t c : g_npcClass) if (c < 5) ++perNpc[c];
     for (uint8_t c : g_buffClass) if (c < 7) ++perBuff[c];
-    BL_INFO("menu: NPCs | chefe %d, monstro %d, morador %d, criatura %d, outros %d; "
-            "buffs %zu | bom %d, debuff %d, comida %d, frasco %d, pet %d, invocacao %d",
-            perNpc[1], perNpc[2], perNpc[3], perNpc[4], perNpc[0], g_buffNames.size(),
-            perBuff[1], perBuff[2], perBuff[3], perBuff[4], perBuff[5], perBuff[6]);
+    BL_DEBUG("menu: NPCs | chefe %d, monstro %d, morador %d, criatura %d, outros %d; "
+             "buffs %zu | bom %d, debuff %d, comida %d, frasco %d, pet %d, invocacao %d",
+             perNpc[1], perNpc[2], perNpc[3], perNpc[4], perNpc[0], g_buffNames.size(),
+             perBuff[1], perBuff[2], perBuff[3], perBuff[4], perBuff[5], perBuff[6]);
 }
 
 const std::vector<uint8_t>& npcClasses() { return g_npcClass; }

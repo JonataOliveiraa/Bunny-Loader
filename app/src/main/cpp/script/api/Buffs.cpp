@@ -136,7 +136,7 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     g_ctx = ctx;
     runtime::setBuffsInstalledHook(onBuffsInstalled);
     noteModForMenu(mod);   // a pasta "Buffs" do mod e montada sozinha
-    BL_INFO("buff de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
+    BL_DEBUG("buff de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
     return JS_NewInt32(ctx, type);
 }
 

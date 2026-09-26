@@ -41,12 +41,12 @@ bool il2cppReady() {
 }
 
 void probeThread() {
-    BL_INFO("sonda: aguardando o jogo assentar (%d ms)...", kSettleMs);
+    BL_DEBUG("sonda: aguardando o jogo assentar (%d ms)...", kSettleMs);
     std::this_thread::sleep_for(std::chrono::milliseconds(kSettleMs));
 
     for (int i = 0; i < kRetries; ++i) {
         if (il2cppReady()) {
-            BL_INFO("sonda: il2cpp pronto; carregando API");
+            BL_DEBUG("sonda: il2cpp pronto; carregando API");
             auto& a = il2cpp::api();
             if (!a.load()) {
                 BL_ERROR("sonda: Api::load() falhou");
@@ -57,7 +57,7 @@ void probeThread() {
                 BL_ERROR("sonda: resolveGameRefs falhou");
                 return;
             }
-            BL_INFO("sonda: RESOLUCAO OK");
+            BL_DEBUG("sonda: RESOLUCAO OK");
 
             // Sobe o QuickJS e carrega os mods habilitados (main.js de cada um).
             if (!script::engine().init()) {

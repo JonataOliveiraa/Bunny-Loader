@@ -30,6 +30,7 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.logPath    = readString(env, cfg, cls, "logPath");
     c.cmdPath    = readString(env, cfg, cls, "cmdPath");
     c.showErrors = env->GetBooleanField(cfg, env->GetFieldID(cls, "showErrors", "Z"));
+    c.verboseLog = env->GetBooleanField(cfg, env->GetFieldID(cls, "verboseLog", "Z"));
     c.gameVersion = env->GetLongField(cfg, env->GetFieldID(cls, "gameVersion", "J"));
 
     auto arr = reinterpret_cast<jobjectArray>(
@@ -48,8 +49,10 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
         }
     }
 
+    bl::log::setVerbose(c.verboseLog);
     bl::log::open(c.logPath.c_str());
-    BL_INFO("Bunny Loader iniciando, versao do jogo %lld", (long long)c.gameVersion);
+    BL_INFO("Bunny Loader iniciando, versao do jogo %lld (log %s)", (long long)c.gameVersion,
+            c.verboseLog ? "detalhado" : "resumido; detalhes em Configuracoes > Log detalhado");
 
     if (!bl::loader::installWatcher()) {
         g_lastError = "falha ao instalar o watcher de il2cpp_init";

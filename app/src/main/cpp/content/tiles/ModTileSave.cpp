@@ -296,7 +296,7 @@ void installModTileSave() {
         BL_ERROR("tiles de mod: sem o save do mundo; tile de mod iria para o .wld pelo numero");
         return;
     }
-    BL_INFO("tiles de mod: save do mundo pronto (%s)", kSuffix);
+    BL_DEBUG("tiles de mod: save do mundo pronto (%s)", kSuffix);
 }
 
 } // namespace bl::runtime

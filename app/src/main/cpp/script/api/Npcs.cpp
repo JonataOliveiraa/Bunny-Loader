@@ -233,7 +233,7 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     runtime::setNpcsInstalledHook(onNpcsInstalled);
     g_defs[type] = JS_DupValue(ctx, def);
     noteModForMenu(mod);   // a pasta "NPCs" do mod e montada sozinha
-    BL_INFO("NPC de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
+    BL_DEBUG("NPC de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
     return JS_NewInt32(ctx, type);
 }
 

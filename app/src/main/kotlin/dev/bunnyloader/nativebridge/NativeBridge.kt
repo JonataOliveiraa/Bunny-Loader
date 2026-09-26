@@ -11,6 +11,8 @@ class NativeConfig(
     @JvmField val cmdPath: String,
     /** Painel de erro dentro do jogo (Configuracoes). */
     @JvmField val showErrors: Boolean,
+    /** Log detalhado (Configuracoes): o detalhe do núcleo também no arquivo de sessão. */
+    @JvmField val verboseLog: Boolean,
     @JvmField val gameVersion: Long,
 )
 

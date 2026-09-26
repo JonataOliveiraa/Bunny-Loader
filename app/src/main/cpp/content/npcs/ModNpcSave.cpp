@@ -439,7 +439,7 @@ void installModNpcSave() {
         BL_ERROR("moradores de mod: sem o save do mundo; morador de mod iria para o .wld pelo numero");
         return;
     }
-    BL_INFO("moradores de mod: save do mundo pronto (%s)", kSuffix);
+    BL_DEBUG("moradores de mod: save do mundo pronto (%s)", kSuffix);
 }
 
 } // namespace bl::runtime

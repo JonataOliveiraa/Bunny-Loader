@@ -1,6 +1,9 @@
 #include "core/Log.h"
+#include <algorithm>
+#include <atomic>
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <mutex>
 #include <string>
@@ -10,12 +13,31 @@ namespace bl::log {
 namespace {
 constexpr const char* TAG = "BunnyLoader";
 constexpr size_t kMaxErrorChars = 8 * 1024;  // o painel nao serve pra 1 MB
+// O logd corta a linha em ~4 KB; acima disso ela vai ao logcat em pedacos.
+constexpr size_t kLogcatChunk = 4000;
 FILE* g_file = nullptr;
 std::mutex g_mutex;
+std::atomic<bool> g_verbose{false};
 
 std::string g_errors;
 int g_errorCount = 0;
 void (*g_onError)(const char*) = nullptr;
+
+/** Ao logcat, em pedacos que nao cortam um caractere UTF-8 ao meio. */
+void toLogcat(int level, const char* text, size_t len) {
+    if (len <= kLogcatChunk) {
+        __android_log_write(level, TAG, text);
+        return;
+    }
+    std::string piece;
+    for (size_t at = 0; at < len;) {
+        size_t n = len - at < kLogcatChunk ? len - at : kLogcatChunk;
+        while (n > 1 && at + n < len && (static_cast<unsigned char>(text[at + n]) & 0xC0) == 0x80) --n;
+        piece.assign(text + at, n);
+        __android_log_write(level, TAG, piece.c_str());
+        at += n;
+    }
+}
 }
 
 void open(const char* path) {
@@ -23,6 +45,8 @@ void open(const char* path) {
     if (g_file) fclose(g_file);
     g_file = path ? fopen(path, "w") : nullptr;
 }
+
+void setVerbose(bool on) { g_verbose.store(on, std::memory_order_relaxed); }
 
 /** A letra do nivel, como no logcat: I, W, E... */
 static char levelLetter(int level) {
@@ -37,19 +61,33 @@ static char levelLetter(int level) {
 }
 
 void write(int level, const char* fmt, ...) {
-    // Uma pilha de erro de mod passa facil de 1 KB; o logcat corta em ~4 KB.
-    char buffer[4096];
+    // Quase toda linha cabe aqui; a que nao cabe (um bl.log de objeto grande,
+    // uma pilha de erro de mod) ia cortada em 4 KB. Agora vai inteira.
+    char stackBuffer[4096];
+    std::string heapBuffer;
     va_list args;
     va_start(args, fmt);
-    vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_list again;
+    va_copy(again, args);
+    const int needed = vsnprintf(stackBuffer, sizeof(stackBuffer), fmt, args);
     va_end(args);
+    if (needed < 0) stackBuffer[0] = '\0';   // formato invalido: linha vazia, nao lixo
+    const char* buffer = stackBuffer;
+    size_t length = needed > 0 ? static_cast<size_t>(needed) : 0;
+    if (length >= sizeof(stackBuffer)) {
+        heapBuffer.resize(length + 1);
+        vsnprintf(&heapBuffer[0], heapBuffer.size(), fmt, again);
+        heapBuffer.resize(length);
+        buffer = heapBuffer.c_str();
+    }
+    va_end(again);
 
-    __android_log_write(level, TAG, buffer);
+    toLogcat(level, buffer, length);
 
     void (*notify)(const char*) = nullptr;
     {
         std::lock_guard<std::mutex> guard(g_mutex);
-        if (g_file) {
+        if (g_file && (level >= ANDROID_LOG_INFO || g_verbose.load(std::memory_order_relaxed))) {
             // No arquivo, com hora e nivel: e ele que o modder abre, sem logcat.
             timespec ts{};
             clock_gettime(CLOCK_REALTIME, &ts);
@@ -63,8 +101,9 @@ void write(int level, const char* fmt, ...) {
             ++g_errorCount;
             // Guarda os PRIMEIROS: o erro que importa e o que comeca a cascata,
             // e um hook que falha a cada frame afogaria o resto.
+            // A linha agora vem inteira: uma so nao pode passar do teto.
             if (g_errors.size() < kMaxErrorChars) {
-                g_errors.append(buffer).append("\n");
+                g_errors.append(buffer, std::min(length, kMaxErrorChars - g_errors.size())).append("\n");
             }
             notify = g_onError;
         }

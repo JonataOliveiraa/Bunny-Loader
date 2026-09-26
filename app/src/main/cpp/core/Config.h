@@ -32,6 +32,8 @@ struct Config {
     // Painel de erro DENTRO do jogo (Configuracoes). Desligado, um mod que
     // quebra so deixa rastro no logcat — util para quem grava video.
     bool showErrors = true;
+    // "Log detalhado" (Configuracoes): as linhas BL_DEBUG tambem no arquivo.
+    bool verboseLog = false;
     int64_t gameVersion = 0;
 };
 

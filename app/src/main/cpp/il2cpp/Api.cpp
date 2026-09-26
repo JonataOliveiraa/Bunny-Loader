@@ -108,7 +108,7 @@ bool Api::load() {
     for (size_t i = 0; i < count; ++i) {
         auto image = assembly_get_image(assemblies[i]);
         const char* name = image_get_name(image);
-        BL_INFO("assembly: %s", name);
+        BL_DEBUG("assembly: %s", name);
         if (strcmp(name, "Assembly-CSharp.dll") == 0) gameImage = image;
         if (strcmp(name, "mscorlib.dll") == 0) corlibImage = image;
     }

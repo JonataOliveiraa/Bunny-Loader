@@ -197,7 +197,7 @@ void runSelftestOnce() {
     Il2CppObject* exc = nullptr;
     int me = unboxInt(il2cpp::api().runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
     if (exc) BL_ERROR("cheats: selftest runtime_invoke get_myPlayer() lancou excecao");
-    else BL_INFO("cheats: selftest runtime_invoke get_myPlayer() = %d (ok)", me);
+    else BL_DEBUG("cheats: selftest runtime_invoke get_myPlayer() = %d (ok)", me);
 }
 
 // ----------------------- nomes de item e NPC -----------------------
@@ -499,7 +499,7 @@ void classifyModItems(const ItemFields& o) {
         g_itemStack[static_cast<size_t>(id)] = unique ? 1 : field<int32_t>(scratch, o.maxStack);
         ++done;
     }
-    if (done) BL_INFO("cheats: %d item(ns) de mod classificado(s)", done);
+    if (done) BL_DEBUG("cheats: %d item(ns) de mod classificado(s)", done);
 }
 
 /**
@@ -664,11 +664,11 @@ bool classifyUntil(TimePoint deadline) {
 
     int perClass[11] = {};
     for (uint8_t c : g_itemClass) if (c < 11) ++perClass[c];
-    BL_INFO("cheats: %d itens classificados | corpo %d, distancia %d, magia %d, "
-            "invocacao %d, municao %d, ferramenta %d, acessorio %d, armadura %d, "
-            "pocao %d, bloco %d, outros %d", k.readCount, perClass[1], perClass[2],
-            perClass[3], perClass[4], perClass[5], perClass[6], perClass[7],
-            perClass[8], perClass[9], perClass[10], perClass[0]);
+    BL_DEBUG("cheats: %d itens classificados | corpo %d, distancia %d, magia %d, "
+             "invocacao %d, municao %d, ferramenta %d, acessorio %d, armadura %d, "
+             "pocao %d, bloco %d, outros %d", k.readCount, perClass[1], perClass[2],
+             perClass[3], perClass[4], perClass[5], perClass[6], perClass[7],
+             perClass[8], perClass[9], perClass[10], perClass[0]);
     return true;
 }
 
@@ -758,9 +758,9 @@ void readNamesSlice() {
         for (const auto& n : g_itemNames) if (n.empty()) ++unnamed;
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             Clock::now() - g_nameReadStart).count();
-        BL_INFO("cheats: nomes e classes prontos (%d itens, %d NPCs; %d itens sem "
-                "nome) em %lld ms, %d quadros, pior quadro %.1f ms", g_itemTotal, g_npcTotal,
-                unnamed, static_cast<long long>(ms), g_nameReadFrames, g_nameReadWorstUs / 1000.0);
+        BL_DEBUG("cheats: nomes e classes prontos (%d itens, %d NPCs; %d itens sem "
+                 "nome) em %lld ms, %d quadros, pior quadro %.1f ms", g_itemTotal, g_npcTotal,
+                 unnamed, static_cast<long long>(ms), g_nameReadFrames, g_nameReadWorstUs / 1000.0);
     }
 }
 
@@ -942,8 +942,8 @@ void installCheats() {
         // O canal do BOTAO e requestGive() -> g_pendingGive, em processo. O
         // arquivo abaixo e so o canal de dev (adb), por isso vem marcado.
         const std::string& cmd = cmdPath();
-        BL_INFO("cheats: pronto (canal dev por arquivo: %s)",
-                cmd.empty() ? "desligado" : cmd.c_str());
+        BL_DEBUG("cheats: pronto (canal dev por arquivo: %s)",
+                 cmd.empty() ? "desligado" : cmd.c_str());
     } else {
         BL_ERROR("cheats: falha ao hookar Main.DoUpdate");
     }

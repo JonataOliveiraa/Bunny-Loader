@@ -343,7 +343,7 @@ void patchDropLimits(int total) {
                  "NPC nenhum solta item de mod");
         return;
     }
-    BL_INFO("itens de mod: drop do jogo aceita ate o id %u (%d metodo(s) do CommonCode)", 2 * imm + 2, patched);
+    BL_DEBUG("itens de mod: drop do jogo aceita ate o id %u (%d metodo(s) do CommonCode)", 2 * imm + 2, patched);
     g_dropLimit = imm;
 }
 
@@ -500,7 +500,7 @@ void registerUnloadedPool() {
         const int type = registerModItem(std::move(d));
         if (i == 0) g_poolFirst = type;
     }
-    BL_INFO("itens de mod: reserva de %d item(ns) \"?\" a partir do id %d", kUnloadedPoolSize, g_poolFirst);
+    BL_DEBUG("itens de mod: reserva de %d item(ns) \"?\" a partir do id %d", kUnloadedPoolSize, g_poolFirst);
 }
 
 bool isUnloadedType(int type) {

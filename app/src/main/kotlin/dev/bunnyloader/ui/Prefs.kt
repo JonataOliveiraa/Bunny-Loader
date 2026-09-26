@@ -23,6 +23,15 @@ class Prefs(context: Context) {
         set(v) = p.edit().putBoolean(ERROR_PANEL, v).apply()
 
     /**
+     * Lido por GameActivity: o log de sessão ganha o detalhe do núcleo (cada
+     * tabela, hook e tipo registrado). Desligado, o arquivo fica com o resumo
+     * de cada sistema e as linhas dos mods.
+     */
+    var verboseLog: Boolean
+        get() = p.getBoolean(VERBOSE_LOG, false)
+        set(v) = p.edit().putBoolean(VERBOSE_LOG, v).apply()
+
+    /**
      * Canal de comando por arquivo (adb push). Desligado, o `cmdPath` vai
      * vazio no NativeConfig e o núcleo nem tenta abrir o arquivo a cada quadro.
      */
@@ -53,5 +62,6 @@ class Prefs(context: Context) {
         const val ENABLE_ON_INSTALL = "enableOnInstall"
         const val ERROR_PANEL = "errorPanel"
         const val DEV_CHANNEL = "devChannel"
+        const val VERBOSE_LOG = "verboseLog"
     }
 }

@@ -53,7 +53,7 @@ void boot() {
     // aqui, dentro do proprio il2cpp_init, nao daria para fazer.
 
     // TODO(Fase 3): installProjectileHooks() e demais hooks de runtime.
-    BL_INFO("runtime pronto; mods ficam a cargo da sonda");
+    BL_DEBUG("runtime pronto; mods ficam a cargo da sonda");
 }
 
 } // namespace bl::runtime

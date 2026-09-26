@@ -32,8 +32,8 @@ void decideMode() {
         // runtime por objeto. Sem como perguntar, fica ligada.
         const bool incremental = !a.gc_is_incremental || a.gc_is_incremental();
         g_barrier = incremental && a.gc_wbarrier_set_field != nullptr;
-        BL_INFO("raizes: tabela em memoria fixa do coletor (coletor %s, barreira %s)",
-                incremental ? "incremental" : "nao incremental", g_barrier ? "sim" : "nao");
+        BL_DEBUG("raizes: tabela em memoria fixa do coletor (coletor %s, barreira %s)",
+                 incremental ? "incremental" : "nao incremental", g_barrier ? "sim" : "nao");
     } else {
         g_mode = Mode::Handles;
         BL_WARN("raizes: il2cpp_gc_alloc_fixed ausente; um gchandle por objeto");

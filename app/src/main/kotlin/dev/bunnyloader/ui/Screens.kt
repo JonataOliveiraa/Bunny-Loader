@@ -305,9 +305,10 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
     val scroll = rememberScrollState()
     var log by remember { mutableStateOf("") }
     val prefs = remember { Prefs(ctx) }
-    var novosLigados by remember { mutableStateOf(prefs.enableOnInstall) }
-    var canalDev by remember { mutableStateOf(prefs.devChannel) }
-    var erroNoJogo by remember { mutableStateOf(prefs.errorPanel) }
+    var enableNewMods by remember { mutableStateOf(prefs.enableOnInstall) }
+    var devChannel by remember { mutableStateOf(prefs.devChannel) }
+    var errorPanel by remember { mutableStateOf(prefs.errorPanel) }
+    var verboseLog by remember { mutableStateOf(prefs.verboseLog) }
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
@@ -347,18 +348,24 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
             Setting(
                 "Ligar ao instalar",
                 "Um pacote recém-instalado já entra valendo no próximo boot.",
-                novosLigados,
-            ) { novosLigados = it; prefs.enableOnInstall = it }
+                enableNewMods,
+            ) { enableNewMods = it; prefs.enableOnInstall = it }
             Setting(
                 "Mostrar erro dentro do jogo",
                 "Quando um mod quebra, o log aparece na tela em vez de só no logcat.",
-                erroNoJogo,
-            ) { erroNoJogo = it; prefs.errorPanel = it }
+                errorPanel,
+            ) { errorPanel = it; prefs.errorPanel = it }
+            Setting(
+                "Log detalhado",
+                "O log de sessão (pasta logs/) ganha cada tabela, hook e tipo que o núcleo " +
+                    "registra. Desligado, fica o resumo e as linhas dos mods.",
+                verboseLog,
+            ) { verboseLog = it; prefs.verboseLog = it }
             Setting(
                 "Canal de comando por arquivo",
                 "Aceita comandos via adb durante o jogo. Só para desenvolver.",
-                canalDev,
-            ) { canalDev = it; prefs.devChannel = it }
+                devChannel,
+            ) { devChannel = it; prefs.devChannel = it }
 
             SectionTitle("Diagnóstico")
             PixelCard(Modifier.fillMaxWidth()) {

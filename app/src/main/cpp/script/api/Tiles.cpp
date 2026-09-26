@@ -103,7 +103,7 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     g_defs[type] = JS_DupValue(ctx, def);
     g_ctx = ctx;
     runtime::setTilesInstalledHook(onTilesInstalled);
-    BL_INFO("tile de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
+    BL_DEBUG("tile de mod %s/%s -> tipo %d", mod.c_str(), name.c_str(), type);
     return JS_NewInt32(ctx, type);
 }
 

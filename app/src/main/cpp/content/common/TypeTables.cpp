@@ -135,7 +135,7 @@ void TypeTables::growInstanceTable(Il2CppObject* obj, int32_t offset, int vanill
     std::memcpy(arrayData(n), arrayData(old), elemSize * old->length);
     if (a.gc_wbarrier_set_field) a.gc_wbarrier_set_field(obj, reinterpret_cast<void**>(slot), n);
     else *slot = n;
-    if (what) BL_INFO("%s aumentada de %d para %d", what, vanillaCount, size);
+    if (what) BL_DEBUG("%s aumentada de %d para %d", what, vanillaCount, size);
 }
 
 void TypeTables::find(uintptr_t size) {
@@ -177,8 +177,8 @@ void TypeTables::find(uintptr_t size) {
             tables_.push_back(f);
             ++found;
         }
-        BL_INFO("%s: %s.%s%s%s%s%s: %d tabela(s), %d ainda nula(s)", what_, c.ns, c.name,
-                c.nested[0] ? "." : "", c.nested, c.nested2[0] ? "." : "", c.nested2, found, pending);
+        BL_DEBUG("%s: %s.%s%s%s%s%s: %d tabela(s), %d ainda nula(s)", what_, c.ns, c.name,
+                 c.nested[0] ? "." : "", c.nested, c.nested2[0] ? "." : "", c.nested2, found, pending);
     }
 }
 
@@ -215,7 +215,7 @@ void TypeTables::checkPending(int size) {
         if (!bigger) continue;
         il2cpp::api().field_static_set_value(f, bigger);
         tables_.push_back(f);
-        BL_INFO("%s: tabela %s criada pelo jogo; aumentada", what_, fieldName(f));
+        BL_DEBUG("%s: tabela %s criada pelo jogo; aumentada", what_, fieldName(f));
     }
 }
 
@@ -227,7 +227,7 @@ void TypeTables::watch(int size, Regrown onRegrown) {
         Il2CppArray* bigger = growArray(arr, static_cast<uintptr_t>(size), fill_);
         if (!bigger) continue;
         il2cpp::api().field_static_set_value(f, bigger);
-        BL_INFO("%s: tabela %s refeita pelo jogo; aumentada de novo", what_, fieldName(f));
+        BL_DEBUG("%s: tabela %s refeita pelo jogo; aumentada de novo", what_, fieldName(f));
         if (onRegrown) onRegrown(f, size);
     }
 }

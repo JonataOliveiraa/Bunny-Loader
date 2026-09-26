@@ -123,7 +123,15 @@ nível (`I` informação, `W` aviso, `E` erro):
 14:03:31.204 I [mod] Dano em Dobro: ativo
 ```
 
-Pelo computador, o mesmo sai no logcat, com a tag `BunnyLoader`:
+Do próprio Bunny Loader, o arquivo traz só o resumo de cada sistema (`itens de
+mod: 97 instalado(s)...`, `tiles de mod: limites do codigo trocados em 19 de
+19`), os saves e os erros. O detalhe (cada tabela aumentada, cada hook, cada
+tipo registrado) é nível `D` e só entra no arquivo com **Configurações > Log
+detalhado** ligado; para investigar um bug do próprio loader, ligue e mande o
+arquivo. Linha comprida não é cortada.
+
+Pelo computador, o mesmo sai no logcat, com a tag `BunnyLoader` (lá o nível `D`
+aparece sempre):
 
 ```bash
 adb logcat -s BunnyLoader

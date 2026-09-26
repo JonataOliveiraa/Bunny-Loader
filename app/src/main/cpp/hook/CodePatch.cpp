@@ -2,14 +2,25 @@
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 
+#include <dlfcn.h>
 #include <sys/mman.h>
 #include <unistd.h>
+
+#include <atomic>
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
 
 namespace bl::runtime {
 
 namespace {
 
 constexpr uintptr_t kMaxMethodBytes = 512 * 1024;
+
+// A ultima escrita recusada (errno do mprotect), para o describeCompareMiss
+// separar "nao achei" de "achei e nao consegui escrever".
+std::atomic<int> g_writeFailures{0};
+std::atomic<int> g_lastWriteErrno{0};
 
 void* methodPointerOf(const MethodInfo* m) {
     return *reinterpret_cast<void* const*>(m);   // primeiro campo do MethodInfo (refs/il2cpp.h)
@@ -63,6 +74,8 @@ bool writeInstruction(uint32_t* at, uint32_t insn) {
     auto page = reinterpret_cast<uintptr_t>(at) & ~static_cast<uintptr_t>(pageSize - 1);
     if (mprotect(reinterpret_cast<void*>(page), static_cast<size_t>(pageSize),
                  PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+        g_lastWriteErrno.store(errno);
+        g_writeFailures.fetch_add(1);
         return false;
     }
     *at = insn;
@@ -88,6 +101,64 @@ int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit,
         if (writeInstruction(p, insn)) ++patched;
     }
     return patched;
+}
+
+std::string describeMethodCode(const MethodInfo* m) {
+    if (!m) return "metodo nao achado pelo nome";
+    const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
+    if (!start) return "metodo sem codigo (methodPointer nulo)";
+    const uintptr_t end = methodEnd(m, start);
+    char where[160];
+    Dl_info info{};
+    if (dladdr(reinterpret_cast<void*>(start), &info) && info.dli_fbase) {
+        const char* lib = info.dli_fname ? std::strrchr(info.dli_fname, '/') : nullptr;
+        std::snprintf(where, sizeof(where), "%s+0x%lx", lib ? lib + 1 : "?",
+                      static_cast<unsigned long>(start - reinterpret_cast<uintptr_t>(info.dli_fbase)));
+    } else {
+        std::snprintf(where, sizeof(where), "0x%lx", static_cast<unsigned long>(start));
+    }
+    // As 4 primeiras instrucoes: se um hook (ShadowHook) reescreveu a entrada,
+    // aparece aqui um `ldr x17`/`br x17` ou um `b` longe, no lugar do prologo.
+    const auto* p = reinterpret_cast<const uint32_t*>(start);
+    char out[320];
+    std::snprintf(out, sizeof(out), "metodo em %s, %lu bytes, entrada %08x %08x %08x %08x", where,
+                  static_cast<unsigned long>(end - start), p[0], p[1], p[2], p[3]);
+    return out;
+}
+
+std::string describeCompareMiss(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit, bool belowToo,
+                                bool shifted) {
+    if (!m) return "metodo nao achado pelo nome";
+    if (newLimit > 0xFFF || oldLimit > 0xFFF) return "limite nao cabe no imediato de 12 bits do cmp";
+    const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
+    if (!start) return describeMethodCode(m);
+    const uintptr_t end = methodEnd(m, start);
+    int old = 0, oldOtherBranch = 0, already = 0;
+    uint32_t otherInsn = 0;
+    for (auto* p = reinterpret_cast<const uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 1) < end; ++p) {
+        if (isCompareImmediate(*p, oldLimit, shifted)) {
+            if (isLimitBranch(p[1], belowToo)) ++old;
+            else if (!oldOtherBranch++) otherInsn = p[1];
+        } else if (isCompareImmediate(*p, newLimit, shifted) && isLimitBranch(p[1], belowToo)) {
+            ++already;
+        }
+    }
+    char why[200];
+    if (old > 0) {
+        const int err = g_lastWriteErrno.load();
+        std::snprintf(why, sizeof(why), "o cmp #%u esta la (%d vez(es)), mas a escrita foi recusada "
+                      "(%d falha(s) de mprotect, a ultima: %s)", oldLimit, old, g_writeFailures.load(),
+                      err ? std::strerror(err) : "?");
+    } else if (already > 0) {
+        std::snprintf(why, sizeof(why), "ja esta #%u (%d vez(es)): trocado antes, instalacao repetida?",
+                      newLimit, already);
+    } else if (oldOtherBranch > 0) {
+        std::snprintf(why, sizeof(why), "o cmp #%u existe (%d vez(es)), mas sem desvio de ordem logo "
+                      "depois (1o: %08x)", oldLimit, oldOtherBranch, otherInsn);
+    } else {
+        std::snprintf(why, sizeof(why), "nenhum cmp #%u no metodo", oldLimit);
+    }
+    return std::string(why) + "; " + describeMethodCode(m);
 }
 
 int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd) {

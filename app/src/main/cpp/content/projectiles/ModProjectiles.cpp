@@ -162,7 +162,7 @@ void growPlayers(int size) {
         TypeTables::growInstanceTable(p, r.ownedCounts, kVanillaProjectileCount, size, nullptr);
         ++grown;
     }
-    BL_INFO("projeteis de mod: ownedProjectileCounts aumentada em %d jogador(es)", grown);
+    BL_DEBUG("projeteis de mod: ownedProjectileCounts aumentada em %d jogador(es)", grown);
 }
 
 } // namespace

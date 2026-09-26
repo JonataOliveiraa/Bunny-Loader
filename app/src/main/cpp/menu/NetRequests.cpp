@@ -181,9 +181,9 @@ void installNetRequests() {
     }
     const bool hooked = process && g_textOffset >= 0 &&
                         hook::install(process, hkProcessIncomingMessage, &g_origProcess);
-    BL_INFO("rede: netMode=%p SendData=%p chat(ctor=%p envio=%p texto=%d) servidor=%s",
-            (void*)g_netMode, (const void*)g_sendData, (const void*)g_chatMessageCtor,
-            (const void*)g_sendFromClient, g_textOffset, hooked ? "ok" : "SEM GANCHO");
+    BL_DEBUG("rede: netMode=%p SendData=%p chat(ctor=%p envio=%p texto=%d) servidor=%s",
+             (void*)g_netMode, (const void*)g_sendData, (const void*)g_chatMessageCtor,
+             (const void*)g_sendFromClient, g_textOffset, hooked ? "ok" : "SEM GANCHO");
 }
 
 } // namespace bl::runtime

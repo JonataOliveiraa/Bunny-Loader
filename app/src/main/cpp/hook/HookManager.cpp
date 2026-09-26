@@ -53,7 +53,7 @@ bool install(void* address, void* replacement, void** original) {
         __atomic_store_n(original, __atomic_load_n(last, __ATOMIC_ACQUIRE), __ATOMIC_RELEASE);
         __atomic_store_n(last, replacement, __ATOMIC_RELEASE);
         c.originals.push_back(original);
-        BL_INFO("hook encadeado em %p (%zu no mesmo metodo)", address, c.originals.size());
+        BL_DEBUG("hook encadeado em %p (%zu no mesmo metodo)", address, c.originals.size());
         return true;
     }
 

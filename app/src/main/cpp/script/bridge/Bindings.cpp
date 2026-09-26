@@ -1050,7 +1050,7 @@ void installGlobalClasses(JSContext* ctx, JSValue global) {
         }
         JS_FreeAtom(ctx, atom);
     }
-    BL_INFO("namespaces: %d classe(s) sem namespace publicadas como globais", published);
+    BL_DEBUG("namespaces: %d classe(s) sem namespace publicadas como globais", published);
 }
 
 /**
@@ -1082,7 +1082,7 @@ void installNamespaceRoots(JSContext* ctx, JSValue global) {
     for (const auto& r : roots) {
         JS_SetPropertyStr(ctx, global, r.c_str(), makeNamespace(ctx, r));
     }
-    BL_INFO("namespaces: %zu raizes publicadas", roots.size());
+    BL_DEBUG("namespaces: %zu raizes publicadas", roots.size());
     installGlobalClasses(ctx, global);
 }
 
@@ -1165,7 +1165,7 @@ void installBindings(void* context) {
     installNamespaceRoots(ctx, global);
 
     JS_FreeValue(ctx, global);
-    BL_INFO("bindings instalados (bl.log/classOf, arvore de namespaces)");
+    BL_DEBUG("bindings instalados (bl.log/classOf, arvore de namespaces)");
 }
 
 #else

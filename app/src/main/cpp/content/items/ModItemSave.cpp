@@ -245,8 +245,11 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
     }
     writeFile(path + kSuffix, items);
     if (!items.empty()) {
-        BL_INFO("save de itens de mod: %zu item(ns) gravado(s) (%zu de mod nao carregado)",
-                items.size(), kept);
+        // Diz quem mandou salvar: o jogo salva o personagem tambem com a
+        // gravacao automatica desligada (ao morrer, no multijogador, ao sair),
+        // e sem isto parecia que o Bunny Loader salvava por conta propria.
+        BL_INFO("save de itens de mod: o jogo salvou o personagem; %zu item(ns) de mod gravado(s) junto "
+                "(%zu de mod nao carregado)", items.size(), kept);
     }
 }
 
@@ -573,8 +576,8 @@ bool resolveChests() {
     c.ok = c.chests && c.activeWorld && c.items >= 0 && c.x >= 0 && c.y >= 0 && c.stride > 0 &&
            c.type + 2 <= c.stride && c.stack + 2 <= c.stride && c.prefix < c.stride &&
            c.favorited < c.stride;
-    BL_INFO("save de itens de mod: ChestItem de %zu bytes (tipo +%zu, pilha +%zu, prefixo +%zu, "
-            "favorito +%zu)", c.stride, c.type, c.stack, c.prefix, c.favorited);
+    BL_DEBUG("save de itens de mod: ChestItem de %zu bytes (tipo +%zu, pilha +%zu, prefixo +%zu, "
+             "favorito +%zu)", c.stride, c.type, c.stack, c.prefix, c.favorited);
     return c.ok;
 }
 
@@ -673,7 +676,7 @@ void installModItemSave() {
         BL_ERROR("save de itens de mod: sem os baus do mundo; item de mod em bau fica pelo "
                  "numero, e sem o mod o mundo nao abre");
     }
-    BL_INFO("save de itens de mod: pronto (personagem%s)", okWorld ? " e baus do mundo" : "");
+    BL_DEBUG("save de itens de mod: pronto (personagem%s)", okWorld ? " e baus do mundo" : "");
 }
 
 } // namespace bl::runtime

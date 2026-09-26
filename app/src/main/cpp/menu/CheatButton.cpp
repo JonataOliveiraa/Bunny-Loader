@@ -386,7 +386,7 @@ void installCheatButton() {
     }
     env->CallStaticVoidMethod(bridge, mInstall, activity);
     if (!checkExc(env, "install()")) {
-        BL_INFO("botao: instalado na Activity do jogo");
+        BL_DEBUG("botao: instalado na Activity do jogo");
     }
 
     // 6. Painel de erro: guarda a classe e passa a escutar BL_ERROR. A partir

@@ -56,8 +56,8 @@ void sweep() {
         it = g_entries.erase(it);
     }
     if (before != g_entries.size()) {
-        BL_INFO("campos extras: %zu de %zu entrada(s) de objeto recolhido descartada(s)",
-                before - g_entries.size(), before);
+        BL_DEBUG("campos extras: %zu de %zu entrada(s) de objeto recolhido descartada(s)",
+                 before - g_entries.size(), before);
     }
 }
 

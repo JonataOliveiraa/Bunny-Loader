@@ -160,7 +160,7 @@ bool fixTileMerge(int total) {
         content::setTableElement(r.merge, i, reinterpret_cast<Il2CppObject*>(n));
         ++fixed;
     }
-    if (fixed) BL_INFO("tiles de mod: Main.tileMerge: %d linha(s) com %d posicoes", fixed, total);
+    if (fixed) BL_DEBUG("tiles de mod: Main.tileMerge: %d linha(s) com %d posicoes", fixed, total);
     return true;
 }
 
@@ -196,7 +196,7 @@ void hkSetupTileMerge(const MethodInfo* m) {
     g_origSetupMerge(m);
     if (mods <= 0) return;
     outer = readStatic(r.merge);
-    BL_INFO("tiles de mod: o jogo montou o tileMerge (%d linhas)", outer ? static_cast<int>(outer->length) : -1);
+    BL_DEBUG("tiles de mod: o jogo montou o tileMerge (%d linhas)", outer ? static_cast<int>(outer->length) : -1);
     if (outer && outer->length < static_cast<uintptr_t>(total)) {
         if (Il2CppArray* bigger = TypeTables::resizedCopy(outer, static_cast<uintptr_t>(total))) {
             il2cpp::api().field_static_set_value(r.merge, bigger);
@@ -212,7 +212,7 @@ void hkSetupTileMerge(const MethodInfo* m) {
         std::memcpy(static_cast<uint8_t*>(arrayData(rw[v])) + kVanillaTileCount,
                     &cols[static_cast<size_t>(v) * mods], mods);
     }
-    BL_INFO("tiles de mod: o jogo refez o tileMerge; o dos mods foi devolvido");
+    BL_DEBUG("tiles de mod: o jogo refez o tileMerge; o dos mods foi devolvido");
 }
 
 /** Tabela que o jogo refez: reaplica o nosso. */
@@ -281,22 +281,28 @@ constexpr LimitPatch kLimitPatches[] = {
 
 void patchLimits(int total) {
     auto& a = il2cpp::api();
+    int methodsOk = 0;
     for (const LimitPatch& p : kLimitPatches) {
         Il2CppClass* cls = il2cpp::findClass({p.ns, p.cls, {}});
+        const uint32_t to = static_cast<uint32_t>(total + p.offset);
         int patched = 0;
+        const MethodInfo* last = nullptr;
         void* it = nullptr;
         while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
             if (std::strcmp(a.method_get_name(m), p.method) != 0) continue;
-            patched += patchCompareLimit(m, p.vanilla, static_cast<uint32_t>(total + p.offset), p.belowToo,
-                                         p.shifted);
+            last = m;
+            patched += patchCompareLimit(m, p.vanilla, to, p.belowToo, p.shifted);
         }
         if (patched > 0) {
-            BL_INFO("tiles de mod: %s.%s: %d limite(s) de %u para %d", p.cls, p.method, patched,
-                    p.vanilla, total + p.offset);
+            ++methodsOk;
+            BL_DEBUG("tiles de mod: %s.%s: %d limite(s) de %u para %u", p.cls, p.method, patched, p.vanilla, to);
         } else {
-            BL_ERROR("tiles de mod: %s.%s: limite %u nao achado no codigo", p.cls, p.method, p.vanilla);
+            BL_ERROR("tiles de mod: %s.%s: limite %u nao trocado: %s", p.cls, p.method, p.vanilla,
+                     describeCompareMiss(last, p.vanilla, to, p.belowToo, p.shifted).c_str());
         }
     }
+    const int methods = static_cast<int>(sizeof(kLimitPatches) / sizeof(kLimitPatches[0]));
+    BL_INFO("tiles de mod: limites do codigo trocados em %d de %d metodo(s)", methodsOk, methods);
 }
 
 // ---- TileData.TileLists: as listas de definicao por chave ----
@@ -348,7 +354,7 @@ void hkAllocate(Il2CppObject* self, int32_t x, int32_t y, const MethodInfo* m) {
         BL_ERROR("tiles de mod: nao deu para trocar TileData.TileLists; tile de mod corrompe o mundo");
         return;
     }
-    BL_INFO("tiles de mod: listas de tile do mundo com %zu entradas (%d tipos)", entries, total);
+    BL_DEBUG("tiles de mod: listas de tile do mundo com %zu entradas (%d tipos)", entries, total);
 }
 
 void hookAllocate() {
@@ -421,9 +427,9 @@ void applyMapColors(int total) {
         colors->length < wallPosition) {
         static int waited = 0;
         if (++waited == 600) {
-            BL_INFO("tiles de mod: mapa ainda sem tabelas (lookup %d, opcoes %d, cores %d, paredes em %d)",
-                    lookup ? static_cast<int>(lookup->length) : -1, options ? static_cast<int>(options->length) : -1,
-                    colors ? static_cast<int>(colors->length) : -1, wallPosition);
+            BL_DEBUG("tiles de mod: mapa ainda sem tabelas (lookup %d, opcoes %d, cores %d, paredes em %d)",
+                     lookup ? static_cast<int>(lookup->length) : -1, options ? static_cast<int>(options->length) : -1,
+                     colors ? static_cast<int>(colors->length) : -1, wallPosition);
         }
         return;
     }
@@ -454,7 +460,7 @@ void applyMapColors(int total) {
         op[type] = 1;
     }
     doneFor = lookup;
-    BL_INFO("tiles de mod: cores de mapa aplicadas (%zu tile(s))", g_regs.size());
+    BL_DEBUG("tiles de mod: cores de mapa aplicadas (%zu tile(s))", g_regs.size());
 }
 
 // O MapHelper.Initialize refaz tileLookup/tileOptionCounts/colorLookup com o
@@ -511,7 +517,7 @@ bool padTileObjectData(int total) {
         if (exc) break;
         ++n;
     }
-    if (before >= 0 && n > before) BL_INFO("tiles de mod: TileObjectData._data de %d para %d", before, n);
+    if (before >= 0 && n > before) BL_DEBUG("tiles de mod: TileObjectData._data de %d para %d", before, n);
     return true;
 }
 
@@ -589,8 +595,8 @@ void growInstances(int size) {
     if (r.guiActive) il2cpp::api().field_static_get_value(r.guiActive, &gui);
     Il2CppObject* crafting = gui && r.guiCrafting >= 0 ? field<Il2CppObject*>(gui, r.guiCrafting) : nullptr;
     if (crafting) TypeTables::growInstanceTable(crafting, r.oldAdjTile, kVanillaTileCount, size, nullptr);
-    BL_INFO("tiles de mod: adjTile em %d jogador(es), contagem de bioma em %d, menu de criacao %s",
-            players, metrics, crafting ? "sim" : "ainda nao existe");
+    BL_DEBUG("tiles de mod: adjTile em %d jogador(es), contagem de bioma em %d, menu de criacao %s",
+             players, metrics, crafting ? "sim" : "ainda nao existe");
 }
 
 } // namespace
@@ -624,7 +630,7 @@ void tickModTiles() {
     if (installed == total) {
         g_tables.checkPending(from);
         fixTileMerge(from);
-        if (fixGlowMask(from)) BL_INFO("tiles de mod: tileGlowMask dos tipos de mod em -1");
+        if (fixGlowMask(from)) BL_DEBUG("tiles de mod: tileGlowMask dos tipos de mod em -1");
         applyMapColors(from);
         static bool padded = false;
         static int frame = 0;
@@ -659,7 +665,7 @@ void tickModTiles() {
         return;
     }
     g_installed.store(total, std::memory_order_release);
-    BL_INFO("tiles de mod: tileMerge na instalacao: %s", mergeMissing ? "ainda nao existe" : "ja existe");
+    BL_DEBUG("tiles de mod: tileMerge na instalacao: %s", mergeMissing ? "ainda nao existe" : "ja existe");
     if (mergeMissing) {
         Il2CppObject* exc = nullptr;
         il2cpp::api().runtime_invoke(refs().setupMerge, nullptr, nullptr, &exc);

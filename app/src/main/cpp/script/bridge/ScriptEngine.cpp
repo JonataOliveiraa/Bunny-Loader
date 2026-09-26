@@ -199,7 +199,7 @@ bool ScriptEngine::init() {
     installModClasses(ctx);
 
     ready_ = true;
-    BL_INFO("QuickJS iniciado");
+    BL_DEBUG("QuickJS iniciado");
     return true;
 }
 

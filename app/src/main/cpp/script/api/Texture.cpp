@@ -254,7 +254,7 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv) {
     JS_FreeValue(ctx, jsArr);
     if (!ok) return JS_EXCEPTION;
 
-    BL_INFO("loadTexture: %s", path.c_str());
+    BL_DEBUG("loadTexture: %s", path.c_str());
     return makeNativeObject(ctx, gt);
 }
 

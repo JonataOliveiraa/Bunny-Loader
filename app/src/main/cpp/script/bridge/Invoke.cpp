@@ -77,8 +77,8 @@ const Cached& planFor(const MethodInfo* m) {
     }
     c.direct = erro.empty();
     if (!c.direct) {
-        BL_INFO("invoke: '%s' vai pelo runtime_invoke (%s)",
-                il2cpp::api().method_get_name(m), erro.c_str());
+        BL_DEBUG("invoke: '%s' vai pelo runtime_invoke (%s)",
+                 il2cpp::api().method_get_name(m), erro.c_str());
     }
     return cache.emplace(m, std::move(c)).first->second;
 }
