@@ -10,6 +10,8 @@
 # instalados: hook JS na thread principal + mods de exemplo e a combinacao do
 # crash em aberto (docs/AVALIACAO-PONTE-E-CRASH.md).
 set -euo pipefail
+# Com set -e, um comando que falha encerrava o script calado.
+trap 'echo "run.sh: falhou na linha $LINENO: $BASH_COMMAND" >&2' ERR
 D="${BL_DEVICE:-127.0.0.1:16384}"
 OUT="$1"; shift
 export MSYS_NO_PATHCONV=1
@@ -25,11 +27,15 @@ adb -s "$D" shell "run-as com.bunnyloader rm -f shared_prefs/bunny_powers.xml" >
 # pelo shell precisa do chmod: sem ele o app le, mas nao consegue apagar nem
 # sobrescrever (o mesmo problema dos saves).
 PACKS=/sdcard/Android/data/com.bunnyloader/bunny_packs
+# Um .tar por rodada (o PID no nome): com dois emuladores ao mesmo tempo, um
+# nome fixo fazia uma rodada empurrar o mod da outra. Na pasta atual, e nao
+# em /tmp: o adb.exe do Windows nao acha caminho do MSYS.
+TAR="blmod.$$.tar"
 for dir in "$@"; do
     u=$(uid "$dir")
-    tar -C "$dir" -cf blmod.tar .
-    adb -s "$D" push blmod.tar /data/local/tmp/blmod.tar >/dev/null
-    rm -f blmod.tar
+    tar -C "$dir" -cf "$TAR" .
+    adb -s "$D" push "$TAR" /data/local/tmp/blmod.tar >/dev/null
+    rm -f "$TAR"
     # A pasta que o launcher recopiou (app atualizado) e do app, modo 0770: o
     # shell nao apaga. Com su (o host do MuMu), apaga como root.
     adb -s "$D" shell "rm -rf $PACKS/$u 2>/dev/null || su -c 'rm -rf $PACKS/$u'" >/dev/null 2>&1
@@ -39,15 +45,35 @@ adb -s "$D" logcat -c
 adb -s "$D" shell monkey -p com.bunnyloader -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
 # O launcher pode levar bem mais que 4 s (JIT frio depois de instalar): tocar
 # antes fazia o toque seguinte cair num card de mod. Espera ele aparecer.
+shown=0
 for i in $(seq 1 30); do
     sleep 1
-    adb -s "$D" logcat -d | grep -q "Displayed com.bunnyloader/dev.bunnyloader.LauncherActivity" && break
+    adb -s "$D" logcat -d | grep -q "Displayed com.bunnyloader/dev.bunnyloader.LauncherActivity" && { shown=1; break; }
 done
-sleep 2;  adb -s "$D" shell input tap 800 805     # JOGAR (launcher)
-sleep 28; adb -s "$D" shell input tap 808 330     # Um Jogador
-sleep 3;  adb -s "$D" shell input tap 997 327     # Jogar (personagem)
-sleep 3;  adb -s "$D" shell input tap 997 318     # Jogar (primeiro mundo)
-sleep 22; adb -s "$D" shell input tap 590 517     # "Mais tarde" (aviso de controles)
+# Toque so com o Bunny Loader na frente. Com outra tela (a inicial do MuMu
+# logo depois de um reinicio, um dialogo do sistema), o toque cai no que
+# estiver la: numa instancia nova, os toques instalaram um jogo da loja do
+# MuMu (os icones de la instalam com um toque).
+tap() {
+    # A atividade retomada (uma linha so; o mFocusedApp vem uma vez por tela
+    # e aceitaria o app mesmo atras do launcher). A saida inteira antes do
+    # teste: com pipefail, um grep -q que fecha o cano cedo faz o adb falhar.
+    local focus
+    focus=$(adb -s "$D" shell dumpsys activity activities | grep "ResumedActivity:" || true)
+    case "$focus" in
+        *com.bunnyloader*) adb -s "$D" shell input tap "$1" "$2" ;;
+        *)
+            echo "run.sh: o Bunny Loader nao esta na frente em $D; parei antes do toque ($3)" >&2
+            adb -s "$D" shell am force-stop com.bunnyloader
+            exit 1 ;;
+    esac
+}
+[ "$shown" = 1 ] || { echo "run.sh: o launcher nao abriu em $D em 30 s" >&2; exit 1; }
+sleep 2;  tap 800 805 "JOGAR (launcher)"
+sleep 28; tap 808 330 "Um Jogador"
+sleep 3;  tap 997 327 "Jogar (personagem)"
+sleep 3;  tap 997 318 "Jogar (primeiro mundo)"
+sleep 22; tap 590 517 "Mais tarde (aviso de controles)"
 # O benchmark roda no primeiro quadro dentro do mundo e ainda mede 300 quadros.
 # Espera o FIM de CADA teste instalado (os de tools/tests/), nao so o
 # primeiro: um termina ao carregar, outro so depois de 300 quadros no mundo.

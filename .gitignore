@@ -66,3 +66,6 @@ exmod_tl/
 
 # Audio de teste do usuario, de origem desconhecida: fica fora do repositorio publico.
 /sounds/
+
+# Pacote temporario de mod do tools/bench/run.sh (um por rodada).
+/blmod.*.tar

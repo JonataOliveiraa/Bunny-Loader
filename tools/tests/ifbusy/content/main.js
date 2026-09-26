@@ -47,6 +47,10 @@ class BusyPlayer extends ModPlayer {
     SaveData(data) {
         if (!spin || spin.done) return;
         // Na thread do save, com o motor JS na mao.
+        // O GameUpdateCount so anda com o mundo rodando: com a janela do
+        // emulador sem foco, o jogo pausa e ele para (o teste falharia a toa).
+        // O hook 'original' nao roda JS durante o giro, entao nao ha contador
+        // nosso; e o Time.frameCount da Unity so e lido na thread principal.
         const from = Main.GameUpdateCount;
         const end = Date.now() + SPIN_MS;
         let kept = true;

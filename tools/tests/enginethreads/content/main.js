@@ -42,9 +42,13 @@ let worker = null;   // { frames, stack, caught } depois do sono do save
 class ThreadsPlayer extends ModPlayer {
     SaveData(data) {
         if (!worker || worker.done) return;
-        const from = Main.GameUpdateCount;
+        // As chamadas do hook na thread do jogo (o `frames`, lido daqui), e nao
+        // o GameUpdateCount: com a janela do emulador sem foco o jogo pausa o
+        // mundo, mas segue chamando o UpdateAudio. (O Time.frameCount da
+        // Unity nao serve: so pode ser lido na thread principal.)
+        const from = frames;
         Thread[SLEEP](WORKER_MS);
-        worker.frames = Main.GameUpdateCount - from;
+        worker.frames = frames - from;
         Object.assign(worker, afterWake('save'));
         worker.done = true;
     }
