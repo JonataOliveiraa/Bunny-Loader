@@ -1,0 +1,15 @@
+{
+  "uid": "5e1d0c2a-7f3b-4c9e-8a21-6b4d9e0f3a17",
+  "id": "test-structindex",
+  "name": "Teste: indexador de struct",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "proj.ai[0], proj.localAI.get_Item(1), oldPos[i].X, hideMisc[i] e o limite de cada um.",
+  "description": "Loga 'structindex ...'.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

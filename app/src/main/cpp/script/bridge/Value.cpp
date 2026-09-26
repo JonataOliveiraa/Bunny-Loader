@@ -123,9 +123,84 @@ JSValue gs_toString(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
     return JS_NewString(ctx, s.c_str());
 }
 
+// ------------------------- struct com indexador -------------------------
+//
+// `proj.ai[0]`, `proj.oldPos[3].X`, `player.hideMisc[1]` — ver Indexer
+// (Members.h). Fora do limite e RangeError, como no array do jogo: o jogo
+// nao confere nada, entao `ai[5]` leria o campo vizinho sem erro.
+
+const char* className(StructRef* r) {
+    const char* n = il2cpp::api().class_get_name(r->cls);
+    return n ? n : "struct";
+}
+
+/** Limite do modo METODOS: o get_Length do struct, se houver; -1 = sem limite. */
+int64_t methodBound(JSContext* ctx, StructRef* r, const Indexer& ix) {
+    if (!ix.length) return -1;
+    JSValue got = invokeMethod(ctx, ix.length, r->data, 0, nullptr);
+    int64_t n = -1;
+    if (JS_IsException(got)) JS_FreeValue(ctx, JS_GetException(ctx));
+    else if (JS_ToInt64(ctx, &n, got) < 0) n = -1;
+    JS_FreeValue(ctx, got);
+    return n;
+}
+
+JSValue indexGet(JSContext* ctx, JSValueConst obj, StructRef* r, int64_t idx) {
+    const Indexer* ix = indexerOf(r->cls);
+    if (!ix) return JS_UNDEFINED;
+    const int64_t bound = ix->fields() ? ix->count : methodBound(ctx, r, *ix);
+    if (bound >= 0 && idx >= bound) {
+        return JS_ThrowRangeError(ctx, "%s: indice %lld fora de 0..%lld", className(r),
+                                  static_cast<long long>(idx), static_cast<long long>(bound - 1));
+    }
+    if (ix->fields()) {
+        // Dono = esta vista: um elemento struct sai como vista para dentro dela.
+        return readAt(ctx, static_cast<char*>(r->data) + ix->offset + static_cast<size_t>(idx) * ix->stride,
+                      *ix->elem, obj);
+    }
+    JSValue arg = JS_NewInt64(ctx, idx);
+    JSValue got = invokeMethod(ctx, ix->get, r->data, 1, &arg);
+    JS_FreeValue(ctx, arg);
+    return got;
+}
+
+int indexSet(JSContext* ctx, StructRef* r, int64_t idx, JSValueConst value) {
+    const Indexer* ix = indexerOf(r->cls);
+    if (!ix) {
+        JS_ThrowTypeError(ctx, "%s nao tem indexador ([i])", className(r));
+        return -1;
+    }
+    const int64_t bound = ix->fields() ? ix->count : methodBound(ctx, r, *ix);
+    if (bound >= 0 && idx >= bound) {
+        JS_ThrowRangeError(ctx, "%s: indice %lld fora de 0..%lld", className(r),
+                           static_cast<long long>(idx), static_cast<long long>(bound - 1));
+        return -1;
+    }
+    if (ix->fields()) {
+        const int ok = writeAt(ctx, static_cast<char*>(r->data) + ix->offset + static_cast<size_t>(idx) * ix->stride,
+                               *ix->elem, value);
+        if (ok > 0) flush(r);
+        return ok;
+    }
+    if (!ix->set) {
+        JS_ThrowTypeError(ctx, "%s: o indexador e so de leitura", className(r));
+        return -1;
+    }
+    JSValue index = JS_NewInt64(ctx, idx);
+    JSValueConst args[2] = {index, value};
+    JSValue got = invokeMethod(ctx, ix->set, r->data, 2, args);
+    JS_FreeValue(ctx, index);
+    if (JS_IsException(got)) return -1;
+    JS_FreeValue(ctx, got);
+    flush(r);
+    return true;
+}
+
 JSValue gs_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
     auto* r = refOf(obj);
     if (!r) return JS_UNDEFINED;
+    const int64_t idx = indexOf(ctx, atom);
+    if (idx >= 0) return indexGet(ctx, obj, r, idx);
     const Member& m = member(ctx, r->cls, atom, Space::Struct, g_structId);
 
     if (m.proto) return protoGet(ctx, g_structId, atom);
@@ -145,6 +220,8 @@ int gs_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     auto* r = refOf(obj);
     if (!r) return -1;
     auto& a = il2cpp::api();
+    const int64_t idx = indexOf(ctx, atom);
+    if (idx >= 0) return indexSet(ctx, r, idx, value);
     const Member& m = member(ctx, r->cls, atom, Space::Struct, g_structId);
     if (m.field) {
         int ok = writeAt(ctx, static_cast<char*>(r->data) + m.offset, *m.type, value);
@@ -210,8 +287,8 @@ size_t headerAdjustOf(Il2CppClass* cls) {
         }
     }
     const char* n = a.class_get_name(cls);
-    BL_INFO("struct %s: valor=%zu bytes, offsets %s cabecalho",
-            n ? n : "?", valueSize, adjust ? "COM" : "sem");
+    BL_DEBUG("struct %s: valor=%zu bytes, offsets %s cabecalho",
+             n ? n : "?", valueSize, adjust ? "COM" : "sem");
     cache[cls] = adjust;
     return adjust;
 }

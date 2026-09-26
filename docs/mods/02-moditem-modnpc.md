@@ -549,7 +549,10 @@ tModLoader). E `OnTileCollide` devolvendo `false`, para o chão não matá-la.
 - `player.HasBuff(t)` não existe no celular: `player.FindBuffIndex(t) >= 0`.
 - `Main.ActiveNPCs` não existe: percorra `Terraria.Main.npc` (o último é vazio)
   e pule os `!npc.active`.
-- `proj.ai[0]` é `new ProjAI(proj)[0]` (ver ModProjectile).
+- `proj.ai`, `proj.localAI`, `proj.oldPos`, `proj.oldRot` não são arrays no
+  celular (são structs de tamanho fixo), mas `[i]` funciona igual:
+  `proj.ai[0]++`, `proj.localAI[1] = 5`, `proj.oldPos[3].X`. Fora do tamanho
+  é `RangeError` (o `ai` tem 3).
 - O projétil não tem `DamageType`: `minion` e `sentry` já dizem que o dano é de
   invocação. No item, `summon = true`.
 
@@ -790,8 +793,10 @@ Campos e atalhos:
   `DefaultToDrillOrChainsaw()`, `DefaultToKite()`: os padrões do jogo para cada
   família de projétil segurado. No item, `this.DefaultToWhip(projType, dano,
   repulsao, velocidade)` e `this.DefaultToSpear(projType, velocidade, tempo)`.
-- `new ProjAI(proj)` (ou `new ProjAI(proj, true)` para o `localAI`): o vetor
-  `ai` como `ai[0]`, `ai[1]`, `ai[2]` — no jogo ele é um struct de 3 floats.
+- `proj.ai[0]`, `proj.localAI[2]`: no jogo são structs de 3 floats
+  (`Float_FixedArray_3`), e a ponte aceita `[i]` neles como num array; o
+  `get_Item(i)`/`set_Item(i, v)` do jogo também. `new ProjAI(proj)` (ou
+  `new ProjAI(proj, true)`) continua valendo para código antigo.
 
 No `Shoot` do item, `position` e `velocity` são `Vector2` do jogo: dá para
 repassá-los direto a um `NewProjectile`.
@@ -1161,7 +1166,7 @@ Globais, com os nomes do tModLoader:
 | `Rand` | O sorteio do jogo: `Next(max)`, `Next(min, max)`, `NextFloat()`, `NextFloat(max)`, `NextBool(umEm)`, `NextChance(p)`, `NextSign()`, `NextFromList(lista)`, `NextVector2Circular(rx, ry)`, `NextVector2Unit()`. |
 | `Color` | `Color.new(r, g, b, a)`, `Color.White`, `Color.SkyBlue`... (qualquer cor do XNA, sempre uma cópia), `Multiply`, `Lerp`, `ToVector3`. |
 | `Rectangle` | `Rectangle.new(x, y, w, h)`, `Size`, `Center`, `Contains`, `Intersects`. |
-| `ProjAI` | `new ProjAI(proj)`: `proj.ai` como vetor (ver ModProjectile). |
+| `ProjAI` | `new ProjAI(proj)`: `proj.ai` como vetor. Desnecessário hoje: `proj.ai[0]` já funciona direto (ver ModProjectile). |
 | `ItemRarityID`, `ProjAIStyleID`, `NPCAIStyleID` | Os números que este Terraria não traz: `ItemRarityID.Pink`, `ProjAIStyleID.GolfBall`, `NPCAIStyleID.Slime`... |
 | `Terraria.ID.DustID` | Além dos nomes do jogo, os que o tModLoader acrescenta: `DustID.PinkFairy`, `DustID.Firework_Blue`... |
 

@@ -714,36 +714,8 @@ const TypeDesc& elemOf(JSContext* ctx, JSValueConst obj, Il2CppArray* arr) {
     return d;
 }
 
-/**
- * O indice que o atomo representa, sem passar por texto. -1 = nao e indice.
- *
- * Antes cada `arr[i]` virava C string, std::string e strtol. No QuickJS um
- * indice pequeno ja E um atomo inteiro: bit 31 ligado + o valor. Essa
- * codificacao e interna, e o QuickJS e baixado no build (nao fica versionado
- * aqui) — entao ela e CONFERIDA uma vez contra a API publica
- * (JS_NewAtomUInt32). Se um dia mudar, cai no caminho por texto em vez de ler
- * o indice errado. (JS_AtomToValue nao serve: monta uma string para atomo
- * inteiro.)
- */
-int64_t indexOf(JSContext* ctx, JSAtom atom) {
-    constexpr uint32_t kTagInt = 1u << 31;
-    static int tagged = -1;
-    if (tagged < 0) {
-        const JSAtom probe = JS_NewAtomUInt32(ctx, 12345);
-        tagged = probe == (kTagInt | 12345u) ? 1 : 0;
-        JS_FreeAtom(ctx, probe);
-        if (!tagged) BL_WARN("arrays: codificacao de atomo inteiro mudou; indice por texto");
-    }
-    if (tagged) return (atom & kTagInt) ? static_cast<int64_t>(atom & ~kTagInt) : -1;
-
-    const char* key = JS_AtomToCString(ctx, atom);
-    if (!key) return -1;
-    char* end = nullptr;
-    const long idx = std::strtol(key, &end, 10);
-    const bool ok = end && *end == '\0' && end != key && idx >= 0;
-    JS_FreeCString(ctx, key);
-    return ok ? idx : -1;
-}
+// indexOf (o indice de um atomo) mora em Members.cpp: o struct com indexador
+// (proj.ai[0], em Value.cpp) usa o mesmo.
 
 JSAtom lengthAtom(JSContext* ctx) {
     static JSAtom atom = JS_NewAtom(ctx, "length");   // referencia para sempre
