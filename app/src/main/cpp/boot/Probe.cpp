@@ -1,4 +1,5 @@
 #include "boot/Probe.h"
+#include "boot/QuickStart.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "content/common/GameRefs.h"
@@ -13,6 +14,7 @@
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
 #include "menu/CheatButton.h"
+#include "menu/DevTools.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -41,8 +43,14 @@ bool il2cppReady() {
 }
 
 void probeThread() {
-    BL_DEBUG("sonda: aguardando o jogo assentar (%d ms)...", kSettleMs);
-    std::this_thread::sleep_for(std::chrono::milliseconds(kSettleMs));
+    // O prazo fixo, com uma saida: com o inicio rapido, o hook do splash
+    // avisa quando o jogo termina de carregar (Main._isAsyncLoadComplete).
+    // Nesse ponto a thread do jogo so desenha o splash; e a janela mais calma
+    // para carregar os mods. Nao da para decidir aqui pela config: esta thread
+    // nasce no load da libbunny, ANTES de o NativeBridge.init entregar a
+    // config. Sem o inicio rapido ninguem avisa, e a espera e a de sempre.
+    BL_DEBUG("sonda: aguardando o jogo assentar (no maximo %d ms)...", kSettleMs);
+    waitForGameLoaded(std::chrono::milliseconds(kSettleMs));
 
     for (int i = 0; i < kRetries; ++i) {
         if (il2cppReady()) {
@@ -77,10 +85,15 @@ void probeThread() {
 
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.
             installCheats();
+            installDevTools();
             installModItemSave();
             installModTileSave();
             installModNpcSave();
             ui::installCheatButton();
+            // Inicio rapido: sem o watcher do il2cpp_init o hook do splash
+            // entra so agora; com os mods carregados, o splash pode acabar.
+            installFastIntro();
+            markCoreReady();
             return;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(kRetryGapMs));

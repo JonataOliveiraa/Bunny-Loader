@@ -35,6 +35,14 @@ struct Config {
     // "Log detalhado" (Configuracoes): as linhas BL_DEBUG tambem no arquivo.
     bool verboseLog = false;
     int64_t gameVersion = 0;
+    // "Inicio rapido" (Configuracoes > Desenvolvedor): a sonda sobe assim que
+    // o jogo termina de carregar, e o splash acaba ali, sem esperar o tempo
+    // dele. Ver boot/QuickStart.h.
+    bool fastBoot = false;
+    // O personagem e o mundo em que o jogo entra sozinho, pelo NOME DO ARQUIVO
+    // (`Bench.plr`, `Interior_Palido.wld`). Vazios = para no titulo.
+    std::string quickPlayer;
+    std::string quickWorld;
 };
 
 inline Config& config() {

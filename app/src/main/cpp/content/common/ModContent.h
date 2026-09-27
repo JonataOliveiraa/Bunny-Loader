@@ -15,4 +15,10 @@ using ContentReadyHook = void (*)();
 void setContentReadyHook(ContentReadyHook hook);
 void tickContentReady();
 
+/**
+ * O mesmo momento, como pergunta: vale com ou sem mod que pediu o aviso. O
+ * inicio rapido (boot/QuickStart) so entra no mundo depois disso.
+ */
+bool contentSettled();
+
 } // namespace bl::runtime

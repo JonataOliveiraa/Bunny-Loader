@@ -17,4 +17,17 @@ void requestRestart(bool save);
 bool restartReady();
 void tickRestart();
 
+/**
+ * O Editor de JS em tela cheia congela o mundo: o Main.CanPauseGame passa a
+ * dizer sim, e o jogo faz a pausa dele (a do inventario aberto com pausa
+ * automatica: o DoUpdate so roda o DoUpdate_WhilePaused). O codigo do Editor
+ * continua rodando, porque o tick dele vem antes, no hook do DoUpdate. So no
+ * modo um jogador: com outras pessoas no mundo, ninguem para.
+ *
+ *   installDevTools()      sonda, com o resto do nucleo
+ *   setGameFrozen(on)      thread de UI (o Editor abriu ou saiu da tela cheia)
+ */
+void installDevTools();
+void setGameFrozen(bool on);
+
 } // namespace bl::runtime

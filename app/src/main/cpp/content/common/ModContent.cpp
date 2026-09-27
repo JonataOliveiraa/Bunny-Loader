@@ -50,17 +50,25 @@ void setContentReadyHook(ContentReadyHook hook) {
     g_hook.store(hook, std::memory_order_release);
 }
 
+bool contentSettled() {
+    if (!modItemsSettled() || !modProjectilesSettled() || !modNpcsSettled() || !modBuffsSettled() ||
+        !modTilesSettled()) return false;
+    const Refs& r = refs();
+    // Sem as refs nao ha como saber (o erro ja foi logado): quem espera por
+    // isto nao fica preso para sempre.
+    if (!r.ok) return true;
+    if (!readStatic<Il2CppObject*>(r.itemDrops) || !readStatic<Il2CppObject*>(r.bestiary)) return false;
+    return readStatic<int32_t>(r.numRecipes) > 0;
+}
+
 void tickContentReady() {
     if (g_done) return;
     ContentReadyHook hook = g_hook.load(std::memory_order_acquire);
     if (!hook) return;
-    if (!modItemsSettled() || !modProjectilesSettled() || !modNpcsSettled() || !modBuffsSettled() ||
-        !modTilesSettled()) return;
-    const Refs& r = refs();
-    if (!r.ok) { g_done = true; return; }
-    if (!readStatic<Il2CppObject*>(r.itemDrops) || !readStatic<Il2CppObject*>(r.bestiary)) return;
-    if (readStatic<int32_t>(r.numRecipes) <= 0) return;
+    if (!contentSettled()) return;
     g_done = true;
+    const Refs& r = refs();
+    if (!r.ok) return;
     BL_INFO("conteudo de mod: pronto (receitas do jogo: %d)", readStatic<int32_t>(r.numRecipes));
     hook();
 }

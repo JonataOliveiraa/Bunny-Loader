@@ -4,6 +4,8 @@
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "menu/Cheats.h"
+#include "menu/NetRequests.h"
+#include "hook/HookManager.h"
 
 #include <atomic>
 #include <chrono>
@@ -15,6 +17,15 @@ namespace {
 // 0 nada pedido; 1 reiniciar; 2 salvar e reiniciar.
 std::atomic<int> g_request{0};
 std::atomic<bool> g_ready{false};
+std::atomic<bool> g_frozen{false};
+
+using CanPauseFn = bool (*)(const MethodInfo*);
+CanPauseFn g_origCanPause = nullptr;
+
+bool hkCanPauseGame(const MethodInfo* m) {
+    if (g_origCanPause(m)) return true;
+    return g_frozen.load(std::memory_order_relaxed) && netMode() == 0;
+}
 
 bool invokeStatic(const MethodInfo* m, void** args, const char* what, Il2CppObject** ret = nullptr) {
     if (!m) { BL_ERROR("reiniciar: %s nao encontrado", what); return false; }
@@ -70,6 +81,20 @@ void requestRestart(bool save) {
 }
 
 bool restartReady() { return g_ready.load(std::memory_order_acquire); }
+
+void installDevTools() {
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    const MethodInfo* canPause = main ? il2cpp::api().class_get_method_from_name(main, "CanPauseGame", 0) : nullptr;
+    if (!canPause || !hook::install(canPause, hkCanPauseGame, &g_origCanPause)) {
+        BL_ERROR("editor: Main.CanPauseGame nao hookado; a tela cheia nao congela o jogo");
+    }
+}
+
+void setGameFrozen(bool on) {
+    if (g_frozen.exchange(on, std::memory_order_relaxed) != on) {
+        BL_DEBUG("editor: jogo %s", on ? "congelado (tela cheia)" : "de volta");
+    }
+}
 
 void tickRestart() {
     const int request = g_request.exchange(0, std::memory_order_acq_rel);

@@ -101,10 +101,62 @@ object BootLog {
         }.apply { isDaemon = true }.start()
     }
 
+    /**
+     * O relatório do Diagnóstico (Configurações): o que um jogador que sofreu um
+     * crash copia ou fotografa e manda para quem faz o Bunny Loader ou o mod.
+     *
+     * Na ordem de quem vai ler: o que é o aparelho e o que estava ligado, os
+     * erros da última partida, e só depois o detalhe técnico do boot. Num print
+     * de celular cabe o começo; por isso a causa vem antes do histórico.
+     */
     fun read(ctx: Context): String =
-        (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
-            "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx) +
-            "\n--- por que o processo morreu ---\n" + exitReasons(ctx)
+        header(ctx) +
+            "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
+            "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
+            "\n--- boot do jogo ---\n" +
+            (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
+            "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
+
+    /** Versões, aparelho, data e os mods ligados: sem isso ninguém reproduz nada. */
+    private fun header(ctx: Context): String = buildString {
+        append("=== Bunny Loader: relatório ===\n")
+        append("Bunny Loader v").append(dev.bunnyloader.BuildConfig.VERSION_NAME)
+        append(" · Terraria ").append(BundledRuntime.VERSION_NAME)
+        append(" (").append(BundledRuntime.VERSION_CODE).append(")\n")
+        append("Aparelho: ").append(Build.MANUFACTURER).append(' ').append(Build.MODEL)
+        append(" · Android ").append(Build.VERSION.RELEASE).append(" (API ").append(Build.VERSION.SDK_INT).append(')')
+        append(" · ").append(Build.SUPPORTED_ABIS.firstOrNull() ?: "?").append('\n')
+        append("Gerado em: ").append(
+            java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", java.util.Locale.US).format(java.util.Date()),
+        ).append('\n')
+        val mods = runCatching {
+            val repo = dev.bunnyloader.mods.ModRepository(ctx)
+            repo.list().filter { repo.isEnabled(it.uid) }
+                .joinToString(", ") { "${it.name} ${it.version} (${it.id})" }
+        }.getOrDefault("(não deu para ler)")
+        append("Mods ligados: ").append(mods.ifBlank { "nenhum" }).append('\n')
+    }
+
+    /**
+     * O log de sessão mais novo (`logs/bunny_<data>.txt`, o mesmo que o modder
+     * abre): as linhas de erro e aviso, e o fim dele. Depois de um crash, o
+     * mais novo é o da partida que caiu — o launcher não abre um novo.
+     */
+    private fun sessionProblems(ctx: Context): String = runCatching {
+        val base = ctx.getExternalFilesDir(null)?.parentFile ?: return@runCatching "(sem pasta de logs)"
+        val last = File(base, "logs").listFiles { f -> f.name.startsWith("bunny_") && f.name.endsWith(".txt") }
+            .orEmpty().maxByOrNull { it.name } ?: return@runCatching "(nenhum log de sessão)"
+        val lines = last.readLines()
+        // "12:03:04.567 E texto": a letra depois da hora é o nível.
+        val problems = lines.filter { it.length > 13 && (it[13] == 'E' || it[13] == 'W') }.takeLast(30)
+        buildString {
+            append(last.name).append('\n')
+            if (problems.isEmpty()) append("(nenhum erro ou aviso)\n")
+            else problems.forEach { append(it).append('\n') }
+            append(">>> fim do log:\n")
+            lines.takeLast(15).forEach { append(it).append('\n') }
+        }
+    }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})" }
 
     /**
      * A CAUSA primeiro, depois o resto.
@@ -122,7 +174,7 @@ object BootLog {
                 l.contains("dlopen") || l.contains("Unable to") ||
                 l.contains("Failed to") || l.contains("E/Unity") ||
                 l.contains("E Unity") || l.contains("could not") ||
-                l.contains("giveItem")  // o que o usuário toca e reporta
+                l.startsWith("E/$TAG")  // erro do próprio núcleo
         }.distinct().take(15)
         buildString {
             if (causes.isNotEmpty()) {

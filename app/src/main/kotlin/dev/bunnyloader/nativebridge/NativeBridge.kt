@@ -14,6 +14,12 @@ class NativeConfig(
     /** Log detalhado (Configuracoes): o detalhe do núcleo também no arquivo de sessão. */
     @JvmField val verboseLog: Boolean,
     @JvmField val gameVersion: Long,
+    /** Início rápido (Configurações > Desenvolvedor): sem a espera do splash. */
+    @JvmField val fastBoot: Boolean,
+    /** O personagem em que o jogo entra sozinho (`Bench.plr`). Vazio: para no título. */
+    @JvmField val quickPlayer: String,
+    /** O mundo em que o jogo entra sozinho (`Interior_Pálido.wld`). */
+    @JvmField val quickWorld: String,
 )
 
 /**

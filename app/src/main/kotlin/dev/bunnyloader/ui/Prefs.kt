@@ -40,6 +40,47 @@ class Prefs(context: Context) {
         set(v) = p.edit().putBoolean(DEV_CHANNEL, v).apply()
 
     /**
+     * Lido por GameActivity: o splash acaba quando o jogo termina de carregar
+     * e, com [quickPlayer] e [quickWorld], o jogo entra direto no mundo.
+     */
+    var quickStart: Boolean
+        get() = p.getBoolean(QUICK_START, false)
+        set(v) = p.edit().putBoolean(QUICK_START, v).apply()
+
+    /** O arquivo do personagem do início rápido (`Bench.plr`), em Players/. */
+    var quickPlayer: String
+        get() = p.getString(QUICK_PLAYER, "") ?: ""
+        set(v) = p.edit().putString(QUICK_PLAYER, v).apply()
+
+    /**
+     * O arquivo do mundo do início rápido, em Worlds/. [TITLE_ONLY]: só a
+     * abertura rápida, parando no título. Vazio: ainda não escolhido.
+     */
+    var quickWorld: String
+        get() = p.getString(QUICK_WORLD, "") ?: ""
+        set(v) = p.edit().putString(QUICK_WORLD, v).apply()
+
+    /**
+     * Lidas pelo Mod Menu dentro do jogo (CheatBridge.readDevSettings), pelo
+     * nome da chave: o botão do coelho, o Editor de JS e o Reiniciar.
+     */
+    var devModMenu: Boolean
+        get() = p.getBoolean(DEV_MOD_MENU, true)
+        set(v) = p.edit().putBoolean(DEV_MOD_MENU, v).apply()
+
+    var devEditor: Boolean
+        get() = p.getBoolean(DEV_EDITOR, true)
+        set(v) = p.edit().putBoolean(DEV_EDITOR, v).apply()
+
+    var devRestart: Boolean
+        get() = p.getBoolean(DEV_RESTART, true)
+        set(v) = p.edit().putBoolean(DEV_RESTART, v).apply()
+
+    /** O mundo do início rápido a entregar ao núcleo: vazio = parar no título. */
+    val quickWorldFile: String
+        get() = quickWorld.takeIf { quickStart && it != TITLE_ONLY } ?: ""
+
+    /**
      * O cenário do fundo: o nome de um [Biome], ou vazio para trocar a cada vez
      * que o launcher abre (o próximo da lista, guardado em [LAST_SCENERY]).
      */
@@ -63,5 +104,13 @@ class Prefs(context: Context) {
         const val ERROR_PANEL = "errorPanel"
         const val DEV_CHANNEL = "devChannel"
         const val VERBOSE_LOG = "verboseLog"
+        const val QUICK_START = "quickStart"
+        const val QUICK_PLAYER = "quickPlayer"
+        const val QUICK_WORLD = "quickWorld"
+        const val DEV_MOD_MENU = "devModMenu"
+        const val DEV_EDITOR = "devEditor"
+        const val DEV_RESTART = "devRestart"
+        /** Nenhum arquivo de mundo tem este nome (o jogo grava `*.wld`). */
+        const val TITLE_ONLY = "-"
     }
 }

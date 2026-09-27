@@ -80,6 +80,7 @@ class Shell(context: Context) {
         imported = onDisk.filter { it.uid !in catalogIds }
             .mapNotNull { m -> repo.dirOf(m.uid)?.let { catalog.fromDisk(m, it) } }
             .sortedBy { it.manifest.name }
-        enabled = installed.filter { repo.isEnabled(it) }.toSet()
+        // Pacote do formato antigo não carrega: aparece desligado.
+        enabled = onDisk.filter { !it.isOutdated && repo.isEnabled(it.uid) }.map { it.uid }.toSet()
     }
 }

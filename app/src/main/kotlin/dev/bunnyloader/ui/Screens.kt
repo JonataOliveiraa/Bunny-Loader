@@ -48,7 +48,7 @@ import androidx.compose.ui.unit.sp
 import dev.bunnyloader.R
 import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
-import dev.bunnyloader.game.Eligibility
+import dev.bunnyloader.game.SaveFiles
 import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.formatSize
@@ -309,6 +309,9 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
     var devChannel by remember { mutableStateOf(prefs.devChannel) }
     var errorPanel by remember { mutableStateOf(prefs.errorPanel) }
     var verboseLog by remember { mutableStateOf(prefs.verboseLog) }
+    var modMenu by remember { mutableStateOf(prefs.devModMenu) }
+    var editor by remember { mutableStateOf(prefs.devEditor) }
+    var restart by remember { mutableStateOf(prefs.devRestart) }
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
@@ -367,16 +370,40 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
                 devChannel,
             ) { devChannel = it; prefs.devChannel = it }
 
+            SectionTitle("Desenvolvedor")
+            QuickStartCard(prefs)
+            Setting(
+                "Mod Menu",
+                "O botão do coelho dentro do jogo: poderes, itens, NPCs e buffs. Desligado, " +
+                    "nenhum poder volta ligado da última partida.",
+                modMenu,
+            ) { modMenu = it; prefs.devModMenu = it }
+            Setting(
+                "Editor de JS",
+                "Roda JavaScript dentro do jogo. Sem o Mod Menu, o botão flutuante vira o " +
+                    "de JS e abre o Editor.",
+                editor,
+            ) { editor = it; prefs.devEditor = it }
+            Setting(
+                "Reiniciar",
+                "O botão que fecha e abre o jogo lendo os mods da pasta de novo (no Mod Menu " +
+                    "e no Editor).",
+                restart,
+            ) { restart = it; prefs.devRestart = it }
+
             SectionTitle("Diagnóstico")
             PixelCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
-                    PixelText(remember { Eligibility.check(ctx).detail },
-                        size = Ts.Small, color = Bl.TextDim)
+                    PixelText(
+                        "O jogo fechou sozinho, travou ou deu erro? Abra o relatório e mande o " +
+                            "texto (Copiar) ou um print para quem cuida do Bunny Loader ou do mod.",
+                        size = Ts.Small, color = Bl.TextDim,
+                    )
                     Row(
                         Modifier.padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        PixelButton("Ver log", { log = BootLog.read(ctx) }, fontSize = Ts.Small)
+                        PixelButton("Ver relatório", { log = BootLog.read(ctx) }, fontSize = Ts.Small)
                         if (log.isNotEmpty()) {
                             PixelButton("Copiar", {
                                 clipboard.setText(AnnotatedString(log))
@@ -434,6 +461,96 @@ private fun SceneryPicker(choice: String, onChoice: (String) -> Unit) {
         }
     }
 }
+
+/**
+ * O início rápido: o interruptor e, ligado, o personagem e o mundo.
+ *
+ * Os saves são lidos do disco quando a aba abre (o jogo pode ter criado um
+ * personagem desde a última vez). Guarda-se o NOME DO ARQUIVO, que é como o
+ * núcleo acha o save na lista do jogo. A escolha que vale é sempre a que
+ * aparece na tela: se o save guardado sumiu, fica o primeiro da lista, e isso
+ * vai para as preferências também.
+ */
+@Composable
+private fun QuickStartCard(prefs: Prefs) {
+    val ctx = LocalContext.current
+    val players = remember { SaveFiles.players(ctx) }
+    val worlds = remember { SaveFiles.worlds(ctx) }
+    var on by remember { mutableStateOf(prefs.quickStart) }
+    var playerFile by remember { mutableStateOf(prefs.quickPlayer) }
+    var worldFile by remember { mutableStateOf(prefs.quickWorld) }
+
+    val player = players.firstOrNull { it.file == playerFile } ?: players.firstOrNull()
+    // A regra da lista de mundos do jogo: personagem de Jornada só entra em
+    // mundo de Jornada, e vice-versa. O que não serve nem aparece.
+    val fitting = worlds.filter { player == null || it.journey == player.journey }
+    // null = parar no título (só a abertura rápida), a última opção.
+    val worldOptions: List<SaveFiles.Save?> = if (player == null) listOf(null) else fitting + null
+    val world = when (worldFile) {
+        Prefs.TITLE_ONLY -> null
+        else -> fitting.firstOrNull { it.file == worldFile } ?: fitting.firstOrNull()
+    }
+
+    androidx.compose.runtime.LaunchedEffect(on, player?.file, world?.file) {
+        if (!on) return@LaunchedEffect
+        prefs.quickPlayer = player?.file ?: ""
+        prefs.quickWorld = world?.file ?: Prefs.TITLE_ONLY
+    }
+
+    PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Column(Modifier.padding(12.dp).fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                    PixelText("Início rápido", size = Ts.Item)
+                    PixelText(
+                        "A logo da Re-Logic some assim que o jogo termina de carregar, e o jogo " +
+                            "entra direto no mundo abaixo. Vale também para o Reiniciar do Mod Menu.",
+                        size = Ts.Small, color = Bl.TextFaint,
+                    )
+                }
+                SwitchSprite(on) { on = !on; prefs.quickStart = on }
+            }
+            if (on) {
+                if (player == null) {
+                    PixelText(
+                        "Nenhum personagem salvo ainda. Crie um no jogo; até lá, o jogo para no título.",
+                        size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 10.dp),
+                    )
+                } else {
+                    PixelText("Personagem", size = Ts.Small, color = Bl.TextFaint,
+                        modifier = Modifier.padding(top = 10.dp))
+                    val pi = players.indexOf(player)
+                    PixelSelect(
+                        saveLabel(player),
+                        onPrev = { playerFile = players[(pi - 1).mod(players.size)].file },
+                        onNext = { playerFile = players[(pi + 1).mod(players.size)].file },
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                    PixelText("Mundo", size = Ts.Small, color = Bl.TextFaint,
+                        modifier = Modifier.padding(top = 8.dp))
+                    val wi = worldOptions.indexOf(world)
+                    val pickWorld = { i: Int ->
+                        worldFile = worldOptions[i.mod(worldOptions.size)]?.file ?: Prefs.TITLE_ONLY
+                    }
+                    PixelSelect(
+                        world?.let { saveLabel(it) } ?: "Nenhum: parar no título",
+                        onPrev = { pickWorld(wi - 1) },
+                        onNext = { pickWorld(wi + 1) },
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                    if (fitting.isEmpty()) {
+                        PixelText(
+                            if (player.journey) "Nenhum mundo de Jornada salvo." else "Nenhum mundo salvo.",
+                            size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 6.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun saveLabel(save: SaveFiles.Save) = if (save.journey) "${save.name} (Jornada)" else save.name
 
 /** Uma linha de ajuste: nome, o que ela faz, e o interruptor. */
 @Composable

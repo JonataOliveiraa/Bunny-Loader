@@ -174,6 +174,10 @@ void JNICALL jni_requestRestart(JNIEnv*, jclass, jboolean save) {
     bl::runtime::requestRestart(save == JNI_TRUE);
 }
 
+void JNICALL jni_setGameFrozen(JNIEnv*, jclass, jboolean on) {
+    bl::runtime::setGameFrozen(on == JNI_TRUE);
+}
+
 jboolean JNICALL jni_restartReady(JNIEnv*, jclass) {
     return bl::runtime::restartReady() ? JNI_TRUE : JNI_FALSE;
 }
@@ -474,6 +478,7 @@ void installCheatButton() {
         {"nConsoleTake", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_consoleTake)},
         {"nRequestRestart", "(Z)V", reinterpret_cast<void*>(&jni_requestRestart)},
         {"nRestartReady", "()Z", reinterpret_cast<void*>(&jni_restartReady)},
+        {"nSetGameFrozen", "(Z)V", reinterpret_cast<void*>(&jni_setGameFrozen)},
     };
     if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");

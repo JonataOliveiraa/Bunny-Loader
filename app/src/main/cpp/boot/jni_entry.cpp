@@ -32,6 +32,9 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.showErrors = env->GetBooleanField(cfg, env->GetFieldID(cls, "showErrors", "Z"));
     c.verboseLog = env->GetBooleanField(cfg, env->GetFieldID(cls, "verboseLog", "Z"));
     c.gameVersion = env->GetLongField(cfg, env->GetFieldID(cls, "gameVersion", "J"));
+    c.fastBoot   = env->GetBooleanField(cfg, env->GetFieldID(cls, "fastBoot", "Z"));
+    c.quickPlayer = readString(env, cfg, cls, "quickPlayer");
+    c.quickWorld  = readString(env, cfg, cls, "quickWorld");
 
     auto arr = reinterpret_cast<jobjectArray>(
         env->GetObjectField(cfg, env->GetFieldID(cls, "enabledMods", "[Ljava/lang/String;")));

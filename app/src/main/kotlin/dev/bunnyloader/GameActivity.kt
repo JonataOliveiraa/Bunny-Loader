@@ -166,6 +166,12 @@ class GameActivity : Activity() {
                     showErrors = prefs.errorPanel,
                     verboseLog = prefs.verboseLog,
                     gameVersion = BundledRuntime.VERSION_CODE,
+                    // Início rápido: vale também para o Reiniciar do Mod
+                    // Menu, que abre esta Activity de novo. Mundo vazio =
+                    // só a abertura rápida, parando no título.
+                    fastBoot = prefs.quickStart,
+                    quickPlayer = if (prefs.quickWorldFile.isNotEmpty()) prefs.quickPlayer else "",
+                    quickWorld = prefs.quickWorldFile,
                 ),
             )
         }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)

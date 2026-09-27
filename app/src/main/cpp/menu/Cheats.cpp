@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include "boot/Boot.h"
+#include "boot/QuickStart.h"
 #include "menu/Cheats.h"
 #include "core/Config.h"
 #include "core/Log.h"
@@ -803,6 +804,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModBuffs();
     tickModTiles();
     tickContentReady();
+    tickQuickStart();
     tickNetRequests();
     script::tickConsole();
     tickRestart();
