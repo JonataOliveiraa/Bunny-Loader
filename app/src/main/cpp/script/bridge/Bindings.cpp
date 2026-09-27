@@ -599,7 +599,7 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
-// NativeMethod.hook(callback[, { minType, on, field, whileIn, ifBusy }])
+// NativeMethod.hook(callback[, { minType, on, field, tile, tileAt, arg, marks, whileIn, ifBusy }])
 //
 // Com `minType`, o hook so chama o JS quando o objeto `on` ('self', o padrao,
 // ou o indice de um parametro) tem `field` (padrao 'type') >= minType. Ex.:
@@ -622,6 +622,12 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
             if (!g) return JS_ThrowTypeError(ctx, "hook: whileIn tem de ser um metodo do jogo");
             filter.whileIn = g->method;
         }
+        JSValue marks = JS_GetPropertyStr(ctx, argv[1], "marks");
+        if (JS_IsString(marks)) {
+            const char* s = JS_ToCString(ctx, marks);
+            if (s) { filter.marks = s; JS_FreeCString(ctx, s); }
+        }
+        JS_FreeValue(ctx, marks);
         JSValue busy = JS_GetPropertyStr(ctx, argv[1], "ifBusy");
         if (!JS_IsUndefined(busy)) {
             const char* s = JS_ToCString(ctx, busy);
@@ -645,12 +651,15 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
         JSValue field = JS_GetPropertyStr(ctx, argv[1], "field");
         JSValue tile = JS_GetPropertyStr(ctx, argv[1], "tile");
         JSValue tileAt = JS_GetPropertyStr(ctx, argv[1], "tileAt");
+        JSValue arg = JS_GetPropertyStr(ctx, argv[1], "arg");
         int32_t n = 0;
         const bool ok = JS_ToInt32(ctx, &n, min) == 0;
         filter.minType = n;
         // `tile: indice` ou `tileAt: [i, j]`: o tipo vem do mundo, nao de um
         // campo de objeto.
-        const bool byTile = JS_IsNumber(tile) || JS_IsArray(tileAt);
+        const bool byTile = JS_IsNumber(tile) || JS_IsArray(tileAt) || JS_IsNumber(arg);
+        if (JS_IsNumber(arg)) JS_ToInt32(ctx, &filter.argParam, arg);
+        JS_FreeValue(ctx, arg);
         if (JS_IsNumber(tile)) JS_ToInt32(ctx, &filter.tileParam, tile);
         if (JS_IsArray(tileAt)) {
             JSValue i = JS_GetPropertyUint32(ctx, tileAt, 0), j = JS_GetPropertyUint32(ctx, tileAt, 1);
@@ -680,12 +689,39 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
     // argumentos demais, sem slot). Repetir aqui só apagaria a informação.
     if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0],
                        filter.on == -2 && !filter.whileIn && filter.tileParam < 0 && filter.tileAtI < 0 &&
+                               filter.argParam < 0 && filter.marks.empty() &&
                                filter.ifBusy == IfBusy::Wait
                            ? nullptr : &filter))
         return JS_EXCEPTION;
     return JS_UNDEFINED;
 }
 
+
+// bl.hookMarks.set(nome, tipo, ligado = true) / .has(nome, tipo): a tabela que
+// o filtro `marks` de um hook consulta. Marcar depois de instalar o hook vale
+// na hora (o despachante le a cada chamada).
+JSValue js_hookMarksSet(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 2 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.hookMarks.set(nome, tipo[, ligado])");
+    int32_t type = -1;
+    JS_ToInt32(ctx, &type, argv[1]);
+    const bool on = argc < 3 || JS_ToBool(ctx, argv[2]) > 0;
+    std::atomic<uint8_t>* marks = hookMarks(name);
+    JS_FreeCString(ctx, name);
+    if (type < 0 || type >= kMarkTypes) return JS_ThrowRangeError(ctx, "bl.hookMarks.set: tipo %d fora de 0..%d", type, kMarkTypes - 1);
+    marks[type].store(on ? 1 : 0, std::memory_order_relaxed);
+    return JS_UNDEFINED;
+}
+
+JSValue js_hookMarksHas(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 2 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.hookMarks.has(nome, tipo)");
+    int32_t type = -1;
+    JS_ToInt32(ctx, &type, argv[1]);
+    std::atomic<uint8_t>* marks = hookMarks(name);
+    JS_FreeCString(ctx, name);
+    return JS_NewBool(ctx, type >= 0 && type < kMarkTypes && marks[type].load(std::memory_order_relaxed));
+}
 const JSCFunctionListEntry nm_proto[] = {
     JS_CFUNC_DEF("hook", 2, nm_hook),
 };
@@ -1144,6 +1180,10 @@ void installBindings(void* context) {
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
     JS_SetPropertyStr(ctx, bl, "loadTextureAsset",
                       JS_NewCFunction(ctx, js_loadTextureAsset, "loadTextureAsset", 1));
+    JSValue marks = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, marks, "set", JS_NewCFunction(ctx, js_hookMarksSet, "set", 3));
+    JS_SetPropertyStr(ctx, marks, "has", JS_NewCFunction(ctx, js_hookMarksHas, "has", 2));
+    JS_SetPropertyStr(ctx, bl, "hookMarks", marks);
     installExtraFields(ctx, bl);
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);

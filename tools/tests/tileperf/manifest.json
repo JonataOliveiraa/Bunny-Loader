@@ -1,0 +1,15 @@
+{
+  "uid": "d2ce448f-77c4-4cc5-8c45-4a4f74a288c6",
+  "id": "test-tileperf",
+  "name": "Teste: custo dos tiles de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Tempo de quadro com 150 tochas do jogo na tela e com 150 tochas (e fogueiras) de mod.",
+  "description": "Loga 'tileperf ...'. Precisa do Example Mod. Numa caverna cavada embaixo do spawn; não salva.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

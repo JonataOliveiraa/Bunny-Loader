@@ -1,0 +1,15 @@
+{
+  "uid": "819cbc60-ebd3-4c20-b82f-c3325dc900f6",
+  "id": "test-modfurniture",
+  "name": "Teste: móveis de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Casa com os móveis do Example Mod, a luz da tocha/fogueira/lustre e a caixa de música.",
+  "description": "Loga 'modfurniture ...'. Precisa do Example Mod. Constrói longe do spawn e limpa no fim (não salva).",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

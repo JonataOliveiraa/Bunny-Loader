@@ -132,6 +132,11 @@ diretamente.
 | `bl.items.modItemsIn(player)` | Os itens de mod nos 58 espaços do inventário do jogador. |
 | `bl.npcs.freeSlot()` | O próximo slot livre de `Main.npc`. |
 | `bl.tiles.typeAt(x, y)` | O tipo do tile ativo numa posição (-1 se não há). |
+| `bl.tiles.find(marcas, x0, y0, x1, y1[, quadros])` | Os tiles do retângulo cujo tipo está marcado em `marcas`: `[i, j, ...]`, ou `[i, j, frameX, frameY, ...]` com `quadros`, lidos direto da memória do mundo. |
+| `bl.tiles.addLights([i, j, r, g, b, ...])` | O `Lighting.AddLight` de cada tile num laço nativo (uma ida à ponte para todos). |
+| `bl.tiles.setAnimationFrameHeight(tipo, altura)`, `bl.tiles.onDrawData(fn)` | O `AnimationFrameHeight` e o gancho do desenho (quem usa é o `ModTile`). |
+| `bl.tiles.setDoor(fechada, aberta)` | O par de uma porta de mod, para o jogador que encosta e os NPCs a abrirem (o `ModTile` chama pelo `OpenDoorID`/`CloseDoorID`). |
+| `bl.hookMarks.set(nome, tipo[, ligado])`, `bl.hookMarks.has(nome, tipo)` | As marcas do filtro `marks` dos hooks ([núcleo](../nucleo/hooks.md#filtros-nativos)). |
 | `bl.items.register`, `bl.npcs.register`... | O registro nativo. Use as classes (`ModItem.register`). |
 
 ## `bl.menu`: o Mod Menu

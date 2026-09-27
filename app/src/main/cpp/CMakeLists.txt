@@ -58,7 +58,8 @@ set(BL_MOD_CLASSES_PARTS
     TagCompound Loaders/SystemLoader ModSystem
     Loaders/PlayerLoader ModPlayer
     Loaders/BuffLoader ModBuff
-    Loaders/TileLoader ModTile
+    Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
+    ModTile TileRestingInfo
     Loaders/ProjectileLoader ModProjectile
     NPCLoot NPCSpawnInfo Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
     NPCHappiness NPCShop Loaders/TownNPCLoader

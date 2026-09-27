@@ -276,6 +276,9 @@ std::string className(Il2CppClass* cls) {
     auto& a = il2cpp::api();
     const char* ns = a.class_get_namespace ? a.class_get_namespace(cls) : nullptr;
     const char* name = a.class_get_name(cls);
+    // Aninhada (TileID.Sets) vem sem namespace: o nome e o da classe de fora.
+    Il2CppClass* outer = (!ns || !*ns) && a.class_get_declaring_type ? a.class_get_declaring_type(cls) : nullptr;
+    if (outer && outer != cls) return className(outer) + "." + (name ? name : "?");
     std::string out = ns && *ns ? std::string(ns) + "." : std::string();
     return out + (name ? name : "?");
 }

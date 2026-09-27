@@ -29,6 +29,23 @@ class MusicLoader {
         return !!ModFiles.Audio('Music', base, path !== undefined ? path : modOrPath);
     }
 
+    // A caixa de música de mod: o tile `tileType` (2x2, como a do jogo) toca a
+    // faixa `musicSlot` quando ligado (quadro X a partir de 36) e na tela.
+    static AddMusicBox(mod, musicSlot, itemType, tileType, tileFrameY = 0) {
+        if (!(musicSlot > 0) || !(tileType >= FIRST_TILE)) {
+            throw new TypeError('MusicLoader.AddMusicBox(mod, slot, item, tile): slot de musica e tile de mod');
+        }
+
+        let boxes = TileLoader.MusicBoxes.get(tileType);
+        if (!boxes) TileLoader.MusicBoxes.set(tileType, boxes = new Map());
+        boxes.set(tileFrameY, { slot: musicSlot, item: itemType });
+        if (itemType > 0) TileLoader.MusicBoxItems.set(itemType, musicSlot);
+
+        bl.hookMarks.set('tile.musicbox', tileType);
+        bl.hookMarks.set('tile.wire', tileType);
+        ModMusic.Install();
+    }
+
     static IsMusicPlaying(slot) {
         const track = ModMusic.Track(slot);
         return !!track && bl.music.state(track.id) === 2;

@@ -4,6 +4,7 @@
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 #endif
@@ -56,8 +57,19 @@ struct HookFilter {
     // `tileAtI`/`tileAtJ`, os indices dos parametros int da posicao.
     int tileParam = -1;
     int tileAtI = -1, tileAtJ = -1;
+    // `arg`: o indice de um parametro int que JA e o tipo (o `ushort typeCache`
+    // do desenho). Mesmo minType.
+    int argParam = -1;
+    // `marks`: o tipo lido por um dos filtros acima tambem tem de estar marcado
+    // na tabela de marcas com este nome (bl.hookMarks.set). O ModifyLight so
+    // entra no JS para os tiles que sobrescrevem o ModifyLight.
+    std::string marks;
     IfBusy ifBusy = IfBusy::Wait;
 };
+
+/** A tabela de marcas `name` (criada na primeira vez; nunca liberada). kMarkTypes entradas. */
+constexpr int kMarkTypes = 65536;
+std::atomic<uint8_t>* hookMarks(const std::string& name);
 
 // Instala um hook JS num metodo do jogo. O callback recebe
 // (original, self, ...args). Retorna false (com excecao posta no ctx) se nao

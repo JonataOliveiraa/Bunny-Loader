@@ -56,7 +56,11 @@ class ModMusic {
     // SceneEffectPriority. -1 = nenhum.
     static #Choose() {
         const Main = Terraria.Main;
-        if (Main.gameMenu || !ModMusic.#npcs.size) return -1;
+        if (Main.gameMenu) return -1;
+
+        const box = ModMusic.#MusicBox();
+        if (box > 0) return box;
+        if (!ModMusic.#npcs.size) return -1;
 
         const margin = 5000;
         const sp = Main.screenPosition;
@@ -86,6 +90,34 @@ class ModMusic {
             }
         }
         return best;
+    }
+
+    // Caixa de música de mod ligada na tela, ou equipada (acessório ou
+    // visual): ganha de tudo, como a do jogo.
+    static #MusicBox() {
+        if (!TileLoader.MusicBoxes.size) return 0;
+
+        const Main = Terraria.Main;
+        const sp = Main.screenPosition;
+        const found = bl.tiles.find('tile.musicbox', Math.floor(sp.X / 16), Math.floor(sp.Y / 16),
+            Math.ceil((sp.X + Main.screenWidth) / 16), Math.ceil((sp.Y + Main.screenHeight) / 16));
+
+        for (let k = 0; k < found.length; k += 2) {
+            const tile = TileLoader.Tile(found[k], found[k + 1]);
+            if (tile.frameX < 36) continue;
+
+            const boxes = TileLoader.MusicBoxes.get(tile.type);
+            const box = boxes && boxes.get(tile.frameY - tile.frameY % 36);
+            if (box) return box.slot;
+        }
+
+        const armor = Main.player[Main.myPlayer].armor;
+        for (let k = 3; k < armor.length; k++) {
+            if (k >= 10 && k < 13) continue;   // a armadura visual
+            const slot = TileLoader.MusicBoxItems.get(armor[k].type);
+            if (slot) return slot;
+        }
+        return 0;
     }
 
     // Com o musicFade[0] em 1, o curMusic 0 tira as faixas do jogo com fade em

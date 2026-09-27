@@ -1,4 +1,6 @@
 #pragma once
+#include <atomic>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -72,6 +74,38 @@ struct ModTileInfo {
  * usa a cor DO JOGO mais proxima da pedida. Sem cor: fora do mapa.
  */
 void setModTileMapColor(int type, int r, int g, int b);
+
+/**
+ * O AnimationFrameHeight do tModLoader: no desenho, o quadro do tipo
+ * (Main.tileFrame[type]) vezes esta altura desce a textura. 0 = sem animacao.
+ */
+void setModTileAnimation(int type, int frameHeight);
+
+/**
+ * O que o desenho de uma celula usa (TileDrawing.GetTileDrawData), para o
+ * SetDrawPositions/AnimateIndividualTile/SetSpriteEffects do mod mudar.
+ */
+struct TileDrawData {
+    int32_t frameX = 0, frameY = 0;
+    int32_t width = 16, height = 16, top = 0;
+    int32_t addFrX = 0, addFrY = 0;
+    int32_t effects = 0;
+};
+
+/**
+ * Chamado no desenho (qualquer thread) para as celulas cujo tipo esta marcado
+ * em `marks`. O hook muda `d`; o desenho usa o que voltar. false = o mod nao
+ * rodou (motor ocupado, excecao): o resultado nao entra no cache.
+ *
+ * O resultado fica guardado por celula, com tudo o que entrou em `d` e o
+ * Main.tileFrame do tipo na chave: a celula que o jogo redesenha igual nao
+ * chama o JS de novo. Sai do cache quando o jogo reenquadra tiles perto
+ * (SquareTileFrame/RangeFrame: um bloco vizinho mudou) e depois de 5 s. Os
+ * tipos marcados em `uncached` (ModTile com CacheDrawData = false: animacao
+ * por outro contador) vao ao JS toda vez.
+ */
+using DrawDataHook = bool (*)(int x, int y, int type, TileDrawData* d);
+void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const std::atomic<uint8_t>* uncached);
 
 /** Os registrados, na ordem do id. Copia: serve a qualquer thread. */
 std::vector<ModTileInfo> modTiles();

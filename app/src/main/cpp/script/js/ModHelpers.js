@@ -1,6 +1,6 @@
 // Ajudantes globais dos mods: Vector2, MathHelper, Rand, Color e as tabelas
 // de numeros que este Terraria NAO tem (ItemRarityID, ProjAIStyleID,
-// NPCAIStyleID — no PC elas vem do tModLoader). Os nomes sao os do
+// NPCAIStyleID, NetmodeID — no PC elas vem do tModLoader). Os nomes sao os do
 // tModLoader, para codigo de la portar mudando pouco.
 //
 // Embutido na libbunny como as classes de script/js/mod/ (CMakeLists: configure_file) e
@@ -214,6 +214,109 @@ const Rectangle = Object.freeze({
                           a.Y < b.Y + b.Height && b.Y < a.Y + a.Height,
 });
 
+// ======================== Point16 e AnchorData ========================
+// Os structs do TileObjectData (Origin, AnchorBottom...). new Point16(1, 0) do
+// C# vira Point16.new(1, 0).
+
+let xPoint16 = null, xAnchorData = null;
+const XPoint16 = () => xPoint16 || (xPoint16 = Terraria.DataStructures.Point16);
+const XAnchorData = () => xAnchorData || (xAnchorData = Terraria.DataStructures.AnchorData);
+
+const Point16 = Object.freeze({
+    get Type() { return XPoint16(); },
+    new(x = 0, y = 0) {
+        const p = XPoint16().new();
+        p['void .ctor(int X, int Y)'](x | 0, y | 0);
+        return p;
+    },
+    get Zero() { return Point16.new(0, 0); },
+});
+
+const AnchorData = Object.freeze({
+    get Type() { return XAnchorData(); },
+    new(type = 0, count = 0, start = 0) {
+        const a = XAnchorData().new();
+        a['void .ctor(AnchorType type, int count, int start)'](type | 0, count | 0, start | 0);
+        return a;
+    },
+    get Empty() { return AnchorData.new(0, 0, 0); },
+});
+
+// ================== o que o tModLoader pôs nas classes ==================
+// Nomes que o jogo do celular não tem, mas o código de lá usa
+// (TileID.Sets.OpenDoorID, TileObjectData.GetTileStyle). A ponte procura
+// aqui quando a classe do jogo não tem o membro (__blExtraStatics).
+
+// Tabela por tipo com valor padrão (a CreateIntSet do tModLoader).
+const TypeSet = (fallback, init = {}) => new Proxy(Object.assign([], init), {
+    get(target, key) {
+        if (typeof key === 'string' && /^\d+$/.test(key)) return key in target ? target[key] : fallback;
+        return target[key];
+    },
+});
+
+const TileSetsExtras = Object.freeze({
+    OpenDoorID: TypeSet(-1, { 10: 11 }),
+    CloseDoorID: TypeSet(-1, { 11: 10 }),
+    IsValidSpawnPoint: TypeSet(false, { 79: true }),
+    MultiTileSway: TypeSet(false),
+    CanDropFromRightClick: TypeSet(false),
+    // Só guardam o valor: o jogo daqui não os consulta.
+    Clock: TypeSet(false),
+    CanBeSloped: TypeSet(true),
+    IgnoredByGrowingSaplings: TypeSet(false),
+    CanPlaceNextToNonSolidTile: TypeSet(false),
+});
+
+const tileAt = (i, j) => Terraria.Main.tile['Tile get_Item(int x, int y)'](i, j);
+const objectDataOf = (tile) =>
+    Terraria.ObjectData.TileObjectData['TileObjectData GetTileData(Tile getTile)'](tile);
+
+// A célula (i, j) dentro do objeto: coluna, linha e o dado de forma dele.
+const objectPart = (tile) => {
+    const data = objectDataOf(tile);
+    if (!data) return null;
+
+    const pad = data.CoordinatePadding;
+    const heights = data.CoordinateHeights;
+    const partX = Math.floor((tile.frameX % data.CoordinateFullWidth) / (data.CoordinateWidth + pad));
+
+    let partY = 0;
+    for (let rest = tile.frameY % data.CoordinateFullHeight; partY + 1 < data.Height && rest - heights[partY] - pad >= 0; partY++) {
+        rest -= heights[partY] + pad;
+    }
+    return { data, partX, partY };
+};
+
+const TileObjectDataExtras = Object.freeze({
+    // O estilo do objeto pelo quadro da célula (o ItemPlaceStyle que o colocou).
+    GetTileStyle(tile) {
+        const data = tile ? objectDataOf(tile) : null;
+        if (!data) return -1;
+
+        const subX = Math.floor(tile.frameX / data.CoordinateFullWidth);
+        const subY = Math.floor(tile.frameY / data.CoordinateFullHeight);
+        const wrap = data.StyleWrapLimit || 1;
+        const skip = data.StyleLineSkip || 1;
+        const sub = data.StyleHorizontal
+            ? Math.floor(subY / skip) * wrap + subX
+            : Math.floor(subX / skip) * wrap + subY;
+        return Math.floor(sub / (data.StyleMultiplier || 1));
+    },
+
+    IsTopLeft(tileOrI, j) {
+        const tile = typeof tileOrI === 'number' ? tileAt(tileOrI, j) : tileOrI;
+        const part = objectPart(tile);
+        return !part || (part.partX === 0 && part.partY === 0);
+    },
+
+    // O canto de cima à esquerda do objeto que tem a célula (i, j).
+    TopLeft(i, j) {
+        const part = objectPart(tileAt(i, j));
+        return part ? Point16.new(i - part.partX, j - part.partY) : Point16.new(i, j);
+    },
+});
+
 // ================================ ProjAI ================================
 
 // O proj.ai (ou proj.localAI) como vetor: ai[0]++ em vez de
@@ -332,6 +435,9 @@ const DustIDExtras = Object.freeze({
     MechanicalCart: 260, BloodWater: 266, LastPrism: 267,
 });
 
+// Main.netMode: 0 sozinho, 1 cliente, 2 servidor.
+const NetmodeID = Object.freeze({ SinglePlayer: 0, MultiplayerClient: 1, Server: 2 });
+
 const NPCAIStyleID = Object.freeze({
     FaceClosestPlayer: 0, Slime: 1, DemonEye: 2, Fighter: 3, EyeOfCthulhu: 4, Flying: 5,
     Worm: 6, Passive: 7, Caster: 8, Spell: 9, CursedSkull: 10, SkeletronHead: 11,
@@ -368,5 +474,12 @@ globalThis.ProjAI = ProjAI;
 globalThis.ItemRarityID = ItemRarityID;
 globalThis.ProjAIStyleID = ProjAIStyleID;
 globalThis.NPCAIStyleID = NPCAIStyleID;
-globalThis.__blExtraStatics = Object.freeze({ 'Terraria.ID.DustID': DustIDExtras });
+globalThis.NetmodeID = NetmodeID;
+globalThis.Point16 = Point16;
+globalThis.AnchorData = AnchorData;
+globalThis.__blExtraStatics = Object.freeze({
+    'Terraria.ID.DustID': DustIDExtras,
+    'Terraria.ID.TileID.Sets': TileSetsExtras,
+    'Terraria.ObjectData.TileObjectData': TileObjectDataExtras,
+});
 })();

@@ -39,6 +39,9 @@ export class ExampleBoss extends ModNPC {
 
     ModifyNPCLoot(npcLoot) {
         npcLoot.Add(ItemDropRule.Common(ModItem.getTypeByName('ExampleItem'), 1, 15, 30));
+        // O troféu (1 em 10) e, no modo mestre, a relíquia: como os chefes do jogo.
+        npcLoot.Add(ItemDropRule.Common(ModContent.ItemType('MinionBossTrophy'), 10, 1, 1));
+        npcLoot.Add(ItemDropRule.MasterModeCommonDrop(ModContent.ItemType('MinionBossRelic')));
     }
 
     OnKill(npc) {

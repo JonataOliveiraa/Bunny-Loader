@@ -16,11 +16,28 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace bl::script {
+
+// As tabelas de marcas (HookFilter::marks). O despachante le sem trava: a
+// tabela nunca muda de lugar nem some, e cada entrada e atomica.
+std::atomic<uint8_t>* hookMarks(const std::string& name) {
+    static std::mutex lock;
+    static std::map<std::string, std::unique_ptr<std::atomic<uint8_t>[]>> tables;
+    std::lock_guard<std::mutex> guard(lock);
+    auto& t = tables[name];
+    if (!t) {
+        t.reset(new std::atomic<uint8_t>[kMarkTypes]);
+        for (int i = 0; i < kMarkTypes; ++i) t[i].store(0, std::memory_order_relaxed);
+    }
+    return t.get();
+}
 
 #if defined(__aarch64__)
 
@@ -104,6 +121,10 @@ struct HookCtx {
     int gateSlot = -1;
     // Filtro pelo tipo do tile: o x do `Tile` (offset), ou os x de i e j.
     int tileReg = -1, tileAtIReg = -1, tileAtJReg = -1;
+    // HookFilter::argParam: o x do parametro que ja e o tipo.
+    int argReg = -1, argBytes = 4;
+    // HookFilter::marks: o tipo lido tambem tem de estar marcado aqui.
+    const std::atomic<uint8_t>* marks = nullptr;
     // HookFilter::ifBusy: com o motor JS noutra thread, nao espera.
     IfBusy ifBusy = IfBusy::Wait;
 };
@@ -280,18 +301,32 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
     // g_depth do hook de fora > 0 = esta thread esta dentro do callback dele.
     if (c->gateSlot >= 0 && g_depth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
+    int seen = -1;   // o tipo que um dos filtros leu (para as marcas)
     if (c->tileReg >= 0 || c->tileAtIReg >= 0) {
         const int t = c->tileReg >= 0
             ? runtime::tileTypeAtOffset(static_cast<int32_t>(rawA[c->tileReg]))
             : runtime::tileTypeAt(static_cast<int32_t>(rawA[c->tileAtIReg]),
                                   static_cast<int32_t>(rawA[c->tileAtJReg]));
         if (t < c->filterMin) return callOriginal(c, rawA, rawD);
+        seen = t;
+    }
+    if (c->argReg >= 0) {
+        const intptr_t raw = rawA[c->argReg];
+        const int32_t t = c->argBytes == 2 ? static_cast<int32_t>(static_cast<uint16_t>(raw))
+                        : c->argBytes == 1 ? static_cast<int32_t>(static_cast<uint8_t>(raw))
+                                           : static_cast<int32_t>(raw);
+        if (t < c->filterMin) return callOriginal(c, rawA, rawD);
+        seen = t;
     }
     if (c->filterReg >= 0) {
         auto* o = reinterpret_cast<const uint8_t*>(rawA[c->filterReg]);
         int32_t v = 0;
         if (o) std::memcpy(&v, o + c->filterOffset, sizeof(v));
         if (!o || v < c->filterMin) return callOriginal(c, rawA, rawD);
+        seen = v;
+    }
+    if (c->marks && (seen < 0 || seen >= kMarkTypes || !c->marks[seen].load(std::memory_order_relaxed))) {
+        return callOriginal(c, rawA, rawD);
     }
 
     // Reentrancia: ja estamos dentro deste hook nesta thread (o corpo real,
@@ -525,6 +560,26 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             : intReg(filter->tileAtI, &probe.tileAtIReg) && intReg(filter->tileAtJ, &probe.tileAtJReg);
         if (!ok) err = "filtro de tile: parametro fora da faixa ou que nao e Tile/int";
         probe.filterMin = filter->minType;
+    }
+    if (err.empty() && filter && filter->argParam >= 0) {
+        const size_t i = static_cast<size_t>(filter->argParam);
+        const ParamPlan* p = i < probe.abi.params.size() ? &probe.abi.params[i] : nullptr;
+        const bool integer = p && (p->d.prim == Prim::I8 || p->d.prim == Prim::U8 || p->d.prim == Prim::I16 ||
+                                    p->d.prim == Prim::U16 || p->d.prim == Prim::I32 || p->d.prim == Prim::U32);
+        if (!integer || p->floatQueue || p->opaque) {
+            err = "filtro 'arg': o parametro tem de ser um inteiro (int, ushort...)";
+        } else {
+            probe.argReg = p->reg;
+            probe.argBytes = static_cast<int>(p->d.size);
+            probe.filterMin = filter->minType;
+        }
+    }
+    if (err.empty() && filter && !filter->marks.empty()) {
+        if (probe.tileReg < 0 && probe.tileAtIReg < 0 && probe.argReg < 0 && probe.filterReg < 0) {
+            err = "filtro 'marks' precisa de outro que leia o tipo (tile, tileAt, arg ou minType)";
+        } else {
+            probe.marks = hookMarks(filter->marks);
+        }
     }
     if (filter) probe.ifBusy = filter->ifBusy;
     if (err.empty() && probe.ifBusy == IfBusy::Skip && probe.abi.retDesc.prim != Prim::Void) {

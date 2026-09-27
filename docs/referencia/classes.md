@@ -376,51 +376,60 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 ## ModTile
 
 Um bloco novo (terra, pedra, minério) ou um objeto de várias células com
-`TileObjectData` (móveis: a Pia de Exemplo, 2x2). Uma instância por tipo; os
-métodos recebem a posição `(i, j)` em tiles.
+`TileObjectData` (móveis: pia, cadeira, porta, baú, cama...). Uma instância
+por tipo; os métodos recebem a posição `(i, j)` em tiles, e os parâmetros
+`ref` do tModLoader chegam como `Ref` (`.value`). A lista completa, com o que
+cada móvel do Example Mod usa, está no [guia 9](../mods/09-blocos.md).
 
 ### Campos
 
 | Campo | Para quê |
 |---|---|
 | `Type`, `Mod` | |
-| `Texture` | A folha de quadros (288x270, quadros de 16x16 com 2 px de margem). |
-| `DustType` | A poeira ao bater e quebrar (`DustID`). |
-| `HitSound` | O som ao bater (`SoundID`); `undefined` = o do jogo. |
-| `MinPick` | Força de picareta mínima. |
-| `MineResist` | O dano de cada golpe é dividido por ele. |
-| `ItemDrop` | O item que cai; `undefined` = o item de mod que coloca o tile. |
+| `Texture`, `HighlightTexture` | A folha de quadros; o contorno (`HasOutlines`). |
+| `DustType`, `HitSound` | Poeira e som ao bater. |
+| `MinPick`, `MineResist` | Picareta mínima; o dano de cada golpe é dividido por ele. |
+| `ItemDrop` | O item que cai; `undefined` = o item de mod que coloca o tile (pelo estilo). |
+| `AdjTiles` | Estações de criação que ele também é. |
+| `AnimationFrameHeight` | A altura de um quadro de animação. |
+| `CacheDrawData` | `false`: `SetDrawPositions`/`AnimateIndividualTile`/`SetSpriteEffects` sem cache, em todo desenho (animação por outro contador que não o `Main.tileFrame` do tipo). |
 
-### Métodos que você escreve
+### Métodos que você escreve, e onde entram
 
-| Método | Quando roda | Por trás |
-|---|---|---|
-| `SetStaticDefaults()` | Uma vez: `Main.tileSolid[this.Type]`... | nativo |
-| `PostSetupContent()` | | conteúdo pronto |
-| `CanKillTile(i, j)` | `false`: a picareta não quebra. | `WorldGen.CanKillTile`, filtro de tile |
-| `KillTile(i, j, fail, effectOnly, noItem)` | Antes de o tile sair (`fail`: só o golpe). | `WorldGen.KillTile`, filtro de tile |
-| `KillMultiTile(i, j, frameX, frameY)` | Um objeto saiu inteiro; `(i, j)` é o canto de cima à esquerda. | `WorldGen.TileFrameImportant`, filtro de tile |
-| `CreateDust(i, j)` | `false`: sem poeira. | `WorldGen.KillTile_MakeTileDust`, filtro de tile |
-| `KillSound(i, j, fail)` | `false`: sem som. | `WorldGen.KillTile_PlaySounds`, filtro de tile |
-
-`MinPick` e `MineResist` agem em `Player.GetPickaxeDamage`, e o `ItemDrop` em
-`WorldGen.KillTile_GetItemDrops`, ambos com filtro de tile. Os hooks de tile
-são instalados no primeiro `ModTile.register`.
+| Métodos | Por trás |
+|---|---|
+| `SetStaticDefaults`, `PostSetDefaults`, `PostSetupContent` | nativo, conteúdo pronto |
+| `CanKillTile`, `KillTile`, `NumDust`, `CreateDust`, `KillSound`, `CanDrop`, `GetItemDrops`, `KillMultiTile` | `WorldGen.KillTile*`, `TileFrameImportant`; filtro de tile |
+| `TileFrame` | `WorldGen.TileFrame`; marca `tile.frame` |
+| `ModifyLight` | `Lighting.LightTiles` (a cada 3 quadros) + `Lighting.AddLight` em lote; marca `tile.light` |
+| `AnimateTile` | `Main.AnimateTiles` (só se algum tile o usa) |
+| `SetDrawPositions`, `AnimateIndividualTile`, `SetSpriteEffects` | o desenho nativo (`GetTileDrawData`); marca `tile.drawdata` |
+| `PreDraw`, `PostDraw`, `DrawEffects`, `SpecialDraw`, `EmitParticles` | passada depois do `TileDrawing.PostDrawTiles`; marca `tile.draw` |
+| `RightClick`, `MouseOver`, `MouseOverFar` | `Player.TileInteractions*`; filtro de tile |
+| `HitWire` | `Wiring.HitWireSingle`; marca `tile.wire` |
+| `RandomUpdate` | `WorldGen.UpdateWorld_*Tile`; marca `tile.random` |
+| `NearbyEffects` | `SceneMetrics.Scan` |
+| `PlaceInWorld` | `TileObjectData.CallPostPlacementPlayerHook` e `WorldGen.PlaceTile` (colocando) |
+| `Slope` | `WorldGen.SlopeTile`/`PoundTile`; marca `tile.slope` |
+| `ModifySittingTargetInfo`, `ModifySleepingTargetInfo` | `PlayerSittingHelper`/`PlayerSleepingHelper` |
+| `IsLockedChest`, `UnlockChest`, `LockChest` | `Chest.IsLocked`/`Unlock`/`Lock`; marca `tile.chest` |
 
 ### Para chamar
 
 | | |
 |---|---|
 | `AddMapEntry(cor, nome)` | A cor no mapa (a do jogo mais próxima). |
+| `RegisterItemDrop(item, ...estilos)` | O item que cai. |
+| `CreateMapEntryName()` | O nome da classe. |
 | `ModTile.register`, `getTypeByName`, `getModTile`, `isModType` | |
 | `bl.tiles.typeAt(x, y)` | O tipo do tile ativo numa posição (-1 se não há). |
+| `MusicLoader.AddMusicBox(mod, slot, item, tile)` | Caixa de música de mod. |
 
 ### Ainda não
 
-Portas, cadeiras, baús e outros móveis com comportamento próprio (só a forma e
-o quebrar vêm do `TileObjectData`), paredes (`ModWall`), estação de criação de
-mod, `NearbyEffects`, `RandomUpdate`, `PlaceInWorld`, animação de
-tile.
+`ModWall`, `ModTree`/`ModPalmTree`/`ModCactus`, `ModPylon`, o balanço ao vento
+(`MultiTileVine`), `ModifyFrameMerge`/`PostTileFrame`, `SwitchTiles`,
+`HasSmartInteract`, `GetTorchLuck`; NPC da vila não abre porta de mod.
 
 ---
 
@@ -755,4 +764,4 @@ diretos ([guia 1](../mods/01-hooks-do-zero.md)), mas sem atalho:
   `ModRarity`, `ModWaterStyle` e os estilos de fundo;
 - `ModKeybind`, `ModCommand`, `ModConfig`;
 - interface própria (`UIState`, `ModifyInterfaceLayers`);
-- `ModTile` com comportamento de móvel (porta, cadeira, baú, estação de criação).
+- `ModTree`, `ModPalmTree`, `ModCactus` e os pilares (`ModPylon`).

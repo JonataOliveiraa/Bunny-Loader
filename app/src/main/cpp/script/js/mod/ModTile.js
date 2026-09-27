@@ -1,4 +1,5 @@
 // Uma instância por tipo. Móvel (várias células): TileObjectData no SetStaticDefaults.
+// Os parâmetros `ref` do tModLoader chegam como Ref (.value).
 class ModTile {
     Type = undefined;
     Texture = this.constructor.name;
@@ -7,8 +8,17 @@ class ModTile {
     MinPick = 0;
     MineResist = 1;
     ItemDrop = undefined;   // undefined = o item de mod que coloca este tile
+    AdjTiles = [];          // conta como estas estações de criação (TileID.WorkBenches...)
+    AnimationFrameHeight = 0;
+    // false: SetDrawPositions/AnimateIndividualTile/SetSpriteEffects rodam em todo
+    // desenho (para quem anima por outro contador que não o Main.tileFrame do tipo).
+    CacheDrawData = true;
+    VanillaFallbackOnModDeletion = 0;
+
+    get HighlightTexture() { return this.Texture + '_Highlight'; }
 
     SetStaticDefaults() {}
+    PostSetDefaults() {}
     PostSetupContent() {}
 
     // A cor no mapa. Sem AddMapEntry, o tile fica fora do mapa.
@@ -17,12 +27,58 @@ class ModTile {
         if (this.mapEntries.length === 1) bl.tiles.setMapColor(this.Type, color.R, color.G, color.B);
     }
 
-    CanKillTile(i, j) { return true; }
+    CreateMapEntryName() { return this.constructor.name; }
+
+    // O item que sai ao quebrar: de todos os estilos, ou só dos `styles`.
+    RegisterItemDrop(itemType, ...styles) {
+        const drops = this.itemDrops || (this.itemDrops = new Map());
+        if (!styles.length) drops.set(-1, itemType);
+        for (const style of styles) drops.set(style, itemType);
+    }
+
+    GetMapOption(i, j) { return 0; }
+
+    CanKillTile(i, j, blockDamaged) { return true; }
     KillTile(i, j, fail, effectOnly, noItem) {}
     // Um objeto saiu inteiro: (i, j) é o canto de cima à esquerda; frameX/frameY, o quadro dele.
     KillMultiTile(i, j, frameX, frameY) {}
-    CreateDust(i, j) { return true; }
+    NumDust(i, j, fail, num) {}
+    CreateDust(i, j, type) { return true; }
     KillSound(i, j, fail) { return true; }
+    CanDrop(i, j) { return true; }
+    // Os itens que saem: tipos, ou { type, stack }. undefined = o de sempre.
+    GetItemDrops(i, j) { return undefined; }
+    PlaceInWorld(i, j, item) {}
+
+    ModifyLight(i, j, r, g, b) {}
+    AnimateTile(frame, frameCounter) {}
+    AnimateIndividualTile(type, i, j, frameXOffset, frameYOffset) {}
+    SetDrawPositions(i, j, width, offsetY, height, tileFrameX, tileFrameY) {}
+    SetSpriteEffects(i, j, spriteEffects) {}
+    // Com PreDraw sobrescrito, o jogo não desenha o tile: false = nem o desenho padrão.
+    PreDraw(i, j, spriteBatch) { return true; }
+    PostDraw(i, j, spriteBatch) {}
+    DrawEffects(i, j, spriteBatch, drawData) {}
+    SpecialDraw(i, j, spriteBatch) {}
+    EmitParticles(i, j, tile, tileFrameX, tileFrameY, tileLight, visible) {}
+    NearbyEffects(i, j, closer) {}
+
+    RightClick(i, j) { return false; }
+    MouseOver(i, j) {}
+    MouseOverFar(i, j) {}
+    HasSmartInteract(i, j, settings) { return false; }
+    HitWire(i, j) {}
+    Slope(i, j) { return true; }
+    RandomUpdate(i, j) {}
+    TileFrame(i, j, resetFrame, noBreak) { return true; }
+
+    ModifySittingTargetInfo(i, j, info) {}
+    ModifySleepingTargetInfo(i, j, info) {}
+
+    IsLockedChest(i, j) { return false; }
+    UnlockChest(i, j, frameXAdjustment, dustType, manual) { return false; }
+    LockChest(i, j, frameXAdjustment, manual) { return false; }
+    DefaultContainerName(frameX, frameY) { return this.CreateMapEntryName(); }
 
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModTile)) {
@@ -39,10 +95,12 @@ class ModTile {
             texture: ModFiles.Texture(inst.Texture),
             setStaticDefaults() {
                 inst.SetStaticDefaults();
+                TileLoader.AfterStaticDefaults(inst);
             },
         });
         inst.Type = type;
         TileLoader.ByType.set(type, inst);
+        TileLoader.Mark(inst, cls);
 
         Ready.Add(() => Safe.Run(name + '.PostSetupContent', () => inst.PostSetupContent()));
         Hooks.Once('tile.hooks', TileLoader.Install);

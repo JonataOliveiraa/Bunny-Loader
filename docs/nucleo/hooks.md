@@ -293,6 +293,8 @@ se a maioria das chamadas não interessa ao mod, é melhor nem entrar.
 | `{ minType: N, on: i, field: 'shoot' }` | O mesmo, com outro campo int. | O gancho de escalar (`item.shoot`). |
 | `{ minType: N, tile: i }` | O parâmetro `i` é um `Tile`: o tipo do bloco é lido do mundo. | Hooks do `ModTile`: bater em terra não entra no JS. |
 | `{ minType: N, tileAt: [i, j] }` | Os parâmetros `i` e `j` são a posição; o tipo é lido do mundo. | `WorldGen.KillTile`, `CanKillTile`. |
+| `{ minType: N, arg: i }` | O parâmetro `i` já é o tipo (um inteiro: `int`, `ushort`...). | `CallPostPlacementPlayerHook` (o tipo colocado). |
+| `{ ..., marks: 'nome' }` | Junto de um dos filtros de tipo: o tipo lido também tem de estar marcado com `bl.hookMarks.set('nome', tipo)`. Marcar depois de instalar vale na hora. | Os hooks de todo quadro do `ModTile` (`ModifyLight`, `HitWire`...): só os tipos que sobrescrevem aquele método entram. |
 | `{ whileIn: outroMetodo }` | Só entra se esta thread estiver dentro do hook JS de `outroMetodo` (lê o `g_depth` do slot dele). | `SpriteBatch.DrawString` só durante o desenho do tooltip. |
 | `{ ifBusy: 'original' \| 'skip' }` | O que fazer se o motor estiver com outra thread. | Os hooks da música de mod. |
 
