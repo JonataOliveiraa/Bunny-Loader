@@ -240,7 +240,14 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
 
     int at = 0;
     if (c->isInstance && at < argc) {
-        if (void* s = structDataOf(argv[at], nullptr, nullptr)) {
+        // O proprio `self` que o jogo passou volta como veio, sem ler nada
+        // dele: um metodo que nao usa o `this` pode ser chamado com lixo no
+        // registrador (o GUINPCDialogue.Draw chama o Option1Clicked com 0x1),
+        // e perguntar a classe desse "objeto" derrubava o jogo.
+        Il2CppObject* same = objectFromJS(argv[at]);
+        if (same && reinterpret_cast<intptr_t>(same) == a[0]) {
+            // a[0] ja e ele
+        } else if (void* s = structDataOf(argv[at], nullptr, nullptr)) {
             a[0] = reinterpret_cast<intptr_t>(s);
         } else if (Il2CppObject* o = objectFromJS(argv[at])) {
             a[0] = reinterpret_cast<intptr_t>(o);
@@ -324,7 +331,10 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
         argv[argc++] = makeStructView(ctx, c->selfStruct, reinterpret_cast<void*>(rawA[0]),
                                       JS_UNDEFINED);
     } else if (c->isInstance) {
-        argv[argc++] = makeNativeObject(ctx, reinterpret_cast<Il2CppObject*>(rawA[0]));
+        // Metodo que nao usa o `this` pode chegar com lixo no lugar dele (ver
+        // js_original). Um endereco baixo demais para ser objeto vira null.
+        argv[argc++] = rawA[0] >= 0x10000
+            ? makeNativeObject(ctx, reinterpret_cast<Il2CppObject*>(rawA[0])) : JS_NULL;
     }
     const int firstParam = argc;
     for (const ParamPlan& p : c->abi.params) {

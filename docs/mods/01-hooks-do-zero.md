@@ -348,6 +348,15 @@ seus. Confira o `type` (ou o `whoAmI`, o `owner`) antes de mexer. Quando só
 os de mod interessam, o filtro nativo `minType` evita até entrar no JS (ver
 [custo](03-custo-e-desempenho.md#filtros-nativos)).
 
+### `self` pode vir `null`
+
+Um método que não usa o próprio objeto pode ser chamado pelo jogo sem ele: o
+compilador do jogo percebe que o `this` não é lido e não se dá ao trabalho de
+passá-lo. É o caso do `GUINPCDialogue.Option1Clicked` (o botão "Loja" da
+conversa). O `self` desse hook chega `null`, ou, raramente, como um objeto
+inválido. Repasse-o ao `original` como veio (`original(self, ...)`), que o
+Bunny Loader devolve ao jogo o valor que ele mandou, e não leia nada dele.
+
 ### O hook vê as chamadas do próprio mod
 
 Um hook pega também a chamada que o **seu** código fizer ao método, fora do

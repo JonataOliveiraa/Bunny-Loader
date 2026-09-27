@@ -264,6 +264,12 @@ A função que o callback recebe como primeiro argumento:
   se for método de instância); os que faltarem ficam como vieram. O `const
   MethodInfo*` escondido no fim também fica intacto, porque o ponto de partida
   são os registradores salvos, não um conjunto montado do zero.
+- O `self` que o hook recebeu, repassado de volta, **não é lido**: vai o
+  registrador como chegou. O jogo chama um método que não usa o `this` sem
+  pô-lo em `x0` (o compilador sabe que ninguém o lê), e ali fica lixo. O
+  `GUINPCDialogue.Draw` chama o `Option1Clicked` com `0x1`. Perguntar a
+  classe desse "objeto" para ver se era um struct derrubava o jogo ao abrir
+  qualquer loja do jogo. Um `x0` abaixo de `0x10000` já chega ao JS como `null`.
 - Só vale **dentro do próprio hook, durante a chamada**. Guardada numa
   variável e chamada depois, ela rodaria com os registradores de outra
   chamada: o despachante recusa com `TypeError`.
