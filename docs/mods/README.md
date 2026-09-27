@@ -7,7 +7,9 @@ projéteis, inimigos, chefes, moradores, blocos, buffs, sons e músicas.
 
 Não precisa compilar nada nem mexer no jogo: um mod é uma pasta com um
 `manifest.json` e um `main.js`. Para quem vem do tModLoader, as classes têm os
-mesmos nomes e o mesmo formato (`ModItem`, `ModNPC`, `SetDefaults`, `AI`...).
+mesmos nomes e o mesmo formato (`ModItem`, `ModNPC`, `SetDefaults`, `AI`...), e
+o pacote tem a mesma estrutura: a classe `Mod` no arquivo de entrada, e as
+pastas `Assets/`, `Common/`, `Content/` e `Localization/`.
 
 ![A aba Pacotes do Bunny Loader, com os mods instalados](../imagens/launcher-pacotes.jpg)
 
@@ -17,15 +19,17 @@ mesmos nomes e o mesmo formato (`ModItem`, `ModNPC`, `SetDefaults`, `AI`...).
 flowchart LR
     subgraph Pacote["seu mod (bunny_packs/(uid)/)"]
         M["manifest.json"]
-        J["content/main.js<br/>+ outros .js, texturas, sons"]
+        J["content/main.js (a classe Mod)<br/>+ Content/, Common/, Assets/"]
     end
-    J -- "roda uma vez,<br/>ao abrir o jogo" --> R["registra classes<br/>e instala hooks"]
+    J -- "carrega uma vez,<br/>ao abrir o jogo" --> R["registra as classes<br/>e roda o Load"]
     R --> G["Terraria"]
     G -- "a cada quadro, a cada<br/>item criado, a cada golpe..." --> C["seus métodos:<br/>SetDefaults, AI, callbacks"]
 ```
 
-1. Ao abrir o jogo, o Bunny Loader roda o `main.js` de cada mod ligado, **uma
-   vez**. É ali que o mod registra as classes dele e instala os hooks.
+1. Ao abrir o jogo, o Bunny Loader carrega cada mod ligado, **uma vez**: roda
+   o `main.js` e os arquivos de `Content/` e `Common/`, registra sozinho toda
+   classe de conteúdo que eles exportam e chama o `Load()` da classe `Mod`,
+   onde o mod instala os hooks dele.
 2. Depois, é o **jogo** que chama o mod: a cada quadro, a cada item que nasce,
    a cada golpe. O código do mod roda dentro desses momentos.
 3. Todos os mods rodam no **mesmo motor JavaScript** (o QuickJS), então um mod
@@ -37,6 +41,8 @@ Leia na ordem; cada um usa o anterior.
 
 | Guia | O que ensina |
 |---|---|
+| **Antes de começar** | |
+| [0. Como funciona: do TL Pro ao Bunny Loader](00-como-funciona.md) | O fluxo inteiro, do boot ao `UseItem`: quem hooka, o que é C++ e o que é JS, e a diferença para o ExMod do TL Pro. Opcional. |
 | **A ponte com o jogo** | |
 | [1. Hooks: mudar o que o jogo já tem](01-hooks-do-zero.md) | O primeiro mod. Classes, campos, métodos, structs e, principalmente, hooks. |
 | [2. `ref` e `out`](02-ref-e-out.md) | Chamar e hookar métodos que devolvem por parâmetro: pesca, taxa de spawn, colisão. |
@@ -47,7 +53,7 @@ Leia na ordem; cada um usa o anterior.
 | [6. Projéteis](06-projeteis.md) | `ModProjectile`: IA, colisão, desenho; pets, lacaios e sentinelas. |
 | [7. NPCs](07-npcs.md) | `ModNPC`: inimigos, drops, spawn natural, Bestiário, moradores com loja e chefes. |
 | [8. Jogador e buffs](08-jogador-e-buffs.md) | `ModPlayer` (dash, dados salvos) e `ModBuff`. |
-| [9. Blocos](09-blocos.md) | `ModTile`: blocos 1x1, e como o mundo salvo continua abrindo sem o mod. |
+| [9. Blocos](09-blocos.md) | `ModTile`: blocos e móveis (`TileObjectData`), e como o mundo salvo continua abrindo sem o mod. |
 | [10. Sons e música](10-sons-e-musica.md) | `SoundStyle`, `SoundEngine.PlaySound`, música de chefe. |
 | **Entre mods** | |
 | [11. Conversa entre mods](11-conversa-entre-mods.md) | Achar outro mod e chamar o que ele oferece (`ModLoader.TryGetMod` + `Call`). |
@@ -84,12 +90,61 @@ MeuMod/
   banner.png         capa da ficha do mod, ~3,4:1, ex. 384x112 (opcional)
   thumbnails/        imagens extras da ficha, .png ou .jpg (opcional)
   content/           o mod em si
-    main.js          o arquivo de entrada (o nome vem do manifesto)
-    ...              o que mais ele usar: outros .js, texturas, traduções, sons
+    main.js          o arquivo de entrada: a classe Mod (o nome vem do manifesto)
+    Assets/
+      Textures/      PNGs: Items/, NPCs/, Projectiles/, Tiles/, Buffs/, Gores/...
+      Sounds/        efeitos (.ogg, .wav, .mp3)
+      Music/         músicas
+    Common/          o que não é coisa nova: ModPlayer, ModSystem, Global*
+    Content/         o que é novo: itens, NPCs, projéteis, blocos, buffs...
+    Localization/    en-US.json, pt-BR.json...
 ```
 
-Tudo o que o mod lê (outro `.js`, uma textura, um `.json`) fica dentro de
-`content/`, e os caminhos no código são relativos a ela.
+É a estrutura do tModLoader. Tudo o que o mod lê (outro `.js`, uma textura, um
+`.json`) fica dentro de `content/`, e os caminhos no código são relativos a ela.
+
+### O arquivo de entrada
+
+Ele **precisa** exportar a classe do mod, que estende `Mod`, como o
+`public class ExampleMod : Mod` do tModLoader:
+
+```js
+// content/main.js
+export default class MeuMod extends Mod {
+    Load() {
+        // hooks e o que mais for do mod inteiro
+    }
+}
+```
+
+Sem ela o mod não carrega, e o log diz por quê. O Bunny Loader cria a classe
+sozinho (nada de `new`): o objeto dela é o `bl.mod` do seu mod e o que outro mod
+recebe no `ModLoader.GetMod` ([guia 11](11-conversa-entre-mods.md)).
+
+### O registro automático
+
+Toda classe **exportada** pelo `main.js` ou por um `.js` de `Content/` e
+`Common/` que estende `ModItem`, `ModNPC`, `ModProjectile`, `ModTile`, `ModBuff`,
+`ModPlayer`, `ModSystem`, `GlobalItem`, `GlobalNPC`, `GlobalProjectile` ou
+`GlobalLoot` é registrada sozinha, sem `import` no `main.js` nem `register`:
+
+```js
+// content/Content/Items/Espada.js
+export class Espada extends ModItem {
+    SetDefaults() { this.Item.damage = 30; }
+}
+```
+
+- A **textura** sai de `Assets/Textures/` no mesmo caminho do arquivo:
+  `Content/Items/Espada.js` usa `Assets/Textures/Items/Espada.png`. Se não
+  houver, vale o primeiro PNG com o nome da classe em `Assets/Textures/`; e
+  `this.Texture = 'Items/OutraImagem'` escolhe outra.
+- A ordem é fixa (buffs, jogadores, NPCs, projéteis, itens, blocos, sistemas e
+  globais; dentro de cada um, pelo caminho do arquivo), então o tipo de cada
+  coisa é o mesmo em todo aparelho, o que o multijogador exige.
+- `static Autoload = false` deixa uma classe de fora: uma base que outras
+  estendem, ou uma que você registra na mão no `Load()` com `ModItem.register(X)`.
+- Uma classe que não é de mod (um ajudante exportado) é ignorada.
 
 ### O `manifest.json`
 
@@ -104,7 +159,7 @@ Tudo o que o mod lê (outro `.js`, uma textura, um `.json`) fica dentro de
   "summary": "Uma linha, para o cartão da lista.",
   "description": "Um parágrafo, para a ficha do mod.",
   "updated": "2026-09-24",
-  "blVersion": 1,
+  "blVersion": 2,
   "entry": "main.js"
 }
 ```
@@ -116,7 +171,7 @@ Tudo o que o mod lê (outro `.js`, uma textura, um `.json`) fica dentro de
 | `name`, `author`, `version` | O que a lista mostra. |
 | `category` | Texto livre. `Textura`, `Armas`, `Jogabilidade`, `Cheat`, `Utilidade` e `Itens` ganham cor e ícone próprios. |
 | `summary`, `description`, `updated` | O cartão e a ficha do mod. `updated` é `AAAA-MM-DD`. |
-| `blVersion` | Versão da API do Bunny Loader que o mod usa. Hoje, `1`. Um mod que pede uma versão maior que a do app é recusado na importação. |
+| `blVersion` | O formato do pacote. Hoje, `2`: a estrutura acima, com a classe `Mod` no arquivo de entrada. O `1` (sem a classe `Mod`) não carrega mais: o app o mostra como "Formato antigo" e recusa na importação, assim como um pacote que pede uma versão maior que a do app. |
 | `entry` | O arquivo de entrada, relativo a `content/`. Padrão: `main.js`. |
 
 ## Instalando
@@ -166,11 +221,27 @@ O jogo lê os mods **uma vez**, ao abrir. O ciclo de quem desenvolve é:
 
 ![O diálogo de reiniciar](../imagens/reiniciar.jpg)
 
-Para testar uma linha sem reiniciar, há o **Console JS**: no Mod Menu, ou
+Para não passar pelo título a cada vez, ligue o **Início rápido** no launcher
+(*Config* > *Desenvolvedor*) e escolha o personagem e o mundo. O jogo abre
+direto nesse mundo, sem a logo da Re-Logic e sem nenhum toque, e o
+**Reiniciar** volta direto para ele. No emulador, do toque em Jogar até estar
+no mundo caiu de ~17 s só para chegar ao título para ~11 s já no mundo. A
+opção "Nenhum: parar no título" deixa só a abertura rápida.
+
+Na mesma seção há três interruptores para o que aparece dentro do jogo: o
+**Mod Menu** (o coelho), o **Editor de JS** e o **Reiniciar**. Sem o Mod Menu e
+com o Editor, o botão flutuante vira o de JS e abre direto o Editor; sem o Mod
+Menu, nenhum poder volta ligado da partida anterior.
+
+Se o personagem ou o mundo não existe mais (ou um é de Jornada e o outro não),
+o jogo avisa no painel de erro e para no título ou na lista de mundos. O log
+de sessão mostra os tempos de cada etapa, nas linhas `inicio rapido: ...`.
+
+Para testar uma linha sem reiniciar, há o **Editor** de JavaScript: no Mod Menu, ou
 **segurando** o botão do coelho. Ele fica no pé da tela, e o jogo continua
 visível e jogável acima dele.
 
-![O console JS, com o resultado de cada linha, o chat e o log](../imagens/console.jpg)
+![O editor de JavaScript, com o resultado de cada linha, o chat e o log](../imagens/console.jpg)
 
 - O código roda na **thread do jogo**, no próximo quadro, como num hook. `Main`,
   `ID` e `player` (o seu jogador) já estão prontos:
@@ -180,18 +251,22 @@ visível e jogável acima dele.
   dos hooks e das classes deles.
 - `print(...valores)` escreve no **chat do jogo**; `bl.chat(texto, cor)` faz o
   mesmo com cor (`'#ff5050'`, `{ R, G, B }` ou um `Color`). Os dois valem em
-  qualquer mod, não só no console.
+  qualquer mod, não só no editor.
 - `let` e `const` valem só naquela execução, e o mesmo trecho roda de novo sem
   erro de redeclaração. Para guardar algo de uma execução para a outra: `var`
   ou `globalThis.x`.
 - Um laço sem fim para sozinho depois de **8 s**, com um aviso, e o jogo segue.
-- O editor tem cores de sintaxe, recuo automático, uma barra com os símbolos
-  que o teclado do celular esconde (`{ } ( ) [ ] ; =>`...), e o histórico nas
-  setas ▲▼. O histórico e o rascunho sobrevivem ao Reiniciar. Num teclado
-  físico, Ctrl+Enter roda.
+- O editor tem cores de sintaxe, recuo automático e o histórico nas setas ▲▼.
+  O histórico e o rascunho sobrevivem ao Reiniciar. Num teclado físico,
+  Ctrl+Enter roda.
 - Com o teclado aberto, o painel sobe junto e fica logo acima dele, sem a tela
-  cheia de edição do Android e sem empurrar o jogo. `_` recolhe o painel até
-  sobrar só a barra do topo.
+  cheia de edição do Android e sem empurrar o jogo.
+- **Tela cheia** cobre o jogo e o **congela** (a pausa do próprio jogo, a do
+  inventário aberto): nada anda no mundo até você minimizar ou fechar. O
+  código que você roda continua valendo. Só no modo um jogador; num mundo com
+  outras pessoas o jogo não para.
+- `_` minimiza: o painel vira um ícone flutuante de JS, que dá para arrastar e
+  que reabre o Editor em tela cheia. O X fecha o Editor e tira o ícone.
 
 ## Vendo o que o mod faz
 
@@ -229,8 +304,11 @@ JSON: `bl.log('vida', player.statLife, { x: 1 })` escreve `vida 400 {"x":1}`.
 
 ### Quando dá erro
 
-- Um erro no **topo** do `main.js` impede o mod de carregar e aparece no log
-  com a linha. Os outros mods carregam normalmente.
+- Um erro no **topo** de um arquivo do mod, no registro de uma classe ou no
+  `Load()` impede o mod de carregar e aparece no log com a linha (e, no
+  registro, com a classe e o arquivo). Um arquivo de entrada sem
+  `export default class ... extends Mod` também. Os outros mods carregam
+  normalmente.
 - Um erro dentro de um **hook** não derruba o jogo: é logado a **cada**
   chamada (um erro num hook de todo quadro enche o log rápido), e se o
   callback quebrou antes de chamar o `original`, o Bunny Loader chama o método

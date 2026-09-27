@@ -306,10 +306,10 @@ recusado na instalação, com a mensagem dizendo o porquê.
 
 - **Os mods**, com `.hook()`. Cada chamada ocupa um slot.
 - **As classes de mod** (`ModItem`, `ModNPC`...), em
-  [`ModClasses.js`](../../app/src/main/cpp/script/js/ModClasses.js). Cada
+  [`script/js/mod/`](../../app/src/main/cpp/script/js/mod/). Cada
   método do jogo por trás de um método de classe só é hookado quando **alguma**
   classe registrada sobrescreve aquele método, e **uma vez** para todos os
-  mods (`once(...)`). Quase todos com filtro nativo de tipo.
+  mods (`Hooks.Once(...)`, nos `Loaders/`). Quase todos com filtro nativo de tipo.
 - **O próprio núcleo**, em C++, com `hook::install` (sem slot, sem JS): o
   tick no `Main.DoUpdate`, os limites de tipo, os saves.
 

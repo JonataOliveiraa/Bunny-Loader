@@ -11,6 +11,7 @@ A documentação tem três partes, para três leitores:
 [**Guias de mod**](mods/README.md): do primeiro hook ao chefe com música, na
 ordem de leitura.
 
+0. [Como funciona: do TL Pro ao Bunny Loader](mods/00-como-funciona.md)
 1. [Hooks: mudar o que o jogo já tem](mods/01-hooks-do-zero.md)
 2. [`ref` e `out`](mods/02-ref-e-out.md)
 3. [Custo e desempenho](mods/03-custo-e-desempenho.md)

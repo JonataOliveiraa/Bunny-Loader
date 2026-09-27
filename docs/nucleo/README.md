@@ -50,7 +50,7 @@ flowchart TB
     K -- "carrega e configura" --> B
     B -- "hooks e chamadas" --> U
     B -- "embute" --> Q
-    M -- "main.js" --> Q
+    M -- "main.js, Content/, Common/" --> Q
 ```
 
 ## O processo
@@ -85,8 +85,8 @@ sequenceDiagram
     U->>B: il2cpp_init (hookado)
     B->>U: deixa terminar, depois carrega a API do IL2CPP e resolve GameRefs
     S->>S: espera o jogo assentar
-    S->>B: QuickJS + bindings + ModClasses.js
-    S->>B: ModLoader: roda o main.js de cada mod ligado
+    S->>B: QuickJS + bindings + classes de mod (script/js/mod/)
+    S->>B: ModLoader: carrega cada mod ligado (classe Mod + conteúdo)
     S->>B: saves de conteúdo, Mod Menu (botão na tela)
     G->>B: 1º Main.DoUpdate (hook C++)
     B->>G: a cada quadro: tabelas de conteúdo, poderes, pedidos do menu
@@ -113,7 +113,7 @@ Em ordem:
 5. **A sonda** ([`boot/Probe.cpp`](../../app/src/main/cpp/boot/Probe.cpp))
    espera o jogo assentar (chamar a API do IL2CPP durante a inicialização
    derruba o processo), sobe o QuickJS, instala a ponte e as classes de mod, e
-   roda o `main.js` de cada mod ligado. Depois instala os saves de conteúdo e
+   carrega cada mod ligado. Depois instala os saves de conteúdo e
    o Mod Menu. O motor JS nasce e carrega os mods na **mesma** thread (ver
    [threads](threads-e-motor-js.md#a-trava-jslock)).
 6. **Thread do jogo.** O núcleo tem um hook C++ no `Main.DoUpdate`
@@ -129,23 +129,75 @@ e `DevTools.java`) salva, se pedido, na thread do jogo; depois o Java abre a
 espera o processo antigo sumir e abre a `GameActivity` num processo novo, que
 sobe tudo do zero e lê os mods da pasta outra vez.
 
+### Início rápido
+
+Opção de desenvolvedor do launcher (*Config* > *Desenvolvedor*), em
+[`boot/QuickStart.cpp`](../../app/src/main/cpp/boot/QuickStart.cpp). Desligada,
+nada dela é instalado. Ligada:
+
+1. **O splash.** A logo da Re-Logic do celular é **cronometrada**: o
+   `Main.DrawSplash` calcula o quadro pelo relógio (`splashCounter = ms × 60 /
+   1000`, visto na disassembly) e só acaba no quadro 620, 10,3 s depois de o
+   cronômetro partir, tenha o jogo terminado de carregar ou não. Medido no
+   emulador: o conteúdo pronto ("Finished" da Unity) em ~7 s e o splash na
+   tela até ~16 s. O hook no `DrawSplash` (instalado no `boot()`, logo depois
+   do `il2cpp_init`) adianta o cronômetro assim que o jogo carregou **e** os
+   mods também; o próprio `DrawSplash` roda o fim de sempre
+   (`Initialize_AlmostEverything`, `PostContentLoadInitialize`, título).
+2. **A sonda** acorda quando o jogo termina de carregar, em vez de esperar os
+   10 s fixos (que continuam como teto). Os mods seguem carregando antes do
+   resto da inicialização do jogo, como sempre. A decisão não pode ser da
+   sonda: ela nasce no construtor da `libbunny`, antes de o `NativeBridge.init`
+   entregar a config; quem acorda a sonda é o hook, que só existe com a opção.
+3. **A entrada no mundo** (`tickQuickStart`, no `hkDoUpdate`), com o título na
+   tela e o conteúdo de mod pronto (`contentSettled`): o que os botões "Jogar"
+   das duas listas fazem — `Main.LoadPlayers`, `Main.SelectPlayer`,
+   `SetAsActive` do mundo, `menuMode = 10` e `WorldGen.playWorld`. O
+   personagem e o mundo chegam pelo nome do arquivo (`Bench.plr`). O aviso
+   "Gostaria de editar os controles agora?" que o `Player.Spawn` abre enquanto
+   os controles de toque nunca foram configurados é dispensado só nesta sessão
+   (`DisableCheck`; o `Main.PerformedTouchInputConfig` iria para o save).
+
 ### Os mods: módulos, em duas passadas
 
 [`mods/ModLoader.cpp`](../../app/src/main/cpp/mods/ModLoader.cpp):
 
-- cada `main.js` é um **módulo ES** (modo estrito, escopo próprio). Dois mods
-  podem ter um `const Update` cada um sem colidir; `import` relativo funciona
-  dentro do mod, com o módulo nomeado `<uid>/<caminho>`;
+- cada arquivo de mod é um **módulo ES** (modo estrito, escopo próprio). Dois
+  mods podem ter um `const Update` cada um sem colidir; `import` relativo
+  funciona dentro do mod, com o módulo nomeado `<uid>/<caminho>`;
 - a carga tem **duas passadas**: primeiro todos os manifestos são lidos e
   todo mod ganha o seu objeto `Mod` (com `id`, `name`, `version`); só depois
-  os `main.js` rodam, em ordem de `uid`. Assim `ModLoader.TryGetMod` acha um
-  mod cujo `main.js` ainda não rodou ([guia 11](../mods/11-conversa-entre-mods.md));
+  os mods carregam, em ordem de `uid`. Assim `ModLoader.TryGetMod` acha um
+  mod que ainda não carregou ([guia 11](../mods/11-conversa-entre-mods.md));
+- carregar um mod é o `ScriptEngine::loadMod`
+  ([`script/bridge/ScriptEngine.cpp`](../../app/src/main/cpp/script/bridge/ScriptEngine.cpp)):
+  ele importa o arquivo de entrada e os `.js` de `Common/` e `Content/` (em
+  ordem alfabética, a mesma em todo aparelho) e entrega os namespaces ao
+  carregador em JS ([`script/js/mod/Core/ContentAutoload.js`](../../app/src/main/cpp/script/js/mod/Core/ContentAutoload.js)),
+  que exige a classe `Mod` no `export default` do de entrada, registra as
+  classes de conteúdo exportadas numa ordem fixa por tipo e roda o `Load()`;
 - o núcleo sabe **qual mod** está chamando pela pilha de módulos do QuickJS, e
   é assim que `bl.mod`, `bl.loadTexture('x.png')` e `bl.file.read('...')`
   resolvem caminhos relativos para a pasta certa, mesmo dentro de um hook,
   muito depois da carga;
-- um mod que lança erro no topo do `main.js` fica marcado como falho; os
-  outros carregam normalmente.
+- um mod que lança erro (no topo de um arquivo, no registro ou no `Load()`),
+  ou sem a classe `Mod`, fica marcado como falho; os outros carregam
+  normalmente.
+
+As classes de mod (`Mod`, `ModItem`, `ModNPC`...) são JS embutido na
+`libbunny`: [`script/js/mod/`](../../app/src/main/cpp/script/js/mod/), uma classe
+por arquivo, que o CMake junta numa função só, na ordem da lista do
+`CMakeLists.txt`, em `ModClassesJs.h`:
+
+- na raiz, a API que os mods usam (`ModItem.js`, `ModNPC.js`, `ModTile.js`...);
+- `Loaders/`, o registro e os hooks do jogo de cada conteúdo (`ItemLoader`,
+  `NPCLoader`, `TileLoader`...), como os do tModLoader;
+- `Core/`, o que todos usam (`Safe`, `Hooks`, `Ready`, `Entities`, o registro
+  dos mods, a rede, a carga);
+- `Enums/`, as constantes (`AffectionLevel`, `SceneEffectPriority`...).
+
+Os métodos internos começam com maiúscula (`TileLoader.CheckObject`); a API
+dos mods mantém os nomes que já tinha (`ModItem.register`, `getTypeByName`).
 
 ## As pastas
 
@@ -157,7 +209,7 @@ app/src/main/cpp/
   il2cpp/     A API do IL2CPP (Api: il2cpp_* por dlsym), Resolver
               (nome → classe/método/campo), Signature (casar assinaturas)
   hook/       HookManager (hooks encadeados) e CodePatch (limites compilados)
-  mods/       ModLoader: acha os pacotes e roda o main.js de cada um
+  mods/       ModLoader: acha os pacotes e carrega cada um
   content/    O conteúdo de mod nas tabelas do jogo
     common/     ModContent (bl.onContentReady), TypeTables (tabelas por tipo),
                 ContentAssets (textura, nome), GameRefs, TileAccess
@@ -174,13 +226,13 @@ app/src/main/cpp/
                 QuickJsExt.c
     api/        O bl.* dos mods: itens, NPCs, projéteis, buffs, tiles,
                 texturas, arquivos, sons; ModClasses.cpp embute o JS
-    js/         ModClasses.js (ModItem, ModNPC... e os hooks das classes) e
-                ModHelpers.js (Vector2, Color, Rand...)
+    js/         mod/ (Mod, ModItem, ModNPC... e os hooks das classes, um
+                arquivo por assunto) e ModHelpers.js (Vector2, Color, Rand...)
   third_party/  QuickJS (clonado à parte, ver o README de lá)
 ```
 
 As classes de mod (`ModItem`, `ModNPC`...) são escritas **em JavaScript**
-([`script/js/ModClasses.js`](../../app/src/main/cpp/script/js/ModClasses.js)),
+([`script/js/mod/`](../../app/src/main/cpp/script/js/mod/)),
 embutidas na `libbunny.so` pelo CMake e avaliadas no escopo global antes dos
 mods. Elas usam a mesma ponte e os mesmos hooks que um mod usaria, mais os
 loaders nativos (`bl.items.register`...) para o que só o C++ faz.
