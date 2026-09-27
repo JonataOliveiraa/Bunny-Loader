@@ -5,6 +5,7 @@
 //   C perde a pedra de baixo: sai inteira, com UM item.
 // Rodada 2 (reabrindo o jogo): no 1o quadro a pia A voltou com os quadros
 // salvos, e no quadro 90 (o jogo já enquadrou de novo) ela continua inteira.
+// Depois tudo sai (pia, chão) e o mundo é salvo limpo.
 // Loga "multitile <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 const W = Terraria.WorldGen;
@@ -39,9 +40,10 @@ function itemOfClass(name) {
     return -1;
 }
 
-// A área: 16 de largura, acima do spawn (na tela, para ver a pia); o chão na linha `floor`.
+// A área: 16 de largura, à esquerda e bem acima do spawn, fora do caminho dos
+// outros testes (o de projéteis atira para a direita, na altura da cabeça).
 function area() {
-    const x = Main.spawnTileX + 3, floor = Main.spawnTileY - 7;
+    const x = Main.spawnTileX - 40, floor = Main.spawnTileY - 22;
     return { x, floor, a: x + 1, b: x + 5, c: x + 9 };
 }
 
@@ -69,6 +71,19 @@ function takeDrops() {
         it['void TurnToAir(bool fullReset)'](false);
     }
     return n;
+}
+
+// Tudo em volta da pia salva (o chão e as outras pias da rodada 1), sem drop.
+function clearAround(saved) {
+    const left = Math.min(...saved.map((c) => c.x)), top = Math.min(...saved.map((c) => c.y));
+    for (let i = left - 3; i < left + 18; i++) {
+        for (let j = top - 4; j <= top + 3; j++) if (bl.tiles.typeAt(i, j) >= 0) kill(i, j, true);
+    }
+    takeDrops();
+    check('limpou a área', () => {
+        const left2 = saved.filter((c) => bl.tiles.typeAt(c.x, c.y) >= 0);
+        return left2.length === 0 || show(snap(left2));
+    });
 }
 
 function firstRound() {
@@ -163,8 +178,10 @@ function finish() {
     const now = snap(before);
     check('quadro 90: a pia continua inteira depois de o jogo enquadrar', () => now.every(same) || show(now));
     check('quadro 90: nada caiu', () => { const n = takeDrops(); return n === 0 || n + ' pias caídas'; });
+    clearAround(before);
+    save();
     bl.file.delete(FILE);
-    bl.log('multitile rodada: conferiu');
+    bl.log('multitile rodada: conferiu e limpou');
 }
 
 let frames = 0, done = false;

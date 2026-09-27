@@ -96,7 +96,8 @@ function run() {
             return 'fora da HeadListOrder';
         });
 
-        const room = buildHouse(Main.spawnTileX + 20, Main.spawnTileY - 25);
+        const x0 = Main.spawnTileX + 20, y0 = Main.spawnTileY - 25;
+        const room = buildHouse(x0, y0);
         let exampleItem = -1;
         for (let t = bl.items.vanillaCount; bl.items.isModItem(t); t++) {
             const m = ModItem.getModItem(t);
@@ -108,15 +109,29 @@ function run() {
             return Main.townNPCCanSpawn[type] === true || 'townNPCCanSpawn falso';
         });
 
-        // O Guia sem casa pegaria a sala primeiro: so durante a chamada.
-        // E um morador que ja more na sala (de uma rodada antiga) a bloquearia.
+        // O Guia sem casa pegaria a sala primeiro: so durante a chamada, ele
+        // conta como tendo casa. Mas sem casa ele guarda a casa antiga: se ela
+        // era esta sala (de uma rodada antiga), ele a ocuparia; a casa antiga
+        // sai durante a chamada. E um morador que ja more na sala a bloquearia.
+        const nearRoom = (n) => Math.abs(n.homeTileX - room.x) < 12 && Math.abs(n.homeTileY - room.y) < 12;
+        const townBefore = [];
+        for (let i = 0; i < Main.npc.length - 1; i++) {
+            const n = Main.npc[i];
+            if (n.active && n.townNPC) townBefore.push(`${n.type}${n.homeless ? ' sem casa' : ''}@${n.homeTileX},${n.homeTileY}`);
+        }
         const homeless = [];
         const tenants = [];
         for (let i = 0; i < Main.npc.length - 1; i++) {
             const n = Main.npc[i];
             if (!n.active || !n.townNPC) continue;
-            if (n.homeless) { n.homeless = false; homeless.push(n); }
-            else if (Math.abs(n.homeTileX - room.x) < 12 && Math.abs(n.homeTileY - room.y) < 12) {
+            if (n.homeless) {
+                homeless.push([n, n.homeTileX, n.homeTileY]);
+                n.homeless = false;
+                if (nearRoom(n)) {
+                    n.homeTileX = -1;
+                    n.homeTileY = -1;
+                }
+            } else if (nearRoom(n)) {
                 tenants.push([n, n.homeTileX, n.homeTileY]);
                 n.homeTileX = -1;
                 n.homeTileY = -1;
@@ -128,10 +143,20 @@ function run() {
             const r = W['TownNPCSpawnResult SpawnTownNPC(int x, int y, bool canSpawnNewTownNPC)'](room.x, room.y, true);
             result = typeof r === 'number' ? r : r.value__;
         } finally {
-            for (const n of homeless) n.homeless = true;
+            for (const [n, x, y] of homeless) {
+                n.homeless = true;
+                n.homeTileX = x;
+                n.homeTileY = y;
+            }
             // Sem casa: a sala agora e da Pessoa, e o jogo acha outra para ele.
             for (const [n] of tenants) n.homeless = true;
         }
+        // Por que o jogo recusou (Blocked): o que a checagem da sala deixou nos campos dele.
+        const roomState = `canSpawn ${W.canSpawn}, tiles ${W.numRoomTiles}, hiScore ${W.hiScore}, ` +
+            `porta ${W.roomDoor} mesa ${W.roomTable} cadeira ${W.roomChair} luz ${W.roomTorch} ` +
+            `ocupada ${W.roomOccupied} maligna ${W.roomEvil} percevejo ${W.roomHasStinkbug}; ` +
+            `tiles: mesa ${bl.tiles.typeAt(x0 + 3, y0 - 1)} cadeira ${bl.tiles.typeAt(x0 + 6, y0 - 1)} ` +
+            `tocha ${bl.tiles.typeAt(x0 + 8, y0 - 4)} plataforma ${bl.tiles.typeAt(x0 + 5, y0 - 7)}; moradores antes: ${townBefore.join(' ') || 'nenhum'}`;
         const npc = findNpc(type);
         const neighbors = () => {
             const out = [];
@@ -144,7 +169,7 @@ function run() {
         };
         check('mudanca: o SpawnTownNPC do jogo muda a Pessoa para a casa', () =>
             (result === 1 && npc && !npc.homeless) ||
-            `resultado ${result}, npc ${!!npc}, sem casa ${npc && npc.homeless}, casa ${npc && npc.homeTileX},${npc && npc.homeTileY}, sala ${room.x},${room.y}, moradores perto: ${neighbors()}`);
+            `resultado ${result}, npc ${!!npc}, sem casa ${npc && npc.homeless}, casa ${npc && npc.homeTileX},${npc && npc.homeTileY}, sala ${room.x},${room.y}, moradores perto: ${neighbors()}; ${roomState}`);
         if (!npc) return;
         check('nome proprio da lista do mod', () => NAMES.includes(npc.GivenName) || 'nome ' + npc.GivenName);
         check('fala do mod (GetChat)', () => {
