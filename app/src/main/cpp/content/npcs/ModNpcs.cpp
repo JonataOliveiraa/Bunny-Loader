@@ -69,7 +69,7 @@ struct Refs {
     Il2CppClass* npcCls = nullptr;
     int32_t noAggro = -1;                // Player.npcTypeNoAggro
     int32_t type = -1, netId = -1, active = -1, width = -1, height = -1, frame = -1;
-    int32_t life = -1, lifeMax = -1, damage = -1, defense = -1, defDamage = -1, defDefense = -1;
+    int32_t life = -1, lifeMax = -1, damage = -1, defense = -1, defDamage = -1, defDefense = -1, defLifeMax = -1;
     const MethodInfo* npcCtor = nullptr;
     const MethodInfo* setDefaults = nullptr;
     const MethodInfo* scaleStats = nullptr;
@@ -117,6 +117,7 @@ Refs& refs() {
         r.defense = fieldOffset(npc, "defense");
         r.defDamage = fieldOffset(npc, "defDamage");
         r.defDefense = fieldOffset(npc, "defDefense");
+        r.defLifeMax = fieldOffset(npc, "defLifeMax");
         r.npcCtor = a.class_get_method_from_name(npc, ".ctor", 0);
         r.setDefaults = findMethodBySignature(npc, parseSignature("void SetDefaults(int Type, NPCSpawnParams spawnparams)"));
         r.scaleStats = findMethodBySignature(npc, parseSignature("void ScaleStats(Nullable`1 activePlayersCount, Nullable`1 strengthOverride)"));
@@ -126,7 +127,7 @@ Refs& refs() {
     r.ok = r.textures && r.names && r.frames && r.players && r.samples && r.creditIds &&
            r.noAggro >= 0 && r.type >= 0 && r.netId >= 0 && r.active >= 0 && r.width >= 0 &&
            r.height >= 0 && r.life >= 0 && r.lifeMax >= 0 && r.damage >= 0 && r.defense >= 0 &&
-           r.defDamage >= 0 && r.defDefense >= 0 && r.npcCtor && r.setDefaults && r.findFrame &&
+           r.defDamage >= 0 && r.defDefense >= 0 && r.defLifeMax >= 0 && r.npcCtor && r.setDefaults && r.findFrame &&
            r.playerCtor;
     if (!r.ok) {
         BL_ERROR("NPCs de mod: refs faltando (TextureAssets.Npc=%p Lang._npcNameCache=%p "
@@ -556,6 +557,12 @@ void finishModNpc(Il2CppObject* npc, int type) {
     field<int32_t>(npc, r.defDamage) = field<int32_t>(npc, r.damage);
     field<int32_t>(npc, r.defDefense) = field<int32_t>(npc, r.defense);
     field<int32_t>(npc, r.life) = field<int32_t>(npc, r.lifeMax);
+    // O ScaleStats sai logo no comeco para NPC friendly ou townNPC e nao
+    // chega a gravar o defLifeMax. Sem isto ele fica 0 e a IA de morador
+    // (AI_007: lifeMax = defLifeMax a cada quadro) zerava a vida maxima: no
+    // multijogador o host mandava a vida em 1 byte (250 virava -6) e o
+    // cliente desligava a moradora a cada pacote.
+    field<int32_t>(npc, r.defLifeMax) = field<int32_t>(npc, r.lifeMax);
     if (r.scaleStats) {
         // Nullable vazio nos dois: jogadores ativos e forca de agora (o que o
         // SetDefaults faz sem NPCSpawnParams).
