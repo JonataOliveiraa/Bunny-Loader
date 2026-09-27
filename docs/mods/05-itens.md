@@ -311,10 +311,12 @@ aceitar o grupo todo (`.AddIngredient(ExampleItem, 50).AddRecipeGroup(grupo)`).
 
 ### O limite de receitas
 
-O jogo tem 3600 posições de receita, e as dele ocupam 3570. Passando disso, a
-tabela cresce e a receita existe (o Guia a mostra, o Brilho a desfaz), mas o
-menu de criação não a mostra: o laço do jogo para em 3600, fixo no código. O
-log avisa quantas ficaram de fora.
+O jogo tem 3600 posições de receita (`Recipe.maxRecipes`, fixo no código), e
+as dele ocupam 3570. Passando disso, a tabela cresce, e o Bunny Loader percorre
+o resto depois do jogo, como o Recipe Limit Fix do TL Pro: hooks no
+`Recipe.FindRecipes` (menu de criação), no `GUICraftGuidePopup.FindRecipes`
+(Guia) e no `Recipe.UpdateItemVariants`. A receita além de 3600 aparece no
+menu como as outras, no fim da lista.
 
 ## ModSystem
 

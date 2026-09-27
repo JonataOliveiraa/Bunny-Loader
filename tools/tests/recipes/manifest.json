@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "teste",
   "category": "Utilidade",
-  "summary": "cloneResized, array JS para int[], grupos de receita, ModSystem e o limite de receitas.",
+  "summary": "cloneResized, array JS para int[], grupos de receita, ModSystem e receitas alem do maxRecipes.",
   "description": "Precisa do Example Mod ligado. Loga 'recipes ...'.",
   "updated": "2026-09-24",
   "blVersion": 2,

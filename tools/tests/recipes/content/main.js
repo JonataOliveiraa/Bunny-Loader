@@ -170,8 +170,19 @@ function run() {
         const ex = ModRecipe.GetGroup('ExampleItem');
         const idx = findRecipe(sword, (r) => acceptsGroup(r, ex));
         if (idx < 0) return 'receita nao achada';
-        if (idx >= 3600) return 'receita na posicao ' + idx + ' (fora do menu)';
         return craftable(idx, soul, 50) || 'com 50 almas nao aparece';
+    });
+
+    // O Recipe.maxRecipes do celular e 3600 (const); o RecipeLoader percorre o resto.
+    check('alem do maxRecipes: aparece no menu', () => {
+        // Ingrediente raro: o menu conta o inventario todo e os baus perto, nao so o slot 49.
+        new ModRecipe().SetResult(CRAFT).AddIngredient(ItemID.FragmentStardust, 3).Register();
+        Recipe['void CreateRequiredItemQuickLookups()']();
+        const idx = Recipe.numRecipes - 1;
+        if (idx < 3600) return 'receita na posicao ' + idx + ' (nao passou do limite)';
+        if (!Main.recipe[idx].requiredItemQuickLookup[0].Matches(ItemID.FragmentStardust)) return 'Matches do ingrediente';
+        if (!craftable(idx, ItemID.FragmentStardust, 3)) return 'com 3 fragmentos nao aparece (posicao ' + idx + ')';
+        return !craftable(idx, ItemID.FragmentStardust, 2) || 'com 2 fragmentos aparece';
     });
 
     check('OnCraft: antes de entregar', () => {
