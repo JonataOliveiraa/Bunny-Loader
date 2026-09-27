@@ -2,10 +2,13 @@
 //   com o Example Mod, sem tile no lugar -> poe a fileira e salva o mundo;
 //   sem o Example Mod                   -> o mundo abriu; ali ha ar; salva;
 //   com o Example Mod, tile no lugar    -> voltou do arquivo ao lado.
-// A fileira fica acima do spawn: 5 ExampleTile (753) e 1 ExampleOre (754).
+// A fileira fica acima do spawn: 5 ExampleTile e 1 ExampleOre. Os tipos saem
+// pelo nome (o numero muda com os tiles do mod); sem o mod, pelo arquivo da
+// rodada anterior, que guarda os numeros.
 const Main = Terraria.Main;
 const W = Terraria.WorldGen;
-const TILE = 753, ORE = 754;
+const FILE = bl.path.join(bl.mod.dataDirectory, 'types.json');
+let TILE = -1, ORE = -1;
 
 let fails = 0;
 function check(label, fn) {
@@ -26,7 +29,14 @@ const expected = (k) => (k < 5 ? TILE : ORE);
 function run() {
     const sx = Main.spawnTileX - 3, sy = Main.spawnTileY - 8;
     const row = () => Array.from({ length: 6 }, (_, k) => bl.tiles.typeAt(sx + k, sy));
-    const hasMod = bl.tiles.isModTile(TILE);
+    const hasMod = bl.tiles.isModTile(bl.tiles.vanillaCount);
+    if (hasMod) {
+        TILE = ModContent.TileType('examplemod/ExampleTile');
+        ORE = ModContent.TileType('examplemod/ExampleOre');
+        bl.file.write(FILE, JSON.stringify({ TILE, ORE }));
+    } else {
+        ({ TILE, ORE } = JSON.parse(bl.file.read(FILE) || '{"TILE":-1,"ORE":-1}'));
+    }
     bl.log(`tilesave: fileira em ${sx},${sy}: ${row().join(' ')} (Example Mod ${hasMod ? 'ligado' : 'desligado'})`);
 
     if (!hasMod) {
@@ -41,6 +51,8 @@ function run() {
         bl.log('tilesave rodada: volta');
         return;
     }
+    // O que sobrou de uma rodada antiga (outros tipos) sai antes.
+    for (let k = 0; k < 6; k++) if (bl.tiles.typeAt(sx + k, sy) >= 0) W['void KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)'](sx + k, sy, false, false, true);
     for (let k = 0; k < 6; k++) place(sx + k, sy, expected(k));
     check('colocou a fileira', () => row().every((t, k) => t === expected(k)) || row().join(' '));
     save();
@@ -59,3 +71,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('tilesave: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestTilesave extends Mod {}

@@ -17,7 +17,10 @@ decide o custo (ver o [guia de custo](../mods/03-custo-e-desempenho.md)):
 Um método que **nenhuma** classe registrada escreve não instala hook nenhum e
 não custa nada.
 
-Todas as classes são **globais**: nada de `import`.
+Todas as classes são **globais**: nada de `import`. Toda classe exportada pelo
+arquivo de entrada ou por um arquivo de `Content/` e `Common/` é registrada
+sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
+é para registrar na mão, no `Load()` do mod.
 
 | Classe | Para quê | Guia |
 |---|---|---|
@@ -26,7 +29,7 @@ Todas as classes são **globais**: nada de `import`.
 | [`ModNPC`](#modnpc) | NPC, chefe ou morador novo. | [7](../mods/07-npcs.md) |
 | [`ModPlayer`](#modplayer) | Dados e comportamento por jogador. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModBuff`](#modbuff) | Buff ou debuff novo. | [8](../mods/08-jogador-e-buffs.md) |
-| [`ModTile`](#modtile) | Bloco novo (1x1). | [9](../mods/09-blocos.md) |
+| [`ModTile`](#modtile) | Bloco novo, ou móvel com `TileObjectData`. | [9](../mods/09-blocos.md) |
 | [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
 | [`ModSystem`](#modsystem) | O que é do mod inteiro; o ciclo do mundo e os dados salvos nele. | [12](../mods/12-globais-e-mundo.md#modsystem-o-mundo) |
@@ -55,7 +58,7 @@ própria instância, com `this.Item` apontando para ele.
 | `Item` | `Item` do jogo | O item desta instância. No molde, `undefined`. |
 | `Type` | número | O tipo (`ItemID`) deste item, depois do `register`. |
 | `Mod` | `Mod` | O mod que registrou. |
-| `Texture` | texto | Caminho em `Textures/`, sem `.png`. Padrão: o nome da classe. |
+| `Texture` | texto | Caminho em `Assets/Textures/`, sem `.png`. Padrão: o caminho do arquivo da classe (`Content/Items/X.js` -> `Items/X`), ou o primeiro PNG com o nome dela. |
 | `DisplayName` | texto ou `{ cultura: texto }` | O nome. Vazio: `ItemName.<Classe>` em `Localization/*.json`, e sem isso o nome da classe. |
 | `Tooltip` | texto ou `{ cultura: texto }` | A descrição, linhas por `\n`. Vazio: `ItemTooltip.<Classe>`. |
 | `TooltipLines` | array de texto | As linhas, para o `ModifyTooltipLines` mexer. |
@@ -113,7 +116,7 @@ própria instância, com `this.Item` apontando para ele.
 
 | | |
 |---|---|
-| `ModItem.register(Classe)` | Registra; devolve o tipo. |
+| `ModItem.register(Classe)` | Registra na mão (a classe exportada já é registrada sozinha); devolve o tipo. |
 | `ModItem.getTypeByName('Classe')` | O tipo de um item **deste** mod; -1 se não há. |
 | `ModItem.getModItem(tipo)`, `ModItem.getByName('Classe')` | O molde. |
 | `ModItem.isModType(tipo)`, `ModItem.isModItem(item)` | É de mod? |
@@ -140,7 +143,7 @@ Um projétil novo. Como o item: molde e uma instância por projétil
 |---|---|---|
 | `Projectile` | `Projectile` do jogo | O projétil desta instância. |
 | `Type`, `Mod` | | O tipo e o mod. |
-| `Texture` | texto | Em `Textures/`, sem `.png`. |
+| `Texture` | texto | Em `Assets/Textures/`, sem `.png`. |
 | `DisplayName` | texto ou `{ cultura: texto }` | Vazio: `ProjectileName.<Classe>`. |
 | `AIType` | número | Usa a IA deste projétil do jogo (o tipo é trocado só durante a IA). |
 
@@ -203,7 +206,7 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | Campo | Tipo | Para quê |
 |---|---|---|
 | `NPC`, `Type`, `Mod` | | O NPC desta instância, o tipo, o mod. |
-| `Texture` | texto | Em `Textures/`, sem `.png`. Tira vertical de quadros. |
+| `Texture` | texto | Em `Assets/Textures/`, sem `.png`. Tira vertical de quadros. |
 | `DisplayName` | texto ou `{ cultura: texto }` | Vazio: `NPCName.<Classe>`. |
 | `AnimationType` | número | Anima como este NPC do jogo (0 = não). Vale no `SetDefaults`. |
 | `HideFromBestiary` | `boolean` | Sem entrada no Bestiário. |
@@ -342,7 +345,7 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 | Campo | Para quê |
 |---|---|
 | `Type`, `Mod` | |
-| `Texture` | 32x32, em `Textures/`, sem `.png`. |
+| `Texture` | 32x32, em `Assets/Textures/`, sem `.png`. |
 | `DisplayName`, `Description` | Texto ou `{ cultura: texto }`. Vazios: `BuffName.<Classe>`, `BuffDescription.<Classe>`. |
 | `HideFromModMenu` | Fora do Mod Menu. |
 
@@ -372,8 +375,9 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 
 ## ModTile
 
-Um bloco novo. Por enquanto, **blocos 1x1** (terra, pedra, minério). Uma
-instância por tipo; os métodos recebem a posição `(i, j)` em tiles.
+Um bloco novo (terra, pedra, minério) ou um objeto de várias células com
+`TileObjectData` (móveis: a Pia de Exemplo, 2x2). Uma instância por tipo; os
+métodos recebem a posição `(i, j)` em tiles.
 
 ### Campos
 
@@ -395,6 +399,7 @@ instância por tipo; os métodos recebem a posição `(i, j)` em tiles.
 | `PostSetupContent()` | | conteúdo pronto |
 | `CanKillTile(i, j)` | `false`: a picareta não quebra. | `WorldGen.CanKillTile`, filtro de tile |
 | `KillTile(i, j, fail, effectOnly, noItem)` | Antes de o tile sair (`fail`: só o golpe). | `WorldGen.KillTile`, filtro de tile |
+| `KillMultiTile(i, j, frameX, frameY)` | Um objeto saiu inteiro; `(i, j)` é o canto de cima à esquerda. | `WorldGen.TileFrameImportant`, filtro de tile |
 | `CreateDust(i, j)` | `false`: sem poeira. | `WorldGen.KillTile_MakeTileDust`, filtro de tile |
 | `KillSound(i, j, fail)` | `false`: sem som. | `WorldGen.KillTile_PlaySounds`, filtro de tile |
 
@@ -412,8 +417,9 @@ são instalados no primeiro `ModTile.register`.
 
 ### Ainda não
 
-Móveis e objetos maiores (`TileObjectData`), paredes (`ModWall`), estação de
-criação de mod, `NearbyEffects`, `RandomUpdate`, `PlaceInWorld`, animação de
+Portas, cadeiras, baús e outros móveis com comportamento próprio (só a forma e
+o quebrar vêm do `TileObjectData`), paredes (`ModWall`), estação de criação de
+mod, `NearbyEffects`, `RandomUpdate`, `PlaceInWorld`, animação de
 tile.
 
 ---
@@ -426,7 +432,7 @@ JS, e o `AppliesToEntity` escolhe lá dentro (ver o custo no
 [guia 12](../mods/12-globais-e-mundo.md#o-custo)). Um método que nenhum Global
 escreve não instala hook.
 
-`X.register(Classe)` devolve o modelo (o de `ModContent.GetInstance`).
+`X.register(Classe)` (na mão; exportar já registra) devolve o modelo (o de `ModContent.GetInstance`).
 
 ### Em todos
 
@@ -594,18 +600,18 @@ No `ModNPC` e no `ModProjectile`: `SendExtraAI(writer)` e
 
 ## Mod e ModLoader
 
-`Mod` é o mod em si; um por pacote. `ModLoader` acha os outros.
+`Mod` é o mod em si: a classe do `export default` do arquivo de entrada, obrigatória e uma por pacote. `ModLoader` acha os outros.
 
 | `Mod` | |
 |---|---|
 | `id` | O `id` do manifesto (o `Name` do tModLoader). |
 | `uuid`, `name`, `version` | Do manifesto. |
-| `path`, `root` | A pasta do `main.js` e a do pacote. |
+| `path`, `root` | A pasta do `main.js` (`content/`) e a do pacote. |
 | `dataDirectory` | `Android/data/com.bunnyloader/mod_data/<uid>`. |
-| `Load()` | Na hora do `Mod.register`. |
+| `Load()` | Na carga, depois do registro do conteúdo. |
 | `AddRecipeGroups()`, `AddRecipes()`, `PostSetupContent()` | Como no `ModSystem`. |
 | `Call(...args)` | Quando outro mod chama. |
-| `Mod.register(Classe)` | Um por pacote; devolve o `Mod` (o mesmo objeto de antes). |
+| `export default class X extends Mod` | Obrigatória, no arquivo de entrada; uma por pacote. O Bunny Loader a cria (é o `bl.mod` do pacote). |
 
 | `ModLoader` | |
 |---|---|
@@ -667,7 +673,7 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 | `NPCSpawnInfo` | Recebido no `SpawnChance`: `SpawnTileX`, `SpawnTileY`, `Player`; altura (`Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`, `AboveSurface`, `BelowSurface`); hora e evento (`Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`, `SolarEclipse`, `PumpkinMoon`, `FrostMoon`, `AnyEvent`, `Invasion`, `AnyTower`); mundo (`HardMode`, `Expert`, `Master`); bioma (`Corruption`, `Crimson`, `Hallow` e os `Underground...`, `Snow`, `Ice`, `Jungle`, `UndergroundJungle`, `Mushroom`, `SurfaceMushroom`, `Ocean`, `Desert`, `DesertCave`, `Meteor`, `Marble`, `Granite`, `Graveyard`, `Dungeon`, `Lihzahrd`); `CommonEnemy`. |
 | `NPCShop` | `new NPCShop(tipoDoNPC, 'Shop').Add(item, { condition, price, currency }).Register()`; `NPCShop.get(tipo, nome)`, `shop.Open()`. |
 | `NPCHappiness` | `this.Happiness.SetNPCAffection(npc, nivel)`, `.SetBiomeAffection('Desert', nivel)`, com `AffectionLevel.Love`, `Like`, `Dislike`, `Hate`. |
-| `ModGore` | `ModGore.getTypeByName('Nome')`: o gore de `Textures/Gores/Nome.png`. |
+| `ModGore` | `ModGore.getTypeByName('Nome')`: o gore de `Assets/Textures/Gores/Nome.png`. |
 
 ---
 
@@ -688,9 +694,19 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 
 | | |
 |---|---|
-| `ModLocalization.Translate('Secao.Chave')` | Registra o texto de `Localization/<cultura>.json` e devolve a **chave** (o que o Bestiário pede). |
-| `ModLocalization.GetTextValue('Secao.Chave')` | O **texto** no idioma do jogo. |
-| `ModLocalization.Register(chave, texto)` | Registra um texto (ou `{ cultura: texto }`) sob a chave. |
+Toda chave de `Localization/<cultura>.json` já está no jogo como
+`Mods.<id do mod>.<Secao>.<Chave>` (qualquer profundidade), e segue a troca de idioma.
+
+| | |
+|---|---|
+| `ModLocalization.Translate('Secao.Chave')` | O **texto** no idioma do jogo (como no TL); sem texto, o próprio caminho. |
+| `ModLocalization.TryTranslate('Secao.Chave')` | O mesmo, com `''` quando não há texto. |
+| `ModLocalization.GetTextValue(chave)` | Texto do mod ou, sem ele, o do jogo. |
+| `ModLocalization.GetText(chave)` | O `LocalizedText` do mod ou do jogo. |
+| `ModLocalization.Key('Secao.Chave')` | A **chave** `Mods.<id>.Secao.Chave` (o que o Bestiário e a moeda pedem). |
+| `ModLocalization.Exists(chave)` | Se o mod ou o jogo tem o texto. |
+| `ModLocalization.Register(chave, texto)` | Um texto (ou `{ cultura: texto }`) sob uma chave qualquer. |
+| `ModLocalization.ActiveCultureName` | `'pt-BR'`, `'en-US'`... |
 
 ---
 
@@ -739,4 +755,4 @@ diretos ([guia 1](../mods/01-hooks-do-zero.md)), mas sem atalho:
   `ModRarity`, `ModWaterStyle` e os estilos de fundo;
 - `ModKeybind`, `ModCommand`, `ModConfig`;
 - interface própria (`UIState`, `ModifyInterfaceLayers`);
-- `ModTile` além de 1x1.
+- `ModTile` com comportamento de móvel (porta, cadeira, baú, estação de criação).

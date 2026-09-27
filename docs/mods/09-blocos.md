@@ -5,8 +5,9 @@ o `ModTile` do tModLoader. Este guia mostra como criar o bloco, o item que o
 coloca, e como o Bunny Loader salva o mundo para ele continuar abrindo sem o
 mod.
 
-Por enquanto, **só blocos de 1x1**. Móveis e objetos maiores (mesas, portas,
-estátuas) ainda não.
+Objetos de várias células (móveis) também: a forma vem do `TileObjectData`,
+como no tModLoader ([Móveis](#móveis-tileobjectdata)). O que é próprio de cada
+móvel (porta que abre, cadeira que senta, baú, estação de criação) ainda não.
 
 Antes, leia as [ideias do guia 4](04-conteudo-novo.md). A lista completa está
 na [referência](../referencia/classes.md#modtile).
@@ -17,7 +18,6 @@ na [referência](../referencia/classes.md#modtile).
 export class ExampleOre extends ModTile {
     constructor() {
         super();
-        this.Texture = 'Tiles/' + this.constructor.name;
         this.DustType = Terraria.ID.DustID.Platinum;
         this.HitSound = Terraria.ID.SoundID.Tink;
         this.MineResist = 4;     // 4 vezes mais golpes
@@ -34,8 +34,6 @@ export class ExampleOre extends ModTile {
         this.AddMapEntry(Color.new(152, 171, 198), this.constructor.name);
     }
 }
-
-ModTile.register(ExampleOre);
 ```
 
 No `SetStaticDefaults` vão as tabelas do jogo que dizem o que o bloco **é**:
@@ -67,7 +65,7 @@ Ao quebrar, cai o item de mod que coloca aquele tile. Para outro item, use
 
 | Campo | Para quê |
 |---|---|
-| `Texture` | Relativo a `Textures/`, sem `.png`. |
+| `Texture` | Relativo a `Assets/Textures/`, sem `.png`. Padrão: o caminho do arquivo da classe. |
 | `DustType` | A poeira ao bater e quebrar (`Terraria.ID.DustID`). |
 | `HitSound` | O som ao bater (`Terraria.ID.SoundID`). Sem ele, o som do jogo. |
 | `MinPick` | Força de picareta mínima. |
@@ -82,6 +80,7 @@ Ao quebrar, cai o item de mod que coloca aquele tile. Para outro item, use
 | `AddMapEntry(cor, nome)` | A cor no mapa (ver abaixo). Sem ela, o tile não aparece no mapa. |
 | `CanKillTile(i, j)` | `false`: a picareta não quebra. |
 | `KillTile(i, j, fail, effectOnly, noItem)` | Antes de o tile sair (`fail`: só o golpe). |
+| `KillMultiTile(i, j, frameX, frameY)` | Um móvel saiu inteiro; `(i, j)` é o canto de cima à esquerda. |
 | `CreateDust(i, j)` | `false`: sem poeira. |
 | `KillSound(i, j, fail)` | `false`: sem som. |
 
@@ -90,6 +89,48 @@ dá o tipo do tile ativo numa posição (-1 se não há).
 
 Os hooks do `ModTile` só entram no JS para **tile de mod**: bater em terra ou
 pedra não passa pelo JS (filtro nativo, que lê o tipo direto do mundo).
+
+## Móveis (TileObjectData)
+
+Um móvel é um tile com `tileFrameImportant` e um `TileObjectData`: o tamanho,
+onde se apoia e a altura de cada linha da textura. A Pia de Exemplo (2x2), do
+Example Mod:
+
+```js
+const { TileObjectData } = Terraria.ObjectData;
+
+export class ExampleSink extends ModTile {
+    SetStaticDefaults() {
+        Terraria.Main.tileSolid[this.Type] = false;
+        Terraria.Main.tileFrameImportant[this.Type] = true;
+
+        TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+        TileObjectData.newTile.CoordinateHeights = [16, 18];
+        TileObjectData.addTile(this.Type);
+
+        this.AddMapEntry(Color.new(100, 100, 100), this.constructor.name);
+    }
+}
+```
+
+Igual ao tModLoader: copie um modelo do jogo (`Style2x2`, `Style3x2`,
+`Style1x2`...), mude o que precisar **entre** o `CopyFrom` e o `addTile`, e
+registre. O item é um `ModItem` com `DefaultToPlaceableTile`, como o de um
+bloco.
+
+A textura tem uma célula de 16 de largura por coluna, com 2 px de margem, e a
+altura de cada linha do `CoordinateHeights` (`[16, 18]`: a de baixo tem 18,
+e os 2 px a mais descem sobre o chão, como nos móveis do jogo).
+
+O que o Bunny Loader faz por você:
+
+- **Colocar**: pelo item, ou `WorldGen.PlaceObject(x, y, tipo)`.
+- **Quebrar**: quebrou uma célula, sai o objeto inteiro, com **um** item só.
+  Tirou o bloco de baixo (ou a parede, conforme a âncora), idem. O
+  `KillMultiTile(i, j, frameX, frameY)` avisa, com o canto de cima à
+  esquerda.
+- **Salvar**: o quadro de cada célula fica no `.tiles.bl`, e o móvel volta
+  como estava.
 
 ## O mundo salvo continua abrindo sem o mod
 

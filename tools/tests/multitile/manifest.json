@@ -1,0 +1,15 @@
+{
+  "uid": "ed04f1e6-ccc3-4c08-905e-82a1d9fa129d",
+  "id": "test-multitile",
+  "name": "Teste: móvel 2x2 de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A Pia de Exemplo (2x2, TileObjectData): colocar, quebrar uma parte, tirar o chão, salvar e reabrir.",
+  "description": "Loga 'multitile ...'. Precisa do Example Mod. Rodar duas vezes: a primeira coloca, quebra e salva; a segunda confere a pia salva.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

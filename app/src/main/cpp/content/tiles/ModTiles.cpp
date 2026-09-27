@@ -28,6 +28,8 @@ std::vector<Entry> g_regs;   // indice = type - kVanillaTileCount
 std::atomic<TilesInstalledHook> g_installedHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
+// O SetStaticDefaults do lote ja rodou (ele espera o TileObjectData existir).
+std::atomic<bool> g_staticDone{false};
 bool g_failed = false;
 
 // Conferida contra toda alocacao de 753 posicoes na libil2cpp (`mov #0x2f1`):
@@ -226,6 +228,9 @@ void onTableRegrown(FieldInfo* f, int size) {
     }
 }
 
+Il2CppObject* objectDataList();
+bool hasObjectDataField();
+
 bool gameReady(int size) {
     const Refs& r = refs();
     if (!r.ok) return false;
@@ -255,6 +260,8 @@ struct LimitPatch {
 constexpr LimitPatch kLimitPatches[] = {
     // `if (Type > 752) return false` / tile com tipo alto desviado.
     {"Terraria", "WorldGen", "PlaceTile", kVanillaTileCount - 1, -1, false},
+    // O `WorldGen.PlaceObject(x, y, tipo)` dos moveis (TileObjectData).
+    {"Terraria", "WorldGen", "PlaceObject", kVanillaTileCount - 1, -1, false},
     {"Terraria", "WorldGen", "KillTile", kVanillaTileCount - 1, -1, false},
     {"Terraria", "WorldGen", "KillWall", kVanillaTileCount - 1, -1, false},
     {"Terraria", "WorldGen", "TileFrameImportant", kVanillaTileCount - 1, -1, false},
@@ -486,26 +493,60 @@ void hookMapInitialize() {
     }
 }
 
-// ---- TileObjectData._data ----
+// ---- TileObjectData ----
 //
-// Uma List com uma entrada por tipo (a forma de moveis, portas...). O
+// _data: uma List com uma entrada por tipo (a forma de moveis, portas...). O
 // GetTileData(tipo) le _data[tipo]: com tipo alem do fim, a List lanca. Como no
-// tModLoader, entradas nulas ate o total (bloco 1x1 nao tem forma).
+// tModLoader, entradas nulas ate o total (bloco 1x1 nao tem forma), e o
+// `TileObjectData.addTile(Type)` do SetStaticDefaults poe a do tile de mod.
+//
+// O jogo tranca tudo no fim do TileObjectData.Initialize (readOnlyData): dali
+// em diante, todo setter do newTile lanca "Tile data is locked". O tModLoader
+// tira a trava; aqui ela sai so enquanto o SetStaticDefaults dos tiles roda.
+
+struct ObjectDataRefs {
+    bool tried = false;
+    FieldInfo* data = nullptr;       // _data
+    FieldInfo* readOnly = nullptr;   // readOnlyData
+};
+
+ObjectDataRefs& objectDataRefs() {
+    static ObjectDataRefs r;
+    if (r.tried) return r;
+    r.tried = true;
+    Il2CppClass* cls = il2cpp::findClass({"Terraria.ObjectData", "TileObjectData", {}});
+    r.data = cls ? il2cpp::findField(cls, "_data") : nullptr;
+    r.readOnly = cls ? il2cpp::findField(cls, "readOnlyData") : nullptr;
+    if (!r.data || !r.readOnly) {
+        BL_ERROR("tiles de mod: TileObjectData sem _data/readOnlyData; moveis de mod nao funcionam");
+    }
+    return r;
+}
+
+bool hasObjectDataField() {
+    return objectDataRefs().data != nullptr;
+}
+
+Il2CppObject* objectDataList() {
+    Il2CppObject* list = nullptr;
+    if (FieldInfo* f = objectDataRefs().data) il2cpp::api().field_static_get_value(f, &list);
+    return list;
+}
+
+// A forma que cada tile de mod registrou (gchandle; 0 = 1x1). Se o jogo refizer
+// a List, ela volta.
+std::vector<uint32_t> g_objectData;
 
 /** true quando a List ja tem o total (ou nao ha o que fazer). A cada quadro ate la. */
 bool padTileObjectData(int total) {
     auto& a = il2cpp::api();
-    static FieldInfo* f = [] {
-        Il2CppClass* cls = il2cpp::findClass({"Terraria.ObjectData", "TileObjectData", {}});
-        return cls ? il2cpp::findField(cls, "_data") : nullptr;
-    }();
-    if (!f) return true;
-    Il2CppObject* list = nullptr;
-    a.field_static_get_value(f, &list);
+    if (!objectDataRefs().data) return true;
+    Il2CppObject* list = objectDataList();
     if (!list) return false;   // o jogo cria no TileObjectData.Initialize
     Il2CppClass* lc = a.object_get_class(list);
     const MethodInfo* count = a.class_get_method_from_name(lc, "get_Count", 0);
     const MethodInfo* add = a.class_get_method_from_name(lc, "Add", 1);
+    const MethodInfo* set = a.class_get_method_from_name(lc, "set_Item", 2);
     if (!count || !add) return true;
     Il2CppObject* exc = nullptr;
     Il2CppObject* boxed = a.runtime_invoke(count, list, nullptr, &exc);
@@ -517,8 +558,168 @@ bool padTileObjectData(int total) {
         if (exc) break;
         ++n;
     }
-    if (before >= 0 && n > before) BL_DEBUG("tiles de mod: TileObjectData._data de %d para %d", before, n);
+    if (before >= 0 && n > before) {
+        BL_DEBUG("tiles de mod: TileObjectData._data de %d para %d", before, n);
+        // List refeita depois do SetStaticDefaults: as formas dos mods voltam.
+        int restored = 0;
+        for (size_t i = 0; set && i < g_objectData.size(); ++i) {
+            Il2CppObject* obj = g_objectData[i] ? a.gchandle_get_target(g_objectData[i]) : nullptr;
+            const int32_t type = kVanillaTileCount + static_cast<int32_t>(i);
+            if (!obj || type >= n) continue;
+            void* args[2] = {const_cast<int32_t*>(&type), obj};
+            a.runtime_invoke(set, list, args, &exc);
+            if (!exc) ++restored;
+        }
+        if (restored) BL_DEBUG("tiles de mod: %d forma(s) de tile de mod devolvida(s) ao TileObjectData", restored);
+    }
     return true;
+}
+
+/** Destrava (false) ou trava (true) o TileObjectData; devolve como estava. */
+bool setObjectDataLocked(bool locked) {
+    FieldInfo* f = objectDataRefs().readOnly;
+    if (!f) return false;
+    auto& a = il2cpp::api();
+    bool was = false;
+    a.field_static_get_value(f, &was);
+    a.field_static_set_value(f, &locked);
+    return was;
+}
+
+// ---- desenho dos objetos: TileDrawing.GetTileDrawData ----
+//
+// O jogo decide a altura de cada celula por tipo (um switch com os moveis dele:
+// `tileHeight = 18`...); tile de mod ficaria sempre com 16, e a ultima linha da
+// pia (18 de altura na textura) sairia cortada. Como o SetDrawPositions do
+// tModLoader: com TileObjectData, a largura, o deslocamento e a altura da
+// linha vem dele. Nativo: roda para toda celula de mod na tela, todo quadro.
+
+struct DrawShape {
+    bool ok = false;
+    int width = 16, yOffset = 0, padding = 2, rows = 1, fullHeight = 18;
+    std::vector<int> heights;
+};
+
+// Indice = tipo - kVanillaTileCount. Escrito uma vez na instalacao, antes do hook.
+std::vector<DrawShape> g_drawShapes;
+
+using DrawDataFn = void (*)(Il2CppObject*, int32_t, int32_t, void*, uint16_t, int16_t*, int16_t*, int32_t*,
+                            int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, Il2CppObject**, void*,
+                            void*, const MethodInfo*);
+DrawDataFn g_origDrawData = nullptr;
+
+void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uint16_t type, int16_t* frameX,
+                       int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
+                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
+                       void* glowColor, const MethodInfo* m) {
+    g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects,
+                   glow, glowRect, glowColor, m);
+    const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
+    if (type < kVanillaTileCount || i >= g_drawShapes.size() || !g_drawShapes[i].ok) return;
+    const DrawShape& s = g_drawShapes[i];
+    int row = 0;
+    for (int rest = s.fullHeight > 0 ? *frameY % s.fullHeight : 0;
+         row + 1 < s.rows && rest - s.heights[row] - s.padding >= 0; ++row) {
+        rest -= s.heights[row] + s.padding;
+    }
+    *width = s.width;
+    *top = s.yOffset;
+    *height = s.heights[row];
+}
+
+int invokeInt(Il2CppObject* obj, const char* getter, bool* ok) {
+    auto& a = il2cpp::api();
+    const MethodInfo* m = a.class_get_method_from_name(a.object_get_class(obj), getter, 0);
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* boxed = m ? a.runtime_invoke(m, obj, nullptr, &exc) : nullptr;
+    if (!boxed || exc) {
+        *ok = false;
+        return 0;
+    }
+    return *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
+}
+
+DrawShape readDrawShape(Il2CppObject* data) {
+    auto& a = il2cpp::api();
+    DrawShape s;
+    bool ok = true;
+    s.width = invokeInt(data, "get_CoordinateWidth", &ok);
+    s.yOffset = invokeInt(data, "get_DrawYOffset", &ok);
+    s.padding = invokeInt(data, "get_CoordinatePadding", &ok);
+    s.rows = invokeInt(data, "get_Height", &ok);
+    s.fullHeight = invokeInt(data, "get_CoordinateFullHeight", &ok);
+    const MethodInfo* get = a.class_get_method_from_name(a.object_get_class(data), "get_CoordinateHeights", 0);
+    Il2CppObject* exc = nullptr;
+    auto* heights = get ? reinterpret_cast<Il2CppArray*>(a.runtime_invoke(get, data, nullptr, &exc)) : nullptr;
+    if (!ok || exc || !heights || heights->length == 0 || s.rows <= 0) return {};
+    const auto* h = static_cast<const int32_t*>(arrayData(heights));
+    s.heights.assign(h, h + heights->length);
+    // Menos alturas que linhas (o jogo tolera): a ultima vale para o resto.
+    while (static_cast<int>(s.heights.size()) < s.rows) s.heights.push_back(s.heights.back());
+    s.ok = true;
+    return s;
+}
+
+void hookDrawData() {
+    auto& a = il2cpp::api();
+    Il2CppClass* cls = il2cpp::findClass({"Terraria.GameContent.Drawing", "TileDrawing", {}});
+    const MethodInfo* target = nullptr;
+    void* it = nullptr;
+    // Tres sobrecargas: a de TileDrawInfo e a do DrawTiles (as outras sao de grama e vinhas).
+    while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
+        if (std::strcmp(a.method_get_name(m), "GetTileDrawData") != 0 || a.method_get_param_count(m) != 16) continue;
+        char* name = a.type_get_name(a.method_get_param(m, 2));
+        const bool drawInfo = name && std::strstr(name, "TileDrawInfo");
+        std::free(name);
+        if (drawInfo) target = m;
+    }
+    if (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData)) {
+        BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
+    }
+}
+
+/** Guarda a forma (_data[tipo]) de cada tile de [first, last] depois do SetStaticDefaults. */
+void keepObjectData(int first, int last) {
+    auto& a = il2cpp::api();
+    Il2CppObject* list = objectDataList();
+    const MethodInfo* get = list ? a.class_get_method_from_name(a.object_get_class(list), "get_Item", 1) : nullptr;
+    int shaped = 0;
+    for (int type = first; type <= last; ++type) {
+        const size_t i = static_cast<size_t>(type - kVanillaTileCount);
+        if (g_objectData.size() <= i) g_objectData.resize(i + 1, 0);
+        if (!get) continue;
+        Il2CppObject* exc = nullptr;
+        void* args[1] = {&type};
+        Il2CppObject* obj = a.runtime_invoke(get, list, args, &exc);
+        if (exc || !obj) continue;
+        g_objectData[i] = a.gchandle_new(obj, false);
+        if (g_drawShapes.size() <= i) g_drawShapes.resize(i + 1);
+        g_drawShapes[i] = readDrawShape(obj);
+        ++shaped;
+    }
+    if (shaped) {
+        BL_DEBUG("tiles de mod: %d tile(s) de mod com TileObjectData (moveis/objetos)", shaped);
+        hookDrawData();
+    }
+}
+
+/**
+ * O SetStaticDefaults do lote [first, last]. Espera o TileObjectData.Initialize
+ * (o newTile, o Style2x2 e o _data so existem depois dele), mas as tabelas
+ * crescem ANTES, como sempre: crescidas depois de o jogo preenche-las, o "mais
+ * comum" dos tipos novos seria o valor dos moveis do jogo (tileFrameImportant
+ * vira true, e o bloco de mod nunca e enquadrado).
+ */
+void runStaticDefaults(int first, int last) {
+    if (hasObjectDataField() && !objectDataList()) return;   // a proxima volta tenta de novo
+    padTileObjectData(last + 1);
+    if (TilesInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
+        const bool wasLocked = setObjectDataLocked(false);
+        hook(first, last);
+        setObjectDataLocked(wasLocked);
+    }
+    keepObjectData(first, last);
+    g_staticDone.store(true, std::memory_order_release);
 }
 
 // ---- tabelas por instancia ----
@@ -628,6 +829,7 @@ void tickModTiles() {
     const int from = kVanillaTileCount + installed;
 
     if (installed == total) {
+        if (!g_staticDone.load(std::memory_order_relaxed)) runStaticDefaults(kVanillaTileCount, from - 1);
         g_tables.checkPending(from);
         fixTileMerge(from);
         if (fixGlowMask(from)) BL_DEBUG("tiles de mod: tileGlowMask dos tipos de mod em -1");
@@ -690,13 +892,12 @@ void tickModTiles() {
     }
     BL_INFO("tiles de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
-    if (TilesInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
-        hook(from, to - 1);
-    }
+    runStaticDefaults(from, to - 1);
 }
 
 bool modTilesSettled() {
-    return g_failed || g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire);
+    return g_failed || (g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire) &&
+                        g_staticDone.load(std::memory_order_acquire));
 }
 
 void setTilesInstalledHook(TilesInstalledHook hook) {

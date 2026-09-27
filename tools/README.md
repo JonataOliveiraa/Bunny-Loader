@@ -71,6 +71,8 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `projectiles`, `npcs`, `buffs`, `tiles` | Cada tipo de conteúdo de mod. | |
 | `tilesave` | Três rodadas: com o mod, sem ele e com ele de novo. | |
 | `tileframes` | Duas rodadas: o quadro de um 3x3 de mod e de um de pedra ao reabrir o mundo. | |
+| `localization` | `ModLocalization.Translate` devolve o texto (chave funda, queda para o inglês), `Language.GetText('Mods.<id>.…')` sem passo extra, `Key`/`GetText`/`Exists` e a troca de idioma (ida e volta). | |
+| `multitile` | Duas rodadas: a Pia de Exemplo (2x2, `TileObjectData`) colocada, quebrada por uma célula e pelo chão (um drop só), salva e reaberta. | sim |
 | `hooks` | Os hooks das classes: IA, spawn natural, Bestiário, tooltip, receita, uso de item. | |
 | `recipes` | Receitas e grupos. | |
 | `globals` | `GlobalItem`, `GlobalNPC`, `GlobalProjectile` (filtro, instância por entidade, `Clone`), drops por tipo e globais com o Bestiário, e o `ModSystem` (mundo, atualização, dados salvos). Rodar duas vezes: a segunda carrega o que a primeira salvou. | sim |
@@ -87,8 +89,10 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `sounds` | `SoundStyle`, `SoundEngine.PlaySound`, `MaxInstances`, `UseSound` de item usado. | sim |
 | `music` | O chefe trocando a música do jogo pela dele, cada troca conferida no meio do fade. | sim |
 | `crossmod` (+ `crossmodtarget`) | `ModLoader.TryGetMod` e `Call`, nas duas ordens de carga. | |
+| `autoload` (+ `nomodclass`) | A estrutura do mod: a classe `Mod` do `export default` (`Load`, `bl.mod`), o registro automático de `Content/` e `Common/` (ordem, `Autoload = false`, o que não é de mod), a textura espelho e pelo nome em `Assets/Textures/`, gore, tradução, e um mod sem a classe `Mod` que não carrega. | |
 | **Multijogador** | | |
 | `mprecipes`, `mpplayer`, `mpitems`, `mptiles`, `mpglobals`, `mpnet` | Um cliente e um host (ver `mp-session.sh`): itens de mod usados pelo cliente e conferidos no host, o dash com toque de verdade. | sim |
+| `mpshop` | Loja de morador de mod no multijogador: o host põe a Pessoa ao lado do cliente; o cliente conversa, toca em Loja e compra em moedas e em moeda própria (e solta o item no inventário, como o dedo); o host confere a conversa, os itens e o pagamento pela rede, e que a Pessoa mantém a vida máxima. | sim |
 
 [`mp-session.sh`](mp-session.sh) sobe uma sessão de multijogador entre duas
 instâncias do MuMu: uma hospeda, a outra entra, sem inimigos novos e de dia.

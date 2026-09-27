@@ -101,7 +101,12 @@ novo no campo estático. As posições novas nascem com:
 - o valor **mais comum** da tabela (tiles): a posição 0 dos tiles é a terra, e
   copiar faria o bloco de mod se comportar como terra para a grama e a
   corrupção. O mais comum é o padrão com que o jogo criou a tabela: `false` no
-  `tileSolid`, `-1` no `tileGlowMask`.
+  `tileSolid`, `-1` no `tileGlowMask`. Isso só vale se a tabela crescer
+  **antes** de o jogo preenchê-la: crescida depois, o mais comum do
+  `tileFrameImportant` é `true` (uns 400 dos 753 tipos são móveis), e todo
+  bloco de mod parou de ser enquadrado (ficava no quadro 0,0). Por isso os
+  tiles crescem cedo e só o `SetStaticDefaults` espera o
+  `TileObjectData.Initialize`.
 
 Duas ou três tabelas moram dentro de **objetos**, não em estáticos
 (`QuickStacking`, o filtro "Diversos" do inventário, os contadores de projétil

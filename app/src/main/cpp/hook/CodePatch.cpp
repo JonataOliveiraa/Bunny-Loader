@@ -69,6 +69,20 @@ bool isLimitBranch(uint32_t insn, bool belowToo) {
     return belowToo && (cond == 0x2 || cond == 0x3 || cond == 0xA || cond == 0xB);
 }
 
+/**
+ * O desvio de ordem que usa as flags do cmp em `p`: logo depois, ou depois de
+ * ate 3 loads/stores (o compilador as vezes zera a pilha no meio, como no
+ * WorldGen.PlaceObject: `cmp; stp xzr; str xzr; b.gt`). Load/store nunca
+ * muda as flags (op0 = x1x0), entao o desvio ainda e o do cmp.
+ */
+bool limitBranchAfter(const uint32_t* p, uintptr_t end, bool belowToo) {
+    for (int k = 1; k <= 4 && reinterpret_cast<uintptr_t>(p + k) < end; ++k) {
+        if (isLimitBranch(p[k], belowToo)) return true;
+        if ((p[k] & 0x0A000000u) != 0x08000000u) return false;
+    }
+    return false;
+}
+
 bool writeInstruction(uint32_t* at, uint32_t insn) {
     const long pageSize = sysconf(_SC_PAGESIZE);
     auto page = reinterpret_cast<uintptr_t>(at) & ~static_cast<uintptr_t>(pageSize - 1);
@@ -96,7 +110,7 @@ int patchCompareLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit,
     const uintptr_t end = methodEnd(m, start);
     int patched = 0;
     for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 1) < end; ++p) {
-        if (!isCompareImmediate(*p, oldLimit, shifted) || !isLimitBranch(p[1], belowToo)) continue;
+        if (!isCompareImmediate(*p, oldLimit, shifted) || !limitBranchAfter(p, end, belowToo)) continue;
         const uint32_t insn = (*p & ~(0xFFFu << 10)) | (newLimit << 10);
         if (writeInstruction(p, insn)) ++patched;
     }
@@ -137,9 +151,9 @@ std::string describeCompareMiss(const MethodInfo* m, uint32_t oldLimit, uint32_t
     uint32_t otherInsn = 0;
     for (auto* p = reinterpret_cast<const uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 1) < end; ++p) {
         if (isCompareImmediate(*p, oldLimit, shifted)) {
-            if (isLimitBranch(p[1], belowToo)) ++old;
+            if (limitBranchAfter(p, end, belowToo)) ++old;
             else if (!oldOtherBranch++) otherInsn = p[1];
-        } else if (isCompareImmediate(*p, newLimit, shifted) && isLimitBranch(p[1], belowToo)) {
+        } else if (isCompareImmediate(*p, newLimit, shifted) && limitBranchAfter(p, end, belowToo)) {
             ++already;
         }
     }
@@ -154,7 +168,7 @@ std::string describeCompareMiss(const MethodInfo* m, uint32_t oldLimit, uint32_t
                       newLimit, already);
     } else if (oldOtherBranch > 0) {
         std::snprintf(why, sizeof(why), "o cmp #%u existe (%d vez(es)), mas sem desvio de ordem logo "
-                      "depois (1o: %08x)", oldLimit, oldOtherBranch, otherInsn);
+                      "depois (1a instrucao seguinte: %08x)", oldLimit, oldOtherBranch, otherInsn);
     } else {
         std::snprintf(why, sizeof(why), "nenhum cmp #%u no metodo", oldLimit);
     }
