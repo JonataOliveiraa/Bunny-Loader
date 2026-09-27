@@ -1,3 +1,5 @@
+<p align="center"><img src="_icons/launcher/titulo.png" alt="Bunny Loader"></p>
+
 # Bunny Loader
 
 Loader de mods para o **Terraria Mobile**. É um app Android que sobe o jogo
