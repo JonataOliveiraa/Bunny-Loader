@@ -1,0 +1,15 @@
+{
+  "uid": "01aabb98-b44f-4472-a67a-0c4ce2af6eb1",
+  "id": "test-armorsave",
+  "name": "Teste: armadura de mod salva no personagem",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "1a rodada: veste capacete, asas e o fantasia (vaidade) e salva. 2a: confere que voltaram, com os slots desenhados, e limpa.",
+  "description": "Precisa do Example Mod ligado. Rode duas vezes. Loga 'armorsave ...'.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

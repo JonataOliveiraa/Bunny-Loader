@@ -112,6 +112,8 @@ class PlayerLoader {
         const each = PlayerLoader.Each;
         const any = PlayerLoader.Any;
 
+        if (has('FrameEffects')) ArmorSetLoader.WantFrame();
+
         if (has('ResetEffects') || has('ModifyMaxStats')) Hooks.Once('player.ResetEffects', () => {
             P['void ResetEffects()'].hook((original, self) => {
                 original(self);

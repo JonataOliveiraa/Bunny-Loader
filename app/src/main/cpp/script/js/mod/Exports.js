@@ -1,7 +1,7 @@
 // A API que os mods enxergam; o resto fica no escopo privado.
 Object.assign(globalThis, {
     Mod, ModLoader, ModContent, ModLocalization,
-    ModItem, ModRecipe, TooltipLine,
+    ModItem, ModRecipe, TooltipLine, EquipType, EquipLoader, EquipTexture,
     ModSystem, TagCompound,
     ModPlayer, ModBuff, ModTile, ModProjectile,
     ModNPC, NPCLoot, NPCSpawnInfo, NPCShop, NPCHappiness, AffectionLevel, ModGore,

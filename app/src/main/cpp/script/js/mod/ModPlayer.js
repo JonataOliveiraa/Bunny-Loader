@@ -27,6 +27,8 @@ class ModPlayer {
     UpdateManaRegen(player) {}
     UpdateDead(player) {}
     UpdateMovement(player) {}
+    // Cada quadro, depois de o jogo montar o que se veste: trocar player.head/body/legs muda o desenho.
+    FrameEffects(player) {}
 
     CanUseItem(player, item) { return true; }
     ModifyWeaponDamage(player, item, damage) { this.WeaponDamage = damage; }

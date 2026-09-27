@@ -7,12 +7,14 @@
 #include "il2cpp/Signature.h"
 #include "mods/ModLoader.h"
 #include "content/items/ModItems.h"
+#include "content/common/TypeTables.h"
 #include "menu/ModMenu.h"
 #include "script/bridge/Bridge.h"
 #include "script/api/Texture.h"
 
 #include <cstdio>
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 #include <string>
@@ -377,6 +379,36 @@ JSValue js_isHiddenFromMenu(JSContext* ctx, JSValueConst, int argc, JSValueConst
     return JS_NewBool(ctx, runtime::hiddenFromModMenu(kind).count(type) > 0);
 }
 
+/**
+ * bl.items.growEquipSets('Head' | 'Body' | ..., de, para) -> quantas tabelas
+ * cresceram (-1: nenhuma achada). As ArmorIDs.<tipo>.Sets do equipamento: toda
+ * tabela com o Count de fabrica cresce, com o valor mais comum (o padrao da
+ * fabrica: -1 no FrontToBackID, true no DrawHead). O EquipLoader chama uma vez
+ * por tipo, na thread do jogo, antes de subir o Count.
+ */
+JSValue js_growEquipSets(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* kind = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    int32_t from = 0, to = 0;
+    if (!kind || argc < 3 || JS_ToInt32(ctx, &from, argv[1]) < 0 || JS_ToInt32(ctx, &to, argv[2]) < 0 ||
+        from <= 0 || to < from) {
+        if (kind) JS_FreeCString(ctx, kind);
+        return JS_ThrowTypeError(ctx, "bl.items.growEquipSets(tipo, de, para)");
+    }
+    // A TableClass guarda o ponteiro do nome: fica viva junto com a tabela.
+    static std::map<std::string, std::unique_ptr<runtime::TypeTables>> tables;
+    static std::map<std::string, std::string> names;
+    const std::string& name = names[kind] = kind;
+    JS_FreeCString(ctx, kind);
+    auto& t = tables[name];
+    if (!t) {
+        t = std::make_unique<runtime::TypeTables>(
+            "equipamento", from,
+            std::vector<runtime::TableClass>{{"Terraria.ID", "ArmorIDs", name.c_str(), "Sets"}},
+            runtime::TypeTables::Fill::Mode);
+    }
+    return JS_NewInt32(ctx, t->grow(from, to));
+}
+
 } // namespace
 
 void installItemsApi(JSContext* ctx, JSValue bl) {
@@ -387,6 +419,7 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, items, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaItemCount));
     JS_SetPropertyStr(ctx, items, "setTooltip", JS_NewCFunction(ctx, js_setTooltip, "setTooltip", 2));
     JS_SetPropertyStr(ctx, items, "modItemsIn", JS_NewCFunction(ctx, js_modItemsIn, "modItemsIn", 1));
+    JS_SetPropertyStr(ctx, items, "growEquipSets", JS_NewCFunction(ctx, js_growEquipSets, "growEquipSets", 3));
     JS_SetPropertyStr(ctx, bl, "items", items);
 
     JSValue menu = JS_NewObject(ctx);

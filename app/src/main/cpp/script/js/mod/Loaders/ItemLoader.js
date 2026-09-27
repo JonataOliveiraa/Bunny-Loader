@@ -146,7 +146,7 @@ class ItemLoader {
                 }, onItem(0));
         });
 
-        if (has('UpdateEquip') || has('UpdateAccessory')) {
+        if (has('UpdateEquip') || has('UpdateAccessory') || has('UpdateVanity')) {
             Hooks.Once('item.Accessory', () => {
                 P['void ApplyEquipFunctional(int itemSlot, Item currentItem)'].hook((original, self, slot, item) => {
                     original(self, slot, item);
@@ -162,13 +162,14 @@ class ItemLoader {
                 }, onItem(1));
             });
 
-            if (has('UpdateAccessory')) Hooks.Once('item.AccessoryVanity', () => {
+            if (has('UpdateAccessory') || has('UpdateVanity')) Hooks.Once('item.AccessoryVanity', () => {
                 P['void ApplyEquipVanity(int itemSlot, Item currentItem)'].hook((original, self, slot, item) => {
                     original(self, slot, item);
 
                     const m = of(item);
                     if (m && item.accessory) {
                         Safe.Run(m.constructor.name + '.UpdateAccessory', () => m.UpdateAccessory(item, self, true, false));
+                        Safe.Run(m.constructor.name + '.UpdateVanity', () => m.UpdateVanity(item, self));
                     }
                 }, onItem(1));
             });
@@ -198,6 +199,15 @@ class ItemLoader {
 
         if (has('ModifyFishingLine')) Hooks.Once('item.FishingLine', ItemLoader.#HookFishingLine);
 
+        // Conjuntos, vaidade e asas: nos seus carregadores (ArmorSetLoader, WingLoader).
+        if (has('IsArmorSet') || has('UpdateArmorSet')) ArmorSetLoader.WantArmorSets();
+        if (has('IsVanitySet') || has('PreUpdateVanitySet') || has('UpdateVanitySet') || has('EquipFrameEffects')) ArmorSetLoader.WantFrame();
+        if (has('IsVanitySet') || has('ArmorSetShadows')) ArmorSetLoader.WantShadows();
+        if (has('SetMatch')) ArmorSetLoader.WantSetMatch();
+        if (has('VerticalWingSpeeds')) WingLoader.Want('Vertical');
+        if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal');
+        if (has('WingUpdate')) WingLoader.Want('Update');
+
         if (has('UpdateInventory')) Hooks.Once('item.Inventory', () => {
             P['void UpdateEquips(int i)'].hook((original, self, i) => {
                 original(self, i);
@@ -208,6 +218,22 @@ class ItemLoader {
                 }
             });
         });
+    }
+
+    // A amostra do jogo (ContentSamples) do tipo; a do "nada" (0) se não há.
+    static Sample(type) {
+        const samples = Terraria.ID.ContentSamples.ItemsByType;
+        return samples.ContainsKey(type) ? samples.get_Item(type) : samples.get_Item(0);
+    }
+
+    // O endereço da amostra do tipo; 0 se ainda não há.
+    static SampleAddress(type) {
+        try {
+            const samples = Terraria.ID.ContentSamples.ItemsByType;
+            return samples && samples.ContainsKey(type) ? bl.addressOf(samples.get_Item(type)) : 0;
+        } catch (e) {
+            return 0;
+        }
     }
 
     // Item.Clone copia os campos nativos; a cópia ganha um Clone do ModItem.

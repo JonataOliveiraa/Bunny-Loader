@@ -1,0 +1,15 @@
+{
+  "uid": "1391f8b1-1442-4be3-9f45-7d9894ee6539",
+  "id": "test-mparmor",
+  "name": "Teste: armaduras no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Cada lado veste o conjunto, as asas e a barba do Example Mod; o outro vê os slots de mod e o bônus do conjunto.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpa ...'.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

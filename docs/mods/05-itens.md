@@ -174,6 +174,137 @@ efeito ([guia 8](08-jogador-e-buffs.md)). O `ResetEffects` do `ModPlayer`
 desliga o campo a cada quadro; se o acessório ainda estiver equipado, ele liga
 de novo.
 
+### A textura no corpo
+
+Como o `[AutoloadEquip]` do tModLoader, mas pelo nome do arquivo: ao lado da
+textura do item, `<Textura>_<tipo>.png` vira a textura vestida. O
+`ExampleHelmet.png` tem o `ExampleHelmet_Head.png`; o `ExampleWings.png`, o
+`ExampleWings_Wings.png`. Os tipos (`EquipType`): `Head`, `Body`, `Legs`,
+`HandsOn`, `HandsOff`, `Back`, `Front`, `Shoes`, `Waist`, `Wings`, `Shield`,
+`Neck`, `Face`, `Beard`, `Balloon`.
+
+Cada textura ganha um slot depois dos do jogo (`Item.headSlot`, `wingSlot`...),
+já posto no `SetDefaults` do item. O corpo usa a folha composta do 1.4
+(`ArmorIDs.Body.Sets.UsesNewFramingCode`), como no tModLoader. No
+`SetStaticDefaults`, o `this.Item` é a amostra do jogo, com os slots:
+
+```js
+export class ExampleWings extends ModItem {
+    SetStaticDefaults() {
+        const stats = Terraria.ID.ArmorIDs.Wing.Sets.Stats[this.Item.wingSlot];
+        stats.FlyTime = 180;              // o WingStats(180, 9, 2.5) do tModLoader
+        stats.AccRunSpeedOverride = 9;
+        stats.AccRunAccelerationMult = 2.5;
+    }
+
+    // Os cinco `ref` do WingMovement do jogo (Ref, .value).
+    VerticalWingSpeeds(item, player, ascentWhenFalling, ascentWhenRising, maxCanAscendMultiplier, maxAscentMultiplier, constantAscend) {
+        ascentWhenFalling.value = 0.85;
+        ascentWhenRising.value = 0.15;
+        maxCanAscendMultiplier.value = 1;
+        maxAscentMultiplier.value = 3;
+        constantAscend.value = 0.135;
+    }
+}
+```
+
+`EquipLoader.GetEquipSlot('ExampleHelmet', EquipType.Head)` devolve o slot
+(-1 se não há). Os acessórios guardam o slot num `sbyte`: até 127 por tipo,
+contando os do jogo. `SetWingStats(tempo, velocidade, aceleração, ...)` é o
+atalho do WingStats (o do ExMod do TL).
+
+As asas ainda têm `HorizontalWingSpeeds(item, player, speed, acceleration)`
+(a corrida no ar, dois `Ref`) e `WingUpdate(player, inUse)`: `true` diz que o
+mod anima as asas, e o `WingFrame` do jogo não roda.
+
+#### Registrar à mão
+
+Com `static AutoloadEquip = [EquipType.Body]` só os tipos da lista são achados
+pelo nome; `[]` desliga (o `[AutoloadEquip]` do tModLoader). O resto, no
+`Load()` do item, com `EquipLoader.AddEquipTexture(this.Mod, textura, tipo,
+item, nome, equipTexture)`: o slot só existe depois, então
+`GetEquipSlot(this.Mod, nome, tipo)` vale do `SetStaticDefaults` em diante. A
+`EquipTexture` própria muda o comportamento só daquela textura:
+
+```js
+class BlockyHead extends EquipTexture {
+    IsVanitySet(head, body, legs) { return true; }   // conjunto de vaidade sozinha
+    UpdateVanitySet(player) { /* faíscas */ }
+}
+
+export class ExampleCostume extends ModItem {
+    static AutoloadEquip = [];
+
+    Load() {
+        EquipLoader.AddEquipTexture(this.Mod, this.Texture + '_Head', EquipType.Head, this, null, new BlockyHead());
+        EquipLoader.AddEquipTexture(this.Mod, this.Texture + 'Alt_Head', EquipType.Head, this, 'BlockyAlt', new BlockyHead());
+        // ...
+    }
+}
+```
+
+O visual do corpo vem das tabelas do tModLoader, que aqui são do Bunny
+Loader: `ArmorIDs.Head.Sets.DrawHead` (o `HidesHead` do jogo, ao contrário),
+`ArmorIDs.Body.Sets.HidesTopSkin`/`HidesBottomSkin`/`HidesHands`/`HidesArms`
+e `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin`, aplicadas depois do
+`PlayerDrawSet.BoringSetup` do jogo.
+
+#### Visual: FrameEffects, vaidade e manto
+
+- `ModPlayer.FrameEffects(player)` roda a cada quadro depois de o jogo montar
+  o que se desenha: trocar `player.head`/`body`/`legs` para um slot muda o
+  desenho (o `ExampleCostumePlayer` veste o fantasia assim).
+- `IsVanitySet(head, body, legs)` recebe os SLOTS desenhados (não itens) e é
+  perguntado à textura de cada um; se `true`, `PreUpdateVanitySet(player)`
+  (antes do FrameEffects), `UpdateVanitySet(player)` (depois) e
+  `ArmorSetShadows(player)` (os `armorEffectDraw*`). Sem sobrescrever, é o
+  `IsArmorSet` dos itens desses slots.
+- `SetMatch(male, equipSlot, robes)` decide o slot desenhado da peça. O manto
+  põe `robes.value = true` e as pernas dele em `equipSlot.value` (o
+  `ExampleRobe`).
+- `EquipFrameEffects(player, type)` roda com a textura do item vestida;
+  `UpdateVanity(item, player)`, com o acessório no slot de vaidade.
+
+O manequim (`TEDisplayDoll`) desenha as peças de mod como o jogador, e a
+armadura de mod volta no lugar ao carregar o personagem (`tools/tests/armor`
+e `armorsave`).
+
+### Conjunto de armadura
+
+`IsArmorSet(head, body, legs)` roda para cada peça vestida que é de mod; se
+devolver `true`, o `UpdateArmorSet(item, player)` dela dá o bônus. O texto do
+bônus vai em `player.setBonus`: o jogo mostra a linha "Bônus de Armadura" no
+tooltip das peças vestidas.
+
+```js
+export class ExampleHelmet extends ModItem {
+    IsArmorSet(head, body, legs) {
+        return body.type === ModContent.ItemType('ExampleBreastplate') &&
+               legs.type === ModContent.ItemType('ExampleLeggings');
+    }
+
+    UpdateArmorSet(item, player) {
+        player.setBonus = ModLocalization.Translate('ArmorSetBonus.ExampleArmor').replace('{0}', 20);
+        player.meleeDamage += 0.2;
+        player.rangedDamage += 0.2;
+        player.magicDamage += 0.2;
+        player.minionDamage += 0.2;
+    }
+}
+```
+
+Esta versão do jogo não tem `DamageClass`: o dano é por classe
+(`meleeDamage`, `rangedDamage`, `magicDamage`, `minionDamage`).
+
+Para conjuntos de qualquer item (também os do jogo), o `GlobalItem`:
+`IsArmorSet(head, body, legs)` devolve o NOME do conjunto (`''` = nenhum), e
+`UpdateArmorSet(player, nome)` dá o efeito. Os de vaidade, sombras, `SetMatch`
+e asas também existem no `GlobalItem`, como no tModLoader.
+
+No multijogador vale o de sempre para item de mod: os dois lados com os mesmos
+mods, na mesma ordem. O jogo manda o ITEM de cada casa da armadura, e cada
+aparelho monta os slots sozinho (conferido em `tools/tests/mparmor`).
+
 ## Tooltip colorido
 
 `ModifyTooltips(item, tooltips)` roda **toda vez** que o tooltip do item

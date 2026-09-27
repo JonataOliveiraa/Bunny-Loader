@@ -14,6 +14,8 @@ class ModItem {
 
     Clone(newItem) { return Entities.Clone(this); }
 
+    // No registro, com o tipo já dado (o Load do tModLoader: AddEquipTexture...).
+    Load() {}
     SetStaticDefaults() {}
     SetDefaults(item) {}
     PostStaticDefaults() {}
@@ -37,6 +39,48 @@ class ModItem {
     OnHitNPC(item, player, npc, damageDone, knockBack, crit) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
+    // Acessório no slot de vaidade.
+    UpdateVanity(item, player) {}
+    // Chamados para cada peça vestida (cabeça, corpo, pernas) que é de mod.
+    IsArmorSet(head, body, legs) { return false; }
+    UpdateArmorSet(item, player) {}
+
+    // Conjunto de vaidade: head, body e legs são os SLOTS desenhados
+    // (player.head...). Sem sobrescrever, é o IsArmorSet dos itens desses slots.
+    IsVanitySet(head, body, legs) {
+        const sample = (table, slot) => ItemLoader.Sample(slot > 0 && slot < table.length ? table[slot] : 0);
+        return this.IsArmorSet(sample(Terraria.Item.headType, head), sample(Terraria.Item.bodyType, body),
+                               sample(Terraria.Item.legType, legs));
+    }
+    PreUpdateVanitySet(player) {}
+    UpdateVanitySet(player) {}
+    ArmorSetShadows(player) {}
+    // O slot que o jogo desenha para esta peça (equipSlot e robes são Ref):
+    // o manto põe robes = true e as pernas dele em equipSlot.
+    SetMatch(male, equipSlot, robes) {}
+    // Cada quadro, com esta textura vestida (type: o EquipType).
+    EquipFrameEffects(player, type) {}
+
+    // As asas deste item: os `ref` do jogo chegam como Ref (.value).
+    VerticalWingSpeeds(item, player, ascentWhenFalling, ascentWhenRising, maxCanAscendMultiplier, maxAscentMultiplier, constantAscend) {}
+    HorizontalWingSpeeds(item, player, speed, acceleration) {}
+    // true: o mod anima as asas (o WingFrame do jogo não roda).
+    WingUpdate(player, inUse) { return false; }
+
+    // O WingStats das asas deste item (no SetStaticDefaults), como o do ExMod do TL.
+    SetWingStats(flyTime = 100, flySpeedOverride = -1, accelerationMultiplier = 1, hasHoldDownHoverFeatures = false,
+                 hoverFlySpeedOverride = -1, hoverAccelerationMultiplier = 1) {
+        const slot = this.Item ? this.Item.wingSlot : -1;
+        if (!(slot > 0)) throw new Error(this.constructor.name + '.SetWingStats: o item nao tem asas (' + this.Texture + '_Wings.png)');
+
+        const stats = Terraria.ID.ArmorIDs.Wing.Sets.Stats[slot];
+        stats.FlyTime = flyTime;
+        stats.AccRunSpeedOverride = flySpeedOverride;
+        stats.AccRunAccelerationMult = accelerationMultiplier;
+        stats.HasDownHoverStats = hasHoldDownHoverFeatures;
+        stats.DownHoverSpeedOverride = hoverFlySpeedOverride;
+        stats.DownHoverAccelerationMult = hoverAccelerationMultiplier;
+    }
     UpdateInventory(item, player) {}
     GetAlpha(item, lightColor) { return undefined; }
     // ModifyFishingLine(item, bobber, line) também vale (line.lineOriginOffset, line.lineColor).
@@ -91,6 +135,19 @@ class ModItem {
         item.useTurn = true;
         item.autoReuse = true;
         item.consumable = true;
+    }
+
+    // A tocha do jogo (segurar, luz, colocar na parede), colocando o tile de mod.
+    DefaultToTorch(tileType, styleToPlace = 0, allowWaterPlacement = false) {
+        this.Item['void DefaultToTorch(int tileStyleToPlace, bool allowWaterPlacement)'](styleToPlace, allowWaterPlacement);
+        this.Item.createTile = tileType;
+    }
+
+    // A caixa de música do jogo, colocando o tile de mod (MusicLoader.AddMusicBox).
+    DefaultToMusicBox(tileType, styleToPlace = 0) {
+        this.Item['void DefaultToMusicBox(int style)'](styleToPlace);
+        this.Item.createTile = tileType;
+        this.Item.placeStyle = styleToPlace;
     }
 
     DefaultToFood(buffType, buffTime, useGulpSound = false, animationTime = 17) {
@@ -166,18 +223,31 @@ class ModItem {
             texture: ModFiles.Texture(inst.Texture),
             displayName: inst.DisplayName || Lang.Localized('ItemName', name) || name,
             setDefaults(item) {
+                EquipLoader.Install();
+                EquipLoader.Apply(item, inst.Type);
+
                 const m = Entities.Bind(inst.Clone(item), item, 'ModItem');
                 m.SetDefaults(item);
                 m.PostSetDefaults(item);
             },
             setStaticDefaults() {
-                inst.SetStaticDefaults();
-                inst.PostStaticDefaults();
+                EquipLoader.Install();
+
+                // O this.Item do tModLoader no SetStaticDefaults (Item.wingSlot...): a amostra do jogo.
+                inst.__entity = ItemLoader.SampleAddress(inst.Type);
+                try {
+                    inst.SetStaticDefaults();
+                    inst.PostStaticDefaults();
+                } finally {
+                    inst.__entity = 0;
+                }
                 Templates.HideFromMenu('item', inst, inst.Type, () => Terraria.ID.ItemID.Sets.Deprecated[inst.Type]);
             },
         });
         inst.Type = type;
         ItemLoader.ByType.set(type, inst);
+        EquipLoader.Autoload(inst, cls, name);
+        Safe.Run(name + '.Load', () => inst.Load());
         ItemLoader.SetupTooltip(inst, name, type);
 
         Ready.Add(() => inst.AddRecipeGroups(), 'groups');

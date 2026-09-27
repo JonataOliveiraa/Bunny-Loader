@@ -64,7 +64,15 @@
     "ExampleSignItem": "Example Sign",
     "ExampleAnimatedTileItem": "Example Firefly Jar",
     "ExampleAnimatedGlowmaskTileItem": "Example Monolith",
-    "ExampleTransparentShapedTileItem": "Example Molten Glass"
+    "ExampleTransparentShapedTileItem": "Example Molten Glass",
+    "ExampleHelmet": "Example Helmet",
+    "ExampleBreastplate": "Example Breastplate",
+    "ExampleLeggings": "Example Leggings",
+    "ExampleBossMask": "Example Boss Mask",
+    "ExampleWings": "Example Wings",
+    "ExampleBeard": "Example Beard",
+    "ExampleCostume": "Example Costume",
+    "ExampleRobe": "Example Robe"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -118,7 +126,13 @@
     "ExampleTrapChlorophyteBullet": "Shoots chlorophyte bullets when wired\nHammer it to turn it",
     "ExampleMusicBox": "Tap it to play the Eye of ??? music",
     "ExampleGemsparkBlock": "Wire it to turn it on and off",
-    "ExampleHerbSeeds": "Grows on grass and on the Example Block"
+    "ExampleHerbSeeds": "Grows on grass and on the Example Block",
+    "ExampleHelmet": "This is a modded helmet.",
+    "ExampleBreastplate": "This is a modded body armor.\nImmunity to 'On Fire!'\n+{0} max mana and +{1} max minions",
+    "ExampleLeggings": "This is a modded leg armor.\n{0}% increased movement speed",
+    "ExampleWings": "This is a modded wing.",
+    "ExampleBeard": "This is a modded beard which matches your hair color.",
+    "ExampleCostume": "Turns the holder into a blocky figure near town NPCs"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
@@ -133,14 +147,16 @@
     "ExampleDefenseDebuff": "Reduced Defense",
     "ExamplePetBuff": "Paper Airplane",
     "ExampleLightPetBuff": "Annoying Light",
-    "ExampleMinionBuff": "Example Minion"
+    "ExampleMinionBuff": "Example Minion",
+    "Blocky": "Blocky"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Increases the player's defense by {0}",
     "ExampleDefenseDebuff": "Reduces the player's defense by {0}%",
     "ExamplePetBuff": "\"Let this pet be an example to you!\"",
     "ExampleLightPetBuff": "Ugh, soooo annoying",
-    "ExampleMinionBuff": "The example minion will fight for you"
+    "ExampleMinionBuff": "The example minion will fight for you",
+    "Blocky": "Jumping power is increased"
   },
   "CustomText": {
     "WelcomeMessage": "Welcome to {WorldName}!"
@@ -170,5 +186,8 @@
   },
   "CustomCurrency": {
     "ExampleItemCurrency": "credits"
+  },
+  "ArmorSetBonus": {
+    "ExampleArmor": "Increases dealt damage by {0}%"
   }
 }

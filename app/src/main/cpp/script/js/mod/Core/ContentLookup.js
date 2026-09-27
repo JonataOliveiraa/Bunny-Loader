@@ -80,6 +80,11 @@ class ContentLookup {
         const file = ContentLookup.FindTexture(path);
         if (!file) throw new Error("ModContent.Request: nao achei a textura '" + path + "' em Assets/Textures");
 
+        return ContentLookup.RequestFile(file);
+    }
+
+    // Pelo caminho completo do arquivo (sem depender de quem chama).
+    static RequestFile(file) {
         let asset = ContentLookup.#textures.get(file);
         if (!asset) {
             asset = bl.loadTextureAsset(file);

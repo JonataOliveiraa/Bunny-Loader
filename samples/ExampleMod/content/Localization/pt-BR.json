@@ -64,7 +64,15 @@
     "ExampleSignItem": "Placa de Exemplo",
     "ExampleAnimatedTileItem": "Pote de Vaga-lume de Exemplo",
     "ExampleAnimatedGlowmaskTileItem": "Monólito de Exemplo",
-    "ExampleTransparentShapedTileItem": "Vidro Derretido de Exemplo"
+    "ExampleTransparentShapedTileItem": "Vidro Derretido de Exemplo",
+    "ExampleHelmet": "Capacete de Exemplo",
+    "ExampleBreastplate": "Peitoral de Exemplo",
+    "ExampleLeggings": "Calças de Exemplo",
+    "ExampleBossMask": "Máscara do Chefe de Exemplo",
+    "ExampleWings": "Asas de Exemplo",
+    "ExampleBeard": "Barba de Exemplo",
+    "ExampleCostume": "Fantasia de Exemplo",
+    "ExampleRobe": "Manto de Exemplo"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -118,7 +126,13 @@
     "ExampleTrapChlorophyteBullet": "Atira balas de clorofita quando ligada num fio\nO martelo gira a armadilha",
     "ExampleMusicBox": "Toque para tocar a música do Olho de ???",
     "ExampleGemsparkBlock": "Ligue num fio para acender e apagar",
-    "ExampleHerbSeeds": "Cresce na grama e no bloco de exemplo"
+    "ExampleHerbSeeds": "Cresce na grama e no bloco de exemplo",
+    "ExampleHelmet": "Um capacete de mod.",
+    "ExampleBreastplate": "Uma armadura de mod para o corpo.\nImunidade a 'Em Chamas!'\n+{0} de mana máxima e +{1} de lacaio máximo",
+    "ExampleLeggings": "Uma armadura de mod para as pernas.\n{0}% de aumento na velocidade de movimento",
+    "ExampleWings": "Asas de mod.",
+    "ExampleBeard": "Uma barba de mod, da cor do seu cabelo.",
+    "ExampleCostume": "Perto de moradores, transforma quem a veste num boneco quadrado"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
@@ -133,14 +147,16 @@
     "ExampleDefenseDebuff": "Defesa Reduzida",
     "ExamplePetBuff": "Aviãozinho",
     "ExampleLightPetBuff": "Luz Irritante",
-    "ExampleMinionBuff": "Lacaio de Exemplo"
+    "ExampleMinionBuff": "Lacaio de Exemplo",
+    "Blocky": "Quadrado"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}",
     "ExampleDefenseDebuff": "Reduz a defesa do jogador em {0}%",
     "ExamplePetBuff": "\"Que este pet sirva de exemplo para você!\"",
     "ExampleLightPetBuff": "Argh, muuuito irritante",
-    "ExampleMinionBuff": "O lacaio de exemplo vai lutar por você"
+    "ExampleMinionBuff": "O lacaio de exemplo vai lutar por você",
+    "Blocky": "Pulo mais alto"
   },
   "CustomText": {
     "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"
@@ -170,5 +186,8 @@
   },
   "CustomCurrency": {
     "ExampleItemCurrency": "créditos"
+  },
+  "ArmorSetBonus": {
+    "ExampleArmor": "Aumenta o dano causado em {0}%"
   }
 }

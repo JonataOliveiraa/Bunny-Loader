@@ -268,6 +268,31 @@ const TileSetsExtras = Object.freeze({
     CanPlaceNextToNonSolidTile: TypeSet(false),
 });
 
+// O visual vestido do tModLoader (ArmorIDs.*.Sets): o jogo daqui decide por
+// listas no código (PlayerDrawSet.BoringSetup), e o ArmorSetLoader aplica
+// depois dele o que um mod marcar. O DrawHead é o HidesHead do jogo, ao contrário.
+const isIndex = (key) => typeof key === 'string' && /^\d+$/.test(key);
+const ArmorHeadSetsExtras = Object.freeze({
+    DrawHead: new Proxy([], {
+        get(target, key) { return isIndex(key) ? !Terraria.ID.ArmorIDs.Head.Sets.HidesHead[+key] : target[key]; },
+        set(target, key, value) {
+            if (isIndex(key)) Terraria.ID.ArmorIDs.Head.Sets.HidesHead[+key] = !value;
+            else target[key] = value;
+            return true;
+        },
+    }),
+});
+const ArmorBodySetsExtras = Object.freeze({
+    HidesTopSkin: TypeSet(false),
+    HidesBottomSkin: TypeSet(false),
+    HidesHands: TypeSet(true),
+    HidesArms: TypeSet(false),
+});
+const ArmorLegsSetsExtras = Object.freeze({
+    HidesTopSkin: TypeSet(false),
+    HidesBottomSkin: TypeSet(false),
+});
+
 const tileAt = (i, j) => Terraria.Main.tile['Tile get_Item(int x, int y)'](i, j);
 const objectDataOf = (tile) =>
     Terraria.ObjectData.TileObjectData['TileObjectData GetTileData(Tile getTile)'](tile);
@@ -481,5 +506,8 @@ globalThis.__blExtraStatics = Object.freeze({
     'Terraria.ID.DustID': DustIDExtras,
     'Terraria.ID.TileID.Sets': TileSetsExtras,
     'Terraria.ObjectData.TileObjectData': TileObjectDataExtras,
+    'Terraria.ID.ArmorIDs.Head.Sets': ArmorHeadSetsExtras,
+    'Terraria.ID.ArmorIDs.Body.Sets': ArmorBodySetsExtras,
+    'Terraria.ID.ArmorIDs.Legs.Sets': ArmorLegsSetsExtras,
 });
 })();

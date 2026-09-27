@@ -1,0 +1,15 @@
+{
+  "uid": "f25f5179-1dcb-4d64-8b60-e7a66d37cdf7",
+  "id": "test-armor",
+  "name": "Teste: armaduras e equipáveis",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Slots e tabelas das texturas vestidas, conjunto (IsArmorSet/UpdateArmorSet/setBonus), asas, barba e acessórios do Example Mod.",
+  "description": "Precisa do Example Mod ligado. Veste e tira as peças; não salva. Loga 'armor ...'.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

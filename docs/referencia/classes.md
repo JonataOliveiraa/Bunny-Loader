@@ -91,6 +91,18 @@ própria instância, com `this.Item` apontando para ele.
 | `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. | `Player.ApplyNPCOnHitEffects`, filtro `tipo` |
 | `UpdateEquip(item, player)` | Todo quadro, equipado (armadura ou acessório). | `Player.ApplyEquipFunctional`, `GrantArmorBenefits`, filtro `tipo` |
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, acessório equipado (também no slot de vaidade). | `Player.ApplyEquipFunctional`, `ApplyEquipVanity`, filtro `tipo` |
+| `IsArmorSet(head, body, legs)` | Para cada peça vestida de mod: `true` = conjunto completo. | `Player.UpdateArmorSets`, sem filtro (zera o `setBonus` antes) |
+| `UpdateArmorSet(item, player)` | O bônus do conjunto; o texto vai em `player.setBonus`. | idem |
+| `VerticalWingSpeeds(item, player, falling, rising, maxCan, maxAscent, constant)` | As asas deste item no ar (cinco `Ref`). | `Player.WingMovement`, filtro `wingsLogic` ≥ o `Count` do jogo |
+| `HorizontalWingSpeeds(item, player, speed, acceleration)` | A corrida no ar com estas asas (dois `Ref`). | depois do `Player.WingAirLogicTweaks`, filtro `wingsLogic` |
+| `WingUpdate(player, inUse)` | `true`: o mod anima as asas (o `WingFrame` do jogo não roda). | `Player.WingFrame`, filtro `wings` |
+| `IsVanitySet(head, body, legs)` | Os SLOTS desenhados; `true` = conjunto de vaidade (padrão: o `IsArmorSet` dos itens desses slots). | pela textura de cada slot |
+| `PreUpdateVanitySet(player)`, `UpdateVanitySet(player)` | Antes e depois do `FrameEffects`, com o conjunto de vaidade. | depois do `Player.PlayerFrame` |
+| `ArmorSetShadows(player)` | As sombras do conjunto (`armorEffectDraw*`). | depois do `Player.SetArmorEffectVisuals` |
+| `SetMatch(male, equipSlot, robes)` | O slot desenhado desta peça (`Ref`); o manto põe `robes` e as pernas. | depois do `Player.SetMatch` |
+| `EquipFrameEffects(player, type)` | A cada quadro, com a textura do item vestida. | depois do `Player.PlayerFrame` |
+| `UpdateVanity(item, player)` | Acessório no slot de vaidade. | `Player.ApplyEquipVanity` |
+| `Load()` | No registro (o `AddEquipTexture` vai aqui). | registro |
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. | `Player.UpdateEquips`, sem filtro (percorre só os itens de mod do jogador) |
 | `GetAlpha(item, lightColor)` | No chão: devolva a `Color` do desenho. | `WorldItem.GetAlpha`, sem filtro |
 | `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara na mão, a cada boia: de onde a linha sai e a cor (dois `Ref`). | `Main.DrawProj_FishingLine`, sem filtro |
@@ -111,6 +123,8 @@ própria instância, com `this.Item` apontando para ele.
 | `SetItemAnimation(quadros, ticks, vaiEVolta)` | Item animado (tira vertical). No `SetStaticDefaults`. |
 | `CreateRecipe(quantidade)` | Uma `ModRecipe` que dá este item. |
 | `CreateRecipeGroup(tipos)` | Grupo com o nome do primeiro item. |
+| `SetWingStats(tempo, velocidade, aceleração, pairar, velocidadePairando, aceleraçãoPairando)` | O WingStats das asas do item. No `SetStaticDefaults`. |
+| `static AutoloadEquip = [EquipType.Head, ...]` | Só estas texturas vestidas pelo nome; `[]` nenhuma. |
 
 ### Estáticos
 
@@ -128,7 +142,19 @@ própria instância, com `this.Item` apontando para ele.
 Do `ModItem` do tModLoader, entre outros: `CanRightClick`/`RightClick`,
 `ModifyHitNPC`, `MeleeEffects`, `PreDrawInWorld`/`PostDrawInInventory`,
 `OnPickup`, `GrabRange`, `ModifyWeaponDamage` (há no `ModPlayer`),
-`IsArmorSet`/`UpdateArmorSet` e a armadura desenhada no corpo.
+`DrawArmorColor`/`ArmorArmGlowMask`, `WingGlidingSpeeds`,
+`ModifyEquipTextureDraw` e as camadas de desenho próprias (`PlayerDrawLayer`).
+
+### Texturas vestidas: EquipLoader e EquipTexture
+
+| | |
+|---|---|
+| `<Textura>_<tipo>.png` | A textura no corpo (`EquipType`: `Head`, `Body`, `Legs`, `HandsOn`, `HandsOff`, `Back`, `Front`, `Shoes`, `Waist`, `Wings`, `Shield`, `Neck`, `Face`, `Beard`, `Balloon`). |
+| `EquipLoader.AddEquipTexture([mod,] textura, tipo, item, nome, equipTexture)` | Registra à mão, no `Load()`. |
+| `EquipLoader.GetEquipSlot([mod,] nome, tipo)` | O slot; -1 se não há. Do `SetStaticDefaults` em diante. |
+| `EquipLoader.GetEquipTexture(tipo, slot)` | A `EquipTexture` do slot. |
+| `class X extends EquipTexture` | `FrameEffects`, `IsVanitySet`, `PreUpdateVanitySet`, `UpdateVanitySet`, `ArmorSetShadows`, `SetMatch`, `VerticalWingSpeeds`, `HorizontalWingSpeeds`, `WingUpdate` de uma textura só (padrão: os do item dono). |
+| `ArmorIDs.Head.Sets.DrawHead`, `ArmorIDs.Body.Sets.HidesTopSkin`/`HidesBottomSkin`/`HidesHands`/`HidesArms`, `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin` | As do tModLoader (não existem no jogo daqui), aplicadas no desenho. |
 
 ---
 
@@ -293,6 +319,7 @@ recebem o jogador (`player`), que é o mesmo `this.Player`.
 | `UpdateBadLifeRegen(player)`, `UpdateLifeRegen(player)` | Antes e depois da regeneração de vida. | `Player.UpdateLifeRegen` |
 | `UpdateManaRegen(player)` | Depois da regeneração de mana. | `Player.UpdateManaRegen` |
 | `UpdateMovement(player)` | Movimento próprio (dash), perto do fim do quadro. | `Player.BordersMovement` |
+| `FrameEffects(player)` | Depois de o jogo montar o que se desenha: trocar `player.head`/`body`/`legs` muda o desenho. | depois do `Player.PlayerFrame` |
 | `PostUpdate(player)` | Fim do quadro. | `Player.Update` |
 | `UpdateDead(player)` | Todo quadro morto. | `Player.UpdateDead` |
 
@@ -476,6 +503,10 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Acessório equipado (também de vaidade). | `Player.ApplyEquipFunctional`/`ApplyEquipVanity` |
 | `OnCraft(item, player, recipe)` | Criado numa receita. | `Main.CraftItem_GrantItem` |
 | `ModifyTooltips(item, tooltips)` | O tooltip; depois do `ModItem`. | `Main.MouseText_DrawItemTooltip_GetLinesInfo` |
+| `IsArmorSet(head, body, legs)` → nome, `UpdateArmorSet(player, nome)` | Conjunto de qualquer item (`''` = nenhum). | `Player.UpdateArmorSets` |
+| `IsVanitySet(head, body, legs)` → nome, `PreUpdateVanitySet`/`UpdateVanitySet`/`ArmorSetShadows(player, nome)` | Vaidade pelos slots desenhados. | `Player.PlayerFrame`, `SetArmorEffectVisuals` |
+| `SetMatch(armorSlot, type, male, equipSlot, robes)` | O slot desenhado de uma parte (0 cabeça, 1 corpo, 2 pernas). | `Player.SetMatch` |
+| `VerticalWingSpeeds(item, player, ...)`, `HorizontalWingSpeeds(item, player, speed, acceleration)`, `WingUpdate(wings, player, inUse)` | Asas, também as do jogo. | `Player.WingMovement`, `WingAirLogicTweaks`, `WingFrame` |
 
 ### GlobalNPC
 

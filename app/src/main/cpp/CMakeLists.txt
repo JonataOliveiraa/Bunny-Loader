@@ -50,11 +50,12 @@ configure_file(
 set(BL_MOD_CLASSES_PARTS
     Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
-    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority
+    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType
     Mod ModLoader
     Loaders/LocalizationLoader ModLocalization
     Loaders/RecipeLoader ModRecipe
-    Loaders/ItemLoader Loaders/TooltipLoader TooltipLine ModItem
+    Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
+    Loaders/TooltipLoader TooltipLine EquipTexture ModItem
     TagCompound Loaders/SystemLoader ModSystem
     Loaders/PlayerLoader ModPlayer
     Loaders/BuffLoader ModBuff

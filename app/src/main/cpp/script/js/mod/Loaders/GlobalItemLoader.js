@@ -122,6 +122,14 @@ class GlobalItemLoader {
         });
 
         if (has('ModifyTooltips')) Hooks.Once('item.Tooltips', TooltipLoader.Install);
+
+        if (has('UpdateArmorSet')) ArmorSetLoader.WantArmorSets();
+        if (has('PreUpdateVanitySet') || has('UpdateVanitySet')) ArmorSetLoader.WantFrame();
+        if (has('ArmorSetShadows')) ArmorSetLoader.WantShadows();
+        if (has('SetMatch')) ArmorSetLoader.WantSetMatch();
+        if (has('VerticalWingSpeeds')) WingLoader.Want('Vertical', true);
+        if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal', true);
+        if (has('WingUpdate')) WingLoader.Want('Update', true);
     }
 
     static #HookShoot() {

@@ -75,6 +75,9 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `multitile` | Duas rodadas: a Pia de Exemplo (2x2, `TileObjectData`) colocada, quebrada por uma célula e pelo chão (um drop só), salva e reaberta. | sim |
 | `modfurniture` | Os móveis do Example Mod pelos caminhos do jogo: a casa com porta, mesa, cadeira e tocha de mod passa no `RoomNeeds`; porta abre e fecha (pelo toque, sozinha com o jogador encostando, com o morador passando, no fio; o goblin guerreiro arromba e o peão derruba, soltando o item da porta de mod); luz firme da tocha, fogueira, lustre e luminária; caixa de música no chão e equipada; toque na cadeira senta; fio apaga a luminária; buff da fogueira. Não salva. | sim |
 | `tileperf` | Tempo de quadro com 150 tochas do jogo e com 150 tochas e 10 fogueiras de mod na tela, e o custo de cada método do `ModTile` por quadro. Não salva. | sim |
+| `armor` | Texturas vestidas (slots, `Count` e tabelas crescidos, `AddEquipTexture`, `EquipTexture` própria, `AutoloadEquip`), conjunto por item e por `GlobalItem`, vaidade e sombras, `FrameEffects` (fantasia), `SetMatch` (manto), asas (`WingStats`, as três velocidades e `WingUpdate`), manequim. Veste e tira; não salva. | sim |
+| `armorsave` | Duas rodadas: veste e salva o personagem; depois confere que as peças voltaram, com os slots desenhados, e limpa. | sim |
+| `mparmor` | Multijogador (host e cliente, `mpa ...`): cada lado veste o conjunto, as asas e a barba e vê os slots de mod e o bônus do outro. | não (mp-session) |
 | `hooks` | Os hooks das classes: IA, spawn natural, Bestiário, tooltip, receita, uso de item. | |
 | `recipes` | Receitas e grupos. | |
 | `globals` | `GlobalItem`, `GlobalNPC`, `GlobalProjectile` (filtro, instância por entidade, `Clone`), drops por tipo e globais com o Bestiário, e o `ModSystem` (mundo, atualização, dados salvos). Rodar duas vezes: a segunda carrega o que a primeira salvou. | sim |
