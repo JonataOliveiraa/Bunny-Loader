@@ -73,6 +73,7 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `tileframes` | Duas rodadas: o quadro de um 3x3 de mod e de um de pedra ao reabrir o mundo. | |
 | `hooks` | Os hooks das classes: IA, spawn natural, Bestiário, tooltip, receita, uso de item. | |
 | `recipes` | Receitas e grupos. | |
+| `globals` | `GlobalItem`, `GlobalNPC`, `GlobalProjectile` (filtro, instância por entidade, `Clone`), drops por tipo e globais com o Bestiário, e o `ModSystem` (mundo, atualização, dados salvos). Rodar duas vezes: a segunda carrega o que a primeira salvou. | sim |
 | `modplayer` | `ModPlayer` (quadro, dano, morte, dados salvos). | |
 | `modcontent` | `ModContent` e o que fica fora do Mod Menu. | sim |
 | `exmod1`, `exmod2` | O Example Mod inteiro, usado. | sim |
@@ -87,7 +88,7 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `music` | O chefe trocando a música do jogo pela dele, cada troca conferida no meio do fade. | sim |
 | `crossmod` (+ `crossmodtarget`) | `ModLoader.TryGetMod` e `Call`, nas duas ordens de carga. | |
 | **Multijogador** | | |
-| `mprecipes`, `mpplayer`, `mpitems`, `mptiles` | Um cliente e um host (ver `mp-session.sh`): itens de mod usados pelo cliente e conferidos no host, o dash com toque de verdade. | sim |
+| `mprecipes`, `mpplayer`, `mpitems`, `mptiles`, `mpglobals` | Um cliente e um host (ver `mp-session.sh`): itens de mod usados pelo cliente e conferidos no host, o dash com toque de verdade. | sim |
 
 [`mp-session.sh`](mp-session.sh) sobe uma sessão de multijogador entre duas
 instâncias do MuMu: uma hospeda, a outra entra, sem inimigos novos e de dia.

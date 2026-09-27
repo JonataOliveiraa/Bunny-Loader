@@ -150,8 +150,10 @@ function instanceOf(entity, field, byType) {
 
 // O MemberwiseClone do C#: os mesmos campos, rasos, noutra instancia.
 function cloneInstance(inst) {
-    const c = Object.create(Object.getPrototypeOf(inst));
-    Object.assign(c, inst);
+    // Pelos descritores, e nao Object.assign: um campo de classe com o nome de
+    // um getter da base (`InstancePerEntity = true`) nao tem setter, e o
+    // assign lancava.
+    const c = Object.create(Object.getPrototypeOf(inst), Object.getOwnPropertyDescriptors(inst));
     c.__entity = 0;
     return c;
 }
@@ -760,8 +762,10 @@ function hookTooltips() {
     Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour)'].hook(
         (original, item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor) => {
             original(item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor);
+            // O do ModItem primeiro, depois os GlobalItem, como no tModLoader.
             const m = itemOf(item);
-            if (!m || !overrides(m.constructor, ModItem, 'ModifyTooltips')) return;
+            const own = m && overrides(m.constructor, ModItem, 'ModifyTooltips') ? m : null;
+            if (!own && !anyGlobalWith(globalItems, item, ['ModifyTooltips'])) return;
             const special = new Map([[yoyo.value, 'OneDropLogo'], [research.value, 'JourneyResearch'],
                                      [materials.value, 'Material'], [setBonus.value, 'SetBonus'], [0, 'ItemName']]);
             const list = [];
@@ -772,7 +776,8 @@ function hookTooltips() {
                 line.OneDropLogo = i === yoyo.value;
                 list.push(line);
             }
-            guard(m.constructor.name + '.ModifyTooltips', () => m.ModifyTooltips(item, list));
+            if (own) guard(own.constructor.name + '.ModifyTooltips', () => own.ModifyTooltips(item, list));
+            eachGlobal(globalItems, item, 'ModifyTooltips', (g) => g.ModifyTooltips(item, list));
 
             // Fora do tooltip (guia de criacao, busca) ninguem desenha as
             // cores: vai o texto limpo.
@@ -1015,23 +1020,211 @@ function finishRecipes() {
 // ================================ ModSystem ================================
 
 /**
- * O que e do mod inteiro, nao de um item: grupos de receita e receitas de
- * itens do jogo. Os grupos (de todos os mods) vem antes de qualquer receita.
+ * Os dados que um mod salva, como o TagCompound do tModLoader:
+ * `tag.chave = valor` (ou `tag['chave']`), e os metodos de leitura. Vai para o
+ * disco em JSON: numero, texto, booleano, array e objeto simples.
+ */
+class TagCompound {
+    ContainsKey(key) { return Object.prototype.hasOwnProperty.call(this, key); }
+    Get(key, fallback) { return this.ContainsKey(key) ? this[key] : fallback; }
+    Set(key, value) { this[key] = value; }
+    Add(key, value) { this[key] = value; }
+    Remove(key) { delete this[key]; }
+    GetBool(key) { return !!this.Get(key, false); }
+    GetInt(key) { return Number(this.Get(key, 0)) | 0; }
+    GetFloat(key) { return Number(this.Get(key, 0)); }
+    GetString(key) { return String(this.Get(key, '')); }
+    GetList(key) { return Array.isArray(this[key]) ? this[key] : []; }
+    GetCompound(key) { return TagCompound.from(this[key]); }
+    get Count() { return Object.keys(this).length; }
+    static from(data) {
+        return Object.assign(new TagCompound(), data && typeof data === 'object' ? data : {});
+    }
+}
+
+/**
+ * O que e do mod inteiro, nao de uma entidade: receitas e grupos, o ciclo do
+ * mundo (carregar, limpar, sair), o que roda a cada atualizacao do mundo e
+ * os dados salvos junto com ele (SaveWorldData/LoadWorldData), como o
+ * ModSystem do tModLoader.
+ *
+ * Cada metodo de mundo so ganha hook se algum ModSystem o escreveu.
  */
 class ModSystem {
+    OnModLoad() {}
     AddRecipeGroups() {}
     AddRecipes() {}
+    PostAddRecipes() {}
     PostSetupContent() {}
 
+    // Mundo. OnWorldLoad roda antes do LoadWorldData, PostWorldLoad depois;
+    // no cliente de multijogador so o OnWorldLoad (o mundo vem do servidor).
+    OnWorldLoad() {}
+    LoadWorldData(tag) {}
+    PostWorldLoad() {}
+    SaveWorldData(tag) {}
+    ClearWorld() {}
+    PreSaveAndQuit() {}
+    OnWorldUnload() {}
+
+    // A cada quadro dentro do mundo. UpdateWorld e UpdateTime so rodam no
+    // servidor (ou sozinho); PostUpdateEverything roda em todos.
+    PreUpdateWorld() {}
+    PostUpdateWorld() {}
+    PreUpdateTime() {}
+    PostUpdateTime() {}
+    PostUpdateEverything() {}
+
     static register(cls) {
+        if (typeof cls !== 'function' || !(cls.prototype instanceof ModSystem)) {
+            throw new TypeError('ModSystem.register(Classe): passe a classe, que estende ModSystem');
+        }
         const inst = new cls();
+        adoptTemplate(cls, inst);
+        const name = cls.name;
+        modSystems.push(inst);
+        modSystemKeys.set(inst, (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + name);
+        guard(name + '.OnModLoad', () => inst.OnModLoad());
         whenReady(() => inst.AddRecipeGroups(), 'groups');
         whenReady(() => {
             inst.AddRecipes();
+            guard(name + '.PostAddRecipes', () => inst.PostAddRecipes());
             inst.PostSetupContent();
         });
+        hookModSystem(cls);
         return inst;
     }
+}
+
+const modSystems = [];
+const modSystemKeys = new Map();   // instancia -> 'uuid/Classe', a chave no arquivo
+
+// Roda `method` em cada ModSystem que o escreveu.
+function eachModSystem(method, fn) {
+    for (const s of modSystems) {
+        if (overrides(s.constructor, ModSystem, method)) guard(s.constructor.name + '.' + method, () => fn(s));
+    }
+}
+
+// Os dados do mundo moram ao lado dele: <mundo>.wld.bl.json.
+function worldDataFile() {
+    const path = Terraria.Main.worldPathName;
+    return path ? path + '.bl.json' : null;
+}
+
+function readWorldData(file) {
+    const txt = bl.file.read(file);
+    if (!txt) return {};
+    try {
+        return JSON.parse(txt) || {};
+    } catch (e) {
+        bl.log('ModSystem: ' + file + ' esta quebrado (' + e + '); os dados do mundo foram ignorados');
+        return {};
+    }
+}
+
+function saveWorldData() {
+    const file = worldDataFile();
+    if (!file) return;
+    const all = readWorldData(file);
+    for (const s of modSystems) {
+        if (!overrides(s.constructor, ModSystem, 'SaveWorldData')) continue;
+        const key = modSystemKeys.get(s);
+        const tag = new TagCompound();
+        guard(s.constructor.name + '.SaveWorldData', () => s.SaveWorldData(tag));
+        if (Object.keys(tag).length) all[key] = tag;
+        else delete all[key];
+    }
+    guard('ModSystem: gravar ' + file, () => {
+        if (Object.keys(all).length) bl.file.write(file, JSON.stringify(all));
+        else bl.file.delete(file);
+    });
+}
+
+function loadWorldData() {
+    const file = worldDataFile();
+    const all = file ? readWorldData(file) : {};
+    for (const s of modSystems) {
+        if (!overrides(s.constructor, ModSystem, 'LoadWorldData')) continue;
+        const data = all[modSystemKeys.get(s)];
+        // Mundo sem os dados do mod (novo, ou salvo sem ele): tag vazia, como
+        // no tModLoader, para o mod voltar ao estado de "nada aconteceu".
+        guard(s.constructor.name + '.LoadWorldData', () => s.LoadWorldData(TagCompound.from(data)));
+    }
+}
+
+function hookModSystem(cls) {
+    const has = (name) => overrides(cls, ModSystem, name);
+    const Main = Terraria.Main;
+    const WorldGen = Terraria.WorldGen;
+    const WorldFile = Terraria.IO.WorldFile;
+
+    // O clearWorld roda ao entrar em qualquer mundo (e antes de gerar um). No
+    // cliente de multijogador, e ele que marca a entrada: o mundo chega pela
+    // rede, sem LoadWorld.
+    if (has('ClearWorld') || has('OnWorldLoad')) once('system.ClearWorld', () => {
+        WorldGen['void clearWorld()'].hook((original) => {
+            original();
+            eachModSystem('ClearWorld', (s) => s.ClearWorld());
+            if (Main.netMode === 1) eachModSystem('OnWorldLoad', (s) => s.OnWorldLoad());
+        });
+    });
+
+    if (has('OnWorldLoad') || has('LoadWorldData') || has('PostWorldLoad')) once('system.LoadWorld', () => {
+        WorldFile['void LoadWorld(bool canCheckFileState)'].hook((original, check) => {
+            original(check);
+            eachModSystem('OnWorldLoad', (s) => s.OnWorldLoad());
+            loadWorldData();
+            eachModSystem('PostWorldLoad', (s) => s.PostWorldLoad());
+        });
+    });
+
+    // InternalSaveWorld e o que grava o .wld, de qualquer caminho (sair,
+    // autosave, servidor). Na nuvem nao ha arquivo nosso ao lado.
+    if (has('SaveWorldData')) once('system.SaveWorld', () => {
+        WorldFile['void InternalSaveWorld(bool useCloudSaving, bool resetTime)'].hook((original, cloud, reset) => {
+            original(cloud, reset);
+            if (!cloud) saveWorldData();
+        });
+    });
+
+    if (has('PreSaveAndQuit')) once('system.PreSaveAndQuit', () => {
+        WorldGen['void SaveAndQuit()'].hook((original) => {
+            eachModSystem('PreSaveAndQuit', (s) => s.PreSaveAndQuit());
+            original();
+        });
+    });
+
+    // Sair do mundo (sozinho, host ou cliente): depois de salvar.
+    if (has('OnWorldUnload')) once('system.Unload', () => {
+        WorldGen['void SaveAndQuitCallBack(object threadContext)'].hook((original, context) => {
+            original(context);
+            eachModSystem('OnWorldUnload', (s) => s.OnWorldUnload());
+        });
+    });
+
+    if (has('PreUpdateWorld') || has('PostUpdateWorld')) once('system.UpdateWorld', () => {
+        WorldGen['void UpdateWorld()'].hook((original) => {
+            eachModSystem('PreUpdateWorld', (s) => s.PreUpdateWorld());
+            original();
+            eachModSystem('PostUpdateWorld', (s) => s.PostUpdateWorld());
+        });
+    });
+
+    if (has('PreUpdateTime') || has('PostUpdateTime')) once('system.UpdateTime', () => {
+        Main['void UpdateTime()'].hook((original) => {
+            eachModSystem('PreUpdateTime', (s) => s.PreUpdateTime());
+            original();
+            eachModSystem('PostUpdateTime', (s) => s.PostUpdateTime());
+        });
+    });
+
+    if (has('PostUpdateEverything')) once('system.UpdateEverything', () => {
+        Main['void DoUpdateInWorld(Stopwatch sw)'].hook((original, self, sw) => {
+            original(self, sw);
+            eachModSystem('PostUpdateEverything', (s) => s.PostUpdateEverything());
+        });
+    });
 }
 
 // ============================= Mod e ModLoader =============================
@@ -1404,7 +1597,7 @@ function installModPlayerSave() {
         for (const cls of modPlayerClasses) {
             if (!overrides(cls, ModPlayer, 'SaveData')) continue;
             const key = modPlayerKeys.get(cls.name);
-            const data = {};
+            const data = new TagCompound();
             guard(cls.name + '.SaveData', () => mine[cls.name].SaveData(data));
             if (Object.keys(data).length) all[key] = data;
             else delete all[key];
@@ -1423,7 +1616,7 @@ function installModPlayerSave() {
         const mine = modPlayersOf(player);
         for (const cls of modPlayerClasses) {
             const data = all[modPlayerKeys.get(cls.name)];
-            if (data !== undefined) guard(cls.name + '.LoadData', () => mine[cls.name].LoadData(data));
+            if (data !== undefined) guard(cls.name + '.LoadData', () => mine[cls.name].LoadData(TagCompound.from(data)));
         }
         return fileData;
     });
@@ -2288,12 +2481,45 @@ function hookProjectile(cls) {
 
 // ================================ ModNPC ================================
 
-// A tabela de drop de um NPC, como o NPCLoot do ExMod: Add(regra).
+// As regras de uma List<IItemDropRule> do jogo, num array JS.
+function dropRules(list) {
+    const out = [];
+    const n = list ? list.Count : 0;
+    for (let i = 0; i < n; i++) out.push(list.get_Item(i));
+    return out;
+}
+
+// A tabela de drop de um NPC, como o NPCLoot do tModLoader: Add, Remove, Get
+// e RemoveWhere. `changed` diz ao Bestiario que a lista dele envelheceu.
 class NPCLoot {
-    constructor(type) { this.type = type; }
+    constructor(type) {
+        this.type = type;
+        this.changed = false;
+    }
     Add(rule) {
         Terraria.Main.ItemDropsDB['IItemDropRule RegisterToNPC(int type, IItemDropRule entry)'](this.type, rule);
+        this.changed = true;
         return rule;
+    }
+    Remove(rule) {
+        Terraria.Main.ItemDropsDB['IItemDropRule RemoveFromNPC(int type, IItemDropRule entry)'](this.type, rule);
+        this.changed = true;
+        return rule;
+    }
+    // As regras do NPC (sem as globais, que valem para todos), num array.
+    Get() {
+        return dropRules(Terraria.Main.ItemDropsDB['GetRulesForNPCID(int npcNetId, bool includeGlobalDrops)'](this.type, false));
+    }
+    // Tira as regras em que `predicate(regra)` da true. Devolve quantas.
+    RemoveWhere(predicate) {
+        let n = 0;
+        for (const rule of this.Get()) {
+            if (predicate(rule)) {
+                this.Remove(rule);
+                n++;
+            }
+        }
+        return n;
     }
 }
 
@@ -3048,9 +3274,12 @@ function hookNpc(cls) {
     });
 
     if (has('PreKill') || has('OnKill')) once('npc.Kill', () => {
+        // No cliente de multijogador o NPCLoot do jogo sai logo no comeco (o
+        // drop e do servidor): PreKill e OnKill la sao so do servidor, como
+        // no tModLoader.
         N['void NPCLoot()'].hook((original, npc) => {
             const m = npcOf(npc);
-            if (!m) return original(npc);
+            if (!m || Terraria.Main.netMode === 1) return original(npc);
             const n = m.constructor.name;
             if (guard(n + '.PreKill', () => m.PreKill(npc)) === false) return;
             original(npc);
@@ -3094,6 +3323,659 @@ function hookNaturalSpawn() {
             }
             r -= w;
         }
+    });
+}
+
+// ================================ Globais ================================
+//
+// GlobalItem, GlobalNPC e GlobalProjectile, como no tModLoader: codigo de mod
+// que roda para as entidades do JOGO (e as de mod). AppliesToEntity escolhe
+// quais; com InstancePerEntity cada entidade ganha a propria copia (campos por
+// item, por NPC), achada com item.GetGlobalItem(Classe).
+//
+// Custo: cada metodo so tem hook se algum Global o escreveu, mas esse hook
+// entra no JS para TODA entidade que passa por ele: nao ha filtro nativo por
+// tipo, porque o Global vale para os tipos do jogo. Um PreAI global roda para
+// os ate 200 NPCs a cada quadro.
+
+const NO_GLOBALS = Object.freeze([]);
+
+class GlobalType {
+    // true: cada entidade ganha a propria copia (campo de classe ou getter).
+    get InstancePerEntity() { return false; }
+    // So as entidades em que isto da true passam pelos metodos do Global.
+    // lateInstantiation: true depois do SetDefaults (o tipo ja e o final).
+    AppliesToEntity(entity, lateInstantiation) { return true; }
+    // A copia de uma entidade para outra (Item.Clone): os mesmos campos.
+    Clone(from, to) { return cloneInstance(this); }
+    // A instancia de uma entidade nova, copiada do modelo.
+    NewInstance(target) { return cloneInstance(this); }
+    SetStaticDefaults() {}
+    SetDefaults(entity) {}
+    AddRecipeGroups() {}
+    AddRecipes() {}
+    PostSetupContent() {}
+}
+
+// O registro de um tipo de Global: os modelos, na ordem de carga, e se
+// alguma entidade precisa de lista propria (filtro ou instancia por entidade).
+function globalRegistry(Base, entityClass, field, getter) {
+    return { Base, entityClass, field, getter, list: [], cached: false, ready: false };
+}
+
+function registerGlobal(reg, cls, kind) {
+    if (typeof cls !== 'function' || !(cls.prototype instanceof reg.Base)) {
+        throw new TypeError(kind + '.register(Classe): passe a classe, que estende ' + kind);
+    }
+    const inst = new cls();
+    adoptTemplate(cls, inst);
+    inst.__perEntity = !!inst.InstancePerEntity;
+    inst.__conditional = overrides(cls, reg.Base, 'AppliesToEntity');
+    reg.list.push(inst);
+    if (inst.__perEntity || inst.__conditional) reg.cached = true;
+    if (!reg.ready) {
+        reg.ready = true;
+        defineEntityField(reg.entityClass(), reg.field);
+        // item.GetGlobalItem(Classe) ou ('Nome'); lanca se nao se aplica.
+        bl.defineMethod(reg.entityClass(), reg.getter, function (which) {
+            const g = findGlobal(reg, this, which);
+            if (!g) throw new Error(reg.getter + ": '" + nameOfGlobal(which) + "' nao se aplica a esta entidade (tipo " + this.type + ')');
+            return g;
+        });
+        bl.defineMethod(reg.entityClass(), 'Try' + reg.getter, function (which, result) {
+            const g = findGlobal(reg, this, which);
+            if (result && typeof result === 'object') result.value = g;
+            return g !== undefined;
+        });
+    }
+    const name = cls.name;
+    whenReady(() => inst.AddRecipeGroups(), 'groups');
+    whenReady(() => {
+        guard(name + '.SetStaticDefaults', () => inst.SetStaticDefaults());
+        inst.AddRecipes();
+        inst.PostSetupContent();
+    });
+    return inst;
+}
+
+const nameOfGlobal = (which) => (typeof which === 'function' ? which.name : String(which));
+
+function findGlobal(reg, entity, which) {
+    for (const g of globalsOf(reg, entity)) {
+        if (typeof which === 'function' ? g instanceof which : g.constructor.name === which) return g;
+    }
+    return undefined;
+}
+
+// Os Globais que valem para `entity`. Sem filtro e sem instancia por
+// entidade, sao os proprios modelos, e nada fica guardado na entidade.
+function globalsOf(reg, entity) {
+    if (!reg.list.length || !(entity.type > 0)) return NO_GLOBALS;
+    if (!reg.cached) return reg.list;
+    const c = entity[reg.field];
+    if (c && c.type === entity.type) return c.list;
+    return attachGlobals(reg, entity, true);
+}
+
+// Monta a lista da entidade: filtra pelo AppliesToEntity e da uma copia a
+// quem e por entidade. O SetDefaults chama de novo: tipo novo, estado novo.
+function attachGlobals(reg, entity, late) {
+    const list = [];
+    for (const g of reg.list) {
+        const n = g.constructor.name;
+        if (g.__conditional && !guard(n + '.AppliesToEntity', () => g.AppliesToEntity(entity, late))) continue;
+        list.push(g.__perEntity ? (guard(n + '.NewInstance', () => g.NewInstance(entity)) || g) : g);
+    }
+    entity[reg.field] = { type: entity.type, list };
+    return list;
+}
+
+// Roda `method` em cada Global de `entity` que o escreveu.
+function eachGlobal(reg, entity, method, fn) {
+    for (const g of globalsOf(reg, entity)) {
+        if (overrides(g.constructor, reg.Base, method)) guard(g.constructor.name + '.' + method, () => fn(g));
+    }
+}
+
+// Como eachGlobal, e diz se TODOS deixaram (nenhum devolveu false).
+function allGlobals(reg, entity, method, fn) {
+    let ok = true;
+    eachGlobal(reg, entity, method, (g) => {
+        if (fn(g) === false) ok = false;
+    });
+    return ok;
+}
+
+// Algum Global de `entity` escreveu um destes metodos?
+function anyGlobalWith(reg, entity, methods) {
+    for (const g of globalsOf(reg, entity)) {
+        for (const m of methods) if (overrides(g.constructor, reg.Base, m)) return true;
+    }
+    return false;
+}
+
+// ------------------------------ GlobalItem ------------------------------
+
+class GlobalItem extends GlobalType {
+    SetDefaults(item) {}
+    CanUseItem(item, player) { return true; }
+    UseItem(item, player) {}
+    UseStyle(item, player, mountOffset, heldItemFrame) {}
+    HoldStyle(item, player, mountOffset, heldItemFrame) {}
+    HoldItem(item, player) {}
+    // O dano que a arma causa: devolva o numero novo.
+    ModifyWeaponDamage(item, player, damage) { return damage; }
+    CanShoot(item, player) { return true; }
+    // stats = { position, velocity, type, damage, knockBack }: mude os campos.
+    ModifyShootStats(item, player, stats) {}
+    // false: o projetil do jogo nao sai (o seu pode sair aqui).
+    Shoot(item, player, position, velocity, type, damage, knockBack, source) { return true; }
+    OnHitNPC(item, player, target, damageDone, knockBack, crit) {}
+    UpdateInventory(item, player) {}
+    UpdateEquip(item, player) {}
+    UpdateAccessory(item, player, vanity, hideVisual) {}
+    OnCraft(item, player, recipe) {}
+    ModifyTooltips(item, tooltips) {}
+
+    static register(cls) {
+        const inst = registerGlobal(globalItems, cls, 'GlobalItem');
+        hookGlobalItem(cls);
+        return inst;
+    }
+}
+
+const globalItems = globalRegistry(GlobalItem, () => Terraria.Item, '__globalItems', 'GetGlobalItem');
+
+let globalShot = null;   // o tiro de agora, para o NewProjectile dele
+
+function hookGlobalItem(cls) {
+    const P = Terraria.Player;
+    const reg = globalItems;
+    const has = (name) => overrides(cls, GlobalItem, name);
+
+    if (has('SetDefaults') || reg.cached) once('gitem.SetDefaults', () => {
+        Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'].hook((original, item, type, variant) => {
+            original(item, type, variant);
+            if (!(item.type > 0)) return;
+            if (reg.cached) attachGlobals(reg, item, true);
+            eachGlobal(reg, item, 'SetDefaults', (g) => g.SetDefaults(item));
+        });
+    });
+
+    // A copia de um item leva a copia dos Globais por entidade, com o estado.
+    if (reg.cached) once('gitem.Clone', () => {
+        Terraria.Item['Item Clone()'].hook((original, self) => {
+            const copy = original(self);
+            const c = copy ? self[reg.field] : undefined;
+            if (c && c.type === self.type) {
+                const list = c.list.map((g) => (g.__perEntity
+                    ? guard(g.constructor.name + '.Clone', () => g.Clone(self, copy)) || g : g));
+                copy[reg.field] = { type: c.type, list };
+            }
+            return copy;
+        });
+    });
+
+    if (has('CanUseItem')) once('gitem.CanUse', () => {
+        P['bool ItemCheck_CheckCanUse_Inner(Item sItem, bool ignoreCursed)'].hook((original, self, item, ignoreCursed) => {
+            if (!allGlobals(reg, item, 'CanUseItem', (g) => g.CanUseItem(item, self))) return false;
+            return original(self, item, ignoreCursed);
+        });
+    });
+
+    if (has('UseItem')) once('gitem.Use', () => {
+        P['void ItemCheck_StartActualUse(Item sItem)'].hook((original, self, item) => {
+            original(self, item);
+            eachGlobal(reg, item, 'UseItem', (g) => g.UseItem(item, self));
+        });
+    });
+
+    const styles = [['ItemCheck_ApplyUseStyle', 'UseStyle'], ['ItemCheck_ApplyHoldStyle', 'HoldStyle']];
+    for (const [method, hookName] of styles) {
+        if (has(hookName) || has('HoldItem')) once('gitem.' + hookName, () => {
+            P['void ' + method + '(float mountOffset, Item sItem, Rectangle heldItemFrame)'].hook(
+                (original, self, mountOffset, item, frame) => {
+                    original(self, mountOffset, item, frame);
+                    eachGlobal(reg, item, hookName, (g) => g[hookName](item, self, mountOffset, frame));
+                    eachGlobal(reg, item, 'HoldItem', (g) => g.HoldItem(item, self));
+                });
+        });
+    }
+
+    if (has('ModifyWeaponDamage')) once('gitem.WeaponDamage', () => {
+        P['int GetWeaponDamage(Item sItem)'].hook((original, self, item) => {
+            let damage = original(self, item);
+            eachGlobal(reg, item, 'ModifyWeaponDamage', (g) => {
+                const r = g.ModifyWeaponDamage(item, self, damage);
+                if (typeof r === 'number') damage = r;
+            });
+            return Math.floor(damage);
+        });
+    });
+
+    const shootHooks = ['CanShoot', 'ModifyShootStats', 'Shoot'];
+    if (shootHooks.some(has)) once('gitem.Shoot', () => {
+        P['void ItemCheck_Shoot(int i, Item sItem, int weaponDamage, bool withAudioVisualFeedback)'].hook(
+            (original, self, i, item, damage, feedback) => {
+                if (!anyGlobalWith(reg, item, shootHooks)) return original(self, i, item, damage, feedback);
+                if (!allGlobals(reg, item, 'CanShoot', (g) => g.CanShoot(item, self))) {
+                    self['void ApplyItemTime(Item sItem)'](item);
+                    return undefined;
+                }
+                const outer = globalShot;
+                globalShot = { item, player: self };
+                try {
+                    return original(self, i, item, damage, feedback);
+                } finally {
+                    globalShot = outer;
+                }
+            });
+        Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)'].hook(
+            (original, source, x, y, sx, sy, type, damage, knockBack, owner, ai0, ai1, ai2, modifier) => {
+                const s = globalShot;
+                if (!s) return original(source, x, y, sx, sy, type, damage, knockBack, owner, ai0, ai1, ai2, modifier);
+                globalShot = null;   // o projetil que o Shoot criar nao e mais deste tiro
+                try {
+                    const stats = { position: Vector2.new(x, y), velocity: Vector2.new(sx, sy), type, damage, knockBack };
+                    eachGlobal(reg, s.item, 'ModifyShootStats', (g) => g.ModifyShootStats(s.item, s.player, stats));
+                    const go = allGlobals(reg, s.item, 'Shoot', (g) => g.Shoot(s.item, s.player, stats.position,
+                        stats.velocity, stats.type, stats.damage, stats.knockBack, source));
+                    if (!go) return 1000;   // o "sem vaga" do jogo
+                    return original(source, stats.position.X, stats.position.Y, stats.velocity.X, stats.velocity.Y,
+                                    stats.type, stats.damage, stats.knockBack, owner, ai0, ai1, ai2, modifier);
+                } finally {
+                    globalShot = s;
+                }
+            });
+    });
+
+    if (has('OnHitNPC')) hookItemHitsNPC();
+
+    if (has('UpdateEquip') || has('UpdateAccessory')) {
+        once('gitem.Accessory', () => {
+            P['void ApplyEquipFunctional(int itemSlot, Item currentItem)'].hook((original, self, slot, item) => {
+                original(self, slot, item);
+                eachGlobal(reg, item, 'UpdateEquip', (g) => g.UpdateEquip(item, self));
+                if (!item.accessory) return;
+                const hide = !!self.hideVisibleAccessory[slot];
+                eachGlobal(reg, item, 'UpdateAccessory', (g) => g.UpdateAccessory(item, self, false, hide));
+            });
+        });
+        if (has('UpdateAccessory')) once('gitem.AccessoryVanity', () => {
+            P['void ApplyEquipVanity(int itemSlot, Item currentItem)'].hook((original, self, slot, item) => {
+                original(self, slot, item);
+                if (item.accessory) eachGlobal(reg, item, 'UpdateAccessory', (g) => g.UpdateAccessory(item, self, true, false));
+            });
+        });
+        if (has('UpdateEquip')) once('gitem.Armor', () => {
+            P['void GrantArmorBenefits(Item armorPiece)'].hook((original, self, item) => {
+                original(self, item);
+                eachGlobal(reg, item, 'UpdateEquip', (g) => g.UpdateEquip(item, self));
+            });
+        });
+    }
+
+    // O inventario (58 casas) do jogador, a cada quadro.
+    if (has('UpdateInventory')) once('gitem.Inventory', () => {
+        P['void UpdateEquips(int i)'].hook((original, self, i) => {
+            original(self, i);
+            const inv = self.inventory;
+            for (let k = 0; k < 58; k++) {
+                const item = inv[k];
+                if (item.type > 0) eachGlobal(reg, item, 'UpdateInventory', (g) => g.UpdateInventory(item, self));
+            }
+        });
+    });
+
+    if (has('OnCraft')) once('gitem.OnCraft', () => {
+        Terraria.Main['void CraftItem_GrantItem(Recipe recipe, Item result, bool quickCraft)'].hook(
+            (original, recipe, result, quickCraft) => {
+                const player = Terraria.Main.player[Terraria.Main.myPlayer];
+                eachGlobal(reg, result, 'OnCraft', (g) => g.OnCraft(result, player, recipe));
+                original(recipe, result, quickCraft);
+            });
+    });
+
+    if (has('ModifyTooltips')) once('item.Tooltips', hookTooltips);
+}
+
+// Golpe de item em NPC: o OnHitNPC do GlobalItem e o OnHitByItem do GlobalNPC.
+function hookItemHitsNPC() {
+    once('global.ItemHitsNPC', () => {
+        Terraria.Player['void ApplyNPCOnHitEffects(Item sItem, Rectangle itemRectangle, int damage, float knockBack, int npcIndex, int dmgRandomized, int dmgDone)'].hook(
+            (original, self, item, rect, damage, knockBack, npcIndex, dmgRandomized, dmgDone) => {
+                original(self, item, rect, damage, knockBack, npcIndex, dmgRandomized, dmgDone);
+                const npc = Terraria.Main.npc[npcIndex];
+                const crit = dmgDone >= dmgRandomized * 2;
+                eachGlobal(globalItems, item, 'OnHitNPC', (g) => g.OnHitNPC(item, self, npc, dmgDone, knockBack, crit));
+                eachGlobal(globalNPCs, npc, 'OnHitByItem', (g) => g.OnHitByItem(npc, self, item, dmgDone, knockBack, crit));
+            });
+    });
+}
+
+// Projetil que acerta NPC: o OnHitNPC do GlobalProjectile e o
+// OnHitByProjectile do GlobalNPC.
+function hookProjectileHitsNPC() {
+    once('global.ProjectileHitsNPC', () => {
+        Terraria.Projectile['void StatusNPC(int i)'].hook((original, p, i) => {
+            original(p, i);
+            const npc = Terraria.Main.npc[i];
+            eachGlobal(globalProjectiles, p, 'OnHitNPC', (g) => g.OnHitNPC(p, npc));
+            eachGlobal(globalNPCs, npc, 'OnHitByProjectile', (g) => g.OnHitByProjectile(npc, p));
+        });
+    });
+}
+
+// ------------------------------ GlobalNPC ------------------------------
+
+class GlobalNPC extends GlobalType {
+    SetDefaults(npc) {}
+    OnSpawn(npc, source) {}
+    ResetEffects(npc) {}
+    PreAI(npc) { return true; }
+    AI(npc) {}
+    PostAI(npc) {}
+    HitEffect(npc, hitDirection, damage) {}
+    OnHitByItem(npc, player, item, damageDone, knockBack, crit) {}
+    OnHitByProjectile(npc, projectile) {}
+    // false: o NPC morre sem drop e sem OnKill.
+    PreKill(npc) { return true; }
+    OnKill(npc) {}
+    // chat e um Ref com a fala que o jogo escolheu: troque o .value.
+    GetChat(npc, chat) {}
+    // Uma vez por tipo de NPC, com a amostra do jogo: mude a tabela de drop.
+    ModifyNPCLoot(npc, npcLoot) {}
+    // Uma vez: as regras que valem para todo NPC.
+    ModifyGlobalLoot(globalLoot) {}
+
+    static register(cls) {
+        const inst = registerGlobal(globalNPCs, cls, 'GlobalNPC');
+        hookGlobalNPC(cls);
+        return inst;
+    }
+}
+
+const globalNPCs = globalRegistry(GlobalNPC, () => Terraria.NPC, '__globalNPCs', 'GetGlobalNPC');
+
+function hookGlobalNPC(cls) {
+    const N = Terraria.NPC;
+    const reg = globalNPCs;
+    const has = (name) => overrides(cls, GlobalNPC, name);
+
+    if (has('SetDefaults') || reg.cached) once('gnpc.SetDefaults', () => {
+        N['void SetDefaults(int Type, NPCSpawnParams spawnparams)'].hook((original, npc, type, params) => {
+            original(npc, type, params);
+            if (!(npc.type > 0)) return;
+            if (reg.cached) attachGlobals(reg, npc, true);
+            eachGlobal(reg, npc, 'SetDefaults', (g) => g.SetDefaults(npc));
+        });
+    });
+
+    // So quem cria o NPC (sozinho ou servidor): no cliente, ele chega pela rede.
+    if (has('OnSpawn')) once('gnpc.OnSpawn', () => {
+        N['int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, float ai0, float ai1, float ai2, float ai3, int Target)'].hook(
+            (original, source, x, y, type, start, ai0, ai1, ai2, ai3, target) => {
+                const i = original(source, x, y, type, start, ai0, ai1, ai2, ai3, target);
+                if (i >= 0 && i < 200) {
+                    const npc = Terraria.Main.npc[i];
+                    if (npc.active) eachGlobal(reg, npc, 'OnSpawn', (g) => g.OnSpawn(npc, source));
+                }
+                return i;
+            });
+    });
+
+    if (has('ResetEffects')) once('gnpc.ResetEffects', () => {
+        N['void UpdateNPC(int i)'].hook((original, npc, i) => {
+            if (npc.active) eachGlobal(reg, npc, 'ResetEffects', (g) => g.ResetEffects(npc));
+            original(npc, i);
+        });
+    });
+
+    if (has('PreAI') || has('AI') || has('PostAI')) once('gnpc.AI', () => {
+        N['void AI()'].hook((original, npc) => {
+            if (allGlobals(reg, npc, 'PreAI', (g) => g.PreAI(npc))) {
+                original(npc);
+                eachGlobal(reg, npc, 'AI', (g) => g.AI(npc));
+            }
+            eachGlobal(reg, npc, 'PostAI', (g) => g.PostAI(npc));
+        });
+    });
+
+    if (has('HitEffect')) once('gnpc.HitEffect', () => {
+        N['void HitEffect(int hitDirection, double dmg)'].hook((original, npc, dir, dmg) => {
+            original(npc, dir, dmg);
+            eachGlobal(reg, npc, 'HitEffect', (g) => g.HitEffect(npc, dir, dmg));
+        });
+    });
+
+    if (has('OnHitByItem')) hookItemHitsNPC();
+    if (has('OnHitByProjectile')) hookProjectileHitsNPC();
+
+    // NPCLoot e a morte com drop (sozinho ou servidor).
+    if (has('PreKill') || has('OnKill')) once('gnpc.Kill', () => {
+        N['void NPCLoot()'].hook((original, npc) => {
+            if (Terraria.Main.netMode === 1) return original(npc);   // o drop e do servidor
+            if (!allGlobals(reg, npc, 'PreKill', (g) => g.PreKill(npc))) return undefined;
+            original(npc);
+            eachGlobal(reg, npc, 'OnKill', (g) => g.OnKill(npc));
+            return undefined;
+        });
+    });
+
+    if (has('GetChat')) once('gnpc.GetChat', () => {
+        N['string GetChat()'].hook((original, npc) => {
+            const chat = new Ref(original(npc));
+            eachGlobal(reg, npc, 'GetChat', (g) => g.GetChat(npc, chat));
+            return String(chat.value);
+        });
+    });
+
+    if (has('ModifyNPCLoot') || has('ModifyGlobalLoot')) scheduleGlobalLoot();
+}
+
+// ------------------------------ drops globais ------------------------------
+
+/**
+ * As regras de drop que valem para TODO NPC (o GlobalLoot do tModLoader):
+ * Add, Remove, Get e RemoveWhere. Tambem e a classe do jeito do ExMod:
+ * `class X extends GlobalLoot { ModifyGlobalLoot() {...} }` com
+ * `GlobalLoot.register(X)`, e dentro dela RegisterToNPC, RemoveFromNPC e
+ * GetRulesForNPCID mexem na tabela de um NPC.
+ */
+class GlobalLoot {
+    constructor() { this.__changed = []; }
+    get itemDropDatabase() { return Terraria.Main.ItemDropsDB; }
+
+    Get() { return dropRules(Terraria.Main.ItemDropsDB._globalEntries); }
+    Add(rule) {
+        Terraria.Main.ItemDropsDB['IItemDropRule RegisterToGlobal(IItemDropRule entry)'](rule);
+        return rule;
+    }
+    Remove(rule) {
+        Terraria.Main.ItemDropsDB._globalEntries['bool Remove(IItemDropRule item)'](rule);
+        return rule;
+    }
+    RemoveWhere(predicate) {
+        let n = 0;
+        for (const rule of this.Get()) {
+            if (predicate(rule)) {
+                this.Remove(rule);
+                n++;
+            }
+        }
+        return n;
+    }
+
+    // Do jeito do ExMod: as regras de um NPC (a List do jogo) e mudar a
+    // tabela dele (o Bestiario acompanha).
+    ModifyGlobalLoot() {}
+    GetRulesForNPCID(id) {
+        return Terraria.Main.ItemDropsDB['GetRulesForNPCID(int npcNetId, bool includeGlobalDrops)'](id, false);
+    }
+    RegisterToNPC(id, rule) {
+        new NPCLoot(id).Add(rule);
+        this.__changed.push(id);
+        return rule;
+    }
+    RemoveFromNPC(id, rule) {
+        new NPCLoot(id).Remove(rule);
+        this.__changed.push(id);
+        return rule;
+    }
+
+    static register(cls) {
+        if (typeof cls !== 'function' || !(cls.prototype instanceof GlobalLoot)) {
+            throw new TypeError('GlobalLoot.register(Classe): passe a classe, que estende GlobalLoot');
+        }
+        const inst = new cls(Terraria.Main.ItemDropsDB);
+        adoptTemplate(cls, inst);
+        if (!inst.__changed) inst.__changed = [];
+        globalLoots.push(inst);
+        scheduleGlobalLoot();
+        return inst;
+    }
+}
+
+const globalLoots = [];
+let globalLootScheduled = false;
+
+function scheduleGlobalLoot() {
+    if (globalLootScheduled) return;
+    globalLootScheduled = true;
+    whenReady(applyGlobalLoot);
+}
+
+// Com todo o conteudo no jogo: o ModifyNPCLoot de cada Global em cada tipo de
+// NPC (com a amostra do jogo, como o tModLoader), o ModifyGlobalLoot, e o
+// Bestiario refeito para os NPCs cuja tabela mudou.
+function applyGlobalLoot() {
+    const changed = [];
+    const looters = globalNPCs.list.filter((g) => overrides(g.constructor, GlobalNPC, 'ModifyNPCLoot'));
+    if (looters.length) {
+        const samples = Terraria.ID.ContentSamples.NpcsByNetId;
+        const lootOf = (t) => {
+            if (!samples.ContainsKey(t)) return;
+            const npc = samples.get_Item(t);
+            const loot = new NPCLoot(t);
+            for (const g of looters) {
+                const n = g.constructor.name;
+                if (g.__conditional && !guard(n + '.AppliesToEntity', () => g.AppliesToEntity(npc, false))) continue;
+                guard(n + '.ModifyNPCLoot', () => g.ModifyNPCLoot(npc, loot));
+            }
+            if (loot.changed) changed.push(t);
+        };
+        for (let t = -65; t < FIRST_NPC; t++) lootOf(t);
+        for (let t = FIRST_NPC; samples.ContainsKey(t); t++) lootOf(t);
+    }
+    const everyone = new GlobalLoot();
+    for (const g of globalNPCs.list) {
+        if (overrides(g.constructor, GlobalNPC, 'ModifyGlobalLoot')) {
+            guard(g.constructor.name + '.ModifyGlobalLoot', () => g.ModifyGlobalLoot(everyone));
+        }
+    }
+    for (const loot of globalLoots) {
+        guard(loot.constructor.name + '.ModifyGlobalLoot', () => loot.ModifyGlobalLoot());
+        changed.push(...loot.__changed);
+    }
+    refreshBestiaryDrops(changed);
+}
+
+// O Bestiario tira os drops da tabela uma vez, quando e montado. Para os NPCs
+// cuja tabela mudou: fora os drops antigos, e a tabela lida de novo.
+function refreshBestiaryDrops(types) {
+    const db = Terraria.Main.BestiaryDB;
+    for (const t of new Set(types)) {
+        guard('Bestiario: drops do NPC ' + t, () => {
+            const entry = db['BestiaryEntry FindEntryByNPCID(int npcNetId)'](t);
+            if (!entry) return;
+            const info = entry.Info;
+            for (let i = info.Count - 1; i >= 0; i--) {
+                if (info.get_Item(i).GetType().Name === 'ItemDropBestiaryInfoElement') info.RemoveAt(i);
+            }
+            db['void ExtractDropsForNPC(ItemDropDatabase dropsDatabase, int npcId)'](Terraria.Main.ItemDropsDB, t);
+        });
+    }
+}
+
+// ---------------------------- GlobalProjectile ----------------------------
+
+class GlobalProjectile extends GlobalType {
+    SetDefaults(projectile) {}
+    OnSpawn(projectile, source) {}
+    PreAI(projectile) { return true; }
+    AI(projectile) {}
+    PostAI(projectile) {}
+    // false: o projetil some sem o efeito de morte do jogo e sem OnKill.
+    PreKill(projectile, timeLeft) { return true; }
+    OnKill(projectile, timeLeft) {}
+    OnHitNPC(projectile, target) {}
+    OnHitPlayer(projectile, target) {}
+
+    static register(cls) {
+        const inst = registerGlobal(globalProjectiles, cls, 'GlobalProjectile');
+        hookGlobalProjectile(cls);
+        return inst;
+    }
+}
+
+const globalProjectiles = globalRegistry(GlobalProjectile, () => Terraria.Projectile, '__globalProjectiles', 'GetGlobalProjectile');
+
+function hookGlobalProjectile(cls) {
+    const Pr = Terraria.Projectile;
+    const reg = globalProjectiles;
+    const has = (name) => overrides(cls, GlobalProjectile, name);
+
+    if (has('SetDefaults') || reg.cached) once('gproj.SetDefaults', () => {
+        Pr['void SetDefaults(int Type)'].hook((original, p, type) => {
+            original(p, type);
+            if (!(p.type > 0)) return;
+            if (reg.cached) attachGlobals(reg, p, true);
+            eachGlobal(reg, p, 'SetDefaults', (g) => g.SetDefaults(p));
+        });
+    });
+
+    if (has('OnSpawn')) once('gproj.OnSpawn', () => {
+        Pr['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)'].hook(
+            (original, source, x, y, sx, sy, type, damage, knockBack, owner, ai0, ai1, ai2, modifier) => {
+                const i = original(source, x, y, sx, sy, type, damage, knockBack, owner, ai0, ai1, ai2, modifier);
+                if (i >= 0 && i < 1000) {
+                    const p = Terraria.Main.projectile[i];
+                    if (p.active) eachGlobal(reg, p, 'OnSpawn', (g) => g.OnSpawn(p, source));
+                }
+                return i;
+            });
+    });
+
+    if (has('PreAI') || has('AI') || has('PostAI')) once('gproj.AI', () => {
+        Pr['void AI()'].hook((original, p) => {
+            if (allGlobals(reg, p, 'PreAI', (g) => g.PreAI(p))) {
+                original(p);
+                eachGlobal(reg, p, 'AI', (g) => g.AI(p));
+            }
+            eachGlobal(reg, p, 'PostAI', (g) => g.PostAI(p));
+        });
+    });
+
+    if (has('PreKill') || has('OnKill')) once('gproj.Kill', () => {
+        Pr['void Kill()'].hook((original, p) => {
+            if (!p.active) return original(p);
+            const timeLeft = p.timeLeft;
+            if (!allGlobals(reg, p, 'PreKill', (g) => g.PreKill(p, timeLeft))) {
+                p.active = false;
+                return undefined;
+            }
+            eachGlobal(reg, p, 'OnKill', (g) => g.OnKill(p, timeLeft));
+            return original(p);
+        });
+    });
+
+    if (has('OnHitNPC')) hookProjectileHitsNPC();
+
+    if (has('OnHitPlayer')) once('gproj.OnHitPlayer', () => {
+        Pr['void StatusPlayer(Player player)'].hook((original, p, player) => {
+            original(p, player);
+            eachGlobal(reg, p, 'OnHitPlayer', (g) => g.OnHitPlayer(p, player));
+        });
     });
 }
 
@@ -3590,4 +4472,9 @@ globalThis.NPCLoot = NPCLoot;
 globalThis.TooltipLine = TooltipLine;
 globalThis.NPCSpawnInfo = NPCSpawnInfo;
 globalThis.ModLocalization = ModLocalization;
+globalThis.GlobalItem = GlobalItem;
+globalThis.GlobalNPC = GlobalNPC;
+globalThis.GlobalProjectile = GlobalProjectile;
+globalThis.GlobalLoot = GlobalLoot;
+globalThis.TagCompound = TagCompound;
 })();

@@ -2,6 +2,7 @@ package dev.bunnyloader.mods
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.serialization.json.Json
@@ -134,10 +135,19 @@ class Catalog(private val context: Context) {
             context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
         }.getOrDefault(0L)
         if (stamp == 0L || prefs.getLong(APP_STAMP, 0L) == stamp) return
+        var allCopied = true
         for (entry in entries) {
-            if (isInstalled(entry.uid)) runCatching { install(entry) }
+            if (!isInstalled(entry.uid)) continue
+            runCatching { install(entry) }.onFailure {
+                // Um arquivo que o app não consegue apagar nem sobrescrever
+                // (posto com root por outro dono) deixava a cópia antiga, e a
+                // marca gravada não tentava de novo. Sem a marca, a próxima
+                // abertura tenta outra vez.
+                allCopied = false
+                Log.w(TAG, "catalogo: nao recopiei ${entry.manifest.name} (${entry.uid}) na atualizacao", it)
+            }
         }
-        prefs.edit().putLong(APP_STAMP, stamp).apply()
+        if (allCopied) prefs.edit().putLong(APP_STAMP, stamp).apply()
     }
 
     /** A entrada de um mod que está só no disco (a pasta dele em bunny_packs). */
@@ -186,6 +196,7 @@ class Catalog(private val context: Context) {
 
     companion object {
         const val ROOT = "mods"
+        private const val TAG = "BunnyLoader"
         private const val SEEDED = "seeded"
         private const val APP_STAMP = "appUpdateTime"
 

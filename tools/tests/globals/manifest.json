@@ -1,0 +1,15 @@
+{
+  "uid": "2b2e4a93-6a51-42b1-9614-3c74c1dd66b9",
+  "id": "test-globals",
+  "name": "Teste: Globais e ModSystem",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "GlobalItem, GlobalNPC, GlobalProjectile, drops globais e o ModSystem (mundo, atualizacao e dados salvos).",
+  "description": "Loga 'globals ...'. Rodar duas vezes: a segunda confere os dados salvos do mundo.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

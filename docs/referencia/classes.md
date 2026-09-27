@@ -27,7 +27,10 @@ Todas as classes são **globais**: nada de `import`.
 | [`ModPlayer`](#modplayer) | Dados e comportamento por jogador. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModBuff`](#modbuff) | Buff ou debuff novo. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModTile`](#modtile) | Bloco novo (1x1). | [9](../mods/09-blocos.md) |
-| [`ModSystem`](#modsystem) | O que é do mod inteiro. | [5](../mods/05-itens.md#modsystem) |
+| [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
+| [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
+| [`ModSystem`](#modsystem) | O que é do mod inteiro; o ciclo do mundo e os dados salvos nele. | [12](../mods/12-globais-e-mundo.md#modsystem-o-mundo) |
+| [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
 | [`ModContent`](#modcontent) | Tipo, modelo e textura pelo nome ou pela classe. | [4](../mods/04-conteudo-novo.md#modcontent) |
 | [`ModRecipe`](#modrecipe) | Receitas e grupos de receita. | [5](../mods/05-itens.md#receitas) |
@@ -414,23 +417,153 @@ tile.
 
 ---
 
+## GlobalItem, GlobalNPC e GlobalProjectile
+
+Código que roda para as entidades **do jogo** (e as de mod). Os hooks **não
+têm filtro nativo**: todo item, NPC ou projétil que passa pelo método entra no
+JS, e o `AppliesToEntity` escolhe lá dentro (ver o custo no
+[guia 12](../mods/12-globais-e-mundo.md#o-custo)). Um método que nenhum Global
+escreve não instala hook.
+
+`X.register(Classe)` devolve o modelo (o de `ModContent.GetInstance`).
+
+### Em todos
+
+| Membro | Para quê |
+|---|---|
+| `AppliesToEntity(entidade, lateInstantiation)` | `false`: os métodos do Global não rodam para ela. `lateInstantiation` é `false` na amostra do `ModifyNPCLoot`. |
+| `InstancePerEntity` | `true` (campo ou getter): cada entidade ganha a própria cópia, nascida no `SetDefaults`. |
+| `Clone(de, para)` | A cópia no `Item.Clone`. Padrão: os mesmos campos. |
+| `NewInstance(entidade)` | A cópia de uma entidade nova. Padrão: os campos do modelo. |
+| `SetStaticDefaults()`, `AddRecipeGroups()`, `AddRecipes()`, `PostSetupContent()` | Uma vez, com o conteúdo pronto. |
+| `this.Mod` | O `Mod` de quem registrou. |
+
+Na entidade: `item.GetGlobalItem(Classe)` (ou `'Nome'`) devolve a instância
+dela e lança se o Global não se aplica; `item.TryGetGlobalItem(Classe, ref)`
+devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
+
+### GlobalItem
+
+| Método | Quando roda | Método do jogo |
+|---|---|---|
+| `SetDefaults(item)` | O item nasce ou troca de tipo. | `Item.SetDefaults` |
+| `CanUseItem(item, player)` | Antes de usar; `false` impede. | `Player.ItemCheck_CheckCanUse_Inner` |
+| `UseItem(item, player)` | O uso começa. | `Player.ItemCheck_StartActualUse` |
+| `UseStyle`, `HoldStyle(item, player, mountOffset, heldItemFrame)`, `HoldItem(item, player)` | A cada quadro com o item na mão. | `Player.ItemCheck_ApplyUseStyle`/`ApplyHoldStyle` |
+| `ModifyWeaponDamage(item, player, damage)` | O dano da arma; devolva o novo. | `Player.GetWeaponDamage` |
+| `CanShoot(item, player)` | Antes do tiro; `false` não atira. | `Player.ItemCheck_Shoot` |
+| `ModifyShootStats(item, player, stats)` | `stats = { position, velocity, type, damage, knockBack }`. | `Projectile.NewProjectile` do tiro |
+| `Shoot(item, player, position, velocity, type, damage, knockBack, source)` | `false`: o projétil do jogo não sai. | idem |
+| `OnHitNPC(item, player, target, damageDone, knockBack, crit)` | Golpe corpo a corpo acertou. | `Player.ApplyNPCOnHitEffects` |
+| `UpdateInventory(item, player)` | A cada quadro, para as 58 casas do inventário. | `Player.UpdateEquips` |
+| `UpdateEquip(item, player)` | Equipado (acessório ou armadura). | `Player.ApplyEquipFunctional`, `GrantArmorBenefits` |
+| `UpdateAccessory(item, player, vanity, hideVisual)` | Acessório equipado (também de vaidade). | `Player.ApplyEquipFunctional`/`ApplyEquipVanity` |
+| `OnCraft(item, player, recipe)` | Criado numa receita. | `Main.CraftItem_GrantItem` |
+| `ModifyTooltips(item, tooltips)` | O tooltip; depois do `ModItem`. | `Main.MouseText_DrawItemTooltip_GetLinesInfo` |
+
+### GlobalNPC
+
+| Método | Quando roda | Método do jogo |
+|---|---|---|
+| `SetDefaults(npc)` | O NPC nasce (também no cliente, ao chegar pela rede). | `NPC.SetDefaults` |
+| `OnSpawn(npc, source)` | Criado por `NewNPC` (no servidor ou sozinho). | `NPC.NewNPC` |
+| `ResetEffects(npc)` | Começo da atualização do NPC. | `NPC.UpdateNPC` |
+| `PreAI(npc)`, `AI(npc)`, `PostAI(npc)` | A cada quadro. `PreAI` `false` pula a IA do jogo e o `AI` dos outros. | `NPC.AI` |
+| `HitEffect(npc, hitDirection, damage)` | Levou golpe (sangue, gore). | `NPC.HitEffect` |
+| `OnHitByItem(npc, player, item, damageDone, knockBack, crit)` | Golpe corpo a corpo. | `Player.ApplyNPCOnHitEffects` |
+| `OnHitByProjectile(npc, projectile)` | Acertado por projétil. | `Projectile.StatusNPC` |
+| `PreKill(npc)`, `OnKill(npc)` | A morte com drop, só no servidor ou sozinho. `PreKill` `false`: sem drop e sem `OnKill`. | `NPC.NPCLoot` |
+| `GetChat(npc, chat)` | A fala; `chat` é um `Ref`. | `NPC.GetChat` |
+| `ModifyNPCLoot(npc, npcLoot)` | Uma vez por tipo de NPC, com a amostra do jogo. | nativo (ao terminar de carregar) |
+| `ModifyGlobalLoot(globalLoot)` | Uma vez. | idem |
+
+### GlobalProjectile
+
+| Método | Quando roda | Método do jogo |
+|---|---|---|
+| `SetDefaults(projectile)` | O projétil nasce (também no outro lado da rede). | `Projectile.SetDefaults` |
+| `OnSpawn(projectile, source)` | Criado por `NewProjectile`, em quem criou. | `Projectile.NewProjectile` |
+| `PreAI`, `AI`, `PostAI(projectile)` | A cada quadro. | `Projectile.AI` |
+| `PreKill(projectile, timeLeft)`, `OnKill(projectile, timeLeft)` | Morte. `PreKill` `false`: some sem o efeito do jogo. | `Projectile.Kill` |
+| `OnHitNPC(projectile, target)` | Acertou um NPC. | `Projectile.StatusNPC` |
+| `OnHitPlayer(projectile, target)` | Acertou um jogador. | `Projectile.StatusPlayer` |
+
+### Ainda não
+
+`NetSend`/`NetReceive`, `SaveData`/`LoadData` por entidade, `GlobalTile`,
+`GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`, `EditSpawnRate`/`EditSpawnPool`,
+`ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`; no `GlobalProjectile`,
+`GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`.
+
+---
+
+## GlobalLoot
+
+As regras de drop que valem para **todo** NPC (o `_globalEntries` do jogo),
+e o que o `ModifyGlobalLoot` recebe.
+
+| Membro | Para quê |
+|---|---|
+| `Add(regra)`, `Remove(regra)` | Pôr ou tirar uma regra global. |
+| `Get()` | As regras globais, num array. |
+| `RemoveWhere(regra => ...)` | Tira as que casam; devolve quantas. |
+
+Do jeito do ExMod: `class X extends GlobalLoot { ModifyGlobalLoot() {...} }` e
+`GlobalLoot.register(X)`. Dentro, `this.RegisterToNPC(id, regra)`,
+`this.RemoveFromNPC(id, regra)` e `this.GetRulesForNPCID(id)` (a `List` do jogo)
+mexem na tabela de um NPC, e o Bestiário acompanha.
+
+O `NPCLoot` (o do `ModifyNPCLoot`) tem `Add`, `Remove`, `Get()` e
+`RemoveWhere`, igual.
+
+---
+
 ## ModSystem
 
-O que é do mod inteiro, não de um item: grupos de receita, receitas de itens
-do jogo, preparação.
+O que é do mod inteiro: receitas, o ciclo do mundo e os dados salvos nele.
+Cada método de mundo só ganha hook se algum `ModSystem` o escreveu.
 
-| Método | Quando roda |
+| Método | Quando roda | Método do jogo |
+|---|---|---|
+| `OnModLoad()` | No `register`. | — |
+| `AddRecipeGroups()` | Uma vez, antes de qualquer receita. | nativo |
+| `AddRecipes()`, `PostAddRecipes()` | Uma vez, com as receitas do jogo prontas. | nativo |
+| `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. | nativo |
+| `ClearWorld()` | Ao entrar em qualquer mundo (e antes de gerar um). | `WorldGen.clearWorld` |
+| `OnWorldLoad()` | O mundo abriu; no cliente, ao chegar do servidor. | `WorldFile.LoadWorld`; no cliente, `WorldGen.clearWorld` |
+| `LoadWorldData(tag)` | Depois do `OnWorldLoad`, com os dados do mundo. Só no servidor ou sozinho. | idem |
+| `PostWorldLoad()` | Depois dos dados. | idem |
+| `SaveWorldData(tag)` | A cada save do mundo. Só no servidor ou sozinho. | `WorldFile.InternalSaveWorld` |
+| `PreSaveAndQuit()` | Ao sair, antes de salvar. | `WorldGen.SaveAndQuit` |
+| `OnWorldUnload()` | Depois de sair. | `WorldGen.SaveAndQuitCallBack` |
+| `PreUpdateWorld()`, `PostUpdateWorld()` | A cada quadro. Só no servidor ou sozinho. | `WorldGen.UpdateWorld` |
+| `PreUpdateTime()`, `PostUpdateTime()` | A cada quadro. Só no servidor ou sozinho. | `Main.UpdateTime` |
+| `PostUpdateEverything()` | A cada quadro, em todos. | `Main.DoUpdateInWorld` |
+
+Os dados vão para `<mundo>.wld.bl.json`, ao lado do `.wld`, uma entrada por
+`ModSystem` (a chave é o uid do mod e o nome da classe). `ModSystem.register(Classe)`
+devolve a instância (a de `ModContent.GetInstance`).
+
+**Ainda não**: `NetSend`/`NetReceive` (os dados do mundo não vão ao cliente),
+`ModifyWorldGenTasks`, `ModifyInterfaceLayers`, e os `Pre/PostUpdate` de
+jogadores, NPCs, projéteis e itens separados.
+
+---
+
+## TagCompound
+
+Os dados que um mod salva: o `tag` do `SaveWorldData`/`LoadWorldData` e do
+`SaveData`/`LoadData` do `ModPlayer`. Escreva como num objeto
+(`tag.chave = valor`); vai para o disco em JSON.
+
+| Membro | Para quê |
 |---|---|
-| `AddRecipeGroups()` | Uma vez, antes de qualquer receita. |
-| `AddRecipes()` | Uma vez, com as receitas do jogo prontas. |
-| `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. |
-
-`ModSystem.register(Classe)` devolve a instância.
-
-**Ainda não**: os outros ganchos do `ModSystem` do tModLoader
-(`PreUpdateWorld`, `PostUpdateEverything`, `ModifyInterfaceLayers`,
-`SaveWorldData`/`LoadWorldData`, `OnWorldLoad`...). Hoje, isso se faz com
-hooks diretos.
+| `ContainsKey(chave)` | A chave foi salva? |
+| `Get(chave, padrão)` | O valor, ou o padrão. |
+| `GetBool`, `GetInt`, `GetFloat`, `GetString`, `GetList`, `GetCompound(chave)` | O valor já convertido (falso, 0, `''`, `[]` se não há). |
+| `Set(chave, v)`, `Add(chave, v)`, `Remove(chave)` | Escrever e apagar. |
+| `Count` | Quantas chaves. |
+| `TagCompound.from(objeto)` | Um `TagCompound` com os campos do objeto. |
 
 ---
 
@@ -576,10 +709,10 @@ Globais, com os nomes do tModLoader:
 Classes do tModLoader sem equivalente hoje. Dá para fazer o efeito com hooks
 diretos ([guia 1](../mods/01-hooks-do-zero.md)), mas sem atalho:
 
-- `GlobalItem`, `GlobalNPC`, `GlobalProjectile`, `GlobalTile`, `GlobalBuff`;
+- `GlobalTile`, `GlobalBuff`, `GlobalWall`;
 - `ModPrefix`, `ModMount`, `ModBiome`, `ModSceneEffect`, `ModWall`, `ModDust`,
   `ModRarity`, `ModWaterStyle` e os estilos de fundo;
 - `ModKeybind`, `ModCommand`, `ModConfig`, `ModPacket` (mensagens de rede
-  próprias);
+  próprias) e o `NetSend`/`NetReceive` das classes;
 - interface própria (`UIState`, `ModifyInterfaceLayers`);
 - `ModTile` além de 1x1.

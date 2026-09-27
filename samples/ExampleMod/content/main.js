@@ -33,6 +33,8 @@ import { ExampleLaserWeapon } from './Content/Items/Weapons/Magic/ExampleLaserWe
 import { ExampleHookItem } from './Content/Items/Tools/ExampleHookItem.js';
 import { ExampleFishingRod } from './Content/Items/Tools/ExampleFishingRod.js';
 import { ExampleRecipes } from './Content/Global/ExampleRecipes.js';
+import { ExampleNPCLoot } from './Content/Global/ExampleNPCLoot.js';
+import { DownedBossSystem } from './Content/Global/DownedBossSystem.js';
 import { ExampleDefenseBuff } from './Content/Buffs/ExampleDefenseBuff.js';
 import { ExampleBuffPotion } from './Content/Items/Consumables/ExampleBuffPotion.js';
 import { ExamplePlayer } from './Content/Players/ExamplePlayer.js';
@@ -133,6 +135,9 @@ ModTile.register(ExampleTile);
 ModTile.register(ExampleOre);
 
 ModSystem.register(ExampleRecipes);
+ModSystem.register(DownedBossSystem);
+
+GlobalNPC.register(ExampleNPCLoot);
 
 bl.log(`Example Mod: ExampleItem = ${ModItem.getTypeByName('ExampleItem')}, ` +
        `Espada = ${ModItem.getTypeByName('ExampleMeleeWeapon')}, ` +

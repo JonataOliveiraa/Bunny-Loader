@@ -338,9 +338,10 @@ export class ExampleRecipes extends ModSystem {
 ModSystem.register(ExampleRecipes);
 ```
 
-Por enquanto o `ModSystem` tem só esses três métodos. O que o tModLoader faz
-nos outros (`PreUpdateWorld`, `PostDrawInterface`...) se faz hoje com um hook
-direto ([guia 1](01-hooks-do-zero.md)).
+O `ModSystem` também acompanha o mundo (carregar, atualizar, sair) e salva
+dados junto com ele: está no [guia 12](12-globais-e-mundo.md#modsystem-o-mundo).
+Para mudar um item **do jogo** (dano da espada de cobre, tooltip do gel), o
+caminho é um `GlobalItem`, do mesmo guia.
 
 ## Save
 

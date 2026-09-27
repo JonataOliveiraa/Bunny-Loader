@@ -1,3 +1,5 @@
+import { DownedBossSystem } from '../Global/DownedBossSystem.js';
+
 const { BuffID, NPCID, SoundID } = Terraria.ID;
 const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
 const { FlavorTextBestiaryInfoElement, MoonLordPortraitBackgroundProviderBestiaryInfoElement } = Terraria.GameContent.Bestiary;
@@ -42,6 +44,10 @@ export class ExampleBoss extends ModNPC {
 
     ModifyNPCLoot(npcLoot) {
         npcLoot.Add(ItemDropRule.Common(ModItem.getTypeByName('ExampleItem'), 1, 15, 30));
+    }
+
+    OnKill(npc) {
+        DownedBossSystem.downedExampleBoss = true;
     }
 
     HitEffect(npc, hitDirection, damage) {
