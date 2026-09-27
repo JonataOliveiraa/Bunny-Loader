@@ -1075,6 +1075,11 @@ class ModSystem {
     PostUpdateTime() {}
     PostUpdateEverything() {}
 
+    // Rede: o servidor manda junto com os dados do mundo (a mensagem 7, ao
+    // entrar e quando o jogo sincroniza o mundo); o cliente le na mesma ordem.
+    NetSend(writer) {}
+    NetReceive(reader) {}
+
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModSystem)) {
             throw new TypeError('ModSystem.register(Classe): passe a classe, que estende ModSystem');
@@ -1158,6 +1163,8 @@ function hookModSystem(cls) {
     const Main = Terraria.Main;
     const WorldGen = Terraria.WorldGen;
     const WorldFile = Terraria.IO.WorldFile;
+
+    if (has('NetSend') || has('NetReceive')) installEntityNet();
 
     // O clearWorld roda ao entrar em qualquer mundo (e antes de gerar um). No
     // cliente de multijogador, e ele que marca a entrada: o mundo chega pela
@@ -1292,6 +1299,14 @@ class Mod {
     AddRecipes() {}
     PostSetupContent() {}
 
+    // Um pacote proprio, para o mesmo mod do outro lado: `p.Write(...)` e
+    // `p.Send()`. Chega no HandlePacket(reader, whoAmI) de la.
+    GetPacket() {
+        installModNet();
+        return new ModPacket(this);
+    }
+    HandlePacket(reader, whoAmI) {}
+
     // Quem nao define um Call responde nada, como o `return null` do
     // tModLoader. Mas um mod que ainda nao carregou (ou quebrou) nao pode
     // responder nada calado: quem chamou acharia que ele nao tem o comando.
@@ -1326,6 +1341,7 @@ class Mod {
         }
         info.cls = cls;
         const name = cls.name;
+        if (overrides(cls, Mod, 'HandlePacket')) installModNet();
         guard(name + '.Load', () => mod.Load());
         whenReady(() => guard(name + '.AddRecipeGroups', () => mod.AddRecipeGroups()), 'groups');
         whenReady(() => {
@@ -2156,6 +2172,11 @@ class ModProjectile {
     PreAI(proj) { return true; }
     AI(proj) {}
     PostAI(proj) {}
+
+    // Rede: vai junto com a sincronizacao do projetil (mensagem 27, de quem
+    // o controla). Para mandar de novo, proj.netUpdate = true.
+    SendExtraAI(writer) {}
+    ReceiveExtraAI(reader) {}
     // Morte: false no PreKill tira os efeitos do jogo (poeira, som); morre igual.
     PreKill(proj, timeLeft) { return true; }
     OnKill(proj, timeLeft) {}
@@ -2250,6 +2271,8 @@ function hookProjectile(cls) {
     const Pr = Terraria.Projectile;
     const has = (name) => overrides(cls, ModProjectile, name);
     const self = { minType: FIRST_PROJECTILE };
+
+    if (has('SendExtraAI') || has('ReceiveExtraAI')) installEntityNet();
 
     // Sempre: o AIType e o OnSpawn podem vir de qualquer projetil, e o AIType
     // so se sabe depois do SetDefaults.
@@ -2642,6 +2665,10 @@ class ModNPC {
     PreAI(npc) { return true; }
     AI(npc) {}
     PostAI(npc) {}
+    // Rede: vai junto com a sincronizacao do NPC (mensagem 23, do servidor).
+    // Para mandar de novo, npc.netUpdate = true.
+    SendExtraAI(writer) {}
+    ReceiveExtraAI(reader) {}
     // Animacao propria (no lugar do AnimationType): mexa em npc.frame.
     FindFrame(npc, frameHeight) {}
     // false: nao some por estar longe do jogador.
@@ -3120,6 +3147,8 @@ function hookNpc(cls) {
     const N = Terraria.NPC;
     const has = (name) => overrides(cls, ModNPC, name);
     const self = { minType: FIRST_NPC };
+
+    if (has('SendExtraAI') || has('ReceiveExtraAI')) installEntityNet();
 
     // ---- morador ----
     // Quem pode se mudar: o jogo zera Main.townNPCCanSpawn e marca os dele a
@@ -3687,6 +3716,9 @@ class GlobalNPC extends GlobalType {
     ModifyNPCLoot(npc, npcLoot) {}
     // Uma vez: as regras que valem para todo NPC.
     ModifyGlobalLoot(globalLoot) {}
+    // Rede: junto com a sincronizacao do NPC (mensagem 23, do servidor).
+    NetSend(npc, writer) {}
+    NetReceive(npc, reader) {}
 
     static register(cls) {
         const inst = registerGlobal(globalNPCs, cls, 'GlobalNPC');
@@ -3701,6 +3733,8 @@ function hookGlobalNPC(cls) {
     const N = Terraria.NPC;
     const reg = globalNPCs;
     const has = (name) => overrides(cls, GlobalNPC, name);
+
+    if (has('NetSend') || has('NetReceive')) installEntityNet();
 
     if (has('SetDefaults') || reg.cached) once('gnpc.SetDefaults', () => {
         N['void SetDefaults(int Type, NPCSpawnParams spawnparams)'].hook((original, npc, type, params) => {
@@ -3910,6 +3944,10 @@ class GlobalProjectile extends GlobalType {
     OnKill(projectile, timeLeft) {}
     OnHitNPC(projectile, target) {}
     OnHitPlayer(projectile, target) {}
+    // Rede: junto com a sincronizacao do projetil (mensagem 27, de quem o
+    // controla).
+    NetSend(projectile, writer) {}
+    NetReceive(projectile, reader) {}
 
     static register(cls) {
         const inst = registerGlobal(globalProjectiles, cls, 'GlobalProjectile');
@@ -3924,6 +3962,8 @@ function hookGlobalProjectile(cls) {
     const Pr = Terraria.Projectile;
     const reg = globalProjectiles;
     const has = (name) => overrides(cls, GlobalProjectile, name);
+
+    if (has('NetSend') || has('NetReceive')) installEntityNet();
 
     if (has('SetDefaults') || reg.cached) once('gproj.SetDefaults', () => {
         Pr['void SetDefaults(int Type)'].hook((original, p, type) => {
@@ -3977,6 +4017,280 @@ function hookGlobalProjectile(cls) {
             eachGlobal(reg, p, 'OnHitPlayer', (g) => g.OnHitPlayer(p, player));
         });
     });
+}
+
+// ================================== Rede ==================================
+//
+// Dados de mod entre servidor e clientes: o NetSend/NetReceive do ModSystem,
+// dos Globais e o SendExtraAI/ReceiveExtraAI do ModNPC e do ModProjectile, e
+// os pacotes proprios (Mod.GetPacket / Mod.HandlePacket).
+//
+// O tModLoader escreve dentro das mensagens do jogo; aqui isso seria reescrever
+// codigo nativo. O caminho e o sistema de NetModules do proprio jogo (a
+// mensagem 82): um pacote com um id de modulo que o jogo nao registrou e que
+// ele ignoraria. O hook no NetManager.Read pega esse id antes. O conteudo e
+// JSON: os valores que o mod escreveu, na ordem.
+//
+// Os dados seguem a mensagem do jogo que eles acompanham (7, os dados do
+// mundo; 23, um NPC; 27, um projetil), pelo mesmo caminho: chegam logo depois
+// dela, na mesma ordem.
+
+const MOD_NET_ID = 0xB17E;   // o id de modulo dos pacotes de mod
+const MAX_NET_BYTES = 65000;
+
+/**
+ * O que um mod escreve para a rede, como o BinaryWriter do tModLoader:
+ * Write(valor) guarda o valor como e (numero, texto, booleano, array, objeto
+ * simples); os nomes com tipo (WriteInt32...) existem para o codigo portado.
+ */
+class NetWriter {
+    constructor() { this.values = []; }
+    Write(value) {
+        if (value && typeof value === 'object' && !Array.isArray(value) && 'X' in value && 'Y' in value &&
+            typeof value.X === 'number') {
+            this.values.push({ X: value.X, Y: value.Y });   // Vector2, Point
+        } else {
+            this.values.push(value);
+        }
+    }
+    WriteFlags(...flags) { this.values.push(flags.map(Boolean)); }
+    WriteVector2(v) { this.values.push({ X: v.X, Y: v.Y }); }
+}
+for (const name of ['WriteByte', 'WriteSByte', 'WriteInt16', 'WriteUInt16', 'WriteInt32', 'WriteUInt32',
+                    'WriteInt64', 'WriteSingle', 'WriteDouble', 'WriteBoolean', 'WriteString', 'Write7BitEncodedInt']) {
+    NetWriter.prototype[name] = NetWriter.prototype.Write;
+}
+
+/** O que chega: os valores na ordem em que o outro lado escreveu. */
+class NetReader {
+    constructor(values) {
+        this.values = Array.isArray(values) ? values : [];
+        this.index = 0;
+    }
+    get HasMore() { return this.index < this.values.length; }
+    Read() {
+        if (this.index >= this.values.length) {
+            throw new RangeError('NetReader: leu mais do que o outro lado escreveu (' + this.values.length + ' valores)');
+        }
+        return this.values[this.index++];
+    }
+    ReadInt32() { return Number(this.Read()) | 0; }
+    ReadSingle() { return Number(this.Read()); }
+    ReadBoolean() { return !!this.Read(); }
+    ReadString() { return String(this.Read()); }
+    ReadFlags() { return this.Read(); }
+    ReadVector2() {
+        const v = this.Read();
+        return Vector2.new(v.X, v.Y);
+    }
+}
+for (const name of ['ReadByte', 'ReadSByte', 'ReadInt16', 'ReadUInt16', 'ReadUInt32', 'Read7BitEncodedInt']) {
+    NetReader.prototype[name] = NetReader.prototype.ReadInt32;
+}
+NetReader.prototype.ReadInt64 = NetReader.prototype.ReadSingle;
+NetReader.prototype.ReadDouble = NetReader.prototype.ReadSingle;
+
+/**
+ * Um pacote do mod, como o ModPacket do tModLoader: `const p = mod.GetPacket();
+ * p.Write(...); p.Send();`. Quem recebe e o HandlePacket(reader, whoAmI) do
+ * Mod de mesmo uid, do outro lado.
+ */
+class ModPacket extends NetWriter {
+    constructor(mod) {
+        super();
+        this.mod = mod;
+    }
+    // Do cliente: vai ao servidor. Do servidor: a um cliente (toClient), ou a
+    // todos menos ignoreClient. Sozinho, nao ha para onde.
+    Send(toClient = -1, ignoreClient = -1) {
+        sendModNet({ k: 'packet', m: this.mod.uuid, d: this.values }, toClient, ignoreClient);
+    }
+}
+
+const utf8Length = (s) => {
+    let n = 0;
+    for (let i = 0; i < s.length; i++) {
+        const c = s.charCodeAt(i);
+        if (c < 0x80) n += 1;
+        else if (c < 0x800) n += 2;
+        else if (c >= 0xD800 && c <= 0xDBFF) { n += 4; i++; }
+        else n += 3;
+    }
+    return n;
+};
+
+function sendModNet(envelope, toClient, ignoreClient) {
+    const Main = Terraria.Main;
+    const mode = Main.netMode;
+    if (mode === 0) return;
+    installModNet();
+    const json = JSON.stringify(envelope);
+    const size = utf8Length(json) + 5;   // o texto e o prefixo de tamanho dele
+    if (size > MAX_NET_BYTES) {
+        throw new RangeError('rede: pacote de mod com ' + size + ' bytes; o limite e ' + MAX_NET_BYTES);
+    }
+    const packet = Terraria.Net.NetPacket.new();
+    packet['void .ctor(ushort id, int size)'](MOD_NET_ID, size);
+    packet.Writer['void Write(string value)'](json);
+    packet['void ShrinkToFit()']();
+    const net = Terraria.Net.NetManager.Instance;
+    if (mode === 1) net['void SendToServer(NetPacket packet)'](packet);
+    else if (toClient >= 0) net['void SendToClient(NetPacket packet, int clientId)'](packet, toClient);
+    else net['void Broadcast(NetPacket packet, int ignoreClient)'](packet, ignoreClient);
+}
+
+// Quem manda para mim: no servidor, o indice do cliente; no cliente, 256 (o
+// servidor), como o whoAmI do tModLoader.
+function receiveModNet(envelope, from) {
+    const Main = Terraria.Main;
+    switch (envelope.k) {
+        case 'packet': {
+            syncMods();
+            const mod = modsByUuid.get(envelope.m);
+            if (!mod) return;
+            const name = (mod[MOD_INFO].cls ? mod[MOD_INFO].cls.name : 'Mod') + '.HandlePacket';
+            guard(name, () => mod.HandlePacket(new NetReader(envelope.d), from));
+            return;
+        }
+        case 'world':
+            for (const s of modSystems) {
+                if (!overrides(s.constructor, ModSystem, 'NetReceive')) continue;
+                const values = envelope.d[modSystemKeys.get(s)];
+                guard(s.constructor.name + '.NetReceive', () => s.NetReceive(new NetReader(values)));
+            }
+            return;
+        case 'npc': {
+            const npc = Main.npc[envelope.i];
+            if (!npc || !npc.active || npc.type !== envelope.t) return;
+            applyEntityNet(npc, envelope, npcOf(npc), ModNPC, globalNPCs);
+            return;
+        }
+        case 'proj': {
+            const p = findProjectile(envelope.o, envelope.id, envelope.t);
+            if (p) applyEntityNet(p, envelope, projectileOf(p), ModProjectile, globalProjectiles);
+            // O servidor repassa o projetil de um cliente aos outros (a 27 ele
+            // ja repassou, antes de este pacote chegar): os dados vao atras.
+            if (Main.netMode !== 1 && from < 256) sendModNet(envelope, -1, from);
+            return;
+        }
+    }
+}
+
+// O projetil e (dono, identity) na rede: o indice muda de um aparelho a outro.
+function findProjectile(owner, identity, type) {
+    const all = Terraria.Main.projectile;
+    for (let i = 0; i < 1000; i++) {
+        const p = all[i];
+        if (p.active && p.owner === owner && p.identity === identity && p.type === type) return p;
+    }
+    return null;
+}
+
+function applyEntityNet(entity, envelope, own, Base, reg) {
+    if (own && envelope.x !== undefined && overrides(own.constructor, Base, 'ReceiveExtraAI')) {
+        guard(own.constructor.name + '.ReceiveExtraAI', () => own.ReceiveExtraAI(new NetReader(envelope.x)));
+    }
+    const data = envelope.g || {};
+    for (const g of globalsOf(reg, entity)) {
+        if (!overrides(g.constructor, reg.Base, 'NetReceive')) continue;
+        const values = data[g.constructor.name];
+        if (values !== undefined) guard(g.constructor.name + '.NetReceive', () => g.NetReceive(entity, new NetReader(values)));
+    }
+}
+
+// O que a entidade manda junto com a mensagem do jogo; null se ninguem escreve.
+function entityNetData(entity, own, Base, reg) {
+    let x, g, any = false;
+    if (own && overrides(own.constructor, Base, 'SendExtraAI')) {
+        const w = new NetWriter();
+        guard(own.constructor.name + '.SendExtraAI', () => own.SendExtraAI(w));
+        x = w.values;
+        any = true;
+    }
+    for (const gl of globalsOf(reg, entity)) {
+        if (!overrides(gl.constructor, reg.Base, 'NetSend')) continue;
+        const w = new NetWriter();
+        guard(gl.constructor.name + '.NetSend', () => gl.NetSend(entity, w));
+        (g = g || {})[gl.constructor.name] = w.values;
+        any = true;
+    }
+    return any ? { x, g } : null;
+}
+
+// O hook que recebe. Os dois lados rodam os mesmos mods, entao instala nos
+// dois assim que algum mod usa a rede.
+function installModNet() {
+    once('net.Read', () => {
+        Terraria.Net.NetManager['void Read(BinaryReader reader, int userId, int readLength)'].hook(
+            (original, self, reader, userId, length) => {
+                const stream = reader.BaseStream;
+                const start = stream.Position;
+                if (length < 2 || reader.ReadUInt16() !== MOD_NET_ID) {
+                    stream.Position = start;
+                    return original(self, reader, userId, length);
+                }
+                const text = reader.ReadString();
+                let envelope;
+                try {
+                    envelope = JSON.parse(text);
+                } catch (e) {
+                    bl.log('rede: pacote de mod ilegivel (' + e + ')');
+                    return undefined;
+                }
+                const from = Terraria.Main.netMode === 1 ? 256 : userId;
+                receiveModNet(envelope, from);
+                return undefined;
+            });
+    });
+}
+
+// Os dados que acompanham as mensagens do jogo: 7 (mundo, so do servidor), 23
+// (NPC, so do servidor) e 27 (projetil, de quem manda).
+function installEntityNet() {
+    installModNet();
+    once('net.SendData', () => {
+        const Main = Terraria.Main;
+        Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'].hook(
+            (original, msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7) => {
+                original(msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7);
+                if (msgType !== 7 && msgType !== 23 && msgType !== 27) return;
+                const mode = Main.netMode;
+                if (mode === 0) return;
+                if (msgType === 7) {
+                    if (mode !== 1) guard('rede: dados do mundo', () => sendWorldNet(remote, ignore));
+                } else if (msgType === 23) {
+                    if (mode === 1 || number < 0 || number >= 200) return;
+                    const npc = Main.npc[number];
+                    if (!npc.active) return;
+                    const data = entityNetData(npc, npcOf(npc), ModNPC, globalNPCs);
+                    if (data) sendModNet({ k: 'npc', i: number, t: npc.type, x: data.x, g: data.g }, remote, ignore);
+                } else {
+                    if (number < 0 || number >= 1000) return;
+                    const p = Main.projectile[number];
+                    if (!p.active) return;
+                    // No servidor, o projetil de um cliente segue pelo repasse
+                    // do pacote dele (receiveModNet), com os dados que ele mandou.
+                    if (mode !== 1 && p.owner !== Main.myPlayer && p.owner !== 255) return;
+                    const data = entityNetData(p, projectileOf(p), ModProjectile, globalProjectiles);
+                    if (data) {
+                        sendModNet({ k: 'proj', o: p.owner, id: p.identity, t: p.type, x: data.x, g: data.g }, remote, ignore);
+                    }
+                }
+            });
+    });
+}
+
+function sendWorldNet(remote, ignore) {
+    const d = {};
+    let any = false;
+    for (const s of modSystems) {
+        if (!overrides(s.constructor, ModSystem, 'NetSend')) continue;
+        const w = new NetWriter();
+        guard(s.constructor.name + '.NetSend', () => s.NetSend(w));
+        d[modSystemKeys.get(s)] = w.values;
+        any = true;
+    }
+    if (any) sendModNet({ k: 'world', d }, remote, ignore);
 }
 
 // ============================ Sons e musicas ============================
@@ -4477,4 +4791,7 @@ globalThis.GlobalNPC = GlobalNPC;
 globalThis.GlobalProjectile = GlobalProjectile;
 globalThis.GlobalLoot = GlobalLoot;
 globalThis.TagCompound = TagCompound;
+globalThis.ModPacket = ModPacket;
+globalThis.NetWriter = NetWriter;
+globalThis.NetReader = NetReader;
 })();

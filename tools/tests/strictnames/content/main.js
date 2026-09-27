@@ -84,6 +84,11 @@ function run() {
             'ModItem ' + item.ModItem;
     });
 
+    check('propriedade de struct encaixotado le os dados, nao a caixa (Color.PackedValue)', () => {
+        const c = Color.new(10, 20, 30, 255);
+        const packed = c.PackedValue;
+        return packed === ((255 * 16777216) + (30 << 16) + (20 << 8) + 10) || 'PackedValue ' + packed;
+    });
     check('assinatura com os nomes exatos casa', () =>
         (Renderer[normalLayers] !== undefined && normalLayers in Renderer) || 'nao achou');
     check('nome de parametro com outra caixa: erro com o certo', () =>

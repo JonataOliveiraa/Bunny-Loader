@@ -1,0 +1,15 @@
+{
+  "uid": "7162f0bd-ef82-4278-b5e1-a1d1dfff40a5",
+  "id": "test-mpnet",
+  "name": "Teste: rede dos mods",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "NetSend/NetReceive do ModSystem e dos Globais, e ModPacket, entre host e cliente.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpn ...'.",
+  "updated": "2026-09-26",
+  "blVersion": 1,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

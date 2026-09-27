@@ -252,6 +252,9 @@ regras:
 - **Hook roda para todos os jogadores.** `Player.Update` é chamado para cada
   jogador do mundo, não só para o seu. Para mexer só no seu, confira o índice:
   `if (i !== Terraria.Main.myPlayer) return;` (ver o [guia 1](01-hooks-do-zero.md#hook-roda-para-todos)).
+- **Cada aparelho tem o seu estado.** Um campo que o servidor mudou não muda
+  sozinho no cliente: dados de mod vão pela rede com `NetSend`/`NetReceive` e
+  pacotes próprios (ver o [guia 12](12-globais-e-mundo.md#rede)).
 
 ## Por dentro
 

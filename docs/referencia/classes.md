@@ -31,6 +31,7 @@ Todas as classes são **globais**: nada de `import`.
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
 | [`ModSystem`](#modsystem) | O que é do mod inteiro; o ciclo do mundo e os dados salvos nele. | [12](../mods/12-globais-e-mundo.md#modsystem-o-mundo) |
 | [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
+| [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
 | [`ModContent`](#modcontent) | Tipo, modelo e textura pelo nome ou pela classe. | [4](../mods/04-conteudo-novo.md#modcontent) |
 | [`ModRecipe`](#modrecipe) | Receitas e grupos de receita. | [5](../mods/05-itens.md#receitas) |
@@ -474,6 +475,7 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `OnHitByProjectile(npc, projectile)` | Acertado por projétil. | `Projectile.StatusNPC` |
 | `PreKill(npc)`, `OnKill(npc)` | A morte com drop, só no servidor ou sozinho. `PreKill` `false`: sem drop e sem `OnKill`. | `NPC.NPCLoot` |
 | `GetChat(npc, chat)` | A fala; `chat` é um `Ref`. | `NPC.GetChat` |
+| `NetSend(npc, writer)`, `NetReceive(npc, reader)` | Rede: junto com cada NPC que o servidor sincroniza. | `NetMessage.SendData` (23) |
 | `ModifyNPCLoot(npc, npcLoot)` | Uma vez por tipo de NPC, com a amostra do jogo. | nativo (ao terminar de carregar) |
 | `ModifyGlobalLoot(globalLoot)` | Uma vez. | idem |
 
@@ -487,11 +489,12 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `PreKill(projectile, timeLeft)`, `OnKill(projectile, timeLeft)` | Morte. `PreKill` `false`: some sem o efeito do jogo. | `Projectile.Kill` |
 | `OnHitNPC(projectile, target)` | Acertou um NPC. | `Projectile.StatusNPC` |
 | `OnHitPlayer(projectile, target)` | Acertou um jogador. | `Projectile.StatusPlayer` |
+| `NetSend(projectile, writer)`, `NetReceive(projectile, reader)` | Rede: junto com cada projétil sincronizado, de quem o controla. | `NetMessage.SendData` (27) |
 
 ### Ainda não
 
-`NetSend`/`NetReceive`, `SaveData`/`LoadData` por entidade, `GlobalTile`,
-`GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`, `EditSpawnRate`/`EditSpawnPool`,
+`NetSend`/`NetReceive` do `GlobalItem`, `SaveData`/`LoadData` por entidade,
+`GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`, `EditSpawnRate`/`EditSpawnPool`,
 `ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`; no `GlobalProjectile`,
 `GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`.
 
@@ -539,13 +542,13 @@ Cada método de mundo só ganha hook se algum `ModSystem` o escreveu.
 | `PreUpdateWorld()`, `PostUpdateWorld()` | A cada quadro. Só no servidor ou sozinho. | `WorldGen.UpdateWorld` |
 | `PreUpdateTime()`, `PostUpdateTime()` | A cada quadro. Só no servidor ou sozinho. | `Main.UpdateTime` |
 | `PostUpdateEverything()` | A cada quadro, em todos. | `Main.DoUpdateInWorld` |
+| `NetSend(writer)`, `NetReceive(reader)` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | `NetMessage.SendData` (7) |
 
 Os dados vão para `<mundo>.wld.bl.json`, ao lado do `.wld`, uma entrada por
 `ModSystem` (a chave é o uid do mod e o nome da classe). `ModSystem.register(Classe)`
 devolve a instância (a de `ModContent.GetInstance`).
 
-**Ainda não**: `NetSend`/`NetReceive` (os dados do mundo não vão ao cliente),
-`ModifyWorldGenTasks`, `ModifyInterfaceLayers`, e os `Pre/PostUpdate` de
+**Ainda não**: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, e os `Pre/PostUpdate` de
 jogadores, NPCs, projéteis e itens separados.
 
 ---
@@ -564,6 +567,28 @@ Os dados que um mod salva: o `tag` do `SaveWorldData`/`LoadWorldData` e do
 | `Set(chave, v)`, `Add(chave, v)`, `Remove(chave)` | Escrever e apagar. |
 | `Count` | Quantas chaves. |
 | `TagCompound.from(objeto)` | Um `TagCompound` com os campos do objeto. |
+
+---
+
+## Rede
+
+`writer` e `reader` dos `NetSend`/`NetReceive`, e o pacote do `Mod`. Ver o
+[guia 12](../mods/12-globais-e-mundo.md#rede).
+
+| Membro | Para quê |
+|---|---|
+| `writer.Write(valor)` | Guarda número, texto, booleano, array, objeto simples ou `Vector2`. Os nomes com tipo (`WriteInt32`...) fazem o mesmo. |
+| `writer.WriteFlags(a, b, ...)`, `writer.WriteVector2(v)` | Vários booleanos; um vetor. |
+| `reader.Read()` | O próximo valor, como foi escrito. |
+| `reader.ReadInt32()`, `ReadByte`, `ReadSingle`, `ReadDouble`, `ReadBoolean`, `ReadString` | O próximo, convertido. |
+| `reader.ReadFlags()`, `reader.ReadVector2()` | Um array de booleanos; um `Vector2`. |
+| `reader.HasMore` | Ainda há valores? |
+| `mod.GetPacket()` | Um `ModPacket` (um `writer` com `Send`). |
+| `packet.Send(toClient = -1, ignoreClient = -1)` | Do cliente: ao servidor. Do servidor: a um cliente, ou a todos menos um. |
+| `HandlePacket(reader, whoAmI)` | No `Mod`: o pacote do mesmo mod, do outro lado. `whoAmI`: o cliente, ou `256` (o servidor). |
+
+No `ModNPC` e no `ModProjectile`: `SendExtraAI(writer)` e
+`ReceiveExtraAI(reader)`, junto com a sincronização da entidade.
 
 ---
 
@@ -712,7 +737,6 @@ diretos ([guia 1](../mods/01-hooks-do-zero.md)), mas sem atalho:
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
 - `ModPrefix`, `ModMount`, `ModBiome`, `ModSceneEffect`, `ModWall`, `ModDust`,
   `ModRarity`, `ModWaterStyle` e os estilos de fundo;
-- `ModKeybind`, `ModCommand`, `ModConfig`, `ModPacket` (mensagens de rede
-  próprias) e o `NetSend`/`NetReceive` das classes;
+- `ModKeybind`, `ModCommand`, `ModConfig`;
 - interface própria (`UIState`, `ModifyInterfaceLayers`);
 - `ModTile` além de 1x1.

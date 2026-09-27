@@ -155,6 +155,14 @@ do bloco de estáticos, nunca o endereço. A vista guarda o `FieldInfo` e
 **devolve o valor a cada escrita**; sem isso, `Main.screenPosition.X = 0` não
 faria nada.
 
+Um struct criado com `.new()` (`Vector2.new()`, `NetPacket.new()`) é outra
+coisa: um objeto **encaixotado**, com o cabeçalho de objeto antes dos dados.
+Campo se lê pelo offset do objeto, que já conta o cabeçalho. Mas método e
+propriedade do struct querem os **dados** como `this`: a ponte passa o
+endereço logo depois do cabeçalho. A propriedade passava a caixa, e
+`packet.Length` lia os bytes altos do ponteiro da classe; ao ler o `Writer`, o
+jogo caía.
+
 As vistas saem de um *pool* (`StructRef`), reusadas: criar uma por leitura de
 `player.position` foi medido em ~330 ns e caiu para ~170 com o pool.
 

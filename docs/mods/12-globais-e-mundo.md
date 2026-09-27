@@ -1,7 +1,8 @@
 # 12. Globais e o mundo
 
 Até aqui, cada classe de mod criava algo **novo**: um item, um NPC, um buff.
-Este guia é sobre mexer no que **já existe** e no que é do mundo inteiro:
+Este guia é sobre mexer no que **já existe**, no que é do mundo inteiro e no
+que precisa ir de um aparelho a outro no multijogador:
 
 - `GlobalItem`, `GlobalNPC`, `GlobalProjectile`: código que roda para os
   itens, NPCs e projéteis **do jogo** (e os de mod), como deixar a espada de
@@ -9,7 +10,9 @@ Este guia é sobre mexer no que **já existe** e no que é do mundo inteiro:
 - os **drops**: mudar a tabela de um NPC do jogo, ou pôr uma regra que vale
   para todos;
 - `ModSystem`: o que é do mod inteiro, e o ciclo do mundo (carregar, salvar,
-  sair) com dados que ficam gravados junto com ele.
+  sair) com dados que ficam gravados junto com ele;
+- a **rede**: os dados do mod que o servidor manda aos clientes (e o que um
+  cliente manda ao servidor), com `NetSend`/`NetReceive` e pacotes próprios.
 
 Antes, leia as [ideias do guia 4](04-conteudo-novo.md). A lista completa está
 na referência: [Globais](../referencia/classes.md#globalitem-globalnpc-e-globalprojectile),
@@ -236,6 +239,14 @@ class DownedBossSystem extends ModSystem {
     LoadWorldData(tag) {
         DownedBossSystem.downedExampleBoss = tag.ContainsKey('downedExampleBoss');
     }
+
+    NetSend(writer) {
+        writer.WriteFlags(DownedBossSystem.downedExampleBoss);
+    }
+
+    NetReceive(reader) {
+        [DownedBossSystem.downedExampleBoss] = reader.ReadFlags();
+    }
 }
 
 ModSystem.register(DownedBossSystem);
@@ -248,6 +259,8 @@ ModSystem.register(DownedBossSystem);
 - `tag.GetInt('x')`, `GetBool`, `GetFloat`, `GetString`, `GetList`,
   `ContainsKey`, `Get(chave, padrão)`: os mesmos nomes do tModLoader. O
   `ModPlayer` usa o mesmo `TagCompound` no `SaveData`/`LoadData`.
+- O arquivo é do servidor: no multijogador, o cliente recebe o estado pelo
+  `NetSend`/`NetReceive` (ver [Rede](#rede)).
 
 ## Multijogador: quem roda o quê
 
@@ -264,14 +277,101 @@ coisa. Conferido em host e cliente pelo teste `mpglobals`:
 | `OnWorldLoad`, `PostUpdateEverything` | sim | sim |
 | `LoadWorldData`, `SaveWorldData` | sim | não: o arquivo é do servidor |
 | `PreUpdateWorld`, `PostUpdateWorld`, `Pre/PostUpdateTime` | sim | não |
+| `NetSend` (mundo, NPC) | manda | recebe no `NetReceive` |
+| `NetSend` (projétil) | manda os dele e repassa os dos clientes | manda os dele |
 
-Os dados do mundo **não vão ao cliente** ainda: o `NetSend`/`NetReceive` do
-`ModSystem` (que no tModLoader viajam junto com os dados do mundo) não existem
-hoje. Um `downedExampleBoss` no cliente fica `false`.
+## Rede
+
+No multijogador, cada aparelho tem o **seu** estado: um campo que o servidor
+mudou não muda sozinho no cliente. Para levar dados de mod de um lado a outro,
+há três caminhos, todos com a forma do tModLoader.
+
+### Junto com o que o jogo já sincroniza
+
+O jogo manda de tempos em tempos o mundo (ao entrar e quando algo muda, como
+um chefe derrotado), cada NPC e cada projétil. Os dados do mod vão logo atrás,
+pelo mesmo caminho e na mesma ordem:
+
+| Quem | Escreve | Lê | Vai com |
+|---|---|---|---|
+| `ModSystem` | `NetSend(writer)` | `NetReceive(reader)` | os dados do mundo, do servidor aos clientes |
+| `GlobalNPC` | `NetSend(npc, writer)` | `NetReceive(npc, reader)` | cada NPC, do servidor aos clientes |
+| `ModNPC` | `SendExtraAI(writer)` | `ReceiveExtraAI(reader)` | idem |
+| `GlobalProjectile` | `NetSend(projectile, writer)` | `NetReceive(projectile, reader)` | cada projétil, de quem o controla |
+| `ModProjectile` | `SendExtraAI(writer)` | `ReceiveExtraAI(reader)` | idem |
+
+```js
+class NetSlime extends GlobalNPC {
+    InstancePerEntity = true;
+    mark = 0;
+
+    NetSend(npc, writer) {
+        writer.Write(this.mark);
+    }
+
+    NetReceive(npc, reader) {
+        this.mark = reader.ReadInt32();
+    }
+}
+```
+
+- Leia **na mesma ordem** em que escreveu.
+- Mudou e quer mandar agora: `npc.netUpdate = true` (ou `proj.netUpdate`),
+  como no jogo. Para o mundo, `Terraria.NetMessage.SendData(7, ...)`, que é o
+  que o jogo faz.
+- O `writer` guarda valores do JavaScript como são: número, texto, booleano,
+  array, objeto simples, e `Vector2` (vira `{X, Y}`; leia com `ReadVector2()`).
+  `WriteFlags(a, b, ...)` e `ReadFlags()` (um array) guardam vários booleanos.
+- Os nomes com tipo do tModLoader (`Write((byte)x)` vira `Write(x)`;
+  `ReadByte`, `ReadInt32`, `ReadSingle`, `ReadString`...) existem para o
+  código portado passar sem mudança.
+
+### Pacotes próprios
+
+Para uma mensagem que não acompanha nada do jogo (um pedido do cliente, um
+aviso do servidor), o `Mod` do seu pacote manda e recebe:
+
+```js
+class MeuMod extends Mod {
+    HandlePacket(reader, whoAmI) {
+        const pedido = reader.ReadString();
+        if (pedido === 'ping') {
+            const p = this.GetPacket();
+            p.Write('pong');
+            p.Send(whoAmI);   // só a quem pediu
+        }
+    }
+}
+const mod = Mod.register(MeuMod);
+
+// no cliente:
+const p = mod.GetPacket();
+p.Write('ping');
+p.Send();                     // do cliente, vai ao servidor
+```
+
+- `Send()` no cliente vai ao servidor. No servidor, `Send(cliente)` vai a um,
+  e `Send(-1, ignorar)` vai a todos menos `ignorar`. Sozinho, não vai a lugar
+  nenhum.
+- `whoAmI` é quem mandou: no servidor, o índice do cliente; no cliente, `256`
+  (o servidor).
+- O pacote chega no `HandlePacket` do **mesmo mod** do outro lado (pelo uid).
+
+### Como viaja
+
+O tModLoader escreve dentro das mensagens do jogo. Aqui, isso exigiria
+reescrever código nativo; o caminho é o dos **NetModules** do próprio jogo (a
+mensagem 82), com um número de módulo que o jogo não conhece. O conteúdo é o
+que você escreveu, em JSON: até ~64 KB por pacote.
+
+O custo: com algum `NetSend` registrado, **toda** mensagem que o jogo manda
+entra no JS por um instante para ver se é 7, 23 ou 27; e cada NPC ou projétil
+que o jogo sincroniza leva um pacote a mais. Mantenha o que vai na rede
+pequeno.
 
 ## Ainda não
 
-- `NetSend`/`NetReceive` (do `ModSystem` e dos Globais) e `ModPacket`;
+- `NetSend`/`NetReceive` do `GlobalItem` (itens no chão e no inventário);
 - `SaveData`/`LoadData` por entidade (de um item ou de um NPC morador);
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
 - no `GlobalNPC`: `UpdateLifeRegen`, `EditSpawnRate`/`EditSpawnPool`,

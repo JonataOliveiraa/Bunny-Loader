@@ -386,6 +386,18 @@ int writeStaticField(JSContext* ctx, FieldInfo* f, const TypeDesc& d, JSValueCon
  * de Members.cpp. `obj` é o dono da memória: quem receber uma vista de struct
  * (`item.position`) precisa dele vivo.
  */
+/**
+ * O `this` de uma propriedade C# num objeto do jogo. Struct encaixotado (o que
+ * `NetPacket.new()`, `Color.new()` devolvem): o metodo do struct quer os
+ * DADOS, logo depois do cabecalho — como o gm_call ja faz nos metodos. Com a
+ * caixa, `packet.Length` lia os bytes altos do ponteiro da classe.
+ */
+void* propertyThis(Il2CppObject* o, Il2CppClass* cls) {
+    auto& a = il2cpp::api();
+    if (a.class_is_valuetype && a.class_is_valuetype(cls)) return reinterpret_cast<char*>(o) + sizeof(Il2CppObject);
+    return o;
+}
+
 JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst) {
     Il2CppObject* o = objOf(obj);
     if (!o) return JS_UNDEFINED;
@@ -395,7 +407,7 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (m.proto) return protoGet(ctx, g_nativeObjectId, atom);
     if (m.field) return readAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, obj);
     if (m.method) return makeGameMethod(ctx, m.method);
-    if (m.getter) return invokeGetter(ctx, m.getter, o);
+    if (m.getter) return invokeGetter(ctx, m.getter, propertyThis(o, cls));
     if (m.signature) return missingSignature(ctx, cls, atom);
     // Campo que um mod pos na classe (bl.defineField): `item.ModItem`.
     if (isExtraField(cls, atom)) return extraFieldGet(ctx, o, atom);
@@ -412,7 +424,7 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     Il2CppClass* cls = il2cpp::api().object_get_class(o);
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
     if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
-    if (m.setter) return invokeSetter(ctx, m.setter, o, value);
+    if (m.setter) return invokeSetter(ctx, m.setter, propertyThis(o, cls), value);
     if (isExtraField(cls, atom)) return extraFieldSet(ctx, o, atom, value);
     // Nome que a classe nao tem: RECUSA, como ja fazia o caminho do struct.
     // Antes isto virava uma propriedade JS comum no wrapper, entao um
