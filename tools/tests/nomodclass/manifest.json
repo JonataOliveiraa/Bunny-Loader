@@ -1,0 +1,15 @@
+{
+  "uid": "c59e6f4d-7731-4297-afa8-7d5a626175df",
+  "id": "test-nomodclass",
+  "name": "Teste: mod sem a classe Mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O arquivo de entrada sem export default class ... extends Mod: não carrega.",
+  "description": "Teste do carregador, conferido pelo tools/tests/autoload. Loga 'nomodclass ...'.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -9,7 +9,7 @@ namespace bl::script {
 /**
  * bl.sounds e bl.music: audio de mod pelo Android (a Unity deste build nao
  * cria AudioClip novo; ver content/sounds/AndroidAudio.h). E o piso: os mods
- * usam o SoundStyle, o SoundEngine e o MusicLoader do ModClasses.js.
+ * usam o SoundStyle, o SoundEngine e o MusicLoader de script/js/mod/audio.js.
  *
  *   bl.sounds.load(caminho)             -> id; comeca a carregar (OGG, MP3, WAV...)
  *   bl.sounds.state(id)                 -> 1 pronto, 0 carregando, -1 falhou

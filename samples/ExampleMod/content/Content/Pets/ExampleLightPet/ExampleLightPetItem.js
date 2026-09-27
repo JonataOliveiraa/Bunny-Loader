@@ -1,11 +1,6 @@
 const { ItemUseStyleID, SoundID, TileID } = Terraria.ID;
 
 export class ExampleLightPetItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Pets/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.damage = 0;
         this.Item.useStyle = ItemUseStyleID.Swing;

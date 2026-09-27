@@ -1,5 +1,5 @@
 #pragma once
-// GERADO pelo CMake a partir de script/js/ModClasses.js — NAO editar a mao.
+// GERADO pelo CMake a partir de script/js/mod/*.js — NAO editar a mao.
 // Ver CMakeLists.txt (configure_file). O delimitador do raw string e )BUNNYJS".
 namespace bl::script {
 

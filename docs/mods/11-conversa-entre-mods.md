@@ -10,7 +10,8 @@ Pré-requisito: o [guia 4](04-conteudo-novo.md) e o `ModSystem` do [guia 5](05-i
 ## Chamando outro mod
 
 ```js
-class WikiCompat extends ModSystem {
+// content/Common/Systems/WikiCompat.js
+export class WikiCompat extends ModSystem {
     PostSetupContent() {
         const wikithis = new Ref();
         if (ModLoader.TryGetMod('wikithis', wikithis)) {
@@ -18,7 +19,6 @@ class WikiCompat extends ModSystem {
         }
     }
 }
-ModSystem.register(WikiCompat);
 ```
 
 - O nome é o **`id` do manifesto** do outro mod (não o `name`). O `uid` também
@@ -34,13 +34,14 @@ se está. `ModLoader.Mods` é a lista de todos, na ordem de carga.
 
 ## Oferecendo um `Call`
 
-O mod que quer ser chamado estende `Mod` e registra a classe, **uma por
-pacote**:
+O `Call` mora na classe do mod, a do `export default` do arquivo de entrada
+(todo mod tem uma, e só uma):
 
 ```js
+// content/main.js
 const urls = new Map();
 
-class Wikithis extends Mod {
+export default class Wikithis extends Mod {
     Call(command, ...args) {
         switch (command) {
             case 'AddModURL': {
@@ -57,7 +58,6 @@ class Wikithis extends Mod {
         return undefined;
     }
 }
-Mod.register(Wikithis);
 ```
 
 - O costume, herdado do tModLoader, é o primeiro argumento dizer o comando.
@@ -81,11 +81,11 @@ Os mods carregam em ordem de `uid`, que é sorteado, então não dá para saber 
 o outro mod roda antes ou depois do seu. Por isso:
 
 - o `Mod` de todo mod instalado **existe desde o começo**: o `TryGetMod` acha o
-  outro mesmo que o `main.js` dele ainda não tenha rodado, e o objeto é o mesmo
-  depois (pode guardar);
+  outro mesmo que ele ainda não tenha carregado, e o objeto é o mesmo depois
+  (pode guardar);
 - o `Call` só é garantido **do `PostSetupContent` em diante**, quando todos os
-  `main.js` já rodaram. No topo do `main.js`, chamar um mod que ainda não
-  carregou lança `Mod 'x' ainda nao carregou: chame o Call a partir do
+  mods já carregaram. Na carga (no topo de um arquivo ou no `Load()`), chamar
+  um mod que ainda não carregou lança `Mod 'x' ainda nao carregou: chame o Call a partir do
   PostSetupContent`, em vez de responder nada calado.
 
 O `PostSetupContent` pode ser o de um `ModSystem` (como acima) ou o do seu
@@ -93,11 +93,11 @@ O `PostSetupContent` pode ser o de um `ModSystem` (como acima) ou o do seu
 
 ## O `Mod`
 
-A classe que você registra com `Mod.register` recebe, como o `ModSystem`:
+A classe do `export default` do arquivo de entrada recebe, como o `ModSystem`:
 
 | | |
 |---|---|
-| `Load()` | Na hora do `Mod.register`, ainda na carga. |
+| `Load()` | Na carga, depois do topo dos arquivos e do registro do conteúdo. |
 | `AddRecipeGroups()`, `AddRecipes()` | Com os do `ModSystem`. |
 | `PostSetupContent()` | Com o conteúdo de todos os mods pronto. |
 | `Call(...args)` | Quando outro mod chama. |
@@ -112,9 +112,9 @@ E os dados do pacote, para ler:
 | `path`, `root` | A pasta do `main.js` e a do pacote. |
 | `dataDirectory` | `Android/data/com.bunnyloader/mod_data/<uid>`. |
 
-`bl.mod` é o `Mod` do mod que pergunta. Antes do `Mod.register`, e para quem
-não registra nenhum, ele é um `Mod` simples, com os mesmos dados. Depois do
-`register`, é o mesmo objeto, agora da sua classe: `Mod.register` devolve ele.
+`bl.mod` é o `Mod` do mod que pergunta. No topo dos arquivos, antes de o
+Bunny Loader criar a sua classe, ele é um `Mod` simples, com os mesmos dados;
+do `Load()` em diante, é o mesmo objeto, agora da sua classe (e o `this` dela).
 
 ## Dois mods com o mesmo `id`
 
@@ -131,9 +131,10 @@ e o log diz para pedir pelo `uid`, que é único.
 | `Mod.DisplayName` | `mod.name` |
 | `Mod.Version` (tipo `Version`) | `mod.version` (texto) |
 | `public override object Call(params object[] args)` | `Call(...args)`, valores como estão |
-| `this` (o seu `Mod`) | `bl.mod` |
+| `public class X : Mod` | `export default class X extends Mod` no arquivo de entrada |
+| `this` (o seu `Mod`) | `this` na classe do mod; `bl.mod` em qualquer arquivo |
 
-Não há `Unload`, `HandlePacket` nem referência entre mods no manifesto para
+Não há `Unload` nem referência entre mods no manifesto para
 mudar a ordem de carga: o `dependencies` do manifesto ainda não ordena nada.
 
 ## Referência rápida
@@ -144,7 +145,7 @@ mudar a ordem de carga: o `dependencies` do manifesto ainda não ordena nada.
 | `ModLoader.GetMod(id)` | o `Mod`; lança se não está |
 | `ModLoader.HasMod(id)` | está instalado (e não falhou ao carregar)? |
 | `ModLoader.Mods` | todos, na ordem de carga |
-| `class X extends Mod { Call(...args) {} }` + `Mod.register(X)` | oferecer um `Call` (um por pacote) |
+| `export default class X extends Mod { Call(...args) {} }` | oferecer um `Call` (a classe do mod, uma por pacote) |
 | `mod.Call(...)` | chamar; do `PostSetupContent` em diante |
 | `bl.mod` | o `Mod` de quem pergunta |
 

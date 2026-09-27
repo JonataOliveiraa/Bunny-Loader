@@ -1,11 +1,6 @@
 const { AmmoID, ProjectileID, SoundID } = Terraria.ID;
 
 export class ExampleRocketLauncher extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Ranged/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.ranged = true;
         this.Item.shoot = ProjectileID.RocketI;

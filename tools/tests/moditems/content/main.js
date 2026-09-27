@@ -83,3 +83,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 63) run();
 });
 bl.log('moditems: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestModitems extends Mod {}

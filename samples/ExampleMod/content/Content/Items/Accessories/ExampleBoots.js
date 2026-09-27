@@ -1,7 +1,6 @@
 export class ExampleBoots extends ModItem {
     constructor() {
         super();
-        this.Texture = 'Items/Accessories/' + this.constructor.name;
         this.MoveSpeedBonus = 8;
         this.LavaImmunityTime = 2;
     }

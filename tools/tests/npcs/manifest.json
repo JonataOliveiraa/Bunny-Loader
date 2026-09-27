@@ -8,7 +8,7 @@
   "summary": "NPC de mod nasce, anima, apanha, morre e da drop.",
   "description": "Teste do runtime (ModNpcs.cpp). Precisa do Example Mod ligado. Loga 'npcs ...'.",
   "updated": "2026-09-24",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

@@ -1,147 +1,23 @@
-import { ExampleItem } from './Content/Items/ExampleItem.js';
-import { ExampleMeleeWeapon } from './Content/Items/Weapons/Melee/ExampleMeleeWeapon.js';
-import { ExampleBullet } from './Content/Items/Ammo/ExampleBullet.js';
-import { ExampleGun } from './Content/Items/Weapons/Ranged/ExampleGun.js';
-import { ExampleBulletProjectile } from './Content/Projectiles/ExampleBulletProjectile.js';
-import { ExampleSlimeNPC } from './Content/NPCs/ExampleSlimeNPC.js';
-import { ExampleSoul } from './Content/Items/Materials/ExampleSoul.js';
-import { ExamplePickaxe } from './Content/Items/Tools/ExamplePickaxe.js';
-import { ExampleHamaxe } from './Content/Items/Tools/ExampleHamaxe.js';
-import { ExampleGolfBall } from './Content/Items/ExampleGolfBall.js';
-import { ExampleGolfBallProjectile } from './Content/Projectiles/ExampleGolfBallProjectile.js';
-import { ExampleShotgun } from './Content/Items/Weapons/Ranged/ExampleShotgun.js';
-import { ExampleRocketLauncher } from './Content/Items/Weapons/Ranged/ExampleRocketLauncher.js';
-import { ExampleSpearProjectile } from './Content/Projectiles/ExampleSpearProjectile.js';
-import { ExampleFlailProjectile } from './Content/Projectiles/ExampleFlailProjectile.js';
-import { ExampleYoyoProjectile } from './Content/Projectiles/ExampleYoyoProjectile.js';
-import { ExampleWhipProjectile } from './Content/Projectiles/ExampleWhipProjectile.js';
-import { ExampleSwingingEnergySwordProjectile } from './Content/Projectiles/ExampleSwingingEnergySwordProjectile.js';
-import { ExampleDrillProjectile } from './Content/Projectiles/ExampleDrillProjectile.js';
-import { ExampleAdvancedAnimatedProjectile } from './Content/Projectiles/ExampleAdvancedAnimatedProjectile.js';
-import { ExampleSpear } from './Content/Items/Weapons/Melee/ExampleSpear.js';
-import { ExampleFlail } from './Content/Items/Weapons/Melee/ExampleFlail.js';
-import { ExampleYoyo } from './Content/Items/Weapons/Melee/ExampleYoyo.js';
-import { ExampleWhip } from './Content/Items/Weapons/Melee/ExampleWhip.js';
-import { ExampleSwingingEnergySword } from './Content/Items/Weapons/Melee/ExampleSwingingEnergySword.js';
-import { ExampleDrill } from './Content/Items/Tools/ExampleDrill.js';
-import { ExampleMagicWeapon } from './Content/Items/Weapons/Magic/ExampleMagicWeapon.js';
-import { ExampleLaserHoldout } from './Content/Projectiles/ExampleLaserHoldout.js';
-import { ExampleLaserBeam } from './Content/Projectiles/ExampleLaserBeam.js';
-import { ExampleHookProjectile } from './Content/Projectiles/ExampleHookProjectile.js';
-import { ExampleBobber } from './Content/Projectiles/ExampleBobber.js';
-import { ExampleLaserWeapon } from './Content/Items/Weapons/Magic/ExampleLaserWeapon.js';
-import { ExampleHookItem } from './Content/Items/Tools/ExampleHookItem.js';
-import { ExampleFishingRod } from './Content/Items/Tools/ExampleFishingRod.js';
-import { ExampleRecipes } from './Content/Global/ExampleRecipes.js';
-import { ExampleNPCLoot } from './Content/Global/ExampleNPCLoot.js';
-import { DownedBossSystem } from './Content/Global/DownedBossSystem.js';
-import { ExampleDefenseBuff } from './Content/Buffs/ExampleDefenseBuff.js';
-import { ExampleBuffPotion } from './Content/Items/Consumables/ExampleBuffPotion.js';
-import { ExamplePlayer } from './Content/Players/ExamplePlayer.js';
-import { ExampleDashPlayer } from './Content/Players/ExampleDashPlayer.js';
-import { ExampleDefenseDebuff } from './Content/Buffs/ExampleDefenseDebuff.js';
-import { ExampleShield } from './Content/Items/Accessories/ExampleShield.js';
-import { ExampleStatAccessory } from './Content/Items/Accessories/ExampleStatAccessory.js';
-import { ExampleBoots } from './Content/Items/Accessories/ExampleBoots.js';
-import { WaspNest } from './Content/Items/Accessories/WaspNest.js';
-import { ExampleTooltipItem } from './Content/Items/ExampleTooltipItem.js';
-import { ExampleTile } from './Content/Tiles/ExampleTile.js';
-import { ExampleOre } from './Content/Tiles/ExampleOre.js';
-import { ExampleTileItem } from './Content/Items/Placeable/ExampleTileItem.js';
-import { ExampleOreItem } from './Content/Items/Placeable/ExampleOreItem.js';
-import { ExamplePetBuff } from './Content/Pets/ExamplePet/ExamplePetBuff.js';
-import { ExamplePetItem } from './Content/Pets/ExamplePet/ExamplePetItem.js';
-import { ExamplePetProjectile } from './Content/Pets/ExamplePet/ExamplePetProjectile.js';
-import { ExampleLightPetBuff } from './Content/Pets/ExampleLightPet/ExampleLightPetBuff.js';
-import { ExampleLightPetItem } from './Content/Pets/ExampleLightPet/ExampleLightPetItem.js';
-import { ExampleLightPetProjectile } from './Content/Pets/ExampleLightPet/ExampleLightPetProjectile.js';
-import { ExampleMinionBuff } from './Content/Buffs/ExampleMinionBuff.js';
-import { ExampleMinionItem } from './Content/Items/Weapons/Summon/ExampleMinionItem.js';
-import { ExampleMinion } from './Content/Projectiles/ExampleMinion.js';
-import { ExampleSentryItem } from './Content/Items/Weapons/Summon/ExampleSentryItem.js';
-import { ExampleSentry } from './Content/Projectiles/ExampleSentry.js';
-import { ExampleSentryShot } from './Content/Projectiles/ExampleSentryShot.js';
-import { ExamplePerson } from './Content/NPCs/ExamplePerson.js';
-import { ExampleBoss } from './Content/NPCs/ExampleBoss.js';
-import { ExampleBossSummonItem } from './Content/Items/Consumables/ExampleBossSummonItem.js';
-
-ModBuff.register(ExampleDefenseBuff);
-ModBuff.register(ExampleDefenseDebuff);
-ModBuff.register(ExamplePetBuff);
-ModBuff.register(ExampleLightPetBuff);
-ModBuff.register(ExampleMinionBuff);
-
-ModPlayer.register(ExamplePlayer);
-ModPlayer.register(ExampleDashPlayer);
-
-ModNPC.register(ExampleSlimeNPC);
-ModNPC.register(ExamplePerson);
-ModNPC.register(ExampleBoss);
-
-ModProjectile.register(ExampleBulletProjectile);
-ModProjectile.register(ExampleGolfBallProjectile);
-ModProjectile.register(ExampleSpearProjectile);
-ModProjectile.register(ExampleFlailProjectile);
-ModProjectile.register(ExampleYoyoProjectile);
-ModProjectile.register(ExampleWhipProjectile);
-ModProjectile.register(ExampleSwingingEnergySwordProjectile);
-ModProjectile.register(ExampleDrillProjectile);
-ModProjectile.register(ExampleAdvancedAnimatedProjectile);
-ModProjectile.register(ExampleLaserHoldout);
-ModProjectile.register(ExampleLaserBeam);
-ModProjectile.register(ExampleHookProjectile);
-ModProjectile.register(ExampleBobber);
-ModProjectile.register(ExamplePetProjectile);
-ModProjectile.register(ExampleLightPetProjectile);
-ModProjectile.register(ExampleMinion);
-ModProjectile.register(ExampleSentry);
-ModProjectile.register(ExampleSentryShot);
-
-ModItem.register(ExampleItem);
-ModItem.register(ExampleMeleeWeapon);
-ModItem.register(ExampleBullet);
-ModItem.register(ExampleGun);
-ModItem.register(ExampleSoul);
-ModItem.register(ExamplePickaxe);
-ModItem.register(ExampleHamaxe);
-ModItem.register(ExampleGolfBall);
-ModItem.register(ExampleShotgun);
-ModItem.register(ExampleRocketLauncher);
-ModItem.register(ExampleSpear);
-ModItem.register(ExampleFlail);
-ModItem.register(ExampleYoyo);
-ModItem.register(ExampleWhip);
-ModItem.register(ExampleSwingingEnergySword);
-ModItem.register(ExampleDrill);
-ModItem.register(ExampleMagicWeapon);
-ModItem.register(ExampleLaserWeapon);
-ModItem.register(ExampleHookItem);
-ModItem.register(ExampleFishingRod);
-ModItem.register(ExampleBuffPotion);
-ModItem.register(ExampleShield);
-ModItem.register(ExampleStatAccessory);
-ModItem.register(ExampleBoots);
-ModItem.register(WaspNest);
-ModItem.register(ExampleTooltipItem);
-ModItem.register(ExampleTileItem);
-ModItem.register(ExampleOreItem);
-ModItem.register(ExamplePetItem);
-ModItem.register(ExampleLightPetItem);
-ModItem.register(ExampleMinionItem);
-ModItem.register(ExampleSentryItem);
-ModItem.register(ExampleBossSummonItem);
-
-ModTile.register(ExampleTile);
-ModTile.register(ExampleOre);
-
-ModSystem.register(ExampleRecipes);
-ModSystem.register(DownedBossSystem);
-
-GlobalNPC.register(ExampleNPCLoot);
-
-bl.log(`Example Mod: ExampleItem = ${ModItem.getTypeByName('ExampleItem')}, ` +
-       `Espada = ${ModItem.getTypeByName('ExampleMeleeWeapon')}, ` +
-       `Bala = ${ModItem.getTypeByName('ExampleBullet')}, ` +
-       `Arma = ${ModItem.getTypeByName('ExampleGun')}, ` +
-       `projetil da bala = ${ModProjectile.getTypeByName('ExampleBulletProjectile')}, ` +
-       `slime = ${ModNPC.getTypeByName('ExampleSlimeNPC')}`);
+// Example Mod: uma parte do ExampleMod do tModLoader, refeita para o Bunny Loader.
+//
+// A mesma estrutura do tModLoader:
+//
+//   main.js          esta classe, a do mod (obrigatória)
+//   Assets/          Textures/, Sounds/ e Music/
+//   Common/          o que não é coisa nova: ModPlayer, ModSystem, Global*
+//   Content/         itens, NPCs, projéteis, blocos, buffs, pets...
+//   Localization/    en-US.json, pt-BR.json...
+//
+// Toda classe exportada em Content/ e Common/ é registrada sozinha, e a
+// textura dela sai de Assets/Textures/ no mesmo caminho do arquivo
+// (Content/Items/ExampleItem.js -> Assets/Textures/Items/ExampleItem.png).
+export default class ExampleMod extends Mod {
+    PostSetupContent() {
+        bl.log(`Example Mod: ExampleItem = ${ModItem.getTypeByName('ExampleItem')}, ` +
+               `Espada = ${ModItem.getTypeByName('ExampleMeleeWeapon')}, ` +
+               `Bala = ${ModItem.getTypeByName('ExampleBullet')}, ` +
+               `Arma = ${ModItem.getTypeByName('ExampleGun')}, ` +
+               `projetil da bala = ${ModProjectile.getTypeByName('ExampleBulletProjectile')}, ` +
+               `slime = ${ModNPC.getTypeByName('ExampleSlimeNPC')}`);
+    }
+}

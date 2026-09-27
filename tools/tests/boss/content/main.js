@@ -70,3 +70,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('boss: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestBoss extends Mod {}

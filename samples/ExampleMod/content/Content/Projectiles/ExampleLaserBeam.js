@@ -8,11 +8,6 @@ export class ExampleLaserBeam extends ModProjectile {
     MaxLaserLength = 1000;
     HoldoutDistance = 10;
 
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.projFrames[this.Type] = 3;
     }

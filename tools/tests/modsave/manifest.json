@@ -8,7 +8,7 @@
   "summary": "Item de mod tem de voltar depois de salvar e reabrir o jogo.",
   "description": "Teste do runtime (ModItemSave.cpp). Rode duas vezes; loga 'modsave ...'.",
   "updated": "2026-09-24",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

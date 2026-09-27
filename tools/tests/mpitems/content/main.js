@@ -290,3 +290,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('mpi: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestMpitems extends Mod {}

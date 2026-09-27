@@ -81,6 +81,10 @@ function run() {
 
     if (state.round === 0) {
         const p = Main.player[Main.myPlayer];
+        // Uma Pessoa que ja more neste mundo (de outro teste) impediria a mudanca.
+        for (let i = 0; i < Main.npc.length - 1; i++) {
+            if (Main.npc[i].active && Main.npc[i].type === type) Main.npc[i].active = false;
+        }
         check('cabeca: TypeToDefaultHeadIndex da o indice da cabeca de mod', () => {
             const slot = bl.npcs.headSlot(type);
             const got = Terraria.NPC['int TypeToDefaultHeadIndex(int type)'](type);
@@ -105,10 +109,18 @@ function run() {
         });
 
         // O Guia sem casa pegaria a sala primeiro: so durante a chamada.
+        // E um morador que ja more na sala (de uma rodada antiga) a bloquearia.
         const homeless = [];
+        const tenants = [];
         for (let i = 0; i < Main.npc.length - 1; i++) {
             const n = Main.npc[i];
-            if (n.active && n.townNPC && n.homeless) { n.homeless = false; homeless.push(n); }
+            if (!n.active || !n.townNPC) continue;
+            if (n.homeless) { n.homeless = false; homeless.push(n); }
+            else if (Math.abs(n.homeTileX - room.x) < 12 && Math.abs(n.homeTileY - room.y) < 12) {
+                tenants.push([n, n.homeTileX, n.homeTileY]);
+                n.homeTileX = -1;
+                n.homeTileY = -1;
+            }
         }
         W.prioritizedTownNPCType = type;
         let result = -1;
@@ -117,11 +129,22 @@ function run() {
             result = typeof r === 'number' ? r : r.value__;
         } finally {
             for (const n of homeless) n.homeless = true;
+            // Sem casa: a sala agora e da Pessoa, e o jogo acha outra para ele.
+            for (const [n] of tenants) n.homeless = true;
         }
         const npc = findNpc(type);
+        const neighbors = () => {
+            const out = [];
+            for (let i = 0; i < Main.npc.length - 1; i++) {
+                const n = Main.npc[i];
+                if (n.active && n.townNPC && !n.homeless && Math.abs(n.homeTileX - room.x) < 12 &&
+                    Math.abs(n.homeTileY - room.y) < 12) out.push(n.type + '@' + n.homeTileX + ',' + n.homeTileY);
+            }
+            return out.join(' ') || 'ninguem';
+        };
         check('mudanca: o SpawnTownNPC do jogo muda a Pessoa para a casa', () =>
             (result === 1 && npc && !npc.homeless) ||
-            `resultado ${result}, npc ${!!npc}, sem casa ${npc && npc.homeless}, casa ${npc && npc.homeTileX},${npc && npc.homeTileY}, sala ${room.x},${room.y}`);
+            `resultado ${result}, npc ${!!npc}, sem casa ${npc && npc.homeless}, casa ${npc && npc.homeTileX},${npc && npc.homeTileY}, sala ${room.x},${room.y}, moradores perto: ${neighbors()}`);
         if (!npc) return;
         check('nome proprio da lista do mod', () => NAMES.includes(npc.GivenName) || 'nome ' + npc.GivenName);
         check('fala do mod (GetChat)', () => {
@@ -176,3 +199,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('townnpc: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestTownnpc extends Mod {}

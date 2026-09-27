@@ -1,11 +1,6 @@
 const { ProjectileID } = Terraria.ID;
 
 export class ExampleGolfBallProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ProjectileID.Sets.IsAGolfBall[this.Type] = true;
         ProjectileID.Sets.TrailingMode[this.Type] = 0;

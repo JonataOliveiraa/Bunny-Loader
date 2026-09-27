@@ -28,8 +28,6 @@ export class ExampleDashPlayer extends ModPlayer {
         if (this.DashAccessoryEquipped) { /* ... */ }
     }
 }
-
-ModPlayer.register(ExampleDashPlayer);
 ```
 
 E no acessório:
@@ -146,7 +144,6 @@ jogador ou o NPC e a posição do buff na lista dele.
 export class ExampleDefenseBuff extends ModBuff {
     constructor() {
         super();
-        this.Texture = 'Buffs/' + this.constructor.name;   // 32x32
         this.DefenseBonus = 10;
     }
 
@@ -158,8 +155,6 @@ export class ExampleDefenseBuff extends ModBuff {
         player.statDefense += this.DefenseBonus;
     }
 }
-
-ModBuff.register(ExampleDefenseBuff);
 ```
 
 Um item que dá o buff: `this.Item.buffType = ModContent.BuffType('ExampleDefenseBuff')`

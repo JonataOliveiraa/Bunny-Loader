@@ -3,7 +3,6 @@ const { DustID, TileID } = Terraria.ID;
 export class ExampleTile extends ModTile {
     constructor() {
         super();
-        this.Texture = 'Tiles/' + this.constructor.name;
         this.DustType = DustID.Stone;
     }
 

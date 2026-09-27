@@ -1,11 +1,6 @@
 const { ProjectileID } = Terraria.ID;
 
 export class ExampleYoyoProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ProjectileID.Sets.YoyosLifeTimeMultiplier[this.Type] = 3.5;
         ProjectileID.Sets.YoyosMaximumRange[this.Type] = 300;

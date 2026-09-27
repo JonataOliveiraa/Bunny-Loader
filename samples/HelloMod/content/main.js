@@ -9,12 +9,14 @@
 //   Classe.Nome                      método, se houver um só overload
 //   obj.campo / obj.campo = v        campo de instância como propriedade
 //   metodo.hook((original, self, ...args) => { ... })
+//   export default class X extends Mod   a classe do mod (obrigatória), no fim
 //   bl.log(...)
 //   bl.classOf(ns, nome)             escape hatch, quando a árvore não ajuda
 //   bl.loadTexture(caminho)          PNG/JPG -> Texture2D do jogo
 //
 // A textura é um Texture2D do jogo, pronto para o SpriteBatch. Caminho
-// relativo vale a partir da pasta do seu main.js.
+// relativo vale a partir da pasta do seu main.js; as texturas do mod moram
+// em Assets/Textures/ (ModContent.Texture('meu') já procura lá).
 //
 // DUAS REGRAS, e as duas vêm da Unity, não de nós:
 //
@@ -25,7 +27,7 @@
 //   let tex = null;
 //   Terraria.Main['void DrawInterface(GameTime gameTime)'].hook((o, self, gt) => {
 //       o(self, gt);
-//       if (!tex) tex = bl.loadTexture('meu.png');
+//       if (!tex) tex = bl.loadTexture('Assets/Textures/meu.png');
 //       const sb = Terraria.Main.spriteBatch;
 //       sb['void Begin(SpriteSortMode sortMode, bool defferedBatch)'](0, true);
 //       sb['void Draw(Texture2D texture, Vector2 position, Color color)'](tex, pos, cor);
@@ -108,16 +110,21 @@
 // com mensagem, nunca adivinhado.
 
 const MINISHARK = Terraria.ID.ItemID.Minishark;
-bl.log('HelloMod: Minishark = ' + MINISHARK + '; hookando Item.SetDefaults');
-
 const SetDefaults = Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'];
 
-SetDefaults.hook((original, self, type, variant) => {
-    original(self, type, variant);   // deixa o jogo aplicar os defaults
-    if (type === MINISHARK) {
-        self.useTime = 4;            // cadência (menor = mais rápido)
-        self.useAnimation = 4;
-        self.shootSpeed = 10.0;      // float: o tipo do campo decide a escrita
-        bl.log('HelloMod: Minishark turbinada!');
+// A classe do mod, obrigatória: o `export default` do arquivo de entrada. O
+// Load roda uma vez, na carga; os hooks ficam valendo o jogo inteiro.
+export default class HelloMod extends Mod {
+    Load() {
+        bl.log('HelloMod: Minishark = ' + MINISHARK + '; hookando Item.SetDefaults');
+        SetDefaults.hook((original, self, type, variant) => {
+            original(self, type, variant);   // deixa o jogo aplicar os defaults
+            if (type === MINISHARK) {
+                self.useTime = 4;            // cadência (menor = mais rápido)
+                self.useAnimation = 4;
+                self.shootSpeed = 10.0;      // float: o tipo do campo decide a escrita
+                bl.log('HelloMod: Minishark turbinada!');
+            }
+        });
     }
-});
+}

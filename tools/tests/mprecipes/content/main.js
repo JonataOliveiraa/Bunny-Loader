@@ -170,3 +170,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('mp: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestMprecipes extends Mod {}

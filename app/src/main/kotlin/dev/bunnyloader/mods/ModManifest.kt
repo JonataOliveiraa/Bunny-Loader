@@ -40,6 +40,11 @@ data class ModManifest(
     val updated: String = "",
     /** Pede lugar no destaque da tela inicial. */
     val featured: Boolean = false,
+    /**
+     * O formato do pacote. 2: `content/` com Assets/, Common/, Content/ e
+     * Localization/, e o arquivo de entrada com `export default class ...
+     * extends Mod`. O 1 (sem a classe Mod) não carrega mais.
+     */
     val blVersion: Int = 1,
     val gameVersion: List<Long> = emptyList(),
     /** Caminho do arquivo de entrada, relativo a `content/`. */
@@ -47,6 +52,9 @@ data class ModManifest(
     val dependencies: List<String> = emptyList(),
 ) {
     val hasValidUid: Boolean get() = isValidUid(uid)
+
+    /** Pacote de um formato que este Bunny Loader não carrega mais. */
+    val isOutdated: Boolean get() = blVersion < ModRepository.MIN_BL_VERSION
 
     companion object {
         /**

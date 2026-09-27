@@ -12,11 +12,6 @@ A lista completa de campos e métodos está na
 
 ```js
 export class ExampleItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/' + this.constructor.name;   // Textures/Items/ExampleItem.png
-    }
-
     SetDefaults() {
         this.Item.width = 20;
         this.Item.height = 20;
@@ -31,8 +26,6 @@ export class ExampleItem extends ModItem {
             .Register();
     }
 }
-
-ModItem.register(ExampleItem);
 ```
 
 `this.Item` é o `Item` do jogo desta instância: todo campo do C# está ali
@@ -334,8 +327,6 @@ export class ExampleRecipes extends ModSystem {
     AddRecipes() { /* new ModRecipe()... */ }
     PostSetupContent() {}
 }
-
-ModSystem.register(ExampleRecipes);
 ```
 
 O `ModSystem` também acompanha o mundo (carregar, atualizar, sair) e salva

@@ -1,11 +1,6 @@
 const { ItemID, ItemUseStyleID, SoundID } = Terraria.ID;
 
 export class ExampleFlail extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Melee/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.ToolTipDamageMultiplier[this.Type] = 2;
     }

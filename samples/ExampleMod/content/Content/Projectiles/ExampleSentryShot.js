@@ -3,11 +3,6 @@ const PlaySound = Terraria.Audio.SoundEngine['SoundEffectInstance PlaySound(Lega
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
 
 export class ExampleSentryShot extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ProjectileID.Sets.SentryShot[this.Type] = true;
     }

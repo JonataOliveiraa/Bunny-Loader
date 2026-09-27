@@ -8,7 +8,7 @@
   "summary": "O sistema de drop do jogo solta o item de mod quando um NPC de mod morre (slime e chefe do Example Mod).",
   "description": "Precisa do Example Mod ligado. Loga 'drops ...'.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

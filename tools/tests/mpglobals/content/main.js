@@ -211,3 +211,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     else clientTick(frames);
 });
 bl.log('mpg: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestMpglobals extends Mod {}

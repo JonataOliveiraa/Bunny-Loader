@@ -9,7 +9,7 @@
   "description": "Reduz o tempo entre disparos da Minishark de 12 para 4 quadros e aumenta a velocidade do projétil. Continua gastando munição normalmente, então leve um Endless Musket Pouch. É também o mod de exemplo do Bunny Loader: o main.js dele documenta a API inteira.",
   "updated": "2026-09-22",
   "featured": true,
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [
     301543,
     301543

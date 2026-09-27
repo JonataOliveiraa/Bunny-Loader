@@ -1,11 +1,6 @@
 const { ItemID, SoundID } = Terraria.ID;
 
 export class ExampleYoyo extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Melee/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.Yoyo[this.Type] = true;
         ItemID.Sets.GamepadExtraRange[this.Type] = 15;

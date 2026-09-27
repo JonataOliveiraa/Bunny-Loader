@@ -1,11 +1,6 @@
 const { ItemID, TileID } = Terraria.ID;
 
 export class ExamplePetItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Pets/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.CloneDefaults(ItemID.ZephyrFish);
         this.Item.shoot = ModProjectile.getTypeByName('ExamplePetProjectile');

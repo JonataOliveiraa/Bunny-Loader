@@ -1,11 +1,6 @@
 const { ItemID, SoundID } = Terraria.ID;
 
 export class ExampleDrill extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Tools/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.IsDrill[this.Type] = true;
     }

@@ -118,3 +118,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     bl.log('strictnames FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
 });
 bl.log('strictnames: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestStrictnames extends Mod {}

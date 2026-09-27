@@ -9,17 +9,19 @@ Pré-requisito: os guias de [itens](05-itens.md) e de [NPCs](07-npcs.md).
 
 ## Os arquivos
 
-Ponha o áudio dentro de `content/`, em qualquer pasta. O Example Mod usa
-`Sounds/` e `Music/`:
+Os efeitos moram em `content/Assets/Sounds/` e as músicas em
+`content/Assets/Music/`, como no tModLoader:
 
 ```
 content/
-  Sounds/Items/Guns/ExampleGun.ogg
-  Music/Ropocalypse2.ogg
+  Assets/Sounds/Items/Guns/ExampleGun.ogg
+  Assets/Music/Ropocalypse2.ogg
 ```
 
 Formatos: **OGG** (o recomendado), MP3 e WAV. O caminho vai **sem a
-extensão**, relativo a `content/`, como no tModLoader: `'Sounds/Items/Guns/ExampleGun'`.
+extensão**, a partir de `Assets/`: `'Sounds/Items/Guns/ExampleGun'` é
+`Assets/Sounds/Items/Guns/ExampleGun.ogg` (`'Items/Guns/ExampleGun'` e o caminho
+inteiro, com `Assets/`, também valem).
 
 ## Som de item e de NPC
 
@@ -126,11 +128,11 @@ Na prática:
 
 | tModLoader | Bunny Loader |
 |---|---|
-| `new SoundStyle("ExampleMod/Assets/Sounds/X") { Volume = 0.9f }` | `new SoundStyle('Sounds/X', { Volume: 0.9 })`, relativo a `content/`, sem o nome do mod |
+| `new SoundStyle("ExampleMod/Assets/Sounds/X") { Volume = 0.9f }` | `new SoundStyle('Sounds/X', { Volume: 0.9 })`, a partir de `Assets/`, sem o nome do mod |
 | `SoundStyle` é um struct | o `new` devolve um `LegacySoundStyle` do jogo (o tipo do `UseSound`): `instanceof SoundStyle` dá `false` |
 | `SoundEngine.PlaySound` devolve `SlotId` | devolve o número do som (0 = não tocou) |
 | `Variants`, `IsLooped`, callback de atualização | ainda não |
-| `MusicLoader.GetMusicSlot(Mod, caminho)` | também `GetMusicSlot(caminho)`; não há carga automática de `Music/` |
+| `MusicLoader.GetMusicSlot(Mod, caminho)` | também `GetMusicSlot(caminho)`; não há carga automática de `Assets/Music/` |
 | `ModBiome.Music`, `ModSceneEffect`, caixa de música | ainda não: só `ModNPC.Music` |
 
 ## Referência rápida

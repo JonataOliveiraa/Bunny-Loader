@@ -1,0 +1,10 @@
+{
+  "CustomText": {
+    "Hello": "Olá"
+  },
+  "Deep": {
+    "Level1": {
+      "Level2": "Texto fundo"
+    }
+  }
+}

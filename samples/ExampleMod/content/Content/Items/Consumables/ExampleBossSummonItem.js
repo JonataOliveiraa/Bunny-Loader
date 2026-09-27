@@ -2,11 +2,6 @@ const { ItemUseStyleID, SoundID } = Terraria.ID;
 const PlaySound = Terraria.Audio.SoundEngine['void PlaySound(int type, Vector2 position, int style, float pitchOffset)'];
 
 export class ExampleBossSummonItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Consumables/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.width = 30;
         this.Item.height = 20;

@@ -3,7 +3,6 @@ const { DustID, SoundID, TileID } = Terraria.ID;
 export class ExampleOre extends ModTile {
     constructor() {
         super();
-        this.Texture = 'Tiles/' + this.constructor.name;
         this.DustType = DustID.Platinum;
         this.HitSound = SoundID.Tink;
         this.MineResist = 4;

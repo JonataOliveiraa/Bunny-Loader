@@ -8,7 +8,7 @@
   "summary": "A Pessoa do Example Mod ataca um slime com o projetil do mod e, ao morrer, solta os gores do mod.",
   "description": "Loga 'townfight ...'. Precisa do Example Mod ligado.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

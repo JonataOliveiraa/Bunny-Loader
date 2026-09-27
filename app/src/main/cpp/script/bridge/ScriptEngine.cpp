@@ -181,18 +181,17 @@ namespace {
 
 // ---------------------------- import entre arquivos ----------------------------
 //
-// Um mod pode dividir o codigo em arquivos, como o ExMod (um item por arquivo
+// Um mod divide o codigo em arquivos, como no tModLoader (um item por arquivo
 // em Content/Items/...): `import { X } from './Content/Items/X.js'`.
 //
-// O nome de cada modulo diz de qual mod ele e: o main.js se chama so "<uid>"
-// (e o que o ModLoader passa), e um arquivo importado "<uid>/<caminho dentro
-// da pasta do mod>". E por esse prefixo que callerModId e resolvePath
-// (Texture.cpp) acham a pasta do mod de quem chamou.
+// O nome de cada modulo diz de qual mod ele e: "<uid>/<caminho dentro da pasta
+// do mod>", o de entrada inclusive ("<uid>/main.js"). E por esse prefixo que
+// callerModId e resolvePath (Texture.cpp) acham a pasta do mod de quem chamou.
 //
 // So caminho relativo, e so dentro da pasta do mod: um mod nao le arquivo de
 // outro nem do aparelho por import.
 
-/** "<uid>/<rel>" -> {uid, rel}; o main.js ("<uid>") tem rel vazio. */
+/** "<uid>/<rel>" -> {uid, rel}; um mod embutido ("<id>") tem rel vazio. */
 void splitModuleName(const std::string& name, std::string* uid, std::string* rel) {
     const size_t slash = name.find('/');
     *uid = name.substr(0, slash);
@@ -265,6 +264,9 @@ JSModuleDef* loadModule(JSContext* ctx, const char* name, void*) {
     return m;
 }
 
+void installModLoaderHook(JSContext* ctx);
+void releaseModLoader(JSContext* ctx);
+
 } // namespace
 
 bool ScriptEngine::init() {
@@ -291,6 +293,7 @@ bool ScriptEngine::init() {
     g_frameSlot = bl_js_stack_frame_slot(rt);
     context_ = ctx;
     installBindings(ctx);
+    installModLoaderHook(ctx);
     installModClasses(ctx);
 
     ready_ = true;
@@ -302,6 +305,7 @@ void ScriptEngine::shutdown() {
     if (!ready_) return;
     JsLock lock;
     g_frameSlot = nullptr;   // e do runtime que vai embora
+    releaseModLoader(static_cast<JSContext*>(context_));
     JS_FreeContext(static_cast<JSContext*>(context_));
     JS_FreeRuntime(static_cast<JSRuntime*>(runtime_));
     context_ = nullptr;
@@ -326,79 +330,148 @@ void logException(JSContext* ctx, JSValueConst err, const std::string& name) {
     BL_ERROR("erro em %s: %s", name.c_str(), msg.c_str());
 }
 
+void logPendingException(JSContext* ctx, const std::string& name) {
+    JSValue err = JS_GetException(ctx);
+    logException(ctx, err, name);
+    JS_FreeValue(ctx, err);
+}
+
 /**
- * Avalia o codigo de um mod como MODULO ES.
- *
- * Antes era JS_EVAL_TYPE_GLOBAL, e todos os mods dividiam o mesmo escopo: o
- * Sem Queda declarava `const Update` e o Vida Cheia, carregado depois, morria
- * com "redeclaration of 'Update'". Dois mods quaisquer com um nome em comum no
- * topo do arquivo nao conviviam. Modulo tem escopo proprio; os globais da API
- * (Terraria, bl) continuam visiveis.
- *
- * Custo: modulo e strict mode. Atribuir a variavel nao declarada vira erro —
- * o que, num mod, quase sempre era um bug mesmo.
- *
- * O resultado de um modulo e uma PROMISE (top-level await existe). Um erro no
- * mod nao vem como excecao do JS_Eval, e sim como promise rejeitada — sem
- * olhar para ela, mod quebrado pareceria carregado.
+ * O resultado de um modulo e uma PROMISE (top-level await existe): um erro no
+ * mod vem como promise rejeitada, nao como excecao. Drena os jobs e devolve o
+ * valor, ou JS_EXCEPTION (ja logado). Consome a promise.
  */
-bool evalModule(JSContext* ctx, const char* code, size_t len, const std::string& name) {
-    JSValue result = JS_Eval(ctx, code, len, name.c_str(), JS_EVAL_TYPE_MODULE);
-    if (JS_IsException(result)) {
-        JSValue err = JS_GetException(ctx);
-        logException(ctx, err, name);
-        JS_FreeValue(ctx, err);
-        return false;
+JSValue settle(JSContext* ctx, JSValue promise, const std::string& name) {
+    if (JS_IsException(promise)) {
+        logPendingException(ctx, name);
+        return JS_EXCEPTION;
     }
-    // Drena os jobs: e o que assenta a promise do modulo.
     JSContext* jobCtx = nullptr;
     while (JS_ExecutePendingJob(JS_GetRuntime(ctx), &jobCtx) > 0) {}
 
-    bool ok = true;
-    switch (JS_PromiseState(ctx, result)) {
+    JSValue out = JS_EXCEPTION;
+    switch (JS_PromiseState(ctx, promise)) {
+        case JS_PROMISE_FULFILLED:
+            out = JS_PromiseResult(ctx, promise);
+            break;
         case JS_PROMISE_REJECTED: {
-            JSValue err = JS_PromiseResult(ctx, result);
+            JSValue err = JS_PromiseResult(ctx, promise);
             logException(ctx, err, name);
             JS_FreeValue(ctx, err);
-            ok = false;
             break;
         }
         case JS_PROMISE_PENDING:
-            // Top-level await esperando algo que nunca vem: o mod ficaria
-            // pela metade. Nao ha loop de eventos para completar isso.
+            // Top-level await esperando algo que nunca vem: nao ha loop de
+            // eventos para completar isso, e o mod ficaria pela metade.
             BL_ERROR("erro em %s: o modulo ficou pendente (await no topo?)", name.c_str());
-            ok = false;
             break;
         default:
+            out = JS_UNDEFINED;
             break;
     }
-    JS_FreeValue(ctx, result);
-    return ok;
+    JS_FreeValue(ctx, promise);
+    return out;
+}
+
+/**
+ * O namespace de um arquivo do mod ("<uid>/<rel>"), importado pelo mesmo
+ * carregador do `import`: um arquivo que o de entrada tambem importa e o mesmo
+ * modulo, avaliado uma vez so.
+ */
+JSValue importModFile(JSContext* ctx, const std::string& id, const std::string& rel) {
+    return settle(ctx, JS_LoadModule(ctx, id.c_str(), ("./" + rel).c_str()), id + "/" + rel);
+}
+
+// O carregador dos mods (ContentAutoload, em script/js/mod/autoload.js), que o
+// JS entrega uma vez por bl.__setModLoader.
+JSValue g_modLoader = JS_UNDEFINED;
+
+JSValue js_setModLoader(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsFunction(ctx, argv[0])) return JS_ThrowTypeError(ctx, "bl.__setModLoader(funcao)");
+    JS_FreeValue(ctx, g_modLoader);
+    g_modLoader = JS_DupValue(ctx, argv[0]);
+    return JS_UNDEFINED;
+}
+
+void releaseModLoader(JSContext* ctx) {
+    JS_FreeValue(ctx, g_modLoader);
+    g_modLoader = JS_UNDEFINED;
+}
+
+void installModLoaderHook(JSContext* ctx) {
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue bl = JS_GetPropertyStr(ctx, global, "bl");
+    JS_SetPropertyStr(ctx, bl, "__setModLoader", JS_NewCFunction(ctx, js_setModLoader, "__setModLoader", 1));
+    JS_FreeValue(ctx, bl);
+    JS_FreeValue(ctx, global);
+}
+
+/** files: [[caminho, namespace], ...] -> a classe Mod, o conteudo e o Load. */
+bool callModLoader(JSContext* ctx, JSValue files, const std::string& name) {
+    if (!JS_IsFunction(ctx, g_modLoader)) {
+        BL_ERROR("erro em %s: as classes dos mods nao carregaram (sem carregador)", name.c_str());
+        return false;
+    }
+    JSValue r = JS_Call(ctx, g_modLoader, JS_UNDEFINED, 1, &files);
+    if (JS_IsException(r)) {
+        logPendingException(ctx, name);
+        return false;
+    }
+    JS_FreeValue(ctx, r);
+    JSContext* jobCtx = nullptr;
+    while (JS_ExecutePendingJob(JS_GetRuntime(ctx), &jobCtx) > 0) {}
+    return true;
+}
+
+JSValue pair(JSContext* ctx, const std::string& path, JSValue ns) {
+    JSValue p = JS_NewArray(ctx);
+    JS_SetPropertyUint32(ctx, p, 0, JS_NewString(ctx, path.c_str()));
+    JS_SetPropertyUint32(ctx, p, 1, ns);
+    return p;
 }
 
 } // namespace
 
-bool ScriptEngine::evalFile(const std::string& path, const std::string& moduleName) {
-    if (!ready_) return false;
-
-    FILE* f = fopen(path.c_str(), "rb");
-    if (!f) { BL_ERROR("nao abriu script: %s", path.c_str()); return false; }
-    fseek(f, 0, SEEK_END);
-    long size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    std::vector<char> buffer(static_cast<size_t>(size) + 1, 0);
-    fread(buffer.data(), 1, static_cast<size_t>(size), f);
-    fclose(f);
-
+bool ScriptEngine::loadMod(const std::string& id, const std::vector<std::string>& files) {
+    if (!ready_ || files.empty()) return false;
     JsLock lock;
-    return evalModule(static_cast<JSContext*>(context_), buffer.data(),
-                      static_cast<size_t>(size), moduleName);
+    auto* ctx = static_cast<JSContext*>(context_);
+    JSValue list = JS_NewArray(ctx);
+    bool ok = true;
+    for (uint32_t i = 0; i < files.size(); ++i) {
+        JSValue ns = importModFile(ctx, id, files[i]);
+        if (JS_IsException(ns)) { ok = false; break; }
+        JS_SetPropertyUint32(ctx, list, i, pair(ctx, files[i], ns));
+    }
+    if (ok) ok = callModLoader(ctx, list, id + "/" + files[0]);
+    JS_FreeValue(ctx, list);
+    return ok;
 }
 
-bool ScriptEngine::eval(const std::string& code, const std::string& name) {
+bool ScriptEngine::loadBuiltinMod(const std::string& code, const std::string& id) {
     if (!ready_) return false;
     JsLock lock;
-    return evalModule(static_cast<JSContext*>(context_), code.c_str(), code.size(), name);
+    auto* ctx = static_cast<JSContext*>(context_);
+    JSValue fn = JS_Eval(ctx, code.c_str(), code.size(), id.c_str(),
+                         JS_EVAL_TYPE_MODULE | JS_EVAL_FLAG_COMPILE_ONLY);
+    if (JS_IsException(fn)) {
+        logPendingException(ctx, id);
+        return false;
+    }
+    auto* m = static_cast<JSModuleDef*>(JS_VALUE_GET_PTR(fn));
+    if (JS_ResolveModule(ctx, fn) < 0) {
+        JS_FreeValue(ctx, fn);
+        logPendingException(ctx, id);
+        return false;
+    }
+    JSValue done = settle(ctx, JS_EvalFunction(ctx, fn), id);
+    if (JS_IsException(done)) return false;
+    JS_FreeValue(ctx, done);
+    JSValue list = JS_NewArray(ctx);
+    JS_SetPropertyUint32(ctx, list, 0, pair(ctx, "main.js", JS_GetModuleNamespace(ctx, m)));
+    const bool ok = callModLoader(ctx, list, id);
+    JS_FreeValue(ctx, list);
+    return ok;
 }
 
 #else // sem QuickJS: stub para o projeto compilar antes do vendoring
@@ -409,8 +482,8 @@ bool ScriptEngine::init() {
     return true; // não bloqueia o boot: o jogo sobe sem mods
 }
 void ScriptEngine::shutdown() {}
-bool ScriptEngine::evalFile(const std::string&, const std::string&) { return false; }
-bool ScriptEngine::eval(const std::string&, const std::string&) { return false; }
+bool ScriptEngine::loadMod(const std::string&, const std::vector<std::string>&) { return false; }
+bool ScriptEngine::loadBuiltinMod(const std::string&, const std::string&) { return false; }
 
 #endif
 

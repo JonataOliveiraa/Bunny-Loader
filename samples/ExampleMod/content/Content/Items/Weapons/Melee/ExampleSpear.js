@@ -2,11 +2,6 @@ const { ItemID, ItemUseStyleID, SoundID } = Terraria.ID;
 const PlaySound = Terraria.Audio.SoundEngine['SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)'];
 
 export class ExampleSpear extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Melee/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.SkipsInitialUseSound[this.Type] = true;
     }

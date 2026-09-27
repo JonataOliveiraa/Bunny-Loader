@@ -9,11 +9,14 @@
 
 const Update = Terraria.Player['void Update(int i)'];
 
-Update.hook((original, self, i) => {
-    original(self, i);
-    const tileY = Math.floor(self.position.Y / 16);
-    self.fallStart = tileY;
-    self.fallStart2 = tileY;
-});
-
-bl.log('Sem Dano de Queda: ativo');
+export default class SemQueda extends Mod {
+    Load() {
+        Update.hook((original, self, i) => {
+            original(self, i);
+            const tileY = Math.floor(self.position.Y / 16);
+            self.fallStart = tileY;
+            self.fallStart2 = tileY;
+        });
+        bl.log('Sem Dano de Queda: ativo');
+    }
+}

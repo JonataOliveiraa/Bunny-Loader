@@ -13,12 +13,16 @@
 
 const SetDefaults = Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'];
 
-SetDefaults.hook((original, self, type, variant) => {
-    original(self, type, variant);      // 3 — o jogo aplica os defaults dele
+// A classe do mod é obrigatória: é o `export default` do arquivo de entrada.
+export default class DobroDeDano extends Mod {
+    Load() {
+        SetDefaults.hook((original, self, type, variant) => {
+            original(self, type, variant);      // 3 — o jogo aplica os defaults dele
 
-    if (self.damage > 0) {              // 4 — só o que causa dano
-        self.damage = self.damage * 2;
+            if (self.damage > 0) {              // 4 — só o que causa dano
+                self.damage = self.damage * 2;
+            }
+        });
+        bl.log('Dobro de Dano: ativo');
     }
-});
-
-bl.log('Dobro de Dano: ativo');
+}

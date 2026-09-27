@@ -35,29 +35,36 @@ com loja, um chefe com música, blocos, buffs e receitas.
 
 ## A estrutura
 
+A mesma do tModLoader:
+
 ```
 ExampleMod/
   manifest.json
   icon.png
   content/
-    main.js                      registra tudo
+    main.js                      a classe do mod: export default class ExampleMod extends Mod
+    Assets/
+      Textures/
+        Items/ExampleItem.png    as texturas, na mesma árvore do código
+        Projectiles/ExampleBulletProjectile.png
+        NPCs/ExampleSlimeNPC.png
+      Sounds/, Music/            áudio (guia 10)
+    Common/
+      Players/ExampleDashPlayer.js     o que não é coisa nova: ModPlayer,
+      Systems/DownedBossSystem.js      ModSystem, Global*
     Content/
-      Items/ExampleItem.js       uma classe por arquivo
+      Items/ExampleItem.js       o que é novo, uma classe por arquivo
       Items/Weapons/Melee/ExampleMeleeWeapon.js
       Projectiles/ExampleBulletProjectile.js
       NPCs/ExampleSlimeNPC.js
-    Textures/
-      Items/ExampleItem.png      as texturas, na mesma árvore
-      Projectiles/ExampleBulletProjectile.png
-      NPCs/ExampleSlimeNPC.png
     Localization/
       pt-BR.json                 nomes e descrições, por idioma
       en-US.json
-    Sounds/, Music/              áudio (guia 10)
 ```
 
-A árvore de `Content/` e `Textures/` é convenção, não regra: o que liga uma
-classe à textura dela é o campo `Texture`.
+O `main.js` só tem a classe do mod. Toda classe exportada em `Content/` e
+`Common/` é registrada sozinha, e a textura dela é a do mesmo caminho em
+`Assets/Textures/` ([README](README.md#o-registro-automático)).
 
 ## Estender e registrar
 
@@ -65,13 +72,8 @@ Uma classe de conteúdo é uma classe JS que estende a base e sobrescreve os
 métodos que interessam:
 
 ```js
-// content/Content/Items/ExampleItem.js
+// content/Content/Items/ExampleItem.js  (textura: Assets/Textures/Items/ExampleItem.png)
 export class ExampleItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/' + this.constructor.name;   // Textures/Items/ExampleItem.png
-    }
-
     SetDefaults() {
         this.Item.maxStack = ModItem.CommonMaxStack;
         this.Item.value = Terraria.Item.buyPrice(0, 0, 1, 0);
@@ -79,17 +81,17 @@ export class ExampleItem extends ModItem {
 }
 ```
 
-E o `main.js` importa e **registra**:
+Exportar basta: o Bunny Loader carrega o arquivo e **registra** a classe. O
+`main.js` fica só com a classe do mod:
 
 ```js
-import { ExampleItem } from './Content/Items/ExampleItem.js';
-import { ExampleBulletProjectile } from './Content/Projectiles/ExampleBulletProjectile.js';
-import { ExampleSlimeNPC } from './Content/NPCs/ExampleSlimeNPC.js';
-
-ModNPC.register(ExampleSlimeNPC);
-ModProjectile.register(ExampleBulletProjectile);
-ModItem.register(ExampleItem);
+// content/main.js
+export default class ExampleMod extends Mod {}
 ```
+
+Para registrar na mão (uma classe com `static Autoload = false`, ou uma que só
+existe se outro mod estiver instalado), chame o `register` no `Load()` do mod:
+`ModItem.register(Classe)`.
 
 As classes base são **globais**: `ModItem`, `ModProjectile`, `ModNPC`,
 `ModBuff`, `ModTile`, `ModPlayer`, `ModSystem`, `ModRecipe`... Nada de
@@ -110,24 +112,26 @@ classe tem momentos certos para cada coisa:
 
 | Momento | Método | Para quê |
 |---|---|---|
-| no `register` | (o construtor da classe) | Campos da classe: `Texture`, `DisplayName`... |
+| no registro | (o construtor da classe) | Campos da classe: `Texture`, `DisplayName`... |
 | tela de título | `SetStaticDefaults()` | Tabelas por tipo: `ItemID.Sets...[this.Type]`, `Main.npcFrameCount[this.Type]`. |
 | cada entidade que nasce | `SetDefaults(entidade)` | Os atributos: dano, vida, tamanho. |
 | conteúdo pronto | `AddRecipes()`, `SetBestiary(...)`, `PostSetupContent()` | O que depende de tudo existir: receitas, Bestiário, outros mods. |
 
-### A ordem importa
+### A ordem
 
-Registre primeiro o que os outros usam. A bala precisa do número do projétil
-no `SetDefaults` dela, então o projétil vem antes. E como os números saem na
-ordem de registro, ela também precisa ser a mesma em todo aparelho do
-multijogador: é, desde que todos tenham os mesmos mods.
+O registro automático segue uma ordem fixa: buffs, jogadores, NPCs, projéteis,
+itens, blocos, sistemas e globais; dentro de cada um, pelo caminho do arquivo.
+Os números saem nessa ordem, e ela é a mesma em todo aparelho do
+multijogador, desde que todos tenham os mesmos mods. Por isso a bala acha o
+número do projétil no `SetDefaults` dela (`ModContent.ProjectileType(...)`):
+todo projétil já foi registrado antes de qualquer item.
 
 ## O tipo de um conteúdo
 
-`register` devolve o número. Depois, dá para pegá-lo de três jeitos:
+Dá para pegá-lo de três jeitos:
 
 ```js
-const tipo = ModItem.register(ExampleItem);           // na hora do registro
+this.Type                                              // dentro da própria classe
 ModItem.getTypeByName('ExampleItem');                  // pelo nome, dentro do mod
 ModContent.ItemType(ExampleItem);                      // como no tModLoader
 ```
@@ -163,16 +167,17 @@ Todo modelo tem `this.Mod`, o `Mod` de quem registrou.
 As texturas do mod carregam na primeira chamada; as seguintes reusam a mesma:
 
 ```js
-const asset = ModContent.Request('Textures/brilho');     // Asset<Texture2D>, como no tModLoader
-const tex = asset.Value;                                  // a Texture2D
-const mesma = ModContent.Texture('Textures/brilho.png');  // atalho para o .Value
+const asset = ModContent.Request('brilho');     // Assets/Textures/brilho.png, Asset<Texture2D>
+const tex = asset.Value;                         // a Texture2D
+const mesma = ModContent.Texture('brilho');      // atalho para o .Value
 ```
 
 - `Request` devolve o `Asset<Texture2D>` **do jogo**, do mesmo tipo que as
   tabelas `TextureAssets` guardam: dá para pôr numa delas.
-- O caminho é a partir da pasta do mod, com ou sem `.png`; `'Items/Espada'`
-  também acha `Textures/Items/Espada.png`. `'outromod/...'` pega de outro
-  mod. `ModContent.HasAsset(caminho)` diz se existe.
+- O caminho é dentro de `Assets/Textures/`, com ou sem `.png`: `'Items/Espada'`
+  acha `Assets/Textures/Items/Espada.png` (`'Textures/Items/Espada'` e o caminho
+  inteiro também valem). `'outromod/...'` pega de outro mod.
+  `ModContent.HasAsset(caminho)` diz se existe.
 - Carrega sempre na hora (como o `ImmediateLoad` do tModLoader), e só na
   **thread do jogo**: num hook, no `SetStaticDefaults` ou no
   `PostSetupContent`.
@@ -265,8 +270,18 @@ Um nome que a classe já tem (campo ou método do jogo) vence o do mod.
 
 ## Texturas
 
-O campo `Texture` é o caminho dentro de `content/Textures/`, **sem** `.png`.
-Sem ele, vale o nome da classe (`Textures/ExampleItem.png`).
+As texturas moram em `content/Assets/Textures/`. Sem nada escrito, a de uma
+classe é a do **mesmo caminho do arquivo dela**: `Content/Items/ExampleItem.js`
+usa `Assets/Textures/Items/ExampleItem.png`. Não achou ali, vale o primeiro PNG
+com o nome da classe em `Assets/Textures/`. Para outra, o campo `Texture`, o
+caminho dentro de `Assets/Textures/` **sem** `.png`:
+
+```js
+constructor() {
+    super();
+    this.Texture = 'Items/ExampleItem';   // usa a imagem de outro item
+}
+```
 
 | Conteúdo | Formato |
 |---|---|
@@ -301,13 +316,22 @@ vale o `en-US`, e sem nada, o nome da classe. Os campos `DisplayName` e
 `Tooltip` da classe, se preenchidos, vencem o arquivo (texto, ou
 `{ 'pt-BR': ..., 'en-US': ... }`).
 
+Toda chave do arquivo, em qualquer profundidade (`TownNPCMood.ExamplePerson.Content`),
+entra no jogo como `Mods.<id do mod>.<Secao>.<Chave>`, como no tModLoader:
+`Language.GetText('Mods.examplemod.CustomText.WelcomeMessage').Value` funciona
+direto, e o texto acompanha a troca de idioma.
+
 Para um texto seu (a fala de um morador, a plaquinha do Bestiário):
 
 | | |
 |---|---|
-| `ModLocalization.GetTextValue('Secao.Chave')` | O **texto**, no idioma do jogo. |
-| `ModLocalization.Translate('Secao.Chave')` | Registra o texto e devolve a **chave**, para o que o jogo pede por chave (o Bestiário). |
-| `ModLocalization.Register(chave, texto)` | Registra um texto direto. |
+| `ModLocalization.Translate('Secao.Chave')` | O **texto**, no idioma do jogo (como no TL). Sem texto, o próprio caminho. |
+| `ModLocalization.TryTranslate('Secao.Chave')` | O mesmo, mas `''` quando não há texto. |
+| `ModLocalization.GetTextValue(chave)` | O texto do mod ou, se ele não tem, o do jogo (`'LegacyInterface.28'`). |
+| `ModLocalization.GetText(chave)` | O `LocalizedText` (do mod ou do jogo). |
+| `ModLocalization.Key('Secao.Chave')` | A **chave** `Mods.<id>.Secao.Chave`, para o que o jogo pede por chave (Bestiário, moeda). |
+| `ModLocalization.Exists(chave)` | Se o mod ou o jogo tem o texto. |
+| `ModLocalization.Register(chave, texto)` | Um texto (ou `{ cultura: texto }`) sob uma chave qualquer. |
 
 ## O Mod Menu
 
@@ -320,7 +344,7 @@ do jogo), numa entrada com o nome do mod, nas pastas *Itens*, *NPCs* e
 Para separar em mais pastas:
 
 ```js
-const armas = bl.menu.itemCategory('Armas', 'Textures/Items/ExampleGun.png');
+const armas = bl.menu.itemCategory('Armas', 'Assets/Textures/Items/ExampleGun.png');
 bl.menu.addItem(armas, ModItem.getTypeByName('ExampleGun'));
 ```
 
@@ -415,8 +439,10 @@ O formato é o mesmo, com as diferenças do JavaScript e do celular:
 
 | tModLoader (C#) | Bunny Loader (JS) |
 |---|---|
-| `public class X : ModItem` | `export class X extends ModItem` + `ModItem.register(X)` |
-| carregamento automático | `register` explícito, na ordem certa |
+| `public class ExampleMod : Mod` | `export default class ExampleMod extends Mod` no `main.js` |
+| `public class X : ModItem` | `export class X extends ModItem` (em `Content/`, registrada sozinha) |
+| `[Autoload(false)]` | `static Autoload = false` |
+| textura ao lado do `.cs` | textura em `Assets/Textures/`, no mesmo caminho do `.js` |
 | `Item.damage = 10;` | `this.Item.damage = 10;` |
 | `ModContent.ItemType<X>()` | `ModContent.ItemType(X)` |
 | `ref int damage` | `Ref` com `.value` ([guia 2](02-ref-e-out.md)) |

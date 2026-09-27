@@ -13,11 +13,6 @@ const RangeHypotenuse = Math.SQRT2 * Range;
 const RangeHypotenuseSquared = RangeHypotenuse * RangeHypotenuse;
 
 export class ExampleLightPetProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Pets/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.projFrames[this.Type] = 1;
         Terraria.Main.projPet[this.Type] = true;

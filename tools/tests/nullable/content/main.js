@@ -190,3 +190,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     bl.log('nullable FIM dos testes logicos: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
 });
 bl.log('nullable: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestNullable extends Mod {}

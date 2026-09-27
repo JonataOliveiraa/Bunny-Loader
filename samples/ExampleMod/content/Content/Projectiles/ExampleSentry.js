@@ -11,11 +11,6 @@ const FireVelocity = 10;
 const SentryLifeTime = 36000;
 
 export class ExampleSentry extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.projFrames[this.Type] = 4;
         ProjectileID.Sets.MinionTargetingFeature[this.Type] = true;

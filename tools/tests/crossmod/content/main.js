@@ -57,7 +57,7 @@ check('id que nao e texto lanca', () => {
     }
 });
 
-check('new de um Mod sem register lanca', () => {
+check('new de um Mod fora do carregador lanca', () => {
     class Solto extends Mod {}
     try {
         new Solto();
@@ -67,43 +67,45 @@ check('new de um Mod sem register lanca', () => {
     }
 });
 
-let loadRan = false;
+let me = null;
 let postSetupRan = false;
-class CrossMod extends Mod {
+// A classe do mod: o carregador a cria depois do topo deste arquivo e roda o Load.
+export default class CrossMod extends Mod {
     constructor() {
         super();
         this.calls = 0;
     }
-    Load() { loadRan = true; }
+
+    Load() {
+        me = this;
+        check('export default e bl.mod', () => {
+            if (me !== bl.mod) return 'bl.mod e outro objeto';
+            if (!(me instanceof CrossMod) || !(me instanceof Mod)) return 'classe';
+            if (me.id !== 'test-crossmod' || me.version !== '1.0.0') return me.id + ' ' + me.version;
+            if (me.name !== 'Teste: conversa entre mods') return 'name ' + me.name;
+            if (ModLoader.GetMod('test-crossmod') !== me || !ModLoader.HasMod('test-crossmod')) return 'GetMod/HasMod';
+            return me.calls === 0 || 'campo do construtor ' + me.calls;
+        });
+        check('Mod.register saiu', () => {
+            class Outro extends Mod {}
+            try {
+                Mod.register(Outro);
+                return 'nao lancou';
+            } catch (e) {
+                if (!String(e).includes('export default')) return String(e);
+                return (bl.mod instanceof CrossMod && !(bl.mod instanceof Outro)) || 'o Mod mudou de classe';
+            }
+        });
+    }
+
     PostSetupContent() { postSetupRan = true; }
+
     Call(what) {
         this.calls++;
         if (what === 'quem') return bl.mod.id;
         return undefined;
     }
 }
-const me = Mod.register(CrossMod);
-
-check('Mod.register e bl.mod', () => {
-    if (me !== bl.mod) return 'register devolveu outro objeto';
-    if (!(me instanceof CrossMod) || !(me instanceof Mod)) return 'classe';
-    if (me.id !== 'test-crossmod' || me.version !== '1.0.0') return me.id + ' ' + me.version;
-    if (me.name !== 'Teste: conversa entre mods') return 'name ' + me.name;
-    if (ModLoader.GetMod('test-crossmod') !== me || !ModLoader.HasMod('test-crossmod')) return 'GetMod/HasMod';
-    if (me.calls !== 0) return 'campo do construtor ' + me.calls;
-    return loadRan || 'Load nao rodou';
-});
-
-check('Mod.register duas vezes lanca', () => {
-    class Outro extends Mod {}
-    try {
-        Mod.register(Outro);
-        return 'nao lancou';
-    } catch (e) {
-        if (!String(e).includes('um Mod por pacote')) return String(e);
-        return (bl.mod instanceof CrossMod && !(bl.mod instanceof Outro)) || 'o Mod mudou de classe';
-    }
-});
 
 check('pelo uuid', () => ModLoader.GetMod(TARGET_UUID) === early || 'outro objeto');
 

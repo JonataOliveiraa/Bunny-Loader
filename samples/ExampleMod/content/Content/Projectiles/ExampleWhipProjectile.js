@@ -7,11 +7,6 @@ const EntitySpriteDraw = Terraria.Main['void EntitySpriteDraw(Texture2D texture,
 const Vector2List = System.Collections.Generic.List.makeGeneric(Vector2.Type);
 
 export class ExampleWhipProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ProjectileID.Sets.IsAWhip[this.Type] = true;
     }

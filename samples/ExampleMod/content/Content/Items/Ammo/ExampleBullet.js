@@ -1,11 +1,6 @@
 const { AmmoID } = Terraria.ID;
 
 export class ExampleBullet extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Ammo/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.damage = 12;
         this.Item.ranged = true;

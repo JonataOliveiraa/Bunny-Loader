@@ -1,0 +1,15 @@
+{
+  "uid": "30af986c-8ccd-4d88-b4bf-4cbf2f4c3560",
+  "id": "test-mpshop",
+  "name": "Teste: loja de mod no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O cliente conversa com a Pessoa do Example Mod, abre a loja pelo botao e compra (moedas e moeda propria); o host confere pela rede a conversa, o item e o pagamento.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mps ...'.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

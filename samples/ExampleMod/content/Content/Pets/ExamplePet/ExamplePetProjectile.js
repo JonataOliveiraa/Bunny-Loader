@@ -1,11 +1,6 @@
 const { ProjectileID } = Terraria.ID;
 
 export class ExamplePetProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Pets/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.projFrames[this.Type] = 4;
         Terraria.Main.projPet[this.Type] = true;

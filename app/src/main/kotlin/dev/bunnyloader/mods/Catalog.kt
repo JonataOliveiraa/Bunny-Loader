@@ -92,9 +92,7 @@ class Catalog(private val context: Context) {
         }
     }
 
-    fun isInstalled(uid: String): Boolean =
-        File(repo.modsDir, "$uid/content/main.js").isFile ||
-            File(repo.modsDir, "$uid/main.js").isFile
+    fun isInstalled(uid: String): Boolean = repo.hasEntry(uid)
 
     /** Copia o pacote para onde o motor procura. Substitui se já existir. */
     fun install(entry: Entry) {
@@ -207,7 +205,8 @@ class Catalog(private val context: Context) {
          *     icon.png         ícone do mod, quadrado (opcional; sem ele, o da categoria)
          *     banner.png       capa da vitrine, ~3,4:1 (opcional)
          *     thumbnails/      imagens da vitrine (opcional)
-         *     content/         o mod em si — main.js e o que mais ele precisar
+         *     content/         o mod em si: main.js (a classe Mod), Assets/,
+         *                      Common/, Content/ e Localization/
          *
          * O `uid` é obrigatório e é emitido pelo site do Bunny Loader, não pelo
          * autor: é o que garante que dois mods de pessoas diferentes nunca

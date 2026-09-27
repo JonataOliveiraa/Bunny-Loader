@@ -8,7 +8,7 @@
   "summary": "Um bloco 3x3 de ExampleTile e um de pedra: o quadro de cada tile e o mesmo depois de sair e entrar no mundo.",
   "description": "Loga 'tileframes ...'. Rodar duas vezes: a primeira poe os blocos e salva, a segunda confere.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

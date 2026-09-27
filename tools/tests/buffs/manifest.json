@@ -8,7 +8,7 @@
   "summary": "Tabelas, barra de buffs, Update/Apply/ReApply, NPC, defesa do Example Mod e save pelo nome.",
   "description": "Precisa do Example Mod ligado. Rode duas vezes: a segunda confere o buff salvo. Loga 'buffs ...'.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

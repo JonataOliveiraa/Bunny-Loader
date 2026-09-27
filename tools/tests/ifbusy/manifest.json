@@ -8,7 +8,7 @@
   "summary": "ifBusy 'skip' e 'original' com o motor JS preso noutra thread (o save da morte).",
   "description": "Loga 'ifbusy ...'. Rodar SEM o Example Mod.",
   "updated": "2026-09-26",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [
     301543,
     301543

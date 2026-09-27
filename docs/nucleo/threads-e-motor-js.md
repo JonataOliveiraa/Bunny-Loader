@@ -24,12 +24,12 @@ quando, e o que acontece com quem precisa esperar.
 | Thread | O que roda de mod | Exemplos |
 |---|---|---|
 | **Thread do jogo** (a principal da Unity) | Quase tudo: hooks de todo quadro, desenho, IA, as classes de mod. | `Main.DoUpdate`, `Main.DoDraw`, `Player.Update`, `NPC.AI`, `ModItem.UseItem`. |
-| **Sonda** (thread do Bunny Loader) | O topo de cada `main.js`: `register`, `import`, `.hook()`. Roda uma vez, no boot. | `ModItem.register(ExampleItem)`. |
+| **Sonda** (thread do Bunny Loader) | A carga dos mods: o topo de cada arquivo, o registro das classes e o `Load()` (com os `.hook()` dele). Roda uma vez, no boot. | `ModItem.register` (pelo registro automático), `Mod.Load`. |
 | **Geração de mundo** (do jogo) | Hooks nos métodos que a geração chama. | `Item.SetDefaults` dos itens de baú. |
 | **Carga do mundo** (do jogo) | Hooks na carga. | `Item.SetDefaults`, os saves de tile e de morador. |
 | **Save** (do jogo, `ThreadPool`) | Hooks no save do personagem e do mundo. | `Player.InternalSavePlayerFile` → `ModPlayer.SaveData`. |
 | **Rede** (do jogo) | Hooks no caminho da rede, no multijogador. | Save do personagem no cliente. |
-| **Console JS** (Mod Menu) | O código digitado, na thread do jogo, no `Main.DoUpdate` seguinte (`script/api/Console.cpp`), com 8 s de limite pelo interrupt handler do QuickJS. | `player.statLife = 500`. |
+| **Editor** de JS (Mod Menu) | O código digitado, na thread do jogo, no `Main.DoUpdate` seguinte (`script/api/Console.cpp`), com 8 s de limite pelo interrupt handler do QuickJS. | `player.statLife = 500`. |
 
 As threads de áudio do Android (SoundPool, MediaPlayer) e a de interface do
 app **não** rodam JS: o áudio de mod é comandado da thread do jogo e segue

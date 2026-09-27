@@ -1,0 +1,11 @@
+{
+  "CustomText": {
+    "Hello": "Hello",
+    "OnlyEnglish": "Only in English"
+  },
+  "Deep": {
+    "Level1": {
+      "Level2": "Deep text"
+    }
+  }
+}

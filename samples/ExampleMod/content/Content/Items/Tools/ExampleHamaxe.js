@@ -1,9 +1,4 @@
 export class ExampleHamaxe extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Tools/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.melee = true;
         this.Item.axe = 30;

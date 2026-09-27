@@ -8,7 +8,7 @@
   "summary": "GlobalNPC, GlobalProjectile e ModSystem em host e cliente: quem roda o que de cada lado.",
   "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpg ...'.",
   "updated": "2026-09-26",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

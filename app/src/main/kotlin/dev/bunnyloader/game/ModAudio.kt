@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
  *  - musica: MediaPlayer, em streaming, em laco.
  *
  * O nativo chama por JNI (content/sounds/AndroidAudio.cpp). Quanto e quando
- * tocar vem do jogo, pelo ModClasses.js: volume de efeitos, distancia ate o
+ * tocar vem do jogo, por script/js/mod/audio.js: volume de efeitos, distancia ate o
  * centro da tela, volume de musica e a musica que o jogo escolheria.
  */
 object ModAudio {

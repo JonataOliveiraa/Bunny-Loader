@@ -1,0 +1,15 @@
+{
+  "uid": "c4c0f239-ad0e-4400-95f4-0354c884d12b",
+  "id": "test-localization",
+  "name": "Teste: ModLocalization",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Translate devolve texto, chaves Mods.<id>.* no jogo e troca de idioma.",
+  "description": "Loga 'localization ...'.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

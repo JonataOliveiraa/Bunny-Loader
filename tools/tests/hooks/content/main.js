@@ -347,3 +347,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log(`hooks: carregado (arma ${GUN}, acessorio ${CHARM}, projetil ${SHOT}, NPC ${BLOB})`);
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestHooks extends Mod {}

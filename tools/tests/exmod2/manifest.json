@@ -8,7 +8,7 @@
   "summary": "Lanca, mangual, ioio, chicote, espada de energia, broca, cajado e os ganchos de projetil.",
   "description": "Precisa do Example Mod ligado. Loga 'exmod2 ...'.",
   "updated": "2026-09-24",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

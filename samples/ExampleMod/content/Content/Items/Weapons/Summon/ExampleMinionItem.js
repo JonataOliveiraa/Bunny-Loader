@@ -1,11 +1,6 @@
 const { ItemID, ItemUseStyleID, SoundID, TileID } = Terraria.ID;
 
 export class ExampleMinionItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Summon/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.GamepadWholeScreenUseRange[this.Type] = true;
         ItemID.Sets.LockOnIgnoresCollision[this.Type] = true;

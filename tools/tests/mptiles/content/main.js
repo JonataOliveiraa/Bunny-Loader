@@ -104,3 +104,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     else clientTick(frames);
 });
 bl.log('mpt: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestMptiles extends Mod {}

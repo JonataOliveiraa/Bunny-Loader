@@ -123,3 +123,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     phase = 1;
 });
 log('pronto');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class Bench extends Mod {}

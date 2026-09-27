@@ -8,7 +8,7 @@
   "summary": "proj.ai[0], proj.localAI.get_Item(1), oldPos[i].X, hideMisc[i] e o limite de cada um.",
   "description": "Loga 'structindex ...'.",
   "updated": "2026-09-26",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

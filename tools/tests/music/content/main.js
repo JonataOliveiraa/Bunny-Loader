@@ -34,7 +34,7 @@ check('GetMusicSlot', () => {
     slot = MusicLoader.GetMusicSlot(exampleMod, 'Music/Ropocalypse2');
     if (slot < Terraria.ID.MusicID.Count) return 'slot ' + slot;
     if (MusicLoader.GetMusicSlot(exampleMod, 'Music/Ropocalypse2.ogg') !== slot) return 'com .ogg deu outro';
-    if (MusicLoader.GetMusicSlot(exampleMod.path + '/Music/Ropocalypse2') !== slot) return 'caminho inteiro deu outro';
+    if (MusicLoader.GetMusicSlot(exampleMod.path + '/Assets/Music/Ropocalypse2') !== slot) return 'caminho inteiro deu outro';
     return (MusicLoader.MusicCount > slot) || 'MusicCount ' + MusicLoader.MusicCount;
 });
 check('arquivo que nao existe da 0', () =>
@@ -136,3 +136,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('music: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestMusic extends Mod {}

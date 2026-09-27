@@ -8,7 +8,7 @@
   "summary": "Tabelas de tile, colocar, quebrar, drop, minerio com picareta minima e resistencia.",
   "description": "Precisa do Example Mod. Loga 'tiles ...'.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

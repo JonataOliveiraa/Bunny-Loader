@@ -13,7 +13,7 @@ function check(label, fn) {
 }
 
 let loadResult;
-class AlvoMod extends Mod {
+export default class AlvoMod extends Mod {
     Call(what, ...args) {
         switch (what) {
             case 'soma': return args[0] + args[1];
@@ -27,8 +27,6 @@ class AlvoMod extends Mod {
         return undefined;
     }
 }
-Mod.register(AlvoMod);
-
 check('bl.mod no topo', () => (bl.mod.id === 'test-crossmod-alvo' && bl.mod.version === '2.1.0') || bl.mod.id);
 
 check('chamar na carga um mod que ja carregou', () => {

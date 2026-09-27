@@ -2,8 +2,12 @@
 #include "core/Log.h"
 #include "script/bridge/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
+#include <algorithm>
 #include <cstdio>
 #include <map>
+
+#include <dirent.h>
+#include <sys/stat.h>
 
 namespace bl::mods {
 
@@ -36,6 +40,30 @@ bool fileExists(const std::string& path) {
     if (!f) return false;
     std::fclose(f);
     return true;
+}
+
+/**
+ * Os .js de uma pasta do mod (Content/, Common/), recursivo e em ordem
+ * alfabetica, relativos a `base`. A ordem e a do registro dos tipos, e ela
+ * precisa ser a mesma em todo aparelho (cliente e servidor).
+ */
+void collectScripts(const std::string& base, const std::string& rel, std::vector<std::string>* out) {
+    DIR* d = opendir((base + "/" + rel).c_str());
+    if (!d) return;
+    std::vector<std::string> names;
+    while (dirent* e = readdir(d)) {
+        const std::string name = e->d_name;
+        if (name != "." && name != "..") names.push_back(name);
+    }
+    closedir(d);
+    std::sort(names.begin(), names.end());
+    for (const std::string& name : names) {
+        const std::string child = rel + "/" + name;
+        struct stat st{};
+        if (stat((base + "/" + child).c_str(), &st) != 0) continue;
+        if (S_ISDIR(st.st_mode)) collectScripts(base, child, out);
+        else if (name.size() > 3 && name.compare(name.size() - 3, 3, ".js") == 0) out->push_back(child);
+    }
 }
 
 /**
@@ -100,43 +128,37 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         readManifest(&mod);
         registry().push_back(mod);
 
-        // O `entry` do manifesto manda, e e relativo a content/. Ele era
-        // IGNORADO: o carregador abria content/main.js fixo, entao um mod que
-        // declarasse outro arquivo rodava o main.js e ninguem avisava.
-        //
-        // Sem entry (config antiga, ou pacote sem o campo) caimos no padrao. E
-        // a raiz continua valendo depois de content/, para o formato antigo,
-        // que deixava o main.js sem pasta.
-        std::string path;
+        // O `entry` do manifesto manda, relativo a content/ (sem ele, main.js).
         const std::string name = spec.entry.empty() ? std::string("main.js") : spec.entry;
-        for (const std::string& candidate : {mod.dir + "/content/" + name, mod.dir + "/" + name}) {
-            if (fileExists(candidate)) { path = candidate; break; }
-        }
-        if (path.empty()) {
-            BL_ERROR("mod %s: nao achei o entry '%s' (nem em content/ nem na raiz)",
-                     id.c_str(), name.c_str());
+        const std::string path = mod.dir + "/content/" + name;
+        if (!fileExists(path)) {
+            BL_ERROR("mod %s: nao achei o arquivo de entrada content/%s", id.c_str(), name.c_str());
             registry().back().enabled = false;
             continue;
         }
         registry().back().entry = path.substr(mod.dir.size() + 1);
-        // A pasta do ARQUIVO, nao a do pacote: o main.js mora em content/, e
-        // "ao lado do main.js" e onde o autor poe as imagens dele.
-        size_t slash = path.rfind('/');
-        dirsById()[id] = slash == std::string::npos ? mod.dir : path.substr(0, slash);
+        // A pasta do ARQUIVO de entrada: Assets/, Content/, Common/ e
+        // Localization/ ficam ao lado dele.
+        dirsById()[id] = path.substr(0, path.rfind('/'));
     }
 
     if (!script::engine().ready()) return;
 
-    // 2a passada: os main.js, na mesma ordem. Por indice: o registro nao muda
-    // durante a carga, mas uma referencia guardada atravessando o evalFile
+    // 2a passada: cada mod, na mesma ordem. Por indice: o registro nao muda
+    // durante a carga, mas uma referencia guardada atravessando o loadMod
     // seria a mesma armadilha do g_frames.back() do JsHook.
     for (size_t i = 0; i < registry().size(); ++i) {
         if (!registry()[i].enabled) continue;
         const std::string id = registry()[i].id;
         const std::string path = registry()[i].dir + "/" + registry()[i].entry;
-        currentDirSlot() = dirsById()[id];
+        const std::string dir = dirsById()[id];
+        std::vector<std::string> files{path.substr(dir.size() + 1)};
+        for (const char* folder : {"Common", "Content"}) collectScripts(dir, folder, &files);
+        files.erase(std::remove(files.begin() + 1, files.end(), files[0]), files.end());
+        BL_DEBUG("mod %s: %zu arquivo(s) em Common/ e Content/", id.c_str(), files.size() - 1);
+        currentDirSlot() = dir;
         currentIdSlot() = id;
-        bool ok = script::engine().evalFile(path, id);
+        bool ok = script::engine().loadMod(id, files);
         currentDirSlot().clear();
         currentIdSlot().clear();
         if (!ok) {
@@ -178,7 +200,6 @@ void loadBuiltins() {
         return;
     }
     BL_INFO("carregando %d mod(s) embutido(s) na libbunny", kBuiltinModCount);
-    // Como no loadAll: todos registrados antes de o primeiro rodar.
     const size_t first = registry().size();
     for (int i = 0; i < kBuiltinModCount; ++i) {
         LoadedMod mod;
@@ -191,7 +212,9 @@ void loadBuiltins() {
     }
     for (int i = 0; i < kBuiltinModCount; ++i) {
         const auto& b = kBuiltinMods[i];
-        const bool ok = script::engine().eval(b.source, b.id);
+        currentIdSlot() = b.id;
+        const bool ok = script::engine().loadBuiltinMod(b.source, b.id);
+        currentIdSlot().clear();
         if (!ok) BL_ERROR("mod embutido %s falhou ao carregar", b.id);
         registry()[first + i].enabled = ok;
         registry()[first + i].loaded = ok;

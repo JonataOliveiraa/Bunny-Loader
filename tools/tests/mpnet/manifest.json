@@ -8,7 +8,7 @@
   "summary": "NetSend/NetReceive do ModSystem e dos Globais, e ModPacket, entre host e cliente.",
   "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpn ...'.",
   "updated": "2026-09-26",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

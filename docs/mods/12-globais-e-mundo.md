@@ -63,7 +63,7 @@ quais; sem ele, vale para todos.
 ```js
 const { ItemID } = Terraria.ID;
 
-class ShortswordGlobalItem extends GlobalItem {
+export class ShortswordGlobalItem extends GlobalItem {
     AppliesToEntity(item, lateInstantiation) {
         return item.type === ItemID.CopperShortsword;
     }
@@ -72,8 +72,6 @@ class ShortswordGlobalItem extends GlobalItem {
         item.damage = 50;
     }
 }
-
-GlobalItem.register(ShortswordGlobalItem);
 ```
 
 Os métodos são os do `ModItem` (`SetDefaults`, `CanUseItem`, `UseItem`,
@@ -89,7 +87,7 @@ Mesma ideia, para NPCs e projéteis:
 ```js
 const { NPCID } = Terraria.ID;
 
-class SlimeGlobalNPC extends GlobalNPC {
+export class SlimeGlobalNPC extends GlobalNPC {
     AppliesToEntity(npc, lateInstantiation) {
         return npc.type === NPCID.BlueSlime;
     }
@@ -102,8 +100,6 @@ class SlimeGlobalNPC extends GlobalNPC {
         bl.log('um slime morreu em ' + npc.position);
     }
 }
-
-GlobalNPC.register(SlimeGlobalNPC);
 ```
 
 - `PreAI` devolvendo `false` pula a IA do jogo **e** o `AI` dos outros
@@ -121,7 +117,7 @@ Com `InstancePerEntity`, cada entidade ganha a própria cópia, e os campos
 passam a ser dela:
 
 ```js
-class ChargeGlobalItem extends GlobalItem {
+export class ChargeGlobalItem extends GlobalItem {
     InstancePerEntity = true;
     charge = 0;
 
@@ -129,8 +125,6 @@ class ChargeGlobalItem extends GlobalItem {
         return item.type === ItemID.Gel;
     }
 }
-
-GlobalItem.register(ChargeGlobalItem);
 
 // em qualquer lugar:
 const g = item.GetGlobalItem(ChargeGlobalItem);
@@ -159,7 +153,7 @@ amostra daquele tipo (é a mesma do Bestiário):
 const { ItemID, NPCID } = Terraria.ID;
 const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
 
-class ExampleNPCLoot extends GlobalNPC {
+export class ExampleNPCLoot extends GlobalNPC {
     ModifyNPCLoot(npc, npcLoot) {
         if (npc.type === NPCID.Demolitionist) {
             npcLoot.Add(ItemDropRule.Common(ItemID.Dynamite, 10, 1, 3));
@@ -190,12 +184,11 @@ ModifyGlobalLoot(globalLoot) {
 Quem vem do ExMod pode usar o `GlobalLoot` do jeito de lá, sem mudar nada:
 
 ```js
-class ExampleLoot extends GlobalLoot {
+export class ExampleLoot extends GlobalLoot {
     ModifyGlobalLoot() {
         this.RegisterToNPC(NPCID.Demolitionist, ItemDropRule.Common(ItemID.Dynamite, 10, 1, 3));
     }
 }
-GlobalLoot.register(ExampleLoot);
 ```
 
 ## ModSystem: o mundo
@@ -205,7 +198,7 @@ O `ModSystem` é o que é do mod inteiro. Além das receitas
 
 | Método | Quando roda |
 |---|---|
-| `OnModLoad()` | No `register`, uma vez. |
+| `OnModLoad()` | No registro, uma vez. |
 | `ClearWorld()` | Ao entrar em qualquer mundo, antes de carregá-lo (e antes de gerar um). |
 | `OnWorldLoad()` | O mundo abriu. No cliente de multijogador, quando o mundo chega do servidor. |
 | `LoadWorldData(tag)` | Logo depois, com os dados que o mod salvou neste mundo. |
@@ -225,7 +218,7 @@ métodos do tModLoader. Ele vai para um arquivo ao lado do mundo
 simples.
 
 ```js
-class DownedBossSystem extends ModSystem {
+export class DownedBossSystem extends ModSystem {
     static downedExampleBoss = false;
 
     ClearWorld() {
@@ -248,8 +241,6 @@ class DownedBossSystem extends ModSystem {
         [DownedBossSystem.downedExampleBoss] = reader.ReadFlags();
     }
 }
-
-ModSystem.register(DownedBossSystem);
 ```
 
 - Zere o estado no `ClearWorld`: sem isso, o chefe derrotado num mundo
@@ -301,7 +292,7 @@ pelo mesmo caminho e na mesma ordem:
 | `ModProjectile` | `SendExtraAI(writer)` | `ReceiveExtraAI(reader)` | idem |
 
 ```js
-class NetSlime extends GlobalNPC {
+export class NetSlime extends GlobalNPC {
     InstancePerEntity = true;
     mark = 0;
 
@@ -332,7 +323,8 @@ Para uma mensagem que não acompanha nada do jogo (um pedido do cliente, um
 aviso do servidor), o `Mod` do seu pacote manda e recebe:
 
 ```js
-class MeuMod extends Mod {
+// content/main.js
+export default class MeuMod extends Mod {
     HandlePacket(reader, whoAmI) {
         const pedido = reader.ReadString();
         if (pedido === 'ping') {
@@ -342,10 +334,8 @@ class MeuMod extends Mod {
         }
     }
 }
-const mod = Mod.register(MeuMod);
-
-// no cliente:
-const p = mod.GetPacket();
+// no cliente, de qualquer arquivo do mod:
+const p = bl.mod.GetPacket();
 p.Write('ping');
 p.Send();                     // do cliente, vai ao servidor
 ```

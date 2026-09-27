@@ -42,11 +42,42 @@ configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/mods/BuiltinMods.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/gen/mods/BuiltinMods.h @ONLY)
 
-# As classes base dos mods (ModItem, ModProjectile, ModNPC...), em JS de
-# verdade num arquivo proprio e embutidas do mesmo jeito.
-set(BL_MOD_CLASSES_FILE ${CMAKE_CURRENT_SOURCE_DIR}/script/js/ModClasses.js)
-file(READ ${BL_MOD_CLASSES_FILE} BL_MOD_CLASSES_JS)
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${BL_MOD_CLASSES_FILE})
+# As classes base dos mods (Mod, ModItem, ModNPC...), em script/js/mod/: uma
+# classe por arquivo (Core/ o nucleo, Loaders/ os hooks de cada conteudo,
+# Enums/, e na raiz a API dos mods), juntados nesta ordem dentro de uma funcao
+# (um escopo so, privado) e embutidos como um texto. A ordem importa: a base
+# antes do `extends`, e as classes que um inicializador estatico usa antes dele.
+set(BL_MOD_CLASSES_PARTS
+    Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
+    Core/ModFiles Core/Lang Core/ModRegistry
+    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority
+    Mod ModLoader
+    Loaders/LocalizationLoader ModLocalization
+    Loaders/RecipeLoader ModRecipe
+    Loaders/ItemLoader Loaders/TooltipLoader TooltipLine ModItem
+    TagCompound Loaders/SystemLoader ModSystem
+    Loaders/PlayerLoader ModPlayer
+    Loaders/BuffLoader ModBuff
+    Loaders/TileLoader ModTile
+    Loaders/ProjectileLoader ModProjectile
+    NPCLoot NPCSpawnInfo Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
+    NPCHappiness NPCShop Loaders/TownNPCLoader
+    Loaders/GoreLoader ModGore
+    Core/GlobalType Core/GlobalRegistry GlobalItem GlobalNPC GlobalProjectile Core/GlobalRegistries
+    Loaders/HitLoader Loaders/GlobalItemLoader Loaders/GlobalNPCLoader Loaders/GlobalProjectileLoader
+    GlobalLoot Loaders/GlobalLootLoader
+    NetWriter NetReader ModPacket Core/ModNet
+    Loaders/SoundLoader SoundStyle SoundEngine Loaders/ModMusic MusicLoader
+    Core/ContentLookup ModContent Core/ContentAutoload
+    Exports)
+set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")
+foreach(part ${BL_MOD_CLASSES_PARTS})
+    set(part_file ${CMAKE_CURRENT_SOURCE_DIR}/script/js/mod/${part}.js)
+    file(READ ${part_file} part_text)
+    string(APPEND BL_MOD_CLASSES_JS "// ---- mod/${part}.js ----\n${part_text}\n")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${part_file})
+endforeach()
+string(APPEND BL_MOD_CLASSES_JS "})();\n")
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/script/js/ModClassesJs.h.in
     ${CMAKE_CURRENT_BINARY_DIR}/gen/script/js/ModClassesJs.h @ONLY)

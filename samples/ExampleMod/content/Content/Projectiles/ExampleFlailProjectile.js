@@ -3,11 +3,6 @@ const { SpriteEffects } = Microsoft.Xna.Framework.Graphics;
 const EntitySpriteDraw = Terraria.Main['void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)'];
 
 export class ExampleFlailProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Projectile.width = this.Projectile.height = 22;
         this.Projectile.friendly = true;

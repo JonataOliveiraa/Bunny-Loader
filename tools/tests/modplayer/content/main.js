@@ -382,3 +382,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 420) respawnCheck();
 });
 bl.log('modplayer: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestModplayer extends Mod {}

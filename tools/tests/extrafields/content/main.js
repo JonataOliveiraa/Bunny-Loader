@@ -46,3 +46,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (i !== Main.myPlayer || Main.gameMenu) return;
     if (++frames === 90) run();
 });
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestExtrafields extends Mod {}

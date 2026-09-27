@@ -1,9 +1,4 @@
 export class ExampleTileItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Placeable/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.DefaultToPlaceableTile(ModTile.getTypeByName('ExampleTile'));
         this.Item.width = 12;

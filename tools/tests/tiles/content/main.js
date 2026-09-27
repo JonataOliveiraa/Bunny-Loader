@@ -1,10 +1,11 @@
 // Tiles de mod: tabelas, colocar, quebrar, drop, e o minerio com picareta
-// minima e resistencia. Precisa do Example Mod (ExampleTile = 753, ExampleOre =
-// 754, os unicos tiles de mod). Deixa uma fileira de blocos ao lado do jogador
+// minima e resistencia. Precisa do Example Mod (ExampleTile e ExampleOre, os
+// unicos tiles de mod; os tipos saem pelo nome). Deixa uma fileira de blocos ao lado do jogador
 // para ver na tela. Loga "tiles <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 const W = Terraria.WorldGen;
-const TILE = 753, ORE = 754;
+// Pelo nome, no run: a ordem de registro e a dos arquivos (Content/Tiles/).
+let TILE = 0, ORE = 0;
 
 let fails = 0;
 function check(label, fn) {
@@ -40,8 +41,10 @@ function droppedNear(type, x, y) {
 }
 
 function run(p) {
-    check('tipos registrados', () => (bl.tiles.isModTile(TILE) && bl.tiles.isModTile(ORE) && !bl.tiles.isModTile(752)) ||
-        `753 ${bl.tiles.isModTile(TILE)}, 754 ${bl.tiles.isModTile(ORE)}`);
+    TILE = ModContent.TileType('examplemod/ExampleTile');
+    ORE = ModContent.TileType('examplemod/ExampleOre');
+    check('tipos registrados', () => (bl.tiles.isModTile(TILE) && bl.tiles.isModTile(ORE) && !bl.tiles.isModTile(bl.tiles.vanillaCount - 1)) ||
+        `${TILE} ${bl.tiles.isModTile(TILE)}, ${ORE} ${bl.tiles.isModTile(ORE)}`);
     check('tabelas cresceram e o tipo novo nasce zerado', () => {
         const n = Main.tileSolid.length;
         return (n >= 755 && Main.tileSolid[TILE] === true && Main.tileBrick.length === n &&
@@ -142,3 +145,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('tiles: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestTiles extends Mod {}

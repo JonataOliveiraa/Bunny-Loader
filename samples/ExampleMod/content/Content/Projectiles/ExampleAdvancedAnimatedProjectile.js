@@ -3,11 +3,6 @@ const LightAt = Terraria.Lighting['Color GetColor(int x, int y)'];
 const EntitySpriteDraw = Terraria.Main['void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)'];
 
 export class ExampleAdvancedAnimatedProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.projFrames[this.Type] = 4;
     }

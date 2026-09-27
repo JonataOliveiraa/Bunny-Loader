@@ -8,7 +8,7 @@
   "summary": "Duas threads no original() de um hook ao mesmo tempo: a do jogo e a do save seguem, e a pilha JS de cada uma volta inteira.",
   "description": "Loga 'enginethreads ...'.",
   "updated": "2026-09-26",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [
     301543,
     301543

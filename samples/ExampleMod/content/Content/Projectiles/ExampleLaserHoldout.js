@@ -5,11 +5,6 @@ export class ExampleLaserHoldout extends ModProjectile {
     HoldoutDistance = 30;
     ManaConsumptionRate = 5;
 
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.projFrames[this.Type] = 5;
     }

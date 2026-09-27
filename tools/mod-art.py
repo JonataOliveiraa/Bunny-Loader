@@ -147,7 +147,7 @@ def banner_example():
     put(out, tex("Cloud_23.png"), 1, 330, 18)
     layer(out, "Background_7.png", 0, -10)
     layer(out, "Background_55.png", 300, -20)
-    tx = "ExampleMod/content/Textures/Items/"
+    tx = "ExampleMod/content/Assets/Textures/Items/"
     hero(out, local(tx + "Weapons/Melee/ExampleMeleeWeapon.png"), 2, 100, 60)
     hero(out, local(tx + "ExampleItem.png"), 2, 195, 62)
     hero(out, local(tx + "Weapons/Ranged/ExampleGun.png"), 2, 290, 62)

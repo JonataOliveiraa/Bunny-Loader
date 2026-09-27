@@ -8,7 +8,7 @@
   "summary": "Conversa com a Pessoa do Example Mod: botao Loja, a loja aberta pelo botao e os itens dela.",
   "description": "Loga 'townshop ...'. Precisa do Example Mod ligado.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

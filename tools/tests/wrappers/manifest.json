@@ -8,7 +8,7 @@
   "summary": "Objeto segurado so pelo JS sobrevive ao coletor; identidade.",
   "description": "Teste da ponte. Loga 'wrappers ...'.",
   "updated": "2026-09-24",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

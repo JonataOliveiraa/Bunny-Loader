@@ -275,3 +275,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('summons: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestSummons extends Mod {}

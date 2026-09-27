@@ -1,9 +1,4 @@
 export class ExampleOreItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Placeable/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.ID.ItemID.Sets.SortingPriorityMaterials[this.Type] = 58;
     }

@@ -12,12 +12,14 @@
 // so conta (e salva) o que ja houver.
 const Main = Terraria.Main;
 const SetDefaults = 'void SetDefaults(int Type, ItemVariant variant)';
-const EXAMPLE_ITEM = 6147;
-const SWORD = 6148;
+const FIRST_MOD_ITEM = bl.items.vanillaCount;
+// Pelo nome, no run: 0 com o Example Mod desligado.
+let EXAMPLE_ITEM = 0;
+let SWORD = 0;
 const itemName = Terraria.Lang['string GetItemNameValue(int id)'];
 
 function isUnloaded(type) {
-    return type >= EXAMPLE_ITEM && /^(Item n[aã]o carregado|Unloaded item)/.test(itemName(type));
+    return type >= FIRST_MOD_ITEM && /^(Item n[aã]o carregado|Unloaded item)/.test(itemName(type));
 }
 
 /** O que tem de estar em cada lugar depois de reabrir. */
@@ -39,7 +41,7 @@ function chestModItems() {
         const items = chest.item;
         for (let i = 0; i < items.length; i++) {
             const it = items[i];
-            if (it.type >= EXAMPLE_ITEM) out.push(`${isUnloaded(it.type) ? '?' : it.type}x${it.stack}`);
+            if (it.type >= FIRST_MOD_ITEM) out.push(`${isUnloaded(it.type) ? '?' : it.type}x${it.stack}`);
         }
     }
     return out;
@@ -54,7 +56,9 @@ function saveAll() {
 
 function run() {
     const player = Main.player[Main.myPlayer];
-    const modLoaded = !isUnloaded(EXAMPLE_ITEM) && !isUnloaded(SWORD);
+    EXAMPLE_ITEM = ModContent.ItemType('examplemod/ExampleItem');
+    SWORD = ModContent.ItemType('examplemod/ExampleMeleeWeapon');
+    const modLoaded = EXAMPLE_ITEM > 0 && SWORD > 0;
     bl.log('modsave mod ' + (modLoaded ? 'ligado' : 'DESLIGADO') + '; baus: [' + chestModItems().join(', ') + ']');
 
     if (!modLoaded) {
@@ -84,7 +88,7 @@ function run() {
     const inv = player.inventory;
     for (let slot = 0; slot < inv.length; slot++) {
         const it = inv[slot];
-        if (it.type >= EXAMPLE_ITEM && slot !== 3 && slot !== 4) {
+        if (it.type >= FIRST_MOD_ITEM && slot !== 3 && slot !== 4) {
             extra.push(`inventario[${slot}]=${it.type}x${it.stack}`);
             it['void TurnToAir(bool fullReset)'](false);
         }
@@ -107,3 +111,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     run();
 });
 bl.log('modsave: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestModsave extends Mod {}

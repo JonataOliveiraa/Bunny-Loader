@@ -8,7 +8,7 @@
   "summary": "Instancia por jogador, ordem dos ganchos, dano, morte, e o conteudo da etapa 4 do Example Mod.",
   "description": "Precisa do Example Mod ligado. Loga 'modplayer ...'.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

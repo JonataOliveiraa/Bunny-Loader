@@ -8,7 +8,7 @@
   "summary": "cloneResized, array JS para int[], grupos de receita, ModSystem e o limite de receitas.",
   "description": "Precisa do Example Mod ligado. Loga 'recipes ...'.",
   "updated": "2026-09-24",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

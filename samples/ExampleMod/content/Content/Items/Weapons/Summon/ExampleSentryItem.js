@@ -3,11 +3,6 @@ const NewProjectile = Terraria.Projectile['int NewProjectile(IEntitySource spawn
 const SentryHeight = 30;
 
 export class ExampleSentryItem extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Summon/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.GamepadWholeScreenUseRange[this.Type] = true;
         ItemID.Sets.LockOnIgnoresCollision[this.Type] = true;

@@ -95,3 +95,6 @@ Main['void UpdateAudio()'].hook((original, self) => {
     }
 });
 bl.log('enginethreads: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestEnginethreads extends Mod {}

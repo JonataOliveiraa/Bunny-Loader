@@ -5,7 +5,7 @@
 #include "quickjs.h"
 #include "content/common/ModContent.h"
 #include "script/api/Texture.h"
-#include "script/js/ModClassesJs.h"   // gerado: CMakeLists, de script/js/ModClasses.js
+#include "script/js/ModClassesJs.h"   // gerado: CMakeLists, de script/js/mod/*.js
 #include "script/js/ModHelpersJs.h"   // gerado: CMakeLists, de script/js/ModHelpers.js
 
 #include <cstdio>

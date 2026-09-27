@@ -1,0 +1,15 @@
+{
+  "uid": "d9c6b78b-5951-4783-8cdb-31fdff52d968",
+  "id": "test-autoload",
+  "name": "Teste: estrutura do mod e registro automático",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Classe Mod, Content/, Common/, Assets/ e o registro automático.",
+  "description": "Teste do carregador. Loga 'autoload ...'. Rode junto com tools/tests/nomodclass.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -3,7 +3,7 @@
 // NPCAIStyleID — no PC elas vem do tModLoader). Os nomes sao os do
 // tModLoader, para codigo de la portar mudando pouco.
 //
-// Embutido na libbunny como o ModClasses.js (CMakeLists: configure_file) e
+// Embutido na libbunny como as classes de script/js/mod/ (CMakeLists: configure_file) e
 // avaliado ANTES dele. Nada de arroba neste arquivo.
 //
 // Vector2 e Color devolvem STRUCTS DO JOGO (o que os metodos do jogo aceitam);

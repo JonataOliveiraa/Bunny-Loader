@@ -180,3 +180,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('refs: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestRefs extends Mod {}

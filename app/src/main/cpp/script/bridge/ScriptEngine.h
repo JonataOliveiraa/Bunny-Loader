@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <vector>
 
 namespace bl::script {
 
@@ -10,11 +11,18 @@ public:
     bool init();
     void shutdown();
 
-    // Avalia um arquivo .js como módulo. Retorna false e loga em caso de erro.
-    bool evalFile(const std::string& path, const std::string& moduleName);
+    /**
+     * Carrega um mod: importa cada arquivo como módulo ("<id>/<caminho>") e
+     * entrega os namespaces ao carregador do JS (script/js/mod/autoload.js),
+     * que exige a classe Mod no `export default` do primeiro e registra o
+     * conteúdo dos outros. `files[0]` é o de entrada; os outros, os de
+     * Content/ e Common/. Caminhos relativos à pasta do de entrada. Retorna
+     * false e loga em caso de erro.
+     */
+    bool loadMod(const std::string& id, const std::vector<std::string>& files);
 
-    // Avalia um trecho de código, também como módulo (mods embutidos).
-    bool eval(const std::string& code, const std::string& name);
+    // O mesmo para um mod embutido na libbunny (código em memória, sem pasta).
+    bool loadBuiltinMod(const std::string& code, const std::string& id);
 
     bool ready() const { return ready_; }
     void* runtime() const { return runtime_; }

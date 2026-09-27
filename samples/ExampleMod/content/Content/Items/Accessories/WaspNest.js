@@ -1,9 +1,4 @@
 export class WaspNest extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Accessories/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.width = 26;
         this.Item.height = 26;

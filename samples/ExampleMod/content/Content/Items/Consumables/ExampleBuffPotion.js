@@ -1,11 +1,6 @@
 const { ItemID, ItemUseStyleID, SoundID } = Terraria.ID;
 
 export class ExampleBuffPotion extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Consumables/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.DrinkParticleColors[this.Type] = [
             Color.new(240, 240, 240),

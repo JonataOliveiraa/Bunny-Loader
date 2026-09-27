@@ -99,6 +99,11 @@ class ModRepository(private val context: Context) {
         require(manifest.blVersion <= BL_VERSION) {
             "o pacote pede o Bunny Loader ${manifest.blVersion}; este é o $BL_VERSION"
         }
+        require(!manifest.isOutdated) {
+            "pacote do formato antigo (blVersion ${manifest.blVersion}). O Bunny Loader $BL_VERSION " +
+                "pede Assets/, Common/, Content/ e a classe Mod no arquivo de entrada " +
+                "(export default class ... extends Mod): peça ao autor uma versão nova."
+        }
         require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
 
         val target = File(modsDir, manifest.uid)
@@ -128,13 +133,14 @@ class ModRepository(private val context: Context) {
      * no primeiro `=`.
      */
     fun enabledSpecs(): List<String> =
-        list().filter { isEnabled(it.uid) }.map { "${it.uid}=${it.entry}" }
+        list().filter { !it.isOutdated && isEnabled(it.uid) }.map { "${it.uid}=${it.entry}" }
 
-    /** O arquivo de entrada, em `content/` ou na raiz (formato antigo). */
+    /** O mod está no disco, com o arquivo de entrada no lugar. */
+    fun hasEntry(uid: String): Boolean = dirOf(uid)?.let { entryOf(it) != null } ?: false
+
     private fun entryOf(dir: File): File? {
         val m = readManifest(dir) ?: return null
-        return listOf(File(dir, "${Catalog.CONTENT}/${m.entry}"), File(dir, m.entry))
-            .firstOrNull { it.isFile }
+        return File(dir, "${Catalog.CONTENT}/${m.entry}").takeIf { it.isFile }
     }
 
     private fun readManifest(dir: File): ModManifest? = Catalog.MANIFESTS
@@ -165,7 +171,9 @@ class ModRepository(private val context: Context) {
     fun dirOf(uid: String): File? = File(modsDir, uid).takeIf { it.isDirectory }
 
     companion object {
-        const val BL_VERSION = 1
+        const val BL_VERSION = 2
+        /** O formato mais antigo que ainda carrega (ModManifest.blVersion). */
+        const val MIN_BL_VERSION = 2
         const val PACKS_DIR = "bunny_packs"
 
         /**

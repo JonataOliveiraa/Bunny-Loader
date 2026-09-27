@@ -2,11 +2,6 @@ const { SoundID } = Terraria.ID;
 
 // ExampleMeleeWeapon: a espada. Os numeros sao os do ExampleMod.
 export class ExampleMeleeWeapon extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Melee/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.melee = true;
 

@@ -3,11 +3,6 @@ import { ExampleBobber } from '../../Projectiles/ExampleBobber.js';
 const { ItemID } = Terraria.ID;
 
 export class ExampleFishingRod extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Tools/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         ItemID.Sets.CanFishInLava[this.Type] = true;
     }

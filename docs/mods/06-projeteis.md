@@ -11,11 +11,6 @@ campos e métodos está na [referência](../referencia/classes.md#modprojectile)
 
 ```js
 export class ExampleBulletProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Projectile.width = 8;
         this.Projectile.height = 8;
@@ -26,8 +21,6 @@ export class ExampleBulletProjectile extends ModProjectile {
         this.Projectile.timeLeft = 600;
     }
 }
-
-ModProjectile.register(ExampleBulletProjectile);
 ```
 
 Registre o projétil **antes** do item que o usa: o item precisa do número dele

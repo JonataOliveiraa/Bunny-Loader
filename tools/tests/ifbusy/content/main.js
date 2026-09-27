@@ -96,3 +96,6 @@ Main['void UpdateAudio()'].hook((original, self) => {
     }
 }, { ifBusy: 'original' });
 bl.log('ifbusy: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestIfbusy extends Mod {}

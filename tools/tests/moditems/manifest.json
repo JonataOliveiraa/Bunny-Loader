@@ -8,7 +8,7 @@
   "summary": "Confere as tabelas do jogo indexadas por tipo de item.",
   "description": "Teste do runtime. Poe os itens de mod no inventario e loga 'moditems ...'.",
   "updated": "2026-09-24",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

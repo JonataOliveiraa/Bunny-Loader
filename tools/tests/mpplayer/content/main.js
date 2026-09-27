@@ -143,3 +143,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('mpp: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestMpplayer extends Mod {}

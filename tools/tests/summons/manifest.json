@@ -8,7 +8,7 @@
   "summary": "Usa os pets, o lacaio e a sentinela do Example Mod como o dedo usaria e confere o que o jogo faz com eles.",
   "description": "Loga 'summons ...'. Precisa do Example Mod ligado.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

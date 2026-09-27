@@ -36,7 +36,11 @@ class NetWorld extends ModSystem {
 }
 ModSystem.register(NetWorld);
 
-class NetTestMod extends Mod {
+let me = null;
+
+export default class NetTestMod extends Mod {
+    Load() { me = this; }
+
     HandlePacket(reader, whoAmI) {
         const kind = reader.ReadString();
         const n = reader.ReadInt32();
@@ -51,8 +55,6 @@ class NetTestMod extends Mod {
         }
     }
 }
-const me = Mod.register(NetTestMod);
-
 class NetSlime extends GlobalNPC {
     InstancePerEntity = true;
     mark = 0;

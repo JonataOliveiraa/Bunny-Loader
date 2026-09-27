@@ -7,11 +7,6 @@ const NormalvsExpert = ItemDropRule['IItemDropRule NormalvsExpert(int itemId, in
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
 
 export class ExampleSlimeNPC extends ModNPC {
-    constructor() {
-        super();
-        this.Texture = 'NPCs/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.npcFrameCount[this.Type] = 2;
         Terraria.Main.slimeRainNPC[this.Type] = true;
@@ -44,7 +39,7 @@ export class ExampleSlimeNPC extends ModNPC {
         bestiaryEntry.Info.Add(SpawnConditions.Visuals.Sun);
 
         const flavorText = FlavorTextBestiaryInfoElement.new();
-        flavorText['void .ctor(string languageKey)'](ModLocalization.Translate('Bestiary.ExampleSlimeNPC'));
+        flavorText['void .ctor(string languageKey)'](ModLocalization.Key('Bestiary.ExampleSlimeNPC'));
         bestiaryEntry.Info.Add(flavorText);
     }
 

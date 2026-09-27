@@ -121,6 +121,9 @@ fun ModRow(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
+                    if (entry.manifest.isOutdated) {
+                        PixelTag("Formato antigo", Bl.Bad, Modifier.padding(start = 8.dp))
+                    }
                     PixelText(
                         formatSize(entry.sizeBytes),
                         size = Ts.Small, color = Bl.TextFaint,

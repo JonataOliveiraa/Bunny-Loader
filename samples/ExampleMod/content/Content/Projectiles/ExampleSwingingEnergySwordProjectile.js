@@ -8,11 +8,6 @@ const LightAt = Terraria.Lighting['Color GetColor(int x, int y)'];
 const NewDustPerfect = Terraria.Dust['Dust NewDustPerfect(Vector2 Position, int Type, Nullable`1 Velocity, int Alpha, Color newColor, float Scale)'];
 
 export class ExampleSwingingEnergySwordProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Main.projFrames[this.Type] = 4;
     }

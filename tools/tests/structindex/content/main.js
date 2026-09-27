@@ -114,3 +114,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     bl.log('structindex linha longa ' + 'x'.repeat(6000) + ' fim');
     bl.log('structindex FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
 });
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestStructindex extends Mod {}

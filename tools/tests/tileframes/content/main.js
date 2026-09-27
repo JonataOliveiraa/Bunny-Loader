@@ -1,5 +1,5 @@
 // O quadro de cada tile ao sair e entrar no mundo. Rodada 1: poe um 3x3 de
-// ExampleTile (753, o primeiro tile de mod) e um 3x3 de pedra acima do spawn,
+// ExampleTile (o tipo sai pelo nome) e um 3x3 de pedra acima do spawn,
 // anota os quadros em dataDirectory e salva. Rodada 2 (reabrindo o jogo):
 //   no 1o quadro de jogo, o ExampleTile tem o quadro salvo (o .tiles.bl repos)
 //   e a pedra esta em -1 (o jogo nao grava quadro de bloco comum);
@@ -27,7 +27,7 @@ const place = (x, y, type) => W['bool PlaceTile(int i, int j, int Type, bool mut
 const save = () => Terraria.IO.WorldFile['void SaveWorld(WorldSaveContext saveContext)'](0);
 
 function cells() {
-    const modType = 753;
+    const modType = ModContent.TileType('examplemod/ExampleTile');
     const sx = Main.spawnTileX - 4, sy = Main.spawnTileY - 12;
     const out = [];
     for (let dy = 0; dy < 3; dy++) {
@@ -70,7 +70,7 @@ function finish() {
         bl.log('tileframes rodada: salvou');
         return;
     }
-    const modTile = (k) => before[k].type >= 753;
+    const modTile = (k) => before[k].type >= bl.tiles.vanillaCount;
     check('1o quadro: o tile de mod voltou com o quadro salvo', () => {
         const bad = first.filter((s, k) => modTile(k) && !same(before[k], s));
         return bad.length === 0 || list(bad);
@@ -103,3 +103,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('tileframes: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestTileframes extends Mod {}

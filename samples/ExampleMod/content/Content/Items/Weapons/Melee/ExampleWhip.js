@@ -1,11 +1,6 @@
 const { ItemID } = Terraria.ID;
 
 export class ExampleWhip extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Melee/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         const tag = Terraria.GameContent.Items.WhipTagEffect.new();
         tag['void .ctor()']();

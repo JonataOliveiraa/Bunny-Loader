@@ -1,6 +1,6 @@
 // Teste dos projeteis de mod (content/projectiles/ModProjectiles.cpp). Precisa do Example
 // Mod ligado: ele registra o projetil ExampleBulletProjectile, o primeiro de
-// mod (tipo 1111 = ProjectileID.Count), e a arma e a bala.
+// mod (o tipo sai pelo nome, no spawn), e a arma e a bala.
 //
 // Cria o projetil perto do jogador e confere: nasce ativo, com o tipo e o
 // setDefaults do mod; anda; conta no ownedProjectileCounts do dono (a tabela
@@ -8,7 +8,7 @@
 // vazios do inventario, para o teste de tiro na mao.
 // Loga "projeteis <caso>: ok | FALHOU".
 const Main = Terraria.Main;
-const PROJ = 1111;
+let PROJ = 0;
 const GUN_NAME = /Arma de Exemplo|Example Gun/;
 const BULLET_NAME = /Bala de Exemplo|Example Bullet/;
 const itemName = Terraria.Lang['string GetItemNameValue(int id)'];
@@ -32,6 +32,7 @@ function check(label, fn) {
 let proj = null, startX = 0, startY = 0;
 
 function spawn() {
+    PROJ = ModContent.ProjectileType('examplemod/ExampleBulletProjectile');
     check('registrado', () => bl.projectiles.isModProjectile(PROJ) || 'isModProjectile(1111) = false');
     check('tabelas', () => {
         if (Main.projFrames.length <= PROJ) return 'projFrames ' + Main.projFrames.length;
@@ -73,7 +74,7 @@ function afterFrames() {
     });
     check('conta no dono', () => {
         const n = Main.player[Main.myPlayer].ownedProjectileCounts[PROJ];
-        return n >= 1 || 'ownedProjectileCounts[1111]=' + n;
+        return n >= 1 || 'ownedProjectileCounts[' + PROJ + ']=' + n;
     });
     check('arma e balas no inventario', () => {
         let gun = -1, bullet = -1;
@@ -105,3 +106,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 75) afterFrames();
 });
 bl.log('projeteis: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestProjectiles extends Mod {}

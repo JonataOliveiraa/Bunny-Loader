@@ -3,11 +3,6 @@ const { Main } = Terraria;
 const AddLight = Terraria.Lighting['void AddLight(Vector2 position, float r, float g, float b)'];
 
 export class ExampleSoul extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Materials/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         this.SetItemAnimation(4, 6);
 

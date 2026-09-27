@@ -3,11 +3,6 @@ const PlaySound = Terraria.Audio.SoundEngine['SoundEffectInstance PlaySound(Lega
 const NewDustDirect = Terraria.Dust['Dust NewDustDirect(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
 
 export class ExampleDrillProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Projectile.width = 22;
         this.Projectile.height = 22;

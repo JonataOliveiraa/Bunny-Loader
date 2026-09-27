@@ -2,11 +2,6 @@ const { AmmoID, ProjectileID, SoundID, ItemUseStyleID } = Terraria.ID;
 const NewProjectile = Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)'];
 
 export class ExampleShotgun extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Weapons/Ranged/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.width = 44;
         this.Item.height = 18;

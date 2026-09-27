@@ -1,9 +1,4 @@
 export class ExamplePickaxe extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Tools/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.melee = true;
         this.Item.pick = 220;

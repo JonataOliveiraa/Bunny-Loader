@@ -8,7 +8,7 @@
   "summary": "ModLoader.TryGetMod, GetMod, HasMod, Mods, Mod.register, Mod.Call e bl.mod, com o par crossmodtarget.",
   "description": "Loga 'crossmod ...'. Rodar junto com tools/tests/crossmodtarget.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

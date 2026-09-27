@@ -273,7 +273,7 @@ void setStr(JSContext* ctx, JSValue obj, const char* key, const std::string& v) 
     JS_SetPropertyStr(ctx, obj, key, JS_NewString(ctx, v.c_str()));
 }
 
-// O `bl.mod` e o `ModLoader` moram no ModClasses.js (o objeto Mod de cada
+// O `bl.mod` e o `ModLoader` moram em script/js/mod/mod.js (o objeto Mod de cada
 // pacote e JS: a classe que o mod registra vira ele). Daqui saem so os dados.
 
 /**

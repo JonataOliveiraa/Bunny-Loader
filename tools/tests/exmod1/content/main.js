@@ -148,3 +148,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (++frames === 90) run();
 });
 bl.log('exmod1: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestExmod1 extends Mod {}

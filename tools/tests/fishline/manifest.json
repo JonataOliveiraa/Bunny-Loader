@@ -8,7 +8,7 @@
   "summary": "Poe a vara e o ioio do Example Mod no inventario e lanca a boia: a linha sai da ponta da vara (ModifyFishingLine). Visual.",
   "description": "Precisa do Example Mod ligado. Loga 'fishline ...'.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

@@ -1,11 +1,6 @@
 const { BuffID } = Terraria.ID;
 
 export class ExampleMinionBuff extends ModBuff {
-    constructor() {
-        super();
-        this.Texture = 'Buffs/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.buffNoSave[this.Type] = true;
         Terraria.Main.buffNoTimeDisplay[this.Type] = true;

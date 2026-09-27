@@ -36,10 +36,10 @@ check('arquivos do mod (relativo)', () => {
 });
 
 check('listFiles e listDirectories', () => {
-    const files = bl.directory.listFiles('Textures');
-    const dirs = bl.directory.listDirectories('Textures');
-    return (JSON.stringify(files) === '["Textures/a.png","Textures/b.png"]' &&
-            JSON.stringify(dirs) === '["Textures/Sub"]') || JSON.stringify({ files, dirs });
+    const files = bl.directory.listFiles('Assets/Textures');
+    const dirs = bl.directory.listDirectories('Assets/Textures');
+    return (JSON.stringify(files) === '["Assets/Textures/a.png","Assets/Textures/b.png"]' &&
+            JSON.stringify(dirs) === '["Assets/Textures/Sub"]') || JSON.stringify({ files, dirs });
 });
 
 check('dataDirectory: escrever, anexar, ler, apagar', () => {
@@ -77,3 +77,6 @@ check('globais nossas nao foram sombreadas', () =>
 
 bl.log('files bl.log:', 1, 'texto', { a: [1, 2] }, [3, 'x'], null, undefined);
 bl.log('files FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestFiles extends Mod {}

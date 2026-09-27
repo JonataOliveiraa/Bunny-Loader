@@ -226,3 +226,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (++frames === 90) run();
 });
 bl.log('recipes: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class RecipesTestMod extends Mod {}

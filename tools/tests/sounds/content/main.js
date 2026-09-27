@@ -23,7 +23,7 @@ function check(label, fn) {
     }
 }
 
-const SOUND = ModLoader.GetMod('examplemod').path + '/Sounds/Items/Guns/ExampleGun';
+const SOUND = ModLoader.GetMod('examplemod').path + '/Assets/Sounds/Items/Guns/ExampleGun';
 const style = new SoundStyle(SOUND, { Volume: 0.8, PitchVariance: 0.1, MaxInstances: 1 });
 const ignoring = new SoundStyle(SOUND, { MaxInstances: 1, SoundLimitBehavior: SoundLimitBehavior.IgnoreNew });
 const unlimited = new SoundStyle(SOUND, { MaxInstances: 0, Volume: 0.5 });
@@ -102,3 +102,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('sounds: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestSounds extends Mod {}

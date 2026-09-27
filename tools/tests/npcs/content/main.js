@@ -1,5 +1,5 @@
 // Teste dos NPCs de mod (content/npcs/ModNpcs.cpp). Precisa do Example Mod ligado:
-// ele registra o ExampleSlimeNPC, o primeiro NPC de mod (tipo 697 = NPCID.Count),
+// ele registra o ExampleSlimeNPC (o tipo sai pelo nome, no spawn),
 // como classe ModNPC (quadros no SetStaticDefaults, AnimationType no
 // SetDefaults, drop no ModifyNPCLoot, gosma no HitEffect).
 //
@@ -9,7 +9,7 @@
 // da o drop da tabela (gel sempre) e a gosma do HitEffect. Loga
 // "npcs <caso>: ok | FALHOU".
 const Main = Terraria.Main;
-const SLIME = 697;
+let SLIME = 0;
 const GEL = Terraria.ID.ItemID.Gel;
 const SLIME_DUST = Terraria.ID.DustID.TintableDust;
 const newNpc = Terraria.NPC['int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, ' +
@@ -54,7 +54,8 @@ function dustNear(x, y) {
 }
 
 function spawn() {
-    check('registrado', () => bl.npcs.isModNpc(SLIME) || 'isModNpc(697) = false');
+    SLIME = ModContent.NPCType('examplemod/ExampleSlimeNPC');
+    check('registrado', () => bl.npcs.isModNpc(SLIME) || 'isModNpc(' + SLIME + ') = false');
     check('nasce', () => {
         const p = Main.player[Main.myPlayer];
         const source = Terraria.DataStructures.EntitySource_DebugCommand.new();
@@ -145,3 +146,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 310) afterDeath();
 });
 bl.log('npcs: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestNpcs extends Mod {}

@@ -4,11 +4,6 @@ export class ExampleSpearProjectile extends ModProjectile {
     HoldoutRangeMin = 24;
     HoldoutRangeMax = 96;
 
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.CloneDefaults(ProjectileID.Spear);
     }

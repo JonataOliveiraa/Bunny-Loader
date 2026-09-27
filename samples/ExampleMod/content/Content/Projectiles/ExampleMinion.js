@@ -4,11 +4,6 @@ const CanHitLine = Terraria.Collision['bool CanHitLine(Vector2 Position1, int Wi
 const minions = new Set();
 
 export class ExampleMinion extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.projFrames[this.Type] = 4;
         ProjectileID.Sets.MinionTargetingFeature[this.Type] = true;

@@ -1,7 +1,6 @@
 export class ExampleStatAccessory extends ModItem {
     constructor() {
         super();
-        this.Texture = 'Items/Accessories/' + this.constructor.name;
         this.ExtraDamagePercent = 10;
         this.ExtraDamageMultiplier = 1 + this.ExtraDamagePercent / 100;
     }

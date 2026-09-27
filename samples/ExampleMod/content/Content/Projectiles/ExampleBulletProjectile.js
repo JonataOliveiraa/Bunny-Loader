@@ -1,9 +1,4 @@
 export class ExampleBulletProjectile extends ModProjectile {
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Projectile.width = 8;
         this.Projectile.height = 8;

@@ -51,3 +51,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
 });
 bl.log('fishline: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestFishline extends Mod {}

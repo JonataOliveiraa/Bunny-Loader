@@ -6,11 +6,6 @@ const PossibleLineColors = [
 export class ExampleBobber extends ModProjectile {
     fishingLineColorIndex = 0;
 
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     get FishingLineColor() {
         const [r, g, b] = PossibleLineColors[this.fishingLineColorIndex];
         return Color.new(r, g, b);

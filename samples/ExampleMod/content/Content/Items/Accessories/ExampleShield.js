@@ -1,11 +1,6 @@
-import { ExampleDashPlayer } from '../../Players/ExampleDashPlayer.js';
+import { ExampleDashPlayer } from '../../../Common/Players/ExampleDashPlayer.js';
 
 export class ExampleShield extends ModItem {
-    constructor() {
-        super();
-        this.Texture = 'Items/Accessories/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.Item.width = 24;
         this.Item.height = 28;

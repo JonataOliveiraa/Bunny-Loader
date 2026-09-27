@@ -19,11 +19,6 @@ const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
 const Common = ItemDropRule['IItemDropRule Common(int itemId, int chanceDenominator, int minimumDropped, int maximumDropped)'];
 
 export class ExampleSlimeNPC extends ModNPC {
-    constructor() {
-        super();
-        this.Texture = 'NPCs/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.npcFrameCount[this.Type] = 2;   // a textura tem 2 quadros, em pé
     }
@@ -51,8 +46,6 @@ export class ExampleSlimeNPC extends ModNPC {
         npcLoot.Add(Common(ModContent.ItemType('ExampleItem'), 3, 5, 10));
     }
 }
-
-ModNPC.register(ExampleSlimeNPC);
 ```
 
 - `SetDefaults` dá vida, dano e defesa **de base**. A escala de Expert e de
@@ -141,7 +134,7 @@ SetBestiary(database, bestiaryEntry) {
     bestiaryEntry.Info.Add(SpawnConditions.Times.DayTime);
 
     const texto = FlavorTextBestiaryInfoElement.new();
-    texto['void .ctor(string languageKey)'](ModLocalization.Translate('Bestiary.ExampleSlimeNPC'));
+    texto['void .ctor(string languageKey)'](ModLocalization.Key('Bestiary.ExampleSlimeNPC'));
     bestiaryEntry.Info.Add(texto);
 }
 ```
@@ -158,11 +151,6 @@ jogo. O Example Mod tem a **Pessoa** (`ExamplePerson`).
 
 ```js
 export class ExamplePerson extends ModNPC {
-    constructor() {
-        super();
-        this.Texture = 'NPCs/ExamplePerson/' + this.constructor.name;
-    }
-
     SetStaticDefaults() {
         Terraria.Main.npcFrameCount[this.Type] = 25;
         NPCID.Sets.ExtraFramesCount[this.Type] = 9;
@@ -245,7 +233,7 @@ Moeda própria, paga com um item (a do Example Mod é o Exemplo de Item):
 const { CustomCurrencyManager, CustomCurrencySingleCoin } = Terraria.GameContent.UI;
 const currency = CustomCurrencySingleCoin.new();
 currency['void .ctor(int coinItemID, long currencyCap)'](ModContent.ItemType('ExampleItem'), 999);
-currency.CurrencyTextKey = ModLocalization.Translate('CustomCurrency.ExampleItemCurrency');
+currency.CurrencyTextKey = ModLocalization.Key('CustomCurrency.ExampleItemCurrency');
 const id = CustomCurrencyManager.RegisterCurrency(currency);
 ```
 
@@ -271,7 +259,7 @@ pelo jogo.
 
 ### Gore
 
-Todo PNG em `Textures/Gores/` do mod vira um gore, com o nome do arquivo:
+Todo PNG em `Assets/Textures/Gores/` do mod vira um gore, com o nome do arquivo:
 
 ```js
 const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];

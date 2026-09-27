@@ -162,3 +162,6 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 200) lateChecks();
 });
 bl.log('buffs: carregado');
+
+// A classe do mod, obrigatória no arquivo de entrada.
+export default class TestBuffs extends Mod {}

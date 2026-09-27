@@ -8,7 +8,7 @@
   "summary": "bl.file, bl.directory, bl.path, bl.mod, bl.info, classes sem namespace e bl.log.",
   "description": "Loga 'files ...'.",
   "updated": "2026-09-25",
-  "blVersion": 1,
+  "blVersion": 2,
   "gameVersion": [301543, 301543],
   "entry": "main.js",
   "dependencies": []

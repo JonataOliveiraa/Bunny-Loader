@@ -7,11 +7,6 @@ export class ExampleHookProjectile extends ModProjectile {
     GrappleRange = 300;
     NumGrappleHooks = 2;
 
-    constructor() {
-        super();
-        this.Texture = 'Projectiles/' + this.constructor.name;
-    }
-
     SetDefaults() {
         this.CloneDefaults(ProjectileID.GemHookAmethyst);
     }
@@ -38,7 +33,7 @@ export class ExampleHookProjectile extends ModProjectile {
     }
 
     PreDraw(proj) {
-        if (!this.chain) this.chain = bl.loadTexture('Textures/Projectiles/ExampleHookChain.png');
+        if (!this.chain) this.chain = bl.loadTexture('Assets/Textures/Projectiles/ExampleHookChain.png');
         const chain = this.chain;
         const frame = Rectangle.new(0, 0, chain.Width, chain.Height);
         const origin = Vector2.new(chain.Width / 2, chain.Height / 2);

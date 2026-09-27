@@ -1,7 +1,6 @@
 export class ExampleDefenseBuff extends ModBuff {
     constructor() {
         super();
-        this.Texture = 'Buffs/' + this.constructor.name;
         this.DefenseBonus = 10;
     }
 

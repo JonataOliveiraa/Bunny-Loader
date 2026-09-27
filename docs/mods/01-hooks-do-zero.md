@@ -64,7 +64,7 @@ DanoEmDobro/
   "author": "Você",
   "category": "Armas",
   "summary": "Toda arma bate o dobro.",
-  "blVersion": 1,
+  "blVersion": 2,
   "entry": "main.js"
 }
 ```
@@ -74,14 +74,17 @@ DanoEmDobro/
 ```js
 const SetDefaults = Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'];
 
-SetDefaults.hook((original, self, type, variant) => {
-    original(self, type, variant);   // o jogo preenche o item primeiro
-    if (self.damage > 0) {
-        self.damage = self.damage * 2;
+export default class DanoEmDobro extends Mod {
+    Load() {
+        SetDefaults.hook((original, self, type, variant) => {
+            original(self, type, variant);   // o jogo preenche o item primeiro
+            if (self.damage > 0) {
+                self.damage = self.damage * 2;
+            }
+        });
+        bl.log('Dano em Dobro: ativo');
     }
-});
-
-bl.log('Dano em Dobro: ativo');
+}
 ```
 
 Instale (ver o [README](README.md#instalando)), abra o jogo, e toda arma nasce
@@ -89,6 +92,12 @@ com o dobro do dano. O log (`Android/data/com.bunnyloader/logs/`, ou
 `adb logcat -s BunnyLoader`) mostra `Dano em Dobro: ativo`.
 
 ### A anatomia
+
+A classe `DanoEmDobro` é a **classe do mod**: todo mod exporta uma, com
+`export default`, no arquivo de entrada (como o `public class ... : Mod` do
+tModLoader). O Bunny Loader a cria sozinho e roda o `Load()` dela uma vez, ao
+abrir o jogo; os hooks instalados ali valem o jogo inteiro. Sem ela, o mod não
+carrega.
 
 As linhas do hook são o esqueleto de quase todo mod:
 
@@ -468,18 +477,19 @@ Como tudo isso funciona por dentro (os slots, a cadeia, o despachante) está em
 ## Texturas e desenho
 
 `bl.loadTexture('caminho.png')` carrega um PNG ou JPG do mod como `Texture2D`
-do jogo. O caminho é relativo a `content/`. Duas regras, que vêm da Unity:
+do jogo. O caminho é relativo a `content/`; as texturas do mod moram em
+`Assets/Textures/`. Duas regras, que vêm da Unity:
 
 1. só funciona com o jogo rodando, **na thread do jogo**: carregue dentro de
-   um hook, na primeira chamada, nunca no topo do `main.js` (que roda na carga,
-   noutra thread);
+   um hook, na primeira chamada, nunca no topo do `main.js` nem no `Load()`
+   (que rodam na carga, noutra thread);
 2. desenhar exige um `SpriteBatch` aberto.
 
 ```js
 let tex = null;
 Terraria.Main['void DrawInterface(GameTime gameTime)'].hook((original, self, gt) => {
     original(self, gt);
-    if (!tex) tex = bl.loadTexture('meu.png');
+    if (!tex) tex = bl.loadTexture('Assets/Textures/meu.png');
     const sb = Terraria.Main.spriteBatch;
     sb['void Begin(SpriteSortMode sortMode, bool defferedBatch)'](0, true);
     sb['void Draw(Texture2D texture, Vector2 position, Color color)'](tex, Vector2.new(100, 100), Color.White);
@@ -497,12 +507,16 @@ Um mod pode se dividir em arquivos com `import`/`export`, sempre com caminho
 **relativo** e dentro do próprio mod:
 
 ```js
-// content/util/dano.js
+// content/Common/Util.js
 export function dobra(item) { item.damage *= 2; }
 
 // content/main.js
-import { dobra } from './util/dano.js';
+import { dobra } from './Common/Util.js';
 ```
+
+Os arquivos de `Content/` e `Common/` nem precisam de `import`: o Bunny Loader
+os carrega sozinho e registra as classes de conteúdo que eles exportam
+([README](README.md#o-registro-automático)).
 
 Cada arquivo é um **módulo**: o que um mod declara (`const Update = ...`) não
 colide com o de outro mod. `bl.readJson('config.json')` lê um JSON do mod (ou
@@ -517,7 +531,7 @@ bl.mod.name            // "Dano em Dobro" (do manifest.json)
 bl.mod.id              // "danoemdobro"
 bl.mod.version         // "1.0.0"
 bl.mod.uuid            // o uid
-bl.mod.path            // a pasta do main.js
+bl.mod.path            // a pasta do main.js (content/)
 bl.mod.root            // a pasta do pacote (a do manifest.json)
 bl.mod.dataDirectory   // Android/data/com.bunnyloader/mod_data/<uid>
 
@@ -532,11 +546,11 @@ bl.file.write(caminho, 'texto')          // ou Uint8Array; cria as pastas
 bl.file.append(caminho, 'mais texto')
 bl.file.delete(caminho)                  // true se apagou
 
-bl.directory.exists('Textures')
+bl.directory.exists('Assets/Textures')
 bl.directory.create(caminho)             // com as pastas do meio
 bl.directory.delete(caminho)             // e tudo dentro
-bl.directory.listFiles('Textures/Bg')    // ['Textures/Bg/a.png', ...]
-bl.directory.listDirectories('Textures')
+bl.directory.listFiles('Assets/Textures/Bg')   // ['Assets/Textures/Bg/a.png', ...]
+bl.directory.listDirectories('Assets/Textures')
 
 bl.path.join('a', 'b', 'c.png')          // 'a/b/c.png'
 bl.path.getName('x/y/z.png')             // 'z.png'
