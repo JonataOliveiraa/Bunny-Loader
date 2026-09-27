@@ -28,6 +28,8 @@ inline bool isNetHost() { return (netMode() & 2) != 0; }
 
 /** NetMessage.SendData(msgType, -1, -1, null, number): do servidor para todos. */
 void sendData(int msgType, int number);
+/** O mesmo, com number2 e number3 (ex.: 5 = SyncEquipment: jogador, casa, prefixo). */
+void sendData(int msgType, int number, float number2, float number3);
 
 /**
  * Manda "/bunny <command>" ao servidor. So faz sentido no cliente; devolve

@@ -65,7 +65,8 @@ import static bunny.CheatBridge.text;
  * O Editor e um painel no pe da tela, e nao uma janela por cima: o jogo segue
  * visivel e tocavel acima dele. Em tela cheia ele cobre o jogo e o congela
  * (o jogo so volta a andar quando o Editor minimiza ou fecha). Minimizado,
- * vira um icone flutuante de JS, que reabre em tela cheia. Com o teclado
+ * vira um icone flutuante de JS, que reabre como estava (janela ou tela
+ * cheia). Com o teclado
  * aberto, o painel sobe junto e
  * fica logo acima dele — sem a tela cheia de edicao que o Android poe no lugar
  * do jogo quando o aparelho esta deitado (IME_FLAG_NO_EXTRACT_UI), e sem
@@ -583,13 +584,6 @@ final class DevTools {
 
         // ---- mostrar, esconder, recolher ----
 
-        /** Pelo icone flutuante: volta em tela cheia. */
-        void showFullscreen() {
-            fullscreen = true;
-            fullButton.setText("Janela");
-            show();
-        }
-
         void show() {
             if (showing) return;
             showing = true;
@@ -671,8 +665,9 @@ final class DevTools {
             } catch (Throwable t) { }
             lp.leftMargin = clamp(x, 0, m.widthPixels - lp.width);
             lp.topMargin = clamp(y, 0, m.heightPixels - lp.height);
+            // Volta como estava ao minimizar: janela ou tela cheia.
             b.setOnTouchListener(new FloatDrag(act, new Runnable() {
-                @Override public void run() { showFullscreen(); }
+                @Override public void run() { show(); }
             }));
             act.addContentView(b, lp);
             floatIcon = b;

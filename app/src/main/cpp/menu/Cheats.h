@@ -12,14 +12,14 @@ namespace bl::runtime {
 // jogo. Resolve as refs necessarias na primeira chamada.
 void installCheats();
 
-// Da `stack` unidades de `type` ao jogador local (spawna no mundo, na posicao
-// dele). No-op fora do mundo (sem jogador). Deve ser chamada na thread do jogo.
+// Da `stack` unidades de `type` ao jogador local, DIRETO no inventario (Item
+// novo + SetDefaults nas casas vazias, completando as pilhas que ja existem);
+// arma e equipamento ocupam uma casa cada. O NewItem recusava itens que o jogo
+// nao deixa cair (o Primeiro Fractal). No multijogador, as casas mudadas vao
+// aos outros pela mensagem 5. No-op fora do mundo. Thread do jogo.
 //
-// `stack` importa: municao a 1 unidade e inutil — a Minishark nao atira com uma
-// bala so. O menu pede 999 para itens empilhaveis.
-//
-// `player` e o indice em Main.player (-1 = o local). No servidor, e para quem
-// pediu pela rede; no cliente, vira pedido ao servidor (ver NetRequests).
+// `player` e o indice em Main.player (-1 = o local). Outro jogador (pedido de
+// um cliente pela rede): o item cai no chao perto dele, pelo NewItem.
 void giveItem(int type, int stack, int player = -1);
 
 // Pede pra dar `type` ao jogador. THREAD-SAFE: pode ser chamada de qualquer

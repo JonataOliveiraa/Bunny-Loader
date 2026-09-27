@@ -336,8 +336,9 @@ Para um texto seu (a fala de um morador, a plaquinha do Bestiário):
 ## O Mod Menu
 
 Todo item, NPC e buff registrado já aparece no **Mod Menu** (o coelho na tela
-do jogo), numa entrada com o nome do mod, nas pastas *Itens*, *NPCs* e
-*Buffs*, com o nome traduzido e o sprite:
+do jogo): em *Mods*, numa entrada com o nome do mod, nas pastas *Itens*,
+*NPCs* e *Buffs*, com o nome traduzido e o sprite (e também nas categorias do
+jogo, em *Itens*, *NPCs* e *Buffs*):
 
 ![A pasta de itens do Example Mod no Mod Menu](../imagens/mod-menu-itens.jpg)
 

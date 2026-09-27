@@ -445,7 +445,7 @@ public class CheatBridge {
     private static final class Section {
         static final int ITEM = 0, NPC = 1, POWER = 2, FOLDERS = 3, BUFF = 4;
 
-        final String group, title;
+        final String title;
         final int kind;
         /** Item: a classe do jogo que entra aqui, ou ALL_CLASSES. */
         final int itemClass;
@@ -470,28 +470,28 @@ public class CheatBridge {
         int[] ids;
         private String[] fixedSearch;
 
-        private Section(String group, String title, int kind, int itemClass,
+        private Section(String title, int kind, int itemClass,
                         String[] fixedNames, int[] fixedIds, String icon, int iconItem,
                         int defaultQty) {
-            this.group = group; this.title = title; this.kind = kind;
+            this.title = title; this.kind = kind;
             this.itemClass = itemClass; this.fixedNames = fixedNames; this.fixedIds = fixedIds;
             this.icon = icon; this.iconItem = iconItem; this.defaultQty = defaultQty;
         }
 
         static Section items(String title, int itemClass, String icon, int iconItem, int qty) {
-            return new Section("ITENS", title, ITEM, itemClass, null, null, icon, iconItem, qty);
+            return new Section(title, ITEM, itemClass, null, null, icon, iconItem, qty);
         }
 
         /** Uma subcategoria de item (sub = -1: a classe inteira, "Todos"). */
         static Section itemSub(String title, int itemClass, int sub, int qty) {
-            Section s = new Section("ITENS", title, ITEM, itemClass, null, null, null, 0, qty);
+            Section s = new Section(title, ITEM, itemClass, null, null, null, 0, qty);
             s.subClass = sub;
             return s;
         }
 
         /** Classe de NPC (-1 = todos). */
         static Section npcClass(String title, int cls) {
-            Section s = new Section("MUNDO", title, NPC, ALL_CLASSES, null, null, null, 0, 1);
+            Section s = new Section(title, NPC, ALL_CLASSES, null, null, null, 0, 1);
             s.subClass = cls;
             s.iconKind = SPR_NPC;
             return s;
@@ -499,7 +499,7 @@ public class CheatBridge {
 
         /** Classe de buff (-1 = todos). */
         static Section buffClass(String title, int cls) {
-            Section s = new Section("BUFFS", title, BUFF, ALL_CLASSES, null, null, null, 0, 5);
+            Section s = new Section(title, BUFF, ALL_CLASSES, null, null, null, 0, 5);
             s.subClass = cls;
             s.iconKind = SPR_BUFF;
             return s;
@@ -510,29 +510,45 @@ public class CheatBridge {
          * Espadas...). As listas vem do catalogo: as vazias somem quando ele fica
          * pronto.
          */
-        static Section group(String group, String title, String icon, int iconItem, int iconKind,
+        static Section group(String title, String icon, int iconItem, int iconKind,
                              Section[] children) {
-            Section s = new Section(group, title, FOLDERS, ALL_CLASSES, null, null, icon, iconItem, 0);
+            Section s = new Section(title, FOLDERS, ALL_CLASSES, null, null, icon, iconItem, 0);
             s.iconKind = iconKind;
             s.children = children;
             s.fromCatalog = true;
+            s.childOne = "categoria";
+            s.childMany = "categorias";
             return s;
         }
 
         /** FOLDERS cujas pastas vem do catalogo (e nao de um mod). */
         boolean fromCatalog;
+        /** FOLDERS: como contar o que tem dentro ("1 pasta", "3 pastas"). */
+        String childOne = "pasta", childMany = "pastas";
+
+        /** A entrada "Mods": um por linha. Icone do primeiro mod. */
+        static Section mods(Section[] mods) {
+            Section first = mods[0];
+            Section s = new Section("Mods", FOLDERS, ALL_CLASSES, null, null, null, first.iconItem, 0);
+            s.iconFile = first.iconFile;
+            s.iconKind = first.iconKind;
+            s.children = mods;
+            s.childOne = "mod";
+            s.childMany = "mods";
+            return s;
+        }
 
         static Section npcs(String title, String[] n, int[] i, String icon) {
-            return new Section("MUNDO", title, NPC, ALL_CLASSES, n, i, icon, 0, 1);
+            return new Section(title, NPC, ALL_CLASSES, n, i, icon, 0, 1);
         }
 
         static Section powers(String title, int iconItem) {
-            return new Section("PODERES", title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
+            return new Section(title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
         }
 
         /** Uma pasta de mod: os itens (NPCs, buffs) que estao nela. */
         static Section modFolder(String title, String icon, int kind, int[] ids) {
-            Section s = new Section("MODS", title, kind, ALL_CLASSES, null, ids,
+            Section s = new Section(title, kind, ALL_CLASSES, null, ids,
                 null, ids[0], kind == BUFF ? 5 : 1);
             s.iconFile = icon == null || icon.length() == 0 ? null : icon;
             s.iconKind = kind == NPC ? SPR_NPC : kind == BUFF ? SPR_BUFF : SPR_ITEM;
@@ -542,7 +558,7 @@ public class CheatBridge {
         /** A entrada do mod na coluna: abre as pastas. Icone do mod, ou o da 1a pasta. */
         static Section modGroup(String title, String icon, Section[] folders) {
             Section first = folders[0];
-            Section s = new Section("MODS", title, FOLDERS, ALL_CLASSES, null, null, null,
+            Section s = new Section(title, FOLDERS, ALL_CLASSES, null, null, null,
                 first.iconItem, 0);
             s.iconFile = icon == null || icon.length() == 0 ? first.iconFile : icon;
             s.iconKind = first.iconKind;
@@ -658,41 +674,50 @@ public class CheatBridge {
     }
 
     /**
-     * "Todos" fica NO grupo, em cima, e nao num grupo seu no pe da coluna: e a
-     * mesma lista das secoes de baixo, sem o filtro de classe.
+     * O aside: Superpoderes, Itens, NPCs, Buffs e Mods. Cada um abre as
+     * categorias dele, e uma categoria pode abrir subcategorias (Itens ->
+     * Corpo a corpo -> Espadas; Mods -> o mod -> as pastas dele). "Todos"
+     * fica NA categoria, em cima: e a mesma lista das de baixo, sem filtro.
      */
     private static Section[] sections() {
         ArrayList<Section> l = new ArrayList<Section>();
         // Sigilo Celestial. A Estrela Cadente era a primeira ideia, mas o PNG
         // dela e uma tira de 8 quadros e saia como um risco.
         l.add(Section.powers("Superpoderes", 3601));
-        // O que os mods trouxeram vem logo depois dos poderes: e o que a pessoa
-        // instalou para ver, e no meio de doze secoes do jogo sumiria.
-        addModSections(l);
-        l.add(Section.items("Todos os itens", ALL_CLASSES, "ic_sec_tudo_item", 0, 999));
-        l.add(classGroup("Corpo a corpo", CL_MELEE, "ic_sec_melee", 0, 1));
-        l.add(classGroup("À distância", CL_RANGED, "ic_sec_ranged", 0, 1));
-        l.add(classGroup("Magia", CL_MAGIC, "ic_sec_magia", 0, 1));
-        l.add(classGroup("Invocação", CL_SUMMON, "ic_sec_invoc", 0, 1));
-        l.add(classGroup("Munição", CL_AMMO, null, 40, 999));          // Flecha de Madeira
-        l.add(classGroup("Ferramentas", CL_TOOL, null, 3521, 1));      // Picareta de Ouro
-        l.add(classGroup("Acessórios", CL_ACCESSORY, "ic_sec_acess", 0, 1));
-        l.add(classGroup("Armaduras", CL_ARMOR, null, 231, 1));        // Elmo Derretido
-        l.add(classGroup("Poções e comida", CL_POTION, "ic_sec_util", 0, 999));
-        l.add(classGroup("Blocos e móveis", CL_BLOCK, "ic_sec_blocos", 0, 999));
-        l.add(classGroup("Outros", CL_OTHER, null, 29, 999));           // Cristal de Vida
-        // NPCs: uma entrada, com Chefes, Monstros... dentro.
+
+        Section[] items = {
+            Section.items("Todos os itens", ALL_CLASSES, "ic_sec_tudo_item", 0, 9999),
+            classGroup("Corpo a corpo", CL_MELEE, "ic_sec_melee", 0, 1),
+            classGroup("À distância", CL_RANGED, "ic_sec_ranged", 0, 1),
+            classGroup("Magia", CL_MAGIC, "ic_sec_magia", 0, 1),
+            classGroup("Invocação", CL_SUMMON, "ic_sec_invoc", 0, 1),
+            classGroup("Munição", CL_AMMO, null, 40, 9999),          // Flecha de Madeira
+            classGroup("Ferramentas", CL_TOOL, null, 3521, 1),       // Picareta de Ouro
+            classGroup("Acessórios", CL_ACCESSORY, "ic_sec_acess", 0, 1),
+            classGroup("Armaduras", CL_ARMOR, null, 231, 1),         // Elmo Derretido
+            classGroup("Poções e comida", CL_POTION, "ic_sec_util", 0, 9999),
+            classGroup("Blocos e móveis", CL_BLOCK, "ic_sec_blocos", 0, 9999),
+            classGroup("Outros", CL_OTHER, null, 29, 9999),          // Cristal de Vida
+        };
+        l.add(Section.group("Itens", "ic_sec_tudo_item", 0, SPR_ITEM, items));
+
         Section[] npcs = {
             Section.npcClass("Todos", -1), Section.npcClass("Chefes", NPC_BOSS),
             Section.npcClass("Monstros", NPC_MONSTER), Section.npcClass("Moradores", NPC_TOWN),
             Section.npcClass("Criaturas", NPC_CRITTER), Section.npcClass("Outros", NPC_OTHER),
         };
-        l.add(Section.group("MUNDO", "NPCs", "ic_sec_tudo_npc", 0, SPR_NPC, npcs));
+        l.add(Section.group("NPCs", "ic_sec_tudo_npc", 0, SPR_NPC, npcs));
+
         Section[] buffs = new Section[BUFF_CLASS_NAMES.length + 1];
         buffs[0] = Section.buffClass("Todos", -1);
         for (int c = 1; c < BUFF_CLASS_NAMES.length; c++) buffs[c] = Section.buffClass(BUFF_CLASS_NAMES[c], c);
         buffs[BUFF_CLASS_NAMES.length] = Section.buffClass(BUFF_CLASS_NAMES[0], 0);
-        l.add(Section.group("BUFFS", "Buffs", null, 3, SPR_BUFF, buffs));   // Regeneracao
+        l.add(Section.group("Buffs", null, 3, SPR_BUFF, buffs));   // Regeneracao
+
+        // O que os mods trouxeram: um por linha, cada um com as pastas dele.
+        ArrayList<Section> mods = new ArrayList<Section>();
+        addModSections(mods);
+        if (!mods.isEmpty()) l.add(Section.mods(mods.toArray(new Section[0])));
         return l.toArray(new Section[0]);
     }
 
@@ -703,7 +728,7 @@ public class CheatBridge {
         children[0] = Section.itemSub("Todos", cls, -1, qty);
         for (int k = 1; k < names.length; k++) children[k] = Section.itemSub(names[k], cls, k, qty);
         children[names.length] = Section.itemSub(names[0], cls, 0, qty);
-        return Section.group("ITENS", title, icon, iconItem, SPR_ITEM, children);
+        return Section.group(title, icon, iconItem, SPR_ITEM, children);
     }
 
     // ------------------------------ poderes ------------------------------
@@ -1437,15 +1462,6 @@ public class CheatBridge {
         private float x0, y0;
         private int m0x, m0y;
         private boolean dragging;
-        // Toque longo, parado: abre o console JS direto, sem passar pelo menu.
-        private boolean longFired;
-        private final Runnable longPress = new Runnable() {
-            @Override public void run() {
-                if (dragging || !sMenuOn || !sEditorOn) return;
-                longFired = true;
-                DevTools.openConsole(act);
-            }
-        };
 
         DragHandler(Activity a) {
             act = a;
@@ -1461,28 +1477,22 @@ public class CheatBridge {
                     m0x = lp.leftMargin;
                     m0y = lp.topMargin;
                     dragging = false;
-                    longFired = false;
-                    v.postDelayed(longPress, ViewConfiguration.getLongPressTimeout());
                     return true;
                 case MotionEvent.ACTION_MOVE:
                     float dx = e.getRawX() - x0, dy = e.getRawY() - y0;
                     if (!dragging && Math.abs(dx) < touchSlop && Math.abs(dy) < touchSlop) return true;
                     dragging = true;
-                    v.removeCallbacks(longPress);
                     View parent = (View) v.getParent();
                     lp.leftMargin = clamp(m0x + dx, 0, parent.getWidth() - v.getWidth());
                     lp.topMargin = clamp(m0y + dy, 0, parent.getHeight() - v.getHeight());
                     v.setLayoutParams(lp);
                     return true;
                 case MotionEvent.ACTION_UP:
-                    v.removeCallbacks(longPress);
-                    if (longFired) return true;
                     if (dragging) savePosition(act, lp);
                     else if (sMenuOn) toggleMenu(act);
                     else DevTools.openConsole(act);
                     return true;
                 case MotionEvent.ACTION_CANCEL:
-                    v.removeCallbacks(longPress);
                     if (dragging) savePosition(act, lp);
                     return true;
                 default:
@@ -1632,16 +1642,11 @@ public class CheatBridge {
         aside.addView(asideScroll, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
 
+        // So os botoes: as categorias ficam dentro de cada um.
         final View[] buttons = new View[all.length];
-        String group = null;
+        asideList.setPadding(0, px(act, 8), 0, 0);
         for (int i = 0; i < all.length; i++) {
             final Section s = all[i];
-            if (!s.group.equals(group)) {
-                group = s.group;
-                TextView g = text(act, group, 10, INK_DIM);
-                g.setPadding(px(act, 4), px(act, 10), 0, px(act, 4));
-                asideList.addView(g);
-            }
             final int index = i;
             LinearLayout b = new LinearLayout(act);
             b.setOrientation(LinearLayout.HORIZONTAL);
@@ -1742,8 +1747,12 @@ public class CheatBridge {
      *
      * A SeekBar do Android traz o tema do aparelho junto — pilula cinza, bolinha
      * com halo de toque, a cor de destaque do sistema — e destoa de tudo em
-     * volta. Aqui e um sulco escuro, o preenchido em verde e uma alca quadrada
-     * com contorno, que e como o Terraria desenha barra.
+     * volta. Aqui e um sulco escuro, o preenchido em verde e uma alca, tudo de
+     * canto reto e com contorno, que e como o Terraria desenha barra.
+     *
+     * Com teto alto (9999 itens), a barra anda em curva: linear, cada pixel
+     * valia dezenas de itens e nao dava para pedir 5. Assim o comeco da barra
+     * e fino (um decimo dela chega a ~100) e o fim chega ao teto.
      */
     private static final class Range extends View {
         private final int max;
@@ -1762,6 +1771,17 @@ public class CheatBridge {
 
         int value() { return value; }
 
+        /** Posicao (0..1) -> valor, e o inverso. Curva so com teto alto. */
+        private boolean curved() { return max > 1000; }
+        private float toPosition(int v) {
+            float t = (v - 1) / (float) (max - 1 == 0 ? 1 : max - 1);
+            return curved() ? (float) Math.sqrt(t) : t;
+        }
+        private int fromPosition(float t) {
+            float f = curved() ? t * t : t;
+            return 1 + Math.round(f * (max - 1));
+        }
+
         @Override protected void onMeasure(int wSpec, int hSpec) {
             setMeasuredDimension(resolveSize(px((Activity) getContext(), barUnits((Activity) getContext())), wSpec),
                                  resolveSize((int) (handle * 1.7f + px((Activity) getContext(), 4)), hSpec));
@@ -1772,19 +1792,17 @@ public class CheatBridge {
             final float groove = px((Activity) getContext(), 10);
             final float x0 = handle / 2f, x1 = getWidth() - handle / 2f;
             final float top = mid - groove / 2f, base = mid + groove / 2f;
-            final float radius = groove / 2f;
 
             paint.setStyle(Paint.Style.FILL);
             paint.setColor(OUTLINE);
-            c.drawRoundRect(x0 - border, top - border, x1 + border, base + border, radius, radius, paint);
+            c.drawRect(x0 - border, top - border, x1 + border, base + border, paint);
             paint.setColor(PANEL_DARK);
-            c.drawRoundRect(x0, top, x1, base, radius, radius, paint);
+            c.drawRect(x0, top, x1, base, paint);
 
-            final float t = (value - 1) / (float) (max - 1 == 0 ? 1 : max - 1);
-            final float cx = x0 + (x1 - x0) * t;
+            final float cx = x0 + (x1 - x0) * toPosition(value);
             if (cx > x0) {
                 paint.setColor(GRASS);
-                c.drawRoundRect(x0, top, cx, base, radius, radius, paint);
+                c.drawRect(x0, top, cx, base, paint);
             }
 
             // A alca e MAIS ALTA que o sulco e e BRANCA: dentro do verde do
@@ -1792,12 +1810,10 @@ public class CheatBridge {
             // via onde pegar.
             final float handleH = handle * 1.7f;
             final float ax = cx - handle / 2f, ay = mid - handleH / 2f;
-            final float handleRadius = px((Activity) getContext(), 3);
             paint.setColor(OUTLINE);
-            c.drawRoundRect(ax, ay, ax + handle, ay + handleH, handleRadius, handleRadius, paint);
+            c.drawRect(ax, ay, ax + handle, ay + handleH, paint);
             paint.setColor(0xFFFFFFFF);
-            c.drawRoundRect(ax + border, ay + border, ax + handle - border, ay + handleH - border,
-                            handleRadius, handleRadius, paint);
+            c.drawRect(ax + border, ay + border, ax + handle - border, ay + handleH - border, paint);
             // Meia sombra embaixo: e assim que o jogo da volume a um botao.
             paint.setColor(0xFFB9C0D4);
             c.drawRect(ax + border, mid + handleH / 6f, ax + handle - border, ay + handleH - border, paint);
@@ -1811,7 +1827,7 @@ public class CheatBridge {
                     final float x0 = handle / 2f, x1 = getWidth() - handle / 2f;
                     float t = (e.getX() - x0) / Math.max(1f, x1 - x0);
                     if (t < 0) t = 0; else if (t > 1) t = 1;
-                    int next = 1 + Math.round(t * (max - 1));
+                    int next = fromPosition(t);
                     if (next != value) {
                         value = next;
                         invalidate();
@@ -1826,9 +1842,9 @@ public class CheatBridge {
         }
     }
 
-    /** Teto do slider. NPC e baixo de proposito: 10 chefes de uma vez trava. */
-    private static final int MAX_ITEM = 999;
-    private static final int MAX_NPC = 10;
+    /** Teto do slider: a pilha cheia do jogo (9999) e 99 NPCs de uma vez. */
+    private static final int MAX_ITEM = 9999;
+    private static final int MAX_NPC = 99;
     /** Buff: o slider e a duracao, em minutos. */
     private static final int MAX_BUFF_MIN = 60;
 
@@ -1896,31 +1912,56 @@ public class CheatBridge {
             buttons[i].setBackground(i == index ? highlight(act) : null);
         }
         final Section s = all[index];
-        final Runnable redraw = new Runnable() {
-            @Override public void run() {
-                if (sCurrentSection == index) select(act, content, all, buttons, index);
-            }
-        };
         if (s.kind == Section.POWER) { content.removeAllViews(); showPowers(act, content, s); return; }
-        if (s.kind == Section.FOLDERS) { showFolders(act, content, s, index); return; }
-        showList(act, content, s, redraw, null);
+        open(act, content, s, index, null);
     }
 
     /**
-     * A entrada de um mod: as pastas dele, uma por linha. Tocar abre a lista
-     * da pasta, que tem a seta de voltar para ca.
+     * Mostra uma entrada, de qualquer nivel: categorias (FOLDERS) ou a lista.
+     * `back`, se houver, e a seta de voltar ao nivel de cima. `index` e o
+     * botao do aside de onde se veio: o que chega depois (o catalogo ficou
+     * pronto) so redesenha se a pessoa ainda estiver nele.
+     */
+    private static void open(final Activity act, final LinearLayout content, final Section s,
+                             final int index, final Runnable back) {
+        if (s.kind == Section.FOLDERS) { showFolders(act, content, s, index, back); return; }
+        final Runnable[] redraw = { null };
+        redraw[0] = new Runnable() {
+            @Override public void run() {
+                if (sCurrentSection == index) showList(act, content, s, redraw[0], back);
+            }
+        };
+        showList(act, content, s, redraw[0], back);
+    }
+
+    /** "12 categorias", "1 pasta", "340 itens": o que uma linha tem dentro. */
+    private static String contents(Section f) {
+        if (f.kind == Section.FOLDERS) {
+            int n = f.children.length;
+            return n + " " + (n == 1 ? f.childOne : f.childMany);
+        }
+        int n = f.total();
+        return n + (f.npc() ? (n == 1 ? " NPC" : " NPCs")
+                  : f.buff() ? (n == 1 ? " buff" : " buffs")
+                  : (n == 1 ? " item" : " itens"));
+    }
+
+    /**
+     * Uma entrada com categorias dentro (Itens, NPCs, um mod...), uma por
+     * linha. Tocar abre a categoria (outra lista de categorias, ou a lista de
+     * itens), que tem a seta de voltar para ca.
      */
     private static void showFolders(final Activity act, final LinearLayout content,
-                                    final Section mod, final int index) {
+                                    final Section mod, final int index, final Runnable up) {
         content.removeAllViews();
         if (mod.fromCatalog && sCatalog == null) {
             // As subcategorias vem do catalogo: o girassol ate ele ficar pronto.
-            content.addView(buildHeader(act, mod, null));
+            content.addView(buildHeader(act, mod, null, up));
             content.addView(loadingView(act, "Lendo o catálogo do jogo, no seu idioma..."),
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
             withCatalog(act, new Runnable() {
                 @Override public void run() {
-                    if (sCurrentSection == index) showFolders(act, content, mod, index);
+                    if (sCurrentSection == index) showFolders(act, content, mod, index, up);
                 }
             });
             return;
@@ -1928,18 +1969,19 @@ public class CheatBridge {
         // Subcategoria vazia (nenhum item dela neste jogo) nao aparece.
         final ArrayList<Section> shown = new ArrayList<Section>();
         for (Section f : mod.children) {
-            f.load();
-            if (!mod.fromCatalog || f.subClass < 0 || f.total() > 0) shown.add(f);
+            if (f.kind != Section.FOLDERS) f.load();
+            if (!mod.fromCatalog || f.kind == Section.FOLDERS || f.subClass < 0 || f.total() > 0) shown.add(f);
         }
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = px(act, 6);
-        content.addView(buildHeader(act, mod, text(act, mod.fromCatalog ? ""
-            : shown.size() == 1 ? "1 pasta" : shown.size() + " pastas", 10, INK_DIM)), lp);
+        int n = shown.size();
+        content.addView(buildHeader(act, mod, text(act, n + " " + (n == 1 ? mod.childOne : mod.childMany),
+            10, INK_DIM), up), lp);
 
         final Runnable back = new Runnable() {
             @Override public void run() {
-                if (sCurrentSection == index) showFolders(act, content, mod, index);
+                if (sCurrentSection == index) showFolders(act, content, mod, index, up);
             }
         };
         LinearLayout rows = new LinearLayout(act);
@@ -1953,10 +1995,7 @@ public class CheatBridge {
             TextView name = text(act, folder.title, 14, INK);
             name.setPadding(px(act, 8), 0, 0, 0);
             r.addView(name);
-            final int n = folder.total();
-            TextView count = text(act, n + (folder.npc() ? (n == 1 ? " NPC" : " NPCs")
-                                          : folder.buff() ? (n == 1 ? " buff" : " buffs")
-                                          : (n == 1 ? " item" : " itens")), 10, INK_DIM);
+            TextView count = text(act, contents(folder), 10, INK_DIM);
             count.setPadding(px(act, 8), 0, 0, px(act, 2));
             r.addView(count, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
@@ -1964,15 +2003,7 @@ public class CheatBridge {
             r.addView(enter);
             r.setBackground(panel(act, PANEL_DARK, OUTLINE));
             r.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    final Runnable[] redraw = { null };
-                    redraw[0] = new Runnable() {
-                        @Override public void run() {
-                            if (sCurrentSection == index) showList(act, content, folder, redraw[0], back);
-                        }
-                    };
-                    showList(act, content, folder, redraw[0], back);
-                }
+                @Override public void onClick(View v) { open(act, content, folder, index, back); }
             });
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -2047,9 +2078,9 @@ public class CheatBridge {
         final int initial = Math.min(max, Math.max(1, s.defaultQty));
         final int[] qty = { initial };
         final TextView qtyLabel = text(act, qtyText(s, initial), 12, INK);
-        // Largura de "x999" fixa: sem isto a barra pulava para o lado a cada
+        // Largura de "x9999" fixa: sem isto a barra pulava para o lado a cada
         // digito que o numero ganhava ou perdia.
-        qtyLabel.setWidth(px(act, s.buff() ? 58 : 40));
+        qtyLabel.setWidth(px(act, s.buff() ? 58 : 48));
         qtyLabel.setSingleLine(true);
         qtyLabel.setGravity(Gravity.END);
         final Range qtyBar = new Range(act, max, initial);

@@ -69,10 +69,19 @@ const MethodInfo* g_getGameMenu = nullptr; // Main.get_gameMenu(), tambem proper
 const MethodInfo* g_newItem = nullptr;   // Item.NewItem(9 args, tudo primitivo)
 const MethodInfo* g_newNpc = nullptr;    // NPC.NewNPC(source, X, Y, Type, ...)
 const MethodInfo* g_sourceCtor = nullptr;  // EntitySource_DebugCommand.ctor()
+// Dar item direto no inventario: Item.new() + SetDefaults, como `player.inventory[i] = Item.new()`.
+Il2CppClass* g_itemType = nullptr;          // Terraria.Item
+const MethodInfo* g_itemCtor = nullptr;      // Item..ctor()
+const MethodInfo* g_setDefaults = nullptr;   // Item.SetDefaults(int Type, ItemVariant variant)
+int32_t g_offInventory = -1;                 // Player.inventory (Item[])
+int32_t g_offItemType = -1, g_offItemStack = -1, g_offItemMaxStack = -1;
 Il2CppClass* g_sourceClass = nullptr;
 bool g_refsOk = false;
 
 constexpr int kMsgSyncNpc = 23;           // MessageID.SyncNPC
+constexpr int kMsgSyncEquipment = 5;      // MessageID.SyncEquipment (uma casa do inventario)
+constexpr int kMainInventory = 50;        // inventory[0..49]; depois vem moedas e municao
+constexpr int kMaxSpawn = 99;             // o teto do slider de NPC
 
 // Desempacota um int boxed (retorno de runtime_invoke). O valor vem logo apos
 // o cabecalho do objeto.
@@ -108,6 +117,19 @@ bool resolveCheatRefs() {
             "int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, "
             "float ai0, float ai1, float ai2, float ai3, int Target)"));
     }
+    g_itemType = item;
+    g_itemCtor = findMethodBySignature(item, parseSignature("void .ctor()"));
+    g_setDefaults = findMethodBySignature(item, parseSignature("void SetDefaults(int Type, ItemVariant variant)"));
+    g_offItemType = fieldOffset(item, "type");
+    g_offItemStack = fieldOffset(item, "stack");
+    g_offItemMaxStack = fieldOffset(item, "maxStack");
+    if (Il2CppClass* player = findClass({"Terraria", "Player", {}})) g_offInventory = fieldOffset(player, "inventory");
+    if (!g_itemCtor || !g_setDefaults || g_offInventory < 0 || g_offItemType < 0 || g_offItemStack < 0 ||
+        g_offItemMaxStack < 0) {
+        BL_WARN("cheats: dar item no inventario indisponivel (ctor=%p SetDefaults=%p inventory=%d); cai no chao",
+                (const void*)g_itemCtor, (const void*)g_setDefaults, g_offInventory);
+    }
+
     g_sourceClass = findClass({"Terraria.DataStructures", "EntitySource_DebugCommand", {}});
     if (g_sourceClass) {
         g_sourceCtor = a.class_get_method_from_name(g_sourceClass, ".ctor", 0);
@@ -790,11 +812,27 @@ void giveBuff(int type, int seconds) {
     if (exc) BL_ERROR("cheats: AddBuff(%d) lancou excecao", type);
 }
 
+/**
+ * Itens obsoletos (ItemID.Sets.Deprecated: o Primeiro Fractal e outros) viram
+ * ar no fim do SetDefaults: o menu nao conseguia da-los, e o jogo os apagaria
+ * de novo ao carregar o personagem. Desligado uma vez, no primeiro quadro
+ * (antes da escolha de personagem). Eles nao caem no jogo normal: so chegam
+ * pelo menu ou pelo console.
+ */
+void allowDeprecatedItems() {
+    static bool done = false;
+    if (done) return;
+    done = true;
+    Il2CppArray* deprecated = staticArray("Terraria.ID", "ItemID", "Sets", "Deprecated");
+    if (deprecated) std::memset(arrayData(deprecated), 0, deprecated->length);
+}
+
 void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     // Daqui sai a identidade da thread do jogo: e a unica em que se pode criar
     // objeto de Unity (ver bl.loadTexture).
     runtime::noteGameThread();
     runSelftestOnce();
+    allowDeprecatedItems();
     updateInWorld();
     readNamesSlice();
     tickPowers();
@@ -818,7 +856,9 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     if (uint64_t req = g_pendingSpawn.exchange(0)) {
         int npcType = static_cast<int>(req >> 32);
         int spawnCount = static_cast<int>(req & 0xffffffffu);
-        for (int i = 0; i < spawnCount; ++i) spawnNpc(npcType);
+        // No cliente, UM pedido com a contagem: 99 pedidos seriam 99 mensagens de chat.
+        if (netMode() == 1) sendToServer("npc " + std::to_string(npcType) + " " + std::to_string(spawnCount));
+        else for (int i = 0; i < spawnCount; ++i) spawnNpc(npcType);
     }
     pollCommands();  // canal por arquivo (dev/adb) continua valendo
     g_origDoUpdate(self, gt, m);
@@ -851,7 +891,7 @@ void requestBuff(int type, int seconds) {
 
 void requestSpawn(int type, int count) {
     if (count < 1) count = 1;
-    if (count > 10) count = 10;   // teto do slider; 10 chefes ja e demais
+    if (count > kMaxSpawn) count = kMaxSpawn;   // o teto do slider
     if (type > 0) {
         g_pendingSpawn.store((static_cast<uint64_t>(type) << 32) |
                              static_cast<uint32_t>(count));
@@ -904,19 +944,100 @@ void spawnNpc(int type, int player) {
             type, x, y, idx, mode, player);
 }
 
+namespace {
+
+// Quantas unidades cabem numa casa: 1 para arma e equipamento (a tabela da
+// classificacao); sem ela, o maxStack que o SetDefaults deu.
+int stackCap(int type, Il2CppObject* item) {
+    if (type > 0 && static_cast<size_t>(type) < g_itemStack.size() && g_itemStack[type] > 0) return g_itemStack[type];
+    const int max = field<int32_t>(item, g_offItemMaxStack);
+    return max > 0 ? max : 1;
+}
+
+/**
+ * `stack` unidades de `type` direto no inventario (as 50 casas principais):
+ * completa as pilhas do mesmo item, depois ocupa as vazias com um Item novo
+ * (Item.new() + SetDefaults). Pelo NewItem, o jogo recusava itens que nao
+ * caem no chao (o Primeiro Fractal, por exemplo). Devolve quantas NAO
+ * couberam (inventario cheio).
+ */
+int giveToInventory(Il2CppObject* p, int type, int stack) {
+    auto& a = il2cpp::api();
+    auto* inv = field<Il2CppArray*>(p, g_offInventory);
+    if (!inv) return stack;
+    auto** slots = reinterpret_cast<Il2CppObject**>(arrayData(inv));
+    const int main = inv->length < kMainInventory ? static_cast<int>(inv->length) : kMainInventory;
+    Il2CppObject* exc = nullptr;
+    const int mine = unboxInt(a.runtime_invoke(g_getMyPlayer, nullptr, nullptr, &exc));
+    const bool sync = netMode() != 0;
+    // Uma pilha por pedido, como antes: 9999 espadas nao enchem o inventario.
+    if (type > 0 && static_cast<size_t>(type) < g_itemStack.size() && g_itemStack[type] > 0 &&
+        stack > g_itemStack[type]) {
+        stack = g_itemStack[type];
+    }
+    int left = stack;
+
+    auto newItem = [&](int slot) -> Il2CppObject* {
+        Il2CppObject* it = a.object_new(g_itemType);
+        Il2CppObject* exc = nullptr;
+        a.runtime_invoke(g_itemCtor, it, nullptr, &exc);
+        if (exc) return nullptr;
+        int t = type;
+        void* args[2] = {&t, nullptr};
+        a.runtime_invoke(g_setDefaults, it, args, &exc);
+        if (exc) { BL_ERROR("giveItem: SetDefaults(%d) lancou excecao", type); return nullptr; }
+        a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(inv), reinterpret_cast<void**>(&slots[slot]), it);
+        return it;
+    };
+    auto synced = [&](int slot) {
+        if (sync && mine >= 0) sendData(kMsgSyncEquipment, mine, static_cast<float>(slot), 0.0f);
+    };
+
+    for (int i = 0; i < main && left > 0; ++i) {
+        Il2CppObject* it = slots[i];
+        if (!it || field<int32_t>(it, g_offItemType) != type) continue;
+        const int have = field<int32_t>(it, g_offItemStack);
+        const int room = stackCap(type, it) - have;
+        if (room <= 0) continue;
+        const int add = left < room ? left : room;
+        field<int32_t>(it, g_offItemStack) = have + add;
+        left -= add;
+        synced(i);
+    }
+    for (int i = 0; i < main && left > 0; ++i) {
+        Il2CppObject* it = slots[i];
+        if (it && field<int32_t>(it, g_offItemType) > 0 && field<int32_t>(it, g_offItemStack) > 0) continue;
+        it = newItem(i);
+        if (!it) break;
+        const int cap = stackCap(type, it);
+        const int put = left < cap ? left : cap;
+        field<int32_t>(it, g_offItemStack) = put;
+        left -= put;
+        synced(i);
+    }
+    return left;
+}
+
+} // namespace
+
 void giveItem(int type, int stack, int player) {
     using namespace il2cpp;
     if (!g_refsOk) { BL_ERROR("cheats: refs nao prontas"); return; }
     auto& a = api();
 
-    // No cliente, o item criado pelo NewItem nao chegava ao inventario (o
-    // servidor e o dono dos itens do mundo). Pede a ele, como o NPC.
-    if (netMode() == 1) {
-        sendToServer("item " + std::to_string(type) + " " + std::to_string(stack));
-        return;
-    }
     Il2CppObject* p = playerAt(player);
     if (!p) { BL_WARN("giveItem: sem jogador %d (fora do mundo?)", player); return; }
+
+    // O jogador local recebe no inventario, sozinho ou no multijogador (o
+    // inventario e dele; as casas mudadas vao aos outros pela mensagem 5).
+    if ((player < 0 || p == localPlayer()) && g_itemCtor && g_setDefaults && g_offInventory >= 0 &&
+        g_offItemMaxStack >= 0) {
+        const int left = giveToInventory(p, type, stack > 0 ? stack : 1);
+        if (left > 0) BL_WARN("giveItem: inventario cheio; %d de %d ficaram de fora", left, type);
+        BL_INFO("giveItem: type=%d x%d pedido, no inventario (jogador %d)", type, stack, player);
+        return;
+    }
+    // Outro jogador (pedido pela rede de um cliente antigo): cai no chao perto dele.
 
     Vector2 pos = field<Vector2>(p, game().entity.position);
     int x = static_cast<int>(pos.x), y = static_cast<int>(pos.y);

@@ -85,7 +85,7 @@ void run(const Request& r) {
             BL_WARN("rede: jogador %d pediu NPC %d, fora da tabela", r.client, type);
             return;
         }
-        const int count = amount < 1 ? 1 : (amount > 10 ? 10 : amount);
+        const int count = amount < 1 ? 1 : (amount > 99 ? 99 : amount);   // o teto do menu
         for (int i = 0; i < count; ++i) spawnNpc(type, r.client);
     } else if (v == "item") {
         if (type <= 0 || type >= itemTypeCount()) {
@@ -114,9 +114,13 @@ int netMode() {
 }
 
 void sendData(int msgType, int number) {
+    sendData(msgType, number, 0.0f, 0.0f);
+}
+
+void sendData(int msgType, int number, float number2, float number3) {
     if (!g_sendData) return;
     int type = msgType, remote = -1, ignore = -1, n = number, n5 = 0, n6 = 0, n7 = 0;
-    float n2 = 0, n3 = 0, n4 = 0;
+    float n2 = number2, n3 = number3, n4 = 0;
     void* args[11] = { &type, &remote, &ignore, nullptr, &n, &n2, &n3, &n4, &n5, &n6, &n7 };
     Il2CppObject* exc = nullptr;
     il2cpp::api().runtime_invoke(g_sendData, nullptr, args, &exc);
