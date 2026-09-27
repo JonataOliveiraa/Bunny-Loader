@@ -19,9 +19,12 @@ import android.text.SpannableStringBuilder;
 import android.text.TextWatcher;
 import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
+import android.util.DisplayMetrics;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewConfiguration;
 import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
@@ -29,7 +32,6 @@ import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.FrameLayout;
-import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -58,10 +60,13 @@ import static bunny.CheatBridge.text;
 
 /**
  * As ferramentas de quem faz mod, dentro do jogo: reiniciar (os mods sao lidos
- * de novo da pasta) e o console JS.
+ * de novo da pasta) e o Editor de JS.
  *
- * O console e um painel no pe da tela, e nao uma janela por cima: o jogo segue
- * visivel e tocavel acima dele. Com o teclado aberto, o painel sobe junto e
+ * O Editor e um painel no pe da tela, e nao uma janela por cima: o jogo segue
+ * visivel e tocavel acima dele. Em tela cheia ele cobre o jogo e o congela
+ * (o jogo so volta a andar quando o Editor minimiza ou fecha). Minimizado,
+ * vira um icone flutuante de JS, que reabre em tela cheia. Com o teclado
+ * aberto, o painel sobe junto e
  * fica logo acima dele — sem a tela cheia de edicao que o Android poe no lugar
  * do jogo quando o aparelho esta deitado (IME_FLAG_NO_EXTRACT_UI), e sem
  * empurrar a tela do jogo para cima (SOFT_INPUT_ADJUST_NOTHING enquanto ele
@@ -87,27 +92,40 @@ final class DevTools {
         return sBloom;
     }
 
-    /** Uma linha com "Reiniciar" e "Console", embaixo das horas do dia. */
+    /**
+     * Uma linha com "Reiniciar" e "Editor", embaixo das horas do dia. Cada um
+     * pode ser desligado em Config > Desenvolvedor; sobrando um, ele ocupa a
+     * linha, e sem nenhum a linha nem aparece.
+     */
     static View menuButtons(final Activity act) {
         LinearLayout row = new LinearLayout(act);
         row.setOrientation(LinearLayout.HORIZONTAL);
+        if (!CheatBridge.sRestartOn && !CheatBridge.sEditorOn) {
+            row.setVisibility(View.GONE);
+            return row;
+        }
         View restart = pill(act, icon(act, bloom(act), 18), "Reiniciar", PANEL_DARK, 9f);
         restart.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { confirmRestart(act); }
         });
-        View console = pill(act, consoleBadge(act, 10), "Console", PANEL_DARK, 9f);
+        View console = pill(act, consoleBadge(act, 10), "Editor", PANEL_DARK, 9f);
         console.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (CheatBridge.sOverlay != null) CheatBridge.sOverlay.setVisibility(View.GONE);
                 openConsole(act);
             }
         });
-        LinearLayout.LayoutParams l = new LinearLayout.LayoutParams(0, px(act, 30), 1f);
-        l.rightMargin = px(act, 2);
-        row.addView(restart, l);
-        LinearLayout.LayoutParams r = new LinearLayout.LayoutParams(0, px(act, 30), 1f);
-        r.leftMargin = px(act, 2);
-        row.addView(console, r);
+        boolean both = CheatBridge.sRestartOn && CheatBridge.sEditorOn;
+        if (CheatBridge.sRestartOn) {
+            LinearLayout.LayoutParams l = new LinearLayout.LayoutParams(0, px(act, 30), 1f);
+            if (both) l.rightMargin = px(act, 2);
+            row.addView(restart, l);
+        }
+        if (CheatBridge.sEditorOn) {
+            LinearLayout.LayoutParams r = new LinearLayout.LayoutParams(0, px(act, 30), 1f);
+            if (both) r.leftMargin = px(act, 2);
+            row.addView(console, r);
+        }
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         lp.topMargin = px(act, 4);
@@ -391,20 +409,21 @@ final class DevTools {
     }
 
     /** O painel do console. Um por partida; fechar so o tira da tela. */
-    private static final class Console {
+    private static final class Console implements KeyboardListener {
         final Activity act;
         final LinearLayout panel;
         final View body;
         final TextView output;
         final ScrollView outputScroll;
         final EditText editor;
-        final TextView collapseButton;
+        final TextView fullButton;
         final Handler handler = new Handler(Looper.getMainLooper());
         KeyboardWatcher keyboard;
         int keyboardHeight;
         int savedSoftInput = -1;
-        boolean collapsed;
+        boolean fullscreen;
         boolean showing;
+        View floatIcon;
         int historyIndex = -1;
         String scratch = "";
         ValueAnimator slide;
@@ -436,12 +455,10 @@ final class DevTools {
             badge.setPadding(px(a, 6), 0, px(a, 6), 0);
             head.addView(badge, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, px(a, 26)));
-            TextView title = text(a, "Console JS", 13, INK);
+            TextView title = text(a, "Editor", 13, INK);
+            title.setSingleLine(true);
             title.setPadding(px(a, 8), 0, px(a, 6), 0);
-            head.addView(title);
-            TextView where = text(a, "na thread do jogo", 9, INK_DIM);
-            where.setSingleLine(true);
-            head.addView(where, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
             head.addView(iconButton(a, arrow(a, -90), "Anterior", new Runnable() {
                 @Override public void run() { history(-1); }
@@ -452,13 +469,18 @@ final class DevTools {
             head.addView(textButton(a, "Limpar", PANEL_DARK, new Runnable() {
                 @Override public void run() { clearOutput(); }
             }));
-            head.addView(iconButton(a, icon(a, bloom(a), 20), "Reiniciar", new Runnable() {
-                @Override public void run() { saveDraft(); hideKeyboard(); confirmRestart(act); }
-            }));
-            collapseButton = textButton(a, "_", PANEL_DARK, new Runnable() {
-                @Override public void run() { setCollapsed(!collapsed); }
+            if (CheatBridge.sRestartOn) {
+                head.addView(iconButton(a, icon(a, bloom(a), 20), "Reiniciar", new Runnable() {
+                    @Override public void run() { saveDraft(); hideKeyboard(); confirmRestart(act); }
+                }));
+            }
+            fullButton = textButton(a, "Tela cheia", PANEL_DARK, new Runnable() {
+                @Override public void run() { setFullscreen(!fullscreen); }
             });
-            head.addView(collapseButton);
+            head.addView(fullButton);
+            head.addView(textButton(a, "_", PANEL_DARK, new Runnable() {
+                @Override public void run() { minimize(); }
+            }));
             head.addView(iconButton(a, icon(a, sprite(a, "ic_fechar"), 20), "Fechar", new Runnable() {
                 @Override public void run() { hide(); }
             }));
@@ -524,7 +546,10 @@ final class DevTools {
                 }
             });
             editRow.addView(editor, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            LinearLayout runButton = pill(a, null, "Rodar", GRASS);
+            // O play do launcher (ic_start): o mesmo desenho do botao Jogar.
+            LinearLayout runButton = pill(a, icon(a, sprite(a, "ic_start"), 26), null, PANEL_DARK);
+            runButton.setContentDescription("Rodar");
+            runButton.setMinimumWidth(px(a, 44));
             runButton.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { run(); }
             });
@@ -536,10 +561,6 @@ final class DevTools {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             el.topMargin = px(a, 5);
             inner.addView(editRow, el);
-
-            // ---- simbolos ----
-            inner.addView(symbolBar(a), new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, px(a, 26)));
 
             panel.addView(inner, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -562,9 +583,18 @@ final class DevTools {
 
         // ---- mostrar, esconder, recolher ----
 
+        /** Pelo icone flutuante: volta em tela cheia. */
+        void showFullscreen() {
+            fullscreen = true;
+            fullButton.setText("Janela");
+            show();
+        }
+
         void show() {
             if (showing) return;
             showing = true;
+            removeFloatIcon();
+            place(0, false);
             panel.setVisibility(View.VISIBLE);
             // A tela do jogo nao sobe com o teclado: quem sobe e o painel.
             WindowManager.LayoutParams wl = act.getWindow().getAttributes();
@@ -573,11 +603,25 @@ final class DevTools {
                 | (savedSoftInput & WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE));
             keyboard = new KeyboardWatcher(act, this);
             handler.post(poll);
-            if (!collapsed) focusEditor();
+            focusEditor();
             scrollToEnd();
+            updateFreeze();
         }
 
+        /** O X: some o painel e o icone flutuante, e o jogo volta a andar. */
         void hide() {
+            removeFloatIcon();
+            dismiss();
+        }
+
+        /** O "_": o painel sai da tela e fica o icone de JS no lugar. */
+        void minimize() {
+            dismiss();
+            // Sem o Mod Menu, o botao flutuante do jogo ja e o de JS.
+            if (CheatBridge.sMenuOn) showFloatIcon();
+        }
+
+        private void dismiss() {
             if (!showing) return;
             showing = false;
             saveDraft();
@@ -592,15 +636,53 @@ final class DevTools {
             panel.setVisibility(View.GONE);
             if (savedSoftInput >= 0) act.getWindow().setSoftInputMode(savedSoftInput);
             handler.removeCallbacks(poll);
+            updateFreeze();
         }
 
-        void setCollapsed(boolean c) {
-            collapsed = c;
-            body.setVisibility(c ? View.GONE : View.VISIBLE);
-            collapseButton.setText(c ? "^" : "_");
-            if (c) hideKeyboard();
+        /** Tela cheia cobre o jogo e o congela; a janela deixa ele andar. */
+        void setFullscreen(boolean on) {
+            fullscreen = on;
+            fullButton.setText(on ? "Janela" : "Tela cheia");
             place(keyboardHeight, false);
-            if (!c) focusEditor();
+            updateFreeze();
+        }
+
+        /** Congelado so enquanto o Editor esta na tela, em tela cheia. */
+        void updateFreeze() {
+            try { CheatBridge.nSetGameFrozen(showing && fullscreen); } catch (Throwable t) { }
+        }
+
+        // ---- o icone flutuante (minimizado) ----
+
+        void showFloatIcon() {
+            if (floatIcon != null) return;
+            ImageView b = icon(act, sprite(act, "ic_js"), FLOAT_SIZE);
+            b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+            b.setBackground(panel(act, PANEL, OUTLINE));
+            b.setContentDescription("Editor");
+            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(px(act, FLOAT_SIZE), px(act, FLOAT_SIZE));
+            lp.gravity = Gravity.TOP | Gravity.START;
+            DisplayMetrics m = act.getResources().getDisplayMetrics();
+            // Na primeira vez, ao lado do coelho do Mod Menu (no alto e no meio).
+            int x = m.widthPixels / 2 + px(act, 30), y = px(act, 6);
+            try {
+                x = prefs(act).getInt("iconX", x);
+                y = prefs(act).getInt("iconY", y);
+            } catch (Throwable t) { }
+            lp.leftMargin = clamp(x, 0, m.widthPixels - lp.width);
+            lp.topMargin = clamp(y, 0, m.heightPixels - lp.height);
+            b.setOnTouchListener(new FloatDrag(act, new Runnable() {
+                @Override public void run() { showFullscreen(); }
+            }));
+            act.addContentView(b, lp);
+            floatIcon = b;
+        }
+
+        void removeFloatIcon() {
+            if (floatIcon == null) return;
+            ViewGroup parent = (ViewGroup) floatIcon.getParent();
+            if (parent != null) parent.removeView(floatIcon);
+            floatIcon = null;
         }
 
         void focusEditor() {
@@ -632,19 +714,20 @@ final class DevTools {
         }
 
         /** O teclado mudou de altura (0 = fechado): o painel vai para cima dele. */
-        void onKeyboard(int height) {
+        @Override public void onKeyboard(int height) {
             keyboardHeight = height;
             place(height, true);
         }
 
         void place(int kb, boolean animate) {
             final int fromBottom = layout.bottomMargin, fromHeight = panel.getHeight() > 0 ? panel.getHeight() : layout.height;
-            final int toBottom = kb + px(act, kb > 0 ? 4 : 8);
+            final int toBottom = fullscreen ? kb : kb + px(act, kb > 0 ? 4 : 8);
             int available = screenHeight() - toBottom - px(act, 8);
-            final int toHeight = collapsed ? ViewGroup.LayoutParams.WRAP_CONTENT
+            final int toHeight = fullscreen ? screenHeight() - kb
                 : Math.max(px(act, 90), Math.min(restingHeight(), available));
+            layout.leftMargin = layout.rightMargin = fullscreen ? 0 : px(act, 12);
             if (slide != null) slide.cancel();
-            if (!animate || collapsed) {
+            if (!animate) {
                 layout.bottomMargin = toBottom;
                 layout.height = toHeight;
                 panel.setLayoutParams(layout);
@@ -748,45 +831,6 @@ final class DevTools {
             try { prefs(act).edit().putString("draft", editor.getText().toString()).apply(); } catch (Throwable t) { }
         }
 
-        // ---- teclas ----
-
-        /** As teclas que o teclado do celular esconde, uma a um toque. */
-        View symbolBar(Activity a) {
-            HorizontalScrollView scroll = new HorizontalScrollView(a);
-            scroll.setHorizontalScrollBarEnabled(false);
-            LinearLayout row = new LinearLayout(a);
-            row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, px(a, 4), 0, 0);
-            final String[] keys = {"Tab", "(", ")", "{", "}", "[", "]", ";", ".", ",", "'", "\"", "`",
-                "=", "=>", "+", "-", "*", "/", "!", "<", ">", "&", "|", "?", ":", "_", "$"};
-            for (final String k : keys) {
-                TextView key = new TextView(a);
-                key.setText(k);
-                key.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-                applyTextSize(a, key, 9);
-                key.setTextColor(INK);
-                key.setGravity(Gravity.CENTER);
-                key.setBackground(panel(a, PANEL_DARK, OUTLINE));
-                key.setMinWidth(px(a, 30));
-                key.setPadding(px(a, 6), 0, px(a, 6), 0);
-                key.setOnClickListener(new View.OnClickListener() {
-                    @Override public void onClick(View v) { insert(k.equals("Tab") ? "  " : k); }
-                });
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
-                lp.rightMargin = px(a, 3);
-                row.addView(key, lp);
-            }
-            scroll.addView(row);
-            return scroll;
-        }
-
-        void insert(String s) {
-            int start = Math.max(0, editor.getSelectionStart()), end = Math.max(0, editor.getSelectionEnd());
-            editor.getText().replace(Math.min(start, end), Math.max(start, end), s);
-            if (!editor.hasFocus()) editor.requestFocus();
-        }
-
         private View iconButton(Activity a, View iconView, String description, final Runnable action) {
             FrameLayout b = new FrameLayout(a);
             b.setBackground(panel(a, PANEL_DARK, OUTLINE));
@@ -820,6 +864,68 @@ final class DevTools {
         }
     }
 
+    /** Lado do icone flutuante do Editor, o mesmo do coelho do Mod Menu. */
+    private static final float FLOAT_SIZE = 40;
+
+    private static int clamp(float v, int min, int max) {
+        if (max < min) max = min;
+        return Math.round(v < min ? min : v > max ? max : v);
+    }
+
+    /**
+     * O icone flutuante: toque abre, arrastar leva junto (e lembra onde ficou).
+     * Como o coelho do Mod Menu: move pelas margens, porque a Activity do jogo
+     * desenha por software e View transladada nao e redesenhada no lugar novo.
+     */
+    private static final class FloatDrag implements View.OnTouchListener {
+        private final Activity act;
+        private final Runnable onTap;
+        private final int touchSlop;
+        private float x0, y0;
+        private int m0x, m0y;
+        private boolean dragging;
+
+        FloatDrag(Activity a, Runnable tap) {
+            act = a;
+            onTap = tap;
+            touchSlop = ViewConfiguration.get(a).getScaledTouchSlop();
+        }
+
+        @Override public boolean onTouch(View v, MotionEvent e) {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    x0 = e.getRawX();
+                    y0 = e.getRawY();
+                    m0x = lp.leftMargin;
+                    m0y = lp.topMargin;
+                    dragging = false;
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    float dx = e.getRawX() - x0, dy = e.getRawY() - y0;
+                    if (!dragging && Math.abs(dx) < touchSlop && Math.abs(dy) < touchSlop) return true;
+                    dragging = true;
+                    View parent = (View) v.getParent();
+                    lp.leftMargin = clamp(m0x + dx, 0, parent.getWidth() - v.getWidth());
+                    lp.topMargin = clamp(m0y + dy, 0, parent.getHeight() - v.getHeight());
+                    v.setLayoutParams(lp);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    if (dragging) {
+                        try {
+                            prefs(act).edit().putInt("iconX", lp.leftMargin).putInt("iconY", lp.topMargin).apply();
+                        } catch (Throwable t) { }
+                    } else if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+                        onTap.run();
+                    }
+                    return true;
+                default:
+                    return false;
+            }
+        }
+    }
+
     /** As setas do menu, giradas: -90 aponta para cima, 90 para baixo. */
     private static View arrow(Activity a, float degrees) {
         ImageView v = icon(a, sprite(a, "ic_seta_dir"), 16);
@@ -838,17 +944,22 @@ final class DevTools {
      * em ADJUST_NOTHING, que e justamente quando a janela do jogo nao sabe do
      * teclado.
      */
-    private static final class KeyboardWatcher implements ViewTreeObserver.OnGlobalLayoutListener {
+    /** Quem quer saber a altura do teclado (0 = fechado). */
+    interface KeyboardListener {
+        void onKeyboard(int height);
+    }
+
+    static final class KeyboardWatcher implements ViewTreeObserver.OnGlobalLayoutListener {
         private final Activity act;
-        private final Console console;
+        private final KeyboardListener listener;
         private final View probe;
         private final PopupWindow popup;
         private final Rect frame = new Rect();
         private int last = -1;
 
-        KeyboardWatcher(Activity a, Console c) {
+        KeyboardWatcher(Activity a, KeyboardListener l) {
             act = a;
-            console = c;
+            listener = l;
             probe = new View(a);
             popup = new PopupWindow(probe, 0, ViewGroup.LayoutParams.MATCH_PARENT);
             popup.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
@@ -869,13 +980,14 @@ final class DevTools {
 
         @Override public void onGlobalLayout() {
             probe.getWindowVisibleDisplayFrame(frame);
-            int screen = console.screenHeight();
+            View decor = act.getWindow().getDecorView();
+            int screen = decor.getHeight() > 0 ? decor.getHeight() : act.getResources().getDisplayMetrics().heightPixels;
             int kb = screen - frame.bottom;
             // A barra de navegacao que aparece junto nao e teclado.
             if (kb < screen / 8) kb = 0;
             if (kb != last) {
                 last = kb;
-                console.onKeyboard(kb);
+                listener.onKeyboard(kb);
             }
         }
 

@@ -122,6 +122,8 @@ public class CheatBridge {
     public static native String[] nConsoleTake();
     /** Reiniciar o jogo: pede (salvando antes, se `save`) e pergunta se ja pode fechar. */
     public static native void nRequestRestart(boolean save);
+    /** Editor em tela cheia: o mundo para (Main.CanPauseGame, menu/DevTools.h). */
+    public static native void nSetGameFrozen(boolean on);
     public static native boolean nRestartReady();
 
     // --- paleta ---
@@ -1334,9 +1336,27 @@ public class CheatBridge {
 
     // ------------------------------ menu ------------------------------
 
+    // Config > Desenvolvedor do launcher (ui/Prefs.kt), lidas quando o jogo
+    // abre: o Mod Menu (o coelho), o Editor de JS e o Reiniciar. Sem o Mod
+    // Menu e com o Editor, o botao flutuante vira o de JS e abre o Editor.
+    static boolean sMenuOn = true, sEditorOn = true, sRestartOn = true;
+
+    private static void readDevSettings(Activity act) {
+        try {
+            SharedPreferences p = act.getSharedPreferences("settings", Activity.MODE_PRIVATE);
+            sMenuOn = p.getBoolean("devModMenu", true);
+            sEditorOn = p.getBoolean("devEditor", true);
+            sRestartOn = p.getBoolean("devRestart", true);
+        } catch (Throwable t) { /* fica tudo ligado */ }
+    }
+
     public static void install(final Activity act) {
         sActivity = act;
-        try { restorePowers(act); } catch (Throwable t) { /* sem os salvos, tudo desligado */ }
+        readDevSettings(act);
+        // Sem o Mod Menu nao ha como desligar um poder: nenhum volta ligado.
+        if (sMenuOn) {
+            try { restorePowers(act); } catch (Throwable t) { /* sem os salvos, tudo desligado */ }
+        }
         act.runOnUiThread(new Runnable() {
             @Override public void run() {
                 try { buildToggle(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
@@ -1358,10 +1378,11 @@ public class CheatBridge {
      * ficava por cima do menu do jogo. Aparece quando o jogador entra num mundo.
      */
     private static void buildToggle(final Activity act) {
-        ImageView b = icon(act, sprite(act, "ic_bunny_head"), BUTTON_SIZE);
+        if (!sMenuOn && !sEditorOn) return;
+        ImageView b = icon(act, sprite(act, sMenuOn ? "ic_bunny_head" : "ic_js"), BUTTON_SIZE);
         b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         b.setBackground(panel(act, PANEL, OUTLINE));
-        b.setContentDescription("Mod Menu");
+        b.setContentDescription(sMenuOn ? "Mod Menu" : "Editor");
         b.setOnTouchListener(new DragHandler(act));
         b.setVisibility(View.GONE);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
@@ -1420,7 +1441,7 @@ public class CheatBridge {
         private boolean longFired;
         private final Runnable longPress = new Runnable() {
             @Override public void run() {
-                if (dragging) return;
+                if (dragging || !sMenuOn || !sEditorOn) return;
                 longFired = true;
                 DevTools.openConsole(act);
             }
@@ -1456,7 +1477,9 @@ public class CheatBridge {
                 case MotionEvent.ACTION_UP:
                     v.removeCallbacks(longPress);
                     if (longFired) return true;
-                    if (dragging) savePosition(act, lp); else toggleMenu(act);
+                    if (dragging) savePosition(act, lp);
+                    else if (sMenuOn) toggleMenu(act);
+                    else DevTools.openConsole(act);
                     return true;
                 case MotionEvent.ACTION_CANCEL:
                     v.removeCallbacks(longPress);
@@ -1502,6 +1525,44 @@ public class CheatBridge {
         });
     }
 
+    // ---- o menu por cima do teclado ----
+    //
+    // Deitado, o teclado do celular ocupa mais da metade da altura: com o menu
+    // do tamanho da tela, a busca ficava visivel e a lista de resultados toda
+    // atras do teclado. Enquanto a busca tem o foco, o menu inteiro encolhe
+    // para o espaco acima dele, e a janela do jogo fica parada (ADJUST_NOTHING),
+    // sem ser empurrada. A altura vem do mesmo medidor do Editor.
+
+    private static LinearLayout sMenuBody;
+    private static DevTools.KeyboardWatcher sMenuKeyboard;
+    private static int sMenuSoftInput = -1;
+
+    static void menuKeyboard(final Activity act, boolean on) {
+        if (on) {
+            if (sMenuKeyboard != null) return;
+            sMenuSoftInput = act.getWindow().getAttributes().softInputMode;
+            act.getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+                | (sMenuSoftInput & android.view.WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE));
+            sMenuKeyboard = new DevTools.KeyboardWatcher(act, new DevTools.KeyboardListener() {
+                @Override public void onKeyboard(int height) { fitMenuAbove(act, height); }
+            });
+        } else {
+            if (sMenuKeyboard == null) return;
+            sMenuKeyboard.close();
+            sMenuKeyboard = null;
+            fitMenuAbove(act, 0);
+            if (sMenuSoftInput >= 0) act.getWindow().setSoftInputMode(sMenuSoftInput);
+        }
+    }
+
+    private static void fitMenuAbove(Activity act, int keyboard) {
+        if (sMenuBody == null) return;
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) sMenuBody.getLayoutParams();
+        lp.topMargin = px(act, keyboard > 0 ? 6 : 14);
+        lp.bottomMargin = keyboard > 0 ? keyboard + px(act, 6) : px(act, 14);
+        sMenuBody.setLayoutParams(lp);
+    }
+
     private static void toggleMenu(Activity act) {
         if (sOverlay != null) {
             sOverlay.setVisibility(
@@ -1536,6 +1597,7 @@ public class CheatBridge {
         blp.setMargins(px(act, 14), px(act, 14), px(act, 14), px(act, 14));
         body.setLayoutParams(blp);
         root.addView(body);
+        sMenuBody = body;
 
         // ---- coluna da direita (criada antes: o aside precisa preenche-la) ----
         final LinearLayout content = new LinearLayout(act);
@@ -1969,6 +2031,9 @@ public class CheatBridge {
         searchField.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI
             | android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN
             | android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+        searchField.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override public void onFocusChange(View v, boolean focus) { menuKeyboard(act, focus); }
+        });
         searchBox.addView(searchField, new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
