@@ -261,11 +261,12 @@ const TileSetsExtras = Object.freeze({
     IsValidSpawnPoint: TypeSet(false, { 79: true }),
     MultiTileSway: TypeSet(false),
     CanDropFromRightClick: TypeSet(false),
+    // Lido no PlaceThing pelo TileUseLoader (o jogo tem a lista fixa).
+    CanPlaceNextToNonSolidTile: TypeSet(false),
     // Só guardam o valor: o jogo daqui não os consulta.
     Clock: TypeSet(false),
     CanBeSloped: TypeSet(true),
     IgnoredByGrowingSaplings: TypeSet(false),
-    CanPlaceNextToNonSolidTile: TypeSet(false),
 });
 
 // O visual vestido do tModLoader (ArmorIDs.*.Sets): o jogo daqui decide por

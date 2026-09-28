@@ -13,6 +13,68 @@ class TileUseLoader {
         Safe.Run('baús de mod', TileUseLoader.#HookChests);
     }
 
+    // O smart-interact escolhe os alvos por uma lista fixa de tipos. Como o
+    // patch do tModLoader: o tile de mod entra pelo HasSmartInteract.
+    static HookSmartInteract() {
+        const Provider = Terraria.GameContent.ObjectInteractions.TileSmartInteractCandidateProvider;
+
+        Provider['void FillPotentialTargetTiles(SmartInteractScanSettings settings)'].hook((original, self, settings) => {
+            original(self, settings);
+
+            const found = bl.tiles.find('tile.smart', settings.LX, settings.LY, settings.HX, settings.HY);
+            for (let k = 0; k < found.length; k += 2) {
+                const i = found[k], j = found[k + 1];
+                const m = TileLoader.At(i, j);
+                if (!m || !Safe.Run(m.constructor.name + '.HasSmartInteract', () => m.HasSmartInteract(i, j, settings))) continue;
+
+                self.targets.Add(self['int JoinValue(int x, int y)'](i, j));
+            }
+        });
+    }
+
+    static WantNonSolidAnchor() {
+        Hooks.Once('tile.nonSolidAnchor', () => Safe.Run('colocar ao lado de não sólido', TileUseLoader.#HookNonSolidAnchor));
+    }
+
+    // O TileID.Sets.CanPlaceNextToNonSolidTile do tModLoader: o jogo tem a
+    // lista fixa (fogo vivo, moedas, teias...) no PlaceThing; para o tile de
+    // mod marcado, basta um vizinho com tile ou parede.
+    static #HookNonSolidAnchor() {
+        const Player = Terraria.Player;
+        const Sets = Terraria.ID.TileID.Sets;
+        const tileAt = (x, y) => Terraria.Main.tile['Tile get_Item(int x, int y)'](x, y);
+        const anchors = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+            const t = tileAt(x + dx, y + dy);
+            return (t.sTileHeader & 0x20) !== 0 || t.wall > 0;
+        });
+
+        Player['bool PlaceThing_Tiles_BlockPlacementForAssortedThings(bool canPlace)'].hook((original, self, canPlace) => {
+            const result = original(self, canPlace);
+            if (result) return result;
+
+            const type = self.inventory[self.selectedItemState.selected].createTile;
+            if (type < FIRST_TILE || !Sets.CanPlaceNextToNonSolidTile[type]) return result;
+
+            return anchors(Player.tileTargetX, Player.tileTargetY);
+        });
+    }
+
+    // O quadro em que cada jogador tocou por último num tile de mod.
+    static #lastPress = new Map();
+
+    // O toque começou agora? No PC é o releaseUseTile. No celular o toque num
+    // tile de mod começa mirando outro alvo e só chega ao tile no quadro
+    // seguinte, com o releaseUseTile já falso: vale o primeiro quadro com
+    // tileInteractAttempted depois de um sem.
+    static #FreshPress(player) {
+        if (!player.tileInteractAttempted) return false;
+
+        const frame = Terraria.Main.GameUpdateCount;
+        const last = TileUseLoader.#lastPress.get(player.whoAmI);
+        TileUseLoader.#lastPress.set(player.whoAmI, frame);
+        return player.releaseUseTile || last === undefined || frame - last > 1;
+    }
+
     static #HookInteract() {
         const Player = Terraria.Player;
         const at = TileLoader.At;
@@ -21,7 +83,7 @@ class TileUseLoader {
             const m = at(x, y);
             if (!m) return original(self, x, y);
 
-            const use = self.tileInteractAttempted && self.releaseUseTile;
+            const use = TileUseLoader.#FreshPress(self);
             const right = TileLoader.Overrides(m, 'RightClick');
             TileUseLoader.#Shadow(m.Type, right, () => original(self, x, y));
             if (!use) return undefined;

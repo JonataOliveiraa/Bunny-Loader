@@ -19,6 +19,11 @@ export class ExampleBoots extends ModItem {
         }
     }
 
+    // Um par de botas só: com outras botas, a troca pelo toque vai para o slot delas.
+    CanAccessoryBeEquippedWith(equippedItem, incomingItem, player) {
+        return !(equippedItem.shoeSlot > 0 && incomingItem.shoeSlot > 0);
+    }
+
     UpdateAccessory(item, player, vanity, hideVisual) {
         if (!vanity) {
             player.moveSpeed += this.MoveSpeedBonus / 100;

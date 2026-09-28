@@ -10,6 +10,17 @@ class ModProjectile {
 
     Clone(newProjectile) { return Entities.Clone(this); }
 
+    // Como o do tModLoader: roda antes do SetStaticDefaults, com this.Projectile
+    // já montado pelo SetDefaults. Sem o projHook, o botão de gancho do
+    // celular (QuickGrapple) não acha o item.
+    AutoStaticDefaults() {
+        const proj = this.Projectile;
+        if (!proj) return;
+
+        if (proj.hostile) Terraria.Main.projHostile[this.Type] = true;
+        if (proj.aiStyle === ProjAIStyleID.Hook) Terraria.Main.projHook[this.Type] = true;
+    }
+
     SetStaticDefaults() {}
     SetDefaults(proj) {}
     PostStaticDefaults() {}
@@ -86,8 +97,26 @@ class ModProjectile {
                 m.PostSetDefaults(proj);
             },
             setStaticDefaults(t) {
-                inst.SetStaticDefaults();
-                inst.PostStaticDefaults();
+                // O molde do tModLoader: um projétil com o SetDefaults do mod,
+                // visto como this.Projectile até o fim do SetStaticDefaults.
+                const template = Terraria.Projectile.new();
+                template['void .ctor()']();
+                template['void SetDefaults(int Type)'](t);
+
+                inst.__entity = bl.addressOf(template);
+                try {
+                    inst.AutoStaticDefaults();
+                    inst.SetStaticDefaults();
+                    inst.PostStaticDefaults();
+                } finally {
+                    inst.__entity = 0;
+                }
+
+                // O Damage do celular só chama o Colliding (os pontos do
+                // chicote, o Colliding do mod) para os tipos desta tabela; os
+                // outros ferem pela interseção com o retângulo do projétil.
+                const Sets = Terraria.ID.ProjectileID.Sets;
+                if (Sets.IsAWhip[t] || Hooks.Overrides(cls, ModProjectile, 'Colliding')) Sets.IsAComplexCollision[t] = true;
                 bl.projectiles.setFrames(t, Terraria.Main.projFrames[t]);
             },
         });

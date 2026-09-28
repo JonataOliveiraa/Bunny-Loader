@@ -39,9 +39,25 @@ class ModItem {
     OnHitNPC(item, player, npc, damageDone, knockBack, crit) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
+    // false recusa o par (arrastar para o slot e a troca pelo toque, que vai
+    // para o slot do que recusou). Chamado nos dois itens do par.
+    CanAccessoryBeEquippedWith(equippedItem, incomingItem, player) { return true; }
     // Acessório no slot de vaidade.
     UpdateVanity(item, player) {}
-    // Chamados para cada peça vestida (cabeça, corpo, pernas) que é de mod.
+    // O conjunto do 1.4.5 (tooltip "Bônus definido" e efeito pelo jogo): no
+    // AddArmorSets, CreateArmorSet(cabeça, corpo, pernas, texto) com os tipos;
+    // 0 é "qualquer". O texto é uma chave de tradução ou o próprio texto. O
+    // efeito é o UpdateArmorSet de cada peça de mod vestida.
+    AddArmorSets() {}
+    CreateArmorSet(head, body, legs, text = 'ArmorSetBonus.Empty', primaryPart = 0) {
+        ArmorSetLoader.CreateArmorSet(head, body, legs, text, primaryPart);
+    }
+    CreateArmorSets(heads = [0], bodies = [0], legs = [0], text = 'ArmorSetBonus.Empty', primaryPart = 0) {
+        for (const h of heads) for (const b of bodies) for (const l of legs) ArmorSetLoader.CreateArmorSet(h, b, l, text, primaryPart);
+    }
+    // O jeito do tModLoader, sem o tooltip do 1.4.5: chamados para cada peça
+    // vestida que é de mod. Com o CreateArmorSet, não sobrescreva o IsArmorSet
+    // (o efeito rodaria duas vezes).
     IsArmorSet(head, body, legs) { return false; }
     UpdateArmorSet(item, player) {}
 
@@ -241,6 +257,9 @@ class ModItem {
             setDefaults(item) {
                 EquipLoader.Install();
                 EquipLoader.Apply(item, inst.Type);
+                // O jogo faz isso no SetDefaults dele, que o item de mod não
+                // chama; sem o material, o Guia não o aceita.
+                item.material = Terraria.ID.ItemID.Sets.IsAMaterial[inst.Type];
 
                 const m = Entities.Bind(inst.Clone(item), item, 'ModItem');
                 m.SetDefaults(item);
@@ -269,6 +288,7 @@ class ModItem {
 
         Ready.Add(() => inst.AddRecipeGroups(), 'groups');
         Ready.Add(() => {
+            Safe.Run(name + '.AddArmorSets', () => inst.AddArmorSets());
             inst.AddRecipes();
             inst.PostSetupContent();
         });

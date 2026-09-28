@@ -22,6 +22,7 @@ class GlobalItem extends GlobalType {
     ApplyPrefix(item, pre) {}
 
     // Conjuntos de qualquer item: o nome do conjunto ('' = nenhum), e o efeito por ele.
+    CanAccessoryBeEquippedWith(equippedItem, incomingItem, player) { return true; }
     IsArmorSet(head, body, legs) { return ''; }
     UpdateArmorSet(player, set) {}
     // Vaidade: head, body e legs são os SLOTS desenhados; sem sobrescrever, o

@@ -25,6 +25,14 @@ class ExampleGemsparkBlockBase extends ModTile {
         this.AddMapEntry(Color.new(200, 200, 200));
     }
 
+    // A luz do bloco de gemas de diamante do jogo (fixa no TileLightScanner dele).
+    ModifyLight(i, j, r, g, b) {
+        if (!this.IsOn) return;
+        r.value = 0.75;
+        g.value = 0.75;
+        b.value = 0.75;
+    }
+
     TileFrame(i, j, resetFrame, noBreak) {
         Terraria.Framing.SelfFrame8Way(i, j, tileAt(i, j), resetFrame.value);
         return false;

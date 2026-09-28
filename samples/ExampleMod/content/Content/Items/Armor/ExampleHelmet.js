@@ -11,15 +11,15 @@ export class ExampleHelmet extends ModItem {
         this.Item.defense = 5;
     }
 
-    IsArmorSet(head, body, legs) {
-        return body.type === ModContent.ItemType('ExampleBreastplate') && legs.type === ModContent.ItemType('ExampleLeggings');
+    // O conjunto do 1.4.5: o jogo mostra "Bônus definido" no tooltip de cada
+    // peça (com "(2/3)" vestida) e chama o UpdateArmorSet quando está completo.
+    AddArmorSets() {
+        const text = ModLocalization.Translate('ArmorSetBonus.ExampleArmor').replace('{0}', ExampleHelmet.AdditiveGenericDamageBonus);
+        this.CreateArmorSet(this.Type, ModContent.ItemType('ExampleBreastplate'), ModContent.ItemType('ExampleLeggings'), text);
     }
 
-    // O setBonus é a linha "Bônus do conjunto" no tooltip das peças vestidas.
     UpdateArmorSet(item, player) {
         const bonus = ExampleHelmet.AdditiveGenericDamageBonus;
-        player.setBonus = ModLocalization.Translate('ArmorSetBonus.ExampleArmor').replace('{0}', bonus);
-
         player.meleeDamage += bonus / 100;
         player.rangedDamage += bonus / 100;
         player.magicDamage += bonus / 100;

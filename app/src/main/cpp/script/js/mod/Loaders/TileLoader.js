@@ -23,6 +23,7 @@ class TileLoader {
         ['tile.frame', ['TileFrame']],
         ['tile.slope', ['Slope']],
         ['tile.chest', ['IsLockedChest', 'UnlockChest', 'LockChest']],
+        ['tile.smart', ['HasSmartInteract', 'RightClick']],
     ];
 
     static At(i, j) {
@@ -60,6 +61,7 @@ class TileLoader {
         if (over('ModifyLight')) lazy('tile.light', TileDrawLoader.HookLight);
         if (over('NearbyEffects')) lazy('tile.nearby', TileWorldLoader.HookNearby);
         if (over('PlaceInWorld')) lazy('tile.place', TileWorldLoader.HookPlace);
+        if (over('HasSmartInteract') || over('RightClick')) lazy('tile.smart', TileUseLoader.HookSmartInteract);
     }
 
     // Depois do SetStaticDefaults do mod: o que o SetupContent do tModLoader faz.
@@ -79,6 +81,7 @@ class TileLoader {
             Hooks.Once('tile.adj', () => Safe.Run('ganchos de tile (tile.adj)', TileWorldLoader.HookAdjTiles));
         }
         if (Sets.HasOutlines[type]) TileLoader.#Highlight(m);
+        if (Sets.CanPlaceNextToNonSolidTile[type]) TileUseLoader.WantNonSolidAnchor();
         TileLoader.#RoomNeeds(type);
         TileLoader.#Door(type);
     }

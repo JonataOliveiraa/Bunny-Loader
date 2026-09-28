@@ -103,7 +103,7 @@
   "ItemTooltip": {
     "ExampleItem": "Item description",
     "ExampleShotgun": "Fires eight bullets at once",
-    "ExampleWhip": "Your summons will focus struck enemies\n10 summon tag damage",
+    "ExampleWhip": "Your summons will focus struck enemies\n5 summon tag damage",
     "ExampleHookItem": "Also latches onto tree trunks",
     "ExampleFishingRod": "Can fish in lava",
     "ExampleShield": "Double tap in any direction to dash",

@@ -11,6 +11,11 @@ export class ExampleShield extends ModItem {
         this.Item.lifeRegen = 10;
     }
 
+    // Um escudo só: com outro escudo, a troca pelo toque vai para o slot dele.
+    CanAccessoryBeEquippedWith(equippedItem, incomingItem, player) {
+        return !(equippedItem.shieldSlot > 0 && incomingItem.shieldSlot > 0);
+    }
+
     UpdateAccessory(item, player, vanity, hideVisual) {
         if (vanity) return;
         player.GetModPlayer(ExampleDashPlayer).DashAccessoryEquipped = true;

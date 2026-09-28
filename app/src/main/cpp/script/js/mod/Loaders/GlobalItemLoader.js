@@ -125,6 +125,7 @@ class GlobalItemLoader {
 
         const prefixHooks = ['ChoosePrefix', 'PrefixChance', 'AllowPrefix', 'ApplyPrefix'].filter(has);
         if (prefixHooks.length) PrefixLoader.WantItemHooks(prefixHooks);
+        if (has('CanAccessoryBeEquippedWith')) ItemLoader.WantAccessoryPairs();
         if (has('UpdateArmorSet')) ArmorSetLoader.WantArmorSets();
         if (has('PreUpdateVanitySet') || has('UpdateVanitySet')) ArmorSetLoader.WantFrame();
         if (has('ArmorSetShadows')) ArmorSetLoader.WantShadows();

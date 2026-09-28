@@ -103,7 +103,7 @@
   "ItemTooltip": {
     "ExampleItem": "Descrição do item",
     "ExampleShotgun": "Dispara oito balas de uma vez",
-    "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n10 de dano de marcação",
+    "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n5 de dano de marcação",
     "ExampleHookItem": "Agarra também em troncos de árvore",
     "ExampleFishingRod": "Pesca na lava",
     "ExampleShield": "Toque duas vezes numa direção para dar um impulso",

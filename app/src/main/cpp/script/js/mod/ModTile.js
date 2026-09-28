@@ -66,7 +66,10 @@ class ModTile {
     RightClick(i, j) { return false; }
     MouseOver(i, j) {}
     MouseOverFar(i, j) {}
-    HasSmartInteract(i, j, settings) { return false; }
+    // Se o tile é alvo do smart-interact. No celular o toque num móvel passa
+    // por ele (é o clique direito do PC): sem sobrescrever, vale para quem tem
+    // RightClick.
+    HasSmartInteract(i, j, settings) { return Hooks.Overrides(this.constructor, ModTile, 'RightClick'); }
     HitWire(i, j) {}
     Slope(i, j) { return true; }
     RandomUpdate(i, j) {}
