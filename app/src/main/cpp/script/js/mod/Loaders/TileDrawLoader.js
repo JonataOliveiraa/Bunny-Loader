@@ -11,10 +11,11 @@ class TileDrawLoader {
 
     // O jogo calcula a luz dos tiles numa cópia interna do ApplyTileLight (o
     // hook nele não pega), então a luz do tile de mod entra como a de um
-    // projétil: Lighting.AddLight, a cada quadro, antes do cálculo da tela.
+    // projétil: Lighting.AddLight, a cada quadro, na atualização do mundo.
     // O ModifyLight roda a cada LIGHT_EVERY quadros (e só com
     // Main.tileLighted[tipo], como no jogo); nos outros vale a última conta.
     static LIGHT_EVERY = 3;
+    static LIGHT_PADDING = 28;
 
     static HookLight() {
         const r = new Ref(0), g = new Ref(0), b = new Ref(0);
@@ -38,15 +39,24 @@ class TileDrawLoader {
             return out;
         };
 
+        // A área vem do LightTiles (o desenho); a luz entra na atualização do
+        // mundo, como a de um projétil. No motor novo (modos Cor e Branco) o
+        // AddLight feito dentro do LightTiles não aparecia: só o do Retro e
+        // do Psicodélico, que usam o motor antigo.
         Terraria.Lighting['void LightTiles(int firstX, int lastX, int firstY, int lastY)'].hook((original, x0, x1, y0, y1) => {
-            if (!Terraria.Main.gameMenu) {
-                if (++age >= TileDrawLoader.LIGHT_EVERY) {
-                    age = 0;
-                    lights = Safe.Run('luz dos tiles de mod', () => compute(x0, x1, y0, y1)) || [];
-                }
-                if (lights.length) bl.tiles.addLights(lights);
+            if (!Terraria.Main.gameMenu && ++age >= TileDrawLoader.LIGHT_EVERY) {
+                age = 0;
+                // O motor novo varre 28 tiles além da tela (LightingEngine.ProcessScan):
+                // um tile de mod logo fora dela também ilumina a borda.
+                const pad = TileDrawLoader.LIGHT_PADDING;
+                lights = Safe.Run('luz dos tiles de mod', () => compute(x0 - pad, x1 + pad, y0 - pad, y1 + pad)) || [];
             }
             return original(x0, x1, y0, y1);
+        }, { ifBusy: 'original' });
+
+        Terraria.Main['void DoUpdateInWorld()'].hook((original, self) => {
+            original(self);
+            if (lights.length && !Terraria.Main.gameMenu) bl.tiles.addLights(lights);
         }, { ifBusy: 'original' });
     }
 

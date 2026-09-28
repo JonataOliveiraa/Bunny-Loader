@@ -124,8 +124,16 @@ function buildArea() {
             W['void KillWall(int i, int j, bool fail)'](x, y, false);
             tileAt(x, y).liquid = 0;
         }
-        if (typeAt(x, gy) < 0) place(x, gy, TileID.Stone);
+        // Chão sólido: grama alta e tronco de árvore (mundo novo) não seguram móvel.
+        if (!solidAt(x, gy)) {
+            if (typeAt(x, gy) >= 0) kill(x, gy);
+            place(x, gy, TileID.Stone);
+        }
     }
+}
+function solidAt(x, y) {
+    const t = typeAt(x, y);
+    return t >= 0 && Main.tileSolid[t] === true;
 }
 function clearArea() {
     if (!area) return;
@@ -137,15 +145,30 @@ function clearArea() {
     }
 }
 
-// Uma caixa 5x5 de pedra com parede por dentro (sem luz do céu), o bloco no meio.
+// Diagnóstico da luz: quantas vezes o LightTiles roda, e em que thread.
+const lightDiag = { calls: 0, threads: {} };
+Terraria.Lighting['void LightTiles(int firstX, int lastX, int firstY, int lastY)'].hook((original, x0, x1, y0, y1) => {
+    lightDiag.calls++;
+    let tid = '?';
+    try { tid = System.Threading.Thread.CurrentThread.ManagedThreadId; } catch (e) {}
+    lightDiag.threads[tid] = (lightDiag.threads[tid] || 0) + 1;
+    return original(x0, x1, y0, y1);
+});
+
+// Uma caixa de pedra enterrada: 9x9, com o miolo 3x3 vazio e com parede, o
+// bloco no meio. Três tiles de pedra em volta e 30 abaixo do chão: a luz de
+// fora (o sol, outras caixas) não chega, em qualquer mundo.
 function lightBox(x, type) {
-    const y = area.gy - 6;
-    for (let i = 0; i < 5; i++) for (let j = 0; j < 5; j++) {
+    const y = area.gy + 30;
+    for (let i = 0; i < 9; i++) for (let j = 0; j < 9; j++) {
+        const inner = i >= 3 && i <= 5 && j >= 3 && j <= 5;
+        if (typeAt(x + i, y + j) >= 0) kill(x + i, y + j);
+        tileAt(x + i, y + j).liquid = 0;
         W['void PlaceWall(int i, int j, int type, bool mute)'](x + i, y + j, WallID.Stone, true);
-        if (i === 0 || j === 0 || i === 4 || j === 4) place(x + i, y + j, TileID.Stone);
+        if (!inner) place(x + i, y + j, TileID.Stone);
     }
-    if (type > 0) place(x + 2, y + 2, type);
-    return { x: x + 1, y: y + 1 };   // a célula de ar medida
+    if (type > 0) place(x + 4, y + 4, type);
+    return { x: x + 3, y: y + 3 };   // a célula de ar medida
 }
 
 const steps = [];
@@ -190,14 +213,20 @@ step(1, () => {
 
 step(1, () => {
     buildArea();
-    saved.boxEmpty = lightBox(area.x0 + 6, 0);
-    saved.boxVanilla = lightBox(area.x0 + 12, TileID.DiamondGemspark);
-    saved.boxMod = lightBox(area.x0 + 18, tiles.ExampleGemsparkBlockOn);
+    saved.boxEmpty = lightBox(area.x0, 0);
+    saved.boxVanilla = lightBox(area.x0 + 10, TileID.DiamondGemspark);
+    saved.boxMod = lightBox(area.x0 + 20, tiles.ExampleGemsparkBlockOn);
 });
 step(40, (f) => {
     if (f !== 39) return;
     const at = (b) => brightness(Terraria.Lighting['Color GetColor(int x, int y)'](b.x, b.y));
     const empty = at(saved.boxEmpty), vanilla = at(saved.boxVanilla), mod = at(saved.boxMod);
+    const mid = (b) => typeAt(b.x + 1, b.y + 1);
+    let gameTid = '?';
+    try { gameTid = System.Threading.Thread.CurrentThread.ManagedThreadId; } catch (e) {}
+    bl.log(`fix bloco de gemas: LightTiles ${lightDiag.calls}x, threads ${JSON.stringify(lightDiag.threads)} (a do jogo ${gameTid}), ` +
+           `modo ${Terraria.Lighting.Mode}, motor novo ${Terraria.Lighting.UsingNewLighting}`);
+    bl.log(`fix bloco de gemas: no meio das caixas: ${mid(saved.boxEmpty)}, ${mid(saved.boxVanilla)}, ${mid(saved.boxMod)} (de exemplo ${tiles.ExampleGemsparkBlockOn})`);
     check('bloco de gemas: luz', () => mod >= vanilla * 0.8 && mod > empty + 60 ||
         `vazia ${empty}, diamante ${vanilla}, de exemplo ${mod}`);
 });
@@ -249,6 +278,11 @@ function clockTap(label, typeOf) {
             x = px + dx;
             for (let j = 5; j >= 0; j--) for (let i = -1; i <= 2; i++) kill(x + i, y - j);
             if (free(x)) break;
+        }
+        for (let i = 0; i <= 1; i++) {
+            if (solidAt(x + i, y + 1)) continue;
+            if (typeAt(x + i, y + 1) >= 0) kill(x + i, y + 1);
+            place(x + i, y + 1, TileID.Stone);
         }
         const placed = W['bool PlaceObject(int x, int y, int type, bool mute, int style, int alternate, int random, int direction)'](x, y, typeOf(), true, 0, 0, -1, -1);
         const cells = [];
