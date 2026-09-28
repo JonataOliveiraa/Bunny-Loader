@@ -7,5 +7,24 @@
     "Level1": {
       "Level2": "Deep text"
     }
+  },
+  "Refs": {
+    "Name": "Wand",
+    "Full": "The {$Mods.test-localization.Refs.Name}",
+    "Relative": "My {$Refs.Name}",
+    "Game": "Buy: {$LegacyInterface.28}",
+    "Chain": "[{$Refs.Full}]",
+    "Format": "{0} of {1}",
+    "Args": "{$Refs.Format@1}",
+    "Missing": "{$Refs.Nothing}",
+    "Loop": "a{$Refs.Loop}",
+    "Hi": "Hi",
+    "Hi$Formal": "Good day"
+  },
+  "Dialogue": {
+    "Person": {
+      "A": "one",
+      "B": "two"
+    }
   }
 }

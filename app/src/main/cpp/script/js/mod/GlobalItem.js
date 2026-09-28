@@ -15,6 +15,11 @@ class GlobalItem extends GlobalType {
     UpdateAccessory(item, player, vanity, hideVisual) {}
     OnCraft(item, player, recipe) {}
     ModifyTooltips(item, tooltips) {}
+    // Prefixos de qualquer item (também os do jogo).
+    ChoosePrefix(item, rand) { return -1; }
+    PrefixChance(item, pre, rand) { return null; }
+    AllowPrefix(item, pre) { return true; }
+    ApplyPrefix(item, pre) {}
 
     // Conjuntos de qualquer item: o nome do conjunto ('' = nenhum), e o efeito por ele.
     IsArmorSet(head, body, legs) { return ''; }

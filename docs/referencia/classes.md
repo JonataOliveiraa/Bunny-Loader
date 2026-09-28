@@ -25,6 +25,7 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | Classe | Para quê | Guia |
 |---|---|---|
 | [`ModItem`](#moditem) | Item novo. | [5](../mods/05-itens.md) |
+| [`ModPrefix`](#modprefix) | Prefixo (modificador) novo. | [5](../mods/05-itens.md#prefixos) |
 | [`ModProjectile`](#modprojectile) | Projétil novo. | [6](../mods/06-projeteis.md) |
 | [`ModNPC`](#modnpc) | NPC, chefe ou morador novo. | [7](../mods/07-npcs.md) |
 | [`ModPlayer`](#modplayer) | Dados e comportamento por jogador. | [8](../mods/08-jogador-e-buffs.md) |
@@ -33,6 +34,8 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
 | [`ModSystem`](#modsystem) | O que é do mod inteiro; o ciclo do mundo e os dados salvos nele. | [12](../mods/12-globais-e-mundo.md#modsystem-o-mundo) |
+| [`ModBiome`, `ModSceneEffect`](#modbiome-e-modsceneeffect) | Bioma de mod e efeito de cena (a música e os fundos por prioridade). | — |
+| [`ModSurfaceBackgroundStyle`, `ModUndergroundBackgroundStyle`](#fundos-de-mod) | Fundos de superfície e de subsolo, com as texturas do `BackgroundTextureLoader`. | — |
 | [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
 | [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
@@ -106,6 +109,11 @@ própria instância, com `this.Item` apontando para ele.
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. | `Player.UpdateEquips`, sem filtro (percorre só os itens de mod do jogador) |
 | `GetAlpha(item, lightColor)` | No chão: devolva a `Color` do desenho. | `WorldItem.GetAlpha`, sem filtro |
 | `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara na mão, a cada boia: de onde a linha sai e a cor (dois `Ref`). | `Main.DrawProj_FishingLine`, sem filtro |
+| `MeleePrefix(item)`, `WeaponPrefix(item)`, `RangedPrefix(item)`, `MagicPrefix(item)`, `SummonPrefix(item)` | As categorias de prefixo do item (padrão: `melee` sem `noUseGraphic`, `melee` com, `ranged`, `magic`, `summon`). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | `Item.GetRollablePrefixes`, sem filtro |
+| `ChoosePrefix(item, rand)` | Um prefixo forçado ao rolar (> 0), ou -1. | `Item.RollAPrefix`, sem filtro |
+| `PrefixChance(item, pre, rand)` | `false` impede, `true` força um prefixo; `null` = o do jogo (`pre`: -1 criar/baú, -2 reforja). | `Item.Prefix`, sem filtro |
+| `AllowPrefix(item, pre)` | `false` tira esse prefixo das opções. | `Item.GetRollablePrefixes` |
+| `ApplyPrefix(item, pre)` | Depois dos status do prefixo. | `Item.Prefix`, sem filtro |
 
 ### Atalhos
 
@@ -155,6 +163,68 @@ Do `ModItem` do tModLoader, entre outros: `CanRightClick`/`RightClick`,
 | `EquipLoader.GetEquipTexture(tipo, slot)` | A `EquipTexture` do slot. |
 | `class X extends EquipTexture` | `FrameEffects`, `IsVanitySet`, `PreUpdateVanitySet`, `UpdateVanitySet`, `ArmorSetShadows`, `SetMatch`, `VerticalWingSpeeds`, `HorizontalWingSpeeds`, `WingUpdate` de uma textura só (padrão: os do item dono). |
 | `ArmorIDs.Head.Sets.DrawHead`, `ArmorIDs.Body.Sets.HidesTopSkin`/`HidesBottomSkin`/`HidesHands`/`HidesArms`, `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin` | As do tModLoader (não existem no jogo daqui), aplicadas no desenho. |
+
+---
+
+## ModPrefix
+
+Um prefixo (modificador) novo, como o `ModPrefix` do tModLoader. Uma instância
+por prefixo; o `Type` é o número que o item guarda em `item.prefix` (depois
+dos 98 do jogo, até 255: o jogo guarda o prefixo em 1 byte). Guia:
+[5 · Prefixos](../mods/05-itens.md#prefixos).
+
+### Campos
+
+| Campo | Tipo | O que é |
+|---|---|---|
+| `Type` | número | O prefixo (só leitura). |
+| `Mod`, `Name`, `FullName` | | O mod, o nome da classe, `'<id do mod>/<Classe>'`. |
+| `DisplayName` | texto ou `{ cultura: texto }` | O nome. Vazio: `PrefixName.<Classe>` (ou `Prefixes.<Classe>.DisplayName`, como no tModLoader) em `Localization/*.json`, e sem isso o nome da classe. |
+| `Category` | `PrefixCategory` | Que itens podem ganhar (padrão `Custom`). Escreva como getter: `get Category() { return PrefixCategory.AnyWeapon; }`. |
+
+`PrefixCategory`: `Melee`, `Ranged`, `Magic`, `Summon`, `AnyWeapon`, `Accessory`,
+`Custom` (não rola sozinho: só por `ChoosePrefix` do item ou `item.Prefix(tipo)`).
+
+### Métodos que você escreve
+
+| Método | Quando roda | Por trás |
+|---|---|---|
+| `SetStaticDefaults()` | Uma vez, com o conteúdo pronto e as tabelas crescidas (`PrefixID.Sets.ReducedNaturalChance[this.Type]`). | conteúdo pronto |
+| `RollChance(item)` | O peso na rolagem (cada prefixo do jogo pesa 1). | `Item.RollAPrefix`, sem filtro |
+| `CanRoll(item)` | `false`: este item não pode ganhar (padrão: `RollChance > 0`). | `Item.GetRollablePrefixes`, `CanRollPrefix` |
+| `SetStats(damageMult, knockbackMult, useTimeMult, scaleMult, shootSpeedMult, manaMult, critBonus, tagDamage, armorPenetration)` | Os status, em `Ref` (`damageMult.value *= 1.2`). Com um parâmetro só, recebe `{ damage, knockBack, speed, size, shootSpeed, mana, crit, tagDamage, armorPenetration }` (a forma do ExMod do TL). O jogo aplica e confere, como os dele: se algum status não mudar de verdade no item, o prefixo não pega. | `Item.TryGetPrefixStatMultipliersForItem`, filtro: prefixo de mod |
+| `AllStatChangesHaveEffectOn(item)` | `false`: não pega neste item (para status que não são do jogo). | idem |
+| `ModifyValue(valueMult)` | O preço (`Ref`); a raridade sobe ou desce junto. | idem |
+| `Apply(item)` | Depois dos status: o que mais o prefixo muda no item. | `Item.Prefix`, sem filtro |
+| `ApplyAccessoryEffects(player)` | A cada quadro, com o acessório equipado. | `Player.GrantPrefixBenefits`, filtro: prefixo de mod |
+| `GetTooltipLines(item)` | Linhas a mais (array de `TooltipLine`; `IsModifier = true` pinta de verde). As de dano, velocidade, crítico etc. o jogo já escreve. | `Main.MouseText_DrawItemTooltip_GetLinesInfo` |
+
+### Estáticos e o PrefixLoader
+
+| | |
+|---|---|
+| `ModPrefix.register(Classe)` | Registra na mão; devolve o tipo. |
+| `ModPrefix.getTypeByName('Classe')`, `getModPrefix(tipo)`, `isModType(tipo)` | |
+| `PrefixLoader.GetPrefix(tipo)` | O `ModPrefix`, ou `undefined` (prefixo do jogo). |
+| `PrefixLoader.GetPrefixesInCategory(categoria)`, `PrefixLoader.PrefixCount` | |
+| `PrefixLoader.Categories(item)`, `PrefixLoader.VanillaPrefixes(categoria)` | As categorias do item; os prefixos do jogo de uma categoria. |
+
+### Save
+
+O `.plr`/`.wld` guardam o prefixo em 1 byte, e o número de um prefixo de mod
+depende dos mods instalados e da ordem de carga. Por isso ele vai também **pelo
+nome** no `<personagem>.plr.bl` e no `<mundo>.wld.bl` (inventário, equipamento,
+cofres, conjuntos, lixeira e baús), e volta certo com outros mods antes dele.
+Sem o mod, o item fica sem o prefixo e o nome segue guardado enquanto o item
+não sair do lugar; com o mod de volta, o prefixo volta. Manequim, cabide,
+porta-armas e item no chão guardam só o número.
+
+### Ainda não
+
+`ModItem.ReforgePrice`/`CanReforge`/`PreReforge`/`PostReforge`, o prefixo "não
+carregado" do tModLoader (`UnloadedPrefix`). A janela de reforja do celular
+(`GUIReforgePopup`) monta as linhas dela à parte e não foi conferida: o
+`GetTooltipLines` pode não aparecer lá (no inventário aparece).
 
 ---
 
@@ -507,6 +577,7 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `IsVanitySet(head, body, legs)` → nome, `PreUpdateVanitySet`/`UpdateVanitySet`/`ArmorSetShadows(player, nome)` | Vaidade pelos slots desenhados. | `Player.PlayerFrame`, `SetArmorEffectVisuals` |
 | `SetMatch(armorSlot, type, male, equipSlot, robes)` | O slot desenhado de uma parte (0 cabeça, 1 corpo, 2 pernas). | `Player.SetMatch` |
 | `VerticalWingSpeeds(item, player, ...)`, `HorizontalWingSpeeds(item, player, speed, acceleration)`, `WingUpdate(wings, player, inUse)` | Asas, também as do jogo. | `Player.WingMovement`, `WingAirLogicTweaks`, `WingFrame` |
+| `ChoosePrefix(item, rand)`, `PrefixChance(item, pre, rand)`, `AllowPrefix(item, pre)`, `ApplyPrefix(item, pre)` | Os de prefixo do `ModItem`, para qualquer item (o global vem antes no `ChoosePrefix`). | `Item.RollAPrefix`, `Prefix`, `GetRollablePrefixes` |
 
 ### GlobalNPC
 
@@ -588,6 +659,8 @@ Cada método de mundo só ganha hook se algum `ModSystem` o escreveu.
 | `PreUpdateWorld()`, `PostUpdateWorld()` | A cada quadro. Só no servidor ou sozinho. | `WorldGen.UpdateWorld` |
 | `PreUpdateTime()`, `PostUpdateTime()` | A cada quadro. Só no servidor ou sozinho. | `Main.UpdateTime` |
 | `PostUpdateEverything()` | A cada quadro, em todos. | `Main.DoUpdateInWorld` |
+| `ResetNearbyTileEffects()` | Antes de o jogo contar os blocos em volta do jogador local (a cada 5 quadros), e também ao sair do mundo e ao carregar outro (a contagem do anterior não vale no novo). | `SceneMetrics.Reset`, `WorldGen.SaveAndQuit`, `WorldGen.clearWorld` |
+| `TileCountsAvailable(tileCounts)` | Com a contagem pronta: `tileCounts[tipo]` é quantos blocos daquele tipo há em volta. Vale durante a chamada: guarde o número, não o array. Só a varredura do jogador local (a dos pilares e a da câmera não chamam). | `SceneMetrics.AggregateTileCounts` |
 | `NetSend(writer)`, `NetReceive(reader)` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | `NetMessage.SendData` (7) |
 
 Os dados vão para `<mundo>.wld.bl.json`, ao lado do `.wld`, uma entrada por
@@ -596,6 +669,119 @@ devolve a instância (a de `ModContent.GetInstance`).
 
 **Ainda não**: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, e os `Pre/PostUpdate` de
 jogadores, NPCs, projéteis e itens separados.
+
+---
+
+## ModBiome e ModSceneEffect
+
+Um **bioma** diz, a cada quadro, se o jogador está nele. A contagem de blocos
+em volta vem pelo `ModSystem.TileCountsAvailable`, como no tModLoader:
+
+```js
+export class ContagemDoBioma extends ModSystem {
+    blocos = 0;
+    TileCountsAvailable(tileCounts) {
+        this.blocos = tileCounts[ModContent.TileType('ExampleTile')];
+    }
+}
+
+export class MeuBioma extends ModBiome {
+    SetStaticDefaults() {
+        this.Music = MusicLoader.GetMusicSlot('Music/MinhaMusica');
+    }
+    IsBiomeActive(player) {
+        return ModContent.GetInstance(ContagemDoBioma).blocos >= 40 && player.ZoneOverworldHeight;
+    }
+    OnEnter(player) {}
+}
+```
+
+| `ModBiome` | |
+|---|---|
+| `IsBiomeActive(player)` | A cada quadro, depois de o jogo atualizar as zonas dele. Um erro vale `false` nesta avaliação. |
+| `OnEnter(player)`, `OnLeave(player)` | Uma vez, na troca. Ao sair do mundo dentro do bioma, o `OnLeave` vem na saída. |
+| `OnInBiome(player)` | A cada quadro dentro, inclusive no da entrada. |
+| `player.InModBiome(Classe)` | Se o jogador está no bioma. Aceita a classe, a instância (`ModContent.GetInstance`) ou o `Type`. |
+| `Type` | A posição entre os biomas (a mesma classe em dois mods são dois biomas). |
+| Padrões | `Priority` `BiomeLow` e `Music` `0` (silêncio), como no tModLoader: sem música própria, declare `Music = -1`. |
+
+Um **efeito de cena** (`ModSceneEffect`) é o mesmo sem as flags:
+`IsSceneEffectActive(player)` diz se está ativo. Dos efeitos ativos (os biomas
+também), o de maior `Priority` + `GetWeight(player)` (0 a 1) dá a música da
+cena, em `player.CurrentSceneEffect.music`. `SpecialVisuals(player, isActive)`
+roda a cada quadro para todos, ativo ou não.
+
+`Music` e `Priority` podem vir como campo (`this.Music = ...` no
+`SetStaticDefaults`) ou como getter (`get Music() { ... }`, como no tModLoader).
+
+A música da cena toca pelas regras de [som e música](#som-e-música).
+
+O jogo avalia os biomas só do jogador local, a cada quadro (também morto). O
+teleporte e o renascimento reavaliam na hora. No **multijogador**, cada aparelho
+manda as flags do próprio jogador quando mudam, e quem entra recebe as de todos.
+Assim, `InModBiome` de outro jogador vale em qualquer aparelho, inclusive no
+servidor, onde roda o spawn (`SpawnChance` com `info.Player.InModBiome(...)`). Para
+um jogador remoto não há `OnEnter`/`OnInBiome`/`OnLeave`, como no tModLoader.
+
+O efeito de cena também escolhe o fundo: `SurfaceBackgroundStyle` e
+`UndergroundBackgroundStyle` devolvem a instância do estilo (ver
+[fundos de mod](#fundos-de-mod)), ou `null`.
+
+**Ainda não** (etapas do plano): a água, o mapa, o Bestiário e as tochas do bioma.
+
+### Fundos de mod
+
+Como no tModLoader. Todo PNG em `Assets/Textures/Backgrounds` ganha um número
+de textura depois dos 344 do jogo (`TextureAssets.Background`,
+`Main.backgroundWidth`/`Height` crescem):
+
+| `BackgroundTextureLoader` | |
+|---|---|
+| `GetBackgroundSlot(this.Mod, 'Assets/Textures/Backgrounds/Nome')` | O número. Também `GetBackgroundSlot('Assets/...')` (o mod de quem chama) e `GetBackgroundSlot('examplemod/Assets/...')` (o id ou o nome da classe do mod na frente). Lança se não existe. |
+| `TryGetBackgroundSlot(caminho, ref)` | `true` e o número em `ref.value`, ou `false`. |
+| `AddBackgroundTexture(mod, caminho)` | Um PNG fora de `Assets/Textures/Backgrounds`; só na carga do mod. |
+
+```js
+export class MeuFundo extends ModSurfaceBackgroundStyle {
+    ChooseFarTexture() { return BackgroundTextureLoader.GetBackgroundSlot(this.Mod, 'Assets/Textures/Backgrounds/Longe'); }
+    ChooseMiddleTexture() { return BackgroundTextureLoader.GetBackgroundSlot(this.Mod, 'Assets/Textures/Backgrounds/Meio'); }
+    ChooseCloseTexture(scale, parallax, a, b) { return BackgroundTextureLoader.GetBackgroundSlot(this.Mod, 'Assets/Textures/Backgrounds/Perto'); }
+}
+
+export class MeuFundoDeBaixo extends ModUndergroundBackgroundStyle {
+    FillTextureArray(slots) {
+        for (let i = 0; i < 4; i++) slots[i] = BackgroundTextureLoader.GetBackgroundSlot(this.Mod, 'Assets/Textures/Backgrounds/Caverna' + i);
+    }
+}
+
+export class MeuBioma extends ModBiome {
+    get SurfaceBackgroundStyle() { return ModContent.GetInstance(MeuFundo); }
+    get UndergroundBackgroundStyle() { return ModContent.GetInstance(MeuFundoDeBaixo); }
+    // ...
+}
+```
+
+| `ModSurfaceBackgroundStyle` | |
+|---|---|
+| `Slot` | O número do estilo, depois dos 16 do jogo (`Main.bgStyle` vira ele). |
+| `ChooseFarTexture()`, `ChooseMiddleTexture()` | A textura de longe (atrás das montanhas do meio) e a do meio (atrás das árvores do fundo), ou `-1`. A cada quadro: dá para animar. |
+| `ChooseCloseTexture(scale, parallax, a, b)` | A da frente, ou `-1`. Os quatro são `Ref` (`.value`): escala 1.25, parallax 0.37, altura `a` 1800 e `b` 1750, como no tModLoader. |
+| `PreDrawCloseBackground(spriteBatch)` | `false` não desenha a da frente. |
+| `ModifyFarFades(fades, transitionSpeed)` | A transparência de cada estilo (`fades[i]`), a cada quadro com este estilo na tela. O padrão sobe a deste e desce as outras. |
+
+| `ModUndergroundBackgroundStyle` | |
+|---|---|
+| `Slot` | O número do estilo, depois dos 22 do jogo. |
+| `FillTextureArray(slots)` | `slots[0]` a borda com o céu (160x16), `[1]` a terra (160x96), `[2]` a borda da terra com a pedra (160x16), `[3]` a pedra (160x96). `[4]`, a passagem para o inferno, vem com a da caverna comum. |
+
+O fundo entra pela `Priority` da cena, nos degraus do tModLoader. Na superfície,
+`BiomeLow` troca só a floresta, `BiomeMedium` também a selva e a neve, e
+`BiomeHigh` troca tudo. No subsolo, `BiomeLow` troca só a caverna comum,
+`BiomeMedium` também a neve e a selva, e `BiomeHigh` troca tudo. A troca
+tem a transição do jogo, e ao sair da cena o fundo volta ao do jogo.
+
+Com o fundo desligado nas opções, o subsolo usa o desenho antigo do jogo e fica
+com o estilo do jogo. **Ainda não**: `GlobalBackgroundStyle` e o fundo do menu.
 
 ---
 
@@ -671,11 +857,11 @@ mod, pela **classe**, pelo **nome** ou por `'mod/Nome'`.
 
 | | |
 |---|---|
-| `ItemType(x)`, `ProjectileType(x)`, `NPCType(x)`, `BuffType(x)`, `TileType(x)` | O tipo. `x` é a classe, o nome (`'ExampleBobber'`) ou `'outromod/Nome'`. Não achou: 0. |
+| `ItemType(x)`, `ProjectileType(x)`, `NPCType(x)`, `BuffType(x)`, `TileType(x)`, `PrefixType(x)` | O tipo. `x` é a classe, o nome (`'ExampleBobber'`) ou `'outromod/Nome'`. Não achou: 0. |
 | `GetInstance(Classe)` | O modelo (a instância do `register`). |
 | `Find(ModItem, 'mod/Nome')` | O modelo pelo nome; lança se não há. |
 | `TryFind(ModItem, 'mod/Nome', ref)` | O mesmo, no `ref.value`; devolve `true`/`false`. |
-| `GetModItem(tipo)`, `GetModProjectile(tipo)`, `GetModNPC(tipo)`, `GetModBuff(tipo)`, `GetModTile(tipo)` | O modelo pelo tipo. |
+| `GetModItem(tipo)`, `GetModProjectile(tipo)`, `GetModNPC(tipo)`, `GetModBuff(tipo)`, `GetModTile(tipo)`, `GetModPrefix(tipo)` | O modelo pelo tipo. |
 | `Request(caminho)` | `Asset<Texture2D>` do jogo, carregado uma vez (`.Value` é a textura). Thread do jogo. |
 | `Texture(caminho)` | A `Texture2D` (o `.Value` do `Request`). |
 | `HasAsset(caminho)` | A textura existe? |
@@ -741,6 +927,7 @@ Toda chave de `Localization/<cultura>.json` já está no jogo como
 |---|---|
 | `ModLocalization.Translate('Secao.Chave')` | O **texto** no idioma do jogo (como no TL); sem texto, o próprio caminho. |
 | `ModLocalization.TryTranslate('Secao.Chave')` | O mesmo, com `''` quando não há texto. |
+| (onde procura) | Nos `Localization/*.json` do mod de quem chama. Chamado de fora de um mod (o console do Editor), a chave completa `Mods.<id>.Secao.Chave` acha o mod dela, e a curta vale se só um mod a tem. `{0}` não é trocado: use `.replace('{0}', x)`. |
 | `ModLocalization.GetTextValue(chave)` | Texto do mod ou, sem ele, o do jogo. |
 | `ModLocalization.GetText(chave)` | O `LocalizedText` do mod ou do jogo. |
 | `ModLocalization.Key('Secao.Chave')` | A **chave** `Mods.<id>.Secao.Chave` (o que o Bestiário e a moeda pedem). |
@@ -760,10 +947,29 @@ Toda chave de `Localization/<cultura>.json` já está no jogo como
 | `SoundLimitBehavior.ReplaceOldest`, `.IgnoreNew` | |
 | `MusicLoader.GetMusicSlot(caminho)` (ou `(mod, caminho)`) | O número de uma música do mod (0 = não existe). |
 | `MusicLoader.MusicExists(caminho)`, `MusicLoader.IsMusicPlaying(slot)`, `MusicLoader.MusicCount` | |
-| `SceneEffectPriority.None` ... `BossHigh` | Prioridade da música do `ModNPC`. |
+| `SceneEffectPriority.None` ... `BossHigh` | Prioridade da música do `ModNPC` e do `ModSceneEffect`/`ModBiome`. |
 
-**Ainda não**: `Variants`, `IsLooped`, `ModBiome.Music`, `ModSceneEffect`,
-caixa de música.
+**Quem toca.** A caixa de música (de mod ou do jogo) ganha de tudo. Depois,
+dos candidatos de mod (o `ModNPC` com `Music` perto da tela e a cena do jogador
+local), o de maior prioridade; a cena só troca o do NPC se a dela for maior. Ele
+ganha da música do jogo se a prioridade chegar ao degrau dela, como no
+tModLoader:
+
+| Degrau da música do jogo | Para ganhar dela |
+|---|---|
+| créditos | nada ganha |
+| desafio da tocha, Senhor da Lua | `BossHigh` |
+| Plantera, invasão marciana, pilares celestiais | `BossMedium` |
+| os outros chefes | `BossLow` |
+| eventos (piratas, goblins, Exército do Antigo, luas, pedra arco-íris) | `Event` |
+| eclipse, chuva de slime, brilho, cidade, tempestade de areia, submundo, espaço | `Environment` |
+| templo, masmorra, cogumelo, corrupção, carmesim | `BiomeHigh` |
+| meteoro, cemitério, deserto, selva, neve | `BiomeMedium` |
+| o resto (superfície, subterrâneo, oceano, chuva) | `BiomeLow` |
+
+Vale também no Otherworld. `Priority` `None` não toca.
+
+**Ainda não**: `Variants`, `IsLooped`.
 
 ---
 
@@ -791,7 +997,7 @@ Classes do tModLoader sem equivalente hoje. Dá para fazer o efeito com hooks
 diretos ([guia 1](../mods/01-hooks-do-zero.md)), mas sem atalho:
 
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
-- `ModPrefix`, `ModMount`, `ModBiome`, `ModSceneEffect`, `ModWall`, `ModDust`,
+- `ModMount`, `ModBiome`, `ModSceneEffect`, `ModWall`, `ModDust`,
   `ModRarity`, `ModWaterStyle` e os estilos de fundo;
 - `ModKeybind`, `ModCommand`, `ModConfig`;
 - interface própria (`UIState`, `ModifyInterfaceLayers`);

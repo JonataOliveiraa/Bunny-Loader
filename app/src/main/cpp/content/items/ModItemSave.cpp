@@ -7,6 +7,7 @@
 #include "content/common/GameRefs.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/items/ModItems.h"
+#include "content/items/ModPrefixes.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -22,10 +23,15 @@ namespace {
 constexpr const char* kHeader = "bunnyloader itens 1";
 constexpr const char* kSuffix = ".bl";
 constexpr const char* kBuffContainer = "buff";
+// Item do JOGO com prefixo de mod: so o prefixo vai no arquivo, na chave
+// "vanilla:<tipo>" (o item em si o .plr/.wld ja guardam).
+constexpr const char* kVanillaPrefix = "vanilla:";
 
 /**
  * Um item de mod guardado: onde estava e o que era. Buff de mod vai no mesmo
  * arquivo, com container "buff": slot na lista, `stack` = tempo restante.
+ * Prefixo de mod vai pelo nome (`prefixKey`), e o numero fica 0: o numero
+ * muda com os mods instalados.
  */
 struct SavedItem {
     std::string container;   // "inventory", "armor", "bank2", "loadout1.dye", "trash"...
@@ -33,8 +39,45 @@ struct SavedItem {
     int stack = 1;
     int prefix = 0;
     bool favorited = false;
-    std::string key;         // "<uid>/<nome>"
+    std::string key;         // "<uid>/<nome>", ou "vanilla:<tipo>"
+    std::string prefixKey;   // "<uid>/<nome>" do prefixo de mod, ou ""
 };
+
+/** O prefixo para o arquivo: o de mod vira nome; numero de mod sem dono vira 0. */
+void encodePrefix(SavedItem& it, int prefix) {
+    it.prefix = prefix;
+    it.prefixKey.clear();
+    if (prefix < vanillaPrefixCount()) return;
+    it.prefixKey = modPrefixKey(prefix);
+    it.prefix = 0;
+}
+
+/** O numero do prefixo agora; -1 se era de um mod que nao esta carregado. */
+int decodePrefix(const SavedItem& it) {
+    return it.prefixKey.empty() ? it.prefix : modPrefixByKey(it.prefixKey);
+}
+
+bool isVanillaPrefixEntry(const SavedItem& it) {
+    return it.key.compare(0, std::char_traits<char>::length(kVanillaPrefix), kVanillaPrefix) == 0;
+}
+
+int vanillaPrefixEntryType(const SavedItem& it) {
+    return std::atoi(it.key.c_str() + std::char_traits<char>::length(kVanillaPrefix));
+}
+
+SavedItem vanillaPrefixEntry(const std::string& container, int slot, int type, int prefix) {
+    SavedItem it;
+    it.container = container;
+    it.slot = slot;
+    it.key = kVanillaPrefix + std::to_string(type);
+    encodePrefix(it, prefix);
+    return it;
+}
+
+/** Numero de prefixo de mod que nenhum mod carregado tem (veio de outra sessao). */
+bool isStrayPrefix(int prefix) {
+    return prefix >= vanillaPrefixCount() && modPrefixKey(prefix).empty();
+}
 
 struct Refs {
     bool ok = false;
@@ -47,6 +90,7 @@ struct Refs {
     int32_t type = -1, stack = -1, prefix = -1, favorited = -1;   // Item
     const MethodInfo* setDefaults = nullptr;
     const MethodInfo* applyPrefix = nullptr;
+    const MethodInfo* resetPrefix = nullptr;
 };
 Refs g_refs;
 
@@ -54,6 +98,30 @@ std::mutex g_mx;
 // Itens de mod que nao deu para repor ao carregar (mod nao carregado agora),
 // por caminho do personagem. Voltam para o arquivo no proximo save.
 std::map<std::string, std::vector<SavedItem>> g_kept;
+
+/**
+ * Item de mod reposto SEM o prefixo dele (o mod do prefixo nao esta; o do item
+ * pode estar, ou virou "?"): o nome do prefixo volta para o arquivo enquanto o
+ * mesmo item seguir no lugar sem prefixo. Por arquivo, por "<lugar>#<slot>".
+ */
+struct PendingPrefix {
+    int type = 0;
+    std::string key;
+};
+std::map<std::string, std::map<std::string, PendingPrefix>> g_pendingPrefix;
+
+std::string placeKey(const std::string& container, int slot) {
+    return container + "#" + std::to_string(slot);
+}
+
+/** O nome do prefixo guardado para o item de `type` nesse lugar, ou "". */
+std::string pendingPrefixFor(const std::string& path, const std::string& container, int slot, int type) {
+    std::lock_guard<std::mutex> l(g_mx);
+    auto file = g_pendingPrefix.find(path);
+    if (file == g_pendingPrefix.end()) return {};
+    auto it = file->second.find(placeKey(container, slot));
+    return it != file->second.end() && it->second.type == type ? it->second.key : std::string();
+}
 
 std::string toUtf8(Il2CppString* s) {
     std::string out;
@@ -163,7 +231,9 @@ std::vector<SavedItem> readFile(const std::string& path) {
         it.container = cols[0];
         it.slot = std::atoi(cols[1].c_str());
         it.stack = std::atoi(cols[2].c_str());
-        it.prefix = std::atoi(cols[3].c_str());
+        // Numero (prefixo do jogo) ou "<uid>/<nome>" (de mod).
+        if (cols[3].find('/') != std::string::npos) it.prefixKey = cols[3];
+        else it.prefix = std::atoi(cols[3].c_str());
         it.favorited = cols[4] == "1";
         it.key = cols[5];
         items.push_back(std::move(it));
@@ -186,8 +256,9 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
     }
     std::fprintf(f, "%s\n", kHeader);
     for (const SavedItem& it : items) {
-        std::fprintf(f, "%s\t%d\t%d\t%d\t%d\t%s\n", it.container.c_str(), it.slot, it.stack,
-                     it.prefix, it.favorited ? 1 : 0, it.key.c_str());
+        const std::string prefix = it.prefixKey.empty() ? std::to_string(it.prefix) : it.prefixKey;
+        std::fprintf(f, "%s\t%d\t%d\t%s\t%d\t%s\n", it.container.c_str(), it.slot, it.stack,
+                     prefix.c_str(), it.favorited ? 1 : 0, it.key.c_str());
     }
     const bool ok = std::fflush(f) == 0;
     std::fclose(f);
@@ -201,6 +272,20 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
 std::string localPath(Il2CppObject* fileData) {
     if (!fileData || field<uint8_t>(fileData, g_refs.fileCloud)) return {};
     return toUtf8(reinterpret_cast<Il2CppString*>(objectAt(fileData, g_refs.filePath)));
+}
+
+/**
+ * Prefixo de mod ausente num item do jogo: a linha segue no arquivo enquanto o
+ * mesmo item estiver no lugar, sem prefixo (o jogo tira o que nao conhece).
+ */
+bool stillWaitingForPrefix(const std::vector<Container>& containers, const SavedItem& k) {
+    for (const Container& c : containers) {
+        if (c.name != k.container) continue;
+        Il2CppObject* item = c.at(k.slot);
+        return item && field<int32_t>(item, g_refs.type) == vanillaPrefixEntryType(k) &&
+               field<uint8_t>(item, g_refs.prefix) == 0;
+    }
+    return false;
 }
 
 // ------------------------------ salvar ------------------------------
@@ -226,9 +311,18 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             if (!item) continue;
             const int type = field<int32_t>(item, r.type);
             const int stack = field<int32_t>(item, r.stack);
-            if (!isModItem(type) || stack <= 0) continue;
-            items.push_back({c.name, slot, stack, field<uint8_t>(item, r.prefix),
-                             field<uint8_t>(item, r.favorited) != 0, modItemKey(type)});
+            const int prefix = field<uint8_t>(item, r.prefix);
+            if (stack <= 0 || type <= 0) continue;
+            if (!isModItem(type)) {
+                if (prefix >= vanillaPrefixCount() && !modPrefixKey(prefix).empty()) {
+                    items.push_back(vanillaPrefixEntry(c.name, slot, type, prefix));
+                }
+                continue;
+            }
+            SavedItem it{c.name, slot, stack, 0, field<uint8_t>(item, r.favorited) != 0, modItemKey(type), {}};
+            encodePrefix(it, prefix);
+            if (prefix == 0) it.prefixKey = pendingPrefixFor(path, c.name, slot, type);
+            items.push_back(std::move(it));
         }
     }
     for (const SavedBuff& b : collectModBuffs(player)) {
@@ -239,8 +333,12 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
         std::lock_guard<std::mutex> l(g_mx);
         auto it = g_kept.find(path);
         if (it != g_kept.end()) {
-            kept = it->second.size();
-            items.insert(items.end(), it->second.begin(), it->second.end());
+            const std::vector<Container> containers = containersOf(player);
+            for (const SavedItem& k : it->second) {
+                if (isVanillaPrefixEntry(k) && !stillWaitingForPrefix(containers, k)) continue;
+                items.push_back(k);
+                ++kept;
+            }
         }
     }
     writeFile(path + kSuffix, items);
@@ -298,13 +396,37 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved) {
     a.runtime_invoke(r.setDefaults, item, sd, &exc);   // passa pelo setDefaults do mod
     if (exc || field<int32_t>(item, r.type) != type) return false;
     field<int32_t>(item, r.stack) = saved.stack > 0 ? saved.stack : 1;
-    if (saved.prefix > 0 && r.applyPrefix) {
-        int p = saved.prefix;
+    const int prefix = decodePrefix(saved);
+    if (prefix > 0 && r.applyPrefix) {
+        int p = prefix;
         void* pa[1] = {&p};
         a.runtime_invoke(r.applyPrefix, item, pa, &exc);
     }
     field<uint8_t>(item, r.favorited) = saved.favorited ? 1 : 0;
     return true;
+}
+
+/**
+ * O prefixo de mod de um item do jogo, pelo nome. O .plr trouxe o NUMERO de
+ * quando foi salvo, que pode ser hoje outro prefixo (ou nenhum): tira o que
+ * veio (ResetPrefix refaz o item) e poe o certo. false: o mod do prefixo nao
+ * esta carregado, e a linha fica guardada.
+ */
+bool restoreVanillaPrefix(Il2CppObject* item, const SavedItem& saved) {
+    auto& a = il2cpp::api();
+    const Refs& r = g_refs;
+    const int want = decodePrefix(saved);
+    const int now = field<uint8_t>(item, r.prefix);
+    if (want == now) return true;
+    Il2CppObject* exc = nullptr;
+    if (now != 0 && r.resetPrefix) a.runtime_invoke(r.resetPrefix, item, nullptr, &exc);
+    if (want <= 0) return false;
+    if (r.applyPrefix) {
+        int p = want;
+        void* pa[1] = {&p};
+        a.runtime_invoke(r.applyPrefix, item, pa, &exc);
+    }
+    return !exc && field<uint8_t>(item, r.prefix) == want;
 }
 
 using LoadFn = Il2CppObject* (*)(Il2CppString*, bool, const MethodInfo*);
@@ -330,13 +452,25 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
         kept.push_back({kBuffContainer, b.slot, b.time, 0, false, b.key});
     }
     const size_t buffsKept = kept.size();
-    int restored = 0, moved = 0, unloaded = 0, stray = 0;
+    int restored = 0, moved = 0, unloaded = 0, stray = 0, prefixes = 0;
+    std::map<std::string, PendingPrefix> pending;
     if (!saved.empty()) {
         const std::vector<Container> containers = containersOf(player);
         const Container* inventory = nullptr;
         for (const Container& c : containers) if (c.name == "inventory") inventory = &c;
 
         for (const SavedItem& s : saved) {
+            if (isVanillaPrefixEntry(s)) {
+                Il2CppObject* slotItem = nullptr;
+                for (const Container& c : containers) {
+                    if (c.name == s.container) slotItem = c.at(s.slot);
+                }
+                // O item mudou de lugar (ou saiu) sem o loader: a linha nao vale mais.
+                if (!slotItem || field<int32_t>(slotItem, g_refs.type) != vanillaPrefixEntryType(s)) continue;
+                if (restoreVanillaPrefix(slotItem, s)) ++prefixes;
+                else kept.push_back(s);
+                continue;
+            }
             const int type = typeForKey(s.key);
             if (type < 0) { kept.push_back(s); continue; }
             if (isUnloadedType(type)) ++unloaded;
@@ -361,8 +495,14 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
                 }
                 if (target) ++moved;
             }
-            if (target && restore(target, type, s)) ++restored;
-            else kept.push_back(s);
+            if (target && restore(target, type, s)) {
+                ++restored;
+                if (target == slotItem && !s.prefixKey.empty() && decodePrefix(s) < 0) {
+                    pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
+                }
+            } else {
+                kept.push_back(s);
+            }
         }
     }
     // O que sobrou com numero cru invalido (cofre de antes deste arquivo, mod
@@ -380,14 +520,16 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
         std::lock_guard<std::mutex> l(g_mx);
         if (kept.empty()) g_kept.erase(path);
         else g_kept[path] = kept;
+        if (pending.empty()) g_pendingPrefix.erase(path);
+        else g_pendingPrefix[path] = std::move(pending);
     }
     if (buffCount) {
         BL_INFO("save de buffs de mod: %zu reposto(s), %zu so no arquivo", buffCount - buffsKept, buffsKept);
     }
     if (!saved.empty() || stray) {
-        BL_INFO("save de itens de mod: personagem: %d reposto(s) (%d como \"?\")%s, %zu so no "
-                "arquivo, %d numero(s) invalido(s) limpo(s)", restored, unloaded,
-                moved ? ", algum fora do lugar" : "", kept.size(), stray);
+        BL_INFO("save de itens de mod: personagem: %d reposto(s) (%d como \"?\")%s, %d prefixo(s) "
+                "de mod em item do jogo, %zu so no arquivo, %d numero(s) invalido(s) limpo(s)",
+                restored, unloaded, moved ? ", algum fora do lugar" : "", prefixes, kept.size(), stray);
     }
     return fileData;
 }
@@ -458,11 +600,19 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
         forEachChest([&](Il2CppObject* chest, Il2CppArray* chestItems) {
             for (int i = 0; i < static_cast<int>(chestItems->length); ++i) {
                 const ChestSlot s = slotOf(chestItems, i);
-                if (s.type() < kVanillaItemCount || s.stack() <= 0) continue;
+                if (s.type() <= 0 || s.stack() <= 0) continue;
+                if (s.type() < kVanillaItemCount) {
+                    if (s.prefix() >= vanillaPrefixCount() && !modPrefixKey(s.prefix()).empty()) {
+                        items.push_back(vanillaPrefixEntry(chestName(chest), i, s.type(), s.prefix()));
+                    }
+                    continue;
+                }
                 std::string key = modItemKey(s.type());
                 if (key.empty()) continue;
-                items.push_back({chestName(chest), i, s.stack(), s.prefix(), s.favorited() != 0,
-                                 std::move(key)});
+                SavedItem it{chestName(chest), i, s.stack(), 0, s.favorited() != 0, std::move(key), {}};
+                encodePrefix(it, s.prefix());
+                if (s.prefix() == 0) it.prefixKey = pendingPrefixFor(path, it.container, i, s.type());
+                items.push_back(std::move(it));
             }
         });
         size_t kept = 0;
@@ -470,8 +620,18 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
             std::lock_guard<std::mutex> l(g_mx);
             auto it = g_kept.find(path);
             if (it != g_kept.end()) {
-                kept = it->second.size();
-                items.insert(items.end(), it->second.begin(), it->second.end());
+                std::map<std::string, Il2CppArray*> byName;
+                forEachChest([&](Il2CppObject* chest, Il2CppArray* a) { byName[chestName(chest)] = a; });
+                for (const SavedItem& k : it->second) {
+                    if (isVanillaPrefixEntry(k)) {
+                        // Enquanto o mesmo item seguir no lugar, sem prefixo.
+                        auto c = byName.find(k.container);
+                        const ChestSlot s = c == byName.end() ? ChestSlot{} : slotOf(c->second, k.slot);
+                        if (!s.data || s.type() != vanillaPrefixEntryType(k) || s.prefix() != 0) continue;
+                    }
+                    items.push_back(k);
+                    ++kept;
+                }
             }
         }
         writeFile(path + kSuffix, items);
@@ -495,7 +655,8 @@ void hkFixAgainstExploits(const MethodInfo* m) {
     const std::vector<SavedItem> saved =
         path.empty() ? std::vector<SavedItem>{} : readFile(path + kSuffix);
     std::vector<SavedItem> kept;
-    int restored = 0, unloaded = 0, stray = 0;
+    int restored = 0, unloaded = 0, stray = 0, prefixes = 0;
+    std::map<std::string, PendingPrefix> pending;
 
     std::map<std::string, Il2CppArray*> byName;
     forEachChest([&](Il2CppObject* chest, Il2CppArray* items) { byName[chestName(chest)] = items; });
@@ -504,6 +665,19 @@ void hkFixAgainstExploits(const MethodInfo* m) {
 
     for (const SavedItem& s : saved) {
         auto it = byName.find(s.container);
+        if (isVanillaPrefixEntry(s)) {
+            // Item do jogo com prefixo de mod: o bau so guarda o numero, que e trocado.
+            const ChestSlot slot = it == byName.end() ? ChestSlot{} : slotOf(it->second, s.slot);
+            if (!slot.data || slot.type() != vanillaPrefixEntryType(s)) continue;
+            std::vector<bool>& cov = covered[s.container];
+            cov.resize(it->second->length);
+            cov[static_cast<size_t>(s.slot)] = true;
+            const int prefix = decodePrefix(s);
+            slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
+            if (prefix > 0) ++prefixes;
+            else kept.push_back(s);
+            continue;
+        }
         const int type = it == byName.end() ? -1 : typeForKey(s.key);
         const ChestSlot slot = type < 0 ? ChestSlot{} : slotOf(it->second, s.slot);
         // Item do JOGO no lugar: o bau foi mexido sem o loader, e ele fica.
@@ -514,8 +688,10 @@ void hkFixAgainstExploits(const MethodInfo* m) {
         }
         slot.type() = static_cast<int16_t>(type);
         slot.stack() = static_cast<int16_t>(s.stack > 0 ? s.stack : 1);
-        slot.prefix() = static_cast<uint8_t>(s.prefix);
+        const int prefix = decodePrefix(s);
+        slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
         slot.favorited() = s.favorited ? 1 : 0;
+        if (prefix < 0 && !s.prefixKey.empty()) pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
         std::vector<bool>& cov = covered[s.container];
         cov.resize(it->second->length);
         cov[static_cast<size_t>(s.slot)] = true;
@@ -533,6 +709,10 @@ void hkFixAgainstExploits(const MethodInfo* m) {
                 s.prefix() = 0;
                 s.favorited() = 0;
                 ++stray;
+            } else if (!explained && isStrayPrefix(s.prefix())) {
+                // Numero de prefixo de mod sem linha no arquivo: de outra sessao.
+                s.prefix() = 0;
+                ++stray;
             }
         }
     });
@@ -540,11 +720,13 @@ void hkFixAgainstExploits(const MethodInfo* m) {
         std::lock_guard<std::mutex> l(g_mx);
         if (kept.empty()) g_kept.erase(path);
         else g_kept[path] = kept;
+        if (pending.empty()) g_pendingPrefix.erase(path);
+        else g_pendingPrefix[path] = std::move(pending);
     }
     if (!saved.empty() || stray) {
-        BL_INFO("save de itens de mod: mundo: %d item(ns) em bau reposto(s) (%d como \"?\"), "
-                "%zu so no arquivo, %d numero(s) invalido(s) limpo(s)", restored, unloaded,
-                kept.size(), stray);
+        BL_INFO("save de itens de mod: mundo: %d item(ns) em bau reposto(s) (%d como \"?\"), %d "
+                "prefixo(s) de mod em item do jogo, %zu so no arquivo, %d numero(s) invalido(s) "
+                "limpo(s)", restored, unloaded, prefixes, kept.size(), stray);
     }
     g_origFix(m);
 }
@@ -632,6 +814,7 @@ bool resolve() {
     r.favorited = fieldOffset(item, "favorited");
     r.setDefaults = findMethodBySignature(item, parseSignature("void SetDefaults(int Type, ItemVariant variant)"));
     r.applyPrefix = findMethodBySignature(item, parseSignature("bool Prefix(int prefixWeWant)"));
+    r.resetPrefix = findMethodBySignature(item, parseSignature("void ResetPrefix()"));
 
     // Conjuntos (Loadouts), cofres e prefixo sao opcionais: sem eles, so
     // aquele lugar fica de fora. O resto e o minimo para nao perder item.

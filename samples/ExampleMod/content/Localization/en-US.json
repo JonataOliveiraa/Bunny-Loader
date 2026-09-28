@@ -72,7 +72,8 @@
     "ExampleWings": "Example Wings",
     "ExampleBeard": "Example Beard",
     "ExampleCostume": "Example Costume",
-    "ExampleRobe": "Example Robe"
+    "ExampleRobe": "Example Robe",
+    "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -132,7 +133,8 @@
     "ExampleLeggings": "This is a modded leg armor.\n{0}% increased movement speed",
     "ExampleWings": "This is a modded wing.",
     "ExampleBeard": "This is a modded beard which matches your hair color.",
-    "ExampleCostume": "Turns the holder into a blocky figure near town NPCs"
+    "ExampleCostume": "Turns the holder into a blocky figure near town NPCs",
+    "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
@@ -189,5 +191,19 @@
   },
   "ArmorSetBonus": {
     "ExampleArmor": "Increases dealt damage by {0}%"
+  },
+  "PrefixName": {
+    "ExamplePrefix": "Example Prefix",
+    "ExampleDerivedPrefix": "Example Derived Prefix",
+    "ExampleAccessoryPrefix": "Sturdy Example"
+  },
+  "Prefixes": {
+    "PowerTooltip": "{0} Power",
+    "ExamplePrefix": {
+      "AdditionalTooltip": "More Power"
+    },
+    "ExampleDerivedPrefix": {
+      "AdditionalTooltip": "Even More Power"
+    }
   }
 }

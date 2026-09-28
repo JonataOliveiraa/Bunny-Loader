@@ -78,6 +78,7 @@ struct Refs {
     const MethodInfo* setupMerge = nullptr;           // Main.SetupTileMerge
     const MethodInfo* sceneMetrics = nullptr;         // Main.get_SceneMetrics
     const MethodInfo* playerSceneMetrics = nullptr;   // Main.get_PlayerSceneMetrics
+    const MethodInfo* cameraSceneMetrics = nullptr;   // Main.get__cameraSceneMetrics
 };
 
 Refs& refs() {
@@ -107,6 +108,7 @@ Refs& refs() {
     r.setupMerge = main ? a.class_get_method_from_name(main, "SetupTileMerge", 0) : nullptr;
     r.sceneMetrics = main ? a.class_get_method_from_name(main, "get_SceneMetrics", 0) : nullptr;
     r.playerSceneMetrics = main ? a.class_get_method_from_name(main, "get_PlayerSceneMetrics", 0) : nullptr;
+    r.cameraSceneMetrics = main ? a.class_get_method_from_name(main, "get__cameraSceneMetrics", 0) : nullptr;
     r.ok = r.textures && r.solid && r.merge && r.players && r.adjTile >= 0 && r.tileCounts >= 0 &&
            r.playerCtor && r.metricsCtor && r.setupMerge;
     if (!r.ok) {
@@ -760,15 +762,17 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
     const std::atomic<uint8_t>* marks = g_drawDataMarks.load(std::memory_order_acquire);
     const bool toMod = hook && marks && marks[type].load(std::memory_order_relaxed);
 
-    // O AnimationFrameHeight do tModLoader: o quadro do tipo (Main.tileFrame,
-    // que o AnimateTile avanca) desce a textura. Tambem vai na chave do cache.
+    // O jogo ja põe um deslocamento vertical padrao baseado em Main.tileFrame.
+    // Para tiles de mod, a folha usa AnimationFrameHeight (ou zero quando os
+    // quadros sao horizontais), entao substituimos esse deslocamento.
+    // O quadro tambem vai na chave do cache para AnimateIndividualTile.
     const int frameHeight = i < kMaxAnimated ? g_animHeight[i].load(std::memory_order_relaxed) : 0;
     int32_t tileFrame = 0;
     if ((frameHeight > 0 || toMod) && g_tileFrameField) {
         Il2CppArray* frames = readStatic(g_tileFrameField);
         if (frames && type < frames->length) tileFrame = static_cast<const int32_t*>(arrayData(frames))[type];
-        *addFrY += tileFrame * frameHeight;
     }
+    *addFrY = tileFrame * frameHeight;
 
     if (i < g_drawShapes.size() && g_drawShapes[i].ok) {
         const DrawShape& s = g_drawShapes[i];
@@ -991,8 +995,12 @@ void growInstances(int size) {
         TypeTables::growInstanceTable(p, r.adjTile, kVanillaTileCount, size, nullptr);
         ++players;
     }
+    // O da camera tambem: sem a camera separada (o normal), get_SceneMetrics
+    // devolve o mesmo do jogador, e o da camera ficava com 753. O ScanTiles faz
+    // _tileCounts[tipo]++ sem conferir o limite: a primeira varredura dele com
+    // um tile de mod por perto escreveria fora do array.
     int metrics = 0;
-    for (const MethodInfo* get : {r.sceneMetrics, r.playerSceneMetrics}) {
+    for (const MethodInfo* get : {r.sceneMetrics, r.playerSceneMetrics, r.cameraSceneMetrics}) {
         if (Il2CppObject* s = callStatic(get)) {
             TypeTables::growInstanceTable(s, r.tileCounts, kVanillaTileCount, size, nullptr);
             ++metrics;

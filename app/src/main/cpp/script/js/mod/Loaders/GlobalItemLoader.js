@@ -123,6 +123,8 @@ class GlobalItemLoader {
 
         if (has('ModifyTooltips')) Hooks.Once('item.Tooltips', TooltipLoader.Install);
 
+        const prefixHooks = ['ChoosePrefix', 'PrefixChance', 'AllowPrefix', 'ApplyPrefix'].filter(has);
+        if (prefixHooks.length) PrefixLoader.WantItemHooks(prefixHooks);
         if (has('UpdateArmorSet')) ArmorSetLoader.WantArmorSets();
         if (has('PreUpdateVanitySet') || has('UpdateVanitySet')) ArmorSetLoader.WantFrame();
         if (has('ArmorSetShadows')) ArmorSetLoader.WantShadows();

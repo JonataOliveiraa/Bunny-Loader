@@ -208,6 +208,9 @@ class ItemLoader {
         if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal');
         if (has('WingUpdate')) WingLoader.Want('Update');
 
+        const prefixHooks = ['ChoosePrefix', 'PrefixChance', 'AllowPrefix', 'ApplyPrefix'].filter(has);
+        if (prefixHooks.length) PrefixLoader.WantItemHooks(prefixHooks);
+
         if (has('UpdateInventory')) Hooks.Once('item.Inventory', () => {
             P['void UpdateEquips(int i)'].hook((original, self, i) => {
                 original(self, i);

@@ -9,8 +9,9 @@ class ContentLookup {
         if (base === ModNPC) return NPCLoader.ByType;
         if (base === ModBuff) return BuffLoader.ByType;
         if (base === ModTile) return TileLoader.ByType;
+        if (base === ModPrefix) return PrefixLoader.ByType;
 
-        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff ou ModTile');
+        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModTile ou ModPrefix');
     }
 
     // Pelo nome: no mod de quem chama, ou no único mod que o tem.

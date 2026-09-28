@@ -97,6 +97,15 @@ SetDefaults() {
 - Com dois NPCs de música por perto, ganha o de `SceneEffectPriority` maior
   (`SceneEffectPriority.BossLow` é o padrão; vão de `None` a `BossHigh`).
 - "Perto" é o mesmo do tModLoader: a até 5000 px da tela.
+- Um bioma (`ModBiome`) ou efeito de cena (`ModSceneEffect`) também tem
+  `Music` e `Priority`: vale a do jogador local, e ela só troca a do NPC se a
+  prioridade for maior.
+- A do mod ganha da do jogo se a prioridade chegar ao degrau dela, como no
+  tModLoader: `BossLow` ganha de um chefe comum do jogo, mas não do Senhor da
+  Lua (`BossHigh`); `BiomeLow` ganha da música de superfície, mas não da
+  chuva de slime (`Environment`). A tabela inteira está na
+  [referência](../referencia/classes.md#som-e-música). A caixa de música, do
+  jogo ou de mod, ganha de tudo.
 
 A troca é igual à do jogo entre duas músicas dele: a nova entra baixinho e
 vai subindo, e a que tocava só começa a sair quando a nova já se ouve — uns 4
@@ -133,7 +142,7 @@ Na prática:
 | `SoundEngine.PlaySound` devolve `SlotId` | devolve o número do som (0 = não tocou) |
 | `Variants`, `IsLooped`, callback de atualização | ainda não |
 | `MusicLoader.GetMusicSlot(Mod, caminho)` | também `GetMusicSlot(caminho)`; não há carga automática de `Assets/Music/` |
-| `ModBiome.Music`, `ModSceneEffect`, caixa de música | ainda não: só `ModNPC.Music` |
+| `ModBiome.Music`, `ModSceneEffect.Music` | iguais: a da cena do jogador local, pela `Priority` |
 
 ## Referência rápida
 

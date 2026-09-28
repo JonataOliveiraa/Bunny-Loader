@@ -19,6 +19,15 @@ class Lang {
         return map[now] ?? map['en-US'] ?? map[''] ?? Object.values(map)[0] ?? '';
     }
 
+    // O nome por cultura sob a chave do jogo ('NPCName.X', 'ItemName.X'...).
+    // O LocalizedText dessa chave é o mesmo da tabela por tipo
+    // (Lang._npcNameCache), e a troca de idioma não refaz a tabela: só troca o
+    // texto dos LocalizedText do dicionário. Registrado, ele recebe o texto
+    // do idioma novo.
+    static Follow(key, texts) {
+        if (texts && typeof texts === 'object') LocalizationLoader.Register(key, texts);
+    }
+
     // Cada texto por cultura passado pelo ModifyDisplayName/ModifyDescription do mod.
     static ModifyPerCulture(inst, field, texts, modify) {
         const run = () => Safe.Run(inst.constructor.name + '.' + modify, () => inst[modify]());

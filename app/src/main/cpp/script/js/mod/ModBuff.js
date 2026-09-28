@@ -51,6 +51,8 @@ class ModBuff {
             },
         });
         inst.Type = type;
+        Lang.Follow('BuffName.' + name, displayName);
+        Lang.Follow('BuffDescription.' + name, description);
         BuffLoader.ByType.set(type, inst);
 
         Ready.Add(() => inst.PostSetupContent());

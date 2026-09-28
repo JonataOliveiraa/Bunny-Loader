@@ -7,6 +7,7 @@
 #include "il2cpp/Signature.h"
 #include "mods/ModLoader.h"
 #include "content/items/ModItems.h"
+#include "content/items/ModPrefixes.h"
 #include "content/common/TypeTables.h"
 #include "menu/ModMenu.h"
 #include "script/bridge/Bridge.h"
@@ -409,6 +410,31 @@ JSValue js_growEquipSets(JSContext* ctx, JSValueConst, int argc, JSValueConst* a
     return JS_NewInt32(ctx, t->grow(from, to));
 }
 
+/**
+ * bl.items.registerPrefix(nome) -> numero do prefixo (PrefixID.Count + a ordem).
+ * So o nome e o numero: tabelas e efeitos sao do PrefixLoader (JS). O save
+ * guarda o prefixo de mod por "<uid>/<nome>".
+ */
+JSValue js_registerPrefix(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.items.registerPrefix(nome)");
+    const std::string n = name;
+    JS_FreeCString(ctx, name);
+    const std::string mod = callerModId(ctx);
+    const int id = runtime::registerModPrefix(mod, n);
+    if (id < 0) {
+        return JS_ThrowRangeError(ctx, "bl.items.registerPrefix: '%s' ja existe neste mod, ou nao cabe mais prefixo (ate 255)",
+                                  n.c_str());
+    }
+    BL_DEBUG("prefixo de mod %s/%s -> %d", mod.c_str(), n.c_str(), id);
+    return JS_NewInt32(ctx, id);
+}
+
+/** bl.items.vanillaPrefixCount() — o PrefixID.Count de fabrica (o primeiro numero de mod). */
+JSValue js_vanillaPrefixCount(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewInt32(ctx, runtime::vanillaPrefixCount());
+}
+
 } // namespace
 
 void installItemsApi(JSContext* ctx, JSValue bl) {
@@ -420,6 +446,9 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, items, "setTooltip", JS_NewCFunction(ctx, js_setTooltip, "setTooltip", 2));
     JS_SetPropertyStr(ctx, items, "modItemsIn", JS_NewCFunction(ctx, js_modItemsIn, "modItemsIn", 1));
     JS_SetPropertyStr(ctx, items, "growEquipSets", JS_NewCFunction(ctx, js_growEquipSets, "growEquipSets", 3));
+    JS_SetPropertyStr(ctx, items, "registerPrefix", JS_NewCFunction(ctx, js_registerPrefix, "registerPrefix", 1));
+    JS_SetPropertyStr(ctx, items, "vanillaPrefixCount",
+                      JS_NewCFunction(ctx, js_vanillaPrefixCount, "vanillaPrefixCount", 0));
     JS_SetPropertyStr(ctx, bl, "items", items);
 
     JSValue menu = JS_NewObject(ctx);

@@ -1,8 +1,8 @@
 # 5. Itens
 
 Um item novo é uma classe que estende `ModItem`. Este guia cobre o item em si
-(atributos, uso, tiro, acessório), o tooltip, a vara de pesca, as receitas e o
-`ModSystem`. Antes, leia as [ideias do guia 4](04-conteudo-novo.md): molde e
+(atributos, uso, tiro, acessório), os prefixos, o tooltip, a vara de pesca, as
+receitas e o `ModSystem`. Antes, leia as [ideias do guia 4](04-conteudo-novo.md): molde e
 instância, `register`, texturas, tradução.
 
 A lista completa de campos e métodos está na
@@ -304,6 +304,105 @@ e asas também existem no `GlobalItem`, como no tModLoader.
 No multijogador vale o de sempre para item de mod: os dois lados com os mesmos
 mods, na mesma ordem. O jogo manda o ITEM de cada casa da armadura, e cada
 aparelho monta os slots sozinho (conferido em `tools/tests/mparmor`).
+
+## Prefixos
+
+Um prefixo novo é uma classe que estende `ModPrefix` (em `Content/Prefixes/`,
+por exemplo). O `ExamplePrefix` do Example Mod, como o do tModLoader:
+
+```js
+export class ExamplePrefix extends ModPrefix {
+    get Power() { return 1; }
+
+    // Que itens podem ganhar: Melee, Ranged, Magic, Summon, AnyWeapon, Accessory ou Custom.
+    get Category() { return PrefixCategory.AnyWeapon; }
+
+    // O peso na rolagem; cada prefixo do jogo pesa 1.
+    RollChance(item) { return 5; }
+
+    // Os `ref` do tModLoader chegam como Ref.
+    SetStats(damageMult, knockbackMult, useTimeMult, scaleMult, shootSpeedMult, manaMult, critBonus) {
+        damageMult.value *= 1 + 0.20 * this.Power;
+    }
+
+    ModifyValue(valueMult) {
+        valueMult.value *= 1 + 0.05 * this.Power;
+    }
+}
+```
+
+O nome vem de `PrefixName.ExamplePrefix` no `Localization/<cultura>.json` (ou
+`Prefixes.ExamplePrefix.DisplayName`, como no tModLoader). O jogo monta o nome
+do item com ele, na ordem do idioma (em português: "de Exemplo Lâmina da
+Noite").
+
+O resto é o jogo que faz, porque o `Item.Prefix` do celular é o do PC e chama
+por método os pedaços certos: o Bunny Loader põe o prefixo na lista do item
+(`GetRollablePrefixes`), no sorteio com o peso (`RollAPrefix`) e nos status
+(`TryGetPrefixStatMultipliersForItem`); o jogo aplica dano, velocidade,
+tamanho, mana e crítico, sobe a raridade, muda o preço e escreve no tooltip o
+"+20% de dano", como faz com os dele. Por isso vale também a regra do jogo: se
+algum status que o prefixo mexe não mudar de verdade no item (10% de uma arma
+de dano 3), o prefixo não pega nesse item. A reforja, o item criado e o baú do
+mundo gerado rolam os prefixos de mod do mesmo jeito.
+
+Para o que não é status do jogo: `Apply(item)` (depois dos status),
+`ApplyAccessoryEffects(player)` (a cada quadro, no acessório equipado) e
+`GetTooltipLines(item)` (linhas a mais; o jogo só escreve as linhas dos
+prefixos dele). O de acessório do Example Mod:
+
+```js
+export class ExampleAccessoryPrefix extends ModPrefix {
+    get Category() { return PrefixCategory.Accessory; }
+
+    ModifyValue(valueMult) { valueMult.value *= 1.2; }
+
+    ApplyAccessoryEffects(player) { player.statDefense += 4; }
+
+    GetTooltipLines(item) {
+        const line = new TooltipLine(this.Mod, 'PrefixAccDefense', '+4' + Terraria.Lang.tip[25].Value);
+        line.IsModifier = true;   // a cor verde das linhas de prefixo
+        return [line];
+    }
+}
+```
+
+Um prefixo pode herdar de outro: o `ExampleDerivedPrefix` só troca o `Power`
+(`get Power() { return super.Power * 2; }`) e ganha +40%.
+
+### O item de mod e os prefixos
+
+As tabelas do jogo que dizem quem é espada, arma de fogo ou mágica
+(`PrefixLegacy.ItemSets`) não conhecem item de mod. Como no tModLoader, a
+categoria vem da classe do item: `MeleePrefix`, `RangedPrefix`, `MagicPrefix`,
+`SummonPrefix` e `WeaponPrefix` do `ModItem`, com o padrão pelo `melee`,
+`ranged`, `magic` e `summon` do item. Só pega prefixo de arma o item com dano,
+que não é munição nem consumível (no celular todo item tem `maxStack` 9999, então
+não dá para decidir pela pilha). A `ExampleMultiplePrefixCategoryWeapon` é de
+longo alcance e pega os de corpo a corpo e de magia:
+
+```js
+MeleePrefix(item) { return true; }
+MagicPrefix(item) { return true; }
+RangedPrefix(item) { return false; }
+```
+
+`ChoosePrefix(item, rand)` força um prefixo (é o jeito de dar um `Custom`),
+`PrefixChance(item, pre, rand)` impede ou garante, `AllowPrefix(item, pre)`
+tira um prefixo das opções e `ApplyPrefix(item, pre)` roda depois dos status.
+Os quatro também existem no `GlobalItem`, para qualquer item.
+
+### Save e multijogador
+
+O jogo guarda o prefixo num byte, e o número de um prefixo de mod depende de
+quais mods estão instalados e em que ordem carregam. O Bunny Loader grava o
+prefixo de mod também pelo nome, no personagem e nos baús: com outro mod
+instalado antes, o item volta com o prefixo certo, e sem o mod dele o item fica
+sem o prefixo até o mod voltar (conferido em `tools/tests/prefix`).
+
+No multijogador o prefixo viaja como o número de sempre, e cada lado aplica o
+`ModPrefix` sozinho: os dois precisam dos mesmos mods, na mesma ordem, como
+para item de mod (`tools/tests/mpprefix`).
 
 ## Tooltip colorido
 

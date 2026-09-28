@@ -1,0 +1,15 @@
+{
+  "uid": "e5a0c6d2-3b7f-4f19-8c21-6d4b9a2f7e31",
+  "id": "test-mpprefix",
+  "name": "Teste MP: prefixos de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Cada lado põe itens com prefixo de mod e o outro confere prefixo e status; o host confere a defesa do acessório do cliente.",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpp ...'.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -22,6 +22,13 @@ class ModSystem {
     PostUpdateTime() {}
     PostUpdateEverything() {}
 
+    // A contagem de blocos em volta do jogador local (a cada 5 quadros, a do
+    // jogo): Reset antes de contar, TileCountsAvailable no fim. O Reset vem
+    // também ao sair do mundo e ao carregar outro. tileCounts[tipo]
+    // vale durante a chamada; guarde o número, não o array.
+    ResetNearbyTileEffects() {}
+    TileCountsAvailable(tileCounts) {}
+
     NetSend(writer) {}
     NetReceive(reader) {}
 

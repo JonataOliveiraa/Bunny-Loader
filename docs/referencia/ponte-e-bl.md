@@ -20,6 +20,11 @@ no [guia 1](../mods/01-hooks-do-zero.md); as classes de mod estão em
 | `proj.ai[0]`, `proj.oldPos[3].X` | Struct de campos numerados aceita índice. |
 | `arr[i]`, `arr.length` | Array do jogo. |
 | `arr.cloneResized(n)` | Cópia do array com `n` posições. |
+| `arr.fill(v, início?, fim?)` | Preenche o próprio array (muda o jogo) e devolve ele. |
+| `arr.empty()` | Array novo do mesmo tipo, sem posições. |
+| `arr.find(fn)` | O primeiro elemento com `fn(elemento, índice, arr)` verdadeiro, ou `undefined`. |
+| `[1, 2].makeGeneric('int')` | Array JS (ou `Uint8Array`...) vira array do jogo: `int[]`. Tipo pelo nome do C#, pelo nome completo ou pela classe. |
+| `Classe.newArray(n)` | `new T[n]` do C#: `Terraria.Item.newArray(10)`. Com uma lista, já preenchido. |
 | `Classe['ret Nome(T a, U b)']` | Método, pela **assinatura** do dump, com os nomes exatos dos parâmetros. |
 | `Classe.Nome`, `obj.Nome` | Método, se houver **um só** com esse nome. |
 | `metodo(args)`, `obj['...'](args)` | Chamar. Em método de instância, o objeto é o `this` ou o 1º argumento. |

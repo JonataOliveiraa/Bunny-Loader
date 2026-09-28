@@ -92,8 +92,11 @@ std::string modIdOfModule(const char* name) {
 
 // Quantos frames da pilha JS olhar atras do mod. Chamadas que passam pelas
 // classes do loader (ModItem.register -> bl.items.register) poem frames
-// delas no meio.
-constexpr int kCallerLevels = 8;
+// delas no meio. Eram 8: o ModLocalization.Translate ja gasta 6 ate chegar ao
+// mod, e dois niveis a mais no codigo do mod (uma funcao de ajuda, um
+// callback) faziam o bl.mod sumir e o texto voltar como a chave. Olhar
+// fundo so custa quando o mod nao aparece logo.
+constexpr int kCallerLevels = 64;
 
 /**
  * Caminho relativo vale a partir da pasta do mod de QUEM CHAMOU.

@@ -1,0 +1,81 @@
+// A cena de cada jogador, como no tModLoader: dos ModSceneEffect ativos (os
+// ModBiome também), o de maior prioridade + peso dá cada canal: a música e os
+// fundos de superfície e de subsolo. Água e mapa entram na etapa deles
+// (PLANO-MODBIOME.md).
+class SceneEffectLoader {
+    static List = [];
+    static #keys = new Map();   // instância -> 'uuid/Classe' (desempate e log)
+
+    // O Type de um ModSceneEffect é a posição aqui; o de um ModBiome, a
+    // posição no BiomeLoader (como no tModLoader).
+    static Add(inst) {
+        if (!(inst instanceof ModBiome)) inst.Type = SceneEffectLoader.List.length;
+        SceneEffectLoader.List.push(inst);
+        SceneEffectLoader.#keys.set(inst, (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + inst.constructor.name);
+        Hooks.Once('scene.fields', () => bl.defineField(Terraria.Player, 'CurrentSceneEffect'));
+        BiomeLoader.Install();
+        // A música da cena (a de ModBiome é 0, o silêncio, a não ser que o mod diga -1).
+        ModMusic.Install();
+    }
+
+    static KeyOf(inst) {
+        return SceneEffectLoader.#keys.get(inst);
+    }
+
+    // Uma cena vazia: nenhum efeito, música -1 (a do jogo), fundos do jogo.
+    static Empty() {
+        const none = () => ({ value: -1, priority: SceneEffectPriority.None, from: null });
+        return { anyActive: false, music: none(), surfaceBackground: none(), undergroundBackground: none(), active: [] };
+    }
+
+    // O SpecialVisuals roda para todos, ativo ou não (é onde se desliga um filtro).
+    // Um efeito que lança fica inativo nesta avaliação.
+    static UpdateSceneEffect(player) {
+        const result = SceneEffectLoader.Empty();
+        const ranked = [];
+
+        for (const effect of SceneEffectLoader.List) {
+            const name = effect.constructor.name;
+            const active = Safe.Run(name + '.IsSceneEffectActive', () => effect.IsSceneEffectActive(player)) === true;
+            Safe.Run(name + '.SpecialVisuals', () => effect.SpecialVisuals(player, active));
+            if (!active) continue;
+
+            const weight = Safe.Run(name + '.GetWeight', () => effect.GetWeight(player));
+            const clamped = Math.max(0, Math.min(1, Number(weight) || 0));
+            ranked.push({ effect, rank: clamped + (effect.Priority | 0), key: SceneEffectLoader.KeyOf(effect) });
+        }
+
+        if (ranked.length) {
+            // Maior primeiro; no empate, a chave, para a escolha não depender da ordem de carga.
+            ranked.sort((a, b) => b.rank - a.rank || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+            result.anyActive = true;
+            result.active = ranked.map((r) => r.effect);
+
+            // Cada canal vem do primeiro que o preenche (a música de um, o fundo de outro).
+            for (const { effect } of ranked) {
+                const name = effect.constructor.name;
+                const priority = effect.Priority | 0;
+                if (result.music.from === null) {
+                    const music = effect.Music | 0;
+                    if (music !== -1) result.music = { value: music, priority, from: effect };
+                }
+                if (result.surfaceBackground.from === null) {
+                    const style = Safe.Run(name + '.SurfaceBackgroundStyle', () => effect.SurfaceBackgroundStyle);
+                    if (style instanceof ModSurfaceBackgroundStyle) result.surfaceBackground = { value: style.Slot, priority, from: effect };
+                }
+                if (result.undergroundBackground.from === null) {
+                    const style = Safe.Run(name + '.UndergroundBackgroundStyle', () => effect.UndergroundBackgroundStyle);
+                    if (style instanceof ModUndergroundBackgroundStyle) result.undergroundBackground = { value: style.Slot, priority, from: effect };
+                }
+            }
+        }
+
+        player.CurrentSceneEffect = result;
+        return result;
+    }
+
+    // A cena do jogador, ou uma vazia antes da primeira avaliação.
+    static Of(player) {
+        return (player && player.CurrentSceneEffect) || SceneEffectLoader.Empty();
+    }
+}

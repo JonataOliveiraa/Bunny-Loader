@@ -85,6 +85,38 @@ class SystemLoader {
             });
         });
 
+        // Só a varredura do jogador local (Main.PlayerSceneMetrics). O
+        // tModLoader chama em toda, e a dos pilares e a da câmera também
+        // sobrescreveriam a contagem guardada pelo mod.
+        if (has('ResetNearbyTileEffects') || has('TileCountsAvailable')) Hooks.Once('system.TileCounts', () => {
+            const SceneMetrics = Terraria.SceneMetrics;
+            const isPlayers = (self) => !Main.gameMenu && self === Main.PlayerSceneMetrics;
+
+            SceneMetrics['void Reset()'].hook((original, self) => {
+                original(self);
+                if (isPlayers(self)) each('ResetNearbyTileEffects', (s) => s.ResetNearbyTileEffects());
+            });
+            SceneMetrics['void AggregateTileCounts()'].hook((original, self) => {
+                original(self);
+                if (!isPlayers(self)) return;
+
+                const counts = self._tileCounts;
+                each('TileCountsAvailable', (s) => s.TileCountsAvailable(counts));
+            });
+
+            // Fora do mundo não há varredura: a contagem do mundo anterior
+            // valeria no novo até a primeira dele (até 5 quadros).
+            const reset = () => each('ResetNearbyTileEffects', (s) => s.ResetNearbyTileEffects());
+            WorldGen['void SaveAndQuit()'].hook((original) => {
+                reset();
+                original();
+            });
+            WorldGen['void clearWorld()'].hook((original) => {
+                original();
+                reset();
+            });
+        });
+
         if (has('PostUpdateEverything')) Hooks.Once('system.UpdateEverything', () => {
             Main['void DoUpdateInWorld(Stopwatch sw)'].hook((original, self, sw) => {
                 original(self, sw);

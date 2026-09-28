@@ -1,6 +1,10 @@
-// Música de mod pelo Android (bl.music, MediaPlayer). ModNPC.Music: o NPC com
-// música mais prioritário perto da tela ganha. A troca é a do jogo: a nova sobe
-// 0,005 por quadro e a que tocava só desce quando a nova passa de 0,25.
+// Música de mod pelo Android (bl.music, MediaPlayer). Candidatos: o ModNPC com
+// Music mais prioritário perto da tela e a cena do jogador local (ModBiome,
+// ModSceneEffect), que só troca o do NPC com prioridade maior, como no
+// tModLoader. O candidato ganha da escolha do jogo se a prioridade dele chegar
+// ao degrau dela (VanillaMusic). Caixa de música ganha de tudo. A troca é a do
+// jogo: a nova sobe 0,005 por quadro e a que tocava só desce quando a nova
+// passa de 0,25.
 class ModMusic {
     static FADE = 0.005;
     static AUDIBLE = 0.25;
@@ -38,13 +42,13 @@ class ModMusic {
         Hooks.Once('music', () => {
             ModMusic.#hooked = true;
             const Main = Terraria.Main;
-            const decide = (original, self) => {
+            const decide = (tow) => (original, self) => {
                 original(self);
-                ModMusic.#Decide();
+                ModMusic.#Decide(tow);
             };
 
-            Main['void UpdateAudio_DecideOnNewMusic()'].hook(decide, { ifBusy: 'skip' });
-            Main['void UpdateAudio_DecideOnTOWMusic()'].hook(decide, { ifBusy: 'skip' });
+            Main['void UpdateAudio_DecideOnNewMusic()'].hook(decide(false), { ifBusy: 'skip' });
+            Main['void UpdateAudio_DecideOnTOWMusic()'].hook(decide(true), { ifBusy: 'skip' });
             Main['void UpdateAudio()'].hook((original, self) => {
                 original(self);
                 ModMusic.#Step();
@@ -52,22 +56,41 @@ class ModMusic {
         });
     }
 
-    // Dos NPCs de mod com Music perto da tela (5000 px de folga), o de maior
-    // SceneEffectPriority. -1 = nenhum.
-    static #Choose() {
+    // O slot que a música de mod pede, ou -1 (fica a do jogo).
+    static #Choose(tow) {
         const Main = Terraria.Main;
         if (Main.gameMenu) return -1;
 
         const box = ModMusic.#MusicBox();
         if (box > 0) return box;
-        if (!ModMusic.#npcs.size) return -1;
+        // A caixa do jogo entra depois desta escolha (no UpdateAudio) e ganha.
+        if (Main.SceneMetrics.ActiveMusicBox >= 0) return -1;
+
+        let { music, priority } = ModMusic.#FromNpcs();
+        const scene = SceneEffectLoader.List.length ? SceneEffectLoader.Of(Main.LocalPlayer).music : null;
+        if (scene && scene.value > -1 && scene.priority > priority) {
+            music = scene.value;
+            priority = scene.priority;
+        }
+        if (music < 0 || priority < SceneEffectPriority.BiomeLow) return -1;
+
+        const tier = Safe.Run('ModMusic: degrau do jogo', () => VanillaMusic.Tier(tow));
+        return tier === undefined || priority >= tier ? music : -1;
+    }
+
+    // Dos NPCs de mod com Music perto da tela (5000 px de folga), o de maior
+    // SceneEffectPriority.
+    static #FromNpcs() {
+        const Main = Terraria.Main;
+        const none = { music: -1, priority: SceneEffectPriority.None };
+        if (!ModMusic.#npcs.size) return none;
 
         const margin = 5000;
         const sp = Main.screenPosition;
         const x0 = sp.X - margin, x1 = sp.X + Main.screenWidth + margin;
         const y0 = sp.Y - margin, y1 = sp.Y + Main.screenHeight + margin;
 
-        let best = -1, bestPriority = -1;
+        let best = -1, bestPriority = SceneEffectPriority.None;
         for (const npc of ModMusic.#npcs) {
             // Só o que está no mundo: a amostra do ContentSamples também passa pelo SetDefaults.
             const live = npc.active && Main.npc[npc.whoAmI] === npc;
@@ -84,12 +107,12 @@ class ModMusic {
             if (c.X < x0 || c.X > x1 || c.Y < y0 || c.Y > y1) continue;
 
             const priority = m.SceneEffectPriority | 0;
-            if (priority > bestPriority) {
+            if (best < 0 || priority > bestPriority) {
                 best = music;
                 bestPriority = priority;
             }
         }
-        return best;
+        return { music: best, priority: bestPriority };
     }
 
     // Caixa de música de mod ligada na tela, ou equipada (acessório ou
@@ -135,15 +158,15 @@ class ModMusic {
     }
 
     // A nossa só cala o jogo quando já se ouve; até lá segura o que tocava.
-    static #Decide() {
+    static #Decide(tow) {
         const Main = Terraria.Main;
-        const wanted = ModMusic.#wanted = ModMusic.#Choose();
+        const wanted = ModMusic.#wanted = ModMusic.#Choose(tow);
         const track = wanted >= ModMusic.Base() ? ModMusic.Track(wanted) : null;
         if (track && track.fade > ModMusic.AUDIBLE) return ModMusic.#SilenceGame(true);
 
         ModMusic.#SilenceGame(false);
         if (track) Main.newMusic = Main.curMusic;
-        else if (wanted >= 0) Main.newMusic = wanted;   // MusicID do jogo pedido por NPC de mod
+        else if (wanted >= 0) Main.newMusic = wanted;   // MusicID do jogo (0 = silêncio) pedido por NPC de mod ou pela cena
     }
 
     static #Step() {

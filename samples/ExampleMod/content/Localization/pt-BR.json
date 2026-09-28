@@ -72,7 +72,8 @@
     "ExampleWings": "Asas de Exemplo",
     "ExampleBeard": "Barba de Exemplo",
     "ExampleCostume": "Fantasia de Exemplo",
-    "ExampleRobe": "Manto de Exemplo"
+    "ExampleRobe": "Manto de Exemplo",
+    "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -132,7 +133,8 @@
     "ExampleLeggings": "Uma armadura de mod para as pernas.\n{0}% de aumento na velocidade de movimento",
     "ExampleWings": "Asas de mod.",
     "ExampleBeard": "Uma barba de mod, da cor do seu cabelo.",
-    "ExampleCostume": "Perto de moradores, transforma quem a veste num boneco quadrado"
+    "ExampleCostume": "Perto de moradores, transforma quem a veste num boneco quadrado",
+    "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
@@ -189,5 +191,19 @@
   },
   "ArmorSetBonus": {
     "ExampleArmor": "Aumenta o dano causado em {0}%"
+  },
+  "PrefixName": {
+    "ExamplePrefix": "de Exemplo",
+    "ExampleDerivedPrefix": "de Exemplo Derivado",
+    "ExampleAccessoryPrefix": "Resistente de Exemplo"
+  },
+  "Prefixes": {
+    "PowerTooltip": "{0} de Poder",
+    "ExamplePrefix": {
+      "AdditionalTooltip": "Mais Poder"
+    },
+    "ExampleDerivedPrefix": {
+      "AdditionalTooltip": "Ainda Mais Poder"
+    }
   }
 }

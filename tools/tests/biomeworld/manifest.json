@@ -1,0 +1,15 @@
+{
+  "uid": "9b846491-51a2-4e33-8d00-7d21d6340ce0",
+  "id": "test-biomeworld",
+  "name": "Teste: ModBiome no teleporte e na saída do mundo",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Etapa B2 do ModBiome: o bioma por blocos liga e desliga no próprio teleporte; ao sair do mundo, OnLeave de quem estava dentro, flags zeradas, cena vazia e ResetNearbyTileEffects.",
+  "description": "Loga 'biomeworld ...'. Precisa do Example Mod (ExampleTile). SAI DO MUNDO no fim: rodar sozinho.",
+  "updated": "2026-09-28",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

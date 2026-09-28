@@ -1,0 +1,15 @@
+{
+  "uid": "5b0e7c1a-3f2d-4e89-9a61-2c7d8e4f1b36",
+  "id": "test-biomescan",
+  "name": "Teste: contagem de blocos dos biomas",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Medição da etapa B0 do ModBiome: tamanho de cada _tileCounts, ordem da varredura e a contagem de um bloco de mod.",
+  "description": "Loga 'biomescan ...'. Precisa do Example Mod (ExampleTile).",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -127,6 +127,9 @@ class ModNet {
                     Safe.Run(s.constructor.name + '.NetReceive', () => s.NetReceive(new NetReader(values)));
                 }
                 return;
+            case 'biomes':
+                BiomeLoader.Receive(envelope, from);
+                return;
             case 'npc': {
                 const npc = Main.npc[envelope.i];
                 if (!npc || !npc.active || npc.type !== envelope.t) return;

@@ -60,6 +60,51 @@ function spawnAndKill(type) {
     return npc;
 }
 
+// Usa apenas um mundo de teste: esvazia os drops e ocupa todos os 400 slots.
+// Recria o cache para verificar a primeira consulta, sem esperar outro quadro.
+function fullGroundLootTest() {
+    const emergency = Terraria.GameContent.EmergencyStacking;
+    const p = Main.player[Main.myPlayer];
+    const source = Terraria.DataStructures.EntitySource_DebugCommand.new();
+    source['void .ctor()']();
+    const newItem = Terraria.Item['int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int Type, int Stack, bool noBroadcast, int pfix, bool noGrabDelay)'];
+    for (let pass = 0; pass < 2; pass++) {
+        for (let i = 0; i < 400; i++) Main.item[i]['void ClearOut()']();
+        for (let i = 0; i < 400; i++) {
+            const slot = newItem(source, Math.floor(p.position.X + 900), Math.floor(p.position.Y),
+                                 16, 16, i % 2 ? GEL : items.ExampleItem, 1, true, 0, false);
+            if (slot < 0 || slot >= 400) return 'slot de preparo ' + slot;
+        }
+        let occupied = 0;
+        for (let i = 0; i < 400; i++) if (Main.item[i].active) occupied++;
+        if (occupied !== 400) return 'preparo ocupou ' + occupied + ' slots';
+        emergency._groupLookup = null;
+        const slot = newItem(source, Math.floor(p.position.X + 900), Math.floor(p.position.Y),
+                             16, 16, items.ExampleItem, 1, true, 0, false);
+        const groups = emergency._groupLookup;
+        if (!groups || groups.length <= items.ExampleItem || !groups[items.ExampleItem])
+            return 'grupo de item de mod ausente na primeira consulta';
+        if (slot < 0 || slot >= 400 || !Main.item[slot].active || Main.item[slot].type !== items.ExampleItem)
+            return 'drop apos empilhar: slot=' + slot;
+        bl.log('drops chao cheio, criacao ' + (pass + 1) + ': grupos=' + groups.length + ', slot=' + slot);
+    }
+    const indices = [];
+    for (let j = 0; j < 120; j++) {
+        const index = newNpc(source, Math.floor(p.position.X + 900), Math.floor(p.position.Y - 40),
+                             npcs.ExampleSlimeNPC, 0, 0, 0, 0, 0, Main.myPlayer);
+        if (index < 0 || index >= 200 || !Main.npc[index].active) return 'spawn do lote ' + index;
+        indices.push(index);
+    }
+    for (const index of indices) {
+        const npc = Main.npc[index];
+        npc.playerInteraction[Main.myPlayer] = true;
+        npc[strike](999999, 0, 1, false, false, false, Main.myPlayer);
+        if (npc.active || npc.life > 0) return 'NPC do lote sobreviveu: ' + index;
+    }
+    bl.log('drops 120 slimes mortos no mesmo quadro com o chao cheio');
+    return true;
+}
+
 let items = null, npcs = null, boss = null, exBefore = 0;
 let frames = 0, done = false;
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
@@ -91,6 +136,7 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
         const ex = count(items.ExampleItem) - exBefore;
         bl.log('drops chefe: Exemplo de Item ' + ex);
         check('chefe solta 15 a 30 Exemplos de Item', () => (ex >= 15 && ex <= 30) || 'caiu ' + ex);
+        check('chao cheio, cache recriado e 120 mortes em lote', fullGroundLootTest);
         bl.log('drops FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
     }
 });

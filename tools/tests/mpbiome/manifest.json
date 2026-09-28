@@ -1,0 +1,15 @@
+{
+  "uid": "dbe4b1ba-7aee-472c-8410-8971b5769011",
+  "id": "test-mpbiome",
+  "name": "Teste: ModBiome no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Etapa B4 do ModBiome: o bioma de quem hospeda chega a quem entra (SyncOnePlayer), o do cliente chega ao host ao entrar e ao sair, cada um com a sua flag e sem OnEnter/OnLeave para jogador remoto.",
+  "description": "Instale no host e no cliente. Loga 'mpb ...'.",
+  "updated": "2026-09-28",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

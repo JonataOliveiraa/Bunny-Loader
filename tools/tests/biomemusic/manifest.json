@@ -1,0 +1,15 @@
+{
+  "uid": "c34fc9d8-0d13-48a1-85df-40c19db02fd1",
+  "id": "test-biomemusic",
+  "name": "Teste: música da cena",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Etapa B3 do ModBiome: a música de um ModSceneEffect contra a do jogo, degrau por degrau (superfície, chuva de slime, piratas, caixa de música, Otherworld, silêncio) e uma faixa de mod tocando.",
+  "description": "Loga 'biomemusic ...'. Precisa do Example Mod (a música Ropocalypse2).",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

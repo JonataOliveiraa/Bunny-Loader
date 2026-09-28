@@ -1,0 +1,15 @@
+{
+  "uid": "c73dcf05-9c9e-42e0-ac21-d9c8c67e8c6f",
+  "id": "test-modbg",
+  "name": "Teste: fundos de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Etapa B5 do ModBiome: texturas de fundo de mod (BackgroundTextureLoader), o fundo de superfície (longe, meio e frente) e o de subsolo pela cena, a prioridade contra a floresta e a volta ao do jogo.",
+  "description": "Loga 'modbg ...'. Rodar de dia, na superfície, numa floresta. Mostra o fundo do Example Mod do tModLoader por uns segundos.",
+  "updated": "2026-09-28",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

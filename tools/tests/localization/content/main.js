@@ -16,9 +16,45 @@ function check(label, fn) {
 const Language = Terraria.Localization.Language;
 const getText = (key) => Language['LocalizedText GetText(string key)'](key).Value;
 const TEXTS = {
-    'en-US': { hello: 'Hello', deep: 'Deep text' },
-    'pt-BR': { hello: 'Olá', deep: 'Texto fundo' },
+    'en-US': { hello: 'Hello', deep: 'Deep text', full: 'The Wand', relative: 'My Wand', buy: 'Buy: ' },
+    'pt-BR': { hello: 'Olá', deep: 'Texto fundo', full: 'A Varinha', relative: 'Minha Varinha', buy: 'Comprar: ' },
 };
+const REFS = 'Mods.test-localization.Refs.';
+
+// Nome de NPC e de item de mod (a plaquinha do Bestiário lê a chave
+// NPCName.X), se o Example Mod estiver instalado.
+function contentNames() {
+    let npc = -1, item = -1;
+    for (let t = 0; t < 2000 && npc < 0; t++) if (ModNPC.getModNPC(t)?.constructor.name === 'ExamplePerson') npc = t;
+    for (let t = 0; t < 8000 && item < 0; t++) if (ModItem.getModItem(t)?.constructor.name === 'ExampleItem') item = t;
+    if (npc < 0 || item < 0) return null;
+    return [Terraria.Lang['LocalizedText GetNPCName(int netID)'](npc).Value, getText('NPCName.ExamplePerson'),
+            Terraria.Lang['LocalizedText GetItemName(int id)'](item).Value];
+}
+const CONTENT_NAMES = { 'en-US': ['Person', 'Person', 'Example Item'], 'pt-BR': ['Pessoa', 'Pessoa', 'Exemplo de Item'] };
+function checkContentNames(culture) {
+    const got = contentNames();
+    if (!got) return true;   // sem o Example Mod
+    return JSON.stringify(got) === JSON.stringify(CONTENT_NAMES[culture]) || JSON.stringify(got);
+}
+
+// Os {$chave} resolvidos no texto do jogo e no Translate.
+function checkReferences(culture) {
+    const e = TEXTS[culture];
+    const shop = Language['string GetTextValue(string key)']('LegacyInterface.28');
+    const want = {
+        Full: e.full, Relative: e.relative, Game: e.buy + shop, Chain: '[' + e.full + ']',
+        Args: '{1} of {2}', Missing: 'Refs.Nothing', Loop: 'aa{$Refs.Loop}',
+    };
+    const bad = [];
+    for (const [key, text] of Object.entries(want)) {
+        const got = getText(REFS + key);
+        if (got !== text) bad.push(key + '=' + JSON.stringify(got));
+    }
+    const translated = ModLocalization.Translate('Refs.Full');
+    if (translated !== e.full) bad.push('Translate=' + JSON.stringify(translated));
+    return bad.length === 0 || bad.join(' ');
+}
 const expected = () => TEXTS[ModLocalization.ActiveCultureName] || TEXTS['en-US'];
 
 // Na carga: o jogo ainda não tem as chaves, mas o Translate já responde.
@@ -57,10 +93,35 @@ export default class TestLocalization extends Mod {
             return (ModLocalization.Exists('CustomText.Hello') && !ModLocalization.Exists('Nada.Aqui')) || 'Exists';
         });
         ModLocalization.Register('TestLocalization.Extra', { 'en-US': 'Extra', 'pt-BR': 'Extra BR' });
+        ModLocalization.Register('TestLocalization.Ref', '{$' + REFS + 'Name}!');
+
+        check('{$chave}: inteira, relativa, do jogo, em cadeia, @n, sem chave, circular', () => checkReferences(culture));
+        check('Register com {$chave}', () => {
+            const got = getText('TestLocalization.Ref');
+            return got === getText(REFS + 'Name') + '!' || got;
+        });
+        check('categoria do jogo (GetCategorySize, FindAll, RandomFromCategory)', () => {
+            const category = 'Mods.test-localization.Dialogue.Person';
+            const size = Language['int GetCategorySize(string key)'](category);
+            const all = Language['LocalizedText[] FindAll(string categoryName)'](category);
+            const values = [];
+            for (let i = 0; i < all.length; i++) values.push(all[i].Value);
+            const random = Language['LocalizedText RandomFromCategory(string categoryName, UnifiedRandom random)'](category, null).Value;
+            return (size === 2 && values.sort().join() === 'one,two' && (random === 'one' || random === 'two')) ||
+                JSON.stringify([size, values, random]);
+        });
+        check('variante (Chave$Variante)', () => {
+            const out = new Ref();
+            const found = Language['bool TryGetVariation(string key, string variant, out string value)'](REFS + 'Hi', 'Formal', out);
+            return (found && out.value === 'Good day') || JSON.stringify([found, out.value]);
+        });
 
         // A troca de idioma volta tudo para a chave e recarrega só o jogo.
         const other = culture === 'pt-BR' ? 'en-US' : 'pt-BR';
         const manager = Terraria.Localization.LanguageManager.Instance;
+        // O mesmo LocalizedText recebe o texto novo (quem o guardou, como o
+        // Lang.prefix, não fica com o velho).
+        const held = Language['LocalizedText GetText(string key)'](REFS + 'Full');
         check('troca de idioma (' + other + ')', () => {
             manager['void SetLanguage(string cultureName)'](other);
             const e = TEXTS[other];
@@ -69,12 +130,23 @@ export default class TestLocalization extends Mod {
             const extra = other === 'pt-BR' ? 'Extra BR' : 'Extra';
             return (got[0] === e.hello && got[1] === e.deep && got[2] === e.hello && got[3] === extra) || JSON.stringify(got);
         });
+        check('{$chave} no outro idioma (' + other + ')', () => checkReferences(other));
+        check('nome de NPC e de item de mod no outro idioma' + (contentNames() ? '' : ' (sem o Example Mod: pulado)'),
+            () => checkContentNames(other));
+        check('o mesmo LocalizedText na troca', () =>
+            held.Value === TEXTS[other].full || JSON.stringify(held.Value));
+        check('Register com {$chave} no outro idioma', () => {
+            const got = getText('TestLocalization.Ref');
+            return got === getText(REFS + 'Name') + '!' || got;
+        });
         check('volta ao idioma (' + culture + ')', () => {
             manager['void SetLanguage(string cultureName)'](culture);
             const e = expected();
             const got = [getText('Mods.test-localization.CustomText.Hello'), ModLocalization.ActiveCultureName];
             return (got[0] === e.hello && got[1] === culture) || JSON.stringify(got);
         });
+        check('{$chave} de volta (' + culture + ')', () => checkReferences(culture));
+        check('nome de NPC e de item de mod de volta', () => checkContentNames(culture));
 
         bl.log('localization FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
     }

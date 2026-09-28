@@ -11,7 +11,7 @@ tratam de cada uma:
 
 | Guia | Classes |
 |---|---|
-| [5. Itens](05-itens.md) | `ModItem`, `ModRecipe`, `ModSystem`, tooltip, vara de pesca. |
+| [5. Itens](05-itens.md) | `ModItem`, `ModPrefix`, `ModRecipe`, `ModSystem`, tooltip, vara de pesca. |
 | [6. Projéteis](06-projeteis.md) | `ModProjectile`; pets, lacaios e sentinelas. |
 | [7. NPCs](07-npcs.md) | `ModNPC`: inimigos, drops, spawn, Bestiário, moradores, chefes. |
 | [8. Jogador e buffs](08-jogador-e-buffs.md) | `ModPlayer`, `ModBuff`. |
@@ -321,12 +321,29 @@ entra no jogo como `Mods.<id do mod>.<Secao>.<Chave>`, como no tModLoader:
 `Language.GetText('Mods.examplemod.CustomText.WelcomeMessage').Value` funciona
 direto, e o texto acompanha a troca de idioma.
 
+Um texto pode trazer outro, como no tModLoader:
+
+| | |
+|---|---|
+| `{$Mods.examplemod.Common.X}` | A chave inteira, de qualquer mod ou do jogo (`{$CommonItemTooltip.Whips}`). |
+| `{$Common.X}` | Relativa: procura a partir da chave do próprio texto (em `Mods.examplemod.Items.Espada.Tooltip`, acha `Mods.examplemod.Common.X`). |
+| `{$Chave@2}` | Soma 2 aos `{0}`, `{1}`... do texto trazido. |
+
+Chave que não existe fica como o nome dela. Os textos entram pelo mesmo caminho
+dos arquivos do jogo, então cada chave fica na categoria do jogo (tudo antes do
+último ponto): `Language.RandomFromCategory('Mods.examplemod.Dialogue.ExamplePerson')`
+sorteia uma fala, e `"Chave$Variante"` vira variante (`Language.TryGetVariation`).
+Nos `ItemName`/`ItemTooltip`/`NPCName`/`BuffName`... de cada idioma, um
+`{$chave}` do **jogo** sai no idioma em que o mod carregou: o jogo só tem um
+idioma na memória.
+
 Para um texto seu (a fala de um morador, a plaquinha do Bestiário):
 
 | | |
 |---|---|
 | `ModLocalization.Translate('Secao.Chave')` | O **texto**, no idioma do jogo (como no TL). Sem texto, o próprio caminho. |
 | `ModLocalization.TryTranslate('Secao.Chave')` | O mesmo, mas `''` quando não há texto. |
+| (onde procura) | Nos `Localization/*.json` do mod de quem chama. Chamado de fora de um mod (o console do Editor), a chave completa `Mods.<id>.Secao.Chave` acha o mod dela, e a curta vale se só um mod a tem. `{0}` não é trocado: use `.replace('{0}', x)`. |
 | `ModLocalization.GetTextValue(chave)` | O texto do mod ou, se ele não tem, o do jogo (`'LegacyInterface.28'`). |
 | `ModLocalization.GetText(chave)` | O `LocalizedText` (do mod ou do jogo). |
 | `ModLocalization.Key('Secao.Chave')` | A **chave** `Mods.<id>.Secao.Chave`, para o que o jogo pede por chave (Bestiário, moeda). |
@@ -389,8 +406,42 @@ atribua:
 Terraria.Main.recipe = Terraria.Main.recipe.cloneResized(4000);
 ```
 
+Tem também `fill`, `empty` e `find`, como os do Array do JS:
+
+```js
+player.buffImmune.fill(false);              // todas as posições; muda o jogo
+player.buffImmune.fill(true, 10, 20);       // de 10 até 19 (início e fim, negativo conta do fim)
+const vazio = Main.recipe.empty();          // Recipe[0], novo (o cloneResized(0))
+const espada = player.inventory.find((it) => it.type === 4);   // o primeiro, ou undefined
+```
+
+`fill` devolve o próprio array. `find` recebe `(elemento, índice, array)` e,
+num array de struct, devolve a vista: escrever nela muda o array. Para os
+outros métodos do JS (`map`, `filter`...), copie antes com `Array.from(arr)`.
+
 Onde o jogo espera um array (`int[]`, `string[]`...), um array JS também serve:
 `new RecipeGroup(nome, [1, 2, 3])` recebe um `int[]` montado na hora.
+
+Para ter o array do jogo na mão (guardar num campo, passar a um parâmetro
+`object`/`Array`, mexer depois), `makeGeneric` na lista, como no TL Pro:
+
+```js
+const ids = [1, 2, 3].makeGeneric('int');            // int[]
+const bytes = new Uint8Array(dados).makeGeneric('byte'); // byte[], numa cópia só
+const nomes = ['a', 'b'].makeGeneric('string');       // string[]
+const pontos = [Vector2.new(1, 2)].makeGeneric(Vector2);  // Vector2[]
+const itens = [item].makeGeneric(Terraria.Item);      // Item[] (ou 'Terraria.Item')
+```
+
+O tipo vai pelo nome do C# (`'bool'`, `'byte'`, `'sbyte'`, `'short'`,
+`'ushort'`, `'int'`, `'uint'`, `'long'`, `'ulong'`, `'float'`, `'double'`,
+`'char'`, `'string'`, `'object'`), pelo nome completo (`'Terraria.Item'`) ou
+pela classe. Um valor que não converte lança dizendo a posição. O array JS
+original não muda.
+
+Sem valores, `Classe.newArray(n)` é o `new T[n]` do C# (tudo 0/null):
+`Terraria.Item.newArray(10)`, `System.Int32.newArray(5)`. Com uma lista,
+`System.Int32.newArray([4, 5, 6])` faz o mesmo que o `makeGeneric`.
 
 ## Genéricos
 

@@ -6,5 +6,11 @@
     "Level1": {
       "Level2": "Texto fundo"
     }
+  },
+  "Refs": {
+    "Name": "Varinha",
+    "Full": "A {$Mods.test-localization.Refs.Name}",
+    "Relative": "Minha {$Refs.Name}",
+    "Game": "Comprar: {$LegacyInterface.28}"
   }
 }

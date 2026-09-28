@@ -1,3 +1,5 @@
+import { ExampleSurfaceBiome } from '../Biomes/ExampleSurfaceBiome.js';
+
 const { SoundID, NPCID, ItemID, DustID } = Terraria.ID;
 const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
 const { BestiaryDatabaseNPCsPopulator, FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
@@ -43,7 +45,10 @@ export class ExampleSlimeNPC extends ModNPC {
         bestiaryEntry.Info.Add(flavorText);
     }
 
+    // Só no bioma de exemplo, como no ExMod do TL Pro: o do jogador para quem
+    // o jogo está sorteando o spawn.
     SpawnChance(info) {
+        if (!info.Player.InModBiome(ExampleSurfaceBiome)) return 0;
         if (!info.CommonEnemy || !info.Day || !info.AboveSurface) return 0;
         let chance = info.Rain ? 0.05 : 0.1;
         if (info.HardMode) chance += 0.05;

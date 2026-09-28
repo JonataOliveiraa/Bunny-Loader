@@ -316,6 +316,39 @@ void hookItemNames() {
     }
 }
 
+// O getter cria esta tabela sob demanda e FindBestTransfers a consulta no
+// mesmo quadro. checkPending no quadro seguinte chega tarde para IDs de mod.
+using GroupLookupFn = Il2CppArray* (*)(const MethodInfo*);
+GroupLookupFn g_origGroupLookup = nullptr;
+FieldInfo* g_groupLookup = nullptr;
+
+Il2CppArray* hkGroupLookup(const MethodInfo* m) {
+    Il2CppArray* groups = g_origGroupLookup(m);
+    const uintptr_t size = static_cast<uintptr_t>(itemTypeCount());
+    if (!groups || groups->length >= size) return groups;
+    Il2CppArray* bigger = TypeTables::growArray(groups, size);
+    if (!bigger) {
+        BL_ERROR("itens de mod: falha ao ampliar EmergencyStacking.GroupLookup");
+        return groups;
+    }
+    il2cpp::api().field_static_set_value(g_groupLookup, bigger);
+    BL_DEBUG("itens de mod: EmergencyStacking.GroupLookup ampliada de %zu para %zu antes da consulta",
+             static_cast<size_t>(groups->length), static_cast<size_t>(size));
+    return bigger;
+}
+
+bool hookEmergencyStacking() {
+    if (g_origGroupLookup) return true;
+    Il2CppClass* cls = il2cpp::findClassQuiet("Terraria.GameContent", "EmergencyStacking");
+    g_groupLookup = cls ? il2cpp::findField(cls, "_groupLookup") : nullptr;
+    const MethodInfo* getter = cls ? il2cpp::api().class_get_method_from_name(cls, "get_GroupLookup", 0) : nullptr;
+    if (!g_groupLookup || !getter || !hook::install(getter, hkGroupLookup, &g_origGroupLookup)) {
+        BL_ERROR("itens de mod: sem protecao em EmergencyStacking.GroupLookup; itens de mod desligados");
+        return false;
+    }
+    return true;
+}
+
 // O drop do jogo recusa item de mod: os CommonCode.DropItem* comecam com
 // `if (itemId > 0 && itemId < ItemID.Count)`, compilado pela metade
 // (`(itemId - 1) >> 1 <= 0xC00`; ver patchHalvedLimit). O tModLoader troca o
@@ -572,6 +605,10 @@ void tickModItems() {
         return;
     }
     if (!gameReady(from)) return;
+    if (!hookEmergencyStacking()) {
+        g_failed = true;
+        return;
+    }
 
     auto& a = il2cpp::api();
     const int to = kVanillaItemCount + total;

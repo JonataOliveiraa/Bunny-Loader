@@ -82,6 +82,22 @@ class ModItem {
         stats.DownHoverAccelerationMult = hoverAccelerationMultiplier;
     }
     UpdateInventory(item, player) {}
+
+    // Prefixos: que categorias este item pega (arma com dano, sem ser munição
+    // nem consumível; o padrão vem de melee/ranged/magic/summon, como no tModLoader).
+    MeleePrefix(item = this.Item) { return !!item.melee && !item.noUseGraphic; }
+    WeaponPrefix(item = this.Item) { return !!item.melee && !!item.noUseGraphic; }
+    RangedPrefix(item = this.Item) { return !!item.ranged; }
+    MagicPrefix(item = this.Item) { return !!item.magic; }
+    SummonPrefix(item = this.Item) { return !!item.summon; }
+    // Um prefixo forçado ao rolar (> 0), ou -1.
+    ChoosePrefix(item, rand) { return -1; }
+    // true força um prefixo, false impede; null = o do jogo (pre: -1 criar, -2 reforja).
+    PrefixChance(item, pre, rand) { return null; }
+    AllowPrefix(item, pre) { return true; }
+    // Depois dos status do prefixo (e do Apply do ModPrefix).
+    ApplyPrefix(item, pre) {}
+
     GetAlpha(item, lightColor) { return undefined; }
     // ModifyFishingLine(item, bobber, line) também vale (line.lineOriginOffset, line.lineColor).
     ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {}
@@ -245,6 +261,7 @@ class ModItem {
             },
         });
         inst.Type = type;
+        Lang.Follow('ItemName.' + name, inst.DisplayName || Lang.Localized('ItemName', name));
         ItemLoader.ByType.set(type, inst);
         EquipLoader.Autoload(inst, cls, name);
         Safe.Run(name + '.Load', () => inst.Load());
@@ -258,6 +275,7 @@ class ModItem {
 
         ItemLoader.Hook(cls);
         Hooks.Once('item.Clone', ItemLoader.HookClone);
+        PrefixLoader.WantRollable();
         return type;
     }
 

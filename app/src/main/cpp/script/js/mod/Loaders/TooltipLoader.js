@@ -58,7 +58,8 @@ class TooltipLoader {
 
                 const m = ItemLoader.Of(item);
                 const own = m && Hooks.Overrides(m.constructor, ModItem, 'ModifyTooltips') ? m : null;
-                if (!own && !globalItems.AnyWith(item, ['ModifyTooltips'])) return;
+                const prefixLines = PrefixLoader.TooltipLines(item);
+                if (!own && !prefixLines && !globalItems.AnyWith(item, ['ModifyTooltips'])) return;
 
                 const special = new Map([[yoyo.value, 'OneDropLogo'], [research.value, 'JourneyResearch'],
                                          [materials.value, 'Material'], [setBonus.value, 'SetBonus'], [0, 'ItemName']]);
@@ -69,6 +70,14 @@ class TooltipLoader {
                     line.IsModifierBad = !!bad[i];
                     line.OneDropLogo = i === yoyo.value;
                     list.push(line);
+                }
+                // As do prefixo de mod vêm depois das do jogo (as de dano, velocidade...).
+                if (prefixLines) {
+                    let at = list.findIndex((l) => l.Name === 'SetBonus');
+                    for (let i = list.length - 1; i >= 0; i--) {
+                        if (list[i].IsModifier) { at = i + 1; break; }
+                    }
+                    list.splice(at < 0 ? list.length : at, 0, ...prefixLines);
                 }
 
                 if (own) Safe.Run(own.constructor.name + '.ModifyTooltips', () => own.ModifyTooltips(item, list));

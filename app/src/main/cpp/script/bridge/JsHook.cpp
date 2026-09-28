@@ -117,6 +117,7 @@ struct HookCtx {
     int filterReg = -1;
     int32_t filterOffset = -1;
     int32_t filterMin = 0;
+    Prim filterPrim = Prim::I32;   // o campo pode ser byte/short (Item.prefix)
     // HookFilter::whileIn: o slot do hook de fora; -1 = sem esse filtro.
     int gateSlot = -1;
     // Filtro pelo tipo do tile: o x do `Tile` (offset), ou os x de i e j.
@@ -128,6 +129,17 @@ struct HookCtx {
     // HookFilter::ifBusy: com o motor JS noutra thread, nao espera.
     IfBusy ifBusy = IfBusy::Wait;
 };
+
+/** O campo do filtro na largura dele: Item.prefix e byte, e os 3 seguintes sao outros campos. */
+static int32_t readFilterField(const uint8_t* p, Prim prim) {
+    switch (prim) {
+    case Prim::Bool: case Prim::U8: return *p;
+    case Prim::I8: return static_cast<int8_t>(*p);
+    case Prim::I16: { int16_t v; std::memcpy(&v, p, sizeof(v)); return v; }
+    case Prim::U16: case Prim::Char: { uint16_t v; std::memcpy(&v, p, sizeof(v)); return v; }
+    default: { int32_t v; std::memcpy(&v, p, sizeof(v)); return v; }
+    }
+}
 
 static HookCtx g_hooks[kMaxHooks];
 
@@ -321,7 +333,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     if (c->filterReg >= 0) {
         auto* o = reinterpret_cast<const uint8_t*>(rawA[c->filterReg]);
         int32_t v = 0;
-        if (o) std::memcpy(&v, o + c->filterOffset, sizeof(v));
+        if (o) v = readFilterField(o + c->filterOffset, c->filterPrim);
         if (!o || v < c->filterMin) return callOriginal(c, rawA, rawD);
         seen = v;
     }
@@ -532,9 +544,18 @@ static std::string resolveFilter(HookCtx& c, const HookFilter& f) {
         c.filterReg = p.reg;
         cls = p.d.cls;
     }
-    c.filterOffset = cls ? il2cpp::fieldOffset(cls, f.field) : -1;
-    if (c.filterOffset < 0) return "filtro: campo '" + f.field + "' nao existe";
+    FieldInfo* field = cls ? il2cpp::findField(cls, f.field) : nullptr;
+    if (!field) return "filtro: campo '" + f.field + "' nao existe";
+    c.filterOffset = static_cast<int32_t>(api.field_get_offset(field));
     c.filterMin = f.minType;
+    switch (const Prim prim = describe(api.field_get_type(field)).prim) {
+    case Prim::Bool: case Prim::I8: case Prim::U8: case Prim::I16: case Prim::U16: case Prim::Char:
+    case Prim::I32: case Prim::U32:
+        c.filterPrim = prim;
+        break;
+    default:
+        return "filtro: o campo '" + f.field + "' tem de ser inteiro";
+    }
     return {};
 }
 

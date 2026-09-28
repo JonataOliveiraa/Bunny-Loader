@@ -71,13 +71,16 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `projectiles`, `npcs`, `buffs`, `tiles` | Cada tipo de conteúdo de mod. | |
 | `tilesave` | Três rodadas: com o mod, sem ele e com ele de novo. | |
 | `tileframes` | Duas rodadas: o quadro de um 3x3 de mod e de um de pedra ao reabrir o mundo. | |
-| `localization` | `ModLocalization.Translate` devolve o texto (chave funda, queda para o inglês), `Language.GetText('Mods.<id>.…')` sem passo extra, `Key`/`GetText`/`Exists` e a troca de idioma (ida e volta). | |
+| `localization` | `ModLocalization.Translate` devolve o texto (chave funda, queda para o inglês), `Language.GetText('Mods.<id>.…')` sem passo extra, `Key`/`GetText`/`Exists`, os `{$chave}` (inteira, relativa, do jogo, `@n`, circular, no `Register`), as categorias do jogo (`RandomFromCategory`), a variante `Chave$Variante` e a troca de idioma (ida e volta, no mesmo `LocalizedText`; com o Example Mod, também o nome de NPC e de item). | opcional |
 | `multitile` | Duas rodadas: a Pia de Exemplo (2x2, `TileObjectData`) colocada, quebrada por uma célula e pelo chão (um drop só), salva e reaberta. | sim |
 | `modfurniture` | Os móveis do Example Mod pelos caminhos do jogo: a casa com porta, mesa, cadeira e tocha de mod passa no `RoomNeeds`; porta abre e fecha (pelo toque, sozinha com o jogador encostando, com o morador passando, no fio; o goblin guerreiro arromba e o peão derruba, soltando o item da porta de mod); luz firme da tocha, fogueira, lustre e luminária; caixa de música no chão e equipada; toque na cadeira senta; fio apaga a luminária; buff da fogueira. Não salva. | sim |
 | `tileperf` | Tempo de quadro com 150 tochas do jogo e com 150 tochas e 10 fogueiras de mod na tela, e o custo de cada método do `ModTile` por quadro. Não salva. | sim |
 | `armor` | Texturas vestidas (slots, `Count` e tabelas crescidos, `AddEquipTexture`, `EquipTexture` própria, `AutoloadEquip`), conjunto por item e por `GlobalItem`, vaidade e sombras, `FrameEffects` (fantasia), `SetMatch` (manto), asas (`WingStats`, as três velocidades e `WingUpdate`), manequim. Veste e tira; não salva. | sim |
 | `armorsave` | Duas rodadas: veste e salva o personagem; depois confere que as peças voltaram, com os slots desenhados, e limpa. | sim |
 | `mparmor` | Multijogador (host e cliente, `mpa ...`): cada lado veste o conjunto, as asas e a barba e vê os slots de mod e o bônus do outro. | não (mp-session) |
+| `prefix` | Duas rodadas: status, nome, tooltip, rolagem e categorias dos prefixos do Example Mod; salva itens com prefixo de mod no inventário e num baú. Na 2ª um prefixo a mais desloca os números, e o save devolve pelo nome. Limpa no fim. | sim |
+| `mpbiome` | Multijogador (`mpb ...`, etapa B4 do ModBiome): o bioma do host chega a quem entra, o do cliente chega ao host ligado e desligado, a troca do host chega ao cliente, e ninguém recebe `OnEnter`/`OnLeave` de jogador remoto. | não (mp-session) |
+| `mpprefix` | Multijogador (`mpp ...`): cada lado põe itens com prefixo de mod e o outro confere prefixo e status; o host confere a defesa do acessório do cliente. | não (mp-session) |
 | `hooks` | Os hooks das classes: IA, spawn natural, Bestiário, tooltip, receita, uso de item. | |
 | `recipes` | Receitas e grupos. | |
 | `globals` | `GlobalItem`, `GlobalNPC`, `GlobalProjectile` (filtro, instância por entidade, `Clone`), drops por tipo e globais com o Bestiário, e o `ModSystem` (mundo, atualização, dados salvos). Rodar duas vezes: a segunda carrega o que a primeira salvou. | sim |
@@ -89,8 +92,15 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `townshop` | Conversa, loja, felicidade, retrato e perfil. | sim |
 | `townfight` | Ataque e gore do morador. | sim |
 | `boss` | O chefe nascendo pelo item de invocação. | sim |
-| `drops` | Drop de item de mod pelas regras do jogo. | sim |
+| `drops` | Drop de item de mod pelas regras do jogo; 400 slots no chão, primeira criação e recriação de EmergencyStacking.GroupLookup, e 120 mortes no mesmo quadro. Usar mundo de teste: esvazia os drops existentes. | sim |
 | `fishline` | A linha da vara de mod. | sim |
+| `biomescan` | A contagem de blocos dos biomas (etapa B0 do ModBiome): todo `SceneMetrics._tileCounts` do jogo com o tamanho novo, a ordem e a frequência da varredura, e a contagem exata de `ExampleTile` com 0/39/40/41 blocos. Loga também as medições (`biomescan medida ...`). | sim |
+| `modbiome` (+ `modbiomeb`) | `ModBiome` e `ModSceneEffect` (etapa B1): `Type` e `ModContent.GetInstance`, `player.InModBiome`, `OnEnter`/`OnInBiome`/`OnLeave` uma vez por troca, dois biomas ao mesmo tempo, a música da cena pela prioridade, `IsBiomeActive` que lança, a mesma classe em dois mods e o bioma por 40 `ExampleTile` (`TileCountsAvailable`). Rodar as duas pastas juntas. | sim |
+| `arrays` | Arrays do jogo pelo JS: `lista.makeGeneric(tipo)` (nomes do C#, nome completo, classe, ajudante), `Uint8Array` numa cópia só, `Classe.newArray(n \| lista)`, `System.Array.Reverse` num deles, `fill`/`empty`/`find` (também num campo do jogo), e os erros. | sim |
+| `bgscan` | A medição dos fundos (etapa B5.0): tamanho dos arrays (`TextureAssets.Background`, `bgAlphaFrontLayer`...), ordem e thread de cada passo do desenho do fundo, e três faixas desenhadas pelo JS nas camadas longe, meio e perto (conferir no print). | sim |
+| `modbg` | Fundos de mod (etapa B5): `BackgroundTextureLoader`, os números dos estilos, `Priority` `None` sem efeito, `BiomeLow` ganhando da floresta (superfície e subsolo, com as 4 texturas trocadas em `backTexture`/`backTextureValues`) e a volta ao do jogo. Rodar de dia, numa floresta. | sim |
+| `biomeworld` | O ciclo de vida das flags (etapa B2): o bioma por blocos liga e desliga no próprio `Teleport`, e a saída do mundo (`WorldGen.SaveAndQuit`) chama o `OnLeave`, zera as flags e a cena e chama o `ResetNearbyTileEffects`. **Sai do mundo no fim**: rodar sozinho. | sim |
+| `biomemusic` | A música da cena contra a do jogo, degrau por degrau (etapa B3): superfície, silêncio, `Music -1`, `Priority None`, chuva de slime, um chefe do jogo (Geleia Rainha), a caixa de música do jogo, o Otherworld, e uma faixa de mod tocando e parando. Com "Sem inimigos" ligado no Mod Menu, o chefe some e o teste falha. | sim |
 | `sounds` | `SoundStyle`, `SoundEngine.PlaySound`, `MaxInstances`, `UseSound` de item usado. | sim |
 | `music` | O chefe trocando a música do jogo pela dele, cada troca conferida no meio do fade. | sim |
 | `crossmod` (+ `crossmodtarget`) | `ModLoader.TryGetMod` e `Call`, nas duas ordens de carga. | |

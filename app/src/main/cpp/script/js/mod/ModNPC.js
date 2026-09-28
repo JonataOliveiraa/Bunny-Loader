@@ -125,6 +125,7 @@ class ModNPC {
 
         type = bl.npcs.register(def);
         inst.Type = type;
+        Lang.Follow('NPCName.' + name, def.displayName);
         NPCLoader.ByType.set(type, inst);
         if (Hooks.Overrides(cls, ModNPC, 'SpawnChance')) NPCLoader.Spawnable.push(inst);
 

@@ -36,7 +36,7 @@ def find(q):
 
 q = sys.argv[1]
 maxn = int(sys.argv[2]) if len(sys.argv) > 2 else 400
-hits = find(q)
+hits = [(int(q, 16), by_addr.get(int(q, 16), q))] if q.startswith("0x") else find(q)
 if not hits:
     hits = [(a, n) for a, n in methods if q in n]
 if len(hits) != 1:

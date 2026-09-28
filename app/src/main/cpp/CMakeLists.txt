@@ -50,14 +50,18 @@ configure_file(
 set(BL_MOD_CLASSES_PARTS
     Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
-    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType
+    Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
     Mod ModLoader
     Loaders/LocalizationLoader ModLocalization
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
     Loaders/TooltipLoader TooltipLine EquipTexture ModItem
+    Loaders/PrefixLoader ModPrefix
     TagCompound Loaders/SystemLoader ModSystem
     Loaders/PlayerLoader ModPlayer
+    Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
+    ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
+    Loaders/SceneEffectLoader Loaders/BiomeLoader ModSceneEffect ModBiome
     Loaders/BuffLoader ModBuff
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
@@ -69,7 +73,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/HitLoader Loaders/GlobalItemLoader Loaders/GlobalNPCLoader Loaders/GlobalProjectileLoader
     GlobalLoot Loaders/GlobalLootLoader
     NetWriter NetReader ModPacket Core/ModNet
-    Loaders/SoundLoader SoundStyle SoundEngine Loaders/ModMusic MusicLoader
+    Loaders/SoundLoader SoundStyle SoundEngine Loaders/VanillaMusic Loaders/ModMusic MusicLoader
     Core/ContentLookup ModContent Core/ContentAutoload
     Exports)
 set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")

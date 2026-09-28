@@ -26,6 +26,8 @@
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 #include <set>
@@ -204,6 +206,7 @@ JSValue js_bl_log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
 // ============================ NativeClass ============================
 
 JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*);
+JSValue nc_newArray(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv);
 JSValue nc_makeGeneric(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv);
 
 JSValue js_NativeClass(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
@@ -324,6 +327,7 @@ const JSClassExoticMethods nc_exotic = {
 // nomes reais da classe do jogo, então quanto menos, melhor.
 const JSCFunctionListEntry nc_proto[] = {
     JS_CFUNC_DEF("new", 0, nc_new),
+    JS_CFUNC_DEF("newArray", 1, nc_newArray),
     JS_CFUNC_DEF("makeGeneric", 1, nc_makeGeneric),
 };
 
@@ -483,6 +487,180 @@ JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
     Il2CppObject* obj = a.object_new(cls);
     if (!obj) return JS_ThrowInternalError(ctx, "object_new falhou");
     return makeNativeObject(ctx, obj);
+}
+
+/**
+ * O array do jogo com os valores de `list` (array JS ou TypedArray), do tipo
+ * `elem`. Cada valor e escrito como numa escrita `arr[i] = v`; um TypedArray
+ * do mesmo tipo numerico (Uint8Array -> byte[], Float32Array -> float[]...)
+ * vai numa copia so, sem passar valor por valor.
+ */
+Il2CppArray* arrayOfValues(JSContext* ctx, Il2CppClass* elem, JSValueConst list, const char* api) {
+    auto& a = il2cpp::api();
+    int64_t n = -1;
+    JSValue len = JS_GetPropertyStr(ctx, list, "length");
+    const int bad = JS_ToInt64(ctx, &n, len);
+    JS_FreeValue(ctx, len);
+    if (bad < 0) return nullptr;
+    if (n < 0 || n > 0x7fffffff) {
+        JS_ThrowRangeError(ctx, "%s: tamanho %lld invalido", api, static_cast<long long>(n));
+        return nullptr;
+    }
+    Il2CppArray* arr = a.array_new(elem, static_cast<uintptr_t>(n));
+    if (!arr) {
+        JS_ThrowInternalError(ctx, "%s: o jogo recusou um %s[%lld]", api, className(elem).c_str(),
+                              static_cast<long long>(n));
+        return nullptr;
+    }
+    const TypeDesc& ed = describe(a.class_get_type(elem));
+    const size_t stride = ed.byValue ? ed.size : sizeof(void*);
+    auto* data = static_cast<char*>(arrayData(arr));
+
+    const int typed = JS_GetTypedArrayType(list);
+    if (typed >= 0 && !ed.isEnum && ed.byValue && n > 0) {
+        Prim same = Prim::Void;
+        switch (typed) {
+            case JS_TYPED_ARRAY_UINT8C:
+            case JS_TYPED_ARRAY_UINT8:      same = Prim::U8; break;
+            case JS_TYPED_ARRAY_INT8:       same = Prim::I8; break;
+            case JS_TYPED_ARRAY_INT16:      same = Prim::I16; break;
+            case JS_TYPED_ARRAY_UINT16:     same = ed.prim == Prim::Char ? Prim::Char : Prim::U16; break;
+            case JS_TYPED_ARRAY_INT32:      same = Prim::I32; break;
+            case JS_TYPED_ARRAY_UINT32:     same = Prim::U32; break;
+            case JS_TYPED_ARRAY_BIG_INT64:  same = Prim::I64; break;
+            case JS_TYPED_ARRAY_BIG_UINT64: same = Prim::U64; break;
+            case JS_TYPED_ARRAY_FLOAT32:    same = Prim::F32; break;
+            case JS_TYPED_ARRAY_FLOAT64:    same = Prim::F64; break;
+            default: break;
+        }
+        if (same == ed.prim) {
+            size_t offset = 0, bytes = 0, per = 0;
+            JSValue buffer = JS_GetTypedArrayBuffer(ctx, list, &offset, &bytes, &per);
+            if (JS_IsException(buffer)) return nullptr;
+            size_t size = 0;
+            uint8_t* raw = JS_GetArrayBuffer(ctx, &size, buffer);
+            JS_FreeValue(ctx, buffer);
+            if (!raw || per != ed.size || offset + bytes > size) {
+                JS_ThrowTypeError(ctx, "%s: nao consegui ler o TypedArray", api);
+                return nullptr;
+            }
+            std::memcpy(data, raw + offset, static_cast<size_t>(n) * ed.size);
+            return arr;
+        }
+    }
+
+    for (int64_t i = 0; i < n; ++i) {
+        JSValue x = JS_GetPropertyInt64(ctx, list, i);
+        if (JS_IsException(x)) return nullptr;
+        const int r = writeAt(ctx, data + static_cast<size_t>(i) * stride, ed, x);
+        JS_FreeValue(ctx, x);
+        if (r < 0) {
+            // Diz qual posicao, para uma lista longa.
+            JSValue e = JS_GetException(ctx);
+            const std::string why = logText(ctx, e);
+            JS_FreeValue(ctx, e);
+            JS_ThrowTypeError(ctx, "%s: posicao %lld: %s", api, static_cast<long long>(i), why.c_str());
+            return nullptr;
+        }
+    }
+    return arr;
+}
+
+/**
+ * O tipo do elemento: pelo nome do C# ('int', 'byte', 'bool', 'short',
+ * 'ushort', 'uint', 'long', 'ulong', 'sbyte', 'float', 'double', 'char',
+ * 'string', 'object'), por um nome do System ('Int32') ou completo
+ * ('Terraria.Item'), pela classe (Terraria.Item) ou por um ajudante que tem a
+ * classe em `.Type` (Vector2, Color, Rectangle).
+ */
+Il2CppClass* elementClassOf(JSContext* ctx, JSValueConst t, const char* api) {
+    if (JS_IsString(t)) {
+        static const std::unordered_map<std::string, const char*> alias = {
+            {"bool", "Boolean"}, {"byte", "Byte"}, {"sbyte", "SByte"}, {"short", "Int16"},
+            {"ushort", "UInt16"}, {"int", "Int32"}, {"uint", "UInt32"}, {"long", "Int64"},
+            {"ulong", "UInt64"}, {"float", "Single"}, {"double", "Double"}, {"char", "Char"},
+            {"string", "String"}, {"object", "Object"},
+        };
+        const char* cs = JS_ToCString(ctx, t);
+        if (!cs) return nullptr;
+        const std::string name = cs;
+        JS_FreeCString(ctx, cs);
+        std::string ns = "System", simple = name;
+        if (auto it = alias.find(name); it != alias.end()) {
+            simple = it->second;
+        } else if (auto dot = name.rfind('.'); dot != std::string::npos) {
+            ns = name.substr(0, dot);
+            simple = name.substr(dot + 1);
+        }
+        Il2CppClass* c = il2cpp::findClassQuiet(ns.c_str(), simple.c_str());
+        if (!c) JS_ThrowTypeError(ctx, "%s: tipo '%s' nao encontrado", api, name.c_str());
+        return c;
+    }
+    if (Il2CppClass* c = classOf(t)) return c;
+    if (JS_IsObject(t)) {
+        JSValue inner = JS_GetPropertyStr(ctx, t, "Type");
+        Il2CppClass* c = nullptr;
+        if (JS_IsException(inner)) JS_FreeValue(ctx, JS_GetException(ctx));
+        else c = classOf(inner);
+        JS_FreeValue(ctx, inner);
+        if (c) return c;
+    }
+    JS_ThrowTypeError(ctx, "%s: passe o tipo do elemento ('int', 'byte'... ou uma classe do jogo)", api);
+    return nullptr;
+}
+
+/**
+ * Classe.newArray(n): o `new T[n]` do C#, com as posicoes zeradas (0, null,
+ * struct zerado). Classe.newArray([a, b, c]): do tamanho da lista, ja
+ * preenchido. Sai como os outros arrays do jogo: [i], length e cloneResized.
+ *
+ *   Terraria.Item.newArray(10)            // Item[10]
+ *   System.Int32.newArray([1, 2, 3])      // int[] { 1, 2, 3 }
+ */
+JSValue nc_newArray(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    Il2CppClass* cls = classOf(self);
+    if (!cls) return JS_EXCEPTION;
+    auto& a = il2cpp::api();
+    if (!a.array_new) return JS_ThrowInternalError(ctx, "newArray: este runtime nao expoe il2cpp_array_new");
+    if (argc < 1) return JS_ThrowTypeError(ctx, "%s.newArray(tamanho) ou newArray([valores])", className(cls).c_str());
+    // Como o `new` do C#: o construtor estatico do tipo roda antes.
+    if (a.runtime_class_init) a.runtime_class_init(cls);
+
+    if (JS_IsNumber(argv[0])) {
+        double d = 0;
+        if (JS_ToFloat64(ctx, &d, argv[0]) < 0) return JS_EXCEPTION;
+        if (d != static_cast<double>(static_cast<int64_t>(d)) || d < 0 || d > 0x7fffffff) {
+            return JS_ThrowRangeError(ctx, "%s.newArray: tamanho %g invalido", className(cls).c_str(), d);
+        }
+        Il2CppArray* arr = a.array_new(cls, static_cast<uintptr_t>(d));
+        if (!arr) return JS_ThrowInternalError(ctx, "%s.newArray: o jogo recusou o array", className(cls).c_str());
+        return makeGameArray(ctx, arr);
+    }
+    if (!JS_IsArray(argv[0]) && JS_GetTypedArrayType(argv[0]) < 0) {
+        return JS_ThrowTypeError(ctx, "%s.newArray: passe o tamanho ou uma lista de valores", className(cls).c_str());
+    }
+    Il2CppArray* arr = arrayOfValues(ctx, cls, argv[0], "newArray");
+    return arr ? makeGameArray(ctx, arr) : JS_EXCEPTION;
+}
+
+/**
+ * [1, 2, 3].makeGeneric('int'): o array JS vira um array do jogo, como no TL
+ * Pro. Tambem num TypedArray: `bytes.makeGeneric('byte')`.
+ *   ['a', 'b'].makeGeneric('string')         // string[]
+ *   [v1, v2].makeGeneric(Vector2)            // Vector2[]
+ *   [].makeGeneric('byte').cloneResized(n)   // byte[n] zerado
+ */
+JSValue js_arrayMakeGeneric(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    auto& a = il2cpp::api();
+    if (!a.array_new) return JS_ThrowInternalError(ctx, "makeGeneric: este runtime nao expoe il2cpp_array_new");
+    if (argc < 1) {
+        return JS_ThrowTypeError(ctx, "lista.makeGeneric(tipo): passe o tipo do elemento ('int', 'byte'... ou uma classe)");
+    }
+    Il2CppClass* elem = elementClassOf(ctx, argv[0], "makeGeneric");
+    if (!elem) return JS_EXCEPTION;
+    if (a.runtime_class_init) a.runtime_class_init(elem);
+    Il2CppArray* arr = arrayOfValues(ctx, elem, self, "makeGeneric");
+    return arr ? makeGameArray(ctx, arr) : JS_EXCEPTION;
 }
 
 /**
@@ -799,12 +977,13 @@ bool gaProtoHas(JSContext* ctx, JSAtom atom) {
     return has > 0;
 }
 
-/** Um array do jogo so tem [i], length e cloneResized — nao os metodos do Array do JS. */
+/** Um array do jogo so tem [i], length, cloneResized, fill, empty e find — nao os outros do Array do JS. */
 JSValue missingArrayMember(JSContext* ctx, Il2CppArray* arr, JSAtom atom) {
     const std::string owner =
         className(il2cpp::api().object_get_class(reinterpret_cast<Il2CppObject*>(arr)));
     return JS_ThrowTypeError(ctx, "Member with name '%s' is not found in %s "
-                                  "(um array do jogo tem [i], length e cloneResized)",
+                                  "(um array do jogo tem [i], length, cloneResized, fill, empty e find; "
+                                  "para os outros, Array.from(arr))",
                              atomName(ctx, atom).c_str(), owner.c_str());
 }
 
@@ -891,8 +1070,103 @@ JSValue ga_toString(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
     return JS_NewString(ctx, name.c_str());
 }
 
+/** Um indice relativo como o do Array do JS: negativo conta do fim; preso em 0..len. */
+int relativeIndex(JSContext* ctx, JSValueConst v, int64_t len, int64_t dflt, int64_t* out) {
+    if (JS_IsUndefined(v)) {
+        *out = dflt;
+        return 0;
+    }
+    double d = 0;
+    if (JS_ToFloat64(ctx, &d, v) < 0) return -1;
+    if (d != d) d = 0;   // NaN
+    const double t = d < 0 ? -std::floor(-d) : std::floor(d);
+    const double r = t < 0 ? std::max(static_cast<double>(len) + t, 0.0) : std::min(t, static_cast<double>(len));
+    *out = static_cast<int64_t>(r);
+    return 0;
+}
+
+/**
+ * arr.fill(valor, inicio?, fim?): como o fill do Array do JS, no proprio array
+ * do jogo (muda o jogo) e devolve ele. O valor e convertido uma vez, como numa
+ * escrita `arr[i] = v`, e copiado para as outras posicoes.
+ */
+JSValue ga_fill(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    Il2CppArray* arr = arrayFromJS(self);
+    if (!arr) return JS_ThrowTypeError(ctx, "fill: chame num array do jogo");
+    const int64_t len = static_cast<int64_t>(arr->length);
+    int64_t start = 0, end = len;
+    if (relativeIndex(ctx, argc > 1 ? argv[1] : JS_UNDEFINED, len, 0, &start) < 0) return JS_EXCEPTION;
+    if (relativeIndex(ctx, argc > 2 ? argv[2] : JS_UNDEFINED, len, len, &end) < 0) return JS_EXCEPTION;
+    if (start >= end) return JS_DupValue(ctx, self);
+
+    const TypeDesc& d = elemOf(ctx, self, arr);
+    if (!d.size) return JS_EXCEPTION;
+    const size_t stride = strideOf(d);
+    auto* base = static_cast<char*>(arrayData(arr));
+    char* first = base + static_cast<size_t>(start) * stride;
+    if (writeAt(ctx, first, d, argc > 0 ? argv[0] : JS_UNDEFINED) < 0) return JS_EXCEPTION;
+
+    auto& a = il2cpp::api();
+    for (int64_t i = start + 1; i < end; ++i) {
+        char* slot = base + static_cast<size_t>(i) * stride;
+        if (d.byValue) {
+            std::memcpy(slot, first, stride);
+        } else if (a.gc_wbarrier_set_field) {
+            a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(arr), reinterpret_cast<void**>(slot),
+                                    *reinterpret_cast<Il2CppObject**>(first));
+        } else {
+            *reinterpret_cast<void**>(slot) = *reinterpret_cast<void**>(first);
+        }
+    }
+    return JS_DupValue(ctx, self);
+}
+
+/** arr.empty(): um array NOVO do mesmo tipo, sem posicoes (o cloneResized(0)). */
+JSValue ga_empty(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
+    Il2CppArray* arr = arrayFromJS(self);
+    if (!arr) return JS_ThrowTypeError(ctx, "empty: chame num array do jogo");
+    Il2CppArray* copy = runtime::TypeTables::resizedCopy(arr, 0);
+    if (!copy) return JS_ThrowInternalError(ctx, "empty: o jogo recusou o array");
+    return makeGameArray(ctx, copy);
+}
+
+/**
+ * arr.find(fn, thisArg?): como o find do Array do JS: o primeiro elemento com
+ * fn(elemento, indice, arr) verdadeiro, ou undefined. O elemento e o mesmo de
+ * `arr[i]` (um struct sai como vista para dentro do array).
+ */
+JSValue ga_find(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv) {
+    Il2CppArray* arr = arrayFromJS(self);
+    if (!arr) return JS_ThrowTypeError(ctx, "find: chame num array do jogo");
+    if (argc < 1 || !JS_IsFunction(ctx, argv[0])) {
+        return JS_ThrowTypeError(ctx, "find(fn): passe uma funcao (elemento, indice, array) => bool");
+    }
+    JSValueConst thisArg = argc > 1 ? argv[1] : JS_UNDEFINED;
+    const int64_t len = static_cast<int64_t>(arr->length);
+    for (int64_t i = 0; i < len; ++i) {
+        JSValue elem = JS_GetPropertyInt64(ctx, self, i);
+        if (JS_IsException(elem)) return elem;
+        JSValue args[3] = {elem, JS_NewInt64(ctx, i), JS_DupValue(ctx, self)};
+        JSValue r = JS_Call(ctx, argv[0], thisArg, 3, args);
+        JS_FreeValue(ctx, args[1]);
+        JS_FreeValue(ctx, args[2]);
+        if (JS_IsException(r)) {
+            JS_FreeValue(ctx, elem);
+            return r;
+        }
+        const int truthy = JS_ToBool(ctx, r);
+        JS_FreeValue(ctx, r);
+        if (truthy > 0) return elem;
+        JS_FreeValue(ctx, elem);
+    }
+    return JS_UNDEFINED;
+}
+
 const JSCFunctionListEntry ga_proto[] = {
     JS_CFUNC_DEF("toString", 0, ga_toString),
+    JS_CFUNC_DEF("fill", 1, ga_fill),
+    JS_CFUNC_DEF("empty", 0, ga_empty),
+    JS_CFUNC_DEF("find", 1, ga_find),
 };
 
 const JSClassExoticMethods ga_exotic = {
@@ -1251,6 +1525,29 @@ void installBindings(void* context) {
     JS_NewClass(rt, g_namespaceId, &nsDef);
     JS_SetClassProto(ctx, g_namespaceId, JS_NewObject(ctx));
     installNamespaceRoots(ctx, global);
+
+    // [1, 2].makeGeneric('int') (como no TL Pro): no Array e no prototipo comum
+    // dos TypedArray, fora do for-in.
+    {
+        JSValue fn = JS_NewCFunction(ctx, js_arrayMakeGeneric, "makeGeneric", 1);
+        JSValue arrayCtor = JS_GetPropertyStr(ctx, global, "Array");
+        JSValue arrayProto = JS_GetPropertyStr(ctx, arrayCtor, "prototype");
+        JS_DefinePropertyValueStr(ctx, arrayProto, "makeGeneric", JS_DupValue(ctx, fn),
+                                  JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        JSValue u8 = JS_GetPropertyStr(ctx, global, "Uint8Array");
+        JSValue u8Proto = JS_GetPropertyStr(ctx, u8, "prototype");
+        JSValue typedProto = JS_GetPrototype(ctx, u8Proto);
+        if (JS_IsObject(typedProto)) {
+            JS_DefinePropertyValueStr(ctx, typedProto, "makeGeneric", JS_DupValue(ctx, fn),
+                                      JS_PROP_WRITABLE | JS_PROP_CONFIGURABLE);
+        }
+        JS_FreeValue(ctx, typedProto);
+        JS_FreeValue(ctx, u8Proto);
+        JS_FreeValue(ctx, u8);
+        JS_FreeValue(ctx, arrayProto);
+        JS_FreeValue(ctx, arrayCtor);
+        JS_FreeValue(ctx, fn);
+    }
 
     JS_FreeValue(ctx, global);
     BL_DEBUG("bindings instalados (bl.log/classOf, arvore de namespaces)");

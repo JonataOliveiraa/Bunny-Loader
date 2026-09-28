@@ -1,0 +1,15 @@
+{
+  "uid": "0d081afa-8986-4fb9-8175-788cfa1cae64",
+  "id": "test-arrays",
+  "name": "Teste: arrays do jogo criados pelo JS",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "lista.makeGeneric(tipo) (como no TL Pro) e Classe.newArray(n | lista): tipos por nome do C#, por classe e por ajudante, TypedArray, strings, structs, e os erros.",
+  "description": "Loga 'arrays ...'. Roda uma vez, no primeiro quadro dentro do mundo.",
+  "updated": "2026-09-28",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}

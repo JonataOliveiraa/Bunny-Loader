@@ -1,0 +1,15 @@
+{
+  "uid": "1a0c34fc-f47d-490b-a346-8cd4ae0db46a",
+  "id": "test-modbiome",
+  "name": "Teste: ModBiome",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Etapa B1 do ModBiome: registro, flags por jogador, OnEnter/OnInBiome/OnLeave, dois biomas ao mesmo tempo, a cena por prioridade, erro no IsBiomeActive, o mesmo nome em dois mods e o bioma por contagem de blocos.",
+  "description": "Loga 'modbiome ...'. Precisa do Example Mod (ExampleTile) e do test-modbiome-b.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [301543, 301543],
+  "entry": "main.js",
+  "dependencies": []
+}
