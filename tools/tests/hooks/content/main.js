@@ -183,7 +183,7 @@ function setup() {
     check('receita', () => {
         const recipes = Main.recipe;
         let gun = false, example = false;
-        for (let i = Terraria.Recipe.numRecipes - 1; i >= Math.max(0, Terraria.Recipe.numRecipes - 40); i--) {
+        for (let i = Terraria.Recipe.numRecipes - 1; i >= 0; i--) {
             const it = recipes[i].createItem;
             if (it.type === GUN) gun = true;
             else if (bl.items.isModItem(it.type) && it.stack === 999) example = true;
@@ -275,8 +275,8 @@ function finalChecks() {
 function killChecks() {
     check('NPC: PreKill e OnKill', () => {
         blob.playerInteraction[Main.myPlayer] = true;
-        blob['double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)'](
-            9999, 0, 1, false, false, false, Main.myPlayer);
+        blob['int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)'](
+            9999, 0, 1, false, false, Main.myPlayer);
         return got('npc.PreKill') === true ? got('npc.OnKill') : got('npc.PreKill');
     });
 }

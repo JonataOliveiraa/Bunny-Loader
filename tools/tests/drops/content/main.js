@@ -6,7 +6,7 @@ const Main = Terraria.Main;
 const GEL = Terraria.ID.ItemID.Gel;
 const newNpc = Terraria.NPC['int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, ' +
                             'float ai0, float ai1, float ai2, float ai3, int Target)'];
-const strike = 'double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)';
+const strike = 'int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)';
 
 let fails = 0;
 function check(label, fn) {
@@ -33,7 +33,7 @@ function count(type) {
     let n = 0;
     for (let i = 0; i < Main.item.length; i++) {
         const it = Main.item[i];
-        if (it.active && it.type === type) n += it.stack;
+        if (it && it.active && it.type === type) n += it.stack;
     }
     return n;
 }
@@ -56,7 +56,7 @@ function spawnAndKill(type) {
     const i = newNpc(source, Math.floor(p.position.X + 120), Math.floor(p.position.Y - 40), type, 0, 0, 0, 0, 0, 255);
     const npc = Main.npc[i];
     npc.playerInteraction[Main.myPlayer] = true;
-    npc[strike](999999, 0, 1, false, false, false, Main.myPlayer);
+    npc[strike](999999, 0, 1, false, false, Main.myPlayer);
     return npc;
 }
 
@@ -67,24 +67,24 @@ function fullGroundLootTest() {
     const p = Main.player[Main.myPlayer];
     const source = Terraria.DataStructures.EntitySource_DebugCommand.new();
     source['void .ctor()']();
-    const newItem = Terraria.Item['int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int Type, int Stack, bool noBroadcast, int pfix, bool noGrabDelay)'];
+    const newItem = Terraria.Item['int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)'];
     for (let pass = 0; pass < 2; pass++) {
-        for (let i = 0; i < 400; i++) Main.item[i]['void ClearOut()']();
+        for (let i = 0; i < 400; i++) if (Main.item[i]) Main.item[i]['void TurnToAir()']();
         for (let i = 0; i < 400; i++) {
             const slot = newItem(source, Math.floor(p.position.X + 900), Math.floor(p.position.Y),
-                                 16, 16, i % 2 ? GEL : items.ExampleItem, 1, true, 0, false);
+                                 16, 16, i % 2 ? GEL : items.ExampleItem, 1, true, 0, 0, null, null);
             if (slot < 0 || slot >= 400) return 'slot de preparo ' + slot;
         }
         let occupied = 0;
-        for (let i = 0; i < 400; i++) if (Main.item[i].active) occupied++;
+        for (let i = 0; i < 400; i++) if (Main.item[i] && Main.item[i].active) occupied++;
         if (occupied !== 400) return 'preparo ocupou ' + occupied + ' slots';
         emergency._groupLookup = null;
         const slot = newItem(source, Math.floor(p.position.X + 900), Math.floor(p.position.Y),
-                             16, 16, items.ExampleItem, 1, true, 0, false);
+                             16, 16, items.ExampleItem, 1, true, 0, 0, null, null);
         const groups = emergency._groupLookup;
         if (!groups || groups.length <= items.ExampleItem || !groups[items.ExampleItem])
             return 'grupo de item de mod ausente na primeira consulta';
-        if (slot < 0 || slot >= 400 || !Main.item[slot].active || Main.item[slot].type !== items.ExampleItem)
+        if (slot < 0 || slot >= 400 || !Main.item[slot] || !Main.item[slot].active || Main.item[slot].type !== items.ExampleItem)
             return 'drop apos empilhar: slot=' + slot;
         bl.log('drops chao cheio, criacao ' + (pass + 1) + ': grupos=' + groups.length + ', slot=' + slot);
     }
@@ -98,7 +98,7 @@ function fullGroundLootTest() {
     for (const index of indices) {
         const npc = Main.npc[index];
         npc.playerInteraction[Main.myPlayer] = true;
-        npc[strike](999999, 0, 1, false, false, false, Main.myPlayer);
+        npc[strike](999999, 0, 1, false, false, Main.myPlayer);
         if (npc.active || npc.life > 0) return 'NPC do lote sobreviveu: ' + index;
     }
     bl.log('drops 120 slimes mortos no mesmo quadro com o chao cheio');

@@ -10,7 +10,7 @@ const newNpc = Terraria.NPC['int NewNPC(IEntitySource source, int X, int Y, int 
 const newProj = Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, ' +
     'float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, ' +
     'NewProjectileModifier modifer)'];
-const strike = 'double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)';
+const strike = 'int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)';
 const setDefaults = 'void SetDefaults(int Type, ItemVariant variant)';
 
 let fails = 0;
@@ -271,7 +271,7 @@ function stepRun() {
     check('GlobalItem.UpdateInventory roda', () => spy.inventory > 0 || 'inventario ' + spy.inventory);
 
     slime.playerInteraction[Main.myPlayer] = true;
-    slime[strike](99999, 0, 1, false, false, false, Main.myPlayer);
+    slime[strike](99999, 0, 1, false, false, Main.myPlayer);
     check('GlobalNPC.HitEffect e OnKill', () =>
         (spy.slimeHit > 0 && spy.slimeKill === 1) || `hit ${spy.slimeHit}, kill ${spy.slimeKill}`);
     if (arrow.active) arrow['void Kill()']();

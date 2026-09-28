@@ -94,8 +94,8 @@ export class ExampleLaserBeam extends ModProjectile {
             if (target.immune[proj.owner] !== 0) continue;
             const item = player.HeldItem;
             const crit = Rand.NextFloat() * 100 < player.GetWeaponCrit(item);
-            const damage = target['double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)'](
-                player.GetWeaponDamage(item), player.GetWeaponKnockback(item, proj.knockBack), proj.direction, crit, false, false, proj.owner);
+            const damage = target['int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)'](
+                player.GetWeaponDamage(item), player.GetWeaponKnockback(item, proj.knockBack), proj.direction, crit, false, proj.owner);
             player.addDPS(damage | 0);
             target.immune[proj.owner] = proj.localNPCHitCooldown;
         }

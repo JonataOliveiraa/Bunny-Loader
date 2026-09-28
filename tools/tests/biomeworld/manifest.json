@@ -9,7 +9,7 @@
   "description": "Loga 'biomeworld ...'. Precisa do Example Mod (ExampleTile). SAI DO MUNDO no fim: rodar sozinho.",
   "updated": "2026-09-28",
   "blVersion": 2,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [301720, 301720],
   "entry": "main.js",
   "dependencies": []
 }

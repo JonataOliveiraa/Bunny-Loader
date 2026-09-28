@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "il2cpp/Types.h"
@@ -12,6 +13,9 @@ struct TableClass {
     const char* name;
     const char* nested;
     const char* nested2 = "";   // segundo nivel: TileID.Sets.Conversion
+    // Campos com o mesmo tamanho por coincidencia, que NAO sao deste tipo
+    // (Main.item tem 401 posicoes, e desde a 1.4.5.8 o BuffID.Count tambem).
+    std::vector<std::string> skip = {};
 };
 
 /**

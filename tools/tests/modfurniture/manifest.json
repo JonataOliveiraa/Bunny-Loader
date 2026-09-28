@@ -9,7 +9,7 @@
   "description": "Loga 'modfurniture ...'. Precisa do Example Mod. Constrói longe do spawn e limpa no fim (não salva).",
   "updated": "2026-09-27",
   "blVersion": 2,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [301720, 301720],
   "entry": "main.js",
   "dependencies": []
 }

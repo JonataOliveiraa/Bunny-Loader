@@ -105,6 +105,13 @@ export class SceneOnly extends ModSceneEffect {
 
 let other = null;   // o SameNameBiome do test-modbiome-b
 let countsAt10 = 0;
+// As varreduras do jogador que o próprio jogo fez (o ritmo muda entre versões:
+// 12 por 60 quadros na 1.4.5.6, 6 na 1.4.5.8).
+let gameScans = 0, gameScansAt10 = 0;
+Terraria.SceneMetrics['void AggregateTileCounts()'].hook((original, self) => {
+    original(self);
+    if (!Main.gameMenu && self === Main.PlayerSceneMetrics) gameScans++;
+});
 const me = () => Main.LocalPlayer;
 const scene = () => me().CurrentSceneEffect;
 const flagsOf = (...list) => list.map((c) => me().InModBiome(c) ? 1 : 0).join('');
@@ -138,7 +145,7 @@ function registration() {
 // Passos por quadro: [quadro, ação].
 const STEPS = [
     [1, registration],
-    [10, () => { countsAt10 = ModContent.GetInstance(TestTileCount).counts; }],
+    [10, () => { countsAt10 = ModContent.GetInstance(TestTileCount).counts; gameScansAt10 = gameScans; }],
     [10, () => { BiomeA.on = true; }],
     [11, () => check('A: entrou (OnEnter 1, OnInBiome 1, InModBiome por classe, instância e Type)', () => {
         const s = seen(BiomeA), inst = ModContent.GetInstance(BiomeA);
@@ -193,8 +200,9 @@ function startBlocks(frame) {
     sys.tile = ModContent.TileType('examplemod/ExampleTile');
     check('contagem: ResetNearbyTileEffects antes de cada TileCountsAvailable', () =>
         (sys.resets > 0 && sys.counts > 0 && sys.outOfOrder === 0) || JSON.stringify({ resets: sys.resets, counts: sys.counts, outOfOrder: sys.outOfOrder }));
-    const perMinute = sys.counts - countsAt10;
-    check('contagem: só a varredura do jogador (12 em 60 quadros)', () => (perMinute >= 10 && perMinute <= 14) || perMinute + ' em 60 quadros');
+    const mine = sys.counts - countsAt10, game = gameScans - gameScansAt10;
+    check('contagem: uma por varredura do jogador, e só dela', () =>
+        (game > 0 && mine === game) || `${mine} chamada(s) para ${game} varredura(s) do jogador`);
     blockPhase = 1;
     blockFrame = frame;
 }

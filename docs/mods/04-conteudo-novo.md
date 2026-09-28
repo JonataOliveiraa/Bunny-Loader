@@ -101,7 +101,7 @@ As classes base são **globais**: `ModItem`, `ModProjectile`, `ModNPC`,
 
 1. cria o **molde**: uma instância da sua classe;
 2. reserva o **número** do tipo novo, na hora (o primeiro item de mod é o
-   6147, logo depois dos do jogo), e o devolve;
+   6196, logo depois dos do jogo), e o devolve;
 3. guarda a textura, o nome e a tradução;
 4. instala os hooks do jogo por trás dos métodos que a sua classe
    **sobrescreveu** (e só esses).

@@ -1,7 +1,7 @@
 // Armaduras e equipáveis do Example Mod: o EquipLoader (slots depois dos do
-// jogo, Count e tabelas crescidos), o conjunto (IsArmorSet/UpdateArmorSet e o
-// setBonus), as asas (WingStats e VerticalWingSpeeds), a barba e os
-// acessórios com textura vestida. Veste no jogador, confere e tira no fim.
+// jogo, Count e tabelas crescidos), o conjunto (CreateArmorSet no
+// ArmorSetBonuses do 1.4.5 e o UpdateArmorSet), as asas (WingStats e
+// VerticalWingSpeeds), a barba e os acessórios com textura vestida. Veste no jogador, confere e tira no fim.
 // Precisa do Example Mod ligado. Loga "armor <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 const { ArmorIDs, BuffID } = Terraria.ID;
@@ -160,10 +160,17 @@ function equippedChecks() {
         (now.mana - base.mana === 20 && now.minions - base.minions === 1 && now.speed > base.speed &&
          p.buffImmune[BuffID.OnFire] === true) ||
         `mana +${now.mana - base.mana}, lacaios +${now.minions - base.minions}, velocidade ${base.speed} -> ${now.speed}`);
-    check('conjunto: +20% de dano e o setBonus', () =>
-        (now.melee - base.melee > 0.19 && now.magic - base.magic > 0.19 && now.minion - base.minion > 0.19 &&
-         /20/.test(p.setBonus) && !/ArmorSetBonus/.test(p.setBonus)) ||
-        `melee ${base.melee} -> ${now.melee}, setBonus "${p.setBonus}"`);
+    check('conjunto: +20% de dano, uma vez', () =>
+        (now.melee - base.melee > 0.19 && now.melee - base.melee < 0.3 && now.magic - base.magic > 0.19 &&
+         now.minion - base.minion > 0.19) || `melee ${base.melee} -> ${now.melee}`);
+    // O formato do 1.4.5: o conjunto no ArmorSetBonuses do jogo, que monta o
+    // "Bônus definido" do tooltip.
+    check('conjunto: no ArmorSetBonuses, com o texto', () => {
+        const sets = Terraria.DataStructures.ArmorSetBonuses.SetsContaining[T('ExampleHelmet')];
+        if (!sets || sets.length === 0) return 'SetsContaining vazio';
+        const tip = sets[0]['string GetTooltipForSinglePiece(int itemType)'](T('ExampleHelmet'));
+        return (/20/.test(tip) && !/ArmorSetBonus/.test(tip)) || `tooltip "${tip}"`;
+    });
     check('asas: wings e wingTimeMax', () => {
         const slot = sample(T('ExampleWings')).wingSlot;
         return (p.wings === slot && p.wingTimeMax === 180) || `wings ${p.wings} (slot ${slot}), wingTimeMax ${p.wingTimeMax}`;
@@ -198,8 +205,8 @@ function partialSet() {
 
 function partialChecks() {
     const p = me(), now = snapshot(p);
-    check('conjunto incompleto: sem bônus nem setBonus', () =>
-        (p.setBonus === '' && now.melee - base.melee < 0.01) || `setBonus "${p.setBonus}", melee ${base.melee} -> ${now.melee}`);
+    check('conjunto incompleto: sem bônus', () =>
+        now.melee - base.melee < 0.01 || `melee ${base.melee} -> ${now.melee}`);
 }
 
 function reequip() {
@@ -351,6 +358,12 @@ function finalLook() {
 
 function removeDoll() {
     if (!doll) return;
+    // Manequim com roupa não quebra (TEDisplayDoll.IsBreakable): esvazia antes.
+    if (doll.te) {
+        for (const list of [doll.te._equip, doll.te._dyes, doll.te._misc]) {
+            for (let i = 0; list && i < list.length; i++) if (list[i]) list[i]['void TurnToAir()']();
+        }
+    }
     const kill = W['void KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)'];
     kill(doll.x, doll.ground - 1, false, false, true);
     for (const x of doll.placed) kill(x, doll.ground, false, false, true);

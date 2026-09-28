@@ -134,8 +134,8 @@ class TownNPCLoader {
         const WorldGen = Terraria.WorldGen;
         const anyNPCs = Terraria.NPC['bool AnyNPCs(int Type)'];
 
-        Main['void UpdateTime_SpawnTownNPCs(bool forceUpdate)'].hook((original, force) => {
-            original(force);
+        Main['void UpdateTime_SpawnTownNPCs()'].hook((original) => {
+            original();
             if (Main.netMode === 1 || Main.checkForSpawns !== 0) return;
 
             let towns = -1;

@@ -35,7 +35,7 @@ bool g_failed = false;
 // Sobe quando o mundo muda: o que o cache do desenho guardou deixa de valer.
 std::atomic<uint32_t> g_drawEpoch{1};
 
-// Conferida contra toda alocacao de 753 posicoes na libil2cpp (`mov #0x2f1`):
+// Conferida contra toda alocacao de 754 posicoes na libil2cpp (`mov #0x2f2`):
 // as estaticas estao em Main (a maioria), TileID.Sets (e as aninhadas),
 // TextureAssets (Tile e HighlightMask), WorldGen, MapHelper, Recipe e
 // TileMaterials; as por instancia, em Player, GUICrafting e SceneMetrics
@@ -55,7 +55,7 @@ TypeTables g_tables("tiles de mod", kVanillaTileCount, {
     {"Terraria", "Recipe", ""},
     {"Terraria.GameContent.Metadata", "TileMaterials", ""},
     // As do tModLoader (TileLoader.ResizeArrays) que a varredura do `mov
-    // #753` nao pega: nascem pela fabrica do TileID.Sets.
+    // #754` nao pega: nascem pela fabrica do TileID.Sets.
     {"Terraria", "WorldGen", "Skyblock"},
     {"Terraria.GameContent.Biomes", "CorruptionPitBiome", ""},
     {"Terraria.GameContent.Biomes.CaveHouse", "HouseUtils", ""},
@@ -130,7 +130,7 @@ void applyTexture(int type, const Entry& e) {
     if (asset) content::setTableElement(refs().textures, type, asset);
 }
 
-// ---- Main.tileMerge: bool[753][753] ----
+// ---- Main.tileMerge: bool[754][754] ----
 //
 // A TypeTables cresce a tabela de FORA e enche o que falta com o [0] — a MESMA
 // linha da terra em todo tipo novo, e curta: `tileMerge[mod][mod] = true`
@@ -173,7 +173,7 @@ bool fixTileMerge(int total) {
 
 // ---- Main.SetupTileMerge ----
 //
-// O jogo refaz o tileMerge INTEIRO (new bool[753][]) quando chega ao menu —
+// O jogo refaz o tileMerge INTEIRO (new bool[754][]) quando chega ao menu —
 // depois da instalacao, e de novo em outros momentos. O que os mods
 // escreveram (tileMerge[ore][ore] = true) sumiria: o hook guarda as linhas e
 // colunas dos tipos de mod, deixa o jogo refazer, aumenta e devolve.
@@ -257,13 +257,13 @@ struct LimitPatch {
     bool shifted = false;   // `cmp #limite, lsl #12`: a chave tipo << 12
 };
 
-// Achados varrendo a libil2cpp por `cmp #751..#753` + desvio de ordem
+// Achados varrendo a libil2cpp por `cmp #752..#754` + desvio de ordem
 // (tools/disasm/scan_limits.py), e conferidos um a um: todos leem o tipo do
 // tile (TileType[TileLookup[..]]) ou o `Type` do PlaceTile, e nenhum e a
 // guarda de uma tabela de desvio (switch). Fica de fora o Main.DrawProjDirect
 // (752 ali e tipo de PROJETIL) e a geracao de mundo.
 constexpr LimitPatch kLimitPatches[] = {
-    // `if (Type > 752) return false` / tile com tipo alto desviado.
+    // `if (Type > 753) return false` / tile com tipo alto desviado.
     {"Terraria", "WorldGen", "PlaceTile", kVanillaTileCount - 1, -1, false},
     // O `WorldGen.PlaceObject(x, y, tipo)` dos moveis (TileObjectData).
     {"Terraria", "WorldGen", "PlaceObject", kVanillaTileCount - 1, -1, false},
@@ -281,12 +281,12 @@ constexpr LimitPatch kLimitPatches[] = {
     {"Terraria", "Player", "PlaceThing_Tiles_CheckRopeUsability", kVanillaTileCount - 1, -1, false},
     {"Terraria.GameContent", "SmartCursorHelper", "Step_Boulders", kVanillaTileCount - 1, -1, false},
     {"Terraria.GameContent", "SmartCursorHelper", "Step_PumpkinSeeds", kVanillaTileCount - 1, -1, false},
-    // `tipo < 753` / `tipo >= 753`: o quadro cosmetico, e a validacao do mundo
-    // (que APAGA tile com tipo >= 753).
+    // `tipo < 754` / `tipo >= 754`: o quadro cosmetico, e a validacao do mundo
+    // (que APAGA tile com tipo >= 754).
     {"Terraria", "WorldGen", "TileFrameCosmetic", kVanillaTileCount, 0, true},
     {"Terraria", "WorldGen", "ValidateTypes", kVanillaTileCount, 0, true},
     {"Terraria", "Collision", "IsWorldPointSolid", kVanillaTileCount, 0, false},
-    // Os tiles internados: a chave (tipo << 12 | ...) acima de 753 << 12 e
+    // Os tiles internados: a chave (tipo << 12 | ...) acima de 754 << 12 e
     // "Out of bounds" (o jogo loga e segue). O buffer e o do hook no Allocate.
     {"Terraria", "TileData", "GetTileDefinition", kVanillaTileCount, 0, false, true},
 };
@@ -321,7 +321,7 @@ void patchLimits(int total) {
 //
 // O mundo do celular guarda os tiles internados: GetTileDefinition acha a
 // definicao igual pela chave (tipo << 12 | bHeader2 << 4 | quadro), numa
-// tabela de listas com 753 * 4096 entradas DENTRO do bloco que o Allocate monta
+// tabela de listas com 754 * 4096 entradas DENTRO do bloco que o Allocate monta
 // ao carregar o mundo. Tile de mod teria a chave alem do fim — lida e ESCRITA.
 // Depois de cada Allocate, a tabela passa a ser nossa, com espaco para todos
 // os tipos (-1 = lista vazia, como o jogo inicia).
@@ -380,7 +380,7 @@ void hookAllocate() {
 
 // ---- Main.tileGlowMask ----
 //
-// -1 = sem brilho (716 dos 753 tipos do jogo). A tabela pode crescer antes de
+// -1 = sem brilho (a grande maioria dos tipos do jogo). A tabela pode crescer antes de
 // o jogo encher os -1 — o tipo novo ficaria com 0, e desenharia o brilho 0 por
 // cima do tile. Como o tModLoader: -1 nos tipos de mod, em toda tabela nova
 // (o mod que quiser brilho escreve depois, no SetStaticDefaults).
@@ -936,7 +936,7 @@ void runStaticDefaults(int first, int last) {
 //
 // Player.adjTile (as estacoes de criacao por perto), GUICrafting.oldAdjTile
 // (a copia do menu de criacao) e SceneMetrics._tileCounts (a contagem dos
-// biomas): o construtor cria com 753. Os que ja existem crescem na instalacao;
+// biomas): o construtor cria com 754. Os que ja existem crescem na instalacao;
 // os que nascerem depois, no construtor.
 
 using CtorFn = void (*)(Il2CppObject*, const MethodInfo*);
@@ -996,7 +996,7 @@ void growInstances(int size) {
         ++players;
     }
     // O da camera tambem: sem a camera separada (o normal), get_SceneMetrics
-    // devolve o mesmo do jogador, e o da camera ficava com 753. O ScanTiles faz
+    // devolve o mesmo do jogador, e o da camera ficava com 754. O ScanTiles faz
     // _tileCounts[tipo]++ sem conferir o limite: a primeira varredura dele com
     // um tile de mod por perto escreveria fora do array.
     int metrics = 0;

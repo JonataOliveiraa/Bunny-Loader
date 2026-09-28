@@ -6,8 +6,8 @@ namespace bl::runtime {
 // Tudo que o núcleo usa do jogo é resolvido UMA vez aqui. Nenhum código de
 // runtime busca classe/método/campo por nome.
 //
-// Offsets de referência conferidos no dump de Terraria 1.4.5.6.4
-// (versionCode 301543, metadata v31, arm64-v8a). Servem de sanity-check na
+// Offsets de referência conferidos no dump de Terraria 1.4.5.8.6
+// (versionCode 301720, metadata v31, arm64-v8a). Servem de sanity-check na
 // Fase 3 — NÃO são hardcoded: tudo é resolvido pelo Resolver em runtime.
 
 // Campos declarados em Terraria.Entity (base de Projectile/NPC/Item/Player).

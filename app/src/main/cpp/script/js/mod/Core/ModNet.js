@@ -104,7 +104,7 @@ class ModNet {
         if (Main.netMode !== 1 && p.owner !== Main.myPlayer && p.owner !== 255) return;
 
         const data = ModNet.#EntityData(p, ProjectileLoader.Of(p), ModProjectile, globalProjectiles);
-        if (data) ModNet.Send({ k: 'proj', o: p.owner, id: p.identity, t: p.type, x: data.x, g: data.g }, remote, ignore);
+        if (data) ModNet.Send({ k: 'proj', o: p.owner, id: ModNet.#KeyOf(p), t: p.type, x: data.x, g: data.g }, remote, ignore);
     }
 
     // `from`: no servidor, o índice do cliente; no cliente, 256 (o servidor).
@@ -148,12 +148,18 @@ class ModNet {
         }
     }
 
-    // Na rede o projétil é (dono, identity): o índice muda de um aparelho a outro.
-    static #FindProjectile(owner, identity, type) {
+    // Na rede o projétil é a `key` dele (quem criou, o número que deu e a
+    // geração): o índice em Main.projectile muda de um aparelho a outro.
+    static #KeyOf(p) {
+        const key = p.key;
+        return key.Spawner + ':' + key.Index + ':' + key.Generation;
+    }
+
+    static #FindProjectile(owner, key, type) {
         const all = Terraria.Main.projectile;
         for (let i = 0; i < 1000; i++) {
             const p = all[i];
-            if (p.active && p.owner === owner && p.identity === identity && p.type === type) return p;
+            if (p.active && p.owner === owner && p.type === type && ModNet.#KeyOf(p) === key) return p;
         }
         return null;
     }

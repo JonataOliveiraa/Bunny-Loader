@@ -369,7 +369,7 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     W.player = findField(main, "player");
     W.inventory = fieldOffset(player, "inventory");
     W.favorited = item ? fieldOffset(item, "favorited") : -1;
-    W.turnToAir = methodBySignature(item, "void TurnToAir(bool fullReset)");
+    W.turnToAir = methodBySignature(item, "void TurnToAir()");
     g_inventoryRefs = allFound("mochila", {W.player, W.turnToAir}) && W.inventory >= 0 &&
                       W.favorited >= 0;
 
@@ -1029,10 +1029,8 @@ void clearInventory() {
     for (int i = 0; i < n; ++i) {
         Il2CppObject* it = items[i];
         if (!it || field<uint8_t>(it, W.favorited)) continue;
-        bool fullReset = false;
-        void* args[] = {&fullReset};
         Il2CppObject* exc = nullptr;
-        il2cpp::api().runtime_invoke(W.turnToAir, it, args, &exc);
+        il2cpp::api().runtime_invoke(W.turnToAir, it, nullptr, &exc);
         if (!exc) ++cleared;
     }
     BL_INFO("poderes: mochila limpa (%d espacos)", cleared);

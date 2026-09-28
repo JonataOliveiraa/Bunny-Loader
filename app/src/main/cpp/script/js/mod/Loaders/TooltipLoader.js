@@ -52,9 +52,9 @@ class TooltipLoader {
 
     // As linhas do jogo viram TooltipLine para o ModifyTooltips, e voltam.
     static #HookLines(isDrawing) {
-        Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour)'].hook(
-            (original, item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor) => {
-                original(item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor);
+        Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)'].hook(
+            (original, item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor, shared) => {
+                original(item, yoyo, research, materials, oldKB, numLines, lines, pre, bad, setBonus, setColor, shared);
 
                 const m = ItemLoader.Of(item);
                 const own = m && Hooks.Overrides(m.constructor, ModItem, 'ModifyTooltips') ? m : null;
@@ -62,7 +62,8 @@ class TooltipLoader {
                 if (!own && !prefixLines && !globalItems.AnyWith(item, ['ModifyTooltips'])) return;
 
                 const special = new Map([[yoyo.value, 'OneDropLogo'], [research.value, 'JourneyResearch'],
-                                         [materials.value, 'Material'], [setBonus.value, 'SetBonus'], [0, 'ItemName']]);
+                                         [materials.value, 'Material'], [setBonus.value, 'SetBonus'], [shared.value, 'Shared'],
+                                         [0, 'ItemName']]);
                 const list = [];
                 for (let i = 0; i < numLines.value; i++) {
                     const line = new TooltipLine(special.get(i) || 'Line' + i, lines[i]);
@@ -108,6 +109,7 @@ class TooltipLoader {
                 research.value = indexOf('JourneyResearch');
                 materials.value = indexOf('Material');
                 setBonus.value = indexOf('SetBonus');
+                shared.value = indexOf('Shared');
             });
     }
 

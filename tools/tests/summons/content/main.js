@@ -196,15 +196,26 @@ let shots = 0;
 step(240, (f) => {
     if (f === 10) forceUse = false;
     if (owned(projs.ExampleSentryShot).length > 0) shots++;
-    if (f === 60) {
+    if (f >= 60) {
+        // Bem acima da sentinela e parado: a linha de visão não depende do terreno.
         const s = owned(projs.ExampleSentry)[0];
-        if (s && slime.active) slime.Center = Vector2.new(s.Center.X + 5 * 16, s.Center.Y);
+        if (s && slime.active) {
+            slime.Center = Vector2.new(s.Center.X, s.Center.Y - 6 * 16);
+            slime.velocity = Vector2.new(0, 0);
+        }
     }
     if (f !== 239) return;
     check('sentinela: nasceu, e e sentinela', () => {
         const s = owned(projs.ExampleSentry);
         return (s.length === 1 && s[0].sentry) || s.length + ' sentinelas';
     });
+    {
+        const s = owned(projs.ExampleSentry)[0];
+        const canHit = Terraria.Collision['bool CanHit(Vector2 Position1, int Width1, int Height1, Vector2 Position2, int Width2, int Height2)'];
+        if (s) bl.log(`summons sentinela diag: ai0 ${s.ai[0]}, slime ativo ${slime.active} a ${Math.round(Vector2.Distance(s.Center, slime.Center))} px, ` +
+                      `persegue ${slime.CanBeChasedBy(s, false)}, linha ${canHit(s.position, s.width, s.height, slime.position, slime.width, slime.height)}, ` +
+                      `sentinela em ${Math.round(s.Center.X / 16)},${Math.round(s.Center.Y / 16)} slime em ${Math.round(slime.Center.X / 16)},${Math.round(slime.Center.Y / 16)}`);
+    }
     check('sentinela: atirou no slime', () => shots > 0 || 'nenhum tiro');
     hold(items.ExampleSentryItem);
     forceUse = true;
@@ -212,6 +223,12 @@ step(240, (f) => {
 step(40, (f) => {
     if (f === 10) forceUse = false;
     if (f !== 39) return;
+    bl.log('summons sentinelas diag: maxTurrets ' + me().maxTurrets + '; ' + owned(projs.ExampleSentry).map((s) =>
+        `sentry ${s.sentry} dono ${s.owner} wipable ${s.WipableTurret} timeLeft ${s.timeLeft}`).join(' | '));
+    if (owned(projs.ExampleSentry).length > 1) {
+        me()['void UpdateMaxTurrets()']();
+        bl.log('summons sentinelas diag: depois de UpdateMaxTurrets direto: ' + owned(projs.ExampleSentry).length);
+    }
     check('sentinela: usar de novo com 1 vaga troca a sentinela (continua 1)', () =>
         owned(projs.ExampleSentry).length === 1 || owned(projs.ExampleSentry).length + ' sentinelas');
     killAll(projs.ExampleSentry);

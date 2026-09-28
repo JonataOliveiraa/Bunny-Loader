@@ -19,7 +19,7 @@ export class ExampleTorch extends ModItem {
 
         const at = Vector2.new(player.itemLocation.X + 12 * player.direction + player.velocity.X,
                                player.itemLocation.Y - 14 + player.velocity.Y);
-        Terraria.Lighting['void AddLight(Vector2 position, float r, float g, float b)'](player.RotatedRelativePoint(at, false, true), 1, 1, 1);
+        Terraria.Lighting['void AddLight(Vector2 position, float r, float g, float b)'](player.RotatedRelativePoint(at, false, true, 0), 1, 1, 1);
     }
 
     AddRecipes() {

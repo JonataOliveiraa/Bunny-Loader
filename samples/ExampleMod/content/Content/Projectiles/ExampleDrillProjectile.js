@@ -17,7 +17,7 @@ export class ExampleDrillProjectile extends ModProjectile {
             PlaySound(SoundID.Item22, proj.Center, 0, 1);
             proj.soundDelay = 20;
         }
-        const center = player['Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY)'](player.MountedCenter, false, true);
+        const center = player['Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)'](player.MountedCenter, false, true, 0);
         if (Terraria.Main.myPlayer === proj.owner) {
             if (player.channel) {
                 const reach = player.HeldItem.shootSpeed * proj.scale;

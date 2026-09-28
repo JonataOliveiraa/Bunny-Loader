@@ -105,7 +105,9 @@ function run() {
         }
         p.inventory[49]['void SetDefaults(int Type, ItemVariant variant)'](exampleItem, null);
         check('mudanca: a checagem do jogo marca a Pessoa (CanTownNPCSpawn)', () => {
-            Main['void UpdateTime_SpawnTownNPCs(bool forceUpdate)'](true);
+            // Sem o forceUpdate (1.4.5.8): o contador no limite faz a checagem rodar agora.
+            Main.checkForSpawns = 1000000;
+            Main['void UpdateTime_SpawnTownNPCs()']();
             return Main.townNPCCanSpawn[type] === true || 'townNPCCanSpawn falso';
         });
 

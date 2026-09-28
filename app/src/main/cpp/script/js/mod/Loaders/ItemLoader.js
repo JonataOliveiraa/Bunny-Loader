@@ -20,6 +20,41 @@ class ItemLoader {
     static #animations = new Map();
     static #shooting = null;
 
+    static WantAccessoryPairs() {
+        Hooks.Once('item.AccessoryPairs', () => Safe.Run('pares de acessórios', ItemLoader.#HookAccessoryPairs));
+    }
+
+    // O ItemLoader.CanAccessoryBeEquippedWith do tModLoader. O jogo pergunta
+    // no CanEquipBothAccessories (o que está no slot, o que chega), e a troca
+    // pelo toque vai para o slot do que foi recusado.
+    static #HookAccessoryPairs() {
+        Terraria.UI.ItemSlot['bool CanEquipBothAccessories(Item acc1, Item acc2, bool vanity)'].hook((original, equipped, incoming, vanity) => {
+            if (!original(equipped, incoming, vanity)) return false;
+            if (!equipped || !incoming || equipped.type <= 0 || incoming.type <= 0) return true;
+
+            const player = Terraria.Main.player[Terraria.Main.myPlayer];
+            return ItemLoader.#Pair(equipped, incoming, player) && ItemLoader.#Pair(incoming, equipped, player);
+        });
+    }
+
+    static #Pair(equipped, incoming, player) {
+        for (const item of [equipped, incoming]) {
+            const m = ItemLoader.Of(item);
+            if (!m) continue;
+
+            const ok = Safe.Run(m.constructor.name + '.CanAccessoryBeEquippedWith', () => m.CanAccessoryBeEquippedWith(equipped, incoming, player));
+            if (ok === false) return false;
+        }
+
+        for (const g of globalItems.list) {
+            if (!Hooks.Overrides(g.constructor, GlobalItem, 'CanAccessoryBeEquippedWith')) continue;
+
+            const ok = Safe.Run(g.constructor.name + '.CanAccessoryBeEquippedWith', () => g.CanAccessoryBeEquippedWith(equipped, incoming, player));
+            if (ok === false) return false;
+        }
+        return true;
+    }
+
     static Of(item) {
         return Entities.InstanceOf(item, 'ModItem', ItemLoader.ByType);
     }
@@ -133,14 +168,13 @@ class ItemLoader {
         if (has('CanShoot') || has('ModifyShootStats') || has('Shoot')) Hooks.Once('item.Shoot', ItemLoader.#HookShoot);
 
         if (has('OnHitNPC')) Hooks.Once('item.OnHitNPC', () => {
-            P['void ApplyNPCOnHitEffects(Item sItem, Rectangle itemRectangle, int damage, float knockBack, int npcIndex, int dmgRandomized, int dmgDone)'].hook(
-                (original, self, item, rect, damage, knockBack, npcIndex, dmgRandomized, dmgDone) => {
-                    original(self, item, rect, damage, knockBack, npcIndex, dmgRandomized, dmgDone);
+            P['void ApplyNPCOnHitEffects(Item sItem, Rectangle itemRectangle, int damage, float knockBack, NPC npc, int dmgRandomized, int dmgDone)'].hook(
+                (original, self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone) => {
+                    original(self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone);
 
                     const m = of(item);
                     if (!m) return;
 
-                    const npc = Terraria.Main.npc[npcIndex];
                     const crit = dmgDone >= dmgRandomized * 2;
                     Safe.Run(m.constructor.name + '.OnHitNPC', () => m.OnHitNPC(item, self, npc, dmgDone, knockBack, crit));
                 }, onItem(0));
@@ -184,20 +218,22 @@ class ItemLoader {
             });
         }
 
-        // WorldItem.type é propriedade, não campo: sem filtro nativo.
+        // O item no chão: o Main.DrawItem pede a cor ao Item de dentro da WorldItem.
         if (has('GetAlpha')) Hooks.Once('item.GetAlpha', () => {
-            Terraria.WorldItem['Color GetAlpha(Color newColor)'].hook((original, self, color) => {
-                const m = ItemLoader.ByType.has(self.type) ? of(self.inner) : undefined;
+            Terraria.Item['Color GetAlpha(Color newColor)'].hook((original, self, color) => {
+                const m = of(self);
                 if (!m || !Hooks.Overrides(m.constructor, ModItem, 'GetAlpha')) return original(self, color);
 
                 const c = Safe.Run(m.constructor.name + '.GetAlpha', () => m.GetAlpha(self, color));
                 return original(self, c || color);
-            });
+            }, { minType: FIRST_ITEM, on: -1 });
         });
 
         if (has('ModifyTooltips')) Hooks.Once('item.Tooltips', TooltipLoader.Install);
 
         if (has('ModifyFishingLine')) Hooks.Once('item.FishingLine', ItemLoader.#HookFishingLine);
+
+        if (has('CanAccessoryBeEquippedWith')) ItemLoader.WantAccessoryPairs();
 
         // Conjuntos, vaidade e asas: nos seus carregadores (ArmorSetLoader, WingLoader).
         if (has('IsArmorSet') || has('UpdateArmorSet')) ArmorSetLoader.WantArmorSets();

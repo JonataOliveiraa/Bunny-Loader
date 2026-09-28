@@ -1,6 +1,7 @@
 """Acha `lsr wB, wA, #1 ; cmp wB, #imm ; b.cond`: o `0 < x < N` com N par, que o
 clang compila como (x-1)>>1 <= (N-2)/2. O `itemId < ItemID.Count` (6147) dos
-CommonCode.DropItem* e assim (imm 0xc00); a scan_limits.py nao acha essa forma.
+CommonCode.DropItem* eram assim na 1.4.5.6 (imm 0xc00); a scan_limits.py nao acha
+essa forma. Na 1.4.5.8 eles comparam com registrador: ver scan_reglimit.py.
 
 uso: python scan_halved.py 0xc00 [0xc01 ...]
 """

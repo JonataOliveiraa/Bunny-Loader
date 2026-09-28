@@ -16,7 +16,7 @@ namespace bl::runtime::content {
 /**
  * Asset<Texture2D> JA CARREGADO a partir de um PNG — do arquivo `path`, ou de
  * `data` quando nao for nulo. O jogo so desenha pelo asset e antes pergunta o
- * estado: NotLoaded o faria pedir "Images/Item_6147" ao disco. Filtro de
+ * estado: NotLoaded o faria pedir "Images/Item_6196" ao disco. Filtro de
  * vizinho-mais-proximo (pixel art). nullptr, com log, se falhar.
  */
 Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* data, size_t size,

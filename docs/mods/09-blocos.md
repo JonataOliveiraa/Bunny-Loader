@@ -244,7 +244,7 @@ O que o Bunny Loader faz para o tile novo não quebrar o jogo (detalhes em
 
 - aumenta as ~220 tabelas de tile do jogo (`Main.tile*`, `TileID.Sets` e as
   aninhadas, texturas, mapa, receitas, materiais), com o tipo novo no valor
-  padrão de cada uma, e o `Main.tileMerge` (753x753) linha a linha;
+  padrão de cada uma, e o `Main.tileMerge` (754x754) linha a linha;
 - aumenta a contagem de tiles dos biomas (`SceneMetrics`) e a mesa de criação
   por perto (`adjTile`): sem isso, contar um tile de mod escreve fora do array;
 - troca os limites compilados no código (`PlaceTile`, `KillTile`,

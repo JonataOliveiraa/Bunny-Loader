@@ -1,8 +1,10 @@
 // O quadro de cada tile ao sair e entrar no mundo. Rodada 1: poe um 3x3 de
 // ExampleTile (o tipo sai pelo nome) e um 3x3 de pedra acima do spawn,
 // anota os quadros em dataDirectory e salva. Rodada 2 (reabrindo o jogo):
-//   no 1o quadro de jogo, o ExampleTile tem o quadro salvo (o .tiles.bl repos)
-//   e a pedra esta em -1 (o jogo nao grava quadro de bloco comum);
+//   no 1o quadro de jogo, o ExampleTile esta como a pedra: na 1.4.5.6 a pedra
+//   voltava em -1 (o jogo nao grava quadro de bloco comum) e o ExampleTile com
+//   o quadro salvo (o .tiles.bl repos); desde a 1.4.5.8 o jogo enquadra tudo
+//   ao carregar, e os dois ja chegam enquadrados;
 //   no quadro 90, o jogo ja enquadrou os dois de novo, sorteando a variante
 //   (0..2), como faz com todo bloco comum. Ninguem fica em -1.
 const Main = Terraria.Main;
@@ -71,12 +73,15 @@ function finish() {
         return;
     }
     const modTile = (k) => before[k].type >= bl.tiles.vanillaCount;
-    check('1o quadro: o tile de mod voltou com o quadro salvo', () => {
-        const bad = first.filter((s, k) => modTile(k) && !same(before[k], s));
+    const stoneFramed = first.every((s, k) => modTile(k) || s.fx >= 0);
+    bl.log(`tileframes 1o quadro: a pedra chegou ${stoneFramed ? 'enquadrada (o jogo enquadra ao carregar)' : 'em -1'}`);
+    check('1o quadro: a pedra voltou com o tipo certo', () => {
+        const bad = first.filter((s, k) => !modTile(k) && s.type !== before[k].type);
         return bad.length === 0 || list(bad);
     });
-    check('1o quadro: a pedra voltou sem quadro (-1), como no jogo sem mods', () => {
-        const bad = first.filter((s, k) => !modTile(k) && (s.type !== before[k].type || s.fx !== -1));
+    check('1o quadro: o tile de mod como a pedra (enquadrado, ou com o quadro salvo)', () => {
+        const bad = first.filter((s, k) => modTile(k) &&
+            (stoneFramed ? s.type !== before[k].type || s.fx < 0 || s.fy < 0 : !same(before[k], s)));
         return bad.length === 0 || list(bad);
     });
     check('quadro 90: tudo enquadrado de novo, com o tipo certo', () => {

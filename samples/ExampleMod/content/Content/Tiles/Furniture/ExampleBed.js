@@ -5,7 +5,7 @@ const Player = Terraria.Player;
 
 const tileAt = (i, j) => Main.tile['Tile get_Item(int x, int y)'](i, j);
 const text = (key) => Terraria.Localization.Language['string GetTextValue(string key)'](key);
-const say = (message) => Main['void NewText(string newText, byte R, byte G, byte B)'](message, 255, 240, 20);
+const say = (message) => Main['void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)'](message, 255, 240, 20, false);
 const SLEEP_DISTANCE = 96;   // o PlayerSleepingHelper.BedSleepingMaxDistance do jogo
 
 // Cama 4x2: a metade da cabeceira deita, a dos pés marca o ponto de nascimento.

@@ -17,7 +17,7 @@ const newNpc = Terraria.NPC['int NewNPC(IEntitySource source, int X, int Y, int 
 const newProj = Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, ' +
     'float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, ' +
     'NewProjectileModifier modifer)'];
-const strike = 'double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)';
+const strike = 'int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)';
 const sendData = Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'];
 
 const spy = {
@@ -126,7 +126,7 @@ function hostTick(frames) {
     if (t === 360 && slime) {
         const kills = spy.slimeKill;
         slime.playerInteraction[r] = true;
-        slime[strike](99999, 0, 1, false, false, false, r);
+        slime[strike](99999, 0, 1, false, false, r);
         slimeDead = true;
         check('matar no host: HitEffect e OnKill', () =>
             (spy.slimeHit > 0 && spy.slimeKill - kills === 1) || `hit ${spy.slimeHit}, kill ${spy.slimeKill - kills}`);
@@ -157,7 +157,7 @@ function clientTick(frames) {
             // Golpe local, sem avisar o servidor: o NPCLoot do jogo sai logo
             // no cliente, e o OnKill tem de sair junto.
             s.playerInteraction[Main.myPlayer] = true;
-            s[strike](99999, 0, 1, false, false, false, Main.myPlayer);
+            s[strike](99999, 0, 1, false, false, Main.myPlayer);
         }
         if (frames > 2400) {
             check('o slime do host chega', () => 'nao chegou');

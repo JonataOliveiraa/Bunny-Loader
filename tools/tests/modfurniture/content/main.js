@@ -262,6 +262,12 @@ function driveWalker() {
     n.direction = 1;
     if (doorOpen()) npcRun.opened = true;
     if (npcRun.opened && doorClosed() && n.position.X / 16 > doorCell().x + 2) npcRun.closedAfter = true;
+    npcRun.frames = (npcRun.frames || 0) + 1;
+    if (npcRun.frames % 60 === 1) {
+        bl.log(`modfurniture morador q${npcRun.frames}: x ${(n.position.X / 16).toFixed(1)} vx ${n.velocity.X.toFixed(2)} ` +
+               `ai ${n.ai[0]},${n.ai[1].toFixed(0)},${n.ai[2]},${n.ai[3]} dir ${n.direction} porta ${doorCell().x} ` +
+               `noite ${!Main.dayTime} parado ${n.velocity.X === 0}`);
+    }
 }
 
 function checkWire() {
@@ -303,7 +309,7 @@ function dropsNearDoor() {
     const d = doorCell(), out = {};
     for (let i = 0; i < Main.item.length; i++) {
         const it = Main.item[i];
-        if (!it.active || Math.abs(it.position.X / 16 - d.x) > 6 || Math.abs(it.position.Y / 16 - d.y) > 6) continue;
+        if (!it || !it.active || Math.abs(it.position.X / 16 - d.x) > 6 || Math.abs(it.position.Y / 16 - d.y) > 6) continue;
         out[it.type] = (out[it.type] || 0) + it.stack;
     }
     return out;
@@ -317,7 +323,7 @@ function cleanup() {
     }
     for (let i = 0; i < Main.item.length; i++) {
         const it = Main.item[i];
-        if (it.active && Math.abs(it.position.X / 16 - Main.spawnTileX) < 60 && it.position.Y / 16 > Main.spawnTileY + 40) it['void TurnToAir(bool fullReset)'](false);
+        if (it && it.active && Math.abs(it.position.X / 16 - Main.spawnTileX) < 60 && it.position.Y / 16 > Main.spawnTileY + 40) it['void TurnToAir()']();
     }
     const p = Main.player[Main.myPlayer];
     p.position = Vector2.new(Main.spawnTileX * 16, (Main.spawnTileY - 3) * 16);

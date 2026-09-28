@@ -192,19 +192,25 @@ int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd) {
     return patched;
 }
 
-int patchHalvedLimit(const MethodInfo* m, uint32_t oldImm, uint32_t newImm) {
-    if (!m || newImm > 0xFFF || oldImm > 0xFFF) return 0;
+int patchRegisterLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit) {
+    if (!m || newLimit > 0xFFFF || oldLimit > 0xFFFF) return 0;
     const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
     if (!start) return 0;
     const uintptr_t end = methodEnd(m, start);
     int patched = 0;
-    for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 2) < end; ++p) {
-        // lsr wB, wA, #1 = UBFM wB, wA, #1, #31
-        if ((*p & 0xFFFFFC00u) != 0x53017C00u) continue;
+    for (auto* p = reinterpret_cast<uint32_t*>(start); reinterpret_cast<uintptr_t>(p + 4) < end; ++p) {
+        // movz wB, #imm16 (sf=0, hw=0)
+        if ((*p & 0xFFE00000u) != 0x52800000u || ((*p >> 5) & 0xFFFFu) != oldLimit) continue;
         const uint32_t reg = *p & 31u;
-        if (!isCompareImmediate(p[1], oldImm) || ((p[1] >> 5) & 31u) != reg) continue;
-        if ((p[2] & 0xFF00001Fu) != 0x54000008u) continue;   // b.hi
-        if (writeInstruction(p + 1, (p[1] & ~(0xFFFu << 10)) | (newImm << 10))) ++patched;
+        for (int k = 1; k <= 3; ++k) {
+            // cmp wA, wB = SUBS WZR, Wa, Wb (registrador sem deslocamento)
+            if ((p[k] & 0xFFE0FC1Fu) != 0x6B00001Fu || ((p[k] >> 16) & 31u) != reg) continue;
+            if (limitBranchAfter(p + k, end, false) &&
+                writeInstruction(p, (*p & ~(0xFFFFu << 5)) | (newLimit << 5))) {
+                ++patched;
+            }
+            break;
+        }
     }
     return patched;
 }

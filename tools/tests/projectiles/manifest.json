@@ -9,7 +9,7 @@
   "description": "Teste do runtime (ModProjectiles.cpp). Precisa do Example Mod ligado. Loga 'projeteis ...'.",
   "updated": "2026-09-24",
   "blVersion": 2,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [301720, 301720],
   "entry": "main.js",
   "dependencies": []
 }

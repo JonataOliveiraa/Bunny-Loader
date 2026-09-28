@@ -9,7 +9,7 @@
   "description": "Precisa do Example Mod ligado e de um mundo de teste: esvazia os drops, ocupa 400 slots e mata 120 slimes no mesmo quadro. Confere a primeira criação e a recriação da tabela de empilhamento. Loga 'drops ...'.",
   "updated": "2026-09-28",
   "blVersion": 2,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [301720, 301720],
   "entry": "main.js",
   "dependencies": []
 }

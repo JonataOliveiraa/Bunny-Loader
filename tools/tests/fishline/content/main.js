@@ -2,7 +2,7 @@
 // centro do jogador. Poe a ExampleFishingRod no slot 0, o ExampleYoyo no 1 e
 // o Code 1 do jogo no 2 (o logo da One Drop, para comparar),
 // lanca a boia e confere que a linha comeca em (43, -30) do centro, o
-// lineOriginOffset da vara. O logo do ioio e visual (print do tooltip).
+// lineOriginOffset da vara ((-56, -30) virado para a esquerda). O logo do ioio e visual (print do tooltip).
 const Main = Terraria.Main;
 
 function byName(vanilla, isMod, getMod) {
@@ -26,7 +26,7 @@ Terraria.Main['void DrawProj_FishingLine(Projectile proj, Player theOwner, ref f
         original();
         if (logged) return;
         logged = true;
-        offset = { X: Math.round(px.value - owner.Center.X), Y: Math.round(py.value - owner.Center.Y - owner.gfxOffY) };
+        offset = { X: Math.round(px.value - owner.Center.X), Y: Math.round(py.value - owner.Center.Y - owner.gfxOffY), dir: owner.direction };
         bl.log('fishline ponta da linha: ' + offset.X + ', ' + offset.Y + ' do centro (direcao ' + owner.direction + ')');
     });
 
@@ -46,7 +46,8 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
     if (frames === 70) forceUse = false;
     if (frames === 200) {
-        const ok = offset && offset.X === 43 && offset.Y === -30;
+        // Virado para a esquerda o jogo espelha a vara: -43 e mais 13 do desenho.
+        const ok = offset && offset.X === (offset.dir < 0 ? -56 : 43) && offset.Y === -30;
         bl.log('fishline FIM: ' + (ok ? 'tudo ok' : 'FALHOU (' + (offset ? offset.X + ', ' + offset.Y : 'nenhuma linha') + ')'));
     }
 });

@@ -59,6 +59,8 @@ function ownedProjectiles(owner, types) {
     return { n, bound };
 }
 
+const projKey = Terraria.DataStructures.ProjectileKey['int op_Implicit(ProjectileKey p)'];
+
 function killOwned(owner) {
     let n = 0;
     for (let i = 0; i < 1000; i++) {
@@ -66,7 +68,8 @@ function killOwned(owner) {
         // Sem Kill(): o foguete explodiria em cima do jogador.
         if (pr.active && pr.owner === owner) {
             pr.active = false;
-            sendData(29, -1, -1, null, pr.identity, owner, 0, 0, 0, 0, 0);
+            // Como o Projectile.Kill: a key empacotada, e NaN na posicao.
+            sendData(29, -1, -1, null, projKey(pr.key), NaN, NaN, 0, 0, 0, 0);
             n++;
         }
     }

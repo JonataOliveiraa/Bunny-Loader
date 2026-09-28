@@ -90,7 +90,7 @@ function run() {
         const it = inv[slot];
         if (it.type >= FIRST_MOD_ITEM && slot !== 3 && slot !== 4) {
             extra.push(`inventario[${slot}]=${it.type}x${it.stack}`);
-            it['void TurnToAir(bool fullReset)'](false);
+            it['void TurnToAir()']();
         }
     }
     bl.log('modsave sem copia: ' + (extra.length === 0 ? 'ok' : 'NAO (' + extra.join(', ') + ')'));

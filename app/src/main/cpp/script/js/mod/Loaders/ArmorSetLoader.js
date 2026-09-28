@@ -26,6 +26,61 @@ class ArmorSetLoader {
         }
     }
 
+    // O formato do 1.4.5, como no ExMod do TL Pro: o conjunto entra no
+    // ArmorSetBonuses do jogo, que monta o tooltip ("Bônus definido",
+    // "(2/3)") e chama o efeito quando ele está completo. O efeito é o delegate
+    // do conjunto de abóbora; o hook no Benefits.Pumpkin separa os dois.
+    static #sets = [];
+    static #effect = null;
+
+    static CreateArmorSet(head, body, legs, text, primaryPart = 0) {
+        const { ArmorSetBonuses, ArmorSetBonus } = Terraria.DataStructures;
+        ArmorSetLoader.#Want('armor.Bonus', ArmorSetLoader.#HookBonus);
+
+        ArmorSetBonuses['void Add(ArmorSetEffect Effect, string TextKey, PartType PrimaryPart, int Head, int Body, int Legs)'](
+            ArmorSetLoader.#Effect(), text, primaryPart, head, body, legs);
+        const all = ArmorSetBonuses.All.ToArray();
+        const set = all[all.length - 1];
+        ArmorSetLoader.#sets.push({ head, body, legs });
+
+        // O BuildLookup do jogo já rodou: o conjunto entra à mão na lista de cada peça.
+        for (const type of new Set([head, body, legs])) {
+            if (type <= 0) continue;
+
+            const old = ArmorSetBonuses.SetsContaining[type];
+            const list = [];
+            for (let i = 0; i < old.length; i++) list.push(old[i]);
+            list.push(set);
+            ArmorSetBonuses.SetsContaining[type] = ArmorSetBonus.newArray(list);
+        }
+    }
+
+    static #Effect() {
+        if (ArmorSetLoader.#effect) return ArmorSetLoader.#effect;
+
+        const all = Terraria.DataStructures.ArmorSetBonuses.All.ToArray();
+        for (let i = 0; i < all.length; i++) {
+            if (all[i].Head === Terraria.ID.ItemID.PumpkinHelmet) return (ArmorSetLoader.#effect = all[i].Effect);
+        }
+        throw new Error('o conjunto de abóbora do jogo não foi achado');
+    }
+
+    static #HookBonus() {
+        Terraria.DataStructures.ArmorSetBonuses.Benefits['void Pumpkin(Player player)'].hook((original, player) => {
+            const armor = player.armor;
+            const head = armor[0], body = armor[1], legs = armor[2];
+            const matches = (want, item) => want <= 0 || want === item.type;
+            const mine = ArmorSetLoader.#sets.some((s) => matches(s.head, head) && matches(s.body, body) && matches(s.legs, legs));
+            if (!mine) return original(player);
+
+            for (const item of [head, body, legs]) {
+                const m = ItemLoader.Of(item);
+                if (m) Safe.Run(m.constructor.name + '.UpdateArmorSet', () => m.UpdateArmorSet(item, player));
+            }
+            return undefined;
+        });
+    }
+
     static #Want(key, install) {
         Hooks.Once(key, () => Safe.Run('ganchos de armadura (' + key + ')', install));
     }
@@ -34,16 +89,15 @@ class ArmorSetLoader {
 
     // O conjunto do jogo (ArmorSetBonuses) roda no original; os de mod depois,
     // peça por peça, e os Globais pelo nome do conjunto, como o
-    // ItemLoader.UpdateArmorSet do tModLoader. O setBonus é o texto do tooltip
-    // das peças vestidas: o jogo desta versão nunca o limpa (só o
-    // UpdateArmorSetsOld, que ninguém chama).
+    // ItemLoader.UpdateArmorSet do tModLoader. O texto do conjunto no tooltip
+    // vem do ArmorSetBonuses (CreateArmorSet): o Player.setBonus não existe
+    // mais desde a 1.4.5.8.
     static #HookArmorSets() {
         Terraria.Player['void UpdateArmorSets(int i)'].hook((original, self, i) => {
             original(self, i);
 
             const armor = self.armor;
             const head = armor[0], body = armor[1], legs = armor[2];
-            self.setBonus = '';
             for (const item of [head, body, legs]) {
                 const m = ItemLoader.Of(item);
                 if (!m) continue;

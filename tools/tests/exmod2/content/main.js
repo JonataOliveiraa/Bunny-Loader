@@ -217,8 +217,8 @@ function late() {
         for (let i = 0; i < 30; i++) { lines[i] = ''; pre[i] = false; bad[i] = false; }
         lines[0] = it.Name;
         const n = new Ref(1), yoyo = new Ref(-1), research = new Ref(-1), materials = new Ref(-1), setBonus = new Ref(-1);
-        Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour)'](
-            it, yoyo, research, materials, it.knockBack, n, lines, pre, bad, setBonus, new Ref(Color.White));
+        Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)'](
+            it, yoyo, research, materials, it.knockBack, n, lines, pre, bad, setBonus, new Ref(Color.White), new Ref(-1));
         const got = [];
         for (let i = 0; i < n.value; i++) got.push(String(lines[i]));
         return (n.value >= 3 && got[0] === it.Name && got[1] === 'Bunny Loader!' && !got.some((l) => l.includes('[c/'))) ||

@@ -25,7 +25,7 @@ export class ExampleLaserHoldout extends ModProjectile {
     AI(proj) {
         const ai = new ProjAI(proj);
         const player = Terraria.Main.player[proj.owner];
-        const hand = player['Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY)'](player.MountedCenter, true, true);
+        const hand = player['Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)'](player.MountedCenter, true, true, 0);
         ai[0] += 1;
 
         if (++proj.frameCounter >= 3) {

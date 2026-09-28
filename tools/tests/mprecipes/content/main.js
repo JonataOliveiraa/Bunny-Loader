@@ -42,14 +42,14 @@ function itemType(...names) {
     return -1;
 }
 
-const newItem = Terraria.Item['int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int Type, int Stack, bool noBroadcast, int pfix, bool noGrabDelay)'];
+const newItem = Terraria.Item['int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)'];
 const sendData = Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'];
 
 // Longe do jogador (fora do alcance de pegar), no ar acima dele.
 function drop(type, stack, fromClient) {
     const p = Main.player[Main.myPlayer];
     const x = Math.floor(p.position.X - 320), y = Math.floor(p.position.Y - 64);
-    const idx = newItem(null, x, y, 16, 16, type, stack, true, 0, false);
+    const idx = newItem(null, x, y, 16, 16, type, stack, true, 0, 0, null, null);
     sendData(21, -1, -1, null, idx, fromClient ? 1 : 0, 0, 0, 0, 0, 0);
     return idx;
 }
@@ -57,7 +57,7 @@ function drop(type, stack, fromClient) {
 function findWorldItem(type, stack) {
     for (let i = 0; i < Main.item.length; i++) {
         const it = Main.item[i];
-        if (it.active && it.type === type && it.stack === stack) return i;
+        if (it && it.active && it.type === type && it.stack === stack) return i;
     }
     return -1;
 }
@@ -106,7 +106,7 @@ function clientStart() {
     check('larga item de mod', () => {
         const idx = drop(SOUL, CLIENT_STACK, true);
         dropped = true;
-        return (idx >= 0 && Main.item[idx].type === SOUL) || 'NewItem ' + idx;
+        return (idx >= 0 && Main.item[idx] && Main.item[idx].type === SOUL) || 'NewItem ' + idx;
     });
 }
 
@@ -158,7 +158,7 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
         check('larga item de mod', () => {
             const idx = drop(EXITEM, HOST_STACK, false);
             dropped = true;
-            return (idx >= 0 && Main.item[idx].type === EXITEM) || 'NewItem ' + idx;
+            return (idx >= 0 && Main.item[idx] && Main.item[idx].type === EXITEM) || 'NewItem ' + idx;
         });
     }
     if (findWorldItem(SOUL, CLIENT_STACK) >= 0 && dropped) {

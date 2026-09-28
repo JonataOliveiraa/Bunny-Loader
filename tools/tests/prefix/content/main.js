@@ -72,8 +72,8 @@ function tooltipOf(item) {
     for (let i = 0; i < 30; i++) { lines[i] = null; pre[i] = false; bad[i] = false; }
     lines[0] = item['string AffixName()']();
     const n = new Ref(1);
-    Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour)'](
-        item, new Ref(-1), new Ref(-1), new Ref(-1), item.knockBack, n, lines, pre, bad, new Ref(-1), new Ref(Color.new(255, 255, 255, 255)));
+    Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)'](
+        item, new Ref(-1), new Ref(-1), new Ref(-1), item.knockBack, n, lines, pre, bad, new Ref(-1), new Ref(Color.new(255, 255, 255, 255)), new Ref(-1));
     const out = [];
     for (let i = 0; i < n.value; i++) out.push((pre[i] ? '+' : ' ') + lines[i]);
     return out;

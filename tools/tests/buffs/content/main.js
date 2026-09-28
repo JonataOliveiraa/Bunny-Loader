@@ -1,4 +1,4 @@
-// Buffs de mod: tabelas, barra (o GUIBuffs.Draw zerava tipo >= 389),
+// Buffs de mod: tabelas, barra (o GUIBuffs.Draw zerava tipo >= BuffID.Count),
 // Update/Apply/ReApply no jogador e no NPC, a defesa do Example Mod e o save
 // pelo nome. Precisa do Example Mod ligado; rode DUAS vezes: a segunda
 // confere o buff que a primeira salvou. Loga "buffs <caso>: ok | FALHOU".

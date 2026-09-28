@@ -11,17 +11,17 @@ namespace bl::runtime {
  * Buffs de mod: tipos NOVOS, com id depois dos do jogo — o mesmo modelo dos
  * projeteis (ModProjectiles.h), com o que e so do buff:
  *   - as tabelas por tipo (Main.debuff, BuffID.Sets..., Lang, TextureAssets)
- *     nascem com BuffID.Count (389) posicoes, e o `buffImmune` tambem, em
- *     CADA Player e NPC (o construtor cria; Update/SetDefaults so zeram 389);
+ *     nascem com BuffID.Count (401) posicoes, e o `buffImmune` tambem, em
+ *     CADA Player e NPC (o construtor cria; Update/SetDefaults so zeram 401);
  *   - o limite esta COMPILADO em alguns metodos. O pior e o GUIBuffs.Draw: ao
- *     montar a barra ele ZERA todo buff do jogador com tipo >= 389. Tambem a
+ *     montar a barra ele ZERA todo buff do jogador com tipo >= 401. Tambem a
  *     enfermeira (nao cura) e a remocao de buff de NPC pela rede;
- *   - o save do personagem descarta tipo >= 389 ao carregar: o buff de mod vai
+ *   - o save do personagem descarta tipo >= 401 ao carregar: o buff de mod vai
  *     pelo nome no `.plr.bl`, junto dos itens (ModItemSave).
  */
 
 /** BuffID.Count do jogo. E `const` no C#: vem do dump. */
-constexpr int kVanillaBuffCount = 389;
+constexpr int kVanillaBuffCount = 401;
 
 struct ModBuffDef {
     std::string mod;       // uid do mod que registrou

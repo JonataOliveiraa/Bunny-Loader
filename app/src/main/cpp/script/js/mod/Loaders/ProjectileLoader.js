@@ -90,6 +90,22 @@ class ProjectileLoader {
                     m.__moving = outer;
                 }
             }, self);
+
+            // A atualização do próprio projétil: só nela um Kill fora do
+            // movimento pode ser a IA matando ao bater. O Kill que vem de
+            // fora (o UpdateMaxTurrets trocando a sentinela, um mod) não é choque.
+            Pr['void Update(int i)'].hook((original, p, i) => {
+                const m = of(p);
+                if (!m) return original(p, i);
+
+                const outer = m.__updating;
+                m.__updating = true;
+                try {
+                    return original(p, i);
+                } finally {
+                    m.__updating = outer;
+                }
+            }, self);
         });
 
         if (has('PreKill') || has('OnKill') || has('OnTileCollide')) Hooks.Once('proj.Kill', ProjectileLoader.#HookKill);
@@ -212,11 +228,11 @@ class ProjectileLoader {
 
             const n = m.constructor.name;
 
-            // Morte por bloco: no movimento, o choque; fora dele (IA que mata ao
-            // bater), um bloco logo à frente.
+            // Morte por bloco: no movimento, o choque; fora dele mas na
+            // atualização do projétil (IA que mata ao bater), um bloco logo à frente.
             if (p.tileCollide && Hooks.Overrides(m.constructor, ModProjectile, 'OnTileCollide')) {
                 let hit = m.__moving ? m.__moving.velocity : undefined;
-                if (!hit) {
+                if (!hit && m.__updating) {
                     const v = p.velocity;
                     const len = Math.hypot(v.X, v.Y) || 1;
                     const ahead = Vector2.new(p.position.X + v.X / len, p.position.Y + v.Y / len);

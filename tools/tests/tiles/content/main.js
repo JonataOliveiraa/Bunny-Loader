@@ -32,8 +32,8 @@ function itemOfClass(name) {
 function droppedNear(type, x, y) {
     for (let i = 0; i < Main.item.length; i++) {
         const w = Main.item[i];
-        if (w.active && w.type === type && Math.abs(w.position.X - x * 16) < 64 && Math.abs(w.position.Y - y * 16) < 64) {
-            w['void TurnToAir(bool fullReset)'](false);
+        if (w && w.active && w.type === type && Math.abs(w.position.X - x * 16) < 64 && Math.abs(w.position.Y - y * 16) < 64) {
+            w['void TurnToAir()']();
             return true;
         }
     }
@@ -51,8 +51,8 @@ function run(p) {
                 Terraria.ID.TileID.Sets.Conversion.Dirt[TILE] === false && Main.tileLighted[ORE] === false &&
                 Main.tileGlowMask[TILE] === Main.tileGlowMask[1]) ||
             `len ${n}, solid ${Main.tileSolid[TILE]}, dirt ${Terraria.ID.TileID.Sets.Conversion.Dirt[TILE]}, glow ${Main.tileGlowMask[TILE]} ` +
-            `(pedra ${Main.tileGlowMask[1]}, -1: ${Array.from({ length: 753 }, (_, k) => Main.tileGlowMask[k]).filter((v) => v === -1).length}, ` +
-            `0: ${Array.from({ length: 753 }, (_, k) => Main.tileGlowMask[k]).filter((v) => v === 0).length})`;
+            `(pedra ${Main.tileGlowMask[1]}, -1: ${Array.from({ length: bl.tiles.vanillaCount }, (_, k) => Main.tileGlowMask[k]).filter((v) => v === -1).length}, ` +
+            `0: ${Array.from({ length: bl.tiles.vanillaCount }, (_, k) => Main.tileGlowMask[k]).filter((v) => v === 0).length})`;
     });
     check('tileMerge: linhas proprias e do tamanho novo', () => {
         const m = Main.tileMerge;

@@ -33,7 +33,7 @@ let proj = null, startX = 0, startY = 0;
 
 function spawn() {
     PROJ = ModContent.ProjectileType('examplemod/ExampleBulletProjectile');
-    check('registrado', () => bl.projectiles.isModProjectile(PROJ) || 'isModProjectile(1111) = false');
+    check('registrado', () => bl.projectiles.isModProjectile(PROJ) || 'isModProjectile(' + PROJ + ') = false');
     check('tabelas', () => {
         if (Main.projFrames.length <= PROJ) return 'projFrames ' + Main.projFrames.length;
         const tex = Terraria.GameContent.TextureAssets.Projectile;
@@ -78,7 +78,7 @@ function afterFrames() {
     });
     check('arma e balas no inventario', () => {
         let gun = -1, bullet = -1;
-        for (let t = 6147; t < 6147 + 64; t++) {
+        for (let t = bl.items.vanillaCount; t < bl.items.vanillaCount + 64; t++) {
             const n = itemName(t);
             if (gun < 0 && GUN_NAME.test(n)) gun = t;
             if (bullet < 0 && BULLET_NAME.test(n)) bullet = t;

@@ -25,8 +25,8 @@ object BundledRuntime {
     private val LIBS = listOf("c++_shared", "main", "unity", "il2cpp")
 
     /** Versão que esta build carrega. Confira contra o que o jogo reporta. */
-    const val VERSION_NAME = "1.4.5.6.4"
-    const val VERSION_CODE = 301543L
+    const val VERSION_NAME = "1.4.5.8.6"
+    const val VERSION_CODE = 301720L
 
     fun libDir(ctx: Context): File = File(ctx.applicationInfo.nativeLibraryDir)
 
@@ -63,8 +63,8 @@ object BundledRuntime {
      * A libunity integrada não pode depender da libpairipcore.
      *
      * Checagem de sanidade da build, não de segurança: se alguém integrar por
-     * engano os binários de uma 1.4.5.8, o sintoma seria um SIGSEGV do
-     * anti-tamper no meio do boot da Unity. Aqui vira mensagem.
+     * engano os binários da build da Play (com PairIP), o sintoma seria um
+     * SIGSEGV do anti-tamper no meio do boot da Unity. Aqui vira mensagem.
      */
     fun pairipCheck(ctx: Context): String? {
         val unity = File(libDir(ctx), "libunity.so")

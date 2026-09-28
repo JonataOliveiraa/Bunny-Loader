@@ -13,21 +13,21 @@ namespace bl::runtime {
  * Tiles de mod: tipos NOVOS, com id depois dos do jogo — o mesmo modelo dos
  * buffs (ModBuffs.h), com o que e so do tile:
  *   - as tabelas por tipo (Main.tileSolid..., TileID.Sets..., TextureAssets,
- *     WorldGen, MapHelper, Recipe, TileMaterials) nascem com TileID.Count (753)
+ *     WorldGen, MapHelper, Recipe, TileMaterials) nascem com TileID.Count (754)
  *     e o tipo novo entra ZERADO nelas (o [0] e a terra);
- *   - Main.tileMerge e bool[753][753]: cada linha tambem cresce, e o tipo novo
+ *   - Main.tileMerge e bool[754][754]: cada linha tambem cresce, e o tipo novo
  *     ganha linha propria (crescer so a de fora repetiria a linha da terra);
  *   - por instancia: Player.adjTile, GUICrafting.oldAdjTile e o
  *     SceneMetrics._tileCounts (a contagem dos biomas: sem crescer, contar um
  *     tile de mod escreve alem do fim);
  *   - o limite esta COMPILADO em PlaceTile, KillTile, TileFrame...: `tipo >
- *     752` recusado ou desviado. Trocado pelo total;
+ *     753` recusado ou desviado. Trocado pelo total;
  *   - o mundo salvo NAO leva tile de mod (ModTileSave): o jogo sem o mod abre
  *     o mesmo mundo, sem tipo desconhecido.
  */
 
 /** TileID.Count do jogo. E `const` no C#: vem do dump. */
-constexpr int kVanillaTileCount = 753;
+constexpr int kVanillaTileCount = 754;
 
 struct ModTileDef {
     std::string mod;       // uid do mod que registrou

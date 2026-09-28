@@ -1,4 +1,4 @@
-const NewText = Terraria.Main['void NewText(string newText, byte R, byte G, byte B)'];
+const NewText = Terraria.Main['void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)'];
 
 export class ExamplePlayer extends ModPlayer {
     ExampleDefenseDebuff = false;
@@ -7,7 +7,7 @@ export class ExamplePlayer extends ModPlayer {
     OnEnterWorld(player) {
         if (player.whoAmI !== Terraria.Main.myPlayer) return;
         const welcome = ModLocalization.Translate('CustomText.WelcomeMessage');
-        NewText(welcome.replace('{WorldName}', Terraria.Main.worldName), 255, 200, 0);
+        NewText(welcome.replace('{WorldName}', Terraria.Main.worldName), 255, 200, 0, false);
     }
 
     ResetEffects(player) {

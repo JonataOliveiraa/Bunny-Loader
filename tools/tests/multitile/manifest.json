@@ -9,7 +9,7 @@
   "description": "Loga 'multitile ...'. Precisa do Example Mod. Rodar duas vezes: a primeira coloca, quebra e salva; a segunda confere a pia salva.",
   "updated": "2026-09-27",
   "blVersion": 2,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [301720, 301720],
   "entry": "main.js",
   "dependencies": []
 }

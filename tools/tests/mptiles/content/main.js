@@ -4,7 +4,7 @@
 // host tem de ver os dois. Loga "mpt <papel> <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 const W = Terraria.WorldGen;
-const TILE = 753, ORE = 754;
+const TILE = bl.tiles.vanillaCount, ORE = TILE + 1;
 
 let role = '', fails = 0, done = false;
 function check(label, fn) {

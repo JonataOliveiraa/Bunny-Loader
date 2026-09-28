@@ -2,7 +2,7 @@ const { ProjectileID } = Terraria.ID;
 const { SpriteEffects } = Microsoft.Xna.Framework.Graphics;
 const GetLerpValue = Terraria.Utils['float GetLerpValue(float from, float to, float t, bool clamped)'];
 const LightAt = Terraria.Lighting['Color GetColor(int x, int y)'];
-const FillWhipControlPoints = Terraria.Projectile['void FillWhipControlPoints(Projectile proj, List`1 controlPoints, Player owner, bool getActualCollisionPoints)'];
+const FillWhipControlPoints = Terraria.Projectile['void FillWhipControlPoints(Projectile proj, List`1 controlPoints, Player owner, bool getActualCollisionPoints, int frameOffset)'];
 const EntitySpriteDraw = Terraria.Main['void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)'];
 const Vector2List = System.Collections.Generic.List.makeGeneric(Vector2.Type);
 
@@ -22,7 +22,7 @@ export class ExampleWhipProjectile extends ModProjectile {
             this.points['void .ctor()']();
         }
         this.points.Clear();
-        FillWhipControlPoints(proj, this.points, player, true);
+        FillWhipControlPoints(proj, this.points, player, true, 0);
         const list = this.points.ToArray();
 
         const flip = proj.spriteDirection < 0 ? SpriteEffects.None : SpriteEffects.FlipHorizontally;

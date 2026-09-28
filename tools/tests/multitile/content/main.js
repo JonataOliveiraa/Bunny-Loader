@@ -65,10 +65,10 @@ function takeDrops() {
     let n = 0;
     for (let i = 0; i < Main.item.length; i++) {
         const it = Main.item[i];
-        if (!it.active || it.type !== ITEM) continue;
+        if (!it || !it.active || it.type !== ITEM) continue;
         if (Math.abs(it.position.X - (x + 8) * 16) > 30 * 16 || Math.abs(it.position.Y - floor * 16) > 12 * 16) continue;
         n += it.stack;
-        it['void TurnToAir(bool fullReset)'](false);
+        it['void TurnToAir()']();
     }
     return n;
 }
@@ -146,7 +146,7 @@ function firstRound() {
         const cd = cells(d, floor);
         let hits = 0;
         while (hits < 30 && snap(cd).some((s) => s.type === SINK)) {
-            player['void PickTile(int x, int y, int pickPower)'](cd[0].x, cd[0].y, 100);
+            player['void PickTile(int x, int y, int pickPower, int dealDamageAsIfBaseNumberIs)'](cd[0].x, cd[0].y, 100, -1);
             hits++;
         }
         const left = snap(cd).filter((s) => s.type >= 0);

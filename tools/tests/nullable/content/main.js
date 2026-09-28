@@ -30,9 +30,9 @@ function rect(x, y, w, h) {
 // --- float? : Main.StartRain, nas tres grafias ---
 function testRain() {
     const sigs = {
-        tl: 'void StartRain(bool instant, Nullable`1 strengthOverride, bool garenteeCoinRain)',
-        cs: 'void StartRain(bool instant, float? strengthOverride, bool garenteeCoinRain)',
-        gen: 'void StartRain(bool instant, Nullable<float> strengthOverride, bool garenteeCoinRain)',
+        tl: 'void StartRain(bool instant, Nullable`1 strengthOverride, bool guaranteeCoinRain)',
+        cs: 'void StartRain(bool instant, float? strengthOverride, bool guaranteeCoinRain)',
+        gen: 'void StartRain(bool instant, Nullable<float> strengthOverride, bool guaranteeCoinRain)',
     };
     const f = {};
     for (const k in sigs) check('assinatura ' + sigs[k].split('(')[1].split(' ')[2], () => { f[k] = Main[sigs[k]]; });
@@ -135,7 +135,7 @@ Main['void DrawInterface(GameTime gameTime)'].hook((o, self, gt) => {
 
 // --- hooks: Nullable chegando no callback, trocado no original(), devolvido ---
 function testHooks() {
-    const sig = 'void StartRain(bool instant, Nullable`1 strengthOverride, bool garenteeCoinRain)';
+    const sig = 'void StartRain(bool instant, Nullable`1 strengthOverride, bool guaranteeCoinRain)';
     const StartRain = Main[sig];
     const stop = Main['void StopRain(bool instant)'];
     let seen = 'nada';

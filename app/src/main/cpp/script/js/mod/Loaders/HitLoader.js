@@ -2,11 +2,10 @@
 class HitLoader {
     static ItemHitsNPC() {
         Hooks.Once('global.ItemHitsNPC', () => {
-            Terraria.Player['void ApplyNPCOnHitEffects(Item sItem, Rectangle itemRectangle, int damage, float knockBack, int npcIndex, int dmgRandomized, int dmgDone)'].hook(
-                (original, self, item, rect, damage, knockBack, npcIndex, dmgRandomized, dmgDone) => {
-                    original(self, item, rect, damage, knockBack, npcIndex, dmgRandomized, dmgDone);
+            Terraria.Player['void ApplyNPCOnHitEffects(Item sItem, Rectangle itemRectangle, int damage, float knockBack, NPC npc, int dmgRandomized, int dmgDone)'].hook(
+                (original, self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone) => {
+                    original(self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone);
 
-                    const npc = Terraria.Main.npc[npcIndex];
                     const crit = dmgDone >= dmgRandomized * 2;
                     globalItems.Each(item, 'OnHitNPC', (g) => g.OnHitNPC(item, self, npc, dmgDone, knockBack, crit));
                     globalNPCs.Each(npc, 'OnHitByItem', (g) => g.OnHitByItem(npc, self, item, dmgDone, knockBack, crit));

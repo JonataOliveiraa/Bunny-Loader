@@ -86,6 +86,9 @@ struct Api {
     Il2CppClass* (*object_get_class)(Il2CppObject*) = nullptr;
     // Criar array no heap do jogo (byte[] para carregar textura).
     Il2CppArray* (*array_new)(Il2CppClass* elementType, uintptr_t length) = nullptr;
+    // Array de mais de uma dimensao (`uint[,]`): a classe do ARRAY e um
+    // comprimento por dimensao; limites inferiores nulos = todos 0.
+    Il2CppArray* (*array_new_full)(Il2CppClass* arrayClass, uintptr_t* lengths, uintptr_t* lowerBounds) = nullptr;
     Il2CppString* (*string_new)(const char*) = nullptr;
     uint32_t (*gchandle_new)(Il2CppObject*, bool) = nullptr;
     void (*gchandle_free)(uint32_t) = nullptr;

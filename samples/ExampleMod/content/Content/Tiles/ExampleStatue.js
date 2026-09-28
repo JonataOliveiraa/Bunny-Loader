@@ -4,7 +4,7 @@ const { TileObjectDirection } = Terraria.Enums;
 const Main = Terraria.Main;
 const Wiring = Terraria.Wiring;
 
-const NewItem = Terraria.Item['int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int Type, int Stack, bool noBroadcast, int pfix, bool noGrabDelay)'];
+const NewItem = Terraria.Item['int NewItem(IEntitySource source, int X, int Y, int Width, int Height, int type, int stack, bool noBroadcast, int prefix, NewItemOwnership ownership, Nullable<Vector2> velocity, Item.NewItemModifier modifier)'];
 const NewNPC = Terraria.NPC['int NewNPC(IEntitySource source, int X, int Y, int Type, int Start, float ai0, float ai1, float ai2, float ai3, int Target)'];
 
 // Estátua 2x3 ligada no fio: quase sempre solta uma moeda de prata (raramente
@@ -50,7 +50,7 @@ export class ExampleStatue extends ModTile {
                     id++;
                     if (Rand.NextBool(100)) id++;
                 }
-                NewItem(source, Math.floor(spawnX), Math.floor(spawnY - 20), 0, 0, id, 1, false, 0, false);
+                NewItem(source, Math.floor(spawnX), Math.floor(spawnY - 20), 0, 0, id, 1, false, 0, 0, null, null);
             }
             return;
         }

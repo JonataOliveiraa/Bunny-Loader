@@ -74,7 +74,7 @@ function remoteChecks(r) {
         (other.wings === sample(T('ExampleWings')).wingSlot && other.beard === sample(T('ExampleBeard')).beardSlot) ||
         `wings ${other.wings}, beard ${other.beard}`);
     check('bônus do conjunto para o jogador remoto', () =>
-        (/20/.test(other.setBonus) && other.meleeDamage > 1.15) || `setBonus "${other.setBonus}", melee ${other.meleeDamage}`);
+        other.meleeDamage > 1.15 || `melee ${other.meleeDamage}`);
 }
 
 // ------------------------------- cliente -------------------------------
@@ -88,7 +88,7 @@ function clientStep(frames) {
     // Espera o host se vestir (ele se veste quando vê o cliente vestido).
     if (clientSaw >= 0 && frames - clientSaw === 30) {
         remoteChecks(r);
-        check('o meu conjunto no cliente', () => /20/.test(Main.player[Main.myPlayer].setBonus) || 'setBonus vazio');
+        check('o meu conjunto no cliente', () => Main.player[Main.myPlayer].meleeDamage > 1.15 || 'sem os +20% de dano');
     }
     // Uns 5 s vestidos dos dois lados: o desenho do outro jogador roda.
     if (clientSaw >= 0 && frames - clientSaw === 330) { undress(); finish(); }

@@ -46,7 +46,7 @@ Então só código nativo consegue:
   salto (hook inline, [ShadowHook](https://github.com/bytedance/android-inline-hook));
 - **achar** classes e métodos pelo nome, pela API do IL2CPP
   (`il2cpp_class_from_name`...);
-- **mexer na memória** com segurança: aumentar um array de 753 posições, trocar
+- **mexer na memória** com segurança: aumentar um array de 754 posições, trocar
   um `cmp #752` compilado dentro de um método, gravar arquivos ao lado do save;
 - rodar o que precisa ser **rápido**: o que acontece para todo item, todo tile
   na tela, todo quadro.
@@ -251,7 +251,7 @@ flowchart TB
     A["ContentAutoload acha<br/>class ExampleSword extends ModItem"] --> R["ModItem.register(ExampleSword)<br/>(ModItem.js)"]
     R --> T["cria o molde: new ExampleSword()<br/>acha a textura (Assets/Textures/Items/ExampleSword.png)"]
     R --> N["bl.items.register({ name, texture, setDefaults, setStaticDefaults })<br/>(C++: script/api/Items.cpp)"]
-    N --> ID["reserva o tipo: 6147 + ordem de registro<br/>(o tipo já existe; dá para usar no topo do arquivo)"]
+    N --> ID["reserva o tipo: 6196 + ordem de registro<br/>(o tipo já existe; dá para usar no topo do arquivo)"]
     R --> H["ItemLoader.Hook(ExampleSword)<br/>(Loaders/ItemLoader.js)"]
     H --> Q{"a classe sobrescreve<br/>UseItem? Shoot? UpdateAccessory?"}
     Q -- "sim, e é o 1º" --> HK["hook no método do jogo por trás<br/>(Hooks.Once: um para todos os mods)"]
@@ -289,7 +289,7 @@ antes de acordar o JS. Item do jogo passa direto para o original, e o JS nem é
 chamado:
 
 ```js
-// Loaders/ItemLoader.js: só item de mod (type >= 6147) entra no JS.
+// Loaders/ItemLoader.js: só item de mod (type >= 6196) entra no JS.
 P['void ItemCheck_StartActualUse(Item sItem)'].hook((original, self, item) => { ... }, { minType: FIRST_ITEM, on: 0 });
 ```
 
@@ -309,7 +309,7 @@ sequenceDiagram
     participant M as ExampleSword (JS, o mod)
     G->>SH: Player.ItemCheck_StartActualUse(item)
     SH->>JH: salto: o começo do método foi reescrito
-    JH->>JH: filtro nativo: item.type >= 6147?
+    JH->>JH: filtro nativo: item.type >= 6196?
     alt item do jogo
         JH->>G: chama o original direto (o JS não acorda)
     else item de mod

@@ -78,7 +78,7 @@ Detalhes no [guia de custo](../mods/03-custo-e-desempenho.md#filtros-nativos).
 | `bl.mod` | O `Mod` de quem chama: `id`, `name`, `version`, `uuid`, `path`, `root`, `dataDirectory`. |
 | `bl.info.appDirectory` | `Android/data/com.bunnyloader` (onde ficam `Players/`, `Worlds/`). |
 | `bl.info.logsDirectory` | A pasta dos logs. |
-| `bl.info.terrariaVersionCode` | A versão do jogo (301543 = 1.4.5.6.4). |
+| `bl.info.terrariaVersionCode` | A versão do jogo (301720 = 1.4.5.8.6). |
 | `bl.onContentReady(fn)` | Chama `fn` quando todo o conteúdo de mod está no jogo (o mesmo momento do `PostSetupContent`). |
 
 ## `bl`: arquivos
@@ -131,7 +131,7 @@ diretamente.
 
 | | |
 |---|---|
-| `bl.items.vanillaCount`, `bl.projectiles.vanillaCount`, `bl.npcs.vanillaCount`, `bl.buffs.vanillaCount`, `bl.tiles.vanillaCount` | O primeiro tipo de mod de cada conteúdo (6147, 1111, 697, 389, 753). Útil no `minType`. |
+| `bl.items.vanillaCount`, `bl.projectiles.vanillaCount`, `bl.npcs.vanillaCount`, `bl.buffs.vanillaCount`, `bl.tiles.vanillaCount` | O primeiro tipo de mod de cada conteúdo (6196, 1136, 697, 401, 754). Útil no `minType`. |
 | `bl.items.isModItem(t)`, `bl.projectiles.isModProjectile(t)`, `bl.npcs.isModNpc(t)`, `bl.buffs.isModBuff(t)`, `bl.tiles.isModTile(t)` | É de mod? |
 | `bl.items.typeOf('Classe')` (e os outros) | O tipo de um conteúdo **deste** mod pelo nome; -1 se não há. |
 | `bl.items.modItemsIn(player)` | Os itens de mod nos 58 espaços do inventário do jogador. |

@@ -28,12 +28,13 @@ std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
 
-// Conferida contra toda alocacao de 389 posicoes na libil2cpp (`mov #0x185`):
+// Conferida contra toda alocacao de 401 posicoes na libil2cpp (`mov #0x191`):
 // as estaticas estao em Main (10), BuffID.Sets, Lang (nome e descricao) e
-// TextureAssets; as por instancia, em Player e NPC (abaixo).
+// TextureAssets; as por instancia, em Player e NPC (abaixo). O Main tem mais
+// 4 de 401 que sao dos itens no chao (Main.maxItems + 1), e ficam como estao.
 TypeTables g_tables("buffs de mod", kVanillaBuffCount, {
     {"Terraria.ID", "BuffID", "Sets"},
-    {"Terraria", "Main", ""},
+    {"Terraria", "Main", "", "", {"item", "timeItemSlotCannotBeReusedFor", "itemFrame", "itemFrameCounter"}},
     {"Terraria", "Lang", ""},
     {"Terraria.GameContent", "TextureAssets", ""},
 });
@@ -139,13 +140,13 @@ struct LimitPatch {
     bool belowToo;      // tambem `tipo < limite` (b.lo)
 };
 
-// Achados varrendo a libil2cpp por `cmp #387..#389` + desvio de ordem, e
+// Achados varrendo a libil2cpp por `cmp #399..#401` + desvio de ordem, e
 // conferidos um a um (os outros sao tiles e projeteis com esses numeros).
 constexpr LimitPatch kLimitPatches[] = {
-    // A barra: `1 <= tipo <= 388` entra; `tipo >= 389` e ZERADO no jogador.
+    // A barra: `1 <= tipo <= 400` entra; `tipo >= 401` e ZERADO no jogador.
     {"", "GUIBuffs", "Draw", kVanillaBuffCount - 2, -2, true},
     {"", "GUIBuffs", "Draw", kVanillaBuffCount, 0, true},
-    // A enfermeira so cura debuff com tipo <= 388.
+    // A enfermeira so cura debuff com tipo <= 400.
     {"Terraria", "Main", "GetNurseHealCost", kVanillaBuffCount - 1, -1, false},
     {"Terraria", "Main", "NPCChatText_DoNurseHeal", kVanillaBuffCount - 1, -1, false},
     {"", "GUINPCDialogue", "Option1Clicked", kVanillaBuffCount - 1, -1, false},
@@ -180,9 +181,9 @@ void patchLimits(int total) {
     BL_INFO("buffs de mod: limites do codigo trocados em %d de %d metodo(s)", methodsOk, methods);
 }
 
-// ---- buffImmune: bool[389] em cada Player e NPC ----
+// ---- buffImmune: bool[401] em cada Player e NPC ----
 //
-// O construtor cria; Player.Update e NPC.SetDefaults so zeram as 389
+// O construtor cria; Player.Update e NPC.SetDefaults so zeram as 401
 // primeiras (memset). Os de Main.player/Main.npc ja existem na instalacao; os
 // que nascerem depois passam pelo construtor.
 

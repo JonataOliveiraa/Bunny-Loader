@@ -54,8 +54,8 @@ function fought() {
     check('a Pessoa atirou o projetil do mod (TownNPCAttackProj)', () => shots > 0 || 'nenhum tiro do mod');
     check('o tiro feriu o slime', () => (slime.life < slimeLife) || `vida ${slime.life} de ${slimeLife}`);
     // Morte: o StrikeNPC do jogo, com dano maior que a vida.
-    person['double StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool noEffect, bool fromNet, int owner)'](
-        99999, 0, 1, false, false, false, -1);
+    person['int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)'](
+        99999, 0, 1, false, false, -1);
 }
 
 function died() {

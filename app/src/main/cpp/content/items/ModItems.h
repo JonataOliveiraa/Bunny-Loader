@@ -25,7 +25,7 @@ namespace bl::runtime {
  */
 
 /** ItemID.Count do jogo. E `const` no C#, nao ha campo para ler: vem do dump. */
-constexpr int kVanillaItemCount = 6147;
+constexpr int kVanillaItemCount = 6196;
 
 struct ModItemDef {
     std::string mod;      // uid do mod que registrou

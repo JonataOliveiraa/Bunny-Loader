@@ -5,7 +5,7 @@ const Main = Terraria.Main;
 const Chest = Terraria.Chest;
 
 const tileAt = (i, j) => Main.tile['Tile get_Item(int x, int y)'](i, j);
-const say = (message, color) => Main['void NewText(string newText, byte R, byte G, byte B)'](message, color.R, color.G, color.B);
+const say = (message, color) => Main['void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)'](message, color.R, color.G, color.B, false);
 
 // Baú 2x2. Dois estilos na textura: o normal e o trancado (abre com a chave
 // de exemplo, e só de noite). O baú em si (os itens) é o do jogo: Main.chest.

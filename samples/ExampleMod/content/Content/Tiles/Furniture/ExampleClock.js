@@ -15,8 +15,11 @@ export class ExampleClock extends ModTile {
         this.DustType = DustID.Platinum;
         this.AdjTiles = [TileID.GrandfatherClocks];
 
+        // Como o relógio do jogo: colocado pelo canto de baixo, 2 px para baixo.
         TileObjectData.newTile.CopyFrom(TileObjectData.Style2xX);
         TileObjectData.newTile.Height = 5;
+        TileObjectData.newTile.Origin = Point16.new(0, 4);
+        TileObjectData.newTile.DrawYOffset = 2;
         TileObjectData.newTile.CoordinateHeights = [16, 16, 16, 16, 16];
         TileObjectData.addTile(this.Type);
 
@@ -36,7 +39,7 @@ export class ExampleClock extends ModTile {
         if (hours > 12) hours -= 12;
         if (hours === 0) hours = 12;
 
-        Main['void NewText(string newText, byte R, byte G, byte B)'](`${hours}:${minutes} ${period}`, 255, 240, 20);
+        Main['void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)'](`${hours}:${minutes} ${period}`, 255, 240, 20, false);
         return true;
     }
 

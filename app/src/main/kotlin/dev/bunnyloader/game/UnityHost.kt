@@ -17,7 +17,7 @@ import java.lang.reflect.Proxy
  * Cria a UnityPlayer e repassa o ciclo de vida. Tudo por reflection, porque a
  * classe vem do DexClassLoader do jogo.
  *
- * Assinaturas conferidas no dex de Terraria 1.4.5.6.4 (Unity 2021.3.56f2):
+ * Assinaturas conferidas no dex de Terraria 1.4.5.6.4 (Unity 2021.3.56f2, a mesma da 1.4.5.8.6):
  *   UnityPlayer extends android.widget.FrameLayout
  *   <init>(Context) / <init>(Context, IUnityPlayerLifecycleEvents)
  *   onStart/onResume/onPause/onStop/destroy/quit/lowMemory : ()V

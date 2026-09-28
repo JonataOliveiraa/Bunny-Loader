@@ -107,7 +107,7 @@ bool resolveCheatRefs() {
     // agora e a mesma resolucao que os mods usam em JS.
     g_newItem = findMethodBySignature(item, parseSignature(
         "int NewItem(int X, int Y, int Width, int Height, int Type, int Stack, "
-        "bool noBroadcast, int pfix, bool noGrabDelay)"));
+        "bool noBroadcast, int pfix, NewItemOwnership ownership)"));
 
     // Invocar NPC. O NewNPC exige um IEntitySource — nao ha overload sem ele.
     // EntitySource_DebugCommand e literalmente "veio de um comando de debug",
@@ -227,7 +227,7 @@ void runSelftestOnce() {
 
 // ----------------------- nomes de item e NPC -----------------------
 //
-// Do dump: ItemID.Count = 6147, NPCID.Count = 697. Sao `const` do C#, que o
+// Do dump: ItemID.Count = 6196, NPCID.Count = 697. Sao `const` do C#, que o
 // IL2CPP resolve em tempo de compilacao e nao deixa como campo para ler — por
 // isso vem daqui, com o dump como fonte, do mesmo jeito que os ids do
 // CheatData.
@@ -1048,8 +1048,9 @@ void giveItem(int type, int stack, int player) {
         g_itemStack[type] > 0 && n > g_itemStack[type]) {
         n = g_itemStack[type];
     }
-    uint8_t noBroadcast = 0, noGrab = 0;
-    void* args[9] = { &x, &y, &w, &h, &t, &n, &noBroadcast, &pfix, &noGrab };
+    uint8_t noBroadcast = 0;
+    int32_t ownership = 0;   // NewItemOwnership.None
+    void* args[9] = { &x, &y, &w, &h, &t, &n, &noBroadcast, &pfix, &ownership };
 
     Il2CppObject* exc = nullptr;
     int idx = unboxInt(a.runtime_invoke(g_newItem, nullptr, args, &exc));

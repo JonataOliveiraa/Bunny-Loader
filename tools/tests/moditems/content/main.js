@@ -1,7 +1,7 @@
 // Teste das tabelas de item de mod (content/items/ModItems.cpp).
 //
 // O jogo indexa dezenas de arrays pelo tipo do item, todos nascidos com
-// ItemID.Count (6147) posicoes, e esta build do IL2CPP NAO confere limite:
+// ItemID.Count posicoes, e esta build do IL2CPP NAO confere limite:
 // uma tabela esquecida le ou escreve alem do fim sem erro nenhum. O tooltip de
 // item de mod sumia por isso (ArmorSetBonuses.SetsContaining).
 //
@@ -9,8 +9,9 @@
 // exemplos no inventario (espacos 1 e 2) para testar o tooltip na mao.
 // Loga "moditems <caso>: ok | FALHOU".
 const Main = Terraria.Main;
-const MOD_TYPES = [6147, 6148];
-const EXPECTED = 6147 + MOD_TYPES.length;
+const FIRST = bl.items.vanillaCount;
+const MOD_TYPES = [FIRST, FIRST + 1];
+const EXPECTED = FIRST + MOD_TYPES.length;
 
 let fails = 0;
 function check(label, fn) {

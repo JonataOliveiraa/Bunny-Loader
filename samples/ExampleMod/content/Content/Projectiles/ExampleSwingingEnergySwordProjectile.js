@@ -34,7 +34,7 @@ export class ExampleSwingingEnergySwordProjectile extends ModProjectile {
         const player = Main.player[proj.owner];
         localAI[0]++;
         const life = localAI[0] / ai[1];
-        proj.Center = Vector2.Subtract(player['Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY)'](player.MountedCenter, false, true), proj.velocity);
+        proj.Center = Vector2.Subtract(player['Vector2 RotatedRelativePoint(Vector2 pos, bool reverseRotation, bool addGfxOffY, int pushFromOriginHack)'](player.MountedCenter, false, true, 0), proj.velocity);
         proj.scale = 1 + life * 0.8;
 
         const offset = proj.rotation + (Rand.NextFloat() * 2 - 1) * (Math.PI / 2) * 0.7;

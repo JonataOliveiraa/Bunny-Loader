@@ -91,9 +91,14 @@ function run() {
     // objeto (ou um ja destruido), whoAmI nao bate — ou o jogo cai.
     check('mapa de wrappers: 8 voltas em Main.item', () => {
         const items = Main.item;
+        // Desde a 1.4.5.8 o jogo deixa posições vazias (null) no Main.item.
+        const empty = [];
+        for (let i = 0; i < items.length; i++) if (items[i] === null) empty.push(i);
+        if (empty.length) info('Main.item: posições null', empty.length + ' de ' + items.length + ' (' + empty.slice(0, 8).join(',') + ')');
         for (let volta = 0; volta < 8; volta++) {
             for (let i = 0; i < items.length; i++) {
                 const w = items[i];
+                if (w === null) continue;
                 if (w.whoAmI !== i) return 'volta ' + volta + ' item ' + i + ': whoAmI=' + w.whoAmI;
                 if (i % 7 === 0 && items[i] !== w) return 'identidade perdida no item ' + i;
             }

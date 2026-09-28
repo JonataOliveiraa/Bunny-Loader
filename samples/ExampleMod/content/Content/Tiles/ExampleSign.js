@@ -52,7 +52,7 @@ export class ExampleSign extends ModTile {
 
     RightClick(i, j) {
         const id = Sign['int ReadSign(int i, int j, bool CreateIfMissing)'](i, j, false);
-        if (id !== -1) Main['void NewText(string newText, byte R, byte G, byte B)'](Main.sign[id].text, 255, 255, 255);
+        if (id !== -1) Main['void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)'](Main.sign[id].text, 255, 255, 255, false);
         return true;
     }
 

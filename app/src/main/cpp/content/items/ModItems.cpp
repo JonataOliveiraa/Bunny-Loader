@@ -184,8 +184,8 @@ Il2CppArray* readStatic(FieldInfo* f) {
 // Esquecer uma classe NAO da erro, le ou escreve alem do fim: foi assim que o
 // tooltip de item de mod sumiu (ArmorSetBonuses.SetsContaining ficou de fora,
 // a leitura pegou lixo nulo e o jogo lancou NullReference a cada quadro). A
-// lista foi conferida contra TODA alocacao de 6147 posicoes na libil2cpp
-// (`mov #0x1803` antes de um new[]); o que nao e campo estatico esta em
+// lista foi conferida contra TODA alocacao de 6196 posicoes na libil2cpp
+// (`mov #0x1834` antes de um new[]); o que nao e campo estatico esta em
 // "tabelas de instancia", mais abaixo.
 
 TypeTables g_tables("itens de mod", kVanillaItemCount, {
@@ -350,34 +350,29 @@ bool hookEmergencyStacking() {
 }
 
 // O drop do jogo recusa item de mod: os CommonCode.DropItem* comecam com
-// `if (itemId > 0 && itemId < ItemID.Count)`, compilado pela metade
-// (`(itemId - 1) >> 1 <= 0xC00`; ver patchHalvedLimit). O tModLoader troca o
-// ItemID.Count por ItemLoader.ItemCount nos mesmos metodos. Aceita de 1 a
-// 2*imm+2, entao imm = (total-3)/2 nunca passa do ultimo tipo; com `total`
-// par sobra o ultimo, que e da reserva "?" (registrada depois dos mods).
-uint32_t g_dropLimit = 0xC00;
+// `if (itemId > 0 && itemId < ItemID.Count)`, compilado como
+// `itemId - 1 <= Count - 2` com o limite num registrador (ver
+// patchRegisterLimit). O tModLoader troca o ItemID.Count por
+// ItemLoader.ItemCount nos mesmos metodos.
+uint32_t g_dropLimit = kVanillaItemCount - 2;
 
 void patchDropLimits(int total) {
-    const uint32_t imm = static_cast<uint32_t>((total - 3) / 2);
-    if (imm == g_dropLimit) return;
-    if (imm > 0xFFF) {
-        BL_ERROR("itens de mod: %d tipos de item passam do limite do drop do jogo (8193)", total);
-        return;
-    }
+    const uint32_t limit = static_cast<uint32_t>(total - 2);
+    if (limit == g_dropLimit) return;
     auto& a = il2cpp::api();
     Il2CppClass* cls = il2cpp::findClass({"Terraria.GameContent.ItemDropRules", "CommonCode", {}});
     int patched = 0;
     void* it = nullptr;
     while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
-        patched += patchHalvedLimit(m, g_dropLimit, imm);
+        patched += patchRegisterLimit(m, g_dropLimit, limit);
     }
     if (patched == 0) {
         BL_ERROR("itens de mod: limite do drop (CommonCode.DropItem*) nao achado no codigo; "
                  "NPC nenhum solta item de mod");
         return;
     }
-    BL_DEBUG("itens de mod: drop do jogo aceita ate o id %u (%d metodo(s) do CommonCode)", 2 * imm + 2, patched);
-    g_dropLimit = imm;
+    BL_DEBUG("itens de mod: drop do jogo aceita ate o id %u (%d metodo(s) do CommonCode)", limit + 1, patched);
+    g_dropLimit = limit;
 }
 
 /** O jogo ja criou as tabelas de agora? (Sao feitas no carregamento, nao no boot.) */

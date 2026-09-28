@@ -59,14 +59,15 @@ std::string describeMethodCode(const MethodInfo* m);
 int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd);
 
 /**
- * O `0 < x < N` com N PAR, que o clang compila pela metade:
- * `sub wA, wX, #1; lsr wB, wA, #1; cmp wB, #(N-2)/2; b.hi` — aceita x de 1 a
- * 2*imm+2. O `itemId < ItemID.Count` (6147) dos CommonCode.DropItem* e assim
- * (imm 0xC00), e a scan_limits.py nao acha; a scan_halved.py (tools/disasm)
- * acha. Troca o imediato do `cmp` que vem logo depois de um `lsr #1` no mesmo
- * registrador e antes de um b.hi. Chamar na thread do jogo.
+ * O limite grande demais para o `cmp #imm12`: o clang poe o numero num
+ * registrador e compara registrador com registrador,
+ * `mov wB, #limite; cmp wA, wB; b.hi`. O `0 < itemId < ItemID.Count` dos
+ * CommonCode.DropItem* e assim (`sub wA, wId, #1; mov wB, #(Count-2)`).
+ * Troca o `movz wB, #oldLimit` cujo registrador e o segundo operando de um
+ * `cmp` ate 3 instrucoes depois, seguido de desvio de ordem (b.hi/b.ls/b.gt/
+ * b.le, com loads/stores no meio). Chamar na thread do jogo.
  */
-int patchHalvedLimit(const MethodInfo* m, uint32_t oldImm, uint32_t newImm);
+int patchRegisterLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit);
 
 /**
  * O tamanho de um `new T[697]`: `mov wN, #697` antes do il2cpp_array_new.

@@ -9,7 +9,7 @@
   "description": "Teste do carregador. Loga 'autoload ...'. Rode junto com tools/tests/nomodclass.",
   "updated": "2026-09-27",
   "blVersion": 2,
-  "gameVersion": [301543, 301543],
+  "gameVersion": [301720, 301720],
   "entry": "main.js",
   "dependencies": []
 }

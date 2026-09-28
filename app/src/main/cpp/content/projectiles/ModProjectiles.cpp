@@ -8,6 +8,7 @@
 #include "content/common/TypeTables.h"
 
 #include <atomic>
+#include <cstring>
 #include <mutex>
 
 namespace bl::runtime {
@@ -28,9 +29,10 @@ std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
 
-// Conferida contra toda alocacao de 1111 posicoes na libil2cpp (`mov #0x457`
+// Conferida contra toda alocacao de 1136 posicoes na libil2cpp (`mov #0x470`
 // antes de um new[]): TextureAssets, ProjectileID.Sets, Lang e Main tem as
-// estaticas; a de Player e por instancia (abaixo).
+// estaticas; a de Player e por instancia, e a de duas dimensoes do Projectile
+// (perIDStaticNPCImmunity) cresce a parte (abaixo).
 TypeTables g_tables("projeteis de mod", kVanillaProjectileCount, {
     {"Terraria.ID", "ProjectileID", "Sets"},
     {"Terraria", "Main", ""},
@@ -45,6 +47,7 @@ struct Refs {
     FieldInfo* names = nullptr;        // Lang._projectileNameCache
     FieldInfo* frames = nullptr;       // Main.projFrames
     FieldInfo* players = nullptr;      // Main.player
+    FieldInfo* staticImmunity = nullptr;   // Projectile.perIDStaticNPCImmunity (uint[,])
     int32_t ownedCounts = -1;          // Player.ownedProjectileCounts
     int32_t width = -1, height = -1;   // Entity
     int32_t active = -1;               // Projectile (declarado nele, nao em Entity)
@@ -65,6 +68,7 @@ Refs& refs() {
     r.names = lang ? findField(lang, "_projectileNameCache") : nullptr;
     r.frames = main ? findField(main, "projFrames") : nullptr;
     r.players = main ? findField(main, "player") : nullptr;
+    r.staticImmunity = projectile ? findField(projectile, "perIDStaticNPCImmunity") : nullptr;
     r.ownedCounts = player ? fieldOffset(player, "ownedProjectileCounts") : -1;
     r.width = projectile ? fieldOffset(projectile, "width") : -1;
     r.height = projectile ? fieldOffset(projectile, "height") : -1;
@@ -165,6 +169,38 @@ void growPlayers(int size) {
     BL_DEBUG("projeteis de mod: ownedProjectileCounts aumentada em %d jogador(es)", grown);
 }
 
+// ---- Projectile.perIDStaticNPCImmunity: uint[ProjectileID.Count, MaxNPCs] ----
+//
+// Desde a 1.4.5.8 o celular tem a do PC: a imunidade dos projeteis com
+// usesIDStaticNPCImmunity e por TIPO, numa tabela de duas dimensoes. O
+// TypeTables so acha `T[]`; esta cresce aqui. As linhas sao contiguas (tipo *
+// MaxNPCs + npc), entao a antiga e o comeco da nova.
+
+struct ArrayBounds {
+    uintptr_t length;
+    int32_t lowerBound;
+};
+
+void growStaticImmunity(int size) {
+    auto& a = il2cpp::api();
+    FieldInfo* f = refs().staticImmunity;
+    Il2CppArray* old = f ? readStatic(f) : nullptr;
+    if (!old || !old->bounds || !a.array_new_full) return;
+    const auto* bounds = reinterpret_cast<const ArrayBounds*>(old->bounds);
+    if (bounds[0].length != static_cast<uintptr_t>(kVanillaProjectileCount)) return;
+    Il2CppClass* arrayClass = a.object_get_class(reinterpret_cast<Il2CppObject*>(old));
+    uintptr_t lengths[2] = {static_cast<uintptr_t>(size), bounds[1].length};
+    Il2CppArray* n = a.array_new_full(arrayClass, lengths, nullptr);   // ja zerado
+    if (!n) {
+        BL_ERROR("projeteis de mod: perIDStaticNPCImmunity nao aumentada");
+        return;
+    }
+    std::memcpy(arrayData(n), arrayData(old), sizeof(uint32_t) * old->length);
+    a.field_static_set_value(f, n);
+    BL_DEBUG("projeteis de mod: perIDStaticNPCImmunity aumentada para [%d, %lu]", size,
+             static_cast<unsigned long>(lengths[1]));
+}
+
 } // namespace
 
 int registerModProjectile(ModProjectileDef def) {
@@ -215,6 +251,7 @@ void tickModProjectiles() {
     }
     g_installed.store(total, std::memory_order_release);
     growPlayers(to);
+    growStaticImmunity(to);
 
     {
         std::lock_guard<std::mutex> l(g_mx);

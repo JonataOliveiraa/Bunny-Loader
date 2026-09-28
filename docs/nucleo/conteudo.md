@@ -13,11 +13,14 @@ fixa, e o jogo inteiro foi escrito assumindo isso:
 
 | Conteúdo | Tipos do jogo | Constante | Tipo do 1º de mod |
 |---|---:|---|---:|
-| Item | 0–6146 | `ItemID.Count` = 6147 | 6147 |
-| Projétil | 0–1110 | `ProjectileID.Count` = 1111 | 1111 |
+| Item | 0–6195 | `ItemID.Count` = 6196 | 6196 |
+| Projétil | 0–1135 | `ProjectileID.Count` = 1136 | 1136 |
 | NPC | 0–696 | `NPCID.Count` = 697 | 697 |
-| Buff | 0–388 | `BuffID.Count` = 389 | 389 |
-| Bloco (tile) | 0–752 | `TileID.Count` = 753 | 753 |
+| Buff | 0–400 | `BuffID.Count` = 401 | 401 |
+| Bloco (tile) | 0–753 | `TileID.Count` = 754 | 754 |
+
+(Números da 1.4.5.8.6. Cada versão do jogo muda alguns: estão nos
+`kVanilla*Count` do núcleo e em `bl.*.vanillaCount`.)
 
 Um tipo novo precisa de um número acima disso, e cada lugar do jogo que
 assume o limite tem de ser encontrado e ajustado. São quatro tipos de lugar:
@@ -25,8 +28,8 @@ assume o limite tem de ser encontrado e ajustado. São quatro tipos de lugar:
 1. **Tabelas por tipo.** Centenas de arrays estáticos com exatamente `Count`
    posições: texturas (`TextureAssets.Item`), nomes, os `ItemID.Sets`,
    `Main.tileSolid`... O jogo lê `tabela[tipo]` sem conferir o tamanho: **este
-   build do IL2CPP não confere limite de array**. Um tipo 6147 numa tabela de
-   6147 posições lê (e **escreve**) além do fim, sem erro nenhum, corrompendo
+   build do IL2CPP não confere limite de array**. Um tipo 6196 numa tabela de
+   6196 posições lê (e **escreve**) além do fim, sem erro nenhum, corrompendo
    o que estiver depois.
 2. **Limites compilados.** `if (type >= NPCID.Count) return;` não é um array: é
    `cmp w8, #696` direto no código de máquina. O `NPC.NPCLoot` saía por ali
@@ -44,7 +47,7 @@ sequenceDiagram
     participant N as núcleo
     participant G as thread do jogo
     S->>N: ModItem.register(ExampleItem)
-    N-->>S: tipo 6147 (na hora)
+    N-->>S: tipo 6196 (na hora)
     Note over N: guarda a definição<br/>(nome, textura, tradução, callbacks)
     G->>N: 1º Main.DoUpdate (tela de título)
     N->>G: cresce as tabelas, põe textura e nome,<br/>troca limites compilados,<br/>roda SetStaticDefaults
@@ -103,7 +106,7 @@ novo no campo estático. As posições novas nascem com:
   corrupção. O mais comum é o padrão com que o jogo criou a tabela: `false` no
   `tileSolid`, `-1` no `tileGlowMask`. Isso só vale se a tabela crescer
   **antes** de o jogo preenchê-la: crescida depois, o mais comum do
-  `tileFrameImportant` é `true` (uns 400 dos 753 tipos são móveis), e todo
+  `tileFrameImportant` é `true` (uns 400 dos 754 tipos são móveis), e todo
   bloco de mod parou de ser enquadrado (ficava no quadro 0,0). Por isso os
   tiles crescem cedo e só o `SetStaticDefaults` espera o
   `TileObjectData.Initialize`.
@@ -122,7 +125,7 @@ Há quatro formas, cada uma com a sua ferramenta de busca em `tools/disasm/`:
 |---|---|---|---|
 | `cmp wN, #limite` + desvio de ordem (`b.hi`, `b.gt`...) | `if (type >= 697)` | `patchCompareLimit` | `scan_limits.py` |
 | laço em **bytes** (`cmp xN, #729`: 697 + 32 do cabeçalho do array) | `for (i = 0; i < 697; i++) a[i]` | `patchLoopEnd` | `scan_loops.py` |
-| `0 < x < N` com N par, compilado pela metade (`(x-1) >> 1 <= imm`) | o drop de item (`CommonCode.DropItem*`) | `patchHalvedLimit` | `scan_halved.py` |
+| limite grande demais para o `cmp #imm12`: `mov wB, #limite; cmp wA, wB` + desvio de ordem | o drop de item (`CommonCode.DropItem*`: `itemId - 1 <= Count - 2`) | `patchRegisterLimit` | `scan_reglimit.py` |
 | `mov wN, #tamanho` antes de `new T[tamanho]` | tabela criada dentro de um método | `patchMovImmediate` | `scan_movs.py` |
 
 Regras que evitam estrago:
@@ -213,10 +216,12 @@ A receita que funcionou para buffs e tiles:
 2. `python tools/disasm/scan_limits.py <Count-2> <Count-1> <Count>`:
    comparações compiladas. Conferir cada uma com `da.py` (os números colidem
    com IDs de outras coisas) e trocar as certas com `patchCompareLimit`.
-3. `scan_loops.py` e `scan_halved.py` para as formas que o `scan_limits` não
-   vê.
+3. `scan_loops.py` e `scan_reglimit.py` para as formas que o `scan_limits` não
+   vê. A mesma conta muda de forma entre versões: na 1.4.5.6 o drop era
+   `(x-1) >> 1 <= imm` (`scan_halved.py`); na 1.4.5.8, `mov` + `cmp` de
+   registrador.
 4. Hook nos métodos que recusam o número, e o save ao lado.
 5. Um mod de teste em `tools/tests/` que usa o tipo de verdade.
 
 Foi assim que apareceu, por exemplo, que o `GUIBuffs.Draw` **zera** buff com
-tipo ≥ 389 a cada quadro.
+tipo ≥ `BuffID.Count` a cada quadro.

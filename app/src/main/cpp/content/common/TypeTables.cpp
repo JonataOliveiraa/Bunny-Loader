@@ -161,6 +161,12 @@ void TypeTables::find(uintptr_t size) {
         while (FieldInfo* f = a.class_get_fields(cls, &it)) {
             const uint32_t flags = a.field_get_flags(f);
             if (!(flags & 0x10) || (flags & 0x40)) continue;          // so estatico, sem const
+            if (!c.skip.empty()) {
+                const char* name = fieldName(f);
+                bool skipped = false;
+                for (const std::string& s : c.skip) skipped = skipped || s == name;
+                if (skipped) continue;
+            }
             if (static_cast<int64_t>(a.field_get_offset(f)) == -1) continue;  // thread-static
             char* typeName = a.type_get_name(a.field_get_type(f));
             const bool isArray = typeName && std::strlen(typeName) > 2 &&

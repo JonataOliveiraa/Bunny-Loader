@@ -1,0 +1,15 @@
+{
+  "uid": "5e1f0c3a-7b2d-4c9e-a1f6-0d3b8e2c4a71",
+  "id": "test-exmodfixes",
+  "name": "Teste: correcoes do Example Mod (gancho, material, blocos, relogio, armadura, acessorios, chicote)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Confere pelo caminho do jogo: gancho pelo botao, item material, luz do bloco de gemas, fogo vivo sobre fogo vivo, origem e toque do relogio, bonus de conjunto do 1.4.5, escudo/bota trocando pelo do mesmo tipo e o acerto do chicote.",
+  "description": "Loga 'fix ...'. Precisa do Example Mod ligado. O passo do relogio espera um toque de verdade (adb input tap) nas coordenadas que ele loga.",
+  "updated": "2026-09-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

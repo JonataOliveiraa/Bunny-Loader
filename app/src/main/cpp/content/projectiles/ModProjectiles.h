@@ -13,14 +13,14 @@ namespace bl::runtime {
  *   - Projectile.SetDefaults NAO zera o tipo desconhecido: grava o tipo, zera
  *     o resto e cai no `else` do switch, que so faz `active = false`. Entao o
  *     hook JS chama o original, depois o setDefaults do mod, e reativa;
- *   - as tabelas por tipo nascem com ProjectileID.Count (1111) posicoes,
+ *   - as tabelas por tipo nascem com ProjectileID.Count (1136) posicoes,
  *     inclusive uma em CADA jogador: Player.ownedProjectileCounts, que o jogo
  *     ESCREVE todo quadro pelo tipo de cada projetil vivo;
  *   - a IA vem do `aiStyle` (o do jogo). IA propria do mod ainda nao.
  */
 
 /** ProjectileID.Count do jogo. E `const` no C#, nao ha campo para ler: vem do dump. */
-constexpr int kVanillaProjectileCount = 1111;
+constexpr int kVanillaProjectileCount = 1136;
 
 struct ModProjectileDef {
     std::string mod;       // uid do mod que registrou

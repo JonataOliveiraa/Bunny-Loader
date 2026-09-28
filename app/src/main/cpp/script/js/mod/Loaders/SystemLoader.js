@@ -105,7 +105,7 @@ class SystemLoader {
             });
 
             // Fora do mundo não há varredura: a contagem do mundo anterior
-            // valeria no novo até a primeira dele (até 5 quadros).
+            // valeria no novo até a primeira dele (alguns quadros).
             const reset = () => each('ResetNearbyTileEffects', (s) => s.ResetNearbyTileEffects());
             WorldGen['void SaveAndQuit()'].hook((original) => {
                 reset();
@@ -118,8 +118,8 @@ class SystemLoader {
         });
 
         if (has('PostUpdateEverything')) Hooks.Once('system.UpdateEverything', () => {
-            Main['void DoUpdateInWorld(Stopwatch sw)'].hook((original, self, sw) => {
-                original(self, sw);
+            Main['void DoUpdateInWorld()'].hook((original, self) => {
+                original(self);
                 each('PostUpdateEverything', (s) => s.PostUpdateEverything());
             });
         });

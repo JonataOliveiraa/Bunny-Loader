@@ -11,8 +11,8 @@ import java.nio.ByteOrder
  * Existe por um motivo bem específico: saber se a `libunity.so` da versão que
  * vamos rodar linka contra a `libpairipcore.so`.
  *
- *   1.4.5.6.4 → libmain, libandroid, liblog, libz, libEGL, libm, libdl, libc
- *   1.4.5.8.6 → ...os mesmos + libpairipcore.so
+ *   sem PairIP (1.4.5.6.4 e a 1.4.5.8.6 integrada) → libmain, libandroid, liblog, libz, libEGL, libm, libdl, libc
+ *   1.4.5.8.6 da Play → ...os mesmos + libpairipcore.so
  *
  * Nas duas versões a `libpairipcore.so` ESTÁ dentro do APK, então "existe no
  * APK" não serve para decidir se devemos carregá-la. Carregá-la sem que nada
