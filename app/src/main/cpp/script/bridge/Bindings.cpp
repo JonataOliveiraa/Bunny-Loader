@@ -1334,6 +1334,56 @@ JSValue js_classOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     return js_NativeClass(ctx, JS_UNDEFINED, argc, argv);
 }
 
+/**
+ * bl.box(valor, tipo): o valor JS encaixotado como `object` do C#, para onde o
+ * jogo quer `object` (Array.SetValue, Hashtable, parametro generico fechado em
+ * object). O tipo e o mesmo do makeGeneric: 'int', 'float', 'string'..., um
+ * nome completo, ou a classe (enum e struct tambem).
+ *
+ *   SetValue(arr, bl.box(20, 'int'), 0)
+ *
+ * Tipo de referencia nao tem caixa: devolve o proprio objeto, conferido.
+ */
+JSValue js_box(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc < 2) return JS_ThrowTypeError(ctx, "bl.box(valor, tipo)");
+    Il2CppClass* cls = elementClassOf(ctx, argv[1], "bl.box");
+    if (!cls) return JS_EXCEPTION;
+    auto& a = il2cpp::api();
+    const TypeDesc& d = describe(a.class_get_type(cls));
+    if (!d.byValue) {
+        // Texto vira System.String; objeto passa pela conferencia de tipo.
+        void* slot = nullptr;
+        if (writeAt(ctx, &slot, d, argv[0]) < 0) return JS_EXCEPTION;
+        return slot ? makeNativeObject(ctx, static_cast<Il2CppObject*>(slot)) : JS_NULL;
+    }
+    if (!a.value_box) return JS_ThrowInternalError(ctx, "bl.box: este runtime nao expoe il2cpp_value_box");
+    std::vector<char> buf(d.size ? d.size : 1, 0);
+    if (writeAt(ctx, buf.data(), d, argv[0]) < 0) return JS_EXCEPTION;
+    Il2CppObject* boxed = a.value_box(cls, buf.data());
+    return boxed ? makeNativeObject(ctx, boxed) : JS_NULL;
+}
+
+/**
+ * bl.unbox(obj): o inverso. Numero, bool, char (como numero), enum (o valor)
+ * e texto voltam como valor JS; struct volta como COPIA (a caixa e do coletor
+ * do jogo). Objeto que nao e caixa, array e valor JS voltam como estao.
+ *
+ *   bl.unbox(GetValue(arr, 0))   // 20
+ */
+JSValue js_unbox(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc < 1) return JS_ThrowTypeError(ctx, "bl.unbox(objeto)");
+    Il2CppObject* o = objectFromJS(argv[0]);
+    if (!o || isArrayObject(o)) return JS_DupValue(ctx, argv[0]);
+    auto& a = il2cpp::api();
+    Il2CppClass* cls = a.object_get_class(o);
+    const TypeDesc& d = describe(cls ? a.class_get_type(cls) : nullptr);
+    if (d.prim == Prim::String) return readAt(ctx, &o, d, JS_UNDEFINED);
+    if (!d.byValue) return JS_DupValue(ctx, argv[0]);
+    void* data = reinterpret_cast<char*>(o) + sizeof(Il2CppObject);
+    if (d.prim == Prim::Struct) return makeStructCopy(ctx, cls, data, d.size);
+    return readAt(ctx, data, d, JS_UNDEFINED);
+}
+
 // data[0] = o nome da classe. Resolve e troca o acessor pelo valor.
 JSValue globalClassGet(JSContext* ctx, JSValueConst thisVal, int, JSValueConst*, int, JSValueConst* data) {
     const char* name = JS_ToCString(ctx, data[0]);
@@ -1450,6 +1500,8 @@ void installBindings(void* context) {
     JSValue bl = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, bl, "log", JS_NewCFunction(ctx, js_bl_log, "log", 1));
     JS_SetPropertyStr(ctx, bl, "classOf", JS_NewCFunction(ctx, js_classOf, "classOf", 2));
+    JS_SetPropertyStr(ctx, bl, "box", JS_NewCFunction(ctx, js_box, "box", 2));
+    JS_SetPropertyStr(ctx, bl, "unbox", JS_NewCFunction(ctx, js_unbox, "unbox", 1));
     JS_SetPropertyStr(ctx, bl, "loadTexture",
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
     JS_SetPropertyStr(ctx, bl, "loadTextureAsset",

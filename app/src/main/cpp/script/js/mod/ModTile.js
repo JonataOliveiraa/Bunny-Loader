@@ -21,10 +21,32 @@ class ModTile {
     PostSetDefaults() {}
     PostSetupContent() {}
 
-    // A cor no mapa. Sem AddMapEntry, o tile fica fora do mapa.
+    // A cor e o nome no mapa; cada chamada é uma opção a mais do tipo. Sem
+    // AddMapEntry, o tile fica fora do mapa. O nome: um LocalizedText, uma
+    // chave de texto (do mod ou do jogo) ou o próprio texto; um nome de classe
+    // procura MapObject.<Nome> na localização do mod, senão vira "Example Tile".
     AddMapEntry(color, name) {
-        (this.mapEntries || (this.mapEntries = [])).push({ color, name });
-        if (this.mapEntries.length === 1) bl.tiles.setMapColor(this.Type, color.R, color.G, color.B);
+        const entries = this.mapEntries || (this.mapEntries = []);
+        const key = ModTile.#MapEntryKey(this, name ?? this.CreateMapEntryName(), entries.length);
+        entries.push({ color, name: key });
+        bl.tiles.addMapEntry(this.Type, color.R, color.G, color.B, key);
+    }
+
+    // A chave do texto no dicionário do jogo: o mapa guarda o LocalizedText
+    // dela, e a troca de idioma troca o texto.
+    static #MapEntryKey(tile, name, index) {
+        if (name && typeof name === 'object' && typeof name.Key === 'string') return name.Key;
+
+        const text = String(name);
+        const own = Lang.Localized('MapObject', text) ?? LocalizationLoader.Texts(text);
+        if (own === undefined && text.includes('.') &&
+            Terraria.Localization.Language['bool Exists(string key)'](text)) return text;
+
+        const mod = tile.Mod ? (tile.Mod.id || tile.Mod.uuid) : 'BunnyLoader';
+        const key = 'Mods.' + mod + '.MapObject.' + tile.constructor.name + (index ? '_' + index : '');
+        const fallback = /^[A-Za-z_]\w*$/.test(text) ? text.replace(/([a-z0-9])([A-Z])/g, '$1 $2') : text;
+        ModLocalization.Register(key, own ?? fallback);
+        return key;
     }
 
     CreateMapEntryName() { return this.constructor.name; }

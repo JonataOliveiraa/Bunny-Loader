@@ -26,6 +26,14 @@ class GoreLoader {
         return (map && map.get(name)) || 0;
     }
 
+    static TypeOfAny(name) {
+        for (const map of GoreLoader.#byMod.values()) {
+            const type = map.get(name);
+            if (type) return type;
+        }
+        return 0;
+    }
+
     // TextureAssets.Gore, GoreID.Sets e ChildSafety.SafeGore crescem.
     static #Install() {
         const pending = GoreLoader.#pending;

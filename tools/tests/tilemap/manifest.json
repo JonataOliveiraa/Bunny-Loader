@@ -1,0 +1,15 @@
+{
+  "uid": "539cc730-de97-4dfb-b559-498fa3be7b4d",
+  "id": "test-tilemap",
+  "name": "Teste: tile de mod no mapa",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: o Example Tile no mapa com indice, cor e nome proprios; o .map sai sem ele e o .map.bl o traz de volta.",
+  "description": "Loga 'tilemap ...'.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

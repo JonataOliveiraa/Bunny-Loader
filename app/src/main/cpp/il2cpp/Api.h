@@ -117,6 +117,9 @@ struct Api {
     // Classe aninhada -> a de fora (nullptr se nao e aninhada).
     Il2CppClass* (*class_get_declaring_type)(Il2CppClass*) = nullptr;
     Il2CppThread* (*thread_attach)(Il2CppDomain*) = nullptr;
+    // O `lock (obj)` do C#: reentrante na mesma thread, como o Monitor do jogo.
+    void (*monitor_enter)(Il2CppObject*) = nullptr;
+    void (*monitor_exit)(Il2CppObject*) = nullptr;
 
     const Il2CppImage* gameImage = nullptr;   // Assembly-CSharp.dll
     const Il2CppImage* corlibImage = nullptr; // mscorlib.dll

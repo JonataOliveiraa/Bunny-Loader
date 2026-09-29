@@ -68,14 +68,6 @@ struct ModTileInfo {
 };
 
 /**
- * A cor do tile no mapa (o AddMapEntry). O mapa do jogo aponta cada tipo para
- * uma cor da tabela dele, e o `.map` salva esse INDICE: uma cor nova levaria
- * ao arquivo um indice que o jogo sem o mod nao conhece. Entao o tile de mod
- * usa a cor DO JOGO mais proxima da pedida. Sem cor: fora do mapa.
- */
-void setModTileMapColor(int type, int r, int g, int b);
-
-/**
  * O AnimationFrameHeight do tModLoader: no desenho, o quadro do tipo
  * (Main.tileFrame[type]) vezes esta altura desce a textura. 0 = sem animacao.
  */

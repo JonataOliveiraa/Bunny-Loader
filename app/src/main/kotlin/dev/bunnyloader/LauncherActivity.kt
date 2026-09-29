@@ -2,6 +2,7 @@ package dev.bunnyloader
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -48,6 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.ui.Bl
 import dev.bunnyloader.ui.ExplorarTab
 import dev.bunnyloader.ui.InicioTab
@@ -73,7 +75,20 @@ import dev.bunnyloader.ui.Scenery
 class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        warnGameMissingOnce()
         setContent { LauncherScreen() }
+    }
+
+    /**
+     * Só na primeira vez que o launcher abre: se o Terraria não estiver
+     * instalado, avisa. Não bloqueia nada, e depois disso não avisa mais.
+     */
+    private fun warnGameMissingOnce() {
+        val prefs = Prefs(this)
+        if (prefs.gameCheckDone) return
+        prefs.gameCheckDone = true
+        val result = Eligibility.check(this)
+        if (!result.found) Toast.makeText(this, result.detail, Toast.LENGTH_LONG).show()
     }
 }
 

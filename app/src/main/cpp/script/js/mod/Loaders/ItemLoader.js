@@ -224,7 +224,9 @@ class ItemLoader {
                 const m = of(self);
                 if (!m || !Hooks.Overrides(m.constructor, ModItem, 'GetAlpha')) return original(self, color);
 
-                const c = Safe.Run(m.constructor.name + '.GetAlpha', () => m.GetAlpha(self, color));
+                // O mod recebe o item no chão (WorldItem: Center, position), como antes da 1.4.5.8.
+                const world = ItemLoader.#WorldItemOf(self) || self;
+                const c = Safe.Run(m.constructor.name + '.GetAlpha', () => m.GetAlpha(world, color));
                 return original(self, c || color);
             }, { minType: FIRST_ITEM, on: -1 });
         });
@@ -331,6 +333,17 @@ class ItemLoader {
                     ItemLoader.#shooting = shot;
                 }
             });
+    }
+
+    // A WorldItem que embrulha este Item (o Main.item guarda WorldItem; o
+    // Item.GetAlpha só vê o de dentro).
+    static #WorldItemOf(item) {
+        const all = Terraria.Main.item;
+        for (let i = 0; i < all.length; i++) {
+            const w = all[i];
+            if (w && w.inner === item) return w;
+        }
+        return null;
     }
 
     // A linha da vara sai do mountedCenter; o deslocamento entra por ele e a

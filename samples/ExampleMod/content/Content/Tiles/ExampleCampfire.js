@@ -30,7 +30,7 @@ export class ExampleCampfire extends ModTile {
         TileObjectData.newTile.StyleLineSkip = 9;
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(254, 121, 2), 'Campfire');
+        this.AddMapEntry(Color.new(254, 121, 2), 'ItemName.Campfire');
         this.flameTexture = ModContent.Request(this.Texture + '_Flame');
     }
 

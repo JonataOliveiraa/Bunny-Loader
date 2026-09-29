@@ -1,11 +1,13 @@
 import { ExampleBiomeTileCount } from '../../Common/Systems/ExampleBiomeTileCount.js';
 import { ExampleSurfaceBackgroundStyle } from './ExampleSurfaceBackgroundStyle.js';
+import { ExampleWaterStyle } from './ExampleWaterStyle.js';
 
 // O bioma de superfície do tModLoader: 40 ExampleTile por perto, no terço do
-// meio do mapa, no céu ou na superfície. No tModLoader ele também troca a água
-// e as cores; aqui, por enquanto, a detecção, a música e o fundo.
+// meio do mapa, no céu ou na superfície: a música, o fundo e a água dele. No
+// tModLoader ele também troca as cores do mapa; aqui, ainda não.
 export class ExampleSurfaceBiome extends ModBiome {
     get SurfaceBackgroundStyle() { return ModContent.GetInstance(ExampleSurfaceBackgroundStyle); }
+    get WaterStyle() { return ModContent.GetInstance(ExampleWaterStyle); }
 
     SetStaticDefaults() {
         // A única música do mod de exemplo (o tModLoader usa MysteriousMystery).

@@ -20,8 +20,8 @@ export class ExampleTrap extends ModTile {
         Main.tileBlockLight[this.Type] = true;
         Main.tileFrameImportant[this.Type] = true;
 
-        this.AddMapEntry(Color.new(21, 179, 192), 'Trap');
-        this.AddMapEntry(Color.new(0, 141, 63), 'Trap');
+        this.AddMapEntry(Color.new(21, 179, 192), 'MapObject.Trap');
+        this.AddMapEntry(Color.new(0, 141, 63), 'MapObject.Trap');
     }
 
     GetMapOption(i, j) {

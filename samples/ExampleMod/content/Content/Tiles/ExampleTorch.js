@@ -43,7 +43,7 @@ export class ExampleTorch extends ModTile {
         TileObjectData['void addSubTile(int style)'](1);
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(200, 200, 200), 'Torch');
+        this.AddMapEntry(Color.new(200, 200, 200), 'ItemName.Torch');
     }
 
     MouseOver(i, j) {

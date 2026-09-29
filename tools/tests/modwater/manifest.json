@@ -1,0 +1,15 @@
+{
+  "uid": "88e9efc1-f628-4a6b-963f-6aac7284ec0e",
+  "id": "test-modwater",
+  "name": "Teste: água de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Etapa B6 do ModBiome: ModWaterStyle e ModWaterfallStyle (números, tabelas, a troca da água pela cena com fade, respingo, chuva, luz através da água e cachoeira) num lago na frente do jogador.",
+  "description": "Loga 'modwater ...' e 'modwater: tela ...' nos momentos da captura. Rodar na superfície.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

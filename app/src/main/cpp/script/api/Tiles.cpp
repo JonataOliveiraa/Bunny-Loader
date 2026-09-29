@@ -3,7 +3,9 @@
 #if BL_HAVE_QUICKJS
 #include "core/Log.h"
 #include "content/tiles/ModDoors.h"
+#include "content/tiles/ModTileMap.h"
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModWater.h"
 #include "script/bridge/Bridge.h"
 #include "script/api/Items.h"
 #include "script/api/Texture.h"
@@ -128,12 +130,30 @@ JSValue js_isModTile(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
     return JS_NewBool(ctx, runtime::isModTile(t));
 }
 
-/** bl.tiles.setMapColor(tipo, r, g, b) — a cor no mapa (a do jogo mais proxima). */
-JSValue js_setMapColor(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+/**
+ * bl.tiles.addMapEntry(tipo, r, g, b, chave) — uma entrada de mapa (cor e nome,
+ * pela chave de um texto do jogo). Cada chamada e uma opcao a mais do tipo.
+ */
+JSValue js_addMapEntry(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t v[4] = {-1, 0, 0, 0};
     for (int i = 0; i < 4 && i < argc; ++i) JS_ToInt32(ctx, &v[i], argv[i]);
-    runtime::setModTileMapColor(v[0], v[1], v[2], v[3]);
-    return JS_UNDEFINED;
+    const char* key = argc >= 5 ? JS_ToCString(ctx, argv[4]) : nullptr;
+    const int option = runtime::addModTileMapEntry(v[0], v[1], v[2], v[3], key ? key : "");
+    if (key) JS_FreeCString(ctx, key);
+    return JS_NewInt32(ctx, option);
+}
+
+/** bl.tiles.mapTileAt(x, y) — { Type, Light, Color } da celula do mapa, ou undefined. */
+JSValue js_mapTileAt(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t x = -1, y = -1;
+    if (argc >= 2) { JS_ToInt32(ctx, &x, argv[0]); JS_ToInt32(ctx, &y, argv[1]); }
+    int type = 0, light = 0, paint = 0;
+    if (!runtime::readMapTile(x, y, &type, &light, &paint)) return JS_UNDEFINED;
+    JSValue o = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, o, "Type", JS_NewInt32(ctx, type));
+    JS_SetPropertyStr(ctx, o, "Light", JS_NewInt32(ctx, light));
+    JS_SetPropertyStr(ctx, o, "Color", JS_NewInt32(ctx, paint));
+    return o;
 }
 
 /** bl.tiles.typeAt(x, y) — o tipo do tile ativo em (x, y), ou -1. */
@@ -313,6 +333,15 @@ JSValue js_find(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     }
     return out;
 }
+/**
+ * bl.tiles.setWaterStyleCount(total) -> bool: os lacos do Main.DrawWaters vao
+ * ate `total` estilos de agua (ModWater.h). As tabelas por estilo crescem antes.
+ */
+JSValue js_setWaterStyleCount(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t total = 0;
+    if (argc >= 1) JS_ToInt32(ctx, &total, argv[0]);
+    return JS_NewBool(ctx, runtime::setWaterStyleCount(total));
+}
 } // namespace
 
 void installTilesApi(JSContext* ctx, JSValue bl) {
@@ -320,7 +349,8 @@ void installTilesApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, tiles, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, tiles, "isModTile", JS_NewCFunction(ctx, js_isModTile, "isModTile", 1));
     JS_SetPropertyStr(ctx, tiles, "typeAt", JS_NewCFunction(ctx, js_typeAt, "typeAt", 2));
-    JS_SetPropertyStr(ctx, tiles, "setMapColor", JS_NewCFunction(ctx, js_setMapColor, "setMapColor", 4));
+    JS_SetPropertyStr(ctx, tiles, "mapTileAt", JS_NewCFunction(ctx, js_mapTileAt, "mapTileAt", 2));
+    JS_SetPropertyStr(ctx, tiles, "addMapEntry", JS_NewCFunction(ctx, js_addMapEntry, "addMapEntry", 5));
     JS_SetPropertyStr(ctx, tiles, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaTileCount));
     JS_SetPropertyStr(ctx, tiles, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
     JS_SetPropertyStr(ctx, tiles, "setAnimationFrameHeight",
@@ -328,6 +358,8 @@ void installTilesApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, tiles, "find", JS_NewCFunction(ctx, js_find, "find", 6));
     JS_SetPropertyStr(ctx, tiles, "addLights", JS_NewCFunction(ctx, js_addLights, "addLights", 1));
     JS_SetPropertyStr(ctx, tiles, "setDoor", JS_NewCFunction(ctx, js_setDoor, "setDoor", 2));
+    JS_SetPropertyStr(ctx, tiles, "setWaterStyleCount",
+                      JS_NewCFunction(ctx, js_setWaterStyleCount, "setWaterStyleCount", 1));
     JS_SetPropertyStr(ctx, tiles, "onDrawData", JS_NewCFunction(ctx, js_onDrawData, "onDrawData", 1));
     JS_SetPropertyStr(ctx, bl, "tiles", tiles);
 }

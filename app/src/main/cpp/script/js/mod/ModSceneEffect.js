@@ -5,7 +5,7 @@
 class ModSceneEffect {
     // Music: MusicLoader.GetMusicSlot(...) ou um MusicID do jogo; -1 = não
     // escolhe música, 0 = silêncio. SurfaceBackgroundStyle e
-    // UndergroundBackgroundStyle: a instância do estilo
+    // UndergroundBackgroundStyle e WaterStyle: a instância do estilo
     // (ModContent.GetInstance(Classe)), ou null. Os padrões ficam no
     // protótipo, logo abaixo da classe. Mod: o mod dono (posto no registro).
 
@@ -35,4 +35,5 @@ class ModSceneEffect {
 ModSceneEffect.prototype.Music = -1;
 ModSceneEffect.prototype.SurfaceBackgroundStyle = null;
 ModSceneEffect.prototype.UndergroundBackgroundStyle = null;
+ModSceneEffect.prototype.WaterStyle = null;
 ModSceneEffect.prototype.Priority = SceneEffectPriority.None;

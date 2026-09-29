@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="com.android.vending.CHECK_LICENSE" />
 
-    <!-- O gate de elegibilidade consulta o Terraria instalado — no Android 11+
+    <!-- A detecção consulta o Terraria instalado — no Android 11+
          é preciso declarar visibilidade de pacotes. -->
     <queries>
         <package android:name="com.and.games505.TerrariaPaid" />

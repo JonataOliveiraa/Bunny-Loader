@@ -9,8 +9,7 @@
 #   BL_HOST=127.0.0.1:16384 BL_CLIENT=127.0.0.1:16416 tools/mp-session.sh
 #
 # Pre-condicoes (uma vez so):
-#  - APK de debug instalado nas duas: sem conta Google a segunda instancia nao
-#    tem o Terraria da Play, e so a build de debug passa sem ele (Eligibility).
+#  - APK instalado nas duas (sem o Terraria o launcher so avisa, nao bloqueia).
 #  - Cada instancia do MuMu fica atras do proprio NAT (as duas sao 10.0.2.15).
 #    A porta 7777 do host vai para o PC por `adb forward` (feito aqui), e o
 #    cliente chega ao PC por 10.0.2.2.

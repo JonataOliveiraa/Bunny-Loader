@@ -76,6 +76,11 @@ class Prefs(context: Context) {
         get() = p.getBoolean(DEV_RESTART, true)
         set(v) = p.edit().putBoolean(DEV_RESTART, v).apply()
 
+    /** O launcher já conferiu (e, se faltava, avisou) o Terraria instalado. */
+    var gameCheckDone: Boolean
+        get() = p.getBoolean(GAME_CHECK_DONE, false)
+        set(v) = p.edit().putBoolean(GAME_CHECK_DONE, v).apply()
+
     /** O mundo do início rápido a entregar ao núcleo: vazio = parar no título. */
     val quickWorldFile: String
         get() = quickWorld.takeIf { quickStart && it != TITLE_ONLY } ?: ""
@@ -110,6 +115,7 @@ class Prefs(context: Context) {
         const val DEV_MOD_MENU = "devModMenu"
         const val DEV_EDITOR = "devEditor"
         const val DEV_RESTART = "devRestart"
+        const val GAME_CHECK_DONE = "gameCheckDone"
         /** Nenhum arquivo de mundo tem este nome (o jogo grava `*.wld`). */
         const val TITLE_ONLY = "-"
     }

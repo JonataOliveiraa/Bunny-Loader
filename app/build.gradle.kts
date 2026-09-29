@@ -51,7 +51,7 @@ android {
 
     buildFeatures {
         compose = true
-        buildConfig = true // Eligibility usa BuildConfig.DEBUG
+        buildConfig = true // VERSION_NAME no BootLog e nas Configurações
         prefab = true // necessário para consumir o ShadowHook via prefab
     }
 

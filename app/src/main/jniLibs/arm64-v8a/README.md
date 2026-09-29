@@ -38,5 +38,5 @@ de estourar dentro da Unity.
   - `uk.co.drstudios.lvl.BuildConfig`
   - `uk.co.drstudios.lvl.LicensingCheck`
   - `com.google.android.vending.licensing.*` (a LVL do Google)
-- **`Eligibility.OFFICIAL_CERT_SHA256`**, com o digest de um install genuíno da
-  Play. Enquanto estiver vazio o gate aceita qualquer assinatura e diz isso.
+- **Verificação do Terraria instalado.** Hoje `Eligibility` só detecta o pacote
+  e avisa se faltar; não confere origem nem assinatura e não bloqueia.

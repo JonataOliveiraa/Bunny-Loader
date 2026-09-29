@@ -63,12 +63,8 @@ class GameActivity : Activity() {
         BootLog.captureLogcat(this)
         BootLog.add(this, "=== GameActivity.onCreate ===")
 
-        // Elegibilidade: os binários são nossos, mas o jogo só abre para quem
-        // tem o Terraria oficial da Play no aparelho. Ver Eligibility para o
-        // que isso prova de fato — e o que não prova.
-        val gate = Eligibility.check(this)
-        BootLog.add(this, "elegibilidade: ${gate.detail}")
-        if (!gate.ok) { fail(gate.detail, null); return }
+        // Só para o log: o aviso ao jogador é do launcher, uma vez. Nunca bloqueia.
+        BootLog.add(this, "elegibilidade: ${Eligibility.check(this).detail}")
 
         // O runtime integrado está nesta build? Um APK sem os arquivos compila
         // e instala igual; sem esta checagem o sintoma seria um SIGSEGV dentro

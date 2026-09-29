@@ -1,6 +1,6 @@
 // A cena de cada jogador, como no tModLoader: dos ModSceneEffect ativos (os
 // ModBiome também), o de maior prioridade + peso dá cada canal: a música e os
-// fundos de superfície e de subsolo. Água e mapa entram na etapa deles
+// fundos de superfície e de subsolo e a água. O mapa entra na etapa dele
 // (PLANO-MODBIOME.md).
 class SceneEffectLoader {
     static List = [];
@@ -25,7 +25,7 @@ class SceneEffectLoader {
     // Uma cena vazia: nenhum efeito, música -1 (a do jogo), fundos do jogo.
     static Empty() {
         const none = () => ({ value: -1, priority: SceneEffectPriority.None, from: null });
-        return { anyActive: false, music: none(), surfaceBackground: none(), undergroundBackground: none(), active: [] };
+        return { anyActive: false, music: none(), surfaceBackground: none(), undergroundBackground: none(), waterStyle: none(), active: [] };
     }
 
     // O SpecialVisuals roda para todos, ativo ou não (é onde se desliga um filtro).
@@ -66,6 +66,10 @@ class SceneEffectLoader {
                 if (result.undergroundBackground.from === null) {
                     const style = Safe.Run(name + '.UndergroundBackgroundStyle', () => effect.UndergroundBackgroundStyle);
                     if (style instanceof ModUndergroundBackgroundStyle) result.undergroundBackground = { value: style.Slot, priority, from: effect };
+                }
+                if (result.waterStyle.from === null) {
+                    const style = Safe.Run(name + '.WaterStyle', () => effect.WaterStyle);
+                    if (style instanceof ModWaterStyle) result.waterStyle = { value: style.Slot, priority, from: effect };
                 }
             }
         }

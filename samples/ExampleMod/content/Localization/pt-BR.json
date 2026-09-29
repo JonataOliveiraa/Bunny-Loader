@@ -75,6 +75,14 @@
     "ExampleRobe": "Manto de Exemplo",
     "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias"
   },
+  "MapObject": {
+    "ExampleTile": "Bloco de Exemplo",
+    "ExampleOre": "Minério de Exemplo",
+    "ExampleSink": "Pia de Exemplo",
+    "ExampleAnimatedTile": "Pote de Vaga-lume de Exemplo",
+    "ExampleHerb": "Erva de Exemplo",
+    "ExampleSign": "Placa de Exemplo"
+  },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
     "ExampleGolfBallProjectile": "Bola de Golfe de Exemplo",

@@ -75,6 +75,14 @@
     "ExampleRobe": "Example Robe",
     "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon"
   },
+  "MapObject": {
+    "ExampleTile": "Example Block",
+    "ExampleOre": "Example Ore",
+    "ExampleSink": "Example Sink",
+    "ExampleAnimatedTile": "Example Firefly Jar",
+    "ExampleHerb": "Example Herb",
+    "ExampleSign": "Example Sign"
+  },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
     "ExampleGolfBallProjectile": "Example Golf Ball",

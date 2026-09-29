@@ -28,7 +28,7 @@ export class ExampleStatue extends ModTile {
         TileObjectData.addTile(this.Type);
 
         this.DustType = DustID.Silver;
-        this.AddMapEntry(Color.new(144, 148, 144), 'Statue');
+        this.AddMapEntry(Color.new(144, 148, 144), 'MapObject.Statue');
     }
 
     HitWire(i, j) {

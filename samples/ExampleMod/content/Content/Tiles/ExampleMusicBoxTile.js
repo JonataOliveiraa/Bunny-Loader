@@ -21,7 +21,7 @@ export class ExampleMusicBoxTile extends ModTile {
         tile.StyleLineSkip = 2;
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(191, 142, 111), 'Music Box');
+        this.AddMapEntry(Color.new(191, 142, 111), 'ItemName.MusicBox');
     }
 
     MouseOver(i, j) {

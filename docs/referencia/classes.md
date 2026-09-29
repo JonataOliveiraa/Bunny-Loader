@@ -36,6 +36,7 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`ModSystem`](#modsystem) | O que é do mod inteiro; o ciclo do mundo e os dados salvos nele. | [12](../mods/12-globais-e-mundo.md#modsystem-o-mundo) |
 | [`ModBiome`, `ModSceneEffect`](#modbiome-e-modsceneeffect) | Bioma de mod e efeito de cena (a música e os fundos por prioridade). | — |
 | [`ModSurfaceBackgroundStyle`, `ModUndergroundBackgroundStyle`](#fundos-de-mod) | Fundos de superfície e de subsolo, com as texturas do `BackgroundTextureLoader`. | — |
+| [`ModWaterStyle`, `ModWaterfallStyle`](#água-de-mod) | A água e a cachoeira de um bioma. | — |
 | [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
 | [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
@@ -723,11 +724,11 @@ Assim, `InModBiome` de outro jogador vale em qualquer aparelho, inclusive no
 servidor, onde roda o spawn (`SpawnChance` com `info.Player.InModBiome(...)`). Para
 um jogador remoto não há `OnEnter`/`OnInBiome`/`OnLeave`, como no tModLoader.
 
-O efeito de cena também escolhe o fundo: `SurfaceBackgroundStyle` e
-`UndergroundBackgroundStyle` devolvem a instância do estilo (ver
-[fundos de mod](#fundos-de-mod)), ou `null`.
+O efeito de cena também escolhe o fundo e a água: `SurfaceBackgroundStyle`,
+`UndergroundBackgroundStyle` e `WaterStyle` devolvem a instância do estilo (ver
+[fundos de mod](#fundos-de-mod) e [água de mod](#água-de-mod)), ou `null`.
 
-**Ainda não** (etapas do plano): a água, o mapa, o Bestiário e as tochas do bioma.
+**Ainda não** (etapas do plano): o mapa, o Bestiário e as tochas do bioma.
 
 ### Fundos de mod
 
@@ -782,6 +783,52 @@ tem a transição do jogo, e ao sair da cena o fundo volta ao do jogo.
 
 Com o fundo desligado nas opções, o subsolo usa o desenho antigo do jogo e fica
 com o estilo do jogo. **Ainda não**: `GlobalBackgroundStyle` e o fundo do menu.
+
+### Água de mod
+
+Como no tModLoader. A textura vem do caminho do arquivo da classe
+(`Content/Biomes/MinhaAgua.js` -> `Assets/Textures/Biomes/MinhaAgua.png`, a
+superfície da água, 48x1360 como a do jogo), mais `MinhaAgua_Block.png` (o
+bloco, 306x16) e `MinhaAgua_Slope.png` (a rampa, 72x16; sem ela, o bloco). A
+cachoeira é um PNG de 512x40 com o nome da classe dela.
+
+```js
+export class MinhaCachoeira extends ModWaterfallStyle {
+    AddLight(i, j) { Terraria.Lighting['void AddLight(int i, int j, float r, float g, float b)'](i, j, 0.5, 0.5, 0.5); }
+}
+
+export class MinhaAgua extends ModWaterStyle {
+    ChooseWaterfallStyle() { return ModContent.GetInstance(MinhaCachoeira).Slot; }
+    GetSplashDust() { return Terraria.ID.DustID.BlueCrystalShard; }
+    GetDropletGore() { return ModGore.getTypeByName('MinhaGota'); }
+}
+
+export class MeuBioma extends ModBiome {
+    get WaterStyle() { return ModContent.GetInstance(MinhaAgua); }
+    // ...
+}
+```
+
+| `ModWaterStyle` | |
+|---|---|
+| `Slot` | O número do estilo, depois dos 15 do jogo (`Main.waterStyle` vira ele). |
+| `ChooseWaterfallStyle()` | O `Slot` de uma `ModWaterfallStyle`, ou uma cachoeira do jogo (0 é a da floresta). |
+| `GetSplashDust()` | O pó do respingo (quem cai na água). Padrão: o do jogo. |
+| `GetDropletGore()` | A gota que pinga do bloco. Uma de mod (`Assets/Textures/Gores`) se comporta como a gota d'água do jogo. |
+| `LightColorMultiplier(r, g, b)` | `Ref` (`.value`): quanto da luz atravessa a água. `1, 1, 1` não perde luz. |
+| `GetRainVariant()` | A chuva usa a textura do jogo; a variante (0 a 2 é a da floresta). |
+
+| `ModWaterfallStyle` | |
+|---|---|
+| `Slot` | O número, depois dos 28 do jogo. |
+| `AddLight(i, j)` | Luz na cachoeira, de 3 em 3 tiles da queda (o celular embute a luz e a cor das cachoeiras do jogo no desenho; a de mod roda depois dele). |
+
+A água entra com `Priority` `BiomeLow` ou maior e só onde o jogo usaria a do
+fundo comum, como no tModLoader: uma fonte de água ligada, a lua de sangue e os
+fundos de bioma do jogo (selva, deserto, neve...) ganham. A troca tem o fade do
+jogo, e ao sair a água volta à do jogo. **Ainda não**: a textura de chuva
+própria (`GetRainTexture`), a cor da cachoeira (`ColorMultiplier`) e a cor de
+cabelo do bioma (`BiomeHairColor`).
 
 ---
 

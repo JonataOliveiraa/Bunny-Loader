@@ -98,6 +98,8 @@ bool Api::load() {
     bindSoft(lib, "il2cpp_class_from_system_type", &class_from_system_type);
     bindSoft(lib, "il2cpp_class_get_declaring_type", &class_get_declaring_type);
     ok &= bind(lib, "il2cpp_thread_attach", &thread_attach);
+    bindSoft(lib, "il2cpp_monitor_enter", &monitor_enter);
+    bindSoft(lib, "il2cpp_monitor_exit", &monitor_exit);
     bindSoft(lib, "il2cpp_class_enum_basetype", &class_enum_basetype);
     bindSoft(lib, "il2cpp_class_get_fields", &class_get_fields);
     bindSoft(lib, "il2cpp_field_get_name", &field_get_name);

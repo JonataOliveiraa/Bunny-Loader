@@ -1,0 +1,15 @@
+{
+  "uid": "e6ff600a-ac46-41af-be41-502c4e2cd8cd",
+  "id": "test-itemsort",
+  "name": "Teste: ordenar inventário com item de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O botão Ordenar do inventário não pode apagar item de mod.",
+  "description": "Teste do runtime (content/items/ModItemSorting.cpp). Loga 'itemsort ...'.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

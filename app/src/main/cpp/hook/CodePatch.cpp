@@ -175,7 +175,7 @@ std::string describeCompareMiss(const MethodInfo* m, uint32_t oldLimit, uint32_t
     return std::string(why) + "; " + describeMethodCode(m);
 }
 
-int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd) {
+int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd, bool exitOnEqual) {
     if (!m || newEnd > 0xFFF || oldEnd > 0xFFF) return 0;
     const auto start = reinterpret_cast<uintptr_t>(methodPointerOf(m));
     if (!start) return 0;
@@ -186,7 +186,7 @@ int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd) {
         if ((*p & 0xFFC0001Fu) != 0xF100001Fu || ((*p >> 10) & 0xFFFu) != oldEnd) continue;
         if ((p[1] & 0xFF000010u) != 0x54000000u) continue;
         const uint32_t cond = p[1] & 0xFu;
-        if (cond != 0x1 && cond != 0xB && cond != 0x3) continue;   // NE, LT, LO
+        if (exitOnEqual ? cond != 0x0 : cond != 0x1 && cond != 0xB && cond != 0x3) continue;   // EQ | NE, LT, LO
         if (writeInstruction(p, (*p & ~(0xFFFu << 10)) | (newEnd << 10))) ++patched;
     }
     return patched;

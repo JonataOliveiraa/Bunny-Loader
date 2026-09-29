@@ -8,6 +8,7 @@
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
+#include "content/items/ModItemSorting.h"
 #include "content/items/UnloadedIcon.h"
 
 #include <atomic>
@@ -639,6 +640,7 @@ void tickModItems() {
     // mod e volta em finishModItem, que pede a mesma trava — segura-la aqui
     // travaria o jogo no primeiro item.
     for (const PendingSample& n : pending) registerSample(n.type, n.mod, n.name);
+    installModItemSorting(from, to);
     BL_INFO("itens de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
     if (ItemsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) hook(from, to - 1);

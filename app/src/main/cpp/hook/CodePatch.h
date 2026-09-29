@@ -55,8 +55,11 @@ std::string describeMethodCode(const MethodInfo* m);
  * (32 = o cabecalho do array). Troca o `cmp xN, #oldEnd` (64 bits) seguido de
  * b.ne/b.lt/b.lo. A scan_limits.py nao acha essa forma; a scan_loops.py
  * (tools/disasm) acha. Chamar na thread do jogo, uma vez.
+ *
+ * `exitOnEqual`: o laco que testa o fim no comeco, `cmp xN, #fim; b.eq sai`
+ * (o segundo laco do Main.DrawWaters).
  */
-int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd);
+int patchLoopEnd(const MethodInfo* m, uint32_t oldEnd, uint32_t newEnd, bool exitOnEqual = false);
 
 /**
  * O limite grande demais para o `cmp #imm12`: o clang poe o numero num

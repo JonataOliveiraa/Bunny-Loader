@@ -7,6 +7,7 @@
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
+#include "content/tiles/ModTileMap.h"
 
 #include <atomic>
 #include <cstdlib>
@@ -21,7 +22,6 @@ namespace {
 struct Entry {
     ModTileDef def;
     uint32_t asset = 0;   // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
-    int mapColor = -1;    // 0xRRGGBB do AddMapEntry; -1 = fora do mapa
 };
 
 std::mutex g_mx;
@@ -401,82 +401,8 @@ bool fixGlowMask(int total) {
     return true;
 }
 
-// ---- mapa: a cor do jogo mais proxima ----
-
-struct MapRefs {
-    bool tried = false, ok = false;
-    FieldInfo *lookup = nullptr, *options = nullptr, *colors = nullptr, *wallPosition = nullptr;
-};
-
-MapRefs& mapRefs() {
-    static MapRefs m;
-    if (m.tried) return m;
-    m.tried = true;
-    Il2CppClass* map = il2cpp::findClass({"Terraria.Map", "MapHelper", {}});
-    m.lookup = map ? il2cpp::findField(map, "tileLookup") : nullptr;
-    m.options = map ? il2cpp::findField(map, "tileOptionCounts") : nullptr;
-    m.colors = map ? il2cpp::findField(map, "colorLookup") : nullptr;
-    m.wallPosition = map ? il2cpp::findField(map, "wallPosition") : nullptr;
-    m.ok = m.lookup && m.options && m.colors && m.wallPosition;
-    if (!m.ok) BL_ERROR("tiles de mod: MapHelper sem as tabelas de cor; tile de mod fora do mapa");
-    return m;
-}
-
-std::atomic<bool> g_mapDirty{true};
-
-/** Aponta cada tile de mod para a cor do jogo mais proxima. Refaz se o jogo refizer as tabelas. */
-void applyMapColors(int total) {
-    static Il2CppArray* doneFor = nullptr;
-    const MapRefs& m = mapRefs();
-    if (!m.ok) return;
-    Il2CppArray* lookup = readStatic(m.lookup);
-    Il2CppArray* options = readStatic(m.options);
-    Il2CppArray* colors = readStatic(m.colors);
-    uint16_t wallPosition = 0;
-    il2cpp::api().field_static_get_value(m.wallPosition, &wallPosition);
-    if (!lookup || !options || !colors || wallPosition <= 1 ||
-        lookup->length < static_cast<uintptr_t>(total) || options->length < static_cast<uintptr_t>(total) ||
-        colors->length < wallPosition) {
-        static int waited = 0;
-        if (++waited == 600) {
-            BL_DEBUG("tiles de mod: mapa ainda sem tabelas (lookup %d, opcoes %d, cores %d, paredes em %d)",
-                     lookup ? static_cast<int>(lookup->length) : -1, options ? static_cast<int>(options->length) : -1,
-                     colors ? static_cast<int>(colors->length) : -1, wallPosition);
-        }
-        return;
-    }
-    if (lookup == doneFor && !g_mapDirty.exchange(false)) return;
-    auto* lk = static_cast<uint16_t*>(arrayData(lookup));
-    auto* op = static_cast<int32_t*>(arrayData(options));
-    // O Color deste jogo fica na memoria como A, B, G, R (o packedValue ao contrario).
-    const auto* col = static_cast<const uint8_t*>(arrayData(colors));
-    std::lock_guard<std::mutex> l(g_mx);
-    for (size_t i = 0; i < g_regs.size() && static_cast<int>(i) < total - kVanillaTileCount; ++i) {
-        const int type = kVanillaTileCount + static_cast<int>(i);
-        const int want = g_regs[i].mapColor;
-        if (want < 0) {
-            lk[type] = 0;
-            op[type] = 0;
-            continue;
-        }
-        const int r = (want >> 16) & 255, g = (want >> 8) & 255, b = want & 255;
-        int best = 1, bestDist = 1 << 30;
-        // As cores de tile ficam em [1, wallPosition): as de parede vem depois.
-        for (int c = 1; c < wallPosition; ++c) {
-            const uint8_t* p = col + static_cast<size_t>(c) * 4;
-            const int dr = p[3] - r, dg = p[2] - g, db = p[1] - b;
-            const int d = dr * dr + dg * dg + db * db;
-            if (d < bestDist) { bestDist = d; best = c; }
-        }
-        lk[type] = static_cast<uint16_t>(best);
-        op[type] = 1;
-    }
-    doneFor = lookup;
-    BL_DEBUG("tiles de mod: cores de mapa aplicadas (%zu tile(s))", g_regs.size());
-}
-
 // O MapHelper.Initialize refaz tileLookup/tileOptionCounts/colorLookup com o
-// tamanho de fabrica ao entrar no mundo: aumenta e aplica as cores na hora, e
+// tamanho de fabrica: aumenta e poe as entradas de mapa dos mods na hora, e
 // nao 2 s depois pela vigia (o mapa leria alem do fim nesse meio tempo).
 using MapInitFn = void (*)(const MethodInfo*);
 MapInitFn g_origMapInit = nullptr;
@@ -487,8 +413,7 @@ void hkMapInitialize(const MethodInfo* m) {
     const int total = tileTypeCount();
     if (total <= kVanillaTileCount) return;
     g_tables.watch(total, onTableRegrown);
-    g_mapDirty.store(true);
-    applyMapColors(total);
+    applyModTileMap(total, true);
 }
 
 void hookMapInitialize() {
@@ -1047,7 +972,7 @@ void tickModTiles() {
         g_tables.checkPending(from);
         fixTileMerge(from);
         if (fixGlowMask(from)) BL_DEBUG("tiles de mod: tileGlowMask dos tipos de mod em -1");
-        applyMapColors(from);
+        applyModTileMap(from, false);
         static bool padded = false;
         static int frame = 0;
         ++frame;
@@ -1073,6 +998,7 @@ void tickModTiles() {
     }
     hookAllocate();
     hookMapInitialize();
+    installModTileMap();
     const bool mergeMissing = !readStatic(refs().merge);
     const int grown = g_tables.grow(from, to);
     if (grown < 0) {
@@ -1139,14 +1065,6 @@ int modTileTypeByKey(const std::string& key) {
     const size_t slash = key.find('/');
     if (slash == std::string::npos) return -1;
     return modTileTypeByName(key.substr(0, slash), key.substr(slash + 1));
-}
-
-void setModTileMapColor(int type, int r, int g, int b) {
-    std::lock_guard<std::mutex> l(g_mx);
-    const size_t i = static_cast<size_t>(type - kVanillaTileCount);
-    if (type < kVanillaTileCount || i >= g_regs.size()) return;
-    g_regs[i].mapColor = ((r & 255) << 16) | ((g & 255) << 8) | (b & 255);
-    g_mapDirty.store(true);
 }
 
 void setModTileAnimation(int type, int frameHeight) {

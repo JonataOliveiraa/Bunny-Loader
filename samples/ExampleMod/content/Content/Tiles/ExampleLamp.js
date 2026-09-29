@@ -44,7 +44,7 @@ export class ExampleLamp extends ModTile {
         tile.LavaPlacement = LiquidPlacement.NotAllowed;
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(253, 221, 3), 'Floor Lamp');
+        this.AddMapEntry(Color.new(253, 221, 3), 'MapObject.FloorLamp');
         this.flameTexture = ModContent.Request(this.Texture + '_Flame');
     }
 

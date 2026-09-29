@@ -16,7 +16,7 @@ export class ExampleBar extends ModTile {
         TileObjectData.newTile.LavaDeath = false;
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(200, 200, 200), 'Metal Bar');
+        this.AddMapEntry(Color.new(200, 200, 200), 'MapObject.MetalBar');
     }
 
     TileFrame(i, j, resetFrame, noBreak) {

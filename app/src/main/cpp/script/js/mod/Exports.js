@@ -5,6 +5,7 @@ Object.assign(globalThis, {
     ModPrefix, PrefixCategory, PrefixLoader,
     ModSystem, TagCompound, ModSceneEffect, ModBiome,
     ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, BackgroundTextureLoader,
+    ModWaterStyle, ModWaterfallStyle,
     ModPlayer, ModBuff, ModTile, ModProjectile,
     ModNPC, NPCLoot, NPCSpawnInfo, NPCShop, NPCHappiness, AffectionLevel, ModGore,
     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,

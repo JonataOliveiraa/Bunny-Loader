@@ -61,6 +61,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/PlayerLoader ModPlayer
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
+    Loaders/WaterfallStyleLoader Loaders/WaterStyleLoader ModWaterfallStyle ModWaterStyle
     Loaders/SceneEffectLoader Loaders/BiomeLoader ModSceneEffect ModBiome
     Loaders/BuffLoader ModBuff
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
