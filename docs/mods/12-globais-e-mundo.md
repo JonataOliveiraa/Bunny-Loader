@@ -108,6 +108,39 @@ export class SlimeGlobalNPC extends GlobalNPC {
 - `GetChat(npc, chat)`: `chat` é um `Ref` com a fala que o jogo escolheu;
   troque o `chat.value`.
 
+### O spawn natural
+
+Como no tModLoader, o `GlobalNPC` mexe no spawn de inimigos em volta de cada
+jogador. Roda sozinho ou no servidor, e o `player` é o jogador-alvo:
+
+```js
+export class SpawnDoBioma extends GlobalNPC {
+    // Ref: spawnRate menor = mais spawn; maxSpawns = quantos por perto.
+    EditSpawnRate(player, spawnRate, maxSpawns) {
+        if (player.InModBiome(MeuBioma)) {
+            spawnRate.value = Math.floor(spawnRate.value * 0.5);
+            maxSpawns.value = Math.floor(maxSpawns.value * 1.5);
+        }
+    }
+
+    // O sorteio: pool[tipo] = peso; o 0 é o spawn do jogo (peso 1).
+    EditSpawnPool(pool, spawnInfo) {
+        if (spawnInfo.Player.InModBiome(MeuBioma)) {
+            pool[0] = 0.25;                          // menos inimigos do jogo
+            pool[NPCID.GreenSlime] = 0.5;            // e um do jogo a mais
+        }
+    }
+}
+```
+
+- `EditSpawnRange(player, spawnRangeX, spawnRangeY, safeRangeX, safeRangeY)`:
+  `Ref`, em blocos: até onde nasce e o quanto longe do jogador.
+- `EditSpawnInfo(spawnInfo)`: com o ponto escolhido, antes do sorteio. Os
+  campos do `spawnInfo` (`waterTile`, `nearGranite`...) mudam o que o jogo e
+  os `SpawnChance` leem.
+- `SpawnNPC(npc, tileX, tileY)`: depois de nascer um NPC sorteado que não é o
+  do jogo.
+
 ## Um estado por entidade
 
 Por padrão, existe **um** objeto do Global, compartilhado por todas as
@@ -364,7 +397,7 @@ pequeno.
 - `NetSend`/`NetReceive` do `GlobalItem` (itens no chão e no inventário);
 - `SaveData`/`LoadData` por entidade (de um item ou de um NPC morador);
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
-- no `GlobalNPC`: `UpdateLifeRegen`, `EditSpawnRate`/`EditSpawnPool`,
+- no `GlobalNPC`: `UpdateLifeRegen`, `EditSpawnFlags`, o `SpawnCondition`,
   `ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`;
 - no `GlobalProjectile`: `GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`;
 - no `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, os

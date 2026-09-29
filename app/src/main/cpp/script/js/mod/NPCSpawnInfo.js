@@ -1,8 +1,38 @@
+// O que o SpawnChance, o EditSpawnPool e o EditSpawnInfo recebem, como o
+// NPC.Spawner do tModLoader: o ponto do spawn (SpawnTileX/Y, GroundTileY e o
+// bloco e a parede dele), o jogador-alvo (Player, o certo no multijogador) e
+// os campos do NPC.Spawner do jogo (waterTile, nearGranite, ZoneCorrupt...),
+// que se leem e se escrevem direto: o EditSpawnInfo muda o que o jogo usa.
+// Mais os atalhos de altura, hora e bioma abaixo.
 class NPCSpawnInfo {
-    constructor(x, y, player) {
-        this.SpawnTileX = Math.floor(x / 16);
-        this.SpawnTileY = Math.floor(y / 16);
-        this.Player = player;
+    // Os campos de instância do NPC.Spawner do celular (1.4.5).
+    static FIELDS = [
+        'numberOfActivePlayers', 'reachedInvasionBossCap', 'pX', 'pY', 'luck', 'dayTime', 'raining',
+        'townNPCs', 'skyMob', 'noWorms', 'noGroundWorms', 'invaders', 'spawnFriendly', 'ignoreSafeWalls',
+        'waterTile', 'nearGranite', 'nearMarble', 'spawnSpider', 'surfaceSpawn', 'spawnUndergroundDesert',
+        'hardDungeon', 'deeperThanRockLayer', 'underGround', 'isOcean', 'isBeach', 'isSpawningInWindDirection',
+        'skyBehindPlayer', 'livingTree', 'dualDungeonsSpawnRules', 'inDualDungeon', 'tresspassingDualDungeon',
+        'inRemixStartingArea', 'offensiveToTim', 'playerHasStartingHealth', 'ZoneCorrupt', 'ZoneCrimson',
+        'ZoneHallow', 'ZoneJungle', 'ZoneSnow', 'ZoneGlowshroom', 'ZoneMeteor', 'ZoneGraveyard', 'ZoneDungeon',
+        'ZoneLihzhardTemple', 'ZoneGranite', 'ZoneMarble', 'ZoneSandstorm', 'ZoneTowerSolar', 'ZoneTowerVortex',
+        'ZoneTowerNebula', 'ZoneTowerStardust', 'ZoneOldOneArmy', 'ZoneWaterCandle', 'ZonePeaceCandle',
+        'ZoneShadowCandle', 'defaultTarget',
+    ];
+
+    // spawner: o NPC.Spawner do jogo; tileX/tileY: o ponto do spawn; target:
+    // o índice do jogador. xRange: longe o bastante na horizontal (SafeRangeX).
+    constructor(spawner, tileX, tileY, target, xRange = false) {
+        this.Spawner = spawner;
+        this.SpawnTileX = tileX;
+        this.SpawnTileY = tileY;
+        this.SafeRangeX = !!xRange;
+        this.Player = Terraria.Main.player[target >= 0 && target < 255 ? target : Terraria.Main.myPlayer];
+
+        const ground = new Ref(tileY);
+        Terraria.NPC.Spawner['void FindGroundTile(int x, int y, out int groundTileY)'](tileX, tileY, ground);
+        this.GroundTileY = ground.value;
+        this.SpawnTileType = bl.tiles.typeAt(tileX, this.GroundTileY);
+        this.SpawnWallType = Terraria.NPC.Spawner['int GetSpawnWallType(int spawnTileX, int spawnTileY)'](tileX, tileY);
     }
 
     get Sky() { return this.Player.ZoneSkyHeight; }
@@ -55,4 +85,11 @@ class NPCSpawnInfo {
         const p = this.Player;
         return p.ZoneTowerSolar || p.ZoneTowerVortex || p.ZoneTowerNebula || p.ZoneTowerStardust;
     }
+}
+
+for (const name of NPCSpawnInfo.FIELDS) {
+    Object.defineProperty(NPCSpawnInfo.prototype, name, {
+        get() { return this.Spawner[name]; },
+        set(v) { this.Spawner[name] = v; },
+    });
 }

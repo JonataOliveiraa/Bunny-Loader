@@ -4,6 +4,10 @@
 // troca, OnInBiome a cada quadro dentro. Consulta: player.InModBiome(Classe).
 // Padrões (no protótipo): Priority BiomeLow e Music 0, o silêncio, como no
 // tModLoader; um bioma sem música própria declara Music = -1.
+// BestiaryIcon e BackgroundPath: caminhos em Assets/Textures, por padrão o da
+// classe + _Icon e + _Background (Content/Biomes/X.js -> Biomes/X_Background),
+// como no tModLoader. O fundo do mapa pode reusar o do Bestiário:
+// `get MapBackground() { return this.BackgroundPath; }`.
 class ModBiome extends ModSceneEffect {
     IsBiomeActive(player) { return false; }
 

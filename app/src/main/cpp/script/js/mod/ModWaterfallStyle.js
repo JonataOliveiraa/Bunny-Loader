@@ -8,6 +8,10 @@ class ModWaterfallStyle {
     // depois dele, uma vez por quadro.
     AddLight(i, j) {}
 
+    // A cor da cachoeira: r, g, b são Ref (.value, 0 a 255, a luz do lugar
+    // vezes a opacidade) e a, a opacidade. Para cores que mudam com o tempo.
+    ColorMultiplier(r, g, b, a) {}
+
     SetStaticDefaults() {}
 
     static register(cls) {

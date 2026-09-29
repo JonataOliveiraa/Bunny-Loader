@@ -31,6 +31,17 @@ PACKS=/sdcard/Android/data/com.bunnyloader/bunny_packs
 # nome fixo fazia uma rodada empurrar o mod da outra. Na pasta atual, e nao
 # em /tmp: o adb.exe do Windows nao acha caminho do MSYS.
 TAR="blmod.$$.tar"
+# Lapide de jogador morto num teste liga o cemiterio (musica, luz, nevoa e
+# spawn mudam) e atrapalha os outros: o tests/cleanworld entra em toda rodada
+# e tira as lapides ao entrar no mundo. BL_KEEP_GRAVES=1 desliga (e tira o
+# pacote dele do aparelho, se uma rodada anterior o deixou).
+CLEAN="$(dirname "$0")/../tests/cleanworld"
+if [ -n "${BL_KEEP_GRAVES:-}" ]; then
+    u=$(uid "$CLEAN")
+    adb -s "$D" shell "rm -rf $PACKS/$u 2>/dev/null || su -c 'rm -rf $PACKS/$u'" >/dev/null 2>&1 || true
+else
+    case " $* " in *cleanworld*) ;; *) set -- "$CLEAN" "$@" ;; esac
+fi
 for dir in "$@"; do
     u=$(uid "$dir")
     tar -C "$dir" -cf "$TAR" .
@@ -81,15 +92,16 @@ sleep 22; tap 590 517 "Mais tarde (aviso de controles)"
 # Espera o FIM de CADA teste instalado (os de tools/tests/), nao so o
 # primeiro: um termina ao carregar, outro so depois de 300 quadros no mundo.
 expected=0
-for dir in "$@"; do case "$dir" in *tests/*) expected=$((expected + 1)) ;; esac; done
+# O cleanworld termina no 2o quadro: nao conta (senao o benchmark parava cedo).
+for dir in "$@"; do case "$dir" in *cleanworld) ;; *tests/*) expected=$((expected + 1)) ;; esac; done
 [ "$expected" -gt 0 ] || expected=1
 for i in $(seq 1 60); do
     sleep 2
-    got=$(adb -s "$D" logcat -d -s BunnyLoader | grep -c "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM\|exmod1 FIM\|extrafields FIM\|exmod2 FIM\|recipes FIM\|buffs FIM\|files FIM\|modplayer FIM\|refs FIM\|tiles FIM\|tilesave FIM\|hookslots FIM\|tileframes FIM\|summons FIM\|townnpc FIM\|townshop FIM\|townfight FIM\|boss FIM\|drops FIM\|fishline FIM\|crossmod FIM\|crossmodtarget FIM\|sounds FIM\|music FIM\|structindex FIM\|ifbusy FIM\|enginethreads FIM\|modcontent FIM\|strictnames FIM\|globals FIM\|autoload FIM\|nomodclass FIM\|multitile FIM\|localization FIM\|modfurniture FIM\|tileperf FIM\|armor FIM\|armorsave FIM\|prefix FIM\|biomescan FIM\|modbiome FIM\|modbiomeb FIM\|biomemusic FIM\|biomeworld FIM\|bgscan FIM\|modbg FIM\|arrays FIM\|itemsort FIM\|tilemap FIM\|modwater FIM" || true)
+    got=$(adb -s "$D" logcat -d -s BunnyLoader | grep -c "bench quadro\|moditems FIM\|modsave FIM\|projeteis FIM\|npcs FIM\|hooks FIM\|exmod1 FIM\|extrafields FIM\|exmod2 FIM\|recipes FIM\|buffs FIM\|files FIM\|modplayer FIM\|refs FIM\|tiles FIM\|tilesave FIM\|hookslots FIM\|tileframes FIM\|summons FIM\|townnpc FIM\|townshop FIM\|townfight FIM\|boss FIM\|drops FIM\|fishline FIM\|crossmod FIM\|crossmodtarget FIM\|sounds FIM\|music FIM\|structindex FIM\|ifbusy FIM\|enginethreads FIM\|modcontent FIM\|strictnames FIM\|globals FIM\|autoload FIM\|nomodclass FIM\|multitile FIM\|localization FIM\|modfurniture FIM\|tileperf FIM\|armor FIM\|armorsave FIM\|prefix FIM\|biomescan FIM\|modbiome FIM\|modbiomeb FIM\|biomemusic FIM\|biomeworld FIM\|bgscan FIM\|modbg FIM\|arrays FIM\|itemsort FIM\|tilemap FIM\|modwater FIM\|modmap FIM\|modspawn FIM" || true)
     [ "$got" -ge "$expected" ] && break
 done
 sleep 4
-adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\|exmod1\|extrafields\|exmod2\|recipes\|buffs\|files\|modplayer\|refs\|tiles\|tilesave\|hookslots\|tileframes\|summons\|townnpc\|townshop\|townfight\|boss\|drops\|fishline\|crossmod\|sounds\|music\|structindex\|ifbusy\|enginethreads\|modcontent\|strictnames\|globals\|autoload\|nomodclass\|multitile\|localization\|modfurniture\|tileperf\|armor\|armorsave\|prefix\|biomescan\|modbiome\|modbiomeb\|biomemusic\|biomeworld\|bgscan\|modbg\|arrays\|itemsort\|tilemap\|modwater\)" \
+adb -s "$D" logcat -d -s BunnyLoader | grep -a "\[mod\] \(bench\|wrappers\|nullable\|moditems\|modsave\|projeteis\|npcs\|hooks\|exmod1\|extrafields\|exmod2\|recipes\|buffs\|files\|modplayer\|refs\|tiles\|tilesave\|hookslots\|tileframes\|summons\|townnpc\|townshop\|townfight\|boss\|drops\|fishline\|crossmod\|sounds\|music\|structindex\|ifbusy\|enginethreads\|modcontent\|strictnames\|globals\|autoload\|nomodclass\|multitile\|localization\|modfurniture\|tileperf\|armor\|armorsave\|prefix\|biomescan\|modbiome\|modbiomeb\|biomemusic\|biomeworld\|bgscan\|modbg\|arrays\|itemsort\|tilemap\|modwater\|modmap\|modspawn\|cleanworld\)" \
     | sed 's/.*\[mod\] //' > "$OUT"
 echo "segfaults: $(adb -s "$D" logcat -d | grep -a -c 'Forwarding signal')" >> "$OUT"
 cat "$OUT"

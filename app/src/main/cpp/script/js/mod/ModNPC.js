@@ -41,9 +41,11 @@ class ModNPC {
 
     // O peso no sorteio do spawn natural (o do jogo pesa 1). 0 = não nasce.
     SpawnChance(spawnInfo) { return 0; }
-    SpawnNPC(spawnX, spawnY) {
+    // Sorteado: como nasce, no bloco do spawn (tileX, tileY), como no
+    // tModLoader. Devolve o índice do NPC. Padrão: em cima do bloco.
+    SpawnNPC(tileX, tileY) {
         const N = Terraria.NPC;
-        return N.NewNPC(N.GetSpawnSourceForNaturalSpawn(), Math.floor(spawnX), Math.floor(spawnY), this.Type, 0, 0, 0, 0, 0, 255);
+        return N.NewNPC(N.GetSpawnSourceForNaturalSpawn(), tileX * 16 + 8, tileY * 16, this.Type, 0, 0, 0, 0, 0, 255);
     }
 
     // Morador (npc.townNPC = true no SetDefaults, aiStyle 7).

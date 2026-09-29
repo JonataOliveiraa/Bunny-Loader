@@ -5,7 +5,10 @@
 //     Main.waterStyle, o fade sobe o alpha dela e zera os do jogo, o
 //     CalculateWaterStyle devolve ela, o respingo e a chuva são os dela, e a
 //     luz atravessa a água sem perda (LightColorMultiplier 1);
-//   - a cachoeira de mod é pedida ao jogo (DrawWaterfall com o número dela);
+//   - a cachoeira de mod é pedida ao jogo (DrawWaterfall com o número dela),
+//     com a cor do ColorMultiplier (só o vermelho), num meio-bloco na parede;
+//   - a chuva com a textura da água (GetRainTexture, vermelha, 16 x 44) e a
+//     tintura de bioma com a cor dela (BiomeHairColor);
 //   - desligada, tudo volta ao do jogo.
 // Loga "modwater <caso>: ok | FALHOU" e "modwater: tela <nome>" para a captura.
 const Main = Terraria.Main;
@@ -27,8 +30,14 @@ function check(label, fn) {
 
 const SPLASH = Terraria.ID.DustID.GoldFlame;
 
+let tintCalls = 0;
 export class TestWaterfall extends ModWaterfallStyle {
     Texture = 'Water/TestWaterfall';
+    ColorMultiplier(r, g, b, a) {
+        tintCalls++;
+        g.value = 0;
+        b.value = 0;
+    }
 }
 
 export class TestWater extends ModWaterStyle {
@@ -37,6 +46,34 @@ export class TestWater extends ModWaterStyle {
     GetSplashDust() { return SPLASH; }
     LightColorMultiplier(r, g, b) { r.value = 1; g.value = 1; b.value = 1; }
     GetRainVariant() { return 1; }
+    GetRainTexture() { return 'Water/TestRain'; }
+    BiomeHairColor() { return Color.new(255, 0, 0, 255); }
+}
+
+const HAIR_RED = '255,0,0,255';
+const rgba = (c) => [c.R, c.G, c.B, c.A].join(',');
+// A tintura de bioma do jogo (a lambda do item 1983), chamada direto.
+function biomeHair(player) {
+    const lambdas = Terraria.Initializers.DyeInitializer['<>c'];
+    player.hairDyeColor = Color.new(0, 0, 0, 0);
+    return lambdas['<>9']['Color <LoadLegacyHairdyes>b__5_6(Player player, Color newColor, ref bool lighting)'](player, Color.White, new Ref(false));
+}
+
+// O desenho da chuva (depois do hook do loader, então vê a textura trocada).
+const rainDraws = { mod: 0, game: 0, x: -1 };
+function watchRain() {
+    Microsoft.Xna.Framework.Graphics.SpriteBatch['void Draw(Texture2D texture, ref Vector2 position, ref Rectangle srcRect, ref Color color, float rotation, Vector2 origin, float scale)'].hook(
+        (original, self, texture, position, srcRect, color, rotation, origin, scale) => {
+            if (texture && texture.Width === 16 && texture.Height === 44) { rainDraws.mod++; rainDraws.x = srcRect.value.X; }
+            else rainDraws.game++;
+            return original(self, texture, position, srcRect, color, rotation, origin, scale);
+        }, { whileIn: Terraria.Main['void DrawRain()'] });
+}
+function dropRain() {
+    const p = Main.player[Main.myPlayer];
+    for (let k = 0; k < 6; k++) {
+        Terraria.Rain['int NewRainForced(Vector2 Position, Vector2 Velocity)'](Vector2.new(p.Center.X - 60 + k * 20, p.Center.Y - 260), Vector2.new(0, 4));
+    }
 }
 
 export class TestScene extends ModSceneEffect {
@@ -97,6 +134,12 @@ function buildPool() {
         place(x, floor, Terraria.ID.TileID.Stone);
     }
     for (let y = floor - 4; y < floor; y++) { place(x0, y, Terraria.ID.TileID.Stone); place(pool.x1, y, Terraria.ID.TileID.Stone); }
+    // A cachoeira: o topo da parede direita vira meio-bloco, com água cheia
+    // de um lado e ar do outro (o FindWaterfalls do jogo).
+    for (let x = pool.x1 + 1; x <= pool.x1 + 2; x++) {
+        for (let y = floor - 6; y < floor + 2; y++) { kill(x, y); tileAt(x, y).liquid = 0; }
+    }
+    W['bool PoundTile(int i, int j)'](pool.x1, floor - 4);
     for (let x = x0 + 1; x < pool.x1; x++) {
         for (let y = floor - 4; y < floor; y++) {
             tileAt(x, y).liquid = 255;   // tipo 0 (água), o padrão
@@ -130,7 +173,7 @@ function onChecks() {
         if (idx < 0 || idx >= Main.rain.length) return 'sem vaga de chuva: ' + idx;
         const type = Main.rain[idx].type;
         Main.rain[idx].active = false;
-        return type === 1 || 'tipo ' + type;
+        return (type >= 64 && (type & 7) === 1) || 'tipo ' + type + ' (esperado 64 + 8k + a variante 1)';
     });
     check('luz: LightColorMultiplier 1 vira 0,91 no LightMap', () => {
         const state = LocalUserGameState.Instance;
@@ -138,6 +181,13 @@ function onChecks() {
         const v = engine._workingLightMap.LightDecayThroughWater;
         const near = (x) => Math.abs(x - 0.91) < 0.01;
         return (near(v.X) && near(v.Y) && near(v.Z)) || `${v.X.toFixed(3)} ${v.Y.toFixed(3)} ${v.Z.toFixed(3)} (modo ${Terraria.Lighting.Mode})`;
+    });
+    check('chuva desenhada com a textura da água, na coluna da variante', () =>
+        (rainDraws.mod > 0 && rainDraws.x === 4) || JSON.stringify(rainDraws));
+    check('cachoeira de mod com o ColorMultiplier', () => tintCalls > 0 || 'ColorMultiplier não foi chamado; cachoeiras ' + JSON.stringify(drawnWaterfalls));
+    check('tintura de bioma: a cor da água (BiomeHairColor)', () => {
+        const c = rgba(biomeHair(Main.player[Main.myPlayer]));
+        return c === HAIR_RED || c;
     });
     bl.log('modwater cachoeiras desenhadas por número: ' + JSON.stringify(drawnWaterfalls));
     let gameTid = '?';
@@ -150,6 +200,10 @@ function offChecks() {
     check('desligada: a água do jogo volta', () => Main.waterStyle === vanilla || `waterStyle ${Main.waterStyle}, antes ${vanilla}`);
     check('desligada: o alpha da água de mod zera', () => alphas()[s] === 0 || 'alpha ' + alphas()[s]);
     check('desligada: o respingo volta ao do jogo', () => Terraria.Dust['int dustWater()']() !== SPLASH || 'ainda o da água de mod');
+    check('desligada: a tintura de bioma volta à do jogo', () => {
+        const c = rgba(biomeHair(Main.player[Main.myPlayer]));
+        return c !== HAIR_RED || c;
+    });
 }
 
 let frame = 0, done = false;
@@ -166,10 +220,11 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
         const n = Main.npc[k];
         if (n.active && !n.friendly && !n.townNPC) n.active = false;
     }
-    if (frame === 10) { registration(); buildPool(); }
+    if (frame === 10) { registration(); buildPool(); watchRain(); }
     // Cada fase dura uns 5 s: a captura (tools, pelo log) chega 1 a 3 s depois da linha "tela".
     if (frame === 70) { vanilla = Main.waterStyle; bl.log('modwater: tela do-jogo (estilo ' + vanilla + ')'); }
     if (frame === 400) TestScene.on = true;
+    if (frame === 500) dropRain();
     // O celular desenha a água em menos quadros que o jogo roda: o fade (0,2
     // por desenho) leva mais que os 5 quadros do PC.
     if (frame === 520) { onChecks(); bl.log('modwater: tela de-mod'); }

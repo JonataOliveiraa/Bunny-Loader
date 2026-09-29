@@ -62,12 +62,12 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
     Loaders/WaterfallStyleLoader Loaders/WaterStyleLoader ModWaterfallStyle ModWaterStyle
-    Loaders/SceneEffectLoader Loaders/BiomeLoader ModSceneEffect ModBiome
+    Loaders/MapBackgroundLoader Loaders/SceneEffectLoader Loaders/BiomeLoader ModSceneEffect ModBiome
     Loaders/BuffLoader ModBuff
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
     Loaders/ProjectileLoader ModProjectile
-    NPCLoot NPCSpawnInfo Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
+    NPCLoot NPCSpawnInfo SpawnPool Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
     NPCHappiness NPCShop Loaders/TownNPCLoader
     Loaders/GoreLoader ModGore
     Core/GlobalType Core/GlobalRegistry GlobalItem GlobalNPC GlobalProjectile Core/GlobalRegistries

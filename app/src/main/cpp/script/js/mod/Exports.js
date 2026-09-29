@@ -7,7 +7,7 @@ Object.assign(globalThis, {
     ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, BackgroundTextureLoader,
     ModWaterStyle, ModWaterfallStyle,
     ModPlayer, ModBuff, ModTile, ModProjectile,
-    ModNPC, NPCLoot, NPCSpawnInfo, NPCShop, NPCHappiness, AffectionLevel, ModGore,
+    ModNPC, NPCLoot, NPCSpawnInfo, SpawnPool, NPCShop, NPCHappiness, AffectionLevel, ModGore,
     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
     ModPacket, NetWriter, NetReader,
     SoundStyle, SoundEngine, SoundLimitBehavior, MusicLoader, SceneEffectPriority,

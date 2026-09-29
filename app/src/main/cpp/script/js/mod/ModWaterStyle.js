@@ -24,8 +24,18 @@ class ModWaterStyle {
         b.value = 1.015;
     }
 
-    // A chuva usa a textura do jogo; a variante (0 a 2 é a da floresta).
+    // A variante da chuva: a coluna da textura dividida por 4 (a do jogo tem
+    // 3 por estilo; 0 a 2 é a da floresta). Com GetRainTexture, a coluna na
+    // textura do mod (0 a 7).
     GetRainVariant() { return Rand.Next(3); }
+
+    // A textura da chuva: o caminho de um PNG em Assets/Textures do mod (ou um
+    // Asset<Texture2D>), ou null para a do jogo (o padrão).
+    GetRainTexture() { return null; }
+
+    // A cor da tintura de bioma (a do cabelo) com esta água. O padrão é a da
+    // floresta, como no tModLoader.
+    BiomeHairColor() { return Color.new(28, 216, 94, 255); }
 
     SetStaticDefaults() {}
 

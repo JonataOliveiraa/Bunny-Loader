@@ -1,0 +1,15 @@
+{
+  "uid": "6637d293-cf83-44b0-a102-d4b944847a69",
+  "id": "test-modmap",
+  "name": "Teste: fundo do mapa de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Etapa B6 do ModBiome: MapBackground de ModSceneEffect no mapa em tela cheia (a textura da cena, a cor do céu, MapBackgroundFullbright e MapBackgroundColor) e a volta ao fundo do jogo.",
+  "description": "Loga 'modmap ...' e 'modmap: tela ...' nos momentos da captura. Rodar na superfície.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

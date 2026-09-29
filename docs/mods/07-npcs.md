@@ -76,7 +76,7 @@ escolhe o mais perto).
 | `ModifyNPCLoot(npcLoot)` | Os drops: `npcLoot.Add(regra)`. Uma vez. |
 | `SetBestiary(database, bestiaryEntry)` | A entrada no Bestiário: bioma, hora, texto. |
 | `SpawnChance(info)` | Peso no spawn natural (`0` = não nasce). |
-| `SpawnNPC(x, y)` | Como nasce quando é sorteado. Padrão: no ponto do sorteio. |
+| `SpawnNPC(tileX, tileY)` | Como nasce quando é sorteado, no bloco do spawn. Padrão: em cima do bloco. |
 | `HitEffect(npc, hitDirection, damage)` | A cada golpe (poeira, gore). `npc.life <= 0` é o golpe que mata. |
 | `PreAI(npc)`, `AI(npc)`, `PostAI(npc)` | A IA, todo quadro. |
 | `FindFrame(npc, frameHeight)` | Animação sua: mude `npc.frame.Y`. |
@@ -104,13 +104,18 @@ Bestiário sozinhos.
 
 ## Spawn natural
 
-`SpawnChance(info)` devolve um **peso**. Quando o jogo faz nascer um inimigo,
-o sorteio é entre o do jogo (peso 1) e os de mod com peso maior que zero:
-`0.1` é "de vez em quando"; `1` empata com o do jogo.
+`SpawnChance(info)` devolve um **peso**. Quando o jogo vai fazer nascer um
+inimigo, o sorteio é entre o do jogo (peso 1) e os de mod com peso maior que
+zero: `0.1` é "de vez em quando"; `1` empata com o do jogo. Como no
+tModLoader, o spawn natural roda sozinho ou no servidor, e `info.Player` é o
+jogador perto de quem o NPC nasce (no multijogador, não use `Main.LocalPlayer`).
 
 `info` é um `NPCSpawnInfo`, com:
 
-- `SpawnTileX`, `SpawnTileY`, `Player`;
+- `SpawnTileX`, `SpawnTileY`, `Player`; `GroundTileY`, `SpawnTileType` e
+  `SpawnWallType` (o chão do ponto);
+- os campos do `NPC.Spawner` do jogo, como no tModLoader: `waterTile`,
+  `nearGranite`, `nearMarble`, `spawnSpider`, `ZoneCorrupt`...;
 - altura: `Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`,
   `AboveSurface`, `BelowSurface`;
 - hora e evento: `Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`,

@@ -37,6 +37,79 @@ class WaterfallStyleLoader {
         }
         bl.log('cachoeiras de mod: ' + WaterfallStyleLoader.List.length + ' (números ' + WaterfallStyleLoader.VanillaCount +
                '..' + (WaterfallStyleLoader.TotalCount - 1) + ')');
+        if (WaterfallStyleLoader.List.some((s) => Hooks.Overrides(s.constructor, ModWaterfallStyle, 'ColorMultiplier'))) {
+            WaterfallStyleLoader.#HookColor();
+        }
+    }
+
+    // A cor da cachoeira de mod (ColorMultiplier), como o StylizeColor do
+    // tModLoader. No celular o StylizeColor e o desenho de cada pedaço estão
+    // embutidos no DrawWaterfall, que chama o SpriteBatch.Draw direto (três
+    // sobrecargas: ref Color, ref VertexColors, a das quatro pontas, e Color).
+    // O DrawWaterfall só entra no JS com o número de uma de mod (filtro
+    // nativo), e os Draw só dentro dele: a cachoeira do jogo não paga nada.
+    static #HookColor() {
+        const WF = Terraria.WaterfallManager;
+        const SB = Microsoft.Xna.Framework.Graphics.SpriteBatch;
+        const gate = WF['void DrawWaterfall(SpriteBatch spriteBatch, int Style, float Alpha)'];
+        let current = null, alpha = 1;
+        gate.hook((original, self, spriteBatch, style, a) => {
+            const outer = current, outerAlpha = alpha;
+            const s = WaterfallStyleLoader.Get(style);
+            current = s && Hooks.Overrides(s.constructor, ModWaterfallStyle, 'ColorMultiplier') ? s : null;
+            alpha = a;
+            try {
+                return original(self, spriteBatch, style, a);
+            } finally {
+                current = outer;
+                alpha = outerAlpha;
+            }
+        }, { minType: WaterfallStyleLoader.VanillaCount, arg: 1 });
+
+        const byte = (v) => Math.max(0, Math.min(255, Math.trunc(Number(v) || 0)));
+        const tint = (c) => {
+            const r = new Ref(c.R), g = new Ref(c.G), b = new Ref(c.B);
+            Safe.Run(current.constructor.name + '.ColorMultiplier', () => current.ColorMultiplier(r, g, b, alpha));
+            return Color.new(byte(r.value), byte(g.value), byte(b.value), c.A);
+        };
+        const copy = (c) => Color.new(c.R, c.G, c.B, c.A);
+
+        // A cor por ref é a variável do DrawWaterfall, reusada no pedaço
+        // seguinte: muda só durante o Draw, e volta.
+        SB['void Draw(Texture2D texture, ref Vector2 position, ref Rectangle srcRect, ref Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects)'].hook(
+            (original, self, texture, position, srcRect, color, rotation, origin, scale, effects) => {
+                if (!current) return original(self, texture, position, srcRect, color, rotation, origin, scale, effects);
+                const saved = copy(color.value);
+                color.value = tint(saved);
+                try {
+                    return original(self, texture, position, srcRect, color, rotation, origin, scale, effects);
+                } finally {
+                    color.value = saved;
+                }
+            }, { whileIn: gate });
+
+        SB['void Draw(Texture2D texture, Vector2 position, ref Rectangle srcRect, ref VertexColors color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'].hook(
+            (original, self, texture, position, srcRect, colors, rotation, origin, scale, effects, depth) => {
+                if (!current) return original(self, texture, position, srcRect, colors, rotation, origin, scale, effects, depth);
+                const v = colors.value;
+                const saved = [copy(v.TopLeftColor), copy(v.TopRightColor), copy(v.BottomLeftColor), copy(v.BottomRightColor)];
+                v.TopLeftColor = tint(saved[0]);
+                v.TopRightColor = tint(saved[1]);
+                v.BottomLeftColor = tint(saved[2]);
+                v.BottomRightColor = tint(saved[3]);
+                colors.value = v;
+                try {
+                    return original(self, texture, position, srcRect, colors, rotation, origin, scale, effects, depth);
+                } finally {
+                    [v.TopLeftColor, v.TopRightColor, v.BottomLeftColor, v.BottomRightColor] = saved;
+                    colors.value = v;
+                }
+            }, { whileIn: gate });
+
+        SB['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'].hook(
+            (original, self, texture, position, source, color, rotation, origin, scale, effects, depth) =>
+                original(self, texture, position, source, current ? tint(color) : color, rotation, origin, scale, effects, depth),
+            { whileIn: gate });
     }
 
     // A luz das cachoeiras de água (tipo 0 na lista do jogo) desenhadas com

@@ -1,18 +1,24 @@
 // Um efeito de cena, como no tModLoader: quando ativo para o jogador, disputa
-// com os outros a música (e, nas próximas etapas, fundo, água e mapa) pela
+// com os outros a música, os fundos, a água e o fundo do mapa pela
 // Priority + GetWeight. Os padrões ficam no protótipo: a classe do mod pode
 // escrever `get Music() { ... }` (como no tModLoader) ou `this.Music = ...`.
 class ModSceneEffect {
     // Music: MusicLoader.GetMusicSlot(...) ou um MusicID do jogo; -1 = não
     // escolhe música, 0 = silêncio. SurfaceBackgroundStyle e
     // UndergroundBackgroundStyle e WaterStyle: a instância do estilo
-    // (ModContent.GetInstance(Classe)), ou null. Os padrões ficam no
-    // protótipo, logo abaixo da classe. Mod: o mod dono (posto no registro).
+    // (ModContent.GetInstance(Classe)), ou null. MapBackground: o caminho de
+    // uma textura em Assets/Textures (o fundo do mapa em tela cheia), ou null.
+    // Os padrões ficam no protótipo, logo abaixo da classe. Mod: o mod dono
+    // (posto no registro).
 
     // 0 a 1: desempata efeitos da mesma Priority.
     GetWeight(player) { return 0.5; }
 
     IsSceneEffectActive(player) { return false; }
+
+    // A cor do fundo do mapa (color é um Ref: .value). Chega a cor do céu com a
+    // tela na superfície e branca abaixo (ou branca com MapBackgroundFullbright).
+    MapBackgroundColor(color) {}
 
     // Todo quadro, ativo ou não: é onde se liga e desliga um filtro de tela.
     SpecialVisuals(player, isActive) {}
@@ -26,7 +32,13 @@ class ModSceneEffect {
 
         const inst = new cls();
         Templates.Adopt(cls, inst);
-        if (inst instanceof ModBiome) BiomeLoader.Add(inst);
+        if (inst instanceof ModBiome) {
+            // Como no tModLoader: o caminho da classe + _Icon e + _Background.
+            const texture = ModFiles.ContentTexture({}, cls);
+            if (inst.BestiaryIcon === undefined) inst.BestiaryIcon = texture + '_Icon';
+            if (inst.BackgroundPath === undefined) inst.BackgroundPath = texture + '_Background';
+            BiomeLoader.Add(inst);
+        }
         SceneEffectLoader.Add(inst);
         Safe.Run(cls.name + '.SetStaticDefaults', () => inst.SetStaticDefaults());
         return inst;
@@ -36,4 +48,6 @@ ModSceneEffect.prototype.Music = -1;
 ModSceneEffect.prototype.SurfaceBackgroundStyle = null;
 ModSceneEffect.prototype.UndergroundBackgroundStyle = null;
 ModSceneEffect.prototype.WaterStyle = null;
+ModSceneEffect.prototype.MapBackground = null;
+ModSceneEffect.prototype.MapBackgroundFullbright = false;
 ModSceneEffect.prototype.Priority = SceneEffectPriority.None;

@@ -88,47 +88,6 @@ class NPCLoader {
             }, self);
         });
 
-        if (has('SpawnChance')) Hooks.Once('npc.Spawn', NPCLoader.#HookNaturalSpawn);
-    }
-
-    // O SpawnNPC do jogo roda; se nasceu um NPC, sorteia entre ele (peso 1) e
-    // os de mod (peso = SpawnChance). Um de mod toma o lugar, no mesmo ponto.
-    static #HookNaturalSpawn() {
-        const Main = Terraria.Main;
-
-        Terraria.NPC['void SpawnNPC()'].hook((original) => {
-            const slot = bl.npcs.freeSlot();
-            original();
-            if (slot < 0) return;
-
-            const npc = Main.npc[slot];
-            if (!npc.active || npc.townNPC || npc.boss) return;
-
-            const x = npc.Center.X, y = npc.Bottom.Y;
-            const info = new NPCSpawnInfo(x, y, Main.player[Main.myPlayer]);
-            const pool = [];
-            let total = 1;
-            for (const m of NPCLoader.Spawnable) {
-                const weight = Number(Safe.Run(m.constructor.name + '.SpawnChance', () => m.SpawnChance(info))) || 0;
-                if (weight > 0) {
-                    pool.push([m, weight]);
-                    total += weight;
-                }
-            }
-            if (!pool.length) return;
-
-            let r = Math.random() * total;
-            if (r < 1) return;   // ficou o do jogo
-
-            r -= 1;
-            for (const [m, weight] of pool) {
-                if (r < weight) {
-                    npc.active = false;
-                    Safe.Run(m.constructor.name + '.SpawnNPC', () => m.SpawnNPC(x, y));
-                    return;
-                }
-                r -= weight;
-            }
-        });
+        if (has('SpawnChance')) SpawnLoader.InstallPool();
     }
 }

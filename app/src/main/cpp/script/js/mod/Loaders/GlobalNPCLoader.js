@@ -77,5 +77,10 @@ class GlobalNPCLoader {
         });
 
         if (has('ModifyNPCLoot') || has('ModifyGlobalLoot')) GlobalLootLoader.Schedule();
+
+        if (has('EditSpawnPool')) SpawnLoader.InstallPool();
+        if (has('EditSpawnRate')) SpawnLoader.InstallRate();
+        if (has('EditSpawnRange')) SpawnLoader.InstallRange();
+        if (has('EditSpawnInfo')) SpawnLoader.InstallInfo();
     }
 }

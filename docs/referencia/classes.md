@@ -34,7 +34,7 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
 | [`ModSystem`](#modsystem) | O que é do mod inteiro; o ciclo do mundo e os dados salvos nele. | [12](../mods/12-globais-e-mundo.md#modsystem-o-mundo) |
-| [`ModBiome`, `ModSceneEffect`](#modbiome-e-modsceneeffect) | Bioma de mod e efeito de cena (a música e os fundos por prioridade). | — |
+| [`ModBiome`, `ModSceneEffect`](#modbiome-e-modsceneeffect) | Bioma de mod e efeito de cena (a música, os fundos, a água e o fundo do mapa por prioridade). | — |
 | [`ModSurfaceBackgroundStyle`, `ModUndergroundBackgroundStyle`](#fundos-de-mod) | Fundos de superfície e de subsolo, com as texturas do `BackgroundTextureLoader`. | — |
 | [`ModWaterStyle`, `ModWaterfallStyle`](#água-de-mod) | A água e a cachoeira de um bioma. | — |
 | [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
@@ -329,8 +329,8 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `FindFrame(npc, frameHeight)` | Animação própria: mude `npc.frame`. | `NPC.FindFrame`, filtro `tipo` |
 | `CheckActive(npc)` | `false`: não some quando longe. | `NPC.CheckActive`, filtro `tipo` |
 | `PreKill(npc)`, `OnKill(npc)` | Na morte. `PreKill` → `false` cancela o drop. | `NPC.NPCLoot`, filtro `tipo` |
-| `SpawnChance(spawnInfo)` | A cada spawn natural: devolva o peso (0 = não nasce). | `NPC.SpawnNPC`, sem filtro |
-| `SpawnNPC(x, y)` | Sorteado: como nasce. Padrão: no ponto do sorteio. | idem |
+| `SpawnChance(spawnInfo)` | A cada spawn natural: devolva o peso (o do jogo pesa 1; 0 = não nasce). Só sozinho ou no servidor. | `NPC.Spawner.SpawnAnNPC`, sem filtro |
+| `SpawnNPC(tileX, tileY)` | Sorteado: como nasce, no bloco do spawn; devolve o índice. Padrão: em cima do bloco (`tileX * 16 + 8`, `tileY * 16`), como no tModLoader. | idem |
 | **Morador** | | |
 | `CanTownNPCSpawn(numTownNPCs)` | De tempos em tempos, sem um deste no mundo: `true` e ele se muda. | `Main.UpdateTime_SpawnTownNPCs`, sem filtro |
 | `CheckConditions(left, right, top, bottom)` | A sala serve para ele? | `WorldGen.CheckSpecialTownNPCSpawningConditions` |
@@ -596,6 +596,29 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `NetSend(npc, writer)`, `NetReceive(npc, reader)` | Rede: junto com cada NPC que o servidor sincroniza. | `NetMessage.SendData` (23) |
 | `ModifyNPCLoot(npc, npcLoot)` | Uma vez por tipo de NPC, com a amostra do jogo. | nativo (ao terminar de carregar) |
 | `ModifyGlobalLoot(globalLoot)` | Uma vez. | idem |
+| `EditSpawnRate(player, spawnRate, maxSpawns)` | A cada tentativa de spawn para o jogador. `Ref`: `spawnRate` menor = mais spawn; `maxSpawns`, quantos inimigos por perto. | `NPC.Spawner.GetSpawnRate` |
+| `EditSpawnRange(player, spawnRangeX, spawnRangeY, safeRangeX, safeRangeY)` | `Ref`, em blocos: até onde nasce e a distância mínima do jogador. | `NPC.Spawner.GetSpawnArea` |
+| `EditSpawnInfo(spawnInfo)` | Com o ponto escolhido, antes do sorteio: os campos do `spawnInfo` (`waterTile`, `nearGranite`...) mudam o que o jogo e o `SpawnChance` leem. | `NPC.Spawner.SetSpawnFlagsForChosenTile` |
+| `EditSpawnPool(pool, spawnInfo)` | O sorteio (`SpawnPool`): `pool[tipo] = peso`; o `0` é o spawn do jogo. | `NPC.Spawner.SpawnAnNPC` |
+| `SpawnNPC(npc, tileX, tileY)` | Nasceu um NPC sorteado que não é o do jogo (`npc`, o índice). | idem |
+
+O spawn natural só roda sozinho ou no servidor; o `player` e o
+`spawnInfo.Player` são o jogador-alvo (no multijogador, não é o
+`Main.LocalPlayer`).
+
+```js
+export class MaisInimigosNoBioma extends GlobalNPC {
+    EditSpawnRate(player, spawnRate, maxSpawns) {
+        if (player.InModBiome(MeuBioma)) {
+            spawnRate.value = Math.floor(spawnRate.value * 0.5);   // o dobro de spawn
+            maxSpawns.value = Math.floor(maxSpawns.value * 1.5);
+        }
+    }
+    EditSpawnPool(pool, spawnInfo) {
+        if (spawnInfo.Player.InModBiome(MeuBioma)) pool[0] = 0.25;   // menos inimigos do jogo
+    }
+}
+```
 
 ### GlobalProjectile
 
@@ -612,7 +635,7 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 ### Ainda não
 
 `NetSend`/`NetReceive` do `GlobalItem`, `SaveData`/`LoadData` por entidade,
-`GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`, `EditSpawnRate`/`EditSpawnPool`,
+`GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`, `EditSpawnFlags`, o `SpawnCondition`,
 `ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`; no `GlobalProjectile`,
 `GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`.
 
@@ -704,6 +727,7 @@ export class MeuBioma extends ModBiome {
 | `OnInBiome(player)` | A cada quadro dentro, inclusive no da entrada. |
 | `player.InModBiome(Classe)` | Se o jogador está no bioma. Aceita a classe, a instância (`ModContent.GetInstance`) ou o `Type`. |
 | `Type` | A posição entre os biomas (a mesma classe em dois mods são dois biomas). |
+| `BestiaryIcon`, `BackgroundPath` | Caminhos em `Assets/Textures`: o da classe + `_Icon` e + `_Background` (`Content/Biomes/MeuBioma.js` -> `Biomes/MeuBioma_Background`), como no tModLoader. O Bestiário ainda não os usa; o fundo do mapa pode reusar o `BackgroundPath`. |
 | Padrões | `Priority` `BiomeLow` e `Music` `0` (silêncio), como no tModLoader: sem música própria, declare `Music = -1`. |
 
 Um **efeito de cena** (`ModSceneEffect`) é o mesmo sem as flags:
@@ -728,7 +752,22 @@ O efeito de cena também escolhe o fundo e a água: `SurfaceBackgroundStyle`,
 `UndergroundBackgroundStyle` e `WaterStyle` devolvem a instância do estilo (ver
 [fundos de mod](#fundos-de-mod) e [água de mod](#água-de-mod)), ou `null`.
 
-**Ainda não** (etapas do plano): o mapa, o Bestiário e as tochas do bioma.
+E o fundo do **mapa em tela cheia**, como no tModLoader:
+
+```js
+export class MeuBioma extends ModBiome {
+    get MapBackground() { return this.BackgroundPath; }   // ou 'Biomes/MeuFundoDoMapa'
+    // ...
+}
+```
+
+| `ModSceneEffect` (mapa) | |
+|---|---|
+| `MapBackground` | O caminho de uma textura em `Assets/Textures` do mod, ou `null`. Cobre a tela do mapa no lugar do fundo do jogo. O caminho é lido a cada desenho (pode mudar); a textura carrega na primeira vez. |
+| `MapBackgroundFullbright` | `true`: sempre branco. O padrão (`false`) é a cor do céu com a tela do mapa na superfície e branco abaixo dela. |
+| `MapBackgroundColor(color)` | `Ref` (`.value`, uma `Color`): a cor final, depois das duas acima. |
+
+**Ainda não** (etapas do plano): o Bestiário e as tochas do bioma.
 
 ### Fundos de mod
 
@@ -816,12 +855,15 @@ export class MeuBioma extends ModBiome {
 | `GetSplashDust()` | O pó do respingo (quem cai na água). Padrão: o do jogo. |
 | `GetDropletGore()` | A gota que pinga do bloco. Uma de mod (`Assets/Textures/Gores`) se comporta como a gota d'água do jogo. |
 | `LightColorMultiplier(r, g, b)` | `Ref` (`.value`): quanto da luz atravessa a água. `1, 1, 1` não perde luz. |
-| `GetRainVariant()` | A chuva usa a textura do jogo; a variante (0 a 2 é a da floresta). |
+| `GetRainVariant()` | A variante da chuva: a coluna da textura ÷ 4 (na do jogo, 0 a 2 é a da floresta; na do mod, 0 a 7). |
+| `GetRainTexture()` | A textura da chuva: o caminho de um PNG em `Assets/Textures` do mod (colunas de 4 px, 40 de altura, como a do jogo), ou `null` (a do jogo, o padrão). |
+| `BiomeHairColor()` | A cor da tintura de bioma no cabelo com esta água (uma `Color`). Padrão: a da floresta. |
 
 | `ModWaterfallStyle` | |
 |---|---|
 | `Slot` | O número, depois dos 28 do jogo. |
 | `AddLight(i, j)` | Luz na cachoeira, de 3 em 3 tiles da queda (o celular embute a luz e a cor das cachoeiras do jogo no desenho; a de mod roda depois dele). |
+| `ColorMultiplier(r, g, b, a)` | A cor de cada pedaço: `r`, `g`, `b` são `Ref` (`.value`, 0 a 255: a luz do lugar vezes a opacidade) e `a`, a opacidade. Para cores que mudam com o tempo. |
 
 A água entra com `Priority` `BiomeLow` ou maior e só onde o jogo usaria a do
 fundo comum, como no tModLoader: uma fonte de água ligada, a lua de sangue e os
@@ -943,7 +985,8 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 | Classe | |
 |---|---|
 | `NPCLoot` | Recebido no `ModifyNPCLoot`: `npcLoot.Add(regra)`, com as regras do jogo (`ItemDropRule...`). |
-| `NPCSpawnInfo` | Recebido no `SpawnChance`: `SpawnTileX`, `SpawnTileY`, `Player`; altura (`Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`, `AboveSurface`, `BelowSurface`); hora e evento (`Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`, `SolarEclipse`, `PumpkinMoon`, `FrostMoon`, `AnyEvent`, `Invasion`, `AnyTower`); mundo (`HardMode`, `Expert`, `Master`); bioma (`Corruption`, `Crimson`, `Hallow` e os `Underground...`, `Snow`, `Ice`, `Jungle`, `UndergroundJungle`, `Mushroom`, `SurfaceMushroom`, `Ocean`, `Desert`, `DesertCave`, `Meteor`, `Marble`, `Granite`, `Graveyard`, `Dungeon`, `Lihzahrd`); `CommonEnemy`. |
+| `NPCSpawnInfo` | Recebido no `SpawnChance`, no `EditSpawnPool` e no `EditSpawnInfo`, como o `NPC.Spawner` do tModLoader: `SpawnTileX`, `SpawnTileY`, `GroundTileY`, `SpawnTileType` e `SpawnWallType` (o bloco e a parede do chão), `SafeRangeX`, `Player` (o jogador-alvo), `Spawner` (o do jogo) e os campos dele, que se leem e escrevem (`waterTile`, `nearGranite`, `nearMarble`, `spawnSpider`, `ZoneCorrupt`...); altura (`Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`, `AboveSurface`, `BelowSurface`); hora e evento (`Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`, `SolarEclipse`, `PumpkinMoon`, `FrostMoon`, `AnyEvent`, `Invasion`, `AnyTower`); mundo (`HardMode`, `Expert`, `Master`); bioma (`Corruption`, `Crimson`, `Hallow` e os `Underground...`, `Snow`, `Ice`, `Jungle`, `UndergroundJungle`, `Mushroom`, `SurfaceMushroom`, `Ocean`, `Desert`, `DesertCave`, `Meteor`, `Marble`, `Granite`, `Graveyard`, `Dungeon`, `Lihzahrd`); `CommonEnemy`. |
+| `SpawnPool` | O sorteio do `EditSpawnPool`: `pool[tipo] = peso`, `delete pool[tipo]`, ou `Add`, `Remove`, `ContainsKey`, `Clear`, `Keys`, `Count`. O `0` é o spawn do jogo (peso 1). Com o total 0, nada nasce. |
 | `NPCShop` | `new NPCShop(tipoDoNPC, 'Shop').Add(item, { condition, price, currency }).Register()`; `NPCShop.get(tipo, nome)`, `shop.Open()`. |
 | `NPCHappiness` | `this.Happiness.SetNPCAffection(npc, nivel)`, `.SetBiomeAffection('Desert', nivel)`, com `AffectionLevel.Love`, `Like`, `Dislike`, `Hate`. |
 | `ModGore` | `ModGore.getTypeByName('Nome')`: o gore de `Assets/Textures/Gores/Nome.png`. |

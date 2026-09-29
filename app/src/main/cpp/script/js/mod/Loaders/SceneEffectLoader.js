@@ -1,7 +1,6 @@
 // A cena de cada jogador, como no tModLoader: dos ModSceneEffect ativos (os
 // ModBiome também), o de maior prioridade + peso dá cada canal: a música e os
-// fundos de superfície e de subsolo e a água. O mapa entra na etapa dele
-// (PLANO-MODBIOME.md).
+// fundos de superfície e de subsolo, a água e o fundo do mapa.
 class SceneEffectLoader {
     static List = [];
     static #keys = new Map();   // instância -> 'uuid/Classe' (desempate e log)
@@ -16,6 +15,15 @@ class SceneEffectLoader {
         BiomeLoader.Install();
         // A música da cena (a de ModBiome é 0, o silêncio, a não ser que o mod diga -1).
         ModMusic.Install();
+        Hooks.Once('scene.map', () => Ready.Add(SceneEffectLoader.#InstallMap));
+    }
+
+    // O hook do fundo do mapa só entra se algum efeito tiver um.
+    static #InstallMap() {
+        for (const effect of SceneEffectLoader.List) {
+            const path = Safe.Run(effect.constructor.name + '.MapBackground', () => effect.MapBackground);
+            if (typeof path === 'string' && path !== '') return MapBackgroundLoader.Install();
+        }
     }
 
     static KeyOf(inst) {
@@ -25,7 +33,8 @@ class SceneEffectLoader {
     // Uma cena vazia: nenhum efeito, música -1 (a do jogo), fundos do jogo.
     static Empty() {
         const none = () => ({ value: -1, priority: SceneEffectPriority.None, from: null });
-        return { anyActive: false, music: none(), surfaceBackground: none(), undergroundBackground: none(), waterStyle: none(), active: [] };
+        return { anyActive: false, music: none(), surfaceBackground: none(), undergroundBackground: none(), waterStyle: none(),
+                 mapBackground: { value: null, from: null }, active: [] };
     }
 
     // O SpecialVisuals roda para todos, ativo ou não (é onde se desliga um filtro).
@@ -70,6 +79,10 @@ class SceneEffectLoader {
                 if (result.waterStyle.from === null) {
                     const style = Safe.Run(name + '.WaterStyle', () => effect.WaterStyle);
                     if (style instanceof ModWaterStyle) result.waterStyle = { value: style.Slot, priority, from: effect };
+                }
+                if (result.mapBackground.from === null) {
+                    const path = Safe.Run(name + '.MapBackground', () => effect.MapBackground);
+                    if (typeof path === 'string' && path !== '') result.mapBackground = { value: path, from: effect };
                 }
             }
         }

@@ -1,0 +1,15 @@
+{
+  "uid": "f14f46f9-1532-4ad0-857c-ae86061fae60",
+  "id": "test-modspawn",
+  "name": "Teste: spawn natural (EditSpawn*)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "GlobalNPC.EditSpawnRate, EditSpawnRange, EditSpawnInfo, EditSpawnPool e SpawnNPC, e o sorteio com o SpawnChance no NPC.Spawner do jogo (o jogador-alvo, o ponto e o bloco do spawn).",
+  "description": "Loga 'modspawn ...'. Tira os inimigos por perto antes de cada caso.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

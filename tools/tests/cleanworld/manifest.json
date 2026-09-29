@@ -1,0 +1,15 @@
+{
+  "uid": "1b176990-0246-48aa-b320-c3efed251360",
+  "id": "test-cleanworld",
+  "name": "Teste: tira as lápides do mundo de teste",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Ao entrar no mundo, tira as lápides (as paradas e as caindo) perto do spawn e do jogador e salva o mundo: sem cemitério atrapalhando música, luz e spawn dos outros testes.",
+  "description": "Loga 'cleanworld ...'. O tools/bench/run.sh o põe em toda rodada (BL_KEEP_GRAVES=1 desliga).",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -47,6 +47,12 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
   juntos eles se atrapalham (o tiro do `hooks` mata o slime do `npcs`): apague
   os `test-*` de `bunny_packs/` entre um e outro.
 - Os poderes do Mod Menu ficam salvos; o `run.sh` os apaga antes de abrir.
+- **Lápides:** o jogador que morre num teste deixa uma, e com algumas por
+  perto o jogo liga o cemitério (música, luz, névoa e spawn mudam). O
+  `run.sh` põe o `tests/cleanworld` em toda rodada: ao entrar no mundo, ele
+  tira as lápides (as paradas e as caindo) a 200 blocos do spawn e do
+  jogador e salva o mundo. `BL_KEEP_GRAVES=1` desliga (e tira o pacote dele do
+  aparelho).
 - Com mais de um emulador, `BL_DEVICE` escolhe qual. O `run.sh` só toca na
   tela com o Bunny Loader na frente (um toque cego numa tela inicial do
   emulador já instalou um jogo da loja).
@@ -100,6 +106,9 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `bgscan` | A medição dos fundos (etapa B5.0): tamanho dos arrays (`TextureAssets.Background`, `bgAlphaFrontLayer`...), ordem e thread de cada passo do desenho do fundo, e três faixas desenhadas pelo JS nas camadas longe, meio e perto (conferir no print). | sim |
 | `modbg` | Fundos de mod (etapa B5): `BackgroundTextureLoader`, os números dos estilos, `Priority` `None` sem efeito, `BiomeLow` ganhando da floresta (superfície e subsolo, com as 4 texturas trocadas em `backTexture`/`backTextureValues`) e a volta ao do jogo. Rodar de dia, numa floresta. | sim |
 | `modwater` | Água de mod (etapa B6): `ModWaterStyle`/`ModWaterfallStyle` com os números depois dos do jogo e as tabelas crescidas, a troca da água pela cena com o fade, o `CalculateWaterStyle`, o respingo, a chuva e a luz através da água, e a cachoeira de mod pedida ao jogo. Faz um lago na frente do jogador e loga `modwater: tela ...` para a captura (a textura do teste é vermelha). Não salva. | não |
+| `modmap` | Fundo do mapa de mod (etapa B6): `MapBackground` de uma cena no mapa em tela cheia (a textura cobre a tela no lugar do fundo do jogo, com a cor do céu na superfície), `MapBackgroundFullbright`, `MapBackgroundColor` e a volta ao fundo do jogo. Abre o mapa com o zoom longe (a borda do mundo à vista) e loga `modmap: tela ...` para a captura (a textura do teste é vermelha). Não salva. | não |
+| `modspawn` | Spawn natural como no tModLoader: `GlobalNPC.EditSpawnRate` (o jogador-alvo, a taxa do jogo, e a forçada vale), `EditSpawnInfo` antes do `EditSpawnPool` no mesmo ponto, o `SpawnChance` com o ponto, o chão, o bloco e os campos do `NPC.Spawner`, o pool só com o de mod, vazio e com um tipo do jogo (`GlobalNPC.SpawnNPC` depois), `EditSpawnRange` na área do `GetSpawnArea`, e o spawn do jogo sem mudanças. Tira os inimigos por perto: **não rodar junto do `hooks`** (apaga o NPC que ele observa). Não salva. | não |
+| `cleanworld` | Não é um teste: tira as lápides (bloco 85 e as que ainda caem) a 200 blocos do spawn e do jogador, no 2º quadro dentro do mundo, e salva o mundo. O `run.sh` o põe em toda rodada (`BL_KEEP_GRAVES=1` desliga). | sim |
 | `biomeworld` | O ciclo de vida das flags (etapa B2): o bioma por blocos liga e desliga no próprio `Teleport`, e a saída do mundo (`WorldGen.SaveAndQuit`) chama o `OnLeave`, zera as flags e a cena e chama o `ResetNearbyTileEffects`. **Sai do mundo no fim**: rodar sozinho. | sim |
 | `biomemusic` | A música da cena contra a do jogo, degrau por degrau (etapa B3): superfície, silêncio, `Music -1`, `Priority None`, chuva de slime, um chefe do jogo (Geleia Rainha), a caixa de música do jogo, o Otherworld, e uma faixa de mod tocando e parando. Com "Sem inimigos" ligado no Mod Menu, o chefe some e o teste falha. | sim |
 | `exmodfixes` | Correções do Example Mod pelo caminho do jogo: o botão de gancho (`QuickGrapple`), `Item.material`, a luz do bloco de gemas, fogo vivo sobre fogo vivo, a origem e o **toque de verdade** no relógio (contra o do jogo), o conjunto do 1.4.5 (`ArmorSetBonuses`), escudo/bota do mesmo tipo e a troca pelo toque, e o chicote (curva sorteada, e acerto fora da linha de mira contra o de espinhos). O passo do relógio espera um `adb shell input tap` nas coordenadas que ele loga. | sim |
