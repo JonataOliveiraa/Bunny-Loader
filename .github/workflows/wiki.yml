@@ -1,0 +1,50 @@
+# Publica README.md + docs/ na wiki do GitHub (tools/wiki.py) a cada push na
+# main que mexa neles. A wiki é só cópia: o que for editado direto nela some.
+name: Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - docs/**
+      - tools/wiki.py
+      - .github/workflows/wiki.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: .wiki
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - run: python tools/wiki.py .wiki
+
+      - name: Commit e push
+        working-directory: .wiki
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "wiki já está em dia"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Sincroniza com ${GITHUB_SHA::7}"
+          git push

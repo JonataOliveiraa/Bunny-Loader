@@ -1,6 +1,7 @@
 # tools/: ferramentas de PC
 
-Nenhuma roda sozinha no build; todas são chamadas à mão.
+Nenhuma roda sozinha no build; todas são chamadas à mão (menos o `wiki.py`,
+que o GitHub roda a cada push na `main`).
 
 ## Desenvolvimento
 
@@ -14,6 +15,7 @@ Nenhuma roda sozinha no build; todas são chamadas à mão.
 | [`bin2header.py`](bin2header.py) | Binário → array C. Usado pelo script acima. |
 | [`ui-sprites.py`](ui-sprites.py) | Recorta as texturas de interface do jogo que o menu usa (horas da Jornada, setas) e o "?" do item de mod ausente (`content/items/UnloadedIcon.h`). Recebe a pasta `Images` do jogo. |
 | [`mod-art.py`](mod-art.py) | As capas e os ícones dos mods de exemplo. |
+| [`wiki.py`](wiki.py) | Gera a [wiki](https://github.com/JonataOliveiraa/Bunny-Loader/wiki) a partir do `README.md` e de `docs/`. Roda sozinho no workflow `.github/workflows/wiki.yml` a cada push na `main`; à mão, só para conferir. |
 
 ```bash
 tools/ui.sh                                     # iterar em tela
