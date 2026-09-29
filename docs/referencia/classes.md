@@ -516,7 +516,7 @@ cada móvel do Example Mod usa, está no [guia 9](../mods/09-blocos.md).
 
 | | |
 |---|---|
-| `AddMapEntry(cor, nome)` | A cor no mapa (a do jogo mais próxima). |
+| `AddMapEntry(cor, nome)` | A cor e o nome no mapa; cada chamada é uma opção a mais. |
 | `RegisterItemDrop(item, ...estilos)` | O item que cai. |
 | `CreateMapEntryName()` | O nome da classe. |
 | `ModTile.register`, `getTypeByName`, `getModTile`, `isModType` | |

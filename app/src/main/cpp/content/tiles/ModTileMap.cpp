@@ -71,6 +71,9 @@ std::vector<KeptCell> g_kept;   // do mundo aberto (sob g_mx)
 struct Refs {
     bool tried = false, ok = false, saveOk = false;
     FieldInfo *lookup = nullptr, *options = nullptr, *colors = nullptr, *hell = nullptr, *legend = nullptr;
+    // O _mapLegendCache e um MapLegend (o LocalizedText[] fica dentro dele),
+    // e nao o array: -1 aqui = o campo ja e o array.
+    int32_t legendArray = -1, legendLength = -1;
     const MethodInfo* getText = nullptr;       // Language.GetText(string)
     const MethodInfo* createMapTile = nullptr;
     const MethodInfo* saveCompressed = nullptr;
@@ -84,6 +87,47 @@ struct Refs {
     int32_t maxWidth = -1, maxHeight = -1, chunkWidth = -1, lockObject = -1;
     int32_t tileData = -1, dirty = -1;          // WorldMapChunk
 };
+
+bool isArrayType(const Il2CppType* t) {
+    auto& a = il2cpp::api();
+    char* name = t ? a.type_get_name(t) : nullptr;
+    const size_t n = name ? std::strlen(name) : 0;
+    const bool out = n > 2 && std::strcmp(name + n - 2, "[]") == 0;
+    if (name) a.il2cpp_free(name);
+    return out;
+}
+
+/**
+ * Onde ficam os nomes do mapa. O Lang._mapLegendCache do jogo e um MapLegend,
+ * com o LocalizedText[] num campo dele (e um Length, se houver): ler o objeto
+ * como array escreveria alem do fim dele.
+ */
+bool resolveLegend(Refs& r) {
+    auto& a = il2cpp::api();
+    const Il2CppType* type = a.field_get_type(r.legend);
+    if (isArrayType(type)) return true;
+    Il2CppClass* cls = type ? a.class_from_il2cpp_type(type) : nullptr;
+    void* it = nullptr;
+    while (FieldInfo* f = cls ? a.class_get_fields(cls, &it) : nullptr) {
+        if (a.field_get_flags(f) & 0x10) continue;   // so de instancia
+        const auto offset = static_cast<int64_t>(a.field_get_offset(f));
+        if (offset < static_cast<int64_t>(sizeof(Il2CppObject))) continue;
+        const char* name = a.field_get_name(f);
+        if (r.legendArray < 0 && isArrayType(a.field_get_type(f))) {
+            r.legendArray = static_cast<int32_t>(offset);
+        } else if (name && (!std::strcmp(name, "Length") || !std::strcmp(name, "_length"))) {
+            r.legendLength = static_cast<int32_t>(offset);
+        }
+    }
+    if (r.legendArray < 0) {
+        BL_ERROR("tiles de mod: _mapLegendCache (%s) sem array de nomes; tile de mod fora do mapa",
+                 cls ? a.class_get_name(cls) : "?");
+        return false;
+    }
+    BL_DEBUG("tiles de mod: nomes do mapa em %s+%d (Length em %d)", a.class_get_name(cls), r.legendArray,
+             r.legendLength);
+    return true;
+}
 
 Refs& refs() {
     static Refs r;
@@ -103,6 +147,7 @@ Refs& refs() {
     r.hell = helper ? findField(helper, "hellPosition") : nullptr;
     r.legend = lang ? findField(lang, "_mapLegendCache") : nullptr;
     r.getText = language ? a.class_get_method_from_name(language, "GetText", 1) : nullptr;
+    if (r.legend && !resolveLegend(r)) r.legend = nullptr;
     r.ok = r.lookup && r.options && r.colors && r.hell && r.legend && r.getText;
     if (!r.ok) {
         BL_ERROR("tiles de mod: mapa sem as tabelas (tileLookup=%p colorLookup=%p hellPosition=%p "
@@ -176,10 +221,20 @@ void writeColor(uint8_t* p, const Entry& e) {
     p[3] = e.r;
 }
 
+/** O array de nomes do mapa (o de dentro do MapLegend), ou null antes do jogo montar. */
+Il2CppArray* legendTexts(const Refs& r, Il2CppObject** holder) {
+    Il2CppObject* obj = nullptr;
+    il2cpp::api().field_static_get_value(r.legend, &obj);
+    *holder = obj;
+    if (!obj || r.legendArray < 0) return reinterpret_cast<Il2CppArray*>(obj);
+    return field<Il2CppArray*>(obj, r.legendArray);
+}
+
 /** Os LocalizedText dos nomes no _mapLegendCache (aumentado se preciso). */
 void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
     auto& a = il2cpp::api();
-    Il2CppArray* legend = readStaticArray(r.legend);
+    Il2CppObject* holder = nullptr;
+    Il2CppArray* legend = legendTexts(r, &holder);
     if (!legend) return;   // o jogo monta no MapHelper.Initialize; o hook dele reaplica
     const uintptr_t want = static_cast<uintptr_t>(pos) + count;
     if (legend == g_legendOurs && legend->length == want && !force) return;
@@ -196,7 +251,14 @@ void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
         Il2CppObject* text = call<Il2CppObject*>(r.getText, a.string_new(e.nameKey.c_str()));
         if (text) a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(out), reinterpret_cast<void**>(&slots[pos + k]), text);
     }
-    if (out != legend) a.field_static_set_value(r.legend, &out);
+    if (out != legend) {
+        if (r.legendArray < 0) {
+            a.field_static_set_value(r.legend, &out);
+        } else {
+            a.gc_wbarrier_set_field(holder, reinterpret_cast<void**>(&field<Il2CppArray*>(holder, r.legendArray)), out);
+            if (r.legendLength >= 0) field<int32_t>(holder, r.legendLength) = static_cast<int32_t>(want);
+        }
+    }
     g_legendOurs = out;
 }
 
@@ -532,7 +594,8 @@ void applyModTileMap(int total, bool rebuilt) {
         return;
     }
     const bool fresh = colors != g_colorsOurs;
-    if (!fresh && !g_dirty.load() && readStaticArray(r.legend) == g_legendOurs) return;
+    Il2CppObject* holder = nullptr;
+    if (!fresh && !g_dirty.load() && legendTexts(r, &holder) == g_legendOurs) return;
     g_dirty.store(false);
 
     std::lock_guard<std::mutex> l(g_mx);

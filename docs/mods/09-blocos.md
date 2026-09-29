@@ -86,7 +86,7 @@ Os parâmetros `ref` do tModLoader chegam como `Ref`: leia e escreva
 |---|---|
 | `SetStaticDefaults()` | Uma vez, com o tipo já nas tabelas (`Main.tileSolid[this.Type]`...). |
 | `PostSetDefaults()` | Logo depois (o `tileNoSunLight` do sólido já foi posto). |
-| `AddMapEntry(cor, nome)` | A cor no mapa (ver abaixo). Sem ela, o tile não aparece no mapa. |
+| `AddMapEntry(cor, nome)` | A cor e o nome no mapa (ver abaixo). Sem ela, o tile não aparece no mapa. |
 | `RegisterItemDrop(item, ...estilos)` | O item que cai, de todos os estilos ou só dos listados. |
 | `CanKillTile(i, j, blockDamaged)` | `false`: a picareta não quebra. |
 | `KillTile(i, j, fail, effectOnly, noItem)` | Antes de o tile sair (`fail`: só o golpe). Os três são `Ref`. |
@@ -232,10 +232,17 @@ tModLoader faz igual: só guarda o quadro de tile com `tileFrameImportant`
 
 ## O mapa
 
-O `.map` do celular guarda o **índice** de cor de cada ponto. Uma cor nova
-levaria ao arquivo um índice que o jogo sem o mod não conhece. Por isso o
-`AddMapEntry` aponta o tile para a cor **do jogo** mais próxima da pedida. O
-mapa mostra quase a mesma cor, e o `.map` só tem cores que o jogo conhece.
+Cada `AddMapEntry` vira uma entrada **própria** do mapa, como no tModLoader:
+a cor exata pedida e o nome dela (o que aparece ao passar o dedo no mapa).
+Chamar de novo cria outra opção do mesmo tile (baú aberto e trancado, por
+exemplo).
+
+O `.map` do celular guarda o **índice** de cor de cada ponto, e o índice de
+uma entrada de mod não existe no jogo sem o mod. Por isso, ao salvar, os
+pontos de tile de mod saem do `.map` (ficam escuros) e vão para um arquivo ao
+lado, o `<mapa>.map.bl`, pelo nome do tile. Ao carregar, eles voltam. Sem o
+mod, o jogo vê esses pontos como não explorados, e o `.map.bl` os guarda até
+o mod voltar.
 
 ## Por trás
 
