@@ -19,6 +19,7 @@ class ItemLoader {
 
     static #animations = new Map();
     static #shooting = null;
+    static #drawingWorldItem = -1;     // o whoami do Main.DrawItem em curso
 
     static WantAccessoryPairs() {
         Hooks.Once('item.AccessoryPairs', () => Safe.Run('pares de acessórios', ItemLoader.#HookAccessoryPairs));
@@ -220,6 +221,7 @@ class ItemLoader {
 
         // O item no chão: o Main.DrawItem pede a cor ao Item de dentro da WorldItem.
         if (has('GetAlpha')) Hooks.Once('item.GetAlpha', () => {
+            ItemLoader.#HookDrawItem();
             Terraria.Item['Color GetAlpha(Color newColor)'].hook((original, self, color) => {
                 const m = of(self);
                 if (!m || !Hooks.Overrides(m.constructor, ModItem, 'GetAlpha')) return original(self, color);
@@ -336,14 +338,25 @@ class ItemLoader {
     }
 
     // A WorldItem que embrulha este Item (o Main.item guarda WorldItem; o
-    // Item.GetAlpha só vê o de dentro).
+    // Item.GetAlpha só vê o de dentro): a que o Main.DrawItem está desenhando.
+    // Fora dele (inventário, loja), nenhuma.
     static #WorldItemOf(item) {
-        const all = Terraria.Main.item;
-        for (let i = 0; i < all.length; i++) {
-            const w = all[i];
-            if (w && w.inner === item) return w;
-        }
-        return null;
+        const index = ItemLoader.#drawingWorldItem;
+        if (index < 0) return null;
+        const w = Terraria.Main.item[index];
+        return w && w.inner === item ? w : null;
+    }
+
+    static #HookDrawItem() {
+        Terraria.Main['void DrawItem(WorldItem item, int whoami)'].hook((original, self, item, whoami) => {
+            const outer = ItemLoader.#drawingWorldItem;
+            ItemLoader.#drawingWorldItem = whoami;
+            try {
+                return original(self, item, whoami);
+            } finally {
+                ItemLoader.#drawingWorldItem = outer;
+            }
+        });
     }
 
     // A linha da vara sai do mountedCenter; o deslocamento entra por ele e a
