@@ -19,6 +19,9 @@ class GlobalNPC extends GlobalType {
     NetReceive(npc, reader) {}
 
     // O spawn natural (só no jogo sozinho ou no servidor), como no tModLoader.
+    // Antes da taxa, da área e do ponto: os campos do spawnInfo do jogador
+    // (noWorms, invaders, ZoneCorrupt...); o ponto ainda não existe (-1).
+    EditSpawnFlags(spawnInfo) {}
     // spawnRate e maxSpawns são Ref (.value): menor spawnRate = spawn mais
     // frequente; maxSpawns = quantos inimigos perto do jogador.
     EditSpawnRate(player, spawnRate, maxSpawns) {}

@@ -4,13 +4,15 @@
 // na área (FindSpawnTile -> GetSpawnArea), marca o ponto escolhido
 // (SetSpawnFlagsForChosenTile) e faz nascer (SpawnAnNPC). Só roda no jogo
 // sozinho ou no servidor: é onde o jogo faz o spawn.
+//   - SetSpawnFlags: GlobalNPC.EditSpawnFlags(spawnInfo), antes de tudo;
 //   - GetSpawnRate: GlobalNPC.EditSpawnRate(player, spawnRate, maxSpawns);
 //   - GetSpawnArea: GlobalNPC.EditSpawnRange(player, spawnRangeX, spawnRangeY,
 //     safeRangeX, safeRangeY), e a área refeita com os alcances novos;
 //   - SetSpawnFlagsForChosenTile: GlobalNPC.EditSpawnInfo(spawnInfo);
 //   - SpawnAnNPC: o sorteio. 0 (o do jogo, peso 1) e os ModNPC com SpawnChance,
 //     GlobalNPC.EditSpawnPool(pool, spawnInfo); 0 roda o do jogo, outro tipo
-//     nasce pelo SpawnNPC dele, e nada nasce com o total 0.
+//     nasce pelo SpawnNPC dele, e nada nasce com o total 0. O SpawnCondition
+//     (as condições do jogo em objetos) vale para o spawnInfo do sorteio.
 class SpawnLoader {
     // Os GlobalNPC que mudam `name` (na ordem de carga).
     static #Globals(name) {
@@ -22,6 +24,7 @@ class SpawnLoader {
             Terraria.NPC.Spawner['void SpawnAnNPC(int spawnTileX, int spawnTileY, int tileType, int wallType, bool xRange, int target)'].hook(
                 (original, self, x, y, tileType, wallType, xRange, target) => {
                     const info = new NPCSpawnInfo(self, x, y, target, xRange);
+                    SpawnCondition.Begin(info);
                     const pool = new SpawnPool();
                     pool[0] = 1;
                     for (const m of NPCLoader.Spawnable) {
@@ -53,6 +56,18 @@ class SpawnLoader {
         const npc = Terraria.Main.npc[index];
         if (npc.active) globalNPCs.Each(npc, 'SpawnNPC', (g) => g.SpawnNPC(index, tileX, tileY));
         return index;
+    }
+
+    static InstallFlags() {
+        Hooks.Once('spawn.Flags', () => {
+            Terraria.NPC.Spawner['void SetSpawnFlags(Player player)'].hook((original, self, player) => {
+                original(self, player);
+                const info = new NPCSpawnInfo(self, -1, -1, player.whoAmI);
+                for (const g of SpawnLoader.#Globals('EditSpawnFlags')) {
+                    Safe.Run(g.constructor.name + '.EditSpawnFlags', () => g.EditSpawnFlags(info));
+                }
+            });
+        });
     }
 
     static InstallRate() {

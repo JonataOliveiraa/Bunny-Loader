@@ -78,6 +78,7 @@ class GlobalNPCLoader {
 
         if (has('ModifyNPCLoot') || has('ModifyGlobalLoot')) GlobalLootLoader.Schedule();
 
+        if (has('EditSpawnFlags')) SpawnLoader.InstallFlags();
         if (has('EditSpawnPool')) SpawnLoader.InstallPool();
         if (has('EditSpawnRate')) SpawnLoader.InstallRate();
         if (has('EditSpawnRange')) SpawnLoader.InstallRange();

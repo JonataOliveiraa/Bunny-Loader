@@ -67,7 +67,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
     Loaders/ProjectileLoader ModProjectile
-    NPCLoot NPCSpawnInfo SpawnPool Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
+    NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
     NPCHappiness NPCShop Loaders/TownNPCLoader
     Loaders/GoreLoader ModGore
     Core/GlobalType Core/GlobalRegistry GlobalItem GlobalNPC GlobalProjectile Core/GlobalRegistries

@@ -133,6 +133,8 @@ export class SpawnDoBioma extends GlobalNPC {
 }
 ```
 
+- `EditSpawnFlags(spawnInfo)`: antes de tudo (taxa, área e ponto), os campos
+  do jogador (`noWorms`, `invaders`, `ZoneCorrupt`...). O ponto ainda é -1.
 - `EditSpawnRange(player, spawnRangeX, spawnRangeY, safeRangeX, safeRangeY)`:
   `Ref`, em blocos: até onde nasce e o quanto longe do jogador.
 - `EditSpawnInfo(spawnInfo)`: com o ponto escolhido, antes do sorteio. Os
@@ -397,7 +399,7 @@ pequeno.
 - `NetSend`/`NetReceive` do `GlobalItem` (itens no chão e no inventário);
 - `SaveData`/`LoadData` por entidade (de um item ou de um NPC morador);
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
-- no `GlobalNPC`: `UpdateLifeRegen`, `EditSpawnFlags`, o `SpawnCondition`,
+- no `GlobalNPC`: `UpdateLifeRegen`,
   `ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`;
 - no `GlobalProjectile`: `GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`;
 - no `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, os

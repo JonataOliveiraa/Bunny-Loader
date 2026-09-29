@@ -19,14 +19,19 @@ class NPCSpawnInfo {
         'ZoneShadowCandle', 'defaultTarget',
     ];
 
-    // spawner: o NPC.Spawner do jogo; tileX/tileY: o ponto do spawn; target:
-    // o índice do jogador. xRange: longe o bastante na horizontal (SafeRangeX).
+    // spawner: o NPC.Spawner do jogo; tileX/tileY: o ponto do spawn (-1 no
+    // EditSpawnFlags, antes de o jogo escolher); target: o índice do jogador.
+    // xRange: longe o bastante na horizontal (SafeRangeX).
     constructor(spawner, tileX, tileY, target, xRange = false) {
         this.Spawner = spawner;
         this.SpawnTileX = tileX;
         this.SpawnTileY = tileY;
         this.SafeRangeX = !!xRange;
         this.Player = Terraria.Main.player[target >= 0 && target < 255 ? target : Terraria.Main.myPlayer];
+        this.GroundTileY = -1;
+        this.SpawnTileType = -1;
+        this.SpawnWallType = -1;
+        if (tileX < 0 || tileY < 0) return;
 
         const ground = new Ref(tileY);
         Terraria.NPC.Spawner['void FindGroundTile(int x, int y, out int groundTileY)'](tileX, tileY, ground);
