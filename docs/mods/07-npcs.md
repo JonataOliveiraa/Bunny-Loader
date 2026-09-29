@@ -128,6 +128,26 @@ jogador perto de quem o NPC nasce (no multijogador, não use `Main.LocalPlayer`)
   `Graveyard`, `Dungeon`, `Lihzahrd`;
 - `CommonEnemy`: sem invasão, evento ou pilar. O caso normal.
 
+As condições do próprio jogo, como no tModLoader, estão no `SpawnCondition`:
+`SpawnCondition.OverworldNightMonster.Chance` é a parte do sorteio do jogo que
+cairia ali (0 a 1) no ponto do spawn. Multiplicar dá um peso proporcional:
+
+```js
+SpawnChance(info) {
+    return SpawnCondition.OverworldNightMonster.Chance * 0.2;   // 20% dos zumbis da noite
+}
+```
+
+Para o NPC aparecer num bioma de mod no Bestiário (o nome, o ícone, o fundo e
+o filtro), ponha o bioma no `SpawnModBiomes`, no `SetDefaults`:
+
+```js
+SetDefaults() {
+    // ...
+    this.SpawnModBiomes = [MeuBioma];
+}
+```
+
 ## Bestiário
 
 ```js
@@ -249,7 +269,10 @@ personalidades do próprio jogo, que calcula o humor e o preço da loja:
 `SetNPCAffection(npcDoJogo, nível)` e `SetBiomeAffection('Forest' | 'Desert' |
 'Snow' | 'Jungle' | 'Ocean' | 'Underground' | 'Hallow' | 'Mushroom' | 'Dungeon'
 | 'Corruption' | 'Crimson', nível)`, com `AffectionLevel.Love`, `Like`,
-`Dislike` ou `Hate`.
+`Dislike` ou `Hate`. Um bioma de mod entra pela classe, como no tModLoader:
+`SetBiomeAffection(MeuBioma, AffectionLevel.Love)`; a fala cita o
+`TownNPCDialogueName` dele (`Biomes.MeuBioma.TownNPCDialogueName` no
+`Localization`, ou "the My Biome").
 
 As falas de humor vêm de `TownNPCMood.<Classe>` no `Localization/<idioma>.json`:
 `Content`, `NoHome`, `FarFromHome`, `LoveSpace`, `LikeBiome`, `LoveNPC`,

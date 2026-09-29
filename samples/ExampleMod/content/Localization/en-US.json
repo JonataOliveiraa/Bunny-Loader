@@ -213,5 +213,15 @@
     "ExampleDerivedPrefix": {
       "AdditionalTooltip": "Even More Power"
     }
+  },
+  "Biomes": {
+    "ExampleSurfaceBiome": {
+      "DisplayName": "Example Surface",
+      "TownNPCDialogueName": "the Example Surface Biome"
+    },
+    "ExampleUndergroundBiome": {
+      "DisplayName": "Example Underground",
+      "TownNPCDialogueName": "the Example Underground Biome"
+    }
   }
 }

@@ -15,14 +15,22 @@ class NPCHappiness {
         return this;
     }
 
-    // 'Forest', 'Desert', 'Snow', 'Jungle', 'Ocean', 'Underground', 'Hallow',
-    // 'Mushroom', 'Dungeon', 'Corruption', 'Crimson'.
+    // Do jogo: 'Forest', 'Desert', 'Snow', 'Jungle', 'Ocean', 'Underground',
+    // 'Hallow', 'Mushroom', 'Dungeon', 'Corruption', 'Crimson'. De mod: a
+    // classe do ModBiome, a instância ou o Type (como o
+    // SetBiomeAffection<ModBiome> do tModLoader).
     SetBiomeAffection(biome, level) {
         const P = Terraria.GameContent.Personalities;
-        const name = String(biome).endsWith('Biome') ? String(biome) : biome + 'Biome';
-
-        const shopping = P[name].new();
-        shopping['void .ctor()']();
+        let shopping;
+        if (typeof biome === 'string') {
+            const name = biome.endsWith('Biome') ? biome : biome + 'Biome';
+            shopping = P[name].new();
+            shopping['void .ctor()']();
+        } else {
+            const own = BiomeLoader.Resolve(biome);
+            if (!own) throw new TypeError('SetBiomeAffection: passe o nome de um bioma do jogo ou um ModBiome registrado');
+            shopping = BiomeShoppingLoader.Of(own);
+        }
 
         const preference = P.BiomePreferenceListTrait.BiomePreference.new();
         preference['void .ctor(AffectionLevel affection, AShoppingBiome biome)'](level, shopping);

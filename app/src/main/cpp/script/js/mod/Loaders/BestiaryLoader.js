@@ -17,6 +17,14 @@ class BestiaryLoader {
         const generic = db['BestiaryEntry FindEntryByNPCID(int npcNetId)'](type);
         if (generic && db.Entries.Contains(generic)) db.Entries.Remove(generic);
 
+        // Os biomas de mod do SpawnModBiomes, antes do SetBestiary, como o
+        // tModLoader. O SetDefaults o escreve na cópia de cada NPC: vale o da
+        // amostra do jogo, ou o do modelo.
+        const sample = Safe.Run(inst.constructor.name + ' (SpawnModBiomes)',
+            () => NPCLoader.Of(Terraria.ID.ContentSamples.NpcsByNetId.get_Item(type)));
+        const biomes = BiomeBestiaryLoader.Biomes((sample && sample.SpawnModBiomes) || inst.SpawnModBiomes);
+        for (const biome of biomes) entry.Info.Add(BiomeBestiaryLoader.Of(biome));
+
         inst.SetBestiary(db, entry);
         db['BestiaryEntry Register(BestiaryEntry entry)'](entry);
         db['void ExtractDropsForNPC(ItemDropDatabase dropsDatabase, int npcId)'](Terraria.Main.ItemDropsDB, type);
@@ -27,6 +35,7 @@ class BestiaryLoader {
         if (BestiaryLoader.#finished || !BestiaryLoader.#added) return;
 
         BestiaryLoader.#finished = true;
+        Safe.Run('Bestiario: filtros de bioma', () => BiomeBestiaryLoader.Finish());
         Safe.Run('Bestiario', () => Terraria.ID.ContentSamples['void CreateBestiarySortingIds(BestiaryDatabase database)'](Terraria.Main.BestiaryDB));
         bl.log('Bestiario: ' + BestiaryLoader.#added + ' NPC(s) de mod');
     }

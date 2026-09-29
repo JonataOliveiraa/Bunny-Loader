@@ -1,0 +1,15 @@
+{
+  "uid": "91d14b39-402b-4508-8d92-3adc24dda2aa",
+  "id": "test-biomecontent",
+  "name": "Teste: nome, felicidade e Bestiário do bioma; EditSpawnFlags e SpawnCondition",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "DisplayName e TownNPCDialogueName do ModBiome, SetBiomeAffection com bioma de mod (preço e fala do morador), o bioma no Bestiário (entrada, ícone, fundo e filtro, pelo SpawnModBiomes), GlobalNPC.EditSpawnFlags e o SpawnCondition. Com o Example Mod: o nome e o Bestiário dos biomas dele.",
+  "description": "Loga 'biomecontent ...'.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

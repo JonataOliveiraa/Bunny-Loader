@@ -331,6 +331,7 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `PreKill(npc)`, `OnKill(npc)` | Na morte. `PreKill` → `false` cancela o drop. | `NPC.NPCLoot`, filtro `tipo` |
 | `SpawnChance(spawnInfo)` | A cada spawn natural: devolva o peso (o do jogo pesa 1; 0 = não nasce). Só sozinho ou no servidor. | `NPC.Spawner.SpawnAnNPC`, sem filtro |
 | `SpawnNPC(tileX, tileY)` | Sorteado: como nasce, no bloco do spawn; devolve o índice. Padrão: em cima do bloco (`tileX * 16 + 8`, `tileY * 16`), como no tModLoader. | idem |
+| `SpawnModBiomes` | No `SetDefaults`: os `ModBiome` onde ele nasce (classes, instâncias ou `Type`): o nome, o ícone e o fundo deles na entrada do Bestiário, e o filtro. | ao montar o Bestiário |
 | **Morador** | | |
 | `CanTownNPCSpawn(numTownNPCs)` | De tempos em tempos, sem um deste no mundo: `true` e ele se muda. | `Main.UpdateTime_SpawnTownNPCs`, sem filtro |
 | `CheckConditions(left, right, top, bottom)` | A sala serve para ele? | `WorldGen.CheckSpecialTownNPCSpawningConditions` |
@@ -596,6 +597,7 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `NetSend(npc, writer)`, `NetReceive(npc, reader)` | Rede: junto com cada NPC que o servidor sincroniza. | `NetMessage.SendData` (23) |
 | `ModifyNPCLoot(npc, npcLoot)` | Uma vez por tipo de NPC, com a amostra do jogo. | nativo (ao terminar de carregar) |
 | `ModifyGlobalLoot(globalLoot)` | Uma vez. | idem |
+| `EditSpawnFlags(spawnInfo)` | Antes da taxa, da área e do ponto: os campos do jogador no `spawnInfo` (`noWorms`, `invaders`, `ZoneCorrupt`...). O ponto ainda não existe (`SpawnTileX` = -1). | `NPC.Spawner.SetSpawnFlags` |
 | `EditSpawnRate(player, spawnRate, maxSpawns)` | A cada tentativa de spawn para o jogador. `Ref`: `spawnRate` menor = mais spawn; `maxSpawns`, quantos inimigos por perto. | `NPC.Spawner.GetSpawnRate` |
 | `EditSpawnRange(player, spawnRangeX, spawnRangeY, safeRangeX, safeRangeY)` | `Ref`, em blocos: até onde nasce e a distância mínima do jogador. | `NPC.Spawner.GetSpawnArea` |
 | `EditSpawnInfo(spawnInfo)` | Com o ponto escolhido, antes do sorteio: os campos do `spawnInfo` (`waterTile`, `nearGranite`...) mudam o que o jogo e o `SpawnChance` leem. | `NPC.Spawner.SetSpawnFlagsForChosenTile` |
@@ -635,7 +637,7 @@ export class MaisInimigosNoBioma extends GlobalNPC {
 ### Ainda não
 
 `NetSend`/`NetReceive` do `GlobalItem`, `SaveData`/`LoadData` por entidade,
-`GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`, `EditSpawnFlags`, o `SpawnCondition`,
+`GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`,
 `ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`; no `GlobalProjectile`,
 `GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`.
 
@@ -727,7 +729,11 @@ export class MeuBioma extends ModBiome {
 | `OnInBiome(player)` | A cada quadro dentro, inclusive no da entrada. |
 | `player.InModBiome(Classe)` | Se o jogador está no bioma. Aceita a classe, a instância (`ModContent.GetInstance`) ou o `Type`. |
 | `Type` | A posição entre os biomas (a mesma classe em dois mods são dois biomas). |
-| `BestiaryIcon`, `BackgroundPath` | Caminhos em `Assets/Textures`: o da classe + `_Icon` e + `_Background` (`Content/Biomes/MeuBioma.js` -> `Biomes/MeuBioma_Background`), como no tModLoader. O Bestiário ainda não os usa; o fundo do mapa pode reusar o `BackgroundPath`. |
+| `DisplayName`, `TownNPCDialogueName` | Os nomes, como no tModLoader: `Biomes.<Classe>.DisplayName` e `.TownNPCDialogueName` no `Localization/<cultura>.json` do mod (chaves `Mods.<id>.Biomes.<Classe>...`). Sem eles, o nome da classe separado ("My Biome") e "the My Biome". Um `DisplayName` escrito na classe (texto ou `{ cultura: texto }`) ganha do arquivo. Depois do registro, os dois são `{ Key, Value }`. |
+| `BestiaryIcon`, `BackgroundPath` | Caminhos em `Assets/Textures`: o da classe + `_Icon` (30 x 30, o ícone do filtro) e + `_Background` (115 x 65, o fundo do retrato no Bestiário), como no tModLoader. Sem o arquivo, ou em outro tamanho, os do jogo. O fundo do mapa pode reusar o `BackgroundPath`. |
+| `BackgroundColor` | A cor do fundo do retrato no Bestiário (`Color`), ou `null`. |
+| No Bestiário | O bioma aparece na entrada de cada NPC com ele no `SpawnModBiomes`, e como filtro (se algum NPC o usa). |
+| Na felicidade | `this.Happiness.SetBiomeAffection(MeuBioma, AffectionLevel.Love)` num morador: o preço e a fala dele mudam com o jogador no bioma (a fala usa o `TownNPCDialogueName`). |
 | Padrões | `Priority` `BiomeLow` e `Music` `0` (silêncio), como no tModLoader: sem música própria, declare `Music = -1`. |
 
 Um **efeito de cena** (`ModSceneEffect`) é o mesmo sem as flags:
@@ -767,7 +773,7 @@ export class MeuBioma extends ModBiome {
 | `MapBackgroundFullbright` | `true`: sempre branco. O padrão (`false`) é a cor do céu com a tela do mapa na superfície e branco abaixo dela. |
 | `MapBackgroundColor(color)` | `Ref` (`.value`, uma `Color`): a cor final, depois das duas acima. |
 
-**Ainda não** (etapas do plano): o Bestiário e as tochas do bioma.
+**Ainda não**: a tocha e a fogueira do bioma (`BiomeTorchItemType`, `BiomeCampfireItemType`).
 
 ### Fundos de mod
 
@@ -988,7 +994,8 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 | `NPCSpawnInfo` | Recebido no `SpawnChance`, no `EditSpawnPool` e no `EditSpawnInfo`, como o `NPC.Spawner` do tModLoader: `SpawnTileX`, `SpawnTileY`, `GroundTileY`, `SpawnTileType` e `SpawnWallType` (o bloco e a parede do chão), `SafeRangeX`, `Player` (o jogador-alvo), `Spawner` (o do jogo) e os campos dele, que se leem e escrevem (`waterTile`, `nearGranite`, `nearMarble`, `spawnSpider`, `ZoneCorrupt`...); altura (`Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`, `AboveSurface`, `BelowSurface`); hora e evento (`Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`, `SolarEclipse`, `PumpkinMoon`, `FrostMoon`, `AnyEvent`, `Invasion`, `AnyTower`); mundo (`HardMode`, `Expert`, `Master`); bioma (`Corruption`, `Crimson`, `Hallow` e os `Underground...`, `Snow`, `Ice`, `Jungle`, `UndergroundJungle`, `Mushroom`, `SurfaceMushroom`, `Ocean`, `Desert`, `DesertCave`, `Meteor`, `Marble`, `Granite`, `Graveyard`, `Dungeon`, `Lihzahrd`); `CommonEnemy`. |
 | `SpawnPool` | O sorteio do `EditSpawnPool`: `pool[tipo] = peso`, `delete pool[tipo]`, ou `Add`, `Remove`, `ContainsKey`, `Clear`, `Keys`, `Count`. O `0` é o spawn do jogo (peso 1). Com o total 0, nada nasce. |
 | `NPCShop` | `new NPCShop(tipoDoNPC, 'Shop').Add(item, { condition, price, currency }).Register()`; `NPCShop.get(tipo, nome)`, `shop.Open()`. |
-| `NPCHappiness` | `this.Happiness.SetNPCAffection(npc, nivel)`, `.SetBiomeAffection('Desert', nivel)`, com `AffectionLevel.Love`, `Like`, `Dislike`, `Hate`. |
+| `NPCHappiness` | `this.Happiness.SetNPCAffection(npc, nivel)`, `.SetBiomeAffection('Desert', nivel)` (do jogo) ou `.SetBiomeAffection(MeuBioma, nivel)` (a classe de um `ModBiome`), com `AffectionLevel.Love`, `Like`, `Dislike`, `Hate`. |
+| `SpawnCondition` | As condições do spawn do jogo em objetos, como no tModLoader: `SpawnCondition.OverworldNightMonster.Chance` é a fatia (0 a 1) do sorteio do jogo que cairia ali no ponto do spawn atual; `.Active` diz se foi avaliada. Para o `SpawnChance`: `return SpawnCondition.OverworldDaySlime.Chance * 0.1`. Avaliadas uma vez por sorteio, só se lidas. |
 | `ModGore` | `ModGore.getTypeByName('Nome')`: o gore de `Assets/Textures/Gores/Nome.png`. |
 
 ---

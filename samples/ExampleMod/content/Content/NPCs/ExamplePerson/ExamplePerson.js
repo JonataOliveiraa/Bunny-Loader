@@ -1,4 +1,5 @@
 import { ExampleCustomCurrency } from '../../Items/ExampleItem.js';
+import { ExampleSurfaceBiome } from '../../Biomes/ExampleSurfaceBiome.js';
 
 const { DustID, NPCID, SoundID } = Terraria.ID;
 const { BestiaryDatabaseNPCsPopulator, FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
@@ -18,11 +19,19 @@ export class ExamplePerson extends ModNPC {
         NPCID.Sets.ShimmerTownTransform[this.Type] = true;
         NPCID.Sets.NPCBestiaryDrawOffset.Add(this.Type, NPCID.Sets.NPCBestiaryDrawOffset.get_Item(NPCID.Guide));
 
+        // Como no tModLoader: ama o bioma de exemplo (a classe do ModBiome).
+        // Os moradores já odeiam Corrupção, Carmesim e Masmorra sozinhos.
         this.Happiness
-            .SetNPCAffection(NPCID.Nurse, AffectionLevel.Love)
+            .SetBiomeAffection(ExampleSurfaceBiome, AffectionLevel.Love)
+            .SetBiomeAffection('Forest', AffectionLevel.Like)
+            .SetBiomeAffection('Snow', AffectionLevel.Dislike)
+            .SetBiomeAffection('Desert', AffectionLevel.Dislike)
+            .SetNPCAffection(NPCID.Dryad, AffectionLevel.Love)
             .SetNPCAffection(NPCID.Guide, AffectionLevel.Like)
+            .SetNPCAffection(NPCID.BestiaryGirl, AffectionLevel.Like)
             .SetNPCAffection(NPCID.Merchant, AffectionLevel.Dislike)
-            .SetBiomeAffection('Desert', AffectionLevel.Hate);
+            .SetNPCAffection(NPCID.Golfer, AffectionLevel.Dislike)
+            .SetNPCAffection(NPCID.Demolitionist, AffectionLevel.Hate);
     }
 
     SetDefaults() {

@@ -23,6 +23,38 @@ class BiomeLoader {
         inst.Type = BiomeLoader.List.length;
         BiomeLoader.List.push(inst);
         BiomeLoader.Install();
+        BiomeLoader.#Localize(inst);
+    }
+
+    // Os nomes, como no tModLoader: Mods.<id>.Biomes.<Classe>.DisplayName (o
+    // Bestiário) e .TownNPCDialogueName (a fala do morador), do
+    // Localization/<cultura>.json do mod (Biomes.<Classe>.DisplayName...);
+    // sem eles, o nome da classe separado ("Example Surface Biome") e
+    // "the ..." antes dele. Um DisplayName escrito na classe (texto ou
+    // { cultura: texto }) ganha do arquivo. Depois, DisplayName é o texto
+    // localizado: DisplayName.Key e DisplayName.Value.
+    static #Localize(inst) {
+        const name = inst.constructor.name;
+        const pretty = name.replace(/([A-Z])/g, ' $1').trim();
+        const base = 'Mods.' + (inst.Mod ? inst.Mod.id || inst.Mod.uuid : 'bl') + '.Biomes.' + name;
+        const own = inst.DisplayName;
+        const display = (typeof own === 'string' && own) || (own && typeof own === 'object' && !own.Key && own) ||
+                        Lang.Localized('Biomes', name + '.DisplayName') || pretty;
+        const dialogue = Lang.Localized('Biomes', name + '.TownNPCDialogueName') || 'the ' + pretty;
+
+        inst.ShoppingNameKey = base;
+        LocalizationLoader.Register(base + '.DisplayName', display);
+        LocalizationLoader.Register(base + '.TownNPCDialogueName', dialogue);
+        // A fala do morador lê TownNPCMoodBiomes.<NameKey> (ShopHelper.BiomeNameByKey).
+        LocalizationLoader.Register('TownNPCMoodBiomes.' + base, dialogue);
+
+        const text = (key) => Object.freeze({
+            Key: key,
+            get Value() { return Terraria.Localization.Language['string GetTextValue(string key)'](key); },
+            toString() { return this.Value; },
+        });
+        Object.defineProperty(inst, 'DisplayName', { value: text(base + '.DisplayName'), writable: true, configurable: true });
+        Object.defineProperty(inst, 'TownNPCDialogueName', { value: text(base + '.TownNPCDialogueName'), writable: true, configurable: true });
     }
 
     // Também para um mod só com ModSceneEffect: o hook lê as flags.

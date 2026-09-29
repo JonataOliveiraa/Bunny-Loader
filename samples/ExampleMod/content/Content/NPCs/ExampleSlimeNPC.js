@@ -28,6 +28,9 @@ export class ExampleSlimeNPC extends ModNPC {
         this.NPC.value = ModNPC.NPCValue(0, 0, 0, 25);
 
         this.AnimationType = NPCID.BlueSlime;
+        // No Bestiário: o bioma de exemplo (nome, ícone, fundo e filtro), como
+        // o SpawnModBiomes dos zumbis de exemplo do tModLoader.
+        this.SpawnModBiomes = [ExampleSurfaceBiome];
     }
 
     ApplyBuffImmunity(npc) {

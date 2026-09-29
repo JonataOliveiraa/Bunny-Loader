@@ -23,3 +23,4 @@ class ModBiome extends ModSceneEffect {
 }
 ModBiome.prototype.Music = 0;
 ModBiome.prototype.Priority = SceneEffectPriority.BiomeLow;
+ModBiome.prototype.BackgroundColor = null;   // a cor do fundo do Bestiário (Color), ou null

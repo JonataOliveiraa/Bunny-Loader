@@ -40,6 +40,8 @@ class ModNPC {
     OnKill(npc) {}
 
     // O peso no sorteio do spawn natural (o do jogo pesa 1). 0 = não nasce.
+    // SpawnModBiomes: os ModBiome onde ele nasce, no Bestiário (a classe, a
+    // instância ou o Type), escritos no SetDefaults como no tModLoader.
     SpawnChance(spawnInfo) { return 0; }
     // Sorteado: como nasce, no bloco do spawn (tileX, tileY), como no
     // tModLoader. Devolve o índice do NPC. Padrão: em cima do bloco.
