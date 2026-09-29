@@ -253,7 +253,7 @@ void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
     }
     if (out != legend) {
         if (r.legendArray < 0) {
-            a.field_static_set_value(r.legend, &out);
+            a.field_static_set_value(r.legend, out);
         } else {
             a.gc_wbarrier_set_field(holder, reinterpret_cast<void**>(&field<Il2CppArray*>(holder, r.legendArray)), out);
             if (r.legendLength >= 0) field<int32_t>(holder, r.legendLength) = static_cast<int32_t>(want);
@@ -641,7 +641,8 @@ void applyModTileMap(int total, bool rebuilt) {
         const int type = g_indexType[k];
         writeColor(col + (pos + k) * 4, g_entries[static_cast<size_t>(type - kVanillaTileCount)][g_indexOption[k]]);
     }
-    if (out != colors) il2cpp::api().field_static_set_value(r.colors, &out);
+    // Campo de referencia: o objeto, nao o endereco da variavel (que e da pilha).
+    if (out != colors) il2cpp::api().field_static_set_value(r.colors, out);
     g_colorsOurs = out;
     applyLegend(r, pos, count, true);
     if (fresh) {
