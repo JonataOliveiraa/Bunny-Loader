@@ -1,0 +1,15 @@
+{
+  "uid": "7f9e84d3-d5cf-461b-a290-c31cc67fbfd1",
+  "id": "test-tileautosave",
+  "name": "Teste: tile de mod na gravacao automatica",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: poe tiles de mod, dispara a gravacao automatica (WorldGen.saveAndPlay, numa thread) e confere a cada quadro que os tiles nao somem enquanto ela roda.",
+  "description": "Loga 'tileautosave ...'.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -1,5 +1,6 @@
 #include "content/tiles/ModTileSave.h"
 #include "core/Log.h"
+#include "hook/CodePatch.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -9,6 +10,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <map>
 #include <mutex>
 #include <string>
@@ -171,51 +173,205 @@ void writeFile(const std::string& path, const std::vector<SavedTile>& tiles) {
 }
 
 // ------------------------------ salvar ------------------------------
+//
+// A gravacao le uma copia. O SaveWorldTilesFast pega o bloco de estaticos do
+// TileData UMA vez, logo no comeco (`ldr x8, [x8, #0xb8]`, o static_fields
+// da classe), e dali em diante usa os ponteiros dele — TileLookup, TileType,
+// TileSHeader... — ja em registradores. Essa instrucao vira `mov x8, x27`, e
+// quem chama pos em x27 um bloco FALSO: copia do verdadeiro, com TileType e
+// TileSHeader apontando para copias em que o tipo de mod e ar. O jogo segue
+// com o bloco verdadeiro; so a gravacao ve a copia.
+//
+// O x27 ainda e o de quem chamou naquele ponto: a funcao so o escreve
+// depois (`mov w27, wzr` no laco). A troca e permanente, entao TODA chamada
+// passa por bl_call_with_x27 — sem tile de mod, com o bloco verdadeiro.
+// Instrucao diferente da esperada (outra versao do jogo): nada e trocado, e
+// a gravacao faz o de antes (tira os tiles de mod do mundo e os devolve).
 
 using SaveTilesFn = int32_t (*)(Il2CppObject*, const MethodInfo*);
 SaveTilesFn g_origSave = nullptr;
 
+constexpr size_t kLoadStaticsAt = 0x104;         // SaveWorldTilesFast + 0x104
+constexpr uint32_t kLoadStatics = 0xF9405D08;    // ldr x8, [x8, #0xb8]
+constexpr uint32_t kMovFromX27 = 0xAA1B03E8;     // mov x8, x27
+constexpr size_t kClassStaticFields = 0xB8;      // Il2CppClass::static_fields (o #0xb8 acima)
+constexpr size_t kStaticsSize = 0xF0;            // ate o TileBHeader3 (0xE8) + 8
+constexpr size_t kDefaultDefinitions = 200000;   // TileData.TileBufferSize
+
+struct SaveView {
+    bool ok = false;
+    Il2CppClass* tileData = nullptr;
+    size_t typeAt = 0, sHeaderAt = 0;   // os campos no bloco de estaticos
+    alignas(16) uint8_t statics[kStaticsSize];
+    std::vector<uint16_t> type;
+    std::vector<int16_t> sHeader;
+};
+SaveView g_view;
+std::mutex g_viewMx;   // uma gravacao por vez usa o bloco falso
+
+} // namespace
+} // namespace bl::runtime
+
+// x0 = writer, x1 = MethodInfo, x2 = a funcao, x3 = o bloco de estaticos (vai
+// em x27). Com CFI: excecao do jogo atravessa este quadro ate quem pega.
+asm(R"(
+    .text
+    .p2align 2
+    .globl bl_call_with_x27
+    .hidden bl_call_with_x27
+    .type bl_call_with_x27, %function
+bl_call_with_x27:
+    .cfi_startproc
+    stp x29, x30, [sp, #-32]!
+    .cfi_def_cfa_offset 32
+    .cfi_offset w29, -32
+    .cfi_offset w30, -24
+    str x27, [sp, #16]
+    .cfi_offset w27, -16
+    mov x29, sp
+    .cfi_def_cfa w29, 32
+    mov x27, x3
+    blr x2
+    ldr x27, [sp, #16]
+    ldp x29, x30, [sp], #32
+    .cfi_def_cfa sp, 0
+    .cfi_restore w27
+    .cfi_restore w29
+    .cfi_restore w30
+    ret
+    .cfi_endproc
+    .size bl_call_with_x27, .-bl_call_with_x27
+)");
+extern "C" int32_t bl_call_with_x27(Il2CppObject* writer, const MethodInfo* m, void* fn, void* statics);
+
+namespace bl::runtime {
+namespace {
+
+uint8_t* realStatics() {
+    return *reinterpret_cast<uint8_t**>(reinterpret_cast<char*>(g_view.tileData) + kClassStaticFields);
+}
+
+/**
+ * O bloco que a gravacao le: com tile de mod, a copia com eles como ar; sem,
+ * o verdadeiro. Sob g_viewMx.
+ */
+void* statsForSave(bool withModTiles) {
+    uint8_t* real = realStatics();
+    if (!withModTiles || !real) return real;
+    auto* type = *reinterpret_cast<uint16_t**>(real + g_view.typeAt);
+    auto* sHeader = *reinterpret_cast<int16_t**>(real + g_view.sHeaderAt);
+    if (!type || !sHeader) return real;
+    // As tabelas por definicao ficam em sequencia no buffer do mundo
+    // (TileData.Allocate): TileType e logo seguida da TileSHeader.
+    size_t count = sHeader > reinterpret_cast<int16_t*>(type)
+        ? static_cast<size_t>(reinterpret_cast<char*>(sHeader) - reinterpret_cast<char*>(type)) / sizeof(uint16_t)
+        : 0;
+    if (count < 1024 || count > (1u << 24)) count = kDefaultDefinitions;
+    g_view.type.assign(type, type + count);
+    g_view.sHeader.assign(sHeader, sHeader + count);
+    for (size_t d = 0; d < count; ++d) {
+        if (g_view.type[d] < kVanillaTileCount) continue;
+        g_view.type[d] = 0;
+        g_view.sHeader[d] = static_cast<int16_t>(g_view.sHeader[d] & ~kTileActiveBit);
+    }
+    std::memcpy(g_view.statics, real, kStaticsSize);
+    uint16_t* typeCopy = g_view.type.data();
+    int16_t* sHeaderCopy = g_view.sHeader.data();
+    std::memcpy(g_view.statics + g_view.typeAt, &typeCopy, sizeof(typeCopy));
+    std::memcpy(g_view.statics + g_view.sHeaderAt, &sHeaderCopy, sizeof(sHeaderCopy));
+    return g_view.statics;
+}
+
+/** Troca a instrucao e confere os campos. Uma vez, depois do hook. */
+void prepareSaveView(const MethodInfo* save) {
+    Il2CppClass* data = il2cpp::findClass({"Terraria", "TileData", {}});
+    FieldInfo* type = data ? il2cpp::findField(data, "TileType") : nullptr;
+    FieldInfo* sHeader = data ? il2cpp::findField(data, "TileSHeader") : nullptr;
+    if (!type || !sHeader) {
+        BL_WARN("tiles de mod: TileData sem TileType/TileSHeader; o save tira os tiles de mod do mundo por um instante");
+        return;
+    }
+    auto& a = il2cpp::api();
+    g_view.tileData = data;
+    g_view.typeAt = a.field_get_offset(type);
+    g_view.sHeaderAt = a.field_get_offset(sHeader);
+    if (g_view.typeAt + 8 > kStaticsSize || g_view.sHeaderAt + 8 > kStaticsSize || !realStatics()) {
+        BL_WARN("tiles de mod: estaticos do TileData fora do esperado (TileType %zu, TileSHeader %zu); "
+                "o save tira os tiles de mod do mundo por um instante", g_view.typeAt, g_view.sHeaderAt);
+        return;
+    }
+    if (!replaceInstruction(il2cpp::methodPointer(save), kLoadStaticsAt, kLoadStatics, kMovFromX27)) {
+        BL_WARN("tiles de mod: SaveWorldTilesFast diferente do esperado; o save tira os tiles de mod do "
+                "mundo por um instante");
+        return;
+    }
+    g_view.ok = true;
+    BL_DEBUG("tiles de mod: o save do mundo le uma copia das definicoes");
+}
+
+/** Os tiles de mod do mundo, para o arquivo ao lado. So leitura. */
+std::vector<SavedTile> collectModTiles(const TileArrays& t) {
+    std::vector<SavedTile> tiles;
+    std::unordered_map<int, std::string> keys;
+    const int64_t n = static_cast<int64_t>(t.width) * t.height;
+    for (int64_t pos = 0; pos < n; ++pos) {
+        const uint32_t def = t.lookup[pos];
+        const int type = t.type[def];
+        if (type < kVanillaTileCount || !(t.sHeader[def] & kTileActiveBit)) continue;
+        auto k = keys.find(type);
+        if (k == keys.end()) k = keys.emplace(type, modTileKey(type)).first;
+        if (k->second.empty()) continue;
+        SavedTile s;
+        s.x = static_cast<int>(pos % t.width);
+        s.y = static_cast<int>(pos / t.width);
+        s.key = k->second;
+        s.frameX = t.frameX[def];
+        s.frameY = t.frameY[def];
+        s.sHeader = t.sHeader[def];
+        s.bHeader = t.bHeader[def];
+        s.bHeader2 = t.bHeader2[def];
+        s.bHeader3 = t.bHeader3[def];
+        tiles.push_back(std::move(s));
+    }
+    return tiles;
+}
+
 int32_t hkSaveWorldTiles(Il2CppObject* writer, const MethodInfo* m) {
     const std::string path = activeWorldPath();
     TileArrays t;
-    std::vector<SavedTile> tiles;
-    // Definicao de tipo de mod -> o que ela era (volta depois do save).
-    std::unordered_map<uint32_t, std::pair<uint16_t, int16_t>> stripped;
-    if (tileTypeCount() > kVanillaTileCount && tileArrays(&t)) {
-        std::unordered_map<int, std::string> keys;
-        const int64_t n = static_cast<int64_t>(t.width) * t.height;
-        for (int64_t pos = 0; pos < n; ++pos) {
-            const uint32_t def = t.lookup[pos];
-            const int type = t.type[def];
-            if (type < kVanillaTileCount || !(t.sHeader[def] & kTileActiveBit)) continue;
-            auto k = keys.find(type);
-            if (k == keys.end()) k = keys.emplace(type, modTileKey(type)).first;
-            if (k->second.empty()) continue;
-            SavedTile s;
-            s.x = static_cast<int>(pos % t.width);
-            s.y = static_cast<int>(pos / t.width);
-            s.key = k->second;
-            s.frameX = t.frameX[def];
-            s.frameY = t.frameY[def];
-            s.sHeader = t.sHeader[def];
-            s.bHeader = t.bHeader[def];
-            s.bHeader2 = t.bHeader2[def];
-            s.bHeader3 = t.bHeader3[def];
-            tiles.push_back(std::move(s));
-            stripped.emplace(def, std::make_pair(t.type[def], t.sHeader[def]));
+    const bool modTiles = tileTypeCount() > kVanillaTileCount && tileArrays(&t);
+    std::vector<SavedTile> tiles = modTiles ? collectModTiles(t) : std::vector<SavedTile>{};
+    int32_t r = 0;
+
+    if (g_view.ok) {
+        std::lock_guard<std::mutex> l(g_viewMx);
+        r = bl_call_with_x27(writer, m, reinterpret_cast<void*>(g_origSave), statsForSave(modTiles));
+        g_view.type.clear();
+        g_view.type.shrink_to_fit();
+        g_view.sHeader.clear();
+        g_view.sHeader.shrink_to_fit();
+    } else {
+        // O de antes: as definicoes de tipo de mod viram ar no mundo durante a
+        // gravacao (o jogo ve os tiles de mod sumirem por um instante).
+        std::unordered_map<uint32_t, std::pair<uint16_t, int16_t>> stripped;
+        if (modTiles) {
+            const int64_t n = static_cast<int64_t>(t.width) * t.height;
+            for (int64_t pos = 0; pos < n; ++pos) {
+                const uint32_t def = t.lookup[pos];
+                if (t.type[def] >= kVanillaTileCount && (t.sHeader[def] & kTileActiveBit)) {
+                    stripped.emplace(def, std::make_pair(t.type[def], t.sHeader[def]));
+                }
+            }
+            for (const auto& [def, orig] : stripped) {
+                t.type[def] = 0;
+                t.sHeader[def] = static_cast<int16_t>(orig.second & ~kTileActiveBit);
+            }
         }
-        // Ar para o jogo: tipo 0, inativo. Parede, liquido e fios ficam.
+        r = g_origSave(writer, m);
         for (const auto& [def, orig] : stripped) {
-            t.type[def] = 0;
-            t.sHeader[def] = static_cast<int16_t>(orig.second & ~kTileActiveBit);
+            t.type[def] = orig.first;
+            t.sHeader[def] = orig.second;
         }
-    }
-
-    const int32_t r = g_origSave(writer, m);
-
-    for (const auto& [def, orig] : stripped) {
-        t.type[def] = orig.first;
-        t.sHeader[def] = orig.second;
     }
     if (!path.empty()) {
         size_t kept = 0;
@@ -296,6 +452,7 @@ void installModTileSave() {
         BL_ERROR("tiles de mod: sem o save do mundo; tile de mod iria para o .wld pelo numero");
         return;
     }
+    prepareSaveView(save);
     BL_DEBUG("tiles de mod: save do mundo pronto (%s)", kSuffix);
 }
 

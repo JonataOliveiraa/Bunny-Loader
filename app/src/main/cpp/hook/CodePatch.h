@@ -79,4 +79,10 @@ int patchRegisterLimit(const MethodInfo* m, uint32_t oldLimit, uint32_t newLimit
  */
 int patchMovImmediate(const MethodInfo* m, uint32_t oldValue, uint32_t newValue);
 
+/**
+ * Troca UMA instrucao conferida: a de `code + offset` tem de ser `expected`
+ * (ou ja ser `replacement`, de uma troca anterior). true se ficou trocada.
+ */
+bool replaceInstruction(const void* code, size_t offset, uint32_t expected, uint32_t replacement);
+
 } // namespace bl::runtime

@@ -229,4 +229,12 @@ int patchMovImmediate(const MethodInfo* m, uint32_t oldValue, uint32_t newValue)
     return patched;
 }
 
+bool replaceInstruction(const void* code, size_t offset, uint32_t expected, uint32_t replacement) {
+    if (!code) return false;
+    auto* at = reinterpret_cast<uint32_t*>(reinterpret_cast<uintptr_t>(code) + offset);
+    if (*at == replacement) return true;
+    if (*at != expected) return false;
+    return writeInstruction(at, replacement);
+}
+
 } // namespace bl::runtime
