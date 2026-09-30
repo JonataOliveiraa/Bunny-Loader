@@ -17,7 +17,7 @@ namespace bl::script {
 // que detem os JSClassID; Value.cpp e JsHook.cpp chamam por aqui.
 JSValue makeNativeObject(JSContext* ctx, Il2CppObject* obj);
 JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr);
-JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m);
+JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m, JSValueConst owner = JS_UNDEFINED);
 
 /** Um valor como o bl.log o escreve: objeto e array JS em JSON, o resto pelo toString. */
 std::string valueToLogText(JSContext* ctx, JSValueConst v);

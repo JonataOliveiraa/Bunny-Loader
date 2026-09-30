@@ -66,6 +66,7 @@ struct MethodRef {
     const MethodInfo* method;
     int paramCount;
     bool isInstance;
+    JSValue owner;  // wrapper de onde o metodo foi lido; mantem a instancia viva
     /**
      * O `this` e um OBJETO, mesmo quando chamado num struct: o metodo foi
      * declarado num tipo de referencia (GetType e Equals de System.Object,
@@ -316,8 +317,89 @@ int nc_exotic_has(JSContext* ctx, JSValueConst obj, JSAtom atom) {
     return !m.quiet && extraStatic(ctx, cls, atom, nullptr);
 }
 
+JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueConst receiver);
+
+// QuickJS nao consulta get_property ao fazer Object.keys/for..in: precisa
+// receber a lista de nomes e os descritores separadamente.
+std::vector<std::string> nativeNames(Il2CppClass* cls, bool wantStatic) {
+    auto& a = il2cpp::api();
+    std::set<std::string> names;
+    for (Il2CppClass* c = cls; c; c = a.class_get_parent(c)) {
+        void* it = nullptr;
+        while (a.class_get_fields && a.field_get_name) {
+            FieldInfo* f = a.class_get_fields(c, &it);
+            if (!f) break;
+            if (a.field_get_flags && ((a.field_get_flags(f) & 0x0010) != 0) != wantStatic) continue;
+            if (const char* name = a.field_get_name(f)) names.emplace(name);
+        }
+        it = nullptr;
+        while (const MethodInfo* m = a.class_get_methods(c, &it)) {
+            if (a.method_get_flags && ((a.method_get_flags(m, nullptr) & 0x0010) != 0) != wantStatic) continue;
+            const char* name = a.method_get_name(m);
+            if (!name) continue;
+            // A propriedade C# aparece pelo nome legivel; a assinatura exata
+            // continua disponivel para metodos com overloads.
+            if (std::strncmp(name, "get_", 4) == 0 && a.method_get_param_count(m) == 0)
+                names.emplace(name + 4);
+            else if (std::strncmp(name, "set_", 4) != 0 && name[0] != '.') {
+                names.emplace(name);
+                names.emplace(il2cpp::describeMethod(m));
+            }
+        }
+    }
+    return {names.begin(), names.end()};
+}
+
+int nativeOwnNames(JSContext* ctx, JSPropertyEnum** ptab, uint32_t* plen,
+                   Il2CppClass* cls, bool wantStatic, JSClassID id) {
+    *ptab = nullptr;
+    *plen = 0;
+    if (!cls) return 0;
+    const auto names = nativeNames(cls, wantStatic);
+    auto* out = static_cast<JSPropertyEnum*>(js_malloc(ctx, names.size() * sizeof(JSPropertyEnum)));
+    if (!out && !names.empty()) return -1;
+    for (const auto& name : names) {
+        JSAtom atom = JS_NewAtom(ctx, name.c_str());
+        if (atom == JS_ATOM_NULL) {
+            for (uint32_t i = 0; i < *plen; ++i) JS_FreeAtom(ctx, out[i].atom);
+            js_free(ctx, out);
+            return -1;
+        }
+        const Member& m = member(ctx, cls, atom, wantStatic ? Space::Static : Space::Instance, id);
+        if (!m.proto && (m.field || m.getter || m.method || m.nested)) {
+            out[*plen].atom = atom;
+            out[*plen].is_enumerable = true;
+            ++*plen;
+        } else JS_FreeAtom(ctx, atom);
+    }
+    *ptab = out;
+    return 0;
+}
+
+int nativeOwnProperty(JSContext* ctx, JSPropertyDescriptor* desc, JSValueConst obj,
+                      JSAtom atom, Il2CppClass* cls, bool wantStatic, JSClassID id) {
+    if (!cls) return 0;
+    const Member& m = member(ctx, cls, atom, wantStatic ? Space::Static : Space::Instance, id);
+    if (m.proto || !(m.field || m.getter || m.method || m.nested)) return 0;
+    if (desc) {
+        desc->flags = JS_PROP_ENUMERABLE | JS_PROP_CONFIGURABLE | (m.field || m.setter ? JS_PROP_WRITABLE : 0);
+        desc->getter = JS_UNDEFINED;
+        desc->setter = JS_UNDEFINED;
+        desc->value = wantStatic ? nc_exotic_get(ctx, obj, atom, obj) : no_exotic_get(ctx, obj, atom, obj);
+        if (JS_IsException(desc->value)) return -1;
+    }
+    return 1;
+}
+
+int nc_own_names(JSContext* ctx, JSPropertyEnum** ptab, uint32_t* plen, JSValueConst obj) {
+    return nativeOwnNames(ctx, ptab, plen, classOf(obj), true, g_nativeClassId);
+}
+int nc_own_property(JSContext* ctx, JSPropertyDescriptor* desc, JSValueConst obj, JSAtom atom) {
+    return nativeOwnProperty(ctx, desc, obj, atom, classOf(obj), true, g_nativeClassId);
+}
+
 const JSClassExoticMethods nc_exotic = {
-    nullptr, nullptr, nullptr, nullptr,
+    nc_own_property, nc_own_names, nullptr, nullptr,
     nc_exotic_has, nc_exotic_get, nc_exotic_set,
 };
 
@@ -325,7 +407,14 @@ const JSClassExoticMethods nc_exotic = {
 // saiu: o acesso por propriedade e por assinatura faz o mesmo sem o modder
 // precisar dizer o tipo nem contar parâmetros. O que fica no protótipo SOMBREIA
 // nomes reais da classe do jogo, então quanto menos, melhor.
+/** JSON.stringify(Terraria.Main): o nome, e nao todos os estaticos. */
+JSValue nc_toJSON(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
+    Il2CppClass* cls = classOf(self);
+    return JS_NewString(ctx, ("[" + (cls ? className(cls) : std::string("?")) + "]").c_str());
+}
+
 const JSCFunctionListEntry nc_proto[] = {
+    JS_CFUNC_DEF("toJSON", 1, nc_toJSON),
     JS_CFUNC_DEF("new", 0, nc_new),
     JS_CFUNC_DEF("newArray", 1, nc_newArray),
     JS_CFUNC_DEF("makeGeneric", 1, nc_makeGeneric),
@@ -410,7 +499,7 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
 
     if (m.proto) return protoGet(ctx, g_nativeObjectId, atom);
     if (m.field) return readAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, obj);
-    if (m.method) return makeGameMethod(ctx, m.method);
+    if (m.method) return makeGameMethod(ctx, m.method, obj);
     if (m.getter) return invokeGetter(ctx, m.getter, propertyThis(o, cls));
     if (m.signature) return missingSignature(ctx, cls, atom);
     // Campo que um mod pos na classe (bl.defineField): `item.ModItem`.
@@ -459,7 +548,16 @@ void no_finalizer(JSRuntime*, JSValue val) {
 }
 
 const JSClassExoticMethods no_exotic = {
-    nullptr, nullptr, nullptr, nullptr,
+    [](JSContext* ctx, JSPropertyDescriptor* desc, JSValueConst obj, JSAtom atom) -> int {
+        Il2CppObject* o = objOf(obj);
+        return nativeOwnProperty(ctx, desc, obj, atom, o ? il2cpp::api().object_get_class(o) : nullptr,
+                                 false, g_nativeObjectId);
+    },
+    [](JSContext* ctx, JSPropertyEnum** ptab, uint32_t* plen, JSValueConst obj) -> int {
+        Il2CppObject* o = objOf(obj);
+        return nativeOwnNames(ctx, ptab, plen, o ? il2cpp::api().object_get_class(o) : nullptr,
+                              false, g_nativeObjectId);
+    }, nullptr, nullptr,
     no_exotic_has, no_exotic_get, no_exotic_set,
 };
 
@@ -473,6 +571,11 @@ JSValue no_toString(JSContext* ctx, JSValueConst self, int, JSValueConst*) {
 
 const JSCFunctionListEntry no_proto[] = {
     JS_CFUNC_DEF("toString", 0, no_toString),
+    // O JSON.stringify para aqui. Com as chaves do objeto do jogo a mostra
+    // (Object.keys, for..in), ele desceria no objeto inteiro: todo getter,
+    // todo array e os objetos de dentro (Player -> inventory -> cada Item...).
+    // E o bl.log({ player }) e o console passam pelo JSON sem ninguem pedir.
+    JS_CFUNC_DEF("toJSON", 1, no_toString),
 };
 
 // NativeClass.new(): cria uma instancia sem chamar o construtor (memoria
@@ -710,9 +813,11 @@ JSValue nc_makeGeneric(JSContext* ctx, JSValueConst self, int argc, JSValueConst
 
 // ============================ NativeMethod ============================
 
-void nm_finalizer(JSRuntime*, JSValue val) {
-    if (auto* r = static_cast<MethodRef*>(JS_GetOpaque(val, g_nativeMethodId)))
+void nm_finalizer(JSRuntime* rt, JSValue val) {
+    if (auto* r = static_cast<MethodRef*>(JS_GetOpaque(val, g_nativeMethodId))) {
+        JS_FreeValueRT(rt, r->owner);
         std::free(r);
+    }
 }
 
 /**
@@ -756,7 +861,7 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
             if (Il2CppObject* o = objectFromJS(v)) return o;
             return arrayFromJS(v);
         };
-        thisPtr = self(thisVal);
+        thisPtr = self(JS_IsUndefined(r->owner) ? thisVal : r->owner);
         if (!thisPtr && argc > 0) {
             thisPtr = self(argv[0]);
             if (thisPtr) { ++argv; --argc; }
@@ -1224,16 +1329,10 @@ JSValue makeGameArray(JSContext* ctx, Il2CppArray* arr) {
     return wrapperFor(ctx, g_arrayWrappers, g_gameArrayId, arr);
 }
 
-JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m) {
-    // Um GameMethod por metodo, criado uma vez: `obj['void Foo()']()` num laco
-    // montava um objeto novo (malloc + objeto JS + method_get_flags) a cada
-    // volta — 290 ns jogados fora por chamada (docs/historico/PONTE-OTIMIZACAO.md,
-    // passo 3). O cache segura a referencia para sempre, como os callbacks de
-    // hook: o runtime JS vive ate o processo morrer (shutdown() nao e chamado).
-    static std::unordered_map<const MethodInfo*, JSValue> cache;
-    auto hit = cache.find(m);
-    if (hit != cache.end()) return JS_DupValue(ctx, hit->second);
+namespace {
 
+/** Um GameMethod novo; `owner` (ou undefined) e o `this` das chamadas. */
+JSValue newGameMethod(JSContext* ctx, const MethodInfo* m, JSValueConst owner) {
     // CUIDADO: il2cpp_method_get_flags DEVOLVE as flags e escreve as de
     // IMPLEMENTACAO no parâmetro de saída. Ler o parâmetro (o que este código
     // fazia) dava isInstance errado para todo método estático.
@@ -1244,17 +1343,71 @@ JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m) {
     ref->method = m;
     ref->paramCount = static_cast<int>(il2cpp::api().method_get_param_count(m));
     ref->isInstance = !(flags & 0x0010);  // METHOD_ATTRIBUTE_STATIC
+    ref->owner = JS_DupValue(ctx, owner);
     auto& a = il2cpp::api();
     Il2CppClass* declaring = a.method_get_class(m);
     ref->thisIsObject = ref->isInstance && declaring && a.class_is_valuetype &&
                         !a.class_is_valuetype(declaring);
     JSValue v = JS_NewObjectClass(ctx, g_nativeMethodId);
     if (JS_IsException(v)) {
+        JS_FreeValue(ctx, ref->owner);
         std::free(ref);
         return v;
     }
     JS_SetOpaque(v, ref);
-    cache.emplace(m, JS_DupValue(ctx, v));
+    return v;
+}
+
+/**
+ * Os metodos presos ao objeto de onde foram lidos (`const f = npc.Foo; f()`
+ * chama no npc), numa tabela pequena de acesso direto por (objeto, metodo).
+ * Sem ela, cada `npc['void Foo()']()` de um laco por quadro montava um
+ * GameMethod novo — o custo que o cache de baixo tirou. A vaga guarda o
+ * metodo, que segura o objeto: a chave (o endereco do embrulho) nao fica
+ * velha enquanto esta ali. Colisao troca a vaga; o antigo e solto.
+ */
+struct BoundSlot {
+    bool used = false;
+    const void* owner = nullptr;
+    const MethodInfo* method = nullptr;
+    JSValue value;
+};
+// Os lacos de mod passam por Main.projectile (1000), Main.item (400),
+// Main.player (255) e Main.npc (200): com 512 vagas um laco de projeteis
+// ja colidia consigo mesmo. 4096 (~128 KB) deixa esses lacos com poucas
+// colisoes; os objetos que a tabela segura vivos sao os fixos do Main.
+constexpr size_t kBoundSlots = 4096;
+BoundSlot g_bound[kBoundSlots];
+
+} // namespace
+
+JSValue makeGameMethod(JSContext* ctx, const MethodInfo* m, JSValueConst owner) {
+    // Um GameMethod por metodo, criado uma vez: `obj['void Foo()']()` num laco
+    // montava um objeto novo (malloc + objeto JS + method_get_flags) a cada
+    // volta — 290 ns jogados fora por chamada (docs/historico/PONTE-OTIMIZACAO.md,
+    // passo 3). O cache segura a referencia para sempre, como os callbacks de
+    // hook: o runtime JS vive ate o processo morrer (shutdown() nao e chamado).
+    if (JS_IsUndefined(owner)) {
+        static std::unordered_map<const MethodInfo*, JSValue> cache;
+        auto hit = cache.find(m);
+        if (hit != cache.end()) return JS_DupValue(ctx, hit->second);
+        JSValue v = newGameMethod(ctx, m, owner);
+        if (!JS_IsException(v)) cache.emplace(m, JS_DupValue(ctx, v));
+        return v;
+    }
+
+    const void* key = JS_VALUE_GET_PTR(owner);
+    const uintptr_t h = (reinterpret_cast<uintptr_t>(key) >> 4) ^
+                        (reinterpret_cast<uintptr_t>(m) >> 3) * 0x9E3779B1u;
+    BoundSlot& slot = g_bound[h % kBoundSlots];
+    if (slot.used && slot.owner == key && slot.method == m) return JS_DupValue(ctx, slot.value);
+    JSValue v = newGameMethod(ctx, m, owner);
+    if (JS_IsException(v)) return v;
+    if (slot.used) JS_FreeValue(ctx, slot.value);
+    slot.used = true;
+    slot.owner = key;
+    slot.method = m;
+    slot.value = JS_DupValue(ctx, v);
     return v;
 }
 
@@ -1277,6 +1430,28 @@ JSValue makeNamespace(JSContext* ctx, const std::string& prefix) {
     auto* p = new std::string(prefix);
     JS_SetOpaque(v, p);
     return v;
+}
+
+/**
+ * Uma classe que o jogo nao tem, mas o tModLoader tem (`Terraria.ID.ItemRarityID`):
+ * a tabela `__blExtraClasses` do ModHelpers.js, por namespace. So depois de o
+ * jogo nao achar, entao a classe do jogo sempre ganha.
+ */
+bool extraClass(JSContext* ctx, const std::string& ns, JSAtom atom, JSValue* out) {
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue extras = JS_GetPropertyStr(ctx, global, "__blExtraClasses");
+    JS_FreeValue(ctx, global);
+    bool found = false;
+    if (JS_IsObject(extras)) {
+        JSValue table = JS_GetPropertyStr(ctx, extras, ns.c_str());
+        if (JS_IsObject(table) && JS_HasProperty(ctx, table, atom) > 0) {
+            found = true;
+            *out = JS_GetProperty(ctx, table, atom);
+        }
+        JS_FreeValue(ctx, table);
+    }
+    JS_FreeValue(ctx, extras);
+    return found;
 }
 
 void ns_finalizer(JSRuntime*, JSValue val) {
@@ -1313,6 +1488,8 @@ JSValue ns_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         if (!JS_IsException(v)) JS_SetOpaque(v, cls);
         return v;
     }
+    JSValue extra;
+    if (extraClass(ctx, *prefix, atom, &extra)) return extra;
     return makeNamespace(ctx, prefix->empty() ? name : *prefix + "." + name);
 }
 

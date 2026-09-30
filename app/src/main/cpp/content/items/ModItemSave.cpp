@@ -196,7 +196,6 @@ std::vector<Container> containersOf(Il2CppObject* player) {
             add(p + ".dye", objectAt(l, r.loadoutDye));
         }
     }
-    if (Il2CppObject* t = objectAt(player, r.trash)) v.push_back({"trash", nullptr, t});
     return v;
 }
 
@@ -229,6 +228,7 @@ std::vector<SavedItem> readFile(const std::string& path) {
         if (cols.size() != 6 || cols[5].empty()) continue;
         SavedItem it;
         it.container = cols[0];
+        if (it.container == "trash") continue;  // descarta linhas de saves antigos
         it.slot = std::atoi(cols[1].c_str());
         it.stack = std::atoi(cols[2].c_str());
         // Numero (prefixo do jogo) ou "<uid>/<nome>" (de mod).

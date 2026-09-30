@@ -205,7 +205,7 @@ JSValue gs_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
 
     if (m.proto) return protoGet(ctx, g_structId, atom);
     if (m.field) return readAt(ctx, static_cast<char*>(r->data) + m.offset, *m.type, obj);
-    if (m.method) return makeGameMethod(ctx, m.method);
+    if (m.method) return makeGameMethod(ctx, m.method, obj);
     // Propriedade C# do struct: o `this` de um value type sao os dados.
     if (m.getter) return invokeMethod(ctx, m.getter, r->data, 0, nullptr);
     if (m.signature) return missingSignature(ctx, r->cls, atom);

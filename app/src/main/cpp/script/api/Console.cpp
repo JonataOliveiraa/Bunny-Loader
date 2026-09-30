@@ -61,7 +61,7 @@ void queueChat(const std::string& text, uint8_t r, uint8_t g, uint8_t b) {
 
 // ------------------------------ chat ------------------------------
 
-/** Main.NewText(string, byte, byte, byte), na thread do jogo. */
+/** Main.NewText(string, byte, byte, byte, bool), na thread do jogo. */
 void drainChat() {
     std::deque<ChatLine> lines;
     {
@@ -72,8 +72,8 @@ void drainChat() {
     auto& a = il2cpp::api();
     static const MethodInfo* newText = [] {
         Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
-        const MethodInfo* m = main ? il2cpp::api().class_get_method_from_name(main, "NewText", 4) : nullptr;
-        if (!m) BL_ERROR("console: Main.NewText(string, byte, byte, byte) nao encontrado");
+        const MethodInfo* m = main ? il2cpp::api().class_get_method_from_name(main, "NewText", 5) : nullptr;
+        if (!m) BL_ERROR("console: Main.NewText(string, byte, byte, byte, bool) nao encontrado");
         return m;
     }();
     if (!newText) return;
@@ -86,7 +86,8 @@ void drainChat() {
             std::string piece = line.text.substr(at, end - at);
             Il2CppString* s = a.string_new(piece.c_str());
             uint8_t r = line.r, g = line.g, b = line.b;
-            void* args[4] = {s, &r, &g, &b};
+            bool onlyCurrentPlayer = false;
+            void* args[5] = {s, &r, &g, &b, &onlyCurrentPlayer};
             Il2CppObject* exc = nullptr;
             a.runtime_invoke(newText, nullptr, args, &exc);
             if (exc) { BL_ERROR("console: Main.NewText lancou excecao"); return; }
@@ -120,10 +121,12 @@ int interruptConsole(JSRuntime*, void*) {
 std::string repr(JSContext* ctx, JSValueConst v) {
     if (JS_IsUndefined(v)) return "undefined";
     if (JS_IsString(v)) {
-        JSValue json = JS_JSONStringify(ctx, v, JS_UNDEFINED, JS_UNDEFINED);
-        std::string out;
-        if (const char* s = JS_ToCString(ctx, json)) { out = s; JS_FreeCString(ctx, s); }
-        JS_FreeValue(ctx, json);
+        // O valor ja e uma string: serializa-la de novo mostrava \n literal
+        // em JSON.stringify(..., null, 4) em vez de usar as linhas reais.
+        const char* str = JS_ToCString(ctx, v);
+        if (!str) return "?";
+        std::string out(str);
+        JS_FreeCString(ctx, str);
         return out;
     }
     if (JS_IsFunction(ctx, v)) {

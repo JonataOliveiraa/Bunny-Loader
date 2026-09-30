@@ -346,7 +346,7 @@ vai em arquivos ao lado, pelo nome (`<uid do mod>/<Classe>`), não pelo número:
 
 | Arquivo | O que guarda |
 |---|---|
-| `<personagem>.plr.bl` | Os itens de mod do inventário, equipamento, tinturas, baús pessoais e lixeira, e os buffs de mod ativos. |
+| `<personagem>.plr.bl` | Os itens de mod do inventário, equipamento, tinturas e baús pessoais, e os buffs de mod ativos. A lixeira não é salva. |
 | `<personagem>.plr.bl.json` | O `SaveData` de cada `ModPlayer`. |
 | `<mundo>.wld.bl` | Os itens de mod nos baús do mundo. |
 | `<mundo>.wld.tiles.bl` | Os tiles de mod (posição, quadro). |
