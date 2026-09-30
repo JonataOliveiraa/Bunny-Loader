@@ -524,6 +524,7 @@ final class DevTools {
             // cheia de edicao do Android no aparelho deitado.
             editor.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE
                 | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+            CheatBridge.noAutofill(editor);
             editor.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI | EditorInfo.IME_FLAG_NO_FULLSCREEN
                 | EditorInfo.IME_ACTION_NONE);
             editor.setHorizontallyScrolling(false);
@@ -597,7 +598,8 @@ final class DevTools {
                 | (savedSoftInput & WindowManager.LayoutParams.SOFT_INPUT_MASK_STATE));
             keyboard = new KeyboardWatcher(act, this);
             handler.post(poll);
-            focusEditor();
+            // Sem foco nem teclado ao abrir: o teclado cobria metade da tela
+            // antes de a pessoa decidir escrever. Ele abre no toque no editor.
             scrollToEnd();
             updateFreeze();
         }
@@ -678,16 +680,6 @@ final class DevTools {
             ViewGroup parent = (ViewGroup) floatIcon.getParent();
             if (parent != null) parent.removeView(floatIcon);
             floatIcon = null;
-        }
-
-        void focusEditor() {
-            editor.requestFocus();
-            editor.postDelayed(new Runnable() {
-                @Override public void run() {
-                    InputMethodManager imm = (InputMethodManager) act.getSystemService(Context.INPUT_METHOD_SERVICE);
-                    if (imm != null) imm.showSoftInput(editor, InputMethodManager.SHOW_IMPLICIT);
-                }
-            }, 120);
         }
 
         void hideKeyboard() {

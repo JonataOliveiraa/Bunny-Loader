@@ -136,6 +136,10 @@ public class CheatBridge {
     static final int INK        = 0xFFFFFFFF;
     static final int INK_DIM    = 0xFFC3CBEA;
     static final int SCRIM      = 0xC0000000;
+    // Botao de acao (o +, a bandeira, os da coluna do X): um tom acima do
+    // painel, com borda clara. No escuro de antes ele sumia no fundo.
+    static final int BUTTON      = 0xFF5268B6;
+    static final int BUTTON_EDGE = 0xFFA4B2EA;
 
     private static Activity sActivity;
     static View sOverlay;
@@ -783,7 +787,7 @@ public class CheatBridge {
         54,     // Botas de Hermes
         2423,   // Perna de Sapo
         3099,   // Cronometro
-        1613,   // Escudo de Ankh
+        58,     // Coracao
         109,    // Cristal de Mana
         53,     // Nuvem na Garrafa
         1294,   // Picosserra
@@ -807,6 +811,22 @@ public class CheatBridge {
     private static final int P_NO_SPAWNS = 15;
     private static final int P_HARDMODE = 19;
     private static final int P_DIFFICULTY = 20;
+    private static final int P_TIME_STOP = 3;
+    private static final int P_RAIN = 12;
+    private static final int P_WIND = 13;
+
+    /**
+     * A grade em duas partes, na ordem mostrada. Chuva, vento e tempo parado
+     * nao estao aqui: ficam na coluna do X, junto da hora do dia.
+     */
+    private static final String[] POWER_GROUP_NAME = {"Jogador", "Mundo"};
+    private static final int[][] POWER_GROUPS = {
+        // Imortal, Reviver rapido, Dano, Velocidade, Super pulo, Pulo infinito,
+        // Voar, Mana, Lacaios, Mineracao, Visao total, Raio-X, Teleporte, Limpar
+        {4, 21, 0, 1, 2, 6, 9, 5, 11, 7, 8, 10, 16, 17},
+        // Sem inimigos, Revelar mapa, Bestiario, Hardmode, Dificuldade
+        {15, 18, 14, 19, 20},
+    };
 
     /** Poder com icone de interface do jogo em vez de sprite de item. */
     private static String powerRes(int id) {
@@ -968,7 +988,7 @@ public class CheatBridge {
 
     /** O que sobra para a coluna da direita: tira coluna, margens e respiros. */
     private static float contentUnits(Activity a) {
-        return widthUnits(a) - ASIDE - 58;
+        return widthUnits(a) - ASIDE - RAIL - 68;
     }
 
     /** Barra de quantidade: encolhe antes de espremer a busca. */
@@ -1595,6 +1615,7 @@ public class CheatBridge {
 
         FrameLayout root = new FrameLayout(act);
         root.setBackgroundColor(SCRIM);
+        noAutofill(root);
         // Clique no escuro nao atravessa para o jogo.
         root.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { }
@@ -1610,10 +1631,13 @@ public class CheatBridge {
         sMenuBody = body;
 
         // ---- coluna da direita (criada antes: o aside precisa preenche-la) ----
+        // O painel tem o conteudo da secao e, na borda direita, a coluna do X.
         final LinearLayout content = new LinearLayout(act);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setBackground(panelBig(act, PANEL, OUTLINE));
-        content.setPadding(px(act, 10), px(act, 8), px(act, 10), px(act, 8));
+        LinearLayout frame = new LinearLayout(act);
+        frame.setOrientation(LinearLayout.HORIZONTAL);
+        frame.setBackground(panelBig(act, PANEL, OUTLINE));
+        frame.setPadding(px(act, 10), px(act, 8), px(act, 6), px(act, 8));
 
         // ---- coluna da esquerda ----
         LinearLayout aside = new LinearLayout(act);
@@ -1632,7 +1656,6 @@ public class CheatBridge {
         titles.addView(text(act, "BUNNY LOADER", 9, INK_DIM));
         head.addView(titles);
         aside.addView(head);
-        aside.addView(timeButtons(act));
         aside.addView(DevTools.menuButtons(act));
 
         final ScrollView asideScroll = new ScrollView(act);
@@ -1674,70 +1697,132 @@ public class CheatBridge {
             px(act, ASIDE), LinearLayout.LayoutParams.MATCH_PARENT);
         alp.rightMargin = px(act, 10);
         body.addView(aside, alp);
-        body.addView(content, new LinearLayout.LayoutParams(
+        frame.addView(content, new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-
-        // Fechar: icone no canto superior direito, sobre tudo. Era uma barra
-        // vermelha no pe da coluna, que comia altura de lista e ficava longe do
-        // polegar de quem segura o aparelho deitado.
-        ImageView closeButton = icon(act, sprite(act, "ic_fechar"), 36);
-        closeButton.setPadding(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
-        closeButton.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                if (sOverlay != null) sOverlay.setVisibility(View.GONE);
-            }
-        });
-        // Na altura do topo da coluna, que reserva o canto para ele: mais baixo,
-        // cobria o + da primeira linha da lista.
-        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(px(act, 36), px(act, 36));
-        flp.gravity = Gravity.TOP | Gravity.END;
-        flp.topMargin = px(act, 16);
-        flp.rightMargin = px(act, 18);
-        root.addView(closeButton, flp);
+        View seam = new View(act);
+        seam.setBackgroundColor(OUTLINE);
+        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(
+            Math.max(1, px(act, 1)), LinearLayout.LayoutParams.MATCH_PARENT);
+        slp.leftMargin = px(act, 8);
+        slp.rightMargin = px(act, 5);
+        frame.addView(seam, slp);
+        frame.addView(rail(act), new LinearLayout.LayoutParams(
+            px(act, RAIL), LinearLayout.LayoutParams.MATCH_PARENT));
+        body.addView(frame, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
 
         select(act, content, all, buttons, 0);
         return root;
     }
 
-    /** Os quatro botoes de hora da Jornada, com os icones dela (UI/Creative/Infinite_Powers). */
+    // ------------------------------ coluna do X ------------------------------
+    //
+    // O X no alto e, embaixo dele, o que muda o mundo inteiro a um toque, em
+    // qualquer secao: a hora, a chuva, o vento e o tempo parado. A hora eram
+    // quatro botoes embaixo do titulo; chuva, vento e tempo, cartoes na grade.
+
+    /** Largura da coluna, em unidades. */
+    private static final float RAIL = 48;
+
+    /** Os icones de hora da Jornada (UI/Creative/Infinite_Powers), na ordem do toque. */
     private static final String[] TIME_ICON = {
         "ic_hora_amanhecer", "ic_hora_meiodia", "ic_hora_anoitecer", "ic_hora_meianoite",
     };
     private static final String[] TIME_NAME = {"Amanhecer", "Meio-dia", "Anoitecer", "Meia-noite"};
+    /** A ultima hora pedida; -1 = nenhuma ainda (o botao mostra o amanhecer). */
+    private static int sTimeIndex = -1;
+    /** Os poderes da coluna, de cima para baixo. */
+    private static final int[] RAIL_POWERS = {P_RAIN, P_WIND, P_TIME_STOP};
+    /** Repinta os botoes da coluna: o "Desligar tudo" da grade tambem mexe neles. */
+    private static Runnable sRailPaint;
+    /** O "N ligados" da grade, se ela estiver na tela. */
+    private static TextView sActiveLabel;
 
-    /**
-     * Onde ficava a linha embaixo do titulo: a hora do dia a um toque, em
-     * qualquer secao. Tocar pisca o botao de verde; fora do mundo, avisa.
-     */
-    private static View timeButtons(final Activity act) {
-        LinearLayout row = new LinearLayout(act);
-        row.setOrientation(LinearLayout.HORIZONTAL);
-        for (int i = 0; i < TIME_ICON.length; i++) {
-            final int which = i;
-            final ImageView b = icon(act, sprite(act, TIME_ICON[i]), 34);
-            b.setContentDescription(TIME_NAME[i]);
-            b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
-            b.setBackground(panel(act, PANEL_DARK, OUTLINE));
-            b.setOnClickListener(new View.OnClickListener() {
+    /** Fundo de botao de acao; ligado, verde como o cartao de poder. */
+    static GradientDrawable actionBackground(Activity a, boolean on) {
+        return panel(a, on ? GRASS : BUTTON, on ? GRASS_LIT : BUTTON_EDGE);
+    }
+
+    private static ImageView railButton(Activity act, LinearLayout col, Bitmap bmp, String name) {
+        ImageView b = icon(act, bmp, 44);
+        b.setContentDescription(name);
+        b.setPadding(px(act, 7), px(act, 7), px(act, 7), px(act, 7));
+        b.setBackground(actionBackground(act, false));
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(act, 44), px(act, 44));
+        lp.topMargin = px(act, 6);
+        col.addView(b, lp);
+        return b;
+    }
+
+    private static View rail(final Activity act) {
+        LinearLayout col = new LinearLayout(act);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setGravity(Gravity.CENTER_HORIZONTAL);
+
+        ImageView close = icon(act, sprite(act, "ic_fechar"), 40);
+        close.setContentDescription("Fechar");
+        close.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+        close.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (sOverlay != null) sOverlay.setVisibility(View.GONE);
+            }
+        });
+        LinearLayout.LayoutParams clp = new LinearLayout.LayoutParams(px(act, 40), px(act, 40));
+        clp.bottomMargin = px(act, 4);
+        col.addView(close, clp);
+
+        // A hora num botao so: cada toque vai para a proxima, e o icone mostra
+        // a que ficou. Pisca de verde; fora do mundo, avisa.
+        final ImageView time = railButton(act, col,
+            sprite(act, TIME_ICON[sTimeIndex < 0 ? 0 : sTimeIndex]), "Hora do dia");
+        time.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                if (!nInWorld()) { toast(act, "Entre num mundo primeiro"); return; }
+                sTimeIndex = (sTimeIndex + 1) % TIME_ICON.length;
+                nSetTimeOfDay(sTimeIndex);
+                setBitmap(act, time, sprite(act, TIME_ICON[sTimeIndex]));
+                time.setBackground(actionBackground(act, true));
+                time.postDelayed(new Runnable() {
+                    @Override public void run() { time.setBackground(actionBackground(act, false)); }
+                }, TIME_FLASH_MS);
+            }
+        });
+
+        // Chuva, vento e tempo parado: cada toque avanca o nivel, como o cartao.
+        final ImageView[] views = new ImageView[RAIL_POWERS.length];
+        for (int k = 0; k < RAIL_POWERS.length; k++) {
+            final int id = RAIL_POWERS[k];
+            views[k] = railButton(act, col, spriteJa(act, SPR_ITEM, POWER_ICON[id]), POWER_NAME[id]);
+            views[k].setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
-                    if (!nInWorld()) { toast(act, "Entre num mundo primeiro"); return; }
-                    nSetTimeOfDay(which);
-                    b.setBackground(panel(act, GRASS, OUTLINE));
-                    b.postDelayed(new Runnable() {
-                        @Override public void run() { b.setBackground(panel(act, PANEL_DARK, OUTLINE)); }
-                    }, TIME_FLASH_MS);
+                    int lv = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
+                    sPowerLevels[id] = lv;
+                    nSetPower(id, lv);
+                    savePowers(act);
+                    sRailPaint.run();
+                    if (sActiveLabel != null) updateActiveCount(sActiveLabel);
                 }
             });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, px(act, 34), 1f);
-            lp.setMargins(i == 0 ? 0 : px(act, 2), 0, i == TIME_ICON.length - 1 ? 0 : px(act, 2), 0);
-            row.addView(b, lp);
         }
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = px(act, 8);
-        lp.bottomMargin = px(act, 2);
-        row.setLayoutParams(lp);
-        return row;
+        sRailPaint = new Runnable() {
+            @Override public void run() {
+                for (int k = 0; k < views.length; k++) {
+                    views[k].setBackground(actionBackground(act, sPowerLevels[RAIL_POWERS[k]] > 0));
+                }
+            }
+        };
+        sRailPaint.run();
+        return col;
+    }
+
+    /**
+     * Sem o preenchimento automatico do Android: na busca, o teclado oferecia
+     * "senha salva" e os logins guardados, como se fosse um formulario.
+     */
+    static void noAutofill(View v) {
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            v.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
+        }
     }
 
     private static final long TIME_FLASH_MS = 400;
@@ -1870,8 +1955,6 @@ public class CheatBridge {
         LinearLayout t = new LinearLayout(act);
         t.setOrientation(LinearLayout.HORIZONTAL);
         t.setGravity(Gravity.CENTER_VERTICAL);
-        // O X de fechar fica por cima deste canto; a linha para antes dele.
-        t.setPadding(0, 0, px(act, 40), 0);
         if (back != null) {
             // A seta do jogo (UI/TexturePackButtons), a mesma do pacote de texturas.
             ImageView arrow = icon(act, sprite(act, "ic_seta_esq"), 34);
@@ -2054,6 +2137,10 @@ public class CheatBridge {
         searchField.setTextColor(INK);
         searchField.setHintTextColor(INK_DIM);
         searchField.setHint("Nome ou id");
+        searchField.setInputType(android.text.InputType.TYPE_CLASS_TEXT
+            | android.text.InputType.TYPE_TEXT_VARIATION_FILTER
+            | android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        noAutofill(searchField);
         applyTextSize(act, searchField, 11);
         searchField.setTypeface(font(act));
         searchField.setPadding(px(act, 6), px(act, 3), 0, px(act, 3));
@@ -2194,12 +2281,13 @@ public class CheatBridge {
             r.addView(labels, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            // So o sinal, sem palavra e sem caixa atras: a acao ja esta dita
-            // pela secao, e a moldura competia com o sprite do item.
+            // So o sinal, sem palavra: a acao ja esta dita pela secao. Caixa
+            // clara e grande, que o polegar acerta sem mirar.
             L.action = new ImageView(act);
             L.action.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            L.action.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
-            r.addView(L.action, new LinearLayout.LayoutParams(px(act, 36), px(act, 30)));
+            L.action.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
+            L.action.setBackground(actionBackground(act, false));
+            r.addView(L.action, new LinearLayout.LayoutParams(px(act, 50), px(act, 38)));
 
             r.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -2247,6 +2335,7 @@ public class CheatBridge {
         int[] w = nWorldState();
         if (w != null && w.length == 2) sWorld = w;
         final TextView activeLabel = text(act, "", 10, INK_DIM);
+        sActiveLabel = activeLabel;
         LinearLayout headerRow = buildHeader(act, s, activeLabel);
 
         final View[] cards = new View[POWER_NAME.length];
@@ -2261,8 +2350,9 @@ public class CheatBridge {
                     if (sPowerLevels[i] == 0) continue;
                     sPowerLevels[i] = 0;
                     nSetPower(i, 0);
-                    paintPowerCard(act, cards[i], i);
+                    if (cards[i] != null) paintPowerCard(act, cards[i], i);
                 }
+                if (sRailPaint != null) sRailPaint.run();
                 savePowers(act);
                 updateActiveCount(activeLabel);
             }
@@ -2277,56 +2367,62 @@ public class CheatBridge {
         final int columns = powerColumns(act);
         LinearLayout grid = new LinearLayout(act);
         grid.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout queue = null;
-        for (int i = 0; i < POWER_NAME.length; i++) {
-            if (i % columns == 0) {
-                queue = new LinearLayout(act);
-                queue.setOrientation(LinearLayout.HORIZONTAL);
-                grid.addView(queue, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT));
-            }
-            final int id = i;
-            final View c = powerCard(act, i);
-            c.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) {
-                    if (isAction(id)) {
-                        nSetPower(id, 1);
-                        flashActionCard(act, c, id);
-                        return;
-                    }
-                    if (isWorldState(id)) {
-                        toggleWorldState(act, id);
-                        paintPowerCard(act, c, id);
-                        return;
-                    }
-                    sPowerLevels[id] = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
-                    nSetPower(id, sPowerLevels[id]);
-                    paintPowerCard(act, c, id);
-                    savePowers(act);
-                    updateActiveCount(activeLabel);
+        for (int g = 0; g < POWER_GROUPS.length; g++) {
+            TextView groupTitle = text(act, POWER_GROUP_NAME[g], 13, INK_DIM);
+            groupTitle.setPadding(px(act, 4), px(act, g == 0 ? 0 : 10), 0, px(act, 2));
+            grid.addView(groupTitle);
+            final int[] group = POWER_GROUPS[g];
+            LinearLayout queue = null;
+            for (int k = 0; k < group.length; k++) {
+                if (k % columns == 0) {
+                    queue = new LinearLayout(act);
+                    queue.setOrientation(LinearLayout.HORIZONTAL);
+                    grid.addView(queue, new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT));
                 }
-            });
-            cards[i] = c;
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
-            cp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
-            queue.addView(c, cp);
-        }
-        // Fila incompleta: o que falta vira espaco, para os cartoes da ultima
-        // fila terem a largura dos de cima.
-        //
-        // Com cartoes INVISIVEIS, e nao com espacadores: dentro da rolagem a
-        // altura da fila vem dos cartoes, e um espacador de 1 px deixava o
-        // cartao sozinho da ultima fila com altura zero (ele sumia).
-        int remainder = (columns - POWER_NAME.length % columns) % columns;
-        for (int i = 0; i < remainder; i++) {
-            View filler = powerCard(act, 0);
-            filler.setVisibility(View.INVISIBLE);
-            LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
-            fp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
-            queue.addView(filler, fp);
+                final int id = group[k];
+                final View c = powerCard(act, id);
+                c.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        if (isAction(id)) {
+                            nSetPower(id, 1);
+                            flashActionCard(act, c, id);
+                            return;
+                        }
+                        if (isWorldState(id)) {
+                            toggleWorldState(act, id);
+                            paintPowerCard(act, c, id);
+                            return;
+                        }
+                        sPowerLevels[id] = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
+                        nSetPower(id, sPowerLevels[id]);
+                        paintPowerCard(act, c, id);
+                        savePowers(act);
+                        updateActiveCount(activeLabel);
+                    }
+                });
+                cards[id] = c;
+                LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+                cp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
+                queue.addView(c, cp);
+            }
+            // Fila incompleta: o que falta vira espaco, para os cartoes da
+            // ultima fila terem a largura dos de cima.
+            //
+            // Com cartoes INVISIVEIS, e nao com espacadores: dentro da rolagem
+            // a altura da fila vem dos cartoes, e um espacador de 1 px deixava
+            // o cartao sozinho da ultima fila com altura zero (ele sumia).
+            int remainder = (columns - group.length % columns) % columns;
+            for (int i = 0; i < remainder; i++) {
+                View filler = powerCard(act, group[0]);
+                filler.setVisibility(View.INVISIBLE);
+                LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+                fp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
+                queue.addView(filler, fp);
+            }
         }
 
         ScrollView scroll = new ScrollView(act);
