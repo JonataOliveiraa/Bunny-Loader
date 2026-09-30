@@ -588,8 +588,19 @@ private fun Stat(value: String, label: String, modifier: Modifier = Modifier) {
 fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
     val scroll = rememberScrollState()
     var favorite by remember { mutableStateOf(false) }
+    var exportMessage by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     val installed = entry.uid in shell.installed
     val m = entry.manifest
+    val exporter = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/x-bunnyloader-mod")
+    ) { uri ->
+        if (uri != null) {
+            exportMessage = shell.exportMod(entry.uid, uri).fold(
+                onSuccess = { "${m.name} exportado" to true },
+                onFailure = { "Não deu: ${it.message}" to false },
+            )
+        }
+    }
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
@@ -688,6 +699,14 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                         }
                         PixelButton("Remover", { shell.uninstall(entry.uid) },
                             icon = R.drawable.ic_trash, fontSize = Ts.Body)
+                    }
+                    PixelButton("Exportar .bl", {
+                        exporter.launch("${m.id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.bl")
+                    }, Modifier.fillMaxWidth().padding(top = 10.dp), icon = R.drawable.ic_folder)
+                    exportMessage?.let { (message, ok) ->
+                        PixelText(message, size = Ts.Small,
+                            color = if (ok) Bl.TextDim else Bl.Bad,
+                            modifier = Modifier.padding(top = 6.dp))
                     }
                 }
                 Spacer(Modifier.height(20.dp))

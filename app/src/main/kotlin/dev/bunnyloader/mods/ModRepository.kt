@@ -5,7 +5,9 @@ import android.net.Uri
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.InputStream
+import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
 
 /**
  * Os mods instalados, em `Android/data/com.bunnyloader/bunny_packs/<uid>/` — a
@@ -17,7 +19,7 @@ import java.util.zip.ZipInputStream
  * no `main.js` ou numa textura e só reabrir o jogo. Pasta colada ali à mão
  * aparece na lista como qualquer pacote importado.
  *
- * Um pacote é um zip (`.bmod` ou `.zip`). O conteúdo esperado está em
+ * Um pacote é um zip (`.bl`, `.bmod` ou `.zip`). O conteúdo esperado está em
  * Catalog.Companion.
  */
 class ModRepository(private val context: Context) {
@@ -60,7 +62,7 @@ class ModRepository(private val context: Context) {
     }
 
     /**
-     * Instala um `.bmod` escolhido pelo seletor de arquivos.
+     * Instala um pacote escolhido pelo seletor de arquivos.
      *
      * Desempacota num diretório temporário primeiro: se o zip não tiver
      * manifesto, ou pedir uma versão do loader que não existe, nada chega em
@@ -73,7 +75,7 @@ class ModRepository(private val context: Context) {
             ?.use { unzip(it, temp) }
             ?: error("não consegui abrir o arquivo")
         require(entries > 0) {
-            "isto não é um pacote: o arquivo precisa ser um zip (.bmod ou .zip) com " +
+            "isto não é um pacote: o arquivo precisa ser um zip (.bl, .bmod ou .zip) com " +
                 "manifest.json, icon.png e a pasta content/"
         }
 
@@ -112,6 +114,34 @@ class ModRepository(private val context: Context) {
         if (!root.renameTo(target)) root.copyRecursively(target, overwrite = true)
         temp.deleteRecursively()
         manifest
+    }
+
+    /** Empacota o estado atual da pasta do mod como um ZIP .bl reimportável. */
+    fun export(uid: String, uri: Uri): Result<Unit> = runCatching {
+        val dir = requireNotNull(dirOf(uid)) { "mod $uid não encontrado" }
+        require(readManifest(dir)?.uid == uid) { "manifesto inválido de $uid" }
+        val base = dir.canonicalFile
+        val files = dir.walkTopDown().filter { it.isFile }.sortedBy { it.path }.toList()
+        require(files.isNotEmpty()) { "pasta do mod vazia" }
+        files.forEach { file ->
+            require(file.canonicalPath.startsWith(base.path + File.separator)) {
+                "arquivo fora da pasta do mod: ${file.name}"
+            }
+        }
+        val stream = requireNotNull(context.contentResolver.openOutputStream(uri, "wt")) {
+            "não consegui criar o arquivo"
+        }
+        stream.use { output ->
+            ZipOutputStream(output).use { zip ->
+                files.forEach { file ->
+                    val name = dir.toPath().relativize(file.toPath()).toString()
+                        .replace(File.separatorChar, '/')
+                    zip.putNextEntry(ZipEntry(name))
+                    file.inputStream().use { it.copyTo(zip) }
+                    zip.closeEntry()
+                }
+            }
+        }
     }
 
     fun setEnabled(id: String, enabled: Boolean) = prefs.edit().putBoolean(id, enabled).apply()

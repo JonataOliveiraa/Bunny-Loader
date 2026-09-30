@@ -57,6 +57,8 @@ class Shell(context: Context) {
     fun importPackage(uri: Uri): Result<ModManifest> =
         repo.import(uri).also { refresh() }
 
+    fun exportMod(uid: String, uri: Uri): Result<Unit> = repo.export(uid, uri)
+
     fun uninstall(uid: String) {
         catalog.uninstall(uid)
         refresh()
