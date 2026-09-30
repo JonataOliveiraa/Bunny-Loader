@@ -21,6 +21,7 @@ struct Refs {
     const MethodInfo* unityCtor = nullptr;
     const MethodInfo* loadImage = nullptr;
     const MethodInfo* setFilterMode = nullptr;
+    const MethodInfo* setWrapMode = nullptr;
     const MethodInfo* getWidth = nullptr;
     const MethodInfo* getHeight = nullptr;
     const MethodInfo* gameCtor = nullptr;
@@ -61,6 +62,7 @@ Refs& refs() {
     r.unityCtor = sig(r.unityTex, "void .ctor(int width, int height)");
     r.loadImage = sig(conv, "bool LoadImage(Texture2D tex, byte[] data, bool markNonReadable)");
     r.setFilterMode = unityTexBase ? a.class_get_method_from_name(unityTexBase, "set_filterMode", 1) : nullptr;
+    r.setWrapMode = unityTexBase ? a.class_get_method_from_name(unityTexBase, "set_wrapMode", 1) : nullptr;
     r.getWidth = unityTexBase ? a.class_get_method_from_name(unityTexBase, "get_width", 0) : nullptr;
     r.getHeight = unityTexBase ? a.class_get_method_from_name(unityTexBase, "get_height", 0) : nullptr;
     r.gameCtor = sig(r.gameTex, "void .ctor(Texture2D texture)");
@@ -158,6 +160,14 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
         int point = 0;   // FilterMode.Point
         void* c3[1] = {&point};
         invoke(r.setFilterMode, ut, c3, "Texture.filterMode");
+    }
+    // Sem repetir: a Unity nasce em Repeat, e um recorte que passa da borda
+    // (o textureWidth = largura + 20 do ExampleMount) trazia o outro lado da
+    // textura de volta. No PC o jogo desenha com PointClamp.
+    if (r.setWrapMode) {
+        int clamp = 1;   // TextureWrapMode.Clamp
+        void* c3[1] = {&clamp};
+        invoke(r.setWrapMode, ut, c3, "Texture.wrapMode");
     }
     if (r.getWidth && width) *width = unboxInt(invokeValue(r.getWidth, ut, nullptr, "Texture.width"));
     if (r.getHeight && height) *height = unboxInt(invokeValue(r.getHeight, ut, nullptr, "Texture.height"));

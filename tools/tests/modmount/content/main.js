@@ -81,6 +81,17 @@ function registered() {
     });
 }
 
+// Textura de mod sem repetir, como as do jogo: um recorte que passa da borda
+// (o textureWidth = largura + 20 do ExampleMount) trazia o outro lado dela.
+// Na GPU do MuMu a textura que não é potência de 2 nunca repete; num celular
+// de verdade, repetia.
+function wrap() {
+    const mod = Terraria.Mount.mounts[TYPE()].backTexture.Value.UnityTexture.wrapMode;
+    const game = Terraria.Mount.mounts[MountID.Unicorn].backTexture.Value.UnityTexture.wrapMode;
+    bl.log('modmount: wrapMode de mod ' + mod + ', do jogo ' + game);
+    return (mod === 1 && mod === game) || 'mod ' + mod + ', jogo ' + game;
+}
+
 function mount() {
     const p = Main.LocalPlayer;
     p.mount[SET_MOUNT](TYPE(), p, false);
@@ -179,7 +190,7 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     original(self, i);
     if (i !== Main.myPlayer || Main.gameMenu || done) return;
     ++frames;
-    if (frames === 60) { check('registro', registered); check('montar', mount); }
+    if (frames === 60) { check('registro', registered); check('textura sem repetir (Clamp)', wrap); check('montar', mount); }
     if (frames === 120) check('montado', mounted);
     if (frames === 130 && exampleOn()) check('Example: carro', exampleCar);
     if (frames === 200 && exampleOn()) check('Example: carrinho', exampleCart);
