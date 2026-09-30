@@ -1,0 +1,15 @@
+{
+  "uid": "9a64d5fd-2ed7-46c0-9c57-42124cec0ca0",
+  "id": "test-bossbag",
+  "name": "Teste: bolsa de tesouro de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: a ExampleBossBag e abrivel, abrir pelo caminho do jogo gasta uma e da o ItemLoot (ExampleItem e moedas), e o chefe solta a bolsa no Expert.",
+  "description": "Loga 'bossbag ...'.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

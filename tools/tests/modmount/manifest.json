@@ -1,0 +1,15 @@
+{
+  "uid": "1ee05f2c-5f27-49c9-b2da-28dde5a32606",
+  "id": "test-modmount",
+  "name": "Teste: ModMount",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Registro de montaria de mod (MountID.Count, Mount.mounts, texturas), os hooks do ModMount (SetMount/Dismount com skipDust, UpdateEffects, UpdateFrame, JumpHeight, JumpSpeed, Draw) e, com o Example Mod, o carro e o carrinho de mina.",
+  "description": "Loga 'modmount ...'.",
+  "updated": "2026-09-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

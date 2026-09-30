@@ -138,6 +138,25 @@ function bestiary() {
         const keys = elementsOf(slime).map((e) => e.GetDisplayNameKey());
         return keys.includes('Mods.examplemod.Biomes.ExampleSurfaceBiome.DisplayName') || keys.join(', ');
     });
+    check('Example Mod: o ExamplePerson com o bioma de exemplo', () => {
+        const person = ModContent.NPCType('examplemod/ExamplePerson');
+        const keys = elementsOf(person).map((e) => e.GetDisplayNameKey());
+        return keys[0] === 'Mods.examplemod.Biomes.ExampleSurfaceBiome.DisplayName' || keys.join(', ');
+    });
+    // O SetStaticDefaults do morador roda no registro: o bioma precisa vir antes.
+    check('Example Mod: o ExamplePerson ama o bioma de exemplo', () => {
+        const person = ModContent.NPCType('examplemod/ExamplePerson');
+        const traits = Main.ShopHelper._database['PersonalityProfile GetByNPCID(int npcId)'](person).ShopModifiers;
+        const biomes = [];
+        for (let i = 0; i < traits.Count; i++) {
+            const t = traits.get_Item(i);
+            if (t.GetType().Name !== 'BiomePreferenceListTrait') continue;
+            const pref = t._preferences.get_Item(0);
+            biomes.push(pref.Biome.NameKey + '=' + pref.Affection);
+        }
+        return (traits.Count === 10 && biomes.includes('Mods.examplemod.Biomes.ExampleSurfaceBiome=' + AffectionLevel.Love)) ||
+            traits.Count + ' gostos: ' + biomes.join(', ');
+    });
 }
 
 // ---- felicidade ----

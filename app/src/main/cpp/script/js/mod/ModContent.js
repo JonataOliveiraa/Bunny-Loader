@@ -5,6 +5,7 @@ class ModContent {
     static BuffType(which) { return ContentLookup.TypeOf(BuffLoader.ByType, which); }
     static TileType(which) { return ContentLookup.TypeOf(TileLoader.ByType, which); }
     static PrefixType(which) { return ContentLookup.TypeOf(PrefixLoader.ByType, which); }
+    static MountType(which) { return ContentLookup.TypeOf(MountLoader.ByType, which); }
 
     static GetInstance(cls) { return Templates.Get(cls); }
 
@@ -28,6 +29,7 @@ class ModContent {
     static GetModBuff(type) { return BuffLoader.ByType.get(type); }
     static GetModTile(type) { return TileLoader.ByType.get(type); }
     static GetModPrefix(type) { return PrefixLoader.ByType.get(type); }
+    static GetModMount(type) { return MountLoader.ByType.get(type); }
 
     // Carregada uma vez, só na thread do jogo com ele rodando (num hook, no
     // SetStaticDefaults ou no PostSetupContent).

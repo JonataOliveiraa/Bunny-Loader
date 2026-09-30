@@ -3,9 +3,15 @@
 // Content/ e Common/ é registrada sozinha. `static Autoload = false` deixa uma
 // classe de fora. O núcleo (ScriptEngine.cpp) importa os arquivos e chama o Load.
 class ContentAutoload {
-    static #ORDER = [ModBuff, ModPrefix, ModPlayer, ModNPC, ModProjectile, ModItem, ModTile, ModSystem,
+    // Fundos, água e biomas antes do NPC: o SetStaticDefaults dele roda no
+    // registro, e o Happiness.SetBiomeAffection(ModBiome) do morador pede o
+    // bioma já registrado. A montaria antes do buff e do item, que pedem o
+    // MountType (o SetStaticDefaults dela roda depois, com tudo carregado).
+    static #ORDER = [ModMount, ModBuff, ModPrefix, ModPlayer,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
-                     ModBiome, ModSceneEffect, GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot];
+                     ModBiome, ModSceneEffect, ModMenu,
+                     ModNPC, ModProjectile, ModItem, ModTile, ModSystem,
+                     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot];
     static #fileOf = new Map();
 
     static FileOf(cls) {

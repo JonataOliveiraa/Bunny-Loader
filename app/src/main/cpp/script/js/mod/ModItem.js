@@ -29,6 +29,13 @@ class ModItem {
 
     CanUseItem(item, player) { return true; }
     UseItem(item, player) {}
+    // Abrir o item no inventário (bolsa de chefe, caixa): true deixa abrir. O
+    // que sai: as regras do ModifyItemLoot (e o RightClick, para o resto).
+    // ConsumeItem false não gasta o item.
+    CanRightClick(item) { return false; }
+    RightClick(item, player) {}
+    ModifyItemLoot(itemLoot) {}
+    ConsumeItem(item, player) { return true; }
     HoldItem(item, player) {}
     UseStyle(item, player, mountOffset, heldItemFrame) {}
     HoldStyle(item, player, mountOffset, heldItemFrame) {}

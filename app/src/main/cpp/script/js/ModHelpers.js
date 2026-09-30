@@ -1,7 +1,8 @@
 // Ajudantes globais dos mods: Vector2, MathHelper, Rand, Color e as tabelas
 // de numeros que este Terraria NAO tem (ItemRarityID, ProjAIStyleID,
-// NPCAIStyleID, NetmodeID — no PC elas vem do tModLoader). Os nomes sao os do
-// tModLoader, para codigo de la portar mudando pouco.
+// NPCAIStyleID, NetmodeID — no PC elas vem do tModLoader), globais e em
+// Terraria.ID (ExtraClasses). Os nomes sao os do tModLoader, para codigo de la
+// portar mudando pouco.
 //
 // Embutido na libbunny como as classes de script/js/mod/ (CMakeLists: configure_file) e
 // avaliado ANTES dele. Nada de arroba neste arquivo.
@@ -413,6 +414,7 @@ const ProjAIStyleID = Object.freeze({
     ThrownMelee: 201, TorchGodHelper: 202, StormLightning: 203, Digtoise: 204,
     RemoteControlCar: 205, ForbiddenMinion: 206, SnappingStoneUnused: 207, GlacierFangShot: 208,
     ChlorophyteClaymoreBladeSlam: 209, YoyoShots: 210,
+    Count: 211,
 });
 
 // Nomes de poeira que o tModLoader acrescenta (DustID.TML.cs) e este
@@ -489,6 +491,82 @@ const NPCAIStyleID = Object.freeze({
     DD2LightningBug: 111, Fairy: 112, Balloon: 113, Dragonfly: 114, Ladybug: 115,
     WaterStrider: 116, Dreadnautilus: 117, Seahorse: 118, AngryDandelion: 119,
     EmpressOfLight: 120, QueenSlime: 121, PiratesCurse: 122,
+    Count: 123,
+});
+
+// Os que vieram do TL/ do ExMod (TL/Enums). Terraria.ID.CloudID e MusicID sao
+// do jogo; do MusicID o jogo 1.4.5 renomeou metade (Night -> OverworldNight),
+// e os nomes antigos, do tModLoader, caem no MusicIDExtras.
+const BiomeID = Object.freeze({
+    Forest: 0, NormalUnderground: 1, Snow: 2, Desert: 3, Jungle: 4, Ocean: 5, Hallow: 6,
+    Mushroom: 7, Dungeon: 8, Corruption: 9, Crimson: 10,
+    Count: 11,
+});
+
+// Player.dashType.
+const DashID = Object.freeze({
+    None: 0, TabiAndMasterNinjaGear: 1, ShieldOfCthulhu: 2, SolarFlare: 3, Unused4: 4,
+    CrystalAssassin: 5,
+    Count: 6,
+});
+
+const EmoteBubbleCategory = Object.freeze({
+    General: 0, Rps: 1, Items: 2, BiomesAndEvents: 3, Town: 4, CrittersAndMonsters: 5,
+    Dangers: 6,
+});
+
+// Main.moonPhase.
+const MoonPhases = Object.freeze({
+    FullMoon: 0, WaningGibbous: 1, ThirdQuarter: 2, WaningCrescent: 3, NewMoon: 4,
+    WaxingCrescent: 5, FirstQuarter: 6, WaxingGibbous: 7,
+    Count: 8,
+});
+
+const MusicIDExtras = Object.freeze({
+    Night: 3, Title: 6, Jungle: 7, TheHallow: 9, Space: 15, Boss4: 17, AltOverworldDay: 18,
+    Ocean: 22, RainSoundEffect: 28, Mushrooms: 29, AltUnderground: 31, TheTowers: 34, Hell: 36,
+    LunarBoss: 38, GoblinInvasion: 39, DayRemix: 49, MenuMusic: 50, Monsoon: 52,
+    JungleUnderground: 54, ConsoleMenu: 60, OtherworldlyRain: 62, OtherworldlyDay: 63,
+    OtherworldlyNight: 64, OtherworldlyUnderground: 65, OtherworldlyDesert: 66,
+    OtherworldlyOcean: 67, OtherworldlyMushrooms: 68, OtherworldlyDungeon: 69,
+    OtherworldlySpace: 70, OtherworldlyUnderworld: 71, OtherworldlySnow: 72,
+    OtherworldlyCorruption: 73, OtherworldlyUGCorrption: 74, OtherworldlyCrimson: 75,
+    OtherworldlyUGCrimson: 76, OtherworldlyIce: 77, OtherworldlyUGHallow: 78,
+    OtherworldlyEerie: 79, OtherworldlyBoss2: 80, OtherworldlyBoss1: 81,
+    OtherworldlyInvasion: 82, OtherworldlyTowers: 83, OtherworldlyLunarBoss: 84,
+    OtherworldlyPlantera: 85, OtherworldlyJungle: 86, OtherworldlyWoF: 87,
+    OtherworldlyHallow: 88, Credits: 89,
+});
+
+// O que o ItemDropRule do tModLoader tem e o do jogo nao: moedas. So no
+// ItemLoot (bolsa, caixa): o NPCLoot vai para o banco de drops do jogo, que so
+// aceita regra dele. As regras de moeda sao guardadas para o ItemLoader as
+// reconhecer sem perguntar nada a uma regra do jogo (a ponte recusa membro que
+// nao existe).
+const CoinRules = new WeakSet();
+const ItemDropRuleExtras = Object.freeze({
+    // O valor do NPC (value) em moedas, com o bonus aleatorio das de chefe.
+    CoinsBasedOnNPCValue(npcId) {
+        const rule = Object.freeze({ npcId, withRandomBonus: true });
+        CoinRules.add(rule);
+        return rule;
+    },
+    Coins(value, withRandomBonus = false) {
+        const rule = Object.freeze({ value, withRandomBonus });
+        CoinRules.add(rule);
+        return rule;
+    },
+});
+
+// Classes que Terraria.ID nao tem: a arvore de namespaces da ponte (ns_exotic_get)
+// cai aqui quando o jogo nao acha "Namespace.Nome". ItemSlotContext e o
+// ItemSlot.Context do jogo, que tem os contextos do celular (Count 49, nao 41).
+const ExtraClasses = Object.freeze({
+    'Terraria.ID': Object.freeze({
+        BiomeID, DashID, EmoteBubbleCategory, ItemRarityID, MoonPhases, NetmodeID,
+        NPCAIStyleID, ProjAIStyleID,
+        get ItemSlotContext() { return Terraria.UI.ItemSlot.Context; },
+    }),
 });
 
 globalThis.MathHelper = MathHelper;
@@ -503,8 +581,12 @@ globalThis.NPCAIStyleID = NPCAIStyleID;
 globalThis.NetmodeID = NetmodeID;
 globalThis.Point16 = Point16;
 globalThis.AnchorData = AnchorData;
+globalThis.__blExtraClasses = ExtraClasses;
+globalThis.__blCoinRules = CoinRules;
 globalThis.__blExtraStatics = Object.freeze({
     'Terraria.ID.DustID': DustIDExtras,
+    'Terraria.ID.MusicID': MusicIDExtras,
+    'Terraria.GameContent.ItemDropRules.ItemDropRule': ItemDropRuleExtras,
     'Terraria.ID.TileID.Sets': TileSetsExtras,
     'Terraria.ObjectData.TileObjectData': TileObjectDataExtras,
     'Terraria.ID.ArmorIDs.Head.Sets': ArmorHeadSetsExtras,

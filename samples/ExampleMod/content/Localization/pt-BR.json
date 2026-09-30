@@ -69,11 +69,14 @@
     "ExampleBreastplate": "Peitoral de Exemplo",
     "ExampleLeggings": "Calças de Exemplo",
     "ExampleBossMask": "Máscara do Chefe de Exemplo",
+    "ExampleBossBag": "Bolsa do Tesouro (Chefe de Exemplo)",
     "ExampleWings": "Asas de Exemplo",
     "ExampleBeard": "Barba de Exemplo",
     "ExampleCostume": "Fantasia de Exemplo",
     "ExampleRobe": "Manto de Exemplo",
-    "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias"
+    "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias",
+    "ExampleMountItem": "Chave do Carro de Exemplo",
+    "ExampleMinecart": "Carrinho de Mina de Exemplo"
   },
   "MapObject": {
     "ExampleTile": "Bloco de Exemplo",
@@ -109,6 +112,7 @@
     "ExampleBoss": "Olho de ???"
   },
   "ItemTooltip": {
+    "ExampleBossBag": "{$CommonItemTooltip.RightClickToOpen}",
     "ExampleItem": "Descrição do item",
     "ExampleShotgun": "Dispara oito balas de uma vez",
     "ExampleWhip": "Seus lacaios vão mirar no inimigo atingido\n5 de dano de marcação",
@@ -142,7 +146,8 @@
     "ExampleWings": "Asas de mod.",
     "ExampleBeard": "Uma barba de mod, da cor do seu cabelo.",
     "ExampleCostume": "Perto de moradores, transforma quem a veste num boneco quadrado",
-    "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia"
+    "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia",
+    "ExampleMountItem": "Invoca uma montaria de mod."
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
@@ -158,7 +163,9 @@
     "ExamplePetBuff": "Aviãozinho",
     "ExampleLightPetBuff": "Luz Irritante",
     "ExampleMinionBuff": "Lacaio de Exemplo",
-    "Blocky": "Quadrado"
+    "Blocky": "Quadrado",
+    "ExampleMountBuff": "Carro de Exemplo",
+    "ExampleMinecartBuff": "Carrinho de Mina de Exemplo"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Aumenta a defesa do jogador em {0}",
@@ -166,7 +173,9 @@
     "ExamplePetBuff": "\"Que este pet sirva de exemplo para você!\"",
     "ExampleLightPetBuff": "Argh, muuuito irritante",
     "ExampleMinionBuff": "O lacaio de exemplo vai lutar por você",
-    "Blocky": "Pulo mais alto"
+    "Blocky": "Pulo mais alto",
+    "ExampleMountBuff": "Bancos de couro, 4 porta-copos",
+    "ExampleMinecartBuff": "{$BuffDescription.MinecartLeft}"
   },
   "CustomText": {
     "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"

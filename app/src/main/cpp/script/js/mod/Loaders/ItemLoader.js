@@ -20,6 +20,7 @@ class ItemLoader {
     static #animations = new Map();
     static #shooting = null;
     static #drawingWorldItem = -1;     // o whoami do Main.DrawItem em curso
+    static #opening = null;            // o item sendo aberto: o NPC de mentira e para onde vão os itens
 
     static WantAccessoryPairs() {
         Hooks.Once('item.AccessoryPairs', () => Safe.Run('pares de acessórios', ItemLoader.#HookAccessoryPairs));
@@ -58,6 +59,112 @@ class ItemLoader {
 
     static Of(item) {
         return Entities.InstanceOf(item, 'ModItem', ItemLoader.ByType);
+    }
+
+    // Abrir item de mod (o CanRightClick/RightClick/ModifyItemLoot do
+    // tModLoader). O jogo só abre o que está em ItemID.Sets.OpenableBag, e o
+    // TryOpenContainer_GrantItems dele é a lista das bolsas do jogo: uma de
+    // mod seria gasta sem soltar nada.
+    static #HookOpen() {
+        Ready.Add(() => {
+            const openable = Terraria.ID.ItemID.Sets.OpenableBag;
+            for (const [type, m] of ItemLoader.ByType) {
+                if (!Hooks.Overrides(m.constructor, ModItem, 'CanRightClick')) continue;
+                if (Safe.Run(m.constructor.name + '.CanRightClick', () => m.CanRightClick(ItemLoader.Sample(type)))) openable[type] = true;
+            }
+        });
+
+        Terraria.UI.ItemSlot['bool TryOpenContainer_GrantItems(Item item, Player player)'].hook((original, item, player) => {
+            const m = ItemLoader.Of(item);
+            return m ? ItemLoader.#Open(m, item, player) : original(item, player);
+        }, { minType: FIRST_ITEM, on: 0 });
+
+        // As regras do jogo soltam "no NPC". Durante a abertura, o NPC é de
+        // mentira e o item vai para o jogador pelo QuickSpawnItem, que é como o
+        // jogo solta o conteúdo das bolsas dele (e manda ao servidor no
+        // multijogador; o DropItemFromNPC só manda quando roda no servidor).
+        Terraria.GameContent.ItemDropRules.CommonCode['void DropItemFromNPC(NPC npc, int itemId, int stack, bool scattered)'].hook(
+            (original, npc, itemId, stack, scattered) => {
+                const opening = ItemLoader.#opening;
+                if (opening && npc === opening.npc) {
+                    opening.give(itemId, stack);
+                    return;
+                }
+                original(npc, itemId, stack, scattered);
+            });
+    }
+
+    // true: aberto (o jogo gasta um); false: não abriu.
+    static #Open(m, item, player) {
+        const name = m.constructor.name;
+        if (!Safe.Run(name + '.CanRightClick', () => m.CanRightClick(item))) return false;
+
+        const type = item.type;
+        Safe.Run(name + '.RightClick', () => m.RightClick(item, player));
+        ItemLoader.DropFromItem(m, type, player);
+        return Safe.Run(name + '.ConsumeItem', () => m.ConsumeItem(item, player)) !== false;
+    }
+
+    // As regras do ItemLoot do tipo, pelo resolvedor do jogo (que segue as
+    // encadeadas: LeadingConditionRule, Chains.OnSuccess...). O DropFromItem do
+    // tModLoader.
+    static DropFromItem(m, type, player) {
+        const rules = ItemLoot.For(m);
+        if (!rules.length) return;
+
+        const source = player['IEntitySource GetItemSource_OpenItem(int itemType)'](type);
+        const give = (itemId, stack) => player['void QuickSpawnItem(IEntitySource source, int item, int stack)'](source, itemId, stack);
+
+        const npc = Terraria.NPC.new();
+        npc['void .ctor()']();
+        npc.position = player.position;
+        npc.width = player.width;
+        npc.height = player.height;
+
+        const info = Terraria.GameContent.ItemDropRules.DropAttemptInfo.new();
+        info.npc = npc;
+        info.player = player;
+        info.rng = Terraria.Main.rand;
+        info.IsExpertMode = Terraria.Main.expertMode;
+        info.IsMasterMode = Terraria.Main.masterMode;
+
+        const resolve = Terraria.Main.ItemDropSolver['ItemDropAttemptResult ResolveRule(IItemDropRule rule, DropAttemptInfo info)'];
+        ItemLoader.#opening = { npc, give };
+        try {
+            for (const rule of rules) {
+                if (__blCoinRules.has(rule)) ItemLoader.#DropCoins(rule, give);
+                else Safe.Run(m.constructor.name + ' (ItemLoot)', () => resolve(rule, info));
+            }
+        } finally {
+            ItemLoader.#opening = null;
+        }
+    }
+
+    // O CoinsRule do tModLoader: o valor em moedas (do NPC, ou o dado), com o
+    // bônus aleatório das moedas de chefe.
+    static #DropCoins(rule, give) {
+        let value = rule.value;
+        if (rule.npcId !== undefined) {
+            const samples = Terraria.ID.ContentSamples.NpcsByNetId;
+            value = samples.ContainsKey(rule.npcId) ? samples.get_Item(rule.npcId).value : 0;
+        }
+        let scale = 1;
+        if (rule.withRandomBonus) {
+            const next = (min, max) => min + Math.floor(Math.random() * (max - min));
+            scale += next(-20, 21) * 0.01;
+            if (next(0, 5) === 0) scale += next(5, 11) * 0.01;
+            if (next(0, 10) === 0) scale += next(10, 21) * 0.01;
+            if (next(0, 15) === 0) scale += next(15, 31) * 0.01;
+            if (next(0, 20) === 0) scale += next(20, 41) * 0.01;
+        }
+        let money = Math.floor(value * scale);
+        const { ItemID } = Terraria.ID;
+        for (const coin of [ItemID.CopperCoin, ItemID.SilverCoin, ItemID.GoldCoin]) {
+            const count = money % 100;
+            money = Math.floor(money / 100);
+            if (count > 0) give(coin, count);
+        }
+        if (money > 0) give(ItemID.PlatinumCoin, money);
     }
 
     // O jogo zera as animações no InitializeItemAnimations, que roda depois do
@@ -117,6 +224,8 @@ class ItemLoader {
         const has = (name) => Hooks.Overrides(cls, ModItem, name);
         const onItem = (param) => ({ minType: FIRST_ITEM, on: param });
         const of = ItemLoader.Of;
+
+        if (has('CanRightClick')) Hooks.Once('item.Open', () => ItemLoader.#HookOpen());
 
         if (has('CanUseItem')) Hooks.Once('item.CanUse', () => {
             P['bool ItemCheck_CheckCanUse_Inner(Item sItem, bool ignoreCursed)'].hook((original, self, item, ignoreCursed) => {

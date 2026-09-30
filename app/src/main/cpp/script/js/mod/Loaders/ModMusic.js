@@ -1,4 +1,5 @@
-// Música de mod pelo Android (bl.music, MediaPlayer). Candidatos: o ModNPC com
+// Música de mod pelo Android (bl.music, MediaPlayer). Nos menus, a do tema
+// (ModMenu). No mundo, os candidatos: o ModNPC com
 // Music mais prioritário perto da tela e a cena do jogador local (ModBiome,
 // ModSceneEffect), que só troca o do NPC com prioridade maior, como no
 // tModLoader. O candidato ganha da escolha do jogo se a prioridade dele chegar
@@ -59,7 +60,7 @@ class ModMusic {
     // O slot que a música de mod pede, ou -1 (fica a do jogo).
     static #Choose(tow) {
         const Main = Terraria.Main;
-        if (Main.gameMenu) return -1;
+        if (Main.gameMenu) return MenuLoader.MenuMusic();
 
         const box = ModMusic.#MusicBox();
         if (box > 0) return box;
@@ -171,7 +172,7 @@ class ModMusic {
 
     static #Step() {
         const Main = Terraria.Main;
-        const target = Main.gameMenu ? -1 : ModMusic.#wanted;
+        const target = Main.gameMenu ? MenuLoader.MenuMusic() : ModMusic.#wanted;
         const main = target >= ModMusic.Base() ? ModMusic.Track(target) : null;
         const current = Main.curMusic;
         const mainAudible = main

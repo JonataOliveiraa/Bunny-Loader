@@ -55,7 +55,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/LocalizationLoader ModLocalization
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
-    Loaders/TooltipLoader TooltipLine EquipTexture ModItem
+    Loaders/TooltipLoader TooltipLine EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
     TagCompound Loaders/SystemLoader ModSystem
     Loaders/PlayerLoader ModPlayer
@@ -65,6 +65,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/MapBackgroundLoader Loaders/SceneEffectLoader Loaders/BiomeLoader Loaders/BiomeShoppingLoader
     Loaders/BiomeBestiaryLoader ModSceneEffect ModBiome
     Loaders/BuffLoader ModBuff
+    Loaders/MountLoader ModMount
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
     Loaders/ProjectileLoader ModProjectile
@@ -76,6 +77,7 @@ set(BL_MOD_CLASSES_PARTS
     GlobalLoot Loaders/GlobalLootLoader
     NetWriter NetReader ModPacket Core/ModNet
     Loaders/SoundLoader SoundStyle SoundEngine Loaders/VanillaMusic Loaders/ModMusic MusicLoader
+    Loaders/MenuLoader ModMenu
     Core/ContentLookup ModContent Core/ContentAutoload
     Exports)
 set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")

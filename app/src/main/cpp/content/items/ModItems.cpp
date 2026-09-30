@@ -42,8 +42,7 @@ struct Refs {
     FieldInfo* itemTextures = nullptr;        // TextureAssets.Item (Asset<Texture2D>[])
     FieldInfo* nameCache = nullptr;      // Lang._itemNameCache (LocalizedText[])
     FieldInfo* tooltipCache = nullptr;   // Lang._itemTooltipCache (ItemTooltip[])
-    const MethodInfo* tooltipFromText = nullptr;   // ItemTooltip.FromHardcodedText(string[])
-    Il2CppClass* stringCls = nullptr;
+    const MethodInfo* tooltipFromKey = nullptr;   // ItemTooltip.FromLanguageKey(short, string)
     FieldInfo* itemsByType = nullptr;       // ContentSamples.ItemsByType
     FieldInfo* persistentIdById = nullptr;   // ContentSamples.ItemPersistentIdsByNetIds
     FieldInfo* idByPersistentId = nullptr;   // ContentSamples.ItemNetIdsByPersistentIds
@@ -97,9 +96,8 @@ Refs& refs() {
     r.itemTextures = tex ? findField(tex, "Item") : nullptr;
     r.nameCache = lang ? findField(lang, "_itemNameCache") : nullptr;
     r.tooltipCache = lang ? findField(lang, "_itemTooltipCache") : nullptr;
-    r.tooltipFromText = sig(findClass({"Terraria.UI", "ItemTooltip", {}}),
-                            "ItemTooltip FromHardcodedText(string[] text)");
-    r.stringCls = findClass({"System", "String", {}});
+    r.tooltipFromKey = sig(findClass({"Terraria.UI", "ItemTooltip", {}}),
+                           "ItemTooltip FromLanguageKey(short id, string key)");
     r.itemsByType = cs ? findField(cs, "ItemsByType") : nullptr;
     r.persistentIdById = cs ? findField(cs, "ItemPersistentIdsByNetIds") : nullptr;
     r.idByPersistentId = cs ? findField(cs, "ItemNetIdsByPersistentIds") : nullptr;
@@ -211,31 +209,27 @@ TypeTables g_tables("itens de mod", kVanillaItemCount, {
 // ------------------------------ conteudo ------------------------------
 
 
-/** O tooltip na cultura atual, uma linha por '\n'. Sem tooltip, nao mexe. */
+/**
+ * O tooltip na cultura atual. Pelo mesmo caminho dos itens do jogo
+ * (ItemTooltip.FromLanguageKey): o ItemTooltip guarda o id e passa o texto
+ * pelos processadores do celular (Lang.ToopltipProcessor), que trocam os
+ * marcadores como `<open>` do CommonItemTooltip.RightClickToOpen pelo texto
+ * do controle em uso ("Toque em ... para abrir"). O FromHardcodedText nunca
+ * passa por eles. A chave fica fora de ItemTooltip.* para nao cobrir a de um
+ * item do jogo com o mesmo nome. Sem tooltip, nao mexe.
+ */
 void applyTooltip(int type, const Entry& reg) {
     const Refs& r = refs();
-    if (reg.def.tooltips.empty() || !r.tooltipCache || !r.tooltipFromText || !r.stringCls) return;
+    if (reg.def.tooltips.empty() || !r.tooltipCache || !r.tooltipFromKey) return;
+    const std::string key = "BunnyLoader.ItemTooltip." + reg.def.mod + "." + reg.def.name;
     const std::string text = content::textForCulture(reg.def.tooltips, "");
-    std::vector<std::string> lines;
-    size_t start = 0;
-    while (start <= text.size()) {
-        const size_t end = text.find('\n', start);
-        lines.push_back(text.substr(start, end == std::string::npos ? std::string::npos : end - start));
-        if (end == std::string::npos) break;
-        start = end + 1;
-    }
+    if (!content::makeLocalizedText(key, text)) return;
     auto& a = il2cpp::api();
-    Il2CppArray* arr = a.array_new(r.stringCls, lines.size());
-    if (!arr) return;
-    for (size_t i = 0; i < lines.size(); ++i) {
-        a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(arr),
-                                reinterpret_cast<void**>(static_cast<Il2CppString**>(arrayData(arr)) + i),
-                                a.string_new(lines[i].c_str()));
-    }
-    void* args[1] = {arr};
+    int16_t id = static_cast<int16_t>(type);
+    void* args[2] = {&id, a.string_new(key.c_str())};
     Il2CppObject* exc = nullptr;
-    Il2CppObject* tip = a.runtime_invoke(r.tooltipFromText, nullptr, args, &exc);
-    if (exc || !tip) { BL_ERROR("itens de mod: FromHardcodedText lancou (%s)", reg.def.name.c_str()); return; }
+    Il2CppObject* tip = a.runtime_invoke(r.tooltipFromKey, nullptr, args, &exc);
+    if (exc || !tip) { BL_ERROR("itens de mod: FromLanguageKey lancou (%s)", reg.def.name.c_str()); return; }
     content::setTableElement(r.tooltipCache, type, tip);
 }
 
@@ -374,6 +368,28 @@ void patchDropLimits(int total) {
     }
     BL_DEBUG("itens de mod: drop do jogo aceita ate o id %u (%d metodo(s) do CommonCode)", limit + 1, patched);
     g_dropLimit = limit;
+}
+
+// O renderer de [ct:controle,item] limita o segundo numero a 6195 antes de
+// chamar Draw. O Draw ja consulta ContentSamples.ItemsByType, que registramos
+// para itens de mod; e a leitura da tag que precisa aceitar esses IDs.
+uint32_t g_touchTagLimit = kVanillaItemCount - 1;
+
+void patchTouchTagLimits(int total) {
+    const uint32_t limit = static_cast<uint32_t>(total - 1);
+    if (limit == g_touchTagLimit) return;
+    Il2CppClass* cls = il2cpp::findClassQuiet("", "ControlsTouchTagHandler");
+    const MethodInfo* measure = cls ? il2cpp::api().class_get_method_from_name(cls, "MeasureInline", 4) : nullptr;
+    const MethodInfo* print = cls ? il2cpp::api().class_get_method_from_name(cls, "PrintInline", 8) : nullptr;
+    const int measured = measure ? patchMovImmediate(measure, g_touchTagLimit, limit) : 0;
+    const int printed = print ? patchMovImmediate(print, g_touchTagLimit, limit) : 0;
+    if (measured != 2 || printed != 2) {
+        BL_ERROR("itens de mod: limite de [ct] parcialmente atualizado (MeasureInline=%d, PrintInline=%d)",
+                 measured, printed);
+        return;
+    }
+    g_touchTagLimit = limit;
+    BL_DEBUG("itens de mod: [ct] aceita IDs ate %u", limit);
 }
 
 /** O jogo ja criou as tabelas de agora? (Sao feitas no carregamento, nao no boot.) */
@@ -617,6 +633,7 @@ void tickModItems() {
     g_installed.store(total, std::memory_order_release);
     hookItemNames();
     patchDropLimits(to);
+    patchTouchTagLimits(to);
     growInstanceTables(to);
 
     struct PendingSample { int type; std::string mod, name; };

@@ -30,6 +30,7 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`ModNPC`](#modnpc) | NPC, chefe ou morador novo. | [7](../mods/07-npcs.md) |
 | [`ModPlayer`](#modplayer) | Dados e comportamento por jogador. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModBuff`](#modbuff) | Buff ou debuff novo. | [8](../mods/08-jogador-e-buffs.md) |
+| [`ModMount`](#modmount) | Montaria nova (carro, carrinho de mina). | — |
 | [`ModTile`](#modtile) | Bloco novo, ou móvel com `TileObjectData`. | [9](../mods/09-blocos.md) |
 | [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
@@ -37,6 +38,7 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`ModBiome`, `ModSceneEffect`](#modbiome-e-modsceneeffect) | Bioma de mod e efeito de cena (a música, os fundos, a água e o fundo do mapa por prioridade). | — |
 | [`ModSurfaceBackgroundStyle`, `ModUndergroundBackgroundStyle`](#fundos-de-mod) | Fundos de superfície e de subsolo, com as texturas do `BackgroundTextureLoader`. | — |
 | [`ModWaterStyle`, `ModWaterfallStyle`](#água-de-mod) | A água e a cachoeira de um bioma. | — |
+| [`ModMenu`](#modmenu) | Tema da tela de título: logo, sol, lua, música e fundo. | — |
 | [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
 | [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
@@ -85,6 +87,10 @@ própria instância, com `this.Item` apontando para ele.
 | `OnCraft(item, player, recipe)` | Ao criar o item no menu de criação. | `Main.CraftItem_GrantItem`, filtro `tipo` |
 | `CanUseItem(item, player)` | Antes de usar; `false` impede. | `Player.ItemCheck_CheckCanUse_Inner`, filtro `tipo` |
 | `UseItem(item, player)` | No quadro em que o uso começa. | `Player.ItemCheck_StartActualUse`, filtro `tipo` |
+| `CanRightClick(item)` | `true`: o item abre no inventário (bolsa, caixa); entra em `ItemID.Sets.OpenableBag`. | `ItemSlot.TryOpenContainer_GrantItems`, filtro `tipo` |
+| `RightClick(item, player)` | Ao abrir, antes do `ItemLoot`. | idem |
+| `ModifyItemLoot(itemLoot)` | Uma vez, na primeira abertura: o que sai do item (`itemLoot.Add(regra)`). As regras do jogo e `ItemDropRule.CoinsBasedOnNPCValue(npc)` / `ItemDropRule.Coins(valor)`; o que cairia no NPC vai para o jogador (`QuickSpawnItem`). | idem |
+| `ConsumeItem(item, player)` | `false`: abrir não gasta o item. | idem |
 | `HoldItem(item, player)` | Todo quadro com o item na mão. | `Player.ItemCheck_ApplyUseStyle`/`ApplyHoldStyle`, filtro `tipo` |
 | `UseStyle(item, player, mountOffset, frame)` | Todo quadro de uso, depois do estilo do jogo. | idem |
 | `HoldStyle(item, player, mountOffset, frame)` | Todo quadro segurando, depois do estilo do jogo. | idem |
@@ -472,6 +478,60 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 
 ---
 
+## ModMount
+
+Uma montaria nova, como o `ModMount` do tModLoader. **Uma instância por
+tipo**: o estado de cada jogador fica no `Mount` dele (`player.mount`). O
+tipo sai no registro, antes do buff e do item que o pedem
+(`ModContent.MountType`); o `MountData` e o `SetStaticDefaults` vêm com o jogo
+pronto, quando os tipos de buff e de poeira também existem.
+
+### Campos
+
+| Campo | Para quê |
+|---|---|
+| `Type`, `Mod` | |
+| `MountData` | O `Mount.MountData` do jogo: velocidade, pulo, quadros, deslocamentos, `buff`, `spawnDust`, texturas. Mexa no `SetStaticDefaults`. |
+| `Texture` | A base das camadas: `<Texture>_Back`, `_BackGlow`, `_BackExtra`, `_BackExtraGlow`, `_Front`, `_FrontGlow`, `_FrontExtra`, `_FrontExtraGlow` (`MountTextureType`), só as que existirem. Padrão: o espelho do arquivo da classe (`Content/Mounts/X.js` → `Assets/Textures/Mounts/X_Back.png`). |
+
+### Métodos que você escreve
+
+Os `ref` do tModLoader chegam como `Ref` (`.value`).
+
+| Método | Quando roda | Por trás |
+|---|---|---|
+| `SetStaticDefaults()` | Uma vez, com as texturas já no `MountData`. | no `Ready` |
+| `SetMount(player, skipDust)` | Ao montar, depois do `FinalizeMountData`; `skipDust.value = true` pula a poeira do jogo. | `Mount.SetMount`/`DoSpawnDust` |
+| `Dismount(player, skipDust)` | Ao desmontar, antes do jogo. | `Mount.Dismount` |
+| `UpdateEffects(player)` | Todo quadro montado, antes dos efeitos do jogo. | `Mount.UpdateEffects` |
+| `UpdateFrame(player, state, velocity)` | A animação; `false` pula a do jogo. | `Mount.UpdateFrame` |
+| `JumpHeight(player, jumpHeight, xVelocity)`, `JumpSpeed(player, jumpSpeed, xVelocity)` | O pulo, com o valor do jogo no `Ref`. | `Mount.JumpHeight`/`JumpSpeed` |
+| `UseAbility(player, mouse, toggleOn)`, `AimAbility(player, mouse)` | Habilidade da montaria. | `Mount.UseAbility`/`AimAbility` |
+| `Draw(playerDrawData, drawType, player, texture, glowTexture, drawPosition, frame, drawColor, glowColor, rotation, spriteEffects, drawOrigin, drawScale, shadow)` | Uma vez por camada com textura (0 Back, 1 BackExtra, 2 Front, 3 FrontExtra). Os `Ref` trazem o que o jogo desenharia; mudados, desenha-se com os novos. `false`: a camada não é desenhada. | `Mount.Draw` |
+
+### Estáticos
+
+| | |
+|---|---|
+| `ModMount.GetSpecificData(player)`, `SetSpecificData(player, valor)` | O dado do jogador nesta montaria (o `_mountSpecificData` do tModLoader, que no C# é `object`). Apagado ao montar outra e ao desmontar. |
+| `ModMount.NewDrawData(texture, position, sourceRect, color, rotation, origin, scale, effect)` | Um `DrawData`. |
+| `ModMount.AddDrawData(playerDrawData, data)` | O `playerDrawData.Add` do tModLoader, dentro do `Draw`. |
+
+Buff com `BuffID.Sets.MountType[this.Type] = tipo` monta o jogador sozinho
+(o jogo faz isso no `UpdateBuffs`) e fica sem tempo na tela e sem salvar. O
+item aponta a montaria em `Item.mountType`.
+
+### Diferenças do tModLoader
+
+- `MountData.MinecartUpgrade*` não existe no celular: o kit de melhoria do
+  carrinho usa os valores do jogo.
+- `DelegateMethods.Minecart.SparksMeow` e os sons do Meowmere são privados no
+  celular: copie os `delegations` de um carrinho do jogo
+  (`Terraria.Mount.mounts[MountID.MeowmereMinecart].delegations`).
+- `ModDust` ainda não existe: `spawnDust` com poeira do jogo.
+
+---
+
 ## ModTile
 
 Um bloco novo (terra, pedra, minério) ou um objeto de várias células com
@@ -827,7 +887,8 @@ O fundo entra pela `Priority` da cena, nos degraus do tModLoader. Na superfície
 tem a transição do jogo, e ao sair da cena o fundo volta ao do jogo.
 
 Com o fundo desligado nas opções, o subsolo usa o desenho antigo do jogo e fica
-com o estilo do jogo. **Ainda não**: `GlobalBackgroundStyle` e o fundo do menu.
+com o estilo do jogo. O fundo da tela de título vem do [`ModMenu`](#modmenu).
+**Ainda não**: `GlobalBackgroundStyle`.
 
 ### Água de mod
 
@@ -874,9 +935,59 @@ export class MeuBioma extends ModBiome {
 A água entra com `Priority` `BiomeLow` ou maior e só onde o jogo usaria a do
 fundo comum, como no tModLoader: uma fonte de água ligada, a lua de sangue e os
 fundos de bioma do jogo (selva, deserto, neve...) ganham. A troca tem o fade do
-jogo, e ao sair a água volta à do jogo. **Ainda não**: a textura de chuva
-própria (`GetRainTexture`), a cor da cachoeira (`ColorMultiplier`) e a cor de
-cabelo do bioma (`BiomeHairColor`).
+jogo, e ao sair a água volta à do jogo.
+
+---
+
+## ModMenu
+
+Um tema da tela de título, como no tModLoader: o logo, o sol, a lua, a música e
+o fundo enquanto o jogo está nos menus. No rodapé do título aparece
+"Tema do menu: <nome>"; cada toque passa para o próximo tema, e "Terraria" é o
+título do jogo sem mudança. O escolhido fica salvo em `BunnyLoader.menu.json`,
+na pasta de saves do jogo. Na primeira vez, sem esse arquivo, o jogo abre no
+primeiro tema de mod. Depois, um tema que chega com um mod novo só aparece
+como "(1 novo)" no rodapé.
+
+```js
+export class MeuTema extends ModMenu {
+    get SunTexture() { return 'Assets/Textures/Menu/MeuSol'; }
+    get MoonTexture() { return 'Assets/Textures/Menu/MinhaLua'; }
+    get MenuBackgroundStyle() { return ModContent.GetInstance(MeuFundo); }
+    get DisplayName() { return 'Meu tema'; }
+
+    SetStaticDefaults() {
+        this.Music = MusicLoader.GetMusicSlot('Music/Titulo');
+    }
+
+    PreDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor) {
+        drawColor.value = Color.new(255, 120, 120, 255);
+        return true;
+    }
+}
+```
+
+| `ModMenu` | |
+|---|---|
+| `Logo` | A textura do logo: o caminho no mod (`'Assets/Textures/Menu/Logo'`, ou `'outromod/...'`) ou um `Asset` (`ModContent.Request`). `null` (o padrão): o logo do jogo, o de dia e o de noite. |
+| `SunTexture`, `MoonTexture` | O sol e a lua, do mesmo jeito. A lua é um quadro só (sem as fases). `null`: os do jogo. |
+| `Music` | `MusicLoader.GetMusicSlot(...)` ou um `MusicID` do jogo. `-1` (o padrão): a do jogo. |
+| `MenuBackgroundStyle` | Um `ModSurfaceBackgroundStyle` (`ModContent.GetInstance(Classe)`), ou `null`: o fundo do jogo. |
+| `DisplayName` | O nome no rodapé. Padrão: o nome do mod. |
+| `IsAvailable` | `false` tira o tema da troca. Pode ser `get IsAvailable()`, para um tema que só vale em certas datas. |
+| `IsSelected` | Se é o tema escolhido (só leitura). |
+| `OnSelected()`, `OnDeselected()` | Na troca de tema, e na abertura do jogo com o tema salvo. |
+| `Update(isOnTitleScreen)` | Todo quadro nos menus; `isOnTitleScreen` na tela de título (`menuMode` 0). |
+| `PreDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor)` | Antes do logo. Os quatro últimos são `Ref` (`.value`): o centro, a rotação, a escala e a cor do logo do jogo neste quadro. `false` não desenha o logo. |
+| `PostDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor)` | Depois do logo, com os valores com que ele foi desenhado. |
+
+Os valores podem ser campos (`this.Music = ...`) ou `get` (como no
+tModLoader), e são lidos a cada quadro. A música e o fundo do tema ficam de fora
+na geração de mundo com semente especial, como no tModLoader. No celular, o
+logo, o sol e a lua do tema só entram no desenho do título; no mundo fica tudo
+como é no jogo. **Diferenças do tModLoader**: sem o logo do tModLoader, o
+padrão é o do jogo, e não há os temas prontos do jogo antigo (1.3.5.3, Bigger
+and Boulder). Também não há o `UserInterface` do tema.
 
 ---
 
@@ -952,11 +1063,11 @@ mod, pela **classe**, pelo **nome** ou por `'mod/Nome'`.
 
 | | |
 |---|---|
-| `ItemType(x)`, `ProjectileType(x)`, `NPCType(x)`, `BuffType(x)`, `TileType(x)`, `PrefixType(x)` | O tipo. `x` é a classe, o nome (`'ExampleBobber'`) ou `'outromod/Nome'`. Não achou: 0. |
+| `ItemType(x)`, `ProjectileType(x)`, `NPCType(x)`, `BuffType(x)`, `TileType(x)`, `PrefixType(x)`, `MountType(x)` | O tipo. `x` é a classe, o nome (`'ExampleBobber'`) ou `'outromod/Nome'`. Não achou: 0. |
 | `GetInstance(Classe)` | O modelo (a instância do `register`). |
 | `Find(ModItem, 'mod/Nome')` | O modelo pelo nome; lança se não há. |
 | `TryFind(ModItem, 'mod/Nome', ref)` | O mesmo, no `ref.value`; devolve `true`/`false`. |
-| `GetModItem(tipo)`, `GetModProjectile(tipo)`, `GetModNPC(tipo)`, `GetModBuff(tipo)`, `GetModTile(tipo)`, `GetModPrefix(tipo)` | O modelo pelo tipo. |
+| `GetModItem(tipo)`, `GetModProjectile(tipo)`, `GetModNPC(tipo)`, `GetModBuff(tipo)`, `GetModTile(tipo)`, `GetModPrefix(tipo)`, `GetModMount(tipo)` | O modelo pelo tipo. |
 | `Request(caminho)` | `Asset<Texture2D>` do jogo, carregado uma vez (`.Value` é a textura). Thread do jogo. |
 | `Texture(caminho)` | A `Texture2D` (o `.Value` do `Request`). |
 | `HasAsset(caminho)` | A textura existe? |
@@ -991,6 +1102,7 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 | Classe | |
 |---|---|
 | `NPCLoot` | Recebido no `ModifyNPCLoot`: `npcLoot.Add(regra)`, com as regras do jogo (`ItemDropRule...`). |
+| `ItemLoot` | Recebido no `ModifyItemLoot` do `ModItem`: `itemLoot.Add(regra)`, `Remove`, `Get()`, `RemoveWhere`. Guardado pelo Bunny Loader (o jogo não tem drops por item). |
 | `NPCSpawnInfo` | Recebido no `SpawnChance`, no `EditSpawnPool` e no `EditSpawnInfo`, como o `NPC.Spawner` do tModLoader: `SpawnTileX`, `SpawnTileY`, `GroundTileY`, `SpawnTileType` e `SpawnWallType` (o bloco e a parede do chão), `SafeRangeX`, `Player` (o jogador-alvo), `Spawner` (o do jogo) e os campos dele, que se leem e escrevem (`waterTile`, `nearGranite`, `nearMarble`, `spawnSpider`, `ZoneCorrupt`...); altura (`Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`, `AboveSurface`, `BelowSurface`); hora e evento (`Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`, `SolarEclipse`, `PumpkinMoon`, `FrostMoon`, `AnyEvent`, `Invasion`, `AnyTower`); mundo (`HardMode`, `Expert`, `Master`); bioma (`Corruption`, `Crimson`, `Hallow` e os `Underground...`, `Snow`, `Ice`, `Jungle`, `UndergroundJungle`, `Mushroom`, `SurfaceMushroom`, `Ocean`, `Desert`, `DesertCave`, `Meteor`, `Marble`, `Granite`, `Graveyard`, `Dungeon`, `Lihzahrd`); `CommonEnemy`. |
 | `SpawnPool` | O sorteio do `EditSpawnPool`: `pool[tipo] = peso`, `delete pool[tipo]`, ou `Add`, `Remove`, `ContainsKey`, `Clear`, `Keys`, `Count`. O `0` é o spawn do jogo (peso 1). Com o total 0, nada nasce. |
 | `NPCShop` | `new NPCShop(tipoDoNPC, 'Shop').Add(item, { condition, price, currency }).Register()`; `NPCShop.get(tipo, nome)`, `shop.Open()`. |

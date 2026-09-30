@@ -2,7 +2,7 @@ import { ExampleCustomCurrency } from '../../Items/ExampleItem.js';
 import { ExampleSurfaceBiome } from '../../Biomes/ExampleSurfaceBiome.js';
 
 const { DustID, NPCID, SoundID } = Terraria.ID;
-const { BestiaryDatabaseNPCsPopulator, FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
+const { FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
 const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];
 
@@ -47,10 +47,14 @@ export class ExamplePerson extends ModNPC {
         this.NPC.DeathSound = SoundID.NPCDeath1;
         this.NPC.knockBackResist = 0.5;
         this.AnimationType = NPCID.Guide;
+        // No Bestiário: o bioma que ele mais ama (nome, ícone e fundo do
+        // retrato). O Happiness acima só vale para a felicidade de morador.
+        this.SpawnModBiomes = [ExampleSurfaceBiome];
     }
 
+    // O bioma vem do SpawnModBiomes. Sem o Surface do jogo aqui: o retrato usa
+    // o fundo do último bioma da lista, e o Surface cobriria o de exemplo.
     SetBestiary(database, bestiaryEntry) {
-        bestiaryEntry.Info.Add(BestiaryDatabaseNPCsPopulator.CommonTags.SpawnConditions.Biomes.Surface);
         const flavor = FlavorTextBestiaryInfoElement.new();
         flavor._key = ModLocalization.Key('Bestiary.ExamplePerson');
         bestiaryEntry.Info.Add(flavor);

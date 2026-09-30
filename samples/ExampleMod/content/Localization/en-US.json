@@ -69,11 +69,14 @@
     "ExampleBreastplate": "Example Breastplate",
     "ExampleLeggings": "Example Leggings",
     "ExampleBossMask": "Example Boss Mask",
+    "ExampleBossBag": "Treasure Bag (Example Boss)",
     "ExampleWings": "Example Wings",
     "ExampleBeard": "Example Beard",
     "ExampleCostume": "Example Costume",
     "ExampleRobe": "Example Robe",
-    "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon"
+    "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon",
+    "ExampleMountItem": "ExampleMount Car Key",
+    "ExampleMinecart": "Example Minecart"
   },
   "MapObject": {
     "ExampleTile": "Example Block",
@@ -109,6 +112,7 @@
     "ExampleBoss": "Eye of ???"
   },
   "ItemTooltip": {
+    "ExampleBossBag": "{$CommonItemTooltip.RightClickToOpen}",
     "ExampleItem": "Item description",
     "ExampleShotgun": "Fires eight bullets at once",
     "ExampleWhip": "Your summons will focus struck enemies\n5 summon tag damage",
@@ -142,7 +146,8 @@
     "ExampleWings": "This is a modded wing.",
     "ExampleBeard": "This is a modded beard which matches your hair color.",
     "ExampleCostume": "Turns the holder into a blocky figure near town NPCs",
-    "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes"
+    "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes",
+    "ExampleMountItem": "This summons a modded mount."
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
@@ -158,7 +163,9 @@
     "ExamplePetBuff": "Paper Airplane",
     "ExampleLightPetBuff": "Annoying Light",
     "ExampleMinionBuff": "Example Minion",
-    "Blocky": "Blocky"
+    "Blocky": "Blocky",
+    "ExampleMountBuff": "ExampleMount",
+    "ExampleMinecartBuff": "Example Minecart"
   },
   "BuffDescription": {
     "ExampleDefenseBuff": "Increases the player's defense by {0}",
@@ -166,7 +173,9 @@
     "ExamplePetBuff": "\"Let this pet be an example to you!\"",
     "ExampleLightPetBuff": "Ugh, soooo annoying",
     "ExampleMinionBuff": "The example minion will fight for you",
-    "Blocky": "Jumping power is increased"
+    "Blocky": "Jumping power is increased",
+    "ExampleMountBuff": "Leather seats, 4 cup holders",
+    "ExampleMinecartBuff": "{$BuffDescription.MinecartLeft}"
   },
   "CustomText": {
     "WelcomeMessage": "Welcome to {WorldName}!"

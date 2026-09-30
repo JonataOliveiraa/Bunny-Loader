@@ -1,7 +1,7 @@
 import { DownedBossSystem } from '../../../Common/Systems/DownedBossSystem.js';
 
 const { BuffID, NPCID, SoundID } = Terraria.ID;
-const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
+const { ItemDropRule, LeadingConditionRule, Conditions, Chains } = Terraria.GameContent.ItemDropRules;
 const { FlavorTextBestiaryInfoElement, MoonLordPortraitBackgroundProviderBestiaryInfoElement } = Terraria.GameContent.Bestiary;
 const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];
 
@@ -37,13 +37,23 @@ export class ExampleBoss extends ModNPC {
         bestiaryEntry.Info.Add(flavor);
     }
 
+    // Na ordem dos chefes do jogo (e do tModLoader): troféu, o modo Clássico,
+    // o Expert (a bolsa) e o Mestre.
     ModifyNPCLoot(npcLoot) {
-        npcLoot.Add(ItemDropRule.Common(ModItem.getTypeByName('ExampleItem'), 1, 15, 30));
-        // O troféu (1 em 10) e, no modo mestre, a relíquia: como os chefes do jogo.
         npcLoot.Add(ItemDropRule.Common(ModContent.ItemType('MinionBossTrophy'), 10, 1, 1));
+
+        // Clássico ("fora do Expert"): a máscara (1 em 7) e o ExampleItem. No
+        // Expert e no Mestre isso sai da bolsa (ExampleBossBag.ModifyItemLoot).
+        const notExpert = LeadingConditionRule.new();
+        notExpert['void .ctor(IItemDropRuleCondition condition)'](Conditions.NotExpert.new());
+        Chains.OnSuccess(notExpert, ItemDropRule.Common(ModContent.ItemType('ExampleBossMask'), 7, 1, 1), false);
+        Chains.OnSuccess(notExpert, ItemDropRule.Common(ModItem.getTypeByName('ExampleItem'), 1, 15, 30), false);
+        npcLoot.Add(notExpert);
+
+        // Expert: a bolsa, uma para cada jogador que lutou.
+        npcLoot.Add(ItemDropRule.BossBag(ModContent.ItemType('ExampleBossBag')));
+
         npcLoot.Add(ItemDropRule.MasterModeCommonDrop(ModContent.ItemType('MinionBossRelic')));
-        // A máscara, 1 em 7, como a dos chefes do jogo.
-        npcLoot.Add(ItemDropRule.Common(ModContent.ItemType('ExampleBossMask'), 7, 1, 1));
     }
 
     OnKill(npc) {

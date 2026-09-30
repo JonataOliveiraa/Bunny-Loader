@@ -1,7 +1,7 @@
 // As tarefas de "conteúdo pronto", por fase. 'groups' roda antes de tudo (uma
 // receita pode usar o grupo de outro mod); 'mods' antes do conteúdo, como no tModLoader.
 class Ready {
-    static #tasks = { groups: [], mods: [], content: [] };
+    static #tasks = { setup: [], groups: [], mods: [], content: [] };
     static #hooked = false;
 
     static Add(task, phase = 'content') {
@@ -10,6 +10,8 @@ class Ready {
 
         Ready.#hooked = true;
         bl.onContentReady(() => {
+            // 'setup': o que os outros pedem pronto (o MountData das montarias).
+            for (const t of Ready.#tasks.setup) Safe.Run('SetupContent', t);
             for (const t of Ready.#tasks.groups) Safe.Run('AddRecipeGroups', t);
             for (const t of Ready.#tasks.mods) Safe.Run('Mod.PostSetupContent', t);
             for (const t of Ready.#tasks.content) Safe.Run('PostSetupContent', t);
