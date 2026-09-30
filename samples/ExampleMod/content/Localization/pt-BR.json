@@ -76,7 +76,8 @@
     "ExampleRobe": "Manto de Exemplo",
     "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias",
     "ExampleMountItem": "Chave do Carro de Exemplo",
-    "ExampleMinecart": "Carrinho de Mina de Exemplo"
+    "ExampleMinecart": "Carrinho de Mina de Exemplo",
+    "ExampleQuestFish": "Peixe de Ponta-Cabeça"
   },
   "MapObject": {
     "ExampleTile": "Bloco de Exemplo",
@@ -231,6 +232,39 @@
     "ExampleUndergroundBiome": {
       "DisplayName": "Subsolo de Exemplo",
       "TownNPCDialogueName": "o Bioma Subterrâneo de Exemplo"
+    }
+  },
+  "Commands": {
+    "Common": {
+      "NoParameters": "Faltou pelo menos um argumento.",
+      "NotInteger": "{0} não é um número inteiro válido."
+    },
+    "HealCommand": {
+      "Usage": "/curar quantidade",
+      "Description": "Cura você na quantidade",
+      "Error": "Use /curar e uma quantidade positiva",
+      "Full": "Sua vida já está cheia",
+      "Healed": "Você recuperou {0} de vida"
+    },
+    "ExampleTimeCommand": {
+      "Usage": "/addTime ticks\nticks: número positivo ou negativo, em ticks (1 segundo = 60 ticks).",
+      "Description": "Avança ou volta a hora do mundo em ticks"
+    }
+  },
+  "Achievements": {
+    "ExampleBossKilled": {
+      "FriendlyName": "Chefe de Exemplo Derrotado",
+      "Description": "Derrote o Chefe de Exemplo"
+    },
+    "ManyWormsKilled": {
+      "FriendlyName": "Muitos Vermes",
+      "Description": "Tá bom... já entendemos. Agora pare de matar esses pobres vermes."
+    }
+  },
+  "AnglerQuest": {
+    "ExampleQuestFish": {
+      "Description": "Ouvi histórias de um peixe que nada de ponta-cabeça. Dizem que você mesmo precisa estar de ponta-cabeça para achar um. Um desses ficaria ótimo no meu teto. Vai buscar!",
+      "CatchLocation": "Pescado em qualquer lugar, de ponta-cabeça."
     }
   }
 }

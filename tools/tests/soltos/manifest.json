@@ -1,0 +1,15 @@
+{
+  "uid": "f20bf446-fadf-440a-8997-f49a8529572c",
+  "id": "test-soltos",
+  "name": "Teste: etapa 13 (comando, cabelo, nuvem, emote, conquista, pesca)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModCommand pelo processador do chat (e o /help), ModHair (lista e save), ModCloud (sorteio comum e raro), ModEmoteBubble (bolha e menu), ModAchievement (condições, OnCompleted, avisos) e o peixe de missão (fala, sorteio e CatchFish). Com o Example Mod: os exemplos dele.",
+  "description": "Loga 'soltos ...'.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -59,6 +59,14 @@ class PlayerLoader {
         return hit;
     }
 
+    // Outros dados do personagem no mesmo arquivo (o cabelo de mod): chave ->
+    // { save(player) -> valor ou undefined, load(player, valor) }.
+    static #extras = new Map();
+    static AddSaveExtra(key, save, load) {
+        PlayerLoader.#extras.set(key, { save, load });
+        Hooks.Once('player.save', PlayerLoader.InstallSave);
+    }
+
     // <personagem>.plr.bl.json: { '<uid>/<Classe>': data }. Dados de mod que
     // não está carregado agora continuam no arquivo.
     static InstallSave() {
@@ -72,7 +80,7 @@ class PlayerLoader {
             if (!player) return;
 
             const all = PlayerLoader.#ReadData(file);
-            const mine = PlayerLoader.Of(player);
+            const mine = PlayerLoader.Classes.length ? PlayerLoader.Of(player) : null;
             for (const cls of PlayerLoader.Classes) {
                 if (!Hooks.Overrides(cls, ModPlayer, 'SaveData')) continue;
 
@@ -81,6 +89,11 @@ class PlayerLoader {
                 Safe.Run(cls.name + '.SaveData', () => mine[cls.name].SaveData(data));
 
                 if (Object.keys(data).length) all[key] = data;
+                else delete all[key];
+            }
+            for (const [key, extra] of PlayerLoader.#extras) {
+                const value = Safe.Run('salvar ' + key, () => extra.save(player));
+                if (value !== undefined) all[key] = value;
                 else delete all[key];
             }
 
@@ -97,10 +110,13 @@ class PlayerLoader {
             if (!player) return fileData;
 
             const all = PlayerLoader.#ReadData(file);
-            const mine = PlayerLoader.Of(player);
+            const mine = PlayerLoader.Classes.length ? PlayerLoader.Of(player) : null;
             for (const cls of PlayerLoader.Classes) {
                 const data = all[PlayerLoader.#keys.get(cls.name)];
                 if (data !== undefined) Safe.Run(cls.name + '.LoadData', () => mine[cls.name].LoadData(TagCompound.from(data)));
+            }
+            for (const [key, extra] of PlayerLoader.#extras) {
+                if (all[key] !== undefined) Safe.Run('carregar ' + key, () => extra.load(player, all[key]));
             }
             return fileData;
         });
@@ -235,6 +251,24 @@ class PlayerLoader {
                     original(self, src, dmg, dir, pvp);
                     if (dies && self.dead) each(self, 'Kill', (m) => m.Kill(self, src, dmg, dir, pvp));
                 });
+        });
+
+        // A pesca: depois do sorteio do jogo (item e inimigo), como o
+        // PlayerLoader.CatchFish do tModLoader no Projectile.FishingCheck.
+        if (has('CatchFish')) Hooks.Once('player.CatchFish', () => {
+            Terraria.Projectile['void FishingCheck_RollItemDrop(ref FishingAttempt fisher)'].hook((original, self, fisher) => {
+                original(self, fisher);
+                const player = Terraria.Main.player[self.owner];
+                const attempt = fisher.value;
+                const item = new Ref(attempt.rolledItemDrop), npc = new Ref(attempt.rolledEnemySpawn);
+                const sonar = new Ref(null), sonarPosition = new Ref(Vector2.new(self.position.X, self.position.Y));
+                each(player, 'CatchFish', (m) => m.CatchFish(attempt, item, npc, sonar, sonarPosition));
+                if (item.value !== attempt.rolledItemDrop || npc.value !== attempt.rolledEnemySpawn) {
+                    attempt.rolledItemDrop = item.value | 0;
+                    attempt.rolledEnemySpawn = npc.value | 0;
+                    fisher.value = attempt;
+                }
+            });
         });
     }
 

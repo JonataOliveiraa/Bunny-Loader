@@ -581,11 +581,20 @@ globalThis.NPCAIStyleID = NPCAIStyleID;
 globalThis.NetmodeID = NetmodeID;
 globalThis.Point16 = Point16;
 globalThis.AnchorData = AnchorData;
+// As categorias do menu de emotes (o EmoteID.Category do tModLoader): a
+// mesma ordem do GUIEmotesWindow.Category do celular.
+const EmoteIDExtras = Object.freeze({
+    Category: Object.freeze({
+        General: 0, RockPaperScissors: 1, Items: 2, BiomesAndEvents: 3, Town: 4, CrittersAndMonsters: 5, Dangers: 6,
+    }),
+});
+
 globalThis.__blExtraClasses = ExtraClasses;
 globalThis.__blCoinRules = CoinRules;
 globalThis.__blExtraStatics = Object.freeze({
     'Terraria.ID.DustID': DustIDExtras,
     'Terraria.ID.MusicID': MusicIDExtras,
+    'Terraria.GameContent.UI.EmoteID': EmoteIDExtras,
     'Terraria.GameContent.ItemDropRules.ItemDropRule': ItemDropRuleExtras,
     'Terraria.ID.TileID.Sets': TileSetsExtras,
     'Terraria.ObjectData.TileObjectData': TileObjectDataExtras,

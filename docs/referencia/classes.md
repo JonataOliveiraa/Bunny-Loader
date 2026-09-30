@@ -31,6 +31,11 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`ModPlayer`](#modplayer) | Dados e comportamento por jogador. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModBuff`](#modbuff) | Buff ou debuff novo. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModMount`](#modmount) | Montaria nova (carro, carrinho de mina). | — |
+| [`ModCommand`](#modcommand) | Comando de chat (`/nome args`). | — |
+| [`ModHair`](#modhair) | Penteado novo (criação de personagem e Cabeleireiro). | — |
+| [`ModCloud`](#modcloud) | Nuvem nova no céu (comum ou rara). | — |
+| [`ModEmoteBubble`](#modemotebubble) | Emote novo (bolha e menu de emotes). | — |
+| [`ModAchievement`](#modachievement) | Conquista nova. | — |
 | [`ModTile`](#modtile) | Bloco novo, ou móvel com `TileObjectData`. | [9](../mods/09-blocos.md) |
 | [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
@@ -91,6 +96,9 @@ própria instância, com `this.Item` apontando para ele.
 | `RightClick(item, player)` | Ao abrir, antes do `ItemLoot`. | idem |
 | `ModifyItemLoot(itemLoot)` | Uma vez, na primeira abertura: o que sai do item (`itemLoot.Add(regra)`). As regras do jogo e `ItemDropRule.CoinsBasedOnNPCValue(npc)` / `ItemDropRule.Coins(valor)`; o que cairia no NPC vai para o jogador (`QuickSpawnItem`). | idem |
 | `ConsumeItem(item, player)` | `false`: abrir não gasta o item. | idem |
+| `IsQuestFish()` | `true`: peixe de missão do Pescador (o mesmo que `ItemID.Sets.IsQuestFish[this.Type] = true` no `SetStaticDefaults`). Entra no fim de `Main.anglerQuestItemNetIDs`. | no `Ready` |
+| `IsAnglerQuestAvailable()` | `false`: o sorteio do dia não cai nele (sorteia de novo). | `Main.AnglerQuestSwap` |
+| `AnglerQuestChat(description, catchLocation)` | A fala do Pescador (`Ref`): `description.value` e `catchLocation.value` (sai entre parênteses embaixo). Sem ela, o nome do item. | `Lang.AnglerQuestChat` |
 | `HoldItem(item, player)` | Todo quadro com o item na mão. | `Player.ItemCheck_ApplyUseStyle`/`ApplyHoldStyle`, filtro `tipo` |
 | `UseStyle(item, player, mountOffset, frame)` | Todo quadro de uso, depois do estilo do jogo. | idem |
 | `HoldStyle(item, player, mountOffset, frame)` | Todo quadro segurando, depois do estilo do jogo. | idem |
@@ -417,6 +425,7 @@ recebem o jogador (`player`), que é o mesmo `this.Player`.
 | `PostHurt(player, source, damage, ...)` | Depois do golpe, se sobreviveu. | idem |
 | `PreKill(player, source, damage, direction, pvp)` | `false` impede a morte. | `Player.KillMe` |
 | `Kill(player, source, damage, direction, pvp)` | Morreu. | idem |
+| `CatchFish(attempt, itemDrop, npcSpawn, sonar, sonarPosition)` | Pescou, depois do sorteio do jogo: `itemDrop.value` e `npcSpawn.value` (`Ref`, 0 = nada) decidem o que sai; `attempt` tem `questFish`, `common`/`uncommon`/`rare`..., `inLava`... `sonar`/`sonarPosition` ainda não fazem nada. | `Projectile.FishingCheck_RollItemDrop` |
 | `SaveData(data)` | A cada save: ponha o que lembrar em `data`. | `Player.InternalSavePlayerFile` |
 | `LoadData(data)` | Ao carregar o personagem. | `Player.LoadPlayer` |
 
@@ -435,7 +444,7 @@ quadro, o que é barato.
 ### Ainda não
 
 `ModifyHitNPC`/`OnHitNPC` do jogador, `ProcessTriggers` (teclas),
-`CatchFish`, `ModifyScreenPosition`, `DrawEffects`, `CopyClientState` e a
+`ModifyScreenPosition`, `DrawEffects`, `CopyClientState` e a
 sincronização pela rede.
 
 ---
@@ -529,6 +538,106 @@ item aponta a montaria em `Item.mountType`.
   celular: copie os `delegations` de um carrinho do jogo
   (`Terraria.Mount.mounts[MountID.MeowmereMinecart].delegations`).
 - `ModDust` ainda não existe: `spawnDust` com poeira do jogo.
+
+---
+
+## ModCommand
+
+Um comando de chat, como o `ModCommand` do tModLoader. Uma instância por
+comando. O texto digitado passa pelo processador do jogo; o que ele não
+conhece chega com a barra, e o de mod roda no lugar.
+
+| | |
+|---|---|
+| `Command` | O nome, sem a barra (getter). |
+| `Aliases` | Outros nomes (do ExMod): `get Aliases() { return ['curar']; }`. |
+| `Type` | `CommandType.Chat` (no aparelho de quem digitou), `Server` (no servidor, pedido por um jogador), `World` (sozinho no chat; no multijogador, no servidor). `Console` não existe no celular. |
+| `Usage`, `Description` | Padrão: `Commands.<Classe>.Usage`/`.Description` do `Localization` (o `/help` mostra). |
+| `IsCaseSensitive` | `false`: o texto chega em minúsculas. |
+| `Action(caller, input, args)` | O comando. `caller.Player`, `caller.CommandType`, `caller.Reply(texto, cor)`. `throw new UsageException(texto, cor)` responde o erro; `return false` (do ExMod) responde o `Usage`. |
+
+`/mod:nome` escolhe o mod quando dois têm o mesmo nome. O `/help` do jogo
+lista os de mod no fim.
+
+---
+
+## ModHair
+
+Um penteado, como o `ModHair` do tModLoader. Tipo depois dos 228 do jogo.
+
+| | |
+|---|---|
+| `Texture`, `AltTexture` | A do penteado e a com chapéu (`<Texture>_Alt`; sem ela, a mesma). Padrão: o espelho do arquivo (`Content/Hairs/X.js` → `Assets/Textures/Hairs/X.png`). |
+| `AvailableDuringCharacterCreation` | Na criação de personagem (getter; padrão `true`). |
+| `GetUnlockConditions()` | No Cabeleireiro quando todas valem: objetos com `IsMet()` ou funções. |
+| `IsUnlocked(naCriacao, noCabeleireiro)` | Decide tudo sozinho (do ExMod), se escrito. |
+
+Save: o arquivo do jogo leva o cabelo 0 e o de mod vai pelo nome no
+`<personagem>.plr.bl.json` (`bunny:hair`); sem o mod, o personagem abre com
+o cabelo 0. O `HairID.Sets` e o `RandomizedCharacterCreationGender` do
+tModLoader não existem no celular.
+
+---
+
+## ModCloud
+
+Uma nuvem, como o `ModCloud` do tModLoader. Tipo depois do `CloudID.Count`.
+
+| | |
+|---|---|
+| `Texture` | Padrão: o espelho do arquivo (`Content/Clouds/X.js` → `Assets/Textures/Clouds/X.png`). |
+| `RareCloud` | `true`: sorteada entre as raras (getter). |
+| `SpawnChance()` | O peso: as comuns contra as 22 do jogo (peso 1 cada), as raras contra as 18 raras do jogo. |
+| `OnSpawn(cloud)` | A nuvem nasceu (o `Cloud` do jogo: `spriteDir`, `scale`...). |
+
+`CloudLoader.AddCloudFromTexture('Clouds/X', peso, rara)`, no `Mod.Load`,
+cria uma nuvem só de textura. Todo PNG em `Assets/Textures/Clouds` sem nuvem
+com o mesmo nome vira nuvem comum de peso 1 sozinho. O `Draw` do tModLoader
+ainda não existe.
+
+---
+
+## ModEmoteBubble
+
+Um emote, como o `ModEmoteBubble` do tModLoader. Tipo depois dos 151 do jogo.
+A textura tem os quadros de 34 x 28 lado a lado (dois, no padrão), só o
+ícone: a bolha branca vem da folha do jogo. Durante cada método,
+`this.EmoteBubble` é a bolha.
+
+| | |
+|---|---|
+| `AddToCategory(EmoteID.Category.X)` | No menu de emotes (`General`, `RockPaperScissors`, `Items`, `BiomesAndEvents`, `Town`, `CrittersAndMonsters`, `Dangers`). No `SetStaticDefaults`. |
+| `IsUnlocked()` | No menu só se liberado. |
+| `OnSpawn()` | A bolha nasceu (`EmoteBubble.NewBubble`). |
+| `UpdateFrame()` | `false`: a animação é do mod (`this.EmoteBubble.frame`, `frameCounter`). |
+| `GetFrame()` | O quadro na textura; `null`, o do jogo (metade da textura). |
+| `GetFrameInEmoteMenu(frame, frameCounter)` | O quadro no menu (a animação do menu tem dois). |
+| `PreDraw(sb, texture, position, frame, origin, effects)`, `PostDraw(...)` | Em volta do desenho da bolha; `false` não desenha. |
+
+Multijogador: o emote que o jogador manda é recusado pelo jogo acima de 150
+(msg 120); o de mod não chega aos outros.
+
+---
+
+## ModAchievement
+
+Uma conquista, como o `ModAchievement` do tModLoader, no gerenciador do jogo
+(`Main.Achievements`), com o nome `<mod>/<Classe>`. O progresso fica no
+arquivo de conquistas do jogo.
+
+| | |
+|---|---|
+| `Texture` | Uma folha de 592 x 64: o ícone desbloqueado em x = 0 e o bloqueado em x = 528 (onde o menu do celular procura). A do tModLoader (130 x 64) não serve. |
+| `Index` | A posição na folha (colunas de 66). |
+| `Category` | `Terraria.Achievements.AchievementCategory.Slayer` (padrão), `Collector`, `Explorer`, `Challenger`. |
+| `Hidden` | Nome e descrição viram "???" no menu enquanto não completa. |
+| `SetStaticDefaults()` | As condições: `AddCondition(chave)`, `AddIntCondition(chave, máx)`, `AddFloatCondition`, `AddItemCraftCondition(id ou [ids])`, `AddItemPickupCondition`, `AddNPCKilledCondition`, `AddTileDestroyedCondition([ids])`. Devolvem a condição do jogo (`.Value` nas de número, `.Complete()`). |
+| `OnCompleted(achievement)` | Completou. |
+| `OnNPCKilled(player, npcId)`, `OnItemPickup(player, tipo, qtd)`, `OnItemCraft(tipo, qtd)`, `OnTileDestroyed(player, tile)` | Os avisos do jogo, enquanto não completa (do ExMod; o tModLoader usa os eventos do `AchievementsHelper`). |
+
+Nome e descrição: `Achievements.<Classe>.FriendlyName` (ou `.Name`) e
+`.Description` do `Localization`. As posições no menu (`GetDefaultPosition`)
+do tModLoader não existem.
 
 ---
 

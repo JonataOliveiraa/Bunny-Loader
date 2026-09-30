@@ -11,7 +11,8 @@ class ContentAutoload {
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, ModMenu,
                      ModNPC, ModProjectile, ModItem, ModTile, ModSystem,
-                     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot];
+                     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
+                     ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement];
     static #fileOf = new Map();
 
     static FileOf(cls) {
@@ -40,6 +41,8 @@ class ContentAutoload {
         });
 
         ModRegistry.Adopt(mod, main);
+        // Depois do Mod.Load, que pode ter chamado o AddCloudFromTexture.
+        CloudLoader.Autoload();
     }
 
     // As classes exportadas, por tipo de conteúdo, na ordem de #ORDER.

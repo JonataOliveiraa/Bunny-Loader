@@ -40,6 +40,10 @@ class ModPlayer {
     PostHurt(player, damageSource, damage, hitDirection, pvp, quiet, crit, cooldownCounter, dodgeable) {}
     PreKill(player, damageSource, damage, hitDirection, pvp) { return true; }
     Kill(player, damageSource, damage, hitDirection, pvp) {}
+    // Pesca, depois do sorteio do jogo: itemDrop e npcSpawn são Ref (o item e o
+    // inimigo que saem; 0 = nenhum). sonar e sonarPosition existem pela
+    // assinatura do tModLoader e ainda não fazem nada.
+    CatchFish(attempt, itemDrop, npcSpawn, sonar, sonarPosition) {}
 
     SaveData(data) {}
     LoadData(data) {}

@@ -11,8 +11,12 @@ class ContentLookup {
         if (base === ModTile) return TileLoader.ByType;
         if (base === ModPrefix) return PrefixLoader.ByType;
         if (base === ModMount) return MountLoader.ByType;
+        if (base === ModHair) return HairLoader.ByType;
+        if (base === ModCloud) return CloudLoader.ByType;
+        if (base === ModEmoteBubble) return EmoteBubbleLoader.ByType;
+        if (base === ModAchievement) return AchievementLoader.ByName;
 
-        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModTile, ModPrefix ou ModMount');
+        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModTile, ModPrefix, ModMount, ModHair, ModCloud, ModEmoteBubble ou ModAchievement');
     }
 
     // Pelo nome: no mod de quem chama, ou no único mod que o tem.

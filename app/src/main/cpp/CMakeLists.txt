@@ -51,6 +51,7 @@ set(BL_MOD_CLASSES_PARTS
     Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
     Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
+    Enums/CommandType
     Mod ModLoader
     Loaders/LocalizationLoader ModLocalization
     Loaders/RecipeLoader ModRecipe
@@ -66,6 +67,8 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/BiomeBestiaryLoader ModSceneEffect ModBiome
     Loaders/BuffLoader ModBuff
     Loaders/MountLoader ModMount
+    Loaders/CommandLoader ModCommand Loaders/HairLoader ModHair Loaders/CloudLoader ModCloud
+    Loaders/EmoteBubbleLoader ModEmoteBubble Loaders/AchievementLoader ModAchievement Loaders/AnglerQuestLoader
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
     Loaders/ProjectileLoader ModProjectile

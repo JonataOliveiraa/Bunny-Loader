@@ -76,7 +76,8 @@
     "ExampleRobe": "Example Robe",
     "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon",
     "ExampleMountItem": "ExampleMount Car Key",
-    "ExampleMinecart": "Example Minecart"
+    "ExampleMinecart": "Example Minecart",
+    "ExampleQuestFish": "Upside-down Fish"
   },
   "MapObject": {
     "ExampleTile": "Example Block",
@@ -231,6 +232,39 @@
     "ExampleUndergroundBiome": {
       "DisplayName": "Example Underground",
       "TownNPCDialogueName": "the Example Underground Biome"
+    }
+  },
+  "Commands": {
+    "Common": {
+      "NoParameters": "At least one argument was expected.",
+      "NotInteger": "{0} is not a correct integer value."
+    },
+    "HealCommand": {
+      "Usage": "/heal amount",
+      "Description": "Heals you by the amount",
+      "Error": "Use /heal and a positive amount",
+      "Full": "Your life is already full",
+      "Healed": "You recovered {0} health"
+    },
+    "ExampleTimeCommand": {
+      "Usage": "/addTime numTicks\nnumTicks: positive or negative number in ticks (1 second = 60 ticks).",
+      "Description": "Adds numTicks to fast forward or rewind world time"
+    }
+  },
+  "Achievements": {
+    "ExampleBossKilled": {
+      "FriendlyName": "Example Boss Killed",
+      "Description": "Defeat the Example Boss"
+    },
+    "ManyWormsKilled": {
+      "FriendlyName": "Many Worms Killed",
+      "Description": "Okay... we get it, now please stop murdering these poor worms."
+    }
+  },
+  "AnglerQuest": {
+    "ExampleQuestFish": {
+      "Description": "I've heard stories of a fish that swims upside-down. Supposedly you have to stand upside-down yourself to even find one. One of those would go great on my ceiling. Go fetch!",
+      "CatchLocation": "Caught anywhere while standing upside-down."
     }
   }
 }
