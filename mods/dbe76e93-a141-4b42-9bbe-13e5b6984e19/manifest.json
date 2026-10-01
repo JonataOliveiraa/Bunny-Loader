@@ -1,0 +1,25 @@
+{
+  "uid": "dbe76e93-a141-4b42-9bbe-13e5b6984e19",
+  "id": "bosscursor",
+  "name": "Boss Cursor",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Animatak_",
+      "avatar": "animatak.png",
+      "color": "#841FFF",
+      "link": "https://discord.com/invite/tl-pro-402880167737032705",
+      "role": "Autor"
+    }
+  ],
+  "category": "Utilidade",
+  "summary": "Um indicador visual que mostra a direção e a localização de chefes durante as batalhas.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [
+    301543,
+    301543
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -1,0 +1,25 @@
+{
+  "uid": "77b38952-98d6-4e18-a301-638d54c4bfd0",
+  "id": "townnpchome",
+  "name": "TownNPC Home",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Animatak_",
+      "avatar": "animatak.png",
+      "color": "#841FFF",
+      "link": "https://discord.com/invite/tl-pro-402880167737032705",
+      "role": "Autor"
+    }
+  ],
+  "category": "Utilidade",
+  "summary": "Teleporta NPCs de cidade para suas casas.",
+  "updated": "2026-09-27",
+  "blVersion": 2,
+  "gameVersion": [
+    301543,
+    301543
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

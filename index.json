@@ -1,0 +1,58 @@
+{
+  "format": 1,
+  "mods": [
+    {
+      "uid": "00895657-564e-49ca-b099-23823ba0e68c",
+      "id": "better-achievements",
+      "name": "Better Achievements",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-better-achievements-v1.0.0/better-achievements-1.0.0.bl",
+        "sha256": "f8c4527711363d5a6367bea29e807d89c6e341531cfca184222524c289b61dbf",
+        "size": 304776
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "authors/gst378.png"
+      ]
+    },
+    {
+      "uid": "dbe76e93-a141-4b42-9bbe-13e5b6984e19",
+      "id": "bosscursor",
+      "name": "Boss Cursor",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-bosscursor-v1.0.0/bosscursor-1.0.0.bl",
+        "sha256": "790d99cbdb0980d8c403ef3f02efc5d3427b88bc9637fdded4ccc5f4f4202b2b",
+        "size": 102292
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "authors/animatak.png"
+      ]
+    },
+    {
+      "uid": "77b38952-98d6-4e18-a301-638d54c4bfd0",
+      "id": "townnpchome",
+      "name": "TownNPC Home",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-townnpchome-v1.0.0/townnpchome-1.0.0.bl",
+        "sha256": "7a85ddfac28b4c50b0ffd0e8cf37bd546c50e41751fb9fae6301dbb8ec74b9a6",
+        "size": 35297
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "authors/animatak.png"
+      ]
+    }
+  ]
+}
