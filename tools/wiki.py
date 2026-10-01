@@ -62,6 +62,9 @@ PAGES = {
     "docs/historico/DECISAO-ARQUITETURA.md": "Histórico-decisão-de-arquitetura",
     "docs/historico/AVALIACAO-PONTE-E-CRASH.md": "Histórico-avaliação-da-ponte-e-crash",
     "docs/historico/PONTE-OTIMIZACAO.md": "Histórico-otimização-da-ponte",
+    "docs/historico/FPS-45-TELA-90HZ.md": "Histórico-FPS-45-em-tela-de-90-Hz",
+    "docs/historico/FUNDO-SUMINDO-NUVEM-DE-MOD.md": "Histórico-fundo-sumindo-com-nuvem-de-mod",
+    "docs/historico/TRAVAMENTO-SAVE-DO-MAPA.md": "Histórico-travamento-no-save-do-mapa",
 }
 
 SIDEBAR = [
@@ -100,6 +103,9 @@ SIDEBAR = [
         ("Histórico-decisão-de-arquitetura", "Decisão de arquitetura"),
         ("Histórico-avaliação-da-ponte-e-crash", "Avaliação da ponte e crash"),
         ("Histórico-otimização-da-ponte", "Otimização da ponte"),
+        ("Histórico-FPS-45-em-tela-de-90-Hz", "45 fps em tela de 90 Hz"),
+        ("Histórico-fundo-sumindo-com-nuvem-de-mod", "Fundo sumindo com nuvem de mod"),
+        ("Histórico-travamento-no-save-do-mapa", "Travamento no save do mapa"),
     ]),
 ]
 
