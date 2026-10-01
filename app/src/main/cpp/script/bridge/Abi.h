@@ -64,6 +64,7 @@ struct ParamPlan {
     int regs = 1;              // quantos registradores ocupa
     bool structByRef = false;  // o registrador guarda um PONTEIRO pro struct
     bool opaque = false;       // ref/out: o ponteiro vai intacto; o JS ve um Ref (Ref.h)
+    bool optional = false;     // tem valor padrao no C# (isOptionalParam)
 };
 
 /** Retorno bruto: o campo que vale depende do Ret. */

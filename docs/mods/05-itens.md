@@ -57,9 +57,11 @@ flowchart TD
 | `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. |
 | `OnCraft(item, player, recipe)` | Ao criar este item no menu; `item` é o que o jogador vai receber, e ainda dá para mudar. |
 | `ModifyTooltipLines()` | Uma vez por idioma, com `this.TooltipLines` preenchido: mude as linhas. |
-| `ModifyTooltips(item, tooltips)` | Toda vez que o tooltip aparece (ver [Tooltip colorido](#tooltip-colorido)). |
+| `ModifyTooltips(item, tooltips)` | Toda vez que o tooltip aparece (ver [Tooltip](#tooltip)). |
+| `PreDrawTooltip(item, lines, x, y)`, `PostDrawTooltip(item, lines)` | O desenho do tooltip inteiro (ver [Desenhar o tooltip](#desenhar-o-tooltip)). |
+| `PreDrawTooltipLine(item, line, yOffset)`, `PostDrawTooltipLine(item, line)` | O desenho de cada linha. |
 | `CanUseItem(item, player)` | `false` impede o uso. |
-| `UseItem(item, player)` | A cada uso. |
+| `UseItem(item, player)` | A cada uso. Devolva `true` quando o item fez algo só aqui (invocar um chefe): conta como usado e o consumível é gasto. |
 | `HoldItem(item, player)` | Todo quadro com o item na mão. |
 | `UseStyle(...)`, `HoldStyle(...)` | Todo quadro de uso / de segurar, depois do estilo do jogo. |
 | `HoldoutOffset(item, player)` | Desloca a arma na mão: devolva `{ X, Y }` em pixels. |
@@ -404,23 +406,36 @@ No multijogador o prefixo viaja como o número de sempre, e cada lado aplica o
 `ModPrefix` sozinho: os dois precisam dos mesmos mods, na mesma ordem, como
 para item de mod (`tools/tests/mpprefix`).
 
-## Tooltip colorido
+## Tooltip
 
 `ModifyTooltips(item, tooltips)` roda **toda vez** que o tooltip do item
 aparece, com as linhas que o jogo montou: uma lista de `TooltipLine`, cada uma
-com `Name`, `Text`, `OverrideColor`, `IsModifier` e `IsModifierBad`. Mude à
-vontade: troque o texto, pinte a linha inteira com `OverrideColor`, insira
-linhas novas (`splice`) ou tire as que não quer.
+com `Mod`, `Name`, `Text`, `OverrideColor`, `IsModifier` e `IsModifierBad`.
+Mude à vontade: troque o texto, pinte a linha inteira com `OverrideColor`,
+insira linhas novas (`splice`) ou esconda as que não quer (`line.Hide()`).
 
-![O tooltip do ExampleTooltipItem, com o texto em arco-íris abaixo do nome](../imagens/tooltip-colorido.jpg)
+![O tooltip do ExampleTooltipItem: "Bunny Loader" em onda e arco-íris abaixo do nome, e a descrição em dourado](../imagens/tooltip-colorido.jpg)
 
 ```js
 ModifyTooltips(item, tooltips) {
-    tooltips.splice(1, 0, new TooltipLine('Aviso', 'Logo abaixo do nome'));
-    const aviso = tooltips.find((line) => line.Name === 'Aviso');
-    aviso.OverrideColor = Color.new(255, 80, 80);
+    tooltips.splice(1, 0, new TooltipLine(this.Mod, 'Aviso', 'Logo abaixo do nome'));
+    const descricao = tooltips.find((line) => line.Name === 'Tooltip0');
+    if (descricao) descricao.OverrideColor = Color.new(255, 215, 90);
+    const repulsao = tooltips.find((line) => line.Name === 'Knockback');
+    if (repulsao) repulsao.Hide();
 }
 ```
+
+As linhas do jogo têm `Mod` `'Terraria'` e os nomes do tModLoader: `ItemName`,
+`Favorite`, `NoSocial`, `Damage`, `CritChance`, `Speed`, `Knockback`,
+`FishingPower`, `Equipable`, `Vanity`, `Defense`, `PickPower`, `AxePower`,
+`HammerPower`, `TileBoost`, `HealLife`, `HealMana`, `UseMana`, `Placeable`,
+`Ammo`, `Consumable`, `Material`, `Tooltip0`, `Tooltip1`... (a descrição, uma
+por linha), `BuffTime`, `OneDropLogo`, `Expert`, `Master`, `PrefixDamage`,
+`PrefixSpeed`, `PrefixCritChance`... (as do prefixo), `SetBonus`,
+`JourneyResearch`, `Price` e `SpecialPrice`; e as do celular, `ReforgePrice` e
+`CraftingMaterials`. As linhas do `GetTooltipLines` de um prefixo de mod entram
+logo depois das do prefixo do jogo.
 
 Para pintar **trechos**, use a tag `[c/RRGGBB:texto]` dentro do texto.
 `TooltipLine.colorTag(texto, cor)` monta a tag de um `Color`, de `{ R, G, B }`
@@ -428,15 +443,8 @@ ou de `'#RRGGBB'`:
 
 ```js
 const vermelho = TooltipLine.colorTag('fogo', Color.new(255, 60, 30));
-tooltips.push(new TooltipLine('Elemento', 'Dano de ' + vermelho));
+tooltips.push(new TooltipLine(this.Mod, 'Elemento', 'Dano de ' + vermelho));
 ```
-
-O `ExampleTooltipItem` do Example Mod escreve "Bunny Loader!" com uma cor por
-letra, girando no arco-íris, logo abaixo do nome.
-
-Os nomes das linhas: `ItemName` (a 0), `Material`, `JourneyResearch`,
-`SetBonus`, `OneDropLogo`; as outras são `Line1`, `Line2`... pela posição em
-que o jogo as montou. Uma linha nova precisa de um nome seu. Até 30 linhas.
 
 O logo da One Drop, o dos ioiôs licenciados do jogo, é uma linha sem texto com
 `OneDropLogo = true`. O `ExampleYoyo` põe o dele no fim:
@@ -449,15 +457,101 @@ ModifyTooltips(item, tooltips) {
 }
 ```
 
-No guia de criação e na busca de itens, as linhas chegam sem cor: o texto das
-tags fica, as tags somem.
+### Desenhar o tooltip
 
-**Por trás**: o celular monta as linhas num método com seis parâmetros `ref`
-(`Main.MouseText_DrawItemTooltip_GetLinesInfo`), que o Bunny Loader hooka (ver
-o [guia 2](02-ref-e-out.md#um-caso-real-o-tooltip)). O celular desenha o texto
-cru, sem o leitor de tags do PC, então o Bunny Loader desenha a linha com tag
-trecho a trecho (um hook no `SpriteBatch.DrawString` com `whileIn`, só durante
-o tooltip), e a caixa do tooltip é medida sem as tags.
+Quatro métodos mexem no desenho, como no tModLoader:
+
+| Método | Quando |
+|---|---|
+| `PreDrawTooltip(item, lines, x, y)` | Antes das linhas, com a caixa já desenhada. `x` e `y` são `Ref`: mudar move as linhas. `false` não desenha nenhuma. |
+| `PreDrawTooltipLine(item, line, yOffset)` | Antes de cada linha. `false` não desenha a linha (o mod pode desenhá-la do jeito dele). |
+| `PostDrawTooltipLine(item, line)` | Depois de cada linha, também da que não foi desenhada. |
+| `PostDrawTooltip(item, lines)` | Depois de todas, com as `DrawableTooltipLine`. |
+
+A `line` é uma `DrawableTooltipLine`: tudo da `TooltipLine`, mais `Index`, `X`,
+`Y` (e `OriginalX`, `OriginalY`), `Color` (a cor final, com a transparência do
+tooltip), `Font`, `Rotation`, `Origin`, `BaseScale` e `Spread` (a distância da
+sombra). Mudar `X`, `Y`, `Rotation`, `BaseScale` ou `Spread` no
+`PreDrawTooltipLine` muda o desenho da linha; o texto e as linhas se mudam no
+`ModifyTooltips`.
+
+`yOffset` (um `Ref`, 0 no começo) é o espaço a mais **depois de cada linha**,
+daquela em diante, como no tModLoader: `yOffset.value = 6` numa linha afasta
+todas as seguintes; volte a 0 para parar. A caixa do tooltip é medida antes e
+não cresce com ele.
+
+No celular o tooltip tem uma escala própria (`Settings.Tooltips.Scale`, que o
+PC não tem). Ela já vem na `BaseScale`: desenhe com `line.BaseScale.X` e o
+texto sai do tamanho das outras linhas.
+
+O `ExampleTooltipItem` do Example Mod (exemplo do GST378) põe a linha "Bunny
+Loader" e a desenha no `PreDrawTooltipLine`, letra a letra, em onda; devolve
+`false` para o jogo não desenhá-la de novo. O miolo:
+
+```js
+PreDrawTooltipLine(item, line, yOffset) {
+    if (line.Name !== 'BunnyLoader') return true;
+
+    const draw = 'void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)';
+    const time = Terraria.Main.GlobalTimeWrappedHourly * 8;
+    const scale = line.BaseScale.X;
+    for (let i = 0; i < line.Text.length; i++) {
+        const x = line.X + line.Font['Vector2 MeasureString(string text)'](line.Text.substring(0, i)).X * scale;
+        const y = line.Y + Math.sin(time + i * 1.15) * 3;
+        Terraria.Main.spriteBatch[draw](line.Font, line.Text[i], Vector2.new(x, y), line.Color, line.Rotation, line.Origin, scale, 0, 0);
+    }
+    return false;
+}
+```
+
+(O do Example Mod desenha também as quatro sombras e uma cor por letra.)
+
+**Por trás**: com um desses métodos (ou o `ModifyTooltips`) num `ModItem`, num
+`GlobalItem` ou num prefixo de mod, ou com raridade de mod no item, o Bunny
+Loader desenha o tooltip daquele item em JS: um porte do
+`Main.MouseText_DrawItemTooltip` do celular, feito pelo GST378, com os hooks de
+mod no meio. Os outros itens usam o desenho do jogo, sem custo. O popup do guia
+de criação (`GUICraftGuidePopup`) mostra as mesmas linhas, sem cor. O celular
+desenha o texto cru, sem o leitor de tags do PC, então a linha com tag é
+desenhada trecho a trecho (um hook no `SpriteBatch.DrawString` com `whileIn`,
+só durante o tooltip), e a caixa é medida sem as tags. Se o porte quebrar numa
+versão nova do jogo, o log diz uma vez e o tooltip volta a ser o do jogo.
+
+## Raridade de mod
+
+Uma raridade nova é uma classe que estende `ModRarity`, em qualquer arquivo de
+`Content/`, como no tModLoader. O tipo sai no registro, depois das 12 do jogo;
+o item usa `ModContent.RarityType(Classe)`:
+
+```js
+export class ExampleModRarity extends ModRarity {
+    get RarityColor() {
+        return Color.new(200, 215, 230);
+    }
+
+    // Prefixo bom (offset 1 ou 2): o item sobe para a raridade de cima.
+    GetPrefixedRarity(offset, valueMult) {
+        if (offset > 0) return ModContent.RarityType(ExampleHigherTierModRarity);
+        return this.Type;
+    }
+}
+
+// no ModItem:
+SetDefaults() {
+    this.Item.rare = ModContent.RarityType(ExampleModRarity);
+}
+```
+
+`RarityColor` é lido a cada desenho e pode piscar (a
+`ExampleHigherTierModRarity` usa o `Main.DiscoR/G/B`). A cor vale no nome do
+tooltip, no nome do item no chão, no texto que sobe ao pegar o item e na
+etiqueta `[i:]` do chat (esta com a cor do carregamento).
+
+`GetPrefixedRarity(offset, valueMult)` decide a raridade quando um prefixo sobe
+(`offset` 1 ou 2) ou desce (-1 ou -2) o item; o padrão é ficar na mesma. O jogo
+prende toda raridade em 11 (roxo) ao pôr prefixo: sem isso, o item de mod
+perderia a raridade ao cair no chão com prefixo. `ModContent.GetModRarity(tipo)`
+devolve a instância.
 
 ## Vara de pesca
 

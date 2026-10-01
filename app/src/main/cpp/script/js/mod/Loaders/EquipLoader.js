@@ -79,11 +79,6 @@ class EquipLoader {
         return slot === undefined ? -1 : slot;
     }
 
-    static ItemTypeOf(kind, slot) {
-        const tex = EquipLoader.GetEquipTexture(kind, slot);
-        return tex && tex.Item ? tex.Item.Type : 0;
-    }
-
     static VanillaCount(kind) { return EquipLoader.#vanilla.get(kind) || 0; }
 
     // Os tipos de equipamento que ganharam textura de mod.
@@ -127,7 +122,7 @@ class EquipLoader {
         const root = bl.mod && bl.mod.path;
         if (!root) return null;
 
-        const file = bl.path.join(root, ModFiles.Texture(texture));
+        const file = bl.path.join(root, ModFiles.Texture(texture, root));
         return bl.file.exists(file) ? file : null;
     }
 

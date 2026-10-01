@@ -257,8 +257,8 @@ fun PixelCard(
 }
 
 /**
- * Botão de ação. Enquanto pressionado, afunda até a sombra, clareia e ganha a
- * borda amarela — o retorno que um botão de pixel dá.
+ * Botão de ação. Dentro de painéis, `shadow = false` mantém o botão no lugar.
+ * Enquanto pressionado, afunda o bisel, clareia e ganha a borda amarela.
  */
 @Composable
 fun PixelButton(
@@ -269,14 +269,14 @@ fun PixelButton(
     textColor: Color = Color.White,
     icon: Int? = null,
     fontSize: Int = Ts.Item,
+    shadow: Boolean = true,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    // Pressionado: o botão desce até a sombra e a sombra some. É o mesmo
-    // deslocamento, não uma animação — o olho lê como o botão afundando.
     Box(
         modifier
-            .then(if (pressed) Modifier.padding(start = 3.dp, top = 4.dp)
+            .then(if (!shadow) Modifier
+                  else if (pressed) Modifier.padding(start = 3.dp, top = 4.dp)
                   else Modifier.pixelShadow(3.dp, 4.dp))
             .pixelPanel(
                 fill = if (pressed) Bl.ButtonPressed else fill,

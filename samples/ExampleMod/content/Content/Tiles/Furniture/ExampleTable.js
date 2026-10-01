@@ -21,7 +21,7 @@ export class ExampleTable extends ModTile {
         TileObjectData.addTile(this.Type);
 
         TileID.Sets.RoomNeeds.CountsAsTable[this.Type] = true;
-        this.AddMapEntry(Color.new(200, 200, 200), 'Table');
+        this.AddMapEntry(Color.new(200, 200, 200), 'MapObject.Table');
     }
 
     NumDust(i, j, fail, num) {

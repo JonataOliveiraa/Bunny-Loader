@@ -32,8 +32,9 @@ export class ExampleHookProjectile extends ModProjectile {
         return undefined;
     }
 
-    PreDraw(proj) {
-        if (!this.chain) this.chain = bl.loadTexture('Assets/Textures/Projectiles/ExampleHookChain.png');
+    // A corrente própria; false: sem a do jogo por baixo.
+    PreDrawExtras(proj) {
+        if (!this.chain) this.chain = bl.loadTexture('Content/Projectiles/ExampleHookChain.png');
         const chain = this.chain;
         const frame = Rectangle.new(0, 0, chain.Width, chain.Height);
         const origin = Vector2.new(chain.Width / 2, chain.Height / 2);
@@ -50,6 +51,6 @@ export class ExampleHookProjectile extends ModProjectile {
             const color = LightAt(Math.floor(center.X / 16), Math.floor(center.Y / 16));
             EntitySpriteDraw(chain, Vector2.Subtract(center, screen), frame, color, rotation, origin, 1, SpriteEffects.None, 0);
         }
-        return true;
+        return false;
     }
 }

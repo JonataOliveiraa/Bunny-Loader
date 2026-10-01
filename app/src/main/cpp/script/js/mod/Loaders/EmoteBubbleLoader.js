@@ -16,7 +16,19 @@ class EmoteBubbleLoader {
     static #drawingMenu = null;       // o emote de mod que o menu está desenhando
     static #live = new Set();         // IDs das bolhas de mod (nascidas aqui ou desenhadas)
 
+    // Desligado por ora (2026-09-30): no celular do usuário os emotes de mod não
+    // funcionam. A classe é ignorada, sem tipo e sem nenhum hook.
+    static Enabled = false;
+    static #warned = false;
+
     static Add(inst) {
+        if (!EmoteBubbleLoader.Enabled) {
+            if (!EmoteBubbleLoader.#warned) {
+                EmoteBubbleLoader.#warned = true;
+                bl.log('emotes de mod desligados por ora: ' + inst.constructor.name + ' e os outros ficam de fora');
+            }
+            return;
+        }
         inst.Type = EmoteBubbleLoader.VanillaCount + EmoteBubbleLoader.ByType.size;
         EmoteBubbleLoader.ByType.set(inst.Type, inst);
 

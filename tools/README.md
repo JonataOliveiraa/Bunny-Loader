@@ -43,6 +43,14 @@ tools/bench/run.sh saida.txt samples/ExampleMod tools/tests/boss
 BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outro emulador
 ```
 
+[`bench/repeat.sh`](bench/repeat.sh) repete uma rodada até o jogo congelar, para
+travamento intermitente: vigia o `FIM` de um teste no logcat e guarda o logcat
+da rodada que travou. Apague antes os pacotes de teste que ficaram no aparelho.
+
+```bash
+tools/bench/repeat.sh 12 modfurniture samples/ExampleMod tools/tests/modfurniture tools/tests/prefix
+```
+
 - Pré-condições: o APK instalado, um mundo e o personagem de teste ("Bench")
   primeiro da lista.
 - **Um teste por vez.** O `run.sh` não tira os mods de rodadas anteriores, e
@@ -63,6 +71,7 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 |---|---|---|
 | **A ponte** | | |
 | `nullable` | Tipos, structs, arrays, `Nullable<T>`, hooks com struct. | |
+| `optarg` | Método solto de um objeto (`const f = Main.spriteBatch['...']; f()`) chama no dono; `null` num struct com valor padrão vira o `default(T)` (chamada e `original()`), struct obrigatório e número recusam. | |
 | `wrappers` | Objeto segurado só pelo JS sobrevive ao coletor; identidade (`===`). | |
 | `structindex` | `proj.ai[0]`, `localAI.get_Item`, `oldPos[i].X`, `hideMisc[i]` e os limites; uma linha de log de 6 KB inteira no arquivo. | |
 | `extrafields` | `bl.defineField`, `bl.defineMethod`. | |
@@ -77,10 +86,18 @@ BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outr
 | `moditems` | As tabelas de item de mod. | |
 | `modsave` | Save de item de mod com o mod ligado e desligado (rodar mais de uma vez). | |
 | `projectiles`, `npcs`, `buffs`, `tiles` | Cada tipo de conteúdo de mod. | |
+| `trailcache` | Rastro de projétil de mod (`TrailingMode` 0 e 2, `TrailCacheLength`): `oldPos`, `oldRot` e `oldSpriteDirection` com o tamanho pedido e preenchidos, ao lado de projéteis do jogo. | |
 | `tilesave` | Três rodadas: com o mod, sem ele e com ele de novo. | |
 | `tileautosave` | Com o Example Mod: dispara a gravação automática (`WorldGen.saveAndPlay`, numa thread) e confere a cada quadro que os tiles de mod não somem enquanto ela grava. Rodar junto com o `tilesave`. | |
 | `bossbag` | Com o Example Mod: a `ExampleBossBag` é abrível, abrir pelo `ItemSlot.TryOpenContainer` gasta uma e dá o `ItemLoot` (ExampleItem e as moedas do chefe), e as regras do chefe têm o `NotExpert` e a bolsa. | |
 | `modmount` | `ModMount`: o tipo depois dos do jogo (`MountID.Count`, `Mount.mounts` e `MountID.Sets` crescidos), a textura `_Back`, e os hooks numa montaria do teste (`SetMount`/`Dismount` com `skipDust` e o dado por jogador, `UpdateEffects`, `UpdateFrame`, `JumpHeight`, `JumpSpeed`, `Draw`). Com o Example Mod: o carro (duas camadas, o buff, os balões) e o carrinho de mina (`Cart`, `SetAsMinecart`, os `delegations` copiados, montado pelo buff via `BuffID.Sets.MountType`) e o botão de montaria do toque (`Player.QuickMount`, pelo `miscEquips[3]`). No fim deixa o jogador montado no carro, para olhar na tela. | |
+| `hookchain` | Com o Example Mod (`samples/ExampleMod`): o gancho de exemplo no espaço de gancho, lançado a cada 90 quadros para o céu; o `PreDrawExtras` chamado. Na tela: só a corrente do mod, sem a do jogo por baixo. Do quadro 400 em diante, `PreDrawExtras` true e `PreDraw` false: a corrente do jogo sem a cabeça do gancho, e o `PostDraw` roda. | sim |
+| `frametime` | Tempo de quadro: o `DoUpdate` e o `DoDraw` do jogo e o intervalo entre quadros, com zoom 1, 2 e 0,75, e os hooks que mais custam (`bl.hookStats`: chamadas e tempo de JS por quadro), as coletas do QuickJS e o custo de uma coleta. O resumo sai também no chat do jogo: empacotado como `.bl` (`out/frametime.bl`), mede no celular sem adb. Para comparar o app com e sem mods, e versões dele (ver `bisect/`). Rodar com `BL_KEEP_GRAVES=1` e sem outros pacotes no aparelho. | não |
+| `bgreset` | Com o Example Mod: uma cena sempre ativa põe um fundo de superfície de mod (texturas do exemplo) e loga, a cada segundo, o estilo, os arrays de textura e de transparência e o `LocalUserGameState`. Para comparar antes e depois de um evento (segundo plano, troca de usuário). | não |
+| `tooltipdraw` | O tooltip de mod e a raridade de mod na tela: põe um item de teste (raridade e prefixo de mod) no `HoverItem` e pede o `MouseText` por uns quadros; confere os nomes das linhas do tModLoader, o `ModifyTooltips` (linha nova, `Hide`, `OverrideColor`), os `Pre/PostDrawTooltip(Line)`, o `yOffset`, a cor do nome e o `GetPrefixedRarity`. Com o Example Mod, mostra depois o `ExampleTooltipItem`; o tooltip fica uns 15 s na tela para uma captura. | não |
+| `tilename` | Com o Example Mod: a estação de trabalho de mod no guia de criação, com o nome (`Recipe.GetRequiredTileName`, o do mapa, e o texto do `GUICraftGuidePopup.UpdateText` com a receita da `ExampleLamp`) e o ícone (`TileID.Sets.CraftingStationItemId`, tabela só do celular). | não |
+| `bgwatch` | Diagnóstico, não mexe em nada: loga o estado do fundo de superfície a cada 10 s e sempre que muda (estilo, soma das transparências das camadas — zero é a tela só com o céu —, arrays, `LocalUserGameState`, cena). Feito para rodar no celular do usuário com o logcat capturando. | não |
+| `cloudforce` | Diagnóstico: 5 s depois de entrar no mundo, e a cada 30 s, metade das nuvens vira o primeiro tipo de nuvem de mod, e loga se a máscara do horizonte (`TextureMaskManager.CloudMasks`) desse tipo existe. Para o desenho do horizonte do celular, que quebrava o fundo inteiro (ver `docs/historico/FUNDO-SUMINDO-NUVEM-DE-MOD.md`). | não |
 | `soltos` | A etapa 13, com conteúdo próprio e o do Example Mod: `ModCommand` pelo processador do chat (argumentos, apelido, `UsageException`, o que não é de mod segue, o `/help`; `/heal` e `/addtime` do exemplo), `ModHair` (tipo e textura, a lista da criação de personagem, o save pelo nome com 0 no arquivo do jogo), `ModCloud` (comum no `addCloud` com `OnSpawn`, peso 0, rara no `RollRareCloud`), `ModEmoteBubble` (`NewBubble` com `OnSpawn`, o menu por categoria, o desenho da bolha), `ModAchievement` (registro com nome, condição completa com `OnCompleted`, `OnNPCKilled`; o ManyWormsKilled do exemplo) e o peixe de missão (na lista, a fala do Pescador, fora do modo difícil não sorteia, `CatchFish` de ponta-cabeça). **Salva o personagem** (o teste do cabelo). | sim |
 | `tileframes` | Duas rodadas: o quadro de um 3x3 de mod e de um de pedra ao reabrir o mundo. | |
 | `localization` | `ModLocalization.Translate` devolve o texto (chave funda, queda para o inglês), `Language.GetText('Mods.<id>.…')` sem passo extra, `Key`/`GetText`/`Exists`, os `{$chave}` (inteira, relativa, do jogo, `@n`, circular, no `Register`), as categorias do jogo (`RandomFromCategory`), a variante `Chave$Variante` e a troca de idioma (ida e volta, no mesmo `LocalizedText`; com o Example Mod, também o nome de NPC e de item). | opcional |
@@ -135,5 +152,6 @@ instâncias do MuMu: uma hospeda, a outra entra, sem inimigos novos e de dia.
 | Pasta | O que é |
 |---|---|
 | [`bench/`](bench) | O mod de benchmark da ponte JS → IL2CPP (cada operação 20 mil vezes, melhor de 7) e o `compare.py`, que compara rodadas. Os números estão no [guia de custo](../docs/mods/03-custo-e-desempenho.md) e no [histórico da otimização](../docs/historico/PONTE-OTIMIZACAO.md). |
+| [`bisect/`](bisect) | `buildat.sh <commit>` compila o APK de um commit antigo numa worktree fora do repositório (QuickJS, assets e `.so` do jogo ligados por junção e desfeitos antes de apagar) e deixa em `out/bisect/app-<commit>.apk`: a busca binária de uma regressão. Uma compilação de cada vez. Cuidado: o MuMu só tem tela de 60 Hz, e outra instância ligada no PC distorce a medição. |
 | [`crash-trials/`](crash-trials) | Cria mundos em série no MuMu, reiniciando o app a cada tentativa, e conta crashes ([histórico](../docs/historico/AVALIACAO-PONTE-E-CRASH.md)). |
 | [`disasm/`](disasm) | Desassembly anotado da `libil2cpp.so` (`prep.sh` gera os caches a partir de `refs/`). Limites compilados: `scan_limits.py` (`cmp #N`), `scan_loops.py` (fim de laço em bytes), `scan_movs.py` (`new T[N]`) e `scan_halved.py` (o `0 < x < N` feito pela metade, do drop). Ver [conteúdo por dentro](../docs/nucleo/conteudo.md#os-limites-compilados). |

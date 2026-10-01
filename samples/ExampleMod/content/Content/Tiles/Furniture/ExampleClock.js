@@ -23,7 +23,7 @@ export class ExampleClock extends ModTile {
         TileObjectData.newTile.CoordinateHeights = [16, 16, 16, 16, 16];
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(200, 200, 200), 'Grandfather Clock');
+        this.AddMapEntry(Color.new(200, 200, 200), 'ItemName.GrandfatherClock');
     }
 
     RightClick(x, y) {

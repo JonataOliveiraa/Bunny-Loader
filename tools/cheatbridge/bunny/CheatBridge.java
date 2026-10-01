@@ -15,9 +15,15 @@ import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.text.TextPaint;
+import android.text.Layout;
+import android.text.SpannableStringBuilder;
+import android.text.Spanned;
+import android.text.style.TypefaceSpan;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
@@ -93,7 +99,7 @@ public class CheatBridge {
     public static native boolean nInWorld();
     /** bl::runtime::setTimeOfDay — 0 amanhecer, 1 meio-dia, 2 anoitecer, 3 meia-noite. */
     public static native void nSetTimeOfDay(int which);
-    /** {hardmode 0/1, modo de jogo 0..3 (3 = Jornada)}; -1 fora do mundo. */
+    /** {hardmode, modo, minuto 0..1439, chuva 0..100, vento 0..100}; -1 fora do mundo. */
     public static native int[] nWorldState();
     /** ItemID.Count: dali para cima, o id e de item de mod. */
     public static native int nVanillaItemCount();
@@ -743,8 +749,8 @@ public class CheatBridge {
         "Dano extra", "Super velocidade", "Super pulo", "Parar o tempo", "Imortal",
         "Mana infinita", "Pulo infinito", "Mineração turbo", "Visão total",
         "Voar", "Raio-X", "Lacaios infinitos", "Chuva", "Vento", "Bestiário",
-        "Sem inimigos", "Teleporte no mapa", "Limpar inventário", "Revelar mapa",
-        "Hardmode", "Dificuldade", "Reviver rápido",
+        "Inimigos", "Teleporte no mapa", "Limpar inventário", "Revelar mapa",
+        "Hardmode", "Dificuldade", "Reviver rápido", "Sumir com inimigos",
     };
     private static final String[] POWER_DESC = {
         "Toda arma bate mais forte",
@@ -769,17 +775,19 @@ public class CheatBridge {
         "Como vencer a Parede de Carne",
         "Clássico, Expert, Mestre, Jornada",
         "Morreu, volta na hora",
+        "Os que já existem somem",
     };
     /** Rotulo de cada nivel. Um so = liga/desliga; nenhum = acao (ver isAction). */
     private static final String[][] POWER_LEVELS = {
         {"x2", "x5", "x10"}, {"x2", "x3"}, {"x2", "x3"},
         {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"}, {"Ligado"},
         {"Normal", "Rápido"}, {"Ligado"}, {"Ligado"},
-        {"Garoa", "Forte", "Tempestade"}, {"Calmo", "Brisa", "Ventania"},
+        {"Ligado"}, {"Ligado"},     // chuva e vento: barras (isSlider)
         {},
-        {"Novos", "Todos"}, {"Ligado"}, {}, {},
+        {"Ligado"}, {"Ligado"}, {}, {},   // inimigos: barra
         {"Ligado"}, {"Clássico", "Expert", "Mestre", "Jornada"},
         {"Ligado"},
+        {},
     };
     /** Sprite de item que representa cada poder. */
     private static final int[] POWER_ICON = {
@@ -805,6 +813,7 @@ public class CheatBridge {
         367,    // Martelo Pwn
         3335,   // (trocado pelo icone do modo: GAME_MODE_ICON)
         1291,   // Fruta da Vida
+        0,      // (acao da barra de inimigos, sem cartao)
     };
 
     // Ids que o Java precisa conhecer, na ordem de bl::runtime::Power.
@@ -814,18 +823,33 @@ public class CheatBridge {
     private static final int P_TIME_STOP = 3;
     private static final int P_RAIN = 12;
     private static final int P_WIND = 13;
+    private static final int P_CLEAR_ENEMIES = 22;
 
     /**
-     * A grade em duas partes, na ordem mostrada. Chuva, vento e tempo parado
-     * nao estao aqui: ficam na coluna do X, junto da hora do dia.
+     * Poder que e uma BARRA da coluna do X (chuva, vento, inimigos): o nivel e
+     * a posicao 0..100 mais um, e 0 devolve ao jogo (Powers.h, kSliderLevels).
+     */
+    private static final int SLIDER_LEVELS = 101;
+
+    private static boolean isSlider(int id) {
+        return id == P_RAIN || id == P_WIND || id == P_NO_SPAWNS;
+    }
+
+    private static int maxLevel(int id) {
+        return isSlider(id) ? SLIDER_LEVELS : POWER_LEVELS[id].length;
+    }
+
+    /**
+     * A grade em duas partes, na ordem mostrada. Chuva, vento, inimigos e tempo
+     * parado nao estao aqui: ficam na coluna do X, junto da hora do dia.
      */
     private static final String[] POWER_GROUP_NAME = {"Jogador", "Mundo"};
     private static final int[][] POWER_GROUPS = {
         // Imortal, Reviver rapido, Dano, Velocidade, Super pulo, Pulo infinito,
         // Voar, Mana, Lacaios, Mineracao, Visao total, Raio-X, Teleporte, Limpar
         {4, 21, 0, 1, 2, 6, 9, 5, 11, 7, 8, 10, 16, 17},
-        // Sem inimigos, Revelar mapa, Bestiario, Hardmode, Dificuldade
-        {15, 18, 14, 19, 20},
+        // Revelar mapa, Bestiario, Hardmode, Dificuldade
+        {18, 14, 19, 20},
     };
 
     /** Poder com icone de interface do jogo em vez de sprite de item. */
@@ -898,13 +922,18 @@ public class CheatBridge {
         return !isAction(id) && !isWorldState(id);
     }
 
+    /** A barra guarda em "s": um "p" de antes era um nivel de 1 a 3, nao uma posicao. */
+    private static String prefKey(int id) {
+        return (isSlider(id) ? "s" : "p") + id;
+    }
+
     private static void restorePowers(Activity act) {
         android.content.SharedPreferences p = act.getSharedPreferences(POWER_PREFS, Activity.MODE_PRIVATE);
         int n = 0;
         for (int id = 0; id < sPowerLevels.length; id++) {
             if (!isSaved(id)) continue;
-            int lv = p.getInt("p" + id, 0);
-            if (lv < 0 || lv > POWER_LEVELS[id].length) lv = 0;
+            int lv = p.getInt(prefKey(id), 0);
+            if (lv < 0 || lv > maxLevel(id)) lv = 0;
             sPowerLevels[id] = lv;
             if (lv > 0) { nSetPower(id, lv); n++; }
         }
@@ -915,7 +944,7 @@ public class CheatBridge {
         android.content.SharedPreferences.Editor e =
             act.getSharedPreferences(POWER_PREFS, Activity.MODE_PRIVATE).edit();
         for (int id = 0; id < sPowerLevels.length; id++) {
-            if (isSaved(id)) e.putInt("p" + id, sPowerLevels[id]);
+            if (isSaved(id)) e.putInt(prefKey(id), sPowerLevels[id]);
         }
         e.apply();
     }
@@ -993,7 +1022,7 @@ public class CheatBridge {
 
     /** Barra de quantidade: encolhe antes de espremer a busca. */
     private static float barUnits(Activity a) {
-        return contentUnits(a) < 620 ? 90 : 140;
+        return Math.max(90f, Math.min(140f, contentUnits(a) - 480f));
     }
 
     /**
@@ -1063,26 +1092,44 @@ public class CheatBridge {
             setIncludeFontPadding(true);
         }
 
+        @Override public void setText(CharSequence text, BufferType type) {
+            // Andy tem os acentos, mas nao as setas. O Layout preserva a fonte
+            // de apoio destes glifos inclusive quando o valor da barra muda.
+            SpannableStringBuilder styled = null;
+            if (text != null) {
+                for (int i = 0; i < text.length(); i++) {
+                    char ch = text.charAt(i);
+                    if ((ch >= '\u2190' && ch <= '\u21FF') || ch == '\u2212') {
+                        if (styled == null) styled = new SpannableStringBuilder(text);
+                        styled.setSpan(new TypefaceSpan("sans-serif"), i, i + 1,
+                                       Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
+            }
+            super.setText(styled != null ? styled : text, type);
+        }
+
         @Override protected void onDraw(Canvas c) {
-            if (getLineCount() != 1) { super.onDraw(c); return; }
-            final String txt = getText().toString();
+            final Layout layout = getLayout();
+            if (layout == null || getLineCount() != 1) { super.onDraw(c); return; }
             final TextPaint pt = getPaint();
             final int color = getCurrentTextColor();
-            // Pelo layout, e nao pelo padding: o layout ja sabe a gravidade, e
-            // um rotulo alinhado a direita saia colado a esquerda.
-            final float x = getCompoundPaddingLeft()
-                + (getLayout() != null ? getLayout().getLineLeft(0) : 0);
-            final float y = getBaseline();
-
-            pt.setStyle(Paint.Style.STROKE);
-            pt.setStrokeWidth(strokeWidth);
-            pt.setStrokeJoin(Paint.Join.ROUND);
-            pt.setColor(0xFF000000);
-            c.drawText(txt, x, y, pt);
-
-            pt.setStyle(Paint.Style.FILL);
-            pt.setColor(color);
-            c.drawText(txt, x, y, pt);
+            int saved = c.save();
+            c.translate(getCompoundPaddingLeft(), getBaseline() - layout.getLineBaseline(0));
+            try {
+                pt.setStyle(Paint.Style.STROKE);
+                pt.setStrokeWidth(strokeWidth);
+                pt.setStrokeJoin(Paint.Join.ROUND);
+                pt.setColor(0xFF000000);
+                layout.draw(c);
+                pt.setStyle(Paint.Style.FILL);
+                pt.setColor(color);
+                layout.draw(c);
+            } finally {
+                pt.setStyle(Paint.Style.FILL);
+                pt.setColor(color);
+                c.restoreToCount(saved);
+            }
         }
     }
 
@@ -1595,8 +1642,10 @@ public class CheatBridge {
 
     private static void toggleMenu(Activity act) {
         if (sOverlay != null) {
+            closeSlider();
             sOverlay.setVisibility(
                 sOverlay.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
+            if (sOverlay.getVisibility() == View.VISIBLE && sRailPaint != null) sRailPaint.run();
             return;
         }
         sOverlay = buildMenu(act);
@@ -1731,14 +1780,15 @@ public class CheatBridge {
     private static final String[] TIME_NAME = {"Amanhecer", "Meio-dia", "Anoitecer", "Meia-noite"};
     /** A ultima hora pedida; -1 = nenhuma ainda (o botao mostra o amanhecer). */
     private static int sTimeIndex = -1;
-    /** Os poderes da coluna, de cima para baixo. */
-    private static final int[] RAIL_POWERS = {P_RAIN, P_WIND, P_TIME_STOP};
     /** Repinta os botoes da coluna: o "Desligar tudo" da grade tambem mexe neles. */
     private static Runnable sRailPaint;
     /** O "N ligados" da grade, se ela estiver na tela. */
     private static TextView sActiveLabel;
 
-    /** Fundo de botao de acao; ligado, verde como o cartao de poder. */
+    /**
+     * Fundo de todo botao (a coluna do X, os cartoes de poder, as pastas, o
+     * "Desligar tudo"): um tom acima do painel, com borda clara; ligado, verde.
+     */
     static GradientDrawable actionBackground(Activity a, boolean on) {
         return panel(a, on ? GRASS : BUTTON, on ? GRASS_LIT : BUTTON_EDGE);
     }
@@ -1754,6 +1804,12 @@ public class CheatBridge {
         return b;
     }
 
+    /** O icone de um poder: o de interface do jogo, se tiver, ou o do item. */
+    private static Bitmap powerIcon(Activity act, int id) {
+        String res = powerRes(id);
+        return res != null ? sprite(act, res) : spriteJa(act, SPR_ITEM, POWER_ICON[id]);
+    }
+
     private static View rail(final Activity act) {
         LinearLayout col = new LinearLayout(act);
         col.setOrientation(LinearLayout.VERTICAL);
@@ -1764,6 +1820,7 @@ public class CheatBridge {
         close.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         close.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
+                closeSlider();
                 if (sOverlay != null) sOverlay.setVisibility(View.GONE);
             }
         });
@@ -1771,48 +1828,520 @@ public class CheatBridge {
         clp.bottomMargin = px(act, 4);
         col.addView(close, clp);
 
-        // A hora num botao so: cada toque vai para a proxima, e o icone mostra
-        // a que ficou. Pisca de verde; fora do mundo, avisa.
+        // A hora: a barra do dia inteiro. O icone mostra o pedaco do dia que
+        // ficou; fora do mundo, avisa.
         final ImageView time = railButton(act, col,
             sprite(act, TIME_ICON[sTimeIndex < 0 ? 0 : sTimeIndex]), "Hora do dia");
         time.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (!nInWorld()) { toast(act, "Entre num mundo primeiro"); return; }
-                sTimeIndex = (sTimeIndex + 1) % TIME_ICON.length;
-                nSetTimeOfDay(sTimeIndex);
-                setBitmap(act, time, sprite(act, TIME_ICON[sTimeIndex]));
-                time.setBackground(actionBackground(act, true));
-                time.postDelayed(new Runnable() {
-                    @Override public void run() { time.setBackground(actionBackground(act, false)); }
-                }, TIME_FLASH_MS);
+                showSlider(act, time, timeSlider(act, time));
             }
         });
 
-        // Chuva, vento e tempo parado: cada toque avanca o nivel, como o cartao.
-        final ImageView[] views = new ImageView[RAIL_POWERS.length];
-        for (int k = 0; k < RAIL_POWERS.length; k++) {
-            final int id = RAIL_POWERS[k];
-            views[k] = railButton(act, col, spriteJa(act, SPR_ITEM, POWER_ICON[id]), POWER_NAME[id]);
-            views[k].setOnClickListener(new View.OnClickListener() {
+        // Chuva, vento e inimigos abrem a barra deles; o tempo parado so liga
+        // e desliga, como o cartao.
+        final int[] ids = {P_RAIN, P_WIND, P_NO_SPAWNS, P_TIME_STOP};
+        final ImageView[] views = new ImageView[ids.length];
+        for (int k = 0; k < ids.length; k++) {
+            final int id = ids[k];
+            final ImageView b = railButton(act, col, powerIcon(act, id), POWER_NAME[id]);
+            views[k] = b;
+            b.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
-                    int lv = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
-                    sPowerLevels[id] = lv;
-                    nSetPower(id, lv);
+                    if (isSlider(id)) {
+                        if (!nInWorld()) { toast(act, "Entre num mundo primeiro"); return; }
+                        showSlider(act, b, powerSlider(act, id));
+                        return;
+                    }
+                    setRailPower(id, sPowerLevels[id] > 0 ? 0 : 1);
                     savePowers(act);
-                    sRailPaint.run();
-                    if (sActiveLabel != null) updateActiveCount(sActiveLabel);
                 }
             });
         }
         sRailPaint = new Runnable() {
             @Override public void run() {
+                int[] world = nWorldState();
+                if (world != null && world.length > 2 && world[2] >= 0) {
+                    int index = timeIndexOf(world[2]);
+                    if (index != sTimeIndex) {
+                        sTimeIndex = index;
+                        setBitmap(act, time, sprite(act, TIME_ICON[index]));
+                    }
+                }
                 for (int k = 0; k < views.length; k++) {
-                    views[k].setBackground(actionBackground(act, sPowerLevels[RAIL_POWERS[k]] > 0));
+                    views[k].setBackground(actionBackground(act, sPowerLevels[ids[k]] > 0));
                 }
             }
         };
         sRailPaint.run();
         return col;
+    }
+
+    /** Muda um poder da coluna e repinta quem mostra o estado dele. */
+    private static void setRailPower(int id, int level) {
+        sPowerLevels[id] = level;
+        nSetPower(id, level);
+        if (sRailPaint != null) sRailPaint.run();
+        if (sActiveLabel != null) updateActiveCount(sActiveLabel);
+    }
+
+    // ------------------------------ barras da coluna ------------------------------
+    //
+    // Tocar na hora, na chuva, no vento ou nos inimigos abre, ao lado do botao,
+    // um painel com uma barra de degrade: arrastar muda o mundo na hora. O
+    // painel fecha com um toque fora dele.
+
+    /** Minuto do relogio (0..1439) -> pedido de hora do nativo (Powers.h). */
+    private static final int CLOCK_REQUEST = 100;
+    /** Durante o arrasto, no maximo um pedido a cada isto: no multijogador, cada um vai ao servidor. */
+    private static final long SLIDER_SEND_MS = 120;
+    private static long sSliderSent;
+    /** O painel aberto agora; null = nenhum. */
+    private static View sSliderLayer;
+
+    /** Arrastando: so passa um pedido de vez em quando. Soltou: sempre. */
+    private static boolean sendNow(boolean done) {
+        long now = SystemClock.uptimeMillis();
+        if (!done && now - sSliderSent < SLIDER_SEND_MS) return false;
+        sSliderSent = now;
+        return true;
+    }
+
+    /** O que uma barra mostra e faz. */
+    private abstract static class SliderSpec {
+        String title;
+        Bitmap icon;
+        int max = 100;
+        int initial;
+        /** O degrade: a cor em cada ponto (0..1 da barra). */
+        int[] colors;
+        float[] stops;
+        /** Marcas finas na barra (valores), como o meio-dia ou o x1. */
+        int[] ticks = {};
+        String[] captions = {};
+
+        abstract String label(int v);
+        /** `done`: o dedo saiu (ou foi um botao), hora de mandar o ultimo e salvar. */
+        abstract void apply(int v, boolean done);
+        /** Desenho na alca (o sol, a lua); null = alca lisa. */
+        Bitmap handleIcon(int v) { return null; }
+        /** Os botoes embaixo da barra. */
+        void addButtons(Activity act, LinearLayout row, GradientRange bar) { }
+    }
+
+    /**
+     * A barra das barras da coluna: o sulco com o degrade do que ela muda, as
+     * marcas e a alca branca do Range, que pode levar um desenho (o sol, a lua).
+     */
+    private static final class GradientRange extends View {
+        interface Listener { void changed(int value, boolean done); }
+
+        private final SliderSpec spec;
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final Rect src = new Rect();
+        private final Rect dst = new Rect();
+        private final float border, groove, handleW, handleH;
+        private LinearGradient shader;
+        private float shaderX0 = -1, shaderX1 = -1;
+        private int value;
+        Listener listener;
+
+        GradientRange(Activity a, SliderSpec spec) {
+            super(a);
+            this.spec = spec;
+            this.value = Math.max(0, Math.min(spec.max, spec.initial));
+            this.border = px(a, 2);
+            this.groove = px(a, 14);
+            boolean icon = spec.handleIcon(value) != null;
+            this.handleW = px(a, icon ? 26 : 14);
+            this.handleH = px(a, icon ? 30 : 26);
+            paint.setFilterBitmap(false);   // pixel art: sem borrar
+        }
+
+        int value() { return value; }
+
+        /** Muda pela mao de um botao: avisa como um toque solto. */
+        void set(int v) {
+            value = Math.max(0, Math.min(spec.max, v));
+            invalidate();
+            if (listener != null) listener.changed(value, true);
+        }
+
+        private float left() { return handleW / 2f; }
+        private float right() { return getWidth() - handleW / 2f; }
+        private float xOf(int v) { return left() + (right() - left()) * v / (float) spec.max; }
+
+        @Override protected void onMeasure(int wSpec, int hSpec) {
+            Activity a = (Activity) getContext();
+            setMeasuredDimension(resolveSize(px(a, 330), wSpec),
+                                 resolveSize((int) (handleH + px(a, 4)), hSpec));
+        }
+
+        @Override protected void onDraw(Canvas c) {
+            final float mid = getHeight() / 2f;
+            final float x0 = left(), x1 = right();
+            final float top = mid - groove / 2f, base = mid + groove / 2f;
+
+            paint.setShader(null);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(OUTLINE);
+            c.drawRect(x0 - border, top - border, x1 + border, base + border, paint);
+            if (shader == null || shaderX0 != x0 || shaderX1 != x1) {
+                shader = new LinearGradient(x0, 0, x1, 0, spec.colors, spec.stops, Shader.TileMode.CLAMP);
+                shaderX0 = x0;
+                shaderX1 = x1;
+            }
+            paint.setShader(shader);
+            c.drawRect(x0, top, x1, base, paint);
+            paint.setShader(null);
+            paint.setColor(0x30FFFFFF);
+            c.drawRect(x0, top, x1, mid, paint);
+            paint.setColor(0x30131625);
+            c.drawRect(x0, base - border, x1, base, paint);
+
+            paint.setColor(0x80131625);
+            for (int t : spec.ticks) {
+                float x = xOf(t);
+                c.drawRect(x - border / 2f, top, x + border / 2f, base, paint);
+            }
+
+            // A alca do Range: branca, mais alta que o sulco, meia sombra embaixo.
+            final float cx = xOf(value);
+            final float ax = cx - handleW / 2f, ay = mid - handleH / 2f;
+            paint.setColor(OUTLINE);
+            c.drawRect(ax, ay, ax + handleW, ay + handleH, paint);
+            paint.setColor(0xFFFFFFFF);
+            c.drawRect(ax + border, ay + border, ax + handleW - border, ay + handleH - border, paint);
+            paint.setColor(0xFFB9C0D4);
+            c.drawRect(ax + border, mid + handleH / 6f, ax + handleW - border, ay + handleH - border, paint);
+
+            Bitmap bmp = spec.handleIcon(value);
+            if (bmp != null) {
+                float side = handleW - border * 4;
+                src.set(0, 0, bmp.getWidth(), bmp.getHeight());
+                dst.set((int) (cx - side / 2f), (int) (mid - side / 2f),
+                        (int) (cx + side / 2f), (int) (mid + side / 2f));
+                c.drawBitmap(bmp, src, dst, paint);
+            }
+        }
+
+        @Override public boolean onTouchEvent(MotionEvent e) {
+            switch (e.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                case MotionEvent.ACTION_MOVE:
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL: {
+                    float t = (e.getX() - left()) / Math.max(1f, right() - left());
+                    if (t < 0) t = 0; else if (t > 1) t = 1;
+                    int next = e.getActionMasked() == MotionEvent.ACTION_CANCEL
+                        ? value : Math.round(t * spec.max);
+                    boolean done = e.getActionMasked() == MotionEvent.ACTION_UP ||
+                                   e.getActionMasked() == MotionEvent.ACTION_CANCEL;
+                    if (next != value || done || e.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                        value = next;
+                        invalidate();
+                        if (listener != null) listener.changed(value, done);
+                    }
+                    getParent().requestDisallowInterceptTouchEvent(!done);
+                    if (e.getActionMasked() == MotionEvent.ACTION_UP) performClick();
+                    return true;
+                }
+                default:
+                    return super.onTouchEvent(e);
+            }
+        }
+    }
+
+    private static void closeSlider() {
+        if (sSliderLayer == null) return;
+        if (sSliderLayer.getParent() instanceof ViewGroup) {
+            ((ViewGroup) sSliderLayer.getParent()).removeView(sSliderLayer);
+        }
+        sSliderLayer = null;
+    }
+
+    /** O painel da barra, a esquerda do botao que o abriu, na altura dele. */
+    private static void showSlider(final Activity act, View anchor, final SliderSpec spec) {
+        if (!(sOverlay instanceof FrameLayout)) return;
+        final FrameLayout root = (FrameLayout) sOverlay;
+        closeSlider();
+        sSliderSent = 0;
+
+        // A camada pega o toque fora do painel e fecha.
+        FrameLayout layer = new FrameLayout(act);
+        layer.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) { closeSlider(); }
+        });
+
+        LinearLayout box = new LinearLayout(act);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setBackground(panelBig(act, PANEL, OUTLINE));
+        box.setPadding(px(act, 12), px(act, 10), px(act, 12), px(act, 10));
+        box.setClickable(true);   // o toque dentro nao fecha
+
+        LinearLayout head = new LinearLayout(act);
+        head.setOrientation(LinearLayout.HORIZONTAL);
+        head.setGravity(Gravity.CENTER_VERTICAL);
+        head.addView(icon(act, spec.icon, 26));
+        TextView title = text(act, spec.title, 15, INK);
+        title.setPadding(px(act, 8), 0, 0, 0);
+        head.addView(title, new LinearLayout.LayoutParams(0,
+            LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        box.addView(head, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        final TextView value = text(act, "", 13, INK);
+        value.setPadding(0, px(act, 6), 0, 0);
+        box.addView(value);
+
+        final GradientRange bar = new GradientRange(act, spec);
+        value.setText(spec.label(bar.value()));
+        bar.setContentDescription(spec.title + ": " + spec.label(bar.value()));
+        bar.listener = new GradientRange.Listener() {
+            @Override public void changed(int v, boolean done) {
+                value.setText(spec.label(v));
+                bar.setContentDescription(spec.title + ": " + spec.label(v));
+                spec.apply(v, done);
+            }
+        };
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        blp.topMargin = px(act, 8);
+        box.addView(bar, blp);
+
+        if (spec.captions.length > 0) {
+            LinearLayout captions = new LinearLayout(act);
+            captions.setOrientation(LinearLayout.HORIZONTAL);
+            for (int i = 0; i < spec.captions.length; i++) {
+                TextView caption = text(act, spec.captions[i], 10, INK_DIM);
+                caption.setGravity(i == 0 ? Gravity.LEFT : i == spec.captions.length - 1
+                    ? Gravity.RIGHT : Gravity.CENTER);
+                captions.addView(caption, new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            }
+            box.addView(captions);
+        }
+
+        LinearLayout row = new LinearLayout(act);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        spec.addButtons(act, row, bar);
+        if (row.getChildCount() > 0) {
+            LinearLayout.LayoutParams rlp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            rlp.topMargin = px(act, 8);
+            box.addView(row, rlp);
+        }
+
+        int margin = px(act, 8);
+        int width = Math.min(px(act, 380), Math.max(1, root.getWidth() - 2 * margin));
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(width,
+            FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT);
+        box.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(Math.max(1, root.getHeight() - 2 * margin),
+                                                    View.MeasureSpec.AT_MOST));
+        int[] at = new int[2], base = new int[2];
+        anchor.getLocationInWindow(at);
+        root.getLocationInWindow(base);
+        int left = at[0] - base[0] - box.getMeasuredWidth() - margin;
+        int top = at[1] - base[1] + anchor.getHeight() / 2 - box.getMeasuredHeight() / 2;
+        lp.leftMargin = Math.max(margin, Math.min(left, root.getWidth() - width - margin));
+        lp.topMargin = Math.max(margin, Math.min(top, root.getHeight() - box.getMeasuredHeight() - margin));
+        layer.addView(box, lp);
+
+        root.addView(layer, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        sSliderLayer = layer;
+    }
+
+    /** Botao de texto do painel; verde = o que vale agora. */
+    private static TextView sliderButton(Activity act, String label, boolean on) {
+        TextView b = text(act, label, 12, INK);
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(px(act, 10), px(act, 5), px(act, 10), px(act, 5));
+        b.setBackground(actionBackground(act, on));
+        return b;
+    }
+
+    private static void addToRow(Activity act, LinearLayout row, View b) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = px(act, 6);
+        row.addView(b, lp);
+    }
+
+    // ---- a hora ----
+
+    /** Os botoes da Jornada viram atalhos da barra: amanhecer, meio-dia, anoitecer, meia-noite. */
+    private static final int[] TIME_PRESET = {270, 720, 1170, 0};
+
+    /** O pedaco do dia de um minuto, o do icone do botao: os quatro da Jornada. */
+    private static int timeIndexOf(int minute) {
+        if (minute >= 270 && minute < 600) return 0;
+        if (minute >= 600 && minute < 1020) return 1;
+        if (minute >= 1020 && minute < 1290) return 2;
+        return 3;
+    }
+
+    private static String periodOf(int minute) {
+        if (minute < 270) return "Madrugada";
+        if (minute < 360) return "Amanhecer";
+        if (minute < 690) return "Manhã";
+        if (minute < 750) return "Meio-dia";
+        if (minute < 1110) return "Tarde";
+        if (minute < 1230) return "Anoitecer";
+        return "Noite";
+    }
+
+    private static SliderSpec timeSlider(final Activity act, final ImageView button) {
+        final Bitmap sun = sprite(act, "ic_hora_meiodia");
+        final Bitmap moon = sprite(act, "ic_hora_meianoite");
+        SliderSpec spec = new SliderSpec() {
+            @Override String label(int v) {
+                return String.format(Locale.ROOT, "%02d:%02d", v / 60, v % 60) + "  " + periodOf(v);
+            }
+            @Override void apply(int v, boolean done) {
+                if (sendNow(done)) nSetTimeOfDay(CLOCK_REQUEST + v);
+                int index = timeIndexOf(v);
+                if (index != sTimeIndex) {
+                    sTimeIndex = index;
+                    setBitmap(act, button, sprite(act, TIME_ICON[index]));
+                }
+            }
+            @Override Bitmap handleIcon(int v) {
+                return v >= 270 && v < 1170 ? sun : moon;
+            }
+            @Override void addButtons(Activity a, LinearLayout row, final GradientRange bar) {
+                for (int i = 0; i < TIME_PRESET.length; i++) {
+                    final int minute = TIME_PRESET[i];
+                    ImageView b = icon(a, sprite(a, TIME_ICON[i]), 30);
+                    b.setContentDescription(TIME_NAME[i]);
+                    b.setPadding(px(a, 4), px(a, 4), px(a, 4), px(a, 4));
+                    b.setBackground(actionBackground(a, false));
+                    b.setOnClickListener(new View.OnClickListener() {
+                        @Override public void onClick(View v) { bar.set(minute); }
+                    });
+                    addToRow(a, row, b);
+                }
+            }
+        };
+        spec.title = "Hora do dia";
+        spec.icon = sun;
+        spec.max = 1439;
+        int[] w = nWorldState();
+        spec.initial = w != null && w.length > 2 && w[2] >= 0 ? w[2] : 720;
+        // Madrugada, nascer do sol, ceu do dia, por do sol e a noite de volta.
+        spec.colors = new int[] {
+            0xFF0E1236, 0xFF1E2A5E, 0xFFE9875A, 0xFFF6C177, 0xFF7EC8F2, 0xFF9ADCFF,
+            0xFF7EB8E6, 0xFFE06C4C, 0xFF5B3B85, 0xFF1E2350, 0xFF0E1236,
+        };
+        int[] at = {0, 240, 270, 360, 480, 720, 1020, 1170, 1230, 1320, 1439};
+        spec.stops = new float[at.length];
+        for (int i = 0; i < at.length; i++) spec.stops[i] = at[i] / 1439f;
+        spec.ticks = new int[] {270, 720, 1170};
+        spec.captions = new String[] {"00:00", "12:00", "23:59"};
+        return spec;
+    }
+
+    // ---- chuva, vento, inimigos ----
+
+    /** A taxa da Jornada (Powers.cpp, spawnMultiplierOf): o meio e x1, a ponta esquerda nenhum. */
+    private static float spawnMultiplier(int v) {
+        float t = v / 100f;
+        if (t <= 0f) return 0f;
+        return t < 0.5f ? 0.1f + (t / 0.5f) * 0.9f : 1f + ((t - 0.5f) / 0.5f) * 9f;
+    }
+
+    /** 0,5 / 2,3 / 10, com virgula e sem ",0". */
+    private static String decimal(float x) {
+        String s = String.format(Locale.ROOT, "%.1f", x);
+        if (s.endsWith(".0")) s = s.substring(0, s.length() - 2);
+        return s.replace('.', ',');
+    }
+
+    private static String sliderLabel(int id, int v) {
+        if (id == P_RAIN) {
+            if (v == 0) return "Sem chuva";
+            String name = v < 25 ? "Garoa" : v < 50 ? "Chuva" : v < 75 ? "Chuva forte" : "Tempestade";
+            return name + "  " + v + "%";
+        }
+        if (id == P_WIND) {
+            int d = v - 50;
+            int mph = Math.round(Math.abs(d) * 0.8f);
+            if (Math.abs(d) <= 2) return "Calmo";
+            String name = Math.abs(d) < 25 ? "Brisa" : "Ventania";
+            return (d < 0 ? "←  " : "→  ") + name + "  " + mph + " mph";
+        }
+        if (v == 0) return "Nenhum inimigo";
+        return "x" + decimal(spawnMultiplier(v)) + (v == 50 ? "  normal" : "");
+    }
+
+    private static SliderSpec powerSlider(final Activity act, final int id) {
+        final TextView[] auto = new TextView[1];
+        SliderSpec spec = new SliderSpec() {
+            @Override String label(int v) { return sliderLabel(id, v); }
+            @Override void apply(int v, boolean done) {
+                if (sendNow(done) || sPowerLevels[id] == 0) setRailPower(id, v + 1);
+                if (auto[0] != null) auto[0].setBackground(actionBackground(act, false));
+                if (done) savePowers(act);
+            }
+            @Override void addButtons(final Activity a, LinearLayout row, final GradientRange bar) {
+                // Verde enquanto o jogo decide; mexer na barra apaga.
+                final TextView b = sliderButton(a, id == P_NO_SPAWNS ? "Normal" : "Automático",
+                                                sPowerLevels[id] == 0);
+                auto[0] = b;
+                b.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        setRailPower(id, 0);
+                        savePowers(a);
+                        b.setBackground(actionBackground(a, true));
+                    }
+                });
+                addToRow(a, row, b);
+                if (id != P_NO_SPAWNS) return;
+
+                // Acao: some com os que ja existem. Pisca de verde, como o cartao.
+                final TextView clear = sliderButton(a, POWER_NAME[P_CLEAR_ENEMIES], false);
+                clear.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) {
+                        if (!nInWorld()) { toast(a, "Entre num mundo primeiro"); return; }
+                        nSetPower(P_CLEAR_ENEMIES, 1);
+                        clear.setBackground(actionBackground(a, true));
+                        clear.postDelayed(new Runnable() {
+                            @Override public void run() { clear.setBackground(actionBackground(a, false)); }
+                        }, ACTION_FLASH_MS);
+                    }
+                });
+                addToRow(a, row, clear);
+            }
+        };
+        spec.title = POWER_NAME[id];
+        spec.icon = powerIcon(act, id);
+        int[] w = nWorldState();
+        boolean on = sPowerLevels[id] > 0;
+        if (id == P_RAIN) {
+            // Ceu limpo, nuvem, chuva e o escuro da tempestade.
+            spec.colors = new int[] {0xFFA8DDFF, 0xFF8DB6E0, 0xFF6F84B5, 0xFF4C5583, 0xFF262A45};
+            spec.stops = new float[] {0f, 0.25f, 0.5f, 0.75f, 1f};
+            spec.ticks = new int[] {25, 50, 75};
+            spec.captions = new String[] {"Limpo", "Chuva", "Tempestade"};
+            spec.initial = on ? sPowerLevels[id] - 1 : (w != null && w.length > 3 && w[3] >= 0 ? w[3] : 0);
+        } else if (id == P_WIND) {
+            // Calmo no meio, ventania nas pontas; cada lado e uma direcao.
+            spec.colors = new int[] {0xFF1FA59A, 0xFF8FD9CF, 0xFFEEF4FF, 0xFF8FD9CF, 0xFF1FA59A};
+            spec.stops = new float[] {0f, 0.25f, 0.5f, 0.75f, 1f};
+            spec.ticks = new int[] {50};
+            spec.captions = new String[] {"← 40 mph", "Calmo", "40 mph →"};
+            spec.initial = on ? sPowerLevels[id] - 1 : (w != null && w.length > 4 && w[4] >= 0 ? w[4] : 50);
+        } else {
+            // Paz, o normal e o perigo.
+            spec.colors = new int[] {0xFF22A851, 0xFFF2D04B, 0xFFD9342B};
+            spec.stops = new float[] {0f, 0.5f, 1f};
+            spec.ticks = new int[] {50};
+            spec.captions = new String[] {"Nenhum", "x1", "x10"};
+            spec.initial = on ? sPowerLevels[id] - 1 : 50;
+        }
+        return spec;
     }
 
     /**
@@ -2084,7 +2613,7 @@ public class CheatBridge {
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             ImageView enter = icon(act, sprite(act, "ic_seta_dir"), 20);   // seta de entrar
             r.addView(enter);
-            r.setBackground(panel(act, PANEL_DARK, OUTLINE));
+            r.setBackground(actionBackground(act, false));
             r.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { open(act, content, folder, index, back); }
             });
@@ -2167,7 +2696,8 @@ public class CheatBridge {
         final TextView qtyLabel = text(act, qtyText(s, initial), 12, INK);
         // Largura de "x9999" fixa: sem isto a barra pulava para o lado a cada
         // digito que o numero ganhava ou perdia.
-        qtyLabel.setWidth(px(act, s.buff() ? 58 : 48));
+        qtyLabel.setWidth((int) Math.ceil(qtyLabel.getPaint().measureText(
+            qtyText(s, max))) + qtyLabel.getPaddingLeft() + qtyLabel.getPaddingRight());
         qtyLabel.setSingleLine(true);
         qtyLabel.setGravity(Gravity.END);
         final Range qtyBar = new Range(act, max, initial);
@@ -2333,7 +2863,7 @@ public class CheatBridge {
      */
     private static void showPowers(final Activity act, LinearLayout content, Section s) {
         int[] w = nWorldState();
-        if (w != null && w.length == 2) sWorld = w;
+        if (w != null && w.length >= 2) sWorld = new int[] {w[0], w[1]};
         final TextView activeLabel = text(act, "", 10, INK_DIM);
         sActiveLabel = activeLabel;
         LinearLayout headerRow = buildHeader(act, s, activeLabel);
@@ -2342,7 +2872,7 @@ public class CheatBridge {
         View spacer = new View(act);
         headerRow.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
         TextView offButton = text(act, "Desligar tudo", 11, INK);
-        offButton.setBackground(panel(act, PANEL_DARK, OUTLINE));
+        offButton.setBackground(actionBackground(act, false));
         offButton.setPadding(px(act, 10), px(act, 5), px(act, 10), px(act, 5));
         offButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
@@ -2471,13 +3001,13 @@ public class CheatBridge {
         return c;
     }
 
-    /** Desligado e painel escuro; ligado e verde, como o jogo marca o que esta ativo. */
+    /** Desligado e o fundo de botao; ligado e verde, como o jogo marca o que esta ativo. */
     private static void paintPowerCard(Activity act, View c, int id) {
         PowerCardViews k = (PowerCardViews) c.getTag();
         if (isWorldState(id)) { paintWorldCard(act, c, k, id); return; }
         int n = sPowerLevels[id];
         boolean on = n > 0;
-        c.setBackground(panel(act, on ? GRASS : PANEL_DARK, OUTLINE));
+        c.setBackground(actionBackground(act, on));
         k.levelLabel.setText(on && POWER_LEVELS[id].length > 1 ? POWER_LEVELS[id][n - 1] : "");
         k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
         k.desc.setTextColor(on ? INK : INK_DIM);
@@ -2494,7 +3024,7 @@ public class CheatBridge {
             int m = v < 0 ? 0 : Math.min(v, GAME_MODE_ICON.length - 1);
             setBitmap(act, k.icon, sprite(act, GAME_MODE_ICON[m]));
         }
-        c.setBackground(panel(act, on ? GRASS : PANEL_DARK, OUTLINE));
+        c.setBackground(actionBackground(act, on));
         String label = v < 0 ? "" : id == P_HARDMODE ? (v == 1 ? "Ligado" : "")
                                                      : GAME_MODE[Math.min(v, GAME_MODE.length - 1)];
         k.levelLabel.setText(label);
@@ -2509,7 +3039,7 @@ public class CheatBridge {
      */
     private static void flashActionCard(final Activity act, final View c, final int id) {
         PowerCardViews k = (PowerCardViews) c.getTag();
-        c.setBackground(panel(act, GRASS, OUTLINE));
+        c.setBackground(actionBackground(act, true));
         k.levelLabel.setText("Feito!");
         k.levelLabel.setTextColor(0xFFFFF36B);
         k.desc.setTextColor(INK);

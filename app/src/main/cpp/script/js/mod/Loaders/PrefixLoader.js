@@ -54,7 +54,10 @@ class PrefixLoader {
         Hooks.Once('prefix.setup', () => Ready.Add(PrefixLoader.#Setup, 'groups'));
         if (has('Apply')) PrefixLoader.#WantApply();
         if (has('ApplyAccessoryEffects')) Hooks.Once('prefix.accessory', PrefixLoader.#HookAccessories);
-        if (has('GetTooltipLines')) Hooks.Once('item.Tooltips', TooltipLoader.Install);
+        if (has('GetTooltipLines')) {
+            Hooks.Once('item.Tooltips', TooltipLoader.Install);
+            Hooks.Once('prefix.Reforge', TooltipLoader.HookReforge);
+        }
     }
 
     // Os métodos de prefixo que um ModItem/GlobalItem sobrescreve (ChoosePrefix, AllowPrefix...).

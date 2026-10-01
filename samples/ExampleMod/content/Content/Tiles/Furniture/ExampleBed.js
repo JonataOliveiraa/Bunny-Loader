@@ -30,7 +30,7 @@ export class ExampleBed extends ModTile {
         TileObjectData.newTile.CoordinatePaddingFix = Point16.new(0, -2);
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(191, 142, 111), 'Bed');
+        this.AddMapEntry(Color.new(191, 142, 111), 'ItemName.Bed');
     }
 
     // A cama é mais baixa que a do jogo: deita um pouco mais embaixo.

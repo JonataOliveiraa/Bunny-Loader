@@ -99,7 +99,7 @@ void run(const Request& r) {
             BL_WARN("rede: jogador %d pediu poder %d, que nao e de mundo", r.client, type);
         }
     } else if (v == "time") {
-        setTimeOfDay(type);   // "time <0..3>": confere a faixa sozinho
+        setTimeOfDay(type);   // "time <0..3 | 100+minuto>": confere a faixa sozinho
     } else {
         BL_WARN("rede: pedido desconhecido do jogador %d: '%s'", r.client, r.command.c_str());
     }

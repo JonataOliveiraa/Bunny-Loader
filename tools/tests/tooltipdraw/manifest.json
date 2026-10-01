@@ -1,0 +1,15 @@
+{
+  "uid": "8fa70d52-b642-47e5-94d7-b0a3c444c290",
+  "id": "test-tooltipdraw",
+  "name": "Teste: tooltip e raridade de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Força o tooltip de um item de teste na tela (com raridade e prefixo de mod) e confere os nomes das linhas, o ModifyTooltips, os Pre/PostDrawTooltip(Line), o yOffset, a cor do nome e o GetPrefixedRarity.",
+  "description": "Não precisa de outro mod. Loga 'tooltipdraw ...'. Deixa o tooltip na tela uns 15 s depois do FIM, para uma captura.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

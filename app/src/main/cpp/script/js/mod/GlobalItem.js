@@ -1,6 +1,7 @@
 class GlobalItem extends GlobalType {
     SetDefaults(item) {}
     CanUseItem(item, player) { return true; }
+    // true: o item conta como usado (tempo de uso; o consumível é gasto).
     UseItem(item, player) {}
     UseStyle(item, player, mountOffset, heldItemFrame) {}
     HoldStyle(item, player, mountOffset, heldItemFrame) {}
@@ -15,6 +16,12 @@ class GlobalItem extends GlobalType {
     UpdateAccessory(item, player, vanity, hideVisual) {}
     OnCraft(item, player, recipe) {}
     ModifyTooltips(item, tooltips) {}
+    // O desenho do tooltip (DrawableTooltipLine: X, Y, Font, Color, BaseScale...).
+    // x, y e yOffset são Ref; false no Pre não desenha.
+    PreDrawTooltip(item, lines, x, y) { return true; }
+    PostDrawTooltip(item, lines) {}
+    PreDrawTooltipLine(item, line, yOffset) { return true; }
+    PostDrawTooltipLine(item, line) {}
     // Prefixos de qualquer item (também os do jogo).
     ChoosePrefix(item, rand) { return -1; }
     PrefixChance(item, pre, rand) { return null; }

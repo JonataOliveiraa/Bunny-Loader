@@ -1,0 +1,15 @@
+{
+  "uid": "76108dd7-caea-4d36-9262-3f6471ca5e2b",
+  "id": "test-frametime",
+  "name": "Teste: tempo de quadro",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Mede o tempo de CPU do DoUpdate e do DoDraw e o intervalo entre quadros, com o zoom normal, aproximado e afastado. Para comparar o app com e sem mods, e versões dele.",
+  "description": "Loga 'frametime ...'.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

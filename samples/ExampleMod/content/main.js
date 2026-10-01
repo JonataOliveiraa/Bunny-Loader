@@ -3,20 +3,21 @@
 // A mesma estrutura do tModLoader:
 //
 //   main.js          esta classe, a do mod (obrigatória)
-//   Assets/          Textures/, Sounds/ e Music/
+//   Assets/          Textures/ (fundos, tema do menu), Sounds/ e Music/
 //   Common/          o que não é coisa nova: ModPlayer, ModSystem, Global*
-//   Content/         itens, NPCs, projéteis, blocos, buffs, pets...
+//   Content/         itens, NPCs, projéteis, blocos, buffs, pets... (com as texturas)
 //   Localization/    en-US.json, pt-BR.json...
 //
 // Toda classe exportada em Content/ e Common/ é registrada sozinha, e a
-// textura dela sai de Assets/Textures/ no mesmo caminho do arquivo
-// (Content/Items/ExampleItem.js -> Assets/Textures/Items/ExampleItem.png).
+// textura dela fica ao lado do arquivo, como no tModLoader
+// (Content/Items/ExampleItem.js -> Content/Items/ExampleItem.png). Em
+// Assets/ fica o resto: fundos, sons, música e o tema do menu.
 export default class ExampleMod extends Mod {
     // Uma nuvem só de textura, com peso 0,1 contra as 22 comuns do jogo (o
     // DefaultCloudsLoader do tModLoader). Sem isso, o PNG em Clouds/ viraria
     // nuvem de peso 1 sozinho.
     Load() {
-        CloudLoader.AddCloudFromTexture('Clouds/ExampleCloud', 0.1, false);
+        CloudLoader.AddCloudFromTexture('Content/Clouds/ExampleCloud', 0.1, false);
     }
 
     PostSetupContent() {

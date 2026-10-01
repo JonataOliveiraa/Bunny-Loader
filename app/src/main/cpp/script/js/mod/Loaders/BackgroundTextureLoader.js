@@ -1,5 +1,5 @@
-// As texturas de fundo de mod, como no tModLoader: todo PNG em
-// Assets/Textures/Backgrounds ganha um número depois dos do jogo
+// As texturas de fundo de mod, como no tModLoader: todo PNG numa pasta
+// Backgrounds/ do mod ganha um número depois dos do jogo
 // (TextureAssets.Background e Main.backgroundWidth/Height crescem até ele).
 // A chave é o caminho no mod, sem extensão: 'Assets/Textures/Backgrounds/Nome',
 // ou '<mod>/Assets/Textures/Backgrounds/Nome' de fora dele.
@@ -28,7 +28,7 @@ class BackgroundTextureLoader {
         }
     }
 
-    // Um fundo fora de Assets/Textures/Backgrounds; só durante a carga do mod.
+    // Um fundo fora de uma pasta Backgrounds/; só durante a carga do mod.
     static AddBackgroundTexture(mod, texture) {
         if (!mod || !mod.uuid) throw new TypeError('BackgroundTextureLoader.AddBackgroundTexture(mod, caminho): passe o mod (this.Mod)');
         if (typeof texture !== 'string' || !texture) throw new TypeError('BackgroundTextureLoader.AddBackgroundTexture: o caminho é um texto');

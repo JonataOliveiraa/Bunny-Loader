@@ -1,5 +1,5 @@
 // Um emote de mod, como o ModEmoteBubble do tModLoader: a textura da classe
-// (Content/EmoteBubbles/X.js -> Assets/Textures/EmoteBubbles/X.png), dois
+// (Content/EmoteBubbles/X.js -> Content/EmoteBubbles/X.png), dois
 // quadros de 34 x 28 lado a lado. Uma instância por tipo; durante cada método
 // this.EmoteBubble é a bolha em questão (o EmoteBubble do jogo).
 // AddToCategory(EmoteID.Category.X) o põe no menu de emotes.

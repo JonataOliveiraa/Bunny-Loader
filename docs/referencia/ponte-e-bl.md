@@ -31,6 +31,7 @@ no [guia 1](../mods/01-hooks-do-zero.md); as classes de mod estão em
 | `Classe.new()` + `['void .ctor(...)']()` | Criar um objeto (memória zerada, depois o construtor). |
 | `Classe.makeGeneric(T, ...)` | Classe genérica: `List.makeGeneric(Vector2)`. |
 | `null` | Qualquer objeto; também o `null` de um `Nullable<T>` (`float?`). |
+| `null` num struct com valor padrão | `Color newColor = default(Color)`: `null` ou `undefined` é o `default(T)`, zerado, o que o jogo recebe quando o parâmetro é omitido (ele costuma ler esse vazio como "use o meu"). Struct sem valor padrão e número recusam `null`. |
 | `new Ref(v)`, `r.value` | Parâmetro `ref`/`out` ([guia 2](../mods/02-ref-e-out.md)). |
 | `metodo.hook(cb, opções?)` | Hook ([guia 1](../mods/01-hooks-do-zero.md#hooks)). |
 
@@ -60,7 +61,7 @@ assinatura do jogo.
 |---|---|
 | `minType: N` | Só entra no JS se o `type` do `self` for ≥ `N`. |
 | `on: i` | O filtro olha o parâmetro `i` (a partir de 0), não o `self`. |
-| `field: 'nome'` | O filtro olha outro campo `int`. |
+| `field: 'nome'` | O filtro olha outro campo `int`. Com um ponto, segue uma referência antes: `field: 'inner.type'` lê o `type` do `Item` que a `WorldItem` guarda em `inner`. |
 | `tile: i` | O parâmetro `i` é um `Tile`; o filtro olha o tipo do bloco. |
 | `tileAt: [i, j]` | Os parâmetros `i` e `j` são a posição; o filtro olha o bloco do mundo. |
 | `whileIn: metodo` | Só entra no JS dentro do hook JS de `metodo`. |
@@ -142,6 +143,8 @@ diretamente.
 | `bl.tiles.setAnimationFrameHeight(tipo, altura)`, `bl.tiles.onDrawData(fn)` | O `AnimationFrameHeight` e o gancho do desenho (quem usa é o `ModTile`). |
 | `bl.tiles.setDoor(fechada, aberta)` | O par de uma porta de mod, para o jogador que encosta e os NPCs a abrirem (o `ModTile` chama pelo `OpenDoorID`/`CloseDoorID`). |
 | `bl.hookMarks.set(nome, tipo[, ligado])`, `bl.hookMarks.has(nome, tipo)` | As marcas do filtro `marks` dos hooks ([núcleo](../nucleo/hooks.md#filtros-nativos)). |
+| `bl.hookStats()` | Cada hook JS instalado: `{ name, calls, js, jsMs }` desde a instalação. `calls` conta toda chamada que passou pelo despacho (inclusive as que o filtro devolveu ao jogo), `js` as que chegaram ao callback e `jsMs` o tempo dentro dele sem o `original()`. Para medir: o `tools/tests/frametime` usa. |
+| `bl.gc()`, `bl.gcThreshold()` | Roda uma coleta de ciclos do QuickJS e devolve quanto levou (ms); o limiar de memória da próxima coleta (muda a cada uma: contar as mudanças dá as coletas). Só para medir. |
 | `bl.items.register`, `bl.npcs.register`... | O registro nativo. Use as classes (`ModItem.register`). |
 
 ## `bl.menu`: o Mod Menu

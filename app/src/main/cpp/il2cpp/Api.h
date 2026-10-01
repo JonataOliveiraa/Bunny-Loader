@@ -81,6 +81,8 @@ struct Api {
     const char* (*method_get_param_name)(const MethodInfo*, uint32_t) = nullptr;
     const Il2CppType* (*method_get_return_type)(const MethodInfo*) = nullptr;
     char* (*type_get_name)(const Il2CppType*) = nullptr;  // malloc; liberar com free
+    // Num tipo de PARAMETRO, os atributos dele (opcional, com valor padrao).
+    uint32_t (*type_get_attrs)(const Il2CppType*) = nullptr;
     void (*il2cpp_free)(void*) = nullptr;
     Il2CppObject* (*object_new)(Il2CppClass*) = nullptr;
     Il2CppClass* (*object_get_class)(Il2CppObject*) = nullptr;

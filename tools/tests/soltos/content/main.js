@@ -140,6 +140,15 @@ function clouds() {
         return (type >= Terraria.ID.CloudID.Count && T.Cloud.length > rare && T.Cloud[type].Value.Width > 0) ||
             'tipo ' + type + ', tabela ' + T.Cloud.length;
     });
+    // O horizonte do celular lê CloudMasks[tipo] sem conferir o limite: sem a
+    // máscara, o fundo inteiro some quando a nuvem de mod aparece.
+    check('nuvem: máscara do horizonte (TextureMaskManager.CloudMasks) para os tipos de mod', () => {
+        const masks = bl.classOf('', 'TextureMaskManager').CloudMasks;
+        const hi = Math.max(type, rare);
+        if (masks.length <= hi) return 'tabela ' + masks.length + ', tipo ' + hi;
+        const m = masks[type];
+        return (m && masks[rare] && m.srcWidth > 0 && m.outputWidth === 0) || 'máscara ' + (m ? m.srcWidth + 'x' + m.srcHeight : 'nula');
+    });
     check('nuvem: comum de mod no addCloud (peso alto), com OnSpawn', () => {
         cloudWeight = 1e6;
         let found = 0, active = 0;
@@ -172,6 +181,7 @@ function clouds() {
 }
 
 // ---- emotes ----
+const emotesOn = () => typeof ModContent.GetInstance(TestEmote).Type === 'number';
 let bubbleId = -1;
 function emotes() {
     const type = ModContent.GetInstance(TestEmote).Type;
@@ -304,12 +314,14 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
         check('comandos', commands);
         check('cabelo', hair);
         check('nuvens', clouds);
-        check('emotes', emotes);
+        // Os emotes de mod estão desligados por ora (EmoteBubbleLoader.Enabled): sem tipo.
+        if (emotesOn()) check('emotes', emotes);
+        else bl.log('soltos emotes: desligados, fora do teste');
         check('conquistas', achievements);
         check('pesca', anglerQuest);
     }
     if (frames === 120) {
-        check('emotes (desenho)', emotesDrawn);
+        if (emotesOn()) check('emotes (desenho)', emotesDrawn);
         done = true;
         bl.log('soltos FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
     }

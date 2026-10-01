@@ -29,8 +29,8 @@ export class ExampleChest extends ModTile {
 
         this.DustType = DustID.Platinum;
         this.AdjTiles = [TileID.Containers];
-        this.AddMapEntry(Color.new(200, 200, 200), 'Example Chest');
-        this.AddMapEntry(Color.new(0, 141, 63), 'Locked Example Chest');
+        this.AddMapEntry(Color.new(200, 200, 200), 'ExampleChest');
+        this.AddMapEntry(Color.new(0, 141, 63), 'ExampleChestLocked');
 
         // Os dois estilos dão o baú de exemplo (o trancado também).
         this.RegisterItemDrop(ModContent.ItemType('ExampleChest'), 0, 1);
@@ -55,7 +55,7 @@ export class ExampleChest extends ModTile {
     }
 
     DefaultContainerName(frameX, frameY) {
-        return Math.floor(frameX / 36) === 1 ? 'Locked Example Chest' : 'Example Chest';
+        return ModLocalization.Translate(Math.floor(frameX / 36) === 1 ? 'MapObject.ExampleChestLocked' : 'MapObject.ExampleChest');
     }
 
     IsLockedChest(i, j) {

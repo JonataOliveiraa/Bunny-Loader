@@ -179,12 +179,34 @@ int jsToParam(JSContext* ctx, JSValueConst v, const ParamPlan& p,
         return true;
     }
 
+    if (isDefaultStructArg(v, p.d, p.optional)) {
+        if (p.structByRef) {
+            void* zero = scratch ? scratch->take(p.d.size) : nullptr;
+            if (!zero) {
+                JS_ThrowInternalError(ctx, "sem espaco para montar o %s desta chamada", p.d.name.c_str());
+                return -1;
+            }
+            std::memset(zero, 0, p.d.size);
+            a[p.reg] = reinterpret_cast<intptr_t>(zero);
+        } else if (p.floatQueue) {
+            for (int i = 0; i < p.regs; ++i) d[p.reg + i] = 0;
+        } else {
+            for (int i = 0; i < p.regs; ++i) a[p.reg + i] = 0;
+        }
+        return true;
+    }
+
     if (p.d.prim == Prim::Struct) {
         Il2CppClass* cls = nullptr;
         size_t size = 0;
         void* src = structDataOf(v, &cls, &size);
         if (!src) {
-            JS_ThrowTypeError(ctx, "esperava um %s", p.d.name.c_str());
+            if (JS_IsNull(v) || JS_IsUndefined(v)) {
+                JS_ThrowTypeError(ctx, "esperava um %s, recebeu %s (o parametro nao tem valor padrao)",
+                                  p.d.name.c_str(), JS_IsNull(v) ? "null" : "undefined");
+            } else {
+                JS_ThrowTypeError(ctx, "esperava um %s", p.d.name.c_str());
+            }
             return -1;
         }
         if (cls && p.d.cls && cls != p.d.cls) {
@@ -330,7 +352,9 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out) {
     uint32_t n = api.method_get_param_count(m);
     for (uint32_t i = 0; i < n; ++i) {
         ParamPlan pp;
-        pp.d = describe(api.method_get_param(m, i));
+        const Il2CppType* type = api.method_get_param(m, i);
+        pp.d = describe(type);
+        pp.optional = isOptionalParam(type);
         if (pp.d.byRef) {
             // ref/out chega como ponteiro. Repassamos intacto; expor o
             // endereco cru ao JS so serviria para alguem escrever nele.

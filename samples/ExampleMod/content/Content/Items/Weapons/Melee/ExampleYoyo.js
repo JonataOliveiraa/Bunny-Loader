@@ -1,3 +1,5 @@
+import { ExampleModRarity } from '../../../Rarities/ExampleModRarity.js';
+
 const { ItemID, SoundID } = Terraria.ID;
 
 export class ExampleYoyo extends ModItem {
@@ -17,7 +19,7 @@ export class ExampleYoyo extends ModItem {
         this.SetDefaultWeaponStyle(25, true);
         this.Item.useStyle = Terraria.ID.ItemUseStyleID.Shoot;
         this.Item.value = Terraria.Item.sellPrice(0, 1, 0, 0);
-        this.Item.rare = ItemRarityID.Green;
+        this.Item.rare = ModContent.RarityType(ExampleModRarity);   // a raridade de mod: a cor do nome
         this.Item.UseSound = SoundID.Item1;
     }
 

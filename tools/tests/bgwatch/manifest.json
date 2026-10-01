@@ -1,0 +1,15 @@
+{
+  "uid": "fe898fe4-8953-4aea-8bf2-f5f2a2e0a03d",
+  "id": "test-bgwatch",
+  "name": "Diagnóstico: fundo",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Só observa: a cada segundo, e sempre que algo muda, loga o estado do fundo de superfície (estilo, transparências somadas das camadas, arrays, texturas, LocalUserGameState, cena). Soma zero nas camadas = só o céu na tela.",
+  "description": "Loga 'bgwatch ...'. Não mexe em nada do jogo.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

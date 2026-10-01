@@ -15,8 +15,9 @@ class ContentLookup {
         if (base === ModCloud) return CloudLoader.ByType;
         if (base === ModEmoteBubble) return EmoteBubbleLoader.ByType;
         if (base === ModAchievement) return AchievementLoader.ByName;
+        if (base === ModRarity) return RarityLoader.ByType;
 
-        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModTile, ModPrefix, ModMount, ModHair, ModCloud, ModEmoteBubble ou ModAchievement');
+        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModTile, ModPrefix, ModMount, ModHair, ModCloud, ModEmoteBubble, ModAchievement ou ModRarity');
     }
 
     // Pelo nome: no mod de quem chama, ou no único mod que o tem.
@@ -57,13 +58,14 @@ class ContentLookup {
         return inst ? inst.Type : 0;
     }
 
-    // 'Items/Espada', 'Textures/brilho', 'Assets/Textures/brilho.png' ou um
-    // caminho qualquer do mod; 'mod/...' com o id de outro mod na frente.
+    // O caminho no mod ('Content/Items/Espada', 'Assets/Textures/brilho.png'),
+    // o de antes dentro de Assets/Textures ('Items/Espada'), ou 'mod/...' com o
+    // id de outro mod na frente.
     static FindTexture(path) {
         const rel = String(path).replace(/^\/+/, '');
         const inRoot = (root, r) => {
             const raw = /\.[a-z0-9]{2,4}$/i.test(r) ? r : r + '.png';
-            for (const candidate of [ModFiles.Texture(r), raw]) {
+            for (const candidate of [ModFiles.Texture(r, root), raw]) {
                 const full = bl.path.join(root, candidate);
                 if (bl.file.exists(full)) return full;
             }
@@ -84,7 +86,7 @@ class ContentLookup {
 
     static Request(path) {
         const file = ContentLookup.FindTexture(path);
-        if (!file) throw new Error("ModContent.Request: nao achei a textura '" + path + "' em Assets/Textures");
+        if (!file) throw new Error("ModContent.Request: nao achei a textura '" + path + "' no mod");
 
         return ContentLookup.RequestFile(file);
     }

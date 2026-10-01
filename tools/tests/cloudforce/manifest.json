@@ -1,0 +1,15 @@
+{
+  "uid": "1228a847-e1ca-4602-abd6-7ed4cdafb5f1",
+  "id": "test-cloudforce",
+  "name": "Diagnóstico: nuvens de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com um mod que tenha nuvens (o Example Mod): 5 s depois de entrar no mundo, metade das nuvens do céu vira nuvem de mod, e de novo a cada 30 s. Para o desenho do horizonte do celular (NextHorizonRenderer), que quebrava o fundo com nuvem de mod.",
+  "description": "Loga 'cloudforce ...'.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

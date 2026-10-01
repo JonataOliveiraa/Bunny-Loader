@@ -8,7 +8,6 @@ namespace bl::hook {
 // outro elo entra na cadeia) — leia-o a cada chamada, nunca guarde uma copia.
 bool install(void* address, void* replacement, void** original);
 bool install(const MethodInfo* method, void* replacement, void** original);
-void removeAll();
 
 // IMPORTANTE: todo método hookado do IL2CPP recebe um `const MethodInfo*` como
 // ÚLTIMO argumento. A assinatura da função de substituição precisa refletir isso.

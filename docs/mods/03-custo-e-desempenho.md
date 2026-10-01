@@ -149,7 +149,15 @@ Terraria.Player['void ItemCheck_Shoot(int i, Item sItem, int weaponDamage, bool 
 // o gancho de escalar: interessa o item.shoot, não o item.type
 Terraria.Player['void FireGrapple(Item grappleItem)']
     .hook(callback, { minType: bl.projectiles.vanillaCount, on: 0, field: 'shoot' });
+
+// o jogo chama o DrawItem para os 400 espaços do chão: o tipo do Item de dentro
+Terraria.Main['void DrawItem(WorldItem item, int whoami)']
+    .hook(callback, { minType: bl.items.vanillaCount, on: 0, field: 'inner.type' });
 ```
+
+Para achar o hook que pesa, o `bl.hookStats()` diz quantas chamadas cada um
+recebe e quanto tempo o JS gastou nele; o mod `tools/tests/frametime` mede o
+quadro e lista os hooks mais caros (no log e no chat).
 
 Para blocos, o tipo vem do **mundo**: `tile: i` (o parâmetro `i` é um `Tile`) ou
 `tileAt: [i, j]` (os parâmetros `i` e `j` são a posição):

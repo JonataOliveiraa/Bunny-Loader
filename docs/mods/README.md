@@ -58,6 +58,8 @@ Leia na ordem; cada um usa o anterior.
 | **Entre mods** | |
 | [11. Conversa entre mods](11-conversa-entre-mods.md) | Achar outro mod e chamar o que ele oferece (`ModLoader.TryGetMod` + `Call`). |
 | [12. Globais e o mundo](12-globais-e-mundo.md) | Mexer no que o jogo já tem (`GlobalItem`, `GlobalNPC`, `GlobalProjectile`), drops, e o `ModSystem` com os dados do mundo. |
+| **Publicar** | |
+| [13. A página do pacote](13-pagina-do-pacote.md) | A ficha do mod no launcher: `description.md`, `changelog.md`, `license.md`, autores com foto, links, abas e cores próprias, e o Markdown que ela entende. |
 
 Para consultar:
 
@@ -86,6 +88,10 @@ Um mod é uma pasta (ou um zip dela) com esta cara:
 ```
 MeuMod/
   manifest.json      quem é o mod (obrigatório)
+  description.md     a descrição da ficha do mod, em Markdown (recomendado)
+  changelog.md       as novidades de cada versão (opcional)
+  license.md         a licença (opcional)
+  authors/           as fotos dos autores (opcional)
   icon.png           ícone quadrado, aparece na lista (recomendado)
   banner.png         capa da ficha do mod, ~3,4:1, ex. 384x112 (opcional)
   thumbnails/        imagens extras da ficha, .png ou .jpg (opcional)
@@ -135,10 +141,11 @@ export class Espada extends ModItem {
 }
 ```
 
-- A **textura** sai de `Assets/Textures/` no mesmo caminho do arquivo:
-  `Content/Items/Espada.js` usa `Assets/Textures/Items/Espada.png`. Se não
-  houver, vale o primeiro PNG com o nome da classe em `Assets/Textures/`; e
-  `this.Texture = 'Items/OutraImagem'` escolhe outra.
+- A **textura** fica ao lado do arquivo, com o mesmo nome, como no
+  tModLoader: `Content/Items/Espada.js` usa `Content/Items/Espada.png`.
+  `get Texture() { return 'Arte/OutraImagem'; }` (ou `this.Texture = ...`)
+  escolhe outra. Os mods de antes, com as texturas em `Assets/Textures/` no
+  espelho do arquivo, seguem funcionando.
 - A ordem é fixa (buffs, jogadores, NPCs, projéteis, itens, blocos, sistemas e
   globais; dentro de cada um, pelo caminho do arquivo), então o tipo de cada
   coisa é o mesmo em todo aparelho, o que o multijogador exige.
@@ -154,10 +161,10 @@ export class Espada extends ModItem {
   "id": "meumod",
   "name": "Meu Mod",
   "version": "1.0.0",
-  "author": "Seu Nome",
+  "authors": [{ "name": "Seu Nome", "avatar": "voce.png" }],
   "category": "Jogabilidade",
   "summary": "Uma linha, para o cartão da lista.",
-  "description": "Um parágrafo, para a ficha do mod.",
+  "license": "MIT",
   "updated": "2026-09-24",
   "blVersion": 2,
   "entry": "main.js"
@@ -168,9 +175,11 @@ export class Espada extends ModItem {
 |---|---|
 | `uid` | **Obrigatório.** Um UUID em minúsculas. É a identidade do mod e o nome da pasta dele: dois mods com o mesmo `uid` são o mesmo mod (instalar um substitui o outro). Gere um uma vez e nunca mude: `python -c "import uuid; print(uuid.uuid4())"`. |
 | `id` | Apelido curto, só letras. É por ele que outro mod acha o seu (`ModLoader.TryGetMod`, [guia 11](11-conversa-entre-mods.md)) e que `ModContent` acha o seu conteúdo (`'meumod/Espada'`). Não precisa ser único, mas dois mods instalados com o mesmo `id` só se acham pelo `uid`. |
-| `name`, `author`, `version` | O que a lista mostra. |
+| `name`, `version` | O que a lista mostra. |
+| `authors` | Quem fez o mod: nomes soltos ou objetos com foto (`authors/`), papel, cor e link. `author`, um nome só, ainda vale. Ver o [guia 13](13-pagina-do-pacote.md#os-autores). |
 | `category` | Texto livre. `Textura`, `Armas`, `Jogabilidade`, `Cheat`, `Utilidade` e `Itens` ganham cor e ícone próprios. |
-| `summary`, `description`, `updated` | O cartão e a ficha do mod. `updated` é `AAAA-MM-DD`. |
+| `summary`, `updated` | A linha do cartão da lista e a data da última versão (`AAAA-MM-DD`). A descrição longa vai em `description.md` ([guia 13](13-pagina-do-pacote.md)); o campo `description` antigo só vale sem ele. |
+| `license`, `links`, `pages`, `theme` | A licença, botões de link, abas a mais e as cores da ficha. Ver o [guia 13](13-pagina-do-pacote.md). |
 | `blVersion` | O formato do pacote. Hoje, `2`: a estrutura acima, com a classe `Mod` no arquivo de entrada. O `1` (sem a classe `Mod`) não carrega mais: o app o mostra como "Formato antigo" e recusa na importação, assim como um pacote que pede uma versão maior que a do app. |
 | `entry` | O arquivo de entrada, relativo a `content/`. Padrão: `main.js`. |
 

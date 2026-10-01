@@ -79,7 +79,7 @@ class ModRecipe {
         if (index >= Main.recipe.length) Main.recipe = Main.recipe.cloneResized(index + 1);
 
         Terraria.Recipe['void AddRecipe()']();
-        RecipeLoader.Added(index);
+        RecipeLoader.Added(index, this.craftingStation);
     }
 
     // Objeto, nome de um do jogo ('IronBar'), nome de um criado aqui, ou o número.

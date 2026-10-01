@@ -32,7 +32,7 @@ IL2CPP e roda mods escritos em **JavaScript**, no formato do tModLoader
 Tudo em [`docs/`](docs/README.md):
 
 - **[Criando mods](docs/mods/README.md)**: do primeiro hook ao chefe com
-  música, em 11 guias.
+  música e à publicação do pacote.
   1. [Hooks: mudar o que o jogo já tem](docs/mods/01-hooks-do-zero.md)
   2. [`ref` e `out`](docs/mods/02-ref-e-out.md)
   3. [Custo e desempenho](docs/mods/03-custo-e-desempenho.md)
@@ -41,6 +41,9 @@ Tudo em [`docs/`](docs/README.md):
      7. [NPCs](docs/mods/07-npcs.md) · 8. [Jogador e buffs](docs/mods/08-jogador-e-buffs.md) ·
      9. [Blocos](docs/mods/09-blocos.md) · 10. [Sons e música](docs/mods/10-sons-e-musica.md)
   11. [Conversa entre mods](docs/mods/11-conversa-entre-mods.md)
+  12. [Globais e o mundo](docs/mods/12-globais-e-mundo.md)
+  13. [A página do pacote](docs/mods/13-pagina-do-pacote.md): descrição e
+      changelog em Markdown, licença e autores com fotos em `authors/`.
 - **Referência**: [o que cada classe tem hoje](docs/referencia/classes.md) e
   [a ponte e o `bl`](docs/referencia/ponte-e-bl.md).
 - **[O núcleo nativo](docs/nucleo/README.md)**, para quem mexe no Bunny

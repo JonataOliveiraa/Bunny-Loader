@@ -130,6 +130,26 @@ class TileLoader {
         return items.get(type + ':' + style) || items.get(type) || 0;
     }
 
+    // O guia de criação do celular mostra a estação da receita como o ícone de
+    // um item: TileID.Sets.CraftingStationItemId[tile] (tabela só do celular; o
+    // jogo preenche as 37 estações dele). Tile de mod pedido numa receita ganha
+    // o item que o coloca; sem isso, a estação de mod fica sem ícone e sem nome.
+    static SetCraftingStations(tiles) {
+        if (!tiles.size) return;
+
+        const Sets = Terraria.ID.TileID.Sets;
+        let table = Sets.CraftingStationItemId;
+        const top = Math.max(...tiles) + 1;
+        if (table.length < top) Sets.CraftingStationItemId = table = table.cloneResized(top);
+
+        for (const tile of tiles) {
+            if (table[tile] !== 0) continue;   // o mod já pôs um
+            const item = TileLoader.GetItemDropFromTypeAndStyle(tile, 0);
+            if (item > 0) table[tile] = item;
+            else bl.log('tiles de mod: ' + TileLoader.ByType.get(tile).constructor.name + ' é estação de receita, mas nenhum item o coloca (sem ícone no guia)');
+        }
+    }
+
     static StyleAt(i, j) {
         return Math.max(0, Terraria.ObjectData.TileObjectData.GetTileStyle(TileLoader.Tile(i, j)));
     }
@@ -378,7 +398,7 @@ class TileLoader {
     static #Highlight(m) {
         const Sets = Terraria.ID.TileID.Sets;
         const root = m.Mod && m.Mod.path;
-        const file = root ? bl.path.join(root, ModFiles.Texture(m.HighlightTexture)) : null;
+        const file = root ? bl.path.join(root, ModFiles.Texture(m.HighlightTexture, root)) : null;
 
         if (!file || !bl.file.exists(file)) {
             Sets.HasOutlines[m.Type] = false;

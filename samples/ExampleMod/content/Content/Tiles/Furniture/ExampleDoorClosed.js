@@ -20,7 +20,7 @@ export class ExampleDoorClosed extends ModTile {
 
         this.DustType = DustID.Platinum;
         this.AdjTiles = [TileID.ClosedDoor];
-        this.AddMapEntry(Color.new(200, 200, 200), 'Door');
+        this.AddMapEntry(Color.new(200, 200, 200), 'MapObject.Door');
 
         TileObjectData.newTile.CopyFrom(TileObjectData['TileObjectData GetTileData(int type, int style, int alternate)'](TileID.ClosedDoor, 0, 0));
         TileObjectData.addTile(this.Type);

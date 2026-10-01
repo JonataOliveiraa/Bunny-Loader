@@ -31,6 +31,7 @@
 #include <cstdint>
 #include <cstring>
 #include <set>
+#include <time.h>
 #include <cctype>
 #include <string>
 #include <unordered_map>
@@ -980,6 +981,41 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
 }
 
 
+// bl.hookStats(): [{ name, calls, js, jsMs }] por hook instalado, contados desde a
+// instalacao. `calls` inclui as chamadas que o filtro nativo devolve direto ao
+// jogo: e o custo de um hook num metodo quente (SpriteBatch.Draw).
+JSValue js_hookStats(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const std::vector<HookStat> stats = hookStats();
+    JSValue arr = JS_NewArray(ctx);
+    uint32_t i = 0;
+    for (const HookStat& s : stats) {
+        JSValue o = JS_NewObject(ctx);
+        JS_SetPropertyStr(ctx, o, "name", JS_NewString(ctx, s.name.c_str()));
+        JS_SetPropertyStr(ctx, o, "calls", JS_NewFloat64(ctx, static_cast<double>(s.calls)));
+        JS_SetPropertyStr(ctx, o, "js", JS_NewFloat64(ctx, static_cast<double>(s.js)));
+        JS_SetPropertyStr(ctx, o, "jsMs", JS_NewFloat64(ctx, static_cast<double>(s.jsNs) / 1e6));
+        JS_SetPropertyUint32(ctx, arr, i++, o);
+    }
+    return arr;
+}
+
+// bl.gcThreshold(): o limiar de memoria do coletor de ciclos do QuickJS. Ele
+// muda a cada coleta (vira 1,5 x a memoria de entao): contar as mudancas por
+// quadro da quantas coletas houve.
+JSValue js_gcThreshold(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewFloat64(ctx, static_cast<double>(JS_GetGCThreshold(JS_GetRuntime(ctx))));
+}
+
+// bl.gc(): roda uma coleta de ciclos agora e devolve quanto levou (ms). Para
+// medir o custo de uma coleta com os objetos vivos dos mods.
+JSValue js_gc(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    timespec a, b;
+    clock_gettime(CLOCK_MONOTONIC, &a);
+    JS_RunGC(JS_GetRuntime(ctx));
+    clock_gettime(CLOCK_MONOTONIC, &b);
+    return JS_NewFloat64(ctx, (b.tv_sec - a.tv_sec) * 1e3 + (b.tv_nsec - a.tv_nsec) / 1e6);
+}
+
 // bl.hookMarks.set(nome, tipo, ligado = true) / .has(nome, tipo): a tabela que
 // o filtro `marks` de um hook consulta. Marcar depois de instalar o hook vale
 // na hora (o despachante le a cada chamada).
@@ -1687,6 +1723,9 @@ void installBindings(void* context) {
     JS_SetPropertyStr(ctx, marks, "set", JS_NewCFunction(ctx, js_hookMarksSet, "set", 3));
     JS_SetPropertyStr(ctx, marks, "has", JS_NewCFunction(ctx, js_hookMarksHas, "has", 2));
     JS_SetPropertyStr(ctx, bl, "hookMarks", marks);
+    JS_SetPropertyStr(ctx, bl, "hookStats", JS_NewCFunction(ctx, js_hookStats, "hookStats", 0));
+    JS_SetPropertyStr(ctx, bl, "gcThreshold", JS_NewCFunction(ctx, js_gcThreshold, "gcThreshold", 0));
+    JS_SetPropertyStr(ctx, bl, "gc", JS_NewCFunction(ctx, js_gc, "gc", 0));
     installExtraFields(ctx, bl);
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);

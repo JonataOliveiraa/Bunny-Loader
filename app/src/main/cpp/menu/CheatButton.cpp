@@ -1,6 +1,7 @@
 #include "menu/CheatButton.h"
 #include "core/Config.h"
 #include "core/Log.h"
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,7 @@
 #include <dlfcn.h>
 #include <initializer_list>
 #include <jni.h>
+#include <iterator>
 #include <string>
 
 namespace bl::ui {
@@ -288,11 +290,14 @@ void JNICALL jni_setTimeOfDay(JNIEnv*, jclass, jint which) {
     bl::runtime::setTimeOfDay(which);
 }
 
-/** {hardmode 0/1, modo de jogo 0..3}; -1 fora do mundo. */
+/** {hardmode 0/1, modo 0..3, minuto do relogio, chuva 0..100, vento 0..100}; -1 fora do mundo. */
 jintArray JNICALL jni_worldState(JNIEnv* env, jclass) {
-    const jint v[] = {bl::runtime::worldHardmode(), bl::runtime::worldGameMode()};
-    jintArray out = env->NewIntArray(2);
-    if (out) env->SetIntArrayRegion(out, 0, 2, v);
+    const jint v[] = {bl::runtime::worldHardmode(), bl::runtime::worldGameMode(),
+                      bl::runtime::worldClockMinute(), bl::runtime::worldRainPosition(),
+                      bl::runtime::worldWindPosition()};
+    const jsize n = static_cast<jsize>(std::size(v));
+    jintArray out = env->NewIntArray(n);
+    if (out) env->SetIntArrayRegion(out, 0, n, v);
     return out;
 }
 

@@ -29,8 +29,8 @@ class TownNPCLoader {
     static LookFiles(base) {
         const files = {};
         for (const suffix of TownNPCLoader.LOOK_SUFFIXES) {
-            const rel = ModFiles.Texture(base + suffix);
-            if (bl.file.exists(rel)) files[suffix] = bl.mod.path + '/' + rel;
+            const rel = ModFiles.Texture(base + suffix, bl.mod.path);
+            if (bl.file.exists(bl.mod.path + '/' + rel)) files[suffix] = bl.mod.path + '/' + rel;
         }
         return files;
     }

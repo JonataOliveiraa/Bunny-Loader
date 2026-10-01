@@ -35,7 +35,7 @@ export class ExampleChandelier extends ModTile {
         tile.DrawYOffset = -2;
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(235, 166, 135), 'Chandelier');
+        this.AddMapEntry(Color.new(235, 166, 135), 'MapObject.Chandelier');
         this.RegisterItemDrop(ModContent.ItemType('ExampleChandelier'));
     }
 

@@ -71,7 +71,7 @@ export class ExampleMount extends ModMount {
         d.textureWidth = back.Width + 20;
         d.textureHeight = back.Height;
 
-        this.balloonTexture = ModContent.Request('Items/Armor/SimpleAccessory_Balloon');
+        this.balloonTexture = ModContent.Request('Content/Items/Armor/SimpleAccessory_Balloon');
     }
 
     // O vento nos balões e poeira quando corre.

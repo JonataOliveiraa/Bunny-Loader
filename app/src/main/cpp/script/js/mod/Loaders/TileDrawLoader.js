@@ -68,11 +68,15 @@ class TileDrawLoader {
 
             const Main = Terraria.Main;
             const frames = Main.tileFrame, counters = Main.tileFrameCounter;
+            // A cada quadro: o rótulo montado uma vez, e só o que mudou volta pela ponte.
             for (const m of TileLoader.Animated) {
-                const frame = new Ref(frames[m.Type]), counter = new Ref(counters[m.Type]);
-                Safe.Run(m.constructor.name + '.AnimateTile', () => m.AnimateTile(frame, counter));
-                frames[m.Type] = frame.value | 0;
-                counters[m.Type] = counter.value | 0;
+                const t = m.Type;
+                const f0 = frames[t], c0 = counters[t];
+                const frame = new Ref(f0), counter = new Ref(c0);
+                Safe.Run(m.__animateLabel || (m.__animateLabel = m.constructor.name + '.AnimateTile'), () => m.AnimateTile(frame, counter));
+                const f1 = frame.value | 0, c1 = counter.value | 0;
+                if (f1 !== f0) frames[t] = f1;
+                if (c1 !== c0) counters[t] = c1;
             }
         }, { ifBusy: 'original' });
     }

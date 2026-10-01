@@ -69,26 +69,42 @@ void collectScripts(const std::string& base, const std::string& rel, std::vector
 /**
  * O texto de uma chave do manifesto ("id", "name"...), lido a mao: sao tres
  * campos, e puxar um parser de JSON para o nucleo por causa deles nao se paga.
- * A chave so conta seguida de ':' — o mesmo texto entre aspas dentro de um
- * valor nao engana.
+ *
+ * So valem as chaves do objeto de FORA. `authors` tem um "name" por autor, e
+ * um manifesto que lista os autores antes do nome do mod fazia o jogo chamar o
+ * mod pelo nome do primeiro autor. Texto entre aspas (chave ou valor) nunca
+ * conta como chave ou chave/colchete.
  */
 std::string manifestString(const std::string& txt, const char* key) {
-    const std::string quoted = std::string("\"") + key + "\"";
     auto skipSpace = [&](size_t i) {
         while (i < txt.size() && (txt[i] == ' ' || txt[i] == '\t' || txt[i] == '\r' || txt[i] == '\n')) ++i;
         return i;
     };
-    for (size_t k = txt.find(quoted); k != std::string::npos; k = txt.find(quoted, k + 1)) {
-        size_t i = skipSpace(k + quoted.size());
-        if (i >= txt.size() || txt[i] != ':') continue;
-        i = skipSpace(i + 1);
-        if (i >= txt.size() || txt[i] != '"') return {};
-        std::string out;
+    // Le a string que comeca nas aspas de `i`; devolve o indice depois dela.
+    auto readString = [&](size_t i, std::string* out) {
         for (++i; i < txt.size() && txt[i] != '"'; ++i) {
             if (txt[i] == '\\' && i + 1 < txt.size()) ++i;
-            out += txt[i];
+            if (out) *out += txt[i];
         }
-        return out;
+        return i + 1;
+    };
+    int depth = 0;
+    for (size_t i = 0; i < txt.size();) {
+        const char c = txt[i];
+        if (c == '{' || c == '[') { ++depth; ++i; continue; }
+        if (c == '}' || c == ']') { --depth; ++i; continue; }
+        if (c != '"') { ++i; continue; }
+        std::string name;
+        size_t after = readString(i, &name);
+        size_t colon = skipSpace(after);
+        if (depth == 1 && colon < txt.size() && txt[colon] == ':' && name == key) {
+            size_t v = skipSpace(colon + 1);
+            if (v >= txt.size() || txt[v] != '"') return {};
+            std::string out;
+            readString(v, &out);
+            return out;
+        }
+        i = after;
     }
     return {};
 }
@@ -226,13 +242,6 @@ size_t loadedCount() { return registry().size(); }
 LoadedMod* get(uint16_t index) {
     if (index >= registry().size()) return nullptr;
     return &registry()[index];
-}
-
-void disableAtRuntime(uint16_t index) {
-    if (LoadedMod* mod = get(index)) {
-        mod->enabled = false;
-        BL_ERROR("mod %s desativado em runtime (erros demais)", mod->id.c_str());
-    }
 }
 
 } // namespace bl::mods

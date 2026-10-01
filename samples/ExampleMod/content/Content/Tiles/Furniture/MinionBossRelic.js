@@ -14,7 +14,7 @@ export class MinionBossRelic extends ModTile {
     static HorizontalFrames = 1;
     static VerticalFrames = 1;
 
-    Texture = 'Tiles/Furniture/RelicPedestal';
+    Texture = 'Content/Tiles/Furniture/RelicPedestal';
     RelicTexture = null;
 
     SetStaticDefaults() {
@@ -38,8 +38,8 @@ export class MinionBossRelic extends ModTile {
         TileObjectData.addAlternate(1);
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(233, 207, 94), 'Relic');
-        this.RelicTexture = ModContent.Request('Tiles/Furniture/MinionBossRelic');
+        this.AddMapEntry(Color.new(233, 207, 94), 'MapObject.Relic');
+        this.RelicTexture = ModContent.Request('Content/Tiles/Furniture/MinionBossRelic');
     }
 
     CreateDust(i, j, type) {

@@ -171,6 +171,31 @@ class Catalog(private val context: Context) {
         else context.assets.open(path).use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
     }.getOrNull()
 
+    /**
+     * Um arquivo do pacote pelo caminho relativo à raiz dele (`changelog.md`,
+     * `authors/potato.png`, `thumbnails/1.png`). Devolve o caminho no formato
+     * que `loadBitmap`/`readText` entendem, ou null se `rel` tenta sair do
+     * pacote: o caminho vem de um Markdown escrito por terceiros.
+     */
+    fun resolve(entry: Entry, rel: String): String? {
+        return resolvePackagePath(entry.assetDir, entry.onDisk, rel)
+    }
+
+    fun exists(entry: Entry, rel: String): Boolean {
+        val path = resolve(entry, rel) ?: return false
+        return if (path.startsWith("/")) File(path).isFile
+        else runCatching { context.assets.open(path).close() }.isSuccess
+    }
+
+    /** O texto de um arquivo do pacote (UTF-8), ou null se ele não existe. */
+    fun readText(entry: Entry, rel: String): String? {
+        val path = resolve(entry, rel) ?: return null
+        return runCatching {
+            if (path.startsWith("/")) File(path).readText()
+            else context.assets.open(path).use { it.readBytes().decodeToString() }
+        }.getOrNull()?.removePrefix("\uFEFF")
+    }
+
     private fun read(dir: String, name: String): ByteArray =
         context.assets.open("$dir/$name").use { it.readBytes() }
 
@@ -201,7 +226,11 @@ class Catalog(private val context: Context) {
         /**
          * O formato de pacote (.bmod é um zip com isto dentro):
          *
-         *     manifest.json    uid, id, nome, autor, categoria, descrição...
+         *     manifest.json    uid, id, nome, autores, categoria, licença, tema...
+         *     description.md   a aba Descrição da ficha (Markdown)
+         *     changelog.md     a aba Novidades (opcional)
+         *     license.md       a aba Licença (opcional)
+         *     authors/         as fotos dos autores (opcional)
          *     icon.png         ícone do mod, quadrado (opcional; sem ele, o da categoria)
          *     banner.png       capa da vitrine, ~3,4:1 (opcional)
          *     thumbnails/      imagens da vitrine (opcional)
@@ -221,6 +250,10 @@ class Catalog(private val context: Context) {
         const val ICON = "icon.png"
         const val BANNER = "banner.png"
         const val CONTENT = "content"
+        const val DESCRIPTION = "description.md"
+        const val CHANGELOG = "changelog.md"
+        const val LICENSE = "license.md"
+        const val AUTHORS = "authors"
     }
 }
 

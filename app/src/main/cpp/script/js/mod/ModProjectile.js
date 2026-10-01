@@ -46,6 +46,8 @@ class ModProjectile {
     CanCutTiles(proj) { return undefined; }
     CutTiles(proj) {}
     GetAlpha(proj, lightColor) { return undefined; }
+    // false: sem a corrente/linha/fio que o jogo desenha (o gancho desenha a sua aqui).
+    PreDrawExtras(proj) { return true; }
     PreDraw(proj, lightColor) { return true; }
     PostDraw(proj, lightColor) {}
     // No molde, antes de o gancho existir.

@@ -23,7 +23,7 @@ export class ExampleChair extends ModTile {
 
         this.DustType = DustID.Platinum;
         this.AdjTiles = [TileID.Chairs];
-        this.AddMapEntry(Color.new(200, 200, 200), 'Chair');
+        this.AddMapEntry(Color.new(200, 200, 200), 'MapObject.Chair');
 
         TileObjectData.newTile.CopyFrom(TileObjectData.Style1x2);
         TileObjectData.newTile.CoordinateHeights = [16, 18];

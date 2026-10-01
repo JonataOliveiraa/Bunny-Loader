@@ -32,7 +32,10 @@ class WaterStyleLoader {
     static Add(inst) {
         inst.Slot = WaterStyleLoader.TotalCount;
         const base = bl.mod.path + '/';
-        const file = (name) => bl.file.exists(ModFiles.Texture(name)) ? base + ModFiles.Texture(name) : null;
+        const file = (name) => {
+            const rel = ModFiles.Texture(name, bl.mod.path);
+            return bl.file.exists(base + rel) ? base + rel : null;
+        };
         inst.__files = { water: file(inst.Texture), block: file(inst.Texture + '_Block'), slope: file(inst.Texture + '_Slope') };
         WaterStyleLoader.List.push(inst);
         Ready.Add(WaterStyleLoader.#Install);
@@ -259,7 +262,7 @@ class WaterStyleLoader {
         if (!got) return null;
         if (typeof got !== 'string') return got.Value || null;
 
-        const name = ModFiles.Texture(ModFiles.TextureName(got));
+        const name = ModFiles.Texture(ModFiles.TextureName(got), style.Mod);
         const file = (style.Mod ? style.Mod.path + '/' : '') + name;
         let texture = WaterStyleLoader.#rainTextures.get(file);
         if (texture === undefined) {

@@ -65,7 +65,7 @@ class BiomeBestiaryLoader {
     // A textura do mod, ou null (sem o arquivo ou em outro tamanho).
     static #Load(biome, path, width, height) {
         if (typeof path !== 'string' || !path || !biome.Mod) return null;
-        const name = ModFiles.Texture(ModFiles.TextureName(path));
+        const name = ModFiles.Texture(ModFiles.TextureName(path), biome.Mod);
         try {
             const asset = bl.loadTextureAsset(biome.Mod.path + '/' + name);
             const texture = asset.Value;

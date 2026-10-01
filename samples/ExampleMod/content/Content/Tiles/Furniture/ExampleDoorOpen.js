@@ -22,7 +22,7 @@ export class ExampleDoorOpen extends ModTile {
         this.AdjTiles = [TileID.OpenDoor];
         // Quebrada aberta, dá a porta (o item que coloca a fechada).
         this.RegisterItemDrop(ModContent.ItemType('ExampleDoor'), 0);
-        this.AddMapEntry(Color.new(200, 200, 200), 'Door');
+        this.AddMapEntry(Color.new(200, 200, 200), 'MapObject.Door');
 
         const tile = TileObjectData.newTile;
         tile.Width = 2;

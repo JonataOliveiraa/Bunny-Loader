@@ -12,13 +12,14 @@
 //   - DrawSunAndMoon: o sol e a lua do tema, só nos menus;
 //   - a música (ModMusic) e o fundo (SurfaceBackgroundLoader) perguntam aqui.
 // O tema escolhido e os já vistos ficam em BunnyLoader.menu.json, na pasta de
-// saves do jogo. Sem esse arquivo (a primeira vez), abre no primeiro tema de
-// mod; depois, um tema novo só aparece como "(1 novo)" no rodapé.
+// saves do jogo. Sem esse arquivo (a primeira vez), fica o tema do jogo (a
+// música e o título dele); um tema de mod só aparece como "(1 novo)" no rodapé.
 class MenuLoader {
     static List = [];               // os temas de mod, na ordem de registro
     static #vanilla = null;         // "Terraria": o título do jogo, sem mudança
     static #current = null;
     static #switchTo = null;
+    static #chosenByUser = false;   // o tema salvo veio de um toque no rodapé
     static #ready = false;
     static #known = new Set();
     static #logo = null;            // os desenhos do logo do jogo neste quadro
@@ -88,7 +89,7 @@ class MenuLoader {
         return bl.path.join(Terraria.Main.SavePath, 'BunnyLoader.menu.json');
     }
 
-    // O tema salvo; sem arquivo, o primeiro de mod disponível.
+    // O tema salvo; sem arquivo, o do jogo.
     static #Restore() {
         let saved = null;
         const text = Safe.Run('ModMenu: ler o tema salvo', () => bl.file.read(MenuLoader.#File()));
@@ -96,6 +97,10 @@ class MenuLoader {
             try {
                 const data = JSON.parse(text) || {};
                 saved = typeof data.LastSelectedModMenu === 'string' ? data.LastSelectedModMenu : null;
+                MenuLoader.#chosenByUser = data.ChosenByUser === true;
+                // Um tema de mod gravado sem o toque é a escolha automática de
+                // uma versão anterior (abria no primeiro tema de mod): volta o do jogo.
+                if (saved !== null && saved !== 'Terraria' && !MenuLoader.#chosenByUser) saved = 'Terraria';
                 if (Array.isArray(data.KnownMenuThemes)) for (const n of data.KnownMenuThemes) MenuLoader.#known.add(String(n));
             } catch (e) {
                 bl.log('ModMenu: ' + MenuLoader.#File() + ' esta quebrado (' + e + '); fica o tema do jogo');
@@ -105,13 +110,13 @@ class MenuLoader {
 
         const all = MenuLoader.#All();
         let pick = saved !== null ? all.find((m) => MenuLoader.FullName(m) === saved && MenuLoader.#Available(m)) : null;
-        if (!pick && saved === null) pick = MenuLoader.List.find((m) => MenuLoader.#Available(m));
         MenuLoader.#switchTo = pick || MenuLoader.#vanilla;
         MenuLoader.#current = MenuLoader.#vanilla;
     }
 
     static #Save() {
-        const data = { LastSelectedModMenu: MenuLoader.FullName(MenuLoader.#current), KnownMenuThemes: [...MenuLoader.#known] };
+        const data = { LastSelectedModMenu: MenuLoader.FullName(MenuLoader.#current), KnownMenuThemes: [...MenuLoader.#known],
+                       ChosenByUser: MenuLoader.#chosenByUser };
         Safe.Run('ModMenu: gravar o tema', () => bl.file.write(MenuLoader.#File(), JSON.stringify(data)));
     }
 
@@ -123,6 +128,7 @@ class MenuLoader {
             i = (i + offset + all.length) % all.length;
             if (MenuLoader.#Available(all[i])) {
                 MenuLoader.#switchTo = all[i];
+                MenuLoader.#chosenByUser = true;
                 return;
             }
         }

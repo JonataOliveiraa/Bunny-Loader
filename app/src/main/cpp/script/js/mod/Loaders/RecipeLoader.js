@@ -5,9 +5,11 @@ class RecipeLoader {
     static #added = 0;
     static #beyond = 0;
     static #groups = new Map();
+    static #stations = new Set();   // os tiles de mod pedidos como estação
 
-    static Added(index) {
+    static Added(index, station = -1) {
         RecipeLoader.#added++;
+        if (TileLoader.ByType.has(station)) RecipeLoader.#stations.add(station);
 
         if (index >= RecipeLoader.MAX_RECIPES) {
             RecipeLoader.#beyond++;
@@ -29,6 +31,7 @@ class RecipeLoader {
             () => Terraria.Recipe.UpdateWhichItemsAreCrafted(),
             () => Terraria.GameContent.ShimmerTransforms.UpdateRecipeSets(),
             () => Terraria.ID.ContentSamples.FixItemsAfterRecipesAreAdded(),
+            () => TileLoader.SetCraftingStations(RecipeLoader.#stations),
         ];
         for (const step of steps) Safe.Run('receitas', step);
 

@@ -87,6 +87,22 @@ JSValue makeStaticStruct(JSContext* ctx, Il2CppClass* cls, FieldInfo* f, size_t 
 void* structDataOf(JSValueConst v, Il2CppClass** outCls, size_t* outSize);
 
 /**
+ * O parametro `t` (de il2cpp_method_get_param) tem valor padrao no C#
+ * (`Color over = default(Color)`). So para PARAMETRO: num tipo de campo, os
+ * mesmos bits sao os atributos do campo (0x10 la e `static`).
+ */
+bool isOptionalParam(const Il2CppType* t);
+
+/**
+ * `null`/`undefined` num struct opcional: o `default(T)` do C#, zerado, que e
+ * o que o jogo recebe quando o parametro e omitido. O jogo costuma tratar esse
+ * vazio como "use o meu" (`if (over != new Color()) color = over;`).
+ */
+inline bool isDefaultStructArg(JSValueConst v, const TypeDesc& d, bool optional) {
+    return optional && d.prim == Prim::Struct && !d.nullable() && (JS_IsNull(v) || JS_IsUndefined(v));
+}
+
+/**
  * Offset de campo -> offset dentro dos DADOS de um struct.
  *
  * O IL2CPP conta o offset a partir do inicio do OBJETO, cabecalho incluso —

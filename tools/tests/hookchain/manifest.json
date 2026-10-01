@@ -1,0 +1,15 @@
+{
+  "uid": "0421a5a5-0e30-466d-9828-85e0849aa03f",
+  "id": "test-hookchain",
+  "name": "Teste: corrente do gancho",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: o gancho de exemplo lançado várias vezes (QuickGrapple), o PreDrawExtras chamado e a corrente do jogo fora; para olhar na tela.",
+  "description": "Loga 'hookchain ...'.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

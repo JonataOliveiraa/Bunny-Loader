@@ -116,11 +116,14 @@ function round1Static() {
     check('ExampleDerivedPrefix herda e dobra (+40%)', () =>
         sword2.damage === roundEven(base.damage * f(1.4)) || `dano ${sword2.damage}`);
 
+    // As linhas do GetTooltipLines entram no desenho do tooltip (TooltipLoader,
+    // conferido pelo tests/tooltipdraw); o GetLinesInfo é só o do jogo.
     check('tooltip: +% de dano do jogo e as linhas do prefixo', () => {
         const lines = tooltipOf(sword);
-        const joined = lines.join(' | ');
-        const power = lines.some((l) => l[0] === '+' && /Power|Poder/.test(l));
-        const more = lines.some((l) => l[0] === '+' && /More Power|Mais Poder/.test(l));
+        const extra = ModContent.GetModPrefix(ex).GetTooltipLines(sword).map((l) => (l.IsModifier ? '+' : ' ') + l.Text);
+        const joined = lines.concat(extra).join(' | ');
+        const power = extra.some((l) => l[0] === '+' && /Power|Poder/.test(l));
+        const more = extra.some((l) => l[0] === '+' && /More Power|Mais Poder/.test(l));
         const dmg = lines.some((l) => l[0] === '+' && /20%/.test(l));
         return (power && more && dmg) || joined;
     });

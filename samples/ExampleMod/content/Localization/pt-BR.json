@@ -85,7 +85,11 @@
     "ExampleSink": "Pia de Exemplo",
     "ExampleAnimatedTile": "Pote de Vaga-lume de Exemplo",
     "ExampleHerb": "Erva de Exemplo",
-    "ExampleSign": "Placa de Exemplo"
+    "ExampleSign": "Placa de Exemplo",
+    "ExampleWorkbench": "Bancada de Exemplo",
+    "ExampleDresser": "Cômoda de Exemplo",
+    "ExampleChest": "Baú de Exemplo",
+    "ExampleChestLocked": "Baú de Exemplo Trancado"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",

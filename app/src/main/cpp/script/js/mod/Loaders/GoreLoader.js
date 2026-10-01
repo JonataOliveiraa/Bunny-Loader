@@ -1,4 +1,4 @@
-// Como o GoreLoader do tModLoader: todo PNG em Assets/Textures/Gores vira um
+// Como o GoreLoader do tModLoader: todo PNG numa pasta Gores/ do mod vira um
 // tipo novo, com o nome do arquivo.
 class GoreLoader {
     static #byMod = new Map();     // uuid -> Map(nome -> tipo)

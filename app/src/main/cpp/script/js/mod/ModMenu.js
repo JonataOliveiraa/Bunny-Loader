@@ -5,7 +5,7 @@
 // `get Music() { ... }` (como no tModLoader) ou `this.Music = ...`.
 class ModMenu {
     // Logo, SunTexture e MoonTexture: o caminho de uma textura do mod (como
-    // 'Assets/Textures/Menu/ExampleSun') ou um Asset (ModContent.Request);
+    // 'Content/Menu/ExampleSun' ou 'Assets/Textures/Menu/ExampleSun') ou um Asset (ModContent.Request);
     // null = a do jogo. A lua é um quadro só (o MoonTexture do tModLoader).
     // Music: MusicLoader.GetMusicSlot(...) ou um MusicID do jogo; -1 = a do
     // jogo. MenuBackgroundStyle: a instância de um ModSurfaceBackgroundStyle

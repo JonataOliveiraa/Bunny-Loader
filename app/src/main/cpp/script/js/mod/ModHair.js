@@ -1,5 +1,5 @@
 // Um penteado de mod, como o ModHair do tModLoader: a textura da classe
-// (Content/Hairs/X.js -> Assets/Textures/Hairs/X.png) e a _Alt (com chapéu).
+// (Content/Hairs/X.js -> Content/Hairs/X.png) e a _Alt (com chapéu).
 // Aparece na criação de personagem (AvailableDuringCharacterCreation) e no
 // Cabeleireiro quando as condições valem (GetUnlockConditions: objetos com
 // IsMet(), ou funções). IsUnlocked(naCriacao, noCabeleireiro), do ExMod,

@@ -7,6 +7,7 @@
 #include <atomic>
 #include <cstdint>
 #include <string>
+#include <vector>
 #endif
 
 namespace bl::script {
@@ -77,6 +78,16 @@ std::atomic<uint8_t>* hookMarks(const std::string& name);
 // couber na convencao de chamada que sabemos reproduzir. Ver JsHook.cpp.
 bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
                    bool isInstance, JSValueConst callback, const HookFilter* filter = nullptr);
+
+// Quantas chamadas cada hook JS recebeu desde a instalacao: `calls` no
+// despacho (inclusive as que o filtro devolve direto ao jogo), `js` no callback.
+struct HookStat {
+    std::string name;
+    uint64_t calls = 0;
+    uint64_t js = 0;
+    uint64_t jsNs = 0;   // tempo no callback, sem o original()
+};
+std::vector<HookStat> hookStats();
 
 #endif
 

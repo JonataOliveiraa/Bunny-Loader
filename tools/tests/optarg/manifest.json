@@ -1,0 +1,15 @@
+{
+  "uid": "6232075a-8031-4c3b-85d1-32276de60955",
+  "id": "test-optarg",
+  "name": "Teste: método solto e struct opcional",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Método solto do Main.spriteBatch chama no dono; null num struct com valor padrão (Color newColor = default) vira o default(T), na chamada e no original() de um hook.",
+  "description": "Loga 'optarg ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -1,0 +1,15 @@
+{
+  "uid": "8aa14001-1b5e-4352-8225-d278bbe99d02",
+  "id": "test-bgreset",
+  "name": "Teste: fundo de mod que some",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: uma cena sempre ativa põe o fundo de superfície de exemplo na tela e loga, a cada segundo, o estilo, os arrays de textura e de transparência e o LocalUserGameState. Para achar quando o fundo some (segundo plano, troca de usuário, qualidade das texturas).",
+  "description": "Loga 'bgreset ...'.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

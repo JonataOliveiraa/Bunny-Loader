@@ -66,8 +66,8 @@ class BiomeLoader {
             });
             Terraria.Player['void UpdateBiomes()'].hook((original, self) => {
                 original(self);
-                BiomeLoader.UpdateBiomes(self);
-                SceneEffectLoader.UpdateSceneEffect(self);
+                const flags = BiomeLoader.UpdateBiomes(self);
+                SceneEffectLoader.UpdateSceneEffect(self, flags);
             });
 
             ModNet.Install();
@@ -178,21 +178,36 @@ class BiomeLoader {
 
     // Um IsBiomeActive que lança vale false nesta avaliação (o OnLeave roda se
     // estava dentro).
+    // Roda a cada quadro: os rótulos e o que a classe sobrescreve, uma vez só.
+    static #plans = new Map();
+    static #Plan(biome) {
+        let plan = BiomeLoader.#plans.get(biome);
+        if (!plan) {
+            const cls = biome.constructor, name = cls.name;
+            const own = (method) => (Hooks.Overrides(cls, ModBiome, method) ? name + '.' + method : null);
+            plan = { active: name + '.IsBiomeActive', enter: own('OnEnter'), inBiome: own('OnInBiome'), leave: own('OnLeave') };
+            BiomeLoader.#plans.set(biome, plan);
+        }
+        return plan;
+    }
+
+    // Devolve as flags deste quadro (a cena as usa sem ler de novo).
     static UpdateBiomes(player) {
         const flags = BiomeLoader.#FlagsOf(player);
         let changed = false;
         for (const biome of BiomeLoader.List) {
-            const name = biome.constructor.name;
+            const plan = BiomeLoader.#Plan(biome);
             const before = flags[biome.Type] === 1;
-            const now = Safe.Run(name + '.IsBiomeActive', () => biome.IsBiomeActive(player)) === true;
+            const now = Safe.Run(plan.active, () => biome.IsBiomeActive(player)) === true;
             flags[biome.Type] = now ? 1 : 0;
             if (before !== now) changed = true;
 
-            if (!before && now) Safe.Run(name + '.OnEnter', () => biome.OnEnter(player));
-            else if (before && !now) Safe.Run(name + '.OnLeave', () => biome.OnLeave(player));
-            if (now) Safe.Run(name + '.OnInBiome', () => biome.OnInBiome(player));
+            if (!before && now) { if (plan.enter) Safe.Run(plan.enter, () => biome.OnEnter(player)); }
+            else if (before && !now) { if (plan.leave) Safe.Run(plan.leave, () => biome.OnLeave(player)); }
+            if (now && plan.inBiome) Safe.Run(plan.inBiome, () => biome.OnInBiome(player));
         }
 
         if (changed && Terraria.Main.netMode !== 0) Safe.Run('rede: biomas', () => BiomeLoader.#Send(player, -1, -1));
+        return flags;
     }
 }

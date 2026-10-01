@@ -458,6 +458,19 @@ int hfaOf(Il2CppClass* cls, bool* isDouble) {
     return count;
 }
 
+bool isOptionalParam(const Il2CppType* t) {
+    if (!t) return false;
+    constexpr uint32_t kOptional = 0x0010;     // PARAM_ATTRIBUTE_OPTIONAL
+    constexpr uint32_t kHasDefault = 0x1000;   // PARAM_ATTRIBUTE_HAS_DEFAULT
+    auto& a = il2cpp::api();
+    // Sem a exportacao: os atributos sao os 16 bits baixos depois do `data`
+    // (refs/il2cpp.h: { void* data; unsigned int bits; }).
+    const uint32_t attrs = a.type_get_attrs
+        ? a.type_get_attrs(t)
+        : *reinterpret_cast<const uint32_t*>(reinterpret_cast<const char*>(t) + sizeof(void*)) & 0xFFFFu;
+    return (attrs & (kOptional | kHasDefault)) != 0;
+}
+
 // ============================ ler / escrever ============================
 
 namespace {

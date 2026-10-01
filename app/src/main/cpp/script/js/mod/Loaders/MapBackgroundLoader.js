@@ -28,7 +28,8 @@ class MapBackgroundLoader {
     static Texture(effect, path) {
         const mod = effect.Mod;
         if (!mod || typeof path !== 'string' || path === '') return null;
-        const file = mod.path + '/' + ModFiles.Texture(ModFiles.TextureName(path));
+        const rel = ModFiles.Texture(ModFiles.TextureName(path), mod);
+        const file = mod.path + '/' + rel;
 
         let asset = MapBackgroundLoader.#assets.get(file);
         if (asset === undefined) {
@@ -36,7 +37,7 @@ class MapBackgroundLoader {
             try {
                 asset = bl.loadTextureAsset(file);
             } catch (e) {
-                bl.log(`fundo do mapa de ${effect.constructor.name}: sem ${ModFiles.Texture(ModFiles.TextureName(path))} (${e})`);
+                bl.log(`fundo do mapa de ${effect.constructor.name}: sem ${rel} (${e})`);
             }
             MapBackgroundLoader.#assets.set(file, asset);
         }

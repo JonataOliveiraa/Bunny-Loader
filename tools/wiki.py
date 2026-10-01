@@ -49,6 +49,7 @@ PAGES = {
     "docs/mods/10-sons-e-musica.md": "Sons-e-música",
     "docs/mods/11-conversa-entre-mods.md": "Conversa-entre-mods",
     "docs/mods/12-globais-e-mundo.md": "Globais-e-mundo",
+    "docs/mods/13-pagina-do-pacote.md": "Página-do-pacote",
     "docs/referencia/classes.md": "Referência-das-classes",
     "docs/referencia/ponte-e-bl.md": "Referência-da-ponte-e-bl",
     "docs/nucleo/README.md": "Núcleo",
@@ -80,6 +81,7 @@ SIDEBAR = [
         ("Sons-e-música", "10. Sons e música"),
         ("Conversa-entre-mods", "11. Conversa entre mods"),
         ("Globais-e-mundo", "12. Globais e o mundo"),
+        ("Página-do-pacote", "13. A página do pacote"),
     ]),
     ("Referência", [
         ("Referência-das-classes", "O que cada classe tem hoje"),

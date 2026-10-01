@@ -123,6 +123,10 @@ const void* jsOwnerHook();
 /** Marca o hook em que quem esta com o motor entrou. Devolve o de fora. */
 const void* setJsOwnerHook(const void* method);
 
+/** Para o log: quem esta com o motor, e o nome de um hook (JsHook.cpp). */
+std::string describeJsOwnerForLog();
+std::string describeHookForLog(const void* method);
+
 // Registra NativeClass / NativeObject / NativeMethod / NativeArray / tl.* no
 // contexto. Implementado em Bindings.cpp.
 void installBindings(void* context);

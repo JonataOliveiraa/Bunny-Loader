@@ -249,7 +249,7 @@ O que acontece quando o `ContentAutoload` acha `export class ExampleSword extend
 ```mermaid
 flowchart TB
     A["ContentAutoload acha<br/>class ExampleSword extends ModItem"] --> R["ModItem.register(ExampleSword)<br/>(ModItem.js)"]
-    R --> T["cria o molde: new ExampleSword()<br/>acha a textura (Assets/Textures/Items/ExampleSword.png)"]
+    R --> T["cria o molde: new ExampleSword()<br/>acha a textura (Content/Items/ExampleSword.png)"]
     R --> N["bl.items.register({ name, texture, setDefaults, setStaticDefaults })<br/>(C++: script/api/Items.cpp)"]
     N --> ID["reserva o tipo: 6196 + ordem de registro<br/>(o tipo já existe; dá para usar no topo do arquivo)"]
     R --> H["ItemLoader.Hook(ExampleSword)<br/>(Loaders/ItemLoader.js)"]

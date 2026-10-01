@@ -24,7 +24,8 @@ namespace {
 constexpr int kPowerCount = static_cast<int>(Power::Count);
 
 // Quantos niveis cada poder tem, na ordem do enum. Liga/desliga = 1.
-constexpr int kMaxLevel[] = {3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 3, 3, 1, 2, 1, 1, 1, 2, 4, 1};
+constexpr int kMaxLevel[] = {3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, kSliderLevels, kSliderLevels, 1,
+                             kSliderLevels, 1, 1, 1, 2, 4, 1, 1};
 static_assert(std::size(kMaxLevel) == kPowerCount, "um nivel maximo por poder");
 
 // Indice 0 = desligado.
@@ -51,20 +52,30 @@ constexpr int kGraceStillFrames = 10;
 // Teto de lacaios e sentinelas. O ResetEffects parte de 1 e os acessorios somam.
 constexpr int32_t kUnlimitedMinions = 999;
 
-// Main.maxRaining por nivel. O ChangeRain do jogo sorteia de 0,2 a 0,9. "Chuva"
-// fica abaixo de 0,5, onde comeca a tempestade (_maxRain), para os dois niveis
-// nao virarem o mesmo num dia de vento.
-constexpr float kRainStrength[] = {0.f, 0.2f, 0.45f, 0.9f};
-constexpr int kStorm = 3;
-// Tempestade e nuvem >= 0,5 E |vento| >= 0,4 (Main.UpdateWindyDayState). Sem o
-// poder do vento ligado, a tempestade garante este minimo.
+// As barras (chuva, vento, inimigos): o nivel e a posicao 0..100 mais um.
+float sliderPosition(int level) { return static_cast<float>(level - 1) / 100.f; }
+
+// A barra da chuva e o Main.maxRaining (o ChangeRain do jogo sorteia de 0,2 a
+// 0,9). Do ultimo quarto em diante e tempestade: nuvem >= 0,5 E |vento| >= 0,4
+// (Main.UpdateWindyDayState), entao sem o poder do vento ligado a tempestade
+// garante este minimo de vento.
+constexpr float kStormRain = 0.75f;
 constexpr float kStormWind = 0.6f;
 // O UpdateTime para a chuva quando rainTime zera; mantido acima disto, nunca.
 constexpr int32_t kRainTimeFloor = 3600;
-// |Main.windSpeedTarget| por nivel: calmo, brisa, ventania. O slider da Jornada
-// vai de -0,8 a 0,8. O empurrao no jogador (Player.HorizontalMovement) so olha o
-// sinal e um limiar, entao passar de 0,8 so mudaria o desenho.
-constexpr float kWindStrength[] = {0.f, 0.f, 0.25f, 0.8f};
+// O vento da barra vai de -0,8 a 0,8, como o slider da Jornada. O empurrao no
+// jogador (Player.HorizontalMovement) so olha o sinal e um limiar, entao
+// passar de 0,8 so mudaria o desenho.
+constexpr float kMaxWind = 0.8f;
+float windOf(int level) { return (sliderPosition(level) * 2.f - 1.f) * kMaxWind; }
+
+// A taxa de inimigos: a curva do SpawnRateSliderPerPlayerPower da Jornada
+// (meio da barra x1, de x0,1 a x10), e a ponta esquerda sem inimigo nenhum.
+float spawnMultiplierOf(int level) {
+    const float t = sliderPosition(level);
+    if (t <= 0.f) return 0.f;
+    return t < 0.5f ? 0.1f + (t / 0.5f) * 0.9f : 1.f + ((t - 0.5f) / 0.5f) * 9.f;
+}
 
 // Ids de NPC percorridos no bestiario. Os negativos (variantes) descem a -65.
 constexpr int32_t kFirstNpcNetId = -128;
@@ -116,7 +127,7 @@ constexpr int kWorldResyncFrames = 60;
 bool isWorldPower(Power p) {
     switch (p) {
     case Power::TimeStop: case Power::Rain: case Power::Wind: case Power::NoSpawns:
-    case Power::Hardmode: case Power::Difficulty:
+    case Power::Hardmode: case Power::Difficulty: case Power::ClearEnemies:
         return true;
     default:
         return false;
@@ -133,7 +144,7 @@ bool usesResetHook(Power p) {
     case Power::TimeStop: case Power::XRay: case Power::Rain: case Power::Wind:
     case Power::Bestiary: case Power::NoSpawns: case Power::MapTeleport:
     case Power::ClearInventory: case Power::RevealMap: case Power::Hardmode:
-    case Power::Difficulty: case Power::FastRespawn:
+    case Power::Difficulty: case Power::FastRespawn: case Power::ClearEnemies:
         return false;
     default:
         return true;
@@ -200,7 +211,7 @@ struct WorldRefs {
     FieldInfo *hardMode = nullptr, *netMode = nullptr, *maxTilesX = nullptr, *maxTilesY = nullptr,
         *npc = nullptr, *player = nullptr;
     const MethodInfo *getGameMode = nullptr, *setGameMode = nullptr, *skipToTime = nullptr,
-        *startHardmode = nullptr, *spawnNpc = nullptr, *getMap = nullptr, *setRefreshMap = nullptr,
+        *startHardmode = nullptr, *spawnNpc = nullptr, *getSpawnRate = nullptr, *getMap = nullptr, *setRefreshMap = nullptr,
         *updateLighting = nullptr, *turnToAir = nullptr, *teleport = nullptr,
         *solidCollision = nullptr, *getMapFullscreen = nullptr, *getTouchCount = nullptr,
         *getTouch = nullptr, *getDeviceWidth = nullptr, *getDeviceHeight = nullptr,
@@ -349,6 +360,10 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
 
     W.npc = findField(main, "npc");
     W.spawnNpc = npc ? a.class_get_method_from_name(npc, "SpawnNPC", 0) : nullptr;
+    Il2CppClass* spawner = npc ? findNested(npc, "Spawner") : nullptr;
+    W.getSpawnRate = spawner ? methodBySignature(spawner,
+        "void GetSpawnRate(Player player, out int spawnRate, out int maxSpawns)") : nullptr;
+    if (!W.getSpawnRate) BL_ERROR("poderes: sem NPC.Spawner.GetSpawnRate (a taxa fica so liga/desliga)");
     if (npc) {
         W.npcActive = fieldOffset(npc, "active");
         W.npcTown = fieldOffset(npc, "townNPC");
@@ -728,7 +743,6 @@ void holdClock() {
 // para desfazer a chuva e esquecer a direcao do vento.
 int g_rainApplied = 0;
 int g_windApplied = 0;
-float g_windSign = 1.f;
 
 /**
  * Chuva e vento sao estaticos do Main, escritos a cada quadro antes do
@@ -744,24 +758,25 @@ void holdWeather() {
     const int rain = world ? levelOf(Power::Rain) : 0;
     const int wind = world ? levelOf(Power::Wind) : 0;
 
-    if (rain > 0) {
+    const float strength = rain > 0 ? sliderPosition(rain) : 0.f;
+    if (strength > 0.f) {
         writeStatic<bool>(M.raining, true);
         if (readStatic<int32_t>(M.rainTime) < kRainTimeFloor) writeStatic(M.rainTime, kRainTimeFloor);
-        writeStatic(M.maxRaining, kRainStrength[rain]);
-        writeStatic(M.cloudAlpha, kRainStrength[rain]);
-    } else if (g_rainApplied > 0 && world) {
+        writeStatic(M.maxRaining, strength);
+        writeStatic(M.cloudAlpha, strength);
+    } else if (rain > 0 || (g_rainApplied > 0 && world)) {
+        // A ponta esquerda da barra segura o ceu seco; desligar so para a chuva.
         writeStatic<int32_t>(M.rainTime, 0);
         writeStatic<bool>(M.raining, false);
         writeStatic(M.maxRaining, 0.f);
     }
     g_rainApplied = rain;
 
-    // A direcao e a do vento de quando o poder ligou; o poder so muda a forca.
+    // A barra do vento tem o lado: a esquerda sopra para a esquerda.
     float target = NAN;
     if (wind > 0) {
-        if (g_windApplied == 0) g_windSign = readStatic<float>(M.windTarget) < 0.f ? -1.f : 1.f;
-        target = g_windSign * kWindStrength[wind];
-    } else if (rain == kStorm) {
+        target = windOf(wind);
+    } else if (strength >= kStormRain) {
         const float now = readStatic<float>(M.windTarget);
         if (std::fabs(now) < kStormWind) target = (now < 0.f ? -1.f : 1.f) * kStormWind;
     }
@@ -895,17 +910,23 @@ State installLightHooks() {
 std::atomic<int> g_timeRequest{-1};
 std::atomic<int> g_stateHardmode{-1};
 std::atomic<int> g_stateGameMode{-1};
+std::atomic<int> g_stateClock{-1};
+std::atomic<int> g_stateRain{-1};
+std::atomic<int> g_stateWind{-1};
 
 // O estado do mundo sai todo quadro, com poder ligado ou nao: o menu mostra
 // hardmode e dificuldade assim que abre. Refs proprias, e so duas.
 State g_stateRefs = State::NotTried;
 FieldInfo* g_stateHardMode = nullptr;
 const MethodInfo* g_stateGetGameMode = nullptr;
+FieldInfo *g_stateTime = nullptr, *g_stateDayTime = nullptr, *g_stateRaining = nullptr,
+    *g_stateMaxRaining = nullptr, *g_stateWindTarget = nullptr;
 
 void updateWorldState() {
     if (!inWorld()) {
-        g_stateHardmode.store(-1, std::memory_order_relaxed);
-        g_stateGameMode.store(-1, std::memory_order_relaxed);
+        for (auto* v : {&g_stateHardmode, &g_stateGameMode, &g_stateClock, &g_stateRain, &g_stateWind}) {
+            v->store(-1, std::memory_order_relaxed);
+        }
         return;
     }
     if (g_stateRefs == State::NotTried) {
@@ -913,12 +934,32 @@ void updateWorldState() {
         g_stateHardMode = main ? il2cpp::findField(main, "hardMode") : nullptr;
         g_stateGetGameMode =
             main ? il2cpp::api().class_get_method_from_name(main, "get_GameMode", 0) : nullptr;
-        g_stateRefs = g_stateHardMode && g_stateGetGameMode ? State::Ok : State::Failed;
+        if (main) {
+            g_stateTime = il2cpp::findField(main, "time");
+            g_stateDayTime = il2cpp::findField(main, "dayTime");
+            g_stateRaining = il2cpp::findField(main, "raining");
+            g_stateMaxRaining = il2cpp::findField(main, "maxRaining");
+            g_stateWindTarget = il2cpp::findField(main, "windSpeedTarget");
+        }
+        g_stateRefs = g_stateHardMode && g_stateGetGameMode && g_stateTime && g_stateDayTime &&
+                      g_stateRaining && g_stateMaxRaining && g_stateWindTarget
+                          ? State::Ok : State::Failed;
         if (g_stateRefs == State::Failed) BL_ERROR("poderes: estado do mundo sem refs");
     }
     if (g_stateRefs != State::Ok) return;
     g_stateHardmode.store(readStatic<bool>(g_stateHardMode) ? 1 : 0, std::memory_order_relaxed);
     g_stateGameMode.store(callStatic<int32_t>(g_stateGetGameMode), std::memory_order_relaxed);
+
+    // A hora no relogio: o inverso do clockToGameTime.
+    const int32_t t = static_cast<int32_t>(readStatic<double>(g_stateTime));
+    const int32_t s = readStatic<bool>(g_stateDayTime) ? t + 16200 : (t + 70200) % 86400;
+    g_stateClock.store(std::clamp(s / 60, 0, 1439), std::memory_order_relaxed);
+    const float rain = readStatic<bool>(g_stateRaining) ? readStatic<float>(g_stateMaxRaining) : 0.f;
+    g_stateRain.store(std::clamp(static_cast<int>(std::lround(rain * 100.f)), 0, 100),
+                      std::memory_order_relaxed);
+    const float wind = readStatic<float>(g_stateWindTarget) / kMaxWind;
+    g_stateWind.store(std::clamp(static_cast<int>(std::lround((wind + 1.f) * 50.f)), 0, 100),
+                      std::memory_order_relaxed);
 }
 
 /** O botao de hora: o mesmo SkipToTime dos botoes da Jornada. */
@@ -934,8 +975,20 @@ void broadcastWorld(bool time) {
     if (time) sendData(kMsgTimeSync, 0);
 }
 
-void applyTimeOfDay(int which) {
-    TimeOfDay t = kTimesOfDay[which];
+/**
+ * O relogio do jogo conta do amanhecer (4:30) de dia e do anoitecer (19:30)
+ * de noite: 54000 s de dia e 32400 de noite, um dia de 24 h.
+ */
+TimeOfDay clockToGameTime(int minute) {
+    constexpr int32_t kDawn = 16200, kDusk = 70200, kDay = 86400;
+    const int32_t s = minute * 60;
+    if (s >= kDawn && s < kDusk) return {s - kDawn, true};
+    return {(s - kDusk + kDay) % kDay, false};
+}
+
+void applyTimeOfDay(int request) {
+    TimeOfDay t = request >= kClockRequest ? clockToGameTime(request - kClockRequest)
+                                           : kTimesOfDay[request];
     Il2CppObject* exc = nullptr;
     void* args[] = {&t.time, &t.day};
     il2cpp::api().runtime_invoke(W.skipToTime, nullptr, args, &exc);
@@ -992,8 +1045,28 @@ StaticVoidFn g_origSpawnNpc = nullptr;
 
 /** NPC.SpawnNPC e o spawn natural inteiro; chefe invocado e evento nao passam por ele. */
 void hkSpawnNPC(const MethodInfo* m) {
-    if (levelOf(Power::NoSpawns) > 0) return;
+    const int level = levelOf(Power::NoSpawns);
+    if (level > 0 && spawnMultiplierOf(level) <= 0.f) return;
     g_origSpawnNpc(m);
+}
+
+/**
+ * A taxa no meio do calculo do jogo, onde a Jornada aplica a dela: o
+ * NPC.Spawner.GetSpawnRate devolve o intervalo (menor = mais vezes) e o teto
+ * de inimigos por jogador; a taxa divide o primeiro e multiplica o segundo.
+ */
+using SpawnRateFn = void (*)(Il2CppObject*, Il2CppObject*, int32_t*, int32_t*, const MethodInfo*);
+SpawnRateFn g_origSpawnRate = nullptr;
+State g_spawnRateHook = State::NotTried;
+
+void hkGetSpawnRate(Il2CppObject* self, Il2CppObject* player, int32_t* rate, int32_t* max,
+                    const MethodInfo* m) {
+    g_origSpawnRate(self, player, rate, max, m);
+    const int level = levelOf(Power::NoSpawns);
+    const float mult = level > 0 ? spawnMultiplierOf(level) : 1.f;
+    if (mult <= 0.f || mult == 1.f || !rate || !max) return;
+    *rate = std::max<int32_t>(1, static_cast<int32_t>(*rate / mult));
+    *max = std::max<int32_t>(1, static_cast<int32_t>(*max * mult));
 }
 
 /**
@@ -1204,6 +1277,7 @@ void tickWorldPowers() {
     const bool reveal = g_level[static_cast<int>(Power::RevealMap)].exchange(0) > 0;
     const int hardmode = g_level[static_cast<int>(Power::Hardmode)].exchange(0);
     const int difficulty = g_level[static_cast<int>(Power::Difficulty)].exchange(0);
+    const bool clearEnemies = g_level[static_cast<int>(Power::ClearEnemies)].exchange(0) > 0;
     if (!inWorld()) {
         g_revealX = -1;
         g_hold.down = false;
@@ -1220,7 +1294,11 @@ void tickWorldPowers() {
     if (spawns > 0 && g_spawnRefs && g_spawnHook == State::NotTried) {
         g_spawnHook = installHook("NPC.SpawnNPC", W.spawnNpc, &hkSpawnNPC, &g_origSpawnNpc);
     }
-    if (spawns == 2 && g_spawnRefs) clearHostiles();
+    if (spawns > 0 && W.getSpawnRate && g_spawnRateHook == State::NotTried) {
+        g_spawnRateHook = installHook("NPC.Spawner.GetSpawnRate", W.getSpawnRate, &hkGetSpawnRate,
+                                      &g_origSpawnRate);
+    }
+    if (clearEnemies && g_spawnRefs) clearHostiles();
     if (levelOf(Power::MapTeleport) > 0 && g_teleportRefs) watchMapHold();
     else g_hold.down = false;
 }
@@ -1248,7 +1326,7 @@ void forwardWorldPowers() {
     }
     const int time = g_timeRequest.exchange(-1, std::memory_order_relaxed);
     if (time >= 0) sendToServer("time " + std::to_string(time));
-    for (Power p : {Power::Hardmode, Power::Difficulty}) {
+    for (Power p : {Power::Hardmode, Power::Difficulty, Power::ClearEnemies}) {
         const int v = g_level[static_cast<int>(p)].exchange(0);
         if (v > 0) sendToServer("power " + std::to_string(static_cast<int>(p)) + " " + std::to_string(v));
     }
@@ -1299,13 +1377,18 @@ void setPower(int id, int level) {
     g_level[id].store(level, std::memory_order_relaxed);
 }
 
-void setTimeOfDay(int which) {
-    if (which < 0 || which >= static_cast<int>(std::size(kTimesOfDay))) return;
-    g_timeRequest.store(which, std::memory_order_relaxed);
+void setTimeOfDay(int request) {
+    const bool button = request >= 0 && request < static_cast<int>(std::size(kTimesOfDay));
+    const bool clock = request >= kClockRequest && request < kClockRequest + 1440;
+    if (!button && !clock) return;
+    g_timeRequest.store(request, std::memory_order_relaxed);
 }
 
 int worldHardmode() { return g_stateHardmode.load(std::memory_order_relaxed); }
 int worldGameMode() { return g_stateGameMode.load(std::memory_order_relaxed); }
+int worldClockMinute() { return g_stateClock.load(std::memory_order_relaxed); }
+int worldRainPosition() { return g_stateRain.load(std::memory_order_relaxed); }
+int worldWindPosition() { return g_stateWind.load(std::memory_order_relaxed); }
 
 void tickPowers() {
     updateWorldState();

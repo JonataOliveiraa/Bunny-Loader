@@ -1,6 +1,12 @@
 package dev.bunnyloader.mods
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonTransformingSerializer
 
 /**
  * manifest.json — o que o pacote diz sobre si mesmo.
@@ -29,13 +35,32 @@ data class ModManifest(
     val id: String,
     val name: String,
     val version: String,
+    /** Forma antiga e curta de `authors`: um nome só. */
     val author: String = "",
+    /**
+     * Quem fez o mod, na ordem em que aparecem. Cada um é um nome solto
+     * (`"Fulano"`) ou um objeto com foto, papel, cor e link (ver Author). A
+     * foto mora em `authors/` no pacote.
+     */
+    @Serializable(with = AuthorListSerializer::class)
+    val authors: List<Author> = emptyList(),
     /** Textura, Armas, Jogabilidade, Cheat, Utilidade... O pacote escolhe. */
     val category: String = "Mod",
     /** Uma linha, para o cartão da lista. */
     val summary: String = "",
-    /** Parágrafo, para a tela do mod. */
+    /**
+     * Texto da ficha quando o pacote não tem `description.md`. É a forma
+     * antiga: o Markdown ganha (títulos, listas, imagens, cores).
+     */
     val description: String = "",
+    /** Nome curto da licença ("MIT", "CC BY-NC 4.0"); o texto vai em `license.md`. */
+    val license: String = "",
+    /** Botões de link na ficha: código-fonte, Discord, vídeo... */
+    val links: List<PackLink> = emptyList(),
+    /** Abas a mais na ficha, cada uma um `.md` do pacote. */
+    val pages: List<PackPage> = emptyList(),
+    /** Cores da ficha do mod. Campo vazio = a cor do launcher. */
+    val theme: PackTheme = PackTheme(),
     /** AAAA-MM-DD da última atualização. */
     val updated: String = "",
     /** Pede lugar no destaque da tela inicial. */
@@ -52,6 +77,23 @@ data class ModManifest(
     val dependencies: List<String> = emptyList(),
 ) {
     val hasValidUid: Boolean get() = isValidUid(uid)
+
+    /** `authors`, ou o `author` antigo quando a lista não veio. */
+    val credits: List<Author>
+        get() = authors.filter { it.name.isNotBlank() }.ifEmpty {
+            if (author.isBlank()) emptyList() else listOf(Author(author))
+        }
+
+    /** "A, B e C" — a linha "por ..." dos cartões. */
+    val authorLine: String
+        get() {
+            val names = credits.map { it.name }
+            return when (names.size) {
+                0 -> "autor desconhecido"
+                1 -> names[0]
+                else -> names.dropLast(1).joinToString(", ") + " e " + names.last()
+            }
+        }
 
     /** Pacote de um formato que este Bunny Loader não carrega mais. */
     val isOutdated: Boolean get() = blVersion < ModRepository.MIN_BL_VERSION
@@ -75,5 +117,67 @@ data class ModManifest(
         )
 
         fun isValidUid(uid: String): Boolean = UID.matches(uid)
+    }
+}
+
+/**
+ * Um autor do pacote.
+ *
+ * `avatar` é o nome do arquivo dentro de `authors/` (`"potato.png"`); sem ele,
+ * o app procura `authors/<nome>.png` e `authors/<nome-em-minusculas-com-hifen>.png`.
+ * Sem foto nenhuma, a ficha desenha a inicial do nome.
+ */
+@Serializable
+data class Author(
+    val name: String,
+    /** "Código", "Arte", "Port para o Bunny Loader"... */
+    val role: String = "",
+    val avatar: String = "",
+    /** Cor do nome, `#RRGGBB`. */
+    val color: String = "",
+    val link: String = "",
+)
+
+@Serializable
+data class PackLink(
+    val title: String,
+    val url: String,
+)
+
+/** Uma aba a mais na ficha: o título e o `.md` do pacote que ela mostra. */
+@Serializable
+data class PackPage(
+    val title: String,
+    val file: String,
+)
+
+/**
+ * As cores da ficha, todas `#RRGGBB` (ou `#AARRGGBB`). Vale só dentro da
+ * ficha deste mod; a lista e o resto do launcher seguem a paleta do app.
+ */
+@Serializable
+data class PackTheme(
+    /** Aba escolhida, links, títulos de seção e o destaque do changelog. */
+    val accent: String = "",
+    /** Fundo dos painéis da ficha. */
+    val panel: String = "",
+    /** Texto corrido. */
+    val text: String = "",
+    /** Títulos (#, ##, ###) do Markdown. */
+    val heading: String = "",
+)
+
+/**
+ * Aceita `"authors": "Fulano"`, `["Fulano", "Ciclano"]` e a lista de objetos.
+ * O nome solto é o caso comum, e exigir objeto para ele só daria trabalho a
+ * quem faz mod sozinho.
+ */
+object AuthorListSerializer :
+    JsonTransformingSerializer<List<Author>>(ListSerializer(Author.serializer())) {
+    override fun transformDeserialize(element: JsonElement): JsonElement {
+        val items = if (element is JsonArray) element else JsonArray(listOf(element))
+        return JsonArray(items.map {
+            if (it is JsonPrimitive) JsonObject(mapOf("name" to it)) else it
+        })
     }
 }

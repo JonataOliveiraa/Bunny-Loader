@@ -3,10 +3,38 @@
   "id": "examplemod",
   "name": "Example Mod",
   "version": "1.8.0",
-  "author": "Bunny Loader",
+  "authors": [
+    {
+      "name": "Potato",
+      "role": "Port para o Bunny Loader",
+      "avatar": "potato.png",
+      "color": "#E8C170",
+      "link": "https://github.com/JonataOliveiraa"
+    },
+    {
+      "name": "GST378",
+      "role": "ExMod do TL Pro",
+      "avatar": "gst378.png",
+      "color": "#FFFFFF",
+      "link": "https://youtube.com/@gst_378"
+    },
+    {
+      "name": "Animatak_",
+      "role": "ExMod do TL Pro",
+      "avatar": "animatak.png",
+      "color": "#841FFF",
+      "link": "https://discord.com/invite/tl-pro-402880167737032705"
+    },
+    {
+      "name": "tModLoader Team",
+      "role": "O ExampleMod original",
+      "color": "#7FC8FF",
+      "link": "https://github.com/tModLoader/tModLoader"
+    }
+  ],
   "category": "Itens",
   "summary": "Itens, armas, armaduras (conjunto com bônus, fantasia, manto, máscara do chefe), asas, acessórios, três prefixos, poção, NPC, buffs, blocos e móveis (bancada, mesa, cadeira, porta, cama, baú, cômoda, tocha, lustre, fogueira, caixa de música...), dois pets, um lacaio, uma sentinela, a Pessoa (moradora com loja) e um chefe, o Olho de ???, com música própria.",
-  "description": "Uma parte do ExampleMod do tModLoader, refeita para o Bunny Loader. Tudo é conteúdo NOVO, sem trocar nada do jogo, e aparece no Mod Menu, na pasta Itens do mod. Os blocos: o Bloco de Exemplo sai por receita (1 Exemplo de Item na bancada dá 10) e o Minério de Exemplo pelo Mod Menu; a Pia de Exemplo (1 Exemplo de Item na bancada) é um móvel 2x2 que conta como água para as receitas. Os móveis do ExampleMod do tModLoader vêm juntos: a Bancada de Exemplo (bancada + 10 Exemplos de Item) faz cadeira, mesa, cama, porta, baú, relógio, lustre, tocha e o resto; a cadeira senta, a cama marca o nascimento, a porta abre, o baú guarda, a fogueira dá o buff, e a caixa de música toca a música do chefe. As armaduras aparecem no corpo: o Capacete, o Peitoral e as Calças de Exemplo formam um conjunto (+20% de dano), as Asas de Exemplo voam, a Barba pinta com a cor do cabelo, a Fantasia de Exemplo transforma quem a veste num boneco quadrado perto dos moradores e o Manto cobre as pernas; o Olho de ??? pode soltar a máscara dele. Os prefixos do Exemplo aparecem na reforja e no item criado (+20% e +40% de dano em qualquer arma, +4 de defesa no acessório), e a Arma de Exemplo de Várias Categorias pega os prefixos de corpo a corpo e de magia. Os pets (Aviãozinho e Luz Irritante) vão no slot de pet e de luz; o Cajado do Lacaio e o da Sentinela invocam quem luta por você. A Pessoa se muda para uma casa quando alguém tem o Exemplo de Item, conversa, vende armas do mod (uma delas na moeda do Exemplo de Item) e defende a vila. O Olho de ??? nasce à noite com o item de invocação (10 Exemplos de Item no Altar Demoníaco) e traz a própria música; a Arma de Exemplo tem o próprio som de tiro. Itens, blocos e moradores ficam salvos no personagem e no mundo, e o mundo continua abrindo sem o mod.",
+  "license": "MIT",
   "updated": "2026-09-27",
   "blVersion": 2,
   "gameVersion": [
@@ -14,5 +42,21 @@
     301720
   ],
   "entry": "main.js",
-  "dependencies": []
+  "dependencies": [],
+  "links": [
+    {
+      "title": "ExampleMod original",
+      "url": "https://github.com/tModLoader/tModLoader/tree/stable/ExampleMod"
+    },
+    {
+      "title": "Wiki do tModLoader",
+      "url": "https://github.com/tModLoader/tModLoader/wiki"
+    }
+  ],
+  "pages": [
+    {
+      "title": "Receitas",
+      "file": "docs/receitas.md"
+    }
+  ]
 }

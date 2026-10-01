@@ -21,6 +21,31 @@ class ItemLoader {
     static #shooting = null;
     static #drawingWorldItem = -1;     // o whoami do Main.DrawItem em curso
     static #opening = null;            // o item sendo aberto: o NPC de mentira e para onde vão os itens
+    static #openable = new Set();      // os tipos de mod que abrem (CanRightClick)
+
+    // UseItem que devolveu true: o item conta como usado, como no tModLoader
+    // (ApplyItemTime). O jogo só gasta o consumível com o tempo de uso aplicado
+    // (itemTime == itemTimeMax); um item que só age no UseItem (a invocação de
+    // chefe) nunca o teria. O tempo entra logo depois do ItemCheck_OwnerOnlyCode,
+    // onde o tModLoader chama o UseItem: antes da conta do consumo no mesmo quadro.
+    static #usedByPlayer = new Map();   // whoAmI -> Item
+
+    static MarkUsed(player, item, result) {
+        if (result !== true) return;
+        ItemLoader.#usedByPlayer.set(player.whoAmI, item);
+        Hooks.Once('item.UseTime', () => {
+            Terraria.Player['void ItemCheck_OwnerOnlyCode(ref Player.ItemCheckContext context, Item sItem, int weaponDamage, Rectangle heldItemFrame)'].hook(
+                (original, self, context, sItem, weaponDamage, frame) => {
+                    original();
+                    const used = ItemLoader.#usedByPlayer;
+                    if (!used.size) return;
+                    const item = used.get(self.whoAmI);
+                    if (!item) return;
+                    used.delete(self.whoAmI);
+                    if (self.ItemTimeIsZero && self.itemAnimation > 0) self['void ApplyItemTime(Item sItem)'](item);
+                });
+        });
+    }
 
     static WantAccessoryPairs() {
         Hooks.Once('item.AccessoryPairs', () => Safe.Run('pares de acessórios', ItemLoader.#HookAccessoryPairs));
@@ -70,7 +95,10 @@ class ItemLoader {
             const openable = Terraria.ID.ItemID.Sets.OpenableBag;
             for (const [type, m] of ItemLoader.ByType) {
                 if (!Hooks.Overrides(m.constructor, ModItem, 'CanRightClick')) continue;
-                if (Safe.Run(m.constructor.name + '.CanRightClick', () => m.CanRightClick(ItemLoader.Sample(type)))) openable[type] = true;
+                if (Safe.Run(m.constructor.name + '.CanRightClick', () => m.CanRightClick(ItemLoader.Sample(type)))) {
+                    openable[type] = true;
+                    ItemLoader.#openable.add(type);
+                }
             }
         });
 
@@ -78,6 +106,16 @@ class ItemLoader {
             const m = ItemLoader.Of(item);
             return m ? ItemLoader.#Open(m, item, player) : original(item, player);
         }, { minType: FIRST_ITEM, on: 0 });
+
+        // Os controles de toque: o botão "Abrir" do inventário sai da lista
+        // de bolsas do jogo (GUIPageOptions.CanBeOpened), e a categoria do
+        // item decide os botões de usar; a das bolsas (NonFireItems) os trava.
+        GUIPageOptions['bool CanBeOpened(Item SelectedItem)'].hook((original, item) =>
+            ItemLoader.#openable.has(item.type) || original(item), { minType: FIRST_ITEM, on: 0 });
+
+        VirtualControllerInputState['VirtualControllerInputState.Category GetItemCategory(int item)'].hook((original, type) =>
+            ItemLoader.#openable.has(type) ? VirtualControllerInputState.Category.NonFireItems : original(type),
+            { minType: FIRST_ITEM, arg: 0 });
 
         // As regras do jogo soltam "no NPC". Durante a abertura, o NPC é de
         // mentira e o item vai para o jogador pelo QuickSpawnItem, que é como o
@@ -252,7 +290,7 @@ class ItemLoader {
                 original(self, item);
 
                 const m = of(item);
-                if (m) Safe.Run(m.constructor.name + '.UseItem', () => m.UseItem(item, self));
+                if (m) ItemLoader.MarkUsed(self, item, Safe.Run(m.constructor.name + '.UseItem', () => m.UseItem(item, self)));
             }, onItem(0));
         });
 
@@ -342,7 +380,9 @@ class ItemLoader {
             }, { minType: FIRST_ITEM, on: -1 });
         });
 
-        if (has('ModifyTooltips')) Hooks.Once('item.Tooltips', TooltipLoader.Install);
+        if (['ModifyTooltips', 'PreDrawTooltip', 'PostDrawTooltip', 'PreDrawTooltipLine', 'PostDrawTooltipLine'].some(has)) {
+            Hooks.Once('item.Tooltips', TooltipLoader.Install);
+        }
 
         if (has('ModifyFishingLine')) Hooks.Once('item.FishingLine', ItemLoader.#HookFishingLine);
 
@@ -456,6 +496,8 @@ class ItemLoader {
         return w && w.inner === item ? w : null;
     }
 
+    // O jogo chama o DrawItem para os 400 espaços a cada quadro: o filtro
+    // nativo pelo tipo do Item de dentro (inner.type) deixa só o de mod entrar no JS.
     static #HookDrawItem() {
         Terraria.Main['void DrawItem(WorldItem item, int whoami)'].hook((original, self, item, whoami) => {
             const outer = ItemLoader.#drawingWorldItem;
@@ -465,7 +507,7 @@ class ItemLoader {
             } finally {
                 ItemLoader.#drawingWorldItem = outer;
             }
-        });
+        }, { minType: FIRST_ITEM, on: 0, field: 'inner.type' });
     }
 
     // A linha da vara sai do mountedCenter; o deslocamento entra por ele e a

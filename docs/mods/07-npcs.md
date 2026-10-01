@@ -287,7 +287,7 @@ pelo jogo.
 
 ### Gore
 
-Todo PNG em `Assets/Textures/Gores/` do mod vira um gore, com o nome do arquivo:
+Todo PNG numa pasta `Gores/` do mod (`Content/Gores/`, `Content/NPCs/Gores/`...) vira um gore, com o nome do arquivo:
 
 ```js
 const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];

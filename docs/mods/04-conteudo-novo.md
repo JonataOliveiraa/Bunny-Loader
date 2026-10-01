@@ -63,8 +63,8 @@ ExampleMod/
 ```
 
 O `main.js` só tem a classe do mod. Toda classe exportada em `Content/` e
-`Common/` é registrada sozinha, e a textura dela é a do mesmo caminho em
-`Assets/Textures/` ([README](README.md#o-registro-automático)).
+`Common/` é registrada sozinha, e a textura dela fica **ao lado do arquivo**,
+com o mesmo nome, como no tModLoader ([README](README.md#o-registro-automático)).
 
 ## Estender e registrar
 
@@ -72,7 +72,7 @@ Uma classe de conteúdo é uma classe JS que estende a base e sobrescreve os
 métodos que interessam:
 
 ```js
-// content/Content/Items/ExampleItem.js  (textura: Assets/Textures/Items/ExampleItem.png)
+// content/Content/Items/ExampleItem.js  (textura: Content/Items/ExampleItem.png)
 export class ExampleItem extends ModItem {
     SetDefaults() {
         this.Item.maxStack = ModItem.CommonMaxStack;
@@ -167,16 +167,17 @@ Todo modelo tem `this.Mod`, o `Mod` de quem registrou.
 As texturas do mod carregam na primeira chamada; as seguintes reusam a mesma:
 
 ```js
-const asset = ModContent.Request('brilho');     // Assets/Textures/brilho.png, Asset<Texture2D>
-const tex = asset.Value;                         // a Texture2D
-const mesma = ModContent.Texture('brilho');      // atalho para o .Value
+const asset = ModContent.Request('Assets/Textures/brilho');   // Asset<Texture2D>
+const tex = asset.Value;                                       // a Texture2D
+const mesma = ModContent.Texture('Content/Items/Espada_Glow'); // atalho para o .Value
 ```
 
 - `Request` devolve o `Asset<Texture2D>` **do jogo**, do mesmo tipo que as
   tabelas `TextureAssets` guardam: dá para pôr numa delas.
-- O caminho é dentro de `Assets/Textures/`, com ou sem `.png`: `'Items/Espada'`
-  acha `Assets/Textures/Items/Espada.png` (`'Textures/Items/Espada'` e o caminho
-  inteiro também valem). `'outromod/...'` pega de outro mod.
+- O caminho é o do arquivo no mod, com ou sem `.png`, como no tModLoader:
+  `'Content/Items/Espada'`, `'Assets/Textures/brilho'`. Com o id de um mod na
+  frente (`'examplemod/Content/...'`), pega de outro mod. Os caminhos dos mods
+  de antes, dentro de `Assets/Textures/` (`'Items/Espada'`), também valem.
   `ModContent.HasAsset(caminho)` diz se existe.
 - Carrega sempre na hora (como o `ImmediateLoad` do tModLoader), e só na
   **thread do jogo**: num hook, no `SetStaticDefaults` ou no
@@ -270,18 +271,31 @@ Um nome que a classe já tem (campo ou método do jogo) vence o do mod.
 
 ## Texturas
 
-As texturas moram em `content/Assets/Textures/`. Sem nada escrito, a de uma
-classe é a do **mesmo caminho do arquivo dela**: `Content/Items/ExampleItem.js`
-usa `Assets/Textures/Items/ExampleItem.png`. Não achou ali, vale o primeiro PNG
-com o nome da classe em `Assets/Textures/`. Para outra, o campo `Texture`, o
-caminho dentro de `Assets/Textures/` **sem** `.png`:
+Como no tModLoader, a textura de uma classe fica **ao lado do arquivo dela**,
+com o mesmo nome: `Content/Items/ExampleItem.js` usa
+`Content/Items/ExampleItem.png`. As derivadas ficam do lado também
+(`ExampleItem_Glow.png`, `ExampleHelmet_Head.png`, `ExampleWorkbench_Highlight.png`).
+Isso é só o padrão: `Texture` escolhe outro arquivo, o caminho no mod **sem**
+`.png`, em qualquer pasta:
 
 ```js
+// como o `public override string Texture => "...";` do tModLoader
+get Texture() { return 'Content/Items/ExampleItem'; }   // a imagem de outro item
+
+// ou no construtor
 constructor() {
     super();
-    this.Texture = 'Items/ExampleItem';   // usa a imagem de outro item
+    this.Texture = 'Arte/Espadas/Lamina';
 }
 ```
+
+O id do mod na frente também vale (`'examplemod/Content/Items/ExampleItem'`).
+`Assets/` fica para o que não é de uma classe: fundos, sons, música e o que o mod
+carrega por conta própria (`ModContent.Request`).
+
+Os mods de antes guardavam as texturas em `Assets/Textures/`, no espelho do
+arquivo (`Content/Items/X.js` -> `Assets/Textures/Items/X.png`). Se o arquivo
+não está ao lado do `.js`, vale o de lá (e o log avisa uma vez por mod).
 
 | Conteúdo | Formato |
 |---|---|
@@ -362,7 +376,7 @@ jogo, em *Itens*, *NPCs* e *Buffs*):
 Para separar em mais pastas:
 
 ```js
-const armas = bl.menu.itemCategory('Armas', 'Assets/Textures/Items/ExampleGun.png');
+const armas = bl.menu.itemCategory('Armas', 'Content/Items/Weapons/Ranged/ExampleGun.png');
 bl.menu.addItem(armas, ModItem.getTypeByName('ExampleGun'));
 ```
 
@@ -494,9 +508,10 @@ O formato é o mesmo, com as diferenças do JavaScript e do celular:
 | `public class ExampleMod : Mod` | `export default class ExampleMod extends Mod` no `main.js` |
 | `public class X : ModItem` | `export class X extends ModItem` (em `Content/`, registrada sozinha) |
 | `[Autoload(false)]` | `static Autoload = false` |
-| textura ao lado do `.cs` | textura em `Assets/Textures/`, no mesmo caminho do `.js` |
+| textura ao lado do `.cs` | textura ao lado do `.js` (o mesmo nome) |
 | `Item.damage = 10;` | `this.Item.damage = 10;` |
 | `ModContent.ItemType<X>()` | `ModContent.ItemType(X)` |
+| `public override string Texture => "...";` | `get Texture() { return '...'; }` |
 | `ref int damage` | `Ref` com `.value` ([guia 2](02-ref-e-out.md)) |
 | `Texture => "Mod/Items/X"` | `this.Texture = 'Items/X'` |
 | `.hjson` | `Localization/<idioma>.json` |

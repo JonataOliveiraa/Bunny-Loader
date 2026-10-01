@@ -373,6 +373,12 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 330) check('caixa equipada', checkEquipped);
 
     // A porta: o jogador encosta (abre), se afasta (fecha); o morador passa; o fio.
+    // Noite fixa: de dia, na superfície, o goblin (AI_003) não mira o jogador e
+    // anda a esmo, e o morador (AI_007) quase não anda; o teste dependia da hora.
+    if (frames > 330 && frames <= 1650) {
+        Main.dayTime = false;
+        if (Main.time > 30000) Main.time = 0;
+    }
     if (frames > 330 && frames <= 390) pushIntoDoor();
     if (frames === 390) check('porta: abre sozinha com o jogador encostando (DoorOpeningHelper)', () =>
         doorOpen() || JSON.stringify(doorState()));

@@ -1,6 +1,7 @@
 # _sprites/ — sprites do jogo, por ID
 
-Extraidos de um dump de imagens do Terraria 1.4.5 e renomeados para o **ID**,
+Extraidos de um dump de imagens do Terraria 1.4.5 (os itens 6145 a 6195 e os
+buffs 389 a 400, da 1.4.5.8 do celular) e renomeados para o **ID**,
 que e a chave que o menu de cheats tem em maos:
 
 ```
@@ -9,7 +10,7 @@ npc/50.png      NPC_50.png     -> King Slime
 buff/3.png      Buff_3.png     -> Regeneracao
 ```
 
-`item/` tem 6083 arquivos, `npc/` 697 e `buff/` 388 — 3,9 MB somados. O nome de cada um NAO
+`item/` tem 6134 arquivos, `npc/` 697 e `buff/` 400 — 4 MB somados. O nome de cada um NAO
 vem daqui: vem do proprio jogo, pela Localization (`Lang.GetItemNameValue`),
 entao sai no idioma do aparelho e nunca desatualiza.
 

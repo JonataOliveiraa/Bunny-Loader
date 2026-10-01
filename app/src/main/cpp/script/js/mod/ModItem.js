@@ -23,11 +23,18 @@ class ModItem {
     PostSetupContent() {}
     ModifyTooltipLines() {}
     ModifyTooltips(item, tooltips) {}
+    // O desenho do tooltip (DrawableTooltipLine: X, Y, Font, Color, BaseScale...).
+    // x, y e yOffset são Ref; false no Pre não desenha.
+    PreDrawTooltip(item, lines, x, y) { return true; }
+    PostDrawTooltip(item, lines) {}
+    PreDrawTooltipLine(item, line, yOffset) { return true; }
+    PostDrawTooltipLine(item, line) {}
     AddRecipeGroups() {}
     AddRecipes() {}
     OnCraft(item, player, recipe) {}
 
     CanUseItem(item, player) { return true; }
+    // true: o item conta como usado (tempo de uso; o consumível é gasto).
     UseItem(item, player) {}
     // Abrir o item no inventário (bolsa de chefe, caixa): true deixa abrir. O
     // que sai: as regras do ModifyItemLoot (e o RightClick, para o resto).

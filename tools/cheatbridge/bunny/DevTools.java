@@ -48,6 +48,7 @@ import static bunny.CheatBridge.INK_DIM;
 import static bunny.CheatBridge.OUTLINE;
 import static bunny.CheatBridge.PANEL;
 import static bunny.CheatBridge.PANEL_DARK;
+import static bunny.CheatBridge.BUTTON;
 import static bunny.CheatBridge.PANEL_LIT;
 import static bunny.CheatBridge.SCRIM;
 import static bunny.CheatBridge.applyTextSize;
@@ -105,11 +106,11 @@ final class DevTools {
             row.setVisibility(View.GONE);
             return row;
         }
-        View restart = pill(act, icon(act, bloom(act), 18), "Reiniciar", PANEL_DARK, 9f);
+        View restart = pill(act, icon(act, bloom(act), 18), "Reiniciar", BUTTON, 9f);
         restart.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { confirmRestart(act); }
         });
-        View console = pill(act, consoleBadge(act, 10), "Editor", PANEL_DARK, 9f);
+        View console = pill(act, consoleBadge(act, 10), "Editor", BUTTON, 9f);
         console.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if (CheatBridge.sOverlay != null) CheatBridge.sOverlay.setVisibility(View.GONE);
@@ -151,7 +152,7 @@ final class DevTools {
         LinearLayout b = new LinearLayout(act);
         b.setOrientation(LinearLayout.HORIZONTAL);
         b.setGravity(Gravity.CENTER);
-        b.setBackground(panel(act, fill, OUTLINE));
+        b.setBackground(fill == BUTTON ? CheatBridge.actionBackground(act, false) : panel(act, fill, OUTLINE));
         int side = size < 11f ? 3 : 7;
         b.setPadding(px(act, side), 0, px(act, side), 0);
         if (iconView != null) b.addView(iconView);
@@ -219,7 +220,7 @@ final class DevTools {
             @Override public void onClick(View v) { startRestart(act, card, false); }
         });
         buttons.addView(plain, buttonParams(act));
-        View cancel = pill(act, null, "Cancelar", PANEL_DARK);
+        View cancel = pill(act, null, "Cancelar", BUTTON);
         cancel.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { closeRestartDialog(); }
         });
@@ -467,7 +468,7 @@ final class DevTools {
             head.addView(iconButton(a, arrow(a, 90), "Próximo", new Runnable() {
                 @Override public void run() { history(+1); }
             }));
-            head.addView(textButton(a, "Limpar", PANEL_DARK, new Runnable() {
+            head.addView(textButton(a, "Limpar", BUTTON, new Runnable() {
                 @Override public void run() { clearOutput(); }
             }));
             if (CheatBridge.sRestartOn) {
@@ -475,11 +476,11 @@ final class DevTools {
                     @Override public void run() { saveDraft(); hideKeyboard(); confirmRestart(act); }
                 }));
             }
-            fullButton = textButton(a, "Tela cheia", PANEL_DARK, new Runnable() {
+            fullButton = textButton(a, "Tela cheia", BUTTON, new Runnable() {
                 @Override public void run() { setFullscreen(!fullscreen); }
             });
             head.addView(fullButton);
-            head.addView(textButton(a, "_", PANEL_DARK, new Runnable() {
+            head.addView(textButton(a, "_", BUTTON, new Runnable() {
                 @Override public void run() { minimize(); }
             }));
             head.addView(iconButton(a, icon(a, sprite(a, "ic_fechar"), 20), "Fechar", new Runnable() {
@@ -549,7 +550,7 @@ final class DevTools {
             });
             editRow.addView(editor, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             // O play do launcher (ic_start): o mesmo desenho do botao Jogar.
-            LinearLayout runButton = pill(a, icon(a, sprite(a, "ic_start"), 26), null, PANEL_DARK);
+            LinearLayout runButton = pill(a, icon(a, sprite(a, "ic_start"), 26), null, BUTTON);
             runButton.setContentDescription("Rodar");
             runButton.setMinimumWidth(px(a, 44));
             runButton.setOnClickListener(new View.OnClickListener() {
@@ -820,7 +821,7 @@ final class DevTools {
 
         private View iconButton(Activity a, View iconView, String description, final Runnable action) {
             FrameLayout b = new FrameLayout(a);
-            b.setBackground(panel(a, PANEL_DARK, OUTLINE));
+            b.setBackground(CheatBridge.actionBackground(a, false));
             b.setContentDescription(description);
             FrameLayout.LayoutParams il = new FrameLayout.LayoutParams(px(a, 20), px(a, 20));
             il.gravity = Gravity.CENTER;
@@ -837,7 +838,7 @@ final class DevTools {
         private TextView textButton(Activity a, String label, int fill, final Runnable action) {
             TextView t = text(a, label, 10, INK);
             t.setGravity(Gravity.CENTER);
-            t.setBackground(panel(a, fill, OUTLINE));
+            t.setBackground(fill == BUTTON ? CheatBridge.actionBackground(a, false) : panel(a, fill, OUTLINE));
             t.setPadding(px(a, 8), 0, px(a, 8), 0);
             t.setMinWidth(px(a, 30));
             t.setOnClickListener(new View.OnClickListener() {

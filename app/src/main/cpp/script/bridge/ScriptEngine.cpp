@@ -153,8 +153,14 @@ JsSuspend::~JsSuspend() {
     if (!released_) return;
     // Espera sem prazo, de proposito: nao ha o que fazer com um "desistir" aqui
     // — a nossa chamada JS esta no meio e precisa terminar de desempilhar. E
-    // espera pouco: quem esta com o motor so o segura enquanto roda JS.
-    g_jsMutex.lock();
+    // espera pouco: quem esta com o motor so o segura enquanto roda JS. Passou
+    // de 5 s, e quase certo um impasse: o log diz quem esta com o motor.
+    if (!g_jsMutex.try_lock_for(std::chrono::seconds(5))) {
+        BL_ERROR("motor JS: a thread %d espera o motor ha 5 s para voltar do original de %s; com o motor: %s",
+                 static_cast<int>(gettid()), describeHookForLog(hook_).c_str(), describeJsOwnerForLog().c_str());
+        g_jsMutex.lock();
+        BL_ERROR("motor JS: a thread %d voltou a ter o motor", static_cast<int>(gettid()));
+    }
     if (g_frameSlot) *g_frameSlot = frames_;
     JsThread& t = t_js;
     markOwner(t);

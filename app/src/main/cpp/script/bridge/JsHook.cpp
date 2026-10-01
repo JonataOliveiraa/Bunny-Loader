@@ -20,6 +20,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <time.h>
 #include <utility>
 #include <vector>
 
@@ -116,6 +117,8 @@ struct HookCtx {
     // Filtro nativo (HookFilter): o x onde vem o objeto, e o offset do campo.
     int filterReg = -1;
     int32_t filterOffset = -1;
+    // `field: 'inner.type'`: o offset da referencia a seguir antes (-1 = direto).
+    int32_t filterDeref = -1;
     int32_t filterMin = 0;
     Prim filterPrim = Prim::I32;   // o campo pode ser byte/short (Item.prefix)
     // HookFilter::whileIn: o slot do hook de fora; -1 = sem esse filtro.
@@ -153,6 +156,8 @@ struct Frame {
     uint64_t d[8];
     bool ranOriginal = false;
     Outcome originalResult;
+    // Quanto do callback foi o metodo do jogo (original()): fora do tempo do JS.
+    int64_t originalNs = 0;
 };
 // NUNCA segure `Frame&` atravessando uma chamada ao jogo: o original pode
 // disparar outro hook nesta thread, o push_back realoca o vector e a
@@ -174,6 +179,25 @@ static thread_local int g_depth[kMaxHooks];
 // threads num jogo congelado.
 constexpr int kLockTimeoutMs = 3000;
 static std::atomic<bool> g_lockWarned[kMaxHooks];
+
+// Contagem por hook, para o bl.hookStats (medir o que cada hook custa): as
+// chamadas que chegam ao despacho e as que chegam ao JS. Soma sem troca
+// atomica (ler e gravar relaxado): o numero e estatistica, e um incremento
+// perdido entre threads nao importa; uma RMW em todo SpriteBatch.Draw, sim.
+static std::atomic<uint64_t> g_calls[kMaxHooks];
+static std::atomic<uint64_t> g_jsCalls[kMaxHooks];
+// O tempo do callback sem o do original(): o que o mod custa, em ns.
+static std::atomic<uint64_t> g_jsNs[kMaxHooks];
+
+static inline int64_t nowNs() {
+    timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return static_cast<int64_t>(t.tv_sec) * 1000000000 + t.tv_nsec;
+}
+
+static inline void bump(std::atomic<uint64_t>& n) {
+    n.store(n.load(std::memory_order_relaxed) + 1, std::memory_order_relaxed);
+}
 
 /** `Classe.Metodo`, para o log. */
 static std::string hookName(const MethodInfo* m) {
@@ -202,6 +226,11 @@ static std::string describeJsOwner() {
     const auto* m = static_cast<const MethodInfo*>(jsOwnerHook());
     return "thread " + std::to_string(tid) + " (" + threadName(tid) + "), " +
            (m ? "no hook " + hookName(m) : std::string("fora de hook (carga de mod ou de conteudo)"));
+}
+
+std::string describeJsOwnerForLog() { return describeJsOwner(); }
+std::string describeHookForLog(const void* method) {
+    return method ? hookName(static_cast<const MethodInfo*>(method)) : std::string("(fora de hook)");
 }
 
 // s0-s7: as 8 primeiras casas da PILHA de argumentos (o 9o inteiro em
@@ -293,7 +322,9 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     }
 
     g_frames[frame].ranOriginal = true;
+    const int64_t t0 = nowNs();
     const Outcome result = callOriginal(c, a, d);   // pode empilhar outros frames
+    g_frames[frame].originalNs += nowNs() - t0;
     g_frames[frame].originalResult = result;
     return outcomeToJs(c->ctx, c->abi, result);
 }
@@ -304,6 +335,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     Outcome result;
     if (slot < 0 || slot >= kMaxHooks) return result;
     HookCtx* c = &g_hooks[slot];
+    bump(g_calls[slot]);
 
     const intptr_t rawA[kIntSlots] = {a0, a1, a2, a3, a4, a5, a6, a7, s0, s1, s2, s3, s4, s5, s6, s7};
     const double rawF[8] = {f0, f1, f2, f3, f4, f5, f6, f7};
@@ -332,6 +364,11 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     }
     if (c->filterReg >= 0) {
         auto* o = reinterpret_cast<const uint8_t*>(rawA[c->filterReg]);
+        if (o && c->filterDeref >= 0) {
+            const uint8_t* inner = nullptr;
+            std::memcpy(&inner, o + c->filterDeref, sizeof(inner));
+            o = inner;
+        }
         int32_t v = 0;
         if (o) v = readFilterField(o + c->filterOffset, c->filterPrim);
         if (!o || v < c->filterMin) return callOriginal(c, rawA, rawD);
@@ -360,6 +397,8 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     }
     const void* outerHook = setJsOwnerHook(c->method);
     ++g_depth[slot];
+    bump(g_jsCalls[slot]);
+    const int64_t jsStart = nowNs();
 
     JSContext* ctx = c->ctx;
     Frame f{c, {}, {}};
@@ -433,6 +472,11 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     for (int i = 0; i < argc; ++i) JS_FreeValue(ctx, argv[i]);
     JS_FreeValue(ctx, ret);
 
+    const int64_t spent = nowNs() - jsStart - g_frames.back().originalNs;
+    if (spent > 0) {
+        g_jsNs[slot].store(g_jsNs[slot].load(std::memory_order_relaxed) + static_cast<uint64_t>(spent),
+                           std::memory_order_relaxed);
+    }
     g_frames.pop_back();
     --g_depth[slot];
     setJsOwnerHook(outerHook);
@@ -544,7 +588,20 @@ static std::string resolveFilter(HookCtx& c, const HookFilter& f) {
         c.filterReg = p.reg;
         cls = p.d.cls;
     }
-    FieldInfo* field = cls ? il2cpp::findField(cls, f.field) : nullptr;
+    // `ref.campo`: um nivel de referencia (a WorldItem guarda o Item em `inner`).
+    std::string name = f.field;
+    const size_t dot = name.find('.');
+    if (dot != std::string::npos) {
+        const std::string ref = name.substr(0, dot);
+        FieldInfo* rf = cls ? il2cpp::findField(cls, ref) : nullptr;
+        if (!rf) return "filtro: campo '" + ref + "' nao existe";
+        const Il2CppType* rt = api.field_get_type(rf);
+        if (describe(rt).byValue) return "filtro: o campo '" + ref + "' tem de ser uma referencia";
+        c.filterDeref = static_cast<int32_t>(api.field_get_offset(rf));
+        cls = api.class_from_il2cpp_type(rt);
+        name = name.substr(dot + 1);
+    }
+    FieldInfo* field = cls ? il2cpp::findField(cls, name) : nullptr;
     if (!field) return "filtro: campo '" + f.field + "' nao existe";
     c.filterOffset = static_cast<int32_t>(api.field_get_offset(field));
     c.filterMin = f.minType;
@@ -657,7 +714,29 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
     return false;
 }
 
+std::vector<HookStat> hookStats() {
+    std::vector<HookStat> out;
+    for (int i = 0; i < kMaxHooks; ++i) {
+        if (!g_hooks[i].used) continue;
+        HookStat s;
+        // Com os tipos: as sobrecargas do SpriteBatch.Draw tem o mesmo nome.
+        s.name = hookName(g_hooks[i].method) + "(";
+        for (size_t k = 0; k < g_hooks[i].abi.params.size(); ++k) {
+            if (k) s.name += ", ";
+            s.name += g_hooks[i].abi.params[k].d.name;
+        }
+        s.name += ")";
+        s.calls = g_calls[i].load(std::memory_order_relaxed);
+        s.js = g_jsCalls[i].load(std::memory_order_relaxed);
+        s.jsNs = g_jsNs[i].load(std::memory_order_relaxed);
+        out.push_back(std::move(s));
+    }
+    return out;
+}
+
 #else // arquitetura != arm64: hook JS indisponivel (stub)
+
+std::vector<HookStat> hookStats() { return {}; }
 
 bool installJsHook(JSContext* ctx, const MethodInfo*, int, bool, JSValueConst, const HookFilter*) {
     JS_ThrowInternalError(ctx, "hook JS: so implementado em arm64");

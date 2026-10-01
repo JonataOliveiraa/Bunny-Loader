@@ -216,7 +216,12 @@ class ProjectileLoader {
 
         if (has('CanUseGrapple') || has('UseGrapple')) Hooks.Once('proj.Grapple', ProjectileLoader.#HookGrapple);
 
-        if (has('PreDraw') || has('PostDraw')) Hooks.Once('proj.Draw', ProjectileLoader.#HookDraw);
+        if (has('PreDraw') || has('PostDraw') || has('PreDrawExtras')) Hooks.Once('proj.Draw', ProjectileLoader.#HookDraw);
+        // Os filtros de desenho do PreDrawExtras passam por todo SpriteBatch.Draw:
+        // só com o PreDrawExtras, ou com um PreDraw num projétil que tem extras
+        // (conferido depois do SetDefaults dele).
+        if (has('PreDrawExtras')) Hooks.Once('proj.DrawExtras', ProjectileLoader.#HookDrawExtras);
+        else if (has('PreDraw')) Ready.Add(() => ProjectileLoader.#CheckExtras(cls));
     }
 
     static #HookKill() {
@@ -294,11 +299,83 @@ class ProjectileLoader {
                 ? lightAt(Math.floor(c.X / 16), Math.floor(c.Y / 16))
                 : Color.White;
 
-            if (Safe.Run(n + '.PreDraw', () => m.PreDraw(p, light)) === false) return undefined;
+            // Como no tModLoader: os extras (correntes, linha, fio) antes do
+            // PreDraw, e o PostDraw mesmo com o PreDraw false.
+            const wantsExtras = !Hooks.Overrides(m.constructor, ModProjectile, 'PreDrawExtras') ||
+                Safe.Run(n + '.PreDrawExtras', () => m.PreDrawExtras(p)) !== false;
+            const hasExtras = ProjectileLoader.#HasExtras(p);
+            const extras = wantsExtras && hasExtras;
+            const sprite = Safe.Run(n + '.PreDraw', () => m.PreDraw(p, light)) !== false;
 
-            original(main, p, player);
+            // Só uma das partes do desenho do jogo: precisa dos filtros. Sem
+            // eles (a classe não tinha extras no SetDefaults), o PreDraw false
+            // tira tudo, e o PreDrawExtras false não acontece (instala sempre).
+            const split = ProjectileLoader.#extrasHooked && hasExtras && sprite !== extras;
+            if (sprite || split) {
+                if (split) {
+                    const own = Terraria.GameContent.TextureAssets.Projectile[p.type].Value;
+                    ProjectileLoader.#split = { own: bl.addressOf(own), extras, sprite, reached: false };
+                }
+                try {
+                    original(main, p, player);
+                } finally {
+                    ProjectileLoader.#split = null;
+                }
+            }
             Safe.Run(n + '.PostDraw', () => m.PostDraw(p, light));
             return undefined;
         }, { minType: FIRST_PROJECTILE, on: 0 });
+    }
+
+    // Os extras do DrawProj_DrawExtras do tModLoader: a linha de pesca e as
+    // correntes das IAs de gancho (7), arpão (13), mangual (15) e o fio do ioiô (99).
+    static #HasExtras(p) {
+        const ai = p.aiStyle;
+        return p.bobber || ai === 7 || ai === 13 || ai === 15 || ai === 99;
+    }
+
+    // Só uma das partes do desenho do jogo (extras sem sprite ou o contrário).
+    static #split = null;
+    static #extrasHooked = false;
+
+    // Um projétil com PreDraw e sem PreDrawExtras: os filtros só se a IA dele
+    // tiver extras (o PreDraw false deixa a corrente do jogo).
+    static #CheckExtras(cls) {
+        if (ProjectileLoader.#extrasHooked) return;
+        for (const [type, inst] of ProjectileLoader.ByType) {
+            if (inst.constructor !== cls) continue;
+            const needs = Safe.Run(cls.name + ' (extras)', () => {
+                const p = Terraria.Projectile.new();
+                p['void .ctor()']();
+                p['void SetDefaults(int Type)'](type);
+                return ProjectileLoader.#HasExtras(p);
+            });
+            if (needs) Hooks.Once('proj.DrawExtras', ProjectileLoader.#HookDrawExtras);
+            return;
+        }
+    }
+
+    // No celular os extras estão dentro do DrawProjDirect, sem método à parte,
+    // e vêm antes do sprite: até o primeiro desenho com a textura do próprio
+    // projétil, é extra; dali em diante, sprite.
+    static #HookDrawExtras() {
+        ProjectileLoader.#extrasHooked = true;
+        const gate = Terraria.Main['void DrawProjDirect(Projectile proj, Player overridePlayer)'];
+        const pass = (texture) => {
+            const split = ProjectileLoader.#split;
+            if (!split) return true;
+            if (!split.reached && bl.addressOf(texture) === split.own) split.reached = true;
+            return split.reached ? split.sprite : split.extras;
+        };
+        const Main = Terraria.Main;
+        const Batch = Microsoft.Xna.Framework.Graphics.SpriteBatch;
+        Main['void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float worthless)'].hook(
+            (original, texture) => (pass(texture) ? original() : undefined), { whileIn: gate });
+        Main['void EntitySpriteDraw(Texture2D texture, Vector2 position, Rectangle sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float worthless)'].hook(
+            (original, texture) => (pass(texture) ? original() : undefined), { whileIn: gate });
+        Batch['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'].hook(
+            (original, batch, texture) => (pass(texture) ? original() : undefined), { whileIn: gate });
+        Batch['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth)'].hook(
+            (original, batch, texture) => (pass(texture) ? original() : undefined), { whileIn: gate });
     }
 }

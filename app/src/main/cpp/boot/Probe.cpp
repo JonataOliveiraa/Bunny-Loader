@@ -1,4 +1,5 @@
 #include "boot/Probe.h"
+#include "boot/FramePacing.h"
 #include "boot/QuickStart.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
@@ -86,6 +87,7 @@ void probeThread() {
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.
             installCheats();
             installDevTools();
+            installFramePacing();
             installModItemSave();
             installModTileSave();
             installModNpcSave();

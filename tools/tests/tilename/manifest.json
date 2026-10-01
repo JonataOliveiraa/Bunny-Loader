@@ -1,0 +1,15 @@
+{
+  "uid": "fcdb51df-5d37-477e-aba6-5dd6cff5ec91",
+  "id": "test-tilename",
+  "name": "Teste: nome do bloco de mod na receita",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A estação de trabalho de mod no guia de criação: o nome (Recipe.GetRequiredTileName, o do mapa, e o texto do GUICraftGuidePopup) e o ícone (TileID.Sets.CraftingStationItemId, tabela só do celular), com os blocos do Example Mod.",
+  "description": "Precisa do Example Mod ligado. Loga 'tilename ...'.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

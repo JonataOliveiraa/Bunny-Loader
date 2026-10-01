@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- O jogo hospedado roda com AS NOSSAS permissões, não com as dele. Estas
          são as que o Terraria declara; sem elas o license check do PairIP e a
@@ -14,7 +15,12 @@
         <package android:name="com.and.games505.TerrariaPaid" />
     </queries>
 
+    <!-- Jogo, como o manifest do Terraria: o modo de jogo do Android conta por
+         ele. A Samsung ignora (so conta a marca da loja); os 45 fps numa tela de
+         90 Hz sao do alvo de quadros do Unity, ver boot/FramePacing.h. -->
     <application
+        android:appCategory="game"
+        tools:targetApi="26"
         android:allowBackup="true"
         android:label="@string/app_name"
         android:icon="@drawable/ic_launcher"

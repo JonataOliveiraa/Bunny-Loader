@@ -49,6 +49,7 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
             Main.dayTime = false;
             Main.time = 0;
             self.inventory[0]['void SetDefaults(int Type, ItemVariant variant)'](items.ExampleBossSummonItem, null);
+            self.inventory[0].stack = 3;
             self.selectedItemState.selected = 0;
             forceUse = true;
             return bossType > 0 || 'sem o ExampleBoss';
@@ -58,6 +59,11 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 100) {
         boss = findBoss();
         check('o item de invocacao faz o chefe nascer', () => !!boss || 'nenhum chefe');
+        // UseItem devolve true: o jogo gasta um (e o CanUseItem barra o segundo, com o chefe vivo).
+        check('o item de invocacao e gasto (um de tres)', () => {
+            const it = Main.player[Main.myPlayer].inventory[0];
+            return it.stack === 2 || 'pilha ' + it.stack + ', tipo ' + it.type;
+        });
         if (boss) firstPos = Vector2.Clone(boss.Center);
     }
     if (boss && frames > 100 && frames < 300) frames0.add(boss.frame.Y);

@@ -12,7 +12,7 @@ export class MinionBossTrophy extends ModTile {
         TileObjectData.newTile.CopyFrom(TileObjectData.Style3x3Wall);
         TileObjectData.addTile(this.Type);
 
-        this.AddMapEntry(Color.new(120, 85, 60), 'Trophy');
+        this.AddMapEntry(Color.new(120, 85, 60), 'MapObject.Trophy');
         this.DustType = DustID.WoodFurniture;
     }
 }

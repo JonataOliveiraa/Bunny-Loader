@@ -35,7 +35,6 @@ void loadBuiltins();
 size_t loadedCount();
 
 LoadedMod* get(uint16_t index);
-void disableAtRuntime(uint16_t index);
 
 /**
  * Pasta do mod que está sendo carregado agora, ou vazio fora da carga.

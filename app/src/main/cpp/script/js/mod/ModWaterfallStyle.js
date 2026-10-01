@@ -1,5 +1,5 @@
 // Um estilo de cachoeira de mod, como o ModWaterfallStyle do tModLoader: a
-// textura da classe (Content/Biomes/X.js -> Assets/Textures/Biomes/X.png).
+// textura da classe (Content/Biomes/X.js -> Content/Biomes/X.png).
 // Slot: o número, depois dos 28 do jogo. Um ModWaterStyle o escolhe em
 // ChooseWaterfallStyle.
 class ModWaterfallStyle {

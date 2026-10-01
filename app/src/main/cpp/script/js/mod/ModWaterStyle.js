@@ -1,7 +1,7 @@
 // Um estilo de água de mod, como o ModWaterStyle do tModLoader. Aparece quando o
 // ModSceneEffect (ou ModBiome) que o devolve em `WaterStyle` ganha a cena do
 // jogador. Slot: o número do estilo, depois dos 15 do jogo. Texturas: a da
-// classe (Content/Biomes/X.js -> Assets/Textures/Biomes/X.png, a superfície,
+// classe (Content/Biomes/X.js -> Content/Biomes/X.png, a superfície,
 // como o water_N do jogo), X_Block (o bloco) e X_Slope (a rampa; sem ela, o bloco).
 class ModWaterStyle {
     // O número da cachoeira desta água: ModContent.GetInstance(ModWaterfallStyle).Slot
@@ -29,7 +29,7 @@ class ModWaterStyle {
     // textura do mod (0 a 7).
     GetRainVariant() { return Rand.Next(3); }
 
-    // A textura da chuva: o caminho de um PNG em Assets/Textures do mod (ou um
+    // A textura da chuva: o caminho de um PNG no mod (ou um
     // Asset<Texture2D>), ou null para a do jogo (o padrão).
     GetRainTexture() { return null; }
 

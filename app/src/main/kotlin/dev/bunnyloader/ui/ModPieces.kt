@@ -113,8 +113,9 @@ fun ModRow(
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 PixelText(
-                    "por ${entry.manifest.author}",
+                    "por ${entry.manifest.authorLine}",
                     size = Ts.Small, color = Bl.TextFaint,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 Row(
                     Modifier.padding(top = 5.dp),

@@ -207,13 +207,28 @@ tModLoader). E `OnTileCollide` devolvendo `false`, para o chão não matá-la.
 `PreDraw` devolvendo `false` tira o desenho do jogo; desenhe o seu com
 `Main.EntitySpriteDraw`. `lightColor` é a luz do lugar.
 
-Método de instância guardado numa variável perde o objeto: use uma função que
-o chama nele.
+Método de instância guardado numa variável continua preso ao objeto de onde
+foi lido:
 
 ```js
-const sb = Terraria.Main.spriteBatch;
-const Draw = (...args) => sb['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'](...args);
+const Draw = Terraria.Main.spriteBatch['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'];
+Draw(texture, position, null, color, 0, origin, 1, 0, 0);   // chama no Main.spriteBatch
 ```
+
+### Rastro (`oldPos`, `oldRot`, `oldSpriteDirection`)
+
+O jogo só grava o rastro com um `TrailingMode` no `SetStaticDefaults`, como
+no tModLoader. Sem ele (o padrão é `-1`), as posições ficam zeradas.
+
+```js
+SetStaticDefaults() {
+    ProjectileID.Sets.TrailCacheLength[this.Type] = 5;   // quantas posições (padrão 10)
+    ProjectileID.Sets.TrailingMode[this.Type] = 0;       // 0: só oldPos; 2: também oldRot e oldSpriteDirection
+}
+```
+
+`oldPos.Length` é o `TrailCacheLength`. No modo 0, `oldRot` e
+`oldSpriteDirection` ficam zerados de propósito.
 
 ## Diferenças do tModLoader
 

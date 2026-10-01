@@ -164,7 +164,7 @@ Terraria.Main['void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yo
 ```
 
 Na prática, um item de mod não precisa disso: o `ModifyTooltips` do `ModItem`
-já é esse hook, com cor por linha e por trecho ([guia 5, *Tooltip colorido*](05-itens.md#tooltip-colorido)).
+faz o mesmo, com os nomes das linhas e cor por linha e por trecho ([guia 5, *Tooltip*](05-itens.md#tooltip)).
 
 ### Repassar o `ref` a outra chamada
 

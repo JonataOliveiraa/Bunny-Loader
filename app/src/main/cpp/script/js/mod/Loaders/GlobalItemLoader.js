@@ -40,7 +40,11 @@ class GlobalItemLoader {
         if (has('UseItem')) Hooks.Once('gitem.Use', () => {
             P['void ItemCheck_StartActualUse(Item sItem)'].hook((original, self, item) => {
                 original(self, item);
-                registry.Each(item, 'UseItem', (g) => g.UseItem(item, self));
+                let used = false;
+                registry.Each(item, 'UseItem', (g) => {
+                    if (g.UseItem(item, self) === true) used = true;
+                });
+                ItemLoader.MarkUsed(self, item, used);
             });
         });
 
@@ -121,7 +125,9 @@ class GlobalItemLoader {
                 });
         });
 
-        if (has('ModifyTooltips')) Hooks.Once('item.Tooltips', TooltipLoader.Install);
+        if (['ModifyTooltips', 'PreDrawTooltip', 'PostDrawTooltip', 'PreDrawTooltipLine', 'PostDrawTooltipLine'].some(has)) {
+            Hooks.Once('item.Tooltips', TooltipLoader.Install);
+        }
 
         const prefixHooks = ['ChoosePrefix', 'PrefixChance', 'AllowPrefix', 'ApplyPrefix'].filter(has);
         if (prefixHooks.length) PrefixLoader.WantItemHooks(prefixHooks);

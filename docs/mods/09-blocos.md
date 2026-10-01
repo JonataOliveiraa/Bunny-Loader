@@ -66,7 +66,7 @@ Ao quebrar, cai o item de mod que coloca aquele tile. Para outro item, use
 
 | Campo | Para quê |
 |---|---|
-| `Texture` | Relativo a `Assets/Textures/`, sem `.png`. Padrão: o caminho do arquivo da classe. |
+| `Texture` | O caminho no mod, sem `.png`. Padrão: o arquivo da classe (`Content/Tiles/X.js` -> `Content/Tiles/X.png`). |
 | `HighlightTexture` | O contorno de `TileID.Sets.HasOutlines` (padrão: `Texture + '_Highlight'`). Sem o arquivo, o contorno sai. |
 | `DustType` | A poeira ao bater e quebrar (`Terraria.ID.DustID`); `-1`, nenhuma. |
 | `HitSound` | O som ao bater (`Terraria.ID.SoundID`). Sem ele, o som do jogo. |
@@ -76,6 +76,8 @@ Ao quebrar, cai o item de mod que coloca aquele tile. Para outro item, use
 | `AdjTiles` | Conta como estas estações de criação: `[TileID.WorkBenches]`. |
 | `AnimationFrameHeight` | Altura de um quadro de animação na textura (ver `AnimateTile`). |
 | `CacheDrawData` | `false`: o `SetDrawPositions`, o `AnimateIndividualTile` e o `SetSpriteEffects` rodam em todo desenho, sem o cache (ver abaixo). Padrão `true`. |
+
+Um bloco de mod pedido numa receita (`AddTile`) aparece no guia de criação com o nome do mapa (`AddMapEntry`) e o ícone do item que o coloca (`TileID.Sets.CraftingStationItemId`, uma tabela só do celular; o Bunny Loader a preenche no fim das receitas).
 
 ## Métodos
 

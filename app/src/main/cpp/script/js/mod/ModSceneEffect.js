@@ -7,7 +7,7 @@ class ModSceneEffect {
     // escolhe música, 0 = silêncio. SurfaceBackgroundStyle e
     // UndergroundBackgroundStyle e WaterStyle: a instância do estilo
     // (ModContent.GetInstance(Classe)), ou null. MapBackground: o caminho de
-    // uma textura em Assets/Textures (o fundo do mapa em tela cheia), ou null.
+    // uma textura do mod (o fundo do mapa em tela cheia), ou null.
     // Os padrões ficam no protótipo, logo abaixo da classe. Mod: o mod dono
     // (posto no registro).
 

@@ -3,10 +3,17 @@
   "id": "vidacheia",
   "name": "Vida Cheia",
   "version": "1.0.0",
-  "author": "Bunny Loader",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Código e arte",
+      "avatar": "bunny-loader.png",
+      "color": "#F9E141"
+    }
+  ],
   "category": "Cheat",
   "summary": "Sua vida volta ao máximo a cada quadro.",
-  "description": "Repõe a vida logo depois do jogo processar o quadro, então veneno, queda e dano continuam acontecendo — você é que não morre. Respeita os bônus de acessório: enche até o máximo COM os corações extras, não até o máximo cru.",
+  "license": "MIT",
   "updated": "2026-09-22",
   "blVersion": 2,
   "gameVersion": [
@@ -14,5 +21,10 @@
     301720
   ],
   "entry": "main.js",
-  "dependencies": []
+  "dependencies": [],
+  "theme": {
+    "accent": "#FF6B7D",
+    "panel": "#3E2335",
+    "heading": "#FFE3E7"
+  }
 }

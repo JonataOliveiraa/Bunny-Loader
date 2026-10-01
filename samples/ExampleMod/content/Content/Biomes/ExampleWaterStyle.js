@@ -1,9 +1,9 @@
 import { ExampleWaterfallStyle } from './ExampleWaterfallStyle.js';
 
 // A água do bioma de superfície, como o ExampleWaterStyle do tModLoader: as
-// texturas em Assets/Textures/Biomes (a superfície, _Block e _Slope), a
+// texturas ao lado deste arquivo (a superfície, _Block e _Slope), a
 // cachoeira de exemplo, a gota de exemplo, a luz passando sem perda, a chuva
-// própria (Biomes/ExampleRain) e o cabelo branco na tintura de bioma. O
+// própria (Content/Biomes/ExampleRain) e o cabelo branco na tintura de bioma. O
 // respingo é um pó do jogo (o do tModLoader é um ModDust, que ainda não temos).
 export class ExampleWaterStyle extends ModWaterStyle {
     ChooseWaterfallStyle() { return ModContent.GetInstance(ExampleWaterfallStyle).Slot; }
@@ -20,7 +20,7 @@ export class ExampleWaterStyle extends ModWaterStyle {
 
     GetRainVariant() { return Rand.Next(3); }
 
-    GetRainTexture() { return 'Biomes/ExampleRain'; }
+    GetRainTexture() { return 'Content/Biomes/ExampleRain'; }
 
     BiomeHairColor() { return Color.White; }
 }

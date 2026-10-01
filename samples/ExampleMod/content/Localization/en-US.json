@@ -85,7 +85,11 @@
     "ExampleSink": "Example Sink",
     "ExampleAnimatedTile": "Example Firefly Jar",
     "ExampleHerb": "Example Herb",
-    "ExampleSign": "Example Sign"
+    "ExampleSign": "Example Sign",
+    "ExampleWorkbench": "Example Workbench",
+    "ExampleDresser": "Example Dresser",
+    "ExampleChest": "Example Chest",
+    "ExampleChestLocked": "Locked Example Chest"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",

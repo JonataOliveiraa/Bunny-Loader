@@ -56,7 +56,8 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/LocalizationLoader ModLocalization
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
-    Loaders/TooltipLoader TooltipLine EquipTexture ItemLoot ModItem
+    Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
+    EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
     TagCompound Loaders/SystemLoader ModSystem
     Loaders/PlayerLoader ModPlayer

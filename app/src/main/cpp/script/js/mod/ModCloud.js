@@ -1,7 +1,7 @@
 // Uma nuvem de mod, como o ModCloud do tModLoader: a textura da classe
-// (Content/Clouds/X.js -> Assets/Textures/Clouds/X.png). SpawnChance é o peso
+// (Content/Clouds/X.js -> Content/Clouds/X.png). SpawnChance é o peso
 // no sorteio: as comuns contra as 22 do jogo (peso 1 cada); as raras
-// (RareCloud) contra as raras do jogo. Um PNG em Assets/Textures/Clouds sem
+// (RareCloud) contra as raras do jogo. Um PNG numa pasta Clouds/ sem
 // classe vira nuvem comum sozinho; CloudLoader.AddCloudFromTexture (no
 // Mod.Load) escolhe peso e raridade.
 class ModCloud {

@@ -17,6 +17,9 @@ namespace bl::runtime {
  *
  * Os de mundo (chuva, vento) sao estaticos do Main, escritos a cada quadro
  * antes do DoUpdate; o voo e o raio-X tem hook proprio.
+ *
+ * Chuva, vento e taxa de inimigos sao as barras da coluna do X: 0 e "o jogo
+ * decide", e 1..101 e a posicao da barra mais um (kSliderLevels).
  */
 enum class Power : int {
     Damage = 0,      // x2 / x5 / x10 no dano de toda classe
@@ -31,16 +34,17 @@ enum class Power : int {
     Fly = 9,         // voa e atravessa parede; normal / rapido
     XRay = 10,       // a tela inteira iluminada
     Minions = 11,    // lacaios e sentinelas sem limite
-    Rain = 12,       // garoa / chuva / tempestade
-    Wind = 13,       // calmo / brisa / ventania
+    Rain = 12,       // BARRA: 0 sem chuva .. 100 tempestade (Main.maxRaining)
+    Wind = 13,       // BARRA: 0 ventania a esquerda, 50 calmo, 100 a direita
     Bestiary = 14,   // ACAO: desbloqueia o bestiario do mundo e volta a 0
-    NoSpawns = 15,   // sem spawn natural / e ainda sem inimigo nenhum por perto
+    NoSpawns = 15,   // BARRA: a taxa de inimigos da Jornada; 0 nenhum, 50 x1, 100 x10
     MapTeleport = 16,// segurar 2,5 s parado no mapa grande teleporta para la
     ClearInventory = 17, // ACAO: esvazia a mochila (fica favorito, moeda, municao)
     RevealMap = 18,  // ACAO: revela o mapa inteiro, em partes, quadro a quadro
     Hardmode = 19,   // COMANDO: 1 liga (o evento do jogo), 2 desliga
     Difficulty = 20, // COMANDO: 1..4 = Classico, Expert, Mestre, Jornada
     FastRespawn = 21,// morto, volta no quadro seguinte (sem a contagem)
+    ClearEnemies = 22, // ACAO: some com os inimigos que ja existem
     Count
 };
 
@@ -54,11 +58,17 @@ void setPower(int id, int level);
  */
 bool setWorldPowerFromNet(int id, int level);
 
+/** Os niveis de uma barra: 0 desligada, 1..kSliderLevels = posicao 0..100. */
+constexpr int kSliderLevels = 101;
+
 /**
- * Hora do dia, como os botoes da Jornada: 0 amanhecer, 1 meio-dia,
- * 2 anoitecer, 3 meia-noite. THREAD-SAFE; roda no proximo quadro, no mundo.
+ * Hora do dia. 0..3 sao os botoes da Jornada (amanhecer, meio-dia, anoitecer,
+ * meia-noite); kClockRequest + minuto (0..1439) e a hora do relogio, a da
+ * barra. O mesmo numero vai ao servidor ("time <n>"). THREAD-SAFE; roda no
+ * proximo quadro, no mundo.
  */
-void setTimeOfDay(int which);
+constexpr int kClockRequest = 100;
+void setTimeOfDay(int request);
 
 /**
  * O estado do mundo aberto, para o menu mostrar: hardmode (0/1) e modo de
@@ -67,6 +77,15 @@ void setTimeOfDay(int which);
  */
 int worldHardmode();
 int worldGameMode();
+
+/**
+ * O clima do mundo aberto, para as barras abrirem onde o mundo esta: a hora
+ * no relogio (minuto 0..1439), a chuva (0..100) e o vento (0..100, 50 calmo).
+ * -1 fora do mundo. THREAD-SAFE, como os de cima.
+ */
+int worldClockMinute();
+int worldRainPosition();
+int worldWindPosition();
 
 /**
  * A parte que precisa da thread do jogo: instala os hooks na primeira vez que

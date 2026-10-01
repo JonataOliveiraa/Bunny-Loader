@@ -72,10 +72,4 @@ bool install(const MethodInfo* method, void* replacement, void** original) {
     return install(il2cpp::methodPointer(method), replacement, original);
 }
 
-void removeAll() {
-    std::lock_guard<std::mutex> guard(g_mutex);
-    for (Chain& c : chains()) shadowhook_unhook(c.stub);
-    chains().clear();
-}
-
 } // namespace bl::hook

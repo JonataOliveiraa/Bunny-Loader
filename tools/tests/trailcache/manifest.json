@@ -1,0 +1,15 @@
+{
+  "uid": "01d78c32-b2fd-4730-a09e-6246d9a044d1",
+  "id": "test-trailcache",
+  "name": "Teste: rastro dos projéteis",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "oldPos, oldRot e oldSpriteDirection de projétil de mod com TrailingMode e TrailCacheLength, ao lado dos do jogo.",
+  "description": "Loga 'trailcache ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

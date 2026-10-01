@@ -1,0 +1,61 @@
+09-30 17:09:14.886 I/BunnyLoader(10727): [mod] bgwatch 2280: {"style":10,"farSum":1,"frontSum":1,"farAt":1,"frontAt":1,"lens":"17/17/354","bgOn":true,"lugs":"70514ab000","sceneBg":-1,"menu":false}
+09-30 17:09:19.489 D/BunnyLoader(10727): struct SelectedItemState: valor=24 bytes, offsets COM cabecalho
+09-30 17:09:24.937 I/BunnyLoader(10727): [mod] bgwatch 2880: {"style":10,"farSum":1,"frontSum":1,"farAt":1,"frontAt":1,"lens":"17/17/354","bgOn":true,"lugs":"70514ab000","sceneBg":-1,"menu":false}
+09-30 17:09:31.036 I/BunnyLoader(10727): [mod] bgwatch 3240 MUDOU: {"style":16,"farSum":1,"frontSum":1,"farAt":0.7,"frontAt":1,"lens":"17/17/354","bgOn":true,"lugs":"70514ab000","sceneBg":16,"menu":false}
+09-30 17:09:32.036 I/BunnyLoader(10727): [mod] bgwatch 3300 MUDOU: {"style":16,"farSum":1,"frontSum":1,"farAt":1,"frontAt":1,"lens":"17/17/354","bgOn":true,"lugs":"70514ab000","sceneBg":16,"menu":false}
+09-30 17:09:39.084 I/BunnyLoader(10727): [mod] bgwatch 3720 MUDOU: {"style":16,"farSum":1,"frontSum":1,"farAt":1,"frontAt":1,"lens":"17/17/354","bgOn":true,"lugs":"70514ab000","sceneBg":-1,"menu":false}
+09-30 17:09:40.087 I/BunnyLoader(10727): [mod] bgwatch 3780 MUDOU: {"style":10,"farSum":1,"frontSum":1,"farAt":0.2,"frontAt":0.2,"lens":"17/17/354","bgOn":true,"lugs":"70514ab000","sceneBg":-1,"menu":false}
+09-30 17:09:44.400 I/BunnyLoader(10727): tela: nenhum modo de 60 Hz visível (90.0)
+09-30 17:09:44.958 I/BunnyLoader(10727): [mod] bgwatch 3840 MUDOU: {"style":10,"farSum":1,"frontSum":1,"farAt":1,"frontAt":1,"lens":"17/17/354","bgOn":true,"lugs":"70514ab000","sceneBg":-1,"menu":false}
+09-30 17:09:49.784 E/Unity   (10727): System.NullReferenceException: Object reference not set to an instance of an object.
+09-30 17:09:49.784 E/Unity   (10727):   at Terraria.GameContent.Drawing.NextHorizonRenderer.DrawCloud (System.Single globalCloudAlpha, Terraria.Cloud theCloud, System.Int32 cloudPass, System.Single cY) [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.784 E/Unity   (10727):   at Terraria.Main.DrawClouds_Closest (System.Single globalCloudAlpha) [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.784 E/Unity   (10727):   at Terraria.Main.DrawSurfaceBG () [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.784 E/Unity   (10727):   at Terraria.Main.DrawBG () [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.784 E/Unity   (10727):   at Terraria.Main.DoDraw (Microsoft.Xna.Framework.GameTime gameTime) [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.784 E/Unity   (10727):   at Terraria.Main.Draw (Microsoft.Xna.Framework.GameTime gameTime) [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.784 E/Unity   (10727):   at Microsoft.Xna.Framework.Game.UnityDraw () [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.784 E/Unity   (10727):   at XNAUnityRunner.ExecuteFrame (System.Single timeDelta) [0x00000] in <00000000000000000000000
+09-30 17:09:49.784 E/Unity   (10727): Begin must be called before calling End.
+09-30 17:09:49.784 E/Unity   (10727): Terraria.Main:DoDraw(GameTime)
+09-30 17:09:49.784 E/Unity   (10727): Terraria.Main:Draw(GameTime)
+09-30 17:09:49.784 E/Unity   (10727): Microsoft.Xna.Framework.Game:UnityDraw()
+09-30 17:09:49.784 E/Unity   (10727): XNAUnityRunner:ExecuteFrame(Single)
+09-30 17:09:49.784 E/Unity   (10727): 
+09-30 17:09:49.795 E/Unity   (10727): End must be called before calling Begin.
+09-30 17:09:49.795 E/Unity   (10727): Microsoft.Xna.Framework.Graphics.SpriteBatch_Cloud:Begin(SpriteSortMode, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Nullable`1, Boolean)
+09-30 17:09:49.795 E/Unity   (10727): Terraria.GameContent.Drawing.NextHorizonRenderer:CloudsStart()
+09-30 17:09:49.795 E/Unity   (10727): Terraria.Main:DrawClouds_Distant(Boolean, Single, Int32, Single)
+09-30 17:09:49.795 E/Unity   (10727): Terraria.Main:DrawSurfaceBG()
+09-30 17:09:49.795 E/Unity   (10727): Terraria.Main:DrawBG()
+09-30 17:09:49.795 E/Unity   (10727): Terraria.Main:DoDraw(GameTime)
+09-30 17:09:49.795 E/Unity   (10727): Terraria.Main:Draw(GameTime)
+09-30 17:09:49.795 E/Unity   (10727): Microsoft.Xna.Framework.Game:UnityDraw()
+09-30 17:09:49.795 E/Unity   (10727): XNAUnityRunner:ExecuteFrame(Single)
+09-30 17:09:49.795 E/Unity   (10727): 
+09-30 17:09:49.797 E/Unity   (10727): System.InvalidOperationException: Begin cannot be called again until End has been successfully called.
+09-30 17:09:49.797 E/Unity   (10727):   at Microsoft.Xna.Framework.Graphics.SpriteBatch_Cloud.Begin (Microsoft.Xna.Framework.Graphics.SpriteSortMode sortMode, Microsoft.Xna.Framework.Graphics.BlendState blendState, Microsoft.Xna.Framework.Graphics.SamplerState samplerState, Microsoft.Xna.Framework.Graphics.DepthStencilState depthStencilState, Microsoft.Xna.Framework.Graphics.RasterizerState rasterizerState, Microsoft.Xna.Framework.Graphics.Effect effect, System.Nullable`1[T] transformMatrix, System.Boolean defferedBatch) [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.797 E/Unity   (10727):   at Terraria.GameContent.Drawing.NextHorizonRenderer.CloudsStart () [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.797 E/Unity   (10727):   at Terraria.Main.DrawClouds_Distant (System.Boolean drawBackground, System.Single backgroundTopMagicNumber, System.Int32 pushBGTopHack, System.Single globalCloudAlpha) [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.797 E/Unity   (10727):   at Terraria.Main.DrawSurfaceBG () [0x
+09-30 17:09:49.797 E/Unity   (10727): Begin must be called before calling End.
+09-30 17:09:49.797 E/Unity   (10727): Terraria.Main:DoDraw(GameTime)
+09-30 17:09:49.797 E/Unity   (10727): Terraria.Main:Draw(GameTime)
+09-30 17:09:49.797 E/Unity   (10727): Microsoft.Xna.Framework.Game:UnityDraw()
+09-30 17:09:49.797 E/Unity   (10727): XNAUnityRunner:ExecuteFrame(Single)
+09-30 17:09:49.797 E/Unity   (10727): 
+09-30 17:09:49.811 E/Unity   (10727): End must be called before calling Begin.
+09-30 17:09:49.811 E/Unity   (10727): Microsoft.Xna.Framework.Graphics.SpriteBatch_Cloud:Begin(SpriteSortMode, BlendState, SamplerState, DepthStencilState, RasterizerState, Effect, Nullable`1, Boolean)
+09-30 17:09:49.811 E/Unity   (10727): Terraria.GameContent.Drawing.NextHorizonRenderer:CloudsStart()
+09-30 17:09:49.811 E/Unity   (10727): Terraria.Main:DrawClouds_Distant(Boolean, Single, Int32, Single)
+09-30 17:09:49.811 E/Unity   (10727): Terraria.Main:DrawSurfaceBG()
+09-30 17:09:49.811 E/Unity   (10727): Terraria.Main:DrawBG()
+09-30 17:09:49.811 E/Unity   (10727): Terraria.Main:DoDraw(GameTime)
+09-30 17:09:49.811 E/Unity   (10727): Terraria.Main:Draw(GameTime)
+09-30 17:09:49.811 E/Unity   (10727): Microsoft.Xna.Framework.Game:UnityDraw()
+09-30 17:09:49.811 E/Unity   (10727): XNAUnityRunner:ExecuteFrame(Single)
+09-30 17:09:49.811 E/Unity   (10727): 
+09-30 17:09:49.812 E/Unity   (10727): System.InvalidOperationException: Begin cannot be called again until End has been successfully called.
+09-30 17:09:49.812 E/Unity   (10727):   at Microsoft.Xna.Framework.Graphics.SpriteBatch_Cloud.Begin (Microsoft.Xna.Framework.Graphics.SpriteSortMode sortMode, Microsoft.Xna.Framework.Graphics.BlendState blendState, Microsoft.Xna.Framework.Graphics.SamplerState samplerState, Microsoft.Xna.Framework.Graphics.DepthStencilState depthStencilState, Microsoft.Xna.Framework.Graphics.RasterizerState rasterizerState, Microsoft.Xna.Framework.Graphics.Effect effect, System.Nullable`1[T] transformMatrix, System.Boolean defferedBatch) [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.812 E/Unity   (10727):   at Terraria.GameContent.Drawing.NextHorizonRenderer.CloudsStart () [0x00000] in <00000000000000000000000000000000>:0 
+09-30 17:09:49.812 E/Unity   (10727):   at Terraria.Main.DrawClouds_Distant (System.Boolean drawBackground, System.Single backgroundTopMagicNumber, System.Int32 pushBGTopHack, System.Single globalCloudAlpha) [0x00000] in <00000000000000000000000000000000>:0 

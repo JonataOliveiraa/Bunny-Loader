@@ -53,7 +53,7 @@ import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.formatSize
 
-private val EdgePad = 14.dp
+internal val EdgePad = 14.dp
 
 // =============================== Início ===============================
 
@@ -126,7 +126,7 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
                 PixelText(entry.manifest.name, size = Ts.Head,
                     color = Bl.Text)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    PixelText("por ${entry.manifest.author}",                         size = Ts.Small, color = Bl.TextFaint)
+                    PixelText("por ${entry.manifest.authorLine}", size = Ts.Small, color = Bl.TextFaint)
                     PixelTag(
                         entry.manifest.category,
                         categoryColor(entry.manifest.category),
@@ -153,7 +153,7 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
         query.isBlank() ||
             it.manifest.name.contains(query, true) ||
             it.manifest.category.contains(query, true) ||
-            it.manifest.author.contains(query, true)
+            it.manifest.credits.any { a -> a.name.contains(query, true) }
     }
     val state = rememberLazyListState()
 
@@ -403,11 +403,12 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
                         Modifier.padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        PixelButton("Ver relatório", { log = BootLog.read(ctx) }, fontSize = Ts.Small)
+                        PixelButton("Ver relatório", { log = BootLog.read(ctx) },
+                            fontSize = Ts.Small, shadow = false)
                         if (log.isNotEmpty()) {
                             PixelButton("Copiar", {
                                 clipboard.setText(AnnotatedString(log))
-                            }, fontSize = Ts.Small)
+                            }, fontSize = Ts.Small, shadow = false)
                         }
                     }
                     if (log.isNotEmpty()) {
@@ -579,150 +580,6 @@ private fun Stat(value: String, label: String, modifier: Modifier = Modifier) {
             PixelText(value, size = Ts.Big, color = Bl.PressedText)
             PixelText(label, size = Ts.Small, color = Bl.TextFaint)
         }
-    }
-}
-
-// ============================ ficha do mod ============================
-
-@Composable
-fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
-    val scroll = rememberScrollState()
-    var favorite by remember { mutableStateOf(false) }
-    var exportMessage by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
-    val installed = entry.uid in shell.installed
-    val m = entry.manifest
-    val exporter = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("application/x-bunnyloader-mod")
-    ) { uri ->
-        if (uri != null) {
-            exportMessage = shell.exportMod(entry.uid, uri).fold(
-                onSuccess = { "${m.name} exportado" to true },
-                onFailure = { "Não deu: ${it.message}" to false },
-            )
-        }
-    }
-
-    Box {
-        Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-            // Topo: voltar e favoritar, flutuando sobre o banner.
-            Box(Modifier.fillMaxWidth()) {
-                ModBanner(entry, shell.catalog, Modifier.fillMaxWidth().height(180.dp))
-                Row(
-                    Modifier.fillMaxWidth().padding(10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    // A seta de voltar do menu de ferramentas do jogo.
-                    RoundIcon(R.drawable.ic_seta_esq, onBack)
-                    RoundIcon(
-                        if (favorite) R.drawable.ic_fav_on else R.drawable.ic_fav_off,
-                        { favorite = !favorite },
-                    )
-                }
-            }
-
-            // Um painel para o texto da ficha: solto sobre o cenário, descrição e
-            // campos se perdiam no fundo claro (neve, céu de dia).
-            Column(
-                Modifier.padding(horizontal = EdgePad).padding(top = 10.dp)
-                    .pixelShadow().pixelPanel().padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ModIcon(entry, shell.catalog, 56.dp)
-                    Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                        PixelText(m.name, size = Ts.Big, color = Bl.Text)
-                        PixelText("por ${m.author}", size = Ts.Body,
-                            color = Bl.TextFaint)
-                    }
-                    PixelTag(m.category, categoryColor(m.category))
-                }
-
-                // Só o tamanho: estrela e contagem de download precisariam de um
-                // servidor que não existe, e número inventado é pior que nada.
-                Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    PixelIcon(R.drawable.ic_folder, 16.dp)
-                    PixelText(formatSize(entry.sizeBytes), size = Ts.Body,
-                        color = Bl.TextDim, modifier = Modifier.padding(start = 6.dp))
-                }
-
-                SectionTitle("Descrição")
-                PixelText(
-                    m.description.ifBlank { m.summary },
-                    size = Ts.Body, color = Bl.TextDim,
-                )
-
-                if (entry.previews.isNotEmpty()) {
-                    SectionTitle("Imagens")
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        for (p in entry.previews) {
-                            shell.catalog.loadBitmap(p)?.let {
-                                Image(it, null, filterQuality = FilterQuality.None,
-                                    modifier = Modifier.height(96.dp).framePanel().padding(2.dp))
-                            }
-                        }
-                    }
-                }
-
-                Row(Modifier.fillMaxWidth().padding(top = 18.dp)) {
-                    Field("Versão", "v${m.version}", Modifier.weight(1f))
-                    Field("Última atualização",
-                        dev.bunnyloader.mods.formatDate(m.updated), Modifier.weight(1f))
-                }
-                // O uid é a identidade real do pacote; aparece pequeno porque
-                // quem precisa dele está depurando ou empacotando.
-                PixelText(entry.uid, size = Ts.Tiny, color = Bl.TextMuted,
-                    modifier = Modifier.padding(top = 10.dp))
-
-                Spacer(Modifier.height(18.dp))
-                if (!installed) {
-                    PixelButton("Baixar Mod", { shell.install(entry) },
-                        Modifier.fillMaxWidth(), icon = R.drawable.ic_start)
-                } else {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f).pixelPanel()
-                            .padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                PixelText(
-                                    if (entry.uid in shell.enabled) "Ligado" else "Desligado",
-                                    size = Ts.Item,
-                                    color = if (entry.uid in shell.enabled) Bl.PressedText else Bl.TextFaint,
-                                )
-                                SwitchSprite(entry.uid in shell.enabled) {
-                                    shell.setEnabled(entry.uid, entry.uid !in shell.enabled)
-                                }
-                            }
-                        }
-                        PixelButton("Remover", { shell.uninstall(entry.uid) },
-                            icon = R.drawable.ic_trash, fontSize = Ts.Body)
-                    }
-                    PixelButton("Exportar .bl", {
-                        exporter.launch("${m.id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.bl")
-                    }, Modifier.fillMaxWidth().padding(top = 10.dp), icon = R.drawable.ic_folder)
-                    exportMessage?.let { (message, ok) ->
-                        PixelText(message, size = Ts.Small,
-                            color = if (ok) Bl.TextDim else Bl.Bad,
-                            modifier = Modifier.padding(top = 6.dp))
-                    }
-                }
-                Spacer(Modifier.height(20.dp))
-            }
-        }
-        PixelScrollbar(scroll, Modifier.fillMaxSize())
-    }
-}
-
-@Composable
-private fun RoundIcon(res: Int, onClick: () -> Unit) {
-    Box(
-        Modifier.size(38.dp).framePanel().pixelClickable(onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        PixelIcon(res, 20.dp)
     }
 }
 

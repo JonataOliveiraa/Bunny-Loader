@@ -74,7 +74,8 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
     }
 
     for (uint32_t i = 0; i < n; ++i) {
-        const TypeDesc& d = describe(a.method_get_param(m, i));
+        const Il2CppType* type = a.method_get_param(m, i);
+        const TypeDesc& d = describe(type);
         JSValueConst v = (static_cast<int>(i) < argc) ? argv[i] : JS_UNDEFINED;
 
         if (d.byRef) {
@@ -89,7 +90,8 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
         // ponteiro aqui antes de a gente extrai-lo.
         size_t sz = d.size < sizeof(void*) ? sizeof(void*) : d.size;
         void* buf = reserve(sz);
-        if (writeAt(ctx, buf, d, v) < 0) return false;
+        // Struct opcional com null: o buffer ja vem zerado, o default(T).
+        if (!isDefaultStructArg(v, d, isOptionalParam(type)) && writeAt(ctx, buf, d, v) < 0) return false;
 
         // A convencao do runtime_invoke: tipo por VALOR entra pelo endereco do
         // valor; tipo por REFERENCIA entra pelo proprio ponteiro do objeto.

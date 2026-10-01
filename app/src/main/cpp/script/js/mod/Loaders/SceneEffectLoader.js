@@ -39,17 +39,35 @@ class SceneEffectLoader {
 
     // O SpecialVisuals roda para todos, ativo ou não (é onde se desliga um filtro).
     // Um efeito que lança fica inativo nesta avaliação.
-    static UpdateSceneEffect(player) {
+    // Roda a cada quadro: os rótulos e o que a classe sobrescreve, uma vez só.
+    static #plans = new Map();
+    static #Plan(effect) {
+        let plan = SceneEffectLoader.#plans.get(effect);
+        if (!plan) {
+            const cls = effect.constructor, name = cls.name;
+            const own = (method) => (Hooks.Overrides(cls, ModSceneEffect, method) ? name + '.' + method : null);
+            // O ModBiome sem IsSceneEffectActive próprio só lê a flag do IsBiomeActive.
+            const biomeFlag = effect instanceof ModBiome && !Hooks.Overrides(cls, ModBiome, 'IsSceneEffectActive');
+            plan = { active: name + '.IsSceneEffectActive', biomeFlag, visuals: own('SpecialVisuals'), weight: own('GetWeight') };
+            SceneEffectLoader.#plans.set(effect, plan);
+        }
+        return plan;
+    }
+
+    // biomeFlags: as do UpdateBiomes deste quadro, se já calculadas.
+    static UpdateSceneEffect(player, biomeFlags) {
         const result = SceneEffectLoader.Empty();
         const ranked = [];
 
         for (const effect of SceneEffectLoader.List) {
-            const name = effect.constructor.name;
-            const active = Safe.Run(name + '.IsSceneEffectActive', () => effect.IsSceneEffectActive(player)) === true;
-            Safe.Run(name + '.SpecialVisuals', () => effect.SpecialVisuals(player, active));
+            const plan = SceneEffectLoader.#Plan(effect);
+            const active = plan.biomeFlag && biomeFlags
+                ? biomeFlags[effect.Type] === 1
+                : Safe.Run(plan.active, () => effect.IsSceneEffectActive(player)) === true;
+            if (plan.visuals) Safe.Run(plan.visuals, () => effect.SpecialVisuals(player, active));
             if (!active) continue;
 
-            const weight = Safe.Run(name + '.GetWeight', () => effect.GetWeight(player));
+            const weight = plan.weight ? Safe.Run(plan.weight, () => effect.GetWeight(player)) : effect.GetWeight(player);
             const clamped = Math.max(0, Math.min(1, Number(weight) || 0));
             ranked.push({ effect, rank: clamped + (effect.Priority | 0), key: SceneEffectLoader.KeyOf(effect) });
         }

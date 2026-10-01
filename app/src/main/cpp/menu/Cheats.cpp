@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include "boot/Boot.h"
+#include "boot/FramePacing.h"
 #include "boot/QuickStart.h"
 #include "menu/Cheats.h"
 #include "core/Config.h"
@@ -831,6 +832,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     // Daqui sai a identidade da thread do jogo: e a unica em que se pode criar
     // objeto de Unity (ver bl.loadTexture).
     runtime::noteGameThread();
+    tickFramePacing();
     runSelftestOnce();
     allowDeprecatedItems();
     updateInWorld();
