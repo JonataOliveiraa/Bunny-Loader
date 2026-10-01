@@ -1,0 +1,25 @@
+{
+  "uid": "15b99fa4-580f-40c6-9a26-78e3928876d7",
+  "id": "semqueda",
+  "name": "Sem Dano de Queda",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Código e arte",
+      "avatar": "bunny-loader.png",
+      "color": "#F9E141"
+    }
+  ],
+  "category": "Jogabilidade",
+  "summary": "Cair de qualquer altura deixou de doer.",
+  "license": "MIT",
+  "updated": "2026-09-22",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

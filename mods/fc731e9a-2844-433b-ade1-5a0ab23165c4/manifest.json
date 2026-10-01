@@ -1,0 +1,26 @@
+{
+  "uid": "fc731e9a-2844-433b-ade1-5a0ab23165c4",
+  "id": "hellomod",
+  "name": "Minishark Turbo",
+  "version": "1.1.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Código e arte",
+      "avatar": "bunny-loader.png",
+      "color": "#F9E141"
+    }
+  ],
+  "category": "Armas",
+  "summary": "A Minishark vira uma metralhadora.",
+  "license": "MIT",
+  "updated": "2026-09-22",
+  "featured": true,
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

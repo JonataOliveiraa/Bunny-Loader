@@ -1,0 +1,30 @@
+{
+  "uid": "ddc6440e-bcaf-4bc9-9e21-9633b49bd1bf",
+  "id": "vidacheia",
+  "name": "Vida Cheia",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Código e arte",
+      "avatar": "bunny-loader.png",
+      "color": "#F9E141"
+    }
+  ],
+  "category": "Cheat",
+  "summary": "Sua vida volta ao máximo a cada quadro.",
+  "license": "MIT",
+  "updated": "2026-09-22",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": [],
+  "theme": {
+    "accent": "#FF6B7D",
+    "panel": "#3E2335",
+    "heading": "#FFE3E7"
+  }
+}

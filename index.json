@@ -38,6 +38,83 @@
       ]
     },
     {
+      "uid": "95728a1c-1fb7-4ed7-af5b-d12bdec38e46",
+      "id": "dobrodedano",
+      "name": "Dobro de Dano",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-dobrodedano-v1.0.0/dobrodedano-1.0.0.bl",
+        "sha256": "1ce2d058efe8ca4b021baa5f5abc6f895d47c18d425eb764822024b05ef7b47c",
+        "size": 15888
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "changelog.md",
+        "license.md",
+        "authors/bunny-loader.png"
+      ]
+    },
+    {
+      "uid": "fc731e9a-2844-433b-ade1-5a0ab23165c4",
+      "id": "hellomod",
+      "name": "Minishark Turbo",
+      "version": "1.1.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-hellomod-v1.1.0/hellomod-1.1.0.bl",
+        "sha256": "aa3f4c9490418a5293d458db87f62fce8fe20a41a7dfbe3414ca7d6933a1a9b3",
+        "size": 16857
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "changelog.md",
+        "license.md",
+        "authors/bunny-loader.png"
+      ]
+    },
+    {
+      "uid": "15b99fa4-580f-40c6-9a26-78e3928876d7",
+      "id": "semqueda",
+      "name": "Sem Dano de Queda",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-semqueda-v1.0.0/semqueda-1.0.0.bl",
+        "sha256": "393e8bad02b17c7266a8f21f4c11086764150af554fbd1dcf15445239ab39fee",
+        "size": 11298
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "changelog.md",
+        "license.md",
+        "authors/bunny-loader.png"
+      ]
+    },
+    {
+      "uid": "cd8c4f20-bc13-4b47-a508-305a6fc05ae2",
+      "id": "templopiramide",
+      "name": "Templo Pirâmide",
+      "version": "1.1.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-templopiramide-v1.1.0/templopiramide-1.1.0.bl",
+        "sha256": "8c005e065796fceabed40143c702c8a83ffd1019eeba482778dd9c35071b3e35",
+        "size": 16392
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "changelog.md"
+      ]
+    },
+    {
       "uid": "77b38952-98d6-4e18-a301-638d54c4bfd0",
       "id": "townnpchome",
       "name": "TownNPC Home",
@@ -52,6 +129,26 @@
         "icon.png",
         "description.md",
         "authors/animatak.png"
+      ]
+    },
+    {
+      "uid": "ddc6440e-bcaf-4bc9-9e21-9633b49bd1bf",
+      "id": "vidacheia",
+      "name": "Vida Cheia",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-vidacheia-v1.0.0/vidacheia-1.0.0.bl",
+        "sha256": "d2ccf8aeeb1147f96eb349243be50f54b0e94bd47758752d7fbf78d2dab7cb49",
+        "size": 11391
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "changelog.md",
+        "license.md",
+        "authors/bunny-loader.png"
       ]
     }
   ]

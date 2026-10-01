@@ -1,0 +1,25 @@
+{
+  "uid": "95728a1c-1fb7-4ed7-af5b-d12bdec38e46",
+  "id": "dobrodedano",
+  "name": "Dobro de Dano",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Código e arte",
+      "avatar": "bunny-loader.png",
+      "color": "#F9E141"
+    }
+  ],
+  "category": "Armas",
+  "summary": "Toda arma nasce com o dobro do dano.",
+  "license": "MIT",
+  "updated": "2026-09-22",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}
