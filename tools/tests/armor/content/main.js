@@ -51,12 +51,23 @@ const TEST_WINGS = ModItem.register(TestWings);
 // Os ganchos de conjunto e de asa do GlobalItem, contados.
 const counts = { armorSet: 0, preVanity: 0, vanity: 0, shadows: 0, setMatch: 0, vertical: 0, horizontal: 0, wingUpdate: 0 };
 const costumeHead = () => EquipLoader.GetEquipSlot('ExampleCostume', EquipType.Head);
+let vanityTrace = null;
 class TestArmorGlobal extends GlobalItem {
     IsArmorSet(head, body, legs) { return head.type === T('ExampleHelmet') ? 'teste' : ''; }
     UpdateArmorSet(player, set) { if (set === 'teste' && player.whoAmI === Main.myPlayer) counts.armorSet++; }
-    IsVanitySet(head, body, legs) { return head === costumeHead() ? 'blocky' : ''; }
-    PreUpdateVanitySet(player, set) { if (set === 'blocky') counts.preVanity++; }
-    UpdateVanitySet(player, set) { if (set === 'blocky') counts.vanity++; }
+    IsVanitySet(head, body, legs) {
+        return head === costumeHead() || head === EquipLoader.GetEquipSlot('BlockyAlt', EquipType.Head) ? 'blocky' : '';
+    }
+    PreUpdateVanitySet(player, set) {
+        if (set !== 'blocky') return;
+        counts.preVanity++;
+        if (vanityTrace) vanityTrace.push('pre:' + player.head);
+    }
+    UpdateVanitySet(player, set) {
+        if (set !== 'blocky') return;
+        counts.vanity++;
+        if (vanityTrace) vanityTrace.push('update:' + player.head);
+    }
     ArmorSetShadows(player, set) { if (set === 'blocky') counts.shadows++; }
     SetMatch(armorSlot, type, male, equipSlot, robes) { counts.setMatch++; }
     VerticalWingSpeeds(item, player, a, b, c, d, e) { counts.vertical++; }
@@ -243,14 +254,52 @@ function wearCostume() {
 
 function costumeChecks() {
     const p = me();
+    const name = p.wet ? 'BlockyAlt' : 'ExampleCostume';
+    const head = EquipLoader.GetEquipSlot(name, EquipType.Head);
     check('FrameEffects: o fantasia troca o que se desenha', () =>
-        (p.head === costumeHead() && p.body === EquipLoader.GetEquipSlot('ExampleCostume', EquipType.Body) &&
-         p.legs === EquipLoader.GetEquipSlot('ExampleCostume', EquipType.Legs)) ||
-        `head ${p.head} (fantasia ${costumeHead()}), body ${p.body}, legs ${p.legs}`);
+        (p.head === head && p.body === EquipLoader.GetEquipSlot(name, EquipType.Body) &&
+         p.legs === EquipLoader.GetEquipSlot(name, EquipType.Legs)) ||
+        `wet ${p.wet}, ${name}: head ${p.head} (esperado ${head}), body ${p.body}, legs ${p.legs}`);
     check('vaidade: PreUpdateVanitySet, UpdateVanitySet e sombras pelo slot desenhado', () =>
         (counts.preVanity > 0 && counts.vanity > 0 && counts.shadows > 0) ||
         `pre ${counts.preVanity}, update ${counts.vanity}, sombras ${counts.shadows}`);
     check('Global: conjunto de armadura pelo nome', () => counts.armorSet > 0 || 'UpdateArmorSet ' + counts.armorSet);
+    costumeVariantChecks(p, false);
+    costumeVariantChecks(p, true);
+}
+
+// O Pre usa a cabeca da armadura; o Update usa a que o FrameEffects escolheu.
+// Confere o callback da propria EquipTexture e o Global, sem depender da agua do mundo.
+function costumeVariantChecks(p, wet) {
+    check('vaidade: EquipTexture e Global na fantasia ' + (wet ? 'molhada' : 'seca'), () => {
+        const name = wet ? 'BlockyAlt' : 'ExampleCostume';
+        const head = EquipLoader.GetEquipSlot(name, EquipType.Head);
+        const tex = EquipLoader.GetEquipTexture(EquipType.Head, head);
+        const own = Object.hasOwn(tex, 'UpdateVanitySet');
+        const update = tex.UpdateVanitySet, wasWet = p.wet;
+        let result;
+        vanityTrace = [];
+        tex.UpdateVanitySet = function(player) {
+            vanityTrace.push('texture:' + player.head);
+            return update.call(this, player);
+        };
+        try {
+            p.wet = wet;
+            p['void PlayerFrame()']();
+            const expected = ['pre:' + costumeHead(), 'texture:' + head, 'update:' + head];
+            result = (vanityTrace.join(',') === expected.join(',') && p.head === head &&
+                p.body === EquipLoader.GetEquipSlot(name, EquipType.Body) &&
+                p.legs === EquipLoader.GetEquipSlot(name, EquipType.Legs)) ||
+                `${name}: ${vanityTrace.join(',')}; slots ${p.head}/${p.body}/${p.legs}`;
+        } finally {
+            vanityTrace = null;
+            if (own) tex.UpdateVanitySet = update;
+            else delete tex.UpdateVanitySet;
+            p.wet = wasWet;
+            p['void PlayerFrame()']();
+        }
+        return result;
+    });
 }
 
 // ---- manto (SetMatch) ----

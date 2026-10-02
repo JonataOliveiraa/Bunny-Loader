@@ -205,6 +205,21 @@ JSValue js_bl_log(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     return JS_UNDEFINED;
 }
 
+// bl.error(...): como o bl.log, em nivel de ERRO. E o que chega ao painel de
+// erro dentro do jogo: o erro de um metodo de mod (ModItem.ModifyTooltips...),
+// pego pelo loader, ficava so no log.
+JSValue js_bl_error(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    std::string line;
+    for (int i = 0; i < argc; ++i) {
+        if (i) line += ' ';
+        line += logText(ctx, argv[i]);
+    }
+    // Com a pilha de um erro no texto (o e.stack), o trecho do codigo do mod.
+    line = withCodeFrame(line);
+    BL_ERROR("[mod] %s", line.c_str());
+    return JS_UNDEFINED;
+}
+
 // ============================ NativeClass ============================
 
 JSValue nc_new(JSContext* ctx, JSValueConst self, int, JSValueConst*);
@@ -883,7 +898,7 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
-// NativeMethod.hook(callback[, { minType, on, field, tile, tileAt, arg, marks, whileIn, ifBusy }])
+// NativeMethod.hook(callback[, { minType, on, field, tile, tileAt, arg, marks, flag, whileIn, ifBusy }])
 //
 // Com `minType`, o hook so chama o JS quando o objeto `on` ('self', o padrao,
 // ou o indice de um parametro) tem `field` (padrao 'type') >= minType. Ex.:
@@ -912,6 +927,12 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
             if (s) { filter.marks = s; JS_FreeCString(ctx, s); }
         }
         JS_FreeValue(ctx, marks);
+        JSValue flag = JS_GetPropertyStr(ctx, argv[1], "flag");
+        if (JS_IsString(flag)) {
+            const char* s = JS_ToCString(ctx, flag);
+            if (s) { filter.flag = s; JS_FreeCString(ctx, s); }
+        }
+        JS_FreeValue(ctx, flag);
         JSValue busy = JS_GetPropertyStr(ctx, argv[1], "ifBusy");
         if (!JS_IsUndefined(busy)) {
             const char* s = JS_ToCString(ctx, busy);
@@ -973,7 +994,7 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
     // argumentos demais, sem slot). Repetir aqui só apagaria a informação.
     if (!installJsHook(ctx, r->method, r->paramCount, r->isInstance, argv[0],
                        filter.on == -2 && !filter.whileIn && filter.tileParam < 0 && filter.tileAtI < 0 &&
-                               filter.argParam < 0 && filter.marks.empty() &&
+                               filter.argParam < 0 && filter.marks.empty() && filter.flag.empty() &&
                                filter.ifBusy == IfBusy::Wait
                            ? nullptr : &filter))
         return JS_EXCEPTION;
@@ -1041,6 +1062,25 @@ JSValue js_hookMarksHas(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
     JS_FreeCString(ctx, name);
     return JS_NewBool(ctx, type >= 0 && type < kMarkTypes && marks[type].load(std::memory_order_relaxed));
 }
+// bl.hookFlags.set(nome, ligado) / .get(nome): a chave que o filtro `flag` de
+// um hook consulta. Comeca desligada; vale na hora para os hooks ja instalados.
+JSValue js_hookFlagsSet(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 2 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.hookFlags.set(nome, ligado)");
+    std::atomic<uint8_t>* flag = hookFlag(name);
+    JS_FreeCString(ctx, name);
+    flag->store(JS_ToBool(ctx, argv[1]) > 0 ? 1 : 0, std::memory_order_relaxed);
+    return JS_UNDEFINED;
+}
+
+JSValue js_hookFlagsGet(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!name) return JS_ThrowTypeError(ctx, "bl.hookFlags.get(nome)");
+    std::atomic<uint8_t>* flag = hookFlag(name);
+    JS_FreeCString(ctx, name);
+    return JS_NewBool(ctx, flag->load(std::memory_order_relaxed) != 0);
+}
+
 const JSCFunctionListEntry nm_proto[] = {
     JS_CFUNC_DEF("hook", 2, nm_hook),
 };
@@ -1542,6 +1582,10 @@ JSValue js_loadTextureAsset(JSContext* ctx, JSValueConst, int argc, JSValueConst
     return loadTextureAsset(ctx, argc, argv);
 }
 
+JSValue js_builtinTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return builtinTexture(ctx, argc, argv);
+}
+
 JSValue js_classOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 2) return JS_ThrowTypeError(ctx, "bl.classOf(namespace, nome)");
     return js_NativeClass(ctx, JS_UNDEFINED, argc, argv);
@@ -1712,6 +1756,7 @@ void installBindings(void* context) {
     // nome de outro produto na API pública do nosso não faz sentido.
     JSValue bl = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, bl, "log", JS_NewCFunction(ctx, js_bl_log, "log", 1));
+    JS_SetPropertyStr(ctx, bl, "error", JS_NewCFunction(ctx, js_bl_error, "error", 1));
     JS_SetPropertyStr(ctx, bl, "classOf", JS_NewCFunction(ctx, js_classOf, "classOf", 2));
     JS_SetPropertyStr(ctx, bl, "box", JS_NewCFunction(ctx, js_box, "box", 2));
     JS_SetPropertyStr(ctx, bl, "unbox", JS_NewCFunction(ctx, js_unbox, "unbox", 1));
@@ -1719,10 +1764,16 @@ void installBindings(void* context) {
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
     JS_SetPropertyStr(ctx, bl, "loadTextureAsset",
                       JS_NewCFunction(ctx, js_loadTextureAsset, "loadTextureAsset", 1));
+    JS_SetPropertyStr(ctx, bl, "builtinTexture",
+                      JS_NewCFunction(ctx, js_builtinTexture, "builtinTexture", 1));
     JSValue marks = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, marks, "set", JS_NewCFunction(ctx, js_hookMarksSet, "set", 3));
     JS_SetPropertyStr(ctx, marks, "has", JS_NewCFunction(ctx, js_hookMarksHas, "has", 2));
     JS_SetPropertyStr(ctx, bl, "hookMarks", marks);
+    JSValue flags = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, flags, "set", JS_NewCFunction(ctx, js_hookFlagsSet, "set", 2));
+    JS_SetPropertyStr(ctx, flags, "get", JS_NewCFunction(ctx, js_hookFlagsGet, "get", 1));
+    JS_SetPropertyStr(ctx, bl, "hookFlags", flags);
     JS_SetPropertyStr(ctx, bl, "hookStats", JS_NewCFunction(ctx, js_hookStats, "hookStats", 0));
     JS_SetPropertyStr(ctx, bl, "gcThreshold", JS_NewCFunction(ctx, js_gcThreshold, "gcThreshold", 0));
     JS_SetPropertyStr(ctx, bl, "gc", JS_NewCFunction(ctx, js_gc, "gc", 0));

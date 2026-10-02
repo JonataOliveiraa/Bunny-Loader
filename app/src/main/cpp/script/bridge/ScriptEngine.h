@@ -127,6 +127,20 @@ const void* setJsOwnerHook(const void* method);
 std::string describeJsOwnerForLog();
 std::string describeHookForLog(const void* method);
 
+/**
+ * As linhas do arquivo do mod em volta da primeira posicao de mod de uma pilha
+ * de erro ("<uid>/Content/X.js:8:9"), com a do erro marcada e um ^ na coluna;
+ * vazio se nao ha posicao de mod ou o arquivo nao abre. Para o log e o painel.
+ */
+std::string codeFrame(const std::string& text);
+
+/**
+ * O texto de um erro com o trecho do codigo logo depois da primeira linha (a
+ * mensagem), antes das linhas "at ..." da pilha: no painel do celular e o
+ * trecho que se le primeiro. Sem posicao de mod, o texto como veio.
+ */
+std::string withCodeFrame(const std::string& text);
+
 // Registra NativeClass / NativeObject / NativeMethod / NativeArray / tl.* no
 // contexto. Implementado em Bindings.cpp.
 void installBindings(void* context);

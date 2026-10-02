@@ -35,7 +35,12 @@ class ModProjectile {
     ReceiveExtraAI(reader) {}
     PreKill(proj, timeLeft) { return true; }
     OnKill(proj, timeLeft) {}
-    // false mantém o projétil vivo depois de bater num bloco.
+    // width, height, fallThrough e hitboxCenterFrac são Ref (.value): a caixa
+    // que colide com os blocos e se ela atravessa plataformas. false: o
+    // projétil atravessa os blocos neste quadro.
+    TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac) { return true; }
+    // false mantém o projétil vivo depois de bater num bloco. Lacaio
+    // (Main.projPet) recebe em todo quadro com choque, sem morrer.
     OnTileCollide(proj, oldVelocity) { return true; }
     OnHitNPC(proj, npc) {}
     OnHitPlayer(proj, player) {}
@@ -127,7 +132,7 @@ class ModProjectile {
         ProjectileLoader.ByType.set(type, inst);
 
         Ready.Add(() => inst.PostSetupContent());
-        ProjectileLoader.Hook(cls);
+        ProjectileLoader.Hook(cls, type);
         return type;
     }
 

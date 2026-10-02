@@ -1,0 +1,15 @@
+{
+  "uid": "12744adc-43dc-46c9-8c89-ba6fead2b97e",
+  "id": "test-rainperf",
+  "name": "Teste: custo da chuva",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: chuva forte com a água do jogo e com a do mod; o DoDraw, o quadro e os hooks que mais entram no JS.",
+  "description": "Loga 'rainperf ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

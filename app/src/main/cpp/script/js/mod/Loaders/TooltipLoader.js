@@ -59,7 +59,7 @@ class TooltipLoader {
                 TooltipLoader.#Draw(item, diff);
             } catch (e) {
                 TooltipLoader.#broken = true;
-                bl.log('tooltip: o desenho de mod quebrou, voltando ao do jogo: ' + e + (e && e.stack ? '\n' + e.stack : ''));
+                bl.error("tooltip: the mod drawing failed, falling back to the game's: " + e + (e && e.stack ? '\n' + e.stack : ''));
             } finally {
                 touch.OpenButtonFromEquipment = false;
             }
@@ -88,7 +88,7 @@ class TooltipLoader {
                     setColor.value = built.setBonusColor;
                 } catch (e) {
                     TooltipLoader.#broken = true;
-                    bl.log('tooltip: as linhas de mod no guia quebraram, voltando às do jogo: ' + e);
+                    bl.error("tooltip: the mod lines in the crafting guide failed, falling back to the game's: " + e);
                     return original();
                 }
 

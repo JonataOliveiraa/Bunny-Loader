@@ -267,6 +267,11 @@ e `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin`, aplicadas depois do
 - `EquipFrameEffects(player, type)` roda com a textura do item vestida;
   `UpdateVanity(item, player)`, com o acessório no slot de vaidade.
 
+O `FrameEffects` pode mudar o conjunto entre o `PreUpdateVanitySet` e o
+`UpdateVanitySet`: o ExampleCostume usa `ExampleCostume` seco e `BlockyAlt`
+quando `player.wet` é verdadeiro. Um `GlobalItem.IsVanitySet` que conta os
+callbacks dos dois visuais precisa reconhecer os dois slots de cabeça.
+
 O manequim (`TEDisplayDoll`) desenha as peças de mod como o jogador, e a
 armadura de mod volta no lugar ao carregar o personagem (`tools/tests/armor`
 e `armorsave`).

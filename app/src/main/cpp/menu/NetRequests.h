@@ -15,7 +15,7 @@ namespace bl::runtime {
  * mostra o texto no chat: legivel, e so.
  *
  * Pedidos: "npc <tipo>", "item <tipo> <pilha>", "power <id> <nivel>" (so os
- * poderes de mundo) e "time <0..3>".
+ * poderes de mundo), "time <0..3>" e "reveal 0" (as partes do mundo que faltam).
  *
  * Main.netMode no celular e um campo de BITS (Main.get_NetHost le o bit 1):
  * 0 sozinho, 1 cliente, 2 servidor dedicado, 3 quem hospeda e joga.

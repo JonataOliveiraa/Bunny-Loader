@@ -138,7 +138,7 @@ class SystemLoader {
         try {
             return JSON.parse(text) || {};
         } catch (e) {
-            bl.log('ModSystem: ' + file + ' esta quebrado (' + e + '); os dados do mundo foram ignorados');
+            bl.error('ModSystem: ' + file + ' is broken (' + e + '); the world data was ignored');
             return {};
         }
     }

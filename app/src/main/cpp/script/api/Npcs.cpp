@@ -7,6 +7,7 @@
 #include "il2cpp/Signature.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/npcs/ModTownNpcs.h"
+#include "content/npcs/ModBossHeads.h"
 #include "script/bridge/Bridge.h"
 #include "script/api/Items.h"
 #include "script/api/Texture.h"
@@ -219,6 +220,9 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     const std::string head = headProp.empty() ? std::string() : resolveModPath(ctx, headProp);
     const std::string shimmerProp = stringProp(ctx, def, "shimmerHead");
     const std::string shimmerHead = shimmerProp.empty() ? std::string() : resolveModPath(ctx, shimmerProp);
+    // O icone de chefe (barra de chefe e mapa): opcional, como a cabeca.
+    const std::string bossProp = stringProp(ctx, def, "bossHead");
+    const std::string bossHead = bossProp.empty() ? std::string() : resolveModPath(ctx, bossProp);
 
     const std::string mod = d.mod, name = d.name;
     const int type = runtime::registerModNpc(std::move(d));
@@ -229,6 +233,7 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     if (!shimmerHead.empty() && fileExists(shimmerHead)) {
         runtime::setModNpcHead(type, 1, shimmerHead, mod + "/" + name + "_Shimmer_Head");
     }
+    if (!bossHead.empty() && fileExists(bossHead)) runtime::setModBossHead(type, bossHead, mod + "/" + name + "_Head_Boss");
     g_ctx = ctx;
     runtime::setNpcsInstalledHook(onNpcsInstalled);
     g_defs[type] = JS_DupValue(ctx, def);

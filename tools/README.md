@@ -27,6 +27,52 @@ tools/dumpgrep.sh Projectile Terraria           # inspecionar uma classe
 Não haverá empacotador de `.bmod`: o pacote é montado à mão pelo autor, com a
 documentação como referência.
 
+## Catálogo online
+
+Os mods que a aba Explorar baixa moram neste mesmo repositório, sem servidor:
+
+| Onde | O quê |
+|---|---|
+| branch `mods-index` | `index.json` (a lista) e `mods/<uid>/` (a vitrine de cada mod: manifesto, ícone, capa, `description.md`, fotos dos autores). Branch órfão, sem o código. |
+| Releases `mod-<id>-v<versão>` | O `.bl` de cada versão. Nunca marcadas como *Latest*. |
+
+O app lê tudo sem login (`raw.githubusercontent.com` e o link de download da
+Release) e confere o sha256 do índice antes de instalar
+([`RemoteCatalog.kt`](../app/src/main/kotlin/dev/bunnyloader/mods/RemoteCatalog.kt)).
+Não há token no APK. Só publicar pede um, no PC.
+
+**O jeito fácil:** dois cliques em [`mods/gerenciar.bat`](mods/gerenciar.bat) (ou
+`python tools/mods/manager.py`). Abre uma página no navegador
+(`http://127.0.0.1:8770`) que mostra os mods de `samples/` com o status de cada
+um (em dia, versão nova pronta, mudou sem subir versão), publica com um clique,
+sobe a versão, confere e publica um `.bl` arrastado, e tira mods do catálogo.
+O token é colado na página e fica só na memória do gerenciador. A página só
+atende este computador e exige uma chave sorteada a cada execução.
+
+Por baixo, ela chama os mesmos scripts da linha de comando.
+[`mods/publish.py`](mods/publish.py) confere o pacote com as regras do import do
+app, cria a Release, monta a vitrine em `build/mods-index/` (um worktree do
+branch) e faz o push do índice:
+
+Só o ExampleMod vai dentro do APK (`BUNDLED_SAMPLES` no `app/build.gradle.kts`).
+Os outros de `samples/` são publicados aqui. [`mods/pack.py`](mods/pack.py) gera o
+`.bl` de uma pasta, sempre com os mesmos bytes, em `build/mods-packs/`.
+
+O token pode vir de `BL_GITHUB_TOKEN`; sem ela, o script pede na hora, sem
+mostrar na tela.
+
+```bash
+python tools/mods/pack.py samples/VidaCheia      # -> build/mods-packs/vidacheia-1.0.0.bl
+python tools/mods/publish.py --dry-run Mod.bl    # confere e monta, sem rede
+python tools/mods/publish.py Mod.bl Outro.bl     # publica
+python tools/mods/publish.py --remove <uid>      # tira do catálogo (a Release fica)
+```
+
+Atualizar um mod é publicar o `.bl` com a `version` maior no `manifest.json`:
+o app compara com a instalada e mostra "Atualizar". Republicar a mesma versão
+com outro conteúdo é recusado. O `raw.githubusercontent.com` guarda cache por
+alguns minutos, então a mudança pode demorar um pouco para aparecer no app.
+
 ## Testes
 
 Os testes são **mods**: cada pasta de [`tests/`](tests) instala no jogo, faz o
@@ -82,6 +128,7 @@ tools/bench/repeat.sh 12 modfurniture samples/ExampleMod tools/tests/modfurnitur
 | `ifbusy` | Hook que não espera o motor JS preso noutra thread (`ifBusy`). | **não**: rodar sem |
 | `enginethreads` | A thread do jogo e a do save no `original()` ao mesmo tempo, cada uma com a sua pilha JS. | |
 | `wrappermap` | Fuzz do `WrapperMap` contra `std::unordered_map` (roda como binário, `wrappermap/run.sh`). | |
+| `tilesettled` | Prontidão dos blocos de mod, incluindo zero blocos registrados: evita que o início rápido espere para sempre sem o Example Mod. Binário independente (`tilesettled/run.sh`), sem abrir o jogo nem alterar saves. | não |
 | **Conteúdo** | | |
 | `moditems` | As tabelas de item de mod. | |
 | `modsave` | Save de item de mod com o mod ligado e desligado (rodar mais de uma vez). | |
@@ -95,6 +142,12 @@ tools/bench/repeat.sh 12 modfurniture samples/ExampleMod tools/tests/modfurnitur
 | `frametime` | Tempo de quadro: o `DoUpdate` e o `DoDraw` do jogo e o intervalo entre quadros, com zoom 1, 2 e 0,75, e os hooks que mais custam (`bl.hookStats`: chamadas e tempo de JS por quadro), as coletas do QuickJS e o custo de uma coleta. O resumo sai também no chat do jogo: empacotado como `.bl` (`out/frametime.bl`), mede no celular sem adb. Para comparar o app com e sem mods, e versões dele (ver `bisect/`). Rodar com `BL_KEEP_GRAVES=1` e sem outros pacotes no aparelho. | não |
 | `bgreset` | Com o Example Mod: uma cena sempre ativa põe um fundo de superfície de mod (texturas do exemplo) e loga, a cada segundo, o estilo, os arrays de textura e de transparência e o `LocalUserGameState`. Para comparar antes e depois de um evento (segundo plano, troca de usuário). | não |
 | `tooltipdraw` | O tooltip de mod e a raridade de mod na tela: põe um item de teste (raridade e prefixo de mod) no `HoverItem` e pede o `MouseText` por uns quadros; confere os nomes das linhas do tModLoader, o `ModifyTooltips` (linha nova, `Hide`, `OverrideColor`), os `Pre/PostDrawTooltip(Line)`, o `yOffset`, a cor do nome e o `GetPrefixedRarity`. Com o Example Mod, mostra depois o `ExampleTooltipItem`; o tooltip fica uns 15 s na tela para uma captura. | não |
+| `oldpos` | O rastro do projétil lido de dois jeitos: `oldPos[i]` e `oldPos.get_Item(i)` (que no celular devolve `ref Vector2`), com `oldRot` e `oldSpriteDirection`. | |
+| `hookcost` | O custo de um hook que só repassa ao `original()`, em métodos de uma chamada por quadro, medido pelo `bl.hookStats` e por dentro do JS. | não |
+| `perfloader` | Desempenho do loader dos mods: na carga, os padrões dos loaders em JS puro; no mundo, com o Example Mod, o custo por entidade de cada hook com 60 projéteis e 15 slimes de mod, e o tempo de quadro com e sem elas. Ver `docs/historico/DESEMPENHO-LOADER.md`. | não |
+| `basecls` | O exemplo de classe base da documentação (`04-conteudo-novo.md`): a base com `static Autoload = false` e a base fora de `Content/` e `Common/` não são registradas; as filhas entram com o `SetDefaults` da base pelo `super`, os campos e os métodos herdados, e o `instanceof` pela base. | |
+| `achievements` | As conquistas do jogo com as de mod registradas: o `_completedCount` de cada uma igual às condições completas (a releitura do arquivo o dobrava, e as do jogo já completas apareciam bloqueadas), e a TIMBER completando pelo aviso de coleta de madeira. Zera a TIMBER do aparelho. | |
+| `menusky` | Com o Example Mod: o `DrawSunAndMoon` do tema de mod (filtro `flag: 'menu.sky'`) fora do JS no mundo e religado de volta aos menus (`SaveAndQuit`). | não |
 | `tilename` | Com o Example Mod: a estação de trabalho de mod no guia de criação, com o nome (`Recipe.GetRequiredTileName`, o do mapa, e o texto do `GUICraftGuidePopup.UpdateText` com a receita da `ExampleLamp`) e o ícone (`TileID.Sets.CraftingStationItemId`, tabela só do celular). | não |
 | `bgwatch` | Diagnóstico, não mexe em nada: loga o estado do fundo de superfície a cada 10 s e sempre que muda (estilo, soma das transparências das camadas — zero é a tela só com o céu —, arrays, `LocalUserGameState`, cena). Feito para rodar no celular do usuário com o logcat capturando. | não |
 | `cloudforce` | Diagnóstico: 5 s depois de entrar no mundo, e a cada 30 s, metade das nuvens vira o primeiro tipo de nuvem de mod, e loga se a máscara do horizonte (`TextureMaskManager.CloudMasks`) desse tipo existe. Para o desenho do horizonte do celular, que quebrava o fundo inteiro (ver `docs/historico/FUNDO-SUMINDO-NUVEM-DE-MOD.md`). | não |
@@ -104,7 +157,8 @@ tools/bench/repeat.sh 12 modfurniture samples/ExampleMod tools/tests/modfurnitur
 | `multitile` | Duas rodadas: a Pia de Exemplo (2x2, `TileObjectData`) colocada, quebrada por uma célula e pelo chão (um drop só), salva e reaberta. | sim |
 | `modfurniture` | Os móveis do Example Mod pelos caminhos do jogo: a casa com porta, mesa, cadeira e tocha de mod passa no `RoomNeeds`; porta abre e fecha (pelo toque, sozinha com o jogador encostando, com o morador passando, no fio; o goblin guerreiro arromba e o peão derruba, soltando o item da porta de mod); luz firme da tocha, fogueira, lustre e luminária; caixa de música no chão e equipada; toque na cadeira senta; fio apaga a luminária; buff da fogueira. Não salva. | sim |
 | `tileperf` | Tempo de quadro com 150 tochas do jogo e com 150 tochas e 10 fogueiras de mod na tela, e o custo de cada método do `ModTile` por quadro. Não salva. | sim |
-| `armor` | Texturas vestidas (slots, `Count` e tabelas crescidos, `AddEquipTexture`, `EquipTexture` própria, `AutoloadEquip`), conjunto por item e por `GlobalItem`, vaidade e sombras, `FrameEffects` (fantasia), `SetMatch` (manto), asas (`WingStats`, as três velocidades e `WingUpdate`), manequim. Veste e tira; não salva. | sim |
+| `armor` | Texturas vestidas (slots, `Count` e tabelas crescidos, `AddEquipTexture`, `EquipTexture` própria, `AutoloadEquip`), conjunto por item e por `GlobalItem`, vaidade e sombras, `FrameEffects` (fantasia seca e molhada, ordem Pre/EquipTexture/Update), `SetMatch` (manto), asas (`WingStats`, as três velocidades e `WingUpdate`), manequim. Veste e tira; não salva. | sim |
+| `loadorder/A`, `B`, `C`, `D` | Quatro mods no mesmo `Player.Update`: logam carga, entrada e saída da cadeia no primeiro quadro. Reordene pelas setas em Pacotes e confira com `python tools/tests/loadorder/check.py --device SERIAL --expected ACBD`. | não |
 | `armorsave` | Duas rodadas: veste e salva o personagem; depois confere que as peças voltaram, com os slots desenhados, e limpa. | sim |
 | `mparmor` | Multijogador (host e cliente, `mpa ...`): cada lado veste o conjunto, as asas e a barba e vê os slots de mod e o bônus do outro. | não (mp-session) |
 | `prefix` | Duas rodadas: status, nome, tooltip, rolagem e categorias dos prefixos do Example Mod; salva itens com prefixo de mod no inventário e num baú. Na 2ª um prefixo a mais desloca os números, e o save devolve pelo nome. Limpa no fim. | sim |

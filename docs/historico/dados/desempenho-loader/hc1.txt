@@ -1,0 +1,10 @@
+hookcost C++: 50.7 µs/chamada [pré 1.2, callback 47.7, original() antes 0.4 depois 1.0, pós 1.8], 300 chamadas: Main.DoUpdate(Microsoft.Xna.Framework.GameTime)
+hookcost C++: 41.4 µs/chamada [pré 0.9, callback 38.0, original() antes 0.4 depois 1.2, pós 2.4], 300 chamadas: Main.DoDraw(Microsoft.Xna.Framework.GameTime)
+hookcost C++: 20.2 µs/chamada [pré 0.7, callback 17.4, original() antes 0.7 depois 0.5, pós 2.0], 300 chamadas: Main.UpdateAudio()
+hookcost C++: 34.3 µs/chamada [pré 5.3, callback 25.9, original() antes 1.2 depois 0.2, pós 3.2], 300 chamadas: Player.UpdateBiomes()
+hookcost C++: 12.2 µs/chamada [pré 1.2, callback 10.2, original() antes 0.4 depois 0.2, pós 0.8], 300 chamadas: Player.ResetEffects()
+hookcost JS: 5.5 µs/chamada fora do original (original 2266 µs), 300 chamadas: DoUpdate (longo)
+hookcost JS: 4.8 µs/chamada fora do original (original 102 µs), 300 chamadas: UpdateAudio
+hookcost JS: 3.5 µs/chamada fora do original (original 47 µs), 300 chamadas: Player.UpdateBiomes
+hookcost JS: 1.7 µs/chamada fora do original (original 22 µs), 300 chamadas: Player.ResetEffects
+hookcost FIM: tudo ok

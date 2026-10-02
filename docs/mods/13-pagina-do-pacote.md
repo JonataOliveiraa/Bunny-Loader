@@ -137,6 +137,9 @@ abaixo). As imagens de `thumbnails/` aparecem no fim dela.
 Se o pacote não tem `description.md`, a aba mostra o `description` do
 manifesto, e se ele também não existe, o `summary`.
 
+Um modelo para copiar, com um pouco de cada recurso:
+[`samples/modelo-description.md`](../../samples/modelo-description.md).
+
 ## `changelog.md`
 
 A aba Novidades. Cada título `##` que **começa com um número de versão** vira um

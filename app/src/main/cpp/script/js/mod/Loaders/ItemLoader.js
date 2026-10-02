@@ -257,7 +257,7 @@ class ItemLoader {
         location.Y += x * sin + y * cos;
     }
 
-    static Hook(cls) {
+    static Hook(cls, type) {
         const P = Terraria.Player;
         const has = (name) => Hooks.Overrides(cls, ModItem, name);
         const onItem = (param) => ({ minType: FIRST_ITEM, on: param });
@@ -367,6 +367,9 @@ class ItemLoader {
         }
 
         // O item no chão: o Main.DrawItem pede a cor ao Item de dentro da WorldItem.
+        // Só os tipos que escrevem o GetAlpha entram no JS (o jogo o chama
+        // para todo item desenhado).
+        if (has('GetAlpha')) bl.hookMarks.set('item.GetAlpha', type);
         if (has('GetAlpha')) Hooks.Once('item.GetAlpha', () => {
             ItemLoader.#HookDrawItem();
             Terraria.Item['Color GetAlpha(Color newColor)'].hook((original, self, color) => {
@@ -377,7 +380,7 @@ class ItemLoader {
                 const world = ItemLoader.#WorldItemOf(self) || self;
                 const c = Safe.Run(m.constructor.name + '.GetAlpha', () => m.GetAlpha(world, color));
                 return original(self, c || color);
-            }, { minType: FIRST_ITEM, on: -1 });
+            }, { minType: FIRST_ITEM, on: -1, marks: 'item.GetAlpha' });
         });
 
         if (['ModifyTooltips', 'PreDrawTooltip', 'PostDrawTooltip', 'PreDrawTooltipLine', 'PostDrawTooltipLine'].some(has)) {
@@ -507,7 +510,7 @@ class ItemLoader {
             } finally {
                 ItemLoader.#drawingWorldItem = outer;
             }
-        }, { minType: FIRST_ITEM, on: 0, field: 'inner.type' });
+        }, { minType: FIRST_ITEM, on: 0, field: 'inner.type', marks: 'item.GetAlpha' });
     }
 
     // A linha da vara sai do mountedCenter; o deslocamento entra por ele e a

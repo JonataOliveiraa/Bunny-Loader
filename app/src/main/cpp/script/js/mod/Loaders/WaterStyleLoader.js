@@ -18,14 +18,8 @@ class WaterStyleLoader {
     static #installed = false;
     static #counted = false;
     static #dripGores = new Set();     // gores de gota de mod já pingados (como o UpdateType do tModLoader)
-    static #rainStyles = [];            // as águas com textura de chuva própria (o k do Rain.type)
-    static #rainTextures = new Map();   // arquivo -> Texture2D, ou null (falhou)
-
-    // O Rain.type de uma gota de água de mod com textura própria: 64 + 8k +
-    // variante (as do jogo vão até 3 × 15 - 1 = 44). O celular só guarda o
-    // type na gota; é ele que o desenho lê (a coluna = type × 4).
-    static RAIN_BASE = 64;
-    static RAIN_STYLES = 24;             // (255 - 64) / 8
+    static #rainAssets = new Map();     // arquivo -> Asset<Texture2D> da chuva, ou null (falhou)
+    static #raining = null;             // a água de mod do MakeRain em curso
 
     static get TotalCount() { return WaterStyleLoader.VanillaCount + WaterStyleLoader.List.length; }
 
@@ -76,7 +70,6 @@ class WaterStyleLoader {
 
         WaterStyleLoader.#HookDraw();
         WaterStyleLoader.#HookEffects();
-        WaterStyleLoader.#HookRainTexture();
         if (WaterStyleLoader.List.some((s) => Hooks.Overrides(s.constructor, ModWaterStyle, 'BiomeHairColor'))) {
             WaterStyleLoader.#HookHairDye();
         }
@@ -181,21 +174,7 @@ class WaterStyleLoader {
             }
         }, { minType: Terraria.ID.GoreID.Count });
 
-        // A chuva: 3 × estilo + 0..2, que passaria do fim da textura. A de mod
-        // usa a variante do estilo (0 a 2 são as da floresta).
-        // O celular tem os dois caminhos separados (o NewRainForced não passa pelo NewRain).
-        const rain = (original, position, velocity) => {
-            const index = original(position, velocity);
-            const style = WaterStyleLoader.Current();
-            if (style && index >= 0 && index < Main.rain.length) {
-                const variant = Safe.Run(style.constructor.name + '.GetRainVariant', () => style.GetRainVariant()) | 0;
-                const k = WaterStyleLoader.#rainStyles.indexOf(style);
-                Main.rain[index].type = k >= 0 ? WaterStyleLoader.RAIN_BASE + k * 8 + (variant & 7) : variant & 0xFF;
-            }
-            return index;
-        };
-        Terraria.Rain['int NewRain(Vector2 Position, Vector2 Velocity)'].hook(rain);
-        Terraria.Rain['int NewRainForced(Vector2 Position, Vector2 Velocity)'].hook(rain);
+        WaterStyleLoader.#HookRain();
 
         // A luz através da água, com o 0,91 da luz no ar, como o tModLoader. No
         // celular os dois motores (o novo e o antigo, do Retro) usam um LightMap.
@@ -216,65 +195,93 @@ class WaterStyleLoader {
         Terraria.Graphics.Light.LegacyLighting['void UpdateLightDecay()'].hook(decay);
     }
 
-    // A textura da chuva de mod (GetRainTexture): o DrawRain do celular desenha
-    // todas as gotas com a do jogo, cada uma pelo SpriteBatch.Draw(textura,
-    // ref posição, ref srcRect, ref cor, ...), com a coluna type × 4. A gota de
-    // água de mod com textura própria tem o type além dos do jogo: o Draw de
-    // dentro do DrawRain troca a textura e a coluna dela. Só entra se alguma
-    // água tiver GetRainTexture.
-    static #HookRainTexture() {
-        for (const style of WaterStyleLoader.List) {
-            if (!Hooks.Overrides(style.constructor, ModWaterStyle, 'GetRainTexture')) continue;
-            if (WaterStyleLoader.#rainStyles.length >= WaterStyleLoader.RAIN_STYLES) {
-                bl.log(`água de mod ${style.constructor.name}: chuva com a textura do jogo (mais de ${WaterStyleLoader.RAIN_STYLES} com textura própria)`);
-                continue;
+    // A chuva de água de mod, uma entrada no JS por quadro (era uma por gota,
+    // a cada quadro: centenas com chuva forte, e o jogo travava).
+    //   - O tipo da gota é 3 × Main.waterStyle + 0..2 (Rain.NewRain), e o
+    //     desenho lê a coluna type × 4 da TextureAssets.Rain. Com a água de mod,
+    //     o MakeRain roda com o estilo 0: as gotas novas saem nas colunas 0..2,
+    //     as três variantes da textura de chuva do mod (ou as da floresta).
+    //   - O DrawRain desenha com a TextureAssets.Rain trocada pela textura do
+    //     GetRainTexture da água atual, e a devolve.
+    //   - O GetRainVariant só entra se a água o mudar (o padrão é o sorteio de
+    //     0..2 do jogo), gota a gota, só dentro do MakeRain com água de mod.
+    //   - O NewRainForced (a do Eyebrella, rara) não passa pelo MakeRain.
+    // Como no TL Pro: as gotas que já caíam ao trocar de água são desenhadas
+    // com a textura nova até sumirem.
+    static #HookRain() {
+        const Main = Terraria.Main;
+        const Rain = Terraria.Rain;
+        const T = Terraria.GameContent.TextureAssets;
+        const variant = (style) => (Safe.Run(style.constructor.name + '.GetRainVariant', () => style.GetRainVariant()) | 0) & 0xFF;
+        const custom = WaterStyleLoader.List.some((s) => Hooks.Overrides(s.constructor, ModWaterStyle, 'GetRainVariant'));
+
+        const make = Rain['void MakeRain()'];
+        make.hook((original) => {
+            const style = WaterStyleLoader.Current();
+            if (!style) return original();
+            const water = Main.waterStyle;
+            Main.waterStyle = 0;
+            WaterStyleLoader.#raining = style;
+            try {
+                return original();
+            } finally {
+                Main.waterStyle = water;
+                WaterStyleLoader.#raining = null;
             }
-            WaterStyleLoader.#rainStyles.push(style);
-            WaterStyleLoader.#RainTexture(style);   // carrega já, na thread do jogo
-        }
-        if (!WaterStyleLoader.#rainStyles.length) return;
-
-        const gate = Terraria.Main['void DrawRain()'];
-        gate.hook((original, self) => original(self));
-        Microsoft.Xna.Framework.Graphics.SpriteBatch['void Draw(Texture2D texture, ref Vector2 position, ref Rectangle srcRect, ref Color color, float rotation, Vector2 origin, float scale)'].hook(
-            (original, self, texture, position, srcRect, color, rotation, origin, scale) => {
-                const rect = srcRect.value;
-                const type = rect.X >> 2;
-                if (type < WaterStyleLoader.RAIN_BASE) return original(self, texture, position, srcRect, color, rotation, origin, scale);
-
-                const style = WaterStyleLoader.#rainStyles[(type - WaterStyleLoader.RAIN_BASE) >> 3];
-                const own = style ? WaterStyleLoader.#RainTexture(style) : null;
-                const x = rect.X;
-                rect.X = (type & 7) * 4;
-                srcRect.value = rect;
-                try {
-                    return original(self, own || texture, position, srcRect, color, rotation, origin, scale);
-                } finally {
-                    rect.X = x;
-                    srcRect.value = rect;
+        });
+        if (custom) {
+            Rain['int NewRain(Vector2 Position, Vector2 Velocity)'].hook((original, position, velocity) => {
+                const index = original(position, velocity);
+                const style = WaterStyleLoader.#raining;
+                if (style && index >= 0 && index < Main.rain.length && Hooks.Overrides(style.constructor, ModWaterStyle, 'GetRainVariant')) {
+                    Main.rain[index].type = variant(style);
                 }
-            }, { whileIn: gate });
+                return index;
+            }, { whileIn: make });
+        }
+        Rain['int NewRainForced(Vector2 Position, Vector2 Velocity)'].hook((original, position, velocity) => {
+            const index = original(position, velocity);
+            const style = WaterStyleLoader.Current();
+            if (style && index >= 0 && index < Main.rain.length) Main.rain[index].type = variant(style);
+            return index;
+        });
+
+        const textured = WaterStyleLoader.List.filter((s) => Hooks.Overrides(s.constructor, ModWaterStyle, 'GetRainTexture'));
+        if (!textured.length) return;
+        for (const style of textured) WaterStyleLoader.#RainAsset(style);   // carrega já, na thread do jogo
+        Main['void DrawRain()'].hook((original, self) => {
+            const style = WaterStyleLoader.Current();
+            const own = style ? WaterStyleLoader.#RainAsset(style) : null;
+            if (!own) return original(self);
+            const rain = T.Rain;
+            T.Rain = own;
+            try {
+                return original(self);
+            } finally {
+                T.Rain = rain;
+            }
+        });
     }
 
-    // A Texture2D do GetRainTexture (caminho no mod ou Asset), ou null (a do jogo).
-    static #RainTexture(style) {
+    // O Asset<Texture2D> do GetRainTexture (caminho no mod ou o Asset), ou null (a do jogo).
+    static #RainAsset(style) {
         const got = Safe.Run(style.constructor.name + '.GetRainTexture', () => style.GetRainTexture());
         if (!got) return null;
-        if (typeof got !== 'string') return got.Value || null;
+        if (typeof got !== 'string') return got;
 
         const name = ModFiles.Texture(ModFiles.TextureName(got), style.Mod);
         const file = (style.Mod ? style.Mod.path + '/' : '') + name;
-        let texture = WaterStyleLoader.#rainTextures.get(file);
-        if (texture === undefined) {
-            texture = null;
+        let asset = WaterStyleLoader.#rainAssets.get(file);
+        if (asset === undefined) {
+            asset = null;
             try {
-                texture = bl.loadTextureAsset(file).Value;
+                asset = bl.loadTextureAsset(file);
             } catch (e) {
                 bl.log(`água de mod ${style.constructor.name}: sem a chuva ${name} (${e})`);
             }
-            WaterStyleLoader.#rainTextures.set(file, texture);
+            WaterStyleLoader.#rainAssets.set(file, asset);
         }
-        return texture;
+        return asset;
     }
 
     // A tintura de bioma (o item 1983): o celular a tem numa lambda do

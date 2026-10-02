@@ -1,0 +1,15 @@
+{
+  "uid": "5de8d1a2-ceed-4e2f-87a2-a7555bdc52d9",
+  "id": "test-recipedup",
+  "name": "Teste: receitas duplicadas no menu de criação",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Roda o FindRecipes com materiais no inventário e procura o mesmo índice duas vezes no availableRecipe, e receitas iguais no Main.recipe.",
+  "description": "Loga 'recipedup ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

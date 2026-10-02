@@ -1,0 +1,15 @@
+{
+  "uid": "1b97a065-ff89-4970-b2eb-8cdc2b777952",
+  "id": "test-mpcheats",
+  "name": "Teste: Revelar mapa e Remover inimigos no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "No anfitrião, cria zumbis perto do cliente; no cliente, mede os inimigos que ele vê, as partes do mundo carregadas e o mapa revelado. Os cheats são tocados no menu do cliente.",
+  "description": "Loga 'mpcheats ...'.",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

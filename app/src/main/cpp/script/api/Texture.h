@@ -25,6 +25,13 @@ JSValue loadTexture(JSContext* ctx, int argc, JSValueConst* argv);
  */
 JSValue loadTextureAsset(JSContext* ctx, int argc, JSValueConst* argv);
 
+/**
+ * bl.builtinTexture(nome) -> Asset<Texture2D> de uma imagem embutida na
+ * libbunny ('bunnyHead': o coelho do botão do Mod Menu e do "Config. dos
+ * Mods"). Thread do jogo.
+ */
+JSValue builtinTexture(JSContext* ctx, int argc, JSValueConst* argv);
+
 /** Caminho relativo a pasta do mod de quem chamou (a mesma regra do loadTexture). */
 std::string resolveModPath(JSContext* ctx, const std::string& caminho);
 

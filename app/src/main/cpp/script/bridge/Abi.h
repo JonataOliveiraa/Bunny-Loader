@@ -78,7 +78,8 @@ struct Outcome {
 /** Como o metodo recebe e devolve. Vazio = da para reproduzir a chamada. */
 struct AbiPlan {
     Ret ret = Ret::Int;
-    TypeDesc retDesc;
+    TypeDesc retDesc;           // com retByRef, o tipo do valor apontado
+    bool retByRef = false;      // `ref T`: o x0 traz o endereco
     std::vector<ParamPlan> params;
     int intRegs = 0;    // quantos x foram usados, JA contando o MethodInfo*
     int fltRegs = 0;    // quantos d foram usados

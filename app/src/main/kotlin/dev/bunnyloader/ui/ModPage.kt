@@ -251,9 +251,17 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext) {
         }
 
         Spacer(Modifier.height(12.dp))
+        // Mod do catálogo online: o botão vira o progresso enquanto baixa, e o
+        // erro fica logo abaixo dele (sem Toast).
+        val online = shell.remote.firstOrNull { it.uid == entry.uid }
+        val progress = shell.downloads[entry.uid]
+        val update = shell.updateFor(entry.uid)
         if (!installed) {
-            PixelButton("Baixar Mod", { shell.install(entry) },
-                Modifier.fillMaxWidth(), icon = R.drawable.ic_start, shadow = false)
+            PixelButton(
+                if (progress != null) "Baixando ${(progress * 100).toInt()}%" else "Baixar Mod",
+                { if (progress == null) { if (online != null) shell.installRemote(online) else shell.install(entry) } },
+                Modifier.fillMaxWidth(), icon = R.drawable.ic_start, shadow = false,
+            )
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
@@ -271,6 +279,15 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext) {
                 PixelButton("Remover", { shell.uninstall(entry.uid) },
                     icon = R.drawable.ic_trash, fontSize = Ts.Body, shadow = false)
             }
+            if (update != null) {
+                PixelButton(
+                    if (progress != null) "Baixando ${(progress * 100).toInt()}%"
+                    else "Atualizar para v${update.manifest.version}",
+                    { if (progress == null) shell.installRemote(update) },
+                    Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_start,
+                    fontSize = Ts.Body, shadow = false,
+                )
+            }
             PixelButton("Exportar .bl", {
                 exporter.launch("${m.id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.bl")
             }, Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_folder,
@@ -279,6 +296,10 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext) {
                 PixelText(message, size = Ts.Small, color = if (ok) Bl.TextDim else Bl.Bad,
                     modifier = Modifier.padding(top = 6.dp))
             }
+        }
+        shell.downloadErrors[entry.uid]?.let {
+            PixelText("Não deu: $it", size = Ts.Small, color = Bl.Bad,
+                modifier = Modifier.padding(top = 6.dp))
         }
 
         // Links do pacote: só web, como os do Markdown.

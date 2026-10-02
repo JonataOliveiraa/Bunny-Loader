@@ -1,0 +1,15 @@
+{
+  "uid": "71a951be-35c0-4b1e-a59b-1e9cc9e0d8a1",
+  "id": "test-bosshead",
+  "name": "Teste: ícone de chefe e barra de chefe",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O ExampleBoss com o _Head_Boss: índice em NPCID.Sets.BossHeadTextures, textura em TextureAssets.NpcHeadBoss e a barra de chefe do jogo.",
+  "description": "Loga 'bosshead ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

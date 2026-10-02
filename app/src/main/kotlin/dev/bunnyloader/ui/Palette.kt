@@ -35,6 +35,9 @@ object Bl {
     val PressedBorder = Color(0xFFEBE27F)
     val PressedText = Color(0xFFF9E141)
 
+    /** Cartão selecionado para arrastar. */
+    val DragBorder = Color(0xFF74E65B)
+
     /** Contorno de todo painel. */
     val Outline = Color(0xFF131625)
     val Night = Color(0xFF0D0F1A)
@@ -57,6 +60,8 @@ object Bl {
     val TextMuted = Color(0xFF7C85B6)
     /** Recusa e erro. O vermelho de dano do Terraria. */
     val Bad = Color(0xFFE0603F)
+    /** Novidade boa: a etiqueta de atualização disponível. */
+    val Good = Color(0xFF3F8F4E)
 }
 
 /** Fonte pixelada de _icons/font.TTF — a mesma identidade do título. */

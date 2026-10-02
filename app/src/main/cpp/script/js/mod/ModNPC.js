@@ -10,6 +10,9 @@ class ModNPC {
     // Padrão: a Texture + '_Head' / '_Shimmer_Head'. Morador sem cabeça nunca se muda.
     HeadTexture = '';
     ShimmerHeadTexture = '';
+    // Padrão: a Texture + '_Head_Boss'. O ícone da barra de chefe e do mapa;
+    // sem o arquivo, o chefe fica sem os dois.
+    BossHeadTexture = '';
     // MusicLoader.GetMusicSlot(...) ou um MusicID do jogo; -1 = a do jogo.
     Music = -1;
     SceneEffectPriority = SceneEffectPriority.BossLow;
@@ -92,6 +95,7 @@ class ModNPC {
             texture: ModFiles.Texture(inst.Texture),
             head: ModFiles.Texture(inst.HeadTexture || inst.Texture + '_Head'),
             shimmerHead: ModFiles.Texture(inst.ShimmerHeadTexture || inst.Texture + '_Shimmer_Head'),
+            bossHead: ModFiles.Texture(inst.BossHeadTexture || inst.Texture + '_Head_Boss'),
             animationType: animation,
             displayName: inst.DisplayName || Lang.Localized('NPCName', name) || name,
             setDefaults(npc) {
@@ -161,7 +165,7 @@ class ModNPC {
             inst.PostSetupContent();
         });
 
-        NPCLoader.Hook(cls);
+        NPCLoader.Hook(cls, type);
         return type;
     }
 

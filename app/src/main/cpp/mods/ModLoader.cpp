@@ -130,9 +130,8 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());
 
     // 1a passada: todos no registro, com manifesto e entry, antes de qualquer
-    // main.js rodar. A ordem de carga e a do uid (aleatoria na pratica), entao
-    // sem isto o ModLoader.TryGetMod de um mod dependeria do sorteio do uid do
-    // outro.
+    // main.js rodar. A ordem de carga vem da lista escolhida no launcher;
+    // sem isto o ModLoader.TryGetMod de um mod dependeria da posicao do outro.
     //
     // TODO(Fase 5): ordenação topológica por dependências (ciclo/faltante =>
     // desativa e loga).

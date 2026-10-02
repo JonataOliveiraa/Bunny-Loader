@@ -769,7 +769,7 @@ public class CheatBridge {
         "Calmo, brisa ou ventania",
         "Libera todas as criaturas",
         "Nenhum nasce, ou some com todos",
-        "Segure 2 s no mapa grande",
+        "Segure 1 s no mapa grande",
         "Fica favorito, moeda e munição",
         "O mundo inteiro no mapa",
         "Como vencer a Parede de Carne",
@@ -1471,7 +1471,7 @@ public class CheatBridge {
      */
     private static void buildToggle(final Activity act) {
         if (!sMenuOn && !sEditorOn) return;
-        ImageView b = icon(act, sprite(act, sMenuOn ? "ic_bunny_head" : "ic_js"), BUTTON_SIZE);
+        ImageView b = icon(act, sprite(act, sMenuOn ? "ic_bunny_menu" : "ic_js"), BUTTON_SIZE);
         b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         b.setBackground(panel(act, PANEL, OUTLINE));
         b.setContentDescription(sMenuOn ? "Mod Menu" : "Editor");
@@ -3058,9 +3058,13 @@ public class CheatBridge {
 
     // --- painel de erro ------------------------------------------------------
     //
-    // Chamado do nativo quando aparece o primeiro BL_ERROR. Quem joga no
-    // celular nao tem logcat: sem isto, um mod que quebra vira "nao funcionou"
-    // sem texto nenhum. Mostra o log, com OK e Copiar.
+    // Chamado do nativo a cada BL_ERROR novo. Quem joga no celular nao tem
+    // logcat: sem isto, um mod que quebra vira "nao funcionou" sem texto
+    // nenhum. Mostra o log, com OK e Copiar; com o painel ja aberto, so troca
+    // o texto (um erro atras do outro nao empilha janelas).
+
+    private static AlertDialog sErrorDialog;
+    private static String sErrorText = "";
 
     public static void showError(final String text) {
         final Activity act = sActivity;
@@ -3089,15 +3093,28 @@ public class CheatBridge {
      */
     private static void buildError(final Activity act, String text) {
         if (act.isFinishing()) return;
-        final String body = text;
+        sErrorText = text;
+        if (sErrorDialog != null && sErrorDialog.isShowing()) {
+            sErrorDialog.setMessage(text);
+            return;
+        }
 
         final AlertDialog dlg = new AlertDialog.Builder(act)
-            .setTitle("Bunny Loader — erro")
-            .setMessage(body)
+            .setTitle("Bunny Loader — error")
+            .setMessage(text)
             .setPositiveButton("OK", null)
-            .setNeutralButton("Copiar", null)
+            .setNeutralButton("Copy", null)
             .create();
+        sErrorDialog = dlg;
         dlg.show();
+
+        // Fonte de largura fixa: o trecho do codigo do mod marca a coluna do
+        // erro com um ^ embaixo dela, e o texto e um log.
+        TextView message = dlg.findViewById(android.R.id.message);
+        if (message != null) {
+            message.setTypeface(Typeface.MONOSPACE);
+            message.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
+        }
 
         // Todo botao de AlertDialog fecha o dialogo ao ser tocado, e Copiar nao
         // pode: quem copia o log quase sempre quer continuar lendo. Trocar o
@@ -3108,8 +3125,8 @@ public class CheatBridge {
             @Override public void onClick(View v) {
                 ClipboardManager cm =
                     (ClipboardManager) act.getSystemService(Activity.CLIPBOARD_SERVICE);
-                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("bunny", body));
-                Toast.makeText(act, "Log copiado", Toast.LENGTH_SHORT).show();
+                if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("bunny", sErrorText));
+                Toast.makeText(act, "Log copied", Toast.LENGTH_SHORT).show();
             }
         });
     }

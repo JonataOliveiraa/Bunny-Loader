@@ -142,7 +142,7 @@ void onError(void (*fn)(const char*)) {
     // mod que nao carregou — era justamente o unico que nunca chegava a tela.
     // O ouvinte ignora a linha e mostra log::errorsSoFar(), entao um toque
     // basta para trazer tudo o que ficou para tras.
-    if (atrasados) fn("(erros anteriores ao painel)");
+    if (atrasados) fn("(errors from before the panel)");
 }
 
 } // namespace bl::log

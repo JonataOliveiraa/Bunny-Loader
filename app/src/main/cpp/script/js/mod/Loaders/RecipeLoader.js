@@ -1,6 +1,11 @@
 class RecipeLoader {
-    // O `Recipe.maxRecipes` do celular: const, e os laços do jogo param nele.
-    static MAX_RECIPES = 3600;
+    // O `Recipe.maxRecipes` do jogo: os laços dele param nele. Lido do jogo, e
+    // não fixo: subiu de 3600 para 3700 na 1.4.5.8.6, e com o número velho as
+    // receitas de 3600 a 3699 entravam duas vezes no menu de criação.
+    static #max = 0;
+    static get MAX_RECIPES() {
+        return RecipeLoader.#max || (RecipeLoader.#max = Terraria.Recipe.maxRecipes);
+    }
 
     static #added = 0;
     static #beyond = 0;

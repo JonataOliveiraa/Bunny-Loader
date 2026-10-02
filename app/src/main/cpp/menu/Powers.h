@@ -38,7 +38,7 @@ enum class Power : int {
     Wind = 13,       // BARRA: 0 ventania a esquerda, 50 calmo, 100 a direita
     Bestiary = 14,   // ACAO: desbloqueia o bestiario do mundo e volta a 0
     NoSpawns = 15,   // BARRA: a taxa de inimigos da Jornada; 0 nenhum, 50 x1, 100 x10
-    MapTeleport = 16,// segurar 2,5 s parado no mapa grande teleporta para la
+    MapTeleport = 16,// segurar 1 s parado no mapa grande teleporta para la
     ClearInventory = 17, // ACAO: esvazia a mochila (fica favorito, moeda, municao)
     RevealMap = 18,  // ACAO: revela o mapa inteiro, em partes, quadro a quadro
     Hardmode = 19,   // COMANDO: 1 liga (o evento do jogo), 2 desliga
@@ -57,6 +57,13 @@ void setPower(int id, int level);
  * jogador sao de cada um e nao vem pela rede. false = recusado.
  */
 bool setWorldPowerFromNet(int id, int level);
+
+/**
+ * Servidor: manda ao cliente `client` todas as partes do mundo que ele ainda
+ * nao tem (pedido "reveal" do Revelar mapa dele), algumas por quadro. Sem
+ * elas o cliente revela ar: so tem os tiles por onde ja andou.
+ */
+void revealMapForClient(int client);
 
 /** Os niveis de uma barra: 0 desligada, 1..kSliderLevels = posicao 0..100. */
 constexpr int kSliderLevels = 101;

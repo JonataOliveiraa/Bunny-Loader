@@ -3,12 +3,13 @@
 // Content/ e Common/ é registrada sozinha. `static Autoload = false` deixa uma
 // classe de fora. O núcleo (ScriptEngine.cpp) importa os arquivos e chama o Load.
 class ContentAutoload {
+    // As configs primeiro: o conteúdo pode ler uma opção ao se registrar.
     // Fundos, água e biomas antes do NPC: o SetStaticDefaults dele roda no
     // registro, e o Happiness.SetBiomeAffection(ModBiome) do morador pede o
     // bioma já registrado. A raridade primeiro: o SetDefaults dos itens pede o
     // RarityType. A montaria antes do buff e do item, que pedem o
     // MountType (o SetStaticDefaults dela roda depois, com tudo carregado).
-    static #ORDER = [ModRarity, ModMount, ModBuff, ModPrefix, ModPlayer,
+    static #ORDER = [ModConfig, ModRarity, ModMount, ModBuff, ModPrefix, ModPlayer,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, ModMenu,
                      ModNPC, ModProjectile, ModItem, ModTile, ModSystem,

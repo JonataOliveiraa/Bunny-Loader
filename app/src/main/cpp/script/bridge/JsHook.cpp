@@ -40,6 +40,15 @@ std::atomic<uint8_t>* hookMarks(const std::string& name) {
     return t.get();
 }
 
+std::atomic<uint8_t>* hookFlag(const std::string& name) {
+    static std::mutex lock;
+    static std::map<std::string, std::unique_ptr<std::atomic<uint8_t>>> flags;
+    std::lock_guard<std::mutex> guard(lock);
+    auto& f = flags[name];
+    if (!f) f.reset(new std::atomic<uint8_t>(0));
+    return f.get();
+}
+
 #if defined(__aarch64__)
 
 // ================== hook JS -> metodo do jogo (arm64) ==================
@@ -129,6 +138,8 @@ struct HookCtx {
     int argReg = -1, argBytes = 4;
     // HookFilter::marks: o tipo lido tambem tem de estar marcado aqui.
     const std::atomic<uint8_t>* marks = nullptr;
+    // HookFilter::flag: desligada, o metodo roda sem o JS.
+    const std::atomic<uint8_t>* flag = nullptr;
     // HookFilter::ifBusy: com o motor JS noutra thread, nao espera.
     IfBusy ifBusy = IfBusy::Wait;
 };
@@ -343,6 +354,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     std::memcpy(rawD, rawF, sizeof(rawD));
 
     // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
+    if (c->flag && !c->flag->load(std::memory_order_relaxed)) return callOriginal(c, rawA, rawD);
     // g_depth do hook de fora > 0 = esta thread esta dentro do callback dele.
     if (c->gateSlot >= 0 && g_depth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
     int seen = -1;   // o tipo que um dos filtros leu (para as marcas)
@@ -440,9 +452,10 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
         // de qual mod nem de qual linha veio.
         JSValue st = JS_IsError(e) ? JS_GetPropertyStr(ctx, e, "stack") : JS_UNDEFINED;
         const char* s = JS_IsString(st) ? JS_ToCString(ctx, st) : nullptr;
-        BL_ERROR("hook %s.%s: excecao no callback: %s%s%s",
+        const std::string detail = withCodeFrame(std::string(t ? t : "?") + (s ? "\n" : "") + (s ? s : ""));
+        BL_ERROR("hook %s.%s: exception in callback: %s",
                  il2cpp::api().class_get_name(il2cpp::api().method_get_class(c->method)),
-                 il2cpp::api().method_get_name(c->method), t ? t : "?", s ? "\n" : "", s ? s : "");
+                 il2cpp::api().method_get_name(c->method), detail.c_str());
         if (s) JS_FreeCString(ctx, s);
         JS_FreeValue(ctx, st);
         if (t) JS_FreeCString(ctx, t);
@@ -659,6 +672,7 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             probe.marks = hookMarks(filter->marks);
         }
     }
+    if (filter && !filter->flag.empty()) probe.flag = hookFlag(filter->flag);
     if (filter) probe.ifBusy = filter->ifBusy;
     if (err.empty() && probe.ifBusy == IfBusy::Skip && probe.abi.retDesc.prim != Prim::Void) {
         err = "ifBusy 'skip' so vale em metodo void (sem o JS, nao ha o que devolver)";

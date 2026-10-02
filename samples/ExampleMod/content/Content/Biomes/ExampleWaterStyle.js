@@ -18,8 +18,6 @@ export class ExampleWaterStyle extends ModWaterStyle {
         b.value = 1;
     }
 
-    GetRainVariant() { return Rand.Next(3); }
-
     GetRainTexture() { return 'Content/Biomes/ExampleRain'; }
 
     BiomeHairColor() { return Color.White; }

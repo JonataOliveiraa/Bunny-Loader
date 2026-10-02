@@ -1,224 +1,441 @@
-// Templo da Selva redesenhado: andares de câmaras ligados por corredores,
-// poços com degraus entre os andares e, no fundo, a arena do Golem com o altar
-// num estrado.
-//
-// Rodar no Editor e depois CRIAR UM MUNDO NOVO (sem fechar o jogo): o hook vive
-// até o processo acabar. Rodar de novo só troca o desenho; o hook é um só.
-//
-// O contrato do jogo é mantido: tijolo lihzahrd (226) por fora, parede de
-// templo (87) por dentro, porta trancada na entrada, altar e os limites
-// GenVars.t*: com eles, o templePart2 do jogo ainda espalha armadilhas, baús
-// (com a Célula de Energia), estátuas e móveis.
+// Templo Pirâmide: execute no Editor e CRIE UM MUNDO NOVO sem fechar o jogo.
+// Gerado por tools/temple/package.py a partir de samples/TemploPiramide/content/.
+// Execute apenas o script OU o pacote do mod. Reexecutar atualiza o desenho.
+// Compatível com o hook do script anterior: buildTemple e templeHooked.
+(() => {
+// Planta independente do jogo: coordenadas locais, em tiles.
+const Cell = Object.freeze({ OUTSIDE: 0, BRICK: 1, AIR: 2, SPIKES: 3 });
 
-globalThis.buildTemple = (ox, oy) => {
+function createTemplePlan({ worldWidth, worldHeight, minY, maxY, originX, originY, rand }) {
+    for (const n of [worldWidth, worldHeight, minY, maxY, originX, originY]) {
+        if (!Number.isFinite(n)) throw new Error('Dimensões do mundo inválidas');
+    }
+    if (typeof rand !== 'function') throw new Error('Gerador aleatório ausente');
+    const scale = Math.max(1, Math.min(2, worldWidth / 4200));
+    const spacing = Math.round(64 + (scale - 1) * 6);
+    const arenaHeight = Math.round(58 + (scale - 1) * 10);
+    const arenaWidth = Math.round(170 + (scale - 1) * 40);
+    const shell = Math.round(12 * 0.62);
+    const firstFloor = 64;
+    let levels = worldWidth >= 8000 ? 6 : worldWidth >= 6000 ? 5 : 4;
+    minY = Math.max(50, Math.ceil(minY));
+    maxY = Math.min(worldHeight - 50, Math.floor(maxY));
+    const heightFor = n => firstFloor + (n - 1) * spacing + 36 + arenaHeight + shell + 1;
+    while (levels > 2 && heightFor(levels) > maxY - minY + 1) levels--;
+    const height = heightFor(levels);
+    if (height > maxY - minY + 1) throw new Error('Não há profundidade para a pirâmide');
+    const halfAt = y => 10 + Math.floor(y * 0.91);
+    const halfBase = halfAt(height - 1);
+    const width = 2 * (halfBase + 14) + 1;
+    if (width > worldWidth - 100) throw new Error('Não há largura para a pirâmide');
+    const left = -(width >> 1);
+    const grid = new Uint8Array(width * height);
+    const cell = (x, y) => x < left || x >= left + width || y < 0 || y >= height
+        ? Cell.OUTSIDE : grid[y * width + x - left];
+    const paint = (x0, y0, x1, y1, value, allowOutside = false) => {
+        if (x0 > x1 || y0 > y1) throw new Error('Retângulo invertido na planta');
+        for (let y = y0; y <= y1; y++) {
+            for (let x = x0; x <= x1; x++) {
+                if (x < left || x >= left + width || y < 0 || y >= height) {
+                    throw new Error('Desenho ultrapassou a grade');
+                }
+                if (!allowOutside && cell(x, y) === Cell.OUTSIDE) {
+                    throw new Error('Câmara ultrapassou a casca da pirâmide');
+                }
+                grid[y * width + x - left] = value;
+            }
+        }
+    };
+    for (let y = 0; y < height; y++) {
+        paint(-halfAt(y), y, halfAt(y), y, Cell.BRICK, true);
+    }
+    const air = (x0, y0, x1, y1) => paint(x0, y0, x1, y1, Cell.AIR);
+    const brick = (x0, y0, x1, y1) => paint(x0, y0, x1, y1, Cell.BRICK);
+    const rows = [];
+    const entranceSide = rand(0, 1) ? 1 : -1;
+    const makeRoom = (x0, w, floor, h, kind) => ({ x0, x1: x0 + w - 1, floor, top: floor - h, kind });
+    let kinds = [], previousKind = -1;
+    const nextKind = () => {
+        if (!kinds.length) {
+            kinds = [0, 1, 2, 3, 4, 5, 6, 7];
+            for (let n = kinds.length - 1; n > 0; n--) {
+                const j = rand(0, n);
+                [kinds[n], kinds[j]] = [kinds[j], kinds[n]];
+            }
+            if (kinds[0] === previousKind) [kinds[0], kinds[1]] = [kinds[1], kinds[0]];
+        }
+        previousKind = kinds.shift();
+        return previousKind;
+    };
+    const roomHeight = kind => kind === 4 ? rand(29, 34) : kind === 5 || kind === 6 ? rand(14, 18) : rand(20, 27);
+
+    for (let i = 0; i < levels; i++) {
+        const floor = firstFloor + i * spacing;
+        const count = 1 + i * 2;
+        const rooms = [];
+        const sizes = [];
+        let gaps = 0, weights = 0;
+        for (let k = 0; k < count; k++) {
+            const kind = nextKind(), gap = k === count - 1 ? 0 : rand(12, 17);
+            const weight = kind === 2 || kind === 6 ? 3 : kind === 4 || kind === 7 ? 2 : 1;
+            sizes.push({ gap, weight, h: i === 0 ? rand(20, 24) : roomHeight(kind), kind });
+            gaps += gap; weights += weight;
+        }
+        // A largura total cresce regularmente para que as descidas continuem
+        // suaves, mas cada câmara recebe uma largura conforme sua função.
+        const total = i === 0 ? rand(32, 42) : rand(130 + (i - 1) * 100, 150 + (i - 1) * 100);
+        const extra = total - gaps - count * 24;
+        let assigned = gaps;
+        for (const s of sizes) { s.w = 24 + Math.floor(extra * s.weight / weights); assigned += s.w; }
+        for (let n = 0; assigned < total; n++, assigned++) sizes[n % count].w++;
+        let x = -Math.floor(total / 2);
+        for (let k = 0; k < sizes.length; k++) {
+            const s = sizes[k];
+            const offset = k === 0 || k === count - 1 ? 0 : s.kind === 2 ? 4 : s.kind === 7 ? -3 : 0;
+            rooms.push(makeRoom(x, s.w, floor + offset, s.h, s.kind));
+            x += s.w + s.gap;
+        }
+        rows.push({ floor, rooms, left: rooms[0].x0, right: rooms[rooms.length - 1].x1 });
+    }
+
+    const arenaFloor = height - shell - 1;
+    const arena = makeRoom(-Math.floor(arenaWidth / 2), arenaWidth, arenaFloor, arenaHeight, -1);
+    const wings = levels - 1;
+    const finalRooms = [];
+    for (let k = wings; k >= 1; k--) {
+        const kind = nextKind();
+        finalRooms.push(makeRoom(arena.x0 - k * 51, rand(30, 40), arenaFloor, roomHeight(kind), kind));
+    }
+    finalRooms.push(arena);
+    for (let k = 0; k < wings; k++) {
+        const kind = nextKind();
+        finalRooms.push(makeRoom(arena.x1 + 16 + k * 51, rand(30, 40), arenaFloor, roomHeight(kind), kind));
+    }
+    rows.push({ floor: arenaFloor, rooms: finalRooms, left: finalRooms[0].x0, right: finalRooms[finalRooms.length - 1].x1 });
+
+    const carveRoom = room => {
+        air(room.x0, room.top, room.x1, room.floor - 1);
+        const wantedSteps = room === arena ? 7 : room.kind === 5 || room.kind === 6 ? 0 : room.kind === 4 ? 5 : 3;
+        const inset = room === arena ? 8 : 3;
+        const steps = Math.min(wantedSteps, Math.floor((room.x1 - room.x0 - 2) / (2 * inset)));
+        for (let n = 1; n <= steps; n++) air(room.x0 + n * inset, room.top - n, room.x1 - n * inset, room.top - n);
+    };
+    for (const row of rows) {
+        for (let i = 0; i < row.rooms.length; i++) {
+            const r = row.rooms[i];
+            carveRoom(r);
+            if (i > 0) {
+                const prev = row.rooms[i - 1], distance = r.x0 - prev.x1;
+                for (let x = prev.x1 + 1; x < r.x0; x++) {
+                    const floor = Math.round(prev.floor + (r.floor - prev.floor) * (x - prev.x1) / distance);
+                    air(x, floor - 7, x, floor - 1);
+                }
+            }
+        }
+    }
+
+    // Corredores diagonais escavados: o tijolo logo abaixo forma degraus.
+    // A abertura de 9 tiles evita poços de queda livre e permite o retorno.
+    const stairs = [];
+    for (let i = 0; i < rows.length - 1; i++) {
+        const a = rows[i], b = rows[i + 1];
+        const side = i % 2 === 0 ? -entranceSide : entranceSide;
+        const x0 = side > 0 ? a.right - 4 : a.left + 4;
+        const x1 = side > 0 ? b.right - 4 : b.left + 4;
+        for (let y = a.floor; y <= b.floor; y++) {
+            const x = Math.round(x0 + (x1 - x0) * (y - a.floor) / (b.floor - a.floor));
+            air(x - 4, y - 8, x + 4, y - 1);
+        }
+        stairs.push({ x0, y0: a.floor, x1, y1: b.floor, side });
+    }
+
+    // Enfeites altos deixam pelo menos oito tiles livres acima do piso.
+    for (const row of rows) {
+        for (const r of row.rooms) {
+            if (r === arena) continue;
+            if (r.kind === 0) {
+                for (let x = r.x0 + 7; x <= r.x1 - 7; x += 11) {
+                    brick(x, r.top, x + 1, r.floor - 10);
+                    brick(x - 1, r.floor - 10, x + 2, r.floor - 10);
+                }
+            } else if (r.kind === 1) {
+                const cx = Math.floor((r.x0 + r.x1) / 2);
+                air(cx - 3, r.floor, cx + 3, r.floor + 2);
+                paint(cx - 3, r.floor + 3, cx + 3, r.floor + 3, Cell.SPIKES);
+            } else if (r.kind === 2) {
+                brick(r.x0, r.floor - 2, r.x0 + 3, r.floor - 1);
+                brick(r.x1 - 3, r.floor - 2, r.x1, r.floor - 1);
+                brick(r.x0 + 5, r.top + 6, r.x0 + 10, r.top + 7);
+            } else if (r.kind === 3) {
+                air(r.x0 - 3, r.floor - 14, r.x0 - 1, r.floor - 10);
+                air(r.x1 + 1, r.floor - 14, r.x1 + 3, r.floor - 10);
+            } else if (r.kind === 4) {
+                brick(r.x0, r.floor - 13, r.x0 + 6, r.floor - 13);
+                brick(r.x1 - 6, r.floor - 19, r.x1, r.floor - 19);
+                air(r.x0 + 4, r.top - 5, r.x1 - 4, r.top - 3);
+            } else if (r.kind === 5) {
+                for (let x = r.x0 + 5; x < r.x1 - 4; x += 9) brick(x, r.top, x + 2, r.top + 3);
+            } else if (r.kind === 6) {
+                for (let x = r.x0 + 8; x < r.x1 - 8; x += 13) brick(x, r.top, x + 3, r.top + 4);
+            } else if (r.kind === 7) {
+                const cx = Math.floor((r.x0 + r.x1) / 2);
+                brick(cx - 5, r.floor - 1, cx + 5, r.floor - 1);
+                brick(cx - 2, r.floor - 2, cx + 2, r.floor - 2);
+                brick(r.x1 - 7, r.top, r.x1 - 5, r.floor - 10);
+            }
+        }
+    }
+    for (const x of [arena.x0 + 22, arena.x0 + 43, arena.x1 - 44, arena.x1 - 23]) {
+        brick(x, arena.top, x + 2, arena.top + 18);
+        brick(x - 2, arena.top + 18, x + 4, arena.top + 19);
+    }
+    brick(arena.x0, arena.floor - 14, arena.x0 + 10, arena.floor - 14);
+    brick(arena.x1 - 10, arena.floor - 14, arena.x1, arena.floor - 14);
+    brick(-15, arena.floor - 1, 15, arena.floor - 1);
+    brick(-10, arena.floor - 2, 10, arena.floor - 2);
+    brick(-5, arena.floor - 3, 5, arena.floor - 3);
+    const altar = { x: -1, y: arena.floor - 5 }; // canto superior esquerdo do 3x2
+
+    const first = rows[0];
+    const edge = entranceSide > 0 ? first.right : first.left;
+    const outsideX = entranceSide * (halfAt(first.floor) + 10);
+    const door = { x: entranceSide * (halfAt(first.floor - 6) - 5), y: first.floor - 2, style: 11 };
+    paint(Math.min(edge, outsideX), first.floor - 6, Math.max(edge, outsideX), first.floor - 1, Cell.AIR, true);
+    paint(Math.min(edge, outsideX), first.floor, Math.max(edge, outsideX), first.floor, Cell.BRICK, true);
+    brick(door.x, first.floor - 6, door.x, first.floor - 4);
+
+    // Tesouros: pelo menos um local em cada andar, com piso plano 2x2.
+    // AddBuriedChest recebe a coluna direita e procura o primeiro piso abaixo.
+    const chestCandidates = [];
+    for (let level = 0; level < rows.length; level++) {
+        for (const r of rows[level].rooms) {
+            if (r === arena) continue;
+            for (const x of [r.x0 + 6, r.x1 - 5]) {
+                if ([x - 1, x].every(cx => cell(cx, r.floor) === Cell.BRICK
+                    && cell(cx, r.floor - 1) === Cell.AIR && cell(cx, r.floor - 2) === Cell.AIR
+                    && cell(cx, r.floor - 3) === Cell.AIR)) {
+                    chestCandidates.push({ x, y: r.floor - 3, floor: r.floor, level, kind: r.kind, x0: r.x0, x1: r.x1 });
+                    break;
+                }
+            }
+        }
+    }
+    const roomCount = rows.reduce((n, r) => n + r.rooms.length, 0);
+    const chests = [], remaining = chestCandidates.slice();
+    const takeChest = index => chests.push(...remaining.splice(index, 1));
+    for (let level = 0; level < rows.length; level++) {
+        let index = remaining.findIndex(c => c.level === level && c.kind === 3);
+        if (index < 0) index = remaining.findIndex(c => c.level === level);
+        if (index < 0) throw new Error('Andar sem espaço reservado para baú');
+        takeChest(index);
+    }
+    const desiredChests = Math.ceil(roomCount * 0.35);
+    for (let level = 1; chests.length < desiredChests && remaining.length; level = (level + 1) % rows.length) {
+        const index = remaining.findIndex(c => c.level === level);
+        if (index >= 0) takeChest(index);
+    }
+
+    // Circuitos reais: placa Lihzahrd (135, estilo 6) e emissores 137.
+    // Os estilos e orientações vêm de mayanTrap/PlaceTile/Wiring no fonte.
+    const traps = [];
+    for (let level = 0; level < rows.length; level++) {
+        for (const r of rows[level].rooms) {
+            if (r === arena) continue;
+            let placed = 0;
+            for (let x = r.x0 + 5; x <= r.x1 - 5 && placed < (r.kind === 6 ? 3 : 2); x += 5) {
+                let floor = r.floor - 5;
+                while (cell(x, floor) === Cell.AIR && floor <= r.floor + 4) floor++;
+                const py = floor - 1;
+                if (cell(x, floor) !== Cell.BRICK || cell(x - 1, floor) !== Cell.BRICK || cell(x + 1, floor) !== Cell.BRICK) continue;
+                if (chests.some(c => Math.abs(c.x - x) < 5 && Math.abs(c.floor - floor) < 5)) continue;
+                if (traps.some(t => Math.abs(t.plate.x - x) < 5 && t.plate.y === py)) continue;
+                let clear = true;
+                for (let yy = py - 2; yy <= py; yy++) for (let xx = x - 1; xx <= x + 1; xx++) if (cell(xx, yy) !== Cell.AIR) clear = false;
+                if (!clear) continue;
+                let style = 1 + traps.length % 4, tx = x, ty = py - 2, frameX = 0;
+                if (style <= 2) {
+                    let lx = x - 1, rx = x + 1;
+                    while (cell(lx, ty) === Cell.AIR && x - lx < 49) lx--;
+                    while (cell(rx, ty) === Cell.AIR && rx - x < 49) rx++;
+                    if (x - lx > 5 && x - lx < 49 && cell(lx, ty) === Cell.BRICK) { tx = lx; frameX = 18; }
+                    else if (rx - x > 5 && rx - x < 49 && cell(rx, ty) === Cell.BRICK) tx = rx;
+                    else style = style === 1 ? 3 : 4;
+                }
+                if (style >= 3) {
+                    tx = x; ty = py - 3;
+                    while (ty > r.top - 7 && cell(tx, ty) === Cell.AIR) ty--;
+                    if (cell(tx, ty) !== Cell.BRICK) continue;
+                    frameX = 0;
+                }
+                if (traps.some(t => t.emitter.x === tx && t.emitter.y === ty)) continue;
+                traps.push({ plate: { x, y: py }, emitter: { x: tx, y: ty, style, frameX }, color: traps.length % 3, level });
+                placed++;
+            }
+        }
+    }
+    if (traps.length < roomCount) throw new Error('A planta ficou sem circuitos suficientes');
+
+    // Reduza 38% da margem além do envelope mínimo das câmaras/escadas.
+    // O envelope é linear para preservar a silhueta de pirâmide.
+    let requiredSlope = 0;
+    for (let y = 1; y < height; y++) {
+        for (let x = left; x < left + width; x++) {
+            if (y >= first.floor - 6 && y <= first.floor && (entranceSide > 0 ? x >= edge : x <= edge)) continue;
+            if (cell(x, y) === Cell.AIR || cell(x, y) === Cell.SPIKES) requiredSlope = Math.max(requiredSlope, (Math.abs(x) + 8 - 10) / y);
+        }
+    }
+    for (const t of traps) requiredSlope = Math.max(requiredSlope, (Math.abs(t.emitter.x) + 4 - 10) / t.emitter.y);
+    requiredSlope = Math.min(0.91, requiredSlope);
+    const outerHalf = [];
+    let boundLeft = 0, boundRight = 0;
+    for (let y = 0; y < height; y++) {
+        const minimum = 10 + requiredSlope * y;
+        const half = Math.ceil(minimum + 0.62 * (halfAt(y) - minimum));
+        outerHalf.push(half);
+        for (let x = left; x < left + width; x++) {
+            const entry = y >= first.floor - 6 && y <= first.floor && (entranceSide > 0 ? x >= edge && x <= outsideX : x <= edge && x >= outsideX);
+            if (Math.abs(x) > half && cell(x, y) === Cell.BRICK && !entry) grid[y * width + x - left] = Cell.OUTSIDE;
+            if (cell(x, y) !== Cell.OUTSIDE) { boundLeft = Math.min(boundLeft, x); boundRight = Math.max(boundRight, x); }
+        }
+    }
+
+    const dx = Math.max(50 - left, Math.min(worldWidth - 51 - (left + width - 1), Math.round(originX)));
+    const dy = Math.max(minY, Math.min(maxY - height + 1, Math.round(originY) - 20));
+    return { grid, width, height, left, dx, dy, rows, arena, altar, door, stairs, chests, traps, outerHalf,
+        bounds: { left: boundLeft, right: boundRight }, exteriorMarginScale: 0.62, requiredSlope, shell,
+        entrance: { x: outsideX, y: first.floor - 2, side: entranceSide },
+        levels: rows.length, roomCount, cell };
+}
+
+
+// JsHook.cpp executa o original quando o callback lança. Contenha aqui todo
+// erro, inclusive os anteriores à primeira escrita, para suprimir makeTemple.
+function buildTemple(ox, oy) {
+    try {
+        applyTemple(ox, oy);
+        return true;
+    } catch (error) {
+        try {
+            bl.log('Templo Pirâmide: geração interrompida (' + error + '); original suprimido.');
+        } catch (_) {}
+        return false;
+    }
+}
+
+function applyTemple(ox, oy) {
     const M = Terraria.Main, W = Terraria.WorldGen, GV = Terraria.WorldBuilding.GenVars;
     const rng = W.genRand;
-    const rand = (a, b) => rng['int Next(int minValue, int maxValue)'](a, b + 1); // inclusivo
-    const tiles = M.tile;
-    const tileAt = (x, y) => tiles['Tile get_Item(int x, int y)'](x, y);
-    const activeType = (x, y) => { const t = tileAt(x, y); return (t.sTileHeader & 0x20) ? t.type : -1; };
-
-    const BRICK = 226, SPIKES = 232, ALTAR = 237, DOOR = 10, TEMPLE_WALL = 87;
-    const C_BRICK = 1, C_AIR = 2, C_SPIKES = 3;
-    const SHELL = 8, LEVEL_H = 30, SHAFT_W = 10;
-    const scale = M.maxTilesX / 4200;
-
-    // ---- 1. Planta (x relativo ao centro; o deslocamento vem no fim) ----
-    const makePlan = (levels) => {
-        const p = { air: [], brick: [], spikes: [], rows: [], rooms: 0 };
-        const air = (x0, y0, x1, y1) => p.air.push([x0, y0, x1, y1]);
-        const brick = (x0, y0, x1, y1) => p.brick.push([x0, y0, x1, y1]);
-        const entranceSide = rand(0, 1) ? 1 : -1;
-
-        for (let i = 0, floor = oy + 20; i < levels; i++, floor += LEVEL_H) {
-            const rooms = [];
-            let total = 0;
-            for (let k = 0; k < 2 + i; k++) {
-                const r = { w: rand(16, 26), h: rand(10, 15), gap: rand(5, 9) };
-                rooms.push(r);
-                total += r.w + (k < 1 + i ? r.gap : 0);
-            }
-            let x = -(total >> 1);
-            for (const r of rooms) {
-                r.x0 = x; r.x1 = x + r.w - 1; r.floor = floor; r.top = floor - r.h;
-                x += r.w + r.gap;
-            }
-            p.rows.push({ floor, rooms, left: rooms[0].x0, right: rooms[rooms.length - 1].x1 });
-        }
-
-        const arenaW = Math.round(80 + 20 * scale), arenaH = Math.round(42 + 4 * scale);
-        const last = p.rows[p.rows.length - 1];
-        const arena = { x0: -(arenaW >> 1), x1: (arenaW >> 1), floor: last.floor + 10 + arenaH };
-        arena.top = arena.floor - arenaH;
-        p.arena = arena;
-
-        // Câmaras: salão com abóbada em degraus + um enfeite sorteado
-        p.rows.forEach((row, i) => row.rooms.forEach((r, k) => {
-            p.rooms++;
-            air(r.x0, r.top, r.x1, r.floor - 1);
-            const arch = Math.min(3, r.w >> 3);
-            for (let a = 1; a <= arch; a++) air(r.x0 + 3 * a, r.top - a, r.x1 - 3 * a, r.top - a);
-            const next = row.rooms[k + 1];
-            if (next) {
-                air(r.x1 + 1, r.floor - 5, next.x0 - 1, r.floor - 1);                 // corredor
-                if (rand(0, 2) === 0) air(r.x1 + 2, r.floor - 6, next.x0 - 2, r.floor - 6); // arcada
-            }
-            const entrance = i === 0 && k === (entranceSide < 0 ? 0 : row.rooms.length - 1);
-            const kind = entrance ? 0 : rand(0, 4);
-            const cx = (r.x0 + r.x1) >> 1;
-            if (kind === 0) {                       // colunata suspensa
-                for (let px = r.x0 + 4; px + 1 <= r.x1 - 4; px += 7) {
-                    brick(px, r.top - arch, px + 1, r.floor - 6);
-                    brick(px - 1, r.floor - 6, px + 2, r.floor - 6);
-                }
-            } else if (kind === 1) {                // fosso com espinhos
-                air(cx - 3, r.floor, cx + 2, r.floor + 2);
-                p.spikes.push([cx - 3, r.floor + 3, cx + 2, r.floor + 3]);
-            } else if (kind === 2 && r.w >= 20) {   // estrado
-                brick(r.x0 + 4, r.floor - 1, r.x1 - 4, r.floor - 1);
-                brick(r.x0 + 7, r.floor - 2, r.x1 - 7, r.floor - 2);
-            } else if (kind === 3) {                // nichos nas paredes
-                air(r.x0 - 3, r.floor - 9, r.x0 - 1, r.floor - 7);
-                air(r.x1 + 1, r.floor - 9, r.x1 + 3, r.floor - 7);
-            } else {                                // galeria de um lado
-                const len = Math.round(r.w / 3);
-                if (rand(0, 1)) brick(r.x0, r.floor - 5, r.x0 + len, r.floor - 5);
-                else brick(r.x1 - len, r.floor - 5, r.x1, r.floor - 5);
-            }
-        }));
-
-        // Poços entre os andares (o último desce até o chão da arena)
-        p.rows.forEach((row, i) => {
-            const side = (i % 2 === 0 ? -entranceSide : entranceSide);
-            const target = p.rows[i + 1] || null;
-            const bottom = target ? target.floor : arena.floor;
-            const x0 = side > 0 ? row.right + 5 : row.left - 5 - (SHAFT_W - 1);
-            const x1 = x0 + SHAFT_W - 1;
-            if (side > 0) air(row.right + 1, row.floor - 5, x0 - 1, row.floor - 1);
-            else air(x1 + 1, row.floor - 5, row.left - 1, row.floor - 1);
-            air(x0, row.floor - 6, x1, bottom - 1);
-            // Degraus alternados de meia largura: juntos cobrem o poço, então
-            // ninguém cai direto até o fundo (a arena fica a ~56 de queda)
-            for (let y = bottom - 4, n = 0; y > row.floor + 1; y -= 4, n++) {
-                if (n % 2 === 0) brick(x0, y, x0 + 4, y);
-                else brick(x1 - 4, y, x1, y);
-            }
-            const edge = target ? (side > 0 ? target.right : target.left) : (side > 0 ? arena.x1 : arena.x0);
-            if (side > 0 && edge < x0) air(edge + 1, bottom - 5, x0 - 1, bottom - 1);
-            if (side < 0 && edge > x1) air(x1 + 1, bottom - 5, edge - 1, bottom - 1);
-        });
-
-        // Arena do Golem: cúpula em degraus, colunas suspensas, sacadas e o estrado do altar
-        const { x0, x1, top, floor } = arena;
-        const acx = (x0 + x1) >> 1;
-        air(x0, top, x1, floor - 1);
-        for (let a = 1; a <= 5; a++) air(x0 + 6 * a, top - a, x1 - 6 * a, top - a);
-        for (const px of [x0 + 12, x0 + 26, x1 - 27, x1 - 13]) {
-            brick(px, top - 2, px + 1, top + (arenaH >> 1) - 4);
-            brick(px - 1, top + (arenaH >> 1) - 4, px + 2, top + (arenaH >> 1) - 4);
-        }
-        brick(x0, floor - 11, x0 + 7, floor - 11);
-        brick(x1 - 7, floor - 11, x1, floor - 11);
-        brick(acx - 12, floor - 1, acx + 12, floor - 1);
-        brick(acx - 8, floor - 2, acx + 8, floor - 2);
-        brick(acx - 4, floor - 3, acx + 4, floor - 3);
-        p.altar = { x: acx, y: floor - 4 };
-        p.rooms++;
-
-        p.entrance = { side: entranceSide, row: p.rows[0] };
-        return p;
-    };
-
-    // Menos andares se o templo passar do começo do submundo
-    let levels = 3 + (scale > 1.3 ? 1 : 0) + (scale > 1.8 ? 1 : 0);
-    let plan = makePlan(levels);
-    while (levels > 2 && plan.arena.floor + SHELL > M.UnderworldLayer - 20) plan = makePlan(--levels);
-
-    // ---- 2. Grade: casca de tijolo em volta de todo vão, depois os vãos e enfeites ----
-    let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
-    for (const [x0, y0, x1, y1] of plan.air) {
-        bx0 = Math.min(bx0, x0 - SHELL); by0 = Math.min(by0, y0 - SHELL);
-        bx1 = Math.max(bx1, x1 + SHELL); by1 = Math.max(by1, y1 + SHELL);
-    }
-    const gw = bx1 - bx0 + 1, gh = by1 - by0 + 1;
-    const grid = new Uint8Array(gw * gh);
-    const inGrid = (x, y) => x >= bx0 && x <= bx1 && y >= by0 && y <= by1;
-    const cell = (x, y) => inGrid(x, y) ? grid[(y - by0) * gw + (x - bx0)] : 0;
-    const paint = (x0, y0, x1, y1, v) => {
-        for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (inGrid(x, y)) grid[(y - by0) * gw + (x - bx0)] = v;
-    };
-    for (const [x0, y0, x1, y1] of plan.air) paint(x0 - SHELL, y0 - SHELL, x1 + SHELL, y1 + SHELL, C_BRICK);
-    for (const r of plan.air) paint(...r, C_AIR);
-    for (const r of plan.brick) paint(...r, C_BRICK);
-    for (const r of plan.spikes) paint(...r, C_SPIKES);
-
-    // Entrada: túnel da câmara até fora da casca; a porta fica 3 tiles para dentro
-    const { side, row } = plan.entrance;
-    const edge = side > 0 ? row.right : row.left;
-    const door = { x: edge + 3 * side, y: row.floor - 2 };
-    for (let x = edge + side; inGrid(x, row.floor - 2) && cell(x, row.floor - 2) !== 0; x += side) {
-        paint(x, x === door.x ? row.floor - 3 : row.floor - 4, x, row.floor - 1, C_AIR);
-        if (x === door.x) paint(x, row.floor - 4, x, row.floor - 4, C_BRICK);
-    }
-
-    // ---- 3. No mundo ----
-    const minX = 50 - bx0, maxX = M.maxTilesX - 50 - bx1;
-    const dx = Math.max(minX, Math.min(maxX, ox));
-    for (let y = by0; y <= by1; y++) {
-        for (let x = bx0; x <= bx1; x++) {
-            const c = grid[(y - by0) * gw + (x - bx0)];
-            if (!c) continue;
-            const t = tileAt(x + dx, y);
-            t.ClearEverything();
-            if (c !== C_AIR) {
-                t.sTileHeader = 0x20;
-                t.type = c === C_SPIKES ? SPIKES : BRICK;
-            }
-            // A borda de fora fica sem parede, como o jogo faz
-            if (cell(x - 1, y) && cell(x + 1, y) && cell(x, y - 1) && cell(x, y + 1)) t.wall = TEMPLE_WALL;
-        }
-    }
-
-    const doorOk = W['bool PlaceTile(int i, int j, int Type, bool mute, bool forced, int plr, int style)'](door.x + dx, door.y, DOOR, true, false, -1, 11)
-        && activeType(door.x + dx, door.y) === DOOR;
-
-    const ax = plan.altar.x + dx, ay = plan.altar.y;
-    W['bool PlaceTile(int i, int j, int Type, bool mute, bool forced, int plr, int style)'](ax, ay, ALTAR, true, false, -1, 0);
-    let altarX, altarY;
-    if (activeType(ax, ay) === ALTAR) {
-        const t = tileAt(ax, ay);
-        altarX = ax - Math.floor(t.frameX / 18);
-        altarY = ay - Math.floor(t.frameY / 18);
-    } else {                                    // o mesmo recurso do jogo: montar à mão
-        altarX = ax - 1; altarY = ay - 1;
-        for (let i = 0; i <= 2; i++) for (let j = 0; j <= 1; j++) {
-            const t = tileAt(altarX + i, altarY + j);
-            t.ClearEverything();
-            t.sTileHeader = 0x20;
-            t.type = ALTAR;
-            t.frameX = i * 18;
-            t.frameY = j * 18;
-            t.wall = TEMPLE_WALL;
-        }
-    }
-
-    GV.lAltarX = altarX; GV.lAltarY = altarY;
-    GV.tLeft = bx0 + dx; GV.tRight = bx1 + dx; GV.tTop = by0; GV.tBottom = by1;
-    GV.tRooms = plan.rooms;
-
-    bl.log(`templo: ${levels} andares, ${plan.rooms} câmaras, ${gw}x${gh} em ${bx0 + dx},${by0}; ` +
-        `altar ${altarX},${altarY}; porta ${doorOk ? 'trancada' : 'NÃO coube'}`);
-};
-
-if (!globalThis.templeHooked) {
-    globalThis.templeHooked = true;
-    Terraria.WorldGen['void makeTemple(int x, int y, GenerationProgress progress)'].hook((original, x, y, progress) => {
-        try {
-            globalThis.buildTemple(x, y);
-        } catch (e) {
-            bl.log('templo: falhou (' + e + '), fica o do jogo');
-            original();
-        }
+    const plan = createTemplePlan({
+        worldWidth: M.maxTilesX, worldHeight: M.maxTilesY,
+        minY: M.worldSurface + 80, maxY: M.UnderworldLayer - 35,
+        originX: ox, originY: oy,
+        rand: (a, b) => rng['int Next(int minValue, int maxValue)'](a, b + 1)
     });
+
+    // Resolva as assinaturas antes da primeira escrita no mundo.
+    const tiles = M.tile;
+    const addAltar = W['void AddLihzahrdAltar(int x, int y)'];
+    const addChest = W['bool AddBuriedChest(int i, int j, int mainItemInChest, bool notNearOtherChests, int chestStyle, bool trySlope, ushort chestTileType)'];
+    const addWire = W['bool AddWireFromPointToPoint(int x, int y, int x2, int y2, int wireColor, bool debugPaint)'];
+    const at = (x, y) => tiles['Tile get_Item(int x, int y)'](x + plan.dx, y + plan.dy);
+    const { grid, width, height, left, cell } = plan;
+    bl.log(`Templo Pirâmide: construindo ${width}x${height}, ${plan.levels} andares...`);
+    for (let y = 0; y < height; y++) {
+        for (let col = 0; col < width; col++) {
+            const c = grid[y * width + col];
+            if (c === Cell.OUTSIDE) continue;
+            const x = left + col, t = at(x, y);
+            t.ClearEverything();
+            if (c === Cell.BRICK) {
+                t.sTileHeader = 0x20;
+                t.type = 226; // TileID.LihzahrdBrick, confirmado no dump local
+            } else if (c === Cell.SPIKES) {
+                t.sTileHeader = 0x20;
+                t.type = 232;
+            }
+            if (c === Cell.AIR || (cell(x - 1, y) && cell(x + 1, y) && cell(x, y - 1) && cell(x, y + 1))) {
+                t.wall = 87; // WallID.LihzahrdBrickUnsafe
+            }
+        }
+    }
+
+    GV.lAltarX = plan.altar.x + plan.dx;
+    GV.lAltarY = plan.altar.y + plan.dy;
+    GV.tLeft = plan.bounds.left + plan.dx;
+    GV.tRight = plan.bounds.right + plan.dx;
+    GV.tTop = plan.dy;
+    GV.tBottom = height - 1 + plan.dy;
+    GV.tRooms = plan.roomCount;
+
+    const d = plan.door;
+    // Mesmo enquadramento de WorldGen.PlaceDoor no binário local:
+    // style % 36 escolhe a linha de 54 pixels; style / 36 escolhe a coluna.
+    // A variante visual 0 é válida. O vão e os apoios já vêm da planta.
+    for (let n = 0; n < 3; n++) {
+        const t = at(d.x, d.y - 1 + n);
+        t.ClearEverything();
+        t.sTileHeader = 0x20;
+        t.type = 10;
+        t.frameX = Math.floor(d.style / 36) * 54;
+        t.frameY = (d.style % 36) * 54 + n * 18;
+        t.wall = 87;
+    }
+    // O método nativo monta os seis tiles do altar, preservando a parede.
+    const a = plan.altar;
+    addAltar(a.x + plan.dx, a.y + plan.dy);
+    for (let y = 0; y < 2; y++) {
+        for (let x = 0; x < 3; x++) {
+            const t = at(a.x + x, a.y + y);
+            if (!(t.sTileHeader & 0x20) || t.type !== 237 || t.frameX !== x * 18 || t.frameY !== y * 18) {
+                throw new Error('Templo Pirâmide: altar incompleto');
+            }
+        }
+    }
+    // Mesma chamada de templePart2: baú estilo 16 com Célula de Energia 1293.
+    // A rotina nativa cria o registro Chest e preenche o restante do loot.
+    let chestCount = 0;
+    const chestLevels = new Set();
+    for (const c of plan.chests) {
+        for (const x of [c.x, c.x + 2, c.x - 2, c.x + 4, c.x - 4]) {
+            if (x - 1 < c.x0 + 2 || x > c.x1 - 2) continue;
+            if ([x - 1, x].some(cx => at(cx, c.floor).type !== 226 || !(at(cx, c.floor).sTileHeader & 0x20)
+                || (at(cx, c.floor - 1).sTileHeader & 0x20) || (at(cx, c.floor - 2).sTileHeader & 0x20))) continue;
+            if (addChest(x + plan.dx, c.y + plan.dy, 1293, true, 16, false, 0)) {
+                chestCount++; chestLevels.add(c.level);
+                break;
+            }
+        }
+    }
+    if (chestCount !== plan.chests.length || chestLevels.size !== plan.levels) {
+        bl.log(`Templo Pirâmide: baús colocados ${chestCount}/${plan.chests.length}, em ${chestLevels.size}/${plan.levels} andares.`);
+    }
+
+    const singleTile = (p, type, frameX, frameY) => {
+        const t = at(p.x, p.y);
+        t.sTileHeader = t.sTileHeader | 0x20;
+        t.type = type; t.frameX = frameX; t.frameY = frameY; t.wall = 87;
+    };
+    let trapCount = 0;
+    for (const trap of plan.traps) {
+        singleTile(trap.plate, 135, 0, 6 * 18);
+        singleTile(trap.emitter, 137, trap.emitter.frameX, trap.emitter.style * 18);
+        if (!addWire(trap.plate.x + plan.dx, trap.plate.y + plan.dy,
+            trap.emitter.x + plan.dx, trap.emitter.y + plan.dy, trap.color, false)) {
+            throw new Error('Falha ao ligar um circuito de armadilha');
+        }
+        trapCount++;
+    }
+    bl.log(`Templo Pirâmide: ${plan.levels} andares, ${plan.roomCount} câmaras; ` +
+        `arena ${plan.arena.x1 - plan.arena.x0 + 1}x${plan.arena.floor - plan.arena.top}; ` +
+        `${chestCount} baús, ${trapCount} circuitos; altar ${GV.lAltarX},${GV.lAltarY}; porta trancada; original suprimido.`);
 }
-'hook do templo pronto: crie um mundo novo';
+
+globalThis.buildTemple = buildTemple;
+if (!globalThis.templeHooked) {
+    Terraria.WorldGen['void makeTemple(int x, int y, GenerationProgress progress)'].hook((_original, x, y) => {
+        globalThis.buildTemple(x, y);
+    });
+    globalThis.templeHooked = true;
+}
+})();
+'Templo Pirâmide pronto: crie um mundo novo';

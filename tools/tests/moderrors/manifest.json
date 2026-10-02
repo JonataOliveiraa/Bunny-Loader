@@ -1,0 +1,15 @@
+{
+  "uid": "d9f1b3c5-7a2e-4c8d-b6e0-4f2a8c1e3b57",
+  "id": "test-moderrors",
+  "name": "Teste: erro em método de mod no painel",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um ModifyTooltips com nome não definido e um ModPlayer.PostUpdate que lança: os dois em nível de erro, no painel de erro do jogo.",
+  "description": "Loga 'moderrors ...'. O painel aparece na tela (captura).",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

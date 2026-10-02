@@ -26,7 +26,8 @@ class ModWaterStyle {
 
     // A variante da chuva: a coluna da textura dividida por 4 (a do jogo tem
     // 3 por estilo; 0 a 2 é a da floresta). Com GetRainTexture, a coluna na
-    // textura do mod (0 a 7).
+    // textura do mod. O padrão é o sorteio do próprio jogo, sem custo;
+    // sobrescrever custa uma entrada no JS por gota nova.
     GetRainVariant() { return Rand.Next(3); }
 
     // A textura da chuva: o caminho de um PNG no mod (ou um

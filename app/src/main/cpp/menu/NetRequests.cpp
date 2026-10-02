@@ -100,6 +100,8 @@ void run(const Request& r) {
         }
     } else if (v == "time") {
         setTimeOfDay(type);   // "time <0..3 | 100+minuto>": confere a faixa sozinho
+    } else if (v == "reveal") {
+        revealMapForClient(r.client);   // "reveal 0": o mundo inteiro, para o Revelar mapa
     } else {
         BL_WARN("rede: pedido desconhecido do jogador %d: '%s'", r.client, r.command.c_str());
     }

@@ -1,0 +1,15 @@
+{
+  "uid": "a7ed492c-2473-467c-ac2a-59177e52586f",
+  "id": "test-raritydrop",
+  "name": "Teste: raridade de mod no drop",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Uma espada com ModRarity: Prefix(-1) muitas vezes, NewItem com prefixo sorteado e o drop do jogador; a raridade de mod tem de ficar.",
+  "description": "Loga 'raritydrop ...'.",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

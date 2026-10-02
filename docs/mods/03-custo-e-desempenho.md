@@ -114,7 +114,11 @@ alguma coisa se a sua classe os **escreve**:
 - ele é instalado **uma vez**, para todos os mods;
 - quase todos têm **filtro nativo de tipo**: um `NPC.AI` de um NPC do jogo nem
   entra no JS. Bater em terra não passa pelo `ModTile`. Um item do jogo no
-  inventário não passa pelo `UpdateInventory`.
+  inventário não passa pelo `UpdateInventory`;
+- e, por método, só os **tipos que o escrevem** entram: o `OnTileCollide` de
+  um projétil instala o hook do movimento, mas os outros projéteis de mod, sem
+  `OnTileCollide`, passam por ele como os do jogo. O mesmo para os outros
+  métodos do `ModProjectile`, para os do `ModNPC` e para o `GetAlpha` do `ModItem`.
 
 Então escrever um `AI(npc)` no seu `ModNPC` custa só para os **seus** NPCs. Se
 o que você quer fazer é com conteúdo seu, use a classe em vez de um hook
@@ -183,6 +187,23 @@ drawString.hook(callback, { whileIn: tooltip });   // só os textos do tooltip
 
 É assim que o tooltip colorido do Bunny Loader mexe no `DrawString` sem pagar
 os outros milhares de textos da tela.
+
+### `flag`: só quando o mod liga
+
+Para o hook que só tem o que fazer de vez em quando, e o mod sabe quando: uma
+chave global, desligada no começo. Desligada, o método roda sem entrar no JS.
+
+```js
+// o céu do meu tema: só nos menus, e só com o tema escolhido
+Terraria.Main['void DrawSunAndMoon(SceneArea sceneArea, Color moonColor, Color sunColor, float tempMushroomInfluence)']
+    .hook(desenharCeu, { flag: 'meumod.ceu' });
+
+bl.hookFlags.set('meumod.ceu', true);    // ao escolher o tema
+bl.hookFlags.set('meumod.ceu', false);   // ao sair dos menus
+```
+
+Ligar e desligar custa uma chamada nativa; faça só quando o estado muda, não a
+cada quadro. Use um nome com o prefixo do seu mod: a chave é de todos.
 
 ## Quando o motor está ocupado: `ifBusy`
 

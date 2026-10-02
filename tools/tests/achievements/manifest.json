@@ -1,0 +1,15 @@
+{
+  "uid": "e1b7d3a9-5c2f-4e8b-a06d-3f9c1b2e7d48",
+  "id": "test-achievements",
+  "name": "Teste: conquistas do jogo com as de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Quantas conquistas do jogo estão completas com as de mod registradas, e a TIMBER (Madeiraaaa!!) completando pelo aviso de coleta de madeira.",
+  "description": "Loga 'achievements ...'. Zera a TIMBER do aparelho.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

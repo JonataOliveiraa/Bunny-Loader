@@ -8,6 +8,7 @@
 #include "content/common/ContentAssets.h"
 #include "content/common/GameRefs.h"
 #include "content/npcs/ModTownNpcs.h"
+#include "content/npcs/ModBossHeads.h"
 #include "content/common/TypeTables.h"
 
 #include <atomic>
@@ -428,6 +429,7 @@ void tickModNpcs() {
         if (++frame % 120 == 0) {
             g_tables.watch(from, onTableRegrown);
             watchTownNpcs();
+            watchBossHeads();
         }
         else {
             Il2CppArray* names = readStatic(refs().names);
@@ -480,6 +482,7 @@ void tickModNpcs() {
         BL_ERROR("NPCs de mod: sem hook em NPC.FindFrame; NPC de mod nao anima");
     }
     installTownNpcs(to);
+    installBossHeads();
     // FORA da trava: o SetDefaults da amostra entra no JS do mod.
     for (const auto& s : samples) registerSample(s.first, s.second);
     BL_INFO("NPCs de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",

@@ -60,6 +60,17 @@ Um segundo pedido no mesmo método seria recusado. É aí que entra a camada 2.
 
 ## Camada 2: HookManager, a cadeia
 
+A aba **Pacotes** permite subir e descer os mods pelas setas antes do
+ícone ou segurando e arrastando o cartão. Nas bordas, a lista rola para
+alcançar os outros mods. O arraste salva ao soltar; cancelar mantém a ordem.
+Esses controles aparecem em **Todos** + **Ordem de carga**. Os filtros de
+ativação e as ordenações por tamanho ou A–Z mudam apenas a exibição.
+Essa ordem fica salva e é a mesma enviada ao núcleo para carregar;
+mods desligados mantêm a posição e pacotes novos entram no fim. Sem uma
+ordem escolhida, vale o `uid` crescente. Hooks registrados durante a carga
+seguem essa sequência; um hook registrado numa fase posterior entra depois
+dos que já estavam instalados.
+
 Dois mods querem hookar `Player.Update`. O ShadowHook aceita um só. O
 `HookManager` resolve isso encadeando: o segundo hook vira o "original" do
 primeiro, e o original do segundo é a função real.
@@ -294,7 +305,8 @@ se a maioria das chamadas não interessa ao mod, é melhor nem entrar.
 | `{ minType: N, tile: i }` | O parâmetro `i` é um `Tile`: o tipo do bloco é lido do mundo. | Hooks do `ModTile`: bater em terra não entra no JS. |
 | `{ minType: N, tileAt: [i, j] }` | Os parâmetros `i` e `j` são a posição; o tipo é lido do mundo. | `WorldGen.KillTile`, `CanKillTile`. |
 | `{ minType: N, arg: i }` | O parâmetro `i` já é o tipo (um inteiro: `int`, `ushort`...). | `CallPostPlacementPlayerHook` (o tipo colocado). |
-| `{ ..., marks: 'nome' }` | Junto de um dos filtros de tipo: o tipo lido também tem de estar marcado com `bl.hookMarks.set('nome', tipo)`. Marcar depois de instalar vale na hora. | Os hooks de todo quadro do `ModTile` (`ModifyLight`, `HitWire`...): só os tipos que sobrescrevem aquele método entram. |
+| `{ ..., marks: 'nome' }` | Junto de um dos filtros de tipo: o tipo lido também tem de estar marcado com `bl.hookMarks.set('nome', tipo)`. Marcar depois de instalar vale na hora. | Os hooks de todo quadro do `ModTile` (`ModifyLight`, `HitWire`...) e os de cada método do `ModProjectile`, do `ModNPC` e o `GetAlpha` do `ModItem`: só os tipos cuja classe escreve aquele método entram. |
+| `{ flag: 'nome' }` | Uma chave global, desligada no começo: só entra no JS com ela ligada (`bl.hookFlags.set('nome', true)`). Vale na hora para os hooks já instalados. | O `DrawSunAndMoon` do tema do menu (ligado só com um tema de mod nos menus) e os filtros de desenho do `PreDrawExtras` (ligados só durante um desenho em duas partes). |
 | `{ whileIn: outroMetodo }` | Só entra se esta thread estiver dentro do hook JS de `outroMetodo` (lê o `g_depth` do slot dele). | `SpriteBatch.DrawString` só durante o desenho do tooltip. |
 | `{ ifBusy: 'original' \| 'skip' }` | O que fazer se o motor estiver com outra thread. | Os hooks da música de mod. |
 

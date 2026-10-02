@@ -1,0 +1,15 @@
+{
+  "uid": "c4e8a2f6-1d3b-4a5c-9e7f-2b6d8a0c4e19",
+  "id": "test-menusky",
+  "name": "Teste: céu do tema do menu",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O DrawSunAndMoon do tema de mod com o filtro nativo 'menu.sky': fora do JS no mundo, religado de volta aos menus.",
+  "description": "Loga 'menusky ...'. Precisa do Example Mod.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -60,6 +60,7 @@ Leia na ordem; cada um usa o anterior.
 | [12. Globais e o mundo](12-globais-e-mundo.md) | Mexer no que o jogo já tem (`GlobalItem`, `GlobalNPC`, `GlobalProjectile`), drops, e o `ModSystem` com os dados do mundo. |
 | **Publicar** | |
 | [13. A página do pacote](13-pagina-do-pacote.md) | A ficha do mod no launcher: `description.md`, `changelog.md`, `license.md`, autores com foto, links, abas e cores próprias, e o Markdown que ela entende. |
+| [14. Opções do mod](14-opcoes-do-mod.md) | O `ModConfig`: interruptor, barra e escolha única na tela "Config. dos Mods" do menu de pausa, os textos e onde fica salvo. |
 
 Para consultar:
 
@@ -150,7 +151,9 @@ export class Espada extends ModItem {
   globais; dentro de cada um, pelo caminho do arquivo), então o tipo de cada
   coisa é o mesmo em todo aparelho, o que o multijogador exige.
 - `static Autoload = false` deixa uma classe de fora: uma base que outras
-  estendem, ou uma que você registra na mão no `Load()` com `ModItem.register(X)`.
+  estendem (as `abstract` do tModLoader; ver
+  [classes base](04-conteudo-novo.md#classes-base-do-seu-mod-as-abstract-do-tmodloader)),
+  ou uma que você registra na mão no `Load()` com `ModItem.register(X)`.
 - Uma classe que não é de mod (um ajudante exportado) é ignorada.
 
 ### O `manifest.json`
@@ -192,16 +195,20 @@ Android/data/com.bunnyloader/bunny_packs/<uid>/
 ```
 
 a mesma pasta dos saves (`Players/`, `Worlds/`), e é **dali** que o jogo
-carrega. Três jeitos de pôr um mod lá:
+carrega. Quatro jeitos de pôr um mod lá:
 
-1. **Importar**: na aba *Pacotes*, "Importar pacote", escolha o zip. O zip
+1. **Baixar do catálogo**: na aba *Explorar*, os mods publicados no catálogo
+   online do Bunny Loader. "Baixar Mod" instala, e um mod instalado com
+   versão nova no catálogo ganha o botão "Atualizar para v…". Quem publica é o mantenedor
+   do repositório (ver [Catálogo online](../../tools/README.md#catálogo-online)).
+2. **Importar**: na aba *Pacotes*, "Importar pacote", escolha o zip. O zip
    (`.bmod` ou `.zip`) tem `manifest.json`, `icon.png` e `content/` na raiz, ou
    dentro de uma pasta só, que o app ignora. Se o manifesto estiver errado, o
    app diz o quê e não instala nada.
-2. **Copiar a pasta**: com um gerenciador de arquivos, ponha a pasta do mod em
+3. **Copiar a pasta**: com um gerenciador de arquivos, ponha a pasta do mod em
    `bunny_packs/`. Ela aparece na lista quando o app volta à frente. Com outro
    nome (`bunny_packs/MeuMod/`), o app renomeia para o `uid` do manifesto.
-3. **adb**, o mais rápido para desenvolver. Mande um `.tar` e extraia no
+4. **adb**, o mais rápido para desenvolver. Mande um `.tar` e extraia no
    aparelho (em alguns aparelhos e emuladores, o `adb push` de uma pasta com
    subpastas para `Android/data` chega pela metade):
 

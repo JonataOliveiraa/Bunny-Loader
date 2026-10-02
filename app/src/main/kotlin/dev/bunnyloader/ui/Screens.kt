@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,9 +28,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,13 +61,15 @@ internal val EdgePad = 14.dp
 // =============================== Início ===============================
 
 /**
- * A vitrine. Um mod pede destaque no próprio mod.json (`featured`); o resto
- * entra em "Populares". Nenhum número inventado aqui — não há contagem de
- * download nem nota, porque não há servidor para produzir isso.
+ * A vitrine. Um mod pede destaque no próprio mod.json (`featured`); o resto,
+ * embutido ou do catálogo online, entra em "Populares". Nenhum número
+ * inventado aqui — não há contagem de download nem nota, porque não há
+ * servidor para produzir isso.
  */
 @Composable
 fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
     val scroll = rememberScrollState()
+    LaunchedEffect(Unit) { shell.refreshRemote() }
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
             // O título vai de ponta a ponta, FORA do padding da coluna.
@@ -92,7 +97,7 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
                 FeaturedCard(featured, shell, onOpen)
             }
 
-            val populares = shell.entries.filter { it.uid != featured?.uid }.take(3)
+            val populares = shell.catalogEntries.filter { it.uid != featured?.uid }.take(3)
             if (populares.isNotEmpty()) {
                 SectionTitle("Populares")
                 for (e in populares) {
@@ -145,11 +150,16 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
 
 // =============================== Explorar ===============================
 
-/** Tudo que vem dentro do app. É daqui que um mod vai parar em Pacotes. */
+/**
+ * O que vem dentro do app e o catálogo online. É daqui que um mod vai parar em
+ * Pacotes. A lista online é pedida ao abrir a aba (Shell.refreshRemote não
+ * repete o pedido por alguns minutos) e, sem rede, fica a última baixada.
+ */
 @Composable
 fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
     var query by remember { mutableStateOf("") }
-    val list = shell.entries.filter {
+    LaunchedEffect(Unit) { shell.refreshRemote() }
+    val list = shell.catalogEntries.filter {
         query.isBlank() ||
             it.manifest.name.contains(query, true) ||
             it.manifest.category.contains(query, true) ||
@@ -159,6 +169,7 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
 
     Column(Modifier.fillMaxSize()) {
         SearchField(query, { query = it }, Modifier.padding(horizontal = EdgePad, vertical = 10.dp))
+        RemoteStatusLine(shell, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
         Box(Modifier.weight(1f)) {
             LazyColumn(
                 state = state,
@@ -170,7 +181,12 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
             ) {
                 items(list, key = { it.uid }) { e ->
                     ModRow(e, shell.catalog, { onOpen(e.uid) }) {
-                        if (e.uid in shell.installed) PixelTag("Instalado")
+                        val progress = shell.downloads[e.uid]
+                        when {
+                            progress != null -> PixelTag("${(progress * 100).toInt()}%")
+                            shell.updateFor(e.uid) != null -> PixelTag("Atualizar", Bl.Good)
+                            e.uid in shell.installed -> PixelTag("Instalado")
+                        }
                     }
                 }
                 if (list.isEmpty()) {
@@ -178,6 +194,29 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
                 }
             }
             PixelScrollbar(state, Modifier.fillMaxSize())
+        }
+    }
+}
+
+/**
+ * Uma linha sobre o catálogo online: buscando, ou por que não veio. Quando deu
+ * certo, não diz nada — a lista é a resposta.
+ */
+@Composable
+private fun RemoteStatusLine(shell: Shell, modifier: Modifier = Modifier) {
+    val status = shell.remoteStatus
+    if (status == RemoteStatus.Idle || status == RemoteStatus.Ready) return
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        if (status is RemoteStatus.Failed) {
+            PixelText(
+                "Catálogo online: ${status.message}." +
+                    if (shell.remote.isEmpty()) "" else " Mostrando a última lista baixada.",
+                size = Ts.Small, color = Bl.Bad, modifier = Modifier.weight(1f),
+            )
+            PixelButton("Tentar de novo", { shell.refreshRemote(force = true) },
+                fontSize = Ts.Small, shadow = false)
+        } else {
+            PixelText("Buscando mods online...", size = Ts.Small, color = Bl.TextFaint)
         }
     }
 }
@@ -215,8 +254,14 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
  */
 @Composable
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
-    val doCatalogo = shell.entries.filter { it.uid in shell.installed }
+    var status by rememberSaveable { mutableStateOf(PackageStatus.ALL) }
+    var sort by rememberSaveable { mutableStateOf(PackageSort.LOAD) }
+    val packages = remember(shell.packages, shell.enabled, status, sort) {
+        filterPackages(shell.packages, shell.enabled, status, sort)
+    }
+    val manualOrder = status == PackageStatus.ALL && sort == PackageSort.LOAD
     val state = rememberLazyListState()
+    LaunchedEffect(status, sort) { state.scrollToItem(0) }
     // texto + deu certo? Uma recusa em verde de sucesso se le como sucesso.
     var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
 
@@ -253,37 +298,68 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             PixelText(texto, size = Ts.Small, color = if (ok) Bl.TextDim else Bl.Bad,
                 modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp))
         }
+        PackageFilterControls(status, { status = it }, sort, { sort = it },
+            Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp))
+        PixelText(if (manualOrder) "Segure e arraste para ordenar. Primeiro carrega primeiro."
+                  else "Para mover mods, escolha Todos e Ordem de carga.", size = Ts.Small, color = Bl.TextFaint,
+            modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
 
-        Box(Modifier.weight(1f)) {
-            LazyColumn(
-                state = state,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    start = EdgePad, end = EdgePad, top = 10.dp, bottom = 16.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(doCatalogo, key = { it.uid }) { e ->
-                    ModRow(e, shell.catalog, { onOpen(e.uid) }) {
-                        SwitchSprite(e.uid in shell.enabled) {
-                            shell.setEnabled(e.uid, e.uid !in shell.enabled)
-                        }
-                    }
-                }
-                // Importado (ou colado em bunny_packs): a mesma linha e a mesma
-                // ficha dos do catalogo, com o icone e a capa do proprio pacote.
-                items(shell.imported, key = { it.uid }) { e ->
-                    ModRow(e, shell.catalog, { onOpen(e.uid) }) {
-                        SwitchSprite(e.uid in shell.enabled) {
-                            shell.setEnabled(e.uid, e.uid !in shell.enabled)
-                        }
-                    }
-                }
-                if (shell.installed.isEmpty()) {
-                    item { Empty("Nenhum pacote. Pegue um em Explorar ou importe um .bmod.") }
+        DraggablePackageList(
+            state = state,
+            uids = packages.map { it.uid },
+            reorderEnabled = manualOrder,
+            onDrop = shell::moveModTo,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            empty = { Empty(if (shell.installed.isEmpty()) "Nenhum pacote. Pegue um em Explorar ou importe um .bmod."
+                           else "Nenhum mod neste filtro.") },
+        ) { index, modifier, preview ->
+            val e = packages[index]
+            ModRow(e, shell.catalog, { if (!preview) onOpen(e.uid) }, modifier, besideIcon = if (manualOrder) ({
+                ModOrderButtons(e.manifest.name, index > 0, index < packages.lastIndex,
+                    { if (!preview) shell.moveMod(e.uid, -1) }, { if (!preview) shell.moveMod(e.uid, 1) })
+            }) else null) {
+                SwitchSprite(e.uid in shell.enabled) {
+                    if (!preview) shell.setEnabled(e.uid, e.uid !in shell.enabled)
                 }
             }
-            PixelScrollbar(state, Modifier.fillMaxSize())
+        }
+    }
+}
+
+@Composable
+private fun PackageFilterControls(
+    status: PackageStatus, onStatus: (PackageStatus) -> Unit,
+    sort: PackageSort, onSort: (PackageSort) -> Unit, modifier: Modifier = Modifier,
+) {
+    val show: @Composable (Modifier) -> Unit = { m ->
+        Column(m) {
+            PixelText("Mostrar", size = Ts.Small, color = Bl.TextFaint, modifier = Modifier.padding(bottom = 4.dp))
+            PixelSelect(status.label,
+                { onStatus(PackageStatus.entries[(status.ordinal - 1).mod(PackageStatus.entries.size)]) },
+                { onStatus(PackageStatus.entries[(status.ordinal + 1).mod(PackageStatus.entries.size)]) },
+                label = "Mostrar mods")
+        }
+    }
+    val order: @Composable (Modifier) -> Unit = { m ->
+        Column(m) {
+            PixelText("Ordenar", size = Ts.Small, color = Bl.TextFaint, modifier = Modifier.padding(bottom = 4.dp))
+            PixelSelect(sort.label,
+                { onSort(PackageSort.entries[(sort.ordinal - 1).mod(PackageSort.entries.size)]) },
+                { onSort(PackageSort.entries[(sort.ordinal + 1).mod(PackageSort.entries.size)]) },
+                label = "Ordenar mods")
+        }
+    }
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        if (maxWidth >= 480.dp) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                show(Modifier.weight(1f))
+                order(Modifier.weight(1f))
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                show(Modifier.fillMaxWidth())
+                order(Modifier.fillMaxWidth())
+            }
         }
     }
 }
@@ -341,7 +417,7 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Stat("${shell.installed.size}", "instalados", Modifier.weight(1f))
                 Stat("${shell.enabled.size}", "ligados", Modifier.weight(1f))
-                Stat("${shell.entries.size}", "no catálogo", Modifier.weight(1f))
+                Stat("${shell.catalogEntries.size}", "no catálogo", Modifier.weight(1f))
             }
 
             SectionTitle("Aparência")

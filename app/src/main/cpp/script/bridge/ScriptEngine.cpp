@@ -7,7 +7,9 @@
 #include "script/bridge/QuickJsExt.h"
 #endif
 
+#include <algorithm>
 #include <atomic>
+#include <cctype>
 #include <chrono>
 #include <cstdio>
 #include <mutex>
@@ -319,9 +321,171 @@ void ScriptEngine::shutdown() {
     ready_ = false;
 }
 
+// ------------------------------ trecho do codigo ------------------------------
+//
+// O erro de um mod no painel diz o arquivo e a linha ("at ModifyTooltips
+// (<uid>/Content/Items/X.js:8:9)"), mas quem joga no celular nao tem o arquivo
+// aberto ao lado. O trecho mostra as linhas em volta, com a do erro marcada e
+// um ^ na coluna:
+//
+//     code (Content/Items/X.js:8):
+//         6 | ModifyTooltips(item, tooltips) {
+//     --> 8 |     NAO_DEFINIDO;
+//           |     ^
+//
+// A primeira posicao da pilha num arquivo de mod e a que importa: as de cima
+// sao o carregador (bunny:ModClasses.js), que chamou o metodo.
+
 namespace {
 
-/** Loga a excecao pendente, com a pilha JS quando houver. */
+/** A primeira "<uid>/<caminho>.js:<linha>:<coluna>" do texto, fora do bunny:. */
+bool findModPosition(const std::string& text, std::string* module, int* line, int* col) {
+    size_t from = 0;
+    while (true) {
+        const size_t js = text.find(".js:", from);
+        if (js == std::string::npos) return false;
+        from = js + 4;
+        size_t start = js;
+        while (start > 0) {
+            const char c = text[start - 1];
+            if (c == '(' || c == ' ' || c == '\n' || c == '\t') break;
+            --start;
+        }
+        const std::string name = text.substr(start, js + 3 - start);
+        if (name.rfind("bunny:", 0) == 0 || name.find('/') == std::string::npos) continue;
+
+        size_t p = js + 4;
+        int l = 0, c = 0;
+        if (p >= text.size() || !std::isdigit(static_cast<unsigned char>(text[p]))) continue;
+        while (p < text.size() && std::isdigit(static_cast<unsigned char>(text[p]))) l = l * 10 + (text[p++] - '0');
+        if (p < text.size() && text[p] == ':') {
+            ++p;
+            while (p < text.size() && std::isdigit(static_cast<unsigned char>(text[p]))) c = c * 10 + (text[p++] - '0');
+        }
+        if (l <= 0) continue;
+        *module = name;
+        *line = l;
+        *col = c;
+        return true;
+    }
+}
+
+/** A linha com as tabulacoes trocadas por 4 espacos (o ^ precisa de colunas fixas). */
+std::string expandTabs(const std::string& s) {
+    std::string out;
+    for (char ch : s) {
+        if (ch == '\t') out += "    ";
+        else if (ch != '\r') out += ch;
+    }
+    return out;
+}
+
+/** Quantos caracteres (nao bytes) ha em s[0, bytes). */
+size_t charsIn(const std::string& s, size_t bytes) {
+    size_t n = 0;
+    for (size_t i = 0; i < bytes && i < s.size(); ++i) {
+        if ((static_cast<unsigned char>(s[i]) & 0xC0) != 0x80) ++n;
+    }
+    return n;
+}
+
+/** O byte do caractere `chars` (contando de 0) de s. */
+size_t byteOfChar(const std::string& s, size_t chars) {
+    size_t n = 0;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if ((static_cast<unsigned char>(s[i]) & 0xC0) == 0x80) continue;
+        if (n == chars) return i;
+        ++n;
+    }
+    return s.size();
+}
+
+} // namespace
+
+std::string withCodeFrame(const std::string& text) {
+    const std::string code = codeFrame(text);
+    if (code.empty()) return text;
+    const size_t eol = text.find('\n');
+    if (eol == std::string::npos) return text + "\n" + code;
+    return text.substr(0, eol + 1) + code + text.substr(eol + 1);
+}
+
+std::string codeFrame(const std::string& text) {
+    std::string module;
+    int line = 0, col = 0;
+    if (!findModPosition(text, &module, &line, &col)) return {};
+
+    const size_t slash = module.find('/');
+    const std::string uid = module.substr(0, slash), rel = module.substr(slash + 1);
+    const std::string& dir = mods::dirOf(uid);
+    if (dir.empty() || rel.empty()) return {};
+    FILE* f = std::fopen((dir + "/" + rel).c_str(), "rb");
+    if (!f) return {};
+
+    // Duas linhas antes da do erro e uma depois.
+    const int first = line > 2 ? line - 2 : 1, last = line + 1;
+    std::vector<std::string> lines;
+    std::string cur;
+    int n = 1;
+    for (int ch; (ch = std::fgetc(f)) != EOF && n <= last;) {
+        if (ch == '\n') {
+            if (n >= first) lines.push_back(expandTabs(cur));
+            cur.clear();
+            ++n;
+        } else {
+            cur += static_cast<char>(ch);
+        }
+    }
+    if (n >= first && n <= last && !cur.empty()) lines.push_back(expandTabs(cur));
+    std::fclose(f);
+    if (static_cast<int>(lines.size()) < line - first + 1) return {};
+
+    // A coluna do QuickJS conta a partir de 1, em caracteres da linha original
+    // (com as tabulacoes ainda como um caractere).
+    std::string original;
+    {
+        FILE* g = std::fopen((dir + "/" + rel).c_str(), "rb");
+        int k = 1;
+        for (int ch; g && (ch = std::fgetc(g)) != EOF && k <= line;) {
+            if (ch == '\n') ++k;
+            else if (k == line) original += static_cast<char>(ch);
+        }
+        if (g) std::fclose(g);
+    }
+    size_t caret = 0;   // em caracteres, na linha expandida
+    if (col > 0) {
+        const size_t upto = byteOfChar(original, static_cast<size_t>(col - 1));
+        caret = charsIn(expandTabs(original.substr(0, upto)), std::string::npos);
+    }
+
+    // Sem a indentacao em comum: no celular a largura e pouca.
+    size_t indent = std::string::npos;
+    for (const std::string& l : lines) {
+        const size_t first_char = l.find_first_not_of(' ');
+        if (first_char != std::string::npos) indent = std::min(indent, first_char);
+    }
+    if (indent == std::string::npos) indent = 0;
+    caret = caret >= indent ? caret - indent : 0;
+
+    const int width = static_cast<int>(std::to_string(last).size());
+    std::string out = "code (" + rel + ":" + std::to_string(line) + "):\n";
+    for (size_t i = 0; i < lines.size(); ++i) {
+        const int number = first + static_cast<int>(i);
+        std::string body = lines[i].size() > indent ? lines[i].substr(indent) : std::string();
+        if (charsIn(body, std::string::npos) > 90) body = body.substr(0, byteOfChar(body, 90)) + "...";
+        std::string num = std::to_string(number);
+        num.insert(0, static_cast<size_t>(width) - num.size(), ' ');
+        out += (number == line ? "--> " : "    ") + num + " | " + body + "\n";
+        if (number == line && col > 0 && caret <= 90) {
+            out += "    " + std::string(static_cast<size_t>(width), ' ') + " | " + std::string(caret, ' ') + "^\n";
+        }
+    }
+    return out;
+}
+
+namespace {
+
+/** Loga a excecao pendente, com a pilha JS (e o trecho do codigo) quando houver. */
 void logException(JSContext* ctx, JSValueConst err, const std::string& name) {
     const char* text = JS_ToCString(ctx, err);
     std::string msg = text ? text : "?";
@@ -333,7 +497,8 @@ void logException(JSContext* ctx, JSValueConst err, const std::string& name) {
         if (st) JS_FreeCString(ctx, st);
     }
     JS_FreeValue(ctx, stack);
-    BL_ERROR("erro em %s: %s", name.c_str(), msg.c_str());
+    msg = withCodeFrame(msg);
+    BL_ERROR("error in %s: %s", name.c_str(), msg.c_str());
 }
 
 void logPendingException(JSContext* ctx, const std::string& name) {

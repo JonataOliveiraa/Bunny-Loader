@@ -65,12 +65,20 @@ struct HookFilter {
     // na tabela de marcas com este nome (bl.hookMarks.set). O ModifyLight so
     // entra no JS para os tiles que sobrescrevem o ModifyLight.
     std::string marks;
+    // `flag`: uma chave global (bl.hookFlags.set), desligada no começo. Com
+    // ela desligada, o método roda sem entrar no JS. Para o hook que só tem o
+    // que fazer de vez em quando (o tema do menu, um desenho em duas partes):
+    // quem sabe quando ele importa liga e desliga.
+    std::string flag;
     IfBusy ifBusy = IfBusy::Wait;
 };
 
 /** A tabela de marcas `name` (criada na primeira vez; nunca liberada). kMarkTypes entradas. */
 constexpr int kMarkTypes = 65536;
 std::atomic<uint8_t>* hookMarks(const std::string& name);
+
+/** A chave `name` do filtro `flag` (criada desligada na primeira vez; nunca liberada). */
+std::atomic<uint8_t>* hookFlag(const std::string& name);
 
 // Instala um hook JS num metodo do jogo. O callback recebe
 // (original, self, ...args). Retorna false (com excecao posta no ctx) se nao

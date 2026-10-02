@@ -1,0 +1,15 @@
+{
+  "uid": "143f5d8a-fc38-453e-99e8-d5b97ad68530",
+  "id": "test-collidestyle",
+  "name": "Teste: TileCollideStyle e OnTileCollide de lacaio",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Projéteis de mod caindo numa fileira de plataformas: caixa menor, âncora, fallThrough, atravessar blocos e o OnTileCollide do pet que não morre.",
+  "description": "Loga 'collidestyle ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

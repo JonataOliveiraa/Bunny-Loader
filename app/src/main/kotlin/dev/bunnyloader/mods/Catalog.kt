@@ -9,7 +9,8 @@ import kotlinx.serialization.json.Json
 import java.io.File
 
 /**
- * Catálogo dos mods que vêm dentro do app.
+ * Catálogo dos mods que vêm dentro do app (hoje só o ExampleMod; o resto vem
+ * do RemoteCatalog).
  *
  * Eles moram em `assets/mods/<pasta>/`, copiados de `samples/` pelo Gradle —
  * a mesma pasta que o CMake lê. Isso é de propósito: o que a vitrine lista é
@@ -36,6 +37,8 @@ class Catalog(private val context: Context) {
         val iconAsset: String?,
         val bannerAsset: String?,
         val onDisk: Boolean = false,
+        /** Mod do catálogo online: de onde baixar o pacote (ver RemoteCatalog). */
+        val remote: RemoteMod? = null,
     ) {
         /** Identidade do pacote. Ver ModManifest.uid. */
         val uid get() = manifest.uid

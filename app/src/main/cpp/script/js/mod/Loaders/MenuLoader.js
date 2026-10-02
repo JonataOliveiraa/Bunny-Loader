@@ -5,24 +5,18 @@
 //     dia e o de noite, cada um com a sua transparência) são segurados: com o
 //     centro, a rotação, a escala e a cor deles (a soma) o tema desenha o dele
 //     uma vez, ou refaz os do jogo com o que o PreDrawLogo mudou;
-//   - o "Tema do menu: <nome>" no rodapé do título, como o do tModLoader: um
-//     toque passa para o próximo. O toque só chega ao Main.mouseLeft dentro
-//     de uma região registrada no GUIInputRegionManager, como a dos botões do
-//     jogo;
 //   - DrawSunAndMoon: o sol e a lua do tema, só nos menus;
-//   - a música (ModMusic) e o fundo (SurfaceBackgroundLoader) perguntam aqui.
-// O tema escolhido e os já vistos ficam em BunnyLoader.menu.json, na pasta de
-// saves do jogo. Sem esse arquivo (a primeira vez), fica o tema do jogo (a
-// música e o título dele); um tema de mod só aparece como "(1 novo)" no rodapé.
+//   - o fundo (SurfaceBackgroundLoader) pergunta aqui.
+// Não há escolha: vale o último tema de mod disponível (o do mod carregado
+// por último), e sem nenhum, o título do jogo. A música dos menus é sempre a
+// do jogo (a do tema tocava junto com ela).
 class MenuLoader {
     static List = [];               // os temas de mod, na ordem de registro
     static #vanilla = null;         // "Terraria": o título do jogo, sem mudança
     static #current = null;
-    static #switchTo = null;
-    static #chosenByUser = false;   // o tema salvo veio de um toque no rodapé
     static #ready = false;
-    static #known = new Set();
     static #logo = null;            // os desenhos do logo do jogo neste quadro
+    static #sky = false;            // a chave 'menu.sky' (o sol e a lua do tema)
     static #textures = new Map();   // menu -> { caminho: Asset }
     static #draw = null;
 
@@ -31,25 +25,6 @@ class MenuLoader {
     static Add(menu) {
         MenuLoader.List.push(menu);
         MenuLoader.#Install();
-    }
-
-    static FullName(menu) {
-        if (menu === MenuLoader.#vanilla) return 'Terraria';
-        const mod = menu.Mod;
-        return (mod ? mod.id || mod.uuid : '?') + '/' + menu.constructor.name;
-    }
-
-    // O slot da música do tema (-1: a do jogo). A do jogo fica na geração de
-    // mundo com semente especial e no menu 3000, como no tModLoader.
-    static MenuMusic() {
-        const menu = MenuLoader.#Active();
-        if (!menu) return -1;
-
-        const W = Terraria.WorldGen;
-        if (W.drunkWorldGen || W.remixWorldGen || W.tenthAnniversaryWorldGen || Terraria.Main.menuMode === 3000) return -1;
-
-        const music = Safe.Run(menu.constructor.name + '.Music', () => menu.Music);
-        return Number.isInteger(music) ? music : -1;
     }
 
     // O estilo de fundo do tema (-1: o do jogo). O da semente especial fica.
@@ -75,82 +50,22 @@ class MenuLoader {
         return value !== false && value !== undefined;
     }
 
-    static #Name(menu) {
-        const name = Safe.Run(menu.constructor.name + '.DisplayName', () => menu.DisplayName);
-        if (name) return String(name);
-        return menu.Mod ? menu.Mod.name : menu.constructor.name;
-    }
-
-    static #All() {
-        return [MenuLoader.#vanilla, ...MenuLoader.List];
-    }
-
-    static #File() {
-        return bl.path.join(Terraria.Main.SavePath, 'BunnyLoader.menu.json');
-    }
-
-    // O tema salvo; sem arquivo, o do jogo.
-    static #Restore() {
-        let saved = null;
-        const text = Safe.Run('ModMenu: ler o tema salvo', () => bl.file.read(MenuLoader.#File()));
-        if (text) {
-            try {
-                const data = JSON.parse(text) || {};
-                saved = typeof data.LastSelectedModMenu === 'string' ? data.LastSelectedModMenu : null;
-                MenuLoader.#chosenByUser = data.ChosenByUser === true;
-                // Um tema de mod gravado sem o toque é a escolha automática de
-                // uma versão anterior (abria no primeiro tema de mod): volta o do jogo.
-                if (saved !== null && saved !== 'Terraria' && !MenuLoader.#chosenByUser) saved = 'Terraria';
-                if (Array.isArray(data.KnownMenuThemes)) for (const n of data.KnownMenuThemes) MenuLoader.#known.add(String(n));
-            } catch (e) {
-                bl.log('ModMenu: ' + MenuLoader.#File() + ' esta quebrado (' + e + '); fica o tema do jogo');
-                saved = 'Terraria';
-            }
+    // O último tema de mod disponível; sem nenhum, o do jogo.
+    static #Pick() {
+        for (let i = MenuLoader.List.length - 1; i >= 0; i--) {
+            if (MenuLoader.#Available(MenuLoader.List[i])) return MenuLoader.List[i];
         }
-
-        const all = MenuLoader.#All();
-        let pick = saved !== null ? all.find((m) => MenuLoader.FullName(m) === saved && MenuLoader.#Available(m)) : null;
-        MenuLoader.#switchTo = pick || MenuLoader.#vanilla;
-        MenuLoader.#current = MenuLoader.#vanilla;
-    }
-
-    static #Save() {
-        const data = { LastSelectedModMenu: MenuLoader.FullName(MenuLoader.#current), KnownMenuThemes: [...MenuLoader.#known],
-                       ChosenByUser: MenuLoader.#chosenByUser };
-        Safe.Run('ModMenu: gravar o tema', () => bl.file.write(MenuLoader.#File(), JSON.stringify(data)));
-    }
-
-    // O próximo tema disponível (o do jogo conta), como o OffsetModMenu.
-    static #Offset(offset) {
-        const all = MenuLoader.#All();
-        let i = all.indexOf(MenuLoader.#current);
-        for (let n = 0; n < all.length; n++) {
-            i = (i + offset + all.length) % all.length;
-            if (MenuLoader.#Available(all[i])) {
-                MenuLoader.#switchTo = all[i];
-                MenuLoader.#chosenByUser = true;
-                return;
-            }
-        }
+        return MenuLoader.#vanilla;
     }
 
     // Uma vez por quadro dos menus, antes do logo.
     static #Tick() {
-        if (!MenuLoader.#current) MenuLoader.#Restore();
-
-        const current = MenuLoader.#current;
-        if (current !== MenuLoader.#vanilla && !MenuLoader.#switchTo && !MenuLoader.#Available(current)) {
-            MenuLoader.#switchTo = MenuLoader.#vanilla;
-        }
-
-        const next = MenuLoader.#switchTo;
-        MenuLoader.#switchTo = null;
-        if (next && next !== current) {
+        const current = MenuLoader.#current || MenuLoader.#vanilla;
+        const next = MenuLoader.#Pick();
+        MenuLoader.#current = next;
+        if (next !== current) {
             Safe.Run(current.constructor.name + '.OnDeselected', () => current.OnDeselected());
-            MenuLoader.#current = next;
             Safe.Run(next.constructor.name + '.OnSelected', () => next.OnSelected());
-            MenuLoader.#known.add(MenuLoader.FullName(next));
-            MenuLoader.#Save();
         }
 
         const menu = MenuLoader.#current;
@@ -227,38 +142,15 @@ class MenuLoader {
         Safe.Run(name + '.PostDrawLogo', () => menu.PostDrawLogo(sb, pos, rot, sc, col));
     }
 
-    // "Tema do menu: <nome>" no rodapé do título.
-    static #DrawSwitch() {
-        const Main = Terraria.Main;
-        if (Main.menuMode !== 0 || !MenuLoader.List.length) return;
-
-        const pt = String(ModLocalization.ActiveCultureName || '').startsWith('pt');
-        const fresh = MenuLoader.List.filter((m) => !MenuLoader.#known.has(MenuLoader.FullName(m)) && MenuLoader.#Available(m)).length;
-        let text = (pt ? 'Tema do menu' : 'Menu Theme') + ': ' + MenuLoader.#Name(MenuLoader.#current);
-        if (fresh) text += pt ? ' (' + fresh + (fresh > 1 ? ' novos)' : ' novo)') : ' (' + fresh + ' New)';
-
-        const font = Terraria.GameContent.FontAssets.MouseText.Value;
-        const size = font['Vector2 MeasureString(string text)'](text);
-        const x = Math.floor(Main.screenWidth / 2 - size.X / 2);
-        const y = Math.floor(Main.screenHeight - 2 - size.Y);
-        const w = Math.ceil(size.X), h = Math.ceil(size.Y);
-
-        const mx = Main.mouseX, my = Main.mouseY;
-        const over = GUIInputRegionManager.Instance['bool RegisterInputRegion(Rectangle rect)'](Rectangle.new(x, y, w, h)) &&
-            mx >= x && mx < x + w && my >= y && my < y + h;
-        if (over && Main.mouseLeft && Main.mouseLeftRelease) {
-            Main.mouseLeftRelease = false;
-            SoundEngine.PlaySound(Terraria.ID.SoundID.MenuTick);
-            MenuLoader.#Offset(1);
-        }
-
-        const color = over && Main.mouseLeft ? Main.OurFavoriteColor : Color.new(120, 120, 120, 76);
-        Terraria.Utils['Vector2 DrawBorderString(SpriteBatch sb, string text, Vector2 pos, Color color, float scale, float anchorx, float anchory, int maxCharactersDisplayed)'](
-            Main.spriteBatch, text, Vector2.new(x, y), color, 1, 0, 0, -1);
-    }
-
     // O sol e a lua do tema no lugar dos do jogo, só durante o desenho.
     static #DrawSunAndMoon(original) {
+        // Entrou no mundo: o logo não é mais desenhado para religar a chave
+        // até a volta aos menus.
+        if (!Terraria.Main.gameMenu) {
+            MenuLoader.#sky = false;
+            bl.hookFlags.set('menu.sky', false);
+            return original();
+        }
         const menu = MenuLoader.#Active();
         const sun = menu ? MenuLoader.#Texture(menu, 'SunTexture') : null;
         const moon = menu ? MenuLoader.#Texture(menu, 'MoonTexture') : null;
@@ -291,7 +183,6 @@ class MenuLoader {
             vanilla.DisplayName = 'Terraria';
 
             Ready.Add(() => { MenuLoader.#ready = true; });
-            ModMusic.Install();
 
             const logoDraw = GUILogo['void Draw()'];
             logoDraw.hook((original, self) => {
@@ -299,6 +190,12 @@ class MenuLoader {
 
                 Safe.Run('ModMenu (troca)', () => MenuLoader.#Tick());
                 const menu = MenuLoader.#current;
+                // O sol e a lua do tema só entram no JS com um tema de mod nos menus.
+                const sky = !!menu && menu !== vanilla;
+                if (sky !== MenuLoader.#sky) {
+                    MenuLoader.#sky = sky;
+                    bl.hookFlags.set('menu.sky', sky);
+                }
                 if (!menu || menu === vanilla) {
                     original(self);
                 } else {
@@ -312,7 +209,6 @@ class MenuLoader {
                     }
                     Safe.Run(menu.constructor.name + ' (logo)', () => MenuLoader.#DrawLogo(menu, captured));
                 }
-                Safe.Run('ModMenu (rodapé)', () => MenuLoader.#DrawSwitch());
             });
 
             Microsoft.Xna.Framework.Graphics.SpriteBatch['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'].hook(
@@ -322,8 +218,10 @@ class MenuLoader {
                     list.push({ texture, position, source, color, rotation, origin, scale, effects, depth });
                 }, { whileIn: logoDraw });
 
+            // Com a chave desligada (dentro do mundo, ou o tema do jogo), o
+            // desenho do céu de todo quadro nem entra no JS.
             Terraria.Main['void DrawSunAndMoon(SceneArea sceneArea, Color moonColor, Color sunColor, float tempMushroomInfluence)'].hook(
-                (original) => MenuLoader.#DrawSunAndMoon(original));
+                (original) => MenuLoader.#DrawSunAndMoon(original), { flag: 'menu.sky' });
         });
     }
 }

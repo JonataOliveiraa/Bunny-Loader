@@ -16,6 +16,8 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iterator>
+#include <string>
+#include <vector>
 
 namespace bl::runtime {
 
@@ -98,11 +100,19 @@ constexpr int kInventorySlots = 50;
 // Revelar o mapa: tempo por quadro. O mapa inteiro de um mundo grande sao 20
 // milhoes de tiles; de uma vez so, o jogo travava segundos.
 constexpr auto kRevealBudget = std::chrono::milliseconds(12);
+// Revelar o mapa no cliente: ele so tem os tiles das partes do mundo que o
+// servidor ja mandou (o resto e ar). O servidor manda as que faltam pelo
+// NetMessage.SendSection, o que o jogo faz enquanto se anda, estas por quadro;
+// o cliente revela quando chegam todas, ou quando param de chegar.
+constexpr int kSectionsPerFrame = 10;
+constexpr int kSectionWaitCheck = 30;     // quadros entre as conferencias do cliente
+constexpr int kSectionStallChecks = 10;   // conferencias sem parte nova: revela o que tem
 
 // Teleporte no mapa: segurar parado este tempo. "Parado" e dentro de 1/40 da
 // altura da tela — o dedo treme, e arrastar o mapa anda muito mais que isso.
-// 2,5 s ficava comprido na mao; 2 s ainda nao confunde com arrastar.
-constexpr auto kMapHoldTime = std::chrono::milliseconds(2000);
+// 2,5 s ficava comprido na mao, e 2 s ainda demorava (pedido do usuario):
+// 1 s. Arrastar o mapa nao dispara: anda mais que a folga logo de cara.
+constexpr auto kMapHoldTime = std::chrono::milliseconds(1000);
 constexpr int kMapHoldSlopDiv = 40;
 // Bloco livre mais perto do toque: sobe ate isto de tiles, depois desce.
 constexpr int kTeleportSearchTiles = 150;
@@ -217,6 +227,9 @@ struct WorldRefs {
         *getTouch = nullptr, *getDeviceWidth = nullptr, *getDeviceHeight = nullptr,
         *getMapPos = nullptr,
         *getMapScale = nullptr, *getUiMouse = nullptr;
+    FieldInfo *maxSectionsX = nullptr, *maxSectionsY = nullptr;
+    const MethodInfo *sendSection = nullptr, *getSectionManager = nullptr, *sectionLoaded = nullptr;
+    int32_t playerActive = -1;
     int32_t npcActive = -1, npcTown = -1, npcFriendly = -1, npcDamage = -1;
     int32_t inventory = -1, favorited = -1;
     int32_t uiMouseX = -1, uiMouseY = -1;   // XNAUnityRunner.MouseStateBackup
@@ -227,7 +240,7 @@ State g_refs = State::NotTried;
 // Refs de cada grupo opcional: faltar uma desliga so aquele poder.
 bool g_flyRefs = false, g_weatherRefs = false, g_lightRefs = false, g_bestiaryRefs = false;
 bool g_timeRefs = false, g_hardmodeRefs = false, g_spawnRefs = false, g_mapRefs = false,
-    g_inventoryRefs = false, g_teleportRefs = false;
+    g_inventoryRefs = false, g_teleportRefs = false, g_sectionRefs = false;
 State g_spawnHook = State::NotTried;
 State g_playerHook = State::NotTried;
 State g_timeHooks = State::NotTried;
@@ -380,6 +393,18 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
     W.updateLighting = methodBySignature(worldMap, "bool UpdateLighting(int x, int y, byte light)");
     g_mapRefs = allFound("mapa", {W.maxTilesX, W.maxTilesY, W.getMap, W.setRefreshMap,
                                   W.updateLighting});
+
+    Il2CppClass* netMessage = findClass({"Terraria", "NetMessage", {}});
+    Il2CppClass* sections = findClass({"Terraria", "WorldSections", {}});
+    W.maxSectionsX = findField(main, "maxSectionsX");
+    W.maxSectionsY = findField(main, "maxSectionsY");
+    W.sendSection = methodBySignature(netMessage, "void SendSection(int whoAmi, int sectionX, int sectionY)");
+    W.getSectionManager = a.class_get_method_from_name(main, "get_sectionManager", 0);
+    W.sectionLoaded = methodBySignature(sections, "bool SectionLoaded(int x, int y)");
+    W.playerActive = fieldOffset(player, "active");
+    g_sectionRefs = allFound("revelar no multijogador",
+                             {W.maxSectionsX, W.maxSectionsY, W.sendSection, W.getSectionManager,
+                              W.sectionLoaded}) && W.playerActive >= 0;
 
     W.player = findField(main, "player");
     W.inventory = fieldOffset(player, "inventory");
@@ -1086,6 +1111,9 @@ void clearHostiles() {
             continue;
         }
         field<uint8_t>(n, W.npcActive) = 0;
+        // Desligado so aqui, o cliente seguia vendo o NPC: a mensagem 23 de
+        // um NPC inativo leva vida 0, e o cliente o desliga ao receber.
+        if (isNetHost()) sendData(23, static_cast<int>(i));
     }
 }
 
@@ -1147,6 +1175,86 @@ void revealStep() {
     g_revealX = -1;
     reinterpret_cast<void (*)(bool, const MethodInfo*)>(il2cpp::methodPointer(W.setRefreshMap))(
         true, W.setRefreshMap);
+}
+
+// ------------------------------ revelar no multijogador ------------------------------
+
+struct SectionStream {
+    int client;
+    int next;   // a proxima parte, y * maxSectionsX + x
+};
+std::vector<SectionStream> g_streams;   // servidor: quem pediu o mundo inteiro
+
+int g_revealWait = -1;    // cliente: quadros esperando as partes; -1 = parado
+int g_waitLoaded = -1;    // partes carregadas na ultima conferencia
+int g_waitStall = 0;      // conferencias seguidas sem parte nova
+
+/** Servidor: kSectionsPerFrame partes por quadro a cada cliente que pediu. */
+void streamSections() {
+    const int sx = readStatic<int32_t>(W.maxSectionsX);
+    const int sy = readStatic<int32_t>(W.maxSectionsY);
+    auto* players = readStatic<Il2CppArray*>(W.player);
+    const int total = sx * sy;
+    for (size_t k = 0; k < g_streams.size();) {
+        SectionStream& s = g_streams[k];
+        auto* p = players && static_cast<uintptr_t>(s.client) < players->length
+            ? static_cast<Il2CppObject**>(arrayData(players))[s.client] : nullptr;
+        // O SendSection pula a parte que o cliente ja tem.
+        for (int n = 0; p && field<uint8_t>(p, W.playerActive) && n < kSectionsPerFrame && s.next < total; ++n, ++s.next) {
+            int32_t client = s.client, x = s.next % sx, y = s.next / sx;
+            void* args[3] = {&client, &x, &y};
+            Il2CppObject* exc = nullptr;
+            il2cpp::api().runtime_invoke(W.sendSection, nullptr, args, &exc);
+        }
+        if (!p || !field<uint8_t>(p, W.playerActive) || s.next >= total) {
+            BL_INFO("poderes: mundo mandado ao jogador %d para revelar o mapa (%d partes)", s.client, total);
+            g_streams.erase(g_streams.begin() + static_cast<std::ptrdiff_t>(k));
+            continue;
+        }
+        ++k;
+    }
+}
+
+int loadedSections() {
+    Il2CppObject* manager = callStatic<Il2CppObject*>(W.getSectionManager);
+    if (!manager) return -1;
+    using Fn = bool (*)(Il2CppObject*, int32_t, int32_t, const MethodInfo*);
+    const auto loaded = reinterpret_cast<Fn>(il2cpp::methodPointer(W.sectionLoaded));
+    const int sx = readStatic<int32_t>(W.maxSectionsX);
+    const int sy = readStatic<int32_t>(W.maxSectionsY);
+    int count = 0;
+    for (int y = 0; y < sy; ++y) {
+        for (int x = 0; x < sx; ++x) count += loaded(manager, x, y, W.sectionLoaded) ? 1 : 0;
+    }
+    return count;
+}
+
+/** Cliente: pede o mundo ao servidor e revela quando ele chegar. */
+void requestRevealFromServer() {
+    if (g_revealWait >= 0 || g_revealX >= 0) return;
+    if (!sendToServer("reveal 0")) {
+        startReveal();
+        return;
+    }
+    g_revealWait = 0;
+    g_waitLoaded = -1;
+    g_waitStall = 0;
+}
+
+void waitForSections() {
+    if (++g_revealWait % kSectionWaitCheck != 0) return;
+    const int loaded = loadedSections();
+    const int total = readStatic<int32_t>(W.maxSectionsX) * readStatic<int32_t>(W.maxSectionsY);
+    if (loaded > g_waitLoaded) g_waitStall = 0;
+    else ++g_waitStall;
+    g_waitLoaded = loaded;
+    if (loaded >= 0 && loaded < total && g_waitStall < kSectionStallChecks) return;
+
+    if (loaded < total) {
+        BL_INFO("poderes: o servidor mandou %d de %d partes do mundo; revelando o que chegou", loaded, total);
+    }
+    g_revealWait = -1;
+    startReveal();
 }
 
 // ------------------------------ teleporte no mapa ------------------------------
@@ -1280,13 +1388,23 @@ void tickWorldPowers() {
     const bool clearEnemies = g_level[static_cast<int>(Power::ClearEnemies)].exchange(0) > 0;
     if (!inWorld()) {
         g_revealX = -1;
+        g_revealWait = -1;
+        g_streams.clear();
         g_hold.down = false;
         return;
     }
     if (time >= 0 && g_timeRefs) applyTimeOfDay(time);
     if (clearInv && g_inventoryRefs) clearInventory();
-    if (reveal && g_mapRefs) startReveal();
+    if (reveal && g_mapRefs) {
+        if (isNetClientOnly() && g_sectionRefs) requestRevealFromServer();
+        else startReveal();
+    }
+    if (g_revealWait >= 0) waitForSections();
     if (g_revealX >= 0) revealStep();
+    if (!g_streams.empty()) {
+        if (g_sectionRefs) streamSections();
+        else g_streams.clear();
+    }
     if (hardmode > 0 && g_hardmodeRefs) applyHardmode(hardmode);
     if (difficulty > 0 && g_hardmodeRefs) applyDifficulty(difficulty);
 
@@ -1364,6 +1482,14 @@ void resyncWorldFromHost() {
 
 } // namespace
 
+void revealMapForClient(int client) {
+    if (!isNetHost() || client < 0 || client >= 255) return;
+    for (const SectionStream& s : g_streams) {
+        if (s.client == client) return;
+    }
+    g_streams.push_back({client, 0});
+}
+
 bool setWorldPowerFromNet(int id, int level) {
     if (id < 0 || id >= kPowerCount || !isWorldPower(static_cast<Power>(id))) return false;
     setPower(id, level);
@@ -1410,7 +1536,8 @@ void tickPowers() {
     if (!inWorld()) g_fallGrace = false;
     if (g_fallGrace) resetHook = true;
     g_anyPlayerPower.store(resetHook, std::memory_order_relaxed);
-    const bool pending = g_timeRequest.load(std::memory_order_relaxed) >= 0 || g_revealX >= 0;
+    const bool pending = g_timeRequest.load(std::memory_order_relaxed) >= 0 || g_revealX >= 0 ||
+                         g_revealWait >= 0 || !g_streams.empty();
     if (!any && !pending && !g_fallGrace && g_rainApplied == 0 && g_windApplied == 0) {
         g_haveFrozenTime = false;
         return;

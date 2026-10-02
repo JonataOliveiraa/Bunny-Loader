@@ -4,9 +4,9 @@
 // registrada:
 // - ItemRarity.Initialize: a tabela das cores (a etiqueta [i:] do chat);
 // - Item.GetPopupRarityColor: o texto que sobe ao pegar o item;
-// - Item.Prefix: o prefixo sobe ou desce a raridade e o jogo a prende em 11;
-//   aqui decide o GetPrefixedRarity (sem isso o item perdia a raridade ao cair
-//   no chão com prefixo);
+// - Item.Prefix: o prefixo sobe ou desce a raridade e o jogo a prende em 11,
+//   mesmo quando o sorteio não dá prefixo nenhum (o Prefix(-1) do drop, ~40%
+//   das vezes); aqui decide o GetPrefixedRarity (sem isso o item caía roxo);
 // - Main.MouseTextInner: o nome do item no chão sob o cursor. O nome no
 //   tooltip é do TooltipLoader.
 class RarityLoader {
@@ -55,7 +55,7 @@ class RarityLoader {
             (original, self, want, topTier) => {
                 const base = self.rare;
                 const ok = original(self, want, topTier);
-                if (ok && want !== -3 && self.prefix !== 0) RarityLoader.#Prefixed(self, base);
+                if (ok && want !== -3) RarityLoader.#Prefixed(self, base);
                 return ok;
             }, { ...min, field: 'rare' });
 
@@ -74,10 +74,14 @@ class RarityLoader {
         const inst = RarityLoader.ByType.get(base);
         if (!inst) return;
 
-        const refs = Array.from({ length: 10 }, () => new Ref(0));
-        item['bool TryGetPrefixStatMultipliersForItem(int rolledPrefix, out float dmg, out float kb, out float spd, out float size, out float shtspd, out float mcst, out int crt, out int tagdmg, out int arpen, out float value)'](
-            item.prefix, ...refs);
-        const value = Number(refs[9].value);
+        // Sem prefixo: o valor é 1 (degrau 0), e o jogo prendeu igual.
+        let value = 1;
+        if (item.prefix !== 0) {
+            const refs = Array.from({ length: 10 }, () => new Ref(0));
+            item['bool TryGetPrefixStatMultipliersForItem(int rolledPrefix, out float dmg, out float kb, out float spd, out float size, out float shtspd, out float mcst, out int crt, out int tagdmg, out int arpen, out float value)'](
+                item.prefix, ...refs);
+            value = Number(refs[9].value);
+        }
         const offset = value >= 1.2 ? 2 : value >= 1.05 ? 1 : value <= 0.8 ? -2 : value <= 0.95 ? -1 : 0;
 
         let rare = Safe.Run(inst.constructor.name + '.GetPrefixedRarity', () => inst.GetPrefixedRarity(offset, value));

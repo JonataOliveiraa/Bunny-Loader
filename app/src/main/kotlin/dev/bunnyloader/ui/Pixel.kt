@@ -40,6 +40,8 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -386,17 +388,19 @@ private fun Scrollbar(
  */
 @Composable
 fun PixelSelect(value: String, onPrev: () -> Unit, onNext: () -> Unit,
-                modifier: Modifier = Modifier) {
+                modifier: Modifier = Modifier, label: String? = null) {
     androidx.compose.foundation.layout.Row(
         modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false).padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.pixelClickable(onPrev).padding(8.dp)) {
+        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = "Anterior: $label" } else Modifier)
+            .pixelClickable(onPrev).padding(8.dp)) {
             PixelIcon(dev.bunnyloader.R.drawable.ic_seta_esq, 22.dp)
         }
         PixelText(value, size = Ts.Item, align = TextAlign.Center,
-            modifier = Modifier.weight(1f))
-        Box(Modifier.pixelClickable(onNext).padding(8.dp)) {
+            modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally))
+        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = "Próximo: $label" } else Modifier)
+            .pixelClickable(onNext).padding(8.dp)) {
             PixelIcon(dev.bunnyloader.R.drawable.ic_seta_dir, 22.dp)
         }
     }

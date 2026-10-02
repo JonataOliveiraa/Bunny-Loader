@@ -270,5 +270,84 @@
       "Description": "Ouvi histórias de um peixe que nada de ponta-cabeça. Dizem que você mesmo precisa estar de ponta-cabeça para achar um. Um desses ficaria ótimo no meu teto. Vai buscar!",
       "CatchLocation": "Pescado em qualquer lugar, de ponta-cabeça."
     }
+  },
+  "Configs": {
+    "ExampleConfig": {
+      "ShowFlavorText": {
+        "Label": "Textos extras nos itens"
+      },
+      "BossHealth": {
+        "Label": "Vida do chefe"
+      },
+      "Particles": {
+        "Label": "Partículas",
+        "low": "Poucas",
+        "normal": "Normais",
+        "high": "Muitas"
+      },
+      "BossMusic": {
+        "Label": "Música do chefe"
+      },
+      "BossDamage": {
+        "Label": "Dano do chefe"
+      },
+      "BossSpeed": {
+        "Label": "Velocidade do chefe",
+        "slow": "Lento",
+        "normal": "Normal",
+        "fast": "Rápido"
+      },
+      "ShowBossBar": {
+        "Label": "Barra de vida do chefe"
+      },
+      "ExtraLoot": {
+        "Label": "Loot extra"
+      },
+      "DropChance": {
+        "Label": "Chance de drop"
+      },
+      "PetGlow": {
+        "Label": "Brilho dos pets"
+      },
+      "PetSize": {
+        "Label": "Tamanho dos pets",
+        "small": "Pequeno",
+        "medium": "Médio",
+        "large": "Grande"
+      },
+      "TorchLight": {
+        "Label": "Luz da tocha"
+      },
+      "WingTrail": {
+        "Label": "Rastro das asas"
+      },
+      "WingSpeed": {
+        "Label": "Velocidade das asas"
+      },
+      "ShopPrices": {
+        "Label": "Preços da loja",
+        "cheap": "Baratos",
+        "normal": "Normais",
+        "expensive": "Caros"
+      },
+      "TownNPCChat": {
+        "Label": "Conversa dos moradores"
+      },
+      "BiomeMusic": {
+        "Label": "Música do bioma"
+      },
+      "BiomeSize": {
+        "Label": "Tamanho do bioma",
+        "small": "Pequeno",
+        "normal": "Normal",
+        "big": "Grande"
+      },
+      "OreAmount": {
+        "Label": "Minério"
+      },
+      "DebugText": {
+        "Label": "Texto de depuração"
+      }
+    }
   }
 }

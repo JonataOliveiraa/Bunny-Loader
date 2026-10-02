@@ -1,0 +1,15 @@
+{
+  "uid": "b2d4f6a8-0c1e-4a3b-8d5f-7e9a1c3b5d70",
+  "id": "test-basecls",
+  "name": "Teste: classes base do mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O exemplo de classe base da documentação: a base com Autoload = false e a base fora de Content/ ficam de fora; as filhas entram com o que herdam.",
+  "description": "Loga 'basecls ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

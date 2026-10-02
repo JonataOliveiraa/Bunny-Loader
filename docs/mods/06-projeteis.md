@@ -73,7 +73,8 @@ floats (`Float_FixedArray_3`), e a ponte aceita `[i]` neles como num array
 | `PreAI(proj)` | Antes da IA. `false` pula a IA do jogo e o `AI`. |
 | `AI(proj)` | A IA sua, todo quadro. |
 | `PostAI(proj)` | Depois da IA. |
-| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco e ia morrer: `false` o mantém vivo (para quicar, mude `proj.velocity`). `oldVelocity` é a de antes do choque. |
+| `TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac)` | Antes de colidir com os blocos, todo quadro. Os quatro são `Ref` (`.value`): o tamanho da caixa que bate nos blocos, se ela atravessa plataformas e o ponto da caixa preso ao centro do projétil (`Vector2`, padrão 0,5/0,5). `false`: atravessa os blocos neste quadro. |
+| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco: `false` o mantém vivo (para quicar, mude `proj.velocity`). `oldVelocity` é a de antes do choque. Lacaio e pet (`Main.projPet`) não morrem no bloco: recebem em todo quadro com choque (no chão, todo quadro). |
 | `PreKill(proj, timeLeft)` | `false` tira os efeitos do jogo na morte (poeira, som); o projétil morre igual. |
 | `OnKill(proj, timeLeft)` | Ao morrer (poeira, som, fragmentos). |
 | `OnHitNPC(proj, npc)`, `OnHitPlayer(proj, player)` | Ao acertar. |
@@ -198,9 +199,22 @@ No item, `sentry = true`; no projétil, `sentry = true` e `timeLeft = 36000`
 sentinela e chama `player.UpdateMaxTurrets()`, que tira a mais velha quando
 passa do limite.
 
-Para a sentinela pousar em plataforma: `decidesManualFallThrough = true` e
-`shouldFallThrough = false` no `SetDefaults` (é o `TileCollideStyle` do
-tModLoader). E `OnTileCollide` devolvendo `false`, para o chão não matá-la.
+Para a sentinela pousar em plataforma, `fallThrough.value = false` no
+`TileCollideStyle`. E `OnTileCollide` devolvendo `false`, para o chão não matá-la.
+
+### Caixa de colisão menor que o desenho
+
+```js
+TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac) {
+    width.value = height.value = 10;   // a lança passa por frestas
+    fallThrough.value = false;         // e para em plataforma
+    return true;
+}
+```
+
+A caixa só vale contra os blocos; o dano continua com `width`/`height` (ou o
+`ModifyDamageHitbox`). Projétil com `aiStyle` 10 (areia caindo) usa sempre o
+tamanho dele.
 
 ## Desenho próprio
 

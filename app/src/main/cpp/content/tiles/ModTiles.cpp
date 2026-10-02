@@ -1036,7 +1036,9 @@ void tickModTiles() {
 }
 
 bool modTilesSettled() {
-    return g_failed || (g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire) &&
+    const int total = g_total.load(std::memory_order_acquire);
+    // Sem tiles registrados, tickModTiles nao roda SetStaticDefaults: nao ha lote a esperar.
+    return total == 0 || g_failed || (g_installed.load(std::memory_order_relaxed) == total &&
                         g_staticDone.load(std::memory_order_acquire));
 }
 

@@ -1,0 +1,15 @@
+{
+  "uid": "5c0d7a52-7f21-4b8e-9a3c-0b1d2e3f4a51",
+  "id": "test-oldpos",
+  "name": "Teste: rastro do projétil (oldPos, oldRot, oldSpriteDirection)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Projéteis de mod com TrailCacheLength 5 (modos 0 e 2): o rastro registrado pelo jogo, lido por [i] e por get_Item(i) (ref T no celular).",
+  "description": "Loga 'oldpos ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

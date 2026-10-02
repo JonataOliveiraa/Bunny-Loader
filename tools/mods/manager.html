@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo de mods</title>
+<style>
+  :root {
+    --bg: #0d0f1a;
+    --panel: #1a1e39;
+    --panel-2: #232850;
+    --line: #2f3566;
+    --text: #e8ebfa;
+    --dim: #a6aed6;
+    --muted: #7c85b6;
+    --accent: #f9e141;
+    --button: #3f5297;
+    --button-hover: #4d63b3;
+    --good: #3f8f4e;
+    --warn: #c98a2b;
+    --bad: #e0603f;
+    --info: #4a5daa;
+    --radius: 10px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .brand { flex: 1; min-width: 220px; }
+  .brand h1 { margin: 0; font-size: 20px; }
+  .brand p { margin: 0; color: var(--muted); font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 8px 20px 140px; }
+  h2 { font-size: 16px; margin: 28px 0 4px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+
+  button {
+    font: inherit; font-size: 14px; color: var(--text); background: var(--button);
+    border: 1px solid #5a6fc0; border-radius: 8px; padding: 7px 14px; cursor: pointer;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) { background: var(--button-hover); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--good); border-color: #5fb36d; }
+  button.primary:hover:not(:disabled) { background: #4aa35b; }
+  button.danger { background: transparent; border-color: var(--bad); color: #ffb3a0; }
+  button.danger:hover:not(:disabled) { background: #4a2018; }
+  button.ghost { background: transparent; border-color: var(--line); color: var(--dim); }
+  button.small { padding: 4px 10px; font-size: 13px; }
+
+  input[type=password] {
+    font: inherit; font-size: 14px; color: var(--text); background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; width: 230px;
+  }
+  .token { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .pill.ok { background: #1d3a24; color: #8fdc9c; }
+  .pill.no { background: #3a2a14; color: #f0c06a; }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+
+  /* nossos mods */
+  .rows { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: center; padding: 10px 14px; }
+  .icon { width: 52px; height: 52px; border-radius: 8px; background: var(--panel-2); image-rendering: pixelated; object-fit: cover; display: block; }
+  .icon.blank { display: grid; place-items: center; color: var(--muted); font-weight: 700; font-size: 20px; }
+  .name { font-weight: 600; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .badge { font-size: 12px; padding: 2px 8px; border-radius: 6px; font-weight: 600; display: inline-block; margin-top: 4px; }
+  .badge.same { background: #1d3a24; color: #8fdc9c; }
+  .badge.new { background: #1f2c5a; color: #a9bbff; }
+  .badge.newer { background: #3a3414; color: var(--accent); }
+  .badge.changed, .badge.older { background: #3a2a14; color: #f0c06a; }
+  .badge.error { background: #3d1c16; color: #ffb3a0; }
+
+  /* enviar */
+  .drop {
+    border: 2px dashed var(--line); border-radius: var(--radius); padding: 26px; text-align: center;
+    color: var(--dim); cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .drop.over { border-color: var(--accent); background: #1f2240; }
+  .drop strong { color: var(--text); }
+  .check { margin-top: 12px; padding: 16px; display: grid; grid-template-columns: 64px 1fr; gap: 16px; }
+  .check .icon { width: 64px; height: 64px; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 13px; margin: 8px 0; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; word-break: break-all; }
+  .chips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .chip { font-size: 12px; background: var(--panel-2); padding: 1px 7px; border-radius: 5px; color: var(--dim); }
+
+  /* catálogo */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .card { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .card .top { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; }
+  .card .summary { color: var(--dim); font-size: 13px; margin: 0; flex: 1; }
+  .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card a { color: #a9bbff; font-size: 13px; text-decoration: none; }
+  .card a:hover { text-decoration: underline; }
+  .empty { color: var(--muted); padding: 18px; text-align: center; }
+
+  /* registro */
+  #log {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
+    background: #0a0c16; border-top: 1px solid var(--line);
+    max-height: 40vh; display: flex; flex-direction: column;
+  }
+  #log .head { display: flex; align-items: center; gap: 10px; padding: 8px 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
+  #log .head span { flex: 1; font-size: 13px; color: var(--dim); }
+  #log pre {
+    margin: 0 auto; padding: 0 20px 12px; max-width: 1100px; width: 100%; overflow: auto;
+    font: 12.5px/1.5 ui-monospace, Consolas, monospace; color: var(--dim); white-space: pre-wrap;
+  }
+  #log.collapsed pre { display: none; }
+  #log pre .err { color: #ffb3a0; }
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: none; }
+  body.busy .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .row { grid-template-columns: 44px 1fr; }
+    .row .actions { grid-column: 1 / -1; justify-content: flex-start; }
+    .icon { width: 44px; height: 44px; }
+    input[type=password] { width: 100%; }
+    .check { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">
+      <h1>Catálogo de mods</h1>
+      <p>Bunny Loader · branch <code>mods-index</code> e Releases de JonataOliveiraa/Bunny-Loader</p>
+    </div>
+    <div class="token" id="token"></div>
+    <button class="ghost" id="syncBtn" title="Baixa o catálogo publicado de novo">Sincronizar</button>
+  </div>
+</header>
+
+<main>
+  <h2>Nossos mods</h2>
+  <p class="hint">As pastas de <code>samples/</code> (menos o ExampleMod, que vai dentro do APK). O status compara a pasta com o que está publicado.</p>
+  <div class="rows" id="samples"></div>
+
+  <h2>Publicar um pacote</h2>
+  <p class="hint">Um <code>.bl</code> de outra pessoa. Ele é conferido com as mesmas regras do app antes de qualquer coisa ir para o GitHub.</p>
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept=".bl,.bmod,.zip" hidden>
+    <strong>Arraste o .bl aqui</strong> ou clique para escolher
+  </label>
+  <div id="checkResult"></div>
+
+  <h2>No catálogo</h2>
+  <p class="hint">O que o app mostra na aba Explorar.</p>
+  <div class="grid" id="catalog"></div>
+</main>
+
+<div id="log" class="collapsed">
+  <div class="head">
+    <div class="spinner"></div>
+    <span id="logTitle">Registro</span>
+    <button class="ghost small" id="logToggle">Mostrar</button>
+  </div>
+  <pre id="logBody"></pre>
+</div>
+
+<script>
+const KEY = "__BL_KEY__";
+const state = { data: null, upload: null };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const kb = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
+
+async function api(path, body, extraHeaders = {}) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "X-BL-Key": KEY, "Content-Type": "application/json", ...extraHeaders },
+    body: body instanceof Blob ? body : JSON.stringify(body ?? {}),
+  });
+  if (!res.ok) return { ok: false, error: `o gerenciador respondeu ${res.status}` };
+  return res.json();
+}
+
+/** Uma operação por vez: trava os botões e mostra o que o publish.py escreveu. */
+async function task(title, path, body, headers) {
+  document.body.classList.add("busy");
+  document.querySelectorAll("button").forEach((b) => (b.disabled = true));
+  $("logTitle").textContent = title + "…";
+  let r;
+  try {
+    r = await api(path, body, headers);
+  } catch (e) {
+    r = { ok: false, error: "o gerenciador não respondeu (a janela dele foi fechada?)" };
+  }
+  document.body.classList.remove("busy");
+  document.querySelectorAll("button").forEach((b) => (b.disabled = false));
+  $("logTitle").textContent = (r.ok ? "Concluído: " : "Falhou: ") + title;
+  const lines = esc((r.log || "").trim());
+  $("logBody").innerHTML = lines + (r.ok ? "" : (lines ? "\n" : "") + `<span class="err">erro: ${esc(r.error)}</span>`);
+  if (!r.ok || (r.log || "").trim()) openLog(true);
+  return r;
+}
+
+function openLog(open) {
+  $("log").classList.toggle("collapsed", !open);
+  $("logToggle").textContent = open ? "Esconder" : "Mostrar";
+}
+$("logToggle").onclick = () => openLog($("log").classList.contains("collapsed"));
+
+async function refresh() {
+  const r = await api("/api/state");
+  if (!r.ok) { $("logBody").innerHTML = `<span class="err">erro: ${esc(r.error)}</span>`; openLog(true); return; }
+  state.data = r.result;
+  render();
+}
+
+function icon(src, name) {
+  return src ? `<img class="icon" src="${esc(src)}" alt="">`
+             : `<div class="icon blank">${esc((name || "?").slice(0, 1).toUpperCase())}</div>`;
+}
+
+function render() {
+  const d = state.data;
+  // token
+  $("token").innerHTML = d.tokenSet
+    ? `<span class="pill ok">Token pronto</span><button class="ghost small" id="tokenClear">Esquecer</button>`
+    : `<span class="pill no">Sem token</span>
+       <input type="password" id="tokenInput" placeholder="Cole o token do GitHub" autocomplete="off">
+       <button id="tokenSave">Usar</button>`;
+  if (d.tokenSet) $("tokenClear").onclick = () => setToken("");
+  else {
+    $("tokenSave").onclick = () => setToken($("tokenInput").value);
+    $("tokenInput").onkeydown = (e) => { if (e.key === "Enter") setToken(e.target.value); };
+  }
+
+  // nossos mods
+  $("samples").innerHTML = d.samples.length ? d.samples.map((s) => `
+    <div class="row panel">
+      ${icon(s.icon, s.name)}
+      <div>
+        <div class="name">${esc(s.name)} <span class="meta">v${esc(s.version)}</span></div>
+        <div class="meta">samples/${esc(s.folder)}${s.authors ? " · " + esc(s.authors) : ""}${s.size ? " · " + kb(s.size) : ""}</div>
+        <span class="badge ${esc(s.status)}">${esc(s.statusText)}</span>
+      </div>
+      <div class="actions">${sampleActions(s)}</div>
+    </div>`).join("") : `<div class="empty panel">Nenhuma pasta em samples/.</div>`;
+
+  // catálogo
+  $("catalog").innerHTML = d.catalog.length ? d.catalog.map((m) => `
+    <div class="card panel">
+      <div class="top">
+        ${icon(m.icon, m.name)}
+        <div>
+          <div class="name">${esc(m.name)} <span class="meta">v${esc(m.version)}</span></div>
+          <div class="meta">${esc(m.authors || "autor desconhecido")}${m.category ? " · " + esc(m.category) : ""} · ${kb(m.download.size)}</div>
+        </div>
+      </div>
+      <p class="summary">${esc(m.summary)}</p>
+      <div class="foot">
+        <span><a href="${esc(m.release)}" target="_blank" rel="noopener">Release</a> · <a href="${esc(m.download.url)}">baixar .bl</a></span>
+        <button class="danger small" data-remove="${esc(m.uid)}" data-name="${esc(m.name)}">Tirar do catálogo</button>
+      </div>
+    </div>`).join("") : `<div class="empty panel">${d.worktree ? "Catálogo vazio." : "Ainda não sincronizado."}</div>`;
+
+  document.querySelectorAll("[data-publish]").forEach((b) => (b.onclick = () => publishSample(b.dataset.publish, b.dataset.name)));
+  document.querySelectorAll("[data-bump]").forEach((b) => (b.onclick = () => bump(b.dataset.bump, b.dataset.part)));
+  document.querySelectorAll("[data-remove]").forEach((b) => (b.onclick = () => removeMod(b.dataset.remove, b.dataset.name)));
+}
+
+function sampleActions(s) {
+  const pub = (label) => `<button class="primary" data-publish="${esc(s.folder)}" data-name="${esc(s.name)}">${label}</button>`;
+  const bumps = `
+    <button class="small" data-bump="${esc(s.folder)}" data-part="patch" title="1.0.0 → 1.0.1: correção">+ correção</button>
+    <button class="small ghost" data-bump="${esc(s.folder)}" data-part="minor" title="1.0.0 → 1.1.0: coisa nova">+ novidade</button>`;
+  switch (s.status) {
+    case "new": return pub("Publicar");
+    case "newer": return pub(`Publicar v${esc(s.version)}`);
+    case "changed": return bumps;
+    case "same": return `<span class="meta">Nada a fazer</span>`;
+    default: return "";
+  }
+}
+
+async function setToken(value) {
+  await api("/api/token", { token: value });
+  await refresh();
+}
+
+async function publishSample(folder, name) {
+  const r = await task(`Publicar ${name}`, "/api/publish-sample", { folder });
+  await refresh();
+  if (r.ok) $("logTitle").textContent = `${name} publicado. No app, pode levar uns minutos para aparecer.`;
+}
+
+async function bump(folder, part) {
+  await task(`Subir a versão de ${folder}`, "/api/bump", { folder, part });
+  await refresh();
+}
+
+async function removeMod(uid, name) {
+  if (!confirm(`Tirar "${name}" do catálogo?\n\nQuem já instalou continua com o mod. A Release fica no GitHub; só some da aba Explorar.`)) return;
+  await task(`Tirar ${name} do catálogo`, "/api/remove", { uid });
+  await refresh();
+}
+
+$("syncBtn").onclick = async () => { await task("Sincronizar com o GitHub", "/api/sync"); await refresh(); };
+
+// ------------------------------------------------------------ enviar .bl
+const drop = $("drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+$("file").onchange = (e) => { if (e.target.files[0]) upload(e.target.files[0]); e.target.value = ""; };
+
+async function upload(file) {
+  const r = await task(`Conferir ${file.name}`, "/api/upload", file,
+    { "Content-Type": "application/octet-stream", "X-Filename": encodeURIComponent(file.name) });
+  state.upload = r.ok ? r.result : null;
+  renderCheck(r.ok ? null : r.error);
+}
+
+function renderCheck(error) {
+  const c = state.upload;
+  if (error) { $("checkResult").innerHTML = `<div class="check panel"><div></div><div><span class="badge error">Recusado</span><p>${esc(error)}</p></div></div>`; return; }
+  if (!c) { $("checkResult").innerHTML = ""; return; }
+  const canPublish = c.status === "new" || c.status === "newer";
+  $("checkResult").innerHTML = `
+    <div class="check panel">
+      ${icon(c.icon, c.name)}
+      <div>
+        <div class="name">${esc(c.name)} <span class="meta">v${esc(c.version)}</span></div>
+        <div class="meta">${esc(c.authors || "sem autor")}${c.category ? " · " + esc(c.category) : ""} · ${kb(c.size)}</div>
+        <span class="badge ${esc(c.status)}">${esc(c.statusText)}</span>
+        <dl class="kv">
+          <dt>Arquivo</dt><dd>${esc(c.file)}</dd>
+          <dt>uid</dt><dd>${esc(c.uid)}</dd>
+          <dt>sha256</dt><dd>${esc(c.sha256)}</dd>
+          <dt>Vitrine</dt><dd><div class="chips">${c.store.map((f) => `<span class="chip">${esc(f)}</span>`).join("")}</div></dd>
+        </dl>
+        ${c.summary ? `<p class="summary">${esc(c.summary)}</p>` : ""}
+        <div class="actions" style="justify-content:flex-start">
+          ${canPublish ? `<button class="primary" id="publishUpload">Publicar no catálogo</button>` : ""}
+          <button class="ghost" id="discardUpload">Descartar</button>
+        </div>
+      </div>
+    </div>`;
+  if (canPublish) $("publishUpload").onclick = async () => {
+    const r = await task(`Publicar ${c.name}`, "/api/publish-upload", { file: c.file });
+    if (r.ok) { state.upload = null; renderCheck(); }
+    await refresh();
+  };
+  $("discardUpload").onclick = () => { state.upload = null; renderCheck(); };
+}
+
+refresh();
+</script>
+</body>
+</html>

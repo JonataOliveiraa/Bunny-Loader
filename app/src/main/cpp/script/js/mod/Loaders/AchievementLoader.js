@@ -64,8 +64,29 @@ class AchievementLoader {
         }
 
         // O progresso salvo das de mod (o jogo leu o arquivo sem elas).
-        Safe.Run('conquistas: ler de novo', () => manager['void Load()']());
+        Safe.Run('conquistas: ler de novo', () => AchievementLoader.#Reload(manager));
         bl.log('conquistas de mod: ' + pending.length);
+    }
+
+    // O Achievement.Load SOMA as condições completas ao _completedCount, e o
+    // IsCompleted é "contador == condições". Ler o arquivo de novo dobrava o
+    // contador das do jogo (já lidas no boot): toda conquista do jogo já
+    // completa aparecia bloqueada, e a condição, já feita, não a completava
+    // mais. As do jogo voltam ao contador de antes; só as de mod ficam com o
+    // que a leitura trouxe. O Load(path, cloud) é a leitura sem o
+    // LoadPersistantData do usuário, que o Load() faz depois dela.
+    static #Reload(manager) {
+        const kept = [];
+        const list = manager.CreateAchievementsList();
+        for (let i = 0; i < list.Count; i++) {
+            const a = list.get_Item(i);
+            if (!AchievementLoader.ByName.has(a.Name)) kept.push([a, a._completedCount]);
+        }
+        try {
+            manager['void Load(string path, bool cloud)'](manager._savePath, manager._isCloudSave);
+        } finally {
+            for (const [a, count] of kept) a._completedCount = count;
+        }
     }
 
     // O AutoStaticDefaults do tModLoader: com várias condições, o progresso é

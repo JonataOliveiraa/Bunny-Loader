@@ -62,18 +62,28 @@ class TileDrawLoader {
 
     // Um quadro por tipo (Main.tileFrame); o desenho soma frame * AnimationFrameHeight.
     static HookAnimation() {
+        // Os mesmos dois Ref a cada bloco e a cada quadro, e sem closure: dois
+        // Ref novos e um Safe.Run por tipo animado custavam ~3 vezes mais.
+        const frame = new Ref(0), counter = new Ref(0);
         Terraria.Main['void AnimateTiles()'].hook((original) => {
             original();
             if (!TileLoader.Animated.length) return;
 
             const Main = Terraria.Main;
             const frames = Main.tileFrame, counters = Main.tileFrameCounter;
+            const animated = TileLoader.Animated;
             // A cada quadro: o rótulo montado uma vez, e só o que mudou volta pela ponte.
-            for (const m of TileLoader.Animated) {
+            for (let k = 0; k < animated.length; k++) {
+                const m = animated[k];
                 const t = m.Type;
                 const f0 = frames[t], c0 = counters[t];
-                const frame = new Ref(f0), counter = new Ref(c0);
-                Safe.Run(m.__animateLabel || (m.__animateLabel = m.constructor.name + '.AnimateTile'), () => m.AnimateTile(frame, counter));
+                frame.value = f0;
+                counter.value = c0;
+                try {
+                    m.AnimateTile(frame, counter);
+                } catch (e) {
+                    Safe.Report(m.__animateLabel || (m.__animateLabel = m.constructor.name + '.AnimateTile'), e);
+                }
                 const f1 = frame.value | 0, c1 = counter.value | 0;
                 if (f1 !== f0) frames[t] = f1;
                 if (c1 !== c0) counters[t] = c1;

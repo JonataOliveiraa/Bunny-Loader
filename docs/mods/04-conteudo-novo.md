@@ -97,6 +97,84 @@ As classes base são **globais**: `ModItem`, `ModProjectile`, `ModNPC`,
 `ModBuff`, `ModTile`, `ModPlayer`, `ModSystem`, `ModRecipe`... Nada de
 `import` para elas, nem para os [ajudantes](#ajudantes).
 
+### Classes base do seu mod (as `abstract` do tModLoader)
+
+Mod grande costuma ter uma classe intermediária que só serve de base para
+outras: no Thorium, `abstract class BardItem : ModItem`, e todo instrumento a
+estende. O C# tem `abstract`, e o tModLoader pula as classes abstratas sozinho.
+O JavaScript não tem `abstract`: para o Bunny Loader, uma classe exportada que
+estende `ModItem` é um item, e uma base exportada viraria um item a mais no
+jogo, sem textura, com o nome da classe.
+
+Marque a base com **`static Autoload = false`**:
+
+```js
+// content/Content/Items/Bard/BardItem.js
+// Base dos instrumentos: não é um item.
+export class BardItem extends ModItem {
+    static Autoload = false;
+
+    // O que todo instrumento tem; a filha muda o que precisar.
+    InspirationCost = 1;
+
+    SetDefaults() {
+        this.Item.useStyle = 5;
+        this.Item.useTime = this.Item.useAnimation = 20;
+        this.Item.noMelee = true;
+        this.Item.rare = ItemRarityID.Green;
+    }
+
+    // Um método escrito só aqui vale para todas as filhas.
+    ModifyTooltips(item, tooltips) {
+        tooltips.push(new TooltipLine(this.Mod, 'Inspiration', 'Custa ' + this.InspirationCost + ' de inspiração'));
+    }
+}
+```
+
+```js
+// content/Content/Items/Bard/GrandPiano.js
+import { BardItem } from './BardItem.js';
+
+// Esta é registrada: um item, com a textura GrandPiano.png ao lado.
+export class GrandPiano extends BardItem {
+    InspirationCost = 3;
+
+    SetDefaults() {
+        super.SetDefaults();          // o comum, da base
+        this.Item.damage = 40;        // o deste instrumento
+        this.Item.width = 40;
+        this.Item.height = 30;
+    }
+}
+```
+
+Como funciona:
+
+- **O `Autoload = false` não passa para as filhas.** Ele só vale para a classe
+  que o declara (a filha não o tem como seu), então a base fica de fora e
+  `GrandPiano` entra normalmente. Uma filha que também deva ficar de fora (uma
+  base de segundo nível, como `PercussionItem extends BardItem`) declara o
+  dela.
+- **Tudo da base vale na filha**: campos, métodos e `get`. Um método escrito só
+  na base (o `ModifyTooltips` acima) instala o hook dele como se estivesse na
+  filha; o `super.Metodo()` chama o da base.
+- **A base não precisa de textura**: ela não é registrada. A de cada filha é a
+  dela, ao lado do arquivo dela ([Texturas](#texturas)).
+- **`instanceof` funciona**: para saber se um item do jogo é um instrumento do
+  seu mod, de qualquer tipo, `ModContent.GetModItem(item.type) instanceof BardItem`.
+- Vale para qualquer tipo de conteúdo: `ModNPC`, `ModProjectile`, `ModTile`,
+  `ModBuff`, `GlobalItem`...
+
+Outro jeito, sem a marca: deixar a base **fora** de `Content/` e `Common/`.
+O registro automático só olha o arquivo de entrada e essas duas pastas; uma
+base em `content/Bases/BardItem.js` é importada pelas filhas e nunca
+registrada. Por outro lado, uma classe **sem** `export` não serve de base para
+outro arquivo, porque ele não consegue importá-la.
+
+Não use `export default` para isso: um arquivo só tem um, muitos arquivos
+exportam várias classes (a armadura e o conjunto dela), e no arquivo de entrada
+o `export default` é a classe `Mod`.
+
 ### O que o `register` faz
 
 1. cria o **molde**: uma instância da sua classe;
@@ -508,6 +586,7 @@ O formato é o mesmo, com as diferenças do JavaScript e do celular:
 | `public class ExampleMod : Mod` | `export default class ExampleMod extends Mod` no `main.js` |
 | `public class X : ModItem` | `export class X extends ModItem` (em `Content/`, registrada sozinha) |
 | `[Autoload(false)]` | `static Autoload = false` |
+| `abstract class BardItem : ModItem` (base) | `export class BardItem extends ModItem { static Autoload = false; }` ([Classes base](#classes-base-do-seu-mod-as-abstract-do-tmodloader)) |
 | textura ao lado do `.cs` | textura ao lado do `.js` (o mesmo nome) |
 | `Item.damage = 10;` | `this.Item.damage = 10;` |
 | `ModContent.ItemType<X>()` | `ModContent.ItemType(X)` |

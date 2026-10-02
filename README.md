@@ -16,8 +16,18 @@ IL2CPP e roda mods escritos em **JavaScript**, no formato do tModLoader
 - Save limpo: o conteúdo de mod vai ao lado do save do jogo, pelo nome, e o
   mundo abre sem o mod.
 - Mod Menu dentro do jogo: itens e NPCs de cada mod, e superpoderes.
+- Opções de cada mod no menu de pausa, em **Config. dos Mods**: interruptor,
+  barra e escolha única na tela de Configurações do próprio jogo (o
+  `ModConfig` do tModLoader).
+- Catálogo online: a aba **Explorar** do launcher lista os mods publicados e
+  baixa e atualiza com um toque, sem conta e sem token no app.
 
 ![O Mod Menu, com os superpoderes](docs/imagens/mod-menu-superpoderes.jpg)
+
+<p align="center">
+<img src="docs/imagens/pausa-config-dos-mods.jpg" width="38%" alt="O botão Config. dos Mods no menu de pausa">
+<img src="docs/imagens/config-dos-mods.jpg" width="43%" alt="As opções do Example Mod">
+</p>
 
 > Este repositório **não** inclui os binários nem os assets do Terraria
 > (`libil2cpp.so`, `libunity.so`, os dados do jogo): eles ficam fora do Git e
@@ -44,6 +54,8 @@ Tudo em [`docs/`](docs/README.md):
   12. [Globais e o mundo](docs/mods/12-globais-e-mundo.md)
   13. [A página do pacote](docs/mods/13-pagina-do-pacote.md): descrição e
       changelog em Markdown, licença e autores com fotos em `authors/`.
+  14. [Opções do mod](docs/mods/14-opcoes-do-mod.md): o `ModConfig` e a tela
+      "Config. dos Mods" do menu de pausa.
 - **Referência**: [o que cada classe tem hoje](docs/referencia/classes.md) e
   [a ponte e o `bl`](docs/referencia/ponte-e-bl.md).
 - **[O núcleo nativo](docs/nucleo/README.md)**, para quem mexe no Bunny

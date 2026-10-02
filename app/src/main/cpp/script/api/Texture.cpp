@@ -9,6 +9,7 @@
 #include "script/bridge/Bridge.h"
 #include "boot/Boot.h"
 #include "content/common/ContentAssets.h"
+#include "content/common/BunnyHeadIcon.h"
 #include "script/bridge/Invoke.h"
 
 #include <unistd.h>
@@ -278,6 +279,32 @@ JSValue loadTextureAsset(JSContext* ctx, int argc, JSValueConst* argv) {
     int w = 0, h = 0;
     Il2CppObject* asset = runtime::content::loadTextureAsset(path, nullptr, 0, callerModId(ctx) + ":" + path, &w, &h);
     if (!asset) return JS_ThrowReferenceError(ctx, "bl.loadTextureAsset: nao consegui carregar %s", path.c_str());
+    return makeNativeObject(ctx, asset);
+}
+
+JSValue builtinTexture(JSContext* ctx, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsString(argv[0])) {
+        return JS_ThrowTypeError(ctx, "bl.builtinTexture(nome) espera um texto");
+    }
+    const int gameThread = runtime::gameThreadId();
+    if (gameThread == 0 || static_cast<int>(gettid()) != gameThread) {
+        return JS_ThrowInternalError(ctx, "bl.builtinTexture so vale na thread do jogo, com o jogo ja rodando");
+    }
+    const char* cs = JS_ToCString(ctx, argv[0]);
+    if (!cs) return JS_EXCEPTION;
+    const std::string name = cs;
+    JS_FreeCString(ctx, cs);
+    const unsigned char* data = nullptr;
+    size_t size = 0;
+    if (name == "bunnyHead") {
+        data = bl_bunny_head_png;
+        size = bl_bunny_head_png_len;
+    } else {
+        return JS_ThrowReferenceError(ctx, "bl.builtinTexture: nao ha imagem embutida '%s'", name.c_str());
+    }
+    int w = 0, h = 0;
+    Il2CppObject* asset = runtime::content::loadTextureAsset("", data, size, "bunny:" + name, &w, &h);
+    if (!asset) return JS_ThrowInternalError(ctx, "bl.builtinTexture: nao consegui criar '%s'", name.c_str());
     return makeNativeObject(ctx, asset);
 }
 

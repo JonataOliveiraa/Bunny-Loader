@@ -50,6 +50,7 @@ PAGES = {
     "docs/mods/11-conversa-entre-mods.md": "Conversa-entre-mods",
     "docs/mods/12-globais-e-mundo.md": "Globais-e-mundo",
     "docs/mods/13-pagina-do-pacote.md": "Página-do-pacote",
+    "docs/mods/14-opcoes-do-mod.md": "Opções-do-mod",
     "docs/referencia/classes.md": "Referência-das-classes",
     "docs/referencia/ponte-e-bl.md": "Referência-da-ponte-e-bl",
     "docs/nucleo/README.md": "Núcleo",
@@ -65,6 +66,7 @@ PAGES = {
     "docs/historico/FPS-45-TELA-90HZ.md": "Histórico-FPS-45-em-tela-de-90-Hz",
     "docs/historico/FUNDO-SUMINDO-NUVEM-DE-MOD.md": "Histórico-fundo-sumindo-com-nuvem-de-mod",
     "docs/historico/TRAVAMENTO-SAVE-DO-MAPA.md": "Histórico-travamento-no-save-do-mapa",
+    "docs/historico/DESEMPENHO-LOADER.md": "Histórico-desempenho-do-loader",
 }
 
 SIDEBAR = [
@@ -85,6 +87,7 @@ SIDEBAR = [
         ("Conversa-entre-mods", "11. Conversa entre mods"),
         ("Globais-e-mundo", "12. Globais e o mundo"),
         ("Página-do-pacote", "13. A página do pacote"),
+        ("Opções-do-mod", "14. Opções do mod"),
     ]),
     ("Referência", [
         ("Referência-das-classes", "O que cada classe tem hoje"),
@@ -106,6 +109,7 @@ SIDEBAR = [
         ("Histórico-FPS-45-em-tela-de-90-Hz", "45 fps em tela de 90 Hz"),
         ("Histórico-fundo-sumindo-com-nuvem-de-mod", "Fundo sumindo com nuvem de mod"),
         ("Histórico-travamento-no-save-do-mapa", "Travamento no save do mapa"),
+        ("Histórico-desempenho-do-loader", "Desempenho do loader"),
     ]),
 ]
 

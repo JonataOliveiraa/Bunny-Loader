@@ -74,6 +74,7 @@ Detalhes no [guia de custo](../mods/03-custo-e-desempenho.md#filtros-nativos).
 | | |
 |---|---|
 | `bl.log(...valores)` | Uma linha no log do jogo e no logcat. Objeto e array JS saem em JSON. |
+| `bl.error(...valores)` | O mesmo, em nível de erro: abre o painel de erro dentro do jogo (com a opção ligada). O erro de um método de mod (`ModItem.ModifyTooltips`, `ModNPC.AI`...) já sai por aqui, pego pelo loader. |
 | `print(...valores)` | Uma linha no **chat do jogo** (os valores juntos como no `bl.log`). De qualquer thread; aparece no próximo quadro. |
 | `bl.chat(texto, cor?)` | O mesmo, com cor: `'#RRGGBB'`, `{ R, G, B }`, `[r, g, b]` ou um `Color`. |
 | `bl.mod` | O `Mod` de quem chama: `id`, `name`, `version`, `uuid`, `path`, `root`, `dataDirectory`. |
@@ -143,6 +144,7 @@ diretamente.
 | `bl.tiles.setAnimationFrameHeight(tipo, altura)`, `bl.tiles.onDrawData(fn)` | O `AnimationFrameHeight` e o gancho do desenho (quem usa é o `ModTile`). |
 | `bl.tiles.setDoor(fechada, aberta)` | O par de uma porta de mod, para o jogador que encosta e os NPCs a abrirem (o `ModTile` chama pelo `OpenDoorID`/`CloseDoorID`). |
 | `bl.hookMarks.set(nome, tipo[, ligado])`, `bl.hookMarks.has(nome, tipo)` | As marcas do filtro `marks` dos hooks ([núcleo](../nucleo/hooks.md#filtros-nativos)). |
+| `bl.hookFlags.set(nome, ligado)`, `bl.hookFlags.get(nome)` | A chave do filtro `flag` dos hooks: desligada (o começo), o método roda sem entrar no JS ([núcleo](../nucleo/hooks.md#filtros-nativos)). |
 | `bl.hookStats()` | Cada hook JS instalado: `{ name, calls, js, jsMs }` desde a instalação. `calls` conta toda chamada que passou pelo despacho (inclusive as que o filtro devolveu ao jogo), `js` as que chegaram ao callback e `jsMs` o tempo dentro dele sem o `original()`. Para medir: o `tools/tests/frametime` usa. |
 | `bl.gc()`, `bl.gcThreshold()` | Roda uma coleta de ciclos do QuickJS e devolve quanto levou (ms); o limiar de memória da próxima coleta (muda a cada uma: contar as mudanças dá as coletas). Só para medir. |
 | `bl.items.register`, `bl.npcs.register`... | O registro nativo. Use as classes (`ModItem.register`). |

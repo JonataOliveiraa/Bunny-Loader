@@ -251,6 +251,15 @@ int jsToParam(JSContext* ctx, JSValueConst v, const ParamPlan& p,
 JSValue outcomeToJs(JSContext* ctx, const AbiPlan& p, const Outcome& o) {
     const TypeDesc& d = p.retDesc;
     if (d.prim == Prim::Void) return JS_UNDEFINED;
+    if (p.retByRef) {
+        // Copia do valor apontado, como `var v = arr[i]` no C#. Uma vista
+        // precisaria de um dono que segure a memoria, e o endereco pode ser
+        // de qualquer objeto; para escrever, `proj.oldPos[i]` ja e vista.
+        void* at = reinterpret_cast<void*>(o.i);
+        if (!at) return JS_NULL;
+        if (d.prim == Prim::Struct && !d.nullable()) return makeStructCopy(ctx, d.cls, at, d.size);
+        return readAt(ctx, at, d, JS_UNDEFINED);
+    }
     // Copia, nao vista: os bytes estao num Outcome de pilha que ja foi embora.
     if (d.nullable()) return readAt(ctx, const_cast<uint8_t*>(o.s), d, JS_UNDEFINED);
     if (d.prim == Prim::Struct) return makeStructCopy(ctx, d.cls, o.s, d.size);
@@ -264,6 +273,9 @@ Outcome jsToOutcome(JSContext* ctx, const AbiPlan& p, JSValueConst v,
     const TypeDesc& d = p.retDesc;
     if (JS_IsUndefined(v) || JS_IsException(v)) return fallback;
     if (d.prim == Prim::Void) return fallback;
+    // Um hook num metodo que devolve `ref T` nao tem endereco para dar: fica
+    // o do original.
+    if (p.retByRef) return fallback;
 
     Outcome o;
     if (d.nullable()) {
@@ -321,8 +333,18 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out) {
     auto& api = il2cpp::api();
     AbiPlan p;
     p.retDesc = describe(api.method_get_return_type(m));
+    // `ref T` de volta (o indexador dos structs do celular:
+    // `proj.oldPos.get_Item(i)` e `ref Vector2`): o x0 traz o ENDERECO do
+    // valor. Lido como o proprio T, saia lixo — 0 para struct e float (s0/s1
+    // nao foram tocados), o endereco para int.
+    if (p.retDesc.byRef) {
+        p.retByRef = true;
+        p.retDesc.byRef = false;   // daqui em diante, o tipo do valor apontado
+    }
 
-    if (p.retDesc.prim == Prim::Struct) {
+    if (p.retByRef) {
+        p.ret = Ret::Int;
+    } else if (p.retDesc.prim == Prim::Struct) {
         bool dbl = false;
         int hfa = hfaOf(p.retDesc.cls, &dbl);
         if (hfa >= 1 && hfa <= 4) {

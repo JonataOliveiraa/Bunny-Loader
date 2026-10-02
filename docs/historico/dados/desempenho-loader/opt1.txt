@@ -1,0 +1,99 @@
+perfloader padrões: base (chamada de método JS) 140 ns
+perfloader padrões: Safe.Run(n + ".AI", () => m.AI(p)) = 461 ns acima da base
+perfloader padrões: Safe.Run(rotulo pronto, () => m.AI(p)) = 307 ns acima da base
+perfloader padrões: try { m.AI(p) } catch = -40 ns acima da base
+perfloader padrões: AnimateTile com 2 Ref novos + closure = 1356 ns acima da base
+perfloader padrões: AnimateTile com 2 Ref reusados, sem closure = 422 ns acima da base
+perfloader padrões: for-of em 8 (por volta) = 24 ns acima da base
+perfloader padrões: for indice em 8 (por volta) = -25 ns acima da base
+perfloader padrões: Map.get(type) = -36 ns acima da base
+perfloader tipos: projétil 1138, NPC 699
+perfloader sem entidades: JS nos hooks 1.25 ms/quadro em 41 hooks
+perfloader sem entidades: 0.100 ms/quadro, 1.0/1 chamadas, 99.6 µs cada: Cloud.addCloud()
+perfloader sem entidades: 0.099 ms/quadro, 1.0/1 chamadas, 98.6 µs cada: Main.AnimateTiles()
+perfloader sem entidades: 0.097 ms/quadro, 1.0/1 chamadas, 97.0 µs cada: Main.UpdateAudio_DecideOnNewMusic()
+perfloader sem entidades: 0.093 ms/quadro, 2.0/2 chamadas, 46.6 µs cada: TileDrawing.PostDrawTiles(Boolean, Boolean, Boolean)
+perfloader sem entidades: 0.065 ms/quadro, 1.0/1 chamadas, 65.4 µs cada: Main.GetPreferredBGStyleForPlayer()
+perfloader sem entidades: 0.065 ms/quadro, 3.0/3 chamadas, 21.8 µs cada: Player.SetMatch(Player.SetMatchRequest, Boolean)
+perfloader sem entidades: 0.060 ms/quadro, 1.0/1 chamadas, 60.4 µs cada: Main.DrawSurfaceBG_BackMountainsStep1(Single, Single, Int32)
+perfloader sem entidades: 0.050 ms/quadro, 1.0/1 chamadas, 49.9 µs cada: Player.PlayerFrame()
+perfloader sem entidades: 0.043 ms/quadro, 1.0/1 chamadas, 43.2 µs cada: Main.DrawSurfaceBG_GetFogPower()
+perfloader sem entidades: 0.036 ms/quadro, 1.0/1 chamadas, 36.0 µs cada: Main.DrawRain()
+perfloader sem entidades: 0.034 ms/quadro, 1.0/1 chamadas, 34.2 µs cada: Lighting.LightTiles(Int32, Int32, Int32, Int32)
+perfloader sem entidades: 0.034 ms/quadro, 1.0/1 chamadas, 34.1 µs cada: Player.UpdateArmorSets(Int32)
+perfloader sem entidades: 0.032 ms/quadro, 1.0/1 chamadas, 31.9 µs cada: Player.BordersMovement()
+perfloader sem entidades: 0.031 ms/quadro, 1.0/1 chamadas, 31.3 µs cada: PlayerDrawSet.BoringSetup(Player, Vector2, Single, Single, Vector2, Projectile)
+perfloader sem entidades: DoUpdate 3.34 ms, DoDraw 6.77 ms
+hookcost C++: 26.6 µs/chamada, 313 chamadas: Player.UpdateBuffs(System.Int32)
+hookcost C++: 56.2 µs/chamada, 313 chamadas: Player.PlayerFrame()
+hookcost C++: 14.0 µs/chamada, 313 chamadas: Player.ResetEffects()
+hookcost C++: 25.7 µs/chamada, 313 chamadas: Player.UpdateEquips(System.Int32)
+hookcost C++: 32.9 µs/chamada, 313 chamadas: Player.BordersMovement()
+hookcost C++: 67.4 µs/chamada, 300 chamadas: Main.GetPreferredBGStyleForPlayer()
+hookcost C++: 12.8 µs/chamada, 300 chamadas: Main.UpdateBGVisibility_BackLayer(System.Nullable<System.Int32>, System.Nullable<System.Single>)
+hookcost C++: 5.3 µs/chamada, 300 chamadas: Main.UpdateBGVisibility_FrontLayer(System.Nullable<System.Int32>, System.Nullable<System.Single>)
+hookcost C++: 63.0 µs/chamada, 300 chamadas: Main.DrawSurfaceBG_BackMountainsStep1(System.Single, System.Single, System.Int32)
+hookcost C++: 32.6 µs/chamada, 300 chamadas: Main.DrawSurfaceBG_BackMountainsStep2(System.Int32)
+hookcost C++: 39.9 µs/chamada, 59 chamadas: Main.DrawBackground_PickUndergroundBackgroundStyle(System.Double)
+hookcost C++: 1.4 µs/chamada, 3717 chamadas: Main.get_backTextureValues()
+hookcost C++: 3.8 µs/chamada, 413 chamadas: Main.get_oldBackTextureValues()
+hookcost C++: 25.2 µs/chamada, 313 chamadas: Player.UpdateBiomes()
+hookcost C++: 92.6 µs/chamada, 313 chamadas: Main.UpdateAudio_DecideOnNewMusic()
+hookcost C++: 19.9 µs/chamada, 313 chamadas: Main.UpdateAudio()
+hookcost C++: 103.1 µs/chamada, 15 chamadas: NPC.SetDefaults(System.Int32, Terraria.NPCSpawnParams)
+hookcost C++: 5.9 µs/chamada, 975 chamadas: NPC.AI()
+hookcost C++: 14.1 µs/chamada, 313 chamadas: Main.UpdateTime_SpawnTownNPCs()
+hookcost C++: 49.0 µs/chamada, 60 chamadas: Projectile.SetDefaults(System.Int32)
+hookcost C++: 17.6 µs/chamada, 3840 chamadas: Projectile.AI()
+hookcost C++: 7.2 µs/chamada, 60 chamadas: Projectile.ApplyStatsFromSource(Terraria.DataStructures.IEntitySource)
+hookcost C++: 67.8 µs/chamada, 3060 chamadas: Main.DrawProjDirect(Terraria.Projectile, Terraria.Player)
+hookcost C++: 22.9 µs/chamada, 313 chamadas: Player.SetArmorEffectVisuals(Terraria.Player)
+hookcost C++: 33.5 µs/chamada, 313 chamadas: Player.UpdateArmorSets(System.Int32)
+hookcost C++: 22.8 µs/chamada, 939 chamadas: Player.SetMatch(Terraria.Player.SetMatchRequest, System.Boolean)
+hookcost C++: 4.6 µs/chamada, 60 chamadas: Projectile.NewProjectile(Terraria.DataStructures.IEntitySource, System.Single, System.Single, System.Single, System.Single, System.Int32, System.Int32, System.Single, System.Int32, System.Single, System.Single, System.Single, Terraria.NewProjectileModifier)
+hookcost C++: 97.0 µs/chamada, 313 chamadas: Main.AnimateTiles()
+hookcost C++: 47.3 µs/chamada, 600 chamadas: TileDrawing.PostDrawTiles(System.Boolean, System.Boolean, System.Boolean)
+hookcost C++: 38.8 µs/chamada, 364 chamadas: Lighting.LightTiles(System.Int32, System.Int32, System.Int32, System.Int32)
+hookcost C++: 7.9 µs/chamada, 313 chamadas: Main.DoUpdateInWorld()
+hookcost C++: 115.1 µs/chamada, 73 chamadas: SceneMetrics.Scan(Terraria.SceneMetricsScanSettings)
+hookcost C++: 3.9 µs/chamada, 313 chamadas: Player.PlaceThing_Tiles(System.Boolean)
+hookcost C++: 9.4 µs/chamada, 60 chamadas: NetMessage.SendData(System.Int32, System.Int32, System.Int32, Terraria.Localization.NetworkText, System.Int32, System.Single, System.Single, System.Single, System.Int32, System.Int32, System.Int32)
+hookcost C++: 30.3 µs/chamada, 73 chamadas: SceneMetrics.Reset()
+hookcost C++: 109.1 µs/chamada, 73 chamadas: SceneMetrics.AggregateTileCounts()
+hookcost C++: 120.7 µs/chamada, 3 chamadas: Cloud.RollRareCloud()
+hookcost C++: 97.0 µs/chamada, 313 chamadas: Cloud.addCloud()
+hookcost C++: 11.4 µs/chamada, 313 chamadas: Main.DoUpdate(Microsoft.Xna.Framework.GameTime)
+hookcost C++: 22.7 µs/chamada, 300 chamadas: Main.DoDraw(Microsoft.Xna.Framework.GameTime)
+hookcost C++: 262.2 µs/chamada, 313 chamadas: Player.Update(System.Int32)
+hookcost C++: 21.5 µs/chamada, 2 chamadas: LegacySoundPlayer.PlaySound(System.Int32, System.Int32, System.Int32, System.Int32, System.Single, System.Single)
+hookcost C++: 44.6 µs/chamada, 19 chamadas: Main.MouseTextInner(Terraria.Main.MouseTextCache, System.Boolean)
+hookcost C++: 30.1 µs/chamada, 60 chamadas: Main.CalculateWaterStyle(System.Boolean)
+hookcost C++: 42.1 µs/chamada, 119 chamadas: Main.DrawWaters(System.Boolean)
+hookcost C++: 27.0 µs/chamada, 300 chamadas: WaterfallManager.Draw(Microsoft.Xna.Framework.Graphics.SpriteBatch)
+hookcost C++: 38.3 µs/chamada, 300 chamadas: Main.DrawRain()
+hookcost C++: 25.1 µs/chamada, 73 chamadas: LightingEngine.UpdateLightDecay()
+hookcost C++: 30.9 µs/chamada, 300 chamadas: PlayerDrawSet.BoringSetup(Terraria.Player, Microsoft.Xna.Framework.Vector2, System.Single, System.Single, Microsoft.Xna.Framework.Vector2, Terraria.Projectile)
+hookcost C++: 45.3 µs/chamada, 300 chamadas: Main.DrawSurfaceBG_GetFogPower()
+hookcost JS: 4.2 µs/chamada fora do original (original 4065 µs), 313 chamadas: DoUpdate (longo)
+hookcost JS: 5.2 µs/chamada fora do original (original 215 µs), 313 chamadas: UpdateAudio
+hookcost JS: 3.5 µs/chamada fora do original (original 47 µs), 313 chamadas: Player.UpdateBiomes
+hookcost JS: 2.3 µs/chamada fora do original (original 19 µs), 313 chamadas: Player.ResetEffects
+hookcost FIM: tudo ok
+perfloader 60 projéteis + 15 slimes: JS nos hooks 6.10 ms/quadro em 45 hooks
+perfloader 60 projéteis + 15 slimes: 3.161 ms/quadro, 48.0/48 chamadas, 65.9 µs cada: Main.DrawProjDirect(Projectile, Player)
+perfloader 60 projéteis + 15 slimes: 0.879 ms/quadro, 1.0/1 chamadas, 879.3 µs cada: Player.Update(Int32)
+perfloader 60 projéteis + 15 slimes: 0.863 ms/quadro, 60.0/60 chamadas, 14.4 µs cada: Projectile.AI()
+perfloader 60 projéteis + 15 slimes: 0.080 ms/quadro, 15.0/17 chamadas, 5.3 µs cada: NPC.AI()
+perfloader 60 projéteis + 15 slimes: 0.077 ms/quadro, 1.6/2 chamadas, 48.4 µs cada: TileDrawing.PostDrawTiles(Boolean, Boolean, Boolean)
+perfloader 60 projéteis + 15 slimes: 0.075 ms/quadro, 1.0/1 chamadas, 75.1 µs cada: Main.UpdateAudio_DecideOnNewMusic()
+perfloader 60 projéteis + 15 slimes: 0.070 ms/quadro, 1.0/1 chamadas, 70.1 µs cada: Cloud.addCloud()
+perfloader 60 projéteis + 15 slimes: 0.066 ms/quadro, 3.0/3 chamadas, 22.1 µs cada: Player.SetMatch(Player.SetMatchRequest, Boolean)
+perfloader 60 projéteis + 15 slimes: 0.065 ms/quadro, 1.0/1 chamadas, 64.9 µs cada: Main.AnimateTiles()
+perfloader 60 projéteis + 15 slimes: 0.058 ms/quadro, 0.8/1 chamadas, 72.7 µs cada: Main.DrawSurfaceBG_BackMountainsStep1(Single, Single, Int32)
+perfloader 60 projéteis + 15 slimes: 0.056 ms/quadro, 0.8/1 chamadas, 70.2 µs cada: Main.GetPreferredBGStyleForPlayer()
+perfloader 60 projéteis + 15 slimes: 0.051 ms/quadro, 1.0/1 chamadas, 50.6 µs cada: Player.PlayerFrame()
+perfloader 60 projéteis + 15 slimes: 0.046 ms/quadro, 1.3/1 chamadas, 35.4 µs cada: Lighting.LightTiles(Int32, Int32, Int32, Int32)
+perfloader 60 projéteis + 15 slimes: 0.037 ms/quadro, 0.8/1 chamadas, 45.9 µs cada: Main.DrawRain()
+perfloader com entidades: DoUpdate 5.20 ms, DoDraw 11.70 ms
+perfloader vivos no fim: 60 projéteis, 15 slimes
+perfloader FIM: tudo ok

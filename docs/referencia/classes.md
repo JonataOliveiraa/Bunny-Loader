@@ -19,7 +19,9 @@ não custa nada.
 
 Todas as classes são **globais**: nada de `import`. Toda classe exportada pelo
 arquivo de entrada ou por um arquivo de `Content/` e `Common/` é registrada
-sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
+sozinha (`static Autoload = false` a deixa de fora, como uma
+[classe base](../mods/04-conteudo-novo.md#classes-base-do-seu-mod-as-abstract-do-tmodloader)
+que outras estendem); o `register` de cada uma
 é para registrar na mão, no `Load()` do mod.
 
 | Classe | Para quê | Guia |
@@ -44,7 +46,7 @@ sozinha (`static Autoload = false` a deixa de fora); o `register` de cada uma
 | [`ModBiome`, `ModSceneEffect`](#modbiome-e-modsceneeffect) | Bioma de mod e efeito de cena (a música, os fundos, a água e o fundo do mapa por prioridade). | — |
 | [`ModSurfaceBackgroundStyle`, `ModUndergroundBackgroundStyle`](#fundos-de-mod) | Fundos de superfície e de subsolo, com as texturas do `BackgroundTextureLoader`. | — |
 | [`ModWaterStyle`, `ModWaterfallStyle`](#água-de-mod) | A água e a cachoeira de um bioma. | — |
-| [`ModMenu`](#modmenu) | Tema da tela de título: logo, sol, lua, música e fundo. | — |
+| [`ModMenu`](#modmenu) | Tema da tela de título: logo, sol, lua e fundo. | — |
 | [`TagCompound`](#tagcompound) | Os dados que o mod salva (mundo, jogador). | [12](../mods/12-globais-e-mundo.md#dados-salvos-com-o-mundo) |
 | [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
@@ -1057,7 +1059,7 @@ export class MeuBioma extends ModBiome {
 | `GetSplashDust()` | O pó do respingo (quem cai na água). Padrão: o do jogo. |
 | `GetDropletGore()` | A gota que pinga do bloco. Uma de mod (numa pasta `Gores/`) se comporta como a gota d'água do jogo. |
 | `LightColorMultiplier(r, g, b)` | `Ref` (`.value`): quanto da luz atravessa a água. `1, 1, 1` não perde luz. |
-| `GetRainVariant()` | A variante da chuva: a coluna da textura ÷ 4 (na do jogo, 0 a 2 é a da floresta; na do mod, 0 a 7). |
+| `GetRainVariant()` | A variante da chuva: a coluna da textura ÷ 4 (na do jogo, 0 a 2 é a da floresta). O padrão é o sorteio de 0 a 2 do jogo, sem custo; sobrescrever custa uma entrada no JS por gota nova. |
 | `GetRainTexture()` | A textura da chuva: o caminho de um PNG no mod (colunas de 4 px, 40 de altura, como a do jogo), ou `null` (a do jogo, o padrão). |
 | `BiomeHairColor()` | A cor da tintura de bioma no cabelo com esta água (uma `Color`). Padrão: a da floresta. |
 
@@ -1076,24 +1078,16 @@ jogo, e ao sair a água volta à do jogo.
 
 ## ModMenu
 
-Um tema da tela de título, como no tModLoader: o logo, o sol, a lua, a música e
-o fundo enquanto o jogo está nos menus. No rodapé do título aparece
-"Tema do menu: <nome>"; cada toque passa para o próximo tema, e "Terraria" é o
-título do jogo sem mudança. O escolhido fica salvo em `BunnyLoader.menu.json`,
-na pasta de saves do jogo. Sem esse arquivo, fica o tema do jogo; um tema
-que chega com um mod novo só aparece como "(1 novo)" no rodapé.
+Um tema da tela de título, como no tModLoader: o logo, o sol, a lua e o fundo
+enquanto o jogo está nos menus. Não há troca de tema: vale o do mod carregado
+por último (com `IsAvailable` falso, o anterior); sem nenhum, o título do jogo.
+A música dos menus é sempre a do jogo: o `Music` do tema é aceito, mas não toca.
 
 ```js
 export class MeuTema extends ModMenu {
     get SunTexture() { return 'Assets/Textures/Menu/MeuSol'; }
     get MoonTexture() { return 'Assets/Textures/Menu/MinhaLua'; }
     get MenuBackgroundStyle() { return ModContent.GetInstance(MeuFundo); }
-    get DisplayName() { return 'Meu tema'; }
-
-    SetStaticDefaults() {
-        this.Music = MusicLoader.GetMusicSlot('Music/Titulo');
-    }
-
     PreDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor) {
         drawColor.value = Color.new(255, 120, 120, 255);
         return true;
@@ -1105,19 +1099,19 @@ export class MeuTema extends ModMenu {
 |---|---|
 | `Logo` | A textura do logo: o caminho no mod (`'Assets/Textures/Menu/Logo'`, ou `'outromod/...'`) ou um `Asset` (`ModContent.Request`). `null` (o padrão): o logo do jogo, o de dia e o de noite. |
 | `SunTexture`, `MoonTexture` | O sol e a lua, do mesmo jeito. A lua é um quadro só (sem as fases). `null`: os do jogo. |
-| `Music` | `MusicLoader.GetMusicSlot(...)` ou um `MusicID` do jogo. `-1` (o padrão): a do jogo. |
+| `Music` | Aceito (o código do tModLoader roda), sem efeito: a música dos menus é a do jogo. |
 | `MenuBackgroundStyle` | Um `ModSurfaceBackgroundStyle` (`ModContent.GetInstance(Classe)`), ou `null`: o fundo do jogo. |
-| `DisplayName` | O nome no rodapé. Padrão: o nome do mod. |
-| `IsAvailable` | `false` tira o tema da troca. Pode ser `get IsAvailable()`, para um tema que só vale em certas datas. |
-| `IsSelected` | Se é o tema escolhido (só leitura). |
-| `OnSelected()`, `OnDeselected()` | Na troca de tema, e na abertura do jogo com o tema salvo. |
+| `DisplayName` | Aceito, sem efeito (não há rodapé de troca). |
+| `IsAvailable` | `false` tira o tema: vale o do mod anterior. Pode ser `get IsAvailable()`, para um tema que só vale em certas datas. |
+| `IsSelected` | Se é o tema que vale agora (só leitura). |
+| `OnSelected()`, `OnDeselected()` | Quando o tema passa a valer (na abertura do jogo, já nos menus) e quando deixa de valer. |
 | `Update(isOnTitleScreen)` | Todo quadro nos menus; `isOnTitleScreen` na tela de título (`menuMode` 0). |
 | `PreDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor)` | Antes do logo. Os quatro últimos são `Ref` (`.value`): o centro, a rotação, a escala e a cor do logo do jogo neste quadro. `false` não desenha o logo. |
 | `PostDrawLogo(spriteBatch, logoDrawCenter, logoRotation, logoScale, drawColor)` | Depois do logo, com os valores com que ele foi desenhado. |
 
-Os valores podem ser campos (`this.Music = ...`) ou `get` (como no
-tModLoader), e são lidos a cada quadro. A música e o fundo do tema ficam de fora
-na geração de mundo com semente especial, como no tModLoader. No celular, o
+Os valores podem ser campos (`this.Logo = ...`) ou `get` (como no
+tModLoader), e são lidos a cada quadro. O fundo do tema fica de fora na geração
+de mundo com semente especial, como no tModLoader. No celular, o
 logo, o sol e a lua do tema só entram no desenho do título; no mundo fica tudo
 como é no jogo. **Diferenças do tModLoader**: sem o logo do tModLoader, o
 padrão é o do jogo, e não há os temas prontos do jogo antigo (1.3.5.3, Bigger

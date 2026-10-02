@@ -311,7 +311,7 @@ class PlayerLoader {
         try {
             return JSON.parse(text) || {};
         } catch (e) {
-            bl.log('ModPlayer: ' + file + ' esta quebrado (' + e + '); os dados salvos foram ignorados');
+            bl.error('ModPlayer: ' + file + ' is broken (' + e + '); the saved data was ignored');
             return {};
         }
     }

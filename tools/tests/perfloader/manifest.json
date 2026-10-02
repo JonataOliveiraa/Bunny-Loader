@@ -1,0 +1,15 @@
+{
+  "uid": "a7c3e9d1-2f4b-4c6a-8e1d-5b9f0c2a4e71",
+  "id": "test-perfloader",
+  "name": "Teste: desempenho do loader dos mods",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Os padrões dos loaders em JS puro (na carga) e, com o Example Mod, o custo por entidade dos hooks com 60 projéteis e 15 slimes de mod.",
+  "description": "Loga 'perfloader ...'. Precisa do Example Mod.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

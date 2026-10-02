@@ -51,6 +51,7 @@ struct Refs {
     int32_t ownedCounts = -1;          // Player.ownedProjectileCounts
     int32_t width = -1, height = -1;   // Entity
     int32_t active = -1;               // Projectile (declarado nele, nao em Entity)
+    int32_t scale = -1, penetrate = -1, maxPenetrate = -1;   // Projectile
     const MethodInfo* playerCtor = nullptr;
 };
 
@@ -73,9 +74,13 @@ Refs& refs() {
     r.width = projectile ? fieldOffset(projectile, "width") : -1;
     r.height = projectile ? fieldOffset(projectile, "height") : -1;
     r.active = projectile ? fieldOffset(projectile, "active") : -1;
+    r.scale = projectile ? fieldOffset(projectile, "scale") : -1;
+    r.penetrate = projectile ? fieldOffset(projectile, "penetrate") : -1;
+    r.maxPenetrate = projectile ? fieldOffset(projectile, "maxPenetrate") : -1;
     r.playerCtor = player ? api().class_get_method_from_name(player, ".ctor", 0) : nullptr;
     r.ok = r.textures && r.names && r.frames && r.players && r.ownedCounts >= 0 && r.width >= 0 &&
-           r.height >= 0 && r.active >= 0 && r.playerCtor;
+           r.height >= 0 && r.active >= 0 && r.scale >= 0 && r.penetrate >= 0 && r.maxPenetrate >= 0 &&
+           r.playerCtor;
     if (!r.ok) {
         BL_ERROR("projeteis de mod: refs faltando (TextureAssets.Projectile=%p "
                  "Lang._projectileNameCache=%p Main.projFrames=%p Player.ownedProjectileCounts=%d)",
@@ -323,6 +328,16 @@ void finishModProjectile(Il2CppObject* projectile, int type) {
     field<uint8_t>(projectile, r.active) = 1;
     if (field<int32_t>(projectile, r.width) <= 0 && w > 0) field<int32_t>(projectile, r.width) = w;
     if (field<int32_t>(projectile, r.height) <= 0 && h > 0) field<int32_t>(projectile, r.height) = h;
+
+    // O final do SetDefaults do jogo (SetDefaults_End no tModLoader) roda
+    // antes do mod e precisa ser refeito com os valores dele. Sem o
+    // maxPenetrate, todo projétil de mod ficava com 1, o de acerto único, que
+    // o Damage deixa ignorar a imunidade do NPC: o lacaio (penetrate -1)
+    // acertava todo quadro.
+    const float scale = field<float>(projectile, r.scale);
+    field<int32_t>(projectile, r.width) = static_cast<int32_t>(static_cast<float>(field<int32_t>(projectile, r.width)) * scale);
+    field<int32_t>(projectile, r.height) = static_cast<int32_t>(static_cast<float>(field<int32_t>(projectile, r.height)) * scale);
+    field<int32_t>(projectile, r.maxPenetrate) = field<int32_t>(projectile, r.penetrate);
 }
 
 } // namespace bl::runtime

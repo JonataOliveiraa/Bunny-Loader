@@ -35,6 +35,7 @@
   "category": "Itens",
   "summary": "Itens, armas, armaduras (conjunto com bônus, fantasia, manto, máscara do chefe), asas, acessórios, três prefixos, poção, NPC, buffs, blocos e móveis (bancada, mesa, cadeira, porta, cama, baú, cômoda, tocha, lustre, fogueira, caixa de música...), dois pets, um lacaio, uma sentinela, a Pessoa (moradora com loja) e um chefe, o Olho de ???, com música própria.",
   "license": "MIT",
+  "featured": true,
   "updated": "2026-09-27",
   "blVersion": 2,
   "gameVersion": [

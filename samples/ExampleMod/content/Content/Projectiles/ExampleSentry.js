@@ -23,8 +23,11 @@ export class ExampleSentry extends ModProjectile {
         this.Projectile.timeLeft = SentryLifeTime;
         this.Projectile.ignoreWater = true;
         this.Projectile.netImportant = true;
-        this.Projectile.decidesManualFallThrough = true;
-        this.Projectile.shouldFallThrough = false;
+    }
+
+    TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac) {
+        fallThrough.value = false;
+        return true;
     }
 
     OnTileCollide(proj, oldVelocity) {

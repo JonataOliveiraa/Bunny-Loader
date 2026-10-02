@@ -270,5 +270,84 @@
       "Description": "I've heard stories of a fish that swims upside-down. Supposedly you have to stand upside-down yourself to even find one. One of those would go great on my ceiling. Go fetch!",
       "CatchLocation": "Caught anywhere while standing upside-down."
     }
+  },
+  "Configs": {
+    "ExampleConfig": {
+      "ShowFlavorText": {
+        "Label": "Extra item text"
+      },
+      "BossHealth": {
+        "Label": "Boss health"
+      },
+      "Particles": {
+        "Label": "Particles",
+        "low": "Few",
+        "normal": "Normal",
+        "high": "Many"
+      },
+      "BossMusic": {
+        "Label": "Boss music"
+      },
+      "BossDamage": {
+        "Label": "Boss damage"
+      },
+      "BossSpeed": {
+        "Label": "Boss speed",
+        "slow": "Slow",
+        "normal": "Normal",
+        "fast": "Fast"
+      },
+      "ShowBossBar": {
+        "Label": "Boss health bar"
+      },
+      "ExtraLoot": {
+        "Label": "Extra loot"
+      },
+      "DropChance": {
+        "Label": "Drop chance"
+      },
+      "PetGlow": {
+        "Label": "Pet glow"
+      },
+      "PetSize": {
+        "Label": "Pet size",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "TorchLight": {
+        "Label": "Torch light"
+      },
+      "WingTrail": {
+        "Label": "Wing trail"
+      },
+      "WingSpeed": {
+        "Label": "Wing speed"
+      },
+      "ShopPrices": {
+        "Label": "Shop prices",
+        "cheap": "Cheap",
+        "normal": "Normal",
+        "expensive": "Expensive"
+      },
+      "TownNPCChat": {
+        "Label": "Town NPC chat"
+      },
+      "BiomeMusic": {
+        "Label": "Biome music"
+      },
+      "BiomeSize": {
+        "Label": "Biome size",
+        "small": "Small",
+        "normal": "Normal",
+        "big": "Big"
+      },
+      "OreAmount": {
+        "Label": "Ore amount"
+      },
+      "DebugText": {
+        "Label": "Debug text"
+      }
+    }
   }
 }

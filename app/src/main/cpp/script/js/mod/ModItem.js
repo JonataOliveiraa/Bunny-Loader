@@ -314,7 +314,7 @@ class ModItem {
             inst.PostSetupContent();
         });
 
-        ItemLoader.Hook(cls);
+        ItemLoader.Hook(cls, type);
         Hooks.Once('item.Clone', ItemLoader.HookClone);
         Hooks.Once('item.anglerQuest', () => AnglerQuestLoader.Watch());
         PrefixLoader.WantRollable();

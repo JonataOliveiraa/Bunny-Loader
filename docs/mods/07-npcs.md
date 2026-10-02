@@ -315,7 +315,7 @@ noite pelo `ExampleBossSummonItem`.
 
 ![O ExampleBoss em luta, com a barra de vida de chefe](../imagens/chefe.jpg)
 
-- `this.NPC.boss = true`: barra de vida de chefe, e o jogo o trata como chefe
+- `this.NPC.boss = true`: o jogo o trata como chefe
   (não some longe, não conta no spawn natural);
 - `aiStyle = -1` e a IA no `AI`: persegue o jogador; na metade da vida acelera
   e troca a animação; de dia, foge (`npc.EncourageDespawn(10)`);
@@ -341,5 +341,11 @@ noite pelo `ExampleBossSummonItem`.
   }
   ```
 
-Ícone de chefe no mapa, sacola de tesouro e a marca de chefe derrotado ainda
-não têm atalho no Bunny Loader.
+- o **ícone de chefe** é o arquivo `<Textura>_Head_Boss.png` ao lado da
+  textura (`ExampleBoss_Head_Boss.png`), ou o caminho em `BossHeadTexture`.
+  Ele aparece na barra de vida de chefe e no mapa. **Sem ele, o chefe fica sem
+  a barra grande e sem o ícone no mapa** (o jogo só mostra a barra de quem tem
+  ícone).
+
+Sacola de tesouro e a marca de chefe derrotado ainda não têm atalho no Bunny
+Loader.

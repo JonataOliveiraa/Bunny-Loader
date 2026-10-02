@@ -1,6 +1,6 @@
 // A API que os mods enxergam; o resto fica no escopo privado.
 Object.assign(globalThis, {
-    Mod, ModLoader, ModContent, ModLocalization,
+    Mod, ModLoader, ModContent, ModLocalization, ModConfig,
     ModItem, ItemLoot, ModRecipe, TooltipLine, DrawableTooltipLine, ModRarity, RarityLoader, EquipType, EquipLoader, EquipTexture,
     ModPrefix, PrefixCategory, PrefixLoader,
     ModSystem, TagCompound, ModSceneEffect, ModBiome,
@@ -13,3 +13,6 @@ Object.assign(globalThis, {
     ModPacket, NetWriter, NetReader,
     SoundStyle, SoundEngine, SoundLimitBehavior, MusicLoader, SceneEffectPriority,
 });
+
+// Sempre ligado, com ou sem mod: o "Config. dos Mods" do menu de pausa.
+ModConfigMenu.Install();

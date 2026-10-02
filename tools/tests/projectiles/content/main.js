@@ -86,8 +86,12 @@ function afterFrames() {
         if (gun < 0 || bullet < 0) return `arma=${gun} bala=${bullet}`;
         const inv = Main.player[Main.myPlayer].inventory;
         let placed = 0;
+        // Personagem de teste com o inventário cheio (outros testes deixam
+        // itens): sem vaga, as duas últimas casas.
+        let free = 0;
+        for (let s = 10; s < 50; s++) if (inv[s].type === 0) free++;
         for (let s = 10; s < 50 && placed < 2; s++) {
-            if (inv[s].type !== 0) continue;
+            if (inv[s].type !== 0 && !(free < 2 && s >= 48)) continue;
             inv[s]['void SetDefaults(int Type, ItemVariant variant)'](placed === 0 ? gun : bullet, null);
             if (placed === 1) inv[s].stack = 999;
             placed++;

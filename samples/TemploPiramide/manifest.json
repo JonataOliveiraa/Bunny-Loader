@@ -1,0 +1,14 @@
+{
+  "uid": "cd8c4f20-bc13-4b47-a508-305a6fc05ae2",
+  "id": "templopiramide",
+  "name": "Templo Pirâmide",
+  "version": "1.1.0",
+  "author": "Cortex",
+  "category": "Jogabilidade",
+  "summary": "Uma pirâmide Lihzahrd com andares distantes, câmaras e um grande salão para o Golem.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

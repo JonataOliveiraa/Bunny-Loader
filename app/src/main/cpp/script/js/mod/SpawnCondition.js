@@ -74,7 +74,7 @@ class SpawnCondition {
         } catch (e) {
             if (!SpawnCondition.#warned.has(this)) {
                 SpawnCondition.#warned.add(this);
-                bl.log(`SpawnCondition.${this.#name}: ${e} (vale false)`);
+                bl.error(`SpawnCondition.${this.#name}: ${e} (counts as false)`);
             }
         }
         if (!passed) return;

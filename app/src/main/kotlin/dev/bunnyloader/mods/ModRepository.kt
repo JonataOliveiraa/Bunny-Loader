@@ -3,6 +3,8 @@ package dev.bunnyloader.mods
 import android.content.Context
 import android.net.Uri
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import java.io.File
 import java.io.InputStream
 import java.util.zip.ZipEntry
@@ -25,10 +27,11 @@ import java.util.zip.ZipOutputStream
 class ModRepository(private val context: Context) {
     val modsDir: File = packsDir(context).also { migrateFrom(File(context.filesDir, "mods"), it) }
     private val prefs = context.getSharedPreferences("mods", Context.MODE_PRIVATE)
+    private val orderPrefs = context.getSharedPreferences("mod_order", Context.MODE_PRIVATE)
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
-     * Ordenada pelo uid, nao pela ordem do sistema de arquivos.
+     * Ordenada pela escolha do usuario; sem escolha, pelo uid.
      *
      * A ordem de carga vira a ordem da CADEIA de hooks: quando dois mods
      * hookam o mesmo metodo, o primeiro carregado roda por fora e decide se o
@@ -39,13 +42,35 @@ class ModRepository(private val context: Context) {
      * disco pode ter sobra de uma versao anterior, e o que esta funcao devolve
      * e exatamente a lista que vai para o nucleo nativo carregar.
      */
-    fun list(): List<ModManifest> = modsDir.listFiles().orEmpty()
+    fun list(): List<ModManifest> {
+        val found = modsDir.listFiles().orEmpty()
         .filter { it.isDirectory }
         .mapNotNull { dir -> readManifest(dir)?.let { dir to it } }
         .filter { (_, m) -> m.hasValidUid }
         .mapNotNull { (dir, m) -> m.takeIf { settle(dir, it) } }
         .distinctBy { it.uid }
-        .sortedBy { it.uid }
+        val saved = runCatching {
+            json.decodeFromString<List<String>>(orderPrefs.getString("uids", "[]") ?: "[]")
+        }.getOrDefault(emptyList())
+        val byUid = found.associateBy { it.uid }
+        return ModOrder.resolve(found.map { it.uid }, saved).map { byUid.getValue(it) }
+    }
+
+    fun move(uid: String, direction: Int) {
+        val current = list().map { it.uid }
+        val changed = ModOrder.move(current, uid, direction)
+        if (changed != current) {
+            orderPrefs.edit().putString("uids", json.encodeToString(changed)).apply()
+        }
+    }
+
+    fun moveTo(uid: String, targetUid: String) {
+        val current = list().map { it.uid }
+        val changed = ModOrder.moveTo(current, uid, targetUid)
+        if (changed != current) {
+            orderPrefs.edit().putString("uids", json.encodeToString(changed)).apply()
+        }
+    }
 
     /**
      * Pasta colada à mão com outro nome (`bunny_packs/MeuMod/`) vira
@@ -69,9 +94,14 @@ class ModRepository(private val context: Context) {
      * `mods/` — em vez de deixar meio mod instalado e o jogo carregar pela
      * metade no próximo boot.
      */
-    fun import(uri: Uri): Result<ModManifest> = runCatching {
+    fun import(uri: Uri): Result<ModManifest> = importFrom { context.contentResolver.openInputStream(uri) }
+
+    /** O mesmo import, para um pacote já no disco (o que o RemoteCatalog baixou). */
+    fun import(file: File): Result<ModManifest> = importFrom { file.inputStream() }
+
+    private fun importFrom(open: () -> InputStream?): Result<ModManifest> = runCatching {
         val temp = File(context.cacheDir, "import").apply { deleteRecursively(); mkdirs() }
-        val entries = context.contentResolver.openInputStream(uri)
+        val entries = open()
             ?.use { unzip(it, temp) }
             ?: error("não consegui abrir o arquivo")
         require(entries > 0) {

@@ -1,21 +1,21 @@
 // Um tema da tela de título, como o ModMenu do tModLoader: o logo, o sol, a
-// lua, a música e o fundo enquanto o jogo está nos menus. Os temas se trocam
-// tocando no "Tema do menu" no rodapé do título, e o escolhido fica salvo.
+// lua e o fundo enquanto o jogo está nos menus. Não há troca: vale o tema do
+// mod carregado por último. A música dos menus é sempre a do jogo (o Music
+// fica, para o código do tModLoader rodar, mas não toca).
 // Os padrões ficam no protótipo: a classe do mod pode escrever
-// `get Music() { ... }` (como no tModLoader) ou `this.Music = ...`.
+// `get Logo() { ... }` (como no tModLoader) ou `this.Logo = ...`.
 class ModMenu {
     // Logo, SunTexture e MoonTexture: o caminho de uma textura do mod (como
     // 'Content/Menu/ExampleSun' ou 'Assets/Textures/Menu/ExampleSun') ou um Asset (ModContent.Request);
     // null = a do jogo. A lua é um quadro só (o MoonTexture do tModLoader).
-    // Music: MusicLoader.GetMusicSlot(...) ou um MusicID do jogo; -1 = a do
-    // jogo. MenuBackgroundStyle: a instância de um ModSurfaceBackgroundStyle
-    // (ModContent.GetInstance(Classe)), ou null. DisplayName: o nome no
-    // rodapé (o nome do mod, se não mudar). IsAvailable: false tira o tema da
-    // troca (pode ser `get IsAvailable()`). Mod: o mod dono (posto no registro).
+    // MenuBackgroundStyle: a instância de um ModSurfaceBackgroundStyle
+    // (ModContent.GetInstance(Classe)), ou null. IsAvailable: false tira o
+    // tema (vale o anterior; pode ser `get IsAvailable()`). Music e
+    // DisplayName: aceitos e sem efeito. Mod: o mod dono (posto no registro).
 
     get IsSelected() { return MenuLoader.CurrentMenu === this; }
 
-    // Na escolha do tema (também na abertura do jogo, se ele estava salvo).
+    // Quando o tema passa a valer (na abertura do jogo, já nos menus).
     OnSelected() {}
 
     OnDeselected() {}

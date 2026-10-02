@@ -1,0 +1,15 @@
+{
+  "uid": "8e2f4c1a-3b5d-4e6f-9a7b-1c2d3e4f5a6b",
+  "id": "test-hookcost",
+  "name": "Teste: custo de um hook por quadro",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Hooks que só repassam ao original() em métodos de uma chamada por quadro: o tempo medido pelo bl.hookStats e por dentro do JS.",
+  "description": "Loga 'hookcost ...'.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

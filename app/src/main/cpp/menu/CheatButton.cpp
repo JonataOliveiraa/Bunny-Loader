@@ -17,6 +17,8 @@
 #include "script/api/Console.h"
 
 #include <atomic>
+#include <mutex>
+#include <unordered_set>
 #include <dlfcn.h>
 #include <initializer_list>
 #include <jni.h>
@@ -60,15 +62,21 @@ bool checkExc(JNIEnv* env, const char* where) {
 
 // --- painel de erro ---------------------------------------------------------
 //
-// Mostrado UMA vez, no primeiro erro, com tudo que ja se acumulou. Um hook que
-// falha a cada frame dispararia milhares de chamadas; e o texto acumulado ja
-// traz os erros seguintes de qualquer jeito.
+// Aberto a cada erro NOVO, com tudo que ja se acumulou (o Java so atualiza o
+// texto se ele ja estiver na tela). Antes abria uma vez por sessao: fechado o
+// do primeiro erro (um mod que nao carregou), o erro de um metodo de mod mais
+// tarde nao aparecia. A mesma linha de novo (um hook que falha a cada quadro)
+// nao reabre: o texto acumulado ja a traz.
 jclass g_bridge = nullptr;
 jmethodID g_showError = nullptr;
-std::atomic<bool> g_errorShown{false};
+std::mutex g_errorSeenLock;
+std::unordered_set<size_t> g_errorSeen;
 
-void onNativeError(const char*) {
-    if (g_errorShown.exchange(true)) return;
+void onNativeError(const char* line) {
+    {
+        std::lock_guard<std::mutex> guard(g_errorSeenLock);
+        if (!g_errorSeen.insert(std::hash<std::string>()(line ? line : "")).second) return;
+    }
     JavaVM* vm = getJavaVM();
     if (!vm || !g_bridge || !g_showError) return;
 
@@ -79,6 +87,11 @@ void onNativeError(const char*) {
         attached = true;
     }
     std::string text = log::errorsSoFar();
+    // O acumulado guarda os primeiros 8 KB: um erro novo depois disso ficaria
+    // de fora do proprio painel que ele abriu.
+    if (line && *line && *line != '(' && text.find(line) == std::string::npos) {
+        text += "\n(...)\n" + std::string(line) + "\n";
+    }
     jstring js = env->NewStringUTF(text.c_str());
     env->CallStaticVoidMethod(g_bridge, g_showError, js);
     env->ExceptionClear();

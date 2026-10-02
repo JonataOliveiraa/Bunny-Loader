@@ -84,7 +84,7 @@ android {
         sourceSets["main"].assets.srcDir("../terraria1456_assets/src/main/assets")
     }
 
-    // Os mods de samples/ viram o catálogo embutido do launcher. Uma cópia, não
+    // Os mods de samples/ em BUNDLED_SAMPLES viram o catálogo embutido do launcher. Uma cópia, não
     // uma segunda fonte: samples/ continua sendo a verdade (o CMake também lê
     // de lá para embutir o JS na libbunny), e o que o app lista é exatamente o
     // que o motor carrega.
@@ -134,9 +134,17 @@ android {
 
 }
 
-/** samples/<Mod>/ -> assets/mods/<Mod>/, antes do merge de assets. */
+/** Os mods de samples/ que vêm dentro do APK. */
+val BUNDLED_SAMPLES = listOf("ExampleMod")
+
+/**
+ * samples/<Mod>/ -> assets/mods/<Mod>/, antes do merge de assets.
+ *
+ * Só o ExampleMod vai no APK. Os outros de samples/ são publicados no catálogo
+ * online (tools/mods/pack.py + publish.py) e baixados pela aba Explorar.
+ */
 val syncSampleMods by tasks.registering(Sync::class) {
-    from(rootProject.file("samples"))
+    from(rootProject.file("samples")) { include(BUNDLED_SAMPLES.map { "$it/**" }) }
     into(layout.buildDirectory.dir("generated/blAssets/mods"))
 }
 

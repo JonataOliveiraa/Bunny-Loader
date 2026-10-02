@@ -1,0 +1,15 @@
+{
+  "uid": "49661be0-d82f-4b97-ac2d-978f6ddfb7b6",
+  "id": "test-minionhits",
+  "name": "Teste: acertos do lacaio por quadro",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Invoca o ExampleMinion encostado num slime e conta, quadro a quadro, as chamadas de Damage e StatusNPC e a imunidade do slime.",
+  "description": "Loga 'minionhits ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

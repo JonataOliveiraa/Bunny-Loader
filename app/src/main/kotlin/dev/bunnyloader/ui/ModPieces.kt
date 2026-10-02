@@ -1,6 +1,9 @@
 package dev.bunnyloader.ui
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +17,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -49,12 +56,12 @@ fun categoryIcon(category: String): Int = when (category) {
 fun ModIcon(entry: Catalog.Entry, catalog: Catalog, size: androidx.compose.ui.unit.Dp) {
     // Lido uma vez por ícone, não a cada recomposição: agora pode ser arquivo.
     val own = remember(entry.iconAsset) { entry.iconAsset?.let { catalog.loadBitmap(it) } }
-    Box(Modifier.size(size).framePanel(), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(size).framePanel().padding(2.dp).clipToBounds(), contentAlignment = Alignment.Center) {
         if (own != null) {
             Image(own, null, filterQuality = FilterQuality.None,
-                modifier = Modifier.size(size * 0.7f))
+                contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
-            PixelIcon(categoryIcon(entry.manifest.category), size * 0.6f)
+            PixelIcon(categoryIcon(entry.manifest.category), size - 8.dp)
         }
     }
 }
@@ -98,6 +105,7 @@ fun ModRow(
     catalog: Catalog,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    besideIcon: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
 ) {
     PixelCard(modifier.fillMaxWidth(), onClick = onClick) {
@@ -105,7 +113,8 @@ fun ModRow(
             Modifier.padding(10.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ModIcon(entry, catalog, 44.dp)
+            besideIcon?.invoke()
+            ModIcon(entry, catalog, 64.dp)
             Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
                 PixelText(
                     entry.manifest.name,
@@ -134,6 +143,28 @@ fun ModRow(
             }
             trailing?.invoke()
         }
+    }
+}
+
+@Composable
+fun ModOrderButtons(name: String, canUp: Boolean, canDown: Boolean, onUp: () -> Unit, onDown: () -> Unit) {
+    Column(Modifier.padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        ModOrderArrow("Mover $name para cima", true, canUp, onUp)
+        ModOrderArrow("Mover $name para baixo", false, canDown, onDown)
+    }
+}
+
+@Composable
+private fun ModOrderArrow(description: String, up: Boolean, enabled: Boolean, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        Modifier.size(30.dp).pixelPanel(fill = Bl.Select, raised = enabled)
+            .semantics { contentDescription = description }
+            .clickable(interaction, indication = null, enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        PixelIcon(R.drawable.ic_seta_esq, 18.dp,
+            Modifier.rotate(if (up) 90f else 270f), alpha = if (enabled) 1f else 0.3f)
     }
 }
 
