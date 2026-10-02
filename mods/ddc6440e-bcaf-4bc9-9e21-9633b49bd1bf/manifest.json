@@ -2,7 +2,7 @@
   "uid": "ddc6440e-bcaf-4bc9-9e21-9633b49bd1bf",
   "id": "vidacheia",
   "name": "Vida Cheia",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "authors": [
     {
       "name": "Bunny Loader",
@@ -12,9 +12,9 @@
     }
   ],
   "category": "Cheat",
-  "summary": "Sua vida volta ao máximo a cada quadro.",
+  "summary": "Você não morre",
   "license": "MIT",
-  "updated": "2026-09-22",
+  "updated": "2026-10-02",
   "blVersion": 2,
   "gameVersion": [
     301720,
