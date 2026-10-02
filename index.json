@@ -135,11 +135,11 @@
       "uid": "ddc6440e-bcaf-4bc9-9e21-9633b49bd1bf",
       "id": "vidacheia",
       "name": "Vida Cheia",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "download": {
-        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-vidacheia-v1.0.1/vidacheia-1.0.1.bl",
-        "sha256": "b056eadbf1898b45819e063ade04b408ada5209bdcc6d1682c9904d2bb1c36d8",
-        "size": 11377
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-vidacheia-v1.0.2/vidacheia-1.0.2.bl",
+        "sha256": "eb1c681bfce26d8b58b04c578fea1989bb99b1267f3c0d0ed5d9fe84c9ed3e6d",
+        "size": 11021
       },
       "files": [
         "manifest.json",
