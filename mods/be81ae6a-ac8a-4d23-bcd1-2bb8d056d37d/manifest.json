@@ -1,0 +1,32 @@
+{
+  "uid": "be81ae6a-ac8a-4d23-bcd1-2bb8d056d37d",
+  "id": "wmitf",
+  "name": "Which Mod Is This From?",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "HilariousWalnut34",
+      "role": "Original Creator",
+      "avatar": "steam.png",
+      "color": "#F0F0F0",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2563851005"
+    },
+    {
+      "name": "GST378",
+      "role": "Bunny Loader Port",
+      "avatar": "lemon.webp",
+      "color": "#FEFE00",
+      "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
+    }
+  ],
+  "category": "Utility",
+  "summary": "When you look at a modded item, block or NPC, WMITF will show you the name of the mod which it came from.",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

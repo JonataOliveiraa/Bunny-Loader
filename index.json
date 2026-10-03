@@ -173,6 +173,25 @@
       ]
     },
     {
+      "uid": "be81ae6a-ac8a-4d23-bcd1-2bb8d056d37d",
+      "id": "wmitf",
+      "name": "Which Mod Is This From?",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-wmitf-v1.0.0/wmitf-1.0.0.bl",
+        "sha256": "ddd402b970bdae51ebc25dc3632c6778e6ec089b09151e4dc42a9e452589cd69",
+        "size": 1001109
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "license.md",
+        "authors/lemon.webp",
+        "authors/steam.png"
+      ]
+    },
+    {
       "uid": "821a0c6b-ff63-437b-b3e7-da92f9eae0f8",
       "id": "wikithis",
       "name": "Wikithis",
