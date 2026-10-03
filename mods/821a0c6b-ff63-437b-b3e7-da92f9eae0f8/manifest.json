@@ -1,0 +1,37 @@
+{
+  "uid": "821a0c6b-ff63-437b-b3e7-da92f9eae0f8",
+  "id": "wikithis",
+  "name": "Wikithis",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "BasicallyIAmFox",
+      "role": "Original Creator",
+      "avatar": "steam.png",
+      "color": "#F0F0F0",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2832487441"
+    },
+    {
+      "name": "GST378",
+      "role": "Bunny Loader Port",
+      "avatar": "lemon.webp",
+      "color": "#FEFE00",
+      "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
+    }
+  ],
+  "category": "QoL",
+  "summary": "Allows you to check the item wiki from within the game.",
+  "theme": {
+    "accent": "F0F0F0",
+    "heading": "#F0FOF0"
+  },
+  "license": "Apache-2.0",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

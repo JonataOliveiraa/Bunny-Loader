@@ -150,6 +150,26 @@
         "license.md",
         "authors/bunny-loader.png"
       ]
+    },
+    {
+      "uid": "821a0c6b-ff63-437b-b3e7-da92f9eae0f8",
+      "id": "wikithis",
+      "name": "Wikithis",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-wikithis-v1.0.0/wikithis-1.0.0.bl",
+        "sha256": "551e726dca4e0a44ff9178ad2c247bc263e636d35557419740dac39832cac3ae",
+        "size": 1451243
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "license.md",
+        "authors/lemon.webp",
+        "authors/steam.png"
+      ]
     }
   ]
 }
