@@ -59,6 +59,26 @@
       ]
     },
     {
+      "uid": "469b0c4b-acfa-463b-90df-5db222a81351",
+      "id": "instantplatformfallthrough",
+      "name": "Instant Platform Fallthrough",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-instantplatformfallthrough-v1.0.0/instantplatformfallthrough-1.0.0.bl",
+        "sha256": "a4d576ea89b2d132ac19efc452736fd30d507505ebf8fc94429c7f4beeb87db6",
+        "size": 999797
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "description.md",
+        "license.md",
+        "authors/lemon.webp",
+        "authors/steam.png"
+      ]
+    },
+    {
       "uid": "fc731e9a-2844-433b-ade1-5a0ab23165c4",
       "id": "hellomod",
       "name": "Minishark Turbo",

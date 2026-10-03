@@ -1,0 +1,32 @@
+{
+  "uid": "469b0c4b-acfa-463b-90df-5db222a81351",
+  "id": "instantplatformfallthrough",
+  "name": "Instant Platform Fallthrough",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "diniamo",
+      "role": "Original Creator",
+      "avatar": "steam.png",
+      "color": "#F0F0F0",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2992213994"
+    },
+    {
+      "name": "GST378",
+      "role": "Bunny Loader Port",
+      "avatar": "lemon.webp",
+      "color": "#FEFE00",
+      "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
+    }
+  ],
+  "category": "QoL",
+  "summary": "Allows you to fall through platforms instantly while holding your down key instead of stopping for a moment.",
+  "updated": "2026-10-01",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}
