@@ -4,6 +4,7 @@ class ConfigLoader {
     static #VALUES = ['toggle', 'range', 'radio', 'dropdown', 'cycle', 'color'];
     static #CHOICES = ['radio', 'dropdown', 'cycle'];
     static #MAX_DROPDOWN = 12;
+    static #ALIGNS = ['left', 'center', 'right'];
 
     static Add(inst) {
         const cls = inst.constructor;
@@ -20,7 +21,7 @@ class ConfigLoader {
             }
         }
         const mod = inst.Mod;
-        const entry = { inst, mod, name, file: null, options };
+        const entry = { inst, mod, name, file: null, options, draft: null };
         const dir = mod ? ModRegistry.DataDirectory(mod.uuid) : null;
         if (dir) entry.file = bl.path.join(dir, name + '.json');
 
@@ -42,6 +43,13 @@ class ConfigLoader {
         const o = { ...raw, key };
         switch (o.type) {
             case 'header':
+                if (o.color !== undefined) {
+                    o.color = String(o.color).toUpperCase();
+                    if (!/^#[0-9A-F]{6}$/.test(o.color)) throw new TypeError(where + ": Header pede color '#RRGGBB'");
+                }
+                if (o.align !== undefined && !ConfigLoader.#ALIGNS.includes(o.align)) {
+                    throw new RangeError(where + ": Header pede align 'left', 'center' ou 'right'");
+                }
                 break;
             case 'toggle':
                 o.default = !!o.default;
@@ -110,27 +118,83 @@ class ConfigLoader {
         return false;
     }
 
-    static Set(entry, o, value) {
-        if (o.type === 'range') value = ConfigLoader.Snap(o, value);
-        if (o.type === 'color' && typeof value === 'string') value = value.toUpperCase();
-        if (!ConfigLoader.#Valid(o, value) || entry.inst[o.key] === value) return;
-
-        entry.inst[o.key] = value;
-        ConfigLoader.#dirty.add(entry);
-        Safe.Run(entry.name + '.OnChanged', () => entry.inst.OnChanged(o.key));
+    // Com a tela aberta, cada config tem um rascunho: um clone da instância
+    // onde a tela lê e grava. Nada chega à config (nem ao OnChanged, nem ao
+    // arquivo) antes do Aplicar.
+    static Begin() {
+        for (const entry of ConfigLoader.List) {
+            const draft = Object.create(Object.getPrototypeOf(entry.inst));
+            Object.assign(draft, entry.inst);
+            entry.draft = draft;
+        }
     }
 
-    static Reset(inst) {
-        const entry = ConfigLoader.List.find((e) => e.inst === inst);
-        if (!entry) return;
-        for (const o of entry.options) {
-            if (ConfigLoader.HasValue(o)) ConfigLoader.Set(entry, o, o.default);
+    static View(entry) {
+        return entry.draft || entry.inst;
+    }
+
+    static Pending(entries = ConfigLoader.List) {
+        return entries.some((entry) => entry.draft && entry.options.some((o) =>
+            ConfigLoader.HasValue(o) && entry.draft[o.key] !== entry.inst[o.key]));
+    }
+
+    static AtDefaults(entries) {
+        return entries.every((entry) => entry.options.every((o) =>
+            !ConfigLoader.HasValue(o) || ConfigLoader.View(entry)[o.key] === o.default));
+    }
+
+    static Defaults(entries) {
+        for (const entry of entries) {
+            for (const o of entry.options) {
+                if (ConfigLoader.HasValue(o)) ConfigLoader.Set(entry, o, o.default);
+            }
+        }
+    }
+
+    static Apply() {
+        for (const entry of ConfigLoader.List) {
+            const draft = entry.draft;
+            if (!draft) continue;
+            entry.draft = null;
+            const changed = entry.options.filter((o) => ConfigLoader.HasValue(o) && draft[o.key] !== entry.inst[o.key]);
+            if (!changed.length) continue;
+            for (const o of changed) entry.inst[o.key] = draft[o.key];
+            ConfigLoader.#dirty.add(entry);
+            for (const o of changed) Safe.Run(entry.name + '.OnChanged', () => entry.inst.OnChanged(o.key));
+            Safe.Run(entry.name + '.OnApply', () => entry.inst.OnApply());
         }
         ConfigLoader.Flush();
     }
 
+    static Discard() {
+        for (const entry of ConfigLoader.List) entry.draft = null;
+    }
+
+    static Set(entry, o, value) {
+        if (o.type === 'range') value = ConfigLoader.Snap(o, value);
+        if (o.type === 'color' && typeof value === 'string') value = value.toUpperCase();
+        const target = ConfigLoader.View(entry);
+        if (!ConfigLoader.#Valid(o, value) || target[o.key] === value) return;
+
+        target[o.key] = value;
+        if (entry.draft) return;
+        ConfigLoader.#dirty.add(entry);
+        Safe.Run(entry.name + '.OnChanged', () => entry.inst.OnChanged(o.key));
+    }
+
+    static #EntryOf(inst) {
+        return ConfigLoader.List.find((e) => e.inst === inst || e.draft === inst);
+    }
+
+    static Reset(inst) {
+        const entry = ConfigLoader.#EntryOf(inst);
+        if (!entry) return;
+        ConfigLoader.Defaults([entry]);
+        ConfigLoader.Flush();
+    }
+
     static SetOption(inst, key, value) {
-        const entry = ConfigLoader.List.find((e) => e.inst === inst);
+        const entry = ConfigLoader.#EntryOf(inst);
         const o = entry && entry.options.find((x) => x.key === key);
         if (!o || !ConfigLoader.HasValue(o)) throw new TypeError(inst.constructor.name + ": '" + key + "' não é uma opção com valor");
         ConfigLoader.Set(entry, o, value);
@@ -138,15 +202,19 @@ class ConfigLoader {
 
     static IsEnabled(entry, o) {
         if (o.enabledWhen === undefined) return true;
-        if (typeof o.enabledWhen === 'string') return !!entry.inst[o.enabledWhen];
-        return !!Safe.Run(entry.name + '.' + o.key + '.enabledWhen', () => o.enabledWhen.call(entry.inst, entry.inst));
+        const view = ConfigLoader.View(entry);
+        if (typeof o.enabledWhen === 'string') return !!view[o.enabledWhen];
+        return !!Safe.Run(entry.name + '.' + o.key + '.enabledWhen', () => o.enabledWhen.call(view, view));
     }
 
+    // Com a tela aberta, o método do botão roda no rascunho: lê o que está na
+    // tela, e o SetOption dele também espera o Aplicar.
     static Run(entry, o) {
         Safe.Run(entry.name + '.' + o.key, () => {
-            const action = typeof o.action === 'string' ? entry.inst[o.action] : o.action;
+            const view = ConfigLoader.View(entry);
+            const action = typeof o.action === 'string' ? view[o.action] : o.action;
             if (typeof action !== 'function') throw new TypeError(entry.name + '.' + o.key + ": '" + o.action + "' não é um método da config");
-            action.call(entry.inst, entry.inst);
+            action.call(view, view);
         });
     }
 

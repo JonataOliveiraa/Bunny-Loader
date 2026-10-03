@@ -1,0 +1,18 @@
+{
+  "uid": "f2696d77-b68a-4210-920d-1f3e6f8e4cc2",
+  "id": "test-configtabs-bravo",
+  "name": "Abas Bravo",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um dos 14 mods com opções: a fileira de abas da Config. dos Mods passa da largura e rola de lado.",
+  "description": "Loga 'configtabs ...'.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -1,0 +1,18 @@
+{
+  "uid": "cbaafc42-bcaa-4204-8470-e2f6c3a52a0b",
+  "id": "test-configtabs-mike",
+  "name": "Abas Mike",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um dos 14 mods com opções: a fileira de abas da Config. dos Mods passa da largura e rola de lado.",
+  "description": "Loga 'configtabs ...'.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

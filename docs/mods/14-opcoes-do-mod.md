@@ -6,8 +6,9 @@ Loader de ícone.
 
 ![O menu de pausa com o botão "Config. dos Mods" abaixo de Configurações](../imagens/pausa-config-dos-mods.jpg)
 
-A tela que ele abre é a de Configurações do jogo: as mesmas peças, os mesmos
-sons, o mesmo Voltar. Mod sem `ModConfig` não aparece nela.
+A tela que ele abre é a de Configurações do jogo: as mesmas peças e os mesmos
+sons, com os botões Descartar, Padrão e Aplicar da tela de atribuições do
+teclado. Mod sem `ModConfig` não aparece nela.
 
 É o `ModConfig` do tModLoader, com as opções declaradas num objeto em vez de
 atributos C#.
@@ -16,11 +17,11 @@ atributos C#.
 
 <table>
 <tr>
-<td width="50%"><img src="../imagens/config-dos-mods.jpg" alt="A tela com um mod só: a aba larga do Example Mod e as opções dele"></td>
+<td width="50%"><img src="../imagens/config-dos-mods.jpg" alt="A tela com um mod só: a aba do Example Mod, as opções dele e os botões Descartar, Padrão e Aplicar"></td>
 <td width="50%"><img src="../imagens/config-dos-mods-abas.jpg" alt="A tela com três mods: uma aba por mod, com o ícone de cada um"></td>
 </tr>
 <tr>
-<td>Um mod com opções: uma aba só, da largura da fileira.</td>
+<td>Um mod com opções: uma aba só. Embaixo, Descartar, Padrão e Aplicar.</td>
 <td>Três mods: uma aba por mod. O mod sem <code>icon.png</code> ganha o coelho.</td>
 </tr>
 </table>
@@ -28,6 +29,9 @@ atributos C#.
 - **As abas**, no topo, são os mods: uma por mod que tem opções, com o
   `icon.png` dele. Tocar numa aba mostra as opções daquele mod, e o nome dele
   vai para o título.
+  Com mais mods do que cabem na largura, a fileira rola de lado: arraste para a
+  esquerda ou para a direita, e ao soltar ela segue no embalo. Soltar o dedo
+  em cima de uma aba depois de arrastar não troca de mod; só o toque troca.
 - **As linhas** são as opções do mod escolhido, na ordem em que foram
   declaradas.
 - **A lista rola** como a de Configurações: arraste para cima ou para baixo, e
@@ -37,7 +41,13 @@ atributos C#.
   arrastar a lista por cima das barras não muda nenhuma.
 - **Escolha única**: toque na escolha. Tocar no nome da linha passa para a
   próxima.
-- O **Voltar** (ou o voltar do Android) fecha a tela e grava as mudanças.
+- **Nada muda antes do Aplicar.** A tela mexe num rascunho de cada config: a
+  config do mod, o `OnChanged` e o arquivo só veem as mudanças no Aplicar.
+- **Aplicar** grava as mudanças de todos os mods (de todas as abas) e fecha a
+  tela. Fica apagado enquanto nada mudou.
+- **Padrão** volta as opções do mod da aba ao padrão, no rascunho: ainda é
+  preciso Aplicar. Fica apagado quando elas já estão no padrão.
+- **Descartar** (ou o voltar do Android) fecha a tela e joga o rascunho fora.
 
 ## Declarando
 
@@ -61,7 +71,7 @@ export class ExampleConfig extends ModConfig {
 
 | Controle | Na tela | O valor |
 |---|---|---|
-| `ModConfig.Header()` | Um título de seção, em dourado, com um fio embaixo | Nenhum |
+| `ModConfig.Header({ color, align })` | Um título de seção com um fio embaixo: branco e centralizado, ou na cor e no lado pedidos | Nenhum |
 | `ModConfig.Toggle(padrão)` | O interruptor "Desligado / Ligado" do jogo | `true` ou `false` |
 | `ModConfig.Range(padrão, { min, max, step, suffix })` | A barra deslizante do jogo, com o valor ao lado (`suffix` vai depois do número) | Um número de `min` a `max`, sempre num degrau de `step` |
 | `ModConfig.Radio(padrão, [escolhas])` | Um botão por escolha, lado a lado; a escolhida fica verde | O texto da escolha |
@@ -70,6 +80,20 @@ export class ExampleConfig extends ModConfig {
 | `ModConfig.Color('#RRGGBB')` | Uma amostra da cor e as barras de tom, saturação e leveza do jogo | `'#RRGGBB'` |
 | `ModConfig.Button('Método')` | Um botão à direita da linha; o toque chama o método da config (ou a função passada) | Nenhum |
 | `ModConfig.Link('https://...')` | Um botão à direita da linha que abre o endereço no navegador | Nenhum |
+
+O `Header` aceita a cor do título e o lado dele, os dois opcionais:
+
+```js
+Visual: ModConfig.Header({ color: '#7FD4FF', align: 'left' }),
+Danger: ModConfig.Header({ color: '#FF6060' }),
+```
+
+| Campo | Valores | Padrão |
+|---|---|---|
+| `color` | `'#RRGGBB'` (maiúscula ou minúscula) | `'#FFFFFF'`, o branco |
+| `align` | `'left'`, `'center'` ou `'right'` | `'center'` |
+
+Fora disso, o mod não carrega e o erro diz qual cabeçalho está errado.
 
 Qualquer opção aceita `enabledWhen`: o nome de outra opção (a linha só vale
 quando ela está ligada) ou uma função que recebe a config. Desabilitada, a linha
@@ -81,8 +105,11 @@ PetGlow: ModConfig.Toggle(true, { enabledWhen: 'EnablePets' }),
 ```
 
 Um `Button` pode chamar os métodos que toda config tem: `ResetToDefaults()`
-volta tudo ao padrão, e `SetOption(chave, valor)` muda uma opção pela tela (é
-gravada e avisa o `OnChanged`), como o "Sortear" do Example Mod:
+volta tudo ao padrão, e `SetOption(chave, valor)` muda uma opção, como o
+"Sortear" do Example Mod. Com a tela aberta, o método do botão roda no
+rascunho: `this` tem os valores da tela, e o que ele muda também espera o
+Aplicar. Fora da tela, os dois mudam a config na hora, gravam e avisam o
+`OnChanged`.
 
 ```js
 RandomGlow: ModConfig.Button('RandomizeGlow'),
@@ -148,16 +175,19 @@ botão.
 
 ## Onde fica salvo
 
-Em `mod_data/<uid do mod>/<Classe>.json`, só o que difere do padrão. Grava ao
-soltar o dedo e ao fechar a tela. Um valor salvo que não serve mais (a opção foi
-removida, o `Radio` perdeu a escolha, o número saiu da faixa nova) volta ao
+Em `mod_data/<uid do mod>/<Classe>.json`, só o que difere do padrão. Grava no
+Aplicar (e na hora, no `SetOption` fora da tela). Um valor salvo que não serve
+mais (a opção foi removida, o `Radio` perdeu a escolha, o número saiu da faixa nova) volta ao
 padrão: uma versão nova do mod não quebra por causa da config da antiga.
 
 ## Ganchos
 
 - `OnLoaded()`: os valores acabaram de ser lidos do arquivo, no carregamento do
   mod.
-- `OnChanged(key)`: o jogador mudou a opção `key` na tela.
+- `OnChanged(key)`: a opção `key` mudou. Pela tela, vem no Aplicar, uma vez
+  por opção que mudou.
+- `OnApply()`: o jogador apertou Aplicar e esta config mudou; vem depois dos
+  `OnChanged` dela, com os valores novos já na config.
 
 ## O que ainda não tem
 
@@ -166,4 +196,3 @@ padrão: uma versão nova do mod não quebra por causa da config da antiga.
 - Campo de texto e número digitado (`Text` e `Number`): dependem do teclado do
   Android aberto de dentro do menu de pausa, que ainda não funciona direito.
 - Lista de itens e escolha de item.
-- Com muitos mods, as abas não rolam: cabem as da largura da fileira.

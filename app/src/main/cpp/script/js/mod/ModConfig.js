@@ -1,6 +1,7 @@
 class ModConfig {
     OnLoaded() {}
     OnChanged(key) {}
+    OnApply() {}
 
     ResetToDefaults() {
         ConfigLoader.Reset(this);

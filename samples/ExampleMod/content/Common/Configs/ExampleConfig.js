@@ -23,7 +23,7 @@ export class ExampleConfig extends ModConfig {
         Weather: ModConfig.Cycle('clear', ['clear', 'rain', 'snow', 'storm']),
         TimeOfDay: ModConfig.Cycle('day', ['dawn', 'day', 'dusk', 'night']),
 
-        ColorHeader: ModConfig.Header(),
+        ColorHeader: ModConfig.Header({ color: '#FFB347' }),
         GlowColor: ModConfig.Color('#FFB347'),
 
         ButtonHeader: ModConfig.Header(),

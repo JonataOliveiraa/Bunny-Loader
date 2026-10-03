@@ -21,6 +21,12 @@ class ModConfigMenu {
     static #popup = null;
     static #listTop = 0;
     static #listBottom = 0;
+    static #tabScroll = 0;
+    static #tabMomentum = 0;
+    static #tabPressX = null;
+    static #tabLastX = null;
+    static #tabDragged = false;
+    static #tabPressIn = false;
 
     static #GAP = 4;
     static #HEADER_EXTRA = 8;
@@ -32,6 +38,11 @@ class ModConfigMenu {
     static #SCREEN = 0;
     static #TOP_LEFT = 9;
     static #CENTER = 18;
+    // Alignment: os 3 bits de baixo são o horizontal (1 esquerda, 2 centro,
+    // 4 direita), o 16 é o meio na vertical.
+    static #MIDDLE = 16;
+    static #ALIGN_X = { left: 1, center: 2, right: 4 };
+    static #HEADER_PAD = 12;
     static #ESCAPE = 27;
     static #MENU_OPEN = 10;
     static #MENU_CLOSE = 11;
@@ -67,6 +78,7 @@ class ModConfigMenu {
             Layout: bl.classOf('', 'SettingsPauseMenu_Layout'),
             Ach: bl.classOf('', 'Achievements_Layout'),
             Settings: bl.classOf('', 'SettingsOverlay_Layout'),
+            Mappings: bl.classOf('', 'KeyboardMappings_Layout'),
             Button: bl.classOf('', 'GUITransactionButton'),
             ButtonLayout: bl.classOf('', 'TransactionButton_Layout'),
             TextureLayout: bl.classOf('', 'Texture_Layout'),
@@ -84,7 +96,7 @@ class ModConfigMenu {
             Application: bl.classOf('UnityEngine', 'Application'),
             SpriteBatchItem: Microsoft.Xna.Framework.Graphics.SpriteBatchItem,
         };
-        ModConfigMenu.#scales = { button: new Ref(1), title: new Ref(1), back: new Ref(1) };
+        ModConfigMenu.#scales = { button: new Ref(1), title: new Ref(1), discard: new Ref(1), defaults: new Ref(1), apply: new Ref(1) };
         const pauseDraw = T.Pause['void Draw()'];
 
         T.Pause['void SetupOffsets(bool setup)'].hook((original, self, setup) => {
@@ -187,6 +199,7 @@ class ModConfigMenu {
         T.Input.Instance['void CaptureUICrusorDrag(int dragFromAxis)'](-1);
         SoundEngine.PlaySound(ModConfigMenu.#MENU_OPEN);
         ModConfigMenu.#open = true;
+        ConfigLoader.Begin();
         ModConfigMenu.#ResetScroll();
         ModConfigMenu.#Guard();
     }
@@ -202,12 +215,15 @@ class ModConfigMenu {
         ModConfigMenu.#guardIdle = 0;
     }
 
-    static #Close(sound = true) {
+    // Fechar sem Aplicar (Descartar, o voltar do Android, sair do mundo)
+    // joga o rascunho fora.
+    static #Close(sound = true, apply = false) {
         if (!ModConfigMenu.#open) return;
         ModConfigMenu.#open = false;
         ModConfigMenu.#popup = null;
         ModConfigMenu.#ReleaseSliders();
-        ConfigLoader.Flush();
+        if (apply) ConfigLoader.Apply();
+        else ConfigLoader.Discard();
         if (sound) SoundEngine.PlaySound(ModConfigMenu.#MENU_CLOSE);
     }
 
@@ -230,14 +246,17 @@ class ModConfigMenu {
         T.StringButton[ModConfigMenu.#TITLE](S.Title, title, ModConfigMenu.#scales.title, false, true);
         ModConfigMenu.#DrawList(S, mod);
 
-        const back = ModConfigMenu.#Language('UI.Back');
-        const state = Number(T.Button[ModConfigMenu.#BANNER](S.Close, null, null, back, false,
-            ModConfigMenu.#scales.back, false, true, false, false, false, true));
+        const action = ModConfigMenu.#DrawActions(T, mod);
         Safe.Run('ModConfigMenu.Popup', () => ModConfigMenu.#DrawPopup(T, S));
-        if (state === ModConfigMenu.#CLICKED && !ModConfigMenu.#Modal()) {
+        if (action && !ModConfigMenu.#Blocked()) {
             T.Input.Instance['void CaptureUICrusorDrag(int dragFromAxis)'](-1);
-            ModConfigMenu.#Close();
-            return;
+            if (action === 'defaults') {
+                ConfigLoader.Defaults(ConfigLoader.Of(mod));
+                SoundEngine.PlaySound(ModConfigMenu.#TICK);
+            } else {
+                ModConfigMenu.#Close(true, action === 'apply');
+                return;
+            }
         }
         if (T.Keyboard['bool GetKeyUp(KeyCode keycode)'](ModConfigMenu.#ESCAPE)) {
             const gi = T.Instance.Active;
@@ -245,6 +264,26 @@ class ModConfigMenu {
             if (ModConfigMenu.#popup) ModConfigMenu.#popup = null;
             else ModConfigMenu.#Close();
         }
+    }
+
+    // Descartar, Padrão e Aplicar, com os botões e os textos da tela de
+    // atribuições do teclado do jogo. Padrão volta o mod da aba ao padrão no
+    // rascunho; só o Aplicar grava.
+    static #DrawActions(T, mod) {
+        const K = T.Mappings.Instance;
+        const entries = mod ? ConfigLoader.Of(mod) : [];
+        const buttons = [
+            ['discard', K.ResetSettings, 'Mobile.Discard', false],
+            ['defaults', K.Defaults, 'Mobile.Default', !entries.length || ConfigLoader.AtDefaults(entries)],
+            ['apply', K.Close, 'Mobile.ApplyChanges', !ConfigLoader.Pending()],
+        ];
+        let clicked = null;
+        for (const [id, layout, text, disabled] of buttons) {
+            const state = Number(T.Button[ModConfigMenu.#DRAW](layout, null, ModConfigMenu.#Language(text), disabled,
+                ModConfigMenu.#scales[id], false, ModConfigMenu.#Focus(), false, false));
+            if (state === ModConfigMenu.#CLICKED && !disabled) clicked = id;
+        }
+        return clicked;
     }
 
     static #DrawTabs(T, S, mods, selected) {
@@ -259,23 +298,102 @@ class ModConfigMenu {
                 true, ModConfigMenu.#Focus(), false, false);
             return mods[0];
         }
-        let chosen = selected;
+        // A fileira rola na horizontal quando as abas passam da largura das
+        // abas do jogo: arrastar com o dedo, com embalo ao soltar, como a lista.
+        const xs = [];
         let x = shape.start.Location.X;
-        mods.forEach((mod, i) => {
+        for (let i = 0; i < n; i++) {
             const kind = i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle';
             if (i > 0) x += kind === 'end' ? shape.toEnd : i === 1 ? shape.toMiddle : shape.middleStep;
-            const tab = ModConfigMenu.#Tab(T, shape[kind], mod, kind, shape.iconPx);
-            tab.layout.Location = Vector2.new(x, shape.start.Location.Y);
-            const on = mod === selected;
-            const state = Number(T.Button[ModConfigMenu.#DRAW](tab.layout, null, mod.name || mod.id, false, tab.scale,
-                on, ModConfigMenu.#Focus(), false, false));
-            if (state === ModConfigMenu.#CLICKED && !ModConfigMenu.#Blocked() && !on) {
-                chosen = mod;
-                ModConfigMenu.#ResetScroll();
-                SoundEngine.PlaySound(ModConfigMenu.#TICK);
-            }
-        });
+            xs.push({ kind, x });
+        }
+        const at = (layout, lx) => T.Calc[ModConfigMenu.#ANCHORED](layout.AnchorControl, layout.Anchor, Vector2.new(lx, layout.Location.Y));
+        const start = shape.start;
+        // A posição de um botão é o canto de cima à esquerda dele.
+        const origin = at(start, start.Location.X);
+        const perUnit = (at(start, start.Location.X + 100).X - origin.X) / 100 || 1;
+        // A área visível vai do começo da primeira aba até a borda direita da
+        // lista de opções, que é a do fundo da fileira (o C.Backing tira o
+        // tamanho de outra âncora: o Size dele é 0).
+        const bounds = ModConfigMenu.#ListBounds(T, S);
+        const left = origin.X;
+        const right = bounds.left + bounds.width;
+        const last = xs[n - 1];
+        const contentRight = origin.X + (last.x - start.Location.X) * perUnit + shape[last.kind].overloadedSize.X;
+        const height = start.overloadedSize.Y;
+        const area = ModConfigMenu.#Rect(left, origin.Y, right - left, height);
+        const max = Math.max(0, contentRight - right);
+        ModConfigMenu.#TabDrag(T, area, max);
+
+        let chosen = selected;
+        const clip = max > 0;
+        // O corte é só nas laterais: a aba escolhida e o realce passam da
+        // altura da fileira.
+        const band = ModConfigMenu.#Rect(left, origin.Y - height, right - left, height * 3);
+        if (clip) T.SpriteBatchItem[ModConfigMenu.#CLIP](band, band, Terraria.Main.spriteBatch, false);
+        try {
+            mods.forEach((mod, i) => {
+                const { kind, x: tx } = xs[i];
+                const tab = ModConfigMenu.#Tab(T, shape[kind], mod, kind, shape.iconPx);
+                tab.layout.Location = Vector2.new(tx - ModConfigMenu.#tabScroll / perUnit, start.Location.Y);
+                const on = mod === selected;
+                const state = Number(T.Button[ModConfigMenu.#DRAW](tab.layout, null, mod.name || mod.id, false, tab.scale,
+                    on, ModConfigMenu.#Focus(), false, false));
+                if (state === ModConfigMenu.#CLICKED && ModConfigMenu.#tabPressIn && !ModConfigMenu.#tabDragged
+                    && !ModConfigMenu.#Blocked() && !on) {
+                    chosen = mod;
+                    ModConfigMenu.#ResetScroll();
+                    SoundEngine.PlaySound(ModConfigMenu.#TICK);
+                }
+            });
+        } finally {
+            if (clip) T.SpriteBatchItem['void DisabledClipping()']();
+        }
+        // Só depois dos botões: o toque que termina um arraste não vira clique
+        // na aba onde o dedo saiu.
+        if (!Terraria.Main.mouseLeft) {
+            ModConfigMenu.#tabDragged = false;
+            ModConfigMenu.#tabPressIn = false;
+        }
         return chosen;
+    }
+
+    static #TabDrag(T, area, max) {
+        const M = Terraria.Main;
+        T.Regions.Instance[ModConfigMenu.#REGION](area);
+        const inside = M.mouseX >= area.X && M.mouseX <= area.X + area.Width
+            && M.mouseY >= area.Y && M.mouseY <= area.Y + area.Height;
+        if (M.mouseLeft) {
+            if (ModConfigMenu.#tabPressX === null) {
+                ModConfigMenu.#tabPressX = M.mouseX;
+                ModConfigMenu.#tabLastX = M.mouseX;
+                ModConfigMenu.#tabDragged = false;
+                ModConfigMenu.#tabPressIn = inside && !ModConfigMenu.#guard && !ModConfigMenu.#Modal();
+                ModConfigMenu.#tabMomentum = 0;
+            } else if (max > 0 && ModConfigMenu.#tabPressIn
+                && Math.abs(M.mouseX - ModConfigMenu.#tabPressX) > ModConfigMenu.#DRAG_PX) {
+                ModConfigMenu.#tabDragged = true;
+            }
+            if (ModConfigMenu.#tabDragged) {
+                const delta = ModConfigMenu.#tabLastX - M.mouseX;
+                ModConfigMenu.#tabScroll += delta;
+                ModConfigMenu.#tabMomentum = delta;
+            }
+            ModConfigMenu.#tabLastX = M.mouseX;
+        } else {
+            ModConfigMenu.#tabPressX = null;
+            ModConfigMenu.#tabLastX = null;
+            if (Math.abs(ModConfigMenu.#tabMomentum) > 0.5) {
+                ModConfigMenu.#tabScroll += ModConfigMenu.#tabMomentum;
+                ModConfigMenu.#tabMomentum *= ModConfigMenu.#FRICTION;
+            } else {
+                ModConfigMenu.#tabMomentum = 0;
+            }
+        }
+        if (ModConfigMenu.#tabScroll < 0 || ModConfigMenu.#tabScroll > max) {
+            ModConfigMenu.#tabScroll = Math.max(0, Math.min(ModConfigMenu.#tabScroll, max));
+            ModConfigMenu.#tabMomentum = 0;
+        }
     }
 
     static #TabShape(C) {
@@ -398,8 +516,7 @@ class ModConfigMenu {
         const at = (layout) => T.Calc[ModConfigMenu.#ANCHORED](layout.AnchorControl, layout.Anchor, layout.Location);
         const top = at(S.MenuDivider).Y + 8;
         const bottom = at(S.MenuDivider2).Y - 6;
-        const width = T.Ach.Instance.ItemBacking.Size.X;
-        const left = T.Calc[ModConfigMenu.#ANCHORED](S.Backing.AnchorControl, S.Backing.Anchor, Vector2.new(0, 0)).X - width / 2;
+        const { left, width } = ModConfigMenu.#ListBounds(T, S);
         ModConfigMenu.#listTop = top;
         ModConfigMenu.#listBottom = bottom;
         const rows = ModConfigMenu.#Rows(S, mod);
@@ -431,6 +548,12 @@ class ModConfigMenu {
             T.SpriteBatchItem['void DisabledClipping()']();
             anchor[ModConfigMenu.#SET_GRID](saved);
         }
+    }
+
+    static #ListBounds(T, S) {
+        const width = T.Ach.Instance.ItemBacking.Size.X;
+        const left = T.Calc[ModConfigMenu.#ANCHORED](S.Backing.AnchorControl, S.Backing.Anchor, Vector2.new(0, 0)).X - width / 2;
+        return { left, width };
     }
 
     static #Rect(x, y, width, height) {
@@ -573,8 +696,19 @@ class ModConfigMenu {
         divider.Size = Vector2.new(r.Width, divider.Size.Y);
         divider.Location = Vector2.new(r.X + r.Width / 2, r.Y + r.Height - divider.Size.Y / 2);
         panel(divider, false, null, null, null);
-        P.header.Location = Vector2.new(r.X + r.Width / 2, r.Y + r.Height / 2 - 2);
-        T.String[ModConfigMenu.#TEXT](P.header, row.o.label, Color.new(255, 214, 92), false);
+        const { align = 'center', color } = row.o;
+        const x = align === 'left' ? r.X + ModConfigMenu.#HEADER_PAD
+            : align === 'right' ? r.X + r.Width - ModConfigMenu.#HEADER_PAD
+            : r.X + r.Width / 2;
+        P.header.Alignment = ModConfigMenu.#MIDDLE | ModConfigMenu.#ALIGN_X[align];
+        P.header.Location = Vector2.new(x, r.Y + r.Height / 2 - 2);
+        T.String[ModConfigMenu.#TEXT](P.header, row.o.label, ModConfigMenu.#HeaderColor(color), false);
+    }
+
+    static #HeaderColor(hex) {
+        if (!hex) return Color.new(255, 255, 255);
+        const n = parseInt(hex.slice(1), 16);
+        return Color.new((n >> 16) & 255, (n >> 8) & 255, n & 255);
     }
 
     static #DrawToggle(T, S, P, row, enabled) {
@@ -584,10 +718,10 @@ class ModConfigMenu {
         const panel = T.Panel[ModConfigMenu.#PANEL];
         const state = Number(T.Button[ModConfigMenu.#DRAW](t.ToggleButton, null, o.label, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false));
         if (enabled && state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
-            ConfigLoader.Set(entry, o, !entry.inst[o.key]);
+            ConfigLoader.Set(entry, o, !ConfigLoader.View(entry)[o.key]);
             SoundEngine.PlaySound(ModConfigMenu.#TICK);
         }
-        const on = !!entry.inst[o.key];
+        const on = !!ConfigLoader.View(entry)[o.key];
         if (on) {
             panel(t.Option2Disabled, false, null, null, null);
             panel(t.Option1Enabled, false, null, null, null);
@@ -635,10 +769,10 @@ class ModConfigMenu {
         const { entry, o } = row;
         const draw = (layout, disable, ref, drag, force) => T.Slider[ModConfigMenu.#SLIDER](layout, disable, ref, drag, null, force, -1, -1, false);
         const v = ModConfigMenu.#DrawSlider(T, S, row, o.label, enabled, S.SliderTemplate.Option,
-            (entry.inst[o.key] - o.min) / (o.max - o.min), draw);
+            (ConfigLoader.View(entry)[o.key] - o.min) / (o.max - o.min), draw);
         if (v !== null) ConfigLoader.Set(entry, o, o.min + v * (o.max - o.min));
         const digits = String(o.step).includes('.') ? String(o.step).split('.')[1].length : 0;
-        ModConfigMenu.#DrawValue(T, S, entry.inst[o.key].toFixed(digits) + (o.suffix || ''), enabled);
+        ModConfigMenu.#DrawValue(T, S, ConfigLoader.View(entry)[o.key].toFixed(digits) + (o.suffix || ''), enabled);
     }
 
     static #DrawRadio(T, S, P, row, enabled) {
@@ -656,11 +790,11 @@ class ModConfigMenu {
                 const c = seg.anchorPos(seg.xOf(i));
                 if (Math.abs(M.mouseX - c.X) <= seg.each / 2 && Math.abs(M.mouseY - c.Y) <= seg.height / 2 + 4) picked = i;
             }
-            if (picked < 0) picked = (o.choices.indexOf(entry.inst[o.key]) + 1) % n;
+            if (picked < 0) picked = (o.choices.indexOf(ConfigLoader.View(entry)[o.key]) + 1) % n;
             ConfigLoader.Set(entry, o, o.choices[picked]);
             SoundEngine.PlaySound(ModConfigMenu.#TICK);
         }
-        const selected = o.choices.indexOf(entry.inst[o.key]);
+        const selected = o.choices.indexOf(ConfigLoader.View(entry)[o.key]);
         const order = [...Array(n).keys()].filter((i) => i !== selected);
         if (selected >= 0) order.push(selected);
         for (const i of order) {
@@ -685,7 +819,7 @@ class ModConfigMenu {
         const st = ModConfigMenu.#State(row);
         const p = S.PulldownTemplate;
         const open = ModConfigMenu.#popup && ModConfigMenu.#popup.row.key === row.key;
-        const value = o.choiceLabels[o.choices.indexOf(entry.inst[o.key])] || '';
+        const value = o.choiceLabels[o.choices.indexOf(ConfigLoader.View(entry)[o.key])] || '';
         const state = Number(T.Button[ModConfigMenu.#DRAW](p.PulldownButton, null, value, !enabled, st.scale, open, ModConfigMenu.#Focus(), false, false));
         ModConfigMenu.#DrawTitle(T, S, o.label, enabled);
         if (enabled && state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
@@ -742,7 +876,7 @@ class ModConfigMenu {
         const saved = anchor[ModConfigMenu.#GET_GRID]();
         P.option.overloadedSize = Vector2.new(width, h);
         P.option.Location = Vector2.new(-width / 2, -h / 2);
-        const selected = o.choices.indexOf(entry.inst[o.key]);
+        const selected = o.choices.indexOf(ConfigLoader.View(entry)[o.key]);
         let close = false;
         try {
             for (let i = 0; i < n; i++) {
@@ -779,7 +913,7 @@ class ModConfigMenu {
     static #DrawCycle(T, S, P, row, enabled) {
         const { entry, o } = row;
         const st = ModConfigMenu.#State(row);
-        const index = o.choices.indexOf(entry.inst[o.key]);
+        const index = o.choices.indexOf(ConfigLoader.View(entry)[o.key]);
         const state = Number(T.Button[ModConfigMenu.#DRAW](S.ToggleTemplate.ToggleButton, null, o.label, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false));
         const value = S.SliderTemplate.Value;
         P.cycle.Location = Vector2.new(ModConfigMenu.#CYCLE_X, value.Location.Y);
@@ -831,7 +965,7 @@ class ModConfigMenu {
         const key = row.entry.name + '.' + row.o.key;
         let cs = ModConfigMenu.#colorState.get(key);
         if (!cs) ModConfigMenu.#colorState.set(key, cs = { hex: null, hsl: [0, 0, 1] });
-        const hex = row.entry.inst[row.o.key];
+        const hex = ConfigLoader.View(row.entry)[row.o.key];
         if (cs.hex !== hex) {
             cs.hex = hex;
             cs.hsl = ModConfigMenu.#HexToHsl(hex);
@@ -844,7 +978,7 @@ class ModConfigMenu {
         const st = ModConfigMenu.#State(row);
         const t = S.ToggleTemplate;
         T.Button[ModConfigMenu.#DRAW](t.ToggleButton, null, o.label, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false);
-        const hex = entry.inst[o.key];
+        const hex = ConfigLoader.View(entry)[o.key];
         const seg = ModConfigMenu.#Segments(T, t, 1);
         P.swatch.Location = Vector2.new(seg.xOf(0), seg.y);
         P.swatch.Size = Vector2.new(seg.each - 2, seg.height);
