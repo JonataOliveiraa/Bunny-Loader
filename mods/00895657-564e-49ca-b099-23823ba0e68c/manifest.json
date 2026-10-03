@@ -2,23 +2,23 @@
   "uid": "00895657-564e-49ca-b099-23823ba0e68c",
   "id": "better-achievements",
   "name": "Better Achievements",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "authors": [
     {
       "name": "GST378",
-      "avatar": "gst378.png",
-      "color": "#FFFFFF",
-      "link": "https://youtube.com/@gst_378",
-      "role": "Autor"
+      "role": "Original Creator",
+      "avatar": "lemon.webp",
+      "color": "#FEFE00",
+      "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
     }
   ],
-  "category": "Utilidade",
+  "category": "Utilities",
   "summary": "This mod separates your achievements per world, and also adds commands to manage them.",
-  "updated": "2026-09-27",
+  "updated": "2026-10-02",
   "blVersion": 2,
   "gameVersion": [
-    301543,
-    301543
+    301720,
+    301720
   ],
   "entry": "main.js",
   "dependencies": []
