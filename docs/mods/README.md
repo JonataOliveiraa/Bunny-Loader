@@ -55,6 +55,7 @@ Leia na ordem; cada um usa o anterior.
 | [8. Jogador e buffs](08-jogador-e-buffs.md) | `ModPlayer` (dash, dados salvos) e `ModBuff`. |
 | [9. Blocos](09-blocos.md) | `ModTile`: blocos e móveis (`TileObjectData`), e como o mundo salvo continua abrindo sem o mod. |
 | [10. Sons e música](10-sons-e-musica.md) | `SoundStyle`, `SoundEngine.PlaySound`, música de chefe. |
+| [15. Classes de dano](15-classes-de-dano.md) | `DamageClass`: a classe de uma arma, bônus por classe no jogador e classes novas. |
 | **Entre mods** | |
 | [11. Conversa entre mods](11-conversa-entre-mods.md) | Achar outro mod e chamar o que ele oferece (`ModLoader.TryGetMod` + `Call`). |
 | [12. Globais e o mundo](12-globais-e-mundo.md) | Mexer no que o jogo já tem (`GlobalItem`, `GlobalNPC`, `GlobalProjectile`), drops, e o `ModSystem` com os dados do mundo. |

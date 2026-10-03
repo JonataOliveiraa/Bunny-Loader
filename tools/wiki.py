@@ -51,6 +51,7 @@ PAGES = {
     "docs/mods/12-globais-e-mundo.md": "Globais-e-mundo",
     "docs/mods/13-pagina-do-pacote.md": "Página-do-pacote",
     "docs/mods/14-opcoes-do-mod.md": "Opções-do-mod",
+    "docs/mods/15-classes-de-dano.md": "Classes-de-dano",
     "docs/referencia/classes.md": "Referência-das-classes",
     "docs/referencia/ponte-e-bl.md": "Referência-da-ponte-e-bl",
     "docs/nucleo/README.md": "Núcleo",
@@ -88,6 +89,7 @@ SIDEBAR = [
         ("Globais-e-mundo", "12. Globais e o mundo"),
         ("Página-do-pacote", "13. A página do pacote"),
         ("Opções-do-mod", "14. Opções do mod"),
+        ("Classes-de-dano", "15. Classes de dano"),
     ]),
     ("Referência", [
         ("Referência-das-classes", "O que cada classe tem hoje"),
