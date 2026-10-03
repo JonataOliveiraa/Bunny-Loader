@@ -1,58 +1,41 @@
-// "Config. dos Mods" no menu de pausa, e a tela que ele abre: cada mod numa
-// seção, com as opções dos ModConfig dele (interruptor, faixa e escolha), como
-// o Mod Configuration do tModLoader.
-//
-// O menu de pausa do celular (GUISettingsPauseMenu) empilha os botões no
-// SetupOffsets, que ele chama a cada quadro: o painel de fundo centralizado e
-// cada botão um degrau (altura + ButtonSpacing) abaixo do anterior. O gancho
-// abre um degrau depois de Configurações: o painel cresce um degrau, o que
-// está acima sobe meio, o que está abaixo desce meio.
-//
-// O botão é desenhado de dentro do GUIPanel.Draw do fundo, e não depois do
-// Draw: no meio do Draw o jogo soma às larguras a sobra do texto mais largo e,
-// no fim, tira de volta. Ele usa um layout próprio (clone do de Configurações,
-// com o coelho de ícone) e entra no FIM da lista de navegação: o menu ativa o
-// item selecionado pelo índice, e um índice novo no meio faria o toque abrir
-// o botão de baixo.
-//
-// A tela usa as peças da de Conquistas (Achievements_Layout): moldura,
-// divisórias, a aba do título e o Voltar com banner. As linhas de opção são
-// as da tela de Configurações do jogo (SettingsOverlay_Layout: o modelo do
-// interruptor e o da faixa), que se posicionam pelo "item da grade"
-// (ControlAnchor._gridItemRegion): cada linha aponta esse retângulo para si
-// antes de desenhar. Tudo só roda com o jogo pausado: fora da pausa não custa
-// nada.
 class ModConfigMenu {
     static #open = false;
-    static #button = null;      // o TransactionButton_Layout do nosso botão
-    static #parts = null;       // as peças clonadas (cabeçalho, escolhas)
-    static #scales = null;      // os `ref float scale` dos botões
-    static #rowState = new Map(); // por opção: escala da linha, valor e arraste da faixa
-    static #selected = null;    // o uuid do mod da aba escolhida
-    static #tabs = new Map();     // por mod e forma: o botão da aba e a escala dele
-    static #tabShape = null;    // as peças do começo, meio e fim da fileira
-    static #icons = new Map();    // por mod: a textura do icon.png
-    static #scroll = 0;         // quanto a lista subiu, em pixels
-    static #momentum = 0;       // o embalo depois de soltar o dedo
-    static #lastY = null;       // o Y do dedo no quadro anterior
-    static #slider = null;      // a opção da faixa que o dedo segura
-    static #fresh = false;      // o dedo encostou neste quadro
-    static #pressInList = false; // o toque começou dentro da lista
-    static #guard = false;      // o toque que abriu a tela ainda não saiu
-    static #pressY = null;      // onde o dedo encostou
-    static #dragged = false;    // o dedo andou: ao soltar, não é clique
+    static #button = null;
+    static #parts = null;
+    static #scales = null;
+    static #rowState = new Map();
+    static #colorState = new Map();
+    static #selected = null;
+    static #tabs = new Map();
+    static #tabShape = null;
+    static #icons = new Map();
+    static #scroll = 0;
+    static #momentum = 0;
+    static #lastY = null;
+    static #slider = null;
+    static #pressInList = false;
+    static #guard = false;
+    static #guardIdle = 0;
+    static #pressY = null;
+    static #dragged = false;
+    static #popup = null;
+    static #listTop = 0;
+    static #listBottom = 0;
 
     static #GAP = 4;
-    static #DRAG_PX = 8;        // a partir daqui o toque é arraste
-    static #FRICTION = 0.92;    // quanto do embalo sobra a cada quadro
-    static #SINGLE_ICON_X = 1.25; // na aba única, o centro do ícone (em alturas da aba)
-    static #SCREEN = 0;         // ControlAnchor.ControlId.Screen
-    static #TOP_LEFT = 9;       // LayoutCalculator.AnchorType.TopLeft
-    static #TOP_RIGHT = 12;
-    static #ESCAPE = 27;        // KeyCode.Escape (o voltar do Android)
-    static #MENU_OPEN = 10;     // o som do botão de Configurações
+    static #HEADER_EXTRA = 8;
+    static #SWATCH_INSET = 4;
+    static #CYCLE_X = 24;
+    static #POPUP_MARGIN = 8;
+    static #DRAG_PX = 8;
+    static #FRICTION = 0.92;
+    static #SCREEN = 0;
+    static #TOP_LEFT = 9;
+    static #CENTER = 18;
+    static #ESCAPE = 27;
+    static #MENU_OPEN = 10;
     static #MENU_CLOSE = 11;
-    static #TICK = 12;          // o som de mudar uma opção
+    static #TICK = 12;
     static #ICON_SCALE = 1.1;
 
     static #DRAW = 'GUITransactionButton.InputState Draw(TransactionButton_Layout layout, Item item, string label, bool disabled, ref float scale, bool forcedPressed, bool hasControllerFocus, bool forceOver, bool disablePressedState)';
@@ -61,11 +44,18 @@ class ModConfigMenu {
     static #TITLE = 'bool DrawButton(StringButton_Layout layout, string value, ref float scale, bool forcedPressed, bool buttonDisabled)';
     static #TEXT = 'void Draw(String_Layout layout, string value, Color overloadedColour, bool multilineAlignmentApplied)';
     static #SLIDER = 'bool Draw(Slider_Layout layout, bool disablePick, ref float value, GUISlider.DragState dragState, GUISlider.DrawBackingHandler backingHandler, bool forceOver, int minValue, int maxValue, bool ignoreStartPoint)';
+    static #SATURATION = 'bool DrawSaturation(Slider_Layout layout, bool disablePick, ref float value, GUISlider.DragState dragState, bool forceOver)';
+    static #LIGHTNESS = 'bool DrawLightness(Slider_Layout layout, bool disablePick, ref float value, GUISlider.DragState dragState, bool forceOver)';
+    static #OVER_TRACK = 'bool IsCursorOver(Vector2 cursorPosition, Slider_Layout layout)';
     static #ANCHORED = 'Vector2 GetAnchoredPosition(ControlAnchor.ControlId anchorControl, LayoutCalculator.AnchorType anchorType, Vector2 position)';
     static #CLIP = 'void EnableClipping(Rectangle inner, Rectangle outer, SpriteBatch batcher, bool vertical)';
-    static #CLICKED = 0;        // GUITransactionButton.InputState.Clicked
+    static #REGION = 'bool RegisterInputRegion(Rectangle rect)';
+    static #GET_GRID = 'Rectangle get__gridItemRegion()';
+    static #SET_GRID = 'void set__gridItemRegion(Rectangle value)';
+    static #BEGIN = 'void Begin(SpriteSortMode sortMode, BlendState blendState, SamplerState samplerState, DepthStencilState depthStencilState, RasterizerState rasterizerState, Effect effect, Nullable<Matrix> transformMatrix, bool defferedBatch)';
+    static #CLICKED = 0;
 
-    static #T = null;           // as classes do jogo, resolvidas no Install
+    static #T = null;
 
     static Install() {
         Hooks.Once('modconfig.pause', () => Safe.Run('ModConfigMenu.Install', () => ModConfigMenu.#Hook()));
@@ -91,6 +81,7 @@ class ModConfigMenu {
             Regions: bl.classOf('', 'GUIInputRegionManager'),
             Calc: bl.classOf('', 'LayoutCalculator'),
             Keyboard: bl.classOf('', 'KeyboardInput'),
+            Application: bl.classOf('UnityEngine', 'Application'),
             SpriteBatchItem: Microsoft.Xna.Framework.Graphics.SpriteBatchItem,
         };
         ModConfigMenu.#scales = { button: new Ref(1), title: new Ref(1), back: new Ref(1) };
@@ -103,7 +94,6 @@ class ModConfigMenu {
 
         pauseDraw.hook((original, self) => {
             if (!ModConfigMenu.#open) return original(self);
-            // Um erro na tela não pode prender o jogador nela.
             const ok = Safe.Run('ModConfigMenu.Draw', () => { ModConfigMenu.#DrawScreen(); return true; });
             if (!ok) ModConfigMenu.#Close(false);
             return undefined;
@@ -115,7 +105,6 @@ class ModConfigMenu {
             if (L && layout === L.Backing) Safe.Run('ModConfigMenu.Button', () => ModConfigMenu.#DrawButton(L));
         }, { whileIn: pauseDraw });
 
-        // Sair do mundo com a tela aberta não pode deixá-la aberta no próximo.
         Terraria.WorldGen['void clearWorld()'].hook((original) => {
             original();
             ModConfigMenu.#Close(false);
@@ -135,15 +124,10 @@ class ModConfigMenu {
         return Terraria.Localization.Language['string GetTextValue(string key)'](key);
     }
 
-    // ------------------------------------------------------------ o botão
-
     static #Step(L) {
         return L.Close.overloadedSize.Y + L.ButtonSpacing;
     }
 
-    // O clone do botão de Configurações, com o coelho no lugar da engrenagem.
-    // O Texture_Layout só recarrega quando o TextureId muda: com o id, o
-    // último id e a textura preenchidos, o get_Texture devolve a nossa.
     static #ButtonLayout(L) {
         if (ModConfigMenu.#button) return ModConfigMenu.#button;
         const ours = L.Settings['object MemberwiseClone()']();
@@ -155,7 +139,6 @@ class ModConfigMenu {
             icon._lastTextureId = icon.TextureId;
             icon._texture = bl.builtinTexture('bunnyHead').Value;
             ours.IconTexture = icon;
-            // O coelho tem 32 px; os ícones do jogo são maiores.
             ours.ForceIconScale = true;
             ours.ForcedIconScale = ModConfigMenu.#ICON_SCALE;
         });
@@ -188,8 +171,6 @@ class ModConfigMenu {
         if (all.includes(ours)) return;
         all.push(ours);
         list._items = ModConfigMenu.#T.ButtonLayout.newArray(all);
-        // A lista mede as regiões de toque ao ser ativada, e foi ativada sem o
-        // nosso: o toque nele caía no vizinho (Conquistas) até a próxima vez.
         list['void Activate()']();
     }
 
@@ -197,19 +178,17 @@ class ModConfigMenu {
         if (ModConfigMenu.#open) return;
         const T = ModConfigMenu.#T;
         const ours = ModConfigMenu.#ButtonLayout(L);
-        // A largura deste quadro, já com a sobra do texto (ver o topo).
         ours.overloadedSize = L.Settings.overloadedSize;
         ours.Location = Vector2.new(L.Settings.Location.X, ours.Location.Y);
         const state = Number(T.Button[ModConfigMenu.#DRAW](ours, null, ModConfigMenu.#Text('button'), false,
             ModConfigMenu.#scales.button, false, ModConfigMenu.#Focus(), false, false));
         if (state !== ModConfigMenu.#CLICKED) return;
 
-        // O que o botão de Configurações faz: o toque fica por consumido.
         T.Input.Instance['void CaptureUICrusorDrag(int dragFromAxis)'](-1);
         SoundEngine.PlaySound(ModConfigMenu.#MENU_OPEN);
         ModConfigMenu.#open = true;
         ModConfigMenu.#ResetScroll();
-        ModConfigMenu.#guard = true;
+        ModConfigMenu.#Guard();
     }
 
     static #Focus() {
@@ -218,11 +197,15 @@ class ModConfigMenu {
         return !!(pad && pad.ControllerActive);
     }
 
-    // ------------------------------------------------------------ a tela
+    static #Guard() {
+        ModConfigMenu.#guard = true;
+        ModConfigMenu.#guardIdle = 0;
+    }
 
     static #Close(sound = true) {
         if (!ModConfigMenu.#open) return;
         ModConfigMenu.#open = false;
+        ModConfigMenu.#popup = null;
         ModConfigMenu.#ReleaseSliders();
         ConfigLoader.Flush();
         if (sound) SoundEngine.PlaySound(ModConfigMenu.#MENU_CLOSE);
@@ -230,9 +213,10 @@ class ModConfigMenu {
 
     static #DrawScreen() {
         const T = ModConfigMenu.#T, S = T.Settings.Instance;
-        // O toque que abriu a tela solta no quadro seguinte, já aqui dentro:
-        // sem a trava, ele clicava na linha que estivesse sob o dedo.
-        if (ModConfigMenu.#guard && !Terraria.Main.mouseLeft && !Terraria.Main.mouseLeftRelease) ModConfigMenu.#guard = false;
+        if (ModConfigMenu.#guard) {
+            ModConfigMenu.#guardIdle = Terraria.Main.mouseLeft ? 0 : ModConfigMenu.#guardIdle + 1;
+            if (ModConfigMenu.#guardIdle >= 2) ModConfigMenu.#guard = false;
+        }
         const panel = T.Panel[ModConfigMenu.#PANEL];
         panel(S.Backing, false, null, null, null);
         panel(S.MenuDivider, false, null, null, null);
@@ -249,35 +233,30 @@ class ModConfigMenu {
         const back = ModConfigMenu.#Language('UI.Back');
         const state = Number(T.Button[ModConfigMenu.#BANNER](S.Close, null, null, back, false,
             ModConfigMenu.#scales.back, false, true, false, false, false, true));
-        if (state === ModConfigMenu.#CLICKED) {
+        Safe.Run('ModConfigMenu.Popup', () => ModConfigMenu.#DrawPopup(T, S));
+        if (state === ModConfigMenu.#CLICKED && !ModConfigMenu.#Modal()) {
             T.Input.Instance['void CaptureUICrusorDrag(int dragFromAxis)'](-1);
             ModConfigMenu.#Close();
             return;
         }
-        // O voltar do Android, como na tela de Conquistas.
         if (T.Keyboard['bool GetKeyUp(KeyCode keycode)'](ModConfigMenu.#ESCAPE)) {
             const gi = T.Instance.Active;
             if (gi && gi.GUIKeyboardMappings) gi.GUIKeyboardMappings['void DisableEscapeKeyUsage()']();
-            ModConfigMenu.#Close();
+            if (ModConfigMenu.#popup) ModConfigMenu.#popup = null;
+            else ModConfigMenu.#Close();
         }
     }
 
-    // As abas, como as categorias da tela de Configurações: uma por mod com
-    // opções, com o ícone dele (icon.png; sem ele, o coelho). Cada aba é um
-    // clone de uma categoria do primeiro grupo do jogo, pela posição: a
-    // primeira (borda arredondada à esquerda), uma do meio (reta) e a
-    // última (arredondada à direita). A distância de uma aba para a próxima
-    // é a das categorias do jogo na mesma junção: elas não são espaçadas por
-    // igual, e um passo único deixava um vão antes da última. Com um mod só,
-    // uma aba larga (ver #DrawSingleTab). A aba do mod escolhido fica
-    // pressionada. Devolve o mod escolhido.
     static #DrawTabs(T, S, mods, selected) {
         const C = S.Categories;
         T.Panel[ModConfigMenu.#PANEL](C.Backing, false, null, null, null);
         const shape = ModConfigMenu.#tabShape || (ModConfigMenu.#tabShape = ModConfigMenu.#TabShape(C));
         const n = mods.length;
         if (n === 1) {
-            ModConfigMenu.#DrawSingleTab(T, shape, mods[0]);
+            const tab = ModConfigMenu.#Tab(T, shape.middle, mods[0], 'middle', shape.iconPx);
+            tab.layout.Location = Vector2.new(shape.start.Location.X, shape.start.Location.Y);
+            T.Button[ModConfigMenu.#DRAW](tab.layout, null, mods[0].name || mods[0].id, false, tab.scale,
+                true, ModConfigMenu.#Focus(), false, false);
             return mods[0];
         }
         let chosen = selected;
@@ -299,49 +278,7 @@ class ModConfigMenu {
         return chosen;
     }
 
-    // Um mod só: uma aba da largura da fileira de categorias inteira, com as
-    // duas pontas arredondadas (o botão do menu de pausa), o ícone e o nome.
-    // O jogo não tem peça de categoria arredondada dos dois lados.
-    static #DrawSingleTab(T, shape, mod) {
-        const key = mod.uuid + ':single';
-        let tab = ModConfigMenu.#tabs.get(key);
-        if (!tab) {
-            const layout = T.Layout.Instance.Settings['object MemberwiseClone()']();
-            Safe.Run('ModConfigMenu: ícone de ' + (mod.name || mod.id), () => {
-                const texture = ModConfigMenu.#ModIcon(mod);
-                const icon = T.TextureLayout.new();
-                icon['void .ctor()']();
-                icon.TextureId = 'bunny/mod/' + mod.uuid;
-                icon._lastTextureId = icon.TextureId;
-                icon._texture = texture;
-                layout.IconTexture = icon;
-                layout.ForceIconScale = true;
-                layout.ForcedIconScale = shape.iconPx / Math.max(1, texture.Height);
-            });
-            tab = { layout, scale: new Ref(1) };
-            ModConfigMenu.#tabs.set(key, tab);
-        }
-        // Este botão se posiciona pelo canto de cima à esquerda, a partir do
-        // centro da tela; a fileira vem em pixels de tela.
-        const r = shape.rowRect;
-        const center = T.Calc[ModConfigMenu.#ANCHORED](tab.layout.AnchorControl, tab.layout.Anchor, Vector2.new(0, 0));
-        tab.layout.Location = Vector2.new(r.X - center.X, r.Y - center.Y);
-        tab.layout.overloadedSize = Vector2.new(r.Width, r.Height);
-        // O IconOffset é o centro do ícone a partir do canto de cima à
-        // esquerda do botão. O do clone vem do botão de pausa (44 de altura):
-        // na aba, de outra altura, o ícone descia e colava na ponta esquerda.
-        tab.layout.IconOffset = Vector2.new(r.Height * ModConfigMenu.#SINGLE_ICON_X, r.Height / 2);
-        T.Button[ModConfigMenu.#DRAW](tab.layout, null, mod.name || mod.id, false, tab.scale,
-            true, ModConfigMenu.#Focus(), false, false);
-    }
-
-    // As categorias do jogo na fileira da "Geral", da esquerda para a
-    // direita. O primeiro grupo é o das que estão coladas uma na outra (o vão
-    // maior separa o segundo). Devolve as peças do começo, do meio e do fim,
-    // a distância em cada junção, a altura dos ícones e o retângulo (em
-    // pixels de tela) da fileira inteira, para a aba única.
     static #TabShape(C) {
-        const T = ModConfigMenu.#T;
         const general = C.General;
         const row = [];
         for (const k of ['General', 'Cursor', 'Video', 'Language', 'Interface', 'Info', 'Gameplay', 'Sound',
@@ -362,19 +299,11 @@ class ModConfigMenu {
         const gx = (i) => group[i].Location.X;
         const k = group.length;
 
-        // A altura do ícone da primeira categoria vale para todas as abas: os
-        // ícones das categorias do jogo não têm todos o mesmo tamanho.
         const theirs = general.IconTexture ? general.IconTexture.Texture : null;
         const iconPx = (theirs ? theirs.Height : 32) * (general.ForceIconScale ? general.ForcedIconScale : 1);
 
-        const rect = (l) => T.Calc['Rectangle GetLayoutRect(ControlAnchor.ControlId anchorControl, LayoutCalculator.AnchorType anchorType, Vector2 position, Vector2 size, Texture2D texture)'](
-            l.AnchorControl, l.Anchor, l.Location, l.overloadedSize, null);
-        const a = rect(row[0]), b = rect(row[row.length - 1]);
-        const rowRect = { X: a.X, Y: a.Y, Width: b.X + b.Width - a.X, Height: a.Height };
-
         return {
             iconPx,
-            rowRect,
             start: group[0] || general,
             middle: k > 2 ? group[1] : group[0] || general,
             end: group[k - 1] || general,
@@ -391,9 +320,6 @@ class ModConfigMenu {
         const layout = template['object MemberwiseClone()']();
         Safe.Run('ModConfigMenu: ícone de ' + (mod.name || mod.id), () => {
             const texture = ModConfigMenu.#ModIcon(mod);
-            // A altura dos ícones das abas do jogo, para um ícone de 256 px e
-            // o coelho de 32 saírem do mesmo tamanho.
-            const target = iconPx;
             const icon = T.TextureLayout.new();
             icon['void .ctor()']();
             icon.TextureId = 'bunny/mod/' + mod.uuid;
@@ -401,14 +327,13 @@ class ModConfigMenu {
             icon._texture = texture;
             layout.IconTexture = icon;
             layout.ForceIconScale = true;
-            layout.ForcedIconScale = target / Math.max(1, texture.Height);
+            layout.ForcedIconScale = iconPx / Math.max(1, texture.Height);
         });
         tab = { layout, scale: new Ref(1) };
         ModConfigMenu.#tabs.set(key, tab);
         return tab;
     }
 
-    // A textura do icon.png do mod, lida uma vez; sem ele, o coelho.
     static #ModIcon(mod) {
         let texture = ModConfigMenu.#icons.get(mod.uuid);
         if (texture) return texture;
@@ -418,33 +343,50 @@ class ModConfigMenu {
         return texture;
     }
 
-    // O aviso de lista vazia, preso no canto de cima à esquerda da tela: a
-    // posição vira pixel do jogo. As escolhas de um Radio são os painéis do
-    // interruptor, um por escolha.
     static #Parts(S) {
         if (ModConfigMenu.#parts) return ModConfigMenu.#parts;
         const copy = (x) => x['object MemberwiseClone()']();
+        const toScreen = (x) => {
+            x.AnchorControl = ModConfigMenu.#SCREEN;
+            x.Anchor = ModConfigMenu.#TOP_LEFT;
+            return x;
+        };
         const t = S.ToggleTemplate;
-        const empty = copy(t.Option1Label);
-        empty.AnchorControl = ModConfigMenu.#SCREEN;
-        empty.Anchor = ModConfigMenu.#TOP_LEFT;
+        const p = S.PulldownTemplate;
+        const empty = toScreen(copy(t.Option1Label));
         empty.Alignment = ModConfigMenu.#TOP_LEFT;
+        const header = toScreen(copy(p.PulldownTitle));
+        header.Alignment = ModConfigMenu.#CENTER;
+        const option = copy(p.Option1);
+        option.AnchorControl = p.PulldownButton.AnchorControl;
+        option.Anchor = p.PulldownButton.Anchor;
         return ModConfigMenu.#parts = {
             empty,
+            header,
+            divider: toScreen(copy(S.MenuDivider)),
             choiceOn: copy(t.Option1Enabled),
             choiceOff: copy(t.Option1Disabled),
+            swatch: copy(t.Option1Enabled),
+            cycle: copy(S.SliderTemplate.Value),
             label: copy(t.Option1Label),
+            greyout: toScreen(copy(p.PulldownGreyout)),
+            popBacking: toScreen(copy(p.PulldownBacking)),
+            option,
         };
     }
 
-    // Uma linha por opção do mod escolhido.
     static #Rows(S, mod) {
         const rows = [];
         if (!mod) return rows;
+        const height = S.ToggleTemplate.ToggleButton.overloadedSize.Y + ModConfigMenu.#GAP;
         for (const entry of ConfigLoader.Of(mod)) {
             for (const o of entry.options) {
-                const template = o.type === 'range' ? S.SliderTemplate.Title : S.ToggleTemplate.ToggleButton;
-                rows.push({ kind: o.type, entry, o, height: template.overloadedSize.Y + ModConfigMenu.#GAP });
+                const key = entry.name + '.' + o.key;
+                if (o.type === 'color') {
+                    for (const part of ['color', 'hue', 'saturation', 'lightness']) rows.push({ kind: part, entry, o, key: key + ':' + part, height });
+                } else {
+                    rows.push({ kind: o.type, entry, o, key, height: o.type === 'header' ? height + ModConfigMenu.#HEADER_EXTRA : height });
+                }
             }
         }
         return rows;
@@ -458,6 +400,8 @@ class ModConfigMenu {
         const bottom = at(S.MenuDivider2).Y - 6;
         const width = T.Ach.Instance.ItemBacking.Size.X;
         const left = T.Calc[ModConfigMenu.#ANCHORED](S.Backing.AnchorControl, S.Backing.Anchor, Vector2.new(0, 0)).X - width / 2;
+        ModConfigMenu.#listTop = top;
+        ModConfigMenu.#listBottom = bottom;
         const rows = ModConfigMenu.#Rows(S, mod);
 
         if (!rows.length) {
@@ -470,26 +414,22 @@ class ModConfigMenu {
         const area = ModConfigMenu.#Rect(left, top, width, bottom - top);
         ModConfigMenu.#Scroll(T, area, total, left, top, width, bottom);
 
-        // As linhas das opções se posicionam pelo "item da grade": aponta-o
-        // para cada uma e devolve o do jogo no fim. A linha cortada pela
-        // borda é recortada como na tela de Configurações (o GUIDraggableItemGrid
-        // liga o mesmo recorte do SpriteBatch em volta de cada item).
         const anchor = T.Anchor;
-        const saved = anchor['Rectangle get__gridItemRegion()']();
+        const saved = anchor[ModConfigMenu.#GET_GRID]();
         T.SpriteBatchItem[ModConfigMenu.#CLIP](area, area, Terraria.Main.spriteBatch, true);
         try {
             let y = top - ModConfigMenu.#scroll;
             for (const row of rows) {
                 const h = row.height - ModConfigMenu.#GAP;
                 if (y + h > top && y < bottom) {
-                    anchor['void set__gridItemRegion(Rectangle value)'](ModConfigMenu.#Rect(left, y, width, h));
-                    Safe.Run('ModConfig ' + row.entry.name + '.' + row.o.key, () => ModConfigMenu.#DrawOption(T, S, P, row));
+                    anchor[ModConfigMenu.#SET_GRID](ModConfigMenu.#Rect(left, y, width, h));
+                    Safe.Run('ModConfig ' + row.key, () => ModConfigMenu.#DrawOption(T, S, P, row));
                 }
                 y += row.height;
             }
         } finally {
             T.SpriteBatchItem['void DisabledClipping()']();
-            anchor['void set__gridItemRegion(Rectangle value)'](saved);
+            anchor[ModConfigMenu.#SET_GRID](saved);
         }
     }
 
@@ -499,14 +439,14 @@ class ModConfigMenu {
         return rect;
     }
 
-    // Clique que não vale: o do toque que abriu a tela, e o de soltar o dedo
-    // depois de arrastar a lista.
-    static #Blocked() {
-        return ModConfigMenu.#guard || ModConfigMenu.#dragged;
+    static #Modal() {
+        return !!ModConfigMenu.#popup;
     }
 
-    // Clique numa linha: também precisa ter começado dentro da lista. A parte
-    // recortada de uma linha na borda fica por cima das abas e do Voltar.
+    static #Blocked() {
+        return ModConfigMenu.#guard || ModConfigMenu.#dragged || ModConfigMenu.#Modal();
+    }
+
     static #RowBlocked() {
         return ModConfigMenu.#Blocked() || !ModConfigMenu.#pressInList;
     }
@@ -516,9 +456,6 @@ class ModConfigMenu {
         ModConfigMenu.#momentum = 0;
     }
 
-    // O jogo zera o "arrastando" de cada faixa com o retorno do Draw dela;
-    // uma que ficasse marcada seguia o dedo em qualquer lugar e prendia o
-    // toque (ver #DrawOption).
     static #ReleaseSliders() {
         ModConfigMenu.#slider = null;
         for (const st of ModConfigMenu.#rowState.values()) {
@@ -526,25 +463,19 @@ class ModConfigMenu {
         }
     }
 
-    // Rola por pixel, como a tela de Configurações: arrastar move a lista
-    // junto com o dedo e, ao soltar, ela segue no embalo até parar. A região
-    // registrada é o que faz o toque virar Main.mouseX/Y aqui. Um toque que
-    // começa numa faixa é da faixa: a lista não rola.
     static #Scroll(T, area, total, left, top, width, bottom) {
         const M = Terraria.Main;
-        T.Regions.Instance['bool RegisterInputRegion(Rectangle rect)'](area);
+        T.Regions.Instance[ModConfigMenu.#REGION](area);
         const max = Math.max(0, total - (bottom - top));
         const inside = M.mouseX >= left && M.mouseX <= left + width && M.mouseY >= top && M.mouseY <= bottom;
 
-        // O "arrastou" vale do toque até o quadro em que o dedo solta: é nele
-        // que o botão da linha vê o clique.
-        ModConfigMenu.#fresh = M.mouseLeft && ModConfigMenu.#pressY === null;
+        const fresh = M.mouseLeft && ModConfigMenu.#pressY === null;
         if (M.mouseLeft) {
-            if (ModConfigMenu.#fresh) {
+            if (fresh) {
                 ModConfigMenu.#pressY = M.mouseY;
                 ModConfigMenu.#lastY = M.mouseY;
                 ModConfigMenu.#dragged = false;
-                ModConfigMenu.#pressInList = inside && !ModConfigMenu.#guard;
+                ModConfigMenu.#pressInList = inside && !ModConfigMenu.#guard && !ModConfigMenu.#Modal();
                 ModConfigMenu.#momentum = 0;
             } else if (!ModConfigMenu.#slider && ModConfigMenu.#pressInList
                 && Math.abs(M.mouseY - ModConfigMenu.#pressY) > ModConfigMenu.#DRAG_PX) {
@@ -574,10 +505,6 @@ class ModConfigMenu {
         }
     }
 
-    // Um rótulo de escolha centrado em `x`, encolhido se não couber em
-    // `width` (o ScaleLabelToFit do jogo). Usa uma cópia: o modelo é do jogo.
-    // `centered`: o alinhamento vira centro na horizontal (AnchorType: 1
-    // esquerda, 2 centro, 4 direita; 8, 16 e 32 a vertical).
     static #Label(T, P, template, x, width, text, color, centered = false) {
         const label = P.label;
         label.AnchorControl = template.AnchorControl;
@@ -591,84 +518,24 @@ class ModConfigMenu {
         T.String[ModConfigMenu.#TEXT](label, text, color, false);
     }
 
+    static #Fit(layout, text, width) {
+        const label = layout.Label;
+        const font = label ? label['SpriteFont GetFont()']() : null;
+        if (!font) return text;
+        const measure = (s) => font['Vector2 MeasureString(string text)'](s).X * label.Scale;
+        if (measure(text) <= width) return text;
+        let cut = text;
+        while (cut.length > 1 && measure(cut + '...') > width) cut = cut.slice(0, -1);
+        return cut + '...';
+    }
+
     static #State(row) {
-        let st = ModConfigMenu.#rowState.get(row.o);
-        if (!st) ModConfigMenu.#rowState.set(row.o, st = { scale: new Ref(1), value: new Ref(0), drag: null });
+        let st = ModConfigMenu.#rowState.get(row.key);
+        if (!st) ModConfigMenu.#rowState.set(row.key, st = { scale: new Ref(1), scale2: new Ref(1), value: new Ref(0), drag: null });
         return st;
     }
 
-    static #DrawOption(T, S, P, row) {
-        const { entry, o } = row;
-        const st = ModConfigMenu.#State(row);
-        const value = entry.inst[o.key];
-        const button = T.Button[ModConfigMenu.#DRAW];
-        const text = T.String[ModConfigMenu.#TEXT];
-        const panel = T.Panel[ModConfigMenu.#PANEL];
-
-        if (o.type === 'range') {
-            const t = S.SliderTemplate;
-            button(t.Title, null, o.label, false, st.scale, false, ModConfigMenu.#Focus(), false, false);
-            if (!st.drag) {
-                st.drag = T.DragState.new();
-                st.drag['void .ctor()']();
-            }
-            // A faixa do jogo trabalha de 0 a 1; o valor do mod sai do degrau.
-            st.value.value = (value - o.min) / (o.max - o.min);
-            // Como o GUISliderSetting do jogo: a faixa só pega o toque que
-            // começou nela (sem isso, um toque em qualquer lugar a movia), o
-            // forceOver é o "arrastando" dela e o retorno do Draw diz se
-            // continua arrastando. O GUISlider.Draw nunca zera o wasDragging
-            // (quem zera é quem chama): sem isso, a faixa seguia o dedo para
-            // sempre e prendia o toque.
-            const M = Terraria.Main;
-            const region = T.Slider['Rectangle GetRegion(Slider_Layout layout)'](t.Option);
-            if (ModConfigMenu.#fresh && ModConfigMenu.#pressInList
-                && M.mouseX >= region.X && M.mouseX <= region.X + region.Width
-                && M.mouseY >= region.Y && M.mouseY <= region.Y + region.Height) ModConfigMenu.#slider = o;
-            const mine = ModConfigMenu.#slider === o;
-            const dragging = !!T.Slider[ModConfigMenu.#SLIDER](t.Option, !mine, st.value, st.drag, null,
-                !!st.drag.wasDragging, -1, -1, false);
-            st.drag.wasDragging = dragging && mine;
-            if (mine) ConfigLoader.Set(entry, o, o.min + st.value.value * (o.max - o.min));
-            const now = entry.inst[o.key];
-            const digits = String(o.step).includes('.') ? String(o.step).split('.')[1].length : 0;
-            text(t.Value, now.toFixed(digits) + (o.suffix || ''), t.Value.Color, false);
-            return;
-        }
-
-        const t = S.ToggleTemplate;
-        const state = Number(button(t.ToggleButton, null, o.label, false, st.scale, false, ModConfigMenu.#Focus(), false, false));
-
-        // No modelo do jogo, a Option1 fica à DIREITA (ligado, verde) e a
-        // Option2 à esquerda (desligado, vermelho).
-        if (o.type === 'toggle') {
-            if (state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
-                ConfigLoader.Set(entry, o, !value);
-                SoundEngine.PlaySound(ModConfigMenu.#TICK);
-            }
-            const on = !!entry.inst[o.key];
-            // O apagado primeiro e o aceso por cima, como o jogo: os dois se
-            // sobrepõem no meio, e na ordem inversa o cinza cobria o verde.
-            if (on) {
-                panel(t.Option2Disabled, false, null, null, null);
-                panel(t.Option1Enabled, false, null, null, null);
-            } else {
-                panel(t.Option1Disabled, false, null, null, null);
-                panel(t.Option2Enabled, false, null, null, null);
-            }
-            ModConfigMenu.#Label(T, P, t.Option1Label, t.Option1Label.Location.X, t.Option1Enabled.Size.X,
-                ModConfigMenu.#Language('Mobile.ToggleSettingOn'), on ? t.Option1Label.Color : t.Option1DisabledLabelColour);
-            ModConfigMenu.#Label(T, P, t.Option2Label, t.Option2Label.Location.X, t.Option2Enabled.Size.X,
-                ModConfigMenu.#Language('Mobile.ToggleSettingOff'), on ? t.Option2DisabledLabelColour : t.Option2Label.Color);
-            return;
-        }
-
-        // Radio: os painéis do interruptor viram um por escolha, lado a lado,
-        // da esquerda para a direita. Com mais de duas escolhas o espaço cresce
-        // para a esquerda. O toque na linha escolhe a que está sob o dedo;
-        // fora delas, passa para a próxima.
-        // Estas peças ficam presas à direita, e o X delas pode crescer para a
-        // esquerda: `dir` converte para "da esquerda para a direita na tela".
+    static #Segments(T, t, n) {
         const a = t.Option1Enabled, b = t.Option2Enabled;
         const y = a.Location.Y;
         const anchorPos = (x) => T.Calc[ModConfigMenu.#ANCHORED](a.AnchorControl, a.Anchor, Vector2.new(x, y));
@@ -676,35 +543,368 @@ class ModConfigMenu {
         const ua = a.Location.X * dir, ub = b.Location.X * dir;
         const right = Math.max(ua + a.Size.X / 2, ub + b.Size.X / 2);
         const span = right - Math.min(ua - a.Size.X / 2, ub - b.Size.X / 2);
-        const n = o.choices.length;
         const left = right - span * Math.max(1, n / 2);
         const each = (right - left) / n;
-        const xOf = (i) => (left + each * (i + 0.5)) * dir;
-        if (state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
+        return { y, each, height: a.Size.Y, anchorPos, xOf: (i) => (left + each * (i + 0.5)) * dir };
+    }
+
+    static #DrawOption(T, S, P, row) {
+        const enabled = ConfigLoader.IsEnabled(row.entry, row.o);
+        switch (row.kind) {
+            case 'header': return ModConfigMenu.#DrawHeader(T, P, row);
+            case 'toggle': return ModConfigMenu.#DrawToggle(T, S, P, row, enabled);
+            case 'range': return ModConfigMenu.#DrawRange(T, S, row, enabled);
+            case 'radio': return ModConfigMenu.#DrawRadio(T, S, P, row, enabled);
+            case 'dropdown': return ModConfigMenu.#DrawDropdown(T, S, row, enabled);
+            case 'cycle': return ModConfigMenu.#DrawCycle(T, S, P, row, enabled);
+            case 'color': return ModConfigMenu.#DrawColor(T, S, P, row, enabled);
+            case 'hue':
+            case 'saturation':
+            case 'lightness': return ModConfigMenu.#DrawColorPart(T, S, row, enabled);
+            case 'button':
+            case 'link': return ModConfigMenu.#DrawAction(T, S, row, enabled);
+        }
+    }
+
+    static #DrawHeader(T, P, row) {
+        const r = T.Anchor[ModConfigMenu.#GET_GRID]();
+        const panel = T.Panel[ModConfigMenu.#PANEL];
+        const divider = P.divider;
+        divider.Size = Vector2.new(r.Width, divider.Size.Y);
+        divider.Location = Vector2.new(r.X + r.Width / 2, r.Y + r.Height - divider.Size.Y / 2);
+        panel(divider, false, null, null, null);
+        P.header.Location = Vector2.new(r.X + r.Width / 2, r.Y + r.Height / 2 - 2);
+        T.String[ModConfigMenu.#TEXT](P.header, row.o.label, Color.new(255, 214, 92), false);
+    }
+
+    static #DrawToggle(T, S, P, row, enabled) {
+        const { entry, o } = row;
+        const st = ModConfigMenu.#State(row);
+        const t = enabled ? S.ToggleTemplate : S.DisabledToggleTemplate;
+        const panel = T.Panel[ModConfigMenu.#PANEL];
+        const state = Number(T.Button[ModConfigMenu.#DRAW](t.ToggleButton, null, o.label, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false));
+        if (enabled && state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
+            ConfigLoader.Set(entry, o, !entry.inst[o.key]);
+            SoundEngine.PlaySound(ModConfigMenu.#TICK);
+        }
+        const on = !!entry.inst[o.key];
+        if (on) {
+            panel(t.Option2Disabled, false, null, null, null);
+            panel(t.Option1Enabled, false, null, null, null);
+        } else {
+            panel(t.Option1Disabled, false, null, null, null);
+            panel(t.Option2Enabled, false, null, null, null);
+        }
+        const onColor = on && enabled ? t.Option1Label.Color : t.Option1DisabledLabelColour;
+        const offColor = !on && enabled ? t.Option2Label.Color : t.Option2DisabledLabelColour;
+        ModConfigMenu.#Label(T, P, t.Option1Label, t.Option1Label.Location.X, t.Option1Enabled.Size.X,
+            ModConfigMenu.#Language('Mobile.ToggleSettingOn'), onColor);
+        ModConfigMenu.#Label(T, P, t.Option2Label, t.Option2Label.Location.X, t.Option2Enabled.Size.X,
+            ModConfigMenu.#Language('Mobile.ToggleSettingOff'), offColor);
+    }
+
+    static #DrawSlider(T, S, row, title, enabled, layout, value01, draw) {
+        const t = S.SliderTemplate;
+        const st = ModConfigMenu.#State(row);
+        T.Button[ModConfigMenu.#DRAW](t.Title, null, title, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false);
+        if (!st.drag) {
+            st.drag = T.DragState.new();
+            st.drag['void .ctor()']();
+        }
+        st.value.value = value01;
+        const M = Terraria.Main;
+        const r = T.Anchor[ModConfigMenu.#GET_GRID]();
+        const onTrack = (x) => T.Slider[ModConfigMenu.#OVER_TRACK](Vector2.new(x, r.Y + r.Height / 2), layout);
+        const pad = r.Height / 2;
+        if (enabled && !ModConfigMenu.#slider && M.mouseLeft && ModConfigMenu.#pressInList
+            && !ModConfigMenu.#dragged && !ModConfigMenu.#guard && !ModConfigMenu.#Modal()
+            && M.mouseY >= r.Y && M.mouseY <= r.Y + r.Height
+            && (onTrack(M.mouseX) || onTrack(M.mouseX - pad) || onTrack(M.mouseX + pad))) ModConfigMenu.#slider = row.key;
+        const mine = ModConfigMenu.#slider === row.key;
+        const dragging = !!draw(layout, !mine, st.value, st.drag, mine && M.mouseLeft);
+        st.drag.wasDragging = dragging && mine;
+        return mine ? st.value.value : null;
+    }
+
+    static #DrawValue(T, S, text, enabled) {
+        const t = S.SliderTemplate;
+        T.String[ModConfigMenu.#TEXT](t.Value, text, enabled ? t.Value.Color : t.DisabledValueColor, false);
+    }
+
+    static #DrawRange(T, S, row, enabled) {
+        const { entry, o } = row;
+        const draw = (layout, disable, ref, drag, force) => T.Slider[ModConfigMenu.#SLIDER](layout, disable, ref, drag, null, force, -1, -1, false);
+        const v = ModConfigMenu.#DrawSlider(T, S, row, o.label, enabled, S.SliderTemplate.Option,
+            (entry.inst[o.key] - o.min) / (o.max - o.min), draw);
+        if (v !== null) ConfigLoader.Set(entry, o, o.min + v * (o.max - o.min));
+        const digits = String(o.step).includes('.') ? String(o.step).split('.')[1].length : 0;
+        ModConfigMenu.#DrawValue(T, S, entry.inst[o.key].toFixed(digits) + (o.suffix || ''), enabled);
+    }
+
+    static #DrawRadio(T, S, P, row, enabled) {
+        const { entry, o } = row;
+        const st = ModConfigMenu.#State(row);
+        const t = S.ToggleTemplate;
+        const panel = T.Panel[ModConfigMenu.#PANEL];
+        const state = Number(T.Button[ModConfigMenu.#DRAW](t.ToggleButton, null, o.label, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false));
+        const n = o.choices.length;
+        const seg = ModConfigMenu.#Segments(T, t, n);
+        if (enabled && state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
             const M = Terraria.Main;
             let picked = -1;
             for (let i = 0; i < n; i++) {
-                const c = anchorPos(xOf(i));
-                if (Math.abs(M.mouseX - c.X) <= each / 2 && Math.abs(M.mouseY - c.Y) <= a.Size.Y / 2 + 4) picked = i;
+                const c = seg.anchorPos(seg.xOf(i));
+                if (Math.abs(M.mouseX - c.X) <= seg.each / 2 && Math.abs(M.mouseY - c.Y) <= seg.height / 2 + 4) picked = i;
             }
-            if (picked < 0) picked = (o.choices.indexOf(value) + 1) % n;
+            if (picked < 0) picked = (o.choices.indexOf(entry.inst[o.key]) + 1) % n;
             ConfigLoader.Set(entry, o, o.choices[picked]);
             SoundEngine.PlaySound(ModConfigMenu.#TICK);
         }
-        // As apagadas primeiro e a escolhida por cima (ver o interruptor);
-        // os rótulos depois de todos os painéis.
         const selected = o.choices.indexOf(entry.inst[o.key]);
         const order = [...Array(n).keys()].filter((i) => i !== selected);
         if (selected >= 0) order.push(selected);
         for (const i of order) {
-            const seg = i === selected ? P.choiceOn : P.choiceOff;
-            seg.Location = Vector2.new(xOf(i), y);
-            seg.Size = Vector2.new(each - 2, a.Size.Y);
-            panel(seg, false, null, null, null);
+            const piece = i === selected && enabled ? P.choiceOn : P.choiceOff;
+            piece.Location = Vector2.new(seg.xOf(i), seg.y);
+            piece.Size = Vector2.new(seg.each - 2, seg.height);
+            panel(piece, false, null, null, null);
         }
         for (let i = 0; i < n; i++) {
-            ModConfigMenu.#Label(T, P, t.Option1Label, xOf(i), each, o.choiceLabels[i],
-                i === selected ? t.Option1Label.Color : t.Option1DisabledLabelColour, true);
+            ModConfigMenu.#Label(T, P, t.Option1Label, seg.xOf(i), seg.each, o.choiceLabels[i],
+                i === selected && enabled ? t.Option1Label.Color : t.Option1DisabledLabelColour, true);
         }
+    }
+
+    static #DrawTitle(T, S, text, enabled) {
+        const p = S.PulldownTemplate;
+        T.String[ModConfigMenu.#TEXT](p.PulldownTitle, text, enabled ? p.PulldownTitle.Color : p.DisabledPulldownLabelColour, false);
+    }
+
+    static #DrawDropdown(T, S, row, enabled) {
+        const { entry, o } = row;
+        const st = ModConfigMenu.#State(row);
+        const p = S.PulldownTemplate;
+        const open = ModConfigMenu.#popup && ModConfigMenu.#popup.row.key === row.key;
+        const value = o.choiceLabels[o.choices.indexOf(entry.inst[o.key])] || '';
+        const state = Number(T.Button[ModConfigMenu.#DRAW](p.PulldownButton, null, value, !enabled, st.scale, open, ModConfigMenu.#Focus(), false, false));
+        ModConfigMenu.#DrawTitle(T, S, o.label, enabled);
+        if (enabled && state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
+            ModConfigMenu.#popup = {
+                row,
+                rect: T.Anchor[ModConfigMenu.#GET_GRID](),
+                down: false,
+                downInside: false,
+                armed: false,
+                scales: o.choices.map(() => new Ref(1)),
+            };
+            SoundEngine.PlaySound(ModConfigMenu.#TICK);
+        }
+    }
+
+    static #DrawPopup(T, S) {
+        const pop = ModConfigMenu.#popup;
+        if (!pop) return;
+        const { entry, o } = pop.row;
+        const P = ModConfigMenu.#Parts(S);
+        const p = S.PulldownTemplate;
+        const M = Terraria.Main;
+        const panel = T.Panel[ModConfigMenu.#PANEL];
+        const batch = M.spriteBatch;
+        batch['void End()']();
+        batch[ModConfigMenu.#BEGIN](0, null, null, null, null, null, null, true);
+        T.Regions.Instance[ModConfigMenu.#REGION](ModConfigMenu.#Rect(-4000, -4000, 12000, 12000));
+        P.greyout.Location = Vector2.new(0, 0);
+        P.greyout.Size = Vector2.new(12000, 12000);
+        panel(P.greyout, false, null, null, null);
+
+        const h = p.Option1.overloadedSize.Y;
+        const step = p.Option2.Location.Y - p.Option1.Location.Y;
+        const label = p.Option1.Label;
+        const font = label ? label['SpriteFont GetFont()']() : null;
+        const widest = font ? Math.max(...o.choiceLabels.map((c) => font['Vector2 MeasureString(string text)'](c).X * label.Scale)) : 0;
+        const width = Math.min(pop.rect.Width, Math.max(p.Option1.overloadedSize.X, widest + 40));
+        const n = o.choices.length;
+        const blockH = (n - 1) * step + h;
+        const x0 = pop.rect.X + pop.rect.Width - width - 6;
+        const frame = T.Panel['Rectangle Region(Panel_Layout layout)'](S.Backing);
+        const lowest = frame.Y + frame.Height - blockH - ModConfigMenu.#POPUP_MARGIN;
+        let y0 = pop.rect.Y + pop.rect.Height + 4;
+        if (y0 > lowest) y0 = pop.rect.Y - 4 - blockH;
+        y0 = Math.max(frame.Y + ModConfigMenu.#POPUP_MARGIN, Math.min(y0, lowest));
+
+        const tl = p.PulldownBackingTLOffset, br = p.PulldownBackingBROffset;
+        const bx = x0 + tl.X, by = y0 + tl.Y, bw = width - tl.X + br.X, bh = blockH - tl.Y + br.Y;
+        P.popBacking.Location = Vector2.new(bx + bw / 2, by + bh / 2);
+        P.popBacking.Size = Vector2.new(bw, bh);
+        panel(P.popBacking, false, null, null, null);
+
+        const anchor = T.Anchor;
+        const saved = anchor[ModConfigMenu.#GET_GRID]();
+        P.option.overloadedSize = Vector2.new(width, h);
+        P.option.Location = Vector2.new(-width / 2, -h / 2);
+        const selected = o.choices.indexOf(entry.inst[o.key]);
+        let close = false;
+        try {
+            for (let i = 0; i < n; i++) {
+                anchor[ModConfigMenu.#SET_GRID](ModConfigMenu.#Rect(x0, y0 + i * step, width, h));
+                const state = Number(T.Button[ModConfigMenu.#DRAW](P.option, null, o.choiceLabels[i], false, pop.scales[i],
+                    i === selected, ModConfigMenu.#Focus(), false, false));
+                if (state === ModConfigMenu.#CLICKED && pop.armed && !ModConfigMenu.#guard) {
+                    ConfigLoader.Set(entry, o, o.choices[i]);
+                    SoundEngine.PlaySound(ModConfigMenu.#TICK);
+                    close = true;
+                }
+            }
+        } finally {
+            anchor[ModConfigMenu.#SET_GRID](saved);
+        }
+
+        const inside = M.mouseX >= bx && M.mouseX <= bx + bw && M.mouseY >= by && M.mouseY <= by + bh;
+        if (!M.mouseLeft && !pop.down) pop.armed = true;
+        if (M.mouseLeft && pop.armed) {
+            if (!pop.down) {
+                pop.down = true;
+                pop.downInside = inside;
+            }
+        } else if (pop.down) {
+            pop.down = false;
+            if (!pop.downInside) close = true;
+        }
+        if (close) {
+            ModConfigMenu.#popup = null;
+            ModConfigMenu.#Guard();
+        }
+    }
+
+    static #DrawCycle(T, S, P, row, enabled) {
+        const { entry, o } = row;
+        const st = ModConfigMenu.#State(row);
+        const index = o.choices.indexOf(entry.inst[o.key]);
+        const state = Number(T.Button[ModConfigMenu.#DRAW](S.ToggleTemplate.ToggleButton, null, o.label, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false));
+        const value = S.SliderTemplate.Value;
+        P.cycle.Location = Vector2.new(ModConfigMenu.#CYCLE_X, value.Location.Y);
+        T.String[ModConfigMenu.#TEXT](P.cycle, '<  ' + (o.choiceLabels[index] || '') + '  >', enabled ? value.Color : S.SliderTemplate.DisabledValueColor, false);
+        if (enabled && state === ModConfigMenu.#CLICKED && !ModConfigMenu.#RowBlocked()) {
+            ConfigLoader.Set(entry, o, o.choices[(index + 1) % o.choices.length]);
+            SoundEngine.PlaySound(ModConfigMenu.#TICK);
+        }
+    }
+
+    static #HexToHsl(hex) {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        const l = (max + min) / 2;
+        if (max === min) return [0, 0, l];
+        const d = max - min;
+        const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        let h;
+        if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        return [h / 6, s, l];
+    }
+
+    static #HslToHex(h, s, l) {
+        const channel = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+        };
+        let r = l, g = l, b = l;
+        if (s > 0) {
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r = channel(p, q, h + 1 / 3);
+            g = channel(p, q, h);
+            b = channel(p, q, h - 1 / 3);
+        }
+        const hex = (v) => Math.round(Math.min(1, Math.max(0, v)) * 255).toString(16).padStart(2, '0');
+        return ('#' + hex(r) + hex(g) + hex(b)).toUpperCase();
+    }
+
+    static #ColorState(row) {
+        const key = row.entry.name + '.' + row.o.key;
+        let cs = ModConfigMenu.#colorState.get(key);
+        if (!cs) ModConfigMenu.#colorState.set(key, cs = { hex: null, hsl: [0, 0, 1] });
+        const hex = row.entry.inst[row.o.key];
+        if (cs.hex !== hex) {
+            cs.hex = hex;
+            cs.hsl = ModConfigMenu.#HexToHsl(hex);
+        }
+        return cs;
+    }
+
+    static #DrawColor(T, S, P, row, enabled) {
+        const { entry, o } = row;
+        const st = ModConfigMenu.#State(row);
+        const t = S.ToggleTemplate;
+        T.Button[ModConfigMenu.#DRAW](t.ToggleButton, null, o.label, !enabled, st.scale, false, ModConfigMenu.#Focus(), false, false);
+        const hex = entry.inst[o.key];
+        const seg = ModConfigMenu.#Segments(T, t, 1);
+        P.swatch.Location = Vector2.new(seg.xOf(0), seg.y);
+        P.swatch.Size = Vector2.new(seg.each - 2, seg.height);
+        const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+        T.Panel[ModConfigMenu.#PANEL](P.swatch, false, null, null, null);
+        const box = T.Panel['Rectangle Region(Panel_Layout layout)'](P.swatch);
+        const inset = ModConfigMenu.#SWATCH_INSET;
+        Terraria.Main.spriteBatch['void Draw(Texture2D texture, Rectangle destinationRectangle, Color color)'](
+            Terraria.GameContent.TextureAssets.MagicPixel.Value,
+            ModConfigMenu.#Rect(box.X + inset, box.Y + inset, box.Width - inset * 2, box.Height - inset * 2),
+            Color.new(r, g, b, 255));
+        const value = S.SliderTemplate.Value;
+        T.String[ModConfigMenu.#TEXT](value, hex, enabled ? value.Color : S.SliderTemplate.DisabledValueColor, false);
+    }
+
+    static #DrawColorPart(T, S, row, enabled) {
+        const { entry, o } = row;
+        const t = S.SliderTemplate;
+        const M = Terraria.Main;
+        const cs = ModConfigMenu.#ColorState(row);
+        const index = { hue: 0, saturation: 1, lightness: 2 }[row.kind];
+        const title = '   ' + ModConfigMenu.#Language({ hue: 'Mobile.Hue', saturation: 'Mobile.Saturation', lightness: 'Mobile.Lightness' }[row.kind]);
+        const layout = { hue: t.HueOption, saturation: t.SaturationOption, lightness: t.LightOption }[row.kind];
+        const signature = { hue: ModConfigMenu.#SLIDER, saturation: ModConfigMenu.#SATURATION, lightness: ModConfigMenu.#LIGHTNESS }[row.kind];
+        const draw = row.kind === 'hue'
+            ? (l, disable, ref, drag, force) => T.Slider[signature](l, disable, ref, drag, null, force, -1, -1, false)
+            : (l, disable, ref, drag, force) => T.Slider[signature](l, disable, ref, drag, force);
+        const saved = [M.hBar, M.sBar, M.lBar];
+        M.hBar = cs.hsl[0];
+        M.sBar = cs.hsl[1];
+        M.lBar = cs.hsl[2];
+        let v;
+        try {
+            v = ModConfigMenu.#DrawSlider(T, S, row, title, enabled, layout, cs.hsl[index], draw);
+        } finally {
+            M.hBar = saved[0];
+            M.sBar = saved[1];
+            M.lBar = saved[2];
+        }
+        if (v !== null && v !== cs.hsl[index]) {
+            cs.hsl[index] = v;
+            cs.hex = ModConfigMenu.#HslToHex(cs.hsl[0], cs.hsl[1], cs.hsl[2]);
+            ConfigLoader.Set(entry, o, cs.hex);
+        }
+        ModConfigMenu.#DrawValue(T, S, Math.round(cs.hsl[index] * 100) + '%', enabled);
+    }
+
+    static #DrawAction(T, S, row, enabled) {
+        const { entry, o } = row;
+        const st = ModConfigMenu.#State(row);
+        const link = o.type === 'link';
+        const t = link ? S.LinkTemplate : S.UIButtonOptionTemplate;
+        const main = link ? t.LinkButton : t.Option;
+        const caption = ModConfigMenu.#Fit(t.Caption, o.text || '', t.Caption.overloadedSize.X - 16);
+        const focus = ModConfigMenu.#Focus();
+        const s1 = Number(T.Button[ModConfigMenu.#DRAW](main, null, o.label, !enabled, st.scale, false, focus, false, false));
+        const s2 = Number(T.Button[ModConfigMenu.#DRAW](t.Caption, null, caption, !enabled, st.scale2, false, focus, false, false));
+        if (!enabled || (s1 !== ModConfigMenu.#CLICKED && s2 !== ModConfigMenu.#CLICKED) || ModConfigMenu.#RowBlocked()) return;
+        SoundEngine.PlaySound(ModConfigMenu.#TICK);
+        if (link) T.Application['void OpenURL(string url)'](o.url);
+        else ConfigLoader.Run(entry, o);
     }
 }

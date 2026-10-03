@@ -1,0 +1,15 @@
+{
+  "uid": "d2a46708-2c90-4e1f-be34-237814a1e520",
+  "id": "test-itemflame",
+  "name": "Teste: chama da tocha de mod na mão",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Tochas de mod com e sem _Flame: a textura em TextureAssets.ItemFlame, e a ExampleTorch na mão no fim (para o print).",
+  "description": "Loga 'itemflame ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

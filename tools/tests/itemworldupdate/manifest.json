@@ -1,0 +1,15 @@
+{
+  "uid": "40cb1ff2-f790-4706-b0d5-7a5efe780e05",
+  "id": "test-itemworldupdate",
+  "name": "Teste: PreUpdateInWorld e PostUpdateInWorld",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um item de mod e um do jogo soltos no ar: os dois métodos recebem o Item e a WorldItem, o Pre falso pula a atualização do jogo (o item para no ar) e o Post roda igual.",
+  "description": "Loga 'itemworldupdate ...'.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

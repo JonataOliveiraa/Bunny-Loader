@@ -1,0 +1,15 @@
+{
+  "uid": "fd3e616c-7023-4a25-9348-73d87c1fbc18",
+  "id": "test-damageclass2",
+  "name": "Teste: DamageClass (parte 2)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Tooltip desenhado de arma de classe de mod, velocidade de animação, penetração no golpe corpo a corpo, herança parcial, Throwing, MeleeNoSpeed e SummonMeleeSpeed atribuídas, classe sem crítico e os itens portados do Example Mod.",
+  "description": "Loga 'damageclass2 ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

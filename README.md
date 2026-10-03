@@ -12,7 +12,12 @@ IL2CPP e roda mods escritos em **JavaScript**, no formato do tModLoader
 - Mods em JavaScript (motor [QuickJS](https://github.com/quickjs-ng/quickjs),
   sem JIT), com acesso direto às classes do jogo e `hook()` em qualquer método.
 - Conteúdo novo como no tModLoader: itens, armas, projéteis, pets, lacaios,
-  inimigos, moradores com loja, chefes com música, blocos, buffs, receitas.
+  inimigos, moradores com loja, chefes com música, blocos, paredes, buffs,
+  receitas.
+- Classes de dano (`DamageClass`): armas de "corpo a corpo", "mágica" ou de uma
+  classe nova do mod (um ladino, um bardo), com bônus de dano, crítico,
+  velocidade, penetração e repulsão por classe, herança entre classes e o nome
+  dela no tooltip.
 - Save limpo: o conteúdo de mod vai ao lado do save do jogo, pelo nome, e o
   mundo abre sem o mod.
 - Mod Menu dentro do jogo: itens e NPCs de cada mod, e superpoderes.
@@ -56,6 +61,8 @@ Tudo em [`docs/`](docs/README.md):
       changelog em Markdown, licença e autores com fotos em `authors/`.
   14. [Opções do mod](docs/mods/14-opcoes-do-mod.md): o `ModConfig` e a tela
       "Config. dos Mods" do menu de pausa.
+  15. [Classes de dano](docs/mods/15-classes-de-dano.md): o `DamageClass`, os
+      bônus por classe no jogador e as classes novas.
 - **Referência**: [o que cada classe tem hoje](docs/referencia/classes.md) e
   [a ponte e o `bl`](docs/referencia/ponte-e-bl.md).
 - **[O núcleo nativo](docs/nucleo/README.md)**, para quem mexe no Bunny

@@ -40,6 +40,7 @@ que outras estendem); o `register` de cada uma
 | [`ModAchievement`](#modachievement) | Conquista nova. | — |
 | [`ModRarity`](#modrarity) | Raridade nova (a cor do nome do item). | [5](../mods/05-itens.md#raridade-de-mod) |
 | [`ModTile`](#modtile) | Bloco novo, ou móvel com `TileObjectData`. | [9](../mods/09-blocos.md) |
+| [`ModWall`](#modwall) | Parede nova. | [9](../mods/09-blocos.md#paredes-modwall) |
 | [`GlobalItem`, `GlobalNPC`, `GlobalProjectile`](#globalitem-globalnpc-e-globalprojectile) | Mexer nos itens, NPCs e projéteis do jogo. | [12](../mods/12-globais-e-mundo.md) |
 | [`GlobalLoot`](#globalloot) | Drops que valem para todo NPC. | [12](../mods/12-globais-e-mundo.md#drops) |
 | [`ModSystem`](#modsystem) | O que é do mod inteiro; o ciclo do mundo e os dados salvos nele. | [12](../mods/12-globais-e-mundo.md#modsystem-o-mundo) |
@@ -129,7 +130,8 @@ própria instância, com `this.Item` apontando para ele.
 | `UpdateVanity(item, player)` | Acessório no slot de vaidade. | `Player.ApplyEquipVanity` |
 | `Load()` | No registro (o `AddEquipTexture` vai aqui). | registro |
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. | `Player.UpdateEquips`, sem filtro (percorre só os itens de mod do jogador) |
-| `GetAlpha(item, lightColor)` | No chão: devolva a `Color` do desenho. | `WorldItem.GetAlpha`, sem filtro |
+| `GetAlpha(item, lightColor)` | Devolva a `Color` do desenho. No chão o `item` é a `WorldItem` (com `Center`); no inventário, o `Item`, sem posição. | `Item.GetAlpha`, filtro `tipo` |
+| `PostUpdate(item)` | A cada quadro, com o item no chão (`item` é a `WorldItem`). Luz, poeira. | `WorldItem.UpdateItem`, filtro `inner.type` |
 | `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara na mão, a cada boia: de onde a linha sai e a cor (dois `Ref`). | `Main.DrawProj_FishingLine`, sem filtro |
 | `MeleePrefix(item)`, `WeaponPrefix(item)`, `RangedPrefix(item)`, `MagicPrefix(item)`, `SummonPrefix(item)` | As categorias de prefixo do item (padrão: `melee` sem `noUseGraphic`, `melee` com, `ranged`, `magic`, `summon`). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | `Item.GetRollablePrefixes`, sem filtro |
 | `ChoosePrefix(item, rand)` | Um prefixo forçado ao rolar (> 0), ou -1. | `Item.RollAPrefix`, sem filtro |
@@ -444,7 +446,7 @@ quadro, o que é barato.
 
 | | |
 |---|---|
-| `player.GetModPlayer(Classe)` ou `player.GetModPlayer('Classe')` | A instância daquele jogador. |
+| `player.GetModPlayer(Classe)`, `GetModPlayer('Classe')` ou `GetModPlayer('mod/Classe')` | A instância daquele jogador. Pelo nome: a do seu mod; se o nome é de outro mod e mais de um mod o tem, `undefined` e aviso no log. Dois mods podem ter `ModPlayer` com o mesmo nome. |
 | `Classe.get(player)` | O mesmo. |
 | `ModPlayer.getByName('Classe')` | A do jogador **local** (para interface). |
 | `ModPlayer.register(Classe)` | Registra. |
@@ -725,6 +727,28 @@ cada móvel do Example Mod usa, está no [guia 9](../mods/09-blocos.md).
 `ModWall`, `ModTree`/`ModPalmTree`/`ModCactus`, `ModPylon`, o balanço ao vento
 (`MultiTileVine`), `ModifyFrameMerge`/`PostTileFrame`, `SwitchTiles`,
 `HasSmartInteract`, `GetTorchLuck`; NPC da vila não abre porta de mod.
+
+---
+
+## ModWall
+
+A parede nova. Ver o [guia 9](../mods/09-blocos.md#paredes-modwall).
+
+| | | |
+|---|---|---|
+| `Type`, `DustType`, `HitSound`, `ItemDrop` | Campos. Sem `ItemDrop`, o item de mod com `createWall` igual ao tipo. | |
+| `SetStaticDefaults()` | Com o tipo já nas tabelas (`Main.wallHouse`, `WallID.Sets`). | na instalação |
+| `KillWall(i, j, fail)`, `NumDust(i, j, fail, num)` | Ao bater ou quebrar (`fail`, `num`: `Ref`). | `WorldGen.KillWall`, filtro pela parede em `(i, j)` |
+| `CreateDust(i, j, type)` | Cada poeira. | `WorldGen.KillWall_MakeWallDust` |
+| `KillSound(i, j, fail)` | `false` cala. | `WorldGen.KillWall_PlaySounds` |
+| `Drop(i, j, type)` | O item que cai; `false` nada. | `WorldGen.KillWall_DropItems`/`_GetItemDrops` |
+| `ModifyLight(i, j, r, g, b)` | A luz da parede (`Ref`), perto da tela. | `Lighting.LightTiles` + `Lighting.AddLight`, marca `wall.light` |
+| `AnimateWall(frame, frameCounter)` | O quadro (`Main.wallFrame`), por tipo, a cada quadro. | `Main.DoUpdate_AnimateWalls` |
+| `RandomUpdate(i, j)` | Atualização aleatória. | `WorldGen.UpdateWorld_*Tile`, filtro pela parede, marca `wall.random` |
+| `AddMapEntry(cor, nome)` | A cor e o nome no mapa. | `MapHelper.wallLookup` |
+| `WallFrame(i, j, randomizeFrame, style, frameNumber)` | O quadro da moldura; `false` mantém o anterior. | `Framing.WallFrame`, filtro pela parede, marca `wall.frame` |
+| `ModWall.isModType`, `getTypeByName`, `getModWall` | Como no tile. | |
+| `item.DefaultToPlaceableWall(tipo)` (`ModItem`) | O item que coloca a parede. | |
 
 ---
 
@@ -1170,6 +1194,7 @@ No `ModNPC` e no `ModProjectile`: `SendExtraAI(writer)` e
 | `dataDirectory` | `Android/data/com.bunnyloader/mod_data/<uid>`. |
 | `Load()` | Na carga, depois do registro do conteúdo. |
 | `AddRecipeGroups()`, `AddRecipes()`, `PostSetupContent()` | Como no `ModSystem`. |
+| `GetContent(Base)` | Os modelos deste mod que estendem `Base`, na ordem do registro: `this.GetContent(ModItem).map((i) => i.Type)` dá os tipos de todos os itens. Não vale para `ModPlayer` (um por jogador: `player.GetModPlayer`). |
 | `Call(...args)` | Quando outro mod chama. |
 | `export default class X extends Mod` | Obrigatória, no arquivo de entrada; uma por pacote. O Bunny Loader a cria (é o `bl.mod` do pacote). |
 
@@ -1193,6 +1218,7 @@ mod, pela **classe**, pelo **nome** ou por `'mod/Nome'`.
 |---|---|
 | `ItemType(x)`, `ProjectileType(x)`, `NPCType(x)`, `BuffType(x)`, `TileType(x)`, `PrefixType(x)`, `MountType(x)`, `RarityType(x)` | O tipo. `x` é a classe, o nome (`'ExampleBobber'`) ou `'outromod/Nome'`. Não achou: 0. |
 | `GetInstance(Classe)` | O modelo (a instância do `register`). |
+| `GetContent(Base)` | Os modelos de todos os mods que estendem `Base` (`ModItem`, `ModNPC`, `ModBuff`, `ModSystem`...), na ordem do registro. |
 | `Find(ModItem, 'mod/Nome')` | O modelo pelo nome; lança se não há. |
 | `TryFind(ModItem, 'mod/Nome', ref)` | O mesmo, no `ref.value`; devolve `true`/`false`. |
 | `GetModItem(tipo)`, `GetModProjectile(tipo)`, `GetModNPC(tipo)`, `GetModBuff(tipo)`, `GetModTile(tipo)`, `GetModPrefix(tipo)`, `GetModMount(tipo)`, `GetModRarity(tipo)` | O modelo pelo tipo. |

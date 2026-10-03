@@ -100,8 +100,10 @@ class ModProjectile {
             displayName: inst.DisplayName || Lang.Localized('ProjectileName', name) || name,
             setDefaults(proj) {
                 const m = Entities.Bind(inst.Clone(proj), proj, 'ModProjectile');
-                m.SetDefaults(proj);
-                m.PostSetDefaults(proj);
+                DamageClassLoader.Defaulting(proj, () => {
+                    m.SetDefaults(proj);
+                    m.PostSetDefaults(proj);
+                });
             },
             setStaticDefaults(t) {
                 // O molde do tModLoader: um projétil com o SetDefaults do mod,

@@ -31,7 +31,8 @@ class ModPlayer {
     FrameEffects(player) {}
 
     CanUseItem(player, item) { return true; }
-    ModifyWeaponDamage(player, item, damage) { this.WeaponDamage = damage; }
+    // damage vale como número (devolva o novo) e como StatModifier (damage.Additive += 0.1).
+    ModifyWeaponDamage(player, item, damage) {}
 
     ImmuneTo(player, damageSource, cooldownCounter, dodgeable) { return false; }
     FreeDodge(player, damageSource, damage, hitDirection, pvp, quiet, crit, cooldownCounter, dodgeable) { return false; }
@@ -48,29 +49,23 @@ class ModPlayer {
     SaveData(data) {}
     LoadData(data) {}
 
-    // ExampleDashPlayer.get(player)
     static get(player) {
-        return PlayerLoader.Of(player)[this.name];
+        return PlayerLoader.Of(player).get(this);
     }
 
-    // A instância do jogador local.
     static getByName(name) {
-        return PlayerLoader.Of(Terraria.Main.player[Terraria.Main.myPlayer])[name];
+        return PlayerLoader.Find(Terraria.Main.player[Terraria.Main.myPlayer], name);
     }
 
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModPlayer)) {
             throw new TypeError('ModPlayer.register(Classe): passe a classe, que estende ModPlayer');
         }
-        if (PlayerLoader.Classes.some((c) => c.name === cls.name)) {
-            throw new TypeError('ModPlayer.register: ja existe um ModPlayer chamado ' + cls.name);
-        }
 
         Hooks.Once('player.fields', () => {
             Entities.Define(Terraria.Player, 'ModPlayers');
             bl.defineMethod(Terraria.Player, 'GetModPlayer', function (which) {
-                const name = typeof which === 'string' ? which : which && which.name;
-                return PlayerLoader.Of(this)[name];
+                return PlayerLoader.Find(this, which);
             });
         });
 

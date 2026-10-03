@@ -46,6 +46,8 @@ ordem de leitura.
   segurados pelo coletor.
 - [Conteúdo novo por dentro](nucleo/conteudo.md): tabelas por tipo, limites
   compilados, saves.
+- [Pesquisa de shaders](nucleo/pesquisa-shaders.md): base interna de investigação,
+  com evidências, limitações e próximos experimentos; suporte ainda não validado.
 
 [**Histórico**](historico/README.md): as decisões de arquitetura, as
 investigações de crash e as rodadas de otimização, com os dados medidos.

@@ -4,3 +4,4 @@ const FIRST_PROJECTILE = bl.projectiles.vanillaCount;
 const FIRST_NPC = bl.npcs.vanillaCount;
 const FIRST_BUFF = bl.buffs.vanillaCount;
 const FIRST_TILE = bl.tiles.vanillaCount;
+const FIRST_WALL = bl.walls.vanillaCount;

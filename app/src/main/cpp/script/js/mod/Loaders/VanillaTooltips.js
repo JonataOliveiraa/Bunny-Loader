@@ -61,38 +61,61 @@ class VanillaTooltips {
 
         if (item.social && !item.vanity && !item.hasVanityEffects) add('NoSocial', Lang.tip[61].Value);
 
-        // Armas
+        // Armas. A classe de dano dá o texto ("X dano de exemplo") e esconde
+        // linhas (o ShowStatTooltipLine do tModLoader); a de gancho tem o
+        // crítico dela.
         if (item.damage > 0 && (!item.notAmmo || item.useStyle !== 0) &&
             (item.type < 71 || item.type > 74 || me['bool HasItem(int type)'](905))) {
-            let damage = (item.damage * ItemID.Sets.ToolTipDamageMultiplier[item.type]) | 0;
-            if (ItemID.Sets.RapidAttackBonusDamage[item.type]) damage = me.ApplyRapidAttackBonus(damage, item.type, false);
-            let value = Math.trunc(me.GetWeaponDamageMultiplier(item) * damage + 5e-6).toString();
-            if (item.melee) value += Lang.tip[2].Value;
-            else if (item.ranged) value += Lang.tip[3].Value;
-            else if (item.magic) value += Lang.tip[4].Value;
-            else if (item.summon) value += Lang.tip[53].Value;
-            else value += Lang.tip[55].Value;
-            add('Damage', value);
+            const cls = DamageClassLoader.ItemClass(item);
+            const hooked = DamageClassLoader.IsHooked(cls);
+            const show = (line) => Safe.Run(DamageClassLoader.NameOf(cls) + '.ShowStatTooltipLine',
+                () => cls.ShowStatTooltipLine(me, line)) !== false;
+
+            if (show('Damage')) {
+                let damage = (item.damage * ItemID.Sets.ToolTipDamageMultiplier[item.type]) | 0;
+                if (ItemID.Sets.RapidAttackBonusDamage[item.type]) damage = me.ApplyRapidAttackBonus(damage, item.type, false);
+                let value = Math.trunc(me.GetWeaponDamageMultiplier(item) * damage + 5e-6).toString();
+                if (hooked) value += (cls.IsVanilla ? '' : ' ') + cls.DisplayName.Value;
+                else if (item.melee) value += Lang.tip[2].Value;
+                else if (item.ranged) value += Lang.tip[3].Value;
+                else if (item.magic) value += Lang.tip[4].Value;
+                else if (item.summon) value += Lang.tip[53].Value;
+                else value += Lang.tip[55].Value;
+                add('Damage', value);
+            }
 
             const selectedCrit = me.inventory[me.selectedItem].crit;
             let crit = null;
-            if (item.melee) crit = me.meleeCrit - selectedCrit + item.GetVisualCritChance(me);
+            if (hooked) {
+                if (DamageClassLoader.UsesCrit(cls)) {
+                    const c = Math.round(DamageClassLoader.Total(me, cls).crit) + item.GetVisualCritChance(me);
+                    if (c > 0) crit = c;
+                }
+            } else if (item.melee) crit = me.meleeCrit - selectedCrit + item.GetVisualCritChance(me);
             else if (item.ranged) crit = me.rangedCrit - selectedCrit + item.GetVisualCritChance(me);
             else if (item.magic) crit = me.magicCrit - selectedCrit + item.GetVisualCritChance(me);
-            if (crit !== null) add('CritChance', crit + Lang.tip[5].Value);
+            if (crit !== null && show('CritChance')) add('CritChance', crit + Lang.tip[5].Value);
 
-            if (item.useStyle !== 0 && (!item.summon || (item.shoot >= 0 && ProjectileID.Sets.IsAWhip[item.shoot]))) {
+            const speedLine = hooked || !item.summon || (item.shoot >= 0 && ProjectileID.Sets.IsAWhip[item.shoot]);
+            if (item.useStyle !== 0 && speedLine && show('Speed')) {
                 const a = item.useAnimation;
                 const tip = a <= 8 ? 6 : a <= 20 ? 7 : a <= 25 ? 8 : a <= 30 ? 9 : a <= 35 ? 10 : a <= 45 ? 11 : a <= 55 ? 12 : 13;
                 add('Speed', Lang.tip[tip].Value);
             }
 
-            let kb = item.knockBack;
-            if (item.summon) kb += me.minionKB;
-            if ((me.magicQuiver && item.useAmmo === AmmoID.Arrow) || item.useAmmo === AmmoID.Stake) kb = (kb * 1.1) | 0;
-            if (me.inventory[me.selectedItem].type === 3106 && item.type === 3106) kb += kb * (1 - me.stealth);
-            const tip = kb === 0 ? 14 : kb <= 1.5 ? 15 : kb <= 3 ? 16 : kb <= 4 ? 17 : kb <= 6 ? 18 : kb <= 7 ? 19 : kb <= 9 ? 20 : kb <= 11 ? 21 : 22;
-            add('Knockback', Lang.tip[tip].Value);
+            if (show('Knockback')) {
+                let kb = item.knockBack;
+                if (item.summon) kb += me.minionKB;
+                if ((me.magicQuiver && item.useAmmo === AmmoID.Arrow) || item.useAmmo === AmmoID.Stake) kb = (kb * 1.1) | 0;
+                if (me.inventory[me.selectedItem].type === 3106 && item.type === 3106) kb += kb * (1 - me.stealth);
+                // A repulsão da classe, só se algum mod mexe em classes (senão nem há dados).
+                if (me.__damageClassData) {
+                    const km = DamageClassLoader.Total(me, cls).knockback;
+                    if (!km.Equals(StatModifier.Default)) kb = km.ApplyTo(kb);
+                }
+                const tip = kb === 0 ? 14 : kb <= 1.5 ? 15 : kb <= 3 ? 16 : kb <= 4 ? 17 : kb <= 6 ? 18 : kb <= 7 ? 19 : kb <= 9 ? 20 : kb <= 11 ? 21 : 22;
+                add('Knockback', Lang.tip[tip].Value);
+            }
         }
 
         // Pesca e isca

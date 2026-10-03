@@ -136,6 +136,12 @@ class ModItem {
     ApplyPrefix(item, pre) {}
 
     GetAlpha(item, lightColor) { return undefined; }
+    PostUpdate(item) {}
+    // O item no chão, todo quadro: item é o Item, worldItem a WorldItem que o
+    // leva (position, velocity, Center). false no Pre pula a atualização do
+    // jogo naquele quadro (o Post roda igual).
+    PreUpdateInWorld(item, worldItem) { return true; }
+    PostUpdateInWorld(item, worldItem) {}
     // ModifyFishingLine(item, bobber, line) também vale (line.lineOriginOffset, line.lineColor).
     ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {}
 
@@ -188,6 +194,11 @@ class ModItem {
         item.useTurn = true;
         item.autoReuse = true;
         item.consumable = true;
+    }
+
+    DefaultToPlaceableWall(wallToPlace) {
+        this.Item['void DefaultToPlaceableWall(ushort wallToPlace)'](wallToPlace);
+        this.Item.createWall = wallToPlace;
     }
 
     // A tocha do jogo (segurar, luz, colocar na parede), colocando o tile de mod.
@@ -274,6 +285,8 @@ class ModItem {
         const type = bl.items.register({
             name,
             texture: ModFiles.Texture(inst.Texture),
+            // A chama na mão (flame = true, as tochas), como o `_Flame` do tModLoader.
+            flame: ModFiles.Texture(inst.Texture + '_Flame'),
             displayName: inst.DisplayName || Lang.Localized('ItemName', name) || name,
             setDefaults(item) {
                 EquipLoader.Install();
@@ -283,8 +296,10 @@ class ModItem {
                 item.material = Terraria.ID.ItemID.Sets.IsAMaterial[inst.Type];
 
                 const m = Entities.Bind(inst.Clone(item), item, 'ModItem');
-                m.SetDefaults(item);
-                m.PostSetDefaults(item);
+                DamageClassLoader.Defaulting(item, () => {
+                    m.SetDefaults(item);
+                    m.PostSetDefaults(item);
+                });
             },
             setStaticDefaults() {
                 EquipLoader.Install();

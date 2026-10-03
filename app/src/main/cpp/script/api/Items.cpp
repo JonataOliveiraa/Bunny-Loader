@@ -151,6 +151,12 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
         return JS_ThrowReferenceError(ctx, "bl.items.register(%s): textura nao existe: %s",
                                       d.name.c_str(), d.texture.c_str());
     }
+    // A chama na mao: opcional, como no tModLoader.
+    const std::string flame = stringProp(ctx, def, "flame");
+    if (!flame.empty()) {
+        const std::string path = resolveModPath(ctx, flame);
+        if (fileExists(path)) d.flameTexture = path;
+    }
 
     // displayName: texto, ou { 'pt-BR': ..., 'en-US': ... }.
     JSValue dn = JS_GetPropertyStr(ctx, def, "displayName");

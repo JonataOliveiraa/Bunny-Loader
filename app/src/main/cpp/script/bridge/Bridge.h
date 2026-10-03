@@ -58,6 +58,8 @@ struct HookFilter {
     // `tileAtI`/`tileAtJ`, os indices dos parametros int da posicao.
     int tileParam = -1;
     int tileAtI = -1, tileAtJ = -1;
+    // `wall: true`: o tipo lido em tileParam/tileAtI/J e o da PAREDE (> 0), nao o do tile.
+    bool wallMode = false;
     // `arg`: o indice de um parametro int que JA e o tipo (o `ushort typeCache`
     // do desenho). Mesmo minType.
     int argParam = -1;

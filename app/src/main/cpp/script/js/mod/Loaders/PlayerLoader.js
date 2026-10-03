@@ -4,40 +4,67 @@ class PlayerLoader {
     static Classes = [];
 
     static #keys = new Map();         // Classe -> '<uid>/<Classe>', a chave dos dados salvos
+    static #owners = new Map();
     static #overriders = new Map();
 
     static Add(cls) {
+        const mod = bl.mod || null;
+        const key = (mod ? mod.uuid : 'sem-mod') + '/' + cls.name;
+        for (const other of PlayerLoader.Classes) {
+            if (PlayerLoader.#keys.get(other) === key) throw new TypeError('ModPlayer.register: este mod ja tem um ModPlayer chamado ' + cls.name);
+        }
         PlayerLoader.Classes.push(cls);
-        PlayerLoader.#keys.set(cls.name, (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + cls.name);
+        PlayerLoader.#keys.set(cls, key);
+        PlayerLoader.#owners.set(cls, mod);
         PlayerLoader.#overriders.clear();
     }
 
     static Of(player) {
         let all = player.ModPlayers;
         const classes = PlayerLoader.Classes;
-        if (all !== undefined && all.__count === classes.length) return all;
+        if (all !== undefined && all.size === classes.length) return all;
 
         const fresh = all === undefined;
-        if (fresh) {
-            all = Object.create(null);
-            Object.defineProperty(all, '__count', { value: 0, writable: true });
-        }
+        if (fresh) all = new Map();
 
         const address = bl.addressOf(player);
         const created = [];
         for (const cls of classes) {
-            if (all[cls.name]) continue;
+            if (all.has(cls)) continue;
 
             const inst = new cls();
             inst.__entity = address;
-            all[cls.name] = inst;
+            all.set(cls, inst);
             created.push(inst);
         }
-        all.__count = classes.length;
 
         if (fresh) player.ModPlayers = all;
         for (const inst of created) Safe.Run(inst.constructor.name + '.Initialize', () => inst.Initialize());
         return all;
+    }
+
+    static Find(player, which) {
+        const all = PlayerLoader.Of(player);
+        if (typeof which === 'function') return all.get(which);
+
+        const name = String(which);
+        const slash = name.lastIndexOf('/');
+        if (slash > 0) {
+            const mod = ModRegistry.Find(name.slice(0, slash), 'GetModPlayer');
+            const wanted = name.slice(slash + 1);
+            const cls = mod && PlayerLoader.Classes.find((c) => c.name === wanted && PlayerLoader.#owners.get(c) === mod);
+            return cls ? all.get(cls) : undefined;
+        }
+
+        const named = PlayerLoader.Classes.filter((c) => c.name === name);
+        if (named.length === 1) return all.get(named[0]);
+        if (named.length === 0) return undefined;
+
+        const caller = bl.mod;
+        const own = caller && named.find((c) => PlayerLoader.#owners.get(c) === caller);
+        if (own) return all.get(own);
+        Safe.Once('GetModPlayer:' + name, "GetModPlayer: '" + name + "' existe em " + named.length + " mods; peca pela classe ou por 'mod/" + name + "'");
+        return undefined;
     }
 
     static Each(player, method, fn) {
@@ -46,7 +73,7 @@ class PlayerLoader {
 
         const all = PlayerLoader.Of(player);
         for (const cls of list) {
-            const inst = all[cls.name];
+            const inst = all.get(cls);
             Safe.Run(cls.name + '.' + method, () => fn(inst));
         }
     }
@@ -84,9 +111,9 @@ class PlayerLoader {
             for (const cls of PlayerLoader.Classes) {
                 if (!Hooks.Overrides(cls, ModPlayer, 'SaveData')) continue;
 
-                const key = PlayerLoader.#keys.get(cls.name);
+                const key = PlayerLoader.#keys.get(cls);
                 const data = new TagCompound();
-                Safe.Run(cls.name + '.SaveData', () => mine[cls.name].SaveData(data));
+                Safe.Run(cls.name + '.SaveData', () => mine.get(cls).SaveData(data));
 
                 if (Object.keys(data).length) all[key] = data;
                 else delete all[key];
@@ -112,8 +139,8 @@ class PlayerLoader {
             const all = PlayerLoader.#ReadData(file);
             const mine = PlayerLoader.Classes.length ? PlayerLoader.Of(player) : null;
             for (const cls of PlayerLoader.Classes) {
-                const data = all[PlayerLoader.#keys.get(cls.name)];
-                if (data !== undefined) Safe.Run(cls.name + '.LoadData', () => mine[cls.name].LoadData(TagCompound.from(data)));
+                const data = all[PlayerLoader.#keys.get(cls)];
+                if (data !== undefined) Safe.Run(cls.name + '.LoadData', () => mine.get(cls).LoadData(TagCompound.from(data)));
             }
             for (const [key, extra] of PlayerLoader.#extras) {
                 if (all[key] !== undefined) Safe.Run('carregar ' + key, () => extra.load(player, all[key]));
@@ -229,11 +256,15 @@ class PlayerLoader {
             P['int GetWeaponDamage(Item sItem)'].hook((original, self, item) => {
                 let damage = original(self, item);
 
+                // `damage` vale como número (devolva o dano novo) e como
+                // StatModifier (damage.Additive += 0.1, o do tModLoader).
                 each(self, 'ModifyWeaponDamage', (m) => {
                     m.WeaponDamage = damage;
-                    const r = m.ModifyWeaponDamage(self, item, damage);
+                    const modifier = StatModifier.ForValue(damage);
+                    const r = m.ModifyWeaponDamage(self, item, modifier);
                     if (typeof r === 'number') damage = r;
-                    else if (typeof m.WeaponDamage === 'number') damage = m.WeaponDamage;
+                    else if (m.WeaponDamage !== damage && typeof m.WeaponDamage === 'number') damage = m.WeaponDamage;
+                    else damage = modifier.ApplyTo(damage);
                 });
                 return Math.floor(damage);
             });

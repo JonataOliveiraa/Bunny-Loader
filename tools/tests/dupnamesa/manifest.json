@@ -1,0 +1,18 @@
+{
+  "uid": "d1a2b3c4-0001-4e5f-8a9b-0c1d2e3f4a01",
+  "id": "test-dupnames-a",
+  "name": "Teste: nomes repetidos (A)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Dois mods com ModPlayer e ModItem da mesma classe (Abc): registro, busca por nome, por 'mod/Nome' e save separados.",
+  "description": "Loga 'dupnames ...'.",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

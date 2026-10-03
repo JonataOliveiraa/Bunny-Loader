@@ -1,0 +1,15 @@
+{
+  "uid": "9cb29ec0-6c25-42f3-b174-d8089944e9a3",
+  "id": "bench-noenemies",
+  "name": "Bancada: sem inimigos",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Some com os inimigos que causam dano (os que os testes criam com dano 0 ficam): o mundo de teste tem monstros que matam o personagem no meio dos testes.",
+  "description": "Auxiliar do tools/bench/run.sh.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

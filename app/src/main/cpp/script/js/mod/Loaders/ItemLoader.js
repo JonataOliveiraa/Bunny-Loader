@@ -383,6 +383,30 @@ class ItemLoader {
             }, { minType: FIRST_ITEM, on: -1, marks: 'item.GetAlpha' });
         });
 
+        if (has('PostUpdate')) bl.hookMarks.set('item.PostUpdate', type);
+        if (has('PostUpdate')) Hooks.Once('item.PostUpdate', () => {
+            Terraria.WorldItem['void UpdateItem(int i)'].hook((original, self, i) => {
+                original(self, i);
+                const m = self.active ? of(self.inner) : undefined;
+                if (!m || !Hooks.Overrides(m.constructor, ModItem, 'PostUpdate')) return;
+                Safe.Run(m.constructor.name + '.PostUpdate', () => m.PostUpdate(self));
+            }, { minType: FIRST_ITEM, on: -1, field: 'inner.type', marks: 'item.PostUpdate' });
+        });
+
+        // O item no chão: o filtro nativo pelo tipo do Item de dentro (inner.type).
+        if (has('PreUpdateInWorld') || has('PostUpdateInWorld')) bl.hookMarks.set('item.UpdateInWorld', type);
+        if (has('PreUpdateInWorld') || has('PostUpdateInWorld')) Hooks.Once('item.UpdateInWorld', () => {
+            Terraria.WorldItem['void UpdateItem(int i)'].hook((original, world, i) => {
+                const item = world.inner;
+                const m = world.active ? of(item) : undefined;
+                if (!m) return original(world, i);
+
+                const n = m.constructor.name;
+                if (Safe.Run(n + '.PreUpdateInWorld', () => m.PreUpdateInWorld(item, world)) !== false) original(world, i);
+                if (world.active) Safe.Run(n + '.PostUpdateInWorld', () => m.PostUpdateInWorld(item, world));
+            }, { minType: FIRST_ITEM, on: -1, field: 'inner.type', marks: 'item.UpdateInWorld' });
+        });
+
         if (['ModifyTooltips', 'PreDrawTooltip', 'PostDrawTooltip', 'PreDrawTooltipLine', 'PostDrawTooltipLine'].some(has)) {
             Hooks.Once('item.Tooltips', TooltipLoader.Install);
         }

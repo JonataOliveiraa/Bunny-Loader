@@ -34,6 +34,9 @@ struct ModItemDef {
     // Ou o PNG em memoria (itens do proprio loader, como o "?"): tem precedencia.
     const unsigned char* textureData = nullptr;
     size_t textureSize = 0;
+    // A chama desenhada por cima do item na mao (flame = true, as tochas): o
+    // `_Flame` do tModLoader. Vazio = transparente.
+    std::string flameTexture;
     /** Nome por cultura ("pt-BR" -> "Espada"), UTF-8. "" = serve para qualquer uma. */
     std::vector<std::pair<std::string, std::string>> names;
     /** Tooltip por cultura, linhas separadas por '\n'. Vazio = sem tooltip. */

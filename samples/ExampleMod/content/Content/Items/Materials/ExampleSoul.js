@@ -18,9 +18,12 @@ export class ExampleSoul extends ModItem {
         this.Item.maxStack = ModItem.CommonMaxStack;
     }
 
-    GetAlpha(item) {
+    PostUpdate(item) {
         const glow = 0.45 * Main.essScale;
         AddLight(item.Center, 0.53 * glow, 0.81 * glow, 0.92 * glow);
-        return Color.White;
+    }
+
+    GetAlpha(item, lightColor) {
+        return Color.new(255, 255, 255, 50);
     }
 }

@@ -54,6 +54,7 @@ set(BL_MOD_CLASSES_PARTS
     Enums/CommandType
     Mod ModLoader
     Loaders/LocalizationLoader ModLocalization
+    StatModifier StatInheritanceData DamageClass Loaders/DamageClassLoader
     Loaders/RecipeLoader ModRecipe
     Loaders/ItemLoader Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
     Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
@@ -72,6 +73,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/EmoteBubbleLoader ModEmoteBubble Loaders/AchievementLoader ModAchievement Loaders/AnglerQuestLoader
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
     ModTile TileRestingInfo
+    Loaders/WallLoader ModWall
     Loaders/ProjectileLoader ModProjectile
     NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC
     NPCHappiness NPCShop Loaders/TownNPCLoader

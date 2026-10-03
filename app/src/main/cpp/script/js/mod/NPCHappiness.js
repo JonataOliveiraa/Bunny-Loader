@@ -1,5 +1,3 @@
-// Gostos do morador no banco de personalidades do próprio jogo: ele calcula
-// felicidade e preço com eles.
 class NPCHappiness {
     constructor(npcType) {
         this.NpcType = npcType;
@@ -15,10 +13,6 @@ class NPCHappiness {
         return this;
     }
 
-    // Do jogo: 'Forest', 'Desert', 'Snow', 'Jungle', 'Ocean', 'Underground',
-    // 'Hallow', 'Mushroom', 'Dungeon', 'Corruption', 'Crimson'. De mod: a
-    // classe do ModBiome, a instância ou o Type (como o
-    // SetBiomeAffection<ModBiome> do tModLoader).
     SetBiomeAffection(biome, level) {
         const P = Terraria.GameContent.Personalities;
         let shopping;

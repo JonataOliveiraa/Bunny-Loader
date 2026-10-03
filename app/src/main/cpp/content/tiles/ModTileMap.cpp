@@ -1,5 +1,6 @@
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/ModTiles.h"
+#include "content/walls/ModWalls.h"
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "core/Log.h"
@@ -22,6 +23,7 @@ namespace {
 
 constexpr const char* kSuffix = ".bl";   // <mapa>.map.bl
 constexpr const char* kHeader = "bunny-map 1";
+constexpr const char* kWallKeyPrefix = "wall:";
 constexpr int kChunkShift = 6;           // WorldMapChunk.MapChunkSize = 64
 constexpr int kChunkSize = 1 << kChunkShift;
 constexpr int kChunkCells = kChunkSize * kChunkSize;
@@ -42,12 +44,15 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<std::vector<Entry>> g_entries;   // indice = tipo - kVanillaTileCount
+std::vector<std::vector<Entry>> g_wallEntries;
 std::atomic<bool> g_dirty{false};
 // Onde as entradas dos mods comecam; 0 = ainda nao aplicadas.
 std::atomic<uint16_t> g_modPosition{0};
 std::vector<int32_t> g_indexType;    // indice - modPosition -> tipo
 std::vector<uint8_t> g_indexOption;  // indice - modPosition -> opcao
 std::vector<int32_t> g_typeBase;     // tipo - kVanillaTileCount -> primeiro indice (0 = sem entrada)
+std::vector<uint8_t> g_indexWall;
+std::vector<int32_t> g_wallBase;
 // Os arrays que ja sao nossos: outro no lugar = o jogo refez. So comparados.
 Il2CppArray* g_colorsOurs = nullptr;
 Il2CppArray* g_legendOurs = nullptr;
@@ -72,6 +77,7 @@ std::vector<KeptCell> g_kept;   // do mundo aberto (sob g_mx)
 struct Refs {
     bool tried = false, ok = false, saveOk = false;
     FieldInfo *lookup = nullptr, *options = nullptr, *colors = nullptr, *hell = nullptr, *legend = nullptr;
+    FieldInfo *wallLookup = nullptr, *wallOptions = nullptr;
     // O _mapLegendCache e um MapLegend (o LocalizedText[] fica dentro dele),
     // e nao o array: -1 aqui = o campo ja e o array.
     int32_t legendArray = -1, legendLength = -1;
@@ -147,6 +153,8 @@ Refs& refs() {
     r.options = helper ? findField(helper, "tileOptionCounts") : nullptr;
     r.colors = helper ? findField(helper, "colorLookup") : nullptr;
     r.hell = helper ? findField(helper, "hellPosition") : nullptr;
+    r.wallLookup = helper ? findField(helper, "wallLookup") : nullptr;
+    r.wallOptions = helper ? findField(helper, "wallOptionCounts") : nullptr;
     r.legend = lang ? findField(lang, "_mapLegendCache") : nullptr;
     r.getText = language ? a.class_get_method_from_name(language, "GetText", 1) : nullptr;
     if (r.legend && !resolveLegend(r)) r.legend = nullptr;
@@ -218,6 +226,12 @@ std::string toUtf8(Il2CppString* s) {
 
 // ---- entradas: cores e nomes ----
 
+const Entry& entryAt(size_t k) {
+    const int type = g_indexType[k];
+    if (g_indexWall[k]) return g_wallEntries[static_cast<size_t>(type - kVanillaWallCount)][g_indexOption[k]];
+    return g_entries[static_cast<size_t>(type - kVanillaTileCount)][g_indexOption[k]];
+}
+
 void writeColor(uint8_t* p, const Entry& e) {
     // O Color deste jogo fica na memoria como A, B, G, R (o desenho do mapa
     // escurece os bytes 1..3 pela luz e deixa o 0).
@@ -251,8 +265,7 @@ void applyLegend(const Refs& r, uint16_t pos, size_t count, bool force) {
     }
     auto** slots = static_cast<Il2CppObject**>(arrayData(out));
     for (size_t k = 0; k < count; ++k) {
-        const int type = g_indexType[k];
-        const Entry& e = g_entries[static_cast<size_t>(type - kVanillaTileCount)][g_indexOption[k]];
+        const Entry& e = entryAt(k);
         // Pela chave do dicionario: a troca de idioma troca o texto do mesmo LocalizedText.
         Il2CppObject* text = call<Il2CppObject*>(r.getText, a.string_new(e.nameKey.c_str()));
         if (text) a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(out), reinterpret_cast<void**>(&slots[pos + k]), text);
@@ -369,7 +382,8 @@ void writeFile(const std::string& path, const std::vector<SavedCell>& cells, con
     for (const SavedCell& s : cells) {
         const size_t k = static_cast<size_t>(s.cell.type - g_modPosition.load(std::memory_order_relaxed));
         if (k >= g_indexType.size()) continue;
-        const std::string key = modTileKey(g_indexType[k]);
+        const std::string key = g_indexWall[k] ? std::string(kWallKeyPrefix) + modWallKey(g_indexType[k])
+                                               : modTileKey(g_indexType[k]);
         if (key.empty()) continue;
         std::fprintf(f, "%d\t%d\t%u\t%u\t%u\t%s\n", s.x, s.y, s.cell.light, s.cell.extra, g_indexOption[k], key.c_str());
         ++written;
@@ -574,20 +588,23 @@ void hkMapLoad(Il2CppObject* self, const MethodInfo* m) {
     {
         std::lock_guard<std::mutex> l(g_mx);
         for (KeptCell& c : cells) {
-            const int type = modTileTypeByKey(c.key);
-            const size_t i = static_cast<size_t>(type - kVanillaTileCount);
-            const bool known = pos && type >= kVanillaTileCount && i < g_typeBase.size() && g_typeBase[i] > 0;
+            const bool wall = c.key.rfind(kWallKeyPrefix, 0) == 0;
+            const int type = wall ? modWallTypeByKey(c.key.substr(std::strlen(kWallKeyPrefix))) : modTileTypeByKey(c.key);
+            const int first = wall ? kVanillaWallCount : kVanillaTileCount;
+            const std::vector<int32_t>& bases = wall ? g_wallBase : g_typeBase;
+            const size_t i = static_cast<size_t>(type - first);
+            const bool known = pos && type >= first && i < bases.size() && bases[i] > 0;
             if (!known) {
                 g_kept.push_back(std::move(c));
                 continue;
             }
-            const size_t count = g_entries[i].size();
+            const size_t count = wall ? g_wallEntries[i].size() : g_entries[i].size();
             const int option = c.cell.type < count ? c.cell.type : 0;
             Il2CppObject* chunk = nullptr;
             MapCell* p = cellAt(r, self, c.x, c.y, &chunk);
             // Explorado sem o mod nesse meio tempo: vale o que o jogo viu.
             if (!p || p->type != 0 || p->light != 0) { ++skipped; continue; }
-            *p = MapCell{static_cast<uint16_t>(g_typeBase[i] + option), c.cell.light, c.cell.extra};
+            *p = MapCell{static_cast<uint16_t>(bases[i] + option), c.cell.light, c.cell.extra};
             setDirty(r, chunk);
             markChunk(c.x, c.y);
             ++placed;
@@ -599,6 +616,17 @@ void hkMapLoad(Il2CppObject* self, const MethodInfo* m) {
 }
 
 } // namespace
+
+int addModWallMapEntry(int type, int r, int g, int b, const std::string& nameKey) {
+    if (!isModWall(type) || g_disabled.load()) return -1;
+    std::lock_guard<std::mutex> l(g_mx);
+    const size_t i = static_cast<size_t>(type - kVanillaWallCount);
+    if (g_wallEntries.size() <= i) g_wallEntries.resize(i + 1);
+    const auto byte = [](int v) { return static_cast<uint8_t>(v < 0 ? 0 : v > 255 ? 255 : v); };
+    g_wallEntries[i].push_back({byte(r), byte(g), byte(b), nameKey});
+    g_dirty.store(true);
+    return static_cast<int>(g_wallEntries[i].size() - 1);
+}
 
 int addModTileMapEntry(int type, int r, int g, int b, const std::string& nameKey) {
     if (type < kVanillaTileCount || !isModTile(type) || g_disabled.load()) return -1;
@@ -618,6 +646,14 @@ void applyModTileMap(int total, bool rebuilt) {
     Il2CppArray* lookup = readStaticArray(r.lookup);
     Il2CppArray* options = readStaticArray(r.options);
     Il2CppArray* colors = readStaticArray(r.colors);
+    const int walls = wallTypeCount();
+    Il2CppArray* wallLookup = r.wallLookup && walls > kVanillaWallCount ? readStaticArray(r.wallLookup) : nullptr;
+    Il2CppArray* wallOptions = r.wallOptions && walls > kVanillaWallCount ? readStaticArray(r.wallOptions) : nullptr;
+    if (walls > kVanillaWallCount &&
+        (!wallLookup || !wallOptions || wallLookup->length < static_cast<uintptr_t>(walls) ||
+         wallOptions->length < static_cast<uintptr_t>(walls))) {
+        return;
+    }
     uint16_t hell = 0;
     il2cpp::api().field_static_get_value(r.hell, &hell);
     if (!lookup || !options || !colors || hell <= 1 || colors->length <= hell ||
@@ -646,7 +682,9 @@ void applyModTileMap(int total, bool rebuilt) {
     auto* op = static_cast<int32_t*>(arrayData(options));
     g_indexType.clear();
     g_indexOption.clear();
+    g_indexWall.clear();
     g_typeBase.assign(static_cast<size_t>(total - kVanillaTileCount), 0);
+    g_wallBase.assign(static_cast<size_t>(walls > kVanillaWallCount ? walls - kVanillaWallCount : 0), 0);
     for (int type = kVanillaTileCount; type < total; ++type) {
         const size_t i = static_cast<size_t>(type - kVanillaTileCount);
         const size_t count = i < g_entries.size() ? g_entries[i].size() : 0;
@@ -662,6 +700,29 @@ void applyModTileMap(int total, bool rebuilt) {
         for (size_t o = 0; o < count; ++o) {
             g_indexType.push_back(type);
             g_indexOption.push_back(static_cast<uint8_t>(o));
+            g_indexWall.push_back(0);
+        }
+    }
+    if (wallLookup && wallOptions) {
+        auto* wlk = static_cast<uint16_t*>(arrayData(wallLookup));
+        auto* wop = static_cast<int32_t*>(arrayData(wallOptions));
+        for (int wall = kVanillaWallCount; wall < walls; ++wall) {
+            const size_t i = static_cast<size_t>(wall - kVanillaWallCount);
+            const size_t count = i < g_wallEntries.size() ? g_wallEntries[i].size() : 0;
+            if (count == 0 || pos + g_indexType.size() + count > 0xFFFF) {
+                wlk[wall] = 0;
+                wop[wall] = 0;
+                continue;
+            }
+            const int base = pos + static_cast<int>(g_indexType.size());
+            wlk[wall] = static_cast<uint16_t>(base);
+            wop[wall] = static_cast<int32_t>(count);
+            g_wallBase[i] = base;
+            for (size_t o = 0; o < count; ++o) {
+                g_indexType.push_back(wall);
+                g_indexOption.push_back(static_cast<uint8_t>(o));
+                g_indexWall.push_back(1);
+            }
         }
     }
     const size_t count = g_indexType.size();
@@ -671,13 +732,16 @@ void applyModTileMap(int total, bool rebuilt) {
         BL_ERROR("tiles de mod: nao deu para aumentar o colorLookup; tile de mod fora do mapa");
         for (int type = kVanillaTileCount; type < total; ++type) { lk[type] = 0; op[type] = 0; }
         g_typeBase.assign(g_typeBase.size(), 0);
+        if (wallLookup && wallOptions) {
+            auto* wlk = static_cast<uint16_t*>(arrayData(wallLookup));
+            auto* wop = static_cast<int32_t*>(arrayData(wallOptions));
+            for (int wall = kVanillaWallCount; wall < walls; ++wall) { wlk[wall] = 0; wop[wall] = 0; }
+        }
+        g_wallBase.assign(g_wallBase.size(), 0);
         return;
     }
     auto* col = static_cast<uint8_t*>(arrayData(out));
-    for (size_t k = 0; k < count; ++k) {
-        const int type = g_indexType[k];
-        writeColor(col + (pos + k) * 4, g_entries[static_cast<size_t>(type - kVanillaTileCount)][g_indexOption[k]]);
-    }
+    for (size_t k = 0; k < count; ++k) writeColor(col + (pos + k) * 4, entryAt(k));
     // Campo de referencia: o objeto, nao o endereco da variavel (que e da pilha).
     if (out != colors) il2cpp::api().field_static_set_value(r.colors, out);
     g_colorsOurs = out;
@@ -710,6 +774,8 @@ bool readMapTile(int x, int y, int* type, int* light, int* paint) {
 }
 
 void installModTileMap() {
+    static std::atomic<bool> once{false};
+    if (once.exchange(true)) return;
     const Refs& r = refs();
     if (!r.ok) return;
     if (!r.saveOk) {

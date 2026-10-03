@@ -1,0 +1,15 @@
+{
+  "uid": "ca30de32-fc4b-45fc-bfb7-9938db446962",
+  "id": "test-damageclass",
+  "name": "Teste: DamageClass",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Classes de dano do jogo e de mod: DamageType de item e projétil, bônus por classe no jogador (dano, Base/Flat, crítico, repulsão, velocidade, penetração), herança, ModifyWeaponDamage nos dois formatos e GlobalItem trocando a classe de um item do jogo.",
+  "description": "Loga 'damageclass ...'.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

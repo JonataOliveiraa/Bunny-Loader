@@ -9,10 +9,11 @@ class ContentAutoload {
     // bioma já registrado. A raridade primeiro: o SetDefaults dos itens pede o
     // RarityType. A montaria antes do buff e do item, que pedem o
     // MountType (o SetStaticDefaults dela roda depois, com tudo carregado).
-    static #ORDER = [ModConfig, ModRarity, ModMount, ModBuff, ModPrefix, ModPlayer,
+    // A classe de dano antes do item e do projétil, que a pedem no SetDefaults.
+    static #ORDER = [ModConfig, ModRarity, DamageClass, ModMount, ModBuff, ModPrefix, ModPlayer,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, ModMenu,
-                     ModNPC, ModProjectile, ModItem, ModTile, ModSystem,
+                     ModNPC, ModProjectile, ModItem, ModTile, ModWall, ModSystem,
                      GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
                      ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement];
     static #fileOf = new Map();

@@ -45,7 +45,7 @@ flowchart TD
     R["ModItem.register"] --> S["SetStaticDefaults()<br/>uma vez, tela de título"]
     S --> P["AddRecipeGroups() / AddRecipes() / PostSetupContent()<br/>uma vez, conteúdo pronto"]
     S --> D["SetDefaults(item)<br/>cada item que nasce"]
-    D --> U["no inventário: UpdateInventory<br/>na mão: HoldItem, HoldStyle, HoldoutOffset<br/>usando: CanUseItem → UseItem → UseStyle<br/>atirando: CanShoot → ModifyShootStats → Shoot<br/>equipado: UpdateEquip, UpdateAccessory<br/>no chão: GetAlpha"]
+    D --> U["no inventário: UpdateInventory<br/>na mão: HoldItem, HoldStyle, HoldoutOffset<br/>usando: CanUseItem → UseItem → UseStyle<br/>atirando: CanShoot → ModifyShootStats → Shoot<br/>equipado: UpdateEquip, UpdateAccessory<br/>no chão: PreUpdateInWorld → PostUpdateInWorld, PostUpdate, GetAlpha"]
 ```
 
 | Método | Quando |
@@ -71,7 +71,9 @@ flowchart TD
 | `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. |
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. |
 | `UpdateEquip(item, player)`, `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, equipado. No acessório, `vanity` é o slot de vaidade (só o visual) e `hideVisual` o olho fechado. |
-| `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). |
+| `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). O `item` só tem posição (`Center`) quando é o do chão; no inventário e na loja vem o `Item` sem posição: luz e poeira vão no `PostUpdate`. |
+| `PostUpdate(item)` | A cada quadro, com o item no chão (`item` é a `WorldItem`: `Center`, `position`, `velocity`). Lugar da luz e da poeira, como a da Alma de Exemplo. |
+| `PreUpdateInWorld(item, worldItem)`, `PostUpdateInWorld(item, worldItem)` | A cada quadro, em volta da atualização do item no chão (queda, água, ímã do jogador). `item` é o `Item`; `worldItem` é a `WorldItem` que o leva (`Center`, `position`, `velocity`). `false` no `Pre` pula a atualização do jogo naquele quadro (o item fica parado); o `Post` roda igual. No `GlobalItem` também, para qualquer item no chão. |
 | `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara de pesca: de onde a linha sai e a cor (ver [Vara de pesca](#vara-de-pesca)). |
 
 Só os métodos que você escrever custam alguma coisa: o hook do jogo por trás
@@ -557,6 +559,12 @@ etiqueta `[i:]` do chat (esta com a cor do carregamento).
 prende toda raridade em 11 (roxo) ao pôr prefixo: sem isso, o item de mod
 perderia a raridade ao cair no chão com prefixo. `ModContent.GetModRarity(tipo)`
 devolve a instância.
+
+## Classes de dano
+
+`this.Item.DamageType = DamageClass.Melee` (ou `Ranged`, `Magic`, `Summon`...)
+diz de quais bônus a arma se beneficia, que efeitos ativa e que prefixos
+aceita. Bônus por classe no jogador e classes novas: [guia 15](15-classes-de-dano.md).
 
 ## Vara de pesca
 

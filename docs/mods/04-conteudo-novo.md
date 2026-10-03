@@ -242,6 +242,20 @@ ModContent.GetModItem(tipo);                          // pelo número
 
 Todo modelo tem `this.Mod`, o `Mod` de quem registrou.
 
+Todos de uma vez, como o `GetContent` do tModLoader: no `Mod`, os do próprio
+mod; no `ModContent`, os de todos os mods. Vale para qualquer classe base
+(`ModItem`, `ModNPC`, `ModProjectile`, `ModTile`, `ModBuff`, `ModSystem`...),
+na ordem do registro. Chame do `PostSetupContent` em diante: antes dele os
+tipos podem não ter saído.
+
+```js
+PostSetupContent() {
+    const tipos = this.GetContent(ModItem).map((item) => item.Type);
+    const npcs = this.GetContent(ModNPC);
+    const todosOsItensDeMod = ModContent.GetContent(ModItem);
+}
+```
+
 As texturas do mod carregam na primeira chamada; as seguintes reusam a mesma:
 
 ```js

@@ -12,7 +12,7 @@ class GlobalProjectileLoader {
                 if (!(p.type > 0)) return;
 
                 if (registry.cached) registry.Attach(p, true);
-                registry.Each(p, 'SetDefaults', (g) => g.SetDefaults(p));
+                DamageClassLoader.Defaulting(p, () => registry.Each(p, 'SetDefaults', (g) => g.SetDefaults(p)));
             });
         });
 

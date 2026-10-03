@@ -61,9 +61,37 @@ export class ExampleConfig extends ModConfig {
 
 | Controle | Na tela | O valor |
 |---|---|---|
+| `ModConfig.Header()` | Um título de seção, em dourado, com um fio embaixo | Nenhum |
 | `ModConfig.Toggle(padrão)` | O interruptor "Desligado / Ligado" do jogo | `true` ou `false` |
 | `ModConfig.Range(padrão, { min, max, step, suffix })` | A barra deslizante do jogo, com o valor ao lado (`suffix` vai depois do número) | Um número de `min` a `max`, sempre num degrau de `step` |
 | `ModConfig.Radio(padrão, [escolhas])` | Um botão por escolha, lado a lado; a escolhida fica verde | O texto da escolha |
+| `ModConfig.Dropdown(padrão, [escolhas])` | A lista suspensa do jogo (como a "Pausa Automática"): toque na linha e escolha; até 12 escolhas | O texto da escolha |
+| `ModConfig.Cycle(padrão, [escolhas])` | `< Escolha >` à direita; cada toque passa para a próxima | O texto da escolha |
+| `ModConfig.Color('#RRGGBB')` | Uma amostra da cor e as barras de tom, saturação e leveza do jogo | `'#RRGGBB'` |
+| `ModConfig.Button('Método')` | Um botão à direita da linha; o toque chama o método da config (ou a função passada) | Nenhum |
+| `ModConfig.Link('https://...')` | Um botão à direita da linha que abre o endereço no navegador | Nenhum |
+
+Qualquer opção aceita `enabledWhen`: o nome de outra opção (a linha só vale
+quando ela está ligada) ou uma função que recebe a config. Desabilitada, a linha
+fica apagada como o "Mapa" das Configurações do jogo e não aceita toque.
+
+```js
+EnablePets: ModConfig.Toggle(false),
+PetGlow: ModConfig.Toggle(true, { enabledWhen: 'EnablePets' }),
+```
+
+Um `Button` pode chamar os métodos que toda config tem: `ResetToDefaults()`
+volta tudo ao padrão, e `SetOption(chave, valor)` muda uma opção pela tela (é
+gravada e avisa o `OnChanged`), como o "Sortear" do Example Mod:
+
+```js
+RandomGlow: ModConfig.Button('RandomizeGlow'),
+ResetAll: ModConfig.Button('ResetToDefaults'),
+
+RandomizeGlow() {
+    this.SetOption('GlowColor', '#' + Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, '0'));
+}
+```
 
 O número da barra aparece com as casas decimais do `step`: `step: 0.1` mostra
 `1.5x`, `step: 10` mostra `150%`.
@@ -73,7 +101,8 @@ classe `ModConfig`: as opções de todas entram na mesma aba, uma classe depois
 da outra.
 
 O [`ExampleConfig`](../../samples/ExampleMod/content/Common/Configs/ExampleConfig.js)
-do Example Mod tem 20 opções, dos três tipos: é o que aparece nas imagens.
+do Example Mod tem uma seção de exemplo para cada tipo ("Exemplo de
+Interruptor", "Exemplo de Lista Suspensa", "Exemplo de Cor"...).
 
 ## Lendo
 
@@ -103,8 +132,10 @@ Como no tModLoader, do `Localization/<cultura>.json` do mod:
 }
 ```
 
-`Configs.<Classe>.<Opção>.Label` é o nome da linha. Num `Radio`, cada escolha
-tem a sua chave (`Configs.<Classe>.<Opção>.<escolha>`). Sem o arquivo, vale o
+`Configs.<Classe>.<Opção>.Label` é o nome da linha (num `Header`, o título).
+Num `Radio`, `Dropdown` ou `Cycle`, cada escolha tem a sua chave
+(`Configs.<Classe>.<Opção>.<escolha>`), e num `Button` ou `Link` o texto do
+botão vem de `Configs.<Classe>.<Opção>.Text`. Sem o arquivo, vale o
 `label` passado na opção (`ModConfig.Toggle(true, { label: 'Modo rápido' })`, e
 `labels: [...]` para as escolhas de um `Radio`); sem ele, o nome da opção
 separado ("BossHealth" vira "Boss Health"). O "Ligado" e o "Desligado" do
@@ -132,5 +163,7 @@ padrão: uma versão nova do mod não quebra por causa da config da antiga.
 
 - **Opções do servidor.** Toda opção é do aparelho (o `ClientSide` do
   tModLoader): no multijogador, cada jogador tem as suas.
-- Campo de texto, cor e lista de itens.
+- Campo de texto e número digitado (`Text` e `Number`): dependem do teclado do
+  Android aberto de dentro do menu de pausa, que ainda não funciona direito.
+- Lista de itens e escolha de item.
 - Com muitos mods, as abas não rolam: cabem as da largura da fileira.

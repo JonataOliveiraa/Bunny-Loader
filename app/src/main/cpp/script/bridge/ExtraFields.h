@@ -34,6 +34,24 @@ bool isExtraField(Il2CppClass* cls, JSAtom atom);
  */
 bool extraMethodGet(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom atom, JSValue* out);
 
+/**
+ * Metodo de mod com `{ override: true }`: vem ANTES do membro do jogo de
+ * mesmo nome. false se `atom` nao e um deles.
+ */
+bool extraMethodOverride(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom atom, JSValue* out);
+
+/**
+ * Propriedade que um mod pos na classe (bl.defineProperty): le pelo getter.
+ * false se `atom` nao e uma delas.
+ */
+bool extraAccessorGet(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom atom, JSValue* out);
+
+/** Escreve pelo setter: 1 ok, -1 com excecao posta, 0 se `atom` nao e uma delas. */
+int extraAccessorSet(JSContext* ctx, Il2CppClass* cls, JSValueConst self, JSAtom atom, JSValueConst value);
+
+/** O nome e uma propriedade definida para `cls` (ou uma classe base)? (`in`) */
+bool hasExtraAccessor(Il2CppClass* cls, JSAtom atom);
+
 /** O nome e um metodo definido para `cls` (ou uma classe base)? (`in`) */
 bool hasExtraMethod(Il2CppClass* cls, JSAtom atom);
 
@@ -43,7 +61,7 @@ JSValue extraFieldGet(JSContext* ctx, Il2CppObject* obj, JSAtom atom);
 /** Grava o campo. @return 1 ok, -1 com excecao posta. */
 int extraFieldSet(JSContext* ctx, Il2CppObject* obj, JSAtom atom, JSValueConst value);
 
-/** bl.defineField, bl.addressOf, bl.objectAt. */
+/** bl.defineField, bl.defineMethod, bl.defineProperty, bl.addressOf, bl.objectAt. */
 void installExtraFields(JSContext* ctx, JSValueConst bl);
 
 #endif

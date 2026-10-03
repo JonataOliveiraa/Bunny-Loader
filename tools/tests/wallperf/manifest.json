@@ -1,0 +1,15 @@
+{
+  "uid": "9e2d4b71-3c6a-4f18-b5e0-7a1c2d9f4e63",
+  "id": "test-wallperf",
+  "name": "Teste: desempenho das paredes de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: tempo de quadro com 2130 paredes do jogo, de ExampleWall e de ExampleWallAdvanced (luz, animação, WallFrame); custo de colocar, dos métodos e do save.",
+  "description": "Loga 'wallperf ...'.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

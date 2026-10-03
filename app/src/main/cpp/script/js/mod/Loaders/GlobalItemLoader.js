@@ -12,7 +12,7 @@ class GlobalItemLoader {
                 if (!(item.type > 0)) return;
 
                 if (registry.cached) registry.Attach(item, true);
-                registry.Each(item, 'SetDefaults', (g) => g.SetDefaults(item));
+                DamageClassLoader.Defaulting(item, () => registry.Each(item, 'SetDefaults', (g) => g.SetDefaults(item)));
             });
         });
 
@@ -63,15 +63,27 @@ class GlobalItemLoader {
         if (has('ModifyWeaponDamage')) Hooks.Once('gitem.WeaponDamage', () => {
             P['int GetWeaponDamage(Item sItem)'].hook((original, self, item) => {
                 let damage = original(self, item);
+                // `damage` vale como número e como StatModifier (ver PlayerLoader).
                 registry.Each(item, 'ModifyWeaponDamage', (g) => {
-                    const r = g.ModifyWeaponDamage(item, self, damage);
-                    if (typeof r === 'number') damage = r;
+                    const modifier = StatModifier.ForValue(damage);
+                    damage = StatModifier.Resolve(g.ModifyWeaponDamage(item, self, modifier), modifier, damage);
                 });
                 return Math.floor(damage);
             });
         });
 
         if (['CanShoot', 'ModifyShootStats', 'Shoot'].some(has)) Hooks.Once('gitem.Shoot', GlobalItemLoader.#HookShoot);
+
+        // Todo item no chão (só os que existem: o jogo pula os inativos).
+        if (has('PreUpdateInWorld') || has('PostUpdateInWorld')) Hooks.Once('gitem.UpdateInWorld', () => {
+            Terraria.WorldItem['void UpdateItem(int i)'].hook((original, world, i) => {
+                const item = world.inner;
+                if (!world.active || !item) return original(world, i);
+
+                if (registry.All(item, 'PreUpdateInWorld', (g) => g.PreUpdateInWorld(item, world))) original(world, i);
+                if (world.active) registry.Each(item, 'PostUpdateInWorld', (g) => g.PostUpdateInWorld(item, world));
+            });
+        });
 
         if (has('OnHitNPC')) HitLoader.ItemHitsNPC();
 

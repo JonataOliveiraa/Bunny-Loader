@@ -25,6 +25,7 @@ struct TileArrays {
     uint8_t* bHeader = nullptr;
     uint8_t* bHeader2 = nullptr;
     uint8_t* bHeader3 = nullptr;
+    uint16_t* wall = nullptr;       // por POSICAO (nao por definicao)
 };
 
 /** Os arrays do mundo carregado; false se nao ha mundo. */
@@ -35,6 +36,12 @@ int tileTypeAtOffset(int32_t offset);
 
 /** Tipo do tile ativo em (x, y), ou -1. */
 int tileTypeAt(int x, int y);
+
+/** Tipo da parede no offset do struct Tile, ou -1 (sem mundo, fora, sem parede). */
+int wallTypeAtOffset(int32_t offset);
+
+/** Tipo da parede em (x, y), ou -1. */
+int wallTypeAt(int x, int y);
 
 constexpr int16_t kTileActiveBit = 0x20;
 

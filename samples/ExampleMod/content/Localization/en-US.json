@@ -23,6 +23,8 @@
     "ExampleBuffPotion": "Buff Potion",
     "ExampleShield": "Example Shield",
     "ExampleStatAccessory": "Stat Accessory",
+    "ExampleCustomDamageWeapon": "Example Custom Damage Weapon",
+    "ExampleStatBonusAccessory": "Example Stat Bonus Accessory",
     "ExampleBoots": "Example Boots",
     "WaspNest": "Wasp Nest",
     "ExampleTooltipItem": "Example Tooltip",
@@ -77,7 +79,9 @@
     "ExampleMultiplePrefixCategoryWeapon": "Example Multiple Prefix Category Weapon",
     "ExampleMountItem": "ExampleMount Car Key",
     "ExampleMinecart": "Example Minecart",
-    "ExampleQuestFish": "Upside-down Fish"
+    "ExampleQuestFish": "Upside-down Fish",
+    "ExampleWall": "Example Wall",
+    "ExampleWallAdvanced": "Advanced Example Wall"
   },
   "MapObject": {
     "ExampleTile": "Example Block",
@@ -89,7 +93,9 @@
     "ExampleWorkbench": "Example Workbench",
     "ExampleDresser": "Example Dresser",
     "ExampleChest": "Example Chest",
-    "ExampleChestLocked": "Locked Example Chest"
+    "ExampleChestLocked": "Locked Example Chest",
+    "ExampleWall": "Example Wall",
+    "ExampleWallAdvanced": "Advanced Example Wall"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -125,6 +131,7 @@
     "ExampleFishingRod": "Can fish in lava",
     "ExampleShield": "Double tap in any direction to dash",
     "ExampleStatAccessory": "{0}% increased damage",
+    "ExampleStatBonusAccessory": "25% increased damage, this is an additive multiplier with other damage bonuses\n12% increased multiplicative damage multiplier; this is multiplicative with other damage bonuses\nIncreases base damage for all weapons by 4\nIncreases total damage for all weapons by 5\n10% increased melee critical strike chance\nIncreases ranged firing speed by 15%\n5 magic armor penetration\n100% increased example knockback",
     "ExampleBoots": "Allows flight, super fast running, even faster running on sand, and extra mobility on ice\nProvides the ability to walk on water, honey, lava, and shimmer\nGrants immunity to fire blocks and {0} seconds of immunity to lava\nReduces damage from touching lava\nPrevents fall damage\nLeaves a trail of flames in your wake",
     "WaspNest": "Bees become stronger",
     "ExampleTooltipItem": "Above, one color per letter. This line, in gold",
@@ -228,6 +235,11 @@
       "AdditionalTooltip": "Even More Power"
     }
   },
+  "DamageClasses": {
+    "ExampleDamageClass": {
+      "DisplayName": "example damage"
+    }
+  },
   "Biomes": {
     "ExampleSurfaceBiome": {
       "DisplayName": "Example Surface",
@@ -273,29 +285,14 @@
   },
   "Configs": {
     "ExampleConfig": {
+      "ToggleHeader": {
+        "Label": "Toggle Example"
+      },
       "ShowFlavorText": {
         "Label": "Extra item text"
       },
-      "BossHealth": {
-        "Label": "Boss health"
-      },
-      "Particles": {
-        "Label": "Particles",
-        "low": "Few",
-        "normal": "Normal",
-        "high": "Many"
-      },
       "BossMusic": {
         "Label": "Boss music"
-      },
-      "BossDamage": {
-        "Label": "Boss damage"
-      },
-      "BossSpeed": {
-        "Label": "Boss speed",
-        "slow": "Slow",
-        "normal": "Normal",
-        "fast": "Fast"
       },
       "ShowBossBar": {
         "Label": "Boss health bar"
@@ -303,8 +300,104 @@
       "ExtraLoot": {
         "Label": "Extra loot"
       },
-      "DropChance": {
-        "Label": "Drop chance"
+      "RangeHeader": {
+        "Label": "Slider Example"
+      },
+      "BossHealth": {
+        "Label": "Boss health"
+      },
+      "BossDamage": {
+        "Label": "Boss damage"
+      },
+      "TorchLight": {
+        "Label": "Torch light"
+      },
+      "RadioHeader": {
+        "Label": "Choice Example"
+      },
+      "Particles": {
+        "Label": "Particles",
+        "low": "Few",
+        "normal": "Normal",
+        "high": "Many"
+      },
+      "BossSpeed": {
+        "Label": "Boss speed",
+        "slow": "Slow",
+        "normal": "Normal",
+        "fast": "Fast"
+      },
+      "DropdownHeader": {
+        "Label": "Dropdown Example"
+      },
+      "FavoriteBiome": {
+        "Label": "Favorite biome",
+        "forest": "Forest",
+        "desert": "Desert",
+        "snow": "Snow",
+        "jungle": "Jungle",
+        "corruption": "Corruption",
+        "crimson": "Crimson",
+        "hallow": "Hallow",
+        "ocean": "Ocean",
+        "mushroom": "Mushroom"
+      },
+      "ShopPrices": {
+        "Label": "Shop prices",
+        "cheap": "Cheap",
+        "normal": "Normal",
+        "expensive": "Expensive"
+      },
+      "CycleHeader": {
+        "Label": "Cycle Example"
+      },
+      "Weather": {
+        "Label": "Weather",
+        "clear": "Clear",
+        "rain": "Rain",
+        "snow": "Snow",
+        "storm": "Storm"
+      },
+      "TimeOfDay": {
+        "Label": "Time of day",
+        "dawn": "Dawn",
+        "day": "Day",
+        "dusk": "Dusk",
+        "night": "Night"
+      },
+      "ColorHeader": {
+        "Label": "Color Example"
+      },
+      "GlowColor": {
+        "Label": "Glow color"
+      },
+      "ButtonHeader": {
+        "Label": "Button Example"
+      },
+      "RandomGlow": {
+        "Label": "Glow color",
+        "Text": "Randomize"
+      },
+      "ResetAll": {
+        "Label": "All options",
+        "Text": "Default"
+      },
+      "LinkHeader": {
+        "Label": "Link Example"
+      },
+      "Repository": {
+        "Label": "Bunny Loader source",
+        "Text": "GitHub"
+      },
+      "Wiki": {
+        "Label": "Documentation",
+        "Text": "Wiki"
+      },
+      "DisabledHeader": {
+        "Label": "Disabled Option Example"
+      },
+      "EnablePets": {
+        "Label": "Enable pets"
       },
       "PetGlow": {
         "Label": "Pet glow"
@@ -315,38 +408,8 @@
         "medium": "Medium",
         "large": "Large"
       },
-      "TorchLight": {
-        "Label": "Torch light"
-      },
-      "WingTrail": {
-        "Label": "Wing trail"
-      },
-      "WingSpeed": {
-        "Label": "Wing speed"
-      },
-      "ShopPrices": {
-        "Label": "Shop prices",
-        "cheap": "Cheap",
-        "normal": "Normal",
-        "expensive": "Expensive"
-      },
-      "TownNPCChat": {
-        "Label": "Town NPC chat"
-      },
-      "BiomeMusic": {
-        "Label": "Biome music"
-      },
-      "BiomeSize": {
-        "Label": "Biome size",
-        "small": "Small",
-        "normal": "Normal",
-        "big": "Big"
-      },
-      "OreAmount": {
-        "Label": "Ore amount"
-      },
-      "DebugText": {
-        "Label": "Debug text"
+      "PetDistance": {
+        "Label": "Pet distance"
       }
     }
   }

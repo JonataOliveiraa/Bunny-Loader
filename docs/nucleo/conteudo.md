@@ -18,6 +18,7 @@ fixa, e o jogo inteiro foi escrito assumindo isso:
 | NPC | 0–696 | `NPCID.Count` = 697 | 697 |
 | Buff | 0–400 | `BuffID.Count` = 401 | 401 |
 | Bloco (tile) | 0–753 | `TileID.Count` = 754 | 754 |
+| Parede | 0–366 | `WallID.Count` = 367 | 367 |
 
 (Números da 1.4.5.8.6. Cada versão do jogo muda alguns: estão nos
 `kVanilla*Count` do núcleo e em `bl.*.vanillaCount`.)
@@ -185,6 +186,7 @@ save no Terraria sem o Bunny Loader não quebra nada.
 | Itens no inventário, cofres | `<personagem>.plr.bl` | O item vira um "?" (de uma reserva de 64 tipos) e volta ao religar o mod. |
 | Itens em baús do mundo | `<mundo>.wld.bl` | Idem. |
 | Blocos de mod | `<mundo>.wld.tiles.bl` | O `.wld` guarda ar no lugar; o bloco volta ao religar. |
+| Paredes de mod | `<mundo>.wld.walls.bl` | O `.wld` guarda o lugar sem parede; a parede volta ao religar. |
 | Moradores de mod | `<mundo>.wld.npcs.bl` | O morador volta ao religar. |
 | Buffs de mod ativos | `<personagem>.plr.bl` | Guardados, voltam ao religar. |
 | `ModPlayer.SaveData` | `<personagem>.plr.bl.json` | Os dados ficam no arquivo. |
@@ -198,6 +200,31 @@ O "?" é como o `UnloadedItem` do tModLoader: um tipo de uma reserva registrada
 guarda `ChestItem` (um struct de 6 bytes: tipo, pilha, prefixo), sem espaço
 para metadados, então o item ausente precisa de um tipo de verdade para
 existir ali.
+
+## Paredes: o que muda
+
+As paredes são o caso mais simples (`content/walls/ModWalls.cpp`):
+
+- `WallID.Count` é um campo `static readonly`, não uma constante: o código do
+  jogo **lê o campo** em vez de comparar com 367. A varredura não acha limite
+  compilado de parede, e as tabelas nascem do campo. A instalação aumenta as
+  tabelas (`Main.wall*`, `WallID.Sets` e `Conversion`, `TextureAssets.Wall`,
+  `MapHelper`) e **escreve o total no próprio `WallID.Count`**: o que o jogo
+  criar depois já nasce do tamanho certo;
+- a parede de cada célula é guardada **por posição** (`TileData.TileWall[offset]`,
+  sem o `TileLookup`), e não nas definições internadas como o tipo do bloco:
+  ler e trocar é direto;
+- o save usa a mesma cópia do bloco de estáticos dos tiles: a gravação lê uma
+  cópia do `TileWall` com as paredes de mod zeradas, e elas vão para o
+  `.walls.bl`; no load, voltam pelo `Tile.set_wall` e o `Framing.WallFrame`
+  refaz a moldura;
+- os hooks JS da parede quebrada (`KillWall*`) usam o filtro nativo `wall: true`
+  (com `tile`/`tileAt`), que lê a parede da posição em vez do tipo do bloco;
+- o mapa usa o mesmo espaço de índices de cor dos blocos (depois da cor do
+  inferno): as entradas de parede vêm depois das de bloco, e o `.map.bl` as
+  guarda com a chave `wall:<uid>/<Classe>`;
+- a tinta (`wallColor`, `invisibleWall`, `fullbrightWall`) vai no `.walls.bl`,
+  porque o jogo só grava a tinta de parede com a parede no lugar.
 
 ## Multijogador
 

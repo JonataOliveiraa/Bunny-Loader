@@ -59,6 +59,7 @@ PAGES = {
     "docs/nucleo/threads-e-motor-js.md": "Núcleo-threads-e-motor-JS",
     "docs/nucleo/ponte.md": "Núcleo-ponte",
     "docs/nucleo/conteudo.md": "Núcleo-conteúdo",
+    "docs/nucleo/pesquisa-shaders.md": "Núcleo-pesquisa-de-shaders",
     "docs/historico/README.md": "Histórico",
     "docs/historico/UNITY-HOSTING.md": "Histórico-Unity-hosting",
     "docs/historico/DECISAO-ARQUITETURA.md": "Histórico-decisão-de-arquitetura",
@@ -101,6 +102,7 @@ SIDEBAR = [
         ("Núcleo-threads-e-motor-JS", "Threads e o motor JS"),
         ("Núcleo-ponte", "A ponte JS ↔ jogo"),
         ("Núcleo-conteúdo", "Conteúdo novo por dentro"),
+        ("Núcleo-pesquisa-de-shaders", "Pesquisa de shaders"),
     ]),
     ("Histórico", [
         ("Histórico", "Índice"),

@@ -1,0 +1,15 @@
+{
+  "uid": "4c8a2e61-9d3b-4f70-a5e2-1b7c9d0e3f52",
+  "id": "test-modwall",
+  "name": "Teste: ModWall",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: a ExampleWall registrada, nas tabelas, colocada, quebrada (drop) e salva ao lado do mundo. Rode duas vezes: a segunda confere o load.",
+  "description": "Loga 'modwall ...'.",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -246,6 +246,88 @@ lado, o `<mapa>.map.bl`, pelo nome do tile. Ao carregar, eles voltam. Sem o
 mod, o jogo vê esses pontos como não explorados, e o `.map.bl` os guarda até
 o mod voltar.
 
+## Paredes (ModWall)
+
+Uma parede nova é como o `ModWall` do tModLoader: uma classe que estende
+`ModWall`, exportada de `Content/`, com a textura ao lado (a folha de quadros
+das paredes do jogo, 468x180). O item que a coloca usa o
+`DefaultToPlaceableWall`. A ExampleWall do Example Mod:
+
+```js
+// Content/Walls/ExampleWall.js (+ ExampleWall.png)
+const { DustID, WallID } = Terraria.ID;
+const { Main } = Terraria;
+
+export class ExampleWall extends ModWall {
+    SetStaticDefaults() {
+        Main.wallHouse[this.Type] = true;   // vale como parede de casa
+        this.DustType = DustID.Stone;
+        this.AddMapEntry(Color.new(150, 150, 150));
+    }
+
+    NumDust(i, j, fail, num) {
+        num.value = fail ? 1 : 3;
+    }
+}
+```
+
+```js
+// Content/Items/Placeable/ExampleWall.js (+ ExampleWall.png)
+export class ExampleWall extends ModItem {
+    SetDefaults() {
+        this.DefaultToPlaceableWall(ModContent.WallType('ExampleWall'));
+    }
+}
+```
+
+| Campo | |
+|---|---|
+| `Type` | O número da parede (depois das 367 do jogo). |
+| `DustType` | A poeira ao bater e quebrar. Sem ele, a do jogo. |
+| `HitSound` | O som ao quebrar (um `SoundID` ou estilo). Sem ele, o do jogo. |
+| `ItemDrop` | O item que cai ao quebrar. Sem ele, o item de mod que coloca esta parede (`createWall`). |
+
+| Método | Quando |
+|---|---|
+| `SetStaticDefaults()` | Uma vez, com as tabelas do jogo já com o tipo: `Main.wallHouse[this.Type]`, `Main.wallLight`, `WallID.Sets...`. |
+| `KillWall(i, j, fail)` | Ao bater ou quebrar. `fail` é um `Ref`: `fail.value = true` só faz a poeira. |
+| `NumDust(i, j, fail, num)` | Quantas poeiras (`num.value`). |
+| `CreateDust(i, j, type)` | Antes de cada poeira; `type.value` muda o tipo, `false` não cria. |
+| `KillSound(i, j, fail)` | `false` não toca o som. |
+| `Drop(i, j, type)` | O item que cai (`type.value`); `false` não deixa nada. |
+| `ModifyLight(i, j, r, g, b)` | A luz que a parede dá (`r.value`, `g.value`, `b.value`, de 0 a 1). Roda para as paredes perto da tela, a cada 3 quadros. |
+| `AnimateWall(frame, frameCounter)` | Uma vez por quadro, por tipo: `frame.value` escolhe a faixa de 180 px da textura (a folha com dois quadros tem 468x360). |
+| `RandomUpdate(i, j)` | Na atualização aleatória do mundo, como a do bloco. |
+| `AddMapEntry(cor, nome)` | A cor no mapa e o nome ao tocar nele (`MapObject.<Classe>` no Localization; sem ele, o nome da classe). |
+| `WallFrame(i, j, randomizeFrame, style, frameNumber)` | Ao enquadrar a parede: `style.value` e `frameNumber.value` escolhem o quadro da moldura (0 a 2 é a variação); `false` deixa a moldura como estava. |
+
+A `ExampleWallAdvanced` do Example Mod usa a animação (dois quadros), a luz
+verde à noite e a poeira de esmeralda.
+
+A parede de mod entra na **conversão** dos biomas pelas tabelas do jogo, que
+crescem com o tipo novo: `WallID.Sets.Conversion.Stone[this.Type] = true` no
+`SetStaticDefaults` faz a corrupção, o carmesim e o consagrado tratá-la como
+parede de pedra.
+
+Pelo nome ou pela classe: `ModContent.WallType('ExampleWall')`,
+`ModContent.GetModWall(tipo)`, `this.GetContent(ModWall)`.
+
+O mundo salvo continua abrindo sem o mod, como com os blocos: o `.wld` nunca
+leva parede de mod. Elas vão para um arquivo ao lado, o
+`<mundo>.wld.walls.bl` (posição, tinta e `<uid>/<Classe>`), e voltam ao
+carregar, com a tinta. Sem o mod, o lugar fica sem parede, e o arquivo guarda
+a parede até o mod voltar. No mapa é igual aos blocos: os pontos de parede de
+mod saem do `.map` e vão para o `.map.bl`.
+
+Quanto custa (MuMu, 2130 paredes na tela, `tools/tests/wallperf`): parede de
+mod só com textura custa o mesmo que a do jogo. O `ModifyLight` é o caro: roda
+para cada parede perto da tela, um terço das linhas por quadro, e com 2130
+paredes iluminadas dá ~1,2 a 1,5 ms de JS por quadro. Colocar com `WallFrame`
+custa ~60 µs por parede, só na hora. O save do mundo fica igual (~200 ms).
+
+Não tem `PreDraw`/`PostDraw`: o celular desenha as paredes num laço só,
+dividido entre threads, sem chamada por célula.
+
 ## Por trás
 
 O que o Bunny Loader faz para o tile novo não quebrar o jogo (detalhes em

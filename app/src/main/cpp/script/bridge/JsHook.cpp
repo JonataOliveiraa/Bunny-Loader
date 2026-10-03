@@ -134,6 +134,7 @@ struct HookCtx {
     int gateSlot = -1;
     // Filtro pelo tipo do tile: o x do `Tile` (offset), ou os x de i e j.
     int tileReg = -1, tileAtIReg = -1, tileAtJReg = -1;
+    bool wallMode = false;
     // HookFilter::argParam: o x do parametro que ja e o tipo.
     int argReg = -1, argBytes = 4;
     // HookFilter::marks: o tipo lido tambem tem de estar marcado aqui.
@@ -359,7 +360,11 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     if (c->gateSlot >= 0 && g_depth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
     int seen = -1;   // o tipo que um dos filtros leu (para as marcas)
     if (c->tileReg >= 0 || c->tileAtIReg >= 0) {
-        const int t = c->tileReg >= 0
+        const int t = c->wallMode
+            ? (c->tileReg >= 0 ? runtime::wallTypeAtOffset(static_cast<int32_t>(rawA[c->tileReg]))
+                               : runtime::wallTypeAt(static_cast<int32_t>(rawA[c->tileAtIReg]),
+                                                     static_cast<int32_t>(rawA[c->tileAtJReg])))
+            : c->tileReg >= 0
             ? runtime::tileTypeAtOffset(static_cast<int32_t>(rawA[c->tileReg]))
             : runtime::tileTypeAt(static_cast<int32_t>(rawA[c->tileAtIReg]),
                                   static_cast<int32_t>(rawA[c->tileAtJReg]));
@@ -651,6 +656,7 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             : intReg(filter->tileAtI, &probe.tileAtIReg) && intReg(filter->tileAtJ, &probe.tileAtJReg);
         if (!ok) err = "filtro de tile: parametro fora da faixa ou que nao e Tile/int";
         probe.filterMin = filter->minType;
+        probe.wallMode = filter->wallMode;
     }
     if (err.empty() && filter && filter->argParam >= 0) {
         const size_t i = static_cast<size_t>(filter->argParam);

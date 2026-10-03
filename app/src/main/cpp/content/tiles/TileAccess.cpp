@@ -15,7 +15,7 @@ struct Fields {
     FieldInfo* world = nullptr;   // Main.tile (o TileData do mundo)
     int32_t width = -1, height = -1;
     FieldInfo *lookup = nullptr, *type = nullptr, *sHeader = nullptr, *frameX = nullptr,
-              *frameY = nullptr, *bHeader = nullptr, *bHeader2 = nullptr, *bHeader3 = nullptr;
+              *frameY = nullptr, *bHeader = nullptr, *bHeader2 = nullptr, *bHeader3 = nullptr, *wall = nullptr;
 };
 
 const Fields& fields() {
@@ -37,8 +37,9 @@ const Fields& fields() {
         f.bHeader = findField(data, "TileBHeader");
         f.bHeader2 = findField(data, "TileBHeader2");
         f.bHeader3 = findField(data, "TileBHeader3");
+        f.wall = findField(data, "TileWall");
         f.ok = f.world && f.width >= 0 && f.height >= 0 && f.lookup && f.type && f.sHeader &&
-               f.frameX && f.frameY && f.bHeader && f.bHeader2 && f.bHeader3;
+               f.frameX && f.frameY && f.bHeader && f.bHeader2 && f.bHeader3 && f.wall;
         if (!f.ok) BL_ERROR("tiles: campos do TileData nao achados; tiles de mod desligados");
     });
     return f;
@@ -69,6 +70,7 @@ bool tileArrays(TileArrays* out) {
     out->bHeader = staticPtr<uint8_t>(f.bHeader);
     out->bHeader2 = staticPtr<uint8_t>(f.bHeader2);
     out->bHeader3 = staticPtr<uint8_t>(f.bHeader3);
+    out->wall = staticPtr<uint16_t>(f.wall);
     return out->width > 0 && out->height > 0 && out->lookup && out->type && out->sHeader;
 }
 
@@ -87,6 +89,21 @@ int tileTypeAt(int x, int y) {
     const uint32_t def = t.lookup[static_cast<int64_t>(t.width) * y + x];
     if (!(t.sHeader[def] & kTileActiveBit)) return -1;
     return t.type[def];
+}
+
+int wallTypeAtOffset(int32_t offset) {
+    TileArrays t;
+    if (offset < 0 || !tileArrays(&t) || !t.wall) return -1;
+    if (static_cast<int64_t>(offset) >= static_cast<int64_t>(t.width) * t.height) return -1;
+    const uint16_t w = t.wall[offset];
+    return w ? w : -1;
+}
+
+int wallTypeAt(int x, int y) {
+    TileArrays t;
+    if (x < 0 || y < 0 || !tileArrays(&t) || !t.wall || x >= t.width || y >= t.height) return -1;
+    const uint16_t w = t.wall[static_cast<int64_t>(t.width) * y + x];
+    return w ? w : -1;
 }
 
 } // namespace bl::runtime

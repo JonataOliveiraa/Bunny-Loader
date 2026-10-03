@@ -23,6 +23,8 @@
     "ExampleBuffPotion": "Poção de Buff",
     "ExampleShield": "Escudo de Exemplo",
     "ExampleStatAccessory": "Acessório de Estatísticas",
+    "ExampleCustomDamageWeapon": "Arma de Dano Personalizado",
+    "ExampleStatBonusAccessory": "Acessório de Bônus por Classe",
     "ExampleBoots": "Botas de Exemplo",
     "WaspNest": "Ninho de Vespas",
     "ExampleTooltipItem": "Exemplo de Tooltip",
@@ -77,7 +79,9 @@
     "ExampleMultiplePrefixCategoryWeapon": "Arma de Exemplo de Várias Categorias",
     "ExampleMountItem": "Chave do Carro de Exemplo",
     "ExampleMinecart": "Carrinho de Mina de Exemplo",
-    "ExampleQuestFish": "Peixe de Ponta-Cabeça"
+    "ExampleQuestFish": "Peixe de Ponta-Cabeça",
+    "ExampleWall": "Parede de Exemplo",
+    "ExampleWallAdvanced": "Parede de Exemplo Avançada"
   },
   "MapObject": {
     "ExampleTile": "Bloco de Exemplo",
@@ -89,7 +93,9 @@
     "ExampleWorkbench": "Bancada de Exemplo",
     "ExampleDresser": "Cômoda de Exemplo",
     "ExampleChest": "Baú de Exemplo",
-    "ExampleChestLocked": "Baú de Exemplo Trancado"
+    "ExampleChestLocked": "Baú de Exemplo Trancado",
+    "ExampleWall": "Parede de Exemplo",
+    "ExampleWallAdvanced": "Parede de Exemplo Avançada"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -125,6 +131,7 @@
     "ExampleFishingRod": "Pesca na lava",
     "ExampleShield": "Toque duas vezes numa direção para dar um impulso",
     "ExampleStatAccessory": "{0}% de aumento nos danos",
+    "ExampleStatBonusAccessory": "25% de aumento nos danos, somado aos outros bônus de dano\n12% de dano multiplicativo, multiplicado pelos outros bônus\nAumenta o dano base de todas as armas em 4\nAumenta o dano total de todas as armas em 5\n10% de aumento na chance de ataque crítico corpo a corpo\nAumenta a velocidade de disparo à distância em 15%\n5 de penetração de armadura mágica\n100% de aumento na repulsão de exemplo",
     "ExampleBoots": "Permite voar, correr super rápido, correr ainda mais rápido na areia e ter mobilidade extra no gelo\nProporciona a habilidade de andar sobre água, mel, lava e brilho\nConcede imunidade a blocos de fogo e {0} segundos de imunidade à lava\nReduz o dano causado pelo contato com lava\nPrevine dano por queda\nDeixa um rastro de chamas por onde você passar",
     "WaspNest": "As abelhas ficam mais fortes",
     "ExampleTooltipItem": "Acima, uma cor por letra. Esta linha, em dourado",
@@ -228,6 +235,11 @@
       "AdditionalTooltip": "Ainda Mais Poder"
     }
   },
+  "DamageClasses": {
+    "ExampleDamageClass": {
+      "DisplayName": "dano de exemplo"
+    }
+  },
   "Biomes": {
     "ExampleSurfaceBiome": {
       "DisplayName": "Superfície de Exemplo",
@@ -273,29 +285,14 @@
   },
   "Configs": {
     "ExampleConfig": {
+      "ToggleHeader": {
+        "Label": "Exemplo de Interruptor"
+      },
       "ShowFlavorText": {
         "Label": "Textos extras nos itens"
       },
-      "BossHealth": {
-        "Label": "Vida do chefe"
-      },
-      "Particles": {
-        "Label": "Partículas",
-        "low": "Poucas",
-        "normal": "Normais",
-        "high": "Muitas"
-      },
       "BossMusic": {
         "Label": "Música do chefe"
-      },
-      "BossDamage": {
-        "Label": "Dano do chefe"
-      },
-      "BossSpeed": {
-        "Label": "Velocidade do chefe",
-        "slow": "Lento",
-        "normal": "Normal",
-        "fast": "Rápido"
       },
       "ShowBossBar": {
         "Label": "Barra de vida do chefe"
@@ -303,8 +300,104 @@
       "ExtraLoot": {
         "Label": "Loot extra"
       },
-      "DropChance": {
-        "Label": "Chance de drop"
+      "RangeHeader": {
+        "Label": "Exemplo de Barra"
+      },
+      "BossHealth": {
+        "Label": "Vida do chefe"
+      },
+      "BossDamage": {
+        "Label": "Dano do chefe"
+      },
+      "TorchLight": {
+        "Label": "Luz da tocha"
+      },
+      "RadioHeader": {
+        "Label": "Exemplo de Escolha"
+      },
+      "Particles": {
+        "Label": "Partículas",
+        "low": "Poucas",
+        "normal": "Normais",
+        "high": "Muitas"
+      },
+      "BossSpeed": {
+        "Label": "Velocidade do chefe",
+        "slow": "Lento",
+        "normal": "Normal",
+        "fast": "Rápido"
+      },
+      "DropdownHeader": {
+        "Label": "Exemplo de Lista Suspensa"
+      },
+      "FavoriteBiome": {
+        "Label": "Bioma favorito",
+        "forest": "Floresta",
+        "desert": "Deserto",
+        "snow": "Neve",
+        "jungle": "Selva",
+        "corruption": "Corrupção",
+        "crimson": "Carmesim",
+        "hallow": "Consagrado",
+        "ocean": "Oceano",
+        "mushroom": "Cogumelo"
+      },
+      "ShopPrices": {
+        "Label": "Preços da loja",
+        "cheap": "Baratos",
+        "normal": "Normais",
+        "expensive": "Caros"
+      },
+      "CycleHeader": {
+        "Label": "Exemplo de Ciclo"
+      },
+      "Weather": {
+        "Label": "Clima",
+        "clear": "Limpo",
+        "rain": "Chuva",
+        "snow": "Neve",
+        "storm": "Tempestade"
+      },
+      "TimeOfDay": {
+        "Label": "Hora do dia",
+        "dawn": "Amanhecer",
+        "day": "Dia",
+        "dusk": "Entardecer",
+        "night": "Noite"
+      },
+      "ColorHeader": {
+        "Label": "Exemplo de Cor"
+      },
+      "GlowColor": {
+        "Label": "Cor do brilho"
+      },
+      "ButtonHeader": {
+        "Label": "Exemplo de Botão"
+      },
+      "RandomGlow": {
+        "Label": "Cor do brilho",
+        "Text": "Sortear"
+      },
+      "ResetAll": {
+        "Label": "Todas as opções",
+        "Text": "Padrão"
+      },
+      "LinkHeader": {
+        "Label": "Exemplo de Link"
+      },
+      "Repository": {
+        "Label": "Código do Bunny Loader",
+        "Text": "GitHub"
+      },
+      "Wiki": {
+        "Label": "Documentação",
+        "Text": "Wiki"
+      },
+      "DisabledHeader": {
+        "Label": "Exemplo de Opção Desabilitada"
+      },
+      "EnablePets": {
+        "Label": "Ativar pets"
       },
       "PetGlow": {
         "Label": "Brilho dos pets"
@@ -315,38 +408,8 @@
         "medium": "Médio",
         "large": "Grande"
       },
-      "TorchLight": {
-        "Label": "Luz da tocha"
-      },
-      "WingTrail": {
-        "Label": "Rastro das asas"
-      },
-      "WingSpeed": {
-        "Label": "Velocidade das asas"
-      },
-      "ShopPrices": {
-        "Label": "Preços da loja",
-        "cheap": "Baratos",
-        "normal": "Normais",
-        "expensive": "Caros"
-      },
-      "TownNPCChat": {
-        "Label": "Conversa dos moradores"
-      },
-      "BiomeMusic": {
-        "Label": "Música do bioma"
-      },
-      "BiomeSize": {
-        "Label": "Tamanho do bioma",
-        "small": "Pequeno",
-        "normal": "Normal",
-        "big": "Grande"
-      },
-      "OreAmount": {
-        "Label": "Minério"
-      },
-      "DebugText": {
-        "Label": "Texto de depuração"
+      "PetDistance": {
+        "Label": "Distância dos pets"
       }
     }
   }

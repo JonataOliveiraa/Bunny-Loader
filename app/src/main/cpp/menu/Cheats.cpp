@@ -16,6 +16,7 @@
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/tiles/ModTiles.h"
+#include "content/walls/ModWalls.h"
 #include "menu/MenuCatalog.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "menu/DevTools.h"
@@ -843,6 +844,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModNpcs();
     tickModBuffs();
     tickModTiles();
+    tickModWalls();
     tickContentReady();
     tickQuickStart();
     tickNetRequests();

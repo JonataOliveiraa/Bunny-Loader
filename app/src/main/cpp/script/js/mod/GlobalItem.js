@@ -14,6 +14,9 @@ class GlobalItem extends GlobalType {
     UpdateInventory(item, player) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
+    // O item no chão, todo quadro (ver ModItem.PreUpdateInWorld).
+    PreUpdateInWorld(item, worldItem) { return true; }
+    PostUpdateInWorld(item, worldItem) {}
     OnCraft(item, player, recipe) {}
     ModifyTooltips(item, tooltips) {}
     // O desenho do tooltip (DrawableTooltipLine: X, Y, Font, Color, BaseScale...).

@@ -22,6 +22,10 @@ class Mod {
     AddRecipes() {}
     PostSetupContent() {}
 
+    GetContent(base) {
+        return Templates.All(base, this);
+    }
+
     GetPacket() {
         ModNet.Install();
         return new ModPacket(this);

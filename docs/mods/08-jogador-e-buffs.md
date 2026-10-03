@@ -52,6 +52,17 @@ perceber a troca.
 | `this.Player` | O jogador desta instância. Os métodos também o recebem como primeiro argumento. |
 | `ModPlayer.getByName(nome)` | A instância do jogador **local**. Serve para código de uma só tela (interface), não para lógica de jogo. |
 
+Dois mods podem ter um `ModPlayer` com o mesmo nome de classe: cada um tem o
+seu, e o que cada um salva fica separado. Pela classe nunca há dúvida. Pelo
+nome, vale o do seu mod; se o nome é de outro mod e mais de um mod o tem, não
+vem nada (e o log avisa): peça por `'idDoMod/Classe'`.
+
+```js
+player.GetModPlayer(ExampleDashPlayer);              // pela classe: sempre o certo
+player.GetModPlayer('ExampleDashPlayer');            // pelo nome: o do seu mod primeiro
+player.GetModPlayer('examplemod/ExampleDashPlayer'); // o de um mod específico
+```
+
 ### Um quadro do jogador
 
 Os métodos, na ordem em que rodam num quadro:
@@ -89,7 +100,7 @@ Outros:
 | `OnEnterWorld(player)` | O jogador entrou no mundo. |
 | `OnRespawn(player)` | Voltou a viver. |
 | `CanUseItem(player, item)` | `false` impede usar. |
-| `ModifyWeaponDamage(player, item, dano)` | Devolva o dano novo (ou ponha em `this.WeaponDamage`). |
+| `ModifyWeaponDamage(player, item, dano)` | Devolva o dano novo (ou ponha em `this.WeaponDamage`), ou mexa no `dano` como `StatModifier` (`dano.Additive += 0.1`, o do tModLoader). |
 | `ImmuneTo(player, fonte, cooldown, esquivavel)` | `true`: o golpe não acontece. |
 | `FreeDodge(player, fonte, dano, ...)` | `true`: esquiva. |
 | `ModifyHurt(player, mod)` | Mude `mod.damage`, `mod.hitDirection`, `mod.crit`... antes do golpe. |

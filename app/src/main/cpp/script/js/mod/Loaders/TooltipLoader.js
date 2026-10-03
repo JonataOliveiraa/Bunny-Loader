@@ -133,6 +133,8 @@ class TooltipLoader {
     static #Wants(item) {
         if (!item || item.type < 1) return false;
         if (RarityLoader.ByType.has(item.rare)) return true;
+        // Classe de dano que o jogo não entende: o texto dele diria a das flags.
+        if (item.damage > 0 && DamageClassLoader.IsHooked(DamageClassLoader.ItemClass(item))) return true;
 
         const m = ItemLoader.Of(item);
         if (m && TooltipLoader.#ITEM_HOOKS.some((h) => Hooks.Overrides(m.constructor, ModItem, h))) return true;

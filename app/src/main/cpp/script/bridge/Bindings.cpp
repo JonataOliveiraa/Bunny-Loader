@@ -12,6 +12,7 @@
 #include "script/api/Npcs.h"
 #include "script/api/Projectiles.h"
 #include "script/api/Buffs.h"
+#include "script/api/Walls.h"
 #include "script/api/Tiles.h"
 #include "script/api/Files.h"
 #include "script/api/Texture.h"
@@ -511,6 +512,9 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     Il2CppObject* o = objOf(obj);
     if (!o) return JS_UNDEFINED;
     Il2CppClass* cls = il2cpp::api().object_get_class(o);
+    // Metodo de mod que sobrepoe um do jogo (bl.defineMethod com override).
+    JSValue overriding;
+    if (extraMethodOverride(ctx, cls, obj, atom, &overriding)) return overriding;
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
 
     if (m.proto) return protoGet(ctx, g_nativeObjectId, atom);
@@ -520,8 +524,10 @@ JSValue no_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
     if (m.signature) return missingSignature(ctx, cls, atom);
     // Campo que um mod pos na classe (bl.defineField): `item.ModItem`.
     if (isExtraField(cls, atom)) return extraFieldGet(ctx, o, atom);
-    // Metodo que um mod pos na classe (bl.defineMethod): `player.GetModPlayer(X)`.
+    // Propriedade com codigo (bl.defineProperty): `item.DamageType`.
     JSValue method;
+    if (extraAccessorGet(ctx, cls, obj, atom, &method)) return method;
+    // Metodo que um mod pos na classe (bl.defineMethod): `player.GetModPlayer(X)`.
     if (extraMethodGet(ctx, cls, obj, atom, &method)) return method;
     return missingMember(ctx, cls, atom, m, Space::Instance);
 }
@@ -535,6 +541,7 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
     if (m.setter) return invokeSetter(ctx, m.setter, propertyThis(o, cls), value);
     if (isExtraField(cls, atom)) return extraFieldSet(ctx, o, atom, value);
+    if (const int r = extraAccessorSet(ctx, cls, obj, atom, value)) return r;
     // Nome que a classe nao tem: RECUSA, como ja fazia o caminho do struct.
     // Antes isto virava uma propriedade JS comum no wrapper, entao um
     // `item.useTmie = 4` dava certo, nao mudava nada no jogo e nao dizia nada
@@ -554,7 +561,7 @@ int no_exotic_has(JSContext* ctx, JSValueConst obj, JSAtom atom) {
     Il2CppClass* cls = il2cpp::api().object_get_class(o);
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
     if (m.proto || m.found()) return true;
-    return !m.quiet && (isExtraField(cls, atom) || hasExtraMethod(cls, atom));
+    return !m.quiet && (isExtraField(cls, atom) || hasExtraAccessor(cls, atom) || hasExtraMethod(cls, atom));
 }
 
 void no_finalizer(JSRuntime*, JSValue val) {
@@ -956,6 +963,9 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
         JSValue field = JS_GetPropertyStr(ctx, argv[1], "field");
         JSValue tile = JS_GetPropertyStr(ctx, argv[1], "tile");
         JSValue tileAt = JS_GetPropertyStr(ctx, argv[1], "tileAt");
+        JSValue wall = JS_GetPropertyStr(ctx, argv[1], "wall");
+        filter.wallMode = JS_ToBool(ctx, wall) == 1;
+        JS_FreeValue(ctx, wall);
         JSValue arg = JS_GetPropertyStr(ctx, argv[1], "arg");
         int32_t n = 0;
         const bool ok = JS_ToInt32(ctx, &n, min) == 0;
@@ -1782,6 +1792,7 @@ void installBindings(void* context) {
     installProjectilesApi(ctx, bl);
     installBuffsApi(ctx, bl);
     installTilesApi(ctx, bl);
+    installWallsApi(ctx, bl);
     installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
     installSoundsApi(ctx, bl);

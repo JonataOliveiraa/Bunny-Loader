@@ -1,0 +1,15 @@
+{
+  "uid": "6e1f3a20-8b4c-4d71-9f2e-5a0c7b3d9e14",
+  "id": "test-getcontent",
+  "name": "Teste: GetContent",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Mod.GetContent e ModContent.GetContent: o conteúdo de um mod e de todos, por classe base.",
+  "description": "Loga 'getcontent ...'.",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

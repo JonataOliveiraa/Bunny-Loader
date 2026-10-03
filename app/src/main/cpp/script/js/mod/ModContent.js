@@ -4,11 +4,13 @@ class ModContent {
     static NPCType(which) { return ContentLookup.TypeOf(NPCLoader.ByType, which); }
     static BuffType(which) { return ContentLookup.TypeOf(BuffLoader.ByType, which); }
     static TileType(which) { return ContentLookup.TypeOf(TileLoader.ByType, which); }
+    static WallType(which) { return ContentLookup.TypeOf(WallLoader.ByType, which); }
     static PrefixType(which) { return ContentLookup.TypeOf(PrefixLoader.ByType, which); }
     static MountType(which) { return ContentLookup.TypeOf(MountLoader.ByType, which); }
     static RarityType(which) { return ContentLookup.TypeOf(RarityLoader.ByType, which); }
 
     static GetInstance(cls) { return Templates.Get(cls); }
+    static GetContent(base) { return Templates.All(base); }
 
     // ModContent.Find(ModItem, 'examplemod/ExampleItem'); lança se não há.
     static Find(base, name) {
@@ -29,6 +31,7 @@ class ModContent {
     static GetModNPC(type) { return NPCLoader.ByType.get(type); }
     static GetModBuff(type) { return BuffLoader.ByType.get(type); }
     static GetModTile(type) { return TileLoader.ByType.get(type); }
+    static GetModWall(type) { return WallLoader.ByType.get(type); }
     static GetModPrefix(type) { return PrefixLoader.ByType.get(type); }
     static GetModMount(type) { return MountLoader.ByType.get(type); }
     static GetModRarity(type) { return RarityLoader.GetRarity(type); }

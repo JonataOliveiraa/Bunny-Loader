@@ -10,6 +10,7 @@
 #include "content/common/TypeTables.h"
 #include "content/items/ModItemSorting.h"
 #include "content/items/UnloadedIcon.h"
+#include "content/items/EmptyTexture.h"
 
 #include <atomic>
 #include <cstdio>
@@ -25,6 +26,7 @@ struct Entry {
     ModItemDef def;
     int width = 0, height = 0;
     uint32_t asset = 0;   // gchandle do Asset<Texture2D>: reaplicado se a tabela for refeita
+    uint32_t flameAsset = 0;   // a chama na mao (TextureAssets.ItemFlame)
     std::string unloadedKey;   // so da reserva "?": a chave do item ausente que ele representa
 };
 
@@ -40,6 +42,7 @@ int g_poolFirst = -1;   // primeiro tipo da reserva "?", -1 sem reserva
 struct Refs {
     bool tried = false, ok = false;
     FieldInfo* itemTextures = nullptr;        // TextureAssets.Item (Asset<Texture2D>[])
+    FieldInfo* itemFlames = nullptr;          // TextureAssets.ItemFlame (Asset<Texture2D>[])
     FieldInfo* nameCache = nullptr;      // Lang._itemNameCache (LocalizedText[])
     FieldInfo* tooltipCache = nullptr;   // Lang._itemTooltipCache (ItemTooltip[])
     const MethodInfo* tooltipFromKey = nullptr;   // ItemTooltip.FromLanguageKey(short, string)
@@ -94,6 +97,7 @@ Refs& refs() {
     r.gameTex = findClass({"Microsoft.Xna.Framework.Graphics", "Texture2D", {}});
 
     r.itemTextures = tex ? findField(tex, "Item") : nullptr;
+    r.itemFlames = tex ? findField(tex, "ItemFlame") : nullptr;
     r.nameCache = lang ? findField(lang, "_itemNameCache") : nullptr;
     r.tooltipCache = lang ? findField(lang, "_itemTooltipCache") : nullptr;
     r.tooltipFromKey = sig(findClass({"Terraria.UI", "ItemTooltip", {}}),
@@ -243,6 +247,31 @@ void applyName(int type, const Entry& reg) {
 void applyTexture(int type, const Entry& reg) {
     Il2CppObject* asset = reg.asset ? il2cpp::api().gchandle_get_target(reg.asset) : nullptr;
     if (asset) content::setTableElement(refs().itemTextures, type, asset);
+}
+
+// A tabela de chamas cresce com as de item copiando a do tipo 0, um asset que
+// o jogo nunca carrega: a tocha de mod na mao saia com um quadrado branco.
+uint32_t g_emptyFlame = 0;
+
+void applyFlame(int type, const Entry& reg) {
+    if (!refs().itemFlames) return;
+    const uint32_t handle = reg.flameAsset ? reg.flameAsset : g_emptyFlame;
+    Il2CppObject* asset = handle ? il2cpp::api().gchandle_get_target(handle) : nullptr;
+    if (asset) content::setTableElement(refs().itemFlames, type, asset);
+}
+
+void loadFlame(Entry& reg) {
+    auto& a = il2cpp::api();
+    int w = 0, h = 0;
+    if (!g_emptyFlame) {
+        if (Il2CppObject* empty = content::loadTextureAsset("", bl_empty_png, bl_empty_png_len, "bl/EmptyFlame", &w, &h)) {
+            g_emptyFlame = a.gchandle_new(empty, false);
+        }
+    }
+    if (reg.def.flameTexture.empty()) return;
+    Il2CppObject* flame = content::loadTextureAsset(reg.def.flameTexture, nullptr, 0,
+                                                    reg.def.mod + "/" + reg.def.name + "_Flame", &w, &h);
+    if (flame) reg.flameAsset = a.gchandle_new(flame, false);
 }
 
 /** Chama um metodo de um Dictionary pelo objeto (a classe genérica e a dele). */
@@ -407,12 +436,13 @@ bool gameReady(int size) {
 /** Tabela que o jogo refez (a troca de idioma refaz os caches de nome): reaplica o nosso. */
 void onTableRegrown(FieldInfo* f, int size) {
     Refs& r = refs();
-    if (f != r.nameCache && f != r.itemTextures && f != r.tooltipCache) return;
+    if (f != r.nameCache && f != r.itemTextures && f != r.tooltipCache && f != r.itemFlames) return;
     std::lock_guard<std::mutex> l(g_mx);
     for (size_t i = 0; i < g_regs.size() && static_cast<int>(i) < size - kVanillaItemCount; ++i) {
         const int type = kVanillaItemCount + static_cast<int>(i);
         if (f == r.nameCache) applyName(type, g_regs[i]);
         if (f == r.itemTextures) applyTexture(type, g_regs[i]);
+        if (f == r.itemFlames) applyFlame(type, g_regs[i]);
         if (f == r.tooltipCache) applyTooltip(type, g_regs[i]);
     }
 }
@@ -648,6 +678,8 @@ void tickModItems() {
                 reg.def.mod + "/" + reg.def.name, &reg.width, &reg.height);
             if (asset) reg.asset = a.gchandle_new(asset, false);
             applyTexture(type, reg);
+            loadFlame(reg);
+            applyFlame(type, reg);
             applyName(type, reg);
             applyTooltip(type, reg);
             pending.push_back({type, reg.def.mod, reg.def.name});

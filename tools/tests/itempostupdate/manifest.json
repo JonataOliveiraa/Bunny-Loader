@@ -1,0 +1,15 @@
+{
+  "uid": "7b3e9c41-2d58-4a6f-b1c0-8e4f2a6d9c15",
+  "id": "test-itempostupdate",
+  "name": "Teste: ModItem.PostUpdate",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Com o Example Mod: a Alma de Exemplo no chão chama o PostUpdate (com Center) e a da hotbar desenha sem erro no GetAlpha.",
+  "description": "Loga 'itempostupdate ...'.",
+  "updated": "2026-10-02",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

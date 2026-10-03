@@ -28,6 +28,8 @@ namespace bl::runtime {
  */
 int addModTileMapEntry(int type, int r, int g, int b, const std::string& nameKey);
 
+int addModWallMapEntry(int type, int r, int g, int b, const std::string& nameKey);
+
 /**
  * Poe as entradas nas tabelas do mapa (so na thread do jogo). `rebuilt`: o
  * jogo acabou de refazer as tabelas (MapHelper.Initialize).
