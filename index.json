@@ -117,6 +117,55 @@
       ]
     },
     {
+      "uid": "12754257-00fe-4c58-b21b-7af0c5faf7b3",
+      "id": "gravity-dont-flip-screen",
+      "name": "Gravitation Don't Flip the Screen",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-gravity-dont-flip-screen-v1.0.0/gravity-dont-flip-screen-1.0.0.bl",
+        "sha256": "218c21cb06cef9e82d0d09a379e889c02d230d7a56185f52e42c2a1997dbf730",
+        "size": 1169006
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "authors/lemon.webp",
+        "authors/steam.png"
+      ],
+      "manifest": {
+        "uid": "12754257-00fe-4c58-b21b-7af0c5faf7b3",
+        "id": "gravity-dont-flip-screen",
+        "name": "Gravitation Don't Flip the Screen",
+        "version": "1.0.0",
+        "authors": [
+          {
+            "name": "Cyrillya",
+            "role": "Original Creator",
+            "avatar": "steam.png",
+            "color": "#F0F0F0",
+            "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2793971101"
+          },
+          {
+            "name": "GST378",
+            "role": "Bunny Loader Port",
+            "avatar": "lemon.webp",
+            "color": "#FEFE00",
+            "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
+          }
+        ],
+        "category": "QoL",
+        "summary": "This mod makes the gravity inversion effect not flip your screen, only the player flips.",
+        "updated": "2026-10-04",
+        "blVersion": 2,
+        "gameVersion": [
+          301720,
+          301720
+        ],
+        "entry": "main.js",
+        "dependencies": []
+      }
+    },
+    {
       "uid": "469b0c4b-acfa-463b-90df-5db222a81351",
       "id": "instantplatformfallthrough",
       "name": "Instant Platform Fallthrough",
