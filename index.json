@@ -59,6 +59,21 @@
       ]
     },
     {
+      "uid": "4ef70487-0ffd-4b37-adbd-9e9a403d5307",
+      "id": "gorilla",
+      "name": "Gorilla",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-gorilla-v1.0.0/gorilla-1.0.0.bl",
+        "sha256": "43ef50769cc11ee71d32d63ecd0859fddfb5669784b9a77eaa4e9687ee6fa3a1",
+        "size": 117907
+      },
+      "files": [
+        "manifest.json",
+        "icon.png"
+      ]
+    },
+    {
       "uid": "469b0c4b-acfa-463b-90df-5db222a81351",
       "id": "instantplatformfallthrough",
       "name": "Instant Platform Fallthrough",

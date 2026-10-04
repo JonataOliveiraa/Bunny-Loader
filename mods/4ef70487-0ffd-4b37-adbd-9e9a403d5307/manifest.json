@@ -1,0 +1,18 @@
+{
+  "uid": "4ef70487-0ffd-4b37-adbd-9e9a403d5307",
+  "id": "gorilla",
+  "name": "Gorilla",
+  "version": "1.0.0",
+  "author": "ported by Animatak",
+  "category": "Meme",
+  "summary": "Enfrente o Gorila. Talvez você precise de 100 homens para derrotar essa coisa... e não espere sair vivo.",
+  "description": "Enfrente o Gorila, um chefe ridiculamente poderoso e brutal. Talvez você precise de 100 homens para derrotar essa coisa... e mesmo assim, não espere sobreviver.\nMod original desenvolvido por GabeHasWon.",
+  "updated": "2026-09-30",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}
