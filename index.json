@@ -21,6 +21,49 @@
       ]
     },
     {
+      "uid": "9c6ebfc9-4520-490d-942a-348c41648a4d",
+      "id": "better-reforge",
+      "name": "Better Reforge",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-better-reforge-v1.0.0/better-reforge-1.0.0.bl",
+        "sha256": "17ed133bd107b03c183ed700bb2b34b49b39890db9c37b1099f5e13af63535ac",
+        "size": 1553662
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "authors/lemon.webp",
+        "assets/preview.png"
+      ],
+      "manifest": {
+        "uid": "9c6ebfc9-4520-490d-942a-348c41648a4d",
+        "id": "better-reforge",
+        "name": "Better Reforge",
+        "version": "1.0.0",
+        "authors": [
+          {
+            "name": "GST378",
+            "role": "Original Creator",
+            "avatar": "lemon.webp",
+            "color": "#FEFE00",
+            "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
+          }
+        ],
+        "category": "Utilities",
+        "summary": "Replaces the traditional Goblin Tinkerer interface with a new system that allows you to browse and select item prefixes directly.",
+        "updated": "2026-10-04",
+        "blVersion": 2,
+        "gameVersion": [
+          301720,
+          301720
+        ],
+        "entry": "main.js",
+        "dependencies": []
+      }
+    },
+    {
       "uid": "dbe76e93-a141-4b42-9bbe-13e5b6984e19",
       "id": "bosscursor",
       "name": "Boss Cursor",
