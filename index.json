@@ -497,6 +497,73 @@
         "authors/lemon.webp",
         "authors/steam.png"
       ]
+    },
+    {
+      "uid": "3183ab40-81f1-477a-aa50-0df1dde68c58",
+      "id": "wildandhorned",
+      "name": "Wild and Horned",
+      "version": "1.5.2",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-wildandhorned-v1.5.2/wildandhorned-1.5.2.bl",
+        "sha256": "740b9fd54fef87ca5f583aeed6a0639d861442d5798dc919629a753681bbb065",
+        "size": 182703
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "changelog.md",
+        "license.md",
+        "authors/potato.png",
+        "authors/steam.png"
+      ],
+      "manifest": {
+        "uid": "3183ab40-81f1-477a-aa50-0df1dde68c58",
+        "id": "wildandhorned",
+        "name": "Wild and Horned",
+        "version": "1.5.2",
+        "authors": [
+          {
+            "name": "FuzzyGolf291773",
+            "role": "Original mod and pet animations",
+            "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=3810452158",
+            "avatar": "steam.png"
+          },
+          {
+            "name": "MineGame223 and Group For One",
+            "role": "Touhou Little Friend framework and sprite foundations",
+            "link": "https://github.com/MineGame223/TouhouLittleFriend"
+          },
+          {
+            "name": "Potato",
+            "role": "Port to Bunny Loader and Brazilian Portuguese localization",
+            "avatar": "potato.png",
+            "color": "#E8C170",
+            "link": "https://github.com/JonataOliveiraa"
+          }
+        ],
+        "category": "Pets",
+        "summary": "Sixteen animated Touhou companions with conversations, seven light pets, crafting recipes and Kasen's oni transformations.",
+        "license": "GPL-3.0",
+        "updated": "2026-10-04",
+        "blVersion": 2,
+        "gameVersion": [
+          301720,
+          301720
+        ],
+        "entry": "main.js",
+        "dependencies": [],
+        "links": [
+          {
+            "title": "Original Steam Workshop mod",
+            "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3810452158"
+          },
+          {
+            "title": "Touhou Little Friend",
+            "url": "https://github.com/MineGame223/TouhouLittleFriend"
+          }
+        ]
+      }
     }
   ]
 }
