@@ -24,11 +24,11 @@
       "uid": "9c6ebfc9-4520-490d-942a-348c41648a4d",
       "id": "better-reforge",
       "name": "Better Reforge",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "download": {
-        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-better-reforge-v1.0.0/better-reforge-1.0.0.bl",
-        "sha256": "17ed133bd107b03c183ed700bb2b34b49b39890db9c37b1099f5e13af63535ac",
-        "size": 1553662
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-better-reforge-v1.0.1/better-reforge-1.0.1.bl",
+        "sha256": "b1cee9b0b23e60c5a26abe12ed115733b4bbe16171bfb9c455052803cec927a4",
+        "size": 1553690
       },
       "files": [
         "manifest.json",
@@ -41,7 +41,7 @@
         "uid": "9c6ebfc9-4520-490d-942a-348c41648a4d",
         "id": "better-reforge",
         "name": "Better Reforge",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "authors": [
           {
             "name": "GST378",
