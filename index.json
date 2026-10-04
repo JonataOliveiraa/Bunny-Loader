@@ -361,6 +361,68 @@
       ]
     },
     {
+      "uid": "2465f295-e293-4742-93fe-73d86b92c6e5",
+      "id": "touhoupets",
+      "name": "Touhou Pets",
+      "version": "1.0.4",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-touhoupets-v1.0.4/touhoupets-1.0.4.bl",
+        "sha256": "bd59c93494638c74161ad48cf215932ff63cd184426a6ff1e4f4e0e715b285a4",
+        "size": 257233
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "license.md",
+        "authors/potato.png",
+        "authors/steam.png"
+      ],
+      "manifest": {
+        "uid": "2465f295-e293-4742-93fe-73d86b92c6e5",
+        "id": "touhoupets",
+        "name": "Touhou Pets",
+        "version": "1.0.4",
+        "authors": [
+          {
+            "name": "中学生",
+            "role": "Original mod (tModLoader)",
+            "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2973922820",
+            "avatar": "steam.png"
+          },
+          {
+            "name": "Potato",
+            "role": "Port to Bunny Loader",
+            "avatar": "potato.png",
+            "color": "#E8C170",
+            "link": "https://github.com/JonataOliveiraa"
+          }
+        ],
+        "category": "Pets",
+        "type": "mod",
+        "summary": "Adventure with cute partners: 19 Touhou characters as pets, dropped by the bosses. They animate, react to the world and talk to you and to each other.",
+        "license": "GPL-3.0",
+        "updated": "2026-10-04",
+        "blVersion": 2,
+        "gameVersion": [
+          301720,
+          301720
+        ],
+        "entry": "main.js",
+        "dependencies": [],
+        "links": [
+          {
+            "title": "Original mod on the Steam Workshop",
+            "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2973922820"
+          },
+          {
+            "title": "Source code (GitHub)",
+            "url": "https://github.com/MineGame223/TouhouLittleFriend"
+          }
+        ]
+      }
+    },
+    {
       "uid": "77b38952-98d6-4e18-a301-638d54c4bfd0",
       "id": "townnpchome",
       "name": "TownNPC Home",
