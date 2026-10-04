@@ -1,5 +1,5 @@
-O Boss Cursor facilita a localização de chefes durante o combate.
+Boss Cursor makes it easier to locate bosses during combat.
 
-Quando o chefe está fora da tela ou distante do jogador, uma **seta** é exibida na direção em que ele se encontra, permitindo acompanhar seus movimentos sem precisar procurar pela arena.
+When a boss is off-screen or far away from the player, an arrow appears pointing in the direction of the boss, allowing you to keep track of its movements without having to search around the arena.
 
-Uma ferramenta simples e útil para manter o chefe sempre no seu radar durante as batalhas.
+A simple and useful tool to keep the boss always on your radar during battles.

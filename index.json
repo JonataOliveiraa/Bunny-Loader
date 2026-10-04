@@ -67,19 +67,44 @@
       "uid": "dbe76e93-a141-4b42-9bbe-13e5b6984e19",
       "id": "bosscursor",
       "name": "Boss Cursor",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "download": {
-        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-bosscursor-v1.0.0/bosscursor-1.0.0.bl",
-        "sha256": "790d99cbdb0980d8c403ef3f02efc5d3427b88bc9637fdded4ccc5f4f4202b2b",
-        "size": 102292
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-bosscursor-v1.1.0/bosscursor-1.1.0.bl",
+        "sha256": "05f567352afcf759cd783dc061675d62e7cb161225144338b4b91a122f2e1f77",
+        "size": 107178
       },
       "files": [
         "manifest.json",
         "icon.png",
         "banner.png",
         "description.md",
+        "changelog.md",
         "authors/animatak.png"
-      ]
+      ],
+      "manifest": {
+        "uid": "dbe76e93-a141-4b42-9bbe-13e5b6984e19",
+        "id": "bosscursor",
+        "name": "Boss Cursor",
+        "version": "1.1.0",
+        "authors": [
+          {
+            "name": "Animatak_",
+            "avatar": "animatak.png",
+            "color": "#841FFF",
+            "link": "https://discord.gg/lemon-studio-1422278971227115532",
+            "role": "Author"
+          }
+        ],
+        "category": "Utility",
+        "updated": "2026-10-04",
+        "blVersion": 2,
+        "gameVersion": [
+          301720,
+          301720
+        ],
+        "entry": "main.js",
+        "dependencies": []
+      }
     },
     {
       "uid": "95728a1c-1fb7-4ed7-af5b-d12bdec38e46",
