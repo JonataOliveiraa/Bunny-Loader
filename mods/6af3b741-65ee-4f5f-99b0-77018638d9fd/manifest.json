@@ -1,0 +1,32 @@
+{
+  "uid": "6af3b741-65ee-4f5f-99b0-77018638d9fd",
+  "id": "disablecorruptionspread",
+  "name": "Begone, Evil! (Disable Evil Biome Spread)",
+  "version": "1.0",
+  "authors": [
+    {
+      "name": "Mantovani",
+      "role": "Bunny Loader port, fixes & optimization",
+      "avatar": "mantovani.webp",
+      "color": "#FFD700"
+    },
+    {
+      "name": "jopojelly",
+      "role": "Original mod creator",
+      "avatar": "jopojelly.webp",
+      "color": "#FFFFFF",
+      "link": "https://forums.terraria.org/index.php?threads/begone-evil-disable-corruption-spread.72285/"
+    }
+  ],
+  "category": "Utilidade",
+  "summary": "Disables natural Corruption, Crimson and Hallow biome spread by default, with a per-world /spread toggle.",
+  "updated": "2026-10-04",
+  "blVersion": 2,
+  "entry": "main.js",
+  "links": [
+    {
+      "title": "Original mod",
+      "url": "https://forums.terraria.org/index.php?threads/begone-evil-disable-corruption-spread.72285/"
+    }
+  ]
+}

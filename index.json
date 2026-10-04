@@ -2,6 +2,57 @@
   "format": 1,
   "mods": [
     {
+      "uid": "6af3b741-65ee-4f5f-99b0-77018638d9fd",
+      "id": "disablecorruptionspread",
+      "name": "Begone, Evil! (Disable Evil Biome Spread)",
+      "version": "1.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-disablecorruptionspread-v1.0/disablecorruptionspread-1.0.bl",
+        "sha256": "5b323972951d9d7b19666f5558f5e88342d3aac043bfbbec0b53615ea90e86e1",
+        "size": 33105
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "changelog.md",
+        "authors/jopojelly.webp",
+        "authors/mantovani.webp"
+      ],
+      "manifest": {
+        "uid": "6af3b741-65ee-4f5f-99b0-77018638d9fd",
+        "id": "disablecorruptionspread",
+        "name": "Begone, Evil! (Disable Evil Biome Spread)",
+        "version": "1.0",
+        "authors": [
+          {
+            "name": "Mantovani",
+            "role": "Bunny Loader port, fixes & optimization",
+            "avatar": "mantovani.webp",
+            "color": "#FFD700"
+          },
+          {
+            "name": "jopojelly",
+            "role": "Original mod creator",
+            "avatar": "jopojelly.webp",
+            "color": "#FFFFFF",
+            "link": "https://forums.terraria.org/index.php?threads/begone-evil-disable-corruption-spread.72285/"
+          }
+        ],
+        "category": "Utilidade",
+        "summary": "Disables natural Corruption, Crimson and Hallow biome spread by default, with a per-world /spread toggle.",
+        "updated": "2026-10-04",
+        "blVersion": 2,
+        "entry": "main.js",
+        "links": [
+          {
+            "title": "Original mod",
+            "url": "https://forums.terraria.org/index.php?threads/begone-evil-disable-corruption-spread.72285/"
+          }
+        ]
+      }
+    },
+    {
       "uid": "00895657-564e-49ca-b099-23823ba0e68c",
       "id": "better-achievements",
       "name": "Better Achievements",
