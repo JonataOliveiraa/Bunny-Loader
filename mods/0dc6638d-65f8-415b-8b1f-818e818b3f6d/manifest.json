@@ -1,0 +1,25 @@
+{
+  "uid": "0dc6638d-65f8-415b-8b1f-818e818b3f6d",
+  "id": "resized-frames",
+  "name": "Resized Frames",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "GST378",
+      "role": "Original Creator",
+      "avatar": "lemon.webp",
+      "color": "#FEFE00",
+      "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
+    }
+  ],
+  "category": "Visual",
+  "summary": "Items placed in frames will be drawn at their actual size",
+  "updated": "2026-10-04",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

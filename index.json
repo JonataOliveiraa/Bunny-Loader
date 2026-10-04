@@ -157,6 +157,48 @@
       ]
     },
     {
+      "uid": "0dc6638d-65f8-415b-8b1f-818e818b3f6d",
+      "id": "resized-frames",
+      "name": "Resized Frames",
+      "version": "1.0.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-resized-frames-v1.0.0/resized-frames-1.0.0.bl",
+        "sha256": "5a88a35d992e35ac1d5fe863b5d0a2afaeef628471678a226ea7710a0a3fbd7f",
+        "size": 1294852
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "banner.png",
+        "authors/lemon.webp"
+      ],
+      "manifest": {
+        "uid": "0dc6638d-65f8-415b-8b1f-818e818b3f6d",
+        "id": "resized-frames",
+        "name": "Resized Frames",
+        "version": "1.0.0",
+        "authors": [
+          {
+            "name": "GST378",
+            "role": "Original Creator",
+            "avatar": "lemon.webp",
+            "color": "#FEFE00",
+            "link": "https://youtube.com/@gst_378?si=-18HzRizRpiFJrEP"
+          }
+        ],
+        "category": "Visual",
+        "summary": "Items placed in frames will be drawn at their actual size",
+        "updated": "2026-10-04",
+        "blVersion": 2,
+        "gameVersion": [
+          301720,
+          301720
+        ],
+        "entry": "main.js",
+        "dependencies": []
+      }
+    },
+    {
       "uid": "15b99fa4-580f-40c6-9a26-78e3928876d7",
       "id": "semqueda",
       "name": "Sem Dano de Queda",
