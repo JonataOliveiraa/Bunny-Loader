@@ -414,6 +414,7 @@ recebem o jogador (`player`), que é o mesmo `this.Player`.
 | `UpdateEquips(player)`, `PostUpdateEquips(player)` | Depois dos equipamentos. | `Player.UpdateEquips` |
 | `UpdateBadLifeRegen(player)`, `UpdateLifeRegen(player)` | Antes e depois da regeneração de vida. | `Player.UpdateLifeRegen` |
 | `UpdateManaRegen(player)` | Depois da regeneração de mana. | `Player.UpdateManaRegen` |
+| `PreModifyLuck(player, luck)`, `ModifyLuck(player, luck)` | A sorte, `luck.value`; `PreModifyLuck` false pula a do jogo. | `Player.RecalculateLuck` |
 | `UpdateMovement(player)` | Movimento próprio (dash), perto do fim do quadro. | `Player.BordersMovement` |
 | `FrameEffects(player)` | Depois de o jogo montar o que se desenha: trocar `player.head`/`body`/`legs` muda o desenho. | depois do `Player.PlayerFrame` |
 | `PostUpdate(player)` | Fim do quadro. | `Player.Update` |
@@ -451,11 +452,11 @@ quadro, o que é barato.
 | `ModPlayer.getByName('Classe')` | A do jogador **local** (para interface). |
 | `ModPlayer.register(Classe)` | Registra. |
 
-### Ainda não
+### Combate, itens, desenho, inventário e rede
 
-`ModifyHitNPC`/`OnHitNPC` do jogador, `ProcessTriggers` (teclas),
-`ModifyScreenPosition`, `DrawEffects`, `CopyClientState` e a
-sincronização pela rede.
+A [referência completa dos hooks de ModPlayer](modplayer-hooks.md) descreve
+os hooks adicionais, as referências, os retornos, os descritores de saltos e
+camadas, e as adaptações do Terraria nativo.
 
 ---
 

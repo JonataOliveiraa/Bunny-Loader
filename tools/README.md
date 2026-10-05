@@ -173,6 +173,7 @@ tools/bench/repeat.sh 12 modfurniture samples/ExampleMod tools/tests/modfurnitur
 | `recipes` | Receitas e grupos. | |
 | `globals` | `GlobalItem`, `GlobalNPC`, `GlobalProjectile` (filtro, instância por entidade, `Clone`), drops por tipo e globais com o Bestiário, e o `ModSystem` (mundo, atualização, dados salvos). Rodar duas vezes: a segunda carrega o que a primeira salvou. | sim |
 | `modplayer` | `ModPlayer` (quadro, dano, morte, dados salvos). | |
+| `modplayerhooks` | Registra todos os hooks de jogador; verifica referências, mana, tempos, vetos, clone, crafting e callbacks de atualização e desenho. `node tools/tests/modplayerhooks/check.mjs` executa os testes de comportamento e confere assinaturas usando o dump local. | não |
 | `modcontent` | `ModContent` e o que fica fora do Mod Menu. | sim |
 | `exmod1`, `exmod2` | O Example Mod inteiro, usado. | sim |
 | `summons` | Pets, lacaio e sentinela usados como o dedo usaria. | sim |

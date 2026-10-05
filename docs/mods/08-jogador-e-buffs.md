@@ -10,6 +10,9 @@ Antes, leia as [ideias do guia 4](04-conteudo-novo.md). A lista completa está
 na referência: [`ModPlayer`](../referencia/classes.md#modplayer) e
 [`ModBuff`](../referencia/classes.md#modbuff).
 
+Combate, disparos, mana, saltos, desenho, pesca, serviços, crafting e rede
+estão na [referência dos hooks adicionais de ModPlayer](../referencia/modplayer-hooks.md).
+
 ## ModPlayer
 
 Cada jogador tem a **própria instância** de cada `ModPlayer` registrado,
@@ -88,6 +91,7 @@ flowchart TD
 | `UpdateEquips(player)` (ou `PostUpdateEquips`) | Depois dos equipamentos e acessórios. |
 | `UpdateBadLifeRegen(player)`, `UpdateLifeRegen(player)` | Antes e depois da regeneração de vida. |
 | `UpdateManaRegen(player)` | Depois da regeneração de mana. |
+| `PreModifyLuck(player, luck)`, `ModifyLuck(player, luck)` | A sorte (`luck` é um `Ref`: `luck.value`), recalculada todo quadro. `PreModifyLuck` false pula a soma do jogo (joaninha, tochas, poção, pipa, moedas); o `ModifyLuck` mexe no resultado. |
 | `UpdateMovement(player)` | Movimento próprio (dash): perto do fim do quadro. |
 | `PostUpdate(player)` | Fim do quadro. |
 | `UpdateDead(player)` | Todo quadro morto (no lugar dos outros). |
