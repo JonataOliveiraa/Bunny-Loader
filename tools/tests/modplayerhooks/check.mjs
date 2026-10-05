@@ -437,5 +437,184 @@ test('crafting clears full stacks without callbacks and retains other player sou
     call('Terraria.GameContent.CraftingRequests', 'ConsumeItemsFrom', storage.item, 1, {}, { value: 2 }, null, -1);
     assert.equal(material.type, 0); assert.equal(material.stack, 0); assert.equal(storage.item[0], material);
 });
+test('UpdateClient compares the previous snapshot before copying current state', () => {
+    const clone = player(2), changes = [], order = [];
+    const one = [...installed.values()].find(entry => entry.signature === 'object clientClone(Player clonePlayer)');
+    const zero = [...installed.values()].find(entry => entry.signature === 'Player clientClone()');
+    one.vanilla = (_, target) => target;
+    zero.vanilla = self => { invoke(one, [self, clone]); return clone; };
+    All.get(p).payload = { revision: 0, bag: { value: 0 } };
+    All.prototype.CopyClientState = (self, target) => {
+        const current = All.get(self).payload;
+        target.payload = { revision: current.revision, bag: { ...current.bag } };
+        order.push('copy');
+    };
+    All.prototype.SendClientChanges = (self, previous) => {
+        const current = All.get(self).payload;
+        assert.notEqual(previous, All.get(self));
+        assert.notEqual(previous.payload.bag, current.bag);
+        if (current.bag.value !== previous.payload.bag.value) changes.push([previous.payload.revision, current.revision]);
+        order.push('changes');
+    };
+    vanilla('Terraria.Main', 'UpdateClient', () => order.push('vanilla'));
+    Main.gameMenu = true; call('Terraria.Main', 'UpdateClient');
+    Main.gameMenu = false; Main.netMode = 1; Main.myPlayer = 0;
+    call('Terraria.Main', 'UpdateClient');
+    All.get(p).payload.revision = 11; All.get(p).payload.bag.value = 111;
+    call('Terraria.Main', 'UpdateClient');
+    call('Terraria.Main', 'UpdateClient');
+    All.get(p).payload.revision = 12; All.get(p).payload.bag.value = 122;
+    call('Terraria.Main', 'UpdateClient');
+    assert.deepEqual(changes, [[0, 11], [11, 12]]);
+    assert.deepEqual(order.slice(-3), ['changes', 'vanilla', 'copy']);
+});
+
+test('client snapshots reset outside multiplayer and when the local player changes', () => {
+    const clone = player(2), changes = [];
+    const one = [...installed.values()].find(entry => entry.signature === 'object clientClone(Player clonePlayer)');
+    const zero = [...installed.values()].find(entry => entry.signature === 'Player clientClone()');
+    one.vanilla = (_, target) => target; zero.vanilla = () => clone;
+    All.prototype.CopyClientState = (self, target) => { target.value = self.whoAmI; };
+    All.prototype.SendClientChanges = (self, previous) => { assert.equal(previous.value, self.whoAmI); changes.push(self.whoAmI); };
+    Main.netMode = 0; call('Terraria.Main', 'UpdateClient');
+    Main.netMode = 1; Main.myPlayer = 0;
+    call('Terraria.Main', 'UpdateClient'); call('Terraria.Main', 'UpdateClient');
+    Main.myPlayer = 1;
+    call('Terraria.Main', 'UpdateClient'); call('Terraria.Main', 'UpdateClient');
+    Main.gameMenu = true; call('Terraria.Main', 'UpdateClient');
+    Main.gameMenu = false;
+    call('Terraria.Main', 'UpdateClient'); call('Terraria.Main', 'UpdateClient');
+    assert.deepEqual(changes, [0, 1, 1]);
+    Main.myPlayer = 0; Main.netMode = 0;
+});
+
+test('connection lifecycle preserves order and marks a reconnect as new', () => {
+    const events = [], flags = [];
+    vanilla('Terraria.NetMessage', 'SyncOnePlayer', () => events.push('sync-native'));
+    vanilla('Terraria.Player.Hooks', 'PlayerConnect', () => events.push('connect-native'));
+    vanilla('Terraria.Player.Hooks', 'PlayerDisconnect', () => events.push('disconnect-native'));
+    All.prototype.SyncPlayer = (self, to, from, fresh) => { assert.equal(self, second); assert.equal(to, 2); assert.equal(from, 1); flags.push(fresh); events.push('sync-mod'); };
+    All.prototype.PlayerConnect = self => { assert.equal(self, second); events.push('connect-mod'); };
+    All.prototype.PlayerDisconnect = self => { assert.equal(self, second); events.push('disconnect-mod'); };
+    call('Terraria.NetMessage', 'SyncOnePlayer', 1, 2, 1);
+    call('Terraria.Player.Hooks', 'PlayerConnect', 1);
+    call('Terraria.NetMessage', 'SyncOnePlayer', 1, 2, 1);
+    call('Terraria.Player.Hooks', 'PlayerDisconnect', 1);
+    call('Terraria.NetMessage', 'SyncOnePlayer', 1, 2, 1);
+    assert.deepEqual(flags, [true, false, true]);
+    assert.deepEqual(events.slice(0, 4), ['sync-native', 'sync-mod', 'connect-native', 'connect-mod']);
+    assert.deepEqual(events.slice(6, 8), ['disconnect-mod', 'disconnect-native']);
+});
+
+test('server disconnect synchronization emits one callback across both native paths', () => {
+    const events = [];
+    All.prototype.PlayerDisconnect = self => events.push(self.whoAmI);
+    vanilla('Terraria.NetMessage', 'SyncDisconnectedPlayer', index => call('Terraria.Player.Hooks', 'PlayerDisconnect', index));
+    call('Terraria.Player.Hooks', 'PlayerConnect', 1);
+    call('Terraria.NetMessage', 'SyncDisconnectedPlayer', 1);
+    call('Terraria.NetMessage', 'SyncDisconnectedPlayer', 1);
+    assert.deepEqual(events, [1]);
+    call('Terraria.Player.Hooks', 'PlayerConnect', 1);
+    call('Terraria.Player.Hooks', 'PlayerDisconnect', 1);
+    assert.deepEqual(events, [1, 1]);
+});
+
+test('server sync tracks players without requiring the client-side connect callback', () => {
+    const remote = player(4), events = [];
+    remote.active = true;
+    All.prototype.PlayerDisconnect = self => events.push(self.whoAmI);
+    call('Terraria.NetMessage', 'SyncOnePlayer', 4, 2, -1);
+    remote.active = false;
+    call('Terraria.NetMessage', 'SyncDisconnectedPlayer', 4);
+    call('Terraria.Player.Hooks', 'PlayerDisconnect', 4);
+    assert.deepEqual(events, [4]);
+    remote.active = true;
+    call('Terraria.NetMessage', 'SyncOnePlayer', 4, 2, -1);
+    call('Terraria.NetMessage', 'SyncDisconnectedPlayer', 4);
+    assert.deepEqual(events, [4, 4]);
+});
+
+test('inactive remote players disconnect once when mobile bypasses native disconnect helpers', () => {
+    const events = [];
+    Main.netMode = 3; second.active = true;
+    All.prototype.PlayerDisconnect = self => events.push(self.whoAmI);
+    vanilla('Terraria.Player', 'Update', () => {});
+    call('Terraria.Player.Hooks', 'PlayerConnect', 1);
+    call('Terraria.Player', 'Update', p, 0);
+    assert.deepEqual(events, []);
+    second.active = false;
+    call('Terraria.Player', 'Update', second, 1);
+    assert.deepEqual(events, []);
+    Main.gameMenu = true;
+    call('Terraria.Player', 'Update', p, 0);
+    assert.deepEqual(events, []);
+    Main.gameMenu = false;
+    call('Terraria.Player', 'Update', p, 0);
+    call('Terraria.Player', 'Update', p, 0);
+    call('Terraria.Player.Hooks', 'PlayerDisconnect', 1);
+    assert.deepEqual(events, [1]);
+    second.active = true;
+    call('Terraria.Player.Hooks', 'PlayerConnect', 1);
+    second.active = false;
+    call('Terraria.Player', 'Update', p, 0);
+    assert.deepEqual(events, [1, 1]);
+    Main.netMode = 0; Main.gameMenu = false;
+});
+
+test('disconnect preserves the old player and mod state when the native slot is replaced', () => {
+    const previous = player(5), events = [];
+    previous.active = true; All.get(previous).marker = 123;
+    call('Terraria.Player.Hooks', 'PlayerConnect', 5);
+    const replacement = player(5);
+    replacement.active = false; replacement.whoAmI = 0;
+    All.prototype.PlayerDisconnect = self => {
+        assert.equal(self, previous); assert.equal(self.whoAmI, 5);
+        events.push(All.get(self).marker);
+    };
+    Main.netMode = 3;
+    call('Terraria.Player', 'Update', p, 0);
+    call('Terraria.Player.Hooks', 'PlayerDisconnect', 5);
+    assert.deepEqual(events, [123]);
+    assert.equal(replacement.ModPlayers, undefined);
+    Main.netMode = 0;
+});
+
+test('client clone reentrancy guard recovers after native failures', () => {
+    const clone = player(2); let copies = 0;
+    const zero = [...installed.values()].find(entry => entry.signature === 'Player clientClone()');
+    All.prototype.CopyClientState = () => { copies++; };
+    zero.vanilla = () => { throw Error('native clone failure'); };
+    assert.throws(() => invoke(zero, [p]), /native clone failure/);
+    zero.vanilla = () => clone;
+    assert.equal(invoke(zero, [p]), clone);
+    assert.equal(copies, 1);
+});
+
+test('ConsumableDodge consumes only for the local player and dodgeable hits', () => {
+    const owners = [], source = { _sourceNPCIndex: -1, _sourceProjectileLocalIndex: -1 };
+    Main.myPlayer = 0;
+    All.prototype.ConsumableDodge = self => { owners.push(self.whoAmI); return true; };
+    vanilla('Terraria.Player', 'Hurt', () => 1);
+    const hurt = (self, dodgeable) => call('Terraria.Player', 'Hurt', self, source, 1, 0, false, true, false, -1, dodgeable);
+    assert.equal(hurt(p, true), 0);
+    assert.equal(hurt(second, true), 1);
+    assert.equal(hurt(p, false), 1);
+    assert.deepEqual(owners, [0]);
+});
+
+test('failed mana payments do not emit OnConsumeMana', () => {
+    let missing = 0, consumed = 0;
+    p.statMana = 0; p.manaCost = 1; p.slowMagicUse = false;
+    All.prototype.OnMissingMana = () => { missing++; };
+    All.prototype.OnConsumeMana = () => { consumed++; };
+    vanilla('Terraria.Player', 'CheckMana', () => false);
+    assert.equal(call('Terraria.Player', 'CheckMana', p, 20, true, true), false);
+    assert.equal(missing, 0);
+    assert.equal(consumed, 0);
+    assert.equal(call('Terraria.Player', 'CheckMana', p, 20, true, false), false);
+    assert.equal(missing, 1);
+    assert.equal(consumed, 0);
+});
+
 assert.equal(errors.length, 0);
 console.log(`${checks} behavior checks passed; ${[...installed.values()].filter((entry) => entry.callbacks.length).length} native signatures verified; ${stages.size} native stages registered.`);

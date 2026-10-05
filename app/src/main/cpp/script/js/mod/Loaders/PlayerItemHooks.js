@@ -176,10 +176,10 @@ class PlayerItemHooks {
             try {
                 player.manaCost = cost(player, item);
                 const needed = Math.max(0, Math.trunc(amount * player.manaCost));
-                if (player.statMana < needed) PlayerLoader.Call(player, 'OnMissingMana', item, needed);
+                if (player.statMana < needed && !blockQuickMana) PlayerLoader.Call(player, 'OnMissingMana', item, needed);
                 const before = player.statMana;
                 const result = original(player, amount, pay, blockQuickMana);
-                if (pay && needed > 0) {
+                if (result && pay && needed > 0) {
                     const consumed = player.slowMagicUse ? Math.max(0, before - player.statMana) : needed;
                     if (consumed > 0) PlayerLoader.Call(player, 'OnConsumeMana', item, consumed);
                 }
