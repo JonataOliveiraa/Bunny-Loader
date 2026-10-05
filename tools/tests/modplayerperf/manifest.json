@@ -1,0 +1,14 @@
+{
+  "uid": "acacb6ee-f7e4-4415-a7b2-5ed65447392c",
+  "id": "test-modplayerperf",
+  "name": "Teste: custo de ModPlayer",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Mede despacho e hooks frequentes de ModPlayer.",
+  "description": "Benchmark comparativo no motor JavaScript real do jogo.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
