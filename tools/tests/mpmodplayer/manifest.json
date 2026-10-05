@@ -1,0 +1,14 @@
+{
+  "uid": "aba116f6-01ea-4975-9443-a3529782cb91",
+  "id": "test-mpmodplayer",
+  "name": "Teste: ModPlayer em multiplayer",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Hooks, isolamento e sincronização de ModPlayer com dois jogadores.",
+  "description": "Executa verificações nativas no host e no cliente e acompanha desconexão e reconexão.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
