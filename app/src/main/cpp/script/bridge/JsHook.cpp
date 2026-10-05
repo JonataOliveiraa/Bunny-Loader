@@ -132,6 +132,7 @@ struct HookCtx {
     Prim filterPrim = Prim::I32;   // o campo pode ser byte/short (Item.prefix)
     // HookFilter::whileIn: o slot do hook de fora; -1 = sem esse filtro.
     int gateSlot = -1;
+    int scopeSlot = -1;
     // Filtro pelo tipo do tile: o x do `Tile` (offset), ou os x de i e j.
     int tileReg = -1, tileAtIReg = -1, tileAtJReg = -1;
     bool wallMode = false;
@@ -185,6 +186,7 @@ static thread_local std::vector<Frame> g_frames;
 // corpo real (rodado via original()) rechama a si mesmo pela entrada patcheada
 // dispare o callback JS repetidamente ate estourar a pilha do QuickJS.
 static thread_local int g_depth[kMaxHooks];
+static thread_local int g_scopeDepth[kMaxHooks];
 
 // Quanto um hook espera pelo motor JS antes de desistir do mod naquela
 // chamada. Ver JsLock: esperar para sempre transformaria um impasse entre
@@ -356,8 +358,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
 
     // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
     if (c->flag && !c->flag->load(std::memory_order_relaxed)) return callOriginal(c, rawA, rawD);
-    // g_depth do hook de fora > 0 = esta thread esta dentro do callback dele.
-    if (c->gateSlot >= 0 && g_depth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
+    if (c->gateSlot >= 0 && g_scopeDepth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
     int seen = -1;   // o tipo que um dos filtros leu (para as marcas)
     if (c->tileReg >= 0 || c->tileAtIReg >= 0) {
         const int t = c->wallMode
@@ -414,6 +415,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     }
     const void* outerHook = setJsOwnerHook(c->method);
     ++g_depth[slot];
+    ++g_scopeDepth[c->scopeSlot];
     bump(g_jsCalls[slot]);
     const int64_t jsStart = nowNs();
 
@@ -497,6 +499,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     }
     g_frames.pop_back();
     --g_depth[slot];
+    --g_scopeDepth[c->scopeSlot];
     setJsOwnerHook(outerHook);
     return result;
 }
@@ -685,7 +688,7 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
     }
     if (err.empty() && filter && filter->whileIn) {
         for (int i = 0; i < kMaxHooks; ++i) {
-            if (g_hooks[i].used && g_hooks[i].method == filter->whileIn) { probe.gateSlot = i; break; }
+            if (g_hooks[i].used && g_hooks[i].method == filter->whileIn) { probe.gateSlot = g_hooks[i].scopeSlot; break; }
         }
         if (probe.gateSlot < 0) {
             err = std::string("whileIn: '") + il2cpp::api().method_get_name(filter->whileIn) +
@@ -712,6 +715,10 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
         if (g_hooks[i].used) continue;
         HookCtx& c = g_hooks[i];
         c = probe;
+        c.scopeSlot = i;
+        for (int j = 0; j < kMaxHooks; ++j) {
+            if (g_hooks[j].used && g_hooks[j].method == method) { c.scopeSlot = g_hooks[j].scopeSlot; break; }
+        }
         c.ctx = ctx;
         c.callback = JS_DupValue(ctx, callback);  // mantem vivo
         c.originalFn = JS_NewCFunctionMagic(ctx, js_original, "original", 0,
