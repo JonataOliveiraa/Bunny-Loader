@@ -189,6 +189,7 @@ JSValue callBound(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv, in
 /** O endereco do objeto do jogo, como numero (cabe num double: 48 bits). */
 JSValue js_addressOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     Il2CppObject* o = argc >= 1 ? objectFromJS(argv[0]) : nullptr;
+    if (!o && argc >= 1) o = reinterpret_cast<Il2CppObject*>(arrayFromJS(argv[0]));
     if (!o) return JS_ThrowTypeError(ctx, "bl.addressOf(objeto do jogo)");
     return JS_NewFloat64(ctx, static_cast<double>(reinterpret_cast<uintptr_t>(o)));
 }

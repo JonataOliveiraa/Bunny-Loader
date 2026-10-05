@@ -1,0 +1,155 @@
+class PlayerDrawLayer {
+    constructor(name, method) { this.Name = name; this.Method = method; this.IsHidden = false; }
+    Hide() { this.IsHidden = true; }
+    static BeforeParent(layer) { return { Before: layer }; }
+    static AfterParent(layer) { return { After: layer }; }
+}
+
+const PlayerDrawLayers = Object.fromEntries([
+    ['JimsCloak', '01_2_JimsCloak'], ['MountBehindPlayer', '02_MountBehindPlayer'], ['Carpet', '03_Carpet'],
+    ['PortableStool', '03_PortableStool'], ['ElectrifiedDebuffBack', '04_ElectrifiedDebuffBack'],
+    ['ForbiddenSetRing', '05_ForbiddenSetRing'], ['SafemanSun', '05_2_SafemanSun'], ['WebbedDebuffBack', '06_WebbedDebuffBack'],
+    ['LeinforsHairShampoo', '07_LeinforsHairShampoo'], ['Backpacks', '08_Backpacks'], ['Tails', '08_1_Tails'],
+    ['Wings', '09_Wings'], ['BackHair', '01_BackHair'], ['BackAcc', '10_BackAcc'], ['BackHead', '01_3_BackHead'],
+    ['Balloons', '11_Balloons'], ['Skin', '12_Skin'], ['ArmorBackCoat', '13_ArmorBackCoat'], ['Leggings', '13_Leggings'],
+    ['Shoes', '14_Shoes'], ['SkinLongCoat', '15_SkinLongCoat'], ['ArmorLongCoat', '16_ArmorLongCoat'],
+    ['Torso', '17_Torso'], ['OffhandAcc', '18_OffhandAcc'], ['WaistAcc', '19_WaistAcc'], ['NeckAcc', '20_NeckAcc'],
+    ['Head', '21_Head'], ['Magiluminescence', '21_1_Magiluminescence'], ['FaceAcc', '22_FaceAcc'],
+    ['MountFront', '23_MountFront'], ['Pulley', '24_Pulley'], ['Shield', '25_Shield'], ['SolarShield', '26_SolarShield'],
+    ['HeldItem', '27_HeldItem'], ['ArmOverItem', '28_ArmOverItem'], ['OnhandAcc', '29_OnhandAcc'],
+    ['BladedGlove', '30_BladedGlove'], ['ProjectileOverArm', '31_ProjectileOverArm'], ['FrontAcc', '32_FrontAcc'],
+    ['FrontAccFront', '32_FrontAcc_FrontPart'], ['FrontAccBack', '32_FrontAcc_BackPart'],
+    ['JimsDroneRadio', 'JimsDroneRadio'], ['FrozenOrWebbedDebuff', '33_FrozenOrWebbedDebuff'], ['ElectrifiedDebuffFront', '34_ElectrifiedDebuffFront'],
+    ['IceBarrier', '35_IceBarrier'], ['CTG', '36_CTG'], ['BeetleBuff', '37_BeetleBuff'], ['EyebrellaCloud', '38_EyebrellaCloud'],
+].map(([name, suffix]) => [name, new PlayerDrawLayer(name, 'DrawPlayer_' + suffix)]));
+
+class PlayerDrawHooks {
+    static #drawing = null;
+    static #colors = ['colorHair', 'colorEyeWhites', 'colorEyes', 'colorHead', 'colorBodySkin', 'colorLegs', 'colorShirt',
+        'colorUnderShirt', 'colorPants', 'colorShoes', 'colorArmorHead', 'colorArmorBody', 'colorArmorLegs', 'colorMount'];
+
+    static Install(cls) {
+        const want = PlayerLoader.Wants;
+        want(cls, ['DrawEffects', 'ModifyDrawInfo'], 'player.DrawInfo', () => {
+            Terraria.DataStructures.PlayerDrawSet['void BoringSetup(Player player, ref Vector2 drawPosition, float shadowOpacity, float rotation, ref Vector2 rotationOrigin, Projectile overrideHeldProjectile)'].hook(
+                (original, info, player, position, shadow, rotation, origin, projectile) => {
+                    original(info, player, position, shadow, rotation, origin, projectile);
+                    const r = new Ref(1), g = new Ref(1), b = new Ref(1), a = new Ref(1), bright = new Ref(false);
+                    PlayerLoader.Call(player, 'DrawEffects', info, r, g, b, a, bright);
+                    if (r.value !== 1 || g.value !== 1 || b.value !== 1 || a.value !== 1 || bright.value) {
+                        for (const field of PlayerDrawHooks.#colors) {
+                            let color = info[field];
+                            if (bright.value) {
+                                const tint = field === 'colorHair' ? player['Color GetHairColor(bool useLighting)'](false)
+                                    : field === 'colorEyes' ? player.eyeColor
+                                    : ['colorHead', 'colorBodySkin', 'colorLegs'].includes(field) ? player.skinColor
+                                    : ({ colorShirt: player.shirtColor, colorUnderShirt: player.underShirtColor,
+                                        colorPants: player.pantsColor, colorShoes: player.shoeColor })[field] || Color.new(255, 255, 255, 255);
+                                color = player['Color GetImmuneAlpha(Color newColor, float alphaReduction)'](tint, info.shadow);
+                            }
+                            const channel = (value) => Math.max(0, Math.min(255, Math.trunc(Number.isFinite(value) ? value : 0)));
+                            info[field] = Color.new(channel(color.R * r.value), channel(color.G * g.value),
+                                channel(color.B * b.value), channel(color.A * a.value));
+                        }
+                    }
+                    PlayerLoader.Call(player, 'ModifyDrawInfo', info);
+                });
+        });
+        want(cls, ['DrawPlayer'], 'player.DrawPlayer', () => {
+            Terraria.Graphics.Renderers.LegacyPlayerRenderer['void DrawPlayer(Camera camera, Player drawPlayer, Vector2 position, float rotation, Vector2 rotationOrigin, float shadow, float scale, Vector2[] positionalOffsets)'].hook(
+                (original, renderer, camera, player, position, rotation, origin, shadow, scale, offsets) => {
+                    original(renderer, camera, player, position, rotation, origin, shadow, scale, offsets);
+                    PlayerLoader.Call(player, 'DrawPlayer', camera);
+                });
+        });
+        want(cls, ['TransformDrawData'], 'player.TransformDrawData', () => {
+            Terraria.DataStructures.PlayerDrawLayers['void DrawPlayer_TransformDrawData(PlayerDrawSet drawinfo, Vector2[] positionalOffsets)'].hook((original, info, offsets) => {
+                original(info, offsets);
+                PlayerLoader.Call(info.drawPlayer, 'TransformDrawData', info);
+            });
+        });
+        want(cls, ['HideDrawLayers', 'ModifyDrawLayerOrdering'], 'player.DrawLayers', PlayerDrawHooks.#Layers);
+        want(cls, ['ModifyScreenPosition'], 'player.ScreenPosition', () => {
+            Terraria.Main['void DoDraw_UpdateCameraPosition()'].hook((original) => {
+                original();
+                const player = Terraria.Main.player[Terraria.Main.myPlayer];
+                if (player && !Terraria.Main.gameMenu) PlayerLoader.Call(player, 'ModifyScreenPosition');
+            });
+        });
+        want(cls, ['ModifyZoom'], 'player.Zoom', () => {
+            Terraria.Graphics.SpriteViewMatrix['void set_Zoom(Vector2 value)'].hook((original, matrix, value) => {
+                const Main = Terraria.Main;
+                if (Main.gameMenu || bl.addressOf(matrix) !== bl.addressOf(Main.GameViewMatrix)) return original(matrix, value);
+                const zoom = new Ref(value.X);
+                PlayerLoader.Call(Main.player[Main.myPlayer], 'ModifyZoom', zoom);
+                const factor = Number.isFinite(zoom.value) && zoom.value > 0 && value.X > 0 ? zoom.value / value.X : 1;
+                return original(matrix, Vector2.new(value.X * factor, value.Y * factor));
+            });
+        });
+    }
+
+    static #Layers() {
+        const renderer = Terraria.Graphics.Renderers.LegacyPlayerRenderer;
+        const gate = renderer['void DrawPlayer_UseNormalLayers(PlayerDrawSet drawinfo)'];
+        gate.hook((original, info) => {
+            const outer = PlayerDrawHooks.#drawing, layers = Object.values(PlayerDrawLayers);
+            const hidden = layers.map((layer) => layer.IsHidden);
+            for (const layer of layers) layer.IsHidden = false;
+            const positions = new Map(), scope = { info, segments: [], depth: 0 };
+            PlayerDrawHooks.#drawing = scope;
+            try {
+                PlayerLoader.Call(info.drawPlayer, 'ModifyDrawLayerOrdering', positions);
+                PlayerLoader.Call(info.drawPlayer, 'HideDrawLayers', info);
+                original(info);
+                if (positions.size) PlayerDrawHooks.#Reorder(info, scope.segments, positions);
+            } finally {
+                PlayerDrawHooks.#drawing = outer;
+                layers.forEach((layer, index) => { layer.IsHidden = hidden[index]; });
+            }
+        });
+        for (const layer of Object.values(PlayerDrawLayers)) {
+            Terraria.DataStructures.PlayerDrawLayers['void ' + layer.Method + '(PlayerDrawSet drawinfo)'].hook((original, info) => {
+                const scope = PlayerDrawHooks.#drawing;
+                if (!scope || scope.depth || bl.addressOf(scope.info) !== bl.addressOf(info)) return original(info);
+                const start = info.DrawDataCacheCount;
+                scope.depth++;
+                const hidden = layer.IsHidden || (layer === PlayerDrawLayers.FrontAccFront || layer === PlayerDrawLayers.FrontAccBack) && PlayerDrawLayers.FrontAcc.IsHidden;
+                try { if (!hidden) original(info); }
+                finally { scope.depth--; }
+                scope.segments.push({ layer, start, end: info.DrawDataCacheCount });
+            }, { whileIn: gate });
+        }
+    }
+
+    static #Reorder(info, segments, positions) {
+        const edges = segments.map(() => new Set()), degrees = segments.map(() => 0);
+        const named = (value) => typeof value === 'string' ? PlayerDrawLayers[value] : value;
+        for (const [key, position] of positions) {
+            const layer = named(key), before = named(position.Before), after = named(position.After);
+            if (!layer || !before && !after) continue;
+            segments.forEach((source, index) => {
+                if (source.layer !== layer) return;
+                segments.forEach((target, other) => {
+                    const from = before && target.layer === before ? index : after && target.layer === after ? other : -1;
+                    const to = from === index ? other : index;
+                    if (from < 0 || from === to || edges[from].has(to)) return;
+                    edges[from].add(to);
+                    degrees[to]++;
+                });
+            });
+        }
+        const ordered = [], used = new Set();
+        while (ordered.length < segments.length) {
+            const index = degrees.findIndex((degree, i) => degree === 0 && !used.has(i));
+            if (index < 0) { Safe.Once('player.DrawLayerCycle', 'ModifyDrawLayerOrdering: ordem ciclica ignorada'); return; }
+            used.add(index);
+            ordered.push(segments[index]);
+            for (const next of edges[index]) degrees[next]--;
+        }
+        const source = info.DrawDataCache.cloneResized(info.DrawDataCache.length);
+        let index = segments.length ? segments[0].start : 0;
+        for (const segment of ordered) {
+            for (let i = segment.start; i < segment.end; i++) info.DrawDataCache[index++] = source[i];
+        }
+    }
+}

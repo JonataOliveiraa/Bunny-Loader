@@ -61,7 +61,8 @@ set(BL_MOD_CLASSES_PARTS
     EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
     TagCompound Loaders/SystemLoader ModSystem
-    Loaders/PlayerLoader ModPlayer
+    Loaders/PlayerCombatHooks Loaders/PlayerItemHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
+    Loaders/PlayerDrawHooks Loaders/PlayerWorldHooks Loaders/PlayerNetworkHooks Loaders/PlayerLoader ModPlayer
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
     Loaders/WaterfallStyleLoader Loaders/WaterStyleLoader ModWaterfallStyle ModWaterStyle

@@ -86,6 +86,48 @@ class PlayerLoader {
         return hit;
     }
 
+    static Call(player, method, ...args) {
+        PlayerLoader.Each(player, method, (inst) => inst[method](player, ...args));
+    }
+
+    static Veto(player, method, ...args) {
+        return PlayerLoader.Any(player, method, false, (inst) => inst[method](player, ...args));
+    }
+
+    static Nullable(player, method, ...args) {
+        let result = null;
+        PlayerLoader.Each(player, method, (inst) => {
+            const value = inst[method](player, ...args);
+            if (value === false) result = false;
+            else if (value === true && result !== false) result = true;
+        });
+        return result;
+    }
+
+    static First(player, method, ...args) {
+        const all = PlayerLoader.Of(player);
+        for (const cls of PlayerLoader.#OverridersOf(method)) {
+            if (Safe.Run(cls.name + '.' + method, () => all.get(cls)[method](player, ...args)) === true) return true;
+        }
+        return false;
+    }
+
+    static Factor(player, method, item) {
+        let factor = 1;
+        PlayerLoader.Each(player, method, (inst) => {
+            const value = inst[method](player, item);
+            if (Number.isFinite(value) && value > 0) factor *= value;
+        });
+        return Number.isFinite(factor) && factor > 0 ? factor : 1;
+    }
+
+    static Wants(cls, methods, key, install) {
+        if (methods.some((name) => Hooks.Overrides(cls, ModPlayer, name))) Hooks.Once(key, install);
+    }
+
+    static KeyOf(cls) { return PlayerLoader.#keys.get(cls); }
+    static OwnerOf(cls) { return PlayerLoader.#owners.get(cls); }
+
     // Outros dados do personagem no mesmo arquivo (o cabelo de mod): chave ->
     // { save(player) -> valor ou undefined, load(player, valor) }.
     static #extras = new Map();
@@ -100,34 +142,40 @@ class PlayerLoader {
         const P = Terraria.Player;
 
         P['void InternalSavePlayerFile(PlayerFileData playerFile)'].hook((original, fileData) => {
-            original(fileData);
+            const saving = fileData && fileData.Player;
+            if (saving) PlayerLoader.Call(saving, 'PreSavePlayer');
+            try {
+                original(fileData);
+                const file = PlayerLoader.#DataFile(fileData);
+                const player = file ? fileData.Player : null;
+                if (!player) return;
 
-            const file = PlayerLoader.#DataFile(fileData);
-            const player = file ? fileData.Player : null;
-            if (!player) return;
+                const all = PlayerLoader.#ReadData(file);
+                const mine = PlayerLoader.Classes.length ? PlayerLoader.Of(player) : null;
+                PlayerLoader.Call(player, 'PreSaveCustomData');
+                for (const cls of PlayerLoader.Classes) {
+                    if (!Hooks.Overrides(cls, ModPlayer, 'SaveData')) continue;
 
-            const all = PlayerLoader.#ReadData(file);
-            const mine = PlayerLoader.Classes.length ? PlayerLoader.Of(player) : null;
-            for (const cls of PlayerLoader.Classes) {
-                if (!Hooks.Overrides(cls, ModPlayer, 'SaveData')) continue;
+                    const key = PlayerLoader.#keys.get(cls);
+                    const data = new TagCompound();
+                    Safe.Run(cls.name + '.SaveData', () => mine.get(cls).SaveData(data));
 
-                const key = PlayerLoader.#keys.get(cls);
-                const data = new TagCompound();
-                Safe.Run(cls.name + '.SaveData', () => mine.get(cls).SaveData(data));
+                    if (Object.keys(data).length) all[key] = data;
+                    else delete all[key];
+                }
+                for (const [key, extra] of PlayerLoader.#extras) {
+                    const value = Safe.Run('salvar ' + key, () => extra.save(player));
+                    if (value !== undefined) all[key] = value;
+                    else delete all[key];
+                }
 
-                if (Object.keys(data).length) all[key] = data;
-                else delete all[key];
+                Safe.Run('ModPlayer: gravar ' + file, () => {
+                    if (Object.keys(all).length) bl.file.write(file, JSON.stringify(all));
+                    else bl.file.delete(file);
+                });
+            } finally {
+                if (saving) PlayerLoader.Call(saving, 'PostSavePlayer');
             }
-            for (const [key, extra] of PlayerLoader.#extras) {
-                const value = Safe.Run('salvar ' + key, () => extra.save(player));
-                if (value !== undefined) all[key] = value;
-                else delete all[key];
-            }
-
-            Safe.Run('ModPlayer: gravar ' + file, () => {
-                if (Object.keys(all).length) bl.file.write(file, JSON.stringify(all));
-                else bl.file.delete(file);
-            });
         });
 
         P['PlayerFileData LoadPlayer(string playerPath, bool cloudSave)'].hook((original, path, cloud) => {
@@ -212,6 +260,23 @@ class PlayerLoader {
             });
         });
 
+        // A sorte, como no tModLoader: o RecalculateLuck soma a do jogo (joaninha,
+        // tochas, poção, pipa, moedas, espelho quebrado); o PreModifyLuck false
+        // pula essa soma, e o ModifyLuck mexe no resultado.
+        if (has('PreModifyLuck') || has('ModifyLuck')) Hooks.Once('player.Luck', () => {
+            P['void RecalculateLuck()'].hook((original, self) => {
+                const luck = new Ref(self.luck);
+                let vanilla = true;
+                each(self, 'PreModifyLuck', (m) => { if (m.PreModifyLuck(self, luck) === false) vanilla = false; });
+                if (vanilla) {
+                    original(self);
+                    luck.value = self.luck;
+                }
+                each(self, 'ModifyLuck', (m) => m.ModifyLuck(self, luck));
+                self.luck = luck.value;
+            });
+        });
+
         if (has('UpdateDead')) Hooks.Once('player.UpdateDead', () => {
             P['void UpdateDead()'].hook((original, self) => {
                 original(self);
@@ -270,7 +335,8 @@ class PlayerLoader {
             });
         });
 
-        const hurt = ['ImmuneTo', 'FreeDodge', 'ModifyHurt', 'OnHurt', 'PostHurt'];
+        const hurt = ['ImmuneTo', 'FreeDodge', 'ConsumableDodge', 'ModifyHurt', 'OnHurt', 'PostHurt',
+            'CanBeHitByNPC', 'CanBeHitByProjectile', 'ModifyHitByNPC', 'ModifyHitByProjectile', 'OnHitByNPC', 'OnHitByProjectile', 'CanHitPvp'];
         if (hurt.some(has)) Hooks.Once('player.Hurt', PlayerLoader.#HookHurt);
 
         if (has('PreKill') || has('Kill')) Hooks.Once('player.KillMe', () => {
@@ -301,6 +367,14 @@ class PlayerLoader {
                 }
             });
         });
+
+        PlayerCombatHooks.Install(cls);
+        PlayerItemHooks.Install(cls);
+        PlayerUpdateHooks.Install(cls);
+        PlayerJumpHooks.Install(cls);
+        PlayerDrawHooks.Install(cls);
+        PlayerWorldHooks.Install(cls);
+        PlayerNetworkHooks.Install(cls);
     }
 
     static #HookHurt() {
@@ -310,15 +384,29 @@ class PlayerLoader {
         Terraria.Player['double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)'].hook(
             (original, self, src, damage, dir, pvp, quiet, crit, cooldown, dodgeable) => {
                 if (any(self, 'ImmuneTo', true, (m) => m.ImmuneTo(self, src, cooldown, dodgeable))) return 0;
-                if (any(self, 'FreeDodge', true,
-                    (m) => m.FreeDodge(self, src, damage, dir, pvp, quiet, crit, cooldown, dodgeable))) return 0;
-
+                const cause = PlayerCombatHooks.Cause(src);
+                const slot = new Ref(cooldown);
+                if (cause.npc && PlayerLoader.Veto(self, 'CanBeHitByNPC', cause.npc, slot)) return 0;
+                if (cause.projectile && PlayerLoader.Veto(self, 'CanBeHitByProjectile', cause.projectile)) return 0;
+                const attack = PlayerCombatHooks.PvpAttack;
+                if (pvp && attack && PlayerLoader.Veto(attack.player, 'CanHitPvp', attack.item, self)) return 0;
                 const hit = { damage, hitDirection: dir, quiet, crit, dodgeable };
+                if (cause.npc) PlayerLoader.Call(self, 'ModifyHitByNPC', cause.npc, hit);
+                if (cause.projectile) PlayerLoader.Call(self, 'ModifyHitByProjectile', cause.projectile, hit);
                 each(self, 'ModifyHurt', (m) => m.ModifyHurt(self, hit));
+                const info = { DamageSource: src, Damage: Math.max(0, Math.floor(hit.damage)), HitDirection: hit.hitDirection,
+                    PvP: pvp, Quiet: hit.quiet, Crit: hit.crit, CooldownCounter: slot.value, Dodgeable: hit.dodgeable };
+                if (info.Dodgeable && self.whoAmI === Terraria.Main.myPlayer && PlayerLoader.First(self, 'FreeDodge',
+                    src, info.Damage, info.HitDirection, pvp, info.Quiet, info.Crit, slot.value, info.Dodgeable)) return 0;
+                if (info.Dodgeable && self.whoAmI === Terraria.Main.myPlayer && PlayerLoader.First(self, 'ConsumableDodge', info)) return 0;
 
                 const done = original(self, src, Math.floor(hit.damage), hit.hitDirection, pvp,
-                                      hit.quiet, hit.crit, cooldown, hit.dodgeable);
+                                      hit.quiet, hit.crit, slot.value, hit.dodgeable);
                 if (done <= 0) return done;
+
+                info.Damage = done;
+                if (cause.npc) PlayerLoader.Call(self, 'OnHitByNPC', cause.npc, info);
+                if (cause.projectile) PlayerLoader.Call(self, 'OnHitByProjectile', cause.projectile, info);
 
                 const args = [src, done, hit.hitDirection, pvp, hit.quiet, hit.crit, cooldown, hit.dodgeable];
                 each(self, 'OnHurt', (m) => m.OnHurt(self, ...args));

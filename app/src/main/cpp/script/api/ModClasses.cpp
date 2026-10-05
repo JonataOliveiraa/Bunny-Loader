@@ -1,4 +1,5 @@
 #include "script/bridge/ScriptEngine.h"
+#include "script/api/PlayerHooks.h"
 
 #if BL_HAVE_QUICKJS
 #include "core/Log.h"
@@ -75,6 +76,7 @@ JSValue js_onContentReady(JSContext* ctx, JSValueConst, int argc, JSValueConst* 
 } // namespace
 
 void installModClasses(void* context) {
+    installPlayerBindings(context);
     auto* ctx = static_cast<JSContext*>(context);
     JSValue global = JS_GetGlobalObject(ctx);
     JSValue bl = JS_GetPropertyStr(ctx, global, "bl");

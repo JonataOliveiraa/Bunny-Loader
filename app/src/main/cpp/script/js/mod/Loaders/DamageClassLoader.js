@@ -353,47 +353,37 @@ class DamageClassLoader {
             return ((damage + t.Base) * mult + t.Flat) / damage;
         });
 
-        P['int GetWeaponCrit(Item sItem)'].hook((original, self, item) => {
-            const cls = D.ItemClass(item);
-            if (!D.IsHooked(cls)) return original(self, item);
-            return D.UsesCrit(cls) ? Math.round(D.Total(self, cls).crit) + item.crit : 0;
-        });
-
-        P['float GetWeaponKnockback(Item sItem, float KnockBack)'].hook((original, self, item, knockBack) => {
-            const kb = original(self, item, knockBack);
-            const t = D.Total(self, D.ItemClass(item)).knockback;
-            return t.Equals(StatModifier.Default) ? kb : t.ApplyTo(kb);
-        });
-
-        // A velocidade: a do corpo a corpo e a do chicote já estão nos campos;
-        // as outras escalam o tempo de animação e o de tiro.
-        P['void ApplyItemAnimation(Item sItem)'].hook((original, self, item) => {
-            original(self, item);
-            const cls = D.ItemClass(item);
-            if (!D.IsHooked(cls) && meleeLike(cls)) return;
-
-            const speed = D.Total(self, cls).speed;
-            const hooked = D.IsHooked(cls);
-            if (!hooked && Math.abs(speed - 1) < 1e-6) return;
-
-            const base = hooked ? item.useAnimation : self.itemAnimationMax;
-            const frames = Math.max(1, Math.trunc(base / Math.min(Math.max(speed, 0.01), 3)));
-            self.itemAnimation = frames;
-            self.itemAnimationMax = frames;
-        });
-
-        P['void ApplyItemTime(Item sItem)'].hook((original, self, item) => {
-            original(self, item);
-            const cls = D.ItemClass(item);
-            if (!D.IsHooked(cls) && meleeLike(cls)) return;
-
-            const speed = D.Total(self, cls).speed;
-            if (Math.abs(speed - 1) < 1e-6) return;
-
-            const frames = Math.max(1, Math.trunc(item.useTime / Math.min(Math.max(speed, 0.01), 3)));
-            self.itemTime = frames;
-            self.itemTimeMax = frames;
-        });
+        PlayerItemHooks.Stats = {
+            crit(self, item, vanilla) {
+                const cls = D.ItemClass(item);
+                if (!D.IsHooked(cls)) return vanilla;
+                return D.UsesCrit(cls) ? Math.round(D.Total(self, cls).crit) + item.crit : 0;
+            },
+            knockback(self, item, vanilla) {
+                const modifier = D.Total(self, D.ItemClass(item)).knockback;
+                return modifier.Equals(StatModifier.Default) ? vanilla : modifier.ApplyTo(vanilla);
+            },
+            animation(self, item) {
+                const cls = D.ItemClass(item);
+                if (!D.IsHooked(cls) && meleeLike(cls)) return;
+                const speed = D.Total(self, cls).speed, hooked = D.IsHooked(cls);
+                if (!hooked && Math.abs(speed - 1) < 1e-6) return;
+                const base = hooked ? item.useAnimation : self.itemAnimationMax;
+                const frames = Math.max(1, Math.trunc(base / Math.min(Math.max(speed, 0.01), 3)));
+                self.itemAnimation = frames;
+                self.itemAnimationMax = frames;
+            },
+            time(self, item) {
+                const cls = D.ItemClass(item);
+                if (!D.IsHooked(cls) && meleeLike(cls)) return;
+                const speed = D.Total(self, cls).speed;
+                if (Math.abs(speed - 1) < 1e-6) return;
+                const frames = Math.max(1, Math.trunc(item.useTime / Math.min(Math.max(speed, 0.01), 3)));
+                self.itemTime = frames;
+                self.itemTimeMax = frames;
+            }
+        };
+        PlayerItemHooks.InstallStats();
 
         // Golpe de item: a penetração da classe que o jogo não soma sozinho.
         P['void ProcessHitAgainstNPC(Item sItem, Rectangle itemRectangle, int originalDamage, float knockBack, int npcIndex)'].hook(
