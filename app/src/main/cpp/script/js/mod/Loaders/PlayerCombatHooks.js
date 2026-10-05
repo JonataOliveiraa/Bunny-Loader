@@ -1,5 +1,6 @@
 class PlayerCombatHooks {
     static #attack = null;
+    static #strike = false;
     static PvpAttack = null;
 
     static Install(cls) {
@@ -18,6 +19,7 @@ class PlayerCombatHooks {
         });
         want(cls, ['CanHitNPCWithItem', 'CanMeleeAttackCollideWithNPC', 'ModifyHitNPC', 'ModifyHitNPCWithItem', 'OnHitNPC', 'OnHitNPCWithItem'],
             'player.ItemAttack', PlayerCombatHooks.#ItemAttack);
+        want(cls, ['CanMeleeAttackCollideWithNPC'], 'player.MeleeCollision', PlayerCombatHooks.#MeleeCollision);
         want(cls, ['ModifyHitNPC', 'ModifyHitNPCWithProj', 'OnHitNPC', 'OnHitNPCWithProj'], 'player.ProjectileAttack', () => {
             Terraria.Projectile['void Damage_PVE(ref Rectangle projRectangle, float projectileSpecificDamageMultiplier)'].hook((original, projectile, rect, multiplier) => {
                 const player = PlayerCombatHooks.Owner(projectile);
@@ -79,8 +81,12 @@ class PlayerCombatHooks {
     static #WithAttack(attack, run) {
         const outer = PlayerCombatHooks.#attack;
         PlayerCombatHooks.#attack = attack;
+        if (PlayerCombatHooks.#strike) bl.hookFlags.set('player.Attack', !!attack);
         try { return run(); }
-        finally { PlayerCombatHooks.#attack = outer; }
+        finally {
+            PlayerCombatHooks.#attack = outer;
+            if (PlayerCombatHooks.#strike) bl.hookFlags.set('player.Attack', !!outer);
+        }
     }
 
     static #ItemAttack() {
@@ -92,11 +98,15 @@ class PlayerCombatHooks {
                 if (collision === false) return;
                 return PlayerCombatHooks.#WithAttack({ player, item, target, rect, collision, checked: true }, () => original(player, item, rect, damage, knockback, index));
             });
+    }
+
+    static #MeleeCollision() {
+        const gate = Terraria.Player['void ProcessHitAgainstNPC(Item sItem, Rectangle itemRectangle, int originalDamage, float knockBack, int npcIndex)'];
         Microsoft.Xna.Framework.Rectangle['bool Intersects(Rectangle rect)'].hook((original, rect, value) => {
             const attack = PlayerCombatHooks.#attack;
             if (attack && attack.collision === true && PlayerCombatHooks.#SameRect(rect, attack.rect) && PlayerCombatHooks.#SameRect(value, attack.target.Hitbox)) return true;
             return original(rect, value);
-        });
+        }, { whileIn: gate });
     }
 
     static #SameRect(a, b) {
@@ -104,6 +114,7 @@ class PlayerCombatHooks {
     }
 
     static #StrikeNPC() {
+        PlayerCombatHooks.#strike = true;
         Terraria.NPC['int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)'].hook(
             (original, npc, damage, knockback, direction, crit, fromNet, owner) => {
                 const attack = PlayerCombatHooks.#attack;
@@ -126,6 +137,6 @@ class PlayerCombatHooks {
                     if (attack.projectile) PlayerLoader.Call(player, 'OnHitNPCWithProj', attack.projectile, npc, hit, done);
                     return done;
                 });
-            });
+            }, { flag: 'player.Attack' });
     }
 }

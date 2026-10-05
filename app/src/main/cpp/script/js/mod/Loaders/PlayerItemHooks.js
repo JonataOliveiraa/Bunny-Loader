@@ -69,7 +69,8 @@ class PlayerItemHooks {
     }
 
     static #Shoot() {
-        Terraria.Player['void ItemCheck_Shoot(int i, Item sItem, int weaponDamage, bool withAudioVisualFeedback)'].hook((original, player, index, item, damage, feedback) => {
+        const gate = Terraria.Player['void ItemCheck_Shoot(int i, Item sItem, int weaponDamage, bool withAudioVisualFeedback)'];
+        gate.hook((original, player, index, item, damage, feedback) => {
             if (PlayerLoader.Veto(player, 'CanShoot', item)) {
                 player['void ApplyItemTime(Item sItem)'](item);
                 return;
@@ -92,11 +93,12 @@ class PlayerItemHooks {
                     return original(source, position.value.X, position.value.Y, velocity.value.X, velocity.value.Y,
                         shotType.value, shotDamage.value, shotKnockback.value, owner, ai0, ai1, ai2, modifier);
                 } finally { PlayerItemHooks.#shot = shot; }
-            });
+            }, { whileIn: gate });
     }
 
     static #Ammo() {
-        Terraria.Player['void PickAmmo(Item sItem, ref int projToShoot, ref float speed, ref bool canShoot, ref int Damage, ref float KnockBack, out int usedAmmoItemId, bool dontConsume)'].hook(
+        const gate = Terraria.Player['void PickAmmo(Item sItem, ref int projToShoot, ref float speed, ref bool canShoot, ref int Damage, ref float KnockBack, out int usedAmmoItemId, bool dontConsume)'];
+        gate.hook(
             (original, player, weapon, projectile, speed, canShoot, damage, knockback, usedAmmo, dontConsume) => {
                 const outer = PlayerItemHooks.#ammo;
                 const scope = { player, weapon, dontConsume, item: null, stack: 0, consumable: false };
@@ -120,7 +122,7 @@ class PlayerItemHooks {
                 if (scope.blocked) item.consumable = false;
             }
             return item;
-        });
+        }, { whileIn: gate });
         Terraria.Item['void TurnToAir()'].hook((original, item) => {
             const scope = PlayerItemHooks.#ammo;
             if (scope && scope.item && !scope.blocked && !scope.notified && !scope.dontConsume
@@ -129,7 +131,7 @@ class PlayerItemHooks {
                 PlayerLoader.Call(scope.player, 'OnConsumeAmmo', scope.weapon, item);
             }
             return original(item);
-        });
+        }, { whileIn: gate });
     }
 
     static #Timing() {

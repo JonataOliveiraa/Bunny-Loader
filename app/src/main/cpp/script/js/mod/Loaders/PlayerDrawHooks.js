@@ -27,6 +27,8 @@ class PlayerDrawHooks {
     static #drawing = null;
     static #colors = ['colorHair', 'colorEyeWhites', 'colorEyes', 'colorHead', 'colorBodySkin', 'colorLegs', 'colorShirt',
         'colorUnderShirt', 'colorPants', 'colorShoes', 'colorArmorHead', 'colorArmorBody', 'colorArmorLegs', 'colorMount'];
+    static #tints = { colorEyes: 'eyeColor', colorHead: 'skinColor', colorBodySkin: 'skinColor', colorLegs: 'skinColor',
+        colorShirt: 'shirtColor', colorUnderShirt: 'underShirtColor', colorPants: 'pantsColor', colorShoes: 'shoeColor' };
 
     static Install(cls) {
         const want = PlayerLoader.Wants;
@@ -34,24 +36,7 @@ class PlayerDrawHooks {
             Terraria.DataStructures.PlayerDrawSet['void BoringSetup(Player player, ref Vector2 drawPosition, float shadowOpacity, float rotation, ref Vector2 rotationOrigin, Projectile overrideHeldProjectile)'].hook(
                 (original, info, player, position, shadow, rotation, origin, projectile) => {
                     original(info, player, position, shadow, rotation, origin, projectile);
-                    const r = new Ref(1), g = new Ref(1), b = new Ref(1), a = new Ref(1), bright = new Ref(false);
-                    PlayerLoader.Call(player, 'DrawEffects', info, r, g, b, a, bright);
-                    if (r.value !== 1 || g.value !== 1 || b.value !== 1 || a.value !== 1 || bright.value) {
-                        for (const field of PlayerDrawHooks.#colors) {
-                            let color = info[field];
-                            if (bright.value) {
-                                const tint = field === 'colorHair' ? player['Color GetHairColor(bool useLighting)'](false)
-                                    : field === 'colorEyes' ? player.eyeColor
-                                    : ['colorHead', 'colorBodySkin', 'colorLegs'].includes(field) ? player.skinColor
-                                    : ({ colorShirt: player.shirtColor, colorUnderShirt: player.underShirtColor,
-                                        colorPants: player.pantsColor, colorShoes: player.shoeColor })[field] || Color.new(255, 255, 255, 255);
-                                color = player['Color GetImmuneAlpha(Color newColor, float alphaReduction)'](tint, info.shadow);
-                            }
-                            const channel = (value) => Math.max(0, Math.min(255, Math.trunc(Number.isFinite(value) ? value : 0)));
-                            info[field] = Color.new(channel(color.R * r.value), channel(color.G * g.value),
-                                channel(color.B * b.value), channel(color.A * a.value));
-                        }
-                    }
+                    if (PlayerLoader.Has('DrawEffects')) PlayerDrawHooks.#Effects(player, info);
                     PlayerLoader.Call(player, 'ModifyDrawInfo', info);
                 });
         });
@@ -83,6 +68,7 @@ class PlayerDrawHooks {
                 const zoom = new Ref(value.X);
                 PlayerLoader.Call(Main.player[Main.myPlayer], 'ModifyZoom', zoom);
                 const factor = Number.isFinite(zoom.value) && zoom.value > 0 && value.X > 0 ? zoom.value / value.X : 1;
+                if (factor === 1) return original(matrix, value);
                 return original(matrix, Vector2.new(value.X * factor, value.Y * factor));
             });
         });
@@ -91,33 +77,62 @@ class PlayerDrawHooks {
     static #Layers() {
         const renderer = Terraria.Graphics.Renderers.LegacyPlayerRenderer;
         const gate = renderer['void DrawPlayer_UseNormalLayers(PlayerDrawSet drawinfo)'];
+        const layers = Object.values(PlayerDrawLayers);
         gate.hook((original, info) => {
-            const outer = PlayerDrawHooks.#drawing, layers = Object.values(PlayerDrawLayers);
-            const hidden = layers.map((layer) => layer.IsHidden);
-            for (const layer of layers) layer.IsHidden = false;
-            const positions = new Map(), scope = { info, segments: [], depth: 0 };
+            const outer = PlayerDrawHooks.#drawing, hidden = [];
+            for (const layer of layers) {
+                if (layer.IsHidden) hidden.push(layer);
+                layer.IsHidden = false;
+            }
+            const positions = PlayerLoader.Has('ModifyDrawLayerOrdering') ? new Map() : null;
+            const scope = { info, address: bl.addressOf(info), segments: null, depth: 0, filtered: false };
             PlayerDrawHooks.#drawing = scope;
             try {
-                PlayerLoader.Call(info.drawPlayer, 'ModifyDrawLayerOrdering', positions);
+                if (positions) {
+                    PlayerLoader.Call(info.drawPlayer, 'ModifyDrawLayerOrdering', positions);
+                    if (positions.size) scope.segments = [];
+                }
                 PlayerLoader.Call(info.drawPlayer, 'HideDrawLayers', info);
+                scope.filtered = !!scope.segments || layers.some(layer => layer.IsHidden);
+                bl.hookFlags.set('player.DrawLayers', scope.filtered);
                 original(info);
-                if (positions.size) PlayerDrawHooks.#Reorder(info, scope.segments, positions);
+                if (scope.segments) PlayerDrawHooks.#Reorder(info, scope.segments, positions);
             } finally {
                 PlayerDrawHooks.#drawing = outer;
-                layers.forEach((layer, index) => { layer.IsHidden = hidden[index]; });
+                bl.hookFlags.set('player.DrawLayers', !!outer && outer.filtered);
+                for (const layer of layers) layer.IsHidden = false;
+                for (const layer of hidden) layer.IsHidden = true;
             }
         });
-        for (const layer of Object.values(PlayerDrawLayers)) {
+        for (const layer of layers) {
             Terraria.DataStructures.PlayerDrawLayers['void ' + layer.Method + '(PlayerDrawSet drawinfo)'].hook((original, info) => {
                 const scope = PlayerDrawHooks.#drawing;
-                if (!scope || scope.depth || bl.addressOf(scope.info) !== bl.addressOf(info)) return original(info);
-                const start = info.DrawDataCacheCount;
+                if (!scope || scope.depth || scope.address !== bl.addressOf(info)) return original(info);
+                const start = scope.segments ? info.DrawDataCacheCount : 0;
                 scope.depth++;
                 const hidden = layer.IsHidden || (layer === PlayerDrawLayers.FrontAccFront || layer === PlayerDrawLayers.FrontAccBack) && PlayerDrawLayers.FrontAcc.IsHidden;
                 try { if (!hidden) original(info); }
                 finally { scope.depth--; }
-                scope.segments.push({ layer, start, end: info.DrawDataCacheCount });
-            }, { whileIn: gate });
+                if (scope.segments) scope.segments.push({ layer, start, end: info.DrawDataCacheCount });
+            }, { whileIn: gate, flag: 'player.DrawLayers' });
+        }
+    }
+
+    static #Channel(value) { return Math.max(0, Math.min(255, Math.trunc(Number.isFinite(value) ? value : 0))); }
+
+    static #Effects(player, info) {
+        const r = new Ref(1), g = new Ref(1), b = new Ref(1), a = new Ref(1), bright = new Ref(false);
+        PlayerLoader.Call(player, 'DrawEffects', info, r, g, b, a, bright);
+        if (r.value === 1 && g.value === 1 && b.value === 1 && a.value === 1 && !bright.value) return;
+        for (const field of PlayerDrawHooks.#colors) {
+            let color = info[field];
+            if (bright.value) {
+                const tint = field === 'colorHair' ? player['Color GetHairColor(bool useLighting)'](false)
+                    : PlayerDrawHooks.#tints[field] ? player[PlayerDrawHooks.#tints[field]] : Color.new(255, 255, 255, 255);
+                color = player['Color GetImmuneAlpha(Color newColor, float alphaReduction)'](tint, info.shadow);
+            }
+            info[field] = Color.new(PlayerDrawHooks.#Channel(color.R * r.value), PlayerDrawHooks.#Channel(color.G * g.value),
+                PlayerDrawHooks.#Channel(color.B * b.value), PlayerDrawHooks.#Channel(color.A * a.value));
         }
     }
 

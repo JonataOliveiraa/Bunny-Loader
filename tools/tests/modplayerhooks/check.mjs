@@ -55,15 +55,17 @@ function native(name) {
             if (typeof key !== 'string') return undefined;
             if (key.includes('(')) {
                 const normalized = signature(key), id = name + ':' + normalized;
-                if (!installed.has(id)) installed.set(id, { name, signature: key, callbacks: [], vanilla: () => undefined });
+                if (!installed.has(id)) installed.set(id, { name, signature: key, callbacks: [], filters: [], active: 0, vanilla: () => undefined });
                 const entry = installed.get(id);
                 const fn = (...args) => invoke(entry, args);
-                fn.hook = (callback) => {
+                fn.entry = entry;
+                fn.hook = (callback, filter = {}) => {
                     const known = methods.get(name) || methods.get(name.replace(/^Terraria\.(Player\.)/, '$1'));
                     if (!known?.has(normalized)) failures.push(name + ' ' + key);
                     const expected = parameterNames.get(id) || parameterNames.get(name.replace(/^Terraria\.(Player\.)/, '$1') + ':' + normalized);
                     if (expected && JSON.stringify(expected) !== JSON.stringify(names(key))) failures.push(name + ' ' + key + ' => ' + expected.join(', '));
                     entry.callbacks.push(callback);
+                    entry.filters.push(filter);
                 };
                 return fn;
             }
@@ -75,7 +77,12 @@ function native(name) {
     return value;
 }
 function invoke(entry, args, index = 0) {
-    return index < entry.callbacks.length ? entry.callbacks[index]((...next) => invoke(entry, next, index + 1), ...args) : entry.vanilla(...args);
+    if (index >= entry.callbacks.length) return entry.vanilla(...args);
+    const filter = entry.filters[index];
+    if (filter.flag && !flags.get(filter.flag) || filter.whileIn && !filter.whileIn.entry.active) return invoke(entry, args, index + 1);
+    entry.active++;
+    try { return entry.callbacks[index]((...next) => invoke(entry, next, index + 1), ...args); }
+    finally { entry.active--; }
 }
 function method(owner, name) {
     const matches = [...installed.values()].filter((entry) => entry.name === owner && entry.signature.split('(')[0].endsWith(' ' + name));
@@ -89,7 +96,9 @@ const Main = Terraria.Main;
 Main.player = []; Main.npc = []; Main.projectile = []; Main.myPlayer = 0; Main.gameMenu = false; Main.netMode = 0;
 Main.npcChatText = ''; Main.mouseItem = {}; Main.shop = [{ item: [] }]; Main.npcShop = 0;
 const errors = [], once = new Set(), files = new Map();
+const flags = new Map();
 const bl = {
+    hookFlags: { set: (key, value) => flags.set(key, value), get: key => flags.get(key) || false },
     mod: { uuid: 'test' }, addressOf: (value) => {
         if (!value || typeof value !== 'object' && typeof value !== 'function') return undefined;
         if (value.__address === undefined) value.__address = address++;
@@ -112,6 +121,7 @@ const sandbox = {
     },
     Safe: {
         Run: (name, fn) => { try { return fn(); } catch (error) { errors.push(name + ': ' + error.message); } },
+        Report: (name, error) => errors.push(name + ': ' + error.message),
         Once: (key, message) => warnings.push(message),
     },
     ArmorSetLoader: { WantFrame: () => {} }, HitLoader: {},
@@ -614,6 +624,138 @@ test('failed mana payments do not emit OnConsumeMana', () => {
     assert.equal(call('Terraria.Player', 'CheckMana', p, 20, true, false), false);
     assert.equal(missing, 1);
     assert.equal(consumed, 0);
+});
+
+function selective(methods, run) {
+    const lengths = new Map([...installed.values()].map(entry => [entry, entry.callbacks.length]));
+    const installedKeys = new Set(); let refs = 0;
+    const fresh = vm.createContext({ ...sandbox, Ref: class { constructor(value) { this.value = value; refs++; } },
+        Hooks: { ...sandbox.Hooks, Once: (key, install) => { if (!installedKeys.has(key)) { installedKeys.add(key); install(); } } } });
+    try {
+        for (const file of filesToLoad) vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), fresh);
+        vm.runInContext('class Selective extends ModPlayer {' + methods + '} ModPlayer.register(Selective);', fresh);
+        run({ installedKeys, refs: () => refs, hook: (owner, name) => method(owner, name).callbacks.at(-1) });
+    } finally {
+        for (const [entry, length] of lengths) { entry.callbacks.length = length; entry.filters.length = length; }
+    }
+}
+
+test('a cleared-jump observer does not install movement or global sound hooks', () => {
+    selective('OnExtraJumpCleared() {}', ({ installedKeys }) => {
+        assert.equal(installedKeys.has('player.ClearJumps'), true);
+        assert.equal(installedKeys.has('player.ExtraJumps'), false);
+        assert.equal(installedKeys.has('player.ExtraJumpSounds'), false);
+    });
+});
+
+test('jump veto without input avoids reading jump states and allocating references', () => {
+    selective('CanStartExtraJump() { return true; }', ({ installedKeys, refs, hook }) => {
+        assert.equal(installedKeys.has('player.ExtraJumpSounds'), false);
+        const player = { controlJump: false };
+        Object.defineProperty(player, 'isPerformingJump_Cloud', { get() { throw Error('unexpected state read'); } });
+        let calls = 0;
+        hook('Terraria.Player', 'JumpMovement')(() => calls++, player);
+        assert.equal(calls, 1);
+        assert.equal(refs(), 0);
+    });
+});
+
+test('draw-info observer avoids unused DrawEffects references and combat avoids unused collision hooks', () => {
+    selective('ModifyDrawInfo(player, info) { info.marker = 1; } ModifyHitNPCWithItem() {}', ({ installedKeys, refs, hook }) => {
+        const player = { __address: address++ }, info = {};
+        hook('Terraria.DataStructures.PlayerDrawSet', 'BoringSetup')(() => {}, info, player, {}, 0, 0, {}, null);
+        assert.equal(info.marker, 1);
+        assert.equal(refs(), 0);
+        assert.equal(installedKeys.has('player.MeleeCollision'), false);
+    });
+});
+
+test('dispatch continues after failures and preserves decisions, order and return values', () => {
+    const events = [], before = errors.length;
+    class Failure extends ModPlayer {
+        CanHitPvp() { events.push('failure'); throw Error('dispatch failure'); }
+        ModifyZoom() { throw Error('zoom failure'); }
+    }
+    class Denied extends ModPlayer { CanHitPvp() { events.push('denied'); return false; } }
+    class Accepted extends ModPlayer { CanHitPvp() { events.push('accepted'); return true; } }
+    PlayerLoader.Add(Failure); PlayerLoader.Add(Denied); PlayerLoader.Add(Accepted);
+    All.prototype.CanHitPvp = () => { events.push('first'); return true; };
+    assert.equal(PlayerLoader.Veto(p, 'CanHitPvp'), true);
+    assert.deepEqual(events, ['first', 'failure', 'denied', 'accepted']);
+    assert.equal(errors.length, before + 1);
+    PlayerLoader.Call(p, 'ModifyZoom', { value: 1 });
+    assert.equal(errors.length, before + 2);
+    errors.splice(before);
+});
+
+test('empty dispatch does not initialize players and late registration invalidates cached methods', () => {
+    const fresh = player(6);
+    assert.equal(PlayerLoader.First(fresh, 'Unimplemented'), false);
+    assert.equal(PlayerLoader.Veto(fresh, 'Unimplemented'), false);
+    assert.equal(PlayerLoader.Nullable(fresh, 'Unimplemented'), null);
+    assert.equal(PlayerLoader.Factor(fresh, 'Unimplemented', {}), 1);
+    PlayerLoader.Call(fresh, 'Unimplemented');
+    assert.equal(fresh.ModPlayers, undefined);
+    assert.equal(PlayerLoader.Has('LateMethod'), false);
+    class Late extends ModPlayer { LateMethod(self, value) { self.marker = value; } }
+    PlayerLoader.Add(Late);
+    assert.equal(PlayerLoader.Has('LateMethod'), true);
+    PlayerLoader.Call(fresh, 'LateMethod', 42);
+    assert.equal(fresh.marker, 42);
+});
+
+test('collision and sound callbacks stay outside JS when their native gates are inactive', () => {
+    for (const entry of [method('Microsoft.Xna.Framework.Rectangle', 'Intersects'),
+        [...installed.values()].find(row => row.name === 'Terraria.Audio.SoundEngine' && row.signature.startsWith('SoundEffectInstance PlaySound(int'))]) {
+        const previous = entry.callbacks[0]; let calls = 0;
+        entry.callbacks[0] = (...args) => { calls++; return previous(...args); };
+        try { invoke(entry, [{}]); assert.equal(calls, 0); }
+        finally { entry.callbacks[0] = previous; }
+    }
+});
+
+test('attack gates recover after native failures', () => {
+    vanilla('Terraria.Player', 'ProcessHitAgainstNPC', () => { assert.equal(flags.get('player.Attack'), true); throw Error('attack failure'); });
+    assert.throws(() => call('Terraria.Player', 'ProcessHitAgainstNPC', p, item(1), npc.Hitbox, 20, 0, 0), /attack failure/);
+    assert.equal(flags.get('player.Attack'), false);
+});
+
+test('jump veto restores availability after failure and sound resumes outside jumping', () => {
+    p.controlJump = p.releaseJump = true; p.canJumpAgain_Cloud = true; p.isPerformingJump_Cloud = false;
+    All.prototype.CanStartExtraJump = () => false;
+    vanilla('Terraria.Player', 'JumpMovement', () => { assert.equal(p.canJumpAgain_Cloud, false); throw Error('jump failure'); });
+    assert.throws(() => call('Terraria.Player', 'JumpMovement', p), /jump failure/);
+    assert.equal(p.canJumpAgain_Cloud, true);
+    const sound = [...installed.values()].find(row => row.name === 'Terraria.Audio.SoundEngine' && row.signature.startsWith('SoundEffectInstance PlaySound(int'));
+    let played = 0; sound.vanilla = () => { played++; };
+    invoke(sound, [1, 0, 0, 1, 1, 0]);
+    assert.equal(played, 1);
+});
+
+test('unchanged draw layers avoid native cache reads and JS layer dispatch', () => {
+    const info = { __address: address++, drawPlayer: p };
+    Object.defineProperty(info, 'DrawDataCacheCount', { get: () => { throw Error('unexpected cache read'); } });
+    All.prototype.HideDrawLayers = () => {};
+    All.prototype.ModifyDrawLayerOrdering = () => {};
+    vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers.Skin.Method, () => {});
+    const layer = method('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers.Skin.Method);
+    const previous = layer.callbacks[0]; let calls = 0;
+    layer.callbacks[0] = (...args) => { calls++; return previous(...args); };
+    vanilla('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', draw => invoke(layer, [draw]));
+    try { call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info); }
+    finally { layer.callbacks[0] = previous; }
+    assert.equal(calls, 0);
+    assert.equal(flags.get('player.DrawLayers'), false);
+});
+
+test('hidden layers restore visibility and filters after renderer failures', () => {
+    All.prototype.HideDrawLayers = () => PlayerDrawLayers.Torso.Hide();
+    vanilla('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', () => {
+        assert.equal(flags.get('player.DrawLayers'), true); throw Error('render failure');
+    });
+    assert.throws(() => call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', { __address: address++, drawPlayer: p }), /render failure/);
+    assert.equal(PlayerDrawLayers.Torso.IsHidden, false);
+    assert.equal(flags.get('player.DrawLayers'), false);
 });
 
 assert.equal(errors.length, 0);

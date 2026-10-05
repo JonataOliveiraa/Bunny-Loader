@@ -72,9 +72,10 @@ class PlayerLoader {
         if (list.length === 0) return;
 
         const all = PlayerLoader.Of(player);
-        for (const cls of list) {
-            const inst = all.get(cls);
-            Safe.Run(cls.name + '.' + method, () => fn(inst));
+        for (let i = 0; i < list.length; i++) {
+            const cls = list[i];
+            try { fn(all.get(cls)); }
+            catch (error) { Safe.Report(cls.name + '.' + method, error); }
         }
     }
 
@@ -87,42 +88,70 @@ class PlayerLoader {
     }
 
     static Call(player, method, ...args) {
-        PlayerLoader.Each(player, method, (inst) => inst[method](player, ...args));
+        const list = PlayerLoader.#OverridersOf(method);
+        if (!list.length) return;
+        const all = PlayerLoader.Of(player);
+        for (let i = 0; i < list.length; i++) PlayerLoader.#Invoke(all.get(list[i]), method, player, args);
     }
 
     static Veto(player, method, ...args) {
-        return PlayerLoader.Any(player, method, false, (inst) => inst[method](player, ...args));
+        const list = PlayerLoader.#OverridersOf(method);
+        if (!list.length) return false;
+        const all = PlayerLoader.Of(player);
+        let veto = false;
+        for (let i = 0; i < list.length; i++) {
+            if (PlayerLoader.#Invoke(all.get(list[i]), method, player, args) === false) veto = true;
+        }
+        return veto;
     }
 
     static Nullable(player, method, ...args) {
         let result = null;
-        PlayerLoader.Each(player, method, (inst) => {
-            const value = inst[method](player, ...args);
+        const list = PlayerLoader.#OverridersOf(method);
+        if (!list.length) return result;
+        const all = PlayerLoader.Of(player);
+        for (let i = 0; i < list.length; i++) {
+            const value = PlayerLoader.#Invoke(all.get(list[i]), method, player, args);
             if (value === false) result = false;
             else if (value === true && result !== false) result = true;
-        });
+        }
         return result;
     }
 
     static First(player, method, ...args) {
+        const list = PlayerLoader.#OverridersOf(method);
+        if (!list.length) return false;
         const all = PlayerLoader.Of(player);
-        for (const cls of PlayerLoader.#OverridersOf(method)) {
-            if (Safe.Run(cls.name + '.' + method, () => all.get(cls)[method](player, ...args)) === true) return true;
+        for (let i = 0; i < list.length; i++) {
+            if (PlayerLoader.#Invoke(all.get(list[i]), method, player, args) === true) return true;
         }
         return false;
     }
 
     static Factor(player, method, item) {
         let factor = 1;
-        PlayerLoader.Each(player, method, (inst) => {
-            const value = inst[method](player, item);
+        const list = PlayerLoader.#OverridersOf(method);
+        if (!list.length) return factor;
+        const all = PlayerLoader.Of(player);
+        for (let i = 0; i < list.length; i++) {
+            const inst = all.get(list[i]);
+            let value;
+            try { value = inst[method](player, item); }
+            catch (error) { Safe.Report(list[i].name + '.' + method, error); }
             if (Number.isFinite(value) && value > 0) factor *= value;
-        });
+        }
         return Number.isFinite(factor) && factor > 0 ? factor : 1;
     }
 
     static Wants(cls, methods, key, install) {
         if (methods.some((name) => Hooks.Overrides(cls, ModPlayer, name))) Hooks.Once(key, install);
+    }
+
+    static Has(method) { return PlayerLoader.#OverridersOf(method).length > 0; }
+
+    static #Invoke(inst, method, player, args) {
+        try { return args.length ? inst[method](player, ...args) : inst[method](player); }
+        catch (error) { Safe.Report(inst.constructor.name + '.' + method, error); }
     }
 
     static KeyOf(cls) { return PlayerLoader.#keys.get(cls); }
@@ -208,7 +237,7 @@ class PlayerLoader {
         if (has('ResetEffects') || has('ModifyMaxStats')) Hooks.Once('player.ResetEffects', () => {
             P['void ResetEffects()'].hook((original, self) => {
                 original(self);
-                each(self, 'ResetEffects', (m) => m.ResetEffects(self));
+                PlayerLoader.Call(self, 'ResetEffects');
 
                 let life = 0, mana = 0;
                 each(self, 'ModifyMaxStats', (m) => {
@@ -223,40 +252,40 @@ class PlayerLoader {
 
         if (has('PreUpdate') || has('PostUpdate')) Hooks.Once('player.Update', () => {
             P['void Update(int i)'].hook((original, self, i) => {
-                each(self, 'PreUpdate', (m) => m.PreUpdate(self));
+                PlayerLoader.Call(self, 'PreUpdate');
                 original(self, i);
-                each(self, 'PostUpdate', (m) => m.PostUpdate(self));
+                PlayerLoader.Call(self, 'PostUpdate');
             });
         });
 
         if (has('PreUpdateBuffs') || has('PostUpdateBuffs')) Hooks.Once('player.UpdateBuffs', () => {
             P['void UpdateBuffs(int i)'].hook((original, self, i) => {
-                each(self, 'PreUpdateBuffs', (m) => m.PreUpdateBuffs(self));
+                PlayerLoader.Call(self, 'PreUpdateBuffs');
                 original(self, i);
-                each(self, 'PostUpdateBuffs', (m) => m.PostUpdateBuffs(self));
+                PlayerLoader.Call(self, 'PostUpdateBuffs');
             });
         });
 
         if (has('UpdateEquips') || has('PostUpdateEquips')) Hooks.Once('player.UpdateEquips', () => {
             P['void UpdateEquips(int i)'].hook((original, self, i) => {
                 original(self, i);
-                each(self, 'UpdateEquips', (m) => m.UpdateEquips(self));
-                each(self, 'PostUpdateEquips', (m) => m.PostUpdateEquips(self));
+                PlayerLoader.Call(self, 'UpdateEquips');
+                PlayerLoader.Call(self, 'PostUpdateEquips');
             });
         });
 
         if (has('UpdateBadLifeRegen') || has('UpdateLifeRegen')) Hooks.Once('player.LifeRegen', () => {
             P['void UpdateLifeRegen()'].hook((original, self) => {
-                each(self, 'UpdateBadLifeRegen', (m) => m.UpdateBadLifeRegen(self));
+                PlayerLoader.Call(self, 'UpdateBadLifeRegen');
                 original(self);
-                each(self, 'UpdateLifeRegen', (m) => m.UpdateLifeRegen(self));
+                PlayerLoader.Call(self, 'UpdateLifeRegen');
             });
         });
 
         if (has('UpdateManaRegen')) Hooks.Once('player.ManaRegen', () => {
             P['void UpdateManaRegen()'].hook((original, self) => {
                 original(self);
-                each(self, 'UpdateManaRegen', (m) => m.UpdateManaRegen(self));
+                PlayerLoader.Call(self, 'UpdateManaRegen');
             });
         });
 
@@ -280,13 +309,13 @@ class PlayerLoader {
         if (has('UpdateDead')) Hooks.Once('player.UpdateDead', () => {
             P['void UpdateDead()'].hook((original, self) => {
                 original(self);
-                each(self, 'UpdateDead', (m) => m.UpdateDead(self));
+                PlayerLoader.Call(self, 'UpdateDead');
             });
         });
 
         if (has('UpdateMovement')) Hooks.Once('player.Movement', () => {
             P['void BordersMovement()'].hook((original, self) => {
-                each(self, 'UpdateMovement', (m) => m.UpdateMovement(self));
+                PlayerLoader.Call(self, 'UpdateMovement');
                 original(self);
             });
         });

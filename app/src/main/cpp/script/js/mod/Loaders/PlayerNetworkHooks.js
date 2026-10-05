@@ -3,6 +3,7 @@ class PlayerNetworkHooks {
     static #baseline = null;
     static #source = null;
     static #connected = new Map();
+    static #disconnected = new Set();
 
     static Install(cls) {
         const want = PlayerLoader.Wants;
@@ -52,9 +53,9 @@ class PlayerNetworkHooks {
                 const player = Terraria.Main.player[index];
                 if (player) {
                     const previous = PlayerNetworkHooks.#connected.get(index);
-                    if (previous && bl.addressOf(previous) !== bl.addressOf(player)) PlayerNetworkHooks.#Disconnect(index);
+                    if (previous && previous.address !== bl.addressOf(player)) PlayerNetworkHooks.#Disconnect(index);
                     PlayerLoader.Call(player, 'SyncPlayer', toWho, fromWho, !PlayerNetworkHooks.#connected.get(index));
-                    if (player.active) PlayerNetworkHooks.#connected.set(index, player);
+                    if (player.active) PlayerNetworkHooks.#Connect(index, player);
                 }
             });
             Terraria.Player.Hooks['void PlayerConnect(int playerIndex)'].hook((original, index) => {
@@ -62,8 +63,8 @@ class PlayerNetworkHooks {
                 const player = Terraria.Main.player[index];
                 if (player) {
                     const previous = PlayerNetworkHooks.#connected.get(index);
-                    if (previous && bl.addressOf(previous) !== bl.addressOf(player)) PlayerNetworkHooks.#Disconnect(index);
-                    PlayerNetworkHooks.#connected.set(index, player);
+                    if (previous && previous.address !== bl.addressOf(player)) PlayerNetworkHooks.#Disconnect(index);
+                    PlayerNetworkHooks.#Connect(index, player);
                     PlayerLoader.Call(player, 'PlayerConnect');
                 }
             });
@@ -77,11 +78,11 @@ class PlayerNetworkHooks {
             });
             Terraria.Player['void Update(int i)'].hook((original, self, index) => {
                 const result = original(self, index), Main = Terraria.Main;
-                if (Main.gameMenu || Main.netMode === 0 || index !== Main.myPlayer) return result;
-                for (const [index, player] of PlayerNetworkHooks.#connected) {
-                    if (!player) continue;
-                    const current = Main.player[index];
-                    if (!current || !current.active || bl.addressOf(current) !== bl.addressOf(player)) PlayerNetworkHooks.#Disconnect(index);
+                if (!PlayerNetworkHooks.#connected.size || index !== Main.myPlayer || Main.gameMenu || Main.netMode === 0) return result;
+                const players = Main.player;
+                for (const [index, entry] of PlayerNetworkHooks.#connected) {
+                    const current = players[index];
+                    if (!current || !current.active || bl.addressOf(current) !== entry.address) PlayerNetworkHooks.#Disconnect(index);
                 }
                 return result;
             });
@@ -90,10 +91,18 @@ class PlayerNetworkHooks {
 
     static #Disconnect(index) {
         const previous = PlayerNetworkHooks.#connected.get(index);
-        if (previous === null) return;
-        PlayerNetworkHooks.#connected.set(index, null);
-        const player = previous || Terraria.Main.player[index];
+        if (!previous && PlayerNetworkHooks.#disconnected.has(index)) return;
+        PlayerNetworkHooks.#connected.delete(index);
+        PlayerNetworkHooks.#disconnected.add(index);
+        const player = previous ? previous.player : Terraria.Main.player[index];
         if (player) PlayerLoader.Call(player, 'PlayerDisconnect');
+    }
+
+    static #Connect(index, player) {
+        const previous = PlayerNetworkHooks.#connected.get(index);
+        const address = bl.addressOf(player);
+        if (!previous || previous.address !== address) PlayerNetworkHooks.#connected.set(index, { player, address });
+        PlayerNetworkHooks.#disconnected.delete(index);
     }
 
     static #Copy(player, clone) {
