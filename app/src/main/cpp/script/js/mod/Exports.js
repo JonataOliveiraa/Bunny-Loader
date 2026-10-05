@@ -14,5 +14,7 @@ Object.assign(globalThis, {
     SoundStyle, SoundEngine, SoundLimitBehavior, MusicLoader, SceneEffectPriority,
 });
 
+ArmorSetLoader.InstallHairSettings();
+
 // Sempre ligado, com ou sem mod: o "Config. dos Mods" do menu de pausa.
 ModConfigMenu.Install();

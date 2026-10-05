@@ -600,8 +600,9 @@ Um penteado, como o `ModHair` do tModLoader. Tipo depois dos 228 do jogo.
 
 Save: o arquivo do jogo leva o cabelo 0 e o de mod vai pelo nome no
 `<personagem>.plr.bl.json` (`bunny:hair`); sem o mod, o personagem abre com
-o cabelo 0. O `HairID.Sets` e o `RandomizedCharacterCreationGender` do
-tModLoader não existem no celular.
+o cabelo 0. `Terraria.ID.HairID.Sets.DrawBackHair[this.Type] = true` no
+`SetStaticDefaults()` permite desenhar o cabelo atrás do jogador. O
+`RandomizedCharacterCreationGender` do tModLoader não existe no celular.
 
 ---
 

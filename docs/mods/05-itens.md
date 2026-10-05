@@ -253,6 +253,29 @@ Loader: `ArmorIDs.Head.Sets.DrawHead` (o `HidesHead` do jogo, ao contrário),
 e `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin`, aplicadas depois do
 `PlayerDrawSet.BoringSetup` do jogo.
 
+#### Cabelo e chapéus
+
+`Player.GetHairSettings` consulta `ArmorIDs.Head.Sets.DrawFullHair`,
+`DrawHatHair` e `DrawsBackHairWithoutHeadgear`, com os padrões do tModLoader.
+Esses Sets usam o slot de equipamento (`Item.headSlot`), já disponível no
+`SetStaticDefaults`. Para um chapéu desenhado por cima do cabelo:
+
+```js
+SetStaticDefaults() {
+    Terraria.ID.ArmorIDs.Head.Sets.DrawHatHair[this.Item.headSlot] = true;
+}
+```
+
+`DrawFullHair` mostra o cabelo completo; `DrawHatHair` usa a textura de cabelo
+para chapéus (`PlayerHairAlt`). `DrawsBackHairWithoutHeadgear` permite o cabelo
+de trás inteiro. `ArmorIDs.Face.Sets.PreventHairDraw` e `player.faceHead` podem
+ocultar o cabelo.
+
+O penteado usa o próprio tipo em `Terraria.ID.HairID.Sets.DrawBackHair`. Um
+`ModHair` pode marcar `HairID.Sets.DrawBackHair[this.Type] = true` no seu
+`SetStaticDefaults` para desenhar o cabelo atrás do jogador. Os Sets novos
+retornam `false` para slots de mod ainda não marcados.
+
 #### Visual: FrameEffects, vaidade e manto
 
 - `ModPlayer.FrameEffects(player)` roda a cada quadro depois de o jogo montar

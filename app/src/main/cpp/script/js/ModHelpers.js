@@ -256,6 +256,8 @@ const TypeSet = (fallback, init = {}) => new Proxy(Object.assign([], init), {
     },
 });
 
+const BoolSet = (...types) => TypeSet(false, Object.fromEntries(types.map((type) => [type, true])));
+
 const TileSetsExtras = Object.freeze({
     OpenDoorID: TypeSet(-1, { 10: 11 }),
     CloseDoorID: TypeSet(-1, { 11: 10 }),
@@ -275,6 +277,9 @@ const TileSetsExtras = Object.freeze({
 // depois dele o que um mod marcar. O DrawHead é o HidesHead do jogo, ao contrário.
 const isIndex = (key) => typeof key === 'string' && /^\d+$/.test(key);
 const ArmorHeadSetsExtras = Object.freeze({
+    DrawFullHair: BoolSet(10, 12, 28, 42, 62, 97, 106, 113, 116, 119, 133, 138, 139, 163, 178, 181, 191, 198, 217, 218, 220, 222, 224, 225, 228, 229, 230, 232, 235, 238, 242, 243, 244, 245, 272, 273, 274, 277),
+    DrawHatHair: BoolSet(13, 14, 15, 16, 18, 21, 24, 25, 26, 29, 40, 44, 51, 56, 59, 60, 63, 64, 65, 67, 68, 69, 81, 92, 94, 95, 100, 114, 121, 126, 130, 136, 140, 143, 145, 158, 159, 161, 182, 184, 190, 195, 215, 216, 219, 223, 226, 227, 231, 233, 234, 262, 263, 264, 265, 267, 275, 279, 280, 281),
+    DrawsBackHairWithoutHeadgear: BoolSet(0, 23, 259),
     DrawHead: new Proxy([], {
         get(target, key) { return isIndex(key) ? !Terraria.ID.ArmorIDs.Head.Sets.HidesHead[+key] : target[key]; },
         set(target, key, value) {
@@ -293,6 +298,12 @@ const ArmorBodySetsExtras = Object.freeze({
 const ArmorLegsSetsExtras = Object.freeze({
     HidesTopSkin: TypeSet(false),
     HidesBottomSkin: TypeSet(false),
+});
+
+const HairID = Object.freeze({
+    Sets: Object.freeze({
+        DrawBackHair: BoolSet(51, 52, 53, 54, 55, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 105, 106, 107, 108, 109, 110, 111, 113, 114, 115, 133, 134, 146, 162, 6),
+    }),
 });
 
 const tileAt = (i, j) => Terraria.Main.tile['Tile get_Item(int x, int y)'](i, j);
@@ -563,7 +574,7 @@ const ItemDropRuleExtras = Object.freeze({
 // ItemSlot.Context do jogo, que tem os contextos do celular (Count 49, nao 41).
 const ExtraClasses = Object.freeze({
     'Terraria.ID': Object.freeze({
-        BiomeID, DashID, EmoteBubbleCategory, ItemRarityID, MoonPhases, NetmodeID,
+        BiomeID, DashID, EmoteBubbleCategory, HairID, ItemRarityID, MoonPhases, NetmodeID,
         NPCAIStyleID, ProjAIStyleID,
         get ItemSlotContext() { return Terraria.UI.ItemSlot.Context; },
     }),

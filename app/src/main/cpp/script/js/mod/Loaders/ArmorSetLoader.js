@@ -15,6 +15,7 @@ class ArmorSetLoader {
     static WantFrame() { ArmorSetLoader.#Want('armor.Frame', ArmorSetLoader.#HookFrame); }
     static WantShadows() { ArmorSetLoader.#Want('armor.Shadows', ArmorSetLoader.#HookShadows); }
     static WantSetMatch() { ArmorSetLoader.#Want('armor.SetMatch', ArmorSetLoader.#HookSetMatch); }
+    static InstallHairSettings() { ArmorSetLoader.#Want('armor.Hair', ArmorSetLoader.#HookHairSettings); }
 
     // Os HidesTopSkin/HidesBottomSkin/HidesHands/HidesArms do tModLoader
     // (ModHelpers): com o conteúdo pronto, só se algum mod marcou algum.
@@ -86,6 +87,19 @@ class ArmorSetLoader {
     }
 
     static #Overrides(g, method) { return Hooks.Overrides(g.constructor, GlobalItem, method); }
+
+    static #HookHairSettings() {
+        const { ArmorIDs, HairID } = Terraria.ID;
+        const head = ArmorIDs.Head.Sets, face = ArmorIDs.Face.Sets, hair = HairID.Sets;
+        Terraria.Player['void GetHairSettings(out bool fullHair, out bool hatHair, out bool hideHair, out bool backHairDraw, out bool drawsBackHairWithoutHeadgear)'].hook(
+            (original, self, fullHair, hatHair, hideHair, backHairDraw, drawsBackHairWithoutHeadgear) => {
+                fullHair.value = self.head >= 0 && head.DrawFullHair[self.head];
+                hatHair.value = self.head >= 0 && head.DrawHatHair[self.head];
+                hideHair.value = (self.face >= 0 && face.PreventHairDraw[self.face]) || (self.faceHead >= 0 && self.head !== 0);
+                backHairDraw.value = self.hair >= 0 && hair.DrawBackHair[self.hair];
+                drawsBackHairWithoutHeadgear.value = self.head >= 0 && head.DrawsBackHairWithoutHeadgear[self.head];
+            });
+    }
 
     // O conjunto do jogo (ArmorSetBonuses) roda no original; os de mod depois,
     // peça por peça, e os Globais pelo nome do conjunto, como o
