@@ -9,7 +9,9 @@
 //   Ghost (TileCollideStyle false): atravessa a plataforma e o chão, sem
 //     OnTileCollide, e o tileCollide dele continua true;
 //   GroundPet (pet, sem TileCollideStyle): cai no chão e recebe o
-//     OnTileCollide todo quadro, sem morrer.
+//     OnTileCollide todo quadro, sem morrer;
+//   GroundTimeout (OnTileCollide false, timeLeft 90): parado no chão, morre
+//     quando o tempo acaba, com OnKill (o chão não segura a morte por tempo).
 // Loga "collidestyle <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 const WorldGen = Terraria.WorldGen;
@@ -116,6 +118,20 @@ export class GroundPet extends Faller {
     }
 }
 
+const killed = {};
+export class GroundTimeout extends Faller {
+    Size = 20;
+    SetDefaults() {
+        super.SetDefaults();
+        this.Projectile.timeLeft = 90;
+    }
+    OnTileCollide(proj, oldVelocity) {
+        countHit(proj, 'GroundTimeout', oldVelocity);
+        return false;
+    }
+    OnKill(proj, timeLeft) { killed.GroundTimeout = { timeLeft, hits: hits.GroundTimeout || 0 }; }
+}
+
 const newProj = Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)'];
 const placeTile = WorldGen['bool PlaceTile(int i, int j, int Type, bool mute, bool forced, int plr, int style)'];
 const killTile = WorldGen['void KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)'];
@@ -158,6 +174,7 @@ function setUp() {
     spawn('PlatformPet', (px + 4) * 16 + 8, y);
     spawn('Ghost', (px + 8) * 16 + 8, y);
     spawn('GroundPet', p.Center.X - 20 * 16, p.position.Y - 2 * 16);
+    spawn('GroundTimeout', p.Center.X + 20 * 16, p.position.Y - 2 * 16);
     return true;
 }
 
@@ -195,6 +212,11 @@ function report() {
         return (h && h.old > 0 && h.now === 0) || JSON.stringify(h);
     });
     check('GroundPet: continua vivo (pet não morre no bloco)', () => spawned.GroundPet.active || 'morreu');
+    check('GroundTimeout: OnTileCollide false no chão', () =>
+        (killed.GroundTimeout ? killed.GroundTimeout.hits : hits.GroundTimeout || 0) > 0 || 'sem choque');
+    check('GroundTimeout: o tempo acaba no chão e o OnKill sai', () =>
+        (killed.GroundTimeout && !spawned.GroundTimeout.active) ||
+        `OnKill ${JSON.stringify(killed.GroundTimeout)}, ativo ${spawned.GroundTimeout.active}, timeLeft ${spawned.GroundTimeout.timeLeft}`);
 }
 
 function cleanUp() {
