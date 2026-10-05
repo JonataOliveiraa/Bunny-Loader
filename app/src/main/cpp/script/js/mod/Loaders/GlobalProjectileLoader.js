@@ -5,6 +5,7 @@ class GlobalProjectileLoader {
         const has = (name) => Hooks.Overrides(cls, GlobalProjectile, name);
 
         if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity();
+        ProjectileLoader.HookGlobal(cls);
 
         if (has('SetDefaults') || registry.cached) Hooks.Once('gproj.SetDefaults', () => {
             Pr['void SetDefaults(int Type)'].hook((original, p, type) => {
@@ -23,34 +24,18 @@ class GlobalProjectileLoader {
                     if (i < 0 || i >= 1000) return i;
 
                     const p = Terraria.Main.projectile[i];
-                    if (p.active) registry.Each(p, 'OnSpawn', (g) => g.OnSpawn(p, source));
+                    if (p.active) registry.Call(p, 'OnSpawn', source);
                     return i;
                 });
         });
 
         if (has('PreAI') || has('AI') || has('PostAI')) Hooks.Once('gproj.AI', () => {
             Pr['void AI()'].hook((original, p) => {
-                if (registry.All(p, 'PreAI', (g) => g.PreAI(p))) {
+                if (registry.AllCall(p, 'PreAI')) {
                     original(p);
-                    registry.Each(p, 'AI', (g) => g.AI(p));
+                    registry.Call(p, 'AI');
                 }
-                registry.Each(p, 'PostAI', (g) => g.PostAI(p));
-            });
-        });
-
-        if (has('PreKill') || has('OnKill')) Hooks.Once('gproj.Kill', () => {
-            Pr['void Kill()'].hook((original, p) => {
-                if (!p.active) return original(p);
-                if (ProjectileLoader.DefersTileCollisionKill(p)) return original(p);
-
-                const timeLeft = p.timeLeft;
-                if (!registry.All(p, 'PreKill', (g) => g.PreKill(p, timeLeft))) {
-                    p.active = false;
-                    return undefined;
-                }
-
-                registry.Each(p, 'OnKill', (g) => g.OnKill(p, timeLeft));
-                return original(p);
+                registry.Call(p, 'PostAI');
             });
         });
 
@@ -59,7 +44,7 @@ class GlobalProjectileLoader {
         if (has('OnHitPlayer')) Hooks.Once('gproj.OnHitPlayer', () => {
             Pr['void StatusPlayer(Player player)'].hook((original, p, player) => {
                 original(p, player);
-                registry.Each(p, 'OnHitPlayer', (g) => g.OnHitPlayer(p, player));
+                registry.Call(p, 'OnHitPlayer', player);
             });
         });
     }

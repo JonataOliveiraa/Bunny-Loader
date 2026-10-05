@@ -1,0 +1,3 @@
+allprojects {
+    layout.buildDirectory.set(rootProject.file("build/globalprojectilehooks/builds/" + (project == rootProject ? "root" : project.name)))
+}

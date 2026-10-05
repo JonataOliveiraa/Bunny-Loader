@@ -2,6 +2,7 @@
 // tipo: um hook de Global entra no JS para toda entidade que passa por ele.
 class GlobalRegistry {
     static #NONE = Object.freeze([]);
+    #methods = new WeakMap();
 
     constructor(Base, entityClass, field, getter) {
         this.Base = Base;
@@ -50,7 +51,11 @@ class GlobalRegistry {
         if (!this.cached) return this.list;
 
         const current = entity[this.field];
-        if (current && current.type === entity.type) return current.list;
+        if (current && current.type === entity.type) {
+            if (current.count !== this.list.length) this.#Append(entity, true, current.list, current.count);
+            current.count = this.list.length;
+            return current.list;
+        }
 
         return this.Attach(entity, true);
     }
@@ -59,21 +64,80 @@ class GlobalRegistry {
     // por entidade. O SetDefaults chama de novo: tipo novo, estado novo.
     Attach(entity, late) {
         const list = [];
-        for (const g of this.list) {
-            const n = g.constructor.name;
-            if (g.__conditional && !Safe.Run(n + '.AppliesToEntity', () => g.AppliesToEntity(entity, late))) continue;
-
-            list.push(g.__perEntity ? (Safe.Run(n + '.NewInstance', () => g.NewInstance(entity)) || g) : g);
-        }
-
-        entity[this.field] = { type: entity.type, list };
+        this.#Append(entity, late, list, 0);
+        entity[this.field] = { type: entity.type, list, count: this.list.length };
         return list;
     }
 
-    Each(entity, method, fn) {
-        for (const g of this.Of(entity)) {
-            if (Hooks.Overrides(g.constructor, this.Base, method)) Safe.Run(g.constructor.name + '.' + method, () => fn(g));
+    #Append(entity, late, list, start) {
+        for (let i = start; i < this.list.length; i++) {
+            const g = this.list[i];
+            if (g.__conditional && !this.Invoke(g, 'AppliesToEntity', entity, late)) continue;
+            list.push(g.__perEntity ? (this.Invoke(g, 'NewInstance', entity) || g) : g);
         }
+    }
+
+    Each(entity, method, fn) {
+        for (const g of this.For(entity, method)) {
+            try { fn(g); }
+            catch (error) { Safe.Report(g.constructor.name + '.' + method, error); }
+        }
+    }
+
+    Templates(method) { return this.#ForList(this.list, method); }
+
+    For(entity, method) {
+        const templates = this.Templates(method);
+        if (!templates.length) return GlobalRegistry.#NONE;
+        if (!this.cached) return entity.type > 0 ? templates : GlobalRegistry.#NONE;
+        return this.#ForList(this.Of(entity), method);
+    }
+
+    #ForList(list, method) {
+        let entry = this.#methods.get(list);
+        if (!entry || entry.length !== list.length) {
+            entry = { length: list.length, methods: new Map() };
+            this.#methods.set(list, entry);
+        }
+        let result = entry.methods.get(method);
+        if (!result) {
+            result = list.filter((g) => Hooks.Overrides(g.constructor, this.Base, method));
+            entry.methods.set(method, result);
+        }
+        return result;
+    }
+
+    Invoke(g, method, entity, a, b, c, d) {
+        try {
+            switch (this.Base.prototype[method].length) {
+                case 2: return g[method](entity, a);
+                case 3: return g[method](entity, a, b);
+                case 4: return g[method](entity, a, b, c);
+                case 5: return g[method](entity, a, b, c, d);
+                default: return g[method](entity);
+            }
+        }
+        catch (error) { Safe.Report(g.constructor.name + '.' + method, error); }
+    }
+
+    Call(entity, method, a, b, c, d) {
+        for (const g of this.For(entity, method)) this.Invoke(g, method, entity, a, b, c, d);
+    }
+
+    AllCall(entity, method, a, b, c, d) {
+        let allowed = true;
+        for (const g of this.For(entity, method)) {
+            if (this.Invoke(g, method, entity, a, b, c, d) === false) allowed = false;
+        }
+        return allowed;
+    }
+
+    First(entity, method, a, b, boolean = false) {
+        for (const g of this.For(entity, method)) {
+            const result = this.Invoke(g, method, entity, a, b);
+            if (boolean ? typeof result === 'boolean' : result != null) return result;
+        }
+        return undefined;
     }
 
     // Nenhum devolveu false?

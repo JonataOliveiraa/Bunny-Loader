@@ -23,7 +23,7 @@ class GlobalItemLoader {
                 const current = copy ? self[registry.field] : undefined;
                 if (current && current.type === self.type) {
                     const cloneOf = (g) => (g.__perEntity ? Safe.Run(g.constructor.name + '.Clone', () => g.Clone(self, copy)) || g : g);
-                    copy[registry.field] = { type: current.type, list: current.list.map(cloneOf) };
+                    copy[registry.field] = { type: current.type, list: current.list.map(cloneOf), count: current.count };
                 }
                 return copy;
             });

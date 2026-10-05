@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const source = path.join(root, 'app/src/main/cpp/script/js/mod');
-const hooks = new Map(), marks = new Map(), errors = [];
+const hooks = new Map(), marks = new Map(), flags = new Map(), errors = [];
 const vector = (X = 0, Y = 0) => ({ X, Y });
 const native = new Proxy({}, {
     get(_, signature) {
@@ -27,6 +27,7 @@ function invoke(entry, args, index = 0) {
     const { callback, filter } = entry.callbacks[index];
     const original = (...next) => invoke(entry, next, index + 1);
     if (filter.marks && !marks.get(filter.marks)?.has(args[0].type)) return original(...args);
+    if (filter.flag && !flags.get(filter.flag)) return original(...args);
     return callback(original, ...args);
 }
 const call = (signature, ...args) => native[signature](...args);
@@ -35,9 +36,11 @@ const Main = { player: [{ position: vector(), height: 40 }], projPet: [], projec
 const sandbox = {
     Terraria: { Projectile: native, Main, Collision: { 'bool SolidCollision(Vector2 Position, int Width, int Height)': () => true } },
     Vector2: { new: vector, Clone: ({ X, Y }) => vector(X, Y), Add: (a, b) => vector(a.X + b.X, a.Y + b.Y) },
-    Entities: { InstanceOf: (p) => p.ModProjectile, Of: (m) => m.projectile },
+    Entities: { InstanceOf: (p) => p.ModProjectile, Of: (m) => m.projectile, Define() {} },
+    globalProjectiles: { For() { return []; }, AllCall() { return true; }, Call() {} },
     FIRST_PROJECTILE: 1136,
-    bl: { hookMarks: { set(key, type) { if (!marks.has(key)) marks.set(key, new Set()); marks.get(key).add(type); } } },
+    bl: { hookMarks: { set(key, type) { if (!marks.has(key)) marks.set(key, new Set()); marks.get(key).add(type); } },
+        hookFlags: { set(key, value) { flags.set(key, value); } } },
     Safe: {
         Run(label, fn) { try { return fn(); } catch (error) { errors.push([label, error]); } },
         Report(label, error) { errors.push([label, error]); },
@@ -167,8 +170,9 @@ test('movement state restores after native failure', (p, events) => {
 });
 const globalEvents = [];
 sandbox.globalProjectiles = {
-    All() { globalEvents.push('pre'); return true; },
-    Each(_, method) { globalEvents.push(method); },
+    For() { return []; },
+    AllCall(_, method) { if (method === 'PreKill') globalEvents.push('pre'); return true; },
+    Call(_, method) { globalEvents.push(method); },
 };
 vm.runInContext('class GlobalType {}', context);
 for (const file of ['GlobalProjectile.js', 'Loaders/GlobalProjectileLoader.js']) {

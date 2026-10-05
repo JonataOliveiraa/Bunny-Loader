@@ -1,0 +1,14 @@
+{
+  "uid": "c54c31ec-a54d-4ed9-aa3e-265e0341fb48",
+  "id": "test-globalprojectilehooks",
+  "name": "Teste: hooks de GlobalProjectile",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Valida desenho, colisao, dano, corte e grapple no jogo real.",
+  "description": "Regressoes de retorno, referencias, isolamento e morte no chao, com benchmark de despacho.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

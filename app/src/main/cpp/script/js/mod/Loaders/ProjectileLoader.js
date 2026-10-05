@@ -20,9 +20,8 @@ class ProjectileLoader {
     }
 
     static DefersTileCollisionKill(p) {
-        const m = ProjectileLoader.Of(p), moving = m && m.__moving;
-        return !!(p.tileCollide && moving && !moving.reported && ProjectileLoader.#Collided(p, moving)
-            && Hooks.Overrides(m.constructor, ModProjectile, 'OnTileCollide'));
+        const moving = p.__projectileMovement;
+        return !!(p.tileCollide && moving && moving.hasCollision && !moving.reported && ProjectileLoader.#Collided(p, moving));
     }
 
     static Hook(cls, type) {
@@ -37,8 +36,6 @@ class ProjectileLoader {
             if (methods.some(has)) bl.hookMarks.set(key, type);
             return { minType: FIRST_PROJECTILE, marks: key };
         };
-        // O DrawProjDirect recebe o projétil no parâmetro 0 (o self é o Main).
-        const markedParam = (key, ...methods) => Object.assign(marked(key, ...methods), { on: 0 });
 
         if (has('SendExtraAI') || has('ReceiveExtraAI')) ModNet.InstallEntity();
 
@@ -88,16 +85,7 @@ class ProjectileLoader {
             }, self);
         });
 
-        // O movimento é a fronteira do TileCollideStyle e do OnTileCollide:
-        // o GetCollisionParams e o UpdatePosition só entram no JS dentro dele.
-        const movement = marked('proj.Movement', 'OnTileCollide', 'TileCollideStyle');
-        if (has('OnTileCollide') || has('TileCollideStyle')) Hooks.Once('proj.Movement', () => ProjectileLoader.#HookMovement(movement));
-
-        const collideStyle = marked('proj.CollideStyle', 'TileCollideStyle');
-        if (has('TileCollideStyle')) Hooks.Once('proj.CollideStyle', () => ProjectileLoader.#HookCollideStyle(collideStyle));
-
-        const kill = marked('proj.Kill', 'PreKill', 'OnKill', 'OnTileCollide');
-        if (has('PreKill') || has('OnKill') || has('OnTileCollide')) Hooks.Once('proj.Kill', () => ProjectileLoader.#HookKill(kill));
+        ProjectileLoader.#SharedHooks(has, type, false);
 
         const onHitNPC = marked('proj.OnHitNPC', 'OnHitNPC');
         if (has('OnHitNPC')) Hooks.Once('proj.OnHitNPC', () => {
@@ -119,109 +107,160 @@ class ProjectileLoader {
             }, onHitPlayer);
         });
 
-        const colliding = marked('proj.Colliding', 'Colliding');
-        if (has('Colliding')) Hooks.Once('proj.Colliding', () => {
+    }
+
+    static #globalGroups = new Set();
+
+    static HookGlobal(cls) {
+        ProjectileLoader.#SharedHooks((name) => Hooks.Overrides(cls, GlobalProjectile, name), 0, true);
+    }
+
+    static #SharedHooks(has, type, global) {
+        const Pr = Terraria.Projectile;
+        const install = (key, methods, fn, extra) => {
+            const wants = methods.some(has);
+            if (!wants) return;
+            if (global) {
+                ProjectileLoader.#globalGroups.add(key);
+                bl.hookFlags.set(key + '.local', false);
+                Hooks.Once(key + '.global', () => fn(Object.assign({ minType: 1 }, extra)));
+            } else {
+                bl.hookMarks.set(key, type);
+                if (ProjectileLoader.#globalGroups.has(key)) return;
+                Hooks.Once(key + '.local', () => {
+                    bl.hookFlags.set(key + '.local', true);
+                    fn(Object.assign({ minType: FIRST_PROJECTILE, marks: key, flag: key + '.local' }, extra));
+                });
+            }
+        };
+        install('proj.Movement', ['OnTileCollide', 'TileCollideStyle'], (filter) => {
+            Entities.Define(Pr, '__projectileMovement');
+            ProjectileLoader.#HookMovement(filter);
+        });
+        install('proj.CollideStyle', ['TileCollideStyle'], ProjectileLoader.#HookCollideStyle);
+        install('proj.Kill', ['PreKill', 'OnKill', 'OnTileCollide'], ProjectileLoader.#HookKill);
+        install('proj.Colliding', ['Colliding'], (filter) => {
             Pr['bool Colliding(Rectangle myRect, Rectangle targetRect)'].hook((original, p, mine, target) => {
-                const m = of(p);
-                const r = m ? Safe.Run(m.constructor.name + '.Colliding', () => m.Colliding(p, mine, target)) : undefined;
-                return typeof r === 'boolean' ? r : original(p, mine, target);
-            }, colliding);
+                let result = globalProjectiles.First(p, 'Colliding', mine, target, true);
+                if (result === undefined) result = ProjectileLoader.#Invoke(ProjectileLoader.Of(p), 'Colliding', p, mine, target);
+                return typeof result === 'boolean' ? result : original(p, mine, target);
+            }, filter);
         });
-
-        const canDamage = marked('proj.CanDamage', 'CanDamage');
-        if (has('CanDamage')) Hooks.Once('proj.CanDamage', () => {
-            Pr['void Damage()'].hook((original, p) => {
-                const m = of(p);
-                if (m && Safe.Run(m.constructor.name + '.CanDamage', () => m.CanDamage(p)) === false) return undefined;
-
-                return original(p);
-            }, canDamage);
-        });
-
-        // O Damage do jogo sai no começo para todo Main.projPet: desligado só
-        // durante a chamada, o lacaio fere ao encostar.
-        const contactFilter = marked('proj.MinionContactDamage', 'MinionContactDamage');
-        if (has('MinionContactDamage')) Hooks.Once('proj.MinionContactDamage', () => {
-            Pr['void Damage()'].hook((original, p) => {
-                const m = of(p);
-                const pet = Terraria.Main.projPet;
-                const type = p.type;
-                const contact = m && pet[type] &&
-                    Safe.Run(m.constructor.name + '.MinionContactDamage', () => m.MinionContactDamage(p)) === true;
-                if (!contact) return original(p);
-
-                pet[type] = false;
-                try {
-                    return original(p);
-                } finally {
-                    pet[type] = true;
-                }
-            }, contactFilter);
-        });
-
-        const hitbox = marked('proj.Hitbox', 'ModifyDamageHitbox');
-        if (has('ModifyDamageHitbox')) Hooks.Once('proj.Hitbox', () => {
+        install('proj.Damage', ['CanDamage', 'MinionContactDamage', 'Colliding'], ProjectileLoader.#HookDamage);
+        install('proj.Hitbox', ['ModifyDamageHitbox'], (filter) => {
             Pr['Rectangle Damage_GetHitbox()'].hook((original, p) => {
-                const box = original(p);
-                const m = of(p);
-                if (!m) return box;
-
-                const r = Rectangle.new(box.X, box.Y, box.Width, box.Height);
-                Safe.Run(m.constructor.name + '.ModifyDamageHitbox', () => m.ModifyDamageHitbox(p, r));
-                return r;
-            }, hitbox);
+                const box = original(p), m = ProjectileLoader.Of(p);
+                const globals = globalProjectiles.For(p, 'ModifyDamageHitbox');
+                if (!globals.length && !ProjectileLoader.#PlanHas(m, 'ModifyDamageHitbox')) return box;
+                const copy = Rectangle.new(box.X, box.Y, box.Width, box.Height);
+                ProjectileLoader.#Invoke(m, 'ModifyDamageHitbox', p, copy);
+                if (!globals.length) return copy;
+                const hitbox = new Ref(copy);
+                for (const g of globals) globalProjectiles.Invoke(g, 'ModifyDamageHitbox', p, hitbox);
+                return hitbox.value;
+            }, filter);
         });
-
-        const canCut = marked('proj.CanCutTiles', 'CanCutTiles');
-        if (has('CanCutTiles')) Hooks.Once('proj.CanCutTiles', () => {
+        install('proj.CanCutTiles', ['CanCutTiles', 'CutTiles'], (filter) => {
             Pr['bool CanCutTiles()'].hook((original, p) => {
-                const m = of(p);
-                const r = m ? Safe.Run(m.constructor.name + '.CanCutTiles', () => m.CanCutTiles(p)) : undefined;
-                return typeof r === 'boolean' ? r : original(p);
-            }, canCut);
+                const cutting = ProjectileLoader.#cutting;
+                if (cutting && cutting.address === bl.addressOf(p)) return true;
+                let result = globalProjectiles.First(p, 'CanCutTiles', undefined, undefined, true);
+                if (result === undefined) result = ProjectileLoader.#Invoke(ProjectileLoader.Of(p), 'CanCutTiles', p);
+                return typeof result === 'boolean' ? result : original(p);
+            }, filter);
         });
-
-        const cut = marked('proj.CutTiles', 'CutTiles');
-        if (has('CutTiles')) Hooks.Once('proj.CutTiles', () => {
+        install('proj.CutTiles', ['CutTiles'], (filter) => {
             Pr['void CutTiles()'].hook((original, p) => {
-                original(p);
-
-                const m = of(p);
-                if (m) Safe.Run(m.constructor.name + '.CutTiles', () => m.CutTiles(p));
-            }, cut);
+                const m = ProjectileLoader.Of(p), globals = globalProjectiles.For(p, 'CutTiles');
+                if (!globals.length && !ProjectileLoader.#PlanHas(m, 'CutTiles')) return original(p);
+                if (p['bool CanCutTiles()']() === false) return undefined;
+                for (const g of globals) globalProjectiles.Invoke(g, 'CutTiles', p);
+                ProjectileLoader.#Invoke(m, 'CutTiles', p);
+                const outer = ProjectileLoader.#cutting;
+                ProjectileLoader.#cutting = { address: bl.addressOf(p) };
+                try { return original(p); }
+                finally { ProjectileLoader.#cutting = outer; }
+            }, filter);
         });
-
-        const alpha = marked('proj.GetAlpha', 'GetAlpha');
-        if (has('GetAlpha')) Hooks.Once('proj.GetAlpha', () => {
+        install('proj.GetAlpha', global ? ['GetAlpha', 'PreDraw'] : ['GetAlpha'], (filter) => {
             Pr['Color GetAlpha(Color newColor)'].hook((original, p, color) => {
-                const m = of(p);
-                const c = m ? Safe.Run(m.constructor.name + '.GetAlpha', () => m.GetAlpha(p, color)) : undefined;
-                return c || original(p, color);
-            }, alpha);
+                const draw = ProjectileLoader.#drawLight;
+                if (draw && draw.address === bl.addressOf(p)) color = draw.color;
+                let result = globalProjectiles.First(p, 'GetAlpha', color);
+                if (result == null) result = ProjectileLoader.#Invoke(ProjectileLoader.Of(p), 'GetAlpha', p, color);
+                return result == null ? original(p, color) : result;
+            }, filter);
         });
-
-        const latch = marked('proj.Latch', 'GrappleCanLatchOnTo');
-        if (has('GrappleCanLatchOnTo')) Hooks.Once('proj.Latch', () => {
+        install('proj.Latch', ['GrappleCanLatchOnTo'], (filter) => {
             Pr['bool AI_007_GrapplingHooks_CanTileBeLatchedOnTo(Tile theTile)'].hook((original, p, tile) => {
-                const vanilla = original(p, tile);
-                const m = of(p);
-                if (!m) return vanilla;
-
                 const owner = Terraria.Main.player[p.owner];
-                const r = Safe.Run(m.constructor.name + '.GrappleCanLatchOnTo', () => m.GrappleCanLatchOnTo(p, owner, tile));
-                return typeof r === 'boolean' ? r : vanilla;
-            }, latch);
+                let result = ProjectileLoader.#Invoke(ProjectileLoader.Of(p), 'GrappleCanLatchOnTo', p, owner, tile);
+                for (const g of globalProjectiles.For(p, 'GrappleCanLatchOnTo')) {
+                    const value = globalProjectiles.Invoke(g, 'GrappleCanLatchOnTo', p, owner, tile);
+                    if (value === false) return false;
+                    if (value === true) result = true;
+                }
+                return typeof result === 'boolean' ? result : original(p, tile);
+            }, filter);
         });
+        install('proj.Grapple', ['CanUseGrapple', 'UseGrapple'], ProjectileLoader.#HookGrapple, { on: 0, field: 'shoot' });
+        install('proj.Draw', ['PreDraw', 'PostDraw', 'PreDrawExtras'], ProjectileLoader.#HookDraw, { on: 0 });
+        if (has('PreDrawExtras') || global && has('PreDraw')) Hooks.Once('proj.DrawExtras', ProjectileLoader.#HookDrawExtras);
+        else if (!global && has('PreDraw')) Ready.Add(() => ProjectileLoader.#CheckExtras(ProjectileLoader.ByType.get(type).constructor));
+    }
 
-        if (has('CanUseGrapple') || has('UseGrapple')) Hooks.Once('proj.Grapple', ProjectileLoader.#HookGrapple);
+    static #cutting = null;
 
-        const draw = markedParam('proj.Draw', 'PreDraw', 'PostDraw', 'PreDrawExtras');
-        if (has('PreDraw') || has('PostDraw') || has('PreDrawExtras')) Hooks.Once('proj.Draw', () => ProjectileLoader.#HookDraw(draw));
-        // Os filtros de desenho do PreDrawExtras passam por todo SpriteBatch.Draw:
-        // só com o PreDrawExtras, ou com um PreDraw num projétil que tem extras
-        // (conferido depois do SetDefaults dele).
-        if (has('PreDrawExtras')) Hooks.Once('proj.DrawExtras', ProjectileLoader.#HookDrawExtras);
-        else if (has('PreDraw')) Ready.Add(() => ProjectileLoader.#CheckExtras(cls));
+    static #HookDamage(filter) {
+        Terraria.Projectile['void Damage()'].hook((original, p) => {
+            const m = ProjectileLoader.Of(p);
+            let allowed;
+            for (const g of globalProjectiles.For(p, 'CanDamage')) {
+                const result = globalProjectiles.Invoke(g, 'CanDamage', p);
+                if (result === false) return undefined;
+                if (result === true) allowed = true;
+            }
+            if (allowed !== true && ProjectileLoader.#Invoke(m, 'CanDamage', p) === false) return undefined;
+            const contactGlobals = globalProjectiles.For(p, 'MinionContactDamage');
+            const collisionGlobals = globalProjectiles.For(p, 'Colliding');
+            if (!contactGlobals.length && !collisionGlobals.length && !ProjectileLoader.#PlanHas(m, 'MinionContactDamage')) return original(p);
+            const type = p.type, pets = Terraria.Main.projPet;
+            const complex = collisionGlobals.length ? Terraria.ID.ProjectileID.Sets.IsAComplexCollision : null;
+            const wasPet = pets[type], wasComplex = complex && complex[type];
+            let contact = false;
+            if (wasPet) {
+                contact = ProjectileLoader.#Invoke(m, 'MinionContactDamage', p) === true;
+                if (!contact) for (const g of contactGlobals) {
+                    if (globalProjectiles.Invoke(g, 'MinionContactDamage', p) === true) { contact = true; break; }
+                }
+            }
+            const customCollision = !!complex && !wasComplex;
+            if (!contact && !customCollision) return original(p);
+            if (contact) pets[type] = false;
+            if (customCollision) complex[type] = true;
+            try { return original(p); }
+            finally {
+                if (contact) pets[type] = wasPet;
+                if (customCollision) complex[type] = wasComplex;
+            }
+        }, filter);
+    }
+
+    static #PlanHas(m, method) { return !!m && !!ProjectileLoader.#PlanOf(m)[method]; }
+
+    static #Invoke(m, method, p, a, b, c, d) {
+        if (!m) return undefined;
+        const label = ProjectileLoader.#PlanOf(m)[method];
+        if (!label) return undefined;
+        try {
+            switch (ModProjectile.prototype[method].length) {
+                case 2: return m[method](p, a);
+                case 3: return m[method](p, a, b);
+                case 5: return m[method](p, a, b, c, d);
+                default: return m[method](p);
+            }
+        }
+        catch (error) { Safe.Report(label, error); }
     }
 
     // O que a classe escreve, e os rótulos do log de erro, montados uma vez:
@@ -233,7 +272,9 @@ class ProjectileLoader {
         if (plan) return plan;
 
         plan = {};
-        for (const name of ['OnSpawn', 'PreAI', 'AI', 'PostAI', 'PreDrawExtras', 'PreDraw', 'PostDraw']) {
+        for (const name of ['OnSpawn', 'PreAI', 'AI', 'PostAI', 'PreDrawExtras', 'PreDraw', 'PostDraw',
+            'OnTileCollide', 'TileCollideStyle', 'PreKill', 'OnKill', 'Colliding', 'CanDamage', 'MinionContactDamage',
+            'ModifyDamageHitbox', 'CanCutTiles', 'CutTiles', 'GetAlpha', 'CanUseGrapple', 'UseGrapple', 'GrappleCanLatchOnTo']) {
             plan[name] = Hooks.Overrides(cls, ModProjectile, name) ? cls.name + '.' + name : null;
         }
         ProjectileLoader.#plans.set(cls, plan);
@@ -246,37 +287,39 @@ class ProjectileLoader {
 
         handleMovement.hook((original, p, wet) => {
             const m = ProjectileLoader.Of(p);
-            if (!m) return original(p, wet);
+            const hasCollision = ProjectileLoader.#PlanHas(m, 'OnTileCollide') || globalProjectiles.For(p, 'OnTileCollide').length > 0;
+            const hasStyle = ProjectileLoader.#PlanHas(m, 'TileCollideStyle') || globalProjectiles.For(p, 'TileCollideStyle').length > 0;
+            if (!p.tileCollide || !hasCollision && !hasStyle) return original(p, wet);
 
-            const outer = m.__moving;
-            const start = Vector2.Clone(p.position);
-            const moving = { velocity: Vector2.Clone(p.velocity), kept: false, reported: false, pendingKill: false, style: null, bypass: false };
-            const restore = p.tileCollide && Hooks.Overrides(m.constructor, ModProjectile, 'TileCollideStyle')
+            const outer = p.__projectileMovement;
+            const start = hasCollision ? Vector2.Clone(p.position) : null;
+            const moving = { velocity: hasCollision ? Vector2.Clone(p.velocity) : null,
+                kept: false, reported: false, pendingKill: false, style: null, bypass: false, hasCollision };
+            const restore = hasStyle
                 ? ProjectileLoader.#ApplyCollideStyle(m, p, moving) : null;
 
-            m.__moving = moving;
+            p.__projectileMovement = moving;
             try {
                 original(p, wet);
-                if (!moving.reported && p.active && (moving.pendingKill ||
+                if (hasCollision && !moving.reported && p.active && (moving.pendingKill ||
                     p.tileCollide && !moving.bypass && ProjectileLoader.#Collided(p, moving))) {
                     ProjectileLoader.#ReportCollision(m, p, moving);
                 }
                 if (moving.kept && p.active) p.position = Vector2.Add(start, p.velocity);
             } finally {
-                m.__moving = outer;
+                p.__projectileMovement = outer;
                 if (restore) restore();
             }
         }, filter);
 
         Pr['void UpdatePosition(Vector2 wetVelocity)'].hook((original, p, wet) => {
-            const m = ProjectileLoader.Of(p);
-            const moving = m ? m.__moving : null;
+            const moving = p.__projectileMovement;
             if (!moving) return original(p, wet);
 
             // Sem colisão de bloco, mas a rampa do lacaio continua.
             if (moving.bypass) p.tileCollide = true;
-            else if (!moving.reported && p.active && p.tileCollide && ProjectileLoader.#Collided(p, moving)) {
-                ProjectileLoader.#ReportCollision(m, p, moving);
+            else if (moving.hasCollision && !moving.reported && p.active && p.tileCollide && ProjectileLoader.#Collided(p, moving)) {
+                ProjectileLoader.#ReportCollision(ProjectileLoader.Of(p), p, moving);
             }
             return original(p, wet);
         }, Object.assign({}, filter, { whileIn: handleMovement }));
@@ -291,8 +334,8 @@ class ProjectileLoader {
         Pr['void GetCollisionParams(out Vector2 resizeAnchor, out int colWidth, out int colHeight)'].hook((original, p, anchor, width, height) => {
             original();
 
-            const m = ProjectileLoader.Of(p);
-            const style = m && m.__moving ? m.__moving.style : null;
+            const moving = p.__projectileMovement;
+            const style = moving && moving.style;
             if (!style) return;
 
             anchor.value = style.anchor;
@@ -309,8 +352,13 @@ class ProjectileLoader {
         p['void GetCollisionParams(out Vector2 resizeAnchor, out int colWidth, out int colHeight)'](anchor, width, height);
         const fallThrough = new Ref(ProjectileLoader.#VanillaFallThrough(p));
 
-        const collide = Safe.Run(m.constructor.name + '.TileCollideStyle',
-            () => m.TileCollideStyle(p, width, height, fallThrough, anchor));
+        let collide = ProjectileLoader.#Invoke(m, 'TileCollideStyle', p, width, height, fallThrough, anchor);
+        if (collide !== false) for (const g of globalProjectiles.For(p, 'TileCollideStyle')) {
+            if (globalProjectiles.Invoke(g, 'TileCollideStyle', p, width, height, fallThrough, anchor) === false) {
+                collide = false;
+                break;
+            }
+        }
 
         moving.style = { anchor: anchor.value, width: width.value | 0, height: height.value | 0 };
         moving.bypass = collide === false;
@@ -327,22 +375,35 @@ class ProjectileLoader {
         };
     }
 
-    // O começo do HandleMovement para um tipo de mod (os casos por número
-    // são todos de tipos do jogo). Conferido no desmontado do celular.
+    static #noFallThrough = new Set([9, 12, 13, 15, 24, 663, 665, 667, 677, 678, 679,
+        688, 689, 690, 691, 692, 693, 1037, 1049, 1105]);
+
     static #VanillaFallThrough(p) {
         if (p.decidesManualFallThrough) return p.shouldFallThrough;
 
         const Main = Terraria.Main;
-        const style = p.aiStyle;
+        const style = p.aiStyle, type = p.type;
         let fall = true;
-        if (Main.projPet[p.type]) {
+        if (Main.projPet[type]) {
             const owner = Main.player[p.owner];
             fall = owner.position.Y + owner.height - 12 > p.position.Y + p.height;
         }
-        if (style === 62 || style === 66 || style === 197) fall = true;
-        if (style === 53) fall = false;
-        if (style === 10 && Terraria.ID.ProjectileID.Sets.FallingBlockDoesNotFallThroughPlatforms[p.type]) fall = false;
+        if (type === 500 || type === 653 || type === 1018) {
+            const owner = Main.player[p.owner];
+            fall = owner.position.Y + owner.height > p.position.Y + p.height + 4;
+        }
+        fall = ((fall && type !== 378) || style === 62 || style === 66 || type === 317 || type === 373) &&
+            type !== 281 && type !== 253 && style !== 53 || style === 197;
+        if (ProjectileLoader.#noFallThrough.has(type)) fall = false;
+        if (style === 10 && Terraria.ID.ProjectileID.Sets.FallingBlockDoesNotFallThroughPlatforms[type]) fall = false;
         if (style === 99 && p.ai[0] === -2) fall = false;
+        if (type === 759) fall = true;
+        if (type === 1020) {
+            let rotation = p.rotation % (Math.PI * 2);
+            if (rotation >= Math.PI) rotation -= Math.PI * 2;
+            if (rotation < -Math.PI) rotation += Math.PI * 2;
+            fall = rotation >= Math.fround(Math.PI / 2) || rotation < Math.fround(-Math.PI / 2);
+        }
         return fall;
     }
 
@@ -353,8 +414,10 @@ class ProjectileLoader {
 
     static #ReportCollision(m, p, moving) {
         moving.reported = true;
-        const allowed = Hooks.Overrides(m.constructor, ModProjectile, 'OnTileCollide')
-            ? Safe.Run(m.constructor.name + '.OnTileCollide', () => m.OnTileCollide(p, Vector2.Clone(moving.velocity))) : true;
+        if (!moving.hasCollision) return;
+        const oldVelocity = Vector2.Clone(moving.velocity);
+        let allowed = globalProjectiles.AllCall(p, 'OnTileCollide', oldVelocity);
+        if (allowed) allowed = ProjectileLoader.#Invoke(m, 'OnTileCollide', p, oldVelocity) !== false;
         if (!moving.pendingKill) return;
         if (allowed === false) moving.kept = true;
         else if (p.active) p['void Kill()']();
@@ -362,40 +425,54 @@ class ProjectileLoader {
 
     static #HookKill(filter) {
         Terraria.Projectile['void Kill()'].hook((original, p) => {
-            const m = ProjectileLoader.Of(p);
-            if (!m || !p.active) return original(p);
-
-            const n = m.constructor.name;
-
-            const moving = m.__moving;
+            if (!p.active) return original(p);
+            const moving = p.__projectileMovement;
             if (ProjectileLoader.DefersTileCollisionKill(p)) {
                 moving.pendingKill = true;
                 return undefined;
             }
 
             const timeLeft = p.timeLeft;
-            if (Safe.Run(n + '.PreKill', () => m.PreKill(p, timeLeft)) === false) {
+            const m = ProjectileLoader.Of(p);
+            if (!globalProjectiles.AllCall(p, 'PreKill', timeLeft) || ProjectileLoader.#Invoke(m, 'PreKill', p, timeLeft) === false) {
                 p.active = false;
                 return undefined;
             }
 
-            Safe.Run(n + '.OnKill', () => m.OnKill(p, timeLeft));
+            ProjectileLoader.#Invoke(m, 'OnKill', p, timeLeft);
+            globalProjectiles.Call(p, 'OnKill', timeLeft);
             return original(p);
         }, filter);
     }
 
-    // O item de gancho lança o item.shoot: filtro nativo pelo shoot.
-    static #HookGrapple() {
+    static #grappleSamples = new Map();
+
+    static #HookGrapple(filter) {
         Terraria.Player['void FireGrapple(Item grappleItem)'].hook((original, player, item) => {
             const template = ProjectileLoader.ByType.get(item.shoot);
-            if (!template) return original(player, item);
-
-            const n = template.constructor.name;
             const shoot = item.shoot;
-            if (Safe.Run(n + '.CanUseGrapple', () => template.CanUseGrapple(player, shoot)) === false) return undefined;
+            let allowed = ProjectileLoader.#Invoke(template, 'CanUseGrapple', player, shoot);
+            for (const g of globalProjectiles.Templates('CanUseGrapple')) {
+                if (g.__conditional) {
+                    let sample = ProjectileLoader.#grappleSamples.get(shoot);
+                    if (!sample) {
+                        sample = Terraria.Projectile.new();
+                        sample['void .ctor()']();
+                        sample['void SetDefaults(int Type)'](shoot);
+                        ProjectileLoader.#grappleSamples.set(shoot, sample);
+                    }
+                    if (globalProjectiles.Invoke(g, 'AppliesToEntity', sample, true) !== true) continue;
+                }
+                const result = globalProjectiles.Invoke(g, 'CanUseGrapple', shoot, player);
+                if (typeof result === 'boolean') allowed = result;
+            }
+            if (allowed === false) return undefined;
 
-            const t = Safe.Run(n + '.UseGrapple', () => template.UseGrapple(player, shoot));
-            const type = typeof t === 'number' ? t : shoot;
+            const value = ProjectileLoader.#Invoke(template, 'UseGrapple', player, shoot);
+            const ref = new Ref(typeof value === 'number' ? value : shoot);
+            for (const g of globalProjectiles.Templates('UseGrapple')) globalProjectiles.Invoke(g, 'UseGrapple', player, ref);
+            const type = Number.isInteger(ref.value) && ref.value > 0 &&
+                (ref.value < FIRST_PROJECTILE || bl.projectiles.isModProjectile(ref.value)) ? ref.value : shoot;
             if (type === shoot) return original(player, item);
 
             item.shoot = type;
@@ -405,57 +482,65 @@ class ProjectileLoader {
                 item.shoot = shoot;
             }
             return undefined;
-        }, { minType: FIRST_PROJECTILE, on: 0, field: 'shoot' });
+        }, filter);
     }
+
+    static #drawLight = null;
 
     static #HookDraw(filter) {
         const lightAt = Terraria.Lighting['Color GetColor(int x, int y)'];
 
         Terraria.Main['void DrawProjDirect(Projectile proj, Player overridePlayer)'].hook((original, main, p, player) => {
             const m = ProjectileLoader.Of(p);
-            if (!m) return original(main, p, player);
-
-            const plan = ProjectileLoader.#PlanOf(m);
-            // Posição NaN por um quadro (a lança ao trocar de item): luz cheia.
-            // Só o PreDraw e o PostDraw recebem a luz.
+            const pre = globalProjectiles.For(p, 'PreDraw'), post = globalProjectiles.For(p, 'PostDraw');
+            if (!pre.length && !post.length && !ProjectileLoader.#PlanHas(m, 'PreDraw') &&
+                !ProjectileLoader.#PlanHas(m, 'PostDraw') && !ProjectileLoader.#PlanHas(m, 'PreDrawExtras')) return original(main, p, player);
             let light;
-            if (plan.PreDraw || plan.PostDraw) {
+            if (pre.length || post.length || ProjectileLoader.#PlanHas(m, 'PreDraw') || ProjectileLoader.#PlanHas(m, 'PostDraw')) {
                 const c = p.Center;
                 light = Number.isFinite(c.X) && Number.isFinite(c.Y)
                     ? lightAt(Math.floor(c.X / 16), Math.floor(c.Y / 16))
                     : Color.White;
             }
 
-            // Como no tModLoader: os extras (correntes, linha, fio) antes do
-            // PreDraw, e o PostDraw mesmo com o PreDraw false.
-            let wantsExtras = true;
-            if (plan.PreDrawExtras) try { wantsExtras = m.PreDrawExtras(p) !== false; } catch (e) { Safe.Report(plan.PreDrawExtras, e); }
+            const wantsExtras = ProjectileLoader.#Invoke(m, 'PreDrawExtras', p) !== false;
             const hasExtras = ProjectileLoader.#HasExtras(p);
             const extras = wantsExtras && hasExtras;
             let sprite = true;
-            if (plan.PreDraw) try { sprite = m.PreDraw(p, light) !== false; } catch (e) { Safe.Report(plan.PreDraw, e); }
+            if (pre.length) {
+                const ref = new Ref(light);
+                for (const g of pre) {
+                    if (globalProjectiles.Invoke(g, 'PreDraw', p, ref) === false) sprite = false;
+                }
+                light = ref.value;
+            }
+            if (sprite) sprite = ProjectileLoader.#Invoke(m, 'PreDraw', p, light) !== false;
 
             // Só uma das partes do desenho do jogo: precisa dos filtros. Sem
             // eles (a classe não tinha extras no SetDefaults), o PreDraw false
             // tira tudo, e o PreDrawExtras false não acontece (instala sempre).
             const split = ProjectileLoader.#extrasHooked && hasExtras && sprite !== extras;
             if (sprite || split) {
+                const outerSplit = ProjectileLoader.#split, outerLight = ProjectileLoader.#drawLight;
                 if (split) {
                     const own = Terraria.GameContent.TextureAssets.Projectile[p.type].Value;
                     ProjectileLoader.#split = { own: bl.addressOf(own), extras, sprite, reached: false };
                     // Os filtros de desenho só entram no JS agora (ver #HookDrawExtras).
                     bl.hookFlags.set('proj.split', true);
                 }
+                if (pre.length) ProjectileLoader.#drawLight = { address: bl.addressOf(p), color: light };
                 try {
                     original(main, p, player);
                 } finally {
                     if (split) {
-                        ProjectileLoader.#split = null;
-                        bl.hookFlags.set('proj.split', false);
+                        ProjectileLoader.#split = outerSplit;
+                        bl.hookFlags.set('proj.split', !!outerSplit);
                     }
+                    ProjectileLoader.#drawLight = outerLight;
                 }
             }
-            if (plan.PostDraw) try { m.PostDraw(p, light); } catch (e) { Safe.Report(plan.PostDraw, e); }
+            ProjectileLoader.#Invoke(m, 'PostDraw', p, light);
+            for (const g of post) globalProjectiles.Invoke(g, 'PostDraw', p, light);
             return undefined;
         }, filter);
     }
