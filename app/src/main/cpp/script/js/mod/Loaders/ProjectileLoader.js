@@ -19,6 +19,12 @@ class ProjectileLoader {
         return Entities.InstanceOf(proj, 'ModProjectile', ProjectileLoader.ByType);
     }
 
+    static DefersTileCollisionKill(p) {
+        const m = ProjectileLoader.Of(p), moving = m && m.__moving;
+        return !!(p.tileCollide && moving && !moving.reported && ProjectileLoader.#Collided(p, moving)
+            && Hooks.Overrides(m.constructor, ModProjectile, 'OnTileCollide'));
+    }
+
     static Hook(cls, type) {
         const Pr = Terraria.Projectile;
         const has = (name) => Hooks.Overrides(cls, ModProjectile, name);
@@ -89,25 +95,6 @@ class ProjectileLoader {
 
         const collideStyle = marked('proj.CollideStyle', 'TileCollideStyle');
         if (has('TileCollideStyle')) Hooks.Once('proj.CollideStyle', () => ProjectileLoader.#HookCollideStyle(collideStyle));
-
-        // A atualização do próprio projétil: só nela um Kill fora do
-        // movimento pode ser a IA matando ao bater. O Kill que vem de
-        // fora (o UpdateMaxTurrets trocando a sentinela, um mod) não é choque.
-        const updating = marked('proj.Updating', 'OnTileCollide');
-        if (has('OnTileCollide')) Hooks.Once('proj.Updating', () => {
-            Pr['void Update(int i)'].hook((original, p, i) => {
-                const m = of(p);
-                if (!m) return original(p, i);
-
-                const outer = m.__updating;
-                m.__updating = true;
-                try {
-                    return original(p, i);
-                } finally {
-                    m.__updating = outer;
-                }
-            }, updating);
-        });
 
         const kill = marked('proj.Kill', 'PreKill', 'OnKill', 'OnTileCollide');
         if (has('PreKill') || has('OnKill') || has('OnTileCollide')) Hooks.Once('proj.Kill', () => ProjectileLoader.#HookKill(kill));
@@ -253,9 +240,6 @@ class ProjectileLoader {
         return plan;
     }
 
-    // Um Kill dentro do HandleMovement é o choque com bloco. O jogo já
-    // empurrou o projétil mais uma velocidade; se o OnTileCollide o manteve
-    // vivo, a posição volta ao começo mais a velocidade de agora.
     static #HookMovement(filter) {
         const Pr = Terraria.Projectile;
         const handleMovement = Pr['void HandleMovement(Vector2 wetVelocity)'];
@@ -266,13 +250,17 @@ class ProjectileLoader {
 
             const outer = m.__moving;
             const start = Vector2.Clone(p.position);
-            const moving = { velocity: Vector2.Clone(p.velocity), kept: false, reported: false, style: null, bypass: false };
+            const moving = { velocity: Vector2.Clone(p.velocity), kept: false, reported: false, pendingKill: false, style: null, bypass: false };
             const restore = p.tileCollide && Hooks.Overrides(m.constructor, ModProjectile, 'TileCollideStyle')
                 ? ProjectileLoader.#ApplyCollideStyle(m, p, moving) : null;
 
             m.__moving = moving;
             try {
                 original(p, wet);
+                if (!moving.reported && p.active && (moving.pendingKill ||
+                    p.tileCollide && !moving.bypass && ProjectileLoader.#Collided(p, moving))) {
+                    ProjectileLoader.#ReportCollision(m, p, moving);
+                }
                 if (moving.kept && p.active) p.position = Vector2.Add(start, p.velocity);
             } finally {
                 m.__moving = outer;
@@ -280,10 +268,6 @@ class ProjectileLoader {
             }
         }, filter);
 
-        // Roda depois do choque e da resposta do jogo, antes de o projétil
-        // andar. O lacaio (correctSlopeCollision) pula a resposta inteira e
-        // nunca chega ao Kill: o OnTileCollide dele sai daqui, todo quadro com
-        // choque, como no tModLoader. Velocidade trocada nele já vale agora.
         Pr['void UpdatePosition(Vector2 wetVelocity)'].hook((original, p, wet) => {
             const m = ProjectileLoader.Of(p);
             const moving = m ? m.__moving : null;
@@ -292,11 +276,7 @@ class ProjectileLoader {
             // Sem colisão de bloco, mas a rampa do lacaio continua.
             if (moving.bypass) p.tileCollide = true;
             else if (!moving.reported && p.active && p.tileCollide && ProjectileLoader.#Collided(p, moving)) {
-                moving.reported = true;
-                if (Hooks.Overrides(m.constructor, ModProjectile, 'OnTileCollide')) {
-                    const hit = Vector2.Clone(moving.velocity);
-                    Safe.Run(m.constructor.name + '.OnTileCollide', () => m.OnTileCollide(p, hit));
-                }
+                ProjectileLoader.#ReportCollision(m, p, moving);
             }
             return original(p, wet);
         }, Object.assign({}, filter, { whileIn: handleMovement }));
@@ -371,31 +351,26 @@ class ProjectileLoader {
         return v.X !== moving.velocity.X || v.Y !== moving.velocity.Y;
     }
 
-    static #HookKill(filter) {
-        const solid = Terraria.Collision['bool SolidCollision(Vector2 Position, int Width, int Height)'];
+    static #ReportCollision(m, p, moving) {
+        moving.reported = true;
+        const allowed = Hooks.Overrides(m.constructor, ModProjectile, 'OnTileCollide')
+            ? Safe.Run(m.constructor.name + '.OnTileCollide', () => m.OnTileCollide(p, Vector2.Clone(moving.velocity))) : true;
+        if (!moving.pendingKill) return;
+        if (allowed === false) moving.kept = true;
+        else if (p.active) p['void Kill()']();
+    }
 
+    static #HookKill(filter) {
         Terraria.Projectile['void Kill()'].hook((original, p) => {
             const m = ProjectileLoader.Of(p);
             if (!m || !p.active) return original(p);
 
             const n = m.constructor.name;
 
-            // Morte por bloco: no movimento, o choque; fora dele mas na
-            // atualização do projétil (IA que mata ao bater), um bloco logo à frente.
-            if (p.tileCollide && Hooks.Overrides(m.constructor, ModProjectile, 'OnTileCollide')) {
-                let hit = m.__moving ? m.__moving.velocity : undefined;
-                if (m.__moving) m.__moving.reported = true;
-                if (!hit && m.__updating) {
-                    const v = p.velocity;
-                    const len = Math.hypot(v.X, v.Y) || 1;
-                    const ahead = Vector2.new(p.position.X + v.X / len, p.position.Y + v.Y / len);
-                    if (solid(ahead, p.width, p.height)) hit = Vector2.Clone(v);
-                }
-
-                if (hit && Safe.Run(n + '.OnTileCollide', () => m.OnTileCollide(p, hit)) === false) {
-                    if (m.__moving) m.__moving.kept = true;
-                    return undefined;
-                }
+            const moving = m.__moving;
+            if (ProjectileLoader.DefersTileCollisionKill(p)) {
+                moving.pendingKill = true;
+                return undefined;
             }
 
             const timeLeft = p.timeLeft;

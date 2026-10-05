@@ -41,6 +41,7 @@ class GlobalProjectileLoader {
         if (has('PreKill') || has('OnKill')) Hooks.Once('gproj.Kill', () => {
             Pr['void Kill()'].hook((original, p) => {
                 if (!p.active) return original(p);
+                if (ProjectileLoader.DefersTileCollisionKill(p)) return original(p);
 
                 const timeLeft = p.timeLeft;
                 if (!registry.All(p, 'PreKill', (g) => g.PreKill(p, timeLeft))) {

@@ -74,7 +74,7 @@ floats (`Float_FixedArray_3`), e a ponte aceita `[i]` neles como num array
 | `AI(proj)` | A IA sua, todo quadro. |
 | `PostAI(proj)` | Depois da IA. |
 | `TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac)` | Antes de colidir com os blocos, todo quadro. Os quatro são `Ref` (`.value`): o tamanho da caixa que bate nos blocos, se ela atravessa plataformas e o ponto da caixa preso ao centro do projétil (`Vector2`, padrão 0,5/0,5). `false`: atravessa os blocos neste quadro. |
-| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco: `false` o mantém vivo (para quicar, mude `proj.velocity`). `oldVelocity` é a de antes do choque. Lacaio e pet (`Main.projPet`) não morrem no bloco: recebem em todo quadro com choque (no chão, todo quadro). |
+| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco: `false` evita a morte causada por essa colisão (para quicar, mude `proj.velocity`). `oldVelocity` é a de antes do choque. Lacaio e pet (`Main.projPet`) não morrem no bloco: recebem em todo quadro com choque (no chão, todo quadro). |
 | `PreKill(proj, timeLeft)` | `false` tira os efeitos do jogo na morte (poeira, som); o projétil morre igual. |
 | `OnKill(proj, timeLeft)` | Ao morrer (poeira, som, fragmentos). |
 | `OnHitNPC(proj, npc)`, `OnHitPlayer(proj, player)` | Ao acertar. |
@@ -89,6 +89,10 @@ floats (`Float_FixedArray_3`), e a ponte aceita `[i]` neles como num array
 | `GrappleCanLatchOnTo(proj, player, tile)` | `true`/`false`: o gancho agarra neste bloco; `undefined` = o do jogo (bloco sólido). |
 
 Todos entram no JS só para projéteis **de mod** (filtro nativo de tipo).
+
+`OnTileCollide` com retorno `false` não impede a morte por tempo, penetração
+após acertar NPC ou chamada explícita a `proj.Kill()`. Essas mortes continuam
+chamando `PreKill` e, se ele permitir, `OnKill`, mesmo com o projétil no chão.
 
 ### Quicar
 
