@@ -1,0 +1,14 @@
+{
+  "uid": "b735e5bd-b8dd-40a2-8b68-95f428a39d25",
+  "id": "test-modplayerhooks",
+  "name": "Teste: hooks de ModPlayer",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Assinaturas, referências e integração dos hooks de ModPlayer.",
+  "description": "Registra todos os hooks e verifica a integração em um personagem e mundo de teste.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
