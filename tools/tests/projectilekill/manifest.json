@@ -1,0 +1,14 @@
+{
+  "uid": "272a1b3c-4d5e-4f60-9718-f9fb70666a9c",
+  "id": "test-projectilekill",
+  "name": "Teste: morte de projetil apos colisao",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "OnTileCollide false preserva apenas a colisao; tempo e NPC continuam chamando OnKill.",
+  "description": "Regressao de morte por tempo e penetracao no chao, com contadores de callbacks.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
