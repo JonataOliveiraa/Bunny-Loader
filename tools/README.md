@@ -175,6 +175,7 @@ tools/bench/repeat.sh 12 modfurniture samples/ExampleMod tools/tests/modfurnitur
 | `modplayer` | `ModPlayer` (quadro, dano, morte, dados salvos). | |
 | `modplayerhooks` | Registra todos os hooks de jogador; verifica referências, mana, tempos, vetos, clone, crafting e callbacks de atualização e desenho. `node tools/tests/modplayerhooks/check.mjs` executa os testes de comportamento e confere assinaturas usando o dump local. | não |
 | `projectilekill` | Regressão de `OnTileCollide false`: morte por tempo e acerto em NPC no chão continuam chamando `OnKill`; `Kill` dentro do callback não recursa. `node tools/tests/projectilekill/check.mjs` verifica o ciclo de vida sem o jogo. | não |
+| `hairsettings` | `GetHairSettings` usa os Sets de `ArmorIDs` e `HairID`: chapéu configurado em `SetStaticDefaults`, cabelo de mod, máscaras e slots negativos. `node tools/tests/hairsettings/check.mjs` executa os testes sem o jogo. | não |
 | `modcontent` | `ModContent` e o que fica fora do Mod Menu. | sim |
 | `exmod1`, `exmod2` | O Example Mod inteiro, usado. | sim |
 | `summons` | Pets, lacaio e sentinela usados como o dedo usaria. | sim |

@@ -1,0 +1,14 @@
+{
+  "uid": "4eb5d20e-25ab-43c9-b7aa-84f639772fa0",
+  "id": "test-hairsettings",
+  "name": "Teste: cabelo e chapeus",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "GetHairSettings consulta os Sets de ArmorIDs e HairID, incluindo slots de mod.",
+  "description": "Verifica chapeu em SetStaticDefaults, cabelo de mod, mascara, slots negativos e referencias de saida.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
