@@ -178,6 +178,58 @@ g.charge++;
 `InstancePerEntity = true` como campo, ou `get InstancePerEntity() { return true; }`,
 os dois valem.
 
+### Desenho, colisão e gancho no GlobalProjectile
+
+Estes métodos recebem projéteis do jogo e de mods. `AppliesToEntity` limita
+quais entidades recebem os callbacks, e `InstancePerEntity` mantém o estado
+de cada projétil separado.
+
+| Método | Contrato |
+|---|---|
+| `PreDraw(projectile, lightColor)` | `lightColor` é um `Ref<Color>`: leia ou substitua `.value`. `false` cancela o sprite padrão, preservando correntes e linhas. Todos os Globais recebem o callback; o `PreDraw` local só roda se todos permitirem. |
+| `PostDraw(projectile, lightColor)` | Depois do desenho, mesmo com veto no `PreDraw`. A cor é um `Color`, sem `Ref`. Roda depois do `PostDraw` local. |
+| `GetAlpha(projectile, lightColor)` | Retorne um `Color` ou deixe `undefined`/`null`. O primeiro Global que retornar uma cor decide; depois vem o método local e o jogo. |
+| `Colliding(projectile, projHitbox, targetHitbox)` | Primeiro retorno booleano dos Globais decide a colisão. Sem resposta, consulta o método local e o jogo. |
+| `CanDamage(projectile)` | `false` veta dano e corte. Qualquer veto prevalece; um `true` global prevalece sobre o método local. `undefined`/`null` mantém a decisão seguinte. As condições nativas de dano continuam valendo. |
+| `ModifyDamageHitbox(projectile, hitbox)` | `hitbox` é um `Ref<Rectangle>`. Pode alterar campos de `.value` ou substituir o retângulo. Roda depois do método local. |
+| `OnTileCollide(projectile, oldVelocity)` | Todos os Globais rodam. `false` impede a morte causada pelo choque e pula o método local. Morte por tempo, NPC ou `Kill()` continua funcionando. |
+| `TileCollideStyle(projectile, width, height, fallThrough, hitboxCenterFrac)` | Os quatro parâmetros são `Ref`. Método local primeiro; depois Globais até o primeiro `false`, que desliga a colisão neste movimento. |
+| `MinionContactDamage(projectile)` | `true` permite contato de um projétil considerado pet; consulta o método local e depois os Globais até um deles permitir. |
+| `CanCutTiles(projectile)` | Primeiro retorno booleano dos Globais decide; depois consulta o método local e o jogo. `false` também impede os callbacks de corte. |
+| `CutTiles(projectile)` | Corte personalizado, somente quando permitido. Globais primeiro, depois o método local e o corte padrão. |
+| `CanUseGrapple(type, player)` | Antes do spawn, no template da classe. Cada resposta booleana global substitui a anterior; a última resposta definida decide. O filtro recebe uma amostra do tipo. |
+| `UseGrapple(player, type)` | `type` é um `Ref<number>`. Roda depois do método local, para todos os templates que implementam o callback. Filtre `type.value` dentro do método, se necessário. |
+| `GrappleCanLatchOnTo(projectile, player, tile)` | `tile` é o objeto nativo do bloco. Qualquer `false` global veta; um `true` global permite. Sem resposta, mantém a decisão local ou nativa. |
+
+Os `Ref` de `PreDraw`, `ModifyDamageHitbox` e `UseGrapple` seguem o contrato
+do Global no tModLoader. Nos métodos equivalentes de `ModProjectile`, a API
+existente continua recebendo `Color` e `Rectangle` diretamente, e
+`UseGrapple(player, type)` continua retornando o número do tipo. O celular
+fornece `Tile` ao teste de fixação do gancho; por isso o callback recebe o
+bloco, em vez das coordenadas `x` e `y` da API do tModLoader.
+
+```js
+export class FlechaAzul extends GlobalProjectile {
+    AppliesToEntity(projectile) {
+        return projectile.type === ProjectileID.WoodenArrowFriendly;
+    }
+
+    PreDraw(projectile, lightColor) {
+        lightColor.value = Color.new(70, 130, 255, 255);
+        return true;
+    }
+
+    ModifyDamageHitbox(projectile, hitbox) {
+        hitbox.value.Width += 4;
+        hitbox.value.Height += 4;
+    }
+}
+```
+
+As regras de combinação foram conferidas no
+[ProjectileLoader do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs).
+As assinaturas adaptadas estão na [referência de GlobalProjectile](../referencia/classes.md#globalprojectile).
+
 ## Drops
 
 A tabela de drop de um NPC do jogo muda no `ModifyNPCLoot` de um `GlobalNPC`.
@@ -401,6 +453,5 @@ pequeno.
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
 - no `GlobalNPC`: `UpdateLifeRegen`,
   `ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`;
-- no `GlobalProjectile`: `GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`;
 - no `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, os
   `Pre/PostUpdate` de jogadores, NPCs, projéteis e itens separados.

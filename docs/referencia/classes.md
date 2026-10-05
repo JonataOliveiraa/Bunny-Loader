@@ -855,14 +855,27 @@ export class MaisInimigosNoBioma extends GlobalNPC {
 | `PreKill(projectile, timeLeft)`, `OnKill(projectile, timeLeft)` | Morte. `PreKill` `false`: some sem o efeito do jogo. | `Projectile.Kill` |
 | `OnHitNPC(projectile, target)` | Acertou um NPC. | `Projectile.StatusNPC` |
 | `OnHitPlayer(projectile, target)` | Acertou um jogador. | `Projectile.StatusPlayer` |
+| `PreDraw(projectile, lightColor)` | Cor em `Ref<Color>`; `false` cancela o sprite. Todos os Globais rodam antes do método local, mantendo extras como correntes. | `Main.DrawProjDirect` |
+| `PostDraw(projectile, lightColor)` | Cor direta; roda depois do método local, mesmo com veto no desenho. | `Main.DrawProjDirect` |
+| `GetAlpha(projectile, lightColor)` | Primeiro `Color` global decide; `undefined`/`null` consulta o método local e o jogo. | `Projectile.GetAlpha` |
+| `Colliding(projectile, projHitbox, targetHitbox)` | Primeiro booleano global decide; `undefined`/`null` consulta o método local e o jogo. | `Projectile.Colliding`, `Projectile.Damage` |
+| `CanDamage(projectile)` | `false` global veta; `true` global prevalece sobre o método local. Condições nativas continuam valendo. | `Projectile.Damage` |
+| `ModifyDamageHitbox(projectile, hitbox)` | `Ref<Rectangle>`, depois do método local. | `Projectile.Damage_GetHitbox` |
+| `OnTileCollide(projectile, oldVelocity)` | `false` impede morte por choque; tempo e NPC continuam chamando `OnKill`. Todos os Globais rodam antes do método local. | `Projectile.HandleMovement`, `UpdatePosition`, `Kill` |
+| `TileCollideStyle(projectile, width, height, fallThrough, hitboxCenterFrac)` | Quatro `Ref`, depois do método local; primeiro `false` pula colisão neste movimento. | `Projectile.HandleMovement`, `GetCollisionParams` |
+| `MinionContactDamage(projectile)` | `true` permite dano por contato de pet. | `Projectile.Damage` |
+| `CanCutTiles(projectile)` | Primeiro booleano global decide; `false` impede corte padrão e personalizado. | `Projectile.CanCutTiles` |
+| `CutTiles(projectile)` | Globais, método local e corte padrão, quando permitido. | `Projectile.CutTiles` |
+| `CanUseGrapple(type, player)` | No template, filtrado por amostra do tipo; última resposta booleana global decide. | `Player.FireGrapple` |
+| `UseGrapple(player, type)` | Tipo em `Ref<number>`, depois do método local, para todos os templates que implementam o método. | `Player.FireGrapple` |
+| `GrappleCanLatchOnTo(projectile, player, tile)` | Recebe o bloco nativo; `false` global veta, `true` global permite. | `Projectile.AI_007_GrapplingHooks_CanTileBeLatchedOnTo` |
 | `NetSend(projectile, writer)`, `NetReceive(projectile, reader)` | Rede: junto com cada projétil sincronizado, de quem o controla. | `NetMessage.SendData` (27) |
 
 ### Ainda não
 
 `NetSend`/`NetReceive` do `GlobalItem`, `SaveData`/`LoadData` por entidade,
 `GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`,
-`ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`; no `GlobalProjectile`,
-`GetAlpha`, `PreDraw`/`PostDraw`, `Colliding`.
+`ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`.
 
 ---
 

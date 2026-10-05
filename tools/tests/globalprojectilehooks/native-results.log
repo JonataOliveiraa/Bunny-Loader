@@ -1,0 +1,40 @@
+10-05 18:28:51.482  5480  5510 I BunnyLoader: [mod] globalprojectilehooks GetAlpha substitui cor: ok
+10-05 18:28:51.483  5480  5510 I BunnyLoader: [mod] globalprojectilehooks Colliding false prevalece: ok
+10-05 18:28:51.483  5480  5510 I BunnyLoader: [mod] globalprojectilehooks Colliding true fora da caixa: ok
+10-05 18:28:51.484  5480  5510 I BunnyLoader: [mod] globalprojectilehooks tabela pet restaurada damageVeto: ok
+10-05 18:28:51.484  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CanDamage false bloqueia NPC: ok
+10-05 18:28:51.486  5480  5510 I BunnyLoader: [mod] globalprojectilehooks tabela pet restaurada collideFalse: ok
+10-05 18:28:51.486  5480  5510 I BunnyLoader: [mod] globalprojectilehooks Colliding false bloqueia NPC sobreposto: ok
+10-05 18:28:51.488  5480  5510 I BunnyLoader: [mod] globalprojectilehooks tabela pet restaurada collideTrue: ok
+10-05 18:28:51.488  5480  5510 I BunnyLoader: [mod] globalprojectilehooks Colliding true causa dano sem sobreposicao: ok
+10-05 18:28:51.488  5480  5510 I BunnyLoader: [mod] globalprojectilehooks marca de colisao complexa restaurada: ok
+10-05 18:28:51.490  5480  5510 I BunnyLoader: [mod] globalprojectilehooks tabela pet restaurada contact: ok
+10-05 18:28:51.490  5480  5510 I BunnyLoader: [mod] globalprojectilehooks MinionContactDamage true permite contato: ok
+10-05 18:28:51.491  5480  5510 I BunnyLoader: [mod] globalprojectilehooks tabela pet restaurada noContact: ok
+10-05 18:28:51.491  5480  5510 I BunnyLoader: [mod] globalprojectilehooks MinionContactDamage false bloqueia contato: ok
+10-05 18:28:51.491  5480  5510 I BunnyLoader: [mod] globalprojectilehooks ModifyDamageHitbox Ref substitui e acumula: ok
+10-05 18:28:51.491  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CanCutTiles false: ok
+10-05 18:28:51.492  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CanCutTiles false impede callbacks de corte: ok
+10-05 18:28:51.492  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CanCutTiles true: ok
+10-05 18:28:51.492  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CutTiles globals em ordem: ok
+10-05 18:28:51.492  5480  5510 I BunnyLoader: [mod] globalprojectilehooks InstancePerEntity isola estado: ok
+10-05 18:28:51.493  5480  5510 I BunnyLoader: [mod] globalprojectilehooks tipo registrado pela API nativa sem ModProjectile: ok
+10-05 18:28:51.493  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CanDamage global atende tipo da API nativa: ok
+10-05 18:28:51.493  5480  5510 I BunnyLoader: [mod] globalprojectilehooks SetDefaults recria estado: ok
+10-05 18:28:51.495  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CanUseGrapple false executa globais: ok
+10-05 18:28:51.495  5480  5510 I BunnyLoader: [mod] globalprojectilehooks CanUseGrapple false impede spawn: ok
+10-05 18:28:51.498  5480  5510 I BunnyLoader: [mod] globalprojectilehooks UseGrapple Ref muda projetil e restaura item: ok
+10-05 18:28:51.498  5480  5510 I BunnyLoader: [mod] globalprojectilehooks UseGrapple globais em ordem: ok
+10-05 18:28:51.500  5480  5510 I BunnyLoader: [mod] globalprojectilehooks UseGrapple aceita tipo nativo registrado e restaura item: ok
+10-05 18:28:51.501  5480  5510 I BunnyLoader: [mod] globalprojectilehooks GrappleCanLatchOnTo false: ok
+10-05 18:28:51.501  5480  5510 I BunnyLoader: [mod] globalprojectilehooks GrappleCanLatchOnTo true em tile vazio: ok
+10-05 18:28:52.307  5480  5510 I BunnyLoader: [mod] globalprojectilehooks TileCollideStyle e OnTileCollide no piso: ok
+10-05 18:28:52.308  5480  5510 I BunnyLoader: [mod] globalprojectilehooks OnTileCollide false conserva vanilla no piso: ok
+10-05 18:28:52.308  5480  5510 I BunnyLoader: [mod] globalprojectilehooks TileCollideStyle false atravessa e restaura flag: ok
+10-05 18:28:52.308  5480  5510 I BunnyLoader: [mod] globalprojectilehooks PreDraw false e PostDraw continuam em vanilla: ok
+10-05 18:28:52.308  5480  5510 I BunnyLoader: [mod] globalprojectilehooks PreDraw global veto pula pre local mas chama post local: ok
+10-05 18:28:52.561  5480  5510 I BunnyLoader: [mod] globalprojectilehooks cor Ref chega ao GetAlpha e PostDraw nativos: ok
+10-05 18:28:52.561  5480  5510 I BunnyLoader: [mod] globalprojectilehooks OnKill chamado uma vez por tempo no piso: ok
+10-05 18:28:53.452  5480  5510 I BunnyLoader: [mod] globalprojectilehooks estado preservado e 70000 despachos sem perda: ok
+10-05 18:28:53.452  5480  5510 I BunnyLoader: [mod] globalprojectilehooks benchmark Colliding_2 mediana_us=12.482
+10-05 18:28:53.471  5480  5510 I BunnyLoader: [mod] globalprojectilehooks FIM checks=38 falhas=0
