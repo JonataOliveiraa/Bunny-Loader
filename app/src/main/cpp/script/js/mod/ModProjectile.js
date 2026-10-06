@@ -130,7 +130,7 @@ class ModProjectile {
             },
         });
         inst.Type = type;
-        Lang.Follow('ProjectileName.' + name, inst.DisplayName || Lang.Localized('ProjectileName', name));
+        Lang.Follow('ProjectileName.' + name, inst.DisplayName || Lang.Localized('ProjectileName', name) || name);
         ProjectileLoader.ByType.set(type, inst);
 
         Ready.Add(() => inst.PostSetupContent());

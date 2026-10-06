@@ -240,7 +240,11 @@ class ItemLoader {
         }
 
         inst.TooltipLines = [];
-        if (any) bl.items.setTooltip(type, out);
+        if (any) {
+            bl.items.setTooltip(type, out);
+            const mod = inst.Mod || bl.mod;
+            if (mod) Lang.Follow('BunnyLoader.ItemTooltip.' + mod.uuid + '.' + name, out);
+        }
     }
 
     // A arma na mão: o deslocamento gira com o item.

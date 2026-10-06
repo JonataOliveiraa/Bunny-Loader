@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceHash": "62b30225e8d96199ac1524508c3675d84a49a46c4868a4fe2ceb91e066329d7d",
+  "sourceHash": "04a88d62937eb1d310b125cf8805928286cdb62b5c717f69ff245454a4b282ed",
   "classes": [
     {
       "name": "BackgroundTextureLoader",

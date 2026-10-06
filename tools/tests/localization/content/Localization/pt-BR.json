@@ -1,4 +1,10 @@
 {
+  "ItemName": { "LocalizationItem": "{$Refs.Game}" },
+  "NPCName": { "LocalizationNPC": "{$Refs.Game}" },
+  "BuffName": { "LocalizationBuff": "{$Refs.Game}" },
+  "BuffDescription": { "LocalizationBuff": "{$Refs.Game}" },
+  "ItemTooltip": { "LocalizationItem": "Primeira\n{$Refs.Game}\n{$Refs.Name}" },
+  "PrefixName": { "LocalizationPrefix": "{$Refs.Game}" },
   "CustomText": {
     "Hello": "Olá"
   },

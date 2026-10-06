@@ -170,7 +170,7 @@ class PrefixLoader {
         const getText = Terraria.Localization.Language['LocalizedText GetText(string key)'];
         const names = L.prefix;
         for (const [type, { key, texts }] of PrefixLoader.#names) {
-            LocalizationLoader.Put(key, Lang.Pick(texts));
+            LocalizationLoader.Register(key, texts);
             names[type] = getText(key);
         }
     }

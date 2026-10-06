@@ -21,6 +21,63 @@ const TEXTS = {
 };
 const REFS = 'Mods.test-localization.Refs.';
 
+export class LocalizationItem extends ModItem {
+    Texture = 'Box';
+    HideFromModMenu = true;
+    SetDefaults(item) { item.width = item.height = 16; item.maxStack = 1; }
+    ModifyTooltipLines() { this.TooltipLines[0] += '!'; this.TooltipLines.push('End'); }
+}
+
+export class LocalizationNPC extends ModNPC {
+    Texture = 'Box';
+    HideFromModMenu = true;
+    HideFromBestiary = true;
+    SetStaticDefaults() { Terraria.Main.npcFrameCount[this.Type] = 1; }
+    SetDefaults(npc) { npc.width = npc.height = 16; npc.lifeMax = 10; npc.aiStyle = -1; }
+}
+
+export class LocalizationBuff extends ModBuff {
+    Texture = 'Box';
+}
+
+export class LocalizationPrefix extends ModPrefix {}
+
+export class LocalizationLiteralItem extends ModItem {
+    Texture = 'Box';
+    HideFromModMenu = true;
+    SetDefaults(item) { item.width = item.height = 16; item.maxStack = 1; }
+}
+
+export class LocalizationLiteralProjectile extends ModProjectile {
+    Texture = 'Box';
+    SetDefaults(projectile) { projectile.width = projectile.height = 16; projectile.timeLeft = 1; }
+}
+
+function checkRegisteredContent(culture) {
+    const pt = culture === 'pt-BR';
+    const shop = Language['string GetTextValue(string key)']('LegacyInterface.28');
+    const expected = (pt ? 'Comprar: ' : 'Buy: ') + shop;
+    const itemType = ModContent.ItemType(LocalizationItem);
+    const npcType = ModContent.NPCType(LocalizationNPC);
+    const buffType = ModContent.BuffType(LocalizationBuff);
+    const values = [Terraria.Lang['LocalizedText GetItemName(int id)'](itemType).Value,
+        Terraria.Lang['LocalizedText GetNPCName(int netID)'](npcType).Value,
+        Terraria.Lang._buffNameCache[buffType].Value,
+        Terraria.Lang._buffDescriptionCache[buffType].Value,
+        Terraria.Lang.prefix[ModContent.PrefixType(LocalizationPrefix)].Value];
+    if (values.some(value => value !== expected)) return JSON.stringify(values);
+    const literalItem = Terraria.Lang['LocalizedText GetItemName(int id)'](ModContent.ItemType(LocalizationLiteralItem)).Value;
+    const literalProjectile = Terraria.Lang['LocalizedText GetProjectileName(int type)'](ModContent.ProjectileType(LocalizationLiteralProjectile)).Value;
+    if (literalItem !== 'LocalizationLiteralItem' || literalProjectile !== 'LocalizationLiteralProjectile') {
+        return JSON.stringify([literalItem, literalProjectile]);
+    }
+    const tooltip = Terraria.Lang._itemTooltipCache[itemType];
+    const want = [pt ? 'Primeira!' : 'First!', expected, pt ? 'Varinha' : 'Wand', 'End'];
+    const lines = [];
+    for (let i = 0; i < tooltip.Lines; i++) lines.push(tooltip['string GetLine(int line)'](i));
+    return JSON.stringify(lines) === JSON.stringify(want) || JSON.stringify(lines);
+}
+
 // Nome de NPC e de item de mod (a plaquinha do Bestiário lê a chave
 // NPCName.X), se o Example Mod estiver instalado.
 function contentNames() {
@@ -44,7 +101,7 @@ function checkReferences(culture) {
     const shop = Language['string GetTextValue(string key)']('LegacyInterface.28');
     const want = {
         Full: e.full, Relative: e.relative, Game: e.buy + shop, Chain: '[' + e.full + ']',
-        Args: '{1} of {2}', Missing: 'Refs.Nothing', Loop: 'aa{$Refs.Loop}',
+        Args: '{1} of {2}', Missing: 'Refs.Nothing', Loop: 'a' + REFS + 'Loop',
     };
     const bad = [];
     for (const [key, text] of Object.entries(want)) {
@@ -67,6 +124,7 @@ export default class TestLocalization extends Mod {
     PostSetupContent() {
         const culture = ModLocalization.ActiveCultureName;
         bl.log('localization idioma do jogo: ' + culture);
+        check('conteúdo com referências no idioma inicial', () => checkRegisteredContent(culture));
 
         check('Translate devolve o texto', () => {
             const e = expected();
@@ -131,6 +189,7 @@ export default class TestLocalization extends Mod {
             return (got[0] === e.hello && got[1] === e.deep && got[2] === e.hello && got[3] === extra) || JSON.stringify(got);
         });
         check('{$chave} no outro idioma (' + other + ')', () => checkReferences(other));
+        check('conteúdo e tooltip no outro idioma', () => checkRegisteredContent(other));
         check('nome de NPC e de item de mod no outro idioma' + (contentNames() ? '' : ' (sem o Example Mod: pulado)'),
             () => checkContentNames(other));
         check('o mesmo LocalizedText na troca', () =>
@@ -147,6 +206,19 @@ export default class TestLocalization extends Mod {
         });
         check('{$chave} de volta (' + culture + ')', () => checkReferences(culture));
         check('nome de NPC e de item de mod de volta', () => checkContentNames(culture));
+        check('conteúdo e tooltip de volta', () => checkRegisteredContent(culture));
+        check('trocas sucessivas com fallback', () => {
+            try {
+                for (const next of ['pt-BR', 'fr-FR', 'pt-BR', 'en-US']) {
+                    manager['void SetLanguage(string cultureName)'](next);
+                    const result = checkRegisteredContent(next);
+                    if (result !== true) return next + ': ' + result;
+                }
+                return true;
+            } finally {
+                manager['void SetLanguage(string cultureName)'](culture);
+            }
+        });
 
         bl.log('localization FIM: ' + (fails === 0 ? 'tudo ok' : fails + ' falha(s)'));
     }

@@ -88,15 +88,30 @@ class ConfigLoader {
             throw new TypeError(where + ': enabledWhen pede o nome de uma opção ou uma função');
         }
 
-        const local = (path) => {
-            const texts = Lang.Localized('Configs', owner + '.' + key + '.' + path);
-            return texts ? Lang.Pick(texts) : '';
+        const local = (target, property, path, fallback) => {
+            const name = 'Configs.' + owner + '.' + key + '.' + path;
+            if (!ModLocalization.Exists(name)) {
+                target[property] = fallback;
+                return;
+            }
+            const text = ModLocalization.GetText(name);
+            Object.defineProperty(target, property, {
+                enumerable: true,
+                configurable: true,
+                get: () => text.Value || fallback,
+            });
         };
-        o.label = local('Label') || o.label || key.replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+        local(o, 'label', 'Label', o.label || key.replace(/([a-z0-9])([A-Z])/g, '$1 $2'));
         if (ConfigLoader.#CHOICES.includes(o.type)) {
-            o.choiceLabels = o.choices.map((c, i) => local(String(c)) || (o.labels && o.labels[i]) || String(c));
+            o.choiceLabels = [];
+            for (let i = 0; i < o.choices.length; i++) {
+                const choice = o.choices[i];
+                local(o.choiceLabels, i, String(choice), o.labels && o.labels[i] || String(choice));
+            }
         }
-        if (o.type === 'button' || o.type === 'link') o.text = local('Text') || o.text || (o.type === 'link' ? 'Abrir' : 'OK');
+        if (o.type === 'button' || o.type === 'link') {
+            local(o, 'text', 'Text', o.text || (o.type === 'link' ? 'Abrir' : 'OK'));
+        }
         return o;
     }
 

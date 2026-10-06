@@ -1408,6 +1408,14 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 Toda chave de `Localization/<cultura>.json` já está no jogo como
 `Mods.<id do mod>.<Secao>.<Chave>` (qualquer profundidade), e segue a troca de idioma.
 
+Os textos entram após o original de `LanguageManager.LoadFilesForCulture`, antes
+dos eventos de idioma e do processamento nativo de referências. Nomes, descrições,
+tooltips e rótulos de configuração acompanham a troca; referências `{$chave}`
+ao jogo são resolvidas na cultura carregada. Uma string retornada por `Translate`
+ou `GetTextValue` e guardada pelo mod mantém seu valor: consulte ao usar ou guarde
+o `LocalizedText` de `GetText` e leia `.Value`. Referências circulares terminam
+no nome completo da chave que fecha o ciclo.
+
 | | |
 |---|---|
 | `ModLocalization.Translate('Secao.Chave')` | O **texto** no idioma do jogo (como no TL); sem texto, o próprio caminho. |

@@ -32,7 +32,7 @@ class ModLocalization {
 
         // Antes do conteúdo pronto a chave ainda não está no jogo.
         const full = entry.prefix + rel;
-        LocalizationLoader.Put(full, LocalizationLoader.Pick(entry, rel, ModLocalization.ActiveCultureName));
+        LocalizationLoader.Put(full, LocalizationLoader.Pick(entry, rel, LocalizationLoader.CultureName));
         return getText(full);
     }
 

@@ -316,7 +316,7 @@ class ModItem {
             },
         });
         inst.Type = type;
-        Lang.Follow('ItemName.' + name, inst.DisplayName || Lang.Localized('ItemName', name));
+        Lang.Follow('ItemName.' + name, inst.DisplayName || Lang.Localized('ItemName', name) || name);
         ItemLoader.ByType.set(type, inst);
         EquipLoader.Autoload(inst, cls, name);
         Safe.Run(name + '.Load', () => inst.Load());

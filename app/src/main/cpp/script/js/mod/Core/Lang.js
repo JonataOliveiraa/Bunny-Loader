@@ -25,7 +25,7 @@ class Lang {
     // texto dos LocalizedText do dicionário. Registrado, ele recebe o texto
     // do idioma novo.
     static Follow(key, texts) {
-        if (texts && typeof texts === 'object') LocalizationLoader.Register(key, texts);
+        if (typeof texts === 'string' || texts && typeof texts === 'object') LocalizationLoader.Register(key, texts);
     }
 
     // Cada texto por cultura passado pelo ModifyDisplayName/ModifyDescription do mod.

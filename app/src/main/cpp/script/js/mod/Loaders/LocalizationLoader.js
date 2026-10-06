@@ -7,6 +7,12 @@ class LocalizationLoader {
     static #mods = new Map();    // uuid -> { prefix, texts: Map<cultura, Map<caminho, texto>>, paths }
     static #extra = new Map();   // chave do jogo -> texto ou { cultura: texto } (Register)
     static #scheduled = false;
+    static #templates = new Map();
+    static #culture;
+
+    static get CultureName() {
+        return LocalizationLoader.#culture || ModLocalization.ActiveCultureName;
+    }
 
     // Na carga do mod: lê os JSONs uma vez. Os textos de todos os mods vão
     // para o jogo juntos quando o conteúdo fica pronto (na thread do jogo): um
@@ -33,7 +39,7 @@ class LocalizationLoader {
     }
 
     static Lookup(path) {
-        const culture = ModLocalization.ActiveCultureName;
+        const culture = LocalizationLoader.CultureName;
         const own = LocalizationLoader.CallerEntry();
         if (own) {
             const text = LocalizationLoader.Pick(own, LocalizationLoader.Relative(own, path), culture);
@@ -60,11 +66,21 @@ class LocalizationLoader {
         const rel = LocalizationLoader.Relative(entry, path);
         if (!entry.paths.has(rel)) return undefined;
 
-        // O {$chave} de texto do jogo sai no idioma ativo agora: o jogo só tem
-        // os textos de um idioma carregados.
         const out = {};
         for (const [culture, map] of entry.texts) {
-            if (map.has(rel)) out[culture] = LocalizationLoader.#Resolve(entry.prefix + rel, map.get(rel), culture);
+            if (!map.has(rel)) continue;
+            const text = map.get(rel);
+            if (!text.includes('{$')) {
+                out[culture] = text;
+                continue;
+            }
+            let texts = LocalizationLoader.#templates.get(culture);
+            if (!texts) {
+                texts = LocalizationLoader.#Collect(culture).texts;
+                LocalizationLoader.#Substitute(texts, true);
+                LocalizationLoader.#templates.set(culture, texts);
+            }
+            out[culture] = texts.get(entry.prefix + rel);
         }
         return out;
     }
@@ -93,9 +109,10 @@ class LocalizationLoader {
     static Register(key, text) {
         LocalizationLoader.#extra.set(key, text);
         LocalizationLoader.#resolved.clear();
+        LocalizationLoader.#templates.clear();
         LocalizationLoader.#Hook();
 
-        const culture = ModLocalization.ActiveCultureName;
+        const culture = LocalizationLoader.CultureName;
         LocalizationLoader.Put(key, LocalizationLoader.#Resolve(key, Lang.Pick(text, culture), culture));
     }
 
@@ -150,6 +167,7 @@ class LocalizationLoader {
         entry = { prefix: 'Mods.' + (mod.id || mod.uuid) + '.', texts, paths };
         LocalizationLoader.#mods.set(mod.uuid, entry);
         LocalizationLoader.#resolved.clear();
+        LocalizationLoader.#templates.clear();
         return entry;
     }
 
@@ -189,6 +207,7 @@ class LocalizationLoader {
 
     // Uma chamada ao jogo por mod: um texto que o jogo recuse leva só o mod dele.
     static #ApplyAll(culture) {
+        LocalizationLoader.#culture = culture;
         const { texts, groups } = LocalizationLoader.#Collect(culture);
         Safe.Run('ModLocalization {$}', () => LocalizationLoader.#Substitute(texts));
         LocalizationLoader.#resolved.clear();
@@ -197,6 +216,7 @@ class LocalizationLoader {
         for (const [label, keys] of groups) {
             if (keys.length) Safe.Run('ModLocalization ' + label, () => LocalizationLoader.#Write(keys, texts));
         }
+        Terraria.UI.ItemTooltip['void InvalidateTooltips()']();
     }
 
     // O mesmo formato dos arquivos do jogo, { Categoria: { Chave: texto } },
@@ -224,8 +244,7 @@ class LocalizationLoader {
     }
 
     // Os {$chave} dos textos, como o ProcessCopyCommandsInTexts do tModLoader.
-    // O do jogo só aceita um ponto ({$Categoria.Chave}) e roda antes de os
-    // textos de mod entrarem. Aceita:
+    // O do jogo só aceita um ponto ({$Categoria.Chave}). Aceita:
     //   {$Mods.X.Common.Y}    a chave inteira, de mod ou do jogo
     //   {$Common.Y}           relativa: a chave do texto e cada prefixo dela,
     //                         do mais longo ao mais curto (em Mods.X.Items.Z.Tooltip:
@@ -233,11 +252,12 @@ class LocalizationLoader {
     //   {$Chave@2}            soma 2 a cada {0} e {^0:...} do texto trazido
     // Chave que não existe fica como o próprio nome, como no jogo. O '-' entra
     // além do que o tModLoader aceita: o id de mod daqui tem ('test-x').
-    static #Substitute(texts) {
+    static #Substitute(texts, deferGame = false) {
         const Language = Terraria.Localization.Language;
         const reference = /{\$([\w./-]+)(?:@(\d+))?}/g;
         const argument = /(?<={\^?)(\d+)(?=(?::[^\r\n]+?)?})/g;
         const done = new Set();
+        const pending = new Set();
 
         const exists = key => texts.has(key) || Language['bool Exists(string key)'](key);
         const inScope = (key, scope) => {
@@ -252,23 +272,31 @@ class LocalizationLoader {
         };
         const valueOf = key => {
             if (!texts.has(key)) return Language['string GetTextValue(string key)'](key);
+            if (pending.has(key)) return key;
 
             process(key);
             return texts.get(key);
         };
-        // Em profundidade; marcado antes de trocar, então uma referência
-        // circular traz o texto ainda sem troca em vez de repetir para sempre.
         const process = key => {
             if (done.has(key)) return;
             done.add(key);
 
             const text = texts.get(key);
             if (typeof text !== 'string' || !text.includes('{$')) return;
+            pending.add(key);
 
             texts.set(key, text.replace(reference, (match, target, offset) => {
-                const value = valueOf(inScope(target, key));
-                return offset === undefined ? value : value.replace(argument, n => String(+n + +offset));
+                const scoped = inScope(target, key);
+                if (deferGame && !texts.has(scoped)) {
+                    return '{$' + scoped + (offset === undefined ? '' : '@' + offset) + '}';
+                }
+                const value = valueOf(scoped);
+                if (offset === undefined) return value;
+                const shifted = value.replace(argument, n => String(+n + +offset));
+                return deferGame ? shifted.replace(reference, (nested, name, inner) =>
+                    '{$' + name + '@' + (+(inner || 0) + +offset) + '}') : shifted;
             }));
+            pending.delete(key);
         };
 
         for (const key of texts.keys()) process(key);
@@ -280,14 +308,9 @@ class LocalizationLoader {
         Hooks.Once('localization.language', () => {
             const Manager = Terraria.Localization.LanguageManager;
 
-            Manager['void LoadLanguage(GameCulture culture, bool processCopyCommands)'].hook((original, self, culture, copy) => {
-                original(self, culture, copy);
-                Safe.Run('ModLocalization (idioma)', () => LocalizationLoader.#ApplyAll(culture.Name));
-            });
-
-            Manager['void SetLanguage(GameCulture culture)'].hook((original, self, culture) => {
+            Manager['void LoadFilesForCulture(GameCulture culture)'].hook((original, self, culture) => {
                 original(self, culture);
-                Safe.Run('ModLocalization (idioma)', () => LocalizationLoader.#ApplyAll(ModLocalization.ActiveCultureName));
+                Safe.Run('ModLocalization (idioma)', () => LocalizationLoader.#ApplyAll(culture.Name));
             });
         });
     }

@@ -439,9 +439,16 @@ Chave que não existe fica como o nome dela. Os textos entram pelo mesmo caminho
 dos arquivos do jogo, então cada chave fica na categoria do jogo (tudo antes do
 último ponto): `Language.RandomFromCategory('Mods.examplemod.Dialogue.ExamplePerson')`
 sorteia uma fala, e `"Chave$Variante"` vira variante (`Language.TryGetVariation`).
-Nos `ItemName`/`ItemTooltip`/`NPCName`/`BuffName`... de cada idioma, um
-`{$chave}` do **jogo** sai no idioma em que o mod carregou: o jogo só tem um
-idioma na memória.
+Nos `ItemName`/`ItemTooltip`/`NPCName`/`BuffName` e demais textos de conteúdo,
+as referências `{$chave}` do jogo acompanham o idioma escolhido. Os JSONs do
+mod são aplicados depois do original de `LanguageManager.LoadFilesForCulture`,
+antes dos eventos que consomem os textos. Tooltips e rótulos de configuração
+também acompanham a troca, sem reiniciar o launcher.
+
+`Translate` e `GetTextValue` retornam strings: um valor guardado pelo mod não
+muda sozinho. Consulte de novo ao usar ou guarde `ModLocalization.GetText(chave)`
+e leia `.Value`. Referências circulares terminam no nome completo da chave
+que fecha o ciclo.
 
 Para um texto seu (a fala de um morador, a plaquinha do Bestiário):
 
