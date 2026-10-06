@@ -5,6 +5,11 @@ argumento e corresponde a `this.Player`. Os demais parâmetros seguem os
 papéis do [ModPlayer do tModLoader](https://docs.tmodloader.net/docs/stable/class_mod_player.html),
 adaptados ao Terraria IL2CPP integrado no projeto.
 
+O [catálogo de ModPlayer](metodos.md#modplayer) reúne todos os membros da
+classe, incluindo os hooks de atualização e os métodos estáticos. A
+[planilha Excel](metodos.xlsx) e o [CSV](metodos.csv) permitem filtrar por
+`ModPlayer` e consultar uma linha por assinatura.
+
 Somente métodos sobrescritos instalam hooks. As instâncias e os dados são
 separados por jogador e classe. Exceções de um mod são registradas e não
 interrompem os callbacks dos outros mods.
@@ -188,6 +193,21 @@ As mensagens de estado de mod continuam sendo enviadas explicitamente por
 `ModPacket`. Não há serialização automática de campos JS. Copie arrays e
 objetos mutáveis no `CopyClientState` para não compartilhar estado com o clone.
 `newPlayer` indica que ainda não foi observada uma conexão para aquele índice.
+
+## Validação e desempenho
+
+O [teste multiplayer](../../tools/tests/mpmodplayer/RESULTADOS.md) usa host e
+cliente reais e registra 102 verificações sem falhas, incluindo desconexão
+e reconexão. Os callbacks observados não representam cobertura completa de
+todos os métodos. Servidor dedicado e outros fluxos específicos continuam
+fora dessa execução; consulte o [roteiro](../../tools/tests/mpmodplayer/README.md).
+
+A [revisão de desempenho](../../tools/tests/modplayerperf/RESULTADOS.md)
+mede hooks frequentes com oito ModPlayers e preserva a quantidade de
+callbacks. Hooks são instalados por grupo sob demanda. Instâncias, planos
+de sobrescritas e listas de classes interessadas são reutilizados; desenho
+e saltos usam filtros de contexto quando aplicável. As medições pertencem
+ao cenário descrito, sem representar um ganho de FPS em qualquer mod.
 Os hooks de save preservam dados de mods ausentes e mantêm a regra existente
 de arquivo auxiliar apenas para personagens locais.
 

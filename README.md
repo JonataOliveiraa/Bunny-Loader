@@ -63,7 +63,9 @@ Tudo em [`docs/`](docs/README.md):
       "Config. dos Mods" do menu de pausa.
   15. [Classes de dano](docs/mods/15-classes-de-dano.md): o `DamageClass`, os
       bônus por classe no jogador e as classes novas.
-- **Referência**: [o que cada classe tem hoje](docs/referencia/classes.md) e
+- **Referência**: [métodos por classe](docs/referencia/metodos.md), com
+  [planilha Excel](docs/referencia/metodos.xlsx) e [CSV](docs/referencia/metodos.csv);
+  [o que cada classe tem hoje](docs/referencia/classes.md) e
   [a ponte e o `bl`](docs/referencia/ponte-e-bl.md).
 - **[O núcleo nativo](docs/nucleo/README.md)**, para quem mexe no Bunny
   Loader: [hooks](docs/nucleo/hooks.md), [threads e o motor JS](docs/nucleo/threads-e-motor-js.md),

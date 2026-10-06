@@ -26,10 +26,16 @@ ordem de leitura.
 
 ## Para consultar
 
+- [Métodos por classe](referencia/metodos.md): índice completo gerado da API
+  JavaScript, com assinaturas, herança, retorno da implementação base e limites.
+  A [planilha Excel](referencia/metodos.xlsx) e o [CSV](referencia/metodos.csv)
+  permitem filtrar os mesmos registros por classe e método.
 - [O que cada classe tem hoje](referencia/classes.md): `ModItem`, `ModNPC`,
   `ModProjectile`, `ModPlayer`, `ModBuff`, `ModTile`... campo a campo, com o
   método do jogo por trás de cada um e o que ainda falta em relação ao
   tModLoader.
+- [Hooks de ModPlayer](referencia/modplayer-hooks.md): contratos de combate,
+  itens, saltos, desenho, inventário, save e rede.
 - [A ponte e o `bl`](referencia/ponte-e-bl.md): a sintaxe para falar com o
   jogo e todas as funções `bl.*`.
 

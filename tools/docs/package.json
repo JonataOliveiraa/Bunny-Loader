@@ -1,0 +1,12 @@
+{
+  "name": "bunny-loader-api-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node generate.mjs",
+    "check": "node generate.mjs --check"
+  },
+  "dependencies": {
+    "acorn": "8.19.0"
+  }
+}
