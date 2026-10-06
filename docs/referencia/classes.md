@@ -560,6 +560,7 @@ Veja a [revisão e as medições](../../tools/tests/modplayerperf/RESULTADOS.md)
 |---|---|
 | `player.GetModPlayer(Classe)`, `GetModPlayer('Classe')` ou `GetModPlayer('mod/Classe')` | A instância daquele jogador. Pelo nome: a do seu mod; se o nome é de outro mod e mais de um mod o tem, `undefined` e aviso no log. Dois mods podem ter `ModPlayer` com o mesmo nome. |
 | `Classe.get(player)` | O mesmo. |
+| `AddDrawData(drawInfo, drawData)` | Estático de ModPlayer: grava no próximo slot ativo e incrementa DrawDataCacheCount depois da escrita. Retorna true na inserção e false para cache cheio, contador inválido ou cache/dado ausente. |
 | `ModPlayer.getByName('Classe')` | A do jogador **local** (para interface). |
 | `ModPlayer.register(Classe)` | Registra. |
 

@@ -22,9 +22,11 @@ if (process.argv.includes('--inspect-existing')) {
     const sheet = existing.worksheets.getItem('Métodos');
     const rows = sheet.getUsedRange().values;
     const method = option('--inspect-method') || 'Shoot';
-    const first = rows.findIndex(row => row[0] === 'ModItem' && row[1] === method) + 1;
-    if (first < 1) throw new Error('Método de ModItem não encontrado: ' + method);
-    const preview = await existing.render({ sheetName: 'Métodos', range: `A${first}:D${first + 5}`, scale: 1, format: 'png' });
+    const targetClass = option('--inspect-class') || 'ModItem';
+    const first = rows.findIndex(row => row[0] === targetClass && row[1] === method) + 1;
+    if (first < 1) throw new Error('Método de ' + targetClass + ' não encontrado: ' + method);
+    const range = process.argv.includes('--inspect-contract') ? `H${first}:K${first + 1}` : `A${first}:D${first + 5}`;
+    const preview = await existing.render({ sheetName: 'Métodos', range, scale: 1, format: 'png' });
     await fs.writeFile(path.join(outputDir, 'moditem-antes.png'), new Uint8Array(await preview.arrayBuffer()));
     console.log(JSON.stringify({ existingRows: rows.length, preview: outputDir }));
     process.exit(0);

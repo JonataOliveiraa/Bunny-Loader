@@ -1,0 +1,7 @@
+10-06 10:17:17.848  3285  3314 I BunnyLoader: [mod] playerdrawcache uncounted cache_ativo=false count=25
+10-06 10:17:18.545  3285  3314 I BunnyLoader: [mod] playerdrawcache counted cache_ativo=true count=26
+10-06 10:17:19.867  3285  3314 I BunnyLoader: [mod] playerdrawcache helper cache_ativo=true count=26
+10-06 10:17:21.169  3285  3314 I BunnyLoader: [mod] playerdrawcache FIM {"uncounted":22,"counted":40,"helper":54,"lost":0,"failed":0} passou=true
+viewport=(1600, 900)
+marker_pixels=625
+marker_bounds=[910, 403, 934, 427]

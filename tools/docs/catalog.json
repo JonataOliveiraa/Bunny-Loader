@@ -110,7 +110,9 @@
     "ModItem.ApplyPotionDelay": "false impede contador e PotionSickness, preservando o contador anterior. Compõe com ModPlayer; qualquer veto prevalece. Cura e consumo continuam.",
     "ModPlayer.GetHealLife": "Depois de ModItem, somente com healLife base positivo. quickHeal usa contexto por jogador; também participa da seleção de QuickHeal.",
     "ModPlayer.GetHealMana": "Depois de ModItem, somente com healMana base positivo. quickHeal true em QuickHeal e QuickMana; campos temporários restaurados.",
-    "ModPlayer.ApplyPotionDelay": "Recebe o atraso final após ModItem.ModifyPotionDelay. Qualquer veto de ModItem ou ModPlayer impede contador e buff; conserva cura e consumo."
+    "ModPlayer.ApplyPotionDelay": "Recebe o atraso final após ModItem.ModifyPotionDelay. Qualquer veto de ModItem ou ModPlayer impede contador e buff; conserva cura e consumo.",
+    "ModPlayer.AddDrawData": "Reaproveita o array nativo, sem alocar outro array ou instalar hooks. Tempo e espaço adicional constantes.",
+    "ModPlayer.ModifyDrawInfo": "Cache móvel é DrawData[] com DrawDataCacheCount, não List<DrawData>. Use ModPlayer.AddDrawData(drawInfo, drawData). A entrada precede as camadas nativas e pode ficar atrás do jogador."
   },
   "unavailable": [
     { "class": "ModNPC", "method": "CanBeHitByProjectile", "reason": "Não há um ponto de elegibilidade que cubra todos os fluxos de Damage_PVE, incluindo projéteis sem dono. Um veto em StrikeNPC ocorreria após efeitos de contato." },

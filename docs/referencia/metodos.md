@@ -46,7 +46,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`ModMount`](#modmount) | 15 | 0 | [Referência](classes.md#modmount) |
 | [`ModNPC`](#modnpc) | 64 | 0 | [Referência](classes.md#modnpc) |
 | [`ModPacket`](#modpacket) | 2 | 15 | [Referência](classes.md#rede) |
-| [`ModPlayer`](#modplayer) | 132 | 0 | [Referência](classes.md#modplayer) |
+| [`ModPlayer`](#modplayer) | 133 | 0 | [Referência](classes.md#modplayer) |
 | [`ModPrefix`](#modprefix) | 16 | 0 | [Referência](classes.md#modprefix) |
 | [`ModProjectile`](#modprojectile) | 46 | 0 | [Referência](classes.md#modprojectile) |
 | [`ModRarity`](#modrarity) | 4 | 0 | [Referência](classes.md#modrarity) |
@@ -79,7 +79,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`TooltipLine`](#tooltipline) | 3 | 0 | [Referência](classes.md#tooltipline) |
 | [`UsageException`](#usageexception) | 1 | 0 | [Referência](classes.md#modcommand) |
 
-64 classes públicas, 1060 registros declarados e 10 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
+64 classes públicas, 1061 registros declarados e 10 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
 
 ## Objetos e enums
 
@@ -897,6 +897,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 
 | Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
 |---|---|---|---|---|---|
+| `AddDrawData(drawInfo, drawData)` | Estático | `ModPlayer` | `Consultar fonte` | Estático de ModPlayer: grava no próximo slot ativo e incrementa DrawDataCacheCount depois da escrita. Retorna true na inserção e false para cache cheio, contador inválido ou cache/dado ausente. Reaproveita o array nativo, sem alocar outro array ou instalar hooks. Tempo e espaço adicional constantes. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L152) |
 | `AddMaterialsForCrafting(player, itemConsumedCallback)` | Instância | `ModPlayer` | `null` | Retorna itens; ponha uma função (item, index) em itemConsumedCallback.value. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L134) |
 | `AddStartingItems(player, mediumCoreDeath)` | Instância | `ModPlayer` | `[]` | Retorna uma lista de itens; padrão vazio. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L132) |
 | `AnglerQuestReward(player, rareMultiplier, rewardItems)` | Instância | `ModPlayer` | `undefined` | Lista JS mutável de itens antes da entrega. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L121) |
@@ -930,8 +931,8 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `ExtraJumpVisuals(player, jump)` | Instância | `ModPlayer` | `undefined` | Efeitos adicionais do salto permitido. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L101) |
 | `FrameEffects(player)` | Instância | `ModPlayer` | `undefined` | Depois de o jogo montar o que se desenha: trocar player.head/body/legs muda o desenho. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L28) |
 | `FreeDodge(player, damageSource, damage, hitDirection, pvp, quiet, crit, cooldownCounter, dodgeable)` | Instância | `ModPlayer` | `false` | true: esquiva. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L37) |
-| `get(player)` | Estático | `ModPlayer` | `PlayerLoader.Of(player).get(this)` | O mesmo. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L152) |
-| `getByName(name)` | Estático | `ModPlayer` | `PlayerLoader.Find(Terraria.Main.player[Terraria.Main.myPlayer], name)` | A do jogador local (para interface). | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L156) |
+| `get(player)` | Estático | `ModPlayer` | `PlayerLoader.Of(player).get(this)` | O mesmo. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L161) |
+| `getByName(name)` | Estático | `ModPlayer` | `PlayerLoader.Find(Terraria.Main.player[Terraria.Main.myPlayer], name)` | A do jogador local (para interface). | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L165) |
 | `GetDyeTraderReward(player, rewardPool)` | Instância | `ModPlayer` | `undefined` | Lista JS mutável de IDs antes do sorteio. Lista vazia produz item vazio. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L129) |
 | `GetFishingLevel(player, fishingRod, bait, fishingLevel)` | Instância | `ModPlayer` | `undefined` | Ref<float>; os itens podem ser null quando não encontrados. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L117) |
 | `GetHealLife(player, item, quickHeal, healValue)` | Instância | `ModPlayer` | `undefined` | healValue é Ref<int>; também influencia a escolha da cura rápida. Depois de ModItem, somente com healLife base positivo. quickHeal usa contexto por jogador; também participa da seleção de QuickHeal. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L84) |
@@ -944,7 +945,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `LoadData(data)` | Instância | `ModPlayer` | `undefined` | Ao carregar o personagem. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L150) |
 | `MeleeEffects(player, item, hitbox)` | Instância | `ModPlayer` | `undefined` | Durante os efeitos visuais de uso. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L58) |
 | `ModifyCaughtFish(player, fish)` | Instância | `ModPlayer` | `undefined` | Altera o item efetivo antes de entregá-lo. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L119) |
-| `ModifyDrawInfo(player, drawInfo)` | Instância | `ModPlayer` | `undefined` | Altera o PlayerDrawSet antes de construir as camadas. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L111) |
+| `ModifyDrawInfo(player, drawInfo)` | Instância | `ModPlayer` | `undefined` | Altera o PlayerDrawSet antes de construir as camadas. Cache móvel é DrawData[] com DrawDataCacheCount, não List<DrawData>. Use ModPlayer.AddDrawData(drawInfo, drawData). A entrada precede as camadas nativas e pode ficar atrás do jogador. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L111) |
 | `ModifyDrawLayerOrdering(player, positions)` | Instância | `ModPlayer` | `undefined` | Map de descritor para { Before: descritor } ou { After: descritor }. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L112) |
 | `ModifyExtraJumpDurationMultiplier(player, jump, duration)` | Instância | `ModPlayer` | `undefined` | duration é Ref<float>, inicialmente 1. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L102) |
 | `ModifyFishingAttempt(player, attempt)` | Instância | `ModPlayer` | `undefined` | Antes do sorteio do item; altera a tentativa diretamente. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L118) |
@@ -1010,7 +1011,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `PreUpdateBuffs(player)` | Instância | `ModPlayer` | `undefined` | Em volta dos buffs. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L19) |
 | `PreUpdateMovement(player)` | Instância | `ModPlayer` | `undefined` | Antes da primeira etapa de colisão e deslocamento do quadro. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L88) |
 | `ProcessTriggers(player, triggersSet)` | Instância | `ModPlayer` | `undefined` | Após copiar os controles para o jogador local. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L93) |
-| `register(cls)` | Estático | `ModPlayer` | `Consultar fonte` | Registra. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L160) |
+| `register(cls)` | Estático | `ModPlayer` | `Consultar fonte` | Registra. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L169) |
 | `ResetEffects(player)` | Instância | `ModPlayer` | `undefined` | Logo depois do jogo zerar os efeitos. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L12) |
 | `ResetInfoAccessories(player)` | Instância | `ModPlayer` | `undefined` | Depois de zerar efeitos e depois de atualizar os acessórios informativos. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L94) |
 | `SaveData(data)` | Instância | `ModPlayer` | `undefined` | A cada save: ponha o que lembrar em data. | [Código](../../app/src/main/cpp/script/js/mod/ModPlayer.js#L149) |

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceHash": "31d0c3631b4bb25f4072bcaa4bccc05bad10d895986db5a9e4316399da5a8127",
+  "sourceHash": "47bd64a6c65596bd62e589d761e69398759781c410db1a1372f7e6b09bee870d",
   "classes": [
     {
       "name": "BackgroundTextureLoader",
@@ -263,7 +263,7 @@
       "base": "",
       "source": "app/src/main/cpp/script/js/mod/ModPlayer.js",
       "line": 1,
-      "own": 132,
+      "own": 133,
       "inherited": 0
     },
     {
@@ -10422,6 +10422,23 @@
     },
     {
       "class": "ModPlayer",
+      "method": "AddDrawData",
+      "kind": "Estático",
+      "signature": "AddDrawData(drawInfo, drawData)",
+      "declaredIn": "ModPlayer",
+      "inherited": false,
+      "status": "Declarado",
+      "baseReturn": "Consultar fonte",
+      "description": "Estático de ModPlayer: grava no próximo slot ativo e incrementa DrawDataCacheCount depois da escrita. Retorna true na inserção e false para cache cheio, contador inválido ou cache/dado ausente. Reaproveita o array nativo, sem alocar outro array ou instalar hooks. Tempo e espaço adicional constantes.",
+      "native": "",
+      "source": "app/src/main/cpp/script/js/mod/ModPlayer.js",
+      "line": 152,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModPlayer.js#L152",
+      "reference": "docs/referencia/classes.md#modplayer",
+      "aliasOf": ""
+    },
+    {
+      "class": "ModPlayer",
       "method": "AddMaterialsForCrafting",
       "kind": "Instância",
       "signature": "AddMaterialsForCrafting(player, itemConsumedCallback)",
@@ -10993,8 +11010,8 @@
       "description": "O mesmo.",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModPlayer.js",
-      "line": 152,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModPlayer.js#L152",
+      "line": 161,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModPlayer.js#L161",
       "reference": "docs/referencia/classes.md#modplayer",
       "aliasOf": ""
     },
@@ -11010,8 +11027,8 @@
       "description": "A do jogador local (para interface).",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModPlayer.js",
-      "line": 156,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModPlayer.js#L156",
+      "line": 165,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModPlayer.js#L165",
       "reference": "docs/referencia/classes.md#modplayer",
       "aliasOf": ""
     },
@@ -11228,7 +11245,7 @@
       "inherited": false,
       "status": "Declarado",
       "baseReturn": "undefined",
-      "description": "Altera o PlayerDrawSet antes de construir as camadas.",
+      "description": "Altera o PlayerDrawSet antes de construir as camadas. Cache móvel é DrawData[] com DrawDataCacheCount, não List<DrawData>. Use ModPlayer.AddDrawData(drawInfo, drawData). A entrada precede as camadas nativas e pode ficar atrás do jogador.",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModPlayer.js",
       "line": 111,
@@ -12353,8 +12370,8 @@
       "description": "Registra.",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModPlayer.js",
-      "line": 160,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModPlayer.js#L160",
+      "line": 169,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModPlayer.js#L169",
       "reference": "docs/referencia/classes.md#modplayer",
       "aliasOf": ""
     },
