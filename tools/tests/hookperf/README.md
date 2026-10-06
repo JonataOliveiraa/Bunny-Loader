@@ -2,6 +2,8 @@
 
 O fixture mede o runtime QuickJS no APK real. Os [resultados](RESULTADOS.md) distinguem custo da ponte, consultas pela ponte e tempos de `DoUpdate`/`DoDraw`; nenhum desses números é apresentado como FPS.
 
+As [otimizações e sua comparação entre APKs](RESULTADOS-OTIMIZACOES.md) acrescentam cópia por blocos, busca estável por loops diretos e leituras locais de cabelo, com regressões do cache no renderer.
+
 ## Cenários
 
 Execute com 0, 1 e 8 **classes ModPlayer no mesmo jogador singleplayer**. `--classes` não representa jogadores conectados. Cada classe acrescenta 15 callbacks simples de atualização, `PreItemCheck` com veto e `CanStartExtraJump` neutro. As três classes ModItem do fixture estão presentes em todas as execuções para que seus filtros possam ser comparados.
@@ -28,6 +30,8 @@ Inicie o jogo e espere a linha `hookperf` com `kind=FIM`. Guarde o log do PID de
 python tools/tests/hookperf/check.py log-0.txt log-1.txt log-8.txt
 python tools/tests/moditemhooks/device.py cleanup --fixture hookperf --run-id minha-rodada
 ```
+
+Para conferir uma rodada isolada com oito classes, use `python tools/tests/hookperf/check.py log-8.txt --classes 8`. Isso permite comparar dois APKs sem combinar registros de builds distintos.
 
 `--isolate` desativa temporariamente os outros pacotes. A limpeza restaura somente as chaves alteradas, preserva as demais preferências atuais e remove o UID e a pasta temporária desta suíte após conferir os caminhos. Escolha outro run-id para uma nova sessão depois da limpeza. Use a limpeza também depois de uma execução interrompida.
 

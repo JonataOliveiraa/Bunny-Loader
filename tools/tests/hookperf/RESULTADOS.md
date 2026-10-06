@@ -1,5 +1,7 @@
 # Análise de desempenho em 6 de outubro de 2026
 
+Esta é a medição anterior às mudanças de produção. A [comparação após as otimizações](RESULTADOS-OTIMIZACOES.md) registra a implementação, os dois APKs e as regressões.
+
 Medição no QuickJS do APK debug atual, em uma instância MuMu ARM64, singleplayer, mesmo personagem e mundo de teste, com os outros pacotes temporariamente desativados. O APK instalado foi conferido pelo SHA-256:
 
 ```text

@@ -2,6 +2,8 @@
 
 A [medição de 6 de outubro no APK atual](../hookperf/RESULTADOS.md) acrescenta comparação de 0, 1 e 8 classes, filtros de ModItem, AddDrawData e custo de ocultação/reordenação de camadas. O relatório abaixo descreve a revisão anterior.
 
+A [comparação após as otimizações de desenho e cabelo](../hookperf/RESULTADOS-OTIMIZACOES.md) registra os resultados nativos e os testes de preservação do cache.
+
 ## Análise
 
 A API registra hooks sob demanda: uma classe que não sobrescreve um método não instala seu grupo de hooks. O custo depende dos métodos realmente sobrescritos, dos jogadores atualizados e das chamadas nativas observadas. A lista de classes interessadas em cada método já era armazenada em cache.
