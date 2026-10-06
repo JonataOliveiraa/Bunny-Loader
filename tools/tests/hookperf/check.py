@@ -1,7 +1,7 @@
 import json
 import math
 import re
-import sys
+import argparse
 from pathlib import Path
 
 
@@ -21,11 +21,15 @@ def read(path, count):
     return rows
 
 
-paths = [Path(value) for value in sys.argv[1:]]
-if len(paths) != 3:
-    raise SystemExit('Uso: check.py log-0 log-1 log-8')
+parser = argparse.ArgumentParser(description='Confere fases, callbacks e filtros do benchmark nativo.')
+parser.add_argument('logs', nargs='+', type=Path)
+parser.add_argument('--classes', type=int, choices=[0, 1, 8])
+args = parser.parse_args()
+counts = [0, 1, 8] if args.classes is None else [args.classes]
+if len(args.logs) != len(counts):
+    parser.error('Informe log-0 log-1 log-8, ou um unico log com --classes.')
 records = []
-for path, count in zip(paths, [0, 1, 8]):
+for path, count in zip(args.logs, counts):
     rows = read(path, count)
     if not rows or any(row['classes'] != count for row in rows):
         raise ValueError('Quantidade de classes incorreta em ' + str(path))

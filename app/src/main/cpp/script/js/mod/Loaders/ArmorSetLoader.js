@@ -93,11 +93,12 @@ class ArmorSetLoader {
         const head = ArmorIDs.Head.Sets, face = ArmorIDs.Face.Sets, hair = HairID.Sets;
         Terraria.Player['void GetHairSettings(out bool fullHair, out bool hatHair, out bool hideHair, out bool backHairDraw, out bool drawsBackHairWithoutHeadgear)'].hook(
             (original, self, fullHair, hatHair, hideHair, backHairDraw, drawsBackHairWithoutHeadgear) => {
-                fullHair.value = self.head >= 0 && head.DrawFullHair[self.head];
-                hatHair.value = self.head >= 0 && head.DrawHatHair[self.head];
-                hideHair.value = (self.face >= 0 && face.PreventHairDraw[self.face]) || (self.faceHead >= 0 && self.head !== 0);
-                backHairDraw.value = self.hair >= 0 && hair.DrawBackHair[self.hair];
-                drawsBackHairWithoutHeadgear.value = self.head >= 0 && head.DrawsBackHairWithoutHeadgear[self.head];
+                const headSlot = self.head, faceSlot = self.face, faceHeadSlot = self.faceHead, hairSlot = self.hair;
+                fullHair.value = headSlot >= 0 && head.DrawFullHair[headSlot];
+                hatHair.value = headSlot >= 0 && head.DrawHatHair[headSlot];
+                hideHair.value = (faceSlot >= 0 && face.PreventHairDraw[faceSlot]) || (faceHeadSlot >= 0 && headSlot !== 0);
+                backHairDraw.value = hairSlot >= 0 && hair.DrawBackHair[hairSlot];
+                drawsBackHairWithoutHeadgear.value = headSlot >= 0 && head.DrawsBackHairWithoutHeadgear[headSlot];
             });
     }
 

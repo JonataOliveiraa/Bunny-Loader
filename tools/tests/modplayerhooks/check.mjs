@@ -146,6 +146,13 @@ vm.runInContext(`
 `, context);
 assert.deepEqual(failures, [], 'All native hook signatures must exist in the local Terraria dump');
 const { All, ModPlayer, PlayerLoader, ExtraJump, PlayerDrawLayer, PlayerDrawLayers } = sandbox.api;
+const arrayCopy = method('System.Array', 'Copy');
+assert.ok(methods.get('System.Array').has(signature(arrayCopy.signature)), 'Array.Copy signature must exist in the mobile dump');
+arrayCopy.vanilla = (source, start, destination, index, length) => {
+    assert.ok(start >= 0 && index >= 0 && length >= 0 && start + length <= source.length && index + length <= destination.length);
+    const values = source.slice(start, start + length);
+    for (let i = 0; i < length; i++) destination[index + i] = values[i];
+};
 const defaults = new Map(Object.getOwnPropertyNames(All.prototype).filter((key) => key !== 'constructor').map((key) => [key, All.prototype[key]]));
 const player = (index) => {
     const value = { __address: address++, whoAmI: index, inventory: Array.from({ length: 58 }, () => item()), selectedItem: 0,
@@ -384,7 +391,7 @@ test('nurse partial and free healing preserves debuffs and shared flags', () => 
     p.talkNPC = -1;
 });
 test('draw visibility and ordering preserve cached draw data', () => {
-    const cache = Array(10); cache.cloneResized = () => [...cache];
+    const cache = Array(10); cache.cloneResized = length => cache.slice(0, length);
     const info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 };
     for (const name of ['Skin', 'Torso', 'Head']) {
         vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers[name].Method, (draw) => { draw.DrawDataCache[draw.DrawDataCacheCount++] = name; });
@@ -410,7 +417,7 @@ test('draw visibility and ordering preserve cached draw data', () => {
     assert.deepEqual(cache.slice(0, 3), ['Skin', 'Torso', 'Head']); assert.equal(warnings.length, 1);
 });
 test('draw-cache append updates active count and survives native layer construction', () => {
-    const cache = Array(10); cache.cloneResized = () => [...cache];
+    const cache = Array(10); cache.cloneResized = length => cache.slice(0, length);
     const info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 }, marker = { marker: true };
     All.prototype.ModifyDrawInfo = (_, draw) => assert.equal(ModPlayer.AddDrawData(draw, marker), true);
     vanilla('Terraria.DataStructures.PlayerDrawSet', 'BoringSetup', draw => { draw.DrawDataCacheCount = 0; });
@@ -427,13 +434,123 @@ test('draw-cache append preserves populated slots and uses the active count inst
     assert.deepEqual(cache, [first, second, marker, null, null]);
 });
 test('draw layer reordering preserves the appended prefix and its active count', () => {
-    const cache = Array(10); cache.cloneResized = () => [...cache];
+    const cache = Array(10); cache.cloneResized = length => cache.slice(0, length);
     const info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 }, marker = {};
     assert.equal(ModPlayer.AddDrawData(info, marker), true);
     All.prototype.ModifyDrawLayerOrdering = (_, positions) => positions.set(PlayerDrawLayers.Skin, PlayerDrawLayer.AfterParent(PlayerDrawLayers.Head));
     call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info);
     assert.deepEqual(cache.slice(0, info.DrawDataCacheCount), [marker, 'Torso', 'Head', 'Skin']);
     assert.equal(info.DrawDataCacheCount, 4);
+});
+
+test('draw reordering copies active blocks and preserves shaders, prefix and unused capacity', () => {
+    const prefix = { texture: {}, shader: 7 }, suffix = { texture: {}, shader: 8 }, unused = { texture: {}, shader: 99 };
+    const skin = [{ texture: {}, shader: 1 }, { texture: {}, shader: 2 }], torso = [{ texture: {}, shader: 3 }], head = [{ texture: {}, shader: 4 }, { texture: {}, shader: 5 }];
+    const cache = Array(1024).fill(unused), sizes = [], copies = [], originalCopy = arrayCopy.vanilla;
+    const renderer = method('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers'), originalDraw = renderer.vanilla;
+    cache[0] = prefix;
+    cache.cloneResized = length => { sizes.push(length); return cache.slice(0, length); };
+    const info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 1 };
+    for (const [name, values] of [['Skin', skin], ['Torso', torso], ['Head', head]]) {
+        vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers[name].Method, draw => {
+            for (const value of values) draw.DrawDataCache[draw.DrawDataCacheCount++] = value;
+        });
+    }
+    vanilla('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', draw => {
+        for (const name of ['Skin', 'Torso', 'Head']) call('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers[name].Method, draw);
+        draw.DrawDataCache[draw.DrawDataCacheCount++] = suffix;
+    });
+    All.prototype.ModifyDrawLayerOrdering = (_, positions) => positions.set('Skin', PlayerDrawLayer.AfterParent('Head'));
+    arrayCopy.vanilla = (source, start, destination, index, length) => {
+        copies.push([start, index, length]); return originalCopy(source, start, destination, index, length);
+    };
+    try { call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info); }
+    finally { arrayCopy.vanilla = originalCopy; renderer.vanilla = originalDraw; }
+    assert.deepEqual(cache.slice(0, 7), [prefix, ...torso, ...head, ...skin, suffix]);
+    assert.deepEqual(sizes, [6]); assert.deepEqual(copies, [[3, 1, 3], [1, 4, 2]]);
+    assert.equal(info.DrawDataCacheCount, 7); assert.equal(info.DrawDataCache, cache);
+    assert.ok(cache.slice(7).every(value => value === unused));
+});
+
+test('already satisfied, unknown and cyclic layer orders never clone the cache', () => {
+    const cache = Array(20), info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 };
+    cache.cloneResized = () => assert.fail('unchanged order must not allocate a native cache');
+    for (const name of ['Skin', 'Torso', 'Head']) vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers[name].Method, draw => { draw.DrawDataCache[draw.DrawDataCacheCount++] = name; });
+    const orders = [
+        positions => positions.set('Skin', PlayerDrawLayer.BeforeParent('Head')),
+        positions => positions.set('missing', PlayerDrawLayer.AfterParent('Head')),
+        positions => { positions.set('Skin', PlayerDrawLayer.AfterParent('Head')); positions.set('Head', PlayerDrawLayer.AfterParent('Skin')); },
+    ];
+    for (const order of orders) {
+        info.DrawDataCacheCount = 0;
+        All.prototype.ModifyDrawLayerOrdering = (_, positions) => order(positions);
+        call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info);
+        assert.deepEqual(cache.slice(0, 3), ['Skin', 'Torso', 'Head']);
+        assert.equal(info.DrawDataCacheCount, 3);
+    }
+});
+
+test('moving empty layer segments does not copy populated data', () => {
+    const cache = Array(20), info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 };
+    cache.cloneResized = () => assert.fail('empty segments must not allocate a native cache');
+    vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers.Skin.Method, () => {});
+    vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers.Head.Method, () => {});
+    All.prototype.ModifyDrawLayerOrdering = (_, positions) => positions.set('Skin', PlayerDrawLayer.AfterParent('Head'));
+    call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info);
+    assert.deepEqual(cache.slice(0, 1), ['Torso']); assert.equal(info.DrawDataCacheCount, 1);
+});
+
+test('multiple and duplicate ordering constraints preserve stable layer order', () => {
+    const cache = Array(20), info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 };
+    cache.cloneResized = length => cache.slice(0, length);
+    for (const name of ['Skin', 'Torso', 'Head']) vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers[name].Method, draw => {
+        draw.DrawDataCache[draw.DrawDataCacheCount++] = name;
+    });
+    All.prototype.ModifyDrawLayerOrdering = (_, positions) => {
+        positions.set(PlayerDrawLayers.Skin, PlayerDrawLayer.AfterParent('Head'));
+        positions.set('Skin', PlayerDrawLayer.AfterParent(PlayerDrawLayers.Head));
+        positions.set('Head', PlayerDrawLayer.BeforeParent('Skin'));
+        positions.set('Torso', PlayerDrawLayer.AfterParent('Head'));
+    };
+    call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info);
+    assert.deepEqual(cache.slice(0, 3), ['Head', 'Skin', 'Torso']);
+    assert.equal(info.DrawDataCacheCount, 3);
+});
+
+test('nested player draws preserve their own prefixes, shaders and layer state', () => {
+    const make = target => {
+        const prefix = { player: target.whoAmI, shader: 7 }, cache = Array(20);
+        cache[0] = prefix; cache.cloneResized = length => cache.slice(0, length);
+        return { __address: address++, drawPlayer: target, DrawDataCache: cache, DrawDataCacheCount: 1, prefix };
+    };
+    const outer = make(p), inner = make(second);
+    for (const name of ['Skin', 'Torso', 'Head']) vanilla('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers[name].Method, draw => {
+        draw.DrawDataCache[draw.DrawDataCacheCount++] = { player: draw.drawPlayer.whoAmI, name, shader: name };
+    });
+    All.prototype.ModifyDrawLayerOrdering = (target, positions) => positions.set('Skin', target === p ? PlayerDrawLayer.AfterParent('Head') : PlayerDrawLayer.BeforeParent('Head'));
+    All.prototype.HideDrawLayers = target => { if (target === p) PlayerDrawLayers.Torso.Hide(); };
+    vanilla('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', draw => {
+        for (const name of ['Skin', 'Torso', 'Head']) call('Terraria.DataStructures.PlayerDrawLayers', PlayerDrawLayers[name].Method, draw);
+        if (draw === outer) call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', inner);
+    });
+    call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', outer);
+    assert.equal(outer.DrawDataCache[0], outer.prefix); assert.equal(inner.DrawDataCache[0], inner.prefix);
+    assert.deepEqual(outer.DrawDataCache.slice(1, 3).map(value => value.name), ['Head', 'Skin']);
+    assert.deepEqual(inner.DrawDataCache.slice(1, 4).map(value => value.name), ['Skin', 'Torso', 'Head']);
+    for (const info of [outer, inner]) assert.ok(info.DrawDataCache.slice(1, info.DrawDataCacheCount).every(value => value.player === info.drawPlayer.whoAmI && value.shader === value.name));
+    assert.equal(PlayerDrawLayers.Torso.IsHidden, false); assert.equal(flags.get('player.DrawLayers'), false);
+});
+
+test('native block copy failures restore layer visibility and native filters', () => {
+    const cache = Array(20), info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 };
+    cache.cloneResized = length => cache.slice(0, length);
+    All.prototype.ModifyDrawLayerOrdering = (_, positions) => positions.set('Skin', PlayerDrawLayer.AfterParent('Head'));
+    All.prototype.HideDrawLayers = () => PlayerDrawLayers.Torso.Hide();
+    const originalCopy = arrayCopy.vanilla;
+    arrayCopy.vanilla = () => { throw Error('native copy failure'); };
+    try { assert.throws(() => call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info), /native copy failure/); }
+    finally { arrayCopy.vanilla = originalCopy; }
+    assert.equal(PlayerDrawLayers.Torso.IsHidden, false); assert.equal(flags.get('player.DrawLayers'), false);
 });
 test('draw-cache append rejects full or invalid caches without changing active count', () => {
     const marker = {};

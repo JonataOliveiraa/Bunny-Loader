@@ -78,6 +78,7 @@ class PlayerDrawHooks {
         const renderer = Terraria.Graphics.Renderers.LegacyPlayerRenderer;
         const gate = renderer['void DrawPlayer_UseNormalLayers(PlayerDrawSet drawinfo)'];
         const layers = Object.values(PlayerDrawLayers);
+        const copy = bl.classOf('System', 'Array')['void Copy(Array sourceArray, int sourceIndex, Array destinationArray, int destinationIndex, int length)'];
         gate.hook((original, info) => {
             const outer = PlayerDrawHooks.#drawing, hidden = [];
             for (const layer of layers) {
@@ -96,7 +97,7 @@ class PlayerDrawHooks {
                 scope.filtered = !!scope.segments || layers.some(layer => layer.IsHidden);
                 bl.hookFlags.set('player.DrawLayers', scope.filtered);
                 original(info);
-                if (scope.segments) PlayerDrawHooks.#Reorder(info, scope.segments, positions);
+                if (scope.segments) PlayerDrawHooks.#Reorder(info, scope.segments, positions, copy);
             } finally {
                 PlayerDrawHooks.#drawing = outer;
                 bl.hookFlags.set('player.DrawLayers', !!outer && outer.filtered);
@@ -136,35 +137,50 @@ class PlayerDrawHooks {
         }
     }
 
-    static #Reorder(info, segments, positions) {
-        const edges = segments.map(() => new Set()), degrees = segments.map(() => 0);
+    static #Reorder(info, segments, positions, copy) {
+        const edges = new Array(segments.length), degrees = new Array(segments.length).fill(0);
         const named = (value) => typeof value === 'string' ? PlayerDrawLayers[value] : value;
         for (const [key, position] of positions) {
             const layer = named(key), before = named(position.Before), after = named(position.After);
             if (!layer || !before && !after) continue;
-            segments.forEach((source, index) => {
-                if (source.layer !== layer) return;
-                segments.forEach((target, other) => {
-                    const from = before && target.layer === before ? index : after && target.layer === after ? other : -1;
+            for (let index = 0; index < segments.length; index++) {
+                if (segments[index].layer !== layer) continue;
+                for (let other = 0; other < segments.length; other++) {
+                    const from = before && segments[other].layer === before ? index : after && segments[other].layer === after ? other : -1;
                     const to = from === index ? other : index;
-                    if (from < 0 || from === to || edges[from].has(to)) return;
-                    edges[from].add(to);
+                    if (from < 0 || from === to) continue;
+                    const outgoing = edges[from] || (edges[from] = new Set());
+                    if (outgoing.has(to)) continue;
+                    outgoing.add(to);
                     degrees[to]++;
-                });
-            });
+                }
+            }
         }
-        const ordered = [], used = new Set();
+        const ordered = [];
         while (ordered.length < segments.length) {
-            const index = degrees.findIndex((degree, i) => degree === 0 && !used.has(i));
-            if (index < 0) { Safe.Once('player.DrawLayerCycle', 'ModifyDrawLayerOrdering: ordem ciclica ignorada'); return; }
-            used.add(index);
+            let index = 0;
+            while (index < degrees.length && degrees[index] !== 0) index++;
+            if (index === degrees.length) { Safe.Once('player.DrawLayerCycle', 'ModifyDrawLayerOrdering: ordem ciclica ignorada'); return; }
+            degrees[index] = -1;
             ordered.push(segments[index]);
-            for (const next of edges[index]) degrees[next]--;
+            if (edges[index]) for (const next of edges[index]) degrees[next]--;
         }
-        const source = info.DrawDataCache.cloneResized(info.DrawDataCache.length);
         let index = segments.length ? segments[0].start : 0;
+        let changed = false;
         for (const segment of ordered) {
-            for (let i = segment.start; i < segment.end; i++) info.DrawDataCache[index++] = source[i];
+            if (segment.end > segment.start && segment.start !== index) changed = true;
+            index += segment.end - segment.start;
+        }
+        if (!changed) return;
+        const cache = info.DrawDataCache, source = cache.cloneResized(index);
+        index = segments[0].start;
+        for (let i = 0; i < ordered.length; i++) {
+            const start = ordered[i].start;
+            let end = ordered[i].end;
+            while (i + 1 < ordered.length && ordered[i + 1].start === end) end = ordered[++i].end;
+            const length = end - start;
+            if (length && start !== index) copy(source, start, cache, index, length);
+            index += length;
         }
     }
 }

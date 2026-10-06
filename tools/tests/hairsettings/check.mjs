@@ -87,6 +87,20 @@ test('all five outputs are overwritten on each call', () => {
     assert.deepEqual(settings({ head: 1, hair: 0 }), [false, false, false, false, false]);
     assert.deepEqual(settings(), [false, false, false, false, true]);
 });
+
+test('native equipment fields are read once per callback without persisting results', () => {
+    const reads = {}, values = { head: 14, face: -1, faceHead: -1, hair: 51 }, player = {};
+    for (const name of Object.keys(values)) Object.defineProperty(player, name, { get() { reads[name] = (reads[name] || 0) + 1; return values[name]; } });
+    const outputs = Array.from({ length: 5 }, () => ({ value: null }));
+    const invoke = () => callbacks[0](() => assert.fail('native body must be replaced'), player, ...outputs);
+    invoke();
+    assert.deepEqual(outputs.map(output => output.value), [false, true, false, true, false]);
+    assert.deepEqual(reads, { head: 1, face: 1, faceHead: 1, hair: 1 });
+    values.head = 10; values.hair = 0;
+    invoke();
+    assert.deepEqual(outputs.map(output => output.value), [true, false, false, false, false]);
+    assert.deepEqual(reads, { head: 2, face: 2, faceHead: 2, hair: 2 });
+});
 test('DrawHead still maps to the native HidesHead set', () => {
     head.DrawHead[501] = false;
     assert.equal(ArmorIDs.Head.Sets.HidesHead[501], true);
