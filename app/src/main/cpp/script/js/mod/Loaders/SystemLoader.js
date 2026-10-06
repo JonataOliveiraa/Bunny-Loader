@@ -2,10 +2,13 @@
 class SystemLoader {
     static List = [];
     static #keys = new Map();   // instância -> 'uuid/Classe', a chave no arquivo
+    static #methods = new Map();
+    static #unloaded = false;
 
     static Add(inst) {
         SystemLoader.List.push(inst);
         SystemLoader.#keys.set(inst, (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + inst.constructor.name);
+        SystemLoader.#methods.clear();
     }
 
     static KeyOf(inst) {
@@ -13,17 +16,68 @@ class SystemLoader {
     }
 
     static Each(method, fn) {
-        for (const s of SystemLoader.List) {
-            if (Hooks.Overrides(s.constructor, ModSystem, method)) Safe.Run(s.constructor.name + '.' + method, () => fn(s));
+        for (const entry of SystemLoader.Entries(method)) {
+            try { fn(entry.instance); }
+            catch (error) { Safe.Report(entry.label, error); }
         }
+    }
+
+    static Entries(method) {
+        let entries = SystemLoader.#methods.get(method);
+        if (!entries) {
+            entries = SystemLoader.List.filter(s => Hooks.Overrides(s.constructor, ModSystem, method))
+                .map(instance => ({ instance, label: instance.constructor.name + '.' + method }));
+            SystemLoader.#methods.set(method, entries);
+        }
+        return entries;
+    }
+
+    static Invoke(instance, method, ...args) {
+        try { return instance[method](...args); }
+        catch (error) { Safe.Report(instance.constructor.name + '.' + method, error); }
+    }
+
+    static Call(method, ...args) {
+        for (const entry of SystemLoader.Entries(method)) {
+            try { entry.instance[method](...args); }
+            catch (error) { Safe.Report(entry.label, error); }
+        }
+    }
+
+    static Any(method, ...args) {
+        let result = false;
+        for (const entry of SystemLoader.Entries(method)) {
+            try { if (entry.instance[method](...args) === true) result = true; }
+            catch (error) { Safe.Report(entry.label, error); }
+        }
+        return result;
+    }
+
+    static Unload() {
+        if (SystemLoader.#unloaded) return;
+        SystemLoader.#unloaded = true;
+        SystemLoader.Call('OnModUnload');
     }
 
     static Hook(cls) {
         const has = (name) => Hooks.Overrides(cls, ModSystem, name);
-        const each = SystemLoader.Each;
         const Main = Terraria.Main;
         const WorldGen = Terraria.WorldGen;
         const WorldFile = Terraria.IO.WorldFile;
+        SystemUpdateHooks.Install(cls);
+        SystemDrawHooks.Install(cls);
+        SystemWorldHooks.Install(cls);
+        SystemNetworkHooks.Install(cls);
+        if (has('OnLocalizationsLoaded')) Hooks.Once('system.Localizations', () => {
+            LocalizationLoader.WantLoaded(() => SystemLoader.Call('OnLocalizationsLoaded'));
+        });
+        if (has('OnModUnload')) Hooks.Once('system.ModUnload', () => {
+            bl.__unloadMods = () => SystemLoader.Unload();
+            Main['void QuitGame()'].hook((original, self) => {
+                SystemLoader.Unload();
+                return original(self);
+            });
+        });
 
         if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity();
 
@@ -33,31 +87,36 @@ class SystemLoader {
             WorldGen['void clearWorld()'].hook((original) => {
                 original();
 
-                each('ClearWorld', (s) => s.ClearWorld());
-                if (Main.netMode === 1) each('OnWorldLoad', (s) => s.OnWorldLoad());
+                SystemLoader.Call('ClearWorld');
+                if (Main.netMode === 1) SystemLoader.Call('OnWorldLoad');
             });
         });
 
-        if (has('OnWorldLoad') || has('LoadWorldData') || has('PostWorldLoad')) Hooks.Once('system.LoadWorld', () => {
+        if (has('OnWorldLoad') || has('LoadWorldData') || has('PostWorldLoad') || has('CanWorldBePlayed')) Hooks.Once('system.LoadWorld', () => {
             WorldFile['void LoadWorld(bool canCheckFileState)'].hook((original, check) => {
+                const blocked = SystemWorldHooks.Rejection(Main.ActivePlayerFileData, Main.ActiveWorldFileData);
+                if (blocked) { bl.error(blocked); return; }
                 original(check);
 
-                each('OnWorldLoad', (s) => s.OnWorldLoad());
+                SystemLoader.Call('OnWorldLoad');
                 SystemLoader.#Load();
-                each('PostWorldLoad', (s) => s.PostWorldLoad());
+                SystemLoader.Call('PostWorldLoad');
             });
         });
 
-        if (has('SaveWorldData')) Hooks.Once('system.SaveWorld', () => {
+        if (has('SaveWorldData') || has('SaveWorldHeader')) Hooks.Once('system.SaveWorld', () => {
             WorldFile['void InternalSaveWorld(bool useCloudSaving, bool resetTime)'].hook((original, cloud, reset) => {
                 original(cloud, reset);
-                if (!cloud) SystemLoader.#Save();
+                if (!cloud) {
+                    SystemLoader.#Save();
+                    SystemWorldHooks.SaveHeader();
+                }
             });
         });
 
         if (has('PreSaveAndQuit')) Hooks.Once('system.PreSaveAndQuit', () => {
             WorldGen['void SaveAndQuit()'].hook((original) => {
-                each('PreSaveAndQuit', (s) => s.PreSaveAndQuit());
+                SystemLoader.Call('PreSaveAndQuit');
                 original();
             });
         });
@@ -65,23 +124,23 @@ class SystemLoader {
         if (has('OnWorldUnload')) Hooks.Once('system.Unload', () => {
             WorldGen['void SaveAndQuitCallBack(object threadContext)'].hook((original, context) => {
                 original(context);
-                each('OnWorldUnload', (s) => s.OnWorldUnload());
+                SystemLoader.Call('OnWorldUnload');
             });
         });
 
         if (has('PreUpdateWorld') || has('PostUpdateWorld')) Hooks.Once('system.UpdateWorld', () => {
             WorldGen['void UpdateWorld()'].hook((original) => {
-                each('PreUpdateWorld', (s) => s.PreUpdateWorld());
+                SystemLoader.Call('PreUpdateWorld');
                 original();
-                each('PostUpdateWorld', (s) => s.PostUpdateWorld());
+                SystemLoader.Call('PostUpdateWorld');
             });
         });
 
         if (has('PreUpdateTime') || has('PostUpdateTime')) Hooks.Once('system.UpdateTime', () => {
             Main['void UpdateTime()'].hook((original) => {
-                each('PreUpdateTime', (s) => s.PreUpdateTime());
+                SystemLoader.Call('PreUpdateTime');
                 original();
-                each('PostUpdateTime', (s) => s.PostUpdateTime());
+                SystemLoader.Call('PostUpdateTime');
             });
         });
 
@@ -94,19 +153,19 @@ class SystemLoader {
 
             SceneMetrics['void Reset()'].hook((original, self) => {
                 original(self);
-                if (isPlayers(self)) each('ResetNearbyTileEffects', (s) => s.ResetNearbyTileEffects());
+                if (isPlayers(self)) SystemLoader.Call('ResetNearbyTileEffects');
             });
             SceneMetrics['void AggregateTileCounts()'].hook((original, self) => {
                 original(self);
                 if (!isPlayers(self)) return;
 
                 const counts = self._tileCounts;
-                each('TileCountsAvailable', (s) => s.TileCountsAvailable(counts));
+                SystemLoader.Call('TileCountsAvailable', counts);
             });
 
             // Fora do mundo não há varredura: a contagem do mundo anterior
             // valeria no novo até a primeira dele (alguns quadros).
-            const reset = () => each('ResetNearbyTileEffects', (s) => s.ResetNearbyTileEffects());
+            const reset = () => SystemLoader.Call('ResetNearbyTileEffects');
             WorldGen['void SaveAndQuit()'].hook((original) => {
                 reset();
                 original();
@@ -117,12 +176,6 @@ class SystemLoader {
             });
         });
 
-        if (has('PostUpdateEverything')) Hooks.Once('system.UpdateEverything', () => {
-            Main['void DoUpdateInWorld()'].hook((original, self) => {
-                original(self);
-                each('PostUpdateEverything', (s) => s.PostUpdateEverything());
-            });
-        });
     }
 
     // <mundo>.wld.bl.json

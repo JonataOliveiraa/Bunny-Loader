@@ -1,0 +1,17 @@
+{
+  "uid": "7e6acfa4-adfe-4c74-bdd5-cc7abb40df06",
+  "id": "bunny.modsystemhooks",
+  "name": "ModSystem native checks",
+  "version": "1.0.0",
+  "description": "Temporary ModSystem integration fixture",
+  "entry": "main.js",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Verificacoes nativas de ModSystem",
+  "dependencies": []
+}

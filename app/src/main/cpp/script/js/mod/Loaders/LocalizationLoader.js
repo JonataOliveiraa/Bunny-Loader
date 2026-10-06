@@ -9,6 +9,15 @@ class LocalizationLoader {
     static #scheduled = false;
     static #templates = new Map();
     static #culture;
+    static #loaded = [];
+
+    static WantLoaded(callback) {
+        LocalizationLoader.#loaded.push(callback);
+        LocalizationLoader.#Hook();
+        if (LocalizationLoader.#scheduled) return;
+        LocalizationLoader.#scheduled = true;
+        Ready.Add(() => LocalizationLoader.#ApplyAll(ModLocalization.ActiveCultureName), 'groups');
+    }
 
     static get CultureName() {
         return LocalizationLoader.#culture || ModLocalization.ActiveCultureName;
@@ -217,6 +226,7 @@ class LocalizationLoader {
             if (keys.length) Safe.Run('ModLocalization ' + label, () => LocalizationLoader.#Write(keys, texts));
         }
         Terraria.UI.ItemTooltip['void InvalidateTooltips()']();
+        for (const callback of LocalizationLoader.#loaded) Safe.Run('OnLocalizationsLoaded', callback);
     }
 
     // O mesmo formato dos arquivos do jogo, { Categoria: { Chave: texto } },

@@ -43,6 +43,8 @@ const PlayerDrawLayers = Object.fromEntries([
 ].map(([name, suffix]) => [name, new PlayerDrawLayer(name, 'DrawPlayer_' + suffix)]));
 
 class PlayerDrawHooks {
+    static #cameraPlayer = false;
+    static #cameraSystem = false;
     static #drawing = null;
     static #nativeLayers = Object.values(PlayerDrawLayers);
     static #native = new Set(PlayerDrawHooks.#nativeLayers);
@@ -79,6 +81,23 @@ class PlayerDrawHooks {
         try { entry.layer.SetStaticDefaults(); }
         catch (error) { Safe.Report(entry.label + '.SetStaticDefaults', error); }
         PlayerDrawHooks.#revision++;
+    }
+
+    static InstallCamera(forPlayer) {
+        if (forPlayer) PlayerDrawHooks.#cameraPlayer = true;
+        else PlayerDrawHooks.#cameraSystem = true;
+        Hooks.Once('camera.ScreenPosition', () => {
+            const Main = Terraria.Main;
+            Main['void DoDraw_UpdateCameraPosition()'].hook(original => {
+                original();
+                if (Main.gameMenu) return;
+                if (PlayerDrawHooks.#cameraPlayer) {
+                    const player = Main.player[Main.myPlayer];
+                    if (player) PlayerLoader.Call(player, 'ModifyScreenPosition');
+                }
+                if (PlayerDrawHooks.#cameraSystem) SystemLoader.Call('ModifyScreenPosition');
+            });
+        });
     }
 
     static #Resolve(value) {
@@ -240,13 +259,7 @@ class PlayerDrawHooks {
             });
         });
         want(cls, ['HideDrawLayers', 'ModifyDrawLayerOrdering'], 'player.DrawLayers', PlayerDrawHooks.#Layers);
-        want(cls, ['ModifyScreenPosition'], 'player.ScreenPosition', () => {
-            Terraria.Main['void DoDraw_UpdateCameraPosition()'].hook((original) => {
-                original();
-                const player = Terraria.Main.player[Terraria.Main.myPlayer];
-                if (player && !Terraria.Main.gameMenu) PlayerLoader.Call(player, 'ModifyScreenPosition');
-            });
-        });
+        want(cls, ['ModifyScreenPosition'], 'player.ScreenPosition', () => PlayerDrawHooks.InstallCamera(true));
         want(cls, ['ModifyZoom'], 'player.Zoom', () => {
             Terraria.Graphics.SpriteViewMatrix['void set_Zoom(Vector2 value)'].hook((original, matrix, value) => {
                 const Main = Terraria.Main;

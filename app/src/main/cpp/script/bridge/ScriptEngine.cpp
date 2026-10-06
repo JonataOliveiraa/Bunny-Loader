@@ -1,6 +1,7 @@
 #include "script/bridge/ScriptEngine.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
+#include "script/api/SystemHooks.h"
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
@@ -313,6 +314,25 @@ void ScriptEngine::shutdown() {
     if (!ready_) return;
     JsLock lock;
     g_frameSlot = nullptr;   // e do runtime que vai embora
+    auto* ctx = static_cast<JSContext*>(context_);
+    JSValue global = JS_GetGlobalObject(ctx);
+    JSValue api = JS_GetPropertyStr(ctx, global, "bl");
+    JSValue unload = JS_GetPropertyStr(ctx, api, "__unloadMods");
+    if (JS_IsFunction(ctx, unload)) {
+        JSValue result = JS_Call(ctx, unload, api, 0, nullptr);
+        if (JS_IsException(result)) {
+            JSValue error = JS_GetException(ctx);
+            const char* message = JS_ToCString(ctx, error);
+            BL_ERROR("OnModUnload: %s", message ? message : "erro no callback");
+            if (message) JS_FreeCString(ctx, message);
+            JS_FreeValue(ctx, error);
+        }
+        JS_FreeValue(ctx, result);
+    }
+    JS_FreeValue(ctx, unload);
+    JS_FreeValue(ctx, api);
+    JS_FreeValue(ctx, global);
+    releaseSystemBindings(context_);
     releaseModLoader(static_cast<JSContext*>(context_));
     JS_FreeContext(static_cast<JSContext*>(context_));
     JS_FreeRuntime(static_cast<JSRuntime*>(runtime_));

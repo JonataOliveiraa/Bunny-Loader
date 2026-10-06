@@ -3,7 +3,7 @@ Object.assign(globalThis, {
     Mod, ModLoader, ModContent, ModLocalization, ModConfig,
     ModItem, ItemLoot, ModRecipe, DamageClass, DamageClassLoader, StatModifier, StatInheritanceData, TooltipLine, DrawableTooltipLine, ModRarity, RarityLoader, EquipType, EquipLoader, EquipTexture,
     ModPrefix, PrefixCategory, PrefixLoader,
-    ModSystem, TagCompound, ModSceneEffect, ModBiome,
+    ModSystem, GenPass, PassLegacy, TagCompound, ModSceneEffect, ModBiome,
     ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, BackgroundTextureLoader,
     ModWaterStyle, ModWaterfallStyle, ModMenu,
     ModPlayer, ExtraJump, PlayerDrawLayer, PlayerDrawLayers, ModBuff, ModMount, MountTextureType, ModTile, ModWall, ModProjectile,

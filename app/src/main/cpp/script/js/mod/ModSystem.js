@@ -1,8 +1,12 @@
 class ModSystem {
     OnModLoad() {}
+    OnModUnload() {}
+    OnLocalizationsLoaded() {}
+    ResizeArrays() {}
     AddRecipeGroups() {}
     AddRecipes() {}
     PostAddRecipes() {}
+    PostSetupRecipes() {}
     PostSetupContent() {}
 
     // OnWorldLoad antes do LoadWorldData, PostWorldLoad depois; no cliente de
@@ -11,6 +15,15 @@ class ModSystem {
     LoadWorldData(tag) {}
     PostWorldLoad() {}
     SaveWorldData(tag) {}
+    SaveWorldHeader(tag) {}
+    CanWorldBePlayed(playerData, worldData) { return true; }
+    WorldCanBePlayedRejectionMessage(playerData, worldData) {
+        return 'O personagem ' + playerData.Name + ' não pode entrar no mundo ' + worldData.Name + '.';
+    }
+    PreWorldGen() {}
+    ModifyWorldGenTasks(tasks) {}
+    PostWorldGen() {}
+    ModifyHardmodeTasks(tasks) {}
     ClearWorld() {}
     PreSaveAndQuit() {}
     OnWorldUnload() {}
@@ -21,6 +34,28 @@ class ModSystem {
     PreUpdateTime() {}
     PostUpdateTime() {}
     PostUpdateEverything() {}
+    UpdateUI(gameTime) {}
+    PostUpdateInput() {}
+    PreUpdateEntities() {}
+    PreUpdatePlayers() {}
+    PostUpdatePlayers() {}
+    PreUpdateNPCs() {}
+    PostUpdateNPCs() {}
+    PreUpdateGores() {}
+    PostUpdateGores() {}
+    PreUpdateProjectiles() {}
+    PostUpdateProjectiles() {}
+    PreUpdateItems() {}
+    PostUpdateItems() {}
+    PreUpdateDusts() {}
+    PostUpdateDusts() {}
+    PreUpdateInvasions() {}
+    PostUpdateInvasions() {}
+    ModifyTimeRate(timeRate, tileUpdateRate, eventUpdateRate) {}
+    ModifySunLightColor(tileColor, backgroundColor) {}
+    ModifyLightingBrightness(scale) {}
+    ModifyScreenPosition() {}
+    ModifyTransformMatrix(transform) {}
 
     // A contagem de blocos em volta do jogador local (a cada 5 quadros, a do
     // jogo): Reset antes de contar, TileCountsAvailable no fim. O Reset vem
@@ -31,6 +66,8 @@ class ModSystem {
 
     NetSend(writer) {}
     NetReceive(reader) {}
+    HijackGetData(messageType, reader, playerNumber) { return false; }
+    HijackSendData(whoAmI, msgType, remoteClient, ignoreClient, text, number, number2, number3, number4, number5, number6, number7) { return false; }
 
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModSystem)) {
@@ -38,18 +75,15 @@ class ModSystem {
         }
 
         const inst = new cls();
-        const name = cls.name;
         Templates.Adopt(cls, inst);
         SystemLoader.Add(inst);
-        Safe.Run(name + '.OnModLoad', () => inst.OnModLoad());
-
-        Ready.Add(() => inst.AddRecipeGroups(), 'groups');
-        Ready.Add(() => {
-            inst.AddRecipes();
-            Safe.Run(name + '.PostAddRecipes', () => inst.PostAddRecipes());
-            inst.PostSetupContent();
-        });
-
+        SystemLoader.Invoke(inst, 'OnModLoad');
+        Ready.Add(() => SystemLoader.Invoke(inst, 'ResizeArrays'), 'resize');
+        Ready.Add(() => SystemLoader.Invoke(inst, 'AddRecipeGroups'), 'groups');
+        Ready.Add(() => SystemLoader.Invoke(inst, 'AddRecipes'), 'recipes');
+        Ready.Add(() => SystemLoader.Invoke(inst, 'PostAddRecipes'), 'postRecipes');
+        Ready.Add(() => SystemLoader.Invoke(inst, 'PostSetupContent'));
+        Ready.Add(() => SystemLoader.Invoke(inst, 'PostSetupRecipes'), 'finish');
         SystemLoader.Hook(cls);
         return inst;
     }

@@ -96,9 +96,9 @@ class ModRegistry {
         mod.Load();
         Ready.Add(() => Safe.Run(name + '.AddRecipeGroups', () => mod.AddRecipeGroups()), 'groups');
         Ready.Add(() => {
-            Safe.Run(name + '.AddRecipes', () => mod.AddRecipes());
             Safe.Run(name + '.PostSetupContent', () => mod.PostSetupContent());
         }, 'mods');
+        Ready.Add(() => Safe.Run(name + '.AddRecipes', () => mod.AddRecipes()), 'recipes');
         return mod;
     }
 
