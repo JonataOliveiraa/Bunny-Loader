@@ -476,6 +476,15 @@ const vermelho = TooltipLine.colorTag('fogo', Color.new(255, 60, 30));
 tooltips.push(new TooltipLine(this.Mod, 'Elemento', 'Dano de ' + vermelho));
 ```
 
+Para o **ícone de um item** no meio do texto, `[i:tipo]`, com o número do
+item, do jogo ou de mod. Ele sai do tamanho da letra, em linha de qualquer cor,
+e vale no texto que o jogo desenha com a fonte, como o tooltip e o cabeçalho
+da Config. dos Mods.
+
+```js
+tooltips.push(new TooltipLine(this.Mod, 'Troca', `Troque por [i:${ModContent.ItemType(ExampleItem)}]`));
+```
+
 O logo da One Drop, o dos ioiôs licenciados do jogo, é uma linha sem texto com
 `OneDropLogo = true`. O `ExampleYoyo` põe o dele no fim:
 

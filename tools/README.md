@@ -27,6 +27,55 @@ tools/dumpgrep.sh Projectile Terraria           # inspecionar uma classe
 Não haverá empacotador de `.bmod`: o pacote é montado à mão pelo autor, com a
 documentação como referência.
 
+## Baixar e extrair mods do tModLoader
+
+Dois cliques em [`mods/baixar-tmod.bat`](mods/baixar-tmod.bat), cole um link do
+Workshop e aguarde. Também aceita IDs e vários links pela linha de comando:
+
+```powershell
+python tools/mods/tmod.py "https://steamcommunity.com/sharedfiles/filedetails/?id=3810452158"
+python tools/mods/tmod.py 3810452158 2824688072
+python tools/mods/tmod.py --local "C:/Mods/MeuMod.tmod"
+```
+
+Precisa de **Windows e Python 3.10+**. O script prepara versões portáteis do
+[SteamCMD oficial](https://developer.valvesoftware.com/wiki/SteamCMD),
+[tModUnpacker 1.3](https://github.com/IVogel/tModUnpacker/releases/tag/1.3) e
+[7-Zip standalone](https://www.7-zip.org/download.html) em `build/tmod-tools/`.
+O unpacker usa o .NET Framework 4.6.1 ou posterior do Windows; não precisa do
+SDK .NET. A release do unpacker tem SHA-256 fixado no script.
+No primeiro uso, a atualização do próprio SteamCMD pode levar alguns minutos;
+o script continua automaticamente quando o bootstrap termina de atualizar.
+
+Cada execução gera uma pasta nova em `out/tmod/<ID>/<data-hora>-<sufixo>/`:
+
+- `tmod/`: os `.tmod` originais, preservando as pastas de versões do Workshop.
+- `extraido/`: uma pasta por pacote/versão; dentro dela, o unpacker cria a pasta
+  com o nome interno do mod, recursos e DLLs. `.rawimg` vira `.png`.
+- `steamcmd.log` e `logs/`: diagnóstico de download e extração.
+
+Todos os `.tmod` do item são extraídos. Resultados anteriores são preservados.
+`--local` faz só a extração; `--out PASTA` muda a saída; `--cache PASTA` muda o
+cache; `--steamcmd CAMINHO.exe` e `--unpacker CAMINHO.exe` usam ferramentas já
+instaladas. `--timeout 900` é o limite padrão, em segundos, por chamada. Em
+lotes, uma falha é registrada e os outros itens continuam; qualquer falha
+resulta em código de saída 1.
+
+O download usa acesso anônimo, como o
+[script de servidor do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/release_extras/DedicatedServerUtils/manage-tModLoaderServer.sh).
+Itens privados, removidos, de outro jogo ou restritos podem não baixar.
+O script confere a confirmação do SteamCMD, a estrutura e o hash do `.tmod`,
+e recusa nomes internos que escapariam da pasta de extração.
+
+Extrair não descompila as DLLs em C# e não converte o mod para o Bunny Loader.
+O conteúdo extraído depende do que o autor incluiu no pacote.
+
+Teste das validações, sem rede:
+
+```powershell
+python -m unittest discover -s tools/mods -p test_tmod.py -v
+```
+
 ## Catálogo online
 
 Os mods que a aba Explorar baixa moram neste mesmo repositório, sem servidor:
@@ -40,6 +89,18 @@ O app lê tudo sem login (`raw.githubusercontent.com` e o link de download da
 Release) e confere o sha256 do índice antes de instalar
 ([`RemoteCatalog.kt`](../app/src/main/kotlin/dev/bunnyloader/mods/RemoteCatalog.kt)).
 Não há token no APK. Só publicar pede um, no PC.
+
+Ao abrir ou voltar ao launcher, o app consulta o catálogo. Durante a busca,
+Início e Explorar mostram o ícone girando e o progresso das vitrines; a última
+lista baixada continua disponível. Explorar também tem **Atualizar loja**.
+As vitrines são sincronizadas com até quatro operações simultâneas.
+
+Uma versão online mais nova de um mod instalado abre um popup com **Atualizar**,
+**Atualizar todos** e **Agora não**. Cada UID/versão é anunciado uma vez, quando
+o popup fica visível; dispensá-lo mantém o botão de atualização na ficha. Uma
+versão posterior gera outro aviso. Downloads seguem ao fechar o popup, com
+até três pacotes simultâneos e importação serializada. Sem rede, versões novas
+já conhecidas pelo cache também podem ser anunciadas.
 
 **O jeito fácil:** dois cliques em [`mods/gerenciar.bat`](mods/gerenciar.bat) (ou
 `python tools/mods/manager.py`). Abre uma página no navegador
@@ -57,6 +118,12 @@ branch) e faz o push do índice:
 Só o ExampleMod vai dentro do APK (`BUNDLED_SAMPLES` no `app/build.gradle.kts`).
 Os outros de `samples/` são publicados aqui. [`mods/pack.py`](mods/pack.py) gera o
 `.bl` de uma pasta, sempre com os mesmos bytes, em `build/mods-packs/`.
+
+[`mods/port_textures.py`](mods/port_textures.py) copia as imagens de resource
+packs do Workshop local para `ports/textures/`, cria `manifest.json` com autoria
+e gera os `.bl`, sem exigir `main.js`. Exemplo:
+`python tools/mods/port_textures.py 2439853873 2796830227`.
+O inventario e a validacao dos ports estao em `ports/textures/README.md`.
 
 O token pode vir de `BL_GITHUB_TOKEN`; sem ela, o script pede na hora, sem
 mostrar na tela.

@@ -24,6 +24,8 @@ ordem de leitura.
 10. [Sons e música](mods/10-sons-e-musica.md)
 11. [Conversa entre mods](mods/11-conversa-entre-mods.md)
 
+[Pacotes de textura](mods/14-pacotes-de-textura.md): substituição de sprites usando PNGs, sem scripts.
+
 ## Para consultar
 
 - [Métodos por classe](referencia/metodos.md): índice completo gerado da API
@@ -36,6 +38,8 @@ ordem de leitura.
   tModLoader.
 - [Hooks de ModPlayer](referencia/modplayer-hooks.md): contratos de combate,
   itens, saltos, desenho, inventário, save e rede.
+- [PlayerDrawLayer](referencia/playerdrawlayers.md): camadas personalizadas e inserção no cache de desenho.
+- [Hooks de ModSystem](referencia/modsystem-hooks.md): geração, etapas GenPass, atualização, iluminação e rede.
 - [Uso e munição de ModItem](referencia/moditem-uso-municao.md): animação, frames, seleção, consumo e diferenças do jogo móvel.
 - [Cura de ModItem](referencia/moditem-cura.md): cura normal e rápida, refs, atraso de poções e composição com ModPlayer.
 - [Combate de ModItem](referencia/moditem-combate.md): modificadores, permissões,

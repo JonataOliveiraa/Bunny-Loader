@@ -52,7 +52,15 @@ PAGES = {
     "docs/mods/13-pagina-do-pacote.md": "Página-do-pacote",
     "docs/mods/14-opcoes-do-mod.md": "Opções-do-mod",
     "docs/mods/15-classes-de-dano.md": "Classes-de-dano",
+    "docs/mods/14-pacotes-de-textura.md": "Pacotes-de-textura",
     "docs/referencia/classes.md": "Referência-das-classes",
+    "docs/referencia/metodos.md": "Métodos-por-classe",
+    "docs/referencia/modplayer-hooks.md": "Hooks-de-ModPlayer",
+    "docs/referencia/moditem-combate.md": "ModItem-combate",
+    "docs/referencia/moditem-uso-municao.md": "ModItem-uso-e-munição",
+    "docs/referencia/moditem-cura.md": "ModItem-cura",
+    "docs/referencia/playerdrawlayers.md": "PlayerDrawLayer",
+    "docs/referencia/modsystem-hooks.md": "Hooks-de-ModSystem",
     "docs/referencia/ponte-e-bl.md": "Referência-da-ponte-e-bl",
     "docs/nucleo/README.md": "Núcleo",
     "docs/nucleo/hooks.md": "Núcleo-hooks",
@@ -91,9 +99,17 @@ SIDEBAR = [
         ("Página-do-pacote", "13. A página do pacote"),
         ("Opções-do-mod", "14. Opções do mod"),
         ("Classes-de-dano", "15. Classes de dano"),
+        ("Pacotes-de-textura", "Pacotes de textura"),
     ]),
     ("Referência", [
         ("Referência-das-classes", "O que cada classe tem hoje"),
+        ("Métodos-por-classe", "Métodos por classe e planilhas"),
+        ("Hooks-de-ModPlayer", "Hooks de ModPlayer"),
+        ("ModItem-combate", "ModItem: combate"),
+        ("ModItem-uso-e-munição", "ModItem: uso e munição"),
+        ("ModItem-cura", "ModItem: cura"),
+        ("PlayerDrawLayer", "Camadas de desenho do jogador"),
+        ("Hooks-de-ModSystem", "Hooks de ModSystem e geração"),
         ("Referência-da-ponte-e-bl", "A ponte e o `bl`"),
     ]),
     ("O núcleo nativo", [
@@ -247,8 +263,12 @@ def main():
     if not os.path.isdir(os.path.join(dest, ".git")):
         sys.exit(f"{dest} não é um clone da wiki (falta o .git)")
 
-    docs = {os.path.relpath(os.path.join(d, f), ROOT).replace(os.sep, "/")
-            for d, _, fs in os.walk(os.path.join(ROOT, "docs")) for f in fs if f.endswith(".md")}
+    docs = set()
+    for directory, folders, files in os.walk(os.path.join(ROOT, "docs")):
+        if directory == os.path.join(ROOT, "docs"):
+            folders[:] = [name for name in folders if name != "local"]
+        docs.update(os.path.relpath(os.path.join(directory, name), ROOT).replace(os.sep, "/")
+                    for name in files if name.endswith(".md"))
     conv = Converter()
     for missing in sorted(docs - PAGES.keys()):
         conv.errors.append(f"{missing} não está em PAGES")

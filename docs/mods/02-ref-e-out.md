@@ -231,9 +231,9 @@ Para mudar o jogo, faça isso **dentro** do hook.
 
 ## Limites
 
-- **Chamar** com `ref`/`out` funciona pelo caminho direto da ponte, que é o de
-  quase todo método. Um método que cai no `runtime_invoke` (sem código próprio,
-  ou com float demais indo pela pilha) recusa o `ref`, com mensagem.
+- **Chamar** com `ref`/`out` funciona nos dois caminhos da ponte: o direto (quase
+  todo método) e o `runtime_invoke` (sem código próprio, ou com float demais
+  indo pela pilha, como o `Collision.CheckAABBvLineCollision(..., ref float)`).
 - Cada `ref`/`out` conta como um argumento inteiro (é um ponteiro) nos limites
   de hook: até 16 inteiros contando `this`, e 8 de ponto flutuante. O
   `RollDropLevels`, com 9, cabe.

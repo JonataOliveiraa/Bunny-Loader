@@ -122,6 +122,18 @@ Os parâmetros `ref` do tModLoader chegam como `Ref`: leia e escreva
 `i` e `j` são a posição em **tiles** (pixels / 16). `bl.tiles.typeAt(x, y)`
 dá o tipo do tile ativo numa posição (-1 se não há).
 
+**O toque no celular.** O jogo só trata o toque num tile como interação (e
+chama o `RightClick`) quando o ícone do cursor está ligado, o que no PC o
+`MouseOver` faz só por enfeite. Tile de mod com `RightClick` cujo `MouseOver`
+não liga o ícone ganha o do item que o coloca, sozinho. Para outro ícone,
+ligue no `MouseOver`: `player.cursorItemIconEnabled = true`,
+`player.cursorItemIconID = item` e `player.noThrow = 2`, como a cômoda do
+Example Mod. O `RightClick` roda uma vez por toque.
+
+A cômoda de mod (`TileID.Sets.BasicDresser`) funciona como a do jogo: o baú
+continua aberto e a janela de roupas abre pela gaveta de baixo. O jogo do
+celular só aceitava a cômoda dele (tipo 88) nas duas coisas.
+
 Os hooks do `ModTile` só entram no JS para **tile de mod** (filtro nativo, que
 lê o tipo direto do mundo), e os de todo quadro (luz, desenho, animação) só
 para os tipos que **sobrescrevem** aquele método: as marcas do
@@ -244,7 +256,9 @@ uma entrada de mod não existe no jogo sem o mod. Por isso, ao salvar, os
 pontos de tile de mod saem do `.map` (ficam escuros) e vão para um arquivo ao
 lado, o `<mapa>.map.bl`, pelo nome do tile. Ao carregar, eles voltam. Sem o
 mod, o jogo vê esses pontos como não explorados, e o `.map.bl` os guarda até
-o mod voltar.
+o mod voltar. Isso vale também para o pedaço do mapa que o jogo comprime fora
+da gravação, ao descarregar ou reciclar: os pontos de mod ficam guardados à
+parte e voltam quando o pedaço volta.
 
 ## Paredes (ModWall)
 
@@ -315,9 +329,18 @@ Pelo nome ou pela classe: `ModContent.WallType('ExampleWall')`,
 O mundo salvo continua abrindo sem o mod, como com os blocos: o `.wld` nunca
 leva parede de mod. Elas vão para um arquivo ao lado, o
 `<mundo>.wld.walls.bl` (posição, tinta e `<uid>/<Classe>`), e voltam ao
-carregar, com a tinta. Sem o mod, o lugar fica sem parede, e o arquivo guarda
-a parede até o mod voltar. No mapa é igual aos blocos: os pontos de parede de
+carregar, com a tinta. No mapa é igual aos blocos: os pontos de parede de
 mod saem do `.map` e vão para o `.map.bl`.
+
+Sem o mod, o lugar recebe a **parede não carregada** do Bunny Loader (a
+`UnloadedWall` do tModLoader, quadriculada de magenta). Ela segura o que está
+preso na parede, como quadros e tochas, e o arquivo guarda a parede original
+até o mod voltar: aí a original volta no lugar dela. Quebrar a parede não
+carregada perde a original daquela casa, como no tModLoader.
+
+`VanillaFallbackOnModDeletion` existe na classe, mas ainda não faz nada: no
+tModLoader ele só vale ao apagar de vez os dados de um mod removido, comando
+que o Bunny Loader ainda não tem.
 
 Quanto custa (MuMu, 2130 paredes na tela, `tools/tests/wallperf`): parede de
 mod só com textura custa o mesmo que a do jogo. O `ModifyLight` é o caro: roda

@@ -259,8 +259,13 @@ const { CustomCurrencyManager, CustomCurrencySingleCoin } = Terraria.GameContent
 const currency = CustomCurrencySingleCoin.new();
 currency['void .ctor(int coinItemID, long currencyCap)'](ModContent.ItemType('ExampleItem'), 999);
 currency.CurrencyTextKey = ModLocalization.Key('CustomCurrency.ExampleItemCurrency');
+currency.CurrencyTextColor = Color.new(138, 43, 226);
 const id = CustomCurrencyManager.RegisterCurrency(currency);
 ```
+
+`CurrencyTextColor` é a cor do preço na loja. O jogo do celular a ignora (pinta
+todo preço de moeda própria com a mesma cor rosa); o Bunny Loader desenha esse
+tooltip ele mesmo e usa a cor da moeda. Sem ela, fica o rosa do jogo.
 
 ### Felicidade
 

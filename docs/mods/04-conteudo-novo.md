@@ -315,6 +315,13 @@ if (m instanceof Carregavel) bl.log(m.carga);
 `ModItem.getModItem(tipo)` e `ModContent.GetInstance(Classe)` devolvem o
 **molde**, não a instância de um item.
 
+**Nada de `#privado` de instância** numa classe de conteúdo (`#carga`,
+`#Piscar()`): a instância é uma cópia do molde (`Object.create`), e o JS só
+aceita um membro `#` num objeto que o construtor da classe montou. O primeiro
+uso lança `TypeError: invalid brand on object`. Use nomes comuns
+(`this.carga`, `this.Piscar()`). O `static #` (na classe, não na instância)
+funciona.
+
 Quando o jogo copia um item (`Item.Clone`), a cópia ganha um `Clone()` da
 instância do original, com o estado dela. O `Clone` padrão copia os campos
 rasos (o `MemberwiseClone` do C#); sobrescreva se tiver array ou objeto seu

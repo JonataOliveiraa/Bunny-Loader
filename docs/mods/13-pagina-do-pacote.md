@@ -16,6 +16,7 @@ MeuMod/
   changelog.md        aba Novidades (opcional)
   license.md          aba Licença (opcional)
   icon.png            ícone quadrado, na lista
+  icon.gif            o ícone animado, no launcher (opcional)
   banner.png          capa da ficha, ~3,4:1 (ex.: 384x112)
   thumbnails/         imagens extras, no pé da Descrição (opcional)
   docs/               o que mais você quiser mostrar (opcional)
@@ -29,6 +30,19 @@ A ficha fica assim, de cima para baixo:
    remover, exportar) e os **links** do manifesto;
 3. as **abas**: Descrição, Novidades, Licença, Créditos e as que você criar.
    Descrição aparece sempre; as outras dependem dos arquivos e campos do pacote.
+
+### Ícone animado
+
+Um `icon.gif` ao lado do `icon.png` deixa o ícone animado no launcher (lista,
+destaque e ficha). O GIF tem a preferência; o `icon.png` continua sendo o
+ícone do mod **dentro do jogo** (o menu de mods e as Config. dos Mods não
+animam), então mande os dois. Sem filtro, como o PNG: o pixel fica quadrado.
+
+- quadrado, de até 512x512 (passou disso, o launcher usa o `icon.png`);
+- o tempo de cada quadro vem do GIF; quadro sem tempo, ou de 10 ms, fica 100 ms;
+- transparência e quadros parciais funcionam;
+- um GIF muito longo é cortado nos primeiros quadros (uns 4 milhões de pixels
+  ao todo: 60 quadros de 256x256, ou 975 de 64x64).
 
 Salve os documentos em **UTF-8**, com os nomes em minúsculas como no exemplo.
 Ao exportar o `.bl`, esses documentos e a pasta `authors/` vão junto com o mod.
