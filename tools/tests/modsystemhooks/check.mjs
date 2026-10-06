@@ -259,6 +259,29 @@ test('GenPass validates names callbacks and weights', () => {
     assert.throws(()=>new PassLegacy('',()=>{})); assert.throws(()=>new PassLegacy('Bad',null)); assert.throws(()=>new PassLegacy('Bad',()=>{},-1));
     const pass=new PassLegacy('Custom',()=>{},2); assert.equal(pass.Name,'Custom'); assert.equal(pass.Weight,2); pass.Disable(); assert.equal(pass.Enabled,false); pass.Enable(); assert.equal(pass.Enabled,true);
 });
+
+test('Direct GenPass subclass runs through native ApplyPass with instance state', () => {
+    class Custom extends GenPass {
+        constructor() { super('Subclass',2); this.calls=0; }
+        ApplyPass(progress,config) { this.calls++; this.progress=progress; this.config=config; }
+    }
+    const pass=new Custom(), progress={}, config={};
+    const apply=native('Terraria.GameContent.Generation.PassLegacy')['void ApplyPass(GenerationProgress progress, GameConfiguration configuration)'];
+    pass.Disable(); apply(pass.Native,progress,config); assert.equal(pass.calls,0);
+    pass.Enable(); apply(pass.Native,progress,config);
+    assert.equal(pass.calls,1); assert.equal(pass.progress,progress); assert.equal(pass.config,config);
+    pass.Weight=5; assert.equal(pass.Native.Weight,5); assert.throws(()=>pass.Weight=NaN);
+    assert.equal(pass.Weight,5);
+});
+
+test('A failing GenPass subclass does not prevent the next legacy pass', () => {
+    class Failure extends GenPass { ApplyPass() { throw Error('subclass fixture'); } }
+    let calls=0;
+    const bad=new Failure('Fail'), next=new PassLegacy('Next',()=>calls++), count=errors.length;
+    const apply=native('Terraria.GameContent.Generation.PassLegacy')['void ApplyPass(GenerationProgress progress, GameConfiguration configuration)'];
+    apply(bad.Native,{},{}); apply(next.Native,{},{});
+    assert.equal(calls,1); assert.equal(errors.length,count+1);
+});
 test('World passes insert reorder disable and complete', () => {
     const order=[];
     const p=new PassLegacy('Native',()=>order.push('native'),2);

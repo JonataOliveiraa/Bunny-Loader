@@ -1,0 +1,20 @@
+version=301720 mode=singleplayer full-world-generation=true
+GENPASS_CREATE {"worldName":"BL_GenPass_full-20261006-a","creatorThread":1}
+GENPASS_PRE {"generationThread":5,"managedThread":"worldGenCallback"}
+GENPASS_TASKS {"count":110,"names":["BL GenPass Before","BL GenPass Disabled","Terrain","Dunes","Ocean Sand","Sand Patches","Tunnels","Mount Caves","Dirt Wall Backgrounds","Rocks In Dirt","Dirt In Rocks","Clay","Small Holes","Dirt Layer Caves","Rock Layer Caves","Surface Caves","Wavy Caves","Generate Ice Biome","Grass","Jungle","Mud Caves To Grass","Full Desert","Mushroom Patches","Marble","Granite","Floating Islands","Dirt To Mud","Silt","Shinies","Webs","Underworld","Corruption","Lakes","Slush","Dungeon","Mountain Caves","Beaches","Gems","Gravitating Sand","Create Ocean Caves","Shimmer","Clean Up Dirt","Pyramids","Dirt Rock Wall Runner","Living Trees","Wood Tree Walls","Altars","Wet Jungle","Jungle Temple","Hives","Jungle Chests","Settle Liquids","Remove Water From Sand","Oasis","Shell Piles","Smooth World","Waterfalls","Ice","Wall Variety","Life Crystals","Statues","Buried Chests","Surface Chests","Jungle Chests Placement","Water Chests","Spider Caves","Gem Caves","Moss","Temple","Cave Walls","Jungle Trees","Floating Island Houses","Quick Cleanup","Pots","Hellforge","Spreading Grass","Surface Ore and Stone","Place Fallen Log","Traps","Piles","Spawn Point","Grass Wall","Guide","Sunflowers","Planting Trees","Herbs","Dye Plants","Webs And Honey","Weeds","Glowing Mushrooms and Jungle Plants","Jungle Plants","Vines","Flowers","Mushrooms","Gems In Ice Biome","Random Gems","Moss Grass","Muds Walls In Jungle","Larva","Micro Biomes","Settle Liquids Again","Cactus, Palm Trees, & Coral","Tile Cleanup","Lihzahrd Altars","Water Plants","Stalac","Remove Broken Traps","Final Cleanup","BL GenPass Structure","BL PassLegacy After"]}
+GENPASS_CALLBACK {"name":"genpass-before","thread":5}
+GENPASS_PROGRESS {"count":10,"name":"Clay"}
+GENPASS_PROGRESS {"count":20,"name":"Full Desert"}
+GENPASS_PROGRESS {"count":30,"name":"Corruption"}
+GENPASS_PROGRESS {"count":40,"name":"Clean Up Dirt"}
+GENPASS_PROGRESS {"count":50,"name":"Settle Liquids"}
+GENPASS_PROGRESS {"count":60,"name":"Buried Chests"}
+GENPASS_PROGRESS {"count":70,"name":"Floating Island Houses"}
+GENPASS_PROGRESS {"count":80,"name":"Grass Wall"}
+GENPASS_PROGRESS {"count":90,"name":"Vines"}
+GENPASS_PROGRESS {"count":100,"name":"Cactus, Palm Trees, & Coral"}
+GENPASS_CALLBACK {"name":"genpass-structure","thread":5}
+GENPASS_CALLBACK {"name":"passlegacy-after","thread":5}
+GENPASS_GENERATED {"worldName":"BL_GenPass_full-20261006-a","generationThread":5,"creatorThread":1,"managedThread":"worldGenCallback","size":[4200,1200],"nativePasses":106,"nativeExecuted":106,"events":["pre","genpass-before","genpass-structure","passlegacy-after","post"],"subclassRuns":1,"legacyRuns":1,"disabledRuns":0,"matchingTiles":35,"failures":[],"passed":true}
+GENPASS_SAVED {"valid":true,"path":"/storage/emulated/0/Android/data/com.bunnyloader/Worlds/BL_GenPass_full-20261006-a.wld","matchingTiles":35,"failures":[]}
+GENPASS_RELOADED {"worldName":"BL_GenPass_full-20261006-a","matchingTiles":35,"generationCallbacksThisProcess":0,"failures":[],"passed":true}

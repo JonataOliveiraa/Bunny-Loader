@@ -82,4 +82,4 @@ if (worldData.TryGetHeaderData(MySystem, header)) {
 
 ## Validação
 
-Veja [suíte e limites dos testes](../../tools/tests/modsystemhooks/README.md). O teste do gerador usa etapas temporárias no gerador real; ele não substitui uma geração completa de terreno nem uma conversão completa de Hardmode. Os testes de rede desta rodada não equivalem a uma sessão multiplayer entre dispositivos.
+Veja [suíte e limites dos testes](../../tools/tests/modsystemhooks/README.md). Além do gerador sintético, o [teste de geração completa](../../tools/tests/genpassworld/README.md) criou um mundo de 4200 × 1200 pela thread normal `worldGenCallback`, mantendo as 106 etapas nativas. Subclasses diretas de GenPass e um PassLegacy executaram na ordem esperada; os 35 blocos da estrutura persistiram após salvar, reiniciar o processo e carregar o mundo. A conversão completa de Hardmode não foi executada. Os testes de rede desta rodada não equivalem a uma sessão multiplayer entre dispositivos.

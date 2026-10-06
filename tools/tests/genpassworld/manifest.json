@@ -1,0 +1,14 @@
+{
+  "uid": "e69540ec-cd02-4d6c-97ee-1c96eae0d8c2",
+  "id": "bunny.genpassworld",
+  "name": "GenPass full world checks",
+  "version": "1.0.0",
+  "description": "Temporary full world generation and reload fixture",
+  "entry": "main.js",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Verificacoes completas de GenPass e PassLegacy",
+  "dependencies": []
+}

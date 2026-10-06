@@ -12,10 +12,12 @@ parser.add_argument('action', choices=['prepare', 'cleanup'])
 parser.add_argument('--device', default='127.0.0.1:16384')
 parser.add_argument('--world')
 parser.add_argument('--run-id')
-parser.add_argument('--fixture', choices=['moditemhooks', 'playerdrawcache', 'playerdrawlayers', 'modsystemhooks', 'hookperf'], default='moditemhooks')
+parser.add_argument('--fixture', choices=['moditemhooks', 'playerdrawcache', 'playerdrawlayers', 'modsystemhooks', 'genpassworld', 'hookperf'], default='moditemhooks')
 parser.add_argument('--isolate', action='store_true')
 parser.add_argument('--classes', type=int, choices=[0, 1, 8], default=8)
 args = parser.parse_args()
+if args.fixture == 'genpassworld' and not args.run_id:
+    parser.error('--fixture genpassworld exige --run-id')
 fixture = ROOT / 'tools/tests' / args.fixture
 UID = str(UUID(json.loads((fixture / 'manifest.json').read_text(encoding='utf-8'))['uid']))
 OUTPUT = ROOT / 'build' / args.fixture
@@ -91,6 +93,10 @@ if args.action == 'prepare':
     if args.fixture == 'hookperf':
         config = OUTPUT / 'config.js'
         config.write_text('export const classCount = ' + str(args.classes) + ';\n', encoding='utf-8')
+        adb('push', str(config), staging + '/content/config.js')
+    if args.fixture == 'genpassworld':
+        config = OUTPUT / 'config.js'
+        config.write_text('export const worldName = ' + json.dumps('BL_GenPass_' + args.run_id) + ';\n', encoding='utf-8')
         adb('push', str(config), staging + '/content/config.js')
     adb('shell', 'su', '0', 'mkdir', '-p', target)
     adb('shell', 'su', '0', 'cp', '-R', staging + '/content', target + '/')
