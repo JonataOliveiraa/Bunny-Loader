@@ -1,5 +1,7 @@
 # Resultado da execução multiplayer
 
+Este relatório conserva a execução de 5 de outubro. A [rodada ampliada de 6 de outubro](RESULTADOS-DRAW-MODITEM.md) inclui ModItem e DrawDataCache, passou no desenho/reconexão e encontrou falhas de PvP.
+
 Execução em 5 de outubro de 2026, com dois processos reais do APK debug em emuladores MuMu. Host `127.0.0.1:16384`, jogador 0, `netMode = 3`; cliente `127.0.0.1:16416`, jogador 1, `netMode = 1`. O cliente entrou pela rede, teve o processo encerrado à força e reconectou ao mesmo host.
 
 | Etapa | Verificações | Falhas |

@@ -32,6 +32,10 @@ A primeira captura, com o marcador afastado do centro, não mostrou o desenho ap
 
 O processo foi encerrado, o fixture removido, suas preferências restauradas e a instância de teste desligada. O fixture não altera inventário ou dados do personagem. Esta validação foi em singleplayer; não é uma execução de multiplayer.
 
+## Validação posterior em multiplayer
+
+Na [rodada de 6 de outubro com dois processos](../mpmodplayer/RESULTADOS-DRAW-MODITEM.md), as 20 verificações iniciais e oito após reconexão passaram. A inserção manual e o helper chegaram ao renderer para o jogador local e remoto de ambos os processos, inclusive com reordenação de camadas. Os marcadores magenta e ciano ficaram visíveis nas duas telas, sem perdas nem mistura entre jogadores. As falhas de PvP encontradas nessa rodada não pertencem ao DrawDataCache.
+
 ## Regressões, build e documentação
 
 | Suíte | Verificações aprovadas |

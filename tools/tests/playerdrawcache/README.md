@@ -6,6 +6,8 @@ O hook de diagnóstico observa o cache depois de DrawPlayer_RenderAllLayers. O c
 
 O marcador fica próximo ao centro da tela para continuar visível com o zoom do jogo. A presença no cache não substitui a conferência da imagem. Veja os [resultados e os limites da reprodução](RESULTADOS.md).
 
+O [fixture multiplayer](../mpmodplayer/README.md) repete os três modos para o jogador local e remoto nos dois processos, incluindo reordenação e reconexão. Seus [resultados](../mpmodplayer/RESULTADOS-DRAW-MODITEM.md) registram 28 verificações de DrawDataCache aprovadas e conferência visual nas duas telas.
+
 Com uma instância Android de teste conectada e o APK instalado:
 
 ```powershell

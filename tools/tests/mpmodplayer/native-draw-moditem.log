@@ -1,0 +1,395 @@
+Execucao 2026-10-06, dois processos MuMu, APK SHA256 F91E09059537E238C8A813A42E8F306987B0B1094C5BC50C94211C1618B07C10
+
+host-inicial
+10-06 11:07:32.325 mpmodplayer carregado
+10-06 11:08:08.175 mpmodplayer contexto index=0 who=0 local=0 netMode=3
+10-06 11:08:08.176 mpmodplayer host INICIO jogador=0 netMode=3
+10-06 11:08:28.548 mpmodplayer host instancias e objetos separados: ok
+10-06 11:08:28.548 mpmodplayer host critico por jogador: ok
+10-06 11:08:28.549 mpmodplayer host knockback por jogador: ok
+10-06 11:08:28.549 mpmodplayer host escala por referencia: ok
+10-06 11:08:28.550 mpmodplayer host multiplicadores de tempo e velocidade: ok
+10-06 11:08:28.550 mpmodplayer host multiplicador de animacao: ok
+10-06 11:08:28.550 mpmodplayer host mana modificada e custo restaurado: ok
+10-06 11:08:28.551 mpmodplayer host mana insuficiente nao notifica consumo: ok
+10-06 11:08:28.551 mpmodplayer host blockQuickMana bloqueia OnMissingMana: ok
+10-06 11:08:28.551 mpmodplayer host mana parcial informa somente saldo consumido: ok
+10-06 11:08:28.551 mpmodplayer host veto de ItemCheck e PostItemCheck unico: ok
+10-06 11:08:28.553 mpmodplayer host veto de pocao: ok
+10-06 11:08:28.553 mpmodplayer host cura chama hooks e restaura item: ok
+10-06 11:08:28.554 mpmodplayer host pesca por referencia: ok
+10-06 11:08:28.556 mpmodplayer host clone profundo sem compartilhar instancia: ok
+10-06 11:08:28.557 mpmodplayer host teleporte vetado sem mudar posicao: ok
+10-06 11:08:28.557 mpmodplayer host visuais de salto vetados e estado restaurado: ok
+10-06 11:08:28.557 mpmodplayer host visuais de salto autorizados: ok
+10-06 11:08:28.557 mpmodplayer host refresh de salto: ok
+10-06 11:08:28.558 mpmodplayer host fim de salto: ok
+10-06 11:08:28.561 mpmodplayer host veto e inicio de salto extra: ok
+10-06 11:08:28.561 mpmodplayer host bonus de armadura ativado e mantido: ok
+10-06 11:08:28.562 mpmodplayer host ConsumableDodge impede dano local: ok
+10-06 11:08:28.563 mpmodplayer host veto de consumo de municao: ok
+10-06 11:08:28.563 mpmodplayer host consumo de municao notifica uma vez: ok
+10-06 11:08:28.563 mpmodplayer host CanShoot veta disparo: ok
+10-06 11:08:28.564 mpmodplayer host ModifyShootStats e Shoot compartilham estatisticas: ok
+10-06 11:08:28.565 mpmodplayer host ModItem instancias e estados separados: ok
+10-06 11:08:28.567 mpmodplayer host ModItem ModifyWeaponDamage muda valor nativo: ok
+10-06 11:08:28.567 mpmodplayer host ModItem ModifyWeaponCrit muda valor nativo: ok
+10-06 11:08:28.567 mpmodplayer host ModItem ModifyWeaponKnockback muda valor nativo: ok
+10-06 11:08:28.567 mpmodplayer host ModItem ModifyItemScale muda valor e preserva item: ok
+10-06 11:08:28.568 mpmodplayer host ModItem UseItemHitbox substitui retangulo e veto: ok
+10-06 11:08:28.569 mpmodplayer host ModItem MeleeEffects recebe retangulo nativo: ok
+10-06 11:08:28.569 mpmodplayer host ModItem consultas vanilla nao executam callbacks do item: ok
+10-06 11:08:28.570 mpmodplayer host ModItem alteracoes nao vazam para outra instancia: ok
+10-06 11:08:28.573 mpmodplayer host ModItem UseAnimation precede calculo nativo: ok
+10-06 11:08:28.574 mpmodplayer host ModItem UseItemFrame altera frame durante uso: ok
+10-06 11:08:28.574 mpmodplayer host ModItem HoldItemFrame altera frame ocioso: ok
+10-06 11:08:28.578 mpmodplayer host ModItem PlayerFrame vanilla tem zero entradas no hook do item: ok
+10-06 11:08:28.580 mpmodplayer host ModItem CanChooseAmmo false recusa candidato: ok
+10-06 11:08:28.581 mpmodplayer host ModItem CanChooseAmmo true permite outra categoria: ok
+10-06 11:08:28.581 mpmodplayer host ModItem CanBeChosenAsAmmo veta permissao da arma: ok
+10-06 11:08:28.583 mpmodplayer host ModItem NeedsAmmo false fornece municao virtual: ok
+10-06 11:08:28.584 mpmodplayer host ModItem PickAmmo altera estatisticas finais: ok
+10-06 11:08:28.584 mpmodplayer host ModItem dontConsume preserva stack e notificacoes: ok
+10-06 11:08:28.585 mpmodplayer host ModItem veto de consumo arma preserva ultima unidade: ok
+10-06 11:08:28.586 mpmodplayer host ModItem veto de consumo municao preserva ultima unidade: ok
+10-06 11:08:28.589 mpmodplayer host ModItem veto de consumo ModPlayer preserva ultima unidade: ok
+10-06 11:08:28.590 mpmodplayer host ModItem ultima municao notifica arma municao e jogador uma vez: ok
+10-06 11:08:28.590 mpmodplayer host ModItem ultima municao conserva tipo antes de TurnToAir: ok
+10-06 11:08:28.593 mpmodplayer host ModItem GetHealLife e GetHealMana alteram recursos reais: ok
+10-06 11:08:28.593 mpmodplayer host ModItem cura restaura campos e conserva ManaSickness: ok
+10-06 11:08:28.594 mpmodplayer host ModItem ModifyPotionDelay altera contador e buff: ok
+10-06 11:08:28.595 mpmodplayer host ModItem ApplyPotionDelay veta contador e buff: ok
+10-06 11:08:28.598 mpmodplayer host ModItem QuickHeal aplica cura consumo e atraso: ok
+10-06 11:08:28.600 mpmodplayer host ModItem QuickMana conserva cura e consumo com atraso vetado: ok
+10-06 11:08:28.601 mpmodplayer host ModItem cura compoe com ModPlayer: ok
+10-06 11:08:28.602 mpmodplayer host ModItem permissao nao supera veto de ModPlayer: ok
+10-06 11:08:28.602 mpmodplayer host ModItem jogador remoto conserva modificadores: ok
+10-06 11:08:28.605 mpmodplayer host ModItem CanHitNPC veta dano do NPC replicado: ok
+10-06 11:08:28.609 mpmodplayer host ModItem ModifyHitNPC altera dano real e OnHitNPC unico: ok
+10-06 11:08:28.610 mpmodplayer host ModItem CanMeleeAttackCollideWithNPC veta dano: ok
+10-06 11:08:28.610 mpmodplayer host ModItem colisao null conserva regra nativa: ok
+10-06 11:08:28.612 mpmodplayer host ModItem colisao true substitui intersecao nativa: ok
+10-06 11:08:30.215 mpmodplayer PVP recebido jogador=0 origem=1 item=6198 dano=9
+10-06 11:08:30.945 mpmodplayer PVP recepcao fase=cliente-veto local=0 [{"source":1,"damage":9,"item":6198}]
+10-06 11:08:30.946 mpmodplayer host ModItem CanHitPvp veta dano no outro processo: FALHOU Error: resultado falso
+10-06 11:08:30.965 mpmodplayer PVP recebido jogador=0 origem=1 item=6198 dano=11
+10-06 11:08:31.716 mpmodplayer PVP recepcao fase=cliente-allow local=0 [{"source":1,"damage":11,"item":6198}]
+10-06 11:08:31.716 mpmodplayer host ModItem dano PvP modificado chega ao outro processo: FALHOU Error: resultado falso
+10-06 11:08:31.716 mpmodplayer host ModItem ModifyHitPvp executa no processo do alvo: FALHOU Error: resultado falso
+10-06 11:08:31.717 mpmodplayer host ModItem OnHitPvp executa no processo do alvo: FALHOU Error: resultado falso
+10-06 11:08:31.717 mpmodplayer PVP alvo_local=0 callbacks_atacante_remoto={}
+10-06 11:08:31.718 mpmodplayer PVP envio local=0 alvo=1 origem=0 item=6198 dano=9 pvp=true
+10-06 11:08:31.719 mpmodplayer host ModItem CanHitPvp veta dano na copia do remoto: ok
+10-06 11:08:31.719 mpmodplayer PVP fase=veto atacante=0 alvo=1 callbacks={"CanHitPvp":1} dano=undefined
+10-06 11:08:32.478 mpmodplayer PVP recebido jogador=1 origem=0 item=6198 dano=3
+10-06 11:08:32.478 mpmodplayer PVP envio local=0 alvo=1 origem=0 item=6198 dano=11 pvp=true
+10-06 11:08:32.479 mpmodplayer host ModItem ModifyHitPvp executa na copia do remoto: ok
+10-06 11:08:32.479 mpmodplayer host ModItem OnHitPvp notifica uma vez na copia do remoto: ok
+10-06 11:08:32.479 mpmodplayer PVP fase=allow atacante=0 alvo=1 callbacks={"CanHitPvp":2,"ModifyHitPvp":1,"OnHitPvp":1} dano=3
+10-06 11:08:33.244 mpmodplayer host cliente termina sem falhas: FALHOU Error: resultado falso
+10-06 11:08:33.246 mpmodplayer host callback local PreUpdateMovement: ok
+10-06 11:08:33.246 mpmodplayer host callback local PostUpdateMiscEffects: ok
+10-06 11:08:33.246 mpmodplayer host callback local PostUpdateRunSpeeds: ok
+10-06 11:08:33.246 mpmodplayer host callback local NaturalLifeRegen: ok
+10-06 11:08:33.246 mpmodplayer host callback local ResetInfoAccessories: ok
+10-06 11:08:33.246 mpmodplayer host callback local DrawEffects: ok
+10-06 11:08:33.246 mpmodplayer host callback local ModifyDrawInfo: ok
+10-06 11:08:33.246 mpmodplayer host callback local HideDrawLayers: ok
+10-06 11:08:33.246 mpmodplayer host callback local ModifyDrawLayerOrdering: ok
+10-06 11:08:33.246 mpmodplayer host callback local TransformDrawData: ok
+10-06 11:08:33.246 mpmodplayer host callback local DrawPlayer: ok
+10-06 11:08:33.246 mpmodplayer host callback local ModifyScreenPosition: ok
+10-06 11:08:33.246 mpmodplayer host callback local ModifyZoom: ok
+10-06 11:08:33.246 mpmodplayer host atualizacao do jogador remoto isolada: ok
+10-06 11:08:33.246 mpmodplayer host camera restrita ao jogador local: ok
+10-06 11:08:33.246 mpmodplayer host DrawDataCache local sem contador reproduz sobrescrita: ok
+10-06 11:08:33.246 mpmodplayer host DrawDataCache local contador manual chega ao renderer: ok
+10-06 11:08:33.246 mpmodplayer host DrawDataCache local helper chega ao renderer: ok
+10-06 11:08:33.246 mpmodplayer host DrawDataCache local preserva prefixo na reordenacao: ok
+10-06 11:08:33.246 mpmodplayer host DrawDataCache local sem perdas ou dados de outro jogador: ok
+10-06 11:08:33.247 mpmodplayer DRAW jogador=0 local=0 {"address":130439763525632,"uncounted":41,"counted":77,"helper":121,"reordered":40,"lost":0,"wrong":0}
+10-06 11:08:33.247 mpmodplayer host DrawDataCache remoto sem contador reproduz sobrescrita: ok
+10-06 11:08:33.247 mpmodplayer host DrawDataCache remoto contador manual chega ao renderer: ok
+10-06 11:08:33.247 mpmodplayer host DrawDataCache remoto helper chega ao renderer: ok
+10-06 11:08:33.247 mpmodplayer host DrawDataCache remoto preserva prefixo na reordenacao: ok
+10-06 11:08:33.247 mpmodplayer host DrawDataCache remoto sem perdas ou dados de outro jogador: ok
+10-06 11:08:33.247 mpmodplayer DRAW jogador=1 local=0 {"address":130439661654016,"uncounted":41,"counted":77,"helper":121,"reordered":40,"lost":0,"wrong":0}
+10-06 11:08:33.247 mpmodplayer host ModItem callback ModifyWeaponDamage: ok
+10-06 11:08:33.247 mpmodplayer host ModItem callback ModifyWeaponCrit: ok
+10-06 11:08:33.247 mpmodplayer host ModItem callback ModifyWeaponKnockback: ok
+10-06 11:08:33.247 mpmodplayer host ModItem callback ModifyItemScale: ok
+10-06 11:08:33.247 mpmodplayer host ModItem callback CanHitNPC: ok
+10-06 11:08:33.247 mpmodplayer host ModItem callback ModifyHitNPC: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback CanHitPvp: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback ModifyHitPvp: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback OnHitPvp: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback CanMeleeAttackCollideWithNPC: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback MeleeEffects: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback UseItemHitbox: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback UseAnimation: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback UseItemFrame: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback HoldItemFrame: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback NeedsAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback CanChooseAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback CanBeChosenAsAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback CanConsumeAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback CanBeConsumedAsAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback OnConsumeAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback OnConsumedAsAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback PickAmmo: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback GetHealLife: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback GetHealMana: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback ApplyPotionDelay: ok
+10-06 11:08:33.248 mpmodplayer host ModItem callback ModifyPotionDelay: ok
+10-06 11:08:33.248 mpmodplayer ITEM jogador=0 cobertura=27/27 {"ModifyWeaponDamage":3,"ModifyWeaponCrit":4,"ModifyWeaponKnockback":2,"ModifyItemScale":3,"UseItemHitbox":1,"MeleeEffects":1,"UseAnimation":1,"UseItemFrame":1,"HoldItemFrame":1,"CanChooseAmmo":13,"CanBeChosenAsAmmo":8,"NeedsAmmo":2,"PickAmmo":6,"CanConsumeAmmo":4,"CanBeConsumedAsAmmo":3,"OnConsumeAmmo":1,"OnConsumedAsAmmo":1,"GetHealLife":5,"GetHealMana":4,"ModifyPotionDelay":5,"ApplyPotionDelay":5,"CanHitNPC":5,"CanMeleeAttackCollideWithNPC":4,"ModifyHitNPC":2,"OnHitNPC":2,"CanHitPvp":2,"ModifyHitPvp":1,"OnHitPvp":1}
+10-06 11:08:33.248 mpmodplayer host estado do cliente chega com origem correta: ok
+10-06 11:08:33.249 mpmodplayer host estado remoto nao altera o host: ok
+10-06 11:08:33.249 mpmodplayer host callbacks de ataque nao duplicam no host: ok
+10-06 11:08:33.249 mpmodplayer host conexao dispara PlayerConnect: ok
+10-06 11:08:33.249 mpmodplayer host sincronizacao executa no host: ok
+10-06 11:08:33.249 mpmodplayer host FIM falhas=5 casos=130 hooks=84
+10-06 11:08:33.249 mpmodplayer host READY_DISCONNECT
+10-06 11:13:14.501 mpmodplayer host DESCONECTOU jogador=1
+
+cliente-inicial
+10-06 11:07:35.914 mpmodplayer carregado
+10-06 11:08:25.825 mpmodplayer contexto index=0 who=0 local=1 netMode=1
+10-06 11:08:25.834 mpmodplayer cliente INICIO jogador=1 netMode=1
+10-06 11:08:28.558 mpmodplayer cliente instancias e objetos separados: ok
+10-06 11:08:28.559 mpmodplayer cliente critico por jogador: ok
+10-06 11:08:28.560 mpmodplayer cliente knockback por jogador: ok
+10-06 11:08:28.560 mpmodplayer cliente escala por referencia: ok
+10-06 11:08:28.560 mpmodplayer cliente multiplicadores de tempo e velocidade: ok
+10-06 11:08:28.561 mpmodplayer cliente multiplicador de animacao: ok
+10-06 11:08:28.561 mpmodplayer cliente mana modificada e custo restaurado: ok
+10-06 11:08:28.561 mpmodplayer cliente mana insuficiente nao notifica consumo: ok
+10-06 11:08:28.562 mpmodplayer cliente blockQuickMana bloqueia OnMissingMana: ok
+10-06 11:08:28.562 mpmodplayer cliente mana parcial informa somente saldo consumido: ok
+10-06 11:08:28.562 mpmodplayer cliente veto de ItemCheck e PostItemCheck unico: ok
+10-06 11:08:28.563 mpmodplayer cliente veto de pocao: ok
+10-06 11:08:28.565 mpmodplayer cliente cura chama hooks e restaura item: ok
+10-06 11:08:28.566 mpmodplayer cliente pesca por referencia: ok
+10-06 11:08:28.569 mpmodplayer cliente clone profundo sem compartilhar instancia: ok
+10-06 11:08:28.570 mpmodplayer cliente teleporte vetado sem mudar posicao: ok
+10-06 11:08:28.570 mpmodplayer cliente visuais de salto vetados e estado restaurado: ok
+10-06 11:08:28.570 mpmodplayer cliente visuais de salto autorizados: ok
+10-06 11:08:28.571 mpmodplayer cliente refresh de salto: ok
+10-06 11:08:28.571 mpmodplayer cliente fim de salto: ok
+10-06 11:08:28.574 mpmodplayer cliente veto e inicio de salto extra: ok
+10-06 11:08:28.575 mpmodplayer cliente bonus de armadura ativado e mantido: ok
+10-06 11:08:28.575 mpmodplayer cliente ConsumableDodge impede dano local: ok
+10-06 11:08:28.578 mpmodplayer cliente veto de consumo de municao: ok
+10-06 11:08:28.579 mpmodplayer cliente consumo de municao notifica uma vez: ok
+10-06 11:08:28.581 mpmodplayer cliente CanShoot veta disparo: ok
+10-06 11:08:28.583 mpmodplayer cliente ModifyShootStats e Shoot compartilham estatisticas: ok
+10-06 11:08:28.585 mpmodplayer cliente ModItem instancias e estados separados: ok
+10-06 11:08:28.587 mpmodplayer cliente ModItem ModifyWeaponDamage muda valor nativo: ok
+10-06 11:08:28.587 mpmodplayer cliente ModItem ModifyWeaponCrit muda valor nativo: ok
+10-06 11:08:28.588 mpmodplayer cliente ModItem ModifyWeaponKnockback muda valor nativo: ok
+10-06 11:08:28.588 mpmodplayer cliente ModItem ModifyItemScale muda valor e preserva item: ok
+10-06 11:08:28.590 mpmodplayer cliente ModItem UseItemHitbox substitui retangulo e veto: ok
+10-06 11:08:28.590 mpmodplayer cliente ModItem MeleeEffects recebe retangulo nativo: ok
+10-06 11:08:28.591 mpmodplayer cliente ModItem consultas vanilla nao executam callbacks do item: ok
+10-06 11:08:28.591 mpmodplayer cliente ModItem alteracoes nao vazam para outra instancia: ok
+10-06 11:08:28.595 mpmodplayer cliente ModItem UseAnimation precede calculo nativo: ok
+10-06 11:08:28.596 mpmodplayer cliente ModItem UseItemFrame altera frame durante uso: ok
+10-06 11:08:28.596 mpmodplayer cliente ModItem HoldItemFrame altera frame ocioso: ok
+10-06 11:08:28.602 mpmodplayer cliente ModItem PlayerFrame vanilla tem zero entradas no hook do item: ok
+10-06 11:08:28.603 mpmodplayer cliente ModItem CanChooseAmmo false recusa candidato: ok
+10-06 11:08:28.604 mpmodplayer cliente ModItem CanChooseAmmo true permite outra categoria: ok
+10-06 11:08:28.605 mpmodplayer cliente ModItem CanBeChosenAsAmmo veta permissao da arma: ok
+10-06 11:08:28.607 mpmodplayer cliente ModItem NeedsAmmo false fornece municao virtual: ok
+10-06 11:08:28.609 mpmodplayer cliente ModItem PickAmmo altera estatisticas finais: ok
+10-06 11:08:28.609 mpmodplayer cliente ModItem dontConsume preserva stack e notificacoes: ok
+10-06 11:08:28.610 mpmodplayer cliente ModItem veto de consumo arma preserva ultima unidade: ok
+10-06 11:08:28.611 mpmodplayer cliente ModItem veto de consumo municao preserva ultima unidade: ok
+10-06 11:08:28.613 mpmodplayer cliente ModItem veto de consumo ModPlayer preserva ultima unidade: ok
+10-06 11:08:28.615 mpmodplayer cliente ModItem ultima municao notifica arma municao e jogador uma vez: ok
+10-06 11:08:28.615 mpmodplayer cliente ModItem ultima municao conserva tipo antes de TurnToAir: ok
+10-06 11:08:28.618 mpmodplayer cliente ModItem GetHealLife e GetHealMana alteram recursos reais: ok
+10-06 11:08:28.618 mpmodplayer cliente ModItem cura restaura campos e conserva ManaSickness: ok
+10-06 11:08:28.619 mpmodplayer cliente ModItem ModifyPotionDelay altera contador e buff: ok
+10-06 11:08:28.620 mpmodplayer cliente ModItem ApplyPotionDelay veta contador e buff: ok
+10-06 11:08:28.624 mpmodplayer cliente ModItem QuickHeal aplica cura consumo e atraso: ok
+10-06 11:08:28.627 mpmodplayer cliente ModItem QuickMana conserva cura e consumo com atraso vetado: ok
+10-06 11:08:28.629 mpmodplayer cliente ModItem cura compoe com ModPlayer: ok
+10-06 11:08:28.630 mpmodplayer cliente ModItem permissao nao supera veto de ModPlayer: ok
+10-06 11:08:28.630 mpmodplayer cliente ModItem jogador remoto conserva modificadores: ok
+10-06 11:08:30.174 mpmodplayer cliente NPC do host replicado no cliente: ok
+10-06 11:08:30.175 mpmodplayer cliente veto de dano recebido de NPC: ok
+10-06 11:08:30.178 mpmodplayer cliente ataque de item pertence ao cliente: ok
+10-06 11:08:30.186 mpmodplayer cliente projétil dispara callbacks do dono: ok
+10-06 11:08:30.189 mpmodplayer cliente ModItem CanHitNPC veta dano do NPC replicado: ok
+10-06 11:08:30.191 mpmodplayer cliente ModItem ModifyHitNPC altera dano real e OnHitNPC unico: ok
+10-06 11:08:30.191 mpmodplayer cliente ModItem CanMeleeAttackCollideWithNPC veta dano: ok
+10-06 11:08:30.192 mpmodplayer cliente ModItem colisao null conserva regra nativa: ok
+10-06 11:08:30.193 mpmodplayer cliente ModItem colisao true substitui intersecao nativa: ok
+10-06 11:08:30.207 mpmodplayer PVP envio local=1 alvo=0 origem=1 item=6198 dano=9 pvp=true
+10-06 11:08:30.208 mpmodplayer cliente ModItem CanHitPvp veta dano na copia do remoto: ok
+10-06 11:08:30.208 mpmodplayer PVP fase=veto atacante=1 alvo=0 callbacks={"CanHitPvp":1} dano=undefined
+10-06 11:08:30.957 mpmodplayer PVP recebido jogador=0 origem=1 item=6198 dano=3
+10-06 11:08:30.957 mpmodplayer PVP envio local=1 alvo=0 origem=1 item=6198 dano=11 pvp=true
+10-06 11:08:30.958 mpmodplayer cliente ModItem ModifyHitPvp executa na copia do remoto: ok
+10-06 11:08:30.958 mpmodplayer cliente ModItem OnHitPvp notifica uma vez na copia do remoto: ok
+10-06 11:08:30.958 mpmodplayer PVP fase=allow atacante=1 alvo=0 callbacks={"CanHitPvp":2,"ModifyHitPvp":1,"OnHitPvp":1} dano=3
+10-06 11:08:32.457 mpmodplayer PVP recepcao fase=host-veto local=1 []
+10-06 11:08:32.457 mpmodplayer cliente ModItem CanHitPvp veta dano no outro processo: ok
+10-06 11:08:33.224 mpmodplayer PVP recepcao fase=host-allow local=1 []
+10-06 11:08:33.224 mpmodplayer cliente ModItem dano PvP modificado chega ao outro processo: FALHOU Error: resultado falso
+10-06 11:08:33.225 mpmodplayer cliente ModItem ModifyHitPvp executa no processo do alvo: FALHOU Error: resultado falso
+10-06 11:08:33.225 mpmodplayer cliente ModItem OnHitPvp executa no processo do alvo: FALHOU Error: resultado falso
+10-06 11:08:33.225 mpmodplayer PVP alvo_local=1 callbacks_atacante_remoto={}
+10-06 11:08:33.226 mpmodplayer cliente callback local PreUpdateMovement: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local PostUpdateMiscEffects: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local PostUpdateRunSpeeds: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local NaturalLifeRegen: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local ResetInfoAccessories: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local DrawEffects: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local ModifyDrawInfo: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local HideDrawLayers: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local ModifyDrawLayerOrdering: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local TransformDrawData: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local DrawPlayer: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local ModifyScreenPosition: ok
+10-06 11:08:33.226 mpmodplayer cliente callback local ModifyZoom: ok
+10-06 11:08:33.226 mpmodplayer cliente atualizacao do jogador remoto isolada: ok
+10-06 11:08:33.226 mpmodplayer cliente camera restrita ao jogador local: ok
+10-06 11:08:33.227 mpmodplayer cliente DrawDataCache local sem contador reproduz sobrescrita: ok
+10-06 11:08:33.227 mpmodplayer cliente DrawDataCache local contador manual chega ao renderer: ok
+10-06 11:08:33.227 mpmodplayer cliente DrawDataCache local helper chega ao renderer: ok
+10-06 11:08:33.227 mpmodplayer cliente DrawDataCache local preserva prefixo na reordenacao: ok
+10-06 11:08:33.227 mpmodplayer cliente DrawDataCache local sem perdas ou dados de outro jogador: ok
+10-06 11:08:33.227 mpmodplayer DRAW jogador=1 local=1 {"address":135219890356224,"uncounted":40,"counted":80,"helper":122,"reordered":40,"lost":0,"wrong":0}
+10-06 11:08:33.227 mpmodplayer cliente DrawDataCache remoto sem contador reproduz sobrescrita: ok
+10-06 11:08:33.228 mpmodplayer cliente DrawDataCache remoto contador manual chega ao renderer: ok
+10-06 11:08:33.228 mpmodplayer cliente DrawDataCache remoto helper chega ao renderer: ok
+10-06 11:08:33.228 mpmodplayer cliente DrawDataCache remoto preserva prefixo na reordenacao: ok
+10-06 11:08:33.228 mpmodplayer cliente DrawDataCache remoto sem perdas ou dados de outro jogador: ok
+10-06 11:08:33.228 mpmodplayer DRAW jogador=0 local=1 {"address":135219929915392,"uncounted":40,"counted":80,"helper":122,"reordered":40,"lost":0,"wrong":0}
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ModifyWeaponDamage: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ModifyWeaponCrit: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ModifyWeaponKnockback: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ModifyItemScale: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback CanHitNPC: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ModifyHitNPC: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback CanHitPvp: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ModifyHitPvp: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback OnHitPvp: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback CanMeleeAttackCollideWithNPC: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback MeleeEffects: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback UseItemHitbox: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback UseAnimation: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback UseItemFrame: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback HoldItemFrame: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback NeedsAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback CanChooseAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback CanBeChosenAsAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback CanConsumeAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback CanBeConsumedAsAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback OnConsumeAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback OnConsumedAsAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback PickAmmo: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback GetHealLife: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback GetHealMana: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ApplyPotionDelay: ok
+10-06 11:08:33.228 mpmodplayer cliente ModItem callback ModifyPotionDelay: ok
+10-06 11:08:33.229 mpmodplayer ITEM jogador=1 cobertura=27/27 {"ModifyWeaponDamage":3,"ModifyWeaponCrit":4,"ModifyWeaponKnockback":2,"ModifyItemScale":3,"UseItemHitbox":1,"MeleeEffects":1,"UseAnimation":1,"UseItemFrame":1,"HoldItemFrame":1,"CanChooseAmmo":13,"CanBeChosenAsAmmo":8,"NeedsAmmo":2,"PickAmmo":6,"CanConsumeAmmo":4,"CanBeConsumedAsAmmo":3,"OnConsumeAmmo":1,"OnConsumedAsAmmo":1,"GetHealLife":5,"GetHealMana":4,"ModifyPotionDelay":5,"ApplyPotionDelay":5,"CanHitNPC":5,"CanMeleeAttackCollideWithNPC":4,"ModifyHitNPC":2,"OnHitNPC":2,"CanHitPvp":2,"ModifyHitPvp":1,"OnHitPvp":1}
+10-06 11:08:33.229 mpmodplayer cliente SyncPlayer entrega estado inicial do host: ok
+10-06 11:08:33.229 mpmodplayer cliente SendClientChanges envia somente duas alteracoes: ok
+10-06 11:08:33.229 mpmodplayer cliente estado confirma ida e volta pela rede: ok
+10-06 11:08:33.229 mpmodplayer cliente clone automatico executa no cliente: ok
+10-06 11:08:33.230 mpmodplayer cliente FIM falhas=3 casos=132 hooks=85
+
+host-reconexao
+10-06 11:13:14.501 mpmodplayer host DESCONECTOU jogador=1
+10-06 11:13:56.009 mpmodplayer host reconexao chama PlayerConnect: ok
+10-06 11:13:56.009 mpmodplayer host desconexao chama PlayerDisconnect uma vez: ok
+10-06 11:13:56.009 mpmodplayer host desconexao nao dispara para o host local: ok
+10-06 11:13:56.009 mpmodplayer host SyncPlayer repete na reconexao: ok
+10-06 11:13:56.009 mpmodplayer host REJOIN FIM falhas=0 casos=4 falhas_total=5
+10-06 11:14:01.012 mpmodplayer host reconexao DrawDataCache local chega ao renderer: ok
+10-06 11:14:01.012 mpmodplayer host reconexao DrawDataCache local sem perdas ou mistura: ok
+10-06 11:14:01.013 mpmodplayer REJOIN_DRAW jogador=0 local=0 {"address":130439763525632,"uncounted":41,"counted":77,"helper":19517,"reordered":40,"lost":0,"wrong":0}
+10-06 11:14:01.013 mpmodplayer host reconexao DrawDataCache remoto chega ao renderer: ok
+10-06 11:14:01.013 mpmodplayer host reconexao DrawDataCache remoto sem perdas ou mistura: ok
+10-06 11:14:01.013 mpmodplayer REJOIN_DRAW jogador=1 local=0 {"address":130439691677696,"uncounted":0,"counted":0,"helper":437,"reordered":0,"lost":0,"wrong":0}
+10-06 11:14:01.013 mpmodplayer host REJOIN_DRAW FIM falhas=0 casos=4
+
+cliente-reconexao
+10-06 11:13:26.089 mpmodplayer carregado
+10-06 11:13:53.697 mpmodplayer contexto index=0 who=0 local=1 netMode=1
+10-06 11:13:53.708 mpmodplayer cliente INICIO jogador=1 netMode=1
+10-06 11:13:56.021 mpmodplayer cliente REJOIN FIM
+10-06 11:14:01.008 mpmodplayer cliente reconexao DrawDataCache local chega ao renderer: ok
+10-06 11:14:01.008 mpmodplayer cliente reconexao DrawDataCache local sem perdas ou mistura: ok
+10-06 11:14:01.009 mpmodplayer REJOIN_DRAW jogador=1 local=1 {"address":135220028182528,"uncounted":40,"counted":80,"helper":120,"reordered":40,"lost":0,"wrong":0}
+10-06 11:14:01.010 mpmodplayer cliente reconexao DrawDataCache remoto chega ao renderer: ok
+10-06 11:14:01.010 mpmodplayer cliente reconexao DrawDataCache remoto sem perdas ou mistura: ok
+10-06 11:14:01.011 mpmodplayer REJOIN_DRAW jogador=0 local=1 {"address":135220343894016,"uncounted":40,"counted":80,"helper":120,"reordered":40,"lost":0,"wrong":0}
+10-06 11:14:01.011 mpmodplayer cliente REJOIN_DRAW FIM falhas=0 casos=4
+
+Auditoria
+{
+  "verificacoes": {
+    "host-inicial": {
+      "casos": 130,
+      "falhas": 5
+    },
+    "cliente-inicial": {
+      "casos": 132,
+      "falhas": 3
+    },
+    "host-reconexao": {
+      "casos": 8,
+      "falhas": 0
+    },
+    "cliente-reconexao": {
+      "casos": 4,
+      "falhas": 0
+    }
+  },
+  "total": 274,
+  "falhas": 8,
+  "capturas": {
+    "host": {
+      "magenta": {
+        "pixels": 625,
+        "bounds": [
+          707,
+          370,
+          731,
+          394
+        ]
+      },
+      "ciano": {
+        "pixels": 625,
+        "bounds": [
+          612,
+          370,
+          636,
+          394
+        ]
+      }
+    },
+    "cliente": {
+      "magenta": {
+        "pixels": 400,
+        "bounds": [
+          948,
+          387,
+          967,
+          406
+        ]
+      },
+      "ciano": {
+        "pixels": 400,
+        "bounds": [
+          874,
+          387,
+          893,
+          406
+        ]
+      }
+    }
+  }
+}

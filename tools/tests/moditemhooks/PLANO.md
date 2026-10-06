@@ -36,6 +36,8 @@ Cada etapa atualizará a referência da API. Diferenças de contrato e métodos 
 
 ## Estado em 6 de outubro de 2026
 
-Os 12 métodos da etapa 1, os 11 da etapa 2 e os 4 da etapa 3 estão implementados: 27 dos 53 métodos solicitados. A suite de ModItem possui 138 verificações automatizadas; o fixture nativo completo aprovou 86 verificações, com zero falhas. Evidências da etapa 1: [RESULTADOS.md](RESULTADOS.md); da etapa 2: [RESULTADOS-USO.md](RESULTADOS-USO.md); da etapa 3: [RESULTADOS-CURA.md](RESULTADOS-CURA.md). A origem de ataques PvP recebidos por rede ainda não é reconstruída; a validação entre dois processos permanece pendente. As etapas 4 a 6 ainda não foram implementadas.
+Os 12 métodos da etapa 1, os 11 da etapa 2 e os 4 da etapa 3 estão implementados: 27 dos 53 métodos solicitados. A suite de ModItem possui 138 verificações automatizadas; o fixture nativo em singleplayer aprovou 86 verificações, com zero falhas. Evidências da etapa 1: [RESULTADOS.md](RESULTADOS.md); da etapa 2: [RESULTADOS-USO.md](RESULTADOS-USO.md); da etapa 3: [RESULTADOS-CURA.md](RESULTADOS-CURA.md). As etapas 4 a 6 ainda não foram implementadas.
+
+A [validação multiplayer](../mpmodplayer/RESULTADOS-DRAW-MODITEM.md) observou os 27 callbacks em ambos os atacantes locais e aprovou os cenários dos 24 métodos fora do PvP. `CanHitPvp`, `ModifyHitPvp` e `OnHitPvp` reprovaram entre processos: o veto ainda permite envio de dano, e o contexto do item recebido por rede não é reconstruído na vítima. A rodada registra também ausência de dano no sentido host → cliente, com causa ainda não isolada. Os três métodos não estão aprovados para multiplayer; sua correção continua pendente.
 
 Referência de contratos: [ModItem do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs). Alternativas móveis: `C:/Scripts/Terraria/curso/ExMod_v1.5.0/Modified/1.mod/TL`.
