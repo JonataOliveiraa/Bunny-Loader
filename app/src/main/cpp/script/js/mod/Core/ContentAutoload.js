@@ -13,7 +13,7 @@ class ContentAutoload {
     static #ORDER = [ModConfig, ModRarity, DamageClass, ModMount, ModBuff, ModPrefix, ModPlayer,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, ModMenu,
-                     ModNPC, ModProjectile, ModItem, ModTile, ModWall, ModSystem,
+                     ModNPC, ModProjectile, ModItem, ModTile, ModWall, PlayerDrawLayer, ModSystem,
                      GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
                      ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement];
     static #fileOf = new Map();

@@ -1,0 +1,14 @@
+{
+  "uid": "d1c397a5-9d61-45fc-91e8-fbd1679986a5",
+  "id": "test-playerdrawlayers",
+  "name": "Teste: camadas de desenho do jogador",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Registro automatico, filhos, visibilidade, ordem e cache nativo.",
+  "description": "Marcadores temporarios de PlayerDrawLayer enviados ao renderer normal.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

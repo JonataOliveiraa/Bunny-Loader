@@ -95,7 +95,7 @@ const Terraria = native('Terraria'), Microsoft = native('Microsoft');
 const Main = Terraria.Main;
 Main.player = []; Main.npc = []; Main.projectile = []; Main.myPlayer = 0; Main.gameMenu = false; Main.netMode = 0;
 Main.npcChatText = ''; Main.mouseItem = {}; Main.shop = [{ item: [] }]; Main.npcShop = 0;
-const errors = [], once = new Set(), files = new Map();
+const errors = [], once = new Set(), files = new Map(), ready = [];
 const flags = new Map(), marks = new Map();
 const bl = {
     hookMarks: { set(key, type) { if (!marks.has(key)) marks.set(key, new Set()); marks.get(key).add(type); } },
@@ -122,6 +122,7 @@ const sandbox = {
         Once: (key, fn) => { if (!once.has(key)) { fn(); once.add(key); } },
         Overrides: (cls, base, key) => cls.prototype[key] !== base.prototype[key],
     },
+    Ready: { Add: task => ready.push(task) },
     Safe: {
         Run: (name, fn) => { try { return fn(); } catch (error) { errors.push(name + ': ' + error.message); } },
         Report: (name, error) => errors.push(name + ': ' + error.message),
@@ -131,6 +132,7 @@ const sandbox = {
     ModRegistry: { Find: () => null }, ModLoader: {},
 };
 const context = vm.createContext(sandbox);
+vm.runInContext(fs.readFileSync(path.join(source, 'Core/Templates.js'), 'utf8'), context);
 const filesToLoad = ['TagCompound.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/NPCLoader.js', 'Loaders/PlayerCombatHooks.js',
     'Loaders/PlayerItemHooks.js', 'Loaders/PlayerUpdateHooks.js', 'Loaders/PlayerJumpHooks.js',
     'Loaders/PlayerDrawHooks.js', 'Loaders/PlayerWorldHooks.js', 'Loaders/PlayerNetworkHooks.js', 'Loaders/PlayerLoader.js'];
@@ -925,3 +927,5 @@ test('hidden layers restore visibility and filters after renderer failures', () 
 
 assert.equal(errors.length, 0);
 console.log(`${checks} behavior checks passed; ${[...installed.values()].filter((entry) => entry.callbacks.length).length} native signatures verified; ${stages.size} native stages registered.`);
+
+export const drawHarness = { context, sandbox, source, ready, errors, warnings, flags, method, call, vanilla, invoke, reset, player, p, second, All, ModPlayer, PlayerDrawLayer, PlayerDrawLayers };
