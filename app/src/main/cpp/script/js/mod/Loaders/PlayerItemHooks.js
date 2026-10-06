@@ -2,10 +2,8 @@ class PlayerItemHooks {
     static Stats = null;
     static #shot = null;
     static #animationTiming = false;
-    static #quickHeal = false;
     static #timing = new Set();
     static #mana = new Set();
-    static #potion = null;
     static #scaleAll = false;
 
     static Install(cls) {
@@ -50,8 +48,7 @@ class PlayerItemHooks {
         });
         want(cls, ['UseSpeedMultiplier', 'UseTimeMultiplier', 'UseAnimationMultiplier'], 'player.ItemTiming', PlayerItemHooks.#Timing);
         want(cls, ['ModifyManaCost', 'OnConsumeMana', 'OnMissingMana'], 'player.ItemMana', PlayerItemHooks.#Mana);
-        want(cls, ['GetHealLife', 'GetHealMana'], 'player.ItemHealing', PlayerItemHooks.#Healing);
-        want(cls, ['ApplyPotionDelay'], 'player.PotionDelay', PlayerItemHooks.#PotionDelay);
+        ItemHealingHooks.InstallPlayer(cls);
     }
 
     static InstallStats() {
@@ -248,52 +245,4 @@ class PlayerItemHooks {
         });
     }
 
-    static #PotionDelay() {
-        Terraria.Player['void ApplyPotionDelay(Item sItem)'].hook((original, player, item) => {
-            const outer = PlayerItemHooks.#potion, scope = { player, item, previous: player.potionDelay, blocked: false };
-            PlayerItemHooks.#potion = scope;
-            try { return original(player, item); }
-            finally {
-                if (scope.blocked) player.potionDelay = scope.previous;
-                PlayerItemHooks.#potion = outer;
-            }
-        });
-        Terraria.Player['void AddBuff(int type, int time, bool fromNetPvP)'].hook((original, player, type, time, quiet) => {
-            const scope = PlayerItemHooks.#potion;
-            if (scope && bl.addressOf(scope.player) === bl.addressOf(player) && type === Terraria.ID.BuffID.PotionSickness) {
-                scope.blocked = PlayerLoader.Veto(player, 'ApplyPotionDelay', scope.item, time);
-                if (scope.blocked) return;
-            }
-            return original(player, type, time, quiet);
-        });
-    }
-
-    static #Healing() {
-        for (const signature of ['void QuickHeal()', 'void QuickMana()']) {
-            Terraria.Player[signature].hook((original, player) => {
-                const outer = PlayerItemHooks.#quickHeal;
-                PlayerItemHooks.#quickHeal = true;
-                try { return original(player); }
-                finally { PlayerItemHooks.#quickHeal = outer; }
-            });
-        }
-        Terraria.Player['void ApplyLifeAndOrMana(Item item)'].hook((original, player, item) => {
-            const life = item.healLife, mana = item.healMana;
-            const healLife = new Ref(life), healMana = new Ref(mana);
-            PlayerLoader.Call(player, 'GetHealLife', item, PlayerItemHooks.#quickHeal, healLife);
-            PlayerLoader.Call(player, 'GetHealMana', item, PlayerItemHooks.#quickHeal, healMana);
-            item.healLife = Math.max(0, Math.trunc(healLife.value));
-            item.healMana = Math.max(0, Math.trunc(healMana.value));
-            try { return original(player, item); }
-            finally { item.healLife = life; item.healMana = mana; }
-        });
-        Terraria.Player['void QuickHeal_GetItemToUse_TryChoosingItem(int lifeDifference, ref Item bestItem, ref int bestDifference, Item nextItem)'].hook(
-            (original, difference, bestItem, bestDifference, item) => {
-                const player = Terraria.Main.player[Terraria.Main.myPlayer], life = item.healLife, value = new Ref(life);
-                PlayerLoader.Call(player, 'GetHealLife', item, true, value);
-                item.healLife = Math.max(0, Math.trunc(value.value));
-                try { return original(difference, bestItem, bestDifference, item); }
-                finally { item.healLife = life; }
-            });
-    }
 }

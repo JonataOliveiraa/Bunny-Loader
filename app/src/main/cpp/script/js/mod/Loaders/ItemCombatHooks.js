@@ -5,7 +5,7 @@ class ItemCombatHooks {
         'CanHitNPC', 'ModifyHitNPC', 'CanHitPvp', 'ModifyHitPvp', 'OnHitPvp',
         'CanMeleeAttackCollideWithNPC', 'MeleeEffects', 'UseItemHitbox', 'UseAnimation', 'UseItemFrame', 'HoldItemFrame',
         'NeedsAmmo', 'CanChooseAmmo', 'CanBeChosenAsAmmo', 'CanConsumeAmmo', 'CanBeConsumedAsAmmo',
-        'OnConsumeAmmo', 'OnConsumedAsAmmo', 'PickAmmo'];
+        'OnConsumeAmmo', 'OnConsumedAsAmmo', 'PickAmmo', 'GetHealLife', 'GetHealMana', 'ModifyPotionDelay', 'ApplyPotionDelay'];
 
     static #Plan(cls) {
         let plan = ItemCombatHooks.#plans.get(cls);
@@ -75,5 +75,6 @@ class ItemCombatHooks {
             PlayerLoader.InstallItemPvp();
         }
         ItemUseHooks.Install(type, plan);
+        ItemHealingHooks.Install(type, plan);
     }
 }

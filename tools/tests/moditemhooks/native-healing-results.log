@@ -1,0 +1,98 @@
+moditemhooks singleplayer nativo: ok
+moditemhooks ModifyWeaponDamage altera resultado nativo: ok
+moditemhooks ModifyWeaponCrit altera Ref nativo: ok
+moditemhooks ModifyWeaponKnockback aplica StatModifier: ok
+moditemhooks ModifyItemScale altera escala consultada: ok
+moditemhooks escala preserva luva do jogo: ok
+moditemhooks escala altera largura e altura da hitbox: ok
+moditemhooks escala temporaria do item foi restaurada: ok
+moditemhooks UseItemHitbox troca Rectangle por Ref: ok
+moditemhooks UseItemHitbox altera dontAttack por Ref: ok
+moditemhooks MeleeEffects recebe hitbox apos codigo nativo: ok
+moditemhooks vanilla e mod sem sobrescritas nao executam callbacks: ok
+moditemhooks CanHitNPC false impede dano: ok
+moditemhooks ModifyHitNPC altera dano real do NPC: ok
+moditemhooks OnHitNPC existente continua uma vez com dano real: ok
+moditemhooks CanMeleeAttackCollideWithNPC false impede dano: ok
+moditemhooks colisao null conserva decisao nativa: ok
+moditemhooks colisao true substitui Intersects nativo: ok
+moditemhooks CanHitNPC null conserva recusa de NPC amigavel: ok
+moditemhooks CanHitNPC true permite NPC amigavel: ok
+moditemhooks CanHitPvp false impede Hurt real: ok
+moditemhooks ModifyHitPvp executa no Hurt real: ok
+moditemhooks OnHitPvp recebe HurtInfo do dano aplicado: ok
+moditemhooks PvP HurtInfo=3 deltaLife=3 on=1
+moditemhooks benchmark vanilla contagem de callbacks: ok
+moditemhooks filtro nativo vanilla entradas JS: ok
+moditemhooks despacho vanilla hooks=1 js=0
+moditemhooks benchmark plain contagem de callbacks: ok
+moditemhooks filtro nativo plain entradas JS: ok
+moditemhooks despacho plain hooks=1 js=0
+moditemhooks benchmark override contagem de callbacks: ok
+moditemhooks filtro nativo override entradas JS: ok
+moditemhooks despacho override hooks=1 js=10000
+moditemhooks instancia do item preservada no caminho frequente: ok
+moditemhooks benchmark GetWeaponDamage mediana_us vanilla=28.403 plain=28.354 override=61.375
+moditemhooks UseAnimation altera duracao antes do calculo nativo: ok
+moditemhooks UseItemFrame altera bodyFrame apos o original: ok
+moditemhooks HoldItemFrame altera bodyFrame ocioso: ok
+moditemhooks PlayerFrame ModItem vanilla tem zero entradas JS: ok
+moditemhooks PlayerFrame vanilla indice_ModItem=1 delta_js_por_hook=100,0
+moditemhooks PlayerFrame ModItem plain tem zero entradas JS: ok
+moditemhooks PlayerFrame plain indice_ModItem=1 delta_js_por_hook=100,0
+moditemhooks CanChooseAmmo false retira candidato nativo: ok
+moditemhooks selecao avanca para proxima municao valida: ok
+moditemhooks CanChooseAmmo true permite outra categoria: ok
+moditemhooks veto da municao supera permissao da arma: ok
+moditemhooks CanBeChosenAsAmmo true funciona com arma vanilla: ok
+moditemhooks alternancia nativa segue ordem dos slots: ok
+moditemhooks alternancia conta apenas candidatos aceitos: ok
+moditemhooks municao ausente conserva recusa nativa: ok
+moditemhooks NeedsAmmo false fornece municao padrao: ok
+moditemhooks NeedsAmmo false conserva veto canUse: ok
+moditemhooks PickAmmo altera projetil e velocidade por Ref: ok
+moditemhooks PickAmmo altera dano e knockback finais: ok
+moditemhooks dontConsume conserva stack e suprime notificacoes: ok
+moditemhooks CanConsumeAmmo conserva ultima unidade e consumable: ok
+moditemhooks CanBeConsumedAsAmmo conserva ultima unidade e consumable: ok
+moditemhooks ModPlayer.CanConsumeAmmo conserva ultima unidade e consumable: ok
+moditemhooks ultima unidade dispara tres notificacoes uma vez: ok
+moditemhooks ultima unidade preserva tipos nos callbacks: ok
+moditemhooks ultima unidade executa TurnToAir nativo depois: ok
+moditemhooks municao nao consumivel nao notifica: ok
+moditemhooks ModItem e ModPlayer compartilham um hook PickAmmo: ok
+moditemhooks USE hooks_PickAmmo=1 checks_total=56
+moditemhooks GetHealLife altera vida real no helper nativo: ok
+moditemhooks GetHealMana altera mana real no helper nativo: ok
+moditemhooks cura restaura os valores base do item: ok
+moditemhooks cura conserva ManaSickness nativo: ok
+moditemhooks canal com cura base zero nao executa callback: ok
+moditemhooks cura respeita os maximos de vida e mana: ok
+moditemhooks cura e atraso vanilla tem zero entradas JS: ok
+moditemhooks HEAL filtro vanilla cura_js=0 atraso_js=0
+moditemhooks cura e atraso plain tem zero entradas JS: ok
+moditemhooks HEAL filtro plain cura_js=0 atraso_js=0
+moditemhooks ModifyPotionDelay altera contador e buff juntos: ok
+moditemhooks ApplyPotionDelay false preserva contador e nao aplica buff: ok
+moditemhooks atraso zero impede contador e buff: ok
+moditemhooks atraso nao finito conserva valor nativo: ok
+moditemhooks AddBuff fora do contexto de pocao nao entra no hook JS: ok
+moditemhooks selecao rapida conserva criterio nativo sem alteracao: ok
+moditemhooks GetHealLife participa da escolha de cura rapida: ok
+moditemhooks QuickHeal nativo aplica vida e mana modificadas: ok
+moditemhooks QuickHeal fornece quickHeal true para ambos os canais: ok
+moditemhooks QuickHeal conserva consumo e atraso nativos: ok
+moditemhooks QuickHeal restaura campos antes do consumo: ok
+moditemhooks QuickMana nativo aplica ambos os valores modificados: ok
+moditemhooks QuickMana conserva consumo mesmo com veto de atraso: ok
+moditemhooks QuickMana fornece quickHeal true e restaura campos: ok
+moditemhooks cura compoe ModItem e ModPlayer uma vez: ok
+moditemhooks ModPlayer recebe atraso modificado mesmo apos veto do item: ok
+moditemhooks veto ModPlayer supera permissao de ModItem: ok
+moditemhooks atraso especial nativo item 227 e preservado: ok
+moditemhooks atraso especial nativo item 1912 e preservado: ok
+moditemhooks atraso especial nativo item 5 e preservado: ok
+moditemhooks StrangeBrew conserva sorteio nativo do atraso: ok
+moditemhooks ModItem e ModPlayer compartilham hooks de cura e atraso: ok
+moditemhooks HEAL hooks_cura=1 hooks_atraso=1 checks_total=86
+moditemhooks FIM checks=86 falhas=0

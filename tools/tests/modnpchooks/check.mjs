@@ -109,7 +109,7 @@ const sandbox = {
         hookMarks: { set(k, t) { if (!marks.has(k)) marks.set(k, new Set()); marks.get(k).add(t); } } },
 };
 const context = vm.createContext(sandbox);
-for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/PlayerCombatHooks.js',
+for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/PlayerCombatHooks.js',
     'Loaders/PlayerLoader.js', 'Loaders/NPCLoader.js', 'NPCShop.js']) {
     vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });
 }

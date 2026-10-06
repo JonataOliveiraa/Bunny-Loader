@@ -234,7 +234,7 @@ export function runUseCases({ vm, fs, path, source, context, sandbox, entity, p,
                 hookMarks: { set(key, type) { if (!marked.has(key)) marked.set(key, new Set()); marked.get(key).add(type); } } },
         });
         for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js',
-            'Loaders/ItemUseHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerLoader.js']) vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), local);
+            'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerLoader.js']) vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), local);
         vm.runInContext(`
             class Weapon extends ModItem {
                 UseAnimation(item, player) { events.push('animation'); item.useAnimation = 30; }

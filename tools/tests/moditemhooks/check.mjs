@@ -3,13 +3,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { runUseCases } from './use-cases.mjs';
+import { runHealingCases } from './healing-cases.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const source = path.join(root, 'app/src/main/cpp/script/js/mod');
 const dump = fs.readFileSync(path.join(root, 'refs/dump.cs'), 'utf8');
 const methods = new Map();
-const parameterNames = new Map();
+const parameterNames = new Map(), staticMethods = new Set();
 let namespace = '', owner = '';
 function parts(text) {
     const result = [], start = [];
@@ -42,7 +43,7 @@ for (const line of dump.split(/\r?\n/)) {
     const cls = line.match(/^(?:public|private|internal|protected).*?\b(?:class|struct)\s+([^\s:<]+)/);
     if (cls) { owner = (namespace ? namespace + '.' : '') + cls[1]; if (!methods.has(owner)) methods.set(owner, new Set()); }
     if (/^\s+(?:public|private|internal|protected).*?\([^)]*\).*\{ \}/.test(line) && owner) {
-        try { methods.get(owner).add(signature(line)); parameterNames.set(owner + ':' + signature(line), names(line)); } catch {}
+        try { methods.get(owner).add(signature(line)); parameterNames.set(owner + ':' + signature(line), names(line)); if (/\bstatic\b/.test(line)) staticMethods.add(owner + ':' + signature(line)); } catch {}
     }
 }
 const installed = new Map(), natives = new Map(), marks = new Map(), flags = new Map(), errors = [], missing = [], ready = [];
@@ -56,7 +57,7 @@ function native(name) {
         if (typeof key !== 'string') return undefined;
         if (!key.includes('(')) return native(name + '.' + key);
         const id = name + ':' + signature(key);
-        if (!installed.has(id)) installed.set(id, { owner: name, key, hooks: [], entries: 0, active: 0, vanilla() {} });
+        if (!installed.has(id)) installed.set(id, { owner: name, key, instance: !staticMethods.has(id), hooks: [], entries: 0, active: 0, vanilla() {} });
         const entry = installed.get(id);
         const fn = (...args) => entry.active ? entry.vanilla(...args) : invoke(entry, args);
         fn.entry = entry;
@@ -76,7 +77,7 @@ function invoke(entry, args, index = 0) {
     if (index >= entry.hooks.length) return entry.vanilla(...args);
     const { callback, filter } = entry.hooks[index];
     const original = (...next) => invoke(entry, next.length ? next : args, index + 1);
-    const selected = args[filter.on >= 0 ? filter.on + 1 : 0];
+    const selected = args[filter.on >= 0 ? filter.on + (entry.instance ? 1 : 0) : 0];
     const indexed = filter.field?.match(/^(\w+)\[([\w.]+)\]\.(\w+)$/);
     const type = filter.arg >= 0 ? args[filter.arg] : indexed ? selected?.[indexed[1]]?.[indexed[2].split('.').reduce((value, key) => value?.[key], selected)]?.[indexed[3]] : selected?.[filter.field || 'type'];
     if (filter.marks && !marks.get(filter.marks)?.has(type) || filter.minType && type < filter.minType ||
@@ -118,7 +119,7 @@ const sandbox = {
 };
 const context = vm.createContext(sandbox);
 for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'ModNPC.js',
-    'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js',
+    'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js',
     'Loaders/GlobalItemLoader.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/NPCLoader.js']) {
     vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });
 }
@@ -474,7 +475,7 @@ for (const order of ['item global player', 'global player item', 'player item gl
             hookMarks: { set(key, type) { if (!marked.has(key)) marked.set(key, new Set()); marked.get(key).add(type); } } },
     });
     for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js',
-        'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/GlobalItemLoader.js']) {
+        'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/GlobalItemLoader.js']) {
         vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), local, { filename: file });
     }
     vm.runInContext(`
@@ -496,5 +497,6 @@ for (const order of ['item global player', 'global player item', 'player item gl
     assert.equal(marked.get('player.WeaponDamage').has(1), true);
 });
 runUseCases({ vm, fs, path, source, context, sandbox, entity, p, plain, vanillaItem, call, method, setVanilla, test, assert, errors });
+runHealingCases({ vm, fs, path, source, context, sandbox, entity, p, targetPlayer, plain, vanillaItem, call, method, setVanilla, test, assert, errors });
 assert.deepEqual(missing, [], 'Native signatures and parameter names must match the mobile dump');
 console.log(checks + ' behavior checks passed; ' + [...installed.values()].filter(e => e.hooks.length).length + ' native signatures verified.');

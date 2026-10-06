@@ -68,6 +68,10 @@ class ModItem {
     OnConsumeAmmo(item, ammo, player) {}
     OnConsumedAsAmmo(item, weapon, player) {}
     PickAmmo(item, weapon, player, type, speed, damage, knockback) {}
+    GetHealLife(item, player, quickHeal, healValue) {}
+    GetHealMana(item, player, quickHeal, healValue) {}
+    ModifyPotionDelay(item, player, baseDelay) {}
+    ApplyPotionDelay(item, player, potionDelay) { return true; }
     ModifyWeaponDamage(item, player, damage) {}
     ModifyWeaponCrit(item, player, crit) {}
     ModifyWeaponKnockback(item, player, knockback) {}

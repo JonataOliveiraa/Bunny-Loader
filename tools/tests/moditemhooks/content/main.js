@@ -2,6 +2,8 @@ const Main = Terraria.Main;
 let done = false, frames = 0, checks = 0, failures = 0;
 const state = {}, counts = {};
 const useState = {}, useCounts = {};
+const healState = {}, healCounts = {};
+function healRecord(name) { healCounts[name] = (healCounts[name] || 0) + 1; }
 let frameHookIndex = -1;
 function useRecord(name) { useCounts[name] = (useCounts[name] || 0) + 1; }
 function log(text) { bl.log('moditemhooks ' + text); }
@@ -80,6 +82,29 @@ export class ItemAmmoProbe extends ModItem {
 export class ItemAmmoPlayerProbe extends ModPlayer {
     CanConsumeAmmo(player, weapon, ammo) { useRecord('mpConsume'); return useState.mpConsume; }
     OnConsumeAmmo(player, weapon, ammo) { useRecord('mpOnConsume'); useState.mpConsumedType = ammo.type; }
+}
+export class ItemHealProbe extends ModItem {
+    Texture = 'Box';
+    HideFromModMenu = true;
+    SetDefaults(item) {
+        item.width = item.height = 16; item.useStyle = 2; item.useTime = item.useAnimation = 17;
+        item.healLife = 50; item.healMana = 20; item.potion = item.consumable = true; item.maxStack = 9999;
+    }
+    GetHealLife(item, player, quick, value) {
+        healRecord('life'); healState.lifeQuick = quick; healState.lifePlayer = bl.addressOf(player);
+        if (healState.life !== undefined) value.value = healState.life;
+    }
+    GetHealMana(item, player, quick, value) {
+        healRecord('mana'); healState.manaQuick = quick;
+        if (healState.mana !== undefined) value.value = healState.mana;
+    }
+    ModifyPotionDelay(item, player, value) { healRecord('modifyDelay'); if (healState.delay !== undefined) value.value = healState.delay; }
+    ApplyPotionDelay(item, player, delay) { healRecord('applyDelay'); healState.delaySeen = delay; return healState.allow; }
+}
+class ItemHealPlayerProbe extends ModPlayer {
+    GetHealLife(player, item, quick, value) { healRecord('mpLife'); if (healState.mpLife) value.value += healState.mpLife; }
+    GetHealMana(player, item, quick, value) { healRecord('mpMana'); if (healState.mpMana) value.value += healState.mpMana; }
+    ApplyPotionDelay(player, item, delay) { healRecord('mpDelay'); healState.mpDelaySeen = delay; return healState.mpAllow; }
 }
 export class ItemProbeNPC extends ModNPC {
     Texture = 'Box';
@@ -298,12 +323,103 @@ function runUse(player) {
         restore(player, originalState);
     }
 }
+function runHealing(player) {
+    const potion = item(ModContent.ItemType(ItemHealProbe));
+    const vanilla = item(Terraria.ID.ItemID.LesserHealingPotion), plain = item(ModContent.ItemType(ItemProbePlain));
+    plain.healLife = 50; plain.healMana = 20; plain.potion = true;
+    const inventory = Array.from({ length: player.inventory.length }, (_, i) => player.inventory[i]);
+    const playerState = snapshot(player, ['statLife', 'statLifeMax2', 'statMana', 'statManaMax2', 'potionDelay', 'manaPotionDelay',
+        'potionDelayTime', 'restorationDelayTime', 'eggnogDelayTime', 'mushroomDelayTime', 'pStone', 'cursed', 'frozen', 'stoned', 'webbed', 'dead',
+        'itemAnimation', 'itemAnimationMax', 'itemTime', 'itemTimeMax', 'reuseDelay']);
+    const buffs = Array.from({ length: player.buffType.length }, (_, i) => [player.buffType[i], player.buffTime[i]]);
+    const clearBuffs = () => { for (let i = 0; i < player.buffType.length; i++) { player.buffType[i] = 0; player.buffTime[i] = 0; } };
+    const reset = () => {
+        for (const key of Object.keys(healState)) delete healState[key];
+        for (const key of Object.keys(healCounts)) delete healCounts[key];
+        player.statLifeMax2 = 500; player.statLife = 100; player.statManaMax2 = 200; player.statMana = 20;
+        player.potionDelay = player.manaPotionDelay = 0; player.potionDelayTime = 3600;
+        player.itemAnimation = player.itemTime = player.reuseDelay = 0;
+        player.cursed = player.frozen = player.stoned = player.webbed = player.dead = false;
+        potion.stack = 5; potion.healLife = 50; potion.healMana = 20; clearBuffs(); player.inventory[0] = potion;
+    };
+    const apply = player['void ApplyLifeAndOrMana(Item item)'];
+    const delay = player['void ApplyPotionDelay(Item sItem)'];
+    const buffTime = type => { for (let i = 0; i < player.buffType.length; i++) if (player.buffType[i] === type) return player.buffTime[i]; return 0; };
+    const entries = name => bl.hookStats().filter(s => s.name.includes(name + '(')).reduce((sum, s) => sum + s.js, 0);
+    try {
+        for (let i = 0; i < player.inventory.length; i++) player.inventory[i] = item(0);
+        reset(); healState.life = 80; healState.mana = 35; apply(potion);
+        check('GetHealLife altera vida real no helper nativo', () => player.statLife === 180 && healCounts.life === 1 && healState.lifeQuick === false);
+        check('GetHealMana altera mana real no helper nativo', () => player.statMana === 55 && healCounts.mana === 1 && healState.manaQuick === false);
+        check('cura restaura os valores base do item', () => potion.healLife === 50 && potion.healMana === 20);
+        check('cura conserva ManaSickness nativo', () => buffTime(94) > 0);
+        reset(); potion.healMana = 0; apply(potion);
+        check('canal com cura base zero nao executa callback', () => healCounts.life === 1 && !healCounts.mana);
+        reset(); healState.life = 900; healState.mana = 900; apply(potion);
+        check('cura respeita os maximos de vida e mana', () => player.statLife === 500 && player.statMana === 200);
+        for (const [name, value] of [['vanilla', vanilla], ['plain', plain]]) {
+            reset(); const healBefore = entries('ApplyLifeAndOrMana'), delayBefore = entries('ApplyPotionDelay');
+            for (let i = 0; i < 20; i++) { apply(value); delay(value); }
+            check('cura e atraso ' + name + ' tem zero entradas JS', () => entries('ApplyLifeAndOrMana') === healBefore && entries('ApplyPotionDelay') === delayBefore);
+            log('HEAL filtro ' + name + ' cura_js=' + (entries('ApplyLifeAndOrMana') - healBefore) + ' atraso_js=' + (entries('ApplyPotionDelay') - delayBefore));
+        }
+        reset(); healState.delay = 1234; delay(potion);
+        check('ModifyPotionDelay altera contador e buff juntos', () => player.potionDelay === 1234 && buffTime(21) === 1234 && healState.delaySeen === 1234);
+        reset(); player.potionDelay = 7; healState.allow = false; delay(potion);
+        check('ApplyPotionDelay false preserva contador e nao aplica buff', () => player.potionDelay === 7 && buffTime(21) === 0);
+        reset(); player.potionDelay = 7; healState.delay = 0; delay(potion);
+        check('atraso zero impede contador e buff', () => player.potionDelay === 7 && buffTime(21) === 0);
+        reset(); healState.delay = NaN; delay(potion);
+        check('atraso nao finito conserva valor nativo', () => player.potionDelay === 3600 && buffTime(21) === 3600);
+        reset(); const before = entries('AddBuff');
+        player['void AddBuff(int type, int time, bool fromNetPvP)'](21, 50, false);
+        check('AddBuff fora do contexto de pocao nao entra no hook JS', () => entries('AddBuff') === before && buffTime(21) === 50);
+        reset(); player.statLifeMax2 = 160; const other = item(Terraria.ID.ItemID.HealingPotion); other.healLife = 70; player.inventory[1] = other;
+        const choose = player['Item QuickHeal_GetItemToUse()'];
+        check('selecao rapida conserva criterio nativo sem alteracao', () => bl.addressOf(choose()) === bl.addressOf(other));
+        healState.life = 60;
+        check('GetHealLife participa da escolha de cura rapida', () => bl.addressOf(choose()) === bl.addressOf(potion) && healState.lifeQuick && potion.healLife === 50);
+        player.inventory[1] = item(0);
+        reset(); healState.life = 80; healState.mana = 35; healState.delay = 120;
+        player['void QuickHeal()']();
+        check('QuickHeal nativo aplica vida e mana modificadas', () => player.statLife === 180 && player.statMana === 55);
+        check('QuickHeal fornece quickHeal true para ambos os canais', () => healState.lifeQuick && healState.manaQuick && healState.lifePlayer === bl.addressOf(player));
+        check('QuickHeal conserva consumo e atraso nativos', () => potion.stack === 4 && player.potionDelay === 120 && buffTime(21) === 120);
+        check('QuickHeal restaura campos antes do consumo', () => potion.healLife === 50 && potion.healMana === 20);
+        reset(); healState.life = 65; healState.mana = 45; healState.allow = false;
+        player['void QuickMana()']();
+        check('QuickMana nativo aplica ambos os valores modificados', () => player.statLife === 165 && player.statMana === 65);
+        check('QuickMana conserva consumo mesmo com veto de atraso', () => potion.stack === 4 && player.potionDelay === 0 && buffTime(21) === 0 && buffTime(94) > 0);
+        check('QuickMana fornece quickHeal true e restaura campos', () => healState.lifeQuick && healState.manaQuick && potion.healLife === 50 && potion.healMana === 20);
+        ModPlayer.register(ItemHealPlayerProbe);
+        reset(); healState.life = 80; healState.mana = 35; healState.mpLife = 10; healState.mpMana = 5; apply(potion);
+        check('cura compoe ModItem e ModPlayer uma vez', () => player.statLife === 190 && player.statMana === 60 && healCounts.life === 1 && healCounts.mpLife === 1 && healCounts.mana === 1 && healCounts.mpMana === 1);
+        reset(); healState.delay = 240; healState.allow = false; delay(potion);
+        check('ModPlayer recebe atraso modificado mesmo apos veto do item', () => healCounts.mpDelay === 1 && healState.mpDelaySeen === 240 && player.potionDelay === 0);
+        reset(); healState.allow = true; healState.mpAllow = false; delay(potion);
+        check('veto ModPlayer supera permissao de ModItem', () => player.potionDelay === 0 && buffTime(21) === 0);
+        for (const [type, field, value] of [[227, 'restorationDelayTime', 1000], [1912, 'eggnogDelayTime', 1100], [5, 'mushroomDelayTime', 1200]]) {
+            reset(); player[field] = value; delay(item(type));
+            check('atraso especial nativo item ' + type + ' e preservado', () => player.potionDelay === value && buffTime(21) === value && healState.mpDelaySeen === value);
+        }
+        reset(); player.pStone = false; delay(item(3001));
+        check('StrangeBrew conserva sorteio nativo do atraso', () => player.potionDelay >= 2400 && player.potionDelay <= 4200 && buffTime(21) === player.potionDelay && healState.mpDelaySeen === player.potionDelay);
+        const healHooks = bl.hookStats().filter(s => s.name.includes('ApplyLifeAndOrMana('));
+        const delayHooks = bl.hookStats().filter(s => s.name.includes('ApplyPotionDelay('));
+        check('ModItem e ModPlayer compartilham hooks de cura e atraso', () => healHooks.length === 1 && delayHooks.length === 1);
+        log('HEAL hooks_cura=' + healHooks.length + ' hooks_atraso=' + delayHooks.length + ' checks_total=' + checks);
+    } finally {
+        for (let i = 0; i < inventory.length; i++) player.inventory[i] = inventory[i];
+        restore(player, playerState);
+        for (let i = 0; i < buffs.length; i++) { player.buffType[i] = buffs[i][0]; player.buffTime[i] = buffs[i][1]; }
+    }
+}
 Terraria.Player['void Update(int i)'].hook((original, player, index) => {
     original(player, index);
     if (done || Main.gameMenu || index !== Main.myPlayer) return;
     if (++frames !== 60) return;
     done = true;
-    try { run(player); runUse(player); }
+    try { run(player); runUse(player); runHealing(player); }
     catch (error) { failures++; log('execucao: FALHOU ' + error + ' ' + error.stack); }
     log('FIM checks=' + checks + ' falhas=' + failures);
 });
