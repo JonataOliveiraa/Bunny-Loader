@@ -7,6 +7,7 @@
 #include "content/common/TypeTables.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/ModTiles.h"
+#include "content/walls/UnloadedWallTexture.h"
 
 #include <atomic>
 #include <cstring>
@@ -26,6 +27,7 @@ std::vector<Entry> g_regs;
 std::atomic<WallsInstalledHook> g_installedHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
+std::atomic<int> g_unloadedType{-1};
 bool g_failed = false;
 
 TypeTables g_tables("paredes de mod", kVanillaWallCount, {
@@ -181,7 +183,7 @@ void tickModWalls() {
             Entry& e = g_regs[static_cast<size_t>(i)];
             const int type = kVanillaWallCount + i;
             int w = 0, h = 0;
-            Il2CppObject* asset = content::loadTextureAsset(e.def.texture, nullptr, 0,
+            Il2CppObject* asset = content::loadTextureAsset(e.def.texture, e.def.textureData, e.def.textureSize,
                                                             e.def.mod + "/" + e.def.name, &w, &h);
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
             else BL_ERROR("paredes de mod: %s/%s sem textura (%s)", e.def.mod.c_str(), e.def.name.c_str(),
@@ -225,6 +227,23 @@ int modWallTypeByKey(const std::string& key) {
     const size_t slash = key.find('/');
     if (slash == std::string::npos) return -1;
     return modWallTypeByName(key.substr(0, slash), key.substr(slash + 1));
+}
+
+void registerUnloadedWall() {
+    if (g_unloadedType.load() >= 0) return;
+    ModWallDef d;
+    d.mod = "bunnyloader";
+    d.name = "UnloadedWall";
+    d.textureData = bl_unloaded_wall_png;
+    d.textureSize = bl_unloaded_wall_png_len;
+    const int type = registerModWall(std::move(d));
+    g_unloadedType.store(type);
+    BL_DEBUG("paredes de mod: parede nao carregada no id %d", type);
+}
+
+int unloadedWallType() {
+    const int type = g_unloadedType.load();
+    return type >= 0 && !g_failed && type < wallTypeCount() ? type : -1;
 }
 
 std::vector<ModWallInfo> modWalls() {

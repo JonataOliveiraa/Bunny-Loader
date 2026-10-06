@@ -41,6 +41,76 @@ object SaveFiles {
             }
     }
 
+    // ------------------------------------------------------------- importar
+
+    enum class Kind(val dir: String, val ext: String, val label: String) {
+        PLAYER("Players", ".plr", "personagem"),
+        WORLD("Worlds", ".wld", "mundo"),
+    }
+
+    /** Um arquivo escolhido no seletor: o nome que ele tinha e o conteúdo. */
+    class Picked(val name: String, val open: () -> java.io.InputStream?)
+
+    /**
+     * Copia personagens ou mundos para onde o jogo procura (Players/ ou
+     * Worlds/). Cada arquivo principal (`.plr`, `.wld`) é conferido lendo o
+     * nome de dentro dele; os arquivos do Bunny Loader que vêm junto
+     * (`Mundo.wld.bl`, `Mundo.wld.tiles.bl`, `Mundo.wld.walls.bl`,
+     * `Heroi.plr.bl`...) acompanham o principal com o mesmo nome. Um nome que
+     * já existe ganha um sufixo (`Mundo_2.wld`) em vez de sobrescrever.
+     *
+     * @return uma linha por arquivo principal: o nome importado ou o erro.
+     */
+    fun import(context: Context, kind: Kind, picked: List<Picked>): List<Result<String>> {
+        val base = context.getExternalFilesDir(null)?.parentFile
+            ?: return listOf(Result.failure(IllegalStateException("sem pasta de saves")))
+        val dir = File(base, kind.dir).apply { mkdirs() }
+        val temp = File(context.cacheDir, "import-save").apply { deleteRecursively(); mkdirs() }
+        try {
+            val files = picked.mapIndexedNotNull { i, p ->
+                val safe = p.name.substringAfterLast('/').replace(Regex("""[^\p{L}\p{N} ._()-]"""), "_")
+                    .ifBlank { "arquivo$i" }
+                val out = File(temp, "$i").apply { mkdirs() }.let { File(it, safe) }
+                runCatching { p.open()?.use { input -> out.outputStream().use { input.copyTo(it) } } }
+                out.takeIf { it.isFile }
+            }
+            val mains = files.filter { it.name.endsWith(kind.ext, ignoreCase = true) }
+            if (mains.isEmpty()) {
+                val other = if (kind == Kind.WORLD) Kind.PLAYER else Kind.WORLD
+                val hint = if (files.any { it.name.endsWith(other.ext, ignoreCase = true) })
+                    " (isso é um ${other.label}: use Importar ${other.label})" else ""
+                return listOf(Result.failure(IllegalArgumentException(
+                    "nenhum arquivo ${kind.ext} entre os escolhidos$hint")))
+            }
+            return mains.map { main ->
+                runCatching {
+                    val save = runCatching { if (kind == Kind.PLAYER) readPlayer(main) else readWorld(main) }.getOrNull()
+                    requireNotNull(save) { "${main.name} não é um ${kind.label} do Terraria" }
+                    val stem = main.name.dropLast(kind.ext.length)
+                    val target = freeName(dir, stem, kind.ext)
+                    main.copyTo(File(dir, target + kind.ext))
+                    // Os arquivos do Bunny Loader do mesmo save: <nome><ext>.*
+                    val prefix = main.name.lowercase() + "."
+                    for (side in files) {
+                        if (side == main || !side.name.lowercase().startsWith(prefix)) continue
+                        side.copyTo(File(dir, target + kind.ext + side.name.substring(main.name.length)), overwrite = true)
+                    }
+                    save.name
+                }
+            }
+        } finally {
+            temp.deleteRecursively()
+        }
+    }
+
+    /** `stem`, ou `stem_2`, `stem_3`... o primeiro que não existe na pasta. */
+    internal fun freeName(dir: File, stem: String, ext: String): String {
+        if (!File(dir, stem + ext).exists()) return stem
+        var n = 2
+        while (File(dir, "${stem}_$n$ext").exists()) n++
+        return "${stem}_$n"
+    }
+
     // --------------------------------------------------------- personagem
 
     /** A chave do .plr, a mesma do PC: "h3y_gUyZ" em UTF-16, como chave e IV. */

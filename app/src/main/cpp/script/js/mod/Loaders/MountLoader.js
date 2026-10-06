@@ -1,9 +1,3 @@
-// As montarias de mod, como o MountLoader do tModLoader. O tipo sai no
-// registro (MountID.Count cresce: é ele que o SetMount, o Initialize e o
-// GetHeightBoost do celular conferem), para o buff e o item pedirem
-// ModContent.MountType antes de tudo carregado. O MountData, as texturas e o
-// SetStaticDefaults vêm com o jogo pronto (Ready, fase 'setup'), quando o
-// Mount.mounts já existe e os tipos de buff e de poeira também.
 class MountLoader {
     static ByType = new Map();
     static VanillaCount = 0;

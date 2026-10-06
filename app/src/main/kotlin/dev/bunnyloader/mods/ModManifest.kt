@@ -46,6 +46,12 @@ data class ModManifest(
     val authors: List<Author> = emptyList(),
     /** Textura, Armas, Jogabilidade, Cheat, Utilidade... O pacote escolhe. */
     val category: String = "Mod",
+    /**
+     * O tipo do pacote, que separa as listas do launcher: `"mod"` (o padrão),
+     * `"texture"` ou `"font"`. Opcional; sem ele, ou com um valor que o app
+     * não conhece, o pacote é mod. Ver [PackType].
+     */
+    val type: String = "",
     /** Uma linha, para o cartão da lista. */
     val summary: String = "",
     /**
@@ -77,6 +83,9 @@ data class ModManifest(
     val dependencies: List<String> = emptyList(),
 ) {
     val hasValidUid: Boolean get() = isValidUid(uid)
+
+    /** Mod, textura ou fonte: o `type` do manifesto, mod quando falta. */
+    val packType: PackType get() = PackType.of(type)
 
     /** `authors`, ou o `author` antigo quando a lista não veio. */
     val credits: List<Author>

@@ -22,6 +22,18 @@ namespace bl::runtime::content {
 Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* data, size_t size,
                                const std::string& assetName, int* width, int* height);
 
+/** Dimensoes logicas do sprite vanilla (nao as da pagina Unity/atlas). */
+bool textureAssetSize(Il2CppObject* asset, int* width, int* height);
+Il2CppClass* textureAssetClass();
+std::string textureAssetName(Il2CppObject* asset);
+Il2CppObject* textureAssetValue(Il2CppObject* asset);
+Il2CppObject* textureAssetSource(Il2CppObject* asset);
+int textureAssetState(Il2CppObject* asset);
+bool replaceTextureAssetValue(Il2CppObject* asset, Il2CppObject* value, Il2CppObject* source, int state = 2);
+std::vector<Il2CppObject*> textureAssets();
+/** Libera a textura Unity criada por loadTextureAsset. Nunca para assets vanilla. */
+void destroyTextureAsset(Il2CppObject* asset);
+
 using CultureNames = std::vector<std::pair<std::string, std::string>>;
 
 /** O texto na cultura do jogo agora: exata, pela lingua, en-US ou "", qualquer; senao `fallback`. */

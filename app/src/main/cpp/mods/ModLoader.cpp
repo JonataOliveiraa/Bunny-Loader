@@ -1,5 +1,6 @@
 #include "mods/ModLoader.h"
 #include "core/Log.h"
+#include "content/textures/TexturePacks.h"
 #include "script/bridge/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
 #include <algorithm>
@@ -126,7 +127,9 @@ void readManifest(LoadedMod* mod) {
 }
 
 void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
+    runtime::configureTexturePacks(modsDir, enabled);
     registry().clear();
+    dirsById().clear();
     BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());
 
     // 1a passada: todos no registro, com manifesto e entry, antes de qualquer
@@ -136,6 +139,7 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     // TODO(Fase 5): ordenação topológica por dependências (ciclo/faltante =>
     // desativa e loga).
     for (const auto& spec : enabled) {
+        if (spec.entry == "@texture" || spec.entry == "@font") continue;
         const std::string& id = spec.id;
         LoadedMod mod;
         mod.id = id;

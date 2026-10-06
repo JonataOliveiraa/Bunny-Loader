@@ -65,13 +65,15 @@ class TileUseLoader {
     // O toque começou agora? No PC é o releaseUseTile. No celular o toque num
     // tile de mod começa mirando outro alvo e só chega ao tile no quadro
     // seguinte, com o releaseUseTile já falso: vale o primeiro quadro com
-    // tileInteractAttempted depois de um sem.
+    // tileInteractAttempted depois de um sem. E o celular chama o
+    // TileInteractionsUse três vezes por quadro: só a primeira vale.
     static #FreshPress(player) {
         if (!player.tileInteractAttempted) return false;
 
         const frame = Terraria.Main.GameUpdateCount;
         const last = TileUseLoader.#lastPress.get(player.whoAmI);
         TileUseLoader.#lastPress.set(player.whoAmI, frame);
+        if (last === frame) return false;
         return player.releaseUseTile || last === undefined || frame - last > 1;
     }
 
@@ -83,10 +85,12 @@ class TileUseLoader {
             const m = at(x, y);
             if (!m) return original(self, x, y);
 
-            const use = TileUseLoader.#FreshPress(self);
+            // Fora do toque novo, nem o do jogo roda: nas chamadas seguintes do
+            // mesmo toque ele fechava o baú e as roupas que o RightClick abriu
+            // (a interface piscava e sumia). Como o TL Pro.
+            if (!TileUseLoader.#FreshPress(self)) return undefined;
             const right = TileLoader.Overrides(m, 'RightClick');
             TileUseLoader.#Shadow(m.Type, right, () => original(self, x, y));
-            if (!use) return undefined;
 
             let handled = TileUseLoader.#UseDoor(self, x, y, m.Type);
             if (!handled && !right && TileLoader.MusicBoxes.has(m.Type)) {
@@ -104,7 +108,16 @@ class TileUseLoader {
             if (x !== Player.tileTargetX || y !== Player.tileTargetY) return;
 
             const m = at(x, y);
-            if (m) Safe.Run(m.constructor.name + '.MouseOver', () => m.MouseOver(x, y));
+            if (!m) return;
+            Safe.Run(m.constructor.name + '.MouseOver', () => m.MouseOver(x, y));
+            // No celular o toque só vira interação (e chega ao RightClick) com o
+            // ícone do cursor ligado. O mod que não liga no MouseOver (no PC não
+            // precisa) ganha o do item que coloca o tile.
+            if (!self.cursorItemIconEnabled && TileLoader.Overrides(m, 'RightClick')) {
+                self.noThrow = 2;
+                self.cursorItemIconEnabled = true;
+                self.cursorItemIconID = TileLoader.GetItemDropFromTypeAndStyle(m.Type);
+            }
         }, { minType: FIRST_TILE, tileAt: [0, 1] });
 
         Player['void TileInteractionsCheckLongDistance(int myX, int myY)'].hook((original, self, x, y) => {
@@ -273,6 +286,43 @@ class TileUseLoader {
         const Chest = Terraria.Chest;
         const at = TileLoader.At;
         const filter = { minType: FIRST_TILE, tileAt: [0, 1], marks: 'tile.chest' };
+
+        // A cômoda aberta segue aberta enquanto o jogador está perto dela: o
+        // jogo mede pela área 48x32 só da cômoda dele (tipo 88), e a de mod
+        // ficava sem área, longe de tudo, e fechava no quadro seguinte. Como o
+        // patch do tModLoader (TileID.Sets.BasicDresser no lugar do 88).
+        const Sets = Terraria.ID.TileID.Sets;
+        const Reach = Terraria.DataStructures.TileReachCheckSettings;
+        Terraria.Player['bool IsInInteractionRangeToMultiTileHitbox(int chestPointX, int chestPointY)'].hook((original, self, x, y) => {
+            const m = at(x, y);
+            if (!m || !Sets.BasicDresser[m.Type]) return original(self, x, y);
+
+            const left = x * 16 + 1, top = y * 16 + 1;
+            const center = self.Center;
+            const px = Math.min(Math.max(center.X, left), left + 46);
+            const py = Math.min(Math.max(center.Y, top), top + 30);
+            return self['bool IsInTileInteractionRange(int targetX, int targetY, TileReachCheckSettings settings, int TB)'](
+                Math.floor(px / 16), Math.floor(py / 16), Reach.Simple, 0);
+        }, { minType: FIRST_TILE, tileAt: [0, 1] });
+
+        // A janela de roupas do celular (GUIClothesWindow.Draw) fecha se o tile
+        // da cômoda não for o 88 (`cmp w8, #0x58` compilado). Com a de mod
+        // aberta, o canto dela vira 88 só durante o desenho.
+        const Main = Terraria.Main;
+        const DRESSER = Terraria.ID.TileID.Dressers;
+        bl.classOf('', 'GUIClothesWindow')['void Draw()'].hook((original, self) => {
+            const x = Main.interactedDresserTopLeftX, y = Main.interactedDresserTopLeftY;
+            const m = at(x, y);
+            if (!m || !Sets.BasicDresser[m.Type]) return original(self);
+
+            const tile = TileLoader.Tile(x, y);
+            tile.type = DRESSER;
+            try {
+                return original(self);
+            } finally {
+                if (bl.tiles.typeAt(x, y) === DRESSER) TileLoader.Tile(x, y).type = m.Type;
+            }
+        });
 
         Chest['bool IsLocked(int x, int y)'].hook((original, x, y) => {
             const m = at(x, y);

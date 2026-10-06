@@ -5,9 +5,11 @@ export class ExampleCustomCurrency {
         if (ExampleCustomCurrency.#id < 0) {
             const { CustomCurrencyManager, CustomCurrencySingleCoin } = Terraria.GameContent.UI;
             const currency = CustomCurrencySingleCoin.new();
+
             currency['void .ctor(int coinItemID, long currencyCap)'](ModItem.getTypeByName('ExampleItem'), 999);
             currency.CurrencyTextKey = ModLocalization.Key('CustomCurrency.ExampleItemCurrency');
-            currency.CurrencyTextColor = Color.new(240, 100, 120);
+            currency.CurrencyTextColor = Color.new(138, 43, 226);
+
             ExampleCustomCurrency.#id = CustomCurrencyManager.RegisterCurrency(currency);
         }
         return ExampleCustomCurrency.#id;

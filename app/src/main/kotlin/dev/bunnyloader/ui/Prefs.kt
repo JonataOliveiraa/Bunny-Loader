@@ -76,6 +76,20 @@ class Prefs(context: Context) {
         get() = p.getBoolean(DEV_RESTART, true)
         set(v) = p.edit().putBoolean(DEV_RESTART, v).apply()
 
+    /** O nome do perfil, no topo da aba Config. Vazio: "Jogador". */
+    var profileName: String
+        get() = p.getString(PROFILE_NAME, "") ?: ""
+        set(v) = p.edit().putString(PROFILE_NAME, v).apply()
+
+    /**
+     * Os efeitos do tema: chuva, neve, folhas e bolhas no fundo, e os cartões
+     * que balançam, brilham ou soltam bolhas. Desligado, o cenário fica parado
+     * como antes (só o céu e as camadas).
+     */
+    var themeEffects: Boolean
+        get() = p.getBoolean(THEME_EFFECTS, true)
+        set(v) = p.edit().putBoolean(THEME_EFFECTS, v).apply()
+
     /** O launcher já conferiu (e, se faltava, avisou) o Terraria instalado. */
     var gameCheckDone: Boolean
         get() = p.getBoolean(GAME_CHECK_DONE, false)
@@ -116,6 +130,8 @@ class Prefs(context: Context) {
         const val DEV_EDITOR = "devEditor"
         const val DEV_RESTART = "devRestart"
         const val GAME_CHECK_DONE = "gameCheckDone"
+        const val PROFILE_NAME = "profileName"
+        const val THEME_EFFECTS = "themeEffects"
         /** Nenhum arquivo de mundo tem este nome (o jogo grava `*.wld`). */
         const val TITLE_ONLY = "-"
     }

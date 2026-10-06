@@ -14,6 +14,7 @@
 #include "content/npcs/ModNpcSave.h"
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
+#include "content/walls/ModWalls.h"
 #include "menu/CheatButton.h"
 #include "menu/DevTools.h"
 
@@ -83,6 +84,7 @@ void probeThread() {
             BL_INFO("sonda: %zu mod(s) carregado(s)", mods::loadedCount());
             // Depois dos mods: os ids deles ficam os mesmos de sempre.
             registerUnloadedPool();
+            registerUnloadedWall();
             prepareModNpcs();
 
             // Menu de cheats (acoes nativas) + botao flutuante na Activity.

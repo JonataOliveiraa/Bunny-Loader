@@ -30,6 +30,7 @@ JSValue viaRuntimeInvoke(JSContext* ctx, const MethodInfo* m, void* self,
         return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo",
                                      il2cpp::api().method_get_name(m));
     }
+    if (!pack.writeBack(ctx, argv)) return JS_EXCEPTION;
     return fromReturn(ctx, m, ret);
 }
 

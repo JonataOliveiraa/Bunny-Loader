@@ -33,4 +33,20 @@ class PackageDragGeometryTest {
             (0..4).map { packageDragShift(it, 3, 0, 108f) })
         assertEquals(0f, packageDragShift(2, 2, 2, 108f))
     }
+
+    @Test fun targetsStopAtTheGroupsBoundaryInBothDirections() {
+        val enabled = setOf(0, 1)
+        val disabled = setOf(2, 3)
+        assertEquals(1, packageDropIndex(0, 500f, slots, enabled))
+        assertEquals(1, packageDropIndex(1, 500f, slots, enabled))
+        assertEquals(2, packageDropIndex(3, -30f, slots, disabled))
+        assertEquals(2, packageDropIndex(2, -30f, slots, disabled))
+        assertEquals(0, packageDropIndex(0, 500f, slots, setOf(0)))
+    }
+
+    @Test fun scrollingIntoTheOtherGroupDoesNotCreateAnInvalidDropTarget() {
+        val scrolled = listOf(PackageDragSlot(2, 10, 140), PackageDragSlot(3, 158, 100))
+        assertEquals(1, packageDropIndex(1, 500f, scrolled, setOf(0, 1)))
+        assertEquals(3, packageDropIndex(3, 0f, slots.take(2), setOf(2, 3)))
+    }
 }

@@ -4,6 +4,7 @@
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
 #include "il2cpp/Types.h"
+#include "script/bridge/Value.h"
 #include <memory>
 #include <string>
 #include <vector>
@@ -36,7 +37,15 @@ public:
 
     void** data() { return count_ ? slots_ : nullptr; }
 
+    /** Depois da chamada: poe nos Ref soltos o que o metodo deixou no ref/out. */
+    bool writeBack(JSContext* ctx, JSValueConst* argv);
+
 private:
+    bool buildRef(JSContext* ctx, uint32_t i, const TypeDesc& d, JSValueConst v);
+
+    struct RefArg { int param; void* var; TypeDesc pointee; };
+    std::vector<RefArg> refs_;
+
     /** Espaço para o valor de um argumento, alinhado para qualquer tipo. */
     void* reserve(size_t bytes);
 

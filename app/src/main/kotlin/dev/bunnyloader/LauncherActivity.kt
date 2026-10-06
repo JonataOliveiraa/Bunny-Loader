@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,6 +48,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.bunnyloader.game.Eligibility
@@ -54,6 +61,7 @@ import dev.bunnyloader.ui.Bl
 import dev.bunnyloader.ui.ExplorarTab
 import dev.bunnyloader.ui.InicioTab
 import dev.bunnyloader.ui.ModDetail
+import dev.bunnyloader.ui.ModUpdatesDialog
 import dev.bunnyloader.ui.PacotesTab
 import dev.bunnyloader.ui.ConfigTab
 import dev.bunnyloader.ui.PixelFont
@@ -65,6 +73,11 @@ import dev.bunnyloader.ui.Ts
 import dev.bunnyloader.ui.Biome
 import dev.bunnyloader.ui.Prefs
 import dev.bunnyloader.ui.Scenery
+import dev.bunnyloader.ui.CardFx
+import dev.bunnyloader.ui.LocalRemoteFiles
+import dev.bunnyloader.ui.LocalThemeFx
+import dev.bunnyloader.ui.ThemeFx
+import dev.bunnyloader.ui.cardFx
 
 /**
  * Launcher do Bunny Loader.
@@ -76,7 +89,13 @@ class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         warnGameMissingOnce()
-        setContent { LauncherScreen() }
+        val model = ViewModelProvider(this, object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                require(modelClass == LauncherState::class.java)
+                return modelClass.cast(LauncherState(Shell(applicationContext)))
+            }
+        })[LauncherState::class.java]
+        setContent { LauncherScreen(model.shell) }
     }
 
     /**
@@ -92,6 +111,11 @@ class LauncherActivity : ComponentActivity() {
     }
 }
 
+/** Mantém downloads, importações e a mesma trava durante recriações da Activity. */
+private class LauncherState(val shell: Shell) : ViewModel() {
+    override fun onCleared() { shell.close() }
+}
+
 private enum class Tab(val icon: Int, val label: String) {
     INICIO(R.drawable.ic_tab_inicio, "Início"),
     EXPLORAR(R.drawable.ic_tab_explorar, "Explorar"),
@@ -100,27 +124,64 @@ private enum class Tab(val icon: Int, val label: String) {
 }
 
 @Composable
-private fun LauncherScreen() {
+private fun LauncherScreen(shell: Shell) {
     val ctx = LocalContext.current
-    val shell = remember { Shell(ctx) }
     val prefs = remember { Prefs(ctx) }
-    var tab by remember { mutableStateOf(Tab.INICIO) }
-    var openMod by remember { mutableStateOf<String?>(null) }
+    // Saveable: o seletor de arquivos (foto do perfil, mundos) pode fazer o
+    // sistema recriar a Activity, e a resposta dele só chega à aba que pediu
+    // se ela for a mesma na volta.
+    var tab by rememberSaveable { mutableStateOf(Tab.INICIO) }
+    var openMod by rememberSaveable { mutableStateOf<String?>(null) }
+    val tabState = rememberSaveableStateHolder()
     var sceneryChoice by remember { mutableStateOf(prefs.scenery) }
     // Saveable: girar a tela recria a Activity, e no automático isso trocaria
     // o cenário no meio do uso.
     val biome = Biome.entries[rememberSaveable(sceneryChoice) {
         prefs.resolveScenery(sceneryChoice).ordinal
     }]
+    var themeEffects by remember { mutableStateOf(prefs.themeEffects) }
+    // Início sem nada por cima: só o cenário (ver InicioTab).
+    var immersive by remember { mutableStateOf(false) }
+    androidx.compose.runtime.LaunchedEffect(tab, openMod) {
+        if (tab != Tab.INICIO || openMod != null) immersive = false
+    }
 
     BackHandler(enabled = openMod != null) { openMod = null }
+    BackHandler(enabled = immersive) { immersive = false }
+
+    // Um relógio para cenário e cartões, limitado a 30 fps (20 sem efeitos).
+    // As leituras ficam no desenho: a animação não recompõe a navegação.
+    val fxTime = remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    val fxLifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
+    androidx.compose.runtime.LaunchedEffect(themeEffects, fxLifecycle) {
+        val origin = android.os.SystemClock.uptimeMillis()
+        fxLifecycle.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+            var previous = 0L
+            while (true) {
+                androidx.compose.runtime.withFrameMillis { frame ->
+                    if (frame - previous >= if (themeEffects) 32L else 49L) {
+                        fxTime.floatValue = (android.os.SystemClock.uptimeMillis() - origin) / 1000f
+                        previous = frame
+                    }
+                }
+            }
+        }
+    }
+    val fx = remember(biome, themeEffects) {
+        ThemeFx(if (themeEffects) biome.cardFx() else CardFx.NONE, fxTime)
+    }
 
     // Voltou do jogo ou do gerenciador de arquivos: relê bunny_packs, que pode
     // ter pacote novo ou editado à mão.
     val lifecycle = androidx.compose.ui.platform.LocalLifecycleOwner.current.lifecycle
     androidx.compose.runtime.DisposableEffect(lifecycle) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) shell.rescan()
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_RESUME) {
+                shell.rescan()
+                // Sem forçar: voltar do jogo dentro do intervalo não pede a
+                // lista de novo (e, passado o intervalo, o ETag evita baixá-la).
+                shell.refreshRemote()
+            }
         }
         lifecycle.addObserver(observer)
         onDispose { lifecycle.removeObserver(observer) }
@@ -133,36 +194,102 @@ private fun LauncherScreen() {
         tween(1400, easing = FastOutSlowInEasing), label = "camera",
     )
 
+    val hide by animateFloatAsState(if (immersive) 1f else 0f, tween(450, easing = FastOutSlowInEasing),
+        label = "immersive")
+
+    // Guardada: `shell::requestRemoteFiles` é um objeto novo a cada recomposição,
+    // e um valor novo num staticCompositionLocal recompõe a tela inteira.
+    val requestFiles = remember(shell) { shell::requestRemoteFiles }
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalThemeFx provides fx,
+        LocalRemoteFiles provides requestFiles,
+    ) {
     Box(Modifier.fillMaxSize()) {
-        Scenery(biome, { pan }, Modifier.fillMaxSize())
+        Scenery(biome, { pan }, { fxTime.floatValue }, Modifier.fillMaxSize(), effects = themeEffects)
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // Teto de largura: o layout foi pensado para um celular em pé. Solto num
             // tablet ou no emulador deitado, uma linha de mod com 1600px vira uma
             // faixa vazia com um ícone perdido na esquerda.
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+            Box(
+                Modifier.weight(1f).fillMaxWidth().graphicsLayer {
+                    translationY = -size.height * hide
+                    alpha = 1f - hide
+                },
+                contentAlignment = Alignment.TopCenter,
+            ) {
                 Box(Modifier.widthIn(max = 560.dp).fillMaxSize()) {
                     val detail = openMod?.let { shell.entry(it) }
                     if (detail != null) {
                         ModDetail(detail, shell) { openMod = null }
                     } else {
-                        when (tab) {
-                            Tab.INICIO -> InicioTab(shell) { openMod = it }
-                            Tab.EXPLORAR -> ExplorarTab(shell) { openMod = it }
-                            Tab.PACOTES -> PacotesTab(shell) { openMod = it }
-                            Tab.CONFIG -> ConfigTab(shell, sceneryChoice) {
-                                sceneryChoice = it
-                                prefs.scenery = it
+                        tabState.SaveableStateProvider(tab.name) {
+                            when (tab) {
+                                Tab.INICIO -> InicioTab(shell, onHide = { immersive = true }) { openMod = it }
+                                Tab.EXPLORAR -> ExplorarTab(shell) { openMod = it }
+                                Tab.PACOTES -> PacotesTab(shell) { openMod = it }
+                                Tab.CONFIG -> ConfigTab(
+                                    shell, sceneryChoice,
+                                    onScenery = {
+                                        sceneryChoice = it
+                                        prefs.scenery = it
+                                    },
+                                    themeEffects = themeEffects,
+                                    onThemeEffects = {
+                                        themeEffects = it
+                                        prefs.themeEffects = it
+                                    },
+                                )
                             }
                         }
                     }
                 }
             }
-            NavBar(
-                current = tab,
-                onSelect = { tab = it; openMod = null },
-                onStart = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },
-            )
+            Box(Modifier.graphicsLayer { translationY = size.height * hide }) {
+                NavBar(
+                    current = tab,
+                    onSelect = { tab = it; openMod = null },
+                    onStart = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },
+                )
+            }
         }
+        if (immersive) ImmersiveOverlay { immersive = false }
+        ModUpdatesDialog(shell)
+    }
+    }
+}
+
+/**
+ * Por cima de tudo enquanto o Início está escondido: pega o arraste para baixo
+ * (que traz a interface de volta) e mostra a dica por alguns segundos.
+ */
+@Composable
+private fun ImmersiveOverlay(onRestore: () -> Unit) {
+    val threshold = with(androidx.compose.ui.platform.LocalDensity.current) { 64.dp.toPx() }
+    var hint by remember { mutableStateOf(true) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(2500)
+        hint = false
+    }
+    val hintAlpha by animateFloatAsState(if (hint) 1f else 0f, tween(600), label = "hint")
+    Box(
+        Modifier.fillMaxSize().pointerInput(Unit) {
+            var pulled = 0f
+            detectVerticalDragGestures(
+                onDragStart = { pulled = 0f },
+                onVerticalDrag = { change, amount ->
+                    change.consume()
+                    pulled += amount
+                    if (pulled > threshold) onRestore()
+                },
+            )
+        },
+    ) {
+        PixelText(
+            "Arraste para baixo para voltar",
+            size = Ts.Small, color = Bl.TextDim,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                .padding(bottom = 24.dp).graphicsLayer { alpha = hintAlpha },
+        )
     }
 }
 

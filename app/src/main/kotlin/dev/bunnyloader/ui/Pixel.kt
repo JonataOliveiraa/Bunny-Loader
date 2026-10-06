@@ -23,6 +23,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
@@ -38,6 +40,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.contentDescription
@@ -49,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Peças de interface pixelada.
@@ -129,19 +134,19 @@ fun PixelText(
     overflow: TextOverflow = TextOverflow.Clip,
     align: TextAlign? = null,
 ) {
-    Box(modifier) {
-        val body: @Composable (Color, Modifier) -> Unit = { c, m ->
-            Text(
-                text, color = c, modifier = m,
-                fontFamily = PixelFont, fontSize = size.sp,
-                maxLines = maxLines, overflow = overflow, textAlign = align,
-            )
-        }
-        for ((dx, dy) in OUTLINE_OFFSETS) {
-            body(outline, Modifier.offset(dx.dp, dy.dp))
-        }
-        body(color, Modifier)
-    }
+    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    Text(
+        text, color = color,
+        modifier = modifier.drawBehind {
+            val measured = layout ?: return@drawBehind
+            for ((dx, dy) in OUTLINE_OFFSETS) {
+                drawText(measured, color = outline, topLeft = Offset(dx.dp.toPx(), dy.dp.toPx()))
+            }
+        },
+        fontFamily = PixelFont, fontSize = size.sp,
+        maxLines = maxLines, overflow = overflow, textAlign = align,
+        onTextLayout = { layout = it },
+    )
 }
 
 // Quatro lados. As diagonais engrossariam o contorno a ponto de fechar os
@@ -254,8 +259,16 @@ fun PixelCard(
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val base = (if (shadow) modifier.pixelShadow() else modifier).pixelPanel(fill = fill)
-    Box(if (onClick != null) base.pixelClickable(onClick) else base, content = content)
+    // O efeito do tema (ThemeFx): o balanço vem por fora de tudo (sombra e
+    // conteúdo juntos); chuva, bolhas e neve, por cima do conteúdo.
+    val fx = LocalThemeFx.current
+    val seed = androidx.compose.runtime.currentCompositeKeyHash
+    val themed = modifier.cardSway(fx, seed)
+    val base = (if (shadow) themed.pixelShadow() else themed).pixelPanel(fill = fill)
+    Box(if (onClick != null) base.pixelClickable(onClick) else base) {
+        content()
+        CardFxOverlay(fx, seed)
+    }
 }
 
 /**
@@ -362,10 +375,13 @@ private fun Scrollbar(
     var show by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(if (show) 1f else 0f, label = "scrollbar")
 
-    LaunchedEffect(value()) {
-        show = true
-        delay(900)
-        show = false
+    val position by rememberUpdatedState(value)
+    LaunchedEffect(Unit) {
+        snapshotFlow { position() }.collectLatest {
+            show = true
+            delay(900)
+            show = false
+        }
     }
 
     Canvas(modifier.fillMaxHeight().wrapContentWidth(Alignment.End).width(4.dp)) {

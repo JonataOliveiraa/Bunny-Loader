@@ -4,7 +4,8 @@
 //
 // O Main.MouseText_DrawItemTooltip do celular vira JS (porte do GST378) só
 // para o item que pede: mod com um desses hooks (ModItem, GlobalItem, prefixo
-// com GetTooltipLines) ou raridade de mod; o resto é o do jogo. Se o porte
+// com GetTooltipLines), raridade de mod ou preço em moeda própria; o resto é
+// o do jogo. Se o porte
 // quebrar, o log diz uma vez e o tooltip volta a ser o do jogo.
 //
 // O celular desenha cada linha com DrawString, sem o parser de tags
@@ -133,6 +134,9 @@ class TooltipLoader {
     static #Wants(item) {
         if (!item || item.type < 1) return false;
         if (RarityLoader.ByType.has(item.rare)) return true;
+        // Moeda própria na loja: o jogo do celular pinta o preço com uma cor
+        // fixa (246, 100, 120) e ignora o CurrencyTextColor; aqui ele vale.
+        if (item.shopSpecialCurrency !== -1 && Terraria.Main.npcShop > 0) return true;
         // Classe de dano que o jogo não entende: o texto dele diria a das flags.
         if (item.damage > 0 && DamageClassLoader.IsHooked(DamageClassLoader.ItemClass(item))) return true;
 
@@ -277,8 +281,7 @@ class TooltipLoader {
                 if (count.value > 0) {
                     const text = String(buffer[count.value - 1]);
                     add('SpecialPrice', text.slice(text.indexOf(':') + 1).replaceAll(']', ''));
-                    const currency = CustomCurrencyManager._currencies.get_Item(item.shopSpecialCurrency);
-                    ctx.priceColor = Color.Multiply((currency && currency.CurrencyTextColor) || Color.new(246, 100, 120), alpha);
+                    ctx.priceColor = Color.Multiply(TooltipLoader.#CurrencyColor(item.shopSpecialCurrency), alpha);
                 }
             } else if (price > 0) {
                 let total;
@@ -312,6 +315,15 @@ class TooltipLoader {
                 ctx.priceColor = coinColor(coins[3], coins[2], coins[1]);
             }
         }
+    }
+
+    // A cor do preço numa moeda própria: o CurrencyTextColor dela. Moeda sem
+    // ele (outra classe que não a CustomCurrencySingleCoin) ou com a cor
+    // vazia (alfa 0, nunca escrita) fica com a cor do jogo.
+    static #CurrencyColor(id) {
+        const currency = Terraria.GameContent.UI.CustomCurrencyManager._currencies.get_Item(id);
+        const c = currency && 'CurrencyTextColor' in currency ? currency.CurrencyTextColor : null;
+        return c && c.A > 0 ? Color.new(c.R, c.G, c.B) : Color.new(246, 100, 120);
     }
 
     // O Main.MouseText_DrawItemTooltip do celular, com os hooks de mod. Porte do GST378.

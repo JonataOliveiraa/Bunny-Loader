@@ -62,6 +62,9 @@ object Bl {
     val Bad = Color(0xFFE0603F)
     /** Novidade boa: a etiqueta de atualização disponível. */
     val Good = Color(0xFF3F8F4E)
+
+    /** Fundo do cartão de um pacote ligado, em Pacotes: o verde do "Ligado" do jogo, escurecido. */
+    val EnabledPanel = Color(0xFF2B5A3A)
 }
 
 /** Fonte pixelada de _icons/font.TTF — a mesma identidade do título. */

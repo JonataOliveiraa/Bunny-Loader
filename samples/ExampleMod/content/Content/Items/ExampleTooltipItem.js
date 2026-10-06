@@ -1,6 +1,3 @@
-// O tooltip mexido: uma linha nova, a cor de outra (ModifyTooltips), e a linha
-// nova desenhada letra a letra, em onda e arco-íris (PreDrawTooltipLine).
-// Exemplo do GST378.
 export class ExampleTooltipItem extends ModItem {
     constructor() {
         super();
@@ -16,10 +13,8 @@ export class ExampleTooltipItem extends ModItem {
     }
 
     ModifyTooltips(item, tooltips) {
-        // A linha "Bunny Loader" logo depois do nome.
         tooltips.splice(1, 0, new TooltipLine(this.Mod, 'BunnyLoader', 'Bunny Loader'));
 
-        // A primeira linha da descrição, em outra cor.
         const description = tooltips.find((line) => line.Name === 'Tooltip0');
         if (description) description.OverrideColor = Color.new(255, 215, 90);
     }

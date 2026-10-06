@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -71,6 +73,8 @@ fun ModDetail(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
 @Composable
 private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
     val catalog = shell.catalog
+    // Mod online: a ficha (descrição, autores, imagens) só desce agora.
+    entry.remote?.let { mod -> LaunchedEffect(entry.uid) { shell.requestRemoteFiles(entry.uid, mod.files) } }
     val m = entry.manifest
     val uriHandler = LocalUriHandler.current
     val style = remember(m.theme) {
@@ -92,7 +96,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
             openUrl = { url -> runCatching { uriHandler.openUri(url) } },
         )
     }
-    val pages = rememberPages(entry, catalog)
+    val pages = rememberPages(entry, catalog, shell.remoteFilesVersion)
     var tab by rememberSaveable(entry.uid) { mutableStateOf(0) }
     val selected = tab.coerceIn(0, pages.lastIndex)
     val scroll = rememberScrollState()
@@ -105,8 +109,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-            Cover(entry, shell, onBack)
-            Header(entry, shell, ctx)
+            Header(entry, shell, ctx, onBack)
 
             if (pages.size > 1) {
                 TabStrip(pages.map { it.title }, selected, style,
@@ -120,7 +123,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
                     .pixelShadow().pixelPanel(fill = style.panel).padding(12.dp)
                     .fillMaxWidth(),
             ) {
-                key(selected) {
+                key(selected, shell.remoteFilesVersion) {
                     when (page) {
                         is Page.Description -> {
                             MarkdownView(page.blocks, ctx)
@@ -159,7 +162,7 @@ private sealed class Page(val title: String) {
  * `summary`); as outras só aparecem se o arquivo existir.
  */
 @Composable
-private fun rememberPages(entry: Catalog.Entry, catalog: Catalog): List<Page> = remember(entry, catalog) {
+private fun rememberPages(entry: Catalog.Entry, catalog: Catalog, version: Int): List<Page> = remember(entry, catalog, version) {
     val m = entry.manifest
     buildList {
         val description = catalog.readText(entry, Catalog.DESCRIPTION)
@@ -180,14 +183,18 @@ private fun rememberPages(entry: Catalog.Entry, catalog: Catalog): List<Page> = 
 
 // -------------------------------- topo --------------------------------
 
-/** A capa, com voltar e favoritar flutuando sobre ela. */
+/**
+ * A capa, dentro do painel do cabeçalho, com voltar e favoritar flutuando
+ * sobre ela e o ícone pendurado na borda de baixo: o mesmo desenho do cartão
+ * "Em destaque" do Início. Solta acima do painel, a capa parecia outra coisa.
+ */
 @Composable
 private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
     var favorite by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
-        ModBanner(entry, shell.catalog, Modifier.fillMaxWidth().height(180.dp))
+        ModBanner(entry, shell.catalog, Modifier.fillMaxWidth().height(170.dp))
         Row(
-            Modifier.fillMaxWidth().padding(10.dp),
+            Modifier.fillMaxWidth().padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             // A seta de voltar do menu de ferramentas do jogo.
@@ -197,6 +204,9 @@ private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                 { favorite = !favorite },
             )
         }
+        Box(Modifier.align(Alignment.BottomStart).offset(x = 8.dp, y = 26.dp)) {
+            ModIcon(entry, shell.catalog, 68.dp)
+        }
     }
 }
 
@@ -205,7 +215,7 @@ private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
  * sobre o cenário, o texto se perdia no fundo claro (neve, céu de dia).
  */
 @Composable
-private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext) {
+private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, onBack: () -> Unit) {
     val m = entry.manifest
     val installed = entry.uid in shell.installed
     val on = entry.uid in shell.enabled
@@ -223,16 +233,16 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext) {
 
     Column(
         Modifier.padding(horizontal = EdgePad).padding(top = 10.dp, bottom = 12.dp)
-            .pixelShadow().pixelPanel(fill = ctx.style.panel).padding(12.dp),
+            .pixelShadow().pixelPanel(fill = ctx.style.panel).padding(6.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            ModIcon(entry, shell.catalog, 60.dp)
-            Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
-                PixelText(m.name, size = Ts.Big, color = ctx.style.heading)
-                AuthorStrip(entry, shell.catalog, Modifier.padding(top = 4.dp))
-            }
+        Cover(entry, shell, onBack)
+        // O texto começa depois do ícone, que pende da capa para dentro do painel.
+        Column(Modifier.fillMaxWidth().padding(start = 86.dp, top = 6.dp, end = 4.dp).heightIn(min = 26.dp)) {
+            PixelText(m.name, size = Ts.Big, color = ctx.style.heading)
+            AuthorStrip(entry, shell.catalog, Modifier.padding(top = 4.dp))
         }
-        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp)) {
+        Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             PixelTag(m.category, categoryColor(m.category))
             if (m.isOutdated) PixelTag("Formato antigo", Bl.Bad, Modifier.padding(start = 8.dp))
         }
@@ -315,6 +325,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext) {
                         fontSize = Ts.Small, shadow = false)
                 }
             }
+        }
         }
     }
 }
@@ -574,8 +585,10 @@ private val AVATAR_EXTENSIONS = listOf("png", "jpg", "jpeg", "webp")
 
 private fun isWebUrl(url: String) = url.startsWith("https://") || url.startsWith("http://")
 
-private fun hostOf(url: String) =
-    url.substringAfter("://").substringBefore('/').removePrefix("www.").ifBlank { url }
+private fun hostOf(url: String): String {
+    val host = url.substringAfter("://").substringBefore('/').removePrefix("www.").ifBlank { url }
+    return if (host.equals("steamcommunity.com", ignoreCase = true)) "steam.com" else host
+}
 
 @Composable
 private fun RoundIcon(res: Int, onClick: () -> Unit) {

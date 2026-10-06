@@ -31,6 +31,10 @@ struct Refs {
     const MethodInfo* activeCulture = nullptr;
     const MethodInfo* cultureName = nullptr;
     const MethodInfo* arraySet = nullptr;
+    const MethodInfo* destroy = nullptr;
+    int32_t valueOffset = -1, widthOffset = -1, heightOffset = -1, unityOffset = -1;
+    int32_t nameOffset = -1, sourceOffset = -1, stateOffset = -1, disposedOffset = -1;
+    const MethodInfo* assetLoad = nullptr;
 };
 
 Refs& refs() {
@@ -59,6 +63,16 @@ Refs& refs() {
     Il2CppObject* items = nullptr;
     if (FieldInfo* f = textures ? findField(textures, "Item") : nullptr) a.field_static_get_value(f, &items);
     if (items) r.assetCls = a.class_get_element_class(a.object_get_class(items));
+    r.valueOffset = r.assetCls ? fieldOffset(r.assetCls, "Value") : -1;
+    r.nameOffset = r.assetCls ? fieldOffset(r.assetCls, "<Name>k__BackingField") : -1;
+    r.sourceOffset = r.assetCls ? fieldOffset(r.assetCls, "<Source>k__BackingField") : -1;
+    r.stateOffset = r.assetCls ? fieldOffset(r.assetCls, "<State>k__BackingField") : -1;
+    r.disposedOffset = r.assetCls ? fieldOffset(r.assetCls, "<IsDisposed>k__BackingField") : -1;
+    r.assetLoad = r.assetCls ? a.class_get_method_from_name(r.assetCls, "ActionUnityLoad", 0) : nullptr;
+    r.widthOffset = r.gameTex ? fieldOffset(r.gameTex, "Width") : -1;
+    r.heightOffset = r.gameTex ? fieldOffset(r.gameTex, "Height") : -1;
+    r.unityOffset = r.gameTex ? fieldOffset(r.gameTex, "_unityTexture") : -1;
+    r.destroy = sig(findClass({"UnityEngine", "Object", {}}), "void Destroy(Object obj)");
     r.unityCtor = sig(r.unityTex, "void .ctor(int width, int height)");
     r.loadImage = sig(conv, "bool LoadImage(Texture2D tex, byte[] data, bool markNonReadable)");
     r.setFilterMode = unityTexBase ? a.class_get_method_from_name(unityTexBase, "set_filterMode", 1) : nullptr;
@@ -152,6 +166,7 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
     Il2CppObject* ok = invokeValue(r.loadImage, nullptr, c2, "ImageConversion.LoadImage");
     if (!ok || !*(reinterpret_cast<uint8_t*>(ok) + sizeof(Il2CppObject))) {
         BL_ERROR("conteudo de mod: a Unity nao decodificou a textura de %s", assetName.c_str());
+        if (r.destroy) { void* args[1] = {ut}; invoke(r.destroy, nullptr, args, "Object.Destroy"); }
         return nullptr;
     }
     // Pixel art: vizinho-mais-proximo. A Unity nasce bilinear e a textura
@@ -182,6 +197,141 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
     void* c6[2] = {gt, nullptr};
     if (!invoke(r.assetSubmit, asset, c6, "Asset.SubmitLoadedContent")) return nullptr;
     return asset;
+}
+
+Il2CppClass* textureAssetClass() { return refs().assetCls; }
+
+std::string textureAssetName(Il2CppObject* asset) {
+    const auto& r = refs();
+    if (!asset || il2cpp::api().object_get_class(asset) != r.assetCls || r.nameOffset < 0) return {};
+    auto* name = *reinterpret_cast<Il2CppString**>(reinterpret_cast<char*>(asset) + r.nameOffset);
+    std::string result;
+    if (name) for (int i = 0; i < name->length; ++i) {
+        if (name->chars[i] > 127) return {};
+        result += static_cast<char>(name->chars[i]);
+    }
+    return result;
+}
+
+Il2CppObject* textureAssetValue(Il2CppObject* asset) {
+    const auto& r = refs();
+    return asset && r.valueOffset >= 0 && il2cpp::api().object_get_class(asset) == r.assetCls
+        ? *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.valueOffset) : nullptr;
+}
+
+Il2CppObject* textureAssetSource(Il2CppObject* asset) {
+    const auto& r = refs();
+    return asset && r.sourceOffset >= 0 && il2cpp::api().object_get_class(asset) == r.assetCls
+        ? *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.sourceOffset) : nullptr;
+}
+
+int textureAssetState(Il2CppObject* asset) {
+    const auto& r = refs();
+    return asset && r.stateOffset >= 0 && il2cpp::api().object_get_class(asset) == r.assetCls
+        ? *reinterpret_cast<int*>(reinterpret_cast<char*>(asset) + r.stateOffset) : -1;
+}
+
+bool replaceTextureAssetValue(Il2CppObject* asset, Il2CppObject* value, Il2CppObject* source, int state) {
+    const auto& r = refs();
+    auto& a = il2cpp::api();
+    if (!asset || state < 0 || state > 2 || (state == 2 && !value) || r.valueOffset < 0 || r.sourceOffset < 0 || r.stateOffset < 0 || r.disposedOffset < 0 ||
+        !a.gc_wbarrier_set_field || a.object_get_class(asset) != r.assetCls) return false;
+    auto* bytes = reinterpret_cast<char*>(asset);
+    if (*reinterpret_cast<bool*>(bytes + r.disposedOffset)) return false;
+    a.gc_wbarrier_set_field(asset, reinterpret_cast<void**>(bytes + r.valueOffset), value);
+    a.gc_wbarrier_set_field(asset, reinterpret_cast<void**>(bytes + r.sourceOffset), source);
+    *reinterpret_cast<int*>(bytes + r.stateOffset) = state;
+    return true;
+}
+
+std::vector<Il2CppObject*> textureAssets() {
+    auto& a = il2cpp::api();
+    const auto& r = refs();
+    std::vector<Il2CppObject*> result;
+    if (!r.assetCls) return result;
+    auto add = [&](Il2CppObject* object) {
+        if (object && a.object_get_class(object) == r.assetCls) result.push_back(object);
+    };
+    auto addArray = [&](Il2CppObject* object) {
+        if (!object) return;
+        auto* cls = a.object_get_class(object);
+        if (a.class_get_rank(cls) < 1 || a.class_get_element_class(cls) != r.assetCls) return;
+        auto* array = reinterpret_cast<Il2CppArray*>(object);
+        auto** values = static_cast<Il2CppObject**>(arrayData(array));
+        for (uintptr_t i = 0; i < array->length; ++i) add(values[i]);
+    };
+    auto* cls = il2cpp::findClass({"Terraria.GameContent", "TextureAssets", {}});
+    void* iter = nullptr;
+    while (auto* field = cls ? a.class_get_fields(cls, &iter) : nullptr) {
+        if (!(a.field_get_flags(field) & 0x10)) continue;
+        auto* type = a.class_from_il2cpp_type(a.field_get_type(field));
+        if (!type || (type != r.assetCls && (a.class_get_rank(type) < 1 || a.class_get_element_class(type) != r.assetCls))) continue;
+        Il2CppObject* object = nullptr;
+        a.field_static_get_value(field, &object);
+        add(object);
+        addArray(object);
+    }
+    auto* main = il2cpp::findClass({"Terraria", "Main", {}});
+    auto* assets = main ? il2cpp::findField(main, "Assets") : nullptr;
+    Il2CppObject* repository = nullptr;
+    if (assets) a.field_static_get_value(assets, &repository);
+    const int32_t lockOffset = repository ? il2cpp::fieldOffset(a.object_get_class(repository), "_requestLock") : -1;
+    auto* requestLock = lockOffset >= 0 ? *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(repository) + lockOffset) : nullptr;
+    if (!requestLock || !a.monitor_enter || !a.monitor_exit) return result;
+    a.monitor_enter(requestLock);
+    struct Unlock {
+        Il2CppObject* object;
+        ~Unlock() { il2cpp::api().monitor_exit(object); }
+    } unlock{requestLock};
+    const int32_t offset = repository ? il2cpp::fieldOffset(a.object_get_class(repository), "_assets") : -1;
+    auto* dictionary = offset >= 0 ? *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(repository) + offset) : nullptr;
+    if (!dictionary) return result;
+    auto* dictClass = a.object_get_class(dictionary);
+    auto* countMethod = a.class_get_method_from_name(dictClass, "get_Count", 0);
+    auto* valuesMethod = a.class_get_method_from_name(dictClass, "get_Values", 0);
+    if (!countMethod || !valuesMethod) return result;
+    const int count = unboxInt(invokeValue(countMethod, dictionary, nullptr, "Assets.Count"));
+    auto* values = invokeValue(valuesMethod, dictionary, nullptr, "Assets.Values");
+    auto* copy = values ? a.class_get_method_from_name(a.object_get_class(values), "CopyTo", 2) : nullptr;
+    if (count <= 0 || !copy) return result;
+    auto* arrayType = a.class_from_il2cpp_type(a.method_get_param(copy, 0));
+    if (!arrayType || a.class_get_rank(arrayType) != 1) return result;
+    auto* array = a.array_new(a.class_get_element_class(arrayType), static_cast<uintptr_t>(count));
+    if (!array) return result;
+    int zero = 0;
+    void* args[] = {array, &zero};
+    if (invoke(copy, values, args, "Assets.Values.CopyTo")) {
+        auto** entries = static_cast<Il2CppObject**>(arrayData(array));
+        for (int i = 0; i < count; ++i) add(entries[i]);
+    }
+    return result;
+}
+
+bool textureAssetSize(Il2CppObject* asset, int* width, int* height) {
+    const Refs& r = refs();
+    if (!asset || r.valueOffset < 0 || r.widthOffset < 0 || r.heightOffset < 0) return false;
+    auto value = [&] { return *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.valueOffset); };
+    Il2CppObject* texture = value();
+    if (!texture) {
+        // No mobile, ActionUnityLoad pede o Texture2D logico ao ContentManager:
+        // atlas e SourceAssetEntry fornecem Width/Height. A pagina Unity so e
+        // pedida ao desenhar (UnityBindTexture), nao ao ler essas dimensoes.
+        if (!r.assetLoad || !invoke(r.assetLoad, asset, nullptr, "Asset.ActionUnityLoad")) return false;
+        texture = value();
+    }
+    if (!texture) return false;
+    *width = *reinterpret_cast<int*>(reinterpret_cast<char*>(texture) + r.widthOffset);
+    *height = *reinterpret_cast<int*>(reinterpret_cast<char*>(texture) + r.heightOffset);
+    return *width > 0 && *height > 0;
+}
+
+void destroyTextureAsset(Il2CppObject* asset) {
+    const Refs& r = refs();
+    if (!asset || r.valueOffset < 0 || r.unityOffset < 0 || !r.destroy) return;
+    auto* texture = *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.valueOffset);
+    if (!texture) return;
+    auto* unity = *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(texture) + r.unityOffset);
+    if (unity) { void* args[1] = {unity}; invoke(r.destroy, nullptr, args, "Object.Destroy"); }
 }
 
 std::string textForCulture(const CultureNames& names, const std::string& fallback) {

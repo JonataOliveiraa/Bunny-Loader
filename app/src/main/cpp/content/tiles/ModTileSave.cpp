@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
 #include <map>
 #include <mutex>
 #include <string>
@@ -456,14 +457,25 @@ std::vector<SavedTile> collectModTiles(const TileArrays& t) {
     return tiles;
 }
 
-std::vector<SavedWall> collectModWalls(const TileArrays& t) {
+/**
+ * As paredes de mod do mundo. A parede nao carregada nao entra (no arquivo vai
+ * a original, do g_keptWalls), mas conta em `placeholders`: ela tambem sai do
+ * .wld, que senao a gravaria com um id que, com o mod de volta, e de outra parede.
+ */
+std::vector<SavedWall> collectModWalls(const TileArrays& t, size_t* placeholders) {
     std::vector<SavedWall> walls;
+    *placeholders = 0;
     if (!t.wall) return walls;
     std::unordered_map<int, std::string> keys;
+    const int unloaded = unloadedWallType();
     const int64_t n = static_cast<int64_t>(t.width) * t.height;
     for (int64_t pos = 0; pos < n; ++pos) {
         const int wall = t.wall[pos];
         if (wall < kVanillaWallCount) continue;
+        if (wall == unloaded) {
+            ++*placeholders;
+            continue;
+        }
         auto k = keys.find(wall);
         if (k == keys.end()) k = keys.emplace(wall, modWallKey(wall)).first;
         if (k->second.empty()) continue;
@@ -488,13 +500,15 @@ int32_t hkSaveWorldTiles(Il2CppObject* writer, const MethodInfo* m) {
     const bool modTiles = world && tileTypeCount() > kVanillaTileCount;
     const bool modWalls = world && t.wall && wallTypeCount() > kVanillaWallCount;
     std::vector<SavedTile> tiles = modTiles ? collectModTiles(t) : std::vector<SavedTile>{};
-    std::vector<SavedWall> walls = modWalls ? collectModWalls(t) : std::vector<SavedWall>{};
+    size_t placeholders = 0;
+    std::vector<SavedWall> walls = modWalls ? collectModWalls(t, &placeholders) : std::vector<SavedWall>{};
+    const bool stripWalls = !walls.empty() || placeholders > 0;
     int32_t r = 0;
 
-    if (g_view.ok && (walls.empty() || g_view.wallAt)) {
+    if (g_view.ok && (!stripWalls || g_view.wallAt)) {
         std::lock_guard<std::mutex> l(g_viewMx);
         r = bl_call_with_x27(writer, m, reinterpret_cast<void*>(g_origSave),
-                             statsForSave(modTiles, !walls.empty(),
+                             statsForSave(modTiles, stripWalls,
                                           static_cast<size_t>(t.width) * static_cast<size_t>(t.height)));
         g_view.type.clear();
         g_view.type.shrink_to_fit();
@@ -520,7 +534,7 @@ int32_t hkSaveWorldTiles(Il2CppObject* writer, const MethodInfo* m) {
             }
         }
         std::vector<std::pair<int64_t, uint16_t>> strippedWalls;
-        if (!walls.empty()) {
+        if (stripWalls) {
             const int64_t n = static_cast<int64_t>(t.width) * t.height;
             for (int64_t pos = 0; pos < n; ++pos) {
                 if (t.wall[pos] >= kVanillaWallCount) strippedWalls.push_back({pos, t.wall[pos]});
@@ -553,11 +567,22 @@ int32_t hkSaveWorldTiles(Il2CppObject* writer, const MethodInfo* m) {
         }
         size_t keptWalls = 0;
         {
+            // A original de mod ausente segue no arquivo enquanto a parede nao
+            // carregada estiver no lugar; quebrada ou trocada, ela se perde
+            // (como no tModLoader).
+            const int unloaded = unloadedWallType();
             std::lock_guard<std::mutex> l(g_mx);
             auto it = g_keptWalls.find(path);
             if (it != g_keptWalls.end()) {
-                keptWalls = it->second.size();
-                walls.insert(walls.end(), it->second.begin(), it->second.end());
+                std::vector<SavedWall>& kept = it->second;
+                if (unloaded >= 0 && world && t.wall) {
+                    kept.erase(std::remove_if(kept.begin(), kept.end(), [&](const SavedWall& w) {
+                        const bool inside = w.x >= 0 && w.y >= 0 && w.x < t.width && w.y < t.height;
+                        return !inside || t.wall[static_cast<int64_t>(t.width) * w.y + w.x] != unloaded;
+                    }), kept.end());
+                }
+                keptWalls = kept.size();
+                walls.insert(walls.end(), kept.begin(), kept.end());
             }
         }
         writeWallFile(path + kWallSuffix, walls);
@@ -575,13 +600,19 @@ void restoreModWalls(const std::string& path, const TileArrays* t) {
     const std::vector<SavedWall> saved = readWallFile(path + kWallSuffix);
     std::vector<SavedWall> kept;
     std::vector<std::pair<int, int>> placed;
-    int builtOver = 0;
+    int builtOver = 0, placeholders = 0;
     const Refs& r = g_refs;
+    const int unloaded = unloadedWallType();
     for (const SavedWall& s : saved) {
-        const int type = modWallTypeByKey(s.key);
+        int type = modWallTypeByKey(s.key);
         if (type < 0 || !t || !t->wall || !r.setWall) {
             kept.push_back(s);
-            continue;
+            // Sem o mod: a parede nao carregada no lugar segura o que esta preso nela.
+            if (unloaded < 0 || !t || !t->wall || !r.setWall) continue;
+            if (s.x < 0 || s.y < 0 || s.x >= t->width || s.y >= t->height) continue;
+            if (t->wall[t->width * s.y + s.x] != 0) continue;
+            type = unloaded;
+            ++placeholders;
         }
         if (s.x < 0 || s.y < 0 || s.x >= t->width || s.y >= t->height) continue;
         int32_t offset = t->width * s.y + s.x;
@@ -604,8 +635,9 @@ void restoreModWalls(const std::string& path, const TileArrays* t) {
         else g_keptWalls[path] = kept;
     }
     if (!saved.empty()) {
-        BL_INFO("paredes de mod: %zu parede(s) reposta(s), %zu de mod nao carregado (ficam no arquivo), "
-                "%d com outra parede no lugar", placed.size(), kept.size(), builtOver);
+        BL_INFO("paredes de mod: %zu parede(s) reposta(s), %zu de mod nao carregado (ficam no arquivo, %d com "
+                "a parede nao carregada no lugar), %d com outra parede no lugar",
+                placed.size() - static_cast<size_t>(placeholders), kept.size(), placeholders, builtOver);
     }
 }
 

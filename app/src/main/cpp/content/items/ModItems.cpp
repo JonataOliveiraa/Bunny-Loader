@@ -37,8 +37,6 @@ std::atomic<int> g_installed{0};      // ja nas tabelas do jogo
 bool g_failed = false;
 int g_poolFirst = -1;   // primeiro tipo da reserva "?", -1 sem reserva
 
-// ------------------------------ refs ------------------------------
-
 struct Refs {
     bool tried = false, ok = false;
     FieldInfo* itemTextures = nullptr;        // TextureAssets.Item (Asset<Texture2D>[])
@@ -421,6 +419,67 @@ void patchTouchTagLimits(int total) {
     BL_DEBUG("itens de mod: [ct] aceita IDs ate %u", limit);
 }
 
+// A etiqueta [i:tipo] e desenhada pela fonte: o SpriteBatch.DrawString chama
+// o ItemTagHandler.PrintInline (e a medida, o MeasureInline) a cada '['. Os
+// dois recusam tipo acima de 6195 (`mov wN, #6195`, um so em cada): item de
+// mod virava o texto cru "[i:6278]". As tabelas que o PrintInline le depois
+// (TextureAssets.Item, Main.itemAnimations) ja crescem com os itens de mod.
+uint32_t g_itemTagLimit = kVanillaItemCount - 1;
+
+const MethodInfo* itemTagMethod(const char* name, int args) {
+    Il2CppClass* cls = il2cpp::findClassQuiet("Terraria.GameContent.UI.Chat", "ItemTagHandler");
+    return cls ? il2cpp::api().class_get_method_from_name(cls, name, args) : nullptr;
+}
+
+void patchItemTagLimits(int total) {
+    const uint32_t limit = static_cast<uint32_t>(total - 1);
+    if (limit == g_itemTagLimit) return;
+    const MethodInfo* measure = itemTagMethod("MeasureInline", 4);
+    const MethodInfo* print = itemTagMethod("PrintInline", 8);
+    const int measured = measure ? patchMovImmediate(measure, g_itemTagLimit, limit) : 0;
+    const int printed = print ? patchMovImmediate(print, g_itemTagLimit, limit) : 0;
+    if (measured != 1 || printed != 1) {
+        BL_ERROR("itens de mod: limite de [i] parcialmente atualizado (MeasureInline=%d, PrintInline=%d)",
+                 measured, printed);
+        return;
+    }
+    g_itemTagLimit = limit;
+    BL_DEBUG("itens de mod: [i] aceita IDs ate %u", limit);
+}
+
+constexpr uint32_t kTstBlue = 0x72181edf;      // tst w22, #0xff00
+constexpr uint32_t kTstRgb = 0x72185edf;       // tst w22, #0xffffff00
+constexpr uint32_t kLsrRed = 0x53187ec8;       // lsr w8, w22, #24
+constexpr uint32_t kAndGreen = 0x12101ec8;     // and w8, w22, #0xff0000
+constexpr uint32_t kNop = 0xd503201f;
+constexpr size_t kPrintInlineScan = 0x900;    // o metodo tem 0x808 bytes
+
+bool isCbzW8(uint32_t insn) { return (insn & 0xFF00001Fu) == 0x34000008u; }
+
+void fixItemTagColorOnce() {
+    static bool done = false;
+    if (done) return;
+    done = true;
+    const MethodInfo* print = itemTagMethod("PrintInline", 8);
+    const auto* code = print ? reinterpret_cast<const uint32_t*>(il2cpp::methodPointer(print)) : nullptr;
+    if (!code) {
+        BL_ERROR("[i]: ItemTagHandler.PrintInline not found");
+        return;
+    }
+    for (size_t i = 0; i + 6 <= kPrintInlineScan / 4; ++i) {
+        if (code[i] != kTstBlue || code[i + 2] != kLsrRed || code[i + 4] != kAndGreen) continue;
+        if (!isCbzW8(code[i + 3]) || !isCbzW8(code[i + 5])) continue;
+        const bool ok = replaceInstruction(code, i * 4, kTstBlue, kTstRgb) &&
+                        replaceInstruction(code, (i + 3) * 4, code[i + 3], kNop) &&
+                        replaceInstruction(code, (i + 5) * 4, code[i + 5], kNop);
+        if (ok) BL_DEBUG("[i]: item desenhado em texto de qualquer cor (menos preto)");
+        else BL_ERROR("[i]: troca do teste de cor do PrintInline recusada (mprotect)");
+        return;
+    }
+    BL_ERROR("[i]: teste de cor do PrintInline nao achado (outra versao do jogo?); %s",
+             describeMethodCode(print).c_str());
+}
+
 /** O jogo ja criou as tabelas de agora? (Sao feitas no carregamento, nao no boot.) */
 bool gameReady(int size) {
     Refs& r = refs();
@@ -629,6 +688,8 @@ std::atomic<ItemsInstalledHook> g_installedHook{nullptr};
 } // namespace
 
 void tickModItems() {
+    // Vale para os itens do jogo tambem: roda mesmo sem item de mod.
+    fixItemTagColorOnce();
     const int total = g_total.load(std::memory_order_acquire);
     if (total == 0 || g_failed) return;
     const int installed = g_installed.load(std::memory_order_relaxed);
@@ -664,6 +725,7 @@ void tickModItems() {
     hookItemNames();
     patchDropLimits(to);
     patchTouchTagLimits(to);
+    patchItemTagLimits(to);
     growInstanceTables(to);
 
     struct PendingSample { int type; std::string mod, name; };

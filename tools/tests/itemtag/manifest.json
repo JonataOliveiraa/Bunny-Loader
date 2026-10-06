@@ -1,0 +1,18 @@
+{
+  "uid": "b4a1c9e2-7d3f-4e85-9c61-2f8a0d5e3b17",
+  "id": "test-itemtag",
+  "name": "Teste: [i:tipo]",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A etiqueta [i:tipo] desenhada: texto direto em várias cores, tooltip do jogo e do Bunny Loader, item do jogo e de mod, e cabeçalho da Config. dos Mods (nome da opção e tradução).",
+  "description": "Loga 'itemtag ...'; a conferência é pela tela.",
+  "updated": "2026-10-03",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

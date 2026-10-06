@@ -1,8 +1,10 @@
 package dev.bunnyloader.mods
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
+import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.serialization.json.Json
@@ -45,7 +47,7 @@ class Catalog(private val context: Context) {
     }
 
     private val json = Json { ignoreUnknownKeys = true }
-    private val repo = ModRepository(context)
+    private val repo by lazy { ModRepository(context) }
 
     val entries: List<Entry> by lazy { scan() }
 
@@ -77,7 +79,7 @@ class Catalog(private val context: Context) {
                 assetDir = base,
                 sizeBytes = treeSize(base),
                 previews = previews,
-                iconAsset = if (ICON in files) "$base/$ICON" else null,
+                iconAsset = ICONS.firstOrNull { it in files }?.let { "$base/$it" },
                 bannerAsset = if (BANNER in files) "$base/$BANNER" else null,
             )
         }.sortedBy { it.manifest.name }
@@ -162,17 +164,65 @@ class Catalog(private val context: Context) {
                 .filter { it.name.endsWith(".png") || it.name.endsWith(".jpg") }
                 .sortedBy { it.name }
                 .map { it.path },
-            iconAsset = File(dir, ICON).takeIf { it.isFile }?.path,
+            iconAsset = ICONS.map { File(dir, it) }.firstOrNull { it.isFile }?.path,
             bannerAsset = File(dir, BANNER).takeIf { it.isFile }?.path,
             onDisk = true,
         )
     }
 
-    /** Caminho absoluto = arquivo no disco; relativo = dentro de `assets/`. */
-    fun loadBitmap(path: String): ImageBitmap? = runCatching {
-        if (path.startsWith("/")) BitmapFactory.decodeFile(path)?.asImageBitmap()
-        else context.assets.open(path).use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
-    }.getOrNull()
+    /**
+     * Caminho absoluto = arquivo no disco; relativo = dentro de `assets/`.
+     *
+     * Guardado num cache: a lista do Explorar descarta a linha que sai da tela,
+     * e sem ele cada linha que voltava decodificava o PNG de novo, na thread
+     * da interface, no meio do arraste. A chave leva a data do arquivo: a
+     * vitrine de um mod atualizado é baixada por cima, no mesmo caminho.
+     */
+    fun loadBitmap(path: String): ImageBitmap? {
+        val key = cacheKey(path)
+        bitmaps.get(key)?.let { return it }
+        val bitmap = runCatching {
+            if (path.startsWith("/")) BitmapFactory.decodeFile(path)?.asImageBitmap()
+            else context.assets.open(path).use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
+        }.getOrNull() ?: return null
+        bitmaps.put(key, bitmap)
+        return bitmap
+    }
+
+    fun cachedBitmap(path: String): ImageBitmap? = bitmaps.get(cacheKey(path))
+
+    private val bitmaps = object : LruCache<String, ImageBitmap>(BITMAP_CACHE_BYTES) {
+        override fun sizeOf(key: String, value: ImageBitmap) = value.width * value.height * 4
+    }
+
+    /**
+     * Os quadros de um `icon.gif`, já montados. Pode demorar (um GIF de muitos
+     * quadros): chamar fora da thread da interface; [cachedAnimation] diz se
+     * já está pronto. null quando o arquivo não é um GIF que dê para ler.
+     */
+    fun loadAnimation(path: String): IconAnimation? {
+        val key = cacheKey(path)
+        animations.get(key)?.let { return it }
+        val bytes = runCatching {
+            if (path.startsWith("/")) File(path).readBytes()
+            else context.assets.open(path).use { it.readBytes() }
+        }.getOrNull() ?: return null
+        val gif = GifDecoder.decode(bytes) ?: return null
+        val frames = gif.frames.map {
+            Bitmap.createBitmap(it, gif.width, gif.height, Bitmap.Config.ARGB_8888).asImageBitmap()
+        }
+        return IconAnimation(frames, gif.delaysMs).also { animations.put(key, it) }
+    }
+
+    fun cachedAnimation(path: String): IconAnimation? = animations.get(cacheKey(path))
+
+    private fun cacheKey(path: String) =
+        if (path.startsWith("/")) path + "@" + File(path).lastModified() else path
+
+    private val animations = object : LruCache<String, IconAnimation>(BITMAP_CACHE_BYTES) {
+        override fun sizeOf(key: String, value: IconAnimation) =
+            value.frames.sumOf { it.width * it.height * 4 }
+    }
 
     /**
      * Um arquivo do pacote pelo caminho relativo à raiz dele (`changelog.md`,
@@ -225,6 +275,8 @@ class Catalog(private val context: Context) {
         private const val TAG = "BunnyLoader"
         private const val SEEDED = "seeded"
         private const val APP_STAMP = "appUpdateTime"
+        /** Ícones, capas e fotos decodificados: uns 24 MB cabem a loja inteira. */
+        private const val BITMAP_CACHE_BYTES = 24 * 1024 * 1024
 
         /**
          * O formato de pacote (.bmod é um zip com isto dentro):
@@ -235,6 +287,8 @@ class Catalog(private val context: Context) {
          *     license.md       a aba Licença (opcional)
          *     authors/         as fotos dos autores (opcional)
          *     icon.png         ícone do mod, quadrado (opcional; sem ele, o da categoria)
+         *     icon.gif         ícone animado no launcher (opcional; ganha do icon.png,
+         *                      que continua sendo o do jogo)
          *     banner.png       capa da vitrine, ~3,4:1 (opcional)
          *     thumbnails/      imagens da vitrine (opcional)
          *     content/         o mod em si: main.js (a classe Mod), Assets/,
@@ -251,6 +305,9 @@ class Catalog(private val context: Context) {
         val MANIFESTS = listOf("manifest.json", "mod.json")
         val THUMBS = listOf("thumbnails", "preview")
         const val ICON = "icon.png"
+        const val ICON_GIF = "icon.gif"
+        /** Na ordem de preferência: o animado, se o pacote tiver. */
+        val ICONS = listOf(ICON_GIF, ICON)
         const val BANNER = "banner.png"
         const val CONTENT = "content"
         const val DESCRIPTION = "description.md"
@@ -278,3 +335,6 @@ fun formatDate(iso: String): String {
     val m = parts[1].toIntOrNull()?.minus(1)?.coerceIn(0, 11) ?: return iso
     return "${parts[2].trimStart('0')} de ${months[m]} de ${parts[0]}"
 }
+
+/** Um ícone animado: os quadros e quanto cada um fica na tela. */
+class IconAnimation(val frames: List<ImageBitmap>, val delaysMs: IntArray)

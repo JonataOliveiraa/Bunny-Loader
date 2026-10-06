@@ -1,11 +1,3 @@
-// O fundo do mapa em tela cheia, como o DrawMapFullscreenBackground do
-// tModLoader: com um MapBackground na cena do jogador (o caminho de uma
-// textura em Assets/Textures do mod dono do efeito), ela cobre a tela no lugar
-// do fundo do jogo. A cor é a do céu (Main.ColorOfTheSkies) com a tela na
-// superfície e branca abaixo dela; MapBackgroundFullbright a deixa sempre
-// branca, e MapBackgroundColor(color) muda o que sobrar.
-// O celular desenha o mapa pelo GUIMap (o do Main, estático, é o do PC):
-// os dois ficam com o hook.
 class MapBackgroundLoader {
     static #installed = false;
     static #assets = new Map();        // arquivo -> Asset<Texture2D>, ou null (falhou)

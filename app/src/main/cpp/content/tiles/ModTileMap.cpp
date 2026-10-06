@@ -15,6 +15,8 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace bl::runtime {
@@ -74,6 +76,27 @@ struct KeptCell {
 };
 std::vector<KeptCell> g_kept;   // do mundo aberto (sob g_mx)
 
+/**
+ * As celulas de mod de um pedaco comprimido. O jogo comprime pedaco fora da
+ * gravacao (WorldMap.UnloadChunk e GetTileStorage, que recicla um pedaco
+ * quando faltam espacos: com o mapa todo revelado, o tempo todo) e grava esse
+ * CompressedData no .map sem comprimir de novo. Com o indice de mod la dentro,
+ * o mapa aberto sem o mod lia a tabela de traducao alem do fim: cor de ceu ou
+ * cores aleatorias por cima do mapa. Agora toda compressao tira as celulas de
+ * mod para ca (o CompressedData nunca tem indice de mod), o LoadTiles as
+ * devolve, e a gravacao as leva para o .map.bl.
+ */
+struct StashedCell {
+    uint16_t k;      // posicao no pedaco (y * 64 + x)
+    MapCell cell;
+};
+std::mutex g_stashMx;
+std::unordered_map<uint32_t, std::vector<StashedCell>> g_stash;   // pedaco (X << 16 | Y) -> celulas
+
+uint32_t chunkKey(int cx, int cy) {
+    return (static_cast<uint32_t>(cx) << 16) | (static_cast<uint32_t>(cy) & 0xFFFFu);
+}
+
 struct Refs {
     bool tried = false, ok = false, saveOk = false;
     FieldInfo *lookup = nullptr, *options = nullptr, *colors = nullptr, *hell = nullptr, *legend = nullptr;
@@ -91,6 +114,7 @@ struct Refs {
     const MethodInfo* getMap = nullptr;         // Main.get_Map
     const MethodInfo* getPlayerData = nullptr;  // Main.get_ActivePlayerFileData
     const MethodInfo* chunkSave = nullptr;      // WorldMapChunk.SaveCompressed()
+    const MethodInfo* chunkLoad = nullptr;      // WorldMapChunk.LoadTiles(bool)
     FieldInfo* worldData = nullptr;             // Main.ActiveWorldFileData
     int32_t maxWidth = -1, maxHeight = -1, chunkWidth = -1, lockObject = -1;
     int32_t tileData = -1, dirty = -1, chunkX = -1, chunkY = -1;   // WorldMapChunk (X, Y: o pedaco, nao o tile)
@@ -183,10 +207,11 @@ Refs& refs() {
     r.chunkX = chunk ? fieldOffset(chunk, "X") : -1;
     r.chunkY = chunk ? fieldOffset(chunk, "Y") : -1;
     r.chunkSave = chunk ? a.class_get_method_from_name(chunk, "SaveCompressed", 0) : nullptr;
+    r.chunkLoad = chunk ? a.class_get_method_from_name(chunk, "LoadTiles", 1) : nullptr;
     r.saveOk = r.createMapTile && r.saveCompressed && r.saveMap && r.mapLoad && r.getChunkTile && r.tryGetMapPath &&
                r.getMap && r.getPlayerData && r.worldData && r.maxWidth >= 0 && r.maxHeight >= 0 &&
                r.chunkWidth >= 0 && r.lockObject >= 0 && r.tileData >= 0 && r.dirty >= 0 &&
-               r.chunkX >= 0 && r.chunkY >= 0 && r.chunkSave &&
+               r.chunkX >= 0 && r.chunkY >= 0 && r.chunkSave && r.chunkLoad &&
                a.monitor_enter && a.monitor_exit;
     if (!r.saveOk) {
         BL_ERROR("tiles de mod: sem as refs de gravar o mapa (CreateMapTile=%p InternalSaveMapCompressed=%p "
@@ -484,6 +509,22 @@ void finishSave(const Refs& r, bool saved) {
             if (p && p->type == 0 && p->light == 0) kept.push_back(c);
         }
     }
+    // Os pedacos que estavam comprimidos: o jogo gravou o CompressedData (sem
+    // as de mod), e elas estao no g_stash. Sem repetir as que a gravacao ja pegou.
+    {
+        std::unordered_set<uint64_t> seen;
+        seen.reserve(g_save.cells.size());
+        const auto at = [](int x, int y) { return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32) | static_cast<uint32_t>(y); };
+        for (const SavedCell& c : g_save.cells) seen.insert(at(c.x, c.y));
+        std::lock_guard<std::mutex> l(g_stashMx);
+        for (const auto& [key, cells] : g_stash) {
+            const int x0 = static_cast<int>(key >> 16) << kChunkShift, y0 = static_cast<int>(key & 0xFFFFu) << kChunkShift;
+            for (const StashedCell& c : cells) {
+                const int x = x0 + (c.k & (kChunkSize - 1)), y = y0 + (c.k >> kChunkShift);
+                if (seen.insert(at(x, y)).second) g_save.cells.push_back({x, y, c.cell});
+            }
+        }
+    }
     if (!saved) {
         BL_ERROR("tiles de mod: a gravacao do mapa lancou; o .map.bl ficou como estava");
     } else if (const std::string path = mapPath(r); !path.empty()) {
@@ -516,42 +557,88 @@ void hkSaveCompressed(const MethodInfo* m) {
     finishSave(r, true);
 }
 
+// O WorldMap.Load em curso (a thread dele): o .map do arquivo e lido e cada
+// pedaco comprimido de novo pelo jogo.
+std::atomic<bool> g_loading{false};
+std::thread::id g_loadingThread;
+
 /**
- * Um pedaco sendo comprimido para o arquivo (o jogo ja esta com a trava dele):
- * as celulas de mod viram escuro, o que o jogo grava como nao explorado, e
- * voltam logo depois. Fora da gravacao (o pedaco descarregado por falta de
- * uso), o jogo comprime como sempre.
+ * Um pedaco sendo comprimido (o jogo ja esta com a trava dele). Em TODA
+ * compressao as celulas de mod viram escuro antes e voltam logo depois:
+ *   - na gravacao do mapa, vao para o .map.bl (g_save.cells);
+ *   - fora dela (pedaco descarregado ou reciclado), vao para o g_stash, e o
+ *     hkChunkLoad as devolve quando o pedaco volta;
+ *   - no WorldMap.Load, sao sobra de um .map gravado com o vazamento antigo
+ *     (as de verdade vem do .map.bl): ficam como nao explorado.
  */
 using ChunkSaveFn = void (*)(Il2CppObject*, const MethodInfo*);
 ChunkSaveFn g_origChunkSave = nullptr;
 
 void hkChunkSave(Il2CppObject* chunk, const MethodInfo* m) {
-    if (!g_save.active || g_save.thread != std::this_thread::get_id() || !chunk) {
-        g_origChunkSave(chunk, m);
-        return;
-    }
     const Refs& r = refs();
-    auto* data = field<MapCell*>(chunk, r.tileData);
+    const bool saving = g_save.active && g_save.thread == std::this_thread::get_id();
+    const bool loading = g_loading.load(std::memory_order_relaxed) && g_loadingThread == std::this_thread::get_id();
+    uint16_t pos = saving ? g_save.pos : g_modPosition.load(std::memory_order_relaxed);
+    // Sem mod nenhum, o que passa da ultima cor do jogo (o inferno) tambem e sobra.
+    if (loading && !pos && r.ok) {
+        uint16_t hell = 0;
+        il2cpp::api().field_static_get_value(r.hell, &hell);
+        if (hell > 1) pos = static_cast<uint16_t>(hell + 1);
+    }
+    auto* data = chunk && pos ? field<MapCell*>(chunk, r.tileData) : nullptr;
     if (!data) {
         g_origChunkSave(chunk, m);
         return;
     }
-    const int x0 = field<int32_t>(chunk, r.chunkX) << kChunkShift;
-    const int y0 = field<int32_t>(chunk, r.chunkY) << kChunkShift;
-    const size_t first = g_save.cells.size();
+    const int cx = field<int32_t>(chunk, r.chunkX), cy = field<int32_t>(chunk, r.chunkY);
+    std::vector<StashedCell> cells;
     for (int k = 0; k < kChunkCells; ++k) {
-        if (data[k].type < g_save.pos) continue;
-        g_save.cells.push_back({x0 + (k & (kChunkSize - 1)), y0 + (k >> kChunkShift), data[k]});
+        if (data[k].type < pos) continue;
+        cells.push_back({static_cast<uint16_t>(k), data[k]});
         data[k] = MapCell{};
     }
     g_origChunkSave(chunk, m);
-    if (g_save.cells.size() == first) return;
-    for (size_t i = first; i < g_save.cells.size(); ++i) {
-        const SavedCell& c = g_save.cells[i];
-        data[(c.y - y0) * kChunkSize + (c.x - x0)] = c.cell;
+    if (loading) {
+        if (!cells.empty()) BL_DEBUG("tiles de mod: mapa: %zu indice(s) de mod no .map (gravado com o vazamento antigo) viram nao explorado", cells.size());
+        return;
     }
-    // O CompressedData ficou sem as de mod: sujo, para o descarregar comprimir de novo com elas.
+    {
+        std::lock_guard<std::mutex> l(g_stashMx);
+        if (saving || cells.empty()) g_stash.erase(chunkKey(cx, cy));
+        else g_stash[chunkKey(cx, cy)] = cells;
+    }
+    if (cells.empty()) return;
+    const int x0 = cx << kChunkShift, y0 = cy << kChunkShift;
+    for (const StashedCell& c : cells) {
+        data[c.k] = c.cell;
+        if (saving) g_save.cells.push_back({x0 + (c.k & (kChunkSize - 1)), y0 + (c.k >> kChunkShift), c.cell});
+    }
+    // O CompressedData ficou sem as de mod: sujo, para a proxima compressao passar por aqui com elas.
     setDirty(r, chunk);
+}
+
+/** O pedaco descomprimido: as celulas de mod que a compressao guardou voltam. */
+using ChunkLoadFn = void (*)(Il2CppObject*, bool, const MethodInfo*);
+ChunkLoadFn g_origChunkLoad = nullptr;
+
+void hkChunkLoad(Il2CppObject* chunk, bool utilLoad, const MethodInfo* m) {
+    g_origChunkLoad(chunk, utilLoad, m);
+    const Refs& r = refs();
+    auto* data = chunk ? field<MapCell*>(chunk, r.tileData) : nullptr;
+    if (!data) return;
+    const int cx = field<int32_t>(chunk, r.chunkX), cy = field<int32_t>(chunk, r.chunkY);
+    std::vector<StashedCell> cells;
+    {
+        std::lock_guard<std::mutex> l(g_stashMx);
+        if (g_stash.empty()) return;
+        auto it = g_stash.find(chunkKey(cx, cy));
+        if (it == g_stash.end()) return;
+        cells = std::move(it->second);
+        g_stash.erase(it);
+    }
+    for (const StashedCell& c : cells) data[c.k] = c.cell;
+    setDirty(r, chunk);
+    markChunk(cx << kChunkShift, cy << kChunkShift);
 }
 
 using SaveMapFn = void (*)(bool, const MethodInfo*);
@@ -572,8 +659,15 @@ void hkMapLoad(Il2CppObject* self, const MethodInfo* m) {
         std::lock_guard<std::mutex> l(g_mx);
         g_kept.clear();
     }
+    {
+        std::lock_guard<std::mutex> l(g_stashMx);
+        g_stash.clear();
+    }
     if (self) g_chunkWidth.store(field<int32_t>(self, r.chunkWidth), std::memory_order_relaxed);
+    g_loadingThread = std::this_thread::get_id();
+    g_loading.store(true);
     g_origLoad(self, m);
+    g_loading.store(false);
     if (!self) return;
     g_chunkWidth.store(field<int32_t>(self, r.chunkWidth), std::memory_order_relaxed);
     const std::string path = mapPath(r);
@@ -792,9 +886,10 @@ void installModTileMap() {
     }
     // Sem estes, o .map levaria indice de mod: melhor o tile ficar fora do mapa.
     if (!hook::install(r.chunkSave, hkChunkSave, &g_origChunkSave) ||
+        !hook::install(r.chunkLoad, hkChunkLoad, &g_origChunkLoad) ||
         !hook::install(r.saveMap, hkSaveMap, &g_origSaveMap) ||
         !hook::install(r.saveCompressed, hkSaveCompressed, &g_origSave)) {
-        BL_ERROR("tiles de mod: sem hook no MapHelper.SaveMap/InternalSaveMapCompressed/WorldMapChunk.SaveCompressed; tile de mod fora do mapa");
+        BL_ERROR("tiles de mod: sem hook no MapHelper.SaveMap/InternalSaveMapCompressed/WorldMapChunk.SaveCompressed/LoadTiles; tile de mod fora do mapa");
         g_disabled.store(true);
         std::lock_guard<std::mutex> l(g_mx);
         g_entries.clear();

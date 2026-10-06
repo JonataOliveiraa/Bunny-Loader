@@ -4,6 +4,7 @@
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "script/bridge/Bridge.h"
+#include "script/bridge/Ref.h"
 #include "script/bridge/Value.h"
 
 #include <cstring>
@@ -79,11 +80,8 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
         JSValueConst v = (static_cast<int>(i) < argc) ? argv[i] : JS_UNDEFINED;
 
         if (d.byRef) {
-            // `ref`/`out` quer o ENDERECO de uma variavel do chamador, e o JS
-            // nao tem isso. Recusa em vez de mandar um ponteiro qualquer.
-            JS_ThrowTypeError(ctx, "argumento %u e ref/out (%s) — ainda nao suportado",
-                              i + 1, d.name.c_str());
-            return false;
+            if (!buildRef(ctx, i, d, v)) return false;
+            continue;
         }
 
         // O buffer tem no minimo 8 bytes: um tipo por referencia escreve o
@@ -102,6 +100,56 @@ bool ArgPack::build(JSContext* ctx, const MethodInfo* m, int argc, JSValueConst*
         if (d.prim == Prim::String && slot && a.gchandle_new) {
             handles_.push_back(a.gchandle_new(static_cast<Il2CppObject*>(slot), false));
         }
+    }
+    return true;
+}
+
+// ref/out pelo runtime_invoke: o invoker do IL2CPP le params[i] como o
+// proprio `T*` (para tipo por referencia, `Object**`), entao o slot e o
+// endereco da variavel — a nossa, com o valor do Ref, ou a de quem chamou,
+// se o Ref veio preso de um hook. Mesma regra do salto direto (Invoke.cpp).
+bool ArgPack::buildRef(JSContext* ctx, uint32_t i, const TypeDesc& d, JSValueConst v) {
+    if (!isRef(v)) {
+        JS_ThrowTypeError(ctx, "argumento %u e ref/out (%s): passe um new Ref(valor)", i + 1, d.name.c_str());
+        return false;
+    }
+    const TypeDesc* bound = nullptr;
+    if (void* var = boundRefPtr(v, &bound)) {
+        if (bound->prim != d.prim || bound->size != d.size || (d.prim == Prim::Struct && bound->cls != d.cls)) {
+            JS_ThrowTypeError(ctx, "argumento %u e ref/out %s, mas o Ref aponta para %s",
+                              i + 1, d.name.c_str(), bound->name.c_str());
+            return false;
+        }
+        slots_[count_++] = var;
+        return true;
+    }
+
+    RefArg r{static_cast<int>(i), nullptr, d};
+    r.pointee.byRef = false;
+    r.var = reserve(r.pointee.size < sizeof(void*) ? sizeof(void*) : r.pointee.size);
+    JSValue init = refStoredValue(ctx, v);
+    // `out` costuma vir de new Ref() sem valor: a variavel comeca zerada.
+    const int ok = JS_IsUndefined(init) ? 1 : writeAt(ctx, r.var, r.pointee, init);
+    JS_FreeValue(ctx, init);
+    if (ok < 0) return false;
+    // `ref string` criada aqui: o coletor nao ve o buffer, segura ate a volta.
+    auto& a = il2cpp::api();
+    if (r.pointee.prim == Prim::String && a.gchandle_new) {
+        if (auto* s = *static_cast<Il2CppObject**>(r.var)) handles_.push_back(a.gchandle_new(s, false));
+    }
+    slots_[count_++] = r.var;
+    refs_.push_back(std::move(r));
+    return true;
+}
+
+bool ArgPack::writeBack(JSContext* ctx, JSValueConst* argv) {
+    for (const RefArg& r : refs_) {
+        const TypeDesc& t = r.pointee;
+        JSValue back = (t.prim == Prim::Struct && !t.nullable())
+                           ? makeStructCopy(ctx, t.cls, r.var, t.size)
+                           : readAt(ctx, r.var, t, JS_UNDEFINED);
+        if (JS_IsException(back)) return false;
+        refStore(ctx, argv[r.param], back);
     }
     return true;
 }

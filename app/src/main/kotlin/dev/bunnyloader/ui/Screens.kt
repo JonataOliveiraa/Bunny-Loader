@@ -41,11 +41,14 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.bunnyloader.R
@@ -54,6 +57,7 @@ import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.SaveFiles
 import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.ModManifest
+import dev.bunnyloader.mods.PackType
 import dev.bunnyloader.mods.formatSize
 
 internal val EdgePad = 14.dp
@@ -67,11 +71,50 @@ internal val EdgePad = 14.dp
  * servidor para produzir isso.
  */
 @Composable
-fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
+fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
     val scroll = rememberScrollState()
     LaunchedEffect(Unit) { shell.refreshRemote() }
+    // Arrastar para cima quando a tela não tem mais o que rolar (o caso comum:
+    // o Início cabe na tela, e já está no topo) esconde a interface e deixa só
+    // o cenário. Conta só o arraste com a rolagem no fim, e zera a cada gesto.
+    // A conexão é uma só (rememberUpdatedState): recriá-la a cada recomposição
+    // zerava a conta no meio do arraste.
+    val threshold = with(androidx.compose.ui.platform.LocalDensity.current) { 90.dp.toPx() }
+    val hide by androidx.compose.runtime.rememberUpdatedState(onHide)
+    val hideOnPull = remember(scroll, threshold) {
+        object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+            var pulled = 0f
+            override fun onPreScroll(
+                available: androidx.compose.ui.geometry.Offset,
+                source: androidx.compose.ui.input.nestedscroll.NestedScrollSource,
+            ): androidx.compose.ui.geometry.Offset {
+                // Puxar para cima (y negativo) com a rolagem já no fim: conta.
+                // Qualquer movimento para baixo zera.
+                if (available.y < 0f && !scroll.canScrollForward) {
+                    pulled -= available.y
+                    if (pulled > threshold) { pulled = 0f; hide() }
+                } else if (available.y > 0f) {
+                    pulled = 0f
+                }
+                return androidx.compose.ui.geometry.Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: androidx.compose.ui.unit.Velocity): androidx.compose.ui.unit.Velocity {
+                pulled = 0f
+                return androidx.compose.ui.unit.Velocity.Zero
+            }
+        }
+    }
+    // Sem o efeito de esticar da borda: ele comia o arraste no fim da rolagem
+    // antes de a conexão acima ver (available.y chegava 0).
+    @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+    androidx.compose.runtime.CompositionLocalProvider(
+        androidx.compose.foundation.LocalOverscrollConfiguration provides null,
+    ) {
     Box {
-        Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+        Column(Modifier.fillMaxSize()
+            .nestedScroll(hideOnPull)
+            .verticalScroll(scroll)) {
             // O título vai de ponta a ponta, FORA do padding da coluna.
             //
             // O `aspectRatio` é o que faz a coisa funcionar, e a falta dele era
@@ -89,6 +132,7 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
                     .padding(top = 10.dp, bottom = 6.dp),
             )
             Column(Modifier.padding(horizontal = EdgePad)) {
+            RemoteStatusLine(shell, Modifier.padding(top = 6.dp))
 
             val featured = shell.entries.firstOrNull { it.manifest.featured }
                 ?: shell.entries.firstOrNull()
@@ -108,6 +152,7 @@ fun InicioTab(shell: Shell, onOpen: (String) -> Unit) {
             }
         }
         PixelScrollbar(scroll, Modifier.fillMaxSize())
+    }
     }
 }
 
@@ -152,49 +197,66 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
 
 /**
  * O que vem dentro do app e o catálogo online. É daqui que um mod vai parar em
- * Pacotes. A lista online é pedida ao abrir a aba (Shell.refreshRemote não
- * repete o pedido por alguns minutos) e, sem rede, fica a última baixada.
+ * Pacotes. Ao voltar ao app a lista é atualizada; mudar de aba usa o cache
+ * por alguns minutos. Sem rede, fica a última lista baixada.
  */
 @Composable
 fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
-    var query by remember { mutableStateOf("") }
+    var query by rememberSaveable { mutableStateOf("") }
+    var category by rememberSaveable { mutableStateOf<String?>(null) }
+    var type by rememberSaveable { mutableStateOf(PackType.MOD) }
     LaunchedEffect(Unit) { shell.refreshRemote() }
-    val list = shell.catalogEntries.filter {
-        query.isBlank() ||
-            it.manifest.name.contains(query, true) ||
-            it.manifest.category.contains(query, true) ||
-            it.manifest.credits.any { a -> a.name.contains(query, true) }
+    // Montada e ordenada só quando a lista online muda (um ícone que chega a
+    // troca), não a cada recomposição da aba.
+    val all = shell.catalogEntries
+    val search = rememberPackageSearchIndex(all)
+    val counts = remember(all) { all.groupingBy { it.manifest.packType }.eachCount() }
+    val categories = remember(all, type) { packageCategories(all, type) }
+    val list = remember(all, type, query, category) {
+        searchPackages(all, query, type, category, search)
     }
     val state = rememberLazyListState()
+    LaunchedEffect(type, query, category) { state.scrollToItem(0) }
 
     Column(Modifier.fillMaxSize()) {
         SearchField(query, { query = it }, Modifier.padding(horizontal = EdgePad, vertical = 10.dp))
+        PackTypeTabs(type, counts, { type = it; category = null }, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
+        CategoryFilter(categories, category, { category = it }, Modifier.padding(horizontal = EdgePad))
+        FilterResultLine(list.size, query.isNotBlank() || category != null,
+            { query = ""; category = null }, Modifier.padding(horizontal = EdgePad, vertical = 6.dp))
+        if (shell.remoteStatus != RemoteStatus.Loading) {
+            PixelButton("Atualizar loja", { shell.refreshRemote(force = true) },
+                Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp),
+                icon = R.drawable.ic_refresh, fontSize = Ts.Small, shadow = false)
+        }
         RemoteStatusLine(shell, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
-        Box(Modifier.weight(1f)) {
-            LazyColumn(
-                state = state,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                    start = EdgePad, end = EdgePad, bottom = 16.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                items(list, key = { it.uid }) { e ->
-                    ModRow(e, shell.catalog, { onOpen(e.uid) }) {
-                        val progress = shell.downloads[e.uid]
-                        when {
-                            progress != null -> PixelTag("${(progress * 100).toInt()}%")
-                            shell.updateFor(e.uid) != null -> PixelTag("Atualizar", Bl.Good)
-                            e.uid in shell.installed -> PixelTag("Instalado")
+        PauseListAnimations({ state.isScrollInProgress }) {
+            Box(Modifier.weight(1f)) {
+                LazyColumn(
+                    state = state,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        start = EdgePad, end = EdgePad, bottom = 16.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    items(list, key = { it.uid }, contentType = { "package" }) { e ->
+                        ModRow(e, shell.catalog, { onOpen(e.uid) }) {
+                            val progress = shell.downloads[e.uid]
+                            when {
+                                progress != null -> PixelTag("${(progress * 100).toInt()}%")
+                                shell.updateFor(e.uid) != null -> PixelTag("Atualizar", Bl.Good)
+                                e.uid in shell.installed -> PixelTag("Instalado")
+                            }
                         }
                     }
+                    if (list.isEmpty() && shell.remoteStatus != RemoteStatus.Loading) {
+                        item { Empty("Nenhum pacote corresponde aos filtros.") }
+                    }
                 }
-                if (list.isEmpty()) {
-                    item { Empty("Nada com \"$query\".") }
-                }
+                PixelScrollbar(state, Modifier.fillMaxSize())
             }
-            PixelScrollbar(state, Modifier.fillMaxSize())
-        }
+            }
     }
 }
 
@@ -216,7 +278,11 @@ private fun RemoteStatusLine(shell: Shell, modifier: Modifier = Modifier) {
             PixelButton("Tentar de novo", { shell.refreshRemote(force = true) },
                 fontSize = Ts.Small, shadow = false)
         } else {
-            PixelText("Buscando mods online...", size = Ts.Small, color = Bl.TextFaint)
+            StoreLoadingIcon(Modifier.padding(end = 8.dp))
+            val progress = shell.remoteProgress
+            PixelText(if (progress == null || progress.total == 0) "Buscando mods online..."
+                else "Carregando mods: ${progress.completed}/${progress.total}",
+                size = Ts.Small, color = Bl.TextFaint)
         }
     }
 }
@@ -226,18 +292,26 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
     Box(modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false)
         .padding(horizontal = 12.dp, vertical = 10.dp)) {
         if (value.isEmpty()) {
-            PixelText("Procurar mod...", size = Ts.Body, color = Bl.TextMuted)
+            PixelText("Nome, autor ou categoria...", size = Ts.Body, color = Bl.TextMuted)
         }
-        BasicTextField(
-            value = value,
-            onValueChange = onChange,
-            singleLine = true,
-            textStyle = TextStyle(
-                fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.Text,
-            ),
-            cursorBrush = SolidColor(Bl.PressedText),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            BasicTextField(
+                value = value,
+                onValueChange = onChange,
+                singleLine = true,
+                textStyle = TextStyle(
+                    fontFamily = PixelFont, fontSize = Ts.Body.sp, color = Bl.Text,
+                ),
+                cursorBrush = SolidColor(Bl.PressedText),
+                modifier = Modifier.weight(1f),
+            )
+            if (value.isNotEmpty()) {
+                Box(Modifier.semantics { contentDescription = "Limpar busca" }
+                    .pixelClickable { onChange("") }.padding(4.dp)) {
+                    PixelIcon(R.drawable.ic_fechar, 18.dp)
+                }
+            }
+        }
     }
 }
 
@@ -254,25 +328,38 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
  */
 @Composable
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var category by rememberSaveable { mutableStateOf<String?>(null) }
     var status by rememberSaveable { mutableStateOf(PackageStatus.ALL) }
     var sort by rememberSaveable { mutableStateOf(PackageSort.LOAD) }
-    val packages = remember(shell.packages, shell.enabled, status, sort) {
-        filterPackages(shell.packages, shell.enabled, status, sort)
+    var type by rememberSaveable { mutableStateOf(PackType.MOD) }
+    var showFilters by rememberSaveable { mutableStateOf(false) }
+    val search = rememberPackageSearchIndex(shell.packages)
+    val categories = remember(shell.packages, type) { packageCategories(shell.packages, type) }
+    val packages = remember(shell.packages, shell.enabled, status, sort, type, query, category) {
+        filterPackages(shell.packages, shell.enabled, status, sort, type, query, category, search)
     }
-    val manualOrder = status == PackageStatus.ALL && sort == PackageSort.LOAD
+    val counts = remember(shell.packages) { shell.packages.groupingBy { it.manifest.packType }.eachCount() }
+    val manualOrder = status == PackageStatus.ALL && sort == PackageSort.LOAD && query.isBlank() && category == null
     val state = rememberLazyListState()
-    LaunchedEffect(status, sort) { state.scrollToItem(0) }
+    LaunchedEffect(status, sort, type, query, category) { state.scrollToItem(0) }
     // texto + deu certo? Uma recusa em verde de sucesso se le como sucesso.
     var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    var asking by remember { mutableStateOf(false) }
+    var importing by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            aviso = shell.importPackage(uri).fold(
-                onSuccess = { "${it.name} instalado" to true },
-                onFailure = { "Não deu: ${it.message}" to false },
-            )
+            importing = true
+            shell.importPackage(uri) { result ->
+                importing = false
+                aviso = result.fold(
+                    onSuccess = { "${it.name} instalado" to true },
+                    onFailure = { "Não deu: ${it.message}" to false },
+                )
+            }
         }
     }
 
@@ -288,39 +375,130 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
 
         Box(Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp)) {
             PixelButton(
-                "Importar pacote",
-                { picker.launch(arrayOf("*/*")) },
+                if (importing) "Importando..." else "Importar pacote",
+                { if (!importing) asking = true },
                 Modifier.fillMaxWidth(),
                 icon = R.drawable.ic_folder,
             )
+        }
+        if (asking) {
+            PixelDialog("Importar pacote", onDismiss = { asking = false }) {
+                for (line in listOf(
+                    "Um mod roda código dentro do jogo: só instale pacotes de quem você confia.",
+                    "O pacote é um .bl, .bmod ou .zip com manifest.json e a pasta content/.",
+                    "Se o mod já estiver instalado (o mesmo uid), a versão do arquivo substitui a atual.",
+                )) {
+                    Row {
+                        PixelText("•", size = Ts.Body, color = Bl.PressedText, modifier = Modifier.padding(end = 8.dp))
+                        PixelText(line, size = Ts.Small, color = Bl.TextDim)
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PixelButton("Cancelar", { asking = false }, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
+                    PixelButton("Escolher arquivo", { asking = false; picker.launch(arrayOf("*/*")) },
+                        Modifier.weight(1f), fill = Bl.TitleFill, fontSize = Ts.Body, shadow = false)
+                }
+            }
         }
         aviso?.let { (texto, ok) ->
             PixelText(texto, size = Ts.Small, color = if (ok) Bl.TextDim else Bl.Bad,
                 modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp))
         }
-        PackageFilterControls(status, { status = it }, sort, { sort = it },
-            Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp))
-        PixelText(if (manualOrder) "Segure e arraste para ordenar. Primeiro carrega primeiro."
-                  else "Para mover mods, escolha Todos e Ordem de carga.", size = Ts.Small, color = Bl.TextFaint,
+        shell.packageError?.let {
+            PixelText(it, size = Ts.Small, color = Bl.Bad, modifier = Modifier.padding(horizontal = EdgePad))
+        }
+        SearchField(query, { query = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp))
+        PackTypeTabs(type, counts, { type = it; category = null }, Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
+        FilterResultLine(packages.size, query.isNotBlank() || category != null || status != PackageStatus.ALL || sort != PackageSort.LOAD,
+            { query = ""; category = null; status = PackageStatus.ALL; sort = PackageSort.LOAD },
+            Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp),
+            onToggle = { showFilters = !showFilters }, expanded = showFilters)
+        if (showFilters) {
+            CategoryFilter(categories, category, { category = it }, Modifier.padding(horizontal = EdgePad))
+            PackageFilterControls(status, { status = it }, sort, { sort = it },
+                Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
+        } else {
+            val selectedFilters = listOfNotNull(category, status.takeIf { it != PackageStatus.ALL }?.label,
+                sort.takeIf { it != PackageSort.LOAD }?.label)
+            if (selectedFilters.isNotEmpty()) PixelText(selectedFilters.joinToString(" · "),
+                size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(horizontal = EdgePad))
+        }
+        PixelText(if (manualOrder) "Segure e arraste dentro do mesmo grupo. Primeiro ligado carrega primeiro."
+                  else "Para mover, limpe a busca e escolha Todos e Ordem de carga.", size = Ts.Small, color = Bl.TextFaint,
             modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
 
         DraggablePackageList(
             state = state,
             uids = packages.map { it.uid },
+            enabledUids = shell.enabled,
             reorderEnabled = manualOrder,
             onDrop = shell::moveModTo,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            empty = { Empty(if (shell.installed.isEmpty()) "Nenhum pacote. Pegue um em Explorar ou importe um .bmod."
-                           else "Nenhum mod neste filtro.") },
+            empty = { Empty(if (shell.refreshingPackages && shell.packages.isEmpty()) "Lendo pacotes..."
+                           else if (shell.installed.isEmpty()) "Nenhum pacote. Pegue um em Explorar ou importe um .bmod."
+                           else "Nenhum pacote neste filtro.") },
         ) { index, modifier, preview ->
             val e = packages[index]
-            ModRow(e, shell.catalog, { if (!preview) onOpen(e.uid) }, modifier, besideIcon = if (manualOrder) ({
-                ModOrderButtons(e.manifest.name, index > 0, index < packages.lastIndex,
-                    { if (!preview) shell.moveMod(e.uid, -1) }, { if (!preview) shell.moveMod(e.uid, 1) })
+            // Ligado: o cartão inteiro fica verde, e a lista se lê de longe.
+            val fill = if (e.uid in shell.enabled) Bl.EnabledPanel else Bl.Panel
+            // As setas movem em relação ao vizinho VISÍVEL: com o filtro de
+            // tipo, o vizinho na ordem completa pode ser de outra lista.
+            ModRow(e, shell.catalog, { if (!preview) onOpen(e.uid) }, modifier, fill = fill, besideIcon = if (manualOrder) ({
+                val canMoveUp = index > 0 && (packages[index - 1].uid in shell.enabled) == (e.uid in shell.enabled)
+                val canMoveDown = index < packages.lastIndex && (packages[index + 1].uid in shell.enabled) == (e.uid in shell.enabled)
+                ModOrderButtons(e.manifest.name, canMoveUp, canMoveDown,
+                    { if (!preview) shell.moveModTo(e.uid, packages[index - 1].uid) },
+                    { if (!preview) shell.moveModTo(e.uid, packages[index + 1].uid) })
             }) else null) {
                 SwitchSprite(e.uid in shell.enabled) {
                     if (!preview) shell.setEnabled(e.uid, e.uid !in shell.enabled)
                 }
+            }
+        }
+    }
+}
+
+private fun packageCategories(packages: List<Catalog.Entry>, type: PackType): List<String> =
+    packages.filter { it.manifest.packType == type }.map { it.manifest.category }
+        .filter { it.isNotBlank() }.distinct().sorted()
+
+@Composable
+private fun rememberPackageSearchIndex(packages: List<Catalog.Entry>): PackageSearchIndex {
+    // Ordem e imagens podem mudar sem alterar os campos pesquisáveis.
+    val manifests = remember(packages) { packages.map { it.manifest }.toSet() }
+    return remember(manifests) { PackageSearchIndex(packages) }
+}
+
+@Composable
+private fun CategoryFilter(categories: List<String>, selected: String?, onSelect: (String?) -> Unit,
+                           modifier: Modifier = Modifier) {
+    if (categories.size < 2 && selected == null) return
+    Row(modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (category in listOf<String?>(null) + categories) {
+            Box(Modifier.pixelPanel(fill = if (category == selected) Bl.TitleFill else Bl.Select)
+                .pixelClickable { onSelect(category) }.padding(horizontal = 10.dp, vertical = 6.dp)) {
+                PixelText(category ?: "Todas as categorias", size = Ts.Small,
+                    color = if (category == selected) Bl.PressedText else Bl.TextDim)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterResultLine(count: Int, active: Boolean, onReset: () -> Unit, modifier: Modifier = Modifier,
+                             onToggle: (() -> Unit)? = null, expanded: Boolean = false) {
+    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        PixelText("$count ${if (count == 1) "pacote" else "pacotes"}", size = Ts.Small,
+            color = Bl.TextFaint, modifier = Modifier.weight(1f))
+        if (onToggle != null) {
+            Box(Modifier.pixelClickable(onToggle).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                PixelText(if (expanded) "Ocultar filtros" else "Filtros", size = Ts.Small, color = Bl.PressedText)
+            }
+        }
+        if (active) {
+            Box(Modifier.pixelClickable(onReset).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                PixelText("Limpar filtros", size = Ts.Small, color = Bl.PressedText)
             }
         }
     }
@@ -350,7 +528,7 @@ private fun PackageFilterControls(
         }
     }
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth >= 480.dp) {
+        if (maxWidth >= 320.dp) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 show(Modifier.weight(1f))
                 order(Modifier.weight(1f))
@@ -375,7 +553,10 @@ fun SwitchSprite(on: Boolean, onToggle: () -> Unit) {
 // =========================== Configurações ===========================
 
 @Composable
-fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
+fun ConfigTab(
+    shell: Shell, scenery: String, onScenery: (String) -> Unit,
+    themeEffects: Boolean, onThemeEffects: (Boolean) -> Unit,
+) {
     val ctx = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val scroll = rememberScrollState()
@@ -391,27 +572,7 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
-            Row(
-                Modifier.fillMaxWidth().padding(top = 14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                // A arte ocupa os 104x96 inteiros dela, sem margem transparente:
-                // encolher para caber dentro do quadro só deixava buraco.
-                Box(Modifier.size(72.dp).framePanel().padding(3.dp)) {
-                    Image(
-                        bitmap = ImageBitmap.imageResource(R.drawable.ic_tab_config),
-                        contentDescription = null,
-                        filterQuality = FilterQuality.None,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-                Column(Modifier.padding(start = 12.dp)) {
-                    PixelText("Jogador", size = Ts.Big)
-                    PixelText("Terraria ${BundledRuntime.VERSION_NAME}",
-                        size = Ts.Body, color = Bl.TextFaint)
-                }
-            }
+            ProfileHeader(prefs, Modifier.padding(top = 14.dp))
 
             SectionTitle("Coleção")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -420,8 +581,18 @@ fun ConfigTab(shell: Shell, scenery: String, onScenery: (String) -> Unit) {
                 Stat("${shell.catalogEntries.size}", "no catálogo", Modifier.weight(1f))
             }
 
+            SectionTitle("Mundos e personagens")
+            SavesCard()
+
             SectionTitle("Aparência")
             SceneryPicker(scenery, onScenery)
+            Setting(
+                "Efeitos do tema",
+                "Cada cenário tem o seu: folhas e cartões balançando na Floresta, chuva e brilho " +
+                    "molhado no Oceano, bolhas no Lago, neve na Neve. Desligado, o fundo fica parado.",
+                themeEffects,
+                onThemeEffects,
+            )
 
             SectionTitle("Mods")
             Setting(

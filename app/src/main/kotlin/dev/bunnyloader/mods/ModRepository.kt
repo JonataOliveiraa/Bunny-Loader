@@ -49,28 +49,40 @@ class ModRepository(private val context: Context) {
         .filter { (_, m) -> m.hasValidUid }
         .mapNotNull { (dir, m) -> m.takeIf { settle(dir, it) } }
         .distinctBy { it.uid }
-        val saved = runCatching {
-            json.decodeFromString<List<String>>(orderPrefs.getString("uids", "[]") ?: "[]")
-        }.getOrDefault(emptyList())
+        val saved = savedOrder()
         val byUid = found.associateBy { it.uid }
-        return ModOrder.resolve(found.map { it.uid }, saved).map { byUid.getValue(it) }
+        val enabled = enabledUids(found)
+        return ModOrder.resolve(found.map { it.uid }, saved, enabled).map { byUid.getValue(it) }
+    }
+
+    fun savedOrder(): List<String> = runCatching {
+        json.decodeFromString<List<String>>(orderPrefs.getString("uids", "[]") ?: "[]")
+    }.getOrDefault(emptyList())
+
+    fun saveOrder(order: List<String>) {
+        orderPrefs.edit().putString("uids", json.encodeToString(order)).apply()
     }
 
     fun move(uid: String, direction: Int) {
-        val current = list().map { it.uid }
-        val changed = ModOrder.move(current, uid, direction)
+        val packages = list()
+        val current = packages.map { it.uid }
+        val changed = ModOrder.move(current, uid, direction, enabledUids(packages))
         if (changed != current) {
             orderPrefs.edit().putString("uids", json.encodeToString(changed)).apply()
         }
     }
 
     fun moveTo(uid: String, targetUid: String) {
-        val current = list().map { it.uid }
-        val changed = ModOrder.moveTo(current, uid, targetUid)
+        val packages = list()
+        val current = packages.map { it.uid }
+        val changed = ModOrder.moveTo(current, uid, targetUid, enabledUids(packages))
         if (changed != current) {
             orderPrefs.edit().putString("uids", json.encodeToString(changed)).apply()
         }
     }
+
+    private fun enabledUids(packages: List<ModManifest>): Set<String> =
+        packages.filter { !it.isOutdated && isEnabled(it.uid) }.map { it.uid }.toSet()
 
     /**
      * Pasta colada à mão com outro nome (`bunny_packs/MeuMod/`) vira
@@ -112,8 +124,8 @@ class ModRepository(private val context: Context) {
         // Alguns compactadores põem tudo dentro de uma pasta com o nome do
         // pacote. Se a raiz só tem um diretório e o manifesto está lá, sobe um
         // nível — senão o mod instalaria com um andar a mais e não carregaria.
-        val root = temp.listFiles().orEmpty()
-            .singleOrNull { it.isDirectory && readManifest(it) != null } ?: temp
+        val root = TexturePackFiles.importRoot(temp)
+        TexturePackFiles.convertPcPack(root)
 
         val manifest = readManifest(root)
             ?: error("pacote sem ${Catalog.MANIFESTS.first()}")
@@ -136,7 +148,11 @@ class ModRepository(private val context: Context) {
                 "pede Assets/, Common/, Content/ e a classe Mod no arquivo de entrada " +
                 "(export default class ... extends Mod): peça ao autor uma versão nova."
         }
-        require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
+        if (manifest.packType == PackType.TEXTURE) {
+            require(TexturePackFiles.hasImages(root)) { "pacote de textura sem PNGs em content/Images" }
+        } else {
+            require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
+        }
 
         val target = File(modsDir, manifest.uid)
         target.deleteRecursively()
@@ -174,7 +190,9 @@ class ModRepository(private val context: Context) {
         }
     }
 
-    fun setEnabled(id: String, enabled: Boolean) = prefs.edit().putBoolean(id, enabled).apply()
+    fun setEnabled(id: String, enabled: Boolean) {
+        prefs.edit().putBoolean(id, enabled).apply()
+    }
     /**
      * Um mod sem escolha registrada segue o padrao das Configuracoes. E o que
      * faz "Ligar ao instalar" valer para o proximo pacote sem precisar varrer
@@ -186,21 +204,25 @@ class ModRepository(private val context: Context) {
         get() = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
             .getBoolean("enableOnInstall", true)
     /**
-     * O que vai para o núcleo nativo: `uid=entry`, um por mod habilitado.
+     * O que vai para o núcleo nativo: `uid=entry` para mods, `uid=@texture`
+     * para PNGs sem codigo. Fontes ficam fora ate terem um carregador.
      *
      * Os dois juntos na mesma entrada, e não em duas listas alinhadas por
      * índice, que é uma dessincronização esperando acontecer. O núcleo parte
      * no primeiro `=`.
      */
     fun enabledSpecs(): List<String> =
-        list().filter { !it.isOutdated && isEnabled(it.uid) }.map { "${it.uid}=${it.entry}" }
+        list().filter { !it.isOutdated && isEnabled(it.uid) && it.packType != PackType.FONT }
+            .map { "${it.uid}=${if (it.packType == PackType.TEXTURE) "@texture" else it.entry}" }
 
-    /** O mod está no disco, com o arquivo de entrada no lugar. */
+    /** O pacote esta no disco: script de mod ou imagens de textura no lugar. */
     fun hasEntry(uid: String): Boolean = dirOf(uid)?.let { entryOf(it) != null } ?: false
 
     private fun entryOf(dir: File): File? {
         val m = readManifest(dir) ?: return null
-        return File(dir, "${Catalog.CONTENT}/${m.entry}").takeIf { it.isFile }
+        if (m.packType == PackType.TEXTURE) return TexturePackFiles.images(dir)?.takeIf { TexturePackFiles.hasImages(dir) }
+        val path = resolvePackagePath(dir.path, true, "${Catalog.CONTENT}/${m.entry}") ?: return null
+        return File(path).takeIf { it.isFile }
     }
 
     private fun readManifest(dir: File): ModManifest? = Catalog.MANIFESTS
@@ -219,7 +241,7 @@ class ModRepository(private val context: Context) {
             generateSequence { zip.nextEntry }.forEach { entry ->
                 count++
                 val out = File(target, entry.name).canonicalFile
-                require(out.path.startsWith(target.canonicalPath)) { "caminho inválido no zip" }
+                require(out.path.startsWith(target.canonicalPath + File.separator)) { "caminho inválido no zip" }
                 if (entry.isDirectory) out.mkdirs()
                 else { out.parentFile?.mkdirs(); out.outputStream().use { zip.copyTo(it) } }
             }

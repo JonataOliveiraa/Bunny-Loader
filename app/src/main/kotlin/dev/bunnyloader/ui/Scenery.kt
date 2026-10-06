@@ -1,13 +1,8 @@
 package dev.bunnyloader.ui
 
-import android.os.SystemClock
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -19,17 +14,15 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import dev.bunnyloader.R
-import kotlinx.coroutines.delay
 import java.util.TimeZone
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -46,7 +39,7 @@ import kotlin.random.Random
  * O custo fica baixo por construção:
  *  - é um Canvas só, atrás da interface; o redesenho dele não recompõe nada e
  *    não repinta os cartões por cima;
- *  - o relógio bate a [FRAME_MS] (20 quadros por segundo — o cenário anda
+ *  - o relógio compartilhado bate a 20 quadros por segundo — o cenário anda
  *    poucos pixels por segundo, 60 seria desperdício) e PARA quando o launcher
  *    sai da tela, então não disputa nada com o jogo;
  *  - as texturas são as do jogo em tamanho original, ampliadas por um fator
@@ -74,8 +67,6 @@ enum class Biome(val label: String, val layers: List<SceneLayer>) {
 
 /** Uma camada: quanto ela anda com a câmera, e onde fica o topo dela (fração da altura). */
 class SceneLayer(val res: Int, val parallax: Float, val top: Float)
-
-private const val FRAME_MS = 50L
 
 /** Pixels da textura por segundo que a câmera anda sozinha. */
 private const val DRIFT = 6f
@@ -118,7 +109,7 @@ private val CLOUD_SPRITES = listOf(
 )
 
 @Composable
-fun Scenery(biome: Biome, pan: () -> Float, modifier: Modifier = Modifier) {
+fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifier = Modifier, effects: Boolean = false) {
     val layers = biome.layers.map { ImageBitmap.imageResource(it.res) }
     // O pé de cada camada, para cobrir o que sobra abaixo dela na tela.
     val floors = remember(biome) { layers.map { it.bottomColor() } }
@@ -139,21 +130,8 @@ fun Scenery(biome: Biome, pan: () -> Float, modifier: Modifier = Modifier) {
         List(70) { Star(r.nextFloat(), r.nextFloat() * 0.45f, r.nextFloat() * 6.28f, it < 6) }
     }
     val moonFrame = remember { moonPhaseFrame(System.currentTimeMillis()) }
-    val start = remember { SystemClock.uptimeMillis() }
-
-    var now by remember { mutableLongStateOf(start) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(lifecycle) {
-        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (true) {
-                now = SystemClock.uptimeMillis()
-                delay(FRAME_MS)
-            }
-        }
-    }
-
     Canvas(modifier) {
-        val t = (now - start) / 1000f
+        val t = time()
         val cam = t * DRIFT + pan()
         val s = max(1, (size.height / 800f).roundToInt())
         val minute = minuteOfDay()
@@ -203,6 +181,108 @@ fun Scenery(biome: Biome, pan: () -> Float, modifier: Modifier = Modifier) {
         biome.layers.forEachIndexed { i, layer ->
             drawLayer(layers[i], floors[i], layer, cam, s, sky.light, tint)
         }
+
+        if (effects) {
+            // A noite escurece as partículas, mas não a ponto de sumirem; e o
+            // pixel delas tem 2 de mínimo: com a tela deitada (s = 1), chuva
+            // de 1 pixel não se vê.
+            val light = sky.light.red.coerceIn(0.6f, 1f)
+            val fx = max(2, s)
+            when (biome) {
+                Biome.FOREST -> drawLeaves(t, fx, light)
+                Biome.OCEAN -> drawRain(t, fx, light)
+                Biome.LAKE -> drawBubbles(t, fx, light, night)
+                Biome.SNOW -> drawSnow(t, fx, light)
+            }
+        }
+    }
+}
+
+// ------------------------------ efeitos do tema ------------------------------
+//
+// Cada partícula é uma função do tempo e de números fixos dela (sorteados uma
+// vez): nada se guarda de um quadro para o outro, e o custo é o de desenhar.
+
+private class Particle(val x: Float, val y: Float, val speed: Float, val phase: Float, val size: Float)
+
+private fun particles(count: Int, seed: Int) = Random(seed).let { r ->
+    List(count) { Particle(r.nextFloat(), r.nextFloat(), r.nextFloat(), r.nextFloat() * 6.28f, r.nextFloat()) }
+}
+
+private val RAIN = particles(150, 21)
+private val SNOW = particles(110, 22)
+private val LEAVES = particles(22, 23)
+private val BUBBLES = particles(36, 24)
+private val FIREFLIES = particles(26, 25)
+
+/** Chuva do Terraria: riscos claros e inclinados, caindo rápido. */
+private fun DrawScope.drawRain(t: Float, s: Int, light: Float) {
+    val len = 10f * s
+    val dx = 3f * s
+    val color = Color(0xFFB9D2F0).copy(alpha = 0.7f * light)
+    for (p in RAIN) {
+        val speed = size.height * (1.1f + p.speed * 0.6f)
+        val y = (p.y * (size.height + len) + t * speed).mod(size.height + len) - len
+        val x = (p.x * (size.width + 80f) - (y / size.height) * 60f).mod(size.width + 80f) - 40f
+        drawLine(color, Offset(x, y), Offset(x - dx, y + len), strokeWidth = s.toFloat())
+    }
+    // Um véu cinza: o céu de chuva é mais fechado.
+    drawRect(Color(0xFF26324A).copy(alpha = 0.18f))
+}
+
+/** Flocos de dois tamanhos, balançando enquanto caem. */
+private fun DrawScope.drawSnow(t: Float, s: Int, light: Float) {
+    val color = Color.White.copy(alpha = 0.85f * light)
+    for (p in SNOW) {
+        val d = (if (p.size > 0.7f) 3 else if (p.size > 0.3f) 2 else 1) * s.toFloat()
+        val speed = 22f * s * (0.6f + p.speed)
+        val y = (p.y * size.height + t * speed).mod(size.height + d) - d
+        val x = (p.x * size.width + sin(t * 0.9f + p.phase) * 14f * s + t * 4f * s).mod(size.width)
+        drawRect(color, Offset(x, y), Size(d, d))
+    }
+}
+
+/**
+ * Folhas caindo com o vento: um losango de pixel que, ao girar, fica de lado
+ * (uma linha fina) e volta. Verdes, e umas poucas já secas.
+ */
+private fun DrawScope.drawLeaves(t: Float, s: Int, light: Float) {
+    val colors = listOf(Color(0xFF4F9B3A), Color(0xFF6DB847), Color(0xFF3C7A2E), Color(0xFFC98A2E))
+    for ((i, p) in LEAVES.withIndex()) {
+        val px = (if (p.size > 0.5f) 3 else 2) * s / 2f
+        val fall = 16f * s * (0.5f + p.speed)
+        val y = (p.y * size.height + t * fall).mod(size.height + 8 * px) - 4 * px
+        val wind = t * 10f * s * (0.6f + p.speed)
+        val x = (p.x * size.width + wind + sin(t * 1.4f + p.phase) * 18f * s).mod(size.width + 8 * px) - 4 * px
+        val base = colors[i % colors.size]
+        val c = Color(base.red * light, base.green * light, base.blue * light)
+        // De frente: losango (1, 3, 1 pixels). De lado: a coluna do meio só.
+        val flat = abs(sin(t * 2.2f + p.phase)) > 0.35f
+        drawRect(c, Offset(x + px, y), Size(px, px * 3))
+        if (flat) drawRect(c, Offset(x, y + px), Size(px * 3, px))
+    }
+}
+
+/** Bolhas subindo do lago e, à noite, vaga-lumes piscando sobre ele. */
+private fun DrawScope.drawBubbles(t: Float, s: Int, light: Float, night: Float) {
+    val top = size.height * 0.45f
+    for (p in BUBBLES) {
+        val r = (2f + p.size * 3f) * s
+        val span = size.height - top
+        val q = ((p.y * span + t * 18f * s * (0.5f + p.speed)) % span) / span
+        val y = size.height - q * span
+        val x = p.x * size.width + sin(t * 1.3f + p.phase) * 5f * s
+        val a = 0.7f * sin(q * PI.toFloat()) * light
+        drawCircle(Color(0xFFBDF4FF).copy(alpha = a), r, Offset(x, y), style = Stroke(s.toFloat()))
+        drawRect(Color.White.copy(alpha = a), Offset(x - r * 0.5f, y - r * 0.5f), Size(s.toFloat(), s.toFloat()))
+    }
+    if (night <= 0f) return
+    for (p in FIREFLIES) {
+        val x = (p.x * size.width + sin(t * 0.5f + p.phase) * 30f * s).mod(size.width)
+        val y = size.height * (0.35f + 0.45f * p.y) + sin(t * 0.7f + p.phase * 2) * 12f * s
+        val a = night * (0.5f + 0.5f * sin(t * (1.5f + p.speed) + p.phase)).coerceIn(0f, 1f)
+        drawRect(Color(0xFFD9F27A).copy(alpha = a), Offset(x, y), Size(2f * s, 2f * s))
+        drawRect(Color(0xFFD9F27A).copy(alpha = a * 0.25f), Offset(x - s, y - s), Size(4f * s, 4f * s))
     }
 }
 

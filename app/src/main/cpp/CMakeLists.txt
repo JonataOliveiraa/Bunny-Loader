@@ -130,5 +130,6 @@ target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 # MapReveal.cpp pelo mesmo motivo: chama o WorldMap.UpdateLighting direto,
 # milhoes de vezes, e ele lanca se o mapa nao tiver onde guardar o pedaco.
 set_source_files_properties(script/bridge/Abi.cpp menu/MapReveal.cpp
+    content/textures/TexturePacks.cpp
     PROPERTIES COMPILE_OPTIONS -fexceptions)
 target_link_libraries(bunny shadowhook::shadowhook log dl)

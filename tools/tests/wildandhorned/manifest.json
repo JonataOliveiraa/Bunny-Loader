@@ -1,0 +1,15 @@
+{
+  "uid": "fc46c241-d981-4a64-9b5a-0d4348710395",
+  "id": "test-wildandhorned",
+  "name": "Wild and Horned runtime checks",
+  "version": "1.0.0",
+  "author": "Bunny Loader contributors",
+  "category": "Development",
+  "summary": "Temporary native bridge and rendering checks for Wild and Horned.",
+  "description": "Logs wildandhorned-qa results. Requires Wild and Horned. Does not edit inventory or world tiles.",
+  "updated": "2026-10-04",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": ["wildandhorned"]
+}

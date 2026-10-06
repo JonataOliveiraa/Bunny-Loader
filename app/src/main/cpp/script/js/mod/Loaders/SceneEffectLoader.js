@@ -109,8 +109,11 @@ class SceneEffectLoader {
         return result;
     }
 
-    // A cena do jogador, ou uma vazia antes da primeira avaliação.
+    // A cena do jogador, ou uma vazia antes da primeira avaliação. Sem efeito
+    // registrado o campo nem existe no Player (os fundos e a água perguntam
+    // mesmo assim, se outro mod os instalou).
     static Of(player) {
+        if (!SceneEffectLoader.List.length) return SceneEffectLoader.Empty();
         return (player && player.CurrentSceneEffect) || SceneEffectLoader.Empty();
     }
 }
