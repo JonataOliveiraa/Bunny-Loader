@@ -120,6 +120,18 @@ própria instância, com `this.Item` apontando para ele.
 | `CanShoot(item, player)` | `false`: usa, mas não atira. | `Player.ItemCheck_Shoot`, filtro `tipo` |
 | `ModifyShootStats(item, player, stats)` | Antes de cada projétil: `stats.position`, `velocity`, `type`, `damage`, `knockBack`. | idem + `Projectile.NewProjectile` (sem filtro; só age durante o tiro) |
 | `Shoot(item, player, position, velocity, type, damage, knockBack)` | `false`: o projétil do jogo não nasce. | idem |
+| `ModifyWeaponDamage(item, player, damage)` | `StatModifier`; também aceita retorno numérico. | `Player.GetWeaponDamage`, marcas por tipo |
+| `ModifyWeaponCrit(item, player, crit)` | `crit` é `Ref<number>`. | `Player.GetWeaponCrit`, marcas por tipo |
+| `ModifyWeaponKnockback(item, player, knockback)` | `knockback` é `StatModifier`. | `Player.GetWeaponKnockback`, marcas por tipo |
+| `ModifyItemScale(item, player, scale)` | `scale` é `Ref<number>` do multiplicador, incluindo a luva nativa. | `Player.GetAdjustedItemScale` e `ItemCheck_GetMeleeHitbox`, marcas por tipo |
+| `CanHitNPC(item, player, target)` | `false` veta; `true` permite a elegibilidade; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
+| `ModifyHitNPC(item, player, target, modifiers)` | Modifica o dano, crítico, direção e repulsão do golpe corpo a corpo. | `NPC.StrikeNPC`, contexto do item |
+| `CanHitPvp(item, player, target)` | `false` impede o golpe corpo a corpo. | `Player.ItemCheck_MeleeHitPVP` e `Hurt` |
+| `ModifyHitPvp(item, player, target, modifiers)` | Objeto JS com os parâmetros mutáveis do dano recebido. | `Player.Hurt`, contexto do ataque corpo a corpo |
+| `OnHitPvp(item, player, target, hurtInfo)` | Só após dano positivo, com `HurtInfo` do resultado aplicado. | retorno de `Player.Hurt`, contexto do ataque corpo a corpo |
+| `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | `false` veta; `true` permite a colisão; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC`, `Rectangle.Intersects` com flag e `whileIn` |
+| `MeleeEffects(item, player, hitbox)` | Depois dos efeitos visuais nativos de uso. | `Player.ItemCheck_EmitUseVisuals`, marcas por tipo |
+| `UseItemHitbox(item, player, hitbox, noHitbox)` | `Ref<Rectangle>` e `Ref<boolean>` depois da hitbox nativa. | `Player.ItemCheck_GetMeleeHitbox`, marcas por tipo |
 | `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. | `Player.ApplyNPCOnHitEffects`, filtro `tipo` |
 | `UpdateEquip(item, player)` | Todo quadro, equipado (armadura ou acessório). | `Player.ApplyEquipFunctional`, `GrantArmorBenefits`, filtro `tipo` |
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, acessório equipado (também no slot de vaidade). | `Player.ApplyEquipFunctional`, `ApplyEquipVanity`, filtro `tipo` |
@@ -144,6 +156,9 @@ própria instância, com `this.Item` apontando para ele.
 | `PrefixChance(item, pre, rand)` | `false` impede, `true` força um prefixo; `null` = o do jogo (`pre`: -1 criar/baú, -2 reforja). | `Item.Prefix`, sem filtro |
 | `AllowPrefix(item, pre)` | `false` tira esse prefixo das opções. | `Item.GetRollablePrefixes` |
 | `ApplyPrefix(item, pre)` | Depois dos status do prefixo. | `Item.Prefix`, sem filtro |
+
+Os contratos completos dos modificadores, a ordem entre classes e os limites
+do PvP estão em [Combate de ModItem](moditem-combate.md).
 
 ### Atalhos
 
@@ -177,9 +192,8 @@ própria instância, com `this.Item` apontando para ele.
 
 ### Ainda não
 
-Do `ModItem` do tModLoader, entre outros: `ModifyHitNPC`, `MeleeEffects`,
-`PreDrawInWorld`/`PostDrawInInventory`,
-`OnPickup`, `GrabRange`, `ModifyWeaponDamage` (há no `ModPlayer`),
+Do `ModItem` do tModLoader, entre outros: `PreDrawInWorld`/`PostDrawInInventory`,
+`OnPickup`, `GrabRange`,
 `DrawArmorColor`/`ArmorArmGlowMask`, `WingGlidingSpeeds`,
 `ModifyEquipTextureDraw` e as camadas de desenho próprias (`PlayerDrawLayer`).
 

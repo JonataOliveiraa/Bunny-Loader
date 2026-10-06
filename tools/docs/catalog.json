@@ -67,6 +67,18 @@
     "MusicLoader": "som-e-música"
   },
   "notes": {
+    "ModItem.ModifyWeaponDamage": "Ordem compartilhada: ModItem, GlobalItem, ModPlayer. Resultado finito, inteiro e não negativo.",
+    "ModItem.ModifyWeaponCrit": "ModItem antes de ModPlayer. Resultado inteiro; valor não finito vira zero.",
+    "ModItem.ModifyWeaponKnockback": "ModItem antes de ModPlayer. Resultado finito não negativo.",
+    "ModItem.ModifyItemScale": "Atua na escala consultada e na hitbox. Item.scale é restaurado após o cálculo nativo.",
+    "ModItem.CanHitNPC": "undefined também mantém o jogo. A colisão continua sendo verificada. Vetos de ModPlayer e ModNPC prevalecem.",
+    "ModItem.ModifyHitNPC": "Contrato JS: damage, knockBack, hitDirection, crit, SourceDamage e Knockback (StatModifier), SetCrit() e DisableCrit(). Corpo a corpo; não reaplica em fromNet.",
+    "ModItem.CanHitPvp": "Contexto de ItemCheck_MeleeHitPVP. Mensagens de Hurt recebidas isoladamente não reconstroem a arma de origem.",
+    "ModItem.ModifyHitPvp": "Contrato JS: damage, hitDirection, quiet, crit, dodgeable. Contexto de ItemCheck_MeleeHitPVP. Origem entre processos ainda pendente.",
+    "ModItem.OnHitPvp": "HurtInfo: DamageSource, Damage, HitDirection, PvP, Quiet, Crit, CooldownCounter, Dodgeable. Contexto de ItemCheck_MeleeHitPVP; origem entre processos ainda pendente.",
+    "ModItem.CanMeleeAttackCollideWithNPC": "undefined também mantém o jogo. Não força Intersects de retângulos sem relação com o ataque.",
+    "ModItem.MeleeEffects": "Antes de ModPlayer. Marca por tipo evita despacho JavaScript para itens sem sobrescrita, salvo observador global.",
+    "ModItem.UseItemHitbox": "Aceita substituir hitbox.value.",
     "ModNPC.ModifyNPCHappiness": "Adaptação do ExMod. Bioma primário: 0 floresta, 1 subterrâneo, 2 neve, 3 deserto, 4 selva, 5 oceano, 6 sagrado, 7 cogumelo, 8 masmorra, 9 corrupção, 10 carmim. shopHelper e vizinhos são nativos.",
     "ModNPC.ModifyIncomingHit": "Contrato JS: damage, knockBack, hitDirection, crit, SourceDamage e Knockback (StatModifier), SetCrit() e DisableCrit(). Não reaplica em fromNet.",
     "ModNPC.ModifyHitPlayer": "Contrato JS: damage, hitDirection, quiet, crit e dodgeable. Não contém todos os campos de HurtModifiers do tModLoader.",

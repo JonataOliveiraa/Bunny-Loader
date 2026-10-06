@@ -36,6 +36,8 @@ ordem de leitura.
   tModLoader.
 - [Hooks de ModPlayer](referencia/modplayer-hooks.md): contratos de combate,
   itens, saltos, desenho, inventário, save e rede.
+- [Combate de ModItem](referencia/moditem-combate.md): modificadores, permissões,
+  hitbox, PvP, ordem entre classes e filtros nativos.
 - [A ponte e o `bl`](referencia/ponte-e-bl.md): a sintaxe para falar com o
   jogo e todas as funções `bl.*`.
 

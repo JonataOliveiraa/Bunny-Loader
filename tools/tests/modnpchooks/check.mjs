@@ -96,7 +96,8 @@ const Terraria = native('Terraria'), Microsoft = native('Microsoft'), Main = Ter
 Main.npc = []; Main.projectile = []; Main.player = []; Main.myPlayer = 0; Main.netMode = 0;
 let talking = null;
 const sandbox = {
-    Terraria, Microsoft, assert, state: {}, events: [], SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697,
+    Terraria, Microsoft, assert, state: {}, events: [], SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697, FIRST_ITEM: 6145,
+    globalItems: { Each() {} },
     Ref: class { constructor(value) { this.value = value; } },
     Vector2: { new: vector }, Color: { new: color },
     Entities: { InstanceOf: npc => npc.ModNPC, Define() {} },
@@ -108,7 +109,7 @@ const sandbox = {
         hookMarks: { set(k, t) { if (!marks.has(k)) marks.set(k, new Set()); marks.get(k).add(t); } } },
 };
 const context = vm.createContext(sandbox);
-for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/PlayerCombatHooks.js',
+for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/PlayerCombatHooks.js',
     'Loaders/PlayerLoader.js', 'Loaders/NPCLoader.js', 'NPCShop.js']) {
     vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });
 }

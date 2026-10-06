@@ -1,0 +1,14 @@
+{
+  "uid": "e56f2848-2169-4d5f-8898-1bcbfdb4b7c2",
+  "id": "test-moditemhooks",
+  "name": "Teste: combate de ModItem",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Valida os hooks de combate de ModItem no jogo móvel.",
+  "description": "Testes com itens temporários, referências, vetos e filtros.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

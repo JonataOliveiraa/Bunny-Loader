@@ -1,0 +1,35 @@
+moditemhooks singleplayer nativo: ok
+moditemhooks ModifyWeaponDamage altera resultado nativo: ok
+moditemhooks ModifyWeaponCrit altera Ref nativo: ok
+moditemhooks ModifyWeaponKnockback aplica StatModifier: ok
+moditemhooks ModifyItemScale altera escala consultada: ok
+moditemhooks escala preserva luva do jogo: ok
+moditemhooks escala altera largura e altura da hitbox: ok
+moditemhooks escala temporaria do item foi restaurada: ok
+moditemhooks UseItemHitbox troca Rectangle por Ref: ok
+moditemhooks UseItemHitbox altera dontAttack por Ref: ok
+moditemhooks MeleeEffects recebe hitbox apos codigo nativo: ok
+moditemhooks vanilla e mod sem sobrescritas nao executam callbacks: ok
+moditemhooks CanHitNPC false impede dano: ok
+moditemhooks ModifyHitNPC altera dano real do NPC: ok
+moditemhooks OnHitNPC existente continua uma vez com dano real: ok
+moditemhooks CanMeleeAttackCollideWithNPC false impede dano: ok
+moditemhooks colisao null conserva decisao nativa: ok
+moditemhooks colisao true substitui Intersects nativo: ok
+moditemhooks CanHitNPC null conserva recusa de NPC amigavel: ok
+moditemhooks CanHitNPC true permite NPC amigavel: ok
+moditemhooks CanHitPvp false impede Hurt real: ok
+moditemhooks ModifyHitPvp executa no Hurt real: ok
+moditemhooks OnHitPvp recebe HurtInfo do dano aplicado: ok
+moditemhooks benchmark vanilla contagem de callbacks: ok
+moditemhooks filtro nativo vanilla entradas JS: ok
+moditemhooks despacho vanilla hooks=1 js=0
+moditemhooks benchmark plain contagem de callbacks: ok
+moditemhooks filtro nativo plain entradas JS: ok
+moditemhooks despacho plain hooks=1 js=0
+moditemhooks benchmark override contagem de callbacks: ok
+moditemhooks filtro nativo override entradas JS: ok
+moditemhooks despacho override hooks=1 js=10000
+moditemhooks instancia do item preservada no caminho frequente: ok
+moditemhooks benchmark GetWeaponDamage mediana_us vanilla=27.824 plain=28.918 override=60.882
+moditemhooks FIM checks=30 falhas=0

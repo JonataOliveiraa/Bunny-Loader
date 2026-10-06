@@ -57,6 +57,18 @@ class ModItem {
     CanShoot(item, player) { return true; }
     ModifyShootStats(item, player, stats) {}
     Shoot(item, player, position, velocity, type, damage, knockBack) { return true; }
+    ModifyWeaponDamage(item, player, damage) {}
+    ModifyWeaponCrit(item, player, crit) {}
+    ModifyWeaponKnockback(item, player, knockback) {}
+    ModifyItemScale(item, player, scale) {}
+    CanHitNPC(item, player, target) { return null; }
+    ModifyHitNPC(item, player, target, modifiers) {}
+    CanHitPvp(item, player, target) { return true; }
+    ModifyHitPvp(item, player, target, modifiers) {}
+    OnHitPvp(item, player, target, hurtInfo) {}
+    CanMeleeAttackCollideWithNPC(item, player, hitbox, target) { return null; }
+    MeleeEffects(item, player, hitbox) {}
+    UseItemHitbox(item, player, hitbox, noHitbox) {}
     OnHitNPC(item, player, npc, damageDone, knockBack, crit) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}

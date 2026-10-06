@@ -12,10 +12,23 @@ const option = (name) => {
 const runtime = option('--runtime');
 if (!runtime) throw new Error('Informe --runtime com a pasta de trabalho que resolve @oai/artifact-tool.');
 const requireRuntime = createRequire(path.resolve(runtime, 'package.json'));
-const { Workbook, SpreadsheetFile } = await import(pathToFileURL(requireRuntime.resolve('@oai/artifact-tool')).href);
+const { FileBlob, Workbook, SpreadsheetFile } = await import(pathToFileURL(requireRuntime.resolve('@oai/artifact-tool')).href);
 const catalog = JSON.parse(await fs.readFile(path.join(root, 'docs/referencia/metodos.json'), 'utf8'));
 const outputDir = path.resolve(option('--output-dir') ?? path.join(root, 'build/api-docs/outputs', randomUUID()));
 await fs.mkdir(outputDir, { recursive: true });
+
+if (process.argv.includes('--inspect-existing')) {
+    const existing = await SpreadsheetFile.importXlsx(await FileBlob.load(path.join(root, 'docs/referencia/metodos.xlsx')));
+    const sheet = existing.worksheets.getItem('Métodos');
+    const rows = sheet.getUsedRange().values;
+    const method = option('--inspect-method') || 'Shoot';
+    const first = rows.findIndex(row => row[0] === 'ModItem' && row[1] === method) + 1;
+    if (first < 1) throw new Error('Método de ModItem não encontrado: ' + method);
+    const preview = await existing.render({ sheetName: 'Métodos', range: `A${first}:D${first + 5}`, scale: 1, format: 'png' });
+    await fs.writeFile(path.join(outputDir, 'moditem-antes.png'), new Uint8Array(await preview.arrayBuffer()));
+    console.log(JSON.stringify({ existingRows: rows.length, preview: outputDir }));
+    process.exit(0);
+}
 
 const workbook = Workbook.create();
 const index = workbook.worksheets.add('Índice');
@@ -91,6 +104,9 @@ const previews = [
 ];
 const npcFirst = catalog.rows.findIndex((row) => row.class === 'ModNPC' && row.method === 'CanBeHitByProjectile') + 7;
 previews.push(['Métodos', `A${npcFirst}:I${npcFirst + 6}`, 'modnpc-limites']);
+const itemFirst = catalog.rows.findIndex(row => row.class === 'ModItem' && row.method === 'ModifyWeaponDamage') + 7;
+previews.push(['Métodos', `A${itemFirst}:D${itemFirst + 5}`, 'moditem-assinaturas']);
+previews.push(['Métodos', `H${itemFirst}:I${itemFirst + 5}`, 'moditem-contratos']);
 if (process.argv.includes('--preview')) {
     for (const [sheetName, range, name] of previews) {
         const preview = await workbook.render({ sheetName, range, scale: 1, format: 'png' });

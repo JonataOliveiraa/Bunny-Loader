@@ -60,17 +60,10 @@ class GlobalItemLoader {
             });
         }
 
-        if (has('ModifyWeaponDamage')) Hooks.Once('gitem.WeaponDamage', () => {
-            P['int GetWeaponDamage(Item sItem)'].hook((original, self, item) => {
-                let damage = original(self, item);
-                // `damage` vale como número e como StatModifier (ver PlayerLoader).
-                registry.Each(item, 'ModifyWeaponDamage', (g) => {
-                    const modifier = StatModifier.ForValue(damage);
-                    damage = StatModifier.Resolve(g.ModifyWeaponDamage(item, self, modifier), modifier, damage);
-                });
-                return Math.floor(damage);
-            });
-        });
+        if (has('ModifyWeaponDamage')) {
+            ItemCombatHooks.All('player.WeaponDamage');
+            PlayerItemHooks.InstallDamage();
+        }
 
         if (['CanShoot', 'ModifyShootStats', 'Shoot'].some(has)) Hooks.Once('gitem.Shoot', GlobalItemLoader.#HookShoot);
 

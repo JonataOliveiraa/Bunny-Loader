@@ -96,8 +96,9 @@ const Main = Terraria.Main;
 Main.player = []; Main.npc = []; Main.projectile = []; Main.myPlayer = 0; Main.gameMenu = false; Main.netMode = 0;
 Main.npcChatText = ''; Main.mouseItem = {}; Main.shop = [{ item: [] }]; Main.npcShop = 0;
 const errors = [], once = new Set(), files = new Map();
-const flags = new Map();
+const flags = new Map(), marks = new Map();
 const bl = {
+    hookMarks: { set(key, type) { if (!marks.has(key)) marks.set(key, new Set()); marks.get(key).add(type); } },
     hookFlags: { set: (key, value) => flags.set(key, value), get: key => flags.get(key) || false },
     mod: { uuid: 'test' }, addressOf: (value) => {
         if (!value || typeof value !== 'object' && typeof value !== 'function') return undefined;
@@ -115,7 +116,8 @@ const sandbox = {
     Vector2: { new: (X = 0, Y = 0) => ({ X, Y }) },
     Color: { new: (R, G, B, A = 255) => ({ R, G, B, A }) },
     Entities: { Define: () => {}, InstanceOf: (npc) => npc.ModNPC, Of: (inst) => Main.player.find((player) => player.__address === inst.__entity) },
-    SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697,
+    SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697, FIRST_ITEM: 6145,
+    globalItems: { Each() {} },
     Hooks: {
         Once: (key, fn) => { if (!once.has(key)) { fn(); once.add(key); } },
         Overrides: (cls, base, key) => cls.prototype[key] !== base.prototype[key],
@@ -129,7 +131,7 @@ const sandbox = {
     ModRegistry: { Find: () => null }, ModLoader: {},
 };
 const context = vm.createContext(sandbox);
-const filesToLoad = ['TagCompound.js', 'StatModifier.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/NPCLoader.js', 'Loaders/PlayerCombatHooks.js',
+const filesToLoad = ['TagCompound.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/NPCLoader.js', 'Loaders/PlayerCombatHooks.js',
     'Loaders/PlayerItemHooks.js', 'Loaders/PlayerUpdateHooks.js', 'Loaders/PlayerJumpHooks.js',
     'Loaders/PlayerDrawHooks.js', 'Loaders/PlayerWorldHooks.js', 'Loaders/PlayerNetworkHooks.js', 'Loaders/PlayerLoader.js'];
 for (const file of filesToLoad) vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });

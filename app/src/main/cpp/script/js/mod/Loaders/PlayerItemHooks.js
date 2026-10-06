@@ -6,6 +6,7 @@ class PlayerItemHooks {
     static #timing = new Set();
     static #mana = new Set();
     static #potion = null;
+    static #scaleAll = false;
 
     static Install(cls) {
         const want = PlayerLoader.Wants;
@@ -17,14 +18,21 @@ class PlayerItemHooks {
         });
         want(cls, ['CanShoot', 'ModifyShootStats', 'Shoot'], 'player.Shoot', PlayerItemHooks.#Shoot);
         want(cls, ['CanConsumeAmmo', 'OnConsumeAmmo'], 'player.Ammo', PlayerItemHooks.#Ammo);
-        want(cls, ['ModifyWeaponCrit'], 'player.WeaponCrit', PlayerItemHooks.#Crit);
-        want(cls, ['ModifyWeaponKnockback'], 'player.WeaponKnockback', PlayerItemHooks.#Knockback);
-        want(cls, ['ModifyItemScale'], 'player.ItemScale', () => {
-            Terraria.Player['void ApplyMeleeScale(ref float scale)'].hook((original, player, scale) => {
-                original(player, scale);
-                PlayerLoader.Call(player, 'ModifyItemScale', player.inventory[player.selectedItem], scale);
-            });
-        });
+        if (Hooks.Overrides(cls, ModPlayer, 'ModifyWeaponCrit')) {
+            ItemCombatHooks.All('player.WeaponCrit');
+            PlayerItemHooks.InstallCrit();
+        }
+        if (Hooks.Overrides(cls, ModPlayer, 'ModifyWeaponKnockback')) {
+            ItemCombatHooks.All('player.WeaponKnockback');
+            PlayerItemHooks.InstallKnockback();
+        }
+        if (Hooks.Overrides(cls, ModPlayer, 'ModifyItemScale')) {
+            PlayerItemHooks.#scaleAll = true;
+            ItemCombatHooks.All('player.ItemScale');
+            ItemCombatHooks.All('player.ItemHitbox');
+            PlayerItemHooks.InstallScale();
+            PlayerItemHooks.InstallHitbox();
+        }
         want(cls, ['CanAutoReuseItem'], 'player.AutoReuse', () => {
             Terraria.Player['void ItemCheck_AutoReuseLogic(Item sItem)'].hook((original, player, item) => {
                 const decision = PlayerLoader.Nullable(player, 'CanAutoReuseItem', item);
@@ -44,28 +52,98 @@ class PlayerItemHooks {
     }
 
     static InstallStats() {
-        Hooks.Once('player.WeaponCrit', PlayerItemHooks.#Crit);
-        Hooks.Once('player.WeaponKnockback', PlayerItemHooks.#Knockback);
+        ItemCombatHooks.All('player.WeaponCrit');
+        ItemCombatHooks.All('player.WeaponKnockback');
+        PlayerItemHooks.InstallCrit();
+        PlayerItemHooks.InstallKnockback();
         Hooks.Once('player.ItemTiming', PlayerItemHooks.#Timing);
     }
 
-    static #Crit() {
-            Terraria.Player['int GetWeaponCrit(Item sItem)'].hook((original, player, item) => {
-                const value = original(player, item);
-                const crit = new Ref(PlayerItemHooks.Stats ? PlayerItemHooks.Stats.crit(player, item, value) : value);
-                PlayerLoader.Call(player, 'ModifyWeaponCrit', item, crit);
-                return Number.isFinite(crit.value) ? Math.trunc(crit.value) : 0;
+    static InstallDamage() { Hooks.Once('player.WeaponDamage', PlayerItemHooks.#Damage); }
+    static InstallCrit() { Hooks.Once('player.WeaponCrit', PlayerItemHooks.#Crit); }
+    static InstallKnockback() { Hooks.Once('player.WeaponKnockback', PlayerItemHooks.#Knockback); }
+    static InstallScale() { Hooks.Once('player.ItemScale', PlayerItemHooks.#Scale); }
+    static InstallHitbox() { Hooks.Once('player.ItemHitbox', PlayerItemHooks.#Hitbox); }
+
+    static #Damage() {
+        Terraria.Player['int GetWeaponDamage(Item sItem)'].hook((original, player, item) => {
+            let damage = original(player, item);
+            if (ItemCombatHooks.Has(item, 'ModifyWeaponDamage')) {
+                const modifier = StatModifier.ForValue(damage);
+                damage = StatModifier.Resolve(ItemCombatHooks.Call(item, 'ModifyWeaponDamage', player, modifier), modifier, damage);
+            }
+            globalItems.Each(item, 'ModifyWeaponDamage', g => {
+                const next = StatModifier.ForValue(damage);
+                damage = StatModifier.Resolve(g.ModifyWeaponDamage(item, player, next), next, damage);
             });
+            PlayerLoader.Each(player, 'ModifyWeaponDamage', m => {
+                m.WeaponDamage = damage;
+                const next = StatModifier.ForValue(damage);
+                const result = m.ModifyWeaponDamage(player, item, next);
+                if (typeof result === 'number') damage = result;
+                else if (m.WeaponDamage !== damage && typeof m.WeaponDamage === 'number') damage = m.WeaponDamage;
+                else damage = next.ApplyTo(damage);
+            });
+            return Number.isFinite(damage) ? Math.max(0, Math.floor(damage)) : 0;
+        }, ItemCombatHooks.Filter('player.WeaponDamage'));
+    }
+
+    static #Crit() {
+        Terraria.Player['int GetWeaponCrit(Item sItem)'].hook((original, player, item) => {
+            const value = original(player, item);
+            const crit = new Ref(PlayerItemHooks.Stats ? PlayerItemHooks.Stats.crit(player, item, value) : value);
+            ItemCombatHooks.Call(item, 'ModifyWeaponCrit', player, crit);
+            PlayerLoader.Call(player, 'ModifyWeaponCrit', item, crit);
+            return Number.isFinite(crit.value) ? Math.trunc(crit.value) : 0;
+        }, ItemCombatHooks.Filter('player.WeaponCrit'));
     }
 
     static #Knockback() {
-            Terraria.Player['float GetWeaponKnockback(Item sItem, float KnockBack)'].hook((original, player, item, baseKnockback) => {
-                const vanilla = original(player, item, baseKnockback);
-                const value = PlayerItemHooks.Stats ? PlayerItemHooks.Stats.knockback(player, item, vanilla) : vanilla;
-                const modifier = StatModifier.ForValue(value);
-                PlayerLoader.Call(player, 'ModifyWeaponKnockback', item, modifier);
-                return Math.max(0, modifier.ApplyTo(value));
-            });
+        Terraria.Player['float GetWeaponKnockback(Item sItem, float KnockBack)'].hook((original, player, item, baseKnockback) => {
+            const vanilla = original(player, item, baseKnockback);
+            const value = PlayerItemHooks.Stats ? PlayerItemHooks.Stats.knockback(player, item, vanilla) : vanilla;
+            const modifier = StatModifier.ForValue(value);
+            ItemCombatHooks.Call(item, 'ModifyWeaponKnockback', player, modifier);
+            PlayerLoader.Call(player, 'ModifyWeaponKnockback', item, modifier);
+            const result = modifier.ApplyTo(value);
+            return Number.isFinite(result) ? Math.max(0, result) : 0;
+        }, ItemCombatHooks.Filter('player.WeaponKnockback'));
+    }
+
+    static #ScaleFactor(player, item, value) {
+        const scale = new Ref(value);
+        ItemCombatHooks.Call(item, 'ModifyItemScale', player, scale);
+        PlayerLoader.Call(player, 'ModifyItemScale', item, scale);
+        return Number.isFinite(scale.value) ? Math.max(0, scale.value) : value;
+    }
+
+    static #VanillaScale(player, item) {
+        const scale = new Ref(1);
+        if (item.melee) player['void ApplyMeleeScale(ref float scale)'](scale);
+        return scale.value;
+    }
+
+    static #Scale() {
+        Terraria.Player['float GetAdjustedItemScale(Item item)'].hook((original, player, item) => {
+            const value = original(player, item);
+            const factor = item.scale !== 0 ? value / item.scale : PlayerItemHooks.#VanillaScale(player, item);
+            return item.scale * PlayerItemHooks.#ScaleFactor(player, item, factor);
+        }, ItemCombatHooks.Filter('player.ItemScale'));
+    }
+
+    static #Hitbox() {
+        Terraria.Player['void ItemCheck_GetMeleeHitbox(Item sItem, Rectangle heldItemFrame, out bool dontAttack, out Rectangle itemRectangle)'].hook(
+            (original, player, item, frame, dontAttack, hitbox) => {
+                if (PlayerItemHooks.#scaleAll || ItemCombatHooks.Has(item, 'ModifyItemScale')) {
+                    const previous = item.scale;
+                    const vanilla = PlayerItemHooks.#VanillaScale(player, item);
+                    const factor = PlayerItemHooks.#ScaleFactor(player, item, vanilla);
+                    item.scale = previous * factor / vanilla;
+                    try { original(player, item, frame, dontAttack, hitbox); }
+                    finally { item.scale = previous; }
+                } else original(player, item, frame, dontAttack, hitbox);
+                ItemCombatHooks.Call(item, 'UseItemHitbox', player, hitbox, dontAttack);
+            }, ItemCombatHooks.Filter('player.ItemHitbox'));
     }
 
     static #Shoot() {

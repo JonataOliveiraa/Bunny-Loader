@@ -34,4 +34,8 @@ A terceira abordagem será usada. As listas de sobrescritas e os rótulos de err
 
 Cada etapa atualizará a referência da API. Diferenças de contrato e métodos indisponíveis serão registrados com a evidência correspondente. A presença de um nome na tabela não indica que ele já foi implementado.
 
+## Estado em 6 de outubro de 2026
+
+Os 12 métodos da etapa 1 estão implementados, com 60 verificações automatizadas e 30 verificações nativas aprovadas. A origem de ataques PvP recebidos por rede ainda não é reconstruída; a validação entre dois processos permanece pendente. As etapas 2 a 6 ainda não foram implementadas. Evidências e limites: [RESULTADOS.md](RESULTADOS.md).
+
 Referência de contratos: [ModItem do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs). Alternativas móveis: `C:/Scripts/Terraria/curso/ExMod_v1.5.0/Modified/1.mod/TL`.

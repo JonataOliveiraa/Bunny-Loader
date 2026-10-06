@@ -73,7 +73,7 @@ Os modificadores de dano recebido mantêm o contrato existente de
 | `CanAutoReuseItem(player, item)` | Decisão opcional, preservando os campos permanentes do item. |
 | `ModifyWeaponCrit(player, item, crit)` | `crit` é `Ref<int>`. |
 | `ModifyWeaponKnockback(player, item, knockback)` | `knockback` é `StatModifier`. |
-| `ModifyItemScale(player, item, scale)` | `scale` é `Ref<float>`. |
+| `ModifyItemScale(player, item, scale)` | `scale` é `Ref<float>` do multiplicador. Atua em `GetAdjustedItemScale` e na hitbox nativa, junto com ModItem. |
 | `UseSpeedMultiplier(player, item)` | Divisor dos tempos de uso e animação; padrão `1`. |
 | `UseTimeMultiplier(player, item)` | Multiplica o tempo de uso; padrão `1`. |
 | `UseAnimationMultiplier(player, item)` | Multiplica o tempo da animação; padrão `1`. |
