@@ -23,6 +23,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`EquipLoader`](#equiploader) | 8 | 0 | [Referência](classes.md#texturas-vestidas-equiploader-e-equiptexture) |
 | [`EquipTexture`](#equiptexture) | 9 | 0 | [Referência](classes.md#texturas-vestidas-equiploader-e-equiptexture) |
 | [`ExtraJump`](#extrajump) | 1 | 0 | [Referência](classes.md#modplayer) |
+| [`GenPass`](#genpass) | 10 | 0 | [Referência](classes.md#genpass-e-passlegacy) |
 | [`GlobalItem`](#globalitem) | 38 | 8 | [Referência](classes.md#globalitem) |
 | [`GlobalLoot`](#globalloot) | 11 | 0 | [Referência](classes.md#globalloot) |
 | [`GlobalNPC`](#globalnpc) | 23 | 8 | [Referência](classes.md#globalnpc) |
@@ -53,7 +54,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`ModRecipe`](#modrecipe) | 11 | 0 | [Referência](classes.md#modrecipe) |
 | [`ModSceneEffect`](#modsceneeffect) | 6 | 0 | [Referência](classes.md#modbiome-e-modsceneeffect) |
 | [`ModSurfaceBackgroundStyle`](#modsurfacebackgroundstyle) | 7 | 0 | [Referência](classes.md#fundos-de-mod) |
-| [`ModSystem`](#modsystem) | 22 | 0 | [Referência](classes.md#modsystem) |
+| [`ModSystem`](#modsystem) | 57 | 0 | [Referência](classes.md#modsystem) |
 | [`ModTile`](#modtile) | 46 | 0 | [Referência](classes.md#modtile) |
 | [`ModUndergroundBackgroundStyle`](#modundergroundbackgroundstyle) | 3 | 0 | [Referência](classes.md#fundos-de-mod) |
 | [`ModWall`](#modwall) | 17 | 0 | [Referência](classes.md#modwall) |
@@ -66,6 +67,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`NPCSpawnInfo`](#npcspawninfo) | 44 | 0 | [Referência](classes.md#ajudantes-de-npc) |
 | [`NetReader`](#netreader) | 17 | 0 | [Referência](classes.md#rede) |
 | [`NetWriter`](#netwriter) | 16 | 0 | [Referência](classes.md#rede) |
+| [`PassLegacy`](#passlegacy) | 2 | 8 | [Referência](classes.md#genpass-e-passlegacy) |
 | [`PlayerDrawLayer`](#playerdrawlayer) | 11 | 0 | [Referência](classes.md#modplayer) |
 | [`PrefixLoader`](#prefixloader) | 13 | 0 | [Referência](classes.md#modprefix) |
 | [`RarityLoader`](#rarityloader) | 4 | 0 | [Referência](classes.md#modrarity) |
@@ -79,7 +81,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`TooltipLine`](#tooltipline) | 3 | 0 | [Referência](classes.md#tooltipline) |
 | [`UsageException`](#usageexception) | 1 | 0 | [Referência](classes.md#modcommand) |
 
-64 classes públicas, 1068 registros declarados e 10 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
+66 classes públicas, 1123 registros declarados e 11 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
 
 ## Objetos e enums
 
@@ -221,6 +223,23 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
 |---|---|---|---|---|---|
 | `constructor(name, field)` | Construtor | `ExtraJump` | `instância` | Consulte a implementação na fonte. Descritor dos saltos nativos. Registrar novos tipos de salto não faz parte da API atual. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerJumpHooks.js#L2) |
+
+## GenPass
+
+[Contrato e campos](classes.md#genpass-e-passlegacy).
+
+| Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
+|---|---|---|---|---|---|
+| `Apply(progress, configuration)` | Instância | `GenPass` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L21) |
+| `ApplyPass(progress, configuration)` | Instância | `GenPass` | `Consultar fonte` | Consulte a implementação na fonte. Implemente em uma subclasse JS; callback executado pelo gerador nativo via PassLegacy. Falhas do callback são isoladas. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L24) |
+| `constructor(name, weight = 1)` | Construtor | `GenPass` | `instância` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L2) |
+| `Disable()` | Instância | `GenPass` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L19) |
+| `Enable()` | Instância | `GenPass` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L20) |
+| `get Enabled` | Getter | `GenPass` | `this.Native.Enabled` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L18) |
+| `get Name` | Getter | `GenPass` | `this.Native.Name` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L11) |
+| `set Name(value)` | Setter | `GenPass` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L12) |
+| `get Weight` | Getter | `GenPass` | `this.Native.Weight` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L13) |
+| `set Weight(value)` | Setter | `GenPass` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L14) |
 
 ## GlobalItem
 
@@ -1169,28 +1188,64 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 
 | Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
 |---|---|---|---|---|---|
-| `AddRecipeGroups()` | Instância | `ModSystem` | `undefined` | Uma vez, antes de qualquer receita. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L3) |
-| `AddRecipes()` | Instância | `ModSystem` | `undefined` | Uma vez, com as receitas do jogo prontas. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L4) |
-| `ClearWorld()` | Instância | `ModSystem` | `undefined` | Ao entrar em qualquer mundo (e antes de gerar um). | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L14) |
-| `LoadWorldData(tag)` | Instância | `ModSystem` | `undefined` | Depois do OnWorldLoad, com os dados do mundo. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L11) |
-| `NetReceive(reader)` | Instância | `ModSystem` | `undefined` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L33) |
-| `NetSend(writer)` | Instância | `ModSystem` | `undefined` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L32) |
+| `AddRecipeGroups()` | Instância | `ModSystem` | `undefined` | Uma vez, antes de qualquer receita. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L6) |
+| `AddRecipes()` | Instância | `ModSystem` | `undefined` | Uma vez, com as receitas do jogo prontas. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L7) |
+| `CanWorldBePlayed(playerData, worldData)` | Instância | `ModSystem` | `true` | false bloqueia a combinação de personagem e mundo. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L19) |
+| `ClearWorld()` | Instância | `ModSystem` | `undefined` | Ao entrar em qualquer mundo (e antes de gerar um). | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L27) |
+| `HijackGetData(messageType, reader, playerNumber)` | Instância | `ModSystem` | `false` | Ref de tipo e leitor; qualquer true cancela o pacote. Ref de byte e BinaryReader nativo. Position volta a 1 entre sistemas. true cancela o pacote inteiro; o cliente/servidor é MessageBuffer.whoAmI. Substituição do reader copia seu payload. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L69) |
+| `HijackSendData(whoAmI, msgType, remoteClient, ignoreClient, text, number, number2, number3, number4, number5, number6, number7)` | Instância | `ModSystem` | `false` | Qualquer true cancela envio e envelope de entidade. Qualquer true cancela SendData e o envelope de entidade. whoAmI é o índice do buffer: remoteClient no servidor direcionado, 256 nos outros casos. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L70) |
+| `LoadWorldData(tag)` | Instância | `ModSystem` | `undefined` | Depois do OnWorldLoad, com os dados do mundo. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L15) |
+| `ModifyHardmodeTasks(tasks)` | Instância | `ModSystem` | `undefined` | Array JS; etapa nativa única Hardmode Conversion. Adaptação móvel: etapa padrão única Hardmode Conversion, que mantém initializeHardMode. Permite inserir, remover, reordenar e desativar etapas; não expõe separadamente Good/Evil/Walls. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L26) |
+| `ModifyLightingBrightness(scale)` | Instância | `ModSystem` | `undefined` | Ref de escala de brilho depois do cálculo nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L56) |
+| `ModifyScreenPosition()` | Instância | `ModSystem` | `undefined` | Depois da câmera e de ModPlayer, dentro do mundo; altere Main.screenPosition. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L57) |
+| `ModifySunLightColor(tileColor, backgroundColor)` | Instância | `ModSystem` | `undefined` | Dois Ref de cor depois do cálculo nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L55) |
+| `ModifyTimeRate(timeRate, tileUpdateRate, eventUpdateRate)` | Instância | `ModSystem` | `undefined` | Três Ref independentes; clock double, tiles e eventos com acumulação fracionária. Três Ref independentes. Relógio usa double; tiles/eventos acumulam frações e escrevem taxas inteiras móveis. Valores não finitos, negativos ou acima de Int32.MaxValue mantêm o valor nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L54) |
+| `ModifyTransformMatrix(transform)` | Instância | `ModSystem` | `undefined` | Ref de SpriteViewMatrix depois do zoom, antes de ler a matriz. Ref de Terraria.Graphics.SpriteViewMatrix; aplicado depois do zoom nativo e antes do desenho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L58) |
+| `ModifyWorldGenTasks(tasks)` | Instância | `ModSystem` | `undefined` | Array JS de GenPass: inserir, remover, ordenar, alterar peso e desativar. tasks é um array JS de GenPass. A lista nativa é substituída antes da execução; peso e Enabled permanecem nativos. Assinatura da cópia local do tModLoader: somente tasks. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L24) |
+| `NetReceive(reader)` | Instância | `ModSystem` | `undefined` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L68) |
+| `NetSend(writer)` | Instância | `ModSystem` | `undefined` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L67) |
+| `OnLocalizationsLoaded()` | Instância | `ModSystem` | `undefined` | Após aplicar os textos dos mods, inicialmente e a cada troca de idioma. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L4) |
 | `OnModLoad()` | Instância | `ModSystem` | `undefined` | No register. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L2) |
-| `OnWorldLoad()` | Instância | `ModSystem` | `undefined` | O mundo abriu; no cliente, ao chegar do servidor. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L10) |
-| `OnWorldUnload()` | Instância | `ModSystem` | `undefined` | Depois de sair. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L16) |
-| `PostAddRecipes()` | Instância | `ModSystem` | `undefined` | Uma vez, com as receitas do jogo prontas. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L5) |
-| `PostSetupContent()` | Instância | `ModSystem` | `undefined` | Uma vez, com todo o conteúdo de mod no jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L6) |
-| `PostUpdateEverything()` | Instância | `ModSystem` | `undefined` | A cada quadro, em todos. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L23) |
-| `PostUpdateTime()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L22) |
-| `PostUpdateWorld()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L20) |
-| `PostWorldLoad()` | Instância | `ModSystem` | `undefined` | Depois dos dados. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L12) |
-| `PreSaveAndQuit()` | Instância | `ModSystem` | `undefined` | Ao sair, antes de salvar. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L15) |
-| `PreUpdateTime()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L21) |
-| `PreUpdateWorld()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L19) |
-| `register(cls)` | Estático | `ModSystem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L35) |
-| `ResetNearbyTileEffects()` | Instância | `ModSystem` | `undefined` | Antes de o jogo contar os blocos em volta do jogador local (a cada 5 quadros), e também ao sair do mundo e ao carregar outro (a contagem do anterior não vale no novo). | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L29) |
-| `SaveWorldData(tag)` | Instância | `ModSystem` | `undefined` | A cada save do mundo. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L13) |
-| `TileCountsAvailable(tileCounts)` | Instância | `ModSystem` | `undefined` | Com a contagem pronta: tileCounts[tipo] é quantos blocos daquele tipo há em volta. Vale durante a chamada: guarde o número, não o array. Só a varredura do jogador local (a dos pilares e a da câmera não chamam). | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L30) |
+| `OnModUnload()` | Instância | `ModSystem` | `undefined` | Uma vez na saída normal ou no shutdown do motor JS. Uma vez na saída normal ou no shutdown do motor JS; encerramento forçado do processo pelo sistema não executa callbacks. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L3) |
+| `OnWorldLoad()` | Instância | `ModSystem` | `undefined` | O mundo abriu; no cliente, ao chegar do servidor. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L14) |
+| `OnWorldUnload()` | Instância | `ModSystem` | `undefined` | Depois de sair. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L29) |
+| `PostAddRecipes()` | Instância | `ModSystem` | `undefined` | Uma vez, com as receitas do jogo prontas. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L8) |
+| `PostSetupContent()` | Instância | `ModSystem` | `undefined` | Uma vez, com todo o conteúdo de mod no jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L10) |
+| `PostSetupRecipes()` | Instância | `ModSystem` | `undefined` | Depois de todas as receitas, pós-hooks e caches. Depois de todas as receitas, PostAddRecipes e reconstrução de caches nativos. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L9) |
+| `PostUpdateDusts()` | Instância | `ModSystem` | `undefined` | Antes e depois de atualizar partículas. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L51) |
+| `PostUpdateEverything()` | Instância | `ModSystem` | `undefined` | A cada quadro, em todos. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L36) |
+| `PostUpdateGores()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de gores. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L45) |
+| `PostUpdateInput()` | Instância | `ModSystem` | `undefined` | Depois do processamento da entrada. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L38) |
+| `PostUpdateInvasions()` | Instância | `ModSystem` | `undefined` | Antes e depois da rotina de invasões. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L53) |
+| `PostUpdateItems()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de WorldItem. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L49) |
+| `PostUpdateNPCs()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de NPCs. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L43) |
+| `PostUpdatePlayers()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de jogadores. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L41) |
+| `PostUpdateProjectiles()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de projéteis. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L47) |
+| `PostUpdateTime()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L35) |
+| `PostUpdateWorld()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L33) |
+| `PostWorldGen()` | Instância | `ModSystem` | `undefined` | Depois de uma geração concluída; cancelamento não chama. Somente quando o gerador nativo retorna true; não roda em geração cancelada. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L25) |
+| `PostWorldLoad()` | Instância | `ModSystem` | `undefined` | Depois dos dados. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L16) |
+| `PreSaveAndQuit()` | Instância | `ModSystem` | `undefined` | Ao sair, antes de salvar. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L28) |
+| `PreUpdateDusts()` | Instância | `ModSystem` | `undefined` | Antes e depois de atualizar partículas. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L50) |
+| `PreUpdateEntities()` | Instância | `ModSystem` | `undefined` | Antes dos grupos de entidades. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L39) |
+| `PreUpdateGores()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de gores. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L44) |
+| `PreUpdateInvasions()` | Instância | `ModSystem` | `undefined` | Antes e depois da rotina de invasões. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L52) |
+| `PreUpdateItems()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de WorldItem. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L48) |
+| `PreUpdateNPCs()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de NPCs. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L42) |
+| `PreUpdatePlayers()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de jogadores. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L40) |
+| `PreUpdateProjectiles()` | Instância | `ModSystem` | `undefined` | Uma vez nas bordas do grupo de projéteis. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L46) |
+| `PreUpdateTime()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L34) |
+| `PreUpdateWorld()` | Instância | `ModSystem` | `undefined` | A cada quadro. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L32) |
+| `PreWorldGen()` | Instância | `ModSystem` | `undefined` | Antes de executar a lista de geração já montada pelo mobile. Executado antes das etapas do WorldGenerator, após o jogo montar sua lista de geração. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L23) |
+| `register(cls)` | Estático | `ModSystem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L72) |
+| `RequiresScreenTarget` | Não implementado | Não implementado | — | O renderer móvel usa Unity, não chama FilterManager.CanCapture e não possui Main.finalScreenTarget. Captura automática compatível com tModLoader descartada. | [Código](../../tools/tests/modsystemhooks/README.md#método-descartado) |
+| `ResetNearbyTileEffects()` | Instância | `ModSystem` | `undefined` | Antes de o jogo contar os blocos em volta do jogador local (a cada 5 quadros), e também ao sair do mundo e ao carregar outro (a contagem do anterior não vale no novo). | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L64) |
+| `ResizeArrays()` | Instância | `ModSystem` | `undefined` | Conteúdo pronto, antes das fases de setup. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L5) |
+| `SaveWorldData(tag)` | Instância | `ModSystem` | `undefined` | A cada save do mundo. Só no servidor ou sozinho. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L17) |
+| `SaveWorldHeader(tag)` | Instância | `ModSystem` | `undefined` | Cabeçalho em .wld.bl.header.json, separado dos dados completos. TagCompound em <mundo>.wld.bl.header.json, separado dos dados completos; TryGetHeaderData aceita instância ou classe de ModSystem. Sem persistência em nuvem. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L18) |
+| `TileCountsAvailable(tileCounts)` | Instância | `ModSystem` | `undefined` | Com a contagem pronta: tileCounts[tipo] é quantos blocos daquele tipo há em volta. Vale durante a chamada: guarde o número, não o array. Só a varredura do jogador local (a dos pilares e a da câmera não chamam). | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L65) |
+| `UpdateUI(gameTime)` | Instância | `ModSystem` | `undefined` | Depois da atualização de UI dentro do mundo, inclusive pausado. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L37) |
+| `WorldCanBePlayedRejectionMessage(playerData, worldData)` | Instância | `ModSystem` | `'O personagem ' + playerData.Name + ' não pode entrar no mundo ' + worldData.Name + '.'` | Mensagem do primeiro sistema que bloqueou. | [Código](../../app/src/main/cpp/script/js/mod/ModSystem.js#L20) |
 
 ## ModTile
 
@@ -1449,6 +1504,23 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `WriteUInt16(value)` | Instância | `NetWriter` | `Consultar fonte` | Alias de NetWriter.Write. | [Código](../../app/src/main/cpp/script/js/mod/NetWriter.js#L18) |
 | `WriteUInt32(value)` | Instância | `NetWriter` | `Consultar fonte` | Alias de NetWriter.Write. | [Código](../../app/src/main/cpp/script/js/mod/NetWriter.js#L18) |
 | `WriteVector2(v)` | Instância | `NetWriter` | `Consultar fonte` | Vários booleanos; um vetor. | [Código](../../app/src/main/cpp/script/js/mod/NetWriter.js#L13) |
+
+## PassLegacy
+
+[Contrato e campos](classes.md#genpass-e-passlegacy). Herda de `GenPass`.
+
+| Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
+|---|---|---|---|---|---|
+| `Apply(progress, configuration)` | Instância | `GenPass` (herdado) | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L21) |
+| `ApplyPass(progress, configuration)` | Instância | `PassLegacy` | `Consultar fonte` | Consulte a implementação na fonte. Chama a função fornecida no construtor com GenerationProgress e GameConfiguration nativos. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L33) |
+| `constructor(name, method, weight = 1)` | Construtor | `PassLegacy` | `instância` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L28) |
+| `Disable()` | Instância | `GenPass` (herdado) | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L19) |
+| `Enable()` | Instância | `GenPass` (herdado) | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L20) |
+| `get Enabled` | Getter | `GenPass` (herdado) | `this.Native.Enabled` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L18) |
+| `get Name` | Getter | `GenPass` (herdado) | `this.Native.Name` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L11) |
+| `set Name(value)` | Setter | `GenPass` (herdado) | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L12) |
+| `get Weight` | Getter | `GenPass` (herdado) | `this.Native.Weight` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L13) |
+| `set Weight(value)` | Setter | `GenPass` (herdado) | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GenPass.js#L14) |
 
 ## PlayerDrawLayer
 

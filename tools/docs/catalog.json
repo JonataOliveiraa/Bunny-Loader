@@ -22,6 +22,8 @@
     "ModPrefix": "modprefix",
     "PrefixLoader": "modprefix",
     "ModSystem": "modsystem",
+    "GenPass": "genpass-e-passlegacy",
+    "PassLegacy": "genpass-e-passlegacy",
     "TagCompound": "tagcompound",
     "ModSceneEffect": "modbiome-e-modsceneeffect",
     "ModBiome": "modbiome-e-modsceneeffect",
@@ -120,7 +122,20 @@
     "ModPlayer.GetHealMana": "Depois de ModItem, somente com healMana base positivo. quickHeal true em QuickHeal e QuickMana; campos temporários restaurados.",
     "ModPlayer.ApplyPotionDelay": "Recebe o atraso final após ModItem.ModifyPotionDelay. Qualquer veto de ModItem ou ModPlayer impede contador e buff; conserva cura e consumo.",
     "ModPlayer.AddDrawData": "Reaproveita o array nativo, sem alocar outro array ou instalar hooks. Tempo e espaço adicional constantes.",
-    "ModPlayer.ModifyDrawInfo": "Cache móvel é DrawData[] com DrawDataCacheCount, não List<DrawData>. Use ModPlayer.AddDrawData(drawInfo, drawData). A entrada precede as camadas nativas e pode ficar atrás do jogador."
+    "ModPlayer.ModifyDrawInfo": "Cache móvel é DrawData[] com DrawDataCacheCount, não List<DrawData>. Use ModPlayer.AddDrawData(drawInfo, drawData). A entrada precede as camadas nativas e pode ficar atrás do jogador.",
+    "ModSystem.ModifyWorldGenTasks": "tasks é um array JS de GenPass. A lista nativa é substituída antes da execução; peso e Enabled permanecem nativos. Assinatura da cópia local do tModLoader: somente tasks.",
+    "ModSystem.PreWorldGen": "Executado antes das etapas do WorldGenerator, após o jogo montar sua lista de geração.",
+    "ModSystem.PostWorldGen": "Somente quando o gerador nativo retorna true; não roda em geração cancelada.",
+    "ModSystem.ModifyHardmodeTasks": "Adaptação móvel: etapa padrão única Hardmode Conversion, que mantém initializeHardMode. Permite inserir, remover, reordenar e desativar etapas; não expõe separadamente Good/Evil/Walls.",
+    "ModSystem.ModifyTimeRate": "Três Ref independentes. Relógio usa double; tiles/eventos acumulam frações e escrevem taxas inteiras móveis. Valores não finitos, negativos ou acima de Int32.MaxValue mantêm o valor nativo.",
+    "ModSystem.ModifyTransformMatrix": "Ref de Terraria.Graphics.SpriteViewMatrix; aplicado depois do zoom nativo e antes do desenho.",
+    "ModSystem.HijackGetData": "Ref de byte e BinaryReader nativo. Position volta a 1 entre sistemas. true cancela o pacote inteiro; o cliente/servidor é MessageBuffer.whoAmI. Substituição do reader copia seu payload.",
+    "ModSystem.HijackSendData": "Qualquer true cancela SendData e o envelope de entidade. whoAmI é o índice do buffer: remoteClient no servidor direcionado, 256 nos outros casos.",
+    "ModSystem.SaveWorldHeader": "TagCompound em <mundo>.wld.bl.header.json, separado dos dados completos; TryGetHeaderData aceita instância ou classe de ModSystem. Sem persistência em nuvem.",
+    "ModSystem.OnModUnload": "Uma vez na saída normal ou no shutdown do motor JS; encerramento forçado do processo pelo sistema não executa callbacks.",
+    "ModSystem.PostSetupRecipes": "Depois de todas as receitas, PostAddRecipes e reconstrução de caches nativos.",
+    "GenPass.ApplyPass": "Implemente em uma subclasse JS; callback executado pelo gerador nativo via PassLegacy. Falhas do callback são isoladas.",
+    "PassLegacy.ApplyPass": "Chama a função fornecida no construtor com GenerationProgress e GameConfiguration nativos."
   },
   "unavailable": [
     { "class": "ModNPC", "method": "CanBeHitByProjectile", "reason": "Não há um ponto de elegibilidade que cubra todos os fluxos de Damage_PVE, incluindo projéteis sem dono. Um veto em StrikeNPC ocorreria após efeitos de contato." },
@@ -132,6 +147,7 @@
     { "class": "ModNPC", "method": "TownNPCAttackMagic", "reason": "Os parâmetros da aura ficam em variáveis locais da AI de moradores. Não há helper interceptável com as referências completas." },
     { "class": "ModNPC", "method": "DrawTownAttackGun", "reason": "Textura, frame, escala e offsets são locais do renderer. Não há um método com todos os argumentos mutáveis." },
     { "class": "ModNPC", "method": "DrawTownAttackSwing", "reason": "Textura, frame, escala e offsets são locais do renderer. Não há um método com todos os argumentos mutáveis." },
-    { "class": "ModNPC", "method": "DrawHealthBar", "reason": "Main.DrawHealthBar não recebe NPC e também atende jogadores e partes de vermes. Associar pela posição ou vida poderia alterar a entidade errada." }
+    { "class": "ModNPC", "method": "DrawHealthBar", "reason": "Main.DrawHealthBar não recebe NPC e também atende jogadores e partes de vermes. Associar pela posição ou vida poderia alterar a entidade errada." },
+    {"class": "ModSystem", "method": "RequiresScreenTarget", "reason": "O renderer móvel usa Unity, não chama FilterManager.CanCapture e não possui Main.finalScreenTarget. Captura automática compatível com tModLoader descartada.", "source": "tools/tests/modsystemhooks/README.md", "anchor": "método-descartado"}
   ]
 }

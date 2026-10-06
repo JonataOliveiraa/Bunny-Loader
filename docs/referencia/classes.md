@@ -1051,13 +1051,43 @@ Cada método de mundo só ganha hook se algum `ModSystem` o escreveu.
 | `ResetNearbyTileEffects()` | Antes de o jogo contar os blocos em volta do jogador local (a cada 5 quadros), e também ao sair do mundo e ao carregar outro (a contagem do anterior não vale no novo). | `SceneMetrics.Reset`, `WorldGen.SaveAndQuit`, `WorldGen.clearWorld` |
 | `TileCountsAvailable(tileCounts)` | Com a contagem pronta: `tileCounts[tipo]` é quantos blocos daquele tipo há em volta. Vale durante a chamada: guarde o número, não o array. Só a varredura do jogador local (a dos pilares e a da câmera não chamam). | `SceneMetrics.AggregateTileCounts` |
 | `NetSend(writer)`, `NetReceive(reader)` | Rede: o servidor manda junto com os dados do mundo (ao entrar e a cada sincronização); o cliente lê. | `NetMessage.SendData` (7) |
+| `OnModUnload()` | Uma vez na saída normal ou no shutdown do motor JS. | `Main.QuitGame`, shutdown do runtime |
+| `OnLocalizationsLoaded()` | Após aplicar os textos dos mods, inicialmente e a cada troca de idioma. | `LanguageManager.LoadFilesForCulture`, aplicação inicial adiada |
+| `ResizeArrays()` | Conteúdo pronto, antes das fases de setup. | fase resize de Ready |
+| `PostSetupRecipes()` | Depois de todas as receitas, pós-hooks e caches. | fase finish de Ready |
+| `PreWorldGen()` | Antes de executar a lista de geração já montada pelo mobile. | `WorldGenerator.GenerateWorld` |
+| `ModifyWorldGenTasks(tasks)` | Array JS de GenPass: inserir, remover, ordenar, alterar peso e desativar. | idem |
+| `PostWorldGen()` | Depois de uma geração concluída; cancelamento não chama. | idem |
+| `ModifyHardmodeTasks(tasks)` | Array JS; etapa nativa única Hardmode Conversion. | `WorldGen.initializeHardMode` |
+| `UpdateUI(gameTime)` | Depois da atualização de UI dentro do mundo, inclusive pausado. | `Main.UpdateUIStates` |
+| `PostUpdateInput()` | Depois do processamento da entrada. | `Main.DoUpdate_HandleInput` |
+| `PreUpdateEntities()` | Antes dos grupos de entidades. | entrada de `Main.DoUpdateInWorld` |
+| `PreUpdatePlayers()`, `PostUpdatePlayers()` | Uma vez nas bordas do grupo de jogadores. | pontos internos de `Main.DoUpdateInWorld` |
+| `PreUpdateNPCs()`, `PostUpdateNPCs()` | Uma vez nas bordas do grupo de NPCs. | idem |
+| `PreUpdateGores()`, `PostUpdateGores()` | Uma vez nas bordas do grupo de gores. | idem |
+| `PreUpdateProjectiles()`, `PostUpdateProjectiles()` | Uma vez nas bordas do grupo de projéteis. | `Main.PreUpdateAllProjectiles`, ponto interno de `Main.DoUpdateInWorld` |
+| `PreUpdateItems()`, `PostUpdateItems()` | Uma vez nas bordas do grupo de WorldItem. | pontos internos de `Main.DoUpdateInWorld` |
+| `PreUpdateDusts()`, `PostUpdateDusts()` | Antes e depois de atualizar partículas. | `Dust.UpdateDust` |
+| `PreUpdateInvasions()`, `PostUpdateInvasions()` | Antes e depois da rotina de invasões. | `Main.UpdateInvasion` |
+| `ModifyTimeRate(timeRate, tileUpdateRate, eventUpdateRate)` | Três Ref independentes; clock double, tiles e eventos com acumulação fracionária. | `Main.UpdateTimeRate`, ponto interno de `Main.UpdateTime` |
+| `ModifySunLightColor(tileColor, backgroundColor)` | Dois Ref de cor depois do cálculo nativo. | `Main.ApplyColorOfTheSkiesToTiles` |
+| `ModifyLightingBrightness(scale)` | Ref de escala de brilho depois do cálculo nativo. | `Lighting.UpdateGlobalBrightness` |
+| `ModifyScreenPosition()` | Depois da câmera e de ModPlayer, dentro do mundo; altere Main.screenPosition. | hook compartilhado de `Main.DoDraw_UpdateCameraPosition` |
+| `ModifyTransformMatrix(transform)` | Ref de SpriteViewMatrix depois do zoom, antes de ler a matriz. | ponto interno de `Main.DoDraw` |
+| `SaveWorldHeader(tag)` | Cabeçalho em `.wld.bl.header.json`, separado dos dados completos. | `WorldFile.InternalSaveWorld` |
+| `CanWorldBePlayed(playerData, worldData)` | false bloqueia a combinação de personagem e mundo. | `GUIWorldSelectMenu.CanWorldBePlayed`, `PlayWorldCheck`, `WorldFile.LoadWorld` |
+| `WorldCanBePlayedRejectionMessage(playerData, worldData)` | Mensagem do primeiro sistema que bloqueou. | fluxo de rejeição do loader |
+| `HijackGetData(messageType, reader, playerNumber)` | Ref de tipo e leitor; qualquer true cancela o pacote. | `MessageBuffer.ProcessData` |
+| `HijackSendData(whoAmI, msgType, remoteClient, ignoreClient, text, number, number2, number3, number4, number5, number6, number7)` | Qualquer true cancela envio e envelope de entidade. | pipeline compartilhado de `NetMessage.SendData` |
 
 Os dados vão para `<mundo>.wld.bl.json`, ao lado do `.wld`, uma entrada por
 `ModSystem` (a chave é o uid do mod e o nome da classe). `ModSystem.register(Classe)`
 devolve a instância (a de `ModContent.GetInstance`).
 
-**Ainda não**: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, e os `Pre/PostUpdate` de
-jogadores, NPCs, projéteis e itens separados.
+Os contratos de geração, cabeçalho, taxas e rede estão em
+[ModSystem: geração e integração móvel](modsystem-hooks.md).
+`RequiresScreenTarget` foi descartado por falta de um caminho de captura
+compatível no renderer móvel. `ModifyInterfaceLayers` permanece sem implementação.
 
 ---
 
@@ -1284,6 +1314,14 @@ padrão é o do jogo, e não há os temas prontos do jogo antigo (1.3.5.3, Bigge
 and Boulder). Também não há o `UserInterface` do tema.
 
 ---
+
+Os novos ganchos de atualização, geração, desenho, ciclo de conteúdo e rede estão descritos em [ModSystem: contratos e limitações](modsystem-hooks.md). `RequiresScreenTarget` foi descartado: a captura de tela do tModLoader não existe no caminho de desenho Unity móvel.
+
+## GenPass e PassLegacy
+
+`GenPass` representa uma etapa do gerador móvel. Estenda a classe e implemente `ApplyPass(progress, configuration)`, ou use `new PassLegacy(nome, função, peso)`. Nome e peso devem ser válidos; peso zero é permitido. `Name`, `Weight` e `Enabled` refletem a etapa nativa; `Disable()` e `Enable()` controlam a execução. `Apply(progress, configuration)` respeita `Enabled`. O construtor usa peso 1 por padrão.
+
+`ModifyWorldGenTasks(tasks)` recebe um array JavaScript de etapas, incluindo as nativas. Use `findIndex`, `splice`, `push` e `Disable()`; mudanças são aplicadas à lista do jogo antes de gerar. Leia [exemplo e adaptação do Hardmode](modsystem-hooks.md).
 
 ## TagCompound
 

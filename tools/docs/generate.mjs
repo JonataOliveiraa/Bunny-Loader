@@ -184,9 +184,11 @@ for (const definition of classes) {
 }
 for (const unavailable of metadata.unavailable) {
     if (rows.some((row) => row.class === unavailable.class && row.method === unavailable.method)) throw new Error('Método disponível marcado como ausente: ' + unavailable.method);
+    const source = unavailable.source || 'tools/tests/modnpchooks/README.md';
+    const anchor = unavailable.anchor || 'métodos-descartados';
     rows.push({ class: unavailable.class, method: unavailable.method, kind: 'Não implementado', signature: '', declaredIn: '', inherited: false,
-        status: 'Não implementado', baseReturn: '', description: unavailable.reason, native: '', source: 'tools/tests/modnpchooks/README.md', line: 0,
-        sourceUrl: metadata.repository + '/blob/main/tools/tests/modnpchooks/README.md#métodos-descartados', reference: outputRoot + '/classes.md#modnpc', aliasOf: '' });
+        status: 'Não implementado', baseReturn: '', description: unavailable.reason, native: '', source, line: 0,
+        sourceUrl: metadata.repository + '/blob/main/' + source + '#' + anchor, reference: outputRoot + '/classes.md#' + metadata.sections[unavailable.class], aliasOf: '' });
 }
 rows.sort((a, b) => a.class.localeCompare(b.class, 'en') || a.method.localeCompare(b.method, 'en') || a.kind.localeCompare(b.kind, 'en'));
 for (const definition of classes) {
@@ -222,7 +224,7 @@ for (const definition of classes) {
     lines.push('## ' + definition.name, '', '[Contrato e campos](classes.md#' + metadata.sections[definition.name] + ')' + (definition.base ? '. Herda de `' + definition.base + '`.' : '.'), '',
         '| Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |', '|---|---|---|---|---|---|');
     for (const row of rows.filter((row) => row.class === definition.name)) {
-        const source = row.status === 'Declarado' ? `../../${row.source}#L${row.line}` : '../../' + row.source + '#métodos-descartados';
+        const source = row.status === 'Declarado' ? `../../${row.source}#L${row.line}` : '../../' + row.source + '#' + row.sourceUrl.split('#')[1];
         lines.push('| ' + [
             '`' + markdown(row.signature || row.method) + '`', row.kind,
             row.status === 'Declarado' ? '`' + row.declaredIn + '`' + (row.inherited ? ' (herdado)' : '') : 'Não implementado',
