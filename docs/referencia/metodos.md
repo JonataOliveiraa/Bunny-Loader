@@ -66,7 +66,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`NPCSpawnInfo`](#npcspawninfo) | 44 | 0 | [Referência](classes.md#ajudantes-de-npc) |
 | [`NetReader`](#netreader) | 17 | 0 | [Referência](classes.md#rede) |
 | [`NetWriter`](#netwriter) | 16 | 0 | [Referência](classes.md#rede) |
-| [`PlayerDrawLayer`](#playerdrawlayer) | 4 | 0 | [Referência](classes.md#modplayer) |
+| [`PlayerDrawLayer`](#playerdrawlayer) | 11 | 0 | [Referência](classes.md#modplayer) |
 | [`PrefixLoader`](#prefixloader) | 13 | 0 | [Referência](classes.md#modprefix) |
 | [`RarityLoader`](#rarityloader) | 4 | 0 | [Referência](classes.md#modrarity) |
 | [`SoundEngine`](#soundengine) | 3 | 0 | [Referência](classes.md#som-e-música) |
@@ -79,7 +79,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`TooltipLine`](#tooltipline) | 3 | 0 | [Referência](classes.md#tooltipline) |
 | [`UsageException`](#usageexception) | 1 | 0 | [Referência](classes.md#modcommand) |
 
-64 classes públicas, 1061 registros declarados e 10 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
+64 classes públicas, 1068 registros declarados e 10 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
 
 ## Objetos e enums
 
@@ -1456,10 +1456,17 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 
 | Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
 |---|---|---|---|---|---|
-| `AfterParent(layer)` | Estático | `PlayerDrawLayer` | `{ After: layer }` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L5) |
-| `BeforeParent(layer)` | Estático | `PlayerDrawLayer` | `{ Before: layer }` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L4) |
-| `constructor(name, method)` | Construtor | `PlayerDrawLayer` | `instância` | Consulte a implementação na fonte. Descritor de uma camada nativa. Hide e posições BeforeParent/AfterParent atuam no desenho atual. Não registra um novo renderer. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L2) |
-| `Hide()` | Instância | `PlayerDrawLayer` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L3) |
+| `AfterParent(layer)` | Estático | `PlayerDrawLayer` | `{ After: layer }` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L11) |
+| `BeforeParent(layer)` | Estático | `PlayerDrawLayer` | `{ Before: layer }` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L10) |
+| `constructor(name, method = null)` | Construtor | `PlayerDrawLayer` | `instância` | Consulte a implementação na fonte. Base de camadas personalizadas e descritor das nativas. Classes exportadas são registradas automaticamente; o nome padrão é o nome da classe. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L2) |
+| `Draw(drawInfo)` | Instância | `PlayerDrawLayer` | `undefined` | A implementação base não executa ações. Obrigatório. Adicione DrawData com ModPlayer.AddDrawData(drawInfo, drawData). Executado junto do pai, antes das transformações e da renderização nativas. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L8) |
+| `get FullName` | Getter | `PlayerDrawLayer` | `this.Mod ? this.Mod.uuid + '/' + this.Name : this.Name` | Consulte a implementação na fonte. Nome qualificado como uuid-do-mod/nome-da-camada. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L4) |
+| `GetDefaultPosition()` | Instância | `PlayerDrawLayer` | `Consultar fonte` | Consulte a implementação na fonte. Obrigatório. Retorne BeforeParent ou AfterParent com descritor nativo, classe registrada, instância ou nome completo. Posições padrão ficam em cache. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L6) |
+| `GetDefaultVisibility(drawInfo)` | Instância | `PlayerDrawLayer` | `true` | Consulte a implementação na fonte. Consultado em cada desenho e para cada jogador. false oculta a camada e seus filhos. Verifique drawInfo.shadow para excluir pós-imagens. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L7) |
+| `Hide()` | Instância | `PlayerDrawLayer` | `Consultar fonte` | Consulte a implementação na fonte. Oculta a camada e seus filhos no desenho atual. O estado é restaurado ao terminar, inclusive em chamadas aninhadas. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L9) |
+| `register(cls)` | Estático | `PlayerDrawLayer` | `Consultar fonte` | Registra. Registro manual para classes com Autoload=false ou criadas em execução. Valida Draw e GetDefaultPosition, rejeita duplicatas e cria o template de ModContent.GetInstance. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L12) |
+| `SetStaticDefaults()` | Instância | `PlayerDrawLayer` | `undefined` | A implementação base não executa ações. Uma vez com conteúdo pronto, após o registro dos itens e equipamentos. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L5) |
+| `get Visible` | Getter | `PlayerDrawLayer` | `!this.IsHidden` | Consulte a implementação na fonte. Visibilidade própria da camada no desenho atual; um pai oculto também suprime sua execução. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/PlayerDrawHooks.js#L3) |
 
 ## PrefixLoader
 

@@ -142,6 +142,14 @@ as regras de posição e equipamento do jogo. Ciclos são ignorados com aviso.
 O cache é `drawInfo.DrawDataCache`, com `drawInfo.DrawDataCacheCount` entradas
 ativas. As visibilidades são restauradas ao terminar cada desenho.
 
+Classes exportadas que estendem `PlayerDrawLayer` também são registradas
+automaticamente. Implemente `GetDefaultPosition()` e `Draw(drawInfo)`;
+`GetDefaultVisibility(drawInfo)` é opcional. Consulte o
+[contrato e exemplo de glowmask](playerdrawlayers.md). Filhos acompanham a
+visibilidade e o deslocamento do pai. A consulta de visibilidade ocorre
+em cada desenho, e as posições padrão ficam em cache. Camadas nativas sem
+mudanças continuam fora do despacho JavaScript.
+
 No jogo móvel, `DrawDataCache` é um array de capacidade fixa, e não uma lista
 do [tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/DataStructures/PlayerDrawSet.cs.patch). Escrever uma entrada sem incrementar `DrawDataCacheCount` não
 a inclui no desenho e permite que a próxima camada a sobrescreva. Use

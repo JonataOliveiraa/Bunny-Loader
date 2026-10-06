@@ -211,7 +211,8 @@ as adaptações móveis estão em [Uso e munição de ModItem](moditem-uso-munic
 Do `ModItem` do tModLoader, entre outros: `PreDrawInWorld`/`PostDrawInInventory`,
 `OnPickup`, `GrabRange`,
 `DrawArmorColor`/`ArmorArmGlowMask`, `WingGlidingSpeeds`,
-`ModifyEquipTextureDraw` e as camadas de desenho próprias (`PlayerDrawLayer`).
+`ModifyEquipTextureDraw`. As camadas de desenho próprias
+([`PlayerDrawLayer`](playerdrawlayers.md)) já podem ser registradas e desenhadas.
 
 ### Texturas vestidas: EquipLoader e EquipTexture
 
