@@ -1,0 +1,25 @@
+{
+  "uid": "f1685a97-57d6-3841-af28-fce415a737ff",
+  "id": "blue-s-textures",
+  "name": "Blue's Textures",
+  "version": "1.8.0",
+  "author": "Blue_M4ge",
+  "type": "texture",
+  "category": "Texturas",
+  "authors": [
+    {
+      "name": "Blue_M4ge",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2493507652"
+    }
+  ],
+  "description": "Port de 939 imagens do resource pack Blue's Textures, de Blue_M4ge. Substitui os assets de textura encontrados pelo nome no jogo mobile. Elementos exclusivos do PC podem ficar sem efeito e imagens com medidas diferentes podem exigir ajustes.\n\nDescricao do pacote original:\nThis pack focuses on updating older textures (enemies,bosses,buffs/debuffs,tiles,ect).",
+  "blVersion": 2,
+  "links": [
+    {
+      "title": "Original no Steam Workshop",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2493507652"
+    }
+  ]
+}

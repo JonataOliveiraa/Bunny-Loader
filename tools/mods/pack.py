@@ -1,7 +1,12 @@
 #!/usr/bin/env python3
-"""Empacota uma pasta de mod (samples/<Mod>/) num .bl para o publish.py.
+"""Empacota uma pasta de mod ou textura num .bl para importar ou publicar.
 
     python tools/mods/pack.py samples/VidaCheia [samples/SemQueda ...]
+    python tools/mods/pack.py "ports/textures/Un-mechanical Bosses/bl"
+
+Texturas: manifest.json com type="texture" e content/Images/*.png.
+Nao precisam de main.js. O launcher tambem importa ZIPs de resource packs
+do PC (pack.json + Content/Images), convertendo o manifesto na importacao.
 
 Sai em build/mods-packs/<id>-<versão>.bl. É o zip que o "Importar pacote" do
 app aceita: a raiz do zip é a raiz do mod (manifest.json, content/...).
@@ -25,6 +30,13 @@ FIXED_TIME = (2020, 1, 1, 0, 0, 0)
 
 def pack_bytes(folder: Path) -> bytes:
     """O .bl em memória: o gerenciador compara o sha256 sem gravar arquivo."""
+    manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8-sig"))
+    if str(manifest.get("type", "")).strip().lower() in {
+        "texture", "textures", "textura", "texturas", "resourcepack", "resource-pack"
+    }:
+        roots = [folder / "content" / "Images", folder / "Content" / "Images"]
+        if not any(p.is_file() and p.suffix.lower() == ".png" for root in roots for p in root.rglob("*")):
+            raise ValueError("pacote de textura sem PNGs em content/Images")
     files = sorted(p for p in folder.rglob("*") if p.is_file() and p.name not in SKIP)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as z:

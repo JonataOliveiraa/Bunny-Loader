@@ -4,6 +4,7 @@
     python tools/mods/publish.py pacote.bl [outro.bl ...]
     python tools/mods/publish.py --dry-run pacote.bl     # só confere e monta, sem rede
     python tools/mods/publish.py --remove <uid>          # tira do catálogo (a Release fica)
+    python tools/mods/publish.py --reindex               # põe o manifesto de cada mod no índice
 
 O catálogo mora no próprio repositório, em dois lugares:
 
@@ -12,6 +13,10 @@ O catálogo mora no próprio repositório, em dois lugares:
                         divide histórico com o main nem dispara o workflow da wiki.
     Releases            uma por versão de mod, tag mod-<id>-v<versão>, com o .bl.
                         Nunca marcada como "Latest": essa fica para o APK.
+
+Cada entrada do index.json leva o manifesto inteiro do mod (`manifest`): o app
+monta a lista da aba Explorar só com o índice, numa requisição, e baixa ícone,
+capa e descrição de cada mod só quando eles aparecem na tela.
 
 O app lê tudo anonimamente (app/.../mods/RemoteCatalog.kt). Só publicar pede
 token: um fine-grained token com "Contents: Read and write" neste repositório,
@@ -50,8 +55,9 @@ BL_VERSION = 2
 UID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 # O mesmo filtro do RemoteCatalog.SAFE_PATH: o que passa aqui o app aceita.
 SAFE_PATH = re.compile(r"^[A-Za-z0-9._ -]+(/[A-Za-z0-9._ -]+)*$")
+PACKAGE_PATH = re.compile(r"^[A-Za-z0-9._ ()-]+(/[A-Za-z0-9._ ()-]+)*$")
 VERSION = re.compile(r"^\d+(\.\d+)*([-+][0-9A-Za-z.]+)?$")
-STORE_ROOT_FILES = ["manifest.json", "icon.png", "banner.png",
+STORE_ROOT_FILES = ["manifest.json", "icon.png", "icon.gif", "banner.png",
                     "description.md", "changelog.md", "license.md"]
 STORE_DIRS = ["authors/", "thumbnails/"]
 MD_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)")
@@ -78,7 +84,7 @@ class Package:
             raise Fail(f"{path.name}: não é zip")
         self.names = {n for n in self.zip.namelist() if not n.endswith("/")}
         for n in self.names:
-            if not SAFE_PATH.match(n) or any(s in (".", "..") for s in n.split("/")):
+            if not PACKAGE_PATH.fullmatch(n) or any(s in (".", "..") for s in n.split("/")):
                 raise Fail(f"{path.name}: caminho que o app recusa: {n!r}")
         if "manifest.json" not in self.names:
             raise Fail(f"{path.name}: sem manifest.json na raiz")
@@ -100,13 +106,22 @@ class Package:
             raise Fail(f"{path.name}: versão {self.version!r} não é do tipo 1.2.0")
         if m.get("blVersion", 1) != BL_VERSION:
             raise Fail(f"{path.name}: blVersion {m.get('blVersion', 1)}; o app carrega {BL_VERSION}")
-        entry = f"content/{m.get('entry', 'main.js')}"
-        if entry not in self.names:
-            raise Fail(f"{path.name}: sem {entry}")
-        if "icon.png" not in self.names:
-            other = [n for n in self.names if n.lower() == "icon.png"]
+        kind = str(m.get("type", "")).strip().lower()
+        if kind in {"texture", "textures", "textura", "texturas", "resourcepack", "resource-pack"}:
+            if not any(n.startswith(("content/Images/", "Content/Images/")) and n.lower().endswith(".png")
+                       for n in self.names):
+                raise Fail(f"{path.name}: pacote de textura sem PNGs em content/Images")
+        else:
+            entry = f"content/{m.get('entry', 'main.js')}"
+            if entry not in self.names:
+                raise Fail(f"{path.name}: sem {entry}")
+        if "icon.png" not in self.names and "icon.gif" not in self.names:
+            other = [n for n in self.names if n.lower() in ("icon.png", "icon.gif")]
             hint = f" (achei {other[0]!r}: o nome é minúsculo)" if other else ""
             print(f"  aviso: {path.name} sem icon.png{hint}; o app usa o ícone da categoria")
+        elif "icon.png" not in self.names:
+            # O icon.gif é só do launcher: o menu de mods do jogo lê o icon.png.
+            print(f"  aviso: {path.name} tem icon.gif mas não icon.png; no jogo o mod fica sem ícone")
 
     @property
     def tag(self) -> str:
@@ -141,6 +156,8 @@ class Package:
                 seen.add(f)
                 out.append(f)
         for f in out:
+            if not SAFE_PATH.fullmatch(f) or any(part in (".", "..") for part in f.split("/")):
+                raise Fail(f"{self.path.name}: caminho que a vitrine recusa: {f!r}")
             if self.zip.getinfo(f).file_size > MAX_STORE_FILE:
                 raise Fail(f"{self.path.name}: {f} passa de 4 MB, o limite da vitrine")
         return out
@@ -349,6 +366,7 @@ def publish(paths: list[Path], dry: bool) -> None:
             "version": pkg.version,
             "download": {"url": pkg.url, "sha256": pkg.sha256, "size": pkg.size},
             "files": files,
+            "manifest": store_manifest(wt, pkg.uid),
         }
         index["mods"] = [m for m in index["mods"] if m["uid"] != pkg.uid] + [entry]
         print(f"  vitrine: {', '.join(files)}")
@@ -356,6 +374,25 @@ def publish(paths: list[Path], dry: bool) -> None:
     save_index(wt, index)
     names = ", ".join(f"{p.name} v{p.version}" for p in packages)
     commit(wt, f"Publicar {names}", dry)
+
+
+def store_manifest(wt: Path, uid: str) -> dict:
+    """O manifest.json da vitrine do mod, para ir dentro do índice."""
+    f = wt / "mods" / uid / "manifest.json"
+    if not f.exists():
+        raise Fail(f"{uid}: vitrine sem manifest.json")
+    return json.loads(f.read_text(encoding="utf-8-sig"))
+
+
+def reindex(dry: bool) -> None:
+    """Põe o manifesto de cada mod já publicado no índice, sem Release nova."""
+    wt = worktree()
+    index = load_index(wt)
+    for mod in index["mods"]:
+        mod["manifest"] = store_manifest(wt, mod["uid"])
+        print(f"  {mod.get('name', mod['uid'])}: manifesto no índice")
+    save_index(wt, index)
+    commit(wt, "Manifesto de cada mod dentro do índice", dry)
 
 
 def remove(uid: str, dry: bool) -> None:
@@ -375,10 +412,13 @@ def main() -> int:
     ap.add_argument("packages", nargs="*", type=Path)
     ap.add_argument("--dry-run", action="store_true", help="confere e monta o índice, sem rede")
     ap.add_argument("--remove", metavar="UID")
+    ap.add_argument("--reindex", action="store_true", help="põe o manifesto de cada mod no índice")
     args = ap.parse_args()
     try:
         if args.remove:
             remove(args.remove, args.dry_run)
+        elif args.reindex:
+            reindex(args.dry_run)
         elif args.packages:
             publish(args.packages, args.dry_run)
         else:

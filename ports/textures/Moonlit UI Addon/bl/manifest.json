@@ -1,0 +1,25 @@
+{
+  "uid": "ceca43fa-fc4c-3037-8e4c-5c9501f58dc7",
+  "id": "moonlit-ui-addon",
+  "name": "Moonlit UI Addon",
+  "version": "1.0.0",
+  "author": "Modie",
+  "type": "texture",
+  "category": "Texturas",
+  "authors": [
+    {
+      "name": "Modie",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=3513338148"
+    }
+  ],
+  "description": "Port de 24 imagens do resource pack Moonlit UI Addon, de Modie. Substitui os assets de textura encontrados pelo nome no jogo mobile. Elementos exclusivos do PC podem ficar sem efeito e imagens com medidas diferentes podem exigir ajustes.\n\nDescricao do pacote original:\nMoonlit UI Addon",
+  "blVersion": 2,
+  "links": [
+    {
+      "title": "Original no Steam Workshop",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3513338148"
+    }
+  ]
+}

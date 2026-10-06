@@ -1,0 +1,25 @@
+{
+  "uid": "19a01ecc-063f-3e40-a704-ace60cf3b483",
+  "id": "un-mechanical-bosses",
+  "name": "Un-mechanical Bosses",
+  "version": "1.12.0",
+  "author": "TdT",
+  "type": "texture",
+  "category": "Texturas",
+  "authors": [
+    {
+      "name": "TdT",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=3798222774"
+    }
+  ],
+  "description": "Port de 49 imagens do resource pack Un-mechanical Bosses, de TdT. Substitui os assets de textura encontrados pelo nome no jogo mobile. Elementos exclusivos do PC podem ficar sem efeito e imagens com medidas diferentes podem exigir ajustes. Conteudo adicional do original nao aplicado por este port: Localization, Music.\n\nDescricao do pacote original:\nWhat if the Mechanical Bosses... were NOT mechanical?\nThis recource pack aims to make that a reality by trying to capture terraria's original style while still bringing something new to the table.\n\nThis pack cosists of:\n\n\t-'Localization chages'\n\n\t-'*NEW* Bestiary entries'\n\n\t-'Achievement resprites'\n\n\t-'changed names for two bosses:\n\t\t>Prime Skeletron. (The vengfull spirit was resurected, looking for revenge)\n\t\t>The Hallowed serpent. (Tissue from the evil boss that has regrown itself with the essence you freed)\n\n\t-'Mechdusa?'\n\nCurrently supports only english localization.\n",
+  "blVersion": 2,
+  "links": [
+    {
+      "title": "Original no Steam Workshop",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=3798222774"
+    }
+  ]
+}

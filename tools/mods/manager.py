@@ -35,6 +35,8 @@ import pack  # noqa: E402
 import publish  # noqa: E402
 
 PORT = 8770
+# O ícone do cartão: o animado, se o pacote tiver (o navegador anima sozinho).
+ICONS = ("icon.gif", "icon.png")
 HERE = Path(__file__).resolve().parent
 SAMPLES = publish.ROOT / "samples"
 UPLOADS = publish.ROOT / "build" / "mods-uploads"
@@ -95,7 +97,7 @@ def index_entries() -> list[dict]:
             "authors": author_line(manifest),
             "category": manifest.get("category", ""),
             "summary": manifest.get("summary", ""),
-            "icon": f"/store/{m['uid']}/icon.png" if "icon.png" in m.get("files", []) else None,
+            "icon": next((f"/store/{m['uid']}/{n}" for n in ICONS if n in m.get("files", [])), None),
             "release": f"https://github.com/{publish.OWNER}/{publish.REPO}/releases/tag/{tag}",
         })
     return entries
@@ -146,7 +148,7 @@ def samples_state(index: dict[str, dict]) -> list[dict]:
             "version": m.get("version", ""),
             "authors": author_line(m),
             "size": len(data),
-            "icon": f"/sample/{folder.name}/icon.png" if (folder / "icon.png").is_file() else None,
+            "icon": next((f"/sample/{folder.name}/{n}" for n in ICONS if (folder / n).is_file()), None),
             "status": code,
             "statusText": text,
         })
@@ -188,8 +190,8 @@ def check_upload(path: Path) -> dict:
         "sha256": pkg.sha256,
         "store": pkg.store_files(),
         # Ainda não está no worktree para servir por /store: vai junto.
-        "icon": ("data:image/png;base64," + base64.b64encode(pkg.zip.read("icon.png")).decode()
-                 if "icon.png" in pkg.names else None),
+        "icon": next((f"data:image/{n[5:]};base64," + base64.b64encode(pkg.zip.read(n)).decode()
+                      for n in ICONS if n in pkg.names), None),
         "status": code,
         "statusText": text,
     }

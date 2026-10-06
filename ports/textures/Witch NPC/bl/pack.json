@@ -1,0 +1,9 @@
+{
+    "Name": "Witch NPC",
+    "Author": "Buttercup",
+    "Description": "Replaces the wizard NPC with a witch, because witches are better than wizards. Completely replaces everything related to the Wizard, including sprites, dialogue, names, and the Wizard's Hat item!",
+    "Version": {
+        "major": 1,
+        "minor": 2
+    }
+}

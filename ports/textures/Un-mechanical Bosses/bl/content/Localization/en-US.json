@@ -1,0 +1,46 @@
+{
+    "ItemName": {
+		"HallowedBar": "Hallowed Scale",
+		"MechanicalEye": "Cursed Eye",
+		"MechanicalWorm": "Cursed Bait",
+		"MechanicalSkull": "Cursed Skull",
+		"MechdusaSummon": "Pandora's Box",
+	},
+     "ItemTooltip": {
+
+        "MechanicalWorm": "Summons the Hallowed Serpent",
+	"MechanicalSkull": "Summons Skeletron in his Prime",
+	"MechdusaSummon": "This is a bad idea...",
+
+    	},
+
+    "NPCName": {
+	"SkeletronPrime": "Mega Skeletron",
+          	"PrimeCannon": "Cannon Hand",
+           	"PrimeLaser": "Laser Hand",
+           	"PrimeSaw": "Spiked Hand",
+            	"PrimeVice": "Bone Hand",
+
+        "TheDestroyer": "Hallowed Serpent",
+            "TheDestroyerBody": "Hallowed Serpent",
+            "TheDestroyerTail": "Hallowed Serpent",
+	},
+   	"Bestiary_FlavorText": {
+		"npc_SkeletronPrime": "The hatefull spitit was resurected by a mysterious group of people, and is seeking revenge after the ones who brought it down before...",
+
+      		"npc_TheDestroyer": "Tissue from the world's evil fell upon the underworld, consuming dark essence it has regrown itself into a mighty beast that cosumes everything that it sees.",
+
+		"npc_Retinazer": "The eye of a great tyrant spying across the land, eradicating its targets from afar.",
+
+		"npc_Spazmatism": "The eye of a great tyrant spying across the land, burning down its targets with cursed flames.",
+
+	},
+    "Achievements": {
+		"BUCKETS_OF_BOLTS_Name": "Cthulhu's Tournament.", 
+		"BUCKETS_OF_BOLTS_Description": "Defeat the three Champions of Cthulhu: The Twins, the Hallowed Serpent, and Prime Skeletron.",
+		"MECHA_MAYHEM_Name": "The True Champion!", 
+		"MECHA_MAYHEM_Description": "Defeat all three Champions of Cthulhu at once.",
+		"QUEEN_MACHINE_Name": "Queen of The Underworld.",
+		"QUEEN_MACHINE_Description": "Defeat The lord of Hell herself!"
+	}
+}

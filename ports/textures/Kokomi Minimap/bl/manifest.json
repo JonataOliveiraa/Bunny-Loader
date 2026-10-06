@@ -1,0 +1,25 @@
+{
+  "uid": "2dfdd9ad-e0a3-37c5-906e-ce66484f00f9",
+  "id": "kokomi-minimap",
+  "name": "Kokomi Minimap",
+  "version": "1.0.0",
+  "author": "Alice2ch",
+  "type": "texture",
+  "category": "Texturas",
+  "authors": [
+    {
+      "name": "Alice2ch",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2781929285"
+    }
+  ],
+  "description": "Port de 1 imagens do resource pack Kokomi Minimap, de Alice2ch. Substitui os assets de textura encontrados pelo nome no jogo mobile. Elementos exclusivos do PC podem ficar sem efeito e imagens com medidas diferentes podem exigir ajustes.\n\nDescricao do pacote original:\nGenshin themed minimap with Kokomi",
+  "blVersion": 2,
+  "links": [
+    {
+      "title": "Original no Steam Workshop",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2781929285"
+    }
+  ]
+}

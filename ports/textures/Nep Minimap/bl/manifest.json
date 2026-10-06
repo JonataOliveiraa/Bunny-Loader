@@ -1,0 +1,25 @@
+{
+  "uid": "190cefff-a8bc-31f1-9c23-e30fd694051a",
+  "id": "nep-minimap",
+  "name": "Nep Minimap",
+  "version": "1.0.0",
+  "author": "Tyrion",
+  "type": "texture",
+  "category": "Texturas",
+  "authors": [
+    {
+      "name": "Tyrion",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2461637113"
+    }
+  ],
+  "description": "Port de 4 imagens do resource pack Nep Minimap, de Tyrion. Substitui os assets de textura encontrados pelo nome no jogo mobile. Elementos exclusivos do PC podem ficar sem efeito e imagens com medidas diferentes podem exigir ajustes.\n\nDescricao do pacote original:\nRecolors the 'Remix' minimap border to purple, the buttons to white and adds a nice little Nep in the corner.",
+  "blVersion": 2,
+  "links": [
+    {
+      "title": "Original no Steam Workshop",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2461637113"
+    }
+  ]
+}

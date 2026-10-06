@@ -1,0 +1,9 @@
+{
+    "Name": "Nep Minimap",
+    "Author": "Tyrion",
+    "Description": "Recolors the 'Remix' minimap border to purple, the buttons to white and adds a nice little Nep in the corner.",
+    "Version": {
+        "major": 1,
+        "minor": 0
+    }
+}

@@ -1,0 +1,37 @@
+{
+  "uid": "729f49d4-7e02-3111-943c-a185b88f0db6",
+  "id": "legacy-texture-pack",
+  "name": "Legacy Texture Pack",
+  "version": "1.2.0",
+  "author": "Stryke",
+  "type": "texture",
+  "category": "Texturas",
+  "authors": [
+    {
+      "name": "Stryke",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2439853873"
+    },
+    {
+      "name": "Sylvium",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2439853873"
+    },
+    {
+      "name": "TiredGhostDude",
+      "role": "Arte original",
+      "avatar": "steam.png",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=2439853873"
+    }
+  ],
+  "description": "Port de 276 imagens do resource pack Legacy Texture Pack, de Stryke. Substitui os assets de textura encontrados pelo nome no jogo mobile. Elementos exclusivos do PC podem ficar sem efeito e imagens com medidas diferentes podem exigir ajustes.\n\nDescricao do pacote original:\nLegacy Texture Pack resprites Terraria to be a bit cleaner and more detailed!\nIt includes over 250 sprites, mostly items and tiles\nThe pack is updated every a week\n\nJoin our Discord server to stay up to date with new textures and to suggest items to be resprited next!\nhttps://discord.gg/FMdzxVDCsd \n\nCreated By:\nStryke\nSylvium\nTiredGhostDude",
+  "blVersion": 2,
+  "links": [
+    {
+      "title": "Original no Steam Workshop",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2439853873"
+    }
+  ]
+}
