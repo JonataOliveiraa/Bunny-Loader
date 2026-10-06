@@ -1,0 +1,14 @@
+{
+  "uid": "a472ffd9-53df-4a80-a428-77ee651cb4b1",
+  "id": "test-hookperf",
+  "name": "Teste: desempenho de hooks",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Mede hooks de jogador, item e desenho no runtime nativo.",
+  "description": "Benchmark com aquecimento, percentis e contadores de filtragem.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
