@@ -1,0 +1,33 @@
+10-05 23:01:32.421  4832  4861 I BunnyLoader: [mod] modnpchooks execucao singleplayer: ok
+10-05 23:01:32.422  4832  4861 I BunnyLoader: [mod] modnpchooks OnSpawn uma vez e fonte nativa correta: ok
+10-05 23:01:32.422  4832  4861 I BunnyLoader: [mod] modnpchooks estado por entidade isolado: ok
+10-05 23:01:32.422  4832  4861 I BunnyLoader: [mod] modnpchooks perfil nativo registrado apos conteudo: ok
+10-05 23:01:32.422  4832  4861 I BunnyLoader: [mod] modnpchooks escalonamento usa count real, balance nativo e ajuste master: ok
+10-05 23:01:32.423  4832  4861 I BunnyLoader: [mod] modnpchooks CanChat habilita NPC fora da AI de morador: ok
+10-05 23:01:32.423  4832  4861 I BunnyLoader: [mod] modnpchooks CanChat false bloqueia conversa: ok
+10-05 23:01:32.423  4832  4861 I BunnyLoader: [mod] modnpchooks BossHeadSlot oculta icone: ok
+10-05 23:01:32.423  4832  4861 I BunnyLoader: [mod] modnpchooks BossHeadRotation ref: ok
+10-05 23:01:32.423  4832  4861 I BunnyLoader: [mod] modnpchooks BossHeadSpriteEffects ref: ok
+10-05 23:01:32.423  4832  4861 I BunnyLoader: [mod] modnpchooks GetAlpha aceita transparencia total: ok
+10-05 23:01:32.424  4832  4861 I BunnyLoader: [mod] modnpchooks CheckDead false mantem NPC e vida restaurada: ok
+10-05 23:01:32.424  4832  4861 I BunnyLoader: [mod] modnpchooks ModifyIncomingHit altera dano e crit em golpe direto: ok
+10-05 23:01:32.425  4832  4861 I BunnyLoader: [mod] modnpchooks CanBeHitByItem false impede dano e notificacao: ok
+10-05 23:01:32.426  4832  4861 I BunnyLoader: [mod] modnpchooks OnHitByItem chamado uma vez com entidades certas: ok
+10-05 23:01:32.426  4832  4861 I BunnyLoader: [mod] modnpchooks HitInfo de item reflete modificador e dano nativo: ok
+10-05 23:01:32.428  4832  4861 I BunnyLoader: [mod] modnpchooks OnHitByProjectile chamado uma vez com proj correto: ok
+10-05 23:01:32.429  4832  4861 I BunnyLoader: [mod] modnpchooks OnHitByProjectile tambem sem dono jogador: ok
+10-05 23:01:32.429  4832  4861 I BunnyLoader: [mod] modnpchooks CanHitPlayer false impede Hurt: ok
+10-05 23:01:32.431  4832  4861 I BunnyLoader: [mod] modnpchooks ModifyHitPlayer e OnHitPlayer no Hurt real: ok
+10-05 23:01:32.431  4832  4861 I BunnyLoader: [mod] modnpchooks cooldown Ref e HurtInfo correspondem ao dano: ok
+10-05 23:01:32.432  4832  4861 I BunnyLoader: [mod] modnpchooks ModifyActiveShop recebe itens e nome apos preenchimento: ok
+10-05 23:01:32.434  4832  4861 I BunnyLoader: [mod] modnpchooks felicidade participa do calculo nativo de preco: ok
+10-05 23:01:32.434  4832  4861 I BunnyLoader: [mod] modnpchooks tipo sem sobrescritas conserva cor nativa: ok
+10-05 23:01:33.244  4832  4861 I BunnyLoader: [mod] modnpchooks ResetEffects por tick depois de reset nativo: ok
+10-05 23:01:33.244  4832  4861 I BunnyLoader: [mod] modnpchooks DrawBehind recebe indice e roda no cache de desenho: ok
+10-05 23:01:33.244  4832  4861 I BunnyLoader: [mod] modnpchooks PreDraw false conserva PostDraw no desenho real: ok
+10-05 23:01:33.245  4832  4861 I BunnyLoader: [mod] modnpchooks DrawEffects executa antes do desenho: ok
+10-05 23:01:33.501  4832  4861 I BunnyLoader: [mod] modnpchooks DrawEffects Ref chega a PreDraw e PostDraw: ok
+10-05 23:01:33.501  4832  4861 I BunnyLoader: [mod] modnpchooks cor modificada chega a GetAlpha nativo: ok
+10-05 23:01:33.620  4832  4861 I BunnyLoader: [mod] modnpchooks 25000 resets mantem instancia e callbacks sem perda: ok
+10-05 23:01:33.620  4832  4861 I BunnyLoader: [mod] modnpchooks benchmark ResetEffects mediana_us=4.637
+10-05 23:01:33.620  4832  4861 I BunnyLoader: [mod] modnpchooks FIM checks=31 falhas=0

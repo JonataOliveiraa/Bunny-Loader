@@ -349,6 +349,23 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `ModifyNPCLoot(npcLoot)` | Uma vez: os drops. | nativo |
 | `SetBestiary(database, bestiaryEntry)` | Uma vez: a entrada do Bestiário. | conteúdo pronto |
 | `HitEffect(npc, hitDirection, damage)` | A cada golpe, depois do efeito do jogo. | nativo (`NPC.HitEffect`), só se escrito |
+| `OnSpawn(npc, source)` | Uma vez após nascer; recebe a fonte nativa. | `NPC.NewNPC`, filtro no argumento Type e por sobrescrita |
+| `ResetEffects(npc)` | Depois de zerar os flags de buffs, antes de reaplicar efeitos e executar AI. | entrada de `NPC.UpdateNPC_BuffSetFlags`, filtro por tipo e sobrescrita |
+| `CanBeHitByItem(npc, player, item)` | `false` veta; `true` permite no teste de elegibilidade; `null`/`undefined` mantém o jogo. Um veto de ModPlayer prevalece. | fluxo compartilhado de `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
+| `ModifyIncomingHit(npc, modifiers)` | Altera dano, empurrão, direção e crítico antes do golpe nativo. Não reaplica em `fromNet`. | `NPC.StrikeNPC_Inner`, filtro por tipo e sobrescrita |
+| `OnHitByItem(npc, player, item, hit, damageDone)` | Após dano efetivo de item, uma vez por golpe. | fluxo compartilhado de `NPC.StrikeNPC` |
+| `OnHitByProjectile(npc, projectile, hit, damageDone)` | Após dano efetivo de projétil, inclusive sem dono jogador. | `Projectile.Damage_PVE` e fluxo compartilhado de `NPC.StrikeNPC` |
+| `CanHitPlayer(npc, player, cooldownSlot)` | `false` veta dano; `cooldownSlot.value` altera o slot de imunidade. | fluxo compartilhado de `Player.Hurt` |
+| `ModifyHitPlayer(npc, player, modifiers)` | Altera os parâmetros de dano suportados pelo mobile antes de `Hurt`. | idem |
+| `OnHitPlayer(npc, player, hurtInfo)` | Após dano efetivo, recebe os dados do golpe e o slot usado. | idem |
+| `CheckDead(npc)` | Com NPC ativo e vida ≤ 0: `false` impede a morte; restaure a vida para evitar nova checagem. | `NPC.checkDead`, filtro por tipo e sobrescrita |
+| `ApplyDifficultyAndPlayerScaling(npc, numPlayers, balance, bossAdjustment)` | Depois do escalonamento por jogadores. Recebe a contagem usada pelo NPC, balance calculado pelo jogo e ajuste 0,85 em Master ou 1 nos demais modos. | `NPC.ScaleStats_ByPlayerCount`, filtro por tipo e sobrescrita |
+| `DrawEffects(npc, drawColor)` | `Ref<Color>` da iluminação do centro; roda antes de `PreDraw`. A cor alterada passa pelo tint dos buffs do jogo. | duas sobrecargas de `Main.DrawNPCDirect`, filtro por NPC e sobrescrita |
+| `PreDraw(npc, spriteBatch, screenPos, drawColor)` | `false` pula o desenho nativo. | idem |
+| `PostDraw(npc, spriteBatch, screenPos, drawColor)` | Após desenhar, inclusive quando `PreDraw` veta. | idem |
+| `DrawBehind(npc, index)` | Após o cache de desenho; adicione o índice às listas `Main.instance.DrawCacheNPCs*`. | `Main.CacheNPCDraws`, só entidades rastreadas com sobrescrita |
+| `GetAlpha(npc, drawColor)` | `Color` substitui o resultado, inclusive alfa 0; `null`/`undefined` usa o jogo. | `NPC.GetAlpha`, filtro por tipo e sobrescrita |
+| `BossHeadSlot(npc, index)`, `BossHeadRotation(npc, rotation)`, `BossHeadSpriteEffects(npc, spriteEffects)` | Recebem `Ref` inicializada com o resultado do jogo. Índice -1 esconde o ícone. | getters `NPC.GetBossHead*`, filtro por tipo e sobrescrita |
 | `PreAI(npc)`, `AI(npc)`, `PostAI(npc)` | Todo quadro. `PreAI` → `false` pula a IA do jogo. | `NPC.AI`, filtro `tipo` |
 | `FindFrame(npc, frameHeight)` | Animação própria: mude `npc.frame`. | `NPC.FindFrame`, filtro `tipo` |
 | `CheckActive(npc)` | `false`: não some quando longe. | `NPC.CheckActive`, filtro `tipo` |
@@ -361,6 +378,10 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `CheckConditions(left, right, top, bottom)` | A sala serve para ele? | `WorldGen.CheckSpecialTownNPCSpawningConditions` |
 | `SetNPCNameList()` | Os nomes próprios; um é sorteado. | `NPC.getNewNPCName` |
 | `GetChat(npc)` | A fala ao conversar. | `NPC.GetChat`, filtro `tipo` |
+| `CanChat(npc)` | Decide se pode conversar, inclusive fora de AI 7; retorno indefinido mantém o jogo. | `NPC.get_CanTalk` e `get_CanBeTalkedTo`, filtro por tipo e sobrescrita |
+| `TownNPCProfile()` | Uma vez após carregar conteúdo: devolva um `ITownNPCProfile` nativo; `null` mantém a aparência automática. | registro em `TownNPCProfiles.Instance`, sem hook por frame |
+| `ModifyActiveShop(npc, shopName, items)` | Ao preencher uma loja registrada deste NPC em conversa, após `NPCShop` montar os itens. Recebe o nome local da loja e o array nativo de itens. | `InventoryStorage.SetupShop` |
+| `ModifyNPCHappiness(npc, player, primaryPlayerBiome, shopHelper, nearbyNPCsByType)` | Após as preferências nativas, antes de limitar o preço. Usa a alternativa de ExMod; o método está desativado no tModLoader stable. | `AllPersonalitiesModifier.ModifyShopPrice`, sem filtro nativo, somente cálculos de preço |
 | `SetChatButtons(npc, buttons)` | Os botões da conversa (até dois no celular). | `GUINPCDialogue.SetupButtonText` |
 | `OnChatButtonClicked(npc, firstButton)` | Tocou num botão; devolva o nome de uma loja para abri-la. | `GUINPCDialogue.Option1Clicked`/`Option2Clicked` |
 | `AddShops()` | Uma vez: as lojas (`NPCShop`). | conteúdo pronto |
@@ -372,6 +393,25 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 A música (`Music`) é decidida pelos hooks de `Main.UpdateAudio*`, instalados
 uma vez; ver o [guia 10](../mods/10-sons-e-musica.md).
 
+Os modificadores de entrada usam `damage`, `knockBack`, `hitDirection`, `crit`,
+`SourceDamage` e `Knockback` (`StatModifier`), além de `SetCrit()` e
+`DisableCrit()`. `ModifyHitPlayer` usa `damage`, `hitDirection`, `quiet`,
+`crit` e `dodgeable`, como o fluxo de `ModPlayer` do Bunny Loader.
+`hit` contém `Damage`, `SourceDamage`, `Knockback`, `HitDirection` e `Crit`;
+`damageDone` é o retorno efetivo do golpe nativo. Esses objetos são contratos
+JavaScript do Bunny Loader: não incluem os demais campos das estruturas do
+tModLoader. `hurtInfo` inclui `DamageSource`, `Damage`, `HitDirection`, `PvP`,
+`Quiet`, `Crit`, `CooldownCounter` e `Dodgeable`.
+
+Os métodos sem contrato completo acessível no mobile foram descartados;
+as razões e os testes estão em
+[ModNPC: contratos e validação](../../tools/tests/modnpchooks/README.md).
+
+No callback de felicidade, o biome primário segue os IDs do ExMod: 0 floresta,
+1 subterrâneo, 2 neve, 3 deserto, 4 selva, 5 oceano, 6 sagrado, 7 cogumelo,
+8 masmorra, 9 corrupção e 10 carmim. `shopHelper` é nativo e aceita seus
+métodos de preferência; o array de vizinhos também vem do `HelperInfo` nativo.
+
 ### Estáticos
 
 | | |
@@ -381,11 +421,10 @@ uma vez; ver o [guia 10](../mods/10-sons-e-musica.md).
 
 ### Ainda não
 
-`CanHitPlayer`/`ModifyHitPlayer`/`OnHitPlayer`, `ModifyHitByItem`/`ByProjectile`
-e `OnHitByItem`/`ByProjectile`, `PreDraw`/`PostDraw`, ícone de
-chefe no mapa, sacola de tesouro, marca de chefe derrotado,
-`ModifyNPCHappiness`, `CanGoToStatue` e os ataques de morador além do
-projétil.
+`ModifyHitByItem`/`ModifyHitByProjectile`, `CanBeHitByProjectile`,
+`UpdateLifeRegen`, `ModifyDeathMessage`, `DrawHealthBar`, sacola de tesouro,
+marca de chefe derrotado, `CanGoToStatue` e os ataques de morador além
+do projétil.
 
 ---
 
