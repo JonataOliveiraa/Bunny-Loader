@@ -149,6 +149,15 @@ class ModPlayer {
     SaveData(data) {}
     LoadData(data) {}
 
+    static AddDrawData(drawInfo, drawData) {
+        const cache = drawInfo && drawInfo.DrawDataCache;
+        const count = drawInfo && drawInfo.DrawDataCacheCount;
+        if (!cache || !drawData || !Number.isInteger(count) || count < 0 || count >= cache.length) return false;
+        cache[count] = drawData;
+        drawInfo.DrawDataCacheCount = count + 1;
+        return true;
+    }
+
     static get(player) {
         return PlayerLoader.Of(player).get(this);
     }

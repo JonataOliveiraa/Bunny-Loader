@@ -409,6 +409,50 @@ test('draw visibility and ordering preserve cached draw data', () => {
     call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info);
     assert.deepEqual(cache.slice(0, 3), ['Skin', 'Torso', 'Head']); assert.equal(warnings.length, 1);
 });
+test('draw-cache append updates active count and survives native layer construction', () => {
+    const cache = Array(10); cache.cloneResized = () => [...cache];
+    const info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 }, marker = { marker: true };
+    All.prototype.ModifyDrawInfo = (_, draw) => assert.equal(ModPlayer.AddDrawData(draw, marker), true);
+    vanilla('Terraria.DataStructures.PlayerDrawSet', 'BoringSetup', draw => { draw.DrawDataCacheCount = 0; });
+    call('Terraria.DataStructures.PlayerDrawSet', 'BoringSetup', info, p, {}, 0, 0, {}, null);
+    assert.equal(info.DrawDataCacheCount, 1);
+    call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info);
+    assert.deepEqual(cache.slice(0, info.DrawDataCacheCount), [marker, 'Skin', 'Torso', 'Head']);
+});
+test('draw-cache append preserves populated slots and uses the active count instead of capacity', () => {
+    const first = {}, second = {}, cache = [first, second, null, null, null];
+    const info = { DrawDataCache: cache, DrawDataCacheCount: 2 }, marker = {};
+    assert.equal(ModPlayer.AddDrawData(info, marker), true);
+    assert.equal(info.DrawDataCache, cache); assert.equal(info.DrawDataCacheCount, 3);
+    assert.deepEqual(cache, [first, second, marker, null, null]);
+});
+test('draw layer reordering preserves the appended prefix and its active count', () => {
+    const cache = Array(10); cache.cloneResized = () => [...cache];
+    const info = { __address: address++, drawPlayer: p, DrawDataCache: cache, DrawDataCacheCount: 0 }, marker = {};
+    assert.equal(ModPlayer.AddDrawData(info, marker), true);
+    All.prototype.ModifyDrawLayerOrdering = (_, positions) => positions.set(PlayerDrawLayers.Skin, PlayerDrawLayer.AfterParent(PlayerDrawLayers.Head));
+    call('Terraria.Graphics.Renderers.LegacyPlayerRenderer', 'DrawPlayer_UseNormalLayers', info);
+    assert.deepEqual(cache.slice(0, info.DrawDataCacheCount), [marker, 'Torso', 'Head', 'Skin']);
+    assert.equal(info.DrawDataCacheCount, 4);
+});
+test('draw-cache append rejects full or invalid caches without changing active count', () => {
+    const marker = {};
+    for (const count of [-1, 0.5, NaN, Infinity, '0', 2, 3]) {
+        const cache = [null, null], info = { DrawDataCache: cache, DrawDataCacheCount: count };
+        assert.equal(ModPlayer.AddDrawData(info, marker), false);
+        assert.equal(info.DrawDataCacheCount, count); assert.deepEqual(cache, [null, null]);
+    }
+    assert.equal(ModPlayer.AddDrawData(null, marker), false);
+    assert.equal(ModPlayer.AddDrawData({ DrawDataCacheCount: 0 }, marker), false);
+    const info = { DrawDataCache: [null], DrawDataCacheCount: 0 };
+    assert.equal(ModPlayer.AddDrawData(info, null), false); assert.equal(info.DrawDataCacheCount, 0);
+});
+test('draw-cache append advances the counter only after a successful native array write', () => {
+    const cache = new Proxy({ length: 2 }, { set() { throw Error('native array write'); } });
+    const info = { DrawDataCache: cache, DrawDataCacheCount: 0 };
+    assert.throws(() => ModPlayer.AddDrawData(info, {}), /native array write/);
+    assert.equal(info.DrawDataCacheCount, 0);
+});
 test('crafting materials supply native sources and callback source indices', () => {
     const material = item(1, 3), empty = item(), consumed = [], list = { values: [], Add(value) { this.values.push(value); } };
     Terraria.GameContent.DestinationInventory.new = () => ({ __address: address++, 'void .ctor(InventoryStorage storage, Vector2 position)'(storage) { this.storage = storage; } });

@@ -1,0 +1,14 @@
+{
+  "uid": "8fb2e5f8-a830-485c-bc25-a4f187e56096",
+  "id": "test-playerdrawcache",
+  "name": "Teste: cache de desenho do jogador",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Regressão da inserção de DrawData no cache de ModPlayer.",
+  "description": "Confere o cache no renderer nativo e desenha marcadores temporários sem Draw direto.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

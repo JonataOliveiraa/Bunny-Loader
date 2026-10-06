@@ -1,18 +1,22 @@
 import argparse
+import json
 import subprocess
 import re
 import xml.etree.ElementTree as ET
+from uuid import UUID
 from pathlib import Path
 
-UID = 'e56f2848-2169-4d5f-8898-1bcbfdb4b7c2'
 ROOT = Path(__file__).resolve().parents[3]
-OUTPUT = ROOT / 'build/moditemhooks'
 parser = argparse.ArgumentParser()
 parser.add_argument('action', choices=['prepare', 'cleanup'])
 parser.add_argument('--device', default='127.0.0.1:16384')
 parser.add_argument('--world')
 parser.add_argument('--run-id')
+parser.add_argument('--fixture', choices=['moditemhooks', 'playerdrawcache'], default='moditemhooks')
 args = parser.parse_args()
+fixture = ROOT / 'tools/tests' / args.fixture
+UID = str(UUID(json.loads((fixture / 'manifest.json').read_text(encoding='utf-8'))['uid']))
+OUTPUT = ROOT / 'build' / args.fixture
 if args.run_id:
     if not re.fullmatch(r'[A-Za-z0-9_-]+', args.run_id):
         parser.error('--run-id deve conter apenas letras, numeros, _ ou -')
@@ -56,15 +60,14 @@ for name in ['settings', 'mods']:
                     current.append(child)
     prepared = OUTPUT / (name + '.prepared.xml')
     prepared.write_bytes(ET.tostring(current, encoding='utf-8', xml_declaration=True))
-    remote = '/data/local/tmp/moditemhooks-' + name + '.xml'
+    remote = '/data/local/tmp/' + args.fixture + '-' + name + '.xml'
     adb('push', str(prepared), remote)
     adb('shell', 'run-as', 'com.bunnyloader', 'cp', remote, 'shared_prefs/' + name + '.xml')
 
 target = '/storage/emulated/0/Android/data/com.bunnyloader/bunny_packs/' + UID
 if args.action == 'prepare':
-    staging = '/data/local/tmp/moditemhooks-fixture'
+    staging = '/data/local/tmp/' + args.fixture + '-fixture'
     adb('shell', 'mkdir', '-p', staging)
-    fixture = ROOT / 'tools/tests/moditemhooks'
     adb('push', str(fixture / 'content'), staging + '/')
     adb('push', str(fixture / 'manifest.json'), staging + '/manifest.json')
     adb('shell', 'su', '0', 'mkdir', '-p', target)
