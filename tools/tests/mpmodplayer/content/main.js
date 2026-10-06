@@ -1,8 +1,13 @@
+import { addMarker, reorderMarker, checkDrawing, checkRejoinedDrawing } from './draw.js';
+import { itemLocalTests, itemCombatTests, itemPvpTests, beginPvp, maintainPvp, endPvp, checkItemCoverage, checkIncomingPvp } from './items.js';
+export { MultiplayerMeleeItem, MultiplayerRangedItem, MultiplayerAmmoItem, MultiplayerHealingItem } from './items.js';
 const Main = Terraria.Main, P = Terraria.Player;
 const sendData = Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'];
 const events = [], deltas = [], received = [], acknowledgements = [];
 let mod, frames = 0, role = '', failures = 0, cases = 0, started = -1, finished = false;
 let remote = -1, target = -1, clientFinished = false, hostSync = false, diagnosed = false;
+let pvpBefore = 0, verifyPvpAt = -1, pvpDone = false, pvpPhase = '';
+let rejoinDrawAt = -1;
 
 function packet(kind, values, to = -1) {
     const message = mod.GetPacket();
@@ -20,13 +25,16 @@ export default class MultiplayerPlayerTest extends Mod {
             if (started < 0) started = frames;
             packet(finished ? 'rejoin' : 'hello', [Main.myPlayer], from);
             if (finished) {
+                const before = failures;
                 check('reconexao chama PlayerConnect', () => events.filter(e => e[0] === 'PlayerConnect' && e[1] === from).length >= 2);
                 check('desconexao chama PlayerDisconnect uma vez', () => events.filter(e => e[0] === 'PlayerDisconnect' && e[1] === from).length === 1);
                 check('desconexao nao dispara para o host local', () => !events.some(e => e[0] === 'PlayerDisconnect' && e[1] === Main.myPlayer));
                 check('SyncPlayer repete na reconexao', () => events.filter(e => e[0] === 'SyncPlayer' && e[1] === Main.myPlayer).length >= 2);
-                bl.log('mpmodplayer host REJOIN FIM falhas=' + failures);
+                bl.log('mpmodplayer host REJOIN FIM falhas=' + (failures - before) + ' casos=4 falhas_total=' + failures);
+                rejoinDrawAt = frames + 300;
             }
         } else if (kind === 'rejoin' && Main.netMode === 1) {
+            remote = reader.ReadInt32(); started = frames; rejoinDrawAt = frames + 300;
             finished = true;
             bl.log('mpmodplayer cliente REJOIN FIM');
         } else if (kind === 'hello' && Main.netMode === 1) {
@@ -50,6 +58,30 @@ export default class MultiplayerPlayerTest extends Mod {
             const count = reader.ReadInt32();
             clientFinished = true;
             check('cliente termina sem falhas', () => count === 0);
+        } else if (kind === 'pvp-prepare' && role === 'host' && from === remote) {
+            beginPvp(Main.player[Main.myPlayer], Main.player[remote]);
+            pvpBefore = Probe.get(Main.player[Main.myPlayer]).pvpReceived.length;
+            packet('pvp-ready', [], from);
+        } else if (kind === 'pvp-ready' && role === 'cliente') {
+            pvpBefore = Probe.get(Main.player[Main.myPlayer]).pvpReceived.length;
+            itemPvpTests(Main.player[Main.myPlayer], Main.player[remote], check, 'veto');
+            packet('pvp-veto-result', []);
+        } else if (kind === 'pvp-veto-result' && role === 'host' && from === remote) {
+            pvpPhase = 'cliente-veto'; verifyPvpAt = frames + 45;
+        } else if (kind === 'pvp-allow' && role === 'cliente') {
+            itemPvpTests(Main.player[Main.myPlayer], Main.player[remote], check, 'allow');
+            packet('pvp-result', []);
+        } else if (kind === 'pvp-result' && role === 'host' && from === remote) {
+            pvpPhase = 'cliente-allow'; verifyPvpAt = frames + 45;
+        } else if (kind === 'pvp-host-veto' && role === 'cliente') {
+            pvpPhase = 'host-veto'; verifyPvpAt = frames + 45;
+        } else if (kind === 'pvp-host-allow' && role === 'host' && from === remote) {
+            itemPvpTests(Main.player[Main.myPlayer], Main.player[remote], check, 'allow');
+            packet('pvp-host-result', [], remote);
+        } else if (kind === 'pvp-host-result' && role === 'cliente') {
+            pvpPhase = 'host-allow'; verifyPvpAt = frames + 45;
+        } else if (kind === 'pvp-finished' && role === 'host' && from === remote) {
+            endPvp(); pvpDone = true;
         }
     }
 }
@@ -63,6 +95,7 @@ export class Probe extends ModPlayer {
         this.blockItem = false; this.blockPotion = false; this.blockTeleport = false;
         this.blockAmmo = false; this.blockShoot = false; this.blockProjectile = false; this.blockJumpVisuals = false;
         this.dodge = false; this.blockIncoming = false; this.hitBonus = 0; this.blockJump = false;
+        this.lifeBonus = 0; this.manaBonus = 0; this.pvpReceived = [];
     }
     ModifyWeaponCrit(player, item, crit) { crit.value += this.crit; }
     ModifyWeaponKnockback(player, item, modifier) { modifier.Multiplicative *= this.knockback; }
@@ -74,6 +107,8 @@ export class Probe extends ModPlayer {
     OnConsumeMana(player, item, amount) { this.lastConsumption = amount; }
     PreItemCheck() { return !this.blockItem; }
     ApplyPotionDelay() { return !this.blockPotion; }
+    GetHealLife(player, item, quick, value) { value.value += this.lifeBonus; }
+    GetHealMana(player, item, quick, value) { value.value += this.manaBonus; }
     CanBeTeleportedTo() { return !this.blockTeleport; }
     GetFishingLevel(player, rod, bait, level) { level.value += this.fishing; }
     CanConsumeAmmo() { return !this.blockAmmo; }
@@ -86,6 +121,11 @@ export class Probe extends ModPlayer {
     CanBeHitByNPC() { return !this.blockIncoming; }
     CanBeHitByProjectile() { return !this.blockIncoming; }
     ModifyHitNPC(player, npc, modifiers) { modifiers.SourceDamage.Flat += this.hitBonus; }
+    ModifyDrawInfo(player, info) { addMarker(player, info, started < 0 ? -1 : frames - started); }
+    ModifyDrawLayerOrdering(player, positions) { if (started >= 0) reorderMarker(positions, frames - started); }
+    OnHurt(player, source, damage, direction, pvp) {
+        if (pvp) { this.pvpReceived.push({ source: source._sourcePlayerIndex, damage, item: source._sourceItemType }); bl.log('mpmodplayer PVP recebido jogador=' + player.whoAmI + ' origem=' + source._sourcePlayerIndex + ' item=' + source._sourceItemType + ' dano=' + damage); }
+    }
     CopyClientState(player, copy) { copy.payload = { revision: this.payload.revision, bag: { value: this.payload.bag.value } }; }
     SendClientChanges(player, previous) {
         if (this.payload.revision === previous.payload.revision && this.payload.bag.value === previous.payload.bag.value) return;
@@ -138,6 +178,7 @@ function count(probe, name) { return probe.counts[name] || 0; }
 function localTests(player) {
     const self = Probe.get(player), other = Probe.get(Main.player[remote]);
     const sword = sample(Terraria.ID.ItemID.CopperShortsword), potion = sample(Terraria.ID.ItemID.LesserHealingPotion);
+    potion.healMana = 20;
     check('instancias e objetos separados', () => self !== other && self.counts !== other.counts && self.payload.bag !== other.payload.bag);
     check('critico por jogador', () => {
         const before = player['int GetWeaponCrit(Item sItem)'](sword), remoteBefore = Main.player[remote]['int GetWeaponCrit(Item sItem)'](sword);
@@ -152,9 +193,9 @@ function localTests(player) {
         finally { self.knockback = 1; }
     });
     check('escala por referencia', () => {
-        const before = new Ref(1); player['void ApplyMeleeScale(ref float scale)'](before);
+        const before = player['float GetAdjustedItemScale(Item item)'](sword);
         self.scale = 2;
-        try { const after = new Ref(1); player['void ApplyMeleeScale(ref float scale)'](after); return Math.abs(after.value - before.value * 2) < 0.001; }
+        try { return Math.abs(player['float GetAdjustedItemScale(Item item)'](sword) - before * 2) < 0.001; }
         finally { self.scale = 1; }
     });
     check('multiplicadores de tempo e velocidade', () => preserve(player, ['itemTime', 'itemTimeMax'], () => {
@@ -332,6 +373,7 @@ function combatTests(player) {
 }
 
 function report(player) {
+    endPvp();
     const self = Probe.get(player), other = Probe.get(Main.player[remote]);
     for (const name of ['PreUpdateMovement', 'PostUpdateMiscEffects', 'PostUpdateRunSpeeds', 'NaturalLifeRegen', 'ResetInfoAccessories',
         'DrawEffects', 'ModifyDrawInfo', 'HideDrawLayers', 'ModifyDrawLayerOrdering', 'TransformDrawData', 'DrawPlayer', 'ModifyScreenPosition', 'ModifyZoom']) {
@@ -339,6 +381,8 @@ function report(player) {
     }
     check('atualizacao do jogador remoto isolada', () => count(other, 'PreUpdate') > 0 && count(other, 'PostUpdateMiscEffects') > 0);
     check('camera restrita ao jogador local', () => count(other, 'ModifyScreenPosition') === 0 && count(other, 'ModifyZoom') === 0);
+    checkDrawing(player, remote, check);
+    checkItemCoverage(player, check);
     if (role === 'cliente') {
         check('SyncPlayer entrega estado inicial do host', () => hostSync);
         check('SendClientChanges envia somente duas alteracoes', () => JSON.stringify(deltas) === '[[0,11],[11,12]]');
@@ -373,12 +417,37 @@ P['void Update(int i)'].hook((original, player, index) => {
         bl.log('mpmodplayer ' + role + ' INICIO jogador=' + index + ' netMode=' + Main.netMode);
     }
     if (!player.dead) player.statLife = player.statLifeMax2;
+    maintainPvp();
+    if (rejoinDrawAt >= 0 && frames >= rejoinDrawAt) {
+        rejoinDrawAt = -1;
+        const before = failures;
+        checkRejoinedDrawing(player, remote, check);
+        bl.log('mpmodplayer ' + role + ' REJOIN_DRAW FIM falhas=' + (failures - before) + ' casos=4');
+    }
     if (finished) return;
     if (role === 'cliente' && started < 0 && frames % 120 === 0) packet('hello', []);
     if (started < 0 || remote < 0) return;
     const elapsed = frames - started;
+    if (verifyPvpAt >= 0 && frames >= verifyPvpAt) {
+        verifyPvpAt = -1;
+        const received = Probe.get(player).pvpReceived.slice(pvpBefore);
+        bl.log('mpmodplayer PVP recepcao fase=' + pvpPhase + ' local=' + Main.myPlayer + ' ' + JSON.stringify(received));
+        if (pvpPhase.endsWith('veto')) {
+            check('ModItem CanHitPvp veta dano no outro processo', () => received.length === 0);
+            pvpBefore = Probe.get(player).pvpReceived.length;
+            packet(role === 'host' ? 'pvp-allow' : 'pvp-host-allow', [], role === 'host' ? remote : -1);
+        } else {
+            check('ModItem dano PvP modificado chega ao outro processo', () => received.length === 1 && received[0].source === remote && received[0].damage === 3);
+            checkIncomingPvp(remote, check);
+            if (role === 'host') {
+                itemPvpTests(player, Main.player[remote], check, 'veto');
+                packet('pvp-host-veto', [], remote);
+            } else { endPvp(); pvpDone = true; packet('pvp-finished', []); }
+        }
+    }
     if (elapsed === 30) {
         localTests(player);
+        itemLocalTests(player, remote, check, Probe.get(player));
         if (role === 'host') {
             const source = Terraria.DataStructures.EntitySource_DebugCommand.new(); source['void .ctor()']();
             const position = Main.player[remote].position;
@@ -386,14 +455,15 @@ P['void Update(int i)'].hook((original, player, index) => {
                 source, Math.trunc(position.X + 100), Math.trunc(position.Y - 100), Terraria.ID.NPCID.BlueSlime, 0, 0, 0, 0, 0, 255);
             const npc = Main.npc[target]; npc.life = npc.lifeMax = 10000; npc.damage = 0; npc.defense = 0; npc.noGravity = true; npc.noTileCollide = true; npc.aiStyle = -1;
             sendData(23, remote, -1, null, target, 0, 0, 0, 0, 0, 0); packet('target', [target], remote);
+            itemCombatTests(player, target, check);
         }
     }
     if (role === 'cliente') {
         if (elapsed === 60) { const probe = Probe.get(player); probe.payload.revision = 11; probe.payload.bag.value = 111; }
         if (elapsed === 90) { const probe = Probe.get(player); probe.payload.revision = 12; probe.payload.bag.value = 122; }
-        if (elapsed === 120) combatTests(player);
-        if (elapsed === 240) report(player);
-    } else if (clientFinished && elapsed > 260) report(player);
+        if (elapsed === 120) { combatTests(player); itemCombatTests(player, target, check); beginPvp(player, Main.player[remote]); packet('pvp-prepare', []); }
+        if (elapsed >= 300 && pvpDone) report(player);
+    } else if (clientFinished && elapsed > 300 && pvpDone) report(player);
     if (elapsed > 1800 && !finished) { check('conclusao dentro do prazo', () => false); report(player); }
 });
 bl.log('mpmodplayer carregado');
