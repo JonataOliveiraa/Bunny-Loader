@@ -44,3 +44,7 @@ Os testes de cura executam o helper de aplicação normal, QuickHeal e QuickMana
 O teste nativo de PvP usa dois objetos Player no mesmo processo. Não comprova comportamento multiplayer entre aparelhos. Os callbacks de PvP desta etapa usam o contexto de `ItemCheck_MeleeHitPVP`; recuperar a arma em uma mensagem `Hurt` isolada e validar entre processos permanecem pendentes.
 
 Resultados e medição: [RESULTADOS.md](RESULTADOS.md). Contratos: [Combate de ModItem](../../../docs/referencia/moditem-combate.md).
+
+## Medição de desempenho
+
+O [fixture hookperf](../hookperf/README.md) mede o APK atual com 0, 1 e 8 classes ModPlayer, compara dano/frames de itens vanilla e de mod e verifica os filtros antes do JavaScript. Os [resultados](../hookperf/RESULTADOS.md) incluem desenho e limites das comparações; não são uma medição de FPS.
