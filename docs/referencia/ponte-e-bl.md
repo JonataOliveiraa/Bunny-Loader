@@ -62,6 +62,7 @@ assinatura do jogo.
 | `minType: N` | Só entra no JS se o `type` do `self` for ≥ `N`. |
 | `on: i` | O filtro olha o parâmetro `i` (a partir de 0), não o `self`. |
 | `field: 'nome'` | O filtro olha outro campo `int`. Com um ponto, segue uma referência antes: `field: 'inner.type'` lê o `type` do `Item` que a `WorldItem` guarda em `inner`. |
+| `field: 'array[indice].campo'` | Lê um campo inteiro do elemento de um array de referências. O índice vem de um campo `int` do objeto, ou de um campo de uma struct embutida: `inventory[selectedItemState.selected].type`. Metadados e offsets são resolvidos ao instalar; array nulo, índice fora da faixa e elemento nulo não entram no JS. |
 | `tile: i` | O parâmetro `i` é um `Tile`; o filtro olha o tipo do bloco. |
 | `tileAt: [i, j]` | Os parâmetros `i` e `j` são a posição; o filtro olha o bloco do mundo. |
 | `whileIn: metodo` | Só entra no JS dentro do hook JS de `metodo`. |

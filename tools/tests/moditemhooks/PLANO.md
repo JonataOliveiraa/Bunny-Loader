@@ -36,6 +36,6 @@ Cada etapa atualizará a referência da API. Diferenças de contrato e métodos 
 
 ## Estado em 6 de outubro de 2026
 
-Os 12 métodos da etapa 1 estão implementados, com 60 verificações automatizadas e 30 verificações nativas aprovadas. A origem de ataques PvP recebidos por rede ainda não é reconstruída; a validação entre dois processos permanece pendente. As etapas 2 a 6 ainda não foram implementadas. Evidências e limites: [RESULTADOS.md](RESULTADOS.md).
+Os 12 métodos da etapa 1 e os 11 da etapa 2 estão implementados. A suite de ModItem possui 98 verificações automatizadas; o fixture nativo completo aprovou 56 verificações, com zero falhas. Evidências da etapa 1: [RESULTADOS.md](RESULTADOS.md); da etapa 2: [RESULTADOS-USO.md](RESULTADOS-USO.md). A origem de ataques PvP recebidos por rede ainda não é reconstruída; a validação entre dois processos permanece pendente. As etapas 3 a 6 ainda não foram implementadas.
 
 Referência de contratos: [ModItem do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs). Alternativas móveis: `C:/Scripts/Terraria/curso/ExMod_v1.5.0/Modified/1.mod/TL`.

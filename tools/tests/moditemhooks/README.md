@@ -1,6 +1,6 @@
-# ModItem: etapa de combate
+# ModItem: combate, uso e munição
 
-O [plano](PLANO.md) cobre todos os métodos solicitados. Esta suite valida os 12 métodos da primeira etapa. Os métodos de uso, munição, cura, desenho, coleta, pilhas, estado e reforja ainda não foram adicionados por esta etapa.
+O [plano](PLANO.md) cobre todos os métodos solicitados. Esta suite valida os 12 métodos de combate e os 11 de uso e munição. Cura, desenho, coleta, pilhas, estado e reforja permanecem nas etapas seguintes.
 
 ## Testes automatizados
 
@@ -24,7 +24,7 @@ O fixture usa itens, um NPC e um jogador temporários em singleplayer. Restaura 
 Com o APK instalado e uma instância Android de teste conectada, prepare o fixture:
 
 ```powershell
-python tools/tests/moditemhooks/device.py prepare --device 127.0.0.1:16384
+python tools/tests/moditemhooks/device.py prepare --device 127.0.0.1:16384 --run-id minha-execucao
 ```
 
 O script preserva as preferências existentes, habilita somente seu próprio UID e instala o conteúdo numa pasta exclusiva. Use `--world NOME.wld` apenas para escolher um mundo de teste já existente; sem essa opção, ele conserva o mundo configurado no launcher. Inicie o jogo pelo launcher e leia o log do processo `com.bunnyloader:game`.
@@ -32,10 +32,12 @@ O script preserva as preferências existentes, habilita somente seu próprio UID
 Depois da execução:
 
 ```powershell
-python tools/tests/moditemhooks/device.py cleanup --device 127.0.0.1:16384
+python tools/tests/moditemhooks/device.py cleanup --device 127.0.0.1:16384 --run-id minha-execucao
 ```
 
-A limpeza restaura somente as preferências do fixture e confirma o caminho absoluto antes de remover sua pasta. Os backups locais ficam em `build/moditemhooks`.
+A limpeza restaura somente as preferências do fixture e confirma o caminho absoluto antes de remover sua pasta. Os backups locais ficam em `build/moditemhooks/<run-id>`. Use um identificador novo para uma nova sessão, preservando o mesmo identificador nos retries e na limpeza daquela sessão.
+
+Os contadores de frames distinguem o novo hook de ModItem do hook de armaduras existente. Os testes de munição preservam o inventário e os campos temporários do jogador. Os contratos e as diferenças do consumo móvel estão em [Uso e munição](../../../docs/referencia/moditem-uso-municao.md).
 
 O teste nativo de PvP usa dois objetos Player no mesmo processo. Não comprova comportamento multiplayer entre aparelhos. Os callbacks de PvP desta etapa usam o contexto de `ItemCheck_MeleeHitPVP`; recuperar a arma em uma mensagem `Hurt` isolada e validar entre processos permanecem pendentes.
 

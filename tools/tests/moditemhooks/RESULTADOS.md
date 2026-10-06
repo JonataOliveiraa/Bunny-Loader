@@ -1,5 +1,7 @@
 # Resultados: primeira etapa de ModItem
 
+Este relatório preserva a execução da etapa 1. O estado atual está no [plano](PLANO.md), e a validação de uso e munição está em [RESULTADOS-USO.md](RESULTADOS-USO.md).
+
 Executado em 6 de outubro de 2026. Foram conferidos o ModItem stable do tModLoader, os helpers móveis do ExMod v1.5.0, o dump e a desassemblagem do Terraria móvel 301720.
 
 ## Testes automatizados

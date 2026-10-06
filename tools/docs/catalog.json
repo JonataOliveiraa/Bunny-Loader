@@ -92,7 +92,18 @@
     "NetWriter.Write": "Grava valores JS no protocolo do loader, não bytes de BinaryWriter. As variantes WriteByte, WriteInt32 etc. são aliases de Write.",
     "NetReader.Read": "Lê na ordem escrita pelo NetWriter. Lança RangeError quando a mensagem não tem mais valores.",
     "ExtraJump.constructor": "Descritor dos saltos nativos. Registrar novos tipos de salto não faz parte da API atual.",
-    "PlayerDrawLayer.constructor": "Descritor de uma camada nativa. Hide e posições BeforeParent/AfterParent atuam no desenho atual. Não registra um novo renderer."
+    "PlayerDrawLayer.constructor": "Descritor de uma camada nativa. Hide e posições BeforeParent/AfterParent atuam no desenho atual. Não registra um novo renderer.",
+    "ModItem.UseAnimation": "Antes do cálculo nativo da duração. Compartilha ApplyItemAnimation com os modificadores de ModPlayer.",
+    "ModItem.UseItemFrame": "Após PlayerFrame completo, com itemAnimation > 0. Filtro nativo pelo item selecionado.",
+    "ModItem.HoldItemFrame": "Após PlayerFrame completo, com itemAnimation <= 0 e CanVisuallyHoldItem permitido.",
+    "ModItem.NeedsAmmo": "false usa munição padrão temporária quando não há candidato; ela não é consumida nem entra no inventário.",
+    "ModItem.CanChooseAmmo": "Na arma. false rejeita; true permite outra categoria; null/undefined seguem ammo == useAmmo. Veto da munição prevalece.",
+    "ModItem.CanBeChosenAsAmmo": "Na munição. Compõe com a arma; qualquer false prevalece. Inclui armas vanilla e alternância nativa de slots.",
+    "ModItem.CanConsumeAmmo": "Na arma. false conserva a pilha sem impedir o tiro. Compõe com a munição e ModPlayer.",
+    "ModItem.CanBeConsumedAsAmmo": "Na munição. false conserva a pilha e suprime notificações de consumo.",
+    "ModItem.OnConsumeAmmo": "Na arma, após decremento efetivo no jogo móvel. Tipo e instância preservados na última unidade, antes de TurnToAir.",
+    "ModItem.OnConsumedAsAmmo": "Na munição, após decremento efetivo. Antes da limpeza da última unidade e de ModPlayer.OnConsumeAmmo.",
+    "ModItem.PickAmmo": "Na munição: item, weapon, player, type/speed/knockback (Ref) e damage (StatModifier sobre dano total móvel). Após cálculo nativo e antes das notificações."
   },
   "unavailable": [
     { "class": "ModNPC", "method": "CanBeHitByProjectile", "reason": "Não há um ponto de elegibilidade que cubra todos os fluxos de Damage_PVE, incluindo projéteis sem dono. Um veto em StrikeNPC ocorreria após efeitos de contato." },

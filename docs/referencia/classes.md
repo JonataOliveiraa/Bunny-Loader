@@ -116,6 +116,17 @@ própria instância, com `this.Item` apontando para ele.
 | `HoldItem(item, player)` | Todo quadro com o item na mão. | `Player.ItemCheck_ApplyUseStyle`/`ApplyHoldStyle`, filtro `tipo` |
 | `UseStyle(item, player, mountOffset, frame)` | Todo quadro de uso, depois do estilo do jogo. | idem |
 | `HoldStyle(item, player, mountOffset, frame)` | Todo quadro segurando, depois do estilo do jogo. | idem |
+| `UseAnimation(item, player)` | Antes do cálculo nativo da duração da animação. | `Player.ApplyItemAnimation`, marcas por tipo e ponto compartilhado com ModPlayer |
+| `UseItemFrame(item, player)` | Depois do frame nativo, durante animação de uso. | `Player.PlayerFrame`, filtro nativo pelo item selecionado |
+| `HoldItemFrame(item, player)` | Depois do frame nativo, ocioso e com item visualmente permitido. | idem |
+| `NeedsAmmo(item, player)` | `false`: pode atirar com a munição padrão temporária quando não há candidato. | `Player.HasAmmo` e `PickAmmo`, marcas por tipo |
+| `CanChooseAmmo(item, ammo, player)` | Arma: `false` rejeita; `true` permite outra categoria; `null` conserva categoria nativa. | `Player.PickAmmo_IterateRange`, marcas por tipo |
+| `CanBeChosenAsAmmo(item, weapon, player)` | Munição: compõe a seleção; qualquer veto prevalece. | idem, inclusive para arma vanilla |
+| `CanConsumeAmmo(item, ammo, player)` | Arma: `false` conserva a pilha sem impedir o tiro. | `Player.PickAmmo`, compartilhado com ModPlayer |
+| `CanBeConsumedAsAmmo(item, weapon, player)` | Munição: `false` conserva a pilha. | idem |
+| `OnConsumeAmmo(item, ammo, player)` | Arma: consumo efetivo, com a pilha já reduzida e antes de limpar o tipo. | idem |
+| `OnConsumedAsAmmo(item, weapon, player)` | Munição: consumo efetivo, inclusive da última unidade. | idem |
+| `PickAmmo(item, weapon, player, type, speed, damage, knockback)` | Munição: três `Ref<number>` e `StatModifier` do dano total móvel. | depois do `Player.PickAmmo` nativo, antes do retorno |
 | `HoldoutOffset(item, player)` | Devolva `{ X, Y }`: desloca a arma na mão. | idem |
 | `CanShoot(item, player)` | `false`: usa, mas não atira. | `Player.ItemCheck_Shoot`, filtro `tipo` |
 | `ModifyShootStats(item, player, stats)` | Antes de cada projétil: `stats.position`, `velocity`, `type`, `damage`, `knockBack`. | idem + `Projectile.NewProjectile` (sem filtro; só age durante o tiro) |
@@ -158,7 +169,8 @@ própria instância, com `this.Item` apontando para ele.
 | `ApplyPrefix(item, pre)` | Depois dos status do prefixo. | `Item.Prefix`, sem filtro |
 
 Os contratos completos dos modificadores, a ordem entre classes e os limites
-do PvP estão em [Combate de ModItem](moditem-combate.md).
+do PvP estão em [Combate de ModItem](moditem-combate.md). Seleção, consumo e
+as adaptações móveis estão em [Uso e munição de ModItem](moditem-uso-municao.md).
 
 ### Atalhos
 
