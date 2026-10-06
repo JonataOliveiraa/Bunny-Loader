@@ -103,7 +103,14 @@
     "ModItem.CanBeConsumedAsAmmo": "Na munição. false conserva a pilha e suprime notificações de consumo.",
     "ModItem.OnConsumeAmmo": "Na arma, após decremento efetivo no jogo móvel. Tipo e instância preservados na última unidade, antes de TurnToAir.",
     "ModItem.OnConsumedAsAmmo": "Na munição, após decremento efetivo. Antes da limpeza da última unidade e de ModPlayer.OnConsumeAmmo.",
-    "ModItem.PickAmmo": "Na munição: item, weapon, player, type/speed/knockback (Ref) e damage (StatModifier sobre dano total móvel). Após cálculo nativo e antes das notificações."
+    "ModItem.PickAmmo": "Na munição: item, weapon, player, type/speed/knockback (Ref) e damage (StatModifier sobre dano total móvel). Após cálculo nativo e antes das notificações.",
+    "ModItem.GetHealLife": "Ref de vida, apenas com healLife base positivo. ModItem antes de ModPlayer. QuickHeal usa o valor na seleção; campos temporários restaurados.",
+    "ModItem.GetHealMana": "Ref de mana, apenas com healMana base positivo. quickHeal true em QuickHeal e QuickMana; ModItem antes de ModPlayer. Campos temporários restaurados.",
+    "ModItem.ModifyPotionDelay": "Ref do atraso já calculado pelo jogo móvel, incluindo reduções nativas; não existe Player.PotionDelayModifier móvel. Antes do veto e da aplicação.",
+    "ModItem.ApplyPotionDelay": "false impede contador e PotionSickness, preservando o contador anterior. Compõe com ModPlayer; qualquer veto prevalece. Cura e consumo continuam.",
+    "ModPlayer.GetHealLife": "Depois de ModItem, somente com healLife base positivo. quickHeal usa contexto por jogador; também participa da seleção de QuickHeal.",
+    "ModPlayer.GetHealMana": "Depois de ModItem, somente com healMana base positivo. quickHeal true em QuickHeal e QuickMana; campos temporários restaurados.",
+    "ModPlayer.ApplyPotionDelay": "Recebe o atraso final após ModItem.ModifyPotionDelay. Qualquer veto de ModItem ou ModPlayer impede contador e buff; conserva cura e consumo."
   },
   "unavailable": [
     { "class": "ModNPC", "method": "CanBeHitByProjectile", "reason": "Não há um ponto de elegibilidade que cubra todos os fluxos de Damage_PVE, incluindo projéteis sem dono. Um veto em StrikeNPC ocorreria após efeitos de contato." },

@@ -1,6 +1,6 @@
-# ModItem: combate, uso e munição
+# ModItem: combate, uso, munição e cura
 
-O [plano](PLANO.md) cobre todos os métodos solicitados. Esta suite valida os 12 métodos de combate e os 11 de uso e munição. Cura, desenho, coleta, pilhas, estado e reforja permanecem nas etapas seguintes.
+O [plano](PLANO.md) cobre todos os métodos solicitados. Esta suite valida os 12 métodos de combate, os 11 de uso e munição e os 4 de cura. Desenho, coleta, pilhas, estado e reforja permanecem nas etapas seguintes.
 
 ## Testes automatizados
 
@@ -38,6 +38,8 @@ python tools/tests/moditemhooks/device.py cleanup --device 127.0.0.1:16384 --run
 A limpeza restaura somente as preferências do fixture e confirma o caminho absoluto antes de remover sua pasta. Os backups locais ficam em `build/moditemhooks/<run-id>`. Use um identificador novo para uma nova sessão, preservando o mesmo identificador nos retries e na limpeza daquela sessão.
 
 Os contadores de frames distinguem o novo hook de ModItem do hook de armaduras existente. Os testes de munição preservam o inventário e os campos temporários do jogador. Os contratos e as diferenças do consumo móvel estão em [Uso e munição](../../../docs/referencia/moditem-uso-municao.md).
+
+Os testes de cura executam o helper de aplicação normal, QuickHeal e QuickMana reais, verificando vida, mana, consumo, buffs, seleção e atrasos especiais. A composição com ModPlayer é registrada depois da medição dos filtros sem observadores globais. Os campos, buffs e inventário são restaurados em finally. Contratos: [Cura](../../../docs/referencia/moditem-cura.md); resultados: [RESULTADOS-CURA.md](RESULTADOS-CURA.md).
 
 O teste nativo de PvP usa dois objetos Player no mesmo processo. Não comprova comportamento multiplayer entre aparelhos. Os callbacks de PvP desta etapa usam o contexto de `ItemCheck_MeleeHitPVP`; recuperar a arma em uma mensagem `Hurt` isolada e validar entre processos permanecem pendentes.
 

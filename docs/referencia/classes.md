@@ -119,6 +119,10 @@ própria instância, com `this.Item` apontando para ele.
 | `UseAnimation(item, player)` | Antes do cálculo nativo da duração da animação. | `Player.ApplyItemAnimation`, marcas por tipo e ponto compartilhado com ModPlayer |
 | `UseItemFrame(item, player)` | Depois do frame nativo, durante animação de uso. | `Player.PlayerFrame`, filtro nativo pelo item selecionado |
 | `HoldItemFrame(item, player)` | Depois do frame nativo, ocioso e com item visualmente permitido. | idem |
+| `GetHealLife(item, player, quickHeal, healValue)` | Vida restaurada (`Ref`), com cura base positiva; também na seleção de QuickHeal. | `Player.ApplyLifeAndOrMana` e `QuickHeal_GetItemToUse_TryChoosingItem`, marcas por tipo |
+| `GetHealMana(item, player, quickHeal, healValue)` | Mana restaurada (`Ref`), com cura base positiva. | `Player.ApplyLifeAndOrMana`, marcas por tipo |
+| `ModifyPotionDelay(item, player, baseDelay)` | Atraso calculado pelo jogo móvel (`Ref`), antes do veto e da aplicação. | `Player.ApplyPotionDelay`, `AddBuff` com `whileIn` |
+| `ApplyPotionDelay(item, player, potionDelay)` | `false`: impede o contador e o buff de doença de poção; conserva cura e consumo. | idem, compartilhado com ModPlayer |
 | `NeedsAmmo(item, player)` | `false`: pode atirar com a munição padrão temporária quando não há candidato. | `Player.HasAmmo` e `PickAmmo`, marcas por tipo |
 | `CanChooseAmmo(item, ammo, player)` | Arma: `false` rejeita; `true` permite outra categoria; `null` conserva categoria nativa. | `Player.PickAmmo_IterateRange`, marcas por tipo |
 | `CanBeChosenAsAmmo(item, weapon, player)` | Munição: compõe a seleção; qualquer veto prevalece. | idem, inclusive para arma vanilla |
