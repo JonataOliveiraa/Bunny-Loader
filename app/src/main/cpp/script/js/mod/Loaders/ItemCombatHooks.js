@@ -3,7 +3,9 @@ class ItemCombatHooks {
     static #all = new Set();
     static #methods = ['ModifyWeaponDamage', 'ModifyWeaponCrit', 'ModifyWeaponKnockback', 'ModifyItemScale',
         'CanHitNPC', 'ModifyHitNPC', 'CanHitPvp', 'ModifyHitPvp', 'OnHitPvp',
-        'CanMeleeAttackCollideWithNPC', 'MeleeEffects', 'UseItemHitbox'];
+        'CanMeleeAttackCollideWithNPC', 'MeleeEffects', 'UseItemHitbox', 'UseAnimation', 'UseItemFrame', 'HoldItemFrame',
+        'NeedsAmmo', 'CanChooseAmmo', 'CanBeChosenAsAmmo', 'CanConsumeAmmo', 'CanBeConsumedAsAmmo',
+        'OnConsumeAmmo', 'OnConsumedAsAmmo', 'PickAmmo'];
 
     static #Plan(cls) {
         let plan = ItemCombatHooks.#plans.get(cls);
@@ -16,7 +18,7 @@ class ItemCombatHooks {
         return plan;
     }
 
-    static Call(item, name, a, b, c) {
+    static Call(item, name, a, b, c, d, e, f) {
         const template = item && ItemLoader.ByType.get(item.type);
         if (!template) return undefined;
         const label = ItemCombatHooks.#Plan(template.constructor)[name];
@@ -28,7 +30,10 @@ class ItemCombatHooks {
                 case 2: return m[name](item);
                 case 3: return m[name](item, a);
                 case 4: return m[name](item, a, b);
-                default: return m[name](item, a, b, c);
+                case 5: return m[name](item, a, b, c);
+                case 6: return m[name](item, a, b, c, d);
+                case 7: return m[name](item, a, b, c, d, e);
+                default: return m[name](item, a, b, c, d, e, f);
             }
         } catch (e) { Safe.Report(label, e); }
     }
@@ -69,5 +74,6 @@ class ItemCombatHooks {
             PlayerCombatHooks.InstallPvp();
             PlayerLoader.InstallItemPvp();
         }
+        ItemUseHooks.Install(type, plan);
     }
 }

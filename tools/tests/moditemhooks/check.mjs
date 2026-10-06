@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { runUseCases } from './use-cases.mjs';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -76,7 +77,8 @@ function invoke(entry, args, index = 0) {
     const { callback, filter } = entry.hooks[index];
     const original = (...next) => invoke(entry, next.length ? next : args, index + 1);
     const selected = args[filter.on >= 0 ? filter.on + 1 : 0];
-    const type = filter.arg >= 0 ? args[filter.arg] : selected?.[filter.field || 'type'];
+    const indexed = filter.field?.match(/^(\w+)\[([\w.]+)\]\.(\w+)$/);
+    const type = filter.arg >= 0 ? args[filter.arg] : indexed ? selected?.[indexed[1]]?.[indexed[2].split('.').reduce((value, key) => value?.[key], selected)]?.[indexed[3]] : selected?.[filter.field || 'type'];
     if (filter.marks && !marks.get(filter.marks)?.has(type) || filter.minType && type < filter.minType ||
         filter.flag && !flags.get(filter.flag) || filter.whileIn && !filter.whileIn.entry.active) return original();
     entry.entries++;
@@ -116,7 +118,7 @@ const sandbox = {
 };
 const context = vm.createContext(sandbox);
 for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'ModNPC.js',
-    'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js',
+    'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js',
     'Loaders/GlobalItemLoader.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/NPCLoader.js']) {
     vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });
 }
@@ -175,6 +177,7 @@ const player = (index) => {
     return p;
 };
 const p = player(0), targetPlayer = player(1);
+Object.defineProperty(p, 'selectedItemState', { get: () => ({ selected: p.selectedItem }) });
 const rect = { X: 0, Y: 0, Width: 10, Height: 10 };
 const npc = Object.assign(entity(697), { whoAmI: 0, Hitbox: rect }); Main.npc[0] = npc;
 let nativePermission = true, nativeDamage = 20, nativeKnockback = 3, nativeCrit = false, hurtDamage = 0, lastStrike;
@@ -471,7 +474,7 @@ for (const order of ['item global player', 'global player item', 'player item gl
             hookMarks: { set(key, type) { if (!marked.has(key)) marked.set(key, new Set()); marked.get(key).add(type); } } },
     });
     for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'Core/GlobalType.js', 'Core/GlobalRegistry.js', 'GlobalItem.js',
-        'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/GlobalItemLoader.js']) {
+        'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js', 'Loaders/GlobalItemLoader.js']) {
         vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), local, { filename: file });
     }
     vm.runInContext(`
@@ -492,5 +495,6 @@ for (const order of ['item global player', 'global player item', 'player item gl
     assert.equal(marked.get('player.WeaponDamage').has(6145), true);
     assert.equal(marked.get('player.WeaponDamage').has(1), true);
 });
+runUseCases({ vm, fs, path, source, context, sandbox, entity, p, plain, vanillaItem, call, method, setVanilla, test, assert, errors });
 assert.deepEqual(missing, [], 'Native signatures and parameter names must match the mobile dump');
 console.log(checks + ' behavior checks passed; ' + [...installed.values()].filter(e => e.hooks.length).length + ' native signatures verified.');

@@ -1,6 +1,9 @@
 const Main = Terraria.Main;
 let done = false, frames = 0, checks = 0, failures = 0;
 const state = {}, counts = {};
+const useState = {}, useCounts = {};
+let frameHookIndex = -1;
+function useRecord(name) { useCounts[name] = (useCounts[name] || 0) + 1; }
 function log(text) { bl.log('moditemhooks ' + text); }
 function record(name) { counts[name] = (counts[name] || 0) + 1; }
 function check(name, test) {
@@ -41,6 +44,42 @@ export class ItemProbePlain extends ModItem {
     Texture = 'Box';
     HideFromModMenu = true;
     SetDefaults(item) { item.width = item.height = 16; item.damage = 20; item.melee = true; item.scale = 1; }
+}
+export class ItemUseProbe extends ModItem {
+    Texture = 'Box';
+    HideFromModMenu = true;
+    Load() { frameHookIndex = bl.hookStats().filter(s => s.name.includes('PlayerFrame(')).length; }
+    SetDefaults(item) {
+        item.width = item.height = 16; item.damage = 20; item.ranged = true;
+        item.useStyle = 5; item.useTime = item.useAnimation = 20; item.shoot = 1;
+        item.shootSpeed = 5; item.useAmmo = Terraria.ID.AmmoID.Arrow; item.maxStack = 1;
+    }
+    UseAnimation(item, player) { useRecord('animation'); if (useState.animation) item.useAnimation = useState.animation; }
+    UseItemFrame(item, player) { useRecord('useFrame'); if (useState.frame) player.bodyFrame = Rectangle.new(0, useState.frame, 40, 56); }
+    HoldItemFrame(item, player) { useRecord('holdFrame'); if (useState.frame) player.bodyFrame = Rectangle.new(0, useState.frame, 40, 56); }
+    NeedsAmmo(item, player) { useRecord('needs'); return useState.needs; }
+    CanChooseAmmo(item, ammo, player) { useRecord('choose'); return ammo.type === useState.ammoType ? useState.choose : null; }
+    CanConsumeAmmo(item, ammo, player) { useRecord('consume'); return useState.consume; }
+    OnConsumeAmmo(item, ammo, player) { useRecord('onConsume'); useState.consumedType = ammo.type; useState.consumedStack = ammo.stack; }
+}
+export class ItemAmmoProbe extends ModItem {
+    Texture = 'Box';
+    HideFromModMenu = true;
+    SetDefaults(item) {
+        item.width = item.height = 16; item.damage = 4; item.ranged = true; item.ammo = Terraria.ID.AmmoID.Arrow;
+        item.shoot = 1; item.shootSpeed = 2; item.knockBack = 1; item.consumable = true; item.maxStack = 9999;
+    }
+    CanBeChosenAsAmmo(item, weapon, player) { useRecord('chosen'); return useState.chosen; }
+    CanBeConsumedAsAmmo(item, weapon, player) { useRecord('ammoConsume'); return useState.ammoConsume; }
+    PickAmmo(item, weapon, player, type, speed, damage, knockback) {
+        useRecord('pick');
+        if (useState.modify) { type.value = 2; speed.value = 12; damage.Flat += 7; knockback.value = 9; }
+    }
+    OnConsumedAsAmmo(item, weapon, player) { useRecord('onConsumed'); useState.ammoConsumedType = item.type; }
+}
+export class ItemAmmoPlayerProbe extends ModPlayer {
+    CanConsumeAmmo(player, weapon, ammo) { useRecord('mpConsume'); return useState.mpConsume; }
+    OnConsumeAmmo(player, weapon, ammo) { useRecord('mpOnConsume'); useState.mpConsumedType = ammo.type; }
 }
 export class ItemProbeNPC extends ModNPC {
     Texture = 'Box';
@@ -145,6 +184,7 @@ function run(player) {
         state.pvpCan = true; state.pvpDamage = 3; attackPvp();
         check('ModifyHitPvp executa no Hurt real', () => counts.pvpHit === 1 && victim.statLife < life);
         check('OnHitPvp recebe HurtInfo do dano aplicado', () => counts.pvpOn === 1 && state.pvpInfo && state.pvpInfo.Damage === life - victim.statLife);
+        log('PvP HurtInfo=' + (state.pvpInfo && state.pvpInfo.Damage) + ' deltaLife=' + (life - victim.statLife) + ' on=' + counts.pvpOn);
         const instances = weapon.ModItem;
         const samples = [];
         for (const [name, value] of [['vanilla', vanilla], ['plain', plain], ['override', weapon]]) {
@@ -171,12 +211,99 @@ function run(player) {
         victim.hurtCooldowns[0] = cooldowns[0]; victim.hurtCooldowns[1] = cooldowns[1];
     }
 }
+function runUse(player) {
+    const weapon = item(ModContent.ItemType(ItemUseProbe)), ammo = item(ModContent.ItemType(ItemAmmoProbe));
+    const plain = item(ModContent.ItemType(ItemProbePlain)), vanilla = item(Terraria.ID.ItemID.WoodenBow);
+    const originalInventory = Array.from({ length: player.inventory.length }, (_, i) => player.inventory[i]);
+    const originalState = snapshot(player, ['ammoCyclingMode', 'ammoCyclingOffset', 'ammoCost80', 'ammoCost75', 'ammoBox', 'ammoPotion', 'magicQuiver',
+        'itemAnimation', 'itemAnimationMax', 'itemTime', 'itemTimeMax', 'reuseDelay', 'bodyFrame', 'legFrame', 'bodyFrameCounter', 'legFrameCounter']);
+    const selectedState = player.selectedItemState, originalSelected = selectedState.selected;
+    useState.ammoType = ammo.type;
+    const ammoType = ammo.type;
+    const reset = stack => {
+        for (const key of Object.keys(useState)) delete useState[key]; useState.ammoType = ammoType;
+        ammo['void SetDefaults(int Type, ItemVariant variant)'](ammoType, null); ammo.stack = stack === undefined ? 5 : stack;
+        for (let i = 0; i < player.inventory.length; i++) player.inventory[i] = item(0);
+        player.inventory[0] = weapon; player.inventory[54] = ammo; player.selectedItemState.selected = 0;
+        player.ammoCyclingMode = 0; player.ammoCyclingOffset = 0;
+        player.ammoCost80 = player.ammoCost75 = player.ammoBox = player.ammoPotion = player.magicQuiver = false;
+    };
+    const shoot = (dontConsume = false, chosenWeapon = weapon) => {
+        const projectile = new Ref(chosenWeapon.shoot), speed = new Ref(chosenWeapon.shootSpeed), canShoot = new Ref(false);
+        const damage = new Ref(20), knockback = new Ref(3), used = new Ref(0);
+        player['void PickAmmo(Item sItem, ref int projToShoot, ref float speed, ref bool canShoot, ref int Damage, ref float KnockBack, out int usedAmmoItemId, bool dontConsume)'](
+            chosenWeapon, projectile, speed, canShoot, damage, knockback, used, dontConsume);
+        return { projectile: projectile.value, speed: speed.value, canShoot: canShoot.value, damage: damage.value, knockback: knockback.value, used: used.value };
+    };
+    const choose = chosenWeapon => player['Item PickAmmo_PickAmmoItem(Item sItem)'](chosenWeapon || weapon);
+    const hasAmmo = canUse => player['bool HasAmmo(Item sItem, bool canUse)'](weapon, canUse === undefined ? true : canUse);
+    const frameStats = () => bl.hookStats().filter(s => s.name.includes('PlayerFrame('));
+    const jsEntries = () => frameStats()[frameHookIndex].js;
+    try {
+        reset(); useState.animation = 31;
+        player['void ApplyItemAnimation(Item sItem)'](weapon);
+        check('UseAnimation altera duracao antes do calculo nativo', () => useCounts.animation === 1 && player.itemAnimation > 0 && weapon.useAnimation === 31);
+        weapon.useAnimation = 20;
+        reset(); player.itemAnimation = player.itemAnimationMax = 10; useState.frame = 336;
+        player['void PlayerFrame()']();
+        check('UseItemFrame altera bodyFrame apos o original', () => useCounts.useFrame === 1 && player.bodyFrame.Y === 336);
+        player.itemAnimation = 0; player['void PlayerFrame()']();
+        check('HoldItemFrame altera bodyFrame ocioso', () => useCounts.holdFrame === 1 && player.bodyFrame.Y === 336);
+        for (const [name, value] of [['vanilla', vanilla], ['plain', plain]]) {
+            player.inventory[0] = value; const before = jsEntries(), allBefore = frameStats().map(s => s.js);
+            for (let i = 0; i < 100; i++) player['void PlayerFrame()']();
+            check('PlayerFrame ModItem ' + name + ' tem zero entradas JS', () => jsEntries() === before);
+            log('PlayerFrame ' + name + ' indice_ModItem=' + frameHookIndex + ' delta_js_por_hook=' + frameStats().map((s, i) => s.js - allBefore[i]).join(','));
+        }
+        reset(); useState.choose = false;
+        check('CanChooseAmmo false retira candidato nativo', () => !choose() && !hasAmmo());
+        const other = item(Terraria.ID.ItemID.WoodenArrow); player.inventory[55] = other;
+        check('selecao avanca para proxima municao valida', () => bl.addressOf(choose()) === bl.addressOf(other));
+        reset(); ammo.ammo = Terraria.ID.AmmoID.Bullet; useState.choose = true;
+        check('CanChooseAmmo true permite outra categoria', () => bl.addressOf(choose()) === bl.addressOf(ammo) && hasAmmo());
+        useState.chosen = false;
+        check('veto da municao supera permissao da arma', () => !choose());
+        reset(); ammo.ammo = Terraria.ID.AmmoID.Bullet; useState.chosen = true;
+        check('CanBeChosenAsAmmo true funciona com arma vanilla', () => bl.addressOf(choose(vanilla)) === bl.addressOf(ammo));
+        reset(); player.inventory[55] = other; player.ammoCyclingMode = 2; player.ammoCyclingOffset = 1;
+        check('alternancia nativa segue ordem dos slots', () => bl.addressOf(choose()) === bl.addressOf(other));
+        useState.choose = false;
+        check('alternancia conta apenas candidatos aceitos', () => bl.addressOf(choose()) === bl.addressOf(other));
+        reset(); player.inventory[54] = item(0);
+        check('municao ausente conserva recusa nativa', () => !hasAmmo() && !shoot().canShoot);
+        useState.needs = false; const virtual = shoot();
+        check('NeedsAmmo false fornece municao padrao', () => hasAmmo() && virtual.canShoot && virtual.used === Terraria.ID.ItemID.WoodenArrow);
+        check('NeedsAmmo false conserva veto canUse', () => !hasAmmo(false));
+        reset(); const base = shoot(true); useState.modify = true; const modified = shoot(true);
+        check('PickAmmo altera projetil e velocidade por Ref', () => modified.projectile === 2 && modified.speed === 12);
+        check('PickAmmo altera dano e knockback finais', () => modified.damage === base.damage + 7 && modified.knockback === 9);
+        check('dontConsume conserva stack e suprime notificacoes', () => ammo.stack === 5 && !useCounts.onConsume && !useCounts.onConsumed);
+        for (const [name, key] of [['CanConsumeAmmo', 'consume'], ['CanBeConsumedAsAmmo', 'ammoConsume'], ['ModPlayer.CanConsumeAmmo', 'mpConsume']]) {
+            reset(1); useState[key] = false; const before = useCounts.onConsume || 0; const shot = shoot();
+            check(name + ' conserva ultima unidade e consumable', () => shot.canShoot && ammo.stack === 1 && ammo.consumable && (useCounts.onConsume || 0) === before);
+        }
+        reset(1); const before = useCounts.onConsume || 0, beforeAmmo = useCounts.onConsumed || 0, beforePlayer = useCounts.mpOnConsume || 0;
+        const last = shoot();
+        check('ultima unidade dispara tres notificacoes uma vez', () => last.canShoot && useCounts.onConsume === before + 1 && useCounts.onConsumed === beforeAmmo + 1 && useCounts.mpOnConsume === beforePlayer + 1);
+        check('ultima unidade preserva tipos nos callbacks', () => useState.consumedType === ammoType && useState.ammoConsumedType === ammoType && useState.mpConsumedType === ammoType && useState.consumedStack === 0);
+        check('ultima unidade executa TurnToAir nativo depois', () => ammo.type === 0 && ammo.stack === 0 && last.used === ammoType);
+        reset(1); ammo.consumable = false; const notifications = useCounts.onConsume;
+        shoot(); check('municao nao consumivel nao notifica', () => ammo.stack === 1 && useCounts.onConsume === notifications);
+        const ammoHooks = bl.hookStats().filter(s => s.name.includes('PickAmmo('));
+        check('ModItem e ModPlayer compartilham um hook PickAmmo', () => ammoHooks.length === 1);
+        log('USE hooks_PickAmmo=' + ammoHooks.length + ' checks_total=' + checks);
+    } finally {
+        for (let i = 0; i < originalInventory.length; i++) player.inventory[i] = originalInventory[i];
+        player.selectedItemState.selected = originalSelected;
+        restore(player, originalState);
+    }
+}
 Terraria.Player['void Update(int i)'].hook((original, player, index) => {
     original(player, index);
     if (done || Main.gameMenu || index !== Main.myPlayer) return;
     if (++frames !== 60) return;
     done = true;
-    try { run(player); }
+    try { run(player); runUse(player); }
     catch (error) { failures++; log('execucao: FALHOU ' + error + ' ' + error.stack); }
     log('FIM checks=' + checks + ' falhas=' + failures);
 });

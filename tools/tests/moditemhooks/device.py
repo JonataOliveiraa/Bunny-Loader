@@ -1,5 +1,6 @@
 import argparse
 import subprocess
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -10,7 +11,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('action', choices=['prepare', 'cleanup'])
 parser.add_argument('--device', default='127.0.0.1:16384')
 parser.add_argument('--world')
+parser.add_argument('--run-id')
 args = parser.parse_args()
+if args.run_id:
+    if not re.fullmatch(r'[A-Za-z0-9_-]+', args.run_id):
+        parser.error('--run-id deve conter apenas letras, numeros, _ ou -')
+    OUTPUT = OUTPUT / args.run_id
 OUTPUT.mkdir(parents=True, exist_ok=True)
 
 

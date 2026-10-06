@@ -128,6 +128,7 @@ struct HookCtx {
     int32_t filterOffset = -1;
     // `field: 'inner.type'`: o offset da referencia a seguir antes (-1 = direto).
     int32_t filterDeref = -1;
+    int32_t filterIndexOffset = -1;
     int32_t filterMin = 0;
     Prim filterPrim = Prim::I32;   // o campo pode ser byte/short (Item.prefix)
     // HookFilter::whileIn: o slot do hook de fora; -1 = sem esse filtro.
@@ -382,10 +383,20 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     }
     if (c->filterReg >= 0) {
         auto* o = reinterpret_cast<const uint8_t*>(rawA[c->filterReg]);
+        int32_t index = -1;
+        if (o && c->filterIndexOffset >= 0) std::memcpy(&index, o + c->filterIndexOffset, sizeof(index));
         if (o && c->filterDeref >= 0) {
             const uint8_t* inner = nullptr;
             std::memcpy(&inner, o + c->filterDeref, sizeof(inner));
             o = inner;
+        }
+        if (o && c->filterIndexOffset >= 0) {
+            const auto* array = reinterpret_cast<const Il2CppArray*>(o);
+            const uint8_t* item = nullptr;
+            if (index >= 0 && static_cast<uintptr_t>(index) < array->length) {
+                std::memcpy(&item, o + sizeof(Il2CppArray) + static_cast<size_t>(index) * sizeof(void*), sizeof(item));
+            }
+            o = item;
         }
         int32_t v = 0;
         if (o) v = readFilterField(o + c->filterOffset, c->filterPrim);
@@ -611,15 +622,41 @@ static std::string resolveFilter(HookCtx& c, const HookFilter& f) {
     }
     // `ref.campo`: um nivel de referencia (a WorldItem guarda o Item em `inner`).
     std::string name = f.field;
-    const size_t dot = name.find('.');
+    const size_t closeBracket = name.find(']');
+    const size_t dot = name.find('.', closeBracket == std::string::npos ? 0 : closeBracket + 1);
     if (dot != std::string::npos) {
-        const std::string ref = name.substr(0, dot);
+        std::string ref = name.substr(0, dot);
+        const size_t bracket = ref.find('[');
+        if (bracket != std::string::npos) {
+            if (ref.back() != ']' || bracket == 0) return "filtro: indice de array invalido";
+            std::string index = ref.substr(bracket + 1, ref.size() - bracket - 2);
+            Il2CppClass* indexClass = cls;
+            int32_t indexBase = 0;
+            const size_t indexDot = index.find('.');
+            if (indexDot != std::string::npos) {
+                FieldInfo* state = cls ? il2cpp::findField(cls, index.substr(0, indexDot)) : nullptr;
+                const Il2CppType* stateType = state ? api.field_get_type(state) : nullptr;
+                if (!stateType || !describe(stateType).byValue) return "filtro: estado do indice deve ser struct";
+                indexClass = api.class_from_il2cpp_type(stateType);
+                indexBase = static_cast<int32_t>(api.field_get_offset(state));
+                index = index.substr(indexDot + 1);
+            }
+            FieldInfo* indexField = indexClass ? il2cpp::findField(indexClass, index) : nullptr;
+            if (!indexField || describe(api.field_get_type(indexField)).prim != Prim::I32) return "filtro: indice de array deve ser um campo int";
+            const size_t indexOffset = api.field_get_offset(indexField);
+            c.filterIndexOffset = indexBase + static_cast<int32_t>(indexDot == std::string::npos ? indexOffset : structFieldOffset(indexClass, indexOffset));
+            ref.resize(bracket);
+        }
         FieldInfo* rf = cls ? il2cpp::findField(cls, ref) : nullptr;
         if (!rf) return "filtro: campo '" + ref + "' nao existe";
         const Il2CppType* rt = api.field_get_type(rf);
         if (describe(rt).byValue) return "filtro: o campo '" + ref + "' tem de ser uma referencia";
         c.filterDeref = static_cast<int32_t>(api.field_get_offset(rf));
         cls = api.class_from_il2cpp_type(rt);
+        if (c.filterIndexOffset >= 0) {
+            cls = cls && api.class_get_element_class ? api.class_get_element_class(cls) : nullptr;
+            if (!cls || (api.class_is_valuetype && api.class_is_valuetype(cls))) return "filtro: array deve conter referencias";
+        }
         name = name.substr(dot + 1);
     }
     FieldInfo* field = cls ? il2cpp::findField(cls, name) : nullptr;

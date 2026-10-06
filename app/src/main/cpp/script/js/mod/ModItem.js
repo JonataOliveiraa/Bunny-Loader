@@ -51,12 +51,23 @@ class ModItem {
     IsAnglerQuestAvailable() { return true; }
     AnglerQuestChat(description, catchLocation) {}
     HoldItem(item, player) {}
+    UseAnimation(item, player) {}
+    UseItemFrame(item, player) {}
+    HoldItemFrame(item, player) {}
     UseStyle(item, player, mountOffset, heldItemFrame) {}
     HoldStyle(item, player, mountOffset, heldItemFrame) {}
     HoldoutOffset(item, player) { return undefined; }
     CanShoot(item, player) { return true; }
     ModifyShootStats(item, player, stats) {}
     Shoot(item, player, position, velocity, type, damage, knockBack) { return true; }
+    NeedsAmmo(item, player) { return true; }
+    CanChooseAmmo(item, ammo, player) { return null; }
+    CanBeChosenAsAmmo(item, weapon, player) { return null; }
+    CanConsumeAmmo(item, ammo, player) { return true; }
+    CanBeConsumedAsAmmo(item, weapon, player) { return true; }
+    OnConsumeAmmo(item, ammo, player) {}
+    OnConsumedAsAmmo(item, weapon, player) {}
+    PickAmmo(item, weapon, player, type, speed, damage, knockback) {}
     ModifyWeaponDamage(item, player, damage) {}
     ModifyWeaponCrit(item, player, crit) {}
     ModifyWeaponKnockback(item, player, knockback) {}

@@ -1,7 +1,7 @@
 class PlayerItemHooks {
     static Stats = null;
     static #shot = null;
-    static #ammo = null;
+    static #animationTiming = false;
     static #quickHeal = false;
     static #timing = new Set();
     static #mana = new Set();
@@ -17,7 +17,10 @@ class PlayerItemHooks {
             });
         });
         want(cls, ['CanShoot', 'ModifyShootStats', 'Shoot'], 'player.Shoot', PlayerItemHooks.#Shoot);
-        want(cls, ['CanConsumeAmmo', 'OnConsumeAmmo'], 'player.Ammo', PlayerItemHooks.#Ammo);
+        if (['CanConsumeAmmo', 'OnConsumeAmmo'].some(name => Hooks.Overrides(cls, ModPlayer, name))) {
+            ItemCombatHooks.All('player.Ammo');
+            ItemUseHooks.InstallAmmo();
+        }
         if (Hooks.Overrides(cls, ModPlayer, 'ModifyWeaponCrit')) {
             ItemCombatHooks.All('player.WeaponCrit');
             PlayerItemHooks.InstallCrit();
@@ -64,6 +67,20 @@ class PlayerItemHooks {
     static InstallKnockback() { Hooks.Once('player.WeaponKnockback', PlayerItemHooks.#Knockback); }
     static InstallScale() { Hooks.Once('player.ItemScale', PlayerItemHooks.#Scale); }
     static InstallHitbox() { Hooks.Once('player.ItemHitbox', PlayerItemHooks.#Hitbox); }
+    static InstallAnimation() { Hooks.Once('player.ItemAnimation', PlayerItemHooks.#Animation); }
+
+    static #Animation() {
+        Terraria.Player['void ApplyItemAnimation(Item sItem)'].hook((original, player, item) => {
+            ItemCombatHooks.Call(item, 'UseAnimation', player);
+            original(player, item);
+            if (!PlayerItemHooks.#animationTiming) return;
+            if (PlayerItemHooks.Stats) PlayerItemHooks.Stats.animation(player, item);
+            const factor = PlayerLoader.Factor(player, 'UseAnimationMultiplier', item) / PlayerLoader.Factor(player, 'UseSpeedMultiplier', item);
+            const frames = Math.max(1, Math.trunc(player.itemAnimation * factor));
+            player.itemAnimation = frames;
+            player.itemAnimationMax = frames;
+        }, ItemCombatHooks.Filter('player.ItemAnimation'));
+    }
 
     static #Damage() {
         Terraria.Player['int GetWeaponDamage(Item sItem)'].hook((original, player, item) => {
@@ -174,44 +191,6 @@ class PlayerItemHooks {
             }, { whileIn: gate });
     }
 
-    static #Ammo() {
-        const gate = Terraria.Player['void PickAmmo(Item sItem, ref int projToShoot, ref float speed, ref bool canShoot, ref int Damage, ref float KnockBack, out int usedAmmoItemId, bool dontConsume)'];
-        gate.hook(
-            (original, player, weapon, projectile, speed, canShoot, damage, knockback, usedAmmo, dontConsume) => {
-                const outer = PlayerItemHooks.#ammo;
-                const scope = { player, weapon, dontConsume, item: null, stack: 0, consumable: false };
-                PlayerItemHooks.#ammo = scope;
-                try { return original(player, weapon, projectile, speed, canShoot, damage, knockback, usedAmmo, dontConsume); }
-                finally {
-                    PlayerItemHooks.#ammo = outer;
-                    if (scope.item) {
-                        if (scope.blocked) scope.item.consumable = scope.consumable;
-                        if (!scope.notified && !scope.dontConsume && scope.item.stack < scope.stack) PlayerLoader.Call(player, 'OnConsumeAmmo', weapon, scope.item);
-                    }
-                }
-            });
-        Terraria.Player['Item PickAmmo_PickAmmoItem(Item sItem)'].hook((original, player, weapon) => {
-            const item = original(player, weapon), scope = PlayerItemHooks.#ammo;
-            if (scope && item && scope.player.whoAmI === player.whoAmI && !scope.dontConsume) {
-                scope.item = item;
-                scope.stack = item.stack;
-                scope.consumable = item.consumable;
-                scope.blocked = PlayerLoader.Veto(player, 'CanConsumeAmmo', weapon, item);
-                if (scope.blocked) item.consumable = false;
-            }
-            return item;
-        }, { whileIn: gate });
-        Terraria.Item['void TurnToAir()'].hook((original, item) => {
-            const scope = PlayerItemHooks.#ammo;
-            if (scope && scope.item && !scope.blocked && !scope.notified && !scope.dontConsume
-                && bl.addressOf(scope.item) === bl.addressOf(item) && item.stack < scope.stack) {
-                scope.notified = true;
-                PlayerLoader.Call(scope.player, 'OnConsumeAmmo', scope.weapon, item);
-            }
-            return original(item);
-        }, { whileIn: gate });
-    }
-
     static #Timing() {
         const P = Terraria.Player;
         const time = (original, player, item, multiplier) => {
@@ -230,14 +209,9 @@ class PlayerItemHooks {
         };
         P['void ApplyItemTime(Item sItem)'].hook(time);
         P['void ApplyItemTime(Item sItem, float multiplier)'].hook(time);
-        P['void ApplyItemAnimation(Item sItem)'].hook((original, player, item) => {
-            original(player, item);
-            if (PlayerItemHooks.Stats) PlayerItemHooks.Stats.animation(player, item);
-            const factor = PlayerLoader.Factor(player, 'UseAnimationMultiplier', item) / PlayerLoader.Factor(player, 'UseSpeedMultiplier', item);
-            const frames = Math.max(1, Math.trunc(player.itemAnimation * factor));
-            player.itemAnimation = frames;
-            player.itemAnimationMax = frames;
-        });
+        PlayerItemHooks.#animationTiming = true;
+        ItemCombatHooks.All('player.ItemAnimation');
+        PlayerItemHooks.InstallAnimation();
     }
 
     static #Mana() {
