@@ -114,7 +114,8 @@ const sandbox = {
     Ref: class { constructor(value) { this.value = value; } },
     Vector2: { new: (X = 0, Y = 0) => ({ X, Y }) },
     Color: { new: (R, G, B, A = 255) => ({ R, G, B, A }) },
-    Entities: { Define: () => {}, Of: (inst) => Main.player.find((player) => player.__address === inst.__entity) },
+    Entities: { Define: () => {}, InstanceOf: (npc) => npc.ModNPC, Of: (inst) => Main.player.find((player) => player.__address === inst.__entity) },
+    SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697,
     Hooks: {
         Once: (key, fn) => { if (!once.has(key)) { fn(); once.add(key); } },
         Overrides: (cls, base, key) => cls.prototype[key] !== base.prototype[key],
@@ -128,7 +129,7 @@ const sandbox = {
     ModRegistry: { Find: () => null }, ModLoader: {},
 };
 const context = vm.createContext(sandbox);
-const filesToLoad = ['TagCompound.js', 'StatModifier.js', 'ModPlayer.js', 'Loaders/PlayerCombatHooks.js',
+const filesToLoad = ['TagCompound.js', 'StatModifier.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/NPCLoader.js', 'Loaders/PlayerCombatHooks.js',
     'Loaders/PlayerItemHooks.js', 'Loaders/PlayerUpdateHooks.js', 'Loaders/PlayerJumpHooks.js',
     'Loaders/PlayerDrawHooks.js', 'Loaders/PlayerWorldHooks.js', 'Loaders/PlayerNetworkHooks.js', 'Loaders/PlayerLoader.js'];
 for (const file of filesToLoad) vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });

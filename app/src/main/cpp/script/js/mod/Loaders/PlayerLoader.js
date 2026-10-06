@@ -406,6 +406,10 @@ class PlayerLoader {
         PlayerNetworkHooks.Install(cls);
     }
 
+    static InstallNPCContact() {
+        Hooks.Once('player.Hurt', PlayerLoader.#HookHurt);
+    }
+
     static #HookHurt() {
         const each = PlayerLoader.Each;
         const any = PlayerLoader.Any;
@@ -415,11 +419,13 @@ class PlayerLoader {
                 if (any(self, 'ImmuneTo', true, (m) => m.ImmuneTo(self, src, cooldown, dodgeable))) return 0;
                 const cause = PlayerCombatHooks.Cause(src);
                 const slot = new Ref(cooldown);
+                if (cause.npc && NPCLoader.Call(cause.npc, 'CanHitPlayer', self, slot) === false) return 0;
                 if (cause.npc && PlayerLoader.Veto(self, 'CanBeHitByNPC', cause.npc, slot)) return 0;
                 if (cause.projectile && PlayerLoader.Veto(self, 'CanBeHitByProjectile', cause.projectile)) return 0;
                 const attack = PlayerCombatHooks.PvpAttack;
                 if (pvp && attack && PlayerLoader.Veto(attack.player, 'CanHitPvp', attack.item, self)) return 0;
                 const hit = { damage, hitDirection: dir, quiet, crit, dodgeable };
+                if (cause.npc) NPCLoader.Call(cause.npc, 'ModifyHitPlayer', self, hit);
                 if (cause.npc) PlayerLoader.Call(self, 'ModifyHitByNPC', cause.npc, hit);
                 if (cause.projectile) PlayerLoader.Call(self, 'ModifyHitByProjectile', cause.projectile, hit);
                 each(self, 'ModifyHurt', (m) => m.ModifyHurt(self, hit));
@@ -429,11 +435,12 @@ class PlayerLoader {
                     src, info.Damage, info.HitDirection, pvp, info.Quiet, info.Crit, slot.value, info.Dodgeable)) return 0;
                 if (info.Dodgeable && self.whoAmI === Terraria.Main.myPlayer && PlayerLoader.First(self, 'ConsumableDodge', info)) return 0;
 
-                const done = original(self, src, Math.floor(hit.damage), hit.hitDirection, pvp,
+                const done = original(self, src, info.Damage, hit.hitDirection, pvp,
                                       hit.quiet, hit.crit, slot.value, hit.dodgeable);
                 if (done <= 0) return done;
 
                 info.Damage = done;
+                if (cause.npc) NPCLoader.Call(cause.npc, 'OnHitPlayer', self, info);
                 if (cause.npc) PlayerLoader.Call(self, 'OnHitByNPC', cause.npc, info);
                 if (cause.projectile) PlayerLoader.Call(self, 'OnHitByProjectile', cause.projectile, info);
 

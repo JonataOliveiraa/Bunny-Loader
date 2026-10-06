@@ -1,31 +1,16 @@
 class PlayerCombatHooks {
     static #attack = null;
     static #strike = false;
+    static #hit = null;
     static PvpAttack = null;
 
     static Install(cls) {
         const want = PlayerLoader.Wants;
-        want(cls, ['CanHitNPC', 'CanHitNPCWithItem', 'CanHitNPCWithProj'], 'player.CanHitNPC', () => {
-            Terraria.Player['bool CanNPCBeHitByPlayerOrPlayerProjectile(NPC npc, Projectile projectile)'].hook((original, player, npc, projectile) => {
-                const attack = PlayerCombatHooks.#attack;
-                const checked = attack && attack.checked && bl.addressOf(attack.player) === bl.addressOf(player)
-                    && bl.addressOf(attack.target) === bl.addressOf(npc);
-                if (!checked && PlayerLoader.Veto(player, 'CanHitNPC', npc)) return false;
-                const decision = projectile
-                    ? PlayerLoader.Nullable(player, 'CanHitNPCWithProj', projectile, npc)
-                    : attack && attack.item ? PlayerLoader.Nullable(player, 'CanHitNPCWithItem', attack.item, npc) : null;
-                return decision === null ? original(player, npc, projectile) : decision;
-            });
-        });
+        want(cls, ['CanHitNPC', 'CanHitNPCWithItem', 'CanHitNPCWithProj'], 'player.CanHitNPC', PlayerCombatHooks.#CanHitNPC);
         want(cls, ['CanHitNPCWithItem', 'CanMeleeAttackCollideWithNPC', 'ModifyHitNPC', 'ModifyHitNPCWithItem', 'OnHitNPC', 'OnHitNPCWithItem'],
             'player.ItemAttack', PlayerCombatHooks.#ItemAttack);
         want(cls, ['CanMeleeAttackCollideWithNPC'], 'player.MeleeCollision', PlayerCombatHooks.#MeleeCollision);
-        want(cls, ['ModifyHitNPC', 'ModifyHitNPCWithProj', 'OnHitNPC', 'OnHitNPCWithProj'], 'player.ProjectileAttack', () => {
-            Terraria.Projectile['void Damage_PVE(ref Rectangle projRectangle, float projectileSpecificDamageMultiplier)'].hook((original, projectile, rect, multiplier) => {
-                const player = PlayerCombatHooks.Owner(projectile);
-                return PlayerCombatHooks.#WithAttack(player ? { player, projectile } : null, () => original(projectile, rect, multiplier));
-            });
-        });
+        want(cls, ['ModifyHitNPC', 'ModifyHitNPCWithProj', 'OnHitNPC', 'OnHitNPCWithProj'], 'player.ProjectileAttack', PlayerCombatHooks.#ProjectileAttack);
         want(cls, ['CanHitNPC', 'ModifyHitNPC', 'OnHitNPC'], 'player.DirectAttack', () => {
             Terraria.Player['void ApplyDamageToNPC(NPC npc, int damage, float knockback, int direction, bool crit, PlayerNPCHitSource hitSource)'].hook(
                 (original, player, npc, damage, knockback, direction, crit, source) => {
@@ -64,6 +49,45 @@ class PlayerCombatHooks {
         });
     }
 
+    static InstallNPCItems() {
+        Hooks.Once('player.ItemAttack', PlayerCombatHooks.#ItemAttack);
+        Hooks.Once('player.CanHitNPC', PlayerCombatHooks.#CanHitNPC);
+        Hooks.Once('player.StrikeNPC', PlayerCombatHooks.#StrikeNPC);
+    }
+
+    static InstallNPCProjectiles() {
+        Hooks.Once('player.ProjectileAttack', PlayerCombatHooks.#ProjectileAttack);
+        Hooks.Once('player.StrikeNPC', PlayerCombatHooks.#StrikeNPC);
+    }
+
+    static RecordIncoming(npc, damage, knockback, direction, crit) {
+        const current = PlayerCombatHooks.#hit;
+        if (!current || bl.addressOf(current.npc) !== bl.addressOf(npc)) return;
+        Object.assign(current.hit, { SourceDamage: damage, Knockback: knockback, HitDirection: direction, Crit: crit });
+    }
+
+    static #CanHitNPC() {
+        Terraria.Player['bool CanNPCBeHitByPlayerOrPlayerProjectile(NPC npc, Projectile projectile)'].hook((original, player, npc, projectile) => {
+            const attack = PlayerCombatHooks.#attack;
+            const checked = attack && attack.checked && bl.addressOf(attack.player) === bl.addressOf(player)
+                && bl.addressOf(attack.target) === bl.addressOf(npc);
+            if (!checked && PlayerLoader.Veto(player, 'CanHitNPC', npc)) return false;
+            const decision = projectile
+                ? PlayerLoader.Nullable(player, 'CanHitNPCWithProj', projectile, npc)
+                : attack && attack.item ? PlayerLoader.Nullable(player, 'CanHitNPCWithItem', attack.item, npc) : null;
+            const npcDecision = !projectile && checked ? attack.npcCanHit : null;
+            if (decision === false || npcDecision === false) return false;
+            return decision === true || npcDecision === true ? true : original(player, npc, projectile);
+        });
+    }
+
+    static #ProjectileAttack() {
+        Terraria.Projectile['void Damage_PVE(ref Rectangle projRectangle, float projectileSpecificDamageMultiplier)'].hook((original, projectile, rect, multiplier) => {
+            const player = PlayerCombatHooks.Owner(projectile);
+            return PlayerCombatHooks.#WithAttack({ player, projectile }, () => original(projectile, rect, multiplier));
+        });
+    }
+
     static Owner(projectile) {
         const index = projectile.owner;
         return Number.isInteger(index) && index >= 0 && index < 255 ? Terraria.Main.player[index] : null;
@@ -94,9 +118,11 @@ class PlayerCombatHooks {
             (original, player, item, rect, damage, knockback, index) => {
                 const target = Terraria.Main.npc[index];
                 if (!target || PlayerLoader.Veto(player, 'CanHitNPC', target)) return;
+                const npcCanHit = NPCLoader.Call(target, 'CanBeHitByItem', player, item);
+                if (npcCanHit === false) return;
                 const collision = PlayerLoader.Nullable(player, 'CanMeleeAttackCollideWithNPC', item, rect, target);
                 if (collision === false) return;
-                return PlayerCombatHooks.#WithAttack({ player, item, target, rect, collision, checked: true }, () => original(player, item, rect, damage, knockback, index));
+                return PlayerCombatHooks.#WithAttack({ player, item, target, rect, collision, npcCanHit, checked: true }, () => original(player, item, rect, damage, knockback, index));
             });
     }
 
@@ -124,17 +150,28 @@ class PlayerCombatHooks {
                     const modifiers = { damage, knockBack: knockback, hitDirection: direction, crit,
                         SourceDamage: StatModifier.Default, Knockback: StatModifier.Default,
                         SetCrit() { this.crit = true; }, DisableCrit() { this.crit = false; } };
-                    PlayerLoader.Call(player, 'ModifyHitNPC', npc, modifiers);
-                    if (attack.item) PlayerLoader.Call(player, 'ModifyHitNPCWithItem', attack.item, npc, modifiers);
-                    if (attack.projectile) PlayerLoader.Call(player, 'ModifyHitNPCWithProj', attack.projectile, npc, modifiers);
+                    if (player) {
+                        PlayerLoader.Call(player, 'ModifyHitNPC', npc, modifiers);
+                        if (attack.item) PlayerLoader.Call(player, 'ModifyHitNPCWithItem', attack.item, npc, modifiers);
+                        if (attack.projectile) PlayerLoader.Call(player, 'ModifyHitNPCWithProj', attack.projectile, npc, modifiers);
+                    }
                     const amount = Math.max(0, Math.floor(modifiers.SourceDamage.ApplyTo(modifiers.damage)));
                     const kb = Math.max(0, modifiers.Knockback.ApplyTo(modifiers.knockBack));
-                    const done = original(npc, amount, kb, modifiers.hitDirection, modifiers.crit, fromNet, owner);
+                    const hit = { Damage: 0, SourceDamage: amount, Knockback: kb, HitDirection: modifiers.hitDirection, Crit: modifiers.crit };
+                    const outer = PlayerCombatHooks.#hit;
+                    PlayerCombatHooks.#hit = { npc, hit };
+                    let done;
+                    try { done = original(npc, amount, kb, modifiers.hitDirection, modifiers.crit, fromNet, owner); }
+                    finally { PlayerCombatHooks.#hit = outer; }
                     if (done <= 0) return done;
-                    const hit = { Damage: done, SourceDamage: amount, Knockback: kb, HitDirection: modifiers.hitDirection, Crit: modifiers.crit };
-                    PlayerLoader.Call(player, 'OnHitNPC', npc, hit, done);
-                    if (attack.item) PlayerLoader.Call(player, 'OnHitNPCWithItem', attack.item, npc, hit, done);
-                    if (attack.projectile) PlayerLoader.Call(player, 'OnHitNPCWithProj', attack.projectile, npc, hit, done);
+                    hit.Damage = done;
+                    if (attack.item) NPCLoader.Call(npc, 'OnHitByItem', player, attack.item, hit, done);
+                    if (attack.projectile) NPCLoader.Call(npc, 'OnHitByProjectile', attack.projectile, hit, done);
+                    if (player) {
+                        PlayerLoader.Call(player, 'OnHitNPC', npc, hit, done);
+                        if (attack.item) PlayerLoader.Call(player, 'OnHitNPCWithItem', attack.item, npc, hit, done);
+                        if (attack.projectile) PlayerLoader.Call(player, 'OnHitNPCWithProj', attack.projectile, npc, hit, done);
+                    }
                     return done;
                 });
             }, { flag: 'player.Attack' });

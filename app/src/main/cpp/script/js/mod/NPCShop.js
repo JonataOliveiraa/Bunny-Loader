@@ -61,6 +61,8 @@ class NPCShop {
                 if (entry.currency !== undefined) item.shopSpecialCurrency = entry.currency;
                 if (entry.price !== undefined) item.shopCustomPrice = entry.price;
             }
+            const talk = TownNPCLoader.TalkingTo();
+            if (talk && talk.npc.type === shop.NpcType) NPCLoader.Call(talk.npc, 'ModifyActiveShop', shop.Name, items);
         });
     }
 }

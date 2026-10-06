@@ -1,0 +1,14 @@
+{
+  "uid": "b19fb975-3058-47d5-8e59-fb737ca9e3e2",
+  "id": "test-modnpchooks",
+  "name": "Teste: hooks de ModNPC",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Valida eventos, combate, desenho e lojas de ModNPC no singleplayer.",
+  "description": "Testes nativos com entidades temporarias, isolamento e referencias.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

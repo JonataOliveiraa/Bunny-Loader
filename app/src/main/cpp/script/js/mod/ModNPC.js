@@ -31,6 +31,25 @@ class ModNPC {
     ModifyNPCLoot(npcLoot) {}
     SetBestiary(database, bestiaryEntry) {}
     HitEffect(npc, hitDirection, damage) {}
+    OnSpawn(npc, source) {}
+    ResetEffects(npc) {}
+    OnHitByItem(npc, player, item, hit, damageDone) {}
+    OnHitByProjectile(npc, projectile, hit, damageDone) {}
+    CanHitPlayer(npc, player, cooldownSlot) { return true; }
+    ModifyHitPlayer(npc, player, modifiers) {}
+    OnHitPlayer(npc, player, hurtInfo) {}
+    CanBeHitByItem(npc, player, item) { return null; }
+    ModifyIncomingHit(npc, modifiers) {}
+    CheckDead(npc) { return true; }
+    ApplyDifficultyAndPlayerScaling(npc, numPlayers, balance, bossAdjustment) {}
+    PreDraw(npc, spriteBatch, screenPos, drawColor) { return true; }
+    PostDraw(npc, spriteBatch, screenPos, drawColor) {}
+    DrawEffects(npc, drawColor) {}
+    DrawBehind(npc, index) {}
+    GetAlpha(npc, drawColor) { return null; }
+    BossHeadSlot(npc, index) {}
+    BossHeadRotation(npc, rotation) {}
+    BossHeadSpriteEffects(npc, spriteEffects) {}
 
     PreAI(npc) { return true; }
     AI(npc) {}
@@ -58,6 +77,10 @@ class ModNPC {
     CheckConditions(left, right, top, bottom) { return true; }
     SetNPCNameList() { return []; }
     GetChat(npc) { return undefined; }
+    CanChat(npc) { return npc.townNPC; }
+    TownNPCProfile() { return null; }
+    ModifyActiveShop(npc, shopName, items) {}
+    ModifyNPCHappiness(npc, player, primaryPlayerBiome, shopHelper, nearbyNPCsByType) {}
     NPCHeadSlot() { return bl.npcs.headSlot(this.Type); }
     // buttons.button e buttons.button2 recebem o texto; vazio = sem botão.
     SetChatButtons(npc, buttons) {}
@@ -161,6 +184,11 @@ class ModNPC {
             if (!inst.HideFromBestiary) Safe.Run(name + '.SetBestiary', () => BestiaryLoader.Register(inst, townNpc));
             if (Hooks.Overrides(cls, ModNPC, 'AddShops')) Safe.Run(name + '.AddShops', () => inst.AddShops());
             if (townNpc) Safe.Run(name + ' (perfil de morador)', () => TownNPCLoader.SetupLooks(inst, looks));
+            if (Hooks.Overrides(cls, ModNPC, 'TownNPCProfile')) {
+                const profile = Safe.Run(name + '.TownNPCProfile', () => inst.TownNPCProfile());
+                if (profile) Safe.Run(name + ' TownNPCProfile', () =>
+                    Terraria.GameContent.TownNPCProfiles.Instance._townNPCProfiles.set_Item(type, profile));
+            }
 
             inst.PostSetupContent();
         });
