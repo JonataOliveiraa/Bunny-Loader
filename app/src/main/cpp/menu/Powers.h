@@ -45,6 +45,21 @@ enum class Power : int {
     Difficulty = 20, // COMANDO: 1..4 = Classico, Expert, Mestre, Jornada
     FastRespawn = 21,// morto, volta no quadro seguinte (sem a contagem)
     ClearEnemies = 22, // ACAO: some com os inimigos que ja existem
+    StopInfection = 23,// COMANDO: 1 para o alastramento (corrupcao, carmim, sagrado), 2 solta
+    StopEvents = 24,   // ACAO: acaba com os eventos em andamento
+    // ACAO: comeca o evento. Os de noite (luas) viram a noite antes, e o
+    // eclipse vira o dia.
+    BloodMoon = 25,
+    Eclipse = 26,
+    SlimeRain = 27,
+    GoblinArmy = 28,
+    FrostLegion = 29,
+    Pirates = 30,
+    Martians = 31,
+    PumpkinMoon = 32,
+    FrostMoon = 33,
+    Party = 34,
+    Sandstorm = 35,
     Count
 };
 
@@ -53,8 +68,8 @@ void setPower(int id, int level);
 
 /**
  * Pedido de um cliente (ver NetRequests): so aceita os poderes de MUNDO
- * (tempo parado, chuva, vento, sem inimigos, hardmode, dificuldade). Os de
- * jogador sao de cada um e nao vem pela rede. false = recusado.
+ * (tempo parado, chuva, vento, sem inimigos, hardmode, dificuldade, eventos,
+ * infeccao). Os de jogador sao de cada um e nao vem pela rede. false = recusado.
  */
 bool setWorldPowerFromNet(int id, int level);
 
@@ -84,6 +99,8 @@ void setTimeOfDay(int request);
  */
 int worldHardmode();
 int worldGameMode();
+/** O alastramento parado (o poder da Jornada, salvo no mundo): 0/1, -1 fora do mundo. */
+int worldInfectionStopped();
 
 /**
  * O clima do mundo aberto, para as barras abrirem onde o mundo esta: a hora

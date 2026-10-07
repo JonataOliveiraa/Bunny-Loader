@@ -20,6 +20,14 @@ class NativeConfig(
     @JvmField val quickPlayer: String,
     /** O mundo em que o jogo entra sozinho (`Interior_Pálido.wld`). */
     @JvmField val quickWorld: String,
+    /**
+     * A volta a um servidor depois da sincronização de mods (ServerSync): o
+     * endereço, a porta, a senha e o arquivo do personagem. Vazio = nada.
+     */
+    @JvmField val joinAddress: String = "",
+    @JvmField val joinPort: Int = 0,
+    @JvmField val joinPassword: String = "",
+    @JvmField val joinPlayer: String = "",
 )
 
 /**

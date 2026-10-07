@@ -145,6 +145,9 @@ std::string withCodeFrame(const std::string& text);
 // contexto. Implementado em Bindings.cpp.
 void installBindings(void* context);
 
+// Solta o que a arvore Terraria.* guardou (antes de liberar o contexto).
+void releaseNamespaceCache(void* context);
+
 // As classes base dos mods (ModItem...), escritas em JS e avaliadas no escopo
 // global depois dos bindings. Implementado em ModClasses.cpp.
 void installModClasses(void* context);

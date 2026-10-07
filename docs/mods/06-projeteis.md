@@ -77,7 +77,8 @@ floats (`Float_FixedArray_3`), e a ponte aceita `[i]` neles como num array
 | `OnTileCollide(proj, oldVelocity)` | Bateu num bloco: `false` evita a morte causada por essa colisão (para quicar, mude `proj.velocity`). `oldVelocity` é a de antes do choque. Lacaio e pet (`Main.projPet`) não morrem no bloco: recebem em todo quadro com choque (no chão, todo quadro). |
 | `PreKill(proj, timeLeft)` | `false` tira os efeitos do jogo na morte (poeira, som); o projétil morre igual. |
 | `OnKill(proj, timeLeft)` | Ao morrer (poeira, som, fragmentos). |
-| `OnHitNPC(proj, npc)`, `OnHitPlayer(proj, player)` | Ao acertar. |
+| `CanHitNPC(proj, target)`, `ModifyHitNPC(proj, target, modifiers)`, `OnHitNPC(proj, target, hit, damageDone)` | O golpe num NPC. Ver [Golpes](16-golpes.md). |
+| `CanHitPlayer(proj, target)`, `ModifyHitPlayer(proj, target, modifiers)`, `OnHitPlayer(proj, target, info)`, `CanHitPvp(proj, target)` | O golpe num jogador (hostil ou PvP). |
 | `Colliding(proj, projHitbox, targetHitbox)` | `true`/`false` decide o acerto; `undefined` deixa o do jogo. |
 | `CanDamage(proj)` | `false`: não causa dano. |
 | `MinionContactDamage(proj)` | `true`: o lacaio (ou pet) fere ao encostar. |

@@ -35,7 +35,7 @@ class VanillaTooltips {
         };
         const me = Main.LocalPlayer;
 
-        add('ItemName', item.HoverName, 'name');
+        add(TooltipNames.ItemName, item.HoverName, 'name');
 
         // Favorito, e as casas compartilhadas entre os equipamentos (loadouts).
         let isLoadoutSlot = false;
@@ -44,22 +44,22 @@ class VanillaTooltips {
         if (item.tooltipContext >= 0 && ItemSlot.canLoadoutShareAt[item.tooltipContext]) {
             const from = new Ref(null);
             ItemSlot.GetSharedLoadoutItem(item.tooltipContext, item.tooltipSlot, from);
-            if (from.value !== null && from.value !== undefined) add('SharedFrom', text('UI.ItemLoadoutSharedFrom', from.value + 1));
-            else if (item.favorited) add('Shared', text('UI.ItemLoadoutShared'));
+            if (from.value !== null && from.value !== undefined) add(TooltipNames.SharedFrom, text('UI.ItemLoadoutSharedFrom', from.value + 1));
+            else if (item.favorited) add(TooltipNames.Shared, text('UI.ItemLoadoutShared'));
             else showShareHint = true;
             isLoadoutSlot = true;
         } else if (item.favorited) {
-            add('Favorite', Lang.tip[56].Value);
-            add('FavoriteDesc', Lang.tip[57].Value);
+            add(TooltipNames.Favorite, Lang.tip[56].Value);
+            add(TooltipNames.FavoriteDesc, Lang.tip[57].Value);
             if (me.chest !== -1) {
                 const container = me.GetCurrentContainer().item;
                 if (Terraria.UI.ChestUI.IsBlockedFromTransferIntoChest(item, container)) {
-                    add('NoTransfer', text('UI.ItemCannotBePlacedInsideItself'));
+                    add(TooltipNames.NoTransfer, text('UI.ItemCannotBePlacedInsideItself'));
                 }
             }
         }
 
-        if (item.social && !item.vanity && !item.hasVanityEffects) add('NoSocial', Lang.tip[61].Value);
+        if (item.social && !item.vanity && !item.hasVanityEffects) add(TooltipNames.NoSocial, Lang.tip[61].Value);
 
         // Armas. A classe de dano dá o texto ("X dano de exemplo") e esconde
         // linhas (o ShowStatTooltipLine do tModLoader); a de gancho tem o
@@ -71,7 +71,7 @@ class VanillaTooltips {
             const show = (line) => Safe.Run(DamageClassLoader.NameOf(cls) + '.ShowStatTooltipLine',
                 () => cls.ShowStatTooltipLine(me, line)) !== false;
 
-            if (show('Damage')) {
+            if (show(TooltipNames.Damage)) {
                 let damage = (item.damage * ItemID.Sets.ToolTipDamageMultiplier[item.type]) | 0;
                 if (ItemID.Sets.RapidAttackBonusDamage[item.type]) damage = me.ApplyRapidAttackBonus(damage, item.type, false);
                 let value = Math.trunc(me.GetWeaponDamageMultiplier(item) * damage + 5e-6).toString();
@@ -81,7 +81,7 @@ class VanillaTooltips {
                 else if (item.magic) value += Lang.tip[4].Value;
                 else if (item.summon) value += Lang.tip[53].Value;
                 else value += Lang.tip[55].Value;
-                add('Damage', value);
+                add(TooltipNames.Damage, value);
             }
 
             const selectedCrit = me.inventory[me.selectedItem].crit;
@@ -94,16 +94,16 @@ class VanillaTooltips {
             } else if (item.melee) crit = me.meleeCrit - selectedCrit + item.GetVisualCritChance(me);
             else if (item.ranged) crit = me.rangedCrit - selectedCrit + item.GetVisualCritChance(me);
             else if (item.magic) crit = me.magicCrit - selectedCrit + item.GetVisualCritChance(me);
-            if (crit !== null && show('CritChance')) add('CritChance', crit + Lang.tip[5].Value);
+            if (crit !== null && show(TooltipNames.CritChance)) add(TooltipNames.CritChance, crit + Lang.tip[5].Value);
 
             const speedLine = hooked || !item.summon || (item.shoot >= 0 && ProjectileID.Sets.IsAWhip[item.shoot]);
-            if (item.useStyle !== 0 && speedLine && show('Speed')) {
+            if (item.useStyle !== 0 && speedLine && show(TooltipNames.Speed)) {
                 const a = item.useAnimation;
                 const tip = a <= 8 ? 6 : a <= 20 ? 7 : a <= 25 ? 8 : a <= 30 ? 9 : a <= 35 ? 10 : a <= 45 ? 11 : a <= 55 ? 12 : 13;
-                add('Speed', Lang.tip[tip].Value);
+                add(TooltipNames.Speed, Lang.tip[tip].Value);
             }
 
-            if (show('Knockback')) {
+            if (show(TooltipNames.Knockback)) {
                 let kb = item.knockBack;
                 if (item.summon) kb += me.minionKB;
                 if ((me.magicQuiver && item.useAmmo === AmmoID.Arrow) || item.useAmmo === AmmoID.Stake) kb = (kb * 1.1) | 0;
@@ -114,99 +114,99 @@ class VanillaTooltips {
                     if (!km.Equals(StatModifier.Default)) kb = km.ApplyTo(kb);
                 }
                 const tip = kb === 0 ? 14 : kb <= 1.5 ? 15 : kb <= 3 ? 16 : kb <= 4 ? 17 : kb <= 6 ? 18 : kb <= 7 ? 19 : kb <= 9 ? 20 : kb <= 11 ? 21 : 22;
-                add('Knockback', Lang.tip[tip].Value);
+                add(TooltipNames.Knockback, Lang.tip[tip].Value);
             }
         }
 
         // Pesca e isca
         if (item.fishingPole > 0) {
-            add('FishingPower', text('GameUI.PrecentFishingPower', item.fishingPole));
-            add('NeedsBait', text('GameUI.BaitRequired'));
+            add(TooltipNames.FishingPower, text('GameUI.PrecentFishingPower', item.fishingPole));
+            add(TooltipNames.NeedsBait, text('GameUI.BaitRequired'));
         }
-        if (item.bait > 0) add('BaitPower', text('GameUI.BaitPower', item.bait));
+        if (item.bait > 0) add(TooltipNames.BaitPower, text('GameUI.BaitPower', item.bait));
 
         if (!isLoadoutSlot && (item.headSlot > 0 || item.bodySlot > 0 || item.legSlot > 0 || item.accessory ||
             Main.projHook[item.shoot] || item.mountType !== -1 ||
             (item.buffType > 0 && (Main.lightPet[item.buffType] || Main.vanityPet[item.buffType])))) {
-            add('Equipable', (item.type === 854 || item.type === 3035) && Main.npcShop > 0 ? Lang.tip[60].Value : Lang.tip[23].Value);
+            add(TooltipNames.Equipable, (item.type === 854 || item.type === 3035) && Main.npcShop > 0 ? Lang.tip[60].Value : Lang.tip[23].Value);
         }
 
-        if (item.tileWand > 0) add('WandConsumes', Lang.tip[52].Value + Lang.GetItemNameValue(item.tileWand));
-        if (item.questItem) add('Quest', Lang.inter[65].Value);
-        if (item.vanity) add('Vanity', Lang.tip[24].Value);
-        if (item.defense > 0) add('Defense', item.defense + Lang.tip[25].Value);
-        if (item.pick > 0) add('PickPower', item.pick + Lang.tip[26].Value);
-        if (item.axe > 0) add('AxePower', item.axe * 5 + Lang.tip[27].Value);
-        if (item.hammer > 0) add('HammerPower', item.hammer + Lang.tip[28].Value);
-        if (item.tileBoost !== 0) add('TileBoost', (item.tileBoost > 0 ? '+' : '') + item.tileBoost + Lang.tip[54].Value);
+        if (item.tileWand > 0) add(TooltipNames.WandConsumes, Lang.tip[52].Value + Lang.GetItemNameValue(item.tileWand));
+        if (item.questItem) add(TooltipNames.Quest, Lang.inter[65].Value);
+        if (item.vanity) add(TooltipNames.Vanity, Lang.tip[24].Value);
+        if (item.defense > 0) add(TooltipNames.Defense, item.defense + Lang.tip[25].Value);
+        if (item.pick > 0) add(TooltipNames.PickPower, item.pick + Lang.tip[26].Value);
+        if (item.axe > 0) add(TooltipNames.AxePower, item.axe * 5 + Lang.tip[27].Value);
+        if (item.hammer > 0) add(TooltipNames.HammerPower, item.hammer + Lang.tip[28].Value);
+        if (item.tileBoost !== 0) add(TooltipNames.TileBoost, (item.tileBoost > 0 ? '+' : '') + item.tileBoost + Lang.tip[54].Value);
 
         if (item.healLife > 0) {
-            add('HealLife', item.type === 3001 ? text('CommonItemTooltip.RestoresLifeRange', item.healLife, 120)
+            add(TooltipNames.HealLife, item.type === 3001 ? text('CommonItemTooltip.RestoresLifeRange', item.healLife, 120)
                                                : text('CommonItemTooltip.RestoresLife', item.healLife));
         }
-        if (item.healMana > 0) add('HealMana', text('CommonItemTooltip.RestoresMana', item.healMana));
+        if (item.healMana > 0) add(TooltipNames.HealMana, text('CommonItemTooltip.RestoresMana', item.healMana));
 
         if (item.mana > 0 && ((item.type !== 127 && item.type !== 4347 && item.type !== 4348 && item.type !== 514) || !me.spaceGun)) {
-            add('UseMana', text('CommonItemTooltip.UsesMana', (item.mana * me.manaCost) | 0));
+            add(TooltipNames.UseMana, text('CommonItemTooltip.UsesMana', (item.mana * me.manaCost) | 0));
         }
 
         if (item.createWall > 0 || item.createTile > -1 || item.type === 849) {
-            if (ItemID.Sets.PlaceTileOnAltUse[item.type] || item.consumable) add('Placeable', Lang.tip[33].Value);
+            if (ItemID.Sets.PlaceTileOnAltUse[item.type] || item.consumable) add(TooltipNames.Placeable, Lang.tip[33].Value);
         } else if (item.ammo > 0 && !item.notAmmo) {
-            add('Ammo', Lang.tip[34].Value);
+            add(TooltipNames.Ammo, Lang.tip[34].Value);
         } else if (item.consumable && !item.chlorophyteExtractinatorConsumable) {
-            add('Consumable', Lang.tip[35].Value);
+            add(TooltipNames.Consumable, Lang.tip[35].Value);
         }
 
-        if (item.material) add('Material', Lang.tip[36].Value);
+        if (item.material) add(TooltipNames.Material, Lang.tip[36].Value);
 
         const wiring = item.createTile > -1 && (TileID.Sets.Wiring.IsATrigger[item.createTile] || TileID.Sets.Wiring.IsAMechanism[item.createTile]);
-        if (wiring && (item.createTile !== 105 || ItemID.Sets.IsWireableStatue[item.type])) add('Wireable', text('CommonItemTooltip.Wireable'));
-        if (item.createTile === 21 || item.createTile === 467) add('Container', text('CommonItemTooltip.Container'));
+        if (wiring && (item.createTile !== 105 || ItemID.Sets.IsWireableStatue[item.type])) add(TooltipNames.Wireable, text('CommonItemTooltip.Wireable'));
+        if (item.createTile === 21 || item.createTile === 467) add(TooltipNames.Container, text('CommonItemTooltip.Container'));
         if (item.createTile === 441 || item.createTile === 468) {
-            add('WireTrigger', Lang.ToopltipProcessor(item.type, text('CommonItemTooltip.WireTrigger')));
+            add(TooltipNames.WireTrigger, Lang.ToopltipProcessor(item.type, text('CommonItemTooltip.WireTrigger')));
         }
 
         const tooltip = item.ToolTip;
         if (tooltip !== null) {
             for (let i = 0; i < tooltip.Lines; i++) {
                 const cursed = i === 0 && ItemID.Sets.UsesCursedByPlanteraTooltip[item.type] && !NPC.downedPlantBoss;
-                add('Tooltip' + i, cursed ? Lang.tip[59].Value : tooltip.GetLine(i));
+                add(TooltipNames.Tooltip + i, cursed ? Lang.tip[59].Value : tooltip.GetLine(i));
             }
         }
 
-        if (Main.tenthAnniversaryWorld && item.type === 238) add('WizardHatDuringAnniversary', text('CommonItemTooltip.WizardHatDuringAnniversary'));
-        if (Main.getGoodWorld && item.type === 1127) add('BurningBlock', text('CommonItemTooltip.BurningBlock'));
+        if (Main.tenthAnniversaryWorld && item.type === 238) add(TooltipNames.WizardHatDuringAnniversary, text('CommonItemTooltip.WizardHatDuringAnniversary'));
+        if (Main.getGoodWorld && item.type === 1127) add(TooltipNames.BurningBlock, text('CommonItemTooltip.BurningBlock'));
 
         // Mechdusa: a última linha troca de texto.
         if (Terraria.GameContent.SpecialSeedFeatures.Mechdusa) {
             if (item.type === 556 || item.type === 557 || item.type === 544) {
                 lines.pop();
-                add('MechSummonDuringEverything', text('CommonItemTooltip.MechSummonDuringEverything'));
+                add(TooltipNames.MechSummonDuringEverything, text('CommonItemTooltip.MechSummonDuringEverything'));
             }
         } else if (item.type === 5334) {
             lines.splice(-2, 2);
-            add('MechdusaSummonNotDuringEverything', text('CommonItemTooltip.MechdusaSummonNotDuringEverything'));
+            add(TooltipNames.MechdusaSummonNotDuringEverything, text('CommonItemTooltip.MechdusaSummonNotDuringEverything'));
         }
 
         const dd2 = [3818, 3819, 3820, 3824, 3825, 3826, 3829, 3830, 3831, 3832, 3833, 3834];
-        if (dd2.includes(item.type) && !me.downedDD2EventAnyDifficulty) add('EtherianManaWarning', Lang.misc[104].Value);
+        if (dd2.includes(item.type) && !me.downedDD2EventAnyDifficulty) add(TooltipNames.EtherianManaWarning, Lang.misc[104].Value);
 
-        if (item.buffType > 0 && BuffID.Sets.IsWellFed[item.buffType] && Main.expertMode) add('WellFedExpert', Lang.misc[40].Value);
+        if (item.buffType > 0 && BuffID.Sets.IsWellFed[item.buffType] && Main.expertMode) add(TooltipNames.WellFedExpert, Lang.misc[40].Value);
 
         if (item.buffTime > 0) {
-            add('BuffTime', item.buffTime / 60 < 60
+            add(TooltipNames.BuffTime, item.buffTime / 60 < 60
                 ? text('CommonItemTooltip.SecondDuration', Math.round(item.buffTime / 60))
                 : text('CommonItemTooltip.MinuteDuration', Math.round(item.buffTime / 60 / 60)));
         }
 
         // Os ioiôs da One Drop: o logo, desenhado no lugar da linha.
         if ([3262, 3282, 3283, 3284, 3285, 3286, 3291, 3315, 3316, 3317, 3389].includes(item.type)) {
-            add('OneDropLogo', ' ').OneDropLogo = true;
+            add(TooltipNames.OneDropLogo, ' ').OneDropLogo = true;
         }
 
-        if (item.expert) add('Expert', text('GameUI.Expert'));
-        if (item.rare === -13) add('Master', text('GameUI.Master'));
+        if (item.expert) add(TooltipNames.Expert, text('GameUI.Expert'));
+        if (item.rare === -13) add(TooltipNames.Master, text('GameUI.Master'));
 
         if (item.prefix > 0) {
             VanillaTooltips.#PrefixLines(item, oldKB, add);
@@ -216,7 +216,7 @@ class VanillaTooltips {
         VanillaTooltips.#SetBonus(item, out, add);
 
         if (showShareHint && Terraria.Player.Settings.ShowLoadoutShareHint) {
-            add('LoadoutShareHint', Terraria.Localization.Language.GetItemInputTextValue(item.type, 'UI.ItemLoadoutShareHint'), 'shared');
+            add(TooltipNames.LoadoutShareHint, Terraria.Localization.Language.GetItemInputTextValue(item.type, 'UI.ItemLoadoutShareHint'), 'shared');
         }
 
         // Pesquisa (modo Jornada)
@@ -226,20 +226,20 @@ class VanillaTooltips {
         if (researchContext && me.difficulty === 3 &&
             Main.LocalPlayerCreativeTracker.ItemSacrifices.TryGetSacrificeNumbers(item.type, have, needed)) {
             if (have.value < needed.value) {
-                add('JourneyResearch', text('CommonItemTooltip.CreativeSacrificeNeeded', needed.value - have.value), 'research');
+                add(TooltipNames.JourneyResearch, text('CommonItemTooltip.CreativeSacrificeNeeded', needed.value - have.value), 'research');
             } else if (ctx === 29 && Main.LocalPlayerCreativeTracker.ItemSacrifices.TryGetTeammateUnlockCredit(item.type, teammate)) {
-                add('JourneyResearchByTeammate', text('CommonItemTooltip.ItemUnlockedByTeammate', teammate.value), 'research');
+                add(TooltipNames.JourneyResearchByTeammate, text('CommonItemTooltip.ItemUnlockedByTeammate', teammate.value), 'research');
             }
         }
 
         const notes = item.BestiaryNotes;
         if (notes && notes !== ' ') {
-            for (const note of notes.split('\n')) add('BestiaryNotes', note);
+            for (const note of notes.split('\n')) add(TooltipNames.BestiaryNotes, note);
         }
 
         // A grade dos materiais (guia de criação no estilo de controle): um espaço, desenhado no lugar.
         if (GUIInstance.Active.GUIPageIcons.UseConsoleStyle && (ctx === 22 || ctx === 47 || ctx === 48)) {
-            add('CraftingMaterials', ' ', 'materials');
+            add(TooltipNames.CraftingMaterials, ' ', 'materials');
         }
 
         return out;
@@ -269,49 +269,49 @@ class VanillaTooltips {
 
         if (base.damage !== item.damage) {
             const n = percent(item.damage, base.damage);
-            line(signed(n, Lang.tip[39].Value), 'PrefixDamage', n < 0);
+            line(signed(n, Lang.tip[39].Value), TooltipNames.PrefixDamage, n < 0);
         }
         if (base.useAnimation !== item.useAnimation) {
             const n = -percent(item.useAnimation, base.useAnimation);
-            line(signed(n, Lang.tip[40].Value), 'PrefixSpeed', n < 0);
+            line(signed(n, Lang.tip[40].Value), TooltipNames.PrefixSpeed, n < 0);
         }
         if (base.crit !== item.crit) {
             const n = item.crit - base.crit;
-            line(signed(n, Lang.tip[41].Value), 'PrefixCritChance', n < 0);
+            line(signed(n, Lang.tip[41].Value), TooltipNames.PrefixCritChance, n < 0);
         }
         if (base.mana !== item.mana) {
             const n = percent(item.mana, base.mana);
-            line(signed(n, Lang.tip[42].Value), 'PrefixUseMana', n > 0);
+            line(signed(n, Lang.tip[42].Value), TooltipNames.PrefixUseMana, n > 0);
         }
         if (base.scale !== item.scale) {
             const n = percent(item.scale, base.scale);
-            line(signed(n, Lang.tip[43].Value), 'PrefixSize', n < 0);
+            line(signed(n, Lang.tip[43].Value), TooltipNames.PrefixSize, n < 0);
         }
         if (base.shootSpeed !== item.shootSpeed) {
             const n = percent(item.shootSpeed, base.shootSpeed);
-            line(signed(n, Lang.tip[44].Value), 'PrefixShootSpeed', n < 0);
+            line(signed(n, Lang.tip[44].Value), TooltipNames.PrefixShootSpeed, n < 0);
         }
         if (base.knockBack !== oldKB) {
             const n = percent(oldKB, base.knockBack);
-            line(signed(n, Lang.tip[45].Value), 'PrefixKnockback', n < 0);
+            line(signed(n, Lang.tip[45].Value), TooltipNames.PrefixKnockback, n < 0);
         }
         if (base.armorPenetration !== item.armorPenetration) {
             const n = item.armorPenetration - base.armorPenetration;
-            line(format(text('CommonItemTooltip.PrefixArmorPenetration'), bl.box(n, 'int')), 'PrefixArmorPenetration', n < 0);
+            line(format(text('CommonItemTooltip.PrefixArmorPenetration'), bl.box(n, 'int')), TooltipNames.PrefixArmorPenetration, n < 0);
         }
         if (base.bonusTagDamage !== item.bonusTagDamage) {
             const n = item.bonusTagDamage - base.bonusTagDamage;
-            line(format(text('CommonItemTooltip.PrefixTagDamage'), bl.box(n, 'int')), 'PrefixTagDamage', n < 0);
+            line(format(text('CommonItemTooltip.PrefixTagDamage'), bl.box(n, 'int')), TooltipNames.PrefixTagDamage, n < 0);
         }
 
         // Acessórios: o prefixo dá um valor fixo.
         const p = item.prefix;
-        if (p >= 62 && p <= 65) line('+' + (p - 61) + Lang.tip[25].Value, 'PrefixAccDefense');
-        else if (p === 66) line('+20 ' + Lang.tip[31].Value, 'PrefixAccMaxMana');
-        else if (p === 67 || p === 68) line('+' + (p === 67 ? 2 : 4) + Lang.tip[5].Value, 'PrefixAccCritChance');
-        else if (p >= 69 && p <= 72) line('+' + (p - 68) + Lang.tip[39].Value, 'PrefixAccDamage');
-        else if (p >= 73 && p <= 76) line('+' + (p - 72) + Lang.tip[46].Value, 'PrefixAccMoveSpeed');
-        else if (p >= 77 && p <= 80) line('+' + (p - 76) + Lang.tip[47].Value, 'PrefixAccMeleeSpeed');
+        if (p >= 62 && p <= 65) line('+' + (p - 61) + Lang.tip[25].Value, TooltipNames.PrefixAccDefense);
+        else if (p === 66) line('+20 ' + Lang.tip[31].Value, TooltipNames.PrefixAccMaxMana);
+        else if (p === 67 || p === 68) line('+' + (p === 67 ? 2 : 4) + Lang.tip[5].Value, TooltipNames.PrefixAccCritChance);
+        else if (p >= 69 && p <= 72) line('+' + (p - 68) + Lang.tip[39].Value, TooltipNames.PrefixAccDamage);
+        else if (p >= 73 && p <= 76) line('+' + (p - 72) + Lang.tip[46].Value, TooltipNames.PrefixAccMoveSpeed);
+        else if (p >= 77 && p <= 80) line('+' + (p - 76) + Lang.tip[47].Value, TooltipNames.PrefixAccMeleeSpeed);
     }
 
     // O bônus de conjunto: o do conjunto mais perto de completo.
@@ -336,10 +336,10 @@ class VanillaTooltips {
 
         const key = VanillaTooltips.TextValue(Main.ReversedUpDownArmorSetBonuses ? 'Key.UP' : 'Key.DOWN');
         if (item.wornArmor) {
-            add('SetBonus', best.GetTooltipForWornArmor(context, result).replace('{0}', key), 'setBonus');
+            add(TooltipNames.SetBonus, best.GetTooltipForWornArmor(context, result).replace('{0}', key), 'setBonus');
             out.setBonusColor = result.Complete ? Color.LimeGreen : Color.new(130, 130, 130);
         } else {
-            add('SetBonus', best.GetTooltipForSinglePiece(item.type).replace('{0}', key), 'setBonus');
+            add(TooltipNames.SetBonus, best.GetTooltipForSinglePiece(item.type).replace('{0}', key), 'setBonus');
             out.setBonusColor = Color.new(130, 130, 130);
         }
     }

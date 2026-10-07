@@ -16,11 +16,13 @@ import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.game.ModAudio
+import dev.bunnyloader.game.ServerSync
 import dev.bunnyloader.game.UnityHost
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.nativebridge.NativeBridge
 import dev.bunnyloader.nativebridge.NativeConfig
 import java.io.File
+import java.lang.ref.WeakReference
 
 /**
  * Sobe o jogo dentro do processo :game.
@@ -37,9 +39,14 @@ import java.io.File
  */
 class GameActivity : Activity() {
 
-    private companion object {
+    companion object {
+        private var currentRef: WeakReference<GameActivity>? = null
+
+        /** A tela do jogo aberta agora: o ServerSync mostra os diálogos nela. */
+        val current: GameActivity? get() = currentRef?.get()
+
         /** Logs de sessao guardados em logs/ (o desta mais os anteriores). */
-        const val LOGS_KEPT = 3
+        private const val LOGS_KEPT = 3
 
         /**
          * Núcleo de mods. Religado agora que o hosting está provado (o jogo
@@ -48,7 +55,7 @@ class GameActivity : Activity() {
          * dlopen(RTLD_NOLOAD) da sonda deve enxergá-la — era justamente isso que
          * faltava quando o jogo rodava no processo dele.
          */
-        const val ENABLE_NATIVE_CORE = true
+        private const val ENABLE_NATIVE_CORE = true
     }
 
     private var host: UnityHost? = null
@@ -58,6 +65,7 @@ class GameActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
+        currentRef = WeakReference(this)
         BootLog.reset(this)
         BootLog.installCrashHandler(this)
         BootLog.captureLogcat(this)
@@ -143,12 +151,16 @@ class GameActivity : Activity() {
         val repo = ModRepository(this)
         val prefs = dev.bunnyloader.ui.Prefs(this)
         val logFile = newLogFile(File(repo.modsDir.parentFile ?: filesDir, "logs"))
+        // A volta a um servidor depois da sincronização de mods: os mods dele,
+        // nesta abertura só.
+        val session = ServerSync.takeSession(this)
+        if (session != null) Log.i(TAG, "sincronizar mods: abrindo com os ${session.mods.size} pacotes do servidor")
         val ok = runCatching {
             NativeBridge.init(
                 NativeConfig(
                     gameLibDir = BundledRuntime.libDir(this).absolutePath,
                     modsDir = repo.modsDir.absolutePath,
-                    enabledMods = repo.enabledSpecs().toTypedArray(),
+                    enabledMods = (session?.mods ?: repo.enabledSpecs()).toTypedArray(),
                     logPath = logFile.absolutePath,
                     // Canal de dev: adb push <arquivo> para a NOSSA pasta
                     // externa. A do Terraria nao serve — desde o Android 11
@@ -168,6 +180,10 @@ class GameActivity : Activity() {
                     fastBoot = prefs.quickStart,
                     quickPlayer = if (prefs.quickWorldFile.isNotEmpty()) prefs.quickPlayer else "",
                     quickWorld = prefs.quickWorldFile,
+                    joinAddress = session?.address.orEmpty(),
+                    joinPort = session?.port ?: 0,
+                    joinPassword = session?.password.orEmpty(),
+                    joinPlayer = session?.player.orEmpty(),
                 ),
             )
         }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)
@@ -225,6 +241,7 @@ class GameActivity : Activity() {
     override fun onStop() { super.onStop(); host?.stop() }
 
     override fun onDestroy() {
+        if (currentRef?.get() === this) currentRef = null
         val hadHost = host != null
         host?.destroy()
         super.onDestroy()

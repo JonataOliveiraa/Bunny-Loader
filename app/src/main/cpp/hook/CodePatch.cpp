@@ -70,15 +70,26 @@ bool isLimitBranch(uint32_t insn, bool belowToo) {
 }
 
 /**
+ * Instrucao que nao mexe nas flags: load/store (op0 = x1x0), extensao/campo
+ * de bits (SBFM/UBFM: `sxth`, `uxtb`...) e `mov` de registrador (ORR com o
+ * zero). No MessageBuffer.ProcessData: `cmp w8, #696; sxth w21, w21; b.hi`.
+ */
+bool keepsFlags(uint32_t insn) {
+    if ((insn & 0x0A000000u) == 0x08000000u) return true;
+    if ((insn & 0x1F800000u) == 0x13000000u) return true;
+    return (insn & 0x7F2003E0u) == 0x2A0003E0u;
+}
+
+/**
  * O desvio de ordem que usa as flags do cmp em `p`: logo depois, ou depois de
- * ate 3 loads/stores (o compilador as vezes zera a pilha no meio, como no
- * WorldGen.PlaceObject: `cmp; stp xzr; str xzr; b.gt`). Load/store nunca
- * muda as flags (op0 = x1x0), entao o desvio ainda e o do cmp.
+ * ate 3 instrucoes que nao mexem nelas (o compilador as vezes zera a pilha no
+ * meio, como no WorldGen.PlaceObject: `cmp; stp xzr; str xzr; b.gt`), entao o
+ * desvio ainda e o do cmp.
  */
 bool limitBranchAfter(const uint32_t* p, uintptr_t end, bool belowToo) {
     for (int k = 1; k <= 4 && reinterpret_cast<uintptr_t>(p + k) < end; ++k) {
         if (isLimitBranch(p[k], belowToo)) return true;
-        if ((p[k] & 0x0A000000u) != 0x08000000u) return false;
+        if (!keepsFlags(p[k])) return false;
     }
     return false;
 }

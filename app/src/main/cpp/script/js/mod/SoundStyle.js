@@ -26,10 +26,8 @@ class SoundStyle {
             Safe.Once('som:' + path, "SoundStyle: nao achei '" + path + "' (" + ModFiles.AUDIO.join(', ') + ') em Assets/Sounds');
         }
         sound.id = sound.file ? SoundLoader.Load(sound.file, path) : 0;
-        sound.duration = 0;
-        sound.playing = [];
-
         const index = SoundLoader.Sounds.length;
+        sound.group = index;
         SoundLoader.Sounds.push(sound);
 
         const marker = Terraria.Audio.LegacySoundStyle.new();

@@ -1,0 +1,14 @@
+{
+  "uid": "3d585304-ea5f-4d73-8990-05bed654fb7e",
+  "id": "test-npcaitype",
+  "name": "Teste: AIType de ModNPC",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "IA nativa emprestada, restauração do tipo e ordem de GlobalNPC.",
+  "description": "Use em cópias de saves. Cria NPCs temporários e os desativa ao terminar.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

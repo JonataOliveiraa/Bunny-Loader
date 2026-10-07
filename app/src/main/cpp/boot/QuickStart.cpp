@@ -7,6 +7,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Signature.h"
 #include "menu/Cheats.h"
 
 #include <time.h>
@@ -275,59 +276,83 @@ void skipTouchControlsPrompt() {
  * Os avisos que as listas dao no caminho (espaco em disco, memoria para
  * mundo grande, versao do save) ficam de fora: e ferramenta de dev.
  */
+/**
+ * Os dois primeiros passos: o personagem do arquivo `playerFile` ativo. O
+ * Player dele, ou null (o motivo vai para o log).
+ */
+Il2CppObject* selectPlayerFile(const std::string& playerFile) {
+    auto& a = il2cpp::api();
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
+    Il2CppClass* fileData = il2cpp::findClass({"Terraria.IO", "FileData", {}});
+    Il2CppClass* playerData = il2cpp::findClass({"Terraria.IO", "PlayerFileData", {}});
+    if (!main || !player || !fileData || !playerData) {
+        BL_ERROR("inicio rapido: classes do jogo nao encontradas");
+        return nullptr;
+    }
+    const MethodInfo* loadPlayers = a.class_get_method_from_name(main, "LoadPlayers", 1);
+    const MethodInfo* getPlayerList = a.class_get_method_from_name(main, "get_PlayerList", 0);
+    const MethodInfo* selectPlayer = a.class_get_method_from_name(main, "SelectPlayer", 1);
+    const MethodInfo* getPlayer = a.class_get_method_from_name(playerData, "get_Player", 0);
+    const int32_t pathOffset = il2cpp::fieldOffset(fileData, "_path");
+    const int32_t loadStatusOffset = il2cpp::fieldOffset(player, "loadStatus");
+    if (!loadPlayers || !getPlayerList || !selectPlayer || !getPlayer || pathOffset < 0 ||
+        loadStatusOffset < 0) {
+        BL_ERROR("inicio rapido: metodos ou campos do personagem nao encontrados");
+        return nullptr;
+    }
+
+    // A lista do titulo nasce vazia: quem a enche e a tela de personagens, ao
+    // abrir.
+    uint8_t fullRefresh = 0;
+    void* loadArgs[1] = {&fullRefresh};
+    Il2CppObject* players = nullptr;
+    if (!invoke(loadPlayers, nullptr, loadArgs, "Main.LoadPlayers") ||
+        !invoke(getPlayerList, nullptr, nullptr, "Main.PlayerList", &players)) return nullptr;
+    Il2CppObject* data = findByFile(players, toUtf16(playerFile), pathOffset);
+    if (!data) {
+        BL_ERROR("inicio rapido: o personagem %s nao esta na pasta Players; o jogo fica no titulo",
+                 playerFile.c_str());
+        return nullptr;
+    }
+    Il2CppObject* who = nullptr;
+    if (!invoke(getPlayer, data, nullptr, "PlayerFileData.Player", &who)) return nullptr;
+    if (!who || field<int32_t>(who, loadStatusOffset) != 0) {
+        BL_ERROR("inicio rapido: o personagem %s nao abriu (arquivo com defeito?); o jogo fica no titulo",
+                 playerFile.c_str());
+        return nullptr;
+    }
+    void* selectArgs[1] = {data};
+    if (!invoke(selectPlayer, nullptr, selectArgs, "Main.SelectPlayer")) return nullptr;
+    return who;
+}
+
 void enterWorld(const std::string& playerFile, const std::string& worldFile) {
     auto& a = il2cpp::api();
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* worldGen = il2cpp::findClass({"Terraria", "WorldGen", {}});
     Il2CppClass* player = il2cpp::findClass({"Terraria", "Player", {}});
     Il2CppClass* fileData = il2cpp::findClass({"Terraria.IO", "FileData", {}});
-    Il2CppClass* playerData = il2cpp::findClass({"Terraria.IO", "PlayerFileData", {}});
     Il2CppClass* worldData = il2cpp::findClass({"Terraria.IO", "WorldFileData", {}});
-    if (!main || !worldGen || !player || !fileData || !playerData || !worldData) {
+    if (!main || !worldGen || !player || !fileData || !worldData) {
         BL_ERROR("inicio rapido: classes do jogo nao encontradas");
         return;
     }
-    const MethodInfo* loadPlayers = a.class_get_method_from_name(main, "LoadPlayers", 1);
-    const MethodInfo* getPlayerList = a.class_get_method_from_name(main, "get_PlayerList", 0);
-    const MethodInfo* selectPlayer = a.class_get_method_from_name(main, "SelectPlayer", 1);
     const MethodInfo* setMenuMode = a.class_get_method_from_name(main, "set_menuMode", 1);
-    const MethodInfo* getPlayer = a.class_get_method_from_name(playerData, "get_Player", 0);
     const MethodInfo* setActive = a.class_get_method_from_name(worldData, "SetAsActive", 0);
     const MethodInfo* playWorld = a.class_get_method_from_name(worldGen, "playWorld", 0);
     FieldInfo* worldList = il2cpp::findField(main, "WorldList");
     const int32_t pathOffset = il2cpp::fieldOffset(fileData, "_path");
-    const int32_t loadStatusOffset = il2cpp::fieldOffset(player, "loadStatus");
     const int32_t difficultyOffset = il2cpp::fieldOffset(player, "difficulty");
     const int32_t gameModeOffset = il2cpp::fieldOffset(worldData, "GameMode");
-    if (!loadPlayers || !getPlayerList || !selectPlayer || !setMenuMode || !getPlayer ||
-        !setActive || !playWorld || !worldList || pathOffset < 0 || loadStatusOffset < 0 ||
+    if (!setMenuMode || !setActive || !playWorld || !worldList || pathOffset < 0 ||
         difficultyOffset < 0 || gameModeOffset < 0) {
         BL_ERROR("inicio rapido: metodos ou campos do jogo nao encontrados");
         return;
     }
 
-    // O personagem. A lista do titulo nasce vazia: quem a enche e a tela de
-    // personagens, ao abrir.
-    uint8_t fullRefresh = 0;
-    void* loadArgs[1] = {&fullRefresh};
-    Il2CppObject* players = nullptr;
-    if (!invoke(loadPlayers, nullptr, loadArgs, "Main.LoadPlayers") ||
-        !invoke(getPlayerList, nullptr, nullptr, "Main.PlayerList", &players)) return;
-    Il2CppObject* data = findByFile(players, toUtf16(playerFile), pathOffset);
-    if (!data) {
-        BL_ERROR("inicio rapido: o personagem %s nao esta na pasta Players; o jogo fica no titulo",
-                 playerFile.c_str());
-        return;
-    }
-    Il2CppObject* who = nullptr;
-    if (!invoke(getPlayer, data, nullptr, "PlayerFileData.Player", &who)) return;
-    if (!who || field<int32_t>(who, loadStatusOffset) != 0) {
-        BL_ERROR("inicio rapido: o personagem %s nao abriu (arquivo com defeito?); o jogo fica no titulo",
-                 playerFile.c_str());
-        return;
-    }
-    void* selectArgs[1] = {data};
-    if (!invoke(selectPlayer, nullptr, selectArgs, "Main.SelectPlayer")) return;
+    Il2CppObject* who = selectPlayerFile(playerFile);
+    if (!who) return;
 
     // O mundo. O SelectPlayer ja leu a lista; daqui em diante, qualquer
     // recusa deixa o jogo na lista de mundos, com o personagem escolhido.
@@ -358,6 +383,56 @@ void enterWorld(const std::string& playerFile, const std::string& worldFile) {
     g_entered = true;
     BL_INFO("inicio rapido: carregando %s com %s (%.1f s)", worldFile.c_str(), playerFile.c_str(),
             sinceStart());
+}
+
+/**
+ * A volta ao servidor depois da sincronizacao de mods: o personagem, e o que
+ * o "Entrar" da tela de Multijogador faz (Main.netMode = 1, a tela de
+ * "conectando", Netplay.SetRemoteIP, a porta, a senha e
+ * Netplay.StartTcpClient). Senha errada ou servidor fora do ar caem nas telas
+ * do proprio jogo.
+ */
+void joinServer(const Config& c) {
+    auto& a = il2cpp::api();
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    Il2CppClass* netplay = il2cpp::findClass({"Terraria", "Netplay", {}});
+    if (!main || !netplay) {
+        BL_ERROR("voltar ao servidor: Main/Netplay nao encontrados");
+        return;
+    }
+    const MethodInfo* setMenuMode = a.class_get_method_from_name(main, "set_menuMode", 1);
+    FieldInfo* netMode = il2cpp::findField(main, "netMode");
+    FieldInfo* listenPort = il2cpp::findField(netplay, "ListenPort");
+    FieldInfo* password = il2cpp::findField(netplay, "ServerPassword");
+    const MethodInfo* setRemoteIp = il2cpp::findMethodBySignature(
+        netplay, il2cpp::parseSignature("bool SetRemoteIP(string remoteAddress)"));
+    const MethodInfo* startClient = il2cpp::findMethodBySignature(
+        netplay, il2cpp::parseSignature("void StartTcpClient(bool connectingToLocalServer)"));
+    if (!setMenuMode || !netMode || !listenPort || !password || !setRemoteIp || !startClient) {
+        BL_ERROR("voltar ao servidor: metodos ou campos do Netplay nao encontrados");
+        return;
+    }
+    if (!selectPlayerFile(c.joinPlayer)) return;
+
+    void* ipArgs[1] = {a.string_new(c.joinAddress.c_str())};
+    Il2CppObject* ok = nullptr;
+    if (!invoke(setRemoteIp, nullptr, ipArgs, "Netplay.SetRemoteIP", &ok)) return;
+    if (!ok || *(reinterpret_cast<uint8_t*>(ok) + sizeof(Il2CppObject)) == 0) {
+        BL_ERROR("voltar ao servidor: endereco %s invalido", c.joinAddress.c_str());
+        return;
+    }
+    int32_t client = 1, port = c.joinPort > 0 ? c.joinPort : 7777, connecting = 14;
+    a.field_static_set_value(netMode, &client);
+    a.field_static_set_value(listenPort, &port);
+    a.field_static_set_value(password, a.string_new(c.joinPassword.c_str()));
+    void* modeArgs[1] = {&connecting};
+    if (!invoke(setMenuMode, nullptr, modeArgs, "Main.menuMode")) return;
+    skipTouchControlsPrompt();
+    uint8_t local = 0;
+    void* startArgs[1] = {&local};
+    if (!invoke(startClient, nullptr, startArgs, "Netplay.StartTcpClient")) return;
+    BL_INFO("voltar ao servidor: %s conectando em %s:%d (%.1f s)", c.joinPlayer.c_str(),
+            c.joinAddress.c_str(), port, sinceStart());
 }
 
 int32_t menuMode() {
@@ -405,15 +480,15 @@ void waitForGameLoaded(std::chrono::milliseconds max) {
 }
 
 void markCoreReady() {
-    if (!config().fastBoot) return;
     g_coreReady.store(true, std::memory_order_release);
-    BL_INFO("inicio rapido: mods carregados em %.1f s", sinceStart());
+    if (config().fastBoot) BL_INFO("inicio rapido: mods carregados em %.1f s", sinceStart());
 }
 
 void tickQuickStart() {
     if (g_entryDone) return;
     const Config& c = config();
-    if (!c.fastBoot || c.quickPlayer.empty()) { g_entryDone = true; return; }
+    const bool join = !c.joinAddress.empty() && !c.joinPlayer.empty();
+    if (!join && (!c.fastBoot || c.quickPlayer.empty())) { g_entryDone = true; return; }
     if (!g_coreReady.load(std::memory_order_acquire)) return;
 
     if (g_entered) {
@@ -438,6 +513,13 @@ void tickQuickStart() {
             g_entryDone = true;
             BL_WARN("inicio rapido: o titulo nao ficou livre (menuMode %d); entrada cancelada", mode);
         }
+        return;
+    }
+    if (join) {
+        // Uma tentativa: daqui o jogo segue nas telas dele (conectando,
+        // senha, erro).
+        joinServer(c);
+        g_entryDone = true;
         return;
     }
     if (c.quickWorld.empty()) {

@@ -40,6 +40,18 @@ class ItemNetworkHooks {
         return true;
     }
 
+    // O item que `run` soltar no mundo (Item.NewItem do mesmo tipo) leva os dados de `item`.
+    static DropFrom(item, run) {
+        const previous = ItemNetworkHooks.#dropSource;
+        ItemNetworkHooks.#dropSource = item;
+        try {
+            return run();
+        }
+        finally {
+            ItemNetworkHooks.#dropSource = previous;
+        }
+    }
+
     static Slot(playerIndex, slot) {
         const player = Terraria.Main.player[playerIndex];
         if (!player || slot < 0 || slot >= Terraria.ID.PlayerItemSlotID.Count) return null;
@@ -167,9 +179,10 @@ class ItemNetworkHooks {
 
     static Install() {
         Hooks.Once('item.NetworkData', () => {
-            ModNet.InstallEntity();
+            ModNet.InstallEntity(5, 21, 32, 90);
 
-            Terraria.MessageBuffer['void ProcessData(byte[] messageData, int length, out int messageType)'].hook(ItemNetworkHooks.Process);
+            Terraria.MessageBuffer['void ProcessData(byte[] messageData, int length, out int messageType)'].hook(ItemNetworkHooks.Process,
+                ModNet.Received('net.recv.items', 5, 21, 32, 90));
 
             Terraria.MessageBuffer['void Reset(bool setupActive)'].hook((original, self, setup) => {
                 ItemNetworkHooks.#pending.delete(Terraria.Main.netMode === 1 ? 256 : self.whoAmI);

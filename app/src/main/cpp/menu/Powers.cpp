@@ -27,7 +27,8 @@ constexpr int kPowerCount = static_cast<int>(Power::Count);
 
 // Quantos niveis cada poder tem, na ordem do enum. Liga/desliga = 1.
 constexpr int kMaxLevel[] = {3, 2, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, kSliderLevels, kSliderLevels, 1,
-                             kSliderLevels, 1, 1, 1, 2, 4, 1, 1};
+                             kSliderLevels, 1, 1, 1, 2, 4, 1, 1, 2, 1,
+                             1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 static_assert(std::size(kMaxLevel) == kPowerCount, "um nivel maximo por poder");
 
 // Indice 0 = desligado.
@@ -134,13 +135,31 @@ constexpr int kWorldResyncFrames = 60;
  * tela dele, mas quem manda no mundo e o servidor: o menu do cliente tambem
  * pede a ele (ver forwardWorldPowers).
  */
+/** Os que comecam um evento, de BloodMoon a Sandstorm. */
+bool isEventPower(Power p) { return p >= Power::BloodMoon && p <= Power::Sandstorm; }
+
 bool isWorldPower(Power p) {
     switch (p) {
     case Power::TimeStop: case Power::Rain: case Power::Wind: case Power::NoSpawns:
     case Power::Hardmode: case Power::Difficulty: case Power::ClearEnemies:
+    case Power::StopInfection: case Power::StopEvents:
         return true;
     default:
-        return false;
+        return isEventPower(p);
+    }
+}
+
+/**
+ * Os de mundo que sao pedido, nao estado: rodam uma vez e o nivel volta a 0.
+ * No cliente vao ao servidor e sao consumidos ali (forwardWorldPowers).
+ */
+bool isWorldCommand(Power p) {
+    switch (p) {
+    case Power::Hardmode: case Power::Difficulty: case Power::ClearEnemies:
+    case Power::StopInfection: case Power::StopEvents:
+        return true;
+    default:
+        return isEventPower(p);
     }
 }
 
@@ -155,9 +174,10 @@ bool usesResetHook(Power p) {
     case Power::Bestiary: case Power::NoSpawns: case Power::MapTeleport:
     case Power::ClearInventory: case Power::RevealMap: case Power::Hardmode:
     case Power::Difficulty: case Power::FastRespawn: case Power::ClearEnemies:
+    case Power::StopInfection: case Power::StopEvents:
         return false;
     default:
-        return true;
+        return !isEventPower(p);
     }
 }
 
@@ -194,6 +214,10 @@ const MethodInfo* g_reset = nullptr;
 const MethodInfo* g_playerUpdate = nullptr;
 const MethodInfo* g_npcUpdate = nullptr;
 const MethodInfo* g_projUpdate = nullptr;
+// CoinLossRevengeSystem.Update: o DoUpdateInWorld do celular o chama logo
+// depois de encher a vida e a mana de quem tem creativeGodMode (ver
+// hkRevengeUpdate), e so ali.
+const MethodInfo* g_revengeUpdate = nullptr;
 
 /**
  * Os dois motores de luz. O jogo usa um de cada vez, conforme o modo de luz
@@ -235,16 +259,31 @@ struct WorldRefs {
     int32_t uiMouseX = -1, uiMouseY = -1;   // XNAUnityRunner.MouseStateBackup
 } W;
 
+/** Eventos: as flags do Main e dos eventos, e os metodos que o jogo usa para comecar. */
+struct EventRefs {
+    FieldInfo *dayTime = nullptr, *bloodMoon = nullptr, *eclipse = nullptr, *raining = nullptr,
+        *slimeRain = nullptr, *pumpkinMoon = nullptr, *snowMoon = nullptr,
+        *invasionType = nullptr, *invasionSize = nullptr, *manualParty = nullptr,
+        *genuineParty = nullptr, *manualLanterns = nullptr, *genuineLanterns = nullptr,
+        *sandstorm = nullptr;
+    const MethodInfo *startSlimeRain = nullptr, *stopSlimeRain = nullptr, *stopRain = nullptr,
+        *startInvasion = nullptr, *startPumpkinMoon = nullptr, *startSnowMoon = nullptr,
+        *stopMoonEvent = nullptr, *toggleParty = nullptr, *startSandstorm = nullptr,
+        *stopSandstorm = nullptr, *stopOldOnesArmy = nullptr;
+    int32_t statLifeMax = -1;   // Player.statLifeMax: a invasao pede alguem com 200
+} E;
+
 enum class State { NotTried, Ok, Failed };
 State g_refs = State::NotTried;
 // Refs de cada grupo opcional: faltar uma desliga so aquele poder.
 bool g_flyRefs = false, g_weatherRefs = false, g_lightRefs = false, g_bestiaryRefs = false;
 bool g_timeRefs = false, g_hardmodeRefs = false, g_spawnRefs = false, g_mapRefs = false,
-    g_inventoryRefs = false, g_teleportRefs = false, g_sectionRefs = false;
+    g_inventoryRefs = false, g_teleportRefs = false, g_sectionRefs = false, g_eventRefs = false;
 State g_spawnHook = State::NotTried;
 State g_playerHook = State::NotTried;
 State g_timeHooks = State::NotTried;
-State g_flyHook = State::NotTried;
+State g_playerUpdateHook = State::NotTried;   // o voo e a mana do Imortal
+State g_revengeHook = State::NotTried;
 State g_lightHooks = State::NotTried;
 
 // O jogador deste aparelho. -1 fora do mundo. Escrito no DoUpdate, lido nos
@@ -281,7 +320,6 @@ bool resolveFlyRefs(Il2CppClass* player, Il2CppClass* main) {
     M.rightWorld = il2cpp::findField(main, "rightWorld");
     M.topWorld = il2cpp::findField(main, "topWorld");
     M.bottomWorld = il2cpp::findField(main, "bottomWorld");
-    g_playerUpdate = il2cpp::api().class_get_method_from_name(player, "Update", 1);
     return ok && M.leftWorld && M.rightWorld && M.topWorld && M.bottomWorld && g_playerUpdate;
 }
 
@@ -440,6 +478,53 @@ void resolveWorldRefs(Il2CppClass* main, Il2CppClass* player) {
                       W.uiMouseX >= 0 && W.uiMouseY >= 0;
 }
 
+void resolveEventRefs(Il2CppClass* main, Il2CppClass* player) {
+    using namespace il2cpp;
+    constexpr const char* kNs = "Terraria.GameContent.Events";
+    Il2CppClass* party = findClass({kNs, "BirthdayParty", {}});
+    Il2CppClass* lanterns = findClass({kNs, "LanternNight", {}});
+    Il2CppClass* sandstorm = findClass({kNs, "Sandstorm", {}});
+    Il2CppClass* oldOnes = findClass({kNs, "DD2Event", {}});
+    const auto staticField = [](Il2CppClass* cls, const char* name) {
+        return cls ? findField(cls, name) : nullptr;
+    };
+
+    E.dayTime = findField(main, "dayTime");
+    E.bloodMoon = findField(main, "bloodMoon");
+    E.eclipse = findField(main, "eclipse");
+    E.raining = findField(main, "raining");
+    E.slimeRain = findField(main, "slimeRain");
+    E.pumpkinMoon = findField(main, "pumpkinMoon");
+    E.snowMoon = findField(main, "snowMoon");
+    E.invasionType = findField(main, "invasionType");
+    E.invasionSize = findField(main, "invasionSize");
+    E.manualParty = staticField(party, "ManualParty");
+    E.genuineParty = staticField(party, "GenuineParty");
+    E.manualLanterns = staticField(lanterns, "ManualLanterns");
+    E.genuineLanterns = staticField(lanterns, "GenuineLanterns");
+    E.sandstorm = staticField(sandstorm, "Happening");
+    E.startSlimeRain = methodBySignature(main, "void StartSlimeRain(bool announce)");
+    E.stopSlimeRain = methodBySignature(main, "void StopSlimeRain(bool announce)");
+    E.stopRain = methodBySignature(main, "void StopRain(bool instant)");
+    E.startInvasion = methodBySignature(main, "void StartInvasion(int type)");
+    E.startPumpkinMoon = methodBySignature(main, "void startPumpkinMoon()");
+    E.startSnowMoon = methodBySignature(main, "void startSnowMoon()");
+    E.stopMoonEvent = methodBySignature(main, "void stopMoonEvent()");
+    E.toggleParty = methodBySignature(party, "void ToggleManualParty()");
+    // Privados no jogo; o il2cpp chama igual.
+    E.startSandstorm = methodBySignature(sandstorm, "void StartSandstorm()");
+    E.stopSandstorm = methodBySignature(sandstorm, "void StopSandstorm()");
+    E.stopOldOnesArmy = methodBySignature(oldOnes, "void StopInvasion(bool win)");
+    E.statLifeMax = fieldOffset(player, "statLifeMax");
+    g_eventRefs = allFound("eventos",
+        {E.dayTime, E.bloodMoon, E.eclipse, E.raining, E.slimeRain, E.pumpkinMoon, E.snowMoon,
+         E.invasionType, E.invasionSize, E.manualParty, E.genuineParty, E.manualLanterns,
+         E.genuineLanterns, E.sandstorm, E.startSlimeRain, E.stopSlimeRain, E.stopRain,
+         E.startInvasion, E.startPumpkinMoon, E.startSnowMoon, E.stopMoonEvent, E.toggleParty,
+         E.startSandstorm, E.stopSandstorm, E.stopOldOnesArmy, W.skipToTime, W.player}) &&
+        E.statLifeMax >= 0 && W.playerActive >= 0;
+}
+
 bool resolveRefs() {
     using namespace il2cpp;
     auto& a = api();
@@ -478,6 +563,12 @@ bool resolveRefs() {
     g_reset = a.class_get_method_from_name(player, "ResetEffects", 0);
     g_npcUpdate = a.class_get_method_from_name(npc, "UpdateNPC", 1);
     g_projUpdate = a.class_get_method_from_name(proj, "Update", 1);
+    g_playerUpdate = a.class_get_method_from_name(player, "Update", 1);
+    Il2CppClass* revenge = findClass({"Terraria.GameContent", "CoinLossRevengeSystem", {}});
+    g_revengeUpdate = methodBySignature(revenge, "void Update()");
+    if (!g_playerUpdate || !g_revengeUpdate) {
+        BL_ERROR("poderes: sem Player.Update/CoinLossRevengeSystem.Update; o Imortal enche a mana");
+    }
 
     if (!ok || g_npcImmune < 0 || g_projHostile < 0 || g_projFriendly < 0 ||
         !g_getMyPlayer || !M.time || !g_reset || !g_npcUpdate || !g_projUpdate) {
@@ -494,6 +585,7 @@ bool resolveRefs() {
     if (!(g_bestiaryRefs = resolveBestiaryRefs(main)))
         BL_ERROR("poderes: refs do bestiario faltando; Bestiario fica desligado");
     resolveWorldRefs(main, player);
+    resolveEventRefs(main, player);
     return true;
 }
 
@@ -647,12 +739,7 @@ PlayerUpdateFn g_origPlayerUpdate = nullptr;
  * Os controles sao os do proprio quadro: o Update os copia do
  * PlayerInput.Triggers no comeco, e no celular e o joystick que os liga.
  */
-void hkPlayerUpdate(Il2CppObject* self, int32_t i, const MethodInfo* m) {
-    const int n = levelOf(Power::Fly);
-    if (n == 0 || i != g_localPlayer.load(std::memory_order_relaxed) || !inWorld()) {
-        g_origPlayerUpdate(self, i, m);
-        return;
-    }
+void flyUpdate(Il2CppObject* self, int32_t i, const MethodInfo* m, int n) {
     const Vec2 before = field<Vec2>(self, F.position);
     g_origPlayerUpdate(self, i, m);
     if (field<uint8_t>(self, F.dead)) return;
@@ -684,6 +771,42 @@ void hkPlayerUpdate(Il2CppObject* self, int32_t i, const MethodInfo* m) {
     const int32_t tileY = static_cast<int32_t>(next.y / 16.f);
     field<int32_t>(self, F.fallStart) = tileY;
     field<int32_t>(self, F.fallStart2) = tileY;
+}
+
+// ------------------------------ mana do imortal ------------------------------
+
+/**
+ * O Imortal e o creativeGodMode da Jornada, e com ele o DoUpdateInWorld enche
+ * vida, mana e folego do jogador local depois do laco dos jogadores (o
+ * UpdateWorld_Players do PC). A mana cheia e da Mana infinita, nao do Imortal:
+ * a mana do fim do Player.Update volta no CoinLossRevengeSystem.Update, a
+ * chamada seguinte ao enchimento.
+ *
+ * -1: nada a devolver. Thread do jogo.
+ */
+int32_t g_manaBeforeRefill = -1;
+
+bool godKeepsMana() { return levelOf(Power::God) > 0 && levelOf(Power::Mana) == 0; }
+
+void hkPlayerUpdate(Il2CppObject* self, int32_t i, const MethodInfo* m) {
+    const bool local = i == g_localPlayer.load(std::memory_order_relaxed) && inWorld();
+    const int fly = local && g_flyRefs ? levelOf(Power::Fly) : 0;
+    if (fly > 0) flyUpdate(self, i, m, fly);
+    else g_origPlayerUpdate(self, i, m);
+    if (local) g_manaBeforeRefill = godKeepsMana() ? field<int32_t>(self, P.statMana) : -1;
+}
+
+using RevengeUpdateFn = void (*)(Il2CppObject*, const MethodInfo*);
+RevengeUpdateFn g_origRevengeUpdate = nullptr;
+
+void hkRevengeUpdate(Il2CppObject* self, const MethodInfo* m) {
+    if (g_manaBeforeRefill >= 0) {
+        if (Il2CppObject* p = godKeepsMana() ? localPlayer() : nullptr) {
+            field<int32_t>(p, P.statMana) = std::min(g_manaBeforeRefill, field<int32_t>(p, P.statManaMax2));
+        }
+        g_manaBeforeRefill = -1;
+    }
+    g_origRevengeUpdate(self, m);
 }
 
 // ------------------------------ raio-x ------------------------------
@@ -938,6 +1061,82 @@ std::atomic<int> g_stateGameMode{-1};
 std::atomic<int> g_stateClock{-1};
 std::atomic<int> g_stateRain{-1};
 std::atomic<int> g_stateWind{-1};
+std::atomic<int> g_stateInfection{-1};
+
+// ------------------------------ infeccao ------------------------------
+//
+// Parar a infeccao e o "Parar alastramento de biomas" da Jornada
+// (CreativePowers.StopBiomeSpreadPower): o WorldGen.UpdateWorld le o poder em
+// todo modo de jogo (GetIsUnlocked e sempre true) e desliga o
+// AllowedToSpreadInfections, que corrupcao, carmim e sagrado conferem antes de
+// espalhar. O jogo o salva no mundo, entao o estado e do mundo, como o hardmode.
+
+struct InfectionRefs {
+    State state = State::NotTried;
+    // O poder vive o processo inteiro: o CreativePowerManager e unico e o
+    // segura no dicionario.
+    Il2CppObject* power = nullptr;
+    int32_t enabled = -1;                  // ASharedTogglePower.<Enabled>k__BackingField
+    const MethodInfo* onJoin = nullptr;    // OnPlayerJoining(int): manda o estado a um cliente
+} I;
+
+Il2CppObject* biomeSpreadPower() {
+    if (I.state != State::NotTried) return I.power;
+    I.state = State::Failed;
+    using namespace il2cpp;
+    auto& a = api();
+    Il2CppClass* manager = findClass({"Terraria.GameContent.Creative", "CreativePowerManager", {}});
+    const MethodInfo* instance = manager ? a.class_get_method_from_name(manager, "get_Instance", 0) : nullptr;
+    const int32_t byName = manager ? fieldOffset(manager, "_powersByName") : -1;
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* self = instance && byName >= 0 ? a.runtime_invoke(instance, nullptr, nullptr, &exc) : nullptr;
+    auto* dict = self && !exc ? field<Il2CppObject*>(self, byName) : nullptr;
+    const MethodInfo* tryGet = dict ? a.class_get_method_from_name(a.object_get_class(dict), "TryGetValue", 2) : nullptr;
+    if (!tryGet) {
+        BL_ERROR("poderes: sem o CreativePowerManager; Parar infeccao fica desligado");
+        return nullptr;
+    }
+    Il2CppObject* power = nullptr;
+    void* args[] = {a.string_new("biomespread_setfrozen"), &power};
+    exc = nullptr;
+    const bool found = unboxBool(a.runtime_invoke(tryGet, dict, args, &exc));
+    if (!found || exc || !power) {
+        BL_ERROR("poderes: sem o poder biomespread_setfrozen da Jornada; Parar infeccao fica desligado");
+        return nullptr;
+    }
+    Il2CppClass* cls = a.object_get_class(power);
+    I.enabled = fieldOffset(cls, "<Enabled>k__BackingField");
+    I.onJoin = a.class_get_method_from_name(cls, "OnPlayerJoining", 1);
+    if (I.enabled < 0) return nullptr;
+    I.power = power;
+    I.state = State::Ok;
+    return power;
+}
+
+/**
+ * 1 para, 2 solta. No servidor, quem ja esta no mundo recebe o estado novo
+ * pelo mesmo pacote que o jogo manda a quem entra; quem espalha e o servidor,
+ * os clientes so precisam dele para o menu.
+ */
+void applyInfection(int command) {
+    if (readStatic<int32_t>(W.netMode) == kNetClient) return;
+    Il2CppObject* power = biomeSpreadPower();
+    if (!power) return;
+    field<uint8_t>(power, I.enabled) = command == 1 ? 1 : 0;
+    BL_INFO("poderes: infeccao %s", command == 1 ? "parada" : "solta");
+
+    auto* players = readStatic<Il2CppArray*>(W.player);
+    if (!isNetHost() || !I.onJoin || !players || W.playerActive < 0) return;
+    auto** all = static_cast<Il2CppObject**>(arrayData(players));
+    const int local = g_localPlayer.load(std::memory_order_relaxed);
+    for (int32_t i = 0; i < 255 && static_cast<uintptr_t>(i) < players->length; ++i) {
+        if (i == local || !all[i] || !field<uint8_t>(all[i], W.playerActive)) continue;
+        void* args[] = {&i};
+        Il2CppObject* exc = nullptr;
+        il2cpp::api().runtime_invoke(I.onJoin, power, args, &exc);
+        if (exc) BL_ERROR("poderes: OnPlayerJoining(%d) lancou excecao", i);
+    }
+}
 
 // O estado do mundo sai todo quadro, com poder ligado ou nao: o menu mostra
 // hardmode e dificuldade assim que abre. Refs proprias, e so duas.
@@ -949,7 +1148,8 @@ FieldInfo *g_stateTime = nullptr, *g_stateDayTime = nullptr, *g_stateRaining = n
 
 void updateWorldState() {
     if (!inWorld()) {
-        for (auto* v : {&g_stateHardmode, &g_stateGameMode, &g_stateClock, &g_stateRain, &g_stateWind}) {
+        for (auto* v : {&g_stateHardmode, &g_stateGameMode, &g_stateClock, &g_stateRain, &g_stateWind,
+                        &g_stateInfection}) {
             v->store(-1, std::memory_order_relaxed);
         }
         return;
@@ -985,6 +1185,8 @@ void updateWorldState() {
     const float wind = readStatic<float>(g_stateWindTarget) / kMaxWind;
     g_stateWind.store(std::clamp(static_cast<int>(std::lround((wind + 1.f) * 50.f)), 0, 100),
                       std::memory_order_relaxed);
+    Il2CppObject* spread = biomeSpreadPower();
+    g_stateInfection.store(spread ? field<uint8_t>(spread, I.enabled) : -1, std::memory_order_relaxed);
 }
 
 /** O botao de hora: o mesmo SkipToTime dos botoes da Jornada. */
@@ -1115,6 +1317,122 @@ void clearHostiles() {
         // um NPC inativo leva vida 0, e o cliente o desliga ao receber.
         if (isNetHost()) sendData(23, static_cast<int>(i));
     }
+}
+
+// ------------------------------ eventos ------------------------------
+
+// A vida maxima que o Main.StartInvasion pede de pelo menos um jogador.
+constexpr int32_t kInvasionLife = 200;
+
+bool invokeStatic(const MethodInfo* method, void** args, const char* name) {
+    Il2CppObject* exc = nullptr;
+    il2cpp::api().runtime_invoke(method, nullptr, args, &exc);
+    if (exc) BL_ERROR("poderes: %s lancou excecao", name);
+    return !exc;
+}
+
+/** As luas sao de noite e o eclipse e de dia: o relogio vai la antes, como o botao de hora. */
+void ensureDayTime(bool day) {
+    if (readStatic<bool>(E.dayTime) != day) applyTimeOfDay(day ? 0 : 2);   // amanhecer, anoitecer
+}
+
+/**
+ * O Main.StartInvasion nao comeca sem alguem de 200 de vida maxima (o jogo nao
+ * manda goblin em quem acabou de nascer). Pelo menu comeca: sem ninguem assim,
+ * o primeiro jogador ativo tem 200 so durante a chamada.
+ */
+void startInvasion(int32_t type) {
+    auto* players = readStatic<Il2CppArray*>(W.player);
+    auto** all = players ? static_cast<Il2CppObject**>(arrayData(players)) : nullptr;
+    Il2CppObject* lifted = nullptr;
+    for (uintptr_t i = 0; all && i < players->length && i < 255; ++i) {
+        Il2CppObject* p = all[i];
+        if (!p || !field<uint8_t>(p, W.playerActive)) continue;
+        if (field<int32_t>(p, E.statLifeMax) >= kInvasionLife) { lifted = nullptr; break; }
+        if (!lifted) lifted = p;
+    }
+    const int32_t oldMax = lifted ? field<int32_t>(lifted, E.statLifeMax) : 0;
+    if (lifted) field<int32_t>(lifted, E.statLifeMax) = kInvasionLife;
+    void* args[] = {&type};
+    invokeStatic(E.startInvasion, args, "Main.StartInvasion");
+    if (lifted) field<int32_t>(lifted, E.statLifeMax) = oldMax;
+    // Outra invasao em andamento: o jogo recusa.
+    if (readStatic<int32_t>(E.invasionType) != type) BL_INFO("poderes: invasao %d recusada pelo jogo", type);
+}
+
+/**
+ * Comeca o evento pelo metodo que o item que o invoca chama, com o aviso do
+ * jogo. Lua de Sangue e eclipse nao tem metodo: sao a flag do Main.
+ */
+void startEvent(Power p) {
+    if (readStatic<int32_t>(W.netMode) == kNetClient) return;
+    bool yes = true;
+    void* flag[] = {&yes};
+    switch (p) {
+    case Power::BloodMoon:
+        ensureDayTime(false);
+        writeStatic<bool>(E.bloodMoon, true);
+        break;
+    case Power::Eclipse:
+        ensureDayTime(true);
+        writeStatic<bool>(E.eclipse, true);
+        break;
+    case Power::SlimeRain:
+        // O Main.StartSlimeRain nao comeca com chuva.
+        if (readStatic<bool>(E.raining)) invokeStatic(E.stopRain, flag, "Main.StopRain");
+        invokeStatic(E.startSlimeRain, flag, "Main.StartSlimeRain");
+        break;
+    case Power::GoblinArmy: startInvasion(1); break;
+    case Power::FrostLegion: startInvasion(2); break;
+    case Power::Pirates: startInvasion(3); break;
+    case Power::Martians: startInvasion(4); break;
+    case Power::PumpkinMoon:
+        ensureDayTime(false);
+        invokeStatic(E.startPumpkinMoon, nullptr, "Main.startPumpkinMoon");
+        break;
+    case Power::FrostMoon:
+        ensureDayTime(false);
+        invokeStatic(E.startSnowMoon, nullptr, "Main.startSnowMoon");
+        break;
+    case Power::Party:
+        if (!readStatic<bool>(E.manualParty) && !readStatic<bool>(E.genuineParty)) {
+            invokeStatic(E.toggleParty, nullptr, "BirthdayParty.ToggleManualParty");
+        }
+        break;
+    case Power::Sandstorm:
+        if (!readStatic<bool>(E.sandstorm)) invokeStatic(E.startSandstorm, nullptr, "Sandstorm.StartSandstorm");
+        break;
+    default:
+        return;
+    }
+    broadcastWorld(false);
+    BL_INFO("poderes: evento %d comecado", static_cast<int>(p));
+}
+
+/**
+ * Acaba com tudo que esta acontecendo. A invasao sai pelas flags, sem o fim do
+ * jogo: chegar ao fim conta como vitoria (o NPC.downedGoblins e companhia). Os
+ * inimigos que ja vieram ficam; o "Sumir com inimigos" leva.
+ */
+void stopEvents() {
+    if (readStatic<int32_t>(W.netMode) == kNetClient) return;
+    bool announce = true, win = false;
+    void* announceArg[] = {&announce};
+    void* winArg[] = {&win};
+    writeStatic<bool>(E.bloodMoon, false);
+    writeStatic<bool>(E.eclipse, false);
+    if (readStatic<bool>(E.slimeRain)) invokeStatic(E.stopSlimeRain, announceArg, "Main.StopSlimeRain");
+    writeStatic<int32_t>(E.invasionType, 0);
+    writeStatic<int32_t>(E.invasionSize, 0);
+    invokeStatic(E.stopMoonEvent, nullptr, "Main.stopMoonEvent");
+    invokeStatic(E.stopOldOnesArmy, winArg, "DD2Event.StopInvasion");
+    writeStatic<bool>(E.manualParty, false);
+    writeStatic<bool>(E.genuineParty, false);
+    writeStatic<bool>(E.manualLanterns, false);
+    writeStatic<bool>(E.genuineLanterns, false);
+    if (readStatic<bool>(E.sandstorm)) invokeStatic(E.stopSandstorm, nullptr, "Sandstorm.StopSandstorm");
+    broadcastWorld(false);
+    BL_INFO("poderes: eventos parados");
 }
 
 // ------------------------------ mochila ------------------------------
@@ -1386,6 +1704,12 @@ void tickWorldPowers() {
     const int hardmode = g_level[static_cast<int>(Power::Hardmode)].exchange(0);
     const int difficulty = g_level[static_cast<int>(Power::Difficulty)].exchange(0);
     const bool clearEnemies = g_level[static_cast<int>(Power::ClearEnemies)].exchange(0) > 0;
+    const int infection = g_level[static_cast<int>(Power::StopInfection)].exchange(0);
+    const bool stopAll = g_level[static_cast<int>(Power::StopEvents)].exchange(0) > 0;
+    bool events[kPowerCount] = {};
+    for (int i = 0; i < kPowerCount; ++i) {
+        if (isEventPower(static_cast<Power>(i))) events[i] = g_level[i].exchange(0) > 0;
+    }
     if (!inWorld()) {
         g_revealX = -1;
         g_revealWait = -1;
@@ -1417,6 +1741,12 @@ void tickWorldPowers() {
                                       &g_origSpawnRate);
     }
     if (clearEnemies && g_spawnRefs) clearHostiles();
+    if (infection > 0) applyInfection(infection);
+    // Parar vem antes: os dois no mesmo quadro deixam o evento novo.
+    if (stopAll && g_eventRefs) stopEvents();
+    for (int i = 0; i < kPowerCount; ++i) {
+        if (events[i] && g_eventRefs) startEvent(static_cast<Power>(i));
+    }
     if (levelOf(Power::MapTeleport) > 0 && g_teleportRefs) watchMapHold();
     else g_hold.down = false;
 }
@@ -1444,9 +1774,10 @@ void forwardWorldPowers() {
     }
     const int time = g_timeRequest.exchange(-1, std::memory_order_relaxed);
     if (time >= 0) sendToServer("time " + std::to_string(time));
-    for (Power p : {Power::Hardmode, Power::Difficulty, Power::ClearEnemies}) {
-        const int v = g_level[static_cast<int>(p)].exchange(0);
-        if (v > 0) sendToServer("power " + std::to_string(static_cast<int>(p)) + " " + std::to_string(v));
+    for (int i = 0; i < kPowerCount; ++i) {
+        if (!isWorldCommand(static_cast<Power>(i))) continue;
+        const int v = g_level[i].exchange(0);
+        if (v > 0) sendToServer("power " + std::to_string(i) + " " + std::to_string(v));
     }
     for (Power p : {Power::TimeStop, Power::Rain, Power::Wind, Power::NoSpawns}) {
         const int i = static_cast<int>(p);
@@ -1512,6 +1843,7 @@ void setTimeOfDay(int request) {
 
 int worldHardmode() { return g_stateHardmode.load(std::memory_order_relaxed); }
 int worldGameMode() { return g_stateGameMode.load(std::memory_order_relaxed); }
+int worldInfectionStopped() { return g_stateInfection.load(std::memory_order_relaxed); }
 int worldClockMinute() { return g_stateClock.load(std::memory_order_relaxed); }
 int worldRainPosition() { return g_stateRain.load(std::memory_order_relaxed); }
 int worldWindPosition() { return g_stateWind.load(std::memory_order_relaxed); }
@@ -1563,9 +1895,15 @@ void tickPowers() {
                                       &g_origProjUpdate);
         }
     }
-    if (levelOf(Power::Fly) > 0 && g_flyRefs && g_flyHook == State::NotTried) {
-        g_flyHook = installHook("Player.Update", g_playerUpdate, &hkPlayerUpdate,
-                                &g_origPlayerUpdate);
+    const bool keepMana = godKeepsMana() && g_revengeUpdate;
+    if (((levelOf(Power::Fly) > 0 && g_flyRefs) || keepMana) && g_playerUpdate &&
+        g_playerUpdateHook == State::NotTried) {
+        g_playerUpdateHook = installHook("Player.Update", g_playerUpdate, &hkPlayerUpdate,
+                                         &g_origPlayerUpdate);
+    }
+    if (keepMana && g_playerUpdateHook == State::Ok && g_revengeHook == State::NotTried) {
+        g_revengeHook = installHook("CoinLossRevengeSystem.Update", g_revengeUpdate,
+                                    &hkRevengeUpdate, &g_origRevengeUpdate);
     }
     if (levelOf(Power::XRay) > 0 && g_lightRefs && g_lightHooks == State::NotTried) {
         g_lightHooks = installLightHooks();

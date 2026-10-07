@@ -62,6 +62,34 @@ dá a IA de uma família do jogo (1 é slime, 3 é zumbi, 7 é morador), e
 `aiStyle = -1` deixa tudo com o seu `AI`. `PreAI` devolvendo `false` pula a
 IA do jogo e o `AI`; `PostAI` roda depois.
 
+`AIType` faz as verificações de tipo dentro da IA enxergarem um NPC
+específico do jogo. No `SetDefaults`, por exemplo:
+
+```js
+SetDefaults(npc) {
+    // Além da vida, dimensões e demais atributos do seu NPC:
+    npc.aiStyle = 2;
+    this.AIType = Terraria.ID.NPCID.DemonEye;
+}
+```
+
+O loader troca `npc.type` pelo `AIType` somente ao executar a IA nativa e
+restaura o tipo antes de `AI` e `PostAI`. `PreAI` também recebe o tipo
+original. Isso funciona mesmo sem escrever nenhum desses três métodos.
+O valor pertence à instância: pode ser alterado durante `PreAI` para a
+chamada daquele quadro. `0` desliga a troca; IDs negativos de variantes
+não ativam `AIType`.
+
+`AIType` não copia atributos nem define `aiStyle`, quadros ou textura.
+`AnimationType` continua sendo a escolha independente da animação.
+Se a IA emprestada cria outros NPCs, projéteis ou efeitos, ela continua
+criando os tipos vanilla previstos por essa IA.
+
+Com `GlobalNPC`, a ordem segue o tModLoader: todos os `GlobalNPC.PreAI`,
+`ModNPC.PreAI`, IA nativa, `ModNPC.AI`, `GlobalNPC.AI`, `ModNPC.PostAI` e
+`GlobalNPC.PostAI`. Um veto global pula o `PreAI` local e a etapa de IA;
+um veto local pula a etapa de IA. Os `PostAI` continuam sendo chamados.
+
 `npc.ai[0]` a `npc.ai[3]` e `npc.localAI[...]` guardam o estado, como no
 projétil. `npc.target` é o índice do jogador alvo (`npc.TargetClosest()`
 escolhe o mais perto).
@@ -82,6 +110,8 @@ escolhe o mais perto).
 | `FindFrame(npc, frameHeight)` | Animação sua: mude `npc.frame.Y`. |
 | `CheckActive(npc)` | `false`: não some quando longe do jogador. |
 | `PreKill(npc)`, `OnKill(npc)` | Na morte. `PreKill` devolvendo `false` cancela o drop. |
+| `CanBeHitByItem`, `ModifyHitByItem`, `OnHitByItem`; `CanBeHitByProjectile`, `ModifyHitByProjectile`, `OnHitByProjectile`; `ModifyIncomingHit` | Os golpes que ele leva. Ver [Golpes](16-golpes.md). |
+| `CanHitPlayer`, `ModifyHitPlayer`, `OnHitPlayer`; `CanHitNPC`, `CanBeHitByNPC`, `ModifyHitNPC`, `OnHitNPC` | Os golpes dele (no jogador; em outro NPC). |
 
 ## Drops
 

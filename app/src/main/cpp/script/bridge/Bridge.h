@@ -63,6 +63,9 @@ struct HookFilter {
     // `arg`: o indice de um parametro int que JA e o tipo (o `ushort typeCache`
     // do desenho). Mesmo minType.
     int argParam = -1;
+    // `firstByte`: o indice de um parametro byte[] cujo primeiro byte e o
+    // tipo (o numero da mensagem no MessageBuffer.ProcessData). Mesmo minType.
+    int firstByteParam = -1;
     // `marks`: o tipo lido por um dos filtros acima tambem tem de estar marcado
     // na tabela de marcas com este nome (bl.hookMarks.set). O ModifyLight so
     // entra no JS para os tiles que sobrescrevem o ModifyLight.

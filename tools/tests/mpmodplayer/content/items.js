@@ -44,7 +44,7 @@ export class MultiplayerMeleeItem extends TestItem {
     CanHitNPC(item, player) { record(this, 'CanHitNPC', player); return this.state.canHit ?? null; }
     CanMeleeAttackCollideWithNPC(item, player) { record(this, 'CanMeleeAttackCollideWithNPC', player); return this.state.collision ?? null; }
     ModifyHitNPC(item, player, target, modifiers) { record(this, 'ModifyHitNPC', player); if (this.state.hitDamage) { modifiers.damage = this.state.hitDamage; modifiers.DisableCrit(); } }
-    OnHitNPC(item, player, target, damage) { record(this, 'OnHitNPC', player); this.lastDamage = damage; }
+    OnHitNPC(item, player, target, hit, damageDone) { record(this, 'OnHitNPC', player); this.lastDamage = damageDone; }
     CanHitPvp(item, player) { record(this, 'CanHitPvp', player); return this.state.pvpCan !== false; }
     ModifyHitPvp(item, player, target, modifiers) { record(this, 'ModifyHitPvp', player); modifiers.damage = 3; modifiers.crit = false; }
     OnHitPvp(item, player, target, info) { record(this, 'OnHitPvp', player); this.pvpInfo = info; }

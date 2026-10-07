@@ -351,10 +351,6 @@ class PlayerLoader {
             PlayerItemHooks.InstallDamage();
         }
 
-        const hurt = ['ImmuneTo', 'FreeDodge', 'ConsumableDodge', 'ModifyHurt', 'OnHurt', 'PostHurt',
-            'CanBeHitByNPC', 'CanBeHitByProjectile', 'ModifyHitByNPC', 'ModifyHitByProjectile', 'OnHitByNPC', 'OnHitByProjectile', 'CanHitPvp'];
-        if (hurt.some(has)) PlayerLoader.InstallNPCContact();
-
         if (has('PreKill') || has('Kill')) Hooks.Once('player.KillMe', () => {
             P['void KillMe(PlayerDeathReason damageSource, double dmg, int hitDirection, bool pvp)'].hook(
                 (original, self, src, dmg, dir, pvp) => {
@@ -384,72 +380,13 @@ class PlayerLoader {
             });
         });
 
-        PlayerCombatHooks.Install(cls);
+        CombatLoader.WantPlayer(cls);
         PlayerItemHooks.Install(cls);
         PlayerUpdateHooks.Install(cls);
         PlayerJumpHooks.Install(cls);
         PlayerDrawHooks.Install(cls);
         PlayerWorldHooks.Install(cls);
         PlayerNetworkHooks.Install(cls);
-    }
-
-    static #hurtAlways = false;
-
-    static InstallNPCContact() {
-        PlayerLoader.#hurtAlways = true;
-        bl.hookFlags.set('player.HurtActive', true);
-        PlayerLoader.InstallItemPvp();
-    }
-
-    static InstallItemPvp() { Hooks.Once('player.Hurt', PlayerLoader.#HookHurt); }
-
-    static SetPvpActive(active) {
-        if (!PlayerLoader.#hurtAlways) bl.hookFlags.set('player.HurtActive', active);
-    }
-
-    static #HookHurt() {
-        const each = PlayerLoader.Each;
-        const any = PlayerLoader.Any;
-
-        Terraria.Player['double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)'].hook(
-            (original, self, src, damage, dir, pvp, quiet, crit, cooldown, dodgeable) => {
-                if (any(self, 'ImmuneTo', true, (m) => m.ImmuneTo(self, src, cooldown, dodgeable))) return 0;
-                const cause = PlayerCombatHooks.Cause(src);
-                const slot = new Ref(cooldown);
-                if (cause.npc && NPCLoader.Call(cause.npc, 'CanHitPlayer', self, slot) === false) return 0;
-                if (cause.npc && PlayerLoader.Veto(self, 'CanBeHitByNPC', cause.npc, slot)) return 0;
-                if (cause.projectile && PlayerLoader.Veto(self, 'CanBeHitByProjectile', cause.projectile)) return 0;
-                const attack = PlayerCombatHooks.PvpAttack;
-                if (pvp && attack && (ItemCombatHooks.Call(attack.item, 'CanHitPvp', attack.player, self) === false
-                    || PlayerLoader.Veto(attack.player, 'CanHitPvp', attack.item, self))) return 0;
-                const hit = { damage, hitDirection: dir, quiet, crit, dodgeable };
-                if (pvp && attack) ItemCombatHooks.Call(attack.item, 'ModifyHitPvp', attack.player, self, hit);
-                if (cause.npc) NPCLoader.Call(cause.npc, 'ModifyHitPlayer', self, hit);
-                if (cause.npc) PlayerLoader.Call(self, 'ModifyHitByNPC', cause.npc, hit);
-                if (cause.projectile) PlayerLoader.Call(self, 'ModifyHitByProjectile', cause.projectile, hit);
-                each(self, 'ModifyHurt', (m) => m.ModifyHurt(self, hit));
-                const info = { DamageSource: src, Damage: Number.isFinite(hit.damage) ? Math.max(0, Math.floor(hit.damage)) : 0, HitDirection: hit.hitDirection,
-                    PvP: pvp, Quiet: hit.quiet, Crit: hit.crit, CooldownCounter: slot.value, Dodgeable: hit.dodgeable };
-                if (info.Dodgeable && self.whoAmI === Terraria.Main.myPlayer && PlayerLoader.First(self, 'FreeDodge',
-                    src, info.Damage, info.HitDirection, pvp, info.Quiet, info.Crit, slot.value, info.Dodgeable)) return 0;
-                if (info.Dodgeable && self.whoAmI === Terraria.Main.myPlayer && PlayerLoader.First(self, 'ConsumableDodge', info)) return 0;
-
-                const done = original(self, src, info.Damage, hit.hitDirection, pvp,
-                                      hit.quiet, hit.crit, slot.value, hit.dodgeable);
-                if (done <= 0) return done;
-
-                info.Damage = done;
-                if (pvp && attack) ItemCombatHooks.Call(attack.item, 'OnHitPvp', attack.player, self, info);
-                if (cause.npc) NPCLoader.Call(cause.npc, 'OnHitPlayer', self, info);
-                if (cause.npc) PlayerLoader.Call(self, 'OnHitByNPC', cause.npc, info);
-                if (cause.projectile) PlayerLoader.Call(self, 'OnHitByProjectile', cause.projectile, info);
-
-                const args = [src, done, hit.hitDirection, pvp, hit.quiet, hit.crit, cooldown, hit.dodgeable];
-                each(self, 'OnHurt', (m) => m.OnHurt(self, ...args));
-                if (!self.dead && self.statLife > 0) each(self, 'PostHurt', (m) => m.PostHurt(self, ...args));
-
-                return done;
-            }, { flag: 'player.HurtActive' });
     }
 
     static #DataFile(fileData) {

@@ -2,6 +2,8 @@
 class ModNPC {
     Type = undefined;
     HideFromModMenu = false;
+    // Usa este tipo só durante a IA do jogo; configure o npc.aiStyle à parte.
+    AIType = 0;
     // Anima como este NPC do jogo (0 = não anima). Pode vir do SetDefaults.
     AnimationType = 0;
     DisplayName = '';
@@ -39,6 +41,14 @@ class ModNPC {
     ModifyHitPlayer(npc, player, modifiers) {}
     OnHitPlayer(npc, player, hurtInfo) {}
     CanBeHitByItem(npc, player, item) { return null; }
+    ModifyHitByItem(npc, player, item, modifiers) {}
+    CanBeHitByProjectile(npc, projectile) { return null; }
+    ModifyHitByProjectile(npc, projectile, modifiers) {}
+    // NPC contra NPC (o inimigo que encosta no morador): false impede.
+    CanHitNPC(npc, target) { return true; }
+    CanBeHitByNPC(npc, attacker) { return true; }
+    ModifyHitNPC(npc, target, modifiers) {}
+    OnHitNPC(npc, target, hit) {}
     ModifyIncomingHit(npc, modifiers) {}
     CheckDead(npc) { return true; }
     ApplyDifficultyAndPlayerScaling(npc, numPlayers, balance, bossAdjustment) {}

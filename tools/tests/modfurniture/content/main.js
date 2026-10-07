@@ -368,8 +368,9 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
         check('luz', checkLights);
         check('música', checkMusic);
         check('caminhos do jogo', checkRealPaths);
-        check('equipar a caixa', equipMusicBox);
     }
+    // Um toque novo por quadro (TileUseLoader): o da cadeira foi no 200.
+    if (frames === 210) check('equipar a caixa', equipMusicBox);
     if (frames === 330) check('caixa equipada', checkEquipped);
 
     // A porta: o jogador encosta (abre), se afasta (fecha); o morador passa; o fio.

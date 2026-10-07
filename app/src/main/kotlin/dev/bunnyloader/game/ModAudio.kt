@@ -32,6 +32,15 @@ object ModAudio {
     private val failed: MutableSet<Int> = ConcurrentHashMap.newKeySet()
     private val durations = ConcurrentHashMap<Int, Int>()
 
+    private val effects by lazy {
+        SfxQueue(object : SfxQueue.Backend {
+            override fun play(id: Int, left: Float, right: Float, rate: Float) = pool.play(id, left, right, 1, 0, rate)
+            override fun stop(stream: Int) = pool.stop(stream)
+            override fun pause() { if (poolCreated) pool.autoPause() }
+            override fun resume() { if (poolCreated) pool.autoResume() }
+        })
+    }
+
     @Volatile private var poolCreated = false
 
     private val pool: SoundPool by lazy {
@@ -82,6 +91,25 @@ object ModAudio {
     fun stop(stream: Int) {
         if (poolCreated) pool.stop(stream)
     }
+
+    /** Accept a short effect without waiting for SoundPool. Handle != native stream. */
+    @JvmStatic
+    fun enqueue(group: Int, id: Int, left: Float, right: Float, rate: Float, max: Int, ignore: Boolean): Int {
+        if (id !in loaded) return 0
+        return effects.enqueue(group, id, left, right, rate, duration(id), max, ignore)
+    }
+
+    @JvmStatic
+    fun cancel(handle: Int) = effects.stop(handle)
+
+    @JvmStatic
+    fun playbackState(handle: Int): Int = effects.state(handle)
+
+    @JvmStatic
+    fun activeSound(group: Int): Int = effects.active(group)
+
+    @JvmStatic
+    fun queueStats(): String = effects.stats()
 
     private fun durationOf(path: String): Int {
         val r = MediaMetadataRetriever()
@@ -187,7 +215,7 @@ object ModAudio {
     @JvmStatic
     @Synchronized
     fun pauseAll() {
-        if (poolCreated) pool.autoPause()
+        effects.pause()
         for (t in tracks.values) {
             val p = t.player ?: continue
             if (t.prepared && p.isPlaying) {
@@ -200,7 +228,7 @@ object ModAudio {
     @JvmStatic
     @Synchronized
     fun resumeAll() {
-        if (poolCreated) pool.autoResume()
+        effects.resume()
         for (t in tracks.values) {
             if (!t.pausedByApp) continue
             t.pausedByApp = false

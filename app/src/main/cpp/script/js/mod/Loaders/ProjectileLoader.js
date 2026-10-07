@@ -37,7 +37,7 @@ class ProjectileLoader {
             return { minType: FIRST_PROJECTILE, marks: key };
         };
 
-        if (has('SendExtraAI') || has('ReceiveExtraAI')) ModNet.InstallEntity();
+        if (has('SendExtraAI') || has('ReceiveExtraAI')) ModNet.InstallEntity(27);
 
         // Sempre: o AIType e o OnSpawn podem vir de qualquer projétil.
         Hooks.Once('proj.AI', () => {
@@ -87,26 +87,7 @@ class ProjectileLoader {
 
         ProjectileLoader.#SharedHooks(has, type, false);
 
-        const onHitNPC = marked('proj.OnHitNPC', 'OnHitNPC');
-        if (has('OnHitNPC')) Hooks.Once('proj.OnHitNPC', () => {
-            Pr['void StatusNPC(int i)'].hook((original, p, i) => {
-                original(p, i);
-
-                const m = of(p);
-                if (m) Safe.Run(m.constructor.name + '.OnHitNPC', () => m.OnHitNPC(p, Terraria.Main.npc[i]));
-            }, onHitNPC);
-        });
-
-        const onHitPlayer = marked('proj.OnHitPlayer', 'OnHitPlayer');
-        if (has('OnHitPlayer')) Hooks.Once('proj.OnHitPlayer', () => {
-            Pr['void StatusPlayer(Player player)'].hook((original, p, player) => {
-                original(p, player);
-
-                const m = of(p);
-                if (m) Safe.Run(m.constructor.name + '.OnHitPlayer', () => m.OnHitPlayer(p, player));
-            }, onHitPlayer);
-        });
-
+        CombatLoader.WantProjectile(cls, ModProjectile);
     }
 
     static #globalGroups = new Set();

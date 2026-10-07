@@ -4,7 +4,7 @@ class ItemUseHooks {
     static Install(type, plan) {
         const mark = (key, names) => {
             if (!names.some(name => plan[name])) return false;
-            bl.hookMarks.set(key, type, true);
+            ItemCombatHooks.Mark(key, type);
             return true;
         };
         if (mark('player.ItemAnimation', ['UseAnimation'])) PlayerItemHooks.InstallAnimation();

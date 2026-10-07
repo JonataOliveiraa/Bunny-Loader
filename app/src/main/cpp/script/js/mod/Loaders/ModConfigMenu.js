@@ -1,5 +1,11 @@
+// A tela de Config. dos Mods: no mundo, pelo botão do menu de pausa; no menu
+// principal, pela linha no topo da aba Geral das Configurações. No mundo só
+// entram as configs com VisibleInWorld.
 class ModConfigMenu {
     static #open = false;
+    // 'pause' ou 'menu': de onde a tela abriu, e quem ela substitui no Draw.
+    static #where = null;
+    static #menuEntry = null;
     static #button = null;
     static #parts = null;
     static #scales = null;
@@ -48,6 +54,10 @@ class ModConfigMenu {
     static #MENU_CLOSE = 11;
     static #TICK = 12;
     static #ICON_SCALE = 1.1;
+    // A linha do menu principal: um GUIOpenUIButtonSetting com o id None, que
+    // nenhuma tabela do jogo indexa (o ResetSetting dele cai no default).
+    static #SETTING_NONE = 192;
+    static #GENERAL = 0;
 
     static #DRAW = 'GUITransactionButton.InputState Draw(TransactionButton_Layout layout, Item item, string label, bool disabled, ref float scale, bool forcedPressed, bool hasControllerFocus, bool forceOver, bool disablePressedState)';
     static #BANNER = 'GUITransactionButton.InputState DrawWithBanner(TransactionButton_Layout layout, ControllerActionButton action, Item item, string label, bool disabled, ref float scale, bool forcedPressed, bool hasControllerFocus, bool forceOver, bool disablePressedState, bool drawWhenControllerConnected, bool addTouchBanner)';
@@ -95,6 +105,8 @@ class ModConfigMenu {
             Keyboard: bl.classOf('', 'KeyboardInput'),
             Application: bl.classOf('UnityEngine', 'Application'),
             SpriteBatchItem: Microsoft.Xna.Framework.Graphics.SpriteBatchItem,
+            Overlay: bl.classOf('', 'GUISettingsOverlay'),
+            OpenButton: bl.classOf('', 'GUIOpenUIButtonSetting'),
         };
         ModConfigMenu.#scales = { button: new Ref(1), title: new Ref(1), discard: new Ref(1), defaults: new Ref(1), apply: new Ref(1) };
         const pauseDraw = T.Pause['void Draw()'];
@@ -105,7 +117,7 @@ class ModConfigMenu {
         });
 
         pauseDraw.hook((original, self) => {
-            if (!ModConfigMenu.#open) return original(self);
+            if (ModConfigMenu.#where !== 'pause') return original(self);
             const ok = Safe.Run('ModConfigMenu.Draw', () => { ModConfigMenu.#DrawScreen(); return true; });
             if (!ok) ModConfigMenu.#Close(false);
             return undefined;
@@ -121,12 +133,78 @@ class ModConfigMenu {
             original();
             ModConfigMenu.#Close(false);
         });
+
+        ModConfigMenu.#HookMainMenu(T);
+    }
+
+    // O SetCategory refaz a lista da aba (filtra o _allSettings pela categoria
+    // que o layout dá a cada id e ordena): a linha entra depois, no topo.
+    static #HookMainMenu(T) {
+        T.Overlay['void SetCategory(SettingsOverlayOptionCategories_Layout.Category category)'].hook((original, self, category) => {
+            original(self, category);
+            Safe.Run('ModConfigMenu.SetCategory', () => ModConfigMenu.#AddMenuEntry(self));
+        });
+
+        T.Overlay['void Draw()'].hook((original, self) => {
+            if (ModConfigMenu.#where !== 'menu') return original(self);
+            const ok = Safe.Run('ModConfigMenu.Draw', () => { ModConfigMenu.#DrawScreen(); return true; });
+            if (!ok) ModConfigMenu.#Close(false);
+            return undefined;
+        });
+
+        T.Overlay['void Close()'].hook((original, self) => {
+            if (ModConfigMenu.#where === 'menu') ModConfigMenu.#Close(false);
+            return original(self);
+        });
+
+        const ours = (self) => self === ModConfigMenu.#menuEntry;
+        T.OpenButton['string GetOption()'].hook((original, self) =>
+            ours(self) ? ModConfigMenu.#Text('row') : original(self));
+        T.OpenButton['string GetButtonCaption()'].hook((original, self) =>
+            ours(self) ? ModConfigMenu.#Text('open') : original(self));
+        T.OpenButton['void OpenUI()'].hook((original, self) => {
+            if (!ours(self)) return original(self);
+            T.Input.Instance['void CaptureUICrusorDrag(int dragFromAxis)'](-1);
+            ModConfigMenu.#Open('menu');
+            return undefined;
+        });
+    }
+
+    static #AddMenuEntry(overlay) {
+        if (!Terraria.Main.gameMenu || Number(overlay.Selected) !== ModConfigMenu.#GENERAL) return;
+        const list = overlay._categorySettings;
+        if (!list) return;
+        let entry = ModConfigMenu.#menuEntry;
+        if (!entry) {
+            entry = ModConfigMenu.#T.OpenButton.new();
+            entry['void .ctor(GUISettingID id)'](ModConfigMenu.#SETTING_NONE);
+            entry._category = ModConfigMenu.#GENERAL;
+            ModConfigMenu.#menuEntry = entry;
+        }
+        if (!list['bool Contains(GUISettingEntry item)'](entry)) list['void Insert(int index, GUISettingEntry item)'](0, entry);
+    }
+
+    static #Open(where) {
+        SoundEngine.PlaySound(ModConfigMenu.#MENU_OPEN);
+        ModConfigMenu.#open = true;
+        ModConfigMenu.#where = where;
+        ConfigLoader.Begin();
+        ModConfigMenu.#ResetScroll();
+        ModConfigMenu.#Guard();
+    }
+
+    // No mundo, só o que a config deixa (VisibleInWorld); no menu, tudo.
+    static #Entries(mod) {
+        const inWorld = ModConfigMenu.#where !== 'menu';
+        return ConfigLoader.Of(mod).filter((e) => !inWorld || e.visibleInWorld);
     }
 
     static #Text(key) {
         const pt = /^pt/.test(ModLocalization.ActiveCultureName || '');
         switch (key) {
             case 'button': return pt ? 'Config. dos Mods' : 'Mod Configuration';
+            case 'row': return pt ? 'Config. dos Mods:' : 'Mod Configuration:';
+            case 'open': return pt ? 'Abrir' : 'Open';
             case 'empty': return pt ? 'Nenhum mod tem opções.' : 'No mod has options.';
         }
         return key;
@@ -197,11 +275,7 @@ class ModConfigMenu {
         if (state !== ModConfigMenu.#CLICKED) return;
 
         T.Input.Instance['void CaptureUICrusorDrag(int dragFromAxis)'](-1);
-        SoundEngine.PlaySound(ModConfigMenu.#MENU_OPEN);
-        ModConfigMenu.#open = true;
-        ConfigLoader.Begin();
-        ModConfigMenu.#ResetScroll();
-        ModConfigMenu.#Guard();
+        ModConfigMenu.#Open('pause');
     }
 
     static #Focus() {
@@ -220,6 +294,7 @@ class ModConfigMenu {
     static #Close(sound = true, apply = false) {
         if (!ModConfigMenu.#open) return;
         ModConfigMenu.#open = false;
+        ModConfigMenu.#where = null;
         ModConfigMenu.#popup = null;
         ModConfigMenu.#ReleaseSliders();
         if (apply) ConfigLoader.Apply();
@@ -238,7 +313,7 @@ class ModConfigMenu {
         panel(S.MenuDivider, false, null, null, null);
         panel(S.MenuDivider2, false, null, null, null);
 
-        const mods = ModLoader.Mods.filter((m) => ConfigLoader.Of(m).some((e) => e.options.length));
+        const mods = ModLoader.Mods.filter((m) => ModConfigMenu.#Entries(m).some((e) => e.options.length));
         let mod = mods.find((m) => m.uuid === ModConfigMenu.#selected) || mods[0] || null;
         if (mod) mod = ModConfigMenu.#DrawTabs(T, S, mods, mod);
         ModConfigMenu.#selected = mod ? mod.uuid : null;
@@ -251,7 +326,7 @@ class ModConfigMenu {
         if (action && !ModConfigMenu.#Blocked()) {
             T.Input.Instance['void CaptureUICrusorDrag(int dragFromAxis)'](-1);
             if (action === 'defaults') {
-                ConfigLoader.Defaults(ConfigLoader.Of(mod));
+                ConfigLoader.Defaults(ModConfigMenu.#Entries(mod));
                 SoundEngine.PlaySound(ModConfigMenu.#TICK);
             } else {
                 ModConfigMenu.#Close(true, action === 'apply');
@@ -271,7 +346,7 @@ class ModConfigMenu {
     // rascunho; só o Aplicar grava.
     static #DrawActions(T, mod) {
         const K = T.Mappings.Instance;
-        const entries = mod ? ConfigLoader.Of(mod) : [];
+        const entries = mod ? ModConfigMenu.#Entries(mod) : [];
         const buttons = [
             ['discard', K.ResetSettings, 'Mobile.Discard', false],
             ['defaults', K.Defaults, 'Mobile.Default', !entries.length || ConfigLoader.AtDefaults(entries)],
@@ -497,7 +572,7 @@ class ModConfigMenu {
         const rows = [];
         if (!mod) return rows;
         const height = S.ToggleTemplate.ToggleButton.overloadedSize.Y + ModConfigMenu.#GAP;
-        for (const entry of ConfigLoader.Of(mod)) {
+        for (const entry of ModConfigMenu.#Entries(mod)) {
             for (const o of entry.options) {
                 const key = entry.name + '.' + o.key;
                 if (o.type === 'color') {

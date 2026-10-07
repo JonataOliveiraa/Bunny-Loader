@@ -60,6 +60,8 @@ ordem de leitura.
   segurados pelo coletor.
 - [Conteúdo novo por dentro](nucleo/conteudo.md): tabelas por tipo, limites
   compilados, saves.
+- [Entrada num servidor](nucleo/multijogador.md): sincronização de mods e
+  texturas pela tela de Host, a conversa na entrada e a volta automática.
 - [Pesquisa de shaders](nucleo/pesquisa-shaders.md): base interna de investigação,
   com evidências, limitações e próximos experimentos; suporte ainda não validado.
 

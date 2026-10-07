@@ -92,7 +92,8 @@ class ModItem {
     CanMeleeAttackCollideWithNPC(item, player, hitbox, target) { return null; }
     MeleeEffects(item, player, hitbox) {}
     UseItemHitbox(item, player, hitbox, noHitbox) {}
-    OnHitNPC(item, player, npc, damageDone, knockBack, crit) {}
+    // hit: HitInfo (Damage, SourceDamage, Crit, Knockback, HitDirection...).
+    OnHitNPC(item, player, target, hit, damageDone) {}
     UpdateEquip(item, player) {}
     UpdateAccessory(item, player, vanity, hideVisual) {}
     // false recusa o par (arrastar para o slot e a troca pelo toque, que vai

@@ -29,12 +29,14 @@ void giveItem(int type, int stack, int player = -1);
 void requestGive(int type, int stack);
 
 /**
- * Invoca o NPC `type` perto do jogador (chefe, monstro ou morador).
+ * Invoca `count` NPCs `type` perto do jogador (chefe, monstro ou morador), em
+ * fila para o lado que ele olha, um ao lado do outro; fila cheia, a próxima
+ * vai por cima. No cliente, vira um pedido ao servidor.
  *
  * Mesma mecânica do item: `requestSpawn` pode vir de qualquer thread e o hook
  * de DoUpdate executa no próximo quadro, na thread do jogo.
  */
-void spawnNpc(int type, int player = -1);
+void spawnNpcs(int type, int count, int player = -1);
 
 /**
  * Nomes de TODO item e TODO NPC, vindos da Localization do jogo.

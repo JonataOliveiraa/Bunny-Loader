@@ -71,6 +71,43 @@ JSValue sounds_duration(JSContext* ctx, JSValueConst, int argc, JSValueConst* ar
     return JS_NewInt32(ctx, runtime::content::soundDuration(id));
 }
 
+JSValue sounds_enqueue(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t group = 0, id = 0, max = 1;
+    float left = 1, right = 1, rate = 1;
+    if (!argInt(ctx, argc, argv, 0, &group) || !argInt(ctx, argc, argv, 1, &id) ||
+        !argFloat(ctx, argc, argv, 2, &left) || !argFloat(ctx, argc, argv, 3, &right) ||
+        !argFloat(ctx, argc, argv, 4, &rate) || !argInt(ctx, argc, argv, 5, &max)) {
+        return JS_ThrowTypeError(ctx, "bl.sounds.enqueue(grupo, id, esquerda, direita, velocidade, limite, ignorar)");
+    }
+    const int ignore = argc > 6 ? JS_ToBool(ctx, argv[6]) : 0;
+    if (ignore < 0) return JS_EXCEPTION;
+    return JS_NewInt32(ctx, runtime::content::enqueueSound(group, id, left, right, rate, max, ignore != 0));
+}
+
+JSValue sounds_cancel(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t handle = 0;
+    if (!argInt(ctx, argc, argv, 0, &handle)) return JS_ThrowTypeError(ctx, "bl.sounds.cancel(handle)");
+    runtime::content::cancelSound(handle);
+    return JS_UNDEFINED;
+}
+
+JSValue sounds_playbackState(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t handle = 0;
+    if (!argInt(ctx, argc, argv, 0, &handle)) return JS_ThrowTypeError(ctx, "bl.sounds.playbackState(handle)");
+    return JS_NewInt32(ctx, runtime::content::playbackState(handle));
+}
+
+JSValue sounds_active(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    int32_t group = 0;
+    if (!argInt(ctx, argc, argv, 0, &group)) return JS_ThrowTypeError(ctx, "bl.sounds.active(grupo)");
+    return JS_NewInt32(ctx, runtime::content::activeSound(group));
+}
+
+JSValue sounds_queueStats(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    const auto json = runtime::content::soundQueueStats();
+    return JS_ParseJSON(ctx, json.c_str(), json.size(), "soundQueueStats");
+}
+
 JSValue music_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 1 || !JS_IsString(argv[0])) return JS_ThrowTypeError(ctx, "bl.music.register(caminho) espera um texto");
     const char* cs = JS_ToCString(ctx, argv[0]);
@@ -112,6 +149,11 @@ void installSoundsApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("duration", 1, sounds_duration),
         JS_CFUNC_DEF("play", 4, sounds_play),
         JS_CFUNC_DEF("stop", 1, sounds_stop),
+        JS_CFUNC_DEF("enqueue", 7, sounds_enqueue),
+        JS_CFUNC_DEF("cancel", 1, sounds_cancel),
+        JS_CFUNC_DEF("playbackState", 1, sounds_playbackState),
+        JS_CFUNC_DEF("active", 1, sounds_active),
+        JS_CFUNC_DEF("queueStats", 0, sounds_queueStats),
     };
     static const JSCFunctionListEntry musicFns[] = {
         JS_CFUNC_DEF("register", 1, music_register),

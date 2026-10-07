@@ -42,8 +42,16 @@ class ModProjectile {
     // false mantém o projétil vivo depois de bater num bloco. Lacaio
     // (Main.projPet) recebe em todo quadro com choque, sem morrer.
     OnTileCollide(proj, oldVelocity) { return true; }
-    OnHitNPC(proj, npc) {}
-    OnHitPlayer(proj, player) {}
+    // Golpes: null deixa o jogo decidir (CanHitNPC vale para os projéteis do
+    // jogador); modifiers é um HitModifiers (no NPC) ou HurtModifiers (no
+    // jogador); hit, um HitInfo; info, um HurtInfo.
+    CanHitNPC(proj, target) { return null; }
+    ModifyHitNPC(proj, target, modifiers) {}
+    OnHitNPC(proj, target, hit, damageDone) {}
+    CanHitPvp(proj, target) { return true; }
+    CanHitPlayer(proj, target) { return true; }
+    ModifyHitPlayer(proj, target, modifiers) {}
+    OnHitPlayer(proj, target, info) {}
     Colliding(proj, projHitbox, targetHitbox) { return undefined; }
     CanDamage(proj) { return true; }
     MinionContactDamage(proj) { return false; }

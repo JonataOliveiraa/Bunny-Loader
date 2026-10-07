@@ -36,7 +36,7 @@ export class ItemProbe extends ModItem {
         record('hit');
         if (state.hitDamage) { modifiers.damage = state.hitDamage; modifiers.DisableCrit(); }
     }
-    OnHitNPC(item, player, target, damageDone, knockback, crit) { record('onHit'); state.damageDone = damageDone; }
+    OnHitNPC(item, player, target, hit, damageDone) { record('onHit'); state.damageDone = damageDone; }
     MeleeEffects(item, player, hitbox) { record('effects'); state.effectsBox = hitbox; }
     CanHitPvp(item, player, target) { record('pvpCan'); return state.pvpCan; }
     ModifyHitPvp(item, player, target, modifiers) { record('pvpHit'); if (state.pvpDamage) modifiers.damage = state.pvpDamage; }

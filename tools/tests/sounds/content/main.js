@@ -55,11 +55,11 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 60) {
         check('toca sem posicao', () => {
             first = SoundEngine.PlaySound(style);
-            return (first > 0 && SoundEngine.FindActiveSound(style) === first) || 'stream ' + first;
+            return (first > 0 && [1, 2].includes(SoundEngine.GetSoundState(first))) || 'pedido ' + first;
         });
         check('MaxInstances 1 (ReplaceOldest): o novo no lugar do velho', () => {
             second = SoundEngine.PlaySound(style);
-            return (second > 0 && second !== first && SoundEngine.FindActiveSound(style) === second) ||
+            return (second > 0 && second !== first && SoundEngine.GetSoundState(first) === 4 && [1, 2].includes(SoundEngine.GetSoundState(second))) ||
                 `primeiro ${first}, segundo ${second}, ativo ${SoundEngine.FindActiveSound(style)}`;
         });
         check('MaxInstances 1 (IgnoreNew): o novo nao toca', () => {

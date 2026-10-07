@@ -1,46 +1,69 @@
+// Os hooks de item que o jogador usa (dano, crítico, munição, cura...), para
+// o ModItem e o GlobalItem juntos: o Call chama o do item de mod e os Globais
+// na ordem do tModLoader e junta as respostas como lá. O filtro nativo é por
+// tipo de item: o item de mod que escreve o método, ou todos (um Global).
 class ItemCombatHooks {
     static #plans = new WeakMap();
     static #all = new Set();
     static #methods = ['ModifyWeaponDamage', 'ModifyWeaponCrit', 'ModifyWeaponKnockback', 'ModifyItemScale',
-        'CanHitNPC', 'ModifyHitNPC', 'CanHitPvp', 'ModifyHitPvp', 'OnHitPvp',
+        'CanHitNPC', 'ModifyHitNPC', 'OnHitNPC', 'CanHitPvp', 'ModifyHitPvp', 'OnHitPvp',
         'CanMeleeAttackCollideWithNPC', 'MeleeEffects', 'UseItemHitbox', 'UseAnimation', 'UseItemFrame', 'HoldItemFrame',
         'NeedsAmmo', 'CanChooseAmmo', 'CanBeChosenAsAmmo', 'CanConsumeAmmo', 'CanBeConsumedAsAmmo',
         'OnConsumeAmmo', 'OnConsumedAsAmmo', 'PickAmmo', 'GetHealLife', 'GetHealMana', 'ModifyPotionDelay', 'ApplyPotionDelay'];
+    // Como as respostas se juntam: 'and', bool com padrão true (algum false
+    // veta); 'nullable', bool? (algum false veta, senão algum true força).
+    static #JOIN = {
+        NeedsAmmo: 'and', CanConsumeAmmo: 'and', CanBeConsumedAsAmmo: 'and', ApplyPotionDelay: 'and', CanHitPvp: 'and',
+        CanChooseAmmo: 'nullable', CanBeChosenAsAmmo: 'nullable', CanHitNPC: 'nullable', CanMeleeAttackCollideWithNPC: 'nullable',
+    };
+    // O ModifyWeaponDamage dos Globais tem o caminho dele (PlayerItemHooks).
+    static #OWN_GLOBAL_PATH = new Set(['ModifyWeaponDamage']);
 
-    static #Plan(cls) {
+    static #Plan(cls, Base = ModItem) {
         let plan = ItemCombatHooks.#plans.get(cls);
         if (plan) return plan;
         plan = Object.create(null);
         for (const name of ItemCombatHooks.#methods) {
-            if (Hooks.Overrides(cls, ModItem, name)) plan[name] = cls.name + '.' + name;
+            if (Hooks.Overrides(cls, Base, name)) plan[name] = cls.name + '.' + name;
         }
         ItemCombatHooks.#plans.set(cls, plan);
         return plan;
     }
 
-    static Call(item, name, a, b, c, d, e, f) {
+    static #Own(item, name, args) {
         const template = item && ItemLoader.ByType.get(item.type);
-        if (!template) return undefined;
+        if (!template) return { has: false };
         const label = ItemCombatHooks.#Plan(template.constructor)[name];
-        if (!label) return undefined;
+        if (!label) return { has: false };
         const m = ItemLoader.Of(item);
-        if (!m) return undefined;
-        try {
-            switch (arguments.length) {
-                case 2: return m[name](item);
-                case 3: return m[name](item, a);
-                case 4: return m[name](item, a, b);
-                case 5: return m[name](item, a, b, c);
-                case 6: return m[name](item, a, b, c, d);
-                case 7: return m[name](item, a, b, c, d, e);
-                default: return m[name](item, a, b, c, d, e, f);
-            }
-        } catch (e) { Safe.Report(label, e); }
+        if (!m) return { has: false };
+        try { return { has: true, value: m[name](item, ...args) }; }
+        catch (e) { Safe.Report(label, e); return { has: true, value: undefined }; }
+    }
+
+    static Call(item, name, ...args) {
+        const own = ItemCombatHooks.#Own(item, name, args);
+        const globals = item && !ItemCombatHooks.#OWN_GLOBAL_PATH.has(name) ? globalItems.For(item, name) : [];
+        if (!globals.length) return own.value;
+
+        const results = own.has ? [own.value] : [];
+        // O PickAmmo é chamado na munição; o do Global recebe (arma, munição, ...).
+        const globalArgs = name === 'PickAmmo' ? [args[0], item, ...args.slice(1)] : [item, ...args];
+        for (const g of globals) {
+            try { results.push(g[name](...globalArgs)); }
+            catch (e) { Safe.Report(g.constructor.name + '.' + name, e); }
+        }
+        switch (ItemCombatHooks.#JOIN[name]) {
+            case 'and': return !results.includes(false);
+            case 'nullable': return results.includes(false) ? false : results.includes(true) ? true : null;
+            default: return own.value;
+        }
     }
 
     static Has(item, name) {
         const template = item && ItemLoader.ByType.get(item.type);
-        return !!template && !!ItemCombatHooks.#Plan(template.constructor)[name];
+        if (template && ItemCombatHooks.#Plan(template.constructor)[name]) return true;
+        return !!item && item.type > 0 && !ItemCombatHooks.#OWN_GLOBAL_PATH.has(name) && globalItems.For(item, name).length > 0;
     }
 
     static Filter(key) { return { minType: 0, on: 0, marks: key }; }
@@ -52,28 +75,40 @@ class ItemCombatHooks {
         for (const type of ItemLoader.ByType.keys()) bl.hookMarks.set(key, type, true);
     }
 
+    // type -1: todo item (um Global).
+    static Mark(key, type) {
+        if (type < 0) ItemCombatHooks.All(key);
+        else bl.hookMarks.set(key, type, true);
+    }
+
     static Install(cls, type) {
-        const plan = ItemCombatHooks.#Plan(cls);
         for (const key of ItemCombatHooks.#all) bl.hookMarks.set(key, type, true);
+        ItemCombatHooks.#Setup(ItemCombatHooks.#Plan(cls), type);
+    }
+
+    static InstallGlobal(cls) {
+        ItemCombatHooks.#Setup(ItemCombatHooks.#Plan(cls, GlobalItem), -1);
+    }
+
+    static #Setup(plan, type) {
         const marked = (key, names) => {
             if (!names.some(name => plan[name])) return false;
-            bl.hookMarks.set(key, type, true);
+            ItemCombatHooks.Mark(key, type);
             return true;
         };
-        if (marked('player.WeaponDamage', ['ModifyWeaponDamage'])) PlayerItemHooks.InstallDamage();
+        if (type >= 0 && marked('player.WeaponDamage', ['ModifyWeaponDamage'])) PlayerItemHooks.InstallDamage();
         if (marked('player.WeaponCrit', ['ModifyWeaponCrit'])) PlayerItemHooks.InstallCrit();
         if (marked('player.WeaponKnockback', ['ModifyWeaponKnockback'])) PlayerItemHooks.InstallKnockback();
         const scale = marked('player.ItemScale', ['ModifyItemScale']);
         if (marked('player.ItemHitbox', ['ModifyItemScale', 'UseItemHitbox'])) PlayerItemHooks.InstallHitbox();
         if (scale) PlayerItemHooks.InstallScale();
-        const attack = marked('player.ItemAttack', ['CanHitNPC', 'ModifyHitNPC', 'CanMeleeAttackCollideWithNPC']);
-        if (attack) PlayerCombatHooks.InstallItemCombat();
-        if (plan.CanMeleeAttackCollideWithNPC) PlayerCombatHooks.InstallCollision();
-        if (marked('player.MeleeEffects', ['MeleeEffects'])) PlayerCombatHooks.InstallMeleeEffects();
-        if (marked('player.PvpAttack', ['CanHitPvp', 'ModifyHitPvp', 'OnHitPvp'])) {
-            PlayerCombatHooks.InstallPvp();
-            PlayerLoader.InstallItemPvp();
+        if (type >= 0) {
+            const attack = marked('player.ItemAttack', ['CanHitNPC', 'ModifyHitNPC', 'OnHitNPC', 'CanMeleeAttackCollideWithNPC']);
+            if (attack) CombatLoader.InstallItemCombat();
+            if (plan.CanMeleeAttackCollideWithNPC) CombatLoader.InstallCollision();
+            if (marked('player.PvpAttack', ['CanHitPvp', 'ModifyHitPvp', 'OnHitPvp'])) CombatLoader.InstallPvp();
         }
+        if (marked('player.MeleeEffects', ['MeleeEffects'])) CombatLoader.InstallMeleeEffects();
         ItemUseHooks.Install(type, plan);
         ItemHealingHooks.Install(type, plan);
     }

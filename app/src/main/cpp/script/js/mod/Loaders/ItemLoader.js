@@ -320,19 +320,6 @@ class ItemLoader {
 
         if (has('CanShoot') || has('ModifyShootStats') || has('Shoot')) Hooks.Once('item.Shoot', ItemLoader.#HookShoot);
 
-        if (has('OnHitNPC')) Hooks.Once('item.OnHitNPC', () => {
-            P['void ApplyNPCOnHitEffects(Item sItem, Rectangle itemRectangle, int damage, float knockBack, NPC npc, int dmgRandomized, int dmgDone)'].hook(
-                (original, self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone) => {
-                    original(self, item, rect, damage, knockBack, npc, dmgRandomized, dmgDone);
-
-                    const m = of(item);
-                    if (!m) return;
-
-                    const crit = dmgDone >= dmgRandomized * 2;
-                    Safe.Run(m.constructor.name + '.OnHitNPC', () => m.OnHitNPC(item, self, npc, dmgDone, knockBack, crit));
-                }, onItem(0));
-        });
-
         if (has('UpdateEquip') || has('UpdateAccessory') || has('UpdateVanity')) {
             Hooks.Once('item.Accessory', () => {
                 P['void ApplyEquipFunctional(int itemSlot, Item currentItem)'].hook((original, self, slot, item) => {

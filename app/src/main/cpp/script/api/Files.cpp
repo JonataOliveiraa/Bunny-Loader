@@ -1,6 +1,7 @@
 #include "script/api/Files.h"
 
 #if BL_HAVE_QUICKJS
+#include "core/AppJni.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include "mods/ModLoader.h"
@@ -317,6 +318,81 @@ JSValue mods_dataDirectory(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     return JS_NewString(ctx, data.c_str());
 }
 
+/** bl.__texturePacks(): os uids dos pacotes de textura ligados, na ordem da selecao. */
+JSValue mods_texturePacks(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    JSValue arr = JS_NewArray(ctx);
+    uint32_t n = 0;
+    for (const ModSpec& spec : config().enabledMods) {
+        if (spec.entry == "@texture") JS_SetPropertyUint32(ctx, arr, n++, JS_NewString(ctx, spec.id.c_str()));
+    }
+    return arr;
+}
+
+/**
+ * Um metodo estatico de dev.bunnyloader.game.ServerSync, a sincronizacao de
+ * mods com um servidor (o launcher confere, baixa e reinicia; a tela e do jogo,
+ * ServerSyncMenu). `arg` vai como o unico parametro String, se houver; o
+ * retorno String volta em `out`. false se a classe ou o metodo faltam.
+ */
+bool callServerSync(const char* method, const char* signature, const std::string* arg, std::string* out) {
+    JNIEnv* env = appJniEnv();
+    jclass cls = env ? appJniClass(env, "dev.bunnyloader.game.ServerSync") : nullptr;
+    jmethodID id = cls ? env->GetStaticMethodID(cls, method, signature) : nullptr;
+    if (!id || !appJniCleared(env, method)) {
+        BL_ERROR("sincronizar mods: ServerSync.%s nao encontrado", method);
+        if (cls) env->DeleteLocalRef(cls);
+        return false;
+    }
+    jstring text = arg ? env->NewStringUTF(arg->c_str()) : nullptr;
+    if (out) {
+        auto result = static_cast<jstring>(text ? env->CallStaticObjectMethod(cls, id, text)
+                                                : env->CallStaticObjectMethod(cls, id));
+        if (result) {
+            const char* chars = env->GetStringUTFChars(result, nullptr);
+            if (chars) {
+                *out = chars;
+                env->ReleaseStringUTFChars(result, chars);
+            }
+            env->DeleteLocalRef(result);
+        }
+    } else if (text) {
+        env->CallStaticVoidMethod(cls, id, text);
+    } else {
+        env->CallStaticVoidMethod(cls, id);
+    }
+    if (text) env->DeleteLocalRef(text);
+    env->DeleteLocalRef(cls);
+    return appJniCleared(env, method);
+}
+
+/**
+ * bl.__offerServerSync(json): o servidor recusou a entrada por causa dos mods
+ * e mandou os dele. O launcher confere o que muda; a tela acompanha pelo
+ * __serverSyncState.
+ */
+JSValue mods_offerServerSync(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    std::string json;
+    if (argc < 1 || !argString(ctx, argv[0], &json)) return JS_ThrowTypeError(ctx, "bl.__offerServerSync(json)");
+    return JS_NewBool(ctx, callServerSync("offer", "(Ljava/lang/String;)V", &json, nullptr));
+}
+
+/** bl.__serverSyncState(): o andamento, em JSON (ServerSync.State); null sem o launcher. */
+JSValue mods_serverSyncState(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    std::string state;
+    if (!callServerSync("state", "()Ljava/lang/String;", nullptr, &state)) return JS_NULL;
+    return JS_NewStringLen(ctx, state.data(), state.size());
+}
+
+/** bl.__serverSyncApply(): baixa, grava a sessao e reinicia. */
+JSValue mods_serverSyncApply(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewBool(ctx, callServerSync("apply", "()V", nullptr, nullptr));
+}
+
+/** bl.__serverSyncCancel(): o jogador desistiu. */
+JSValue mods_serverSyncCancel(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewBool(ctx, callServerSync("cancel", "()V", nullptr, nullptr));
+}
+
 } // namespace
 
 void installFilesApi(JSContext* ctx, JSValue bl) {
@@ -354,6 +430,11 @@ void installFilesApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("__mods", 0, mods_list),
         JS_CFUNC_DEF("__callerMod", 0, mods_caller),
         JS_CFUNC_DEF("__modDataDirectory", 1, mods_dataDirectory),
+        JS_CFUNC_DEF("__texturePacks", 0, mods_texturePacks),
+        JS_CFUNC_DEF("__offerServerSync", 1, mods_offerServerSync),
+        JS_CFUNC_DEF("__serverSyncState", 0, mods_serverSyncState),
+        JS_CFUNC_DEF("__serverSyncApply", 0, mods_serverSyncApply),
+        JS_CFUNC_DEF("__serverSyncCancel", 0, mods_serverSyncCancel),
     };
     JS_SetPropertyFunctionList(ctx, bl, modFns, sizeof modFns / sizeof modFns[0]);
 

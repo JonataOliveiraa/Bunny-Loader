@@ -1,8 +1,11 @@
 # 14. Opções do mod (`ModConfig`)
 
-O jogador muda as opções do seu mod pelo menu de pausa, no botão
-**Config. dos Mods**, logo abaixo de Configurações, com o coelho do Bunny
-Loader de ícone.
+O jogador muda as opções do seu mod em dois lugares:
+
+- no mundo, pelo menu de pausa, no botão **Config. dos Mods**, logo abaixo de
+  Configurações, com o coelho do Bunny Loader de ícone;
+- fora do mundo, em **Configurações** do menu principal: a primeira linha da
+  aba Geral é **Config. dos Mods**, com o botão **Abrir**.
 
 ![O menu de pausa com o botão "Config. dos Mods" abaixo de Configurações](../imagens/pausa-config-dos-mods.jpg)
 
@@ -48,6 +51,29 @@ atributos C#.
 - **Padrão** volta as opções do mod da aba ao padrão, no rascunho: ainda é
   preciso Aplicar. Fica apagado quando elas já estão no padrão.
 - **Descartar** (ou o voltar do Android) fecha a tela e joga o rascunho fora.
+  Aberta pelo menu principal, ela volta para Configurações.
+
+## Só no menu principal
+
+Opção que só vale antes de entrar no mundo (a geração de mundo, por exemplo)
+não tem o que fazer no menu de pausa. Com `static VisibleInWorld = false`, a
+config fica só na Config. dos Mods do menu principal:
+
+```js
+export class WorldGenConfig extends ModConfig {
+    static VisibleInWorld = false;
+
+    static Options = {
+        BigCaves: ModConfig.Toggle(false),
+        OreAmount: ModConfig.Range(100, { min: 50, max: 200, step: 10, suffix: '%' }),
+    };
+}
+```
+
+O padrão é `true`: a config aparece nos dois lugares. A flag só esconde a
+config da tela do mundo; os valores continuam valendo ali, e o
+`ModContent.GetInstance` lê do mesmo jeito. Um mod com todas as configs
+assim não ganha aba no mundo.
 
 ## Declarando
 

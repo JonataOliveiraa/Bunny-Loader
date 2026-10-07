@@ -75,10 +75,23 @@ export class ShortswordGlobalItem extends GlobalItem {
 ```
 
 Os métodos são os do `ModItem` (`SetDefaults`, `CanUseItem`, `UseItem`,
-`HoldItem`, `Shoot`, `ModifyShootStats`, `OnHitNPC`, `UpdateAccessory`,
-`UpdateInventory`, `OnCraft`, `ModifyTooltips`...), com o item como primeiro
-parâmetro. Quando um item de mod também tem o método, o do `ModItem` roda
-primeiro e depois os Globais, como no tModLoader.
+`HoldItem`, `Shoot`, `ModifyShootStats`, `UpdateAccessory`, `UpdateInventory`,
+`OnCraft`, `ModifyTooltips`...), com o item como primeiro parâmetro. Quando um
+item de mod também tem o método, o do `ModItem` roda primeiro e depois os
+Globais, como no tModLoader. Também:
+
+- dano, crítico, repulsão e tamanho: `ModifyWeaponDamage`, `ModifyWeaponCrit`,
+  `ModifyWeaponKnockback`, `ModifyItemScale`, `UseItemHitbox`, `MeleeEffects`,
+  `UseAnimation`, `UseItemFrame`, `HoldItemFrame`;
+- munição: `NeedsAmmo`, `CanChooseAmmo`, `CanBeChosenAsAmmo`, `CanConsumeAmmo`,
+  `CanBeConsumedAsAmmo`, `OnConsumeAmmo`, `OnConsumedAsAmmo`,
+  `PickAmmo(weapon, ammo, player, type, speed, damage, knockback)`;
+- cura: `GetHealLife`, `GetHealMana`, `ModifyPotionDelay`, `ApplyPotionDelay`;
+- golpes: `CanHitNPC`, `ModifyHitNPC`, `OnHitNPC`, `CanHitPvp`, `ModifyHitPvp`,
+  `OnHitPvp` (ver [Golpes](16-golpes.md)).
+
+Nos `Can` de munição, um `false` de qualquer um (o item de mod ou um Global)
+veta; nos que aceitam `null`, senão um `true` força.
 
 ## GlobalNPC e GlobalProjectile
 
@@ -106,7 +119,54 @@ export class SlimeGlobalNPC extends GlobalNPC {
   Globais; o `PostAI` roda de qualquer jeito.
 - `PreKill` devolvendo `false` faz o NPC morrer sem drop e sem `OnKill`.
 - `GetChat(npc, chat)`: `chat` é um `Ref` com a fala que o jogo escolheu;
-  troque o `chat.value`.
+  troque o `chat.value`. `CanChat(npc)`: `false` impede a conversa, `true`
+  permite, `null` deixa o jogo.
+- `FindFrame(npc, frameHeight)` (depois do quadro do jogo), `CheckActive`,
+  `CheckDead`, `ApplyDifficultyAndPlayerScaling`, `ModifyNPCHappiness`.
+- Desenho: `PreDraw` (os Globais antes do `ModNPC`; `false` não desenha),
+  `PostDraw`, `DrawEffects`, `GetAlpha`, `BossHeadSlot`, `BossHeadRotation`,
+  `BossHeadSpriteEffects`.
+- Golpes: os mesmos do `ModNPC`, também nos NPCs do jogo (ver
+  [Golpes](16-golpes.md)).
+
+O `ModNPC` e o `GlobalNPC` passam pelos mesmos hooks do jogo (o
+`NPCLoader`): cada hook só entra no JS para os tipos de NPC que alguém pediu,
+o de mod que escreve o método ou todos, quando um Global o escreve.
+
+### Lojas
+
+O `GlobalNPC` mexe nas lojas do jogo e nas de outros mods:
+
+```js
+const { ItemID, NPCID } = Terraria.ID;
+
+export class LojaDoComerciante extends GlobalNPC {
+    // Uma vez por loja: o que o Add põe entra depois dos itens dela.
+    ModifyShop(shop) {
+        if (shop.NpcType === NPCID.Merchant) shop.Add(ItemID.Wood, { condition: () => Terraria.Main.dayTime });
+    }
+
+    // O formato antigo do tModLoader: a casa livre em nextSlot (Ref).
+    SetupShop(type, shop, nextSlot) {
+        if (type !== NPCID.Merchant) return;
+        shop.item[nextSlot.value]['void SetDefaults(int Type, ItemVariant variant)'](ItemID.Torch, null);
+        nextSlot.value++;
+    }
+
+    // A cada abertura, com os itens prontos.
+    ModifyActiveShop(npc, shopName, items) {}
+
+    // A loja do Mercador Viajante: shop é o Main.travelShop (os tipos).
+    SetupTravelShop(shop, nextSlot) {
+        shop[nextSlot.value++] = ItemID.Gel;
+    }
+}
+```
+
+`NPCShop.get(NPCID.Merchant)` devolve a loja do jogo (a do Pintor de
+decoração é `NPCShop.get(NPCID.Painter, 'Decor')`), e `NPCShop.All` lista
+todas. O jogo do celular monta todas as lojas ao abrir o mundo e de novo a
+cada vez que uma abre: o `SetupShop` roda nas duas.
 
 ### O spawn natural
 
@@ -441,9 +501,9 @@ reescrever código nativo; o caminho é o dos **NetModules** do próprio jogo (a
 mensagem 82), com um número de módulo que o jogo não conhece. O conteúdo é o
 que você escreveu, em JSON: até ~64 KB por pacote.
 
-O custo: com algum `NetSend` registrado, **toda** mensagem que o jogo manda
-entra no JS por um instante para ver se é 7, 23 ou 27; e cada NPC ou projétil
-que o jogo sincroniza leva um pacote a mais. Mantenha o que vai na rede
+O custo: com algum `NetSend` registrado, as mensagens 7, 23 ou 27 entram no
+JS (o filtro nativo deixa as outras de fora); e cada NPC ou projétil que o
+jogo sincroniza leva um pacote a mais. Mantenha o que vai na rede
 pequeno.
 
 ## Ainda não
@@ -451,7 +511,7 @@ pequeno.
 - `NetSend`/`NetReceive` do `GlobalItem` (itens no chão e no inventário);
 - `SaveData`/`LoadData` por entidade (de um item ou de um NPC morador);
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
-- no `GlobalNPC`: `UpdateLifeRegen`,
-  `ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`;
+- no `GlobalNPC`: `UpdateLifeRegen`, `SaveData`/`LoadData`, os ataques de
+  morador (`TownNPCAttack*`) e os botões de conversa;
 - no `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, os
   `Pre/PostUpdate` de jogadores, NPCs, projéteis e itens separados.

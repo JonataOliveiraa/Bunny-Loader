@@ -43,6 +43,13 @@ struct Config {
     // (`Bench.plr`, `Interior_Palido.wld`). Vazios = para no titulo.
     std::string quickPlayer;
     std::string quickWorld;
+    // A volta a um servidor depois da sincronizacao de mods (ServerSync.kt):
+    // no titulo, o personagem `joinPlayer` (nome do arquivo) conecta em
+    // joinAddress:joinPort. Vazio = nada. Vale sem o inicio rapido.
+    std::string joinAddress;
+    int32_t joinPort = 0;
+    std::string joinPassword;
+    std::string joinPlayer;
 };
 
 inline Config& config() {

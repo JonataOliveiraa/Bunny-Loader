@@ -5,12 +5,12 @@ class ItemHealingHooks {
 
     static Install(type, plan) {
         if (plan.GetHealLife || plan.GetHealMana) {
-            bl.hookMarks.set('player.ItemHealing', type, true);
+            ItemCombatHooks.Mark('player.ItemHealing', type);
             ItemHealingHooks.InstallHealing();
         }
-        if (plan.GetHealLife) bl.hookMarks.set('player.HealSelection', type, true);
+        if (plan.GetHealLife) ItemCombatHooks.Mark('player.HealSelection', type);
         if (plan.ModifyPotionDelay || plan.ApplyPotionDelay) {
-            bl.hookMarks.set('player.PotionDelay', type, true);
+            ItemCombatHooks.Mark('player.PotionDelay', type);
             ItemHealingHooks.InstallPotionDelay();
         }
     }

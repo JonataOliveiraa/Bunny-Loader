@@ -1,6 +1,6 @@
 class SoundEngine {
     // Um SoundStyle de mod ou um SoundID do jogo, na posição (Vector2) ou sem
-    // distância. Som de mod devolve o stream (0 = não tocou).
+    // distância. Som de mod devolve um pedido assíncrono (0 = recusado).
     static PlaySound(style, position) {
         const sound = SoundLoader.Of(style);
         if (sound) return position ? SoundLoader.Play(sound, position.X, position.Y, 1, 0) : SoundLoader.Play(sound, -1, -1, 1, 0);
@@ -20,13 +20,17 @@ class SoundEngine {
         const sound = SoundLoader.Of(style);
         if (!sound) return 0;
 
-        const now = Date.now();
-        sound.playing = sound.playing.filter((p) => p.end > now);
-        return sound.playing.length ? sound.playing[sound.playing.length - 1].stream : 0;
+        return bl.sounds.active(sound.group);
     }
 
-    static StopSound(stream) {
-        if (stream > 0) bl.sounds.stop(stream);
+    // -1 falhou; 0 terminou/desconhecido; 1 pendente; 2 tocando; 3 pausado;
+    // 4 cancelado; 5 descartado por atraso. Histórico limitado aos últimos pedidos.
+    static GetSoundState(handle) {
+        return handle > 0 ? bl.sounds.playbackState(handle) : 0;
+    }
+
+    static StopSound(handle) {
+        if (handle > 0) bl.sounds.cancel(handle);
     }
 }
 

@@ -1,0 +1,15 @@
+{
+  "uid": "d1392c59-eb11-4ac2-b65d-a38b8d999bc8",
+  "id": "test-opcost",
+  "name": "Teste: custo de cada operação da ponte",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Mede, no mundo, quanto custa cada padrão de acesso ao jogo que os hooks quentes usam.",
+  "description": "Loga 'opcost ...'. Não mexe no mundo.",
+  "updated": "2026-10-07",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

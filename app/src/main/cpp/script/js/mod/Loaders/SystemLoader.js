@@ -79,7 +79,7 @@ class SystemLoader {
             });
         });
 
-        if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity();
+        if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity(7);
 
         // No cliente de multijogador o mundo chega pela rede, sem LoadWorld: o
         // clearWorld marca a entrada.

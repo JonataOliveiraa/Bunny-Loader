@@ -229,6 +229,22 @@ class DamageClassLoader {
         }
     }
 
+    // Os campos do jogador de cada classe do jogo, montados uma vez (o #Fold roda todo quadro).
+    static #foldFields = null;
+    static #FoldFields() {
+        if (DamageClassLoader.#foldFields) return DamageClassLoader.#foldFields;
+        const V = DamageClassLoader.Vanilla;
+        return DamageClassLoader.#foldFields = {
+            damageFields: new Map([[V.Generic, ['meleeDamage', 'rangedDamage', 'magicDamage', 'minionDamage']],
+                                   [V.Melee, ['meleeDamage']], [V.Ranged, ['rangedDamage']],
+                                   [V.Magic, ['magicDamage']], [V.Summon, ['minionDamage']]]),
+            critFields: new Map([[V.Generic, ['meleeCrit', 'rangedCrit', 'magicCrit']], [V.Melee, ['meleeCrit']],
+                                 [V.Ranged, ['rangedCrit']], [V.Magic, ['magicCrit']]]),
+            speedFields: new Map([[V.Generic, ['meleeSpeed']], [V.Melee, ['meleeSpeed']], [V.Summon, ['summonerWeaponSpeedBonus']]]),
+            penFields: new Map([[V.Generic, ['armorPenetration']], [V.Melee, ['meleeArmorPenetration']]]),
+        };
+    }
+
     // O que o mod somou nas classes do jogo vai para os campos do jogador.
     // Antes do CapAttackSpeeds: ele troca meleeSpeed (velocidade) por
     // 1/velocidade (multiplicador do tempo de uso).
@@ -236,14 +252,7 @@ class DamageClassLoader {
         const d = player.__damageClassData;
         if (!d) return;
 
-        const V = DamageClassLoader.Vanilla;
-        const damageFields = new Map([[V.Generic, ['meleeDamage', 'rangedDamage', 'magicDamage', 'minionDamage']],
-                                      [V.Melee, ['meleeDamage']], [V.Ranged, ['rangedDamage']],
-                                      [V.Magic, ['magicDamage']], [V.Summon, ['minionDamage']]]);
-        const critFields = new Map([[V.Generic, ['meleeCrit', 'rangedCrit', 'magicCrit']], [V.Melee, ['meleeCrit']],
-                                    [V.Ranged, ['rangedCrit']], [V.Magic, ['magicCrit']]]);
-        const speedFields = new Map([[V.Generic, ['meleeSpeed']], [V.Melee, ['meleeSpeed']], [V.Summon, ['summonerWeaponSpeedBonus']]]);
-        const penFields = new Map([[V.Generic, ['armorPenetration']], [V.Melee, ['meleeArmorPenetration']]]);
+        const { damageFields, critFields, speedFields, penFields } = DamageClassLoader.#FoldFields();
 
         for (const [cls, fields] of damageFields) {
             const cur = d.stats[cls.Type], app = d.applied[cls.Type];

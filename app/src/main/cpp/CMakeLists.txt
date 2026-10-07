@@ -51,17 +51,17 @@ set(BL_MOD_CLASSES_PARTS
     Core/Constants Core/Safe Core/Hooks Core/Ready Core/Entities Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
     Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
-    Enums/CommandType
+    Enums/CommandType Enums/TooltipNames
     Mod ModLoader
     Loaders/LocalizationLoader ModLocalization
-    StatModifier StatInheritanceData DamageClass Loaders/DamageClassLoader
+    StatModifier HitModifiers HitInfo HurtModifiers HurtInfo StatInheritanceData DamageClass Loaders/DamageClassLoader
     Loaders/RecipeLoader ModRecipe
-    Loaders/ItemLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
+    Loaders/ItemLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/TileEntityItemHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
     Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
     EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix
     TagCompound GenPass Loaders/SystemUpdateHooks Loaders/SystemDrawHooks Loaders/SystemWorldHooks Loaders/SystemNetworkHooks Loaders/SystemLoader ModSystem
-    Loaders/PlayerCombatHooks Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
+    Loaders/CombatLoader Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
     Loaders/PlayerDrawHooks Loaders/PlayerWorldHooks Loaders/PlayerNetworkHooks Loaders/PlayerLoader ModPlayer
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
@@ -72,7 +72,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/MountLoader ModMount
     Loaders/CommandLoader ModCommand Loaders/HairLoader ModHair Loaders/CloudLoader ModCloud
     Loaders/EmoteBubbleLoader ModEmoteBubble Loaders/AchievementLoader ModAchievement Loaders/AnglerQuestLoader
-    Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader
+    Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader Loaders/ChestNetworkHooks
     ModTile TileRestingInfo
     Loaders/WallLoader ModWall
     Loaders/ProjectileLoader ModProjectile
@@ -80,11 +80,11 @@ set(BL_MOD_CLASSES_PARTS
     NPCHappiness NPCShop Loaders/TownNPCLoader
     Loaders/GoreLoader ModGore
     Core/GlobalType Core/GlobalRegistry GlobalItem GlobalNPC GlobalProjectile Core/GlobalRegistries
-    Loaders/HitLoader Loaders/GlobalItemLoader Loaders/GlobalNPCLoader Loaders/GlobalProjectileLoader
+    Loaders/GlobalItemLoader Loaders/GlobalNPCLoader Loaders/GlobalProjectileLoader
     GlobalLoot Loaders/GlobalLootLoader
     NetWriter NetReader ModPacket Core/ModNet
     Loaders/SoundLoader SoundStyle SoundEngine Loaders/VanillaMusic Loaders/ModMusic MusicLoader
-    Loaders/MenuLoader ModMenu Loaders/ConfigLoader ModConfig Loaders/ModConfigMenu
+    Loaders/MenuLoader ModMenu Loaders/ConfigLoader ModConfig Loaders/ModConfigMenu Loaders/HostSettingsMenu Loaders/ServerSyncLoader Loaders/ServerSyncMenu
     Core/ContentLookup ModContent Core/ContentAutoload
     Exports)
 set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")

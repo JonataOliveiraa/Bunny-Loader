@@ -1,0 +1,14 @@
+{
+  "uid": "f2f3e10b-17ec-42ed-a3d8-99be7de36609",
+  "id": "test-soundfilter",
+  "name": "Teste: filtro nativo de áudio",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "Compara o custo real da ponte em cargas vanilla, mistas e customizadas.",
+  "description": "Use em cópias de saves. O runner gera os tons de teste; cria e remove 32 NPCs temporários.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

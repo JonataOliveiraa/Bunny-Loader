@@ -1,6 +1,6 @@
 class SystemNetworkHooks {
     static Install(cls) {
-        if (Hooks.Overrides(cls, ModSystem, 'HijackSendData')) ModNet.InstallEntity();
+        if (Hooks.Overrides(cls, ModSystem, 'HijackSendData')) ModNet.InstallEntity('all');
         if (!Hooks.Overrides(cls, ModSystem, 'HijackGetData')) return;
         Hooks.Once('system.GetData', () => {
             Terraria.MessageBuffer['void ProcessData(byte[] messageData, int length, out int messageType)'].hook(

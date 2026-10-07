@@ -85,8 +85,7 @@ void run(const Request& r) {
             BL_WARN("rede: jogador %d pediu NPC %d, fora da tabela", r.client, type);
             return;
         }
-        const int count = amount < 1 ? 1 : (amount > 99 ? 99 : amount);   // o teto do menu
-        for (int i = 0; i < count; ++i) spawnNpc(type, r.client);
+        spawnNpcs(type, amount, r.client);   // a contagem vai ao teto do menu la
     } else if (v == "item") {
         if (type <= 0 || type >= itemTypeCount()) {
             BL_WARN("rede: jogador %d pediu item %d, fora da tabela", r.client, type);

@@ -1,0 +1,15 @@
+{
+  "uid": "b9f3ede6-d6af-4d3d-9ba7-8145bb6e447f",
+  "id": "test-globalhooks",
+  "name": "Teste: Globais e golpes",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "GlobalNPC, GlobalItem e GlobalProjectile em NPCs, itens e projéteis do jogo: eventos, lojas e golpes (HitModifiers).",
+  "description": "Loga 'globalhooks ...'. Um jogador; não salva.",
+  "updated": "2026-10-07",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

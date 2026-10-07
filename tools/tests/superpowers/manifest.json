@@ -1,0 +1,15 @@
+{
+  "uid": "5c0f3d2a-7e41-4b8e-9a51-2f6c1d9e8b37",
+  "id": "test-superpowers",
+  "name": "Teste: superpoderes (mana do Imortal, eventos, infecção, spawn)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Só mede: os poderes são tocados no Mod Menu. Loga mana, eventos, alastramento e os NPCs perto do jogador.",
+  "description": "Loga 'superpowers ...'.",
+  "updated": "2026-10-07",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

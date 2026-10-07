@@ -21,7 +21,7 @@ class ConfigLoader {
             }
         }
         const mod = inst.Mod;
-        const entry = { inst, mod, name, file: null, options, draft: null };
+        const entry = { inst, mod, name, file: null, options, draft: null, visibleInWorld: cls.VisibleInWorld !== false };
         const dir = mod ? ModRegistry.DataDirectory(mod.uuid) : null;
         if (dir) entry.file = bl.path.join(dir, name + '.json');
 

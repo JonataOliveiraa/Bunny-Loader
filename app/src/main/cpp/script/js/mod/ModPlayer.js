@@ -47,6 +47,7 @@ class ModPlayer {
     CanHitNPCWithItem(player, item, target) { return null; }
     CanHitNPCWithProj(player, projectile, target) { return null; }
     CanHitPvp(player, item, target) { return true; }
+    CanHitPvpWithProj(player, projectile, target) { return true; }
     CanMeleeAttackCollideWithNPC(player, item, hitbox, target) { return null; }
     ModifyHitNPC(player, target, modifiers) {}
     ModifyHitNPCWithItem(player, item, target, modifiers) {}

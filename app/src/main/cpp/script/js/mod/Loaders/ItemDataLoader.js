@@ -81,6 +81,7 @@ class ItemDataLoader {
         if (['SaveData', 'LoadData', 'NetSend', 'NetReceive'].some(name => Hooks.Overrides(cls, ModItem, name))) {
             Hooks.Once('item.DataTransfers', ItemDataLoader.InstallTransfers);
             ItemNetworkHooks.Install();
+            TileEntityItemHooks.Install();
         }
     }
 

@@ -24,9 +24,11 @@
 #include "menu/NetRequests.h"
 #include "script/api/Console.h"
 #include "menu/Powers.h"
+#include <algorithm>
 #include <atomic>
 #include <unordered_map>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -72,6 +74,11 @@ const MethodInfo* g_getGameMenu = nullptr; // Main.get_gameMenu(), tambem proper
 const MethodInfo* g_newItem = nullptr;   // Item.NewItem(9 args, tudo primitivo)
 const MethodInfo* g_newNpc = nullptr;    // NPC.NewNPC(source, X, Y, Type, ...)
 const MethodInfo* g_sourceCtor = nullptr;  // EntitySource_DebugCommand.ctor()
+// Espalhar os NPCs de um pedido: Main.npc, o lado para onde o jogador olha e a
+// largura do mundo. Sem eles, todos nascem no mesmo ponto.
+FieldInfo* g_npcField = nullptr;           // Main.npc (NPC[])
+FieldInfo* g_maxTilesX = nullptr;          // Main.maxTilesX
+int32_t g_offDirection = -1;               // Entity.direction: 1 direita, -1 esquerda
 // Dar item direto no inventario: Item.new() + SetDefaults, como `player.inventory[i] = Item.new()`.
 Il2CppClass* g_itemType = nullptr;          // Terraria.Item
 const MethodInfo* g_itemCtor = nullptr;      // Item..ctor()
@@ -85,6 +92,14 @@ constexpr int kMsgSyncNpc = 23;           // MessageID.SyncNPC
 constexpr int kMsgSyncEquipment = 5;      // MessageID.SyncEquipment (uma casa do inventario)
 constexpr int kMainInventory = 50;        // inventory[0..49]; depois vem moedas e municao
 constexpr int kMaxSpawn = 99;             // o teto do slider de NPC
+constexpr int kMaxNpcs = 200;             // Main.maxNPCs
+
+// A fila de NPCs de um pedido, na frente do jogador (para onde ele olha).
+constexpr float kSpawnAhead = 144.f;      // do centro do jogador ao primeiro
+constexpr float kSpawnLift = 80.f;        // os pes acima da cabeca dele
+constexpr float kSpawnGap = 16.f;         // entre um NPC e o proximo
+constexpr float kSpawnRowLength = 640.f;  // 40 blocos; depois, outra fila mais acima
+constexpr float kSpawnWorldMargin = 640.f;  // da borda do mundo, a do voo
 
 // Desempacota um int boxed (retorno de runtime_invoke). O valor vem logo apos
 // o cabecalho do objeto.
@@ -126,7 +141,12 @@ bool resolveCheatRefs() {
     g_offItemType = fieldOffset(item, "type");
     g_offItemStack = fieldOffset(item, "stack");
     g_offItemMaxStack = fieldOffset(item, "maxStack");
-    if (Il2CppClass* player = findClass({"Terraria", "Player", {}})) g_offInventory = fieldOffset(player, "inventory");
+    if (Il2CppClass* player = findClass({"Terraria", "Player", {}})) {
+        g_offInventory = fieldOffset(player, "inventory");
+        g_offDirection = fieldOffset(player, "direction");
+    }
+    g_npcField = a.class_get_field_from_name(main, "npc");
+    g_maxTilesX = a.class_get_field_from_name(main, "maxTilesX");
     if (!g_itemCtor || !g_setDefaults || g_offInventory < 0 || g_offItemType < 0 || g_offItemStack < 0 ||
         g_offItemMaxStack < 0) {
         BL_WARN("cheats: dar item no inventario indisponivel (ctor=%p SetDefaults=%p inventory=%d); cai no chao",
@@ -862,9 +882,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     if (uint64_t req = g_pendingSpawn.exchange(0)) {
         int npcType = static_cast<int>(req >> 32);
         int spawnCount = static_cast<int>(req & 0xffffffffu);
-        // No cliente, UM pedido com a contagem: 99 pedidos seriam 99 mensagens de chat.
-        if (netMode() == 1) sendToServer("npc " + std::to_string(npcType) + " " + std::to_string(spawnCount));
-        else for (int i = 0; i < spawnCount; ++i) spawnNpc(npcType);
+        spawnNpcs(npcType, spawnCount);
     }
     pollCommands();  // canal por arquivo (dev/adb) continua valendo
     g_origDoUpdate(self, gt, m);
@@ -904,22 +922,25 @@ void requestSpawn(int type, int count) {
     }
 }
 
-void spawnNpc(int type, int player) {
+void spawnNpcs(int type, int count, int player) {
     auto& a = il2cpp::api();
     if (!g_refsOk || !g_newNpc || !g_sourceCtor) {
         BL_ERROR("cheats: invocar NPC indisponivel");
         return;
     }
+    if (count < 1) count = 1;
+    if (count > kMaxSpawn) count = kMaxSpawn;
     // No cliente, NewNPC cria o NPC so no Main.npc DELE: ninguem mais ve, mas
     // ele bate no jogador (o dano ao jogador e sincronizado). Quem cria NPC e
-    // o servidor, entao o cliente pede (ver NetRequests).
+    // o servidor, entao o cliente pede (ver NetRequests), num pedido so com a
+    // contagem: 99 pedidos seriam 99 mensagens de chat.
     const int mode = netMode();
     if (mode == 1) {
-        sendToServer("npc " + std::to_string(type));
+        sendToServer("npc " + std::to_string(type) + " " + std::to_string(count));
         return;
     }
     Il2CppObject* p = playerAt(player);
-    if (!p) { BL_WARN("spawnNpc: sem jogador %d (fora do mundo?)", player); return; }
+    if (!p) { BL_WARN("spawnNpcs: sem jogador %d (fora do mundo?)", player); return; }
 
     // Uma fonte so, reaproveitada: criar a cada invocacao geraria lixo por
     // nada, e ela nao guarda estado.
@@ -928,26 +949,63 @@ void spawnNpc(int type, int player) {
         source = a.object_new(g_sourceClass);
         Il2CppObject* exc = nullptr;
         a.runtime_invoke(g_sourceCtor, source, nullptr, &exc);
-        if (exc) { BL_ERROR("spawnNpc: ctor da fonte lancou excecao"); source = nullptr; return; }
+        if (exc) { BL_ERROR("spawnNpcs: ctor da fonte lancou excecao"); source = nullptr; return; }
     }
 
-    Vector2 pos = field<Vector2>(p, game().entity.position);
-    // Um pouco ao lado e acima: em cima do jogador o NPC nasce preso nele.
-    int x = static_cast<int>(pos.x) + 160;
-    int y = static_cast<int>(pos.y) - 80;
-    int t = type, start = 0, target = 255;
-    float ai0 = 0, ai1 = 0, ai2 = 0, ai3 = 0;
-    void* args[10] = { source, &x, &y, &t, &start, &ai0, &ai1, &ai2, &ai3, &target };
+    const auto& e = game().entity;
+    const Vector2 pos = field<Vector2>(p, e.position);
+    const int dir = g_offDirection >= 0 && field<int32_t>(p, g_offDirection) < 0 ? -1 : 1;
+    int32_t tilesX = 0;
+    if (g_maxTilesX) a.field_static_get_value(g_maxTilesX, &tilesX);
+    const float worldRight = tilesX * 16.f - kSpawnWorldMargin;
 
-    Il2CppObject* exc = nullptr;
-    int idx = unboxInt(a.runtime_invoke(g_newNpc, nullptr, args, &exc));
-    if (exc) { BL_ERROR("spawnNpc: NewNPC lancou excecao (type=%d)", type); return; }
-    // No servidor (NetHost), o NewNPC so marca spawnNeedsSyncing e o NPC chega aos
-    // clientes na proxima rodada de sincronizacao. Mandar agora evita o
-    // intervalo em que ele existe so para quem hospeda.
-    if ((mode & 2) && idx >= 0 && idx < 200) sendData(kMsgSyncNpc, idx);
-    BL_INFO("spawnNpc: type=%d em (%d,%d) -> npc[%d] (netMode %d, jogador %d)",
-            type, x, y, idx, mode, player);
+    // Em fila para onde o jogador olha, cada um a partir da borda do anterior
+    // (a largura de verdade, lida depois do NewNPC: chefe e grande). Fila
+    // cheia, a proxima vai por cima. Ao lado e acima: em cima do jogador o
+    // NPC nasce preso nele.
+    const float rowStart = pos.x + field<int32_t>(p, e.width) * 0.5f + dir * kSpawnAhead;
+    float cursor = rowStart;                 // a borda de perto do proximo NPC
+    float bottom = pos.y - kSpawnLift;       // NewNPC: Y e onde ficam os pes
+    float rowHeight = 0.f;
+    int spawned = 0, lastIdx = -1;
+    for (int i = 0; i < count; ++i) {
+        int x = static_cast<int>(cursor), y = static_cast<int>(bottom);
+        int t = type, start = 0, target = 255;
+        float ai0 = 0, ai1 = 0, ai2 = 0, ai3 = 0;
+        void* args[10] = { source, &x, &y, &t, &start, &ai0, &ai1, &ai2, &ai3, &target };
+
+        Il2CppObject* exc = nullptr;
+        const int idx = unboxInt(a.runtime_invoke(g_newNpc, nullptr, args, &exc));
+        if (exc) { BL_ERROR("spawnNpcs: NewNPC lancou excecao (type=%d)", type); return; }
+        if (idx < 0 || idx >= kMaxNpcs) break;   // Main.npc cheio
+
+        Il2CppArray* npcs = nullptr;
+        if (g_npcField) a.field_static_get_value(g_npcField, &npcs);
+        Il2CppObject* npc = npcs && static_cast<uintptr_t>(idx) < npcs->length
+            ? reinterpret_cast<Il2CppObject**>(arrayData(npcs))[idx] : nullptr;
+        const float w = npc ? static_cast<float>(field<int32_t>(npc, e.width)) : 32.f;
+        const float h = npc ? static_cast<float>(field<int32_t>(npc, e.height)) : 32.f;
+        if (npc) {
+            float left = dir > 0 ? cursor : cursor - w;
+            if (tilesX > 0) left = std::max(kSpawnWorldMargin, std::min(left, worldRight - w));
+            field<Vector2>(npc, e.position).x = left;
+        }
+        cursor += dir * (w + kSpawnGap);
+        rowHeight = std::max(rowHeight, h);
+        if (std::fabs(cursor - rowStart) > kSpawnRowLength) {
+            cursor = rowStart;
+            bottom = std::max(kSpawnWorldMargin, bottom - rowHeight - kSpawnGap);
+            rowHeight = 0.f;
+        }
+        // No servidor (NetHost), o NewNPC so marca spawnNeedsSyncing e o NPC chega aos
+        // clientes na proxima rodada de sincronizacao. Mandar agora evita o
+        // intervalo em que ele existe so para quem hospeda (e leva a posicao da fila).
+        if (mode & 2) sendData(kMsgSyncNpc, idx);
+        ++spawned;
+        lastIdx = idx;
+    }
+    BL_INFO("spawnNpcs: type=%d, %d de %d perto do jogador %d (lado %d, netMode %d, ultimo npc[%d])",
+            type, spawned, count, player, dir, mode, lastIdx);
 }
 
 namespace {

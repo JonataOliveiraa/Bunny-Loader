@@ -56,8 +56,9 @@ que outras estendem); o `register` de cada uma
 | [`ModPacket`, `NetWriter`, `NetReader`](#rede) | Dados de mod na rede. | [12](../mods/12-globais-e-mundo.md#rede) |
 | [`Mod`, `ModLoader`](#mod-e-modloader) | O mod em si; conversa entre mods. | [11](../mods/11-conversa-entre-mods.md) |
 | [`ModContent`](#modcontent) | Tipo, modelo e textura pelo nome ou pela classe. | [4](../mods/04-conteudo-novo.md#modcontent) |
-| [`ModConfig`](#modconfig) | Opções persistentes do mod, alteradas no menu de pausa. | [14](../mods/14-opcoes-do-mod.md) |
+| [`ModConfig`](#modconfig) | Opções persistentes do mod, alteradas no menu de pausa e nas Configurações do menu principal. | [14](../mods/14-opcoes-do-mod.md) |
 | [`DamageClass`, `StatModifier`, `StatInheritanceData`](#damageclass) | Classes de dano, modificadores de atributos e herança de bônus. | [15](../mods/15-classes-de-dano.md) |
+| [`HitModifiers`, `HitInfo`, `HurtModifiers`, `HurtInfo`](#golpes) | O golpe num NPC ou num jogador, antes (`ModifyHit*`) e depois (`OnHit*`). | [16](../mods/16-golpes.md) |
 | [`ModRecipe`](#modrecipe) | Receitas e grupos de receita. | [5](../mods/05-itens.md#receitas) |
 | [`NPCLoot`, `NPCSpawnInfo`, `NPCShop`, `NPCHappiness`, `ModGore`](#ajudantes-de-npc) | Drops, spawn, loja, felicidade, gore. | [7](../mods/07-npcs.md) |
 | [`TooltipLine`, `DrawableTooltipLine`](#tooltipline) | Linha de tooltip, e a linha no desenho. | [5](../mods/05-itens.md#tooltip) |
@@ -144,14 +145,14 @@ própria instância, com `this.Item` apontando para ele.
 | `ModifyWeaponKnockback(item, player, knockback)` | `knockback` é `StatModifier`. | `Player.GetWeaponKnockback`, marcas por tipo |
 | `ModifyItemScale(item, player, scale)` | `scale` é `Ref<number>` do multiplicador, incluindo a luva nativa. | `Player.GetAdjustedItemScale` e `ItemCheck_GetMeleeHitbox`, marcas por tipo |
 | `CanHitNPC(item, player, target)` | `false` veta; `true` permite a elegibilidade; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
-| `ModifyHitNPC(item, player, target, modifiers)` | Modifica o dano, crítico, direção e repulsão do golpe corpo a corpo. | `NPC.StrikeNPC`, contexto do item |
+| `ModifyHitNPC(item, player, target, modifiers)` | `modifiers` é um `HitModifiers` ([Golpes](../mods/16-golpes.md)). | `NPC.StrikeNPC`, contexto do item |
 | `CanHitPvp(item, player, target)` | `false` impede o golpe corpo a corpo. | `Player.ItemCheck_MeleeHitPVP` e `Hurt` |
-| `ModifyHitPvp(item, player, target, modifiers)` | Objeto JS com os parâmetros mutáveis do dano recebido. | `Player.Hurt`, contexto do ataque corpo a corpo |
+| `ModifyHitPvp(item, player, target, modifiers)` | `modifiers` é um `HurtModifiers` ([Golpes](../mods/16-golpes.md)). | `Player.Hurt`, contexto do ataque corpo a corpo |
 | `OnHitPvp(item, player, target, hurtInfo)` | Só após dano positivo, com `HurtInfo` do resultado aplicado. | retorno de `Player.Hurt`, contexto do ataque corpo a corpo |
 | `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | `false` veta; `true` permite a colisão; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC`, `Rectangle.Intersects` com flag e `whileIn` |
 | `MeleeEffects(item, player, hitbox)` | Depois dos efeitos visuais nativos de uso. | `Player.ItemCheck_EmitUseVisuals`, marcas por tipo |
 | `UseItemHitbox(item, player, hitbox, noHitbox)` | `Ref<Rectangle>` e `Ref<boolean>` depois da hitbox nativa. | `Player.ItemCheck_GetMeleeHitbox`, marcas por tipo |
-| `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. | `Player.ApplyNPCOnHitEffects`, filtro `tipo` |
+| `OnHitNPC(item, player, target, hit, damageDone)` | Depois do golpe corpo a corpo; `hit` é um `HitInfo`. | `NPC.StrikeNPC` (CombatLoader), filtro `tipo` |
 | `UpdateEquip(item, player)` | Todo quadro, equipado (armadura ou acessório). | `Player.ApplyEquipFunctional`, `GrantArmorBenefits`, filtro `tipo` |
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, acessório equipado (também no slot de vaidade). | `Player.ApplyEquipFunctional`, `ApplyEquipVanity`, filtro `tipo` |
 | `IsArmorSet(head, body, legs)` | Para cada peça vestida de mod: `true` = conjunto completo. | `Player.UpdateArmorSets`, sem filtro (zera o `setBonus` antes) |
@@ -348,8 +349,12 @@ Um projétil novo. Como o item: molde e uma instância por projétil
 | `TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac)` | Quatro `Ref`: dimensões da colisão, passagem por plataformas e centro. `false` pula a colisão neste movimento. | `Projectile.HandleMovement`/`GetCollisionParams`, filtro por tipo e sobrescrita |
 | `PreKill(proj, timeLeft)` | Antes de morrer; `false` tira os efeitos do jogo. | `Projectile.Kill`, filtro `tipo` |
 | `OnKill(proj, timeLeft)` | Ao morrer. | idem |
-| `OnHitNPC(proj, npc)` | Acertou um NPC. | `Projectile.StatusNPC`, filtro `tipo` |
-| `OnHitPlayer(proj, player)` | Acertou um jogador. | `Projectile.StatusPlayer`, filtro `tipo` |
+| `CanHitNPC(proj, target)` | `false` veta, `true` força, `null` deixa o jogo (projéteis do jogador). | `Player.CanNPCBeHitByPlayerOrPlayerProjectile` (CombatLoader) |
+| `ModifyHitNPC(proj, target, modifiers)` | `modifiers` é um `HitModifiers` ([Golpes](../mods/16-golpes.md)). | `Projectile.Damage_PVE` + `NPC.StrikeNPC` |
+| `OnHitNPC(proj, target, hit, damageDone)` | Depois do golpe; `hit` é um `HitInfo`. | idem |
+| `CanHitPlayer(proj, target)`, `CanHitPvp(proj, target)` | `false` veta o golpe no jogador (hostil / PvP). | `Player.Hurt` (CombatLoader) |
+| `ModifyHitPlayer(proj, target, modifiers)` | `modifiers` é um `HurtModifiers`. | idem |
+| `OnHitPlayer(proj, target, info)` | Depois do dano; `info` é um `HurtInfo`. | idem |
 | `Colliding(proj, projHitbox, targetHitbox)` | `true`/`false` decide o acerto; `undefined`, o do jogo. | `Projectile.Colliding`, filtro `tipo` |
 | `CanDamage(proj)` | `false`: não causa dano. | `Projectile.Damage`, filtro `tipo` |
 | `MinionContactDamage(proj)` | `true`: lacaio ou pet fere ao encostar. | idem |
@@ -386,7 +391,8 @@ do projétil. Use os leitores e escritores do loader descritos em [Rede](#rede).
 
 ### Ainda não
 
-`ModifyHitNPC`, `CanHitNPC` e `OnHitNPC` com as informações completas do golpe.
+`ShouldUpdatePosition`, `NumGrappleHooks`, `GrappleRetreatSpeed`,
+`GrapplePullSpeed`, `GrappleTargetPoint`, `FlailStats`.
 
 ---
 
@@ -402,6 +408,7 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `NPC`, `Type`, `Mod` | | O NPC desta instância, o tipo, o mod. |
 | `Texture` | texto | O caminho no mod, sem `.png`; padrão, ao lado do arquivo da classe. Tira vertical de quadros. |
 | `DisplayName` | texto ou `{ cultura: texto }` | Vazio: `NPCName.<Classe>`. |
+| `AIType` | número | Tipo vanilla usado só durante a IA do jogo; `0` desliga. Configure `npc.aiStyle` separadamente. Vale no `SetDefaults` e pode mudar por instância. |
 | `AnimationType` | número | Anima como este NPC do jogo (0 = não). Vale no `SetDefaults`. |
 | `HideFromBestiary` | `boolean` | Sem entrada no Bestiário. |
 | `HideFromModMenu` | `boolean` | Fora do Mod Menu. |
@@ -425,7 +432,12 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `OnSpawn(npc, source)` | Uma vez após nascer; recebe a fonte nativa. | `NPC.NewNPC`, filtro no argumento Type e por sobrescrita |
 | `ResetEffects(npc)` | Depois de zerar os flags de buffs, antes de reaplicar efeitos e executar AI. | entrada de `NPC.UpdateNPC_BuffSetFlags`, filtro por tipo e sobrescrita |
 | `CanBeHitByItem(npc, player, item)` | `false` veta; `true` permite no teste de elegibilidade; `null`/`undefined` mantém o jogo. Um veto de ModPlayer prevalece. | fluxo compartilhado de `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
-| `ModifyIncomingHit(npc, modifiers)` | Altera dano, empurrão, direção e crítico antes do golpe nativo. Não reaplica em `fromNet`. | `NPC.StrikeNPC_Inner`, filtro por tipo e sobrescrita |
+| `ModifyHitByItem(npc, player, item, modifiers)` | Antes do golpe de item; `HitModifiers`. | `NPC.StrikeNPC` (CombatLoader) |
+| `CanBeHitByProjectile(npc, projectile)` | `false` veta, `true` força, `null` deixa o jogo (projéteis do jogador). | `Player.CanNPCBeHitByPlayerOrPlayerProjectile` |
+| `ModifyHitByProjectile(npc, projectile, modifiers)` | Antes do golpe de projétil; `HitModifiers`. | `NPC.StrikeNPC` (CombatLoader) |
+| `ModifyIncomingHit(npc, modifiers)` | Por último, em todo golpe (também sem autor). Não reaplica em `fromNet`. | idem |
+| `CanHitNPC(npc, target)`, `CanBeHitByNPC(npc, attacker)` | NPC contra NPC; `false` veta. | `NPC.BeHurtByOtherNPC` |
+| `ModifyHitNPC(npc, target, modifiers)`, `OnHitNPC(npc, target, hit)` | O golpe dele em outro NPC. | `NPC.BeHurtByOtherNPC` + `StrikeNPC` |
 | `OnHitByItem(npc, player, item, hit, damageDone)` | Após dano efetivo de item, uma vez por golpe. | fluxo compartilhado de `NPC.StrikeNPC` |
 | `OnHitByProjectile(npc, projectile, hit, damageDone)` | Após dano efetivo de projétil, inclusive sem dono jogador. | `Projectile.Damage_PVE` e fluxo compartilhado de `NPC.StrikeNPC` |
 | `CanHitPlayer(npc, player, cooldownSlot)` | `false` veta dano; `cooldownSlot.value` altera o slot de imunidade. | fluxo compartilhado de `Player.Hurt` |
@@ -466,15 +478,10 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 A música (`Music`) é decidida pelos hooks de `Main.UpdateAudio*`, instalados
 uma vez; ver o [guia 10](../mods/10-sons-e-musica.md).
 
-Os modificadores de entrada usam `damage`, `knockBack`, `hitDirection`, `crit`,
-`SourceDamage` e `Knockback` (`StatModifier`), além de `SetCrit()` e
-`DisableCrit()`. `ModifyHitPlayer` usa `damage`, `hitDirection`, `quiet`,
-`crit` e `dodgeable`, como o fluxo de `ModPlayer` do Bunny Loader.
-`hit` contém `Damage`, `SourceDamage`, `Knockback`, `HitDirection` e `Crit`;
-`damageDone` é o retorno efetivo do golpe nativo. Esses objetos são contratos
-JavaScript do Bunny Loader: não incluem os demais campos das estruturas do
-tModLoader. `hurtInfo` inclui `DamageSource`, `Damage`, `HitDirection`, `PvP`,
-`Quiet`, `Crit`, `CooldownCounter` e `Dodgeable`.
+Os golpes num NPC recebem um `HitModifiers` e os no jogador um
+`HurtModifiers`, com os campos do tModLoader 1.4.4; os `OnHit` recebem um
+`HitInfo` ou um `HurtInfo`. Os nomes de antes (`damage`, `knockBack`,
+`hitDirection`, `crit`) continuam valendo. Ver [Golpes](../mods/16-golpes.md).
 
 Os métodos sem contrato completo acessível no mobile foram descartados;
 as razões e os testes estão em
@@ -494,7 +501,6 @@ métodos de preferência; o array de vizinhos também vem do `HelperInfo` nativo
 
 ### Ainda não
 
-`ModifyHitByItem`/`ModifyHitByProjectile`, `CanBeHitByProjectile`,
 `UpdateLifeRegen`, `ModifyDeathMessage`, `DrawHealthBar`, sacola de tesouro,
 marca de chefe derrotado, `CanGoToStatue` e os ataques de morador além
 do projétil.
@@ -878,9 +884,9 @@ A parede nova. Ver o [guia 9](../mods/09-blocos.md#paredes-modwall).
 
 ## GlobalItem, GlobalNPC e GlobalProjectile
 
-Código que roda para as entidades **do jogo** (e as de mod). Os hooks **não
-têm filtro nativo**: todo item, NPC ou projétil que passa pelo método entra no
-JS, e o `AppliesToEntity` escolhe lá dentro (ver o custo no
+Código que roda para as entidades **do jogo** (e as de mod). Um método de
+Global vale para todo tipo: o hook dele entra no JS para todo item, NPC ou
+projétil que passa por ali, e o `AppliesToEntity` escolhe lá dentro (ver o custo no
 [guia 12](../mods/12-globais-e-mundo.md#o-custo)). Um método que nenhum Global
 escreve não instala hook.
 
@@ -913,7 +919,11 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `CanShoot(item, player)` | Antes do tiro; `false` não atira. | `Player.ItemCheck_Shoot` |
 | `ModifyShootStats(item, player, stats)` | `stats = { position, velocity, type, damage, knockBack }`. | `Projectile.NewProjectile` do tiro |
 | `Shoot(item, player, position, velocity, type, damage, knockBack, source)` | `false`: o projétil do jogo não sai. | idem |
-| `OnHitNPC(item, player, target, damageDone, knockBack, crit)` | Golpe corpo a corpo acertou. | `Player.ApplyNPCOnHitEffects` |
+| `CanHitNPC`, `ModifyHitNPC`, `OnHitNPC(item, player, target, hit, damageDone)`, `CanMeleeAttackCollideWithNPC` | O golpe corpo a corpo, como no `ModItem` ([Golpes](../mods/16-golpes.md)). | `Player.ProcessHitAgainstNPC` + `NPC.StrikeNPC` |
+| `CanHitPvp`, `ModifyHitPvp`, `OnHitPvp` | O golpe corpo a corpo PvP. | `Player.ItemCheck_MeleeHitPVP` + `Hurt` |
+| `ModifyWeaponCrit`, `ModifyWeaponKnockback`, `ModifyItemScale`, `UseItemHitbox`, `MeleeEffects`, `UseAnimation`, `UseItemFrame`, `HoldItemFrame` | Como no `ModItem`, depois dele, para qualquer item. | os do `ModItem` |
+| `NeedsAmmo`, `CanChooseAmmo`, `CanBeChosenAsAmmo`, `CanConsumeAmmo`, `CanBeConsumedAsAmmo`, `OnConsumeAmmo`, `OnConsumedAsAmmo`, `PickAmmo(weapon, ammo, player, type, speed, damage, knockback)` | Munição; um `false` veta, nos de `null` um `true` força. | idem |
+| `GetHealLife`, `GetHealMana`, `ModifyPotionDelay`, `ApplyPotionDelay` | Cura e atraso de poção. | idem |
 | `UpdateInventory(item, player)` | A cada quadro, para as 58 casas do inventário. | `Player.UpdateEquips` |
 | `UpdateEquip(item, player)` | Equipado (acessório ou armadura). | `Player.ApplyEquipFunctional`, `GrantArmorBenefits` |
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Acessório equipado (também de vaidade). | `Player.ApplyEquipFunctional`/`ApplyEquipVanity` |
@@ -932,11 +942,24 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 |---|---|---|
 | `SetDefaults(npc)` | O NPC nasce (também no cliente, ao chegar pela rede). | `NPC.SetDefaults` |
 | `OnSpawn(npc, source)` | Criado por `NewNPC` (no servidor ou sozinho). | `NPC.NewNPC` |
-| `ResetEffects(npc)` | Começo da atualização do NPC. | `NPC.UpdateNPC` |
+| `ResetEffects(npc)` | Começo da atualização do NPC. | `NPC.UpdateNPC_BuffSetFlags` |
 | `PreAI(npc)`, `AI(npc)`, `PostAI(npc)` | A cada quadro. `PreAI` `false` pula a IA do jogo e o `AI` dos outros. | `NPC.AI` |
 | `HitEffect(npc, hitDirection, damage)` | Levou golpe (sangue, gore). | `NPC.HitEffect` |
-| `OnHitByItem(npc, player, item, damageDone, knockBack, crit)` | Golpe corpo a corpo. | `Player.ApplyNPCOnHitEffects` |
-| `OnHitByProjectile(npc, projectile)` | Acertado por projétil. | `Projectile.StatusNPC` |
+| `CanBeHitByItem`, `ModifyHitByItem`, `OnHitByItem(npc, player, item, hit, damageDone)` | Golpe de item, como no `ModNPC` ([Golpes](../mods/16-golpes.md)). | `NPC.StrikeNPC` (CombatLoader) |
+| `CanBeHitByProjectile`, `ModifyHitByProjectile`, `OnHitByProjectile(npc, projectile, hit, damageDone)` | Golpe de projétil. | idem |
+| `ModifyIncomingHit(npc, modifiers)` | Por último, em todo golpe. | idem |
+| `CanHitPlayer`, `ModifyHitPlayer`, `OnHitPlayer(npc, target, hurtInfo)` | O golpe dele no jogador. | `Player.Hurt` |
+| `CanHitNPC`, `CanBeHitByNPC`, `ModifyHitNPC`, `OnHitNPC(npc, target, hit)` | NPC contra NPC. | `NPC.BeHurtByOtherNPC` |
+| `FindFrame(npc, frameHeight)` | Depois do quadro do jogo (ou do `ModNPC`). | `NPC.FindFrame` |
+| `CheckActive(npc)`, `CheckDead(npc)` | `false`: não some longe / não morre com vida 0. | `NPC.CheckActive`, `NPC.checkDead` |
+| `CanChat(npc)` | `false` impede, `true` permite, `null` deixa o jogo. | `NPC.CanTalk`/`CanBeTalkedTo` |
+| `PreDraw`, `PostDraw`, `DrawEffects`, `GetAlpha` | Desenho (os Globais antes do `ModNPC` no `PreDraw`). | `Main.DrawNPCDirect`, `NPC.GetAlpha` |
+| `BossHeadSlot`, `BossHeadRotation`, `BossHeadSpriteEffects` | `Ref` do ícone de chefe. | `NPC.GetBossHead*` |
+| `ApplyDifficultyAndPlayerScaling`, `ModifyNPCHappiness` | Como no `ModNPC`, para qualquer NPC. | os do `ModNPC` |
+| `ModifyShop(shop)` | Uma vez por loja (do jogo ou de mod), na primeira abertura: o `shop.Add` entra depois dos itens dela. | `InventoryStorage.SetupShop` |
+| `SetupShop(type, shop, nextSlot)` | O formato antigo: `shop.item`, a casa livre em `nextSlot` (`Ref`). | idem |
+| `ModifyActiveShop(npc, shopName, items)` | A cada abertura, com os itens prontos. | idem |
+| `SetupTravelShop(shop, nextSlot)` | A loja do Mercador Viajante (`Main.travelShop`). | `InventoryStorage.SetupTravelShop` |
 | `PreKill(npc)`, `OnKill(npc)` | A morte com drop, só no servidor ou sozinho. `PreKill` `false`: sem drop e sem `OnKill`. | `NPC.NPCLoot` |
 | `GetChat(npc, chat)` | A fala; `chat` é um `Ref`. | `NPC.GetChat` |
 | `NetSend(npc, writer)`, `NetReceive(npc, reader)` | Rede: junto com cada NPC que o servidor sincroniza. | `NetMessage.SendData` (23) |
@@ -976,8 +999,8 @@ export class MaisInimigosNoBioma extends GlobalNPC {
 | `PreAI`, `AI`, `PostAI(projectile)` | A cada quadro. | `Projectile.AI` |
 | `PreKill(projectile, timeLeft)` | Antes da morte. `false` remove o projétil sem o efeito nativo e encerra o fluxo antes de `OnKill`. | `Projectile.Kill` |
 | `OnKill(projectile, timeLeft)` | Depois da morte nativa, quando `PreKill` não vetou. | `Projectile.Kill` |
-| `OnHitNPC(projectile, target)` | Acertou um NPC. | `Projectile.StatusNPC` |
-| `OnHitPlayer(projectile, target)` | Acertou um jogador. | `Projectile.StatusPlayer` |
+| `CanHitNPC`, `ModifyHitNPC`, `OnHitNPC(projectile, target, hit, damageDone)` | O golpe num NPC, como no `ModProjectile` ([Golpes](../mods/16-golpes.md)). | `Projectile.Damage_PVE` + `NPC.StrikeNPC` |
+| `CanHitPlayer`, `CanHitPvp`, `ModifyHitPlayer`, `OnHitPlayer(projectile, target, info)` | O golpe num jogador (hostil / PvP). | `Player.Hurt` |
 | `PreDraw(projectile, lightColor)` | Cor em `Ref<Color>`; `false` cancela o sprite. Todos os Globais rodam antes do método local, mantendo extras como correntes. | `Main.DrawProjDirect` |
 | `PostDraw(projectile, lightColor)` | Cor direta; roda depois do método local, mesmo com veto no desenho. | `Main.DrawProjDirect` |
 | `GetAlpha(projectile, lightColor)` | Primeiro `Color` global decide; `undefined`/`null` consulta o método local e o jogo. | `Projectile.GetAlpha` |
@@ -1005,8 +1028,8 @@ parâmetros de `TileCollideStyle` estão detalhados no
 ### Ainda não
 
 `NetSend`/`NetReceive` do `GlobalItem`, `SaveData`/`LoadData` por entidade,
-`GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`,
-`ModifyActiveShop`, `ModifyHitPlayer`/`OnHitPlayer`.
+`GlobalTile`, `GlobalBuff`; no `GlobalNPC`, `UpdateLifeRegen`, os ataques de
+morador e os botões de conversa.
 
 ---
 
@@ -1455,7 +1478,7 @@ conteúdo com esse nome (dois: peça por `'mod/Nome'`).
 | | |
 |---|---|
 | `new TooltipLine(nome, texto)` | (também `new TooltipLine(mod, nome, texto)`, como no tModLoader). |
-| `Mod`, `Name`, `Text` | O mod da linha (`'Terraria'` nas do jogo), o nome (os do tModLoader: `ItemName`, `Damage`, `Tooltip0`...) e o texto. |
+| `Mod`, `Name`, `Text` | O mod da linha (`'Terraria'` nas do jogo), o nome (os do tModLoader: `ItemName`, `Damage`, `Tooltip0`..., também em `TooltipNames`: `TooltipNames.Damage`, `TooltipNames.Tooltip(0)`) e o texto. |
 | `OverrideColor` | Uma `Color` para a linha inteira. |
 | `IsModifier`, `IsModifierBad` | Linha de prefixo: boa, ou ruim. |
 | `OneDropLogo` | `true`: a linha é o logo da One Drop. |
@@ -1509,8 +1532,9 @@ no nome completo da chave que fecha o ciclo.
 | | |
 |---|---|
 | `new SoundStyle(caminho, { Volume, Pitch, PitchVariance, MaxInstances, SoundLimitBehavior })` | Um som do mod, para `UseSound`, `HitSound`, `DeathSound`. |
-| `SoundEngine.PlaySound(estilo, posição?)` | Toca agora; som de mod devolve o número (0 = não tocou). |
-| `SoundEngine.FindActiveSound(estilo)`, `SoundEngine.StopSound(n)` | |
+| `SoundEngine.PlaySound(estilo, posição?)` | Som de mod: identificador de pedido assíncrono (0 = recusado). Aceitação não confirma reprodução. |
+| `SoundEngine.GetSoundState(handle)` | -1 falhou; 0 terminou/desconhecido; 1 pendente; 2 iniciado (fim estimado); 3 pausado; 4 cancelado; 5 expirou na fila. Histórico limitado a 256 pedidos recentes, preservando os ativos. |
+| `SoundEngine.FindActiveSound(estilo)`, `SoundEngine.StopSound(n)` | O mais novo iniciado, ou 0 se pendente/pausado/inativo; cancelar um pedido pendente ou parar um iniciado. |
 | `SoundLimitBehavior.ReplaceOldest`, `.IgnoreNew` | |
 | `MusicLoader.GetMusicSlot(caminho)` (ou `(mod, caminho)`) | O número de uma música do mod (0 = não existe). |
 | `MusicLoader.MusicExists(caminho)`, `MusicLoader.IsMusicPlaying(slot)`, `MusicLoader.MusicCount` | |
@@ -1544,6 +1568,8 @@ Vale também no Otherworld. `Priority` `None` não toca.
 
 Opções por mod, declaradas em `static Options`. O registro automático cria
 uma instância que pode ser obtida com `ModContent.GetInstance(Classe)`.
+`static VisibleInWorld = false` deixa a config só na Config. dos Mods do menu
+principal (a de geração de mundo, por exemplo); o padrão é `true`.
 O [guia de opções](../mods/14-opcoes-do-mod.md) descreve o menu e a persistência.
 As [assinaturas completas](metodos.md#modconfig) vêm da implementação.
 
@@ -1558,6 +1584,21 @@ As [assinaturas completas](metodos.md#modconfig) vêm da implementação.
 | `ModConfig.Radio(defaultValue, choices, extra)`, `Dropdown(...)`, `Cycle(...)` | Descritores de seleção. |
 | `ModConfig.Color(defaultValue, extra)`, `Button(action, extra)`, `Link(url, extra)` | Descritores de cor, ação e endereço. |
 | `ModConfig.register(Classe)` | Registra manualmente uma classe de configuração. |
+
+## Golpes
+
+`HitModifiers` (o golpe num NPC, nos `ModifyHit*` e no `ModifyIncomingHit`),
+`HitInfo` (o resultado, nos `OnHit*`), `HurtModifiers` (o golpe no jogador:
+`ModifyHurt`, `ModifyHitByNPC`, `ModifyHitPlayer`, `ModifyHitPvp`) e `HurtInfo`
+(o resultado). Os campos, a conta e a ordem das chamadas estão no
+[guia 16](../mods/16-golpes.md).
+
+| | |
+|---|---|
+| `HitModifiers` | `SourceDamage`, `FinalDamage`, `CritDamage`, `NonCritDamage`, `Knockback`, `Defense` (`StatModifier`); `FlatBonusDamage`, `ScalingBonusDamage`, `TargetDamageMultiplier`, `ArmorPenetration`, `ScalingArmorPenetration`, `DefenseEffectiveness` (números); `SetMaxDamage`, `SetCrit`, `DisableCrit`, `DisableKnockback`, `SetInstantKill`, `HideCombatText`, `GetDamage`, `ToHitInfo`. |
+| `HitInfo` | `Damage`, `SourceDamage`, `Crit`, `Knockback`, `HitDirection`, `InstantKill`, `HideCombatText`, `DamageType`. |
+| `HurtModifiers` | `SourceDamage`, `FinalDamage`, `Knockback` (`StatModifier`); `IncomingDamageMultiplier`, `ArmorPenetration`, `ScalingArmorPenetration`; `DamageSource`, `PvP`, `CooldownCounter`, `Dodgeable`, `HitDirectionOverride`; `SetMaxDamage`, `Cancel`, `DisableDust`, `DisableSound`. |
+| `HurtInfo` | `Damage`, `SourceDamage`, `DamageSource`, `PvP`, `CooldownCounter`, `Dodgeable`, `HitDirection`, `Knockback`, `Crit`, `Quiet`, `Cancelled`. |
 
 ## DamageClass
 

@@ -104,7 +104,7 @@ const previews = [
     ['Métodos', 'A1:D14', 'metodos-assinaturas'],
     ['Métodos', 'E6:K12', 'metodos-contratos']
 ];
-const npcFirst = catalog.rows.findIndex((row) => row.class === 'ModNPC' && row.method === 'CanBeHitByProjectile') + 7;
+const npcFirst = catalog.rows.findIndex((row) => row.class === 'ModNPC' && row.method === 'UpdateLifeRegen') + 7;
 previews.push(['Métodos', `A${npcFirst}:I${npcFirst + 6}`, 'modnpc-limites']);
 const itemFirst = catalog.rows.findIndex(row => row.class === 'ModItem' && row.method === 'ModifyWeaponDamage') + 7;
 previews.push(['Métodos', `A${itemFirst}:D${itemFirst + 5}`, 'moditem-assinaturas']);

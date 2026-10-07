@@ -1,0 +1,15 @@
+{
+  "uid": "be85dc31-83ff-4a95-8faf-118364fd1540",
+  "id": "test-teitems",
+  "name": "Teste: dados de ModItem nos expositores",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Moldura, estante, travessa, jarro, manequim e cabideiro com item de mod que tem SaveData.",
+  "description": "Loga 'teitems ...'. Duas rodadas: a 1a coloca e salva o mundo; a 2a confere o que voltou e limpa.",
+  "updated": "2026-10-07",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -68,7 +68,7 @@ flowchart TD
 | `CanShoot(item, player)` | `false`: usa, mas não atira. |
 | `ModifyShootStats(item, player, stats)` | Antes de cada projétil: mude `stats.position`, `velocity`, `type`, `damage`, `knockBack`. |
 | `Shoot(item, player, position, velocity, type, damage, knockBack)` | `false`: o projétil do jogo não nasce (crie os seus aqui). |
-| `OnHitNPC(item, player, npc, damageDone, knockBack, crit)` | Acerto corpo a corpo. |
+| `CanHitNPC(item, player, target)`, `ModifyHitNPC(item, player, target, modifiers)`, `OnHitNPC(item, player, target, hit, damageDone)` | O golpe corpo a corpo num NPC; `CanHitPvp`, `ModifyHitPvp`, `OnHitPvp` no PvP. Ver [Golpes](16-golpes.md). |
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. |
 | `UpdateEquip(item, player)`, `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, equipado. No acessório, `vanity` é o slot de vaidade (só o visual) e `hideVisual` o olho fechado. |
 | `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). O `item` só tem posição (`Center`) quando é o do chão; no inventário e na loja vem o `Item` sem posição: luz e poeira vão no `PostUpdate`. |
@@ -449,9 +449,9 @@ insira linhas novas (`splice`) ou esconda as que não quer (`line.Hide()`).
 ```js
 ModifyTooltips(item, tooltips) {
     tooltips.splice(1, 0, new TooltipLine(this.Mod, 'Aviso', 'Logo abaixo do nome'));
-    const descricao = tooltips.find((line) => line.Name === 'Tooltip0');
+    const descricao = tooltips.find((line) => line.Name === TooltipNames.Tooltip(0));
     if (descricao) descricao.OverrideColor = Color.new(255, 215, 90);
-    const repulsao = tooltips.find((line) => line.Name === 'Knockback');
+    const repulsao = tooltips.find((line) => line.Name === TooltipNames.Knockback);
     if (repulsao) repulsao.Hide();
 }
 ```
@@ -466,6 +466,11 @@ por linha), `BuffTime`, `OneDropLogo`, `Expert`, `Master`, `PrefixDamage`,
 `JourneyResearch`, `Price` e `SpecialPrice`; e as do celular, `ReforgePrice` e
 `CraftingMaterials`. As linhas do `GetTooltipLines` de um prefixo de mod entram
 logo depois das do prefixo do jogo.
+
+Os nomes também estão em `TooltipNames`, para não escrever o texto solto:
+`line.Name === TooltipNames.Damage`. A descrição é `TooltipNames.Tooltip(0)`,
+`TooltipNames.Tooltip(1)`... Nome errado no enum dá `undefined`, e a busca
+não acha nada.
 
 Para pintar **trechos**, use a tag `[c/RRGGBB:texto]` dentro do texto.
 `TooltipLine.colorTag(texto, cor)` monta a tag de um `Color`, de `{ R, G, B }`
@@ -740,7 +745,9 @@ defaults do seu item. A condição em `UpdateInventory` mantém o dono já escol
 Para itens que representam pessoas diferentes, use `maxStack = 1`.
 
 Os dados acompanham inventário, equipamento, cofres pessoais, conjuntos de
-equipamento e baús do mundo nos arquivos `.plr.bl`/`.wld.bl`. Saves antigos,
+equipamento e baús do mundo nos arquivos `.plr.bl`/`.wld.bl`, e os
+expositores (moldura, estante de armas, travessa, jarro, manequim e
+cabideiro) no `<mundo>.wld.bl.json`. Saves antigos,
 sem dados próprios, chamam `LoadData` com um tag vazio. Aceite campos ausentes
 e valide versões e valores específicos do seu mod. `GetString` retorna `''`
 quando a chave falta; `GetInt` retorna `0`.
@@ -757,14 +764,16 @@ bem-sucedido ou sua reinicialização por `SetDefaults`.
 Quando houver objetos/listas mutáveis nos campos, sobrescreva `Clone` para
 copiá-los também; o clone padrão é superficial. Os drops de `DropSelectedItem`
 e do botão da interface mobile (`DropUIItem`) copiam a instância antes de
-transmitir o novo item. Um mod que cria outro
+transmitir o novo item. O item posto num expositor leva a instância do da
+mão, e o que sai dele (`DropItem`) cai com ela. Um mod que cria outro
 item manualmente por `NewItem(tipo, ...)` deve definir seus dados, pois essa
 chamada não recebe um item de origem.
 
 ### Dados no multiplayer
 
 Com os mesmos mods nos dois lados, o loader envia os dados junto das
-mensagens nativas de inventário (5), item no mundo (21/90) e baú (32).
+mensagens nativas de inventário (5), item no mundo (21/90), baú (32) e
+expositores (86, 89, 121, 123, 124, 133, 149 e os pedaços do mundo).
 O servidor aplica os dados antes de repassar o item. Se você implementar
 somente `SaveData`/`LoadData`, o JSON salvo também serve de sincronização.
 Por isso, esses métodos devem cuidar somente dos dados, sem efeitos de jogo.

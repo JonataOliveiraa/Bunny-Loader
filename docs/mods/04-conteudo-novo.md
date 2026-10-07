@@ -335,10 +335,11 @@ Clone(newItem) {
 }
 ```
 
-O estado da instância **não** vai para o save nem para a rede, e se perde
-quando o item passa por um baú (que guarda só tipo, pilha e prefixo): nesses
-casos a entidade nasce de novo pelo `SetDefaults`. Para o que o jogador deve
-lembrar, use o `SaveData` do `ModPlayer` ([guia 8](08-jogador-e-buffs.md#dados-salvos)).
+Sozinho, o estado da instância **não** vai para o save nem para a rede, e se
+perde quando o item passa por um baú (que guarda só tipo, pilha e prefixo):
+nesses casos a entidade nasce de novo pelo `SetDefaults`. No item, o que deve
+sobreviver vai no `SaveData`/`LoadData` dele ([guia 5](05-itens.md#dados-de-cada-instância-savedata-e-loaddata));
+fora dele, no `SaveData` do `ModPlayer` ([guia 8](08-jogador-e-buffs.md#dados-salvos)).
 
 ### Campos em classes do jogo
 

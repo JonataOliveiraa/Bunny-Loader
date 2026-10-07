@@ -6,8 +6,14 @@ class GlobalProjectile extends GlobalType {
     PostAI(projectile) {}
     PreKill(projectile, timeLeft) { return true; }
     OnKill(projectile, timeLeft) {}
-    OnHitNPC(projectile, target) {}
-    OnHitPlayer(projectile, target) {}
+    // Golpes (como no ModProjectile).
+    CanHitNPC(projectile, target) { return null; }
+    ModifyHitNPC(projectile, target, modifiers) {}
+    OnHitNPC(projectile, target, hit, damageDone) {}
+    CanHitPvp(projectile, target) { return true; }
+    CanHitPlayer(projectile, target) { return true; }
+    ModifyHitPlayer(projectile, target, modifiers) {}
+    OnHitPlayer(projectile, target, info) {}
     PreDraw(projectile, lightColor) { return true; }
     PostDraw(projectile, lightColor) {}
     GetAlpha(projectile, lightColor) { return undefined; }

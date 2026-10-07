@@ -20,6 +20,11 @@ struct Jni {
     jmethodID duration = nullptr;
     jmethodID play = nullptr;
     jmethodID stop = nullptr;
+    jmethodID enqueue = nullptr;
+    jmethodID cancel = nullptr;
+    jmethodID playbackState = nullptr;
+    jmethodID activeSound = nullptr;
+    jmethodID queueStats = nullptr;
     jmethodID musicRegister = nullptr;
     jmethodID musicVolume = nullptr;
     jmethodID musicState = nullptr;
@@ -106,11 +111,17 @@ bool init() {
         g_jni.duration = env->GetStaticMethodID(cls, "duration", "(I)I");
         g_jni.play = env->GetStaticMethodID(cls, "play", "(IFFF)I");
         g_jni.stop = env->GetStaticMethodID(cls, "stop", "(I)V");
+        g_jni.enqueue = env->GetStaticMethodID(cls, "enqueue", "(IIFFFIZ)I");
+        g_jni.cancel = env->GetStaticMethodID(cls, "cancel", "(I)V");
+        g_jni.playbackState = env->GetStaticMethodID(cls, "playbackState", "(I)I");
+        g_jni.activeSound = env->GetStaticMethodID(cls, "activeSound", "(I)I");
+        g_jni.queueStats = env->GetStaticMethodID(cls, "queueStats", "()Ljava/lang/String;");
         g_jni.musicRegister = env->GetStaticMethodID(cls, "musicRegister", "(Ljava/lang/String;)I");
         g_jni.musicVolume = env->GetStaticMethodID(cls, "musicVolume", "(IF)V");
         g_jni.musicState = env->GetStaticMethodID(cls, "musicState", "(I)I");
         g_ok = cleared(env, "metodos do ModAudio") && g_jni.load && g_jni.state && g_jni.duration &&
-               g_jni.play && g_jni.stop && g_jni.musicRegister && g_jni.musicVolume && g_jni.musicState;
+               g_jni.play && g_jni.stop && g_jni.enqueue && g_jni.cancel && g_jni.playbackState &&
+               g_jni.activeSound && g_jni.queueStats && g_jni.musicRegister && g_jni.musicVolume && g_jni.musicState;
         if (!g_ok) BL_ERROR("sons: dev.bunnyloader.game.ModAudio sem os metodos esperados");
     });
     return g_ok;
@@ -158,6 +169,53 @@ int soundDuration(int id) {
     if (!env) return 0;
     jint ms = env->CallStaticIntMethod(g_jni.cls, g_jni.duration, id);
     return cleared(env, "ModAudio.duration") ? ms : 0;
+}
+
+int enqueueSound(int group, int id, float left, float right, float rate, int max, bool ignore) {
+    if (!init()) return 0;
+    JNIEnv* env = envOfThisThread();
+    if (!env) return 0;
+    jint handle = env->CallStaticIntMethod(g_jni.cls, g_jni.enqueue, group, id, left, right, rate, max,
+                                          static_cast<jboolean>(ignore));
+    return cleared(env, "ModAudio.enqueue") ? handle : 0;
+}
+
+void cancelSound(int handle) {
+    if (!init()) return;
+    JNIEnv* env = envOfThisThread();
+    if (!env) return;
+    env->CallStaticVoidMethod(g_jni.cls, g_jni.cancel, handle);
+    cleared(env, "ModAudio.cancel");
+}
+
+int playbackState(int handle) {
+    if (!init()) return -1;
+    JNIEnv* env = envOfThisThread();
+    if (!env) return -1;
+    jint state = env->CallStaticIntMethod(g_jni.cls, g_jni.playbackState, handle);
+    return cleared(env, "ModAudio.playbackState") ? state : -1;
+}
+
+int activeSound(int group) {
+    if (!init()) return 0;
+    JNIEnv* env = envOfThisThread();
+    if (!env) return 0;
+    jint handle = env->CallStaticIntMethod(g_jni.cls, g_jni.activeSound, group);
+    return cleared(env, "ModAudio.activeSound") ? handle : 0;
+}
+
+std::string soundQueueStats() {
+    if (!init()) return "{}";
+    JNIEnv* env = envOfThisThread();
+    if (!env) return "{}";
+    auto value = static_cast<jstring>(env->CallStaticObjectMethod(g_jni.cls, g_jni.queueStats));
+    if (!cleared(env, "ModAudio.queueStats") || !value) return "{}";
+    const char* chars = env->GetStringUTFChars(value, nullptr);
+    std::string result = chars ? chars : "{}";
+    if (chars) env->ReleaseStringUTFChars(value, chars);
+    env->DeleteLocalRef(value);
+    cleared(env, "ModAudio.queueStats texto");
+    return result;
 }
 
 int registerMusic(const std::string& path) {

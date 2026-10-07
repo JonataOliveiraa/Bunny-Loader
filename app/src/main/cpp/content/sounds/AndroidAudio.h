@@ -25,6 +25,13 @@ int playSound(int id, float left, float right, float rate);
 
 void stopSound(int stream);
 
+/** Bounded asynchronous SFX. Positive handle = accepted, not confirmed playback. */
+int enqueueSound(int group, int id, float left, float right, float rate, int max, bool ignore);
+void cancelSound(int handle);
+int playbackState(int handle);
+int activeSound(int group);
+std::string soundQueueStats();
+
 /** Musica (MediaPlayer, em streaming, em laco). Registra sem ler. O id, ou 0. */
 int registerMusic(const std::string& path);
 

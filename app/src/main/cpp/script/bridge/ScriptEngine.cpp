@@ -334,6 +334,7 @@ void ScriptEngine::shutdown() {
     JS_FreeValue(ctx, global);
     releaseSystemBindings(context_);
     releaseModLoader(static_cast<JSContext*>(context_));
+    releaseNamespaceCache(context_);
     JS_FreeContext(static_cast<JSContext*>(context_));
     JS_FreeRuntime(static_cast<JSRuntime*>(runtime_));
     context_ = nullptr;

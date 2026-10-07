@@ -12,6 +12,10 @@
     "DamageClass": "damageclass",
     "DamageClassLoader": "damageclass",
     "StatModifier": "damageclass",
+    "HitModifiers": "golpes",
+    "HitInfo": "golpes",
+    "HurtModifiers": "golpes",
+    "HurtInfo": "golpes",
     "StatInheritanceData": "damageclass",
     "TooltipLine": "tooltipline",
     "DrawableTooltipLine": "tooltipline",
@@ -138,7 +142,6 @@
     "PassLegacy.ApplyPass": "Chama a função fornecida no construtor com GenerationProgress e GameConfiguration nativos."
   },
   "unavailable": [
-    { "class": "ModNPC", "method": "CanBeHitByProjectile", "reason": "Não há um ponto de elegibilidade que cubra todos os fluxos de Damage_PVE, incluindo projéteis sem dono. Um veto em StrikeNPC ocorreria após efeitos de contato." },
     { "class": "ModNPC", "method": "UpdateLifeRegen", "reason": "UpdateNPC_BuffApplyDOTs acumula e aplica o dano em uma DOTTally local. A referência de dano não fica acessível antes da aplicação." },
     { "class": "ModNPC", "method": "ModifyDeathMessage", "reason": "Mensagem e cor são locais de checkDead. DropTombstoneTownNPC expõe apenas o texto da lápide." },
     { "class": "ModNPC", "method": "TownNPCAttackCooldown", "reason": "Cooldown e seus parâmetros ficam em variáveis locais da AI de moradores. Não há helper interceptável com as referências completas." },

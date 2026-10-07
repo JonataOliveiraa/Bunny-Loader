@@ -4,7 +4,7 @@ class GlobalProjectileLoader {
         const registry = globalProjectiles;
         const has = (name) => Hooks.Overrides(cls, GlobalProjectile, name);
 
-        if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity();
+        if (has('NetSend') || has('NetReceive')) ModNet.InstallEntity(27);
         ProjectileLoader.HookGlobal(cls);
 
         if (has('SetDefaults') || registry.cached) Hooks.Once('gproj.SetDefaults', () => {
@@ -39,13 +39,6 @@ class GlobalProjectileLoader {
             });
         });
 
-        if (has('OnHitNPC')) HitLoader.ProjectileHitsNPC();
-
-        if (has('OnHitPlayer')) Hooks.Once('gproj.OnHitPlayer', () => {
-            Pr['void StatusPlayer(Player player)'].hook((original, p, player) => {
-                original(p, player);
-                registry.Call(p, 'OnHitPlayer', player);
-            });
-        });
+        CombatLoader.WantProjectile(cls, GlobalProjectile);
     }
 }

@@ -70,6 +70,21 @@ acima do custo de um laço JS vazio:
 > **proporção**: um hook custa o mesmo que ~15 leituras de campo; uma vista de
 > struct, o mesmo que ~5.
 
+Com o jogo andando (o mundo aberto, a tela desenhando), o
+[`tools/tests/opcost`](../../tools/tests/opcost) mediu outros valores para o
+que os hooks de todo quadro costumam fazer, também no MuMu. Os mais caros:
+
+| Operação | ns | Em vez disso |
+|---|---:|---|
+| Item de um array estático, buscando o array toda vez | ~2600 | Guarde o array numa variável (~1300 o item) |
+| `Color.new(r, g, b)` | ~3800–5400 | Crie a cor uma vez e reuse |
+| `Vector2.new(x, y)` | ~1800–3000 | Idem, quando der |
+| `bl.tiles.typeAt(x, y)` | ~1800 | Uma vez por célula, não por pergunta |
+| Caminho com classe aninhada (`Terraria.ID.ArmorIDs.Head.Sets`) | ~860 | Guarde a classe (`const Sets = ...`) fora do hook |
+
+O caminho `Terraria.X.Y` era ~5000 ns até a ponte passar a guardar cada classe
+e namespace já resolvido (2026-10-07).
+
 Um hook sem `original()` custa menos porque não solta e pega o motor de volta
 (ver [por que o `original()` solta o motor](../nucleo/threads-e-motor-js.md#segurar-o-motor-durante-o-método-do-jogo)).
 

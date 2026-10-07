@@ -58,9 +58,30 @@ class ModNet {
         });
     }
 
-    // 7 (mundo, só do servidor), 23 (NPC, só do servidor), 27 (projétil, de quem manda).
-    static InstallEntity() {
+    // O filtro nativo de um hook no NetMessage.SendData: o JS só roda para as
+    // mensagens marcadas em `name` (o SendData é chamado centenas de vezes por
+    // segundo no multijogador; cada hook sem filtro pagava o JS em todas).
+    static Sent(name, ...types) {
+        for (const type of types) bl.hookMarks.set(name, type);
+        return { minType: 0, arg: 0, marks: name };
+    }
+
+    // O mesmo para o MessageBuffer.ProcessData: o número da mensagem é o
+    // primeiro byte dos dados.
+    static Received(name, ...types) {
+        for (const type of types) bl.hookMarks.set(name, type);
+        return { minType: 0, firstByte: 0, marks: name };
+    }
+
+    // 7 (mundo, só do servidor), 23 (NPC, só do servidor), 27 (projétil, de
+    // quem manda), e as que quem chama pede (5, 21, 32 e 90 dos itens; todas,
+    // com 'all', para o HijackSendData).
+    static InstallEntity(...types) {
         ModNet.Install();
+        const all = types[0] === 'all';
+        for (let t = 0; t < 256; t++) {
+            if (all || types.includes(t)) bl.hookMarks.set('net.send.entity', t);
+        }
 
         Hooks.Once('net.SendData', () => {
             Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'].hook(
@@ -76,7 +97,7 @@ class ModNet {
                     if (msgType === 7) ModNet.#AfterWorld(remote, ignore);
                     else if (msgType === 23) ModNet.#AfterNPC(number, remote, ignore);
                     else ModNet.#AfterProjectile(number, remote, ignore);
-                });
+                }, { minType: 0, arg: 0, marks: 'net.send.entity' });
         });
     }
 
@@ -136,6 +157,19 @@ class ModNet {
                 return;
             case 'biomes':
                 BiomeLoader.Receive(envelope, from);
+                return;
+            case 'te-place':
+            case 'te-data':
+                TileEntityItemHooks.Receive(envelope, from);
+                return;
+            case 'hair':
+                HairLoader.Receive(envelope, from);
+                return;
+            case 'chest':
+                ChestNetworkHooks.Receive(envelope, from);
+                return;
+            case 'sync-plan':
+                ServerSyncLoader.Receive(envelope, from);
                 return;
             case 'npc': {
                 const npc = Main.npc[envelope.i];

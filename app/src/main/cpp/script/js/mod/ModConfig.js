@@ -1,4 +1,8 @@
 class ModConfig {
+    // false: a config só aparece na Config. dos Mods do menu principal (a de
+    // geração de mundo, que não muda nada com o mundo aberto).
+    static VisibleInWorld = true;
+
     OnLoaded() {}
     OnChanged(key) {}
     OnApply() {}

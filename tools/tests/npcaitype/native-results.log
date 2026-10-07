@@ -1,0 +1,64 @@
+=== mod-first ===
+07:14:42.886 I [mod] npcaitype PASS loop real do mundo executa IA emprestada por varios ticks
+07:14:42.886 I [mod] npcaitype PASS loop real conserva tipo e callbacks globais
+07:14:42.890 I [mod] npcaitype PASS SetDefaults e instancia ligada ao NPC
+07:14:42.892 I [mod] npcaitype PASS AIType sem sobrescrever AI
+07:14:42.892 I [mod] npcaitype PASS tipo e netID restaurados
+07:14:42.894 I [mod] npcaitype PASS heranca de SetDefaults
+07:14:42.895 I [mod] npcaitype PASS ordem completa com tipo original nos callbacks
+07:14:42.896 I [mod] npcaitype PASS instancia global conservada durante a troca
+07:14:42.897 I [mod] npcaitype PASS veto local conserva ambos PostAI
+07:14:42.897 I [mod] npcaitype PASS veto global pula PreAI local e conserva PostAI
+07:14:42.898 I [mod] npcaitype PASS PreAI pode selecionar AIType no mesmo tick
+07:14:42.899 I [mod] npcaitype PASS duas instancias usam AIType independente
+07:14:42.899 I [mod] npcaitype PASS AIType 0 mantem o tipo no helper nativo
+07:14:42.899 I [mod] npcaitype PASS AIType -1 mantem o tipo no helper nativo
+07:14:42.900 I [mod] npcaitype PASS AIType nao substitui aiStyle
+07:14:42.900 I [mod] npcaitype PASS AnimationType independente
+07:14:42.900 I [mod] npcaitype PASS outra familia executa IA de Zombie com tipo restaurado
+07:14:42.902 I [mod] npcaitype comparacao velocidade dx=0 dy=0
+07:14:42.902 I [mod] npcaitype PASS movimento corresponde ao WanderingEye vanilla
+07:14:42.911 I [mod] npcaitype PASS 300 chamadas reais restauram tipo e preservam instancia
+07:14:42.911 I [mod] npcaitype FIM order=mod-first checks=19 falhas=0
+=== global-first ===
+07:16:13.156 I [mod] npcaitype PASS loop real do mundo executa IA emprestada por varios ticks
+07:16:13.157 I [mod] npcaitype PASS loop real conserva tipo e callbacks globais
+07:16:13.160 I [mod] npcaitype PASS SetDefaults e instancia ligada ao NPC
+07:16:13.162 I [mod] npcaitype PASS AIType sem sobrescrever AI
+07:16:13.162 I [mod] npcaitype PASS tipo e netID restaurados
+07:16:13.164 I [mod] npcaitype PASS heranca de SetDefaults
+07:16:13.165 I [mod] npcaitype PASS ordem completa com tipo original nos callbacks
+07:16:13.166 I [mod] npcaitype PASS instancia global conservada durante a troca
+07:16:13.166 I [mod] npcaitype PASS veto local conserva ambos PostAI
+07:16:13.167 I [mod] npcaitype PASS veto global pula PreAI local e conserva PostAI
+07:16:13.168 I [mod] npcaitype PASS PreAI pode selecionar AIType no mesmo tick
+07:16:13.169 I [mod] npcaitype PASS duas instancias usam AIType independente
+07:16:13.169 I [mod] npcaitype PASS AIType 0 mantem o tipo no helper nativo
+07:16:13.169 I [mod] npcaitype PASS AIType -1 mantem o tipo no helper nativo
+07:16:13.169 I [mod] npcaitype PASS AIType nao substitui aiStyle
+07:16:13.170 I [mod] npcaitype PASS AnimationType independente
+07:16:13.170 I [mod] npcaitype PASS outra familia executa IA de Zombie com tipo restaurado
+07:16:13.172 I [mod] npcaitype comparacao velocidade dx=0 dy=0
+07:16:13.172 I [mod] npcaitype PASS movimento corresponde ao WanderingEye vanilla
+07:16:13.182 I [mod] npcaitype PASS 300 chamadas reais restauram tipo e preservam instancia
+07:16:13.182 I [mod] npcaitype FIM order=global-first checks=19 falhas=0
+=== local-only ===
+07:13:39.212 I [mod] npcaitype PASS loop real do mundo executa IA emprestada por varios ticks
+07:13:39.212 I [mod] npcaitype PASS loop real conserva tipo e callbacks globais
+07:13:39.215 I [mod] npcaitype PASS SetDefaults e instancia ligada ao NPC
+07:13:39.217 I [mod] npcaitype PASS AIType sem sobrescrever AI
+07:13:39.217 I [mod] npcaitype PASS tipo e netID restaurados
+07:13:39.218 I [mod] npcaitype PASS heranca de SetDefaults
+07:13:39.220 I [mod] npcaitype PASS ordem completa com tipo original nos callbacks
+07:13:39.221 I [mod] npcaitype PASS veto local conserva ambos PostAI
+07:13:39.222 I [mod] npcaitype PASS PreAI pode selecionar AIType no mesmo tick
+07:13:39.223 I [mod] npcaitype PASS duas instancias usam AIType independente
+07:13:39.223 I [mod] npcaitype PASS AIType 0 mantem o tipo no helper nativo
+07:13:39.224 I [mod] npcaitype PASS AIType -1 mantem o tipo no helper nativo
+07:13:39.224 I [mod] npcaitype PASS AIType nao substitui aiStyle
+07:13:39.224 I [mod] npcaitype PASS AnimationType independente
+07:13:39.224 I [mod] npcaitype PASS outra familia executa IA de Zombie com tipo restaurado
+07:13:39.227 I [mod] npcaitype comparacao velocidade dx=0 dy=0
+07:13:39.227 I [mod] npcaitype PASS movimento corresponde ao WanderingEye vanilla
+07:13:39.236 I [mod] npcaitype PASS 300 chamadas reais restauram tipo e preservam instancia
+07:13:39.236 I [mod] npcaitype FIM order=local-only checks=17 falhas=0

@@ -552,8 +552,13 @@ public class CheatBridge {
             return new Section(title, NPC, ALL_CLASSES, n, i, icon, 0, 1);
         }
 
-        static Section powers(String title, int iconItem) {
-            return new Section(title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
+        /** POWER: os grupos de POWER_GROUPS que a pagina mostra. */
+        int[] powerGroups;
+
+        static Section powers(String title, int iconItem, int... groups) {
+            Section s = new Section(title, POWER, ALL_CLASSES, null, null, null, iconItem, 0);
+            s.powerGroups = groups;
+            return s;
         }
 
         /** Uma pasta de mod: os itens (NPCs, buffs) que estao nela. */
@@ -684,7 +689,7 @@ public class CheatBridge {
     }
 
     /**
-     * O aside: Superpoderes, Itens, NPCs, Buffs e Mods. Cada um abre as
+     * O aside: Superpoderes, Eventos, Itens, NPCs, Buffs e Mods. Cada um abre as
      * categorias dele, e uma categoria pode abrir subcategorias (Itens ->
      * Corpo a corpo -> Espadas; Mods -> o mod -> as pastas dele). "Todos"
      * fica NA categoria, em cima: e a mesma lista das de baixo, sem filtro.
@@ -693,7 +698,9 @@ public class CheatBridge {
         ArrayList<Section> l = new ArrayList<Section>();
         // Sigilo Celestial. A Estrela Cadente era a primeira ideia, mas o PNG
         // dela e uma tira de 8 quadros e saia como um risco.
-        l.add(Section.powers("Superpoderes", 3601));
+        l.add(Section.powers("Superpoderes", 3601, G_PLAYER, G_WORLD));
+        // Medalhao da Lua de Abobora. Os eventos sao acoes: nada fica ligado.
+        l.add(Section.powers("Eventos", 1844, G_EVENTS));
 
         Section[] items = {
             Section.items("Todos os itens", ALL_CLASSES, "ic_sec_tudo_item", 0, 9999),
@@ -751,6 +758,10 @@ public class CheatBridge {
         "Voar", "Raio-X", "Lacaios infinitos", "Chuva", "Vento", "Bestiário",
         "Inimigos", "Teleporte no mapa", "Limpar inventário", "Revelar mapa",
         "Hardmode", "Dificuldade", "Reviver rápido", "Sumir com inimigos",
+        "Parar infecção", "Parar eventos",
+        "Lua de Sangue", "Eclipse", "Chuva de slime", "Exército goblin", "Legião gélida",
+        "Piratas", "Invasão marciana", "Lua de abóbora", "Lua gélida", "Festa",
+        "Tempestade de areia",
     };
     private static final String[] POWER_DESC = {
         "Toda arma bate mais forte",
@@ -776,6 +787,19 @@ public class CheatBridge {
         "Clássico, Expert, Mestre, Jornada",
         "Morreu, volta na hora",
         "Os que já existem somem",
+        "Corrupção, carmim e sagrado param",
+        "Acaba com o que está acontecendo",
+        "Vira a noite se for dia",
+        "Vira o dia se for noite",
+        "Slimes caindo do céu",
+        "A invasão dos goblins",
+        "Bonecos de neve armados",
+        "A invasão pirata",
+        "Os marcianos chegam",
+        "Ondas até o amanhecer",
+        "Ondas até o amanhecer",
+        "Os moradores comemoram",
+        "No deserto",
     };
     /** Rotulo de cada nivel. Um so = liga/desliga; nenhum = acao (ver isAction). */
     private static final String[][] POWER_LEVELS = {
@@ -788,6 +812,8 @@ public class CheatBridge {
         {"Ligado"}, {"Clássico", "Expert", "Mestre", "Jornada"},
         {"Ligado"},
         {},
+        {"Ligado"}, {},                  // infeccao: estado do mundo; parar eventos: acao
+        {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {},   // eventos: acoes
     };
     /** Sprite de item que representa cada poder. */
     private static final int[] POWER_ICON = {
@@ -814,6 +840,19 @@ public class CheatBridge {
         3335,   // (trocado pelo icone do modo: GAME_MODE_ICON)
         1291,   // Fruta da Vida
         0,      // (acao da barra de inimigos, sem cartao)
+        66,     // Po de Purificacao
+        3117,   // Vela da Paz
+        4271,   // Lagrima Sangrenta
+        2767,   // Tabua Solar
+        23,     // Gel
+        361,    // Estandarte de Batalha Goblin
+        602,    // Globo de Neve
+        672,    // Cutelo
+        2749,   // Cajado Xeno
+        1844,   // Medalhao da Lua de Abobora
+        1958,   // Presente Travesso
+        3749,   // Presente de Festa
+        857,    // Tempestade de Areia na Garrafa
     };
 
     // Ids que o Java precisa conhecer, na ordem de bl::runtime::Power.
@@ -824,6 +863,7 @@ public class CheatBridge {
     private static final int P_RAIN = 12;
     private static final int P_WIND = 13;
     private static final int P_CLEAR_ENEMIES = 22;
+    private static final int P_STOP_INFECTION = 23;
 
     /**
      * Poder que e uma BARRA da coluna do X (chuva, vento, inimigos): o nivel e
@@ -843,13 +883,22 @@ public class CheatBridge {
      * A grade em duas partes, na ordem mostrada. Chuva, vento, inimigos e tempo
      * parado nao estao aqui: ficam na coluna do X, junto da hora do dia.
      */
-    private static final String[] POWER_GROUP_NAME = {"Jogador", "Mundo"};
+    /**
+     * Os grupos, cada um com o seu titulo. Superpoderes mostra Jogador e
+     * Mundo; Eventos e outra entrada da coluna (sections()).
+     */
+    private static final int G_PLAYER = 0, G_WORLD = 1, G_EVENTS = 2;
+    private static final String[] POWER_GROUP_NAME = {"Jogador", "Mundo", "Eventos"};
     private static final int[][] POWER_GROUPS = {
         // Imortal, Reviver rapido, Dano, Velocidade, Super pulo, Pulo infinito,
         // Voar, Mana, Lacaios, Mineracao, Visao total, Raio-X, Teleporte, Limpar
         {4, 21, 0, 1, 2, 6, 9, 5, 11, 7, 8, 10, 16, 17},
-        // Revelar mapa, Bestiario, Hardmode, Dificuldade
-        {18, 14, 19, 20},
+        // Revelar mapa, Bestiario, Hardmode, Dificuldade, Parar infeccao
+        {18, 14, 19, 20, 23},
+        // Parar eventos; Lua de Sangue, Eclipse, Chuva de slime, Goblins,
+        // Legiao gelida, Piratas, Marcianos, Lua de abobora, Lua gelida,
+        // Festa, Tempestade de areia
+        {24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35},
     };
 
     /** Poder com icone de interface do jogo em vez de sprite de item. */
@@ -858,12 +907,18 @@ public class CheatBridge {
     }
 
     /**
-     * Poder que e o ESTADO do mundo (hardmode, dificuldade): o cartao mostra o
-     * que o mundo esta agora, e tocar manda mudar. Nao conta como ligado, e o
-     * "Desligar tudo" nao mexe — desligar o hardmode e decisao, nao faxina.
+     * Poder que e o ESTADO do mundo (hardmode, dificuldade, infeccao parada):
+     * o cartao mostra o que o mundo esta agora, e tocar manda mudar. Nao conta
+     * como ligado, e o "Desligar tudo" nao mexe — desligar o hardmode e
+     * decisao, nao faxina. A infeccao parada e salva no mundo pelo jogo.
      */
     private static boolean isWorldState(int id) {
-        return id == P_HARDMODE || id == P_DIFFICULTY;
+        return id == P_HARDMODE || id == P_DIFFICULTY || id == P_STOP_INFECTION;
+    }
+
+    /** A posicao de cada estado do mundo em sWorld (e em nWorldState: 0, 1 e 5). */
+    private static int worldSlot(int id) {
+        return id == P_HARDMODE ? 0 : id == P_DIFFICULTY ? 1 : 2;
     }
 
     private static final String[] GAME_MODE = {"Clássico", "Expert", "Mestre", "Jornada"};
@@ -871,8 +926,13 @@ public class CheatBridge {
     private static final String[] GAME_MODE_ICON = {
         "ic_dif_normal", "ic_dif_expert", "ic_dif_master", "ic_dif_creative",
     };
-    /** A ultima leitura de nWorldState, corrigida na hora pelo toque. */
-    private static int[] sWorld = {-1, -1};
+    /** A ultima leitura de nWorldState (hardmode, modo, infeccao), corrigida na hora pelo toque. */
+    private static int[] sWorld = {-1, -1, -1};
+
+    private static void readWorldState() {
+        int[] w = nWorldState();
+        if (w != null && w.length >= 2) sWorld = new int[] {w[0], w[1], w.length > 5 ? w[5] : -1};
+    }
 
     /**
      * Poder que e uma ACAO: roda uma vez no jogo e acabou, nao fica ligado. O
@@ -885,11 +945,12 @@ public class CheatBridge {
 
     /** Toque num cartao de estado do mundo: pede a mudanca e ja mostra o resultado. */
     private static void toggleWorldState(Activity act, int id) {
-        if (id == P_HARDMODE) {
-            int hm = sWorld[0];
-            if (hm < 0) { toast(act, "Entre num mundo primeiro"); return; }
-            nSetPower(id, hm == 1 ? 2 : 1);
-            sWorld[0] = hm == 1 ? 0 : 1;
+        if (id == P_HARDMODE || id == P_STOP_INFECTION) {
+            int slot = worldSlot(id);
+            int on = sWorld[slot];
+            if (on < 0) { toast(act, "Entre num mundo primeiro"); return; }
+            nSetPower(id, on == 1 ? 2 : 1);
+            sWorld[slot] = on == 1 ? 0 : 1;
         } else {
             int mode = sWorld[1];
             if (mode < 0) { toast(act, "Entre num mundo primeiro"); return; }
@@ -2862,10 +2923,15 @@ public class CheatBridge {
      * grade inteira tem de caber sem rolar.
      */
     private static void showPowers(final Activity act, LinearLayout content, Section s) {
-        int[] w = nWorldState();
-        if (w != null && w.length >= 2) sWorld = new int[] {w[0], w[1]};
+        readWorldState();
+        // So acao (a pagina Eventos): sem "Desligar tudo" e sem a contagem de
+        // ligados, que e dos interruptores da outra pagina.
+        boolean toggles = false;
+        for (int g : s.powerGroups) {
+            for (int id : POWER_GROUPS[g]) if (!isAction(id)) toggles = true;
+        }
         final TextView activeLabel = text(act, "", 10, INK_DIM);
-        sActiveLabel = activeLabel;
+        sActiveLabel = toggles ? activeLabel : null;
         LinearLayout headerRow = buildHeader(act, s, activeLabel);
 
         final View[] cards = new View[POWER_NAME.length];
@@ -2887,7 +2953,7 @@ public class CheatBridge {
                 updateActiveCount(activeLabel);
             }
         });
-        headerRow.addView(offButton);
+        if (toggles) headerRow.addView(offButton);
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -2897,10 +2963,14 @@ public class CheatBridge {
         final int columns = powerColumns(act);
         LinearLayout grid = new LinearLayout(act);
         grid.setOrientation(LinearLayout.VERTICAL);
-        for (int g = 0; g < POWER_GROUPS.length; g++) {
-            TextView groupTitle = text(act, POWER_GROUP_NAME[g], 13, INK_DIM);
-            groupTitle.setPadding(px(act, 4), px(act, g == 0 ? 0 : 10), 0, px(act, 2));
-            grid.addView(groupTitle);
+        for (int n = 0; n < s.powerGroups.length; n++) {
+            final int g = s.powerGroups[n];
+            // Um grupo so (Eventos): o titulo da pagina ja diz.
+            if (s.powerGroups.length > 1) {
+                TextView groupTitle = text(act, POWER_GROUP_NAME[g], 13, INK_DIM);
+                groupTitle.setPadding(px(act, 4), px(act, n == 0 ? 0 : 10), 0, px(act, 2));
+                grid.addView(groupTitle);
+            }
             final int[] group = POWER_GROUPS[g];
             LinearLayout queue = null;
             for (int k = 0; k < group.length; k++) {
@@ -2959,7 +3029,7 @@ public class CheatBridge {
         scroll.addView(grid);
         content.addView(scroll, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-        updateActiveCount(activeLabel);
+        if (toggles) updateActiveCount(activeLabel);
     }
 
     /** As partes de um cartao de poder, para repintar sem remontar. */
@@ -3014,19 +3084,19 @@ public class CheatBridge {
     }
 
     /**
-     * Hardmode verde quando ligado; dificuldade verde acima do Classico, com o
-     * icone do modo em que o mundo esta.
+     * Hardmode e infeccao parada verdes quando ligados; dificuldade verde acima
+     * do Classico, com o icone do modo em que o mundo esta.
      */
     private static void paintWorldCard(Activity act, View c, PowerCardViews k, int id) {
-        int v = sWorld[id == P_HARDMODE ? 0 : 1];
+        int v = sWorld[worldSlot(id)];
         boolean on = v > 0;
         if (id == P_DIFFICULTY) {
             int m = v < 0 ? 0 : Math.min(v, GAME_MODE_ICON.length - 1);
             setBitmap(act, k.icon, sprite(act, GAME_MODE_ICON[m]));
         }
         c.setBackground(actionBackground(act, on));
-        String label = v < 0 ? "" : id == P_HARDMODE ? (v == 1 ? "Ligado" : "")
-                                                     : GAME_MODE[Math.min(v, GAME_MODE.length - 1)];
+        String label = v < 0 ? "" : id != P_DIFFICULTY ? (v == 1 ? "Ligado" : "")
+                                                       : GAME_MODE[Math.min(v, GAME_MODE.length - 1)];
         k.levelLabel.setText(label);
         k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
         k.desc.setText(v < 0 ? "Entre num mundo" : POWER_DESC[id]);

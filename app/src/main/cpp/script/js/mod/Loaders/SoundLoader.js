@@ -28,7 +28,7 @@ class SoundLoader {
     }
 
     // Volume e pan como o LegacySoundPlayer: sem posição (x = -1), cheio; com
-    // posição, cai com a distância ao centro da tela. Devolve o stream, ou 0.
+    // posição, cai com a distância ao centro da tela. Devolve um pedido, ou 0.
     static Play(sound, x, y, volumeScale, pitchOffset) {
         if (!sound || !sound.id) return 0;
 
@@ -50,32 +50,24 @@ class SoundLoader {
         volume *= sound.volume * volumeScale * Main.soundVolume;
         if (!(volume > 0)) return 0;
 
-        const now = Date.now();
-        sound.playing = sound.playing.filter((p) => p.end > now);
-        if (sound.maxInstances > 0 && sound.playing.length >= sound.maxInstances) {
-            if (sound.limit === SoundLimitBehavior.IgnoreNew) return 0;
-            bl.sounds.stop(sound.playing.shift().stream);
-        }
-
         // Tom em oitavas, como o SoundEffectInstance.Pitch: velocidade = 2^tom.
         const rate = Math.pow(2, sound.pitch + (Math.random() - 0.5) * sound.pitchVariance + pitchOffset);
-        const stream = bl.sounds.play(sound.id, volume * Math.min(1, 1 - pan), volume * Math.min(1, 1 + pan), rate);
-        if (stream > 0) {
-            if (!sound.duration) sound.duration = bl.sounds.duration(sound.id) || 1000;
-            sound.playing.push({ stream, end: now + sound.duration / Math.max(0.5, Math.min(2, rate)) });
-        }
-        return stream;
+        return bl.sounds.enqueue(sound.group, sound.id,
+            volume * Math.min(1, 1 - pan), volume * Math.min(1, 1 + pan), rate,
+            sound.maxInstances, sound.limit === SoundLimitBehavior.IgnoreNew);
     }
 
     static Install() {
         Hooks.Once('sound.Play', () => {
+            bl.hookMarks.set('sound.mod', SoundLoader.ID);
+
             Terraria.Audio.LegacySoundPlayer['SoundEffectInstance PlaySound(int type, int x, int y, int Style, float volumeScale, float pitchOffset)'].hook(
                 (original, self, type, x, y, style, volumeScale, pitchOffset) => {
                     if (type !== SoundLoader.ID) return original(self, type, x, y, style, volumeScale, pitchOffset);
 
                     SoundLoader.Play(SoundLoader.Sounds[style], x, y, volumeScale, pitchOffset);
                     return null;
-                });
+                }, { minType: SoundLoader.ID, arg: 0, marks: 'sound.mod' });
         });
     }
 

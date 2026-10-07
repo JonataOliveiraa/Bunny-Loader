@@ -280,7 +280,7 @@ class TooltipLoader {
                 CustomCurrencyManager.GetPriceText(item.shopSpecialCurrency, buffer, count, price);
                 if (count.value > 0) {
                     const text = String(buffer[count.value - 1]);
-                    add('SpecialPrice', text.slice(text.indexOf(':') + 1).replaceAll(']', ''));
+                    add(TooltipNames.SpecialPrice, text.slice(text.indexOf(':') + 1).replaceAll(']', ''));
                     ctx.priceColor = Color.Multiply(TooltipLoader.#CurrencyColor(item.shopSpecialCurrency), alpha);
                 }
             } else if (price > 0) {
@@ -299,10 +299,10 @@ class TooltipLoader {
                 const silver = Math.floor(total / 100); total -= silver * 100;
                 const copper = total;
 
-                add('Price', (item.buy ? Lang.tip[50].Value : Lang.tip[49].Value) + ' ' + coinText(plat, gold, silver, copper));
+                add(TooltipNames.Price, (item.buy ? Lang.tip[50].Value : Lang.tip[49].Value) + ' ' + coinText(plat, gold, silver, copper));
                 ctx.priceColor = coinColor(plat, gold, silver);
             } else if (!isCoin && item.type !== 3817) {
-                add('Price', Lang.tip[51].Value);
+                add(TooltipNames.Price, Lang.tip[51].Value);
                 ctx.priceColor = Color.Multiply(Color.new(120, 120, 120), alpha);
             }
         }
@@ -311,7 +311,7 @@ class TooltipLoader {
             const cost = GUIInstance.Active.GUIReforge.ItemReforgeCost(item);
             if (cost > 0) {
                 const coins = Utils.CoinsSplit(cost);
-                add('ReforgePrice', VanillaTooltips.TextValue('Mobile.ReforgePrice') + ' ' + coinText(coins[3], coins[2], coins[1], coins[0]));
+                add(TooltipNames.ReforgePrice, VanillaTooltips.TextValue('Mobile.ReforgePrice') + ' ' + coinText(coins[3], coins[2], coins[1], coins[0]));
                 ctx.priceColor = coinColor(coins[3], coins[2], coins[1]);
             }
         }

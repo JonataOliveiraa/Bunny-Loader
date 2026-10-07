@@ -35,6 +35,10 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.fastBoot   = env->GetBooleanField(cfg, env->GetFieldID(cls, "fastBoot", "Z"));
     c.quickPlayer = readString(env, cfg, cls, "quickPlayer");
     c.quickWorld  = readString(env, cfg, cls, "quickWorld");
+    c.joinAddress = readString(env, cfg, cls, "joinAddress");
+    c.joinPort    = env->GetIntField(cfg, env->GetFieldID(cls, "joinPort", "I"));
+    c.joinPassword = readString(env, cfg, cls, "joinPassword");
+    c.joinPlayer  = readString(env, cfg, cls, "joinPlayer");
 
     auto arr = reinterpret_cast<jobjectArray>(
         env->GetObjectField(cfg, env->GetFieldID(cls, "enabledMods", "[Ljava/lang/String;")));

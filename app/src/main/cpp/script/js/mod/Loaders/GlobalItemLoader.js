@@ -78,7 +78,8 @@ class GlobalItemLoader {
             });
         });
 
-        if (has('OnHitNPC')) HitLoader.ItemHitsNPC();
+        CombatLoader.WantGlobalItem(cls);
+        ItemCombatHooks.InstallGlobal(cls);
 
         if (has('UpdateEquip') || has('UpdateAccessory')) {
             Hooks.Once('gitem.Accessory', () => {

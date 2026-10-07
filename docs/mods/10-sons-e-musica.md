@@ -64,15 +64,41 @@ SoundEngine.PlaySound(style, npc.Center);      // cai com a distância
 SoundEngine.PlaySound(Terraria.ID.SoundID.Item1, player.Center);   // um do jogo
 ```
 
-Com um som de mod, `PlaySound` devolve um número (o som tocando), ou 0 se não
-tocou: longe demais, volume de efeitos em 0, ou `MaxInstances` com `IgnoreNew`.
-Com esse número:
+Com um som de mod, `PlaySound` devolve o identificador de um **pedido
+assíncrono**, ou 0 se foi recusado: arquivo ainda carregando, longe demais,
+volume em 0, app pausado, limite `IgnoreNew` ou fila cheia. O Android inicia
+o efeito fora da thread do jogo. Um identificador positivo confirma a
+aceitação; a reprodução ainda pode falhar ou o pedido pode expirar.
+Com esse identificador:
 
 ```js
-const tocando = SoundEngine.PlaySound(style, player.Center);
-SoundEngine.StopSound(tocando);
-SoundEngine.FindActiveSound(style);   // o mais novo deste que ainda soa, ou 0
+const pedido = SoundEngine.PlaySound(style, player.Center);
+SoundEngine.GetSoundState(pedido);    // consultar em outra atualização
+SoundEngine.FindActiveSound(style);   // o mais novo iniciado, ou 0
+SoundEngine.StopSound(pedido);        // cancela também antes de começar
 ```
+
+| `GetSoundState(pedido)` | Estado |
+|---|---|
+| -1 | O backend falhou ao iniciar. |
+| 0 | Terminou, foi substituído pelo limite global ou o identificador não está mais no histórico. Também vale para 0. |
+| 1 | Pendente, incluindo uma chamada Android ainda em andamento. |
+| 2 | Iniciado, com duração restante estimada. |
+| 3 | Pausado pelo ciclo de vida do app. |
+| 4 | Cancelado por `StopSound`, `ReplaceOldest` ou pausa antes de começar. |
+| 5 | Descartado porque aguardou mais de 50 ms antes do despacho. |
+
+Consulte o estado durante as atualizações do mod. Não espere em um laço
+ocupado: o jogo precisa continuar. `FindActiveSound` retorna 0 enquanto o
+pedido está pendente, falhou ou está pausado. `MaxInstances` conta pedidos
+pendentes e sons iniciados; `ReplaceOldest` cancela o anterior antes de
+despachar o próximo. Sons pausados mantêm o identificador e a duração restante.
+
+O controle guarda até 256 pedidos recentes, preservando os que ainda estão
+em andamento. O SoundPool não oferece consulta de posição nem notificação
+de fim por stream: o fim é estimado pela duração do arquivo e pelo pitch.
+O estado iniciado confirma o retorno positivo do Android, sem medir a saída
+física do alto-falante. Os identificadores pertencem à sessão atual do jogo.
 
 ## Música
 
@@ -132,6 +158,11 @@ Na prática:
 - A música é lida aos poucos (streaming), então o tamanho do arquivo não pesa
   na memória.
 - No multijogador, cada aparelho toca o próprio áudio, como o jogo faz.
+- Há até 32 streams customizados simultâneos, como antes. A fila admite até
+  32 pedidos pendentes, incluindo a chamada em andamento. Sob sobrecarga,
+  recusa pedidos novos e descarta os que esperaram mais de 50 ms antes de
+  chamar o Android. Isso limita memória e evita uma sequência longa de
+  efeitos atrasados; não garante reproduzir todos os sons de uma rajada.
 
 ## Diferenças para o tModLoader
 
@@ -139,7 +170,7 @@ Na prática:
 |---|---|
 | `new SoundStyle("ExampleMod/Assets/Sounds/X") { Volume = 0.9f }` | `new SoundStyle('Sounds/X', { Volume: 0.9 })`, a partir de `Assets/`, sem o nome do mod |
 | `SoundStyle` é um struct | o `new` devolve um `LegacySoundStyle` do jogo (o tipo do `UseSound`): `instanceof SoundStyle` dá `false` |
-| `SoundEngine.PlaySound` devolve `SlotId` | devolve o número do som (0 = não tocou) |
+| `SoundEngine.PlaySound` devolve `SlotId` | devolve o identificador do pedido assíncrono (0 = recusado); consulte `GetSoundState` |
 | `Variants`, `IsLooped`, callback de atualização | ainda não |
 | `MusicLoader.GetMusicSlot(Mod, caminho)` | também `GetMusicSlot(caminho)`; não há carga automática de `Assets/Music/` |
 | `ModBiome.Music`, `ModSceneEffect.Music` | iguais: a da cena do jogador local, pela `Priority` |
@@ -149,7 +180,8 @@ Na prática:
 | | |
 |---|---|
 | `new SoundStyle(caminho, { Volume, Pitch, PitchVariance, MaxInstances, SoundLimitBehavior })` | um som do mod; vai no `UseSound`, `HitSound`, `DeathSound` |
-| `SoundEngine.PlaySound(estilo, posição?)` | tocar agora; som de mod devolve o número (0 = não tocou) |
+| `SoundEngine.PlaySound(estilo, posição?)` | pedir um efeito; som de mod devolve o identificador (0 = recusado) |
+| `SoundEngine.GetSoundState(pedido)` | consultar se está pendente, iniciado, pausado, cancelado, expirado ou falhou |
 | `SoundEngine.FindActiveSound(estilo)`, `SoundEngine.StopSound(n)` | o que ainda soa; parar |
 | `MusicLoader.GetMusicSlot(caminho)` | o número de uma música do mod (0 = não existe) |
 | `this.Music`, `this.SceneEffectPriority` (no `ModNPC`) | a música enquanto ele está perto; quem ganha |

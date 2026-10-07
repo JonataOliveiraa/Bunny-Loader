@@ -120,5 +120,29 @@ class HairLoader {
                     return;
                 }
             });
+
+        HairLoader.#HookNet();
+    }
+
+    // Quem lê a mensagem 4 (a aparência do jogador) troca cabelo acima de 227
+    // pelo 0: o de mod vai logo atrás dela pelo ModNet, na mesma ordem.
+    static #HookNet() {
+        ModNet.Install();
+        Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'].hook(
+            (original, msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7) => {
+                original(msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7);
+                if (msgType !== 4 || Terraria.Main.netMode === 0 || number < 0 || number > 255) return;
+                const hair = Terraria.Main.player[number].hair;
+                if (HairLoader.ByType.has(hair)) ModNet.Send({ k: 'hair', i: number, h: hair }, remote, ignore);
+            }, ModNet.Sent('net.send.hair', 4));
+    }
+
+    // `from`: no servidor, o cliente (que só fala do próprio jogador); no cliente, 256.
+    static Receive(envelope, from) {
+        const Main = Terraria.Main;
+        const i = Main.netMode === 2 ? from : envelope.i;
+        if (i < 0 || i > 255 || !HairLoader.ByType.has(envelope.h)) return;
+        Main.player[i].hair = envelope.h;
+        if (Main.netMode === 2) ModNet.Send({ k: 'hair', i, h: envelope.h }, -1, from);
     }
 }
