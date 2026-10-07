@@ -521,6 +521,44 @@
       ]
     },
     {
+      "uid": "ed06a60f-5b26-47ab-b684-e801ff88f2aa",
+      "id": "veinminer",
+      "name": "Vein Miner",
+      "version": "1.1.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-veinminer-v1.1.0/veinminer-1.1.0.bl",
+        "sha256": "a1f8564d9d70cefd98459ee1317c0c3db06f1b6c0ac80712b93cbea64ef6c46f",
+        "size": 48291
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "changelog.md",
+        "authors/animatak.png"
+      ],
+      "manifest": {
+        "uid": "ed06a60f-5b26-47ab-b684-e801ff88f2aa",
+        "id": "veinminer",
+        "name": "Vein Miner",
+        "version": "1.1.0",
+        "authors": [
+          {
+            "name": "Animatak_",
+            "avatar": "animatak.png",
+            "color": "#841FFF",
+            "link": "https://discord.gg/lemon-studio-1422278971227115532",
+            "role": "Author"
+          }
+        ],
+        "category": "Utility",
+        "summary": "Break one ore with your pickaxe and the whole vein comes with it. Add any block with /vein add.",
+        "updated": "2026-10-07",
+        "blVersion": 2,
+        "entry": "main.js"
+      }
+    },
+    {
       "uid": "ddc6440e-bcaf-4bc9-9e21-9633b49bd1bf",
       "id": "vidacheia",
       "name": "Vida Cheia",

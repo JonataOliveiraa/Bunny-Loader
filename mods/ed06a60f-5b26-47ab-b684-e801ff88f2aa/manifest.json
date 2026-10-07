@@ -1,0 +1,20 @@
+{
+  "uid": "ed06a60f-5b26-47ab-b684-e801ff88f2aa",
+  "id": "veinminer",
+  "name": "Vein Miner",
+  "version": "1.1.0",
+  "authors": [
+    {
+      "name": "Animatak_",
+      "avatar": "animatak.png",
+      "color": "#841FFF",
+      "link": "https://discord.gg/lemon-studio-1422278971227115532",
+      "role": "Author"
+    }
+  ],
+  "category": "Utility",
+  "summary": "Break one ore with your pickaxe and the whole vein comes with it. Add any block with /vein add.",
+  "updated": "2026-10-07",
+  "blVersion": 2,
+  "entry": "main.js"
+}
