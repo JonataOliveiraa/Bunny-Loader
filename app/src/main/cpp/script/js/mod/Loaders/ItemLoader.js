@@ -468,6 +468,10 @@ class ItemLoader {
             if (m && m.Type === self.type) {
                 Safe.Run(m.constructor.name + '.Clone', () => Entities.Bind(m.Clone(copy), copy, 'ModItem'));
             }
+
+            if (copy) copy.__blItemData = self.__blItemData;
+            if (copy) copy.__blItemDataLoadFailed = self.__blItemDataLoadFailed;
+
             return copy;
         }, { minType: FIRST_ITEM, on: -1 });
     }

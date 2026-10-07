@@ -516,16 +516,12 @@ class ProjectileLoader {
             }
             if (sprite) sprite = ProjectileLoader.#Invoke(m, 'PreDraw', p, light) !== false;
 
-            // Só uma das partes do desenho do jogo: precisa dos filtros. Sem
-            // eles (a classe não tinha extras no SetDefaults), o PreDraw false
-            // tira tudo, e o PreDrawExtras false não acontece (instala sempre).
             const split = ProjectileLoader.#extrasHooked && hasExtras && sprite !== extras;
             if (sprite || split) {
                 const outerSplit = ProjectileLoader.#split, outerLight = ProjectileLoader.#drawLight;
                 if (split) {
                     const own = Terraria.GameContent.TextureAssets.Projectile[p.type].Value;
                     ProjectileLoader.#split = { own: bl.addressOf(own), extras, sprite, reached: false };
-                    // Os filtros de desenho só entram no JS agora (ver #HookDrawExtras).
                     bl.hookFlags.set('proj.split', true);
                 }
                 if (pre.length) ProjectileLoader.#drawLight = { address: bl.addressOf(p), color: light };

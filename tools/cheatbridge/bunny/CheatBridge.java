@@ -1429,8 +1429,8 @@ public class CheatBridge {
     // ------------------------------ menu ------------------------------
 
     // Config > Desenvolvedor do launcher (ui/Prefs.kt), lidas quando o jogo
-    // abre: o Mod Menu (o coelho), o Editor de JS e o Reiniciar. Sem o Mod
-    // Menu e com o Editor, o botao flutuante vira o de JS e abre o Editor.
+    // abre: o Mod Menu (o coelho), o Editor de JS e o Reiniciar. O Editor
+    // tem seu proprio icone, disponivel tambem na tela de titulo.
     static boolean sMenuOn = true, sEditorOn = true, sRestartOn = true;
 
     private static void readDevSettings(Activity act) {
@@ -1452,6 +1452,7 @@ public class CheatBridge {
         act.runOnUiThread(new Runnable() {
             @Override public void run() {
                 try { buildToggle(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
+                try { DevTools.showFloatIcon(act); } catch (Throwable t) { /* nunca derruba o jogo */ }
             }
         });
     }
@@ -1470,11 +1471,11 @@ public class CheatBridge {
      * ficava por cima do menu do jogo. Aparece quando o jogador entra num mundo.
      */
     private static void buildToggle(final Activity act) {
-        if (!sMenuOn && !sEditorOn) return;
-        ImageView b = icon(act, sprite(act, sMenuOn ? "ic_bunny_menu" : "ic_js"), BUTTON_SIZE);
+        if (!sMenuOn) return;
+        ImageView b = icon(act, sprite(act, "ic_bunny_menu"), BUTTON_SIZE);
         b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         b.setBackground(panel(act, PANEL, OUTLINE));
-        b.setContentDescription(sMenuOn ? "Mod Menu" : "Editor");
+        b.setContentDescription("Mod Menu");
         b.setOnTouchListener(new DragHandler(act));
         b.setVisibility(View.GONE);
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
@@ -1556,8 +1557,7 @@ public class CheatBridge {
                     return true;
                 case MotionEvent.ACTION_UP:
                     if (dragging) savePosition(act, lp);
-                    else if (sMenuOn) toggleMenu(act);
-                    else DevTools.openConsole(act);
+                    else toggleMenu(act);
                     return true;
                 case MotionEvent.ACTION_CANCEL:
                     if (dragging) savePosition(act, lp);

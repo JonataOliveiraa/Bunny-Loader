@@ -66,6 +66,9 @@ class ModNet {
             Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'].hook(
                 (original, msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7) => {
                     if (typeof SystemNetworkHooks !== 'undefined' && SystemNetworkHooks.HijackSend(msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7)) return;
+                    if (typeof ItemNetworkHooks !== 'undefined')
+                        Safe.Run('ModItem: enviar dados', () => ItemNetworkHooks.BeforeSend(msgType, remote, ignore, number, n2));
+
                     original(msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7);
                     if (msgType !== 7 && msgType !== 23 && msgType !== 27) return;
                     if (Terraria.Main.netMode === 0) return;
@@ -113,6 +116,9 @@ class ModNet {
         const Main = Terraria.Main;
 
         switch (envelope.k) {
+            case 'item-data':
+                ItemNetworkHooks.Queue(envelope, from);
+                return;
             case 'packet': {
                 const mod = ModRegistry.ByUuid(envelope.m);
                 if (!mod) return;

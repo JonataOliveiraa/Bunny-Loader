@@ -250,17 +250,18 @@ no mundo caiu de ~17 s só para chegar ao título para ~11 s já no mundo. A
 opção "Nenhum: parar no título" deixa só a abertura rápida.
 
 Na mesma seção há três interruptores para o que aparece dentro do jogo: o
-**Mod Menu** (o coelho), o **Editor de JS** e o **Reiniciar**. Sem o Mod Menu e
-com o Editor, o botão flutuante vira o de JS e abre direto o Editor; sem o Mod
-Menu, nenhum poder volta ligado da partida anterior.
+**Mod Menu** (o coelho), o **Editor de JS** e o **Reiniciar**. Com o Editor
+ativado, seu ícone flutuante de JS fica disponível desde o menu inicial do
+Terraria, com ou sem o Mod Menu. Fechar ou minimizar o Editor traz o ícone de
+volta; sem o Mod Menu, nenhum poder volta ligado da partida anterior.
 
 Se o personagem ou o mundo não existe mais (ou um é de Jornada e o outro não),
 o jogo avisa no painel de erro e para no título ou na lista de mundos. O log
 de sessão mostra os tempos de cada etapa, nas linhas `inicio rapido: ...`.
 
-Para testar uma linha sem reiniciar, há o **Editor** de JavaScript: no Mod Menu, ou
-**segurando** o botão do coelho. Ele fica no pé da tela, e o jogo continua
-visível e jogável acima dele.
+Para testar uma linha sem reiniciar, há o **Editor** de JavaScript: pelo ícone
+flutuante de JS ou pelo botão **Editor** no Mod Menu. Ele fica no pé da tela,
+e o jogo continua visível e jogável acima dele.
 
 ![O editor de JavaScript, com o resultado de cada linha, o chat e o log](../imagens/console.jpg)
 
@@ -286,8 +287,9 @@ visível e jogável acima dele.
   inventário aberto): nada anda no mundo até você minimizar ou fechar. O
   código que você roda continua valendo. Só no modo um jogador; num mundo com
   outras pessoas o jogo não para.
-- `_` minimiza: o painel vira um ícone flutuante de JS, que dá para arrastar e
-  que reabre o Editor em tela cheia. O X fecha o Editor e tira o ícone.
+- `_` minimiza e o X fecha o painel. Nos dois casos, o ícone flutuante de JS
+  volta a aparecer: dá para arrastá-lo e reabrir o Editor como estava, em
+  janela ou tela cheia.
 
 ## Vendo o que o mod faz
 

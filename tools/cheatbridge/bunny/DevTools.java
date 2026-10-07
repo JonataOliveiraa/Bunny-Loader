@@ -65,9 +65,9 @@ import static bunny.CheatBridge.text;
  *
  * O Editor e um painel no pe da tela, e nao uma janela por cima: o jogo segue
  * visivel e tocavel acima dele. Em tela cheia ele cobre o jogo e o congela
- * (o jogo so volta a andar quando o Editor minimiza ou fecha). Minimizado,
- * vira um icone flutuante de JS, que reabre como estava (janela ou tela
- * cheia). Com o teclado
+ * (o jogo so volta a andar quando o Editor minimiza ou fecha). O icone
+ * flutuante de JS fica disponivel desde a tela de titulo e reabre o Editor
+ * como estava (janela ou tela cheia). Com o teclado
  * aberto, o painel sobe junto e
  * fica logo acima dele — sem a tela cheia de edicao que o Android poe no lugar
  * do jogo quando o aparelho esta deitado (IME_FLAG_NO_EXTRACT_UI), e sem
@@ -113,7 +113,6 @@ final class DevTools {
         View console = pill(act, consoleBadge(act, 10), "Editor", BUTTON, 9f);
         console.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                if (CheatBridge.sOverlay != null) CheatBridge.sOverlay.setVisibility(View.GONE);
                 openConsole(act);
             }
         });
@@ -327,8 +326,11 @@ final class DevTools {
     private static int sOutputLines;
     private static ArrayList<String> sHistory;
     private static Console sConsole;
+    private static View sFloatIcon;
 
     static void openConsole(Activity act) {
+        if (!CheatBridge.sEditorOn) return;
+        if (CheatBridge.sOverlay != null) CheatBridge.sOverlay.setVisibility(View.GONE);
         if (sConsole != null) {
             sConsole.show();
             return;
@@ -425,7 +427,6 @@ final class DevTools {
         int savedSoftInput = -1;
         boolean fullscreen;
         boolean showing;
-        View floatIcon;
         int historyIndex = -1;
         String scratch = "";
         ValueAnimator slide;
@@ -605,17 +606,15 @@ final class DevTools {
             updateFreeze();
         }
 
-        /** O X: some o painel e o icone flutuante, e o jogo volta a andar. */
+        /** O X recolhe o painel; o atalho de JS continua disponivel. */
         void hide() {
-            removeFloatIcon();
-            dismiss();
+            minimize();
         }
 
         /** O "_": o painel sai da tela e fica o icone de JS no lugar. */
         void minimize() {
             dismiss();
-            // Sem o Mod Menu, o botao flutuante do jogo ja e o de JS.
-            if (CheatBridge.sMenuOn) showFloatIcon();
+            showFloatIcon(act);
         }
 
         private void dismiss() {
@@ -647,40 +646,6 @@ final class DevTools {
         /** Congelado so enquanto o Editor esta na tela, em tela cheia. */
         void updateFreeze() {
             try { CheatBridge.nSetGameFrozen(showing && fullscreen); } catch (Throwable t) { }
-        }
-
-        // ---- o icone flutuante (minimizado) ----
-
-        void showFloatIcon() {
-            if (floatIcon != null) return;
-            ImageView b = icon(act, sprite(act, "ic_js"), FLOAT_SIZE);
-            b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
-            b.setBackground(panel(act, PANEL, OUTLINE));
-            b.setContentDescription("Editor");
-            FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(px(act, FLOAT_SIZE), px(act, FLOAT_SIZE));
-            lp.gravity = Gravity.TOP | Gravity.START;
-            DisplayMetrics m = act.getResources().getDisplayMetrics();
-            // Na primeira vez, ao lado do coelho do Mod Menu (no alto e no meio).
-            int x = m.widthPixels / 2 + px(act, 30), y = px(act, 6);
-            try {
-                x = prefs(act).getInt("iconX", x);
-                y = prefs(act).getInt("iconY", y);
-            } catch (Throwable t) { }
-            lp.leftMargin = clamp(x, 0, m.widthPixels - lp.width);
-            lp.topMargin = clamp(y, 0, m.heightPixels - lp.height);
-            // Volta como estava ao minimizar: janela ou tela cheia.
-            b.setOnTouchListener(new FloatDrag(act, new Runnable() {
-                @Override public void run() { show(); }
-            }));
-            act.addContentView(b, lp);
-            floatIcon = b;
-        }
-
-        void removeFloatIcon() {
-            if (floatIcon == null) return;
-            ViewGroup parent = (ViewGroup) floatIcon.getParent();
-            if (parent != null) parent.removeView(floatIcon);
-            floatIcon = null;
         }
 
         void hideKeyboard() {
@@ -854,6 +819,39 @@ final class DevTools {
 
     /** Lado do icone flutuante do Editor, o mesmo do coelho do Mod Menu. */
     private static final float FLOAT_SIZE = 40;
+
+    /** Atalho independente do Mod Menu e do painel, criado sem montar o Editor. */
+    static void showFloatIcon(final Activity act) {
+        if (!CheatBridge.sEditorOn || sFloatIcon != null || (sConsole != null && sConsole.showing)) return;
+        ImageView b = icon(act, sprite(act, "ic_js"), FLOAT_SIZE);
+        b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+        b.setBackground(panel(act, PANEL, OUTLINE));
+        b.setContentDescription("Editor");
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(px(act, FLOAT_SIZE), px(act, FLOAT_SIZE));
+        lp.gravity = Gravity.TOP | Gravity.START;
+        DisplayMetrics m = act.getResources().getDisplayMetrics();
+        // Ao lado do coelho, ou no centro se o Mod Menu estiver desligado.
+        int x = CheatBridge.sMenuOn ? m.widthPixels / 2 + px(act, 30) : (m.widthPixels - lp.width) / 2;
+        int y = px(act, 6);
+        try {
+            x = prefs(act).getInt("iconX", x);
+            y = prefs(act).getInt("iconY", y);
+        } catch (Throwable t) { }
+        lp.leftMargin = clamp(x, 0, m.widthPixels - lp.width);
+        lp.topMargin = clamp(y, 0, m.heightPixels - lp.height);
+        b.setOnTouchListener(new FloatDrag(act, new Runnable() {
+            @Override public void run() { openConsole(act); }
+        }));
+        act.addContentView(b, lp);
+        sFloatIcon = b;
+    }
+
+    private static void removeFloatIcon() {
+        if (sFloatIcon == null) return;
+        ViewGroup parent = (ViewGroup) sFloatIcon.getParent();
+        if (parent != null) parent.removeView(sFloatIcon);
+        sFloatIcon = null;
+    }
 
     private static int clamp(float v, int min, int max) {
         if (max < min) max = min;

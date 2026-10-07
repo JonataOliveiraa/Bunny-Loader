@@ -36,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -47,6 +48,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -111,7 +113,7 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
     androidx.compose.runtime.CompositionLocalProvider(
         androidx.compose.foundation.LocalOverscrollConfiguration provides null,
     ) {
-    Box {
+    StorePullToRefresh(shell, Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()
             .nestedScroll(hideOnPull)
             .verticalScroll(scroll)) {
@@ -157,38 +159,51 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
 }
 
 /**
- * O cartão grande. O ícone cavalga a borda de baixo do banner, como numa loja
- * de app: é o que amarra a capa ao texto em vez de empilhar duas caixas.
+ * O destaque reserva espaço para o ícone e separa autoria, resumo e ação.
+ * A descrição completa continua na ficha do pacote.
  */
 @Composable
 private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) -> Unit) {
     PixelCard(Modifier.fillMaxWidth(), onClick = { onOpen(entry.uid) }) {
-        Column(Modifier.padding(6.dp)) {
-            // O ícone pende para FORA do banner, não empurra o layout: fica
-            // como sobreposição, e o texto abaixo só reserva a margem dele.
+        Column(Modifier.padding(8.dp)) {
             Box(Modifier.fillMaxWidth()) {
-                ModBanner(entry, shell.catalog, Modifier.fillMaxWidth().height(146.dp))
-                Box(Modifier.align(Alignment.BottomStart).offset(x = 8.dp, y = 22.dp)) {
-                    ModIcon(entry, shell.catalog, 60.dp)
+                ModBanner(entry, shell.catalog,
+                    Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 146.dp).aspectRatio(3.6f))
+
+                Box(Modifier.align(Alignment.BottomStart).offset(x = 12.dp, y = 28.dp)) {
+                    ModIcon(entry, shell.catalog, 64.dp)
                 }
             }
-            Column(Modifier.padding(start = 80.dp, top = 6.dp, end = 4.dp)) {
-                PixelText(entry.manifest.name, size = Ts.Head,
-                    color = Bl.Text)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    PixelText("por ${entry.manifest.authorLine}", size = Ts.Small, color = Bl.TextFaint)
-                    PixelTag(
-                        entry.manifest.category,
-                        categoryColor(entry.manifest.category),
-                        Modifier.padding(start = 10.dp),
-                    )
-                }
+
+            Column(
+                Modifier.fillMaxWidth().heightIn(min = 64.dp)
+                    .padding(start = 88.dp, top = 10.dp, end = 8.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                PixelText(
+                    entry.manifest.name, size = Ts.Head, color = Bl.Text,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                )
+                AuthorStrip(entry, shell.catalog)
             }
+
             PixelText(
                 entry.manifest.summary,
                 size = Ts.Body, color = Bl.TextDim,
-                modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 10.dp, bottom = 4.dp),
+                maxLines = 3, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             )
+
+            Row(
+                Modifier.fillMaxWidth().padding(start = 12.dp, end = 10.dp, top = 8.dp, bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
+                Spacer(Modifier.weight(1f))
+                PixelText("Ver detalhes", size = Ts.Small, color = Bl.PressedText)
+                PixelIcon(R.drawable.ic_seta_esq, 16.dp, Modifier.rotate(180f))
+            }
         }
     }
 }
@@ -203,7 +218,6 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
 @Composable
 fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableStateOf<String?>(null) }
     var type by rememberSaveable { mutableStateOf(PackType.MOD) }
     LaunchedEffect(Unit) { shell.refreshRemote() }
     // Montada e ordenada só quando a lista online muda (um ícone que chega a
@@ -211,27 +225,21 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
     val all = shell.catalogEntries
     val search = rememberPackageSearchIndex(all)
     val counts = remember(all) { all.groupingBy { it.manifest.packType }.eachCount() }
-    val categories = remember(all, type) { packageCategories(all, type) }
-    val list = remember(all, type, query, category) {
-        searchPackages(all, query, type, category, search)
+    val list = remember(all, type, query, search) {
+        searchPackages(all, query, type, index = search)
     }
     val state = rememberLazyListState()
-    LaunchedEffect(type, query, category) { state.scrollToItem(0) }
+    LaunchedEffect(type, query) { state.scrollToItem(0) }
 
     Column(Modifier.fillMaxSize()) {
         SearchField(query, { query = it }, Modifier.padding(horizontal = EdgePad, vertical = 10.dp))
-        PackTypeTabs(type, counts, { type = it; category = null }, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
-        CategoryFilter(categories, category, { category = it }, Modifier.padding(horizontal = EdgePad))
-        FilterResultLine(list.size, query.isNotBlank() || category != null,
-            { query = ""; category = null }, Modifier.padding(horizontal = EdgePad, vertical = 6.dp))
-        if (shell.remoteStatus != RemoteStatus.Loading) {
-            PixelButton("Atualizar loja", { shell.refreshRemote(force = true) },
-                Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp),
-                icon = R.drawable.ic_refresh, fontSize = Ts.Small, shadow = false)
-        }
+        PackTypeTabs(type, counts, { type = it }, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
+        FilterResultLine(list.size, query.isNotBlank(),
+            { query = "" }, Modifier.padding(horizontal = EdgePad, vertical = 6.dp))
         RemoteStatusLine(shell, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
+
         PauseListAnimations({ state.isScrollInProgress }) {
-            Box(Modifier.weight(1f)) {
+            StorePullToRefresh(shell, Modifier.weight(1f)) {
                 LazyColumn(
                     state = state,
                     modifier = Modifier.fillMaxSize(),
@@ -261,29 +269,20 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
 }
 
 /**
- * Uma linha sobre o catálogo online: buscando, ou por que não veio. Quando deu
- * certo, não diz nada — a lista é a resposta.
+ * Falha do catálogo online. O progresso fica no indicador de atualização.
  */
 @Composable
 private fun RemoteStatusLine(shell: Shell, modifier: Modifier = Modifier) {
     val status = shell.remoteStatus
-    if (status == RemoteStatus.Idle || status == RemoteStatus.Ready) return
+    if (status !is RemoteStatus.Failed) return
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        if (status is RemoteStatus.Failed) {
-            PixelText(
-                "Catálogo online: ${status.message}." +
-                    if (shell.remote.isEmpty()) "" else " Mostrando a última lista baixada.",
-                size = Ts.Small, color = Bl.Bad, modifier = Modifier.weight(1f),
-            )
-            PixelButton("Tentar de novo", { shell.refreshRemote(force = true) },
-                fontSize = Ts.Small, shadow = false)
-        } else {
-            StoreLoadingIcon(Modifier.padding(end = 8.dp))
-            val progress = shell.remoteProgress
-            PixelText(if (progress == null || progress.total == 0) "Buscando mods online..."
-                else "Carregando mods: ${progress.completed}/${progress.total}",
-                size = Ts.Small, color = Bl.TextFaint)
-        }
+        PixelText(
+            "Catálogo online: ${status.message}." +
+                if (shell.remote.isEmpty()) "" else " Mostrando a última lista baixada.",
+            size = Ts.Small, color = Bl.Bad, modifier = Modifier.weight(1f),
+        )
+        PixelButton("Tentar de novo", { shell.refreshRemote(force = true) },
+            fontSize = Ts.Small, shadow = false)
     }
 }
 
@@ -627,8 +626,8 @@ fun ConfigTab(
             ) { modMenu = it; prefs.devModMenu = it }
             Setting(
                 "Editor de JS",
-                "Roda JavaScript dentro do jogo. Sem o Mod Menu, o botão flutuante vira o " +
-                    "de JS e abre o Editor.",
+                "Roda JavaScript dentro do jogo. O ícone flutuante de JS fica disponível " +
+                    "desde o menu inicial, com ou sem o Mod Menu.",
                 editor,
             ) { editor = it; prefs.devEditor = it }
             Setting(

@@ -7,10 +7,13 @@
 #include "il2cpp/Signature.h"
 #include "mods/ModLoader.h"
 #include "content/items/ModItems.h"
+#include "content/items/ModItemSave.h"
 #include "content/items/ModPrefixes.h"
 #include "content/common/TypeTables.h"
 #include "menu/ModMenu.h"
 #include "script/bridge/Bridge.h"
+#include "script/bridge/ExtraFields.h"
+#include "script/bridge/ScriptEngine.h"
 #include "script/api/Texture.h"
 
 #include <cstdio>
@@ -113,6 +116,94 @@ bool installSetDefaultsHook(JSContext* ctx) {
 }
 
 } // namespace
+
+bool saveModItemData(Il2CppObject* item, std::string& data) {
+    JsLock lock(3000);
+    if (!lock.held() || !g_ctx || !item) return false;
+
+    const JSAtom atom = JS_NewAtom(g_ctx, "__blItemData");
+    JSValue cached = extraFieldGet(g_ctx, item, atom);
+    if (JS_IsString(cached)) {
+        const char* text = JS_ToCString(g_ctx, cached);
+        if (text) {
+            data = text;
+            JS_FreeCString(g_ctx, text);
+        }
+    }
+
+    JS_FreeValue(g_ctx, cached);
+    JS_FreeAtom(g_ctx, atom);
+
+    static int32_t typeOffset = -1;
+    if (typeOffset < 0) typeOffset = il2cpp::fieldOffset(item->klass, "type");
+    const int type = typeOffset < 0 ? 0 : *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(item) + typeOffset);
+    const auto def = g_defs.find(type);
+    if (def == g_defs.end()) return true;
+
+    JSValue fn = JS_GetPropertyStr(g_ctx, def->second, "saveData");
+    bool ok = true;
+    if (JS_IsFunction(g_ctx, fn)) {
+        JSValue arg = makeNativeObject(g_ctx, item);
+        JSValue result = JS_Call(g_ctx, fn, def->second, 1, &arg);
+        if (JS_IsException(result)) {
+            BL_ERROR("ModItem.SaveData: %s", exceptionText(g_ctx).c_str());
+            ok = false;
+        } else if (JS_IsString(result)) {
+            const char* text = JS_ToCString(g_ctx, result);
+            if (text) {
+                data = text;
+                JS_FreeCString(g_ctx, text);
+            }
+            else ok = false;
+        }
+
+        JS_FreeValue(g_ctx, result);
+        JS_FreeValue(g_ctx, arg);
+    }
+
+    JS_FreeValue(g_ctx, fn);
+
+    return ok;
+}
+
+bool loadModItemData(Il2CppObject* item, const std::string& data) {
+    JsLock lock(3000);
+    if (!lock.held() || !g_ctx || !item) return false;
+
+    const JSAtom atom = JS_NewAtom(g_ctx, "__blItemData");
+    JSValue cached = JS_NewStringLen(g_ctx, data.data(), data.size());
+    const bool stored = extraFieldSet(g_ctx, item, atom, cached) >= 0;
+    JS_FreeValue(g_ctx, cached);
+    JS_FreeAtom(g_ctx, atom);
+    if (!stored) {
+        BL_ERROR("ModItem.LoadData: %s", exceptionText(g_ctx).c_str());
+        return false;
+    }
+
+    const int32_t offset = il2cpp::fieldOffset(item->klass, "type");
+    const int type = offset < 0 ? 0 : *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(item) + offset);
+    const auto def = g_defs.find(type);
+    if (def == g_defs.end()) return true;
+
+    JSValue fn = JS_GetPropertyStr(g_ctx, def->second, "loadData");
+    bool ok = true;
+    if (JS_IsFunction(g_ctx, fn)) {
+        JSValue args[] = {makeNativeObject(g_ctx, item), JS_NewStringLen(g_ctx, data.data(), data.size())};
+        JSValue result = JS_Call(g_ctx, fn, def->second, 2, args);
+        if (JS_IsException(result)) {
+            BL_ERROR("ModItem.LoadData: %s", exceptionText(g_ctx).c_str());
+            ok = false;
+        }
+
+        JS_FreeValue(g_ctx, result);
+        JS_FreeValue(g_ctx, args[0]);
+        JS_FreeValue(g_ctx, args[1]);
+    }
+
+    JS_FreeValue(g_ctx, fn);
+
+    return ok;
+}
 
 /** O mod no menu: o nome do manifesto e o icon.png da raiz (se houver). */
 void noteModForMenu(const std::string& mod) {
@@ -290,6 +381,22 @@ JSValue js_modItemsIn(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv
     return out;
 }
 
+JSValue js_chestData(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    Il2CppObject* chest = argc >= 2 ? objectFromJS(argv[0]) : nullptr;
+    int32_t slot = -1;
+    if (!chest || JS_ToInt32(ctx, &slot, argv[1]) < 0 || slot < 0) return JS_ThrowTypeError(ctx, "dados de bau: chest, slot invalidos");
+    if (argc < 3) {
+        const std::string data = runtime::modChestItemData(chest, slot);
+        return JS_NewStringLen(ctx, data.data(), data.size());
+    }
+    const char* text = JS_ToCString(ctx, argv[2]);
+    if (!text) return JS_EXCEPTION;
+    const bool ok = runtime::setModChestItemData(chest, slot, text);
+    JS_FreeCString(ctx, text);
+    if (!ok) return JS_ThrowRangeError(ctx, "dados de bau: slot fora do bau");
+    return JS_UNDEFINED;
+}
+
 /** bl.items.typeOf(nome) — o tipo de um item DESTE mod pelo nome, ou -1. */
 JSValue js_typeOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     const char* name = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
@@ -444,6 +551,7 @@ JSValue js_vanillaPrefixCount(JSContext* ctx, JSValueConst, int, JSValueConst*) 
 } // namespace
 
 void installItemsApi(JSContext* ctx, JSValue bl) {
+    g_ctx = ctx;
     JSValue items = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, items, "register", JS_NewCFunction(ctx, js_register, "register", 1));
     JS_SetPropertyStr(ctx, items, "isModItem", JS_NewCFunction(ctx, js_isModItem, "isModItem", 1));
@@ -451,6 +559,7 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, items, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaItemCount));
     JS_SetPropertyStr(ctx, items, "setTooltip", JS_NewCFunction(ctx, js_setTooltip, "setTooltip", 2));
     JS_SetPropertyStr(ctx, items, "modItemsIn", JS_NewCFunction(ctx, js_modItemsIn, "modItemsIn", 1));
+    JS_SetPropertyStr(ctx, items, "__chestData", JS_NewCFunction(ctx, js_chestData, "chestData", 3));
     JS_SetPropertyStr(ctx, items, "growEquipSets", JS_NewCFunction(ctx, js_growEquipSets, "growEquipSets", 3));
     JS_SetPropertyStr(ctx, items, "registerPrefix", JS_NewCFunction(ctx, js_registerPrefix, "registerPrefix", 1));
     JS_SetPropertyStr(ctx, items, "vanillaPrefixCount",
@@ -470,4 +579,11 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
 }
 
 } // namespace bl::script
+#endif
+
+#if !BL_HAVE_QUICKJS
+namespace bl::script {
+bool saveModItemData(Il2CppObject*, std::string&) { return true; }
+bool loadModItemData(Il2CppObject*, const std::string&) { return true; }
+}
 #endif

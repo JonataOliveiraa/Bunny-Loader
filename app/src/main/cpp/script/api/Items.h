@@ -1,5 +1,11 @@
 #pragma once
 #include "script/bridge/ScriptEngine.h"
+#include "il2cpp/Types.h"
+
+namespace bl::script {
+bool saveModItemData(Il2CppObject* item, std::string& data);
+bool loadModItemData(Il2CppObject* item, const std::string& data);
+}
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"

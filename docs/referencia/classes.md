@@ -94,6 +94,10 @@ própria instância, com `this.Item` apontando para ele.
 | `SetDefaults(item)` | Todo item deste tipo que nasce. | nativo (`Item.SetDefaults`) |
 | `PostSetDefaults(item)` | Logo depois do `SetDefaults`. | nativo |
 | `Clone(newItem)` | O jogo copiou o item (`Item.Clone`); devolva a instância da cópia. | `Item.Clone`, filtro `tipo` |
+| `SaveData(tag)` | Escreva os dados da instância no `TagCompound`; retorno ignorado. Também é fallback de rede. | C++: save do personagem; conversão `ChestItem.SetToItem` |
+| `LoadData(tag)` | Leia os dados da instância; tags antigos podem estar vazios. | C++: load do personagem; `ChestItem.ExpandItem`; sincronização |
+| `NetSend(writer)` | Escreva dados com `NetWriter`. Prevalece sobre o envio automático de `SaveData`. | Mensagens 5, 21, 32 e 90 |
+| `NetReceive(reader)` | Leia na mesma ordem escrita por `NetSend`. | `MessageBuffer.ProcessData`, antes do repasse do servidor |
 | `AddRecipeGroups()` | Uma vez, antes de qualquer receita de qualquer mod. | conteúdo pronto |
 | `AddRecipes()` | Uma vez, com as receitas do jogo prontas. | conteúdo pronto |
 | `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. | conteúdo pronto |

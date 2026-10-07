@@ -333,7 +333,16 @@ static JSValue js_original(JSContext* ctx, JSValueConst, int argc, JSValueConst*
     }
     ArgScratch scratch;   // vive ate o original voltar
     for (size_t i = 0; i < c->abi.params.size() && at < argc; ++i, ++at) {
-        if (jsToParam(ctx, argv[at], c->abi.params[i], a, d, &scratch) < 0) return JS_EXCEPTION;
+        const ParamPlan& param = c->abi.params[i];
+        // As with self above, IL2CPP may leave an unused reference argument
+        // uninitialized (e.g. IEntitySource in Item.NewItem). Passing the exact
+        // incoming pointer back must not dereference it for assignability.
+        // A replacement object still goes through the normal type checks.
+        if (!param.opaque && !param.floatQueue && param.d.prim == Prim::Object) {
+            Il2CppObject* incoming = objectFromJS(argv[at]);
+            if (incoming && reinterpret_cast<intptr_t>(incoming) == a[param.reg]) continue;
+        }
+        if (jsToParam(ctx, argv[at], param, a, d, &scratch) < 0) return JS_EXCEPTION;
     }
 
     g_frames[frame].ranOriginal = true;

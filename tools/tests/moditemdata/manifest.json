@@ -1,0 +1,14 @@
+{
+  "uid": "c6c496d4-131c-4fd4-a2ee-b6be3db33b11",
+  "id": "test-moditemdata",
+  "name": "Teste: persistência por instância de ModItem",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "category": "Utilidade",
+  "summary": "SaveData/LoadData nativos, clonagem, drop e conversões de baús.",
+  "description": "Use somente com cópias de personagens e mundos de teste. Loga moditemdata.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

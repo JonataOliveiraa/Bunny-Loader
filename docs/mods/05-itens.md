@@ -710,3 +710,79 @@ caminho é um `GlobalItem`, do mesmo guia.
 Item de mod no inventário, no cofre e nos baús é salvo **pelo nome** (mod +
 classe), num arquivo ao lado do save do jogo. Desligar o mod não perde nada: o
 item vira um "?" e volta ao normal quando o mod é religado.
+
+### Dados de cada instância: SaveData e LoadData
+
+Implemente os dois métodos para guardar campos próprios do item. O loader
+passa um `TagCompound` novo a `SaveData(tag)` e entrega os dados salvos a
+`LoadData(tag)`. O retorno dos métodos é ignorado; escreva no `tag`.
+
+```js
+export class ItemComDono extends ModItem {
+    owner = '';
+
+    SaveData(tag) {
+        tag.Set('owner', this.owner);
+    }
+
+    LoadData(tag) {
+        this.owner = tag.GetString('owner');
+    }
+
+    UpdateInventory(item, player) {
+        if (!this.owner) this.owner = player.name;
+    }
+}
+```
+
+O exemplo mostra somente os dados e a escolha do dono; acrescente textura e
+defaults do seu item. A condição em `UpdateInventory` mantém o dono já escolhido.
+Para itens que representam pessoas diferentes, use `maxStack = 1`.
+
+Os dados acompanham inventário, equipamento, cofres pessoais, conjuntos de
+equipamento e baús do mundo nos arquivos `.plr.bl`/`.wld.bl`. Saves antigos,
+sem dados próprios, chamam `LoadData` com um tag vazio. Aceite campos ausentes
+e valide versões e valores específicos do seu mod. `GetString` retorna `''`
+quando a chave falta; `GetInt` retorna `0`.
+
+Use strings, números finitos, booleanos, `null`, listas densas, objetos de
+dados e outros `TagCompound`. Referências ao jogo, funções, `undefined`,
+`BigInt`, ciclos, getters, propriedades não enumeráveis e valores não finitos são rejeitados, para evitar
+perdas silenciosas na conversão para JSON. Um erro em `SaveData` impede a
+substituição do save complementar do personagem. Um erro em `LoadData`
+preserva o texto original e bloqueia novo save daquele item até um load
+bem-sucedido ou sua reinicialização por `SetDefaults`.
+
+`Item.Clone`, `DeepClone` e `clientClone` copiam a instância por `Clone`.
+Quando houver objetos/listas mutáveis nos campos, sobrescreva `Clone` para
+copiá-los também; o clone padrão é superficial. Os drops de `DropSelectedItem`
+e do botão da interface mobile (`DropUIItem`) copiam a instância antes de
+transmitir o novo item. Um mod que cria outro
+item manualmente por `NewItem(tipo, ...)` deve definir seus dados, pois essa
+chamada não recebe um item de origem.
+
+### Dados no multiplayer
+
+Com os mesmos mods nos dois lados, o loader envia os dados junto das
+mensagens nativas de inventário (5), item no mundo (21/90) e baú (32).
+O servidor aplica os dados antes de repassar o item. Se você implementar
+somente `SaveData`/`LoadData`, o JSON salvo também serve de sincronização.
+Por isso, esses métodos devem cuidar somente dos dados, sem efeitos de jogo.
+
+Para usar uma representação diferente na rede, implemente **ambos**:
+
+```js
+NetSend(writer) {
+    writer.WriteString(this.owner);
+}
+
+NetReceive(reader) {
+    this.owner = reader.ReadString();
+}
+```
+
+Quando sobrescrito, `NetSend` tem precedência sobre o envio automático de
+`SaveData`. O limite do pacote de mod é 65000 bytes, incluindo o envelope.
+Itens largados seguem o ciclo normal do Terraria: o save do mundo não
+persiste itens no chão. Os arquivos complementares são locais; não há
+persistência desses dados em saves na nuvem.

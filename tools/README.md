@@ -92,7 +92,8 @@ Não há token no APK. Só publicar pede um, no PC.
 
 Ao abrir ou voltar ao launcher, o app consulta o catálogo. Durante a busca,
 Início e Explorar mostram o ícone girando e o progresso das vitrines; a última
-lista baixada continua disponível. Explorar também tem **Atualizar loja**.
+lista baixada continua disponível. No Início e em Explorar, puxe para baixo
+com a rolagem no topo e solte para atualizar a loja.
 As vitrines são sincronizadas com até quatro operações simultâneas.
 
 Uma versão online mais nova de um mod instalado abre um popup com **Atualizar**,

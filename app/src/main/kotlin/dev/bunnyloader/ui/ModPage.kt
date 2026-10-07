@@ -523,7 +523,7 @@ private fun CreditsView(entry: Catalog.Entry, catalog: Catalog, ctx: MdContext) 
 
 /** "por A e B" com as fotos uma por cima da outra, como numa loja de app. */
 @Composable
-private fun AuthorStrip(entry: Catalog.Entry, catalog: Catalog, modifier: Modifier = Modifier) {
+internal fun AuthorStrip(entry: Catalog.Entry, catalog: Catalog, modifier: Modifier = Modifier) {
     val credits = entry.manifest.credits
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         val shown = credits.take(4)

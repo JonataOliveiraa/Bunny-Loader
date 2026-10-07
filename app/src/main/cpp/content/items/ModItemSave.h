@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include "il2cpp/Types.h"
 
 namespace bl::runtime {
 
@@ -17,9 +19,12 @@ namespace bl::runtime {
  * Item de mod que nao esta carregado agora (mod desligado, removido) nao some:
  * fica guardado e volta a ser escrito no proximo save.
  *
- * Nao cobre bau do mundo (e o save do mundo, outro arquivo) nem item largado
- * no chao.
+ * Os baus usam `<mundo>.wld.bl`. Dados de SaveData acompanham cada registro;
+ * itens no chao continuam seguindo o ciclo normal do Terraria (nao sao
+ * persistidos pelo save do mundo).
  */
 void installModItemSave();
+std::string modChestItemData(Il2CppObject* chest, int slot);
+bool setModChestItemData(Il2CppObject* chest, int slot, const std::string& data);
 
 } // namespace bl::runtime

@@ -1,4 +1,5 @@
 #include "content/items/ModItemSave.h"
+#include "content/items/ModItemSaveFormat.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -8,6 +9,8 @@
 #include "content/buffs/ModBuffs.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
+#include "script/api/Items.h"
+#include <fstream>
 
 #include <cstdio>
 #include <cstdlib>
@@ -20,7 +23,6 @@ namespace bl::runtime {
 
 namespace {
 
-constexpr const char* kHeader = "bunnyloader itens 1";
 constexpr const char* kSuffix = ".bl";
 constexpr const char* kBuffContainer = "buff";
 // Item do JOGO com prefixo de mod: so o prefixo vai no arquivo, na chave
@@ -33,15 +35,7 @@ constexpr const char* kVanillaPrefix = "vanilla:";
  * Prefixo de mod vai pelo nome (`prefixKey`), e o numero fica 0: o numero
  * muda com os mods instalados.
  */
-struct SavedItem {
-    std::string container;   // "inventory", "armor", "bank2", "loadout1.dye", "trash"...
-    int slot = 0;
-    int stack = 1;
-    int prefix = 0;
-    bool favorited = false;
-    std::string key;         // "<uid>/<nome>", ou "vanilla:<tipo>"
-    std::string prefixKey;   // "<uid>/<nome>" do prefixo de mod, ou ""
-};
+using item_save::SavedItem;
 
 /** O prefixo para o arquivo: o de mod vira nome; numero de mod sem dono vira 0. */
 void encodePrefix(SavedItem& it, int prefix) {
@@ -203,42 +197,11 @@ std::vector<Container> containersOf(Il2CppObject* player) {
 
 std::vector<SavedItem> readFile(const std::string& path) {
     std::vector<SavedItem> items;
-    FILE* f = std::fopen(path.c_str(), "rb");
+    std::ifstream f(path, std::ios::binary);
     if (!f) return items;
-    char line[1024];
-    bool first = true;
-    while (std::fgets(line, sizeof line, f)) {
-        std::string s(line);
-        while (!s.empty() && (s.back() == '\n' || s.back() == '\r')) s.pop_back();
-        if (first) {
-            first = false;
-            if (s != kHeader) {
-                BL_ERROR("save de itens de mod: cabecalho desconhecido em %s", path.c_str());
-                break;
-            }
-            continue;
-        }
-        // container \t slot \t pilha \t prefixo \t favorito \t chave
-        std::vector<std::string> cols;
-        size_t start = 0;
-        for (size_t tab; (tab = s.find('\t', start)) != std::string::npos; start = tab + 1) {
-            cols.push_back(s.substr(start, tab - start));
-        }
-        cols.push_back(s.substr(start));
-        if (cols.size() != 6 || cols[5].empty()) continue;
-        SavedItem it;
-        it.container = cols[0];
-        if (it.container == "trash") continue;  // descarta linhas de saves antigos
-        it.slot = std::atoi(cols[1].c_str());
-        it.stack = std::atoi(cols[2].c_str());
-        // Numero (prefixo do jogo) ou "<uid>/<nome>" (de mod).
-        if (cols[3].find('/') != std::string::npos) it.prefixKey = cols[3];
-        else it.prefix = std::atoi(cols[3].c_str());
-        it.favorited = cols[4] == "1";
-        it.key = cols[5];
-        items.push_back(std::move(it));
+    if (!item_save::read(f, items)) {
+        BL_ERROR("save de itens de mod: arquivo invalido em %s", path.c_str());
     }
-    std::fclose(f);
     return items;
 }
 
@@ -249,19 +212,15 @@ void writeFile(const std::string& path, const std::vector<SavedItem>& items) {
         return;
     }
     const std::string tmp = path + ".tmp";
-    FILE* f = std::fopen(tmp.c_str(), "wb");
+    std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
     if (!f) {
         BL_ERROR("save de itens de mod: nao consegui escrever %s", tmp.c_str());
         return;
     }
-    std::fprintf(f, "%s\n", kHeader);
-    for (const SavedItem& it : items) {
-        const std::string prefix = it.prefixKey.empty() ? std::to_string(it.prefix) : it.prefixKey;
-        std::fprintf(f, "%s\t%d\t%d\t%s\t%d\t%s\n", it.container.c_str(), it.slot, it.stack,
-                     prefix.c_str(), it.favorited ? 1 : 0, it.key.c_str());
-    }
-    const bool ok = std::fflush(f) == 0;
-    std::fclose(f);
+    const bool encoded = item_save::write(f, items);
+    f.flush();
+    f.close();
+    const bool ok = encoded && !f.fail();
     if (!ok || std::rename(tmp.c_str(), path.c_str()) != 0) {
         BL_ERROR("save de itens de mod: falha ao gravar %s", path.c_str());
         std::remove(tmp.c_str());
@@ -322,6 +281,10 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             SavedItem it{c.name, slot, stack, 0, field<uint8_t>(item, r.favorited) != 0, modItemKey(type), {}};
             encodePrefix(it, prefix);
             if (prefix == 0) it.prefixKey = pendingPrefixFor(path, c.name, slot, type);
+            if (!script::saveModItemData(item, it.data)) {
+                BL_ERROR("ModItem.SaveData: save complementar do personagem preservado apos falha");
+                return;
+            }
             items.push_back(std::move(it));
         }
     }
@@ -403,6 +366,7 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved) {
         a.runtime_invoke(r.applyPrefix, item, pa, &exc);
     }
     field<uint8_t>(item, r.favorited) = saved.favorited ? 1 : 0;
+    script::loadModItemData(item, saved.data);
     return true;
 }
 
@@ -484,7 +448,11 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             // esta velho (outros mods, outra ordem) e o lugar e nosso. Tratar
             // como ocupado punha uma copia no inventario.
             const int slotType = slotItem ? field<int32_t>(slotItem, g_refs.type) : 0;
-            if (slotItem && slotType == type) { ++restored; continue; }
+            if (slotItem && slotType == type) {
+                script::loadModItemData(slotItem, s.data);
+                ++restored;
+                continue;
+            }
             Il2CppObject* target =
                 isEmpty(slotItem) || slotType >= kVanillaItemCount ? slotItem : nullptr;
             if (!target && inventory) {
@@ -550,6 +518,83 @@ struct ChestLayout {
 };
 ChestLayout g_chest;
 
+struct ChestData {
+    int type;
+    std::string data;
+};
+
+std::map<void*, ChestData> g_chestData;
+
+std::string chestData(void* slot, int type) {
+    std::lock_guard<std::mutex> lock(g_mx);
+    const auto it = g_chestData.find(slot);
+    return it != g_chestData.end() && it->second.type == type ? it->second.data : std::string();
+}
+
+void setChestData(void* slot, int type, std::string data) {
+    std::lock_guard<std::mutex> lock(g_mx);
+    if (data.empty() || type <= 0) g_chestData.erase(slot);
+    else g_chestData[slot] = {type, std::move(data)};
+}
+
+using ChestSetFn = void (*)(void*, Il2CppObject*, const MethodInfo*);
+ChestSetFn g_origChestSet = nullptr;
+void hkChestSet(void* slot, Il2CppObject* item, const MethodInfo* method) {
+    std::string data;
+    const int type = item ? field<int32_t>(item, g_refs.type) : 0;
+    if (isModItem(type)) script::saveModItemData(item, data);
+
+    g_origChestSet(slot, item, method);
+    setChestData(slot, type, std::move(data));
+}
+
+using ChestExpandFn = Il2CppObject* (*)(void*, const MethodInfo*);
+ChestExpandFn g_origChestExpand = nullptr;
+Il2CppObject* hkChestExpand(void* slot, const MethodInfo* method) {
+    Il2CppObject* item = g_origChestExpand(slot, method);
+    if (item && isModItem(field<int32_t>(item, g_refs.type))) {
+        const std::string data = chestData(slot, field<int32_t>(item, g_refs.type));
+        script::loadModItemData(item, data);
+    }
+
+    return item;
+}
+
+using ChestResetFn = void (*)(void*, const MethodInfo*);
+ChestResetFn g_origChestClear = nullptr, g_origChestAir = nullptr;
+void hkChestClear(void* slot, const MethodInfo* method) {
+    setChestData(slot, 0, {});
+    g_origChestClear(slot, method);
+}
+
+void hkChestAir(void* slot, const MethodInfo* method) {
+    setChestData(slot, 0, {});
+    g_origChestAir(slot, method);
+}
+
+using ChestDefaultsFn = void (*)(void*, int32_t, const MethodInfo*);
+ChestDefaultsFn g_origChestDefaults = nullptr, g_origChestNetDefaults = nullptr;
+void hkChestDefaults(void* slot, int32_t type, const MethodInfo* method) {
+    setChestData(slot, 0, {});
+    g_origChestDefaults(slot, type, method);
+}
+
+void hkChestNetDefaults(void* slot, int32_t type, const MethodInfo* method) {
+    setChestData(slot, 0, {});
+    g_origChestNetDefaults(slot, type, method);
+}
+
+using ClearChestsFn = void (*)(const MethodInfo*);
+ClearChestsFn g_origClearChests = nullptr;
+void hkClearChests(const MethodInfo* method) {
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        g_chestData.clear();
+    }
+
+    g_origClearChests(method);
+}
+
 /** Um ChestItem dentro do array do bau. */
 struct ChestSlot {
     char* data = nullptr;
@@ -563,6 +608,56 @@ struct ChestSlot {
 ChestSlot slotOf(Il2CppArray* items, int slot) {
     if (slot < 0 || static_cast<uintptr_t>(slot) >= items->length) return {};
     return {static_cast<char*>(arrayData(items)) + static_cast<size_t>(slot) * g_chest.stride};
+}
+
+std::vector<ChestData> snapshotChest(Il2CppObject* chest, bool erase) {
+    std::vector<ChestData> snapshot;
+    auto* items = chest ? reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items)) : nullptr;
+    if (!g_chest.ok || !items) return snapshot;
+
+    for (uintptr_t i = 0; i < items->length; ++i) {
+        const ChestSlot slot = slotOf(items, static_cast<int>(i));
+        snapshot.push_back({slot.type(), chestData(slot.data, slot.type())});
+        if (erase) setChestData(slot.data, 0, {});
+    }
+
+    return snapshot;
+}
+
+void restoreChestData(Il2CppObject* chest, const std::vector<ChestData>& snapshot) {
+    auto* items = chest ? reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items)) : nullptr;
+    if (!g_chest.ok || !items) return;
+
+    for (uintptr_t i = 0; i < items->length; ++i) {
+        const ChestSlot slot = slotOf(items, static_cast<int>(i));
+        setChestData(slot.data, slot.type(), i < snapshot.size() && slot.type() == snapshot[i].type ? snapshot[i].data : "");
+    }
+}
+
+using FillChestFn = void (*)(Il2CppObject*, const MethodInfo*);
+FillChestFn g_origFillChest = nullptr;
+void hkFillChest(Il2CppObject* chest, const MethodInfo* method) {
+    snapshotChest(chest, true);
+    g_origFillChest(chest, method);
+    snapshotChest(chest, true);
+}
+
+using ResizeChestFn = void (*)(Il2CppObject*, int32_t, const MethodInfo*);
+ResizeChestFn g_origResizeChest = nullptr;
+void hkResizeChest(Il2CppObject* chest, int32_t size, const MethodInfo* method) {
+    const auto snapshot = snapshotChest(chest, true);
+    g_origResizeChest(chest, size, method);
+    restoreChestData(chest, snapshot);
+}
+
+using CloneChestFn = Il2CppObject* (*)(Il2CppObject*, const MethodInfo*);
+CloneChestFn g_origCloneChest = nullptr;
+Il2CppObject* hkCloneChest(Il2CppObject* chest, const MethodInfo* method) {
+    const auto snapshot = snapshotChest(chest, false);
+    Il2CppObject* copy = g_origCloneChest(chest, method);
+    restoreChestData(copy, snapshot);
+
+    return copy;
 }
 
 std::string chestName(Il2CppObject* chest) {
@@ -611,6 +706,7 @@ int32_t hkSaveChests(Il2CppObject* writer, const MethodInfo* m) {
                 if (key.empty()) continue;
                 SavedItem it{chestName(chest), i, s.stack(), 0, s.favorited() != 0, std::move(key), {}};
                 encodePrefix(it, s.prefix());
+                it.data = chestData(s.data, s.type());
                 if (s.prefix() == 0) it.prefixKey = pendingPrefixFor(path, it.container, i, s.type());
                 items.push_back(std::move(it));
             }
@@ -691,6 +787,7 @@ void hkFixAgainstExploits(const MethodInfo* m) {
         const int prefix = decodePrefix(s);
         slot.prefix() = static_cast<uint8_t>(prefix > 0 ? prefix : 0);
         slot.favorited() = s.favorited ? 1 : 0;
+        setChestData(slot.data, type, s.data);
         if (prefix < 0 && !s.prefixKey.empty()) pending[placeKey(s.container, s.slot)] = {type, s.prefixKey};
         std::vector<bool>& cov = covered[s.container];
         cov.resize(it->second->length);
@@ -825,6 +922,27 @@ bool resolve() {
 
 } // namespace
 
+std::string modChestItemData(Il2CppObject* chest, int slot) {
+    if (!g_chest.ok || !chest) return {};
+
+    auto* items = reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items));
+    const ChestSlot value = items ? slotOf(items, slot) : ChestSlot{};
+
+    return value.data ? chestData(value.data, value.type()) : std::string();
+}
+
+bool setModChestItemData(Il2CppObject* chest, int slot, const std::string& data) {
+    if (!g_chest.ok || !chest) return false;
+
+    auto* items = reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items));
+    const ChestSlot value = items ? slotOf(items, slot) : ChestSlot{};
+    if (!value.data) return false;
+
+    setChestData(value.data, value.type(), data);
+
+    return true;
+}
+
 void installModItemSave() {
     if (!resolve()) {
         BL_ERROR("save de itens de mod: refs faltando; itens de mod somem ao sair do mundo");
@@ -859,6 +977,23 @@ void installModItemSave() {
         BL_ERROR("save de itens de mod: sem os baus do mundo; item de mod em bau fica pelo "
                  "numero, e sem o mod o mundo nao abre");
     }
+    Il2CppClass* chestItem = il2cpp::findClass({"Terraria", "ChestItem", {}});
+    Il2CppClass* chest = il2cpp::findClass({"Terraria", "Chest", {}});
+    const auto method = [&](Il2CppClass* cls, const char* signature) {
+        return cls ? il2cpp::findMethodBySignature(cls, il2cpp::parseSignature(signature)) : nullptr;
+    };
+    const bool okData = okWorld &&
+        hook::install(method(chestItem, "void SetToItem(Item item)"), hkChestSet, &g_origChestSet) &&
+        hook::install(method(chestItem, "Item ExpandItem()"), hkChestExpand, &g_origChestExpand) &&
+        hook::install(method(chestItem, "void Clear()"), hkChestClear, &g_origChestClear) &&
+        hook::install(method(chestItem, "void TurnToAir()"), hkChestAir, &g_origChestAir) &&
+        hook::install(method(chestItem, "void SetDefaults(int id)"), hkChestDefaults, &g_origChestDefaults) &&
+        hook::install(method(chestItem, "void netDefaults(int type)"), hkChestNetDefaults, &g_origChestNetDefaults) &&
+        hook::install(method(chest, "void FillWithEmptyInstances()"), hkFillChest, &g_origFillChest) &&
+        hook::install(method(chest, "void Resize(int newSize)"), hkResizeChest, &g_origResizeChest) &&
+        hook::install(method(chest, "Chest CloneWithSeparateItems()"), hkCloneChest, &g_origCloneChest) &&
+        hook::install(method(chest, "void Clear()"), hkClearChests, &g_origClearChests);
+    if (!okData) BL_ERROR("ModItem: hooks de dados de bau incompletos");
     BL_DEBUG("save de itens de mod: pronto (personagem%s)", okWorld ? " e baus do mundo" : "");
 }
 
