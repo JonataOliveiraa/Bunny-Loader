@@ -1,0 +1,58 @@
+{
+  "uid": "30f21a81-4240-420b-a9ba-924e917fc571",
+  "id": "terrarchitect",
+  "name": "Terrarchitect",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Gurgle_Nurgle",
+      "role": "Spritework",
+      "avatar": "0.png",
+      "color": "#F0F0F0",
+      "link": "https://github.com/GurgleNurgle"
+    },
+    {
+      "name": "silent_ptr",
+      "role": "Coding",
+      "avatar": "1.jpeg",
+      "color": "#F0F0F0",
+      "link": "https://github.com/silentptr"
+    },
+    {
+      "name": "Zandberg",
+      "role": "Coding",
+      "avatar": "2.png",
+      "color": "#F0F0F0",
+      "link": "https://github.com/Zandberg-x"
+    }
+  ],
+  "category": "Building",
+  "summary": "Terrarchitect is a furniture / build mod that adds a wide variety of custom-made, high-quality decorational items and blocks to Terraria! It also aims to make some previously ubobtainable or unplacable vanilla items available.",
+  "updated": "2026-10-04",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": [],
+  "theme": {
+    "accent": "#DD8D57",
+    "panel": "#765F43",
+    "heading": "#F0F0F0"
+  },
+  "links": [
+    {
+      "title": "Subreddit",
+      "url": "https://www.reddit.com/r/Terrarchitect/"
+    },
+    {
+      "title": "Forum",
+      "url": "https://forums.terraria.org/index.php?threads/terrarchitect.95959/"
+    },
+    {
+      "title": "Steam",
+      "url": "https://steamcommunity.com/sharedfiles/filedetails/?id=2799559538"
+    }
+  ]
+}
