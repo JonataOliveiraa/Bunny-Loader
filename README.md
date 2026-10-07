@@ -63,6 +63,8 @@ Tudo em [`docs/`](docs/README.md):
       "Config. dos Mods" do menu de pausa.
   15. [Classes de dano](docs/mods/15-classes-de-dano.md): o `DamageClass`, os
       bônus por classe no jogador e as classes novas.
+  16. [Golpes](docs/mods/16-golpes.md): `CanHit`, `ModifyHit` e `OnHit` de
+      item, projétil, NPC e jogador; `HitModifiers` e `HurtModifiers`.
   - [Pacotes de textura](docs/mods/14-pacotes-de-textura.md): sprites em PNG, importação e prioridade entre pacotes.
 - **Referência**: [métodos por classe](docs/referencia/metodos.md), com
   [planilha Excel](docs/referencia/metodos.xlsx) e [CSV](docs/referencia/metodos.csv);

@@ -23,6 +23,11 @@ ordem de leitura.
 9. [Blocos](mods/09-blocos.md)
 10. [Sons e música](mods/10-sons-e-musica.md)
 11. [Conversa entre mods](mods/11-conversa-entre-mods.md)
+12. [Globais e o mundo](mods/12-globais-e-mundo.md)
+13. [A página do pacote](mods/13-pagina-do-pacote.md)
+14. [Opções do mod](mods/14-opcoes-do-mod.md)
+15. [Classes de dano](mods/15-classes-de-dano.md)
+16. [Golpes](mods/16-golpes.md)
 
 [Pacotes de textura](mods/14-pacotes-de-textura.md): substituição de sprites usando PNGs, sem scripts.
 

@@ -52,6 +52,7 @@ PAGES = {
     "docs/mods/13-pagina-do-pacote.md": "Página-do-pacote",
     "docs/mods/14-opcoes-do-mod.md": "Opções-do-mod",
     "docs/mods/15-classes-de-dano.md": "Classes-de-dano",
+    "docs/mods/16-golpes.md": "Golpes",
     "docs/mods/14-pacotes-de-textura.md": "Pacotes-de-textura",
     "docs/referencia/classes.md": "Referência-das-classes",
     "docs/referencia/metodos.md": "Métodos-por-classe",
@@ -67,6 +68,7 @@ PAGES = {
     "docs/nucleo/threads-e-motor-js.md": "Núcleo-threads-e-motor-JS",
     "docs/nucleo/ponte.md": "Núcleo-ponte",
     "docs/nucleo/conteudo.md": "Núcleo-conteúdo",
+    "docs/nucleo/multijogador.md": "Núcleo-multijogador",
     "docs/nucleo/pesquisa-shaders.md": "Núcleo-pesquisa-de-shaders",
     "docs/historico/README.md": "Histórico",
     "docs/historico/UNITY-HOSTING.md": "Histórico-Unity-hosting",
@@ -99,6 +101,7 @@ SIDEBAR = [
         ("Página-do-pacote", "13. A página do pacote"),
         ("Opções-do-mod", "14. Opções do mod"),
         ("Classes-de-dano", "15. Classes de dano"),
+        ("Golpes", "16. Golpes"),
         ("Pacotes-de-textura", "Pacotes de textura"),
     ]),
     ("Referência", [
@@ -118,6 +121,7 @@ SIDEBAR = [
         ("Núcleo-threads-e-motor-JS", "Threads e o motor JS"),
         ("Núcleo-ponte", "A ponte JS ↔ jogo"),
         ("Núcleo-conteúdo", "Conteúdo novo por dentro"),
+        ("Núcleo-multijogador", "Multijogador"),
         ("Núcleo-pesquisa-de-shaders", "Pesquisa de shaders"),
     ]),
     ("Histórico", [
