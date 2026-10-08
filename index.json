@@ -242,6 +242,44 @@
       }
     },
     {
+      "uid": "47f60fb6-0b46-453e-b19e-389867412da8",
+      "id": "improvedmovement",
+      "name": "Improved Movement",
+      "version": "1.1.0",
+      "download": {
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-improvedmovement-v1.1.0/improvedmovement-1.1.0.bl",
+        "sha256": "f98d426216cbed11e79efaf9df1397b4db599177fe82489c752005d0fee6bce6",
+        "size": 43944
+      },
+      "files": [
+        "manifest.json",
+        "icon.png",
+        "description.md",
+        "changelog.md",
+        "authors/animatak.png"
+      ],
+      "manifest": {
+        "uid": "47f60fb6-0b46-453e-b19e-389867412da8",
+        "id": "improvedmovement",
+        "name": "Improved Movement",
+        "version": "1.1.0",
+        "authors": [
+          {
+            "name": "Animatak_",
+            "avatar": "animatak.png",
+            "color": "#841FFF",
+            "link": "https://discord.gg/lemon-studio-1422278971227115532",
+            "role": "Author"
+          }
+        ],
+        "category": "Visual",
+        "summary": "Your head follows the cursor, your body leans as you move, and slimes, zombies and critters lean too.",
+        "updated": "2026-10-07",
+        "blVersion": 2,
+        "entry": "main.js"
+      }
+    },
+    {
       "uid": "469b0c4b-acfa-463b-90df-5db222a81351",
       "id": "instantplatformfallthrough",
       "name": "Instant Platform Fallthrough",

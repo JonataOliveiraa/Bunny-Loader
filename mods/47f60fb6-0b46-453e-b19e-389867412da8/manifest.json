@@ -1,0 +1,20 @@
+{
+  "uid": "47f60fb6-0b46-453e-b19e-389867412da8",
+  "id": "improvedmovement",
+  "name": "Improved Movement",
+  "version": "1.1.0",
+  "authors": [
+    {
+      "name": "Animatak_",
+      "avatar": "animatak.png",
+      "color": "#841FFF",
+      "link": "https://discord.gg/lemon-studio-1422278971227115532",
+      "role": "Author"
+    }
+  ],
+  "category": "Visual",
+  "summary": "Your head follows the cursor, your body leans as you move, and slimes, zombies and critters lean too.",
+  "updated": "2026-10-07",
+  "blVersion": 2,
+  "entry": "main.js"
+}
