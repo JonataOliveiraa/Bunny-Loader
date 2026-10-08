@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0
+
+- Town NPCs lean when walking.
+- NPC Leaning: Standard or Spin.
+- All NPCs option: leaning or spin on every NPC.
+
 ## 1.1.0
 
 - Support for Terraria's languages: English, Portuguese, Spanish, French,
