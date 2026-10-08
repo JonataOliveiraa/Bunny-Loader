@@ -53,25 +53,6 @@
       }
     },
     {
-      "uid": "00895657-564e-49ca-b099-23823ba0e68c",
-      "id": "better-achievements",
-      "name": "Better Achievements",
-      "version": "1.0.1",
-      "download": {
-        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-better-achievements-v1.0.1/better-achievements-1.0.1.bl",
-        "sha256": "219e1c56a0618f5cb48ff9f585e1976b5e52575d0050dcdcc7866be21a6eed91",
-        "size": 1242407
-      },
-      "files": [
-        "manifest.json",
-        "icon.png",
-        "banner.png",
-        "description.md",
-        "changelog.md",
-        "authors/lemon.webp"
-      ]
-    },
-    {
       "uid": "9c6ebfc9-4520-490d-942a-348c41648a4d",
       "id": "better-reforge",
       "name": "Better Reforge",
