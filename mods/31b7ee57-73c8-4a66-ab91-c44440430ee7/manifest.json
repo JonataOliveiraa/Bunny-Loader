@@ -1,0 +1,27 @@
+{
+  "uid": "31b7ee57-73c8-4a66-ab91-c44440430ee7",
+  "id": "abusegoblin",
+  "name": "Abuse Goblin",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Animatak_",
+      "avatar": "animatak.png",
+      "color": "#841FFF",
+      "link": "https://discord.gg/lemon-studio-1422278971227115532",
+      "role": "Port"
+    },
+    {
+      "name": "al",
+      "role": "Original Creator",
+      "avatar": "steam.png",
+      "color": "#F0F0F0",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=3796173238"
+    }
+  ],
+  "category": "Gameplay",
+  "summary": "Hit the Goblin Tinkerer with any weapon to lower his reforge prices.",
+  "updated": "2026-10-08",
+  "blVersion": 2,
+  "entry": "main.js"
+}
