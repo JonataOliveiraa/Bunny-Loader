@@ -2,7 +2,7 @@
   "uid": "30f21a81-4240-420b-a9ba-924e917fc571",
   "id": "terrarchitect",
   "name": "Terrarchitect",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "authors": [
     {
       "name": "Gurgle_Nurgle",
@@ -28,7 +28,7 @@
   ],
   "category": "Building",
   "summary": "Terrarchitect is a furniture / build mod that adds a wide variety of custom-made, high-quality decorational items and blocks to Terraria! It also aims to make some previously ubobtainable or unplacable vanilla items available.",
-  "updated": "2026-10-04",
+  "updated": "2026-10-09",
   "blVersion": 2,
   "gameVersion": [
     301720,

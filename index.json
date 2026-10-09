@@ -429,17 +429,18 @@
       "uid": "30f21a81-4240-420b-a9ba-924e917fc571",
       "id": "terrarchitect",
       "name": "Terrarchitect",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "download": {
-        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-terrarchitect-v1.0.0/terrarchitect-1.0.0.bl",
-        "sha256": "f88c4429b287bc9e4887da67bdba145f673dc68808c1f59d7226fb5f7d0ed006",
-        "size": 2244457
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-terrarchitect-v1.0.1/terrarchitect-1.0.1.bl",
+        "sha256": "9da06b5250df6308df889fdcfe02877305ec57449c7eaf9ea87506d049751452",
+        "size": 2245827
       },
       "files": [
         "manifest.json",
         "icon.png",
         "banner.png",
         "description.md",
+        "changelog.md",
         "authors/0.png",
         "authors/1.jpeg",
         "authors/2.png",
@@ -451,7 +452,7 @@
         "uid": "30f21a81-4240-420b-a9ba-924e917fc571",
         "id": "terrarchitect",
         "name": "Terrarchitect",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "authors": [
           {
             "name": "Gurgle_Nurgle",
@@ -477,7 +478,7 @@
         ],
         "category": "Building",
         "summary": "Terrarchitect is a furniture / build mod that adds a wide variety of custom-made, high-quality decorational items and blocks to Terraria! It also aims to make some previously ubobtainable or unplacable vanilla items available.",
-        "updated": "2026-10-04",
+        "updated": "2026-10-09",
         "blVersion": 2,
         "gameVersion": [
           301720,
