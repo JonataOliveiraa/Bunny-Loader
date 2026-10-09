@@ -5,9 +5,9 @@ class SystemLoader {
     static #methods = new Map();
     static #unloaded = false;
 
-    static Add(inst) {
+    static Add(inst, key) {
         SystemLoader.List.push(inst);
-        SystemLoader.#keys.set(inst, (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + inst.constructor.name);
+        SystemLoader.#keys.set(inst, key || (bl.mod ? bl.mod.uuid : 'sem-mod') + '/' + inst.constructor.name);
         SystemLoader.#methods.clear();
     }
 

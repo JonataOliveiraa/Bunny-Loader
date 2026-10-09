@@ -406,8 +406,9 @@ flowchart LR
 
 - O mod carregado **antes** vê a chamada antes, e o que ele passar ao
   `original()` é o que o próximo recebe.
-- Os mods carregam em ordem de `uid`, que é aleatório: não conte com uma
-  ordem entre mods.
+- Os mods carregam na ordem da aba Pacotes, que o jogador muda: não conte
+  com uma ordem entre mods, exceto a do seu `dependencies`
+  ([guia 11](11-conversa-entre-mods.md#dependências)).
 - Cada hook da cadeia fica aninhado dentro do anterior e gasta pilha do motor
   JS. No teste ([`tools/tests/hookslots`](../../tools/tests/hookslots)), **55**
   hooks encadeados no mesmo método couberam; os que passam disso dão erro no

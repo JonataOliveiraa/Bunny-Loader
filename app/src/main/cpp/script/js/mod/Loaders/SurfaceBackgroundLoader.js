@@ -11,10 +11,16 @@
 //     Step2 e a da frente antes do GetFogPower (logo depois das árvores do
 //     fundo do jogo). Desenho direto no SpriteBatch, com o lote já aberto.
 // Nos menus, só o fundo do tema da tela de título (ModMenu.MenuBackgroundStyle).
+//
+// Os hooks só entram no JS com a chave 'bg.surface' ligada: a cena do jogador
+// local ou o tema do menu pedem um estilo de mod (Wake), e ela desliga quando
+// nenhum está escolhido nem esmaecendo. Sem isso eram seis entradas no JS por
+// quadro para descobrir que não havia o que desenhar.
 class SurfaceBackgroundLoader {
     static List = [];
     static #step1 = null;       // { top, push } do Step1 deste quadro
     static #draw = null;
+    static #awake = false;
 
     // Lido uma vez: o getter atravessava a ponte a cada Get (vários por quadro).
     static #vanillaCount = 0;
@@ -30,6 +36,32 @@ class SurfaceBackgroundLoader {
 
     static Get(slot) {
         return SurfaceBackgroundLoader.List[slot - SurfaceBackgroundLoader.VanillaCount];
+    }
+
+    // Um estilo de mod pode aparecer: a cena o pede ou o tema do menu o tem.
+    static Wake() {
+        if (SurfaceBackgroundLoader.#awake || !SurfaceBackgroundLoader.List.length) return;
+
+        SurfaceBackgroundLoader.#awake = true;
+        bl.hookFlags.set('bg.surface', true);
+    }
+
+    // Nada de mod escolhido nem na tela (as duas camadas zeradas): os hooks
+    // voltam a deixar o jogo sozinho.
+    static #SleepIfIdle() {
+        const Main = Terraria.Main;
+        const count = SurfaceBackgroundLoader.VanillaCount;
+        if (Main.bgStyle >= count) return;
+        if (Main.gameMenu ? SurfaceBackgroundLoader.#InMenu() : SceneEffectLoader.Of(Main.LocalPlayer).surfaceBackground.from) return;
+
+        for (const fades of [Main.bgAlphaFarBackLayer, Main.bgAlphaFrontLayer]) {
+            for (const style of SurfaceBackgroundLoader.List) {
+                if (style.Slot < fades.length && fades[style.Slot] > 0) return;
+            }
+        }
+
+        SurfaceBackgroundLoader.#awake = false;
+        bl.hookFlags.set('bg.surface', false);
     }
 
     // Os arrays por estilo crescem até os de mod. Conferido a cada quadro: o
@@ -66,13 +98,14 @@ class SurfaceBackgroundLoader {
 
             // Os arrays só precisam crescer com um estilo de mod em uso (o
             // escolhido agora ou o que ainda está na tela).
+            const awake = { flag: 'bg.surface' };
             Main['int GetPreferredBGStyleForPlayer()'].hook((original) => {
                 const vanilla = original();
                 const style = Safe.Run('fundo: escolha', () => SurfaceBackgroundLoader.#Choose(vanilla)) ?? vanilla;
                 const count = SurfaceBackgroundLoader.VanillaCount;
                 if (style >= count || Main.bgStyle >= count) Safe.Run('fundo: arrays', () => SurfaceBackgroundLoader.#Ensure());
                 return style;
-            });
+            }, awake);
 
             const MODIFY = 'void DrawBG_ModifyBGFarBackLayerAlpha(int desiredBG, Nullable`1 desiredBG2, Nullable`1 transitionAmountOverride)';
             Main['void UpdateBGVisibility_BackLayer(Nullable`1 targetBiomeOverride, Nullable`1 transitionAmountOverride)'].hook((original, self, target, amount) => {
@@ -88,33 +121,37 @@ class SurfaceBackgroundLoader {
                 const style = target !== null ? target : Main.bgStyle;
                 if (SurfaceBackgroundLoader.Get(style)) self[MODIFY](style, null, amount);
                 else original(self, target, amount);
-            });
+            }, awake);
             Main['void UpdateBGVisibility_FrontLayer(Nullable`1 targetBiomeOverride, Nullable`1 transitionAmountOverride)'].hook((original, self, target, amount) => {
                 original(self, target, amount);
-                if (Main.gameMenu && !SurfaceBackgroundLoader.#InMenu()) return;
-                const style = SurfaceBackgroundLoader.Get(target !== null ? target : Main.bgStyle);
-                if (style) {
-                    const fades = Main.bgAlphaFrontLayer;
-                    const speed = amount !== null ? amount : Main.backgroundLayerTransitionSpeed;
-                    Safe.Run(style.constructor.name + '.ModifyFarFades', () => style.ModifyFarFades(fades, speed));
+
+                const shown = !Main.gameMenu || SurfaceBackgroundLoader.#InMenu();
+                const style = shown ? SurfaceBackgroundLoader.Get(target !== null ? target : Main.bgStyle) : null;
+                if (!style) {
+                    Safe.Run('fundo: chave', () => SurfaceBackgroundLoader.#SleepIfIdle());
+                    return;
                 }
-            });
+
+                const fades = Main.bgAlphaFrontLayer;
+                const speed = amount !== null ? amount : Main.backgroundLayerTransitionSpeed;
+                Safe.Run(style.constructor.name + '.ModifyFarFades', () => style.ModifyFarFades(fades, speed));
+            }, awake);
 
             Main['void DrawSurfaceBG_BackMountainsStep1(float backgroundTopMagicNumber, float bgGlobalScaleMultiplier, int pushBGTopHack)'].hook((original, self, top, scale, push) => {
                 original(self, top, scale, push);
                 SurfaceBackgroundLoader.#step1 = { top, push };
                 SurfaceBackgroundLoader.#DrawBack(self, 'ChooseFarTexture');
-            });
+            }, awake);
             Main['void DrawSurfaceBG_BackMountainsStep2(int pushBGTopHack)'].hook((original, self, push) => {
                 original(self, push);
                 SurfaceBackgroundLoader.#DrawBack(self, 'ChooseMiddleTexture');
-            });
+            }, awake);
             Main['float DrawSurfaceBG_GetFogPower()'].hook((original) => {
                 const step1 = SurfaceBackgroundLoader.#step1;
                 SurfaceBackgroundLoader.#step1 = null;
                 if (step1) SurfaceBackgroundLoader.#DrawClose(Main.instance, step1);
                 return original();
-            });
+            }, awake);
         });
     }
 

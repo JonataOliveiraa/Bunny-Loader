@@ -185,13 +185,13 @@ const DrawField kDrawFields[] = {
  * do objeto e o desenho usa o que voltar. Motor ocupado por muito tempo: a
  * celula sai como o jogo a montou (false: nao entra no cache).
  */
-bool onDrawData(int x, int y, int type, runtime::TileDrawData* d) {
+bool onDrawData(int x, int y, int type, runtime::TileDrawData* d, bool special) {
     JsLock lock(500);
     if (!lock.held() || !g_ctx || !JS_IsFunction(g_ctx, g_drawDataFn)) return false;
     JSContext* ctx = g_ctx;
     for (const DrawField& f : kDrawFields) JS_SetPropertyStr(ctx, g_drawDataObj, f.name, JS_NewInt32(ctx, d->*f.member));
-    JSValue args[4] = {JS_NewInt32(ctx, x), JS_NewInt32(ctx, y), JS_NewInt32(ctx, type), JS_DupValue(ctx, g_drawDataObj)};
-    JSValue r = JS_Call(ctx, g_drawDataFn, JS_UNDEFINED, 4, args);
+    JSValue args[5] = {JS_NewInt32(ctx, x), JS_NewInt32(ctx, y), JS_NewInt32(ctx, type), JS_DupValue(ctx, g_drawDataObj), JS_NewBool(ctx, special)};
+    JSValue r = JS_Call(ctx, g_drawDataFn, JS_UNDEFINED, 5, args);
     for (JSValue& a : args) JS_FreeValue(ctx, a);
     if (JS_IsException(r)) {
         static bool warned = false;

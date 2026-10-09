@@ -1,0 +1,3855 @@
+{
+  "date": "2026-10-07",
+  "device": "127.0.0.1:16384",
+  "resolution": "1600x900, 240 dpi",
+  "buildType": "debug",
+  "apkSha256": {
+    "before": "8e987bc6d390166cd574b759bb203cf8ebad892470d80eb52472f313d89c51a1",
+    "after": "951607814816b1f4473769b9cee2346c3325db4270c51cb4be0797f61e6e18b8"
+  },
+  "mainScope": "Three consecutive runs per APK on the same restored 19-mod storefront, HTTPS rejected during timed runs; offline cached behavior.",
+  "stressScope": "One separate diagnostic per APK: 40 synthetic mods, each with a 512x512 ten-frame GIF. Not a real catalog workload.",
+  "method": "Median of per-run values. CSV framestats is a last-120-frame ring buffer; aggregate histogram includes entry spikes. Histogram buckets are approximate, not exact maxima. PSS is sampled after each phase, not peak memory.",
+  "tests": {
+    "junit": 106,
+    "newCacheTests": 7,
+    "newGifTests": 4,
+    "newStoreObserverTests": 3,
+    "failures": 0
+  },
+  "summary": {
+    "explore-first": {
+      "before": {
+        "pssKb": 138221,
+        "p95Ms": 19.273873,
+        "meanMs": 18.41042231092437,
+        "histogramOver50Ms": 4,
+        "histogramMaxBucketMs": 300,
+        "pssRangeKb": [
+          128066,
+          139011
+        ]
+      },
+      "after": {
+        "pssKb": 120983,
+        "p95Ms": 35.315992,
+        "meanMs": 33.049364866666664,
+        "histogramOver50Ms": 4,
+        "histogramMaxBucketMs": 300,
+        "pssRangeKb": [
+          120795,
+          122150
+        ]
+      }
+    },
+    "explore-scroll": {
+      "before": {
+        "pssKb": 146676,
+        "p95Ms": 19.576882,
+        "meanMs": 18.629168831932773,
+        "histogramOver50Ms": 0,
+        "histogramMaxBucketMs": 30,
+        "pssRangeKb": [
+          146372,
+          146744
+        ]
+      },
+      "after": {
+        "pssKb": 131779,
+        "p95Ms": 20.078363,
+        "meanMs": 18.325021344537817,
+        "histogramOver50Ms": 0,
+        "histogramMaxBucketMs": 40,
+        "pssRangeKb": [
+          130367,
+          132156
+        ]
+      }
+    },
+    "config-first": {
+      "before": {
+        "pssKb": 144805,
+        "p95Ms": 18.551195,
+        "meanMs": 9.390333605042017,
+        "histogramOver50Ms": 2,
+        "histogramMaxBucketMs": 113,
+        "pssRangeKb": [
+          144178,
+          145033
+        ]
+      },
+      "after": {
+        "pssKb": 129367,
+        "p95Ms": 34.88651,
+        "meanMs": 16.140895108333332,
+        "histogramOver50Ms": 2,
+        "histogramMaxBucketMs": 101,
+        "pssRangeKb": [
+          129126,
+          130273
+        ]
+      }
+    },
+    "detail-first": {
+      "before": {
+        "pssKb": 157878,
+        "p95Ms": 18.782039,
+        "meanMs": 9.988670344537816,
+        "histogramOver50Ms": 2,
+        "histogramMaxBucketMs": 250,
+        "pssRangeKb": [
+          154911,
+          158129
+        ]
+      },
+      "after": {
+        "pssKb": 142081,
+        "p95Ms": 18.155031,
+        "meanMs": 8.735880630252101,
+        "histogramOver50Ms": 6,
+        "histogramMaxBucketMs": 250,
+        "pssRangeKb": [
+          139493,
+          142913
+        ]
+      }
+    },
+    "idle-detail": {
+      "before": {
+        "pssKb": 144973,
+        "p95Ms": 4.377015,
+        "meanMs": 3.480174575,
+        "histogramOver50Ms": 0,
+        "histogramMaxBucketMs": 6,
+        "pssRangeKb": [
+          144523,
+          145021
+        ]
+      },
+      "after": {
+        "pssKb": 130093,
+        "p95Ms": 7.97742,
+        "meanMs": 4.57602931092437,
+        "histogramOver50Ms": 0,
+        "histogramMaxBucketMs": 8,
+        "pssRangeKb": [
+          129012,
+          130410
+        ]
+      }
+    }
+  },
+  "raw": {
+    "before": [
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 2456\r\nWaitTime: 2462\r\nComplete",
+        "results": [
+          {
+            "n": 119,
+            "meanMs": 18.249805344537812,
+            "p50Ms": 18.227449,
+            "p95Ms": 18.684439,
+            "p99Ms": 18.768527,
+            "maxMs": 18.965383,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 128066,
+            "totalRendered": 229,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 300,
+            "histogram": [
+              [
+                17,
+                45
+              ],
+              [
+                18,
+                174
+              ],
+              [
+                19,
+                4
+              ],
+              [
+                21,
+                2
+              ],
+              [
+                61,
+                1
+              ],
+              [
+                113,
+                1
+              ],
+              [
+                250,
+                1
+              ],
+              [
+                300,
+                1
+              ]
+            ],
+            "gfxSha256": "ff41b42ad376dc5bb0f02698cf8cebcfcced1afd234e4994eb7359768fba84d4"
+          },
+          {
+            "n": 119,
+            "meanMs": 34.81714171428572,
+            "p50Ms": 34.669198,
+            "p95Ms": 35.191714,
+            "p99Ms": 35.850971,
+            "maxMs": 43.605898,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 146676,
+            "totalRendered": 449,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 2,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 117,
+            "histogram": [
+              [
+                5,
+                54
+              ],
+              [
+                6,
+                35
+              ],
+              [
+                7,
+                26
+              ],
+              [
+                8,
+                12
+              ],
+              [
+                9,
+                6
+              ],
+              [
+                11,
+                2
+              ],
+              [
+                13,
+                2
+              ],
+              [
+                15,
+                1
+              ],
+              [
+                18,
+                2
+              ],
+              [
+                19,
+                33
+              ],
+              [
+                20,
+                115
+              ],
+              [
+                21,
+                99
+              ],
+              [
+                22,
+                25
+              ],
+              [
+                23,
+                9
+              ],
+              [
+                24,
+                2
+              ],
+              [
+                25,
+                2
+              ],
+              [
+                26,
+                3
+              ],
+              [
+                27,
+                7
+              ],
+              [
+                28,
+                5
+              ],
+              [
+                29,
+                3
+              ],
+              [
+                30,
+                3
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                105,
+                1
+              ],
+              [
+                117,
+                1
+              ]
+            ],
+            "gfxSha256": "072c294557c5d0edd777b432b3612ab7b14d0c88113846a864912e9d2ae16d85"
+          },
+          {
+            "n": 119,
+            "meanMs": 15.316468327731092,
+            "p50Ms": 4.262388,
+            "p95Ms": 34.89416,
+            "p99Ms": 34.983655,
+            "maxMs": 35.987465,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 145033,
+            "totalRendered": 167,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 81,
+            "histogram": [
+              [
+                5,
+                73
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                17,
+                3
+              ],
+              [
+                18,
+                6
+              ],
+              [
+                19,
+                54
+              ],
+              [
+                20,
+                17
+              ],
+              [
+                21,
+                7
+              ],
+              [
+                22,
+                3
+              ],
+              [
+                81,
+                2
+              ]
+            ],
+            "gfxSha256": "b38885332863473b02019af4957946231d020dc28f07ac786ddc0374aae62d94"
+          },
+          {
+            "n": 119,
+            "meanMs": 16.331551571428573,
+            "p50Ms": 3.824154,
+            "p95Ms": 35.000526,
+            "p99Ms": 35.338906,
+            "maxMs": 35.794967,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 154911,
+            "totalRendered": 161,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                5,
+                69
+              ],
+              [
+                17,
+                1
+              ],
+              [
+                18,
+                5
+              ],
+              [
+                19,
+                43
+              ],
+              [
+                20,
+                38
+              ],
+              [
+                21,
+                3
+              ],
+              [
+                250,
+                2
+              ]
+            ],
+            "gfxSha256": "531f4bd663cfd514af443ce03b43160a447e61a1591cea0ddff6f64ce61890f9"
+          },
+          {
+            "n": 120,
+            "meanMs": 3.36080125,
+            "p50Ms": 3.182024,
+            "p95Ms": 4.147836,
+            "p99Ms": 5.204328,
+            "maxMs": 12.195319,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 144523,
+            "totalRendered": 122,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 12,
+            "histogram": [
+              [
+                5,
+                121
+              ],
+              [
+                12,
+                1
+              ]
+            ],
+            "gfxSha256": "e86a5acfa1a7f1efa059ceb51ee1179d4949dd061d113177ec36cbb2d493d764"
+          }
+        ],
+        "label": "before-1"
+      },
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1237\r\nWaitTime: 1240\r\nComplete",
+        "results": [
+          {
+            "n": 119,
+            "meanMs": 18.41042231092437,
+            "p50Ms": 18.2813,
+            "p95Ms": 19.273873,
+            "p99Ms": 19.585008,
+            "maxMs": 27.793376,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 138221,
+            "totalRendered": 229,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 4,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 350,
+            "histogram": [
+              [
+                11,
+                1
+              ],
+              [
+                16,
+                2
+              ],
+              [
+                17,
+                34
+              ],
+              [
+                18,
+                175
+              ],
+              [
+                19,
+                6
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                22,
+                1
+              ],
+              [
+                24,
+                1
+              ],
+              [
+                27,
+                2
+              ],
+              [
+                28,
+                1
+              ],
+              [
+                32,
+                1
+              ],
+              [
+                117,
+                1
+              ],
+              [
+                150,
+                1
+              ],
+              [
+                250,
+                1
+              ],
+              [
+                350,
+                1
+              ]
+            ],
+            "gfxSha256": "2f2124221d8be973342b77299bfe9fbdee5f879b1e475adb2016a8bec4019e73"
+          },
+          {
+            "n": 119,
+            "meanMs": 18.629168831932773,
+            "p50Ms": 18.541724,
+            "p95Ms": 19.576882,
+            "p99Ms": 19.660862,
+            "maxMs": 22.246313,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 146372,
+            "totalRendered": 446,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 30,
+            "histogram": [
+              [
+                6,
+                1
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                10,
+                3
+              ],
+              [
+                11,
+                3
+              ],
+              [
+                14,
+                2
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                76
+              ],
+              [
+                18,
+                326
+              ],
+              [
+                19,
+                24
+              ],
+              [
+                20,
+                2
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                22,
+                1
+              ],
+              [
+                24,
+                1
+              ],
+              [
+                30,
+                1
+              ]
+            ],
+            "gfxSha256": "c88bf3a32beef46f82186933b854c2490955f47bb4d92793d5becf6316524485"
+          },
+          {
+            "n": 119,
+            "meanMs": 9.390333605042017,
+            "p50Ms": 4.423792,
+            "p95Ms": 18.551195,
+            "p99Ms": 18.686135,
+            "maxMs": 19.322544,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 144805,
+            "totalRendered": 161,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 150,
+            "histogram": [
+              [
+                5,
+                75
+              ],
+              [
+                17,
+                32
+              ],
+              [
+                18,
+                50
+              ],
+              [
+                19,
+                2
+              ],
+              [
+                150,
+                2
+              ]
+            ],
+            "gfxSha256": "9a99ac599bbf5c7b281c08774c339a2b2327f53edcc692420cbc64f318b2db64"
+          },
+          {
+            "n": 119,
+            "meanMs": 9.988670344537816,
+            "p50Ms": 4.448107,
+            "p95Ms": 18.782039,
+            "p99Ms": 19.114138,
+            "maxMs": 19.218612,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 158129,
+            "totalRendered": 160,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                5,
+                69
+              ],
+              [
+                17,
+                3
+              ],
+              [
+                18,
+                80
+              ],
+              [
+                19,
+                6
+              ],
+              [
+                250,
+                2
+              ]
+            ],
+            "gfxSha256": "f76b46466453728d0cf3688de66254f3644af064f7b76dad7fb4f95c257b4308"
+          },
+          {
+            "n": 120,
+            "meanMs": 3.7642942416666667,
+            "p50Ms": 3.6193,
+            "p95Ms": 5.178429,
+            "p99Ms": 5.63753,
+            "maxMs": 6.180369,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 145021,
+            "totalRendered": 121,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 6,
+            "histogram": [
+              [
+                5,
+                120
+              ],
+              [
+                6,
+                1
+              ]
+            ],
+            "gfxSha256": "2a27b965e321d5b62715ca926a6870c766c3ac713f437f9576fee6cff0ab5a33"
+          }
+        ],
+        "label": "before-2"
+      },
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1175\r\nWaitTime: 1177\r\nComplete",
+        "results": [
+          {
+            "n": 119,
+            "meanMs": 18.974190512605045,
+            "p50Ms": 18.628197,
+            "p95Ms": 19.734682,
+            "p99Ms": 25.820097,
+            "maxMs": 38.393782,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 139011,
+            "totalRendered": 232,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 4,
+            "histogramOver50Ms": 5,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                6,
+                1
+              ],
+              [
+                9,
+                1
+              ],
+              [
+                15,
+                1
+              ],
+              [
+                17,
+                6
+              ],
+              [
+                18,
+                192
+              ],
+              [
+                19,
+                17
+              ],
+              [
+                20,
+                2
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                25,
+                1
+              ],
+              [
+                27,
+                1
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                38,
+                1
+              ],
+              [
+                89,
+                1
+              ],
+              [
+                97,
+                1
+              ],
+              [
+                113,
+                1
+              ],
+              [
+                250,
+                2
+              ]
+            ],
+            "gfxSha256": "253c6ec98f35e8316add0f4f32e65621812b1a94d1072cdd9ab897941c201158"
+          },
+          {
+            "n": 119,
+            "meanMs": 18.382735722689077,
+            "p50Ms": 18.152505,
+            "p95Ms": 19.215987,
+            "p99Ms": 20.066545,
+            "maxMs": 24.2659,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 146744,
+            "totalRendered": 445,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 24,
+            "histogram": [
+              [
+                5,
+                28
+              ],
+              [
+                6,
+                23
+              ],
+              [
+                7,
+                16
+              ],
+              [
+                8,
+                14
+              ],
+              [
+                9,
+                7
+              ],
+              [
+                10,
+                4
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                13,
+                1
+              ],
+              [
+                14,
+                3
+              ],
+              [
+                15,
+                2
+              ],
+              [
+                17,
+                105
+              ],
+              [
+                18,
+                209
+              ],
+              [
+                19,
+                26
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                21,
+                2
+              ],
+              [
+                22,
+                1
+              ],
+              [
+                23,
+                1
+              ],
+              [
+                24,
+                1
+              ]
+            ],
+            "gfxSha256": "67cefe1ac0b97e24752af9199c5463b10b4a1f25dd1e36ea0bd521a1787bc57d"
+          },
+          {
+            "n": 120,
+            "meanMs": 8.876997416666667,
+            "p50Ms": 3.741783,
+            "p95Ms": 17.865602,
+            "p99Ms": 18.076725,
+            "maxMs": 18.133795,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 144178,
+            "totalRendered": 166,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 113,
+            "histogram": [
+              [
+                5,
+                74
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                17,
+                60
+              ],
+              [
+                18,
+                24
+              ],
+              [
+                19,
+                4
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                101,
+                1
+              ],
+              [
+                113,
+                1
+              ]
+            ],
+            "gfxSha256": "46408c13d44528a8ddab20948a37bbe81e592d6082aa98cdd6e6453e7d2e7b4b"
+          },
+          {
+            "n": 119,
+            "meanMs": 9.645885428571429,
+            "p50Ms": 4.106445,
+            "p95Ms": 18.505058,
+            "p99Ms": 18.652941,
+            "maxMs": 18.780227,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 157878,
+            "totalRendered": 161,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                5,
+                70
+              ],
+              [
+                17,
+                22
+              ],
+              [
+                18,
+                65
+              ],
+              [
+                23,
+                1
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                250,
+                2
+              ]
+            ],
+            "gfxSha256": "1d22f84b2b3f769f49c7a6407b951ad6f53693d23144d807ab90c4a79b7a0d2d"
+          },
+          {
+            "n": 120,
+            "meanMs": 3.480174575,
+            "p50Ms": 3.440166,
+            "p95Ms": 4.377015,
+            "p99Ms": 4.716327,
+            "maxMs": 5.397357,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 144973,
+            "totalRendered": 122,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 5,
+            "histogram": [
+              [
+                5,
+                122
+              ]
+            ],
+            "gfxSha256": "3b8aa23ae1d4ae6798a6826d2b211a05eb112f9bcfbbb26c5554d3c897725fb5"
+          }
+        ],
+        "label": "before-3"
+      },
+      {
+        "stress": true,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1327\r\nWaitTime: 1330\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 236,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 4,
+            "n": 119,
+            "meanMs": 18.399346436974792,
+            "p50Ms": 18.362156,
+            "p95Ms": 18.948654,
+            "p99Ms": 19.095718,
+            "maxMs": 19.276397,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 212965,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                15,
+                1
+              ],
+              [
+                17,
+                30
+              ],
+              [
+                18,
+                190
+              ],
+              [
+                19,
+                5
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                23,
+                2
+              ],
+              [
+                28,
+                1
+              ],
+              [
+                32,
+                1
+              ],
+              [
+                109,
+                1
+              ],
+              [
+                113,
+                1
+              ],
+              [
+                200,
+                1
+              ],
+              [
+                250,
+                1
+              ]
+            ],
+            "gfxSha256": "2e116fe9791bdb44d030a2b9bf71d6bd0ec0ee41368e0d227abd5d9e678b2d0e"
+          },
+          {
+            "totalRendered": 451,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "n": 119,
+            "meanMs": 5.630850731092437,
+            "p50Ms": 5.349018,
+            "p95Ms": 8.788716,
+            "p99Ms": 10.39288,
+            "maxMs": 13.233103,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 193451,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 13,
+            "histogram": [
+              [
+                5,
+                240
+              ],
+              [
+                6,
+                91
+              ],
+              [
+                7,
+                54
+              ],
+              [
+                8,
+                35
+              ],
+              [
+                9,
+                15
+              ],
+              [
+                10,
+                5
+              ],
+              [
+                11,
+                6
+              ],
+              [
+                12,
+                2
+              ],
+              [
+                13,
+                3
+              ]
+            ],
+            "gfxSha256": "b77410cda9d793555cde99174c530973b06476b5846223ca68aebcff37a36a3f"
+          },
+          {
+            "totalRendered": 165,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "n": 120,
+            "meanMs": 9.628137158333335,
+            "p50Ms": 4.582623,
+            "p95Ms": 19.360705,
+            "p99Ms": 19.744882,
+            "maxMs": 25.51637,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 182593,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 109,
+            "histogram": [
+              [
+                5,
+                76
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                25
+              ],
+              [
+                18,
+                53
+              ],
+              [
+                19,
+                4
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                23,
+                1
+              ],
+              [
+                30,
+                1
+              ],
+              [
+                93,
+                1
+              ],
+              [
+                109,
+                1
+              ]
+            ],
+            "gfxSha256": "4b7d53db50b3fa69e07c2a8e34fdf142f8a71313da2afbc5196d382d5b4b3555"
+          },
+          {
+            "totalRendered": 162,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "n": 120,
+            "meanMs": 9.481006883333333,
+            "p50Ms": 3.905367,
+            "p95Ms": 18.487862,
+            "p99Ms": 18.677424,
+            "maxMs": 18.923182,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 165739,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 200,
+            "histogram": [
+              [
+                5,
+                70
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                17,
+                32
+              ],
+              [
+                18,
+                57
+              ],
+              [
+                200,
+                2
+              ]
+            ],
+            "gfxSha256": "fd1c7c68c9e5f58b28e851b76e4022e34874d135ddd00bee46e28dabf52cf71d"
+          },
+          {
+            "totalRendered": 122,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "n": 119,
+            "meanMs": 2.912741504201681,
+            "p50Ms": 2.683274,
+            "p95Ms": 4.359712,
+            "p99Ms": 5.50511,
+            "maxMs": 11.080031,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 154583,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 11,
+            "histogram": [
+              [
+                5,
+                121
+              ],
+              [
+                11,
+                1
+              ]
+            ],
+            "gfxSha256": "de478462737e0d3e6e1b98e79bae613d13ee07244599c054af48c0d24eecea3a"
+          }
+        ],
+        "label": "before-stress"
+      }
+    ],
+    "after": [
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 2897\r\nWaitTime: 2901\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 230,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 300,
+            "histogram": [
+              [
+                13,
+                1
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                165
+              ],
+              [
+                18,
+                52
+              ],
+              [
+                19,
+                3
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                23,
+                1
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                105,
+                1
+              ],
+              [
+                150,
+                1
+              ],
+              [
+                250,
+                1
+              ],
+              [
+                300,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.34873249579832,
+            "p50Ms": 18.228827,
+            "p95Ms": 18.901882,
+            "p99Ms": 19.579497,
+            "maxMs": 22.162114,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 120983,
+            "gfxSha256": "067fcb36dc4f88a492619831c21fb26e930f07687e6001728e80376fdcda902a"
+          },
+          {
+            "totalRendered": 443,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 23,
+            "histogram": [
+              [
+                5,
+                4
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                9,
+                1
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                17,
+                130
+              ],
+              [
+                18,
+                293
+              ],
+              [
+                19,
+                8
+              ],
+              [
+                20,
+                2
+              ],
+              [
+                22,
+                1
+              ],
+              [
+                23,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.325021344537817,
+            "p50Ms": 18.280401,
+            "p95Ms": 18.838523,
+            "p99Ms": 19.053667,
+            "maxMs": 22.707894,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 130367,
+            "gfxSha256": "0c317ef56f69f3e0118b96b80ca4b71cde2226e0cd3bdbf26d5f3a74365d85c2"
+          },
+          {
+            "totalRendered": 165,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 6,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 101,
+            "histogram": [
+              [
+                5,
+                44
+              ],
+              [
+                6,
+                9
+              ],
+              [
+                7,
+                6
+              ],
+              [
+                8,
+                4
+              ],
+              [
+                9,
+                1
+              ],
+              [
+                10,
+                2
+              ],
+              [
+                11,
+                4
+              ],
+              [
+                13,
+                2
+              ],
+              [
+                17,
+                2
+              ],
+              [
+                18,
+                3
+              ],
+              [
+                19,
+                33
+              ],
+              [
+                20,
+                47
+              ],
+              [
+                21,
+                3
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                23,
+                1
+              ],
+              [
+                101,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 17.619547266666665,
+            "p50Ms": 8.839965,
+            "p95Ms": 35.181553,
+            "p99Ms": 35.354949,
+            "maxMs": 35.772985,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 129126,
+            "gfxSha256": "54d3ec61c5888a3f0fd59af97ff7673007f41846697599dac9a057dcaa25d48f"
+          },
+          {
+            "totalRendered": 150,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "histogramOver50Ms": 6,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                5,
+                75
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                17,
+                43
+              ],
+              [
+                18,
+                24
+              ],
+              [
+                19,
+                1
+              ],
+              [
+                73,
+                1
+              ],
+              [
+                81,
+                1
+              ],
+              [
+                101,
+                2
+              ],
+              [
+                250,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 8.386792291666668,
+            "p50Ms": 3.196835,
+            "p95Ms": 18.075496,
+            "p99Ms": 18.148358,
+            "maxMs": 18.872875,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 139493,
+            "gfxSha256": "90f1289ef49c097127c96cd9da5a2bbd74c78e694510d3803a8a006f4b8f922f"
+          },
+          {
+            "totalRendered": 120,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "histogramOver50Ms": 3,
+            "histogramMaxBucketMs": 65,
+            "histogram": [
+              [
+                5,
+                112
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                19,
+                1
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                46,
+                1
+              ],
+              [
+                53,
+                1
+              ],
+              [
+                61,
+                1
+              ],
+              [
+                65,
+                1
+              ]
+            ],
+            "n": 118,
+            "meanMs": 6.346452720338983,
+            "p50Ms": 3.053624,
+            "p95Ms": 8.438835,
+            "p99Ms": 84.539748,
+            "maxMs": 89.088961,
+            "over50Ms": 4,
+            "phase": "idle-detail",
+            "pssKb": 129012,
+            "gfxSha256": "fc28b20298840d871f63f27869c95e286e3cf3ed05dc7949f6082f012970485f"
+          }
+        ],
+        "label": "after-1"
+      },
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1596\r\nWaitTime: 1599\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 211,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 5,
+            "histogramOver50Ms": 6,
+            "histogramMaxBucketMs": 500,
+            "histogram": [
+              [
+                5,
+                7
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                17,
+                2
+              ],
+              [
+                18,
+                6
+              ],
+              [
+                19,
+                40
+              ],
+              [
+                20,
+                44
+              ],
+              [
+                21,
+                32
+              ],
+              [
+                22,
+                33
+              ],
+              [
+                23,
+                13
+              ],
+              [
+                24,
+                5
+              ],
+              [
+                25,
+                5
+              ],
+              [
+                26,
+                1
+              ],
+              [
+                27,
+                3
+              ],
+              [
+                29,
+                4
+              ],
+              [
+                30,
+                4
+              ],
+              [
+                32,
+                1
+              ],
+              [
+                34,
+                3
+              ],
+              [
+                46,
+                1
+              ],
+              [
+                53,
+                2
+              ],
+              [
+                125,
+                1
+              ],
+              [
+                400,
+                2
+              ],
+              [
+                500,
+                1
+              ]
+            ],
+            "n": 120,
+            "meanMs": 33.049364866666664,
+            "p50Ms": 34.749934,
+            "p95Ms": 35.588875,
+            "p99Ms": 35.997467,
+            "maxMs": 41.917035,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 120795,
+            "gfxSha256": "62e5a374f751cbc30c74e953a4ce8fff435d0f3d20d7ba18c9e0de1fabd28487"
+          },
+          {
+            "totalRendered": 469,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 5,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 40,
+            "histogram": [
+              [
+                5,
+                59
+              ],
+              [
+                6,
+                33
+              ],
+              [
+                7,
+                31
+              ],
+              [
+                8,
+                19
+              ],
+              [
+                9,
+                10
+              ],
+              [
+                10,
+                5
+              ],
+              [
+                11,
+                2
+              ],
+              [
+                12,
+                2
+              ],
+              [
+                13,
+                4
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                15,
+                3
+              ],
+              [
+                17,
+                29
+              ],
+              [
+                18,
+                148
+              ],
+              [
+                19,
+                59
+              ],
+              [
+                20,
+                14
+              ],
+              [
+                21,
+                15
+              ],
+              [
+                22,
+                6
+              ],
+              [
+                23,
+                5
+              ],
+              [
+                24,
+                3
+              ],
+              [
+                25,
+                2
+              ],
+              [
+                26,
+                5
+              ],
+              [
+                27,
+                2
+              ],
+              [
+                28,
+                2
+              ],
+              [
+                30,
+                2
+              ],
+              [
+                31,
+                3
+              ],
+              [
+                34,
+                2
+              ],
+              [
+                38,
+                1
+              ],
+              [
+                40,
+                2
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.758307420168066,
+            "p50Ms": 19.002336,
+            "p95Ms": 24.779716,
+            "p99Ms": 27.371877,
+            "maxMs": 29.085984,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 131779,
+            "gfxSha256": "2ad179f7e1f33cd7d3f2cb0db0dd55c4d00d0935abf1627368273b363b8a1c74"
+          },
+          {
+            "totalRendered": 163,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 133,
+            "histogram": [
+              [
+                5,
+                66
+              ],
+              [
+                6,
+                4
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                8,
+                2
+              ],
+              [
+                10,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                1
+              ],
+              [
+                18,
+                3
+              ],
+              [
+                19,
+                40
+              ],
+              [
+                20,
+                21
+              ],
+              [
+                21,
+                8
+              ],
+              [
+                22,
+                4
+              ],
+              [
+                25,
+                3
+              ],
+              [
+                26,
+                1
+              ],
+              [
+                27,
+                1
+              ],
+              [
+                29,
+                2
+              ],
+              [
+                31,
+                1
+              ],
+              [
+                133,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 16.140895108333332,
+            "p50Ms": 5.406471,
+            "p95Ms": 34.88651,
+            "p99Ms": 35.039745,
+            "maxMs": 35.595033,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 130273,
+            "gfxSha256": "08ec7cb3ecda2106144848784ed249345142ca83d5fcc1bcbab8055fb0371497"
+          },
+          {
+            "totalRendered": 153,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "histogramOver50Ms": 6,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                5,
+                71
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                9,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                43
+              ],
+              [
+                18,
+                19
+              ],
+              [
+                19,
+                2
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                27,
+                1
+              ],
+              [
+                30,
+                1
+              ],
+              [
+                85,
+                3
+              ],
+              [
+                93,
+                1
+              ],
+              [
+                200,
+                1
+              ],
+              [
+                250,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 8.735880630252101,
+            "p50Ms": 3.703195,
+            "p95Ms": 18.155031,
+            "p99Ms": 18.346869,
+            "maxMs": 18.70465,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 142081,
+            "gfxSha256": "008cd603da4624149dea9eb85195d7a05f4d2c6b72984a73f09d5396ec1546b0"
+          },
+          {
+            "totalRendered": 121,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 6,
+            "histogram": [
+              [
+                5,
+                119
+              ],
+              [
+                6,
+                2
+              ]
+            ],
+            "n": 119,
+            "meanMs": 3.562284605042017,
+            "p50Ms": 3.40732,
+            "p95Ms": 5.235838,
+            "p99Ms": 5.621209,
+            "maxMs": 6.499879,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 130093,
+            "gfxSha256": "d86aa4500f6c28c4a17542a731c65bade7805845534d146c3309c939ca29f8fe"
+          }
+        ],
+        "label": "after-2"
+      },
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1245\r\nWaitTime: 1247\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 234,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 4,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 200,
+            "histogram": [
+              [
+                16,
+                1
+              ],
+              [
+                18,
+                12
+              ],
+              [
+                19,
+                59
+              ],
+              [
+                20,
+                92
+              ],
+              [
+                21,
+                42
+              ],
+              [
+                22,
+                14
+              ],
+              [
+                23,
+                4
+              ],
+              [
+                24,
+                1
+              ],
+              [
+                27,
+                1
+              ],
+              [
+                31,
+                1
+              ],
+              [
+                32,
+                2
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                93,
+                1
+              ],
+              [
+                150,
+                1
+              ],
+              [
+                200,
+                2
+              ]
+            ],
+            "n": 119,
+            "meanMs": 34.65090074789916,
+            "p50Ms": 34.579496,
+            "p95Ms": 35.315992,
+            "p99Ms": 35.63729,
+            "maxMs": 36.528624,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 122150,
+            "gfxSha256": "8936e793b6138089696ab6f2bcb57b6990f4db195b6fb387e9c78e5f11628fb2"
+          },
+          {
+            "totalRendered": 439,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 2,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 40,
+            "histogram": [
+              [
+                5,
+                214
+              ],
+              [
+                6,
+                51
+              ],
+              [
+                7,
+                22
+              ],
+              [
+                8,
+                23
+              ],
+              [
+                9,
+                14
+              ],
+              [
+                10,
+                4
+              ],
+              [
+                11,
+                2
+              ],
+              [
+                12,
+                4
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                15,
+                1
+              ],
+              [
+                17,
+                28
+              ],
+              [
+                18,
+                59
+              ],
+              [
+                19,
+                10
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                27,
+                1
+              ],
+              [
+                29,
+                2
+              ],
+              [
+                36,
+                1
+              ],
+              [
+                40,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 17.645536478991595,
+            "p50Ms": 18.314739,
+            "p95Ms": 20.078363,
+            "p99Ms": 29.781694,
+            "maxMs": 41.558952,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 132156,
+            "gfxSha256": "e84b122bb3d96fdb676c22a77f830eda9f242984bdf7186c23afe41bec4ac3fd"
+          },
+          {
+            "totalRendered": 166,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 5,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 81,
+            "histogram": [
+              [
+                5,
+                67
+              ],
+              [
+                6,
+                2
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                10,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                17,
+                79
+              ],
+              [
+                18,
+                8
+              ],
+              [
+                19,
+                1
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                22,
+                1
+              ],
+              [
+                23,
+                1
+              ],
+              [
+                28,
+                1
+              ],
+              [
+                69,
+                1
+              ],
+              [
+                81,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 9.804749218487395,
+            "p50Ms": 4.917508,
+            "p95Ms": 17.898987,
+            "p99Ms": 23.288142,
+            "maxMs": 28.424383,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 129367,
+            "gfxSha256": "e520dd3c06a83969ba3eb55bdfb6d044847dab53f6db3a8fca39a65be6bcd4c1"
+          },
+          {
+            "totalRendered": 151,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 150,
+            "histogram": [
+              [
+                5,
+                76
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                21
+              ],
+              [
+                18,
+                33
+              ],
+              [
+                19,
+                4
+              ],
+              [
+                20,
+                2
+              ],
+              [
+                21,
+                6
+              ],
+              [
+                22,
+                1
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                40,
+                1
+              ],
+              [
+                150,
+                4
+              ]
+            ],
+            "n": 119,
+            "meanMs": 9.19787637815126,
+            "p50Ms": 4.892016,
+            "p95Ms": 18.356009,
+            "p99Ms": 18.482026,
+            "maxMs": 18.758758,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 142913,
+            "gfxSha256": "f6161ee9a4637b191704c9a99a4deed1fa9a68c243dbffea3004bb927506f464"
+          },
+          {
+            "totalRendered": 121,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 8,
+            "histogram": [
+              [
+                5,
+                106
+              ],
+              [
+                6,
+                6
+              ],
+              [
+                7,
+                6
+              ],
+              [
+                8,
+                3
+              ]
+            ],
+            "n": 119,
+            "meanMs": 4.57602931092437,
+            "p50Ms": 4.160228,
+            "p95Ms": 7.97742,
+            "p99Ms": 8.587878,
+            "maxMs": 8.832886,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 130410,
+            "gfxSha256": "ae6b53f111678ca0fa5ab8cb5b7b11c3d50797ff98b7ec8264311aba60ec67c8"
+          }
+        ],
+        "label": "after-3"
+      },
+      {
+        "stress": true,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1450\r\nWaitTime: 1452\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 228,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 5,
+            "histogramOver50Ms": 6,
+            "histogramMaxBucketMs": 300,
+            "histogram": [
+              [
+                15,
+                1
+              ],
+              [
+                17,
+                60
+              ],
+              [
+                18,
+                139
+              ],
+              [
+                19,
+                4
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                23,
+                3
+              ],
+              [
+                24,
+                4
+              ],
+              [
+                25,
+                2
+              ],
+              [
+                26,
+                2
+              ],
+              [
+                27,
+                1
+              ],
+              [
+                29,
+                1
+              ],
+              [
+                32,
+                1
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                53,
+                1
+              ],
+              [
+                89,
+                1
+              ],
+              [
+                150,
+                2
+              ],
+              [
+                250,
+                1
+              ],
+              [
+                300,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.360182781512606,
+            "p50Ms": 18.272088,
+            "p95Ms": 18.900414,
+            "p99Ms": 19.130557,
+            "maxMs": 21.706963,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 147557,
+            "gfxSha256": "b8a2ce104c29a0fadd5d147126b4dc17f63b3fca85c9b9629f8004dcf788f670"
+          },
+          {
+            "totalRendered": 438,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 23,
+            "histogram": [
+              [
+                5,
+                68
+              ],
+              [
+                6,
+                55
+              ],
+              [
+                7,
+                30
+              ],
+              [
+                8,
+                21
+              ],
+              [
+                9,
+                3
+              ],
+              [
+                10,
+                4
+              ],
+              [
+                11,
+                3
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                13,
+                1
+              ],
+              [
+                16,
+                2
+              ],
+              [
+                17,
+                37
+              ],
+              [
+                18,
+                198
+              ],
+              [
+                19,
+                10
+              ],
+              [
+                20,
+                3
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                23,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.372481075630255,
+            "p50Ms": 18.240357,
+            "p95Ms": 19.083293,
+            "p99Ms": 20.211714,
+            "maxMs": 23.752797,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 152255,
+            "gfxSha256": "164cce74e84f569e8f614484df421cebc8700df06ba5f1fa473025f59090ae23"
+          },
+          {
+            "totalRendered": 166,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 77,
+            "histogram": [
+              [
+                5,
+                73
+              ],
+              [
+                6,
+                6
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                13
+              ],
+              [
+                18,
+                68
+              ],
+              [
+                19,
+                2
+              ],
+              [
+                65,
+                1
+              ],
+              [
+                77,
+                1
+              ]
+            ],
+            "n": 120,
+            "meanMs": 9.727049491666666,
+            "p50Ms": 5.398874,
+            "p95Ms": 18.811188,
+            "p99Ms": 19.058369,
+            "maxMs": 19.189493,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 145039,
+            "gfxSha256": "fe4af26cb966cfc3c1db879db60f0c9478ba999b1d298f79bb10863a4f194679"
+          },
+          {
+            "totalRendered": 158,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 3,
+            "histogramOver50Ms": 3,
+            "histogramMaxBucketMs": 150,
+            "histogram": [
+              [
+                5,
+                77
+              ],
+              [
+                17,
+                16
+              ],
+              [
+                18,
+                49
+              ],
+              [
+                19,
+                10
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                40,
+                1
+              ],
+              [
+                48,
+                1
+              ],
+              [
+                57,
+                1
+              ],
+              [
+                150,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 8.955300808333334,
+            "p50Ms": 4.31466,
+            "p95Ms": 18.643633,
+            "p99Ms": 18.761532,
+            "maxMs": 18.880426,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 157081,
+            "gfxSha256": "4a6aca71783d29f8a0d3df55e820606cef373293305169bbf7ea005aad0c80f7"
+          },
+          {
+            "totalRendered": 121,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 6,
+            "histogram": [
+              [
+                5,
+                119
+              ],
+              [
+                6,
+                2
+              ]
+            ],
+            "n": 119,
+            "meanMs": 4.301933285714286,
+            "p50Ms": 4.211173,
+            "p95Ms": 5.792166,
+            "p99Ms": 6.119011,
+            "maxMs": 6.301481,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 147445,
+            "gfxSha256": "7dc2c9c42bdae20d0489892e8e14ec848e0f744556f81c78d72918747a20f136"
+          }
+        ],
+        "label": "after-stress"
+      }
+    ]
+  },
+  "crossCheck": {
+    "reason": "Two candidate runs had worse CSV p95. Extra candidate-baseline-candidate runs investigate reproducibility; kept separate from the original medians.",
+    "runs": [
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1208\r\nWaitTime: 1210\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 232,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 2,
+            "histogramOver50Ms": 3,
+            "histogramMaxBucketMs": 250,
+            "histogram": [
+              [
+                17,
+                56
+              ],
+              [
+                18,
+                165
+              ],
+              [
+                19,
+                5
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                89,
+                1
+              ],
+              [
+                200,
+                1
+              ],
+              [
+                250,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.26368548739496,
+            "p50Ms": 18.179064,
+            "p95Ms": 18.610262,
+            "p99Ms": 19.547059,
+            "maxMs": 22.738327,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 120726,
+            "gfxSha256": "61d860ff39f66a72eeeb8b116799afdf6897ac1f6d2832dd7ddf9d8518c57429"
+          },
+          {
+            "totalRendered": 435,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 28,
+            "histogram": [
+              [
+                5,
+                29
+              ],
+              [
+                6,
+                21
+              ],
+              [
+                7,
+                17
+              ],
+              [
+                8,
+                8
+              ],
+              [
+                9,
+                8
+              ],
+              [
+                10,
+                5
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                13,
+                1
+              ],
+              [
+                17,
+                186
+              ],
+              [
+                18,
+                149
+              ],
+              [
+                19,
+                7
+              ],
+              [
+                28,
+                2
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.023341050420168,
+            "p50Ms": 17.96081,
+            "p95Ms": 18.517833,
+            "p99Ms": 18.689422,
+            "maxMs": 18.953504,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 132105,
+            "gfxSha256": "0dfb5a327e15b9637b94a9cc70c008e991f3c66e106b87f68702cc07e2d77b5d"
+          },
+          {
+            "totalRendered": 166,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 85,
+            "histogram": [
+              [
+                5,
+                50
+              ],
+              [
+                6,
+                20
+              ],
+              [
+                7,
+                5
+              ],
+              [
+                17,
+                2
+              ],
+              [
+                18,
+                5
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                20,
+                38
+              ],
+              [
+                21,
+                19
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                81,
+                1
+              ],
+              [
+                85,
+                1
+              ]
+            ],
+            "n": 120,
+            "meanMs": 16.502829108333334,
+            "p50Ms": 6.683463,
+            "p95Ms": 35.498652,
+            "p99Ms": 35.784437,
+            "maxMs": 36.384571,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 129383,
+            "gfxSha256": "fb48f577e129f37cdac55e41b6b5b1eec2d9b9f6e7a28bb0ffa35ecefc31b1ca"
+          },
+          {
+            "totalRendered": 158,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 6,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 150,
+            "histogram": [
+              [
+                5,
+                73
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                17,
+                9
+              ],
+              [
+                18,
+                62
+              ],
+              [
+                19,
+                2
+              ],
+              [
+                20,
+                2
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                34,
+                1
+              ],
+              [
+                40,
+                1
+              ],
+              [
+                69,
+                1
+              ],
+              [
+                77,
+                1
+              ],
+              [
+                150,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 9.536610908333333,
+            "p50Ms": 4.623914,
+            "p95Ms": 18.65803,
+            "p99Ms": 19.053456,
+            "maxMs": 21.505221,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 142838,
+            "gfxSha256": "589a486ef91ff24a90fe82593a0cc59f14fe9aabff165299b3ac4b6d98da41ea"
+          },
+          {
+            "totalRendered": 121,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 9,
+            "histogram": [
+              [
+                5,
+                116
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                9,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 4.265733966386555,
+            "p50Ms": 3.974405,
+            "p95Ms": 6.07165,
+            "p99Ms": 7.597771,
+            "maxMs": 9.528761,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 130086,
+            "gfxSha256": "ee6777cdb87fcdb84fb1007c6f7fa1f7606decaa7f80a91631558b31e4fef059"
+          }
+        ],
+        "label": "after-check1"
+      },
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1791\r\nWaitTime: 1794\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 226,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 2,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 300,
+            "histogram": [
+              [
+                5,
+                1
+              ],
+              [
+                15,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                37
+              ],
+              [
+                18,
+                164
+              ],
+              [
+                19,
+                10
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                23,
+                1
+              ],
+              [
+                24,
+                1
+              ],
+              [
+                25,
+                3
+              ],
+              [
+                40,
+                1
+              ],
+              [
+                65,
+                1
+              ],
+              [
+                113,
+                1
+              ],
+              [
+                250,
+                1
+              ],
+              [
+                300,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.526872378151257,
+            "p50Ms": 18.462059,
+            "p95Ms": 19.267397,
+            "p99Ms": 24.125714,
+            "maxMs": 25.586797,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 137080,
+            "gfxSha256": "c878906adec5f326f4f8bc35f51b54d3b0e193da7efc44c8960062fb6de172fd"
+          },
+          {
+            "totalRendered": 444,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 5,
+            "histogramOver50Ms": 3,
+            "histogramMaxBucketMs": 97,
+            "histogram": [
+              [
+                5,
+                39
+              ],
+              [
+                6,
+                22
+              ],
+              [
+                7,
+                16
+              ],
+              [
+                8,
+                12
+              ],
+              [
+                9,
+                12
+              ],
+              [
+                10,
+                4
+              ],
+              [
+                11,
+                2
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                13,
+                3
+              ],
+              [
+                14,
+                2
+              ],
+              [
+                15,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                160
+              ],
+              [
+                18,
+                127
+              ],
+              [
+                19,
+                23
+              ],
+              [
+                20,
+                3
+              ],
+              [
+                21,
+                1
+              ],
+              [
+                22,
+                2
+              ],
+              [
+                23,
+                2
+              ],
+              [
+                24,
+                1
+              ],
+              [
+                25,
+                2
+              ],
+              [
+                26,
+                2
+              ],
+              [
+                29,
+                1
+              ],
+              [
+                38,
+                1
+              ],
+              [
+                42,
+                1
+              ],
+              [
+                89,
+                1
+              ],
+              [
+                93,
+                1
+              ],
+              [
+                97,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 20.906814268907564,
+            "p50Ms": 18.383116,
+            "p95Ms": 25.677256,
+            "p99Ms": 88.906671,
+            "maxMs": 101.245962,
+            "over50Ms": 3,
+            "phase": "explore-scroll",
+            "pssKb": 147015,
+            "gfxSha256": "a3e8a9adeb750496dfd0c596e94c69c4c99a16917b05bc896f986cf433e3c98c"
+          },
+          {
+            "totalRendered": 165,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 150,
+            "histogram": [
+              [
+                5,
+                60
+              ],
+              [
+                6,
+                10
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                9
+              ],
+              [
+                18,
+                73
+              ],
+              [
+                19,
+                6
+              ],
+              [
+                133,
+                1
+              ],
+              [
+                150,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 10.203459042016807,
+            "p50Ms": 6.130266,
+            "p95Ms": 18.962698,
+            "p99Ms": 19.138962,
+            "maxMs": 19.202374,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 144239,
+            "gfxSha256": "92eaa79f6d9420263bf8ef42b2466866113d9e3410285781ffcb49e3100a7965"
+          },
+          {
+            "totalRendered": 163,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 200,
+            "histogram": [
+              [
+                5,
+                52
+              ],
+              [
+                6,
+                5
+              ],
+              [
+                7,
+                6
+              ],
+              [
+                8,
+                5
+              ],
+              [
+                9,
+                2
+              ],
+              [
+                10,
+                1
+              ],
+              [
+                13,
+                1
+              ],
+              [
+                14,
+                1
+              ],
+              [
+                15,
+                1
+              ],
+              [
+                16,
+                1
+              ],
+              [
+                17,
+                35
+              ],
+              [
+                18,
+                47
+              ],
+              [
+                19,
+                2
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                28,
+                1
+              ],
+              [
+                200,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 10.390263158333333,
+            "p50Ms": 7.269595,
+            "p95Ms": 18.620285,
+            "p99Ms": 19.331894,
+            "maxMs": 28.264755,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 156318,
+            "gfxSha256": "79e90e7e87081fba8b71cf2ce8b6227ce513117b6bac4cfd671fb716e3ee98a4"
+          },
+          {
+            "totalRendered": 122,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 2,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 24,
+            "histogram": [
+              [
+                5,
+                94
+              ],
+              [
+                6,
+                14
+              ],
+              [
+                7,
+                8
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                10,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                13,
+                1
+              ],
+              [
+                18,
+                1
+              ],
+              [
+                24,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 5.448279789915966,
+            "p50Ms": 5.01995,
+            "p95Ms": 7.913658,
+            "p99Ms": 13.038308,
+            "maxMs": 24.134883,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 144742,
+            "gfxSha256": "6be1fef79d6747723089f31f175654af0eb1b9c4cf161b9da4bc0147b2c1fd47"
+          }
+        ],
+        "label": "before-check"
+      },
+      {
+        "stress": false,
+        "launch": "Starting: Intent { cmp=com.bunnyloader/dev.bunnyloader.LauncherActivity }\r\nStatus: ok\r\nLaunchState: COLD\r\nActivity: com.bunnyloader/dev.bunnyloader.LauncherActivity\r\nTotalTime: 1868\r\nWaitTime: 1871\r\nComplete",
+        "results": [
+          {
+            "totalRendered": 227,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 4,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 350,
+            "histogram": [
+              [
+                17,
+                22
+              ],
+              [
+                18,
+                176
+              ],
+              [
+                19,
+                19
+              ],
+              [
+                20,
+                1
+              ],
+              [
+                25,
+                1
+              ],
+              [
+                30,
+                1
+              ],
+              [
+                34,
+                2
+              ],
+              [
+                36,
+                1
+              ],
+              [
+                105,
+                1
+              ],
+              [
+                133,
+                1
+              ],
+              [
+                250,
+                1
+              ],
+              [
+                350,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 18.843371487394958,
+            "p50Ms": 18.541835,
+            "p95Ms": 19.672313,
+            "p99Ms": 20.666373,
+            "maxMs": 36.352038,
+            "over50Ms": 0,
+            "phase": "explore-first",
+            "pssKb": 121908,
+            "gfxSha256": "6694aa1d8f627666dc2273d1167bd8fea40ede694ab67b168f3a95e326e445c3"
+          },
+          {
+            "totalRendered": 462,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 1,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 31,
+            "histogram": [
+              [
+                5,
+                5
+              ],
+              [
+                6,
+                2
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                9,
+                4
+              ],
+              [
+                10,
+                2
+              ],
+              [
+                11,
+                3
+              ],
+              [
+                12,
+                4
+              ],
+              [
+                13,
+                2
+              ],
+              [
+                15,
+                2
+              ],
+              [
+                16,
+                3
+              ],
+              [
+                17,
+                19
+              ],
+              [
+                18,
+                253
+              ],
+              [
+                19,
+                135
+              ],
+              [
+                20,
+                9
+              ],
+              [
+                21,
+                6
+              ],
+              [
+                22,
+                3
+              ],
+              [
+                23,
+                3
+              ],
+              [
+                25,
+                1
+              ],
+              [
+                26,
+                2
+              ],
+              [
+                27,
+                1
+              ],
+              [
+                31,
+                1
+              ]
+            ],
+            "n": 119,
+            "meanMs": 19.206490840336137,
+            "p50Ms": 19.12785,
+            "p95Ms": 20.095629,
+            "p99Ms": 20.675003,
+            "maxMs": 26.46286,
+            "over50Ms": 0,
+            "phase": "explore-scroll",
+            "pssKb": 131823,
+            "gfxSha256": "4e215e694ab0986144e4a5af3e246aaf4583aa9b34f1e4dbb4147cad67faafb4"
+          },
+          {
+            "totalRendered": 164,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 2,
+            "histogramOver50Ms": 2,
+            "histogramMaxBucketMs": 117,
+            "histogram": [
+              [
+                5,
+                19
+              ],
+              [
+                6,
+                42
+              ],
+              [
+                7,
+                16
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                9,
+                1
+              ],
+              [
+                11,
+                1
+              ],
+              [
+                12,
+                1
+              ],
+              [
+                17,
+                4
+              ],
+              [
+                18,
+                64
+              ],
+              [
+                19,
+                10
+              ],
+              [
+                20,
+                2
+              ],
+              [
+                38,
+                1
+              ],
+              [
+                117,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 11.008753066666666,
+            "p50Ms": 7.051674,
+            "p95Ms": 19.110572,
+            "p99Ms": 19.315539,
+            "maxMs": 20.036737,
+            "over50Ms": 0,
+            "phase": "config-first",
+            "pssKb": 130555,
+            "gfxSha256": "cdc175142f11354783d33e8b3d9c987118225b0dfe70f24789de52ac8f9cc246"
+          },
+          {
+            "totalRendered": 157,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 4,
+            "histogramOver50Ms": 4,
+            "histogramMaxBucketMs": 150,
+            "histogram": [
+              [
+                5,
+                78
+              ],
+              [
+                17,
+                3
+              ],
+              [
+                18,
+                56
+              ],
+              [
+                19,
+                14
+              ],
+              [
+                42,
+                1
+              ],
+              [
+                46,
+                1
+              ],
+              [
+                53,
+                1
+              ],
+              [
+                81,
+                1
+              ],
+              [
+                150,
+                2
+              ]
+            ],
+            "n": 120,
+            "meanMs": 10.121833241666668,
+            "p50Ms": 5.442862,
+            "p95Ms": 19.631801,
+            "p99Ms": 19.824797,
+            "maxMs": 19.916599,
+            "over50Ms": 0,
+            "phase": "detail-first",
+            "pssKb": 138937,
+            "gfxSha256": "ee3c63164291b0fdc36fd443b0000b591b930fd52dde81d3477cbc841970d83c"
+          },
+          {
+            "totalRendered": 122,
+            "deadlineMissed": 0,
+            "deadlineMissedLegacy": 0,
+            "histogramOver50Ms": 0,
+            "histogramMaxBucketMs": 9,
+            "histogram": [
+              [
+                5,
+                116
+              ],
+              [
+                6,
+                4
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                9,
+                1
+              ]
+            ],
+            "n": 120,
+            "meanMs": 4.943336033333334,
+            "p50Ms": 4.866929,
+            "p95Ms": 5.903563,
+            "p99Ms": 6.943074,
+            "maxMs": 15.713503,
+            "over50Ms": 0,
+            "phase": "idle-detail",
+            "pssKb": 128751,
+            "gfxSha256": "d44ba1acbec82b21c099790b01bcc59e319eea87ecc64c328e5254a5ca819c57"
+          }
+        ],
+        "label": "after-check2"
+      }
+    ]
+  },
+  "buildVerification": {
+    "candidateSha256": "951607814816b1f4473769b9cee2346c3325db4270c51cb4be0797f61e6e18b8",
+    "nativeRuntimeUnchanged": true,
+    "libbunnySha256": "9a6f3b99b8ed12f5098a68ea555595e0d43880992736570d4b8341e7f1d022b5"
+  },
+  "junitVerification": {
+    "tests": 106,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "onlineValidation": {
+    "remoteMods": 19,
+    "displayedPackages": 20,
+    "legacyManifests": 11,
+    "iconsAfterFirstExplore": 5,
+    "legacyIconsAfterFirstExplore": 2,
+    "detail": "Better Achievements",
+    "detailDescriptionRendered": true,
+    "authorAvatarAndBannerVisuallyVerified": true,
+    "quickPreferenceKeysUnchanged": [
+      "quickStart",
+      "quickPlayer",
+      "quickWorld"
+    ],
+    "pullGestureAndNavigationReturnedCatalog": true,
+    "iconsAfterDetailAndRefresh": 5,
+    "fatalExceptions": 0,
+    "note": "Online functional run; cache cleared except index/ETag. No packages installed or game started."
+  },
+  "restoration": {
+    "originalFilesVerifiedByteForByte": {
+      "shared_prefs": 8,
+      "cache-store": 102
+    },
+    "temporaryNetworkRulesRemoved": true,
+    "gameNotStarted": true,
+    "installedApkSha256": "951607814816b1f4473769b9cee2346c3325db4270c51cb4be0797f61e6e18b8",
+    "launcherStoppedAfterRestore": true
+  }
+}

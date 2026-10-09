@@ -3,191 +3,429 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Catálogo de mods</title>
+<title>Catálogo de mods · Bunny Loader</title>
+<link rel="icon" href="/art/ic_bunny_menu.png">
 <style>
+  @font-face { font-family: "Bunny"; src: url("/art/bunny.ttf") format("truetype"); font-display: swap; }
+
+  /* A paleta do launcher (app/.../ui/Palette.kt). */
   :root {
-    --bg: #0d0f1a;
-    --panel: #1a1e39;
-    --panel-2: #232850;
-    --line: #2f3566;
-    --text: #e8ebfa;
-    --dim: #a6aed6;
-    --muted: #7c85b6;
-    --accent: #f9e141;
-    --button: #3f5297;
-    --button-hover: #4d63b3;
-    --good: #3f8f4e;
-    --warn: #c98a2b;
-    --bad: #e0603f;
-    --info: #4a5daa;
-    --radius: 10px;
+    --panel: #2B335A;
+    --button: #323471;
+    --button-on: #717BD5;
+    --select: #32407D;
+    --frame-border: #4E5275;
+    --frame-fill: #1A1E39;
+    --title-fill: #4A5DAA;
+    --pressed-border: #EBE27F;
+    --pressed-text: #F9E141;
+    --outline: #131625;
+    --night: #0D0F1A;
+    --shadow: rgba(0, 0, 0, .7);
+    --game-panel: #3F5297;
+    --text: #FFFFFF;
+    --text-dim: #D5DAF2;
+    --text-faint: #A6AED6;
+    --text-muted: #7C85B6;
+    --bad: #E0603F;
+    --good: #3F8F4E;
+    --enabled: #2B5A3A;
+    --sky-top: #070A1C;
+    --sky-bottom: #1C2550;
+    --pixel: "Bunny", ui-monospace, monospace;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
     color-scheme: dark;
   }
   * { box-sizing: border-box; }
+  html { background: var(--sky-top); }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    margin: 0; min-height: 100vh; color: var(--text-dim);
+    font: 15px/1.55 var(--body);
+    background: linear-gradient(var(--sky-top), var(--sky-bottom) 70%, #26306a);
+    background-attachment: fixed;
   }
-  header {
-    position: sticky; top: 0; z-index: 5;
-    background: color-mix(in srgb, var(--bg) 92%, transparent);
-    backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--line);
+  img.px, .px { image-rendering: pixelated; }
+  a { color: #B9C6FF; }
+  a:hover { color: var(--pressed-text); }
+  code { font-family: var(--mono); font-size: .9em; color: var(--text); background: rgba(0,0,0,.25); padding: 0 4px; }
+
+  /* ---------- cenário ---------- */
+  .scene { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+  .scene .layer { position: absolute; left: 0; right: 0; background-repeat: repeat-x; background-position: bottom center; background-size: auto 100%; image-rendering: pixelated; }
+  .scene .mountains { bottom: 14vh; height: 44vh; background-image: url("/art/bg_mountains.png"); filter: brightness(.42) saturate(.75) hue-rotate(8deg); }
+  .scene .hills { bottom: 5vh; height: 38vh; background-image: url("/art/bg_hills.png"); filter: brightness(.40) saturate(.75); }
+  .scene .forest { bottom: 0; height: 34vh; background-image: url("/art/bg_forest.png"); filter: brightness(.38) saturate(.8); }
+  .scene .moon { position: absolute; top: 120px; right: 4vw; width: 100px; height: 100px; background: url("/art/bg_moon.png") 0 0 / 100px 800px; image-rendering: pixelated; filter: drop-shadow(0 0 24px rgba(200,210,255,.25)); }
+  .scene .star { position: absolute; width: 12px; height: 12px; background: url("/art/bg_star.png") 0 0 / 12px 12px; image-rendering: pixelated; animation: twinkle 4s ease-in-out infinite; }
+  @keyframes twinkle { 50% { opacity: .25; } }
+
+  /* ---------- peças ---------- */
+  .panel {
+    --fill: var(--panel); --light: #495071; --dark: #1E233D;
+    background: var(--fill);
+    box-shadow:
+      inset 0 0 0 2px var(--outline),
+      inset 4px 4px 0 var(--light),
+      inset -4px -4px 0 var(--dark),
+      4px 5px 0 var(--shadow);
   }
-  .bar { max-width: 1100px; margin: 0 auto; padding: 14px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-  .brand { flex: 1; min-width: 220px; }
-  .brand h1 { margin: 0; font-size: 20px; }
-  .brand p { margin: 0; color: var(--muted); font-size: 13px; }
-  main { max-width: 1100px; margin: 0 auto; padding: 8px 20px 140px; }
-  h2 { font-size: 16px; margin: 28px 0 4px; }
-  .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
-
-  button {
-    font: inherit; font-size: 14px; color: var(--text); background: var(--button);
-    border: 1px solid #5a6fc0; border-radius: 8px; padding: 7px 14px; cursor: pointer;
-    white-space: nowrap;
+  .well {
+    --fill: var(--frame-fill); --light: #31344D; --dark: #14172B;
+    background: var(--fill);
+    box-shadow:
+      inset 0 0 0 2px var(--outline),
+      inset 4px 4px 0 var(--dark),
+      inset -4px -4px 0 var(--light);
   }
-  button:hover:not(:disabled) { background: var(--button-hover); }
-  button:disabled { opacity: .45; cursor: default; }
-  button.primary { background: var(--good); border-color: #5fb36d; }
-  button.primary:hover:not(:disabled) { background: #4aa35b; }
-  button.danger { background: transparent; border-color: var(--bad); color: #ffb3a0; }
-  button.danger:hover:not(:disabled) { background: #4a2018; }
-  button.ghost { background: transparent; border-color: var(--line); color: var(--dim); }
-  button.small { padding: 4px 10px; font-size: 13px; }
-
-  input[type=password] {
-    font: inherit; font-size: 14px; color: var(--text); background: var(--panel);
-    border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; width: 230px;
+  .pixel {
+    font-family: var(--pixel); color: var(--text); letter-spacing: .02em;
+    text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000;
   }
-  .token { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-  .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-  .pill.ok { background: #1d3a24; color: #8fdc9c; }
-  .pill.no { background: #3a2a14; color: #f0c06a; }
 
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+  .btn {
+    --fill: var(--button); --light: #4F5085; --dark: #21234A;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    font: 16px/1 var(--pixel); color: var(--text); letter-spacing: .02em;
+    text-shadow: -1.5px 0 #000, 1.5px 0 #000, 0 -1.5px #000, 0 1.5px #000;
+    background: var(--fill); border: 0; padding: 10px 16px 9px; cursor: pointer; white-space: nowrap;
+    box-shadow:
+      inset 0 0 0 2px var(--outline),
+      inset 4px 4px 0 var(--light),
+      inset -4px -4px 0 var(--dark),
+      3px 4px 0 var(--shadow);
+    transition: background-color .08s;
+  }
+  .btn img { width: 18px; height: 18px; image-rendering: pixelated; filter: drop-shadow(1px 1px 0 #000); }
+  .btn:hover:not(:disabled), .btn:focus-visible {
+    outline: none;
+    box-shadow:
+      inset 0 0 0 2px var(--pressed-border),
+      inset 4px 4px 0 var(--light),
+      inset -4px -4px 0 var(--dark),
+      3px 4px 0 var(--shadow);
+  }
+  .btn:active:not(:disabled) {
+    --fill: var(--button-on); --light: #858DDB; --dark: #444A81;
+    transform: translate(3px, 4px);
+    box-shadow:
+      inset 0 0 0 2px var(--pressed-border),
+      inset 4px 4px 0 var(--dark),
+      inset -4px -4px 0 var(--light);
+  }
+  .btn:disabled { filter: grayscale(.6) brightness(.7); cursor: default; }
+  .btn.good { --fill: var(--good); --light: #5A9F67; --dark: #285537; }
+  .btn.bad { --fill: #8A3424; --light: #9A5043; --dark: #522320; }
+  .btn.quiet { --fill: var(--select); --light: #4F5B8F; --dark: #212A50; }
+  .btn.small { font-size: 14px; padding: 8px 12px 7px; }
+  .btn.icon-only { padding: 8px; }
 
-  /* nossos mods */
-  .rows { display: flex; flex-direction: column; gap: 8px; }
-  .row { display: grid; grid-template-columns: 52px 1fr auto; gap: 14px; align-items: center; padding: 10px 14px; }
-  .icon { width: 52px; height: 52px; border-radius: 8px; background: var(--panel-2); image-rendering: pixelated; object-fit: cover; display: block; }
-  .icon.blank { display: grid; place-items: center; color: var(--muted); font-weight: 700; font-size: 20px; }
-  .name { font-weight: 600; }
-  .meta { color: var(--muted); font-size: 13px; }
-  .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-  .badge { font-size: 12px; padding: 2px 8px; border-radius: 6px; font-weight: 600; display: inline-block; margin-top: 4px; }
-  .badge.same { background: #1d3a24; color: #8fdc9c; }
-  .badge.new { background: #1f2c5a; color: #a9bbff; }
-  .badge.newer { background: #3a3414; color: var(--accent); }
-  .badge.changed, .badge.older { background: #3a2a14; color: #f0c06a; }
-  .badge.error { background: #3d1c16; color: #ffb3a0; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 13px/1 var(--pixel); color: var(--text); padding: 5px 8px 4px;
+    text-shadow: -1px 0 #000, 1px 0 #000, 0 -1px #000, 0 1px #000;
+    background: var(--title-fill); box-shadow: inset 0 0 0 2px var(--outline);
+  }
+  .tag.same { background: var(--enabled); color: #A6F0B2; }
+  .tag.new { background: var(--select); color: #C4CEFF; }
+  .tag.newer { background: #5A4E16; color: var(--pressed-text); }
+  .tag.changed, .tag.older { background: #6A4316; color: #FFC979; }
+  .tag.error { background: #6A2416; color: #FFB3A0; }
 
-  /* enviar */
+  input[type=text], input[type=password], input[type=search] {
+    font: 15px var(--body); color: var(--text); background: var(--select); border: 0;
+    padding: 10px 12px; min-width: 0;
+    box-shadow:
+      inset 0 0 0 2px var(--outline),
+      inset 3px 3px 0 #212A50;
+  }
+  input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--pressed-border), inset 3px 3px 0 #212A50; }
+  input::placeholder { color: var(--text-muted); }
+
+  .frame {
+    width: 56px; height: 56px; flex: none; display: grid; place-items: center; overflow: hidden;
+    background: var(--frame-fill); box-shadow: inset 0 0 0 2px var(--frame-border);
+  }
+  .frame img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; padding: 2px; }
+  .frame img.fallback { width: 32px; height: 32px; object-fit: contain; opacity: .55; padding: 0; }
+
+  /* ---------- topo ---------- */
+  header { position: sticky; top: 0; z-index: 10; }
+  header .bar {
+    --fill: var(--game-panel); --light: #5A6AA6; --dark: #28345F;
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 10px max(16px, calc((100vw - 1140px) / 2)); background: var(--fill);
+    box-shadow: inset 0 -2px 0 var(--outline), inset 0 -6px 0 var(--dark), 0 5px 0 var(--shadow);
+  }
+  .brand { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+  .brand img { height: 54px; width: auto; filter: drop-shadow(3px 3px 0 rgba(0,0,0,.6)); }
+  .brand .title { font-size: 22px; line-height: 1.1; }
+  .brand .sub { font-size: 13px; color: var(--text-dim); margin-top: 3px; }
+  .brand .sub a { color: var(--text); }
+  .account { display: flex; align-items: center; gap: 10px; }
+  .who { display: flex; align-items: center; gap: 10px; padding: 4px 12px 4px 4px; }
+  .who img { width: 32px; height: 32px; box-shadow: 0 0 0 2px var(--outline); }
+  .who .login { font-size: 15px; }
+  .who .src { font-size: 12px; color: var(--text-faint); }
+  .who.missing { --fill: #6A2416; --light: #7F4337; --dark: #401B18; padding: 8px 12px; }
+  .who.missing .src { color: #FFC9B8; }
+
+  main { max-width: 1172px; margin: 0 auto; padding: 28px 16px 220px; display: flex; flex-direction: column; gap: 30px; }
+
+  /* ---------- números ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .stat b { font: 30px/1 var(--pixel); color: var(--text); text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000; }
+  .stat span { font-size: 13px; color: var(--text-faint); }
+  .stat.hot b { color: var(--pressed-text); }
+  .stat.warn b { color: #FFC979; }
+  .stat.ok b { color: #A6F0B2; }
+
+  /* ---------- seções ---------- */
+  section > .head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  section > .head .strip {
+    --fill: var(--title-fill); --light: #6374B6; --dark: #2F3A69;
+    display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px 7px 10px; background: var(--fill);
+    box-shadow: inset 0 0 0 2px var(--outline), inset 4px 4px 0 var(--light), inset -4px -4px 0 var(--dark), 3px 4px 0 var(--shadow);
+  }
+  section > .head .strip img { width: 28px; height: 28px; object-fit: contain; image-rendering: pixelated; }
+  section > .head h2 { margin: 0; font-size: 19px; font-weight: normal; }
+  section > .head .hint { flex: 1; min-width: 220px; margin: 0; font-size: 13px; color: var(--text-faint); }
+  section > .head .tools { display: flex; gap: 8px; }
+
+  .rows { display: flex; flex-direction: column; gap: 12px; }
+  .row { display: grid; grid-template-columns: 56px 1fr auto; gap: 16px; align-items: center; padding: 14px 16px; }
+  .name { font-size: 17px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .ver { font: 13px var(--pixel); color: var(--text-faint); text-shadow: none; }
+  .meta { color: var(--text-faint); font-size: 13px; margin: 2px 0 6px; overflow-wrap: anywhere; }
+  .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+  .done { font: 13px var(--pixel); color: var(--text-muted); }
+
   .drop {
-    border: 2px dashed var(--line); border-radius: var(--radius); padding: 26px; text-align: center;
-    color: var(--dim); cursor: pointer; transition: border-color .15s, background .15s;
+    display: flex; align-items: center; justify-content: center; gap: 18px; padding: 30px 20px; cursor: pointer;
+    outline: 2px dashed var(--frame-border); outline-offset: -10px; transition: outline-color .1s, background-color .1s;
   }
-  .drop.over { border-color: var(--accent); background: #1f2240; }
-  .drop strong { color: var(--text); }
-  .check { margin-top: 12px; padding: 16px; display: grid; grid-template-columns: 64px 1fr; gap: 16px; }
-  .check .icon { width: 64px; height: 64px; }
-  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 13px; margin: 8px 0; }
-  .kv dt { color: var(--muted); }
-  .kv dd { margin: 0; word-break: break-all; }
+  .drop:hover, .drop.over { outline-color: var(--pressed-border); --fill: #222751; --light: #383D62; --dark: #191C38; }
+  .drop img { width: 48px; height: 48px; image-rendering: pixelated; }
+  .drop .big { font-size: 18px; }
+  .drop .small { font-size: 13px; color: var(--text-faint); margin-top: 2px; }
+
+  .check { margin-top: 14px; padding: 18px; display: grid; grid-template-columns: 72px 1fr; gap: 18px; }
+  .check .frame { width: 72px; height: 72px; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 13px; margin: 12px 0; padding: 12px 14px; }
+  .kv dt { color: var(--text-muted); }
+  .kv dd { margin: 0; overflow-wrap: anywhere; font-family: var(--mono); color: var(--text-dim); }
   .chips { display: flex; flex-wrap: wrap; gap: 4px; }
-  .chip { font-size: 12px; background: var(--panel-2); padding: 1px 7px; border-radius: 5px; color: var(--dim); }
+  .chip { font-size: 12px; background: var(--select); padding: 1px 7px; color: var(--text-dim); }
+  .summary { color: var(--text-dim); font-size: 14px; margin: 0; }
 
-  /* catálogo */
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
-  .card { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .card .top { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; }
-  .card .summary { color: var(--dim); font-size: 13px; margin: 0; flex: 1; }
-  .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .card a { color: #a9bbff; font-size: 13px; text-decoration: none; }
-  .card a:hover { text-decoration: underline; }
-  .empty { color: var(--muted); padding: 18px; text-align: center; }
+  .search { position: relative; display: flex; }
+  .search img { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; image-rendering: pixelated; opacity: .8; }
+  .search input { padding-left: 36px; width: 240px; }
 
-  /* registro */
-  #log {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6;
-    background: #0a0c16; border-top: 1px solid var(--line);
-    max-height: 40vh; display: flex; flex-direction: column;
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .card { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .card .top { display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: center; }
+  .card .summary { flex: 1; }
+  .card .foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 10px; border-top: 2px solid rgba(0,0,0,.25); }
+  .card .links { display: flex; gap: 14px; font-size: 13px; }
+  .empty { padding: 26px; text-align: center; color: var(--text-faint); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .empty img { width: 40px; height: 40px; image-rendering: pixelated; opacity: .6; }
+
+  /* ---------- registro ---------- */
+  #log { position: fixed; left: 0; right: 0; bottom: 0; z-index: 12; }
+  #log .shell {
+    --fill: #141833; --light: #2C2F47; --dark: #111428;
+    max-width: 1140px; margin: 0 auto; background: var(--fill);
+    box-shadow: inset 0 0 0 2px var(--outline), inset 4px 4px 0 var(--light), 0 -4px 0 var(--shadow);
   }
-  #log .head { display: flex; align-items: center; gap: 10px; padding: 8px 20px; max-width: 1100px; width: 100%; margin: 0 auto; }
-  #log .head span { flex: 1; font-size: 13px; color: var(--dim); }
+  #log .bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+  #log .bar .what { flex: 1; font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #log .bar .what.ok { color: #A6F0B2; }
+  #log .bar .what.fail { color: #FFB3A0; }
   #log pre {
-    margin: 0 auto; padding: 0 20px 12px; max-width: 1100px; width: 100%; overflow: auto;
-    font: 12.5px/1.5 ui-monospace, Consolas, monospace; color: var(--dim); white-space: pre-wrap;
+    margin: 0; padding: 0 16px 14px; max-height: 34vh; overflow: auto;
+    font: 12.5px/1.55 var(--mono); color: var(--text-faint); white-space: pre-wrap;
   }
   #log.collapsed pre { display: none; }
-  #log pre .err { color: #ffb3a0; }
-  .spinner { width: 14px; height: 14px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; display: none; }
-  body.busy .spinner { display: inline-block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  #log pre .err { color: #FFB3A0; }
+  .sunflower { width: 26px; height: 27px; flex: none; background: url("/art/spr_loading.png") 0 0 / 26px 514px; image-rendering: pixelated; display: none; animation: bloom 1.14s steps(19) infinite; }
+  body.busy .sunflower { display: block; }
+  @keyframes bloom { to { background-position-y: -513px; } }
 
-  @media (max-width: 640px) {
-    .row { grid-template-columns: 44px 1fr; }
+  /* ---------- confirmação ---------- */
+  dialog { border: 0; padding: 0; background: none; color: inherit; max-width: min(480px, calc(100vw - 32px)); }
+  dialog::backdrop { background: rgba(7, 10, 28, .72); }
+  dialog .box { padding: 22px; }
+  dialog h3 { margin: 0 0 10px; font-size: 19px; font-weight: normal; }
+  dialog p { margin: 0 0 18px; }
+  dialog .actions { justify-content: flex-end; }
+
+  @media (max-width: 760px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .row { grid-template-columns: 48px 1fr; }
+    .row .frame { width: 48px; height: 48px; }
     .row .actions { grid-column: 1 / -1; justify-content: flex-start; }
-    .icon { width: 44px; height: 44px; }
-    input[type=password] { width: 100%; }
+    header .bar { flex-wrap: nowrap; gap: 12px; }
+    .brand { gap: 10px; }
+    .brand img { height: 34px; }
+    .brand .title { font-size: 16px; }
+    .brand .sub, #syncBtn .label { display: none; }
+    #syncBtn { padding: 9px; }
+    .account .src { display: none; }
     .check { grid-template-columns: 1fr; }
+    .search input { width: 100%; }
+    section > .head .tools { width: 100%; }
+    section > .head .search { flex: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scene .star, .sunflower { animation: none; }
   }
 </style>
 </head>
 <body>
+<div class="scene" aria-hidden="true">
+  <div class="moon"></div>
+  <div id="stars"></div>
+  <div class="layer mountains"></div>
+  <div class="layer hills"></div>
+  <div class="layer forest"></div>
+</div>
+
 <header>
   <div class="bar">
     <div class="brand">
-      <h1>Catálogo de mods</h1>
-      <p>Bunny Loader · branch <code>mods-index</code> e Releases de JonataOliveiraa/Bunny-Loader</p>
+      <img src="/art/img_title.png" alt="Bunny Loader" class="px">
+      <div>
+        <div class="title pixel">Catálogo de mods</div>
+        <div class="sub">Branch <code>mods-index</code> e Releases de
+          <a href="https://github.com/JonataOliveiraa/Bunny-Loader" target="_blank" rel="noopener">JonataOliveiraa/Bunny-Loader</a></div>
+      </div>
     </div>
-    <div class="token" id="token"></div>
-    <button class="ghost" id="syncBtn" title="Baixa o catálogo publicado de novo">Sincronizar</button>
+    <div class="account" id="account"></div>
+    <button class="btn quiet" id="syncBtn" title="Baixa de novo o catálogo publicado">
+      <img src="/art/ic_refresh.png" alt=""><span class="label">Sincronizar</span>
+    </button>
   </div>
 </header>
 
 <main>
-  <h2>Nossos mods</h2>
-  <p class="hint">As pastas de <code>samples/</code> (menos o ExampleMod, que vai dentro do APK). O status compara a pasta com o que está publicado.</p>
-  <div class="rows" id="samples"></div>
+  <div class="stats" id="stats"></div>
 
-  <h2>Publicar um pacote</h2>
-  <p class="hint">Um <code>.bl</code> de outra pessoa. Ele é conferido com as mesmas regras do app antes de qualquer coisa ir para o GitHub.</p>
-  <label class="drop" id="drop">
-    <input type="file" id="file" accept=".bl,.bmod,.zip" hidden>
-    <strong>Arraste o .bl aqui</strong> ou clique para escolher
-  </label>
-  <div id="checkResult"></div>
+  <section id="samplesSection">
+    <div class="head">
+      <div class="strip"><img src="/art/ic_folder.png" alt=""><h2 class="pixel">Nossos mods</h2></div>
+      <p class="hint">As pastas de <code>samples/</code>, menos o ExampleMod, que vai dentro do APK. O status compara a pasta com o que está publicado.</p>
+    </div>
+    <div class="rows" id="samples"></div>
+  </section>
 
-  <h2>No catálogo</h2>
-  <p class="hint">O que o app mostra na aba Explorar.</p>
-  <div class="grid" id="catalog"></div>
+  <section>
+    <div class="head">
+      <div class="strip"><img src="/art/ic_bunny_menu.png" alt=""><h2 class="pixel">Publicar um pacote</h2></div>
+      <p class="hint">Um <code>.bl</code> de outra pessoa. Ele é conferido com as mesmas regras do app antes de qualquer coisa ir para o GitHub.</p>
+    </div>
+    <label class="drop well" id="drop">
+      <input type="file" id="file" accept=".bl,.bmod,.zip" hidden>
+      <img src="/art/ic_tab_pacotes.png" alt="">
+      <div>
+        <div class="big pixel" id="dropBig">Arraste o .bl aqui</div>
+        <div class="small" id="dropSmall">ou clique para escolher (.bl, .bmod ou .zip)</div>
+      </div>
+    </label>
+    <div id="checkResult"></div>
+  </section>
+
+  <section>
+    <div class="head">
+      <div class="strip"><img src="/art/ic_tab_explorar.png" alt=""><h2 class="pixel">No catálogo</h2></div>
+      <p class="hint">O que o app mostra na aba Explorar.</p>
+      <div class="tools">
+        <div class="search"><img src="/art/ic_lupa.png" alt=""><input type="search" id="filter" placeholder="Filtrar por nome ou autor"></div>
+      </div>
+    </div>
+    <div class="grid" id="catalog"></div>
+  </section>
 </main>
 
 <div id="log" class="collapsed">
-  <div class="head">
-    <div class="spinner"></div>
-    <span id="logTitle">Registro</span>
-    <button class="ghost small" id="logToggle">Mostrar</button>
+  <div class="shell">
+    <div class="bar">
+      <div class="sunflower"></div>
+      <div class="what pixel" id="logTitle">Registro</div>
+      <button class="btn small quiet" id="logToggle">Mostrar</button>
+    </div>
+    <pre id="logBody"></pre>
   </div>
-  <pre id="logBody"></pre>
 </div>
+
+<dialog id="ask">
+  <div class="box panel">
+    <h3 class="pixel" id="askTitle"></h3>
+    <p id="askText"></p>
+    <div class="actions">
+      <button class="btn quiet" value="no" id="askNo">Cancelar</button>
+      <button class="btn bad" value="yes" id="askYes">Confirmar</button>
+    </div>
+  </div>
+</dialog>
 
 <script>
 const KEY = "__BL_KEY__";
-const state = { data: null, upload: null };
+const NATIVE = window.BLNative || null;
+const state = { data: null, upload: null, filter: "" };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const kb = (n) => n >= 1048576 ? (n / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n / 1024)) + " KB";
 
+(function stars() {
+  const box = $("stars");
+  for (let i = 0; i < 46; i++) {
+    const s = document.createElement("i");
+    s.className = "star";
+    s.style.left = (Math.random() * 100) + "vw";
+    s.style.top = (Math.random() * 48) + "vh";
+    s.style.animationDelay = (-Math.random() * 4).toFixed(2) + "s";
+    s.style.transform = `scale(${(0.5 + Math.random() * 0.8).toFixed(2)})`;
+    box.appendChild(s);
+  }
+})();
+
+// No app (WebView), quem responde é o Kotlin, pela ponte BLNative; no PC, o manager.py.
+const pending = new Map();
+let nextCall = 1;
+window.__blReply = (id, json) => {
+  const resolve = pending.get(id);
+  pending.delete(id);
+  if (resolve) resolve(JSON.parse(json));
+};
+
+function blobBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function api(path, body, extraHeaders = {}) {
+  if (NATIVE) {
+    const payload = body instanceof Blob
+      ? { name: decodeURIComponent(extraHeaders["X-Filename"] || "pacote.bl"), data: await blobBase64(body) }
+      : (body ?? {});
+    const id = nextCall++;
+    return new Promise((resolve) => {
+      pending.set(id, resolve);
+      NATIVE.post(id, path, JSON.stringify(payload));
+    });
+  }
   const res = await fetch(path, {
     method: "POST",
     headers: { "X-BL-Key": KEY, "Content-Type": "application/json", ...extraHeaders },
     body: body instanceof Blob ? body : JSON.stringify(body ?? {}),
   });
-  if (!res.ok) return { ok: false, error: `o gerenciador respondeu ${res.status}` };
+  if (!res.ok) return { ok: false, error: `o gerenciador respondeu ${res.status} (reabra pelo gerenciar.bat)` };
   return res.json();
 }
 
@@ -195,20 +433,25 @@ async function api(path, body, extraHeaders = {}) {
 async function task(title, path, body, headers) {
   document.body.classList.add("busy");
   document.querySelectorAll("button").forEach((b) => (b.disabled = true));
-  $("logTitle").textContent = title + "…";
+  setLogTitle(title + "…");
   let r;
   try {
     r = await api(path, body, headers);
-  } catch (e) {
-    r = { ok: false, error: "o gerenciador não respondeu (a janela dele foi fechada?)" };
+  } catch {
+    r = { ok: false, error: NATIVE ? "o app não respondeu" : "o gerenciador não respondeu (a janela dele foi fechada?)" };
   }
   document.body.classList.remove("busy");
   document.querySelectorAll("button").forEach((b) => (b.disabled = false));
-  $("logTitle").textContent = (r.ok ? "Concluído: " : "Falhou: ") + title;
+  setLogTitle((r.ok ? "Concluído: " : "Falhou: ") + title, r.ok ? "ok" : "fail");
   const lines = esc((r.log || "").trim());
   $("logBody").innerHTML = lines + (r.ok ? "" : (lines ? "\n" : "") + `<span class="err">erro: ${esc(r.error)}</span>`);
   if (!r.ok || (r.log || "").trim()) openLog(true);
   return r;
+}
+
+function setLogTitle(text, kind = "") {
+  $("logTitle").textContent = text;
+  $("logTitle").className = "what pixel " + kind;
 }
 
 function openLog(open) {
@@ -217,6 +460,19 @@ function openLog(open) {
 }
 $("logToggle").onclick = () => openLog($("log").classList.contains("collapsed"));
 
+function ask(title, text, yes = "Confirmar") {
+  const d = $("ask");
+  $("askTitle").textContent = title;
+  $("askText").textContent = text;
+  $("askYes").textContent = yes;
+  return new Promise((resolve) => {
+    $("askYes").onclick = () => { d.close(); resolve(true); };
+    $("askNo").onclick = () => { d.close(); resolve(false); };
+    d.oncancel = () => resolve(false);
+    d.showModal();
+  });
+}
+
 async function refresh() {
   const r = await api("/api/state");
   if (!r.ok) { $("logBody").innerHTML = `<span class="err">erro: ${esc(r.error)}</span>`; openLog(true); return; }
@@ -224,82 +480,115 @@ async function refresh() {
   render();
 }
 
-function icon(src, name) {
-  return src ? `<img class="icon" src="${esc(src)}" alt="">`
-             : `<div class="icon blank">${esc((name || "?").slice(0, 1).toUpperCase())}</div>`;
+function frame(src, big = false) {
+  return `<div class="frame">${src
+    ? `<img src="${esc(src)}" alt="">`
+    : `<img class="fallback" src="/art/ic_bunny_menu.png" alt="">`}</div>`;
 }
 
+function empty(text) {
+  return `<div class="empty well"><img src="/art/ic_bunny_menu.png" alt=""><span>${esc(text)}</span></div>`;
+}
+
+// ------------------------------------------------------------ conta
+function renderAccount() {
+  const t = state.data.token || {};
+  if (!t.set || t.rejected) {
+    $("account").innerHTML = `<div class="who panel missing"><div><div class="login pixel">${t.rejected ? "Token recusado" : "Sem token"}</div>
+      <div class="src">${esc(t.rejected ? t.error : t.hint || "")}</div></div></div>`;
+    return;
+  }
+  const source = { embedded: "token embutido no app", file: "token do _token.txt", env: "token do ambiente" }[t.source] || "";
+  $("account").innerHTML = t.login
+    ? `<div class="who panel"><img src="${esc(t.avatar)}" alt="" referrerpolicy="no-referrer"><div><div class="login pixel">@${esc(t.login)}</div><div class="src">${source}</div></div></div>`
+    : `<div class="who panel"><div><div class="login pixel">Token pronto</div><div class="src">${esc(t.offline ? "sem conexão para conferir" : t.error || source)}</div></div></div>`;
+}
+
+// ------------------------------------------------------------ telas
 function render() {
   const d = state.data;
-  // token
-  $("token").innerHTML = d.tokenSet
-    ? `<span class="pill ok">Token pronto</span><button class="ghost small" id="tokenClear">Esquecer</button>`
-    : `<span class="pill no">Sem token</span>
-       <input type="password" id="tokenInput" placeholder="Cole o token do GitHub" autocomplete="off">
-       <button id="tokenSave">Usar</button>`;
-  if (d.tokenSet) $("tokenClear").onclick = () => setToken("");
-  else {
-    $("tokenSave").onclick = () => setToken($("tokenInput").value);
-    $("tokenInput").onkeydown = (e) => { if (e.key === "Enter") setToken(e.target.value); };
-  }
+  renderAccount();
 
-  // nossos mods
-  $("samples").innerHTML = d.samples.length ? d.samples.map((s) => `
+  const samples = d.samples || [];
+  $("samplesSection").hidden = !d.samples;
+  const count = (pred) => samples.filter(pred).length;
+  const ready = count((s) => s.status === "new" || s.status === "newer");
+  const needBump = count((s) => s.status === "changed" || s.status === "older" || s.status === "error");
+  const authors = new Set(d.catalog.flatMap((m) => (m.authors || "").split(",").map((a) => a.trim()).filter(Boolean)));
+  const stats = d.samples ? [
+    ["", d.catalog.length, "no catálogo"],
+    [ready ? "hot" : "", ready, "prontos para publicar"],
+    [needBump ? "warn" : "", needBump, "pedem atenção"],
+    ["ok", count((s) => s.status === "same"), "em dia"],
+  ] : [
+    ["", d.catalog.length, "no catálogo"],
+    ["", authors.size, "autores"],
+    ["", new Set(d.catalog.map((m) => m.category).filter(Boolean)).size, "categorias"],
+    ["", kb(d.catalog.reduce((n, m) => n + (m.download.size || 0), 0)), "em pacotes"],
+  ];
+  $("stats").innerHTML = stats.map(([cls, n, label]) => `<div class="stat panel ${cls}"><b>${n}</b><span>${label}</span></div>`).join("");
+
+  $("samples").innerHTML = samples.length ? samples.map((s) => `
     <div class="row panel">
-      ${icon(s.icon, s.name)}
+      ${frame(s.icon)}
       <div>
-        <div class="name">${esc(s.name)} <span class="meta">v${esc(s.version)}</span></div>
+        <div class="name"><span class="pixel">${esc(s.name)}</span><span class="ver">v${esc(s.version)}</span></div>
         <div class="meta">samples/${esc(s.folder)}${s.authors ? " · " + esc(s.authors) : ""}${s.size ? " · " + kb(s.size) : ""}</div>
-        <span class="badge ${esc(s.status)}">${esc(s.statusText)}</span>
+        <span class="tag ${esc(s.status)}">${esc(s.statusText)}</span>
       </div>
       <div class="actions">${sampleActions(s)}</div>
-    </div>`).join("") : `<div class="empty panel">Nenhuma pasta em samples/.</div>`;
+    </div>`).join("") : empty("Nenhuma pasta em samples/.");
 
-  // catálogo
-  $("catalog").innerHTML = d.catalog.length ? d.catalog.map((m) => `
+  renderCatalog();
+
+  document.querySelectorAll("[data-publish]").forEach((b) => (b.onclick = () => publishSample(b.dataset.publish, b.dataset.name)));
+  document.querySelectorAll("[data-bump]").forEach((b) => (b.onclick = () => bump(b.dataset.bump, b.dataset.part)));
+}
+
+function renderCatalog() {
+  const d = state.data;
+  const q = state.filter.toLowerCase();
+  const list = d.catalog.filter((m) => !q || `${m.name} ${m.authors} ${m.category}`.toLowerCase().includes(q));
+  $("catalog").innerHTML = list.length ? list.map((m) => `
     <div class="card panel">
       <div class="top">
-        ${icon(m.icon, m.name)}
+        ${frame(m.icon)}
         <div>
-          <div class="name">${esc(m.name)} <span class="meta">v${esc(m.version)}</span></div>
+          <div class="name"><span class="pixel">${esc(m.name)}</span><span class="ver">v${esc(m.version)}</span></div>
           <div class="meta">${esc(m.authors || "autor desconhecido")}${m.category ? " · " + esc(m.category) : ""} · ${kb(m.download.size)}</div>
         </div>
       </div>
       <p class="summary">${esc(m.summary)}</p>
       <div class="foot">
-        <span><a href="${esc(m.release)}" target="_blank" rel="noopener">Release</a> · <a href="${esc(m.download.url)}">baixar .bl</a></span>
-        <button class="danger small" data-remove="${esc(m.uid)}" data-name="${esc(m.name)}">Tirar do catálogo</button>
+        <span class="links"><a href="${esc(m.release)}" target="_blank" rel="noopener">Release</a><a href="${esc(m.download.url)}">Baixar .bl</a></span>
+        <button class="btn small bad" data-remove="${esc(m.uid)}" data-name="${esc(m.name)}"><img src="/art/ic_trash.png" alt="">Tirar</button>
       </div>
-    </div>`).join("") : `<div class="empty panel">${d.worktree ? "Catálogo vazio." : "Ainda não sincronizado."}</div>`;
-
-  document.querySelectorAll("[data-publish]").forEach((b) => (b.onclick = () => publishSample(b.dataset.publish, b.dataset.name)));
-  document.querySelectorAll("[data-bump]").forEach((b) => (b.onclick = () => bump(b.dataset.bump, b.dataset.part)));
+    </div>`).join("")
+    : empty(q ? "Nada com esse nome." : d.worktree ? "Catálogo vazio." : "Ainda não sincronizado.");
   document.querySelectorAll("[data-remove]").forEach((b) => (b.onclick = () => removeMod(b.dataset.remove, b.dataset.name)));
 }
 
+$("filter").oninput = (e) => { state.filter = e.target.value; if (state.data) renderCatalog(); };
+
 function sampleActions(s) {
-  const pub = (label) => `<button class="primary" data-publish="${esc(s.folder)}" data-name="${esc(s.name)}">${label}</button>`;
+  const tokenSet = state.data.token && state.data.token.set;
+  const pub = (label) => `<button class="btn good" data-publish="${esc(s.folder)}" data-name="${esc(s.name)}" ${tokenSet ? "" : 'disabled title="Conecte ao GitHub primeiro"'}><img src="/art/ic_start.png" alt="">${label}</button>`;
   const bumps = `
-    <button class="small" data-bump="${esc(s.folder)}" data-part="patch" title="1.0.0 → 1.0.1: correção">+ correção</button>
-    <button class="small ghost" data-bump="${esc(s.folder)}" data-part="minor" title="1.0.0 → 1.1.0: coisa nova">+ novidade</button>`;
+    <button class="btn small" data-bump="${esc(s.folder)}" data-part="patch" title="1.0.0 → 1.0.1: correção">+ correção</button>
+    <button class="btn small quiet" data-bump="${esc(s.folder)}" data-part="minor" title="1.0.0 → 1.1.0: coisa nova">+ novidade</button>`;
   switch (s.status) {
     case "new": return pub("Publicar");
     case "newer": return pub(`Publicar v${esc(s.version)}`);
     case "changed": return bumps;
-    case "same": return `<span class="meta">Nada a fazer</span>`;
+    case "same": return `<span class="done">Nada a fazer</span>`;
     default: return "";
   }
-}
-
-async function setToken(value) {
-  await api("/api/token", { token: value });
-  await refresh();
 }
 
 async function publishSample(folder, name) {
   const r = await task(`Publicar ${name}`, "/api/publish-sample", { folder });
   await refresh();
-  if (r.ok) $("logTitle").textContent = `${name} publicado. No app, pode levar uns minutos para aparecer.`;
+  if (r.ok) setLogTitle(`${name} publicado. No app, pode levar uns minutos para aparecer.`, "ok");
 }
 
 async function bump(folder, part) {
@@ -308,7 +597,9 @@ async function bump(folder, part) {
 }
 
 async function removeMod(uid, name) {
-  if (!confirm(`Tirar "${name}" do catálogo?\n\nQuem já instalou continua com o mod. A Release fica no GitHub; só some da aba Explorar.`)) return;
+  const yes = await ask(`Tirar "${name}" do catálogo?`,
+    "Quem já instalou continua com o mod. A Release fica no GitHub; ele só some da aba Explorar.", "Tirar do catálogo");
+  if (!yes) return;
   await task(`Tirar ${name} do catálogo`, "/api/remove", { uid });
   await refresh();
 }
@@ -331,26 +622,30 @@ async function upload(file) {
 
 function renderCheck(error) {
   const c = state.upload;
-  if (error) { $("checkResult").innerHTML = `<div class="check panel"><div></div><div><span class="badge error">Recusado</span><p>${esc(error)}</p></div></div>`; return; }
+  if (error) {
+    $("checkResult").innerHTML = `<div class="check panel">${frame(null)}<div><span class="tag error">Recusado</span><p class="summary" style="margin-top:10px">${esc(error)}</p></div></div>`;
+    return;
+  }
   if (!c) { $("checkResult").innerHTML = ""; return; }
   const canPublish = c.status === "new" || c.status === "newer";
+  const tokenSet = state.data && state.data.token && state.data.token.set;
   $("checkResult").innerHTML = `
     <div class="check panel">
-      ${icon(c.icon, c.name)}
+      ${frame(c.icon)}
       <div>
-        <div class="name">${esc(c.name)} <span class="meta">v${esc(c.version)}</span></div>
+        <div class="name"><span class="pixel">${esc(c.name)}</span><span class="ver">v${esc(c.version)}</span></div>
         <div class="meta">${esc(c.authors || "sem autor")}${c.category ? " · " + esc(c.category) : ""} · ${kb(c.size)}</div>
-        <span class="badge ${esc(c.status)}">${esc(c.statusText)}</span>
-        <dl class="kv">
+        <span class="tag ${esc(c.status)}">${esc(c.statusText)}</span>
+        <dl class="kv well">
           <dt>Arquivo</dt><dd>${esc(c.file)}</dd>
           <dt>uid</dt><dd>${esc(c.uid)}</dd>
           <dt>sha256</dt><dd>${esc(c.sha256)}</dd>
           <dt>Vitrine</dt><dd><div class="chips">${c.store.map((f) => `<span class="chip">${esc(f)}</span>`).join("")}</div></dd>
         </dl>
         ${c.summary ? `<p class="summary">${esc(c.summary)}</p>` : ""}
-        <div class="actions" style="justify-content:flex-start">
-          ${canPublish ? `<button class="primary" id="publishUpload">Publicar no catálogo</button>` : ""}
-          <button class="ghost" id="discardUpload">Descartar</button>
+        <div class="actions" style="justify-content:flex-start;margin-top:14px">
+          ${canPublish ? `<button class="btn good" id="publishUpload" ${tokenSet ? "" : 'disabled title="Conecte ao GitHub primeiro"'}><img src="/art/ic_start.png" alt="">Publicar no catálogo</button>` : ""}
+          <button class="btn quiet" id="discardUpload"><img src="/art/ic_fechar.png" alt="">Descartar</button>
         </div>
       </div>
     </div>`;
@@ -360,6 +655,11 @@ function renderCheck(error) {
     await refresh();
   };
   $("discardUpload").onclick = () => { state.upload = null; renderCheck(); };
+}
+
+if (NATIVE || matchMedia("(pointer: coarse)").matches) {
+  $("dropBig").textContent = "Escolher um .bl";
+  $("dropSmall").textContent = "Toque para abrir os arquivos (.bl, .bmod ou .zip)";
 }
 
 refresh();

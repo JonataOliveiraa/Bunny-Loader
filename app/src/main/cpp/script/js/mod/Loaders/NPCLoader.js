@@ -7,6 +7,54 @@ class NPCLoader {
     static ByType = new Map();
     static Spawnable = [];   // os que têm SpawnChance
 
+    static #defaulting = null;
+    static #cloning = new Set();
+
+    static Defaults(m, npc) {
+        const outer = NPCLoader.#defaulting;
+        NPCLoader.#defaulting = npc;
+        try {
+            m.SetDefaults(npc);
+            m.ApplyBuffImmunity(npc);
+            m.PostSetDefaults(npc);
+        } finally { NPCLoader.#defaulting = outer; }
+    }
+
+    static CloneDefaults(m, type) {
+        const npc = m.NPC;
+        if (!npc) throw new Error('CloneDefaults: use no SetDefaults de um NPC vinculado');
+        if (!Number.isInteger(type) || type === npc.type || (type >= FIRST_NPC && !NPCLoader.ByType.has(type))) {
+            throw new RangeError('CloneDefaults: tipo de NPC inválido: ' + type);
+        }
+        if (NPCLoader.#cloning.has(type)) throw new Error('CloneDefaults: cópia circular de NPC ' + type);
+        const hasGlobals = globalNPCs.ready;
+        const saved = { type: npc.type, netID: npc.netID, mod: npc.ModNPC, globals: hasGlobals ? npc.__globalNPCs : undefined,
+            interaction: Array.from(npc.playerInteraction) };
+        const nested = NPCLoader.#defaulting && bl.addressOf(NPCLoader.#defaulting) === bl.addressOf(npc);
+        const params = Terraria.NPCSpawnParams.new();
+        params.difficultyOverride = Terraria.DataStructures.GameDifficultyLevel.Classic;
+        params.sizeScaleOverride = 1;
+        NPCLoader.#cloning.add(type);
+        try {
+            npc['void SetDefaults(int Type, NPCSpawnParams spawnparams)'](type, params);
+            // O bridge evita reentrar no mesmo hook. Dentro de SetDefaults,
+            // os defaults de mod/globais do tipo copiado precisam rodar aqui.
+            if (nested) {
+                const template = NPCLoader.ByType.get(type);
+                if (template) NPCLoader.Defaults(Entities.Bind(template.Clone(npc), npc, 'ModNPC'), npc);
+                if (globalNPCs.cached) globalNPCs.Attach(npc, true);
+                globalNPCs.Each(npc, 'SetDefaults', g => g.SetDefaults(npc));
+            }
+        } finally {
+            npc.type = saved.type;
+            npc.netID = saved.netID;
+            npc.ModNPC = saved.mod;
+            if (hasGlobals) npc.__globalNPCs = saved.globals;
+            for (let i = 0; i < saved.interaction.length; i++) npc.playerInteraction[i] = saved.interaction[i];
+            NPCLoader.#cloning.delete(type);
+        }
+    }
+
     static #everyType = new Set();   // as marcas que valem para todo tipo (algum Global)
 
     static Of(npc) {
@@ -244,9 +292,9 @@ class NPCLoader {
     }
 
     // O de mod e depois cada Global (o mesmo método e argumentos).
-    static CallAll(npc, name, a, b, c, d) {
-        NPCLoader.Call(npc, name, a, b, c, d);
-        globalNPCs.Call(npc, name, a, b, c, d);
+    static CallAll(npc, name, ...args) {
+        NPCLoader.Call(npc, name, ...args);
+        globalNPCs.Call(npc, name, ...args);
     }
 }
 

@@ -53,6 +53,10 @@ class GlobalItem extends GlobalType {
     PreUpdateInWorld(item, worldItem) { return true; }
     PostUpdateInWorld(item, worldItem) {}
     OnCraft(item, player, recipe) {}
+    PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) { return true; }
+    PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) {}
+    PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) { return true; }
+    PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) {}
     ModifyTooltips(item, tooltips) {}
     // O desenho do tooltip (DrawableTooltipLine: X, Y, Font, Color, BaseScale...).
     // x, y e yOffset são Ref; false no Pre não desenha.

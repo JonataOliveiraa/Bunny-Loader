@@ -1,0 +1,8 @@
+{
+  "uid": "7141df34-097e-4b0a-9c9c-1e9ba8ca6ec2",
+  "id": "ServerSyncProbe",
+  "name": "Server Sync Probe",
+  "version": "1.1.0",
+  "blVersion": 2,
+  "entry": "main.js"
+}

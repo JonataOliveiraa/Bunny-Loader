@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "BunnyLoader"
 include(":app")
+include(":catalog")

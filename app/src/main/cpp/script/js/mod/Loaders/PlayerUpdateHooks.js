@@ -58,8 +58,7 @@ class PlayerUpdateHooks {
             });
         });
         want(cls, ['ResetInfoAccessories'], 'player.InfoAccessories', () => {
-            Terraria.Player['void ResetEffects()'].hook((original, player) => {
-                original(player);
+            SharedHooks.After('player.ResetEffects', Terraria.Player['void ResetEffects()'], 'ModPlayer.ResetInfoAccessories', (player) => {
                 PlayerLoader.Call(player, 'ResetInfoAccessories');
             });
             Terraria.Player['void RefreshInfoAccs()'].hook((original, player) => {

@@ -98,7 +98,9 @@ class ServerSyncLoader {
 
     static #Same(a, b) {
         return Array.isArray(b) && a.length === b.length
-            && a.every((m, i) => b[i] && m.uid === b[i].uid && m.version === b[i].version);
+            && a.every((m, i) => b[i] && m.uid === b[i].uid
+                && typeof m.version === 'string' && m.version.trim().length > 0
+                && m.version === b[i].version);
     }
 
     static #Judge(hello, from) {

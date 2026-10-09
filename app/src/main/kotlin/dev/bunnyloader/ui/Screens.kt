@@ -7,7 +7,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,11 +23,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.text.style.TextAlign
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
@@ -213,6 +215,9 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
 
 // =============================== Explorar ===============================
 
+/** Quantos cartões o Explorar acrescenta por vez. */
+private const val EXPLORE_PAGE = 10
+
 /**
  * O que vem dentro do app e o catálogo online. É daqui que um mod vai parar em
  * Pacotes. Ao voltar ao app a lista é atualizada; mudar de aba usa o cache
@@ -233,6 +238,17 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
     }
     val state = rememberLazyListState()
     LaunchedEffect(type, query) { state.scrollToItem(0) }
+    // De 10 em 10: o catálogo vai passar de mil pacotes, e cada cartão que
+    // aparece pede o ícone pela rede. A próxima página entra quando a rolagem
+    // chega perto do fim; trocar de busca ou de tipo volta à primeira.
+    var shown by rememberSaveable(type, query) { mutableIntStateOf(EXPLORE_PAGE) }
+    val page = remember(list, shown) { list.take(shown) }
+    LaunchedEffect(state, list.size, type, query) {
+        snapshotFlow { state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+            .collect { last ->
+                if (last >= shown - 3 && shown < list.size) shown = (shown + EXPLORE_PAGE).coerceAtMost(list.size)
+            }
+    }
 
     Column(Modifier.fillMaxSize()) {
         SearchField(query, { query = it }, Modifier.padding(horizontal = EdgePad, vertical = 10.dp))
@@ -251,7 +267,7 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
                     ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(list, key = { it.uid }, contentType = { "package" }) { e ->
+                    items(page, key = { it.uid }, contentType = { "package" }) { e ->
                         ModRow(e, shell.catalog, { onOpen(e.uid) }) {
                             val progress = shell.downloads[e.uid]
                             when {
@@ -259,6 +275,13 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
                                 shell.updateFor(e.uid) != null -> PixelTag("Atualizar", Bl.Good)
                                 e.uid in shell.installed -> PixelTag("Instalado")
                             }
+                        }
+                    }
+                    if (page.size < list.size) {
+                        item(key = "more", contentType = "more") {
+                            PixelText("Carregando mais... (${page.size} de ${list.size})", size = Ts.Small,
+                                color = Bl.TextFaint, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                                align = TextAlign.Center)
                         }
                     }
                     if (list.isEmpty() && shell.remoteStatus != RemoteStatus.Loading) {
@@ -331,20 +354,28 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
 @Composable
 fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
-    var category by rememberSaveable { mutableStateOf<String?>(null) }
-    var status by rememberSaveable { mutableStateOf(PackageStatus.ALL) }
-    var sort by rememberSaveable { mutableStateOf(PackageSort.LOAD) }
     var type by rememberSaveable { mutableStateOf(PackType.MOD) }
-    var showFilters by rememberSaveable { mutableStateOf(false) }
     val search = rememberPackageSearchIndex(shell.packages)
-    val categories = remember(shell.packages, type) { packageCategories(shell.packages, type) }
-    val packages = remember(shell.packages, shell.enabled, status, sort, type, query, category) {
-        filterPackages(shell.packages, shell.enabled, status, sort, type, query, category, search)
+    val packages = remember(shell.packages, shell.enabled, type, query) {
+        filterPackages(shell.packages, shell.enabled, PackageStatus.ALL, PackageSort.LOAD, type, query, index = search)
     }
     val counts = remember(shell.packages) { shell.packages.groupingBy { it.manifest.packType }.eachCount() }
-    val manualOrder = status == PackageStatus.ALL && sort == PackageSort.LOAD && query.isBlank() && category == null
+    val manualOrder = query.isBlank()
     val state = rememberLazyListState()
-    LaunchedEffect(status, sort, type, query, category) { state.scrollToItem(0) }
+    LaunchedEffect(type, query) { state.scrollToItem(0) }
+    // Cada troca de lugar pedida por toque (interruptor, setas) anima a lista
+    // por um instante; o arraste não (ver DraggablePackageList). A animação liga
+    // no próprio toque, no mesmo quadro em que a ordem muda: ligada depois,
+    // a lista já teria pulado para o lugar novo.
+    var moves by remember { mutableIntStateOf(0) }
+    var animateMoves by remember { mutableStateOf(false) }
+    var movedUid by remember { mutableStateOf<String?>(null) }
+    val animateNextMove = { uid: String -> animateMoves = true; movedUid = uid; moves++ }
+    LaunchedEffect(moves) {
+        if (moves == 0) return@LaunchedEffect
+        delay(MOVE_MS + 250L)
+        animateMoves = false
+    }
     // texto + deu certo? Uma recusa em verde de sucesso se le como sucesso.
     var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var asking by remember { mutableStateOf(false) }
@@ -410,23 +441,11 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             PixelText(it, size = Ts.Small, color = Bl.Bad, modifier = Modifier.padding(horizontal = EdgePad))
         }
         SearchField(query, { query = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp))
-        PackTypeTabs(type, counts, { type = it; category = null }, Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
-        FilterResultLine(packages.size, query.isNotBlank() || category != null || status != PackageStatus.ALL || sort != PackageSort.LOAD,
-            { query = ""; category = null; status = PackageStatus.ALL; sort = PackageSort.LOAD },
-            Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp),
-            onToggle = { showFilters = !showFilters }, expanded = showFilters)
-        if (showFilters) {
-            CategoryFilter(categories, category, { category = it }, Modifier.padding(horizontal = EdgePad))
-            PackageFilterControls(status, { status = it }, sort, { sort = it },
-                Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
-        } else {
-            val selectedFilters = listOfNotNull(category, status.takeIf { it != PackageStatus.ALL }?.label,
-                sort.takeIf { it != PackageSort.LOAD }?.label)
-            if (selectedFilters.isNotEmpty()) PixelText(selectedFilters.joinToString(" · "),
-                size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(horizontal = EdgePad))
-        }
+        PackTypeTabs(type, counts, { type = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
+        FilterResultLine(packages.size, query.isNotBlank(), { query = "" },
+            Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp))
         PixelText(if (manualOrder) "Segure e arraste dentro do mesmo grupo. Primeiro ligado carrega primeiro."
-                  else "Para mover, limpe a busca e escolha Todos e Ordem de carga.", size = Ts.Small, color = Bl.TextFaint,
+                  else "Para mover, limpe a busca.", size = Ts.Small, color = Bl.TextFaint,
             modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
 
         DraggablePackageList(
@@ -435,6 +454,8 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             enabledUids = shell.enabled,
             reorderEnabled = manualOrder,
             onDrop = shell::moveModTo,
+            animateMoves = animateMoves,
+            raisedUid = movedUid,
             modifier = Modifier.weight(1f).fillMaxWidth(),
             empty = { Empty(if (shell.refreshingPackages && shell.packages.isEmpty()) "Lendo pacotes..."
                            else if (shell.installed.isEmpty()) "Nenhum pacote. Pegue um em Explorar ou importe um .bmod."
@@ -449,14 +470,19 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                 val canMoveUp = index > 0 && (packages[index - 1].uid in shell.enabled) == (e.uid in shell.enabled)
                 val canMoveDown = index < packages.lastIndex && (packages[index + 1].uid in shell.enabled) == (e.uid in shell.enabled)
                 ModOrderButtons(e.manifest.name, canMoveUp, canMoveDown,
-                    { if (!preview) shell.moveModTo(e.uid, packages[index - 1].uid) },
-                    { if (!preview) shell.moveModTo(e.uid, packages[index + 1].uid) })
+                    { if (!preview) { animateNextMove(e.uid); shell.moveModTo(e.uid, packages[index - 1].uid) } },
+                    { if (!preview) { animateNextMove(e.uid); shell.moveModTo(e.uid, packages[index + 1].uid) } })
             }) else null) {
                 SwitchSprite(e.uid in shell.enabled) {
                     if (!preview) {
-                        // O LazyColumn ancora a rolagem na chave do primeiro item visível: sem
-                        // isto, o cartão que muda de grupo arrasta a tela junto com ele.
-                        state.requestScrollToItem(state.firstVisibleItemIndex, state.firstVisibleItemScrollOffset)
+                        // O LazyColumn ancora a rolagem na chave do primeiro item visível.
+                        // No topo, a âncora é o item vazio da lista e o cartão desliza;
+                        // rolada até este cartão, ela o seguiria e levaria a tela junto:
+                        // aí a rolagem fica fixa, e o cartão troca de lugar sem animação.
+                        if (state.anchoredAt(e.uid)) {
+                            state.requestScrollToItem(state.firstVisibleItemIndex, state.firstVisibleItemScrollOffset)
+                        }
+                        animateNextMove(e.uid)
                         shell.setEnabled(e.uid, e.uid !in shell.enabled)
                     }
                 }
@@ -464,10 +490,6 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
         }
     }
 }
-
-private fun packageCategories(packages: List<Catalog.Entry>, type: PackType): List<String> =
-    packages.filter { it.manifest.packType == type }.map { it.manifest.category }
-        .filter { it.isNotBlank() }.distinct().sorted()
 
 @Composable
 private fun rememberPackageSearchIndex(packages: List<Catalog.Entry>): PackageSearchIndex {
@@ -477,73 +499,13 @@ private fun rememberPackageSearchIndex(packages: List<Catalog.Entry>): PackageSe
 }
 
 @Composable
-private fun CategoryFilter(categories: List<String>, selected: String?, onSelect: (String?) -> Unit,
-                           modifier: Modifier = Modifier) {
-    if (categories.size < 2 && selected == null) return
-    Row(modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        for (category in listOf<String?>(null) + categories) {
-            Box(Modifier.pixelPanel(fill = if (category == selected) Bl.TitleFill else Bl.Select)
-                .pixelClickable { onSelect(category) }.padding(horizontal = 10.dp, vertical = 6.dp)) {
-                PixelText(category ?: "Todas as categorias", size = Ts.Small,
-                    color = if (category == selected) Bl.PressedText else Bl.TextDim)
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilterResultLine(count: Int, active: Boolean, onReset: () -> Unit, modifier: Modifier = Modifier,
-                             onToggle: (() -> Unit)? = null, expanded: Boolean = false) {
+private fun FilterResultLine(count: Int, active: Boolean, onReset: () -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         PixelText("$count ${if (count == 1) "pacote" else "pacotes"}", size = Ts.Small,
             color = Bl.TextFaint, modifier = Modifier.weight(1f))
-        if (onToggle != null) {
-            Box(Modifier.pixelClickable(onToggle).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                PixelText(if (expanded) "Ocultar filtros" else "Filtros", size = Ts.Small, color = Bl.PressedText)
-            }
-        }
         if (active) {
             Box(Modifier.pixelClickable(onReset).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                PixelText("Limpar filtros", size = Ts.Small, color = Bl.PressedText)
-            }
-        }
-    }
-}
-
-@Composable
-private fun PackageFilterControls(
-    status: PackageStatus, onStatus: (PackageStatus) -> Unit,
-    sort: PackageSort, onSort: (PackageSort) -> Unit, modifier: Modifier = Modifier,
-) {
-    val show: @Composable (Modifier) -> Unit = { m ->
-        Column(m) {
-            PixelText("Mostrar", size = Ts.Small, color = Bl.TextFaint, modifier = Modifier.padding(bottom = 4.dp))
-            PixelSelect(status.label,
-                { onStatus(PackageStatus.entries[(status.ordinal - 1).mod(PackageStatus.entries.size)]) },
-                { onStatus(PackageStatus.entries[(status.ordinal + 1).mod(PackageStatus.entries.size)]) },
-                label = "Mostrar mods")
-        }
-    }
-    val order: @Composable (Modifier) -> Unit = { m ->
-        Column(m) {
-            PixelText("Ordenar", size = Ts.Small, color = Bl.TextFaint, modifier = Modifier.padding(bottom = 4.dp))
-            PixelSelect(sort.label,
-                { onSort(PackageSort.entries[(sort.ordinal - 1).mod(PackageSort.entries.size)]) },
-                { onSort(PackageSort.entries[(sort.ordinal + 1).mod(PackageSort.entries.size)]) },
-                label = "Ordenar mods")
-        }
-    }
-    BoxWithConstraints(modifier.fillMaxWidth()) {
-        if (maxWidth >= 320.dp) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                show(Modifier.weight(1f))
-                order(Modifier.weight(1f))
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                show(Modifier.fillMaxWidth())
-                order(Modifier.fillMaxWidth())
+                PixelText("Limpar busca", size = Ts.Small, color = Bl.PressedText)
             }
         }
     }

@@ -55,7 +55,55 @@ export class ExampleSlimeNPC extends ModNPC {
 - `AnimationType` faz o NPC animar como um do jogo. Para uma animação sua,
   escreva `FindFrame(npc, frameHeight)` e mude `npc.frame.Y`.
 
+## Bandeiras de inimigos
+
+Uma bandeira de inimigo liga o contador de abates ao item e ao bônus do
+tile colocado. No NPC representante, configure no `SetDefaults`:
+
+```js
+this.Banner = this.Type;
+this.BannerItem = ModContent.ItemType('ExampleSlimeBanner');
+```
+
+Para outro NPC compartilhar o contador e o bônus, atribua a seu `Banner`
+o tipo do representante. O item fica definido no representante.
+
+```js
+export class ExampleSlimeBanner extends ModItem {
+    SetDefaults() {
+        this.DefaultToPlaceableTile(ModContent.TileType('ExampleEnemyBannerTile'), 1);
+        this.Item.width = 10;
+        this.Item.height = 24;
+    }
+}
+
+export class ExampleEnemyBannerTile extends ModBannerTile {}
+```
+
+O estilo `1` identifica a coluna correspondente na textura do tile 1x3.
+O tile base prepara âncoras de teto e plataforma, identifica o item que
+coloca cada estilo e ativa o bônus nativo em `SceneMetrics.NPCBannerBuff`.
+O desenho usa o balanço do renderer nativo `MultiTileVine`, respeitando a
+opção de vento do jogo. Preserve os métodos base ao sobrescrever `PreDraw`
+ou `SetDrawPositions`.
+
+O padrão libera uma bandeira a cada 50 abates pelo sistema de resgate do
+Terraria 1.4.5. No `SetStaticDefaults` do item, personalize
+`ItemID.Sets.KillsToBanner[this.Type]` ou `ItemID.Sets.BannerStrength[this.Type]`.
+Contagem, quantidade resgatável e notificação são salvas por UID/nome do
+NPC, para resistir à troca dos IDs de carga dos mods.
+
+O Example Mod inclui esses três componentes. O estandarte largo de
+decoração `ExampleWideBannerTile` continua sendo outro exemplo de móvel.
+
 ## A IA
+
+`this.CloneDefaults(NPCID.BlueSlime)` no `SetDefaults` copia os atributos
+de base de um NPC do jogo. Também aceita o tipo de outro ModNPC. A cópia
+preserva a identidade, a instância, os globais e a participação dos jogadores;
+o loader aplica a dificuldade do mundo depois. Não substitui `AIType`:
+configure esse campo para que as verificações de tipo dentro da IA vejam
+o NPC vanilla que você está reutilizando.
 
 Como no projétil ([guia 6](06-projeteis.md#a-ia-do-jogo-ou-sua)): o `aiStyle`
 dá a IA de uma família do jogo (1 é slime, 3 é zumbi, 7 é morador), e

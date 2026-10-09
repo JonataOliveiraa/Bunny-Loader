@@ -38,7 +38,7 @@ const sandbox = {
     Vector2: { new: vector, Clone: ({ X, Y }) => vector(X, Y), Add: (a, b) => vector(a.X + b.X, a.Y + b.Y) },
     Entities: { InstanceOf: (p) => p.ModProjectile, Of: (m) => m.projectile, Define() {} },
     globalProjectiles: { For() { return []; }, AllCall() { return true; }, Call() {} },
-    FIRST_PROJECTILE: 1136,
+    FIRST_PROJECTILE: 1136, CombatLoader: { WantProjectile() {} },
     bl: { hookMarks: { set(key, type) { if (!marks.has(key)) marks.set(key, new Set()); marks.get(key).add(type); } },
         hookFlags: { set(key, value) { flags.set(key, value); } } },
     Safe: {
@@ -194,5 +194,54 @@ for (const order of ['mod first', 'global first']) {
         assert.equal(p.active, false); assert.deepEqual(globalEvents, ['pre', 'OnKill']);
         assert.deepEqual(events, [['tile', 1], ['pre', 0], ['kill', 0], ['native']]);
     });
+}
+// Ponte estrita: ler ou escrever um campo do JS que ninguém definiu lança,
+// como no celular. Um projétil só com OnKill não instala o HandleMovement,
+// e o hook de Kill ainda lê o estado do movimento.
+{
+    hooks.clear(); marks.clear(); flags.clear();
+    const defined = new Set();
+    const strict = (target) => new Proxy(target, {
+        get(object, key) {
+            if (typeof key === 'string' && key.startsWith('__') && !defined.has(key)) {
+                throw new TypeError(`Member with name '${key}' is not found in Terraria.Projectile`);
+            }
+            return object[key];
+        },
+        set(object, key, value) {
+            if (typeof key === 'string' && key.startsWith('__') && !defined.has(key)) {
+                throw new TypeError(`Member with name '${key}' is not found in Terraria.Projectile`);
+            }
+            object[key] = value;
+            return true;
+        },
+    });
+    const strictBox = Object.assign({}, sandbox, {
+        Entities: { InstanceOf: (p) => p.ModProjectile, Define(_, field) { defined.add(field); } },
+        globalProjectiles: { For() { return []; }, AllCall() { return true; }, Call() {} },
+    });
+    const strictContext = vm.createContext(strictBox);
+    for (const file of ['Core/Hooks.js', 'ModProjectile.js', 'Loaders/ProjectileLoader.js']) {
+        vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), strictContext, { filename: file });
+    }
+    vm.runInContext(`
+        class OnlyKill extends ModProjectile {
+            OnKill(p, timeLeft) { this.kill(p, timeLeft); }
+        }
+        ProjectileLoader.Hook(OnlyKill, FIRST_PROJECTILE);
+        globalThis.OnlyKill = OnlyKill;
+    `, strictContext);
+    const m = new strictBox.OnlyKill(), events = [];
+    const p = strict({ type: 1136, active: true, tileCollide: true, timeLeft: 60, velocity: vector(0, 1), ModProjectile: m });
+    m.projectile = p;
+    m.kill = (_, time) => events.push(['kill', time]);
+    vanilla(KILL, (actual) => { events.push(['native']); actual.active = false; });
+    assert.equal(hooks.get(MOVE)?.callbacks.length ?? 0, 0, 'OnKill alone must not install HandleMovement');
+    call(KILL, p);
+    assert.deepEqual(errors, [], 'strict bridge: callback errors');
+    assert.equal(p.active, false);
+    assert.deepEqual(events, [['kill', 60], ['native']]);
+    checks++;
+    console.log('OnKill without OnTileCollide survives the strict bridge: ok');
 }
 console.log(checks + ' projectile lifecycle checks passed.');

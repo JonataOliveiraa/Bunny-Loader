@@ -1,5 +1,6 @@
 #include "script/bridge/ScriptEngine.h"
 #include "script/api/PlayerHooks.h"
+#include "script/api/ItemDrawHooks.h"
 #include "script/api/SystemHooks.h"
 
 #if BL_HAVE_QUICKJS
@@ -78,6 +79,7 @@ JSValue js_onContentReady(JSContext* ctx, JSValueConst, int argc, JSValueConst* 
 
 void installModClasses(void* context) {
     installPlayerBindings(context);
+    installItemDrawBindings(context);
     installSystemBindings(context);
     auto* ctx = static_cast<JSContext*>(context);
     JSValue global = JS_GetGlobalObject(ctx);

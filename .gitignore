@@ -2,6 +2,8 @@
 *.iml
 .gradle/
 local.properties
+# Token do GitHub que o APK do catálogo (catalog/) embute. Nunca no Git.
+_token.txt
 .idea/
 .DS_Store
 build/

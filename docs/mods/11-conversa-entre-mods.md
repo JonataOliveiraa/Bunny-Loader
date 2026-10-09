@@ -77,8 +77,9 @@ argumentos, se ele se mandar, como no `AddModURL` acima.
 
 ## Quando chamar: no `PostSetupContent`
 
-Os mods carregam em ordem de `uid`, que é sorteado, então não dá para saber se
-o outro mod roda antes ou depois do seu. Por isso:
+Os mods carregam na ordem da aba Pacotes do launcher, que cada jogador muda,
+então não dá para saber se o outro mod roda antes ou depois do seu (a não ser
+que ele esteja no seu [`dependencies`](#dependências)). Por isso:
 
 - o `Mod` de todo mod instalado **existe desde o começo**: o `TryGetMod` acha o
   outro mesmo que ele ainda não tenha carregado, e o objeto é o mesmo depois
@@ -90,6 +91,29 @@ o outro mod roda antes ou depois do seu. Por isso:
 
 O `PostSetupContent` pode ser o de um `ModSystem` (como acima) ou o do seu
 `Mod`.
+
+## Dependências
+
+Um mod sem o qual o seu não funciona entra no `dependencies` do manifesto,
+pelo `id` ou pelo `uid`:
+
+```json
+"dependencies": ["wikithis", "7c2e9d41-5b3a-4f8e-9a61-2d0c4e8b7f15"]
+```
+
+- Cada dependência **carrega antes** do seu mod, seja qual for a ordem da aba
+  Pacotes. O resto fica na ordem do launcher. Com isso, o `Call` de uma
+  dependência já vale na carga do seu mod (no topo dos arquivos e no
+  `Load()`).
+- Se uma dependência não está ligada, o seu mod **não carrega**, e o painel de
+  erro diz qual faltou (`requires 'wikithis', which is not enabled`). O mesmo
+  vale quando a dependência falha ao carregar e quando dois mods dependem um
+  do outro (`dependency cycle: a -> b -> a`). Os outros mods carregam
+  normalmente.
+- Pelo `id`, a dependência precisa ser única entre os mods ligados; se dois
+  usam o mesmo `id`, peça pelo `uid`.
+- Compatibilidade opcional não vai aqui: use o `TryGetMod` no
+  `PostSetupContent`, como acima.
 
 ## O `Mod`
 
@@ -134,8 +158,9 @@ e o log diz para pedir pelo `uid`, que é único.
 | `public class X : Mod` | `export default class X extends Mod` no arquivo de entrada |
 | `this` (o seu `Mod`) | `this` na classe do mod; `bl.mod` em qualquer arquivo |
 
-Não há `Unload` nem referência entre mods no manifesto para
-mudar a ordem de carga: o `dependencies` do manifesto ainda não ordena nada.
+| `modReferences = ModA, ModB@1.0` no `build.txt` | `"dependencies": ["moda", "modb"]` no manifesto (sem versão mínima) |
+
+Não há `Unload` nem `weakReferences`/`sortBefore`/`sortAfter`.
 
 ## Referência rápida
 
@@ -146,7 +171,8 @@ mudar a ordem de carga: o `dependencies` do manifesto ainda não ordena nada.
 | `ModLoader.HasMod(id)` | está instalado (e não falhou ao carregar)? |
 | `ModLoader.Mods` | todos, na ordem de carga |
 | `export default class X extends Mod { Call(...args) {} }` | oferecer um `Call` (a classe do mod, uma por pacote) |
-| `mod.Call(...)` | chamar; do `PostSetupContent` em diante |
+| `mod.Call(...)` | chamar; do `PostSetupContent` em diante (de uma dependência, já na carga) |
+| `"dependencies": ["id"]` | carregar depois desse mod; sem ele, não carregar |
 | `bl.mod` | o `Mod` de quem pergunta |
 
 O teste `tools/tests/crossmod` (com o par `tools/tests/crossmodtarget`) cobre

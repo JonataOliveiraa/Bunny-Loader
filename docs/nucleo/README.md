@@ -14,6 +14,7 @@ motor JS entre as threads e como põe conteúdo novo num jogo compilado. Para
 | [Conteúdo novo por dentro](conteudo.md) | Tabelas por tipo, limites compilados, instalação, saves. |
 | [Entrada num servidor](multijogador.md) | Sincronização de mods e texturas pela tela de Host, a conversa na entrada e a volta automática. |
 | [Pesquisa de shaders](pesquisa-shaders.md) | Evidências sobre efeitos do Terraria e materiais Unity, hipóteses de carregamento e critérios para provas práticas. |
+| [Contratos do tModLoader](compatibilidade-tmodloader-desenho-banners.md) | Análise da implementação de desenho de itens, CloneDefaults e banners; fronteiras nativas, persistência, rede e limites de combate. |
 
 ## O que é o núcleo
 
@@ -169,7 +170,9 @@ nada dela é instalado. Ligada:
   funciona dentro do mod, com o módulo nomeado `<uid>/<caminho>`;
 - a carga tem **duas passadas**: primeiro todos os manifestos são lidos e
   todo mod ganha o seu objeto `Mod` (com `id`, `name`, `version`); só depois
-  os mods carregam, em ordem de `uid`. Assim `ModLoader.TryGetMod` acha um
+  os mods carregam, na ordem do launcher com cada `dependencies` puxado
+  para antes de quem o pede (`mods/LoadOrder.cpp`; dependência ausente ou
+  ciclo desliga o mod, com o motivo no painel). Assim `ModLoader.TryGetMod` acha um
   mod que ainda não carregou ([guia 11](../mods/11-conversa-entre-mods.md));
 - carregar um mod é o `ScriptEngine::loadMod`
   ([`script/bridge/ScriptEngine.cpp`](../../app/src/main/cpp/script/bridge/ScriptEngine.cpp)):

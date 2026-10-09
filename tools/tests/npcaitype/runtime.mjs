@@ -57,6 +57,8 @@ export function createRuntime(reverse = false) {
         SceneEffectPriority: { BossLow: 0 },
         Terraria: { NPC: nativeNPC, Item: {}, Projectile: {}, Main: { npc: [], netMode: 0 } },
         GoreLoader: { Autoload() {} },
+        BannerLoader: { Install() {}, Track() {} },
+        CombatLoader: { WantNPC() {} },
         ModFiles: { ContentTexture: inst => inst.Texture, Texture: value => value },
         Lang: { Localized: () => '', Follow() {} },
         ModMusic: { TrackNpc() {} },

@@ -112,7 +112,7 @@ Outros:
 | `PreKill(player, fonte, dano, direcao, pvp)` | `false` impede a morte (dê vida ao jogador, senão ele segue com 0). |
 | `Kill(player, fonte, dano, direcao, pvp)` | Morreu. |
 
-Mais de um mod com `ModPlayer`: roda na ordem de carga dos mods (pelo uid) e,
+Mais de um mod com `ModPlayer`: roda na ordem de carga dos mods (a da aba Pacotes) e,
 dentro de um mod, na ordem do `register`.
 
 ### Dados salvos

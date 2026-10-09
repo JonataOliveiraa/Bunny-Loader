@@ -217,12 +217,12 @@ export function runHealingCases({ vm, fs, path, source, context, sandbox, entity
         const hooks = new Map(), marked = new Map(), events = [];
         const P = new Proxy({}, { get(_, key) { if (!hooks.has(key)) hooks.set(key, []); return { hook: callback => hooks.get(key).push(callback) }; } });
         const local = vm.createContext({ Terraria: { Player: P }, FIRST_ITEM: 6145, SceneEffectPriority: { BossLow: 0 },
-            Ref: sandbox.Ref, Entities: sandbox.Entities, Safe: sandbox.Safe,
+            Ref: sandbox.Ref, Entities: sandbox.Entities, Safe: sandbox.Safe, ItemDrawLoader: { Want() {} }, globalItems: { For: () => [] },
             bl: { mod: { uuid: 'healing-order' }, addressOf: value => value.__address,
                 hookMarks: { set(key, type) { if (!marked.has(key)) marked.set(key, new Set()); marked.get(key).add(type); } } },
             events });
         for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'ModPlayer.js', 'Loaders/ItemLoader.js',
-            'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/PlayerCombatHooks.js', 'Loaders/PlayerLoader.js'])
+            'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'Loaders/PlayerItemHooks.js', 'Loaders/CombatLoader.js', 'Loaders/PlayerLoader.js'])
             vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), local, { filename: file });
         vm.runInContext(`
             class Potion extends ModItem { GetHealLife(item, player, quick, value) { events.push('item'); value.value += 10; } ApplyPotionDelay() { return true; } }

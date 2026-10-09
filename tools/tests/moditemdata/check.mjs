@@ -109,10 +109,10 @@ test('base exposes four optional methods and inherited registration installs hoo
     assert.equal(typeof r.definitions.get(6196).saveData, 'function');
     assert.equal(typeof r.definitions.get(6196).loadData, 'function');
 });
-test('no SaveData/LoadData override leaves network and transfer hooks uninstalled', () => {
+test('no SaveData/LoadData override installs only clone and placement hooks', () => {
     const clean = createRuntime();
     clean.run('class Plain extends ModItem {}; ModItem.register(Plain)');
-    assert.equal([...clean.hooks.values()].filter(h => h.hooks.length && !h.id.includes('Item Clone()')).length, 0);
+    assert.equal([...clean.hooks.values()].filter(h => h.hooks.length && !h.id.includes('Item Clone()') && !h.id.includes('void PlaceItem(')).length, 0);
 });
 test('round trip uses registered callbacks, actual per-instance ModItem, and TagCompound', () => {
     const source = persistent(),
@@ -281,6 +281,94 @@ test('Copy handles nulls and same-object copies', () => {
         D.Copy(a, null);
         D.Copy(a, a);
     });
+});
+
+const placeItem = 'void PlaceItem(ref Item[] inv, ref Item item, int context, int slot, int keepStack)';
+const setDefaults = 'void SetDefaults(int Type, ItemVariant variant)';
+
+test('mobile placement preserves unsaved state, custom Clone and the item binding', () => {
+    const x = setup(), source = x.item(6196), slots = { value: [] }, held = { value: source };
+    Object.assign(x.api.ItemLoader.Of(source), { owner: 'DONOR', count: 73, nested: x.run('({flags:[1,2]})') });
+    x.setVanilla('Terraria.UI.ItemSlot', placeItem, (inventory, item) => {
+        const target = x.item(0);
+        x.call('Terraria.Item', setDefaults, target, item.value.type, null);
+        inventory.value[0] = target;
+        item.value = x.item(0);
+    });
+    x.call('Terraria.UI.ItemSlot', placeItem, slots, held, 10, 0, 0);
+    const copy = slots.value[0], m = x.api.ItemLoader.Of(copy);
+    assert.equal(m.owner, 'DONOR');
+    assert.equal(m.count, 73);
+    assert.equal(m.Item, copy);
+    m.nested.flags.push(3);
+    assert.equal(x.api.ItemLoader.Of(source).nested.flags.length, 2);
+    assert.equal(source.__blItemData, undefined);
+    x.call('Terraria.Item', setDefaults, copy, source.type, null);
+    assert.equal(x.api.ItemLoader.Of(copy).owner, '');
+});
+
+test('placement also preserves fields on ModItem without persistence hooks', () => {
+    const x = createRuntime();
+    x.run('class Plain extends ModItem { owner = ""; }; ModItem.register(Plain)');
+    const source = x.item(6196), held = { value: source };
+    x.api.ItemLoader.Of(source).owner = 'TRANSIENT';
+    let target;
+    x.setVanilla('Terraria.UI.ItemSlot', placeItem, () => {
+        target = x.item(0);
+        x.call('Terraria.Item', setDefaults, target, source.type, null);
+    });
+    x.call('Terraria.UI.ItemSlot', placeItem, { value: [] }, held, 10, 0, 0);
+    assert.equal(x.api.ItemLoader.Of(target).owner, 'TRANSIENT');
+});
+
+test('placement preserves cached save data and a failed-load flag without serializing', () => {
+    const x = setup(), source = x.item(6196), target = x.item(0);
+    source.__blItemData = '{"owner":"backup"}';
+    source.__blItemDataLoadFailed = true;
+    x.setVanilla('Terraria.UI.ItemSlot', placeItem, () => x.call('Terraria.Item', setDefaults, target, source.type, null));
+    x.call('Terraria.UI.ItemSlot', placeItem, { value: [] }, { value: source }, 10, 0, 0);
+    assert.equal(target.__blItemData, source.__blItemData);
+    assert.equal(target.__blItemDataLoadFailed, true);
+    assert.throws(() => x.api.ItemDataLoader.Save(target), /LoadData falhou/);
+});
+
+test('an item created inside a custom Clone does not inherit the placement context', () => {
+    const x = createRuntime();
+    x.run(`class Creating extends ModItem {
+        owner = '';
+        Clone(item) {
+            const copy = super.Clone(item);
+            if (this.owner) {
+                this.created = Terraria.Item.new();
+                this.created['void SetDefaults(int Type, ItemVariant variant)'](this.Type, null);
+            }
+            return copy;
+        }
+    }; ModItem.register(Creating)`);
+    const source = x.item(6196), target = x.item(0);
+    x.api.ItemLoader.Of(source).owner = 'OUTER';
+    x.setVanilla('Terraria.UI.ItemSlot', placeItem, () => x.call('Terraria.Item', setDefaults, target, source.type, null));
+    x.call('Terraria.UI.ItemSlot', placeItem, { value: [] }, { value: source }, 10, 0, 0);
+    assert.equal(x.api.ItemLoader.Of(target).owner, 'OUTER');
+    assert.equal(x.api.ItemLoader.Of(x.api.ItemLoader.Of(source).created).owner, '');
+});
+
+test('nested placement restores the outer source and clears it after native failure', () => {
+    const x = setup(), a = x.item(6196), b = x.item(6196);
+    x.api.ItemLoader.Of(a).owner = 'OUTER';
+    x.api.ItemLoader.Of(b).owner = 'INNER';
+    const copies = [];
+    x.setVanilla('Terraria.UI.ItemSlot', placeItem, (inventory, item) => {
+        if (item.value === a) x.call('Terraria.UI.ItemSlot', placeItem, inventory, { value: b }, 10, 0, 0);
+        const copy = x.item(0);
+        x.call('Terraria.Item', setDefaults, copy, item.value.type, null);
+        copies.push(copy);
+    });
+    x.call('Terraria.UI.ItemSlot', placeItem, { value: [] }, { value: a }, 10, 0, 0);
+    assert.deepEqual(copies.map(copy => x.api.ItemLoader.Of(copy).owner), ['INNER', 'OUTER']);
+    x.setVanilla('Terraria.UI.ItemSlot', placeItem, () => { throw Error('native failure'); });
+    assert.throws(() => x.call('Terraria.UI.ItemSlot', placeItem, { value: [] }, { value: a }, 10, 0, 0));
+    assert.equal(x.api.ItemLoader.Of(x.item(6196)).owner, '');
 });
 test('200 deterministic mixed-data round trips preserve serialized values', () => {
     let seed = 0x51a9;

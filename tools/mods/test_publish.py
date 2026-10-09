@@ -62,6 +62,34 @@ class PackageTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaisesRegex(publish.Fail, 'caminho'):
                 self.package([name], 'texture')
 
+    def broken(self, data):
+        self.path.write_bytes(data)
+        with self.assertRaises(publish.Fail) as caught:
+            publish.Package(self.path)
+        return str(caught.exception)
+
+    def valid_bytes(self):
+        package = self.package(['content/main.js'])
+        package.zip.close()
+        # Texto com \n em entrada sem compressão: o caso que a conversão estraga.
+        with zipfile.ZipFile(self.path, 'a', zipfile.ZIP_STORED) as archive:
+            archive.writestr('description.md', '# Mod\n\nlinha 1\nlinha 2\n' * 20)
+        return self.path.read_bytes()
+
+    def test_not_zip_explains_text_conversion(self):
+        data = self.valid_bytes()
+        self.assertNotIn(b'\r\n', data)
+        self.assertIn('tratado como texto', self.broken(data.replace(b'\n', b'\r\n')))
+
+    def test_not_zip_explains_cut_file(self):
+        data = self.valid_bytes()
+        self.assertIn('cortado', self.broken(data[:len(data) // 2]))
+
+    def test_not_zip_explains_web_page_empty_and_other_files(self):
+        self.assertIn('página da web', self.broken(b'<!DOCTYPE html><html><body>Discord</body></html>'))
+        self.assertIn('vazio', self.broken(b''))
+        self.assertIn('ef bb bf 7b', self.broken(b'\xef\xbb\xbf{"uid": "x"}'))
+
     def test_store_takes_animated_banner_and_theme_background(self):
         package = self.package(['content/main.js', 'banner.gif', 'docs/bg.gif'])
         self.addCleanup(package.zip.close)

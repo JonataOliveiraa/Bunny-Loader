@@ -114,10 +114,7 @@ class ProjectileLoader {
                 });
             }
         };
-        install('proj.Movement', ['OnTileCollide', 'TileCollideStyle'], (filter) => {
-            Entities.Define(Pr, '__projectileMovement');
-            ProjectileLoader.#HookMovement(filter);
-        });
+        install('proj.Movement', ['OnTileCollide', 'TileCollideStyle'], ProjectileLoader.#HookMovement);
         install('proj.CollideStyle', ['TileCollideStyle'], ProjectileLoader.#HookCollideStyle);
         install('proj.Kill', ['PreKill', 'OnKill', 'OnTileCollide'], ProjectileLoader.#HookKill);
         install('proj.Colliding', ['Colliding'], (filter) => {
@@ -262,7 +259,15 @@ class ProjectileLoader {
         return plan;
     }
 
+    // O estado do movimento mora num campo do Projectile. Quem lê o campo
+    // define antes: só com OnKill/PreKill o HandleMovement nem é instalado, e a
+    // ponte estrita lança ao ler um membro que não existe.
+    static #DefineMovement() {
+        Entities.Define(Terraria.Projectile, '__projectileMovement');
+    }
+
     static #HookMovement(filter) {
+        ProjectileLoader.#DefineMovement();
         const Pr = Terraria.Projectile;
         const handleMovement = Pr['void HandleMovement(Vector2 wetVelocity)'];
 
@@ -310,6 +315,7 @@ class ProjectileLoader {
     // de uma vez por movimento: devolve o que o TileCollideStyle decidiu,
     // sem chamar o mod de novo.
     static #HookCollideStyle(filter) {
+        ProjectileLoader.#DefineMovement();
         const Pr = Terraria.Projectile;
 
         Pr['void GetCollisionParams(out Vector2 resizeAnchor, out int colWidth, out int colHeight)'].hook((original, p, anchor, width, height) => {
@@ -405,6 +411,7 @@ class ProjectileLoader {
     }
 
     static #HookKill(filter) {
+        ProjectileLoader.#DefineMovement();
         Terraria.Projectile['void Kill()'].hook((original, p) => {
             if (!p.active) return original(p);
             const moving = p.__projectileMovement;

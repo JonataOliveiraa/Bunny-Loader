@@ -5,6 +5,10 @@
 class TileDrawLoader {
     static #special = null;   // os AddSpecialPoint pedidos durante a passada
 
+    static AddSpecialPoint(i, j, kind) {
+        if (TileDrawLoader.#special) TileDrawLoader.#special.push(i, j, kind);
+    }
+
     static Install() {
         Safe.Run('dados de desenho dos tiles', TileDrawLoader.#HookDrawData);
     }
@@ -43,19 +47,20 @@ class TileDrawLoader {
         // mundo, como a de um projétil. No motor novo (modos Cor e Branco) o
         // AddLight feito dentro do LightTiles não aparecia: só o do Retro e
         // do Psicodélico, que usam o motor antigo.
-        Terraria.Lighting['void LightTiles(int firstX, int lastX, int firstY, int lastY)'].hook((original, x0, x1, y0, y1) => {
-            if (!Terraria.Main.gameMenu && ++age >= TileDrawLoader.LIGHT_EVERY) {
-                age = 0;
-                // O motor novo varre 28 tiles além da tela (LightingEngine.ProcessScan):
-                // um tile de mod logo fora dela também ilumina a borda.
-                const pad = TileDrawLoader.LIGHT_PADDING;
-                lights = Safe.Run('luz dos tiles de mod', () => compute(x0 - pad, x1 + pad, y0 - pad, y1 + pad)) || [];
-            }
-            return original(x0, x1, y0, y1);
+        // Paredes de mod usam os mesmos dois pontos (WallLoader): um hook só em cada.
+        const area = Terraria.Lighting['void LightTiles(int firstX, int lastX, int firstY, int lastY)'];
+        SharedHooks.Before('light.area', area, 'luz dos tiles de mod', (x0, x1, y0, y1) => {
+            if (Terraria.Main.gameMenu || ++age < TileDrawLoader.LIGHT_EVERY) return;
+
+            age = 0;
+            lights = [];
+            // O motor novo varre 28 tiles além da tela (LightingEngine.ProcessScan):
+            // um tile de mod logo fora dela também ilumina a borda.
+            const pad = TileDrawLoader.LIGHT_PADDING;
+            lights = compute(x0 - pad, x1 + pad, y0 - pad, y1 + pad) || [];
         }, { ifBusy: 'original' });
 
-        Terraria.Main['void DoUpdateInWorld()'].hook((original, self) => {
-            original(self);
+        SharedHooks.After('light.apply', Terraria.Main['void DoUpdateInWorld()'], 'luz dos tiles de mod (aplicar)', () => {
             if (lights.length && !Terraria.Main.gameMenu) bl.tiles.addLights(lights);
         }, { ifBusy: 'original' });
     }
@@ -99,14 +104,18 @@ class TileDrawLoader {
             set value(v) { d[key] = v | 0; },
         });
 
-        bl.tiles.onDrawData((x, y, type, d) => {
+        bl.tiles.onDrawData((x, y, type, d, special) => {
             const m = TileLoader.ByType.get(type);
             if (!m) return;
 
-            if (TileLoader.Overrides(m, 'PreDraw')) {
+            if (!special && TileLoader.Overrides(m, 'PreDraw')) {
                 d.width = 0;
                 d.height = 0;
                 return;
+            }
+            if (special) {
+                const data = Terraria.ObjectData.TileObjectData['TileObjectData GetTileData(Tile getTile)'](TileLoader.Tile(x, y));
+                if (data) d.top = data.DrawYOffset;
             }
             TileDrawLoader.ApplyDrawData(m, x, y, refOf(d, 'width'), refOf(d, 'top'), refOf(d, 'height'),
                 refOf(d, 'frameX'), refOf(d, 'frameY'), refOf(d, 'addFrX'), refOf(d, 'addFrY'), refOf(d, 'effects'));
@@ -144,7 +153,7 @@ class TileDrawLoader {
             const list = TileDrawLoader.#special;
             if (!list) return original(self, x, y);
 
-            list.push(x, y);
+            list.push(x, y, -1);
             return undefined;
         }, { whileIn: postDraw }));
 
@@ -152,7 +161,7 @@ class TileDrawLoader {
             const list = TileDrawLoader.#special;
             if (!list) return original(self, x, y, kind);
 
-            list.push(x, y);
+            list.push(x, y, kind);
             return undefined;
         }, { whileIn: postDraw }));
     }
@@ -182,13 +191,19 @@ class TileDrawLoader {
             for (let k = 0; k < found.length; k += 4) {
                 TileDrawLoader.#DrawTile(found[k], found[k + 1], found[k + 2], found[k + 3], sb, open);
             }
-            for (let k = 0; k < special.length; k += 2) {
+            for (let k = 0; k < special.length; k += 3) {
                 const i = special[k], j = special[k + 1];
                 const m = TileLoader.At(i, j);
                 if (!m) continue;
 
                 open();
-                Safe.Run(m.constructor.name + '.SpecialDraw', () => m.SpecialDraw(i, j, sb));
+                if (special[k + 2] === 5) {
+                    const tile = TileLoader.Tile(i, j);
+                    const data = Terraria.ObjectData.TileObjectData['TileObjectData GetTileData(Tile getTile)'](tile);
+                    if (data) Safe.Run(m.constructor.name + '.MultiTileVine', () => Main.instance.TilesRenderer[
+                        'void DrawMultiTileVinesInWind(Vector2 screenPosition, Vector2 offSet, int topLeftX, int topLeftY, int sizeX, int sizeY)'](
+                        Main.screenPosition, Vector2.new(0, 0), i, j, data.Width, data.Height));
+                } else Safe.Run(m.constructor.name + '.SpecialDraw', () => m.SpecialDraw(i, j, sb));
             }
         } finally {
             TileDrawLoader.#special = null;

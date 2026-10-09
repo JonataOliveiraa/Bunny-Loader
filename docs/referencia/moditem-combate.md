@@ -11,17 +11,17 @@ Esta é a primeira etapa do [plano de expansão](../../tools/tests/moditemhooks/
 | `CanHitNPC(item, player, target)` | `false` veta, `true` permite a elegibilidade, `null`/`undefined` conserva o jogo. A colisão continua sendo verificada. | `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
 | `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | `false` veta, `true` permite a colisão da hitbox com o alvo, `null`/`undefined` conserva o jogo. | `Player.ProcessHitAgainstNPC` e `Rectangle.Intersects` |
 | `ModifyHitNPC(item, player, target, modifiers)` | Modifica um ataque corpo a corpo antes de `StrikeNPC`. | `NPC.StrikeNPC`, no contexto do item |
-| `CanHitPvp(item, player, target)` | `false` veta o golpe corpo a corpo antes de `Hurt`. | `Player.ItemCheck_MeleeHitPVP` e `Hurt` |
-| `ModifyHitPvp(item, player, target, modifiers)` | Objeto com `damage`, `hitDirection`, `quiet`, `crit`, `dodgeable`. | `Player.Hurt`, no contexto do ataque corpo a corpo |
+| `CanHitPvp(item, player, target)` | No atacante; `false` veta antes de aplicar status e enviar dano. | `Player.CanHit`, durante `ItemCheck_MeleeHitPVP` |
+| `ModifyHitPvp(item, player, target, modifiers)` | Na vítima; objeto com `damage`, `hitDirection`, `quiet`, `crit`, `dodgeable`. | `Player.Hurt`, inclusive recebido pela rede |
 | `OnHitPvp(item, player, target, hurtInfo)` | Só após dano positivo. Recebe os dados efetivamente aplicados. | retorno de `Player.Hurt` |
 | `MeleeEffects(item, player, hitbox)` | Efeitos após os visuais nativos de uso. | `Player.ItemCheck_EmitUseVisuals` |
 | `UseItemHitbox(item, player, hitbox, noHitbox)` | `hitbox` é `Ref<Rectangle>` e `noHitbox` é `Ref<boolean>`. Roda depois da hitbox nativa. | `Player.ItemCheck_GetMeleeHitbox` |
 
 `ModifyHitNPC` recebe `damage`, `knockBack`, `hitDirection`, `crit`, `SourceDamage` e `Knockback`. Os dois últimos são `StatModifier`. Também pode chamar `SetCrit()` e `DisableCrit()`. O loader aplica os modificadores e limita dano e repulsão a valores finitos não negativos. Golpes recebidos com `fromNet` não reaplicam esses modificadores.
 
-`hurtInfo` contém `DamageSource`, `Damage`, `HitDirection`, `PvP`, `Quiet`, `Crit`, `CooldownCounter` e `Dodgeable`. `Damage` é o retorno positivo do `Hurt` nativo. Esquivas e vetos não produzem `OnHitPvp`. Os callbacks de PvP desta etapa dependem do contexto de `ItemCheck_MeleeHitPVP`: um `Hurt` isolado, inclusive recebido por mensagem de rede, não reconstrói a arma de origem. A validação entre dois processos e a identificação de origem permanecem pendentes no plano.
+`hurtInfo` contém `DamageSource`, `Damage`, `HitDirection`, `PvP`, `Quiet`, `Crit`, `CooldownCounter` e `Dodgeable`. `Damage` é o retorno positivo do `Hurt` nativo. Esquivas e vetos não produzem `OnHitPvp`. `ModifyHitPvp` e `OnHitPvp` executam na vítima. O pacote complementar conserva NetSend/NetReceive da arma, mesmo quando o atacante troca de item antes da recepção. Sem complemento, a origem é recuperada pelo tipo e prefixo do PlayerDeathReason; dados personalizados requerem o complemento enviado pelo Bunny. A [validação em dois processos](../../tools/tests/pendingnetwork/README.md) aprovou os dois sentidos do ataque.
 
-Os objetos de modificadores são contratos JavaScript do Bunny Loader. Eles não expõem todos os campos de `NPC.HitModifiers` ou `Player.HurtModifiers` do tModLoader. O `OnHitNPC` existente mantém a assinatura `OnHitNPC(item, player, npc, damageDone, knockBack, crit)`.
+Os objetos de modificadores são contratos JavaScript do Bunny Loader. Eles não expõem todos os campos de `NPC.HitModifiers` ou `Player.HurtModifiers` do tModLoader. A assinatura atual é `OnHitNPC(item, player, npc, hit, damageDone)`, com `HitInfo` e o dano efetivo; `ModifyHitNPC` usa `HitModifiers` e `ModifyHitPvp` usa `HurtModifiers`. Veja os campos em [Golpes](../mods/16-golpes.md).
 
 ## Ordem e vetos
 

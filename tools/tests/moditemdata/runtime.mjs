@@ -40,16 +40,22 @@ export function createRuntime(mode = 0) {
         sent = [],
         fields = [],
         calls = [];
+    const marks = new Map();
     let address = 1,
         nextType = 6196,
         clock = 1000;
     const invoke = (entry, args, at = 0) => {
         if (at === entry.hooks.length) return entry.vanilla(...args);
         const { callback, filter } = entry.hooks[at];
-        const type = filter.arg >= 0 ? args[filter.arg] : args[0]?.type;
+        const first = entry.isStatic ? 0 : 1;
+        const type = filter.arg >= 0 ? args[first + filter.arg] : args[filter.on >= 0 ? first + filter.on : 0]?.type;
         const original = (...next) => invoke(entry, next, at + 1);
         if (filter.minType !== undefined && type < filter.minType) return original(...args);
-        return callback(original, ...args);
+        if (filter.marks && !marks.get(filter.marks)?.has(filter.firstByte >= 0 ? args[first + filter.firstByte]?.[0] : type)) return original(...args);
+        if (filter.whileIn && !filter.whileIn.entry.active) return original(...args);
+        entry.active = (entry.active || 0) + 1;
+        try { return callback(original, ...args); }
+        finally { entry.active--; }
     };
     function native(name) {
         if (namespaces.has(name)) return namespaces.get(name);
@@ -63,7 +69,7 @@ export function createRuntime(mode = 0) {
                     if (!key.includes('(')) return native(name + '.' + key);
                     const id = name + ':' + canonical(key);
                     assert.ok(signatures.has(id), 'native signature exists with exact parameter names: ' + id);
-                    if (!installed.has(id)) installed.set(id, { id, hooks: [], vanilla() {} });
+                    if (!installed.has(id)) installed.set(id, { id, isStatic: signatures.get(id), hooks: [], vanilla() {} });
                     const entry = installed.get(id);
                     const fn = (...args) => invoke(entry, args);
                     fn.hook = (callback, filter = {}) => entry.hooks.push({ callback, filter });
@@ -126,6 +132,8 @@ export function createRuntime(mode = 0) {
         },
         GoreLoader: { Autoload() {} },
         EquipLoader: { Install() {}, Apply() {}, Autoload() {} },
+        // Tile entity integration is exercised by tools/tests/teitems.
+        TileEntityItemHooks: { Install() {} },
         DamageClassLoader: {
             Defaulting(item, fn) {
                 fn();
@@ -148,6 +156,13 @@ export function createRuntime(mode = 0) {
             }
         },
         bl: {
+            hookMarks: {
+                set(key, type, enabled = true) {
+                    if (!marks.has(key)) marks.set(key, new Set());
+                    if (enabled) marks.get(key).add(type);
+                    else marks.get(key).delete(type);
+                }
+            },
             classOf: (namespace, name) => native(namespace ? namespace + '.' + name : name),
             defineField(cls, key) {
                 fields.push(key);
@@ -207,6 +222,7 @@ export function createRuntime(mode = 0) {
     setVanilla('Terraria.Item', 'Item Clone()', copyNative);
     setVanilla('Terraria.Item', 'Item DeepClone()', copyNative);
     setVanilla('Terraria.Item', 'Item clientClone(Item cloneDestination)', copyNative);
+    setVanilla('Terraria.Item', 'void SetDefaults(int Type, ItemVariant variant)', (target, type) => reset(target, type));
     setVanilla('Terraria.Item', 'bool IsNetStateDifferent(Item compareItem)', () => false);
     setVanilla('Terraria.NetMessage', SEND, (...args) => calls.push({ kind: 'native', packet: args[0], index: args[4], slot: args[5] }));
     setVanilla('Terraria.InventoryStorage', 'void SyncChestItemUpdateToStorage(int chestIndex, int slot)', (index, slot) => calls.push({ kind: 'storage', index, slot }));

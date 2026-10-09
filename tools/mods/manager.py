@@ -9,8 +9,10 @@ da linha de comando: a página é só outro jeito de chamar os dois.
 
 O servidor só atende este computador (127.0.0.1) e só aceita pedido que traga
 a chave sorteada nesta execução, que vai embutida na página. Um site aberto em
-outra aba não consegue publicar nada em seu nome. O token do GitHub fica na
-memória deste processo e some quando ele fecha; nunca é gravado em disco.
+outra aba não consegue publicar nada em seu nome. O token do GitHub vem de
+_token.txt na raiz (ou bl.catalogToken=... no local.properties), os dois fora
+do Git e o mesmo que o APK do catálogo embute, ou de BL_GITHUB_TOKEN; nunca
+passa pela página.
 """
 from __future__ import annotations
 
@@ -20,6 +22,7 @@ import datetime
 import io
 import json
 import mimetypes
+import os
 import re
 import secrets
 import sys
@@ -34,16 +37,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pack  # noqa: E402
 import publish  # noqa: E402
 
-PORT = 8770
+PORT = int(os.environ.get("BL_MANAGER_PORT") or 8770)
 # O ícone do cartão: o animado, se o pacote tiver (o navegador anima sozinho).
 ICONS = ("icon.gif", "icon.png")
 HERE = Path(__file__).resolve().parent
 SAMPLES = publish.ROOT / "samples"
 UPLOADS = publish.ROOT / "build" / "mods-uploads"
+# As imagens e a fonte do launcher, para a página ter a cara do app.
+ART = publish.ROOT / "app" / "src" / "main" / "res" / "drawable-nodpi"
+FONTS = publish.ROOT / "app" / "src" / "main" / "res" / "font"
 # Fica no APK, não no catálogo (BUNDLED_SAMPLES no app/build.gradle.kts).
 BUNDLED = {"ExampleMod"}
 KEY = secrets.token_urlsafe(24)
 LOCK = threading.Lock()
+TOKEN_INFO: dict | None = None
 VERSION_FIELD = re.compile(r'("version"\s*:\s*")([^"]*)(")')
 UPDATED_FIELD = re.compile(r'("updated"\s*:\s*")([^"]*)(")')
 
@@ -155,11 +162,50 @@ def samples_state(index: dict[str, dict]) -> list[dict]:
     return out
 
 
+def local_token() -> str:
+    t = publish.ROOT / "_token.txt"
+    if t.is_file() and t.read_text(encoding="utf-8").strip():
+        return t.read_text(encoding="utf-8").strip()
+    f = publish.ROOT / "local.properties"
+    if not f.is_file():
+        return ""
+    for line in f.read_text(encoding="utf-8").splitlines():
+        key, sep, value = line.partition("=")
+        if sep and key.strip() == "bl.catalogToken":
+            return value.strip()
+    return ""
+
+
+TOKEN_SOURCE = "env"
+
+
+def token_info() -> dict:
+    """Quem é o dono do token, perguntado ao GitHub uma vez por token."""
+    global TOKEN_INFO
+    if not publish.has_token():
+        TOKEN_INFO = None
+        return {"set": False, "hint": "ponha o token em _token.txt e reabra"}
+    if TOKEN_INFO is None:
+        source = TOKEN_SOURCE
+        try:
+            user = publish.gh("GET", "https://api.github.com/user") or {}
+            TOKEN_INFO = {"set": True, "source": source, "login": user.get("login"),
+                          "avatar": user.get("avatar_url")}
+        except publish.Fail as e:
+            if " 401 " not in str(e):
+                return {"set": True, "source": source, "error": str(e)}
+            return {"set": True, "rejected": True,
+                    "error": "o GitHub recusou o token (vencido ou revogado?)"}
+        except OSError as e:
+            return {"set": True, "source": source, "offline": True, "error": str(e)}
+    return TOKEN_INFO
+
+
 def state() -> dict:
     entries = index_entries()
     by_uid = {e["uid"]: e for e in entries}
     return {
-        "tokenSet": publish.has_token(),
+        "token": token_info(),
         "worktree": (publish.WORKTREE / ".git").exists(),
         "catalog": entries,
         "samples": samples_state(by_uid),
@@ -199,7 +245,7 @@ def check_upload(path: Path) -> dict:
 
 def require_token() -> None:
     if not publish.has_token():
-        raise publish.Fail("informe o token do GitHub no topo da página antes de publicar")
+        raise publish.Fail("sem token: ponha o token em _token.txt e reabra")
 
 
 def publish_sample(folder: str) -> None:
@@ -265,6 +311,12 @@ def upload_path(name: str) -> Path:
 
 # ------------------------------------------------------------------ HTTP
 
+class Server(ThreadingHTTPServer):
+    # No Windows, SO_REUSEADDR deixa um segundo processo abrir a mesma porta, e
+    # os pedidos continuam indo para o primeiro: melhor falhar e avisar.
+    allow_reuse_address = os.name != "nt"
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "BunnyMods"
 
@@ -306,6 +358,10 @@ class Handler(BaseHTTPRequestHandler):
             return self.file(publish.WORKTREE / "mods" / path[len("/store/"):], publish.WORKTREE / "mods")
         if path.startswith("/sample/"):
             return self.file(SAMPLES / path[len("/sample/"):], SAMPLES)
+        if path == "/art/bunny.ttf":
+            return self.file(FONTS / "bunny.ttf", FONTS)
+        if path.startswith("/art/") and path.endswith(".png"):
+            return self.file(ART / path[len("/art/"):], ART)
         self.send(404, b"", "text/plain")
 
     def do_POST(self):
@@ -330,9 +386,6 @@ class Handler(BaseHTTPRequestHandler):
         data = json.loads(body or b"{}")
         if path == "/api/state":
             return self.json(run(state))
-        if path == "/api/token":
-            publish.set_token(data.get("token"))
-            return self.json({"ok": True, "result": publish.has_token()})
         if path == "/api/sync":
             return self.json(run(sync))
         if path == "/api/publish-sample":
@@ -347,12 +400,16 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> int:
+    global TOKEN_SOURCE
     open_browser = "--no-browser" not in sys.argv
+    if local_token():
+        publish.set_token(local_token())
+        TOKEN_SOURCE = "file"
     print("Sincronizando o catálogo com o GitHub...")
     r = run(sync)
     print(r["log"].strip() or r.get("error", ""))
     try:
-        server = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+        server = Server(("127.0.0.1", PORT), Handler)
     except OSError:
         print(f"A porta {PORT} já está em uso: o gerenciador já está aberto? "
               f"Tente http://127.0.0.1:{PORT}")

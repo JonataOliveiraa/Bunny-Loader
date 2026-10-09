@@ -1,0 +1,12 @@
+{
+  "id": "api-expansion-tests",
+  "uid": "a3382261-70c8-4489-a374-439e86e57f69",
+  "name": "Draw, defaults and banner regression",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "description": "Native tModLoader contract checks on an isolated world copy.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

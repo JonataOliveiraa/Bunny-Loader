@@ -63,22 +63,23 @@ class WallLoader {
             return out;
         };
 
-        Terraria.Lighting['void LightTiles(int firstX, int lastX, int firstY, int lastY)'].hook((original, x0, x1, y0, y1) => {
-            if (!Terraria.Main.gameMenu) {
-                const pad = WallLoader.LIGHT_PADDING;
-                const top = y0 - pad, bottom = y1 + pad;
-                const n = slices.length;
-                const step = Math.ceil((bottom - top + 1) / n);
-                const k = next;
-                next = (next + 1) % n;
-                const from = top + k * step, to = Math.min(bottom, from + step - 1);
-                slices[k] = compute(x0 - pad, x1 + pad, from, to);
-            }
-            return original(x0, x1, y0, y1);
+        // Os mesmos dois pontos da luz dos tiles de mod (TileDrawLoader): um hook só em cada.
+        const area = Terraria.Lighting['void LightTiles(int firstX, int lastX, int firstY, int lastY)'];
+        SharedHooks.Before('light.area', area, 'luz das paredes de mod', (x0, x1, y0, y1) => {
+            if (Terraria.Main.gameMenu) return;
+
+            const pad = WallLoader.LIGHT_PADDING;
+            const top = y0 - pad, bottom = y1 + pad;
+            const n = slices.length;
+            const step = Math.ceil((bottom - top + 1) / n);
+            const k = next;
+            next = (next + 1) % n;
+            const from = top + k * step, to = Math.min(bottom, from + step - 1);
+            slices[k] = [];
+            slices[k] = compute(x0 - pad, x1 + pad, from, to);
         }, { ifBusy: 'original' });
 
-        Terraria.Main['void DoUpdateInWorld()'].hook((original, self) => {
-            original(self);
+        SharedHooks.After('light.apply', Terraria.Main['void DoUpdateInWorld()'], 'luz das paredes de mod (aplicar)', () => {
             if (Terraria.Main.gameMenu) return;
             for (const lights of slices) {
                 if (lights.length) bl.tiles.addLights(lights);

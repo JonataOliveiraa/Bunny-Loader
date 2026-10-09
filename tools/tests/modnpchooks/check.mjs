@@ -97,11 +97,12 @@ Main.npc = []; Main.projectile = []; Main.player = []; Main.myPlayer = 0; Main.n
 let talking = null;
 const sandbox = {
     Terraria, Microsoft, assert, state: {}, events: [], SceneEffectPriority: { BossLow: 0 }, FIRST_NPC: 697, FIRST_ITEM: 6145,
-    globalItems: { Each() {} },
+    PvpItemNetwork: { Install() {}, Source: () => null }, globalItems: { Each() {}, For: () => [] },
     Ref: class { constructor(value) { this.value = value; } },
     Vector2: { new: vector }, Color: { new: color },
     Entities: { InstanceOf: npc => npc.ModNPC, Define() {} },
     ModNet: { InstallEntity() {} }, Ready: { Add: f => ready.push(f) }, SpawnLoader: { InstallPool() {} },
+    BannerLoader: { Install() {}, Track() {} }, ItemDrawLoader: { Want() {} }, ProjectileLoader: { Of: p => p.ModProjectile }, ModProjectile: class {}, globalProjectiles: { For: () => [] }, globalNPCs: { For: () => [], Call() {}, Each() {}, AllCall: () => true, First() {}, Templates: () => [] },
     TownNPCLoader: { Hook() {}, TalkingTo: () => talking },
     Safe: { Run(label, fn) { try { return fn(); } catch (e) { errors.push([label, e]); } }, Report(label, e) { errors.push([label, e]); } },
     bl: { addressOf: p => p?.__address, mod: { uuid: 'npc-hooks' }, log() {},
@@ -109,7 +110,7 @@ const sandbox = {
         hookMarks: { set(k, t) { if (!marks.has(k)) marks.set(k, new Set()); marks.get(k).add(t); } } },
 };
 const context = vm.createContext(sandbox);
-for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'ModPlayer.js', 'ModNPC.js', 'Loaders/PlayerCombatHooks.js',
+for (const file of ['Core/Hooks.js', 'StatModifier.js', 'ModItem.js', 'Loaders/ItemLoader.js', 'Loaders/ItemCombatHooks.js', 'Loaders/ItemUseHooks.js', 'Loaders/ItemHealingHooks.js', 'ModPlayer.js', 'ModNPC.js', 'HitModifiers.js', 'HitInfo.js', 'HurtModifiers.js', 'HurtInfo.js', 'Loaders/CombatLoader.js',
     'Loaders/PlayerLoader.js', 'Loaders/NPCLoader.js', 'NPCShop.js']) {
     vm.runInContext(fs.readFileSync(path.join(source, file), 'utf8'), context, { filename: file });
 }
@@ -139,7 +140,7 @@ globalThis.api = { Local, Plain, Late, NPCLoader, NPCDrawHooks, PlayerLoader, NP
 assert.deepEqual(missing, [], 'Native signatures and parameter names must match the mobile dump');
 const { Local, Plain, Late, NPCLoader, NPCDrawHooks, NPCShop } = sandbox.api;
 const npc = (type = 697, cls = Local, index = 0) => {
-    const n = { __address: address++, type, active: true, life: 100, whoAmI: index, Center: vector(32, 48),
+    const n = { __address: address++, type, defense: 0, active: true, life: 100, whoAmI: index, Center: vector(32, 48),
         Hitbox: { X: 0, Y: 0, Width: 10, Height: 10 }, ModNPC: cls ? new cls() : null };
     Main.npc[index] = n;
     return n;
@@ -209,18 +210,18 @@ for (const name of ['get_CanTalk', 'get_CanBeTalkedTo']) {
         state.CanChat = value; assert.equal(callNPC(name), value === true);
     });
 }
-vanilla('Terraria.NPC', 'StrikeNPC_Inner', (_, damage, kb, direction, crit) => { events.push('strike'); state.args = [damage, kb, direction, crit]; return damage; });
-vanilla('Terraria.NPC', 'StrikeNPC', (...args) => call('Terraria.NPC', 'StrikeNPC_Inner', ...args));
+vanilla('Terraria.NPC', 'StrikeNPC', (_, damage, kb, direction, crit) => { events.push('strike'); state.args = [damage, kb, direction, crit]; return damage; });
+
 test('incoming modifiers change damage, knockback, direction and crit', () => {
     state.ModifyIncomingHit = (_, mod) => { mod.SourceDamage.Multiplicative = 2; mod.Knockback.Flat = 3; mod.hitDirection = -1; mod.SetCrit(); };
-    assert.equal(callNPC('StrikeNPC_Inner', 10, 2, 1, false, false, 0), 20); assert.deepEqual(state.args, [20, 5, -1, true]);
+    assert.equal(callNPC('StrikeNPC', 10, 2, 1, false, false, 0), 20); assert.deepEqual(state.args, [20, 5, -1, true]);
 });
 test('network strike does not apply incoming modifiers again', () => {
-    callNPC('StrikeNPC_Inner', 10, 2, 1, false, true, 0); assert.deepEqual(events, ['strike']);
+    callNPC('StrikeNPC', 10, 2, 1, false, true, 0); assert.deepEqual(events, ['strike']);
 });
 test('incoming clamps negative damage and knockback and supports DisableCrit', () => {
     state.ModifyIncomingHit = (_, mod) => { mod.damage = -7; mod.knockBack = -3; mod.DisableCrit(); };
-    assert.equal(callNPC('StrikeNPC_Inner', 10, 2, 1, true, false, 0), 0); assert.deepEqual(state.args, [0, 0, 1, false]);
+    assert.equal(callNPC('StrikeNPC', 10, 2, 1, true, false, 0), 1); assert.deepEqual(state.args, [1, 0, 1, false]);
 });
 vanilla('Terraria.Player', 'CanNPCBeHitByPlayerOrPlayerProjectile', () => false);
 vanilla('Terraria.Player', 'ProcessHitAgainstNPC', (p, weapon, rect, damage, kb, index) => {
@@ -254,21 +255,23 @@ test('projectile without player owner still notifies ModNPC without ModPlayer ca
     assert.ok(events.includes('OnHitByProjectile')); assert.ok(!events.includes('player.OnHitNPC'));
 });
 test('failed strike suppresses hit notifications', () => {
-    state.ModifyIncomingHit = (_, mod) => { mod.damage = 0; }; call('Terraria.Projectile', 'Damage_PVE', projectile, n.Hitbox, 1);
+    const entry = method('Terraria.NPC', 'StrikeNPC'), previous = entry.vanilla; entry.vanilla = () => 0;
+    try { call('Terraria.Projectile', 'Damage_PVE', projectile, n.Hitbox, 1); } finally { entry.vanilla = previous; }
     assert.ok(!events.includes('OnHitByProjectile'));
 });
 test('nested projectile attacks restore outer source and hit information', () => {
     const nested = { __address: address++, owner: 255 }, sources = [];
     state.OnHitByProjectile = (_, p) => { sources.push(p); if (p === projectile) call('Terraria.Projectile', 'Damage_PVE', nested, n.Hitbox, 1); };
-    call('Terraria.Projectile', 'Damage_PVE', projectile, n.Hitbox, 1); assert.deepEqual(sources, [projectile, nested]); assert.equal(flags.get('player.Attack'), false);
+    call('Terraria.Projectile', 'Damage_PVE', projectile, n.Hitbox, 1); assert.deepEqual(sources, [projectile, nested]); assert.equal(flags.get('combat.Strike'), true);
 });
 test('projectile attack context restores after native exception', () => {
     vanilla('Terraria.Projectile', 'Damage_PVE', () => { throw Error('native'); });
     assert.throws(() => call('Terraria.Projectile', 'Damage_PVE', projectile, n.Hitbox, 1), /native/);
-    assert.equal(flags.get('player.Attack'), false);
+    assert.equal(flags.get('combat.Strike'), true);
     callNPC('StrikeNPC', 12, 2, 1, false, false, 0); assert.ok(!events.includes('OnHitByProjectile'));
     vanilla('Terraria.Projectile', 'Damage_PVE', p => call('Terraria.NPC', 'StrikeNPC', n, 12, 2, 1, false, false, p.owner));
 });
+Terraria.Main['double CalculateDamagePlayersTake(int Damage, int Defense)']; vanilla('Terraria.Main', 'CalculateDamagePlayersTake', damage => damage);
 vanilla('Terraria.Player', 'Hurt', (_, src, damage, direction, pvp, quiet, crit, slot) => { events.push('hurt'); state.hurt = [damage, slot]; return damage; });
 const sourceNPC = { _sourceNPCIndex: 0, _sourceProjectileLocalIndex: -1 };
 const hurt = () => call('Terraria.Player', 'Hurt', player, sourceNPC, 10, 1, false, true, false, -1, false);
@@ -331,10 +334,10 @@ test('DrawBehind only scans tracked active overriders and removes stale entries'
 test('shop changes run after native fill and use the talking NPC', () => {
     const shop = new NPCShop(697, 'Probe').Add(8).Register();
     const items = Array.from({ length: 4 }, () => ({ type: 0, ['void SetDefaults(int Type, ItemVariant variant)'](t) { this.type = t; } }));
-    talking = { npc: n, m: n.ModNPC };
+    talking = { npc: n, m: n.ModNPC }; player.talkNPC = n.whoAmI;
     state.ModifyActiveShop = (target, name, contents) => { assert.equal(target, n); assert.equal(name, 'Probe'); assert.equal(contents[0].type, 8); contents[0].shopCustomPrice = 123; };
     call('Terraria.InventoryStorage', 'SetupShop', { item: items }, shop.Index); assert.equal(items[0].shopCustomPrice, 123);
-    talking = { npc: other, m: other.ModNPC }; other.type = 698; events.length = 0;
+    talking = { npc: other, m: other.ModNPC }; player.talkNPC = other.whoAmI; other.type = 698; events.length = 0;
     call('Terraria.InventoryStorage', 'SetupShop', { item: items }, shop.Index); assert.deepEqual(events, []); other.type = 697; talking = null;
 });
 test('callback failures are reported and native default continues', () => {

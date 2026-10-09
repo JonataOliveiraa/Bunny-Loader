@@ -338,8 +338,7 @@ class DamageClassLoader {
         const V = D.Vanilla;
         const meleeLike = (cls) => cls === V.Melee || cls === V.MeleeNoSpeed || cls === V.SummonMeleeSpeed;
 
-        P['void ResetEffects()'].hook((original, self) => {
-            original(self);
+        SharedHooks.After('player.ResetEffects', P['void ResetEffects()'], 'classes de dano (ResetEffects)', (self) => {
             const d = self.__damageClassData;
             if (d) D.#Reset(self, d);
         });

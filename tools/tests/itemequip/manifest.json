@@ -1,0 +1,12 @@
+{
+  "id": "itemequip-tests",
+  "uid": "c57c82d1-6541-4ec4-96cc-5b6797ddc413",
+  "name": "Item equipment regression",
+  "version": "1.0.0",
+  "author": "Bunny Loader",
+  "description": "Native item placement and accessory state regression tests.",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

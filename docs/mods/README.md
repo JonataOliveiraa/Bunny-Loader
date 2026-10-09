@@ -191,6 +191,7 @@ export class Espada extends ModItem {
 | `license`, `links`, `pages`, `theme` | A licença, botões de link, abas a mais e o tema da ficha: cores do texto, dos painéis e dos botões, e um fundo próprio (cor ou imagem, GIF anima). Ver o [guia 13](13-pagina-do-pacote.md#as-cores-theme). |
 | `blVersion` | O formato do pacote. Hoje, `2`: a estrutura acima, com a classe `Mod` no arquivo de entrada. O `1` (sem a classe `Mod`) não carrega mais: o app o mostra como "Formato antigo" e recusa na importação, assim como um pacote que pede uma versão maior que a do app. |
 | `entry` | O arquivo de entrada, relativo a `content/`. Padrão: `main.js`. |
+| `dependencies` | Opcional. Os mods (`id` ou `uid`) que carregam antes deste; sem um deles ligado, este não carrega. Ver o [guia 11](11-conversa-entre-mods.md#dependências). |
 
 ## Instalando
 

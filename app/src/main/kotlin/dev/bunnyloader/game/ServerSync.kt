@@ -6,11 +6,8 @@ import android.os.Process
 import android.util.Log
 import dev.bunnyloader.GameActivity
 import dev.bunnyloader.mods.Catalog
-import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.ModRepository
-import dev.bunnyloader.mods.PackType
 import dev.bunnyloader.mods.RemoteCatalog
-import dev.bunnyloader.mods.RemoteMod
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -85,18 +82,11 @@ object ServerSync {
         val message: String = "",
     )
 
-    private class Plan(
-        val download: List<Pair<HostMod, RemoteMod>>,
-        val enable: List<HostMod>,
-        val disable: List<ModManifest>,
-        val missing: List<String>,
-    )
-
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     private val lock = Any()
     @Volatile private var state = State()
     private var offer: Offer? = null
-    private var plan: Plan? = null
+    private var plan: ServerModSync.Plan? = null
 
     /** Do jogo (JNI, thread do jogo): confere, numa thread à parte, o que muda. */
     @JvmStatic
@@ -158,7 +148,7 @@ object ServerSync {
                     update { it.copy(current = label(mod), step = i + 1, progress = 0f) }
                     val file = store.download(remote) { p -> update { it.copy(progress = p) } }
                     try {
-                        repo.import(file).getOrThrow()
+                        repo.import(file) { ServerModSync.requireMatch(mod, it) }.getOrThrow()
                     } finally {
                         file.delete()
                     }
@@ -195,49 +185,24 @@ object ServerSync {
         synchronized(lock) { state = change(state) }
     }
 
-    private fun plan(context: Context, offer: Offer): Plan {
+    private fun plan(context: Context, offer: Offer): ServerModSync.Plan {
         val repo = ModRepository(context)
         val store = RemoteCatalog(context, Catalog(context))
         // A loja na hora: sem rede, a última lista baixada.
         val shop = runCatching { runBlocking { store.refresh() } }.getOrElse { store.cached() }
-            .mapNotNull { it.remote }.associateBy { it.uid }
-        val installed = repo.list().associateBy { it.uid }
-        val hostUids = offer.mods.map { it.uid }.toSet()
-
-        val download = mutableListOf<Pair<HostMod, RemoteMod>>()
-        val enable = mutableListOf<HostMod>()
-        val missing = mutableListOf<String>()
-        for (mod in offer.mods) {
-            val have = installed[mod.uid]
-            val remote = shop[mod.uid]
-            when {
-                have != null && have.version == mod.version && !have.isOutdated -> {
-                    if (!repo.isEnabled(mod.uid)) enable += mod
-                }
-                remote != null && remote.version == mod.version -> download += mod to remote
-                else -> missing += label(mod) + when {
-                    remote != null -> " (a loja tem a ${remote.version})"
-                    have != null -> " (você tem a ${have.version})"
-                    else -> ""
-                }
-            }
-        }
-        val disable = repo.list().filter {
-            it.packType == PackType.MOD && it.uid !in hostUids && repo.isEnabled(it.uid) && !it.isOutdated
-        }
-        return Plan(download, enable, disable, missing)
+            .mapNotNull { it.remote }
+        val installed = repo.list()
+        return ServerModSync.plan(offer.mods, installed, shop,
+            installed.filter { repo.isEnabled(it.uid) }.map { it.uid }.toSet())
     }
 
-    private fun label(mod: HostMod) =
-        (mod.name.ifEmpty { mod.id.ifEmpty { mod.uid } }) + (if (mod.version.isNotEmpty()) " v${mod.version}" else "")
+    private fun label(mod: HostMod) = ServerModSync.label(mod)
 
     /** Os mods do servidor na ordem dele, como o launcher os passa ao jogo. */
     private fun writeSession(context: Context, repo: ModRepository, offer: Offer) {
-        val installed = repo.list().associateBy { it.uid }
-        val specs = offer.mods.map { mod ->
-            val manifest = installed[mod.uid] ?: error("${label(mod)} não ficou instalado")
-            "${mod.uid}=${manifest.entry}"
-        } + offer.textures.filter { installed[it]?.packType == PackType.TEXTURE }.map { "$it=@texture" }
+        val installed = repo.list()
+        val specs = ServerModSync.sessionSpecs(offer.mods, installed, offer.textures)
+        offer.mods.forEach { require(repo.hasEntry(it.uid)) { "${label(it)} ficou sem o arquivo de entrada" } }
         val session = Session(specs, offer.address, offer.port, offer.password, offer.player)
         File(context.filesDir, SESSION).writeText(json.encodeToString(session))
         Log.i(TAG, "sincronizar mods: sessão gravada (${specs.size} pacotes, ${offer.address}:${offer.port})")

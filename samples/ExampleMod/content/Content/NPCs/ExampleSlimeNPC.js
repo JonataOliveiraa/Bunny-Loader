@@ -16,6 +16,11 @@ export class ExampleSlimeNPC extends ModNPC {
     }
 
     SetDefaults() {
+        // Copia a base clássica; o loader aplica a dificuldade do mundo depois.
+        this.CloneDefaults(NPCID.BlueSlime);
+        this.AIType = NPCID.BlueSlime;
+        this.Banner = this.Type;
+        this.BannerItem = ModContent.ItemType('ExampleSlimeBanner');
         this.NPC.aiStyle = 1;
         this.NPC.damage = 7;
         this.NPC.defense = 2;

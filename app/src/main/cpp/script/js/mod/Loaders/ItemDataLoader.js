@@ -1,6 +1,8 @@
 // O arquivo nativo .plr.bl/.wld.bl guarda o JSON junto da identidade estavel
 // do item: remapeamento de tipos e realocacao de slots preservam os dados.
 class ItemDataLoader {
+    static #placing = null;
+
     static Encode(tag) {
         const visiting = new Set();
         const visit = (value, depth = 0) => {
@@ -77,7 +79,36 @@ class ItemDataLoader {
         if (m) Entities.Bind(m.Clone(target), target, 'ModItem');
     }
 
+    static InstallPlacement() {
+        Terraria.UI.ItemSlot['void PlaceItem(ref Item[] inv, ref Item item, int context, int slot, int keepStack)'].hook(
+            (original, inventory, item, context, slot, keepStack) => {
+                const previous = ItemDataLoader.#placing;
+                const source = item.value;
+                ItemDataLoader.#placing = source && source.type >= FIRST_ITEM ? source : null;
+                try {
+                    return original(inventory, item, context, slot, keepStack);
+                } finally {
+                    ItemDataLoader.#placing = previous;
+                }
+            }
+        );
+    }
+
+    static CopyPlacement(target) {
+        const source = ItemDataLoader.#placing;
+        if (!source || source.type !== target.type || bl.addressOf(source) === bl.addressOf(target)) return;
+        // PlaceItem recria por SetDefaults; copiar depois do callback do mod
+        // impede que seus defaults apaguem o estado transferido pelo Clone.
+        ItemDataLoader.#placing = null;
+        try {
+            Safe.Run('ModItem.PlaceItem', () => ItemDataLoader.Copy(source, target));
+        } finally {
+            ItemDataLoader.#placing = source;
+        }
+    }
+
     static Install(cls) {
+        Hooks.Once('item.Placement', ItemDataLoader.InstallPlacement);
         if (['SaveData', 'LoadData', 'NetSend', 'NetReceive'].some(name => Hooks.Overrides(cls, ModItem, name))) {
             Hooks.Once('item.DataTransfers', ItemDataLoader.InstallTransfers);
             ItemNetworkHooks.Install();

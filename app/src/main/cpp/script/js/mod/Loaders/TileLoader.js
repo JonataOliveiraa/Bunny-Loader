@@ -24,6 +24,9 @@ class TileLoader {
         ['tile.slope', ['Slope']],
         ['tile.chest', ['IsLockedChest', 'UnlockChest', 'LockChest']],
         ['tile.smart', ['HasSmartInteract', 'RightClick']],
+        // O RightClick também: sem ícone do cursor, o toque do celular não chega a ele.
+        ['tile.mouseover', ['MouseOver', 'RightClick']],
+        ['tile.mouseoverfar', ['MouseOverFar']],
     ];
 
     static At(i, j) {
@@ -152,7 +155,9 @@ class TileLoader {
     }
 
     static StyleAt(i, j) {
-        return Math.max(0, Terraria.ObjectData.TileObjectData.GetTileStyle(TileLoader.Tile(i, j)));
+        const tile = TileLoader.Tile(i, j);
+        const data = TileLoader.ObjectData(tile.type);
+        return data ? Math.max(0, TileLoader.#StyleOf(data, tile.frameX, tile.frameY)) : 0;
     }
 
     // O CheckModTile do tModLoader: chamado quando o jogo enquadra uma célula de

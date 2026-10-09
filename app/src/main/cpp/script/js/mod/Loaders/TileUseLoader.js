@@ -118,14 +118,14 @@ class TileUseLoader {
                 self.cursorItemIconEnabled = true;
                 self.cursorItemIconID = TileLoader.GetItemDropFromTypeAndStyle(m.Type);
             }
-        }, { minType: FIRST_TILE, tileAt: [0, 1] });
+        }, { minType: FIRST_TILE, tileAt: [0, 1], marks: 'tile.mouseover' });
 
         Player['void TileInteractionsCheckLongDistance(int myX, int myY)'].hook((original, self, x, y) => {
             original(self, x, y);
 
             const m = at(x, y);
             if (m) Safe.Run(m.constructor.name + '.MouseOverFar', () => m.MouseOverFar(x, y));
-        }, { minType: FIRST_TILE, tileAt: [0, 1] });
+        }, { minType: FIRST_TILE, tileAt: [0, 1], marks: 'tile.mouseoverfar' });
     }
 
     static #Shadow(type, active, run) {

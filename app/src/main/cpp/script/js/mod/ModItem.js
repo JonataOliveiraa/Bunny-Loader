@@ -172,6 +172,11 @@ class ModItem {
     ApplyPrefix(item, pre) {}
 
     GetAlpha(item, lightColor) { return undefined; }
+    // No mundo, item é WorldItem; rotation e scale são Ref.
+    PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) { return true; }
+    PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI) {}
+    PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) { return true; }
+    PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale) {}
     PostUpdate(item) {}
     // O item no chão, todo quadro: item é o Item, worldItem a WorldItem que o
     // leva (position, velocity, Center). false no Pre pula a atualização do
@@ -347,8 +352,13 @@ class ModItem {
                     m.SetDefaults(item);
                     m.PostSetDefaults(item);
                 });
+                ItemDataLoader.CopyPlacement(item);
             },
             setStaticDefaults() {
+                const bannerEffect = Terraria.ID.ItemID.BannerEffect.new();
+                bannerEffect['void .ctor(float strength)'](1);
+                Terraria.ID.ItemID.Sets.BannerStrength[inst.Type] = bannerEffect;
+                Terraria.ID.ItemID.Sets.KillsToBanner[inst.Type] = 50;
                 EquipLoader.Install();
 
                 // O this.Item do tModLoader no SetStaticDefaults (Item.wingSlot...): a amostra do jogo.

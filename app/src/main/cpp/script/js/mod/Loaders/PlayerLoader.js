@@ -235,8 +235,7 @@ class PlayerLoader {
         if (has('FrameEffects')) ArmorSetLoader.WantFrame();
 
         if (has('ResetEffects') || has('ModifyMaxStats')) Hooks.Once('player.ResetEffects', () => {
-            P['void ResetEffects()'].hook((original, self) => {
-                original(self);
+            SharedHooks.After('player.ResetEffects', P['void ResetEffects()'], 'ModPlayer.ResetEffects', (self) => {
                 PlayerLoader.Call(self, 'ResetEffects');
 
                 let life = 0, mana = 0;

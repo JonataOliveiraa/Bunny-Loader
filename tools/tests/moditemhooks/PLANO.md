@@ -40,4 +40,12 @@ Os 12 métodos da etapa 1, os 11 da etapa 2 e os 4 da etapa 3 estão implementad
 
 A [validação multiplayer](../mpmodplayer/RESULTADOS-DRAW-MODITEM.md) observou os 27 callbacks em ambos os atacantes locais e aprovou os cenários dos 24 métodos fora do PvP. `CanHitPvp`, `ModifyHitPvp` e `OnHitPvp` reprovaram entre processos: o veto ainda permite envio de dano, e o contexto do item recebido por rede não é reconstruído na vítima. A rodada registra também ausência de dano no sentido host → cliente, com causa ainda não isolada. Os três métodos não estão aprovados para multiplayer; sua correção continua pendente.
 
+Atualização em 08/10/2026: as ressalvas de veto e origem no PvP foram
+corrigidas e os ataques nos dois sentidos passaram em dois processos.
+Evidências e limites: [PvP e banners em rede](../pendingnetwork/README.md).
+Os quatro callbacks de desenho de item e a persistência de estado também
+têm validações próprias: [desenho/defaults/banners](../apiexpansion/README.md)
+e [transferência de equipamentos](../itemequip/README.md). O estado datado
+acima é mantido como histórico, não como inventário da API atual.
+
 Referência de contratos: [ModItem do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs). Alternativas móveis: `C:/Scripts/Terraria/curso/ExMod_v1.5.0/Modified/1.mod/TL`.

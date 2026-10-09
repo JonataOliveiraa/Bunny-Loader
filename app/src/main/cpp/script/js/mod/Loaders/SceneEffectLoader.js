@@ -106,6 +106,7 @@ class SceneEffectLoader {
         }
 
         player.CurrentSceneEffect = result;
+        if (result.surfaceBackground.from && player.whoAmI === Terraria.Main.myPlayer) SurfaceBackgroundLoader.Wake();
         return result;
     }
 

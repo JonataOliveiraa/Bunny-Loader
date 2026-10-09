@@ -1,5 +1,9 @@
 # ModPlayer, ModItem e DrawDataCache: multiplayer
 
+Este relatório conserva as falhas de 06/10/2026. A correção do veto e da
+origem da arma e a aprovação de ataques nos dois sentidos estão na
+[rodada de 08/10/2026](../pendingnetwork/README.md).
+
 Execução em 6 de outubro de 2026, com dois processos reais do Terraria móvel 301720 em MuMu. Host: jogador 0, `Main.netMode = 3`; cliente remoto: jogador 1, `Main.netMode = 1`. Os dois APKs instalados tiveram o mesmo SHA-256, conferido em cada dispositivo:
 
 ```text

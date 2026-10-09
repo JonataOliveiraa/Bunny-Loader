@@ -1,0 +1,15 @@
+{
+  "uid": "5e8a1c47-93d2-4b6f-a0e1-7c4d2f9b6a13",
+  "id": "test-hookaudit",
+  "name": "Teste: auditoria dos hooks",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Todos os hooks instalados, com chamadas, entradas no JS e custo por quadro, parado e com o mundo cheio; e o custo de um hook barrado pelo filtro e de um que entra no JS.",
+  "description": "Loga 'hookaudit ...'. Com o Example Mod ligado, cria também entidades de mod.",
+  "updated": "2026-10-09",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -2,6 +2,7 @@ class GlobalItemLoader {
     static #shot = null;   // o tiro de agora, para o NewProjectile dele
 
     static Hook(cls) {
+        ItemDrawLoader.Want(cls);
         const P = Terraria.Player;
         const registry = globalItems;
         const has = (name) => Hooks.Overrides(cls, GlobalItem, name);

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import io
 import json
 import os
 import re
@@ -39,6 +40,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
+import zlib
 from pathlib import Path
 
 OWNER = "JonataOliveiraa"
@@ -71,6 +73,36 @@ class Fail(Exception):
     pass
 
 
+def _opens_as_zip(data: bytes) -> bool:
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as z:
+            return z.testzip() is None
+    except (zipfile.BadZipFile, ValueError, OSError, EOFError, zlib.error):
+        return False
+
+
+def not_zip_reason(data: bytes) -> str:
+    """Por que estes bytes não abrem como zip, do jeito que quem publica entende.
+
+    O .bl costuma chegar estragado no caminho (mandado por app de mensagem,
+    copiado como texto, baixado pela página e não pelo arquivo), e "não é zip"
+    sozinho não diz o que fazer.
+    """
+    if not data:
+        return "o arquivo está vazio (0 bytes); exporte de novo"
+    head = data[:512].lstrip().lower()
+    if head.startswith((b"<!doctype", b"<html")) or (head.startswith(b"<") and b"<html" in head):
+        return "é uma página da web, não o pacote: o link baixou a página. Baixe o arquivo em si"
+    if not data.startswith(b"PK"):
+        return f"não começa como zip (os primeiros bytes são {data[:4].hex(' ')}, um .bl começa com 50 4b)"
+    if b"\r\n" in data and _opens_as_zip(data.replace(b"\r\n", b"\n")):
+        return ("o arquivo foi tratado como texto no caminho (cada \\n virou \\r\\n). "
+                "Mande-o como arquivo, ou renomeie para .zip antes de enviar")
+    if b"PK\x05\x06" not in data[-65_557:]:
+        return f"o zip está cortado: o fim dele não chegou ({len(data)} bytes). Copie ou baixe de novo"
+    return "o zip está corrompido; exporte de novo pelo Bunny Loader"
+
+
 # ------------------------------------------------------------------ pacote
 
 class Package:
@@ -81,10 +113,15 @@ class Package:
         self.data = path.read_bytes()
         self.sha256 = hashlib.sha256(self.data).hexdigest()
         self.size = len(self.data)
+        # Abrir não basta: estragado no caminho, o zip às vezes abre e só falha
+        # ao ler uma entrada, e o pacote quebrado iria para a Release.
         try:
             self.zip = zipfile.ZipFile(path)
-        except zipfile.BadZipFile:
-            raise Fail(f"{path.name}: não é zip")
+            bad = self.zip.testzip()
+            if bad is not None:
+                raise zipfile.BadZipFile(f"CRC errado em {bad}")
+        except (zipfile.BadZipFile, zlib.error, EOFError, ValueError, OSError):
+            raise Fail(f"{path.name}: não é zip: {not_zip_reason(self.data)}")
         self.names = {n for n in self.zip.namelist() if not n.endswith("/")}
         for n in self.names:
             if not PACKAGE_PATH.fullmatch(n) or any(s in (".", "..") for s in n.split("/")):

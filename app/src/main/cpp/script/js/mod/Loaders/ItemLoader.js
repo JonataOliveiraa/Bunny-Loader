@@ -262,6 +262,7 @@ class ItemLoader {
     }
 
     static Hook(cls, type) {
+        ItemDrawLoader.Want(cls, type);
         ItemCombatHooks.Install(cls, type);
         const P = Terraria.Player;
         const has = (name) => Hooks.Overrides(cls, ModItem, name);

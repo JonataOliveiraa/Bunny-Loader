@@ -4,15 +4,22 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
@@ -34,8 +41,28 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
+
+/** Quanto o cartão leva para chegar ao lugar novo. */
+internal const val MOVE_MS = 420
+
+/**
+ * A lista começa com um item vazio, de 1 dp. A LazyColumn segura a
+ * rolagem pela chave do primeiro item visível: sem ele, ligar o cartão do topo
+ * levava a tela junto com o cartão. Fixar a rolagem com `requestScrollToItem`
+ * resolvia isso, mas também cancela as animações de posição.
+ */
+private const val LIST_HEAD = 1
+private const val HEAD_KEY = "list-head"
+
+/** O índice em `uids` de um item visível (o item vazio do topo dá -1). */
+private val LazyListItemInfo.uidIndex get() = index - LIST_HEAD
+
+/** O item do topo é a âncora, a não ser que a lista esteja rolada para baixo dele. */
+internal fun LazyListState.anchoredAt(uid: String): Boolean =
+    layoutInfo.visibleItemsInfo.firstOrNull { it.index == firstVisibleItemIndex }?.key == uid
 
 @Suppress("DEPRECATION")
 private fun vibrateDragStart(vibrator: Vibrator?) {
@@ -64,10 +91,10 @@ private class PackageDragState(private val list: LazyListState) {
         val item = info.visibleItemsInfo.firstOrNull { contentY >= it.offset && contentY < it.offset + it.size }
             ?: return false
         val uid = item.key as? String ?: return false
-        if (uids.getOrNull(item.index) != uid) return false
+        if (uids.getOrNull(item.uidIndex) != uid) return false
         val allowed = uids.indices.filter { (uids[it] in enabledUids) == (uid in enabledUids) }.toSet()
-        current = PackageDrag(uid, item.index, item.size, (item.offset - info.viewportStartOffset).toFloat(),
-            item.index, uids, enabledUids, allowed)
+        current = PackageDrag(uid, item.uidIndex, item.size, (item.offset - info.viewportStartOffset).toFloat(),
+            item.uidIndex, uids, enabledUids, allowed)
         return true
     }
 
@@ -79,7 +106,8 @@ private class PackageDragState(private val list: LazyListState) {
     fun updateTarget() {
         val drag = current ?: return
         val info = list.layoutInfo
-        val slots = info.visibleItemsInfo.map { PackageDragSlot(it.index, it.offset - info.viewportStartOffset, it.size) }
+        val slots = info.visibleItemsInfo.filter { it.uidIndex >= 0 }
+            .map { PackageDragSlot(it.uidIndex, it.offset - info.viewportStartOffset, it.size) }
         if (slots.none { it.index in drag.allowedIndices }) return
         current = drag.copy(to = packageDropIndex(drag.from, drag.top + drag.height / 2f, slots, drag.allowedIndices))
     }
@@ -90,14 +118,14 @@ private class PackageDragState(private val list: LazyListState) {
         val info = list.layoutInfo
         val top = info.beforeContentPadding
         val bottom = info.viewportEndOffset - info.viewportStartOffset - info.afterContentPadding
-        val first = info.visibleItemsInfo.firstOrNull()
-        val last = info.visibleItemsInfo.lastOrNull()
+        val first = info.visibleItemsInfo.firstOrNull { it.uidIndex >= 0 }
+        val last = info.visibleItemsInfo.lastOrNull { it.uidIndex >= 0 }
         val firstAllowed = drag.allowedIndices.minOrNull() ?: return 0f
         val lastAllowed = drag.allowedIndices.maxOrNull() ?: return 0f
-        val moreAbove = first != null && (first.index > firstAllowed ||
-            first.index == firstAllowed && first.offset - info.viewportStartOffset < top)
-        val moreBelow = last != null && (last.index < lastAllowed ||
-            last.index == lastAllowed && last.offset - info.viewportStartOffset + last.size > bottom)
+        val moreAbove = first != null && (first.uidIndex > firstAllowed ||
+            first.uidIndex == firstAllowed && first.offset - info.viewportStartOffset < top)
+        val moreBelow = last != null && (last.uidIndex < lastAllowed ||
+            last.uidIndex == lastAllowed && last.offset - info.viewportStartOffset + last.size > bottom)
         // O cartão pode ocupar as duas bordas; o centro escolhe a direção da rolagem.
         val center = drag.top + drag.height / 2f
         return when {
@@ -116,7 +144,14 @@ private class PackageDragState(private val list: LazyListState) {
     fun cancel() { current = null }
 }
 
-/** A prévia só muda a tela; o repositório recebe um movimento ao soltar o dedo. */
+/**
+ * A prévia só muda a tela; o repositório recebe um movimento ao soltar o dedo.
+ *
+ * Com `animateMoves`, o cartão que muda de lugar (ligado, desligado, uma
+ * seta) desliza até a posição nova. Fica desligado no arraste: ao soltar, os
+ * vizinhos já estão no lugar pela prévia, e a animação os puxaria de volta à
+ * posição antiga para deslizar de novo.
+ */
 @Composable
 internal fun DraggablePackageList(
     state: LazyListState,
@@ -124,6 +159,8 @@ internal fun DraggablePackageList(
     enabledUids: Set<String>,
     reorderEnabled: Boolean,
     onDrop: (String, String) -> Unit,
+    animateMoves: Boolean = false,
+    raisedUid: String? = null,
     modifier: Modifier = Modifier,
     empty: @Composable () -> Unit,
     row: @Composable (Int, Modifier, Boolean) -> Unit,
@@ -171,13 +208,25 @@ internal fun DraggablePackageList(
                         onDragCancel = { drag.cancel() },
                     )
                 } else Modifier),
-                contentPadding = PaddingValues(start = EdgePad, end = EdgePad, top = 10.dp, bottom = 16.dp),
+                // O espaço de cima soma o item vazio e o espaçamento depois dele.
+                contentPadding = PaddingValues(start = EdgePad, end = EdgePad, top = 1.dp, bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 userScrollEnabled = active == null,
             ) {
+                item(key = HEAD_KEY, contentType = "head") { Spacer(Modifier.fillMaxWidth().height(1.dp)) }
                 itemsIndexed(uids, key = { _, uid -> uid }, contentType = { _, _ -> "package" }) { index, uid ->
                     val moving = active
-                    row(index, Modifier.graphicsLayer {
+                    // Sempre presa ao cartão, sem fade e, fora dos toques, instantânea
+                    // (snap, não null): sem uma animação valendo, a lista não guarda
+                    // onde cada cartão estava, e no toque seguinte todos entravam
+                    // de baixo da tela como se fossem novos.
+                    val place = Modifier.animateItem(
+                        fadeInSpec = null,
+                        placementSpec = if (animateMoves && moving == null) tween(MOVE_MS, easing = FastOutSlowInEasing) else snap(),
+                        fadeOutSpec = null,
+                    )
+                    // O cartão tocado passa por cima dos vizinhos, não por baixo.
+                    row(index, place.zIndex(if (animateMoves && uid == raisedUid) 1f else 0f).graphicsLayer {
                         alpha = if (uid == moving?.uid) 0f else 1f
                         translationY = moving?.let { packageDragShift(index, it.from, it.to, it.height + gap) } ?: 0f
                     }, false)

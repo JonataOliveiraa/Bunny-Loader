@@ -24,7 +24,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`EquipTexture`](#equiptexture) | 9 | 0 | [Referência](classes.md#texturas-vestidas-equiploader-e-equiptexture) |
 | [`ExtraJump`](#extrajump) | 1 | 0 | [Referência](classes.md#modplayer) |
 | [`GenPass`](#genpass) | 10 | 0 | [Referência](classes.md#genpass-e-passlegacy) |
-| [`GlobalItem`](#globalitem) | 64 | 8 | [Referência](classes.md#globalitem) |
+| [`GlobalItem`](#globalitem) | 68 | 8 | [Referência](classes.md#globalitem) |
 | [`GlobalLoot`](#globalloot) | 11 | 0 | [Referência](classes.md#globalloot) |
 | [`GlobalNPC`](#globalnpc) | 52 | 8 | [Referência](classes.md#globalnpc) |
 | [`GlobalProjectile`](#globalprojectile) | 31 | 8 | [Referência](classes.md#globalprojectile) |
@@ -35,6 +35,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`ItemLoot`](#itemloot) | 6 | 0 | [Referência](classes.md#ajudantes-de-npc) |
 | [`Mod`](#mod) | 18 | 0 | [Referência](classes.md#mod-e-modloader) |
 | [`ModAchievement`](#modachievement) | 18 | 0 | [Referência](classes.md#modachievement) |
+| [`ModBannerTile`](#modbannertile) | 4 | 42 | [Referência](classes.md#modbannertile) |
 | [`ModBiome`](#modbiome) | 5 | 5 | [Referência](classes.md#modbiome-e-modsceneeffect) |
 | [`ModBuff`](#modbuff) | 17 | 0 | [Referência](classes.md#modbuff) |
 | [`ModCloud`](#modcloud) | 5 | 0 | [Referência](classes.md#modcloud) |
@@ -44,12 +45,12 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`ModEmoteBubble`](#modemotebubble) | 10 | 0 | [Referência](classes.md#modemotebubble) |
 | [`ModGore`](#modgore) | 1 | 0 | [Referência](classes.md#ajudantes-de-npc) |
 | [`ModHair`](#modhair) | 6 | 0 | [Referência](classes.md#modhair) |
-| [`ModItem`](#moditem) | 122 | 0 | [Referência](classes.md#moditem) |
+| [`ModItem`](#moditem) | 126 | 0 | [Referência](classes.md#moditem) |
 | [`ModLoader`](#modloader) | 4 | 0 | [Referência](classes.md#mod-e-modloader) |
 | [`ModLocalization`](#modlocalization) | 8 | 0 | [Referência](classes.md#modlocalization) |
 | [`ModMenu`](#modmenu) | 8 | 0 | [Referência](classes.md#modmenu) |
 | [`ModMount`](#modmount) | 15 | 0 | [Referência](classes.md#modmount) |
-| [`ModNPC`](#modnpc) | 71 | 0 | [Referência](classes.md#modnpc) |
+| [`ModNPC`](#modnpc) | 72 | 0 | [Referência](classes.md#modnpc) |
 | [`ModPacket`](#modpacket) | 2 | 15 | [Referência](classes.md#rede) |
 | [`ModPlayer`](#modplayer) | 134 | 0 | [Referência](classes.md#modplayer) |
 | [`ModPrefix`](#modprefix) | 16 | 0 | [Referência](classes.md#modprefix) |
@@ -85,7 +86,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | [`TooltipLine`](#tooltipline) | 3 | 0 | [Referência](classes.md#tooltipline) |
 | [`UsageException`](#usageexception) | 1 | 0 | [Referência](classes.md#modcommand) |
 
-70 classes públicas, 1247 registros declarados e 10 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
+71 classes públicas, 1302 registros declarados e 10 métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.
 
 ## Objetos e enums
 
@@ -110,10 +111,10 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 
 | Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
 |---|---|---|---|---|---|
-| `Add(inst)` | Estático | `CloudLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L15) |
-| `AddCloudFromTexture(texture, spawnChance = 1, rareCloud = false)` | Estático | `CloudLoader` | `Consultar fonte` | Uma nuvem só de textura (o caminho no mod, sem extensão), no Mod.Load. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L27) |
-| `Autoload()` | Estático | `CloudLoader` | `Consultar fonte` | Todo PNG numa pasta Clouds/ do mod sem nuvem com o mesmo nome (classe ou AddCloudFromTexture) vira nuvem comum de peso 1, como no tModLoader. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L39) |
-| `ChooseCloud(vanillaPool, rare)` | Estático | `CloudLoader` | `Consultar fonte` | O ChooseCloud do tModLoader: 0 é "uma do jogo". | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L101) |
+| `Add(inst)` | Estático | `CloudLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L17) |
+| `AddCloudFromTexture(texture, spawnChance = 1, rareCloud = false)` | Estático | `CloudLoader` | `Consultar fonte` | Uma nuvem só de textura (o caminho no mod, sem extensão), no Mod.Load. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L29) |
+| `Autoload()` | Estático | `CloudLoader` | `Consultar fonte` | Todo PNG numa pasta Clouds/ do mod sem nuvem com o mesmo nome (classe ou AddCloudFromTexture) vira nuvem comum de peso 1, como no tModLoader. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L41) |
+| `ChooseCloud(vanillaPool, rare)` | Estático | `CloudLoader` | `CloudLoader.#Roll(CloudLoader.#Pool(vanillaPool, rare))` | O ChooseCloud do tModLoader: 0 é "uma do jogo". | [Código](../../app/src/main/cpp/script/js/mod/Loaders/CloudLoader.js#L103) |
 
 ## CommandLoader
 
@@ -166,7 +167,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `Data(player)` | Estático | `DamageClassLoader` | `Consultar fonte` | Os bônus por classe deste jogador, zerados todo quadro (ResetEffects). | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L174) |
 | `Defaulting(entity, fn)` | Estático | `DamageClassLoader` | `Consultar fonte` | O SetDefaults de um item ou projétil: o DamageType escrito nele vale para o tipo inteiro (sobrevive ao Clone, ao NewItem e à rede). | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L78) |
 | `GetDamageClass(type)` | Estático | `DamageClassLoader` | `(DamageClassLoader.Vanilla && DamageClassLoader.#classes[type]) \|\| null` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L33) |
-| `Install()` | Estático | `DamageClassLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L558) |
+| `Install()` | Estático | `DamageClassLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L557) |
 | `IsHooked(cls)` | Estático | `DamageClassLoader` | `!DamageClassLoader.#native.has(cls)` | De gancho: o jogo não a entende pelas flags. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L62) |
 | `ItemClass(item)` | Estático | `DamageClassLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L88) |
 | `NameOf(cls)` | Estático | `DamageClassLoader` | `cls.Name \|\| cls.constructor.name` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L35) |
@@ -176,7 +177,7 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `SetProjectileClass(proj, which)` | Estático | `DamageClassLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L119) |
 | `Stats(player, which)` | Estático | `DamageClassLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L184) |
 | `Total(player, which)` | Estático | `DamageClassLoader` | `Consultar fonte` | O total de uma classe: o dela mais o de cada classe herdada, como o GetTotalDamage do tModLoader. As do jogo são lidas dos campos do jogador. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L193) |
-| `UsesCrit(cls)` | Estático | `DamageClassLoader` | `!!Safe.Run(DamageClassLoader.NameOf(cls) + '.UseStandardCritCalcs', () => cls.UseStandardCritCalcs)` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L469) |
+| `UsesCrit(cls)` | Estático | `DamageClassLoader` | `!!Safe.Run(DamageClassLoader.NameOf(cls) + '.UseStandardCritCalcs', () => cls.UseStandardCritCalcs)` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L468) |
 | `get Vanilla` | Getter estático | `DamageClassLoader` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/Loaders/DamageClassLoader.js#L26) |
 
 ## DrawableTooltipLine
@@ -253,12 +254,12 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 |---|---|---|---|---|---|
 | `AddRecipeGroups()` | Instância | `GlobalType` (herdado) | `undefined` | Uma vez, com o conteúdo pronto. | [Código](../../app/src/main/cpp/script/js/mod/Core/GlobalType.js#L14) |
 | `AddRecipes()` | Instância | `GlobalType` (herdado) | `undefined` | Uma vez, com o conteúdo pronto. | [Código](../../app/src/main/cpp/script/js/mod/Core/GlobalType.js#L15) |
-| `AllowPrefix(item, pre)` | Instância | `GlobalItem` | `true` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L66) |
+| `AllowPrefix(item, pre)` | Instância | `GlobalItem` | `true` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L70) |
 | `AppliesToEntity(entity, lateInstantiation)` | Instância | `GlobalType` (herdado) | `true` | false: os métodos do Global não rodam para ela. lateInstantiation é false na amostra do ModifyNPCLoot. | [Código](../../app/src/main/cpp/script/js/mod/Core/GlobalType.js#L8) |
 | `ApplyPotionDelay(item, player, potionDelay)` | Instância | `GlobalItem` | `true` | Cura e atraso de poção. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L36) |
-| `ApplyPrefix(item, pre)` | Instância | `GlobalItem` | `undefined` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L67) |
-| `ArmorSetShadows(player, set)` | Instância | `GlobalItem` | `undefined` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L82) |
-| `CanAccessoryBeEquippedWith(equippedItem, incomingItem, player)` | Instância | `GlobalItem` | `true` | Conjuntos de qualquer item: o nome do conjunto ('' = nenhum), e o efeito por ele. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L70) |
+| `ApplyPrefix(item, pre)` | Instância | `GlobalItem` | `undefined` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L71) |
+| `ArmorSetShadows(player, set)` | Instância | `GlobalItem` | `undefined` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L86) |
+| `CanAccessoryBeEquippedWith(equippedItem, incomingItem, player)` | Instância | `GlobalItem` | `true` | Conjuntos de qualquer item: o nome do conjunto ('' = nenhum), e o efeito por ele. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L74) |
 | `CanBeChosenAsAmmo(ammo, weapon, player)` | Instância | `GlobalItem` | `null` | Munição; um false veta, nos de null um true força. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L24) |
 | `CanBeConsumedAsAmmo(ammo, weapon, player)` | Instância | `GlobalItem` | `true` | Munição; um false veta, nos de null um true força. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L26) |
 | `CanChooseAmmo(weapon, ammo, player)` | Instância | `GlobalItem` | `null` | Munição; um false veta, nos de null um true força. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L23) |
@@ -268,24 +269,24 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | Instância | `GlobalItem` | `null` | O golpe corpo a corpo, como no ModItem (Golpes). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L43) |
 | `CanShoot(item, player)` | Instância | `GlobalItem` | `true` | Antes do tiro; false não atira. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L37) |
 | `CanUseItem(item, player)` | Instância | `GlobalItem` | `true` | Antes de usar; false impede. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L3) |
-| `ChoosePrefix(item, rand)` | Instância | `GlobalItem` | `-1` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L64) |
+| `ChoosePrefix(item, rand)` | Instância | `GlobalItem` | `-1` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L68) |
 | `Clone(from, to)` | Instância | `GlobalType` (herdado) | `Entities.Clone(this)` | Retorna uma cópia dos campos da instância global. No fluxo de itens, é chamado por Item.Clone. | [Código](../../app/src/main/cpp/script/js/mod/Core/GlobalType.js#L9) |
 | `GetHealLife(item, player, quickHeal, healValue)` | Instância | `GlobalItem` | `undefined` | Cura e atraso de poção. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L33) |
 | `GetHealMana(item, player, quickHeal, healValue)` | Instância | `GlobalItem` | `undefined` | Cura e atraso de poção. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L34) |
 | `HoldItem(item, player)` | Instância | `GlobalItem` | `undefined` | A cada quadro com o item na mão. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L8) |
 | `HoldItemFrame(item, player)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L19) |
 | `HoldStyle(item, player, mountOffset, heldItemFrame)` | Instância | `GlobalItem` | `undefined` | A cada quadro com o item na mão. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L7) |
-| `HorizontalWingSpeeds(item, player, speed, acceleration)` | Instância | `GlobalItem` | `undefined` | Asas, também as do jogo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L87) |
+| `HorizontalWingSpeeds(item, player, speed, acceleration)` | Instância | `GlobalItem` | `undefined` | Asas, também as do jogo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L91) |
 | `get InstancePerEntity` | Getter | `GlobalType` (herdado) | `false` | true (campo ou getter): cada entidade ganha a própria cópia, nascida no SetDefaults. | [Código](../../app/src/main/cpp/script/js/mod/Core/GlobalType.js#L5) |
-| `IsArmorSet(head, body, legs)` | Instância | `GlobalItem` | `''` | Conjunto de qualquer item ('' = nenhum). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L71) |
-| `IsVanitySet(head, body, legs)` | Instância | `GlobalItem` | `Consultar fonte` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L75) |
+| `IsArmorSet(head, body, legs)` | Instância | `GlobalItem` | `''` | Conjunto de qualquer item ('' = nenhum). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L75) |
+| `IsVanitySet(head, body, legs)` | Instância | `GlobalItem` | `Consultar fonte` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L79) |
 | `MeleeEffects(item, player, hitbox)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L16) |
 | `ModifyHitNPC(item, player, target, modifiers)` | Instância | `GlobalItem` | `undefined` | O golpe corpo a corpo, como no ModItem (Golpes). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L44) |
 | `ModifyHitPvp(item, player, target, modifiers)` | Instância | `GlobalItem` | `undefined` | O golpe corpo a corpo PvP. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L47) |
 | `ModifyItemScale(item, player, scale)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L13) |
 | `ModifyPotionDelay(item, player, baseDelay)` | Instância | `GlobalItem` | `undefined` | Cura e atraso de poção. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L35) |
 | `ModifyShootStats(item, player, stats)` | Instância | `GlobalItem` | `undefined` | stats = { position, velocity, type, damage, knockBack }. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L38) |
-| `ModifyTooltips(item, tooltips)` | Instância | `GlobalItem` | `undefined` | O tooltip; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L56) |
+| `ModifyTooltips(item, tooltips)` | Instância | `GlobalItem` | `undefined` | O tooltip; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L60) |
 | `ModifyWeaponCrit(item, player, crit)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L11) |
 | `ModifyWeaponDamage(item, player, damage)` | Instância | `GlobalItem` | `damage` | O dano da arma; devolva o novo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L9) |
 | `ModifyWeaponKnockback(item, player, knockback)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L12) |
@@ -297,32 +298,36 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `OnHitNPC(item, player, target, hit, damageDone)` | Instância | `GlobalItem` | `undefined` | O golpe corpo a corpo, como no ModItem (Golpes). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L45) |
 | `OnHitPvp(item, player, target, hurtInfo)` | Instância | `GlobalItem` | `undefined` | O golpe corpo a corpo PvP. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L48) |
 | `PickAmmo(weapon, ammo, player, type, speed, damage, knockback)` | Instância | `GlobalItem` | `undefined` | Munição; um false veta, nos de null um true força. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L30) |
-| `PostDrawTooltip(item, lines)` | Instância | `GlobalItem` | `undefined` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L60) |
-| `PostDrawTooltipLine(item, line)` | Instância | `GlobalItem` | `undefined` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L62) |
+| `PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Instância | `GlobalItem` | `undefined` | Mesmos argumentos de ModItem. Pre global roda antes do local; Post local roda antes do global. Post permanece após veto. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L59) |
+| `PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI)` | Instância | `GlobalItem` | `undefined` | Mesmos argumentos de ModItem. Pre e Post locais rodam antes dos globais; todo Pre aplicável roda mesmo após veto. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L57) |
+| `PostDrawTooltip(item, lines)` | Instância | `GlobalItem` | `undefined` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L64) |
+| `PostDrawTooltipLine(item, line)` | Instância | `GlobalItem` | `undefined` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L66) |
 | `PostSetupContent()` | Instância | `GlobalType` (herdado) | `undefined` | Uma vez, com o conteúdo pronto. | [Código](../../app/src/main/cpp/script/js/mod/Core/GlobalType.js#L16) |
 | `PostUpdateInWorld(item, worldItem)` | Instância | `GlobalItem` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L54) |
-| `PreDrawTooltip(item, lines, x, y)` | Instância | `GlobalItem` | `true` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L59) |
-| `PreDrawTooltipLine(item, line, yOffset)` | Instância | `GlobalItem` | `true` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L61) |
-| `PrefixChance(item, pre, rand)` | Instância | `GlobalItem` | `null` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L65) |
+| `PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Instância | `GlobalItem` | `true` | Mesmos argumentos de ModItem. Pre global roda antes do local; Post local roda antes do global. Post permanece após veto. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L58) |
+| `PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI)` | Instância | `GlobalItem` | `true` | Mesmos argumentos de ModItem. Pre e Post locais rodam antes dos globais; todo Pre aplicável roda mesmo após veto. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L56) |
+| `PreDrawTooltip(item, lines, x, y)` | Instância | `GlobalItem` | `true` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L63) |
+| `PreDrawTooltipLine(item, line, yOffset)` | Instância | `GlobalItem` | `true` | Os do ModItem, com item na frente, para qualquer item; depois do ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L65) |
+| `PrefixChance(item, pre, rand)` | Instância | `GlobalItem` | `null` | Os de prefixo do ModItem, para qualquer item (o global vem antes no ChoosePrefix). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L69) |
 | `PreUpdateInWorld(item, worldItem)` | Instância | `GlobalItem` | `true` | O item no chão, todo quadro (ver ModItem.PreUpdateInWorld). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L53) |
-| `PreUpdateVanitySet(player, set)` | Instância | `GlobalItem` | `undefined` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L80) |
-| `register(cls)` | Estático | `GlobalItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L90) |
+| `PreUpdateVanitySet(player, set)` | Instância | `GlobalItem` | `undefined` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L84) |
+| `register(cls)` | Estático | `GlobalItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L94) |
 | `SetDefaults(item)` | Instância | `GlobalItem` | `undefined` | O item nasce ou troca de tipo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L2) |
-| `SetMatch(armorSlot, type, male, equipSlot, robes)` | Instância | `GlobalItem` | `undefined` | O slot desenhado de uma parte (0 cabeça, 1 corpo, 2 pernas). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L84) |
+| `SetMatch(armorSlot, type, male, equipSlot, robes)` | Instância | `GlobalItem` | `undefined` | O slot desenhado de uma parte (0 cabeça, 1 corpo, 2 pernas). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L88) |
 | `SetStaticDefaults()` | Instância | `GlobalType` (herdado) | `undefined` | Uma vez, com o conteúdo pronto. | [Código](../../app/src/main/cpp/script/js/mod/Core/GlobalType.js#L12) |
 | `Shoot(item, player, position, velocity, type, damage, knockBack, source)` | Instância | `GlobalItem` | `true` | false: o projétil do jogo não sai. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L39) |
 | `UpdateAccessory(item, player, vanity, hideVisual)` | Instância | `GlobalItem` | `undefined` | Acessório equipado (também de vaidade). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L51) |
-| `UpdateArmorSet(player, set)` | Instância | `GlobalItem` | `undefined` | Conjunto de qualquer item ('' = nenhum). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L72) |
+| `UpdateArmorSet(player, set)` | Instância | `GlobalItem` | `undefined` | Conjunto de qualquer item ('' = nenhum). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L76) |
 | `UpdateEquip(item, player)` | Instância | `GlobalItem` | `undefined` | Equipado (acessório ou armadura). | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L50) |
 | `UpdateInventory(item, player)` | Instância | `GlobalItem` | `undefined` | A cada quadro, para as 58 casas do inventário. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L49) |
-| `UpdateVanitySet(player, set)` | Instância | `GlobalItem` | `undefined` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L81) |
+| `UpdateVanitySet(player, set)` | Instância | `GlobalItem` | `undefined` | Vaidade pelos slots desenhados. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L85) |
 | `UseAnimation(item, player)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L17) |
 | `UseItem(item, player)` | Instância | `GlobalItem` | `undefined` | O uso começa; true como no ModItem. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L5) |
 | `UseItemFrame(item, player)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L18) |
 | `UseItemHitbox(item, player, hitbox, noHitbox)` | Instância | `GlobalItem` | `undefined` | Como no ModItem, depois dele, para qualquer item. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L15) |
 | `UseStyle(item, player, mountOffset, heldItemFrame)` | Instância | `GlobalItem` | `undefined` | A cada quadro com o item na mão. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L6) |
-| `VerticalWingSpeeds(item, player, ascentWhenFalling, ascentWhenRising, maxCanAscendMultiplier, maxAscentMultiplier, constantAscend)` | Instância | `GlobalItem` | `undefined` | Asas, também as do jogo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L86) |
-| `WingUpdate(wings, player, inUse)` | Instância | `GlobalItem` | `false` | Asas, também as do jogo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L88) |
+| `VerticalWingSpeeds(item, player, ascentWhenFalling, ascentWhenRising, maxCanAscendMultiplier, maxAscentMultiplier, constantAscend)` | Instância | `GlobalItem` | `undefined` | Asas, também as do jogo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L90) |
+| `WingUpdate(wings, player, inUse)` | Instância | `GlobalItem` | `false` | Asas, também as do jogo. | [Código](../../app/src/main/cpp/script/js/mod/GlobalItem.js#L92) |
 
 ## GlobalLoot
 
@@ -589,6 +594,59 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `register(cls)` | Estático | `ModAchievement` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModAchievement.js#L65) |
 | `SetStaticDefaults()` | Instância | `ModAchievement` | `undefined` | As condições: AddCondition(chave), AddIntCondition(chave, máx), AddFloatCondition, AddItemCraftCondition(id ou [ids]), AddItemPickupCondition, AddNPCKilledCondition, AddTileDestroyedCondition([ids]). Devolvem a condição do jogo (.Value nas de número, .Complete()). | [Código](../../app/src/main/cpp/script/js/mod/ModAchievement.js#L22) |
 
+## ModBannerTile
+
+[Contrato e campos](classes.md#modbannertile). Herda de `ModTile`.
+
+| Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
+|---|---|---|---|---|---|
+| `AddMapEntry(color, name)` | Instância | `ModTile` (herdado) | `Consultar fonte` | A cor e o nome no mapa; cada chamada é uma opção a mais. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L28) |
+| `AnimateIndividualTile(type, i, j, frameXOffset, frameYOffset)` | Instância | `ModTile` (herdado) | `undefined` | o desenho nativo (GetTileDrawData); marca tile.drawdata | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L77) |
+| `AnimateTile(frame, frameCounter)` | Instância | `ModTile` (herdado) | `undefined` | Main.AnimateTiles (só se algum tile o usa) | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L76) |
+| `CanDrop(i, j)` | Instância | `ModTile` (herdado) | `true` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L70) |
+| `CanKillTile(i, j, blockDamaged)` | Instância | `ModTile` (herdado) | `true` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L63) |
+| `CreateDust(i, j, type)` | Instância | `ModTile` (herdado) | `true` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L68) |
+| `CreateMapEntryName()` | Instância | `ModTile` (herdado) | `this.constructor.name` | O nome da classe. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L52) |
+| `DefaultContainerName(frameX, frameY)` | Instância | `ModTile` (herdado) | `this.CreateMapEntryName()` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L106) |
+| `DrawEffects(i, j, spriteBatch, drawData)` | Instância | `ModTile` (herdado) | `undefined` | passada depois do TileDrawing.PostDrawTiles; marca tile.draw | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L83) |
+| `EmitParticles(i, j, tile, tileFrameX, tileFrameY, tileLight, visible)` | Instância | `ModTile` (herdado) | `undefined` | passada depois do TileDrawing.PostDrawTiles; marca tile.draw | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L85) |
+| `GetItemDrops(i, j)` | Instância | `ModTile` (herdado) | `undefined` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L72) |
+| `GetMapOption(i, j)` | Instância | `ModTile` (herdado) | `0` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L61) |
+| `getModTile(type)` | Estático | `ModTile` (herdado) | `TileLoader.ByType.get(type)` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L137) |
+| `getTypeByName(name)` | Estático | `ModTile` (herdado) | `bl.tiles.typeOf(name)` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L136) |
+| `HasSmartInteract(i, j, settings)` | Instância | `ModTile` (herdado) | `Hooks.Overrides(this.constructor, ModTile, 'RightClick')` | Se o tile é alvo do smart-interact. No celular o toque num móvel passa por ele (é o clique direito do PC): sem sobrescrever, vale para quem tem RightClick. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L94) |
+| `get HighlightTexture` | Getter | `ModTile` (herdado) | `this.Texture + '_Highlight'` | A folha de quadros; o contorno (HasOutlines). | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L18) |
+| `HitWire(i, j)` | Instância | `ModTile` (herdado) | `undefined` | Wiring.HitWireSingle; marca tile.wire | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L95) |
+| `IsLockedChest(i, j)` | Instância | `ModTile` (herdado) | `false` | Chest.IsLocked/Unlock/Lock; marca tile.chest | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L103) |
+| `isModType(type)` | Estático | `ModTile` (herdado) | `bl.tiles.isModTile(type)` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L135) |
+| `KillMultiTile(i, j, frameX, frameY)` | Instância | `ModTile` (herdado) | `undefined` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L66) |
+| `KillSound(i, j, fail)` | Instância | `ModTile` (herdado) | `true` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L69) |
+| `KillTile(i, j, fail, effectOnly, noItem)` | Instância | `ModTile` (herdado) | `undefined` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L64) |
+| `LockChest(i, j, frameXAdjustment, manual)` | Instância | `ModTile` (herdado) | `false` | Chest.IsLocked/Unlock/Lock; marca tile.chest | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L105) |
+| `ModifyLight(i, j, r, g, b)` | Instância | `ModTile` (herdado) | `undefined` | Lighting.LightTiles (a cada 3 quadros) + Lighting.AddLight em lote; marca tile.light | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L75) |
+| `ModifySittingTargetInfo(i, j, info)` | Instância | `ModTile` (herdado) | `undefined` | PlayerSittingHelper/PlayerSleepingHelper | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L100) |
+| `ModifySleepingTargetInfo(i, j, info)` | Instância | `ModTile` (herdado) | `undefined` | PlayerSittingHelper/PlayerSleepingHelper | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L101) |
+| `MouseOver(i, j)` | Instância | `ModTile` (herdado) | `undefined` | Player.TileInteractions; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L89) |
+| `MouseOverFar(i, j)` | Instância | `ModTile` (herdado) | `undefined` | Player.TileInteractions; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L90) |
+| `NearbyEffects(i, j, closer)` | Instância | `ModBannerTile` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModBannerTile.js#L39) |
+| `NumDust(i, j, fail, num)` | Instância | `ModTile` (herdado) | `undefined` | WorldGen.KillTile, TileFrameImportant; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L67) |
+| `PlaceInWorld(i, j, item)` | Instância | `ModTile` (herdado) | `undefined` | TileObjectData.CallPostPlacementPlayerHook e WorldGen.PlaceTile (colocando) | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L73) |
+| `PostDraw(i, j, spriteBatch)` | Instância | `ModTile` (herdado) | `undefined` | passada depois do TileDrawing.PostDrawTiles; marca tile.draw | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L82) |
+| `PostSetDefaults()` | Instância | `ModTile` (herdado) | `undefined` | nativo, conteúdo pronto | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L21) |
+| `PostSetupContent()` | Instância | `ModTile` (herdado) | `undefined` | nativo, conteúdo pronto | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L22) |
+| `PreDraw(i, j)` | Instância | `ModBannerTile` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModBannerTile.js#L29) |
+| `RandomUpdate(i, j)` | Instância | `ModTile` (herdado) | `undefined` | WorldGen.UpdateWorld_Tile; marca tile.random | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L97) |
+| `register(cls)` | Estático | `ModTile` (herdado) | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L108) |
+| `RegisterItemDrop(itemType, ...styles)` | Instância | `ModTile` (herdado) | `Consultar fonte` | O item que cai. | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L55) |
+| `RightClick(i, j)` | Instância | `ModTile` (herdado) | `false` | Player.TileInteractions; filtro de tile | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L88) |
+| `SetDrawPositions(i, j, width, offsetY)` | Instância | `ModBannerTile` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModBannerTile.js#L37) |
+| `SetSpriteEffects(i, j, spriteEffects)` | Instância | `ModTile` (herdado) | `undefined` | o desenho nativo (GetTileDrawData); marca tile.drawdata | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L79) |
+| `SetStaticDefaults()` | Instância | `ModBannerTile` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModBannerTile.js#L4) |
+| `Slope(i, j)` | Instância | `ModTile` (herdado) | `true` | WorldGen.SlopeTile/PoundTile; marca tile.slope | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L96) |
+| `SpecialDraw(i, j, spriteBatch)` | Instância | `ModTile` (herdado) | `undefined` | passada depois do TileDrawing.PostDrawTiles; marca tile.draw | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L84) |
+| `TileFrame(i, j, resetFrame, noBreak)` | Instância | `ModTile` (herdado) | `true` | WorldGen.TileFrame; marca tile.frame | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L98) |
+| `UnlockChest(i, j, frameXAdjustment, dustType, manual)` | Instância | `ModTile` (herdado) | `false` | Chest.IsLocked/Unlock/Lock; marca tile.chest | [Código](../../app/src/main/cpp/script/js/mod/ModTile.js#L104) |
+
 ## ModBiome
 
 [Contrato e campos](classes.md#modbiome-e-modsceneeffect). Herda de `ModSceneEffect`.
@@ -636,11 +694,11 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 
 | Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
 |---|---|---|---|---|---|
-| `OnSpawn(cloud)` | Instância | `ModCloud` | `undefined` | A nuvem nasceu (o Cloud do jogo: spriteDir, scale...). | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L15) |
-| `get RareCloud` | Getter | `ModCloud` | `false` | true: sorteada entre as raras (getter). | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L10) |
-| `register(cls)` | Estático | `ModCloud` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L17) |
-| `SetStaticDefaults()` | Instância | `ModCloud` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L12) |
-| `SpawnChance()` | Instância | `ModCloud` | `1` | O peso: as comuns contra as 22 do jogo (peso 1 cada), as raras contra as 18 raras do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L13) |
+| `OnSpawn(cloud)` | Instância | `ModCloud` | `undefined` | A nuvem nasceu (o Cloud do jogo: spriteDir, scale...). | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L16) |
+| `get RareCloud` | Getter | `ModCloud` | `false` | true: sorteada entre as raras (getter). | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L11) |
+| `register(cls)` | Estático | `ModCloud` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L18) |
+| `SetStaticDefaults()` | Instância | `ModCloud` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L13) |
+| `SpawnChance()` | Instância | `ModCloud` | `1` | O peso: as comuns contra as 22 do jogo (peso 1 cada), as raras contra as 18 raras do jogo. O das comuns é relido a cada 60 tentativas de nuvem nova (cerca de um segundo: o jogo tenta uma por quadro), não em todas; o das raras, a cada sorteio. | [Código](../../app/src/main/cpp/script/js/mod/ModCloud.js#L14) |
 
 ## ModCommand
 
@@ -766,41 +824,41 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `ApplyPotionDelay(item, player, potionDelay)` | Instância | `ModItem` | `true` | false: impede o contador e o buff de doença de poção; conserva cura e consumo. false impede contador e PotionSickness, preservando o contador anterior. Compõe com ModPlayer; qualquer veto prevalece. Cura e consumo continuam. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L82) |
 | `ApplyPrefix(item, pre)` | Instância | `ModItem` | `undefined` | Depois dos status do prefixo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L172) |
 | `ArmorSetShadows(player)` | Instância | `ModItem` | `undefined` | As sombras do conjunto (armorEffectDraw). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L130) |
-| `buyPrice(platinum = 0, gold = 0, silver = 0, copper = 0)` | Estático | `ModItem` | `Terraria.Item.buyPrice(platinum, gold, silver, copper)` | Preço em cobre. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L304) |
+| `buyPrice(platinum = 0, gold = 0, silver = 0, copper = 0)` | Estático | `ModItem` | `Terraria.Item.buyPrice(platinum, gold, silver, copper)` | Preço em cobre. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L309) |
 | `CanAccessoryBeEquippedWith(equippedItem, incomingItem, player)` | Instância | `ModItem` | `true` | false recusa o par (arrastar para o slot e a troca pelo toque, que vai para o slot do que recusou). Chamado nos dois itens do par. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L101) |
 | `CanBeChosenAsAmmo(item, weapon, player)` | Instância | `ModItem` | `null` | Munição: compõe a seleção; qualquer veto prevalece. Na munição. Compõe com a arma; qualquer false prevalece. Inclui armas vanilla e alternância nativa de slots. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L73) |
 | `CanBeConsumedAsAmmo(item, weapon, player)` | Instância | `ModItem` | `true` | Munição: false conserva a pilha. Na munição. false conserva a pilha e suprime notificações de consumo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L75) |
 | `CanChooseAmmo(item, ammo, player)` | Instância | `ModItem` | `null` | Arma: false rejeita; true permite outra categoria; null conserva categoria nativa. Na arma. false rejeita; true permite outra categoria; null/undefined seguem ammo == useAmmo. Veto da munição prevalece. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L72) |
 | `CanConsumeAmmo(item, ammo, player)` | Instância | `ModItem` | `true` | Arma: false conserva a pilha sem impedir o tiro. Na arma. false conserva a pilha sem impedir o tiro. Compõe com a munição e ModPlayer. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L74) |
 | `CanHitNPC(item, player, target)` | Instância | `ModItem` | `null` | false veta; true permite a elegibilidade; null mantém o jogo. undefined também mantém o jogo. A colisão continua sendo verificada. Vetos de ModPlayer e ModNPC prevalecem. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L87) |
-| `CanHitPvp(item, player, target)` | Instância | `ModItem` | `true` | false impede o golpe corpo a corpo. Contexto de ItemCheck_MeleeHitPVP. Mensagens de Hurt recebidas isoladamente não reconstroem a arma de origem. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L89) |
+| `CanHitPvp(item, player, target)` | Instância | `ModItem` | `true` | No atacante; false impede o golpe antes de status e envio. Executa no atacante durante ItemCheck_MeleeHitPVP, antes de status e envio de dano. Validado entre dois processos. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L89) |
 | `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | Instância | `ModItem` | `null` | false veta; true permite a colisão; null mantém o jogo. undefined também mantém o jogo. Não força Intersects de retângulos sem relação com o ataque. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L92) |
 | `CanRightClick(item)` | Instância | `ModItem` | `false` | true: o item abre no inventário (bolsa, caixa); entra em ItemID.Sets.OpenableBag. No toque, ganha o botão "Abrir" e os botões de usar ficam travados, como nas bolsas do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L50) |
 | `CanShoot(item, player)` | Instância | `ModItem` | `true` | false: usa, mas não atira. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L68) |
 | `CanUseItem(item, player)` | Instância | `ModItem` | `true` | Antes de usar; false impede. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L44) |
 | `ChoosePrefix(item, rand)` | Instância | `ModItem` | `-1` | Um prefixo forçado ao rolar (> 0), ou -1. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L167) |
 | `Clone(newItem)` | Instância | `ModItem` | `Entities.Clone(this)` | O jogo copiou o item (Item.Clone); devolva a instância da cópia. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L15) |
-| `CloneDefaults(type)` | Instância | `ModItem` | `Consultar fonte` | Copia os valores de um item do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L184) |
+| `CloneDefaults(type)` | Instância | `ModItem` | `Consultar fonte` | Copia os valores de um item do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L189) |
 | `ConsumeItem(item, player)` | Instância | `ModItem` | `true` | false: abrir não gasta o item. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L53) |
 | `CreateArmorSet(head, body, legs, text = 'ArmorSetBonus.Empty', primaryPart = 0)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L109) |
 | `CreateArmorSets(heads = [0], bodies = [0], legs = [0], text = 'ArmorSetBonus.Empty', primaryPart = 0)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L112) |
-| `CreateRecipe(stack = 1)` | Instância | `ModItem` | `new ModRecipe().SetResult(this.Type, stack)` | Uma ModRecipe que dá este item. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L290) |
-| `CreateRecipeGroup(itemTypes = [])` | Instância | `ModItem` | `Consultar fonte` | Grupo com o nome do primeiro item. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L295) |
-| `DefaultToFood(buffType, buffTime, useGulpSound = false, animationTime = 17)` | Instância | `ModItem` | `Consultar fonte` | Comida. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L253) |
-| `DefaultToGolfBall(projType)` | Instância | `ModItem` | `Consultar fonte` | Bola de golfe. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L286) |
-| `DefaultToMusicBox(tileType, styleToPlace = 0)` | Instância | `ModItem` | `Consultar fonte` | A caixa de música do jogo, colocando o tile de mod (MusicLoader.AddMusicBox). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L247) |
-| `DefaultToPlaceableTile(typeToPlace, styleToPlace = 0)` | Instância | `ModItem` | `Consultar fonte` | Item que coloca um bloco. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L222) |
-| `DefaultToPlaceableWall(wallToPlace)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L235) |
-| `DefaultToSpear(projType, pushForwardSpeed, animationTime)` | Instância | `ModItem` | `Consultar fonte` | Lança. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L281) |
-| `DefaultToTorch(tileType, styleToPlace = 0, allowWaterPlacement = false)` | Instância | `ModItem` | `Consultar fonte` | A tocha do jogo (segurar, luz, colocar na parede), colocando o tile de mod. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L241) |
-| `DefaultToWhip(projType, damage, knockBack, shootSpeed, animationTime = 30)` | Instância | `ModItem` | `Consultar fonte` | Chicote. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L276) |
+| `CreateRecipe(stack = 1)` | Instância | `ModItem` | `new ModRecipe().SetResult(this.Type, stack)` | Uma ModRecipe que dá este item. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L295) |
+| `CreateRecipeGroup(itemTypes = [])` | Instância | `ModItem` | `Consultar fonte` | Grupo com o nome do primeiro item. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L300) |
+| `DefaultToFood(buffType, buffTime, useGulpSound = false, animationTime = 17)` | Instância | `ModItem` | `Consultar fonte` | Comida. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L258) |
+| `DefaultToGolfBall(projType)` | Instância | `ModItem` | `Consultar fonte` | Bola de golfe. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L291) |
+| `DefaultToMusicBox(tileType, styleToPlace = 0)` | Instância | `ModItem` | `Consultar fonte` | A caixa de música do jogo, colocando o tile de mod (MusicLoader.AddMusicBox). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L252) |
+| `DefaultToPlaceableTile(typeToPlace, styleToPlace = 0)` | Instância | `ModItem` | `Consultar fonte` | Item que coloca um bloco. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L227) |
+| `DefaultToPlaceableWall(wallToPlace)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L240) |
+| `DefaultToSpear(projType, pushForwardSpeed, animationTime)` | Instância | `ModItem` | `Consultar fonte` | Lança. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L286) |
+| `DefaultToTorch(tileType, styleToPlace = 0, allowWaterPlacement = false)` | Instância | `ModItem` | `Consultar fonte` | A tocha do jogo (segurar, luz, colocar na parede), colocando o tile de mod. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L246) |
+| `DefaultToWhip(projType, damage, knockBack, shootSpeed, animationTime = 30)` | Instância | `ModItem` | `Consultar fonte` | Chicote. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L281) |
 | `EquipFrameEffects(player, type)` | Instância | `ModItem` | `undefined` | A cada quadro, com a textura do item vestida. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L135) |
 | `GetAlpha(item, lightColor)` | Instância | `ModItem` | `undefined` | Devolva a Color do desenho. No chão o item é a WorldItem (com Center); no inventário, o Item, sem posição. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L174) |
-| `getByName(name)` | Estático | `ModItem` | `ItemLoader.ByType.get(bl.items.typeOf(name))` | O molde. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L391) |
+| `getByName(name)` | Estático | `ModItem` | `ItemLoader.ByType.get(bl.items.typeOf(name))` | O molde. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L401) |
 | `GetHealLife(item, player, quickHeal, healValue)` | Instância | `ModItem` | `undefined` | Vida restaurada (Ref), com cura base positiva; também na seleção de QuickHeal. Ref de vida, apenas com healLife base positivo. ModItem antes de ModPlayer. QuickHeal usa o valor na seleção; campos temporários restaurados. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L79) |
 | `GetHealMana(item, player, quickHeal, healValue)` | Instância | `ModItem` | `undefined` | Mana restaurada (Ref), com cura base positiva. Ref de mana, apenas com healMana base positivo. quickHeal true em QuickHeal e QuickMana; ModItem antes de ModPlayer. Campos temporários restaurados. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L80) |
-| `getModItem(type)` | Estático | `ModItem` | `ItemLoader.ByType.get(type)` | O molde. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L390) |
-| `getTypeByName(name)` | Estático | `ModItem` | `bl.items.typeOf(name)` | O tipo de um item deste mod; -1 se não há. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L389) |
+| `getModItem(type)` | Estático | `ModItem` | `ItemLoader.ByType.get(type)` | O molde. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L400) |
+| `getTypeByName(name)` | Estático | `ModItem` | `bl.items.typeOf(name)` | O tipo de um item deste mod; -1 se não há. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L399) |
 | `HoldItem(item, player)` | Instância | `ModItem` | `undefined` | Todo quadro com o item na mão. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L61) |
 | `HoldItemFrame(item, player)` | Instância | `ModItem` | `undefined` | Depois do frame nativo, ocioso e com item visualmente permitido. Após PlayerFrame completo, com itemAnimation <= 0 e CanVisuallyHoldItem permitido. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L64) |
 | `HoldoutOffset(item, player)` | Instância | `ModItem` | `undefined` | Devolva { X, Y }: desloca a arma na mão. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L67) |
@@ -808,8 +866,8 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `HorizontalWingSpeeds(item, player, speed, acceleration)` | Instância | `ModItem` | `undefined` | A corrida no ar com estas asas (dois Ref). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L139) |
 | `IsAnglerQuestAvailable()` | Instância | `ModItem` | `true` | false: o sorteio do dia não cai nele (sorteia de novo). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L59) |
 | `IsArmorSet(head, body, legs)` | Instância | `ModItem` | `false` | Para cada peça vestida de mod: true = conjunto completo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L118) |
-| `isModItem(item)` | Estático | `ModItem` | `!!item && bl.items.isModItem(item.type)` | É de mod? | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L388) |
-| `isModType(type)` | Estático | `ModItem` | `bl.items.isModItem(type)` | É de mod? | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L387) |
+| `isModItem(item)` | Estático | `ModItem` | `!!item && bl.items.isModItem(item.type)` | É de mod? | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L398) |
+| `isModType(type)` | Estático | `ModItem` | `bl.items.isModItem(type)` | É de mod? | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L397) |
 | `IsQuestFish()` | Instância | `ModItem` | `false` | true: peixe de missão do Pescador (o mesmo que ItemID.Sets.IsQuestFish[this.Type] = true no SetStaticDefaults). Entra no fim de Main.anglerQuestItemNetIDs. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L58) |
 | `IsVanitySet(head, body, legs)` | Instância | `ModItem` | `Consultar fonte` | Os SLOTS desenhados; true = conjunto de vaidade (padrão: o IsArmorSet dos itens desses slots). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L123) |
 | `get Item` | Getter | `ModItem` | `Entities.Of(this)` | Item do jogo | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L13) |
@@ -818,9 +876,9 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `MagicPrefix(item = this.Item)` | Instância | `ModItem` | `!!item.magic` | As categorias de prefixo do item (padrão: melee sem noUseGraphic, melee com, ranged, magic, summon). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L164) |
 | `MeleeEffects(item, player, hitbox)` | Instância | `ModItem` | `undefined` | Depois dos efeitos visuais nativos de uso. Antes de ModPlayer. Marca por tipo evita despacho JavaScript para itens sem sobrescrita, salvo observador global. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L93) |
 | `MeleePrefix(item = this.Item)` | Instância | `ModItem` | `!!item.melee && !item.noUseGraphic` | As categorias de prefixo do item (padrão: melee sem noUseGraphic, melee com, ranged, magic, summon). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L161) |
-| `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Instância | `ModItem` | `undefined` | Vara na mão, a cada boia: de onde a linha sai e a cor (dois Ref). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L182) |
+| `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Instância | `ModItem` | `undefined` | Vara na mão, a cada boia: de onde a linha sai e a cor (dois Ref). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L187) |
 | `ModifyHitNPC(item, player, target, modifiers)` | Instância | `ModItem` | `undefined` | modifiers é um HitModifiers (Golpes). Contrato JS: damage, knockBack, hitDirection, crit, SourceDamage e Knockback (StatModifier), SetCrit() e DisableCrit(). Corpo a corpo; não reaplica em fromNet. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L88) |
-| `ModifyHitPvp(item, player, target, modifiers)` | Instância | `ModItem` | `undefined` | modifiers é um HurtModifiers (Golpes). Contrato JS: damage, hitDirection, quiet, crit, dodgeable. Contexto de ItemCheck_MeleeHitPVP. Origem entre processos ainda pendente. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L90) |
+| `ModifyHitPvp(item, player, target, modifiers)` | Instância | `ModItem` | `undefined` | Na vítima; modifiers é um HurtModifiers (Golpes). Contrato JS: damage, hitDirection, quiet, crit, dodgeable. Executa na vítima, com origem e NetSend/NetReceive da arma transportados pela rede. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L90) |
 | `ModifyItemLoot(itemLoot)` | Instância | `ModItem` | `undefined` | Uma vez, na primeira abertura: o que sai do item (itemLoot.Add(regra)). As regras do jogo e ItemDropRule.CoinsBasedOnNPCValue(npc) / ItemDropRule.Coins(valor); o que cairia no NPC vai para o jogador (QuickSpawnItem). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L52) |
 | `ModifyItemScale(item, player, scale)` | Instância | `ModItem` | `undefined` | scale é Ref<number> do multiplicador, incluindo a luva nativa. Atua na escala consultada e na hitbox. Item.scale é restaurado após o cálculo nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L86) |
 | `ModifyPotionDelay(item, player, baseDelay)` | Instância | `ModItem` | `undefined` | Atraso calculado pelo jogo móvel (Ref), antes do veto e da aplicação. Ref do atraso já calculado pelo jogo móvel, incluindo reduções nativas; não existe Player.PotionDelayModifier móvel. Antes do veto e da aplicação. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L81) |
@@ -837,32 +895,36 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 | `OnConsumedAsAmmo(item, weapon, player)` | Instância | `ModItem` | `undefined` | Munição: consumo efetivo, inclusive da última unidade. Na munição, após decremento efetivo. Antes da limpeza da última unidade e de ModPlayer.OnConsumeAmmo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L77) |
 | `OnCraft(item, player, recipe)` | Instância | `ModItem` | `undefined` | Ao criar o item no menu de criação. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L42) |
 | `OnHitNPC(item, player, target, hit, damageDone)` | Instância | `ModItem` | `undefined` | Depois do golpe corpo a corpo; hit é um HitInfo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L96) |
-| `OnHitPvp(item, player, target, hurtInfo)` | Instância | `ModItem` | `undefined` | Só após dano positivo, com HurtInfo do resultado aplicado. HurtInfo: DamageSource, Damage, HitDirection, PvP, Quiet, Crit, CooldownCounter, Dodgeable. Contexto de ItemCheck_MeleeHitPVP; origem entre processos ainda pendente. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L91) |
+| `OnHitPvp(item, player, target, hurtInfo)` | Instância | `ModItem` | `undefined` | Na vítima, só após dano positivo, com HurtInfo do resultado aplicado. HurtInfo: DamageSource, Damage, HitDirection, PvP, Quiet, Crit, CooldownCounter, Dodgeable. Executa na vítima após dano positivo, inclusive recebido pela rede. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L91) |
 | `PickAmmo(item, weapon, player, type, speed, damage, knockback)` | Instância | `ModItem` | `undefined` | Munição: três Ref<number> e StatModifier do dano total móvel. Na munição: item, weapon, player, type/speed/knockback (Ref) e damage (StatModifier sobre dano total móvel). Após cálculo nativo e antes das notificações. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L78) |
+| `PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Instância | `ModItem` | `undefined` | Depois do desenho, inclusive com veto. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L179) |
+| `PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI)` | Instância | `ModItem` | `undefined` | Depois do desenho, inclusive com veto; rotação e escala são números. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L177) |
 | `PostDrawTooltip(item, lines)` | Instância | `ModItem` | `undefined` | Depois de todas as linhas (DrawableTooltipLine). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L37) |
 | `PostDrawTooltipLine(item, line)` | Instância | `ModItem` | `undefined` | Depois de cada linha (também a não desenhada). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L39) |
 | `PostSetDefaults(item)` | Instância | `ModItem` | `undefined` | Logo depois do SetDefaults. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L30) |
 | `PostSetupContent()` | Instância | `ModItem` | `undefined` | Uma vez, com todo o conteúdo de mod no jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L31) |
 | `PostStaticDefaults()` | Instância | `ModItem` | `undefined` | Logo depois do SetStaticDefaults. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L29) |
-| `PostUpdate(item)` | Instância | `ModItem` | `undefined` | A cada quadro, com o item no chão (item é a WorldItem). Luz, poeira. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L175) |
-| `PostUpdateInWorld(item, worldItem)` | Instância | `ModItem` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L180) |
+| `PostUpdate(item)` | Instância | `ModItem` | `undefined` | A cada quadro, com o item no chão (item é a WorldItem). Luz, poeira. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L180) |
+| `PostUpdateInWorld(item, worldItem)` | Instância | `ModItem` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L185) |
+| `PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Instância | `ModItem` | `true` | Recebe o quadro e a escala calculados pelo jogo; false pula o desenho vanilla. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L178) |
+| `PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI)` | Instância | `ModItem` | `true` | item é WorldItem; rotação e escala são Ref. false pula o desenho vanilla. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L176) |
 | `PreDrawTooltip(item, lines, x, y)` | Instância | `ModItem` | `true` | Antes das linhas; x, y são Ref; false não desenha as linhas. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L36) |
 | `PreDrawTooltipLine(item, line, yOffset)` | Instância | `ModItem` | `true` | Antes de cada linha; yOffset (Ref) soma depois de cada linha seguinte; false não desenha a linha. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L38) |
 | `PrefixChance(item, pre, rand)` | Instância | `ModItem` | `null` | false impede, true força um prefixo; null = o do jogo (pre: -1 criar/baú, -2 reforja). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L169) |
-| `PreUpdateInWorld(item, worldItem)` | Instância | `ModItem` | `true` | O item no chão, todo quadro: item é o Item, worldItem a WorldItem que o leva (position, velocity, Center). false no Pre pula a atualização do jogo naquele quadro (o Post roda igual). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L179) |
+| `PreUpdateInWorld(item, worldItem)` | Instância | `ModItem` | `true` | O item no chão, todo quadro: item é o Item, worldItem a WorldItem que o leva (position, velocity, Center). false no Pre pula a atualização do jogo naquele quadro (o Post roda igual). | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L184) |
 | `PreUpdateVanitySet(player)` | Instância | `ModItem` | `undefined` | Antes e depois do FrameEffects, com o conjunto de vaidade. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L128) |
 | `RangedPrefix(item = this.Item)` | Instância | `ModItem` | `!!item.ranged` | As categorias de prefixo do item (padrão: melee sem noUseGraphic, melee com, ranged, magic, summon). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L163) |
-| `register(cls)` | Estático | `ModItem` | `Consultar fonte` | Registra na mão (a classe exportada já é registrada sozinha); devolve o tipo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L308) |
+| `register(cls)` | Estático | `ModItem` | `Consultar fonte` | Registra na mão (a classe exportada já é registrada sozinha); devolve o tipo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L313) |
 | `RightClick(item, player)` | Instância | `ModItem` | `undefined` | Ao abrir, antes do ItemLoot. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L51) |
 | `SaveData(tag)` | Instância | `ModItem` | `undefined` | Escreva os dados da instância no TagCompound; retorno ignorado. Também é fallback de rede. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L17) |
-| `sellPrice(platinum = 0, gold = 0, silver = 0, copper = 0)` | Estático | `ModItem` | `Terraria.Item.sellPrice(platinum, gold, silver, copper)` | Preço em cobre. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L300) |
+| `sellPrice(platinum = 0, gold = 0, silver = 0, copper = 0)` | Estático | `ModItem` | `Terraria.Item.sellPrice(platinum, gold, silver, copper)` | Preço em cobre. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L305) |
 | `SetDefaults(item)` | Instância | `ModItem` | `undefined` | Todo item deste tipo que nasce. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L28) |
-| `SetDefaultWeaponStyle(useTime = 30, autoReuse = false)` | Instância | `ModItem` | `Consultar fonte` | useTime, useAnimation, autoReuse e o useStyle que combina. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L198) |
-| `SetItemAnimation(frameCount, ticksPerFrame = 5, pingPong = false)` | Instância | `ModItem` | `Consultar fonte` | Item animado (tira vertical). No SetStaticDefaults. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L269) |
+| `SetDefaultWeaponStyle(useTime = 30, autoReuse = false)` | Instância | `ModItem` | `Consultar fonte` | useTime, useAnimation, autoReuse e o useStyle que combina. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L203) |
+| `SetItemAnimation(frameCount, ticksPerFrame = 5, pingPong = false)` | Instância | `ModItem` | `Consultar fonte` | Item animado (tira vertical). No SetStaticDefaults. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L274) |
 | `SetMatch(male, equipSlot, robes)` | Instância | `ModItem` | `undefined` | O slot desenhado desta peça (Ref); o manto põe robes e as pernas. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L133) |
-| `SetShopValues(rarity = 0, coinValue = 0)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L217) |
+| `SetShopValues(rarity = 0, coinValue = 0)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L222) |
 | `SetStaticDefaults()` | Instância | `ModItem` | `undefined` | Uma vez, com o tipo já nas tabelas do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L27) |
-| `SetWeaponValues(damage = 0, knockBack = 0, crit = 0)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L211) |
+| `SetWeaponValues(damage = 0, knockBack = 0, crit = 0)` | Instância | `ModItem` | `Consultar fonte` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L216) |
 | `SetWingStats(flyTime = 100, flySpeedOverride = -1, accelerationMultiplier = 1, hasHoldDownHoverFeatures = false, hoverFlySpeedOverride = -1, hoverAccelerationMultiplier = 1)` | Instância | `ModItem` | `Consultar fonte` | O WingStats das asas do item. No SetStaticDefaults. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L144) |
 | `Shoot(item, player, position, velocity, type, damage, knockBack)` | Instância | `ModItem` | `true` | false: o projétil do jogo não nasce. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L70) |
 | `SummonPrefix(item = this.Item)` | Instância | `ModItem` | `!!item.summon` | As categorias de prefixo do item (padrão: melee sem noUseGraphic, melee com, ranged, magic, summon). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | [Código](../../app/src/main/cpp/script/js/mod/ModItem.js#L165) |
@@ -950,85 +1012,86 @@ Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node too
 
 | Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |
 |---|---|---|---|---|---|
-| `AddShops()` | Instância | `ModNPC` | `undefined` | Uma vez: as lojas (NPCShop). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L99) |
-| `AI(npc)` | Instância | `ModNPC` | `undefined` | Todo quadro. PreAI → false pula a IA do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L65) |
-| `ApplyBuffImmunity(npc)` | Instância | `ModNPC` | `undefined` | Depois do SetDefaults: npc.buffImmune[id] = true. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L32) |
-| `ApplyDifficultyAndPlayerScaling(npc, numPlayers, balance, bossAdjustment)` | Instância | `ModNPC` | `undefined` | Depois do escalonamento por jogadores. Recebe a contagem usada pelo NPC, balance calculado pelo jogo e ajuste 0,85 em Master ou 1 nos demais modos. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L54) |
-| `BossHeadRotation(npc, rotation)` | Instância | `ModNPC` | `undefined` | Recebem Ref inicializada com o resultado do jogo. Índice -1 esconde o ícone. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L61) |
-| `BossHeadSlot(npc, index)` | Instância | `ModNPC` | `undefined` | Recebem Ref inicializada com o resultado do jogo. Índice -1 esconde o ícone. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L60) |
-| `BossHeadSpriteEffects(npc, spriteEffects)` | Instância | `ModNPC` | `undefined` | Recebem Ref inicializada com o resultado do jogo. Índice -1 esconde o ícone. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L62) |
-| `CanBeHitByItem(npc, player, item)` | Instância | `ModNPC` | `null` | false veta; true permite no teste de elegibilidade; null/undefined mantém o jogo. Um veto de ModPlayer prevalece. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L43) |
-| `CanBeHitByNPC(npc, attacker)` | Instância | `ModNPC` | `true` | NPC contra NPC; false veta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L49) |
-| `CanBeHitByProjectile(npc, projectile)` | Instância | `ModNPC` | `null` | false veta, true força, null deixa o jogo (projéteis do jogador). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L45) |
-| `CanChat(npc)` | Instância | `ModNPC` | `npc.townNPC` | Decide se pode conversar, inclusive fora de AI 7; retorno indefinido mantém o jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L90) |
-| `CanHitNPC(npc, target)` | Instância | `ModNPC` | `true` | NPC contra NPC; false veta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L48) |
-| `CanHitPlayer(npc, player, cooldownSlot)` | Instância | `ModNPC` | `true` | false veta dano; cooldownSlot.value altera o slot de imunidade. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L40) |
-| `CanTownNPCSpawn(numTownNPCs)` | Instância | `ModNPC` | `false` | De tempos em tempos, sem um deste no mundo: true e ele se muda. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L86) |
-| `CheckActive(npc)` | Instância | `ModNPC` | `true` | false: não some quando longe. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L70) |
-| `CheckConditions(left, right, top, bottom)` | Instância | `ModNPC` | `true` | A sala serve para ele? | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L87) |
-| `CheckDead(npc)` | Instância | `ModNPC` | `true` | Com NPC ativo e vida ≤ 0: false impede a morte; restaure a vida para evitar nova checagem. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L53) |
-| `Clone(newNPC)` | Instância | `ModNPC` | `Entities.Clone(this)` | Cópia da instância. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L25) |
-| `DrawBehind(npc, index)` | Instância | `ModNPC` | `undefined` | Após o cache de desenho; adicione o índice às listas Main.instance.DrawCacheNPCs. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L58) |
-| `DrawEffects(npc, drawColor)` | Instância | `ModNPC` | `undefined` | Ref<Color> da iluminação do centro; roda antes de PreDraw. A cor alterada passa pelo tint dos buffs do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L57) |
+| `AddShops()` | Instância | `ModNPC` | `undefined` | Uma vez: as lojas (NPCShop). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L104) |
+| `AI(npc)` | Instância | `ModNPC` | `undefined` | Todo quadro. PreAI → false pula a IA do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L70) |
+| `ApplyBuffImmunity(npc)` | Instância | `ModNPC` | `undefined` | Depois do SetDefaults: npc.buffImmune[id] = true. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L37) |
+| `ApplyDifficultyAndPlayerScaling(npc, numPlayers, balance, bossAdjustment)` | Instância | `ModNPC` | `undefined` | Depois do escalonamento por jogadores. Recebe a contagem usada pelo NPC, balance calculado pelo jogo e ajuste 0,85 em Master ou 1 nos demais modos. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L59) |
+| `BossHeadRotation(npc, rotation)` | Instância | `ModNPC` | `undefined` | Recebem Ref inicializada com o resultado do jogo. Índice -1 esconde o ícone. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L66) |
+| `BossHeadSlot(npc, index)` | Instância | `ModNPC` | `undefined` | Recebem Ref inicializada com o resultado do jogo. Índice -1 esconde o ícone. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L65) |
+| `BossHeadSpriteEffects(npc, spriteEffects)` | Instância | `ModNPC` | `undefined` | Recebem Ref inicializada com o resultado do jogo. Índice -1 esconde o ícone. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L67) |
+| `CanBeHitByItem(npc, player, item)` | Instância | `ModNPC` | `null` | false veta; true permite no teste de elegibilidade; null/undefined mantém o jogo. Um veto de ModPlayer prevalece. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L48) |
+| `CanBeHitByNPC(npc, attacker)` | Instância | `ModNPC` | `true` | NPC contra NPC; false veta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L54) |
+| `CanBeHitByProjectile(npc, projectile)` | Instância | `ModNPC` | `null` | false veta, true força, null deixa o jogo (projéteis do jogador). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L50) |
+| `CanChat(npc)` | Instância | `ModNPC` | `npc.townNPC` | Decide se pode conversar, inclusive fora de AI 7; retorno indefinido mantém o jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L95) |
+| `CanHitNPC(npc, target)` | Instância | `ModNPC` | `true` | NPC contra NPC; false veta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L53) |
+| `CanHitPlayer(npc, player, cooldownSlot)` | Instância | `ModNPC` | `true` | false veta dano; cooldownSlot.value altera o slot de imunidade. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L45) |
+| `CanTownNPCSpawn(numTownNPCs)` | Instância | `ModNPC` | `false` | De tempos em tempos, sem um deste no mundo: true e ele se muda. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L91) |
+| `CheckActive(npc)` | Instância | `ModNPC` | `true` | false: não some quando longe. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L75) |
+| `CheckConditions(left, right, top, bottom)` | Instância | `ModNPC` | `true` | A sala serve para ele? | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L92) |
+| `CheckDead(npc)` | Instância | `ModNPC` | `true` | Com NPC ativo e vida ≤ 0: false impede a morte; restaure a vida para evitar nova checagem. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L58) |
+| `Clone(newNPC)` | Instância | `ModNPC` | `Entities.Clone(this)` | Cópia da instância. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L27) |
+| `CloneDefaults(type)` | Instância | `ModNPC` | `Consultar fonte` | Copia defaults clássicos de um NPC vanilla ou de mod; conserva tipo, netID, ModNPC, globais e participação dos jogadores. A dificuldade do mundo é aplicada depois. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L30) |
+| `DrawBehind(npc, index)` | Instância | `ModNPC` | `undefined` | Após o cache de desenho; adicione o índice às listas Main.instance.DrawCacheNPCs. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L63) |
+| `DrawEffects(npc, drawColor)` | Instância | `ModNPC` | `undefined` | Ref<Color> da iluminação do centro; roda antes de PreDraw. A cor alterada passa pelo tint dos buffs do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L62) |
 | `DrawHealthBar` | Não implementado | Não implementado | — | Main.DrawHealthBar não recebe NPC e também atende jogadores e partes de vermes. Associar pela posição ou vida poderia alterar a entidade errada. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
 | `DrawTownAttackGun` | Não implementado | Não implementado | — | Textura, frame, escala e offsets são locais do renderer. Não há um método com todos os argumentos mutáveis. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
 | `DrawTownAttackSwing` | Não implementado | Não implementado | — | Textura, frame, escala e offsets são locais do renderer. Não há um método com todos os argumentos mutáveis. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
-| `FindFrame(npc, frameHeight)` | Instância | `ModNPC` | `undefined` | Animação própria: mude npc.frame. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L69) |
-| `GetAlpha(npc, drawColor)` | Instância | `ModNPC` | `null` | Color substitui o resultado, inclusive alfa 0; null/undefined usa o jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L59) |
-| `getByName(name)` | Estático | `ModNPC` | `NPCLoader.ByType.get(bl.npcs.typeOf(name))` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L214) |
-| `GetChat(npc)` | Instância | `ModNPC` | `undefined` | A fala ao conversar. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L89) |
-| `getModNPC(type)` | Estático | `ModNPC` | `NPCLoader.ByType.get(type)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L213) |
-| `getTypeByName(name)` | Estático | `ModNPC` | `bl.npcs.typeOf(name)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L212) |
-| `get Happiness` | Getter | `ModNPC` | `new NPCHappiness(this.Type)` | NPCHappiness | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L23) |
-| `HitEffect(npc, hitDirection, damage)` | Instância | `ModNPC` | `undefined` | A cada golpe, depois do efeito do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L35) |
-| `isModNPC(npc)` | Estático | `ModNPC` | `!!npc && bl.npcs.isModNpc(npc.type)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L211) |
-| `isModType(type)` | Estático | `ModNPC` | `bl.npcs.isModNpc(type)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L210) |
-| `ModifyActiveShop(npc, shopName, items)` | Instância | `ModNPC` | `undefined` | Ao preencher uma loja registrada deste NPC em conversa, após NPCShop montar os itens. Recebe o nome local da loja e o array nativo de itens. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L92) |
+| `FindFrame(npc, frameHeight)` | Instância | `ModNPC` | `undefined` | Animação própria: mude npc.frame. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L74) |
+| `GetAlpha(npc, drawColor)` | Instância | `ModNPC` | `null` | Color substitui o resultado, inclusive alfa 0; null/undefined usa o jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L64) |
+| `getByName(name)` | Estático | `ModNPC` | `NPCLoader.ByType.get(bl.npcs.typeOf(name))` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L219) |
+| `GetChat(npc)` | Instância | `ModNPC` | `undefined` | A fala ao conversar. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L94) |
+| `getModNPC(type)` | Estático | `ModNPC` | `NPCLoader.ByType.get(type)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L218) |
+| `getTypeByName(name)` | Estático | `ModNPC` | `bl.npcs.typeOf(name)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L217) |
+| `get Happiness` | Getter | `ModNPC` | `new NPCHappiness(this.Type)` | NPCHappiness | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L25) |
+| `HitEffect(npc, hitDirection, damage)` | Instância | `ModNPC` | `undefined` | A cada golpe, depois do efeito do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L40) |
+| `isModNPC(npc)` | Estático | `ModNPC` | `!!npc && bl.npcs.isModNpc(npc.type)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L216) |
+| `isModType(type)` | Estático | `ModNPC` | `bl.npcs.isModNpc(type)` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L215) |
+| `ModifyActiveShop(npc, shopName, items)` | Instância | `ModNPC` | `undefined` | Ao preencher uma loja registrada deste NPC em conversa, após NPCShop montar os itens. Recebe o nome local da loja e o array nativo de itens. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L97) |
 | `ModifyDeathMessage` | Não implementado | Não implementado | — | Mensagem e cor são locais de checkDead. DropTombstoneTownNPC expõe apenas o texto da lápide. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
-| `ModifyHitByItem(npc, player, item, modifiers)` | Instância | `ModNPC` | `undefined` | Antes do golpe de item; HitModifiers. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L44) |
-| `ModifyHitByProjectile(npc, projectile, modifiers)` | Instância | `ModNPC` | `undefined` | Antes do golpe de projétil; HitModifiers. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L46) |
-| `ModifyHitNPC(npc, target, modifiers)` | Instância | `ModNPC` | `undefined` | O golpe dele em outro NPC. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L50) |
-| `ModifyHitPlayer(npc, player, modifiers)` | Instância | `ModNPC` | `undefined` | Altera os parâmetros de dano suportados pelo mobile antes de Hurt. Contrato JS: damage, hitDirection, quiet, crit e dodgeable. Não contém todos os campos de HurtModifiers do tModLoader. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L41) |
-| `ModifyIncomingHit(npc, modifiers)` | Instância | `ModNPC` | `undefined` | Por último, em todo golpe (também sem autor). Não reaplica em fromNet. Contrato JS: damage, knockBack, hitDirection, crit, SourceDamage e Knockback (StatModifier), SetCrit() e DisableCrit(). Não reaplica em fromNet. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L52) |
-| `ModifyNPCHappiness(npc, player, primaryPlayerBiome, shopHelper, nearbyNPCsByType)` | Instância | `ModNPC` | `undefined` | Após as preferências nativas, antes de limitar o preço. Usa a alternativa de ExMod; o método está desativado no tModLoader stable. Adaptação do ExMod. Bioma primário: 0 floresta, 1 subterrâneo, 2 neve, 3 deserto, 4 selva, 5 oceano, 6 sagrado, 7 cogumelo, 8 masmorra, 9 corrupção, 10 carmim. shopHelper e vizinhos são nativos. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L93) |
-| `ModifyNPCLoot(npcLoot)` | Instância | `ModNPC` | `undefined` | Uma vez: os drops. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L33) |
-| `get NPC` | Getter | `ModNPC` | `Entities.Of(this)` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L22) |
-| `NPCHeadSlot()` | Instância | `ModNPC` | `bl.npcs.headSlot(this.Type)` | (para ler) o índice da cabeça, -1 sem cabeça. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L94) |
-| `NPCValue(p = 0, g = 0, s = 0, c = 0)` | Estático | `ModNPC` | `p * 1000000 + g * 10000 + s * 100 + c` | O dinheiro que ele solta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L105) |
-| `OnChatButtonClicked(npc, firstButton)` | Instância | `ModNPC` | `undefined` | Tocou num botão; devolva o nome de uma loja para abri-la. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L98) |
-| `OnHitByItem(npc, player, item, hit, damageDone)` | Instância | `ModNPC` | `undefined` | Após dano efetivo de item, uma vez por golpe. hit contém Damage, SourceDamage, Knockback, HitDirection e Crit. damageDone é o retorno efetivo nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L38) |
-| `OnHitByProjectile(npc, projectile, hit, damageDone)` | Instância | `ModNPC` | `undefined` | Após dano efetivo de projétil, inclusive sem dono jogador. Inclui projéteis sem dono jogador. hit contém Damage, SourceDamage, Knockback, HitDirection e Crit. damageDone é o retorno efetivo nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L39) |
-| `OnHitNPC(npc, target, hit)` | Instância | `ModNPC` | `undefined` | O golpe dele em outro NPC. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L51) |
-| `OnHitPlayer(npc, player, hurtInfo)` | Instância | `ModNPC` | `undefined` | Após dano efetivo, recebe os dados do golpe e o slot usado. hurtInfo contém DamageSource, Damage, HitDirection, PvP, Quiet, Crit, CooldownCounter e Dodgeable. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L42) |
-| `OnKill(npc)` | Instância | `ModNPC` | `undefined` | Na morte. PreKill → false cancela o drop. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L72) |
-| `OnSpawn(npc, source)` | Instância | `ModNPC` | `undefined` | Uma vez após nascer; recebe a fonte nativa. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L36) |
-| `PostAI(npc)` | Instância | `ModNPC` | `undefined` | Todo quadro. PreAI → false pula a IA do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L66) |
-| `PostDraw(npc, spriteBatch, screenPos, drawColor)` | Instância | `ModNPC` | `undefined` | Após desenhar, inclusive quando PreDraw veta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L56) |
-| `PostSetDefaults(npc)` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L30) |
-| `PostSetupContent()` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L31) |
-| `PostStaticDefaults()` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L29) |
-| `PreAI(npc)` | Instância | `ModNPC` | `true` | Todo quadro. PreAI → false pula a IA do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L64) |
-| `PreDraw(npc, spriteBatch, screenPos, drawColor)` | Instância | `ModNPC` | `true` | false pula o desenho nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L55) |
-| `PreKill(npc)` | Instância | `ModNPC` | `true` | Na morte. PreKill → false cancela o drop. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L71) |
-| `ReceiveExtraAI(reader)` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L68) |
-| `register(cls)` | Estático | `ModNPC` | `Consultar fonte` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L109) |
-| `ResetEffects(npc)` | Instância | `ModNPC` | `undefined` | Depois de zerar os flags de buffs, antes de reaplicar efeitos e executar AI. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L37) |
-| `SendExtraAI(writer)` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L67) |
-| `SetBestiary(database, bestiaryEntry)` | Instância | `ModNPC` | `undefined` | Uma vez: a entrada do Bestiário. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L34) |
-| `SetChatButtons(npc, buttons)` | Instância | `ModNPC` | `undefined` | Os botões da conversa (até dois no celular). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L96) |
-| `SetDefaults(npc)` | Instância | `ModNPC` | `undefined` | Todo NPC deste tipo que nasce. A escala de Expert/Mestre vem depois. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L28) |
-| `SetNPCNameList()` | Instância | `ModNPC` | `[]` | Os nomes próprios; um é sorteado. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L88) |
-| `SetStaticDefaults()` | Instância | `ModNPC` | `undefined` | Uma vez. Main.npcFrameCount[this.Type] = n: quadros da textura. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L27) |
-| `SpawnChance(spawnInfo)` | Instância | `ModNPC` | `0` | A cada spawn natural: devolva o peso (o do jogo pesa 1; 0 = não nasce). Só sozinho ou no servidor. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L77) |
-| `SpawnNPC(tileX, tileY)` | Instância | `ModNPC` | `Consultar fonte` | Sorteado: como nasce, no bloco do spawn; devolve o índice. Padrão: em cima do bloco (tileX  16 + 8, tileY  16), como no tModLoader. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L80) |
+| `ModifyHitByItem(npc, player, item, modifiers)` | Instância | `ModNPC` | `undefined` | Antes do golpe de item; HitModifiers. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L49) |
+| `ModifyHitByProjectile(npc, projectile, modifiers)` | Instância | `ModNPC` | `undefined` | Antes do golpe de projétil; HitModifiers. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L51) |
+| `ModifyHitNPC(npc, target, modifiers)` | Instância | `ModNPC` | `undefined` | O golpe dele em outro NPC. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L55) |
+| `ModifyHitPlayer(npc, player, modifiers)` | Instância | `ModNPC` | `undefined` | Altera os parâmetros de dano suportados pelo mobile antes de Hurt. Contrato JS: damage, hitDirection, quiet, crit e dodgeable. Não contém todos os campos de HurtModifiers do tModLoader. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L46) |
+| `ModifyIncomingHit(npc, modifiers)` | Instância | `ModNPC` | `undefined` | Por último, em todo golpe (também sem autor). Não reaplica em fromNet. Contrato JS: damage, knockBack, hitDirection, crit, SourceDamage e Knockback (StatModifier), SetCrit() e DisableCrit(). Não reaplica em fromNet. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L57) |
+| `ModifyNPCHappiness(npc, player, primaryPlayerBiome, shopHelper, nearbyNPCsByType)` | Instância | `ModNPC` | `undefined` | Após as preferências nativas, antes de limitar o preço. Usa a alternativa de ExMod; o método está desativado no tModLoader stable. Adaptação do ExMod. Bioma primário: 0 floresta, 1 subterrâneo, 2 neve, 3 deserto, 4 selva, 5 oceano, 6 sagrado, 7 cogumelo, 8 masmorra, 9 corrupção, 10 carmim. shopHelper e vizinhos são nativos. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L98) |
+| `ModifyNPCLoot(npcLoot)` | Instância | `ModNPC` | `undefined` | Uma vez: os drops. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L38) |
+| `get NPC` | Getter | `ModNPC` | `Entities.Of(this)` | Consulte a implementação na fonte. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L24) |
+| `NPCHeadSlot()` | Instância | `ModNPC` | `bl.npcs.headSlot(this.Type)` | (para ler) o índice da cabeça, -1 sem cabeça. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L99) |
+| `NPCValue(p = 0, g = 0, s = 0, c = 0)` | Estático | `ModNPC` | `p * 1000000 + g * 10000 + s * 100 + c` | O dinheiro que ele solta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L110) |
+| `OnChatButtonClicked(npc, firstButton)` | Instância | `ModNPC` | `undefined` | Tocou num botão; devolva o nome de uma loja para abri-la. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L103) |
+| `OnHitByItem(npc, player, item, hit, damageDone)` | Instância | `ModNPC` | `undefined` | Após dano efetivo de item, uma vez por golpe. hit contém Damage, SourceDamage, Knockback, HitDirection e Crit. damageDone é o retorno efetivo nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L43) |
+| `OnHitByProjectile(npc, projectile, hit, damageDone)` | Instância | `ModNPC` | `undefined` | Após dano efetivo de projétil, inclusive sem dono jogador. Inclui projéteis sem dono jogador. hit contém Damage, SourceDamage, Knockback, HitDirection e Crit. damageDone é o retorno efetivo nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L44) |
+| `OnHitNPC(npc, target, hit)` | Instância | `ModNPC` | `undefined` | O golpe dele em outro NPC. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L56) |
+| `OnHitPlayer(npc, player, hurtInfo)` | Instância | `ModNPC` | `undefined` | Após dano efetivo, recebe os dados do golpe e o slot usado. hurtInfo contém DamageSource, Damage, HitDirection, PvP, Quiet, Crit, CooldownCounter e Dodgeable. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L47) |
+| `OnKill(npc)` | Instância | `ModNPC` | `undefined` | Na morte. PreKill → false cancela o drop. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L77) |
+| `OnSpawn(npc, source)` | Instância | `ModNPC` | `undefined` | Uma vez após nascer; recebe a fonte nativa. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L41) |
+| `PostAI(npc)` | Instância | `ModNPC` | `undefined` | Todo quadro. PreAI → false pula a IA do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L71) |
+| `PostDraw(npc, spriteBatch, screenPos, drawColor)` | Instância | `ModNPC` | `undefined` | Após desenhar, inclusive quando PreDraw veta. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L61) |
+| `PostSetDefaults(npc)` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L35) |
+| `PostSetupContent()` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L36) |
+| `PostStaticDefaults()` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L34) |
+| `PreAI(npc)` | Instância | `ModNPC` | `true` | Todo quadro. PreAI → false pula a IA do jogo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L69) |
+| `PreDraw(npc, spriteBatch, screenPos, drawColor)` | Instância | `ModNPC` | `true` | false pula o desenho nativo. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L60) |
+| `PreKill(npc)` | Instância | `ModNPC` | `true` | Na morte. PreKill → false cancela o drop. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L76) |
+| `ReceiveExtraAI(reader)` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L73) |
+| `register(cls)` | Estático | `ModNPC` | `Consultar fonte` | Como no item. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L114) |
+| `ResetEffects(npc)` | Instância | `ModNPC` | `undefined` | Depois de zerar os flags de buffs, antes de reaplicar efeitos e executar AI. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L42) |
+| `SendExtraAI(writer)` | Instância | `ModNPC` | `undefined` | A implementação base não executa ações. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L72) |
+| `SetBestiary(database, bestiaryEntry)` | Instância | `ModNPC` | `undefined` | Uma vez: a entrada do Bestiário. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L39) |
+| `SetChatButtons(npc, buttons)` | Instância | `ModNPC` | `undefined` | Os botões da conversa (até dois no celular). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L101) |
+| `SetDefaults(npc)` | Instância | `ModNPC` | `undefined` | Todo NPC deste tipo que nasce. A escala de Expert/Mestre vem depois. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L33) |
+| `SetNPCNameList()` | Instância | `ModNPC` | `[]` | Os nomes próprios; um é sorteado. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L93) |
+| `SetStaticDefaults()` | Instância | `ModNPC` | `undefined` | Uma vez. Main.npcFrameCount[this.Type] = n: quadros da textura. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L32) |
+| `SpawnChance(spawnInfo)` | Instância | `ModNPC` | `0` | A cada spawn natural: devolva o peso (o do jogo pesa 1; 0 = não nasce). Só sozinho ou no servidor. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L82) |
+| `SpawnNPC(tileX, tileY)` | Instância | `ModNPC` | `Consultar fonte` | Sorteado: como nasce, no bloco do spawn; devolve o índice. Padrão: em cima do bloco (tileX  16 + 8, tileY  16), como no tModLoader. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L85) |
 | `TownNPCAttackCooldown` | Não implementado | Não implementado | — | Cooldown e seus parâmetros ficam em variáveis locais da AI de moradores. Não há helper interceptável com as referências completas. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
 | `TownNPCAttackMagic` | Não implementado | Não implementado | — | Os parâmetros da aura ficam em variáveis locais da AI de moradores. Não há helper interceptável com as referências completas. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
-| `TownNPCAttackProj(npc, attack)` | Instância | `ModNPC` | `undefined` | O projétil do ataque (projType, attackDelay). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L102) |
-| `TownNPCAttackProjSpeed(npc, attack)` | Instância | `ModNPC` | `undefined` | speed, gravityCorrection, randomOffset. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L103) |
+| `TownNPCAttackProj(npc, attack)` | Instância | `ModNPC` | `undefined` | O projétil do ataque (projType, attackDelay). | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L107) |
+| `TownNPCAttackProjSpeed(npc, attack)` | Instância | `ModNPC` | `undefined` | speed, gravityCorrection, randomOffset. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L108) |
 | `TownNPCAttackShoot` | Não implementado | Não implementado | — | Os parâmetros de tiro ficam em variáveis locais da AI de moradores. Não há helper interceptável com as referências completas. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
-| `TownNPCAttackStrength(npc, attack)` | Instância | `ModNPC` | `undefined` | damage, knockback. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L101) |
+| `TownNPCAttackStrength(npc, attack)` | Instância | `ModNPC` | `undefined` | damage, knockback. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L106) |
 | `TownNPCAttackSwing` | Não implementado | Não implementado | — | Os parâmetros da hitbox ficam em variáveis locais da AI de moradores. Não há helper interceptável com as referências completas. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
-| `TownNPCProfile()` | Instância | `ModNPC` | `null` | Uma vez após carregar conteúdo: devolva um ITownNPCProfile nativo; null mantém a aparência automática. Chamado uma vez no template, com conteúdo pronto. Retorne um ITownNPCProfile nativo ou null. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L91) |
+| `TownNPCProfile()` | Instância | `ModNPC` | `null` | Uma vez após carregar conteúdo: devolva um ITownNPCProfile nativo; null mantém a aparência automática. Chamado uma vez no template, com conteúdo pronto. Retorne um ITownNPCProfile nativo ou null. | [Código](../../app/src/main/cpp/script/js/mod/ModNPC.js#L96) |
 | `UpdateLifeRegen` | Não implementado | Não implementado | — | UpdateNPC_BuffApplyDOTs acumula e aplica o dano em uma DOTTally local. A referência de dano não fica acessível antes da aplicação. | [Código](../../tools/tests/modnpchooks/README.md#métodos-descartados) |
 
 ## ModPacket

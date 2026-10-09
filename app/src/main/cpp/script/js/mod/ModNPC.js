@@ -6,6 +6,8 @@ class ModNPC {
     AIType = 0;
     // Anima como este NPC do jogo (0 = não anima). Pode vir do SetDefaults.
     AnimationType = 0;
+    Banner = 0;
+    BannerItem = 0;
     DisplayName = '';
     Texture = this.constructor.name;
     HideFromBestiary = false;
@@ -23,6 +25,9 @@ class ModNPC {
     get Happiness() { return new NPCHappiness(this.Type); }
 
     Clone(newNPC) { return Entities.Clone(this); }
+
+    // Defaults clássicos; o SetDefaults externo aplica a dificuldade uma vez.
+    CloneDefaults(type) { NPCLoader.CloneDefaults(this, type); }
 
     SetStaticDefaults() {}
     SetDefaults(npc) {}
@@ -112,6 +117,7 @@ class ModNPC {
         }
 
         GoreLoader.Autoload();
+        BannerLoader.Install();
         Entities.Define(Terraria.NPC, 'ModNPC');
 
         const inst = new cls();
@@ -133,9 +139,8 @@ class ModNPC {
             displayName: inst.DisplayName || Lang.Localized('NPCName', name) || name,
             setDefaults(npc) {
                 const m = Entities.Bind(inst.Clone(npc), npc, 'ModNPC');
-                m.SetDefaults(npc);
-                m.ApplyBuffImmunity(npc);
-                m.PostSetDefaults(npc);
+                NPCLoader.Defaults(m, npc);
+                BannerLoader.Track(m);
                 ModMusic.TrackNpc(npc, m);
                 townNpc = !!npc.townNPC;
 

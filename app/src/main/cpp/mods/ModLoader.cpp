@@ -1,4 +1,6 @@
 #include "mods/ModLoader.h"
+#include "mods/LoadOrder.h"
+#include "mods/ManifestText.h"
 #include "core/Log.h"
 #include "content/textures/TexturePacks.h"
 #include "script/bridge/ScriptEngine.h"
@@ -67,51 +69,17 @@ void collectScripts(const std::string& base, const std::string& rel, std::vector
     }
 }
 
-/**
- * O texto de uma chave do manifesto ("id", "name"...), lido a mao: sao tres
- * campos, e puxar um parser de JSON para o nucleo por causa deles nao se paga.
- *
- * So valem as chaves do objeto de FORA. `authors` tem um "name" por autor, e
- * um manifesto que lista os autores antes do nome do mod fazia o jogo chamar o
- * mod pelo nome do primeiro autor. Texto entre aspas (chave ou valor) nunca
- * conta como chave ou chave/colchete.
- */
-std::string manifestString(const std::string& txt, const char* key) {
-    auto skipSpace = [&](size_t i) {
-        while (i < txt.size() && (txt[i] == ' ' || txt[i] == '\t' || txt[i] == '\r' || txt[i] == '\n')) ++i;
-        return i;
-    };
-    // Le a string que comeca nas aspas de `i`; devolve o indice depois dela.
-    auto readString = [&](size_t i, std::string* out) {
-        for (++i; i < txt.size() && txt[i] != '"'; ++i) {
-            if (txt[i] == '\\' && i + 1 < txt.size()) ++i;
-            if (out) *out += txt[i];
-        }
-        return i + 1;
-    };
-    int depth = 0;
-    for (size_t i = 0; i < txt.size();) {
-        const char c = txt[i];
-        if (c == '{' || c == '[') { ++depth; ++i; continue; }
-        if (c == '}' || c == ']') { --depth; ++i; continue; }
-        if (c != '"') { ++i; continue; }
-        std::string name;
-        size_t after = readString(i, &name);
-        size_t colon = skipSpace(after);
-        if (depth == 1 && colon < txt.size() && txt[colon] == ':' && name == key) {
-            size_t v = skipSpace(colon + 1);
-            if (v >= txt.size() || txt[v] != '"') return {};
-            std::string out;
-            readString(v, &out);
-            return out;
-        }
-        i = after;
-    }
-    return {};
-}
-
 void readManifest(LoadedMod* mod) {
-    FILE* f = std::fopen((mod->dir + "/manifest.json").c_str(), "rb");
+    // Same names and priority as Catalog.MANIFESTS in the launcher.
+    FILE* f = nullptr;
+    for (const char* name : {"manifest.json", "mod.json"}) {
+        const std::string path = mod->dir + "/" + name;
+        struct stat st{};
+        if (stat(path.c_str(), &st) == 0 && S_ISREG(st.st_mode)) {
+            f = std::fopen(path.c_str(), "rb");
+            break;
+        }
+    }
     std::string txt;
     if (f) {
         char buf[1024];
@@ -122,6 +90,7 @@ void readManifest(LoadedMod* mod) {
     mod->internalName = manifestString(txt, "id");
     mod->displayName = manifestString(txt, "name");
     mod->version = manifestString(txt, "version");
+    mod->dependencies = manifestStrings(txt, "dependencies");
     if (mod->displayName.empty()) mod->displayName = mod->id;
 }
 }
@@ -135,9 +104,7 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     // 1a passada: todos no registro, com manifesto e entry, antes de qualquer
     // main.js rodar. A ordem de carga vem da lista escolhida no launcher;
     // sem isto o ModLoader.TryGetMod de um mod dependeria da posicao do outro.
-    //
-    // TODO(Fase 5): ordenação topológica por dependências (ciclo/faltante =>
-    // desativa e loga).
+    std::vector<LoadedMod> listed;
     for (const auto& spec : enabled) {
         if (spec.entry == "@texture" || spec.entry == "@font") continue;
         const std::string& id = spec.id;
@@ -145,20 +112,43 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         mod.id = id;
         mod.dir = modsDir + "/" + id;
         readManifest(&mod);
-        registry().push_back(mod);
 
         // O `entry` do manifesto manda, relativo a content/ (sem ele, main.js).
         const std::string name = spec.entry.empty() ? std::string("main.js") : spec.entry;
         const std::string path = mod.dir + "/content/" + name;
         if (!fileExists(path)) {
             BL_ERROR("mod %s: nao achei o arquivo de entrada content/%s", id.c_str(), name.c_str());
-            registry().back().enabled = false;
-            continue;
+            mod.enabled = false;
+        } else {
+            mod.entry = path.substr(mod.dir.size() + 1);
+            // A pasta do ARQUIVO de entrada: Assets/, Content/, Common/ e
+            // Localization/ ficam ao lado dele.
+            dirsById()[id] = path.substr(0, path.rfind('/'));
         }
-        registry().back().entry = path.substr(mod.dir.size() + 1);
-        // A pasta do ARQUIVO de entrada: Assets/, Content/, Common/ e
-        // Localization/ ficam ao lado dele.
-        dirsById()[id] = path.substr(0, path.rfind('/'));
+        listed.push_back(std::move(mod));
+    }
+
+    // As dependencias do manifesto carregam antes de quem as pede; o resto
+    // fica na ordem do launcher. Faltou uma, ou ha ciclo: o mod fica de fora.
+    std::vector<OrderEntry> entries;
+    entries.reserve(listed.size());
+    for (const LoadedMod& m : listed) entries.push_back({m.id, m.internalName, m.dependencies, m.enabled});
+    const OrderResult sorted = sortByDependencies(entries);
+    std::vector<size_t> position(listed.size());
+    for (size_t k = 0; k < sorted.order.size(); ++k) {
+        const size_t i = sorted.order[k];
+        position[i] = k;
+        LoadedMod& mod = listed[i];
+        if (mod.enabled && !sorted.errors[i].empty()) {
+            BL_ERROR("mod %s (%s) disabled: %s", mod.displayName.c_str(), mod.id.c_str(), sorted.errors[i].c_str());
+            mod.enabled = false;
+        }
+        registry().push_back(std::move(mod));
+    }
+    // As dependencias de cada mod, ja como indices do registro.
+    std::vector<std::vector<size_t>> needs(registry().size());
+    for (size_t i = 0; i < listed.size(); ++i) {
+        for (size_t d : sorted.needs[i]) needs[position[i]].push_back(position[d]);
     }
 
     if (!script::engine().ready()) return;
@@ -168,6 +158,16 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     // seria a mesma armadilha do g_frames.back() do JsHook.
     for (size_t i = 0; i < registry().size(); ++i) {
         if (!registry()[i].enabled) continue;
+        // Uma dependencia que lancou erro na carga derruba quem precisa dela.
+        const auto broken = std::find_if(needs[i].begin(), needs[i].end(),
+            [](size_t d) { return !registry()[d].loaded; });
+        if (broken != needs[i].end()) {
+            const LoadedMod& dep = registry()[*broken];
+            BL_ERROR("mod %s (%s) disabled: requires '%s', which failed to load",
+                registry()[i].displayName.c_str(), registry()[i].id.c_str(), dep.displayName.c_str());
+            registry()[i].enabled = false;
+            continue;
+        }
         const std::string id = registry()[i].id;
         const std::string path = registry()[i].dir + "/" + registry()[i].entry;
         const std::string dir = dirsById()[id];

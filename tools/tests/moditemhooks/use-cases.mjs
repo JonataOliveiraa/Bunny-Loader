@@ -227,7 +227,7 @@ export function runUseCases({ vm, fs, path, source, context, sandbox, entity, p,
         } });
         const other = { Install() {} };
         const local = vm.createContext({ Terraria: { Player: native, Item: native }, FIRST_ITEM: 6145, SceneEffectPriority: { BossLow: 0 },
-            PlayerUpdateHooks: other, PlayerJumpHooks: other, PlayerDrawHooks: other, PlayerWorldHooks: other, PlayerNetworkHooks: other, PlayerCombatHooks: other,
+            PlayerUpdateHooks: other, PlayerJumpHooks: other, PlayerDrawHooks: other, PlayerWorldHooks: other, PlayerNetworkHooks: other, CombatLoader: { WantPlayer() {} }, ItemDrawLoader: { Want() {} }, globalItems: { For: () => [] },
             Entities: { InstanceOf: (item, key, templates) => item[key] || (item[key] = Object.assign(Object.create(Object.getPrototypeOf(templates.get(item.type))), templates.get(item.type))) },
             Safe: { Run: (_, fn) => fn(), Report: (name, error) => issues.push([name, error]) }, events,
             bl: { mod: { uuid: 'use-order' }, addressOf: item => item.__address,

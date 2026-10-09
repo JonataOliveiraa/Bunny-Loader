@@ -146,9 +146,9 @@ própria instância, com `this.Item` apontando para ele.
 | `ModifyItemScale(item, player, scale)` | `scale` é `Ref<number>` do multiplicador, incluindo a luva nativa. | `Player.GetAdjustedItemScale` e `ItemCheck_GetMeleeHitbox`, marcas por tipo |
 | `CanHitNPC(item, player, target)` | `false` veta; `true` permite a elegibilidade; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
 | `ModifyHitNPC(item, player, target, modifiers)` | `modifiers` é um `HitModifiers` ([Golpes](../mods/16-golpes.md)). | `NPC.StrikeNPC`, contexto do item |
-| `CanHitPvp(item, player, target)` | `false` impede o golpe corpo a corpo. | `Player.ItemCheck_MeleeHitPVP` e `Hurt` |
-| `ModifyHitPvp(item, player, target, modifiers)` | `modifiers` é um `HurtModifiers` ([Golpes](../mods/16-golpes.md)). | `Player.Hurt`, contexto do ataque corpo a corpo |
-| `OnHitPvp(item, player, target, hurtInfo)` | Só após dano positivo, com `HurtInfo` do resultado aplicado. | retorno de `Player.Hurt`, contexto do ataque corpo a corpo |
+| `CanHitPvp(item, player, target)` | No atacante; `false` impede o golpe antes de status e envio. | `Player.CanHit`, durante `ItemCheck_MeleeHitPVP` |
+| `ModifyHitPvp(item, player, target, modifiers)` | Na vítima; `modifiers` é um `HurtModifiers` ([Golpes](../mods/16-golpes.md)). | `Player.Hurt`, inclusive recebido pela rede |
+| `OnHitPvp(item, player, target, hurtInfo)` | Na vítima, só após dano positivo, com `HurtInfo` do resultado aplicado. | retorno de `Player.Hurt`, inclusive recebido pela rede |
 | `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | `false` veta; `true` permite a colisão; `null` mantém o jogo. | `Player.ProcessHitAgainstNPC`, `Rectangle.Intersects` com flag e `whileIn` |
 | `MeleeEffects(item, player, hitbox)` | Depois dos efeitos visuais nativos de uso. | `Player.ItemCheck_EmitUseVisuals`, marcas por tipo |
 | `UseItemHitbox(item, player, hitbox, noHitbox)` | `Ref<Rectangle>` e `Ref<boolean>` depois da hitbox nativa. | `Player.ItemCheck_GetMeleeHitbox`, marcas por tipo |
@@ -170,6 +170,10 @@ própria instância, com `this.Item` apontando para ele.
 | `UpdateInventory(item, player)` | Todo quadro, no inventário. | `Player.UpdateEquips`, sem filtro (percorre só os itens de mod do jogador) |
 | `GetAlpha(item, lightColor)` | Devolva a `Color` do desenho. No chão o `item` é a `WorldItem` (com `Center`); no inventário, o `Item`, sem posição. | `Item.GetAlpha`, filtro `tipo` |
 | `PostUpdate(item)` | A cada quadro, com o item no chão (`item` é a `WorldItem`). Luz, poeira. | `WorldItem.UpdateItem`, filtro `inner.type` |
+| `PreDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI)` | `item` é `WorldItem`; rotação e escala são `Ref`. `false` pula o desenho vanilla. | etapa interna de `Main.DrawItem`, filtro `inner.type` |
+| `PostDrawInWorld(item, spriteBatch, lightColor, alphaColor, rotation, scale, whoAmI)` | Depois do desenho, inclusive com veto; rotação e escala são números. | etapa final de `Main.DrawItem` |
+| `PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Recebe o quadro e a escala calculados pelo jogo; `false` pula o desenho vanilla. | etapa interna de `ItemSlot.DrawItemIcon`, filtro `type` |
+| `PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Depois do desenho, inclusive com veto. | etapa final de `ItemSlot.DrawItemIcon` |
 | `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara na mão, a cada boia: de onde a linha sai e a cor (dois `Ref`). | `Main.DrawProj_FishingLine`, sem filtro |
 | `MeleePrefix(item)`, `WeaponPrefix(item)`, `RangedPrefix(item)`, `MagicPrefix(item)`, `SummonPrefix(item)` | As categorias de prefixo do item (padrão: `melee` sem `noUseGraphic`, `melee` com, `ranged`, `magic`, `summon`). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | `Item.GetRollablePrefixes`, sem filtro |
 | `ChoosePrefix(item, rand)` | Um prefixo forçado ao rolar (> 0), ou -1. | `Item.RollAPrefix`, sem filtro |
@@ -213,8 +217,7 @@ as adaptações móveis estão em [Uso e munição de ModItem](moditem-uso-munic
 
 ### Ainda não
 
-Do `ModItem` do tModLoader, entre outros: `PreDrawInWorld`/`PostDrawInInventory`,
-`OnPickup`, `GrabRange`,
+Do `ModItem` do tModLoader, entre outros: `OnPickup`, `GrabRange`,
 `DrawArmorColor`/`ArmorArmGlowMask`, `WingGlidingSpeeds`,
 `ModifyEquipTextureDraw`. As camadas de desenho próprias
 ([`PlayerDrawLayer`](playerdrawlayers.md)) já podem ser registradas e desenhadas.
@@ -410,6 +413,7 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `DisplayName` | texto ou `{ cultura: texto }` | Vazio: `NPCName.<Classe>`. |
 | `AIType` | número | Tipo vanilla usado só durante a IA do jogo; `0` desliga. Configure `npc.aiStyle` separadamente. Vale no `SetDefaults` e pode mudar por instância. |
 | `AnimationType` | número | Anima como este NPC do jogo (0 = não). Vale no `SetDefaults`. |
+| `Banner`, `BannerItem` | número | ID do banner (o tipo do NPC representante) e item liberado pelo BannerSystem. `0` desliga. Veja [banners](../mods/07-npcs.md#bandeiras-de-inimigos). |
 | `HideFromBestiary` | `boolean` | Sem entrada no Bestiário. |
 | `HideFromModMenu` | `boolean` | Fora do Mod Menu. |
 | `HeadTexture`, `ShimmerHeadTexture` | texto | Morador: a cabeça no mapa. Padrão: `<Texture>_Head`, `<Texture>_Shimmer_Head`. |
@@ -425,6 +429,7 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `SetDefaults(npc)` | Todo NPC deste tipo que nasce. A escala de Expert/Mestre vem depois. | nativo (`NPC.SetDefaults`) |
 | `PostStaticDefaults()`, `PostSetDefaults(npc)`, `PostSetupContent()` | | nativo / conteúdo pronto |
 | `Clone(newNPC)` | Cópia da instância. | |
+| `CloneDefaults(type)` | Copia defaults clássicos de um NPC vanilla ou de mod; conserva tipo, netID, ModNPC, globais e participação dos jogadores. A dificuldade do mundo é aplicada depois. | `NPC.SetDefaults` com parâmetros de cópia |
 | `ApplyBuffImmunity(npc)` | Depois do `SetDefaults`: `npc.buffImmune[id] = true`. | nativo |
 | `ModifyNPCLoot(npcLoot)` | Uma vez: os drops. | nativo |
 | `SetBestiary(database, bestiaryEntry)` | Uma vez: a entrada do Bestiário. | conteúdo pronto |
@@ -742,7 +747,7 @@ Uma nuvem, como o `ModCloud` do tModLoader. Tipo depois do `CloudID.Count`.
 |---|---|
 | `Texture` | Padrão: ao lado do arquivo (`Content/Clouds/X.js` → `Content/Clouds/X.png`). |
 | `RareCloud` | `true`: sorteada entre as raras (getter). |
-| `SpawnChance()` | O peso: as comuns contra as 22 do jogo (peso 1 cada), as raras contra as 18 raras do jogo. |
+| `SpawnChance()` | O peso: as comuns contra as 22 do jogo (peso 1 cada), as raras contra as 18 raras do jogo. O das comuns é relido a cada 60 tentativas de nuvem nova (cerca de um segundo: o jogo tenta uma por quadro), não em todas; o das raras, a cada sorteio. |
 | `OnSpawn(cloud)` | A nuvem nasceu (o `Cloud` do jogo: `spriteDir`, `scale`...). |
 
 `CloudLoader.AddCloudFromTexture('Clouds/X', peso, rara)`, no `Mod.Load`,
@@ -854,11 +859,27 @@ cada móvel do Example Mod usa, está no [guia 9](../mods/09-blocos.md).
 
 ### Ainda não
 
-`ModWall`, `ModTree`/`ModPalmTree`/`ModCactus`, `ModPylon`, o balanço ao vento
-(`MultiTileVine`), `ModifyFrameMerge`/`PostTileFrame`, `SwitchTiles`,
+`ModWall`, `ModTree`/`ModPalmTree`/`ModCactus`, `ModPylon`,
+`ModifyFrameMerge`/`PostTileFrame`, `SwitchTiles`,
 `HasSmartInteract`, `GetTorchLuck`; NPC da vila não abre porta de mod.
 
 ---
+
+## ModBannerTile
+
+Base para bandeiras de inimigos 1x3, derivada de `ModTile`. Configure um
+item com `DefaultToPlaceableTile(tipoDoTile, estilo)` e atribua esse item a
+`ModNPC.BannerItem`. O tile identifica automaticamente o banner pelo item
+que coloca seu estilo e ativa `SceneMetrics.NPCBannerBuff` na área de buffs.
+O padrão é `KillsToBanner = 50`, com `BannerStrength` habilitado.
+
+`SetStaticDefaults` prepara o objeto para teto e plataforma. Se sobrescrever,
+chame `super.SetStaticDefaults()`. `NearbyEffects` aplica o bônus; ao
+sobrescrever, chame o método base. `PreDraw` enfileira o balanço pelo renderer
+nativo `MultiTileVine`; `SetDrawPositions` ajusta o deslocamento vertical.
+Ao sobrescrever esses métodos, preserve a chamada base para manter o efeito.
+
+Exemplo completo: [Bandeiras de inimigos](../mods/07-npcs.md#bandeiras-de-inimigos).
 
 ## ModWall
 
@@ -921,6 +942,8 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `Shoot(item, player, position, velocity, type, damage, knockBack, source)` | `false`: o projétil do jogo não sai. | idem |
 | `CanHitNPC`, `ModifyHitNPC`, `OnHitNPC(item, player, target, hit, damageDone)`, `CanMeleeAttackCollideWithNPC` | O golpe corpo a corpo, como no `ModItem` ([Golpes](../mods/16-golpes.md)). | `Player.ProcessHitAgainstNPC` + `NPC.StrikeNPC` |
 | `CanHitPvp`, `ModifyHitPvp`, `OnHitPvp` | O golpe corpo a corpo PvP. | `Player.ItemCheck_MeleeHitPVP` + `Hurt` |
+| `PreDrawInWorld`, `PostDrawInWorld` | Mesmos argumentos de ModItem. Pre e Post locais rodam antes dos globais; todo Pre aplicável roda mesmo após veto. | etapas internas de `Main.DrawItem` |
+| `PreDrawInInventory`, `PostDrawInInventory` | Mesmos argumentos de ModItem. Pre global roda antes do local; Post local roda antes do global. Post permanece após veto. | etapas internas de `ItemSlot.DrawItemIcon` |
 | `ModifyWeaponCrit`, `ModifyWeaponKnockback`, `ModifyItemScale`, `UseItemHitbox`, `MeleeEffects`, `UseAnimation`, `UseItemFrame`, `HoldItemFrame` | Como no `ModItem`, depois dele, para qualquer item. | os do `ModItem` |
 | `NeedsAmmo`, `CanChooseAmmo`, `CanBeChosenAsAmmo`, `CanConsumeAmmo`, `CanBeConsumedAsAmmo`, `OnConsumeAmmo`, `OnConsumedAsAmmo`, `PickAmmo(weapon, ammo, player, type, speed, damage, knockback)` | Munição; um `false` veta, nos de `null` um `true` força. | idem |
 | `GetHealLife`, `GetHealMana`, `ModifyPotionDelay`, `ApplyPotionDelay` | Cura e atraso de poção. | idem |

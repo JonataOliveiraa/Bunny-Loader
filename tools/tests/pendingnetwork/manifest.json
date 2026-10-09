@@ -1,0 +1,9 @@
+{
+  "uid": "a3382261-70c8-4489-a374-439e86e57f71",
+  "id": "pending-network-tests",
+  "name": "Teste: PvP e banners em rede",
+  "version": "1.0.0",
+  "entry": "main.js",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720]
+}

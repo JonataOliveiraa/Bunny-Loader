@@ -12,6 +12,7 @@ struct LoadedMod {
     std::string internalName;   // o "id" do manifesto: por ele outro mod o acha (ModLoader.TryGetMod)
     std::string displayName;    // o "name" do manifesto
     std::string version;
+    std::vector<std::string> dependencies;  // o "dependencies" do manifesto: id ou uid de outro mod
     std::string dir;
     std::string entry;   // ex: "main.js"
     uint32_t errorCount = 0;

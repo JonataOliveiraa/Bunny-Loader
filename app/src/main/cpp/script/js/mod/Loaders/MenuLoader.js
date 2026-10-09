@@ -196,6 +196,7 @@ class MenuLoader {
                     MenuLoader.#sky = sky;
                     bl.hookFlags.set('menu.sky', sky);
                 }
+                if (sky && MenuLoader.BackgroundSlot() >= 0) SurfaceBackgroundLoader.Wake();
                 if (!menu || menu === vanilla) {
                     original(self);
                 } else {

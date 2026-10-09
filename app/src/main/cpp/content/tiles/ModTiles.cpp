@@ -547,6 +547,7 @@ using DrawDataFn = void (*)(Il2CppObject*, int32_t, int32_t, void*, uint16_t, in
                             int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, Il2CppObject**, void*,
                             void*, const MethodInfo*);
 DrawDataFn g_origDrawData = nullptr;
+DrawDataFn g_origSpecialDrawData = nullptr;
 
 // ---- cache do SetDrawPositions & cia. ----
 //
@@ -674,12 +675,9 @@ void hkRangeFrame(int32_t x0, int32_t y0, int32_t x1, int32_t y1, const MethodIn
     touchDrawArea(x0 - 2, y0 - 2, x1 + 2, y1 + 2);
 }
 
-void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uint16_t type, int16_t* frameX,
+void applyTileDrawData(int32_t x, int32_t y, uint16_t type, int16_t* frameX,
                        int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
-                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
-                       void* glowColor, const MethodInfo* m) {
-    g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects,
-                   glow, glowRect, glowColor, m);
+                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, bool special) {
     if (type < kVanillaTileCount) return;
     const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
 
@@ -730,11 +728,11 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
     const DrawEpoch epoch = drawEpochAt(x, y);
     const int64_t now = coarseNowNs();
     const std::atomic<uint8_t>* uncached = g_drawDataUncached.load(std::memory_order_acquire);
-    const bool cached = !uncached || !uncached[type].load(std::memory_order_relaxed);
+    const bool cached = !special && (!uncached || !uncached[type].load(std::memory_order_relaxed));
     TileDrawData d;
     if (!cached || !drawCacheGet(key, epoch, now, &d)) {
         d = key.in;
-        if (hook(x, y, type, &d) && cached) drawCachePut(key, epoch, now, d);
+        if (hook(x, y, type, &d, special) && cached) drawCachePut(key, epoch, now, d);
     }
     *frameX = static_cast<int16_t>(d.frameX);
     *frameY = static_cast<int16_t>(d.frameY);
@@ -744,6 +742,22 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
     *addFrX = d.addFrX;
     *addFrY = d.addFrY;
     *effects = d.effects;
+}
+
+void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uint16_t type, int16_t* frameX,
+                       int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
+                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
+                       void* glowColor, const MethodInfo* m) {
+    g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
+    applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, false);
+}
+
+void hkGetSpecialTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* tile, uint16_t type, int16_t* frameX,
+                       int16_t* frameY, int32_t* width, int32_t* height, int32_t* top, int32_t* halfBrick,
+                       int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
+                       void* glowColor, const MethodInfo* m) {
+    g_origSpecialDrawData(self, x, y, tile, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
+    applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, true);
 }
 
 int invokeInt(Il2CppObject* obj, const char* getter, bool* ok) {
@@ -788,15 +802,21 @@ void hookDrawData() {
     g_tileFrameField = main ? il2cpp::findField(main, "tileFrame") : nullptr;
     Il2CppClass* cls = il2cpp::findClass({"Terraria.GameContent.Drawing", "TileDrawing", {}});
     const MethodInfo* target = nullptr;
+    const MethodInfo* special = nullptr;
     void* it = nullptr;
     // Tres sobrecargas: a de TileDrawInfo e a do DrawTiles (as outras sao de grama e vinhas).
     while (const MethodInfo* m = cls ? a.class_get_methods(cls, &it) : nullptr) {
         if (std::strcmp(a.method_get_name(m), "GetTileDrawData") != 0 || a.method_get_param_count(m) != 16) continue;
         char* name = a.type_get_name(a.method_get_param(m, 2));
         const bool drawInfo = name && std::strstr(name, "TileDrawInfo");
+        const bool drawTile = name && std::strcmp(name, "Terraria.Tile") == 0;
         std::free(name);
         if (drawInfo) target = m;
+        if (drawTile) special = m;
     }
+
+    if (!special || !hook::install(special, hkGetSpecialTileDrawData, &g_origSpecialDrawData))
+        BL_ERROR("tiles de mod: sem hook no GetTileDrawData(Tile); desenho especial indisponivel");
     if (!target || !hook::install(target, hkGetTileDrawData, &g_origDrawData)) {
         BL_ERROR("tiles de mod: sem hook no TileDrawing.GetTileDrawData; a ultima linha de um movel de mod sai cortada");
         return;

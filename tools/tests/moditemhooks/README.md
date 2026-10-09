@@ -41,7 +41,11 @@ Os contadores de frames distinguem o novo hook de ModItem do hook de armaduras e
 
 Os testes de cura executam o helper de aplicação normal, QuickHeal e QuickMana reais, verificando vida, mana, consumo, buffs, seleção e atrasos especiais. A composição com ModPlayer é registrada depois da medição dos filtros sem observadores globais. Os campos, buffs e inventário são restaurados em finally. Contratos: [Cura](../../../docs/referencia/moditem-cura.md); resultados: [RESULTADOS-CURA.md](RESULTADOS-CURA.md).
 
-O teste nativo de PvP usa dois objetos Player no mesmo processo. Não comprova comportamento multiplayer entre aparelhos. Os callbacks de PvP desta etapa usam o contexto de `ItemCheck_MeleeHitPVP`; recuperar a arma em uma mensagem `Hurt` isolada e validar entre processos permanecem pendentes.
+O teste nativo original de PvP usa dois objetos Player no mesmo processo.
+A [rodada de 08/10/2026](../pendingnetwork/README.md) corrigiu origem da arma
+e veto antes do envio, e validou o dano e os callbacks nas duas direções
+entre dois processos. A suíte JS deste diretório foi migrada de
+PlayerCombatHooks para CombatLoader e voltou a aprovar seus 138 casos.
 
 Resultados e medição: [RESULTADOS.md](RESULTADOS.md). Contratos: [Combate de ModItem](../../../docs/referencia/moditem-combate.md).
 

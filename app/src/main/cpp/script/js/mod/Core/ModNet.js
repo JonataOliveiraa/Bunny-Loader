@@ -137,6 +137,9 @@ class ModNet {
         const Main = Terraria.Main;
 
         switch (envelope.k) {
+            case 'pvp-item':
+                PvpItemNetwork.Receive(envelope, from);
+                return;
             case 'item-data':
                 ItemNetworkHooks.Queue(envelope, from);
                 return;

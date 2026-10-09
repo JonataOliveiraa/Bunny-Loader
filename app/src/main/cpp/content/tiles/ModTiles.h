@@ -96,7 +96,7 @@ struct TileDrawData {
  * tipos marcados em `uncached` (ModTile com CacheDrawData = false: animacao
  * por outro contador) vao ao JS toda vez.
  */
-using DrawDataHook = bool (*)(int x, int y, int type, TileDrawData* d);
+using DrawDataHook = bool (*)(int x, int y, int type, TileDrawData* d, bool special);
 void setDrawDataHook(DrawDataHook hook, const std::atomic<uint8_t>* marks, const std::atomic<uint8_t>* uncached);
 
 /** Os registrados, na ordem do id. Copia: serve a qualquer thread. */
