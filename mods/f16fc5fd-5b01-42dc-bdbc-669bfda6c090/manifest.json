@@ -1,0 +1,27 @@
+{
+  "uid": "f16fc5fd-5b01-42dc-bdbc-669bfda6c090",
+  "id": "weaponoutlite",
+  "name": "Weapon Out Lite",
+  "version": "1.0.2",
+  "authors": [
+    {
+      "name": "Flashkirby",
+      "role": "Original Creator",
+      "avatar": "steam.png",
+      "color": "#F0F0F0",
+      "link": "https://steamcommunity.com/sharedfiles/filedetails/?id=3455924006"
+    },
+    {
+      "name": "Animatak_",
+      "avatar": "animatak.png",
+      "color": "#841FFF",
+      "link": "https://discord.gg/lemon-studio-1422278971227115532",
+      "role": "Port"
+    }
+  ],
+  "category": "Visual",
+  "summary": "Shows the held item on your character: swords at the waist, weapons on the back, bows, books and staves in their own poses, and combat poses after attacking.",
+  "updated": "2026-10-09",
+  "blVersion": 2,
+  "entry": "main.js"
+}
