@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *
  *     mods-index/index.json            a lista: uid, versão, pacote, arquivos e o
  *                                      manifesto de cada mod (`manifest`)
- *     mods-index/mods/<uid>/...        icon.png (ou .gif), banner.png, description.md,
+ *     mods-index/mods/<uid>/...        icon.png (ou .gif), banner.png (ou .gif...), description.md,
  *                                      authors/... — o que a ficha mostra, sem
  *                                      baixar o mod inteiro
  *     releases/mod-<id>-v<versão>      o .bl, que só desce ao instalar
@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger
  *    ([ensureFiles] com icon.png), e o resto da vitrine quando a ficha abre;
  *  - um arquivo baixado vale enquanto o sha256 do pacote não muda.
  * Índice antigo, sem `manifest`, ainda funciona: o manifesto de cada mod é
- * baixado na atualização, como antes (mas só ele e o ícone).
+ * baixado na atualização; o ícone continua sendo pedido só quando aparece.
  *
  * Tudo é leitura pública e anônima: o app não carrega token nenhum. Publicar é
  * coisa do tools/mods/publish.py, no PC de quem cuida do repositório.
@@ -61,7 +61,7 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
     /**
      * Baixa o índice (ou confirma, pelo ETag, que é o mesmo) e acerta o cache:
      * a vitrine de um mod que mudou de versão sai, para descer de novo quando
-     * for vista. Com índice antigo, sem manifesto, baixa o manifesto e o ícone
+     * for vista. Com índice antigo, sem manifesto, baixa somente o manifesto
      * de cada mod que mudou.
      */
     suspend fun refresh(onProgress: (CatalogProgress) -> Unit = {}): List<Catalog.Entry> {
@@ -83,13 +83,13 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         onProgress(CatalogProgress(0, legacy.size))
         if (legacy.isNotEmpty()) {
             // Vitrines independentes, com limite para não abrir uma conexão por mod.
-            val slots = Semaphore(4)
+            val slots = Semaphore(2)
             val completed = AtomicInteger()
             coroutineScope {
                 legacy.map { mod ->
                     async(Dispatchers.IO) {
                         slots.withPermit {
-                            runCatching { ensureFiles(mod, listOf(Catalog.MANIFESTS.first(), mod.iconFile)) }
+                            runCatching { ensureFiles(mod, listOf(Catalog.MANIFESTS.first())) }
                             onProgress(CatalogProgress(completed.incrementAndGet(), legacy.size))
                         }
                     }
@@ -206,7 +206,7 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         // A vitrine diz quem ela é; se não for o mod do índice, não entra.
         if (manifest.uid != mod.uid) return null
         // Vitrine de outra versão não vale: a entrada fica sem ícone até ele descer.
-        val base = catalog.fromDisk(manifest, if (fresh) dir else File(storeDir, "${mod.uid}.none"))
+        val base = catalog.fromDisk(manifest, if (fresh) dir else File(storeDir, "${mod.uid}.none"), mod.download.size)
         return base.copy(assetDir = dir.path, sizeBytes = mod.download.size, remote = mod)
     }
 
@@ -320,6 +320,9 @@ data class RemoteMod(
 ) {
     /** O ícone que a lista baixa: o animado, se a vitrine tiver; um só dos dois. */
     val iconFile: String get() = Catalog.ICONS.firstOrNull { it in files } ?: Catalog.ICON
+
+    /** A capa que a vitrine tem, na mesma preferência do pacote no disco. */
+    val bannerFile: String get() = Catalog.BANNERS.firstOrNull { it in files } ?: Catalog.BANNER
 }
 
 @Serializable

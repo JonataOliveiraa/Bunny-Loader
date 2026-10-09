@@ -60,6 +60,7 @@ import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.ui.Bl
 import dev.bunnyloader.ui.ExplorarTab
 import dev.bunnyloader.ui.InicioTab
+import dev.bunnyloader.ui.ModBackdrop
 import dev.bunnyloader.ui.ModDetail
 import dev.bunnyloader.ui.ModUpdatesDialog
 import dev.bunnyloader.ui.PacotesTab
@@ -75,6 +76,7 @@ import dev.bunnyloader.ui.Prefs
 import dev.bunnyloader.ui.Scenery
 import dev.bunnyloader.ui.CardFx
 import dev.bunnyloader.ui.LocalRemoteFiles
+import dev.bunnyloader.ui.LocalRemoteMedia
 import dev.bunnyloader.ui.LocalThemeFx
 import dev.bunnyloader.ui.ThemeFx
 import dev.bunnyloader.ui.cardFx
@@ -200,12 +202,18 @@ private fun LauncherScreen(shell: Shell) {
     // Guardada: `shell::requestRemoteFiles` é um objeto novo a cada recomposição,
     // e um valor novo num staticCompositionLocal recompõe a tela inteira.
     val requestFiles = remember(shell) { shell::requestRemoteFiles }
+    val mediaEntry = remember(shell) { shell::mediaEntry }
     androidx.compose.runtime.CompositionLocalProvider(
         LocalThemeFx provides fx,
         LocalRemoteFiles provides requestFiles,
+        LocalRemoteMedia provides mediaEntry,
     ) {
     Box(Modifier.fillMaxSize()) {
         Scenery(biome, { pan }, { fxTime.floatValue }, Modifier.fillMaxSize(), effects = themeEffects)
+        // A ficha aberta pode trazer o fundo do mod (theme.background).
+        openMod?.let { shell.entry(it) }?.let { entry ->
+            androidx.compose.runtime.key(entry.uid) { ModBackdrop(entry, shell.catalog, Modifier.fillMaxSize()) }
+        }
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             // Teto de largura: o layout foi pensado para um celular em pé. Solto num
             // tablet ou no emulador deitado, uma linha de mod com 1600px vira uma

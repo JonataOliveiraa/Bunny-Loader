@@ -36,6 +36,25 @@ Imagem do pacote no meio da frase: ![](content/Content/Items/ExampleItem.png) Ex
 
 ![Legenda da imagem](thumbnails/exemplo.png)
 
+Com tamanho e lugar (o `{...}` colado na imagem; GIF anima):
+
+![Centralizada, 200 de largura](thumbnails/exemplo.gif){width=200 align=center}
+
+![](thumbnails/exemplo.png){50% right}
+
+![](content/Content/Items/ExampleItem.png){float=left width=64}
+Este parágrafo fica ao lado da imagem, e não embaixo dela.
+
+![](thumbnails/exemplo.png){float=right width=40%}
+::: group
+Vários blocos ao lado da imagem: junte-os num `::: group`.
+
+- uma lista
+- também ao lado
+:::
+
+Ícone maior que a letra: ![](content/Content/Items/ExampleItem.png){h=32} e [i:757]{32}.
+
 ## Avisos
 
 > [!NOTE]

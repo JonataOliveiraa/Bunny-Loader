@@ -16,6 +16,16 @@ class ModManifestTest {
         assertEquals("Descrição antiga", m.description)
     }
 
+    @Test fun themeBackgroundNumbersAcceptTextAndClamp() {
+        val m = manifest(""""theme":{"button":"#335","background":"bg.gif","backgroundMode":"tile",
+            "backgroundScale":"3","backgroundDim":1.5}""")
+        assertEquals("#335", m.theme.button)
+        assertEquals(3f, m.theme.tileScale)
+        assertEquals(1f, m.theme.dim)
+        assertEquals(2f, manifest(""""theme":{"backgroundScale":"x"}""").theme.tileScale)
+        assertEquals(0f, manifest(""""theme":{}""").theme.dim)
+    }
+
     @Test fun authorsAcceptNamesObjectsAndASingleName() {
         assertEquals("Solo", manifest(""""authors":"Solo"""").authorLine)
         val m = manifest(""""authors":["A",{"name":"B","avatar":"b.png","role":"Arte"},"C"]""")

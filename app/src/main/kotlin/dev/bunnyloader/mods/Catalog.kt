@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Log
-import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.serialization.json.Json
@@ -41,6 +40,8 @@ class Catalog(private val context: Context) {
         val onDisk: Boolean = false,
         /** Mod do catálogo online: de onde baixar o pacote (ver RemoteCatalog). */
         val remote: RemoteMod? = null,
+        /** Storefront file arrival for this uid, independent of catalog/search metadata. */
+        val mediaRevision: Int = 0,
     ) {
         /** Identidade do pacote. Ver ModManifest.uid. */
         val uid get() = manifest.uid
@@ -69,7 +70,7 @@ class Catalog(private val context: Context) {
             val shots = THUMBS.firstOrNull { it in files }
             val previews = shots?.let {
                 runCatching { context.assets.list("$base/$it")?.toList() }.getOrNull().orEmpty()
-                    .filter { f -> f.endsWith(".png") || f.endsWith(".jpg") }
+                    .filter { f -> isImageFile(f) }
                     .sorted()
                     .map { f -> "$base/$it/$f" }
             }.orEmpty()
@@ -80,7 +81,7 @@ class Catalog(private val context: Context) {
                 sizeBytes = treeSize(base),
                 previews = previews,
                 iconAsset = ICONS.firstOrNull { it in files }?.let { "$base/$it" },
-                bannerAsset = if (BANNER in files) "$base/$BANNER" else null,
+                bannerAsset = BANNERS.firstOrNull { it in files }?.let { "$base/$it" },
             )
         }.sortedBy { it.manifest.name }
     }
@@ -92,9 +93,27 @@ class Catalog(private val context: Context) {
         return children.sumOf { child ->
             val path = "$dir/$child"
             val sub = runCatching { context.assets.list(path)?.toList() }.getOrNull().orEmpty()
-            if (sub.isEmpty()) runCatching { read(dir, child).size.toLong() }.getOrDefault(0L)
+            if (sub.isEmpty()) assetSize(path)
             else treeSize(path)
         }
+    }
+
+    private fun assetSize(path: String): Long = runCatching {
+        context.assets.openFd(path).use { it.length }
+    }.getOrElse {
+        // Compressed assets have no descriptor. Count without allocating the file.
+        runCatching {
+            context.assets.open(path).use { input ->
+                val buffer = ByteArray(16 * 1024)
+                var total = 0L
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    total += count
+                }
+                total
+            }
+        }.getOrDefault(0L)
     }
 
     fun isInstalled(uid: String): Boolean = repo.hasEntry(uid)
@@ -154,18 +173,18 @@ class Catalog(private val context: Context) {
     }
 
     /** A entrada de um mod que está só no disco (a pasta dele em bunny_packs). */
-    fun fromDisk(manifest: ModManifest, dir: File): Entry {
+    fun fromDisk(manifest: ModManifest, dir: File, knownSize: Long? = null): Entry {
         val shots = THUMBS.map { File(dir, it) }.firstOrNull { it.isDirectory }
         return Entry(
             manifest = manifest,
             assetDir = dir.path,
-            sizeBytes = dir.walkTopDown().filter { it.isFile }.sumOf { it.length() },
+            sizeBytes = knownSize ?: dir.walkTopDown().filter { it.isFile }.sumOf { it.length() },
             previews = shots?.listFiles().orEmpty()
-                .filter { it.name.endsWith(".png") || it.name.endsWith(".jpg") }
+                .filter { isImageFile(it.name) }
                 .sortedBy { it.name }
                 .map { it.path },
             iconAsset = ICONS.map { File(dir, it) }.firstOrNull { it.isFile }?.path,
-            bannerAsset = File(dir, BANNER).takeIf { it.isFile }?.path,
+            bannerAsset = BANNERS.map { File(dir, it) }.firstOrNull { it.isFile }?.path,
             onDisk = true,
         )
     }
@@ -178,51 +197,91 @@ class Catalog(private val context: Context) {
      * da interface, no meio do arraste. A chave leva a data do arquivo: a
      * vitrine de um mod atualizado é baixada por cima, no mesmo caminho.
      */
-    fun loadBitmap(path: String): ImageBitmap? {
-        val key = cacheKey(path)
-        bitmaps.get(key)?.let { return it }
-        val bitmap = runCatching {
-            if (path.startsWith("/")) BitmapFactory.decodeFile(path)?.asImageBitmap()
-            else context.assets.open(path).use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
-        }.getOrNull() ?: return null
-        bitmaps.put(key, bitmap)
-        return bitmap
-    }
+    fun loadBitmap(path: String): ImageBitmap? = loadBitmap(path, 1024)
 
-    fun cachedBitmap(path: String): ImageBitmap? = bitmaps.get(cacheKey(path))
+    fun loadIconBitmap(path: String): ImageBitmap? = loadBitmap(path, 256)
 
-    private val bitmaps = object : LruCache<String, ImageBitmap>(BITMAP_CACHE_BYTES) {
-        override fun sizeOf(key: String, value: ImageBitmap) = value.width * value.height * 4
+    fun loadAvatarBitmap(path: String): ImageBitmap? = loadBitmap(path, 192)
+
+    private fun loadBitmap(path: String, maxSide: Int): ImageBitmap? =
+        (media.get("bitmap:$maxSide:${cacheKey(path)}") {
+            runCatching {
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                openImage(path).use { BitmapFactory.decodeStream(it, null, bounds) }
+                if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
+                var sample = 1
+                while (maxOf(bounds.outWidth, bounds.outHeight) / sample > maxSide) sample *= 2
+                val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                val bitmap = openImage(path).use { BitmapFactory.decodeStream(it, null, options) }
+                    ?: return@runCatching null
+                bitmap.prepareToDraw()
+                Still(bitmap.asImageBitmap(), bitmap.allocationByteCount)
+            }.getOrNull()
+        } as? Still)?.image
+
+    private fun openImage(path: String) =
+        if (path.startsWith("/")) File(path).inputStream() else context.assets.open(path)
+
+    private sealed interface Media
+    private class Still(val image: ImageBitmap, val bytes: Int) : Media
+    private class Animated(val animation: IconAnimation) : Media
+    private val media = MediaCache<String, Media>(BITMAP_CACHE_BYTES) { value ->
+        when (value) {
+            is Still -> value.bytes
+            is Animated -> value.animation.frames.sumOf { it.width * it.height * 4 }
+        }
     }
 
     /**
-     * Os quadros de um `icon.gif`, já montados. Pode demorar (um GIF de muitos
-     * quadros): chamar fora da thread da interface; [cachedAnimation] diz se
-     * já está pronto. null quando o arquivo não é um GIF que dê para ler.
+     * Os quadros de um GIF, já montados. Pode demorar (um GIF de muitos
+     * quadros): chamar fora da thread da interface. A cache compartilha os
+     * pedidos concorrentes e lembra também GIFs inválidos.
+     *
+     * O ícone fica em 256 de lado; a capa, o fundo e as imagens da ficha vão
+     * até o limite do GifDecoder (512).
      */
-    fun loadAnimation(path: String): IconAnimation? {
-        val key = cacheKey(path)
-        animations.get(key)?.let { return it }
-        val bytes = runCatching {
-            if (path.startsWith("/")) File(path).readBytes()
-            else context.assets.open(path).use { it.readBytes() }
-        }.getOrNull() ?: return null
-        val gif = GifDecoder.decode(bytes) ?: return null
-        val frames = gif.frames.map {
-            Bitmap.createBitmap(it, gif.width, gif.height, Bitmap.Config.ARGB_8888).asImageBitmap()
-        }
-        return IconAnimation(frames, gif.delaysMs).also { animations.put(key, it) }
-    }
+    fun loadAnimation(path: String, maxSide: Int = 256, maxPixels: Int = 1_000_000): IconAnimation? =
+        (media.get("gif:$maxSide:${cacheKey(path)}") {
+            val bytes = runCatching {
+                openImage(path).use { input ->
+                    val out = java.io.ByteArrayOutputStream()
+                    val buffer = ByteArray(16 * 1024)
+                    var total = 0
+                    while (true) {
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        total += n
+                        if (total > 4 * 1024 * 1024) return@use null
+                        out.write(buffer, 0, n)
+                    }
+                    out.toByteArray()
+                }
+            }.getOrNull()
+                ?: return@get null
+            val gif = GifDecoder.decode(bytes, maxOutputSide = maxSide, maxOutputPixels = maxPixels)
+                ?: return@get null
+            val frames = gif.frames.map {
+                Bitmap.createBitmap(it, gif.width, gif.height, Bitmap.Config.ARGB_8888).apply {
+                    prepareToDraw()
+                }.asImageBitmap()
+            }
+            Animated(IconAnimation(frames, gif.delaysMs))
+        } as? Animated)?.animation
 
-    fun cachedAnimation(path: String): IconAnimation? = animations.get(cacheKey(path))
+    /**
+     * Uma imagem da ficha (capa, fundo, Markdown, vitrine): o GIF animado, ou
+     * um quadro só para PNG, JPG, WebP e BMP. Um GIF que não dá para animar
+     * (grande demais, quebrado) sai parado, se o Android ler o primeiro quadro.
+     */
+    fun loadPicture(path: String): IconAnimation? {
+        if (path.endsWith(".gif", ignoreCase = true)) {
+            loadAnimation(path, PAGE_GIF_SIDE, PAGE_GIF_PIXELS)?.let { return it }
+        }
+        return loadBitmap(path)?.let { IconAnimation(listOf(it), intArrayOf(0)) }
+    }
 
     private fun cacheKey(path: String) =
-        if (path.startsWith("/")) path + "@" + File(path).lastModified() else path
-
-    private val animations = object : LruCache<String, IconAnimation>(BITMAP_CACHE_BYTES) {
-        override fun sizeOf(key: String, value: IconAnimation) =
-            value.frames.sumOf { it.width * it.height * 4 }
-    }
+        if (path.startsWith("/")) File(path).let { "$path@${it.lastModified()}:${it.length()}" } else path
 
     /**
      * Um arquivo do pacote pelo caminho relativo à raiz dele (`changelog.md`,
@@ -275,7 +334,7 @@ class Catalog(private val context: Context) {
         private const val TAG = "BunnyLoader"
         private const val SEEDED = "seeded"
         private const val APP_STAMP = "appUpdateTime"
-        /** Ícones, capas e fotos decodificados: uns 24 MB cabem a loja inteira. */
+        /** Orçamento compartilhado por imagens estáticas e animações decodificadas. */
         private const val BITMAP_CACHE_BYTES = 24 * 1024 * 1024
 
         /**
@@ -289,7 +348,8 @@ class Catalog(private val context: Context) {
          *     icon.png         ícone do mod, quadrado (opcional; sem ele, o da categoria)
          *     icon.gif         ícone animado no launcher (opcional; ganha do icon.png,
          *                      que continua sendo o do jogo)
-         *     banner.png       capa da vitrine, ~3,4:1 (opcional)
+         *     banner.png       capa da vitrine, ~3,4:1 (opcional; .gif anima, e
+ *                      .webp/.jpg também valem)
          *     thumbnails/      imagens da vitrine (opcional)
          *     content/         o mod em si: main.js (a classe Mod), Assets/,
          *                      Common/, Content/ e Localization/
@@ -309,6 +369,14 @@ class Catalog(private val context: Context) {
         /** Na ordem de preferência: o animado, se o pacote tiver. */
         val ICONS = listOf(ICON_GIF, ICON)
         const val BANNER = "banner.png"
+        /** Na ordem de preferência, como os ícones: a capa animada primeiro. */
+        val BANNERS = listOf("banner.gif", BANNER, "banner.webp", "banner.jpg", "banner.jpeg")
+        /** O que a ficha desenha: vitrine, fotos dos autores, Markdown, capa e fundo. */
+        val IMAGE_EXTENSIONS = listOf("png", "gif", "webp", "jpg", "jpeg", "bmp")
+        private const val PAGE_GIF_SIDE = 512
+        private const val PAGE_GIF_PIXELS = 2_000_000
+
+        fun isImageFile(name: String) = name.substringAfterLast('.', "").lowercase() in IMAGE_EXTENSIONS
         const val CONTENT = "content"
         const val DESCRIPTION = "description.md"
         const val CHANGELOG = "changelog.md"
@@ -336,5 +404,8 @@ fun formatDate(iso: String): String {
     return "${parts[2].trimStart('0')} de ${months[m]} de ${parts[0]}"
 }
 
-/** Um ícone animado: os quadros e quanto cada um fica na tela. */
+/**
+ * Uma imagem pronta para desenhar: os quadros e quanto cada um fica na tela.
+ * Imagem parada é um quadro só.
+ */
 class IconAnimation(val frames: List<ImageBitmap>, val delaysMs: IntArray)

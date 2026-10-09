@@ -76,4 +76,59 @@ class GifDecoderTest {
         gif[6] = 0x10; gif[7] = 0x27 // largura 10000
         assertNull(GifDecoder.decode(gif))
     }
+
+    @Test fun reducedFramesPreserveCompositingTransparencyAndTiming() {
+        for (name in listOf("restore", "sprite", "interlaced", "noise")) {
+            val full = requireNotNull(GifDecoder.decode(bytes("$name.gif")))
+            val side = maxOf(full.width, full.height) / 2
+            val small = requireNotNull(GifDecoder.decode(bytes("$name.gif"), maxOutputSide = side))
+            val sample = (maxOf(full.width, full.height) + side - 1) / side
+            assertTrue(small.width <= side && small.height <= side)
+            assertEquals(full.frames.size, small.frames.size)
+            assertArrayEquals(full.delaysMs, small.delaysMs)
+            for (f in full.frames.indices) {
+                for (y in 0 until small.height) for (x in 0 until small.width) {
+                    assertEquals(full.frames[f][y * sample * full.width + x * sample], small.frames[f][y * small.width + x])
+                }
+            }
+        }
+    }
+
+    @Test fun outputBudgetStopsBeforeAllocatingExtraFrames() {
+        val full = requireNotNull(GifDecoder.decode(bytes("restore.gif")))
+        val limited = requireNotNull(GifDecoder.decode(bytes("restore.gif"), maxOutputPixels = full.width * full.height))
+        assertEquals(1, limited.frames.size)
+        assertArrayEquals(full.frames[0], limited.frames[0])
+        assertNull(GifDecoder.decode(bytes("restore.gif"), maxOutputPixels = 1))
+    }
+
+    @Test fun malformedFrameCannotAllocateBeyondCanvasLimit() {
+        val gif = bytes("sprite.gif").copyOf()
+        val packed = gif[10].toInt() and 0xFF
+        var frame = 13 + if (packed and 0x80 != 0) 3 * (2 shl (packed and 7)) else 0
+        while (gif[frame] == 0x21.toByte()) {
+            frame += 2
+            while (gif[frame] != 0.toByte()) frame += 1 + (gif[frame].toInt() and 0xFF)
+            frame++
+        }
+        assertEquals(0x2C.toByte(), gif[frame])
+        gif[frame + 5] = 0xFF.toByte()
+        gif[frame + 6] = 0x7F
+        gif[frame + 7] = 0xFF.toByte()
+        gif[frame + 8] = 0x7F
+        assertNull(GifDecoder.decode(gif))
+    }
+
+    @Test fun tinyFramesCannotCreateAnUnboundedObjectList() {
+        val header = "GIF89a".toByteArray() + byteArrayOf(1, 0, 1, 0, 0x80.toByte(), 0, 0, 0, 0, 0, -1, -1, -1)
+        val frame = byteArrayOf(0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 0x44, 1, 0)
+        val bytes = java.io.ByteArrayOutputStream().apply {
+            write(header)
+            repeat(1000) { write(frame) }
+            write(0x3B)
+        }.toByteArray()
+        val gif = requireNotNull(GifDecoder.decode(bytes))
+        assertEquals(256, gif.frames.size)
+        assertEquals(256, gif.delaysMs.size)
+    }
 }

@@ -2,8 +2,13 @@ package dev.bunnyloader.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -36,6 +42,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
@@ -52,9 +59,11 @@ import androidx.compose.ui.unit.dp
 import dev.bunnyloader.R
 import dev.bunnyloader.mods.Author
 import dev.bunnyloader.mods.Catalog
+import dev.bunnyloader.mods.PackTheme
 import dev.bunnyloader.mods.formatDate
 import dev.bunnyloader.mods.formatSize
 import kotlin.math.roundToInt
+import kotlinx.coroutines.withContext
 
 /**
  * A ficha de um mod: capa, cabeçalho com as ações, e as abas que o PACOTE
@@ -85,10 +94,11 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
             panel = parseHexColor(m.theme.panel) ?: Bl.Panel,
         )
     }
+    val buttons = remember(m.theme) { PageButtons.of(m.theme) }
     val ctx = remember(entry, style, catalog, uriHandler) {
         MdContext(
             style = style,
-            image = { rel -> catalog.resolve(entry, rel)?.let(catalog::loadBitmap) },
+            image = { rel -> catalog.resolve(entry, rel)?.let(catalog::loadPicture) },
             sprite = { kind, id ->
                 catalog.loadBitmap("sprites/${if (kind == 'b') "buff" else "item"}/$id.png")
             },
@@ -96,7 +106,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
             openUrl = { url -> runCatching { uriHandler.openUri(url) } },
         )
     }
-    val pages = rememberPages(entry, catalog, shell.remoteFilesVersion)
+    val pages = rememberPages(entry, catalog)
     var tab by rememberSaveable(entry.uid) { mutableStateOf(0) }
     val selected = tab.coerceIn(0, pages.lastIndex)
     val scroll = rememberScrollState()
@@ -109,7 +119,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-            Header(entry, shell, ctx, onBack)
+            Header(entry, shell, ctx, buttons, onBack)
 
             if (pages.size > 1) {
                 TabStrip(pages.map { it.title }, selected, style,
@@ -123,7 +133,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
                     .pixelShadow().pixelPanel(fill = style.panel).padding(12.dp)
                     .fillMaxWidth(),
             ) {
-                key(selected, shell.remoteFilesVersion) {
+                key(selected) {
                     when (page) {
                         is Page.Description -> {
                             MarkdownView(page.blocks, ctx)
@@ -146,6 +156,70 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
     }
 }
 
+/**
+ * As cores dos botões da ficha, do `theme` do pacote. Sem `button`, os botões
+ * ficam os do launcher e os links no azul de seleção; com ele, tudo pega a
+ * cor do mod, e o apertado é a mesma cor mais escura.
+ */
+private class PageButtons(
+    val fill: Color,
+    val text: Color,
+    val pressed: Color,
+    val toggle: Color,
+    val link: Color,
+    val linkText: Color?,
+) {
+    companion object {
+        fun of(theme: PackTheme): PageButtons {
+            val own = parseHexColor(theme.button)
+            val text = parseHexColor(theme.buttonText)
+            return PageButtons(
+                fill = own ?: Bl.Button,
+                text = text ?: Color.White,
+                pressed = own?.mix(Bl.Night, 0.35f) ?: Bl.ButtonPressed,
+                toggle = own?.mix(Bl.Night, 0.25f) ?: Bl.Select,
+                link = own ?: Bl.Select,
+                linkText = text,
+            )
+        }
+    }
+}
+
+/**
+ * O fundo da tela com a ficha aberta, no lugar do cenário do launcher: a cor
+ * ou a imagem do `theme.background`. Entra por cima do cenário com um
+ * esmaecer curto, para a troca não piscar; sem `background`, não desenha nada.
+ */
+@Composable
+fun ModBackdrop(entry: Catalog.Entry, catalog: Catalog, modifier: Modifier = Modifier) {
+    val theme = entry.manifest.theme
+    val source = theme.background.trim()
+    if (source.isEmpty()) return
+    val color = parseHexColor(source)
+    val media = LocalRemoteMedia.current(entry)
+    val path = if (color == null) catalog.resolve(media, source) else null
+    val picture = rememberPackagePicture(catalog, path,
+        "${media.remote?.download?.sha256 ?: media.manifest.version}:${media.mediaRevision}")
+    if (color == null && picture == null) return
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    val alpha by animateFloatAsState(if (visible) 1f else 0f, tween(350), label = "backdrop")
+    val density = LocalDensity.current
+    Box(modifier.graphicsLayer { this.alpha = alpha }) {
+        if (color != null) {
+            Box(Modifier.fillMaxSize().background(color))
+        } else if (picture != null) {
+            val fit = if (theme.backgroundMode.equals("tile", ignoreCase = true)) {
+                PictureFit.Tile(with(density) { theme.tileScale.dp.toPx() })
+            } else {
+                PictureFit.Crop
+            }
+            PictureFrames(picture, Modifier.fillMaxSize(), fit)
+        }
+        if (theme.dim > 0f) Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = theme.dim)))
+    }
+}
+
 // ------------------------------- páginas -------------------------------
 
 private sealed class Page(val title: String) {
@@ -162,9 +236,16 @@ private sealed class Page(val title: String) {
  * `summary`); as outras só aparecem se o arquivo existir.
  */
 @Composable
-private fun rememberPages(entry: Catalog.Entry, catalog: Catalog, version: Int): List<Page> = remember(entry, catalog, version) {
+private fun rememberPages(entry: Catalog.Entry, catalog: Catalog): List<Page> {
+    val pages by produceState<List<Page>>(listOf(Page.Description(emptyList())), entry, catalog) {
+        value = withContext(MediaDispatcher) { readPages(entry, catalog) }
+    }
+    return pages
+}
+
+private fun readPages(entry: Catalog.Entry, catalog: Catalog): List<Page> {
     val m = entry.manifest
-    buildList {
+    return buildList {
         val description = catalog.readText(entry, Catalog.DESCRIPTION)
             ?: m.description.ifBlank { m.summary }
         add(Page.Description(Markdown.parse(description)))
@@ -215,7 +296,7 @@ private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
  * sobre o cenário, o texto se perdia no fundo claro (neve, céu de dia).
  */
 @Composable
-private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, onBack: () -> Unit) {
+private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: PageButtons, onBack: () -> Unit) {
     val m = entry.manifest
     val installed = entry.uid in shell.installed
     val on = entry.uid in shell.enabled
@@ -271,11 +352,12 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, onBack: (
                 if (progress != null) "Baixando ${(progress * 100).toInt()}%" else "Baixar Mod",
                 { if (progress == null) { if (online != null) shell.installRemote(online) else shell.install(entry) } },
                 Modifier.fillMaxWidth(), icon = R.drawable.ic_start, shadow = false,
+                fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
             )
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
-                    Modifier.weight(1f).pixelPanel(fill = Bl.Select, raised = false)
+                    Modifier.weight(1f).pixelPanel(fill = buttons.toggle, raised = false)
                         .padding(start = 12.dp, top = 2.dp, bottom = 2.dp),
                     contentAlignment = Alignment.CenterStart,
                 ) {
@@ -287,7 +369,8 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, onBack: (
                     }
                 }
                 PixelButton("Remover", { shell.uninstall(entry.uid) },
-                    icon = R.drawable.ic_trash, fontSize = Ts.Body, shadow = false)
+                    icon = R.drawable.ic_trash, fontSize = Ts.Body, shadow = false,
+                    fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed)
             }
             if (update != null) {
                 PixelButton(
@@ -296,12 +379,14 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, onBack: (
                     { if (progress == null) shell.installRemote(update) },
                     Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_start,
                     fontSize = Ts.Body, shadow = false,
+                    fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
                 )
             }
             PixelButton("Exportar .bl", {
                 exporter.launch("${m.id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.bl")
             }, Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_folder,
-                fontSize = Ts.Body, shadow = false)
+                fontSize = Ts.Body, shadow = false,
+                fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed)
             exportMessage?.let { (message, ok) ->
                 PixelText(message, size = Ts.Small, color = if (ok) Bl.TextDim else Bl.Bad,
                     modifier = Modifier.padding(top = 6.dp))
@@ -321,8 +406,8 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, onBack: (
             ) {
                 for (link in links) {
                     PixelButton(link.title, { ctx.openUrl(link.url) },
-                        fill = Bl.Select, textColor = ctx.style.accent,
-                        fontSize = Ts.Small, shadow = false)
+                        fill = buttons.link, textColor = buttons.linkText ?: ctx.style.accent,
+                        pressedFill = buttons.pressed, fontSize = Ts.Small, shadow = false)
                 }
             }
         }
@@ -385,14 +470,19 @@ private fun TabStrip(
 private fun Previews(entry: Catalog.Entry, catalog: Catalog) {
     if (entry.previews.isEmpty()) return
     SectionTitle("Imagens")
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+    LazyRow(
+        Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        for (p in entry.previews) {
-            val bmp = remember(p) { catalog.loadBitmap(p) } ?: continue
-            Image(bmp, null, filterQuality = FilterQuality.None,
-                modifier = Modifier.height(96.dp).framePanel().padding(2.dp))
+        items(entry.previews, key = { it }) { p ->
+            val picture = rememberPackagePicture(catalog, p, entry.remote?.download?.sha256 ?: entry.manifest.version)
+            val first = picture?.frames?.first()
+            if (picture != null && first != null) {
+                val width = 92.dp * first.width / first.height.coerceAtLeast(1)
+                PictureFrames(picture, Modifier.size(width + 4.dp, 96.dp).framePanel().padding(2.dp))
+            } else {
+                Spacer(Modifier.size(160.dp, 96.dp).framePanel())
+            }
         }
     }
 }
@@ -547,7 +637,10 @@ internal fun AuthorStrip(entry: Catalog.Entry, catalog: Catalog, modifier: Modif
  */
 @Composable
 fun AuthorAvatar(author: Author, entry: Catalog.Entry, catalog: Catalog, size: Dp) {
-    val bmp = remember(entry, author) { findAvatar(author, entry, catalog) }
+    val media = LocalRemoteMedia.current(entry)
+    val bmp = produceState<ImageBitmap?>(null, media, author, catalog) {
+        value = withContext(MediaDispatcher) { findAvatar(author, media, catalog) }
+    }.value
     val sizePx = with(LocalDensity.current) { size.toPx() }
     val tint = parseHexColor(author.color) ?: Bl.TitleFill
     Box(
@@ -577,11 +670,11 @@ private fun findAvatar(author: Author, entry: Catalog.Entry, catalog: Catalog): 
     return candidates.asSequence()
         .map { "${Catalog.AUTHORS}/$it" }
         .filter { catalog.exists(entry, it) }
-        .mapNotNull { rel -> catalog.resolve(entry, rel)?.let(catalog::loadBitmap) }
+        .mapNotNull { rel -> catalog.resolve(entry, rel)?.let(catalog::loadAvatarBitmap) }
         .firstOrNull()
 }
 
-private val AVATAR_EXTENSIONS = listOf("png", "jpg", "jpeg", "webp")
+private val AVATAR_EXTENSIONS = listOf("png", "jpg", "jpeg", "webp", "gif")
 
 private fun isWebUrl(url: String) = url.startsWith("https://") || url.startsWith("http://")
 

@@ -38,9 +38,12 @@ object GifDecoder {
             bytes[2] == 'F'.code.toByte()
 
     /** null quando não é GIF, está cortado antes do primeiro quadro ou é grande demais. */
-    fun decode(bytes: ByteArray): GifImage? = runCatching { Reader(bytes).read() }.getOrNull()
+    fun decode(bytes: ByteArray, maxOutputSide: Int = MAX_SIDE, maxOutputPixels: Int = MAX_TOTAL_PIXELS): GifImage? {
+        require(maxOutputSide > 0 && maxOutputPixels > 0)
+        return runCatching { Reader(bytes, minOf(maxOutputSide, MAX_SIDE), maxOutputPixels).read() }.getOrNull()
+    }
 
-    private class Reader(private val b: ByteArray) {
+    private class Reader(private val b: ByteArray, private val maxOutputSide: Int, private val maxOutputPixels: Int) {
         private var pos = 0
 
         private fun u8(): Int {
@@ -73,6 +76,9 @@ object GifDecoder {
             val w = u16()
             val h = u16()
             if (w <= 0 || h <= 0 || w > MAX_SIDE || h > MAX_SIDE) return null
+            val sample = ((maxOf(w, h) + maxOutputSide - 1) / maxOutputSide).coerceAtLeast(1)
+            val ow = ((w + sample - 1) / sample).coerceAtLeast(1)
+            val oh = ((h + sample - 1) / sample).coerceAtLeast(1)
             val packed = u8()
             u8() // cor de fundo: o fundo do ícone é transparente
             u8() // proporção do pixel
@@ -116,14 +122,18 @@ object GifDecoder {
                             val interlaced = fp and 0x40 != 0
                             val minCode = u8()
                             val data = subBlocks(true)!!
-                            if (table == null || minCode !in 1..11) return finish(w, h, frames, delays)
+                            if (table == null || minCode !in 1..11) return finish(ow, oh, frames, delays)
 
-                            if (total + w * h > MAX_TOTAL_PIXELS) break@loop
+                            if (total + w * h > MAX_TOTAL_PIXELS ||
+                                (frames.size + 1) * ow * oh > maxOutputPixels || frames.size >= 256) break@loop
+                            if (fw <= 0 || fh <= 0 || fw.toLong() * fh > MAX_SIDE * MAX_SIDE) break@loop
                             val before = if (dispose == 3) canvas.copyOf() else null
                             val indices = lzw(data, minCode, fw * fh)
                             draw(canvas, w, h, indices, fx, fy, fw, fh, table, transparent, interlaced)
 
-                            frames += canvas.copyOf()
+                            frames += if (sample == 1) canvas.copyOf() else IntArray(ow * oh) { i ->
+                                canvas[(i / ow * sample).coerceAtMost(h - 1) * w + (i % ow * sample).coerceAtMost(w - 1)]
+                            }
                             delays += if (delay <= 10) DEFAULT_DELAY_MS else delay
                             total += w * h
 
@@ -142,7 +152,7 @@ object GifDecoder {
                     break@loop
                 }
             }
-            return finish(w, h, frames, delays)
+            return finish(ow, oh, frames, delays)
         }
 
         private fun finish(w: Int, h: Int, frames: List<IntArray>, delays: List<Int>): GifImage? =

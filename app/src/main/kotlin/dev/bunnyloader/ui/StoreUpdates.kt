@@ -20,7 +20,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -37,7 +37,7 @@ fun StoreLoadingIcon(modifier: Modifier = Modifier) {
         infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart),
         label = "giro")
     PixelIcon(R.drawable.ic_refresh, 24.dp,
-        modifier.rotate(angle).semantics { contentDescription = "Carregando mods" })
+        modifier.graphicsLayer { rotationZ = angle }.semantics { contentDescription = "Carregando mods" })
 }
 
 @Composable

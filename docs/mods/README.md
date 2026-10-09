@@ -99,8 +99,8 @@ MeuMod/
   authors/           as fotos dos autores (opcional)
   icon.png           ícone quadrado, aparece na lista (recomendado)
   icon.gif           o mesmo ícone, animado, só no launcher (opcional)
-  banner.png         capa da ficha do mod, ~3,4:1, ex. 384x112 (opcional)
-  thumbnails/        imagens extras da ficha, .png ou .jpg (opcional)
+  banner.png         capa da ficha do mod, ~3,4:1, ex. 384x112 (opcional; .gif anima)
+  thumbnails/        imagens extras da ficha: png, gif, webp ou jpg (opcional)
   content/           o mod em si
     main.js          o arquivo de entrada: a classe Mod (o nome vem do manifesto)
     Assets/
@@ -188,7 +188,7 @@ export class Espada extends ModItem {
 | `category` | Texto livre. `Textura`, `Armas`, `Jogabilidade`, `Cheat`, `Utilidade` e `Itens` ganham cor e ícone próprios. |
 | `type` | Opcional. A lista do launcher em que o pacote aparece (Explorar e Pacotes): `"mod"` (o padrão), `"texture"` ou `"font"`. Aceita português e plural (`"textura"`, `"fontes"`). Sem o campo, ou com outro valor, é mod. Só separa as listas: todo pacote instala e carrega do mesmo jeito. |
 | `summary`, `updated` | A linha do cartão da lista e a data da última versão (`AAAA-MM-DD`). A descrição longa vai em `description.md` ([guia 13](13-pagina-do-pacote.md)); o campo `description` antigo só vale sem ele. |
-| `license`, `links`, `pages`, `theme` | A licença, botões de link, abas a mais e as cores da ficha. Ver o [guia 13](13-pagina-do-pacote.md). |
+| `license`, `links`, `pages`, `theme` | A licença, botões de link, abas a mais e o tema da ficha: cores do texto, dos painéis e dos botões, e um fundo próprio (cor ou imagem, GIF anima). Ver o [guia 13](13-pagina-do-pacote.md#as-cores-theme). |
 | `blVersion` | O formato do pacote. Hoje, `2`: a estrutura acima, com a classe `Mod` no arquivo de entrada. O `1` (sem a classe `Mod`) não carrega mais: o app o mostra como "Formato antigo" e recusa na importação, assim como um pacote que pede uma versão maior que a do app. |
 | `entry` | O arquivo de entrada, relativo a `content/`. Padrão: `main.js`. |
 

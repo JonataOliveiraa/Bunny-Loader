@@ -174,7 +174,28 @@ data class PackTheme(
     val text: String = "",
     /** Títulos (#, ##, ###) do Markdown. */
     val heading: String = "",
-)
+    /** Fundo dos botões da ficha (baixar, remover, exportar, links). */
+    val button: String = "",
+    /** Texto dos botões. */
+    val buttonText: String = "",
+    /**
+     * O fundo da tela atrás da ficha, no lugar do cenário do launcher: uma cor
+     * (`#RRGGBB`) ou uma imagem do pacote (`background.png`, `.gif` anima).
+     */
+    val background: String = "",
+    /** `cover` (enche a tela, cortando) ou `tile` (repete, como uma textura). */
+    val backgroundMode: String = "",
+    /**
+     * No `tile`, quantos pixels da tela (dp) cada pixel da imagem ocupa.
+     * Padrão 2. Número ou texto: um `"2"` entre aspas não derruba o manifesto.
+     */
+    val backgroundScale: JsonPrimitive? = null,
+    /** 0 a 1: o quanto o fundo escurece, para o texto se destacar. Padrão 0. */
+    val backgroundDim: JsonPrimitive? = null,
+) {
+    val tileScale: Float get() = backgroundScale?.content?.toFloatOrNull()?.takeIf { it > 0f }?.coerceAtMost(16f) ?: 2f
+    val dim: Float get() = backgroundDim?.content?.toFloatOrNull()?.coerceIn(0f, 1f) ?: 0f
+}
 
 /**
  * Aceita `"authors": "Fulano"`, `["Fulano", "Ciclano"]` e a lista de objetos.

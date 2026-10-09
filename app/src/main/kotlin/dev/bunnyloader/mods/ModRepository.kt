@@ -109,9 +109,10 @@ class ModRepository(private val context: Context) {
     fun import(uri: Uri): Result<ModManifest> = importFrom { context.contentResolver.openInputStream(uri) }
 
     /** O mesmo import, para um pacote já no disco (o que o RemoteCatalog baixou). */
-    fun import(file: File): Result<ModManifest> = importFrom { file.inputStream() }
+    fun import(file: File, validate: (ModManifest) -> Unit = {}): Result<ModManifest> =
+        importFrom(validate) { file.inputStream() }
 
-    private fun importFrom(open: () -> InputStream?): Result<ModManifest> = runCatching {
+    private fun importFrom(validate: (ModManifest) -> Unit = {}, open: () -> InputStream?): Result<ModManifest> = runCatching {
         val temp = File(context.cacheDir, "import").apply { deleteRecursively(); mkdirs() }
         val entries = open()
             ?.use { unzip(it, temp) }
@@ -154,6 +155,8 @@ class ModRepository(private val context: Context) {
             require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
         }
 
+        // Admission runs before replacing an existing installation.
+        validate(manifest)
         val target = File(modsDir, manifest.uid)
         target.deleteRecursively()
         target.parentFile?.mkdirs()

@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -61,6 +62,8 @@ import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.PackType
 import dev.bunnyloader.mods.formatSize
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 internal val EdgePad = 14.dp
 
@@ -450,7 +453,12 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                     { if (!preview) shell.moveModTo(e.uid, packages[index + 1].uid) })
             }) else null) {
                 SwitchSprite(e.uid in shell.enabled) {
-                    if (!preview) shell.setEnabled(e.uid, e.uid !in shell.enabled)
+                    if (!preview) {
+                        // O LazyColumn ancora a rolagem na chave do primeiro item visível: sem
+                        // isto, o cartão que muda de grupo arrasta a tela junto com ele.
+                        state.requestScrollToItem(state.firstVisibleItemIndex, state.firstVisibleItemScrollOffset)
+                        shell.setEnabled(e.uid, e.uid !in shell.enabled)
+                    }
                 }
             }
         }
@@ -721,8 +729,11 @@ private fun SceneryPicker(choice: String, onChoice: (String) -> Unit) {
 @Composable
 private fun QuickStartCard(prefs: Prefs) {
     val ctx = LocalContext.current
-    val players = remember { SaveFiles.players(ctx) }
-    val worlds = remember { SaveFiles.worlds(ctx) }
+    val saves by produceState<Pair<List<SaveFiles.Save>, List<SaveFiles.Save>>?>(null, ctx) {
+        value = withContext(Dispatchers.IO) { SaveFiles.players(ctx) to SaveFiles.worlds(ctx) }
+    }
+    val players = saves?.first.orEmpty()
+    val worlds = saves?.second.orEmpty()
     var on by remember { mutableStateOf(prefs.quickStart) }
     var playerFile by remember { mutableStateOf(prefs.quickPlayer) }
     var worldFile by remember { mutableStateOf(prefs.quickWorld) }
@@ -738,8 +749,8 @@ private fun QuickStartCard(prefs: Prefs) {
         else -> fitting.firstOrNull { it.file == worldFile } ?: fitting.firstOrNull()
     }
 
-    androidx.compose.runtime.LaunchedEffect(on, player?.file, world?.file) {
-        if (!on) return@LaunchedEffect
+    androidx.compose.runtime.LaunchedEffect(on, saves, player?.file, world?.file) {
+        if (!on || saves == null) return@LaunchedEffect
         prefs.quickPlayer = player?.file ?: ""
         prefs.quickWorld = world?.file ?: Prefs.TITLE_ONLY
     }
@@ -758,7 +769,10 @@ private fun QuickStartCard(prefs: Prefs) {
                 SwitchSprite(on) { on = !on; prefs.quickStart = on }
             }
             if (on) {
-                if (player == null) {
+                if (saves == null) {
+                    PixelText("Carregando personagens e mundos...", size = Ts.Small,
+                        modifier = Modifier.padding(top = 10.dp))
+                } else if (player == null) {
                     PixelText(
                         "Nenhum personagem salvo ainda. Crie um no jogo; até lá, o jogo para no título.",
                         size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 10.dp),

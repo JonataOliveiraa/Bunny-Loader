@@ -57,8 +57,11 @@ UID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 SAFE_PATH = re.compile(r"^[A-Za-z0-9._ -]+(/[A-Za-z0-9._ -]+)*$")
 PACKAGE_PATH = re.compile(r"^[A-Za-z0-9._ ()-]+(/[A-Za-z0-9._ ()-]+)*$")
 VERSION = re.compile(r"^\d+(\.\d+)*([-+][0-9A-Za-z.]+)?$")
-STORE_ROOT_FILES = ["manifest.json", "icon.png", "icon.gif", "banner.png",
+# As capas na ordem do Catalog.BANNERS: o app usa a primeira que existir.
+STORE_ROOT_FILES = ["manifest.json", "icon.png", "icon.gif",
+                    "banner.gif", "banner.png", "banner.webp", "banner.jpg", "banner.jpeg",
                     "description.md", "changelog.md", "license.md"]
+HEX_COLOR = re.compile(r"^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$")
 STORE_DIRS = ["authors/", "thumbnails/"]
 MD_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)")
 MAX_STORE_FILE = 4 << 20
@@ -143,6 +146,14 @@ class Package:
             f = page.get("file", "")
             if f in self.names:
                 files.append(f)
+        # O fundo da ficha (theme.background), quando é imagem e não cor.
+        theme = self.manifest.get("theme") or {}
+        background = str(theme.get("background", "")).strip() if isinstance(theme, dict) else ""
+        if background and not HEX_COLOR.match(background):
+            if background in self.names:
+                files.append(background)
+            else:
+                print(f"  aviso: {self.path.name}: theme.background {background!r} não está no pacote")
         # Imagens que o Markdown da ficha usa (o ExampleMod mostra sprites do
         # próprio content/ na descrição).
         for md in [f for f in files if f.endswith(".md")]:

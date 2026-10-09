@@ -17,10 +17,17 @@ MeuMod/
   license.md          aba Licença (opcional)
   icon.png            ícone quadrado, na lista
   icon.gif            o ícone animado, no launcher (opcional)
-  banner.png          capa da ficha, ~3,4:1 (ex.: 384x112)
+  banner.png          capa da ficha, ~3,4:1 (ex.: 384x112); banner.gif anima
   thumbnails/         imagens extras, no pé da Descrição (opcional)
   docs/               o que mais você quiser mostrar (opcional)
+    fundo.png         o fundo da ficha, se o theme pedir (opcional)
 ```
+
+**Formatos de imagem.** Em toda a ficha (capa, vitrine, fotos dos autores,
+fundo e imagens do Markdown) valem PNG, GIF, WebP, JPG e BMP. **GIF anima**
+na capa, no fundo, na vitrine e no Markdown (as fotos dos autores mostram só o
+primeiro quadro). WebP animado aparece parado. A capa pode ser `banner.gif`,
+`banner.png`, `banner.webp` ou `banner.jpg`; com mais de uma, vale nessa ordem.
 
 A ficha fica assim, de cima para baixo:
 
@@ -78,7 +85,13 @@ Os campos novos estão marcados. O resto está no [README](README.md#o-manifestj
     "accent": "#7FE07A",
     "panel": "#24413A",
     "text": "#D8F0DD",
-    "heading": "#FFFFFF"
+    "heading": "#FFFFFF",
+    "button": "#2F6B4F",
+    "buttonText": "#FFFFFF",
+    "background": "docs/fundo.png",
+    "backgroundMode": "tile",
+    "backgroundScale": 2,
+    "backgroundDim": 0.3
   }
 }
 ```
@@ -91,7 +104,7 @@ Os campos novos estão marcados. O resto está no [README](README.md#o-manifestj
 | `license` | **Novo.** O nome curto da licença (`MIT`, `CC BY-NC 4.0`, `Todos os direitos reservados`). Aparece na ficha técnica e no topo da aba Licença. O texto inteiro vai em `license.md`. |
 | `links` | **Novo.** Botões no cabeçalho. Só `https://` e `http://` aparecem. |
 | `pages` | **Novo.** Abas a mais, cada uma um `.md` do pacote. Uma página cujo arquivo não existe não aparece. |
-| `theme` | **Novo.** As cores da ficha deste mod (abaixo). |
+| `theme` | **Novo.** O tema da ficha deste mod: as cores do texto, dos painéis e dos botões, e o fundo da tela (abaixo). |
 | `description` | A forma antiga da descrição. Só vale quando o pacote **não** tem `description.md`. |
 
 ### Os autores
@@ -116,8 +129,8 @@ Os campos novos estão marcados. O resto está no [README](README.md#o-manifestj
 
 **A foto.** Com `avatar`, vale `authors/<avatar>`. Sem ele, o app procura
 `authors/<nome>.png` e depois o nome em minúsculas com hífen
-(`"Bunny Loader"` → `authors/bunny-loader.png`); também aceita `.jpg`, `.jpeg` e
-`.webp`. Sem foto nenhuma, aparece a inicial do nome.
+(`"Bunny Loader"` → `authors/bunny-loader.png`); também aceita `.jpg`, `.jpeg`, `.webp` e
+`.gif` (parado). Sem foto nenhuma, aparece a inicial do nome.
 
 Use uma imagem **quadrada** (o que sobra é cortado). Pixel art pequena (32x32,
 64x64) é ampliada sem borrar; foto grande é reduzida com suavização. Não passe
@@ -134,6 +147,8 @@ aparecem até quatro fotos, uma por cima da outra, e "por A, B e C".
 | `panel` | O fundo dos painéis da ficha (cabeçalho, conteúdo, abas). Padrão: o azul dos painéis do Terraria. |
 | `text` | O texto corrido. |
 | `heading` | Os títulos (`#`, `##`...) e o nome do mod. |
+| `button` | O fundo dos botões: baixar, atualizar, remover, exportar e os links. O botão apertado e a caixa de ligar/desligar usam a mesma cor, mais escura. Padrão: os botões do launcher (e os links no azul de seleção). |
+| `buttonText` | O texto dos botões, links inclusive. Padrão: branco nos botões e o `accent` nos links. |
 
 Todas são `#RRGGBB`, `#AARRGGBB` ou `#RGB`. Uma cor que falta (ou que não se
 lê) fica a do launcher, então dá para mudar só o `accent`. O tema vale **só
@@ -142,6 +157,29 @@ dentro da ficha do seu mod**; a lista e as outras telas seguem a paleta do app.
 > [!TIP]
 > Escolha um `panel` escuro: o texto tem contorno preto e branco por cima, e
 > num painel claro ele fica pesado.
+
+### O fundo (`background`)
+
+Com a ficha aberta, o cenário do launcher (a floresta, a neve...) dá lugar ao
+fundo do seu mod:
+
+| Campo | |
+|---|---|
+| `background` | Uma cor (`"#1B2430"`) ou uma imagem do pacote, pelo caminho a partir da raiz (`"docs/fundo.png"`). GIF anima. |
+| `backgroundMode` | `"cover"` (o padrão): a imagem enche a tela, cortando o que sobra. `"tile"`: repete a imagem lado a lado, como um papel de parede — bom para textura de bloco do jogo. |
+| `backgroundScale` | Só no `tile`: quantos pontos da tela cada pixel da imagem ocupa (padrão `2`; um bloco de 16x16 vira um quadrado de 32). |
+| `backgroundDim` | De `0` a `1`: uma camada preta por cima do fundo, para os painéis se destacarem. `0.3` já ajuda numa imagem clara. |
+
+O fundo fica parado atrás da ficha (não rola junto) e cobre a tela inteira,
+atrás da barra de baixo também. Sem `background`, continua o cenário do launcher.
+
+- Para `cover`, use uma imagem em pé, perto da proporção de um celular (por
+  exemplo 270x480 em pixel art, ou 1080x1920 em foto). Os lados mais largos que
+  a tela são cortados.
+- Para `tile`, use uma imagem pequena que encaixe nas bordas (16x16, 32x32, 48x48).
+- GIF animado vai até 512x512 em qualquer lugar da ficha; maior que isso ele
+  aparece parado, no primeiro quadro. Um GIF muito longo é cortado nos
+  primeiros quadros (uns 2 milhões de pixels ao todo: 30 quadros de 256x256).
 
 ## `description.md`
 
@@ -255,7 +293,53 @@ Pegue a ![](content/Content/Items/Moeda.png) Moeda e troque na loja.
   entre colchetes como legenda. A que é maior que a tela encolhe para caber.
 - **No meio do texto**, vira um ícone do tamanho da letra. É o jeito de mostrar
   um item do seu mod numa frase.
-- PNG, JPG e WebP. Imagem que não existe mostra o texto alternativo.
+- PNG, GIF (animado), WebP, JPG e BMP. Imagem que não existe mostra o texto
+  alternativo.
+
+#### Tamanho e alinhamento
+
+Um `{...}` **colado** logo depois da imagem diz o tamanho e onde ela fica:
+
+```markdown
+![Chefe](docs/chefe.gif){width=200 align=center}
+
+![](docs/mapa.png){width=50% align=right}
+
+![](content/Content/Items/Espada.png){float=left width=96}
+Este parágrafo fica **ao lado** da espada, e não embaixo dela.
+
+Pegue a ![](content/Content/Items/Moeda.png){h=24} Moeda maior que a letra, e [i:757]{32} também.
+```
+
+| Dentro do `{}` | |
+|---|---|
+| `width=128` (ou `w=128`) | A largura, em pontos da tela (o "pixel" do launcher: a ficha tem uns 330 de largura no celular em pé). `px` e `dp` no fim são aceitos e dão no mesmo. |
+| `width=50%` | A largura em porcentagem do texto. |
+| `height=64` (ou `h=64`) | A altura. Só a largura **ou** só a altura mantém a proporção da imagem; as duas juntas esticam. |
+| `128x64`, `128x`, `x64` | Largura e altura de uma vez. Um número sozinho (`{128}` ou `{50%}`) é a largura. |
+| `align=left` / `center` / `right` | Onde a imagem sozinha na linha fica. Sem ele, à esquerda (ou no centro, dentro de `::: center`). Também vale só a palavra: `{right}`. |
+| `float=left` / `right` | Põe a imagem **ao lado do bloco seguinte** (um parágrafo, uma lista, uma tabela). A largura é a do `width` (até 60% do texto); sem ele, 40%. |
+
+- Os nomes em português também valem: `largura`, `altura`, `alinhar`,
+  `flutuar`, `esquerda`, `centro`, `direita`.
+- A imagem nunca passa da largura do texto: maior que isso, ela encolhe.
+- Ampliada (maior que o arquivo), a imagem fica sem filtro, com o pixel
+  quadrado; reduzida, ela é suavizada. Para pixel art nítida, use múltiplos do
+  tamanho do arquivo (uma arte de 32 com `width=64` ou `width=96`).
+- No meio do texto, só `width`/`height` em pontos valem (o `%` é ignorado); a
+  linha cresce para caber a imagem.
+- O `float` leva **um** bloco para o lado. Para pôr vários (dois parágrafos e
+  uma lista), junte-os num `::: group` logo depois da imagem:
+
+```markdown
+![](docs/guia.png){float=right width=40%}
+::: group
+Primeiro parágrafo ao lado.
+
+- e uma lista
+- também ao lado
+:::
+```
 
 ### Blocos
 
@@ -321,6 +405,11 @@ Escondido até tocar no título.
 
 ::: panel Requisitos
 Um painel afundado, com título opcional.
+:::
+
+::: group
+Só junta os blocos, sem desenhar nada: serve para pôr vários ao lado de
+uma imagem com `float`.
 :::
 ```
 

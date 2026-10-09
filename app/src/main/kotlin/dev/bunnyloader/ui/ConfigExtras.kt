@@ -24,6 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -44,6 +46,9 @@ import dev.bunnyloader.R
 import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.SaveFiles
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // ================================ Perfil ================================
 
@@ -82,11 +87,16 @@ fun ProfileHeader(prefs: Prefs, modifier: Modifier = Modifier) {
     var editing by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf(name) }
     var photoVersion by remember { mutableIntStateOf(0) }
-    val photo: ImageBitmap? = remember(photoVersion) {
-        profileFile(ctx).takeIf { it.isFile }?.let { BitmapFactory.decodeFile(it.path)?.asImageBitmap() }
+    val scope = rememberCoroutineScope()
+    val photo by produceState<ImageBitmap?>(null, photoVersion) {
+        value = withContext(Dispatchers.IO) {
+            profileFile(ctx).takeIf { it.isFile }?.let { BitmapFactory.decodeFile(it.path)?.asImageBitmap() }
+        }
     }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null && saveProfilePhoto(ctx, uri)) photoVersion++
+        if (uri != null) scope.launch {
+            if (withContext(Dispatchers.IO) { saveProfilePhoto(ctx, uri) }) photoVersion++
+        }
     }
     val save = {
         name = draft.trim().take(24)

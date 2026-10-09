@@ -62,6 +62,16 @@ class PackageTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaisesRegex(publish.Fail, 'caminho'):
                 self.package([name], 'texture')
 
+    def test_store_takes_animated_banner_and_theme_background(self):
+        package = self.package(['content/main.js', 'banner.gif', 'docs/bg.gif'])
+        self.addCleanup(package.zip.close)
+        package.manifest['theme'] = {'background': 'docs/bg.gif'}
+        files = package.store_files()
+        self.assertIn('banner.gif', files)
+        self.assertIn('docs/bg.gif', files)
+        package.manifest['theme'] = {'background': '#203040'}
+        self.assertNotIn('#203040', package.store_files())
+
     def test_store_paths_keep_launcher_restrictions(self):
         package = self.package(['content/main.js', 'page (1).md'])
         self.addCleanup(package.zip.close)

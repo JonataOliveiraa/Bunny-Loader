@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,28 +15,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,11 +36,7 @@ import dev.bunnyloader.R
 import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.IconAnimation
 import dev.bunnyloader.mods.formatSize
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import kotlin.math.max
-import kotlin.math.roundToInt
 
 /**
  * A categoria é do pacote; o app só escolhe a cor e um ícone de reserva. As
@@ -80,34 +66,44 @@ val LocalRemoteFiles = androidx.compose.runtime.staticCompositionLocalOf<(String
     { _, _ -> }
 }
 
+val LocalRemoteMedia = androidx.compose.runtime.staticCompositionLocalOf<(Catalog.Entry) -> Catalog.Entry> {
+    { it }
+}
+
 @Composable
 fun ModIcon(entry: Catalog.Entry, catalog: Catalog, size: androidx.compose.ui.unit.Dp) {
-    val remote = entry.remote
-    if (remote != null && entry.iconAsset == null) {
+    val media = LocalRemoteMedia.current(entry)
+    val remote = media.remote
+    if (remote != null && media.iconAsset == null) {
         val request = LocalRemoteFiles.current
-        LaunchedEffect(entry.uid) { request(entry.uid, listOf(remote.iconFile)) }
+        LaunchedEffect(entry.uid, remote.download.sha256) { request(entry.uid, listOf(remote.iconFile)) }
     }
-    val path = entry.iconAsset
+    val path = media.iconAsset
     val animated = path != null && path.endsWith(".gif", ignoreCase = true)
-    val gif = if (animated) rememberIconAnimation(catalog, path!!, entry.manifest.version) else null
+    val revision = "${remote?.download?.sha256 ?: entry.manifest.version}:${media.mediaRevision}"
+    val gif = if (animated) rememberIconAnimation(catalog, path!!, revision) else null
+    if (animated && gif?.done == true && gif.animation == null && remote != null && Catalog.ICON in remote.files) {
+        val request = LocalRemoteFiles.current
+        LaunchedEffect(entry.uid, remote.download.sha256) { request(entry.uid, listOf(Catalog.ICON)) }
+    }
     // Lido uma vez por ícone, não a cada recomposição: agora pode ser arquivo.
     // Um icon.gif que não dá para animar (grande demais, quebrado) cede ao
     // icon.png ao lado; sem ele, o primeiro quadro, se o Android ler.
     val still = produceState<ImageBitmap?>(
-        remember(path, entry.manifest.version) { if (!animated) path?.let(catalog::cachedBitmap) else null },
-        path, gif?.done, entry.manifest.version,
+        null,
+        path, gif?.done, revision,
     ) {
         value = when {
             path == null || (animated && gif?.done != true) || gif?.animation != null -> null
-            else -> withContext(Dispatchers.IO) {
-                if (animated) catalog.loadBitmap(path.dropLast(4) + ".png") ?: catalog.loadBitmap(path)
-                else catalog.loadBitmap(path)
+            else -> withContext(MediaDispatcher) {
+                if (animated) catalog.loadIconBitmap(path.dropLast(4) + ".png") ?: catalog.loadIconBitmap(path)
+                else catalog.loadIconBitmap(path)
             }
         }
     }.value
     Box(Modifier.size(size).framePanel().padding(2.dp).clipToBounds(), contentAlignment = Alignment.Center) {
         when {
-            gif?.animation != null -> AnimatedIcon(gif.animation, Modifier.fillMaxSize())
+            gif?.animation != null -> PictureFrames(gif.animation, Modifier.fillMaxSize(), PictureFit.Crop)
             still != null -> Image(still, null, filterQuality = FilterQuality.None,
                 contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
             // O GIF ainda montando: a moldura vazia, não o ícone da categoria
@@ -123,54 +119,12 @@ private class IconLoad(val animation: IconAnimation?, val done: Boolean)
 /** Os quadros do GIF: do cache na hora, ou montados fora da thread da interface. */
 @Composable
 private fun rememberIconAnimation(catalog: Catalog, path: String, version: String): IconLoad {
-    val cached = remember(path, version) { catalog.cachedAnimation(path) }
-    val load by produceState(IconLoad(cached, cached != null), path, version) {
-        value = IconLoad(cached, cached != null)
-        if (!value.done) {
-            value = IconLoad(withContext(Dispatchers.Default) { catalog.loadAnimation(path) }, true)
-        }
+    val load by produceState(IconLoad(null, false), path, version) {
+        value = IconLoad(null, false)
+        value = IconLoad(withContext(MediaDispatcher) { catalog.loadAnimation(path) }, true)
     }
     return load
 }
-
-/**
- * O ícone animado. O quadro troca no tempo de cada um, só com o launcher na
- * frente, e é lido no desenho: a troca redesenha o ícone, não recompõe nada.
- */
-@Composable
-private fun AnimatedIcon(animation: IconAnimation, modifier: Modifier) {
-    var frame by remember(animation) { mutableIntStateOf(0) }
-    val fx = LocalThemeFx.current
-    val paused by remember(fx) { derivedStateOf { fx.paused() } }
-    if (animation.frames.size > 1) {
-        val lifecycle = LocalLifecycleOwner.current.lifecycle
-        LaunchedEffect(animation, lifecycle, paused) {
-            if (paused) return@LaunchedEffect
-            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (true) {
-                    delay(animation.delaysMs[frame].toLong())
-                    frame = (frame + 1) % animation.frames.size
-                }
-            }
-        }
-    }
-    Spacer(modifier.drawBehind { drawCropped(animation.frames[frame]) })
-}
-
-/** Como o ContentScale.Crop do ícone PNG, e sem filtro: o pixel fica quadrado. */
-private fun DrawScope.drawCropped(image: ImageBitmap) {
-    val scale = max(size.width / image.width, size.height / image.height)
-    val sw = (size.width / scale).roundToInt().coerceIn(1, image.width)
-    val sh = (size.height / scale).roundToInt().coerceIn(1, image.height)
-    drawImage(
-        image,
-        srcOffset = IntOffset((image.width - sw) / 2, (image.height - sh) / 2),
-        srcSize = IntSize(sw, sh),
-        dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()),
-        filterQuality = FilterQuality.None,
-    )
-}
-
 
 /**
  * Capa do mod: a `banner.png` do pacote, montada com texturas do jogo
@@ -183,45 +137,37 @@ private fun DrawScope.drawCropped(image: ImageBitmap) {
  */
 @Composable
 fun ModBanner(entry: Catalog.Entry, catalog: Catalog, modifier: Modifier = Modifier) {
-    if (entry.remote != null && entry.bannerAsset == null) {
+    val media = LocalRemoteMedia.current(entry)
+    if (media.remote != null && media.bannerAsset == null) {
         val request = LocalRemoteFiles.current
-        LaunchedEffect(entry.uid) { request(entry.uid, listOf(Catalog.BANNER)) }
+        LaunchedEffect(entry.uid, media.remote.download.sha256) { request(entry.uid, listOf(media.remote.bannerFile)) }
     }
-    val own = rememberPackageBitmap(catalog, entry.bannerAsset, entry.manifest.version)
+    val own = rememberPackagePicture(catalog, media.bannerAsset,
+        "${media.remote?.download?.sha256 ?: media.manifest.version}:${media.mediaRevision}")
     val fallback = ImageBitmap.imageResource(
         FALLBACK_BANNERS[(entry.uid.hashCode() and 0x7fffffff) % FALLBACK_BANNERS.size]
     )
     Box(modifier.framePanel().padding(2.dp).clipToBounds()) {
-        val fitArtwork = own != null && own.width < own.height * 1.8f
-        if (fitArtwork) {
+        val first = own?.frames?.first()
+        if (own == null || first == null) {
             Image(
-                bitmap = own!!,
+                bitmap = fallback,
                 contentDescription = null,
                 filterQuality = FilterQuality.None,
                 contentScale = ContentScale.Crop,
-                alpha = 0.22f,
+                alignment = Alignment.BottomCenter,
                 modifier = Modifier.fillMaxSize(),
             )
+        } else if (first.width < first.height * 1.8f) {
+            // Arte estreita: inteira no meio, sobre ela mesma esmaecida.
+            Box(Modifier.fillMaxSize().graphicsLayer { alpha = 0.22f }) {
+                PictureFrames(own, Modifier.fillMaxSize(), PictureFit.Crop)
+            }
+            PictureFrames(own, Modifier.fillMaxSize(), PictureFit.Fit)
+        } else {
+            PictureFrames(own, Modifier.fillMaxSize(), PictureFit.Crop)
         }
-        Image(
-            bitmap = own ?: fallback,
-            contentDescription = null,
-            filterQuality = FilterQuality.None,
-            contentScale = if (fitArtwork) ContentScale.Fit else ContentScale.Crop,
-            alignment = if (own != null) Alignment.Center else Alignment.BottomCenter,
-            modifier = Modifier.fillMaxSize(),
-        )
     }
-}
-
-@Composable
-internal fun rememberPackageBitmap(catalog: Catalog, path: String?, version: String = ""): ImageBitmap? {
-    val cached = remember(catalog, path, version) { path?.let(catalog::cachedBitmap) }
-    val bitmap by produceState(cached, catalog, path, version) {
-        value = cached
-        if (path != null && value == null) value = withContext(Dispatchers.IO) { catalog.loadBitmap(path) }
-    }
-    return bitmap
 }
 
 private val FALLBACK_BANNERS = listOf(
