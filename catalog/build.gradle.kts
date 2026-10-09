@@ -56,7 +56,6 @@ android {
         jvmTarget = "17"
     }
 
-    sourceSets["main"].res.srcDir(layout.buildDirectory.dir("generated/sharedRes"))
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/sharedAssets"))
 }
 
@@ -67,13 +66,6 @@ val sharedArt = listOf(
     "ic_fechar", "ic_tab_explorar", "ic_tab_pacotes", "ic_folder", "ic_lupa", "ic_config",
     "spr_loading", "bg_mountains", "bg_hills", "bg_forest", "bg_moon", "bg_star",
 )
-val syncSharedRes by tasks.registering(Sync::class) {
-    from(rootProject.file("Icon_for_apk.png")) {
-        rename { "ic_launcher.png" }
-        into("drawable-nodpi")
-    }
-    into(layout.buildDirectory.dir("generated/sharedRes"))
-}
 val syncSharedAssets by tasks.registering(Sync::class) {
     from(rootProject.file("tools/mods/manager.html"))
     from(rootProject.file("app/src/main/res/drawable-nodpi")) {
@@ -86,7 +78,7 @@ val syncSharedAssets by tasks.registering(Sync::class) {
     }
     into(layout.buildDirectory.dir("generated/sharedAssets"))
 }
-tasks.named("preBuild") { dependsOn(syncSharedRes, syncSharedAssets) }
+tasks.named("preBuild") { dependsOn(syncSharedAssets) }
 
 dependencies {
     implementation("androidx.activity:activity-ktx:1.9.2")

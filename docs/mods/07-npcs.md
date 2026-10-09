@@ -245,6 +245,13 @@ SetBestiary(database, bestiaryEntry) {
 O retrato, os drops e a contagem de mortes o Bestiário monta sozinho.
 `HideFromBestiary = true` tira o NPC do Bestiário.
 
+Para mostrar uma **imagem fixa** no lugar do NPC animado (na lista e no
+retrato), ponha o arquivo `<Textura>_BestiaryIcon.png` ao lado da textura
+(`ExampleBoss_BestiaryIcon.png`), ou o caminho em `BestiaryIcon`. O jeito do
+tModLoader também vale: o `CustomTexturePath` do `NPCBestiaryDrawModifiers`
+apontando para um arquivo do mod. A imagem é desenhada no tamanho original,
+centrada no quadro; o `Scale` do modificador a aumenta ou diminui.
+
 ## Morador
 
 Um NPC que se muda para uma casa, conversa, vende e tem humor, como os do
@@ -429,6 +436,24 @@ noite pelo `ExampleBossSummonItem`.
   Ele aparece na barra de vida de chefe e no mapa. **Sem ele, o chefe fica sem
   a barra grande e sem o ícone no mapa** (o jogo só mostra a barra de quem tem
   ícone).
+- um **segundo ícone** (outra fase, por exemplo) se registra com
+  `Mod.AddBossHeadTexture`, que devolve a vaga, e entra pelo `BossHeadSlot`.
+  `BossHeadRotation` e `BossHeadSpriteEffects` giram e espelham o ícone do
+  mapa:
+
+  ```js
+  static segundaFase = -1;
+
+  SetStaticDefaults() {
+      ExampleBoss.segundaFase = this.Mod.AddBossHeadTexture(this.Texture + '_Head_Boss_2');
+  }
+  BossHeadSlot(npc, index) {
+      if (npc.ai[0] === 1 && ExampleBoss.segundaFase !== -1) index.value = ExampleBoss.segundaFase;
+  }
+  ```
+
+  `ModContent.GetModBossHeadSlot(caminho)` devolve a vaga de um ícone já
+  registrado (ou -1), também o de outro mod (`'idDoMod/Content/...'`).
 
 Sacola de tesouro e a marca de chefe derrotado ainda não têm atalho no Bunny
 Loader.

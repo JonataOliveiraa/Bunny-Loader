@@ -41,6 +41,11 @@ class ModContent {
     static Request(path) { return ContentLookup.Request(path); }
     static Texture(path) { return ContentLookup.Request(path).Value; }
     static HasAsset(path) { return ContentLookup.FindTexture(path) !== null; }
+    // A vaga de um ícone do Mod.AddBossHeadTexture (ou o _Head_Boss de um chefe), ou -1.
+    static GetModBossHeadSlot(texture) {
+        const file = ContentLookup.FindTexture(texture);
+        return file ? bl.npcs.bossHeadSlot(file) : -1;
+    }
     static SoundStyle(path, options) { return new SoundStyle(path, options); }
 }
 

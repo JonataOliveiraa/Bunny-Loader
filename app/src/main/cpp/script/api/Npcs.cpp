@@ -233,7 +233,7 @@ JSValue js_register(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) 
     if (!shimmerHead.empty() && fileExists(shimmerHead)) {
         runtime::setModNpcHead(type, 1, shimmerHead, mod + "/" + name + "_Shimmer_Head");
     }
-    if (!bossHead.empty() && fileExists(bossHead)) runtime::setModBossHead(type, bossHead, mod + "/" + name + "_Head_Boss");
+    if (!bossHead.empty() && fileExists(bossHead)) runtime::reserveBossHead(bossHead, mod + "/" + name + "_Head_Boss", type);
     g_ctx = ctx;
     runtime::setNpcsInstalledHook(onNpcsInstalled);
     g_defs[type] = JS_DupValue(ctx, def);
@@ -310,6 +310,30 @@ JSValue js_freeSlot(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     return JS_NewInt32(ctx, -1);
 }
 
+/**
+ * bl.npcs.addBossHead(caminho, tipo = -1) — reserva a vaga de um icone de
+ * chefe a mais (Mod.AddBossHeadTexture) e a devolve; -1 sem o arquivo.
+ */
+JSValue js_addBossHead(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* c = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!c) return JS_ThrowTypeError(ctx, "bl.npcs.addBossHead(caminho, tipo)");
+    const std::string path = resolveModPath(ctx, c);
+    JS_FreeCString(ctx, c);
+    int32_t type = -1;
+    if (argc >= 2 && !JS_IsUndefined(argv[1]) && JS_ToInt32(ctx, &type, argv[1]) < 0) return JS_EXCEPTION;
+    if (!fileExists(path)) return JS_NewInt32(ctx, -1);
+    return JS_NewInt32(ctx, runtime::reserveBossHead(path, callerModId(ctx) + ":" + path, type));
+}
+
+/** bl.npcs.bossHeadSlot(caminho) — a vaga reservada para o arquivo, ou -1. */
+JSValue js_bossHeadSlot(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    const char* c = argc >= 1 ? JS_ToCString(ctx, argv[0]) : nullptr;
+    if (!c) return JS_ThrowTypeError(ctx, "bl.npcs.bossHeadSlot(caminho)");
+    const std::string path = resolveModPath(ctx, c);
+    JS_FreeCString(ctx, c);
+    return JS_NewInt32(ctx, runtime::bossHeadSlotOf(path));
+}
+
 /** bl.npcs.isModNpc(tipo) */
 JSValue js_isModNpc(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t t = -1;
@@ -328,6 +352,8 @@ void installNpcsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, npcs, "freeSlot", JS_NewCFunction(ctx, js_freeSlot, "freeSlot", 0));
     JS_SetPropertyStr(ctx, npcs, "setFrames", JS_NewCFunction(ctx, js_setFrames, "setFrames", 2));
     JS_SetPropertyStr(ctx, npcs, "headSlot", JS_NewCFunction(ctx, js_headSlot, "headSlot", 1));
+    JS_SetPropertyStr(ctx, npcs, "addBossHead", JS_NewCFunction(ctx, js_addBossHead, "addBossHead", 2));
+    JS_SetPropertyStr(ctx, npcs, "bossHeadSlot", JS_NewCFunction(ctx, js_bossHeadSlot, "bossHeadSlot", 1));
     JS_SetPropertyStr(ctx, npcs, "setAnimationType",
                       JS_NewCFunction(ctx, js_setAnimationType, "setAnimationType", 2));
     JS_SetPropertyStr(ctx, bl, "npcs", npcs);

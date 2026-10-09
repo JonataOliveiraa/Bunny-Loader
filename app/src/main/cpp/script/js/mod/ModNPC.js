@@ -11,6 +11,9 @@ class ModNPC {
     DisplayName = '';
     Texture = this.constructor.name;
     HideFromBestiary = false;
+    // Padrão: a Texture + '_BestiaryIcon'. A imagem da entrada no Bestiário
+    // (lista e retrato) no lugar do NPC animado; sem o arquivo, o NPC.
+    BestiaryIcon = '';
     // Padrão: a Texture + '_Head' / '_Shimmer_Head'. Morador sem cabeça nunca se muda.
     HeadTexture = '';
     ShimmerHeadTexture = '';

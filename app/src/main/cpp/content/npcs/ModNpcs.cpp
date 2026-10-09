@@ -411,7 +411,16 @@ void setNpcsInstalledHook(NpcsInstalledHook hook) {
 
 void tickModNpcs() {
     const int total = g_total.load(std::memory_order_acquire);
-    if (total == 0 || g_failed) return;
+    if (total == 0 || g_failed) {
+        // Sem NPC de mod, um GlobalNPC ainda pode dar icone de chefe a um
+        // chefe do jogo (Mod.AddBossHeadTexture).
+        static int frame = 0;
+        if (++frame % 120 == 0 && gameReady(kVanillaNpcCount)) {
+            installBossHeads();
+            watchBossHeads();
+        }
+        return;
+    }
     const int installed = g_installed.load(std::memory_order_relaxed);
     const int from = kVanillaNpcCount + installed;
 

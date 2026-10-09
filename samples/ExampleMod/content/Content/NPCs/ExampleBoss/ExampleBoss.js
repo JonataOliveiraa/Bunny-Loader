@@ -6,7 +6,11 @@ const { FlavorTextBestiaryInfoElement, MoonLordPortraitBackgroundProviderBestiar
 const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];
 
 export class ExampleBoss extends ModNPC {
+    // A cabeça da 2ª fase (ExampleBoss_Head_Boss_2.png), na barra de chefe e no mapa.
+    static secondStageHead = -1;
+
     SetStaticDefaults() {
+        ExampleBoss.secondStageHead = this.Mod.AddBossHeadTexture(this.Texture + '_Head_Boss_2');
         Terraria.Main.npcFrameCount[this.Type] = 6;
         NPCID.Sets.MPAllowedEnemies[this.Type] = true;
         NPCID.Sets.BossBestiaryPriority.Add(this.Type);
@@ -64,6 +68,10 @@ export class ExampleBoss extends ModNPC {
         if (npc.life > 0 || Terraria.Main.netMode === 2) return;
         NewGore(npc.Right, Vector2.new(Math.random() * 5, 1 + Math.random() * 5), ModGore.getTypeByName('ExampleBoss_GoreFront'), 1.5);
         NewGore(npc.Left, Vector2.new(Math.random() * -5, 1 + Math.random() * 5), ModGore.getTypeByName('ExampleBoss_GoreBack'), 1.5);
+    }
+
+    BossHeadSlot(npc, index) {
+        if (npc.ai[0] === 1 && ExampleBoss.secondStageHead !== -1) index.value = ExampleBoss.secondStageHead;
     }
 
     PreAI(npc) {

@@ -2,7 +2,8 @@
 // do Example Mod ganha uma vaga no fim de TextureAssets.NpcHeadBoss e o
 // índice em NPCID.Sets.BossHeadTextures. A barra de chefe do jogo
 // (BigProgressBarSystem) e os ícones do mapa leem NPC.GetBossHeadTextureIndex:
-// com o índice, o chefe ganha a barra grande.
+// com o índice, o chefe ganha a barra grande. Também a 2ª cabeça
+// (Mod.AddBossHeadTexture + BossHeadSlot) e o _BestiaryIcon no Bestiário.
 // Loga "bosshead <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 const { NPCID } = Terraria.ID;
@@ -70,6 +71,33 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
             return 'sem o ExampleSlimeNPC';
         });
 
+        // A 2ª fase (Mod.AddBossHeadTexture no SetStaticDefaults do ExampleBoss).
+        const second = ModContent.GetModBossHeadSlot('examplemod/Content/NPCs/ExampleBoss/ExampleBoss_Head_Boss_2');
+        bl.log(`bosshead diag: 2a fase na vaga ${second}`);
+        check('AddBossHeadTexture reservou a 2a cabeça depois da padrão', () => second > slot || `${second} (padrão ${slot})`);
+        check('a 2a cabeça é o PNG dela (26x28) e não a padrão', () => {
+            const a = heads[second], b = heads[slot];
+            return (a.Value.Width === 26 && bl.addressOf(a) !== bl.addressOf(b)) || `${a.Value.Width}x${a.Value.Height}`;
+        });
+        check('arquivo que não existe: -1', () => ModContent.GetModBossHeadSlot('examplemod/nada_Head_Boss') === -1);
+
+        // O ícone do Bestiário (ExampleBoss_BestiaryIcon.png, 240x160) no
+        // entry.Icon, que a lista e o retrato desenham.
+        const db = Main.BestiaryDB;
+        const find = db['BestiaryEntry FindEntryByNPCID(int npcNetId)'];
+        check('BestiaryIcon: o ExampleBoss usa o _BestiaryIcon', () => {
+            const custom = find(bossType).Icon._customTexture;
+            return (!!custom && custom.Value.Width === 240 && custom.Value.Height === 160) || (custom ? `${custom.Value.Width}x${custom.Value.Height}` : 'nulo');
+        });
+        check('BestiaryIcon: NPC sem o arquivo continua desenhando o NPC', () => {
+            for (let t = bl.npcs.vanillaCount; bl.npcs.isModNpc(t); t++) {
+                const m = ModNPC.getModNPC(t);
+                if (m && m.constructor.name === 'ExampleSlimeNPC') return !find(t).Icon._customTexture || 'tem textura';
+            }
+            return 'sem o ExampleSlimeNPC';
+        });
+        check('BestiaryIcon: o do jogo continua sem (Olho de Cthulhu)', () => !find(NPCID.EyeofCthulhu).Icon._customTexture || 'tem textura');
+
         Main.dayTime = false;
         Main.time = 1000;
         const idx = newNpc(Terraria.DataStructures.EntitySource_DebugCommand.new(), Math.floor(p.Center.X) + 10 * 16,
@@ -85,6 +113,13 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
 
     check('o chefe vivo devolve o índice (GetBossHeadTextureIndex)', () =>
         (boss.active && boss.GetBossHeadTextureIndex() === slot) || `ativo ${boss.active}, índice ${boss.GetBossHeadTextureIndex()}`);
+    check('2a fase (ai[0] = 1): BossHeadSlot troca a cabeça', () => {
+        const second = ModContent.GetModBossHeadSlot('examplemod/Content/NPCs/ExampleBoss/ExampleBoss_Head_Boss_2');
+        boss.ai[0] = 1;
+        const now = boss.GetBossHeadTextureIndex();
+        boss.ai[0] = 0;
+        return now === second || `índice ${now}, esperado ${second}`;
+    });
     check('o jogo mostra a barra de chefe dele', () => {
         const bar = Main.BigBossProgressBar._currentBar;
         bl.log('bosshead diag: barra atual ' + (bar ? bar.GetType().Name : 'nenhuma'));

@@ -30,33 +30,51 @@ class ItemCombatHooks {
         return plan;
     }
 
-    static #Own(item, name, args) {
-        const template = item && ItemLoader.ByType.get(item.type);
-        if (!template) return { has: false };
-        const label = ItemCombatHooks.#Plan(template.constructor)[name];
-        if (!label) return { has: false };
-        const m = ItemLoader.Of(item);
-        if (!m) return { has: false };
-        try { return { has: true, value: m[name](item, ...args) }; }
-        catch (e) { Safe.Report(label, e); return { has: true, value: undefined }; }
-    }
+    // Sem alocação no caminho comum (sem Global): a seleção de munição chama
+    // isto duas vezes por espaço do inventário, e o PlayerFrame todo quadro.
+    // Com objeto de resposta, ...args e spread a cada chamada, a munição ficou
+    // ~40% mais cara (hookperf, 2026-10-09).
+    static Call(item, name, a, b, c, d, e, f) {
+        if (!item) return undefined;
+        const count = arguments.length - 2;
+        const template = ItemLoader.ByType.get(item.type);
+        const label = template ? ItemCombatHooks.#Plan(template.constructor)[name] : undefined;
+        const m = label ? ItemLoader.Of(item) : null;
+        let own;
+        if (m) {
+            try { own = ItemCombatHooks.#Invoke(m, name, item, count, a, b, c, d, e, f); }
+            catch (err) { Safe.Report(label, err); }
+        }
+        const globals = ItemCombatHooks.#OWN_GLOBAL_PATH.has(name) ? null : globalItems.For(item, name);
+        if (!globals || !globals.length) return own;
 
-    static Call(item, name, ...args) {
-        const own = ItemCombatHooks.#Own(item, name, args);
-        const globals = item && !ItemCombatHooks.#OWN_GLOBAL_PATH.has(name) ? globalItems.For(item, name) : [];
-        if (!globals.length) return own.value;
-
-        const results = own.has ? [own.value] : [];
+        const results = m ? [own] : [];
         // O PickAmmo é chamado na munição; o do Global recebe (arma, munição, ...).
-        const globalArgs = name === 'PickAmmo' ? [args[0], item, ...args.slice(1)] : [item, ...args];
+        const pickAmmo = name === 'PickAmmo';
         for (const g of globals) {
-            try { results.push(g[name](...globalArgs)); }
-            catch (e) { Safe.Report(g.constructor.name + '.' + name, e); }
+            try {
+                results.push(pickAmmo
+                    ? ItemCombatHooks.#Invoke(g, name, a, count, item, b, c, d, e, f)
+                    : ItemCombatHooks.#Invoke(g, name, item, count, a, b, c, d, e, f));
+            } catch (err) { Safe.Report(g.constructor.name + '.' + name, err); }
         }
         switch (ItemCombatHooks.#JOIN[name]) {
             case 'and': return !results.includes(false);
             case 'nullable': return results.includes(false) ? false : results.includes(true) ? true : null;
-            default: return own.value;
+            default: return own;
+        }
+    }
+
+    // target[name](first, ...os count seguintes), sem montar array.
+    static #Invoke(target, name, first, count, a, b, c, d, e, f) {
+        switch (count) {
+            case 0: return target[name](first);
+            case 1: return target[name](first, a);
+            case 2: return target[name](first, a, b);
+            case 3: return target[name](first, a, b, c);
+            case 4: return target[name](first, a, b, c, d);
+            case 5: return target[name](first, a, b, c, d, e);
+            default: return target[name](first, a, b, c, d, e, f);
         }
     }
 

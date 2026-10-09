@@ -212,11 +212,45 @@ class GameActivity : Activity() {
         code >= 0 && code < PressedStates.size && PressedStates[code]
 
     /**
-     * Mapeia keycode do Android -> keycode da Unity.
-     * TODO: a tabela real está no dex do jogo; por ora identidade, o suficiente
-     * para bootar. Teclado/gamepad ficam imprecisos até portarmos a tabela.
+     * Keycode do Android -> KeyCode da Unity: a mesma tabela da
+     * UnityPlayerActivity do jogo (lida do classes.dex da 1.4.5.8.6). Tecla
+     * fora dela vira 0 (KeyCode.None), como lá.
      */
-    fun GetUnityKeyCode(androidKeyCode: Int): Int = androidKeyCode
+    fun GetUnityKeyCode(androidKeyCode: Int): Int = when (androidKeyCode) {
+        in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z -> androidKeyCode - KeyEvent.KEYCODE_A + 'a'.code
+        in KeyEvent.KEYCODE_1..KeyEvent.KEYCODE_9 -> androidKeyCode - KeyEvent.KEYCODE_1 + '1'.code
+        in KeyEvent.KEYCODE_F1..KeyEvent.KEYCODE_F12 -> androidKeyCode - KeyEvent.KEYCODE_F1 + 282
+        KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_BACK -> 27
+        KeyEvent.KEYCODE_GRAVE -> '`'.code
+        KeyEvent.KEYCODE_0 -> '0'.code
+        KeyEvent.KEYCODE_SPACE -> ' '.code
+        KeyEvent.KEYCODE_MINUS -> '-'.code
+        KeyEvent.KEYCODE_EQUALS -> '='.code
+        KeyEvent.KEYCODE_DEL -> 8                  // Backspace
+        KeyEvent.KEYCODE_FORWARD_DEL -> 127        // Delete
+        KeyEvent.KEYCODE_SHIFT_LEFT -> 304
+        KeyEvent.KEYCODE_SHIFT_RIGHT -> 303
+        KeyEvent.KEYCODE_ENTER -> 13
+        KeyEvent.KEYCODE_DPAD_UP -> 273
+        KeyEvent.KEYCODE_DPAD_DOWN -> 274
+        KeyEvent.KEYCODE_DPAD_RIGHT -> 275
+        KeyEvent.KEYCODE_DPAD_LEFT -> 276
+        KeyEvent.KEYCODE_COMMA -> ','.code
+        KeyEvent.KEYCODE_PERIOD -> '.'.code
+        KeyEvent.KEYCODE_SLASH -> '/'.code
+        KeyEvent.KEYCODE_ALT_LEFT -> 308
+        KeyEvent.KEYCODE_ALT_RIGHT -> 307
+        KeyEvent.KEYCODE_CTRL_RIGHT -> 305
+        KeyEvent.KEYCODE_CTRL_LEFT -> 306
+        KeyEvent.KEYCODE_CAPS_LOCK -> 301
+        KeyEvent.KEYCODE_TAB -> 9
+        KeyEvent.KEYCODE_LEFT_BRACKET -> '['.code
+        KeyEvent.KEYCODE_RIGHT_BRACKET -> ']'.code
+        KeyEvent.KEYCODE_APOSTROPHE -> '\''.code
+        KeyEvent.KEYCODE_SEMICOLON -> ';'.code
+        KeyEvent.KEYCODE_BACKSLASH -> '\\'.code
+        else -> 0
+    }
 
     fun SetMouseCursorMode(mode: Int) { MouseMode = mode }
 
@@ -230,7 +264,7 @@ class GameActivity : Activity() {
 
     private fun setPressed(code: Int, down: Boolean) {
         val u = GetUnityKeyCode(code)
-        if (u >= 0 && u < PressedStates.size) PressedStates[u] = down
+        if (u > 0 && u < PressedStates.size) PressedStates[u] = down
     }
 
     // --- ciclo de vida (espelha a UnityPlayerActivity) -----------------------

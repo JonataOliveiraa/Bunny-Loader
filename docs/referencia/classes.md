@@ -415,6 +415,8 @@ Um NPC novo: inimigo, chefe ou morador. Molde e uma instância por NPC
 | `AnimationType` | número | Anima como este NPC do jogo (0 = não). Vale no `SetDefaults`. |
 | `Banner`, `BannerItem` | número | ID do banner (o tipo do NPC representante) e item liberado pelo BannerSystem. `0` desliga. Veja [banners](../mods/07-npcs.md#bandeiras-de-inimigos). |
 | `HideFromBestiary` | `boolean` | Sem entrada no Bestiário. |
+| `BestiaryIcon` | texto | Imagem fixa da entrada no Bestiário (lista e retrato), no lugar do NPC animado. Padrão: `<Texture>_BestiaryIcon`; sem o arquivo, o NPC. O `CustomTexturePath` do `NPCBestiaryDrawModifiers` com um caminho do mod tem prioridade. |
+| `BossHeadTexture` | texto | Ícone de chefe (barra de chefe e mapa). Padrão: `<Texture>_Head_Boss`; sem o arquivo, sem barra grande e sem ícone. Outros ícones: `Mod.AddBossHeadTexture`. |
 | `HideFromModMenu` | `boolean` | Fora do Mod Menu. |
 | `HeadTexture`, `ShimmerHeadTexture` | texto | Morador: a cabeça no mapa. Padrão: `<Texture>_Head`, `<Texture>_Shimmer_Head`. |
 | `Music` | número | A música enquanto ele está perto da tela (`MusicLoader.GetMusicSlot` ou `MusicID`); -1 = a do jogo. |
@@ -1425,6 +1427,7 @@ No `ModNPC` e no `ModProjectile`: `SendExtraAI(writer)` e
 | `Load()` | Na carga, depois do registro do conteúdo. |
 | `AddRecipeGroups()`, `AddRecipes()`, `PostSetupContent()` | Como no `ModSystem`. |
 | `GetContent(Base)` | Os modelos deste mod que estendem `Base`, na ordem do registro: `this.GetContent(ModItem).map((i) => i.Type)` dá os tipos de todos os itens. Não vale para `ModPlayer` (um por jogador: `player.GetModPlayer`). |
+| `AddBossHeadTexture(caminho, tipo = -1)` | Registra mais um ícone de chefe (a 2ª fase, por exemplo) e devolve a vaga, para o `BossHeadSlot`. Com `tipo`, vira o ícone padrão desse NPC. -1 sem o arquivo. Chame no registro (`Load`, `SetStaticDefaults`). |
 | `Call(...args)` | Quando outro mod chama. |
 | `export default class X extends Mod` | Obrigatória, no arquivo de entrada; uma por pacote. O Bunny Loader a cria (é o `bl.mod` do pacote). |
 
@@ -1455,6 +1458,7 @@ mod, pela **classe**, pelo **nome** ou por `'mod/Nome'`.
 | `Request(caminho)` | `Asset<Texture2D>` do jogo, carregado uma vez (`.Value` é a textura). Thread do jogo. |
 | `Texture(caminho)` | A `Texture2D` (o `.Value` do `Request`). |
 | `HasAsset(caminho)` | A textura existe? |
+| `GetModBossHeadSlot(caminho)` | A vaga de um ícone de chefe registrado (o `_Head_Boss` de um chefe ou um `AddBossHeadTexture`), ou -1. |
 | `SoundStyle(caminho, opções)` | O mesmo que `new SoundStyle(...)`. |
 
 Pelo nome puro vale o do seu mod; se não houver, o único mod que tem um

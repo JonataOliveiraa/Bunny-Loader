@@ -26,9 +26,47 @@ class BestiaryLoader {
         for (const biome of biomes) entry.Info.Add(BiomeBestiaryLoader.Of(biome));
 
         inst.SetBestiary(db, entry);
+        Safe.Run(inst.constructor.name + ' (BestiaryIcon)', () => BestiaryLoader.#Icon(inst, entry));
         db['BestiaryEntry Register(BestiaryEntry entry)'](entry);
         db['void ExtractDropsForNPC(ItemDropDatabase dropsDatabase, int npcId)'](Terraria.Main.ItemDropsDB, type);
         BestiaryLoader.#added++;
+    }
+
+    // A imagem própria da entrada, no lugar do NPC desenhado: a lista e o
+    // retrato do celular desenham o mesmo entry.Icon, e ele usa o
+    // _customTexture quando tem. Vem do CustomTexturePath do
+    // NPCBestiaryDrawModifiers (como no tModLoader) ou do BestiaryIcon
+    // (padrão: a Texture + '_BestiaryIcon', como no TL Pro). O jogo pede o
+    // CustomTexturePath ao Main.Assets, que não acha arquivo de mod: com ele no
+    // modificador, o Update do ícone lançaria. Sai de lá e entra pronto.
+    static #Icon(inst, entry) {
+        const type = inst.Type;
+        const drawn = Terraria.ID.NPCID.Sets.NPCBestiaryDrawOffset;
+        let file = null;
+
+        if (drawn.ContainsKey(type)) {
+            const modifiers = drawn.get_Item(type);
+            const custom = modifiers.CustomTexturePath;
+            if (custom && !String(custom).startsWith('Images/')) {
+                file = BestiaryLoader.#File(inst.Mod, custom);
+                if (!file) bl.log(`${inst.constructor.name}: CustomTexturePath '${custom}' não está no mod`);
+                modifiers.CustomTexturePath = null;
+                drawn.set_Item(type, modifiers);
+            }
+        }
+        if (!file) {
+            const path = inst.BestiaryIcon || inst.Texture + '_BestiaryIcon';
+            file = BestiaryLoader.#File(inst.Mod, path);
+            if (!file && inst.BestiaryIcon) bl.log(`${inst.constructor.name}: BestiaryIcon '${inst.BestiaryIcon}' não está no mod`);
+        }
+        if (file) entry.Icon._customTexture = ContentLookup.RequestFile(file);
+    }
+
+    // O caminho completo do arquivo no mod (com ou sem o id do mod na frente).
+    static #File(mod, path) {
+        if (!mod || !mod.path) return null;
+        const full = bl.path.join(mod.path, ModFiles.Texture(ModFiles.Normalize(path, mod), mod));
+        return bl.file.exists(full) ? full : null;
     }
 
     static Finish() {

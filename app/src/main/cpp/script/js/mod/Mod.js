@@ -22,6 +22,16 @@ class Mod {
     AddRecipes() {}
     PostSetupContent() {}
 
+    // Um ícone de chefe a mais (a 2ª fase, por exemplo), como no tModLoader:
+    // devolve a vaga, para o BossHeadSlot. Com npcType, vira o ícone padrão do
+    // tipo. -1 sem o arquivo.
+    AddBossHeadTexture(texture, npcType = -1) {
+        const file = bl.path.join(this.path, ModFiles.Texture(texture, this));
+        const slot = bl.npcs.addBossHead(file, npcType);
+        if (slot < 0) Safe.Once('bosshead:' + file, `AddBossHeadTexture: '${texture}' não está no mod`);
+        return slot;
+    }
+
     GetContent(base) {
         return Templates.All(base, this);
     }
