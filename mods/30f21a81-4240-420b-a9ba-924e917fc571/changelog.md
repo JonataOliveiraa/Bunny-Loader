@@ -1,8 +1,9 @@
 # News
 
-## 1.0.1 - 2026-10-09
+## 1.0.2 - 2026-10-09
 
 - Some items can now be obtained from NPC shops.
+- Updated Description
 
 ## 1.0.0 - 2026-10-04
 

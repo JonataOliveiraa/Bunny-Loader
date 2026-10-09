@@ -2,7 +2,7 @@
   "uid": "30f21a81-4240-420b-a9ba-924e917fc571",
   "id": "terrarchitect",
   "name": "Terrarchitect",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "authors": [
     {
       "name": "Gurgle_Nurgle",
@@ -39,7 +39,14 @@
   "theme": {
     "accent": "#DD8D57",
     "panel": "#765F43",
-    "heading": "#F0F0F0"
+    "text": "#DD8D57",
+    "heading": "#F0F0F0",
+    "button": "#A38259",
+    "buttonText": "#E2D4C7",
+    "background": "banner.png",
+    "backgroundMode": "cover",
+    "backgroundScale": 1,
+    "backgroundDim": 0.3
   },
   "links": [
     {
