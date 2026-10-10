@@ -1,0 +1,13 @@
+{
+  "uid": "23eca773-a4ca-4b1d-b7dc-c008b9b1747e",
+  "id": "test-invokeab",
+  "name": "Teste: chamada direta × runtime_invoke",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A/B na mesma execução: cinco métodos do jogo chamados pelo salto direto (methodPointer) e pelo runtime_invoke (chave bridge.runtimeInvoke), em rodadas alternadas. Não mexe no mundo.",
+  "description": "Loga 'invokeab ...' (e no chat). Roda uma vez, no quadro 120 dentro do mundo.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

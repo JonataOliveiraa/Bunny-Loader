@@ -3,6 +3,7 @@
 #if BL_HAVE_QUICKJS
 #include "core/Log.h"
 #include "il2cpp/Api.h"
+#include "script/bridge/Bridge.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
 #include "script/bridge/Value.h"
@@ -91,8 +92,12 @@ const Cached& planFor(const MethodInfo* m) {
 JSValue invokeMethod(JSContext* ctx, const MethodInfo* m, void* self,
                      int argc, JSValueConst* argv) {
 #if defined(__aarch64__)
+    // Diagnóstico: com bl.hookFlags.set('bridge.runtimeInvoke', true) tudo vai
+    // pelo runtime_invoke, para comparar com o salto direto no mesmo APK
+    // (tools/tests/invokeab). Desligada, custa uma leitura relaxada.
+    static const std::atomic<uint8_t>* forceRuntime = hookFlag("bridge.runtimeInvoke");
     const Cached& c = planFor(m);
-    if (c.direct) {
+    if (c.direct && !forceRuntime->load(std::memory_order_relaxed)) {
         // O runtime_invoke roda o construtor estatico da classe; o salto
         // direto nao, e o codigo do IL2CPP deixa isso para quem CHAMA. Sem
         // isto, QuickStacking['int GetCategory(int type)'] rodava com os

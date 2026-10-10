@@ -1,0 +1,13 @@
+{
+  "uid": "f55cb942-cccd-41f3-9966-2262f833974c",
+  "id": "test-jsentry",
+  "name": "Teste: entrada fria × quente no JS",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Quanto custa entrar no JS a partir de um hook: uma entrada isolada por quadro, a entrada logo depois dela e uma rajada de 400 seguidas (WorldItem.UpdateItem). Callbacks vazios; não mexe no mundo.",
+  "description": "Loga 'jsentry ...' (e no chat). Mede 300 quadros depois de 120 no mundo.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}
