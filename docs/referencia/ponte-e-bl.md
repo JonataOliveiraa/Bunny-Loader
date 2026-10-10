@@ -19,6 +19,7 @@ no [guia 1](../mods/01-hooks-do-zero.md); as classes de mod estão em
 | `obj.position.X = 1` | Struct dentro de objeto é **vista**: escrever muda o jogo. |
 | `proj.ai[0]`, `proj.oldPos[3].X` | Struct de campos numerados aceita índice. |
 | `arr[i]`, `arr.length` | Array do jogo. |
+| `arr[x * colunas + y]` | Array `T[,]` do jogo (`TextureAssets.Players`): uma fila só, linha por linha, e `length` é o total. `arr[x, y]` em JS é o operador vírgula e vira `arr[y]`. As dimensões: `System.Array['int GetLength(int dimension)'](arr, 1)`. |
 | `arr.cloneResized(n)` | Cópia do array com `n` posições. |
 | `arr.fill(v, início?, fim?)` | Preenche o próprio array (muda o jogo) e devolve ele. |
 | `arr.empty()` | Array novo do mesmo tipo, sem posições. |

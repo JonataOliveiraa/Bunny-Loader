@@ -1,0 +1,13 @@
+{
+  "uid": "14d65158-3ad8-4b98-a621-c374f9273a1b",
+  "id": "test-array2d",
+  "name": "Teste: array [,] do jogo pelo índice corrido",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "TextureAssets.Players (Asset<Texture2D>[,]): arr[x * colunas + y] é o [x, y] do C#, conferido com System.Array.GetValue/SetValue/GetLength; troca a cabeça do jogador por listras.",
+  "description": "Loga 'array2d ...'. A cabeça listrada fica até reiniciar o jogo.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}
