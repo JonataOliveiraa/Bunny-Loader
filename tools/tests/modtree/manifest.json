@@ -1,0 +1,13 @@
+{
+  "uid": "03b55964-4b67-45d0-8647-2256fd049e81",
+  "id": "test-modtree",
+  "name": "Teste: ModTree",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Árvore de mod (texturas do ExampleTree do tModLoader) num chão de mod: a bolota vira a muda de mod, a muda cresce, a copa e o tronco são do mod, sacudir chama o Shake e cortar dá a madeira do mod.",
+  "description": "Loga 'modtree ...' e 'modtree pose' quando a árvore está na tela (hora da captura). Limpa tudo no fim.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

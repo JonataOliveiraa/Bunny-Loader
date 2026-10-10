@@ -51,7 +51,7 @@ set(BL_MOD_CLASSES_PARTS
     Core/Constants Core/Safe Core/Hooks Core/SharedHooks Core/Ready Core/Entities Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
     Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
-    Enums/CommandType Enums/TooltipNames
+    Enums/CommandType Enums/TooltipNames Enums/TreeTypes
     Mod ModLoader
     Loaders/LocalizationLoader ModLocalization
     StatModifier HitModifiers HitInfo HurtModifiers HurtInfo StatInheritanceData DamageClass Loaders/DamageClassLoader
@@ -73,7 +73,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/CommandLoader ModCommand Loaders/HairLoader ModHair Loaders/CloudLoader ModCloud
     Loaders/EmoteBubbleLoader ModEmoteBubble Loaders/AchievementLoader ModAchievement Loaders/AnglerQuestLoader
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader Loaders/ChestNetworkHooks
-    ModTile ModBannerTile TileRestingInfo Loaders/TileEntityLoader ModTileEntity
+    ModTile ModBannerTile TileRestingInfo Loaders/TileEntityLoader ModTileEntity Loaders/TreeLoader ModTree
     Loaders/WallLoader ModWall
     Loaders/ProjectileLoader ModProjectile
     NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC Loaders/BannerLoader

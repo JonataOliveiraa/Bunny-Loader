@@ -2,6 +2,7 @@
 // 'mod/Nome'), e as texturas do mod. Não achou: 0, como no tModLoader.
 class ContentLookup {
     static #textures = new Map();   // arquivo -> Asset<Texture2D>
+    static #as = null;              // o mod do As(), no lugar do bl.mod
 
     static Registry(base) {
         if (base === ModItem) return ItemLoader.ByType;
@@ -73,7 +74,8 @@ class ContentLookup {
             return null;
         };
 
-        const own = bl.mod && bl.mod.path;
+        const current = ContentLookup.#as || bl.mod;
+        const own = current && current.path;
         const mine = own ? inRoot(own, rel) : null;
         if (mine) return mine;
 
@@ -83,6 +85,18 @@ class ContentLookup {
             if (mod && mod.path) return inRoot(mod.path, rel.slice(slash + 1));
         }
         return null;
+    }
+
+    // Roda `fn` como se `mod` estivesse carregando: o caminho sem id de mod do
+    // ModContent.Request é dele (o SetStaticDefaults adiado para a thread do jogo).
+    static As(mod, fn) {
+        const previous = ContentLookup.#as;
+        ContentLookup.#as = mod;
+        try {
+            return fn();
+        } finally {
+            ContentLookup.#as = previous;
+        }
     }
 
     static Request(path) {

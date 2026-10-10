@@ -1,4 +1,5 @@
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTrees.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -749,6 +750,7 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
                        int32_t* addFrX, int32_t* addFrY, int32_t* effects, Il2CppObject** glow, void* glowRect,
                        void* glowColor, const MethodInfo* m) {
     g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
+    noteTreeDrawTile(x, y, type, *frameX, *frameY);
     applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, false);
 }
 
@@ -960,6 +962,10 @@ void growInstances(int size) {
 }
 
 } // namespace
+
+void ensureTileDrawHook() {
+    hookDrawData();
+}
 
 int registerModTile(ModTileDef def) {
     std::lock_guard<std::mutex> l(g_mx);

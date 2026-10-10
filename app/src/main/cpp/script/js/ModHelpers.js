@@ -264,6 +264,8 @@ const TileSetsExtras = Object.freeze({
     IsValidSpawnPoint: TypeSet(false, { 79: true }),
     MultiTileSway: TypeSet(false),
     CanDropFromRightClick: TypeSet(false),
+    // A muda que cresce em árvore (a 20 do jogo e as de mod): o TreeLoader a faz crescer.
+    TreeSapling: TypeSet(false, { 20: true }),
     // Lido no PlaceThing pelo TileUseLoader (o jogo tem a lista fixa).
     CanPlaceNextToNonSolidTile: TypeSet(false),
     // Só guardam o valor: o jogo daqui não os consulta.

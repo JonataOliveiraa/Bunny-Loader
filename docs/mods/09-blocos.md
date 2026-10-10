@@ -205,9 +205,10 @@ tModLoader: o jogo do celular não os tem, e o Bunny Loader os põe no lugar
 fazem os structs do `TileObjectData`.
 
 Não há: o balanço ao vento (`MultiTileVine`, `AdjustMultiTileVineParameters`),
-as árvores, palmeiras e cactos de mod (`ModTree`, `ModPalmTree`, `ModCactus`),
-os pilares (`ModPylon`), `ModifyFrameMerge`/`PostTileFrame`, a placa de
-pressão (`SwitchTiles`) e o `HasSmartInteract` (no celular se toca no tile).
+as palmeiras e os cactos de mod (`ModPalmTree`, `ModCactus`),
+`ModifyFrameMerge`/`PostTileFrame`, a placa de pressão (`SwitchTiles`) e o
+`HasSmartInteract` (no celular se toca no tile). Árvores: ver
+[Árvores](#árvores-modtree).
 
 ### Tile entity (ModTileEntity)
 
@@ -279,6 +280,79 @@ export class WaterBarrel extends ModTile {
 - O jogo não sabe delas (não dá para criar uma classe C# nova): os `ID`
   começam em `0x40000000` e o `TileEntity.ByID` do jogo não as tem. Use
   `ModTileEntity.ByID`.
+
+### Árvores (ModTree)
+
+A árvore de mod cresce como a do jogo (é o mesmo tile 5) e é o **chão**
+debaixo do tronco que diz de quem ela é: converter o chão troca a árvore, como
+no jogo. Ela precisa de um bloco de mod para o chão e, para plantar, de uma
+muda de mod:
+
+```js
+const { TileObjectData } = Terraria.ObjectData;
+const { TileID } = Terraria.ID;
+
+export class FrostSoil extends ModTile {
+    SetStaticDefaults() {
+        Terraria.Main.tileSolid[this.Type] = true;
+        this.AddMapEntry(Color.new(120, 160, 200));
+    }
+}
+
+// A muda: 1x2, presa no chão da árvore.
+export class FrostSapling extends ModTile {
+    SetStaticDefaults() {
+        Terraria.Main.tileFrameImportant[this.Type] = true;
+        const d = TileObjectData.newTile;
+        d.Width = 1;
+        d.Height = 2;
+        d.Origin = Point16.new(0, 1);
+        d.AnchorBottom = AnchorData.new(1, 1, 0);   // AnchorType.SolidTile
+        d.UsesCustomCanPlace = true;
+        d.CoordinateHeights = [16, 18];
+        d.AnchorValidTiles = [ModContent.TileType(FrostSoil)];
+        TileObjectData.addTile(this.Type);
+        TileID.Sets.TreeSapling[this.Type] = true;
+        TileID.Sets.CommonSapling[this.Type] = true;
+    }
+
+    // A muda cresce sozinha, como a do jogo.
+    RandomUpdate(i, j) {
+        if (Math.random() < 1 / 20) Terraria.WorldGen.AttemptToGrowTreeFromSapling(i, j, false, 0, false);
+    }
+}
+
+// Texturas ao lado da classe: FrostTree.png, FrostTree_Tops.png, FrostTree_Branches.png.
+export class FrostTree extends ModTree {
+    SetStaticDefaults() {
+        this.GrowsOnTileId = [ModContent.TileType(FrostSoil)];
+    }
+
+    // A bolota plantada no chão dela vira esta muda.
+    SaplingGrowthType(style) {
+        style.value = 0;
+        return ModContent.TileType(FrostSapling);
+    }
+
+    DropWood() { return Terraria.ID.ItemID.BorealWood; }
+}
+```
+
+- As texturas seguem as do jogo: o tronco é **uma faixa** da folha do tile 5
+  (176 de largura), as copas são 3 quadros de 80x80 com 2 de espaço e os
+  galhos são 2 colunas (esquerda, direita) de 3 quadros de 40x40. Os nomes
+  padrão são `<Classe>.png`, `<Classe>_Tops.png` e `<Classe>_Branches.png`; para
+  outros, sobrescreva `GetTexture`/`GetTopTextures`/`GetBranchTextures`
+  (devolvendo `ModContent.Request(caminho)`).
+- `SetStaticDefaults` roda na carga do conteúdo, na thread do jogo.
+- A muda de mod cresce pelo `WorldGen.AttemptToGrowTreeFromSapling` (o
+  fertilizante também usa ele), que chama o `GrowSapling(i, j, underground,
+  treeHeightAddon, ignoreWalls)` dela: o padrão faz a árvore crescer.
+- `CountsAsTreeType` (o padrão é `TreeTypes.Custom`), `CreateDust`, `TreeLeaf`
+  (a gore das folhas, ao crescer, ao sacudir e no vento), `CanDropAcorn` e
+  `Shake(x, y, createLeaves)`: `false` tira as quedas do jogo ao sacudir.
+- O desenho do tronco e da copa é nativo: não custa JS por quadro. Não há o
+  `SetTreeFoliageSettings` nem a tinta (a árvore de mod pintada sai sem a cor).
 
 ### Custo por quadro
 

@@ -93,6 +93,14 @@ class ModTile {
     // RightClick.
     HasSmartInteract(i, j, settings) { return Hooks.Overrides(this.constructor, ModTile, 'RightClick'); }
     HitWire(i, j) {}
+    // A muda (TileID.Sets.TreeSapling) virando árvore: o RandomUpdate dela chama
+    // WorldGen.AttemptToGrowTreeFromSapling(i, j, underground), que chega aqui.
+    GrowSapling(i, j, underground, treeHeightAddon, ignoreWalls) {
+        const W = Terraria.WorldGen;
+        const grew = W['bool GrowTree(int i, int y, int treeHeightAddon, bool ignoreWalls)'](i, j, treeHeightAddon, ignoreWalls);
+        if (grew && W['bool PlayerLOS(int x, int y)'](i, j)) W['void TreeGrowFXCheck(int x, int y)'](i, j);
+        return grew;
+    }
     Slope(i, j) { return true; }
     RandomUpdate(i, j) {}
     TileFrame(i, j, resetFrame, noBreak) { return true; }

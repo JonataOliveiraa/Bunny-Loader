@@ -43,6 +43,9 @@ bool isModTile(int type);
 /** Vanilla + tiles de mod JA instalados nas tabelas do jogo. */
 int tileTypeCount();
 
+/** O hook do TileDrawing.GetTileDrawData (de uma vez so): as arvores de mod precisam dele mesmo sem tile de mod. */
+void ensureTileDrawHook();
+
 /** Instala o registrado quando o jogo ja criou as tabelas; vigia as refeitas. Thread do jogo. */
 void tickModTiles();
 

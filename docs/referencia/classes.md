@@ -861,7 +861,7 @@ cada móvel do Example Mod usa, está no [guia 9](../mods/09-blocos.md).
 
 ### Ainda não
 
-`ModWall`, `ModTree`/`ModPalmTree`/`ModCactus`, `ModPylon`,
+`ModPalmTree`/`ModCactus`, `ModPylon`,
 `ModifyFrameMerge`/`PostTileFrame`, `SwitchTiles`,
 `HasSmartInteract`, `GetTorchLuck`; NPC da vila não abre porta de mod.
 
@@ -902,6 +902,27 @@ A parede nova. Ver o [guia 9](../mods/09-blocos.md#paredes-modwall).
 | `WallFrame(i, j, randomizeFrame, style, frameNumber)` | O quadro da moldura; `false` mantém o anterior. | `Framing.WallFrame`, filtro pela parede, marca `wall.frame` |
 | `ModWall.isModType`, `getTypeByName`, `getModWall` | Como no tile. | |
 | `item.DefaultToPlaceableWall(tipo)` (`ModItem`) | O item que coloca a parede. | |
+
+## ModTree
+
+A árvore nova: o tile 5 do jogo, decidido pelo chão debaixo do tronco. Ver o
+[guia 9](../mods/09-blocos.md#árvores-modtree).
+
+| | | |
+|---|---|---|
+| `GrowsOnTileId` | Os chãos dela (no `SetStaticDefaults`). | |
+| `SetStaticDefaults()` | Na carga do conteúdo, na thread do jogo (pode pedir textura). | |
+| `GetTexture()`, `GetTopTextures()`, `GetBranchTextures()` | O tronco (uma faixa de 176 de largura), as copas (3 de 80x80) e os galhos (2x3 de 40x40). O padrão: `<Classe>.png`, `_Tops`, `_Branches`. | nativo: `SpriteBatch.Draw` do `TileDrawing.DrawTiles` e `WorldGen.GetCommonTreeFoliageData` |
+| `CountsAsTreeType` | O `TreeTypes` que o jogo enxerga; o padrão é `TreeTypes.Custom`. | `WorldGen.GetTreeType` |
+| `SaplingGrowthType(style)` | A muda que a bolota vira no chão dela (`style`: `Ref`). | `TileObject.CanPlace` |
+| `DropWood()`, `CanDropAcorn()` | A madeira ao cortar; a bolota da copa. | `WorldGen.KillTile_GetTreeDrops` |
+| `TreeLeaf()` | A gore das folhas; `-1` nenhuma. | `WorldGen.GetTreeLeaf` |
+| `CreateDust()` | A poeira ao bater. | `WorldGen.KillTile_MakeTileDust` |
+| `Shake(x, y, createLeaves)` | Ao sacudir (a copa em `(x, y)`); `false` tira as quedas do jogo. | `WorldGen.ShakeTree` |
+| `ModTile.GrowSapling(i, j, underground, treeHeightAddon, ignoreWalls)` | Na muda de mod (`TileID.Sets.TreeSapling`): o padrão faz a árvore crescer. | `WorldGen.AttemptToGrowTreeFromSapling` |
+| `TreeTypes` | O enum do jogo mais o `Custom`. | |
+
+Não há `SetTreeFoliageSettings` nem a tinta na árvore de mod.
 
 ## ModTileEntity
 
