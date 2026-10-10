@@ -1,0 +1,13 @@
+{
+  "uid": "ee0b7cfe-1dad-4b7a-87ab-bf9928eb260e",
+  "id": "test-horizonclouds",
+  "name": "Teste: nuvem de mod no desenho do horizonte",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Liga o NextHorizonRenderer (o desenho do céu do celular, que o MuMu não usa sozinho), põe nuvens de mod na tela e confere que o fundo continua sendo desenhado; depois tira a máscara da nuvem de mod para ver o defeito antigo voltar.",
+  "description": "Loga 'horizonclouds ...'. A última fase QUEBRA o fundo até fechar o jogo, de propósito: só no emulador.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

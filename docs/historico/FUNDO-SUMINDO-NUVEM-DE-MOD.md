@@ -7,10 +7,11 @@ fundo), [`tools/tests/cloudforce`](../../tools/tests/cloudforce) (força nuvem d
 mod na tela) e o logcat do celular pelo ZeroTier. Trecho do log:
 [`dados/2026-09-30/fundo-sumindo-nuvem-de-mod.log`](dados/2026-09-30/fundo-sumindo-nuvem-de-mod.log).
 
-> **Pendente:** a correção passou no MuMu (teste `soltos`), mas o MuMu não usa
-> o desenho novo do horizonte. Falta confirmar no celular: APK novo, os mods
-> `bgwatch` e `cloudforce` ligados, e o fundo tem de continuar na tela quando o
-> `cloudforce` troca as nuvens (o log diz "a do tipo existe").
+> **Confirmado em 2026-10-10** pelo [`tools/tests/horizonclouds`](../../tools/tests/horizonclouds),
+> no MuMu com o `NextHorizonRenderer` ligado: com 13 nuvens de mod na tela, as
+> três passadas de nuvens fecham (`CloudsEnd` 3 por quadro) e o fundo desenha as
+> 4 camadas, como sem nuvem de mod. Sem a máscara da nuvem de mod (o estado de
+> antes da correção), o defeito volta: `CloudsEnd` 0, 1 camada, só o céu na tela.
 
 ## O que acontecia
 
@@ -27,8 +28,9 @@ mod na tela) e o logcat do celular pelo ZeroTier. Trecho do log:
    (`Begin cannot be called again until End has been successfully called`) e o
    `DrawSurfaceBG` parava ali: só o céu.
 
-No MuMu nunca apareceu: o desenho novo do horizonte depende do aparelho, e a
-nuvem de mod tem peso pequeno no sorteio.
+No MuMu nunca tinha aparecido porque a nuvem de mod tem peso pequeno no sorteio.
+O desenho do horizonte está ligado lá também (`Main.HorizonShadersEnabled`), ao
+contrário do que se achava.
 
 ## A correção
 
