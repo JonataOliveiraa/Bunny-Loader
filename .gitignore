@@ -14,6 +14,9 @@ build/
 *.aab
 *.keystore
 !debug.keystore
+# Chave e senhas do APK de release (ver keystore.properties.example).
+*.jks
+keystore.properties
 
 # --- Bunny Loader ---
 # Dumps do jogo: gerados localmente, NUNCA versionados.

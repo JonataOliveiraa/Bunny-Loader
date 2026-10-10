@@ -1,7 +1,35 @@
+import java.util.Properties
+
 // Fase 1 nao precisa da libbunny.so. Desligue o build nativo com
 //   -Pbl.nativeBuild=false   (ou a mesma linha em gradle.properties)
 // para compilar e rodar o launcher sem instalar NDK/CMake.
 val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean() ?: true
+
+// A chave do APK de release fica fora do Git: keystore.properties na raiz
+// (storeFile, storePassword, keyAlias, keyPassword; modelo em
+// keystore.properties.example) ou as variáveis BL_RELEASE_STORE_FILE,
+// BL_RELEASE_STORE_PASSWORD, BL_RELEASE_KEY_ALIAS e BL_RELEASE_KEY_PASSWORD.
+// Sem nenhuma, o assembleRelease sai sem assinatura, como antes; com só parte
+// delas, o build para em vez de soltar um APK que não instala.
+val releaseKeys: Map<String, String>? = run {
+    val props = Properties()
+    val file = rootProject.file("keystore.properties")
+    if (file.isFile) file.inputStream().use { props.load(it) }
+    val keys = mapOf(
+        "storeFile" to "BL_RELEASE_STORE_FILE",
+        "storePassword" to "BL_RELEASE_STORE_PASSWORD",
+        "keyAlias" to "BL_RELEASE_KEY_ALIAS",
+        "keyPassword" to "BL_RELEASE_KEY_PASSWORD",
+    ).mapValues { (name, env) -> props.getProperty(name) ?: System.getenv(env) }
+    val missing = keys.filterValues { it.isNullOrBlank() }.keys
+    when {
+        missing.size == keys.size -> null
+        missing.isNotEmpty() -> throw GradleException(
+            "assinatura de release incompleta: falta ${missing.joinToString()} " +
+                "(keystore.properties ou BL_RELEASE_*)")
+        else -> keys.mapValues { it.value!! }
+    }
+}
 
 plugins {
     id("com.android.application")
@@ -124,11 +152,23 @@ android {
         )
     }
 
+    signingConfigs {
+        if (releaseKeys != null) {
+            create("release") {
+                storeFile = rootProject.file(releaseKeys.getValue("storeFile"))
+                storePassword = releaseKeys.getValue("storePassword")
+                keyAlias = releaseKeys.getValue("keyAlias")
+                keyPassword = releaseKeys.getValue("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug { isMinifyEnabled = false }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

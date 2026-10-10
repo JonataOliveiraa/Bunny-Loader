@@ -142,6 +142,19 @@ Atalhos:
 | `-Pbl.nativeBuild=false` | Só o launcher, sem NDK nem CMake. |
 | `-Pbl.uiOnly=true` | Sem os assets e as `.so` do jogo: o ciclo de interface cai para ~6 s ([`tools/ui.sh`](tools/ui.sh)). |
 
+### APK de release
+
+`assembleRelease` assina com a chave de `keystore.properties`, na raiz (copie
+[`keystore.properties.example`](keystore.properties.example), que traz também o
+comando do `keytool` para criar a chave). Também valem as variáveis
+`BL_RELEASE_STORE_FILE`, `BL_RELEASE_STORE_PASSWORD`, `BL_RELEASE_KEY_ALIAS` e
+`BL_RELEASE_KEY_PASSWORD`. A chave e o arquivo ficam fora do Git. Sem eles, o
+APK de release sai sem assinatura.
+
+Guarde a chave: o Android só atualiza o app por cima com a mesma assinatura.
+Quem instalou um APK de debug precisa desinstalar antes de passar para o de
+release.
+
 ### Dump do jogo
 
 ```bash
