@@ -78,11 +78,14 @@ python -m unittest discover -s tools/mods -p test_tmod.py -v
 
 ## Catálogo online
 
-Os mods que a aba Explorar baixa moram neste mesmo repositório, sem servidor:
+Os mods que a aba Explorar baixa moram num repositório à parte,
+[Bunny-Loader-Mods](https://github.com/JonataOliveiraa/Bunny-Loader-Mods), sem
+servidor. Separado do código do app de propósito: um pedido de remoção contra um
+mod derruba só o catálogo, e o token de publicar não escreve no código.
 
 | Onde | O quê |
 |---|---|
-| branch `mods-index` | `index.json` (a lista) e `mods/<uid>/` (a vitrine de cada mod: manifesto, ícone, capa, `description.md`, fotos dos autores). Branch órfão, sem o código. |
+| `main` | `index.json` (a lista), `mods/<uid>/` (a vitrine de cada mod: manifesto, ícone, capa, `description.md`, fotos dos autores) e `ports/` (as fontes dos pacotes de textura portados). |
 | Releases `mod-<id>-v<versão>` | O `.bl` de cada versão. Nunca marcadas como *Latest*. |
 
 O app lê tudo sem login (`raw.githubusercontent.com` e o link de download da
@@ -113,19 +116,19 @@ atende este computador e exige uma chave sorteada a cada execução.
 
 Por baixo, ela chama os mesmos scripts da linha de comando.
 [`mods/publish.py`](mods/publish.py) confere o pacote com as regras do import do
-app, cria a Release, monta a vitrine em `build/mods-index/` (um worktree do
-branch) e faz o push do índice:
+app, cria a Release, monta a vitrine em `build/mods-repo/` (um clone do
+repositório de mods) e faz o push do índice:
 
 Só o ExampleMod vai dentro do APK (`BUNDLED_SAMPLES` no `app/build.gradle.kts`).
 Os outros de `samples/` são publicados aqui. [`mods/pack.py`](mods/pack.py) gera o
 `.bl` de uma pasta, sempre com os mesmos bytes, em `build/mods-packs/`.
 
 [`mods/port_textures.py`](mods/port_textures.py) copia as imagens de resource
-packs do Workshop local para `ports/textures/`, cria `manifest.json` com autoria
+packs do Workshop local para `build/mods-repo/ports/textures/`, cria `manifest.json` com autoria
 e gera os `.bl`, sem exigir `main.js`. Exemplo:
 `python tools/mods/port_textures.py 2439853873 2796830227`.
-Cada port tem um README em `ports/textures/<nome>/`; os `.bl` prontos ficam em
-`ports/textures/in bl/`.
+Cada port tem um README em `ports/textures/<nome>/` do repositório de mods; os
+`.bl` prontos ficam em `ports/textures/in bl/`.
 
 O token pode vir de `BL_GITHUB_TOKEN`; sem ela, o script pede na hora, sem
 mostrar na tela.

@@ -6,21 +6,22 @@
     python tools/mods/publish.py --remove <uid>          # tira do catálogo (a Release fica)
     python tools/mods/publish.py --reindex               # põe o manifesto de cada mod no índice
 
-O catálogo mora no próprio repositório, em dois lugares:
+O catálogo mora no repositório JonataOliveiraa/Bunny-Loader-Mods, separado do
+código do app (um pedido de remoção contra um mod não derruba o app):
 
-    branch mods-index   index.json + mods/<uid>/ (a vitrine: manifest, ícone,
-                        capa, description.md, autores...). Branch órfão: não
-                        divide histórico com o main nem dispara o workflow da wiki.
+    main                index.json + mods/<uid>/ (a vitrine: manifest, ícone,
+                        capa, description.md, autores...) e ports/ (as fontes
+                        dos pacotes de textura portados).
     Releases            uma por versão de mod, tag mod-<id>-v<versão>, com o .bl.
-                        Nunca marcada como "Latest": essa fica para o APK.
 
 Cada entrada do index.json leva o manifesto inteiro do mod (`manifest`): o app
 monta a lista da aba Explorar só com o índice, numa requisição, e baixa ícone,
 capa e descrição de cada mod só quando eles aparecem na tela.
 
 O app lê tudo anonimamente (app/.../mods/RemoteCatalog.kt). Só publicar pede
-token: um fine-grained token com "Contents: Read and write" neste repositório,
-em BL_GITHUB_TOKEN (ou GITHUB_TOKEN). Ele fica no PC; nunca vai para o app.
+token: um fine-grained token com "Contents: Read and write" só no Bunny-Loader-Mods,
+em BL_GITHUB_TOKEN (ou GITHUB_TOKEN) ou no arquivo bunnyloadermodstoken.txt da
+raiz (fora do Git). Ele fica no PC; nunca vai para o app.
 
 A ordem é Release primeiro, índice depois: se o push do índice falhar, rodar
 de novo reaproveita a Release (o sha256 confere) e só refaz o índice.
@@ -44,10 +45,10 @@ import zlib
 from pathlib import Path
 
 OWNER = "JonataOliveiraa"
-REPO = "Bunny-Loader"
-BRANCH = "mods-index"
+REPO = "Bunny-Loader-Mods"
+BRANCH = "main"
 ROOT = Path(__file__).resolve().parents[2]
-WORKTREE = ROOT / "build" / "mods-index"
+WORKTREE = ROOT / "build" / "mods-repo"
 API = f"https://api.github.com/repos/{OWNER}/{REPO}"
 UPLOADS = f"https://uploads.github.com/repos/{OWNER}/{REPO}"
 DOWNLOAD = f"https://github.com/{OWNER}/{REPO}/releases/download"
@@ -234,17 +235,31 @@ def set_token(value: str | None) -> None:
     _token = (value or "").strip() or None
 
 
+# Os arquivos de token na raiz, fora do Git: o do catálogo primeiro, o antigo de reserva.
+TOKEN_FILES = ("bunnyloadermodstoken.txt", "_token.txt")
+
+
+def file_token() -> str:
+    for name in TOKEN_FILES:
+        f = ROOT / name
+        if f.is_file() and f.read_text(encoding="utf-8").strip():
+            return f.read_text(encoding="utf-8").strip()
+    return ""
+
+
 def has_token() -> bool:
-    return bool(_token or os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN"))
+    return bool(_token or os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+                or file_token())
 
 
 def token() -> str:
-    """Da variável de ambiente ou, sem ela, perguntado uma vez. O getpass não
-    mostra o que se cola nem deixa o token no histórico do terminal."""
+    """Da variável de ambiente, de bunnyloadermodstoken.txt ou, sem os dois,
+    perguntado uma vez. O getpass não mostra o que se cola nem deixa o token no
+    histórico do terminal."""
     global _token
     if _token:
         return _token
-    t = os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
+    t = os.environ.get("BL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN") or file_token()
     if not t and INTERACTIVE and sys.stdin.isatty():
         import getpass
         t = getpass.getpass("Token do GitHub (cole e Enter; não aparece na tela): ")
@@ -298,8 +313,7 @@ def release_for(pkg: Package, dry: bool) -> None:
     else:
         release = gh("POST", f"{API}/releases", {
             "tag_name": pkg.tag,
-            # main e não mods-index: na primeira publicação o branch do
-            # catálogo ainda não existe no GitHub (a Release vem antes do push).
+            # O main do repositório de mods: o índice e a vitrine.
             "target_commitish": "main",
             "name": f"{pkg.name} v{pkg.version}",
             "body": f"Mod para o Bunny Loader.\n\n- uid: `{pkg.uid}`\n- sha256: `{pkg.sha256}`",
@@ -319,19 +333,15 @@ def git(*args: str, cwd: Path = ROOT, check: bool = True) -> subprocess.Complete
 
 
 def worktree() -> Path:
-    """build/mods-index: o branch do catálogo, ao lado do código, sem misturar."""
+    """build/mods-repo: um clone do repositório de mods, ao lado do código."""
     if not (WORKTREE / ".git").exists():
         WORKTREE.parent.mkdir(parents=True, exist_ok=True)
-        git("worktree", "prune")
-        git("fetch", "origin", BRANCH, check=False)
-        has_remote = git("rev-parse", "--verify", "--quiet", f"origin/{BRANCH}", check=False).returncode == 0
-        has_local = git("rev-parse", "--verify", "--quiet", BRANCH, check=False).returncode == 0
-        if has_local:
-            git("worktree", "add", str(WORKTREE), BRANCH)
-        elif has_remote:
-            git("worktree", "add", "-b", BRANCH, str(WORKTREE), f"origin/{BRANCH}")
-        else:
-            git("worktree", "add", "--orphan", "-b", BRANCH, str(WORKTREE))
+        # Os nomes dos ports passam do limite de 260 caracteres do Windows.
+        r = git("-c", "core.longpaths=true", "clone", "--branch", BRANCH,
+                f"https://github.com/{OWNER}/{REPO}.git", str(WORKTREE), check=False)
+        if r.returncode != 0:
+            raise Fail(f"clone de {OWNER}/{REPO} falhou:\n{r.stderr}")
+        git("config", "core.longpaths", "true", cwd=WORKTREE)
     discard_pending(WORKTREE)
     git("pull", "--ff-only", "origin", BRANCH, cwd=WORKTREE, check=False)
     return WORKTREE
@@ -362,12 +372,20 @@ def save_index(wt: Path, index: dict) -> None:
 
 
 def readme(wt: Path) -> None:
+    # O mesmo texto do Publisher.README do app de catálogo: os dois publicam.
     (wt / "README.md").write_text(
-        "# Catálogo de mods do Bunny Loader\n\n"
-        "Este branch é gerado por `tools/mods/publish.py` (no `main`). Não edite à mão.\n\n"
-        "- `index.json`: a lista que o app lê.\n"
-        "- `mods/<uid>/`: a vitrine de cada mod (manifesto, ícone, capa, descrição).\n"
-        "- Os pacotes `.bl` estão nas Releases `mod-<id>-v<versão>`.\n",
+        "# Bunny Loader mod catalog\n"
+        "\n"
+        "The online catalog of [Bunny Loader](https://github.com/JonataOliveiraa/Bunny-Loader), generated by `tools/mods/publish.py` and by the catalog app. Do not edit `index.json` or `mods/` by hand.\n"
+        "\n"
+        "- `index.json`: the list the app reads.\n"
+        "- `mods/<uid>/`: each mod's page (manifest, icon, banner, description, authors).\n"
+        "- Releases `mod-<id>-v<version>`: the `.bl` packages.\n"
+        "- `ports/`: the sources of the ported texture packs.\n"
+        "\n"
+        "Each mod and texture pack belongs to its authors and keeps its own license (`license.md` and `authors/` inside the package). Bunny Loader's license does not apply to them.\n"
+        "\n"
+        "If you made something listed here and want it removed or credited differently, open an issue.\n",
         encoding="utf-8", newline="\n")
 
 

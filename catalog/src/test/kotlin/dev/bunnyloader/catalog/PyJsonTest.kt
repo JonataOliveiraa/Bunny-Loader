@@ -9,8 +9,8 @@ import java.io.File
 class PyJsonTest {
     @Test
     fun rewritesPublishedIndexByteForByte() {
-        val index = File("../build/mods-index/index.json")
-        assumeTrue("sem build/mods-index (rode o gerenciador uma vez)", index.isFile)
+        val index = File("../build/mods-repo/index.json")
+        assumeTrue("sem build/mods-repo (rode o gerenciador uma vez)", index.isFile)
         val text = index.readText()
         assertEquals(text, PyJson.dump(Json.parseToJsonElement(text)))
     }

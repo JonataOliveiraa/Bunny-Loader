@@ -18,12 +18,13 @@ import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Os mods publicados online: o branch `mods-index` do repositório do Bunny
- * Loader (o índice e a vitrine de cada mod) e as Releases (os pacotes).
+ * Os mods publicados online: o repositório Bunny-Loader-Mods, separado do
+ * código do app (um pedido de remoção contra um mod não derruba o app), com o
+ * índice e a vitrine de cada mod no `main` e os pacotes nas Releases.
  *
- *     mods-index/index.json            a lista: uid, versão, pacote, arquivos e o
+ *     main/index.json                  a lista: uid, versão, pacote, arquivos e o
  *                                      manifesto de cada mod (`manifest`)
- *     mods-index/mods/<uid>/...        icon.png (ou .gif), banner.png (ou .gif...), description.md,
+ *     main/mods/<uid>/...              icon.png (ou .gif), banner.png (ou .gif...), description.md,
  *                                      authors/... — o que a ficha mostra, sem
  *                                      baixar o mod inteiro
  *     releases/mod-<id>-v<versão>      o .bl, que só desce ao instalar
@@ -276,10 +277,15 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         private const val ETAG = "index.etag"
         private const val STAMP = ".sha256"
         const val INDEX_URL =
-            "https://raw.githubusercontent.com/JonataOliveiraa/Bunny-Loader/mods-index/index.json"
+            "https://raw.githubusercontent.com/JonataOliveiraa/Bunny-Loader-Mods/main/index.json"
 
-        /** O pacote só pode vir das Releases do repositório. */
+        /**
+         * O pacote só pode vir das Releases do catálogo. As do repositório do
+         * app valem enquanto os pacotes antigos não são copiados para o de
+         * mods (tools/mods/migrate_releases.py); depois, esta linha sai.
+         */
         private val ALLOWED_HOSTS = listOf(
+            "https://github.com/JonataOliveiraa/Bunny-Loader-Mods/releases/download/",
             "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/",
         )
 
@@ -298,7 +304,7 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
 
 data class CatalogProgress(val completed: Int, val total: Int)
 
-/** O index.json do branch mods-index. */
+/** O index.json do repositório de mods. */
 @Serializable
 data class RemoteIndex(
     val format: Int = 1,

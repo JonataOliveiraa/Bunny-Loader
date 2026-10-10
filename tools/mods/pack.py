@@ -2,7 +2,7 @@
 """Empacota uma pasta de mod ou textura num .bl para importar ou publicar.
 
     python tools/mods/pack.py samples/VidaCheia [samples/SemQueda ...]
-    python tools/mods/pack.py "ports/textures/Un-mechanical Bosses/bl"
+    python tools/mods/pack.py "build/mods-repo/ports/textures/Un-mechanical Bosses/bl"
 
 Texturas: manifest.json com type="texture" e content/Images/*.png.
 Nao precisam de main.js. O launcher tambem importa ZIPs de resource packs

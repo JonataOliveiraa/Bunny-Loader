@@ -25,5 +25,6 @@ Para `named-device/`, forneca `content/expectations.json`:
 
 Uma linha sem `field` cria um Asset<Texture2D> vazio, chama explicitamente `.ctor(string name)` e verifica a carga futura. `Asset.new()` nao inicializa o nome. O teste espera 120 atualizacoes do jogo antes de conferir os assets. `vanilla: true` confere que as substituicoes foram desativadas; `world: true` pede a abertura do inventario na copia do mundo.
 
-A validacao dos ports locais (04/10/2026, 2.091 verificacoes no dispositivo) ficou no
-historico do Git: `git show 76522a9:ports/textures/VALIDATION.md`.
+A validacao dos ports locais (04/10/2026, 2.091 verificacoes no dispositivo) esta no
+repositorio de mods: `ports/textures/VALIDATION.md` em
+[Bunny-Loader-Mods](https://github.com/JonataOliveiraa/Bunny-Loader-Mods).

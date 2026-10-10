@@ -10,9 +10,9 @@ da linha de comando: a página é só outro jeito de chamar os dois.
 O servidor só atende este computador (127.0.0.1) e só aceita pedido que traga
 a chave sorteada nesta execução, que vai embutida na página. Um site aberto em
 outra aba não consegue publicar nada em seu nome. O token do GitHub vem de
-_token.txt na raiz (ou bl.catalogToken=... no local.properties), os dois fora
-do Git e o mesmo que o APK do catálogo embute, ou de BL_GITHUB_TOKEN; nunca
-passa pela página.
+bunnyloadermodstoken.txt na raiz (ou do antigo _token.txt, ou de
+bl.catalogToken=... no local.properties), todos fora do Git e o mesmo que o APK
+do catálogo embute, ou de BL_GITHUB_TOKEN; nunca passa pela página.
 """
 from __future__ import annotations
 
@@ -166,9 +166,8 @@ def samples_state(index: dict[str, dict]) -> list[dict]:
 
 
 def local_token() -> str:
-    t = publish.ROOT / "_token.txt"
-    if t.is_file() and t.read_text(encoding="utf-8").strip():
-        return t.read_text(encoding="utf-8").strip()
+    if publish.file_token():
+        return publish.file_token()
     f = publish.ROOT / "local.properties"
     if not f.is_file():
         return ""
@@ -187,7 +186,7 @@ def token_info() -> dict:
     global TOKEN_INFO
     if not publish.has_token():
         TOKEN_INFO = None
-        return {"set": False, "hint": "ponha o token em _token.txt e reabra"}
+        return {"set": False, "hint": "ponha o token em bunnyloadermodstoken.txt e reabra"}
     if TOKEN_INFO is None:
         source = TOKEN_SOURCE
         try:

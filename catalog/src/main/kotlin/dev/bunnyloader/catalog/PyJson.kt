@@ -9,7 +9,7 @@ import kotlinx.serialization.json.JsonPrimitive
 /**
  * JSON escrito como o `json.dumps(..., ensure_ascii=False, indent=2)` do
  * publish.py: o index.json publicado pelo app e pelo PC sai igual, e o diff do
- * branch mods-index mostra só o que mudou.
+ * índice no repositório de mods mostra só o que mudou.
  */
 object PyJson {
     fun dump(element: JsonElement): String = StringBuilder().also { write(it, element, 0) }.append('\n').toString()

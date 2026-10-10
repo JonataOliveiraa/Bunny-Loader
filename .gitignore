@@ -2,8 +2,10 @@
 *.iml
 .gradle/
 local.properties
-# Token do GitHub que o APK do catálogo (catalog/) embute. Nunca no Git.
+# Tokens do GitHub: o que o APK do catálogo (catalog/) embute e o de publicar
+# mods no Bunny-Loader-Mods (publish.py, migrate_releases.py). Nunca no Git.
 _token.txt
+bunnyloadermodstoken.txt
 .idea/
 .DS_Store
 build/
@@ -75,8 +77,9 @@ exmod_tl/
 # Pacote temporario de mod do tools/bench/run.sh (um por rodada).
 /blmod.*.tar
 
-# Zip local dos .bl de ports/textures/in bl (que ja estao versionados um a um).
-ports/textures/in bl/*.zip
+# Os ports de textura moram no repositorio de mods (Bunny-Loader-Mods); o
+# clone que o publish.py mantem fica em build/mods-repo.
+/ports/
 
 # Componentes de terceiros que o build usa, mas que nao sao nossos para publicar:
 # as classes Java da Unity (procedencia em app/libs/README.md) e a fonte Andy

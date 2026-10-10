@@ -33,7 +33,8 @@ def port(source: Path) -> Path:
     folder_name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", name).rstrip(" .")
     if folder_name in {"", ".", ".."}:
         folder_name = f"workshop-{source.name}"
-    folder = ROOT / "ports" / "textures" / folder_name / "bl"
+    # Os ports moram no repositório de mods (o clone que o publish.py mantém).
+    folder = ROOT / "build" / "mods-repo" / "ports" / "textures" / folder_name / "bl"
     folder.mkdir(parents=True, exist_ok=True)
     manifest_file = folder / "manifest.json"
     if manifest_file.exists():

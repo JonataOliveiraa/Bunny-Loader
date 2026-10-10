@@ -122,7 +122,7 @@ tem prioridade e nunca e recriado pelo conversor.
 Para empacotar a pasta do Bunny Loader:
 
 ```powershell
-python tools/mods/pack.py "ports/textures/Un-mechanical Bosses/bl"
+python tools/mods/pack.py "build/mods-repo/ports/textures/Un-mechanical Bosses/bl"
 ```
 
 O `.bl` sai em `build/mods-packs/`. O mesmo conteudo gera o mesmo arquivo.
@@ -133,7 +133,9 @@ Para portar imagens de um resource pack instalado no Workshop local:
 python tools/mods/port_textures.py 2439853873 2796830227
 ```
 
-O comando copia os PNGs para `ports/textures/<nome>/bl`, cria o manifesto,
+O comando copia os PNGs para `build/mods-repo/ports/textures/<nome>/bl` (o clone
+do [repositório de mods](https://github.com/JonataOliveiraa/Bunny-Loader-Mods)
+que o `publish.py` mantém), cria o manifesto,
 preserva autoria, metadados e icone e gera o `.bl`. Nao altera a pasta Steam.
 O UID deriva do ID do Workshop, como no importador do launcher; um port ja
 existente mantem sua identidade. Cada port tem um README em

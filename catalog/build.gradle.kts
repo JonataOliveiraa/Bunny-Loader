@@ -11,8 +11,10 @@ plugins {
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use(::load)
 }
-val embeddedToken = rootProject.file("_token.txt").takeIf { it.isFile }?.readText()?.trim()
-    ?.takeIf { it.isNotEmpty() }
+// O token só do Bunny-Loader-Mods primeiro; o _token.txt antigo de reserva.
+val embeddedToken = listOf("bunnyloadermodstoken.txt", "_token.txt").asSequence()
+    .map { rootProject.file(it) }.filter { it.isFile }
+    .map { it.readText().trim() }.firstOrNull { it.isNotEmpty() }
     ?: localProps.getProperty("bl.catalogToken", "").trim()
 
 fun tokenMask(size: Int): ByteArray {
