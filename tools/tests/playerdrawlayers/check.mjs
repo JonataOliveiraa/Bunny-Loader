@@ -228,7 +228,7 @@ test('same named layers from different mods resolve by full name and instance', 
     const info = draw(); assert.ok(names(info).indexOf('after') > names(info).indexOf('Head'));
 });
 test('autoload discovers exports once, honors opt-out, and loads items before layers', () => {
-    const bases = ['Mod', 'ModConfig', 'ModRarity', 'DamageClass', 'ModMount', 'ModBuff', 'ModPrefix', 'ModSurfaceBackgroundStyle', 'ModUndergroundBackgroundStyle', 'ModWaterfallStyle', 'ModWaterStyle', 'ModBiome', 'ModSceneEffect', 'ModMenu', 'ModProjectile', 'ModTile', 'ModWall', 'ModSystem', 'GlobalItem', 'GlobalNPC', 'GlobalProjectile', 'GlobalLoot', 'ModCommand', 'ModHair', 'ModCloud', 'ModEmoteBubble', 'ModAchievement'];
+    const bases = ['Mod', 'ModConfig', 'ModRarity', 'DamageClass', 'ModMount', 'ModBuff', 'ModPrefix', 'ModSurfaceBackgroundStyle', 'ModUndergroundBackgroundStyle', 'ModWaterfallStyle', 'ModWaterStyle', 'ModBiome', 'ModSceneEffect', 'ModMenu', 'ModBossBar', 'ModProjectile', 'ModTileEntity', 'ModPylon', 'ModTile', 'ModWall', 'ModTree', 'ModSystem', 'GlobalItem', 'GlobalNPC', 'GlobalProjectile', 'GlobalLoot', 'ModCommand', 'ModHair', 'ModCloud', 'ModEmoteBubble', 'ModAchievement'];
     for (const name of bases) vm.runInContext(`if (typeof ${name} === 'undefined') globalThis.${name} = class {};`, h.context);
     h.sandbox.LocalizationLoader = { Load() {} }; h.sandbox.BackgroundTextureLoader = { Autoload() {} }; h.sandbox.CloudLoader = { Autoload() {} };
     h.sandbox.ModRegistry.Adopt = (_, main) => new main().Load();
