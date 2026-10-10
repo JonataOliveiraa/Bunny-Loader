@@ -429,11 +429,11 @@
       "uid": "30f21a81-4240-420b-a9ba-924e917fc571",
       "id": "terrarchitect",
       "name": "Terrarchitect",
-      "version": "1.0.2",
+      "version": "1.0.3",
       "download": {
-        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-terrarchitect-v1.0.2/terrarchitect-1.0.2.bl",
-        "sha256": "63be48692404adc002c702a922993919db9bb0937f723e08116208958f55aed5",
-        "size": 2245920
+        "url": "https://github.com/JonataOliveiraa/Bunny-Loader/releases/download/mod-terrarchitect-v1.0.3/terrarchitect-1.0.3.bl",
+        "sha256": "864a18c6c300c014712378caa8859167186011ac8f6d2fa6bd8bf14b625e407b",
+        "size": 2254412
       },
       "files": [
         "manifest.json",
@@ -452,7 +452,7 @@
         "uid": "30f21a81-4240-420b-a9ba-924e917fc571",
         "id": "terrarchitect",
         "name": "Terrarchitect",
-        "version": "1.0.2",
+        "version": "1.0.3",
         "authors": [
           {
             "name": "Gurgle_Nurgle",
