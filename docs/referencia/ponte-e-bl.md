@@ -144,6 +144,8 @@ diretamente.
 | `bl.items.isModItem(t)`, `bl.projectiles.isModProjectile(t)`, `bl.npcs.isModNpc(t)`, `bl.buffs.isModBuff(t)`, `bl.tiles.isModTile(t)` | É de mod? |
 | `bl.items.typeOf('Classe')` (e os outros) | O tipo de um conteúdo **deste** mod pelo nome; -1 se não há. |
 | `bl.items.modItemsIn(player)` | Os itens de mod nos 58 espaços do inventário do jogador. |
+| `bl.items.worldItemOf(item)` | A `WorldItem` de `Main.item` que guarda este `Item` (o `inner`), ou `null`. Varredura nativa dos 400 espaços. |
+| `bl.projectiles.latchedHooks(dono, exceto)` | Os ganchos (`aiStyle` 7) presos (`ai[0] == 2`) do jogador `dono`, menos o de `whoAmI == exceto` (-1: todos). Varredura nativa dos 1000 projéteis. |
 | `bl.npcs.freeSlot()` | O próximo slot livre de `Main.npc`. |
 | `bl.tiles.typeAt(x, y)` | O tipo do tile ativo numa posição (-1 se não há). |
 | `bl.tiles.find(marcas, x0, y0, x1, y1[, quadros])` | Os tiles do retângulo cujo tipo está marcado em `marcas`: `[i, j, ...]`, ou `[i, j, frameX, frameY, ...]` com `quadros`, lidos direto da memória do mundo. |

@@ -54,18 +54,9 @@ class ProjectileLoader {
                 let go = true;
                 if (plan.PreAI) try { go = m.PreAI(p) !== false; } catch (e) { Safe.Report(plan.PreAI, e); }
                 if (go) {
-                    const aiType = m.AIType | 0;
-                    if (aiType > 0) {
-                        const type = p.type;
-                        p.type = aiType;
-                        try {
-                            original(p);
-                        } finally {
-                            p.type = type;
-                        }
-                    } else {
-                        original(p);
-                    }
+                    if (m.__grapple === undefined) m.__grapple = p.aiStyle === ProjAIStyleID.Hook;
+                    if (m.__grapple) ProjectileLoader.#Grapple(p, m, plan, original);
+                    else ProjectileLoader.#VanillaAI(p, m, original);
                     if (plan.AI) try { m.AI(p); } catch (e) { Safe.Report(plan.AI, e); }
                 }
 
@@ -86,8 +77,159 @@ class ProjectileLoader {
         });
 
         ProjectileLoader.#SharedHooks(has, type, false);
+        if (has('GrapplePullSpeed') || has('GrappleTargetPoint')) Hooks.Once('proj.GrappleForces', ProjectileLoader.#HookGrappleForces);
 
         CombatLoader.WantProjectile(cls, ModProjectile);
+    }
+
+    // A IA do jogo; com AIType, o tipo é trocado só durante ela.
+    static #VanillaAI(p, m, original) {
+        const aiType = m.AIType | 0;
+        if (aiType <= 0) return original(p);
+
+        const type = p.type;
+        p.type = aiType;
+        try {
+            original(p);
+        } finally {
+            p.type = type;
+        }
+    }
+
+    // O AI_007 do jogo (aiStyle 7) num gancho de mod, com o que o tModLoader
+    // muda nele: o alcance (GrappleRange; com o AIType de um gancho do jogo,
+    // vale o dele), quantos ficam presos (NumGrappleHooks) e a volta
+    // (GrappleRetreatSpeed). Os números do jogo saem das tabelas do AI_007.
+    static #Grapple(p, m, plan, original) {
+        const Main = Terraria.Main;
+        const aiType = m.AIType | 0;
+        const type = aiType > 0 ? aiType : p.type;
+        const owner = Main.player[p.owner];
+
+        if (p.ai[0] === 0 && aiType <= 0) {
+            const range = Number(ProjectileLoader.#Invoke(m, 'GrappleRange', p) ?? 300);
+            const center = owner.MountedCenter, at = p.position;
+            if (Math.hypot(center.X - (at.X + p.width * 0.5), center.Y - (at.Y + p.height * 0.5)) > range) p.ai[0] = 1;
+        }
+
+        // Outro limite de presos: o jogo contaria os outros ganchos e soltaria o
+        // mais velho acima do dele. Os outros ficam fora da conta (aiStyle 0)
+        // durante a IA, e o limite do mod vale depois.
+        let limit = -1, hidden = null;
+        if (plan.NumGrappleHooks && p.ai[0] === 0 && p.owner === Main.myPlayer) {
+            const base = ProjectileLoader.#VanillaHookLimit(type);
+            const numHooks = new Ref(base);
+            ProjectileLoader.#Invoke(m, 'NumGrappleHooks', p, owner, numHooks);
+            if ((numHooks.value | 0) !== base) {
+                limit = Math.max(1, numHooks.value | 0);
+                hidden = bl.projectiles.latchedHooks(p.owner, p.whoAmI);
+                for (const h of hidden) h.aiStyle = 0;
+            }
+        }
+
+        let retreat = 1;
+        if (plan.GrappleRetreatSpeed && p.ai[0] === 1) {
+            const base = ProjectileLoader.#VanillaRetreatSpeed(type);
+            const speed = new Ref(base);
+            ProjectileLoader.#Invoke(m, 'GrappleRetreatSpeed', p, owner, speed);
+            retreat = Number(speed.value) / base;
+        }
+
+        try {
+            ProjectileLoader.#VanillaAI(p, m, original);
+        } finally {
+            if (hidden) for (const h of hidden) h.aiStyle = ProjAIStyleID.Hook;
+        }
+
+        if (hidden && p.active && p.ai[0] === 2) ProjectileLoader.#TrimHooks(p.owner, limit);
+        // A volta do jogo é a direção ao jogador vezes a velocidade dele.
+        if (retreat !== 1 && p.active && p.ai[0] === 1) {
+            const v = p.velocity;
+            p.velocity = Vector2.new(v.X * retreat, v.Y * retreat);
+        }
+    }
+
+    // Solta os mais velhos (menor timeLeft, como o jogo) acima do limite.
+    static #TrimHooks(owner, limit) {
+        const hooks = bl.projectiles.latchedHooks(owner, -1);
+        while (hooks.length > limit) {
+            let oldest = 0;
+            for (let k = 1; k < hooks.length; k++) if (hooks[k].timeLeft < hooks[oldest].timeLeft) oldest = k;
+            hooks[oldest]['void Kill()']();
+            hooks.splice(oldest, 1);
+        }
+    }
+
+    static #VanillaHookLimit(type) {
+        if (type === 165) return 8;
+        if (type === 256 || type === 372) return 2;
+        if (type === 652 || type === 73 || type === 74) return 1;
+        if (type >= 646 && type <= 649) return 4;
+        return 3;
+    }
+
+    static #VanillaRetreatSpeed(type) {
+        if (type >= 230 && type <= 235) return 11 + (type - 230) * 0.75;
+        if (type >= 486 && type <= 489) return 18;
+        if (type >= 646 && type <= 649) return 24;
+        return { 32: 15, 73: 22, 74: 22, 315: 20, 322: 22, 753: 15, 446: 20, 652: 24, 332: 17 }[type] || 11;
+    }
+
+    static #VanillaPullSpeed(type) {
+        if (type >= 646 && type <= 649) return 16;
+        return { 73: 12.5, 74: 12.5, 315: 14, 487: 12 }[type] || 11;
+    }
+
+    static #HookGrappleForces() {
+        Terraria.Player['void GetGrapplingForces(Vector2 fromPosition, out Nullable<int> preferredPlayerDirectionToSet, out float preferedPlayerVelocityX, out float preferedPlayerVelocityY)'].hook(
+            (original, self, from, direction, vx, vy) => {
+                original(self, from, direction, vx, vy);
+                ProjectileLoader.#GrappleForces(self, from, vx, vy);
+            });
+    }
+
+    // O puxão dos ganchos no jogador, refeito como no GetGrapplingForces do
+    // jogo quando um gancho de mod preso pede: o GrappleTargetPoint (sobre a
+    // soma dos centros, gancho a gancho) e o GrapplePullSpeed (o do primeiro).
+    static #GrappleForces(player, from, vx, vy) {
+        const Main = Terraria.Main;
+        const count = player.grapCount, grappling = player.grappling;
+        if (count <= 0) return;
+
+        const first = Main.projectile[grappling[0]], firstMod = ProjectileLoader.Of(first);
+        let wants = ProjectileLoader.#PlanHas(firstMod, 'GrapplePullSpeed');
+        const hooks = [];
+        for (let k = 0; k < count; k++) {
+            const h = Main.projectile[grappling[k]];
+            if (h.ai[0] !== 2) continue;
+            const t = h.type;
+            if (t === 446 || t === 652 || t === 865) return;   // ganchos do jogo com puxão próprio
+            const m = ProjectileLoader.Of(h);
+            if (ProjectileLoader.#PlanHas(m, 'GrappleTargetPoint')) wants = true;
+            hooks.push([h, m]);
+        }
+        if (!wants || !hooks.length) return;
+
+        let x = 0, y = 0;
+        for (const [h, m] of hooks) {
+            const at = h.position;
+            x += at.X + (h.width >> 1);
+            y += at.Y + (h.height >> 1);
+            if (!ProjectileLoader.#PlanHas(m, 'GrappleTargetPoint')) continue;
+
+            const gx = new Ref(x), gy = new Ref(y);
+            ProjectileLoader.#Invoke(m, 'GrappleTargetPoint', h, player, gx, gy);
+            x = Number(gx.value);
+            y = Number(gy.value);
+        }
+
+        const dx = x / hooks.length - from.X, dy = y / hooks.length - from.Y;
+        const speed = new Ref(ProjectileLoader.#VanillaPullSpeed(first.type));
+        if (firstMod) ProjectileLoader.#Invoke(firstMod, 'GrapplePullSpeed', first, player, speed);
+        const length = Math.hypot(dx, dy), max = Number(speed.value);
+        const scale = length <= max ? 1 : max / length;
+        vx.value = dx * scale;
+        vy.value = dy * scale;
     }
 
     static #globalGroups = new Set();
@@ -182,6 +324,14 @@ class ProjectileLoader {
             }, filter);
         });
         install('proj.Grapple', ['CanUseGrapple', 'UseGrapple'], ProjectileLoader.#HookGrapple, { on: 0, field: 'shoot' });
+        // O ModProjectile e depois os Globais: um false e o jogo não soma a velocidade.
+        install('proj.Position', ['ShouldUpdatePosition'], (filter) => {
+            Pr['void UpdatePosition(Vector2 wetVelocity)'].hook((original, p, wet) => {
+                if (ProjectileLoader.#Invoke(ProjectileLoader.Of(p), 'ShouldUpdatePosition', p) === false) return undefined;
+                if (!globalProjectiles.AllCall(p, 'ShouldUpdatePosition')) return undefined;
+                return original(p, wet);
+            }, filter);
+        });
         install('proj.Draw', ['PreDraw', 'PostDraw', 'PreDrawExtras'], ProjectileLoader.#HookDraw, { on: 0 });
         if (has('PreDrawExtras') || global && has('PreDraw')) Hooks.Once('proj.DrawExtras', ProjectileLoader.#HookDrawExtras);
         else if (!global && has('PreDraw')) Ready.Add(() => ProjectileLoader.#CheckExtras(ProjectileLoader.ByType.get(type).constructor));
@@ -234,6 +384,7 @@ class ProjectileLoader {
             switch (ModProjectile.prototype[method].length) {
                 case 2: return m[method](p, a);
                 case 3: return m[method](p, a, b);
+                case 4: return m[method](p, a, b, c);
                 case 5: return m[method](p, a, b, c, d);
                 default: return m[method](p);
             }
@@ -252,7 +403,8 @@ class ProjectileLoader {
         plan = {};
         for (const name of ['OnSpawn', 'PreAI', 'AI', 'PostAI', 'PreDrawExtras', 'PreDraw', 'PostDraw',
             'OnTileCollide', 'TileCollideStyle', 'PreKill', 'OnKill', 'Colliding', 'CanDamage', 'MinionContactDamage',
-            'ModifyDamageHitbox', 'CanCutTiles', 'CutTiles', 'GetAlpha', 'CanUseGrapple', 'UseGrapple', 'GrappleCanLatchOnTo']) {
+            'ModifyDamageHitbox', 'CanCutTiles', 'CutTiles', 'GetAlpha', 'CanUseGrapple', 'UseGrapple', 'GrappleCanLatchOnTo',
+            'GrappleRange', 'NumGrappleHooks', 'GrappleRetreatSpeed', 'GrapplePullSpeed', 'GrappleTargetPoint', 'ShouldUpdatePosition']) {
             plan[name] = Hooks.Overrides(cls, ModProjectile, name) ? cls.name + '.' + name : null;
         }
         ProjectileLoader.#plans.set(cls, plan);

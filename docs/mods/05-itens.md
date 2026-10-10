@@ -75,10 +75,43 @@ flowchart TD
 | `PostUpdate(item)` | A cada quadro, com o item no chão (`item` é a `WorldItem`: `Center`, `position`, `velocity`). Lugar da luz e da poeira, como a da Alma de Exemplo. |
 | `PreUpdateInWorld(item, worldItem)`, `PostUpdateInWorld(item, worldItem)` | A cada quadro, em volta da atualização do item no chão (queda, água, ímã do jogador). `item` é o `Item`; `worldItem` é a `WorldItem` que o leva (`Center`, `position`, `velocity`). `false` no `Pre` pula a atualização do jogo naquele quadro (o item fica parado); o `Post` roda igual. No `GlobalItem` também, para qualquer item no chão. |
 | `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara de pesca: de onde a linha sai e a cor (ver [Vara de pesca](#vara-de-pesca)). |
+| `CanPickup`, `OnPickup`, `ItemSpace`, `GrabRange`, `GrabStyle` | A coleta do chão (ver [Pegar do chão](#pegar-do-chão)). |
 
 Só os métodos que você escrever custam alguma coisa: o hook do jogo por trás
 de cada um só é instalado quando alguma classe o sobrescreve, e quase todos só
 entram no JS para **itens de mod** (ver o [guia de custo](03-custo-e-desempenho.md#as-classes-de-mod-já-são-econômicas)).
+
+## Pegar do chão
+
+Os métodos da coleta, como no tModLoader. `worldItem` é a `WorldItem` no chão
+(`Center`, `position`, `velocity`, e o `Item` em `worldItem.inner`); `player`,
+quem pega.
+
+| Método | Quando |
+|---|---|
+| `CanPickup(worldItem, player)` | `false`: o jogador não pega nem puxa o item. |
+| `OnPickup(worldItem, player)` | Ao pegar, no aparelho de quem pega. `false`: o item some sem entrar no inventário. |
+| `ItemSpace(item, player)` | `true`: pega mesmo com o inventário cheio. Junto do `OnPickup`, que o consome. |
+| `GrabRange(worldItem, player, grabRange)` | O alcance da coleta, em pixels (`grabRange` é `Ref`: some ou tire do alcance do jogo). |
+| `GrabStyle(worldItem, player)` | `true`: o mod move o item até o jogador (mude o `worldItem.velocity`) e o jogo não puxa. |
+
+Um coração de mod, que cura e some, como o do jogo:
+
+```js
+export class LifeOrb extends ModItem {
+    ItemSpace(item, player) { return true; }   // pega com o inventário cheio
+    GrabRange(worldItem, player, grabRange) { grabRange.value += 100; }
+    OnPickup(worldItem, player) {
+        player.Heal(20);
+        return false;   // não entra no inventário
+    }
+}
+```
+
+No `GlobalItem`, os mesmos métodos valem para qualquer item (e para todo item
+no alcance o hook entra no JS). No celular, a conta do alcance está embutida
+no `GrabItems` do jogo: um alcance maior que o do jogo é puxado pelo loader, e
+um menor faz o jogo ignorar o item fora dele (encostar ainda pega).
 
 ## Atalhos
 

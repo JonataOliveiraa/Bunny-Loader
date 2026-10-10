@@ -28,6 +28,7 @@ class GlobalProjectile extends GlobalType {
     CanUseGrapple(type, player) { return undefined; }
     UseGrapple(player, type) {}
     GrappleCanLatchOnTo(projectile, player, tile) { return undefined; }
+    ShouldUpdatePosition(projectile) { return true; }
     NetSend(projectile, writer) {}
     NetReceive(projectile, reader) {}
 

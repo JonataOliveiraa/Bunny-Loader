@@ -189,6 +189,7 @@ Nome e descrição vêm de `BuffName.<Classe>` e `BuffDescription.<Classe>` em
 | `ReApplyPlayer(player, tempo, i)`, `ReApplyNPC(npc, tempo, i)` | Quando entra de novo, já ativo. `false` impede o jogo de renovar o tempo. |
 | `CanRemove(player, tempo, i, debuff)` | Ao tocar no ícone para tirar. `true`/`false` decide; `null` deixa com o jogo (debuff não sai). |
 | `OnRemove(player, tempo, i)` | Depois de tirado pelo toque. |
+| `ModifyBuffText(buffName, tip, rare)` | O nome e a dica do buff na barra, toda vez que aparecem (três `Ref`). Para números que mudam: `tip.value = 'Defesa +' + bonus`. O `rare` não muda a cor no celular. |
 
 Buff de mod ativo no personagem é salvo pelo **nome**, como o item. Com o mod
 desligado, ele fica guardado no arquivo e volta quando o mod é religado.

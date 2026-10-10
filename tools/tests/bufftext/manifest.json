@@ -1,0 +1,15 @@
+{
+  "uid": "a0455260-e3c9-4a74-b7bd-78fe5033ad53",
+  "id": "test-bufftext",
+  "name": "Teste: ModifyBuffText",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O nome e a dica de um buff de mod passam pelo ModifyBuffText (Lang.GetBuffName e Main.GetBuffTooltip, os do GUIBuffs); sem o método, e no buff do jogo, ficam como estão.",
+  "description": "Loga 'bufftext ...'.",
+  "updated": "2026-10-10",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

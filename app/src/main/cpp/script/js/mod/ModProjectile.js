@@ -67,6 +67,18 @@ class ModProjectile {
     CanUseGrapple(player, type) { return true; }
     UseGrapple(player, type) { return type; }
     GrappleCanLatchOnTo(proj, player, tile) { return undefined; }
+    // O gancho (aiStyle 7). GrappleRange: em pixels; longe assim, volta (com o
+    // AIType de um gancho do jogo, vale o dele). numHooks, speed, grappleX e
+    // grappleY são Ref: quantos ficam presos (o mais velho solta), a volta, o
+    // puxão no jogador e o ponto para onde ele puxa (a soma dos centros dos
+    // ganchos presos, até este).
+    GrappleRange(proj) { return 300; }
+    NumGrappleHooks(proj, player, numHooks) {}
+    GrappleRetreatSpeed(proj, player, speed) {}
+    GrapplePullSpeed(proj, player, speed) {}
+    GrappleTargetPoint(proj, player, grappleX, grappleY) {}
+    // false: o jogo não soma a velocidade à posição (o mod põe a posição).
+    ShouldUpdatePosition(proj) { return true; }
 
     CloneDefaults(type) {
         const source = Terraria.Projectile.new();

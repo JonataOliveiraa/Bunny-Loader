@@ -175,6 +175,11 @@ própria instância, com `this.Item` apontando para ele.
 | `PreDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Recebe o quadro e a escala calculados pelo jogo; `false` pula o desenho vanilla. | etapa interna de `ItemSlot.DrawItemIcon`, filtro `type` |
 | `PostDrawInInventory(item, spriteBatch, position, frame, drawColor, itemColor, origin, scale)` | Depois do desenho, inclusive com veto. | etapa final de `ItemSlot.DrawItemIcon` |
 | `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara na mão, a cada boia: de onde a linha sai e a cor (dois `Ref`). | `Main.DrawProj_FishingLine`, sem filtro |
+| `CanPickup(worldItem, player)` | `false`: o jogador não pega nem puxa o item do chão. | `Player.CanAcceptItemIntoInventory(Item)`, que o `GrabItems` e a reserva (`WorldItem.FindOwner`, pelo `CanPullItem`) chamam; filtro `tipo` |
+| `OnPickup(worldItem, player)` | Ao pegar, no aparelho de quem pega; `false`: o item some sem entrar no inventário (coração, orbe). | `Player.PickupItem`, filtro `inner.type` |
+| `ItemSpace(item, player)` | `true`: pega mesmo com o inventário cheio (junto do `OnPickup`, que consome). | `Player.ItemSpace(Item, ref status)` (o `GrabItems`) e `Player.ItemSpace(Item)` (a reserva), filtro `tipo` |
+| `GrabRange(worldItem, player, grabRange)` | O alcance da coleta em pixels (`Ref`, sobre o do jogo). | `Player.GetItemGrabRange(WorldItem)` (a reserva) e, dentro do `GrabItems`, o `CanAcceptItemIntoInventory`: no celular a conta do alcance está embutida no `GrabItems`, então o alcance maior puxa por fora dele e o menor recusa o item (encostar ainda pega) |
+| `GrabStyle(worldItem, player)` | `true`: o mod move o item até o jogador (mexa no `velocity`) e o jogo não puxa. | `Player.PullItem_Common`/`PullItem_Pickup`, filtro `inner.type` |
 | `MeleePrefix(item)`, `WeaponPrefix(item)`, `RangedPrefix(item)`, `MagicPrefix(item)`, `SummonPrefix(item)` | As categorias de prefixo do item (padrão: `melee` sem `noUseGraphic`, `melee` com, `ranged`, `magic`, `summon`). Só vale para item com dano, sem ser munição nem consumível. Lido uma vez por tipo. | `Item.GetRollablePrefixes`, sem filtro |
 | `ChoosePrefix(item, rand)` | Um prefixo forçado ao rolar (> 0), ou -1. | `Item.RollAPrefix`, sem filtro |
 | `PrefixChance(item, pre, rand)` | `false` impede, `true` força um prefixo; `null` = o do jogo (`pre`: -1 criar/baú, -2 reforja). | `Item.Prefix`, sem filtro |
@@ -217,9 +222,8 @@ as adaptações móveis estão em [Uso e munição de ModItem](moditem-uso-munic
 
 ### Ainda não
 
-Do `ModItem` do tModLoader, entre outros: `OnPickup`, `GrabRange`,
-`DrawArmorColor`/`ArmorArmGlowMask`, `WingGlidingSpeeds`,
-`ModifyEquipTextureDraw`. As camadas de desenho próprias
+Do `ModItem` do tModLoader, entre outros: `DrawArmorColor`/`ArmorArmGlowMask`,
+`WingGlidingSpeeds`, `ModifyEquipTextureDraw`. As camadas de desenho próprias
 ([`PlayerDrawLayer`](playerdrawlayers.md)) já podem ser registradas e desenhadas.
 
 ### Texturas vestidas: EquipLoader e EquipTexture
@@ -370,6 +374,12 @@ Um projétil novo. Como o item: molde e uma instância por projétil
 | `CanUseGrapple(player, type)` | No **molde**, antes de lançar o gancho; `false` impede. | `Player.FireGrapple`, filtro pelo `item.shoot` |
 | `UseGrapple(player, type)` | No molde: devolva o tipo a lançar. | idem |
 | `GrappleCanLatchOnTo(proj, player, tile)` | `true`/`false`: agarra neste bloco. | `Projectile.AI_007_GrapplingHooks_CanTileBeLatchedOnTo`, filtro `tipo` |
+| `GrappleRange(proj)` | Gancho (aiStyle 7): a distância em pixels em que ele volta. Padrão 300, como no tModLoader; com o `AIType` de um gancho do jogo, vale o alcance dele. | antes do `AI_007_GrapplingHooks`, no hook da IA dos projéteis de mod |
+| `NumGrappleHooks(proj, player, numHooks)` | Quantos ficam presos (`Ref`; o jogo dá 3 a um gancho de mod). Acima disso, o mais velho solta. | idem: durante a IA, os outros ganchos ficam fora da conta do jogo, e o limite do mod vale ao prender (`bl.projectiles.latchedHooks`) |
+| `GrappleRetreatSpeed(proj, player, speed)` | A velocidade da volta (`Ref`; o jogo: 11). | depois do `AI_007_GrapplingHooks` |
+| `GrapplePullSpeed(proj, player, speed)` | A velocidade com que o gancho preso puxa o jogador (`Ref`; o jogo: 11). Vale a do primeiro gancho preso. | `Player.GetGrapplingForces`, sem filtro (só roda com gancho preso) |
+| `GrappleTargetPoint(proj, player, grappleX, grappleY)` | O ponto para onde o gancho puxa (`Ref`): a soma dos centros dos ganchos presos até este, como no tModLoader. | idem |
+| `ShouldUpdatePosition(proj)` | `false`: o jogo não soma a velocidade à posição (o mod põe a posição: projétil segurado, laser). | `Projectile.UpdatePosition`, filtro `tipo` |
 
 Sempre instalado, para todo projétil de mod: o `originalDamage` (o dano base
 de lacaio e sentinela) vem do item que criou o projétil
@@ -394,8 +404,7 @@ do projétil. Use os leitores e escritores do loader descritos em [Rede](#rede).
 
 ### Ainda não
 
-`ShouldUpdatePosition`, `NumGrappleHooks`, `GrappleRetreatSpeed`,
-`GrapplePullSpeed`, `GrappleTargetPoint`, `FlailStats`.
+`FlailStats`; os métodos de gancho no `GlobalProjectile`.
 
 ---
 
@@ -639,6 +648,7 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 | `ReApplyPlayer(player, time, i)`, `ReApplyNPC(npc, time, i)` | Quando entra de novo; `false` impede renovar o tempo. | `Player.AddBuff_TryUpdatingExistingBuffTime`, `NPC.AddBuff` |
 | `CanRemove(player, time, i, debuff)` | Ao tocar no ícone: `true`/`false` decide; `null`, o jogo. | `GUIBuffs.RemoveBuff` |
 | `OnRemove(player, time, i)` | Depois de tirado pelo toque. | idem |
+| `ModifyBuffText(buffName, tip, rare)` | O nome e a dica do buff na barra (três `Ref`; o `rare` não muda a cor no celular). | `Lang.GetBuffName` (desenhado pelo `GUIBuffs.Draw`) e `Main.GetBuffTooltip` (o `GUIBuffs.ChangeBuffString`), filtro `tipo` |
 
 ### Estáticos
 
@@ -646,7 +656,7 @@ métodos recebem o jogador ou o NPC e a posição do buff na lista dele.
 
 ### Ainda não
 
-`ModifyBuffText`, `PreDraw`/`PostDraw` do ícone, `RightClick`.
+`PreDraw`/`PostDraw` do ícone, `RightClick`.
 
 ---
 
@@ -1047,6 +1057,7 @@ devolve `true`/`false`. `npc.GetGlobalNPC` e `proj.GetGlobalProjectile`, igual.
 | `SetMatch(armorSlot, type, male, equipSlot, robes)` | O slot desenhado de uma parte (0 cabeça, 1 corpo, 2 pernas). | `Player.SetMatch` |
 | `VerticalWingSpeeds(item, player, ...)`, `HorizontalWingSpeeds(item, player, speed, acceleration)`, `WingUpdate(wings, player, inUse)` | Asas, também as do jogo. | `Player.WingMovement`, `WingAirLogicTweaks`, `WingFrame` |
 | `ChoosePrefix(item, rand)`, `PrefixChance(item, pre, rand)`, `AllowPrefix(item, pre)`, `ApplyPrefix(item, pre)` | Os de prefixo do `ModItem`, para qualquer item (o global vem antes no `ChoosePrefix`). | `Item.RollAPrefix`, `Prefix`, `GetRollablePrefixes` |
+| `CanPickup`, `OnPickup(worldItem, player)`, `ItemSpace(item, player)`, `GrabRange(worldItem, player, grabRange)`, `GrabStyle(worldItem, player)` | A coleta do chão, como no `ModItem`, para qualquer item. Os Globais vêm antes do `ModItem` (no `GrabRange`, depois), como no tModLoader. Sem filtro nativo: todo item no alcance entra no JS. | os do `ModItem` |
 
 ### GlobalNPC
 
@@ -1127,6 +1138,7 @@ export class MaisInimigosNoBioma extends GlobalNPC {
 | `CanUseGrapple(type, player)` | No template, filtrado por amostra do tipo; última resposta booleana global decide. | `Player.FireGrapple` |
 | `UseGrapple(player, type)` | Tipo em `Ref<number>`, depois do método local, para todos os templates que implementam o método. | `Player.FireGrapple` |
 | `GrappleCanLatchOnTo(projectile, player, tile)` | Recebe o bloco nativo; `false` global veta, `true` global permite. | `Projectile.AI_007_GrapplingHooks_CanTileBeLatchedOnTo` |
+| `ShouldUpdatePosition(projectile)` | `false`: o jogo não soma a velocidade à posição. Depois do método local; um `false` basta. | `Projectile.UpdatePosition` |
 | `NetSend(projectile, writer)`, `NetReceive(projectile, reader)` | Rede: junto com cada projétil sincronizado, de quem o controla. | `NetMessage.SendData` (27) |
 
 O [catálogo](metodos.md#globalprojectile) inclui as assinaturas completas e

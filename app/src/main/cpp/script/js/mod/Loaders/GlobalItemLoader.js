@@ -146,6 +146,7 @@ class GlobalItemLoader {
         if (has('VerticalWingSpeeds')) WingLoader.Want('Vertical', true);
         if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal', true);
         if (has('WingUpdate')) WingLoader.Want('Update', true);
+        for (const name of ItemPickupLoader.METHODS) if (has(name)) ItemPickupLoader.Want(name);
     }
 
     static #HookShoot() {

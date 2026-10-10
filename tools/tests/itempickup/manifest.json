@@ -1,0 +1,15 @@
+{
+  "uid": "d232f8f8-9cdc-4fd7-99fb-59a29ef5b6bf",
+  "id": "test-itempickup",
+  "name": "Teste: coleta de itens",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "CanPickup, OnPickup, ItemSpace, GrabRange e GrabStyle (ModItem e GlobalItem) num piso no alto: vetar a coleta, consumir ao pegar, pegar com o inventário cheio, puxar de longe, puxar do jeito do mod e encolher o alcance.",
+  "description": "Loga 'itempickup ...'. Enche e esvazia o inventário só nas casas vazias; limpa o piso no fim.",
+  "updated": "2026-10-10",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

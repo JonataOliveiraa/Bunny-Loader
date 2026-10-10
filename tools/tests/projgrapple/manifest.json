@@ -1,0 +1,15 @@
+{
+  "uid": "27216f98-09fe-4d75-8ef8-715a7da3caca",
+  "id": "test-projgrapple",
+  "name": "Teste: ganchos e ShouldUpdatePosition",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Ganchos de mod: alcance (GrappleRange e o padrão de 300), volta (GrappleRetreatSpeed), quantos presos (NumGrappleHooks), puxão e ponto do puxão (GrapplePullSpeed, GrappleTargetPoint). ShouldUpdatePosition false para um projétil de mod e, por um GlobalProjectile, uma flecha do jogo.",
+  "description": "Loga 'projgrapple ...'. Começa no quadro 400 (depois do itempickup, que roda junto). Limpa tudo no fim.",
+  "updated": "2026-10-10",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

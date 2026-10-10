@@ -417,6 +417,9 @@ class ItemLoader {
         if (has('HorizontalWingSpeeds')) WingLoader.Want('Horizontal');
         if (has('WingUpdate')) WingLoader.Want('Update');
 
+        // A coleta do chão: no ItemPickupLoader.
+        for (const name of ItemPickupLoader.METHODS) if (has(name)) ItemPickupLoader.Want(name, type);
+
         const prefixHooks = ['ChoosePrefix', 'PrefixChance', 'AllowPrefix', 'ApplyPrefix'].filter(has);
         if (prefixHooks.length) PrefixLoader.WantItemHooks(prefixHooks);
 

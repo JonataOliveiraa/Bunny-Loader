@@ -223,6 +223,46 @@ JSValue js_setFrames(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv)
 }
 
 /** bl.projectiles.isModProjectile(tipo) */
+/** bl.projectiles.latchedHooks(owner, except) — os ganchos (aiStyle 7) presos
+ *  (ai[0] == 2) do jogador, menos o de whoAmI == except. A varredura dos 1000
+ *  projéteis fica aqui: em JS, seriam milhares de leituras pela ponte. */
+JSValue js_latchedHooks(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    static FieldInfo* mainProjectile = nullptr;
+    static int32_t offActive = -2, offOwner = -1, offAiStyle = -1, offAi = -1, offWhoAmI = -1;
+    if (offActive == -2) {
+        Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+        Il2CppClass* proj = il2cpp::findClass({"Terraria", "Projectile", {}});
+        mainProjectile = main ? il2cpp::findField(main, "projectile") : nullptr;
+        offActive = proj ? il2cpp::fieldOffset(proj, "active") : -1;
+        offOwner = proj ? il2cpp::fieldOffset(proj, "owner") : -1;
+        offAiStyle = proj ? il2cpp::fieldOffset(proj, "aiStyle") : -1;
+        offAi = proj ? il2cpp::fieldOffset(proj, "ai") : -1;
+        offWhoAmI = proj ? il2cpp::fieldOffset(proj, "whoAmI") : -1;
+    }
+    int32_t owner = -1, except = -1;
+    if (argc < 1 || JS_ToInt32(ctx, &owner, argv[0]) < 0) return JS_ThrowTypeError(ctx, "bl.projectiles.latchedHooks(owner, except)");
+    if (argc >= 2 && JS_ToInt32(ctx, &except, argv[1]) < 0) return JS_EXCEPTION;
+    JSValue out = JS_NewArray(ctx);
+    if (!mainProjectile || offActive < 0 || offOwner < 0 || offAiStyle < 0 || offAi < 0 || offWhoAmI < 0) return out;
+
+    Il2CppArray* all = nullptr;
+    il2cpp::api().field_static_get_value(mainProjectile, &all);
+    if (!all) return out;
+    auto** slots = static_cast<Il2CppObject**>(arrayData(all));
+    auto at = [](Il2CppObject* o, int32_t off) { return reinterpret_cast<char*>(o) + off; };
+    uint32_t n = 0;
+    for (uintptr_t i = 0; i < all->length; ++i) {
+        Il2CppObject* p = slots[i];
+        if (!p || !*reinterpret_cast<bool*>(at(p, offActive))) continue;
+        if (*reinterpret_cast<int32_t*>(at(p, offOwner)) != owner || *reinterpret_cast<int32_t*>(at(p, offAiStyle)) != 7) continue;
+        if (*reinterpret_cast<int32_t*>(at(p, offWhoAmI)) == except) continue;
+        // ai é um Float_FixedArray_3: os três floats embutidos no objeto.
+        if (*reinterpret_cast<float*>(at(p, offAi)) != 2.0f) continue;
+        JS_SetPropertyUint32(ctx, out, n++, makeNativeObject(ctx, p));
+    }
+    return out;
+}
+
 JSValue js_isModProjectile(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     int32_t t = -1;
     if (argc >= 1) JS_ToInt32(ctx, &t, argv[0]);
@@ -239,6 +279,7 @@ void installProjectilesApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, projectiles, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaProjectileCount));
     JS_SetPropertyStr(ctx, projectiles, "typeOf", JS_NewCFunction(ctx, js_typeOf, "typeOf", 1));
     JS_SetPropertyStr(ctx, projectiles, "setFrames", JS_NewCFunction(ctx, js_setFrames, "setFrames", 2));
+    JS_SetPropertyStr(ctx, projectiles, "latchedHooks", JS_NewCFunction(ctx, js_latchedHooks, "latchedHooks", 2));
     JS_SetPropertyStr(ctx, bl, "projectiles", projectiles);
 }
 

@@ -23,6 +23,9 @@ class ModBuff {
     // true/false decide; null = o do jogo (debuff não sai).
     CanRemove(player, buffTime, buffIndex, debuff) { return null; }
     OnRemove(player, buffTime, buffIndex) {}
+    // O nome e a dica do buff tocado na barra (buffName, tip e rare são Ref;
+    // o rare não muda a cor no celular).
+    ModifyBuffText(buffName, tip, rare) {}
 
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModBuff)) {

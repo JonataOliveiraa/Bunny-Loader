@@ -88,6 +88,12 @@ floats (`Float_FixedArray_3`), e a ponte aceita `[i]` neles como num array
 | `PreDraw(proj, lightColor)`, `PostDraw(proj, lightColor)` | Desenho: `false` no `PreDraw` não desenha o do jogo; desenhe o seu com `Main.EntitySpriteDraw`. |
 | `CanUseGrapple(player, type)`, `UseGrapple(player, type)` | Gancho de escalar, no **molde**, antes de lançar: `false` impede; `UseGrapple` devolve o tipo a lançar. |
 | `GrappleCanLatchOnTo(proj, player, tile)` | `true`/`false`: o gancho agarra neste bloco; `undefined` = o do jogo (bloco sólido). |
+| `GrappleRange(proj)` | O alcance do gancho, em pixels: mais longe que isso, ele volta. Padrão 300. |
+| `NumGrappleHooks(proj, player, numHooks)` | Quantos ganchos ficam presos ao mesmo tempo (`Ref`; padrão 3). Acima disso, o mais velho solta. |
+| `GrappleRetreatSpeed(proj, player, speed)` | A velocidade da volta (`Ref`; padrão 11). |
+| `GrapplePullSpeed(proj, player, speed)` | A velocidade com que o gancho preso puxa o jogador (`Ref`; padrão 11). |
+| `GrappleTargetPoint(proj, player, grappleX, grappleY)` | O ponto para onde o gancho puxa (`Ref`; a soma dos centros dos ganchos presos até este). |
+| `ShouldUpdatePosition(proj)` | `false`: o jogo não soma a velocidade à posição; o seu `AI` põe a posição (projétil segurado, laser). |
 
 Todos entram no JS só para projéteis **de mod** (filtro nativo de tipo).
 
@@ -104,6 +110,26 @@ OnTileCollide(proj, oldVelocity) {
     return false;   // continua vivo
 }
 ```
+
+### Gancho de escalar
+
+O gancho de mod usa a IA dos ganchos do jogo (`aiStyle` 7): o mais simples
+copia um gancho com `CloneDefaults` e ajusta com os métodos acima.
+
+```js
+export class ExampleHook extends ModProjectile {
+    SetDefaults() { this.CloneDefaults(ProjectileID.GemHookAmethyst); }
+    GrappleRange(proj) { return 500; }
+    NumGrappleHooks(proj, player, numHooks) { numHooks.value = 2; }
+    GrappleRetreatSpeed(proj, player, speed) { speed.value = 18; }
+    GrapplePullSpeed(proj, player, speed) { speed.value = 10; }
+}
+```
+
+O item que lança: `shoot` com o tipo do gancho e `shootSpeed`; o botão de
+gancho do celular acha o item pelo `Main.projHook`, que o `ModProjectile` já
+marca para `aiStyle` 7. Com o `AIType` de um gancho do jogo, o alcance é o
+dele (como no tModLoader). Os métodos de gancho são só do `ModProjectile`.
 
 ## Atalhos
 

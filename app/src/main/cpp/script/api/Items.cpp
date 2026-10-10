@@ -381,6 +381,32 @@ JSValue js_modItemsIn(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv
     return out;
 }
 
+/** bl.items.worldItemOf(item) — a WorldItem de Main.item que guarda este Item
+ *  (o inner), ou null. O jogo móvel passa só o Item em alguns caminhos da coleta. */
+JSValue js_worldItemOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    static FieldInfo* mainItem = nullptr;
+    static int32_t offInner = -2;
+    if (offInner == -2) {
+        Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+        Il2CppClass* world = il2cpp::findClass({"Terraria", "WorldItem", {}});
+        mainItem = main ? il2cpp::findField(main, "item") : nullptr;
+        offInner = world ? il2cpp::fieldOffset(world, "inner") : -1;
+    }
+    Il2CppObject* item = argc >= 1 ? objectFromJS(argv[0]) : nullptr;
+    if (!item || !mainItem || offInner < 0) return JS_NULL;
+    Il2CppArray* worlds = nullptr;
+    il2cpp::api().field_static_get_value(mainItem, &worlds);
+    if (!worlds) return JS_NULL;
+    auto** slots = static_cast<Il2CppObject**>(arrayData(worlds));
+    for (uintptr_t i = 0; i < worlds->length; ++i) {
+        Il2CppObject* w = slots[i];
+        if (w && *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(w) + offInner) == item) {
+            return makeNativeObject(ctx, w);
+        }
+    }
+    return JS_NULL;
+}
+
 JSValue js_chestData(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     Il2CppObject* chest = argc >= 2 ? objectFromJS(argv[0]) : nullptr;
     int32_t slot = -1;
@@ -559,6 +585,7 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, items, "vanillaCount", JS_NewInt32(ctx, runtime::kVanillaItemCount));
     JS_SetPropertyStr(ctx, items, "setTooltip", JS_NewCFunction(ctx, js_setTooltip, "setTooltip", 2));
     JS_SetPropertyStr(ctx, items, "modItemsIn", JS_NewCFunction(ctx, js_modItemsIn, "modItemsIn", 1));
+    JS_SetPropertyStr(ctx, items, "worldItemOf", JS_NewCFunction(ctx, js_worldItemOf, "worldItemOf", 1));
     JS_SetPropertyStr(ctx, items, "__chestData", JS_NewCFunction(ctx, js_chestData, "chestData", 3));
     JS_SetPropertyStr(ctx, items, "growEquipSets", JS_NewCFunction(ctx, js_growEquipSets, "growEquipSets", 3));
     JS_SetPropertyStr(ctx, items, "registerPrefix", JS_NewCFunction(ctx, js_registerPrefix, "registerPrefix", 1));

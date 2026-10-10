@@ -56,7 +56,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/LocalizationLoader ModLocalization
     StatModifier HitModifiers HitInfo HurtModifiers HurtInfo StatInheritanceData DamageClass Loaders/DamageClassLoader
     Loaders/RecipeLoader ModRecipe
-    Loaders/ItemLoader Loaders/ItemDrawLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/TileEntityItemHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader
+    Loaders/ItemLoader Loaders/ItemDrawLoader Loaders/ItemDataLoader Loaders/ItemNetworkHooks Loaders/TileEntityItemHooks Loaders/EquipLoader Loaders/ArmorSetLoader Loaders/WingLoader Loaders/ItemPickupLoader
     Loaders/TooltipLoader Loaders/VanillaTooltips TooltipLine DrawableTooltipLine Loaders/RarityLoader ModRarity
     EquipTexture ItemLoot ModItem
     Loaders/PrefixLoader ModPrefix

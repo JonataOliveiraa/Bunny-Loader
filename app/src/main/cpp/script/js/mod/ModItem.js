@@ -183,6 +183,16 @@ class ModItem {
     // jogo naquele quadro (o Post roda igual).
     PreUpdateInWorld(item, worldItem) { return true; }
     PostUpdateInWorld(item, worldItem) {}
+    // A coleta do chão (worldItem: a WorldItem; player: quem pega).
+    // CanPickup false: não pega nem puxa. OnPickup false: o item some sem
+    // entrar no inventário (coração, orbe de experiência). ItemSpace true: pega
+    // com o inventário cheio (junto do OnPickup). GrabRange: grabRange é Ref,
+    // em pixels. GrabStyle true: o mod move o item (velocity) no lugar do jogo.
+    CanPickup(worldItem, player) { return true; }
+    OnPickup(worldItem, player) { return true; }
+    ItemSpace(item, player) { return false; }
+    GrabRange(worldItem, player, grabRange) {}
+    GrabStyle(worldItem, player) { return false; }
     // ModifyFishingLine(item, bobber, line) também vale (line.lineOriginOffset, line.lineColor).
     ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {}
 
