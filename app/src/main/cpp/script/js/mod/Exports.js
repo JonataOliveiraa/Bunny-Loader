@@ -6,7 +6,7 @@ Object.assign(globalThis, {
     ModSystem, GenPass, PassLegacy, TagCompound, ModSceneEffect, ModBiome,
     ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, BackgroundTextureLoader,
     ModWaterStyle, ModWaterfallStyle, ModMenu,
-    ModPlayer, ExtraJump, PlayerDrawLayer, PlayerDrawLayers, ModBuff, ModMount, MountTextureType, ModTile, ModBannerTile, ModTileEntity, ModTree, TreeTypes, ModWall, ModProjectile,
+    ModPlayer, ExtraJump, PlayerDrawLayer, PlayerDrawLayers, ModBuff, ModMount, MountTextureType, ModTile, ModBannerTile, ModTileEntity, TEModdedPylon, ModPylon, ModTree, TreeTypes, ModWall, ModProjectile,
     ModCommand, CommandType, UsageException, CommandLoader, ModHair, ModCloud, CloudLoader, ModEmoteBubble, ModAchievement,
     ModNPC, ModBossBar, NPCLoot, NPCSpawnInfo, SpawnPool, SpawnCondition, NPCShop, NPCHappiness, AffectionLevel, ModGore,
     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,

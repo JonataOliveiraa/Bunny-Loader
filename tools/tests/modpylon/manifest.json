@@ -1,0 +1,13 @@
+{
+  "uid": "df4947e2-40b4-4851-955c-943025cceafc",
+  "id": "test-modpylon",
+  "name": "Teste: ModPylon",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Dois pilares de mod (texturas do ExamplePylonTile do tModLoader): entram na lista do jogo com tipos novos, um só por tipo, o jogador perto de um conta como perto de um pilar, o teletransporte vai de um ao outro e o mapa desenha o ícone do mod.",
+  "description": "Loga 'modpylon ...' e 'modpylon pose' com o mapa aberto (hora da captura). Limpa tudo no fim.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -878,7 +878,7 @@ cada móvel do Example Mod usa, está no [guia 9](../mods/09-blocos.md).
 
 ### Ainda não
 
-`ModPalmTree`/`ModCactus`, `ModPylon`,
+`ModPalmTree`/`ModCactus`,
 `ModifyFrameMerge`/`PostTileFrame`, `SwitchTiles`,
 `HasSmartInteract`, `GetTorchLuck`; NPC da vila não abre porta de mod.
 
@@ -940,6 +940,28 @@ A árvore nova: o tile 5 do jogo, decidido pelo chão debaixo do tronco. Ver o
 | `TreeTypes` | O enum do jogo mais o `Custom`. | |
 
 Não há `SetTreeFoliageSettings` nem a tinta na árvore de mod.
+
+## ModPylon e TEModdedPylon
+
+Um pilar de teletransporte novo: um `ModTile` (3x4, como o do jogo) com uma
+`TEModdedPylon` (a classe do mod pode ser vazia). O `PylonType` vem depois dos
+do jogo (`TeleportPylonType.Count`, 11). Ver o
+[guia 9](../mods/09-blocos.md#pilares-modpylon).
+
+| | | |
+|---|---|---|
+| `PylonType` | O tipo no sistema de pilares (11, 12...). | |
+| `CanPlacePylon()` | O padrão: um só por tipo no mundo. | `TileObject.CanPlace` |
+| `ValidTeleportCheck_NPCCount(pylonInfo, defaultNecessaryNPCCount)` | NPCs em volta (o destino e o pilar de onde se sai). O padrão é o do jogo (2 moradores). | `TeleportPylonsSystem.DoesPositionHaveEnoughNPCs` dentro do `HandleTeleportRequest` |
+| `ValidTeleportCheck_BiomeRequirements(pylonInfo, sceneData)` | O bioma em volta (`SceneMetrics` já varrido). | `TeleportPylonsSystem.DoesPylonAcceptTeleportation` |
+| `DrawMapIcon(context, mouseOverText, pylonInfo, isNearPylon, drawColor, deselectedScale, selectedScale)` | O ícone no mapa. O padrão: `<Texture>_MapIcon.png` (sem ele, o do pilar do jogo) e o toque teletransporta. | `TeleportPylonsMapLayer.Draw` |
+| `DefaultDrawMapIcon(context, mapIcon, drawCenter, drawColor, deselectedScale, selectedScale)`, `DefaultMapClickHandle(mouseOver, pylonInfo, hoveringTextKey, mouseOverText)` | Os ajudantes do tModLoader (desenhar; nome e toque). | |
+| `DefaultDrawPylonCrystal(spriteBatch, i, j, crystal, crystalHighlight, crystalOffset, shadowColor, dustColor, dustChance, frames)` | O cristal flutuando, no `SpecialDraw` (sem o contorno do cursor esperto). | |
+| `RightClick`, `HasSmartInteract`, `DrawEffects` | O padrão: tocar abre o mapa; o `SpecialDraw` pela célula de cima à esquerda. | |
+| `TEModdedPylon`: `IsTileValidForEntity`, `TryGetModPylon()`, `Hook_AfterPlacement` | A entidade no canto de cima à esquerda; colocar e tirar refazem a lista do jogo. | `TeleportPylonsSystem.UpdatePylonsListAndBroadcastChanges` |
+
+Não há `ValidTeleportCheck_DestinationPostCheck`, `ValidTeleportCheck_NearbyPostCheck`,
+`ModifyTeleportationPosition`, `GetNPCShopEntry` nem `TileID.Sets.CountsAsPylon`.
 
 ## ModTileEntity
 

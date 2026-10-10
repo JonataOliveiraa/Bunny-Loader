@@ -74,12 +74,14 @@ class TileEntityLoader {
         if (old && old !== e) TileEntityLoader.ByID.delete(old.ID);
         TileEntityLoader.ByID.set(e.ID, e);
         TileEntityLoader.ByPosition.set(key, e);
+        if (e instanceof TEModdedPylon) PylonLoader.Changed();
     }
 
     static #Remove(e) {
         TileEntityLoader.ByID.delete(e.ID);
         const key = TileEntityLoader.Key(e.Position.X, e.Position.Y);
         if (TileEntityLoader.ByPosition.get(key) === e) TileEntityLoader.ByPosition.delete(key);
+        if (e instanceof TEModdedPylon) PylonLoader.Changed();
     }
 
     // No servidor, a entidade nova vai a todos.
@@ -109,7 +111,7 @@ class TileEntityLoader {
     static AfterPlacement(template, i, j, type, style, alternate) {
         const Main = Terraria.Main;
         const top = Terraria.ObjectData.TileObjectData.TopLeft(i, j);
-        if (Main.netMode !== 1) return TileEntityLoader.Place(template, top.X, top.Y);
+        if (Main.netMode !== 1) return template.Place(top.X, top.Y);
 
         const data = Terraria.ObjectData.TileObjectData['TileObjectData GetTileData(int type, int style, int alternate)'](type, style, alternate);
         const width = data ? data.Width : 1, height = data ? data.Height : 1;

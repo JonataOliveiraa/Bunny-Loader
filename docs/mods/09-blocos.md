@@ -354,6 +354,59 @@ export class FrostTree extends ModTree {
 - O desenho do tronco e da copa é nativo: não custa JS por quadro. Não há o
   `SetTreeFoliageSettings` nem a tinta (a árvore de mod pintada sai sem a cor).
 
+### Pilares (ModPylon)
+
+Um pilar de teletransporte é um `ModPylon` (um `ModTile` 3x4) com uma
+`TEModdedPylon`. O sistema de pilares do jogo passa a enxergá-lo: entra na
+lista, aparece no mapa, conta como "perto de um pilar" e o toque no ícone
+teletransporta. No multijogador, a lista vai aos clientes pela mensagem do
+próprio jogo (testado só sozinho, por enquanto).
+
+```js
+const { TileObjectData } = Terraria.ObjectData;
+
+export class FrostPylonEntity extends TEModdedPylon {}
+
+// Texturas: FrostPylon.png (o 3x4), FrostPylon_Crystal.png (8 quadros na
+// vertical) e FrostPylon_MapIcon.png.
+export class FrostPylon extends ModPylon {
+    SetStaticDefaults() {
+        Terraria.Main.tileFrameImportant[this.Type] = true;
+        Terraria.Main.tileLighted[this.Type] = true;
+        TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+        TileObjectData.newTile.LavaDeath = false;
+        TileObjectData.newTile.DrawYOffset = 2;
+        TileObjectData.newTile.StyleHorizontal = true;
+        TileObjectData.newTile.HookPostPlaceMyPlayer = ModContent.GetInstance(FrostPylonEntity).PlacementHook(false);
+        TileObjectData.addTile(this.Type);
+        this.AddMapEntry(Color.White, 'Frost Pylon');
+        this.crystal = ModContent.Request(this.Texture + '_Crystal');
+    }
+
+    KillMultiTile(i, j, frameX, frameY) {
+        ModContent.GetInstance(FrostPylonEntity).Kill(i, j);
+    }
+
+    // Só funciona no gelo (sceneData é o SceneMetrics varrido em volta do pilar).
+    ValidTeleportCheck_BiomeRequirements(pylonInfo, sceneData) {
+        return sceneData.EnoughTilesForSnow;
+    }
+
+    SpecialDraw(i, j, spriteBatch) {
+        this.DefaultDrawPylonCrystal(spriteBatch, i, j, this.crystal, this.crystal,
+            Vector2.new(0, -12), Color.new(25, 25, 25, 25), Color.White, 1, 8);
+    }
+}
+```
+
+- `PylonType` é 11, 12... na ordem de carga (os do jogo vão até 10). Um só por
+  tipo no mundo, como os do jogo (`CanPlacePylon`).
+- `ValidTeleportCheck_NPCCount` e `ValidTeleportCheck_BiomeRequirements`
+  decidem para o pilar de destino e para o de onde se sai.
+- No mapa, o ícone é `<Texture>_MapIcon.png`; sem ele, o do pilar do jogo.
+  `DrawMapIcon` troca o desenho (os ajudantes `DefaultDrawMapIcon` e
+  `DefaultMapClickHandle` são os do tModLoader).
+
 ### Custo por quadro
 
 Tile é o conteúdo mais numeroso na tela (uma base tem dezenas de tochas), e o
