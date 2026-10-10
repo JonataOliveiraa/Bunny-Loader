@@ -23,11 +23,12 @@ class CommandLoader {
         return String(name ?? '').trim().replace(/^\/+/, '').toLowerCase();
     }
 
-    // O CommandType.World vale como Chat sozinho e como Server no servidor.
+    // O CommandType.World vale como Chat sozinho e como Server no servidor
+    // (o netMode é campo de bits: quem hospeda e joga fica com 3).
     static Matches(commandType, callerType) {
         const netMode = Terraria.Main.netMode;
         if (commandType & CommandType.World) {
-            if (netMode === 2) commandType |= CommandType.Server;
+            if (netMode & 2) commandType |= CommandType.Server;
             else if (netMode === 0) commandType |= CommandType.Chat;
         }
         return (callerType & commandType) !== 0;
@@ -88,6 +89,20 @@ class CommandLoader {
         return list[0];
     }
 
+    // O que chega ao processador do jogo. Sozinho, é o chat do aparelho; no
+    // servidor, o jogador que mandou. Quem hospeda e joga (netMode 3) manda o
+    // próprio texto com o clientId dele: vale como Chat e, se não for comando
+    // de chat, como Server (a resposta ao próprio índice o jogo mostra aqui).
+    // O `=== 2` é o dedicado de propósito: ele não tem jogador local.
+    static #HandleIncoming(text, clientId) {
+        const Main = Terraria.Main;
+        if (!(Main.netMode & 2)) return CommandLoader.Handle(text, CommandLoader.#ChatCaller());
+
+        const player = CommandLoader.#PlayerCaller(clientId);
+        if (Main.netMode === 2 || clientId !== Main.myPlayer) return CommandLoader.Handle(text, player);
+        return CommandLoader.Handle(text, CommandLoader.#ChatCaller()) || CommandLoader.Handle(text, player);
+    }
+
     // true: era um comando de mod (rodou, ou respondeu o erro).
     static Handle(input, caller) {
         const text = String(input ?? '').trim();
@@ -132,19 +147,18 @@ class CommandLoader {
         const Chat = Terraria.Chat;
 
         Chat.ChatCommandProcessor['void ProcessIncomingMessage(ChatMessage message, int clientId)'].hook((original, self, message, clientId) => {
-            const netMode = Terraria.Main.netMode;
             const text = message && message.Text;
-            if (netMode !== 1 && typeof text === 'string' && text.startsWith('/')) {
-                const caller = netMode === 2 ? CommandLoader.#PlayerCaller(clientId) : CommandLoader.#ChatCaller();
-                if (Safe.Run('ModCommand', () => CommandLoader.Handle(text, caller))) {
-                    message.Consume();
-                    return;
-                }
+            if (Terraria.Main.netMode !== 1 && typeof text === 'string' && text.startsWith('/') &&
+                Safe.Run('ModCommand', () => CommandLoader.#HandleIncoming(text, clientId))) {
+                message.Consume();
+                return;
             }
             original(self, message, clientId);
         });
 
         // Cliente do multijogador: os de tipo Chat rodam aqui, sem ir ao servidor.
+        // Só o 1: quem hospeda (3) também passa por aqui, mas o jogo leva o
+        // mesmo texto ao ProcessIncomingMessage logo depois.
         Chat.ChatHelper['void SendChatMessageFromClient(ChatMessage message)'].hook((original, message) => {
             const text = message && message.Text;
             if (Terraria.Main.netMode === 1 && typeof text === 'string' && text.startsWith('/') &&
@@ -152,10 +166,11 @@ class CommandLoader {
             original(message);
         });
 
-        // O /help do jogo com os comandos de mod no fim.
+        // O /help do jogo com os comandos de mod no fim. No servidor, quem pede
+        // roda os de Chat no próprio aparelho e os de Server/World aqui.
         Chat.Commands.HelpCommand['NetworkText ComposeMessage(Dictionary`2 aliases)'].hook((original, aliases) => {
             const text = original(aliases);
-            const callerType = Terraria.Main.netMode === 2 ? CommandType.Server : CommandType.Chat;
+            const callerType = (Terraria.Main.netMode & 2) ? CommandType.Chat | CommandType.Server : CommandType.Chat;
             const lines = CommandLoader.GetHelp(callerType).map((h) => '/' + h.command + (h.description ? ' ' + h.description : ''));
             if (!lines.length) return text;
             return Terraria.Localization.NetworkText.FromLiteral(text.ToString() + '\n' + lines.join('\n'));

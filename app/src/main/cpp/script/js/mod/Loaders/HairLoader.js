@@ -140,9 +140,9 @@ class HairLoader {
     // `from`: no servidor, o cliente (que só fala do próprio jogador); no cliente, 256.
     static Receive(envelope, from) {
         const Main = Terraria.Main;
-        const i = Main.netMode === 2 ? from : envelope.i;
+        const i = (Main.netMode & 2) ? from : envelope.i;
         if (i < 0 || i > 255 || !HairLoader.ByType.has(envelope.h)) return;
         Main.player[i].hair = envelope.h;
-        if (Main.netMode === 2) ModNet.Send({ k: 'hair', i, h: envelope.h }, -1, from);
+        if (Main.netMode & 2) ModNet.Send({ k: 'hair', i, h: envelope.h }, -1, from);
     }
 }

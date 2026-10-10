@@ -476,7 +476,9 @@ const DustIDExtras = Object.freeze({
     MechanicalCart: 260, BloodWater: 266, LastPrism: 267,
 });
 
-// Main.netMode: 0 sozinho, 1 cliente, 2 servidor.
+// Main.netMode: 0 sozinho, 1 cliente, 2 servidor. No celular é campo de bits e
+// quem hospeda e joga fica com 3: "sou o servidor" é (Main.netMode & 2), e o
+// === NetmodeID.Server só pega o dedicado (sem tela).
 const NetmodeID = Object.freeze({ SinglePlayer: 0, MultiplayerClient: 1, Server: 2 });
 
 const NPCAIStyleID = Object.freeze({

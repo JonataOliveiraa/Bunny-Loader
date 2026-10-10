@@ -62,7 +62,7 @@ class TileEntityItemHooks {
             }
             original(msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7);
             if (mode === 0) return;
-            if (msgType === self.#SYNC_ENTITY && mode === 2) {
+            if (msgType === self.#SYNC_ENTITY && (mode & 2)) {
                 Safe.Run('ModItem: dados do expositor', () => self.#SendEntity(self.#ById(number), remote, ignore));
             } else if (msgType === self.#DOLL || msgType === self.#HAT_RACK) {
                 Safe.Run('ModItem: dados do expositor', () => self.#SendSlot(msgType, Math.round(n2), Math.round(n3), Math.round(n4), remote, ignore));
@@ -71,7 +71,7 @@ class TileEntityItemHooks {
 
         Terraria.NetMessage['void SendSection(int whoAmi, int sectionX, int sectionY)'].hook((original, who, sx, sy) => {
             original(who, sx, sy);
-            if (Terraria.Main.netMode !== 2 || !self.#tracked.size) return;
+            if (!(Terraria.Main.netMode & 2) || !self.#tracked.size) return;
             Safe.Run('ModItem: dados dos expositores do pedaço', () => {
                 const x0 = sx * 200, y0 = sy * 150;
                 for (const id of [...self.#tracked]) {
@@ -99,7 +99,7 @@ class TileEntityItemHooks {
     static Receive(envelope, from) {
         const Main = Terraria.Main;
         if (envelope.k === 'te-place') {
-            if (Main.netMode !== 2 || from >= 256 || !Number.isInteger(envelope.x) || !Number.isInteger(envelope.y)) return;
+            if (!(Main.netMode & 2) || from >= 256 || !Number.isInteger(envelope.x) || !Number.isInteger(envelope.y)) return;
             TileEntityItemHooks.#pending.set(envelope.x + ',' + envelope.y, { envelope, time: Date.now() });
             return;
         }
@@ -112,13 +112,13 @@ class TileEntityItemHooks {
             if (item && ItemNetworkHooks.Apply(item, data)) applied = true;
         }
         if (applied) TileEntityItemHooks.#tracked.add(te.ID);
-        if (Main.netMode === 2 && from < 256) ModNet.Send(envelope, -1, from);
+        if ((Main.netMode & 2) && from < 256) ModNet.Send(envelope, -1, from);
     }
 
     static #Placed(x, y, type, source) {
         const Main = Terraria.Main;
         let envelope = null;
-        if (!source && Main.netMode === 2) {
+        if (!source && (Main.netMode & 2)) {
             const key = x + ',' + y;
             const entry = TileEntityItemHooks.#pending.get(key);
             TileEntityItemHooks.#pending.delete(key);
@@ -131,7 +131,7 @@ class TileEntityItemHooks {
         if (source) ItemDataLoader.Copy(source, item);
         else if (!ItemNetworkHooks.Apply(item, envelope)) return;
         TileEntityItemHooks.#tracked.add(te.ID);
-        if (Main.netMode === 2) TileEntityItemHooks.#SendEntity(te, -1, -1);
+        if (Main.netMode & 2) TileEntityItemHooks.#SendEntity(te, -1, -1);
     }
 
     static #SendPlacing(x, y) {

@@ -68,7 +68,7 @@ class ChestNetworkHooks {
     // `from`: no servidor, o cliente; no cliente, 256.
     static Receive(envelope, from) {
         const Main = Terraria.Main;
-        if (Main.netMode === 2 && from < 256) {
+        if ((Main.netMode & 2) && from < 256) {
             if (envelope.a === 'place') ChestNetworkHooks.#ServerPlace(envelope, from);
             else if (envelope.a === 'kill') ChestNetworkHooks.#ServerKill(envelope);
         } else if (Main.netMode === 1) {

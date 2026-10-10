@@ -23,7 +23,8 @@ export class ExampleTimeCommand extends ModCommand {
         Main.dayTime = time < day;
         Main.time = Main.dayTime ? time : time - day;
 
-        if (Main.netMode === 2) Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'](
+        // netMode é campo de bits: 2 servidor dedicado, 3 quem hospeda e joga.
+        if (Main.netMode & 2) Terraria.NetMessage['void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)'](
             MessageID.WorldData, -1, -1, null, 0, 0, 0, 0, 0, 0, 0);
     }
 }

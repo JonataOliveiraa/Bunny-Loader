@@ -1,0 +1,15 @@
+{
+  "uid": "230ed430-5300-42e5-bf84-310b51949044",
+  "id": "test-mpnetmode",
+  "name": "Teste: lado do servidor com quem hospeda (netMode 3)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Expositor, baú de mod, comandos e HijackSendData com o host do celular (netMode 3).",
+  "description": "Instale no host e no cliente, com o Example Mod. Loga 'mpnm ...'.",
+  "updated": "2026-10-10",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

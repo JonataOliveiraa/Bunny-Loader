@@ -45,7 +45,7 @@ class SystemNetworkHooks {
     static HijackSend(msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7) {
         if (!SystemLoader.Entries('HijackSendData').length) return false;
         if (Terraria.Main.netMode === 0) return false;
-        const who = Terraria.Main.netMode === 2 && remote >= 0 ? remote : 256;
+        const who = (Terraria.Main.netMode & 2) && remote >= 0 ? remote : 256;
         return SystemLoader.Any('HijackSendData', who, msgType, remote, ignore, text, number, n2, n3, n4, n5, n6, n7);
     }
 }
