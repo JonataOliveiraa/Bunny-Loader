@@ -124,7 +124,8 @@ Os outros de `samples/` são publicados aqui. [`mods/pack.py`](mods/pack.py) ger
 packs do Workshop local para `ports/textures/`, cria `manifest.json` com autoria
 e gera os `.bl`, sem exigir `main.js`. Exemplo:
 `python tools/mods/port_textures.py 2439853873 2796830227`.
-O inventario e a validacao dos ports estao em `ports/textures/README.md`.
+Cada port tem um README em `ports/textures/<nome>/`; os `.bl` prontos ficam em
+`ports/textures/in bl/`.
 
 O token pode vir de `BL_GITHUB_TOKEN`; sem ela, o script pede na hora, sem
 mostrar na tela.

@@ -74,3 +74,6 @@ exmod_tl/
 
 # Pacote temporario de mod do tools/bench/run.sh (um por rodada).
 /blmod.*.tar
+
+# Zip local dos .bl de ports/textures/in bl (que ja estao versionados um a um).
+ports/textures/in bl/*.zip

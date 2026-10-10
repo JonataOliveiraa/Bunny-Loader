@@ -136,8 +136,8 @@ python tools/mods/port_textures.py 2439853873 2796830227
 O comando copia os PNGs para `ports/textures/<nome>/bl`, cria o manifesto,
 preserva autoria, metadados e icone e gera o `.bl`. Nao altera a pasta Steam.
 O UID deriva do ID do Workshop, como no importador do launcher; um port ja
-existente mantem sua identidade. O inventario dos packs examinados esta em
-`ports/textures/README.md`.
+existente mantem sua identidade. Cada port tem um README em
+`ports/textures/<nome>/`, e os `.bl` prontos ficam em `ports/textures/in bl/`.
 
 Localizacao, sons e musicas nao sao aplicados por esse carregador. O comando
 de port copia somente imagens; `type: "font"` fica para uma implementacao futura.
