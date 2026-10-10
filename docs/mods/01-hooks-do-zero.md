@@ -425,8 +425,23 @@ assunto do [guia de custo](03-custo-e-desempenho.md#filtros-nativos):
 | `{ minType: N, on: i }` | o `type` do **parâmetro** `i` é ≥ `N`. |
 | `{ minType: N, on: i, field: 'shoot' }` | o campo `shoot` do parâmetro `i` é ≥ `N`. |
 | `{ minType: N, tile: i }` / `tileAt: [i, j]` | o bloco do mundo (pelo `Tile` ou pela posição) é de tipo ≥ `N`. |
-| `{ whileIn: outroMetodo }` | a thread está dentro do hook JS de `outroMetodo`. |
+| `{ whileIn: outroMetodo }` | a thread está dentro do hook JS (ou do `scope()`) de `outroMetodo`. |
 | `{ ifBusy: 'original' \| 'skip' }` | (não filtra) o que fazer se o motor JS estiver com outra thread. |
+
+Para saber **quem** chamou sem pagar o JS em toda chamada, use o escopo:
+`metodo.scope()` marca, no nativo, que o jogo está dentro do método e guarda
+o objeto; `metodo.scopeSelf()` devolve esse objeto (ou `null` fora dele). O
+`Damage_PVE` roda para todo projétil a cada atualização: com `scope()` nele,
+um hook no `StrikeNPC` (que só roda no acerto) sabe qual projétil acertou.
+
+```js
+const damage = Terraria.Projectile['void Damage_PVE(ref Rectangle projRectangle, float projectileSpecificDamageMultiplier)'];
+damage.scope();
+Terraria.NPC['int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)'].hook((original, npc, ...args) => {
+    const projetil = damage.scopeSelf();   // null: não veio de projétil
+    return original(npc, ...args);
+});
+```
 
 ### `ref` e `out`
 

@@ -147,6 +147,8 @@ struct HookCtx {
     const std::atomic<uint8_t>* flag = nullptr;
     // HookFilter::ifBusy: com o motor JS noutra thread, nao espera.
     IfBusy ifBusy = IfBusy::Wait;
+    // HookFilter::scopeOnly: so a marca de escopo e o self; nunca entra no JS.
+    bool scopeOnly = false;
 };
 
 /** O campo do filtro na largura dele: Item.prefix e byte, e os 3 seguintes sao outros campos. */
@@ -190,6 +192,9 @@ static thread_local std::vector<Frame> g_frames;
 // dispare o callback JS repetidamente ate estourar a pilha do QuickJS.
 static thread_local int g_depth[kMaxHooks];
 static thread_local int g_scopeDepth[kMaxHooks];
+// O self da chamada mais interna de cada escopo (o de fora fica na pilha C de
+// quem entrou e volta na saida).
+static thread_local intptr_t g_scopeSelf[kMaxHooks];
 
 // Quanto um hook espera pelo motor JS antes de desistir do mod naquela
 // chamada. Ver JsLock: esperar para sempre transformaria um impasse entre
@@ -368,6 +373,16 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     uint64_t rawD[8];
     std::memcpy(rawD, rawF, sizeof(rawD));
 
+    if (c->scopeOnly) {
+        const intptr_t outerSelf = g_scopeSelf[c->scopeSlot];
+        g_scopeSelf[c->scopeSlot] = c->isInstance && !c->selfStruct ? rawA[0] : 0;
+        ++g_scopeDepth[c->scopeSlot];
+        result = callOriginal(c, rawA, rawD);
+        --g_scopeDepth[c->scopeSlot];
+        g_scopeSelf[c->scopeSlot] = outerSelf;
+        return result;
+    }
+
     // O filtro vem antes de tudo: quem nao passa nao paga trava nem JS.
     if (c->flag && !c->flag->load(std::memory_order_relaxed)) return callOriginal(c, rawA, rawD);
     if (c->gateSlot >= 0 && g_scopeDepth[c->gateSlot] == 0) return callOriginal(c, rawA, rawD);
@@ -445,6 +460,8 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     const void* outerHook = setJsOwnerHook(c->method);
     ++g_depth[slot];
     ++g_scopeDepth[c->scopeSlot];
+    const intptr_t outerSelf = g_scopeSelf[c->scopeSlot];
+    g_scopeSelf[c->scopeSlot] = c->isInstance && !c->selfStruct ? rawA[0] : 0;
     bump(g_jsCalls[slot]);
     const int64_t jsStart = nowNs();
 
@@ -529,6 +546,7 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     g_frames.pop_back();
     --g_depth[slot];
     --g_scopeDepth[c->scopeSlot];
+    g_scopeSelf[c->scopeSlot] = outerSelf;
     setJsOwnerHook(outerHook);
     return result;
 }
@@ -748,6 +766,13 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
     }
     if (filter && !filter->flag.empty()) probe.flag = hookFlag(filter->flag);
     if (filter) probe.ifBusy = filter->ifBusy;
+    if (filter && filter->scopeOnly) {
+        // Um hook JS no metodo ja marca o escopo: o de escopo seria um elo a mais.
+        for (int i = 0; i < kMaxHooks; ++i) {
+            if (g_hooks[i].used && g_hooks[i].method == method) return true;
+        }
+        probe.scopeOnly = true;
+    }
     if (err.empty() && probe.ifBusy == IfBusy::Skip && probe.abi.retDesc.prim != Prim::Void) {
         err = "ifBusy 'skip' so vale em metodo void (sem o JS, nao ha o que devolver)";
     }
@@ -806,6 +831,15 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
     return false;
 }
 
+Il2CppObject* hookScopeSelf(const MethodInfo* method) {
+    for (int i = 0; i < kMaxHooks; ++i) {
+        if (!g_hooks[i].used || g_hooks[i].method != method) continue;
+        const int scope = g_hooks[i].scopeSlot;
+        return g_scopeDepth[scope] > 0 ? reinterpret_cast<Il2CppObject*>(g_scopeSelf[scope]) : nullptr;
+    }
+    return nullptr;
+}
+
 std::vector<HookStat> hookStats() {
     std::vector<HookStat> out;
     for (int i = 0; i < kMaxHooks; ++i) {
@@ -829,6 +863,8 @@ std::vector<HookStat> hookStats() {
 #else // arquitetura != arm64: hook JS indisponivel (stub)
 
 std::vector<HookStat> hookStats() { return {}; }
+
+Il2CppObject* hookScopeSelf(const MethodInfo*) { return nullptr; }
 
 bool installJsHook(JSContext* ctx, const MethodInfo*, int, bool, JSValueConst, const HookFilter*) {
     JS_ThrowInternalError(ctx, "hook JS: so implementado em arm64");

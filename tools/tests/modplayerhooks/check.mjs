@@ -67,6 +67,9 @@ function native(name) {
                     entry.callbacks.push(callback);
                     entry.filters.push(filter);
                 };
+                // Escopo nativo: marca a entrada e guarda o self, sem callback.
+                fn.scope = () => { if (!entry.callbacks.length) { entry.callbacks.push(null); entry.filters.push({ scope: true }); } };
+                fn.scopeSelf = () => entry.selves?.at(-1) ?? null;
                 return fn;
             }
             if (key === 'new') return () => ({ __address: address++ });
@@ -79,6 +82,12 @@ function native(name) {
 function invoke(entry, args, index = 0) {
     if (index >= entry.callbacks.length) return entry.vanilla(...args);
     const filter = entry.filters[index];
+    if (filter.scope) {
+        entry.active++;
+        (entry.selves ||= []).push(args[0] ?? null);
+        try { return invoke(entry, args, index + 1); }
+        finally { entry.selves.pop(); entry.active--; }
+    }
     if (filter.flag && !flags.get(filter.flag) || filter.whileIn && !filter.whileIn.entry.active) return invoke(entry, args, index + 1);
     entry.active++;
     try { return entry.callbacks[index]((...next) => invoke(entry, next, index + 1), ...args); }
@@ -883,9 +892,12 @@ test('collision and sound callbacks stay outside JS when their native gates are 
 });
 
 test('attack gates recover after native failures', () => {
+    // Com combate de projétil, o StrikeNPC fica sempre ligado (o projétil vem
+    // do escopo do Damage_PVE): o portão volta ao que era antes do golpe.
+    const before = flags.get('combat.Strike');
     vanilla('Terraria.Player', 'ProcessHitAgainstNPC', () => { assert.equal(flags.get('combat.Strike'), true); throw Error('attack failure'); });
     assert.throws(() => call('Terraria.Player', 'ProcessHitAgainstNPC', p, item(1), npc.Hitbox, 20, 0, 0), /attack failure/);
-    assert.equal(flags.get('combat.Strike'), false);
+    assert.equal(flags.get('combat.Strike'), before);
 });
 
 test('jump veto restores availability after failure and sound resumes outside jumping', () => {

@@ -76,6 +76,10 @@ struct HookFilter {
     // quem sabe quando ele importa liga e desliga.
     std::string flag;
     IfBusy ifBusy = IfBusy::Wait;
+    // `scope`: sem callback. So marca que a thread esta dentro do metodo e
+    // guarda o self (hookScopeSelf), para o `whileIn` de outros hooks e para
+    // quem precisa saber quem chamou sem entrar no JS a cada chamada.
+    bool scopeOnly = false;
 };
 
 /** A tabela de marcas `name` (criada na primeira vez; nunca liberada). kMarkTypes entradas. */
@@ -101,6 +105,10 @@ struct HookStat {
     uint64_t jsNs = 0;   // tempo no callback, sem o original()
 };
 std::vector<HookStat> hookStats();
+
+// O self da chamada mais interna de `method` nesta thread (um hook JS ou de
+// escopo nele), ou nullptr fora dele.
+Il2CppObject* hookScopeSelf(const MethodInfo* method);
 
 #endif
 

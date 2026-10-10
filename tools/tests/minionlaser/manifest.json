@@ -1,0 +1,13 @@
+{
+  "uid": "1a5e7a11-0b5e-4c0d-9e1a-5e71a5e77e57",
+  "id": "test-minionlaser",
+  "name": "Teste: custo dos lasers de mod (AIType)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Mede DoUpdate/DoDraw e os hooks com lasers do jogo, o EternalLaser do Consolaria com e sem AIType e os lacaios EyeOfEternity atirando.",
+  "description": "Loga 'minionlaser ...'. Precisa do Consolaria ligado.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

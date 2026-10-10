@@ -68,6 +68,9 @@ function native(name) {
             if (expected && JSON.stringify(expected) !== JSON.stringify(names(key))) missing.push(name + ':' + key + ': parameter names');
             entry.hooks.push({ callback, filter });
         };
+        // Escopo nativo: marca a entrada e guarda o self, sem callback.
+        fn.scope = () => { if (!entry.hooks.length) entry.hooks.push({ scope: true, filter: {} }); };
+        fn.scopeSelf = () => entry.selves?.at(-1) ?? null;
         return fn;
     } });
     natives.set(name, proxy);
@@ -75,8 +78,14 @@ function native(name) {
 }
 function invoke(entry, args, index = 0) {
     if (index >= entry.hooks.length) return entry.vanilla(...args);
-    const { callback, filter } = entry.hooks[index];
+    const { callback, filter, scope } = entry.hooks[index];
     const original = (...next) => invoke(entry, next.length ? next : args, index + 1);
+    if (scope) {
+        entry.active++;
+        (entry.selves ||= []).push(args[0] ?? null);
+        try { return original(); }
+        finally { entry.selves.pop(); entry.active--; }
+    }
     const selected = args[filter.on >= 0 ? filter.on + (entry.instance ? 1 : 0) : 0];
     const indexed = filter.field?.match(/^(\w+)\[([\w.]+)\]\.(\w+)$/);
     const type = filter.arg >= 0 ? args[filter.arg] : indexed ? selected?.[indexed[1]]?.[indexed[2].split('.').reduce((value, key) => value?.[key], selected)]?.[indexed[3]] : selected?.[filter.field || 'type'];

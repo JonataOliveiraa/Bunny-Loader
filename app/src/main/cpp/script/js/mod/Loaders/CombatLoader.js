@@ -18,6 +18,9 @@ class CombatLoader {
     static #collision = false;
     static #hurtAlways = false;
     static #hideText = false;
+    // O Damage_PVE com escopo nativo: o StrikeNPC acha o projétil por ele.
+    static #projectileScope = false;
+    static #striking = [];   // o projétil de cada golpe em andamento (ou null)
     static PvpAttack = null;
 
     // ---- quem participa ----
@@ -107,6 +110,7 @@ class CombatLoader {
             CombatLoader.InstallItemCombat();
         }
         if (CombatLoader.#NPC_PROJ.some(has)) CombatLoader.InstallProjectileCombat();
+        if (has('CanBeHitByProjectile')) CombatLoader.#InstallProjectileCanHit();
         if (CombatLoader.#NPC_NPC.some(has)) CombatLoader.#InstallNPCvsNPC();
         if (CombatLoader.#NPC_PLAYER.some(has)) CombatLoader.InstallHurt(true);
         if (has('ModifyIncomingHit')) {
@@ -118,6 +122,7 @@ class CombatLoader {
     static WantProjectile(cls, Base) {
         const has = (name) => Hooks.Overrides(cls, Base, name);
         if (CombatLoader.#PROJ_NPC.some(has)) CombatLoader.InstallProjectileCombat();
+        if (has('CanHitNPC')) CombatLoader.#InstallProjectileCanHit();
         if (CombatLoader.#PROJ_PLAYER.some(has)) CombatLoader.InstallHurt(true);
     }
 
@@ -127,6 +132,8 @@ class CombatLoader {
         if (['CanHitNPC', 'CanHitNPCWithItem', 'CanHitNPCWithProj'].some(has)) {
             CombatLoader.#canHitAlways = true;
             bl.hookFlags.set('combat.CanHitNPC', true);
+            // O de sempre já pega o Damage_PVE: o do projétil entraria duas vezes.
+            bl.hookFlags.set('combat.CanHitProjectile', false);
             Hooks.Once('combat.CanHitNPC', CombatLoader.#HookCanHitNPC);
         }
         want(cls, ['CanHitNPCWithItem', 'CanMeleeAttackCollideWithNPC', 'ModifyHitNPC', 'ModifyHitNPCWithItem', 'OnHitNPC', 'OnHitNPCWithItem'],
@@ -177,6 +184,22 @@ class CombatLoader {
         Hooks.Once('combat.ProjectileAttack', CombatLoader.#HookProjectileAttack);
         Hooks.Once('combat.CanHitNPC', CombatLoader.#HookCanHitNPC);
         CombatLoader.#InstallStrike();
+    }
+
+    // Só quem veta ou força o acerto de projétil (CanHitNPC do projétil,
+    // CanBeHitByProjectile do NPC) paga o JS por NPC dentro do Damage_PVE.
+    static #InstallProjectileCanHit() {
+        CombatLoader.InstallProjectileCombat();
+        bl.hookFlags.set('combat.CanHitProjectile', !CombatLoader.#canHitAlways);
+        Hooks.Once('combat.CanHitProjectile', () => {
+            Terraria.Player['bool CanNPCBeHitByPlayerOrPlayerProjectile(NPC npc, Projectile projectile)'].hook(
+                (original, player, npc, projectile) => CombatLoader.#CanHit(original, player, npc, projectile),
+                { whileIn: CombatLoader.#DamagePVE(), flag: 'combat.CanHitProjectile' });
+        });
+    }
+
+    static #DamagePVE() {
+        return Terraria.Projectile['void Damage_PVE(ref Rectangle projRectangle, float projectileSpecificDamageMultiplier)'];
     }
 
     static InstallCollision() { Hooks.Once('combat.MeleeCollision', CombatLoader.#HookMeleeCollision); }
@@ -297,7 +320,9 @@ class CombatLoader {
     }
 
     static #Flags(attack) {
-        if (!CombatLoader.#strikeAlways) bl.hookFlags.set('combat.Strike', !!attack || !!CombatLoader.#npcAttack);
+        if (!CombatLoader.#strikeAlways && !CombatLoader.#projectileScope) {
+            bl.hookFlags.set('combat.Strike', !!attack || !!CombatLoader.#npcAttack);
+        }
         if (!CombatLoader.#canHitAlways) bl.hookFlags.set('combat.CanHitNPC', !!attack);
         if (CombatLoader.#collision) bl.hookFlags.set('combat.MeleeCollisionActive', attack?.collision === true);
     }
@@ -338,41 +363,62 @@ class CombatLoader {
 
     // ---- projétil no NPC ----
 
+    // O Damage_PVE roda para todo projétil amigo a cada atualização (um laser,
+    // com extraUpdates, 3 a 5 vezes por quadro) e pergunta CanNPCBeHit... para
+    // cada NPC. Um hook JS nele custava ~20 µs por chamada e ligava o
+    // CanNPCBeHit no JS para cada NPC: 60 lasers no ar levavam o DoUpdate do
+    // MuMu a ~70 ms. O escopo nativo só guarda o projétil, sem JS; o StrikeNPC,
+    // que só roda no acerto, o lê (#ProjectileAttack).
     static #HookProjectileAttack() {
-        Terraria.Projectile['void Damage_PVE(ref Rectangle projRectangle, float projectileSpecificDamageMultiplier)'].hook((original, projectile, rect, multiplier) => {
-            const player = CombatLoader.Owner(projectile);
-            return CombatLoader.#WithAttack({ player, projectile }, () => original(projectile, rect, multiplier));
-        });
+        CombatLoader.#DamagePVE().scope();
+        CombatLoader.#projectileScope = true;
+        bl.hookFlags.set('combat.Strike', true);
+    }
+
+    // O projétil do Damage_PVE em andamento. Um golpe dentro do golpe desse
+    // mesmo projétil (a explosão do OnHitNPC) não tem quem bateu, como antes;
+    // outro Damage_PVE aberto ali dentro é um golpe dele.
+    static #ProjectileAttack() {
+        if (!CombatLoader.#projectileScope) return null;
+        const projectile = CombatLoader.#DamagePVE().scopeSelf();
+        if (!projectile) return null;
+        const striking = CombatLoader.#striking;
+        if (striking.length && CombatLoader.#Same(striking[striking.length - 1], projectile)) return null;
+        return { player: CombatLoader.Owner(projectile), projectile };
     }
 
     // O jogo pergunta, para o jogador e os projéteis dele, se este NPC pode
     // ser acertado: os vetos e as forças de quem participa.
     static #HookCanHitNPC() {
-        Terraria.Player['bool CanNPCBeHitByPlayerOrPlayerProjectile(NPC npc, Projectile projectile)'].hook((original, player, npc, projectile) => {
-            const attack = CombatLoader.#attack;
-            const checked = attack && attack.checked && CombatLoader.#Same(attack.player, player) && CombatLoader.#Same(attack.target, npc);
-            if (!checked && PlayerLoader.Veto(player, 'CanHitNPC', npc)) return false;
-            const decisions = [];
-            if (projectile) {
-                decisions.push(CombatLoader.Can('proj', projectile, 'CanHitNPC', npc));
-                if (decisions[0] === false) return false;
-                decisions.push(CombatLoader.Can('npc', npc, 'CanBeHitByProjectile', projectile));
-                decisions.push(PlayerLoader.Nullable(player, 'CanHitNPCWithProj', projectile, npc));
-            } else {
-                if (attack && attack.item) decisions.push(PlayerLoader.Nullable(player, 'CanHitNPCWithItem', attack.item, npc));
-                if (checked) decisions.push(attack.npcCanHit, attack.itemCanHit);
+        Terraria.Player['bool CanNPCBeHitByPlayerOrPlayerProjectile(NPC npc, Projectile projectile)'].hook(
+            (original, player, npc, projectile) => CombatLoader.#CanHit(original, player, npc, projectile),
+            { flag: 'combat.CanHitNPC' });
+    }
+
+    static #CanHit(original, player, npc, projectile) {
+        const attack = CombatLoader.#attack;
+        const checked = attack && attack.checked && CombatLoader.#Same(attack.player, player) && CombatLoader.#Same(attack.target, npc);
+        if (!checked && PlayerLoader.Veto(player, 'CanHitNPC', npc)) return false;
+        const decisions = [];
+        if (projectile) {
+            decisions.push(CombatLoader.Can('proj', projectile, 'CanHitNPC', npc));
+            if (decisions[0] === false) return false;
+            decisions.push(CombatLoader.Can('npc', npc, 'CanBeHitByProjectile', projectile));
+            decisions.push(PlayerLoader.Nullable(player, 'CanHitNPCWithProj', projectile, npc));
+        } else {
+            if (attack && attack.item) decisions.push(PlayerLoader.Nullable(player, 'CanHitNPCWithItem', attack.item, npc));
+            if (checked) decisions.push(attack.npcCanHit, attack.itemCanHit);
+        }
+        if (decisions.includes(false)) return false;
+        if (decisions.includes(true)) {
+            if (!projectile && checked && npc.friendly) {
+                attack.friendly = npc.friendly;
+                attack.restoreFriendly = true;
+                npc.friendly = false;
             }
-            if (decisions.includes(false)) return false;
-            if (decisions.includes(true)) {
-                if (!projectile && checked && npc.friendly) {
-                    attack.friendly = npc.friendly;
-                    attack.restoreFriendly = true;
-                    npc.friendly = false;
-                }
-                return true;
-            }
-            return original(player, npc, projectile);
-        }, { flag: 'combat.CanHitNPC' });
+            return true;
+        }
+        return original(player, npc, projectile);
     }
 
     static #HookDirectAttack() {
@@ -408,7 +454,7 @@ class CombatLoader {
         Terraria.NPC['int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)'].hook(
             (original, npc, damage, knockback, direction, crit, fromNet, owner) => {
                 if (fromNet) return original(npc, damage, knockback, direction, crit, fromNet, owner);
-                const attack = CombatLoader.#attack;
+                const attack = CombatLoader.#attack || CombatLoader.#ProjectileAttack();
                 const own = attack && (!attack.target || CombatLoader.#Same(attack.target, npc)) ? attack : null;
                 const npcAttack = CombatLoader.#npcAttack;
                 const byNPC = npcAttack && CombatLoader.#Same(npcAttack.victim, npc) ? npcAttack : null;
@@ -419,8 +465,12 @@ class CombatLoader {
                 return CombatLoader.#WithAttack(null, () => {
                     const outerNPC = CombatLoader.#npcAttack;
                     CombatLoader.#npcAttack = null;
+                    CombatLoader.#striking.push(own?.projectile || null);
                     try { return CombatLoader.#Strike(original, npc, damage, knockback, direction, crit, owner, own, byNPC); }
-                    finally { CombatLoader.#npcAttack = outerNPC; }
+                    finally {
+                        CombatLoader.#striking.pop();
+                        CombatLoader.#npcAttack = outerNPC;
+                    }
                 });
             }, { flag: 'combat.Strike' });
     }

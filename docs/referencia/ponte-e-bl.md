@@ -65,10 +65,15 @@ assinatura do jogo.
 | `field: 'array[indice].campo'` | Lê um campo inteiro do elemento de um array de referências. O índice vem de um campo `int` do objeto, ou de um campo de uma struct embutida: `inventory[selectedItemState.selected].type`. Metadados e offsets são resolvidos ao instalar; array nulo, índice fora da faixa e elemento nulo não entram no JS. |
 | `tile: i` | O parâmetro `i` é um `Tile`; o filtro olha o tipo do bloco. |
 | `tileAt: [i, j]` | Os parâmetros `i` e `j` são a posição; o filtro olha o bloco do mundo. |
-| `whileIn: metodo` | Só entra no JS dentro do hook JS de `metodo`. |
+| `whileIn: metodo` | Só entra no JS dentro do hook JS (ou do `scope()`) de `metodo`. |
 | `ifBusy: 'wait' \| 'original' \| 'skip'` | Com o motor JS noutra thread: esperar até 3 s, rodar só o jogo, ou nada. |
 
 Detalhes no [guia de custo](../mods/03-custo-e-desempenho.md#filtros-nativos).
+
+`metodo.scope()` instala um hook sem callback: marca no nativo que a thread
+está dentro do método e guarda o objeto da chamada, sem entrar no JS.
+`metodo.scopeSelf()` devolve esse objeto (o da chamada mais interna), ou
+`null` fora dela. Serve de `whileIn` para outros hooks.
 
 ## `bl`: geral
 
