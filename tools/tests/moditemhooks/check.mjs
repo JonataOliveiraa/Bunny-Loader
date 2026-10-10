@@ -120,7 +120,7 @@ const sandbox = {
         return entity[field];
     }, Define() {} },
     ModNet: { InstallEntity() {} }, Ready: { Add: f => ready.push(f) }, SpawnLoader: { InstallPool() {} },
-    BannerLoader: { Install() {}, Track() {} }, ItemDrawLoader: { Want() {} }, ProjectileLoader: { Of: p => p.ModProjectile }, ModProjectile: class {}, globalProjectiles: { For: () => [] }, globalNPCs: { For: () => [], Call() {}, Each() {}, AllCall: () => true, First() {}, Templates: () => [] },
+    BannerLoader: { Install() {}, Track() {} }, ItemDrawLoader: { Want() {} }, ItemPickupLoader: { METHODS: [], Want() {} }, ProjectileLoader: { Of: p => p.ModProjectile }, ModProjectile: class {}, globalProjectiles: { For: () => [] }, globalNPCs: { For: () => [], Call() {}, Each() {}, AllCall: () => true, First() {}, Templates: () => [] },
     TownNPCLoader: { Hook() {}, TalkingTo: () => talking },
     Safe: { Run(label, fn) { try { return fn(); } catch (e) { errors.push([label, e]); } }, Report(label, e) { errors.push([label, e]); } },
     bl: { addressOf: p => p?.__address, mod: { uuid: 'item-hooks' }, log() {},
@@ -379,6 +379,13 @@ test('item MeleeEffects receives the actual hitbox after native visuals', () => 
     assert.deepEqual(sandbox.events, ['native.MeleeEffects', 'item.MeleeEffects']);
 });
 test('PvP veto prevents Hurt and notification', () => { sandbox.state['item.CanHitPvp'] = false; assert.equal(pvp(), 0); assert.equal(sandbox.events.includes('item.OnHitPvp'), false); });
+test('PvP veto uses the CanHit target, not a stale whoAmI', () => {
+    // Jogador ativado antes do Update dele: whoAmI ainda 0 (o do atacante).
+    const index = targetPlayer.whoAmI; targetPlayer.whoAmI = p.whoAmI;
+    sandbox.state['item.CanHitPvp'] = (_, player, target) => { assert.equal(target, targetPlayer); return false; };
+    try { assert.equal(pvp(), 0); } finally { targetPlayer.whoAmI = index; }
+    assert.equal(sandbox.events.includes('item.CanHitPvp'), true); assert.equal(sandbox.events.includes('item.OnHitPvp'), false);
+});
 test('PvP modifiers reach native Hurt and actual damage notification', () => {
     sandbox.state['item.ModifyHitPvp'] = (item, player, target, m) => { assert.equal(item, weapon); assert.equal(player, p); assert.equal(target, targetPlayer); m.damage = 35; m.crit = true; };
     sandbox.state['item.OnHitPvp'] = (_, player, target, info) => { assert.equal(info.Damage, 35); assert.equal(info.Crit, true); };
@@ -483,7 +490,7 @@ for (const order of ['item global player', 'global player item', 'player item gl
     const local = vm.createContext({
         Terraria: { Player: { 'int GetWeaponDamage(Item sItem)': damageMethod } },
         FIRST_ITEM: 6145, SceneEffectPriority: { BossLow: 0 },
-        ItemDrawLoader: { Want() {} }, PlayerUpdateHooks: other, PlayerJumpHooks: other, PlayerDrawHooks: other, PlayerWorldHooks: other, PlayerNetworkHooks: other,
+        ItemDrawLoader: { Want() {} }, ItemPickupLoader: { METHODS: [], Want() {} }, PlayerUpdateHooks: other, PlayerJumpHooks: other, PlayerDrawHooks: other, PlayerWorldHooks: other, PlayerNetworkHooks: other,
         Entities: { InstanceOf: (item, field, templates) => item[field] || (item[field] = Object.assign(Object.create(Object.getPrototypeOf(templates.get(item.type))), templates.get(item.type))) },
         Safe: { Report: (name, e) => issues.push([name, e]), Run: (name, fn) => fn() },
         bl: { mod: { uuid: 'order' }, addressOf: value => value.__address,

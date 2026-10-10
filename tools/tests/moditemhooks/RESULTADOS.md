@@ -59,3 +59,9 @@ Build Android arm64 debug concluído com Gradle 8.14.3, JDK do Android Studio, u
 A referência, o catálogo e a planilha foram atualizados. A verificação confrontou os 1.055 registros entre JSON, CSV e Excel, incluindo filtros e painéis fixos. As vistas de assinaturas e contratos foram renderizadas para revisão.
 
 PvP foi testado com dois objetos Player no mesmo processo. Não foi testada uma sessão multiplayer entre processos nesta etapa. O contexto atual de PvP vem de ItemCheck_MeleeHitPVP; mensagens Hurt recebidas isoladamente não reconstroem a arma de origem. Essa implementação e validação permanecem pendentes no [plano](PLANO.md), assim como as etapas 2 a 6.
+
+## Regressão do veto PvP (10 de outubro de 2026)
+
+Com o APK do master (bb0cb44 e 21634ac), as três verificações de PvP falharam: `PvP HurtInfo=3 deltaLife=14 on=2`, ou seja, o golpe com `CanHitPvp` false tirou vida e chamou OnHitPvp. Desde 7ca92a1 o veto mora no hook de `Player.CanHit(Entity)` (com `whileIn` no `ItemCheck_MeleeHitPVP`), e o hook achava o alvo por `Main.player[entity.whoAmI]`. A vítima do fixture, `Main.player[1]`, foi ativada sem passar pelo `Player.Update`, que é quem grava `whoAmI = i`: o campo continuava 0, o índice levava ao atacante e o hook liberava o golpe sem perguntar ao item. O `CanHit` não é inlinado no celular (o `bl` para `Terraria.Player$$CanHit` está no `ItemCheck_MeleeHitPVP`), e o `bl.hookStats()` confirmou uma entrada no JS.
+
+O hook agora usa como alvo o próprio objeto que o laço passa ao `CanHit` (o `Main.player[i]`, como o `CombinedHooks.CanHitPvp` do tModLoader) e só aplica o veto quando o `self` é o atacante do escopo e a entidade é um jogador. O `check.mjs` ganhou o caso com `whoAmI` defasado, que o código anterior reprova. No MuMu (127.0.0.1:16384): `moditemhooks` com 86 verificações e zero falhas (`PvP HurtInfo=3 deltaLife=3 on=1`) e `globalhooks` com 30 e zero falhas.

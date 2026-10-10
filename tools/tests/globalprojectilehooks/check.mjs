@@ -114,7 +114,7 @@ const sandbox = {
     Rectangle: { new: (X, Y, Width, Height) => ({ X, Y, Width, Height }) }, Color: { White: { R: 255, G: 255, B: 255, A: 255 } },
     Entities: { InstanceOf: p => p.ModProjectile, Define() {}, Clone: g => Object.create(Object.getPrototypeOf(g), Object.getOwnPropertyDescriptors(g)) },
     FIRST_PROJECTILE: 1136, Templates: { Adopt() {} }, Ready: { Add: fn => ready.push(fn) },
-    ModNet: { InstallEntity() {} }, CombatLoader: { WantProjectile() {}, WantGlobalItem() {} }, ItemDrawLoader: { Want() {} }, ItemCombatHooks: { InstallGlobal() {} }, HitLoader: { ProjectileHitsNPC() {} }, DamageClassLoader: { Defaulting: (_, fn) => fn() },
+    ModNet: { InstallEntity() {} }, CombatLoader: { WantProjectile() {}, WantGlobalItem() {} }, ItemDrawLoader: { Want() {} }, ItemPickupLoader: { METHODS: [], Want() {} }, ItemCombatHooks: { InstallGlobal() {} }, HitLoader: { ProjectileHitsNPC() {} }, DamageClassLoader: { Defaulting: (_, fn) => fn() },
     bl: { defineMethod() {}, addressOf: p => p.__address, projectiles: { isModProjectile: type => type === 1136 || type === 1137 || type === 1200 },
         hookFlags: { set: (k, v) => flags.set(k, v) },
         hookMarks: { set(k, t) { if (!marks.has(k)) marks.set(k, new Set()); marks.get(k).add(t); } } },

@@ -217,7 +217,7 @@ export function runHealingCases({ vm, fs, path, source, context, sandbox, entity
         const hooks = new Map(), marked = new Map(), events = [];
         const P = new Proxy({}, { get(_, key) { if (!hooks.has(key)) hooks.set(key, []); return { hook: callback => hooks.get(key).push(callback) }; } });
         const local = vm.createContext({ Terraria: { Player: P }, FIRST_ITEM: 6145, SceneEffectPriority: { BossLow: 0 },
-            Ref: sandbox.Ref, Entities: sandbox.Entities, Safe: sandbox.Safe, ItemDrawLoader: { Want() {} }, globalItems: { For: () => [] },
+            Ref: sandbox.Ref, Entities: sandbox.Entities, Safe: sandbox.Safe, ItemDrawLoader: { Want() {} }, ItemPickupLoader: { METHODS: [], Want() {} }, globalItems: { For: () => [] },
             bl: { mod: { uuid: 'healing-order' }, addressOf: value => value.__address,
                 hookMarks: { set(key, type) { if (!marked.has(key)) marked.set(key, new Set()); marked.get(key).add(type); } } },
             events });

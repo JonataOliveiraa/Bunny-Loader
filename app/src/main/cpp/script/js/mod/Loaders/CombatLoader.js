@@ -232,13 +232,16 @@ class CombatLoader {
             }, ItemCombatHooks.Filter('player.PvpAttack'));
             // CanHit é a última condição nativa antes de StatusToPlayerPvP,
             // OnHit, Hurt e SendPlayerHurt. Veto aqui interrompe todos eles.
+            // O alvo é o próprio Main.player[i] que o laço passa, como no
+            // tModLoader. Achá-lo por Main.player[entity.whoAmI] falhava: um
+            // jogador ativado antes do Update dele ainda tem whoAmI 0, o
+            // índice levava ao atacante e o golpe passava sem o veto.
             Terraria.Player['bool CanHit(Entity ent)'].hook((original, player, entity) => {
                 if (!original(player, entity)) return false;
                 const attack = CombatLoader.PvpAttack;
-                const target = Terraria.Main.player[entity.whoAmI];
-                if (!attack || !target || !CombatLoader.#Same(target, entity)) return true;
-                return CombatLoader.All('item', attack.item, 'CanHitPvp', player, target)
-                    && !PlayerLoader.Veto(player, 'CanHitPvp', attack.item, target);
+                if (!attack || !CombatLoader.#Same(attack.player, player) || !CombatLoader.#IsPlayer(entity)) return true;
+                return CombatLoader.All('item', attack.item, 'CanHitPvp', player, entity)
+                    && !PlayerLoader.Veto(player, 'CanHitPvp', attack.item, entity);
             }, { whileIn: melee });
         });
     }
@@ -306,6 +309,9 @@ class CombatLoader {
     }
 
     static #Same(a, b) { return !!a && !!b && bl.addressOf(a) === bl.addressOf(b); }
+
+    // Entity que é jogador: só o Player tem statLife (o NPC tem life).
+    static #IsPlayer(entity) { return !!entity && 'statLife' in entity; }
 
     static #WithAttack(attack, run) {
         const outer = CombatLoader.#attack;

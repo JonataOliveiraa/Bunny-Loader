@@ -172,7 +172,9 @@ Em projéteis, o contrato oficial é `CanHitPvp` seguido de
 
 O PvP de item foi corrigido em uma etapa própria. O veto é executado no
 `Player.CanHit(Entity)` dentro de `ItemCheck_MeleeHitPVP`, antes de aplicar
-status e enviar dano. ModifyHitPvp/OnHitPvp executam no processo da vítima.
+status e enviar dano, com o próprio `Main.player[i]` que o laço passa ao
+`CanHit` como alvo: o `whoAmI` de um jogador ativado antes do `Update` dele
+ainda é 0 e não serve para achá-lo. ModifyHitPvp/OnHitPvp executam no processo da vítima.
 O PlayerDeathReason mobile fornece tipo e prefixo; um envelope no mesmo
 fluxo TCP, anterior à mensagem 117, transporta a identidade estável e os
 dados NetSend/NetReceive da arma. O servidor conserva esse envelope no
