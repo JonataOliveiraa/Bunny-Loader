@@ -30,6 +30,7 @@ Na raiz do repositório, com Node.js e npm:
 npm --prefix tools/docs ci
 node tools/docs/generate.mjs
 node tools/docs/generate.mjs --check
+python tools/docs/update_xlsx.py
 python tools/docs/verify.py
 ```
 
