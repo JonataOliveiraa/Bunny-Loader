@@ -35,9 +35,9 @@ IL2CPP e roda mods escritos em **JavaScript**, no formato do tModLoader
 </p>
 
 > Este repositório **não** inclui os binários nem os assets do Terraria
-> (`libil2cpp.so`, `libunity.so`, os dados do jogo): eles ficam fora do Git e
-> são integrados localmente, e o jogo só abre para quem tem o Terraria oficial
-> da Play instalado. Os dumps em `refs/` são gerados localmente e nunca
+> (`libil2cpp.so`, `libunity.so`, os dados do jogo), as classes Java da Unity
+> nem a fonte Andy: eles ficam fora do Git e são integrados localmente, e o
+> jogo só abre para quem tem o Terraria oficial da Play instalado. Os dumps em `refs/` são gerados localmente e nunca
 > publicados. Algumas texturas da interface (fundos, ícones do menu, capas dos
 > mods de exemplo) são recortes da arte do Terraria, gerados por
 > `tools/ui-sprites.py` e `tools/mod-art.py`.
@@ -134,6 +134,10 @@ Gradle e oferece instalar a plataforma SDK que faltar.
    dados em `terraria1456_assets/`) não está no repositório; ver o
    [README da pasta](app/src/main/jniLibs/arm64-v8a/README.md). Sem ele, o app
    compila e instala, e a `GameActivity` diz que o runtime falta.
+4. As classes da Unity (`app/libs/unity-classes.jar`) e a fonte Andy
+   (`app/src/main/res/font/bunny.ttf`) também ficam fora do Git, por serem de
+   terceiros. Sem o jar o jogo não sobe ([`app/libs/README.md`](app/libs/README.md));
+   sem a fonte o app usa a Comic Neue ([`app/src/fontFallback`](app/src/fontFallback/README.md)).
 
 Atalhos:
 
@@ -170,3 +174,23 @@ Os testes são mods em [`tools/tests/`](tools/tests), rodados no emulador por
 [`tools/bench/run.sh`](tools/bench/run.sh). Ver [`tools/README.md`](tools/README.md).
 O desenvolvimento é feito no MuMu Player (que roda o ARM do jogo por tradução,
 e onde os hooks funcionam) e conferido em aparelho ARM de verdade.
+
+## License
+
+Bunny Loader is **source-available for noncommercial use** under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md): use it, study it, modify it
+and share it for free, but not to make money. Selling it, putting ads in it, or
+locking features behind payment needs written permission.
+
+- [LICENSING.md](LICENSING.md): what applies to each part, what counts as
+  commercial use, and the clause that keeps mods under their authors' own
+  licenses.
+- [TRADEMARKS.md](TRADEMARKS.md): forks need their own name, icon and
+  `applicationId`.
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md): QuickJS-ng, ShadowHook,
+  tModLoader, AndroidX and the parts this license does not cover (Terraria,
+  Unity, the Andy font).
+- [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
+
+The only official builds are the ones in this repository's
+[Releases](https://github.com/JonataOliveiraa/Bunny-Loader/releases).
