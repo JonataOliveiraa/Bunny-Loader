@@ -1,0 +1,13 @@
+{
+  "uid": "286d8c1a-a51b-4992-bf42-a35d3d90fce7",
+  "id": "test-modbossbar",
+  "name": "Teste: ModBossBar",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um NPC de mod que não é chefe e não tem cabeça de chefe pede uma ModBossBar: a barra grande aparece com a vida dele, o ModifyInfo muda vida e escudo, e devolvendo false a barra some.",
+  "description": "Loga 'modbossbar ...' e 'modbossbar pose' com a barra de escudo na tela (hora da captura).",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -23,6 +23,8 @@ class ModNPC {
     // MusicLoader.GetMusicSlot(...) ou um MusicID do jogo; -1 = a do jogo.
     Music = -1;
     SceneEffectPriority = SceneEffectPriority.BossLow;
+    // A barra grande própria: ModContent.GetInstance(MinhaBarra), de uma ModBossBar.
+    BossBar = null;
 
     get NPC() { return Entities.Of(this); }
     get Happiness() { return new NPCHappiness(this.Type); }

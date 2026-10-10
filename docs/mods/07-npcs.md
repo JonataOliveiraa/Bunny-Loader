@@ -455,5 +455,42 @@ noite pelo `ExampleBossSummonItem`.
   `ModContent.GetModBossHeadSlot(caminho)` devolve a vaga de um ícone já
   registrado (ou -1), também o de outro mod (`'idDoMod/Content/...'`).
 
+### Barra própria (ModBossBar)
+
+Uma `ModBossBar` troca a barra grande de um NPC de mod e a dá a quem não a
+teria (sem ser chefe, sem ícone de chefe). O NPC a pede no `SetDefaults`:
+
+```js
+export class FortressBar extends ModBossBar {
+    // O ícone; `frame` (Ref) pode recortar uma parte da textura.
+    GetIconTexture(frame) {
+        return ModContent.Request('Content/NPCs/Fortress_Icon');
+    }
+
+    // Um chefe de várias partes soma a vida delas; o escudo aparece em outra cor.
+    ModifyInfo(info, life, lifeMax, shield, shieldMax) {
+        const npc = Terraria.Main.npc[info.npcIndexToAimAt];
+        if (!npc.active) return false;   // false: sem barra
+        life.value = npc.life;
+        lifeMax.value = npc.lifeMax;
+        shield.value = npc.ai[3];
+        shieldMax.value = 300;
+        return true;                     // null: a vida do NPC, sem escudo
+    }
+}
+
+export class Fortress extends ModNPC {
+    SetDefaults(npc) {
+        // ...
+        this.BossBar = ModContent.GetInstance(FortressBar);
+    }
+}
+```
+
+`PreDraw(spriteBatch, npc, drawParams)` recebe `{ IconTexture, IconFrame,
+Life, LifeMax, Shield, ShieldMax }`, que valem para o desenho (devolvendo
+`false`, a barra do jogo não sai); `PostDraw` vem depois. O desenho é o do
+jogo: no celular a barra fica embaixo, e posição e escala não mudam.
+
 Sacola de tesouro e a marca de chefe derrotado ainda não têm atalho no Bunny
 Loader.

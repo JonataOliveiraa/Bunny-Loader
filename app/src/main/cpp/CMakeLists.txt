@@ -76,6 +76,7 @@ set(BL_MOD_CLASSES_PARTS
     ModTile ModBannerTile TileRestingInfo Loaders/TileEntityLoader ModTileEntity Loaders/TreeLoader ModTree
     Loaders/WallLoader ModWall
     Loaders/ProjectileLoader ModProjectile
+    Loaders/BossBarLoader ModBossBar
     NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC Loaders/BannerLoader
     NPCHappiness NPCShop Loaders/TownNPCLoader
     Loaders/GoreLoader ModGore

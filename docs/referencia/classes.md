@@ -514,6 +514,23 @@ do projétil.
 
 ---
 
+## ModBossBar
+
+A barra grande de um NPC de mod (`ModNPC.BossBar = ModContent.GetInstance(Barra)`,
+no `SetDefaults`). Dá a barra também a quem não é chefe nem tem ícone de chefe.
+Ver o [guia 7](../mods/07-npcs.md#barra-própria-modbossbar).
+
+| | | |
+|---|---|---|
+| `GetIconTexture(iconFrame)` | O ícone (`Asset<Texture2D>` ou `Texture2D`); `iconFrame` (`Ref`) recorta. `null`: o "?" do jogo. | |
+| `ModifyInfo(info, life, lifeMax, shield, shieldMax)` | `null`: a vida do NPC; `true`: os valores dados (`Ref`); `false`: sem barra (o jogo procura outra). `info.npcIndexToAimAt` muda o NPC. | `BigProgressBarSystem.Update` (no `Main.UpdateUIStates`) |
+| `PreDraw(spriteBatch, npc, drawParams)`, `PostDraw(...)` | `drawParams`: `{ IconTexture, IconFrame, Life, LifeMax, Shield, ShieldMax }`; `false` tira o desenho do jogo. | `BigProgressBarSystem.Draw` → `BigProgressBarHelper.DrawFancyBar` |
+| `Life`, `LifeMax`, `Shield`, `ShieldMax` | Os valores do último quadro. | |
+| `SetStaticDefaults()` | No registro. | |
+
+Sem `ModBossBarStyle` e sem `GlobalBossBar`; a posição e a escala da barra são
+as do jogo.
+
 ## ModPlayer
 
 Dados e comportamento de cada jogador. **Uma instância por jogador por
