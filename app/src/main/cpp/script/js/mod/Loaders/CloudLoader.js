@@ -11,6 +11,7 @@ class CloudLoader {
     static #installed = false;
     static #rolledRare = false;   // o addCloud em curso já sorteou uma rara
     static #rareType = 0;         // e ela é de mod (o tipo)
+    static #rareSlot = -1;        // a vaga em que ela vai nascer
     static #commonPool = null;    // os pesos das comuns, relidos de tempos em tempos
     static #commonAge = 0;
 
@@ -144,51 +145,48 @@ class CloudLoader {
         return CloudLoader.#Roll(CloudLoader.#commonPool);
     }
 
+    static #FreeSlot() {
+        const clouds = Terraria.Main.cloud;
+        for (let i = 0; i < 200; i++) {
+            if (!clouds[i].active) return i;
+        }
+        return -1;
+    }
+
     static #Hook() {
         const Cloud = Terraria.Cloud;
         const Main = Terraria.Main;
 
+        // Rara de mod: a vaga do addCloud em curso ainda é a primeira livre (o
+        // jogo só a ativa depois). Achar depois pelo tipo pegava outra rara
+        // recém-nascida (Alpha 0 também) e o OnSpawn rodava na nuvem errada.
         Cloud['int RollRareCloud()'].hook((original) => {
             CloudLoader.#rolledRare = true;
             const type = CloudLoader.ChooseCloud(Main.tenthAnniversaryWorld ? 15 : 18, true);
             CloudLoader.#rareType = type;
+            if (type) CloudLoader.#rareSlot = CloudLoader.#FreeSlot();
             return type || original();
         });
 
         // A nuvem nova fica na primeira vaga livre de Main.cloud. O jogo chama
         // isto a cada quadro enquanto faltam nuvens, e achar a vaga pela ponte
         // são até 200 leituras: só quando a nuvem é de mod. A comum sorteia
-        // antes (a vaga ainda está livre); a rara de mod, dentro do original,
-        // é achada depois pelo tipo (nasce com Alpha 0).
+        // antes (a vaga ainda está livre); a rara de mod, no RollRareCloud.
         Cloud['void addCloud()'].hook((original) => {
             const common = CloudLoader.#ChooseCommon();
-            let clouds = null;
-            let slot = -1;
-            if (common) {
-                clouds = Main.cloud;
-                for (let i = 0; i < 200; i++) {
-                    if (!clouds[i].active) { slot = i; break; }
-                }
-            }
+            let slot = common ? CloudLoader.#FreeSlot() : -1;
             CloudLoader.#rolledRare = false;
             CloudLoader.#rareType = 0;
+            CloudLoader.#rareSlot = -1;
             original();
 
-            if (CloudLoader.#rolledRare) {
-                const rare = CloudLoader.#rareType;
-                slot = -1;
-                if (rare) {
-                    clouds = clouds || Main.cloud;
-                    for (let i = 0; i < 200; i++) {
-                        const c = clouds[i];
-                        if (c.active && c.type === rare && c.Alpha === 0) { slot = i; break; }
-                    }
-                }
-            }
+            if (CloudLoader.#rolledRare) slot = CloudLoader.#rareType ? CloudLoader.#rareSlot : -1;
             if (slot < 0) return;
 
-            const cloud = clouds[slot];
+            const cloud = Main.cloud[slot];
+            // Encostou noutra: o jogo a desligou e não nasceu nada.
             if (!cloud.active) return;
+            if (CloudLoader.#rolledRare && cloud.type !== CloudLoader.#rareType) return;
             if (!CloudLoader.#rolledRare) {
                 cloud.type = common;
                 const texture = Terraria.GameContent.TextureAssets.Cloud[common].Value;

@@ -152,6 +152,9 @@ function clouds() {
     check('nuvem: comum de mod no addCloud (peso alto), com OnSpawn', () => {
         cloudWeight = 1e6;
         let found = 0, active = 0;
+        // O peso das comuns é relido a cada 60 tentativas: gasta as do cache.
+        for (let i = 0; i < 61; i++) Terraria.Cloud.addCloud();
+        calls.cloudSpawn = 0;
         for (let i = 0; i < 200; i++) Main.cloud[i].active = false;
         for (let i = 0; i < 20; i++) Terraria.Cloud.addCloud();
         for (let i = 0; i < 200; i++) {
@@ -166,6 +169,7 @@ function clouds() {
         return (found > 0 && found >= active - 1 && calls.cloudSpawn >= found) || 'de mod ' + found + ' de ' + active + ', OnSpawn ' + calls.cloudSpawn;
     });
     check('nuvem: peso 0 não aparece', () => {
+        for (let i = 0; i < 61; i++) Terraria.Cloud.addCloud();
         for (let i = 0; i < 200; i++) Main.cloud[i].active = false;
         for (let i = 0; i < 20; i++) Terraria.Cloud.addCloud();
         let found = 0;

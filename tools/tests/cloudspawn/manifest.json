@@ -1,0 +1,13 @@
+{
+  "uid": "c10d5a3e-0000-4c0d-9e1a-0000c10d5a3e",
+  "id": "test-cloudspawn",
+  "name": "Teste: OnSpawn das nuvens de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Toda nuvem de mod que aparece no céu passou pelo OnSpawn (comum, rara e o céu andando sozinho).",
+  "description": "Loga 'cloudspawn ...'.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}
