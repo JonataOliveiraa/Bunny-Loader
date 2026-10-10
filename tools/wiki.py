@@ -70,6 +70,7 @@ PAGES = {
     "docs/nucleo/conteudo.md": "Núcleo-conteúdo",
     "docs/nucleo/multijogador.md": "Núcleo-multijogador",
     "docs/nucleo/pesquisa-shaders.md": "Núcleo-pesquisa-de-shaders",
+    "docs/nucleo/compatibilidade-tmodloader-desenho-banners.md": "Núcleo-contratos-do-tModLoader",
     "docs/historico/README.md": "Histórico",
     "docs/historico/UNITY-HOSTING.md": "Histórico-Unity-hosting",
     "docs/historico/DECISAO-ARQUITETURA.md": "Histórico-decisão-de-arquitetura",
@@ -123,6 +124,7 @@ SIDEBAR = [
         ("Núcleo-conteúdo", "Conteúdo novo por dentro"),
         ("Núcleo-multijogador", "Multijogador"),
         ("Núcleo-pesquisa-de-shaders", "Pesquisa de shaders"),
+        ("Núcleo-contratos-do-tModLoader", "Contratos do tModLoader"),
     ]),
     ("Histórico", [
         ("Histórico", "Índice"),
