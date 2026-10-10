@@ -1,5 +1,10 @@
 # unity-classes.jar
 
+**Fora do Git.** O jar é da Unity Technologies, então não é publicado com o
+código: quem compila extrai pela receita de "Procedência" abaixo e põe aqui,
+em `app/libs/unity-classes.jar`. Sem ele o app compila (a `UnityPlayer` é
+carregada por reflection), mas o jogo não sobe.
+
 Classes Java do **Unity Android Player 2021.3.56f2** (variação `il2cpp/Release`),
 que é exatamente a engine do Terraria alvo:
 

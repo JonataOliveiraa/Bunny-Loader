@@ -72,7 +72,10 @@ val syncSharedAssets by tasks.registering(Sync::class) {
         include(sharedArt.map { "$it.png" })
         into("art")
     }
-    from(rootProject.file("app/src/main/res/font")) {
+    // A Andy fica fora do Git; sem ela, a Comic Neue do app (ver app/build.gradle.kts).
+    val fonts = rootProject.file("app/src/main/res/font").takeIf { it.resolve("bunny.ttf").isFile }
+        ?: rootProject.file("app/src/fontFallback/res/font")
+    from(fonts) {
         include("bunny.ttf")
         into("art")
     }

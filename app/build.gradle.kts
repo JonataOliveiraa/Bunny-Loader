@@ -5,6 +5,13 @@ import java.util.Properties
 // para compilar e rodar o launcher sem instalar NDK/CMake.
 val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean() ?: true
 
+// A fonte do launcher e do menu de cheats é a Andy Bold (Monotype), a mesma do
+// Terraria. Não vai para o Git: fica em src/main/res/font/bunny.ttf, integrada
+// à mão como os binários do jogo. Sem ela, entra a Comic Neue (OFL) de
+// src/fontFallback, com o mesmo nome de recurso.
+val hasGameFont = file("src/main/res/font/bunny.ttf").isFile
+val fontDir = file(if (hasGameFont) "src/main/res/font" else "src/fontFallback/res/font")
+
 // A chave do APK de release fica fora do Git: keystore.properties na raiz
 // (storeFile, storePassword, keyAlias, keyPassword; modelo em
 // keystore.properties.example) ou as variáveis BL_RELEASE_STORE_FILE,
@@ -92,6 +99,7 @@ android {
     }
 
     sourceSets["main"].java.srcDir("src/main/kotlin")
+    if (!hasGameFont) sourceSets["main"].res.srcDir("src/fontFallback/res")
 
     // Os assets do jogo vão no APK, sempre.
     //
@@ -207,11 +215,20 @@ val syncSprites by tasks.registering(Sync::class) {
  * enquanto o app vai ate a 24. Pelos assets funciona em todas.
  */
 val syncFonte by tasks.registering(Sync::class) {
-    from(file("src/main/res/font"))
+    from(fontDir)
     into(layout.buildDirectory.dir("generated/blAssets/fonte"))
 }
+/**
+ * LICENSE.md e THIRD_PARTY_NOTICES.md -> assets/legal/, para a tela de licenças
+ * (Config > Sobre). As licenças MIT e BSD das bibliotecas pedem que o aviso vá
+ * junto com o binário; a raiz continua sendo o único lugar de editar.
+ */
+val syncLegal by tasks.registering(Sync::class) {
+    from(rootProject.file("LICENSE.md"), rootProject.file("THIRD_PARTY_NOTICES.md"))
+    into(layout.buildDirectory.dir("generated/blAssets/legal"))
+}
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
-    .configureEach { dependsOn(syncSampleMods, syncSprites, syncFonte) }
+    .configureEach { dependsOn(syncSampleMods, syncSprites, syncFonte, syncLegal) }
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))
@@ -226,7 +243,10 @@ dependencies {
     // Unity Android Player 2021.3.56f2 (il2cpp/Release) — hospedamos o jogo no
     // nosso processo e precisamos de uma UnityPlayer LIMPA; a do APK do Terraria
     // vem com as strings cifradas pelo PairIP. Ver app/libs/README.md.
-    implementation(files("libs/unity-classes.jar"))
+    // O jar é da Unity e fica fora do Git. Sem ele o app compila (a UnityPlayer
+    // é carregada por reflection), mas o jogo não sobe, como sem os .so do jogo.
+    val unityClasses = file("libs/unity-classes.jar")
+    if (unityClasses.isFile) implementation(files(unityClasses))
 
     // Hooking nativo (ARM32/ARM64). Consumido via prefab.
     // Confirme a versão mais recente em Maven Central.

@@ -77,3 +77,9 @@ exmod_tl/
 
 # Zip local dos .bl de ports/textures/in bl (que ja estao versionados um a um).
 ports/textures/in bl/*.zip
+
+# Componentes de terceiros que o build usa, mas que nao sao nossos para publicar:
+# as classes Java da Unity (procedencia em app/libs/README.md) e a fonte Andy
+# Bold, da Monotype (sem ela o build usa app/src/fontFallback).
+app/libs/unity-classes.jar
+app/src/main/res/font/bunny.ttf

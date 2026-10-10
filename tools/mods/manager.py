@@ -46,6 +46,9 @@ UPLOADS = publish.ROOT / "build" / "mods-uploads"
 # As imagens e a fonte do launcher, para a página ter a cara do app.
 ART = publish.ROOT / "app" / "src" / "main" / "res" / "drawable-nodpi"
 FONTS = publish.ROOT / "app" / "src" / "main" / "res" / "font"
+# A Andy fica fora do Git; sem ela, a Comic Neue do app (ver app/build.gradle.kts).
+if not (FONTS / "bunny.ttf").is_file():
+    FONTS = publish.ROOT / "app" / "src" / "fontFallback" / "res" / "font"
 # Fica no APK, não no catálogo (BUNDLED_SAMPLES no app/build.gradle.kts).
 BUNDLED = {"ExampleMod"}
 KEY = secrets.token_urlsafe(24)

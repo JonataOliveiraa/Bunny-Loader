@@ -649,6 +649,7 @@ fun ConfigTab(
                     )
                 }
             }
+            LicensesCard(Modifier.padding(top = 8.dp))
             Spacer(Modifier.height(16.dp))
         }
         PixelScrollbar(scroll, Modifier.fillMaxSize())

@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -37,6 +40,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -268,6 +272,70 @@ fun PixelDialog(title: String, onDismiss: () -> Unit, content: @Composable () ->
         ) {
             PixelText(title, size = Ts.Head)
             content()
+        }
+    }
+}
+
+// =============================== Licenças ===============================
+
+/** Os textos de assets/legal/: cópias de LICENSE.md e THIRD_PARTY_NOTICES.md (syncLegal no build). */
+private enum class LegalText(val title: String, val file: String) {
+    LICENSE("Licença", "LICENSE.md"),
+    THIRD_PARTY("Terceiros", "THIRD_PARTY_NOTICES.md"),
+}
+
+/**
+ * A licença do app e os avisos das bibliotecas. MIT e BSD pedem que o aviso vá
+ * junto com o binário; é aqui que ele vai.
+ */
+@Composable
+fun LicensesCard(modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
+    val uriHandler = LocalUriHandler.current
+    var open by remember { mutableStateOf<LegalText?>(null) }
+
+    PixelCard(modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp).fillMaxWidth()) {
+            PixelText("Licença", size = Ts.Item)
+            PixelText(
+                "Código aberto para uso não comercial (PolyForm Noncommercial 1.0.0). O Terraria, " +
+                    "a Unity, a fonte e cada mod têm donos e licenças próprios.",
+                size = Ts.Small, color = Bl.TextFaint,
+            )
+            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (text in LegalText.entries) {
+                    PixelButton(text.title, { open = text }, Modifier.weight(1f),
+                        fontSize = Ts.Small, shadow = false)
+                }
+            }
+        }
+    }
+
+    open?.let { text ->
+        val blocks by produceState<List<MdBlock>?>(null, text) {
+            value = withContext(Dispatchers.IO) {
+                runCatching { ctx.assets.open("legal/${text.file}").bufferedReader().use { it.readText() } }
+                    .map(Markdown::parse).getOrDefault(emptyList())
+            }
+        }
+        val md = remember(uriHandler) {
+            MdContext(
+                style = MdStyle(),
+                image = { null },
+                sprite = { _, _ -> null },
+                // Sem navegador instalado o openUri lança; o toque só não faz nada.
+                openUrl = { url -> runCatching { uriHandler.openUri(url) } },
+            )
+        }
+        PixelDialog(text.title, onDismiss = { open = null }) {
+            Box(Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
+                when {
+                    blocks == null -> Unit
+                    blocks!!.isEmpty() -> PixelText("O texto não veio no APK.", size = Ts.Small, color = Bl.Bad)
+                    else -> MarkdownView(blocks!!, md)
+                }
+            }
+            PixelButton("Fechar", { open = null }, Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
         }
     }
 }
