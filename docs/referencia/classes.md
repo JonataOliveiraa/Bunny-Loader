@@ -903,6 +903,33 @@ A parede nova. Ver o [guia 9](../mods/09-blocos.md#paredes-modwall).
 | `ModWall.isModType`, `getTypeByName`, `getModWall` | Como no tile. | |
 | `item.DefaultToPlaceableWall(tipo)` (`ModItem`) | O item que coloca a parede. | |
 
+## ModTileEntity
+
+Dados e código presos a um bloco colocado (o barril que enche na chuva, a
+máquina que conta tempo). O molde (`ModContent.GetInstance(Classe)`) coloca,
+acha e tira; cada objeto colocado tem a sua instância. Ver o
+[guia 9](../mods/09-blocos.md#tile-entity-modtileentity).
+
+O jogo não sabe delas: moram no Bunny Loader, salvas no `<mundo>.wld.bl.json`
+e mandadas pela rede de mod. O `ID` começa em `0x40000000`, longe dos do jogo.
+
+| | | |
+|---|---|---|
+| `Type`, `ID`, `Position` (`X`, `Y`, `ToWorldCoordinates(x = 8, y = 8)`, `ToVector2()`), `Mod`, `Name`, `FullName` | Campos. `Position` é o canto de cima à esquerda do objeto. | |
+| `RequiresUpdates` | `false` tira do laço de atualização (o padrão é "sobrescreveu `Update`"). | |
+| `IsTileValidForEntity(x, y)` | **Obrigatório**: o bloco em `(x, y)` ainda é desta entidade? A que não passa é descartada. | ao carregar o mundo, na colocação pelo servidor |
+| `Update()`, `PreGlobalUpdate()`, `PostGlobalUpdate()` | A cada atualização do mundo, no servidor ou sozinho (nunca no cliente). | `TileEntity.PerformUpdates` |
+| `SaveData(tag)`, `LoadData(tag)` | `TagCompound`. | `WorldFile.InternalSaveWorld`/`LoadWorld` |
+| `NetSend(writer)`, `NetReceive(reader)` | O que vai do servidor para os clientes. Para mandar de novo: `NetMessage.SendData(86, -1, -1, null, this.ID, ...)` (o `TileEntitySharing` do tModLoader). | quem entra recebe as do pedaço do mundo (`NetMessage.SendSection`) |
+| `OnNetPlace()` | No servidor, colocada a pedido de um cliente, antes de ir para todos. | |
+| `OnKill()` | Só pelo `Kill(i, j)`. | |
+| `Load()` | No registro. | |
+| `Place(i, j)`, `Kill(i, j)`, `Find(i, j)` | No molde: põe (devolve o `ID`), tira, e o `ID` da deste tipo em `(i, j)` (ou `-1`). | |
+| `Generic_HookPostPlaceMyPlayer` | Para o `TileObjectData.newTile.HookPostPlaceMyPlayer`: a entidade nasce no canto de cima à esquerda do que o jogador colocou (no cliente, o servidor coloca e manda). | `TileObjectData.CallPostPlacementPlayerHook` |
+| `PlacementHook(processedCoordinates)`, `Hook_AfterPlacement(i, j, type, style, direction, alternate)` | O mesmo com um gancho próprio. | |
+| `ModTileEntity.TryGet(i, j, Classe)` | A entidade do objeto em `(i, j)` (qualquer célula) se for daquela classe; senão `null`. | |
+| `ModTileEntity.ByID`, `ModTileEntity.ByPosition`, `ModTileEntity.CountInWorld()` | As que existem (`Map`). | |
+
 ---
 
 ## GlobalItem, GlobalNPC e GlobalProjectile

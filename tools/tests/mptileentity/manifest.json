@@ -1,0 +1,13 @@
+{
+  "uid": "27f0a57d-11e4-4424-8107-8a260c2ab798",
+  "id": "test-mptileentity",
+  "name": "Teste: ModTileEntity no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Anfitrião e cliente: a entidade do anfitrião chega a quem entra, a do cliente nasce no servidor (OnNetPlace) e volta, o Update do servidor chega pelo SendData(86) e quebrar no cliente tira a entidade dos dois lados.",
+  "description": "Loga 'mptileentity ...' nos dois aparelhos. Rodar com tools/mp-session.sh.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

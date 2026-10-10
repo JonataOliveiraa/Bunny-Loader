@@ -1,0 +1,13 @@
+{
+  "uid": "eb04892c-6942-47bd-93a3-a70c7dbdd4cc",
+  "id": "test-modtileentity",
+  "name": "Teste: ModTileEntity",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um barril 2x2 com tile entity: nasce ao colocar pelo caminho do jogador (HookPostPlaceMyPlayer), atualiza, sai com o bloco (KillMultiTile), é salvo e volta com os dados; a entidade sem bloco é descartada ao carregar.",
+  "description": "Loga 'modtileentity ...'. Duas rodadas (reabrir o jogo entre elas); a segunda limpa tudo.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

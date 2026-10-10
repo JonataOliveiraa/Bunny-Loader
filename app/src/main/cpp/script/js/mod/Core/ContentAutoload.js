@@ -10,10 +10,12 @@ class ContentAutoload {
     // RarityType. A montaria antes do buff e do item, que pedem o
     // MountType (o SetStaticDefaults dela roda depois, com tudo carregado).
     // A classe de dano antes do item e do projétil, que a pedem no SetDefaults.
+    // A tile entity antes do tile, que a pede no SetStaticDefaults
+    // (HookPostPlaceMyPlayer).
     static #ORDER = [ModConfig, ModRarity, DamageClass, ModMount, ModBuff, ModPrefix, ModPlayer,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, ModMenu,
-                     ModNPC, ModProjectile, ModItem, ModTile, ModWall, PlayerDrawLayer, ModSystem,
+                     ModNPC, ModProjectile, ModItem, ModTileEntity, ModTile, ModWall, PlayerDrawLayer, ModSystem,
                      GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
                      ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement];
     static #fileOf = new Map();

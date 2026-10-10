@@ -73,7 +73,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/CommandLoader ModCommand Loaders/HairLoader ModHair Loaders/CloudLoader ModCloud
     Loaders/EmoteBubbleLoader ModEmoteBubble Loaders/AchievementLoader ModAchievement Loaders/AnglerQuestLoader
     Loaders/TileLoader Loaders/TileDrawLoader Loaders/TileUseLoader Loaders/TileWorldLoader Loaders/ChestNetworkHooks
-    ModTile ModBannerTile TileRestingInfo
+    ModTile ModBannerTile TileRestingInfo Loaders/TileEntityLoader ModTileEntity
     Loaders/WallLoader ModWall
     Loaders/ProjectileLoader ModProjectile
     NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC Loaders/BannerLoader

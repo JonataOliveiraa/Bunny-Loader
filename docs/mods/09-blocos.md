@@ -209,6 +209,77 @@ as árvores, palmeiras e cactos de mod (`ModTree`, `ModPalmTree`, `ModCactus`),
 os pilares (`ModPylon`), `ModifyFrameMerge`/`PostTileFrame`, a placa de
 pressão (`SwitchTiles`) e o `HasSmartInteract` (no celular se toca no tile).
 
+### Tile entity (ModTileEntity)
+
+Um tile não guarda dados nem roda código a cada quadro. Para isso existe a
+tile entity: um objeto preso a um móvel colocado. O barril que enche na chuva
+do Example Mod do tModLoader fica assim:
+
+```js
+const { TileObjectData } = Terraria.ObjectData;
+
+export class WaterBarrelEntity extends ModTileEntity {
+    Fill = 0;
+
+    // Obrigatório: o bloco ainda é o barril? A entidade sem barril é descartada.
+    IsTileValidForEntity(x, y) {
+        return bl.tiles.typeAt(x, y) === ModContent.TileType(WaterBarrel);
+    }
+
+    // No servidor (ou sozinho), a cada atualização do mundo.
+    Update() {
+        if (!Terraria.Main.raining || this.Fill >= 3600) return;
+        this.Fill++;
+        // Os clientes recebem pelo NetSend; aqui, a cada 10%.
+        if (this.Fill % 360 === 0 && (Terraria.Main.netMode & 2)) {
+            Terraria.NetMessage.SendData(86, -1, -1, null, this.ID, 0, 0, 0, 0, 0, 0);
+        }
+    }
+
+    SaveData(tag) { tag.Fill = this.Fill; }
+    LoadData(tag) { this.Fill = tag.Fill ?? 0; }
+    NetSend(writer) { writer.Write(this.Fill); }
+    NetReceive(reader) { this.Fill = reader.ReadInt32(); }
+}
+
+export class WaterBarrel extends ModTile {
+    SetStaticDefaults() {
+        Terraria.Main.tileFrameImportant[this.Type] = true;
+        TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
+        // A entidade nasce quando o jogador coloca o barril.
+        TileObjectData.newTile.HookPostPlaceMyPlayer = ModContent.GetInstance(WaterBarrelEntity).Generic_HookPostPlaceMyPlayer;
+        TileObjectData.addTile(this.Type);
+    }
+
+    // E sai com ele.
+    KillMultiTile(i, j, frameX, frameY) {
+        ModContent.GetInstance(WaterBarrelEntity).Kill(i, j);
+    }
+
+    RightClick(i, j) {
+        const barrel = ModTileEntity.TryGet(i, j, WaterBarrelEntity);
+        if (barrel) Terraria.Main['void NewText(string newText, byte R, byte G, byte B, bool onlyCurrentPlayer)'](Math.floor(barrel.Fill / 36) + '%', 255, 255, 255, false);
+        return true;
+    }
+}
+```
+
+- A entidade mora no canto de cima à esquerda do objeto (`Position`);
+  `ModTileEntity.TryGet(i, j, Classe)` acha a partir de qualquer célula.
+- `Update` roda no servidor ou sozinho, nunca no cliente: o que o cliente
+  precisa saber vai pelo `NetSend`/`NetReceive`. O servidor manda ao colocar,
+  a quem entra no mundo e quando o mod pede (`NetMessage.SendData(86, ...)`
+  com o `ID`). No celular, quem hospeda e joga tem `Main.netMode` 3: teste o
+  servidor com `Main.netMode & 2`.
+- No cliente, colocar pede ao servidor, que confere o `IsTileValidForEntity`,
+  chama o `OnNetPlace` e manda a entidade de volta.
+- A entidade é salva no `<mundo>.wld.bl.json`. Ao abrir o mundo, a que não
+  passa no `IsTileValidForEntity` é descartada; a de um mod ausente fica
+  guardada no arquivo até ele voltar.
+- O jogo não sabe delas (não dá para criar uma classe C# nova): os `ID`
+  começam em `0x40000000` e o `TileEntity.ByID` do jogo não as tem. Use
+  `ModTileEntity.ByID`.
+
 ### Custo por quadro
 
 Tile é o conteúdo mais numeroso na tela (uma base tem dezenas de tochas), e o

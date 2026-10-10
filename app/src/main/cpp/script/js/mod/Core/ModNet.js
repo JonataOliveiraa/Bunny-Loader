@@ -165,6 +165,11 @@ class ModNet {
             case 'te-data':
                 TileEntityItemHooks.Receive(envelope, from);
                 return;
+            case 'mte':
+            case 'mte-kill':
+            case 'mte-place':
+                TileEntityLoader.Receive(envelope, from);
+                return;
             case 'hair':
                 HairLoader.Receive(envelope, from);
                 return;
