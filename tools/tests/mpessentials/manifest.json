@@ -1,0 +1,15 @@
+{
+  "uid": "c64c5ee7-78cd-415d-8d86-6f6f25e174e0",
+  "id": "test-mpessentials",
+  "name": "Teste: coleta, gancho e posição no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Itens soltos pelo servidor junto do cliente (OnPickup, CanPickup, GrabRange e, com o inventário cheio, ItemSpace), ganchos do cliente com NumGrappleHooks vistos no servidor e ShouldUpdatePosition na cópia do servidor.",
+  "description": "Instale no anfitrião e no cliente. Loga 'mpess <lado> ...'. Limpa o piso e o inventário no fim.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
