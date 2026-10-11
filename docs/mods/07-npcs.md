@@ -492,5 +492,8 @@ Life, LifeMax, Shield, ShieldMax }`, que valem para o desenho (devolvendo
 `false`, a barra do jogo não sai); `PostDraw` vem depois. O desenho é o do
 jogo: no celular a barra fica embaixo, e posição e escala não mudam.
 
+O Olho de ??? do Example Mod usa a `ExampleBossBar`: o ícone da cabeça da fase
+atual e, como escudo, o que falta para a 2ª fase.
+
 Sacola de tesouro e a marca de chefe derrotado ainda não têm atalho no Bunny
 Loader.

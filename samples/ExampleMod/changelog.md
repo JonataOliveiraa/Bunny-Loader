@@ -7,6 +7,13 @@
 - Bioma de mod: nome, felicidade dos moradores, Bestiário, fundo do mapa e
   spawn natural.
 - `ModCommand`, `ModHair`, `ModCloud`, `ModEmoteBubble`, `ModAchievement` e pesca.
+- Pilar de Exemplo (`ModPylon`), vendido pelos moradores no bioma de exemplo.
+- Tile entity (`ModTileEntity`): o barril que junta água da chuva.
+- Árvore de Exemplo (`ModTree`), com muda e folha, no Bloco de Exemplo.
+- Barra de vida própria do Olho de ??? (`ModBossBar`).
+- Item de coleta (`OnPickup`, `GrabRange`), Espada Curta de Exemplo
+  (`ShouldUpdatePosition`), o gancho com `GrappleRange`, `NumGrappleHooks` e as
+  velocidades, e o tempo restante na dica da Defesa (`ModifyBuffText`).
 
 ## 1.8.0 - 2026-09-27
 

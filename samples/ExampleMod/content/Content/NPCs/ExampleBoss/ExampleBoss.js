@@ -1,4 +1,5 @@
 import { DownedBossSystem } from '../../../Common/Systems/DownedBossSystem.js';
+import { ExampleBossBar } from '../../BossBars/ExampleBossBar.js';
 
 const { BuffID, NPCID, SoundID } = Terraria.ID;
 const { ItemDropRule, LeadingConditionRule, Conditions, Chains } = Terraria.GameContent.ItemDropRules;
@@ -32,6 +33,8 @@ export class ExampleBoss extends ModNPC {
         this.NPC.DeathSound = SoundID.NPCDeath1;
         this.NPC.value = ModNPC.NPCValue(0, 3, 0, 0);
         this.Music = MusicLoader.GetMusicSlot('Music/Ropocalypse2');
+        // A barra de vida própria, com o escudo até a 2ª fase.
+        this.BossBar = ModContent.GetInstance(ExampleBossBar);
     }
 
     SetBestiary(database, bestiaryEntry) {

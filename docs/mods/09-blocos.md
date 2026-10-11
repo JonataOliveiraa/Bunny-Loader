@@ -280,6 +280,9 @@ export class WaterBarrel extends ModTile {
 - O jogo não sabe delas (não dá para criar uma classe C# nova): os `ID`
   começam em `0x40000000` e o `TileEntity.ByID` do jogo não as tem. Use
   `ModTileEntity.ByID`.
+- O Example Mod tem esse barril inteiro, com o desenho que segue o nível de
+  água, o toque que dá o balde pelo servidor e a picareta que solta o balde:
+  `Content/TileEntities/BasicTileEntity.js`.
 
 ### Árvores (ModTree)
 
@@ -353,6 +356,11 @@ export class FrostTree extends ModTree {
   `Shake(x, y, createLeaves)`: `false` tira as quedas do jogo ao sacudir.
 - O desenho do tronco e da copa é nativo: não custa JS por quadro. Não há o
   `SetTreeFoliageSettings` nem a tinta (a árvore de mod pintada sai sem a cor).
+- A folha que cai é uma gore de mod (um PNG em `Gores/`) com
+  `GoreID.Sets.SpecialAI[tipo] = 3`. O jogo a corta em 1 coluna de 8 quadros;
+  a folha do tModLoader, de 32 colunas (uma por tinta), não serve como está.
+- O Example Mod tem a `ExampleTree`, que cresce no Bloco de Exemplo, com a
+  muda e a folha: `Content/Tiles/Plants/`.
 
 ### Pilares (ModPylon)
 
@@ -408,6 +416,13 @@ export class FrostPylon extends ModPylon {
 - No mapa, o ícone é `<Texture>_MapIcon.png`; sem ele, o do pilar do jogo.
   `DrawMapIcon` troca o desenho (os ajudantes `DefaultDrawMapIcon` e
   `DefaultMapClickHandle` são os do tModLoader).
+- A contagem de um bloco de mod em volta do destino:
+  `sceneData._tileCounts[ModContent.TileType('MeuBloco')]`. O
+  `ModSystem.TileCountsAvailable` só recebe a varredura do jogador.
+- O Example Mod tem o `ExamplePylonTile`: pede 40 Blocos de Exemplo em volta e
+  os moradores o vendem como os pilares do jogo, pelo `ModifyShop` de um
+  `GlobalNPC` (`Common/GlobalNPCs/ExamplePylonShop.js`), no lugar do
+  `GetNPCShopEntry` do tModLoader.
 
 ### Custo por quadro
 

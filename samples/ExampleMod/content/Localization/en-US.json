@@ -82,7 +82,11 @@
     "ExampleMinecart": "Example Minecart",
     "ExampleQuestFish": "Upside-down Fish",
     "ExampleWall": "Example Wall",
-    "ExampleWallAdvanced": "Advanced Example Wall"
+    "ExampleWallAdvanced": "Advanced Example Wall",
+    "ExamplePylonItem": "Example Pylon",
+    "BasicTileEntityItem": "Basic Tile Entity",
+    "ExamplePickup": "Example Pickup",
+    "ExampleShortsword": "Example Shortsword"
   },
   "MapObject": {
     "ExampleTile": "Example Block",
@@ -96,7 +100,9 @@
     "ExampleChest": "Example Chest",
     "ExampleChestLocked": "Locked Example Chest",
     "ExampleWall": "Example Wall",
-    "ExampleWallAdvanced": "Advanced Example Wall"
+    "ExampleWallAdvanced": "Advanced Example Wall",
+    "ExamplePylonTile": "Example Pylon",
+    "BasicTileEntityTile": "Basic Tile Entity"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Example Bullet",
@@ -116,7 +122,8 @@
     "ExampleLightPetProjectile": "Annoying Light",
     "ExampleMinion": "Example Minion",
     "ExampleSentry": "Example Sentry",
-    "ExampleSentryShot": "Example Sentry Shot"
+    "ExampleSentryShot": "Example Sentry Shot",
+    "ExampleShortswordProjectile": "Example Shortsword"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime",
@@ -160,7 +167,9 @@
     "ExampleBeard": "This is a modded beard which matches your hair color.",
     "ExampleCostume": "Turns the holder into a blocky figure near town NPCs",
     "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes",
-    "ExampleMountItem": "This summons a modded mount."
+    "ExampleMountItem": "This summons a modded mount.",
+    "ExamplePylonItem": "Must be within the Example Surface or Underground Biome in order to function\nHas no NPC requirements!",
+    "BasicTileEntityItem": "Collects rain water\nInteract with it when full to claim a water bucket"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
@@ -191,7 +200,9 @@
     "ExampleMinecartBuff": "{$BuffDescription.MinecartLeft}"
   },
   "CustomText": {
-    "WelcomeMessage": "Welcome to {WorldName}!"
+    "WelcomeMessage": "Welcome to {WorldName}!",
+    "BasicTileEntityStatus": "Filled: {0}%",
+    "RemainingTime": "Remaining time: {0}"
   },
   "NPCChat": {
     "ExamplePerson_1": "Hello, how are you?",

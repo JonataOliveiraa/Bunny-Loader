@@ -130,6 +130,12 @@ O item que lança: `shoot` com o tipo do gancho e `shootSpeed`; o botão de
 gancho do celular acha o item pelo `Main.projHook`, que o `ModProjectile` já
 marca para `aiStyle` 7. Com o `AIType` de um gancho do jogo, o alcance é o
 dele (como no tModLoader). Os métodos de gancho são só do `ModProjectile`.
+O `ExampleHookProjectile` do Example Mod usa todos, mais o `CanUseGrapple` e o
+`GrappleTargetPoint`, que deixa o jogador pendurado a 50 px do bloco.
+
+A `ExampleShortsword` mostra o `ShouldUpdatePosition`: a estocada é um
+projétil que a `AI` prende à mão a cada atualização, e o `false` impede o jogo
+de somar a velocidade à posição depois.
 
 ## Atalhos
 

@@ -82,7 +82,11 @@
     "ExampleMinecart": "Carrinho de Mina de Exemplo",
     "ExampleQuestFish": "Peixe de Ponta-Cabeça",
     "ExampleWall": "Parede de Exemplo",
-    "ExampleWallAdvanced": "Parede de Exemplo Avançada"
+    "ExampleWallAdvanced": "Parede de Exemplo Avançada",
+    "ExamplePylonItem": "Pilar de Exemplo",
+    "BasicTileEntityItem": "Tile Entity Básica",
+    "ExamplePickup": "Coleta de Exemplo",
+    "ExampleShortsword": "Espada Curta de Exemplo"
   },
   "MapObject": {
     "ExampleTile": "Bloco de Exemplo",
@@ -96,7 +100,9 @@
     "ExampleChest": "Baú de Exemplo",
     "ExampleChestLocked": "Baú de Exemplo Trancado",
     "ExampleWall": "Parede de Exemplo",
-    "ExampleWallAdvanced": "Parede de Exemplo Avançada"
+    "ExampleWallAdvanced": "Parede de Exemplo Avançada",
+    "ExamplePylonTile": "Pilar de Exemplo",
+    "BasicTileEntityTile": "Tile Entity Básica"
   },
   "ProjectileName": {
     "ExampleBulletProjectile": "Bala de Exemplo",
@@ -116,7 +122,8 @@
     "ExampleLightPetProjectile": "Luz Irritante",
     "ExampleMinion": "Lacaio de Exemplo",
     "ExampleSentry": "Sentinela de Exemplo",
-    "ExampleSentryShot": "Tiro da Sentinela"
+    "ExampleSentryShot": "Tiro da Sentinela",
+    "ExampleShortswordProjectile": "Espada Curta de Exemplo"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Slime de Exemplo",
@@ -160,7 +167,9 @@
     "ExampleBeard": "Uma barba de mod, da cor do seu cabelo.",
     "ExampleCostume": "Perto de moradores, transforma quem a veste num boneco quadrado",
     "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia",
-    "ExampleMountItem": "Invoca uma montaria de mod."
+    "ExampleMountItem": "Invoca uma montaria de mod.",
+    "ExamplePylonItem": "Só funciona no bioma de exemplo, na superfície ou no subterrâneo\nNão precisa de moradores por perto!",
+    "BasicTileEntityItem": "Junta a água da chuva\nToque nele cheio para pegar um balde de água"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
@@ -191,7 +200,9 @@
     "ExampleMinecartBuff": "{$BuffDescription.MinecartLeft}"
   },
   "CustomText": {
-    "WelcomeMessage": "Bem-vindo(a) a {WorldName}!"
+    "WelcomeMessage": "Bem-vindo(a) a {WorldName}!",
+    "BasicTileEntityStatus": "Cheio: {0}%",
+    "RemainingTime": "Tempo restante: {0}"
   },
   "NPCChat": {
     "ExamplePerson_1": "Olá, como vai?",

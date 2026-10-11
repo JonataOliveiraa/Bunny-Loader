@@ -33,10 +33,10 @@
     }
   ],
   "category": "Itens",
-  "summary": "Itens, armas, armaduras (conjunto com bônus, fantasia, manto, máscara do chefe), asas, acessórios, três prefixos, poção, NPC, buffs, blocos e móveis (bancada, mesa, cadeira, porta, cama, baú, cômoda, tocha, lustre, fogueira, caixa de música...), dois pets, um lacaio, uma sentinela, a Pessoa (moradora com loja) e um chefe, o Olho de ???, com música própria.",
+  "summary": "Itens, armas, armaduras (conjunto com bônus, fantasia, manto, máscara do chefe), asas, acessórios, três prefixos, poção, NPC, buffs, blocos e móveis (bancada, mesa, cadeira, porta, cama, baú, cômoda, tocha, lustre, fogueira, caixa de música...), um pilar de teletransporte, uma árvore, uma tile entity, dois pets, um lacaio, uma sentinela, a Pessoa (moradora com loja) e um chefe, o Olho de ???, com música e barra de vida próprias.",
   "license": "MIT",
   "featured": true,
-  "updated": "2026-09-27",
+  "updated": "2026-10-11",
   "blVersion": 2,
   "gameVersion": [
     301720,

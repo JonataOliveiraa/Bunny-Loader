@@ -108,6 +108,12 @@ export class LifeOrb extends ModItem {
 }
 ```
 
+Com `ItemID.Sets.IsAPickup[this.Type] = true` no `SetStaticDefaults` (o que
+corações e estrelas têm), o próprio jogo pega com o inventário cheio, sem o
+`ItemSpace`. O `ExamplePickup` do Example Mod é assim: dá 10 segundos de Defesa,
+vem de mais longe com a Poção de Alcance Cardíaco (`GrabRange`) e cai dos
+inimigos como os corações (`Common/GlobalNPCs/ExamplePickupGlobalNPC.js`).
+
 No `GlobalItem`, os mesmos métodos valem para qualquer item (e para todo item
 no alcance o hook entra no JS). No celular, a conta do alcance está embutida
 no `GrabItems` do jogo: um alcance maior que o do jogo é puxado pelo loader, e
