@@ -209,10 +209,6 @@ class PylonLoader {
             return original(system, info, playerIndex);
         });
 
-        // O HandleTeleportRequest do celular embute a conta dos NPCs (do destino
-        // e do pilar de onde se sai) e chama direto esta, com a posição do
-        // pilar. O ValidTeleportCheck_NPCCount padrão chama ela de novo: a
-        // chamada de dentro já vai direto ao jogo (reentrada).
         System['bool DoesPositionHaveEnoughNPCs(int necessaryNPCCount, Point16 centerPoint)'].hook((original, count, center) => {
             const entry = self.#current.find((e) => e.x === center.X && e.y === center.Y);
             const pylon = entry && self.ByPylonType.get(entry.type);
