@@ -655,6 +655,12 @@ JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner) {
         case Prim::Object: {
             auto* o = *reinterpret_cast<Il2CppObject**>(b);
             if (!o) return JS_NULL;
+            // Argumento que o jogo nao preenche (o compilador dele tira o que o
+            // metodo nao usa) chega como sobra de registrador: objeto de verdade
+            // nunca mora abaixo de 64 KB nem fora do alinhamento de 8. Vira null
+            // em vez de SIGSEGV no object_get_class (o DoesPylonAcceptTeleportation
+            // do celular recebe o `player` assim).
+            if (reinterpret_cast<uintptr_t>(o) < 0x10000 || (reinterpret_cast<uintptr_t>(o) & 7)) return JS_NULL;
             // Declarado object/System.Array, mas e um T[]: indexavel no JS.
             if (isArrayObject(o)) return makeGameArray(ctx, reinterpret_cast<Il2CppArray*>(o));
             return makeNativeObject(ctx, o);

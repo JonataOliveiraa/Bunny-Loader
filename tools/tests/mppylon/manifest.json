@@ -1,0 +1,15 @@
+{
+  "uid": "14570ce6-de68-4137-afe6-7b9492d8d6d6",
+  "id": "test-mppylon",
+  "name": "Teste: ModPylon no multijogador",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Pilares de mod entre anfitrião e cliente: a lista chega ao entrar, o cliente pede o teletransporte ao servidor, o pilar que o cliente põe vira entidade no servidor e volta pela lista, o mapa do cliente desenha o ícone e o que é quebrado sai dos dois lados.",
+  "description": "Instale no anfitrião e no cliente. Loga 'mppylon <lado> ...'. Limpa os pisos no fim.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

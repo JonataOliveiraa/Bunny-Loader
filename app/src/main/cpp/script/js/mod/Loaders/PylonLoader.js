@@ -150,6 +150,17 @@ class PylonLoader {
         return removed;
     }
 
+    // O ValidTeleportCheck_BiomeRequirements com o SceneMetrics do sistema
+    // varrido em volta do pilar (o centro do bloco, como o ToWorldCoordinates).
+    static #AcceptsBiome(system, pylon, info) {
+        const metrics = system._sceneMetrics;
+        const settings = Terraria.SceneMetricsScanSettings.new();
+        settings.BiomeScanCenterPositionInWorld = Vector2.new(info.PositionInTiles.X * 16 + 8, info.PositionInTiles.Y * 16 + 8);
+        metrics['void Scan(SceneMetricsScanSettings settings)'](settings);
+        return Safe.Run(pylon.constructor.name + '.ValidTeleportCheck_BiomeRequirements',
+            () => pylon.ValidTeleportCheck_BiomeRequirements(info, metrics)) === true;
+    }
+
     static #Hook() {
         const System = Terraria.GameContent.TeleportPylonsSystem;
         const self = PylonLoader;
@@ -180,25 +191,34 @@ class PylonLoader {
             return false;
         });
 
+        const request = System['void HandleTeleportRequest(TeleportPylonInfo info, int playerIndex)'];
+        // O bioma do pilar de destino. Não dá para hookar o
+        // DoesPylonAcceptTeleportation: o celular a chama sem passar o `player`
+        // (ela não o usa) e o hook leria o lixo do registrador (derrubou o
+        // servidor no multijogador). Para tipos de mod ela já devolve true; o
+        // ValidTeleportCheck_BiomeRequirements de quem o escreve roda antes, com
+        // o SceneMetrics varrido em volta do destino, como o jogo faz.
+        request.hook((original, system, info, playerIndex) => {
+            const pylon = self.ByPylonType.get(info.TypeOfPylon);
+            if (pylon && Hooks.Overrides(pylon.constructor, ModPylon, 'ValidTeleportCheck_BiomeRequirements') && !self.#AcceptsBiome(system, pylon, info)) {
+                Terraria.Chat.ChatHelper['void SendChatMessageToClient(NetworkText text, Color color, int playerId)'](
+                    Terraria.Localization.NetworkText['NetworkText FromKey(string key, object[] substitutions)']('Net.CannotTeleportToPylonBecauseNotMeetingBiomeRequirements', []),
+                    Terraria.Chat.ChatColors.ServerMessage, playerIndex);
+                return undefined;
+            }
+            return original(system, info, playerIndex);
+        });
+
         // O HandleTeleportRequest do celular embute a conta dos NPCs (do destino
         // e do pilar de onde se sai) e chama direto esta, com a posição do
         // pilar. O ValidTeleportCheck_NPCCount padrão chama ela de novo: a
         // chamada de dentro já vai direto ao jogo (reentrada).
-        const request = System['void HandleTeleportRequest(TeleportPylonInfo info, int playerIndex)'];
-        request.scope();
         System['bool DoesPositionHaveEnoughNPCs(int necessaryNPCCount, Point16 centerPoint)'].hook((original, count, center) => {
             const entry = self.#current.find((e) => e.x === center.X && e.y === center.Y);
             const pylon = entry && self.ByPylonType.get(entry.type);
             if (!pylon) return original(count, center);
             return Safe.Run(pylon.constructor.name + '.ValidTeleportCheck_NPCCount', () => pylon.ValidTeleportCheck_NPCCount(self.#Info(entry), count)) === true;
         }, { whileIn: request });
-
-        System['bool DoesPylonAcceptTeleportation(TeleportPylonInfo info, Player player)'].hook((original, system, info, player) => {
-            const pylon = self.ByPylonType.get(info.TypeOfPylon);
-            if (!pylon) return original(system, info, player);
-            return Safe.Run(pylon.constructor.name + '.ValidTeleportCheck_BiomeRequirements',
-                () => pylon.ValidTeleportCheck_BiomeRequirements(info, system._sceneMetrics)) === true;
-        });
 
         Terraria.Map.TeleportPylonsMapLayer['void Draw(ref MapOverlayDrawContext context, ref string text)'].hook((original, layer, context, text) => {
             const list = Terraria.Main.PylonSystem._pylons;

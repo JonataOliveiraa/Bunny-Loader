@@ -963,7 +963,7 @@ do jogo (`TeleportPylonType.Count`, 11). Ver o
 | `PylonType` | O tipo no sistema de pilares (11, 12...). | |
 | `CanPlacePylon()` | O padrão: um só por tipo no mundo. | `TileObject.CanPlace` |
 | `ValidTeleportCheck_NPCCount(pylonInfo, defaultNecessaryNPCCount)` | NPCs em volta (o destino e o pilar de onde se sai). O padrão é o do jogo (2 moradores). | `TeleportPylonsSystem.DoesPositionHaveEnoughNPCs` dentro do `HandleTeleportRequest` |
-| `ValidTeleportCheck_BiomeRequirements(pylonInfo, sceneData)` | O bioma em volta (`SceneMetrics` já varrido). | `TeleportPylonsSystem.DoesPylonAcceptTeleportation` |
+| `ValidTeleportCheck_BiomeRequirements(pylonInfo, sceneData)` | O bioma em volta do pilar de destino (`SceneMetrics` varrido ali); `false` recusa com a mensagem do jogo. | antes do `TeleportPylonsSystem.HandleTeleportRequest`. O `DoesPylonAcceptTeleportation` do celular recebe o `player` sem valor (o compilador do jogo não o passa) e não pode ser hookado |
 | `DrawMapIcon(context, mouseOverText, pylonInfo, isNearPylon, drawColor, deselectedScale, selectedScale)` | O ícone no mapa. O padrão: `<Texture>_MapIcon.png` (sem ele, o do pilar do jogo) e o toque teletransporta. | `TeleportPylonsMapLayer.Draw` |
 | `DefaultDrawMapIcon(context, mapIcon, drawCenter, drawColor, deselectedScale, selectedScale)`, `DefaultMapClickHandle(mouseOver, pylonInfo, hoveringTextKey, mouseOverText)` | Os ajudantes do tModLoader (desenhar; nome e toque). | |
 | `DefaultDrawPylonCrystal(spriteBatch, i, j, crystal, crystalHighlight, crystalOffset, shadowColor, dustColor, dustChance, frames)` | O cristal flutuando, no `SpecialDraw` (sem o contorno do cursor esperto). | |

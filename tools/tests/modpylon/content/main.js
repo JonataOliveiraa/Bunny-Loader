@@ -1,10 +1,11 @@
-// ModPylon: dois pilares de mod, A e B (tipos de pilar novos, 11 e 12), no
+// ModPylon: dois pilares de mod, A e B (tipos de pilar novos, depois dos 11 do jogo), no
 // alto, longe do spawn.
 //   - colocados pelo caminho do jogador, cada um ganha a TEModdedPylon;
 //   - um segundo A é recusado (CanPlacePylon: um por tipo);
 //   - a lista do jogo (Main.PylonSystem.Pylons) tem os dois;
 //   - o jogador ao lado de A está "perto de um pilar";
-//   - o teletransporte (HandleTeleportRequest) leva de A até B;
+//   - B recusando pelo bioma, o jogador fica; aceitando, o teletransporte
+//     (HandleTeleportRequest) leva de A até B;
 //   - com o mapa aberto, o ícone do mod é desenhado (log "modpylon pose");
 //   - quebrados, saem da lista.
 // Loga "modpylon <caso>: ok | FALHOU".
@@ -44,7 +45,14 @@ export class TestPylon extends ModPylon {
     }
 }
 
-export class TestPylonB extends TestPylon {}
+// O bioma de B decide pelo teste (ValidTeleportCheck_BiomeRequirements).
+let allowB = true, biomeChecks = 0;
+export class TestPylonB extends TestPylon {
+    ValidTeleportCheck_BiomeRequirements(pylonInfo, sceneData) {
+        biomeChecks++;
+        return allowB && !!sceneData;
+    }
+}
 
 let fails = 0;
 function check(label, fn) {
@@ -117,7 +125,8 @@ function build() {
         eB = ModTileEntity.TryGet(bx, floor - 1, TestPylonEntity);
         return (eA && eB && eA.TryGetModPylon() === A() && eB.TryGetModPylon() === B()) || `A ${!!eA}, B ${!!eB}`;
     });
-    check('tipos de pilar novos (11 e 12)', () => (A().PylonType === 11 && B().PylonType === 12) || `${A().PylonType}, ${B().PylonType}`);
+    // Outro pacote com pilares (o mppylon) pode ter pegado os primeiros tipos.
+    check('tipos de pilar novos (depois dos 11 do jogo)', () => (A().PylonType >= 11 && B().PylonType === A().PylonType + 1) || `${A().PylonType}, ${B().PylonType}`);
     check('um segundo A é recusado (CanPlacePylon)', () => {
         const can = Terraria.TileObject['bool CanPlace(int x, int y, int type, int style, int dir, out TileObject objectData, bool onlyCheck, Nullable<int> forcedRandom)'](
             ax + 4, floor - 1, A().Type, 0, 1, new Ref(), true, null);
@@ -136,15 +145,27 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     if (frames === 10) {
         check('a lista do jogo tem A e B', () => {
             const l = listed();
-            const a = l.find((p) => p.type === 11), b = l.find((p) => p.type === 12);
+            const a = l.find((p) => p.type === A().PylonType), b = l.find((p) => p.type === B().PylonType);
             return (a && b && a.x === eA.Position.X && b.y === eB.Position.Y) || JSON.stringify(l.map(({ x, y, type }) => ({ x, y, type })));
         });
         check('ao lado de A, o jogador está perto de um pilar', () =>
             Terraria.GameContent.TeleportPylonsSystem['bool IsPlayerNearAPylon(Player player)'](Main.player[Main.myPlayer]) === true || 'não');
     }
+    if (frames === 14) {
+        check('B recusa pelo bioma: o jogador fica', () => {
+            const b = listed().find((p) => p.type === B().PylonType);
+            allowB = false;
+            biomeChecks = 0;
+            Main.PylonSystem['void HandleTeleportRequest(TeleportPylonInfo info, int playerIndex)'](b.info, Main.myPlayer);
+            allowB = true;
+            const p = Main.player[Main.myPlayer];
+            const far = Math.hypot(p.position.X / 16 - (b.x + 1), p.position.Y / 16 - (b.y + 1)) > 10;
+            return (far && biomeChecks === 1) || `longe ${far}, checagens ${biomeChecks}`;
+        });
+    }
     if (frames === 15) {
         check('o teletransporte leva até B', () => {
-            const b = listed().find((p) => p.type === 12);
+            const b = listed().find((p) => p.type === B().PylonType);
             Main.PylonSystem['void HandleTeleportRequest(TeleportPylonInfo info, int playerIndex)'](b.info, Main.myPlayer);
             const p = Main.player[Main.myPlayer];
             const dx = p.position.X / 16 - (b.x + 1), dy = p.position.Y / 16 - (b.y + 1);
@@ -167,7 +188,7 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     }
     if (frames === 615) {
         check('quebrados, saem da lista', () => {
-            const l = listed().filter((p) => p.type >= 11);
+            const l = listed().filter((p) => p.type === A().PylonType || p.type === B().PylonType);
             return (l.length === 0 && ModTileEntity.TryGet(ax, floor - 1) === null) || JSON.stringify(l.map(({ x, y, type }) => ({ x, y, type })));
         });
         const p = Main.player[Main.myPlayer];

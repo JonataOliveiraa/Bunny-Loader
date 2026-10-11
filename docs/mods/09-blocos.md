@@ -360,7 +360,8 @@ Um pilar de teletransporte é um `ModPylon` (um `ModTile` 3x4) com uma
 `TEModdedPylon`. O sistema de pilares do jogo passa a enxergá-lo: entra na
 lista, aparece no mapa, conta como "perto de um pilar" e o toque no ícone
 teletransporta. No multijogador, a lista vai aos clientes pela mensagem do
-próprio jogo (testado só sozinho, por enquanto).
+próprio jogo, e o cliente pede o teletransporte ao servidor como num pilar do
+jogo (testado com anfitrião e cliente: `tools/tests/mppylon`).
 
 ```js
 const { TileObjectData } = Terraria.ObjectData;
@@ -401,8 +402,9 @@ export class FrostPylon extends ModPylon {
 
 - `PylonType` é 11, 12... na ordem de carga (os do jogo vão até 10). Um só por
   tipo no mundo, como os do jogo (`CanPlacePylon`).
-- `ValidTeleportCheck_NPCCount` e `ValidTeleportCheck_BiomeRequirements`
-  decidem para o pilar de destino e para o de onde se sai.
+- `ValidTeleportCheck_NPCCount` decide para o pilar de destino e para o de
+  onde se sai; `ValidTeleportCheck_BiomeRequirements`, para o de destino (o
+  jogo recusa com a mensagem dele, "requisitos de bioma").
 - No mapa, o ícone é `<Texture>_MapIcon.png`; sem ele, o do pilar do jogo.
   `DrawMapIcon` troca o desenho (os ajudantes `DefaultDrawMapIcon` e
   `DefaultMapClickHandle` são os do tModLoader).
