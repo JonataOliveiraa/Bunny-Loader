@@ -1,0 +1,15 @@
+{
+  "uid": "294e4d6f-9609-467c-81e0-240f53ab2beb",
+  "id": "test-exmodnew",
+  "name": "Teste: exemplos novos do Example Mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Os exemplos do Example Mod para ModPylon, ModTileEntity, ModTree, ModBossBar, coleta, gancho, ShouldUpdatePosition e ModifyBuffText, no jogo, num chão no alto longe do spawn. Também a contagem de bioma dos pilares com tiles de mod.",
+  "description": "Precisa do Example Mod ligado. Loga 'exmodnew ...' e 'exmodnew pose <nome>' (hora da captura). Limpa tudo no fim.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
