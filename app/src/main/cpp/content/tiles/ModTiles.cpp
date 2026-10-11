@@ -529,6 +529,7 @@ bool setObjectDataLocked(bool locked) {
 struct DrawShape {
     bool ok = false;
     int width = 16, yOffset = 0, padding = 2, rows = 1, fullHeight = 18;
+    int cols = 1, fullWidth = 18;   // a forma do objeto inteiro (o save repõe por objeto)
     std::vector<int> heights;
 };
 
@@ -783,6 +784,8 @@ DrawShape readDrawShape(Il2CppObject* data) {
     s.padding = invokeInt(data, "get_CoordinatePadding", &ok);
     s.rows = invokeInt(data, "get_Height", &ok);
     s.fullHeight = invokeInt(data, "get_CoordinateFullHeight", &ok);
+    s.cols = invokeInt(data, "get_Width", &ok);
+    s.fullWidth = invokeInt(data, "get_CoordinateFullWidth", &ok);
     const MethodInfo* get = a.class_get_method_from_name(a.object_get_class(data), "get_CoordinateHeights", 0);
     Il2CppObject* exc = nullptr;
     auto* heights = get ? reinterpret_cast<Il2CppArray*>(a.runtime_invoke(get, data, nullptr, &exc)) : nullptr;
@@ -1080,6 +1083,22 @@ int modTileTypeByName(const std::string& mod, const std::string& name) {
         }
     }
     return -1;
+}
+
+bool modObjectShape(int type, ModObjectShape* out) {
+    if (type < kVanillaTileCount) return false;
+    const size_t i = static_cast<size_t>(type) - kVanillaTileCount;
+    if (i >= g_drawShapes.size() || !g_drawShapes[i].ok) return false;
+    const DrawShape& s = g_drawShapes[i];
+    if (s.cols * s.rows <= 1 || s.fullWidth <= 0 || s.fullHeight <= 0) return false;
+    out->cols = s.cols;
+    out->rows = s.rows;
+    out->coordWidth = s.width;
+    out->padding = s.padding;
+    out->fullWidth = s.fullWidth;
+    out->fullHeight = s.fullHeight;
+    out->heights = s.heights;
+    return true;
 }
 
 std::string modTileKey(int type) {

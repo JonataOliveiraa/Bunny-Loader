@@ -1,0 +1,15 @@
+{
+  "uid": "5f2b8c1e-7a43-4d9e-b6c0-2e8f1a9d4c37",
+  "id": "test-modfurnsupport",
+  "name": "Teste: móvel de mod sem apoio",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A cômoda e o relógio do Example Mod perdem o bloco embaixo (picareta e KillTile) ao lado dos do jogo: o de mod acaba como o do jogo, nunca pela metade nem flutuando.",
+  "description": "Precisa do Example Mod ligado. Loga 'furnsupport ...'. Limpa a área no fim.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -435,8 +435,12 @@ ficam como ar (parede, líquido e fios continuam). Ao carregar, eles voltam.
 
 Sem o mod, o mundo abre normalmente no jogo, com ar no lugar, e o arquivo ao
 lado guarda os tiles para quando o mod voltar. Se alguém construir no lugar
-enquanto isso, vale o que foi construído. A ordem dos mods pode mudar à
-vontade: o tile volta pelo nome, não pelo número.
+enquanto isso, vale o que foi construído. Um móvel (objeto de várias células)
+volta inteiro ou não volta: planta e mato que cresceram no lugar dele
+(`Main.tileCut`) saem; outra coisa construída ali deixa o móvel inteiro
+guardado no arquivo, até o lugar vagar. Móvel que já tinha sido salvo pela
+metade volta com a célula que faltava. A ordem dos mods pode mudar à vontade:
+o tile volta pelo nome, não pelo número.
 
 Ao reabrir o mundo, o jogo reenquadra todo bloco comum e **sorteia de novo a
 variante** (cada formato tem 3 desenhos). Isso vale para terra, pedra e tile

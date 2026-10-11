@@ -62,6 +62,15 @@ int modTileTypeByName(const std::string& mod, const std::string& name);
 /** "<uid>/<nome>" do tile de mod `type`, ou "". */
 std::string modTileKey(int type);
 
+/** A forma (TileObjectData) de um objeto de mod de mais de uma célula. */
+struct ModObjectShape {
+    int cols = 1, rows = 1, coordWidth = 16, padding = 2, fullWidth = 18, fullHeight = 18;
+    std::vector<int> heights;
+};
+
+/** false se `type` não é de mod ou não é um objeto de várias células. */
+bool modObjectShape(int type, ModObjectShape* out);
+
 /** O tipo pela chave "<uid>/<nome>", ou -1 (mod nao carregado). */
 int modTileTypeByKey(const std::string& key);
 

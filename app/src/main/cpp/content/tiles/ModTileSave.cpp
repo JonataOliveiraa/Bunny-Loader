@@ -4,6 +4,7 @@
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
+#include "il2cpp/Types.h"
 #include "content/common/GameRefs.h"
 #include "content/tiles/ModTiles.h"
 #include "content/tiles/TileAccess.h"
@@ -15,6 +16,7 @@
 #include <algorithm>
 #include <map>
 #include <mutex>
+#include <tuple>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -53,6 +55,7 @@ std::map<std::string, std::vector<SavedWall>> g_keptWalls;
 struct Refs {
     bool ok = false;
     FieldInfo* activeWorld = nullptr;   // Main.ActiveWorldFileData
+    FieldInfo* tileCut = nullptr;       // Main.tileCut: planta e mato, que o objeto de mod tira do lugar
     int32_t path = -1, cloud = -1;      // FileData._path / _isCloudSave
     // Os setters do struct Tile: `this` e o endereco do int _tileOffset.
     void (*setType)(int32_t*, uint16_t, const MethodInfo*) = nullptr;
@@ -93,6 +96,7 @@ bool resolve() {
     if (!main || !fileData || !tile) return false;
     Refs& r = g_refs;
     r.activeWorld = findField(main, "ActiveWorldFileData");
+    r.tileCut = findField(main, "tileCut");
     r.path = fieldOffset(fileData, "_path");
     r.cloud = fieldOffset(fileData, "_isCloudSave");
     r.ok = r.activeWorld && r.path >= 0 && r.cloud >= 0 &&
@@ -644,29 +648,43 @@ void restoreModWalls(const std::string& path, const TileArrays* t) {
 using LoadTilesFn = void (*)(Il2CppObject*, Il2CppArray*, const MethodInfo*);
 LoadTilesFn g_origLoad = nullptr;
 
+// A linha da celula dentro do objeto, pela altura de cada linha na textura.
+int objectRow(const ModObjectShape& o, int frameY) {
+    int row = 0;
+    for (int rest = frameY % o.fullHeight; row + 1 < o.rows && rest - o.heights[row] - o.padding >= 0; ++row) {
+        rest -= o.heights[row] + o.padding;
+    }
+    return row;
+}
+
+// Onde a linha `row` comeca na textura, a partir do topo do objeto.
+int rowTop(const ModObjectShape& o, int row) {
+    int y = 0;
+    for (int k = 0; k < row; ++k) y += o.heights[k] + o.padding;
+    return y;
+}
+
 void hkLoadWorldTiles(Il2CppObject* reader, Il2CppArray* importance, const MethodInfo* m) {
     g_origLoad(reader, importance, m);
     const std::string path = activeWorldPath();
     if (path.empty()) return;
     const std::vector<SavedTile> saved = readFile(path + kSuffix);
     std::vector<SavedTile> kept;
-    int restored = 0, builtOver = 0;
+    int restored = 0, builtOver = 0, objectsKept = 0, plantsCleared = 0, cellsRebuilt = 0;
     TileArrays t;
     const bool world = tileArrays(&t);
     const Refs& r = g_refs;
-    for (const SavedTile& s : saved) {
-        const int type = modTileTypeByKey(s.key);
-        if (type < 0 || !world) {   // o mod nao esta: fica para quando voltar
-            kept.push_back(s);
-            continue;
+    const bool* cut = nullptr;
+    uintptr_t cutLength = 0;
+    if (r.tileCut) {
+        Il2CppArray* arr = nullptr;
+        il2cpp::api().field_static_get_value(r.tileCut, &arr);
+        if (arr) {
+            cut = static_cast<const bool*>(arrayData(arr));
+            cutLength = arr->length;
         }
-        if (s.x < 0 || s.y < 0 || s.x >= t.width || s.y >= t.height) continue;
-        int32_t offset = t.width * s.y + s.x;
-        // Construiram no lugar sem o mod: vale o que esta la.
-        if (t.sHeader[t.lookup[offset]] & kTileActiveBit) {
-            ++builtOver;
-            continue;
-        }
+    }
+    const auto write = [&](const SavedTile& s, int type, int32_t offset) {
         r.setSHeader(&offset, static_cast<int16_t>(s.sHeader), r.mSHeader);
         r.setType(&offset, static_cast<uint16_t>(type), r.mType);
         r.setFrameX(&offset, static_cast<int16_t>(s.frameX), r.mFrameX);
@@ -675,6 +693,86 @@ void hkLoadWorldTiles(Il2CppObject* reader, Il2CppArray* importance, const Metho
         r.setB2(&offset, static_cast<uint8_t>(s.bHeader2), r.mB2);
         r.setB3(&offset, static_cast<uint8_t>(s.bHeader3), r.mB3);
         ++restored;
+    };
+
+    // Os objetos de mod (mais de uma celula) voltam inteiros ou nao voltam.
+    // Com o mod desligado o lugar deles fica vazio no mundo e o mato cresce
+    // ali; pular so a celula ocupada deixava o movel pela metade. Planta e
+    // mato (Main.tileCut) dao lugar ao objeto; outra coisa construida no lugar
+    // guarda o objeto inteiro no arquivo, para quando o lugar vagar.
+    struct Object { int type; ModObjectShape shape; std::vector<SavedTile> cells; };
+    std::map<std::tuple<int, int, int>, Object> objects;   // (tipo, esquerda, topo)
+    for (const SavedTile& s : saved) {
+        const int type = modTileTypeByKey(s.key);
+        if (type < 0 || !world) {   // o mod nao esta: fica para quando voltar
+            kept.push_back(s);
+            continue;
+        }
+        if (s.x < 0 || s.y < 0 || s.x >= t.width || s.y >= t.height) continue;
+        const int32_t offset = t.width * s.y + s.x;
+        ModObjectShape shape;
+        if (modObjectShape(type, &shape)) {
+            const int col = (s.frameX % shape.fullWidth) / (shape.coordWidth + shape.padding);
+            Object& o = objects[{type, s.x - col, s.y - objectRow(shape, s.frameY)}];
+            o.type = type;
+            o.shape = shape;
+            o.cells.push_back(s);
+            continue;
+        }
+        // Construiram no lugar sem o mod: vale o que esta la.
+        if (t.sHeader[t.lookup[offset]] & kTileActiveBit) {
+            ++builtOver;
+            continue;
+        }
+        write(s, type, offset);
+    }
+    for (auto& [where, o] : objects) {
+        // O objeto que ja foi salvo pela metade (o mesmo defeito, antes desta
+        // regra) volta inteiro: a celula que falta sai da forma e do quadro das
+        // irmas, com o resto do cabecalho da primeira.
+        const auto [type, left, top] = where;
+        const ModObjectShape& sh = o.shape;
+        const SavedTile& ref = o.cells.front();
+        const int refCol = ref.x - left, refRow = ref.y - top;
+        const int baseX = ref.frameX - refCol * (sh.coordWidth + sh.padding);
+        const int baseY = ref.frameY - rowTop(sh, refRow);
+        int rebuilt = 0;
+        for (int cx = 0; cx < sh.cols; ++cx) {
+            for (int cy = 0; cy < sh.rows; ++cy) {
+                const int x = left + cx, y = top + cy;
+                const bool have = std::any_of(o.cells.begin(), o.cells.end(), [&](const SavedTile& c) { return c.x == x && c.y == y; });
+                if (have) continue;
+                SavedTile c = ref;
+                c.x = x;
+                c.y = y;
+                c.frameX = baseX + cx * (sh.coordWidth + sh.padding);
+                c.frameY = baseY + rowTop(sh, cy);
+                o.cells.push_back(c);
+                ++rebuilt;
+            }
+        }
+        bool blocked = false;
+        int plants = 0;
+        for (const SavedTile& c : o.cells) {
+            if (c.x < 0 || c.y < 0 || c.x >= t.width || c.y >= t.height) {
+                blocked = true;
+                break;
+            }
+            const uint32_t def = t.lookup[t.width * c.y + c.x];
+            if (!(t.sHeader[def] & kTileActiveBit)) continue;
+            const uint16_t occupant = t.type[def];
+            if (cut && occupant < cutLength && cut[occupant]) ++plants;
+            else blocked = true;
+        }
+        if (blocked) {
+            // As reconstruidas nao vao ao arquivo: so o que foi salvo.
+            for (size_t k = 0; k + rebuilt < o.cells.size(); ++k) kept.push_back(o.cells[k]);
+            ++objectsKept;
+            continue;
+        }
+        for (const SavedTile& c : o.cells) write(c, type, t.width * c.y + c.x);
+        plantsCleared += plants;
+        cellsRebuilt += rebuilt;
     }
     {
         std::lock_guard<std::mutex> l(g_mx);
@@ -682,8 +780,10 @@ void hkLoadWorldTiles(Il2CppObject* reader, Il2CppArray* importance, const Metho
         else g_kept[path] = kept;
     }
     if (!saved.empty()) {
-        BL_INFO("tiles de mod: %d tile(s) reposto(s), %zu de mod nao carregado (ficam no arquivo), "
-                "%d com algo construido no lugar", restored, kept.size(), builtOver);
+        BL_INFO("tiles de mod: %d tile(s) reposto(s), %zu guardado(s) no arquivo (%d objeto(s) com algo construido no lugar; "
+                "o resto, de mod nao carregado), %d planta(s) tirada(s) do lugar de objeto, %d celula(s) de objeto pela metade "
+                "refeita(s), %d tile(s) com algo construido no lugar",
+                restored, kept.size(), objectsKept, plantsCleared, cellsRebuilt, builtOver);
     }
     restoreModWalls(path, world ? &t : nullptr);
 }

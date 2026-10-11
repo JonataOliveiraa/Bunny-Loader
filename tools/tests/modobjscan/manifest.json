@@ -1,0 +1,15 @@
+{
+  "uid": "8d3e6a0f-4c21-4b7e-9f58-1a6c2d9e7b40",
+  "id": "test-modobjscan",
+  "name": "Teste: varredura de objetos de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Varre o mundo atrás de objetos de mod (móveis com TileObjectData) pela metade ou sem nada embaixo e loga onde estão em relação ao spawn. Não mexe no mundo.",
+  "description": "Loga 'objscan ...'.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

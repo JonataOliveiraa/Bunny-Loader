@@ -185,7 +185,7 @@ save no Terraria sem o Bunny Loader não quebra nada.
 |---|---|---|
 | Itens no inventário, cofres | `<personagem>.plr.bl` | O item vira um "?" (de uma reserva de 64 tipos) e volta ao religar o mod. |
 | Itens em baús do mundo | `<mundo>.wld.bl` | Idem. |
-| Blocos de mod | `<mundo>.wld.tiles.bl` | O `.wld` guarda ar no lugar; o bloco volta ao religar. |
+| Blocos de mod | `<mundo>.wld.tiles.bl` | O `.wld` guarda ar no lugar; o bloco volta ao religar. Móvel volta inteiro ou fica guardado (planta no lugar sai; outra coisa construída segura o móvel no arquivo). |
 | Paredes de mod | `<mundo>.wld.walls.bl` | O `.wld` guarda o lugar sem parede; a parede volta ao religar. |
 | Moradores de mod | `<mundo>.wld.npcs.bl` | O morador volta ao religar. |
 | Buffs de mod ativos | `<personagem>.plr.bl` | Guardados, voltam ao religar. |

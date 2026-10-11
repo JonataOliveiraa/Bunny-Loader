@@ -1,0 +1,15 @@
+{
+  "uid": "b28be004-56bd-4fad-8dcd-89bed45cc7a9",
+  "id": "test-modobjrestore",
+  "name": "Teste: objeto de mod reposto inteiro",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Duas rodadas: um objeto de mod que volta do .tiles.bl com mato no lugar de uma célula volta inteiro; com pedra no lugar, não volta pela metade e segue guardado no arquivo.",
+  "description": "Rode duas vezes (a 1a prepara e salva; a 2a confere e limpa). Loga 'objrestore ...'.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
