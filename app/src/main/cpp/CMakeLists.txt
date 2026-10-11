@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(bunny CXX C)
+project(bunny CXX C ASM)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -113,7 +113,10 @@ configure_file(
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
-add_library(bunny SHARED ${BL_SOURCES} ${BL_QUICKJS_SOURCES})
+# O trampolim da chamada guardada (il2cpp/GuardedCall.h), em assembly.
+file(GLOB_RECURSE BL_ASM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.S)
+
+add_library(bunny SHARED ${BL_SOURCES} ${BL_ASM_SOURCES} ${BL_QUICKJS_SOURCES})
 
 target_include_directories(bunny PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -124,14 +127,12 @@ endif()
 
 target_compile_options(bunny PRIVATE -O2 -fno-exceptions -fno-rtti)
 
-# Abi.cpp e o UNICO que entra no codigo do jogo por chamada direta, e uma
-# excecao gerida pelo IL2CPP e uma excecao C++ de verdade. Sem tabela de
-# desenrolar aqui, ela passaria por um frame -fno-exceptions e chamaria
-# std::terminate. -fexceptions so neste arquivo custa as tabelas dele e nada
-# mais; -fno-rtti continua valendo (catch(...) nao precisa de RTTI).
-# MapReveal.cpp pelo mesmo motivo: chama o WorldMap.UpdateLighting direto,
-# milhoes de vezes, e ele lanca se o mapa nao tiver onde guardar o pedaco.
-set_source_files_properties(script/bridge/Abi.cpp menu/MapReveal.cpp
-    content/textures/TexturePacks.cpp
-    PROPERTIES COMPILE_OPTIONS -fexceptions)
+# Sem -fexceptions em arquivo nenhum. Uma excecao do jogo vem do __cxa_throw
+# do libil2cpp, com o desenrolador do libgcc; um `catch` daqui, ou um frame
+# daqui com destrutor pendente, usaria a personalidade da libbunny, que le o
+# contexto como o do LLVM libunwind e derruba o processo. Quem chama codigo do
+# jogo e pode ver uma excecao usa o il2cpp::guardedCall (il2cpp/GuardedCall.S),
+# que nao depende de desenrolador. Um hook nativo no meio da pilha do jogo (o
+# loadHook do TexturePacks.cpp) nao precisa de nada: sem personalidade, o frame
+# dele e so atravessado (um destrutor pendente ali fica sem rodar).
 target_link_libraries(bunny shadowhook::shadowhook log dl)

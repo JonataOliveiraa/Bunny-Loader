@@ -2,6 +2,7 @@
 
 #if BL_HAVE_QUICKJS && defined(__aarch64__)
 #include "il2cpp/Api.h"
+#include "il2cpp/GuardedCall.h"
 #include "script/bridge/Bridge.h"
 #include "script/bridge/Ref.h"
 
@@ -32,23 +33,26 @@ size_t hfaSlot(const TypeDesc& d) {
     int n = hfaOf(d.cls, &dbl);
     return (n > 0 && dbl) ? 8u : 4u;
 }
-} // namespace
 
-Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[kIntSlots], const uint64_t d[8],
-                bool* threw, bool suspend) {
-    const Ret ret = plano.ret;
-    Outcome o;
-    if (!fn) return o;
-
-    // Soltar o motor custa quatro operacoes atomicas, o que num getter de
-    // 100 ns pesa mais que a chamada — medido: a propriedade C# foi de 4 para
-    // 11 ms por 10k quando isto era incondicional. Entao so no hook, onde o
-    // corpo do metodo pode ser longo de verdade.
-    alignas(alignof(JsSuspend)) unsigned char espaco[sizeof(JsSuspend)];
-    JsSuspend* solta = suspend ? new (espaco) JsSuspend() : nullptr;
-
+/** O que o corpo da chamada guardada precisa. */
+struct RawCall {
+    void* fn;
+    Ret ret;
+    const intptr_t* a;
     double f[8];
-    std::memcpy(f, d, sizeof(f));
+    Outcome* o;
+};
+
+/**
+ * A chamada em si. Roda dentro do il2cpp::guardedCall: nada aqui pode ter
+ * destrutor, porque uma excecao do jogo descarta este frame sem limpar.
+ */
+void runRaw(void* p) {
+    const RawCall& c = *static_cast<const RawCall*>(p);
+    void* const fn = c.fn;
+    const intptr_t* const a = c.a;
+    const double* const f = c.f;
+    Outcome& o = *c.o;
 
 #define BL_ARGS a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], \
                 f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], \
@@ -56,18 +60,13 @@ Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[kIntSlots], con
     // O tipo de retorno do ponteiro de funcao E a ABI: chamar um metodo que
     // devolve Vector2 por um ponteiro que devolve intptr_t leria x0 enquanto o
     // valor esta em s0/s1.
-#define BL_CALL(T)                                                        \
-    do {                                                                  \
-        T r = reinterpret_cast<T (*)(BL_RAW_PARAMS)>(fn)(BL_ARGS);        \
-        std::memcpy(o.s, &r, sizeof(r));                                  \
+#define BL_CALL(T)                                                    \
+    do {                                                              \
+        T r = reinterpret_cast<T (*)(BL_RAW_PARAMS)>(fn)(BL_ARGS);    \
+        std::memcpy(o.s, &r, sizeof(r));                              \
     } while (0)
 
-#if defined(__cpp_exceptions)
-    // A JsSuspend fica FORA do try de proposito: no caminho da excecao ela tem
-    // de reaver a trava depois do catch, nao durante o desenrolar.
-    try {
-#endif
-    switch (ret) {
+    switch (c.ret) {
         case Ret::F32: o.f = reinterpret_cast<RawF>(fn)(BL_ARGS); break;
         case Ret::F64: o.f = reinterpret_cast<RawD>(fn)(BL_ARGS); break;
         case Ret::S8:  BL_CALL(S8);  break;
@@ -82,17 +81,30 @@ Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[kIntSlots], con
         case Ret::H4D: BL_CALL(H4D); break;
         case Ret::Int: o.i = reinterpret_cast<RawI>(fn)(BL_ARGS); break;
     }
-#if defined(__cpp_exceptions)
-    } catch (...) {
-        // Sem RTTI nao da para abrir o Il2CppExceptionWrapper e ler a mensagem
-        // — mas o runtime_invoke tambem nunca a mostrou, so dizia qual metodo
-        // lancou, e isso quem chama sabe.
-        if (threw) *threw = true;
-        o = Outcome{};
-    }
-#endif
 #undef BL_CALL
 #undef BL_ARGS
+}
+} // namespace
+
+Outcome callRaw(void* fn, const AbiPlan& plano, const intptr_t a[kIntSlots], const uint64_t d[8],
+                il2cpp::Caught* caught, bool suspend) {
+    Outcome o;
+    if (!fn) return o;
+
+    // Soltar o motor custa quatro operacoes atomicas, o que num getter de
+    // 100 ns pesa mais que a chamada — medido: a propriedade C# foi de 4 para
+    // 11 ms por 10k quando isto era incondicional. Entao so no hook, onde o
+    // corpo do metodo pode ser longo de verdade.
+    //
+    // Fica FORA da guarda de proposito: no caminho da excecao ela tem de
+    // reaver a trava depois de a guarda voltar, nao ser pulada.
+    alignas(alignof(JsSuspend)) unsigned char espaco[sizeof(JsSuspend)];
+    JsSuspend* solta = suspend ? new (espaco) JsSuspend() : nullptr;
+
+    RawCall call{fn, plano.ret, a, {}, &o};
+    std::memcpy(call.f, d, sizeof(call.f));
+    if (!il2cpp::guardedCall(runRaw, &call, caught)) o = Outcome{};
+
     if (solta) solta->~JsSuspend();
     return o;
 }

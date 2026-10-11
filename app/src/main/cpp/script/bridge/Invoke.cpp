@@ -3,6 +3,7 @@
 #if BL_HAVE_QUICKJS
 #include "core/Log.h"
 #include "il2cpp/Api.h"
+#include "il2cpp/GuardedCall.h"
 #include "script/bridge/Bridge.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
@@ -28,8 +29,9 @@ JSValue viaRuntimeInvoke(JSContext* ctx, const MethodInfo* m, void* self,
     Il2CppObject* exc = nullptr;
     Il2CppObject* ret = il2cpp::api().runtime_invoke(m, self, pack.data(), &exc);
     if (exc) {
-        return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo",
-                                     il2cpp::api().method_get_name(m));
+        return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo: %s",
+                                     il2cpp::api().method_get_name(m),
+                                     il2cpp::describeException(exc).c_str());
     }
     if (!pack.writeBack(ctx, argv)) return JS_EXCEPTION;
     return fromReturn(ctx, m, ret);
@@ -160,11 +162,12 @@ JSValue invokeMethod(JSContext* ctx, const MethodInfo* m, void* self,
         // chamador; aqui somos nos o chamador.
         a[p.methodInfoReg] = reinterpret_cast<intptr_t>(m);
 
-        bool threw = false;
-        Outcome o = callRaw(c.fn, p, a, d, &threw);
-        if (threw) {
-            return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo",
-                                         il2cpp::api().method_get_name(m));
+        il2cpp::Caught caught;
+        Outcome o = callRaw(c.fn, p, a, d, &caught);
+        if (caught.threw) {
+            return JS_ThrowInternalError(ctx, "'%s' lancou excecao no jogo: %s",
+                                         il2cpp::api().method_get_name(m),
+                                         il2cpp::describeCaught(caught).c_str());
         }
         for (const RefArg& r : refs) {
             const TypeDesc& t = r.pointee;

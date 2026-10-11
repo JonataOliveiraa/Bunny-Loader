@@ -276,14 +276,14 @@ std::string describeHookForLog(const void* method) {
  */
 static Outcome callOriginal(HookCtx* c, const intptr_t a[kIntSlots], const uint64_t d[8]) {
     void* fn = __atomic_load_n(&c->original, __ATOMIC_ACQUIRE);
-    bool threw = false;
-    Outcome o = callRaw(fn, c->abi, a, d, &threw, /*suspend=*/true);
-    if (threw) {
+    il2cpp::Caught caught;
+    Outcome o = callRaw(fn, c->abi, a, d, &caught, /*suspend=*/true);
+    if (caught.threw) {
         // Nao ha para quem devolver a excecao: quem chamou foi o JOGO, nao o
         // JS. Engolir e ruim, mas melhor que derrubar o processo — e o log
         // aparece no painel de erro dentro do jogo.
-        BL_ERROR("hook %s: o metodo original lancou excecao no jogo",
-                 il2cpp::api().method_get_name(c->method));
+        BL_ERROR("hook %s: o metodo original lancou excecao no jogo: %s",
+                 il2cpp::api().method_get_name(c->method), il2cpp::describeCaught(caught).c_str());
     }
     return o;
 }

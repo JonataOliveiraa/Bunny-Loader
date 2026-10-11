@@ -246,7 +246,11 @@ flowchart TD
    chamar o original, o despachante chama o original por ele. Sem essa regra,
    um mod quebrado em `Item.SetDefaults` fez **todo** item do jogo nascer sem
    atributos. Um callback que termina sem chamar o original, sem erro, está
-   suprimindo o método de propósito, e isso é respeitado.
+   suprimindo o método de propósito, e isso é respeitado. Já uma exceção C#
+   do **original** (o corpo real lançou) para no `original()`, vai ao log com
+   o texto do jogo, e o `original()` devolve o valor zerado: quem chamou o
+   método foi o jogo, e não há para onde devolvê-la (ver
+   [exceção do jogo](ponte.md#exceção-do-jogo)).
 8. **O retorno.** O que o callback devolve vira o retorno do método. Se ele
    não devolve nada (`undefined`) e chamou o original, vale o que o original
    devolveu.

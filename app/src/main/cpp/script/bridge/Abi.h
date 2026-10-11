@@ -3,6 +3,7 @@
 
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
+#include "il2cpp/GuardedCall.h"
 #include "il2cpp/Types.h"
 #include "script/bridge/Value.h"
 
@@ -95,11 +96,12 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out);
 /**
  * Chama `fn` com os registradores montados, pela forma de retorno `ret`.
  *
- * `threw` (opcional) vira true se o metodo do jogo lancou. Uma excecao gerida
- * pelo IL2CPP e uma excecao C++ de verdade (Il2CppExceptionWrapper): deixar
- * passar por um frame compilado com -fno-exceptions chama std::terminate e
- * derruba o jogo. Por isso Abi.cpp — e SO ele — compila com -fexceptions e
- * para a excecao aqui, que e o mesmo que o runtime_invoke faz.
+ * `caught` (opcional) diz se o metodo do jogo lancou, e o que. Uma excecao
+ * gerida pelo IL2CPP e uma excecao C++ de verdade, lancada pelo desenrolador
+ * do libil2cpp (libgcc) — que um `catch` da libbunny (LLVM libunwind) nao
+ * sabe pegar: derrubava o processo. A chamada roda dentro do
+ * il2cpp::guardedCall (il2cpp/GuardedCall.h), que para a excecao sem depender
+ * de desenrolador nenhum.
  *
  * `suspend` solta o motor JS durante a chamada (ver JsSuspend). Vale a pena
  * num HOOK, onde o corpo do metodo pode ser DoDraw inteiro e outra thread
@@ -108,7 +110,7 @@ std::string planAbi(const MethodInfo* m, bool isInstance, AbiPlan* out);
  * um getter. Medido: ~100 ns por chamada (docs/historico/PONTE-OTIMIZACAO.md).
  */
 Outcome callRaw(void* fn, const AbiPlan& p, const intptr_t a[kIntSlots], const uint64_t d[8],
-                bool* threw = nullptr, bool suspend = false);
+                il2cpp::Caught* caught = nullptr, bool suspend = false);
 
 /** Registrador(es) -> valor JS, conforme o plano do parametro. */
 JSValue paramToJs(JSContext* ctx, const intptr_t a[kIntSlots], const uint64_t d[8],

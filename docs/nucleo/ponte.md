@@ -187,7 +187,53 @@ caminhos:
    de retorno grande).
 
 O argumento escondido do IL2CPP (o `const MethodInfo*` no fim) é posto pela
-ponte, que aqui é quem chama. Uma exceção C# vira `InternalError` no JS.
+ponte, que aqui é quem chama.
+
+### Exceção do jogo
+
+Uma exceção C# vira `InternalError` no JS, com o texto do jogo:
+
+```
+InternalError: 'PlaceObject' lancou excecao no jogo: System.ArgumentOutOfRangeException: Specified argument was out of the range of valid values.
+```
+
+No caminho do `runtime_invoke`, o próprio runtime devolve a exceção. Na
+chamada direta, ela tem de ser pega por nós, e um `catch` do C++ **não serve**:
+no IL2CPP, uma exceção C# é um `throw Il2CppExceptionWrapper` do `__cxa_throw`
+do libil2cpp, que traz o desenrolador do **libgcc**; a libbunny traz o **LLVM
+libunwind** (estático, do NDK). O `catch` chama a personalidade da libbunny,
+que entrega o contexto do libgcc ao libunwind dela, que o lê como outra
+estrutura e salta para lixo. Era assim até 2026-10: o `catch (...)` do
+`Abi.cpp` derrubava o jogo com SIGSEGV (no emulador e no celular), e a
+exceção nunca chegava ao JS. (A correção abaixo foi escrita em 2026-09-27,
+mas ficou fora do Git numa worktree e só entrou no `main` em 2026-10-10.)
+
+[`GuardedCall`](../../app/src/main/cpp/il2cpp/GuardedCall.h) não depende de
+desenrolador nenhum. Um trampolim em assembly
+([`GuardedCall.S`](../../app/src/main/cpp/il2cpp/GuardedCall.S)) salva os
+registradores preservados, grava uma marca no próprio frame e chama a
+chamada. O `.eh_frame` dele declara uma personalidade **nossa**, que nunca lê o
+contexto: na fase de busca responde "o tratador é este"; na fase de limpeza
+(os frames do jogo abaixo já rodaram os `finally`), sobe a pilha até a marca,
+copia o ponteiro da exceção C#, libera a exceção C++ como quem pega uma
+estrangeira (`exception_cleanup`) e salta de volta ao trampolim, que devolve 1.
+O `callRaw` e o `MapReveal` passam por ele; nenhum arquivo compila mais com
+`-fexceptions`. Isso vale também para frames que só **atravessam** uma
+exceção do jogo, como um hook nativo no meio da pilha (o `TexturePacks.cpp`):
+com `-fexceptions`, um destrutor pendente ali chamaria a mesma personalidade;
+sem, o frame é só atravessado.
+
+Custo medido no MuMu: ~15–25 ns por chamada direta (`methodCached` 120 → 140
+ns), os `stp`/`ldp` do trampolim. A primeira versão achava a marca por um
+`thread_local`, que com o minSdk 24 é emulado e custava ~50 ns; a marca na
+pilha só é procurada quando algo lança. Na rodada de 2026-10-10: 200
+exceções seguidas em 86 ms, e 10k `InWorld` em 5 ms.
+
+O texto vem do `il2cpp_format_exception`. Para achar a exceção C# dentro da
+C++ sem RTTI, a ponte lê o `type_info` do cabeçalho `__cxa_exception`, cuja
+posição muda com a versão do libc++abi (−88 no do libil2cpp, que é o do NDK
+r21; −80 nos novos): cada candidato só é lido se o `dladdr` diz que aponta para
+dentro de uma biblioteca. Teste: [`tools/tests/gameexceptions`](../../tools/tests/gameexceptions).
 
 Um `GameMethod` é criado uma vez por `MethodInfo` e reusado:
 `obj['assinatura']` a cada quadro devolve o mesmo objeto (antes, montar um novo

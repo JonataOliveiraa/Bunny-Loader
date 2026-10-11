@@ -1,0 +1,15 @@
+{
+  "uid": "3cfdbde5-43da-43df-9916-ad57d417aa5e",
+  "id": "test-gameexceptions",
+  "name": "Teste: excecao do jogo",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Metodo do jogo que lanca, chamado do JS, vira erro no JS em vez de derrubar o processo.",
+  "description": "Loga 'gameexceptions ...'.",
+  "updated": "2026-10-10",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}
