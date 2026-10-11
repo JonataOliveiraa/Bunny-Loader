@@ -118,7 +118,7 @@ class Shell(context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                packageError = e.message ?: "Não consegui preparar os pacotes."
+                packageError = e.message ?: tr("Não consegui preparar os pacotes.")
             }
             rescan()
         }
@@ -340,7 +340,7 @@ class Shell(context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                packageError = e.message ?: "Não consegui alterar os pacotes."
+                packageError = e.message ?: tr("Não consegui alterar os pacotes.")
             }
             rescan()
         }
@@ -384,7 +384,7 @@ class Shell(context: Context) {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                packageError = e.message ?: "Não consegui ler os pacotes."
+                packageError = e.message ?: tr("Não consegui ler os pacotes.")
             } finally {
                 refreshingPackages = false
                 refreshRunning = false

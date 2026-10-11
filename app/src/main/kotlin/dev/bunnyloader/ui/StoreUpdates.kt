@@ -37,7 +37,7 @@ fun StoreLoadingIcon(modifier: Modifier = Modifier) {
         infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart),
         label = "giro")
     PixelIcon(R.drawable.ic_refresh, 24.dp,
-        modifier.graphicsLayer { rotationZ = angle }.semantics { contentDescription = "Carregando mods" })
+        modifier.graphicsLayer { rotationZ = angle }.semantics { contentDescription = tr("Carregando mods") })
 }
 
 @Composable
@@ -58,38 +58,38 @@ fun ModUpdatesDialog(shell: Shell) {
     Dialog(onDismissRequest = shell::dismissUpdateNotices) {
         Column(Modifier.widthIn(max = 480.dp).fillMaxWidth().heightIn(max = 600.dp).pixelPanel()
             .padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            PixelText("Atualizações de mods", size = Ts.Head)
-            PixelText("Há versões novas dos seus mods instalados.", size = Ts.Body, color = Bl.TextDim)
+            PixelText(tr("Atualizações de mods"), size = Ts.Head)
+            PixelText(tr("Há versões novas dos seus mods instalados."), size = Ts.Body, color = Bl.TextDim)
             LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 300.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(notices, key = { it.uid }) { entry ->
                     Column(Modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false)
                         .padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         PixelText(entry.manifest.name, size = Ts.Item)
-                        PixelText("Instalado: v${shell.installedVersion(entry.uid)} · Novo: v${entry.manifest.version}",
+                        PixelText(tr("Instalado: v%1\$s · Novo: v%2\$s", shell.installedVersion(entry.uid), entry.manifest.version),
                             size = Ts.Small, color = Bl.TextDim)
                         val progress = shell.downloads[entry.uid]
                         if (progress != null) {
                             Row(verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 StoreLoadingIcon()
-                                PixelText("Baixando ${(progress * 100).toInt()}%", size = Ts.Small)
+                                PixelText(tr("Baixando %1\$s%%", (progress * 100).toInt()), size = Ts.Small)
                             }
                         } else {
-                            PixelButton("Atualizar", { shell.installRemote(entry) },
+                            PixelButton(tr("Atualizar"), { shell.installRemote(entry) },
                                 Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
                         }
                         shell.downloadErrors[entry.uid]?.let {
-                            PixelText("Não deu: $it", size = Ts.Small, color = Bl.Bad)
+                            PixelText(tr("Não deu: %1\$s", it), size = Ts.Small, color = Bl.Bad)
                         }
                     }
                 }
             }
             if (notices.size > 1 && notices.any { it.uid !in shell.downloads }) {
-                PixelButton("Atualizar todos", shell::updateAllNotices,
+                PixelButton(tr("Atualizar todos"), shell::updateAllNotices,
                     Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
             }
-            PixelButton(if (notices.any { it.uid in shell.downloads }) "Continuar em segundo plano" else "Agora não",
+            PixelButton(if (notices.any { it.uid in shell.downloads }) tr("Continuar em segundo plano") else tr("Agora não"),
                 shell::dismissUpdateNotices, Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
         }
     }

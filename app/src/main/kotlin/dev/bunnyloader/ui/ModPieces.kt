@@ -199,7 +199,7 @@ fun ModRow(
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 PixelText(
-                    "por ${entry.manifest.authorLine}",
+                    tr("por %1\$s", entry.manifest.authorLine),
                     size = Ts.Small, color = Bl.TextFaint,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
@@ -209,7 +209,7 @@ fun ModRow(
                 ) {
                     PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
                     if (entry.manifest.isOutdated) {
-                        PixelTag("Formato antigo", Bl.Bad, Modifier.padding(start = 8.dp))
+                        PixelTag(tr("Formato antigo"), Bl.Bad, Modifier.padding(start = 8.dp))
                     }
                     PixelText(
                         formatSize(entry.sizeBytes),
@@ -226,8 +226,8 @@ fun ModRow(
 @Composable
 fun ModOrderButtons(name: String, canUp: Boolean, canDown: Boolean, onUp: () -> Unit, onDown: () -> Unit) {
     Column(Modifier.padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        ModOrderArrow("Mover $name para cima", true, canUp, onUp)
-        ModOrderArrow("Mover $name para baixo", false, canDown, onDown)
+        ModOrderArrow(tr("Mover %1\$s para cima", name), true, canUp, onUp)
+        ModOrderArrow(tr("Mover %1\$s para baixo", name), false, canDown, onDown)
     }
 }
 
@@ -284,7 +284,7 @@ fun PackTypeTabs(
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                PixelText("${type.label} ${counts[type] ?: 0}", size = Ts.Small,
+                PixelText("${tr(type.label)} ${counts[type] ?: 0}", size = Ts.Small,
                     color = if (on) Bl.PressedText else Bl.TextDim, maxLines = 1)
             }
         }

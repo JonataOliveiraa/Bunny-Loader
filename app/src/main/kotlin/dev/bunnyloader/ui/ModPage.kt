@@ -222,7 +222,8 @@ fun ModBackdrop(entry: Catalog.Entry, catalog: Catalog, modifier: Modifier = Mod
 
 // ------------------------------- páginas -------------------------------
 
-private sealed class Page(val title: String) {
+private sealed class Page(private val sourceTitle: String) {
+    val title: String get() = if (this is Custom) sourceTitle else tr(sourceTitle)
     class Description(val blocks: List<MdBlock>) : Page("Descrição")
     class Changelog(val blocks: List<MdBlock>) : Page("Novidades")
     class License(val blocks: List<MdBlock>) : Page("Licença")
@@ -306,8 +307,8 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
     ) { uri ->
         if (uri != null) {
             exportMessage = shell.exportMod(entry.uid, uri).fold(
-                onSuccess = { "${m.name} exportado" to true },
-                onFailure = { "Não deu: ${it.message}" to false },
+                onSuccess = { tr("%1\$s exportado", m.name) to true },
+                onFailure = { tr("Não deu: %1\$s", it.message) to false },
             )
         }
     }
@@ -325,7 +326,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
         Column(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp)) {
         Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             PixelTag(m.category, categoryColor(m.category))
-            if (m.isOutdated) PixelTag("Formato antigo", Bl.Bad, Modifier.padding(start = 8.dp))
+            if (m.isOutdated) PixelTag(tr("Formato antigo"), Bl.Bad, Modifier.padding(start = 8.dp))
         }
 
         // Ficha técnica. Nada de estrela nem contagem de download: precisariam
@@ -335,10 +336,10 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
                 .pixelPanel(fill = ctx.style.panel.mix(Bl.Night, 0.35f), raised = false)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
         ) {
-            InfoCell("Versão", "v${m.version}", Modifier.weight(1f))
-            if (m.updated.isNotBlank()) InfoCell("Atualizado", formatDate(m.updated), Modifier.weight(1.4f))
-            InfoCell("Tamanho", formatSize(entry.sizeBytes), Modifier.weight(1f))
-            if (m.license.isNotBlank()) InfoCell("Licença", m.license, Modifier.weight(1f))
+            InfoCell(tr("Versão"), "v${m.version}", Modifier.weight(1f))
+            if (m.updated.isNotBlank()) InfoCell(tr("Atualizado"), formatDate(m.updated), Modifier.weight(1.4f))
+            InfoCell(tr("Tamanho"), formatSize(entry.sizeBytes), Modifier.weight(1f))
+            if (m.license.isNotBlank()) InfoCell(tr("Licença"), m.license, Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -349,7 +350,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
         val update = shell.updateFor(entry.uid)
         if (!installed) {
             PixelButton(
-                if (progress != null) "Baixando ${(progress * 100).toInt()}%" else "Baixar Mod",
+                if (progress != null) tr("Baixando %1\$s%%", (progress * 100).toInt()) else tr("Baixar Mod"),
                 { if (progress == null) { if (online != null) shell.installRemote(online) else shell.install(entry) } },
                 Modifier.fillMaxWidth(), icon = R.drawable.ic_start, shadow = false,
                 fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
@@ -362,27 +363,27 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        PixelText(if (on) "Ligado" else "Desligado", size = Ts.Item,
+                        PixelText(if (on) tr("Ligado") else tr("Desligado"), size = Ts.Item,
                             color = if (on) Bl.PressedText else Bl.TextFaint,
                             modifier = Modifier.weight(1f))
                         SwitchSprite(on) { shell.setEnabled(entry.uid, !on) }
                     }
                 }
-                PixelButton("Remover", { shell.uninstall(entry.uid) },
+                PixelButton(tr("Remover"), { shell.uninstall(entry.uid) },
                     icon = R.drawable.ic_trash, fontSize = Ts.Body, shadow = false,
                     fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed)
             }
             if (update != null) {
                 PixelButton(
-                    if (progress != null) "Baixando ${(progress * 100).toInt()}%"
-                    else "Atualizar para v${update.manifest.version}",
+                    if (progress != null) tr("Baixando %1\$s%%", (progress * 100).toInt())
+                    else tr("Atualizar para v%1\$s", update.manifest.version),
                     { if (progress == null) shell.installRemote(update) },
                     Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_start,
                     fontSize = Ts.Body, shadow = false,
                     fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
                 )
             }
-            PixelButton("Exportar .bl", {
+            PixelButton(tr("Exportar .bl"), {
                 exporter.launch("${m.id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.bl")
             }, Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_folder,
                 fontSize = Ts.Body, shadow = false,
@@ -393,7 +394,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
             }
         }
         shell.downloadErrors[entry.uid]?.let {
-            PixelText("Não deu: $it", size = Ts.Small, color = Bl.Bad,
+            PixelText(tr("Não deu: %1\$s", it), size = Ts.Small, color = Bl.Bad,
                 modifier = Modifier.padding(top = 6.dp))
         }
 
@@ -469,7 +470,7 @@ private fun TabStrip(
 @Composable
 private fun Previews(entry: Catalog.Entry, catalog: Catalog) {
     if (entry.previews.isEmpty()) return
-    SectionTitle("Imagens")
+    SectionTitle(tr("Imagens"))
     LazyRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -549,7 +550,7 @@ private fun VersionCard(
                     PixelText(formatDate(date), size = Ts.Tiny, color = Bl.TextMuted)
                 }
             }
-            if (isCurrent) PixelTag("Atual", st.accent.mix(Bl.Night, 0.45f), Modifier.padding(end = 8.dp))
+            if (isCurrent) PixelTag(tr("Atual"), st.accent.mix(Bl.Night, 0.45f), Modifier.padding(end = 8.dp))
             PixelText(if (open) "-" else "+", size = Ts.Head, color = st.accent)
         }
         if (open && body.isNotEmpty()) {
@@ -565,13 +566,13 @@ private fun LicenseView(name: String, blocks: List<MdBlock>, ctx: MdContext) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (name.isNotBlank()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PixelText("Licença", size = Ts.Body, color = Bl.TextFaint,
+                PixelText(tr("Licença"), size = Ts.Body, color = Bl.TextFaint,
                     modifier = Modifier.padding(end = 10.dp))
                 PixelTag(name, Bl.TitleFill)
             }
         }
         if (blocks.isEmpty()) {
-            PixelText("O pacote não traz o texto da licença (license.md).",
+            PixelText(tr("O pacote não traz o texto da licença (license.md)."),
                 size = Ts.Small, color = Bl.TextMuted)
         } else {
             MarkdownView(blocks, ctx)
@@ -624,7 +625,7 @@ internal fun AuthorStrip(entry: Catalog.Entry, catalog: Catalog, modifier: Modif
                 }
             }
         }
-        PixelText("por ${entry.manifest.authorLine}", size = Ts.Small, color = Bl.TextFaint,
+        PixelText(tr("por %1\$s", entry.manifest.authorLine), size = Ts.Small, color = Bl.TextFaint,
             maxLines = 2, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = if (shown.isEmpty()) 0.dp else 6.dp))
     }

@@ -13,6 +13,7 @@ motor JS entre as threads e como põe conteúdo novo num jogo compilado. Para
 | [A ponte JS ↔ jogo](ponte.md) | Nomes, tipos, structs, chamadas, âncoras do coletor, identidade dos objetos. |
 | [Conteúdo novo por dentro](conteudo.md) | Tabelas por tipo, limites compilados, instalação, saves. |
 | [Entrada num servidor](multijogador.md) | Sincronização de mods e texturas pela tela de Host, a conversa na entrada e a volta automática. |
+| [Localização dos menus](localizacao-menu.md) | Idioma do launcher e do Mod Menu, catálogo compartilhado e traduções. |
 | [Pesquisa de shaders](pesquisa-shaders.md) | Evidências sobre efeitos do Terraria e materiais Unity, hipóteses de carregamento e critérios para provas práticas. |
 | [Contratos do tModLoader](compatibilidade-tmodloader-desenho-banners.md) | Análise da implementação de desenho de itens, CloneDefaults e banners; fronteiras nativas, persistência, rede e limites de combate. |
 

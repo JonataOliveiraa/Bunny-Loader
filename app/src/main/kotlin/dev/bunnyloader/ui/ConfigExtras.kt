@@ -114,7 +114,7 @@ fun ProfileHeader(prefs: Prefs, modifier: Modifier = Modifier) {
         Box(Modifier.size(72.dp).framePanel().padding(3.dp).pixelClickable { picker.launch("image/*") }) {
             Image(
                 bitmap = photo ?: ImageBitmap.imageResource(R.drawable.ic_tab_config),
-                contentDescription = "Foto do perfil",
+                contentDescription = tr("Foto do perfil"),
                 filterQuality = FilterQuality.None,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
@@ -144,11 +144,11 @@ fun ProfileHeader(prefs: Prefs, modifier: Modifier = Modifier) {
                 }
             } else {
                 Box(Modifier.pixelClickable { draft = name; editing = true }) {
-                    PixelText(name.ifBlank { "Jogador" }, size = Ts.Big)
+                    PixelText(name.ifBlank { tr("Jogador") }, size = Ts.Big)
                 }
             }
             PixelText("Terraria ${BundledRuntime.VERSION_NAME}", size = Ts.Body, color = Bl.TextFaint)
-            PixelText("Toque na foto ou no nome para mudar", size = Ts.Tiny, color = Bl.TextMuted)
+            PixelText(tr("Toque na foto ou no nome para mudar"), size = Ts.Tiny, color = Bl.TextMuted)
         }
     }
 }
@@ -182,8 +182,8 @@ fun SavesCard(modifier: Modifier = Modifier) {
         if (uris.isNotEmpty()) {
             val picked = uris.map { uri -> SaveFiles.Picked(displayName(ctx, uri)) { ctx.contentResolver.openInputStream(uri) } }
             report = SaveFiles.import(ctx, kind, picked).map { r ->
-                r.fold({ "${kind.label.replaceFirstChar { it.uppercase() }} \"$it\" importado" to true },
-                    { "Não deu: ${it.message}" to false })
+                r.fold({ tr("%1\$s \"%2\$s\" importado", tr(kind.label).replaceFirstChar { it.uppercase() }, it) to true },
+                    { tr("Não deu: %1\$s", it.message) to false })
             }
             version++
         }
@@ -195,16 +195,15 @@ fun SavesCard(modifier: Modifier = Modifier) {
 
     PixelCard(modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            PixelText("Mundos e personagens", size = Ts.Item)
+            PixelText(tr("Mundos e personagens"), size = Ts.Item)
             PixelText(
-                "$worlds mundo(s) e $players personagem(ns) salvos. Escolha o .wld ou o .plr; " +
-                    "os arquivos do Bunny Loader do mesmo save (.wld.bl, .wld.tiles.bl...) podem ir junto.",
+                tr("%1\$s mundo(s) e %2\$s personagem(ns) salvos. Escolha o .wld ou o .plr; os arquivos do Bunny Loader do mesmo save (.wld.bl, .wld.tiles.bl...) podem ir junto.", worlds, players),
                 size = Ts.Small, color = Bl.TextFaint,
             )
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PixelButton("Importar mundo", { asking = SaveFiles.Kind.WORLD },
+                PixelButton(tr("Importar mundo"), { asking = SaveFiles.Kind.WORLD },
                     Modifier.weight(1f), icon = R.drawable.ic_folder, fontSize = Ts.Small, shadow = false)
-                PixelButton("Importar personagem", { asking = SaveFiles.Kind.PLAYER },
+                PixelButton(tr("Importar personagem"), { asking = SaveFiles.Kind.PLAYER },
                     Modifier.weight(1f), icon = R.drawable.ic_folder, fontSize = Ts.Small, shadow = false)
             }
         }
@@ -218,12 +217,12 @@ fun SavesCard(modifier: Modifier = Modifier) {
     }
     if (report.isNotEmpty()) {
         val ok = report.all { it.second }
-        PixelDialog(if (ok) "Importado" else "Importação", onDismiss = { report = emptyList() }) {
+        PixelDialog(if (ok) tr("Importado") else tr("Importação"), onDismiss = { report = emptyList() }) {
             for ((text, good) in report) {
                 PixelText(text, size = Ts.Body, color = if (good) Bl.TextDim else Bl.Bad)
             }
             if (ok) {
-                PixelText("Ele já aparece na lista do jogo e no Início rápido.", size = Ts.Small, color = Bl.TextFaint)
+                PixelText(tr("Ele já aparece na lista do jogo e no Início rápido."), size = Ts.Small, color = Bl.TextFaint)
             }
             PixelButton("OK", { report = emptyList() }, Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
         }
@@ -234,19 +233,17 @@ fun SavesCard(modifier: Modifier = Modifier) {
 @Composable
 private fun ImportWarning(kind: SaveFiles.Kind, onCancel: () -> Unit, onContinue: () -> Unit) {
     val world = kind == SaveFiles.Kind.WORLD
-    PixelDialog(if (world) "Importar mundo" else "Importar personagem", onDismiss = onCancel) {
+    PixelDialog(if (world) tr("Importar mundo") else tr("Importar personagem"), onDismiss = onCancel) {
         val lines = buildList {
-            add("Feche o jogo antes: com ele aberto, o save pode ser gravado por cima.")
-            add("Nada é sobrescrito: se já existir um ${kind.label} com o mesmo nome de arquivo, o importado ganha um _2.")
+            add(tr("Feche o jogo antes: com ele aberto, o save pode ser gravado por cima."))
+            add(tr("Nada é sobrescrito: se já existir um %1\$s com o mesmo nome de arquivo, o importado ganha um _2.", tr(kind.label)))
             if (world) {
-                add("Blocos, paredes e NPCs de mod só aparecem com os mesmos mods ligados. Escolha também " +
-                    "os arquivos .wld.bl, .wld.tiles.bl e .wld.walls.bl do mesmo mundo, se ele tiver.")
-                add("Mundo de Jornada só abre com personagem de Jornada.")
+                add(tr("Blocos, paredes e NPCs de mod só aparecem com os mesmos mods ligados. Escolha também os arquivos .wld.bl, .wld.tiles.bl e .wld.walls.bl do mesmo mundo, se ele tiver."))
+                add(tr("Mundo de Jornada só abre com personagem de Jornada."))
             } else {
-                add("Itens de mod só aparecem com os mesmos mods ligados. Escolha também o .plr.bl do " +
-                    "mesmo personagem, se ele tiver.")
+                add(tr("Itens de mod só aparecem com os mesmos mods ligados. Escolha também o .plr.bl do mesmo personagem, se ele tiver."))
             }
-            add("Só abra saves de quem você confia.")
+            add(tr("Só abra saves de quem você confia."))
         }
         for (line in lines) {
             Row {
@@ -255,8 +252,8 @@ private fun ImportWarning(kind: SaveFiles.Kind, onCancel: () -> Unit, onContinue
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PixelButton("Cancelar", onCancel, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
-            PixelButton("Escolher arquivos", onContinue, Modifier.weight(1f), fill = Bl.TitleFill,
+            PixelButton(tr("Cancelar"), onCancel, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
+            PixelButton(tr("Escolher arquivos"), onContinue, Modifier.weight(1f), fill = Bl.TitleFill,
                 fontSize = Ts.Body, shadow = false)
         }
     }
@@ -296,15 +293,14 @@ fun LicensesCard(modifier: Modifier = Modifier) {
 
     PixelCard(modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            PixelText("Licença", size = Ts.Item)
+            PixelText(tr("Licença"), size = Ts.Item)
             PixelText(
-                "Código aberto para uso não comercial (PolyForm Noncommercial 1.0.0). O Terraria, " +
-                    "a Unity, a fonte e cada mod têm donos e licenças próprios.",
+                tr("Código aberto para uso não comercial (PolyForm Noncommercial 1.0.0). O Terraria, a Unity, a fonte e cada mod têm donos e licenças próprios."),
                 size = Ts.Small, color = Bl.TextFaint,
             )
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (text in LegalText.entries) {
-                    PixelButton(text.title, { open = text }, Modifier.weight(1f),
+                    PixelButton(tr(text.title), { open = text }, Modifier.weight(1f),
                         fontSize = Ts.Small, shadow = false)
                 }
             }
@@ -327,15 +323,15 @@ fun LicensesCard(modifier: Modifier = Modifier) {
                 openUrl = { url -> runCatching { uriHandler.openUri(url) } },
             )
         }
-        PixelDialog(text.title, onDismiss = { open = null }) {
+        PixelDialog(tr(text.title), onDismiss = { open = null }) {
             Box(Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
                 when {
                     blocks == null -> Unit
-                    blocks!!.isEmpty() -> PixelText("O texto não veio no APK.", size = Ts.Small, color = Bl.Bad)
+                    blocks!!.isEmpty() -> PixelText(tr("O texto não veio no APK."), size = Ts.Small, color = Bl.Bad)
                     else -> MarkdownView(blocks!!, md)
                 }
             }
-            PixelButton("Fechar", { open = null }, Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
+            PixelButton(tr("Fechar"), { open = null }, Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
         }
     }
 }

@@ -67,6 +67,8 @@ import dev.bunnyloader.ui.PacotesTab
 import dev.bunnyloader.ui.ConfigTab
 import dev.bunnyloader.ui.PixelFont
 import dev.bunnyloader.ui.PixelIcon
+import dev.bunnyloader.ui.UiLocalization
+import dev.bunnyloader.ui.tr
 import dev.bunnyloader.ui.PixelText
 import dev.bunnyloader.ui.mix
 import dev.bunnyloader.ui.Shell
@@ -90,6 +92,7 @@ import dev.bunnyloader.ui.cardFx
 class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        UiLocalization.initialize(this)
         warnGameMissingOnce()
         val model = ViewModelProvider(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -293,7 +296,7 @@ private fun ImmersiveOverlay(onRestore: () -> Unit) {
         },
     ) {
         PixelText(
-            "Arraste para baixo para voltar",
+            tr("Arraste para baixo para voltar"),
             size = Ts.Small, color = Bl.TextDim,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
                 .padding(bottom = 24.dp).graphicsLayer { alpha = hintAlpha },
@@ -382,7 +385,7 @@ private fun TabButton(tab: Tab, current: Tab, onSelect: (Tab) -> Unit) {
     ) {
         PixelIcon(tab.icon, if (selected) 38.dp else 32.dp, alpha = if (selected) 1f else 0.75f)
         PixelText(
-            tab.label,
+            tr(tab.label),
             size = Ts.Small,
             color = if (selected || pressed) Bl.PressedText else Color.White,
             modifier = Modifier.padding(top = 2.dp),

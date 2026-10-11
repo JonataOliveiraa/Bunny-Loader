@@ -58,6 +58,7 @@ import static bunny.CheatBridge.panelBig;
 import static bunny.CheatBridge.px;
 import static bunny.CheatBridge.sprite;
 import static bunny.CheatBridge.text;
+import static bunny.CheatBridge.tr;
 
 /**
  * As ferramentas de quem faz mod, dentro do jogo: reiniciar (os mods sao lidos
@@ -106,11 +107,11 @@ final class DevTools {
             row.setVisibility(View.GONE);
             return row;
         }
-        View restart = pill(act, icon(act, bloom(act), 18), "Reiniciar", BUTTON, 9f);
+        View restart = pill(act, icon(act, bloom(act), 18), tr("Reiniciar"), BUTTON, 9f);
         restart.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { confirmRestart(act); }
         });
-        View console = pill(act, consoleBadge(act, 10), "Editor", BUTTON, 9f);
+        View console = pill(act, consoleBadge(act, 10), tr("Editor"), BUTTON, 9f);
         console.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 openConsole(act);
@@ -193,33 +194,32 @@ final class DevTools {
         LinearLayout head = new LinearLayout(act);
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.addView(icon(act, bloom(act), 30));
-        TextView title = text(act, "Reiniciar o jogo", 16, INK);
+        TextView title = text(act, tr("Reiniciar o jogo"), 16, INK);
         title.setPadding(px(act, 8), 0, 0, 0);
         head.addView(title);
         card.addView(head);
 
         TextView msg = text(act, inWorld
-            ? "O jogo fecha e abre de novo, lendo os mods da pasta outra vez. "
-              + "O que não foi salvo neste mundo se perde se você não salvar agora."
-            : "O jogo fecha e abre de novo, lendo os mods da pasta outra vez.", 11, INK_DIM);
+            ? tr("O jogo fecha e abre de novo, lendo os mods da pasta outra vez. O que não foi salvo neste mundo se perde se você não salvar agora.")
+            : tr("O jogo fecha e abre de novo, lendo os mods da pasta outra vez."), 11, INK_DIM);
         msg.setPadding(0, px(act, 10), 0, px(act, 12));
         card.addView(msg);
 
         LinearLayout buttons = new LinearLayout(act);
         buttons.setGravity(Gravity.END);
         if (inWorld) {
-            View save = pill(act, null, "Salvar e reiniciar", GRASS);
+            View save = pill(act, null, tr("Salvar e reiniciar"), GRASS);
             save.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { startRestart(act, card, true); }
             });
             buttons.addView(save, buttonParams(act));
         }
-        View plain = pill(act, null, inWorld ? "Só reiniciar" : "Reiniciar", PANEL_LIT);
+        View plain = pill(act, null, inWorld ? tr("Só reiniciar") : tr("Reiniciar"), PANEL_LIT);
         plain.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { startRestart(act, card, false); }
         });
         buttons.addView(plain, buttonParams(act));
-        View cancel = pill(act, null, "Cancelar", BUTTON);
+        View cancel = pill(act, null, tr("Cancelar"), BUTTON);
         cancel.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { closeRestartDialog(); }
         });
@@ -254,7 +254,7 @@ final class DevTools {
         card.removeAllViews();
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.addView(new CheatBridge.Sunflower(act));
-        final TextView status = text(act, save ? "Salvando o jogador e o mundo..." : "Reiniciando...", 12, INK);
+        final TextView status = text(act, save ? tr("Salvando o jogador e o mundo...") : tr("Reiniciando..."), 12, INK);
         status.setGravity(Gravity.CENTER);
         status.setPadding(0, px(act, 8), 0, 0);
         card.addView(status);
@@ -267,13 +267,13 @@ final class DevTools {
             @Override public void run() {
                 boolean ready;
                 try { ready = CheatBridge.nRestartReady(); } catch (Throwable t) { ready = true; }
-                if (ready) { status.setText("Reiniciando..."); h.postDelayed(new Runnable() {
+                if (ready) { status.setText(tr("Reiniciando...")); h.postDelayed(new Runnable() {
                     @Override public void run() { relaunch(act); }
                 }, 60); return; }
                 if (SystemClock.uptimeMillis() - start > RESTART_TIMEOUT_MS) {
                     // O quadro do jogo nao andou (travou, ou esta pausado no
                     // fundo): reinicia sem o save, que e o que ainda da.
-                    status.setText("O jogo não respondeu. Reiniciando sem salvar...");
+                    status.setText(tr("O jogo não respondeu. Reiniciando sem salvar..."));
                     h.postDelayed(new Runnable() {
                         @Override public void run() { relaunch(act); }
                     }, 1200);
@@ -298,7 +298,7 @@ final class DevTools {
             act.startActivity(i);
             act.overridePendingTransition(0, 0);
         } catch (Throwable t) {
-            CheatBridge.toast(act, "Não consegui reiniciar: " + t);
+            CheatBridge.toast(act, tr("Não consegui reiniciar: %1$s", t));
             closeRestartDialog();
             return;
         }
@@ -458,33 +458,33 @@ final class DevTools {
             badge.setPadding(px(a, 6), 0, px(a, 6), 0);
             head.addView(badge, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, px(a, 26)));
-            TextView title = text(a, "Editor", 13, INK);
+            TextView title = text(a, tr("Editor"), 13, INK);
             title.setSingleLine(true);
             title.setPadding(px(a, 8), 0, px(a, 6), 0);
             head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            head.addView(iconButton(a, arrow(a, -90), "Anterior", new Runnable() {
+            head.addView(iconButton(a, arrow(a, -90), tr("Anterior"), new Runnable() {
                 @Override public void run() { history(-1); }
             }));
-            head.addView(iconButton(a, arrow(a, 90), "Próximo", new Runnable() {
+            head.addView(iconButton(a, arrow(a, 90), tr("Próximo"), new Runnable() {
                 @Override public void run() { history(+1); }
             }));
-            head.addView(textButton(a, "Limpar", BUTTON, new Runnable() {
+            head.addView(textButton(a, tr("Limpar"), BUTTON, new Runnable() {
                 @Override public void run() { clearOutput(); }
             }));
             if (CheatBridge.sRestartOn) {
-                head.addView(iconButton(a, icon(a, bloom(a), 20), "Reiniciar", new Runnable() {
+                head.addView(iconButton(a, icon(a, bloom(a), 20), tr("Reiniciar"), new Runnable() {
                     @Override public void run() { saveDraft(); hideKeyboard(); confirmRestart(act); }
                 }));
             }
-            fullButton = textButton(a, "Tela cheia", BUTTON, new Runnable() {
+            fullButton = textButton(a, tr("Tela cheia"), BUTTON, new Runnable() {
                 @Override public void run() { setFullscreen(!fullscreen); }
             });
             head.addView(fullButton);
             head.addView(textButton(a, "_", BUTTON, new Runnable() {
                 @Override public void run() { minimize(); }
             }));
-            head.addView(iconButton(a, icon(a, sprite(a, "ic_fechar"), 20), "Fechar", new Runnable() {
+            head.addView(iconButton(a, icon(a, sprite(a, "ic_fechar"), 20), tr("Fechar"), new Runnable() {
                 @Override public void run() { hide(); }
             }));
             panel.addView(head, new LinearLayout.LayoutParams(
@@ -552,7 +552,7 @@ final class DevTools {
             editRow.addView(editor, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             // O play do launcher (ic_start): o mesmo desenho do botao Jogar.
             LinearLayout runButton = pill(a, icon(a, sprite(a, "ic_start"), 26), null, BUTTON);
-            runButton.setContentDescription("Rodar");
+            runButton.setContentDescription(tr("Rodar"));
             runButton.setMinimumWidth(px(a, 44));
             runButton.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) { run(); }
@@ -577,10 +577,7 @@ final class DevTools {
             a.addContentView(panel, layout);
 
             if (sOutput.length() == 0) {
-                appendEntry('h', "O código roda na thread do jogo, como num hook. Main, ID e player (o "
-                    + "seu jogador) já estão prontos. print(...) escreve no chat; bl.log(...), no log "
-                    + "(que aparece aqui também). let/const valem só na execução; para guardar entre "
-                    + "uma e outra, var ou globalThis.x.");
+                appendEntry('h', tr("O código roda na thread do jogo, como num hook. Main, ID e player (o seu jogador) já estão prontos. print(...) escreve no chat; bl.log(...), no log (que aparece aqui também). let/const valem só na execução; para guardar entre uma e outra, var ou globalThis.x."));
             }
             output.setText(sOutput);
         }
@@ -638,7 +635,7 @@ final class DevTools {
         /** Tela cheia cobre o jogo e o congela; a janela deixa ele andar. */
         void setFullscreen(boolean on) {
             fullscreen = on;
-            fullButton.setText(on ? "Janela" : "Tela cheia");
+            fullButton.setText(on ? tr("Janela") : tr("Tela cheia"));
             place(keyboardHeight, false);
             updateFreeze();
         }
@@ -724,7 +721,7 @@ final class DevTools {
             editor.setText("");
             saveDraft();
             try { CheatBridge.nConsoleRun(code); } catch (Throwable t) {
-                appendEntry('x', "o núcleo nativo não respondeu: " + t);
+                appendEntry('x', tr("o núcleo nativo não respondeu: %1$s", t));
                 refreshOutput();
             }
         }
@@ -826,7 +823,7 @@ final class DevTools {
         ImageView b = icon(act, sprite(act, "ic_js"), FLOAT_SIZE);
         b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
         b.setBackground(panel(act, PANEL, OUTLINE));
-        b.setContentDescription("Editor");
+        b.setContentDescription(tr("Editor"));
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(px(act, FLOAT_SIZE), px(act, FLOAT_SIZE));
         lp.gravity = Gravity.TOP | Gravity.START;
         DisplayMetrics m = act.getResources().getDisplayMetrics();

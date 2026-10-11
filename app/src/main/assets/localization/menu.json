@@ -1,0 +1,1877 @@
+{
+  "Início": [
+    "Home",
+    "Главная",
+    "Inicio"
+  ],
+  "Explorar": [
+    "Explore",
+    "Обзор",
+    "Explorar"
+  ],
+  "Pacotes": [
+    "Packages",
+    "Пакеты",
+    "Paquetes"
+  ],
+  "Config": [
+    "Settings",
+    "Настройки",
+    "Ajustes"
+  ],
+  "Arraste para baixo para voltar": [
+    "Swipe down to return",
+    "Проведите вниз, чтобы вернуться",
+    "Desliza hacia abajo para volver"
+  ],
+  "Idioma": [
+    "Language",
+    "Язык",
+    "Idioma"
+  ],
+  "Automático": [
+    "Automatic",
+    "Автоматически",
+    "Automático"
+  ],
+  "Usar o idioma do aparelho. A escolha também vale para o Mod Menu na próxima abertura do jogo.": [
+    "Use the device language. Your choice also applies to the Mod Menu the next time you open the game.",
+    "Использовать язык устройства. Выбор также применяется к Mod Menu при следующем запуске игры.",
+    "Usa el idioma del dispositivo. Tu elección también se aplica al Mod Menu la próxima vez que abras el juego."
+  ],
+  "Não consegui salvar o idioma.": [
+    "Could not save the language.",
+    "Не удалось сохранить язык.",
+    "No se pudo guardar el idioma."
+  ],
+  "Em destaque": [
+    "Featured",
+    "Рекомендуемые",
+    "Destacados"
+  ],
+  "Populares": [
+    "Popular",
+    "Популярные",
+    "Populares"
+  ],
+  "Ver detalhes": [
+    "View details",
+    "Подробнее",
+    "Ver detalles"
+  ],
+  "Atualizar": [
+    "Update",
+    "Обновить",
+    "Actualizar"
+  ],
+  "Instalado": [
+    "Installed",
+    "Установлено",
+    "Instalado"
+  ],
+  "Carregando mais... (%1$s de %2$s)": [
+    "Loading more... (%1$s of %2$s)",
+    "Загрузка... (%1$s из %2$s)",
+    "Cargando más... (%1$s de %2$s)"
+  ],
+  "Nenhum pacote corresponde aos filtros.": [
+    "No packages match the filters.",
+    "Нет пакетов, соответствующих фильтрам.",
+    "Ningún paquete coincide con los filtros."
+  ],
+  "Catálogo online: %1$s.": [
+    "Online catalog: %1$s.",
+    "Онлайн-каталог: %1$s.",
+    "Catálogo en línea: %1$s."
+  ],
+  " Mostrando a última lista baixada.": [
+    " Showing the last downloaded list.",
+    " Показан последний загруженный список.",
+    " Se muestra la última lista descargada."
+  ],
+  "Tentar de novo": [
+    "Try again",
+    "Повторить",
+    "Reintentar"
+  ],
+  "Nome, autor ou categoria...": [
+    "Name, author or category...",
+    "Название, автор или категория...",
+    "Nombre, autor o categoría..."
+  ],
+  "Limpar busca": [
+    "Clear search",
+    "Очистить поиск",
+    "Borrar búsqueda"
+  ],
+  "%1$s instalado": [
+    "%1$s installed",
+    "%1$s установлен",
+    "%1$s instalado"
+  ],
+  "Não deu: %1$s": [
+    "Failed: %1$s",
+    "Ошибка: %1$s",
+    "Error: %1$s"
+  ],
+  "%1$s/%2$s ligados": [
+    "%1$s/%2$s enabled",
+    "Включено: %1$s/%2$s",
+    "%1$s/%2$s activados"
+  ],
+  "Importando...": [
+    "Importing...",
+    "Импорт...",
+    "Importando..."
+  ],
+  "Importar pacote": [
+    "Import package",
+    "Импорт пакета",
+    "Importar paquete"
+  ],
+  "Um mod roda código dentro do jogo: só instale pacotes de quem você confia.": [
+    "A mod runs code inside the game: only install packages from people you trust.",
+    "Мод выполняет код внутри игры: устанавливайте пакеты только от тех, кому доверяете.",
+    "Un mod ejecuta código dentro del juego: instala solo paquetes de personas en quienes confíes."
+  ],
+  "O pacote é um .bl, .bmod ou .zip com manifest.json e a pasta content/.": [
+    "The package is a .bl, .bmod or .zip with manifest.json and the content/ folder.",
+    "Пакет — это .bl, .bmod или .zip с manifest.json и папкой content/.",
+    "El paquete es un .bl, .bmod o .zip con manifest.json y la carpeta content/."
+  ],
+  "Se o mod já estiver instalado (o mesmo uid), a versão do arquivo substitui a atual.": [
+    "If the mod is already installed (same uid), the file version replaces the current one.",
+    "Если мод уже установлен (тот же uid), версия из файла заменит текущую.",
+    "Si el mod ya está instalado (mismo uid), la versión del archivo sustituye a la actual."
+  ],
+  "Cancelar": [
+    "Cancel",
+    "Отмена",
+    "Cancelar"
+  ],
+  "Escolher arquivo": [
+    "Choose file",
+    "Выбрать файл",
+    "Elegir archivo"
+  ],
+  "Segure e arraste dentro do mesmo grupo. Primeiro ligado carrega primeiro.": [
+    "Hold and drag within the same group. The first enabled package loads first.",
+    "Удерживайте и перетаскивайте в пределах группы. Первый включённый пакет загружается первым.",
+    "Mantén pulsado y arrastra dentro del mismo grupo. El primer paquete activado se carga primero."
+  ],
+  "Para mover, limpe a busca.": [
+    "Clear the search to reorder.",
+    "Очистите поиск, чтобы изменить порядок.",
+    "Borra la búsqueda para cambiar el orden."
+  ],
+  "Lendo pacotes...": [
+    "Reading packages...",
+    "Чтение пакетов...",
+    "Leyendo paquetes..."
+  ],
+  "Nenhum pacote. Pegue um em Explorar ou importe um .bmod.": [
+    "No packages. Get one from Explore or import a .bmod.",
+    "Нет пакетов. Найдите пакет в разделе «Обзор» или импортируйте .bmod.",
+    "No hay paquetes. Consigue uno en Explorar o importa un .bmod."
+  ],
+  "Nenhum pacote neste filtro.": [
+    "No packages in this filter.",
+    "Нет пакетов с этим фильтром.",
+    "No hay paquetes con este filtro."
+  ],
+  "%1$s pacote": [
+    "%1$s package",
+    "%1$s пакет",
+    "%1$s paquete"
+  ],
+  "%1$s pacotes": [
+    "%1$s packages",
+    "Пакеты: %1$s",
+    "%1$s paquetes"
+  ],
+  "Coleção": [
+    "Collection",
+    "Коллекция",
+    "Colección"
+  ],
+  "instalados": [
+    "installed",
+    "установлено",
+    "instalados"
+  ],
+  "ligados": [
+    "enabled",
+    "включено",
+    "activados"
+  ],
+  "no catálogo": [
+    "in catalog",
+    "в каталоге",
+    "en el catálogo"
+  ],
+  "Mundos e personagens": [
+    "Worlds and characters",
+    "Миры и персонажи",
+    "Mundos y personajes"
+  ],
+  "Aparência": [
+    "Appearance",
+    "Внешний вид",
+    "Apariencia"
+  ],
+  "Efeitos do tema": [
+    "Theme effects",
+    "Эффекты темы",
+    "Efectos del tema"
+  ],
+  "Cada cenário tem o seu: folhas e cartões balançando na Floresta, chuva e brilho molhado no Oceano, bolhas no Lago, neve na Neve. Desligado, o fundo fica parado.": [
+    "Each scene has its own effects: leaves and swaying cards in the Forest, rain and wet shine in the Ocean, bubbles in the Lake and snow in the Snow scene. Turn off to keep the background still.",
+    "У каждой сцены свои эффекты: листья и покачивающиеся карточки в лесу, дождь и влажный блеск у океана, пузыри на озере и снег в снежной сцене. Отключите, чтобы фон оставался неподвижным.",
+    "Cada escenario tiene sus efectos: hojas y tarjetas que se balancean en el Bosque, lluvia y brillo húmedo en el Océano, burbujas en el Lago y nieve en el escenario nevado. Desactívalos para dejar el fondo quieto."
+  ],
+  "Mods": [
+    "Mods",
+    "Моды",
+    "Mods"
+  ],
+  "Ligar ao instalar": [
+    "Enable on install",
+    "Включать при установке",
+    "Activar al instalar"
+  ],
+  "Um pacote recém-instalado já entra valendo no próximo boot.": [
+    "Newly installed packages are enabled on the next launch.",
+    "Новые пакеты включаются при следующем запуске.",
+    "Los paquetes recién instalados se activan en el próximo inicio."
+  ],
+  "Mostrar erro dentro do jogo": [
+    "Show errors in game",
+    "Показывать ошибки в игре",
+    "Mostrar errores en el juego"
+  ],
+  "Quando um mod quebra, o log aparece na tela em vez de só no logcat.": [
+    "When a mod fails, the log appears on screen as well as in logcat.",
+    "При ошибке мода журнал появляется на экране и в logcat.",
+    "Cuando falla un mod, el registro aparece en pantalla y en logcat."
+  ],
+  "Log detalhado": [
+    "Detailed log",
+    "Подробный журнал",
+    "Registro detallado"
+  ],
+  "O log de sessão (pasta logs/) ganha cada tabela, hook e tipo que o núcleo registra. Desligado, fica o resumo e as linhas dos mods.": [
+    "The session log (logs/ folder) includes every table, hook and type registered by the core. When off, it keeps the summary and mod messages.",
+    "Журнал сеанса (папка logs/) содержит все таблицы, хуки и типы, зарегистрированные ядром. При отключении остаются сводка и сообщения модов.",
+    "El registro de sesión (carpeta logs/) incluye cada tabla, hook y tipo registrado por el núcleo. Al desactivarlo, conserva el resumen y los mensajes de los mods."
+  ],
+  "Canal de comando por arquivo": [
+    "File command channel",
+    "Команды через файл",
+    "Canal de comandos por archivo"
+  ],
+  "Aceita comandos via adb durante o jogo. Só para desenvolver.": [
+    "Accepts commands through adb during gameplay. For development only.",
+    "Принимает команды через adb во время игры. Только для разработки.",
+    "Acepta comandos mediante adb durante el juego. Solo para desarrollo."
+  ],
+  "Desenvolvedor": [
+    "Developer",
+    "Разработчик",
+    "Desarrollador"
+  ],
+  "Mod Menu": [
+    "Mod Menu",
+    "Меню модов",
+    "Menú de mods"
+  ],
+  "O botão do coelho dentro do jogo: poderes, itens, NPCs e buffs. Desligado, nenhum poder volta ligado da última partida.": [
+    "The bunny button in game: powers, items, NPCs and buffs. When off, powers from the previous session stay disabled.",
+    "Кнопка кролика в игре: способности, предметы, NPC и баффы. При отключении способности прошлого сеанса не включаются.",
+    "El botón del conejo en el juego: poderes, objetos, NPC y mejoras. Al desactivarlo, los poderes de la sesión anterior permanecen desactivados."
+  ],
+  "Editor de JS": [
+    "JS editor",
+    "Редактор JS",
+    "Editor de JS"
+  ],
+  "Roda JavaScript dentro do jogo. O ícone flutuante de JS fica disponível desde o menu inicial, com ou sem o Mod Menu.": [
+    "Runs JavaScript in game. The floating JS icon is available from the title screen, with or without the Mod Menu.",
+    "Выполняет JavaScript внутри игры. Плавающий значок JS доступен с главного экрана, независимо от меню модов.",
+    "Ejecuta JavaScript dentro del juego. El icono flotante de JS está disponible desde el menú inicial, con o sin el menú de mods."
+  ],
+  "Reiniciar": [
+    "Restart",
+    "Перезапустить",
+    "Reiniciar"
+  ],
+  "O botão que fecha e abre o jogo lendo os mods da pasta de novo (no Mod Menu e no Editor).": [
+    "Closes and reopens the game, reloading mods from the folder (in the Mod Menu and editor).",
+    "Закрывает и снова запускает игру, перечитывая моды из папки (в меню модов и редакторе).",
+    "Cierra y vuelve a abrir el juego, recargando los mods de la carpeta (en el menú de mods y el editor)."
+  ],
+  "Diagnóstico": [
+    "Diagnostics",
+    "Диагностика",
+    "Diagnóstico"
+  ],
+  "O jogo fechou sozinho, travou ou deu erro? Abra o relatório e mande o texto (Copiar) ou um print para quem cuida do Bunny Loader ou do mod.": [
+    "Did the game close, freeze or show an error? Open the report and send the text (Copy) or a screenshot to the Bunny Loader or mod maintainer.",
+    "Игра закрылась, зависла или выдала ошибку? Откройте отчёт и отправьте текст («Копировать») или снимок экрана разработчику Bunny Loader или мода.",
+    "¿El juego se cerró, se bloqueó o dio un error? Abre el informe y envía el texto (Copiar) o una captura al responsable de Bunny Loader o del mod."
+  ],
+  "Ver relatório": [
+    "View report",
+    "Открыть отчёт",
+    "Ver informe"
+  ],
+  "Copiar": [
+    "Copy",
+    "Копировать",
+    "Copiar"
+  ],
+  "Sobre": [
+    "About",
+    "О программе",
+    "Acerca de"
+  ],
+  "Terraria embutido": [
+    "Bundled Terraria",
+    "Встроенная Terraria",
+    "Terraria incluido"
+  ],
+  "Cenário": [
+    "Scene",
+    "Сцена",
+    "Escenario"
+  ],
+  "O fundo do launcher. O céu segue o relógio do celular; no automático, o cenário troca a cada abertura.": [
+    "The launcher background. The sky follows your phone's clock; automatic mode changes the scene on each launch.",
+    "Фон лаунчера. Небо меняется по часам телефона; в автоматическом режиме сцена меняется при каждом запуске.",
+    "El fondo del launcher. El cielo sigue el reloj del teléfono; el modo automático cambia el escenario en cada inicio."
+  ],
+  "Início rápido": [
+    "Quick start",
+    "Быстрый запуск",
+    "Inicio rápido"
+  ],
+  "A logo da Re-Logic some assim que o jogo termina de carregar, e o jogo entra direto no mundo abaixo. Vale também para o Reiniciar do Mod Menu.": [
+    "The Re-Logic logo disappears when loading finishes, and the game enters the world below directly. Also applies when restarting from the Mod Menu.",
+    "Логотип Re-Logic исчезает после загрузки, и игра сразу открывает выбранный ниже мир. Работает и при перезапуске из меню модов.",
+    "El logo de Re-Logic desaparece al terminar la carga y el juego entra directamente al mundo elegido abajo. También se aplica al reiniciar desde el menú de mods."
+  ],
+  "Carregando personagens e mundos...": [
+    "Loading characters and worlds...",
+    "Загрузка персонажей и миров...",
+    "Cargando personajes y mundos..."
+  ],
+  "Nenhum personagem salvo ainda. Crie um no jogo; até lá, o jogo para no título.": [
+    "No saved characters yet. Create one in game; until then, the game stops at the title screen.",
+    "Нет сохранённых персонажей. Создайте персонажа в игре; пока игра останавливается на главном экране.",
+    "Aún no hay personajes guardados. Crea uno en el juego; hasta entonces, se detendrá en el menú inicial."
+  ],
+  "Personagem": [
+    "Character",
+    "Персонаж",
+    "Personaje"
+  ],
+  "Mundo": [
+    "World",
+    "Мир",
+    "Mundo"
+  ],
+  "Nenhum: parar no título": [
+    "None: stop at title screen",
+    "Нет: остановиться на главном экране",
+    "Ninguno: detenerse en el menú inicial"
+  ],
+  "Nenhum mundo de Jornada salvo.": [
+    "No saved Journey worlds.",
+    "Нет сохранённых миров путешествия.",
+    "No hay mundos de Viaje guardados."
+  ],
+  "Nenhum mundo salvo.": [
+    "No saved worlds.",
+    "Нет сохранённых миров.",
+    "No hay mundos guardados."
+  ],
+  "%1$s (Jornada)": [
+    "%1$s (Journey)",
+    "%1$s (Путешествие)",
+    "%1$s (Viaje)"
+  ],
+  "Foto do perfil": [
+    "Profile photo",
+    "Фото профиля",
+    "Foto de perfil"
+  ],
+  "Jogador": [
+    "Player",
+    "Игрок",
+    "Jugador"
+  ],
+  "Toque na foto ou no nome para mudar": [
+    "Tap the photo or name to change",
+    "Нажмите на фото или имя, чтобы изменить",
+    "Toca la foto o el nombre para cambiarlo"
+  ],
+  "%1$s \"%2$s\" importado": [
+    "%1$s \"%2$s\" imported",
+    "Импортировано: %1$s «%2$s»",
+    "%1$s \"%2$s\" importado"
+  ],
+  "%1$s mundo(s) e %2$s personagem(ns) salvos. Escolha o .wld ou o .plr; os arquivos do Bunny Loader do mesmo save (.wld.bl, .wld.tiles.bl...) podem ir junto.": [
+    "%1$s world(s) and %2$s character(s) saved. Choose the .wld or .plr; Bunny Loader files for the same save (.wld.bl, .wld.tiles.bl...) can be included.",
+    "Сохранено миров: %1$s, персонажей: %2$s. Выберите .wld или .plr; можно также выбрать файлы Bunny Loader этого сохранения (.wld.bl, .wld.tiles.bl...).",
+    "%1$s mundo(s) y %2$s personaje(s) guardados. Elige el .wld o .plr; puedes incluir los archivos de Bunny Loader del mismo guardado (.wld.bl, .wld.tiles.bl...)."
+  ],
+  "Importar mundo": [
+    "Import world",
+    "Импорт мира",
+    "Importar mundo"
+  ],
+  "Importar personagem": [
+    "Import character",
+    "Импорт персонажа",
+    "Importar personaje"
+  ],
+  "Importado": [
+    "Imported",
+    "Импортировано",
+    "Importado"
+  ],
+  "Importação": [
+    "Import",
+    "Импорт",
+    "Importación"
+  ],
+  "Ele já aparece na lista do jogo e no Início rápido.": [
+    "It now appears in the game list and Quick start.",
+    "Теперь доступно в списке игры и в быстром запуске.",
+    "Ya aparece en la lista del juego y en Inicio rápido."
+  ],
+  "Feche o jogo antes: com ele aberto, o save pode ser gravado por cima.": [
+    "Close the game first: an open game may overwrite the save.",
+    "Сначала закройте игру: запущенная игра может перезаписать сохранение.",
+    "Cierra el juego antes: si está abierto, puede sobrescribir el guardado."
+  ],
+  "Nada é sobrescrito: se já existir um %1$s com o mesmo nome de arquivo, o importado ganha um _2.": [
+    "Nothing is overwritten: if a %1$s with the same file name exists, the imported file gets _2.",
+    "Файлы не перезаписываются: если %1$s с таким именем уже есть, импортируемый файл получает _2.",
+    "No se sobrescribe nada: si ya existe un %1$s con el mismo nombre de archivo, al importado se le añade _2."
+  ],
+  "Blocos, paredes e NPCs de mod só aparecem com os mesmos mods ligados. Escolha também os arquivos .wld.bl, .wld.tiles.bl e .wld.walls.bl do mesmo mundo, se ele tiver.": [
+    "Mod blocks, walls and NPCs only appear with the same mods enabled. Also choose the world's .wld.bl, .wld.tiles.bl and .wld.walls.bl files, if present.",
+    "Блоки, стены и NPC модов появляются только при включённых тех же модах. Выберите также файлы этого мира .wld.bl, .wld.tiles.bl и .wld.walls.bl, если они есть.",
+    "Los bloques, paredes y NPC de mods solo aparecen con los mismos mods activados. Elige también los archivos .wld.bl, .wld.tiles.bl y .wld.walls.bl del mismo mundo, si los tiene."
+  ],
+  "Mundo de Jornada só abre com personagem de Jornada.": [
+    "Journey worlds only open with Journey characters.",
+    "Миры путешествия открываются только персонажами путешествия.",
+    "Los mundos de Viaje solo se abren con personajes de Viaje."
+  ],
+  "Itens de mod só aparecem com os mesmos mods ligados. Escolha também o .plr.bl do mesmo personagem, se ele tiver.": [
+    "Mod items only appear with the same mods enabled. Also choose the character's .plr.bl file, if present.",
+    "Предметы модов появляются только при включённых тех же модах. Выберите также .plr.bl этого персонажа, если он есть.",
+    "Los objetos de mods solo aparecen con los mismos mods activados. Elige también el .plr.bl del mismo personaje, si lo tiene."
+  ],
+  "Só abra saves de quem você confia.": [
+    "Only open saves from people you trust.",
+    "Открывайте сохранения только от тех, кому доверяете.",
+    "Abre solo guardados de personas en quienes confíes."
+  ],
+  "Escolher arquivos": [
+    "Choose files",
+    "Выбрать файлы",
+    "Elegir archivos"
+  ],
+  "Licença": [
+    "License",
+    "Лицензия",
+    "Licencia"
+  ],
+  "Terceiros": [
+    "Third parties",
+    "Сторонние компоненты",
+    "Terceros"
+  ],
+  "Código aberto para uso não comercial (PolyForm Noncommercial 1.0.0). O Terraria, a Unity, a fonte e cada mod têm donos e licenças próprios.": [
+    "Source available for noncommercial use (PolyForm Noncommercial 1.0.0). Terraria, Unity, the font and each mod have their own owners and licenses.",
+    "Исходный код доступен для некоммерческого использования (PolyForm Noncommercial 1.0.0). Terraria, Unity, шрифт и каждый мод имеют своих владельцев и лицензии.",
+    "Código disponible para uso no comercial (PolyForm Noncommercial 1.0.0). Terraria, Unity, la fuente y cada mod tienen sus propios dueños y licencias."
+  ],
+  "O texto não veio no APK.": [
+    "The text was not included in the APK.",
+    "Текст не включён в APK.",
+    "El texto no se incluyó en el APK."
+  ],
+  "Fechar": [
+    "Close",
+    "Закрыть",
+    "Cerrar"
+  ],
+  "Descrição": [
+    "Description",
+    "Описание",
+    "Descripción"
+  ],
+  "Novidades": [
+    "Changelog",
+    "Изменения",
+    "Novedades"
+  ],
+  "Créditos": [
+    "Credits",
+    "Авторы",
+    "Créditos"
+  ],
+  "%1$s exportado": [
+    "%1$s exported",
+    "%1$s экспортирован",
+    "%1$s exportado"
+  ],
+  "Formato antigo": [
+    "Legacy format",
+    "Старый формат",
+    "Formato antiguo"
+  ],
+  "Versão": [
+    "Version",
+    "Версия",
+    "Versión"
+  ],
+  "Atualizado": [
+    "Updated",
+    "Обновлено",
+    "Actualizado"
+  ],
+  "Tamanho": [
+    "Size",
+    "Размер",
+    "Tamaño"
+  ],
+  "Baixando %1$s%%": [
+    "Downloading %1$s%%",
+    "Загрузка: %1$s%%",
+    "Descargando %1$s%%"
+  ],
+  "Baixar Mod": [
+    "Download mod",
+    "Скачать мод",
+    "Descargar mod"
+  ],
+  "Ligado": [
+    "On",
+    "Включено",
+    "Activado"
+  ],
+  "Desligado": [
+    "Off",
+    "Выключено",
+    "Desactivado"
+  ],
+  "Remover": [
+    "Remove",
+    "Удалить",
+    "Eliminar"
+  ],
+  "Atualizar para v%1$s": [
+    "Update to v%1$s",
+    "Обновить до v%1$s",
+    "Actualizar a v%1$s"
+  ],
+  "Exportar .bl": [
+    "Export .bl",
+    "Экспорт .bl",
+    "Exportar .bl"
+  ],
+  "Imagens": [
+    "Images",
+    "Изображения",
+    "Imágenes"
+  ],
+  "Atual": [
+    "Current",
+    "Текущая",
+    "Actual"
+  ],
+  "O pacote não traz o texto da licença (license.md).": [
+    "The package does not include the license text (license.md).",
+    "В пакете нет текста лицензии (license.md).",
+    "El paquete no incluye el texto de la licencia (license.md)."
+  ],
+  "por %1$s": [
+    "by %1$s",
+    "Автор: %1$s",
+    "por %1$s"
+  ],
+  "Mover %1$s para cima": [
+    "Move %1$s up",
+    "Переместить %1$s вверх",
+    "Mover %1$s hacia arriba"
+  ],
+  "Mover %1$s para baixo": [
+    "Move %1$s down",
+    "Переместить %1$s вниз",
+    "Mover %1$s hacia abajo"
+  ],
+  "Todos": [
+    "All",
+    "Все",
+    "Todos"
+  ],
+  "Ativados": [
+    "Enabled",
+    "Включённые",
+    "Activados"
+  ],
+  "Desativados": [
+    "Disabled",
+    "Выключенные",
+    "Desactivados"
+  ],
+  "Ordem de carga": [
+    "Load order",
+    "Порядок загрузки",
+    "Orden de carga"
+  ],
+  "Menor tamanho": [
+    "Smallest size",
+    "Меньший размер",
+    "Menor tamaño"
+  ],
+  "Maior tamanho": [
+    "Largest size",
+    "Больший размер",
+    "Mayor tamaño"
+  ],
+  "Anterior: %1$s": [
+    "Previous: %1$s",
+    "Назад: %1$s",
+    "Anterior: %1$s"
+  ],
+  "Próximo: %1$s": [
+    "Next: %1$s",
+    "Далее: %1$s",
+    "Siguiente: %1$s"
+  ],
+  "Floresta": [
+    "Forest",
+    "Лес",
+    "Bosque"
+  ],
+  "Oceano": [
+    "Ocean",
+    "Океан",
+    "Océano"
+  ],
+  "Lago": [
+    "Lake",
+    "Озеро",
+    "Lago"
+  ],
+  "Neve": [
+    "Snow",
+    "Снег",
+    "Nieve"
+  ],
+  "Não consegui preparar os pacotes.": [
+    "Could not prepare the packages.",
+    "Не удалось подготовить пакеты.",
+    "No se pudieron preparar los paquetes."
+  ],
+  "Não consegui alterar os pacotes.": [
+    "Could not change the packages.",
+    "Не удалось изменить пакеты.",
+    "No se pudieron modificar los paquetes."
+  ],
+  "Não consegui ler os pacotes.": [
+    "Could not read the packages.",
+    "Не удалось прочитать пакеты.",
+    "No se pudieron leer los paquetes."
+  ],
+  "Atualizar loja": [
+    "Refresh store",
+    "Обновить магазин",
+    "Actualizar tienda"
+  ],
+  "Atualizando loja: %1$s/%2$s": [
+    "Refreshing store: %1$s/%2$s",
+    "Обновление магазина: %1$s/%2$s",
+    "Actualizando tienda: %1$s/%2$s"
+  ],
+  "Atualizando loja...": [
+    "Refreshing store...",
+    "Обновление магазина...",
+    "Actualizando tienda..."
+  ],
+  "Solte para atualizar": [
+    "Release to refresh",
+    "Отпустите для обновления",
+    "Suelta para actualizar"
+  ],
+  "Puxe para atualizar": [
+    "Pull to refresh",
+    "Потяните для обновления",
+    "Desliza para actualizar"
+  ],
+  "Carregando mods": [
+    "Loading mods",
+    "Загрузка модов",
+    "Cargando mods"
+  ],
+  "Atualizações de mods": [
+    "Mod updates",
+    "Обновления модов",
+    "Actualizaciones de mods"
+  ],
+  "Há versões novas dos seus mods instalados.": [
+    "New versions of your installed mods are available.",
+    "Доступны новые версии установленных модов.",
+    "Hay nuevas versiones de tus mods instalados."
+  ],
+  "Instalado: v%1$s · Novo: v%2$s": [
+    "Installed: v%1$s · New: v%2$s",
+    "Установлено: v%1$s · Новое: v%2$s",
+    "Instalado: v%1$s · Nuevo: v%2$s"
+  ],
+  "Atualizar todos": [
+    "Update all",
+    "Обновить все",
+    "Actualizar todos"
+  ],
+  "Continuar em segundo plano": [
+    "Continue in background",
+    "Продолжить в фоне",
+    "Continuar en segundo plano"
+  ],
+  "Agora não": [
+    "Not now",
+    "Не сейчас",
+    "Ahora no"
+  ],
+  "Texturas": [
+    "Textures",
+    "Текстуры",
+    "Texturas"
+  ],
+  "Fontes": [
+    "Fonts",
+    "Шрифты",
+    "Fuentes"
+  ],
+  "Textura": [
+    "Texture",
+    "Текстура",
+    "Textura"
+  ],
+  "Armas": [
+    "Weapons",
+    "Оружие",
+    "Armas"
+  ],
+  "Jogabilidade": [
+    "Gameplay",
+    "Игровой процесс",
+    "Jugabilidad"
+  ],
+  "Cheat": [
+    "Cheat",
+    "Читы",
+    "Trucos"
+  ],
+  "Outros": [
+    "Other",
+    "Прочее",
+    "Otros"
+  ],
+  "Outras": [
+    "Other",
+    "Прочее",
+    "Otras"
+  ],
+  "Materiais": [
+    "Materials",
+    "Материалы",
+    "Materiales"
+  ],
+  "Tintas e corantes": [
+    "Paints and dyes",
+    "Краски и красители",
+    "Pinturas y tintes"
+  ],
+  "Iscas": [
+    "Bait",
+    "Наживка",
+    "Cebo"
+  ],
+  "Montarias": [
+    "Mounts",
+    "Ездовые животные",
+    "Monturas"
+  ],
+  "Bolsas e caixas": [
+    "Bags and crates",
+    "Мешки и ящики",
+    "Bolsas y cajas"
+  ],
+  "Espadas": [
+    "Swords",
+    "Мечи",
+    "Espadas"
+  ],
+  "Espadas curtas": [
+    "Shortswords",
+    "Короткие мечи",
+    "Espadas cortas"
+  ],
+  "Lanças": [
+    "Spears",
+    "Копья",
+    "Lanzas"
+  ],
+  "Manguais e maças": [
+    "Flails and maces",
+    "Цепы и булавы",
+    "Manguales y mazas"
+  ],
+  "Ioiôs": [
+    "Yoyos",
+    "Йо-йо",
+    "Yoyós"
+  ],
+  "Bumerangues": [
+    "Boomerangs",
+    "Бумеранги",
+    "Bumeranes"
+  ],
+  "Arcos": [
+    "Bows",
+    "Луки",
+    "Arcos"
+  ],
+  "Armas de fogo": [
+    "Guns",
+    "Огнестрельное оружие",
+    "Armas de fuego"
+  ],
+  "Lança-foguetes": [
+    "Rocket launchers",
+    "Ракетомёты",
+    "Lanzacohetes"
+  ],
+  "Arremessáveis": [
+    "Throwables",
+    "Метательное оружие",
+    "Arrojadizas"
+  ],
+  "Cajados": [
+    "Staves",
+    "Посохи",
+    "Bastones"
+  ],
+  "Lacaios": [
+    "Minions",
+    "Миньоны",
+    "Esbirros"
+  ],
+  "Sentinelas": [
+    "Sentries",
+    "Турели",
+    "Centinelas"
+  ],
+  "Chicotes": [
+    "Whips",
+    "Кнуты",
+    "Látigos"
+  ],
+  "Flechas": [
+    "Arrows",
+    "Стрелы",
+    "Flechas"
+  ],
+  "Balas": [
+    "Bullets",
+    "Пули",
+    "Balas"
+  ],
+  "Foguetes": [
+    "Rockets",
+    "Ракеты",
+    "Cohetes"
+  ],
+  "Picaretas": [
+    "Pickaxes",
+    "Кирки",
+    "Picos"
+  ],
+  "Machados": [
+    "Axes",
+    "Топоры",
+    "Hachas"
+  ],
+  "Martelos": [
+    "Hammers",
+    "Молоты",
+    "Martillos"
+  ],
+  "Brocas e serras": [
+    "Drills and chainsaws",
+    "Буры и бензопилы",
+    "Taladros y motosierras"
+  ],
+  "Varas de pesca": [
+    "Fishing rods",
+    "Удочки",
+    "Cañas de pescar"
+  ],
+  "Ganchos": [
+    "Hooks",
+    "Крюки",
+    "Ganchos"
+  ],
+  "Asas": [
+    "Wings",
+    "Крылья",
+    "Alas"
+  ],
+  "Calçados": [
+    "Footwear",
+    "Обувь",
+    "Calzado"
+  ],
+  "Escudos": [
+    "Shields",
+    "Щиты",
+    "Escudos"
+  ],
+  "Capacetes": [
+    "Helmets",
+    "Шлемы",
+    "Cascos"
+  ],
+  "Peitorais": [
+    "Chestplates",
+    "Нагрудники",
+    "Pechera"
+  ],
+  "Calças": [
+    "Leggings",
+    "Поножи",
+    "Grebas"
+  ],
+  "Vaidade": [
+    "Vanity",
+    "Косметика",
+    "Social"
+  ],
+  "Cura": [
+    "Healing",
+    "Лечение",
+    "Curación"
+  ],
+  "Mana": [
+    "Mana",
+    "Мана",
+    "Maná"
+  ],
+  "Comida": [
+    "Food",
+    "Еда",
+    "Comida"
+  ],
+  "Buffs": [
+    "Buffs",
+    "Баффы",
+    "Mejoras"
+  ],
+  "Blocos": [
+    "Blocks",
+    "Блоки",
+    "Bloques"
+  ],
+  "Paredes": [
+    "Walls",
+    "Стены",
+    "Paredes"
+  ],
+  "Tochas": [
+    "Torches",
+    "Факелы",
+    "Antorchas"
+  ],
+  "Móveis e objetos": [
+    "Furniture and objects",
+    "Мебель и предметы",
+    "Muebles y objetos"
+  ],
+  "Chefes": [
+    "Bosses",
+    "Боссы",
+    "Jefes"
+  ],
+  "Monstros": [
+    "Monsters",
+    "Монстры",
+    "Monstruos"
+  ],
+  "Moradores": [
+    "Town NPCs",
+    "Жители",
+    "Habitantes"
+  ],
+  "Criaturas": [
+    "Critters",
+    "Мирные существа",
+    "Criaturas"
+  ],
+  "Debuffs": [
+    "Debuffs",
+    "Дебаффы",
+    "Efectos negativos"
+  ],
+  "Frascos": [
+    "Flasks",
+    "Флаконы",
+    "Frascos"
+  ],
+  "Pets e luzes": [
+    "Pets and lights",
+    "Питомцы и освещение",
+    "Mascotas y luces"
+  ],
+  "Invocações e montarias": [
+    "Summons and mounts",
+    "Призывы и ездовые животные",
+    "Invocaciones y monturas"
+  ],
+  "Superpoderes": [
+    "Superpowers",
+    "Суперспособности",
+    "Superpoderes"
+  ],
+  "Eventos": [
+    "Events",
+    "События",
+    "Eventos"
+  ],
+  "Todos os itens": [
+    "All items",
+    "Все предметы",
+    "Todos los objetos"
+  ],
+  "Corpo a corpo": [
+    "Melee",
+    "Ближний бой",
+    "Cuerpo a cuerpo"
+  ],
+  "À distância": [
+    "Ranged",
+    "Дальний бой",
+    "A distancia"
+  ],
+  "Magia": [
+    "Magic",
+    "Магия",
+    "Magia"
+  ],
+  "Invocação": [
+    "Summoning",
+    "Призыв",
+    "Invocación"
+  ],
+  "Munição": [
+    "Ammo",
+    "Боеприпасы",
+    "Munición"
+  ],
+  "Ferramentas": [
+    "Tools",
+    "Инструменты",
+    "Herramientas"
+  ],
+  "Acessórios": [
+    "Accessories",
+    "Аксессуары",
+    "Accesorios"
+  ],
+  "Armaduras": [
+    "Armor",
+    "Броня",
+    "Armaduras"
+  ],
+  "Poções e comida": [
+    "Potions and food",
+    "Зелья и еда",
+    "Pociones y comida"
+  ],
+  "Blocos e móveis": [
+    "Blocks and furniture",
+    "Блоки и мебель",
+    "Bloques y muebles"
+  ],
+  "Itens": [
+    "Items",
+    "Предметы",
+    "Objetos"
+  ],
+  "NPCs": [
+    "NPCs",
+    "NPC",
+    "NPC"
+  ],
+  "Dano extra": [
+    "Extra damage",
+    "Дополнительный урон",
+    "Daño extra"
+  ],
+  "Super velocidade": [
+    "Super speed",
+    "Суперскорость",
+    "Supervelocidad"
+  ],
+  "Super pulo": [
+    "Super jump",
+    "Суперпрыжок",
+    "Supersalto"
+  ],
+  "Parar o tempo": [
+    "Freeze time",
+    "Остановить время",
+    "Detener el tiempo"
+  ],
+  "Imortal": [
+    "Invincible",
+    "Бессмертие",
+    "Inmortal"
+  ],
+  "Mana infinita": [
+    "Infinite mana",
+    "Бесконечная мана",
+    "Maná infinito"
+  ],
+  "Pulo infinito": [
+    "Infinite jumps",
+    "Бесконечные прыжки",
+    "Saltos infinitos"
+  ],
+  "Mineração turbo": [
+    "Turbo mining",
+    "Турбодобыча",
+    "Minería turbo"
+  ],
+  "Visão total": [
+    "Full vision",
+    "Полное зрение",
+    "Visión total"
+  ],
+  "Voar": [
+    "Fly",
+    "Полёт",
+    "Volar"
+  ],
+  "Raio-X": [
+    "X-ray",
+    "Рентген",
+    "Rayos X"
+  ],
+  "Lacaios infinitos": [
+    "Infinite minions",
+    "Бесконечные миньоны",
+    "Esbirros infinitos"
+  ],
+  "Chuva": [
+    "Rain",
+    "Дождь",
+    "Lluvia"
+  ],
+  "Vento": [
+    "Wind",
+    "Ветер",
+    "Viento"
+  ],
+  "Bestiário": [
+    "Bestiary",
+    "Бестиарий",
+    "Bestiario"
+  ],
+  "Inimigos": [
+    "Enemies",
+    "Враги",
+    "Enemigos"
+  ],
+  "Teleporte no mapa": [
+    "Map teleport",
+    "Телепорт по карте",
+    "Teletransporte en el mapa"
+  ],
+  "Limpar inventário": [
+    "Clear inventory",
+    "Очистить инвентарь",
+    "Vaciar inventario"
+  ],
+  "Revelar mapa": [
+    "Reveal map",
+    "Открыть карту",
+    "Revelar mapa"
+  ],
+  "Hardmode": [
+    "Hardmode",
+    "Сложный режим",
+    "Modo difícil"
+  ],
+  "Dificuldade": [
+    "Difficulty",
+    "Сложность",
+    "Dificultad"
+  ],
+  "Reviver rápido": [
+    "Quick respawn",
+    "Быстрое возрождение",
+    "Reaparecer rápido"
+  ],
+  "Sumir com inimigos": [
+    "Remove enemies",
+    "Удалить врагов",
+    "Eliminar enemigos"
+  ],
+  "Parar infecção": [
+    "Stop biome spread",
+    "Остановить заражение",
+    "Detener la propagación"
+  ],
+  "Parar eventos": [
+    "Stop events",
+    "Остановить события",
+    "Detener eventos"
+  ],
+  "Lua de Sangue": [
+    "Blood Moon",
+    "Кровавая луна",
+    "Luna de sangre"
+  ],
+  "Eclipse": [
+    "Solar Eclipse",
+    "Солнечное затмение",
+    "Eclipse solar"
+  ],
+  "Chuva de slime": [
+    "Slime Rain",
+    "Слизнепад",
+    "Lluvia de slimes"
+  ],
+  "Exército goblin": [
+    "Goblin Army",
+    "Армия гоблинов",
+    "Ejército de duendes"
+  ],
+  "Legião gélida": [
+    "Frost Legion",
+    "Морозный легион",
+    "Legión helada"
+  ],
+  "Piratas": [
+    "Pirates",
+    "Пираты",
+    "Piratas"
+  ],
+  "Invasão marciana": [
+    "Martian Madness",
+    "Марсианское безумие",
+    "Invasión marciana"
+  ],
+  "Lua de abóbora": [
+    "Pumpkin Moon",
+    "Тыквенная луна",
+    "Luna de calabaza"
+  ],
+  "Lua gélida": [
+    "Frost Moon",
+    "Морозная луна",
+    "Luna helada"
+  ],
+  "Festa": [
+    "Party",
+    "Вечеринка",
+    "Fiesta"
+  ],
+  "Tempestade de areia": [
+    "Sandstorm",
+    "Песчаная буря",
+    "Tormenta de arena"
+  ],
+  "Toda arma bate mais forte": [
+    "Every weapon hits harder",
+    "Всё оружие наносит больше урона",
+    "Todas las armas golpean más fuerte"
+  ],
+  "Corre muito mais rápido": [
+    "Run much faster",
+    "Бегайте намного быстрее",
+    "Corre mucho más rápido"
+  ],
+  "Pula alto, sem dano de queda": [
+    "Jump high with no fall damage",
+    "Высокие прыжки без урона от падения",
+    "Salta alto sin daño por caída"
+  ],
+  "Inimigos, tiros e relógio param": [
+    "Enemies, projectiles and clock freeze",
+    "Враги, снаряды и часы замирают",
+    "Los enemigos, proyectiles y reloj se detienen"
+  ],
+  "Nada tira sua vida": [
+    "Nothing can hurt you",
+    "Ничто не отнимает здоровье",
+    "Nada te quita vida"
+  ],
+  "Magia de graça, sempre cheia": [
+    "Free magic, always full",
+    "Бесплатная магия, мана всегда полна",
+    "Magia gratis, siempre llena"
+  ],
+  "Toque no ar e pule de novo": [
+    "Tap in midair to jump again",
+    "Нажмите в воздухе, чтобы прыгнуть снова",
+    "Toca en el aire para saltar otra vez"
+  ],
+  "Picareta e machado 4x": [
+    "Pickaxe and axe at 4x speed",
+    "Кирка и топор в 4 раза быстрее",
+    "Pico y hacha a velocidad x4"
+  ],
+  "Minério, inimigo e perigo": [
+    "Ore, enemies and danger",
+    "Руды, враги и опасности",
+    "Minerales, enemigos y peligros"
+  ],
+  "Voa e atravessa paredes": [
+    "Fly through walls",
+    "Летайте сквозь стены",
+    "Vuela y atraviesa paredes"
+  ],
+  "Ilumina a tela inteira": [
+    "Light up the whole screen",
+    "Освещает весь экран",
+    "Ilumina toda la pantalla"
+  ],
+  "Invoque quantos quiser": [
+    "Summon as many as you want",
+    "Призывайте сколько угодно",
+    "Invoca tantos como quieras"
+  ],
+  "Garoa, forte ou tempestade": [
+    "Drizzle, heavy rain or storm",
+    "Морось, ливень или гроза",
+    "Llovizna, lluvia fuerte o tormenta"
+  ],
+  "Calmo, brisa ou ventania": [
+    "Calm, breeze or gale",
+    "Штиль, бриз или шквал",
+    "Calma, brisa o vendaval"
+  ],
+  "Libera todas as criaturas": [
+    "Unlock all creatures",
+    "Открывает всех существ",
+    "Desbloquea todas las criaturas"
+  ],
+  "Nenhum nasce, ou some com todos": [
+    "Stop spawns or remove them all",
+    "Останавливает появление или удаляет всех",
+    "Evita que aparezcan o elimínalos a todos"
+  ],
+  "Segure 1 s no mapa grande": [
+    "Hold for 1 s on the fullscreen map",
+    "Удерживайте 1 с на полной карте",
+    "Mantén pulsado 1 s en el mapa grande"
+  ],
+  "Fica favorito, moeda e munição": [
+    "Keep favorites, coins and ammo",
+    "Избранное, монеты и боеприпасы остаются",
+    "Conserva favoritos, monedas y munición"
+  ],
+  "O mundo inteiro no mapa": [
+    "The whole world on the map",
+    "Весь мир на карте",
+    "Todo el mundo en el mapa"
+  ],
+  "Como vencer a Parede de Carne": [
+    "Like defeating the Wall of Flesh",
+    "Как победа над Стеной плоти",
+    "Como derrotar al Muro de carne"
+  ],
+  "Clássico, Expert, Mestre, Jornada": [
+    "Classic, Expert, Master, Journey",
+    "Классический, Эксперт, Мастер, Путешествие",
+    "Clásico, Experto, Maestro, Viaje"
+  ],
+  "Morreu, volta na hora": [
+    "Respawn immediately after death",
+    "Мгновенное возрождение после смерти",
+    "Reaparece inmediatamente al morir"
+  ],
+  "Os que já existem somem": [
+    "Remove existing enemies",
+    "Удаляет существующих врагов",
+    "Elimina a los enemigos existentes"
+  ],
+  "Corrupção, carmim e sagrado param": [
+    "Stop Corruption, Crimson and Hallow spread",
+    "Останавливает порчу, багрянец и освящение",
+    "Detiene la Corrupción, el Carmesí y la Bendición"
+  ],
+  "Acaba com o que está acontecendo": [
+    "End the current event",
+    "Завершает текущее событие",
+    "Termina el evento actual"
+  ],
+  "Vira a noite se for dia": [
+    "Switch to night if it is day",
+    "Если сейчас день, наступает ночь",
+    "Cambia a la noche si es de día"
+  ],
+  "Vira o dia se for noite": [
+    "Switch to day if it is night",
+    "Если сейчас ночь, наступает день",
+    "Cambia al día si es de noche"
+  ],
+  "Slimes caindo do céu": [
+    "Slimes fall from the sky",
+    "Слизни падают с неба",
+    "Caen slimes del cielo"
+  ],
+  "A invasão dos goblins": [
+    "The goblin invasion",
+    "Вторжение гоблинов",
+    "La invasión de duendes"
+  ],
+  "Bonecos de neve armados": [
+    "Armed snowmen",
+    "Вооружённые снеговики",
+    "Muñecos de nieve armados"
+  ],
+  "A invasão pirata": [
+    "The pirate invasion",
+    "Вторжение пиратов",
+    "La invasión pirata"
+  ],
+  "Os marcianos chegam": [
+    "The Martians arrive",
+    "Марсиане прибывают",
+    "Llegan los marcianos"
+  ],
+  "Ondas até o amanhecer": [
+    "Waves until dawn",
+    "Волны до рассвета",
+    "Oleadas hasta el amanecer"
+  ],
+  "Os moradores comemoram": [
+    "Town NPCs celebrate",
+    "Жители празднуют",
+    "Los habitantes celebran"
+  ],
+  "No deserto": [
+    "In the desert",
+    "В пустыне",
+    "En el desierto"
+  ],
+  "Normal": [
+    "Normal",
+    "Обычный",
+    "Normal"
+  ],
+  "Rápido": [
+    "Fast",
+    "Быстрый",
+    "Rápido"
+  ],
+  "Clássico": [
+    "Classic",
+    "Классический",
+    "Clásico"
+  ],
+  "Expert": [
+    "Expert",
+    "Эксперт",
+    "Experto"
+  ],
+  "Mestre": [
+    "Master",
+    "Мастер",
+    "Maestro"
+  ],
+  "Jornada": [
+    "Journey",
+    "Путешествие",
+    "Viaje"
+  ],
+  "Entre num mundo primeiro": [
+    "Enter a world first",
+    "Сначала войдите в мир",
+    "Entra primero a un mundo"
+  ],
+  "Amanhecer": [
+    "Dawn",
+    "Рассвет",
+    "Amanecer"
+  ],
+  "Meio-dia": [
+    "Noon",
+    "Полдень",
+    "Mediodía"
+  ],
+  "Anoitecer": [
+    "Dusk",
+    "Закат",
+    "Anochecer"
+  ],
+  "Meia-noite": [
+    "Midnight",
+    "Полночь",
+    "Medianoche"
+  ],
+  "Hora do dia": [
+    "Time of day",
+    "Время суток",
+    "Hora del día"
+  ],
+  "Madrugada": [
+    "Early morning",
+    "Раннее утро",
+    "Madrugada"
+  ],
+  "Manhã": [
+    "Morning",
+    "Утро",
+    "Mañana"
+  ],
+  "Tarde": [
+    "Afternoon",
+    "День",
+    "Tarde"
+  ],
+  "Noite": [
+    "Night",
+    "Ночь",
+    "Noche"
+  ],
+  "Sem chuva": [
+    "No rain",
+    "Без дождя",
+    "Sin lluvia"
+  ],
+  "Garoa": [
+    "Drizzle",
+    "Морось",
+    "Llovizna"
+  ],
+  "Chuva forte": [
+    "Heavy rain",
+    "Ливень",
+    "Lluvia fuerte"
+  ],
+  "Tempestade": [
+    "Storm",
+    "Гроза",
+    "Tormenta"
+  ],
+  "Calmo": [
+    "Calm",
+    "Штиль",
+    "Calma"
+  ],
+  "Brisa": [
+    "Breeze",
+    "Бриз",
+    "Brisa"
+  ],
+  "Ventania": [
+    "Gale",
+    "Шквал",
+    "Vendaval"
+  ],
+  "Nenhum inimigo": [
+    "No enemies",
+    "Нет врагов",
+    "Sin enemigos"
+  ],
+  "normal": [
+    "normal",
+    "обычно",
+    "normal"
+  ],
+  "Limpo": [
+    "Clear",
+    "Ясно",
+    "Despejado"
+  ],
+  "Nenhum": [
+    "None",
+    "Нет",
+    "Ninguno"
+  ],
+  "Voltar": [
+    "Back",
+    "Назад",
+    "Volver"
+  ],
+  "%1$s NPC": [
+    "%1$s NPC",
+    "%1$s NPC",
+    "%1$s NPC"
+  ],
+  "%1$s NPCs": [
+    "%1$s NPCs",
+    "NPC: %1$s",
+    "%1$s NPC"
+  ],
+  "%1$s buff": [
+    "%1$s buff",
+    "%1$s бафф",
+    "%1$s mejora"
+  ],
+  "%1$s buffs": [
+    "%1$s buffs",
+    "Баффы: %1$s",
+    "%1$s mejoras"
+  ],
+  "%1$s item": [
+    "%1$s item",
+    "%1$s предмет",
+    "%1$s objeto"
+  ],
+  "%1$s itens": [
+    "%1$s items",
+    "Предметы: %1$s",
+    "%1$s objetos"
+  ],
+  "Lendo o catálogo do jogo, no seu idioma...": [
+    "Reading the game catalog in your game language...",
+    "Чтение каталога на языке игры...",
+    "Leyendo el catálogo en el idioma del juego..."
+  ],
+  "Nome ou id": [
+    "Name or id",
+    "Название или id",
+    "Nombre o id"
+  ],
+  "Nenhum NPC aqui.": [
+    "No NPCs here.",
+    "Здесь нет NPC.",
+    "No hay NPC aquí."
+  ],
+  "Nenhum buff aqui.": [
+    "No buffs here.",
+    "Здесь нет баффов.",
+    "No hay mejoras aquí."
+  ],
+  "O jogo não entregou a classe dos itens. \"Todos os itens\" continua com a lista inteira.": [
+    "The game did not provide item classes. \"All items\" still shows the full list.",
+    "Игра не предоставила классы предметов. «Все предметы» по-прежнему показывает полный список.",
+    "El juego no proporcionó las clases de objetos. \"Todos los objetos\" sigue mostrando la lista completa."
+  ],
+  "%1$s de %2$s": [
+    "%1$s of %2$s",
+    "%1$s из %2$s",
+    "%1$s de %2$s"
+  ],
+  "Invocar": [
+    "Summon",
+    "Призвать",
+    "Invocar"
+  ],
+  "Aplicar": [
+    "Apply",
+    "Применить",
+    "Aplicar"
+  ],
+  "Pegar": [
+    "Get",
+    "Получить",
+    "Obtener"
+  ],
+  "Desligar tudo": [
+    "Turn off all",
+    "Выключить всё",
+    "Desactivar todo"
+  ],
+  "Entre num mundo": [
+    "Enter a world",
+    "Войдите в мир",
+    "Entra a un mundo"
+  ],
+  "Feito!": [
+    "Done!",
+    "Готово!",
+    "¡Hecho!"
+  ],
+  "%1$s ligado": [
+    "%1$s enabled",
+    "%1$s включено",
+    "%1$s activado"
+  ],
+  "%1$s ligados": [
+    "%1$s enabled",
+    "Включено: %1$s",
+    "%1$s activados"
+  ],
+  "Reiniciar o jogo": [
+    "Restart game",
+    "Перезапустить игру",
+    "Reiniciar el juego"
+  ],
+  "O jogo fecha e abre de novo, lendo os mods da pasta outra vez.": [
+    "The game closes and reopens, reloading mods from the folder.",
+    "Игра закрывается и запускается снова, перечитывая моды из папки.",
+    "El juego se cierra y se vuelve a abrir, recargando los mods de la carpeta."
+  ],
+  "O jogo fecha e abre de novo, lendo os mods da pasta outra vez. O que não foi salvo neste mundo se perde se você não salvar agora.": [
+    "The game closes and reopens, reloading mods from the folder. Unsaved progress in this world will be lost unless you save now.",
+    "Игра закрывается и запускается снова, перечитывая моды из папки. Несохранённый прогресс этого мира будет потерян, если не сохранить сейчас.",
+    "El juego se cierra y se vuelve a abrir, recargando los mods de la carpeta. El progreso sin guardar en este mundo se perderá si no guardas ahora."
+  ],
+  "Salvar e reiniciar": [
+    "Save and restart",
+    "Сохранить и перезапустить",
+    "Guardar y reiniciar"
+  ],
+  "Só reiniciar": [
+    "Just restart",
+    "Просто перезапустить",
+    "Solo reiniciar"
+  ],
+  "Salvando o jogador e o mundo...": [
+    "Saving player and world...",
+    "Сохранение персонажа и мира...",
+    "Guardando el personaje y el mundo..."
+  ],
+  "Reiniciando...": [
+    "Restarting...",
+    "Перезапуск...",
+    "Reiniciando..."
+  ],
+  "O jogo não respondeu. Reiniciando sem salvar...": [
+    "The game did not respond. Restarting without saving...",
+    "Игра не отвечает. Перезапуск без сохранения...",
+    "El juego no respondió. Reiniciando sin guardar..."
+  ],
+  "Não consegui reiniciar: %1$s": [
+    "Could not restart: %1$s",
+    "Не удалось перезапустить: %1$s",
+    "No se pudo reiniciar: %1$s"
+  ],
+  "Editor": [
+    "Editor",
+    "Редактор",
+    "Editor"
+  ],
+  "Anterior": [
+    "Previous",
+    "Назад",
+    "Anterior"
+  ],
+  "Próximo": [
+    "Next",
+    "Далее",
+    "Siguiente"
+  ],
+  "Limpar": [
+    "Clear",
+    "Очистить",
+    "Borrar"
+  ],
+  "Tela cheia": [
+    "Fullscreen",
+    "Полный экран",
+    "Pantalla completa"
+  ],
+  "Rodar": [
+    "Run",
+    "Выполнить",
+    "Ejecutar"
+  ],
+  "O código roda na thread do jogo, como num hook. Main, ID e player (o seu jogador) já estão prontos. print(...) escreve no chat; bl.log(...), no log (que aparece aqui também). let/const valem só na execução; para guardar entre uma e outra, var ou globalThis.x.": [
+    "Code runs on the game thread, like a hook. Main, ID and player (your character) are ready. print(...) writes to chat; bl.log(...) writes to the log (also shown here). let/const last only for one execution; use var or globalThis.x to keep values between runs.",
+    "Код выполняется в потоке игры, как хук. Main, ID и player (ваш персонаж) уже доступны. print(...) пишет в чат; bl.log(...) — в журнал (также показан здесь). let/const действуют только в одном запуске; для хранения между запусками используйте var или globalThis.x.",
+    "El código se ejecuta en el hilo del juego, como un hook. Main, ID y player (tu personaje) están disponibles. print(...) escribe en el chat; bl.log(...), en el registro (también visible aquí). let/const solo duran una ejecución; usa var o globalThis.x para conservar valores entre ejecuciones."
+  ],
+  "Janela": [
+    "Window",
+    "Окно",
+    "Ventana"
+  ],
+  "o núcleo nativo não respondeu: %1$s": [
+    "native core did not respond: %1$s",
+    "нативное ядро не ответило: %1$s",
+    "el núcleo nativo no respondió: %1$s"
+  ],
+  "Dica": [
+    "Tip",
+    "Совет",
+    "Consejo"
+  ],
+  "Importante": [
+    "Important",
+    "Важно",
+    "Importante"
+  ],
+  "Aviso": [
+    "Warning",
+    "Предупреждение",
+    "Aviso"
+  ],
+  "Cuidado": [
+    "Caution",
+    "Осторожно",
+    "Precaución"
+  ],
+  "Nota": [
+    "Note",
+    "Примечание",
+    "Nota"
+  ],
+  "Mostrar": [
+    "Show",
+    "Показать",
+    "Mostrar"
+  ],
+  "mundo": [
+    "world",
+    "мир",
+    "mundo"
+  ],
+  "personagem": [
+    "character",
+    "персонаж",
+    "personaje"
+  ],
+  "%1$s categoria": [
+    "%1$s category",
+    "%1$s категория",
+    "%1$s categoría"
+  ],
+  "%1$s categorias": [
+    "%1$s categories",
+    "Категории: %1$s",
+    "%1$s categorías"
+  ],
+  "%1$s pasta": [
+    "%1$s folder",
+    "%1$s папка",
+    "%1$s carpeta"
+  ],
+  "%1$s pastas": [
+    "%1$s folders",
+    "Папки: %1$s",
+    "%1$s carpetas"
+  ],
+  "%1$s mod": [
+    "%1$s mod",
+    "%1$s мод",
+    "%1$s mod"
+  ],
+  "%1$s mods": [
+    "%1$s mods",
+    "Моды: %1$s",
+    "%1$s mods"
+  ]
+}

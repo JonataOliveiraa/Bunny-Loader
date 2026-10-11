@@ -44,7 +44,7 @@ internal fun StorePullToRefresh(
             )
             .semantics {
                 customActions = if (loading) emptyList() else listOf(
-                    CustomAccessibilityAction("Atualizar loja") {
+                    CustomAccessibilityAction(tr("Atualizar loja")) {
                         refresh()
                         true
                     },
@@ -80,10 +80,10 @@ internal fun StorePullToRefresh(
                 PixelText(
                     when {
                         loading && progress != null && progress.total > 0 ->
-                            "Atualizando loja: ${progress.completed}/${progress.total}"
-                        loading -> "Atualizando loja..."
-                        distance >= 1f -> "Solte para atualizar"
-                        else -> "Puxe para atualizar"
+                            tr("Atualizando loja: %1\$s/%2\$s", progress.completed, progress.total)
+                        loading -> tr("Atualizando loja...")
+                        distance >= 1f -> tr("Solte para atualizar")
+                        else -> tr("Puxe para atualizar")
                     },
                     size = Ts.Small, color = Bl.Text,
                 )

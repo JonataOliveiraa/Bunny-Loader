@@ -6,12 +6,14 @@ import java.text.Collator
 import java.text.Normalizer
 import java.util.Locale
 
-internal enum class PackageStatus(val label: String) {
-    ALL("Todos"), ENABLED("Ativados"), DISABLED("Desativados"),
+internal enum class PackageStatus(private val sourceLabel: String) {
+    ALL("Todos"), ENABLED("Ativados"), DISABLED("Desativados");
+    val label: String get() = tr(sourceLabel)
 }
 
-internal enum class PackageSort(val label: String) {
-    LOAD("Ordem de carga"), SIZE_ASC("Menor tamanho"), SIZE_DESC("Maior tamanho"), NAME("A-Z"),
+internal enum class PackageSort(private val sourceLabel: String) {
+    LOAD("Ordem de carga"), SIZE_ASC("Menor tamanho"), SIZE_DESC("Maior tamanho"), NAME("A-Z");
+    val label: String get() = tr(sourceLabel)
 }
 
 private val SEARCH_MARKS = Regex("\\p{M}+")
