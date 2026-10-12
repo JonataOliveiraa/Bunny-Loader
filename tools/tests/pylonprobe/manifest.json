@@ -1,0 +1,18 @@
+{
+  "uid": "d3967be0-463d-4d0f-bb93-c3ce651455b5",
+  "id": "test-pylonprobe",
+  "name": "Teste: sonda do teletransporte de pilar",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Só loga: a cada pedido de teletransporte, a lista de pilares e as checagens de 'perto de um pilar'.",
+  "description": "Loga 'pylonprobe ...'. Não mexe no mundo.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -13,6 +13,7 @@ class PylonLoader {
     static ByPylonType = new Map();   // PylonType -> ModPylon
     static #FIRST = 11;               // TeleportPylonType.Count
     static #current = [];             // os de mod na lista do jogo agora: [{ x, y, type }]
+    static #stripped = null;          // os de mod tirados da lista pelo desenho do mapa
 
     static Add(pylon) {
         pylon.PylonType = PylonLoader.#FIRST + PylonLoader.ByPylonType.size;
@@ -65,6 +66,53 @@ class PylonLoader {
             frame = PylonLoader.#Frame(11, 0);
         }
         return ctx[draw](texture, center, color, frame, deselectedScale, selectedScale, Terraria.UI.Alignment.Center).IsMouseOver;
+    }
+
+    // O toque no pilar abre o mapa no "modo pilar" do celular, como o toque
+    // num pilar do jogo (Player.TileInteractionsUse, tile 597): o pilar vai
+    // para o Main.MapPylonTile, o mapa enquadra todos os pilares revelados e
+    // o TeleportPylonsMapLayer desenha as linhas a partir dele. Só com o
+    // TryOpeningFullscreenMap (MapPylonTile -1), o mapa abre centrado no
+    // jogador com zoom 2,5: os pilares longe ficam presos na borda, e tocar
+    // num deles só desliza o mapa até ele, sem teletransportar.
+    static OpenMap(i, j) {
+        const Main = Terraria.Main;
+        Main.player[Main.myPlayer].TryOpeningFullscreenMap();
+        if (!Main.mapFullscreen) return false;   // mapa desligado neste mundo
+
+        const top = Terraria.ObjectData.TileObjectData.TopLeft(i, j);
+        const origin = { x: top.X, y: top.Y };
+        const revealed = Terraria.Map.TeleportPylonsMapLayer['bool IsRevealed(TeleportPylonInfo info)'];
+        const list = Main.PylonSystem._pylons, points = [];
+        for (let k = 0; k < list.Count; k++) {
+            const info = list.get_Item(k);
+            if (revealed(info)) points.push({ x: info.PositionInTiles.X, y: info.PositionInTiles.Y });
+        }
+        const camera = bl.classOf('', 'XNAUnityRunner')._instance.UICameraSettings;
+        const frame = PylonLoader.Framing(origin, points, camera._cameraWidth, camera._cameraHeight, Main.mapFullscreenScale);
+        Main.MapPylonTile = Point16.new(origin.x, origin.y);
+        Main.PanTargetMapFullscreen = false;
+        Main.resetMapFull = false;
+        Main.mapFullscreenPos = Vector2.new(frame.centerX, frame.centerY);
+        Main.mapFullscreenScale = frame.scale;
+        return true;
+    }
+
+    // O enquadramento do toque no pilar, em blocos, como o do jogo: o
+    // retângulo que começa no pilar tocado e inclui cada pilar revelado
+    // (Utils.Including), alargado em 20 de cada lado; o centro dele (inteiro,
+    // o Rectangle.Center) e o zoom, que só diminui, até caber na tela menos 40 px.
+    static Framing(origin, points, screenWidth, screenHeight, scale) {
+        let left = origin.x, top = origin.y, right = origin.x, bottom = origin.y;
+        for (const p of points) {
+            left = Math.min(left, p.x);
+            right = Math.max(right, p.x);
+            top = Math.min(top, p.y);
+            bottom = Math.max(bottom, p.y);
+        }
+        const x = left - 20, y = top - 20, width = right - left + 40, height = bottom - top + 40;
+        scale = Math.min(scale, (screenWidth - 40) / width, (screenHeight - 40) / height);
+        return { x, y, width, height, centerX: x + Math.trunc(width / 2), centerY: y + Math.trunc(height / 2), scale };
     }
 
     static ClickIcon(mouseIsHovering, info, textKey, mouseOverText) {
@@ -206,7 +254,18 @@ class PylonLoader {
                     Terraria.Chat.ChatColors.ServerMessage, playerIndex);
                 return undefined;
             }
-            return original(system, info, playerIndex);
+            // O toque no ícone de um pilar do jogo é tratado dentro do
+            // desenho do mapa, com os de mod fora da lista: o IsPlayerNearAPylon
+            // do celular percorre a lista (o retângulo 3x4 de cada pilar), e
+            // perto só do de mod dava "não está perto de um pilar". Durante o
+            // pedido eles voltam, e saem de novo para o resto do desenho.
+            const back = self.#stripped;
+            if (back) for (const entry of back) system._pylons.Add(self.#Info(entry));
+            try {
+                return original(system, info, playerIndex);
+            } finally {
+                if (back) self.#Strip(system._pylons);
+            }
         });
 
         System['bool DoesPositionHaveEnoughNPCs(int necessaryNPCCount, Point16 centerPoint)'].hook((original, count, center) => {
@@ -219,9 +278,12 @@ class PylonLoader {
         Terraria.Map.TeleportPylonsMapLayer['void Draw(ref MapOverlayDrawContext context, ref string text)'].hook((original, layer, context, text) => {
             const list = Terraria.Main.PylonSystem._pylons;
             const mine = self.#Strip(list);
+            self.#stripped = mine.length ? mine : null;
             try {
+                if (mine.length) Safe.Run('ModPylon: linhas', () => self.#DrawLines(mine, context));
                 original(layer, context, text);
             } finally {
+                self.#stripped = null;
                 for (const entry of mine) list.Add(self.#Info(entry));
             }
             if (mine.length) Safe.Run('ModPylon: mapa', () => self.#DrawMap(mine, context, text));
@@ -233,6 +295,36 @@ class PylonLoader {
                 if (pylon instanceof ModPylon && Safe.Run(pylon.constructor.name + '.CanPlacePylon', () => pylon.CanPlacePylon()) === false) return false;
                 return original(x, y, type, style, dir, data, onlyCheck, random);
             }, { minType: 0, arg: 2, marks: 'pylon.place' });
+    }
+
+    // As linhas do modo pilar até os de mod (as do jogo saem no Draw dele, que
+    // não os vê): do centro do ícone do Main.MapPylonTile ao de cada um, preta
+    // de 6 e branca de 2, como as dele. Antes do Draw do jogo, para ficarem
+    // por baixo dos ícones.
+    static #DrawLines(entries, context) {
+        const Main = Terraria.Main;
+        const from = Main.MapPylonTile;
+        const fromX = from.X, fromY = from.Y;
+        if (!Main.mapFullscreen || fromX === -1 || fromY === -1) return;
+
+        const Layer = Terraria.Map.TeleportPylonsMapLayer;
+        const ctx = context instanceof Ref ? context.value : context;
+        const region = 'Rectangle GetUnclampedDrawRegion(Texture2D texture, Vector2 position, SpriteFrame frame, float scale, Alignment alignment)';
+        const texture = Terraria.GameContent.TextureAssets.Extra[182].Value;
+        const frame = PylonLoader.#Frame(11, 0);
+        const centerOf = (x, y) => {
+            const c = ctx[region](texture, Vector2.new(x + 1.5, y + 2), frame, 1, Terraria.UI.Alignment.Center).Center;
+            return Vector2.new(c.X, c.Y);
+        };
+        const line = Layer['void DrawLine(SpriteBatch spriteBatch, Vector2 start, Vector2 end, Color col, float width)'];
+        const start = centerOf(fromX, fromY);
+        for (const entry of entries) {
+            if (entry.x === fromX && entry.y === fromY) continue;
+            if (!Layer['bool IsRevealed(TeleportPylonInfo info)'](PylonLoader.#Info(entry))) continue;
+            const end = centerOf(entry.x, entry.y);
+            line(Main.spriteBatch, start, end, Color.Black, 6);
+            line(Main.spriteBatch, start, end, Color.White, 2);
+        }
     }
 
     static #DrawMap(entries, context, text) {

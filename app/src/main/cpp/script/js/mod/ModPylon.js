@@ -45,9 +45,10 @@ class ModPylon extends ModTile {
         PylonLoader.DrawCrystal(spriteBatch, i, j, crystalTexture, crystalOffset, pylonShadowColor, dustColor, dustChanceDenominator, crystalVerticalFrameCount);
     }
 
-    // Tocar no pilar abre o mapa, como no jogo.
+    // Tocar no pilar abre o mapa como o pilar do jogo: enquadrando os pilares,
+    // com as linhas a partir deste (ver PylonLoader.OpenMap).
     RightClick(i, j) {
-        Terraria.Main.player[Terraria.Main.myPlayer].TryOpeningFullscreenMap();
+        PylonLoader.OpenMap(i, j);
         return true;
     }
 
