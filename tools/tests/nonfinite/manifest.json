@@ -1,0 +1,15 @@
+{
+  "uid": "fcc7b1bb-a722-4597-8bcf-d1746fe87a61",
+  "id": "test-nonfinite",
+  "name": "Teste: NaN e infinito nos campos do jogo",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "A progressão do erro do Ocram (Consolaria) no pó fantasma Main.dust[6000]: o float estoura, e o mod ainda multiplica a velocidade dele. Campo que já guarda infinito aceita outro; NaN ou infinito novo num campo com número continua recusado; argumento float de método já aceitava.",
+  "description": "Loga 'nonfinite ...'. Não mexe no mundo; devolve o musicFade e o pó fantasma (zerado, se já estava estourado).",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

@@ -537,7 +537,7 @@ int no_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     if (!o) return -1;
     Il2CppClass* cls = il2cpp::api().object_get_class(o);
     const Member& m = member(ctx, cls, atom, Space::Instance, g_nativeObjectId);
-    if (m.field) return writeAt(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
+    if (m.field) return writeField(ctx, reinterpret_cast<char*>(o) + m.offset, *m.type, value);
     if (m.setter) return invokeSetter(ctx, m.setter, propertyThis(o, cls), value);
     if (isExtraField(cls, atom)) return extraFieldSet(ctx, o, atom, value);
     if (const int r = extraAccessorSet(ctx, cls, obj, atom, value)) return r;
@@ -1253,9 +1253,9 @@ int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     }
     const TypeDesc& d = elemOf(ctx, obj, arr);
     if (!d.size) return -1;
-    return writeAt(ctx, reinterpret_cast<char*>(arrayData(arr)) +
-                            static_cast<size_t>(idx) * strideOf(d),
-                   d, value);
+    return writeField(ctx, reinterpret_cast<char*>(arrayData(arr)) +
+                               static_cast<size_t>(idx) * strideOf(d),
+                      d, value);
 }
 
 void ga_finalizer(JSRuntime*, JSValue val) {

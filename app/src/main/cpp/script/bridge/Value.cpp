@@ -177,7 +177,7 @@ int indexSet(JSContext* ctx, StructRef* r, int64_t idx, JSValueConst value) {
         return -1;
     }
     if (ix->fields()) {
-        const int ok = writeAt(ctx, static_cast<char*>(r->data) + ix->offset + static_cast<size_t>(idx) * ix->stride,
+        const int ok = writeField(ctx, static_cast<char*>(r->data) + ix->offset + static_cast<size_t>(idx) * ix->stride,
                                *ix->elem, value);
         if (ok > 0) flush(r);
         return ok;
@@ -220,7 +220,7 @@ int gs_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
     if (idx >= 0) return indexSet(ctx, r, idx, value);
     const Member& m = member(ctx, r->cls, atom, Space::Struct, g_structId);
     if (m.field) {
-        int ok = writeAt(ctx, static_cast<char*>(r->data) + m.offset, *m.type, value);
+        int ok = writeField(ctx, static_cast<char*>(r->data) + m.offset, *m.type, value);
         if (ok > 0) flush(r);
         return ok;
     }
@@ -761,6 +761,20 @@ int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
     int64_t x = static_cast<int64_t>(n);
     std::memcpy(b, &x, d.size);  // little-endian: os bytes baixos sao os certos
     return true;
+}
+
+int writeField(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v) {
+    if ((d.prim == Prim::F32 || d.prim == Prim::F64) && JS_IsNumber(v)) {
+        const double now = d.prim == Prim::F32 ? *static_cast<float*>(p) : *static_cast<double*>(p);
+        double x = 0;
+        JS_ToFloat64(ctx, &x, v);
+        if (!std::isfinite(x) && !std::isfinite(now)) {
+            if (d.prim == Prim::F32) *static_cast<float*>(p) = static_cast<float>(x);
+            else *static_cast<double*>(p) = x;
+            return true;
+        }
+    }
+    return writeAt(ctx, p, d, v);
 }
 
 // ============================== GameStruct ==============================

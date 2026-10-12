@@ -67,6 +67,16 @@ JSValue readAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst owner);
 int writeAt(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v);
 
 /**
+ * O writeAt de um campo (ou elemento) que ja existe no jogo. A diferenca: um
+ * float/double que JA guarda NaN ou infinito aceita outro NaN/infinito, como
+ * no C#. E o `pos.X *= 0.5` num valor ja estourado, como o do pó fantasma
+ * (Main.dust[6000], que o NewDust devolve fora da tela e ninguem zera): o mod
+ * so carrega o que o jogo ja tinha. NaN/infinito NOVO num campo com numero
+ * continua recusado (o `undefined * 2` do JS).
+ */
+int writeField(JSContext* ctx, void* p, const TypeDesc& d, JSValueConst v);
+
+/**
  * Vista sobre um struct que vive dentro de `owner`. Escrever altera o jogo.
  * `size` = 0 pergunta o tamanho ao IL2CPP; passe o do TypeDesc quando tiver.
  */
