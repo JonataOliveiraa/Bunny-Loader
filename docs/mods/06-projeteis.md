@@ -1,20 +1,21 @@
-# 6. Projéteis
+# 6. Projectiles
 
-Tudo o que voa, gira ou fica no mundo por um tempo é um projétil: balas,
-flechas, magias, ioiôs, lanças, chicotes, pets, lacaios, sentinelas, ganchos.
-Um projétil novo é uma classe que estende `ModProjectile`.
+Everything that flies, spins or stays in the world for a while is a
+projectile: bullets, arrows, spells, yoyos, spears, whips, pets, minions,
+sentries, grappling hooks. A new projectile is a class that extends
+`ModProjectile`.
 
-Antes, leia as [ideias do guia 4](04-conteudo-novo.md). A lista completa de
-campos e métodos está na [referência](../referencia/classes.md#modprojectile).
+Read the [ideas in guide 4](04-conteudo-novo.md) first. The full list of
+fields and methods is in the [reference](../referencia/classes.md#modprojectile).
 
-## O projétil mais simples
+## The simplest projectile
 
 ```js
 export class ExampleBulletProjectile extends ModProjectile {
     SetDefaults() {
         this.Projectile.width = 8;
         this.Projectile.height = 8;
-        this.Projectile.aiStyle = 1;          // a IA de bala do jogo
+        this.Projectile.aiStyle = 1;          // the game's bullet AI
         this.Projectile.friendly = true;
         this.Projectile.ranged = true;
         this.Projectile.penetrate = 5;
@@ -23,20 +24,20 @@ export class ExampleBulletProjectile extends ModProjectile {
 }
 ```
 
-Registre o projétil **antes** do item que o usa: o item precisa do número dele
-no `SetDefaults`.
+Register the projectile **before** the item that uses it: the item needs its
+number in `SetDefaults`.
 
-## A IA: do jogo ou sua
+## The AI: the game's or yours
 
-Um projétil se move pela **IA**, que roda todo quadro. Há três jeitos de
-escrevê-la:
+A projectile moves through its **AI**, which runs every frame. There are three
+ways to write it:
 
-1. **A de um projétil do jogo**, pelo `aiStyle`: `aiStyle = 1` é bala;
-   o projétil se comporta como aquele estilo.
-2. **A de um projétil específico do jogo**, pelo `AIType`: o tipo do projétil é
-   trocado pelo `AIType` **só durante a IA**. É o que faz um mangual de mod
-   balançar como o Sol Fundido, ou um pet voar como o Zephyr Fish: há IAs que
-   olham o tipo, não só o `aiStyle`.
+1. **A vanilla projectile's**, through `aiStyle`: `aiStyle = 1` is a bullet;
+   the projectile behaves like that style.
+2. **A specific vanilla projectile's**, through `AIType`: the projectile's
+   type is swapped for `AIType` **only during the AI**. That is what makes a
+   mod flail swing like the Sunfury, or a pet fly like the Zephyr Fish: some
+   AIs look at the type, not just the `aiStyle`.
 
    ```js
    SetDefaults() {
@@ -45,76 +46,77 @@ escrevê-la:
    }
    ```
 
-3. **A sua**, com `aiStyle = 0` e o movimento no `AI`:
+3. **Your own**, with `aiStyle = 0` and the movement in `AI`:
 
    ```js
    AI(proj) {
        proj.rotation += 0.2;
-       proj.velocity.Y += 0.15;       // gravidade
+       proj.velocity.Y += 0.15;       // gravity
        if (++proj.ai[0] > 60) proj.velocity.X *= 0.98;
    }
    ```
 
-`PreAI` roda antes e, devolvendo `false`, pula a IA do jogo **e** o `AI`;
-`PostAI` roda depois de tudo. `OnSpawn` roda uma vez, no primeiro quadro de
-vida.
+`PreAI` runs before and, by returning `false`, skips the game's AI **and**
+`AI`; `PostAI` runs after everything. `OnSpawn` runs once, on the first frame
+of life.
 
-`proj.ai` e `proj.localAI` guardam o estado da IA: no jogo são structs de 3
-floats (`Float_FixedArray_3`), e a ponte aceita `[i]` neles como num array
-(`proj.ai[0]++`, `proj.localAI[1] = 5`). Fora do tamanho, `RangeError`.
+`proj.ai` and `proj.localAI` hold the AI state: in the game they are structs
+of 3 floats (`Float_FixedArray_3`), and the bridge accepts `[i]` on them like
+an array (`proj.ai[0]++`, `proj.localAI[1] = 5`). Out of range, `RangeError`.
 
-## Quando cada método roda
+## When each method runs
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `SetStaticDefaults()` | Uma vez. `Terraria.Main.projFrames[this.Type] = n` aqui diz quantos quadros a textura tem. |
-| `SetDefaults(proj)` | Todo projétil deste tipo que nasce. |
-| `OnSpawn(proj)` | Uma vez, no primeiro quadro de vida. |
-| `PreAI(proj)` | Antes da IA. `false` pula a IA do jogo e o `AI`. |
-| `AI(proj)` | A IA sua, todo quadro. |
-| `PostAI(proj)` | Depois da IA. |
-| `TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac)` | Antes de colidir com os blocos, todo quadro. Os quatro são `Ref` (`.value`): o tamanho da caixa que bate nos blocos, se ela atravessa plataformas e o ponto da caixa preso ao centro do projétil (`Vector2`, padrão 0,5/0,5). `false`: atravessa os blocos neste quadro. |
-| `OnTileCollide(proj, oldVelocity)` | Bateu num bloco: `false` evita a morte causada por essa colisão (para quicar, mude `proj.velocity`). `oldVelocity` é a de antes do choque. Lacaio e pet (`Main.projPet`) não morrem no bloco: recebem em todo quadro com choque (no chão, todo quadro). |
-| `PreKill(proj, timeLeft)` | `false` tira os efeitos do jogo na morte (poeira, som); o projétil morre igual. |
-| `OnKill(proj, timeLeft)` | Ao morrer (poeira, som, fragmentos). |
-| `CanHitNPC(proj, target)`, `ModifyHitNPC(proj, target, modifiers)`, `OnHitNPC(proj, target, hit, damageDone)` | O golpe num NPC. Ver [Golpes](16-golpes.md). |
-| `CanHitPlayer(proj, target)`, `ModifyHitPlayer(proj, target, modifiers)`, `OnHitPlayer(proj, target, info)`, `CanHitPvp(proj, target)` | O golpe num jogador (hostil ou PvP). |
-| `Colliding(proj, projHitbox, targetHitbox)` | `true`/`false` decide o acerto; `undefined` deixa o do jogo. |
-| `CanDamage(proj)` | `false`: não causa dano. |
-| `MinionContactDamage(proj)` | `true`: o lacaio (ou pet) fere ao encostar. |
-| `ModifyDamageHitbox(proj, hitbox)` | Mude o `hitbox` (Rectangle) para o dano usar outra área. |
-| `CanCutTiles(proj)`, `CutTiles(proj)` | Cortar grama e teia. |
-| `GetAlpha(proj, lightColor)` | A cor final (uma `Color`), ou `undefined` para a do jogo. |
-| `PreDraw(proj, lightColor)`, `PostDraw(proj, lightColor)` | Desenho: `false` no `PreDraw` não desenha o do jogo; desenhe o seu com `Main.EntitySpriteDraw`. |
-| `CanUseGrapple(player, type)`, `UseGrapple(player, type)` | Gancho de escalar, no **molde**, antes de lançar: `false` impede; `UseGrapple` devolve o tipo a lançar. |
-| `GrappleCanLatchOnTo(proj, player, tile)` | `true`/`false`: o gancho agarra neste bloco; `undefined` = o do jogo (bloco sólido). |
-| `GrappleRange(proj)` | O alcance do gancho, em pixels: mais longe que isso, ele volta. Padrão 300. |
-| `NumGrappleHooks(proj, player, numHooks)` | Quantos ganchos ficam presos ao mesmo tempo (`Ref`; padrão 3). Acima disso, o mais velho solta. |
-| `GrappleRetreatSpeed(proj, player, speed)` | A velocidade da volta (`Ref`; padrão 11). |
-| `GrapplePullSpeed(proj, player, speed)` | A velocidade com que o gancho preso puxa o jogador (`Ref`; padrão 11). |
-| `GrappleTargetPoint(proj, player, grappleX, grappleY)` | O ponto para onde o gancho puxa (`Ref`; a soma dos centros dos ganchos presos até este). |
-| `ShouldUpdatePosition(proj)` | `false`: o jogo não soma a velocidade à posição; o seu `AI` põe a posição (projétil segurado, laser). |
+| `SetStaticDefaults()` | Once. `Terraria.Main.projFrames[this.Type] = n` here says how many frames the texture has. |
+| `SetDefaults(proj)` | Every projectile of this type that spawns. |
+| `OnSpawn(proj)` | Once, on the first frame of life. |
+| `PreAI(proj)` | Before the AI. `false` skips the game's AI and `AI`. |
+| `AI(proj)` | Your AI, every frame. |
+| `PostAI(proj)` | After the AI. |
+| `TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac)` | Before colliding with tiles, every frame. All four are `Ref`s (`.value`): the size of the box that hits tiles, whether it falls through platforms and the point of the box pinned to the projectile's center (`Vector2`, default 0.5/0.5). `false`: goes through tiles this frame. |
+| `OnTileCollide(proj, oldVelocity)` | Hit a tile: `false` avoids the death caused by that collision (to bounce, change `proj.velocity`). `oldVelocity` is the one from before the impact. Minions and pets (`Main.projPet`) do not die on tiles: they get it every frame with an impact (on the ground, every frame). |
+| `PreKill(proj, timeLeft)` | `false` removes the game's death effects (dust, sound); the projectile dies anyway. |
+| `OnKill(proj, timeLeft)` | On death (dust, sound, fragments). |
+| `CanHitNPC(proj, target)`, `ModifyHitNPC(proj, target, modifiers)`, `OnHitNPC(proj, target, hit, damageDone)` | The hit on an NPC. See [Hits](16-golpes.md). |
+| `CanHitPlayer(proj, target)`, `ModifyHitPlayer(proj, target, modifiers)`, `OnHitPlayer(proj, target, info)`, `CanHitPvp(proj, target)` | The hit on a player (hostile or PvP). |
+| `Colliding(proj, projHitbox, targetHitbox)` | `true`/`false` decides the hit; `undefined` keeps the game's. |
+| `CanDamage(proj)` | `false`: deals no damage. |
+| `MinionContactDamage(proj)` | `true`: the minion (or pet) hurts on contact. |
+| `ModifyDamageHitbox(proj, hitbox)` | Change the `hitbox` (Rectangle) so damage uses another area. |
+| `CanCutTiles(proj)`, `CutTiles(proj)` | Cutting grass and cobwebs. |
+| `GetAlpha(proj, lightColor)` | The final color (a `Color`), or `undefined` for the game's. |
+| `PreDraw(proj, lightColor)`, `PostDraw(proj, lightColor)` | Drawing: `false` in `PreDraw` skips the game's drawing; draw yours with `Main.EntitySpriteDraw`. |
+| `CanUseGrapple(player, type)`, `UseGrapple(player, type)` | Grappling hook, on the **template**, before launching: `false` prevents it; `UseGrapple` returns the type to launch. |
+| `GrappleCanLatchOnTo(proj, player, tile)` | `true`/`false`: the hook latches onto this tile; `undefined` = the game's (solid tile). |
+| `GrappleRange(proj)` | The hook's range, in pixels: farther than that, it comes back. Default 300. |
+| `NumGrappleHooks(proj, player, numHooks)` | How many hooks stay latched at the same time (`Ref`; default 3). Above that, the oldest lets go. |
+| `GrappleRetreatSpeed(proj, player, speed)` | The return speed (`Ref`; default 11). |
+| `GrapplePullSpeed(proj, player, speed)` | The speed at which the latched hook pulls the player (`Ref`; default 11). |
+| `GrappleTargetPoint(proj, player, grappleX, grappleY)` | The point the hook pulls toward (`Ref`; the sum of the centers of the hooks latched so far). |
+| `ShouldUpdatePosition(proj)` | `false`: the game does not add velocity to position; your `AI` sets the position (held projectile, laser). |
 
-Todos entram no JS só para projéteis **de mod** (filtro nativo de tipo).
+All of them enter JS only for **mod** projectiles (native type filter).
 
-`OnTileCollide` com retorno `false` não impede a morte por tempo, penetração
-após acertar NPC ou chamada explícita a `proj.Kill()`. Essas mortes continuam
-chamando `PreKill` e, se ele permitir, `OnKill`, mesmo com o projétil no chão.
+`OnTileCollide` returning `false` does not prevent death by time, by
+penetration after hitting an NPC or by an explicit `proj.Kill()` call. Those
+deaths still call `PreKill` and, if it allows, `OnKill`, even with the
+projectile on the ground.
 
-### Quicar
+### Bouncing
 
 ```js
 OnTileCollide(proj, oldVelocity) {
     if (proj.velocity.X !== oldVelocity.X) proj.velocity.X = -oldVelocity.X;
     if (proj.velocity.Y !== oldVelocity.Y) proj.velocity.Y = -oldVelocity.Y * 0.8;
-    return false;   // continua vivo
+    return false;   // stays alive
 }
 ```
 
-### Gancho de escalar
+### Grappling hook
 
-O gancho de mod usa a IA dos ganchos do jogo (`aiStyle` 7): o mais simples
-copia um gancho com `CloneDefaults` e ajusta com os métodos acima.
+A mod hook uses the game's hook AI (`aiStyle` 7): the simplest one copies a
+hook with `CloneDefaults` and adjusts it with the methods above.
 
 ```js
 export class ExampleHook extends ModProjectile {
@@ -126,46 +128,48 @@ export class ExampleHook extends ModProjectile {
 }
 ```
 
-O item que lança: `shoot` com o tipo do gancho e `shootSpeed`; o botão de
-gancho do celular acha o item pelo `Main.projHook`, que o `ModProjectile` já
-marca para `aiStyle` 7. Com o `AIType` de um gancho do jogo, o alcance é o
-dele (como no tModLoader). Os métodos de gancho são só do `ModProjectile`.
-O `ExampleHookProjectile` do Example Mod usa todos, mais o `CanUseGrapple` e o
-`GrappleTargetPoint`, que deixa o jogador pendurado a 50 px do bloco.
+The item that launches it: `shoot` with the hook's type and `shootSpeed`;
+mobile's grapple button finds the item through `Main.projHook`, which
+`ModProjectile` already sets for `aiStyle` 7. With a vanilla hook's `AIType`,
+the range is that hook's (as in tModLoader). The grapple methods only exist on
+`ModProjectile`. The Example Mod's `ExampleHookProjectile` uses all of them,
+plus `CanUseGrapple` and `GrappleTargetPoint`, which leaves the player hanging
+50 px from the tile.
 
-A `ExampleShortsword` mostra o `ShouldUpdatePosition`: a estocada é um
-projétil que a `AI` prende à mão a cada atualização, e o `false` impede o jogo
-de somar a velocidade à posição depois.
+`ExampleShortsword` shows `ShouldUpdatePosition`: the thrust is a projectile
+that `AI` pins to the hand on every update, and the `false` stops the game from
+adding velocity to position afterwards.
 
-## Atalhos
+## Shortcuts
 
-- `this.CloneDefaults(ProjectileID.Spear)`: copia os valores de um projétil do
-  jogo.
+- `this.CloneDefaults(ProjectileID.Spear)`: copies a vanilla projectile's
+  values.
 - `this.DefaultToSpear()`, `DefaultToYoyo()`, `DefaultToFlail()`,
-  `DefaultToWhip()`, `DefaultToDrillOrChainsaw()`, `DefaultToKite()`: os
-  padrões do jogo para cada família de projétil segurado. No **item**,
-  `this.DefaultToWhip(projType, dano, repulsao, velocidade)` e
-  `this.DefaultToSpear(projType, velocidade, tempo)`.
+  `DefaultToWhip()`, `DefaultToDrillOrChainsaw()`, `DefaultToKite()`: the
+  game's defaults for each family of held projectiles. On the **item**,
+  `this.DefaultToWhip(projType, damage, knockback, speed)` and
+  `this.DefaultToSpear(projType, speed, time)`.
 
-## Pets, lacaios e sentinelas
+## Pets, minions and sentries
 
-São um buff, um item e um projétil trabalhando juntos, como no tModLoader. O
-Example Mod tem os quatro: o **Aviãozinho** (pet), a **Luz Irritante** (pet de
-luz), o **Cajado do Lacaio de Exemplo** e o **Cajado da Sentinela de Exemplo**.
+They are a buff, an item and a projectile working together, as in tModLoader.
+The Example Mod has all four: the **Paper Airplane** (pet), the **Annoying
+Light** (light pet), the **Example Minion Staff** and the **Example Sentry
+Staff**.
 
 ```mermaid
 flowchart LR
-    I["Item<br/>(buffType, shoot)"] -- "usar: AddBuff" --> B["Buff<br/>(mantém vivo)"]
-    I -- "usar: shoot" --> P["Projétil<br/>(pet / lacaio)"]
-    B -- "UpdatePlayer: recria<br/>ou renova o tempo" --> P
-    P -- "AI: some sem o buff" --> B
+    I["Item<br/>(buffType, shoot)"] -- "use: AddBuff" --> B["Buff<br/>(keeps it alive)"]
+    I -- "use: shoot" --> P["Projectile<br/>(pet / minion)"]
+    B -- "UpdatePlayer: recreates<br/>or renews the time" --> P
+    P -- "AI: disappears without the buff" --> B
 ```
 
 ### Pet
 
-O buff mantém o pet vivo. O jogo tem o método que cria o pet se faltar e
-renova o buff; ele tem um parâmetro `ref bool`, então vai um `Ref`
-([guia 2](02-ref-e-out.md)):
+The buff keeps the pet alive. The game has the method that creates the pet if
+it is missing and renews the buff; it has a `ref bool` parameter, so a `Ref`
+goes there ([guide 2](02-ref-e-out.md)):
 
 ```js
 const SpawnPet = Terraria.Player['void BuffHandle_SpawnPetIfNeededAndSetTime(int buffIndex, ref bool petBool, int petProjID, int buffTimeToGive)'];
@@ -173,7 +177,7 @@ const SpawnPet = Terraria.Player['void BuffHandle_SpawnPetIfNeededAndSetTime(int
 export class ExamplePetBuff extends ModBuff {
     SetStaticDefaults() {
         Terraria.Main.buffNoTimeDisplay[this.Type] = true;
-        Terraria.Main.vanityPet[this.Type] = true;     // lightPet para pet de luz
+        Terraria.Main.vanityPet[this.Type] = true;     // lightPet for a light pet
     }
 
     UpdatePlayer(player, buffIndex) {
@@ -182,10 +186,10 @@ export class ExamplePetBuff extends ModBuff {
 }
 ```
 
-No item, `shoot` é o pet e `buffType` é o buff; no `UseItem`, o buff entra com
-`player.AddBuff(item.buffType, 3600, false)`. O projétil marca
-`Main.projPet[this.Type] = true` e, a cada quadro, fica vivo enquanto o dono
-tiver o buff:
+On the item, `shoot` is the pet and `buffType` is the buff; in `UseItem`, the
+buff is added with `player.AddBuff(item.buffType, 3600, false)`. The
+projectile sets `Main.projPet[this.Type] = true` and, every frame, stays alive
+while its owner has the buff:
 
 ```js
 AI(proj) {
@@ -194,100 +198,104 @@ AI(proj) {
 }
 ```
 
-Com `Main.vanityPet` (ou `Main.lightPet`) no buff, o item também entra no
-**slot de pet** (ou de luz) do equipamento, e o jogo põe o buff sozinho. O
-Aviãozinho usa a IA do Zephyr Fish: `this.CloneDefaults(ProjectileID.ZephyrFish)`
-e `this.AIType = ProjectileID.ZephyrFish`. A IA do Zephyr Fish mantém o pet
-vivo pelo `player.zephyrfish`; com ele em `false` no `PreAI`, quem decide é o
-buff do mod.
+With `Main.vanityPet` (or `Main.lightPet`) on the buff, the item also goes
+into the equipment's **pet slot** (or light slot), and the game adds the buff
+on its own. The Paper Airplane uses the Zephyr Fish AI:
+`this.CloneDefaults(ProjectileID.ZephyrFish)` and
+`this.AIType = ProjectileID.ZephyrFish`. The Zephyr Fish AI keeps the pet
+alive through `player.zephyrfish`; with it set to `false` in `PreAI`, the
+mod's buff decides.
 
-### Lacaio
+### Minion
 
-- No projétil: `Main.projPet[this.Type] = true`,
-  `ProjectileID.Sets.MinionSacrificable` (o jogo troca o mais velho quando
-  faltam vagas), `ProjectileID.Sets.MinionTargetingFeature` (segue o alvo
-  marcado pelo chicote) e, no `SetDefaults`, `minion = true` e
+- On the projectile: `Main.projPet[this.Type] = true`,
+  `ProjectileID.Sets.MinionSacrificable` (the game replaces the oldest when
+  slots run out), `ProjectileID.Sets.MinionTargetingFeature` (follows the
+  target marked by the whip) and, in `SetDefaults`, `minion = true` and
   `minionSlots = 1`.
-- No buff: `buffNoSave` e, no `UpdatePlayer`, `buffTime[i] = 18000` enquanto
-  `player.ownedProjectileCounts[lacaio] > 0`; sem lacaio, `player.DelBuff(i)`.
-- No item: `summon = true`, `buffType` e `shoot`; o `Shoot` põe o buff
-  (`player.AddBuff(item.buffType, 2, false)`) e devolve `true` para o jogo
-  criar o lacaio. No `ModifyShootStats`, `stats.position = Main.MouseWorld`
-  põe o lacaio onde se tocou.
-- `MinionContactDamage(proj)` devolvendo `true`: o lacaio fere ao encostar
-  (o jogo não deixa pet nem lacaio ferir por contato).
+- On the buff: `buffNoSave` and, in `UpdatePlayer`, `buffTime[i] = 18000`
+  while `player.ownedProjectileCounts[minion] > 0`; with no minion,
+  `player.DelBuff(i)`.
+- On the item: `summon = true`, `buffType` and `shoot`; `Shoot` adds the buff
+  (`player.AddBuff(item.buffType, 2, false)`) and returns `true` so the game
+  creates the minion. In `ModifyShootStats`, `stats.position = Main.MouseWorld`
+  puts the minion where you tapped.
+- `MinionContactDamage(proj)` returning `true`: the minion hurts on contact
+  (the game does not let pets or minions deal contact damage).
 
-O dano do lacaio sai do `originalDamage`, que o jogo recalcula a cada quadro
-com os bônus de invocação. O Bunny Loader o preenche com o dano do item que
-criou o projétil, como o tModLoader.
+The minion's damage comes from `originalDamage`, which the game recalculates
+every frame with the summon bonuses. Bunny Loader fills it with the damage of
+the item that created the projectile, as tModLoader does.
 
-O contador de lacaios sob o ícone do buff:
+The minion counter under the buff icon:
 
 ```js
 const counter = Terraria.DataStructures.CachedProjectileCounterBuffTextHandler.new(ModContent.ProjectileType('ExampleMinion'));
 Terraria.ID.BuffID.Sets.BuffTextHandlers.Add(this.Type, counter);
 ```
 
-### Sentinela
+### Sentry
 
-No item, `sentry = true`; no projétil, `sentry = true` e `timeLeft = 36000`
-(10 minutos). O `Shoot` do Example Mod acha o chão com
-`player.FindSentryRestingSpot(type, x, y, empurrao)` (três `out`), cria a
-sentinela e chama `player.UpdateMaxTurrets()`, que tira a mais velha quando
-passa do limite.
+On the item, `sentry = true`; on the projectile, `sentry = true` and
+`timeLeft = 36000` (10 minutes). The Example Mod's `Shoot` finds the ground
+with `player.FindSentryRestingSpot(type, x, y, push)` (three `out`s), creates
+the sentry and calls `player.UpdateMaxTurrets()`, which removes the oldest one
+when the limit is exceeded.
 
-Para a sentinela pousar em plataforma, `fallThrough.value = false` no
-`TileCollideStyle`. E `OnTileCollide` devolvendo `false`, para o chão não matá-la.
+For the sentry to land on a platform, `fallThrough.value = false` in
+`TileCollideStyle`. And `OnTileCollide` returning `false`, so the ground does
+not kill it.
 
-### Caixa de colisão menor que o desenho
+### A collision box smaller than the drawing
 
 ```js
 TileCollideStyle(proj, width, height, fallThrough, hitboxCenterFrac) {
-    width.value = height.value = 10;   // a lança passa por frestas
-    fallThrough.value = false;         // e para em plataforma
+    width.value = height.value = 10;   // the spear fits through gaps
+    fallThrough.value = false;         // and stops on platforms
     return true;
 }
 ```
 
-A caixa só vale contra os blocos; o dano continua com `width`/`height` (ou o
-`ModifyDamageHitbox`). Projétil com `aiStyle` 10 (areia caindo) usa sempre o
-tamanho dele.
+The box only applies against tiles; damage still uses `width`/`height` (or
+`ModifyDamageHitbox`). A projectile with `aiStyle` 10 (falling sand) always
+uses its own size.
 
-## Desenho próprio
+## Custom drawing
 
-`PreDraw` devolvendo `false` tira o desenho do jogo; desenhe o seu com
-`Main.EntitySpriteDraw`. `lightColor` é a luz do lugar.
+`PreDraw` returning `false` removes the game's drawing; draw yours with
+`Main.EntitySpriteDraw`. `lightColor` is the light at that spot.
 
-Método de instância guardado numa variável continua preso ao objeto de onde
-foi lido:
+An instance method stored in a variable stays bound to the object it was read
+from:
 
 ```js
 const Draw = Terraria.Main.spriteBatch['void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'];
-Draw(texture, position, null, color, 0, origin, 1, 0, 0);   // chama no Main.spriteBatch
+Draw(texture, position, null, color, 0, origin, 1, 0, 0);   // calls on Main.spriteBatch
 ```
 
-### Rastro (`oldPos`, `oldRot`, `oldSpriteDirection`)
+### Trails (`oldPos`, `oldRot`, `oldSpriteDirection`)
 
-O jogo só grava o rastro com um `TrailingMode` no `SetStaticDefaults`, como
-no tModLoader. Sem ele (o padrão é `-1`), as posições ficam zeradas.
+The game only records the trail with a `TrailingMode` in
+`SetStaticDefaults`, as in tModLoader. Without it (the default is `-1`), the
+positions stay zeroed.
 
 ```js
 SetStaticDefaults() {
-    ProjectileID.Sets.TrailCacheLength[this.Type] = 5;   // quantas posições (padrão 10)
-    ProjectileID.Sets.TrailingMode[this.Type] = 0;       // 0: só oldPos; 2: também oldRot e oldSpriteDirection
+    ProjectileID.Sets.TrailCacheLength[this.Type] = 5;   // how many positions (default 10)
+    ProjectileID.Sets.TrailingMode[this.Type] = 0;       // 0: oldPos only; 2: also oldRot and oldSpriteDirection
 }
 ```
 
-`oldPos.Length` é o `TrailCacheLength`. No modo 0, `oldRot` e
-`oldSpriteDirection` ficam zerados de propósito.
+`oldPos.Length` is `TrailCacheLength`. In mode 0, `oldRot` and
+`oldSpriteDirection` stay zeroed on purpose.
 
-## Diferenças do tModLoader
+## Differences from tModLoader
 
-- `proj.ai`, `proj.localAI`, `proj.oldPos`, `proj.oldRot` não são arrays no
-  celular (são structs de tamanho fixo), mas `[i]` funciona igual. O `ai`
-  tem 3 posições.
-- O projétil não tem `DamageType`: `melee`, `ranged`, `magic`, `minion` e
-  `sentry` são campos `bool`. No item, `summon = true`.
-- `player.HasBuff(t)` não existe no celular: `player.FindBuffIndex(t) >= 0`.
-- `Main.ActiveNPCs` não existe: percorra `Terraria.Main.npc` (o último é
-  vazio) e pule os `!npc.active`.
+- `proj.ai`, `proj.localAI`, `proj.oldPos`, `proj.oldRot` are not arrays on
+  mobile (they are fixed-size structs), but `[i]` works the same. `ai` has 3
+  slots.
+- Projectiles have no `DamageType`: `melee`, `ranged`, `magic`, `minion` and
+  `sentry` are `bool` fields. On the item, `summon = true`.
+- `player.HasBuff(t)` does not exist on mobile: `player.FindBuffIndex(t) >= 0`.
+- `Main.ActiveNPCs` does not exist: iterate `Terraria.Main.npc` (the last one
+  is empty) and skip the `!npc.active` ones.

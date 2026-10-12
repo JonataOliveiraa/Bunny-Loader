@@ -1,128 +1,131 @@
-# Despacho limitado de efeitos customizados
+# Bounded dispatch of custom effects
 
-## Análise
+## Analysis
 
-Entrada: pedidos de SoundStyle, incluindo UseSound/HitSound/DeathSound e a
-API direta. Saída: identificador consultável, início confirmado pelo retorno
-do Android ou estado terminal, sem esperar pelo SoundPool na thread do jogo.
+Input: SoundStyle requests, including UseSound/HitSound/DeathSound and the
+direct API. Output: a queryable identifier, a start confirmed by Android's
+return or a terminal state, without waiting for SoundPool on the game thread.
 
-Fatos medidos na etapa anterior: o filtro elimina as entradas vanilla no
-QuickJS; em uma rodada diagnóstica, cerca de 90–93% do tempo dos lotes
-customizados estava dentro de bl.sounds.play. Esse intervalo inclui JNI e
-espera no Android, não mede CPU pura do QuickJS.
+Facts measured in the previous step: the filter eliminates the vanilla entries
+in QuickJS; in a diagnostic round, about 90–93% of the custom batches' time
+was inside bl.sounds.play. That interval includes JNI and waiting on Android;
+it does not measure pure QuickJS CPU.
 
-Hipóteses verificadas nesta etapa: retirar essa espera deve reduzir o tempo
-dos lotes e das atualizações; uma fila precisa ter limites e descartar
-efeitos antigos para não transformar travadas em áudio atrasado.
+Hypotheses checked in this step: removing that wait should reduce the time of
+the batches and the updates; a queue needs limits and must drop old effects so
+as not to turn stutters into late audio.
 
-Casos considerados: carga/arquivo indisponível, fila cheia, backend 0 ou
-exceção, pitch inválido, grupos distintos, ReplaceOldest, IgnoreNew,
-cancelamento pendente ou em andamento, pausa concorrente, retomada após uma
-pausa longa, limite global de streams e retenção de milhares de pedidos.
+Cases considered: loading/file unavailable, a full queue, backend 0 or an
+exception, invalid pitch, distinct groups, ReplaceOldest, IgnoreNew,
+cancelling a pending or in-progress request, a concurrent pause, resuming
+after a long pause, the global stream limit and retaining thousands of
+requests.
 
 ## Design
 
-| Alternativa | Tempo e espaço | Avaliação |
+| Alternative | Time and space | Assessment |
 |---|---|---|
-| Limitar instâncias no JS e continuar síncrono | Trabalho por pedido proporcional às instâncias do estilo; backend ainda bloqueia o chamador | Reduz chamadas, mas altera quantos sons cada mod pede e mantém o gargalo |
-| Executor com tarefa/limpeza por pedido | Fila e timers crescem com o número de pedidos; precisa sincronizar tokens e ciclo de vida | A sugestão original apresentou regressões de falha, pausa e acúmulo de tarefas |
-| Worker único com histórico e pendências limitados | Busca ativa O(L), L ≤ 64 pedidos/streams em andamento; histórico H ≤ 256; até 32 pendências incluindo a chamada nativa; memória O(H + L) | Implementado em SfxQueue, separado do Android para testes determinísticos |
+| Limit instances in JS and stay synchronous | Per-request work proportional to the style's instances; the backend still blocks the caller | Reduces calls, but changes how many sounds each mod asks for and keeps the bottleneck |
+| An executor with a task/cleanup per request | The queue and timers grow with the number of requests; needs to synchronize tokens and lifecycle | The original suggestion had failure, pause and task buildup regressions |
+| A single worker with bounded history and pending requests | Active lookup O(L), L ≤ 64 requests/streams in progress; history H ≤ 256; up to 32 pending including the native call; O(H + L) memory | Implemented in SfxQueue, separate from Android for deterministic tests |
 
-O worker chama play/stop/autoPause/autoResume fora do lock do produtor. Não
-executa JS. Limites contam pendências, duração começa após o retorno positivo
-de play e usa relógio monotônico congelado durante a pausa aplicada. Um
-cancelamento durante play conserva o registro até poder parar o stream
-retornado. Os pedidos em andamento ficam separados do histórico: IgnoreNew
-não varre 256 registros encerrados a cada recusa. Não há ScheduledFuture
-por efeito nem fila genérica ilimitada.
+The worker calls play/stop/autoPause/autoResume outside the producer's lock.
+It runs no JS. The limits count pending requests, the duration starts after
+play's positive return and uses a monotonic clock frozen during the applied
+pause. A cancellation during play keeps the record until the returned stream
+can be stopped. The requests in progress are separate from the history:
+IgnoreNew does not scan 256 finished records on each refusal. There is no
+ScheduledFuture per effect nor an unbounded generic queue.
 
-Pedidos que aguardaram mais de 50 ms são descartados antes da chamada
-Android. Isso limita a espera para despacho, não a duração de SoundPool.play
-nem a latência física do alto-falante. O backend continua com 32 streams.
-Em saturação há recusas, descarte e preempção; os resultados registram esses
-custos. O fim de um stream continua sendo uma estimativa por duração/pitch,
-porque SoundPool não oferece uma consulta de posição/fim por stream.
+Requests that waited more than 50 ms are dropped before the Android call. That
+bounds the wait for dispatch, not SoundPool.play's duration nor the speaker's
+physical latency. The backend keeps 32 streams. Under saturation there are
+refusals, drops and preemption; the results record those costs. The end of a
+stream is still an estimate from duration/pitch, because SoundPool offers no
+per-stream position/end query.
 
-O contrato de SoundEngine foi atualizado explicitamente: PlaySound devolve
-um pedido aceito, GetSoundState distingue pendente/iniciado/falha, StopSound
-cancela também pendências e FindActiveSound exclui pendentes/falhos/pausados.
-O baixo nível bl.sounds.play/stop continua síncrono e usa streams Android;
-não intercambie esses streams com os pedidos de SoundEngine. Seu uso direto
-fica fora do controle de limites da fila. Música mantém o caminho anterior.
+SoundEngine's contract was updated explicitly: PlaySound returns an accepted
+request, GetSoundState tells pending/started/failed apart, StopSound also
+cancels pending requests and FindActiveSound excludes pending/failed/paused
+ones. The low-level bl.sounds.play/stop stays synchronous and uses Android
+streams; do not mix those streams up with SoundEngine's requests. Using it
+directly stays outside the queue's limit control. Music keeps the previous
+path.
 
-## Testes
+## Tests
 
 ```powershell
 node tools/tests/soundfilter/check.mjs
-# Com o JDK/Gradle do projeto:
+# With the project's JDK/Gradle:
 gradle :app:testDebugUnitTest :app:assembleDebug --console=plain
 ```
 
-SfxQueueTest testa o código de produção com relógio e backend controlados.
-Inclui um worker real bloqueado enquanto outro produtor faz mil pedidos e
-cancela. Os doubles verificam estados e ordenação, sem alegar medir áudio
-Android ou latência do dispositivo.
+SfxQueueTest tests the production code with a controlled clock and backend.
+It includes a real worker blocked while another producer makes a thousand
+requests and cancels. The doubles check states and ordering, without claiming
+to measure Android audio or device latency.
 
-## A/B Android
+## Android A/B
 
-O runner compartilhado usa --suite soundasync para manter os resultados
-separados da etapa de filtro. Requer ADB com su/run-as e sessão de jogo
-fechada no prepare. Usa cópias dos saves e restaura preferências e hashes
-dos arquivos originais, conforme o README de soundfilter.
+The shared runner uses --suite soundasync to keep the results separate from
+the filter step. It requires ADB with su/run-as and a closed game session on
+prepare. It uses copies of the saves and restores the preferences and the
+original files' hashes, as in the soundfilter README.
 
-Preserve antes do build o APK com apenas o filtro nativo em
-build/soundasync/baseline.apk. Compile o candidato completo e não execute
-compilações/renderizações pesadas durante as rodadas principais.
+Before the build, keep the APK with only the native filter at
+build/soundasync/baseline.apk. Build the full candidate and do not run heavy
+builds/renders during the main rounds.
 
 ```powershell
 python tools/tests/soundfilter/device.py prepare --suite soundasync
 python tools/tests/soundfilter/device.py run --suite soundasync --variant filtered --label filtered-1 --apk build/soundasync/baseline.apk
 python tools/tests/soundfilter/device.py run --suite soundasync --variant async --label async-1 --apk app/build/outputs/apk/debug/app-debug.apk
-# Completar três rodadas por variante; compare.py usa A/B/B/A/A/B.
+# Complete three rounds per variant; compare.py uses A/B/B/A/A/B.
 python tools/tests/soundasync/analyze.py build/soundasync/127.0.0.1-16384 --out build/soundasync/summary.json
-# Diagnósticos adicionais, com labels separados:
+# Extra diagnostics, with separate labels:
 python tools/tests/soundfilter/device.py run --suite soundasync --variant async --label lifecycle-async --lifecycle --apk app/build/outputs/apk/debug/app-debug.apk
 python tools/tests/soundfilter/device.py restore --suite soundasync
 ```
 
-Cada rodada reutiliza 32 NPCs inofensivos, música customizada, quatro WAVs
-de 200 ms e as quatro fases da etapa anterior. Acrescenta custom-normal
-(um pedido/atualização), custom-burst (48 pedidos a cada 30 atualizações) e
-custom-ignore (12 pedidos/atualização, MaxInstances 1/IgnoreNew). --profile
-acrescenta os wrappers de tempo. --lifecycle cobre a Activity do jogo por
-seis segundos durante um efeito de cinco segundos, retoma a mesma Activity
-e verifica o identificador e a duração de pausa registrada pelo worker.
+Each round reuses 32 harmless NPCs, custom music, four 200 ms WAVs and the
+previous step's four phases. It adds custom-normal (one request/update),
+custom-burst (48 requests every 30 updates) and custom-ignore (12
+requests/update, MaxInstances 1/IgnoreNew). --profile adds the timing
+wrappers. --lifecycle covers the game Activity for six seconds during a
+five-second effect, resumes the same Activity and checks the identifier and
+the pause duration recorded by the worker.
 
-Em emuladores com múltiplos displays, HOME pode atingir outro display e
-deixar o jogo rodando. O runner identifica o root task/display do jogo,
-abre o launcher e, se preciso, move o root task dele para o mesmo display.
-Confere que GameActivity deixou o estado resumed antes de contar a pausa.
-Não altera o ciclo de vida de produção para viabilizar o teste.
+On emulators with multiple displays, HOME may hit another display and leave
+the game running. The runner identifies the game's root task/display, opens
+the launcher and, if needed, moves its root task to the same display. It
+checks that GameActivity left the resumed state before counting the pause. It
+does not change the production lifecycle to make the test possible.
 
-`compare.py --diagnostics` automatiza três rodadas por APK e os diagnósticos,
-restaurando o ambiente em `finally`. `--prepared --resume` continua uma
-preparação existente, conferindo o hash de cada APK nas rodadas reaproveitadas.
+`compare.py --diagnostics` automates three rounds per APK and the
+diagnostics, restoring the environment in `finally`. `--prepared --resume`
+continues an existing preparation, checking each APK's hash in the reused
+rounds.
 
-Para repetir somente o diagnóstico de quatro pedidos por atualização:
+To repeat only the four-requests-per-update diagnostic:
 
 ```powershell
 python tools/tests/soundasync/compare.py --moderate-only --candidate build/soundasync/candidate.apk
 ```
 
-Essa opção prepara cópias novas, executa um par A/B com `--profile
---normal-rate 4 --only-normal` e restaura o ambiente. `--normal-rate` aceita
-1 a 12 pedidos; `--only-normal` executa apenas essa fase e requer
-`--suite soundasync`. Quatro pedidos por atualização ainda excedem 32 vozes
-se todos os efeitos de 200 ms forem mantidos a 60 atualizações por segundo.
-O par registrado é diagnóstico, sem a repetição das rodadas principais.
-Os perfis completos registrados nesta execução usaram um pedido por
-atualização na fase normal; novas execuções de `--diagnostics` usam quatro.
+That option prepares new copies, runs one A/B pair with `--profile
+--normal-rate 4 --only-normal` and restores the environment. `--normal-rate`
+accepts 1 to 12 requests; `--only-normal` runs only that phase and requires
+`--suite soundasync`. Four requests per update still exceed 32 voices if every
+200 ms effect is kept at 60 updates per second. The recorded pair is
+diagnostic, without repeating the main rounds. The full profiles recorded in
+this run used one request per update in the normal phase; new `--diagnostics`
+runs use four.
 
-O resumo apresenta medianas de três rodadas, intervalos, contadores da fila
-e histograma da espera antes do despacho. Started/failed/expired podem
-atravessar os limites da fase: use pendingAtEnd para avaliar trabalho ainda
-em andamento. Não confunda confirmação de SoundPool.play com medição da
-saída física. No perfil, `failed` conta retornos zero do transporte: na variante
-síncrona são falhas de play; na assíncrona são recusas de admissão. A falha
-de início assíncrono é `queue.failed`. Consulte RESULTADOS.md e
-measurements.json para a execução.
+The summary shows medians of three rounds, ranges, queue counters and a
+histogram of the wait before dispatch. Started/failed/expired can cross the
+phase boundaries: use pendingAtEnd to assess work still in progress. Do not
+confuse SoundPool.play's confirmation with measuring physical output. In the
+profile, `failed` counts the transport's zero returns: in the synchronous
+variant they are play failures; in the asynchronous one they are admission
+refusals. The asynchronous start failure is `queue.failed`. See RESULTADOS.md
+and measurements.json for the run.

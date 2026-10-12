@@ -1,33 +1,33 @@
-# Combate de ModItem
+# ModItem combat
 
-Esta é a primeira etapa do [plano de expansão](../../tools/tests/moditemhooks/PLANO.md). A API do Bunny Loader recebe o `item` explicitamente como primeiro argumento. As referências mutáveis são objetos `Ref`, alterados por `.value`.
+This is the first step of the [expansion plan](../../tools/tests/moditemhooks/PLANO.md). Bunny Loader's API receives `item` explicitly as the first argument. The mutable references are `Ref` objects, changed through `.value`.
 
-| Método | Contrato | Ponto nativo |
+| Method | Contract | Native point |
 | --- | --- | --- |
-| `ModifyWeaponDamage(item, player, damage)` | `damage` é `StatModifier`. O retorno numérico também é aceito. | `Player.GetWeaponDamage` |
-| `ModifyWeaponCrit(item, player, crit)` | `crit` é `Ref<number>`; o resultado vira inteiro. | `Player.GetWeaponCrit` |
-| `ModifyWeaponKnockback(item, player, knockback)` | `knockback` é `StatModifier`; resultado negativo ou não finito vira zero. | `Player.GetWeaponKnockback` |
-| `ModifyItemScale(item, player, scale)` | `scale` é `Ref<number>` do multiplicador. Inclui a luva nativa. Não altere `Item.scale` neste callback. | `Player.GetAdjustedItemScale` e `ItemCheck_GetMeleeHitbox` |
-| `CanHitNPC(item, player, target)` | `false` veta, `true` permite a elegibilidade, `null`/`undefined` conserva o jogo. A colisão continua sendo verificada. | `Player.ProcessHitAgainstNPC` e `CanNPCBeHitByPlayerOrPlayerProjectile` |
-| `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | `false` veta, `true` permite a colisão da hitbox com o alvo, `null`/`undefined` conserva o jogo. | `Player.ProcessHitAgainstNPC` e `Rectangle.Intersects` |
-| `ModifyHitNPC(item, player, target, modifiers)` | Modifica um ataque corpo a corpo antes de `StrikeNPC`. | `NPC.StrikeNPC`, no contexto do item |
-| `CanHitPvp(item, player, target)` | No atacante; `false` veta antes de aplicar status e enviar dano. | `Player.CanHit`, durante `ItemCheck_MeleeHitPVP` |
-| `ModifyHitPvp(item, player, target, modifiers)` | Na vítima; objeto com `damage`, `hitDirection`, `quiet`, `crit`, `dodgeable`. | `Player.Hurt`, inclusive recebido pela rede |
-| `OnHitPvp(item, player, target, hurtInfo)` | Só após dano positivo. Recebe os dados efetivamente aplicados. | retorno de `Player.Hurt` |
-| `MeleeEffects(item, player, hitbox)` | Efeitos após os visuais nativos de uso. | `Player.ItemCheck_EmitUseVisuals` |
-| `UseItemHitbox(item, player, hitbox, noHitbox)` | `hitbox` é `Ref<Rectangle>` e `noHitbox` é `Ref<boolean>`. Roda depois da hitbox nativa. | `Player.ItemCheck_GetMeleeHitbox` |
+| `ModifyWeaponDamage(item, player, damage)` | `damage` is a `StatModifier`. A numeric return is also accepted. | `Player.GetWeaponDamage` |
+| `ModifyWeaponCrit(item, player, crit)` | `crit` is a `Ref<number>`; the result becomes an integer. | `Player.GetWeaponCrit` |
+| `ModifyWeaponKnockback(item, player, knockback)` | `knockback` is a `StatModifier`; a negative or non-finite result becomes zero. | `Player.GetWeaponKnockback` |
+| `ModifyItemScale(item, player, scale)` | `scale` is a `Ref<number>` of the multiplier. It includes the native glove. Do not change `Item.scale` in this callback. | `Player.GetAdjustedItemScale` and `ItemCheck_GetMeleeHitbox` |
+| `CanHitNPC(item, player, target)` | `false` vetoes, `true` allows eligibility, `null`/`undefined` keeps the game's. Collision is still checked. | `Player.ProcessHitAgainstNPC` and `CanNPCBeHitByPlayerOrPlayerProjectile` |
+| `CanMeleeAttackCollideWithNPC(item, player, hitbox, target)` | `false` vetoes, `true` allows the hitbox to collide with the target, `null`/`undefined` keeps the game's. | `Player.ProcessHitAgainstNPC` and `Rectangle.Intersects` |
+| `ModifyHitNPC(item, player, target, modifiers)` | Modifies a melee attack before `StrikeNPC`. | `NPC.StrikeNPC`, in the item's context |
+| `CanHitPvp(item, player, target)` | On the attacker; `false` vetoes before applying status and sending damage. | `Player.CanHit`, during `ItemCheck_MeleeHitPVP` |
+| `ModifyHitPvp(item, player, target, modifiers)` | On the victim; an object with `damage`, `hitDirection`, `quiet`, `crit`, `dodgeable`. | `Player.Hurt`, including when received over the network |
+| `OnHitPvp(item, player, target, hurtInfo)` | Only after positive damage. Receives the data actually applied. | `Player.Hurt`'s return |
+| `MeleeEffects(item, player, hitbox)` | Effects after the native use visuals. | `Player.ItemCheck_EmitUseVisuals` |
+| `UseItemHitbox(item, player, hitbox, noHitbox)` | `hitbox` is a `Ref<Rectangle>` and `noHitbox` a `Ref<boolean>`. Runs after the native hitbox. | `Player.ItemCheck_GetMeleeHitbox` |
 
-`ModifyHitNPC` recebe `damage`, `knockBack`, `hitDirection`, `crit`, `SourceDamage` e `Knockback`. Os dois últimos são `StatModifier`. Também pode chamar `SetCrit()` e `DisableCrit()`. O loader aplica os modificadores e limita dano e repulsão a valores finitos não negativos. Golpes recebidos com `fromNet` não reaplicam esses modificadores.
+`ModifyHitNPC` receives `damage`, `knockBack`, `hitDirection`, `crit`, `SourceDamage` and `Knockback`. The last two are `StatModifier`s. It can also call `SetCrit()` and `DisableCrit()`. The loader applies the modifiers and clamps damage and knockback to finite non-negative values. Hits received with `fromNet` do not reapply these modifiers.
 
-`hurtInfo` contém `DamageSource`, `Damage`, `HitDirection`, `PvP`, `Quiet`, `Crit`, `CooldownCounter` e `Dodgeable`. `Damage` é o retorno positivo do `Hurt` nativo. Esquivas e vetos não produzem `OnHitPvp`. `ModifyHitPvp` e `OnHitPvp` executam na vítima. O pacote complementar conserva NetSend/NetReceive da arma, mesmo quando o atacante troca de item antes da recepção. Sem complemento, a origem é recuperada pelo tipo e prefixo do PlayerDeathReason; dados personalizados requerem o complemento enviado pelo Bunny. A [validação em dois processos](../../tools/tests/pendingnetwork/README.md) aprovou os dois sentidos do ataque.
+`hurtInfo` has `DamageSource`, `Damage`, `HitDirection`, `PvP`, `Quiet`, `Crit`, `CooldownCounter` and `Dodgeable`. `Damage` is the native `Hurt`'s positive return. Dodges and vetoes produce no `OnHitPvp`. `ModifyHitPvp` and `OnHitPvp` run on the victim. The complementary packet keeps the weapon's NetSend/NetReceive, even when the attacker switches items before reception. Without the complement, the source is recovered from the PlayerDeathReason's type and prefix; custom data requires the complement sent by Bunny. The [two-process validation](../../tools/tests/pendingnetwork/README.md) passed both directions of the attack.
 
-Os objetos de modificadores são contratos JavaScript do Bunny Loader. Eles não expõem todos os campos de `NPC.HitModifiers` ou `Player.HurtModifiers` do tModLoader. A assinatura atual é `OnHitNPC(item, player, npc, hit, damageDone)`, com `HitInfo` e o dano efetivo; `ModifyHitNPC` usa `HitModifiers` e `ModifyHitPvp` usa `HurtModifiers`. Veja os campos em [Golpes](../mods/16-golpes.md).
+The modifier objects are Bunny Loader JavaScript contracts. They do not expose every field of tModLoader's `NPC.HitModifiers` or `Player.HurtModifiers`. The current signature is `OnHitNPC(item, player, npc, hit, damageDone)`, with `HitInfo` and the actual damage; `ModifyHitNPC` uses `HitModifiers` and `ModifyHitPvp` uses `HurtModifiers`. See the fields in [Hits](../mods/16-golpes.md).
 
-## Ordem e vetos
+## Order and vetoes
 
-O dano da arma passa por ModItem, GlobalItem e ModPlayer, usando um único hook compartilhado. Os retornos numéricos de GlobalItem/ModPlayer e a atribuição legada `ModPlayer.WeaponDamage` continuam válidos. Crítico, repulsão, escala e modificadores de acerto passam pelo ModItem antes do ModPlayer. Qualquer veto de ModPlayer ou ModNPC vence uma permissão do item.
+Weapon damage goes through ModItem, GlobalItem and ModPlayer, using a single shared hook. GlobalItem/ModPlayer's numeric returns and the legacy `ModPlayer.WeaponDamage` assignment remain valid. Crit, knockback, scale and hit modifiers go through ModItem before ModPlayer. Any ModPlayer or ModNPC veto beats a permission from the item.
 
-## Exemplo
+## Example
 
 ```js
 ModifyWeaponDamage(item, player, damage) {
@@ -52,10 +52,10 @@ UseItemHitbox(item, player, hitbox, noHitbox) {
 }
 ```
 
-## Desempenho e validação
+## Performance and validation
 
-Os hooks com argumento de item usam marcas por tipo avaliadas antes da entrada no JavaScript. Itens vanilla e itens de mod sem a sobrescrita correspondente seguem diretamente para o original, enquanto não houver um observador global daquele fluxo. ModPlayer, GlobalItem e DamageClass ampliam somente as marcas necessárias no registro. Tipos de mod registrados depois recebem essas marcas.
+Hooks with an item argument use per-type marks evaluated before entering JavaScript. Vanilla items and mod items without the matching override go straight to the original, as long as there is no global observer of that flow. ModPlayer, GlobalItem and DamageClass widen only the marks needed on registration. Mod types registered later receive those marks.
 
-As sobrescritas herdadas e os rótulos de erro são preparados por classe. `Rectangle.Intersects` usa `whileIn` e uma flag: só entra no JavaScript quando a colisão foi forçada durante o ataque. Os contextos e as alterações temporárias de escala são restaurados em `finally`.
+Inherited overrides and error labels are prepared per class. `Rectangle.Intersects` uses `whileIn` and a flag: it only enters JavaScript when the collision was forced during the attack. The contexts and the temporary scale changes are restored in `finally`.
 
-Veja os [testes e limites da etapa](../../tools/tests/moditemhooks/README.md). Os contratos foram confrontados com o [ModItem do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs), o dump móvel e a desassemblagem dos métodos utilizados.
+See the [tests and limits of this step](../../tools/tests/moditemhooks/README.md). The contracts were checked against [tModLoader's ModItem](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs), the mobile dump and the disassembly of the methods used.

@@ -1,9 +1,9 @@
 # PlayerDrawLayer
 
-Classes exportadas em `Content/`, `Common/` ou no arquivo de entrada do mod
-podem estender `PlayerDrawLayer`. O registro ocorre automaticamente, após
-os itens e equipamentos e antes de `Mod.Load`. Cada classe possui um
-template próprio, acessível por `ModContent.GetInstance(Classe)`.
+Classes exported in `Content/`, `Common/` or in the mod's entry file can
+extend `PlayerDrawLayer`. Registration happens automatically, after the items
+and equipment and before `Mod.Load`. Each class has its own template,
+reachable through `ModContent.GetInstance(Class)`.
 
 ```js
 export class MyLayer extends PlayerDrawLayer {
@@ -29,47 +29,47 @@ export class MyLayer extends PlayerDrawLayer {
 }
 ```
 
-## Métodos e estado
+## Methods and state
 
-| Membro | Contrato |
+| Member | Contract |
 |---|---|
-| `GetDefaultPosition()` | Obrigatório. Retorna `BeforeParent(pai)` ou `AfterParent(pai)`. Consultado na construção do plano, com resultado em cache. |
-| `GetDefaultVisibility(drawInfo)` | Padrão `true`. Consultado em cada desenho. `false` suprime a camada e seus filhos. |
-| `Draw(drawInfo)` | Obrigatório. Executado no ponto do pai nativo ou personalizado. Use o cache para desenhar. |
-| `SetStaticDefaults()` | Executado uma vez com conteúdo pronto. Registro tardio executa-o antes do primeiro desenho. |
-| `Hide()` | Suprime a camada e seus filhos no desenho atual. |
-| `Visible` | Getter da visibilidade própria. Um pai oculto também impede a execução. |
-| `Name` | Por padrão, o nome da classe. `super('Nome')` permite outro nome. |
-| `FullName` | `uuid-do-mod/Name`, ou apenas o nome para descritores nativos. |
-| `Mod` | Mod responsável pelo registro. |
-| `BeforeParent(pai)` / `AfterParent(pai)` | Cria uma posição antes/depois do pai. |
-| `register(Classe)` | Registro manual. Valida os métodos obrigatórios, rejeita duplicatas e retorna o template. |
+| `GetDefaultPosition()` | Required. Returns `BeforeParent(parent)` or `AfterParent(parent)`. Asked when the plan is built, with the result cached. |
+| `GetDefaultVisibility(drawInfo)` | Default `true`. Asked on every draw. `false` suppresses the layer and its children. |
+| `Draw(drawInfo)` | Required. Runs at the native or custom parent's point. Use the cache to draw. |
+| `SetStaticDefaults()` | Runs once with content ready. A late registration runs it before the first draw. |
+| `Hide()` | Suppresses the layer and its children in the current draw. |
+| `Visible` | Getter for the layer's own visibility. A hidden parent also prevents it from running. |
+| `Name` | By default, the class name. `super('Name')` allows another name. |
+| `FullName` | `mod-uuid/Name`, or just the name for native descriptors. |
+| `Mod` | The mod responsible for the registration. |
+| `BeforeParent(parent)` / `AfterParent(parent)` | Creates a position before/after the parent. |
+| `register(Class)` | Manual registration. Validates the required methods, rejects duplicates and returns the template. |
 
-O pai pode ser um descritor de `PlayerDrawLayers`, uma classe personalizada
-registrada, sua instância ou seu `FullName`. Nomes simples são aceitos
-quando identificam uma camada sem ambiguidade. Camadas do mesmo mod precisam
-ter nomes distintos. Classes com `static Autoload = false` não são
-registradas automaticamente e podem chamar `PlayerDrawLayer.register`.
+The parent can be a `PlayerDrawLayers` descriptor, a registered custom class,
+its instance or its `FullName`. Simple names are accepted when they identify a
+layer without ambiguity. Layers from the same mod need distinct names. Classes
+with `static Autoload = false` are not registered automatically and can call
+`PlayerDrawLayer.register`.
 
-Filhos são desenhados na ordem de registro: filhos anteriores, o pai,
-filhos posteriores. O mesmo mecanismo aceita filhos de camadas
-personalizadas e dos pontos nativos aninhados, como `FrontAccFront`.
-Ocultar o pai suprime toda a árvore. Visibilidades são restauradas ao terminar.
-O renderer fecha o acesso aos hooks de camada fora desse desenho. Chamadas
-aninhadas restauram os filtros do desenho anterior.
+Children are drawn in registration order: the earlier children, the parent,
+the later children. The same mechanism accepts children of custom layers and
+of nested native points, like `FrontAccFront`. Hiding the parent suppresses the
+whole tree. Visibilities are restored at the end. The renderer closes access
+to the layer hooks outside that draw. Nested calls restore the previous draw's
+filters.
 
-`Draw` pode ser chamado para pós-imagens. Use `drawInfo.shadow === 0` na
-visibilidade quando o efeito deve aparecer somente no jogador principal.
-Falhas de callbacks são reportadas uma vez e isoladas. Dados válidos já
-adicionados antes de uma falha permanecem no cache. Pais desconhecidos,
-posições inválidas e ciclos desativam as ramificações afetadas com aviso.
+`Draw` can be called for afterimages. Use `drawInfo.shadow === 0` in the
+visibility when the effect should only appear on the main player. Callback
+failures are reported once and isolated. Valid data already added before a
+failure stays in the cache. Unknown parents, invalid positions and cycles
+disable the affected branches with a warning.
 
-## Ordenação por jogador
+## Per-player ordering
 
-`ModPlayer.ModifyDrawLayerOrdering(player, positions)` recebe um `Map`
-inicializado com as posições das camadas personalizadas. Use descritores,
-classes, instâncias ou nomes como chaves. As posições pertencem ao desenho
-atual; modificá-las não altera os padrões nem o desenho de outro jogador.
+`ModPlayer.ModifyDrawLayerOrdering(player, positions)` receives a `Map`
+initialized with the custom layers' positions. Use descriptors, classes,
+instances or names as keys. The positions belong to the current draw;
+changing them does not change the defaults or another player's draw.
 
 ```js
 ModifyDrawLayerOrdering(player, positions) {
@@ -81,18 +81,18 @@ HideDrawLayers(player, drawInfo) {
 }
 ```
 
-Remover a posição de uma instância com `positions.delete(instance)` suprime
-sua árvore naquele desenho. Quando uma camada nativa é reordenada, seus
-filhos personalizados são movidos junto com os dados produzidos por ela.
-Relações entre camadas nativas e filhos personalizados são resolvidas pelo
-pai nativo da árvore, preservando o grupo completo.
+Removing an instance's position with `positions.delete(instance)` suppresses
+its tree in that draw. When a native layer is reordered, its custom children
+move along with the data it produced. Relations between native layers and
+custom children are resolved through the tree's native parent, keeping the
+whole group.
 
-## Glowmask de asas
+## Wings glowmask
 
-O [exemplo WingsGlowmask](../../samples/ExampleMod/content/Common/Players/WingsGlowmask.js)
-implementa textura e cor por slot, posição junto das asas, quadro de
-animação e shader `cWings`. Registre os dados com conteúdo pronto, por
-exemplo no `PostSetupContent` do mod:
+The [WingsGlowmask example](../../samples/ExampleMod/content/Common/Players/WingsGlowmask.js)
+implements a texture and color per slot, a position next to the wings, the
+animation frame and the `cWings` shader. Register the data with content
+ready, for example in the mod's `PostSetupContent`:
 
 ```js
 import { WingsGlowmask } from './Common/Players/WingsGlowmask.js';
@@ -107,41 +107,41 @@ PostSetupContent() {
 }
 ```
 
-Forneça sua textura `_Wings_Glow`; ela não está incluída no ExampleMod.
-`Frames` precisa corresponder à animação. O deslocamento padrão
-`{ X: -9, Y: 2 }` reproduz a geometria do exemplo apresentado e pode ser
-substituído por `Offset`. Asas com desenho especial podem precisar de outro
-deslocamento. `RegisterData` conserva a primeira configuração de cada slot.
+Provide your own `_Wings_Glow` texture; it is not included in ExampleMod.
+`Frames` has to match the animation. The default offset `{ X: -9, Y: 2 }`
+reproduces the example's geometry and can be replaced through `Offset`. Wings
+with special drawing may need another offset. `RegisterData` keeps the first
+configuration of each slot.
 
-O dado inserido deve ser o `DrawData` construído para a textura, e não o
-`Ref` que contém a configuração. `ModPlayer.AddDrawData` atualiza o contador
-nativo. O renderer aplica transformações, ordem e shaders após montar as
-camadas. Chamar `DrawData.Draw(Main.spriteBatch)` diretamente antecipa o
-desenho e evita esse fluxo.
+The data inserted must be the `DrawData` built for the texture, not the `Ref`
+holding the configuration. `ModPlayer.AddDrawData` updates the native counter.
+The renderer applies transformations, order and shaders after assembling the
+layers. Calling `DrawData.Draw(Main.spriteBatch)` directly draws early and
+skips that flow.
 
-## Compatibilidade e custo
+## Compatibility and cost
 
-O comportamento foi conferido na cópia local do tModLoader, em
-`PlayerDrawLayer.cs`, `PlayerDrawLayer.Positions.cs` e
-`ExamplePlayerDrawLayer.cs`. A
-[fonte pública](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/PlayerDrawLayer.cs)
-descreve o mesmo contrato de filhos e cache. O Bunny Loader usa o
-`DrawData[]` móvel com contador, em vez de `List<DrawData>`.
+The behavior was checked against the local tModLoader copy, in
+`PlayerDrawLayer.cs`, `PlayerDrawLayer.Positions.cs` and
+`ExamplePlayerDrawLayer.cs`. The
+[public source](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/PlayerDrawLayer.cs)
+describes the same children and cache contract. Bunny Loader uses mobile's
+`DrawData[]` with a counter, instead of `List<DrawData>`.
 
-O plano padrão é reconstruído quando novas camadas são registradas.
-Visibilidade e ordenação dinâmica são avaliadas por desenho. Apenas os
-hooks nativos que precisam executar filhos, ocultar uma camada ou registrar
-dados para reordenação entram no JavaScript. Uma camada anexada somente às
-asas ativa o hook das asas. Camadas invisíveis não ativam hooks dos seus pais.
-Os filtros individuais são atualizados somente quando o conjunto de
-camadas ativas muda. Fora do renderer, a condição nativa `whileIn` mantém
-os hooks fora do JavaScript mesmo quando seus filtros estão em cache.
-A inserção no cache usa o array existente. Reordenação nativa reutiliza a
-cópia em blocos e só clona o trecho ativo quando a ordem efetiva muda.
+The default plan is rebuilt when new layers are registered. Visibility and
+dynamic ordering are evaluated per draw. Only the native hooks that need to
+run children, hide a layer or record data for reordering enter JavaScript. A
+layer attached only to the wings activates the wings hook. Invisible layers do
+not activate their parents' hooks. The individual filters are only updated
+when the set of active layers changes. Outside the renderer, the native
+`whileIn` condition keeps the hooks out of JavaScript even when their filters
+are cached. Inserting into the cache uses the existing array. Native
+reordering reuses the block copy and only clones the active section when the
+effective order changes.
 
-Esta implementação cobre `BeforeParent`, `AfterParent`, visibilidade,
-desenho, registro e ordenação compartilhada com ModPlayer. `Between`,
-`Multiple`, `Transformation`, `IsHeadLayer` e o desenho do ícone de minimapa
-não estão implementados.
+This implementation covers `BeforeParent`, `AfterParent`, visibility,
+drawing, registration and the ordering shared with ModPlayer. `Between`,
+`Multiple`, `Transformation`, `IsHeadLayer` and drawing the minimap icon are
+not implemented.
 
-Testes e resultados: [suíte PlayerDrawLayer](../../tools/tests/playerdrawlayers/README.md).
+Tests and results: [PlayerDrawLayer suite](../../tools/tests/playerdrawlayers/README.md).

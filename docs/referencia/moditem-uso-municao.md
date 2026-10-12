@@ -1,51 +1,51 @@
-# ModItem: animação, frames e munição
+# ModItem: animation, frames and ammo
 
-Os callbacks recebem o `item` da instância como primeiro argumento. Sobrescreva apenas os métodos necessários. Métodos de arma recebem a munição como segundo argumento; métodos de munição recebem a arma nessa posição.
+The callbacks receive the instance's `item` as the first argument. Override only the methods you need. Weapon methods receive the ammo as the second argument; ammo methods receive the weapon in that position.
 
-## Animação e frames
+## Animation and frames
 
-| Método | Contrato |
+| Method | Contract |
 | --- | --- |
-| `UseAnimation(item, player)` | Antes de `Player.ApplyItemAnimation` calcular a duração. Alterações em `item.useAnimation` participam do cálculo nativo. Modificadores de velocidade de ModPlayer são aplicados em seguida. |
-| `UseItemFrame(item, player)` | Depois de `Player.PlayerFrame`, com `itemAnimation > 0`. Pode alterar `player.bodyFrame`, `legFrame` e os demais campos de desenho do jogador. |
-| `HoldItemFrame(item, player)` | Depois de `Player.PlayerFrame`, com `itemAnimation <= 0`, desde que `CanVisuallyHoldItem` permita desenhar o item. |
+| `UseAnimation(item, player)` | Before `Player.ApplyItemAnimation` computes the duration. Changes to `item.useAnimation` take part in the native calculation. ModPlayer's speed modifiers are applied next. |
+| `UseItemFrame(item, player)` | After `Player.PlayerFrame`, with `itemAnimation > 0`. Can change `player.bodyFrame`, `legFrame` and the player's other drawing fields. |
+| `HoldItemFrame(item, player)` | After `Player.PlayerFrame`, with `itemAnimation <= 0`, as long as `CanVisuallyHoldItem` allows drawing the item. |
 
-Os frames são uma adaptação do ponto de inserção do tModLoader: executam depois do método nativo completo do jogo móvel. Seus retornos são ignorados. O filtro nativo lê `inventory[selectedItemState.selected].type` e verifica a marca por tipo antes de adquirir a trava do JavaScript. Não percorre o inventário por quadro. Itens sem sobrescritas não entram nesse callback do dispatcher. O hook de armaduras já existente possui seu próprio fluxo e seus próprios contadores.
+The frames are an adaptation of tModLoader's insertion point: they run after the mobile game's complete native method. Their return values are ignored. The native filter reads `inventory[selectedItemState.selected].type` and checks the per-type mark before taking the JavaScript lock. It does not walk the inventory every frame. Items without overrides do not enter this dispatcher callback. The existing armor hook has its own flow and its own counters.
 
-## Seleção e consumo
+## Selection and consumption
 
-| Método | Quem recebe | Padrão e comportamento |
+| Method | Who receives it | Default and behavior |
 | --- | --- | --- |
-| `NeedsAmmo(item, player)` | Arma | `true`. `false` permite usar uma instância temporária da munição padrão quando nenhum candidato é encontrado. Ela não entra no inventário e não é consumida. A categoria precisa corresponder ao campo `ammo` do item padrão. |
-| `CanChooseAmmo(item, ammo, player)` | Arma | `null`. `false` rejeita o candidato; `true` permite outra categoria. |
-| `CanBeChosenAsAmmo(item, weapon, player)` | Munição | `null`. Compõe com a decisão da arma. Qualquer `false` prevalece. Sem decisão explícita, vale `ammo.ammo === weapon.useAmmo`. |
-| `CanConsumeAmmo(item, ammo, player)` | Arma | `true`. `false` conserva a pilha sem impedir o tiro. |
-| `CanBeConsumedAsAmmo(item, weapon, player)` | Munição | `true`. `false` conserva a pilha. |
-| `OnConsumeAmmo(item, ammo, player)` | Arma | Notificação de consumo efetivo. |
-| `OnConsumedAsAmmo(item, weapon, player)` | Munição | Notificação de consumo efetivo. |
-| `PickAmmo(item, weapon, player, type, speed, damage, knockback)` | Munição | `type`, `speed` e `knockback` são `Ref<number>`. `damage` é um `StatModifier` aplicado ao dano final calculado pelo jogo móvel. |
+| `NeedsAmmo(item, player)` | Weapon | `true`. `false` allows using a temporary instance of the default ammo when no candidate is found. It does not enter the inventory and is not consumed. The category must match the default item's `ammo` field. |
+| `CanChooseAmmo(item, ammo, player)` | Weapon | `null`. `false` rejects the candidate; `true` allows another category. |
+| `CanBeChosenAsAmmo(item, weapon, player)` | Ammo | `null`. Combines with the weapon's decision. Any `false` wins. With no explicit decision, `ammo.ammo === weapon.useAmmo` applies. |
+| `CanConsumeAmmo(item, ammo, player)` | Weapon | `true`. `false` keeps the stack without preventing the shot. |
+| `CanBeConsumedAsAmmo(item, weapon, player)` | Ammo | `true`. `false` keeps the stack. |
+| `OnConsumeAmmo(item, ammo, player)` | Weapon | Notification of actual consumption. |
+| `OnConsumedAsAmmo(item, weapon, player)` | Ammo | Notification of actual consumption. |
+| `PickAmmo(item, weapon, player, type, speed, damage, knockback)` | Ammo | `type`, `speed` and `knockback` are `Ref<number>`s. `damage` is a `StatModifier` applied to the final damage computed by the mobile game. |
 
-`undefined` também preserva a decisão padrão das permissões. Pilhas vazias e itens de ar não são candidatos. Retornar `true` indiscriminadamente permite qualquer item com pilha positiva, inclusive a própria arma; restrinja essa permissão ao candidato desejado.
+`undefined` also keeps the permissions' default decision. Empty stacks and air items are not candidates. Returning `true` indiscriminately allows any item with a positive stack, including the weapon itself; restrict that permission to the candidate you want.
 
-A seleção mantém as listas de slots fornecidas pelo jogo e os modos de alternância de munição da versão móvel. O índice de alternância é aplicado apenas aos candidatos aceitos; armas com as exceções nativas de seleção conservam a primeira pilha. A varredura custa O(s), com s igual à quantidade de slots daquele intervalo, e acontece somente quando a seleção é consultada. Uma sobrescrita na munição precisa observar armas vanilla; suas marcas são ampliadas no registro, incluindo tipos registrados posteriormente.
+The selection keeps the slot lists the game provides and the mobile version's ammo switching modes. The switching index is applied only to the accepted candidates; weapons with the native selection exceptions keep the first stack. The scan costs O(s), with s equal to the number of slots in that range, and only happens when the selection is queried. An override on the ammo needs to observe vanilla weapons; its marks are widened on registration, including types registered later.
 
-## Ordem e adaptação móvel
+## Order and mobile adaptation
 
-1. Selecionar um candidato e consultar os vetos de consumo da arma, da munição e de ModPlayer.
-2. Executar `PickAmmo` nativo, preservando bônus, combinações de projéteis e chances de economia do jogo.
-3. Executar `ModItem.PickAmmo` da munição, ajustando os resultados antes de retorná-los ao chamador.
-4. Havendo decremento efetivo, chamar `OnConsumeAmmo` da arma, `OnConsumedAsAmmo` da munição e `ModPlayer.OnConsumeAmmo`, nessa ordem.
-5. Limpar a última unidade com `TurnToAir` nativo.
+1. Select a candidate and ask the weapon's, the ammo's and ModPlayer's consumption vetoes.
+2. Run the native `PickAmmo`, keeping the game's bonuses, projectile combinations and savings chances.
+3. Run the ammo's `ModItem.PickAmmo`, adjusting the results before returning them to the caller.
+4. On an actual decrement, call the weapon's `OnConsumeAmmo`, the ammo's `OnConsumedAsAmmo` and `ModPlayer.OnConsumeAmmo`, in that order.
+5. Clear the last unit with the native `TurnToAir`.
 
-No tModLoader, as notificações antecedem o decremento. No Bunny Loader, o decremento continua no método nativo; os callbacks recebem a pilha já reduzida. Na última unidade, `stack` é zero, mas o tipo e a instância permanecem disponíveis até as notificações terminarem. O `StatModifier` de `PickAmmo` opera sobre o dano total móvel, e não sobre a contribuição separada da munição usada pelo tModLoader.
+In tModLoader, the notifications come before the decrement. In Bunny Loader, the decrement stays in the native method; the callbacks receive the already reduced stack. On the last unit, `stack` is zero, but the type and the instance remain available until the notifications finish. `PickAmmo`'s `StatModifier` operates on mobile's total damage, not on the ammo's separate contribution used by tModLoader.
 
-`dontConsume`, munição não consumível, veto ou economia nativa não geram notificações. `PickAmmo` ainda pode ajustar os resultados de uma consulta sem consumo. Não force uma nova redução de `stack` em uma notificação.
+`dontConsume`, non-consumable ammo, a veto or native savings produce no notifications. `PickAmmo` can still adjust the results of a query without consumption. Do not force another `stack` reduction in a notification.
 
-Os valores finais de projétil e dano são inteiros não negativos. Velocidade e repulsão são finitas não negativas. Valores não finitos devolvem o resultado nativo anterior. Exceções de callback são atribuídas à classe e ao método; as outras notificações continuam, e a limpeza e os campos temporários são restaurados em `finally`.
+The final projectile and damage values are non-negative integers. Speed and knockback are finite and non-negative. Non-finite values return the previous native result. Callback exceptions are attributed to the class and the method; the other notifications go on, and the cleanup and temporary fields are restored in `finally`.
 
-Existe um único hook compartilhado de `Player.PickAmmo`, independentemente da ordem de registro de ModItem e ModPlayer. Os hooks auxiliares de seleção do item e de limpeza só entram no JavaScript durante esse contexto. Esses callbacks não enviam pacotes adicionais; a seleção participa do fluxo local existente. A execução em dois processos ainda precisa de validação específica.
+There is a single shared `Player.PickAmmo` hook, regardless of the registration order of ModItem and ModPlayer. The auxiliary item selection and cleanup hooks only enter JavaScript during that context. These callbacks send no extra packets; the selection takes part in the existing local flow. Running across two processes still needs specific validation.
 
-## Exemplos
+## Examples
 
 ```js
 NeedsAmmo(item, player) {
@@ -57,7 +57,7 @@ CanConsumeAmmo(item, ammo, player) {
 }
 ```
 
-Na classe da munição:
+In the ammo's class:
 
 ```js
 CanBeChosenAsAmmo(item, weapon, player) {
@@ -70,4 +70,4 @@ PickAmmo(item, weapon, player, type, speed, damage, knockback) {
 }
 ```
 
-Contratos consultados: [ModItem](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs), [ItemLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ItemLoader.cs) e [pontos de inserção em Player](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/Player.cs.patch). A alternativa de `UseAnimation` no ExMod do TL Pro também foi conferida. Evidências locais: `refs/dump.cs` e disassembly das rotinas móveis de animação, seleção, uso e consumo.
+Contracts consulted: [ModItem](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs), [ItemLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ItemLoader.cs) and [insertion points in Player](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/Player.cs.patch). The `UseAnimation` alternative in TL Pro's ExMod was also checked. Local evidence: `refs/dump.cs` and the disassembly of the mobile animation, selection, use and consumption routines.

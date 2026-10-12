@@ -1,38 +1,39 @@
-# Lasers de mod e o custo do combate de projétil
+# Mod lasers and the cost of projectile combat
 
-Origem: o lacaio EyeOfEternity do Consolaria (porte do GST378) derrubava o
-FPS ao atirar o EternalLaser, que clona o EyeLaser e usa
-`AIType = ProjectileID.PurpleLaser`. A suspeita era o `AIType`; não era.
+Origin: Consolaria's EyeOfEternity minion (GST378's port) tanked the FPS when
+shooting the EternalLaser, which clones the EyeLaser and uses
+`AIType = ProjectileID.PurpleLaser`. The suspect was `AIType`; it was not.
 
-O teste dispara lasers num ritmo fixo (um a cada 2 quadros, 120 quadros de
-vida: ~60 no ar) e mede o `DoUpdate`/`DoDraw` e os hooks (`bl.hookStats`) em
-seis fases de 300 quadros: nada, PurpleLaser e EyeLaser do jogo, o
-EternalLaser com e sem `AIType`, e 10 lacaios atirando em slimes. Precisa do
-Consolaria ligado (`ModContent.ProjectileType('consolaria/EternalLaser')`).
+The test fires lasers at a fixed rate (one every 2 frames, 120 frames of
+life: ~60 in the air) and measures `DoUpdate`/`DoDraw` and the hooks
+(`bl.hookStats`) in six phases of 300 frames: nothing, the game's PurpleLaser
+and EyeLaser, the EternalLaser with and without `AIType`, and 10 minions
+shooting at slimes. It needs Consolaria enabled
+(`ModContent.ProjectileType('consolaria/EternalLaser')`).
 
-## O que era
+## What it was
 
-Com qualquer hook de golpe de projétil (um `OnHitNPC` de projétil, um
-`OnHitNPCWithProj` de ModPlayer), o `CombatLoader` punha um hook JS no
-`Projectile.Damage_PVE`, que o jogo chama para todo projétil amigo a cada
-atualização (o laser tem 2 a 4 atualizações extras por quadro), e esse hook
-ligava o `CanNPCBeHitByPlayerOrPlayerProjectile` no JS para cada NPC. No MuMu,
-com 60 lasers e ~12 NPCs: 2.800 entradas no JS por quadro.
+With any projectile hit hook (a projectile's `OnHitNPC`, a ModPlayer's
+`OnHitNPCWithProj`), `CombatLoader` put a JS hook on `Projectile.Damage_PVE`,
+which the game calls for every friendly projectile on every update (the laser
+has 2 to 4 extra updates per frame), and that hook turned on
+`CanNPCBeHitByPlayerOrPlayerProjectile` in JS for each NPC. On MuMu, with 60
+lasers and ~12 NPCs: 2,800 JS entries per frame.
 
-Agora o `Damage_PVE` tem só o escopo nativo (`scope()`), o `StrikeNPC` acha o
-projétil pelo `scopeSelf()` e o `CanNPCBeHit...` de projétil só entra no JS
-para quem tem `CanHitNPC` de projétil ou `CanBeHitByProjectile`.
+Now `Damage_PVE` only has the native scope (`scope()`), `StrikeNPC` finds the
+projectile through `scopeSelf()` and the projectile's `CanNPCBeHit...` only
+enters JS for those with a projectile `CanHitNPC` or `CanBeHitByProjectile`.
 
-| Fase (MuMu, 2026-10-09) | DoUpdate antes | depois |
+| Phase (MuMu, 2026-10-09) | DoUpdate before | after |
 |---|---:|---:|
-| Nada | 4,4 ms | 4,3 ms |
-| PurpleLaser do jogo | 68,3 ms | 6,5 ms |
-| EyeLaser do jogo | 39,4 ms | 5,9 ms |
-| EternalLaser com AIType | 48,4 ms | 9,0 ms |
-| EternalLaser sem AIType | 31,4 ms | 7,8 ms |
-| 10 lacaios atirando | — | 8,2 ms |
+| Nothing | 4.4 ms | 4.3 ms |
+| The game's PurpleLaser | 68.3 ms | 6.5 ms |
+| The game's EyeLaser | 39.4 ms | 5.9 ms |
+| EternalLaser with AIType | 48.4 ms | 9.0 ms |
+| EternalLaser without AIType | 31.4 ms | 7.8 ms |
+| 10 minions shooting | — | 8.2 ms |
 
-## Execução
+## Running
 
-Com o Consolaria e este pacote em `bunny_packs`, entrar no mundo; o teste
-loga `minionlaser ...` e termina em `minionlaser FIM`.
+With Consolaria and this package in `bunny_packs`, enter the world; the test
+logs `minionlaser ...` and ends with `minionlaser FIM`.

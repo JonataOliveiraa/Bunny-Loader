@@ -1,20 +1,20 @@
-# Testes do carregador de texturas
+# Texture loader tests
 
-O teste nativo compila `TexturePacks.cpp` de producao contra simulacoes de IL2CPP/Unity:
+The native test compiles the production `TexturePacks.cpp` against IL2CPP/Unity simulations:
 
 ```bash
 python3 tools/tests/texturepacks/run.py
 ```
 
-Requer Linux/WSL e g++. Confere as tabelas, prioridade, fallback de arquivo invalido, caminhos completos e extensao maiuscula, isolamento de symlinks, restaura valor/fonte/estado e confere que os handles do GC sao liberados. Tambem simula uma carga futura, repeticao do pedido e uma chamada fora da thread do jogo.
+Requires Linux/WSL and g++. It checks the tables, priority, fallback for an invalid file, full paths and uppercase extensions, symlink isolation, restoring value/source/state and that the GC handles are released. It also simulates a future load, a repeated request and a call outside the game thread.
 
-`device/` testa a primeira etapa no jogo. `named-device/` testa os assets individuais, outras tabelas e subpastas. Essas fixtures sao mods de teste; os packs de textura usados por elas nao precisam de scripts.
+`device/` tests the first in-game step. `named-device/` tests the individual assets, other tables and subfolders. These fixtures are test mods; the texture packs they use need no scripts.
 
-Para `named-device/`, forneca `content/expectations.json`:
+For `named-device/`, provide `content/expectations.json`:
 
 ```json
 {
-  "name": "meu-teste",
+  "name": "my-test",
   "rows": [
     {"path": "Images/Inventory_Back", "field": "InventoryBack", "width": 52, "height": 52},
     {"path": "Images/Background_325", "field": "Background", "index": 325, "width": 1024, "height": 546},
@@ -23,8 +23,7 @@ Para `named-device/`, forneca `content/expectations.json`:
 }
 ```
 
-Uma linha sem `field` cria um Asset<Texture2D> vazio, chama explicitamente `.ctor(string name)` e verifica a carga futura. `Asset.new()` nao inicializa o nome. O teste espera 120 atualizacoes do jogo antes de conferir os assets. `vanilla: true` confere que as substituicoes foram desativadas; `world: true` pede a abertura do inventario na copia do mundo.
+A row without `field` creates an empty Asset<Texture2D>, explicitly calls `.ctor(string name)` and checks the future load. `Asset.new()` does not initialize the name. The test waits 120 game updates before checking the assets. `vanilla: true` checks that the replacements were disabled; `world: true` asks for the inventory to be opened in the copy of the world.
 
-A validacao dos ports locais (04/10/2026, 2.091 verificacoes no dispositivo) esta no
-repositorio de mods: `ports/textures/VALIDATION.md` em
+The validation of the local ports (2026-10-04, 2,091 checks on the device) is in the mods repository: `ports/textures/VALIDATION.md` in
 [Bunny-Loader-Mods](https://github.com/JonataOliveiraa/Bunny-Loader-Mods).

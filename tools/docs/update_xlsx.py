@@ -1,6 +1,6 @@
 """Atualiza as linhas da docs/referencia/metodos.xlsx a partir do metodos.json,
 sem o @oai/artifact-tool do workbook.mjs: troca só as linhas de dados das duas
-abas (mesmos estilos), o resumo do Índice e o alcance das tabelas e do
+abas (mesmos estilos), o resumo do Index e o alcance das tabelas e do
 realce. Rodar depois do generate.mjs; o verify.py confere.
 
     python tools/docs/update_xlsx.py
@@ -16,7 +16,7 @@ src = ref / "metodos.xlsx"
 tmp = ref / "metodos.tmp.xlsx"
 
 keys = ["class", "method", "kind", "signature", "declaredIn", "inherited", "status", "baseReturn", "description", "native", "sourceUrl"]
-rows = [[("Sim" if r[k] else "Não") if k == "inherited" else str(r[k] or "") for k in keys] for r in catalog["rows"]]
+rows = [[("Yes" if r[k] else "No") if k == "inherited" else str(r[k] or "") for k in keys] for r in catalog["rows"]]
 last = len(rows) + 6
 
 def cell(col, n, value, style, kind="str"):
@@ -36,7 +36,7 @@ def replace_rows(xml, keep, new_rows):
 with ZipFile(src) as z:
     files = {n: z.read(n) for n in z.namelist()}
 
-# Métodos
+# Methods
 s2 = files['xl/worksheets/sheet2.xml'].decode('utf-8')
 method_rows = []
 for i, values in enumerate(rows):
@@ -50,12 +50,12 @@ t2 = files['xl/tables/table2.xml'].decode('utf-8')
 t2 = re.sub(r'ref="A6:K\d+"', f'ref="A6:K{last}"', t2)
 files['xl/tables/table2.xml'] = t2.encode('utf-8')
 
-# Índice
+# Index
 classes = catalog["classes"]
-declared = sum(1 for r in catalog["rows"] if r["status"] == "Declarado")
+declared = sum(1 for r in catalog["rows"] if r["status"] == "Declared")
 missing = len(catalog["rows"]) - declared
 s1 = files['xl/worksheets/sheet1.xml'].decode('utf-8')
-s1 = re.sub(r'(<x:c r="A3" s="2" t="str"><x:v>)[^<]*(</x:v>)', lambda m: m.group(1) + f"{len(classes)} classes. {declared} registros declarados. {missing} métodos não implementados." + m.group(2), s1)
+s1 = re.sub(r'(<x:c r="A3" s="2" t="str"><x:v>)[^<]*(</x:v>)', lambda m: m.group(1) + f"{len(classes)} classes. {declared} declared records. {missing} methods not implemented." + m.group(2), s1)
 index_rows = []
 for i, d in enumerate(classes):
     n = i + 7
@@ -72,4 +72,4 @@ with ZipFile(tmp, 'w', ZIP_DEFLATED) as z:
     for name, data in files.items():   # a ordem do arquivo original
         z.writestr(name, data)
 shutil.move(tmp, src)
-print(f"{len(classes)} classes, {len(rows)} linhas")
+print(f"{len(classes)} classes, {len(rows)} rows")

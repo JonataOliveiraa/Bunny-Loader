@@ -1,59 +1,61 @@
-# Os 45 fps cravados numa tela de 90 Hz
+# Fps stuck at 45 on a 90 Hz screen
 
-Rodada de 2026-09-30, num Galaxy A15 5G (SM-A156M, Android 16, One UI, tela de
-90/60 Hz), Terraria 1.4.5.8.6. O jogo ficava em **45 fps fixos** no Bunny
-Loader (30 a 35 com zoom) e em 60 no TL Pro, no mesmo aparelho. Ferramentas:
+Round of 2026-09-30, on a Galaxy A15 5G (SM-A156M, Android 16, One UI, 90/60 Hz
+screen), Terraria 1.4.5.8.6. The game stayed at **a fixed 45 fps** in Bunny
+Loader (30 to 35 with zoom) and at 60 in TL Pro, on the same device. Tools:
 [`tools/tests/frametime`](../../tools/tests/frametime),
-[`tools/bisect`](../../tools/bisect) e o adb pelo ZeroTier.
+[`tools/bisect`](../../tools/bisect) and adb over ZeroTier.
 
-## O que não era
+## What it was not
 
-- **O JS dos mods.** Sem o ExampleMod dava 45 igual, e sem mods nenhum hook JS
-  roda por quadro (`bl.hookStats`).
-- **Uma regressão no código.** Todas as versões, até as de 27/09 e as da
-  1.4.5.6, davam 45 no aparelho. No MuMu, sem mods, 28/09, 29/09 e 30/09 ficam
-  entre 5 e 6 ms de desenho. Duas medições de 8,9 ms foram outra instância do
-  MuMu ligada no PC dividindo a CPU.
-- **O MuMu.** Ele só tem tela de 60 Hz; o problema não aparece lá.
+- **The mods' JS.** Without ExampleMod it was 45 just the same, and with no
+  mods no JS hook runs per frame (`bl.hookStats`).
+- **A regression in the code.** Every version, even the ones from 09/27 and the
+  1.4.5.6 ones, gave 45 on the device. On MuMu, with no mods, 09/28, 09/29 and
+  09/30 stay between 5 and 6 ms of drawing. Two measurements of 8.9 ms were
+  another MuMu instance running on the PC sharing the CPU.
+- **MuMu.** It only has a 60 Hz screen; the problem does not show up there.
 
-## O que era
+## What it was
 
-O Unity arredonda `taxa da tela ÷ Application.targetFrameRate` para saber
-quantas atualizações cada quadro ocupa. O Terraria pede 60
-(`XNAUnityRunner.Awake`, `SetAndroidSurfaceRate`, `Main.SetPlatform60FPS`).
-Numa tela de 90 Hz, 90/60 = 1,5 vira **2**: um quadro a cada duas
-atualizações, 45 fps. Acima de 22,2 ms por quadro (zoom), três: 30.
+Unity rounds `screen rate ÷ Application.targetFrameRate` to know how many
+refreshes each frame takes. Terraria asks for 60 (`XNAUnityRunner.Awake`,
+`SetAndroidSurfaceRate`, `Main.SetPlatform60FPS`). On a 90 Hz screen, 90/60 =
+1.5 becomes **2**: one frame every two refreshes, 45 fps. Above 22.2 ms per
+frame (zoom), three: 30.
 
-O TL Pro escapa porque a Samsung o conta como **jogo** e, para jogos, libera o
-modo de 60 Hz da tela: o `SwappyDisplayManager` do Unity escolhe 60 e 60/60 = 1.
-Para app fora da lista, com a suavidade de movimento em "Alta", a Samsung trava
-a tela em 90 (`mDesiredDisplayModeSpecs` 90–90) e o app só enxerga esse modo
-(`Display.getSupportedModes()` devolve um).
+TL Pro escapes because Samsung counts it as a **game** and, for games, unlocks
+the screen's 60 Hz mode: Unity's `SwappyDisplayManager` picks 60 and 60/60 = 1.
+For an app outside the list, with motion smoothness on "High", Samsung locks
+the screen at 90 (`mDesiredDisplayModeSpecs` 90–90) and the app only sees that
+mode (`Display.getSupportedModes()` returns one).
 
-A lista de jogos da Samsung (`dumpsys gamemanager`, "Package Data in SGM"):
+Samsung's game list (`dumpsys gamemanager`, "Package Data in SGM"):
 
-- **ignora a categoria do manifest** ("Game (Manifest excluded)"): o
-  `android:appCategory="game"` não põe o app lá;
-- conta a dica do **instalador** (`setApplicationCategoryHint`, que a Play Store
-  dá; o Android só a aceita do instalador de registro), a lista dela e o usuário
-  (adicionar ao Game Launcher não passou para lá);
-- em 2026-09-28 21:39 o GOS aplicou uma política nova aos jogos da lista
-  (`requestToRemoveRefreshRate`, `setPerformanceMode`): o "anteontem era 60".
+- **ignores the manifest category** ("Game (Manifest excluded)"):
+  `android:appCategory="game"` does not put the app there;
+- counts the **installer**'s hint (`setApplicationCategoryHint`, which the Play
+  Store gives; Android only accepts it from the installer of record), its own
+  list and the user (adding it to Game Launcher did not carry over there);
+- on 2026-09-28 21:39 GOS applied a new policy to the games on the list
+  (`requestToRemoveRefreshRate`, `setPerformanceMode`): the "it was 60 the day
+  before yesterday".
 
-## A correção
+## The fix
 
-O usuário achou no console que `targetFrameRate = 61` segura os 60: 90/61 ≈
-1,47 vira **1**, e quem limita a 60 é o passo fixo do XNA. Em 60 Hz (60/61 → 1)
-e 120 Hz (120/61 ≈ 1,97 → 2) dá o mesmo que 60; o 30 da economia de bateria
-(90/30 = 3) fica. Implementado em
-[`boot/FramePacing.cpp`](../../app/src/main/cpp/boot/FramePacing.cpp): hook
-nativo no `Application.set_targetFrameRate` (60 vira 61) e, uma vez na thread
-do jogo, o `Main.Setting_Target60FPS` vai e volta para o jogo refazer a escolha
-já pelo hook (o setter sai cedo se o valor não muda).
+The user found in the console that `targetFrameRate = 61` holds 60: 90/61 ≈
+1.47 becomes **1**, and what caps it at 60 is XNA's fixed step. At 60 Hz
+(60/61 → 1) and 120 Hz (120/61 ≈ 1.97 → 2) it gives the same as 60; battery
+saver's 30 (90/30 = 3) stays. Implemented in
+[`boot/FramePacing.cpp`](../../app/src/main/cpp/boot/FramePacing.cpp): a
+native hook on `Application.set_targetFrameRate` (60 becomes 61) and, once on
+the game thread, `Main.Setting_Target60FPS` is toggled back and forth so the
+game redoes the choice through the hook (the setter returns early if the value
+does not change).
 
-## Para a próxima vez
+## For next time
 
-Fps travado em 45 ou 30 no celular: olhar a tela antes do tempo de CPU.
+Fps locked at 45 or 30 on the phone: look at the screen before CPU time.
 
 ```bash
 adb shell dumpsys display | grep -E 'mDesiredDisplayModeSpecs|mActiveModeId'

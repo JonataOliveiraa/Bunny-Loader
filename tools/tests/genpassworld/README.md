@@ -1,52 +1,52 @@
-# GenPass e PassLegacy: geração completa
+# GenPass and PassLegacy: full generation
 
-Este fixture cria um mundo pequeno pelo menu normal do Terraria mobile 301720. O jogo inicia `WorldGen.worldGenCallback` por `ThreadManager.RunForUserCritical`. Nenhuma checagem de thread é substituída e nenhuma etapa nativa de terreno é removida ou desativada.
+This fixture creates a small world through the normal Terraria mobile 301720 menu. The game starts `WorldGen.worldGenCallback` through `ThreadManager.RunForUserCritical`. No thread check is replaced and no native terrain step is removed or disabled.
 
-`BeforePass` e `StructurePass` estendem diretamente `GenPass` e sobrescrevem `ApplyPass(progress, configuration)`. A primeira etapa recebe os objetos nativos antes do terreno. A segunda roda depois de Final Cleanup e coloca uma estrutura de 7 × 5 blocos de cobre e estanho. Um PassLegacy posterior confirma os 35 blocos. Uma terceira subclasse é desativada e deve permanecer sem chamadas.
+`BeforePass` and `StructurePass` extend `GenPass` directly and override `ApplyPass(progress, configuration)`. The first step receives the native objects before the terrain. The second runs after Final Cleanup and places a 7 × 5 structure of copper and tin blocks. A later PassLegacy confirms the 35 blocks. A third subclass is disabled and must stay without calls.
 
-O teste verifica a thread gerenciada de geração, a ordem, os argumentos nativos, peso alterado, Enable/Disable, contagem exata de chamadas, etapas nativas concluídas, PostWorldGen, validação do `.wld` e persistência dos blocos após reiniciar o processo e carregar o arquivo salvo. A prova dos callbacks fica no arquivo auxiliar `.wld.bl.json` do sistema.
+The test checks the managed generation thread, the order, the native arguments, a changed weight, Enable/Disable, the exact call count, completed native steps, PostWorldGen, validation of the `.wld` and the persistence of the blocks after restarting the process and loading the saved file. The callbacks' proof lives in the system's auxiliary `.wld.bl.json` file.
 
-## Executar
-
-```powershell
-python tools/tests/moditemhooks/device.py prepare --fixture genpassworld --run-id meu-teste --world '-' --isolate
-```
-
-Inicie o jogo, escolha um personagem de teste e crie um mundo pelo menu. O fixture fixa um nome exclusivo `BL_GenPass_meu-teste`, tamanho pequeno e dificuldade clássica. O helper prepara `config.js` com o mesmo nome nos retries. Registre `GENPASS_GENERATED` e `GENPASS_SAVED` do log.
-
-Feche o processo e reabra o mundo gerado com o mesmo fixture habilitado. A prova carregada e os blocos devem produzir `GENPASS_RELOADED` com `generationCallbacksThisProcess: 0`, demonstrando que a estrutura veio do arquivo salvo. Valide o log reunindo as duas execuções:
+## Running
 
 ```powershell
-python tools/tests/genpassworld/verify.py caminho-do-log.txt
+python tools/tests/moditemhooks/device.py prepare --fixture genpassworld --run-id my-test --world '-' --isolate
 ```
 
-Limpe as preferências e o pacote temporário:
+Start the game, pick a test character and create a world from the menu. The fixture sets a unique name `BL_GenPass_my-test`, small size and classic difficulty. The helper prepares `config.js` with the same name across retries. Record `GENPASS_GENERATED` and `GENPASS_SAVED` from the log.
+
+Close the process and reopen the generated world with the same fixture enabled. The loaded proof and the blocks must produce `GENPASS_RELOADED` with `generationCallbacksThisProcess: 0`, showing that the structure came from the saved file. Validate the log by gathering both runs:
 
 ```powershell
-python tools/tests/moditemhooks/device.py cleanup --fixture genpassworld --run-id meu-teste
+python tools/tests/genpassworld/verify.py path-to-the-log.txt
 ```
 
-Esse comando preserva o mundo gerado. Se precisar removê-lo, confirme o caminho exato do arquivo novo e remova somente seus arquivos auxiliares. Não reutilize um nome de mundo existente.
+Clean up the preferences and the temporary package:
 
-Verifique também que a prova carregada permanece intacta em um salvamento posterior:
+```powershell
+python tools/tests/moditemhooks/device.py cleanup --fixture genpassworld --run-id my-test
+```
+
+That command keeps the generated world. If you need to remove it, confirm the new file's exact path and remove only its auxiliary files. Do not reuse an existing world name.
+
+Also check that the loaded proof stays intact in a later save:
 
 ```powershell
 node tools/tests/genpassworld/check.mjs
 ```
 
-## Resultado nativo
+## Native result
 
-Execução em **2026-10-06**, no MuMu/Android, com o APK de `out/bunny-loader.apk` e Terraria mobile **301720**. O [log dos resultados](native-results.log) passou por `verify.py`:
+Run on **2026-10-06**, on MuMu/Android, with the APK from `out/bunny-loader.apk` and Terraria mobile **301720**. The [results log](native-results.log) passed `verify.py`:
 
-- Mundo **BL_GenPass_full-20261006-a**, **4200 × 1200**.
-- Thread criadora **1**; geração na thread **5**, identificada como `worldGenCallback`.
-- **106 etapas nativas executadas**, com todas as etapas de terreno preservadas.
-- Ordem: PreWorldGen, subclasse BeforePass, subclasse StructurePass, PassLegacy e PostWorldGen. Cada etapa personalizada ativa executou uma vez; a subclasse desativada executou zero vezes.
-- Estrutura de **35 blocos** presente ao terminar a geração, após salvar e depois de reiniciar o processo. Na recarga, os callbacks de geração do novo processo permaneceram em zero.
-- Arquivo `.wld` validado pelo jogo, **2.989.962 bytes**, formato nativo **326**. Cópia de evidência em `build/genpassworld/full-20261006-a/world/`.
+- World **BL_GenPass_full-20261006-a**, **4200 × 1200**.
+- Creating thread **1**; generation on thread **5**, identified as `worldGenCallback`.
+- **106 native steps run**, with every terrain step preserved.
+- Order: PreWorldGen, the BeforePass subclass, the StructurePass subclass, PassLegacy and PostWorldGen. Each active custom step ran once; the disabled subclass ran zero times.
+- A structure of **35 blocks** present when generation finished, after saving and after restarting the process. On reload, the new process's generation callbacks stayed at zero.
+- A `.wld` file validated by the game, **2,989,962 bytes**, native format **326**. Evidence copy in `build/genpassworld/full-20261006-a/world/`.
 
-Nenhuma correção no código de produção foi necessária. A suíte ModSystem passou em **32 grupos de verificações**; o teste adicional de salvar a prova carregada também passou. Os mundos temporários e o pacote do fixture foram removidos do emulador, com as preferências restauradas.
+No fix to the production code was needed. The ModSystem suite passed in **32 groups of checks**; the extra test of saving the loaded proof also passed. The temporary worlds and the fixture package were removed from the emulator, with the preferences restored.
 
-## Cobertura
+## Coverage
 
-O teste é singleplayer. Não executa conversão completa de Hardmode nem sincronização entre aparelhos. O [fixture ModSystem](../modsystemhooks/README.md) cobre os contratos adicionais e os testes automatizados incluem subclasses com estado próprio e isolamento de uma exceção em ApplyPass.
+The test is single player. It does not run a full Hardmode conversion nor syncing between devices. The [ModSystem fixture](../modsystemhooks/README.md) covers the additional contracts and the automated tests include subclasses with their own state and isolating an exception in ApplyPass.

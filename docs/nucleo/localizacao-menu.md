@@ -1,40 +1,41 @@
-# Localização dos menus
+# Menu localization
 
-O launcher e o Mod Menu compartilham `app/src/main/assets/localization/menu.json`.
-Cada chave é o texto original em português; seu valor contém as traduções em
-**inglês, russo e espanhol**, nessa ordem. Português continua disponível e é o
-retorno para um idioma não suportado ou uma tradução ausente.
+The launcher and the Mod Menu share `app/src/main/assets/localization/menu.json`.
+Each key is the original Portuguese text; its value holds the translations in
+**English, Russian and Spanish**, in that order. Portuguese remains available
+and is the fallback for an unsupported language or a missing translation.
 
-Em **Config → Aparência → Idioma**, as setas alternam entre Automático,
-Português (Brasil), English, Русский e Español. Automático acompanha o idioma
-do aparelho, inclusive variantes como `en-GB`, `es-MX` e `ru-RU`. A escolha
-fica em `bunny_localization.xml`, separada dos ajustes de jogo. O launcher muda
-imediatamente; o Mod Menu lê a escolha quando o jogo abre.
+In **Settings → Appearance → Language**, the arrows cycle through Automatic,
+Português (Brasil), English, Русский and Español. Automatic follows the
+device's language, including variants like `en-GB`, `es-MX` and `ru-RU`. The
+choice is stored in `bunny_localization.xml`, separate from the game settings.
+The launcher changes immediately; the Mod Menu reads the choice when the game
+opens.
 
-## Adicionar um texto
+## Adding a text
 
-No Kotlin, use `tr("Texto em português")`. No Java do menu, use a mesma função
-de `CheatBridge`. Para valores variáveis, mantenha a frase inteira e passe os
-argumentos separados:
+In Kotlin, use `tr("Texto em português")`. In the menu's Java, use the same
+function from `CheatBridge`. For variable values, keep the whole sentence and
+pass the arguments separately:
 
 ```kotlin
 tr("%1\$s de %2\$s", visibleCount, totalCount)
 ```
 
-As traduções devem manter os placeholders numerados; para um percentual
-formatado, escreva `%%`. Não passe nomes, descrições, código ou textos de mods
-para `tr`: esses conteúdos pertencem ao pacote ou à localização do Terraria.
-Rótulos guardados em arrays e enums precisam ser traduzidos na apresentação,
-para não guardar uma tradução da primeira inicialização.
+Translations must keep the numbered placeholders; for a formatted percentage,
+write `%%`. Do not pass names, descriptions, code or mod texts to `tr`: that
+content belongs to the package or to Terraria's localization. Labels kept in
+arrays and enums must be translated at display time, so as not to keep a
+translation from the first initialization.
 
-`TranslationCatalog` contém a resolução de idioma, o retorno e a formatação,
-sem depender do Android. `MenuLocalization` carrega o asset e salva a escolha;
-`UiLocalization` notifica o Compose. O Mod Menu mantém uma fonte de apoio para
-caracteres cirílicos que não existem na fonte do jogo.
+`TranslationCatalog` holds language resolution, fallback and formatting,
+without depending on Android. `MenuLocalization` loads the asset and saves the
+choice; `UiLocalization` notifies Compose. The Mod Menu keeps a fallback font
+for Cyrillic characters that do not exist in the game's font.
 
-## Validar
+## Validating
 
-Execute `:app:testDebugUnitTest` para verificar variantes regionais, retorno,
-Unicode e todos os placeholders do catálogo. Depois de alterar Java do menu,
-execute `tools/build-cheatbridge-dex.sh` para regenerar `CheatBridgeDex.h` antes
-de compilar a biblioteca nativa.
+Run `:app:testDebugUnitTest` to check regional variants, fallback, Unicode and
+every placeholder in the catalog. After changing the menu's Java, run
+`tools/build-cheatbridge-dex.sh` to regenerate `CheatBridgeDex.h` before
+building the native library.

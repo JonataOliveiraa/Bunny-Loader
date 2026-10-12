@@ -1,77 +1,78 @@
-# Documentação do Bunny Loader
+# Bunny Loader documentation
 
-O Bunny Loader é um loader de mods para o **Terraria Mobile**: um app Android
-que sobe o jogo e roda mods escritos em JavaScript dentro dele, no formato do
-tModLoader.
+Bunny Loader is a mod loader for **Terraria Mobile**: an Android app that
+boots the game and runs mods written in JavaScript inside it, in the
+tModLoader style.
 
-A documentação tem três partes, para três leitores:
+The documentation has three parts, for three kinds of readers:
 
-## Para quem faz mods
+## For mod makers
 
-[**Guias de mod**](mods/README.md): do primeiro hook ao chefe com música, na
-ordem de leitura.
+[**Mod guides**](mods/README.md): from the first hook to a boss with music, in
+reading order.
 
-0. [Como funciona: do TL Pro ao Bunny Loader](mods/00-como-funciona.md)
-1. [Hooks: mudar o que o jogo já tem](mods/01-hooks-do-zero.md)
-2. [`ref` e `out`](mods/02-ref-e-out.md)
-3. [Custo e desempenho](mods/03-custo-e-desempenho.md)
-4. [Conteúdo novo: as ideias](mods/04-conteudo-novo.md)
-5. [Itens](mods/05-itens.md)
-6. [Projéteis](mods/06-projeteis.md)
-7. [NPCs: inimigos, moradores e chefes](mods/07-npcs.md)
-8. [Jogador e buffs](mods/08-jogador-e-buffs.md)
-9. [Blocos](mods/09-blocos.md)
-10. [Sons e música](mods/10-sons-e-musica.md)
-11. [Conversa entre mods](mods/11-conversa-entre-mods.md)
-12. [Globais e o mundo](mods/12-globais-e-mundo.md)
-13. [A página do pacote](mods/13-pagina-do-pacote.md)
-14. [Opções do mod](mods/14-opcoes-do-mod.md)
-15. [Classes de dano](mods/15-classes-de-dano.md)
-16. [Golpes](mods/16-golpes.md)
+0. [How it works: from TL Pro to Bunny Loader](mods/00-como-funciona.md)
+1. [Hooks: changing what the game already has](mods/01-hooks-do-zero.md)
+2. [`ref` and `out`](mods/02-ref-e-out.md)
+3. [Cost and performance](mods/03-custo-e-desempenho.md)
+4. [New content: the ideas](mods/04-conteudo-novo.md)
+5. [Items](mods/05-itens.md)
+6. [Projectiles](mods/06-projeteis.md)
+7. [NPCs: enemies, town NPCs and bosses](mods/07-npcs.md)
+8. [Player and buffs](mods/08-jogador-e-buffs.md)
+9. [Tiles](mods/09-blocos.md)
+10. [Sounds and music](mods/10-sons-e-musica.md)
+11. [Talking between mods](mods/11-conversa-entre-mods.md)
+12. [Globals and the world](mods/12-globais-e-mundo.md)
+13. [The package page](mods/13-pagina-do-pacote.md)
+14. [Mod options](mods/14-opcoes-do-mod.md)
+15. [Damage classes](mods/15-classes-de-dano.md)
+16. [Hits](mods/16-golpes.md)
 
-[Pacotes de textura](mods/14-pacotes-de-textura.md): substituição de sprites usando PNGs, sem scripts.
+[Texture packs](mods/14-pacotes-de-textura.md): replacing sprites with PNGs, no scripts.
 
-## Para consultar
+## Reference
 
-- [Métodos por classe](referencia/metodos.md): índice completo gerado da API
-  JavaScript, com assinaturas, herança, retorno da implementação base e limites.
-  A [planilha Excel](referencia/metodos.xlsx) e o [CSV](referencia/metodos.csv)
-  permitem filtrar os mesmos registros por classe e método.
-- [O que cada classe tem hoje](referencia/classes.md): `ModItem`, `ModNPC`,
-  `ModProjectile`, `ModPlayer`, `ModBuff`, `ModTile`... campo a campo, com o
-  método do jogo por trás de cada um e o que ainda falta em relação ao
+- [Methods by class](referencia/metodos.md): the complete generated index of
+  the JavaScript API, with signatures, inheritance, the base implementation's
+  return value and limits. The [Excel spreadsheet](referencia/metodos.xlsx)
+  and the [CSV](referencia/metodos.csv) let you filter the same records by
+  class and method.
+- [What each class has today](referencia/classes.md): `ModItem`, `ModNPC`,
+  `ModProjectile`, `ModPlayer`, `ModBuff`, `ModTile`... field by field, with
+  the game method behind each one and what is still missing compared to
   tModLoader.
-- [Hooks de ModPlayer](referencia/modplayer-hooks.md): contratos de combate,
-  itens, saltos, desenho, inventário, save e rede.
-- [PlayerDrawLayer](referencia/playerdrawlayers.md): camadas personalizadas e inserção no cache de desenho.
-- [Hooks de ModSystem](referencia/modsystem-hooks.md): geração, etapas GenPass, atualização, iluminação e rede.
-- [Uso e munição de ModItem](referencia/moditem-uso-municao.md): animação, frames, seleção, consumo e diferenças do jogo móvel.
-- [Cura de ModItem](referencia/moditem-cura.md): cura normal e rápida, refs, atraso de poções e composição com ModPlayer.
-- [Combate de ModItem](referencia/moditem-combate.md): modificadores, permissões,
-  hitbox, PvP, ordem entre classes e filtros nativos.
-- [A ponte e o `bl`](referencia/ponte-e-bl.md): a sintaxe para falar com o
-  jogo e todas as funções `bl.*`.
+- [ModPlayer hooks](referencia/modplayer-hooks.md): contracts for combat,
+  items, jumps, drawing, inventory, saving and networking.
+- [PlayerDrawLayer](referencia/playerdrawlayers.md): custom layers and inserting into the draw cache.
+- [ModSystem hooks](referencia/modsystem-hooks.md): world generation, GenPass steps, updates, lighting and networking.
+- [ModItem use and ammo](referencia/moditem-uso-municao.md): animation, frames, selection, consumption and how the mobile game differs.
+- [ModItem healing](referencia/moditem-cura.md): normal and quick heal, refs, potion delay and composition with ModPlayer.
+- [ModItem combat](referencia/moditem-combate.md): modifiers, permissions,
+  hitbox, PvP, ordering between classes and native filters.
+- [The bridge and `bl`](referencia/ponte-e-bl.md): the syntax for talking to
+  the game and every `bl.*` function.
 
-## Para quem mexe no Bunny Loader
+## For people working on Bunny Loader
 
-[**O núcleo nativo**](nucleo/README.md): o C++ que roda dentro do jogo.
+[**The native core**](nucleo/README.md): the C++ that runs inside the game.
 
-- [Visão geral e boot](nucleo/README.md)
-- [Hooks por dentro](nucleo/hooks.md): ShadowHook, a cadeia, os slots, o
-  despachante.
-- [Threads e o motor JS](nucleo/threads-e-motor-js.md): a trava do motor, a
-  pilha por thread, `ifBusy`.
-- [A ponte JS ↔ jogo](nucleo/ponte.md): nomes, tipos, structs, objetos
-  segurados pelo coletor.
-- [Conteúdo novo por dentro](nucleo/conteudo.md): tabelas por tipo, limites
-  compilados, saves.
-- [Entrada num servidor](nucleo/multijogador.md): sincronização de mods e
-  texturas pela tela de Host, a conversa na entrada e a volta automática.
-- [Pesquisa de shaders](nucleo/pesquisa-shaders.md): base interna de investigação,
-  com evidências, limitações e próximos experimentos; suporte ainda não validado.
+- [Overview and boot](nucleo/README.md)
+- [Hooks under the hood](nucleo/hooks.md): ShadowHook, the chain, the slots,
+  the dispatcher.
+- [Threads and the JS engine](nucleo/threads-e-motor-js.md): the engine lock,
+  the per-thread stack, `ifBusy`.
+- [The JS ↔ game bridge](nucleo/ponte.md): names, types, structs, objects
+  pinned against the garbage collector.
+- [New content under the hood](nucleo/conteudo.md): per-type tables, compiled
+  limits, saves.
+- [Joining a server](nucleo/multijogador.md): syncing mods and textures from
+  the Host screen, the handshake on join and the automatic return.
+- [Shader research](nucleo/pesquisa-shaders.md): internal investigation notes,
+  with evidence, limitations and next experiments; support not validated yet.
 
-[**Histórico**](historico/README.md): as decisões de arquitetura, as
-investigações de crash e as rodadas de otimização, com os dados medidos.
+[**History**](historico/README.md): the architecture decisions, the crash
+investigations and the optimization rounds, with the measured data.
 
-As ferramentas de PC (build rápido, dump do jogo, testes, benchmark) estão em
+The PC tools (fast build, game dump, tests, benchmark) are in
 [`tools/`](../tools/README.md).

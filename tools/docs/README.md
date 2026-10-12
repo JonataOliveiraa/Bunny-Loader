@@ -1,30 +1,30 @@
-# Catálogo da API JavaScript
+# JavaScript API catalog
 
-O catálogo lista as classes publicadas em `script/js/mod/Exports.js`.
-As assinaturas vêm de uma análise sintática com [Acorn](https://github.com/acornjs/acorn).
-O gerador não executa os scripts do jogo nem usa mocks para descobrir a API.
+The catalog lists the classes published in `script/js/mod/Exports.js`.
+The signatures come from a parse with [Acorn](https://github.com/acornjs/acorn).
+The generator does not run the game's scripts nor use mocks to discover the API.
 
-## Arquivos publicados
+## Published files
 
-- [Métodos por classe](../../docs/referencia/metodos.md): índice e uma tabela por classe.
-- [Excel](../../docs/referencia/metodos.xlsx): abas Índice e Métodos, com filtros e cabeçalhos fixos.
-- [CSV UTF-8](../../docs/referencia/metodos.csv): os mesmos registros em uma tabela.
-- [JSON](../../docs/referencia/metodos.json): registros, classes, fontes e hash dos arquivos da API.
+- [Methods by class](../../docs/referencia/metodos.md): an index and one table per class.
+- [Excel](../../docs/referencia/metodos.xlsx): Index and Methods sheets, with filters and frozen headers.
+- [UTF-8 CSV](../../docs/referencia/metodos.csv): the same records in one table.
+- [JSON](../../docs/referencia/metodos.json): records, classes, sources and the hash of the API files.
 
-O inventário inclui métodos públicos de instância e estáticos, construtores
-explícitos, getters/setters, herança entre as classes do módulo e os aliases
-de NetWriter/NetReader. Métodos privados `#`, campos, enums, bases nativas
-como `Error`, métodos de `Terraria.*` e funções de `bl.*` ficam fora dessa
-contagem. Os objetos e enums exportados são listados separadamente no índice.
+The inventory includes public instance and static methods, explicit
+constructors, getters/setters, inheritance between the module's classes and
+the NetWriter/NetReader aliases. Private `#` methods, fields, enums, native
+bases like `Error`, `Terraria.*` methods and `bl.*` functions are left out of
+that count. The exported objects and enums are listed separately in the index.
 
-`Declarado` significa que existe uma declaração na API JavaScript. Esse
-status não afirma cobertura de testes nem equivalência total ao tModLoader.
-O retorno base é uma expressão do código, não um tipo inferido. Os métodos
-descartados não recebem uma assinatura estimada.
+`Declared` means there is a declaration in the JavaScript API. That status
+does not claim test coverage nor full equivalence with tModLoader. The base
+return is an expression from the code, not an inferred type. Dropped methods
+do not get an estimated signature.
 
-## Atualização
+## Updating
 
-Na raiz do repositório, com Node.js e npm:
+At the repository root, with Node.js and npm:
 
 ```powershell
 npm --prefix tools/docs ci
@@ -34,47 +34,49 @@ python tools/docs/update_xlsx.py
 python tools/docs/verify.py
 ```
 
-`generate.mjs` lê as assinaturas e suas linhas diretamente do código.
-Extrai descrições das tabelas de `classes.md` e `modplayer-hooks.md`; quando
-uma descrição específica não existe, usa o comentário adjacente da fonte
-ou indica que a implementação deve ser consultada. Não infere tipos de
-parâmetros nem transforma o nome de um método em uma descrição inventada.
+`generate.mjs` reads the signatures and their lines straight from the code.
+It extracts descriptions from the tables in `classes.md` and
+`modplayer-hooks.md`; when a specific description does not exist, it uses the
+adjacent comment in the source or says the implementation should be
+consulted. It does not infer parameter types nor turn a method's name into a
+made-up description.
 
-`catalog.json` guarda as âncoras das referências, notas de compatibilidade
-e as razões dos métodos descartados de ModNPC. Revise essas notas ao
-mudar contratos. O gerador rejeita classes duplicadas, exports duplicados,
-herança cíclica, linhas duplicadas, âncoras ausentes, notas sem método e
-métodos presentes que estejam marcados como não implementados.
+`catalog.json` holds the references' anchors, compatibility notes and the
+reasons for the dropped ModNPC methods. Review those notes when changing
+contracts. The generator rejects duplicate classes, duplicate exports, cyclic
+inheritance, duplicate rows, missing anchors, notes without a method and
+present methods that are marked as not implemented.
 
-`--check` retorna erro quando Markdown, CSV ou JSON divergem da geração
-atual. Execute-o depois de alterar a API ou a documentação dos contratos.
-`verify.py` usa apenas a biblioteca padrão do Python. Confere todos os
-registros do CSV e do Excel contra o JSON, as contagens do índice, a ausência
-de fórmulas, os filtros e o congelamento dos cabeçalhos e colunas de identificação.
+`--check` returns an error when the Markdown, CSV or JSON differ from the
+current generation. Run it after changing the API or the contracts'
+documentation. `verify.py` only uses Python's standard library. It checks
+every CSV and Excel record against the JSON, the index counts, the absence of
+formulas, the filters and the freezing of the headers and identification
+columns.
 
-## Planilha
+## Spreadsheet
 
-`workbook.mjs` usa `@oai/artifact-tool`, disponibilizado pelo runtime de
-documentos do ambiente. O runtime não é uma dependência do aplicativo
-Android nem do gerador de Markdown/CSV/JSON.
+`workbook.mjs` uses `@oai/artifact-tool`, made available by the environment's
+document runtime. The runtime is not a dependency of the Android app nor of
+the Markdown/CSV/JSON generator.
 
-Prepare uma pasta de trabalho com `node_modules` apontando para as
-dependências desse runtime. O parâmetro `--runtime` identifica essa pasta:
+Prepare a working folder with `node_modules` pointing to that runtime's
+dependencies. The `--runtime` parameter identifies that folder:
 
 ```powershell
 node tools/docs/workbook.mjs --runtime build/api-docs --output-dir build/api-docs/outputs/catalogo
 ```
 
-Use o executável Node.js do mesmo runtime. A planilha é criada na pasta
-de saída e copiada para `docs/referencia/metodos.xlsx`. Os previews e os
-relatórios de inspeção ficam apenas na pasta de build. Revise os previews
-das duas abas e confira as linhas da tabela exportada contra `metodos.json`
-antes de versionar o Excel. Ele não precisa de fórmulas nem de macros.
-Acrescente `--preview` para renderizar também as duas abas. No runtime
-Windows usado nesta atualização, essa opção salvou os previews e a planilha,
-mas o Node encerrou com erro nativo. A geração sem renderização terminou
-normalmente; `verify.py` conferiu integralmente o arquivo exportado.
+Use the same runtime's Node.js executable. The spreadsheet is created in the
+output folder and copied to `docs/referencia/metodos.xlsx`. The previews and
+inspection reports stay only in the build folder. Review the previews of both
+sheets and check the exported table's rows against `metodos.json` before
+versioning the Excel file. It needs no formulas or macros. Add `--preview` to
+also render both sheets. On the Windows runtime used for this update, that
+option saved the previews and the spreadsheet, but Node exited with a native
+error. Generation without rendering finished normally; `verify.py` fully
+checked the exported file.
 
-Atualize a planilha junto com os três arquivos de texto. O hash em
-`metodos.json` identifica as fontes das classes e de seus métodos herdados;
-ele não é um identificador de resultado de testes no jogo.
+Update the spreadsheet together with the three text files. The hash in
+`metodos.json` identifies the sources of the classes and their inherited
+methods; it is not an identifier of in-game test results.

@@ -1,163 +1,165 @@
-# Hooks de ModPlayer
+# ModPlayer hooks
 
-As assinaturas abaixo pertencem ao Bunny Loader. `player` é o primeiro
-argumento e corresponde a `this.Player`. Os demais parâmetros seguem os
-papéis do [ModPlayer do tModLoader](https://docs.tmodloader.net/docs/stable/class_mod_player.html),
-adaptados ao Terraria IL2CPP integrado no projeto.
+The signatures below belong to Bunny Loader. `player` is the first argument
+and is the same as `this.Player`. The other parameters follow the roles of
+[tModLoader's ModPlayer](https://docs.tmodloader.net/docs/stable/class_mod_player.html),
+adapted to the IL2CPP Terraria integrated in the project.
 
-O [catálogo de ModPlayer](metodos.md#modplayer) reúne todos os membros da
-classe, incluindo os hooks de atualização e os métodos estáticos. A
-[planilha Excel](metodos.xlsx) e o [CSV](metodos.csv) permitem filtrar por
-`ModPlayer` e consultar uma linha por assinatura.
+The [ModPlayer catalog](metodos.md#modplayer) gathers all of the class's
+members, including the update hooks and the static methods. The
+[Excel spreadsheet](metodos.xlsx) and the [CSV](metodos.csv) let you filter by
+`ModPlayer` and look up one row per signature.
 
-Somente métodos sobrescritos instalam hooks. As instâncias e os dados são
-separados por jogador e classe. Exceções de um mod são registradas e não
-interrompem os callbacks dos outros mods.
+Only overridden methods install hooks. Instances and data are separated by
+player and class. A mod's exceptions are logged and do not interrupt the other
+mods' callbacks.
 
-## Retornos e referências
+## Returns and references
 
-Nos métodos booleanos que permitem uma ação, qualquer `false` veta. Nos
-métodos com decisão opcional, `null` mantém a regra do jogo, `true` permite
-e `false` tem prioridade. Esquivas e tratamentos de slots param no primeiro
-`true`. Multiplicadores positivos e finitos são multiplicados entre mods.
+In boolean methods that allow an action, any `false` vetoes. In methods with
+an optional decision, `null` keeps the game's rule, `true` allows and `false`
+takes priority. Dodges and slot handlers stop at the first `true`. Positive,
+finite multipliers are multiplied across mods.
 
-Parâmetros indicados por `Ref<T>` são alterados em `.value`. Outros objetos
-mutáveis, como modificadores, itens, tentativas de pesca e informações de
-desenho, são alterados diretamente.
+Parameters marked `Ref<T>` are changed through `.value`. Other mutable
+objects, like modifiers, items, fishing attempts and draw info, are changed
+directly.
 
-## Acertos e dano recebido
+## Hits and damage taken
 
-| Assinatura | Contrato |
+| Signature | Contract |
 |---|---|
-| `CanHitNPC(player, target)` | `true` por padrão; veto geral. |
-| `CanHitNPCWithItem(player, item, target)` | `null` por padrão; decisão opcional para o item. |
-| `CanHitNPCWithProj(player, projectile, target)` | Decisão opcional para o projétil. |
-| `CanHitPvp(player, item, target)` | `false` impede o acerto corpo a corpo em outro jogador. |
-| `CanMeleeAttackCollideWithNPC(player, item, hitbox, target)` | Decisão opcional para a interseção do golpe. |
-| `ModifyHitNPC(player, target, modifiers)` | Antes do dano nativo, seguido do callback específico da origem. |
-| `ModifyHitNPCWithItem(player, item, target, modifiers)` | Modifica o golpe de item. |
-| `ModifyHitNPCWithProj(player, projectile, target, modifiers)` | Modifica o golpe de projétil. |
-| `OnHitNPC(player, target, hit, damageDone)` | Depois de um acerto com dano positivo. |
-| `OnHitNPCWithItem(player, item, target, hit, damageDone)` | Notificação específica do item. |
-| `OnHitNPCWithProj(player, projectile, target, hit, damageDone)` | Notificação específica do projétil. |
-| `OnHitAnything(player, x, y, victim)` | Depois de `Player.OnHit`. |
-| `MeleeEffects(player, item, hitbox)` | Durante os efeitos visuais de uso. |
-| `EmitEnchantmentVisualsAt(player, projectile, position, width, height)` | Depois dos efeitos de encantamento do projétil. |
-| `CanBeHitByNPC(player, npc, cooldownSlot)` | Veto; `cooldownSlot` é `Ref<int>`. |
-| `CanBeHitByProjectile(player, projectile)` | Veto ao dano recebido de projétil. |
-| `ModifyHitByNPC(player, npc, modifiers)` | Antes de `ModifyHurt`. |
-| `ModifyHitByProjectile(player, projectile, modifiers)` | Antes de `ModifyHurt`. |
-| `OnHitByNPC(player, npc, info)` | Depois do dano positivo causado pelo NPC. |
-| `OnHitByProjectile(player, projectile, info)` | Depois do dano positivo causado pelo projétil. |
-| `ConsumableDodge(player, info)` | `true` evita o dano após `ModifyHurt` e `FreeDodge`. Só para golpes esquiváveis do jogador local. |
+| `CanHitNPC(player, target)` | `true` by default; a general veto. |
+| `CanHitNPCWithItem(player, item, target)` | `null` by default; an optional decision for the item. |
+| `CanHitNPCWithProj(player, projectile, target)` | An optional decision for the projectile. |
+| `CanHitPvp(player, item, target)` | `false` prevents the melee hit on another player. |
+| `CanMeleeAttackCollideWithNPC(player, item, hitbox, target)` | An optional decision for the swing's intersection. |
+| `ModifyHitNPC(player, target, modifiers)` | Before the native damage, followed by the source-specific callback. |
+| `ModifyHitNPCWithItem(player, item, target, modifiers)` | Modifies the item hit. |
+| `ModifyHitNPCWithProj(player, projectile, target, modifiers)` | Modifies the projectile hit. |
+| `OnHitNPC(player, target, hit, damageDone)` | After a hit with positive damage. |
+| `OnHitNPCWithItem(player, item, target, hit, damageDone)` | Item-specific notification. |
+| `OnHitNPCWithProj(player, projectile, target, hit, damageDone)` | Projectile-specific notification. |
+| `OnHitAnything(player, x, y, victim)` | After `Player.OnHit`. |
+| `MeleeEffects(player, item, hitbox)` | During the use visuals. |
+| `EmitEnchantmentVisualsAt(player, projectile, position, width, height)` | After the projectile's enchantment visuals. |
+| `CanBeHitByNPC(player, npc, cooldownSlot)` | Veto; `cooldownSlot` is a `Ref<int>`. |
+| `CanBeHitByProjectile(player, projectile)` | Veto on damage taken from a projectile. |
+| `ModifyHitByNPC(player, npc, modifiers)` | Before `ModifyHurt`. |
+| `ModifyHitByProjectile(player, projectile, modifiers)` | Before `ModifyHurt`. |
+| `OnHitByNPC(player, npc, info)` | After positive damage caused by the NPC. |
+| `OnHitByProjectile(player, projectile, info)` | After positive damage caused by the projectile. |
+| `ConsumableDodge(player, info)` | `true` avoids the damage after `ModifyHurt` and `FreeDodge`. Only for the local player's dodgeable hits. |
 
-Os modificadores de ataque contêm `damage`, `knockBack`, `hitDirection`,
-`crit`, `SourceDamage` e `Knockback` (`StatModifier`), além de `SetCrit()` e
-`DisableCrit()`. O cálculo de defesa continua no jogo. `hit` contém
-`Damage`, `SourceDamage`, `Knockback`, `HitDirection` e `Crit`.
+The attack modifiers have `damage`, `knockBack`, `hitDirection`, `crit`,
+`SourceDamage` and `Knockback` (`StatModifier`), plus `SetCrit()` and
+`DisableCrit()`. The defense math stays in the game. `hit` has `Damage`,
+`SourceDamage`, `Knockback`, `HitDirection` and `Crit`.
 
-Os modificadores de dano recebido mantêm o contrato existente de
-`ModifyHurt`: `damage`, `hitDirection`, `quiet`, `crit` e `dodgeable`.
-`info` contém `DamageSource`, `Damage`, `HitDirection`, `PvP`, `Quiet`,
-`Crit`, `CooldownCounter` e `Dodgeable`.
+The damage-taken modifiers keep `ModifyHurt`'s existing contract: `damage`,
+`hitDirection`, `quiet`, `crit` and `dodgeable`. `info` has `DamageSource`,
+`Damage`, `HitDirection`, `PvP`, `Quiet`, `Crit`, `CooldownCounter` and
+`Dodgeable`.
 
-## Itens, munição, mana e cura
+## Items, ammo, mana and healing
 
-| Assinatura | Contrato |
+| Signature | Contract |
 |---|---|
-| `CanShoot(player, item)` | Veta o disparo, mantendo o tempo de uso. |
-| `ModifyShootStats(player, item, position, velocity, type, damage, knockBack)` | Os cinco últimos parâmetros são `Ref`. |
-| `Shoot(player, item, source, position, velocity, type, damage, knockBack)` | `false` impede a criação do projétil. |
-| `CanConsumeAmmo(player, weapon, ammo)` | `false` preserva a munição; não consulta em chamadas `dontConsume`. |
-| `OnConsumeAmmo(player, weapon, ammo)` | Quando a pilha diminui; conserva o tipo da última munição antes de `TurnToAir`. |
-| `CanAutoReuseItem(player, item)` | Decisão opcional, preservando os campos permanentes do item. |
-| `ModifyWeaponCrit(player, item, crit)` | `crit` é `Ref<int>`. |
-| `ModifyWeaponKnockback(player, item, knockback)` | `knockback` é `StatModifier`. |
-| `ModifyItemScale(player, item, scale)` | `scale` é `Ref<float>` do multiplicador. Atua em `GetAdjustedItemScale` e na hitbox nativa, junto com ModItem. |
-| `UseSpeedMultiplier(player, item)` | Divisor dos tempos de uso e animação; padrão `1`. |
-| `UseTimeMultiplier(player, item)` | Multiplica o tempo de uso; padrão `1`. |
-| `UseAnimationMultiplier(player, item)` | Multiplica o tempo da animação; padrão `1`. |
-| `ModifyManaCost(player, item, reduce, mult)` | `Ref<float>`: custo atual × `(1 - reduce.value)` × `mult.value`. |
-| `OnConsumeMana(player, item, manaConsumed)` | Notifica a mana consumida. |
-| `OnMissingMana(player, item, neededMana)` | Antes da tentativa nativa de recuperar mana. |
-| `PreItemCheck(player)` | `false` pula a verificação dos itens. |
-| `PostItemCheck(player)` | Após a verificação, inclusive quando vetada. |
-| `GetHealLife(player, item, quickHeal, healValue)` | `healValue` é `Ref<int>`; também influencia a escolha da cura rápida. |
-| `GetHealMana(player, item, quickHeal, healValue)` | `healValue` é `Ref<int>`. |
-| `ApplyPotionDelay(player, item, potionDelay)` | Recebe o tempo efetivo, incluindo sorteios; `false` impede o atraso e o buff. |
+| `CanShoot(player, item)` | Vetoes the shot, keeping the use time. |
+| `ModifyShootStats(player, item, position, velocity, type, damage, knockBack)` | The last five parameters are `Ref`s. |
+| `Shoot(player, item, source, position, velocity, type, damage, knockBack)` | `false` prevents creating the projectile. |
+| `CanConsumeAmmo(player, weapon, ammo)` | `false` keeps the ammo; not asked on `dontConsume` calls. |
+| `OnConsumeAmmo(player, weapon, ammo)` | When the stack goes down; keeps the last ammo's type before `TurnToAir`. |
+| `CanAutoReuseItem(player, item)` | An optional decision, keeping the item's permanent fields. |
+| `ModifyWeaponCrit(player, item, crit)` | `crit` is a `Ref<int>`. |
+| `ModifyWeaponKnockback(player, item, knockback)` | `knockback` is a `StatModifier`. |
+| `ModifyItemScale(player, item, scale)` | `scale` is a `Ref<float>` of the multiplier. Acts on `GetAdjustedItemScale` and the native hitbox, together with ModItem. |
+| `UseSpeedMultiplier(player, item)` | Divisor of the use and animation times; default `1`. |
+| `UseTimeMultiplier(player, item)` | Multiplies the use time; default `1`. |
+| `UseAnimationMultiplier(player, item)` | Multiplies the animation time; default `1`. |
+| `ModifyManaCost(player, item, reduce, mult)` | `Ref<float>`: current cost × `(1 - reduce.value)` × `mult.value`. |
+| `OnConsumeMana(player, item, manaConsumed)` | Notifies the mana consumed. |
+| `OnMissingMana(player, item, neededMana)` | Before the native attempt to recover mana. |
+| `PreItemCheck(player)` | `false` skips the item check. |
+| `PostItemCheck(player)` | After the check, even when vetoed. |
+| `GetHealLife(player, item, quickHeal, healValue)` | `healValue` is a `Ref<int>`; it also influences the quick heal choice. |
+| `GetHealMana(player, item, quickHeal, healValue)` | `healValue` is a `Ref<int>`. |
+| `ApplyPotionDelay(player, item, potionDelay)` | Receives the effective time, including rolls; `false` prevents the delay and the buff. |
 
-Crítico, repulsão e tempos compõem com `DamageClass` antes dos modificadores
-de `ModPlayer`. Os tempos resultantes têm pelo menos um quadro.
+Crit, knockback and times combine with `DamageClass` before the `ModPlayer`
+modifiers. The resulting times are at least one frame.
 
-`ModifyShootStats` e `Shoot` rodam para cada criação nativa de projétil
-dentro de um disparo. Uma arma que cria vários projéteis pode chamá-los
-várias vezes. Projéteis criados por esses próprios callbacks passam
-diretamente para o jogo, evitando recursão no mesmo disparo.
+`ModifyShootStats` and `Shoot` run for each native projectile creation within
+a shot. A weapon that creates several projectiles may call them several
+times. Projectiles created by these callbacks themselves go straight to the
+game, avoiding recursion in the same shot.
 
-## Atualização, controles e saltos
+## Updates, controls and jumps
 
-| Assinatura | Ponto de execução |
+| Signature | Execution point |
 |---|---|
-| `PreUpdateMovement(player)` | Antes da primeira etapa de colisão e deslocamento do quadro. |
-| `PostUpdateMiscEffects(player)` | Depois de `CapAttackSpeeds`. |
-| `PostUpdateRunSpeeds(player)` | Antes de `HorizontalMovement`. |
-| `NaturalLifeRegen(player, regen)` | `Ref<float>` no cálculo nativo da regeneração natural. |
-| `UpdateAutopause(player)` | Após a atualização pausada do jogador local. |
-| `ProcessTriggers(player, triggersSet)` | Após copiar os controles para o jogador local. |
-| `ResetInfoAccessories(player)` | Depois de zerar efeitos e depois de atualizar os acessórios informativos. |
-| `ArmorSetBonusActivated(player)` | Duplo toque na direção de ativação configurada. |
-| `ArmorSetBonusHeld(player, holdTime)` | Direção de ativação mantida pressionada. |
-| `OnEquipmentLoadoutSwitched(player, oldLoadoutIndex, loadoutIndex)` | Depois de uma troca efetiva. |
-| `CanStartExtraJump(player, jump)` | Veto ao salto extra disponível. |
-| `CanShowExtraJumpVisuals(player, jump)` | Veto aos efeitos nativos do salto ativo. |
-| `ExtraJumpVisuals(player, jump)` | Efeitos adicionais do salto permitido. |
-| `ModifyExtraJumpDurationMultiplier(player, jump, duration)` | `duration` é `Ref<float>`, inicialmente `1`. |
-| `OnExtraJumpStarted(player, jump, playSound)` | `playSound` é `Ref<bool>`; `false` suprime o som do início. |
-| `OnExtraJumpEnded(player, jump)` | Ao encerrar o salto ativo. |
-| `OnExtraJumpRefreshed(player, jump)` | Após renovar os saltos disponíveis dos equipamentos. |
-| `OnExtraJumpCleared(player, jump)` | Ao retirar a disponibilidade de um salto sem equipamento habilitador. |
+| `PreUpdateMovement(player)` | Before the frame's first collision and movement step. |
+| `PostUpdateMiscEffects(player)` | After `CapAttackSpeeds`. |
+| `PostUpdateRunSpeeds(player)` | Before `HorizontalMovement`. |
+| `NaturalLifeRegen(player, regen)` | `Ref<float>` in the native calculation of natural regeneration. |
+| `UpdateAutopause(player)` | After the local player's paused update. |
+| `ProcessTriggers(player, triggersSet)` | After copying the controls to the local player. |
+| `ResetInfoAccessories(player)` | After resetting effects and after updating the info accessories. |
+| `ArmorSetBonusActivated(player)` | Double tap in the configured activation direction. |
+| `ArmorSetBonusHeld(player, holdTime)` | Activation direction held down. |
+| `OnEquipmentLoadoutSwitched(player, oldLoadoutIndex, loadoutIndex)` | After an actual switch. |
+| `CanStartExtraJump(player, jump)` | Veto on the available extra jump. |
+| `CanShowExtraJumpVisuals(player, jump)` | Veto on the active jump's native visuals. |
+| `ExtraJumpVisuals(player, jump)` | Additional visuals for the allowed jump. |
+| `ModifyExtraJumpDurationMultiplier(player, jump, duration)` | `duration` is a `Ref<float>`, initially `1`. |
+| `OnExtraJumpStarted(player, jump, playSound)` | `playSound` is a `Ref<bool>`; `false` suppresses the start sound. |
+| `OnExtraJumpEnded(player, jump)` | When the active jump ends. |
+| `OnExtraJumpRefreshed(player, jump)` | After renewing the jumps available from equipment. |
+| `OnExtraJumpCleared(player, jump)` | When a jump's availability is removed without enabling equipment. |
 
-`ExtraJump` exporta descritores dos nove saltos nativos: `CloudInABottle`,
+`ExtraJump` exports descriptors for the nine native jumps: `CloudInABottle`,
 `SandstormInABottle`, `BlizzardInABottle`, `FartInAJar`, `TsunamiInABottle`,
-`UnicornMount`, `SantankMount`, `GoatMount` e `BasiliskMount`. Compare a
-identidade do descritor ou leia `jump.Name`. O registro de novos tipos de
-salto não faz parte deste conjunto de hooks.
+`UnicornMount`, `SantankMount`, `GoatMount` and `BasiliskMount`. Compare the
+descriptor's identity or read `jump.Name`. Registering new jump types is not
+part of this set of hooks.
 
-## Desenho e câmera
+## Drawing and camera
 
-| Assinatura | Contrato |
+| Signature | Contract |
 |---|---|
-| `DrawEffects(player, drawInfo, r, g, b, a, fullBright)` | Multiplicadores `Ref<float>` e `Ref<bool>`; depois da preparação nativa. |
-| `DrawPlayer(player, camera)` | Depois do desenho nativo completo. |
-| `HideDrawLayers(player, drawInfo)` | Chame `PlayerDrawLayers.Head.Hide()`, por exemplo, para aquele desenho. |
-| `ModifyDrawInfo(player, drawInfo)` | Altera o `PlayerDrawSet` antes de construir as camadas. |
-| `ModifyDrawLayerOrdering(player, positions)` | `Map` de descritor para `{ Before: descritor }` ou `{ After: descritor }`. |
-| `TransformDrawData(player, drawInfo)` | Depois das transformações nativas e antes de renderizar o cache. |
-| `ModifyScreenPosition(player)` | Depois de atualizar a câmera; altere `Main.screenPosition`. |
-| `ModifyZoom(player, zoom)` | `Ref<float>`; preserva a proporção dos eixos. |
+| `DrawEffects(player, drawInfo, r, g, b, a, fullBright)` | `Ref<float>` multipliers and `Ref<bool>`; after the native preparation. |
+| `DrawPlayer(player, camera)` | After the complete native drawing. |
+| `HideDrawLayers(player, drawInfo)` | Call `PlayerDrawLayers.Head.Hide()`, for example, for that draw. |
+| `ModifyDrawInfo(player, drawInfo)` | Changes the `PlayerDrawSet` before the layers are built. |
+| `ModifyDrawLayerOrdering(player, positions)` | A `Map` from descriptor to `{ Before: descriptor }` or `{ After: descriptor }`. |
+| `TransformDrawData(player, drawInfo)` | After the native transformations and before rendering the cache. |
+| `ModifyScreenPosition(player)` | After updating the camera; change `Main.screenPosition`. |
+| `ModifyZoom(player, zoom)` | `Ref<float>`; keeps the axes' aspect ratio. |
 
-`PlayerDrawLayer.BeforeParent(layer)` e `AfterParent(layer)` criam posições.
-A ordenação reorganiza os dados produzidos pelas camadas nativas, preservando
-as regras de posição e equipamento do jogo. Ciclos são ignorados com aviso.
-O cache é `drawInfo.DrawDataCache`, com `drawInfo.DrawDataCacheCount` entradas
-ativas. As visibilidades são restauradas ao terminar cada desenho.
+`PlayerDrawLayer.BeforeParent(layer)` and `AfterParent(layer)` create
+positions. The ordering rearranges the data produced by the native layers,
+keeping the game's position and equipment rules. Cycles are ignored with a
+warning. The cache is `drawInfo.DrawDataCache`, with
+`drawInfo.DrawDataCacheCount` active entries. Visibilities are restored at the
+end of each draw.
 
-Classes exportadas que estendem `PlayerDrawLayer` também são registradas
-automaticamente. Implemente `GetDefaultPosition()` e `Draw(drawInfo)`;
-`GetDefaultVisibility(drawInfo)` é opcional. Consulte o
-[contrato e exemplo de glowmask](playerdrawlayers.md). Filhos acompanham a
-visibilidade e o deslocamento do pai. A consulta de visibilidade ocorre
-em cada desenho, e as posições padrão ficam em cache. Camadas nativas sem
-mudanças continuam fora do despacho JavaScript.
+Exported classes that extend `PlayerDrawLayer` are also registered
+automatically. Implement `GetDefaultPosition()` and `Draw(drawInfo)`;
+`GetDefaultVisibility(drawInfo)` is optional. See the
+[contract and glowmask example](playerdrawlayers.md). Children follow the
+parent's visibility and offset. The visibility query happens on each draw, and
+the default positions are cached. Unchanged native layers stay out of the
+JavaScript dispatch.
 
-No jogo móvel, `DrawDataCache` é um array de capacidade fixa, e não uma lista
-do [tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/DataStructures/PlayerDrawSet.cs.patch). Escrever uma entrada sem incrementar `DrawDataCacheCount` não
-a inclui no desenho e permite que a próxima camada a sobrescreva. Use
-`ModPlayer.AddDrawData(drawInfo, drawData)`: grava no próximo slot ativo e só
-incrementa o contador depois da escrita. Retorna `false` se o cache estiver
-cheio, o contador for inválido ou faltar o cache ou o dado. Não aloca outro
-array nem instala hooks. O desenho continua passando pelas transformações,
-shaders e renderização nativos.
+In the mobile game, `DrawDataCache` is a fixed-capacity array, not a list as
+in [tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/DataStructures/PlayerDrawSet.cs.patch).
+Writing an entry without incrementing `DrawDataCacheCount` does not include it
+in the drawing and lets the next layer overwrite it. Use
+`ModPlayer.AddDrawData(drawInfo, drawData)`: it writes into the next active
+slot and only increments the counter after the write. It returns `false` if
+the cache is full, the counter is invalid or the cache or the data is
+missing. It does not allocate another array or install hooks. The drawing
+still goes through the native transformations, shaders and rendering.
 
 ```js
 ModifyDrawInfo(player, drawInfo) {
@@ -173,92 +175,93 @@ ModifyDrawInfo(player, drawInfo) {
 }
 ```
 
-Em `ModifyDrawInfo`, a entrada precede os dados produzidos pelas camadas
-nativas e pode ficar atrás do jogador. Em `TransformDrawData`, ela entra
-depois das transformações daquele callback; forneça a posição final desejada.
-`DrawData.Draw(Main.spriteBatch)` desenha imediatamente e não acrescenta uma
-entrada ao cache. Teste nativo: [cache de desenho do jogador](../../tools/tests/playerdrawcache/README.md).
+In `ModifyDrawInfo`, the entry comes before the data produced by the native
+layers and may end up behind the player. In `TransformDrawData`, it goes in
+after that callback's transformations; provide the desired final position.
+`DrawData.Draw(Main.spriteBatch)` draws immediately and does not add an entry
+to the cache. Native test: [player draw cache](../../tools/tests/playerdrawcache/README.md).
 
-## Pesca, serviços e inventário
+## Fishing, services and inventory
 
-| Assinatura | Contrato |
+| Signature | Contract |
 |---|---|
-| `GetFishingLevel(player, fishingRod, bait, fishingLevel)` | `Ref<float>`; os itens podem ser `null` quando não encontrados. |
-| `ModifyFishingAttempt(player, attempt)` | Antes do sorteio do item; altera a tentativa diretamente. |
-| `ModifyCaughtFish(player, fish)` | Altera o item efetivo antes de entregá-lo. |
-| `CanConsumeBait(player, bait)` | Decisão opcional depois do sorteio nativo de consumo. |
-| `AnglerQuestReward(player, rareMultiplier, rewardItems)` | Lista JS mutável de itens antes da entrega. |
-| `GetDyeTraderReward(player, rewardPool)` | Lista JS mutável de IDs antes do sorteio. Lista vazia produz item vazio. |
-| `CanBuyItem(player, vendor, shopInventory, item)` | Veto antes do pagamento da compra. |
-| `PostBuyItem(player, vendor, shopInventory, item)` | Após compra paga; item recebido pelo cursor. |
-| `CanSellItem(player, vendor, shopInventory, item)` | Veto antes da venda. |
-| `PostSellItem(player, vendor, shopInventory, item)` | Após venda aceita. |
-| `ModifyNurseHeal(player, nurse, health, removeDebuffs, chatText)` | Três `Ref`; `false` impede o atendimento e usa o texto informado. |
-| `ModifyNursePrice(player, nurse, health, removeDebuffs, price)` | `price` é `Ref<int>`; consulta também ao mostrar o preço. |
-| `PostNurseHeal(player, nurse, health, removeDebuffs, price)` | Depois de um atendimento pago, incluindo preço zero. |
-| `CanCatchNPC(player, target, item)` | Decisão opcional para a captura. |
-| `OnCatchNPC(player, npc, item, failed)` | Captura concluída ou tentativa que provoca dano ao tentar pegar criatura de lava. |
-| `AddStartingItems(player, mediumCoreDeath)` | Retorna uma lista de itens; padrão vazio. |
-| `ModifyStartingInventory(player, itemsByMod, mediumCoreDeath)` | `Map` de UUID para listas de itens; itens nativos sob `'Terraria'`. |
-| `AddMaterialsForCrafting(player, itemConsumedCallback)` | Retorna itens; ponha uma função `(item, index)` em `itemConsumedCallback.value`. |
-| `OnPickup(player, item)` | `false` elimina o item do chão sem pôr no inventário. |
-| `HoverSlot(player, inventory, context, slot)` | `true` trata o hover e pula o nativo. |
-| `ShiftClickSlot(player, inventory, context, slot)` | Com Shift ativo, `true` trata o clique. |
-| `CanBeTeleportedTo(player, teleportPosition, context)` | Veto no teleporte nativo; contexto `'TeleportRod'`, `'TeleportationPotion'`, `'Teleport'` ou `'Wormhole'`. |
+| `GetFishingLevel(player, fishingRod, bait, fishingLevel)` | `Ref<float>`; the items can be `null` when not found. |
+| `ModifyFishingAttempt(player, attempt)` | Before the item roll; changes the attempt directly. |
+| `ModifyCaughtFish(player, fish)` | Changes the actual item before handing it over. |
+| `CanConsumeBait(player, bait)` | An optional decision after the native consumption roll. |
+| `AnglerQuestReward(player, rareMultiplier, rewardItems)` | A mutable JS list of items before delivery. |
+| `GetDyeTraderReward(player, rewardPool)` | A mutable JS list of IDs before the roll. An empty list produces an empty item. |
+| `CanBuyItem(player, vendor, shopInventory, item)` | Veto before paying for the purchase. |
+| `PostBuyItem(player, vendor, shopInventory, item)` | After a paid purchase; item received through the cursor. |
+| `CanSellItem(player, vendor, shopInventory, item)` | Veto before the sale. |
+| `PostSellItem(player, vendor, shopInventory, item)` | After an accepted sale. |
+| `ModifyNurseHeal(player, nurse, health, removeDebuffs, chatText)` | Three `Ref`s; `false` prevents the service and uses the given text. |
+| `ModifyNursePrice(player, nurse, health, removeDebuffs, price)` | `price` is a `Ref<int>`; also asked when showing the price. |
+| `PostNurseHeal(player, nurse, health, removeDebuffs, price)` | After a paid service, including a zero price. |
+| `CanCatchNPC(player, target, item)` | An optional decision for the catch. |
+| `OnCatchNPC(player, npc, item, failed)` | A completed catch or an attempt that causes damage when trying to catch a lava critter. |
+| `AddStartingItems(player, mediumCoreDeath)` | Returns a list of items; empty by default. |
+| `ModifyStartingInventory(player, itemsByMod, mediumCoreDeath)` | A `Map` from UUID to item lists; native items under `'Terraria'`. |
+| `AddMaterialsForCrafting(player, itemConsumedCallback)` | Returns items; put a `(item, index)` function in `itemConsumedCallback.value`. |
+| `OnPickup(player, item)` | `false` removes the item from the ground without putting it in the inventory. |
+| `HoverSlot(player, inventory, context, slot)` | `true` handles the hover and skips the native one. |
+| `ShiftClickSlot(player, inventory, context, slot)` | With Shift active, `true` handles the click. |
+| `CanBeTeleportedTo(player, teleportPosition, context)` | Veto on the native teleport; context `'TeleportRod'`, `'TeleportationPotion'`, `'Teleport'` or `'Wormhole'`. |
 
-Itens de crafting são referências aos itens originais, não cópias. O índice
-do callback corresponde à lista devolvida pelo mod. Fontes repetidas são
-deduplicadas por endereço e divididas em inventários nativos de até 200 slots.
-O jogo usa essas fontes tanto na disponibilidade de receitas quanto no
-consumo. Itens iniciais são montados após o inventário nativo, antes do save
-do personagem; em morte mediumcore, após o inventário de reposição.
+Crafting items are references to the original items, not copies. The
+callback's index matches the list returned by the mod. Repeated sources are
+deduplicated by address and split into native inventories of up to 200 slots.
+The game uses these sources both for recipe availability and for consumption.
+Starting items are assembled after the native inventory, before the character
+save; on a mediumcore death, after the replacement inventory.
 
-## Save e rede
+## Saving and network
 
-| Assinatura | Contrato |
+| Signature | Contract |
 |---|---|
-| `PreSavePlayer(player)` | Antes do save nativo. |
-| `PostSavePlayer(player)` | Ao finalizar o save nativo e os dados auxiliares, inclusive se o save nativo lançar erro. |
-| `PreSaveCustomData(player)` | Antes de montar os dados do arquivo `.plr.bl.json`. |
-| `CopyClientState(player, targetCopy)` | Copia para outra instância da mesma classe, associada ao clone nativo. |
-| `SendClientChanges(player, clientPlayer)` | No cliente, compara com a instância copiada no quadro anterior. |
-| `SyncPlayer(player, toWho, fromWho, newPlayer)` | Após sincronizar o jogador nativo. |
-| `PlayerConnect(player)` | Após a conexão do jogador. |
-| `PlayerDisconnect(player)` | Antes de remover o jogador desconectado. |
+| `PreSavePlayer(player)` | Before the native save. |
+| `PostSavePlayer(player)` | When the native save and the auxiliary data finish, even if the native save throws. |
+| `PreSaveCustomData(player)` | Before building the `.plr.bl.json` file's data. |
+| `CopyClientState(player, targetCopy)` | Copies into another instance of the same class, tied to the native clone. |
+| `SendClientChanges(player, clientPlayer)` | On the client, compares with the instance copied on the previous frame. |
+| `SyncPlayer(player, toWho, fromWho, newPlayer)` | After syncing the native player. |
+| `PlayerConnect(player)` | After the player connects. |
+| `PlayerDisconnect(player)` | Before removing the disconnected player. |
 
-As mensagens de estado de mod continuam sendo enviadas explicitamente por
-`ModPacket`. Não há serialização automática de campos JS. Copie arrays e
-objetos mutáveis no `CopyClientState` para não compartilhar estado com o clone.
-`newPlayer` indica que ainda não foi observada uma conexão para aquele índice.
+Mod state messages are still sent explicitly through `ModPacket`. There is no
+automatic serialization of JS fields. Copy arrays and mutable objects in
+`CopyClientState` so as not to share state with the clone. `newPlayer` means a
+connection has not been observed yet for that index.
 
-## Validação e desempenho
+## Validation and performance
 
-O [teste multiplayer](../../tools/tests/mpmodplayer/RESULTADOS.md) usa host e
-cliente reais e registra 102 verificações sem falhas, incluindo desconexão
-e reconexão. Os callbacks observados não representam cobertura completa de
-todos os métodos. Servidor dedicado e outros fluxos específicos continuam
-fora dessa execução; consulte o [roteiro](../../tools/tests/mpmodplayer/README.md).
+The [multiplayer test](../../tools/tests/mpmodplayer/RESULTADOS.md) uses a
+real host and client and records 102 checks with no failures, including
+disconnecting and reconnecting. The callbacks observed do not represent full
+coverage of every method. A dedicated server and other specific flows remain
+outside that run; see the [script](../../tools/tests/mpmodplayer/README.md).
 
-A [revisão de desempenho](../../tools/tests/modplayerperf/RESULTADOS.md)
-mede hooks frequentes com oito ModPlayers e preserva a quantidade de
-callbacks. Hooks são instalados por grupo sob demanda. Instâncias, planos
-de sobrescritas e listas de classes interessadas são reutilizados; desenho
-e saltos usam filtros de contexto quando aplicável. As medições pertencem
-ao cenário descrito, sem representar um ganho de FPS em qualquer mod.
-Os hooks de save preservam dados de mods ausentes e mantêm a regra existente
-de arquivo auxiliar apenas para personagens locais.
+The [performance review](../../tools/tests/modplayerperf/RESULTADOS.md)
+measures frequent hooks with eight ModPlayers and preserves the number of
+callbacks. Hooks are installed per group on demand. Instances, override plans
+and lists of interested classes are reused; drawing and jumps use context
+filters where applicable. The measurements belong to the scenario described,
+without representing an FPS gain in any mod. The save hooks preserve data from
+missing mods and keep the existing rule of an auxiliary file only for local
+characters.
 
-O tModLoader declara `PreSaveCustomData`, mas não o chama no código estável
-consultado. Aqui o hook tem o ponto explícito descrito acima.
+tModLoader declares `PreSaveCustomData`, but does not call it in the stable
+code consulted. Here the hook has the explicit point described above.
 
-## Verificação
+## Verification
 
-`node tools/tests/modplayerhooks/check.mjs` confere assinaturas no dump local
-e executa testes de composição, vetos, referências, reentrada, cache de
-desenho, serviços, crafting, clones e save. Requer `refs/dump.cs`, que é
-gerado localmente e não é versionado.
+`node tools/tests/modplayerhooks/check.mjs` checks signatures against the
+local dump and runs tests for composition, vetoes, references, reentry, draw
+cache, services, crafting, clones and saving. It requires `refs/dump.cs`,
+which is generated locally and not versioned.
 
-O pacote `tools/tests/modplayerhooks` registra todos os hooks e exercita
-os caminhos nativos num personagem e mundo de teste. A ponte de regeneração
-natural, iscas, recompensas de tintura e condições de pesca verifica instruções do binário antes
-de instalar; um binário incompatível produz erro, sem aplicar o patch.
+The `tools/tests/modplayerhooks` package registers every hook and exercises
+the native paths on a test character and world. The bridge for natural
+regeneration, bait, dye rewards and fishing conditions checks the binary's
+instructions before installing; an incompatible binary produces an error,
+without applying the patch.

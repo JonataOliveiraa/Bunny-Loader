@@ -1,10 +1,10 @@
-# Pacotes de textura
+# Texture packs
 
-Um pacote de textura substitui sprites vanilla usando somente PNGs. Nao precisa
-de `main.js`, classe `Mod` nem codigo JavaScript.
+A texture pack replaces vanilla sprites using PNGs only. It needs no
+`main.js`, no `Mod` class and no JavaScript code.
 
 ```text
-MeuPack/
+MyPack/
   manifest.json
   icon.png
   content/
@@ -21,21 +21,22 @@ MeuPack/
 ```json
 {
   "uid": "19a01ecc-063f-3e40-a704-ace60cf3b483",
-  "id": "meupack",
-  "name": "Meu Pack",
+  "id": "mypack",
+  "name": "My Pack",
   "version": "1.0.0",
-  "author": "Seu nome",
+  "author": "Your name",
   "type": "texture",
   "category": "Texturas",
   "blVersion": 2
 }
 ```
 
-O UUID do exemplo pertence ao pack de teste Un-mechanical Bosses: use um UUID
-proprio para um pacote local e a identidade emitida pelo site ao publicar.
-Descricao, icone, autores e links usam os mesmos campos dos outros pacotes.
+The example's UUID belongs to the Un-mechanical Bosses test pack: use your
+own UUID for a local package and the identity issued by the site when
+publishing. Description, icon, authors and links use the same fields as other
+packages.
 
-| Arquivo relativo a `content/Images/` | Tabela no jogo |
+| File relative to `content/Images/` | Game table |
 |---|---|
 | `Item_N.png` | `TextureAssets.Item[N]` |
 | `NPC_N.png` | `TextureAssets.Npc[N]` |
@@ -51,15 +52,16 @@ Descricao, icone, autores e links usam os mesmos campos dos outros pacotes.
 | `Female_Body_N.png` | `TextureAssets.FemaleBody[N]` |
 | `Armor/Armor_N.png` | `TextureAssets.ArmorBodyComposite[N]` |
 
-`N` e o numero vanilla. Exemplos: `Item_1` e a Picareta de Cobre,
-`NPC_4` e o Olho de Cthulhu, `Tiles_0` e terra. Use os nomes e a capitalizacao
-do resource pack original. Arquivos em `Misc/` e `UI/Bestiary/` nao substituem
-NPCs, mesmo quando se chamam `NPC_N.png`.
+`N` is the vanilla number. Examples: `Item_1` is the Copper Pickaxe, `NPC_4`
+is the Eye of Cthulhu, `Tiles_0` is dirt. Use the original resource pack's
+names and capitalization. Files in `Misc/` and `UI/Bestiary/` do not replace
+NPCs, even when they are named `NPC_N.png`.
 
-O loader tambem procura o **caminho completo** dos outros assets de textura,
-incluindo campos individuais, outras tabelas e assets guardados pelo repositorio.
-Isso permite substituir `Extra_N`, `Background_N`, `Wings_N`, acessorios,
-cabecas de NPCs, arvores, inventario, partes de chefes e imagens em subpastas:
+The loader also looks up the **full path** of the other texture assets,
+including individual fields, other tables and assets held by the repository.
+That makes it possible to replace `Extra_N`, `Background_N`, `Wings_N`,
+accessories, NPC heads, trees, inventory, boss parts and images in
+subfolders:
 
 ```text
 content/Images/Inventory_Back.png
@@ -71,77 +73,80 @@ content/Images/UI/PlayerResourceSets/FancyClassic/Heart_Fill.png
 content/Images/TownNPCs/Wizard_Default.png
 ```
 
-O caminho deve corresponder ao `Name` do asset pedido pelo jogo. A busca por
-nome ignora maiusculas/minusculas e normaliza as barras; nao reduz subpastas
-ao nome do arquivo. Imagens exclusivas do PC, alternativas em `Misc/` e
-elementos da interface que o mobile desenha de outra maneira podem ficar sem
-efeito. Aplicar uma moldura de minimapa do PC nao adapta as medidas ou botoes
-da interface mobile; o PNG pode exigir ajustes de arte para ficar alinhado.
+The path must match the `Name` of the asset the game requests. The lookup by
+name is case-insensitive and normalizes slashes; it does not reduce
+subfolders to the file name. PC-only images, alternatives in `Misc/` and UI
+elements mobile draws differently may have no effect. Applying a PC minimap
+frame does not adapt the mobile UI's measurements or buttons; the PNG may need
+art adjustments to line up.
 
-Na aba Pacotes, o pacote mais acima ganha **por arquivo**. Um PNG que falha
-na carga permite usar o mesmo arquivo de um pacote abaixo; sem substituicao
-valida, continua o asset original. Indices fora da tabela deixam um aviso.
+On the Packages tab, the topmost package wins **per file**. A PNG that fails
+to load lets the same file from a package below be used; with no valid
+replacement, the original asset stays. Indexes outside the table leave a
+warning.
 
-Os PNGs sao lidos na carga do jogo, depois de as tabelas estarem prontas,
-com filtro de pixel e sem repeticao nas bordas. PNGs sobrepostos de pacotes
-abaixo nao sao decodificados. A memoria aumenta com os sprites substituidos:
-as texturas por nome que ainda nao foram pedidas sao decodificadas na primeira
-chamada a `Asset<Texture2D>.ActionUnityLoad` na thread do jogo. Essa carga usa
-o PNG diretamente. Os sprites das 13 tabelas acima e os assets por nome ja
-existentes continuam sendo aplicados na carga; a carga sob demanda de todos
-os sprites de um pack grande ainda nao esta implementada.
+The PNGs are read when the game loads, after the tables are ready, with pixel
+filtering and no edge wrapping. Overridden PNGs from packages below are not
+decoded. Memory grows with the replaced sprites: name-based textures that have
+not been requested yet are decoded on the first call to
+`Asset<Texture2D>.ActionUnityLoad` on the game thread. That load uses the PNG
+directly. The sprites of the 13 tables above and the name-based assets that
+already exist are still applied during loading; on-demand loading of every
+sprite of a large pack is not implemented yet.
 
-Mantenha as dimensoes originais da folha. O loader compara com a largura e
-altura logicas do sprite vanilla (nao o tamanho da pagina Unity) e registra
-`size mismatch` em ingles quando diferem. E um aviso: o PNG ainda e aplicado.
-Se o asset original ainda nao tem `Value`, `Asset.ActionUnityLoad` prepara o
-Texture2D logico pelo ContentManager, que conhece o atlas e SourceAssetEntry.
-A leitura de Width/Height nao pede a pagina Unity usada no desenho. Se essas
-dimensoes nao estiverem disponiveis, o log informa que nao pode conferir.
-Pedidos futuros por nome que ainda nao possuem Value recebem o PNG sem
-carregar o vanilla primeiro; nesse caso o aviso informa que as dimensoes
-originais nao foram verificadas.
+Keep the sheet's original dimensions. The loader compares against the vanilla
+sprite's logical width and height (not the Unity page size) and logs
+`size mismatch` when they differ. It is a warning: the PNG is still applied.
+If the original asset has no `Value` yet, `Asset.ActionUnityLoad` prepares the
+logical Texture2D through the ContentManager, which knows the atlas and the
+SourceAssetEntry. Reading Width/Height does not request the Unity page used
+for drawing. If those dimensions are not available, the log says it cannot
+check. Future name-based requests that have no Value yet get the PNG without
+loading the vanilla one first; in that case the warning says the original
+dimensions were not verified.
 
-As escolhas de pacotes sao aplicadas ao abrir/reiniciar o jogo. Para desligar,
-volte ao launcher, desative o pacote e abra o jogo de novo. Os assets originais
-sao preservados com referencias do GC enquanto existe substituicao.
-Nas substituicoes por nome, o objeto Asset permanece o mesmo, preservando
-referencias guardadas pela interface. O valor, a fonte e o estado anterior
-sao restaurados antes de liberar a textura Unity criada pelo pacote.
+Package choices are applied when the game opens/restarts. To turn one off, go
+back to the launcher, disable the package and open the game again. The
+original assets are kept alive with GC references while a replacement exists.
+For name-based replacements, the Asset object stays the same, preserving
+references held by the UI. The previous value, source and state are restored
+before freeing the Unity texture the package created.
 
-## Importar e empacotar
+## Importing and packing
 
-Para importar um pack do PC, escolha seu ZIP com `pack.json`, `icon.png` e
-`Content/Images/`. O launcher converte nome, autor, descricao e versao para
-`manifest.json`, define `type: "texture"` e normaliza `Content/` para `content/`.
-Tambem aceita esses arquivos dentro de uma pasta no ZIP. Se houver
-`workshop.json`, o ID do Workshop preserva a identidade entre atualizacoes;
-sem ele, a identidade local deriva do nome e autor. Um `manifest.json` existente
-tem prioridade e nunca e recriado pelo conversor.
+To import a PC pack, pick its ZIP with `pack.json`, `icon.png` and
+`Content/Images/`. The launcher converts name, author, description and
+version into `manifest.json`, sets `type: "texture"` and normalizes `Content/`
+to `content/`. It also accepts these files inside a folder in the ZIP. If
+there is a `workshop.json`, the Workshop ID keeps the identity across updates;
+without it, the local identity derives from the name and author. An existing
+`manifest.json` takes priority and is never recreated by the converter.
 
-Para empacotar a pasta do Bunny Loader:
+To pack the Bunny Loader folder:
 
 ```powershell
 python tools/mods/pack.py "build/mods-repo/ports/textures/Un-mechanical Bosses/bl"
 ```
 
-O `.bl` sai em `build/mods-packs/`. O mesmo conteudo gera o mesmo arquivo.
+The `.bl` comes out in `build/mods-packs/`. The same content produces the
+same file.
 
-Para portar imagens de um resource pack instalado no Workshop local:
+To port images from a resource pack installed from the local Workshop:
 
 ```powershell
 python tools/mods/port_textures.py 2439853873 2796830227
 ```
 
-O comando copia os PNGs para `build/mods-repo/ports/textures/<nome>/bl` (o clone
-do [repositório de mods](https://github.com/JonataOliveiraa/Bunny-Loader-Mods)
-que o `publish.py` mantém), cria o manifesto,
-preserva autoria, metadados e icone e gera o `.bl`. Nao altera a pasta Steam.
-O UID deriva do ID do Workshop, como no importador do launcher; um port ja
-existente mantem sua identidade. Cada port tem um README em
-`ports/textures/<nome>/`, e os `.bl` prontos ficam em `ports/textures/in bl/`.
+The command copies the PNGs to `build/mods-repo/ports/textures/<name>/bl`
+(the clone of the [mods repository](https://github.com/JonataOliveiraa/Bunny-Loader-Mods)
+that `publish.py` maintains), creates the manifest, preserves authorship,
+metadata and icon and builds the `.bl`. It does not touch the Steam folder.
+The UID derives from the Workshop ID, as in the launcher's importer; an
+existing port keeps its identity. Each port has a README in
+`ports/textures/<name>/`, and the finished `.bl` files sit in
+`ports/textures/in bl/`.
 
-Localizacao, sons e musicas nao sao aplicados por esse carregador. O comando
-de port copia somente imagens; `type: "font"` fica para uma implementacao futura.
-Compatibilidade de nomes e dimensoes nao garante que todas as imagens do PC
-tenham um elemento equivalente visivel na interface mobile.
+Localization, sounds and music are not applied by this loader. The port
+command copies images only; `type: "font"` is left for a future
+implementation. Matching names and dimensions does not guarantee every PC
+image has a visible equivalent element in the mobile UI.

@@ -1,8 +1,8 @@
-# ModItem: combate, uso, munição e cura
+# ModItem: combat, use, ammo and healing
 
-O [plano](PLANO.md) cobre todos os métodos solicitados. Esta suite valida os 12 métodos de combate, os 11 de uso e munição e os 4 de cura. Desenho, coleta, pilhas, estado e reforja permanecem nas etapas seguintes.
+The [plan](PLANO.md) covers every requested method. This suite validates the 12 combat methods, the 11 use and ammo methods and the 4 healing methods. Drawing, pickup, stacks, state and reforging remain for the next steps.
 
-## Testes automatizados
+## Automated tests
 
 ```powershell
 node tools/tests/moditemhooks/check.mjs
@@ -13,42 +13,42 @@ node tools/tests/projectilekill/check.mjs
 node tools/tests/localization/check.mjs
 ```
 
-O teste de ModItem carrega os loaders reais em um ambiente que simula chamadas nativas. Verifica assinaturas e nomes dos parâmetros contra `refs/dump.cs`, referências, modificadores, ordem entre classes, vetos, registros herdados e tardios, marcas antes da entrada no JavaScript, exceções e restauração de contextos.
+The ModItem test loads the real loaders in an environment that simulates native calls. It checks signatures and parameter names against `refs/dump.cs`, references, modifiers, order between classes, vetoes, inherited and late registrations, marks before entering JavaScript, exceptions and context restoration.
 
-Os testes de contexto aninhado verificam a restauração do estado JavaScript. A ponte nativa mantém sua proteção contra reentrada no mesmo hook. A suite não remove essa proteção e a simulação não é uma medição de FPS.
+The nested context tests check the restoration of the JavaScript state. The native bridge keeps its reentry protection on the same hook. The suite does not remove that protection and the simulation is not an FPS measurement.
 
-## Execução nativa
+## Native run
 
-O fixture usa itens, um NPC e um jogador temporários em singleplayer. Restaura os campos alterados e desativa o NPC em `finally`. O teste roda 60 atualizações após entrar no mundo e escreve `moditemhooks FIM checks=... falhas=...` no log.
+The fixture uses temporary items, an NPC and a player in single player. It restores the changed fields and deactivates the NPC in `finally`. The test runs 60 updates after entering the world and writes `moditemhooks FIM checks=... falhas=...` to the log.
 
-Com o APK instalado e uma instância Android de teste conectada, prepare o fixture:
-
-```powershell
-python tools/tests/moditemhooks/device.py prepare --device 127.0.0.1:16384 --run-id minha-execucao
-```
-
-O script preserva as preferências existentes, habilita somente seu próprio UID e instala o conteúdo numa pasta exclusiva. Use `--world NOME.wld` apenas para escolher um mundo de teste já existente; sem essa opção, ele conserva o mundo configurado no launcher. Inicie o jogo pelo launcher e leia o log do processo `com.bunnyloader:game`.
-
-Depois da execução:
+With the APK installed and a test Android instance connected, prepare the fixture:
 
 ```powershell
-python tools/tests/moditemhooks/device.py cleanup --device 127.0.0.1:16384 --run-id minha-execucao
+python tools/tests/moditemhooks/device.py prepare --device 127.0.0.1:16384 --run-id my-run
 ```
 
-A limpeza restaura somente as preferências do fixture e confirma o caminho absoluto antes de remover sua pasta. Os backups locais ficam em `build/moditemhooks/<run-id>`. Use um identificador novo para uma nova sessão, preservando o mesmo identificador nos retries e na limpeza daquela sessão.
+The script keeps the existing preferences, enables only its own UID and installs the content in a dedicated folder. Use `--world NAME.wld` only to pick an existing test world; without that option, it keeps the world configured in the launcher. Start the game from the launcher and read the log of the `com.bunnyloader:game` process.
 
-Os contadores de frames distinguem o novo hook de ModItem do hook de armaduras existente. Os testes de munição preservam o inventário e os campos temporários do jogador. Os contratos e as diferenças do consumo móvel estão em [Uso e munição](../../../docs/referencia/moditem-uso-municao.md).
+After the run:
 
-Os testes de cura executam o helper de aplicação normal, QuickHeal e QuickMana reais, verificando vida, mana, consumo, buffs, seleção e atrasos especiais. A composição com ModPlayer é registrada depois da medição dos filtros sem observadores globais. Os campos, buffs e inventário são restaurados em finally. Contratos: [Cura](../../../docs/referencia/moditem-cura.md); resultados: [RESULTADOS-CURA.md](RESULTADOS-CURA.md).
+```powershell
+python tools/tests/moditemhooks/device.py cleanup --device 127.0.0.1:16384 --run-id my-run
+```
 
-O teste nativo original de PvP usa dois objetos Player no mesmo processo.
-A [rodada de 08/10/2026](../pendingnetwork/README.md) corrigiu origem da arma
-e veto antes do envio, e validou o dano e os callbacks nas duas direções
-entre dois processos. A suíte JS deste diretório foi migrada de
-PlayerCombatHooks para CombatLoader e voltou a aprovar seus 138 casos.
+The cleanup restores only the fixture's preferences and confirms the absolute path before removing its folder. The local backups live in `build/moditemhooks/<run-id>`. Use a new identifier for a new session, keeping the same identifier for that session's retries and cleanup.
 
-Resultados e medição: [RESULTADOS.md](RESULTADOS.md). Contratos: [Combate de ModItem](../../../docs/referencia/moditem-combate.md).
+The frame counters tell the new ModItem hook apart from the existing armor hook. The ammo tests keep the inventory and the player's temporary fields. The contracts and the differences in mobile consumption are in [Use and ammo](../../../docs/referencia/moditem-uso-municao.md).
 
-## Medição de desempenho
+The healing tests run the real normal application helper, QuickHeal and QuickMana, checking life, mana, consumption, buffs, selection and special delays. Composition with ModPlayer is registered after measuring the filters without global observers. The fields, buffs and inventory are restored in finally. Contracts: [Healing](../../../docs/referencia/moditem-cura.md); results: [RESULTADOS-CURA.md](RESULTADOS-CURA.md).
 
-O [fixture hookperf](../hookperf/README.md) mede o APK atual com 0, 1 e 8 classes ModPlayer, compara dano/frames de itens vanilla e de mod e verifica os filtros antes do JavaScript. Os [resultados](../hookperf/RESULTADOS.md) incluem desenho e limites das comparações; não são uma medição de FPS.
+The original native PvP test uses two Player objects in the same process.
+The [2026-10-08 round](../pendingnetwork/README.md) fixed the weapon's origin
+and the veto before sending, and validated the damage and the callbacks in
+both directions across two processes. This folder's JS suite was migrated
+from PlayerCombatHooks to CombatLoader and passes its 138 cases again.
+
+Results and measurement: [RESULTADOS.md](RESULTADOS.md). Contracts: [ModItem combat](../../../docs/referencia/moditem-combate.md).
+
+## Performance measurement
+
+The [hookperf fixture](../hookperf/README.md) measures the current APK with 0, 1 and 8 ModPlayer classes, compares damage/frames of vanilla and mod items and checks the filters before JavaScript. The [results](../hookperf/RESULTADOS.md) include drawing and the limits of the comparisons; they are not an FPS measurement.

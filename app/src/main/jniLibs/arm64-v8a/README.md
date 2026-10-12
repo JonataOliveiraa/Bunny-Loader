@@ -1,6 +1,6 @@
-# Runtime do jogo (arm64-v8a)
+# Game runtime (arm64-v8a)
 
-Estas quatro `.so` **não estão no repositório** e não são adicionadas por mim:
+These four `.so` files **are not in the repository** and are not added by me:
 
 ```
 libil2cpp.so
@@ -9,34 +9,38 @@ libmain.so
 libc++_shared.so
 ```
 
-Colocá-las aqui é redistribuir os binários do jogo. É um passo do responsável
-pelo projeto, coberto pela licença que ele declara ter — não uma etapa de build.
+Putting them here means redistributing the game's binaries. It is a step for
+the project owner, covered by the license they declare to have — not a build
+step.
 
-O Gradle empacota o que estiver nesta pasta no split de ABI do AAB, e em runtime
-elas aparecem em `ApplicationInfo.nativeLibraryDir`, que é de onde o
-`BundledRuntime` as carrega por `System.loadLibrary`.
+Gradle packages whatever is in this folder into the AAB's ABI split, and at
+runtime they show up in `ApplicationInfo.nativeLibraryDir`, which is where
+`BundledRuntime` loads them from through `System.loadLibrary`.
 
-Sem elas, o app compila e instala normalmente; o `BundledRuntime.isPresent()`
-devolve false e a `GameActivity` recusa subir com uma mensagem explícita, em vez
-de estourar dentro da Unity.
+Without them, the app builds and installs normally; `BundledRuntime.isPresent()`
+returns false and `GameActivity` refuses to boot with an explicit message,
+instead of blowing up inside Unity.
 
-## Requisitos do conteúdo
+## Content requirements
 
-- Precisa ser uma build cuja `libunity.so` **não** tenha `libpairipcore.so` em
-  `DT_NEEDED`. A verificação roda no boot (`BundledRuntime.pairipCheck`), porque
-  o sintoma de errar isso é um SIGSEGV do anti-tamper no meio do boot da Unity.
-- `libil2cpp.so` e o `global-metadata.dat` do asset pack têm de ser do MESMO
-  build. Eles são um par; misturar versões não dá erro claro, dá corrupção.
+- It has to be a build whose `libunity.so` does **not** have
+  `libpairipcore.so` in `DT_NEEDED`. The check runs at boot
+  (`BundledRuntime.pairipCheck`), because the symptom of getting this wrong is
+  an anti-tamper SIGSEGV in the middle of Unity's boot.
+- `libil2cpp.so` and the asset pack's `global-metadata.dat` have to come from
+  the SAME build. They are a pair; mixing versions does not give a clear
+  error, it gives corruption.
 
-## O que mais falta, além destas libs
+## What else is missing, besides these libs
 
-- **Asset pack** com `assets/bin/Data/` (`data.unity3d`, `resources.resource`,
+- **Asset pack** with `assets/bin/Data/` (`data.unity3d`, `resources.resource`,
   `global-metadata.dat`, `boot.config`, `globalgamemanagers`, ...).
-- **Classes Java que o código IL2CPP chama por JNI.** Precisam ir junto:
-  sem elas o jogo quebra em lookup de classe:
+- **Java classes the IL2CPP code calls through JNI.** They have to go along:
+  without them the game breaks on a class lookup:
   - `com.and.games505.TerrariaPaid.BuildConfig`
   - `uk.co.drstudios.lvl.BuildConfig`
   - `uk.co.drstudios.lvl.LicensingCheck`
-  - `com.google.android.vending.licensing.*` (a LVL do Google)
-- **Verificação do Terraria instalado.** Hoje `Eligibility` só detecta o pacote
-  e avisa se faltar; não confere origem nem assinatura e não bloqueia.
+  - `com.google.android.vending.licensing.*` (Google's LVL)
+- **Checking that Terraria is installed.** Today `Eligibility` only detects the
+  package and warns if it is missing; it does not check origin or signature
+  and does not block.

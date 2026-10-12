@@ -1,13 +1,13 @@
-# 11. Conversa entre mods
+# 11. Talking between mods
 
-Um mod pode achar outro mod instalado e chamar o que ele oferece. É assim que,
-no PC, o Wikithis recebe o endereço da wiki de cada mod, e um mod de lista de
-chefes aprende os chefes dos outros. O jeito é o do tModLoader:
-`ModLoader.TryGetMod` acha o outro mod e `Call` chama o que ele oferece.
+A mod can find another installed mod and call what it offers. That is how, on
+PC, Wikithis receives each mod's wiki address, and a boss checklist mod learns
+the other mods' bosses. The approach is tModLoader's: `ModLoader.TryGetMod`
+finds the other mod and `Call` calls what it offers.
 
-Pré-requisito: o [guia 4](04-conteudo-novo.md) e o `ModSystem` do [guia 5](05-itens.md#modsystem).
+Prerequisite: [guide 4](04-conteudo-novo.md) and the `ModSystem` from [guide 5](05-itens.md#modsystem).
 
-## Chamando outro mod
+## Calling another mod
 
 ```js
 // content/Common/Systems/WikiCompat.js
@@ -21,21 +21,22 @@ export class WikiCompat extends ModSystem {
 }
 ```
 
-- O nome é o **`id` do manifesto** do outro mod (não o `name`). O `uid` também
-  serve.
-- `TryGetMod(id, ref)` devolve `true` e põe o `Mod` em `ref.value`, ou devolve
-  `false` e põe `null`. É o `out Mod` do C#, com o [`Ref`](02-ref-e-out.md).
-- Sem o outro mod instalado, o `if` não entra e nada acontece. Por isso a
-  compatibilidade fica opcional: quem não tem o Wikithis joga igual.
+- The name is the other mod's **manifest `id`** (not its `name`). The `uid`
+  works too.
+- `TryGetMod(id, ref)` returns `true` and puts the `Mod` in `ref.value`, or
+  returns `false` and puts `null`. It is C#'s `out Mod`, with a
+  [`Ref`](02-ref-e-out.md).
+- Without the other mod installed, the `if` is skipped and nothing happens.
+  That keeps compatibility optional: someone without Wikithis plays the same.
 
-Para um mod sem o qual o seu não funciona, `ModLoader.GetMod(id)` devolve o
-`Mod` direto e lança erro se ele não está. `ModLoader.HasMod(id)` só responde
-se está. `ModLoader.Mods` é a lista de todos, na ordem de carga.
+For a mod yours cannot work without, `ModLoader.GetMod(id)` returns the `Mod`
+directly and throws if it is not there. `ModLoader.HasMod(id)` only answers
+whether it is. `ModLoader.Mods` is the list of all of them, in load order.
 
-## Oferecendo um `Call`
+## Offering a `Call`
 
-O `Call` mora na classe do mod, a do `export default` do arquivo de entrada
-(todo mod tem uma, e só uma):
+`Call` lives on the mod class, the `export default` of the entry file (every
+mod has one, and only one):
 
 ```js
 // content/main.js
@@ -47,7 +48,7 @@ export default class Wikithis extends Mod {
             case 'AddModURL': {
                 const [mod, domain] = args;
                 if (!(mod instanceof Mod) || typeof domain !== 'string') {
-                    throw new Error('AddModURL: espera (Mod, "https://...{}")');
+                    throw new Error('AddModURL: expects (Mod, "https://...{}")');
                 }
                 urls.set(mod.id, domain);
                 return true;
@@ -60,122 +61,123 @@ export default class Wikithis extends Mod {
 }
 ```
 
-- O costume, herdado do tModLoader, é o primeiro argumento dizer o comando.
-- Todo valor passa **como está**: número, texto, objeto, função, classe, o
-  próprio `Mod`. Todos os mods rodam no mesmo motor JS, então o `Call` é uma
-  chamada de função comum. No tModLoader tudo vira `object[]` e o outro lado
-  converte; aqui um objeto chega como o mesmo objeto, e uma função recebida
-  pode ser chamada.
-- Um erro lançado dentro do `Call` chega a quem chamou, como no tModLoader.
-  Lance com uma mensagem que diga o que faltou.
-- Um comando desconhecido devolve `undefined`. Um mod que não define `Call`
-  também: é o `return null` do tModLoader.
+- The convention, inherited from tModLoader, is for the first argument to name
+  the command.
+- Every value goes through **as is**: number, text, object, function, class,
+  the `Mod` itself. All mods run in the same JS engine, so `Call` is a plain
+  function call. In tModLoader everything becomes `object[]` and the other
+  side converts; here an object arrives as the same object, and a received
+  function can be called.
+- An error thrown inside `Call` reaches the caller, as in tModLoader. Throw
+  with a message that says what was missing.
+- An unknown command returns `undefined`. So does a mod that does not define
+  `Call`: it is tModLoader's `return null`.
 
-Dentro do `Call`, `bl.mod` é o mod **chamado**, e caminhos relativos
-(`bl.loadTexture`, `bl.file`) são da pasta dele. Quem chamou chega nos
-argumentos, se ele se mandar, como no `AddModURL` acima.
+Inside `Call`, `bl.mod` is the **called** mod, and relative paths
+(`bl.loadTexture`, `bl.file`) are relative to its folder. The caller arrives
+in the arguments, if it sends itself, as in `AddModURL` above.
 
-## Quando chamar: no `PostSetupContent`
+## When to call: in `PostSetupContent`
 
-Os mods carregam na ordem da aba Pacotes do launcher, que cada jogador muda,
-então não dá para saber se o outro mod roda antes ou depois do seu (a não ser
-que ele esteja no seu [`dependencies`](#dependências)). Por isso:
+Mods load in the order of the launcher's Packages tab, which each player
+changes, so you cannot know whether the other mod runs before or after yours
+(unless it is in your [`dependencies`](#dependencies)). That is why:
 
-- o `Mod` de todo mod instalado **existe desde o começo**: o `TryGetMod` acha o
-  outro mesmo que ele ainda não tenha carregado, e o objeto é o mesmo depois
-  (pode guardar);
-- o `Call` só é garantido **do `PostSetupContent` em diante**, quando todos os
-  mods já carregaram. Na carga (no topo de um arquivo ou no `Load()`), chamar
-  um mod que ainda não carregou lança `Mod 'x' ainda nao carregou: chame o Call a partir do
-  PostSetupContent`, em vez de responder nada calado.
+- the `Mod` of every installed mod **exists from the start**: `TryGetMod`
+  finds the other one even if it has not loaded yet, and the object is the
+  same afterwards (you can keep it);
+- `Call` is only guaranteed **from `PostSetupContent` on**, when every mod has
+  loaded. During loading (at the top of a file or in `Load()`), calling a mod
+  that has not loaded yet throws `Mod 'x' ainda nao carregou: chame o Call a
+  partir do PostSetupContent` ("has not loaded yet: call it from
+  PostSetupContent"), instead of silently answering nothing.
 
-O `PostSetupContent` pode ser o de um `ModSystem` (como acima) ou o do seu
-`Mod`.
+`PostSetupContent` can be a `ModSystem`'s (as above) or your `Mod`'s.
 
-## Dependências
+## Dependencies
 
-Um mod sem o qual o seu não funciona entra no `dependencies` do manifesto,
-pelo `id` ou pelo `uid`:
+A mod yours cannot work without goes in the manifest's `dependencies`, by `id`
+or by `uid`:
 
 ```json
 "dependencies": ["wikithis", "7c2e9d41-5b3a-4f8e-9a61-2d0c4e8b7f15"]
 ```
 
-- Cada dependência **carrega antes** do seu mod, seja qual for a ordem da aba
-  Pacotes. O resto fica na ordem do launcher. Com isso, o `Call` de uma
-  dependência já vale na carga do seu mod (no topo dos arquivos e no
-  `Load()`).
-- Se uma dependência não está ligada, o seu mod **não carrega**, e o painel de
-  erro diz qual faltou (`requires 'wikithis', which is not enabled`). O mesmo
-  vale quando a dependência falha ao carregar e quando dois mods dependem um
-  do outro (`dependency cycle: a -> b -> a`). Os outros mods carregam
-  normalmente.
-- Pelo `id`, a dependência precisa ser única entre os mods ligados; se dois
-  usam o mesmo `id`, peça pelo `uid`.
-- Compatibilidade opcional não vai aqui: use o `TryGetMod` no
-  `PostSetupContent`, como acima.
+- Each dependency **loads before** your mod, whatever the Packages tab order.
+  The rest keeps the launcher's order. With that, a dependency's `Call`
+  already works while your mod loads (at the top of files and in `Load()`).
+- If a dependency is not enabled, your mod **does not load**, and the error
+  panel says which one was missing (`requires 'wikithis', which is not
+  enabled`). The same applies when the dependency fails to load and when two
+  mods depend on each other (`dependency cycle: a -> b -> a`). The other mods
+  load normally.
+- By `id`, the dependency has to be unique among the enabled mods; if two use
+  the same `id`, ask by `uid`.
+- Optional compatibility does not go here: use `TryGetMod` in
+  `PostSetupContent`, as above.
 
-## O `Mod`
+## The `Mod`
 
-A classe do `export default` do arquivo de entrada recebe, como o `ModSystem`:
-
-| | |
-|---|---|
-| `Load()` | Na carga, depois do topo dos arquivos e do registro do conteúdo. |
-| `AddRecipeGroups()`, `AddRecipes()` | Com os do `ModSystem`. |
-| `PostSetupContent()` | Com o conteúdo de todos os mods pronto. |
-| `Call(...args)` | Quando outro mod chama. |
-
-E os dados do pacote, para ler:
+The `export default` class of the entry file receives, like `ModSystem`:
 
 | | |
 |---|---|
-| `id` | O `id` do manifesto: o nome pelo qual outros mods acham este. |
-| `uuid` | O `uid` do manifesto. |
-| `name`, `version` | Do manifesto, como texto (`"1.2.0"`). |
-| `path`, `root` | A pasta do `main.js` e a do pacote. |
+| `Load()` | During loading, after the top level of the files and the content registration. |
+| `AddRecipeGroups()`, `AddRecipes()` | Together with `ModSystem`'s. |
+| `PostSetupContent()` | With every mod's content ready. |
+| `Call(...args)` | When another mod calls. |
+
+And the package data, to read:
+
+| | |
+|---|---|
+| `id` | The manifest `id`: the name other mods find this one by. |
+| `uuid` | The manifest `uid`. |
+| `name`, `version` | From the manifest, as text (`"1.2.0"`). |
+| `path`, `root` | `main.js`'s folder and the package's. |
 | `dataDirectory` | `Android/data/com.bunnyloader/mod_data/<uid>`. |
 
-`bl.mod` é o `Mod` do mod que pergunta. No topo dos arquivos, antes de o
-Bunny Loader criar a sua classe, ele é um `Mod` simples, com os mesmos dados;
-do `Load()` em diante, é o mesmo objeto, agora da sua classe (e o `this` dela).
+`bl.mod` is the `Mod` of the mod asking. At the top of the files, before Bunny
+Loader creates your class, it is a plain `Mod`, with the same data; from
+`Load()` on, it is the same object, now of your class (and its `this`).
 
-## Dois mods com o mesmo `id`
+## Two mods with the same `id`
 
-O `id` é um apelido, e o site não garante que ele é único. Se dois mods
-instalados tiverem o mesmo, `TryGetMod` pelo `id` não escolhe: devolve `false`
-e o log diz para pedir pelo `uid`, que é único.
+The `id` is a nickname, and the site does not guarantee it is unique. If two
+installed mods have the same one, `TryGetMod` by `id` does not pick: it
+returns `false` and the log says to ask by `uid`, which is unique.
 
-## Diferenças para o tModLoader
+## Differences from tModLoader
 
 | tModLoader | Bunny Loader |
 |---|---|
-| `ModLoader.TryGetMod("X", out Mod m)` | `ModLoader.TryGetMod('x', ref)`, com `ref.value` |
-| `Mod.Name` | `mod.id` (o `id` do manifesto) |
+| `ModLoader.TryGetMod("X", out Mod m)` | `ModLoader.TryGetMod('x', ref)`, with `ref.value` |
+| `Mod.Name` | `mod.id` (the manifest `id`) |
 | `Mod.DisplayName` | `mod.name` |
-| `Mod.Version` (tipo `Version`) | `mod.version` (texto) |
-| `public override object Call(params object[] args)` | `Call(...args)`, valores como estão |
-| `public class X : Mod` | `export default class X extends Mod` no arquivo de entrada |
-| `this` (o seu `Mod`) | `this` na classe do mod; `bl.mod` em qualquer arquivo |
+| `Mod.Version` (`Version` type) | `mod.version` (text) |
+| `public override object Call(params object[] args)` | `Call(...args)`, values as they are |
+| `public class X : Mod` | `export default class X extends Mod` in the entry file |
+| `this` (your `Mod`) | `this` in the mod class; `bl.mod` in any file |
 
-| `modReferences = ModA, ModB@1.0` no `build.txt` | `"dependencies": ["moda", "modb"]` no manifesto (sem versão mínima) |
+| `modReferences = ModA, ModB@1.0` in `build.txt` | `"dependencies": ["moda", "modb"]` in the manifest (no minimum version) |
 
-Não há `Unload` nem `weakReferences`/`sortBefore`/`sortAfter`.
+There is no `Unload` and no `weakReferences`/`sortBefore`/`sortAfter`.
 
-## Referência rápida
+## Quick reference
 
 | | |
 |---|---|
-| `ModLoader.TryGetMod(id, ref)` | `true` e o `Mod` em `ref.value`; ou `false` e `null` |
-| `ModLoader.GetMod(id)` | o `Mod`; lança se não está |
-| `ModLoader.HasMod(id)` | está instalado (e não falhou ao carregar)? |
-| `ModLoader.Mods` | todos, na ordem de carga |
-| `export default class X extends Mod { Call(...args) {} }` | oferecer um `Call` (a classe do mod, uma por pacote) |
-| `mod.Call(...)` | chamar; do `PostSetupContent` em diante (de uma dependência, já na carga) |
-| `"dependencies": ["id"]` | carregar depois desse mod; sem ele, não carregar |
-| `bl.mod` | o `Mod` de quem pergunta |
+| `ModLoader.TryGetMod(id, ref)` | `true` and the `Mod` in `ref.value`; or `false` and `null` |
+| `ModLoader.GetMod(id)` | the `Mod`; throws if it is not there |
+| `ModLoader.HasMod(id)` | is it installed (and did it not fail to load)? |
+| `ModLoader.Mods` | all of them, in load order |
+| `export default class X extends Mod { Call(...args) {} }` | offering a `Call` (the mod class, one per package) |
+| `mod.Call(...)` | calling; from `PostSetupContent` on (a dependency's, already during loading) |
+| `"dependencies": ["id"]` | load after that mod; without it, do not load |
+| `bl.mod` | the `Mod` of whoever asks |
 
-O teste `tools/tests/crossmod` (com o par `tools/tests/crossmodtarget`) cobre
-cada caso deste guia: o mod que ainda não carregou, o ausente, o mesmo objeto
-antes e depois da carga, objeto e função pelo `Call`, erro que sobe, `bl.mod`
-dentro do `Call` e a chamada na direção contrária, durante a carga.
+The `tools/tests/crossmod` test (paired with `tools/tests/crossmodtarget`)
+covers every case in this guide: the mod that has not loaded yet, the missing
+one, the same object before and after loading, an object and a function
+through `Call`, an error propagating, `bl.mod` inside `Call` and the call in
+the opposite direction, during loading.

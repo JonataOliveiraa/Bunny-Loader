@@ -1,12 +1,12 @@
-# Fonte reserva
+# Fallback font
 
-O launcher e o menu de cheats usam a **Andy Bold**, a fonte do Terraria. Ela é
-da Monotype e não vai para o Git: quem integra os binários do jogo põe também
-`app/src/main/res/font/bunny.ttf`.
+The launcher and the cheat menu use **Andy Bold**, Terraria's font. It belongs
+to Monotype and does not go into Git: whoever integrates the game binaries
+also puts in `app/src/main/res/font/bunny.ttf`.
 
-Sem esse arquivo, o build usa esta pasta: a **Comic Neue Bold**, da SIL Open
-Font License 1.1 (texto em `OFL.txt`), com o mesmo nome de recurso
-(`R.font.bunny`) e o mesmo caminho nos assets (`fonte/bunny.ttf`). Nada no código
-muda; só a cara do texto.
+Without that file, the build uses this folder: **Comic Neue Bold**, under the
+SIL Open Font License 1.1 (text in `OFL.txt`), with the same resource name
+(`R.font.bunny`) and the same path in the assets (`fonte/bunny.ttf`). Nothing in
+the code changes; only the look of the text.
 
-Fonte: <https://github.com/crozynski/comicneue>
+Source: <https://github.com/crozynski/comicneue>

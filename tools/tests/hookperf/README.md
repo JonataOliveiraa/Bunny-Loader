@@ -1,44 +1,44 @@
-# Desempenho de ModPlayer, ModItem e desenho
+# ModPlayer, ModItem and drawing performance
 
-O fixture mede o runtime QuickJS no APK real. Os [resultados](RESULTADOS.md) distinguem custo da ponte, consultas pela ponte e tempos de `DoUpdate`/`DoDraw`; nenhum desses números é apresentado como FPS.
+The fixture measures the QuickJS runtime in the real APK. The [results](RESULTADOS.md) separate the bridge cost, queries through the bridge and `DoUpdate`/`DoDraw` times; none of these numbers is presented as FPS.
 
-As [otimizações e sua comparação entre APKs](RESULTADOS-OTIMIZACOES.md) acrescentam cópia por blocos, busca estável por loops diretos e leituras locais de cabelo, com regressões do cache no renderer.
+The [optimizations and their comparison between APKs](RESULTADOS-OTIMIZACOES.md) add block copies, stable lookups through direct loops and local hair reads, with cache regressions in the renderer.
 
-## Cenários
+## Scenarios
 
-Execute com 0, 1 e 8 **classes ModPlayer no mesmo jogador singleplayer**. `--classes` não representa jogadores conectados. Cada classe acrescenta 15 callbacks simples de atualização, `PreItemCheck` com veto e `CanStartExtraJump` neutro. As três classes ModItem do fixture estão presentes em todas as execuções para que seus filtros possam ser comparados.
+Run with 0, 1 and 8 **ModPlayer classes on the same single player player**. `--classes` does not represent connected players. Each class adds 15 simple update callbacks, a vetoing `PreItemCheck` and a neutral `CanStartExtraJump`. The fixture's three ModItem classes are present in every run so their filters can be compared.
 
-Cada fase aquece por 120 updates e mede 300 updates e os desenhos ocorridos nesse intervalo. As consultas usam sete amostras após 100 chamadas de aquecimento. Dano usa 1.000 chamadas por amostra; frames 500; munição 250; atualização misc e ItemCheck 4.000. Os contadores de filtragem incluem o aquecimento, portanto os casos ativos têm 7.100 callbacks de dano e 3.600 de frame.
+Each phase warms up for 120 updates and measures 300 updates and the draws that happened in that interval. The queries use seven samples after 100 warm-up calls. Damage uses 1,000 calls per sample; frames 500; ammo 250; misc update and ItemCheck 4,000. The filtering counters include the warm-up, so the active cases have 7,100 damage callbacks and 3,600 frame ones.
 
-Com oito classes, o fixture registra mais um ModPlayer de desenho após a primeira fase e mede: ordem vazia, helper, ocultação de HeldItem, reordenação Skin após Head e ordem vazia novamente. A repetição revela variação do tempo de renderização. O marcador é criado uma vez e reutilizado; a medição do helper exclui a criação de textura, vetores e DrawData. Não há chamada direta a `DrawData.Draw`.
+With eight classes, the fixture registers one more drawing ModPlayer after the first phase and measures: empty order, helper, hiding HeldItem, reordering Skin after Head and empty order again. The repetition reveals variation in rendering time. The marker is created once and reused; the helper's measurement excludes creating the texture, vectors and DrawData. There is no direct call to `DrawData.Draw`.
 
-`draw_manual` e `draw_helper` escrevem no mesmo slot e restauram o contador em cada consulta. Ambas incluem essa restauração. O teste de munição no slot 53 mede essa posição da matriz nativa e não afirma ser o último candidato da ordem de busca nem uma reprodução de colocação pela UI.
+`draw_manual` and `draw_helper` write into the same slot and restore the counter on each query. Both include that restoration. The ammo test in slot 53 measures that position of the native array and does not claim to be the last candidate in the search order nor a reproduction of placing it through the UI.
 
-## Execução
+## Running
 
-Use somente uma instância Android, o mesmo APK e o mesmo personagem/mundo de teste. A suíte não cria personagem ou mundo. Instale o APK completo e configure o início rápido para o mundo de teste, ou entre nele manualmente pelo launcher.
+Use only one Android instance, the same APK and the same test character/world. The suite does not create a character or a world. Install the full APK and configure quick start for the test world, or enter it manually from the launcher.
 
 ```powershell
-python tools/tests/moditemhooks/device.py prepare --fixture hookperf --run-id minha-rodada --isolate --classes 0
+python tools/tests/moditemhooks/device.py prepare --fixture hookperf --run-id my-round --isolate --classes 0
 adb -s 127.0.0.1:16384 logcat -c
 adb -s 127.0.0.1:16384 shell am start -n com.bunnyloader/dev.bunnyloader.LauncherActivity
 ```
 
-Inicie o jogo e espere a linha `hookperf` com `kind=FIM`. Guarde o log do PID de `com.bunnyloader:game` antes de preparar a próxima execução. Repita com `--classes 1` e `--classes 8`, conservando o mesmo run-id durante essa sessão. Os arquivos com preferências originais ficam em `build/hookperf/<run-id>/` e não são sobrescritos nas tentativas.
+Start the game and wait for the `hookperf` line with `kind=FIM`. Save the log of the `com.bunnyloader:game` PID before preparing the next run. Repeat with `--classes 1` and `--classes 8`, keeping the same run-id during that session. The files with the original preferences live in `build/hookperf/<run-id>/` and are not overwritten on retries.
 
 ```powershell
 python tools/tests/hookperf/check.py log-0.txt log-1.txt log-8.txt
-python tools/tests/moditemhooks/device.py cleanup --fixture hookperf --run-id minha-rodada
+python tools/tests/moditemhooks/device.py cleanup --fixture hookperf --run-id my-round
 ```
 
-Para conferir uma rodada isolada com oito classes, use `python tools/tests/hookperf/check.py log-8.txt --classes 8`. Isso permite comparar dois APKs sem combinar registros de builds distintos.
+To check a single eight-class round, use `python tools/tests/hookperf/check.py log-8.txt --classes 8`. That allows comparing two APKs without mixing records from different builds.
 
-`--isolate` desativa temporariamente os outros pacotes. A limpeza restaura somente as chaves alteradas, preserva as demais preferências atuais e remove o UID e a pasta temporária desta suíte após conferir os caminhos. Escolha outro run-id para uma nova sessão depois da limpeza. Use a limpeza também depois de uma execução interrompida.
+`--isolate` temporarily disables the other packages. The cleanup restores only the changed keys, keeps the other current preferences and removes this suite's UID and temporary folder after checking the paths. Pick another run-id for a new session after the cleanup. Use the cleanup after an interrupted run too.
 
-## Limites da medição
+## Measurement limits
 
-- A comparação de 0, 1 e 8 classes inclui instalação de hooks, despacho e callbacks. O corpo nativo de ItemCheck executa com zero classes e é vetado nos outros casos; suas medianas não são uma comparação do mesmo corpo nativo.
-- `bl.hookStats().jsMs` exclui `original()` e a espera pela trava anterior à entrada no JavaScript. Não mede o caminho nativo dos filtros rejeitados. Chamadas aninhadas explícitas podem afetar a soma de custos; os hooks individuais são apresentados separadamente.
-- `DoUpdate` e `DoDraw` medem os corpos observados desses métodos, incluindo trabalho disparado por eles. Não abrangem toda a apresentação do quadro, Unity, escalonamento Android ou latência da GPU. O aquecimento e a carga do emulador podem alterar esses tempos.
-- O perfil não inclui separadamente os quatro estágios internos de ModPlayer nem todas as opções da API. FrameEffects/armaduras, rede, múltiplos jogadores, sombras, muitos projéteis e mods com callbacks pesados precisam de medições próprias.
-- O benchmark Node de [modplayerperf](../modplayerperf/README.md) mede V8 e continua sendo apenas uma comparação de despacho em isolamento.
+- The comparison of 0, 1 and 8 classes includes installing hooks, dispatch and callbacks. ItemCheck's native body runs with zero classes and is vetoed in the other cases; its medians are not a comparison of the same native body.
+- `bl.hookStats().jsMs` excludes `original()` and waiting for the lock before entering JavaScript. It does not measure the native path of rejected filters. Explicit nested calls can affect the sum of costs; the individual hooks are shown separately.
+- `DoUpdate` and `DoDraw` measure the observed bodies of those methods, including work they trigger. They do not cover the whole frame presentation, Unity, Android scheduling or GPU latency. Warm-up and emulator load can change these times.
+- The profile does not separately include ModPlayer's four internal stages nor every API option. FrameEffects/armor, network, multiple players, shadows, many projectiles and mods with heavy callbacks need their own measurements.
+- The Node benchmark in [modplayerperf](../modplayerperf/README.md) measures V8 and remains only a comparison of dispatch in isolation.

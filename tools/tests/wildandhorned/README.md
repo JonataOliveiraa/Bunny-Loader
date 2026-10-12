@@ -1,10 +1,10 @@
-# Testes de Wild and Horned
+# Wild and Horned tests
 
-A suíte usa o código do pacote Wild and Horned. Quando ele não estiver em `samples/WildAndHorned`, extraia a versão desejada do `.bl` em uma pasta temporária e informe a raiz que contém `content/`:
+The suite uses the Wild and Horned package's code. When it is not in `samples/WildAndHorned`, extract the desired version of the `.bl` into a temporary folder and point to the root that contains `content/`:
 
 ```powershell
 $env:BL_WILDANDHORNED_ROOT = 'C:/Scripts/Bunny Loader/build/wildandhorned/github-validation'
 node --experimental-vm-modules tools/tests/wildandhorned/check.mjs
 ```
 
-O pacote publicado está nas [releases de Wild and Horned](https://github.com/JonataOliveiraa/Bunny-Loader/releases/tag/mod-wildandhorned-v1.5.2). A suíte verifica comportamento em um ambiente JavaScript controlado. `content/main.js` é a fixture separada para o jogo, depende do mod instalado e registra resultados `wildandhorned-qa`; execução automatizada não substitui validação no dispositivo.
+The published package is in the [Wild and Horned releases](https://github.com/JonataOliveiraa/Bunny-Loader/releases/tag/mod-wildandhorned-v1.5.2). The suite checks behavior in a controlled JavaScript environment. `content/main.js` is the separate in-game fixture, depends on the installed mod and logs `wildandhorned-qa` results; automated runs do not replace validation on the device.

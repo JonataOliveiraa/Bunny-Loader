@@ -1,17 +1,18 @@
-# 7. NPCs: inimigos, moradores e chefes
+# 7. NPCs: enemies, town NPCs and bosses
 
-Todo ser vivo do mundo que não é jogador é um NPC: slimes, zumbis, chefes, o
-Guia, a Enfermeira, os bichinhos. Um NPC novo é uma classe que estende
-`ModNPC`. Este guia vai do inimigo simples (drop, spawn natural, Bestiário)
-ao morador (casa, conversa, loja, humor) e ao chefe (IA própria e música).
+Every living thing in the world that is not a player is an NPC: slimes,
+zombies, bosses, the Guide, the Nurse, the critters. A new NPC is a class that
+extends `ModNPC`. This guide goes from the simple enemy (drops, natural
+spawning, Bestiary) to the town NPC (house, chat, shop, mood) and the boss
+(custom AI and music).
 
-Antes, leia as [ideias do guia 4](04-conteudo-novo.md). A lista completa de
-campos e métodos está na [referência](../referencia/classes.md#modnpc).
+Read the [ideas in guide 4](04-conteudo-novo.md) first. The full list of
+fields and methods is in the [reference](../referencia/classes.md#modnpc).
 
-## Um inimigo: o slime de exemplo
+## An enemy: the example slime
 
-O `ExampleSlimeNPC` é um slime com dois quadros de animação, drop, spawn
-natural de dia e entrada no Bestiário:
+`ExampleSlimeNPC` is a slime with two animation frames, drops, natural
+spawning during the day and a Bestiary entry:
 
 ```js
 const { SoundID, NPCID, ItemID } = Terraria.ID;
@@ -20,20 +21,20 @@ const Common = ItemDropRule['IItemDropRule Common(int itemId, int chanceDenomina
 
 export class ExampleSlimeNPC extends ModNPC {
     SetStaticDefaults() {
-        Terraria.Main.npcFrameCount[this.Type] = 2;   // a textura tem 2 quadros, em pé
+        Terraria.Main.npcFrameCount[this.Type] = 2;   // the texture has 2 frames, stacked
     }
 
     SetDefaults() {
         this.NPC.width = 32;
         this.NPC.height = 24;
-        this.NPC.aiStyle = 1;          // IA de slime do jogo
+        this.NPC.aiStyle = 1;          // the game's slime AI
         this.NPC.damage = 7;
         this.NPC.defense = 2;
         this.NPC.lifeMax = 25;
         this.NPC.HitSound = SoundID.NPCHit1;
         this.NPC.DeathSound = SoundID.NPCDeath1;
         this.NPC.value = ModNPC.NPCValue(0, 0, 0, 25);
-        this.AnimationType = NPCID.BlueSlime;   // anima como o slime azul
+        this.AnimationType = NPCID.BlueSlime;   // animates like the blue slime
     }
 
     SpawnChance(info) {
@@ -48,25 +49,25 @@ export class ExampleSlimeNPC extends ModNPC {
 }
 ```
 
-- `SetDefaults` dá vida, dano e defesa **de base**. A escala de Expert e de
-  Mestre é aplicada depois, pelo jogo, como nos NPCs dele.
-- A textura é uma **tira vertical** de quadros; `Main.npcFrameCount[this.Type]`
-  diz quantos.
-- `AnimationType` faz o NPC animar como um do jogo. Para uma animação sua,
-  escreva `FindFrame(npc, frameHeight)` e mude `npc.frame.Y`.
+- `SetDefaults` gives the **base** life, damage and defense. The Expert and
+  Master scaling is applied afterwards, by the game, as with its own NPCs.
+- The texture is a **vertical strip** of frames; `Main.npcFrameCount[this.Type]`
+  says how many.
+- `AnimationType` makes the NPC animate like a vanilla one. For your own
+  animation, write `FindFrame(npc, frameHeight)` and change `npc.frame.Y`.
 
-## Bandeiras de inimigos
+## Enemy banners
 
-Uma bandeira de inimigo liga o contador de abates ao item e ao bônus do
-tile colocado. No NPC representante, configure no `SetDefaults`:
+An enemy banner connects the kill counter to the item and to the bonus of the
+placed tile. On the representative NPC, set it up in `SetDefaults`:
 
 ```js
 this.Banner = this.Type;
 this.BannerItem = ModContent.ItemType('ExampleSlimeBanner');
 ```
 
-Para outro NPC compartilhar o contador e o bônus, atribua a seu `Banner`
-o tipo do representante. O item fica definido no representante.
+For another NPC to share the counter and the bonus, set its `Banner` to the
+representative's type. The item is defined on the representative.
 
 ```js
 export class ExampleSlimeBanner extends ModItem {
@@ -80,153 +81,155 @@ export class ExampleSlimeBanner extends ModItem {
 export class ExampleEnemyBannerTile extends ModBannerTile {}
 ```
 
-O estilo `1` identifica a coluna correspondente na textura do tile 1x3.
-O tile base prepara âncoras de teto e plataforma, identifica o item que
-coloca cada estilo e ativa o bônus nativo em `SceneMetrics.NPCBannerBuff`.
-O desenho usa o balanço do renderer nativo `MultiTileVine`, respeitando a
-opção de vento do jogo. Preserve os métodos base ao sobrescrever `PreDraw`
-ou `SetDrawPositions`.
+Style `1` identifies the matching column in the 1x3 tile's texture. The base
+tile sets up ceiling and platform anchors, identifies the item that places
+each style and activates the native bonus in `SceneMetrics.NPCBannerBuff`.
+Drawing uses the native `MultiTileVine` renderer's sway, respecting the game's
+wind option. Keep the base methods when overriding `PreDraw` or
+`SetDrawPositions`.
 
-O padrão libera uma bandeira a cada 50 abates pelo sistema de resgate do
-Terraria 1.4.5. No `SetStaticDefaults` do item, personalize
-`ItemID.Sets.KillsToBanner[this.Type]` ou `ItemID.Sets.BannerStrength[this.Type]`.
-Contagem, quantidade resgatável e notificação são salvas por UID/nome do
-NPC, para resistir à troca dos IDs de carga dos mods.
+By default one banner is unlocked every 50 kills through Terraria 1.4.5's
+claim system. In the item's `SetStaticDefaults`, customize
+`ItemID.Sets.KillsToBanner[this.Type]` or `ItemID.Sets.BannerStrength[this.Type]`.
+Count, claimable amount and notification are saved by the NPC's UID/name, so
+they survive changes to the mods' load-time IDs.
 
-O Example Mod inclui esses três componentes. O estandarte largo de
-decoração `ExampleWideBannerTile` continua sendo outro exemplo de móvel.
+The Example Mod includes these three components. The wide decorative banner
+`ExampleWideBannerTile` remains another furniture example.
 
-## A IA
+## The AI
 
-`this.CloneDefaults(NPCID.BlueSlime)` no `SetDefaults` copia os atributos
-de base de um NPC do jogo. Também aceita o tipo de outro ModNPC. A cópia
-preserva a identidade, a instância, os globais e a participação dos jogadores;
-o loader aplica a dificuldade do mundo depois. Não substitui `AIType`:
-configure esse campo para que as verificações de tipo dentro da IA vejam
-o NPC vanilla que você está reutilizando.
+`this.CloneDefaults(NPCID.BlueSlime)` in `SetDefaults` copies a vanilla NPC's
+base stats. It also accepts another ModNPC's type. The copy keeps the
+identity, the instance, the globals and the players' participation; the loader
+applies the world difficulty afterwards. It does not replace `AIType`: set
+that field so the type checks inside the AI see the vanilla NPC you are
+reusing.
 
-Como no projétil ([guia 6](06-projeteis.md#a-ia-do-jogo-ou-sua)): o `aiStyle`
-dá a IA de uma família do jogo (1 é slime, 3 é zumbi, 7 é morador), e
-`aiStyle = -1` deixa tudo com o seu `AI`. `PreAI` devolvendo `false` pula a
-IA do jogo e o `AI`; `PostAI` roda depois.
+As with projectiles ([guide 6](06-projeteis.md#the-ai-the-games-or-yours)):
+`aiStyle` gives the AI of a game family (1 is slime, 3 is zombie, 7 is town
+NPC), and `aiStyle = -1` leaves everything to your `AI`. `PreAI` returning
+`false` skips the game's AI and `AI`; `PostAI` runs afterwards.
 
-`AIType` faz as verificações de tipo dentro da IA enxergarem um NPC
-específico do jogo. No `SetDefaults`, por exemplo:
+`AIType` makes the type checks inside the AI see a specific vanilla NPC. In
+`SetDefaults`, for example:
 
 ```js
 SetDefaults(npc) {
-    // Além da vida, dimensões e demais atributos do seu NPC:
+    // Besides your NPC's life, size and other stats:
     npc.aiStyle = 2;
     this.AIType = Terraria.ID.NPCID.DemonEye;
 }
 ```
 
-O loader troca `npc.type` pelo `AIType` somente ao executar a IA nativa e
-restaura o tipo antes de `AI` e `PostAI`. `PreAI` também recebe o tipo
-original. Isso funciona mesmo sem escrever nenhum desses três métodos.
-O valor pertence à instância: pode ser alterado durante `PreAI` para a
-chamada daquele quadro. `0` desliga a troca; IDs negativos de variantes
-não ativam `AIType`.
+The loader swaps `npc.type` for `AIType` only while running the native AI and
+restores the type before `AI` and `PostAI`. `PreAI` also receives the original
+type. This works even without writing any of those three methods. The value
+belongs to the instance: it can be changed during `PreAI` for that frame's
+call. `0` turns the swap off; negative variant IDs do not activate `AIType`.
 
-`AIType` não copia atributos nem define `aiStyle`, quadros ou textura.
-`AnimationType` continua sendo a escolha independente da animação.
-Se a IA emprestada cria outros NPCs, projéteis ou efeitos, ela continua
-criando os tipos vanilla previstos por essa IA.
+`AIType` does not copy stats or set `aiStyle`, frames or texture.
+`AnimationType` remains the independent choice for animation. If the borrowed
+AI creates other NPCs, projectiles or effects, it keeps creating the vanilla
+types that AI expects.
 
-Com `GlobalNPC`, a ordem segue o tModLoader: todos os `GlobalNPC.PreAI`,
-`ModNPC.PreAI`, IA nativa, `ModNPC.AI`, `GlobalNPC.AI`, `ModNPC.PostAI` e
-`GlobalNPC.PostAI`. Um veto global pula o `PreAI` local e a etapa de IA;
-um veto local pula a etapa de IA. Os `PostAI` continuam sendo chamados.
+With `GlobalNPC`, the order follows tModLoader: every `GlobalNPC.PreAI`,
+`ModNPC.PreAI`, native AI, `ModNPC.AI`, `GlobalNPC.AI`, `ModNPC.PostAI` and
+`GlobalNPC.PostAI`. A global veto skips the local `PreAI` and the AI step; a
+local veto skips the AI step. The `PostAI`s are still called.
 
-`npc.ai[0]` a `npc.ai[3]` e `npc.localAI[...]` guardam o estado, como no
-projétil. `npc.target` é o índice do jogador alvo (`npc.TargetClosest()`
-escolhe o mais perto).
+`npc.ai[0]` to `npc.ai[3]` and `npc.localAI[...]` hold the state, as with
+projectiles. `npc.target` is the target player's index (`npc.TargetClosest()`
+picks the nearest).
 
-## Métodos
+## Methods
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `SetStaticDefaults()` | Uma vez. `Terraria.Main.npcFrameCount[this.Type] = n`: quadros da textura. |
-| `SetDefaults(npc)` | Todo NPC deste tipo que nasce. Vida, dano e defesa aqui. |
+| `SetStaticDefaults()` | Once. `Terraria.Main.npcFrameCount[this.Type] = n`: the texture's frames. |
+| `SetDefaults(npc)` | Every NPC of this type that spawns. Life, damage and defense here. |
 | `ApplyBuffImmunity(npc)` | `npc.buffImmune[id] = true`. |
-| `ModifyNPCLoot(npcLoot)` | Os drops: `npcLoot.Add(regra)`. Uma vez. |
-| `SetBestiary(database, bestiaryEntry)` | A entrada no Bestiário: bioma, hora, texto. |
-| `SpawnChance(info)` | Peso no spawn natural (`0` = não nasce). |
-| `SpawnNPC(tileX, tileY)` | Como nasce quando é sorteado, no bloco do spawn. Padrão: em cima do bloco. |
-| `HitEffect(npc, hitDirection, damage)` | A cada golpe (poeira, gore). `npc.life <= 0` é o golpe que mata. |
-| `PreAI(npc)`, `AI(npc)`, `PostAI(npc)` | A IA, todo quadro. |
-| `FindFrame(npc, frameHeight)` | Animação sua: mude `npc.frame.Y`. |
-| `CheckActive(npc)` | `false`: não some quando longe do jogador. |
-| `PreKill(npc)`, `OnKill(npc)` | Na morte. `PreKill` devolvendo `false` cancela o drop. |
-| `CanBeHitByItem`, `ModifyHitByItem`, `OnHitByItem`; `CanBeHitByProjectile`, `ModifyHitByProjectile`, `OnHitByProjectile`; `ModifyIncomingHit` | Os golpes que ele leva. Ver [Golpes](16-golpes.md). |
-| `CanHitPlayer`, `ModifyHitPlayer`, `OnHitPlayer`; `CanHitNPC`, `CanBeHitByNPC`, `ModifyHitNPC`, `OnHitNPC` | Os golpes dele (no jogador; em outro NPC). |
+| `ModifyNPCLoot(npcLoot)` | The drops: `npcLoot.Add(rule)`. Once. |
+| `SetBestiary(database, bestiaryEntry)` | The Bestiary entry: biome, time, text. |
+| `SpawnChance(info)` | Weight in natural spawning (`0` = does not spawn). |
+| `SpawnNPC(tileX, tileY)` | How it spawns when picked, at the spawn tile. Default: on top of the tile. |
+| `HitEffect(npc, hitDirection, damage)` | On each hit (dust, gore). `npc.life <= 0` is the killing hit. |
+| `PreAI(npc)`, `AI(npc)`, `PostAI(npc)` | The AI, every frame. |
+| `FindFrame(npc, frameHeight)` | Your own animation: change `npc.frame.Y`. |
+| `CheckActive(npc)` | `false`: does not despawn when far from the player. |
+| `PreKill(npc)`, `OnKill(npc)` | On death. `PreKill` returning `false` cancels the drop. |
+| `CanBeHitByItem`, `ModifyHitByItem`, `OnHitByItem`; `CanBeHitByProjectile`, `ModifyHitByProjectile`, `OnHitByProjectile`; `ModifyIncomingHit` | The hits it takes. See [Hits](16-golpes.md). |
+| `CanHitPlayer`, `ModifyHitPlayer`, `OnHitPlayer`; `CanHitNPC`, `CanBeHitByNPC`, `ModifyHitNPC`, `OnHitNPC` | Its own hits (on the player; on another NPC). |
 
 ## Drops
 
-`ItemDropRule` é a classe do jogo; pegue os métodos pela assinatura:
+`ItemDropRule` is the game's class; get the methods by signature:
 
 ```js
 const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
 const Common = ItemDropRule['IItemDropRule Common(int itemId, int chanceDenominator, int minimumDropped, int maximumDropped)'];
 const NormalvsExpert = ItemDropRule['IItemDropRule NormalvsExpert(int itemId, int chanceDenominatorInNormal, int chanceDenominatorInExpert)'];
 
-npcLoot.Add(Common(ItemID.Gel, 1, 1, 2));              // sempre, 1 a 2
-npcLoot.Add(Common(meuItem, 3, 5, 10));                // 1 em 3, 5 a 10
+npcLoot.Add(Common(ItemID.Gel, 1, 1, 2));              // always, 1 to 2
+npcLoot.Add(Common(myItem, 3, 5, 10));                 // 1 in 3, 5 to 10
 npcLoot.Add(NormalvsExpert(ItemID.SlimeStaff, 10000, 7000));
 ```
 
-Item de mod vale em qualquer regra. O drop do jogo (`CommonCode.DropItem*`)
-recusava tipo acima dos do jogo, com o limite fixo no código; o Bunny Loader
-troca esse limite pelo total de itens, como o tModLoader. Os drops aparecem no
-Bestiário sozinhos.
+Mod items work in any rule. The game's drop code (`CommonCode.DropItem*`)
+refused types above the vanilla ones, with the limit fixed in the code; Bunny
+Loader swaps that limit for the item total, as tModLoader does. The drops show
+up in the Bestiary on their own.
 
-## Spawn natural
+## Natural spawning
 
-`SpawnChance(info)` devolve um **peso**. Quando o jogo vai fazer nascer um
-inimigo, o sorteio é entre o do jogo (peso 1) e os de mod com peso maior que
-zero: `0.1` é "de vez em quando"; `1` empata com o do jogo. Como no
-tModLoader, o spawn natural roda sozinho ou no servidor, e `info.Player` é o
-jogador perto de quem o NPC nasce (no multijogador, não use `Main.LocalPlayer`).
+`SpawnChance(info)` returns a **weight**. When the game is about to spawn an
+enemy, the roll is between the game's (weight 1) and the mod ones with a
+weight above zero: `0.1` is "now and then"; `1` ties with the game's. As in
+tModLoader, natural spawning runs in single player or on the server, and
+`info.Player` is the player the NPC spawns near (in multiplayer, do not use
+`Main.LocalPlayer`).
 
-`info` é um `NPCSpawnInfo`, com:
+`info` is an `NPCSpawnInfo`, with:
 
-- `SpawnTileX`, `SpawnTileY`, `Player`; `GroundTileY`, `SpawnTileType` e
-  `SpawnWallType` (o chão do ponto);
-- os campos do `NPC.Spawner` do jogo, como no tModLoader: `waterTile`,
+- `SpawnTileX`, `SpawnTileY`, `Player`; `GroundTileY`, `SpawnTileType` and
+  `SpawnWallType` (the ground at that spot);
+- the fields of the game's `NPC.Spawner`, as in tModLoader: `waterTile`,
   `nearGranite`, `nearMarble`, `spawnSpider`, `ZoneCorrupt`...;
-- altura: `Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`,
+- height: `Sky`, `Surface`, `Underground`, `Cavern`, `Underworld`,
   `AboveSurface`, `BelowSurface`;
-- hora e evento: `Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`,
+- time and events: `Day`, `Night`, `Rain`, `SlimeRain`, `BloodMoon`,
   `SolarEclipse`, `PumpkinMoon`, `FrostMoon`, `AnyEvent`, `Invasion`,
   `AnyTower`;
-- mundo: `HardMode`, `Expert`, `Master`;
-- bioma: `Corruption`, `Crimson`, `Hallow` (e `Underground...` de cada um),
+- world: `HardMode`, `Expert`, `Master`;
+- biome: `Corruption`, `Crimson`, `Hallow` (and `Underground...` for each),
   `Snow`, `Ice`, `Jungle`, `UndergroundJungle`, `Mushroom`, `SurfaceMushroom`,
   `Ocean`, `Desert`, `DesertCave`, `Meteor`, `Marble`, `Granite`,
   `Graveyard`, `Dungeon`, `Lihzahrd`;
-- `CommonEnemy`: sem invasão, evento ou pilar. O caso normal.
+- `CommonEnemy`: no invasion, event or pillar. The normal case.
 
-As condições do próprio jogo, como no tModLoader, estão no `SpawnCondition`:
-`SpawnCondition.OverworldNightMonster.Chance` é a parte do sorteio do jogo que
-cairia ali (0 a 1) no ponto do spawn. Multiplicar dá um peso proporcional:
+The game's own conditions, as in tModLoader, are in `SpawnCondition`:
+`SpawnCondition.OverworldNightMonster.Chance` is the share of the game's roll
+that would land there (0 to 1) at the spawn point. Multiplying it gives a
+proportional weight:
 
 ```js
 SpawnChance(info) {
-    return SpawnCondition.OverworldNightMonster.Chance * 0.2;   // 20% dos zumbis da noite
+    return SpawnCondition.OverworldNightMonster.Chance * 0.2;   // 20% of the night zombies
 }
 ```
 
-Para o NPC aparecer num bioma de mod no Bestiário (o nome, o ícone, o fundo e
-o filtro), ponha o bioma no `SpawnModBiomes`, no `SetDefaults`:
+For the NPC to show up in a mod biome in the Bestiary (the name, the icon,
+the background and the filter), put the biome in `SpawnModBiomes`, in
+`SetDefaults`:
 
 ```js
 SetDefaults() {
     // ...
-    this.SpawnModBiomes = [MeuBioma];
+    this.SpawnModBiomes = [MyBiome];
 }
 ```
 
-## Bestiário
+## Bestiary
 
 ```js
 const { BestiaryDatabaseNPCsPopulator, FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
@@ -236,28 +239,28 @@ SetBestiary(database, bestiaryEntry) {
     bestiaryEntry.Info.Add(SpawnConditions.Biomes.Surface);
     bestiaryEntry.Info.Add(SpawnConditions.Times.DayTime);
 
-    const texto = FlavorTextBestiaryInfoElement.new();
-    texto['void .ctor(string languageKey)'](ModLocalization.Key('Bestiary.ExampleSlimeNPC'));
-    bestiaryEntry.Info.Add(texto);
+    const text = FlavorTextBestiaryInfoElement.new();
+    text['void .ctor(string languageKey)'](ModLocalization.Key('Bestiary.ExampleSlimeNPC'));
+    bestiaryEntry.Info.Add(text);
 }
 ```
 
-O retrato, os drops e a contagem de mortes o Bestiário monta sozinho.
-`HideFromBestiary = true` tira o NPC do Bestiário.
+The Bestiary builds the portrait, the drops and the kill count on its own.
+`HideFromBestiary = true` removes the NPC from the Bestiary.
 
-Para mostrar uma **imagem fixa** no lugar do NPC animado (na lista e no
-retrato), ponha o arquivo `<Textura>_BestiaryIcon.png` ao lado da textura
-(`ExampleBoss_BestiaryIcon.png`), ou o caminho em `BestiaryIcon`. O jeito do
-tModLoader também vale: o `CustomTexturePath` do `NPCBestiaryDrawModifiers`
-apontando para um arquivo do mod. A imagem é desenhada no tamanho original,
-centrada no quadro; o `Scale` do modificador a aumenta ou diminui.
+To show a **still image** instead of the animated NPC (in the list and the
+portrait), put a `<Texture>_BestiaryIcon.png` file next to the texture
+(`ExampleBoss_BestiaryIcon.png`), or the path in `BestiaryIcon`. tModLoader's
+way also works: `NPCBestiaryDrawModifiers`'s `CustomTexturePath` pointing to a
+file in the mod. The image is drawn at its original size, centered in the
+frame; the modifier's `Scale` enlarges or shrinks it.
 
-## Morador
+## Town NPC
 
-Um NPC que se muda para uma casa, conversa, vende e tem humor, como os do
-jogo. O Example Mod tem a **Pessoa** (`ExamplePerson`).
+An NPC that moves into a house, chats, sells and has a mood, like the game's.
+The Example Mod has the **Person** (`ExamplePerson`).
 
-![Conversa com a Pessoa do Example Mod, com o retrato e o botão de loja](../imagens/morador-conversa.jpg)
+![Chatting with the Example Mod's Person, with the portrait and the shop button](../imagens/morador-conversa.jpg)
 
 ```js
 export class ExamplePerson extends ModNPC {
@@ -266,7 +269,7 @@ export class ExamplePerson extends ModNPC {
         NPCID.Sets.ExtraFramesCount[this.Type] = 9;
         NPCID.Sets.AttackFrameCount[this.Type] = 4;
         NPCID.Sets.DangerDetectRange[this.Type] = 700;
-        NPCID.Sets.AttackType[this.Type] = 1;        // 0 arremesso, 1 tiro, 2 magia
+        NPCID.Sets.AttackType[this.Type] = 1;        // 0 throwing, 1 shooting, 2 magic
         NPCID.Sets.AttackTime[this.Type] = 60;
         NPCID.Sets.AttackAverageChance[this.Type] = 35;
         this.Happiness
@@ -277,47 +280,47 @@ export class ExamplePerson extends ModNPC {
     SetDefaults() {
         this.NPC.townNPC = true;
         this.NPC.friendly = true;
-        this.NPC.aiStyle = 7;                        // a IA de morador do jogo
+        this.NPC.aiStyle = 7;                        // the game's town NPC AI
         this.AnimationType = NPCID.Guide;
-        // ...vida, defesa, sons
+        // ...life, defense, sounds
     }
 
-    CanTownNPCSpawn(numTownNPCs) { /* true: pode se mudar */ }
+    CanTownNPCSpawn(numTownNPCs) { /* true: can move in */ }
     CheckConditions(left, right, top, bottom) { return bottom <= Terraria.Main.worldSurface; }
     SetNPCNameList() { return ['Someone', 'Somebody', 'Blocky', 'Colorless']; }
     GetChat(npc) { return ModLocalization.GetTextValue('NPCChat.ExamplePerson_1'); }
 }
 ```
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `CanTownNPCSpawn(numTownNPCs)` | De tempos em tempos, enquanto não há um deste tipo no mundo: `true` e ele se muda para a próxima casa vaga. |
-| `CheckConditions(left, right, top, bottom)` | A sala (em tiles) serve para ele? Vale na mudança e no menu de casas. |
-| `SetNPCNameList()` | Os nomes próprios; um é sorteado quando ele chega. |
-| `GetChat(npc)` | A fala ao conversar (texto). |
-| `SetChatButtons(npc, buttons)` | Os botões da conversa: `buttons.button` e `buttons.button2` (o celular mostra até dois). |
-| `OnChatButtonClicked(npc, firstButton)` | Tocou num botão. Devolva o nome de uma loja para abri-la. |
-| `AddShops()` | As lojas, uma vez (ver abaixo). |
-| `TownNPCAttackProj(npc, attack)` | O projétil do ataque: `attack.projType` e `attack.attackDelay`. |
-| `TownNPCAttackStrength(npc, attack)` | `attack.damage` e `attack.knockback`. |
-| `TownNPCAttackProjSpeed(npc, attack)` | `attack.speed`, `attack.gravityCorrection` (mirar acima) e `attack.randomOffset`. |
+| `CanTownNPCSpawn(numTownNPCs)` | Every so often, while there is none of this type in the world: `true` and it moves into the next empty house. |
+| `CheckConditions(left, right, top, bottom)` | Does the room (in tiles) suit it? Applies when moving in and in the housing menu. |
+| `SetNPCNameList()` | Its first names; one is picked when it arrives. |
+| `GetChat(npc)` | What it says when you chat (text). |
+| `SetChatButtons(npc, buttons)` | The chat buttons: `buttons.button` and `buttons.button2` (mobile shows up to two). |
+| `OnChatButtonClicked(npc, firstButton)` | A button was tapped. Return a shop's name to open it. |
+| `AddShops()` | The shops, once (see below). |
+| `TownNPCAttackProj(npc, attack)` | The attack's projectile: `attack.projType` and `attack.attackDelay`. |
+| `TownNPCAttackStrength(npc, attack)` | `attack.damage` and `attack.knockback`. |
+| `TownNPCAttackProjSpeed(npc, attack)` | `attack.speed`, `attack.gravityCorrection` (aiming higher) and `attack.randomOffset`. |
 
-### Cabeça e texturas
+### Head and textures
 
-Ao lado da `Texture`, pelo nome:
+Next to the `Texture`, by name:
 
-| Arquivo | Para quê |
+| File | What for |
 |---|---|
-| `_Head.png` | A cabeça no mapa e no menu de casas. **Sem ela o morador nunca se muda.** |
-| `_Shimmer_Head.png` | A cabeça depois do shimmer. |
-| `_Party.png`, `_Shimmer.png`, `_Shimmer_Party.png` | Com festa, depois do shimmer, e os dois. |
-| `_Portrait.png`, `_Shimmer_Portrait.png` | O retrato da conversa (200x200). Sem ele, a conversa mostra o quadro do sprite. |
+| `_Head.png` | The head on the map and in the housing menu. **Without it the town NPC never moves in.** |
+| `_Shimmer_Head.png` | The head after shimmering. |
+| `_Party.png`, `_Shimmer.png`, `_Shimmer_Party.png` | During a party, after shimmering, and both. |
+| `_Portrait.png`, `_Shimmer_Portrait.png` | The chat portrait (200x200). Without it, the chat shows the sprite frame. |
 
-### Loja
+### Shop
 
 ```js
 SetChatButtons(npc, buttons) {
-    buttons.button = Terraria.Localization.Language['string GetTextValue(string key)']('LegacyInterface.28');   // "Loja"
+    buttons.button = Terraria.Localization.Language['string GetTextValue(string key)']('LegacyInterface.28');   // "Shop"
 }
 
 OnChatButtonClicked(npc, firstButton) {
@@ -333,11 +336,11 @@ AddShops() {
 }
 ```
 
-Opções de cada item: `condition` (uma função; `false` e ele não aparece),
-`price` (o preço) e `currency` (uma moeda própria). O preço passa pela
-felicidade do morador, como nas lojas do jogo.
+Each item's options: `condition` (a function; `false` and it does not show
+up), `price` (the price) and `currency` (a custom currency). The price goes
+through the town NPC's happiness, as in the game's shops.
 
-Moeda própria, paga com um item (a do Example Mod é o Exemplo de Item):
+A custom currency, paid with an item (the Example Mod's is the Example Item):
 
 ```js
 const { CustomCurrencyManager, CustomCurrencySingleCoin } = Terraria.GameContent.UI;
@@ -348,68 +351,72 @@ currency.CurrencyTextColor = Color.new(138, 43, 226);
 const id = CustomCurrencyManager.RegisterCurrency(currency);
 ```
 
-`CurrencyTextColor` é a cor do preço na loja. O jogo do celular a ignora (pinta
-todo preço de moeda própria com a mesma cor rosa); o Bunny Loader desenha esse
-tooltip ele mesmo e usa a cor da moeda. Sem ela, fica o rosa do jogo.
+`CurrencyTextColor` is the price's color in the shop. The mobile game ignores
+it (it paints every custom-currency price the same pink); Bunny Loader draws
+that tooltip itself and uses the currency's color. Without it, the game's pink
+stays.
 
-### Felicidade
+### Happiness
 
-`this.Happiness` (no `SetStaticDefaults`) grava os gostos no banco de
-personalidades do próprio jogo, que calcula o humor e o preço da loja:
-`SetNPCAffection(npcDoJogo, nível)` e `SetBiomeAffection('Forest' | 'Desert' |
-'Snow' | 'Jungle' | 'Ocean' | 'Underground' | 'Hallow' | 'Mushroom' | 'Dungeon'
-| 'Corruption' | 'Crimson', nível)`, com `AffectionLevel.Love`, `Like`,
-`Dislike` ou `Hate`. Um bioma de mod entra pela classe, como no tModLoader:
-`SetBiomeAffection(MeuBioma, AffectionLevel.Love)`; a fala cita o
-`TownNPCDialogueName` dele (`Biomes.MeuBioma.TownNPCDialogueName` no
-`Localization`, ou "the My Biome").
+`this.Happiness` (in `SetStaticDefaults`) writes the preferences into the
+game's own personality database, which calculates the mood and the shop
+prices: `SetNPCAffection(vanillaNpc, level)` and
+`SetBiomeAffection('Forest' | 'Desert' | 'Snow' | 'Jungle' | 'Ocean' |
+'Underground' | 'Hallow' | 'Mushroom' | 'Dungeon' | 'Corruption' | 'Crimson',
+level)`, with `AffectionLevel.Love`, `Like`, `Dislike` or `Hate`. A mod biome
+goes in by class, as in tModLoader: `SetBiomeAffection(MyBiome,
+AffectionLevel.Love)`; the dialogue mentions its `TownNPCDialogueName`
+(`Biomes.MyBiome.TownNPCDialogueName` in `Localization`, or "the My Biome").
 
-As falas de humor vêm de `TownNPCMood.<Classe>` no `Localization/<idioma>.json`:
+Mood lines come from `TownNPCMood.<Class>` in `Localization/<language>.json`:
 `Content`, `NoHome`, `FarFromHome`, `LoveSpace`, `LikeBiome`, `LoveNPC`,
-`DislikeCrowded`... O `{0}` vira o nome do bioma ou do NPC.
+`DislikeCrowded`... `{0}` becomes the biome's or the NPC's name.
 
-### Ataque
+### Attacking
 
-Com `NPCID.Sets.AttackType` e os outros sets de ataque, a IA de morador do jogo
-leva ele a atacar: escolhe a hora e anima. O projétil vem do
-`TownNPCAttackProj` e sai no inimigo à vista mais perto, com o dano escalado
-pelo jogo.
+With `NPCID.Sets.AttackType` and the other attack sets, the game's town NPC AI
+makes it attack: it picks the moment and animates. The projectile comes from
+`TownNPCAttackProj` and goes at the nearest visible enemy, with damage scaled
+by the game.
 
 ### Gore
 
-Todo PNG numa pasta `Gores/` do mod (`Content/Gores/`, `Content/NPCs/Gores/`...) vira um gore, com o nome do arquivo:
+Every PNG in a `Gores/` folder of the mod (`Content/Gores/`,
+`Content/NPCs/Gores/`...) becomes a gore, named after the file:
 
 ```js
 const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];
 NewGore(npc.position, npc.velocity, ModGore.getTypeByName('ExamplePerson_Gore_Head'), 1);
 ```
 
-### Save
+### Saving
 
-O morador vai para `<mundo>.wld.npcs.bl`, **pelo nome**: posição, casa, nome
-próprio, variação, a sala guardada e se passou pelo shimmer. O `.wld` fica sem
-ele, então o mundo abre sem o mod, e o morador volta quando o mod volta.
+The town NPC goes into `<world>.wld.npcs.bl`, **by name**: position, house,
+first name, variation, the stored room and whether it was shimmered. The
+`.wld` stays without it, so the world opens without the mod, and the town NPC
+comes back when the mod does.
 
-### Diferenças do tModLoader
+### Differences from tModLoader
 
-- O celular mostra até dois botões na conversa (`SetChatButtons`).
-- Ainda não há `ModifyNPCHappiness`, `CanGoToStatue` (estátua do rei ou da
-  rainha) nem os ataques `TownNPCAttackCooldown`, `Shoot`, `Magic` e `Swing`.
-- O alvo do tiro é o inimigo à vista mais perto (o do jogo fica em variáveis
-  que o mod não alcança).
+- Mobile shows up to two buttons in the chat (`SetChatButtons`).
+- There is no `ModifyNPCHappiness`, `CanGoToStatue` (king or queen statue) yet,
+  nor the `TownNPCAttackCooldown`, `Shoot`, `Magic` and `Swing` attacks.
+- The shot's target is the nearest visible enemy (the game's is kept in
+  variables the mod cannot reach).
 
-## Chefe
+## Boss
 
-O Example Mod tem um chefe, o **Olho de ???** (`ExampleBoss`), invocado à
-noite pelo `ExampleBossSummonItem`.
+The Example Mod has a boss, the **Eye of ???** (`ExampleBoss`), summoned at
+night by `ExampleBossSummonItem`.
 
-![O ExampleBoss em luta, com a barra de vida de chefe](../imagens/chefe.jpg)
+![ExampleBoss in combat, with the boss health bar](../imagens/chefe.jpg)
 
-- `this.NPC.boss = true`: o jogo o trata como chefe
-  (não some longe, não conta no spawn natural);
-- `aiStyle = -1` e a IA no `AI`: persegue o jogador; na metade da vida acelera
-  e troca a animação; de dia, foge (`npc.EncourageDespawn(10)`);
-- a invocação é um item comum que chama o jogo:
+- `this.NPC.boss = true`: the game treats it as a boss (it does not despawn
+  far away, it does not count toward natural spawning);
+- `aiStyle = -1` and the AI in `AI`: it chases the player; at half life it
+  speeds up and switches animation; during the day, it flees
+  (`npc.EncourageDespawn(10)`);
+- the summon is a plain item that calls the game:
 
   ```js
   CanUseItem(item, player) {
@@ -422,7 +429,7 @@ noite pelo `ExampleBossSummonItem`.
   }
   ```
 
-- a **música** da luta é o campo `Music` ([guia 10](10-sons-e-musica.md#música)):
+- the fight's **music** is the `Music` field ([guide 10](10-sons-e-musica.md#music)):
 
   ```js
   SetDefaults() {
@@ -431,51 +438,51 @@ noite pelo `ExampleBossSummonItem`.
   }
   ```
 
-- o **ícone de chefe** é o arquivo `<Textura>_Head_Boss.png` ao lado da
-  textura (`ExampleBoss_Head_Boss.png`), ou o caminho em `BossHeadTexture`.
-  Ele aparece na barra de vida de chefe e no mapa. **Sem ele, o chefe fica sem
-  a barra grande e sem o ícone no mapa** (o jogo só mostra a barra de quem tem
-  ícone).
-- um **segundo ícone** (outra fase, por exemplo) se registra com
-  `Mod.AddBossHeadTexture`, que devolve a vaga, e entra pelo `BossHeadSlot`.
-  `BossHeadRotation` e `BossHeadSpriteEffects` giram e espelham o ícone do
-  mapa:
+- the **boss icon** is the `<Texture>_Head_Boss.png` file next to the
+  texture (`ExampleBoss_Head_Boss.png`), or the path in `BossHeadTexture`. It
+  shows up on the boss health bar and on the map. **Without it, the boss has
+  no big bar and no map icon** (the game only shows the bar for those with an
+  icon).
+- a **second icon** (another phase, for example) is registered with
+  `Mod.AddBossHeadTexture`, which returns the slot, and goes in through
+  `BossHeadSlot`. `BossHeadRotation` and `BossHeadSpriteEffects` rotate and
+  mirror the map icon:
 
   ```js
-  static segundaFase = -1;
+  static secondPhase = -1;
 
   SetStaticDefaults() {
-      ExampleBoss.segundaFase = this.Mod.AddBossHeadTexture(this.Texture + '_Head_Boss_2');
+      ExampleBoss.secondPhase = this.Mod.AddBossHeadTexture(this.Texture + '_Head_Boss_2');
   }
   BossHeadSlot(npc, index) {
-      if (npc.ai[0] === 1 && ExampleBoss.segundaFase !== -1) index.value = ExampleBoss.segundaFase;
+      if (npc.ai[0] === 1 && ExampleBoss.secondPhase !== -1) index.value = ExampleBoss.secondPhase;
   }
   ```
 
-  `ModContent.GetModBossHeadSlot(caminho)` devolve a vaga de um ícone já
-  registrado (ou -1), também o de outro mod (`'idDoMod/Content/...'`).
+  `ModContent.GetModBossHeadSlot(path)` returns the slot of an icon already
+  registered (or -1), including another mod's (`'modId/Content/...'`).
 
-### Barra própria (ModBossBar)
+### Custom bar (ModBossBar)
 
-Uma `ModBossBar` troca a barra grande de um NPC de mod e a dá a quem não a
-teria (sem ser chefe, sem ícone de chefe). O NPC a pede no `SetDefaults`:
+A `ModBossBar` replaces a mod NPC's big bar and gives one to an NPC that would
+not have it (not a boss, no boss icon). The NPC asks for it in `SetDefaults`:
 
 ```js
 export class FortressBar extends ModBossBar {
-    // O ícone; `frame` (Ref) pode recortar uma parte da textura.
+    // The icon; `frame` (Ref) can crop part of the texture.
     GetIconTexture(frame) {
         return ModContent.Request('Content/NPCs/Fortress_Icon');
     }
 
-    // Um chefe de várias partes soma a vida delas; o escudo aparece em outra cor.
+    // A multi-part boss adds up their life; the shield shows in another color.
     ModifyInfo(info, life, lifeMax, shield, shieldMax) {
         const npc = Terraria.Main.npc[info.npcIndexToAimAt];
-        if (!npc.active) return false;   // false: sem barra
+        if (!npc.active) return false;   // false: no bar
         life.value = npc.life;
         lifeMax.value = npc.lifeMax;
         shield.value = npc.ai[3];
         shieldMax.value = 300;
-        return true;                     // null: a vida do NPC, sem escudo
+        return true;                     // null: the NPC's life, no shield
     }
 }
 
@@ -487,13 +494,14 @@ export class Fortress extends ModNPC {
 }
 ```
 
-`PreDraw(spriteBatch, npc, drawParams)` recebe `{ IconTexture, IconFrame,
-Life, LifeMax, Shield, ShieldMax }`, que valem para o desenho (devolvendo
-`false`, a barra do jogo não sai); `PostDraw` vem depois. O desenho é o do
-jogo: no celular a barra fica embaixo, e posição e escala não mudam.
+`PreDraw(spriteBatch, npc, drawParams)` receives `{ IconTexture, IconFrame,
+Life, LifeMax, Shield, ShieldMax }`, which apply to the drawing (returning
+`false`, the game's bar does not show); `PostDraw` comes after. The drawing is
+the game's: on mobile the bar sits at the bottom, and position and scale do
+not change.
 
-O Olho de ??? do Example Mod usa a `ExampleBossBar`: o ícone da cabeça da fase
-atual e, como escudo, o que falta para a 2ª fase.
+The Example Mod's Eye of ??? uses `ExampleBossBar`: the head icon for the
+current phase and, as a shield, what is left until the 2nd phase.
 
-Sacola de tesouro e a marca de chefe derrotado ainda não têm atalho no Bunny
-Loader.
+Treasure bags and the boss-defeated flag do not have a Bunny Loader shortcut
+yet.

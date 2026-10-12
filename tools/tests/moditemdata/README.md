@@ -1,89 +1,91 @@
-# Regressão de SaveData/LoadData de ModItem
+# ModItem SaveData/LoadData regression
 
-Esta suíte verifica o mecanismo do loader. O item de teste tem dono, contador
-e dados aninhados; há também classes com herança, tag vazio e callbacks que
-lançam exceções. Ela não depende da implementação do Valentine Ring.
+This suite checks the loader's mechanism. The test item has an owner, a
+counter and nested data; there are also classes with inheritance, an empty tag
+and callbacks that throw. It does not depend on the Valentine Ring's
+implementation.
 
-## Testes sem dispositivo
+## Tests without a device
 
-Na raiz do repositório:
+At the repository root:
 
 ```powershell
 node tools/tests/moditemdata/check.mjs
 ```
 
-O runtime carrega os arquivos JS reais do projeto e usa o registro real de
-`ModItem`. Somente as chamadas ao Terraria/IL2CPP são simuladas. Os casos
-incluem 200 round trips determinísticos de dados variados, valores ausentes,
-herança, instâncias independentes, validação de JSON, exceções, recuperação,
-clones, ordem dos pacotes, retransmissão, desconexão e drops mobile.
+The runtime loads the project's real JS files and uses the real `ModItem`
+registration. Only the calls into Terraria/IL2CPP are simulated. The cases
+include 200 deterministic round trips of varied data, missing values,
+inheritance, independent instances, JSON validation, exceptions, recovery,
+clones, package order, relaying, disconnecting and mobile drops.
 
-O teste C++ inclui diretamente o cabeçalho usado em produção, sem uma cópia
-da implementação do formato:
+The C++ test directly includes the header used in production, without a copy
+of the format's implementation:
 
 ```powershell
 wsl.exe -d Ubuntu -- bash -lc 'cd "/mnt/c/Scripts/Bunny Loader" && g++ -std=c++20 -Wall -Wextra -Werror -fsanitize=address,undefined -Iapp/src/main/cpp tools/tests/moditemdata/format.cpp -o /tmp/bunny-moditemdata-format && /tmp/bunny-moditemdata-format'
 ```
 
-Também pode ser compilado em outro ambiente com C++20, ajustando os caminhos.
-Verifica arquivos antigos e novos, linhas longas, Unicode, contêineres,
-prefixos, números inválidos, streams com erro e delimitadores indevidos.
+It can also be built in another environment with C++20, adjusting the paths.
+It checks old and new files, long lines, Unicode, containers, prefixes,
+invalid numbers, streams with errors and unexpected delimiters.
 
-## Integração no Terraria Android
+## Integration in Android Terraria
 
-Requer APK debug compilado, ADB, dispositivo com root, personagem e mundo
-locais existentes. Feche o jogo antes de `prepare`. O runner instala o APK,
-faz backup das preferências, habilita somente este fixture e inicia **cópias**
-dos saves chamadas `BL_ItemData_Test`. Os slots alterados na rodada nativa
-são restaurados antes de retornar ao loop do jogo.
+Requires a built debug APK, ADB, a rooted device, and an existing local
+character and world. Close the game before `prepare`. The runner installs the
+APK, backs up the preferences, enables only this fixture and starts **copies**
+of the saves named `BL_ItemData_Test`. The slots changed in the native round
+are restored before returning to the game loop.
 
 ```powershell
 python tools/tests/moditemdata/device.py prepare --device 127.0.0.1:16384 --role native
 python tools/tests/moditemdata/device.py launch --device 127.0.0.1:16384 --role native
-# Depois do carregamento e da linha FIM no log:
+# After loading and the FIM line in the log:
 python tools/tests/moditemdata/device.py collect --device 127.0.0.1:16384 --role native
 ```
 
-`collect` falha se não houver conclusão com verificações executadas e zero
-falhas. Os logs ficam em `build/moditemdata/<dispositivo>/`. A rodada chama
-`SavePlayer`/`LoadPlayer` reais, escreve um personagem separado
-`BL_ItemData_Probe.plr`, verifica todos os 15 contêineres e as falhas dos
-callbacks. Para baús, chama `SaveChests` e `FixAgainstExploits` reais: o
-stream vanilla é em memória, e o save complementar `.wld.bl` vai para disco.
-Não é um teste de fechar/reabrir o processo durante a gravação do mundo.
+`collect` fails if there is no completion with checks run and zero failures.
+The logs live in `build/moditemdata/<device>/`. The round calls the real
+`SavePlayer`/`LoadPlayer`, writes a separate character
+`BL_ItemData_Probe.plr`, checks all 15 containers and the callbacks'
+failures. For chests, it calls the real `SaveChests` and `FixAgainstExploits`:
+the vanilla stream is in memory, and the companion `.wld.bl` save goes to
+disk. It is not a test of closing/reopening the process while the world is
+being saved.
 
-## Multiplayer entre duas instâncias
+## Multiplayer between two instances
 
-Após guardar os logs nativos, feche o jogo de teste. Prepare os dois lados:
+After saving the native logs, close the test game. Prepare both sides:
 
 ```powershell
 python tools/tests/moditemdata/device.py prepare --device 127.0.0.1:16384 --role host
 python tools/tests/moditemdata/device.py prepare --device 127.0.0.1:16416 --role client
 adb -s 127.0.0.1:16384 forward tcp:7777 tcp:7777
 python tools/tests/moditemdata/device.py launch --device 127.0.0.1:16384 --role host
-# Aguarde o host registrar running=true.
+# Wait for the host to log running=true.
 python tools/tests/moditemdata/device.py launch --device 127.0.0.1:16416 --role client
-# Depois das conclusões FIM dos dois lados:
+# After the FIM completions on both sides:
 python tools/tests/moditemdata/device.py collect --device 127.0.0.1:16384 --role host
 python tools/tests/moditemdata/device.py collect --device 127.0.0.1:16416 --role client
 ```
 
-O host usa a entrada nativa `GUIMultiplayerHost.HostServer`. O cliente acessa
-`10.0.2.2:7777`, o host NAT dos emuladores usados nesta rodada. Ajuste esse
-endereço em `content/multiplayer.js` para outros dispositivos.
+The host uses the native `GUIMultiplayerHost.HostServer` entry. The client
+connects to `10.0.2.2:7777`, the NAT host of the emulators used in this round.
+Adjust that address in `content/multiplayer.js` for other devices.
 
-Os pacotes do fixture coordenam as etapas, sem transmitir dono ou estado do
-item. Esses campos passam exclusivamente pelos hooks do loader. O cliente
-dropa pela interface mobile; o host pega com `Player.PickupItem`, dropa pelo
-item selecionado e o cliente pega novamente. Uma alteração somente no
-contador do inventário deve ser detectada e chegar ao servidor. Depois, um
-item de baú vai e volta pela mensagem nativa 32. O fixture prepara um baú
-vazio no cliente antes do envio: o protocolo vanilla ignora a mensagem 32
-quando o baú ainda não existe naquele cliente.
+The fixture's packets coordinate the steps, without sending the item's owner
+or state. Those fields go exclusively through the loader's hooks. The client
+drops through the mobile UI; the host picks up with `Player.PickupItem`, drops
+through the selected item and the client picks up again. A change only to the
+inventory counter must be detected and reach the server. Then, a chest item
+goes back and forth through native message 32. The fixture prepares an empty
+chest on the client before sending: the vanilla protocol ignores message 32
+when the chest does not exist on that client yet.
 
-## Restaurar o ambiente
+## Restoring the environment
 
-Execute ao terminar, inclusive após falha:
+Run when done, including after a failure:
 
 ```powershell
 python tools/tests/moditemdata/device.py restore --device 127.0.0.1:16384
@@ -91,9 +93,8 @@ python tools/tests/moditemdata/device.py restore --device 127.0.0.1:16416
 adb -s 127.0.0.1:16384 forward --remove tcp:7777
 ```
 
-`restore` encerra o jogo de teste, restaura as preferências anteriores e
-remove somente a pasta deste fixture, depois de verificar seu caminho. As
-cópias dos saves e os logs permanecem para diagnóstico. O APK instalado
-permanece sendo o build testado.
+`restore` closes the test game, restores the previous preferences and removes
+only this fixture's folder, after checking its path. The save copies and the
+logs remain for diagnosis. The installed APK remains the tested build.
 
-Resultados da execução: [RESULTADOS.md](RESULTADOS.md).
+Run results: [RESULTADOS.md](RESULTADOS.md).

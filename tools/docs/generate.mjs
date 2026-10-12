@@ -37,14 +37,14 @@ function walk(node, visit) {
 }
 
 function baseReturn(member, source) {
-    if (member.kind === 'constructor') return 'instância';
+    if (member.kind === 'constructor') return 'instance';
     const body = member.value.body;
     if (body.type !== 'BlockStatement') return clean(source.slice(body.start, body.end));
     if (!body.body.length) return 'undefined';
-    if (body.body.length !== 1 || body.body[0].type !== 'ReturnStatement') return 'Consultar fonte';
+    if (body.body.length !== 1 || body.body[0].type !== 'ReturnStatement') return 'See source';
     const expression = body.body[0].argument;
     const text = expression ? clean(source.slice(expression.start, expression.end)) : 'undefined';
-    return text.length <= 160 ? text : 'Consultar fonte';
+    return text.length <= 160 ? text : 'See source';
 }
 
 function sourceComment(member, source) {
@@ -63,16 +63,16 @@ for (const relative of await files(apiRoot)) {
     sources.set(relative, { source, ast });
     for (const declaration of ast.body.filter((node) => node.type === 'ClassDeclaration')) {
         const name = declaration.id.name;
-        if (definitions.has(name)) throw new Error('Classe duplicada: ' + name);
+        if (definitions.has(name)) throw new Error('Duplicate class: ' + name);
         const methods = [];
         for (const member of declaration.body.body) {
             if (member.type !== 'MethodDefinition' || member.key.type === 'PrivateIdentifier') continue;
-            if (member.computed && member.key.type !== 'Literal') throw new Error('Método computado sem nome literal: ' + name);
+            if (member.computed && member.key.type !== 'Literal') throw new Error('Computed method without a literal name: ' + name);
             const method = member.key.name ?? member.key.value;
             const parameters = member.value.params.map((parameter) => clean(source.slice(parameter.start, parameter.end))).join(', ');
             methods.push({
                 method, signature: member.kind === 'get' ? 'get ' + method : member.kind === 'set' ? 'set ' + method + '(' + parameters + ')' : method + '(' + parameters + ')',
-                kind: member.kind === 'constructor' ? 'Construtor' : member.kind === 'get' ? member.static ? 'Getter estático' : 'Getter' : member.kind === 'set' ? member.static ? 'Setter estático' : 'Setter' : member.static ? 'Estático' : 'Instância',
+                kind: member.kind === 'constructor' ? 'Constructor' : member.kind === 'get' ? member.static ? 'Static getter' : 'Getter' : member.kind === 'set' ? member.static ? 'Static setter' : 'Setter' : member.static ? 'Static' : 'Instance',
                 scope: member.static ? 'static' : 'instance', accessor: member.kind === 'get' || member.kind === 'set' ? member.kind : '',
                 declaredIn: name, source: relative, line: member.loc.start.line,
                 baseReturn: baseReturn(member, source), comment: sourceComment(member, source)
@@ -104,7 +104,7 @@ function resolveAlias(node, source, relative, bindings = {}) {
             const original = origin?.methods.find((method) => method.method === originName && method.scope === 'instance');
             if (target && name && original) target.methods.push({
                 ...original, method: name, signature: original.signature.replace(/^[^(]+/, name), source: relative, line: node.loc.start.line,
-                comment: 'Alias de ' + origin.name + '.' + originName + '.', aliasOf: origin.name + '.' + originName
+                comment: 'Alias of ' + origin.name + '.' + originName + '.', aliasOf: origin.name + '.' + originName
             });
         }
     }
@@ -116,7 +116,7 @@ for (const [relative, { source, ast }] of sources) resolveAlias(ast, source, rel
 const exportsAst = sources.get(apiRoot + '/Exports.js').ast;
 const assignment = exportsAst.body.find((node) => node.type === 'ExpressionStatement' && node.expression.type === 'CallExpression' && node.expression.callee.object?.name === 'Object' && node.expression.callee.property?.name === 'assign');
 const exported = assignment.expression.arguments[1].properties.map((property) => property.key.name);
-if (new Set(exported).size !== exported.length) throw new Error('Export duplicado');
+if (new Set(exported).size !== exported.length) throw new Error('Duplicate export');
 
 const docs = [outputRoot + '/classes.md', outputRoot + '/modplayer-hooks.md'];
 const descriptions = new Map();
@@ -133,13 +133,13 @@ for (const relative of docs) {
         if (cells.length < 2 || !cells[0].includes('`')) continue;
         const owners = relative.endsWith('modplayer-hooks.md') ? ['ModPlayer'] : exported.filter((name) => {
             if (/^Global(Item|NPC|Projectile)$/.test(subsection)) return name === subsection;
-            if (/^Texturas vestidas/.test(subsection)) return name === 'EquipLoader' || name === 'EquipTexture';
+            if (/^Worn textures/.test(subsection)) return name === 'EquipLoader' || name === 'EquipTexture';
             const anchor = metadata.sections[name];
             const slug = section.toLowerCase().replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, '-');
             return word(name).test(section) || anchor === slug;
         });
         let native = cells[2] ? plain(cells[2]) : '';
-        if (/^idem\b/i.test(native)) native = native.replace(/^idem\b/i, previousNative || 'mesmo fluxo da tabela de referência');
+        if (/^(idem|same)\b/i.test(native)) native = native.replace(/^(idem|same)\b/i, previousNative || 'same flow as the reference table');
         if (native) previousNative = native;
         for (const owner of owners) {
             for (const method of inherited(owner)) {
@@ -153,7 +153,7 @@ for (const relative of docs) {
 }
 
 function inherited(name, visiting = new Set()) {
-    if (visiting.has(name)) throw new Error('Herança cíclica: ' + name);
+    if (visiting.has(name)) throw new Error('Cyclic inheritance: ' + name);
     const definition = definitions.get(name);
     if (!definition) return [];
     const all = new Map();
@@ -171,11 +171,11 @@ for (const definition of classes) {
     for (const method of inherited(definition.name)) {
         const doc = descriptions.get(definition.name + '.' + method.method) ?? descriptions.get(method.declaredIn + '.' + method.method);
         const note = metadata.notes[definition.name + '.' + method.method] ?? metadata.notes[method.declaredIn + '.' + method.method];
-        const description = [doc?.description || method.comment || (method.baseReturn === 'undefined' ? 'A implementação base não executa ações.' : 'Consulte a implementação na fonte.'), note].filter(Boolean).join(' ');
+        const description = [doc?.description || method.comment || (method.baseReturn === 'undefined' ? 'The base implementation does nothing.' : 'See the implementation in the source.'), note].filter(Boolean).join(' ');
         rows.push({
             class: definition.name, method: method.method, kind: method.kind, signature: method.signature,
             declaredIn: method.declaredIn, inherited: method.declaredIn !== definition.name,
-            status: 'Declarado', baseReturn: method.baseReturn, description, native: doc?.native ?? '',
+            status: 'Declared', baseReturn: method.baseReturn, description, native: doc?.native ?? '',
             source: method.source, line: method.line,
             sourceUrl: metadata.repository + '/blob/main/' + method.source + '#L' + method.line,
             reference: outputRoot + '/classes.md#' + metadata.sections[definition.name], aliasOf: method.aliasOf ?? ''
@@ -183,67 +183,67 @@ for (const definition of classes) {
     }
 }
 for (const unavailable of metadata.unavailable) {
-    if (rows.some((row) => row.class === unavailable.class && row.method === unavailable.method)) throw new Error('Método disponível marcado como ausente: ' + unavailable.method);
+    if (rows.some((row) => row.class === unavailable.class && row.method === unavailable.method)) throw new Error('Available method marked as missing: ' + unavailable.method);
     const source = unavailable.source || 'tools/tests/modnpchooks/README.md';
-    const anchor = unavailable.anchor || 'métodos-descartados';
-    rows.push({ class: unavailable.class, method: unavailable.method, kind: 'Não implementado', signature: '', declaredIn: '', inherited: false,
-        status: 'Não implementado', baseReturn: '', description: unavailable.reason, native: '', source, line: 0,
+    const anchor = unavailable.anchor || 'dropped-methods';
+    rows.push({ class: unavailable.class, method: unavailable.method, kind: 'Not implemented', signature: '', declaredIn: '', inherited: false,
+        status: 'Not implemented', baseReturn: '', description: unavailable.reason, native: '', source, line: 0,
         sourceUrl: metadata.repository + '/blob/main/' + source + '#' + anchor, reference: outputRoot + '/classes.md#' + metadata.sections[unavailable.class], aliasOf: '' });
 }
 rows.sort((a, b) => a.class.localeCompare(b.class, 'en') || a.method.localeCompare(b.method, 'en') || a.kind.localeCompare(b.kind, 'en'));
 for (const definition of classes) {
-    if (!metadata.sections[definition.name]) throw new Error('Classe sem referência: ' + definition.name);
-    const methods = rows.filter((row) => row.class === definition.name && row.status === 'Declarado');
+    if (!metadata.sections[definition.name]) throw new Error('Class without a reference: ' + definition.name);
+    const methods = rows.filter((row) => row.class === definition.name && row.status === 'Declared');
     definition.own = methods.filter((row) => !row.inherited).length;
     definition.inherited = methods.filter((row) => row.inherited).length;
 }
 const keys = rows.map((row) => [row.class, row.method, row.kind].join('/'));
-if (new Set(keys).size !== keys.length) throw new Error('Linha duplicada no catálogo');
-for (const key of Object.keys(metadata.notes)) if (!rows.some((row) => row.class + '.' + row.method === key)) throw new Error('Nota sem método: ' + key);
+if (new Set(keys).size !== keys.length) throw new Error('Duplicate row in the catalog');
+for (const key of Object.keys(metadata.notes)) if (!rows.some((row) => row.class + '.' + row.method === key)) throw new Error('Note without a method: ' + key);
 const referenceText = await fs.readFile(path.join(root, outputRoot, 'classes.md'), 'utf8');
 const anchors = new Set(referenceText.split(/\r?\n/).filter((line) => /^#{2,3} /.test(line)).map((line) => plain(line.replace(/^#+ /, '')).toLowerCase().replace(/[^\p{L}\p{N} _-]/gu, '').replace(/\s+/g, '-')));
-for (const [name, anchor] of Object.entries(metadata.sections)) if (!anchors.has(anchor)) throw new Error('Âncora ausente para ' + name + ': ' + anchor);
+for (const [name, anchor] of Object.entries(metadata.sections)) if (!anchors.has(anchor)) throw new Error('Missing anchor for ' + name + ': ' + anchor);
 
-const sourceFiles = new Set([apiRoot + '/Exports.js', ...classes.map((definition) => definition.source), ...rows.filter((row) => row.status === 'Declarado').map((row) => row.source)]);
+const sourceFiles = new Set([apiRoot + '/Exports.js', ...classes.map((definition) => definition.source), ...rows.filter((row) => row.status === 'Declared').map((row) => row.source)]);
 const hash = createHash('sha256');
 for (const relative of [...sourceFiles].sort()) hash.update(relative + '\n' + sources.get(relative).source.replace(/\r\n/g, '\n') + '\n');
 const catalog = { schema: 1, sourceHash: hash.digest('hex'), classes, objects, rows };
 
 const lines = [
-    '# Métodos por classe', '',
-    'Catálogo gerado das classes públicas de `Exports.js`, com uma linha por método, construtor ou getter/setter declarado em JavaScript. Inclui métodos herdados e aliases de `NetWriter`/`NetReader`. Campos, enums e objetos de descritores ficam fora da contagem de métodos. Os métodos das classes nativas de `Terraria.*`, de `bl.*` e os loaders privados são consultados pela [ponte](ponte-e-bl.md).', '',
-    'Abra a [planilha Excel](metodos.xlsx) para filtrar a tabela por classe, método, tipo ou status. O [CSV UTF-8](metodos.csv) contém os mesmos registros e o [JSON](metodos.json) permite consulta por ferramentas.', '',
-    '`Declarado` confirma que o membro existe na API JavaScript atual. Não indica que todos os seus fluxos foram testados no jogo. A coluna de retorno mostra a expressão da implementação base, não uma declaração de tipo nem o retorno obrigatório do override. `Consultar fonte` identifica implementações com mais de uma instrução. As assinaturas são do Bunny Loader e podem diferir das do tModLoader.', '',
-    'Contratos e parâmetros mutáveis: [referência das classes](classes.md), [ModPlayer](modplayer-hooks.md) e [ref/out](../mods/02-ref-e-out.md). Os dez métodos de ModNPC sem adaptação completa aparecem com status `Não implementado` e sem assinatura inventada.', '',
-    'Instale a dependência com `npm --prefix tools/docs ci` e atualize com `node tools/docs/generate.mjs`. Confira diferenças com `node tools/docs/generate.mjs --check`. A [ferramenta de documentação](../../tools/docs/README.md) explica a atualização da planilha.', '',
-    '## Índice', '', '| Classe | Membros próprios | Herdados | Contratos |', '|---|---:|---:|---|'
+    '# Methods by class', '',
+    'A catalog generated from the public classes in `Exports.js`, with one row per method, constructor or getter/setter declared in JavaScript. It includes inherited methods and the `NetWriter`/`NetReader` aliases. Fields, enums and descriptor objects are left out of the method count. The methods of the native `Terraria.*` classes, of `bl.*` and the private loaders are looked up through the [bridge](ponte-e-bl.md).', '',
+    'Open the [Excel spreadsheet](metodos.xlsx) to filter the table by class, method, kind or status. The [UTF-8 CSV](metodos.csv) has the same records and the [JSON](metodos.json) allows queries from tools.', '',
+    '`Declared` confirms the member exists in the current JavaScript API. It does not mean all of its flows were tested in game. The return column shows the base implementation\'s expression, not a type declaration nor the override\'s required return. `See source` marks implementations with more than one statement. The signatures are Bunny Loader\'s and may differ from tModLoader\'s.', '',
+    'Contracts and mutable parameters: [class reference](classes.md), [ModPlayer](modplayer-hooks.md) and [ref/out](../mods/02-ref-e-out.md). The ten ModNPC methods without a complete adaptation show up with the `Not implemented` status and no made-up signature.', '',
+    'Install the dependency with `npm --prefix tools/docs ci` and update with `node tools/docs/generate.mjs`. Check for differences with `node tools/docs/generate.mjs --check`. The [documentation tool](../../tools/docs/README.md) explains how to update the spreadsheet.', '',
+    '## Index', '', '| Class | Own members | Inherited | Contracts |', '|---|---:|---:|---|'
 ];
-for (const definition of classes) lines.push(`| [\`${definition.name}\`](#${definition.name.toLowerCase()}) | ${definition.own} | ${definition.inherited} | [Referência](classes.md#${metadata.sections[definition.name]}) |`);
-lines.push('', `${classes.length} classes públicas, ${rows.filter((row) => row.status === 'Declarado').length} registros declarados e ${metadata.unavailable.length} métodos não implementados. A contagem inclui o mesmo membro em cada classe que o herda.`, '', '## Objetos e enums', '', objects.map((name) => '`' + name + '`').join(', ') + '. São exports públicos sem declaração de classe JavaScript neste módulo.', '');
+for (const definition of classes) lines.push(`| [\`${definition.name}\`](#${definition.name.toLowerCase()}) | ${definition.own} | ${definition.inherited} | [Reference](classes.md#${metadata.sections[definition.name]}) |`);
+lines.push('', `${classes.length} public classes, ${rows.filter((row) => row.status === 'Declared').length} declared records and ${metadata.unavailable.length} methods not implemented. The count includes the same member in each class that inherits it.`, '', '## Objects and enums', '', objects.map((name) => '`' + name + '`').join(', ') + '. They are public exports with no JavaScript class declaration in this module.', '');
 for (const definition of classes) {
-    lines.push('## ' + definition.name, '', '[Contrato e campos](classes.md#' + metadata.sections[definition.name] + ')' + (definition.base ? '. Herda de `' + definition.base + '`.' : '.'), '',
-        '| Método / assinatura | Tipo | Declaração | Retorno base | Contrato / limite | Fonte |', '|---|---|---|---|---|---|');
+    lines.push('## ' + definition.name, '', '[Contract and fields](classes.md#' + metadata.sections[definition.name] + ')' + (definition.base ? '. Inherits from `' + definition.base + '`.' : '.'), '',
+        '| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |', '|---|---|---|---|---|---|');
     for (const row of rows.filter((row) => row.class === definition.name)) {
-        const source = row.status === 'Declarado' ? `../../${row.source}#L${row.line}` : '../../' + row.source + '#' + row.sourceUrl.split('#')[1];
+        const source = row.status === 'Declared' ? `../../${row.source}#L${row.line}` : '../../' + row.source + '#' + row.sourceUrl.split('#')[1];
         lines.push('| ' + [
             '`' + markdown(row.signature || row.method) + '`', row.kind,
-            row.status === 'Declarado' ? '`' + row.declaredIn + '`' + (row.inherited ? ' (herdado)' : '') : 'Não implementado',
-            row.baseReturn ? '`' + markdown(row.baseReturn) + '`' : '—', markdown(row.description), `[Código](${source})`
+            row.status === 'Declared' ? '`' + row.declaredIn + '`' + (row.inherited ? ' (inherited)' : '') : 'Not implemented',
+            row.baseReturn ? '`' + markdown(row.baseReturn) + '`' : '—', markdown(row.description), `[Code](${source})`
         ].join(' | ') + ' |');
     }
     lines.push('');
 }
-const columns = [['Classe', 'class'], ['Método', 'method'], ['Tipo', 'kind'], ['Assinatura', 'signature'], ['Declarado em', 'declaredIn'], ['Herdado', 'inherited'], ['Status', 'status'], ['Retorno base', 'baseReturn'], ['Contrato / limite', 'description'], ['Método nativo / etapa', 'native'], ['Fonte', 'sourceUrl']];
+const columns = [['Class', 'class'], ['Method', 'method'], ['Kind', 'kind'], ['Signature', 'signature'], ['Declared in', 'declaredIn'], ['Inherited', 'inherited'], ['Status', 'status'], ['Base return', 'baseReturn'], ['Contract / limit', 'description'], ['Native method / step', 'native'], ['Source', 'sourceUrl']];
 const csvCell = (value) => '"' + String(value).replace(/"/g, '""') + '"';
-const csv = '\ufeff' + [columns.map(([label]) => label), ...rows.map((row) => columns.map(([, key]) => key === 'inherited' ? row[key] ? 'Sim' : 'Não' : row[key]))].map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+const csv = '\ufeff' + [columns.map(([label]) => label), ...rows.map((row) => columns.map(([, key]) => key === 'inherited' ? row[key] ? 'Yes' : 'No' : row[key]))].map((row) => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
 const outputs = { 'metodos.md': lines.join('\n'), 'metodos.csv': csv, 'metodos.json': JSON.stringify(catalog, null, 2) + '\n' };
 let failed = false;
 for (const [name, content] of Object.entries(outputs)) {
     const target = path.join(root, outputRoot, name);
     if (process.argv.includes('--check')) {
         const current = await fs.readFile(target, 'utf8').catch(() => '');
-        if (current.replace(/\r\n/g, '\n') !== content.replace(/\r\n/g, '\n')) { console.error('Desatualizado: ' + outputRoot + '/' + name); failed = true; }
+        if (current.replace(/\r\n/g, '\n') !== content.replace(/\r\n/g, '\n')) { console.error('Out of date: ' + outputRoot + '/' + name); failed = true; }
     } else await fs.writeFile(target, content, 'utf8');
 }
-console.log(`${classes.length} classes, ${objects.length} objetos/enums, ${rows.filter((row) => row.status === 'Declarado').length} registros declarados, ${metadata.unavailable.length} não implementados.`);
+console.log(`${classes.length} classes, ${objects.length} objects/enums, ${rows.filter((row) => row.status === 'Declared').length} declared records, ${metadata.unavailable.length} not implemented.`);
 if (failed) process.exitCode = 1;

@@ -1,55 +1,56 @@
-# PvP de item e banners entre processos
+# Item PvP and banners across processes
 
-Execução em 08/10/2026, Terraria Mobile 1.4.5.8/301720 ARM64, em duas
-instâncias distintas do MuMu. Host: `127.0.0.1:16384`, jogador 0,
-`Main.netMode = 3`. Cliente: `127.0.0.1:16416`, jogador 1, modo 1.
-`emulator-5554` é um alias do primeiro aparelho e não foi contado como
-terceiro processo.
+Run on 2026-10-08, Terraria Mobile 1.4.5.8/301720 ARM64, on two separate MuMu
+instances. Host: `127.0.0.1:16384`, player 0, `Main.netMode = 3`. Client:
+`127.0.0.1:16416`, player 1, mode 1. `emulator-5554` is an alias of the first
+device and was not counted as a third process.
 
-## Correção e contratos
+## Fix and contracts
 
-Referência: tModLoader 1.4.5, commit
-`39e7995fa519a94468ebaf4699508d25903e143e`, arquivos ModItem.cs,
-Player.cs.patch, CombinedHooks.cs e PlayerLoader.cs.
+Reference: tModLoader 1.4.5, commit
+`39e7995fa519a94468ebaf4699508d25903e143e`, files ModItem.cs,
+Player.cs.patch, CombinedHooks.cs and PlayerLoader.cs.
 
-CanHitPvp executa no atacante, após elegibilidade nativa e antes de status,
-Hurt e envio. ModifyHitPvp/OnHitPvp executam na vítima. O PlayerDeathReason
-mobile transmite tipo/prefixo; PvpItemNetwork acrescenta a identidade e o
-payload NetSend/NetReceive antes da mensagem 117, no mesmo fluxo TCP.
-O servidor repassa o complemento antes do golpe. A vítima não depende do
-slot atualmente selecionado no atacante. As filas têm limite e expiração,
-e o escopo de recepção é restaurado em finally e limpo ao trocar de mundo.
+CanHitPvp runs on the attacker, after native eligibility and before status,
+Hurt and sending. ModifyHitPvp/OnHitPvp run on the victim. Mobile's
+PlayerDeathReason carries type/prefix; PvpItemNetwork adds the identity and
+the NetSend/NetReceive payload before message 117, on the same TCP stream.
+The server relays the complement before the hit. The victim does not depend on
+the slot currently selected by the attacker. The queues are bounded and
+expire, and the receiving scope is restored in finally and cleared when
+switching worlds.
 
-A ordem de combate também foi alinhada à referência: ModifyIncomingHit,
-atacante, alvo, ModPlayer geral e específico. OnHit geral do ModPlayer
-precede o específico. O caso JS compõe multiplicação e adição para
-detectar inversões nessa ordem.
+The combat order was also aligned with the reference: ModifyIncomingHit,
+attacker, target, general and specific ModPlayer. ModPlayer's general OnHit
+comes before the specific one. The JS case composes multiplication and
+addition to detect inversions in that order.
 
-## Resultado
+## Result
 
-| Etapa | Verificações | Falhas |
+| Step | Checks | Failures |
 |---|---:|---:|
-| Host, sessão inicial | 12 | 0 |
-| Cliente, sessão inicial | 12 | 0 |
-| Estado recebido na reconexão, conferido no host | 2 | 0 |
-| Total no jogo | 26 | 0 |
-| JS de produção, chamadas nativas simuladas | 8 | 0 |
+| Host, initial session | 12 | 0 |
+| Client, initial session | 12 | 0 |
+| State received on reconnect, checked on the host | 2 | 0 |
+| Total in game | 26 | 0 |
+| Production JS, simulated native calls | 8 | 0 |
 
-Nas duas direções, CanHitPvp falso impediu o envio nativo e os callbacks
-remotos. Com permissão, houve um envio e a vítima recebeu um único golpe
-de dano 7. O estado padrão da arma é 3; o teste muda para 7 via NetSend e
-retira a arma do slot imediatamente após o ataque. ModifyHitPvp e
-OnHitPvp rodaram uma vez na vítima e zero no atacante.
+In both directions, CanHitPvp false prevented the native send and the remote
+callbacks. With permission, there was one send and the victim took a single
+hit of 7 damage. The weapon's default state is 3; the test changes it to 7
+through NetSend and removes the weapon from the slot right after the attack.
+ModifyHitPvp and OnHitPvp ran once on the victim and zero times on the
+attacker.
 
-O cliente recebeu 49 abates e zero resgates na entrada. O 50º abate no host
-criou um resgate no cliente. RequestBannerClaim entregou uma unidade e
-zerou a quantidade nos dois lados. Repetir o pedido não duplicou o item nem
-produziu contador negativo. Após encerrar o processo cliente e reconectar,
-ele recebeu 51 abates e zero pendências. Os dois checks da reconexão são
-feitos no host sobre os valores lidos pelo cliente; o cliente apenas
-confirma a conclusão, sem ser contado novamente.
+The client received 49 kills and zero claims on joining. The 50th kill on the
+host created a claim on the client. RequestBannerClaim delivered one unit and
+zeroed the amount on both sides. Repeating the request neither duplicated the
+item nor produced a negative counter. After closing the client process and
+reconnecting, it received 51 kills and nothing pending. The two reconnect
+checks are done on the host over the values read by the client; the client
+only confirms completion, without being counted again.
 
-Trechos da rodada final:
+Excerpts from the final round:
 
 ```text
 22:52:05.369 pendingnetwork host FIM checks=12 falhas=0
@@ -58,21 +59,21 @@ Trechos da rodada final:
 22:52:30.905 pendingnetwork client REJOIN FIM checks=0 falhas=0
 ```
 
-Logs/capturas: `build/pendingnetwork/127.0.0.1-16384/verified.*`,
-`127.0.0.1-16416/verified.*` e `rejoin.*`. Os saves, preferências e cache
-originais dos dois emuladores foram restaurados e conferidos por hashes.
-A segunda instância, iniciada para o teste, foi desligada.
+Logs/screenshots: `build/pendingnetwork/127.0.0.1-16384/verified.*`,
+`127.0.0.1-16416/verified.*` and `rejoin.*`. Both emulators' original saves,
+preferences and cache were restored and checked by hash. The second instance,
+started for the test, was shut down.
 
-APK instalado nos dois lados: `app/build/outputs/apk/debug/app-debug.apk`,
+APK installed on both sides: `app/build/outputs/apk/debug/app-debug.apk`,
 204975273 bytes, SHA-256
 `247e0085978390efcb42f3d51ce397f09b18c336294737bfe5bec023505fcf48`.
 
-## Reproduzir
+## Reproducing
 
-Requer ADB, APK debug instalado, Python e emuladores com `su 0`.
-Feche o jogo antes de preparar. O runner guarda os diretórios originais de
-Players/Worlds e cria cópias do primeiro .plr/.wld disponível. Nunca
-substitua `prepared.json` ou os backups de uma preparação em andamento.
+Requires ADB, an installed debug APK, Python and emulators with `su 0`. Close
+the game before preparing. The runner keeps the original Players/Worlds
+folders and creates copies of the first available .plr/.wld. Never replace
+`prepared.json` or the backups of a preparation in progress.
 
 ```powershell
 node tools/tests/pendingnetwork/check.mjs
@@ -82,26 +83,26 @@ python tools/tests/pendingnetwork/device.py prepare --device 127.0.0.1:16384 --r
 python tools/tests/pendingnetwork/device.py prepare --device 127.0.0.1:16416 --role client
 python tools/tests/pendingnetwork/device.py launch --device 127.0.0.1:16384 --role host
 adb -s 127.0.0.1:16384 forward tcp:7777 tcp:7777
-# Espere pendingnetwork HOST READY no log; o fixture usa GUIMultiplayerHost.HostServer.
+# Wait for pendingnetwork HOST READY in the log; the fixture uses GUIMultiplayerHost.HostServer.
 python tools/tests/pendingnetwork/device.py launch --device 127.0.0.1:16416 --role client
-# Espere FIM nos dois lados e colete antes de encerrar o cliente.
+# Wait for FIM on both sides and collect before closing the client.
 python tools/tests/pendingnetwork/device.py collect --device 127.0.0.1:16384 --label verified
 python tools/tests/pendingnetwork/device.py collect --device 127.0.0.1:16416 --label verified
 python tools/tests/pendingnetwork/device.py launch --device 127.0.0.1:16416 --role client
-# Espere REJOIN FIM e colete novamente com --label rejoin.
+# Wait for REJOIN FIM and collect again with --label rejoin.
 python tools/tests/pendingnetwork/device.py restore --device 127.0.0.1:16416
 python tools/tests/pendingnetwork/device.py restore --device 127.0.0.1:16384
 adb -s 127.0.0.1:16384 forward --remove tcp:7777
 ```
 
-Execute restore nos dois lados mesmo após interrupção. O runner restaura e
-confere saves, preferências, cache e eventual sessão de servidor anterior.
+Run restore on both sides even after an interruption. The runner restores and
+checks saves, preferences, cache and any previous server session.
 
-## Limites
+## Limits
 
-O cenário usa corpo a corpo, defesa e endurance zerados, sem crítico e sem
-esquiva; testa uma arma de mod com NetSend e um banner compartilhado. Não
-certifica todas as combinações de buffs, críticos, projéteis PvP, três ou
-mais jogadores, perda de conexão durante o resgate ou clientes adulterados.
-O caso de repasse a um terceiro jogador tem teste JS simulado; o teste
-nativo usa dois processos. Os testes não medem FPS.
+The scenario uses melee, zero defense and endurance, no crit and no dodge; it
+tests one mod weapon with NetSend and one shared banner. It does not certify
+every combination of buffs, crits, PvP projectiles, three or more players,
+losing the connection during a claim or tampered clients. The relay to a third
+player has a simulated JS test; the native test uses two processes. The tests
+do not measure FPS.

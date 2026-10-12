@@ -1,236 +1,240 @@
-# Otimização da ponte JS → IL2CPP
+# Optimizing the JS → IL2CPP bridge
 
-Continuação de [`AVALIACAO-PONTE-E-CRASH.md`](AVALIACAO-PONTE-E-CRASH.md). Um
-passo por vez, cada um medido com [`tools/bench`](../../tools/bench) e conferido
-com os mods de teste antes do próximo. Tudo no MuMu (ver a ressalva de lá: os
-números absolutos são de ARM traduzido; o que vale é a comparação).
+Continues [`AVALIACAO-PONTE-E-CRASH.md`](AVALIACAO-PONTE-E-CRASH.md). One step
+at a time, each measured with [`tools/bench`](../../tools/bench) and checked
+with the test mods before the next one. All on MuMu (see the caveat there: the
+absolute numbers are from translated ARM; what counts is the comparison).
 
-## Plano
+## Plan
 
-| # | Passo | O que muda | Onde deve aparecer |
+| # | Step | What changes | Where it should show |
 |---|---|---|---|
-| 0 | Linha de base | nada; duas rodadas para ver o ruído | todas as linhas |
-| 1 | Tabela de raízes | `gchandle_new/free` por wrapper → gravar/zerar um slot num bloco que o coletor enxerga (`il2cpp_gc_alloc_fixed`) | `players[0]`, `Main.player[0].whoAmI`, hook de instância |
-| 2 | Um wrapper por objeto | mapa ponteiro → wrapper; a segunda leitura reaproveita; `===` passa a valer | idem, e identidade |
-| 3 | Cache de método | `obj['assinatura']` devolve sempre o mesmo `GameMethod` | `p['...']()` a cada vez |
-| 4 | Índice de array rápido | átomo inteiro lido direto; tipo do elemento guardado no array | `bt[0]`, `players[0]` |
-| 5 | Argumentos emprestados no hook | `self`/argumentos sem raiz durante o callback; raiz só se o JS guardar | hook de instância |
+| 0 | Baseline | nothing; two rounds to see the noise | every row |
+| 1 | Root table | `gchandle_new/free` per wrapper → write/clear a slot in a block the collector sees (`il2cpp_gc_alloc_fixed`) | `players[0]`, `Main.player[0].whoAmI`, instance hook |
+| 2 | One wrapper per object | pointer → wrapper map; the second read reuses it; `===` starts to hold | same, and identity |
+| 3 | Method cache | `obj['signature']` always returns the same `GameMethod` | `p['...']()` every time |
+| 4 | Fast array index | integer atom read directly; element type stored in the array | `bt[0]`, `players[0]` |
+| 5 | Borrowed arguments in the hook | `self`/arguments without a root during the callback; root only if JS keeps them | instance hook |
 
-Cada passo tem de manter verdes:
+Each step has to keep green:
 
-- [`tools/tests/nullable`](../../tools/tests/nullable) (a ponte inteira: tipos,
+- [`tools/tests/nullable`](../../tools/tests/nullable) (the whole bridge: types,
   structs, arrays, hooks);
-- [`tools/tests/wrappers`](../../tools/tests/wrappers) (criado para esta rodada):
-  objeto segurado só pelo JS sobrevive a `GC.Collect()`, identidade, `self`
-  guardado depois do hook continua válido.
+- [`tools/tests/wrappers`](../../tools/tests/wrappers) (created for this
+  round): an object held only by JS survives `GC.Collect()`, identity, a `self`
+  kept after the hook stays valid.
 
-## Método
+## Method
 
-- [`tools/bench/run.sh`](../../tools/bench/run.sh) instala os mods, abre o jogo,
-  entra no mundo de teste e salva o log; [`compare.py`](../../tools/bench/compare.py)
-  faz a média das rodadas e o delta contra a linha de base.
-- O benchmark pega o **menor de 7** para cada item, e a bateria inteira roda
-  duas vezes por sessão. Com "melhor de 3" o mesmo código variava até 70% entre
-  sessões (875 × 1494 ns no hook de instância); assim, fica entre 5 e 10%.
-  Dados brutos: [`dados/otimizacao/`](dados/otimizacao/).
-- **Controle negativo do teste de wrappers**: com a âncora sabotada (o slot não
-  grava o ponteiro), o teste acusa os 4 casos — o coletor recolheu os itens e a
-  memória foi reaproveitada pelo lixo (dano 5, tipo 1). Ou seja, o teste pega
-  o erro que estas mudanças podem introduzir.
+- [`tools/bench/run.sh`](../../tools/bench/run.sh) installs the mods, opens the
+  game, enters the test world and saves the log;
+  [`compare.py`](../../tools/bench/compare.py) averages the rounds and computes
+  the delta against the baseline.
+- The benchmark takes the **best of 7** for each item, and the whole battery
+  runs twice per session. With "best of 3" the same code varied up to 70%
+  between sessions (875 × 1494 ns on the instance hook); this way, it stays
+  between 5 and 10%. Raw data: [`dados/otimizacao/`](dados/otimizacao/).
+- **Negative control for the wrappers test**: with the anchor sabotaged (the
+  slot does not store the pointer), the test flags all 4 cases — the collector
+  reclaimed the items and the memory was reused by garbage (damage 5, type 1).
+  That is, the test catches the error these changes can introduce.
 
-## Resultados
+## Results
 
-Média de duas rodadas; ns acima do laço vazio.
+Average of two rounds; ns above the empty loop.
 
-### Passo 0 → 1: tabela de raízes
+### Step 0 → 1: root table
 
-`Roots` ([`script/bridge/Roots.cpp`](../../app/src/main/cpp/script/bridge/Roots.cpp)): blocos
-de 4096 ponteiros em `il2cpp_gc_alloc_fixed` (o coletor varre, não recolhe),
-lista de slots livres, gravação pela barreira de escrita. Coletor deste
-Terraria: **não incremental** (log do boot).
+`Roots` ([`script/bridge/Roots.cpp`](../../app/src/main/cpp/script/bridge/Roots.cpp)):
+blocks of 4096 pointers in `il2cpp_gc_alloc_fixed` (the collector scans them,
+does not reclaim them), a free-slot list, writes through the write barrier.
+This Terraria's collector: **not incremental** (boot log).
 
-| Item | Base | Passo 1 | Δ |
+| Item | Base | Step 1 | Δ |
 |---|---:|---:|---:|
-| `players[0]` (elemento-objeto) | 424 | 319 | **−25%** |
+| `players[0]` (object element) | 424 | 319 | **−25%** |
 | `Main.player[0].whoAmI` | 784 | 582 | **−26%** |
-| hook de instância (`self`) | 840 | 706 | **−16%** |
-| demais itens | | | ±10% (ruído) |
+| instance hook (`self`) | 840 | 706 | **−16%** |
+| other items | | | ±10% (noise) |
 
-Testes: `wrappers` e `nullable` verdes, 0 segfaults.
+Tests: `wrappers` and `nullable` green, 0 segfaults.
 
-### Passo 1 → 2: um wrapper por objeto — e a causa do crash em aberto
+### Step 1 → 2: one wrapper per object — and the cause of the open crash
 
-Mapa ponteiro → wrapper em `script/bridge/Bindings.cpp` (`wrapperFor`), sem contar
-referência; o finalizador tira a entrada. Identidade passou a valer:
-`Main.player[0] === Main.player[0]` e `kept[0] === array[0]` dão `true`.
+A pointer → wrapper map in `script/bridge/Bindings.cpp` (`wrapperFor`),
+without reference counting; the finalizer removes the entry. Identity now
+holds: `Main.player[0] === Main.player[0]` and `kept[0] === array[0]` give
+`true`.
 
-**Com o passo 2, entrar no mundo com bench + testes crashou em 3 de 4
-rodadas** (0 de 6 nos passos 0 e 1). Mesma falha do crash ao criar mundo
-(inicialização de classe genérica no runtime, SIGSEGV em laço), agora ao
-carregar: hooks JS aninhados na thread principal (`DoDraw` → `DrawInterface`)
-e a thread de carregamento do mundo entrando no motor pelos hooks de
-`Item.SetDefaults`.
+**With step 2, entering the world with bench + tests crashed in 3 of 4
+rounds** (0 of 6 in steps 0 and 1). The same failure as the crash when
+creating a world (generic class initialization in the runtime, SIGSEGV in a
+loop), now while loading: nested JS hooks on the main thread (`DoDraw` →
+`DrawInterface`) and the world loading thread entering the engine through the
+`Item.SetDefaults` hooks.
 
-Primeiro experimento: o mesmo código com o `JsSuspend` desligado (o
-`original()` segura a trava do motor). Deu 0 em 4, e **concluí errado** que o
-`JsSuspend` era a causa. Com ele removido, a bateria seguinte voltou a cair
-(1 crash e 1 rodada com métodos vindo `undefined`: corrupção de memória).
+First experiment: the same code with `JsSuspend` turned off (`original()`
+holds the engine lock). It gave 0 of 4, and **I wrongly concluded** that
+`JsSuspend` was the cause. With it removed, the next battery fell again (1
+crash and 1 round with methods coming back `undefined`: memory corruption).
 
-**A causa real: referência pendurada no `original()` do hook**
-([`script/bridge/JsHook.cpp`](../../app/src/main/cpp/script/bridge/JsHook.cpp)). O
-`js_original` guardava `Frame& f = g_frames.back()` e gravava o resultado nele
-depois de chamar o método do jogo. Se o método disparava outro hook na mesma
-thread, o `push_back` realocava o `vector`, e a gravação (~200 bytes) caía em
-memória já devolvida — que o IL2CPP reusava nas tabelas de genéricos. Acontece
-sempre que o aninhamento passa da capacidade do `vector` da thread, o que
-inclui a PRIMEIRA vez numa thread nova: os mods de exemplo têm dois hooks JS
-encadeados no `Item.SetDefaults` (um chama o outro pelo `original()`), e as
-threads de gerar e de carregar mundo são novas a cada vez. Daí "sempre na
-primeira geração de mundo do processo". Corrigido guardando o ÍNDICE.
+**The real cause: a dangling reference in the hook's `original()`**
+([`script/bridge/JsHook.cpp`](../../app/src/main/cpp/script/bridge/JsHook.cpp)).
+`js_original` kept `Frame& f = g_frames.back()` and wrote the result into it
+after calling the game's method. If the method fired another hook on the same
+thread, `push_back` reallocated the `vector`, and the write (~200 bytes) landed
+in already-freed memory — which IL2CPP reused for its generics tables. It
+happens whenever nesting goes past the thread's `vector` capacity, which
+includes the FIRST time on a new thread: the example mods have two JS hooks
+chained on `Item.SetDefaults` (one calls the other through `original()`), and
+the world generation and loading threads are new each time. Hence "always on
+the process's first world generation". Fixed by keeping the INDEX.
 
-| Configuração | Rodadas | Crashes |
+| Configuration | Rounds | Crashes |
 |---|---:|---:|
-| com `JsSuspend`, sem a correção | 4 | 3 |
-| sem `JsSuspend`, sem a correção | 7 | 1 (+1 corrompida) |
-| **com a correção, sem `JsSuspend`** | 5 | **0** |
-| **com a correção, com `JsSuspend`** | 5 | **0** |
+| with `JsSuspend`, without the fix | 4 | 3 |
+| without `JsSuspend`, without the fix | 7 | 1 (+1 corrupted) |
+| **with the fix, without `JsSuspend`** | 5 | **0** |
+| **with the fix, with `JsSuspend`** | 5 | **0** |
 
-O `JsSuspend` era inocente. Custo dele, medido: ~100 ns a mais por hook que
-chama o original (+27–30% contra +6–8% sobre a base).
+`JsSuspend` was innocent. Its cost, measured: ~100 ns more per hook that calls
+the original (+27–30% versus +6–8% over the base).
 
-Desempenho (antes da correção, sem `JsSuspend`, 4 rodadas consistentes; as
-10 rodadas depois da correção ficaram na mesma faixa —
+Performance (before the fix, without `JsSuspend`, 4 consistent rounds; the 10
+rounds after the fix stayed in the same range —
 [`frame-fix-*`](dados/otimizacao/)):
 
-| Item | Base | Passo 1 | Passo 2 | Δ total |
+| Item | Base | Step 1 | Step 2 | Total Δ |
 |---|---:|---:|---:|---:|
-| `players[0]` (elemento-objeto) | 424 | 319 | **176** | **−59%** |
+| `players[0]` (object element) | 424 | 319 | **176** | **−59%** |
 | `Main.player[0].whoAmI` | 784 | 582 | **281** | **−64%** |
-| hook de instância (`self`) | 840 | 706 | **437** | **−48%** |
-| hooks estáticos | 490–538 | | 456–460 | −7 a −14% (sem o `JsSuspend`) |
-| demais itens | | | | ±10% (ruído) |
+| instance hook (`self`) | 840 | 706 | **437** | **−48%** |
+| static hooks | 490–538 | | 456–460 | −7 to −14% (without `JsSuspend`) |
+| other items | | | | ±10% (noise) |
 
-Testes `wrappers` e `nullable` verdes nas 5 rodadas que chegaram ao fim.
+`wrappers` and `nullable` tests green in the 5 rounds that reached the end.
 
-**Decisão (usuário):** manter o `JsSuspend`. Ele existe para um hook longo
-(desenho) não fazer os hooks de outras threads (geração de mundo) esperarem a
-trava; o custo de ~100 ns por hook vale isso.
+**Decision (user):** keep `JsSuspend`. It exists so a long hook (drawing) does
+not make hooks on other threads (world generation) wait for the lock; the cost
+of ~100 ns per hook is worth that.
 
-> **2026-09-26:** o `JsSuspend` deixou de ser "uma thread estacionada por
-> vez". Com a thread do jogo quase sempre estacionada, um hook na thread do
-> save ou da carga do mundo não conseguia soltar o motor e o segurava o
-> método inteiro. O hook da música esperou 3 s no aparelho do usuário. Agora
-> cada thread leva a sua pilha de frames do QuickJS (`QuickJsExt.c`, que
-> compila o `quickjs.c` com acesso a `rt->current_stack_frame`), e qualquer
-> número de threads pode estar no `original()` ao mesmo tempo.
+> **2026-09-26:** `JsSuspend` stopped being "one parked thread at a time". With
+> the game thread almost always parked, a hook on the save or world loading
+> thread could not release the engine and held it for the whole method. The
+> music hook waited 3 s on the user's device. Now each thread carries its own
+> QuickJS frame stack (`QuickJsExt.c`, which compiles `quickjs.c` with access
+> to `rt->current_stack_frame`), and any number of threads can be inside
+> `original()` at the same time.
 >
-> Custo, no bench do MuMu (3 rodadas alternadas por build): hook com
-> `original()` de ~595 para ~750 ns; sem `original()`, igual (~300); tempo de
-> quadro igual. Uma variante só para medir, que fazia MENOS que a antiga (sem
-> pilha nem dono, sem a trava de estacionar), ficou em ~700: a maior parte
-> da diferença é onde o código caiu, sentido pela tradução ARM→x86 do MuMu,
-> não o que ele faz. O `enginethreads` na regra antiga: 0 quadros em 1,5 s
-> e a pilha JS do save com frames da thread do jogo; na nova, 14 quadros.
+> Cost, on MuMu's bench (3 alternating rounds per build): a hook with
+> `original()` from ~595 to ~750 ns; without `original()`, the same (~300);
+> frame time the same. A measurement-only variant, which did LESS than the old
+> one (no stack nor owner, no parking lock), came out at ~700: most of the
+> difference is where the code landed, felt through MuMu's ARM→x86
+> translation, not what it does. `enginethreads` under the old rule: 0 frames
+> in 1.5 s and the save's JS stack with game thread frames; under the new one,
+> 14 frames.
 >
-> Corrigido no mesmo dia: com o motor solto dentro de um `original()`, o hook
-> aninhado entrava "do zero" e o `JsLock` realinhava o limite de pilha do
-> QuickJS pelo ponteiro de pilha de AGORA (`JS_UpdateStackTop`), mais fundo
-> que o do começo da cadeia; cada nível ganhava 256 KB novos (o `hookslots`
-> foi de 53 para 120 níveis). Agora cada thread guarda o topo de onde entrou no
-> motor e o reusa em toda entrada aninhada e em toda volta de `original()`: 55
-> níveis, e o que passa disso cai no "Maximum call stack size exceeded" com o
-> original rodando por ele.
+> Fixed the same day: with the engine released inside an `original()`, the
+> nested hook entered "from scratch" and `JsLock` realigned QuickJS's stack
+> limit to the stack pointer of NOW (`JS_UpdateStackTop`), deeper than the one
+> at the start of the chain; each level got 256 KB more (`hookslots` went from
+> 53 to 120 levels). Now each thread keeps the top from where it entered the
+> engine and reuses it on every nested entry and every return from
+> `original()`: 55 levels, and whatever goes beyond that falls into "Maximum
+> call stack size exceeded" with the original running in its place.
 
-Medição final do passo 2 (correção + `JsSuspend`, 5 rodadas,
+Final measurement of step 2 (fix + `JsSuspend`, 5 rounds,
 [`frame-fix-comsuspend-*`](dados/otimizacao/)):
 
-| Item | Base | Passo 2 final | Δ |
+| Item | Base | Final step 2 | Δ |
 |---|---:|---:|---:|
-| `players[0]` (elemento-objeto) | 424 | 189 | **−55%** |
+| `players[0]` (object element) | 424 | 189 | **−55%** |
 | `Main.player[0].whoAmI` | 784 | 305 | **−61%** |
-| hook de instância (`self`) | 840 | 619 | **−26%** |
-| hooks estáticos com original | 490–538 | 624–696 | +27–30% (sessão +5–10% mais lenta; ver acima) |
+| instance hook (`self`) | 840 | 619 | **−26%** |
+| static hooks with original | 490–538 | 624–696 | +27–30% (session +5–10% slower; see above) |
 
-### Passo 2 → 3: cache de método
+### Step 2 → 3: method cache
 
-`makeGameMethod` guarda um `GameMethod` por `MethodInfo` (segura a referência
-para sempre, como os callbacks de hook; o runtime JS vive até o processo
-morrer). 4 rodadas, [`passo3-*`](dados/otimizacao/):
+`makeGameMethod` keeps one `GameMethod` per `MethodInfo` (holds the reference
+forever, like the hook callbacks; the JS runtime lives until the process
+dies). 4 rounds, [`passo3-*`](dados/otimizacao/):
 
-| Item | Base | Passo 2 | Passo 3 | Δ total |
+| Item | Base | Step 2 | Step 3 | Total Δ |
 |---|---:|---:|---:|---:|
-| `p['bool CanBePushedByWind()']()` a cada vez | 294 | 325 | **157** | **−47%** |
-| `f(p)`, método guardado (referência) | 102 | 101 | 102 | 0% |
-| demais itens | | | | como no passo 2 |
+| `p['bool CanBePushedByWind()']()` every time | 294 | 325 | **157** | **−47%** |
+| `f(p)`, stored method (reference) | 102 | 101 | 102 | 0% |
+| other items | | | | as in step 2 |
 
-O que sobra entre 157 e 102 é a busca do membro e a leitura da propriedade.
-Testes verdes, 0 segfaults. (Uma 5ª rodada saiu vazia: o `run.sh` abortou no
-`run-as` logo depois do `adb install`; o script agora espera o pacote.)
+What is left between 157 and 102 is the member lookup and the property read.
+Tests green, 0 segfaults. (A 5th round came out empty: `run.sh` aborted at
+`run-as` right after `adb install`; the script now waits for the package.)
 
-### Passo 3 → 4: índice de array rápido
+### Step 3 → 4: fast array index
 
-Índice lido direto do átomo inteiro do QuickJS (bit 31 + valor), com a
-codificação conferida uma vez contra `JS_NewAtomUInt32`; se um dia mudar, cai
-no caminho por texto. Tipo do elemento guardado no wrapper do array. 4
-rodadas, [`passo4-*`](dados/otimizacao/):
+The index is read directly from QuickJS's integer atom (bit 31 + value), with
+the encoding checked once against `JS_NewAtomUInt32`; if it ever changes, it
+falls back to the text path. Element type stored in the array's wrapper. 4
+rounds, [`passo4-*`](dados/otimizacao/):
 
-| Item | Base | Passo 3 | Passo 4 | Δ total |
+| Item | Base | Step 3 | Step 4 | Total Δ |
 |---|---:|---:|---:|---:|
-| `bt[0]` (elemento de `int[]`) | 148 | 160 | **47** | **−68%** |
-| `players[0]` (elemento-objeto) | 424 | 198 | **71** | **−83%** |
+| `bt[0]` (`int[]` element) | 148 | 160 | **47** | **−68%** |
+| `players[0]` (object element) | 424 | 198 | **71** | **−83%** |
 | `Main.player[0].whoAmI` | 784 | 305 | **160** | **−80%** |
 
-Tropeço no caminho: a primeira versão usou `JS_AtomToValue`, supondo que
-devolvia um inteiro para átomo inteiro — ele monta uma **string**. Os testes
-pegaram na primeira rodada (`Main.player[0]` virou `undefined`). E a correção
-revelou um byte NUL literal no `Value.cpp` (de antes desta rodada; compilava
-igual, mas fazia o `grep` tratar o arquivo como binário e esconder resultados)
-— trocado por `'\0'`.
+A stumble along the way: the first version used `JS_AtomToValue`, assuming it
+returned an integer for an integer atom — it builds a **string**. The tests
+caught it in the first round (`Main.player[0]` became `undefined`). And the fix
+revealed a literal NUL byte in `Value.cpp` (from before this round; it compiled
+the same, but made `grep` treat the file as binary and hide results) —
+replaced with `'\0'`.
 
-### Passo 4 → 5: wrapper novo mais barato (plano ajustado)
+### Step 4 → 5: cheaper new wrapper (adjusted plan)
 
-O plano era "argumentos emprestados no hook": não ancorar `self` durante o
-callback. Medindo antes de fazer, a âncora já não pesava: desde o passo 1 ela é
-gravar um ponteiro num slot. Um item novo no benchmark (`arrayElemFresh`:
-elementos distintos de `Main.item`, que o JS não segura — um wrapper NOVO por
-acesso, exatamente o caso do `self` de hook em `Projectile.AI`) mostrou
-~400 ns, contra ~70 ns do wrapper reaproveitado. O grosso era alocação. O
-passo 5 atacou isso, em três partes medidas separadamente:
+The plan was "borrowed arguments in the hook": not anchoring `self` during the
+callback. Measuring before doing it, the anchor no longer weighed: since step 1
+it is writing a pointer into a slot. A new benchmark item (`arrayElemFresh`:
+distinct elements of `Main.item`, which JS does not hold — a NEW wrapper per
+access, exactly the case of a hook's `self` in `Projectile.AI`) showed
+~400 ns, against ~70 ns for the reused wrapper. The bulk was allocation. Step 5
+went after that, in three parts measured separately:
 
-| Sub-passo | Wrapper novo (ns) | Δ |
+| Sub-step | New wrapper (ns) | Δ |
 |---|---:|---:|
-| antes (passo 4) | ~403 | |
-| 5a: sem a barreira de escrita quando o coletor não é incremental (o deste Terraria) | ~381 | −5% |
-| 5b: `Pinned` reusados numa lista livre, em vez de `new`/`delete` | ~301 | −21% |
-| 5c: [`WrapperMap`](../../app/src/main/cpp/script/bridge/WrapperMap.h) — endereçamento aberto, sem alocação por entrada | **~154** | **−49%** |
+| before (step 4) | ~403 | |
+| 5a: no write barrier when the collector is not incremental (this Terraria's) | ~381 | −5% |
+| 5b: `Pinned` reused from a free list, instead of `new`/`delete` | ~301 | −21% |
+| 5c: [`WrapperMap`](../../app/src/main/cpp/script/bridge/WrapperMap.h) — open addressing, no per-entry allocation | **~154** | **−49%** |
 
-O `WrapperMap` tem fuzz próprio contra `std::unordered_map`
-([`tools/tests/wrappermap`](../../tools/tests/wrappermap), 9 milhões de operações,
-roda no MuMu como binário x86_64), com controle negativo: invertendo a condição
-da remoção, falha na operação 185. O teste de wrappers ganhou um estresse do
-mapa (8 voltas nos 400 itens de `Main.item`, conferindo `whoAmI`).
+`WrapperMap` has its own fuzz test against `std::unordered_map`
+([`tools/tests/wrappermap`](../../tools/tests/wrappermap), 9 million
+operations, runs on MuMu as an x86_64 binary), with a negative control:
+inverting the removal condition, it fails at operation 185. The wrappers test
+gained a stress test of the map (8 passes over the 400 items of `Main.item`,
+checking `whoAmI`).
 
-## Resumo
+## Summary
 
-ns acima do laço vazio, MuMu, média das rodadas de cada passo:
+ns above the empty loop, MuMu, average of each step's rounds:
 
-| Operação | Antes | Depois | Δ |
+| Operation | Before | After | Δ |
 |---|---:|---:|---:|
-| `bt[0]` (elemento de `int[]`) | 148 | 50 | **−66%** |
-| `players[0]` (elemento-objeto) | 424 | 65 | **−85%** |
+| `bt[0]` (`int[]` element) | 148 | 50 | **−66%** |
+| `players[0]` (object element) | 424 | 65 | **−85%** |
 | `Main.player[0].whoAmI` | 784 | 150 | **−81%** |
-| wrapper novo por acesso (`self` de hook) | ~403¹ | ~154 | **−62%** |
-| `p['assinatura']()` a cada vez | 294 | 146 | **−50%** |
-| campo, propriedade, método guardado, JS puro | | | sem mudança (ruído) |
+| new wrapper per access (a hook's `self`) | ~403¹ | ~154 | **−62%** |
+| `p['signature']()` every time | 294 | 146 | **−50%** |
+| field, property, stored method, pure JS | | | no change (noise) |
 
-¹ medido a partir do passo 4; antes do passo 1 havia ainda um `gchandle` por
-objeto, então o ganho real sobre a base é maior.
+¹ measured from step 4; before step 1 there was also a `gchandle` per object,
+so the real gain over the base is larger.
 
-Além do desempenho, a rodada:
+Besides performance, the round:
 
-- **achou e corrigiu o crash ao criar/carregar mundo** — referência pendurada
-  no `original()` dos hooks (passo 2);
-- deu **identidade** aos objetos do jogo no JS (`Main.player[0] === self`);
-- tirou um byte NUL literal do `Value.cpp`.
+- **found and fixed the crash when creating/loading a world** — a dangling
+  reference in the hooks' `original()` (step 2);
+- gave game objects **identity** in JS (`Main.player[0] === self`);
+- removed a literal NUL byte from `Value.cpp`.
 
-Todos os passos com `tools/tests/wrappers` e `tools/tests/nullable` verdes.
+Every step with `tools/tests/wrappers` and `tools/tests/nullable` green.

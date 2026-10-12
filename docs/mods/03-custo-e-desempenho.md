@@ -1,259 +1,266 @@
-# 3. Custo e desempenho
+# 3. Cost and performance
 
-Todo mod gasta um pouco do tempo de cada quadro do jogo. Na maioria das vezes
-esse pouco é tão pequeno que não aparece. Mas um hook no lugar errado, ou um
-laço dentro de um método que o jogo chama milhares de vezes por quadro, pode
-derrubar o jogo de 60 para 20 quadros por segundo. Este guia explica **de onde
-vem o custo**, **quanto custa cada coisa** e **como escrever um mod leve**.
+Every mod takes a little of each game frame's time. Most of the time that
+little is so small it does not show. But a hook in the wrong place, or a loop
+inside a method the game calls thousands of times per frame, can drop the game
+from 60 to 20 frames per second. This guide explains **where the cost comes
+from**, **how much each thing costs** and **how to write a lightweight mod**.
 
-Pré-requisito: o [guia 1](01-hooks-do-zero.md), até *Hooks*.
+Prerequisite: [guide 1](01-hooks-do-zero.md), up to *Hooks*.
 
-## O orçamento de um quadro
+## The frame budget
 
-O Terraria atualiza e desenha o mundo 60 vezes por segundo. Isso dá **16,6 ms
-por quadro** para tudo: o jogo, a Unity, o desenho, e os mods. O próprio jogo
-já usa boa parte: no emulador de teste, a atualização (`Main.DoUpdate`) leva
-~3 ms e o desenho (`Main.DoDraw`) ~6 ms, com picos maiores. O que sobra é a
-folga dos mods, e ela é dividida entre **todos** os mods ligados.
+Terraria updates and draws the world 60 times per second. That gives **16.6 ms
+per frame** for everything: the game, Unity, drawing, and the mods. The game
+itself already uses a good part of it: on the test emulator, the update
+(`Main.DoUpdate`) takes ~3 ms and drawing (`Main.DoDraw`) ~6 ms, with bigger
+spikes. What is left is the mods' headroom, and it is shared among **all**
+enabled mods.
 
-Um jeito útil de pensar: **1 ms por quadro é muito** para um mod. 0,1 ms é
-confortável. 0,01 ms não existe.
+A useful way to think about it: **1 ms per frame is a lot** for a mod. 0.1 ms
+is comfortable. 0.01 ms does not exist.
 
-## De onde vem o custo
+## Where the cost comes from
 
-O JavaScript de um mod roda num interpretador (o QuickJS, sem JIT). E todo
-acesso ao jogo **atravessa a ponte**: um nome JS vira um campo do C#, um valor
-do C# vira um valor JS. Cada travessia custa pouco, mas custa.
+A mod's JavaScript runs in an interpreter (QuickJS, no JIT). And every access
+to the game **crosses the bridge**: a JS name becomes a C# field, a C# value
+becomes a JS value. Each crossing costs little, but it costs.
 
-Um hook soma quatro coisas a cada chamada do método:
+A hook adds four things to every call of the method:
 
-1. **O despacho**: o jogo chama o método, cai na função do Bunny Loader, que
-   confere os filtros, pega o motor JS (a trava) e monta os argumentos;
-2. **Os argumentos**: o `self` e cada objeto do jogo viram um objeto JS (um
-   *wrapper*); números viram números;
-3. **O seu callback**: o JS que você escreveu, e cada acesso ao jogo dentro
-   dele;
-4. **O `original()`**: solta o motor, roda o método do jogo, pega o motor de
-   volta.
+1. **Dispatch**: the game calls the method, lands in Bunny Loader's function,
+   which checks the filters, takes the JS engine (the lock) and builds the
+   arguments;
+2. **Arguments**: `self` and each game object become a JS object (a
+   *wrapper*); numbers become numbers;
+3. **Your callback**: the JS you wrote, and every game access inside it;
+4. **`original()`**: releases the engine, runs the game's method, takes the
+   engine back.
 
-A parte **fixa** (1, 2 e 4) é paga em toda chamada, mesmo que o seu callback
-não faça nada. É por isso que **quantas vezes** o método é chamado importa mais
-que qualquer outra coisa.
+The **fixed** part (1, 2 and 4) is paid on every call, even if your callback
+does nothing. That is why **how often** the method is called matters more than
+anything else.
 
-## Quanto custa cada coisa
+## How much each thing costs
 
-Medido com [`tools/bench`](../../tools/bench), no emulador MuMu (que roda o
-ARM do jogo traduzido para x86), em nanossegundos (ns; 1 ms = 1.000.000 ns),
-acima do custo de um laço JS vazio:
+Measured with [`tools/bench`](../../tools/bench), on the MuMu emulator (which
+runs the game's ARM code translated to x86), in nanoseconds (ns; 1 ms =
+1,000,000 ns), above the cost of an empty JS loop:
 
-| Operação | ns | Exemplo |
+| Operation | ns | Example |
 |---|---:|---|
-| Ler ou escrever um campo (`int`, `float`) | ~35 | `p.statLife`, `p.statLife = 400` |
-| Ler um campo estático | ~47 | `Main.maxTilesX` |
-| Ler um elemento de `int[]` | ~48 | `Main.npcFrameCount[t]` |
-| Ler um elemento que é objeto | ~64 | `Main.npc[i]` |
-| O mesmo, com objeto que o JS ainda não tinha | ~146 | `Main.item[i]` varrendo 400 itens |
-| Propriedade C# (`get_X`) | ~85 | `Main.myPlayer` |
-| `Main.player[0].whoAmI` (estático + elemento + campo) | ~157 | |
-| Vista de struct | ~181 | `p.position.X` |
-| Chamar método guardado numa variável | ~95 | `const f = Player['...']; f(p)` |
-| Chamar método buscando pela assinatura toda vez | ~154 | `p['bool CanBePushedByWind()']()` |
-| Método estático com 2 floats | ~146 | |
-| Criar um objeto JS | ~180 | `{ x: 1, y: 2 }` |
-| Uma volta de laço JS com uma conta | ~95 | `s = (s + i * i) % 1000003` |
-| **Hook que só repassa ao `original()`** | **~550–610** | por chamada |
-| **Hook que não chama o original** | **~270** | por chamada |
+| Read or write a field (`int`, `float`) | ~35 | `p.statLife`, `p.statLife = 400` |
+| Read a static field | ~47 | `Main.maxTilesX` |
+| Read an `int[]` element | ~48 | `Main.npcFrameCount[t]` |
+| Read an element that is an object | ~64 | `Main.npc[i]` |
+| The same, with an object JS did not have yet | ~146 | `Main.item[i]` sweeping 400 items |
+| C# property (`get_X`) | ~85 | `Main.myPlayer` |
+| `Main.player[0].whoAmI` (static + element + field) | ~157 | |
+| Struct view | ~181 | `p.position.X` |
+| Call a method stored in a variable | ~95 | `const f = Player['...']; f(p)` |
+| Call a method looking up the signature every time | ~154 | `p['bool CanBePushedByWind()']()` |
+| Static method with 2 floats | ~146 | |
+| Create a JS object | ~180 | `{ x: 1, y: 2 }` |
+| One JS loop iteration with one calculation | ~95 | `s = (s + i * i) % 1000003` |
+| **Hook that only forwards to `original()`** | **~550–610** | per call |
+| **Hook that does not call the original** | **~270** | per call |
 
-> **Os números são do emulador.** O MuMu roda o ARM do jogo traduzido, e o
-> interpretador do QuickJS é justamente o tipo de código que a tradução mais
-> penaliza. Num celular, os valores absolutos são outros. O que vale é a
-> **proporção**: um hook custa o mesmo que ~15 leituras de campo; uma vista de
-> struct, o mesmo que ~5.
+> **The numbers are from the emulator.** MuMu runs the game's ARM code through
+> translation, and the QuickJS interpreter is exactly the kind of code
+> translation penalizes most. On a phone, the absolute values are different.
+> What holds is the **ratio**: a hook costs the same as ~15 field reads; a
+> struct view, the same as ~5.
 
-Com o jogo andando (o mundo aberto, a tela desenhando), o
-[`tools/tests/opcost`](../../tools/tests/opcost) mediu outros valores para o
-que os hooks de todo quadro costumam fazer, também no MuMu. Os mais caros:
+With the game running (the world open, the screen drawing),
+[`tools/tests/opcost`](../../tools/tests/opcost) measured other values for
+what per-frame hooks usually do, also on MuMu. The most expensive:
 
-| Operação | ns | Em vez disso |
+| Operation | ns | Instead |
 |---|---:|---|
-| Item de um array estático, buscando o array toda vez | ~2600 | Guarde o array numa variável (~1300 o item) |
-| `Color.new(r, g, b)` | ~3800–5400 | Crie a cor uma vez e reuse |
-| `Vector2.new(x, y)` | ~1800–3000 | Idem, quando der |
-| `bl.tiles.typeAt(x, y)` | ~1800 | Uma vez por célula, não por pergunta |
-| Caminho com classe aninhada (`Terraria.ID.ArmorIDs.Head.Sets`) | ~860 | Guarde a classe (`const Sets = ...`) fora do hook |
+| Item of a static array, looking up the array every time | ~2600 | Keep the array in a variable (~1300 per item) |
+| `Color.new(r, g, b)` | ~3800–5400 | Create the color once and reuse it |
+| `Vector2.new(x, y)` | ~1800–3000 | Same, when possible |
+| `bl.tiles.typeAt(x, y)` | ~1800 | Once per cell, not per question |
+| Path with a nested class (`Terraria.ID.ArmorIDs.Head.Sets`) | ~860 | Keep the class (`const Sets = ...`) outside the hook |
 
-O caminho `Terraria.X.Y` era ~5000 ns até a ponte passar a guardar cada classe
-e namespace já resolvido (2026-10-07).
+The `Terraria.X.Y` path was ~5000 ns until the bridge started caching each
+class and namespace it had already resolved (2026-10-07).
 
-Um hook sem `original()` custa menos porque não solta e pega o motor de volta
-(ver [por que o `original()` solta o motor](../nucleo/threads-e-motor-js.md#segurar-o-motor-durante-o-método-do-jogo)).
+A hook without `original()` costs less because it does not release and
+retake the engine (see [why `original()` releases the engine](../nucleo/threads-e-motor-js.md#holding-the-engine-during-the-games-method)).
 
-## Quantas vezes o jogo chama cada método
+## How often the game calls each method
 
-É aqui que o custo se multiplica. Valores típicos, por quadro:
+This is where the cost multiplies. Typical values, per frame:
 
-| Método | Chamadas por quadro | Hook que só repassa custa |
+| Method | Calls per frame | A forwarding-only hook costs |
 |---|---|---:|
-| `Main.DoUpdate`, `Main.DrawInterface` | 1 | ~0,6 µs |
-| `Player.Update` | 1 por jogador no mundo | ~0,6 µs por jogador |
-| `NPC.AI`, `NPC.UpdateNPC` | 1 por NPC ativo (até 200) | até ~0,12 ms |
-| `Projectile.AI`, `Projectile.Update` | 1 por projétil ativo (até 1000), às vezes mais (`extraUpdates`) | até ~0,6 ms |
-| `Item.SetDefaults` | 0 no jogo parado; **milhares** ao gerar ou carregar mundo | segundos a mais na carga |
-| Poeira e partículas (`Dust`) | milhares | ms por quadro |
-| `SpriteBatch.DrawString` | cada texto da tela: milhares | ms por quadro |
-| Luz, colisão, tiles | dezenas de milhares | **o quadro inteiro** |
+| `Main.DoUpdate`, `Main.DrawInterface` | 1 | ~0.6 µs |
+| `Player.Update` | 1 per player in the world | ~0.6 µs per player |
+| `NPC.AI`, `NPC.UpdateNPC` | 1 per active NPC (up to 200) | up to ~0.12 ms |
+| `Projectile.AI`, `Projectile.Update` | 1 per active projectile (up to 1000), sometimes more (`extraUpdates`) | up to ~0.6 ms |
+| `Item.SetDefaults` | 0 with the game idle; **thousands** when generating or loading a world | extra seconds while loading |
+| Dust and particles (`Dust`) | thousands | ms per frame |
+| `SpriteBatch.DrawString` | every text on screen: thousands | ms per frame |
+| Light, collision, tiles | tens of thousands | **the whole frame** |
 
-Contas de exemplo, com os números do emulador:
+Example math, with the emulator numbers:
 
-- Um hook em `Player.Update` que lê 10 campos: `0,6 + 10 × 0,035 ≈ 1 µs` por
-  quadro. **Irrelevante**.
-- Um hook em `NPC.AI` sem filtro, com 150 NPCs, que lê 5 campos de cada:
-  `150 × (0,6 + 5 × 0,035) ≈ 0,12 ms` por quadro. **Aceitável**, mas é
-  desperdício se só os NPCs de mod interessam (ver *Filtros nativos*).
-- Um hook em `SpriteBatch.DrawString` sem filtro: ~3000 textos por quadro na
-  tela de inventário, `3000 × 0,6 ≈ 1,8 ms`. **Sente-se** no jogo.
-- Varrer `Main.npc` (201 posições) lendo 3 campos de cada: `201 × (0,064 + 3
-  × 0,035) ≈ 34 µs`. Uma vez por quadro, tudo bem. **Dentro** de um hook de
-  `NPC.AI` (uma varredura por NPC), são 200 varreduras: ~7 ms por quadro.
+- A hook on `Player.Update` that reads 10 fields: `0.6 + 10 × 0.035 ≈ 1 µs`
+  per frame. **Irrelevant**.
+- An unfiltered hook on `NPC.AI`, with 150 NPCs, reading 5 fields from each:
+  `150 × (0.6 + 5 × 0.035) ≈ 0.12 ms` per frame. **Acceptable**, but wasteful
+  if only mod NPCs matter (see *Native filters*).
+- An unfiltered hook on `SpriteBatch.DrawString`: ~3000 texts per frame on the
+  inventory screen, `3000 × 0.6 ≈ 1.8 ms`. **Noticeable** in game.
+- Sweeping `Main.npc` (201 slots) reading 3 fields from each: `201 × (0.064 +
+  3 × 0.035) ≈ 34 µs`. Once per frame, fine. **Inside** an `NPC.AI` hook (one
+  sweep per NPC), that is 200 sweeps: ~7 ms per frame.
 
-A última é o erro mais comum: um laço que é barato sozinho, dentro de um hook
-que roda para cada entidade, vira quadrático.
+The last one is the most common mistake: a loop that is cheap on its own,
+inside a hook that runs for every entity, becomes quadratic.
 
-## As classes de mod já são econômicas
+## Mod classes are already economical
 
-Os métodos de `ModItem`, `ModNPC`, `ModProjectile`, `ModTile`... só custam
-alguma coisa se a sua classe os **escreve**:
+The methods of `ModItem`, `ModNPC`, `ModProjectile`, `ModTile`... only cost
+something if your class **writes** them:
 
-- o hook do jogo por trás de cada método só é **instalado** quando alguma
-  classe registrada sobrescreve aquele método;
-- ele é instalado **uma vez**, para todos os mods;
-- quase todos têm **filtro nativo de tipo**: um `NPC.AI` de um NPC do jogo nem
-  entra no JS. Bater em terra não passa pelo `ModTile`. Um item do jogo no
-  inventário não passa pelo `UpdateInventory`;
-- e, por método, só os **tipos que o escrevem** entram: o `OnTileCollide` de
-  um projétil instala o hook do movimento, mas os outros projéteis de mod, sem
-  `OnTileCollide`, passam por ele como os do jogo. O mesmo para os outros
-  métodos do `ModProjectile`, para os do `ModNPC` e para o `GetAlpha` do `ModItem`.
+- the game hook behind each method is only **installed** when some registered
+  class overrides that method;
+- it is installed **once**, for every mod;
+- almost all of them have a **native type filter**: an `NPC.AI` for a vanilla
+  NPC does not even enter JS. Hitting dirt does not go through `ModTile`. A
+  vanilla item in the inventory does not go through `UpdateInventory`;
+- and, per method, only the **types that write it** get in: a projectile's
+  `OnTileCollide` installs the movement hook, but the other mod projectiles,
+  without `OnTileCollide`, go through it like vanilla ones. The same applies to
+  the other `ModProjectile` methods, to `ModNPC`'s and to `ModItem`'s
+  `GetAlpha`.
 
-Então escrever um `AI(npc)` no seu `ModNPC` custa só para os **seus** NPCs. Se
-o que você quer fazer é com conteúdo seu, use a classe em vez de um hook
-direto: ela já vem filtrada. A [referência das classes](../referencia/classes.md)
-diz, para cada método, qual método do jogo está por trás e se há filtro.
+So writing an `AI(npc)` in your `ModNPC` only costs for **your** NPCs. If what
+you want to do involves your own content, use the class instead of a direct
+hook: it comes filtered already. The [class reference](../referencia/classes.md)
+says, for each method, which game method is behind it and whether there is a
+filter.
 
-## Filtros nativos
+## Native filters
 
-Quando você escreve um hook direto e só uma parte das chamadas interessa, o
-filtro nativo decide **antes** do JS, sem trava, sem wrapper, lendo a memória
-do objeto direto. Quem não passa custa quase nada (uma leitura de memória).
+When you write a direct hook and only part of the calls matter, the native
+filter decides **before** JS, with no lock and no wrapper, reading the
+object's memory directly. Calls that do not pass cost almost nothing (one
+memory read).
 
-### `minType`: só entidades de um tipo em diante
+### `minType`: only entities from a type onward
 
 ```js
-// só NPCs de mod (o tipo deles começa depois dos do jogo)
+// only mod NPCs (their types start after the game's)
 Terraria.NPC['void AI()'].hook(callback, { minType: bl.npcs.vanillaCount });
 
-// só projéteis de mod
+// only mod projectiles
 Terraria.Projectile['void AI()'].hook(callback, { minType: bl.projectiles.vanillaCount });
 ```
 
-`minType` compara o campo `type` do `self`. Com `on`, o filtro olha um
-**parâmetro** (pelo índice, a partir de 0) em vez do `self`; com `field`, outro
-campo `int`:
+`minType` compares `self`'s `type` field. With `on`, the filter looks at a
+**parameter** (by index, starting at 0) instead of `self`; with `field`,
+another `int` field:
 
 ```js
-// ItemCheck_Shoot(int i, Item sItem, ...): o item é o parâmetro 1
+// ItemCheck_Shoot(int i, Item sItem, ...): the item is parameter 1
 Terraria.Player['void ItemCheck_Shoot(int i, Item sItem, int weaponDamage, bool withAudioVisualFeedback)']
     .hook(callback, { minType: bl.items.vanillaCount, on: 1 });
 
-// o gancho de escalar: interessa o item.shoot, não o item.type
+// the grappling hook: what matters is item.shoot, not item.type
 Terraria.Player['void FireGrapple(Item grappleItem)']
     .hook(callback, { minType: bl.projectiles.vanillaCount, on: 0, field: 'shoot' });
 
-// o jogo chama o DrawItem para os 400 espaços do chão: o tipo do Item de dentro
+// the game calls DrawItem for the 400 ground slots: the type of the inner Item
 Terraria.Main['void DrawItem(WorldItem item, int whoami)']
     .hook(callback, { minType: bl.items.vanillaCount, on: 0, field: 'inner.type' });
 ```
 
-Para achar o hook que pesa, o `bl.hookStats()` diz quantas chamadas cada um
-recebe e quanto tempo o JS gastou nele; o mod `tools/tests/frametime` mede o
-quadro e lista os hooks mais caros (no log e no chat).
+To find the heavy hook, `bl.hookStats()` tells how many calls each one
+receives and how much time JS spent in it; the `tools/tests/frametime` mod
+measures the frame and lists the most expensive hooks (in the log and in the
+chat).
 
-Para blocos, o tipo vem do **mundo**: `tile: i` (o parâmetro `i` é um `Tile`) ou
-`tileAt: [i, j]` (os parâmetros `i` e `j` são a posição):
+For tiles, the type comes from the **world**: `tile: i` (parameter `i` is a
+`Tile`) or `tileAt: [i, j]` (parameters `i` and `j` are the position):
 
 ```js
 Terraria.WorldGen['void KillTile(int i, int j, bool fail, bool effectOnly, bool noItem)']
     .hook(callback, { minType: bl.tiles.vanillaCount, tileAt: [0, 1] });
 ```
 
-### `whileIn`: só dentro de outro hook
+### `whileIn`: only inside another hook
 
-Para um método chamado milhares de vezes, mas que só interessa num momento: o
-callback só roda enquanto a thread está **dentro do hook de outro método**
-(que precisa ter um hook JS antes).
+For a method called thousands of times, but that only matters at one moment:
+the callback only runs while the thread is **inside another method's hook**
+(which needs a JS hook beforehand).
 
 ```js
 const tooltip = Terraria.Main['void MouseText_DrawItemTooltip(Main.MouseTextCache info, int rare, byte diff, int X, int Y)'];
 tooltip.hook((original) => original());
 
 const drawString = Microsoft.Xna.Framework.Graphics.SpriteBatch['void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)'];
-drawString.hook(callback, { whileIn: tooltip });   // só os textos do tooltip
+drawString.hook(callback, { whileIn: tooltip });   // only the tooltip's texts
 ```
 
-É assim que o tooltip colorido do Bunny Loader mexe no `DrawString` sem pagar
-os outros milhares de textos da tela.
+That is how Bunny Loader's colored tooltip changes `DrawString` without paying
+for the thousands of other texts on screen.
 
-### `flag`: só quando o mod liga
+### `flag`: only when the mod turns it on
 
-Para o hook que só tem o que fazer de vez em quando, e o mod sabe quando: uma
-chave global, desligada no começo. Desligada, o método roda sem entrar no JS.
+For a hook that only has work to do now and then, and the mod knows when: a
+global switch, off at the start. While off, the method runs without entering
+JS.
 
 ```js
-// o céu do meu tema: só nos menus, e só com o tema escolhido
+// my theme's sky: only in the menus, and only with the theme selected
 Terraria.Main['void DrawSunAndMoon(SceneArea sceneArea, Color moonColor, Color sunColor, float tempMushroomInfluence)']
-    .hook(desenharCeu, { flag: 'meumod.ceu' });
+    .hook(drawSky, { flag: 'mymod.sky' });
 
-bl.hookFlags.set('meumod.ceu', true);    // ao escolher o tema
-bl.hookFlags.set('meumod.ceu', false);   // ao sair dos menus
+bl.hookFlags.set('mymod.sky', true);    // when the theme is picked
+bl.hookFlags.set('mymod.sky', false);   // when leaving the menus
 ```
 
-Ligar e desligar custa uma chamada nativa; faça só quando o estado muda, não a
-cada quadro. Use um nome com o prefixo do seu mod: a chave é de todos.
+Turning it on and off costs a native call; do it only when the state changes,
+not every frame. Use a name with your mod's prefix: the switch is shared by
+everyone.
 
-## Quando o motor está ocupado: `ifBusy`
+## When the engine is busy: `ifBusy`
 
-O motor JS é um só, e às vezes outra thread do jogo está com ele (o save do
-personagem rodando o `SaveData` de um `ModPlayer`, a geração de mundo criando
-itens). Um hook que chega nessa hora **espera**, até 3 s; se não conseguir,
-roda o método sem o mod e avisa no log uma vez.
+There is a single JS engine, and sometimes another game thread holds it (the
+character save running a `ModPlayer`'s `SaveData`, world generation creating
+items). A hook arriving at that moment **waits**, up to 3 s; if it cannot get
+the engine, it runs the method without the mod and warns once in the log.
 
-Para hook de **todo quadro** que pode ficar **um quadro sem o mod**, não
-esperar é melhor:
+For a **per-frame** hook that can go **one frame without the mod**, not
+waiting is better:
 
 ```js
-// um fade: se pular um quadro, ninguém vê
+// a fade: if a frame is skipped, nobody notices
 Terraria.Main['void UpdateAudio()'].hook(fade, { ifBusy: 'original' });
 
-// uma decisão que o quadro anterior já tomou (só em método void)
+// a decision the previous frame already made (void methods only)
 Terraria.Main['void UpdateAudio_DecideOnNewMusic()'].hook(decide, { ifBusy: 'skip' });
 ```
 
-| `ifBusy` | Com o motor ocupado |
+| `ifBusy` | With the engine busy |
 |---|---|
-| `'wait'` (padrão) | Espera até 3 s; depois roda sem o mod. |
-| `'original'` | Roda só o método do jogo, na hora. |
-| `'skip'` | Não roda nada (só `void`): fica o que o quadro anterior fez. |
+| `'wait'` (default) | Waits up to 3 s; then runs without the mod. |
+| `'original'` | Runs only the game's method, right away. |
+| `'skip'` | Runs nothing (`void` only): what the previous frame did stays. |
 
-Não use `ifBusy` em hook que **tem** de rodar (um save, um dano, uma
-receita): perder uma chamada ali é um bug. O funcionamento por dentro está em
-[threads e o motor JS](../nucleo/threads-e-motor-js.md#quando-o-motor-está-ocupado-ifbusy).
+Do not use `ifBusy` on a hook that **has** to run (a save, damage, a recipe):
+missing a call there is a bug. How it works inside is in
+[threads and the JS engine](../nucleo/threads-e-motor-js.md#when-the-engine-is-busy-ifbusy).
 
-## Receitas para um mod leve
+## Recipes for a lightweight mod
 
-**1. Pegue métodos e classes uma vez, fora do callback.**
+**1. Get methods and classes once, outside the callback.**
 
 ```js
-// bom: resolvido uma vez
+// good: resolved once
 const Main = Terraria.Main;
 const GetDamage = Terraria.Player['int GetWeaponDamage(Item sItem)'];
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
@@ -261,88 +268,88 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     const d = GetDamage(self, self.inventory[self.selectedItem]);
 });
 
-// pior: busca a assinatura a cada quadro (~60% mais caro)
+// worse: looks up the signature every frame (~60% more expensive)
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     original(self, i);
     const d = self['int GetWeaponDamage(Item sItem)'](self.inventory[self.selectedItem]);
 });
 ```
 
-**2. Guarde a vista de struct numa variável.** Cada `npc.position` cria uma
-vista (~180 ns). Lida duas vezes, são duas:
+**2. Keep the struct view in a variable.** Each `npc.position` creates a view
+(~180 ns). Read twice, that is two:
 
 ```js
-const pos = npc.position;        // uma vista
+const pos = npc.position;        // one view
 if (pos.X > 100 && pos.Y < 500) { /* ... */ }
-// em vez de: npc.position.X > 100 && npc.position.Y < 500
+// instead of: npc.position.X > 100 && npc.position.Y < 500
 ```
 
-**3. Saia cedo.** O que vem antes do primeiro `return` é o que toda chamada
-paga:
+**3. Bail out early.** What comes before the first `return` is what every
+call pays:
 
 ```js
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     original(self, i);
-    if (i !== Main.myPlayer) return;   // os outros jogadores param aqui
+    if (i !== Main.myPlayer) return;   // the other players stop here
     // ...
 });
 ```
 
-**4. Não crie objetos por chamada** se der para criar um e reusar. `{ x, y }`
-custa ~180 ns; um `Vector2.new(x, y)` do jogo, mais.
+**4. Do not create objects per call** if you can create one and reuse it.
+`{ x, y }` costs ~180 ns; a game `Vector2.new(x, y)`, more.
 
-**5. Nada de laço por entidade dentro de hook por entidade.** Se cada NPC
-precisa saber "o jogador mais perto", calcule uma vez por quadro (num hook de
-`Main.DoUpdate` ou `Player.Update`) e guarde.
+**5. No per-entity loop inside a per-entity hook.** If each NPC needs to know
+"the nearest player", compute it once per frame (in a `Main.DoUpdate` or
+`Player.Update` hook) and store it.
 
-**6. Espalhe trabalho pesado.** Varrer o mundo inteiro (8400 × 2400 tiles num
-mundo grande) não cabe num quadro. Faça um pedaço por quadro, ou faça no
-`PostSetupContent`, na carga.
+**6. Spread heavy work out.** Sweeping the whole world (8400 × 2400 tiles in a
+large world) does not fit in one frame. Do a chunk per frame, or do it in
+`PostSetupContent`, during loading.
 
-**7. Nunca `bl.log` a cada quadro.** Cada linha vai para um arquivo e para o
-logcat. Um log por quadro enche o arquivo e custa escrita em disco. Para
-depurar, logue uma vez a cada N quadros, ou só quando algo muda.
+**7. Never `bl.log` every frame.** Each line goes to a file and to logcat. A
+log per frame fills the file and costs disk writes. For debugging, log once
+every N frames, or only when something changes.
 
-**8. Um erro repetido também custa.** Um erro num hook de todo quadro é
-logado **a cada chamada** (nos métodos das classes de mod, uma vez só). Além
-do log, o despachante roda o original pelo callback quebrado: o jogo segue,
-mas mais lento.
+**8. A repeated error costs too.** An error in a per-frame hook is logged **on
+every call** (in mod class methods, only once). Besides the log, the
+dispatcher runs the original for the broken callback: the game carries on, but
+slower.
 
-**9. Um hook instalado e não chamado não custa nada.** Não precisa economizar
-hooks em métodos que o jogo raramente chama (`Player.KillMe`, `WorldGen.KillTile`,
-um evento de UI). Economize nos de todo quadro.
+**9. An installed hook that is never called costs nothing.** No need to save
+hooks on methods the game rarely calls (`Player.KillMe`, `WorldGen.KillTile`,
+a UI event). Save them on per-frame ones.
 
-## Medindo o seu mod
+## Measuring your mod
 
-`performance.now()` dá o tempo em milissegundos, com fração:
+`performance.now()` gives the time in milliseconds, with a fraction:
 
 ```js
 let total = 0, n = 0;
 Terraria.NPC['void AI()'].hook((original, npc) => {
     const t0 = performance.now();
     original(npc);
-    // ... o seu código ...
+    // ... your code ...
     total += performance.now() - t0;
-    if (++n === 6000) {             // ~100 quadros com 60 NPCs
-        bl.log('AI: media ' + (total / n * 1000).toFixed(1) + ' us por chamada');
+    if (++n === 6000) {             // ~100 frames with 60 NPCs
+        bl.log('AI: average ' + (total / n * 1000).toFixed(1) + ' us per call');
         total = 0; n = 0;
     }
 });
 ```
 
-Para medir a ponte em si, o mod [`tools/bench`](../../tools/bench) roda cada
-operação 20 mil vezes, pega o melhor de 7 e desconta o laço vazio; os
-resultados deste guia saíram dele. O emulador varia muito entre rodadas (até
-70%): compare sempre **alternando** as versões (antes, depois, antes, depois),
-nunca uma rodada contra outra de outro dia.
+To measure the bridge itself, the [`tools/bench`](../../tools/bench) mod runs
+each operation 20 thousand times, takes the best of 7 and subtracts the empty
+loop; this guide's results came from it. The emulator varies a lot between
+runs (up to 70%): always compare by **alternating** the versions (before,
+after, before, after), never one run against another from a different day.
 
-## Resumo
+## Summary
 
-| Situação | O que fazer |
+| Situation | What to do |
 |---|---|
-| Conteúdo seu (item, NPC, projétil) | Use a classe de mod: já vem filtrada. |
-| Hook direto em método por entidade | `minType` (e `on`/`field`) se só os de mod interessam. |
-| Método chamado milhares de vezes | `whileIn`, ou não hooke. |
-| Hook de todo quadro que pode pular um | `ifBusy: 'original'` ou `'skip'`. |
-| Dentro do callback | Saia cedo, guarde métodos e vistas, não aloque, não logue. |
-| Trabalho grande | Um pedaço por quadro, ou na carga. |
+| Your own content (item, NPC, projectile) | Use the mod class: it comes filtered. |
+| Direct hook on a per-entity method | `minType` (and `on`/`field`) if only mod content matters. |
+| Method called thousands of times | `whileIn`, or do not hook it. |
+| Per-frame hook that can skip one | `ifBusy: 'original'` or `'skip'`. |
+| Inside the callback | Bail out early, keep methods and views, do not allocate, do not log. |
+| Big work | A chunk per frame, or during loading. |

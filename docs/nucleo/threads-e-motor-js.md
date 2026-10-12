@@ -1,208 +1,211 @@
-# Threads e o motor JS
+# Threads and the JS engine
 
-> Parte da documentação do núcleo ([visão geral](README.md)). Para o lado de
-> quem escreve mod, o que importa daqui está resumido no [guia de
-> custo](../mods/03-custo-e-desempenho.md#quando-o-motor-está-ocupado-ifbusy).
+> Part of the core documentation ([overview](README.md)). For the mod author's
+> side, what matters from here is summarized in the [cost
+> guide](../mods/03-custo-e-desempenho.md#when-the-engine-is-busy-ifbusy).
 
-## O problema em uma frase
+## The problem in one sentence
 
-O Terraria roda código em **várias threads** ao mesmo tempo, e o motor que
-executa os mods (o QuickJS) é **um só** e não aceita duas threads dentro dele
-ao mesmo tempo.
+Terraria runs code on **several threads** at the same time, and the engine
+that runs the mods (QuickJS) is **a single one** and does not accept two
+threads inside it at once.
 
-Todo mod mora no mesmo `JSRuntime` e no mesmo `JSContext`. É isso que deixa um
-mod chamar o outro com uma chamada de função comum ([guia 11](../mods/11-conversa-entre-mods.md)).
-Mas um hook pode disparar em qualquer thread que chame o método hookado, e o
-QuickJS não é *thread-safe*: dois `JS_Call` ao mesmo tempo no mesmo runtime
-corrompem o heap do motor, e o jogo cai "às vezes", sem padrão.
+Every mod lives in the same `JSRuntime` and the same `JSContext`. That is what
+lets one mod call another with a plain function call ([guide 11](../mods/11-conversa-entre-mods.md)).
+But a hook can fire on any thread that calls the hooked method, and QuickJS is
+not *thread-safe*: two `JS_Call`s at the same time on the same runtime corrupt
+the engine's heap, and the game crashes "sometimes", with no pattern.
 
-Este documento explica como o núcleo organiza isso: quem pode entrar no motor,
-quando, e o que acontece com quem precisa esperar.
+This document explains how the core organizes that: who can enter the engine,
+when, and what happens to whoever has to wait.
 
-## Quem roda código de mod
+## Who runs mod code
 
-| Thread | O que roda de mod | Exemplos |
+| Thread | What mod code it runs | Examples |
 |---|---|---|
-| **Thread do jogo** (a principal da Unity) | Quase tudo: hooks de todo quadro, desenho, IA, as classes de mod. | `Main.DoUpdate`, `Main.DoDraw`, `Player.Update`, `NPC.AI`, `ModItem.UseItem`. |
-| **Sonda** (thread do Bunny Loader) | A carga dos mods: o topo de cada arquivo, o registro das classes e o `Load()` (com os `.hook()` dele). Roda uma vez, no boot. | `ModItem.register` (pelo registro automático), `Mod.Load`. |
-| **Geração de mundo** (do jogo) | Hooks nos métodos que a geração chama. | `Item.SetDefaults` dos itens de baú. |
-| **Carga do mundo** (do jogo) | Hooks na carga. | `Item.SetDefaults`, os saves de tile e de morador. |
-| **Save** (do jogo, `ThreadPool`) | Hooks no save do personagem e do mundo. | `Player.InternalSavePlayerFile` → `ModPlayer.SaveData`. |
-| **Rede** (do jogo) | Hooks no caminho da rede, no multijogador. | Save do personagem no cliente. |
-| **Editor** de JS (Mod Menu) | O código digitado, na thread do jogo, no `Main.DoUpdate` seguinte (`script/api/Console.cpp`), com 8 s de limite pelo interrupt handler do QuickJS. | `player.statLife = 500`. |
+| **Game thread** (Unity's main one) | Almost everything: per-frame hooks, drawing, AI, the mod classes. | `Main.DoUpdate`, `Main.DoDraw`, `Player.Update`, `NPC.AI`, `ModItem.UseItem`. |
+| **Probe** (Bunny Loader's thread) | Loading the mods: the top level of each file, class registration and `Load()` (with its `.hook()`s). Runs once, at boot. | `ModItem.register` (through automatic registration), `Mod.Load`. |
+| **World generation** (the game's) | Hooks on the methods generation calls. | `Item.SetDefaults` for chest items. |
+| **World loading** (the game's) | Hooks during loading. | `Item.SetDefaults`, the tile and town NPC saves. |
+| **Save** (the game's, `ThreadPool`) | Hooks on saving the character and the world. | `Player.InternalSavePlayerFile` → `ModPlayer.SaveData`. |
+| **Network** (the game's) | Hooks on the network path, in multiplayer. | Saving the character on the client. |
+| JS **Editor** (Mod Menu) | The typed code, on the game thread, on the next `Main.DoUpdate` (`script/api/Console.cpp`), with an 8 s limit through QuickJS's interrupt handler. | `player.statLife = 500`. |
 
-As threads de áudio do Android (SoundPool, MediaPlayer) e a de interface do
-app **não** rodam JS: o áudio de mod é comandado da thread do jogo e segue
-sozinho.
+Android's audio threads (SoundPool, MediaPlayer) and the app's UI thread do
+**not** run JS: mod audio is driven from the game thread and carries on by
+itself.
 
-A thread do jogo é identificada no primeiro `Main.DoUpdate`
-(`runtime::noteGameThread`, em [`boot/Boot.cpp`](../../app/src/main/cpp/boot/Boot.cpp)).
-Algumas operações só valem nela, porque a Unity só aceita criar objetos na
-thread principal: `bl.loadTexture`, `bl.loadTextureAsset`,
-`ModContent.Request`, e o crescimento das tabelas de conteúdo. Chamadas fora
-dela lançam erro dizendo isso, em vez de derrubar a Unity.
+The game thread is identified on the first `Main.DoUpdate`
+(`runtime::noteGameThread`, in [`boot/Boot.cpp`](../../app/src/main/cpp/boot/Boot.cpp)).
+Some operations only work on it, because Unity only accepts creating objects
+on the main thread: `bl.loadTexture`, `bl.loadTextureAsset`,
+`ModContent.Request`, and growing the content tables. Calls from elsewhere
+throw an error saying so, instead of crashing Unity.
 
-## A trava: `JsLock`
+## The lock: `JsLock`
 
-Toda entrada no QuickJS passa por um `JsLock`
+Every entry into QuickJS goes through a `JsLock`
 ([`script/bridge/ScriptEngine.h`](../../app/src/main/cpp/script/bridge/ScriptEngine.h)):
-o despachante dos hooks, a carga dos mods, o `bl.onContentReady`, os
-callbacks nativos das classes de mod.
+the hook dispatcher, mod loading, `bl.onContentReady`, the mod classes'
+native callbacks.
 
-- É um `std::timed_mutex` global, **recursivo por thread**: um contador por
-  thread (`depth`) deixa a mesma thread entrar de novo sem travar. É o caso
-  normal de callback → método do jogo → outro método hookado → callback, tudo
-  na mesma thread.
-- Quem entra do zero anota que é o **dono** (a thread e, no hook, o método).
-  Isso só serve para o aviso de quem esperou demais (abaixo).
-- Ao pegar a trava, `JS_UpdateStackTop` **realinha o limite de pilha** do
-  QuickJS com a thread atual. O QuickJS deduz o limite a partir do ponteiro de
-  pilha de quando foi chamado. Sem isso, os mods, carregados na thread da
-  sonda, recebiam `Maximum call stack size exceeded` na primeira chamada na
-  thread do jogo, com um script de 20 linhas.
-- Hooks esperam **no máximo 3 s**. Se outra thread segurar o motor esse tempo
-  todo, o mais provável é um impasse (ela esperando por algo desta), e rodar o
-  método sem o mod é melhor que congelar o jogo. A carga dos mods espera o
-  quanto for preciso.
+- It is a global `std::timed_mutex`, **recursive per thread**: a per-thread
+  counter (`depth`) lets the same thread enter again without locking. That is
+  the normal case of callback → game method → another hooked method →
+  callback, all on the same thread.
+- Whoever enters from scratch records that it is the **owner** (the thread
+  and, in a hook, the method). This only serves the warning for whoever waited
+  too long (below).
+- On taking the lock, `JS_UpdateStackTop` **realigns QuickJS's stack limit**
+  with the current thread. QuickJS derives the limit from the stack pointer at
+  the time it was called. Without this, mods, loaded on the probe thread, got
+  `Maximum call stack size exceeded` on their first call on the game thread,
+  with a 20-line script.
+- Hooks wait **at most 3 s**. If another thread holds the engine that long,
+  the most likely cause is a deadlock (it waiting for something of this one),
+  and running the method without the mod is better than freezing the game. Mod
+  loading waits as long as needed.
 
-O limite de pilha do motor é **256 KB** (`JS_SetMaxStackSize`). O QuickJS
-supõe 1 MB, e a thread do Android tem exatamente isso: a guarda dele só
-disparava **depois** do estouro de verdade, e um mod com recursão infinita
-matava o processo sem erro e sem tombstone. Com folga, o mesmo mod recebe
-`Maximum call stack size exceeded` e o jogo segue. É também esse limite que
-cabe ~55 hooks encadeados no mesmo método.
+The engine's stack limit is **256 KB** (`JS_SetMaxStackSize`). QuickJS
+assumes 1 MB, and the Android thread has exactly that: its guard only fired
+**after** the real overflow, and a mod with infinite recursion killed the
+process with no error and no tombstone. With headroom, the same mod gets
+`Maximum call stack size exceeded` and the game carries on. It is also this
+limit that fits ~55 chained hooks on the same method.
 
-## Segurar o motor durante o método do jogo
+## Holding the engine during the game's method
 
-Um hook típico:
+A typical hook:
 
 ```js
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
-    original(self, i);          // o Player.Update do jogo inteiro roda aqui
+    original(self, i);          // the game's whole Player.Update runs here
     if (self.statLife < 100) self.statLife = 100;
 });
 ```
 
-Se o motor ficasse preso durante o `original()`, ele ficaria preso durante o
-`Player.Update` **inteiro**, que não é JS nenhum. Pior: um hook na thread do
-save seguraria o motor durante o save inteiro, e a thread do jogo, caindo em
-qualquer hook, ficaria esperando (até 3 s, e depois rodaria sem o mod, com o
-aviso "motor JS ocupado").
+If the engine stayed held during `original()`, it would be held during the
+**whole** `Player.Update`, which is not JS at all. Worse: a hook on the save
+thread would hold the engine during the whole save, and the game thread,
+landing in any hook, would wait (up to 3 s, and then run without the mod, with
+the "JS engine busy" warning).
 
-Por isso o `original()` **solta** o motor enquanto o método do jogo roda, e o
-pega de volta depois (`JsSuspend`, usado por `callRaw(..., suspend = true)`).
+That is why `original()` **releases** the engine while the game's method runs,
+and takes it back afterwards (`JsSuspend`, used by
+`callRaw(..., suspend = true)`).
 
-### Por que soltar não é só dar `unlock`
+### Why releasing is not just `unlock`
 
-O QuickJS guarda a pilha de frames JS em execução **no runtime**
-(`rt->current_stack_frame`), não na thread. E desempilhar é uma atribuição
-absoluta: ao sair de uma função, `rt->current_stack_frame = sf->prev_frame`.
+QuickJS keeps the stack of running JS frames **in the runtime**
+(`rt->current_stack_frame`), not in the thread. And popping is an absolute
+assignment: on leaving a function, `rt->current_stack_frame = sf->prev_frame`.
 
-Imagine duas threads, cada uma no meio de um callback, as duas no `original()`
-ao mesmo tempo. A thread A voltaria e desempilharia pondo o `prev_frame`
-**dela**, por cima da pilha da B. Quando a B voltasse, o runtime apontaria para
-frames que já não existem.
+Picture two threads, each in the middle of a callback, both in `original()` at
+the same time. Thread A would return and pop by setting **its own**
+`prev_frame`, over B's stack. When B returned, the runtime would point to
+frames that no longer exist.
 
-A versão antiga resolvia deixando **uma thread estacionada por vez**. Mas a
-thread do jogo passa quase o quadro inteiro dentro de algum `original()`, e
-então um hook na thread do save não conseguia estacionar e segurava o motor o
-método inteiro. Foi isso que produziu o aviso "motor JS ocupado por outra
-thread há 3000 ms" no hook da música, num aparelho de usuário.
+The old version solved it by letting **one thread park at a time**. But the
+game thread spends almost the entire frame inside some `original()`, so a hook
+on the save thread could not park and held the engine for the whole method.
+That is what produced the warning "JS engine busy with another thread for
+3000 ms" on the music hook, on a user's device.
 
-### A solução: cada thread leva a sua pilha
+### The solution: each thread carries its own stack
 
-Desde 2026-09-26, ao soltar o motor, a thread **guarda o topo da sua pilha de
-frames e deixa a do runtime vazia**; ao pegar de volta, **devolve o topo**.
-O limite de pilha segue a mesma ideia: os 256 KB de uma thread são contados de
-onde ela **entrou** no motor pela primeira vez (`rt->stack_top`), e toda
-entrada aninhada (um hook que dispara de dentro de um `original()`) e toda
-volta de um `original()` reusam esse topo.
+Since 2026-09-26, on releasing the engine, the thread **saves the top of its
+frame stack and leaves the runtime's empty**; on taking it back, it **restores
+the top**. The stack limit follows the same idea: a thread's 256 KB are counted
+from where it first **entered** the engine (`rt->stack_top`), and every nested
+entry (a hook that fires from inside an `original()`) and every return from an
+`original()` reuse that top.
 
 ```mermaid
 sequenceDiagram
-    participant J as thread do jogo
-    participant M as motor JS
-    participant S as thread do save
-    J->>M: JsLock (pilha vazia)
-    Note over J,M: callback de Player.Update roda
-    J->>M: original(): guarda o topo da pilha, zera, solta
-    Note over J: Player.Update do jogo roda (sem o motor)
-    S->>M: JsLock (pilha vazia)
-    Note over S,M: callback de SaveData roda
-    S->>M: original(): guarda o topo, zera, solta
-    J->>M: volta: pega o motor, devolve o topo dela
-    Note over J,M: resto do callback de Player.Update
-    J->>M: sai (pilha vazia de novo)
-    S->>M: volta: pega o motor, devolve o topo dela
-    S->>M: sai
+    participant J as game thread
+    participant M as JS engine
+    participant S as save thread
+    J->>M: JsLock (empty stack)
+    Note over J,M: Player.Update callback runs
+    J->>M: original(): saves the stack top, clears it, releases
+    Note over J: the game's Player.Update runs (without the engine)
+    S->>M: JsLock (empty stack)
+    Note over S,M: SaveData callback runs
+    S->>M: original(): saves the top, clears it, releases
+    J->>M: returns: takes the engine, restores its top
+    Note over J,M: rest of the Player.Update callback
+    J->>M: leaves (empty stack again)
+    S->>M: returns: takes the engine, restores its top
+    S->>M: leaves
 ```
 
-A invariante que sustenta tudo: **motor livre ⇒ pilha do runtime vazia**.
-Quem entra do zero começa numa pilha vazia e sai deixando-a vazia. O
-destrutor do `JsLock` confere isso e, se sobrar frame, zera e loga (seria um
-defeito nosso).
+The invariant that holds it all up: **engine free ⇒ runtime stack empty**.
+Whoever enters from scratch starts on an empty stack and leaves it empty.
+`JsLock`'s destructor checks this and, if a frame is left over, clears it and
+logs (that would be a bug of ours).
 
-Os campos `current_stack_frame` e `stack_top` ficam dentro da struct
-`JSRuntime`, que é opaca fora do `quickjs.c`. Em vez de mexer no clone do
-QuickJS, [`script/bridge/QuickJsExt.c`](../../app/src/main/cpp/script/bridge/QuickJsExt.c)
-faz `#include "quickjs.c"` e expõe o **endereço** da pilha de frames e o
-acesso ao topo da pilha nativa; o CMake compila esse arquivo no lugar do
-`quickjs.c`. Guardar e devolver a pilha vira uma leitura e uma escrita de
-ponteiro, sem chamada. Se um dia um campo mudar de nome, o build quebra ali, e
-não o motor em silêncio.
+The `current_stack_frame` and `stack_top` fields live inside the `JSRuntime`
+struct, which is opaque outside `quickjs.c`. Instead of patching the QuickJS
+clone, [`script/bridge/QuickJsExt.c`](../../app/src/main/cpp/script/bridge/QuickJsExt.c)
+does `#include "quickjs.c"` and exposes the **address** of the frame stack and
+access to the native stack top; CMake compiles that file in place of
+`quickjs.c`. Saving and restoring the stack becomes a pointer read and write,
+with no call. If a field is ever renamed, the build breaks there, and not the
+engine, silently.
 
-Por que o topo da pilha nativa também: o `JS_UpdateStackTop` do QuickJS só
-sabe pôr o ponteiro de pilha **atual**. Com o motor solto dentro de um
-`original()`, o hook aninhado entra "do zero", e realinhar ali (mais fundo na
-pilha do que quando a cadeia começou) reabria os 256 KB a cada nível: uma
-cadeia de hooks podia estourar a pilha nativa sem o `Maximum call stack size
-exceeded`. Foi assim por algumas horas no mesmo dia (o `hookslots` passou de 53
-para 120 hooks encadeados) até a correção: cada thread guarda o seu topo base
-e um contador de `original()` em andamento. Com ela, cabem 55.
+Why the native stack top too: QuickJS's `JS_UpdateStackTop` only knows how to
+set the **current** stack pointer. With the engine released inside an
+`original()`, the nested hook enters "from scratch", and realigning there
+(deeper in the stack than when the chain started) reopened the 256 KB at every
+level: a chain of hooks could overflow the native stack without
+`Maximum call stack size exceeded`. It was like that for a few hours on the
+same day (`hookslots` went from 53 to 120 chained hooks) until the fix: each
+thread keeps its base top and a counter of `original()`s in progress. With
+it, 55 fit.
 
-Com isso, qualquer número de threads pode estar num `original()` ao mesmo
-tempo, e o motor fica preso **só enquanto o JS roda de verdade**.
+With this, any number of threads can be inside an `original()` at the same
+time, and the engine is held **only while JS is actually running**.
 
-### O custo
+### The cost
 
-Medido no MuMu, alternando builds: um hook que chama o `original()` foi de
-~595 para ~750 ns; sem `original()`, igual; tempo de quadro, igual. Parte
-dessa diferença é de onde o código caiu na memória (o MuMu traduz ARM para x86
-e sente isso), não do que ele faz. Soltar o motor custa quatro operações
-atômicas, então só o **hook** solta: uma chamada que o mod faz ao jogo
-(`player.GetWeaponDamage(item)`) segura o motor, porque o método é curto e
-soltar custaria mais que a chamada (uma propriedade C# foi de 4 para 11 ms por
-10 mil chamadas quando soltava sempre).
+Measured on MuMu, alternating builds: a hook that calls `original()` went from
+~595 to ~750 ns; without `original()`, the same; frame time, the same. Part of
+that difference comes from where the code landed in memory (MuMu translates
+ARM to x86 and feels it), not from what it does. Releasing the engine costs
+four atomic operations, so only the **hook** releases: a call the mod makes
+into the game (`player.GetWeaponDamage(item)`) holds the engine, because the
+method is short and releasing would cost more than the call (a C# property
+went from 4 to 11 ms per 10 thousand calls when it always released).
 
-O teste [`tools/tests/enginethreads`](../../tools/tests/enginethreads)
-reproduz o caso extremo: a thread do jogo dorme 100 ms em todo quadro dentro
-de um `original()`, e a thread do save dorme 1,5 s dentro do `SaveData` de um
-`ModPlayer`. Com a regra antiga, 0 quadros andavam em 1,5 s; com a nova, os
-quadros seguem, e depois de acordar cada thread vê a própria pilha JS
-(`Error.stack`) e o `try`/`catch` funciona.
+The [`tools/tests/enginethreads`](../../tools/tests/enginethreads) test
+reproduces the extreme case: the game thread sleeps 100 ms on every frame
+inside an `original()`, and the save thread sleeps 1.5 s inside a `ModPlayer`'s
+`SaveData`. With the old rule, 0 frames advanced in 1.5 s; with the new one,
+the frames keep going, and after waking up each thread sees its own JS stack
+(`Error.stack`) and `try`/`catch` works.
 
-## Quando o motor está ocupado: `ifBusy`
+## When the engine is busy: `ifBusy`
 
-Mesmo com o motor preso só durante JS, uma thread pode esperar: se o save
-roda um `SaveData` pesado, a thread do jogo que cair num hook naquele instante
-espera o JS do save terminar. O padrão é esperar até 3 s.
+Even with the engine held only during JS, a thread may wait: if the save runs
+a heavy `SaveData`, the game thread that lands in a hook at that moment waits
+for the save's JS to finish. The default is to wait up to 3 s.
 
-Para um hook de **todo quadro** que pode ficar **um quadro sem o mod**, o mod
-escolhe não esperar:
+For a **per-frame** hook that can go **one frame without the mod**, the mod
+chooses not to wait:
 
-| `ifBusy` | Com o motor ocupado | Para quê |
+| `ifBusy` | With the engine busy | What for |
 |---|---|---|
-| `'wait'` (padrão) | Espera até 3 s. Se não der, roda o método sem o mod e avisa uma vez. | O normal: o mod precisa rodar. |
-| `'original'` | Roda na hora só o método do jogo. | Efeito que pode pular um quadro: um fade, uma cor. |
-| `'skip'` | Não roda nada (só em método `void`): fica valendo o quadro anterior. | Uma decisão que o quadro anterior já tomou. |
+| `'wait'` (default) | Waits up to 3 s. If it cannot, runs the method without the mod and warns once. | The normal case: the mod needs to run. |
+| `'original'` | Runs only the game's method, right away. | An effect that can skip a frame: a fade, a color. |
+| `'skip'` | Runs nothing (`void` methods only): the previous frame's result stands. | A decision the previous frame already made. |
 
-A música de mod usa as duas: `UpdateAudio_DecideOnNewMusic` com `'skip'` (a
-música escolhida no quadro anterior continua valendo) e `UpdateAudio` com
-`'original'` (o fade do jogo roda, o do mod pula um quadro). O teste
-[`tools/tests/ifbusy`](../../tools/tests/ifbusy) prende o motor numa thread de
-save e confere as três opções.
+Mod music uses both: `UpdateAudio_DecideOnNewMusic` with `'skip'` (the music
+chosen on the previous frame still stands) and `UpdateAudio` with `'original'`
+(the game's fade runs, the mod's skips a frame). The
+[`tools/tests/ifbusy`](../../tools/tests/ifbusy) test holds the engine on a
+save thread and checks all three options.
 
-## O aviso "motor JS ocupado"
+## The "JS engine busy" warning
 
 ```
 hook Main.UpdateAudio_DecideOnNewMusic: motor JS ocupado ha 3000 ms por
@@ -210,39 +213,43 @@ thread 15840 (Thread-7), no hook Player.InternalSavePlayerFile; rodando o
 metodo sem o mod (aviso unico por hook)
 ```
 
-Como ler:
+("JS engine busy for 3000 ms by thread ..., in hook ...; running the method
+without the mod (one warning per hook)".) How to read it:
 
-- o **primeiro** método é o hook que esperou e desistiu;
-- `thread 15840 (Thread-7)` é quem estava com o motor (o `tid` do Linux e o
-  nome da thread, lido de `/proc/self/task/<tid>/comm`);
-- `no hook ...` é onde ela estava. "fora de hook" quer dizer carga de mod ou
-  de conteúdo (`bl.onContentReady`);
-- sai **uma vez por hook**, para não inundar o log.
+- the **first** method is the hook that waited and gave up;
+- `thread 15840 (Thread-7)` is who held the engine (the Linux `tid` and the
+  thread name, read from `/proc/self/task/<tid>/comm`);
+- `no hook ...` is where it was. "fora de hook" ("outside a hook") means mod
+  or content loading (`bl.onContentReady`);
+- it is emitted **once per hook**, so as not to flood the log.
 
-Se aparecer, a thread dona está rodando JS demorado (um laço grande num
-`SaveData`, por exemplo). Encurtar o que ela faz resolve; `ifBusy` no hook que
-esperou evita a espera.
+If it shows up, the owning thread is running slow JS (a big loop in a
+`SaveData`, for example). Shortening what it does fixes it; `ifBusy` on the
+hook that waited avoids the wait.
 
-## Exceções entre as camadas
+## Exceptions between the layers
 
-- **Erro no JS de um hook**: logado com a pilha JS, e o original roda se o
-  callback não o chamou ([hooks](hooks.md#o-despachante-passo-a-passo)).
-- **Exceção C# num método que o mod chamou** (um `NullReferenceException` lá
-  dentro, por exemplo): vira `InternalError` no JS (`'NomeDoMetodo' lancou
-  excecao no jogo`), que o mod pode pegar com `try`/`catch`.
-- **Exceção C# dentro do `original()` de um hook**: quem chamou foi o jogo, e
-  não há para quem devolvê-la. Ela é logada e o retorno fica zerado.
-- O `JsSuspend` fica **fora** do `try` da chamada de propósito: no caminho da
-  exceção, o motor precisa ser pego de volta depois do `catch`, não durante o
-  desenrolar da pilha.
+- **An error in a hook's JS**: logged with the JS stack, and the original runs
+  if the callback did not call it ([hooks](hooks.md#the-dispatcher-step-by-step)).
+- **A C# exception in a method the mod called** (a `NullReferenceException`
+  in there, for example): becomes an `InternalError` in JS (`'MethodName'
+  lancou excecao no jogo`, "threw an exception in the game"), which the mod
+  can catch with `try`/`catch`.
+- **A C# exception inside a hook's `original()`**: the caller was the game,
+  and there is no one to return it to. It is logged and the return value is
+  zeroed.
+- `JsSuspend` stays **outside** the call's `try` on purpose: on the exception
+  path, the engine has to be taken back after the `catch`, not during stack
+  unwinding.
 
-## Resumo das regras
+## Summary of the rules
 
-1. Toda entrada no QuickJS passa por `JsLock`.
-2. Só o hook solta o motor durante o método do jogo; chamadas feitas pelo mod
-   seguram.
-3. Motor livre ⇒ pilha do runtime vazia. Cada thread leva a sua ao soltar.
-4. Hook espera no máximo 3 s (`ifBusy` muda isso); carga de mod espera o
-   necessário.
-5. Objeto da Unity (textura) só nasce na thread do jogo.
-6. A pilha do motor tem 256 KB, em qualquer thread.
+1. Every entry into QuickJS goes through `JsLock`.
+2. Only the hook releases the engine during the game's method; calls made by
+   the mod hold it.
+3. Engine free ⇒ runtime stack empty. Each thread takes its own when
+   releasing.
+4. A hook waits at most 3 s (`ifBusy` changes that); mod loading waits as long
+   as needed.
+5. Unity objects (textures) are only created on the game thread.
+6. The engine's stack is 256 KB, on any thread.

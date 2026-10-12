@@ -1,63 +1,66 @@
-# 14. Opções do mod (`ModConfig`)
+# 14. Mod options (`ModConfig`)
 
-O jogador muda as opções do seu mod em dois lugares:
+The player changes your mod's options in two places:
 
-- no mundo, pelo menu de pausa, no botão **Config. dos Mods**, logo abaixo de
-  Configurações, com o coelho do Bunny Loader de ícone;
-- fora do mundo, em **Configurações** do menu principal: a primeira linha da
-  aba Geral é **Config. dos Mods**, com o botão **Abrir**.
+- in the world, from the pause menu, with the **Mod Configuration** button,
+  right below Settings, with the Bunny Loader bunny as its icon;
+- outside the world, in the main menu's **Settings**: the first row of the
+  General tab is **Mod Configuration**, with the **Open** button.
 
-![O menu de pausa com o botão "Config. dos Mods" abaixo de Configurações](../imagens/pausa-config-dos-mods.jpg)
+![The pause menu with the "Mod Configuration" button below Settings](../imagens/pausa-config-dos-mods.jpg)
 
-A tela que ele abre é a de Configurações do jogo: as mesmas peças e os mesmos
-sons, com os botões Descartar, Padrão e Aplicar da tela de atribuições do
-teclado. Mod sem `ModConfig` não aparece nela.
+The screen it opens is the game's Settings screen: the same pieces and the
+same sounds, with the Discard, Default and Apply buttons from the keybinding
+screen. A mod without a `ModConfig` does not show up there.
 
-É o `ModConfig` do tModLoader, com as opções declaradas num objeto em vez de
-atributos C#.
+It is tModLoader's `ModConfig`, with the options declared in an object instead
+of C# attributes.
 
-## A tela
+## The screen
 
 <table>
 <tr>
-<td width="50%"><img src="../imagens/config-dos-mods.jpg" alt="A tela com um mod só: a aba do Example Mod, as opções dele e os botões Descartar, Padrão e Aplicar"></td>
-<td width="50%"><img src="../imagens/config-dos-mods-abas.jpg" alt="A tela com três mods: uma aba por mod, com o ícone de cada um"></td>
+<td width="50%"><img src="../imagens/config-dos-mods.jpg" alt="The screen with a single mod: the Example Mod tab, its options and the Discard, Default and Apply buttons"></td>
+<td width="50%"><img src="../imagens/config-dos-mods-abas.jpg" alt="The screen with three mods: one tab per mod, with each one's icon"></td>
 </tr>
 <tr>
-<td>Um mod com opções: uma aba só. Embaixo, Descartar, Padrão e Aplicar.</td>
-<td>Três mods: uma aba por mod. O mod sem <code>icon.png</code> ganha o coelho.</td>
+<td>A mod with options: a single tab. At the bottom, Discard, Default and Apply.</td>
+<td>Three mods: one tab per mod. A mod without <code>icon.png</code> gets the bunny.</td>
 </tr>
 </table>
 
-- **As abas**, no topo, são os mods: uma por mod que tem opções, com o
-  `icon.png` dele. Tocar numa aba mostra as opções daquele mod, e o nome dele
-  vai para o título.
-  Com mais mods do que cabem na largura, a fileira rola de lado: arraste para a
-  esquerda ou para a direita, e ao soltar ela segue no embalo. Soltar o dedo
-  em cima de uma aba depois de arrastar não troca de mod; só o toque troca.
-- **As linhas** são as opções do mod escolhido, na ordem em que foram
-  declaradas.
-- **A lista rola** como a de Configurações: arraste para cima ou para baixo, e
-  ao soltar ela segue no embalo até parar. A linha na borda aparece cortada.
-- **Interruptor**: toque na linha para trocar entre Desligado e Ligado.
-- **Barra**: arraste a bolinha. Só a barra onde o dedo encostou se mexe;
-  arrastar a lista por cima das barras não muda nenhuma.
-- **Escolha única**: toque na escolha. Tocar no nome da linha passa para a
-  próxima.
-- **Nada muda antes do Aplicar.** A tela mexe num rascunho de cada config: a
-  config do mod, o `OnChanged` e o arquivo só veem as mudanças no Aplicar.
-- **Aplicar** grava as mudanças de todos os mods (de todas as abas) e fecha a
-  tela. Fica apagado enquanto nada mudou.
-- **Padrão** volta as opções do mod da aba ao padrão, no rascunho: ainda é
-  preciso Aplicar. Fica apagado quando elas já estão no padrão.
-- **Descartar** (ou o voltar do Android) fecha a tela e joga o rascunho fora.
-  Aberta pelo menu principal, ela volta para Configurações.
+- **The tabs**, at the top, are the mods: one per mod that has options, with
+  its `icon.png`. Tapping a tab shows that mod's options, and its name goes to
+  the title. With more mods than fit in the width, the row scrolls sideways:
+  drag left or right, and on release it keeps going with momentum. Lifting
+  your finger over a tab after dragging does not switch mods; only a tap does.
+- **The rows** are the selected mod's options, in the order they were
+  declared.
+- **The list scrolls** like the Settings one: drag up or down, and on release
+  it keeps going with momentum until it stops. A row at the edge shows cut
+  off.
+- **Toggle**: tap the row to switch between Off and On.
+- **Slider**: drag the knob. Only the slider your finger touched moves;
+  dragging the list over the sliders changes none of them.
+- **Single choice**: tap the choice. Tapping the row's name moves to the next
+  one.
+- **Nothing changes before Apply.** The screen works on a draft of each
+  config: the mod's config, `OnChanged` and the file only see the changes on
+  Apply.
+- **Apply** saves the changes of every mod (from every tab) and closes the
+  screen. It is dimmed while nothing has changed.
+- **Default** resets the options of the tab's mod to their defaults, in the
+  draft: you still need to Apply. It is dimmed when they are already at the
+  defaults.
+- **Discard** (or Android's back) closes the screen and throws the draft away.
+  Opened from the main menu, it goes back to Settings.
 
-## Só no menu principal
+## Main menu only
 
-Opção que só vale antes de entrar no mundo (a geração de mundo, por exemplo)
-não tem o que fazer no menu de pausa. Com `static VisibleInWorld = false`, a
-config fica só na Config. dos Mods do menu principal:
+An option that only matters before entering the world (world generation, for
+example) has nothing to do in the pause menu. With
+`static VisibleInWorld = false`, the config stays only in the main menu's Mod
+Configuration:
 
 ```js
 export class WorldGenConfig extends ModConfig {
@@ -70,15 +73,15 @@ export class WorldGenConfig extends ModConfig {
 }
 ```
 
-O padrão é `true`: a config aparece nos dois lugares. A flag só esconde a
-config da tela do mundo; os valores continuam valendo ali, e o
-`ModContent.GetInstance` lê do mesmo jeito. Um mod com todas as configs
-assim não ganha aba no mundo.
+The default is `true`: the config shows up in both places. The flag only hides
+the config from the in-world screen; the values still apply there, and
+`ModContent.GetInstance` reads them the same way. A mod whose configs are all
+like this gets no tab in the world.
 
-## Declarando
+## Declaring
 
-Uma classe que estende `ModConfig`, exportada de qualquer arquivo de `Content/`
-ou `Common/` (o carregador acha sozinho, como o resto do conteúdo):
+A class that extends `ModConfig`, exported from any file in `Content/` or
+`Common/` (the loader finds it on its own, like the rest of the content):
 
 ```js
 // Common/Configs/ExampleConfig.js
@@ -95,47 +98,49 @@ export class ExampleConfig extends ModConfig {
 }
 ```
 
-| Controle | Na tela | O valor |
+| Control | On screen | The value |
 |---|---|---|
-| `ModConfig.Header({ color, align })` | Um título de seção com um fio embaixo: branco e centralizado, ou na cor e no lado pedidos | Nenhum |
-| `ModConfig.Toggle(padrão)` | O interruptor "Desligado / Ligado" do jogo | `true` ou `false` |
-| `ModConfig.Range(padrão, { min, max, step, suffix })` | A barra deslizante do jogo, com o valor ao lado (`suffix` vai depois do número) | Um número de `min` a `max`, sempre num degrau de `step` |
-| `ModConfig.Radio(padrão, [escolhas])` | Um botão por escolha, lado a lado; a escolhida fica verde | O texto da escolha |
-| `ModConfig.Dropdown(padrão, [escolhas])` | A lista suspensa do jogo (como a "Pausa Automática"): toque na linha e escolha; até 12 escolhas | O texto da escolha |
-| `ModConfig.Cycle(padrão, [escolhas])` | `< Escolha >` à direita; cada toque passa para a próxima | O texto da escolha |
-| `ModConfig.Color('#RRGGBB')` | Uma amostra da cor e as barras de tom, saturação e leveza do jogo | `'#RRGGBB'` |
-| `ModConfig.Button('Método')` | Um botão à direita da linha; o toque chama o método da config (ou a função passada) | Nenhum |
-| `ModConfig.Link('https://...')` | Um botão à direita da linha que abre o endereço no navegador | Nenhum |
+| `ModConfig.Header({ color, align })` | A section title with a line below: white and centered, or in the requested color and side | None |
+| `ModConfig.Toggle(default)` | The game's "Off / On" toggle | `true` or `false` |
+| `ModConfig.Range(default, { min, max, step, suffix })` | The game's slider, with the value beside it (`suffix` goes after the number) | A number from `min` to `max`, always on a `step` notch |
+| `ModConfig.Radio(default, [choices])` | One button per choice, side by side; the selected one is green | The choice's text |
+| `ModConfig.Dropdown(default, [choices])` | The game's dropdown (like "Auto Pause"): tap the row and choose; up to 12 choices | The choice's text |
+| `ModConfig.Cycle(default, [choices])` | `< Choice >` on the right; each tap moves to the next one | The choice's text |
+| `ModConfig.Color('#RRGGBB')` | A color swatch and the game's hue, saturation and lightness sliders | `'#RRGGBB'` |
+| `ModConfig.Button('Method')` | A button on the right of the row; a tap calls the config's method (or the function passed) | None |
+| `ModConfig.Link('https://...')` | A button on the right of the row that opens the address in the browser | None |
 
-O `Header` aceita a cor do título e o lado dele, os dois opcionais:
+`Header` accepts the title's color and side, both optional:
 
 ```js
 Visual: ModConfig.Header({ color: '#7FD4FF', align: 'left' }),
 Danger: ModConfig.Header({ color: '#FF6060' }),
 ```
 
-| Campo | Valores | Padrão |
+| Field | Values | Default |
 |---|---|---|
-| `color` | `'#RRGGBB'` (maiúscula ou minúscula) | `'#FFFFFF'`, o branco |
-| `align` | `'left'`, `'center'` ou `'right'` | `'center'` |
+| `color` | `'#RRGGBB'` (upper or lower case) | `'#FFFFFF'`, white |
+| `align` | `'left'`, `'center'` or `'right'` | `'center'` |
 
-Fora disso, o mod não carrega e o erro diz qual cabeçalho está errado.
+Anything else and the mod does not load, and the error says which header is
+wrong.
 
-Qualquer opção aceita `enabledWhen`: o nome de outra opção (a linha só vale
-quando ela está ligada) ou uma função que recebe a config. Desabilitada, a linha
-fica apagada como o "Mapa" das Configurações do jogo e não aceita toque.
+Any option accepts `enabledWhen`: the name of another option (the row only
+applies when that one is on) or a function that receives the config.
+Disabled, the row is dimmed like the game Settings' "Map" and does not accept
+taps.
 
 ```js
 EnablePets: ModConfig.Toggle(false),
 PetGlow: ModConfig.Toggle(true, { enabledWhen: 'EnablePets' }),
 ```
 
-Um `Button` pode chamar os métodos que toda config tem: `ResetToDefaults()`
-volta tudo ao padrão, e `SetOption(chave, valor)` muda uma opção, como o
-"Sortear" do Example Mod. Com a tela aberta, o método do botão roda no
-rascunho: `this` tem os valores da tela, e o que ele muda também espera o
-Aplicar. Fora da tela, os dois mudam a config na hora, gravam e avisam o
-`OnChanged`.
+A `Button` can call the methods every config has: `ResetToDefaults()` sets
+everything back to default, and `SetOption(key, value)` changes one option,
+like the Example Mod's "Randomize". With the screen open, the button's method
+runs on the draft: `this` has the screen's values, and what it changes also
+waits for Apply. Outside the screen, both change the config immediately, save
+it and notify `OnChanged`.
 
 ```js
 RandomGlow: ModConfig.Button('RandomizeGlow'),
@@ -146,20 +151,20 @@ RandomizeGlow() {
 }
 ```
 
-O número da barra aparece com as casas decimais do `step`: `step: 0.1` mostra
-`1.5x`, `step: 10` mostra `150%`.
+The slider's number shows with `step`'s decimal places: `step: 0.1` shows
+`1.5x`, `step: 10` shows `150%`.
 
-As opções aparecem na ordem em que foram escritas. Um mod pode ter mais de uma
-classe `ModConfig`: as opções de todas entram na mesma aba, uma classe depois
-da outra.
+The options show up in the order they were written. A mod can have more than
+one `ModConfig` class: the options of all of them go into the same tab, one
+class after the other.
 
-O [`ExampleConfig`](../../samples/ExampleMod/content/Common/Configs/ExampleConfig.js)
-do Example Mod tem uma seção de exemplo para cada tipo ("Exemplo de
-Interruptor", "Exemplo de Lista Suspensa", "Exemplo de Cor"...).
+The Example Mod's [`ExampleConfig`](../../samples/ExampleMod/content/Common/Configs/ExampleConfig.js)
+has an example section for each type ("Toggle Example", "Dropdown Example",
+"Color Example"...).
 
-## Lendo
+## Reading
 
-O valor atual de cada opção é uma propriedade da instância:
+Each option's current value is a property of the instance:
 
 ```js
 const config = ModContent.GetInstance(ExampleConfig);
@@ -167,58 +172,58 @@ if (config.ShowFlavorText) { ... }
 npc.lifeMax = Math.round(npc.lifeMax * config.BossHealth / 100);
 ```
 
-Leia na hora de usar, não guarde numa variável no carregamento: o jogador pode
-mudar a opção com o jogo aberto.
+Read it when you use it; do not store it in a variable during loading: the
+player can change the option with the game open.
 
-## Os textos
+## The texts
 
-Como no tModLoader, do `Localization/<cultura>.json` do mod:
+As in tModLoader, from the mod's `Localization/<culture>.json`:
 
 ```json
 {
   "Configs": {
     "ExampleConfig": {
-      "BossHealth": { "Label": "Vida do chefe" },
-      "Particles": { "Label": "Partículas", "low": "Poucas", "normal": "Normais", "high": "Muitas" }
+      "BossHealth": { "Label": "Boss health" },
+      "Particles": { "Label": "Particles", "low": "Few", "normal": "Normal", "high": "Many" }
     }
   }
 }
 ```
 
-`Configs.<Classe>.<Opção>.Label` é o nome da linha (num `Header`, o título).
-Num `Radio`, `Dropdown` ou `Cycle`, cada escolha tem a sua chave
-(`Configs.<Classe>.<Opção>.<escolha>`), e num `Button` ou `Link` o texto do
-botão vem de `Configs.<Classe>.<Opção>.Text`. Sem o arquivo, vale o
-`label` passado na opção (`ModConfig.Toggle(true, { label: 'Modo rápido' })`, e
-`labels: [...]` para as escolhas de um `Radio`); sem ele, o nome da opção
-separado ("BossHealth" vira "Boss Health"). O "Ligado" e o "Desligado" do
-interruptor vêm do próprio jogo, no idioma dele.
+`Configs.<Class>.<Option>.Label` is the row's name (in a `Header`, the
+title). In a `Radio`, `Dropdown` or `Cycle`, each choice has its own key
+(`Configs.<Class>.<Option>.<choice>`), and in a `Button` or `Link` the button
+text comes from `Configs.<Class>.<Option>.Text`. Without the file, the
+`label` passed in the option applies (`ModConfig.Toggle(true, { label: 'Fast mode' })`,
+and `labels: [...]` for a `Radio`'s choices); without it, the option's name
+split into words ("BossHealth" becomes "Boss Health"). The toggle's "On" and
+"Off" come from the game itself, in its language.
 
-Prefira nomes curtos: a linha de uma barra divide o espaço com o valor e com a
-barra, e um nome longo encosta no número (no Example Mod, "Quantidade de
-minério" virou "Minério"). As escolhas de um `Radio` encolhem para caber no
-botão.
+Prefer short names: a slider row shares the space with the value and the
+slider, and a long name runs into the number (in the Example Mod, "Ore
+amount" became "Ore"). A `Radio`'s choices shrink to fit the button.
 
-## Onde fica salvo
+## Where it is saved
 
-Em `mod_data/<uid do mod>/<Classe>.json`, só o que difere do padrão. Grava no
-Aplicar (e na hora, no `SetOption` fora da tela). Um valor salvo que não serve
-mais (a opção foi removida, o `Radio` perdeu a escolha, o número saiu da faixa nova) volta ao
-padrão: uma versão nova do mod não quebra por causa da config da antiga.
+In `mod_data/<mod uid>/<Class>.json`, only what differs from the default. It
+saves on Apply (and immediately, with `SetOption` outside the screen). A saved
+value that no longer fits (the option was removed, the `Radio` lost the
+choice, the number fell out of the new range) goes back to the default: a new
+version of the mod does not break because of the old one's config.
 
-## Ganchos
+## Hooks
 
-- `OnLoaded()`: os valores acabaram de ser lidos do arquivo, no carregamento do
-  mod.
-- `OnChanged(key)`: a opção `key` mudou. Pela tela, vem no Aplicar, uma vez
-  por opção que mudou.
-- `OnApply()`: o jogador apertou Aplicar e esta config mudou; vem depois dos
-  `OnChanged` dela, com os valores novos já na config.
+- `OnLoaded()`: the values were just read from the file, when the mod loads.
+- `OnChanged(key)`: option `key` changed. From the screen, it comes on Apply,
+  once per changed option.
+- `OnApply()`: the player pressed Apply and this config changed; it comes
+  after its `OnChanged`s, with the new values already in the config.
 
-## O que ainda não tem
+## What is not there yet
 
-- **Opções do servidor.** Toda opção é do aparelho (o `ClientSide` do
-  tModLoader): no multijogador, cada jogador tem as suas.
-- Campo de texto e número digitado (`Text` e `Number`): dependem do teclado do
-  Android aberto de dentro do menu de pausa, que ainda não funciona direito.
-- Lista de itens e escolha de item.
+- **Server options.** Every option belongs to the device (tModLoader's
+  `ClientSide`): in multiplayer, each player has their own.
+- Text fields and typed numbers (`Text` and `Number`): they depend on the
+  Android keyboard opened from inside the pause menu, which does not work
+  properly yet.
+- Item lists and item pickers.

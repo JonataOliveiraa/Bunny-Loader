@@ -1,8 +1,8 @@
-# Dependências nativas de terceiros
+# Third-party native dependencies
 
 ## ShadowHook (hooking)
 
-Vem pelo Gradle via **prefab**, não precisa de nada aqui:
+Comes through Gradle via **prefab**, nothing needed here:
 
 ```kotlin
 // app/build.gradle.kts
@@ -10,23 +10,23 @@ buildFeatures { prefab = true }
 dependencies { implementation("com.bytedance.android:shadowhook:1.0.10") }
 ```
 
-O CMake consome com `find_package(shadowhook REQUIRED CONFIG)`.
+CMake consumes it with `find_package(shadowhook REQUIRED CONFIG)`.
 
-## QuickJS (motor de mod)
+## QuickJS (mod engine)
 
-**Não versionado** — clone localmente para `third_party/quickjs/`. Usamos o fork
-**quickjs-ng** (mantido, compila no NDK):
+**Not versioned** — clone it locally into `third_party/quickjs/`. We use the
+**quickjs-ng** fork (maintained, builds with the NDK):
 
 ```bash
 git clone --depth 1 --branch v0.17.0   https://github.com/quickjs-ng/quickjs.git   app/src/main/cpp/third_party/quickjs
 ```
 
-Nosso `CMakeLists.txt` compila os fontes do quickjs-ng v0.17:
-`quickjs.c`, `libregexp.c`, `libunicode.c`, `dtoa.c` (com `_GNU_SOURCE`). O
-`quickjs.c` entra pelo nosso `script/bridge/QuickJsExt.c`, que o inclui e
-acrescenta o acesso à pilha de frames do runtime (o motor compartilhado entre
-threads, ver `JsSuspend`); o clone fica intacto.
-Não há mais `cutils.c`/`libbf` como no QuickJS clássico.
+Our `CMakeLists.txt` builds the quickjs-ng v0.17 sources: `quickjs.c`,
+`libregexp.c`, `libunicode.c`, `dtoa.c` (with `_GNU_SOURCE`). `quickjs.c` comes
+in through our `script/bridge/QuickJsExt.c`, which includes it and adds access
+to the runtime's frame stack (the engine shared between threads, see
+`JsSuspend`); the clone stays untouched. There is no `cutils.c`/`libbf` anymore
+as in classic QuickJS.
 
-Sem a pasta, o build ainda funciona: o `ScriptEngine` compila em modo stub
-(`BL_HAVE_QUICKJS` desligado) e o jogo sobe sem mods.
+Without the folder, the build still works: `ScriptEngine` compiles in stub mode
+(`BL_HAVE_QUICKJS` off) and the game boots without mods.

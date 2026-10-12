@@ -1,36 +1,36 @@
 # unity-classes.jar
 
-**Fora do Git.** O jar é da Unity Technologies, então não é publicado com o
-código: quem compila extrai pela receita de "Procedência" abaixo e põe aqui,
-em `app/libs/unity-classes.jar`. Sem ele o app compila (a `UnityPlayer` é
-carregada por reflection), mas o jogo não sobe.
+**Out of Git.** The jar belongs to Unity Technologies, so it is not published
+with the code: whoever builds extracts it with the "Provenance" recipe below
+and puts it here, at `app/libs/unity-classes.jar`. Without it the app builds
+(`UnityPlayer` is loaded through reflection), but the game does not boot.
 
-Classes Java do **Unity Android Player 2021.3.56f2** (variação `il2cpp/Release`),
-que é exatamente a engine do Terraria alvo:
+Java classes of the **Unity Android Player 2021.3.56f2** (`il2cpp/Release`
+variation), which is exactly the target Terraria's engine:
 
     Unity : Built from '2021.3/respin/2021.3.56f2-4f19b0708d3a-v2'
-            Version '2021.3.56f2 (667925324b48)'   <- changeset usado abaixo
+            Version '2021.3.56f2 (667925324b48)'   <- changeset used below
 
-## Por que precisamos delas
+## Why we need them
 
-O Bunny Loader hospeda o jogo no próprio processo. Para isso é preciso uma
-`com.unity3d.player.UnityPlayer` **limpa**.
+Bunny Loader hosts the game in its own process. That requires a **clean**
+`com.unity3d.player.UnityPlayer`.
 
-As classes que vêm no APK do Terraria NÃO servem: o PairIP cifra as constantes de
-string de todo o app, inclusive dentro das classes do Unity — por exemplo
-`UnityPlayer.getNaturalOrientation()` lê uma string que deveria ser `"window"` e
-recebe `null`, estourando em `getSystemService(null)`. Foi o que derrubou a Fase 1.
-Ver `docs/historico/UNITY-HOSTING.md`.
+The classes that ship in the Terraria APK do NOT work: PairIP encrypts the
+string constants of the whole app, including inside the Unity classes — for
+example `UnityPlayer.getNaturalOrientation()` reads a string that should be
+`"window"` and gets `null`, blowing up in `getSystemService(null)`. That is
+what took down Phase 1. See `docs/historico/UNITY-HOSTING.md`.
 
-## Procedência (reproduzir)
+## Provenance (to reproduce)
 
-Pacote oficial da Unity, módulo Android para o editor 2021.3.56f2. Usamos o
-`.pkg` (macOS) porque é um xar comum — as classes são Java, independem do SO, e
-o instalador Windows exige privilégio de administrador:
+Unity's official package, the Android module for the 2021.3.56f2 editor. We use
+the `.pkg` (macOS) because it is a plain xar — the classes are Java and do not
+depend on the OS, and the Windows installer requires administrator privileges:
 
     https://download.unity3d.com/download_unity/667925324b48/
       MacEditorTargetInstaller/UnitySetup-Android-Support-for-Editor-2021.3.56f2.pkg
 
-Dentro: `Payload` (gzip + cpio odc) -> `./Variations/il2cpp/Release/Classes/classes.jar`.
+Inside: `Payload` (gzip + cpio odc) -> `./Variations/il2cpp/Release/Classes/classes.jar`.
 
-NÃO é conteúdo do Terraria — é o runtime Android da Unity.
+It is NOT Terraria content — it is Unity's Android runtime.

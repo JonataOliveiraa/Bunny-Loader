@@ -1,8 +1,8 @@
 # PlayerDrawLayer
 
-Suíte para camadas JS personalizadas no renderer móvel 301720.
+A suite for custom JS layers in the mobile 301720 renderer.
 
-## Automação
+## Automation
 
 ```powershell
 node tools/tests/playerdrawlayers/check.mjs
@@ -10,55 +10,54 @@ node tools/tests/moditemhooks/check.mjs
 node tools/tests/hairsettings/check.mjs
 ```
 
-`check.mjs` reutiliza o harness de ModPlayer, executando suas 55 verificações
-antes das 28 verificações novas. As 153 assinaturas de hooks e quatro etapas
-internas continuam conferidas contra `refs/dump.cs`.
+`check.mjs` reuses the ModPlayer harness, running its 55 checks before the 28
+new ones. The 153 hook signatures and four internal steps are still checked
+against `refs/dump.cs`.
 
-Os cenários novos verificam registro manual e automático, conteúdo pronto,
-registro tardio, cache de posições, filhos anteriores/posteriores, nomes
-entre mods, ciclos, exceções, shaders, preservação do cache, mudança de pai,
-movimento do grupo nativo e restauração de filtros. Um cenário inicia o
-carregador somente com uma camada personalizada, sem nenhum ModPlayer.
-Outro envolve desenhos aninhados de dois jogadores com shaders diferentes.
+The new scenarios check manual and automatic registration, content ready,
+late registration, the positions cache, earlier/later children, names across
+mods, cycles, exceptions, shaders, preserving the cache, changing the parent,
+moving the native group and restoring filters. One scenario starts the loader
+with only a custom layer, with no ModPlayer at all. Another involves nested
+draws of two players with different shaders.
 
-O exemplo `WingsGlowmask` também é executado: configuração por slot,
-validação de frames e offsets, quadro de textura, direção, transparência,
-shader e exclusão de jogadores mortos, invisíveis ou sem asas configuradas.
-O teste confirma que o cache recebe o `DrawData` construído.
+The `WingsGlowmask` example also runs: per-slot configuration, validating
+frames and offsets, the texture frame, direction, transparency, shader and
+excluding players that are dead, invisible or have no configured wings. The
+test confirms the cache receives the built `DrawData`.
 
-Uma camada somente nas asas precisa acionar exatamente um hook nativo de
-camada no JavaScript. Camadas invisíveis não acionam esses hooks. Reordenar
-um pai nativo preserva seu grupo e os dados antes/depois do grupo.
+A layer only on the wings must trigger exactly one native layer hook in
+JavaScript. Invisible layers do not trigger those hooks. Reordering a native
+parent keeps its group and the data before/after the group.
 
-## Teste Android
+## Android test
 
-O fixture usa autoload para quatro camadas exportadas e registra uma quinta
-durante a execução. O renderer normal desenha marcadores com `DrawData`,
-sem chamada direta a `SpriteBatch`. O observador examina as entradas ativas
-depois de `DrawPlayer_RenderAllLayers`.
+The fixture uses autoload for four exported layers and registers a fifth
+while running. The normal renderer draws markers with `DrawData`, without a
+direct call to `SpriteBatch`. The observer examines the active entries after
+`DrawPlayer_RenderAllLayers`.
 
-Etapas: visível, pai nativo oculto, pai personalizado invisível, mudança de
-pai, reordenação nativa, ciclo, registro tardio e desenho sem alterações.
-Também confere que os filtros de Wings/Head estão ativos no desenho visível
-e que Skin permanece fora do JavaScript. O estado final exige contagens
-positivas nas oito etapas, nenhuma falha, cinco inicializações e nove
-consultas de posição.
+Steps: visible, native parent hidden, custom parent invisible, parent change,
+native reordering, cycle, late registration and drawing with no changes. It
+also checks that the Wings/Head filters are active in the visible draw and that
+Skin stays out of JavaScript. The final state requires positive counts in the
+eight steps, no failures, five initializations and nine position queries.
 
-Prepare somente em um dispositivo de teste. O helper salva os valores
-originais e restaura as preferências alteradas no cleanup:
+Prepare only on a test device. The helper saves the original values and
+restores the changed preferences on cleanup:
 
 ```powershell
 python tools/tests/moditemhooks/device.py prepare --fixture playerdrawlayers --run-id layers --isolate
 adb -s 127.0.0.1:16384 shell am start -n com.bunnyloader/dev.bunnyloader.LauncherActivity
 ```
 
-Inicie o jogo pelo launcher. Após 470 atualizações do jogador local,
-procure `playerdrawlayers FIM` no log do processo `com.bunnyloader:game`.
-Confirme `passed: true` e os marcadores na tela. Ao terminar:
+Start the game from the launcher. After 470 updates of the local player, look
+for `playerdrawlayers FIM` in the log of the `com.bunnyloader:game` process.
+Confirm `passed: true` and the markers on screen. When done:
 
 ```powershell
 python tools/tests/moditemhooks/device.py cleanup --fixture playerdrawlayers --run-id layers
 ```
 
-Resultados auditados e limites: [RESULTADOS.md](RESULTADOS.md).
-Contrato público: [PlayerDrawLayer](../../../docs/referencia/playerdrawlayers.md).
+Audited results and limits: [RESULTADOS.md](RESULTADOS.md).
+Public contract: [PlayerDrawLayer](../../../docs/referencia/playerdrawlayers.md).

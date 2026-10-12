@@ -1,63 +1,63 @@
-# ModSystem: implementação e validação
+# ModSystem: implementation and validation
 
-## Análise
+## Analysis
 
-A referência é a cópia local de `exmod_tmod/tModLoader/patches/tModLoader/Terraria/ModLoader/ModSystem.cs`, junto das chamadas de `SystemLoader`, `Main`, `WorldGen`, `MessageBuffer` e `NetMessage`. Assinaturas móveis foram conferidas em `refs/dump.cs`; pontos internos foram conferidos em `refs/script.json` e `refs/libil2cpp.so` da versão 301720.
+The reference is the local copy of `exmod_tmod/tModLoader/patches/tModLoader/Terraria/ModLoader/ModSystem.cs`, together with the calls from `SystemLoader`, `Main`, `WorldGen`, `MessageBuffer` and `NetMessage`. The mobile signatures were checked in `refs/dump.cs`; the internal points were checked in `refs/script.json` and `refs/libil2cpp.so` from version 301720.
 
-Entradas: sistemas registrados, lista nativa de etapas, estado do mundo e argumentos de desenho/rede. Saídas: callbacks nas bordas dos grupos, etapas editadas, valores por Ref e vetos. Casos cobertos: nenhuma sobrescrita, registros posteriores, geração cancelada, etapas desativadas, pesos inválidos, taxas fracionárias e não finitas, menus, exceções, cabeçalho ausente, leitores substituídos e descarregamento repetido.
+Inputs: registered systems, the native list of steps, the world state and drawing/network arguments. Outputs: callbacks at the groups' edges, edited steps, values through Ref and vetoes. Cases covered: no overrides, later registrations, a cancelled generation, disabled steps, invalid weights, fractional and non-finite rates, menus, exceptions, a missing header, replaced readers and repeated unloading.
 
-## Projeto
+## Design
 
-| Abordagem | Tempo por atualização | Espaço | Manutenção |
+| Approach | Time per update | Space | Maintenance |
 | --- | --- | --- | --- |
-| Interceptar cada entidade e contar as bordas | Proporcional às entidades, além dos sistemas interessados | Contadores e estados intermediários | Depende da quantidade e de caminhos de atualização de cada entidade |
-| Interceptar diretamente as bordas dos grupos | Proporcional aos sistemas interessados por callback | Listas de sobrescritas em cache | Nove pontos internos com verificação de instruções, além dos métodos públicos |
+| Intercept each entity and count the edges | Proportional to the entities, on top of the interested systems | Counters and intermediate states | Depends on the number and update paths of each entity |
+| Intercept the groups' edges directly | Proportional to the systems interested per callback | Cached override lists | Nine internal points with instruction checks, plus the public methods |
 
-A implementação usa a segunda abordagem. Nenhum ponto de grupo é instalado sem uma sobrescrita correspondente. As listas são invalidadas no registro de um sistema, sem procurar sobrescritas ou criar uma função por ouvinte a cada tick. A edição das etapas custa O(n), onde n é a quantidade de etapas, e ocorre na geração.
+The implementation uses the second approach. No group point is installed without a matching override. The lists are invalidated when a system registers, without looking for overrides or creating a function per listener every tick. Editing the steps costs O(n), where n is the number of steps, and happens during generation.
 
-`GenPass` e `PassLegacy` JS possuem um PassLegacy nativo; o hook de ApplyPass encaminha as etapas personalizadas para seus callbacks. As etapas nativas existentes mantêm sua implementação. A lista JS fica referenciada durante a chamada do gerador.
+JS `GenPass` and `PassLegacy` have a native PassLegacy; the ApplyPass hook forwards the custom steps to their callbacks. The existing native steps keep their implementation. The JS list is referenced during the generator's call.
 
-## Testes automatizados
+## Automated tests
 
 ```powershell
 node tools/tests/modsystemhooks/check.mjs
 python tools/tests/modsystemhooks/verify_native.py
 ```
 
-Resultado: **32 grupos de verificações**, **27 hooks de métodos nativos** exercitados pela suíte e **9 pontos internos** com instruções conferidas no binário. O teste também confere assinaturas e nomes dos parâmetros contra o dump.
+Result: **32 groups of checks**, **27 native method hooks** exercised by the suite and **9 internal points** with instructions checked in the binary. The test also checks signatures and parameter names against the dump.
 
-As verificações incluem ordem de execução, valores Ref, três taxas independentes, listas de geração, sucesso/cancelamento, Hardmode, receitas, cache de ouvintes, cabeçalhos, rejeição de mundos, envio/recebimento e isolamento de exceções. Subclasses diretas de GenPass preservam o estado da instância, recebem os argumentos de ApplyPass e respeitam Enable/Disable; uma exceção na subclasse permite executar o PassLegacy seguinte. A câmera usa um único hook e preserva ModPlayer antes de ModSystem nas duas ordens de registro. Um veto permanece válido mesmo se a mensagem de rejeição lançar uma exceção ou se um callback que cancelou um pacote fornecer Ref inválida.
+The checks include execution order, Ref values, three independent rates, generation lists, success/cancellation, Hardmode, recipes, the listener cache, headers, world rejection, sending/receiving and exception isolation. Direct GenPass subclasses keep the instance's state, receive ApplyPass's arguments and respect Enable/Disable; an exception in a subclass lets the next PassLegacy run. The camera uses a single hook and keeps ModPlayer before ModSystem in both registration orders. A veto remains valid even if the rejection message throws or if a callback that cancelled a packet provides an invalid Ref.
 
-Regressões: ModPlayer **55**, ModItem **138**, localização **95**, PlayerDrawLayer **28** e cabelo **11** verificações passaram. Esses testes usam um ambiente JS controlado; não substituem execução no jogo.
+Regressions: ModPlayer **55**, ModItem **138**, localization **95**, PlayerDrawLayer **28** and hair **11** checks passed. These tests use a controlled JS environment; they do not replace running in the game.
 
-## Fixture nativo em singleplayer
-
-```powershell
-python tools/tests/moditemhooks/device.py prepare --fixture modsystemhooks --run-id minha-execucao --isolate
-```
-
-Inicie o jogo com um personagem e mundo de teste. O fixture registra as chamadas e emite `MODSYSTEM_RESULT` depois de 240 ticks. A limpeza usa o mesmo identificador:
+## Native single player fixture
 
 ```powershell
-python tools/tests/moditemhooks/device.py cleanup --fixture modsystemhooks --run-id minha-execucao
+python tools/tests/moditemhooks/device.py prepare --fixture modsystemhooks --run-id my-run --isolate
 ```
 
-O helper preserva e restaura as preferências alteradas, instala o UID exclusivo do fixture e verifica os caminhos antes de removê-los. Os backups ficam em `build/modsystemhooks/<run-id>`.
+Start the game with a test character and world. The fixture records the calls and emits `MODSYSTEM_RESULT` after 240 ticks. The cleanup uses the same identifier:
 
-O fixture valida no gerador nativo a inserção de duas etapas, a desativação da etapa original, a ordem antes/depois e PostWorldGen. Como a chamada sintética ocorre na thread de atualização, somente durante esse teste o fixture pula `ThreadManager.CheckThreadTerminiate`: o gerador normal exige uma thread gerenciada de geração. O código de produção conserva essa verificação. As etapas sintéticas não geram terreno; não é um teste de criação completa de mundo nem de geração em uma thread de trabalho.
+```powershell
+python tools/tests/moditemhooks/device.py cleanup --fixture modsystemhooks --run-id my-run
+```
 
-A etapa padrão de Hardmode é desativada apenas pelo fixture antes de executar uma etapa temporária. Isso comprova a edição da lista, sem converter o mundo de teste. O recebimento usa MessageBuffer real, cancela um pacote temporário e verifica a saída por Ref. O teste das taxas usa quatro ticks reais com clock 0,25, tiles 0,5 e eventos 0,75, verificando o avanço total do relógio e a acumulação independente dos campos inteiros. Um ModPlayer temporário verifica a ordem da câmera compartilhada no jogo.
+The helper keeps and restores the changed preferences, installs the fixture's unique UID and checks the paths before removing them. The backups live in `build/modsystemhooks/<run-id>`.
 
-O resultado da execução está em [native-singleplayer.log](native-singleplayer.log). Os testes de rede desta rodada não comprovam uma sessão multiplayer entre dispositivos. Persistência de cabeçalho, bloqueio do menu e descarregamento foram validados na suíte automatizada; não são afirmados como testes completos de UI/salvamento no aparelho.
+The fixture validates in the native generator inserting two steps, disabling the original step, the before/after order and PostWorldGen. Since the synthetic call happens on the update thread, only during this test the fixture skips `ThreadManager.CheckThreadTerminiate`: the normal generator requires a managed generation thread. The production code keeps that check. The synthetic steps generate no terrain; it is not a test of full world creation nor of generation on a worker thread.
 
-## Geração completa com GenPass e PassLegacy
+The default Hardmode step is disabled only by the fixture before running a temporary step. That proves the list editing, without converting the test world. Receiving uses the real MessageBuffer, cancels a temporary packet and checks the output through Ref. The rates test uses four real ticks with clock 0.25, tiles 0.5 and events 0.75, checking the clock's total advance and the independent accumulation of the integer fields. A temporary ModPlayer checks the order of the shared camera in the game.
 
-O [fixture genpassworld](../genpassworld/README.md) foi executado separadamente pelo menu normal, na thread gerenciada `worldGenCallback`, sem substituir checagens de thread. Gerou um mundo de **4200 × 1200**, completou as **106 etapas nativas**, executou duas subclasses diretas de GenPass e um PassLegacy na ordem esperada e manteve uma etapa desativada sem chamadas. A estrutura de **35 blocos** persistiu no `.wld` válido e foi conferida após reiniciar o processo e carregar o mundo. Os [resultados nativos](../genpassworld/native-results.log) passaram pelo verificador independente do fixture. Essa execução complementa o gerador sintético descrito acima; não executa a conversão completa de Hardmode.
+The run's result is in [native-singleplayer.log](native-singleplayer.log). This round's network tests do not prove a multiplayer session between devices. Header persistence, menu blocking and unloading were validated in the automated suite; they are not claimed as complete UI/save tests on the device.
 
-## Método descartado
+## Full generation with GenPass and PassLegacy
 
-`RequiresScreenTarget`: o renderer móvel usa Unity, não chama `FilterManager.CanCapture` e não tem `Main.finalScreenTarget`. Main.screenTarget não constitui a captura final solicitada pelo método. Retornar true não teria o efeito esperado do tModLoader.
+The [genpassworld fixture](../genpassworld/README.md) was run separately from the normal menu, on the managed `worldGenCallback` thread, without replacing thread checks. It generated a **4200 × 1200** world, completed the **106 native steps**, ran two direct GenPass subclasses and a PassLegacy in the expected order and kept a disabled step without calls. The **35-block** structure persisted in the valid `.wld` and was checked after restarting the process and loading the world. The [native results](../genpassworld/native-results.log) passed the fixture's independent verifier. That run complements the synthetic generator described above; it does not run the full Hardmode conversion.
 
-## Adaptações
+## Dropped method
 
-`ModifyWorldGenTasks(tasks)` tem um argumento, seguindo a referência local atual. PreWorldGen roda depois de montar a lista móvel e antes de executá-la. Hardmode expõe a etapa única **Hardmode Conversion**, em vez dos passos Good/Evil/Walls. Cabeçalhos usam o arquivo auxiliar local `.wld.bl.header.json`; não há persistência em nuvem. Contratos e exemplos: [modsystem-hooks.md](../../../docs/referencia/modsystem-hooks.md).
+`RequiresScreenTarget`: the mobile renderer uses Unity, does not call `FilterManager.CanCapture` and has no `Main.finalScreenTarget`. Main.screenTarget is not the final capture the method asks for. Returning true would not have the effect tModLoader expects.
+
+## Adaptations
+
+`ModifyWorldGenTasks(tasks)` has one argument, following the current local reference. PreWorldGen runs after the mobile list is built and before it runs. Hardmode exposes the single **Hardmode Conversion** step, instead of the Good/Evil/Walls steps. Headers use the local auxiliary file `.wld.bl.header.json`; there is no cloud persistence. Contracts and examples: [modsystem-hooks.md](../../../docs/referencia/modsystem-hooks.md).

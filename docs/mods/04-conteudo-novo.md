@@ -1,78 +1,79 @@
-# 4. Conteúdo novo: as ideias
+# 4. New content: the ideas
 
-Para **criar** o que o jogo não tem (um item, uma arma que atira um projétil
-seu, um inimigo com drop e spawn natural, um chefe, um morador, um bloco), o
-Bunny Loader traz as classes no formato do **tModLoader**: o mod **estende** a
-classe, preenche o que quer e **registra**. O Bunny Loader dá um número ao tipo
-novo, põe a textura e o nome no jogo, e instala os hooks por você.
+To **create** what the game does not have (an item, a weapon that shoots your
+own projectile, an enemy with drops and natural spawning, a boss, a town NPC,
+a tile), Bunny Loader provides classes in the **tModLoader** style: the mod
+**extends** the class, fills in what it wants and **registers** it. Bunny
+Loader gives the new type a number, puts the texture and the name into the
+game, and installs the hooks for you.
 
-Este guia explica as ideias que valem para todas as classes. Os seguintes
-tratam de cada uma:
+This guide explains the ideas that apply to every class. The following ones
+cover each class:
 
-| Guia | Classes |
+| Guide | Classes |
 |---|---|
-| [5. Itens](05-itens.md) | `ModItem`, `ModPrefix`, `ModRecipe`, `ModSystem`, tooltip, vara de pesca. |
-| [6. Projéteis](06-projeteis.md) | `ModProjectile`; pets, lacaios e sentinelas. |
-| [7. NPCs](07-npcs.md) | `ModNPC`: inimigos, drops, spawn, Bestiário, moradores, chefes. |
-| [8. Jogador e buffs](08-jogador-e-buffs.md) | `ModPlayer`, `ModBuff`. |
-| [9. Blocos](09-blocos.md) | `ModTile`. |
-| [10. Sons e música](10-sons-e-musica.md) | `SoundStyle`, `SoundEngine`, `MusicLoader`. |
+| [5. Items](05-itens.md) | `ModItem`, `ModPrefix`, `ModRecipe`, `ModSystem`, tooltips, fishing rods. |
+| [6. Projectiles](06-projeteis.md) | `ModProjectile`; pets, minions and sentries. |
+| [7. NPCs](07-npcs.md) | `ModNPC`: enemies, drops, spawning, Bestiary, town NPCs, bosses. |
+| [8. Player and buffs](08-jogador-e-buffs.md) | `ModPlayer`, `ModBuff`. |
+| [9. Tiles](09-blocos.md) | `ModTile`. |
+| [10. Sounds and music](10-sons-e-musica.md) | `SoundStyle`, `SoundEngine`, `MusicLoader`. |
 
-A lista completa do que cada classe oferece está na
-[referência das classes](../referencia/classes.md).
+The full list of what each class offers is in the
+[class reference](../referencia/classes.md).
 
-Pré-requisito: o [guia 1](01-hooks-do-zero.md). Tudo de lá (campos, métodos,
-structs) vale dentro das classes.
+Prerequisite: [guide 1](01-hooks-do-zero.md). Everything from there (fields,
+methods, structs) applies inside the classes.
 
-## O Example Mod
+## The Example Mod
 
-Os guias usam o [`samples/ExampleMod`](../../samples/ExampleMod) do começo ao
-fim: abra-o ao lado. Ele é o `ExampleMod` do tModLoader portado para o Bunny
-Loader, com itens, armas, munição, projéteis, pets, lacaios, NPCs, um morador
-com loja, um chefe com música, blocos, buffs e receitas.
+The guides use [`samples/ExampleMod`](../../samples/ExampleMod) from start to
+finish: keep it open alongside. It is tModLoader's `ExampleMod` ported to
+Bunny Loader, with items, weapons, ammo, projectiles, pets, minions, NPCs, a
+town NPC with a shop, a boss with music, tiles, buffs and recipes.
 
-![O Mod Menu com a entrada do Example Mod e as pastas dele](../imagens/mod-menu-example-mod.jpg)
+![The Mod Menu with the Example Mod entry and its folders](../imagens/mod-menu-example-mod.jpg)
 
-## A estrutura
+## The layout
 
-A mesma do tModLoader:
+The same as tModLoader's:
 
 ```
 ExampleMod/
   manifest.json
   icon.png
   content/
-    main.js                      a classe do mod: export default class ExampleMod extends Mod
+    main.js                      the mod class: export default class ExampleMod extends Mod
     Assets/
       Textures/
-        Items/ExampleItem.png    as texturas, na mesma árvore do código
+        Items/ExampleItem.png    textures, in the same tree as the code
         Projectiles/ExampleBulletProjectile.png
         NPCs/ExampleSlimeNPC.png
-      Sounds/, Music/            áudio (guia 10)
+      Sounds/, Music/            audio (guide 10)
     Common/
-      Players/ExampleDashPlayer.js     o que não é coisa nova: ModPlayer,
+      Players/ExampleDashPlayer.js     what is not new stuff: ModPlayer,
       Systems/DownedBossSystem.js      ModSystem, Global*
     Content/
-      Items/ExampleItem.js       o que é novo, uma classe por arquivo
+      Items/ExampleItem.js       what is new, one class per file
       Items/Weapons/Melee/ExampleMeleeWeapon.js
       Projectiles/ExampleBulletProjectile.js
       NPCs/ExampleSlimeNPC.js
     Localization/
-      pt-BR.json                 nomes e descrições, por idioma
+      pt-BR.json                 names and descriptions, per language
       en-US.json
 ```
 
-O `main.js` só tem a classe do mod. Toda classe exportada em `Content/` e
-`Common/` é registrada sozinha, e a textura dela fica **ao lado do arquivo**,
-com o mesmo nome, como no tModLoader ([README](README.md#o-registro-automático)).
+`main.js` only has the mod class. Every class exported in `Content/` and
+`Common/` is registered on its own, and its texture sits **next to the
+file**, with the same name, as in tModLoader ([README](README.md#automatic-registration)).
 
-## Estender e registrar
+## Extending and registering
 
-Uma classe de conteúdo é uma classe JS que estende a base e sobrescreve os
-métodos que interessam:
+A content class is a JS class that extends the base and overrides the methods
+it cares about:
 
 ```js
-// content/Content/Items/ExampleItem.js  (textura: Content/Items/ExampleItem.png)
+// content/Content/Items/ExampleItem.js  (texture: Content/Items/ExampleItem.png)
 export class ExampleItem extends ModItem {
     SetDefaults() {
         this.Item.maxStack = ModItem.CommonMaxStack;
@@ -81,40 +82,40 @@ export class ExampleItem extends ModItem {
 }
 ```
 
-Exportar basta: o Bunny Loader carrega o arquivo e **registra** a classe. O
-`main.js` fica só com a classe do mod:
+Exporting is enough: Bunny Loader loads the file and **registers** the class.
+`main.js` keeps only the mod class:
 
 ```js
 // content/main.js
 export default class ExampleMod extends Mod {}
 ```
 
-Para registrar na mão (uma classe com `static Autoload = false`, ou uma que só
-existe se outro mod estiver instalado), chame o `register` no `Load()` do mod:
-`ModItem.register(Classe)`.
+To register by hand (a class with `static Autoload = false`, or one that only
+exists if another mod is installed), call `register` in the mod's `Load()`:
+`ModItem.register(Class)`.
 
-As classes base são **globais**: `ModItem`, `ModProjectile`, `ModNPC`,
-`ModBuff`, `ModTile`, `ModPlayer`, `ModSystem`, `ModRecipe`... Nada de
-`import` para elas, nem para os [ajudantes](#ajudantes).
+The base classes are **globals**: `ModItem`, `ModProjectile`, `ModNPC`,
+`ModBuff`, `ModTile`, `ModPlayer`, `ModSystem`, `ModRecipe`... No `import`
+for them, nor for the [helpers](#helpers).
 
-### Classes base do seu mod (as `abstract` do tModLoader)
+### Your mod's base classes (tModLoader's `abstract` ones)
 
-Mod grande costuma ter uma classe intermediária que só serve de base para
-outras: no Thorium, `abstract class BardItem : ModItem`, e todo instrumento a
-estende. O C# tem `abstract`, e o tModLoader pula as classes abstratas sozinho.
-O JavaScript não tem `abstract`: para o Bunny Loader, uma classe exportada que
-estende `ModItem` é um item, e uma base exportada viraria um item a mais no
-jogo, sem textura, com o nome da classe.
+Big mods often have an intermediate class that only serves as a base for
+others: in Thorium, `abstract class BardItem : ModItem`, and every instrument
+extends it. C# has `abstract`, and tModLoader skips abstract classes on its
+own. JavaScript has no `abstract`: for Bunny Loader, an exported class that
+extends `ModItem` is an item, and an exported base would become one more item
+in the game, with no texture, named after the class.
 
-Marque a base com **`static Autoload = false`**:
+Mark the base with **`static Autoload = false`**:
 
 ```js
 // content/Content/Items/Bard/BardItem.js
-// Base dos instrumentos: não é um item.
+// Base for the instruments: not an item.
 export class BardItem extends ModItem {
     static Autoload = false;
 
-    // O que todo instrumento tem; a filha muda o que precisar.
+    // What every instrument has; a subclass changes what it needs.
     InspirationCost = 1;
 
     SetDefaults() {
@@ -124,9 +125,9 @@ export class BardItem extends ModItem {
         this.Item.rare = ItemRarityID.Green;
     }
 
-    // Um método escrito só aqui vale para todas as filhas.
+    // A method written only here applies to every subclass.
     ModifyTooltips(item, tooltips) {
-        tooltips.push(new TooltipLine(this.Mod, 'Inspiration', 'Custa ' + this.InspirationCost + ' de inspiração'));
+        tooltips.push(new TooltipLine(this.Mod, 'Inspiration', 'Costs ' + this.InspirationCost + ' inspiration'));
     }
 }
 ```
@@ -135,216 +136,217 @@ export class BardItem extends ModItem {
 // content/Content/Items/Bard/GrandPiano.js
 import { BardItem } from './BardItem.js';
 
-// Esta é registrada: um item, com a textura GrandPiano.png ao lado.
+// This one is registered: an item, with the GrandPiano.png texture next to it.
 export class GrandPiano extends BardItem {
     InspirationCost = 3;
 
     SetDefaults() {
-        super.SetDefaults();          // o comum, da base
-        this.Item.damage = 40;        // o deste instrumento
+        super.SetDefaults();          // the shared part, from the base
+        this.Item.damage = 40;        // this instrument's own
         this.Item.width = 40;
         this.Item.height = 30;
     }
 }
 ```
 
-Como funciona:
+How it works:
 
-- **O `Autoload = false` não passa para as filhas.** Ele só vale para a classe
-  que o declara (a filha não o tem como seu), então a base fica de fora e
-  `GrandPiano` entra normalmente. Uma filha que também deva ficar de fora (uma
-  base de segundo nível, como `PercussionItem extends BardItem`) declara o
-  dela.
-- **Tudo da base vale na filha**: campos, métodos e `get`. Um método escrito só
-  na base (o `ModifyTooltips` acima) instala o hook dele como se estivesse na
-  filha; o `super.Metodo()` chama o da base.
-- **A base não precisa de textura**: ela não é registrada. A de cada filha é a
-  dela, ao lado do arquivo dela ([Texturas](#texturas)).
-- **`instanceof` funciona**: para saber se um item do jogo é um instrumento do
-  seu mod, de qualquer tipo, `ModContent.GetModItem(item.type) instanceof BardItem`.
-- Vale para qualquer tipo de conteúdo: `ModNPC`, `ModProjectile`, `ModTile`,
+- **`Autoload = false` is not inherited by subclasses.** It only applies to
+  the class that declares it (the subclass does not have it as its own), so
+  the base stays out and `GrandPiano` gets in normally. A subclass that should
+  also stay out (a second-level base, like `PercussionItem extends BardItem`)
+  declares its own.
+- **Everything from the base applies to the subclass**: fields, methods and
+  `get`ters. A method written only in the base (the `ModifyTooltips` above)
+  installs its hook as if it were in the subclass; `super.Method()` calls the
+  base's.
+- **The base needs no texture**: it is not registered. Each subclass has its
+  own, next to its file ([Textures](#textures)).
+- **`instanceof` works**: to tell whether a game item is one of your mod's
+  instruments, of any kind, `ModContent.GetModItem(item.type) instanceof BardItem`.
+- It applies to any kind of content: `ModNPC`, `ModProjectile`, `ModTile`,
   `ModBuff`, `GlobalItem`...
 
-Outro jeito, sem a marca: deixar a base **fora** de `Content/` e `Common/`.
-O registro automático só olha o arquivo de entrada e essas duas pastas; uma
-base em `content/Bases/BardItem.js` é importada pelas filhas e nunca
-registrada. Por outro lado, uma classe **sem** `export` não serve de base para
-outro arquivo, porque ele não consegue importá-la.
+Another way, without the marker: keep the base **outside** `Content/` and
+`Common/`. Automatic registration only looks at the entry file and those two
+folders; a base in `content/Bases/BardItem.js` is imported by the subclasses
+and never registered. On the other hand, a class **without** `export` cannot be
+a base for another file, because that file cannot import it.
 
-Não use `export default` para isso: um arquivo só tem um, muitos arquivos
-exportam várias classes (a armadura e o conjunto dela), e no arquivo de entrada
-o `export default` é a classe `Mod`.
+Do not use `export default` for this: a file only has one, many files export
+several classes (an armor and its set), and in the entry file `export default`
+is the `Mod` class.
 
-### O que o `register` faz
+### What `register` does
 
-1. cria o **molde**: uma instância da sua classe;
-2. reserva o **número** do tipo novo, na hora (o primeiro item de mod é o
-   6196, logo depois dos do jogo), e o devolve;
-3. guarda a textura, o nome e a tradução;
-4. instala os hooks do jogo por trás dos métodos que a sua classe
-   **sobrescreveu** (e só esses).
+1. creates the **template**: an instance of your class;
+2. reserves the new type's **number**, right away (the first mod item is
+   6196, right after the game's), and returns it;
+3. stores the texture, the name and the localization;
+4. installs the game hooks behind the methods your class **overrode** (and
+   only those).
 
-O jogo só fica sabendo do tipo novo um pouco depois, na tela de título,
-quando as tabelas dele existem ([como](../nucleo/conteudo.md)). Por isso cada
-classe tem momentos certos para cada coisa:
+The game only learns about the new type a bit later, on the title screen,
+when its tables exist ([how](../nucleo/conteudo.md)). That is why each class
+has the right moment for each thing:
 
-| Momento | Método | Para quê |
+| Moment | Method | What for |
 |---|---|---|
-| no registro | (o construtor da classe) | Campos da classe: `Texture`, `DisplayName`... |
-| tela de título | `SetStaticDefaults()` | Tabelas por tipo: `ItemID.Sets...[this.Type]`, `Main.npcFrameCount[this.Type]`. |
-| cada entidade que nasce | `SetDefaults(entidade)` | Os atributos: dano, vida, tamanho. |
-| conteúdo pronto | `AddRecipes()`, `SetBestiary(...)`, `PostSetupContent()` | O que depende de tudo existir: receitas, Bestiário, outros mods. |
+| on registration | (the class constructor) | Class fields: `Texture`, `DisplayName`... |
+| title screen | `SetStaticDefaults()` | Per-type tables: `ItemID.Sets...[this.Type]`, `Main.npcFrameCount[this.Type]`. |
+| each entity that spawns | `SetDefaults(entity)` | The stats: damage, life, size. |
+| content ready | `AddRecipes()`, `SetBestiary(...)`, `PostSetupContent()` | What depends on everything existing: recipes, Bestiary, other mods. |
 
-### A ordem
+### The order
 
-O registro automático segue uma ordem fixa: buffs, jogadores, NPCs, projéteis,
-itens, blocos, sistemas e globais; dentro de cada um, pelo caminho do arquivo.
-Os números saem nessa ordem, e ela é a mesma em todo aparelho do
-multijogador, desde que todos tenham os mesmos mods. Por isso a bala acha o
-número do projétil no `SetDefaults` dela (`ModContent.ProjectileType(...)`):
-todo projétil já foi registrado antes de qualquer item.
+Automatic registration follows a fixed order: buffs, players, NPCs,
+projectiles, items, tiles, systems and globals; within each, by file path. The
+numbers come out in that order, and it is the same on every device in
+multiplayer, as long as everyone has the same mods. That is why a bullet finds
+its projectile's number in its `SetDefaults` (`ModContent.ProjectileType(...)`):
+every projectile has been registered before any item.
 
-## O tipo de um conteúdo
+## A content's type
 
-Dá para pegá-lo de três jeitos:
+You can get it in three ways:
 
 ```js
-this.Type                                              // dentro da própria classe
-ModItem.getTypeByName('ExampleItem');                  // pelo nome, dentro do mod
-ModContent.ItemType(ExampleItem);                      // como no tModLoader
+this.Type                                              // inside the class itself
+ModItem.getTypeByName('ExampleItem');                  // by name, within the mod
+ModContent.ItemType(ExampleItem);                      // as in tModLoader
 ```
 
 ### ModContent
 
-O `ModContent` do tModLoader, com os mesmos nomes. O tipo de um conteúdo de mod
-sai pela **classe** (o `<T>` de lá), pelo **nome**, ou por `'mod/Nome'` (com o
-`id` do manifesto de outro mod). Não achou, devolve 0:
+tModLoader's `ModContent`, with the same names. The type of a mod content
+comes from the **class** (the `<T>` over there), from the **name**, or from
+`'mod/Name'` (with another mod's manifest `id`). Not found, it returns 0:
 
 ```js
-const boia = ModContent.ProjectileType(ExampleBobber);          // a classe
-const mesmo = ModContent.ProjectileType('ExampleBobber');       // o nome
-const deOutro = ModContent.ItemType('outromod/EspadaDeFogo');   // outro mod
+const bobber = ModContent.ProjectileType(ExampleBobber);        // the class
+const same = ModContent.ProjectileType('ExampleBobber');        // the name
+const fromOther = ModContent.ItemType('othermod/FireSword');    // another mod
 ```
 
-Pelo nome, vale o do seu mod; se não houver, o único mod que tem um conteúdo
-com esse nome (se dois têm, peça por `'mod/Nome'`, e o log avisa). Há
-`ItemType`, `ProjectileType`, `NPCType`, `BuffType` e `TileType`.
+By name, your mod's applies; if there is none, the only mod with content of
+that name (if two have it, ask with `'mod/Name'`, and the log warns). There
+are `ItemType`, `ProjectileType`, `NPCType`, `BuffType` and `TileType`.
 
-O **modelo** (a instância do `register`) também:
+The **template** (the `register` instance) too:
 
 ```js
-ModContent.GetInstance(ExampleItem);                  // pela classe
-ModContent.Find(ModItem, 'examplemod/ExampleItem');   // pelo nome; lança se não há
+ModContent.GetInstance(ExampleItem);                  // by class
+ModContent.Find(ModItem, 'examplemod/ExampleItem');   // by name; throws if missing
 const r = new Ref();
 if (ModContent.TryFind(ModNPC, 'examplemod/ExampleBoss', r)) bl.log(r.value.Type);
-ModContent.GetModItem(tipo);                          // pelo número
+ModContent.GetModItem(type);                          // by number
 ```
 
-Todo modelo tem `this.Mod`, o `Mod` de quem registrou.
+Every template has `this.Mod`, the `Mod` that registered it.
 
-Todos de uma vez, como o `GetContent` do tModLoader: no `Mod`, os do próprio
-mod; no `ModContent`, os de todos os mods. Vale para qualquer classe base
-(`ModItem`, `ModNPC`, `ModProjectile`, `ModTile`, `ModBuff`, `ModSystem`...),
-na ordem do registro. Chame do `PostSetupContent` em diante: antes dele os
-tipos podem não ter saído.
+All at once, like tModLoader's `GetContent`: on `Mod`, the mod's own; on
+`ModContent`, every mod's. It works for any base class (`ModItem`, `ModNPC`,
+`ModProjectile`, `ModTile`, `ModBuff`, `ModSystem`...), in registration order.
+Call it from `PostSetupContent` on: before that, the types may not exist yet.
 
 ```js
 PostSetupContent() {
-    const tipos = this.GetContent(ModItem).map((item) => item.Type);
+    const types = this.GetContent(ModItem).map((item) => item.Type);
     const npcs = this.GetContent(ModNPC);
-    const todosOsItensDeMod = ModContent.GetContent(ModItem);
+    const allModItems = ModContent.GetContent(ModItem);
 }
 ```
 
-As texturas do mod carregam na primeira chamada; as seguintes reusam a mesma:
+The mod's textures load on the first call; later ones reuse the same:
 
 ```js
-const asset = ModContent.Request('Assets/Textures/brilho');   // Asset<Texture2D>
-const tex = asset.Value;                                       // a Texture2D
-const mesma = ModContent.Texture('Content/Items/Espada_Glow'); // atalho para o .Value
+const asset = ModContent.Request('Assets/Textures/glow');     // Asset<Texture2D>
+const tex = asset.Value;                                       // the Texture2D
+const same = ModContent.Texture('Content/Items/Sword_Glow');   // shortcut for .Value
 ```
 
-- `Request` devolve o `Asset<Texture2D>` **do jogo**, do mesmo tipo que as
-  tabelas `TextureAssets` guardam: dá para pôr numa delas.
-- O caminho é o do arquivo no mod, com ou sem `.png`, como no tModLoader:
-  `'Content/Items/Espada'`, `'Assets/Textures/brilho'`. Com o id de um mod na
-  frente (`'examplemod/Content/...'`), pega de outro mod. Os caminhos dos mods
-  de antes, dentro de `Assets/Textures/` (`'Items/Espada'`), também valem.
-  `ModContent.HasAsset(caminho)` diz se existe.
-- Carrega sempre na hora (como o `ImmediateLoad` do tModLoader), e só na
-  **thread do jogo**: num hook, no `SetStaticDefaults` ou no
+- `Request` returns **the game's** `Asset<Texture2D>`, the same type the
+  `TextureAssets` tables hold: you can put it into one of them.
+- The path is the file's path in the mod, with or without `.png`, as in
+  tModLoader: `'Content/Items/Sword'`, `'Assets/Textures/glow'`. With a mod id
+  in front (`'examplemod/Content/...'`), it takes from another mod. Older
+  mods' paths, inside `Assets/Textures/` (`'Items/Sword'`), also work.
+  `ModContent.HasAsset(path)` tells whether it exists.
+- It always loads immediately (like tModLoader's `ImmediateLoad`), and only on
+  the **game thread**: in a hook, in `SetStaticDefaults` or in
   `PostSetupContent`.
-- Só textura. Para som, `ModContent.SoundStyle(caminho, opções)`, que é o
-  mesmo que `new SoundStyle(caminho, opções)` ([guia 10](10-sons-e-musica.md)).
+- Textures only. For sound, `ModContent.SoundStyle(path, options)`, which is
+  the same as `new SoundStyle(path, options)` ([guide 10](10-sons-e-musica.md)).
 
-## Molde e instância
+## Template and instance
 
-Como no tModLoader, a classe que você registra é um **molde**. Cada item,
-projétil ou NPC do jogo daquele tipo ganha a **própria** instância, copiada do
-molde, e é nela que os métodos rodam.
+As in tModLoader, the class you register is a **template**. Each item,
+projectile or NPC of that type in the game gets **its own** instance, copied
+from the template, and that is where the methods run.
 
 ```mermaid
 flowchart LR
-    C["class Carregavel<br/>extends ModItem"] -- "register" --> M["molde<br/>(1 por tipo)"]
-    M -- "Clone()" --> I1["instância do item 1<br/>this.carga = 3"]
-    M -- "Clone()" --> I2["instância do item 2<br/>this.carga = 0"]
-    I1 <--> E1["Item do jogo 1<br/>item.ModItem"]
-    I2 <--> E2["Item do jogo 2<br/>item.ModItem"]
+    C["class Chargeable<br/>extends ModItem"] -- "register" --> M["template<br/>(1 per type)"]
+    M -- "Clone()" --> I1["item 1's instance<br/>this.charge = 3"]
+    M -- "Clone()" --> I2["item 2's instance<br/>this.charge = 0"]
+    I1 <--> E1["game Item 1<br/>item.ModItem"]
+    I2 <--> E2["game Item 2<br/>item.ModItem"]
 ```
 
-- `this.Item`, `this.Projectile`, `this.NPC` é a entidade daquela instância;
-- `item.ModItem`, `proj.ModProjectile`, `npc.ModNPC` é a instância da entidade;
-- campo que você puser em `this` é **daquele** item: dá para guardar carga,
-  contador, alvo, sem uma variável global indexada por item.
+- `this.Item`, `this.Projectile`, `this.NPC` is that instance's entity;
+- `item.ModItem`, `proj.ModProjectile`, `npc.ModNPC` is the entity's instance;
+- a field you put on `this` belongs to **that** item: you can keep a charge,
+  a counter, a target, without a global variable indexed by item.
 
 ```js
-export class Carregavel extends ModItem {
+export class Chargeable extends ModItem {
     SetDefaults() {
-        this.carga = 0;               // cada item começa com a sua
+        this.charge = 0;              // each item starts with its own
     }
     UseItem(item, player) {
-        this.carga++;                 // só deste item
+        this.charge++;                // only this item's
     }
 }
 
-// de fora: o ModItem de um item qualquer
+// from outside: the ModItem of any item
 const m = player.inventory[0].ModItem;
-if (m instanceof Carregavel) bl.log(m.carga);
+if (m instanceof Chargeable) bl.log(m.charge);
 ```
 
-`ModItem.getModItem(tipo)` e `ModContent.GetInstance(Classe)` devolvem o
-**molde**, não a instância de um item.
+`ModItem.getModItem(type)` and `ModContent.GetInstance(Class)` return the
+**template**, not an item's instance.
 
-**Nada de `#privado` de instância** numa classe de conteúdo (`#carga`,
-`#Piscar()`): a instância é uma cópia do molde (`Object.create`), e o JS só
-aceita um membro `#` num objeto que o construtor da classe montou. O primeiro
-uso lança `TypeError: invalid brand on object`. Use nomes comuns
-(`this.carga`, `this.Piscar()`). O `static #` (na classe, não na instância)
-funciona.
+**No instance `#private` members** in a content class (`#charge`,
+`#Blink()`): the instance is a copy of the template (`Object.create`), and JS
+only accepts a `#` member on an object the class constructor built. The first
+use throws `TypeError: invalid brand on object`. Use plain names
+(`this.charge`, `this.Blink()`). `static #` (on the class, not the instance)
+works.
 
-Quando o jogo copia um item (`Item.Clone`), a cópia ganha um `Clone()` da
-instância do original, com o estado dela. O `Clone` padrão copia os campos
-rasos (o `MemberwiseClone` do C#); sobrescreva se tiver array ou objeto seu
-que precise de cópia própria:
+When the game copies an item (`Item.Clone`), the copy gets a `Clone()` of the
+original's instance, with its state. The default `Clone` copies the shallow
+fields (C#'s `MemberwiseClone`); override it if you have an array or object of
+your own that needs its own copy:
 
 ```js
 Clone(newItem) {
     const c = super.Clone(newItem);
-    c.historico = [...this.historico];
+    c.history = [...this.history];
     return c;
 }
 ```
 
-Sozinho, o estado da instância **não** vai para o save nem para a rede, e se
-perde quando o item passa por um baú (que guarda só tipo, pilha e prefixo):
-nesses casos a entidade nasce de novo pelo `SetDefaults`. No item, o que deve
-sobreviver vai no `SaveData`/`LoadData` dele ([guia 5](05-itens.md#dados-de-cada-instância-savedata-e-loaddata));
-fora dele, no `SaveData` do `ModPlayer` ([guia 8](08-jogador-e-buffs.md#dados-salvos)).
+On its own, instance state does **not** go into the save or over the network,
+and it is lost when the item goes through a chest (which only keeps type,
+stack and prefix): in those cases the entity is born again through
+`SetDefaults`. For an item, what must survive goes in its `SaveData`/`LoadData`
+([guide 5](05-itens.md#per-instance-data-savedata-and-loaddata));
+elsewhere, in the `ModPlayer`'s `SaveData` ([guide 8](08-jogador-e-buffs.md#saved-data)).
 
-### Campos em classes do jogo
+### Fields on game classes
 
-O `item.ModItem` é um caso de algo geral: `bl.defineField` põe um campo novo
-numa classe do jogo, para o mod guardar o que quiser em cada objeto:
+`item.ModItem` is a case of something general: `bl.defineField` adds a new
+field to a game class, for the mod to keep whatever it wants on each object:
 
 ```js
 bl.defineField(Terraria.Player, 'combo');
@@ -352,247 +354,251 @@ const p = Terraria.Main.player[Terraria.Main.myPlayer];
 p.combo = (p.combo || 0) + 1;
 ```
 
-O valor fica numa tabela ao lado do objeto (o jogo não deixa a classe crescer)
-e some sozinho quando o jogo descarta o objeto. Vale também para as classes
-filhas: um campo em `Terraria.Entity` aparece em `Player`, `NPC` e
-`Projectile`.
+The value lives in a table next to the object (the game does not let the class
+grow) and goes away on its own when the game discards the object. It also
+applies to subclasses: a field on `Terraria.Entity` shows up on `Player`,
+`NPC` and `Projectile`.
 
-`bl.defineMethod` faz o mesmo com um método; `this` é o objeto do jogo. É daí
-que sai o `player.GetModPlayer(...)`.
+`bl.defineMethod` does the same with a method; `this` is the game object.
+That is where `player.GetModPlayer(...)` comes from.
 
 ```js
-bl.defineMethod(Terraria.Player, 'estaNoChao', function () {
+bl.defineMethod(Terraria.Player, 'isOnGround', function () {
     return this.velocity.Y === 0;
 });
-if (player.estaNoChao()) { /* ... */ }
+if (player.isOnGround()) { /* ... */ }
 ```
 
-Um nome que a classe já tem (campo ou método do jogo) vence o do mod.
+A name the class already has (a game field or method) wins over the mod's.
 
-## Texturas
+## Textures
 
-Como no tModLoader, a textura de uma classe fica **ao lado do arquivo dela**,
-com o mesmo nome: `Content/Items/ExampleItem.js` usa
-`Content/Items/ExampleItem.png`. As derivadas ficam do lado também
-(`ExampleItem_Glow.png`, `ExampleHelmet_Head.png`, `ExampleWorkbench_Highlight.png`).
-Isso é só o padrão: `Texture` escolhe outro arquivo, o caminho no mod **sem**
-`.png`, em qualquer pasta:
+As in tModLoader, a class's texture sits **next to its file**, with the same
+name: `Content/Items/ExampleItem.js` uses `Content/Items/ExampleItem.png`.
+Derived textures sit next to it too (`ExampleItem_Glow.png`,
+`ExampleHelmet_Head.png`, `ExampleWorkbench_Highlight.png`). That is only the
+default: `Texture` picks another file, the path in the mod **without** `.png`,
+in any folder:
 
 ```js
-// como o `public override string Texture => "...";` do tModLoader
-get Texture() { return 'Content/Items/ExampleItem'; }   // a imagem de outro item
+// like tModLoader's `public override string Texture => "...";`
+get Texture() { return 'Content/Items/ExampleItem'; }   // another item's image
 
-// ou no construtor
+// or in the constructor
 constructor() {
     super();
-    this.Texture = 'Arte/Espadas/Lamina';
+    this.Texture = 'Art/Swords/Blade';
 }
 ```
 
-O id do mod na frente também vale (`'examplemod/Content/Items/ExampleItem'`).
-`Assets/` fica para o que não é de uma classe: fundos, sons, música e o que o mod
-carrega por conta própria (`ModContent.Request`).
+The mod id in front works too (`'examplemod/Content/Items/ExampleItem'`).
+`Assets/` is for what does not belong to a class: backgrounds, sounds, music
+and whatever the mod loads on its own (`ModContent.Request`).
 
-Os mods de antes guardavam as texturas em `Assets/Textures/`, no espelho do
-arquivo (`Content/Items/X.js` -> `Assets/Textures/Items/X.png`). Se o arquivo
-não está ao lado do `.js`, vale o de lá (e o log avisa uma vez por mod).
+Older mods kept textures in `Assets/Textures/`, mirroring the file
+(`Content/Items/X.js` -> `Assets/Textures/Items/X.png`). If the file is not
+next to the `.js`, the one over there is used (and the log warns once per mod).
 
-| Conteúdo | Formato |
+| Content | Format |
 |---|---|
-| Item | O sprite do item. Com animação (`SetItemAnimation`), os quadros numa tira vertical. |
-| Projétil | O sprite. Com `Main.projFrames[this.Type] = n`, `n` quadros numa tira vertical. |
-| NPC | `Main.npcFrameCount[this.Type] = n` quadros numa tira vertical. |
+| Item | The item sprite. With animation (`SetItemAnimation`), the frames in a vertical strip. |
+| Projectile | The sprite. With `Main.projFrames[this.Type] = n`, `n` frames in a vertical strip. |
+| NPC | `Main.npcFrameCount[this.Type] = n` frames in a vertical strip. |
 | Buff | 32x32. |
-| Bloco | A folha de quadros do jogo: 288x270, quadros de 16x16 com 2 px de margem. |
+| Tile | The game's frame sheet: 288x270, 16x16 frames with a 2 px margin. |
 
-As texturas são desenhadas como pixel art (sem suavização), como as do jogo.
+Textures are drawn as pixel art (no smoothing), like the game's.
 
-## Tradução
+## Localization
 
-`Localization/<idioma>.json`, um por idioma (`pt-BR`, `en-US`, `es-ES`,
+`Localization/<language>.json`, one per language (`pt-BR`, `en-US`, `es-ES`,
 `de-DE`, `fr-FR`, `it-IT`, `ru-RU`, `pl-PL`, `ja-JP`, `ko-KR`, `zh-Hans`,
 `zh-Hant`):
 
 ```json
 {
-  "ItemName":       { "ExampleItem": "Exemplo de Item" },
-  "ItemTooltip":    { "ExampleItem": "Descrição do item" },
-  "ProjectileName": { "ExampleBulletProjectile": "Bala de Exemplo" },
-  "NPCName":        { "ExampleSlimeNPC": "Slime de Exemplo" },
-  "BuffName":       { "ExampleDefenseBuff": "Defesa de Exemplo" },
-  "BuffDescription":{ "ExampleDefenseBuff": "+{0} de defesa" },
-  "Bestiary":       { "ExampleSlimeNPC": "Um slime azul-claro." }
+  "ItemName":       { "ExampleItem": "Example Item" },
+  "ItemTooltip":    { "ExampleItem": "The item's description" },
+  "ProjectileName": { "ExampleBulletProjectile": "Example Bullet" },
+  "NPCName":        { "ExampleSlimeNPC": "Example Slime" },
+  "BuffName":       { "ExampleDefenseBuff": "Example Defense" },
+  "BuffDescription":{ "ExampleDefenseBuff": "+{0} defense" },
+  "Bestiary":       { "ExampleSlimeNPC": "A light blue slime." }
 }
 ```
 
-A chave é o nome da **classe**. O jogo mostra o idioma dele; sem esse idioma,
-vale o `en-US`, e sem nada, o nome da classe. Os campos `DisplayName` e
-`Tooltip` da classe, se preenchidos, vencem o arquivo (texto, ou
+The key is the **class** name. The game shows its own language; without that
+language, `en-US` applies, and without anything, the class name. The class's
+`DisplayName` and `Tooltip` fields, if set, win over the file (text, or
 `{ 'pt-BR': ..., 'en-US': ... }`).
 
-Toda chave do arquivo, em qualquer profundidade (`TownNPCMood.ExamplePerson.Content`),
-entra no jogo como `Mods.<id do mod>.<Secao>.<Chave>`, como no tModLoader:
-`Language.GetText('Mods.examplemod.CustomText.WelcomeMessage').Value` funciona
-direto, e o texto acompanha a troca de idioma.
+Every key in the file, at any depth (`TownNPCMood.ExamplePerson.Content`),
+enters the game as `Mods.<mod id>.<Section>.<Key>`, as in tModLoader:
+`Language.GetText('Mods.examplemod.CustomText.WelcomeMessage').Value` works
+directly, and the text follows language changes.
 
-Um texto pode trazer outro, como no tModLoader:
-
-| | |
-|---|---|
-| `{$Mods.examplemod.Common.X}` | A chave inteira, de qualquer mod ou do jogo (`{$CommonItemTooltip.Whips}`). |
-| `{$Common.X}` | Relativa: procura a partir da chave do próprio texto (em `Mods.examplemod.Items.Espada.Tooltip`, acha `Mods.examplemod.Common.X`). |
-| `{$Chave@2}` | Soma 2 aos `{0}`, `{1}`... do texto trazido. |
-
-Chave que não existe fica como o nome dela. Os textos entram pelo mesmo caminho
-dos arquivos do jogo, então cada chave fica na categoria do jogo (tudo antes do
-último ponto): `Language.RandomFromCategory('Mods.examplemod.Dialogue.ExamplePerson')`
-sorteia uma fala, e `"Chave$Variante"` vira variante (`Language.TryGetVariation`).
-Nos `ItemName`/`ItemTooltip`/`NPCName`/`BuffName` e demais textos de conteúdo,
-as referências `{$chave}` do jogo acompanham o idioma escolhido. Os JSONs do
-mod são aplicados depois do original de `LanguageManager.LoadFilesForCulture`,
-antes dos eventos que consomem os textos. Tooltips e rótulos de configuração
-também acompanham a troca, sem reiniciar o launcher.
-
-`Translate` e `GetTextValue` retornam strings: um valor guardado pelo mod não
-muda sozinho. Consulte de novo ao usar ou guarde `ModLocalization.GetText(chave)`
-e leia `.Value`. Referências circulares terminam no nome completo da chave
-que fecha o ciclo.
-
-Para um texto seu (a fala de um morador, a plaquinha do Bestiário):
+A text can pull in another, as in tModLoader:
 
 | | |
 |---|---|
-| `ModLocalization.Translate('Secao.Chave')` | O **texto**, no idioma do jogo (como no TL). Sem texto, o próprio caminho. |
-| `ModLocalization.TryTranslate('Secao.Chave')` | O mesmo, mas `''` quando não há texto. |
-| (onde procura) | Nos `Localization/*.json` do mod de quem chama. Chamado de fora de um mod (o console do Editor), a chave completa `Mods.<id>.Secao.Chave` acha o mod dela, e a curta vale se só um mod a tem. `{0}` não é trocado: use `.replace('{0}', x)`. |
-| `ModLocalization.GetTextValue(chave)` | O texto do mod ou, se ele não tem, o do jogo (`'LegacyInterface.28'`). |
-| `ModLocalization.GetText(chave)` | O `LocalizedText` (do mod ou do jogo). |
-| `ModLocalization.Key('Secao.Chave')` | A **chave** `Mods.<id>.Secao.Chave`, para o que o jogo pede por chave (Bestiário, moeda). |
-| `ModLocalization.Exists(chave)` | Se o mod ou o jogo tem o texto. |
-| `ModLocalization.Register(chave, texto)` | Um texto (ou `{ cultura: texto }`) sob uma chave qualquer. |
+| `{$Mods.examplemod.Common.X}` | The full key, from any mod or the game (`{$CommonItemTooltip.Whips}`). |
+| `{$Common.X}` | Relative: searches from the text's own key (in `Mods.examplemod.Items.Sword.Tooltip`, finds `Mods.examplemod.Common.X`). |
+| `{$Key@2}` | Adds 2 to the `{0}`, `{1}`... of the pulled-in text. |
 
-## O Mod Menu
+A key that does not exist stays as its name. Texts go in through the same path
+as the game's files, so each key lands in the game's category (everything
+before the last dot): `Language.RandomFromCategory('Mods.examplemod.Dialogue.ExamplePerson')`
+picks a random line, and `"Key$Variant"` becomes a variant
+(`Language.TryGetVariation`). In `ItemName`/`ItemTooltip`/`NPCName`/`BuffName`
+and other content texts, the game's `{$key}` references follow the selected
+language. The mod's JSONs are applied after the original
+`LanguageManager.LoadFilesForCulture`, before the events that consume the
+texts. Tooltips and config labels also follow the change, without restarting
+the launcher.
 
-Todo item, NPC e buff registrado já aparece no **Mod Menu** (o coelho na tela
-do jogo): em *Mods*, numa entrada com o nome do mod, nas pastas *Itens*,
-*NPCs* e *Buffs*, com o nome traduzido e o sprite (e também nas categorias do
-jogo, em *Itens*, *NPCs* e *Buffs*):
+`Translate` and `GetTextValue` return strings: a value stored by the mod does
+not change on its own. Look it up again when using it, or keep
+`ModLocalization.GetText(key)` and read `.Value`. Circular references end at
+the full name of the key that closes the cycle.
 
-![A pasta de itens do Example Mod no Mod Menu](../imagens/mod-menu-itens.jpg)
+For a text of your own (a town NPC's line, the Bestiary blurb):
 
-Para separar em mais pastas:
+| | |
+|---|---|
+| `ModLocalization.Translate('Section.Key')` | The **text**, in the game's language (as in TL). Without a text, the path itself. |
+| `ModLocalization.TryTranslate('Section.Key')` | The same, but `''` when there is no text. |
+| (where it looks) | In the calling mod's `Localization/*.json`. Called from outside a mod (the Editor console), the full key `Mods.<id>.Section.Key` finds its mod, and the short one works if only one mod has it. `{0}` is not replaced: use `.replace('{0}', x)`. |
+| `ModLocalization.GetTextValue(key)` | The mod's text or, if it has none, the game's (`'LegacyInterface.28'`). |
+| `ModLocalization.GetText(key)` | The `LocalizedText` (from the mod or the game). |
+| `ModLocalization.Key('Section.Key')` | The **key** `Mods.<id>.Section.Key`, for what the game asks by key (Bestiary, currency). |
+| `ModLocalization.Exists(key)` | Whether the mod or the game has the text. |
+| `ModLocalization.Register(key, text)` | A text (or `{ culture: text }`) under any key. |
+
+## The Mod Menu
+
+Every registered item, NPC and buff already shows up in the **Mod Menu** (the
+bunny on the game screen): under *Mods*, in an entry with the mod's name, in
+the *Items*, *NPCs* and *Buffs* folders, with the localized name and the
+sprite (and also in the game's categories, under *Items*, *NPCs* and
+*Buffs*):
+
+![The Example Mod items folder in the Mod Menu](../imagens/mod-menu-itens.jpg)
+
+To split into more folders:
 
 ```js
-const armas = bl.menu.itemCategory('Armas', 'Content/Items/Weapons/Ranged/ExampleGun.png');
-bl.menu.addItem(armas, ModItem.getTypeByName('ExampleGun'));
+const weapons = bl.menu.itemCategory('Weapons', 'Content/Items/Weapons/Ranged/ExampleGun.png');
+bl.menu.addItem(weapons, ModItem.getTypeByName('ExampleGun'));
 ```
 
-(`bl.menu.npcCategory` e `bl.menu.addNpc` para NPCs.)
+(`bl.menu.npcCategory` and `bl.menu.addNpc` for NPCs.)
 
-Para **esconder** um item, NPC ou buff do Mod Menu (das pastas do mod e das
-listas gerais), diga no `SetStaticDefaults`:
+To **hide** an item, NPC or buff from the Mod Menu (from the mod's folders and
+the general lists), say so in `SetStaticDefaults`:
 
 ```js
 SetStaticDefaults() {
-    this.HideFromModMenu = true;   // ModItem, ModNPC ou ModBuff
+    this.HideFromModMenu = true;   // ModItem, ModNPC or ModBuff
 }
 ```
 
-O jeito do tModLoader também esconde, e o jogo o entende nas listas dele:
-`ItemID.Sets.Deprecated[this.Type] = true` para item, e um
-`NPCBestiaryDrawModifiers` com `Hide = true` no
-`NPCID.Sets.NPCBestiaryDrawOffset` para NPC (que também some do Bestiário).
+tModLoader's way also hides it, and the game understands it in its own lists:
+`ItemID.Sets.Deprecated[this.Type] = true` for an item, and an
+`NPCBestiaryDrawModifiers` with `Hide = true` in
+`NPCID.Sets.NPCBestiaryDrawOffset` for an NPC (which also disappears from the
+Bestiary).
 
-## Saves: desligar o mod não perde nada
+## Saves: turning the mod off loses nothing
 
-Conteúdo de mod é salvo **pelo nome** (mod + classe), num arquivo ao lado do
-save do jogo. O arquivo do jogo nunca leva um tipo de mod. Por isso:
+Mod content is saved **by name** (mod + class), in a file next to the game's
+save. The game's file never carries a mod type. So:
 
-- **desligar o mod não perde nada**: o item vira um "?" no inventário, o bloco
-  vira ar, o morador some; ao religar, tudo volta;
-- o mundo e o personagem **abrem no Terraria sem o Bunny Loader**;
-- a ordem dos mods pode mudar à vontade: o conteúdo volta pelo nome, não pelo
-  número.
+- **turning the mod off loses nothing**: the item becomes a "?" in the
+  inventory, the tile becomes air, the town NPC disappears; turn it back on
+  and everything returns;
+- the world and the character **open in Terraria without Bunny Loader**;
+- the mod order can change freely: content comes back by name, not by number.
 
-Detalhes de cada save em [conteúdo por dentro](../nucleo/conteudo.md#os-saves-o-mundo-abre-sem-o-mod).
+Details of each save in [content under the hood](../nucleo/conteudo.md#saves-the-world-opens-without-the-mod).
 
-## Arrays do jogo
+## Game arrays
 
-Um array do jogo (`Main.recipe`, `ItemID.Sets.IsAMaterial`...) tem índice,
-`.length` e `cloneResized(n)`: uma cópia do mesmo tipo com `n` posições. O que
-cabe vem do original, e o resto fica 0/null. Para trocar a tabela do jogo,
-atribua:
+A game array (`Main.recipe`, `ItemID.Sets.IsAMaterial`...) has indexes,
+`.length` and `cloneResized(n)`: a copy of the same type with `n` slots. What
+fits comes from the original, and the rest is 0/null. To replace the game's
+table, assign it:
 
 ```js
 Terraria.Main.recipe = Terraria.Main.recipe.cloneResized(4000);
 ```
 
-Tem também `fill`, `empty` e `find`, como os do Array do JS:
+There are also `fill`, `empty` and `find`, like JS Array's:
 
 ```js
-player.buffImmune.fill(false);              // todas as posições; muda o jogo
-player.buffImmune.fill(true, 10, 20);       // de 10 até 19 (início e fim, negativo conta do fim)
-const vazio = Main.recipe.empty();          // Recipe[0], novo (o cloneResized(0))
-const espada = player.inventory.find((it) => it.type === 4);   // o primeiro, ou undefined
+player.buffImmune.fill(false);              // every slot; changes the game
+player.buffImmune.fill(true, 10, 20);       // from 10 to 19 (start and end; negative counts from the end)
+const empty = Main.recipe.empty();          // Recipe[0], new (the cloneResized(0))
+const sword = player.inventory.find((it) => it.type === 4);   // the first one, or undefined
 ```
 
-`fill` devolve o próprio array. `find` recebe `(elemento, índice, array)` e,
-num array de struct, devolve a vista: escrever nela muda o array. Para os
-outros métodos do JS (`map`, `filter`...), copie antes com `Array.from(arr)`.
+`fill` returns the array itself. `find` receives `(element, index, array)`
+and, on a struct array, returns the view: writing to it changes the array. For
+the other JS methods (`map`, `filter`...), copy first with `Array.from(arr)`.
 
-Onde o jogo espera um array (`int[]`, `string[]`...), um array JS também serve:
-`new RecipeGroup(nome, [1, 2, 3])` recebe um `int[]` montado na hora.
+Where the game expects an array (`int[]`, `string[]`...), a JS array works
+too: `new RecipeGroup(name, [1, 2, 3])` receives an `int[]` built on the spot.
 
-Para ter o array do jogo na mão (guardar num campo, passar a um parâmetro
-`object`/`Array`, mexer depois), `makeGeneric` na lista, como no TL Pro:
+To get the game array in hand (store it in a field, pass it to an
+`object`/`Array` parameter, change it later), use `makeGeneric` on the list,
+as in TL Pro:
 
 ```js
 const ids = [1, 2, 3].makeGeneric('int');            // int[]
-const bytes = new Uint8Array(dados).makeGeneric('byte'); // byte[], numa cópia só
-const nomes = ['a', 'b'].makeGeneric('string');       // string[]
-const pontos = [Vector2.new(1, 2)].makeGeneric(Vector2);  // Vector2[]
-const itens = [item].makeGeneric(Terraria.Item);      // Item[] (ou 'Terraria.Item')
+const bytes = new Uint8Array(data).makeGeneric('byte'); // byte[], in a single copy
+const names = ['a', 'b'].makeGeneric('string');       // string[]
+const points = [Vector2.new(1, 2)].makeGeneric(Vector2);  // Vector2[]
+const items = [item].makeGeneric(Terraria.Item);      // Item[] (or 'Terraria.Item')
 ```
 
-O tipo vai pelo nome do C# (`'bool'`, `'byte'`, `'sbyte'`, `'short'`,
+The type goes by its C# name (`'bool'`, `'byte'`, `'sbyte'`, `'short'`,
 `'ushort'`, `'int'`, `'uint'`, `'long'`, `'ulong'`, `'float'`, `'double'`,
-`'char'`, `'string'`, `'object'`), pelo nome completo (`'Terraria.Item'`) ou
-pela classe. Um valor que não converte lança dizendo a posição. O array JS
-original não muda.
+`'char'`, `'string'`, `'object'`), by full name (`'Terraria.Item'`) or by
+class. A value that does not convert throws, stating the position. The
+original JS array does not change.
 
-Sem valores, `Classe.newArray(n)` é o `new T[n]` do C# (tudo 0/null):
-`Terraria.Item.newArray(10)`, `System.Int32.newArray(5)`. Com uma lista,
-`System.Int32.newArray([4, 5, 6])` faz o mesmo que o `makeGeneric`.
+Without values, `Class.newArray(n)` is C#'s `new T[n]` (all 0/null):
+`Terraria.Item.newArray(10)`, `System.Int32.newArray(5)`. With a list,
+`System.Int32.newArray([4, 5, 6])` does the same as `makeGeneric`.
 
-## Genéricos
+## Generics
 
-`List<Vector2>`, `Dictionary<int, int>`: `makeGeneric` na classe genérica, com
-as classes dos tipos:
+`List<Vector2>`, `Dictionary<int, int>`: `makeGeneric` on the generic class,
+with the type classes:
 
 ```js
 const List = System.Collections.Generic.List.makeGeneric(Vector2.Type);
-const pontos = List.new();
-pontos['void .ctor()']();
+const points = List.new();
+points['void .ctor()']();
 
 const Dict = System.Collections.Generic.Dictionary.makeGeneric(System.Int32, System.Int32);
 ```
 
-Só vale para uma combinação que o próprio jogo usa (o código dela precisa
-existir no binário); para as outras, `makeGeneric` lança dizendo qual.
+It only works for a combination the game itself uses (its code needs to exist
+in the binary); for the others, `makeGeneric` throws saying which one.
 
-## Ajudantes
+## Helpers
 
-Globais, com os nomes do tModLoader:
+Globals, with tModLoader's names:
 
 | | |
 |---|---|
-| `Vector2` | `Vector2.new(x, y)`, `Add`, `Subtract`, `Multiply`, `Divide` (vetor ou número), `Length`, `Distance`, `Normalize`, `SafeNormalize`, `DirectionTo`, `RotatedBy`, `RotatedByRandom`, `ToRotation`, `ToRotationVector2`, `Lerp`, `Dot`, `ToTileCoordinates`, `Clone`. Devolvem o `Vector2` do jogo; aceitam também `{ X, Y }`. |
+| `Vector2` | `Vector2.new(x, y)`, `Add`, `Subtract`, `Multiply`, `Divide` (vector or number), `Length`, `Distance`, `Normalize`, `SafeNormalize`, `DirectionTo`, `RotatedBy`, `RotatedByRandom`, `ToRotation`, `ToRotationVector2`, `Lerp`, `Dot`, `ToTileCoordinates`, `Clone`. They return the game's `Vector2`; they also accept `{ X, Y }`. |
 | `MathHelper` | `Pi`, `TwoPi`, `PiOver2`, `ToRadians`, `ToDegrees`, `Clamp`, `Lerp`, `SmoothStep`, `WrapAngle`. |
-| `Rand` | O sorteio do jogo: `Next(max)`, `Next(min, max)`, `NextFloat()`, `NextFloat(max)`, `NextBool(umEm)`, `NextChance(p)`, `NextSign()`, `NextFromList(lista)`, `NextVector2Circular(rx, ry)`, `NextVector2Unit()`. |
-| `Color` | `Color.new(r, g, b, a)`, `Color.White`, `Color.SkyBlue`... (qualquer cor do XNA, sempre uma cópia), `Multiply`, `Lerp`, `ToVector3`. |
+| `Rand` | The game's RNG: `Next(max)`, `Next(min, max)`, `NextFloat()`, `NextFloat(max)`, `NextBool(oneIn)`, `NextChance(p)`, `NextSign()`, `NextFromList(list)`, `NextVector2Circular(rx, ry)`, `NextVector2Unit()`. |
+| `Color` | `Color.new(r, g, b, a)`, `Color.White`, `Color.SkyBlue`... (any XNA color, always a copy), `Multiply`, `Lerp`, `ToVector3`. |
 | `Rectangle` | `Rectangle.new(x, y, w, h)`, `Size`, `Center`, `Contains`, `Intersects`. |
-| `ItemRarityID`, `ProjAIStyleID`, `NPCAIStyleID` | Os números que este Terraria não traz: `ItemRarityID.Pink`, `ProjAIStyleID.GolfBall`, `NPCAIStyleID.Slime`... |
-| `Terraria.ID.DustID` | Além dos nomes do jogo, os que o tModLoader acrescenta: `DustID.PinkFairy`, `DustID.Firework_Blue`... |
+| `ItemRarityID`, `ProjAIStyleID`, `NPCAIStyleID` | The numbers this Terraria does not ship: `ItemRarityID.Pink`, `ProjAIStyleID.GolfBall`, `NPCAIStyleID.Slime`... |
+| `Terraria.ID.DustID` | Besides the game's names, the ones tModLoader adds: `DustID.PinkFairy`, `DustID.Firework_Blue`... |
 
 ```js
 Shoot(item, player, position, velocity, type, damage, knockBack) {
@@ -606,22 +612,22 @@ Shoot(item, player, position, velocity, type, damage, knockBack) {
 }
 ```
 
-## Vindo do tModLoader
+## Coming from tModLoader
 
-O formato é o mesmo, com as diferenças do JavaScript e do celular:
+The shape is the same, with JavaScript's and mobile's differences:
 
 | tModLoader (C#) | Bunny Loader (JS) |
 |---|---|
-| `public class ExampleMod : Mod` | `export default class ExampleMod extends Mod` no `main.js` |
-| `public class X : ModItem` | `export class X extends ModItem` (em `Content/`, registrada sozinha) |
+| `public class ExampleMod : Mod` | `export default class ExampleMod extends Mod` in `main.js` |
+| `public class X : ModItem` | `export class X extends ModItem` (in `Content/`, registered on its own) |
 | `[Autoload(false)]` | `static Autoload = false` |
-| `abstract class BardItem : ModItem` (base) | `export class BardItem extends ModItem { static Autoload = false; }` ([Classes base](#classes-base-do-seu-mod-as-abstract-do-tmodloader)) |
-| textura ao lado do `.cs` | textura ao lado do `.js` (o mesmo nome) |
+| `abstract class BardItem : ModItem` (base) | `export class BardItem extends ModItem { static Autoload = false; }` ([Base classes](#your-mods-base-classes-tmodloaders-abstract-ones)) |
+| texture next to the `.cs` | texture next to the `.js` (same name) |
 | `Item.damage = 10;` | `this.Item.damage = 10;` |
 | `ModContent.ItemType<X>()` | `ModContent.ItemType(X)` |
 | `public override string Texture => "...";` | `get Texture() { return '...'; }` |
-| `ref int damage` | `Ref` com `.value` ([guia 2](02-ref-e-out.md)) |
+| `ref int damage` | `Ref` with `.value` ([guide 2](02-ref-e-out.md)) |
 | `Texture => "Mod/Items/X"` | `this.Texture = 'Items/X'` |
-| `.hjson` | `Localization/<idioma>.json` |
-| `player.HasBuff(t)` | `player.FindBuffIndex(t) >= 0` (o celular não tem `HasBuff`) |
-| `Main.ActiveNPCs` | percorrer `Terraria.Main.npc` pulando `!npc.active` |
+| `.hjson` | `Localization/<language>.json` |
+| `player.HasBuff(t)` | `player.FindBuffIndex(t) >= 0` (mobile has no `HasBuff`) |
+| `Main.ActiveNPCs` | iterate `Terraria.Main.npc` skipping `!npc.active` |

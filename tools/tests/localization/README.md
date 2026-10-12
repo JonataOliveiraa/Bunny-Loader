@@ -1,70 +1,72 @@
-# Troca de idioma sem reiniciar
+# Changing the language without restarting
 
-## Análise
+## Analysis
 
-O carregador aplicava os JSONs depois de `LoadLanguage` e `SetLanguage`.
-Na versão móvel 301720, `LoadLanguage` chama `LoadFilesForCulture`, dispara
-`OnLanguageChanging`, processa referências e prepara aliases antes de retornar.
-O hook antigo chegava depois desses consumidores. As referências ao jogo nas
-tabelas por cultura eram resolvidas com o idioma ativo durante a carga do mod.
-Os tooltips não eram registrados para a próxima troca, e os rótulos de config
-guardavam strings obtidas uma única vez.
+The loader applied the JSONs after `LoadLanguage` and `SetLanguage`. In
+mobile version 301720, `LoadLanguage` calls `LoadFilesForCulture`, fires
+`OnLanguageChanging`, processes references and prepares aliases before
+returning. The old hook arrived after those consumers. The references to the
+game in the per-culture tables were resolved with the language active while
+the mod loaded. Tooltips were not registered for the next change, and config
+labels kept strings obtained only once.
 
-Entradas: JSONs por cultura, mapas de nomes e descrições, cultura carregada e
-chaves nativas. Saídas: valores atualizados nos mesmos `LocalizedText` e nos
-tooltips processados. Casos cobertos: troca repetida, fallback inglês, referências
-relativas e ao jogo, argumentos deslocados, referência ausente ou circular,
-inicialização adiada, idioma repetido e texto literal.
+Inputs: per-culture JSONs, name and description maps, the loaded culture and
+native keys. Outputs: updated values in the same `LocalizedText`s and in the
+processed tooltips. Cases covered: repeated changes, the English fallback,
+relative and game references, shifted arguments, a missing or circular
+reference, deferred initialization, a repeated language and literal text.
 
-## Projeto
+## Design
 
-| Abordagem | Tempo | Espaço | Manutenção |
+| Approach | Time | Space | Maintenance |
 |---|---|---|---|
-| Recalcular textos a cada leitura ou tick | Repete resolução e passagem pela ponte | Temporários por leitura | Distribui a lógica entre consumidores |
-| Aplicar após carregar os arquivos da cultura | Resolução na carga e na troca de idioma | Tabelas por cultura na carga, tabela resolvida do idioma atual | Um ponto de atualização antes dos eventos nativos |
+| Recompute texts on every read or tick | Repeats resolution and the trip through the bridge | Temporaries per read | Spreads the logic across consumers |
+| Apply after the culture's files load | Resolution on load and on language change | Per-culture tables on load, a resolved table for the current language | A single update point before the native events |
 
-A segunda abordagem usa um único hook em `LoadFilesForCulture`, depois do
-original. Os JSONs continuam sendo lidos uma vez por mod. Os templates de conteúdo
-resolvem referências entre textos do mod e preservam referências ao jogo até
-carregar a cultura correspondente. `ModifyTooltipLines` continua recebendo as
-linhas separadas e executando uma vez por cultura durante o registro.
+The second approach uses a single hook on `LoadFilesForCulture`, after the
+original. The JSONs are still read once per mod. The content templates resolve
+references between the mod's texts and keep references to the game until the
+matching culture loads. `ModifyTooltipLines` still receives the separate lines
+and runs once per culture during registration.
 
-Os tooltips registram a mesma chave usada pelo C++ e invalidam seu cache na troca.
-Os rótulos, escolhas e textos de botões de config leem `LocalizedText.Value`;
-o array de escolhas permanece o mesmo. Não há hook novo por tick ou frame.
+Tooltips register the same key the C++ uses and invalidate their cache on the
+change. The config labels, choices and button texts read
+`LocalizedText.Value`; the choices array stays the same. There is no new
+per-tick or per-frame hook.
 
-Uma string obtida por `Translate` ou `GetTextValue` e guardada pelo próprio mod
-continua sendo uma string. Para acompanhar o idioma, consulte no momento de uso
-ou guarde o `LocalizedText` retornado por `GetText` e leia `.Value`.
+A string obtained through `Translate` or `GetTextValue` and kept by the mod
+itself is still a string. To follow the language, look it up when using it or
+keep the `LocalizedText` returned by `GetText` and read `.Value`.
 
-## Execução
+## Running
 
 ```powershell
 node tools/tests/localization/check.mjs
 ```
 
-O teste carrega o código de produção e simula a ordem confirmada na desmontagem
-do jogo. A primeira execução reproduziu 29 falhas em 89 verificações. A suíte
-foi ampliada para incluir registros durante os eventos; agora passam 95 de 95.
-Os mocks verificam as assinaturas dos hooks contra `refs/dump.cs`.
+The test loads the production code and simulates the order confirmed in the
+game's disassembly. The first run reproduced 29 failures out of 89 checks. The
+suite was extended to include registrations during the events; now 95 out of
+95 pass. The mocks check the hooks' signatures against `refs/dump.cs`.
 
-O pacote em `manifest.json` e `content/` usa o UID
-`c4c0f239-ad0e-4400-95f4-0354c884d12b`. Instale somente esse pacote para repetir
-a prova nativa. Ele cria tipos de item, NPC, buff, prefixo e projétil para consultar os caches;
-não cria entidades no mundo nem entrega itens. O teste troca entre português,
-inglês e francês e restaura a cultura inicial. O log termina com
-`localization FIM: tudo ok` quando todos os casos passam.
+The package in `manifest.json` and `content/` uses UID
+`c4c0f239-ad0e-4400-95f4-0354c884d12b`. Install only that package to repeat
+the native proof. It creates item, NPC, buff, prefix and projectile types to
+query the caches; it creates no entities in the world and hands out no items.
+The test switches between Portuguese, English and French and restores the
+initial culture. The log ends with `localization FIM: tudo ok` when every case
+passes.
 
-Referências circulares terminam no nome completo da chave que fechou o ciclo.
-O resultado não conserva comandos `{$...}` para o processador nativo modificar
-depois. O carregador acompanha a cultura dos arquivos mesmo durante
-`OnLanguageChanging`, quando `Language.ActiveCulture` ainda aponta para a anterior.
-Nomes de item e projétil sem entrada no JSON conservam o nome da classe.
+Circular references end at the full name of the key that closed the cycle.
+The result does not keep `{$...}` commands for the native processor to change
+later. The loader follows the files' culture even during `OnLanguageChanging`,
+when `Language.ActiveCulture` still points to the previous one. Item and
+projectile names with no entry in the JSON keep the class name.
 
-## Fontes
+## Sources
 
-- `refs/dump.cs` e desmontagem de `SetLanguage`, `LoadLanguage`,
-  `LoadFilesForCulture` e `ItemTooltip.ValidateTooltip` da versão 301720.
-- [LanguageManager.cs.patch do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/Localization/LanguageManager.cs.patch),
-  que carrega traduções de mods ao final de `LoadFilesForCulture` e processa
-  referências depois.
+- `refs/dump.cs` and the disassembly of `SetLanguage`, `LoadLanguage`,
+  `LoadFilesForCulture` and `ItemTooltip.ValidateTooltip` from version 301720.
+- [tModLoader's LanguageManager.cs.patch](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/Localization/LanguageManager.cs.patch),
+  which loads mod translations at the end of `LoadFilesForCulture` and
+  processes references afterwards.

@@ -1,16 +1,16 @@
-# 10. Sons e música
+# 10. Sounds and music
 
-Um mod pode trazer os próprios sons e músicas: o tiro de uma arma, o grito de
-um NPC, a música de um chefe. O jeito é o do tModLoader: `SoundStyle` para
-sons, `SoundEngine.PlaySound` para tocar na hora e `MusicLoader` com
-`ModNPC.Music` para música.
+A mod can bring its own sounds and music: a weapon's shot, an NPC's scream, a
+boss's music. The approach is tModLoader's: `SoundStyle` for sounds,
+`SoundEngine.PlaySound` to play one on the spot and `MusicLoader` with
+`ModNPC.Music` for music.
 
-Pré-requisito: os guias de [itens](05-itens.md) e de [NPCs](07-npcs.md).
+Prerequisite: the [items](05-itens.md) and [NPCs](07-npcs.md) guides.
 
-## Os arquivos
+## The files
 
-Os efeitos moram em `content/Assets/Sounds/` e as músicas em
-`content/Assets/Music/`, como no tModLoader:
+Sound effects live in `content/Assets/Sounds/` and music in
+`content/Assets/Music/`, as in tModLoader:
 
 ```
 content/
@@ -18,12 +18,12 @@ content/
   Assets/Music/Ropocalypse2.ogg
 ```
 
-Formatos: **OGG** (o recomendado), MP3 e WAV. O caminho vai **sem a
-extensão**, a partir de `Assets/`: `'Sounds/Items/Guns/ExampleGun'` é
-`Assets/Sounds/Items/Guns/ExampleGun.ogg` (`'Items/Guns/ExampleGun'` e o caminho
-inteiro, com `Assets/`, também valem).
+Formats: **OGG** (recommended), MP3 and WAV. The path goes **without the
+extension**, starting from `Assets/`: `'Sounds/Items/Guns/ExampleGun'` is
+`Assets/Sounds/Items/Guns/ExampleGun.ogg` (`'Items/Guns/ExampleGun'` and the
+full path, with `Assets/`, also work).
 
-## Som de item e de NPC
+## Item and NPC sounds
 
 ```js
 SetDefaults() {
@@ -36,73 +36,74 @@ SetDefaults() {
 }
 ```
 
-O mesmo vale para `this.NPC.HitSound` e `this.NPC.DeathSound`. O jogo toca o
-som quando tocaria o dele: no uso do item, no golpe, na morte. O volume cai
-com a distância até o centro da tela e segue o volume de efeitos do jogo.
+The same goes for `this.NPC.HitSound` and `this.NPC.DeathSound`. The game
+plays the sound when it would play its own: on item use, on hit, on death. The
+volume drops with distance from the center of the screen and follows the
+game's sound effects volume.
 
-| Opção | |
+| Option | |
 |---|---|
-| `Volume` | 0 a 1. Padrão 1. |
-| `Pitch` | Tom, em oitavas: 1 = uma acima, -1 = uma abaixo. Padrão 0. |
-| `PitchVariance` | Variação sorteada a cada toque, em oitavas: 0,2 = até 0,1 para cada lado. |
-| `MaxInstances` | Quantos deste soam juntos. Padrão 1; 0 = sem limite. |
-| `SoundLimitBehavior` | Passou do limite: `SoundLimitBehavior.ReplaceOldest` (padrão) corta o mais velho; `IgnoreNew` não toca o novo. |
+| `Volume` | 0 to 1. Default 1. |
+| `Pitch` | Pitch, in octaves: 1 = one up, -1 = one down. Default 0. |
+| `PitchVariance` | Random variation on each play, in octaves: 0.2 = up to 0.1 either way. |
+| `MaxInstances` | How many of this one play together. Default 1; 0 = unlimited. |
+| `SoundLimitBehavior` | Over the limit: `SoundLimitBehavior.ReplaceOldest` (default) cuts the oldest; `IgnoreNew` does not play the new one. |
 
-As chaves também valem em minúsculas (`volume`, `pitchVariance`...).
+The keys also work in lowercase (`volume`, `pitchVariance`...).
 
-Criar o `SoundStyle` dentro do `SetDefaults` não custa nada: o mesmo arquivo
-com as mesmas opções devolve **o mesmo** objeto, e o arquivo é lido uma vez só.
+Creating the `SoundStyle` inside `SetDefaults` costs nothing: the same file
+with the same options returns **the same** object, and the file is read only
+once.
 
-Se o arquivo não existe, o `SoundStyle` não lança erro (isso deixaria o item
-pela metade): ele fica mudo e o log diz qual arquivo faltou.
+If the file does not exist, `SoundStyle` does not throw (that would leave the
+item half-built): it stays silent and the log says which file was missing.
 
-## Tocar um som na hora
+## Playing a sound on the spot
 
 ```js
-SoundEngine.PlaySound(style);                  // sem posição: volume cheio
-SoundEngine.PlaySound(style, npc.Center);      // cai com a distância
-SoundEngine.PlaySound(Terraria.ID.SoundID.Item1, player.Center);   // um do jogo
+SoundEngine.PlaySound(style);                  // no position: full volume
+SoundEngine.PlaySound(style, npc.Center);      // fades with distance
+SoundEngine.PlaySound(Terraria.ID.SoundID.Item1, player.Center);   // a vanilla one
 ```
 
-Com um som de mod, `PlaySound` devolve o identificador de um **pedido
-assíncrono**, ou 0 se foi recusado: arquivo ainda carregando, longe demais,
-volume em 0, app pausado, limite `IgnoreNew` ou fila cheia. O Android inicia
-o efeito fora da thread do jogo. Um identificador positivo confirma a
-aceitação; a reprodução ainda pode falhar ou o pedido pode expirar.
-Com esse identificador:
+With a mod sound, `PlaySound` returns the identifier of an **asynchronous
+request**, or 0 if it was refused: file still loading, too far away, volume at
+0, app paused, `IgnoreNew` limit or full queue. Android starts the effect off
+the game thread. A positive identifier confirms it was accepted; playback can
+still fail or the request can expire. With that identifier:
 
 ```js
-const pedido = SoundEngine.PlaySound(style, player.Center);
-SoundEngine.GetSoundState(pedido);    // consultar em outra atualização
-SoundEngine.FindActiveSound(style);   // o mais novo iniciado, ou 0
-SoundEngine.StopSound(pedido);        // cancela também antes de começar
+const request = SoundEngine.PlaySound(style, player.Center);
+SoundEngine.GetSoundState(request);   // check on a later update
+SoundEngine.FindActiveSound(style);   // the newest one started, or 0
+SoundEngine.StopSound(request);       // also cancels before it starts
 ```
 
-| `GetSoundState(pedido)` | Estado |
+| `GetSoundState(request)` | State |
 |---|---|
-| -1 | O backend falhou ao iniciar. |
-| 0 | Terminou, foi substituído pelo limite global ou o identificador não está mais no histórico. Também vale para 0. |
-| 1 | Pendente, incluindo uma chamada Android ainda em andamento. |
-| 2 | Iniciado, com duração restante estimada. |
-| 3 | Pausado pelo ciclo de vida do app. |
-| 4 | Cancelado por `StopSound`, `ReplaceOldest` ou pausa antes de começar. |
-| 5 | Descartado porque aguardou mais de 50 ms antes do despacho. |
+| -1 | The backend failed to start it. |
+| 0 | Finished, was replaced by the global limit or the identifier is no longer in the history. Also applies to 0. |
+| 1 | Pending, including an Android call still in progress. |
+| 2 | Started, with an estimated remaining duration. |
+| 3 | Paused by the app lifecycle. |
+| 4 | Cancelled by `StopSound`, `ReplaceOldest` or a pause before it started. |
+| 5 | Dropped because it waited more than 50 ms before dispatch. |
 
-Consulte o estado durante as atualizações do mod. Não espere em um laço
-ocupado: o jogo precisa continuar. `FindActiveSound` retorna 0 enquanto o
-pedido está pendente, falhou ou está pausado. `MaxInstances` conta pedidos
-pendentes e sons iniciados; `ReplaceOldest` cancela o anterior antes de
-despachar o próximo. Sons pausados mantêm o identificador e a duração restante.
+Check the state during the mod's updates. Do not wait in a busy loop: the game
+has to keep going. `FindActiveSound` returns 0 while the request is pending,
+has failed or is paused. `MaxInstances` counts pending requests and started
+sounds; `ReplaceOldest` cancels the previous one before dispatching the next.
+Paused sounds keep their identifier and remaining duration.
 
-O controle guarda até 256 pedidos recentes, preservando os que ainda estão
-em andamento. O SoundPool não oferece consulta de posição nem notificação
-de fim por stream: o fim é estimado pela duração do arquivo e pelo pitch.
-O estado iniciado confirma o retorno positivo do Android, sem medir a saída
-física do alto-falante. Os identificadores pertencem à sessão atual do jogo.
+The controller keeps up to 256 recent requests, preserving the ones still in
+progress. SoundPool offers no position query and no per-stream end
+notification: the end is estimated from the file's duration and the pitch.
+The started state confirms Android's positive return, without measuring the
+speaker's physical output. Identifiers belong to the current game session.
 
-## Música
+## Music
 
-A música de um NPC toca enquanto ele está perto da tela, como a de um chefe:
+An NPC's music plays while it is near the screen, like a boss's:
 
 ```js
 SetDefaults() {
@@ -111,81 +112,83 @@ SetDefaults() {
 }
 ```
 
-- `MusicLoader.GetMusicSlot(caminho)` devolve o número da música (depois dos
-  do jogo), ou 0 se o arquivo não existe. `GetMusicSlot(bl.mod, caminho)`, do
-  jeito do tModLoader, também vale.
-- `this.Music` também aceita uma música do jogo: `Terraria.ID.MusicID.Boss2`.
-  -1 (o padrão) deixa o jogo escolher.
-- Pode mudar no meio da luta, na `AI`: a fase 2 com outra música. Dê um
-  valor já no `SetDefaults`: é ali que o Bunny Loader vê que o NPC tem
-  música (um NPC que nasce com -1 e só ganha música na `AI` fica sem ela, a
-  não ser que outro NPC de mod já tenha ligado a música de mod).
-- Com dois NPCs de música por perto, ganha o de `SceneEffectPriority` maior
-  (`SceneEffectPriority.BossLow` é o padrão; vão de `None` a `BossHigh`).
-- "Perto" é o mesmo do tModLoader: a até 5000 px da tela.
-- Um bioma (`ModBiome`) ou efeito de cena (`ModSceneEffect`) também tem
-  `Music` e `Priority`: vale a do jogador local, e ela só troca a do NPC se a
-  prioridade for maior.
-- A do mod ganha da do jogo se a prioridade chegar ao degrau dela, como no
-  tModLoader: `BossLow` ganha de um chefe comum do jogo, mas não do Senhor da
-  Lua (`BossHigh`); `BiomeLow` ganha da música de superfície, mas não da
-  chuva de slime (`Environment`). A tabela inteira está na
-  [referência](../referencia/classes.md#som-e-música). A caixa de música, do
-  jogo ou de mod, ganha de tudo.
+- `MusicLoader.GetMusicSlot(path)` returns the track's number (after the
+  game's), or 0 if the file does not exist. `GetMusicSlot(bl.mod, path)`,
+  tModLoader's way, also works.
+- `this.Music` also accepts a vanilla track: `Terraria.ID.MusicID.Boss2`. -1
+  (the default) lets the game choose.
+- It can change mid-fight, in `AI`: phase 2 with another track. Give it a
+  value already in `SetDefaults`: that is where Bunny Loader sees that the NPC
+  has music (an NPC that spawns with -1 and only gets music in `AI` stays
+  without it, unless another mod NPC has already turned mod music on).
+- With two music NPCs nearby, the one with the higher `SceneEffectPriority`
+  wins (`SceneEffectPriority.BossLow` is the default; they range from `None`
+  to `BossHigh`).
+- "Near" is the same as in tModLoader: up to 5000 px from the screen.
+- A biome (`ModBiome`) or scene effect (`ModSceneEffect`) also has `Music` and
+  `Priority`: the local player's applies, and it only replaces the NPC's if
+  its priority is higher.
+- The mod's wins over the game's if its priority reaches the game track's
+  tier, as in tModLoader: `BossLow` beats a regular vanilla boss, but not the
+  Moon Lord (`BossHigh`); `BiomeLow` beats the surface music, but not the slime
+  rain (`Environment`). The full table is in the
+  [reference](../referencia/classes.md#sound-and-music). A music box, vanilla or
+  mod, beats everything.
 
-A troca é igual à do jogo entre duas músicas dele: a nova entra baixinho e
-vai subindo, e a que tocava só começa a sair quando a nova já se ouve — uns 4
-segundos, sem corte. Vale na chegada do chefe e no fim da luta (ou quando você
-sai do mundo), quando a do jogo volta do mesmo jeito. A do mod toca em laço,
-no volume de música do jogo.
+The transition is the same as the game's between two of its own tracks: the
+new one comes in quietly and rises, and the one that was playing only starts
+fading out once the new one is audible — about 4 seconds, with no cut. That
+applies when the boss arrives and when the fight ends (or when you leave the
+world), when the game's track comes back the same way. The mod's track loops,
+at the game's music volume.
 
-`MusicLoader.MusicExists(caminho)` diz se o arquivo existe, e
-`MusicLoader.IsMusicPlaying(slot)` se a música está tocando agora.
+`MusicLoader.MusicExists(path)` tells whether the file exists, and
+`MusicLoader.IsMusicPlaying(slot)` whether the track is playing right now.
 
-## Como funciona, e o limite
+## How it works, and the limit
 
-O Terraria Mobile é Unity por baixo, e **esta build não sabe criar som
-novo**: o `AudioClip.Create` e tudo que ele usa foram cortados do jogo na
-compilação. Então o áudio de mod toca pelo **Android** (SoundPool para sons,
-MediaPlayer para música), e o Bunny Loader faz ele se comportar como o do
-jogo: volume de efeitos e de música, distância e lado da tela, pausa quando o
-jogo vai para o fundo.
+Terraria Mobile is Unity underneath, and **this build cannot create new
+sounds**: `AudioClip.Create` and everything it uses were stripped from the
+game at build time. So mod audio plays through **Android** (SoundPool for
+sounds, MediaPlayer for music), and Bunny Loader makes it behave like the
+game's: effects and music volume, distance and screen side, pausing when the
+game goes to the background.
 
-Na prática:
+In practice:
 
-- **Som curto.** Efeito é para ser curto, de até alguns segundos. Áudio longo é
-  música.
-- A música é lida aos poucos (streaming), então o tamanho do arquivo não pesa
-  na memória.
-- No multijogador, cada aparelho toca o próprio áudio, como o jogo faz.
-- Há até 32 streams customizados simultâneos, como antes. A fila admite até
-  32 pedidos pendentes, incluindo a chamada em andamento. Sob sobrecarga,
-  recusa pedidos novos e descarta os que esperaram mais de 50 ms antes de
-  chamar o Android. Isso limita memória e evita uma sequência longa de
-  efeitos atrasados; não garante reproduzir todos os sons de uma rajada.
+- **Short sounds.** Effects are meant to be short, up to a few seconds. Long
+  audio is music.
+- Music is read bit by bit (streaming), so the file size does not weigh on
+  memory.
+- In multiplayer, each device plays its own audio, as the game does.
+- There are up to 32 simultaneous custom streams, as before. The queue holds
+  up to 32 pending requests, including the call in progress. Under overload,
+  it refuses new requests and drops the ones that waited more than 50 ms
+  before calling Android. This bounds memory and avoids a long string of late
+  effects; it does not guarantee every sound in a burst plays.
 
-## Diferenças para o tModLoader
+## Differences from tModLoader
 
 | tModLoader | Bunny Loader |
 |---|---|
-| `new SoundStyle("ExampleMod/Assets/Sounds/X") { Volume = 0.9f }` | `new SoundStyle('Sounds/X', { Volume: 0.9 })`, a partir de `Assets/`, sem o nome do mod |
-| `SoundStyle` é um struct | o `new` devolve um `LegacySoundStyle` do jogo (o tipo do `UseSound`): `instanceof SoundStyle` dá `false` |
-| `SoundEngine.PlaySound` devolve `SlotId` | devolve o identificador do pedido assíncrono (0 = recusado); consulte `GetSoundState` |
-| `Variants`, `IsLooped`, callback de atualização | ainda não |
-| `MusicLoader.GetMusicSlot(Mod, caminho)` | também `GetMusicSlot(caminho)`; não há carga automática de `Assets/Music/` |
-| `ModBiome.Music`, `ModSceneEffect.Music` | iguais: a da cena do jogador local, pela `Priority` |
+| `new SoundStyle("ExampleMod/Assets/Sounds/X") { Volume = 0.9f }` | `new SoundStyle('Sounds/X', { Volume: 0.9 })`, starting from `Assets/`, without the mod name |
+| `SoundStyle` is a struct | `new` returns a game `LegacySoundStyle` (the `UseSound` type): `instanceof SoundStyle` is `false` |
+| `SoundEngine.PlaySound` returns a `SlotId` | returns the asynchronous request's identifier (0 = refused); check `GetSoundState` |
+| `Variants`, `IsLooped`, update callback | not yet |
+| `MusicLoader.GetMusicSlot(Mod, path)` | also `GetMusicSlot(path)`; there is no automatic loading of `Assets/Music/` |
+| `ModBiome.Music`, `ModSceneEffect.Music` | the same: the local player's scene, by `Priority` |
 
-## Referência rápida
+## Quick reference
 
 | | |
 |---|---|
-| `new SoundStyle(caminho, { Volume, Pitch, PitchVariance, MaxInstances, SoundLimitBehavior })` | um som do mod; vai no `UseSound`, `HitSound`, `DeathSound` |
-| `SoundEngine.PlaySound(estilo, posição?)` | pedir um efeito; som de mod devolve o identificador (0 = recusado) |
-| `SoundEngine.GetSoundState(pedido)` | consultar se está pendente, iniciado, pausado, cancelado, expirado ou falhou |
-| `SoundEngine.FindActiveSound(estilo)`, `SoundEngine.StopSound(n)` | o que ainda soa; parar |
-| `MusicLoader.GetMusicSlot(caminho)` | o número de uma música do mod (0 = não existe) |
-| `this.Music`, `this.SceneEffectPriority` (no `ModNPC`) | a música enquanto ele está perto; quem ganha |
-| `MusicLoader.IsMusicPlaying(slot)`, `MusicLoader.MusicExists(caminho)` | está tocando? o arquivo existe? |
+| `new SoundStyle(path, { Volume, Pitch, PitchVariance, MaxInstances, SoundLimitBehavior })` | a mod sound; goes in `UseSound`, `HitSound`, `DeathSound` |
+| `SoundEngine.PlaySound(style, position?)` | requests an effect; a mod sound returns the identifier (0 = refused) |
+| `SoundEngine.GetSoundState(request)` | checks whether it is pending, started, paused, cancelled, expired or failed |
+| `SoundEngine.FindActiveSound(style)`, `SoundEngine.StopSound(n)` | what is still playing; stop |
+| `MusicLoader.GetMusicSlot(path)` | a mod track's number (0 = does not exist) |
+| `this.Music`, `this.SceneEffectPriority` (on `ModNPC`) | the music while it is nearby; who wins |
+| `MusicLoader.IsMusicPlaying(slot)`, `MusicLoader.MusicExists(path)` | is it playing? does the file exist? |
 
-Os testes `tools/tests/sounds` e `tools/tests/music` cobrem cada caso deste
-guia; o segundo usa o chefe do Example Mod.
+The `tools/tests/sounds` and `tools/tests/music` tests cover every case in
+this guide; the second one uses the Example Mod's boss.

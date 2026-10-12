@@ -1,42 +1,43 @@
-# Hospedando a UnityPlayer do Terraria
+# Hosting Terraria's UnityPlayer
 
-Fatos extraídos do `classes.dex` do Terraria **1.4.5.6.4** (Unity **2021.3.56f2**).
-Reproduzir com:
+Facts extracted from the `classes.dex` of Terraria **1.4.5.6.4** (Unity **2021.3.56f2**).
+Reproduce with:
 
 ```bash
 unzip -o -j refs/base.apk classes.dex -d /tmp/ph1
 "$LOCALAPPDATA/Android/Sdk/build-tools/36.1.0/dexdump.exe" -d /tmp/ph1/classes.dex > /tmp/ph1/disasm.txt
 ```
 
-## 1. O APK tem PairIP — mas em modo leve
+## 1. The APK has PairIP — but in light mode
 
-O `application:name` é `com.pairip.application.Application`, e o dex traz
-`com.pairip.{SignatureCheck, VMRunner, VmDecryptor, StartupLauncher,
-InitContextProvider}` mais `com.pairip.licensecheck.*`. Pacotes ofuscados
-injetados aparecem dentro de *todos* os namespaces (`com/unity3d/player/a/UuH/`,
+`application:name` is `com.pairip.application.Application`, and the dex
+brings `com.pairip.{SignatureCheck, VMRunner, VmDecryptor, StartupLauncher,
+InitContextProvider}` plus `com.pairip.licensecheck.*`. Injected obfuscated
+packages show up inside *every* namespace (`com/unity3d/player/a/UuH/`,
 `bitter/jnibridge/EiJ/`, `org/fmod/PS/`, `com/and/games505/TerrariaPaid/ZtK/`).
 
-**Mas só 3 métodos no dex inteiro chamam `VMRunner.invoke`:**
+**But only 3 methods in the whole dex call `VMRunner.invoke`:**
 
-| Classe | Método | Relevância |
+| Class | Method | Relevance |
 |---|---|---|
-| `com.pairip.StartupLauncher` | `launch` | interno do PairIP |
-| `com.pairip.VMRunner$1` | `run` | interno do PairIP |
-| `com.unity3d.player.HFPStatus$1` | `onReceive` | receiver de fone bluetooth |
+| `com.pairip.StartupLauncher` | `launch` | PairIP internal |
+| `com.pairip.VMRunner$1` | `run` | PairIP internal |
+| `com.unity3d.player.HFPStatus$1` | `onReceive` | Bluetooth headset receiver |
 
-Nenhum método da `UnityPlayer` está protegido por VM. Como o Bunny Loader nunca
-instancia a `Application` do jogo nem o `InitContextProvider`, o
-`StartupLauncher.launch` — e portanto o `SignatureCheck` e o license check —
-**nunca roda**. A única baixa é o `HFPStatus`, que detecta fone bluetooth.
+No `UnityPlayer` method is VM-protected. Since Bunny Loader never instantiates
+the game's `Application` nor `InitContextProvider`,
+`StartupLauncher.launch` — and therefore `SignatureCheck` and the license
+check — **never runs**. The only casualty is `HFPStatus`, which detects a
+Bluetooth headset.
 
-O `libil2cpp.so` **não** está criptografado: o Il2CppDumper extraiu o dump
-completo direto dele.
+`libil2cpp.so` is **not** encrypted: Il2CppDumper extracted the complete dump
+straight from it.
 
-> Se uma atualização do jogo endurecer o PairIP (proteger a `UnityPlayer` ou
-> cifrar a `.so`), reconfira a contagem de `VMRunner.invoke` antes de investigar
-> qualquer outra coisa.
+> If a game update hardens PairIP (protects `UnityPlayer` or encrypts the
+> `.so`), recheck the `VMRunner.invoke` count before investigating anything
+> else.
 
-## 2. A Unity exige que o Context SEJA uma Activity
+## 2. Unity requires the Context to BE an Activity
 
 `UnityPlayer.<init>(Context, IUnityPlayerLifecycleEvents)`:
 
@@ -48,15 +49,16 @@ completo direto dele.
 0062: invoke-virtual {v7}, Activity.getRequestedOrientation()
 ```
 
-É um `instanceof` **puro**, sem desembrulhar `ContextWrapper.getBaseContext()`.
-Passar um `ContextWrapper` deixa `mActivity` nulo e a Unity estoura em seguida.
+It is a **plain** `instanceof`, without unwrapping
+`ContextWrapper.getBaseContext()`. Passing a `ContextWrapper` leaves
+`mActivity` null and Unity blows up right after.
 
-Por isso a `GameActivity` **é** o Context: ela sobrescreve `getResources()`,
-`getAssets()`, `getApplicationInfo()` e `getClassLoader()` devolvendo os do jogo,
-e passa `this` para a `UnityPlayer`. Enquanto o `GameEnvironment` não estiver
-pronto, os getters caem no `super`, então o `super.onCreate()` funciona normal.
+That is why `GameActivity` **is** the Context: it overrides `getResources()`,
+`getAssets()`, `getApplicationInfo()` and `getClassLoader()` returning the
+game's, and passes `this` to `UnityPlayer`. While `GameEnvironment` is not
+ready, the getters fall back to `super`, so `super.onCreate()` works normally.
 
-## 3. API da UnityPlayer conferida
+## 3. UnityPlayer API checked
 
 ```
 UnityPlayer extends android.widget.FrameLayout
@@ -71,74 +73,75 @@ UnitySendMessage(String,String,String)   [static]
 currentActivity : Activity               [static field]
 ```
 
-A `UnityPlayerActivity` de fábrica usa **`onStart`/`onResume`/`onPause`/`onStop`**
-— não os legados `resume()`/`pause()`, que também existem. Seguimos a de fábrica.
+The stock `UnityPlayerActivity` uses **`onStart`/`onResume`/`onPause`/`onStop`**
+— not the legacy `resume()`/`pause()`, which also exist. We follow the stock
+one.
 
-`IUnityPlayerLifecycleEvents` tem exatamente dois métodos:
-`onUnityPlayerQuitted()` e `onUnityPlayerUnloaded()`.
+`IUnityPlayerLifecycleEvents` has exactly two methods:
+`onUnityPlayerQuitted()` and `onUnityPlayerUnloaded()`.
 
-## 4. O que a UnityPlayerActivity faz (pelos acessadores do PairIP)
+## 4. What UnityPlayerActivity does (through PairIP's accessors)
 
-Os métodos sintéticos `$NNN` que o PairIP injeta revelam cada chamada de
-framework. Em `onCreate`, na ordem:
+The synthetic `$NNN` methods PairIP injects reveal each framework call. In
+`onCreate`, in order:
 
 1. `requestWindowFeature(FEATURE_NO_TITLE)`
 2. `getIntent()` → `getStringExtra("unity")` → `updateUnityCommandLineArguments()` → `putExtra()`
 3. `new UnityPlayer(this, this)`
 4. `setContentView(mUnityPlayer)`
 5. `mUnityPlayer.requestFocus()`
-6. `getWindow().getAttributes()` / `setAttributes()` — layout de recorte de tela
-7. `getDisplay().getSupportedModes()` — taxa de quadros da superfície
+6. `getWindow().getAttributes()` / `setAttributes()` — display cutout layout
+7. `getDisplay().getSupportedModes()` — the surface's frame rate
 8. `getPackageManager().hasSystemFeature(...)`
 9. `setOnTouchListener` / `setOnGenericMotionListener` / `setPointerIcon`
 
-Input é todo encaminhado por `injectEvent`: `dispatchKeyEvent`, `onKeyDown`,
-`onKeyUp`, `onTouchEvent`, `onGenericMotionEvent`.
+All input is forwarded through `injectEvent`: `dispatchKeyEvent`,
+`onKeyDown`, `onKeyUp`, `onTouchEvent`, `onGenericMotionEvent`.
 
-## 5. Config do manifest copiada do jogo
+## 5. Manifest config copied from the game
 
-| Atributo | Valor do jogo |
+| Attribute | The game's value |
 |---|---|
 | `launchMode` | `2` = `singleTask` |
 | `screenOrientation` | `11` = `sensorLandscape` |
 | `hardwareAccelerated` | `false` |
 | `resizeableActivity` | `false` |
-| `configChanges` | `0x40003fff` (praticamente tudo) |
+| `configChanges` | `0x40003fff` (practically everything) |
 
-A Unity lê `unity.splash-mode`, `unity.splash-enable`, `unity.launch-fullscreen`,
-`unity.auto-report-fully-drawn`, `notch.config` e `android.notch_support` do
-pacote **hospedeiro** via PackageManager — ou seja, do *nosso* manifest.
-Por isso eles estão replicados lá.
+Unity reads `unity.splash-mode`, `unity.splash-enable`,
+`unity.launch-fullscreen`, `unity.auto-report-fully-drawn`, `notch.config`
+and `android.notch_support` from the **host** package via PackageManager —
+that is, from *our* manifest. That is why they are replicated there.
 
 ---
 
-# CORRECAO IMPORTANTE (sessao seguinte)
+# IMPORTANT CORRECTION (next session)
 
-A secao 1 acima estava **certa sobre a protecao de VM e errada sobre o que
-importava**. Contar chamadas a `VMRunner.invoke` mede so uma das duas coisas que
-o PairIP faz. A outra derruba a abordagem.
+Section 1 above was **right about the VM protection and wrong about what
+mattered**. Counting calls to `VMRunner.invoke` measures only one of the two
+things PairIP does. The other one kills the approach.
 
-## O PairIP criptografa as constantes de string do app inteiro
+## PairIP encrypts the whole app's string constants
 
-Elas moram em classes-deposito injetadas que nao tem **nenhum metodo**. Exemplo
-real, `uk.co.drstudios.lvl.yh.sHQPfQqKk`: 13 campos `public static String`,
-zero metodos, zero `<clinit>`. Alguem de fora preenche em runtime.
+They live in injected storage classes that have **no methods**. A real
+example, `uk.co.drstudios.lvl.yh.sHQPfQqKk`: 13 `public static String` fields,
+zero methods, zero `<clinit>`. Someone from outside fills them in at runtime.
 
-Sem esse alguem, codigo trivial quebra em lugares improvaveis:
+Without that someone, trivial code breaks in unlikely places:
 
 ```
 UnityPlayer.getNaturalOrientation():
     iget-object   v0, v3, UnityPlayer.mContext
-    sget-object   v1, sHQPfQqKk.pPb              <- deveria ser "window", esta null
+    sget-object   v1, sHQPfQqKk.pPb              <- should be "window", is null
     invoke-virtual Context.getSystemService(v1)  -> null
     invoke-interface WindowManager.getDefaultDisplay()  -> NullPointerException
 ```
 
-## Chamar o StartupLauncher direto NAO resolve
+## Calling StartupLauncher directly does NOT solve it
 
-A ideia era acionar so a descriptografia, sem passar pelo `attachBaseContext`
-(onde vive o `SignatureCheck`). Implementado em `PairipBootstrap`. Resultado
-medido no dispositivo:
+The idea was to trigger only the decryption, without going through
+`attachBaseContext` (where `SignatureCheck` lives). Implemented in
+`PairipBootstrap`. Result measured on the device:
 
 ```
 PairIP: antes do bootstrap, sHQPfQqKk.pPb = null
@@ -148,29 +151,30 @@ PairIP: StartupLauncher.launch() ok
 PairIP: depois do bootstrap, sHQPfQqKk.pPb = null
 ```
 
-Tudo "ok", nada populado, e no mesmo milissegundo. O motivo esta no dex:
+Everything "ok", nothing populated, and in the same millisecond. The reason is
+in the dex:
 
 ```
 com.pairip.VMRunner.invoke:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/Object;
     0000: const/4       v0, #int 0
-    0001: return-object v0      <- retorna null na primeira instrucao
-    0002: sget-object   v0, VMRunner.context   <- corpo real, inalcancavel
+    0001: return-object v0      <- returns null on the first instruction
+    0002: sget-object   v0, VMRunner.context   <- the real body, unreachable
 ```
 
-O `invoke` gravado no dex e um **stub**. O corpo verdadeiro comeca no offset
-0002 e nunca roda. A `libpairipcore.so` reescreve esse metodo em memoria quando
-inicializada pelo caminho legitimo do app. Carregar a lib (o que acontece no
-`<clinit>` do VMRunner) nao e suficiente.
+The `invoke` stored in the dex is a **stub**. The real body starts at offset
+0002 and never runs. `libpairipcore.so` rewrites that method in memory when
+initialized through the app's legitimate path. Loading the lib (which happens
+in VMRunner's `<clinit>`) is not enough.
 
-## Consequencia para a arquitetura
+## Consequence for the architecture
 
-Hospedar a `UnityPlayer` dentro do nosso processo exige fazer o processo passar
-por legitimo para a `libpairipcore.so`. Isso e fragil e quebra a cada
-atualizacao do jogo.
+Hosting `UnityPlayer` inside our process requires making the process pass as
+legitimate to `libpairipcore.so`. That is fragile and breaks with every game
+update.
 
-A alternativa e inverter o desenho: em vez de **hospedar** o jogo, **lancar** o
-jogo no processo dele (onde o PairIP inicializa normalmente e as strings sao
-populadas) e injetar a `libbunny.so` nesse processo. O custo e que injecao em
-processo alheio pede root.
+The alternative is to invert the design: instead of **hosting** the game,
+**launch** the game in its own process (where PairIP initializes normally and
+the strings get populated) and inject `libbunny.so` into that process. The
+cost is that injecting into someone else's process requires root.
 
-Decisao pendente.
+Decision pending.

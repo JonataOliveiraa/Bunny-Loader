@@ -1,19 +1,19 @@
-# 9. Blocos
+# 9. Tiles
 
-Um bloco novo (terra, pedra, minério) é uma classe que estende `ModTile`, como
-o `ModTile` do tModLoader. Este guia mostra como criar o bloco, o item que o
-coloca, e como o Bunny Loader salva o mundo para ele continuar abrindo sem o
-mod.
+A new block (dirt, stone, ore) is a class that extends `ModTile`, like
+tModLoader's `ModTile`. This guide shows how to create the tile, the item that
+places it, and how Bunny Loader saves the world so it keeps opening without
+the mod.
 
-Objetos de várias células (móveis) também: a forma vem do `TileObjectData`,
-como no tModLoader ([Móveis](#móveis-tileobjectdata)), com o que é próprio de
-cada um: porta que abre, cadeira que senta, baú, estação de criação
-([Móveis com comportamento](#móveis-com-comportamento)).
+Multi-cell objects (furniture) too: the shape comes from `TileObjectData`, as
+in tModLoader ([Furniture](#furniture-tileobjectdata)), with what is specific to
+each one: doors that open, chairs you sit on, chests, crafting stations
+([Furniture with behavior](#furniture-with-behavior)).
 
-Antes, leia as [ideias do guia 4](04-conteudo-novo.md). A lista completa está
-na [referência](../referencia/classes.md#modtile).
+Read the [ideas in guide 4](04-conteudo-novo.md) first. The full list is in
+the [reference](../referencia/classes.md#modtile).
 
-## O minério de exemplo
+## The example ore
 
 ```js
 export class ExampleOre extends ModTile {
@@ -21,8 +21,8 @@ export class ExampleOre extends ModTile {
         super();
         this.DustType = Terraria.ID.DustID.Platinum;
         this.HitSound = Terraria.ID.SoundID.Tink;
-        this.MineResist = 4;     // 4 vezes mais golpes
-        this.MinPick = 200;      // picareta abaixo de 200 não quebra
+        this.MineResist = 4;     // 4 times as many hits
+        this.MinPick = 200;      // a pickaxe below 200 cannot break it
     }
 
     SetStaticDefaults() {
@@ -37,21 +37,21 @@ export class ExampleOre extends ModTile {
 }
 ```
 
-No `SetStaticDefaults` vão as tabelas do jogo que dizem o que o bloco **é**:
-sólido, se bloqueia a luz, se se funde com a terra, se o Espeleólogo o
-destaca.
+`SetStaticDefaults` holds the game tables that say what the tile **is**:
+solid, whether it blocks light, whether it merges with dirt, whether the
+Spelunker highlights it.
 
-### A textura
+### The texture
 
-A folha de quadros do bloco, no mesmo formato das do jogo: **288x270 px**,
-quadros de 16x16 com 2 px de margem. O jogo escolhe o quadro pelos vizinhos (e
-pela terra, com `tileMergeDirt`): um bloco sozinho, uma quina, uma borda.
-Copiar a folha de um bloco do jogo parecido e repintar é o caminho mais
-curto.
+The tile's frame sheet, in the same format as the game's: **288x270 px**,
+16x16 frames with a 2 px margin. The game picks the frame from the neighbors
+(and from dirt, with `tileMergeDirt`): a lone block, a corner, an edge.
+Copying the sheet of a similar vanilla tile and repainting it is the shortest
+path.
 
-### O item que coloca
+### The item that places it
 
-É um `ModItem` comum:
+It is a plain `ModItem`:
 
 ```js
 SetDefaults() {
@@ -59,91 +59,94 @@ SetDefaults() {
 }
 ```
 
-Ao quebrar, cai o item de mod que coloca aquele tile. Para outro item, use
-`this.ItemDrop = tipo` no `ModTile`.
+When broken, the mod item that places that tile drops. For another item, use
+`this.ItemDrop = type` on the `ModTile`.
 
-## Campos
+## Fields
 
-| Campo | Para quê |
+| Field | What for |
 |---|---|
-| `Texture` | O caminho no mod, sem `.png`. Padrão: o arquivo da classe (`Content/Tiles/X.js` -> `Content/Tiles/X.png`). |
-| `HighlightTexture` | O contorno de `TileID.Sets.HasOutlines` (padrão: `Texture + '_Highlight'`). Sem o arquivo, o contorno sai. |
-| `DustType` | A poeira ao bater e quebrar (`Terraria.ID.DustID`); `-1`, nenhuma. |
-| `HitSound` | O som ao bater (`Terraria.ID.SoundID`). Sem ele, o som do jogo. |
-| `MinPick` | Força de picareta mínima. |
-| `MineResist` | Quanto o tile resiste: o dano de cada golpe é dividido por ele. |
-| `ItemDrop` | O item que cai (padrão: o item que coloca o tile, pelo estilo). |
-| `AdjTiles` | Conta como estas estações de criação: `[TileID.WorkBenches]`. |
-| `AnimationFrameHeight` | Altura de um quadro de animação na textura (ver `AnimateTile`). |
-| `CacheDrawData` | `false`: o `SetDrawPositions`, o `AnimateIndividualTile` e o `SetSpriteEffects` rodam em todo desenho, sem o cache (ver abaixo). Padrão `true`. |
+| `Texture` | The path in the mod, without `.png`. Default: the class's file (`Content/Tiles/X.js` -> `Content/Tiles/X.png`). |
+| `HighlightTexture` | The `TileID.Sets.HasOutlines` outline (default: `Texture + '_Highlight'`). Without the file, there is no outline. |
+| `DustType` | The dust when hitting and breaking (`Terraria.ID.DustID`); `-1`, none. |
+| `HitSound` | The sound when hitting (`Terraria.ID.SoundID`). Without it, the game's sound. |
+| `MinPick` | Minimum pickaxe power. |
+| `MineResist` | How much the tile resists: each hit's damage is divided by it. |
+| `ItemDrop` | The item that drops (default: the item that places the tile, by style). |
+| `AdjTiles` | Counts as these crafting stations: `[TileID.WorkBenches]`. |
+| `AnimationFrameHeight` | The height of one animation frame in the texture (see `AnimateTile`). |
+| `CacheDrawData` | `false`: `SetDrawPositions`, `AnimateIndividualTile` and `SetSpriteEffects` run on every draw, without the cache (see below). Default `true`. |
 
-Um bloco de mod pedido numa receita (`AddTile`) aparece no guia de criação com o nome do mapa (`AddMapEntry`) e o ícone do item que o coloca (`TileID.Sets.CraftingStationItemId`, uma tabela só do celular; o Bunny Loader a preenche no fim das receitas).
+A mod tile required by a recipe (`AddTile`) shows up in the crafting guide
+with its map name (`AddMapEntry`) and the icon of the item that places it
+(`TileID.Sets.CraftingStationItemId`, a mobile-only table; Bunny Loader fills
+it in at the end of the recipes).
 
-## Métodos
+## Methods
 
-Os parâmetros `ref` do tModLoader chegam como `Ref`: leia e escreva
-`.value` (`num.value = 3`), como no [guia 2](02-ref-e-out.md).
+tModLoader's `ref` parameters arrive as `Ref`s: read and write `.value`
+(`num.value = 3`), as in [guide 2](02-ref-e-out.md).
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `SetStaticDefaults()` | Uma vez, com o tipo já nas tabelas (`Main.tileSolid[this.Type]`...). |
-| `PostSetDefaults()` | Logo depois (o `tileNoSunLight` do sólido já foi posto). |
-| `AddMapEntry(cor, nome)` | A cor e o nome no mapa (ver abaixo). Sem ela, o tile não aparece no mapa. |
-| `RegisterItemDrop(item, ...estilos)` | O item que cai, de todos os estilos ou só dos listados. |
-| `CanKillTile(i, j, blockDamaged)` | `false`: a picareta não quebra. |
-| `KillTile(i, j, fail, effectOnly, noItem)` | Antes de o tile sair (`fail`: só o golpe). Os três são `Ref`. |
-| `KillMultiTile(i, j, frameX, frameY)` | Um móvel saiu inteiro; `(i, j)` é o canto de cima à esquerda. |
-| `NumDust(i, j, fail, num)` | Quantas poeiras (no máximo as 10 do jogo). |
-| `CreateDust(i, j, type)` | `false`: sem poeira; `type.value` troca a poeira. |
-| `KillSound(i, j, fail)` | `false`: sem som. |
-| `CanDrop(i, j)` / `GetItemDrops(i, j)` | Se cai item / quais (tipos ou `{ type, stack }`, até dois). |
-| `PlaceInWorld(i, j, item)` | O jogador acabou de colocar. |
-| `TileFrame(i, j, resetFrame, noBreak)` | `false`: o jogo não enquadra (você enquadrou). |
-| `RandomUpdate(i, j)` | A atualização aleatória do mundo (a erva cresce aqui). |
-| `NearbyEffects(i, j, closer)` | O tile está perto do jogador (`closer`: na tela). |
-| `ModifyLight(i, j, r, g, b)` | A luz, com `Main.tileLighted[tipo]`. Recalculada a cada 3 quadros (vale a última no meio). |
-| `AnimateTile(frame, frameCounter)` | Uma vez por quadro, para o tipo todo (`Main.tileFrame`). |
-| `AnimateIndividualTile(type, i, j, frameXOffset, frameYOffset)` | O quadro de uma célula. |
-| `SetDrawPositions(i, j, width, offsetY, height, tileFrameX, tileFrameY)` | Onde e o que desenhar da célula. |
-| `SetSpriteEffects(i, j, spriteEffects)` | Espelhar (`1` = horizontal). |
-| `PreDraw(i, j, spriteBatch)` | Você desenha; `false` = nem o desenho padrão. |
-| `PostDraw(i, j, spriteBatch)` | Por cima do tile (chamas). |
-| `DrawEffects(i, j, spriteBatch, drawData)` | Pede o `SpecialDraw` com `Main.instance.TilesRenderer.AddSpecialLegacyPoint(i, j)`. |
-| `SpecialDraw(i, j, spriteBatch)` | O desenho pedido acima (a relíquia flutuando). |
-| `EmitParticles(i, j, tile, frameX, frameY, luz, visible)` | Poeira e partículas da célula na tela. Declare só os parâmetros que usa: sem `tile` e `luz` na assinatura, eles nem são buscados. |
-| `RightClick(i, j)` | O jogador tocou no tile. `true`: tratou. |
-| `MouseOver(i, j)` / `MouseOverFar(i, j)` | O dedo (ou o cursor) sobre o tile. |
-| `HitWire(i, j)` | Um fio ligado passou pelo tile. |
-| `Slope(i, j)` | O martelo; `false` deixa o tile como está. |
-| `ModifySittingTargetInfo(i, j, info)` | Onde e para onde senta (`TileID.Sets.CanBeSatOnForPlayers`). |
-| `ModifySleepingTargetInfo(i, j, info)` | Onde deita (`TileID.Sets.CanBeSleptIn`). |
-| `IsLockedChest`, `UnlockChest`, `LockChest` | O baú trancado. |
+| `SetStaticDefaults()` | Once, with the type already in the tables (`Main.tileSolid[this.Type]`...). |
+| `PostSetDefaults()` | Right after (the solid tile's `tileNoSunLight` has already been set). |
+| `AddMapEntry(color, name)` | The color and the name on the map (see below). Without it, the tile does not show on the map. |
+| `RegisterItemDrop(item, ...styles)` | The item that drops, for every style or only the listed ones. |
+| `CanKillTile(i, j, blockDamaged)` | `false`: the pickaxe does not break it. |
+| `KillTile(i, j, fail, effectOnly, noItem)` | Before the tile goes away (`fail`: just the hit). All three are `Ref`s. |
+| `KillMultiTile(i, j, frameX, frameY)` | A piece of furniture was removed whole; `(i, j)` is the top-left corner. |
+| `NumDust(i, j, fail, num)` | How many dust particles (at most the game's 10). |
+| `CreateDust(i, j, type)` | `false`: no dust; `type.value` swaps the dust. |
+| `KillSound(i, j, fail)` | `false`: no sound. |
+| `CanDrop(i, j)` / `GetItemDrops(i, j)` | Whether an item drops / which ones (types or `{ type, stack }`, up to two). |
+| `PlaceInWorld(i, j, item)` | The player just placed it. |
+| `TileFrame(i, j, resetFrame, noBreak)` | `false`: the game does not frame it (you did). |
+| `RandomUpdate(i, j)` | The world's random update (herbs grow here). |
+| `NearbyEffects(i, j, closer)` | The tile is near the player (`closer`: on screen). |
+| `ModifyLight(i, j, r, g, b)` | The light, with `Main.tileLighted[type]`. Recalculated every 3 frames (the last one applies in between). |
+| `AnimateTile(frame, frameCounter)` | Once per frame, for the whole type (`Main.tileFrame`). |
+| `AnimateIndividualTile(type, i, j, frameXOffset, frameYOffset)` | One cell's frame. |
+| `SetDrawPositions(i, j, width, offsetY, height, tileFrameX, tileFrameY)` | Where and what to draw for the cell. |
+| `SetSpriteEffects(i, j, spriteEffects)` | Mirroring (`1` = horizontal). |
+| `PreDraw(i, j, spriteBatch)` | You draw; `false` = not even the default drawing. |
+| `PostDraw(i, j, spriteBatch)` | On top of the tile (flames). |
+| `DrawEffects(i, j, spriteBatch, drawData)` | Requests `SpecialDraw` with `Main.instance.TilesRenderer.AddSpecialLegacyPoint(i, j)`. |
+| `SpecialDraw(i, j, spriteBatch)` | The drawing requested above (the floating relic). |
+| `EmitParticles(i, j, tile, frameX, frameY, light, visible)` | The cell's dust and particles on screen. Declare only the parameters you use: without `tile` and `light` in the signature, they are not even fetched. |
+| `RightClick(i, j)` | The player tapped the tile. `true`: handled. |
+| `MouseOver(i, j)` / `MouseOverFar(i, j)` | The finger (or the cursor) over the tile. |
+| `HitWire(i, j)` | A powered wire went through the tile. |
+| `Slope(i, j)` | The hammer; `false` leaves the tile as it is. |
+| `ModifySittingTargetInfo(i, j, info)` | Where and which way you sit (`TileID.Sets.CanBeSatOnForPlayers`). |
+| `ModifySleepingTargetInfo(i, j, info)` | Where you lie down (`TileID.Sets.CanBeSleptIn`). |
+| `IsLockedChest`, `UnlockChest`, `LockChest` | The locked chest. |
 
-`i` e `j` são a posição em **tiles** (pixels / 16). `bl.tiles.typeAt(x, y)`
-dá o tipo do tile ativo numa posição (-1 se não há).
+`i` and `j` are the position in **tiles** (pixels / 16). `bl.tiles.typeAt(x, y)`
+gives the type of the active tile at a position (-1 if there is none).
 
-**O toque no celular.** O jogo só trata o toque num tile como interação (e
-chama o `RightClick`) quando o ícone do cursor está ligado, o que no PC o
-`MouseOver` faz só por enfeite. Tile de mod com `RightClick` cujo `MouseOver`
-não liga o ícone ganha o do item que o coloca, sozinho. Para outro ícone,
-ligue no `MouseOver`: `player.cursorItemIconEnabled = true`,
-`player.cursorItemIconID = item` e `player.noThrow = 2`, como a cômoda do
-Example Mod. O `RightClick` roda uma vez por toque.
+**Touch on mobile.** The game only treats a tap on a tile as an interaction
+(and calls `RightClick`) when the cursor icon is on, which on PC `MouseOver`
+does just for show. A mod tile with `RightClick` whose `MouseOver` does not
+turn on the icon gets the icon of the item that places it, automatically. For
+another icon, turn it on in `MouseOver`: `player.cursorItemIconEnabled = true`,
+`player.cursorItemIconID = item` and `player.noThrow = 2`, like the Example
+Mod's dresser. `RightClick` runs once per tap.
 
-A cômoda de mod (`TileID.Sets.BasicDresser`) funciona como a do jogo: o baú
-continua aberto e a janela de roupas abre pela gaveta de baixo. O jogo do
-celular só aceitava a cômoda dele (tipo 88) nas duas coisas.
+A mod dresser (`TileID.Sets.BasicDresser`) works like the game's: the chest
+stays open and the clothing window opens from the bottom drawer. The mobile
+game only accepted its own dresser (type 88) for both.
 
-Os hooks do `ModTile` só entram no JS para **tile de mod** (filtro nativo, que
-lê o tipo direto do mundo), e os de todo quadro (luz, desenho, animação) só
-para os tipos que **sobrescrevem** aquele método: as marcas do
-[núcleo](../nucleo/hooks.md#filtros-nativos).
+`ModTile` hooks only enter JS for **mod tiles** (a native filter that reads
+the type straight from the world), and the per-frame ones (light, drawing,
+animation) only for the types that **override** that method: the
+[core](../nucleo/hooks.md#native-filters) markers.
 
-## Móveis (TileObjectData)
+## Furniture (TileObjectData)
 
-Um móvel é um tile com `tileFrameImportant` e um `TileObjectData`: o tamanho,
-onde se apoia e a altura de cada linha da textura. A Pia de Exemplo (2x2), do
-Example Mod:
+A piece of furniture is a tile with `tileFrameImportant` and a
+`TileObjectData`: the size, what it rests on and the height of each row of the
+texture. The Example Sink (2x2), from the Example Mod:
 
 ```js
 const { TileObjectData } = Terraria.ObjectData;
@@ -162,59 +165,59 @@ export class ExampleSink extends ModTile {
 }
 ```
 
-Igual ao tModLoader: copie um modelo do jogo (`Style2x2`, `Style3x2`,
-`Style1x2`...), mude o que precisar **entre** o `CopyFrom` e o `addTile`, e
-registre. O item é um `ModItem` com `DefaultToPlaceableTile`, como o de um
-bloco.
+Same as tModLoader: copy a vanilla template (`Style2x2`, `Style3x2`,
+`Style1x2`...), change what you need **between** `CopyFrom` and `addTile`, and
+register. The item is a `ModItem` with `DefaultToPlaceableTile`, like a
+block's.
 
-A textura tem uma célula de 16 de largura por coluna, com 2 px de margem, e a
-altura de cada linha do `CoordinateHeights` (`[16, 18]`: a de baixo tem 18,
-e os 2 px a mais descem sobre o chão, como nos móveis do jogo).
+The texture has a cell 16 wide per column, with a 2 px margin, and the height
+of each row from `CoordinateHeights` (`[16, 18]`: the bottom one is 18, and
+the extra 2 px go down over the floor, as with the game's furniture).
 
-O que o Bunny Loader faz por você:
+What Bunny Loader does for you:
 
-- **Colocar**: pelo item, ou `WorldGen.PlaceObject(x, y, tipo)`.
-- **Quebrar**: quebrou uma célula, sai o objeto inteiro, com **um** item só.
-  Tirou o bloco de baixo (ou a parede, conforme a âncora), idem. O
-  `KillMultiTile(i, j, frameX, frameY)` avisa, com o canto de cima à
-  esquerda.
-- **Salvar**: o quadro de cada célula fica no `.tiles.bl`, e o móvel volta
-  como estava.
+- **Placing**: through the item, or `WorldGen.PlaceObject(x, y, type)`.
+- **Breaking**: break one cell and the whole object comes out, with **a
+  single** item. Remove the block below (or the wall, depending on the
+  anchor), same thing. `KillMultiTile(i, j, frameX, frameY)` reports it, with
+  the top-left corner.
+- **Saving**: each cell's frame is stored in `.tiles.bl`, and the furniture
+  comes back as it was.
 
-### Móveis com comportamento
+### Furniture with behavior
 
-O Example Mod traz os do tModLoader, em `Content/Tiles/Furniture/`. O que cada
-um usa:
+The Example Mod brings tModLoader's, in `Content/Tiles/Furniture/`. What each
+one uses:
 
-| Móvel | Como |
+| Furniture | How |
 |---|---|
-| Bancada, mesa | `AdjTiles = [TileID.WorkBenches]`: as receitas do jogo aceitam a de mod. `TileID.Sets.RoomNeeds.CountsAsTable` conta para a casa (o Bunny Loader põe o tipo também na lista `CountsAsTableTypes`, que é a que a checagem de casa do jogo percorre; idem cadeira, tocha e porta). |
-| Cadeira, vaso sanitário | `TileID.Sets.CanBeSatOnForPlayers` e, no `RightClick`, `player.sitting.SitDown(player, i, j)`. O `ModifySittingTargetInfo` diz para onde olha e qual célula é a de baixo. |
-| Cama | `TileID.Sets.CanBeSleptIn` (deitar: `player.sleeping.StartSleeping`) e `TileID.Sets.IsValidSpawnPoint` (o `Player.CheckSpawn` aceita a cama de mod como ponto de nascimento). |
-| Porta | Dois tiles: a fechada com `TileID.Sets.OpenDoorID` e a aberta com `CloseDoorID`. Tocar abre ou fecha; como a do jogo, abre sozinha para o jogador que encosta e fecha depois que ele passa; o morador abre e fecha ao passar, o goblin arromba ou derruba, e o fio abre e fecha (sem `HitWire` próprio). O jogo sincroniza no multijogador. |
-| Baú, cômoda | `TileID.Sets.BasicChest` (ou `BasicDresser`) e `Main.tileContainer`; os ganchos de colocar do baú do jogo (`HookPostPlaceMyPlayer`) criam o `Main.chest`. `IsLockedChest`/`UnlockChest` para o trancado. |
-| Tocha | `TileID.Sets.Torches` e a forma da tocha do jogo (`GetTileData(TileID.Torches, 0, 0)`): o jogo prende na parede e nos lados. |
-| Fogueira | `TileID.Sets.Campfires`; o `NearbyEffects` liga o `Main.SceneMetrics.HasCampfire` (o buff). |
-| Caixa de música | `MusicLoader.AddMusicBox(mod, slot, item, tile)`: nasce desligada, como a do jogo; o toque (ou o fio) liga, e ligada na tela, ou equipada como acessório, toca a faixa. |
-| Luminária, lustre, estátua, armadilha | `HitWire`: o fio liga, desliga, solta moeda ou atira. |
+| Workbench, table | `AdjTiles = [TileID.WorkBenches]`: the game's recipes accept the mod one. `TileID.Sets.RoomNeeds.CountsAsTable` counts for housing (Bunny Loader also adds the type to the `CountsAsTableTypes` list, which is the one the game's housing check walks; same for chairs, torches and doors). |
+| Chair, toilet | `TileID.Sets.CanBeSatOnForPlayers` and, in `RightClick`, `player.sitting.SitDown(player, i, j)`. `ModifySittingTargetInfo` says which way it faces and which cell is the bottom one. |
+| Bed | `TileID.Sets.CanBeSleptIn` (lying down: `player.sleeping.StartSleeping`) and `TileID.Sets.IsValidSpawnPoint` (`Player.CheckSpawn` accepts the mod bed as a spawn point). |
+| Door | Two tiles: the closed one with `TileID.Sets.OpenDoorID` and the open one with `CloseDoorID`. Tapping opens or closes it; like the game's, it opens by itself for a player who walks into it and closes after they pass; town NPCs open and close it as they pass, goblins break it down, and wires open and close it (without a custom `HitWire`). The game syncs it in multiplayer. |
+| Chest, dresser | `TileID.Sets.BasicChest` (or `BasicDresser`) and `Main.tileContainer`; the game chest's placement hooks (`HookPostPlaceMyPlayer`) create the `Main.chest`. `IsLockedChest`/`UnlockChest` for the locked one. |
+| Torch | `TileID.Sets.Torches` and the game torch's shape (`GetTileData(TileID.Torches, 0, 0)`): the game attaches it to walls and sides. |
+| Campfire | `TileID.Sets.Campfires`; `NearbyEffects` turns on `Main.SceneMetrics.HasCampfire` (the buff). |
+| Music box | `MusicLoader.AddMusicBox(mod, slot, item, tile)`: it starts off, like the game's; a tap (or a wire) turns it on, and when on and on screen, or equipped as an accessory, it plays the track. |
+| Lamp, chandelier, statue, trap | `HitWire`: the wire turns it on, off, drops a coin or shoots. |
 
 `TileID.Sets.OpenDoorID`, `CloseDoorID`, `IsValidSpawnPoint`,
-`MultiTileSway` e `TileObjectData.GetTileStyle`/`IsTopLeft`/`TopLeft` são do
-tModLoader: o jogo do celular não os tem, e o Bunny Loader os põe no lugar
-(mesmos nomes). `Point16.new(x, y)` e `AnchorData.new(tipo, quantos, início)`
-fazem os structs do `TileObjectData`.
+`MultiTileSway` and `TileObjectData.GetTileStyle`/`IsTopLeft`/`TopLeft` are
+tModLoader's: the mobile game does not have them, and Bunny Loader puts them
+in place (same names). `Point16.new(x, y)` and `AnchorData.new(type, count, start)`
+build the `TileObjectData` structs.
 
-Não há: o balanço ao vento (`MultiTileVine`, `AdjustMultiTileVineParameters`),
-as palmeiras e os cactos de mod (`ModPalmTree`, `ModCactus`),
-`ModifyFrameMerge`/`PostTileFrame`, a placa de pressão (`SwitchTiles`) e o
-`HasSmartInteract` (no celular se toca no tile). Árvores: ver
-[Árvores](#árvores-modtree).
+Not available: wind sway (`MultiTileVine`, `AdjustMultiTileVineParameters`),
+mod palm trees and cacti (`ModPalmTree`, `ModCactus`),
+`ModifyFrameMerge`/`PostTileFrame`, the pressure plate (`SwitchTiles`) and
+`HasSmartInteract` (on mobile you tap the tile). Trees: see
+[Trees](#trees-modtree).
 
-### Tile entity (ModTileEntity)
+### Tile entities (ModTileEntity)
 
-Um tile não guarda dados nem roda código a cada quadro. Para isso existe a
-tile entity: um objeto preso a um móvel colocado. O barril que enche na chuva
-do Example Mod do tModLoader fica assim:
+A tile does not store data or run code every frame. For that there is the
+tile entity: an object attached to a placed piece of furniture. The
+tModLoader Example Mod's barrel that fills up in the rain looks like this:
 
 ```js
 const { TileObjectData } = Terraria.ObjectData;
@@ -222,16 +225,16 @@ const { TileObjectData } = Terraria.ObjectData;
 export class WaterBarrelEntity extends ModTileEntity {
     Fill = 0;
 
-    // Obrigatório: o bloco ainda é o barril? A entidade sem barril é descartada.
+    // Required: is the block still the barrel? An entity without a barrel is discarded.
     IsTileValidForEntity(x, y) {
         return bl.tiles.typeAt(x, y) === ModContent.TileType(WaterBarrel);
     }
 
-    // No servidor (ou sozinho), a cada atualização do mundo.
+    // On the server (or in single player), on each world update.
     Update() {
         if (!Terraria.Main.raining || this.Fill >= 3600) return;
         this.Fill++;
-        // Os clientes recebem pelo NetSend; aqui, a cada 10%.
+        // Clients get it through NetSend; here, every 10%.
         if (this.Fill % 360 === 0 && (Terraria.Main.netMode & 2)) {
             Terraria.NetMessage.SendData(86, -1, -1, null, this.ID, 0, 0, 0, 0, 0, 0);
         }
@@ -247,12 +250,12 @@ export class WaterBarrel extends ModTile {
     SetStaticDefaults() {
         Terraria.Main.tileFrameImportant[this.Type] = true;
         TileObjectData.newTile.CopyFrom(TileObjectData.Style2x2);
-        // A entidade nasce quando o jogador coloca o barril.
+        // The entity is created when the player places the barrel.
         TileObjectData.newTile.HookPostPlaceMyPlayer = ModContent.GetInstance(WaterBarrelEntity).Generic_HookPostPlaceMyPlayer;
         TileObjectData.addTile(this.Type);
     }
 
-    // E sai com ele.
+    // And goes away with it.
     KillMultiTile(i, j, frameX, frameY) {
         ModContent.GetInstance(WaterBarrelEntity).Kill(i, j);
     }
@@ -265,31 +268,31 @@ export class WaterBarrel extends ModTile {
 }
 ```
 
-- A entidade mora no canto de cima à esquerda do objeto (`Position`);
-  `ModTileEntity.TryGet(i, j, Classe)` acha a partir de qualquer célula.
-- `Update` roda no servidor ou sozinho, nunca no cliente: o que o cliente
-  precisa saber vai pelo `NetSend`/`NetReceive`. O servidor manda ao colocar,
-  a quem entra no mundo e quando o mod pede (`NetMessage.SendData(86, ...)`
-  com o `ID`). No celular, quem hospeda e joga tem `Main.netMode` 3: teste o
-  servidor com `Main.netMode & 2`.
-- No cliente, colocar pede ao servidor, que confere o `IsTileValidForEntity`,
-  chama o `OnNetPlace` e manda a entidade de volta.
-- A entidade é salva no `<mundo>.wld.bl.json`. Ao abrir o mundo, a que não
-  passa no `IsTileValidForEntity` é descartada; a de um mod ausente fica
-  guardada no arquivo até ele voltar.
-- O jogo não sabe delas (não dá para criar uma classe C# nova): os `ID`
-  começam em `0x40000000` e o `TileEntity.ByID` do jogo não as tem. Use
-  `ModTileEntity.ByID`.
-- O Example Mod tem esse barril inteiro, com o desenho que segue o nível de
-  água, o toque que dá o balde pelo servidor e a picareta que solta o balde:
-  `Content/TileEntities/BasicTileEntity.js`.
+- The entity lives at the object's top-left corner (`Position`);
+  `ModTileEntity.TryGet(i, j, Class)` finds it from any cell.
+- `Update` runs on the server or in single player, never on the client: what
+  the client needs to know goes through `NetSend`/`NetReceive`. The server
+  sends it on placement, to whoever joins the world and when the mod asks
+  (`NetMessage.SendData(86, ...)` with the `ID`). On mobile, a player who hosts
+  and plays has `Main.netMode` 3: test for the server with `Main.netMode & 2`.
+- On the client, placing asks the server, which checks
+  `IsTileValidForEntity`, calls `OnNetPlace` and sends the entity back.
+- The entity is saved in `<world>.wld.bl.json`. When the world opens, one that
+  fails `IsTileValidForEntity` is discarded; one from a missing mod stays in
+  the file until the mod returns.
+- The game does not know about them (a new C# class cannot be created): the
+  `ID`s start at `0x40000000` and the game's `TileEntity.ByID` does not have
+  them. Use `ModTileEntity.ByID`.
+- The Example Mod has this whole barrel, with drawing that follows the water
+  level, a tap that gives a bucket through the server and a pickaxe that drops
+  the bucket: `Content/TileEntities/BasicTileEntity.js`.
 
-### Árvores (ModTree)
+### Trees (ModTree)
 
-A árvore de mod cresce como a do jogo (é o mesmo tile 5) e é o **chão**
-debaixo do tronco que diz de quem ela é: converter o chão troca a árvore, como
-no jogo. Ela precisa de um bloco de mod para o chão e, para plantar, de uma
-muda de mod:
+A mod tree grows like the game's (it is the same tile 5), and it is the
+**ground** under the trunk that says whose tree it is: converting the ground
+changes the tree, as in the game. It needs a mod block for the ground and, to
+plant it, a mod sapling:
 
 ```js
 const { TileObjectData } = Terraria.ObjectData;
@@ -302,7 +305,7 @@ export class FrostSoil extends ModTile {
     }
 }
 
-// A muda: 1x2, presa no chão da árvore.
+// The sapling: 1x2, anchored to the tree's ground.
 export class FrostSapling extends ModTile {
     SetStaticDefaults() {
         Terraria.Main.tileFrameImportant[this.Type] = true;
@@ -319,19 +322,19 @@ export class FrostSapling extends ModTile {
         TileID.Sets.CommonSapling[this.Type] = true;
     }
 
-    // A muda cresce sozinha, como a do jogo.
+    // The sapling grows on its own, like the game's.
     RandomUpdate(i, j) {
         if (Math.random() < 1 / 20) Terraria.WorldGen.AttemptToGrowTreeFromSapling(i, j, false, 0, false);
     }
 }
 
-// Texturas ao lado da classe: FrostTree.png, FrostTree_Tops.png, FrostTree_Branches.png.
+// Textures next to the class: FrostTree.png, FrostTree_Tops.png, FrostTree_Branches.png.
 export class FrostTree extends ModTree {
     SetStaticDefaults() {
         this.GrowsOnTileId = [ModContent.TileType(FrostSoil)];
     }
 
-    // A bolota plantada no chão dela vira esta muda.
+    // An acorn planted on its ground becomes this sapling.
     SaplingGrowthType(style) {
         style.value = 0;
         return ModContent.TileType(FrostSapling);
@@ -341,43 +344,46 @@ export class FrostTree extends ModTree {
 }
 ```
 
-- As texturas seguem as do jogo: o tronco é **uma faixa** da folha do tile 5
-  (176 de largura), as copas são 3 quadros de 80x80 com 2 de espaço e os
-  galhos são 2 colunas (esquerda, direita) de 3 quadros de 40x40. Os nomes
-  padrão são `<Classe>.png`, `<Classe>_Tops.png` e `<Classe>_Branches.png`; para
-  outros, sobrescreva `GetTexture`/`GetTopTextures`/`GetBranchTextures`
-  (devolvendo `ModContent.Request(caminho)`).
-- `SetStaticDefaults` roda na carga do conteúdo, na thread do jogo.
-- A muda de mod cresce pelo `WorldGen.AttemptToGrowTreeFromSapling` (o
-  fertilizante também usa ele), que chama o `GrowSapling(i, j, underground,
-  treeHeightAddon, ignoreWalls)` dela: o padrão faz a árvore crescer.
-- `CountsAsTreeType` (o padrão é `TreeTypes.Custom`), `CreateDust`, `TreeLeaf`
-  (a gore das folhas, ao crescer, ao sacudir e no vento), `CanDropAcorn` e
-  `Shake(x, y, createLeaves)`: `false` tira as quedas do jogo ao sacudir.
-- O desenho do tronco e da copa é nativo: não custa JS por quadro. Não há o
-  `SetTreeFoliageSettings` nem a tinta (a árvore de mod pintada sai sem a cor).
-- A folha que cai é uma gore de mod (um PNG em `Gores/`) com
-  `GoreID.Sets.SpecialAI[tipo] = 3`. O jogo a corta em 1 coluna de 8 quadros;
-  a folha do tModLoader, de 32 colunas (uma por tinta), não serve como está.
-- O Example Mod tem a `ExampleTree`, que cresce no Bloco de Exemplo, com a
-  muda e a folha: `Content/Tiles/Plants/`.
+- The textures follow the game's: the trunk is **one strip** of tile 5's
+  sheet (176 wide), the tops are 3 frames of 80x80 with 2 of spacing and the
+  branches are 2 columns (left, right) of 3 frames of 40x40. The default names
+  are `<Class>.png`, `<Class>_Tops.png` and `<Class>_Branches.png`; for others,
+  override `GetTexture`/`GetTopTextures`/`GetBranchTextures` (returning
+  `ModContent.Request(path)`).
+- `SetStaticDefaults` runs when content loads, on the game thread.
+- The mod sapling grows through `WorldGen.AttemptToGrowTreeFromSapling`
+  (fertilizer uses it too), which calls its `GrowSapling(i, j, underground,
+  treeHeightAddon, ignoreWalls)`: the default makes the tree grow.
+- `CountsAsTreeType` (the default is `TreeTypes.Custom`), `CreateDust`,
+  `TreeLeaf` (the leaf gore, when growing, shaking and in the wind),
+  `CanDropAcorn` and `Shake(x, y, createLeaves)`: `false` removes the game's
+  drops when shaking.
+- Drawing the trunk and the top is native: no JS cost per frame. There is no
+  `SetTreeFoliageSettings` and no paint (a painted mod tree comes out
+  uncolored).
+- The falling leaf is a mod gore (a PNG in `Gores/`) with
+  `GoreID.Sets.SpecialAI[type] = 3`. The game cuts it into 1 column of 8
+  frames; tModLoader's leaf, with 32 columns (one per paint), does not work
+  as is.
+- The Example Mod has `ExampleTree`, which grows on the Example Block, with
+  the sapling and the leaf: `Content/Tiles/Plants/`.
 
-### Pilares (ModPylon)
+### Pylons (ModPylon)
 
-Um pilar de teletransporte é um `ModPylon` (um `ModTile` 3x4) com uma
-`TEModdedPylon`. O sistema de pilares do jogo passa a enxergá-lo: entra na
-lista, aparece no mapa, conta como "perto de um pilar" e o toque no ícone
-teletransporta. No multijogador, a lista vai aos clientes pela mensagem do
-próprio jogo, e o cliente pede o teletransporte ao servidor como num pilar do
-jogo (testado com anfitrião e cliente: `tools/tests/mppylon`).
+A teleportation pylon is a `ModPylon` (a 3x4 `ModTile`) with a
+`TEModdedPylon`. The game's pylon system starts seeing it: it goes into the
+list, shows up on the map, counts as "near a pylon" and tapping the icon
+teleports. In multiplayer, the list reaches clients through the game's own
+message, and the client asks the server to teleport as with a vanilla pylon
+(tested with host and client: `tools/tests/mppylon`).
 
 ```js
 const { TileObjectData } = Terraria.ObjectData;
 
 export class FrostPylonEntity extends TEModdedPylon {}
 
-// Texturas: FrostPylon.png (o 3x4), FrostPylon_Crystal.png (8 quadros na
-// vertical) e FrostPylon_MapIcon.png.
+// Textures: FrostPylon.png (the 3x4), FrostPylon_Crystal.png (8 frames
+// stacked vertically) and FrostPylon_MapIcon.png.
 export class FrostPylon extends ModPylon {
     SetStaticDefaults() {
         Terraria.Main.tileFrameImportant[this.Type] = true;
@@ -396,7 +402,7 @@ export class FrostPylon extends ModPylon {
         ModContent.GetInstance(FrostPylonEntity).Kill(i, j);
     }
 
-    // Só funciona no gelo (sceneData é o SceneMetrics varrido em volta do pilar).
+    // Only works in the snow (sceneData is the SceneMetrics scanned around the pylon).
     ValidTeleportCheck_BiomeRequirements(pylonInfo, sceneData) {
         return sceneData.EnoughTilesForSnow;
     }
@@ -408,83 +414,91 @@ export class FrostPylon extends ModPylon {
 }
 ```
 
-- `PylonType` é 11, 12... na ordem de carga (os do jogo vão até 10). Um só por
-  tipo no mundo, como os do jogo (`CanPlacePylon`).
-- `ValidTeleportCheck_NPCCount` decide para o pilar de destino e para o de
-  onde se sai; `ValidTeleportCheck_BiomeRequirements`, para o de destino (o
-  jogo recusa com a mensagem dele, "requisitos de bioma").
-- No mapa, o ícone é `<Texture>_MapIcon.png`; sem ele, o do pilar do jogo.
-  `DrawMapIcon` troca o desenho (os ajudantes `DefaultDrawMapIcon` e
-  `DefaultMapClickHandle` são os do tModLoader).
-- A contagem de um bloco de mod em volta do destino:
-  `sceneData._tileCounts[ModContent.TileType('MeuBloco')]`. O
-  `ModSystem.TileCountsAvailable` só recebe a varredura do jogador.
-- O Example Mod tem o `ExamplePylonTile`: pede 40 Blocos de Exemplo em volta e
-  os moradores o vendem como os pilares do jogo, pelo `ModifyShop` de um
-  `GlobalNPC` (`Common/GlobalNPCs/ExamplePylonShop.js`), no lugar do
-  `GetNPCShopEntry` do tModLoader.
+- `PylonType` is 11, 12... in load order (the game's go up to 10). Only one
+  per type in the world, like the game's (`CanPlacePylon`).
+- `ValidTeleportCheck_NPCCount` decides for the destination pylon and for the
+  one you leave from; `ValidTeleportCheck_BiomeRequirements`, for the
+  destination (the game refuses with its own message, "biome requirements").
+- Tapping the pylon opens the map like the game's pylon on mobile: with it in
+  `Main.MapPylonTile`, every revealed pylon framed and the lines starting from
+  it. Only then does a tap teleport: on the regular map, an off-screen pylon is
+  pinned to the edge, and tapping it just pans the map. Whoever overrides
+  `RightClick` calls `super.RightClick(i, j)`.
+- On the map, the icon is `<Texture>_MapIcon.png`; without it, the game
+  pylon's. `DrawMapIcon` replaces the drawing (the `DefaultDrawMapIcon` and
+  `DefaultMapClickHandle` helpers are tModLoader's).
+- Counting a mod block around the destination:
+  `sceneData._tileCounts[ModContent.TileType('MyBlock')]`.
+  `ModSystem.TileCountsAvailable` only receives the player's scan.
+- The Example Mod has `ExamplePylonTile`: it requires 40 Example Blocks
+  around it, and town NPCs sell it like the game's pylons, through a
+  `GlobalNPC`'s `ModifyShop` (`Common/GlobalNPCs/ExamplePylonShop.js`),
+  instead of tModLoader's `GetNPCShopEntry`.
 
-### Custo por quadro
+### Per-frame cost
 
-Tile é o conteúdo mais numeroso na tela (uma base tem dezenas de tochas), e o
-que o mod faz por tile, por quadro, soma. O que ficou barato, e como manter:
+Tiles are the most numerous content on screen (a base has dozens of torches),
+and what the mod does per tile, per frame, adds up. What became cheap, and how
+to keep it that way:
 
-- **Luz**: o jogo calcula a luz dos tiles numa cópia interna do código dele,
-  então a do tile de mod entra por `Lighting.AddLight`, num lote nativo, com
-  o `ModifyLight` recalculado a cada 3 quadros. 150 tochas de mod custam o
-  mesmo quadro que 150 tochas do jogo (medido no `tools/tests/tileperf`).
-- **Chama**: 7 `spriteBatch.Draw` por tocha no `PostDraw` (o jeito do
-  tModLoader) custavam ~16 ms por quadro com 150 tochas. A tocha de exemplo
-  usa `Main.tileFlame[tipo] = true`: o jogo desenha a chama da tocha dele,
-  sem JS. Desenho no `PostDraw` é para tile que aparece pouco (lâmpada,
-  fogueira, relíquia).
-- **Sorteio**: `Rand` é uma ida ao jogo; para "1 em 40, por tile, por quadro"
+- **Light**: the game calculates tile light in an internal copy of its code,
+  so a mod tile's light goes in through `Lighting.AddLight`, in a native
+  batch, with `ModifyLight` recalculated every 3 frames. 150 mod torches cost
+  the same frame time as 150 vanilla torches (measured in
+  `tools/tests/tileperf`).
+- **Flame**: 7 `spriteBatch.Draw` calls per torch in `PostDraw` (tModLoader's
+  way) cost ~16 ms per frame with 150 torches. The example torch uses
+  `Main.tileFlame[type] = true`: the game draws its own torch flame, with no
+  JS. Drawing in `PostDraw` is for tiles that rarely show up (lamp, campfire,
+  relic).
+- **RNG**: `Rand` is a trip into the game; for "1 in 40, per tile, per frame"
   use `Math.random()`.
-- **Parâmetros**: no `EmitParticles`, declare só o que usa.
+- **Parameters**: in `EmitParticles`, declare only what you use.
 
-## O mundo salvo continua abrindo sem o mod
+## The saved world keeps opening without the mod
 
-O `.wld` **nunca** leva tile de mod. Ao salvar, os tiles de mod são gravados à
-parte, em `<mundo>.wld.tiles.bl`, pelo nome (`<mod>/<Classe>`), e no `.wld`
-ficam como ar (parede, líquido e fios continuam). Ao carregar, eles voltam.
+The `.wld` **never** carries mod tiles. On save, mod tiles are written
+separately, to `<world>.wld.tiles.bl`, by name (`<mod>/<Class>`), and in the
+`.wld` they stay as air (wall, liquid and wires remain). On load, they come
+back.
 
-Sem o mod, o mundo abre normalmente no jogo, com ar no lugar, e o arquivo ao
-lado guarda os tiles para quando o mod voltar. Se alguém construir no lugar
-enquanto isso, vale o que foi construído. Um móvel (objeto de várias células)
-volta inteiro ou não volta: planta e mato que cresceram no lugar dele
-(`Main.tileCut`) saem; outra coisa construída ali deixa o móvel inteiro
-guardado no arquivo, até o lugar vagar. Móvel que já tinha sido salvo pela
-metade volta com a célula que faltava. A ordem dos mods pode mudar à vontade:
-o tile volta pelo nome, não pelo número.
+Without the mod, the world opens normally in the game, with air in their
+place, and the side file keeps the tiles for when the mod returns. If someone
+builds in that spot in the meantime, what was built wins. A piece of furniture
+(a multi-cell object) comes back whole or not at all: plants and grass that
+grew in its place (`Main.tileCut`) are removed; anything else built there
+keeps the whole piece stored in the file until the spot is free. Furniture
+that had been saved half-done comes back with the missing cell. The mod order
+can change freely: the tile comes back by name, not by number.
 
-Ao reabrir o mundo, o jogo reenquadra todo bloco comum e **sorteia de novo a
-variante** (cada formato tem 3 desenhos). Isso vale para terra, pedra e tile
-de mod: um bloco pode aparecer com outro desenho, no mesmo formato. O
-tModLoader faz igual: só guarda o quadro de tile com `tileFrameImportant`
-(móveis e objetos).
+When the world reopens, the game reframes every common block and **rolls the
+variant again** (each shape has 3 drawings). That applies to dirt, stone and
+mod tiles: a block may show up with another drawing, in the same shape.
+tModLoader does the same: it only stores the frame for tiles with
+`tileFrameImportant` (furniture and objects).
 
-## O mapa
+## The map
 
-Cada `AddMapEntry` vira uma entrada **própria** do mapa, como no tModLoader:
-a cor exata pedida e o nome dela (o que aparece ao passar o dedo no mapa).
-Chamar de novo cria outra opção do mesmo tile (baú aberto e trancado, por
-exemplo).
+Each `AddMapEntry` becomes **its own** map entry, as in tModLoader: the exact
+color requested and its name (what shows up when you drag your finger over the
+map). Calling it again creates another option for the same tile (open and
+locked chest, for example).
 
-O `.map` do celular guarda o **índice** de cor de cada ponto, e o índice de
-uma entrada de mod não existe no jogo sem o mod. Por isso, ao salvar, os
-pontos de tile de mod saem do `.map` (ficam escuros) e vão para um arquivo ao
-lado, o `<mapa>.map.bl`, pelo nome do tile. Ao carregar, eles voltam. Sem o
-mod, o jogo vê esses pontos como não explorados, e o `.map.bl` os guarda até
-o mod voltar. Isso vale também para o pedaço do mapa que o jogo comprime fora
-da gravação, ao descarregar ou reciclar: os pontos de mod ficam guardados à
-parte e voltam quando o pedaço volta.
+Mobile's `.map` stores each point's color **index**, and a mod entry's index
+does not exist in the game without the mod. So, on save, the points of mod
+tiles are taken out of the `.map` (they stay dark) and go to a side file,
+`<map>.map.bl`, by tile name. On load, they come back. Without the mod, the
+game sees those points as unexplored, and `.map.bl` keeps them until the mod
+returns. This also applies to the part of the map the game compresses outside
+of saving, when unloading or recycling: mod points are kept separately and come
+back when that part does.
 
-## Paredes (ModWall)
+## Walls (ModWall)
 
-Uma parede nova é como o `ModWall` do tModLoader: uma classe que estende
-`ModWall`, exportada de `Content/`, com a textura ao lado (a folha de quadros
-das paredes do jogo, 468x180). O item que a coloca usa o
-`DefaultToPlaceableWall`. A ExampleWall do Example Mod:
+A new wall is like tModLoader's `ModWall`: a class that extends `ModWall`,
+exported from `Content/`, with the texture next to it (the game's wall frame
+sheet, 468x180). The item that places it uses `DefaultToPlaceableWall`. The
+Example Mod's ExampleWall:
 
 ```js
 // Content/Walls/ExampleWall.js (+ ExampleWall.png)
@@ -493,7 +507,7 @@ const { Main } = Terraria;
 
 export class ExampleWall extends ModWall {
     SetStaticDefaults() {
-        Main.wallHouse[this.Type] = true;   // vale como parede de casa
+        Main.wallHouse[this.Type] = true;   // counts as a housing wall
         this.DustType = DustID.Stone;
         this.AddMapEntry(Color.new(150, 150, 150));
     }
@@ -513,96 +527,99 @@ export class ExampleWall extends ModItem {
 }
 ```
 
-| Campo | |
+| Field | |
 |---|---|
-| `Type` | O número da parede (depois das 367 do jogo). |
-| `DustType` | A poeira ao bater e quebrar. Sem ele, a do jogo. |
-| `HitSound` | O som ao quebrar (um `SoundID` ou estilo). Sem ele, o do jogo. |
-| `ItemDrop` | O item que cai ao quebrar. Sem ele, o item de mod que coloca esta parede (`createWall`). |
+| `Type` | The wall's number (after the game's 367). |
+| `DustType` | The dust when hitting and breaking. Without it, the game's. |
+| `HitSound` | The sound when breaking (a `SoundID` or style). Without it, the game's. |
+| `ItemDrop` | The item that drops when broken. Without it, the mod item that places this wall (`createWall`). |
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `SetStaticDefaults()` | Uma vez, com as tabelas do jogo já com o tipo: `Main.wallHouse[this.Type]`, `Main.wallLight`, `WallID.Sets...`. |
-| `KillWall(i, j, fail)` | Ao bater ou quebrar. `fail` é um `Ref`: `fail.value = true` só faz a poeira. |
-| `NumDust(i, j, fail, num)` | Quantas poeiras (`num.value`). |
-| `CreateDust(i, j, type)` | Antes de cada poeira; `type.value` muda o tipo, `false` não cria. |
-| `KillSound(i, j, fail)` | `false` não toca o som. |
-| `Drop(i, j, type)` | O item que cai (`type.value`); `false` não deixa nada. |
-| `ModifyLight(i, j, r, g, b)` | A luz que a parede dá (`r.value`, `g.value`, `b.value`, de 0 a 1). Roda para as paredes perto da tela, a cada 3 quadros. |
-| `AnimateWall(frame, frameCounter)` | Uma vez por quadro, por tipo: `frame.value` escolhe a faixa de 180 px da textura (a folha com dois quadros tem 468x360). |
-| `RandomUpdate(i, j)` | Na atualização aleatória do mundo, como a do bloco. |
-| `AddMapEntry(cor, nome)` | A cor no mapa e o nome ao tocar nele (`MapObject.<Classe>` no Localization; sem ele, o nome da classe). |
-| `WallFrame(i, j, randomizeFrame, style, frameNumber)` | Ao enquadrar a parede: `style.value` e `frameNumber.value` escolhem o quadro da moldura (0 a 2 é a variação); `false` deixa a moldura como estava. |
+| `SetStaticDefaults()` | Once, with the game tables already holding the type: `Main.wallHouse[this.Type]`, `Main.wallLight`, `WallID.Sets...`. |
+| `KillWall(i, j, fail)` | On hitting or breaking. `fail` is a `Ref`: `fail.value = true` only makes dust. |
+| `NumDust(i, j, fail, num)` | How many dust particles (`num.value`). |
+| `CreateDust(i, j, type)` | Before each dust particle; `type.value` changes the type, `false` does not create it. |
+| `KillSound(i, j, fail)` | `false` does not play the sound. |
+| `Drop(i, j, type)` | The item that drops (`type.value`); `false` leaves nothing. |
+| `ModifyLight(i, j, r, g, b)` | The light the wall gives off (`r.value`, `g.value`, `b.value`, from 0 to 1). Runs for walls near the screen, every 3 frames. |
+| `AnimateWall(frame, frameCounter)` | Once per frame, per type: `frame.value` picks the texture's 180 px strip (the sheet with two frames is 468x360). |
+| `RandomUpdate(i, j)` | On the world's random update, like the block's. |
+| `AddMapEntry(color, name)` | The color on the map and the name when tapping it (`MapObject.<Class>` in Localization; without it, the class name). |
+| `WallFrame(i, j, randomizeFrame, style, frameNumber)` | When framing the wall: `style.value` and `frameNumber.value` pick the frame of the border (0 to 2 is the variation); `false` leaves the border as it was. |
 
-A `ExampleWallAdvanced` do Example Mod usa a animação (dois quadros), a luz
-verde à noite e a poeira de esmeralda.
+The Example Mod's `ExampleWallAdvanced` uses animation (two frames), green
+light at night and emerald dust.
 
-A parede de mod entra na **conversão** dos biomas pelas tabelas do jogo, que
-crescem com o tipo novo: `WallID.Sets.Conversion.Stone[this.Type] = true` no
-`SetStaticDefaults` faz a corrupção, o carmesim e o consagrado tratá-la como
-parede de pedra.
+A mod wall takes part in biome **conversion** through the game's tables, which
+grow with the new type: `WallID.Sets.Conversion.Stone[this.Type] = true` in
+`SetStaticDefaults` makes the corruption, the crimson and the hallow treat it
+as a stone wall.
 
-Pelo nome ou pela classe: `ModContent.WallType('ExampleWall')`,
-`ModContent.GetModWall(tipo)`, `this.GetContent(ModWall)`.
+By name or by class: `ModContent.WallType('ExampleWall')`,
+`ModContent.GetModWall(type)`, `this.GetContent(ModWall)`.
 
-O mundo salvo continua abrindo sem o mod, como com os blocos: o `.wld` nunca
-leva parede de mod. Elas vão para um arquivo ao lado, o
-`<mundo>.wld.walls.bl` (posição, tinta e `<uid>/<Classe>`), e voltam ao
-carregar, com a tinta. No mapa é igual aos blocos: os pontos de parede de
-mod saem do `.map` e vão para o `.map.bl`.
+The saved world keeps opening without the mod, as with blocks: the `.wld`
+never carries mod walls. They go to a side file, `<world>.wld.walls.bl`
+(position, paint and `<uid>/<Class>`), and come back on load, with the paint.
+On the map it is the same as blocks: mod wall points leave the `.map` and go
+to `.map.bl`.
 
-Sem o mod, o lugar recebe a **parede não carregada** do Bunny Loader (a
-`UnloadedWall` do tModLoader, quadriculada de magenta). Ela segura o que está
-preso na parede, como quadros e tochas, e o arquivo guarda a parede original
-até o mod voltar: aí a original volta no lugar dela. Quebrar a parede não
-carregada perde a original daquela casa, como no tModLoader.
+Without the mod, the spot gets Bunny Loader's **unloaded wall** (tModLoader's
+`UnloadedWall`, a magenta checkerboard). It holds what is attached to the wall,
+like paintings and torches, and the file keeps the original wall until the mod
+returns: then the original goes back in its place. Breaking the unloaded wall
+loses the original for that spot, as in tModLoader.
 
-`VanillaFallbackOnModDeletion` existe na classe, mas ainda não faz nada: no
-tModLoader ele só vale ao apagar de vez os dados de um mod removido, comando
-que o Bunny Loader ainda não tem.
+`VanillaFallbackOnModDeletion` exists on the class, but does nothing yet: in
+tModLoader it only applies when permanently deleting a removed mod's data, a
+command Bunny Loader does not have yet.
 
-Quanto custa (MuMu, 2130 paredes na tela, `tools/tests/wallperf`): parede de
-mod só com textura custa o mesmo que a do jogo. O `ModifyLight` é o caro: roda
-para cada parede perto da tela, um terço das linhas por quadro, e com 2130
-paredes iluminadas dá ~1,2 a 1,5 ms de JS por quadro. Colocar com `WallFrame`
-custa ~60 µs por parede, só na hora. O save do mundo fica igual (~200 ms).
+What it costs (MuMu, 2130 walls on screen, `tools/tests/wallperf`): a mod wall
+with only a texture costs the same as the game's. `ModifyLight` is the
+expensive part: it runs for each wall near the screen, a third of the rows per
+frame, and with 2130 lit walls it comes to ~1.2 to 1.5 ms of JS per frame.
+Placing with `WallFrame` costs ~60 µs per wall, only at that moment. The world
+save stays the same (~200 ms).
 
-Não tem `PreDraw`/`PostDraw`: o celular desenha as paredes num laço só,
-dividido entre threads, sem chamada por célula.
+There is no `PreDraw`/`PostDraw`: mobile draws walls in a single loop, split
+across threads, with no per-cell call.
 
-## Por trás
+## Under the hood
 
-O que o Bunny Loader faz para o tile novo não quebrar o jogo (detalhes em
-[conteúdo por dentro](../nucleo/conteudo.md)):
+What Bunny Loader does so the new tile does not break the game (details in
+[content under the hood](../nucleo/conteudo.md)):
 
-- aumenta as ~220 tabelas de tile do jogo (`Main.tile*`, `TileID.Sets` e as
-  aninhadas, texturas, mapa, receitas, materiais), com o tipo novo no valor
-  padrão de cada uma, e o `Main.tileMerge` (754x754) linha a linha;
-- aumenta a contagem de tiles dos biomas (`SceneMetrics`) e a mesa de criação
-  por perto (`adjTile`): sem isso, contar um tile de mod escreve fora do array;
-- troca os limites compilados no código (`PlaceTile`, `KillTile`,
+- grows the game's ~220 tile tables (`Main.tile*`, `TileID.Sets` and the
+  nested ones, textures, map, recipes, materials), with the new type at each
+  one's default value, and `Main.tileMerge` (754x754) row by row;
+- grows the biome tile counts (`SceneMetrics`) and the nearby crafting
+  stations (`adjTile`): without this, counting a mod tile writes outside the
+  array;
+- swaps the compiled limits in the code (`PlaceTile`, `KillTile`,
   `TileFrame`...);
-- dá espaço aos tiles de mod na tabela interna de tiles do mundo do celular
-  (onde cada tile igual é guardado uma vez só);
-- chama os hooks do `ModTile` só para tile de mod;
-- no desenho, o `SetDrawPositions`, o `AnimateIndividualTile` e o
-  `SetSpriteEffects` são chamados pelo próprio desenho nativo (que roda em
-  várias threads), e só para os tipos que os sobrescrevem; o que o mod
-  desenha (`PreDraw`, `PostDraw`, `SpecialDraw`) sai numa passada depois dos
-  tiles, na thread do jogo;
-- o resultado desses três fica guardado por célula: a célula que o jogo
-  redesenha igual não chama o JS de novo (cada ida custava ~30 a 50 µs no
-  emulador, quase tudo esperando o motor JS). A chave é a posição, o tipo, o
-  quadro da célula e o `Main.tileFrame` do tipo; sai do cache quando um bloco
-  perto muda (o jogo reenquadra) e depois de 5 s. Quem anima por outro
-  contador (tempo, `Main.GameUpdateCount`) põe `CacheDrawData = false`;
-- porta, cama e ponto de nascimento usam o código do jogo: durante o
-  `OpenDoor`/`CloseDoor`/`CheckSpawn`, a porta ou cama de mod vira a do jogo
-  (10, 11, 79), e o que o jogo montou volta a ser de mod;
-- o mesmo disfarce, em C++, para quem abre porta sozinho: o jogador que
-  encosta (`DoorOpeningHelper.Update`) e as IAs de NPC que abrem porta
-  (`AI_007_TownEntities`, `AI_003_Fighters`, `AI_107_ImprovedWalkers`). As
-  portas de mod a poucos tiles viram 10/11 durante a chamada; o `KillTile` de
-  um goblin que derruba a porta desfaz o disfarce antes, para sair o item e o
-  pó da porta de mod. Sem porta de mod por perto, custa uma varredura de ~120
-  células por NPC que anda.
+- makes room for mod tiles in mobile's internal world tile table (where each
+  identical tile is stored only once);
+- calls `ModTile` hooks only for mod tiles;
+- when drawing, `SetDrawPositions`, `AnimateIndividualTile` and
+  `SetSpriteEffects` are called by the native drawing itself (which runs on
+  several threads), and only for the types that override them; what the mod
+  draws (`PreDraw`, `PostDraw`, `SpecialDraw`) comes out in a pass after the
+  tiles, on the game thread;
+- the result of those three is cached per cell: a cell the game redraws
+  unchanged does not call JS again (each trip cost ~30 to 50 µs on the
+  emulator, almost all of it waiting for the JS engine). The key is the
+  position, the type, the cell's frame and the type's `Main.tileFrame`; it
+  leaves the cache when a nearby block changes (the game reframes) and after
+  5 s. Anything that animates by another counter (time,
+  `Main.GameUpdateCount`) sets `CacheDrawData = false`;
+- doors, beds and spawn points use the game's code: during
+  `OpenDoor`/`CloseDoor`/`CheckSpawn`, the mod door or bed becomes the game's
+  (10, 11, 79), and what the game built becomes mod content again;
+- the same disguise, in C++, for whoever opens doors on their own: the player
+  who walks into it (`DoorOpeningHelper.Update`) and the NPC AIs that open
+  doors (`AI_007_TownEntities`, `AI_003_Fighters`, `AI_107_ImprovedWalkers`).
+  Mod doors a few tiles away become 10/11 during the call; the `KillTile` of a
+  goblin breaking the door undoes the disguise first, so the mod door's item
+  and dust come out. With no mod door nearby, it costs a scan of ~120 cells
+  per walking NPC.

@@ -1,44 +1,46 @@
-# Versões na sincronização de mods
+# Versions in mod sync
 
-## Análise
+## Analysis
 
-Requisito: com sincronização ligada, host com um mod 1.1.0 e cliente com o
-mesmo uid em 1.0.0 não podem entrar juntos antes da sincronização.
+Requirement: with sync on, a host with a mod at 1.1.0 and a client with the
+same uid at 1.0.0 cannot join together before syncing.
 
-Fatos verificados no código e reproduzidos pelos testes anteriores à correção:
+Facts verified in the code and reproduced by the tests before the fix:
 
-- `ServerSyncLoader` já comparava uid, ordem e versão; acrescentar apenas uma
-  comparação de versão não resolveria a origem do problema.
-- O launcher aceitava `manifest.json` e `mod.json`, mas o núcleo só lia o
-  primeiro. Um mod com `mod.json` chegava ao handshake com versão vazia.
-- Duas versões vazias eram aceitas como iguais.
-- O planejamento Kotlin comparava versões, mas a admissão do ZIP baixado e
-  a gravação final da sessão não conferiam a versão exigida pelo host.
+- `ServerSyncLoader` already compared uid, order and version; adding just a
+  version comparison would not fix the root of the problem.
+- The launcher accepted `manifest.json` and `mod.json`, but the core only read
+  the first. A mod with `mod.json` reached the handshake with an empty
+  version.
+- Two empty versions were accepted as equal.
+- The Kotlin planning compared versions, but admitting the downloaded ZIP and
+  the final write of the session did not check the version the host required.
 
-Premissa: a versão do manifesto é o identificador de compatibilidade
-publicado pelo autor. O protocolo não autentica conteúdo por hash.
+Assumption: the manifest version is the compatibility identifier published by
+the author. The protocol does not authenticate content by hash.
 
-Casos de borda: versão ausente ou em branco, cliente mais novo, prerelease,
-loja offline, versão exigida fora da loja, índice e ZIP divergentes, uid
-inválido/duplicado, tipo/formato incompatível, mod alterado entre planejamento
-e sessão, ordem diferente, lista vazia e sincronização desativada pelo host.
+Edge cases: a missing or blank version, a newer client, a prerelease, the
+store offline, a required version outside the store, a diverging index and
+ZIP, an invalid/duplicate uid, an incompatible type/format, a mod changed
+between planning and session, a different order, an empty list and sync
+turned off by the host.
 
 ## Design
 
-| Alternativa | Tempo, memória e manutenção |
+| Alternative | Time, memory and maintenance |
 |---|---|
-| Comparar a versão apenas no JS | O(n), O(1) adicional na comparação; já existia e não resolve metadados ausentes nem ZIP divergente |
-| Alinhar metadados e validar cada fronteira | Escolhida: comparação O(n), planejamento O(n + m + k) com mapas O(n + m + k), mantendo protocolo e formatos existentes |
-| Trocar o protocolo por hashes de todos os arquivos | Exige I/O proporcional ao conteúdo, cache/invalidação e compatibilidade de protocolo; escopo maior que a correção de versões |
+| Compare the version only in JS | O(n), O(1) extra in the comparison; it already existed and does not fix missing metadata nor a diverging ZIP |
+| Align the metadata and validate each boundary | Chosen: O(n) comparison, O(n + m + k) planning with O(n + m + k) maps, keeping the existing protocol and formats |
+| Replace the protocol with hashes of every file | Requires I/O proportional to the content, caching/invalidation and protocol compatibility; a larger scope than the version fix |
 
-`n` é a lista do host, `m` a de instalados e `k` a da loja. O núcleo usa os
-mesmos nomes/prioridade de manifesto do launcher. O handshake recusa versão
-em branco. `ServerModSync` concentra igualdade exata, planejamento, admissão
-e conferência final da sessão. O callback do importador roda antes de
-substituir a instalação. As verificações acontecem na entrada/sincronização,
-sem acrescentar um hook de atualização por quadro no QuickJS.
+`n` is the host's list, `m` the installed ones and `k` the store's. The core
+uses the same manifest names/priority as the launcher. The handshake refuses
+a blank version. `ServerModSync` concentrates exact equality, planning,
+admission and the session's final check. The importer's callback runs before
+replacing the installation. The checks happen on joining/syncing, without
+adding a per-frame update hook in QuickJS.
 
-## Testes sem o jogo
+## Tests without the game
 
 ```powershell
 node tools/tests/serversync/check.mjs
@@ -46,34 +48,34 @@ gradle :app:testDebugUnitTest :app:assembleDebug --console=plain
 ```
 
 ```bash
-# Linux ou WSL, na raiz do repositório; requer g++ com C++20.
+# Linux or WSL, at the repository root; requires g++ with C++20.
 python3 tools/tests/serversync/native.py
 ```
 
-- `check.mjs`: carrega o ServerSyncLoader de produção em VM com transporte
-  simulado. Exercita apresentação UUID, leitura pelo host, decisão, oferta
-  e restauração do UUID original; não copia a função privada de comparação.
-- `native.py` / `native.cpp`: compilam o ModLoader.cpp de produção com
-  substitutos mínimos do motor/texturas/log, ASan e UBSan. Usam arquivos
-  reais para testar os dois nomes, prioridade, campo aninhado, diretório em
-  vez de manifesto e versão ausente.
-- `ServerModSyncTest`: testa a política Kotlin de produção para atualização,
-  retorno à versão do host, falhas/offline, pacote incompatível e sessão.
-  A admissão é testada como política; esta suíte não executa a transferência
-  HTTP e instalação de um ZIP no Android.
+- `check.mjs`: loads the production ServerSyncLoader in a VM with a simulated
+  transport. It exercises the UUID introduction, the host's read, the
+  decision, the offer and restoring the original UUID; it does not copy the
+  private comparison function.
+- `native.py` / `native.cpp`: build the production ModLoader.cpp with minimal
+  engine/texture/log stand-ins, ASan and UBSan. They use real files to test
+  both names, priority, a nested field, a directory instead of a manifest and
+  a missing version.
+- `ServerModSyncTest`: tests the production Kotlin policy for updating,
+  returning to the host's version, failures/offline, an incompatible package
+  and the session. Admission is tested as a policy; this suite does not run
+  the HTTP transfer and installation of a ZIP on Android.
 
-## Teste Android isolado
+## Isolated Android test
 
-`device.py` requer Python, ADB, APK debug instalado e emuladores com `su 0`.
-O jogo precisa estar fechado antes de `prepare`. A preparação guarda os
-saves originais numa pasta irmã, cria cópias de um personagem/mundo, salva
-preferências/cache da loja e habilita somente o fixture deste diretório.
-Não substitua `build/serversync/<serial>/prepared.json` nem seus backups
-enquanto uma preparação estiver em uso. Execute `restore` também após uma
-rodada interrompida: ele verifica hashes dos saves e bytes dos arquivos
-originais de preferências/cache.
+`device.py` requires Python, ADB, an installed debug APK and emulators with
+`su 0`. The game has to be closed before `prepare`. Preparation keeps the
+original saves in a sibling folder, creates copies of a character/world, saves
+the preferences/store cache and enables only this folder's fixture. Do not
+replace `build/serversync/<serial>/prepared.json` or its backups while a
+preparation is in use. Run `restore` after an interrupted round too: it checks
+the saves' hashes and the bytes of the original preference/cache files.
 
-Exemplo com duas instâncias já conectadas ao ADB:
+Example with two instances already connected to ADB:
 
 ```powershell
 python tools/tests/serversync/device.py prepare --device 127.0.0.1:16384 --version 1.1.0
@@ -82,24 +84,25 @@ python tools/tests/serversync/device.py launch --device 127.0.0.1:16384
 python tools/tests/serversync/device.py launch --device 127.0.0.1:16416
 ```
 
-No host, hospede o mundo copiado com sincronização ligada. No cliente,
-conecte ao host usando o personagem copiado. Configure o encaminhamento de
-rede conforme o emulador: as duas instâncias podem estar em NATs separados.
-Colete logs/capturas com `collect --device SERIAL --label different`.
-Espere a tela de falta da versão 1.1.0, sem entrada no mundo do cliente.
+On the host, host the copied world with sync on. On the client, connect to the
+host using the copied character. Set up network forwarding according to the
+emulator: the two instances may be behind separate NATs. Collect
+logs/screenshots with `collect --device SERIAL --label different`. Expect the
+screen listing version 1.1.0 as missing, with the client not entering the
+world.
 
 ```powershell
 python tools/tests/serversync/device.py version --device 127.0.0.1:16416 --version 1.1.0 --legacy
 python tools/tests/serversync/device.py launch --device 127.0.0.1:16416
 ```
 
-Conecte de novo, mantendo o host aberto. Ambos devem entrar na mesma sessão;
-colete com `--label equal`. Os logs `serversync-probe WORLD` e `CONNECT`
-permitem conferir versão e lado. O fixture não registra conteúdo de jogo.
+Connect again, keeping the host open. Both should enter the same session;
+collect with `--label equal`. The `serversync-probe WORLD` and `CONNECT` logs
+let you check the version and the side. The fixture registers no game content.
 
 ```powershell
 python tools/tests/serversync/device.py restore --device 127.0.0.1:16416
 python tools/tests/serversync/device.py restore --device 127.0.0.1:16384
 ```
 
-Resultados desta execução: [RESULTADOS.md](RESULTADOS.md).
+This run's results: [RESULTADOS.md](RESULTADOS.md).

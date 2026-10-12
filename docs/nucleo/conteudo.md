@@ -1,254 +1,260 @@
-# Conteúdo novo por dentro
+# New content under the hood
 
-> Parte da documentação do núcleo ([visão geral](README.md)). Para **criar**
-> conteúdo num mod, veja o [guia 4](../mods/04-conteudo-novo.md). Aqui está o
-> que o núcleo faz para um item, projétil, NPC, buff ou bloco novo existir num
-> jogo que foi compilado sem saber dele.
+> Part of the core documentation ([overview](README.md)). To **create**
+> content in a mod, see [guide 4](../mods/04-conteudo-novo.md). This page
+> covers what the core does so that a new item, projectile, NPC, buff or tile
+> can exist in a game that was compiled without knowing about it.
 
-## O problema
+## The problem
 
-O Terraria identifica cada tipo de conteúdo por um número: o item 98 é a
-Minishark, o NPC 4 é o Olho de Cthulhu. Os números vão de 0 até uma constante
-fixa, e o jogo inteiro foi escrito assumindo isso:
+Terraria identifies each kind of content by a number: item 98 is the
+Minishark, NPC 4 is the Eye of Cthulhu. The numbers go from 0 up to a fixed
+constant, and the whole game was written assuming that:
 
-| Conteúdo | Tipos do jogo | Constante | Tipo do 1º de mod |
+| Content | Game types | Constant | Type of the 1st mod one |
 |---|---:|---|---:|
 | Item | 0–6195 | `ItemID.Count` = 6196 | 6196 |
-| Projétil | 0–1135 | `ProjectileID.Count` = 1136 | 1136 |
+| Projectile | 0–1135 | `ProjectileID.Count` = 1136 | 1136 |
 | NPC | 0–696 | `NPCID.Count` = 697 | 697 |
 | Buff | 0–400 | `BuffID.Count` = 401 | 401 |
-| Bloco (tile) | 0–753 | `TileID.Count` = 754 | 754 |
-| Parede | 0–366 | `WallID.Count` = 367 | 367 |
+| Tile | 0–753 | `TileID.Count` = 754 | 754 |
+| Wall | 0–366 | `WallID.Count` = 367 | 367 |
 
-(Números da 1.4.5.8.6. Cada versão do jogo muda alguns: estão nos
-`kVanilla*Count` do núcleo e em `bl.*.vanillaCount`.)
+(Numbers from 1.4.5.8.6. Each game version changes some of them: they are in
+the core's `kVanilla*Count` and in `bl.*.vanillaCount`.)
 
-Um tipo novo precisa de um número acima disso, e cada lugar do jogo que
-assume o limite tem de ser encontrado e ajustado. São quatro tipos de lugar:
+A new type needs a number above that, and every place in the game that
+assumes the limit has to be found and adjusted. There are four kinds of place:
 
-1. **Tabelas por tipo.** Centenas de arrays estáticos com exatamente `Count`
-   posições: texturas (`TextureAssets.Item`), nomes, os `ItemID.Sets`,
-   `Main.tileSolid`... O jogo lê `tabela[tipo]` sem conferir o tamanho: **este
-   build do IL2CPP não confere limite de array**. Um tipo 6196 numa tabela de
-   6196 posições lê (e **escreve**) além do fim, sem erro nenhum, corrompendo
-   o que estiver depois.
-2. **Limites compilados.** `if (type >= NPCID.Count) return;` não é um array: é
-   `cmp w8, #696` direto no código de máquina. O `NPC.NPCLoot` saía por ali
-   (NPC de mod sem drop) e o `Main.DrawNPCs` pulava o NPC (invisível).
-3. **Métodos que recusam o número.** `Item.SetDefaults` zera tipo desconhecido;
-   `Lang.GetItemName` devolve texto vazio acima de `ItemID.Count`.
-4. **Arquivos salvos.** O `.plr` e o `.wld` do jogo gravam o número. Com o mod
-   desligado, o jogo leria um número que não conhece.
+1. **Per-type tables.** Hundreds of static arrays with exactly `Count` slots:
+   textures (`TextureAssets.Item`), names, the `ItemID.Sets`,
+   `Main.tileSolid`... The game reads `table[type]` without checking the size:
+   **this IL2CPP build does not bounds-check arrays**. Type 6196 in a table of
+   6196 slots reads (and **writes**) past the end, with no error at all,
+   corrupting whatever comes after.
+2. **Compiled limits.** `if (type >= NPCID.Count) return;` is not an array:
+   it is `cmp w8, #696` right in the machine code. `NPC.NPCLoot` bailed out
+   there (mod NPCs with no drops) and `Main.DrawNPCs` skipped the NPC
+   (invisible).
+3. **Methods that refuse the number.** `Item.SetDefaults` zeroes an unknown
+   type; `Lang.GetItemName` returns empty text above `ItemID.Count`.
+4. **Save files.** The game's `.plr` and `.wld` store the number. With the mod
+   turned off, the game would read a number it does not know.
 
-## A linha do tempo
+## The timeline
 
 ```mermaid
 sequenceDiagram
-    participant S as sonda (main.js)
-    participant N as núcleo
-    participant G as thread do jogo
+    participant S as probe (main.js)
+    participant N as core
+    participant G as game thread
     S->>N: ModItem.register(ExampleItem)
-    N-->>S: tipo 6196 (na hora)
-    Note over N: guarda a definição<br/>(nome, textura, tradução, callbacks)
-    G->>N: 1º Main.DoUpdate (tela de título)
-    N->>G: cresce as tabelas, põe textura e nome,<br/>troca limites compilados,<br/>roda SetStaticDefaults
-    G->>N: DoUpdate seguintes
-    N->>G: tabelas que o jogo criou depois (pendentes)
-    Note over N,G: tudo instalado + receitas e<br/>Bestiário do jogo prontos
+    N-->>S: type 6196 (right away)
+    Note over N: stores the definition<br/>(name, texture, localization, callbacks)
+    G->>N: 1st Main.DoUpdate (title screen)
+    N->>G: grows the tables, sets texture and name,<br/>swaps compiled limits,<br/>runs SetStaticDefaults
+    G->>N: following DoUpdates
+    N->>G: tables the game created later (pending)
+    Note over N,G: everything installed + the game's<br/>recipes and Bestiary ready
     N->>S: bl.onContentReady: AddRecipeGroups,<br/>AddRecipes, SetBestiary, PostSetupContent
 ```
 
-1. **Registro (thread da sonda).** O `register` de cada classe chama o loader
-   nativo do tipo (`bl.items.register`...), que **reserva o número na hora**
-   (`Count` + ordem de registro) e guarda a definição: nome estável
-   (`<uid do mod>/<Classe>`), caminho da textura, nomes por idioma, callbacks.
-   O mod já pode usar o número. O jogo ainda não sabe de nada.
-2. **Instalação (thread do jogo).** O núcleo tem um hook C++ no
-   `Main.DoUpdate`, que roda uma vez por quadro, antes do jogo. Nele, cada
-   loader tem um `tick` (`tickModItems`, `tickModNpcs`...). Na tela de título,
-   com as tabelas do jogo já criadas, o `tick` instala tudo de uma vez:
-   cresce as tabelas, carrega as texturas, registra os nomes, troca os limites
-   compilados e roda o `SetStaticDefaults` de cada classe. A instalação
-   precisa ser na thread do jogo: textura da Unity só nasce nela, e é nela
-   que o jogo troca essas tabelas.
-3. **Pendentes (a cada quadro).** Algumas tabelas só nascem **depois** da
-   tela de título (o jogo as cria sob demanda). Ler um campo estático não roda
-   o construtor estático, então uma tabela ainda nula fica **pendente** e é
-   aumentada no quadro em que aparecer. Tabelas que o jogo **refaz** (a troca
-   de idioma refaz os caches de nome) são vigiadas e recebem de volta o que é
-   dos mods.
-4. **Conteúdo pronto.** Quando todos os loaders terminaram e o jogo já montou
-   as receitas dele, o banco de drops (`ItemDropsDB`) e o Bestiário
-   (`BestiaryDB`), o `tickContentReady` chama o `bl.onContentReady`. É aí que
-   rodam o `AddRecipeGroups` (de todos os mods, antes de qualquer receita), o
-   `AddRecipes`, o `SetBestiary`, as lojas e o `PostSetupContent`.
+1. **Registration (probe thread).** Each class's `register` calls the kind's
+   native loader (`bl.items.register`...), which **reserves the number right
+   away** (`Count` + registration order) and stores the definition: a stable
+   name (`<mod uid>/<Class>`), the texture path, names per language,
+   callbacks. The mod can already use the number. The game knows nothing yet.
+2. **Installation (game thread).** The core has a C++ hook on
+   `Main.DoUpdate`, which runs once per frame, before the game. In it, each
+   loader has a `tick` (`tickModItems`, `tickModNpcs`...). On the title
+   screen, with the game's tables already created, the `tick` installs
+   everything at once: it grows the tables, loads the textures, registers the
+   names, swaps the compiled limits and runs each class's
+   `SetStaticDefaults`. Installation has to happen on the game thread: Unity
+   textures can only be created there, and that is where the game swaps those
+   tables.
+3. **Pending (every frame).** Some tables are only created **after** the
+   title screen (the game creates them on demand). Reading a static field does
+   not run the static constructor, so a table that is still null stays
+   **pending** and is grown on the frame it shows up. Tables the game
+   **rebuilds** (changing the language rebuilds the name caches) are watched
+   and get back what belongs to the mods.
+4. **Content ready.** When every loader has finished and the game has already
+   built its recipes, the drop database (`ItemDropsDB`) and the Bestiary
+   (`BestiaryDB`), `tickContentReady` calls `bl.onContentReady`. That is when
+   `AddRecipeGroups` (from every mod, before any recipe), `AddRecipes`,
+   `SetBestiary`, the shops and `PostSetupContent` run.
 
-## As tabelas: achadas, não listadas
+## The tables: found, not listed
 
 [`content/common/TypeTables.cpp`](../../app/src/main/cpp/content/common/TypeTables.cpp)
-não tem uma lista de tabelas. Para cada tipo de conteúdo, há uma lista de
-**classes** onde procurar, e toda tabela estática nelas com exatamente `Count`
-posições é uma tabela daquele tipo. Para itens, a busca acha ~127 (117 só em
-`ItemID.Sets`); para tiles, ~220.
+has no list of tables. For each kind of content, there is a list of
+**classes** to search, and every static table in them with exactly `Count`
+slots is a table of that kind. For items, the search finds ~127 (117 in
+`ItemID.Sets` alone); for tiles, ~220.
 
-A lista de classes foi conferida contra **toda** alocação daquele tamanho na
-`libil2cpp.so`: o `mov` da constante antes de um `new[]` (a ferramenta é
-`tools/disasm/scan_movs.py`). Esquecer uma classe não dá erro, só corrompe
-memória: foi assim que o tooltip de item de mod sumiu uma vez
-(`ArmorSetBonuses.SetsContaining` ficou de fora, a leitura pegou lixo e o
-jogo lançava `NullReferenceException` a cada quadro).
+The class list was checked against **every** allocation of that size in
+`libil2cpp.so`: the `mov` of the constant before a `new[]` (the tool is
+`tools/disasm/scan_movs.py`). Forgetting a class produces no error, it just
+corrupts memory: that is how the mod item tooltip vanished once
+(`ArmorSetBonuses.SetsContaining` was left out, the read picked up garbage and
+the game threw `NullReferenceException` every frame).
 
-Crescer uma tabela é criar um array novo com o tamanho novo, copiar e pôr o
-novo no campo estático. As posições novas nascem com:
+Growing a table means creating a new array with the new size, copying and
+putting the new one in the static field. The new slots start with:
 
-- o valor da posição **0** (o "nada" de item, projétil e buff), ou
-- o valor **mais comum** da tabela (tiles): a posição 0 dos tiles é a terra, e
-  copiar faria o bloco de mod se comportar como terra para a grama e a
-  corrupção. O mais comum é o padrão com que o jogo criou a tabela: `false` no
-  `tileSolid`, `-1` no `tileGlowMask`. Isso só vale se a tabela crescer
-  **antes** de o jogo preenchê-la: crescida depois, o mais comum do
-  `tileFrameImportant` é `true` (uns 400 dos 754 tipos são móveis), e todo
-  bloco de mod parou de ser enquadrado (ficava no quadro 0,0). Por isso os
-  tiles crescem cedo e só o `SetStaticDefaults` espera o
+- the value at slot **0** (the "nothing" for items, projectiles and buffs), or
+- the **most common** value in the table (tiles): tile slot 0 is dirt, and
+  copying it would make the mod block behave like dirt for grass and the
+  corruption. The most common value is the default the game created the table
+  with: `false` in `tileSolid`, `-1` in `tileGlowMask`. That only holds if the
+  table grows **before** the game fills it in: grown afterwards, the most
+  common value of `tileFrameImportant` is `true` (some 400 of the 754 types are
+  furniture), and every mod block stopped being framed (it stayed on frame
+  0,0). That is why tiles grow early and only `SetStaticDefaults` waits for
   `TileObjectData.Initialize`.
 
-Duas ou três tabelas moram dentro de **objetos**, não em estáticos
-(`QuickStacking`, o filtro "Diversos" do inventário, os contadores de projétil
-de cada `Player`). Essas crescem num hook no construtor do objeto.
+Two or three tables live inside **objects**, not statics (`QuickStacking`,
+the inventory's "Misc" filter, each `Player`'s projectile counters). Those
+grow in a hook on the object's constructor.
 
-## Os limites compilados
+## The compiled limits
 
-[`hook/CodePatch.cpp`](../../app/src/main/cpp/hook/CodePatch.cpp) troca
-constantes dentro do código de máquina, e só quando o padrão casa exatamente.
-Há quatro formas, cada uma com a sua ferramenta de busca em `tools/disasm/`:
+[`hook/CodePatch.cpp`](../../app/src/main/cpp/hook/CodePatch.cpp) swaps
+constants inside the machine code, and only when the pattern matches exactly.
+There are four forms, each with its own search tool in `tools/disasm/`:
 
-| Forma no código | Exemplo | Função | Busca |
+| Form in the code | Example | Function | Search |
 |---|---|---|---|
-| `cmp wN, #limite` + desvio de ordem (`b.hi`, `b.gt`...) | `if (type >= 697)` | `patchCompareLimit` | `scan_limits.py` |
-| laço em **bytes** (`cmp xN, #729`: 697 + 32 do cabeçalho do array) | `for (i = 0; i < 697; i++) a[i]` | `patchLoopEnd` | `scan_loops.py` |
-| limite grande demais para o `cmp #imm12`: `mov wB, #limite; cmp wA, wB` + desvio de ordem | o drop de item (`CommonCode.DropItem*`: `itemId - 1 <= Count - 2`) | `patchRegisterLimit` | `scan_reglimit.py` |
-| `mov wN, #tamanho` antes de `new T[tamanho]` | tabela criada dentro de um método | `patchMovImmediate` | `scan_movs.py` |
+| `cmp wN, #limit` + an ordered branch (`b.hi`, `b.gt`...) | `if (type >= 697)` | `patchCompareLimit` | `scan_limits.py` |
+| a loop in **bytes** (`cmp xN, #729`: 697 + 32 of the array header) | `for (i = 0; i < 697; i++) a[i]` | `patchLoopEnd` | `scan_loops.py` |
+| a limit too large for `cmp #imm12`: `mov wB, #limit; cmp wA, wB` + an ordered branch | the item drop (`CommonCode.DropItem*`: `itemId - 1 <= Count - 2`) | `patchRegisterLimit` | `scan_reglimit.py` |
+| `mov wN, #size` before `new T[size]` | a table created inside a method | `patchMovImmediate` | `scan_movs.py` |
 
-Regras que evitam estrago:
+Rules that prevent damage:
 
-- o método é achado pelo **nome**, e a busca fica dentro dele (do
-  `methodPointer` até o próximo método da classe);
-- só a comparação **seguida do desvio certo** é trocada. Igualdade (`b.ne`,
-  `b.eq`) fica de fora: `if (type == 696)` é um NPC específico, não um
-  limite. Trocar isso uma vez deixou o slime de mod invisível;
-- se o padrão não casa (outra versão do jogo), nada é escrito, e o log diz o
-  motivo (`describeCompareMiss`: ausente, já trocado ou escrita recusada, com
-  o endereço e as 4 primeiras instruções do método);
-- o log resume: `limites do codigo trocados em 19 de 19`.
+- the method is found by **name**, and the search stays inside it (from
+  `methodPointer` to the class's next method);
+- only the comparison **followed by the right branch** is swapped. Equality
+  (`b.ne`, `b.eq`) is left out: `if (type == 696)` is a specific NPC, not a
+  limit. Swapping that once left the mod slime invisible;
+- if the pattern does not match (another game version), nothing is written,
+  and the log says why (`describeCompareMiss`: missing, already swapped or
+  write refused, with the address and the method's first 4 instructions);
+- the log sums it up: `limites do codigo trocados em 19 de 19` ("code limits
+  swapped in 19 of 19").
 
-## Os métodos que recusam o número
+## The methods that refuse the number
 
-Cada um tem um hook C++ no loader do tipo:
+Each one has a C++ hook in the kind's loader:
 
-- **`Item.SetDefaults`** zera tipo acima de `Count`: para item de mod, o hook
-  não chama o original e preenche o item pelo `SetDefaults` do mod.
-- **`Projectile.SetDefaults`** não zera, mas o `else` do `switch` desativa o
-  projétil (`active = false`): o hook reativa depois do `SetDefaults` do mod.
-- **`Lang.GetItemName`** converte o tipo para `short` e devolve texto vazio
-  acima de `ItemID.Count`: o hook devolve o nome gravado pelo núcleo para item
-  de mod. O `Lang.GetNPCName` tem o limite compilado, trocado pelo
-  `CodePatch`.
-- **`ContentSamples`**: o jogo consulta dicionários de amostras
-  (`ItemsByType[tipo]`) para tooltip, pesquisa da Jornada e ordenação; as
-  amostras de mod são acrescentadas.
-- **`NPC.FindFrame`**: a altura do quadro vem da textura e do
-  `npcFrameCount` do NPC emprestado no `AnimationType`; o hook troca o tipo e
-  a textura durante a chamada.
+- **`Item.SetDefaults`** zeroes types above `Count`: for mod items, the hook
+  does not call the original and fills in the item through the mod's
+  `SetDefaults`.
+- **`Projectile.SetDefaults`** does not zero it, but the `switch`'s `else`
+  deactivates the projectile (`active = false`): the hook reactivates it after
+  the mod's `SetDefaults`.
+- **`Lang.GetItemName`** converts the type to `short` and returns empty text
+  above `ItemID.Count`: the hook returns the name the core stored for mod
+  items. `Lang.GetNPCName` has the compiled limit, swapped by `CodePatch`.
+- **`ContentSamples`**: the game looks up sample dictionaries
+  (`ItemsByType[type]`) for tooltips, Journey research and sorting; the mod
+  samples are added.
+- **`NPC.FindFrame`**: the frame height comes from the texture and the
+  `npcFrameCount` of the NPC borrowed through `AnimationType`; the hook swaps
+  the type and the texture during the call.
 
-## Texturas e nomes
+## Textures and names
 
 [`content/common/ContentAssets.cpp`](../../app/src/main/cpp/content/common/ContentAssets.cpp):
 
-- **Textura**: o PNG é lido do disco, decodificado pela própria Unity
-  (`ImageConversion.LoadImage` num `Texture2D` do Unity), posto em filtro
-  *point* (pixel art; a Unity nasce bilinear e a textura sairia borrada) e
-  embrulhado no `Texture2D` do jogo e num `Asset<Texture2D>` já carregado. É o
-  mesmo tipo que o jogo guarda em `TextureAssets.Item[i]`, e o mesmo que o
-  `ModContent.Request` devolve.
-- **Nome**: um `LocalizedText` com o texto do idioma atual, gravado também no
-  dicionário do `LanguageManager` sob a chave. Partes do jogo buscam o nome
-  pela chave, não pela tabela (a plaquinha do Bestiário, por exemplo).
+- **Texture**: the PNG is read from disk, decoded by Unity itself
+  (`ImageConversion.LoadImage` into a Unity `Texture2D`), set to *point*
+  filtering (pixel art; Unity starts bilinear and the texture would come out
+  blurred) and wrapped in the game's `Texture2D` and an already-loaded
+  `Asset<Texture2D>`. It is the same type the game keeps in
+  `TextureAssets.Item[i]`, and the same one `ModContent.Request` returns.
+- **Name**: a `LocalizedText` with the current language's text, also written
+  into the `LanguageManager` dictionary under the key. Parts of the game look
+  up the name by key, not by table (the Bestiary blurb, for example).
 
-## Os saves: o mundo abre sem o mod
+## Saves: the world opens without the mod
 
-A regra de todos os saves: **o arquivo do jogo nunca leva tipo de mod**. O
-conteúdo de mod vai num arquivo ao lado, **pelo nome** (`<uid>/<Classe>`), e
-volta pelo nome. Assim, desligar um mod, trocar a ordem dos mods ou abrir o
-save no Terraria sem o Bunny Loader não quebra nada.
+The rule for every save: **the game's file never carries a mod type**. Mod
+content goes into a side file, **by name** (`<uid>/<Class>`), and comes back by
+name. That way, turning a mod off, changing the mod order or opening the save
+in Terraria without Bunny Loader breaks nothing.
 
-| O quê | Arquivo ao lado | Com o mod ausente |
+| What | Side file | With the mod missing |
 |---|---|---|
-| Itens no inventário, cofres | `<personagem>.plr.bl` | O item vira um "?" (de uma reserva de 64 tipos) e volta ao religar o mod. |
-| Itens em baús do mundo | `<mundo>.wld.bl` | Idem. |
-| Blocos de mod | `<mundo>.wld.tiles.bl` | O `.wld` guarda ar no lugar; o bloco volta ao religar. Móvel volta inteiro ou fica guardado (planta no lugar sai; outra coisa construída segura o móvel no arquivo). |
-| Paredes de mod | `<mundo>.wld.walls.bl` | O `.wld` guarda o lugar sem parede; a parede volta ao religar. |
-| Moradores de mod | `<mundo>.wld.npcs.bl` | O morador volta ao religar. |
-| Buffs de mod ativos | `<personagem>.plr.bl` | Guardados, voltam ao religar. |
-| `ModPlayer.SaveData` | `<personagem>.plr.bl.json` | Os dados ficam no arquivo. |
+| Items in the inventory, storage | `<character>.plr.bl` | The item becomes a "?" (from a reserve of 64 types) and comes back when the mod is turned back on. |
+| Items in world chests | `<world>.wld.bl` | Same. |
+| Mod tiles | `<world>.wld.tiles.bl` | The `.wld` stores air in their place; the tile comes back when the mod is turned back on. Furniture comes back whole or stays stored (a plant in its place is removed; anything else built there keeps the furniture in the file). |
+| Mod walls | `<world>.wld.walls.bl` | The `.wld` stores the spot with no wall; the wall comes back when the mod is turned back on. |
+| Mod town NPCs | `<world>.wld.npcs.bl` | The town NPC comes back when the mod is turned back on. |
+| Active mod buffs | `<character>.plr.bl` | Stored, they come back when the mod is turned back on. |
+| `ModPlayer.SaveData` | `<character>.plr.bl.json` | The data stays in the file. |
 
-Os saves seguem o jogo 1:1: o nosso grava **depois** do original do método de
-save do jogo (`InternalSavePlayerFile`, `SaveWorld`...), então salva quando e
-onde o jogo salvar (morte, autosave, sair).
+The saves follow the game 1:1: ours writes **after** the original of the
+game's save method (`InternalSavePlayerFile`, `SaveWorld`...), so it saves
+when and where the game saves (death, autosave, exit).
 
-O "?" é como o `UnloadedItem` do tModLoader: um tipo de uma reserva registrada
-**depois** dos mods, para que os números dos mods não mudem. Um baú do celular
-guarda `ChestItem` (um struct de 6 bytes: tipo, pilha, prefixo), sem espaço
-para metadados, então o item ausente precisa de um tipo de verdade para
-existir ali.
+The "?" is like tModLoader's `UnloadedItem`: a type from a reserve
+registered **after** the mods, so the mods' numbers do not change. A mobile
+chest stores `ChestItem` (a 6-byte struct: type, stack, prefix), with no room
+for metadata, so the missing item needs a real type to exist there.
 
-## Paredes: o que muda
+## Walls: what changes
 
-As paredes são o caso mais simples (`content/walls/ModWalls.cpp`):
+Walls are the simplest case (`content/walls/ModWalls.cpp`):
 
-- `WallID.Count` é um campo `static readonly`, não uma constante: o código do
-  jogo **lê o campo** em vez de comparar com 367. A varredura não acha limite
-  compilado de parede, e as tabelas nascem do campo. A instalação aumenta as
-  tabelas (`Main.wall*`, `WallID.Sets` e `Conversion`, `TextureAssets.Wall`,
-  `MapHelper`) e **escreve o total no próprio `WallID.Count`**: o que o jogo
-  criar depois já nasce do tamanho certo;
-- a parede de cada célula é guardada **por posição** (`TileData.TileWall[offset]`,
-  sem o `TileLookup`), e não nas definições internadas como o tipo do bloco:
-  ler e trocar é direto;
-- o save usa a mesma cópia do bloco de estáticos dos tiles: a gravação lê uma
-  cópia do `TileWall` com as paredes de mod zeradas, e elas vão para o
-  `.walls.bl`; no load, voltam pelo `Tile.set_wall` e o `Framing.WallFrame`
-  refaz a moldura;
-- os hooks JS da parede quebrada (`KillWall*`) usam o filtro nativo `wall: true`
-  (com `tile`/`tileAt`), que lê a parede da posição em vez do tipo do bloco;
-- o mapa usa o mesmo espaço de índices de cor dos blocos (depois da cor do
-  inferno): as entradas de parede vêm depois das de bloco, e o `.map.bl` as
-  guarda com a chave `wall:<uid>/<Classe>`;
-- a tinta (`wallColor`, `invisibleWall`, `fullbrightWall`) vai no `.walls.bl`,
-  porque o jogo só grava a tinta de parede com a parede no lugar.
+- `WallID.Count` is a `static readonly` field, not a constant: the game's code
+  **reads the field** instead of comparing against 367. The scan finds no
+  compiled wall limit, and the tables are created from the field.
+  Installation grows the tables (`Main.wall*`, `WallID.Sets` and
+  `Conversion`, `TextureAssets.Wall`, `MapHelper`) and **writes the total into
+  `WallID.Count` itself**: whatever the game creates afterwards is already the
+  right size;
+- each cell's wall is stored **by position** (`TileData.TileWall[offset]`,
+  without the `TileLookup`), not in the interned definitions like the block
+  type: reading and swapping it is direct;
+- the save uses the same copy of the tiles' statics block: writing reads a
+  copy of `TileWall` with the mod walls zeroed, and those go to `.walls.bl`;
+  on load, they come back through `Tile.set_wall` and `Framing.WallFrame`
+  redoes the border;
+- the JS hooks for a broken wall (`KillWall*`) use the native `wall: true`
+  filter (with `tile`/`tileAt`), which reads the wall at the position instead
+  of the block type;
+- the map uses the same color index space as tiles (after the underworld
+  color): wall entries come after the tile ones, and `.map.bl` stores them
+  with the `wall:<uid>/<Class>` key;
+- paint (`wallColor`, `invisibleWall`, `fullbrightWall`) goes into
+  `.walls.bl`, because the game only saves wall paint with the wall in place.
 
-## Multijogador
+## Multiplayer
 
-Os números de mod saem da ordem de registro. Por isso **todos** os aparelhos
-precisam dos mesmos mods de conteúdo: com um mod a mais num lado, o número de
-um item aponta para outra coisa no outro. Ainda não há um aperto de mão entre
-os aparelhos que confira isso.
+Mod numbers come from the registration order. That is why **every** device
+needs the same content mods: with one more mod on one side, an item's number
+points to something else on the other. There is no handshake between devices
+that checks this yet.
 
-## Adicionando um tipo de conteúdo novo ao núcleo
+## Adding a new kind of content to the core
 
-A receita que funcionou para buffs e tiles:
+The recipe that worked for buffs and tiles:
 
-1. `python tools/disasm/scan_movs.py <Count>`: onde nascem arrays desse
-   tamanho. Cada classe achada entra na lista do `TypeTables`; um `.ctor` de
-   `Player` ou `NPC` é tabela por instância (crescer no hook do construtor).
-2. `python tools/disasm/scan_limits.py <Count-2> <Count-1> <Count>`:
-   comparações compiladas. Conferir cada uma com `da.py` (os números colidem
-   com IDs de outras coisas) e trocar as certas com `patchCompareLimit`.
-3. `scan_loops.py` e `scan_reglimit.py` para as formas que o `scan_limits` não
-   vê. A mesma conta muda de forma entre versões: na 1.4.5.6 o drop era
-   `(x-1) >> 1 <= imm` (`scan_halved.py`); na 1.4.5.8, `mov` + `cmp` de
-   registrador.
-4. Hook nos métodos que recusam o número, e o save ao lado.
-5. Um mod de teste em `tools/tests/` que usa o tipo de verdade.
+1. `python tools/disasm/scan_movs.py <Count>`: where arrays of that size are
+   created. Each class found goes into the `TypeTables` list; a `.ctor` of
+   `Player` or `NPC` is a per-instance table (grow it in the constructor
+   hook).
+2. `python tools/disasm/scan_limits.py <Count-2> <Count-1> <Count>`: compiled
+   comparisons. Check each one with `da.py` (the numbers collide with other
+   things' IDs) and swap the right ones with `patchCompareLimit`.
+3. `scan_loops.py` and `scan_reglimit.py` for the forms `scan_limits` does not
+   see. The same math changes form between versions: in 1.4.5.6 the drop was
+   `(x-1) >> 1 <= imm` (`scan_halved.py`); in 1.4.5.8, a `mov` + register
+   `cmp`.
+4. Hooks on the methods that refuse the number, and the side save.
+5. A test mod in `tools/tests/` that actually uses the type.
 
-Foi assim que apareceu, por exemplo, que o `GUIBuffs.Draw` **zera** buff com
-tipo ≥ `BuffID.Count` a cada quadro.
+That is how it turned up, for example, that `GUIBuffs.Draw` **zeroes** buffs
+with a type ≥ `BuffID.Count` every frame.

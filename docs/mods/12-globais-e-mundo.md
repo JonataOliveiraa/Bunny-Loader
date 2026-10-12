@@ -1,64 +1,66 @@
-# 12. Globais e o mundo
+# 12. Globals and the world
 
-Até aqui, cada classe de mod criava algo **novo**: um item, um NPC, um buff.
-Este guia é sobre mexer no que **já existe**, no que é do mundo inteiro e no
-que precisa ir de um aparelho a outro no multijogador:
+Up to here, each mod class created something **new**: an item, an NPC, a
+buff. This guide is about changing what **already exists**, about what belongs
+to the whole world and about what has to go from one device to another in
+multiplayer:
 
-- `GlobalItem`, `GlobalNPC`, `GlobalProjectile`: código que roda para os
-  itens, NPCs e projéteis **do jogo** (e os de mod), como deixar a espada de
-  cobre mais forte ou fazer todo slime soltar gel extra;
-- os **drops**: mudar a tabela de um NPC do jogo, ou pôr uma regra que vale
-  para todos;
-- `ModSystem`: o que é do mod inteiro, e o ciclo do mundo (carregar, salvar,
-  sair) com dados que ficam gravados junto com ele;
-- a **rede**: os dados do mod que o servidor manda aos clientes (e o que um
-  cliente manda ao servidor), com `NetSend`/`NetReceive` e pacotes próprios.
+- `GlobalItem`, `GlobalNPC`, `GlobalProjectile`: code that runs for the
+  **vanilla** items, NPCs and projectiles (and the mod ones), like making the
+  copper sword stronger or making every slime drop extra gel;
+- **drops**: changing a vanilla NPC's table, or adding a rule that applies to
+  all of them;
+- `ModSystem`: what belongs to the whole mod, and the world cycle (load, save,
+  leave) with data stored along with it;
+- the **network**: mod data the server sends to clients (and what a client
+  sends to the server), with `NetSend`/`NetReceive` and custom packets.
 
-Antes, leia as [ideias do guia 4](04-conteudo-novo.md). A lista completa está
-na referência: [Globais](../referencia/classes.md#globalitem-globalnpc-e-globalprojectile),
-[`GlobalLoot`](../referencia/classes.md#globalloot) e
+Read the [ideas in guide 4](04-conteudo-novo.md) first. The full list is in
+the reference: [Globals](../referencia/classes.md#globalitem-globalnpc-and-globalprojectile),
+[`GlobalLoot`](../referencia/classes.md#globalloot) and
 [`ModSystem`](../referencia/classes.md#modsystem).
 
-## Global ou hook direto?
+## Global or direct hook?
 
-Tudo o que um Global faz também dá para fazer com um hook direto (o
-[guia 1](01-hooks-do-zero.md)). O Global é o mesmo hook, já pronto e com a
-forma do tModLoader:
+Everything a Global does can also be done with a direct hook
+([guide 1](01-hooks-do-zero.md)). The Global is the same hook, ready-made and
+shaped like tModLoader's:
 
-- o código do tModLoader passa quase como está (`AppliesToEntity`,
+- tModLoader code carries over almost as is (`AppliesToEntity`,
   `InstancePerEntity`, `ModifyNPCLoot`);
-- vários mods podem ter Globais no mesmo método sem se atrapalhar;
-- o estado por entidade (um contador por NPC, uma carga por item) vem de
-  graça, sem mapa na mão.
+- several mods can have Globals on the same method without getting in each
+  other's way;
+- per-entity state (a counter per NPC, a charge per item) comes for free,
+  with no hand-made map.
 
-Use o hook direto quando o Global não tem o método que você precisa.
+Use the direct hook when the Global does not have the method you need.
 
-## O custo
+## The cost
 
-Um `ModItem` só entra no JS para o **seu** item: o hook tem um filtro nativo
-por tipo, e o item do jogo passa direto. Um Global não tem esse filtro, porque
-ele existe justamente para os itens do jogo. **Todo** item, NPC ou projétil
-que passa pelo método entra no JS, e o `AppliesToEntity` decide lá dentro.
+A `ModItem` only enters JS for **your** item: the hook has a native type
+filter, and vanilla items pass straight through. A Global has no such filter,
+because it exists precisely for vanilla items. **Every** item, NPC or
+projectile that goes through the method enters JS, and `AppliesToEntity`
+decides in there.
 
-Na prática:
+In practice:
 
-- um método que nenhum Global escreveu não instala hook nenhum e não custa
-  nada;
-- `SetDefaults`, `OnSpawn`, `OnKill`, `HitEffect`, `ModifyNPCLoot` rodam
-  pouco: ao criar, acertar ou matar;
-- `PreAI`, `AI` e `PostAI` rodam **a cada quadro para cada entidade**: até 200
-  NPCs ou 1000 projéteis. Um `AI` global é o método mais caro que existe. Saia
-  cedo e deixe o `AppliesToEntity` barato (comparar o `type`).
+- a method no Global wrote installs no hook and costs nothing;
+- `SetDefaults`, `OnSpawn`, `OnKill`, `HitEffect`, `ModifyNPCLoot` run
+  rarely: on creating, hitting or killing;
+- `PreAI`, `AI` and `PostAI` run **every frame for every entity**: up to 200
+  NPCs or 1000 projectiles. A global `AI` is the most expensive method there
+  is. Bail out early and keep `AppliesToEntity` cheap (compare the `type`).
 
-As contas do [guia de custo](03-custo-e-desempenho.md#quantas-vezes-o-jogo-chama-cada-método)
-valem aqui: um `AI` global que só repassa, com 150 NPCs, fica perto de
-0,1 ms por quadro, mais o que o seu código fizer. Um `SetDefaults` global roda
-milhares de vezes ao carregar o mundo, e soma segundos se for pesado.
+The math from the [cost guide](03-custo-e-desempenho.md#how-often-the-game-calls-each-method)
+applies here: a forwarding-only global `AI`, with 150 NPCs, is around 0.1 ms
+per frame, plus whatever your code does. A global `SetDefaults` runs thousands
+of times when the world loads, and adds up to seconds if it is heavy.
 
 ## GlobalItem
 
-Um `GlobalItem` roda para os itens do jogo. O `AppliesToEntity` escolhe
-quais; sem ele, vale para todos.
+A `GlobalItem` runs for vanilla items. `AppliesToEntity` picks which ones;
+without it, it applies to all of them.
 
 ```js
 const { ItemID } = Terraria.ID;
@@ -74,28 +76,28 @@ export class ShortswordGlobalItem extends GlobalItem {
 }
 ```
 
-Os métodos são os do `ModItem` (`SetDefaults`, `CanUseItem`, `UseItem`,
+The methods are `ModItem`'s (`SetDefaults`, `CanUseItem`, `UseItem`,
 `HoldItem`, `Shoot`, `ModifyShootStats`, `UpdateAccessory`, `UpdateInventory`,
-`OnCraft`, `ModifyTooltips`...), com o item como primeiro parâmetro. Quando um
-item de mod também tem o método, o do `ModItem` roda primeiro e depois os
-Globais, como no tModLoader. Também:
+`OnCraft`, `ModifyTooltips`...), with the item as the first parameter. When a
+mod item also has the method, the `ModItem` one runs first and then the
+Globals, as in tModLoader. Also:
 
-- dano, crítico, repulsão e tamanho: `ModifyWeaponDamage`, `ModifyWeaponCrit`,
+- damage, crit, knockback and size: `ModifyWeaponDamage`, `ModifyWeaponCrit`,
   `ModifyWeaponKnockback`, `ModifyItemScale`, `UseItemHitbox`, `MeleeEffects`,
   `UseAnimation`, `UseItemFrame`, `HoldItemFrame`;
-- munição: `NeedsAmmo`, `CanChooseAmmo`, `CanBeChosenAsAmmo`, `CanConsumeAmmo`,
+- ammo: `NeedsAmmo`, `CanChooseAmmo`, `CanBeChosenAsAmmo`, `CanConsumeAmmo`,
   `CanBeConsumedAsAmmo`, `OnConsumeAmmo`, `OnConsumedAsAmmo`,
   `PickAmmo(weapon, ammo, player, type, speed, damage, knockback)`;
-- cura: `GetHealLife`, `GetHealMana`, `ModifyPotionDelay`, `ApplyPotionDelay`;
-- golpes: `CanHitNPC`, `ModifyHitNPC`, `OnHitNPC`, `CanHitPvp`, `ModifyHitPvp`,
-  `OnHitPvp` (ver [Golpes](16-golpes.md)).
+- healing: `GetHealLife`, `GetHealMana`, `ModifyPotionDelay`, `ApplyPotionDelay`;
+- hits: `CanHitNPC`, `ModifyHitNPC`, `OnHitNPC`, `CanHitPvp`, `ModifyHitPvp`,
+  `OnHitPvp` (see [Hits](16-golpes.md)).
 
-Nos `Can` de munição, um `false` de qualquer um (o item de mod ou um Global)
-veta; nos que aceitam `null`, senão um `true` força.
+In the ammo `Can` methods, a `false` from anyone (the mod item or a Global)
+vetoes; in the ones that accept `null`, otherwise a `true` forces it.
 
-## GlobalNPC e GlobalProjectile
+## GlobalNPC and GlobalProjectile
 
-Mesma ideia, para NPCs e projéteis:
+Same idea, for NPCs and projectiles:
 
 ```js
 const { NPCID } = Terraria.ID;
@@ -110,106 +112,107 @@ export class SlimeGlobalNPC extends GlobalNPC {
     }
 
     OnKill(npc) {
-        bl.log('um slime morreu em ' + npc.position);
+        bl.log('a slime died at ' + npc.position);
     }
 }
 ```
 
-- `PreAI` devolvendo `false` pula a IA do jogo **e** o `AI` dos outros
-  Globais; o `PostAI` roda de qualquer jeito.
-- `PreKill` devolvendo `false` faz o NPC morrer sem drop e sem `OnKill`.
-- `GetChat(npc, chat)`: `chat` é um `Ref` com a fala que o jogo escolheu;
-  troque o `chat.value`. `CanChat(npc)`: `false` impede a conversa, `true`
-  permite, `null` deixa o jogo.
-- `FindFrame(npc, frameHeight)` (depois do quadro do jogo), `CheckActive`,
+- `PreAI` returning `false` skips the game's AI **and** the other Globals'
+  `AI`; `PostAI` runs regardless.
+- `PreKill` returning `false` makes the NPC die with no drop and no `OnKill`.
+- `GetChat(npc, chat)`: `chat` is a `Ref` with the line the game picked;
+  swap `chat.value`. `CanChat(npc)`: `false` prevents chatting, `true` allows
+  it, `null` leaves it to the game.
+- `FindFrame(npc, frameHeight)` (after the game's frame), `CheckActive`,
   `CheckDead`, `ApplyDifficultyAndPlayerScaling`, `ModifyNPCHappiness`.
-- Desenho: `PreDraw` (os Globais antes do `ModNPC`; `false` não desenha),
+- Drawing: `PreDraw` (the Globals before the `ModNPC`; `false` does not draw),
   `PostDraw`, `DrawEffects`, `GetAlpha`, `BossHeadSlot`, `BossHeadRotation`,
   `BossHeadSpriteEffects`.
-- Golpes: os mesmos do `ModNPC`, também nos NPCs do jogo (ver
-  [Golpes](16-golpes.md)).
+- Hits: the same as `ModNPC`'s, also on vanilla NPCs (see
+  [Hits](16-golpes.md)).
 
-O `ModNPC` e o `GlobalNPC` passam pelos mesmos hooks do jogo (o
-`NPCLoader`): cada hook só entra no JS para os tipos de NPC que alguém pediu,
-o de mod que escreve o método ou todos, quando um Global o escreve.
+`ModNPC` and `GlobalNPC` go through the same game hooks (the `NPCLoader`):
+each hook only enters JS for the NPC types someone asked for, the mod one that
+writes the method, or all of them when a Global writes it.
 
-### Lojas
+### Shops
 
-O `GlobalNPC` mexe nas lojas do jogo e nas de outros mods:
+`GlobalNPC` changes the game's shops and other mods':
 
 ```js
 const { ItemID, NPCID } = Terraria.ID;
 
-export class LojaDoComerciante extends GlobalNPC {
-    // Uma vez por loja: o que o Add põe entra depois dos itens dela.
+export class MerchantShop extends GlobalNPC {
+    // Once per shop: what Add puts in goes after its items.
     ModifyShop(shop) {
         if (shop.NpcType === NPCID.Merchant) shop.Add(ItemID.Wood, { condition: () => Terraria.Main.dayTime });
     }
 
-    // O formato antigo do tModLoader: a casa livre em nextSlot (Ref).
+    // tModLoader's old format: the free slot in nextSlot (Ref).
     SetupShop(type, shop, nextSlot) {
         if (type !== NPCID.Merchant) return;
         shop.item[nextSlot.value]['void SetDefaults(int Type, ItemVariant variant)'](ItemID.Torch, null);
         nextSlot.value++;
     }
 
-    // A cada abertura, com os itens prontos.
+    // On every opening, with the items ready.
     ModifyActiveShop(npc, shopName, items) {}
 
-    // A loja do Mercador Viajante: shop é o Main.travelShop (os tipos).
+    // The Traveling Merchant's shop: shop is Main.travelShop (the types).
     SetupTravelShop(shop, nextSlot) {
         shop[nextSlot.value++] = ItemID.Gel;
     }
 }
 ```
 
-`NPCShop.get(NPCID.Merchant)` devolve a loja do jogo (a do Pintor de
-decoração é `NPCShop.get(NPCID.Painter, 'Decor')`), e `NPCShop.All` lista
-todas. O jogo do celular monta todas as lojas ao abrir o mundo e de novo a
-cada vez que uma abre: o `SetupShop` roda nas duas.
+`NPCShop.get(NPCID.Merchant)` returns the game's shop (the Painter's
+decoration one is `NPCShop.get(NPCID.Painter, 'Decor')`), and `NPCShop.All`
+lists them all. The mobile game builds every shop when the world opens and
+again each time one opens: `SetupShop` runs in both.
 
-### O spawn natural
+### Natural spawning
 
-Como no tModLoader, o `GlobalNPC` mexe no spawn de inimigos em volta de cada
-jogador. Roda sozinho ou no servidor, e o `player` é o jogador-alvo:
+As in tModLoader, `GlobalNPC` changes enemy spawning around each player. It
+runs in single player or on the server, and `player` is the target player:
 
 ```js
-export class SpawnDoBioma extends GlobalNPC {
-    // Ref: spawnRate menor = mais spawn; maxSpawns = quantos por perto.
+export class BiomeSpawns extends GlobalNPC {
+    // Ref: lower spawnRate = more spawns; maxSpawns = how many nearby.
     EditSpawnRate(player, spawnRate, maxSpawns) {
-        if (player.InModBiome(MeuBioma)) {
+        if (player.InModBiome(MyBiome)) {
             spawnRate.value = Math.floor(spawnRate.value * 0.5);
             maxSpawns.value = Math.floor(maxSpawns.value * 1.5);
         }
     }
 
-    // O sorteio: pool[tipo] = peso; o 0 é o spawn do jogo (peso 1).
+    // The roll: pool[type] = weight; 0 is the game's spawn (weight 1).
     EditSpawnPool(pool, spawnInfo) {
-        if (spawnInfo.Player.InModBiome(MeuBioma)) {
-            pool[0] = 0.25;                          // menos inimigos do jogo
-            pool[NPCID.GreenSlime] = 0.5;            // e um do jogo a mais
+        if (spawnInfo.Player.InModBiome(MyBiome)) {
+            pool[0] = 0.25;                          // fewer vanilla enemies
+            pool[NPCID.GreenSlime] = 0.5;            // and one more vanilla one
         }
     }
 }
 ```
 
-- `EditSpawnFlags(spawnInfo)`: antes de tudo (taxa, área e ponto), os campos
-  do jogador (`noWorms`, `invaders`, `ZoneCorrupt`...). O ponto ainda é -1.
+- `EditSpawnFlags(spawnInfo)`: before everything (rate, area and point), the
+  player's fields (`noWorms`, `invaders`, `ZoneCorrupt`...). The point is
+  still -1.
 - `EditSpawnRange(player, spawnRangeX, spawnRangeY, safeRangeX, safeRangeY)`:
-  `Ref`, em blocos: até onde nasce e o quanto longe do jogador.
-- `EditSpawnInfo(spawnInfo)`: com o ponto escolhido, antes do sorteio. Os
-  campos do `spawnInfo` (`waterTile`, `nearGranite`...) mudam o que o jogo e
-  os `SpawnChance` leem.
-- `SpawnNPC(npc, tileX, tileY)`: depois de nascer um NPC sorteado que não é o
-  do jogo.
+  `Ref`s, in tiles: how far out it spawns and how far from the player.
+- `EditSpawnInfo(spawnInfo)`: with the point chosen, before the roll. The
+  `spawnInfo` fields (`waterTile`, `nearGranite`...) change what the game and
+  the `SpawnChance`s read.
+- `SpawnNPC(npc, tileX, tileY)`: after a rolled NPC that is not the game's
+  spawns.
 
-## Um estado por entidade
+## Per-entity state
 
-Por padrão, existe **um** objeto do Global, compartilhado por todas as
-entidades. Um campo nele é do mod inteiro, não do item.
+By default, there is **one** Global object, shared by every entity. A field on
+it belongs to the whole mod, not to the item.
 
-Com `InstancePerEntity`, cada entidade ganha a própria cópia, e os campos
-passam a ser dela:
+With `InstancePerEntity`, each entity gets its own copy, and the fields become
+its own:
 
 ```js
 export class ChargeGlobalItem extends GlobalItem {
@@ -221,55 +224,55 @@ export class ChargeGlobalItem extends GlobalItem {
     }
 }
 
-// em qualquer lugar:
+// anywhere:
 const g = item.GetGlobalItem(ChargeGlobalItem);
 g.charge++;
 ```
 
-- A cópia nasce no `SetDefaults`. Trocar o tipo do item dá uma cópia nova, com
-  os campos zerados.
-- `item.Clone()` leva a cópia junto, com o estado; a cópia do clone é outro
-  objeto.
-- `GetGlobalItem(Classe)` (ou `'NomeDaClasse'`) **lança** se o Global não se
-  aplica àquele item. Para perguntar, use `item.TryGetGlobalItem(Classe, ref)`,
-  que devolve `true` ou `false`.
-- `GetGlobalNPC` e `GetGlobalProjectile` funcionam do mesmo jeito.
+- The copy is created in `SetDefaults`. Changing the item's type gives a new
+  copy, with the fields reset.
+- `item.Clone()` takes the copy along, with its state; the clone's copy is
+  another object.
+- `GetGlobalItem(Class)` (or `'ClassName'`) **throws** if the Global does not
+  apply to that item. To ask, use `item.TryGetGlobalItem(Class, ref)`, which
+  returns `true` or `false`.
+- `GetGlobalNPC` and `GetGlobalProjectile` work the same way.
 
-`InstancePerEntity = true` como campo, ou `get InstancePerEntity() { return true; }`,
-os dois valem.
+`InstancePerEntity = true` as a field, or `get InstancePerEntity() { return true; }`,
+both work.
 
-### Desenho, colisão e gancho no GlobalProjectile
+### Drawing, collision and grappling in GlobalProjectile
 
-Estes métodos recebem projéteis do jogo e de mods. `AppliesToEntity` limita
-quais entidades recebem os callbacks, e `InstancePerEntity` mantém o estado
-de cada projétil separado.
+These methods receive vanilla and mod projectiles. `AppliesToEntity` limits
+which entities receive the callbacks, and `InstancePerEntity` keeps each
+projectile's state separate.
 
-| Método | Contrato |
+| Method | Contract |
 |---|---|
-| `PreDraw(projectile, lightColor)` | `lightColor` é um `Ref<Color>`: leia ou substitua `.value`. `false` cancela o sprite padrão, preservando correntes e linhas. Todos os Globais recebem o callback; o `PreDraw` local só roda se todos permitirem. |
-| `PostDraw(projectile, lightColor)` | Depois do desenho, mesmo com veto no `PreDraw`. A cor é um `Color`, sem `Ref`. Roda depois do `PostDraw` local. |
-| `GetAlpha(projectile, lightColor)` | Retorne um `Color` ou deixe `undefined`/`null`. O primeiro Global que retornar uma cor decide; depois vem o método local e o jogo. |
-| `Colliding(projectile, projHitbox, targetHitbox)` | Primeiro retorno booleano dos Globais decide a colisão. Sem resposta, consulta o método local e o jogo. |
-| `CanDamage(projectile)` | `false` veta dano e corte. Qualquer veto prevalece; um `true` global prevalece sobre o método local. `undefined`/`null` mantém a decisão seguinte. As condições nativas de dano continuam valendo. |
-| `ModifyDamageHitbox(projectile, hitbox)` | `hitbox` é um `Ref<Rectangle>`. Pode alterar campos de `.value` ou substituir o retângulo. Roda depois do método local. |
-| `OnTileCollide(projectile, oldVelocity)` | Todos os Globais rodam. `false` impede a morte causada pelo choque e pula o método local. Morte por tempo, NPC ou `Kill()` continua funcionando. |
-| `TileCollideStyle(projectile, width, height, fallThrough, hitboxCenterFrac)` | Os quatro parâmetros são `Ref`. Método local primeiro; depois Globais até o primeiro `false`, que desliga a colisão neste movimento. |
-| `MinionContactDamage(projectile)` | `true` permite contato de um projétil considerado pet; consulta o método local e depois os Globais até um deles permitir. |
-| `CanCutTiles(projectile)` | Primeiro retorno booleano dos Globais decide; depois consulta o método local e o jogo. `false` também impede os callbacks de corte. |
-| `CutTiles(projectile)` | Corte personalizado, somente quando permitido. Globais primeiro, depois o método local e o corte padrão. |
-| `CanUseGrapple(type, player)` | Antes do spawn, no template da classe. Cada resposta booleana global substitui a anterior; a última resposta definida decide. O filtro recebe uma amostra do tipo. |
-| `UseGrapple(player, type)` | `type` é um `Ref<number>`. Roda depois do método local, para todos os templates que implementam o callback. Filtre `type.value` dentro do método, se necessário. |
-| `GrappleCanLatchOnTo(projectile, player, tile)` | `tile` é o objeto nativo do bloco. Qualquer `false` global veta; um `true` global permite. Sem resposta, mantém a decisão local ou nativa. |
+| `PreDraw(projectile, lightColor)` | `lightColor` is a `Ref<Color>`: read or replace `.value`. `false` cancels the default sprite, keeping chains and lines. Every Global gets the callback; the local `PreDraw` only runs if all of them allow it. |
+| `PostDraw(projectile, lightColor)` | After drawing, even with a veto in `PreDraw`. The color is a `Color`, not a `Ref`. Runs after the local `PostDraw`. |
+| `GetAlpha(projectile, lightColor)` | Return a `Color` or leave it `undefined`/`null`. The first Global that returns a color decides; then come the local method and the game. |
+| `Colliding(projectile, projHitbox, targetHitbox)` | The first boolean return from the Globals decides the collision. With no answer, it asks the local method and the game. |
+| `CanDamage(projectile)` | `false` vetoes damage and cutting. Any veto wins; a global `true` wins over the local method. `undefined`/`null` keeps the next decision. The native damage conditions still apply. |
+| `ModifyDamageHitbox(projectile, hitbox)` | `hitbox` is a `Ref<Rectangle>`. It can change `.value`'s fields or replace the rectangle. Runs after the local method. |
+| `OnTileCollide(projectile, oldVelocity)` | Every Global runs. `false` prevents the death caused by the impact and skips the local method. Death by time, NPC or `Kill()` still works. |
+| `TileCollideStyle(projectile, width, height, fallThrough, hitboxCenterFrac)` | All four parameters are `Ref`s. Local method first; then the Globals until the first `false`, which turns collision off for this movement. |
+| `MinionContactDamage(projectile)` | `true` allows contact damage from a projectile considered a pet; asks the local method and then the Globals until one allows it. |
+| `CanCutTiles(projectile)` | The first boolean return from the Globals decides; then it asks the local method and the game. `false` also prevents the cutting callbacks. |
+| `CutTiles(projectile)` | Custom cutting, only when allowed. Globals first, then the local method and the default cutting. |
+| `CanUseGrapple(type, player)` | Before spawning, on the class template. Each global boolean answer replaces the previous one; the last defined answer decides. The filter receives a sample of the type. |
+| `UseGrapple(player, type)` | `type` is a `Ref<number>`. Runs after the local method, for every template that implements the callback. Filter `type.value` inside the method if needed. |
+| `GrappleCanLatchOnTo(projectile, player, tile)` | `tile` is the tile's native object. Any global `false` vetoes; a global `true` allows. With no answer, it keeps the local or native decision. |
 
-Os `Ref` de `PreDraw`, `ModifyDamageHitbox` e `UseGrapple` seguem o contrato
-do Global no tModLoader. Nos métodos equivalentes de `ModProjectile`, a API
-existente continua recebendo `Color` e `Rectangle` diretamente, e
-`UseGrapple(player, type)` continua retornando o número do tipo. O celular
-fornece `Tile` ao teste de fixação do gancho; por isso o callback recebe o
-bloco, em vez das coordenadas `x` e `y` da API do tModLoader.
+The `Ref`s of `PreDraw`, `ModifyDamageHitbox` and `UseGrapple` follow the
+Global's contract in tModLoader. In the equivalent `ModProjectile` methods, the
+existing API keeps receiving `Color` and `Rectangle` directly, and
+`UseGrapple(player, type)` keeps returning the type number. Mobile provides a
+`Tile` to the grapple latch test; that is why the callback receives the tile,
+instead of the `x` and `y` coordinates of tModLoader's API.
 
 ```js
-export class FlechaAzul extends GlobalProjectile {
+export class BlueArrow extends GlobalProjectile {
     AppliesToEntity(projectile) {
         return projectile.type === ProjectileID.WoodenArrowFriendly;
     }
@@ -286,15 +289,15 @@ export class FlechaAzul extends GlobalProjectile {
 }
 ```
 
-As regras de combinação foram conferidas no
-[ProjectileLoader do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs).
-As assinaturas adaptadas estão na [referência de GlobalProjectile](../referencia/classes.md#globalprojectile).
+The combination rules were checked against
+[tModLoader's ProjectileLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs).
+The adapted signatures are in the [GlobalProjectile reference](../referencia/classes.md#globalprojectile).
 
 ## Drops
 
-A tabela de drop de um NPC do jogo muda no `ModifyNPCLoot` de um `GlobalNPC`.
-Ele roda **uma vez por tipo de NPC**, quando o jogo termina de carregar, com a
-amostra daquele tipo (é a mesma do Bestiário):
+A vanilla NPC's drop table changes in a `GlobalNPC`'s `ModifyNPCLoot`. It runs
+**once per NPC type**, when the game finishes loading, with that type's sample
+(the same one the Bestiary uses):
 
 ```js
 const { ItemID, NPCID } = Terraria.ID;
@@ -312,15 +315,16 @@ export class ExampleNPCLoot extends GlobalNPC {
 }
 ```
 
-- `npcLoot.Get()` devolve as regras (num array), `Add` e `Remove` mexem uma a
-  uma, `RemoveWhere(regra => ...)` tira as que casam.
-- Regra é um objeto do jogo de várias classes (`CommonDrop`,
-  `DropBasedOnExpertMode`...), e nem toda tem `itemId`: pergunte com `in`
-  antes de ler, senão é [erro](01-hooks-do-zero.md#nome-errado-é-erro).
-- O Bestiário é refeito para os NPCs cuja tabela mudou: o drop novo aparece lá.
+- `npcLoot.Get()` returns the rules (in an array), `Add` and `Remove` change
+  them one by one, `RemoveWhere(rule => ...)` removes the ones that match.
+- A rule is a game object of several classes (`CommonDrop`,
+  `DropBasedOnExpertMode`...), and not every one has `itemId`: ask with `in`
+  before reading, otherwise it is an [error](01-hooks-do-zero.md#a-wrong-name-is-an-error).
+- The Bestiary is rebuilt for the NPCs whose table changed: the new drop shows
+  up there.
 
-Uma regra que vale para **todo** NPC vai no `ModifyGlobalLoot`, que roda uma
-vez:
+A rule that applies to **every** NPC goes in `ModifyGlobalLoot`, which runs
+once:
 
 ```js
 ModifyGlobalLoot(globalLoot) {
@@ -328,7 +332,8 @@ ModifyGlobalLoot(globalLoot) {
 }
 ```
 
-Quem vem do ExMod pode usar o `GlobalLoot` do jeito de lá, sem mudar nada:
+If you come from ExMod, you can use `GlobalLoot` its way, without changing
+anything:
 
 ```js
 export class ExampleLoot extends GlobalLoot {
@@ -338,31 +343,31 @@ export class ExampleLoot extends GlobalLoot {
 }
 ```
 
-## ModSystem: o mundo
+## ModSystem: the world
 
-O `ModSystem` é o que é do mod inteiro. Além das receitas
-([guia 5](05-itens.md#modsystem)), ele acompanha o **mundo**:
+`ModSystem` is what belongs to the whole mod. Besides recipes
+([guide 5](05-itens.md#modsystem)), it follows the **world**:
 
-| Método | Quando roda |
+| Method | When it runs |
 |---|---|
-| `OnModLoad()` | No registro, uma vez. |
-| `ClearWorld()` | Ao entrar em qualquer mundo, antes de carregá-lo (e antes de gerar um). |
-| `OnWorldLoad()` | O mundo abriu. No cliente de multijogador, quando o mundo chega do servidor. |
-| `LoadWorldData(tag)` | Logo depois, com os dados que o mod salvou neste mundo. |
-| `PostWorldLoad()` | Depois dos dados. |
-| `PreUpdateWorld()`, `PostUpdateWorld()` | A cada quadro, em volta da atualização do mundo. |
-| `PreUpdateTime()`, `PostUpdateTime()` | A cada quadro, em volta do relógio do jogo. |
-| `PostUpdateEverything()` | A cada quadro, no fim de tudo. |
-| `SaveWorldData(tag)` | A cada save do mundo (sair, autosave). |
-| `PreSaveAndQuit()` | Ao clicar em sair, antes de salvar. |
-| `OnWorldUnload()` | Depois de sair do mundo. |
+| `OnModLoad()` | On registration, once. |
+| `ClearWorld()` | On entering any world, before loading it (and before generating one). |
+| `OnWorldLoad()` | The world opened. On a multiplayer client, when the world arrives from the server. |
+| `LoadWorldData(tag)` | Right after, with the data the mod saved in this world. |
+| `PostWorldLoad()` | After the data. |
+| `PreUpdateWorld()`, `PostUpdateWorld()` | Every frame, around the world update. |
+| `PreUpdateTime()`, `PostUpdateTime()` | Every frame, around the game clock. |
+| `PostUpdateEverything()` | Every frame, at the end of everything. |
+| `SaveWorldData(tag)` | On every world save (leaving, autosave). |
+| `PreSaveAndQuit()` | On clicking exit, before saving. |
+| `OnWorldUnload()` | After leaving the world. |
 
-### Dados salvos com o mundo
+### Data saved with the world
 
-O `tag` é um `TagCompound`: escreva nele como num objeto, e leia com os
-métodos do tModLoader. Ele vai para um arquivo ao lado do mundo
-(`<mundo>.wld.bl.json`), em JSON: número, texto, booleano, array e objeto
-simples.
+The `tag` is a `TagCompound`: write to it like an object, and read with
+tModLoader's methods. It goes to a file next to the world
+(`<world>.wld.bl.json`), as JSON: number, text, boolean, array and plain
+object.
 
 ```js
 export class DownedBossSystem extends ModSystem {
@@ -390,53 +395,53 @@ export class DownedBossSystem extends ModSystem {
 }
 ```
 
-- Zere o estado no `ClearWorld`: sem isso, o chefe derrotado num mundo
-  aparece derrotado no próximo.
-- Mundo sem dados do mod (novo, ou salvo sem ele) chama o `LoadWorldData` com
-  a tag vazia.
+- Reset the state in `ClearWorld`: without it, a boss defeated in one world
+  shows up as defeated in the next.
+- A world without the mod's data (new, or saved without it) calls
+  `LoadWorldData` with an empty tag.
 - `tag.GetInt('x')`, `GetBool`, `GetFloat`, `GetString`, `GetList`,
-  `ContainsKey`, `Get(chave, padrão)`: os mesmos nomes do tModLoader. O
-  `ModPlayer` usa o mesmo `TagCompound` no `SaveData`/`LoadData`.
-- O arquivo é do servidor: no multijogador, o cliente recebe o estado pelo
-  `NetSend`/`NetReceive` (ver [Rede](#rede)).
+  `ContainsKey`, `Get(key, default)`: the same names as tModLoader's.
+  `ModPlayer` uses the same `TagCompound` in `SaveData`/`LoadData`.
+- The file belongs to the server: in multiplayer, the client receives the
+  state through `NetSend`/`NetReceive` (see [Network](#network)).
 
-## Multijogador: quem roda o quê
+## Multiplayer: who runs what
 
-Cada aparelho roda os mods dele; os métodos rodam onde o jogo faz aquela
-coisa. Conferido em host e cliente pelo teste `mpglobals`:
+Each device runs its own mods; the methods run where the game does that
+thing. Checked on host and client by the `mpglobals` test:
 
-| | Host (ou sozinho) | Cliente |
+| | Host (or single player) | Client |
 |---|---|---|
-| `SetDefaults` dos Globais | sim | sim (monta o que chega pela rede) |
-| `OnSpawn` | de quem criou | de quem criou (a flecha que ele atirou) |
-| `AI`, `HitEffect` | sim | sim |
-| `PreKill`, `OnKill` (NPC) | sim | não: o drop é do servidor |
-| `ModifyNPCLoot` | sim | sim (cada lado monta a tabela) |
-| `OnWorldLoad`, `PostUpdateEverything` | sim | sim |
-| `LoadWorldData`, `SaveWorldData` | sim | não: o arquivo é do servidor |
-| `PreUpdateWorld`, `PostUpdateWorld`, `Pre/PostUpdateTime` | sim | não |
-| `NetSend` (mundo, NPC) | manda | recebe no `NetReceive` |
-| `NetSend` (projétil) | manda os dele e repassa os dos clientes | manda os dele |
+| Globals' `SetDefaults` | yes | yes (builds what arrives over the network) |
+| `OnSpawn` | whoever created it | whoever created it (the arrow they shot) |
+| `AI`, `HitEffect` | yes | yes |
+| `PreKill`, `OnKill` (NPC) | yes | no: drops belong to the server |
+| `ModifyNPCLoot` | yes | yes (each side builds the table) |
+| `OnWorldLoad`, `PostUpdateEverything` | yes | yes |
+| `LoadWorldData`, `SaveWorldData` | yes | no: the file belongs to the server |
+| `PreUpdateWorld`, `PostUpdateWorld`, `Pre/PostUpdateTime` | yes | no |
+| `NetSend` (world, NPC) | sends | receives in `NetReceive` |
+| `NetSend` (projectile) | sends its own and relays the clients' | sends its own |
 
-## Rede
+## Network
 
-No multijogador, cada aparelho tem o **seu** estado: um campo que o servidor
-mudou não muda sozinho no cliente. Para levar dados de mod de um lado a outro,
-há três caminhos, todos com a forma do tModLoader.
+In multiplayer, each device has **its own** state: a field the server changed
+does not change by itself on the client. To carry mod data from one side to
+the other, there are three paths, all shaped like tModLoader's.
 
-### Junto com o que o jogo já sincroniza
+### Along with what the game already syncs
 
-O jogo manda de tempos em tempos o mundo (ao entrar e quando algo muda, como
-um chefe derrotado), cada NPC e cada projétil. Os dados do mod vão logo atrás,
-pelo mesmo caminho e na mesma ordem:
+Every so often the game sends the world (on joining and when something
+changes, like a boss being defeated), each NPC and each projectile. The mod's
+data goes right behind, along the same path and in the same order:
 
-| Quem | Escreve | Lê | Vai com |
+| Who | Writes | Reads | Goes with |
 |---|---|---|---|
-| `ModSystem` | `NetSend(writer)` | `NetReceive(reader)` | os dados do mundo, do servidor aos clientes |
-| `GlobalNPC` | `NetSend(npc, writer)` | `NetReceive(npc, reader)` | cada NPC, do servidor aos clientes |
-| `ModNPC` | `SendExtraAI(writer)` | `ReceiveExtraAI(reader)` | idem |
-| `GlobalProjectile` | `NetSend(projectile, writer)` | `NetReceive(projectile, reader)` | cada projétil, de quem o controla |
-| `ModProjectile` | `SendExtraAI(writer)` | `ReceiveExtraAI(reader)` | idem |
+| `ModSystem` | `NetSend(writer)` | `NetReceive(reader)` | the world data, from the server to the clients |
+| `GlobalNPC` | `NetSend(npc, writer)` | `NetReceive(npc, reader)` | each NPC, from the server to the clients |
+| `ModNPC` | `SendExtraAI(writer)` | `ReceiveExtraAI(reader)` | same |
+| `GlobalProjectile` | `NetSend(projectile, writer)` | `NetReceive(projectile, reader)` | each projectile, from whoever controls it |
+| `ModProjectile` | `SendExtraAI(writer)` | `ReceiveExtraAI(reader)` | same |
 
 ```js
 export class NetSlime extends GlobalNPC {
@@ -453,65 +458,67 @@ export class NetSlime extends GlobalNPC {
 }
 ```
 
-- Leia **na mesma ordem** em que escreveu.
-- Mudou e quer mandar agora: `npc.netUpdate = true` (ou `proj.netUpdate`),
-  como no jogo. Para o mundo, `Terraria.NetMessage.SendData(7, ...)`, que é o
-  que o jogo faz.
-- O `writer` guarda valores do JavaScript como são: número, texto, booleano,
-  array, objeto simples, e `Vector2` (vira `{X, Y}`; leia com `ReadVector2()`).
-  `WriteFlags(a, b, ...)` e `ReadFlags()` (um array) guardam vários booleanos.
-- Os nomes com tipo do tModLoader (`Write((byte)x)` vira `Write(x)`;
-  `ReadByte`, `ReadInt32`, `ReadSingle`, `ReadString`...) existem para o
-  código portado passar sem mudança.
+- Read **in the same order** you wrote.
+- Changed it and want to send it now: `npc.netUpdate = true` (or
+  `proj.netUpdate`), as in the game. For the world,
+  `Terraria.NetMessage.SendData(7, ...)`, which is what the game does.
+- The `writer` keeps JavaScript values as they are: number, text, boolean,
+  array, plain object, and `Vector2` (becomes `{X, Y}`; read it with
+  `ReadVector2()`). `WriteFlags(a, b, ...)` and `ReadFlags()` (an array) store
+  several booleans.
+- tModLoader's typed names (`Write((byte)x)` becomes `Write(x)`; `ReadByte`,
+  `ReadInt32`, `ReadSingle`, `ReadString`...) exist so ported code goes
+  through unchanged.
 
-### Pacotes próprios
+### Custom packets
 
-Para uma mensagem que não acompanha nada do jogo (um pedido do cliente, um
-aviso do servidor), o `Mod` do seu pacote manda e recebe:
+For a message that does not ride along with anything of the game's (a
+client's request, a server notice), your package's `Mod` sends and receives:
 
 ```js
 // content/main.js
-export default class MeuMod extends Mod {
+export default class MyMod extends Mod {
     HandlePacket(reader, whoAmI) {
-        const pedido = reader.ReadString();
-        if (pedido === 'ping') {
+        const request = reader.ReadString();
+        if (request === 'ping') {
             const p = this.GetPacket();
             p.Write('pong');
-            p.Send(whoAmI);   // só a quem pediu
+            p.Send(whoAmI);   // only to whoever asked
         }
     }
 }
-// no cliente, de qualquer arquivo do mod:
+// on the client, from any file in the mod:
 const p = bl.mod.GetPacket();
 p.Write('ping');
-p.Send();                     // do cliente, vai ao servidor
+p.Send();                     // from the client, goes to the server
 ```
 
-- `Send()` no cliente vai ao servidor. No servidor, `Send(cliente)` vai a um,
-  e `Send(-1, ignorar)` vai a todos menos `ignorar`. Sozinho, não vai a lugar
-  nenhum.
-- `whoAmI` é quem mandou: no servidor, o índice do cliente; no cliente, `256`
-  (o servidor).
-- O pacote chega no `HandlePacket` do **mesmo mod** do outro lado (pelo uid).
+- `Send()` on the client goes to the server. On the server, `Send(client)`
+  goes to one, and `Send(-1, ignore)` goes to everyone except `ignore`. In
+  single player, it goes nowhere.
+- `whoAmI` is the sender: on the server, the client's index; on the client,
+  `256` (the server).
+- The packet arrives in the `HandlePacket` of the **same mod** on the other
+  side (by uid).
 
-### Como viaja
+### How it travels
 
-O tModLoader escreve dentro das mensagens do jogo. Aqui, isso exigiria
-reescrever código nativo; o caminho é o dos **NetModules** do próprio jogo (a
-mensagem 82), com um número de módulo que o jogo não conhece. O conteúdo é o
-que você escreveu, em JSON: até ~64 KB por pacote.
+tModLoader writes inside the game's messages. Here, that would require
+rewriting native code; the path is the game's own **NetModules** (message 82),
+with a module number the game does not know. The content is what you wrote,
+as JSON: up to ~64 KB per packet.
 
-O custo: com algum `NetSend` registrado, as mensagens 7, 23 ou 27 entram no
-JS (o filtro nativo deixa as outras de fora); e cada NPC ou projétil que o
-jogo sincroniza leva um pacote a mais. Mantenha o que vai na rede
-pequeno.
+The cost: with some `NetSend` registered, messages 7, 23 or 27 enter JS (the
+native filter leaves the others out); and each NPC or projectile the game
+syncs carries one more packet. Keep what goes over the network small.
 
-## Ainda não
+## Not yet
 
-- `NetSend`/`NetReceive` do `GlobalItem` (itens no chão e no inventário);
-- `SaveData`/`LoadData` por entidade (de um item ou de um NPC morador);
+- `GlobalItem`'s `NetSend`/`NetReceive` (items on the ground and in the
+  inventory);
+- per-entity `SaveData`/`LoadData` (of an item or a town NPC);
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
-- no `GlobalNPC`: `UpdateLifeRegen`, `SaveData`/`LoadData`, os ataques de
-  morador (`TownNPCAttack*`) e os botões de conversa;
-- no `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, os
-  `Pre/PostUpdate` de jogadores, NPCs, projéteis e itens separados.
+- on `GlobalNPC`: `UpdateLifeRegen`, `SaveData`/`LoadData`, the town NPC
+  attacks (`TownNPCAttack*`) and the chat buttons;
+- on `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, the separate
+  `Pre/PostUpdate` for players, NPCs, projectiles and items.

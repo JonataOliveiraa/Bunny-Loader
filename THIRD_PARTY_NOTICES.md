@@ -1,6 +1,6 @@
 # Third-party notices
 
-Bunny Loader's own code is under the PolyForm Noncommercial License 1.0.0 ([LICENSE.md](LICENSE.md)). The components below keep their own licenses, and their notices travel with every copy of the source and of the app. The app shows this file under Config > Sobre > Terceiros.
+Bunny Loader's own code is under the PolyForm Noncommercial License 1.0.0 ([LICENSE.md](LICENSE.md)). The components below keep their own licenses, and their notices travel with every copy of the source and of the app. The app shows this file under Settings > About > Third parties.
 
 ## Components included in the app
 

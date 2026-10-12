@@ -1,42 +1,41 @@
-# GlobalProjectile: verificação dos 14 hooks
+# GlobalProjectile: checking the 14 hooks
 
-## Análise
+## Analysis
 
-Entrada: projéteis nativos ou de mods, seus callbacks locais e Globais,
-retornos opcionais e parâmetros mutáveis. Saída: decisões de desenho,
-dano, movimento, corte e gancho, com a ordem de combinação documentada.
+Input: native or mod projectiles, their local and Global callbacks, optional
+returns and mutable parameters. Output: drawing, damage, movement, cutting
+and grapple decisions, with the documented combination order.
 
-Fatos verificados: as assinaturas constam em `refs/dump.cs`; o desenho de
-extras está integrado ao `DrawProjDirect` no celular; pets têm uma saída
-antecipada em `Damage`; a colisão complexa é selecionada por um Set;
-`CutTiles` consulta `CanCutTiles` antes de cortar.
+Verified facts: the signatures are in `refs/dump.cs`; drawing extras is built
+into `DrawProjDirect` on mobile; pets have an early exit in `Damage`; complex
+collision is selected by a Set; `CutTiles` asks `CanCutTiles` before cutting.
 
-Premissa: conteúdo implementa os tipos de retorno documentados. A API
-existente de `ModProjectile` permanece compatível. Os Globais novos usam
-`Ref` para cor, hitbox e tipo de gancho, como no tModLoader.
+Assumption: content implements the documented return types. The existing
+`ModProjectile` API stays compatible. The new Globals use `Ref` for color,
+hitbox and grapple type, as in tModLoader.
 
-Casos de borda: retorno indefinido, veto posterior a permissão, callbacks
-que lançam erro, tipo sem classe `ModProjectile`, registro tardio,
-reutilização de entidades, duas entidades do mesmo tipo, morte no chão,
-desenho vetado com extras e restauração de estado após erro nativo.
+Edge cases: an undefined return, a veto after a permission, callbacks that
+throw, a type without a `ModProjectile` class, late registration, entity
+reuse, two entities of the same type, death on the ground, vetoed drawing with
+extras and restoring state after a native error.
 
-## Projeto
+## Design
 
-| Abordagem | Tempo por chamada | Espaço | Manutenção |
+| Approach | Time per call | Space | Maintenance |
 |---|---|---|---|
-| Wrappers globais separados dos locais | Até duas entradas JS e duas buscas por entidade | Contextos duplicados de movimento e desenho | Ordem depende da instalação; maior risco de callbacks repetidos |
-| Fluxo compartilhado com lista de assinantes por método | O(S), com S callbacks aplicáveis; busca em cache O(1) | Listas por entidade e método, mantidas por `WeakMap` | Regras de retorno e restauração ficam num único fluxo |
+| Global wrappers separate from the local ones | Up to two JS entries and two lookups per entity | Duplicated movement and drawing contexts | Order depends on installation; higher risk of repeated callbacks |
+| A shared flow with a subscriber list per method | O(S), with S applicable callbacks; cached O(1) lookup | Per-entity, per-method lists, kept in a `WeakMap` | Return and restoration rules live in a single flow |
 
-A implementação usa a segunda abordagem. Sem Global, o filtro nativo
-seleciona somente os tipos locais que implementam o método. Ao registrar
-um Global, o filtro local é desligado e uma entrada global assume o mesmo
-fluxo, atendendo também tipos registrados pela API nativa. O filtro
-desligado é rejeitado no C++, sem entrar no JS. Helpers de movimento e
-desenho continuam usando `whileIn` e flags nativas.
+The implementation uses the second approach. With no Global, the native
+filter selects only the local types that implement the method. When a Global
+is registered, the local filter is turned off and a global entry takes over
+the same flow, also serving types registered through the native API. The
+turned-off filter is rejected in C++, without entering JS. The movement and
+drawing helpers still use `whileIn` and native flags.
 
-## Execução
+## Running
 
-Na raiz do repositório:
+At the repository root:
 
 ```powershell
 node tools/tests/globalprojectilehooks/check.mjs
@@ -46,12 +45,13 @@ node tools/tests/globalprojectilehooks/bench.mjs 1bae565
 node tools/tests/globalprojectilehooks/bench.mjs
 ```
 
-O benchmark compara 8 assinantes entre 64 Globais, aquece o motor, mede
-sete amostras de 100.000 chamadas e verifica a quantidade de callbacks.
-Ele mede despacho JavaScript, sem atribuir o resultado ao FPS do jogo.
+The benchmark compares 8 subscribers among 64 Globals, warms up the engine,
+measures seven samples of 100,000 calls and checks the number of callbacks.
+It measures JavaScript dispatch, without attributing the result to the game's
+FPS.
 
-Para compilar com Gradle 8.14.3 e o JDK do Android Studio, sem disputar a
-saída com builds do launcher:
+To build with Gradle 8.14.3 and Android Studio's JDK, without fighting over
+the output with launcher builds:
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
@@ -59,19 +59,19 @@ $env:CMAKE_BUILD_PARALLEL_LEVEL = '1'
 gradle -I tools/tests/globalprojectilehooks/isolated.gradle :app:assembleDebug --no-daemon --max-workers=1 '-Dorg.gradle.jvmargs=-Xmx1536m' '-Pkotlin.compiler.execution.strategy=in-process'
 ```
 
-O APK fica em `build/globalprojectilehooks/builds/app/outputs/apk/debug/`.
-O fixture usa o UID `c54c31ec-a54d-4ed9-aa3e-265e0341fb48`. Copie somente
-`manifest.json` e `content/` para a pasta desse UID em `bunny_packs` e abra
-um mundo. O log termina com `globalprojectilehooks FIM`.
+The APK lands in `build/globalprojectilehooks/builds/app/outputs/apk/debug/`.
+The fixture uses UID `c54c31ec-a54d-4ed9-aa3e-265e0341fb48`. Copy only
+`manifest.json` and `content/` into that UID's folder in `bunny_packs` and
+open a world. The log ends with `globalprojectilehooks FIM`.
 
-O fixture cria e remove seus projéteis, NPC e plataformas, recusa posições
-com blocos existentes e desativa drops dos projéteis de teste. Remova a
-pasta desse UID depois da execução. Não remova outros pacotes.
+The fixture creates and removes its projectiles, NPC and platforms, refuses
+positions with existing blocks and disables the test projectiles' drops.
+Remove that UID's folder after the run. Do not remove other packages.
 
-## Fontes conferidas
+## Sources checked
 
-- [Contratos de GlobalProjectile](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/GlobalProjectile.cs).
-- [Combinação dos callbacks no ProjectileLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs).
-- `refs/dump.cs` e desmontagem de `Damage`, `HandleMovement`, `CutTiles`, `CanCutTiles` e `FireGrapple` da versão móvel.
+- [GlobalProjectile contracts](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/GlobalProjectile.cs).
+- [How ProjectileLoader combines the callbacks](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs).
+- `refs/dump.cs` and the disassembly of `Damage`, `HandleMovement`, `CutTiles`, `CanCutTiles` and `FireGrapple` from the mobile version.
 
-Os resultados e limites das medições estão em [RESULTADOS.md](RESULTADOS.md).
+The results and limits of the measurements are in [RESULTADOS.md](RESULTADOS.md).

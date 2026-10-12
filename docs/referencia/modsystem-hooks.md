@@ -1,71 +1,71 @@
-# ModSystem: geração, atualização e integração móvel
+# ModSystem: generation, updates and mobile integration
 
-Implementação conferida com `exmod_tmod/tModLoader/patches/tModLoader/Terraria/ModLoader/ModSystem.cs` e `refs/dump.cs`. A assinatura atual local de `ModifyWorldGenTasks` recebe somente `tasks`.
+Implementation checked against `exmod_tmod/tModLoader/patches/tModLoader/Terraria/ModLoader/ModSystem.cs` and `refs/dump.cs`. The current local signature of `ModifyWorldGenTasks` only receives `tasks`.
 
-## Etapas de geração
+## Generation steps
 
 ```javascript
 export class OreSystem extends ModSystem {
     ModifyWorldGenTasks(tasks) {
         const index = tasks.findIndex(pass => pass.Name === 'Shinies');
         if (index < 0) return;
-        tasks.splice(index + 1, 0, new PassLegacy('Meu minério', (progress, configuration) => {
-            progress.Message = 'Gerando minério';
+        tasks.splice(index + 1, 0, new PassLegacy('My ore', (progress, configuration) => {
+            progress.Message = 'Generating ore';
             progress['void Set(double value)'](1);
         }, 1));
     }
 }
 ```
 
-O exemplo ilustra a inserção. Acrescente a geração dentro do callback, usando o tipo de bloco, a API nativa de geração e os limites do mundo.
+The example illustrates the insertion. Add the generation inside the callback, using the block type, the native generation API and the world's bounds.
 
-`tasks` é um array JavaScript de `GenPass`. As etapas nativas também são representadas por essa classe. É possível inserir, excluir, reordenar, alterar `Weight` e chamar `Disable()`/`Enable()`. O loader valida os tipos e os pesos antes de substituir a lista nativa. Uma lista inválida é reportada e a lista nativa permanece disponível.
+`tasks` is a JavaScript array of `GenPass`. The native steps are also represented by this class. You can insert, delete, reorder, change `Weight` and call `Disable()`/`Enable()`. The loader validates the types and weights before replacing the native list. An invalid list is reported and the native list remains available.
 
-`PreWorldGen()` executa antes da execução das etapas, depois de o jogo montar a lista. `PostWorldGen()` executa quando `WorldGenerator.GenerateWorld()` retorna `true`, incluindo a execução das etapas adicionais. Uma geração cancelada não chama o pós-hook.
+`PreWorldGen()` runs before the steps execute, after the game builds the list. `PostWorldGen()` runs when `WorldGenerator.GenerateWorld()` returns `true`, including the execution of the extra steps. A cancelled generation does not call the post-hook.
 
-`GenPass` aceita nome e peso; subclasses implementam `ApplyPass(progress, configuration)`. `PassLegacy` aceita nome, função e peso opcional, com padrão 1. Os argumentos do callback são os objetos nativos `GenerationProgress` e `Terraria.IO.GameConfiguration`. Uma etapa desativada não executa. Exceções JavaScript de uma etapa são reportadas sem impedir as demais etapas.
+`GenPass` accepts a name and a weight; subclasses implement `ApplyPass(progress, configuration)`. `PassLegacy` accepts a name, a function and an optional weight, defaulting to 1. The callback's arguments are the native `GenerationProgress` and `Terraria.IO.GameConfiguration` objects. A disabled step does not run. JavaScript exceptions from a step are reported without stopping the other steps.
 
 ## Hardmode
 
-No celular, a conversão está concentrada em `WorldGen.initializeHardMode()`. A lista inicial de `ModifyHardmodeTasks(tasks)` contém **Hardmode Conversion**, que executa essa rotina nativa. Adicione etapas antes ou depois dela ou desative-a. Os nomes separados `Hardmode Good`, `Hardmode Evil` e `Hardmode Walls` do tModLoader não existem nessa adaptação; procure defensivamente pela etapa móvel. Seus callbacks recebem `null` para progresso e configuração, como as etapas de Hardmode locais.
+On mobile, the conversion is concentrated in `WorldGen.initializeHardMode()`. The initial list of `ModifyHardmodeTasks(tasks)` contains **Hardmode Conversion**, which runs that native routine. Add steps before or after it, or disable it. tModLoader's separate `Hardmode Good`, `Hardmode Evil` and `Hardmode Walls` names do not exist in this adaptation; look for the mobile step defensively. Their callbacks receive `null` for progress and configuration, like the local Hardmode steps.
 
-## Atualização e desenho
+## Updates and drawing
 
-| Método | Contrato / ponto móvel |
+| Method | Contract / mobile point |
 | --- | --- |
-| `UpdateUI(gameTime)` | Depois de `Main.UpdateUIStates`, dentro do mundo; inclui atualização de UI durante pausa. |
-| `PostUpdateInput()` | Depois de `Main.DoUpdate_HandleInput`. |
-| `PreUpdateEntities()` | Entrada de `Main.DoUpdateInWorld`, antes dos grupos. |
-| `PreUpdatePlayers()`, `PostUpdatePlayers()` | Bordas do laço de jogadores. |
-| `PreUpdateNPCs()`, `PostUpdateNPCs()` | Bordas do grupo de NPCs. |
-| `PreUpdateGores()`, `PostUpdateGores()` | Bordas do laço de gores. |
-| `PreUpdateProjectiles()`, `PostUpdateProjectiles()` | Antes e depois do grupo de projéteis. |
-| `PreUpdateItems()`, `PostUpdateItems()` | Bordas do laço de `WorldItem`. |
-| `PreUpdateDusts()`, `PostUpdateDusts()` | Antes e depois de `Dust.UpdateDust`. |
-| `PreUpdateInvasions()`, `PostUpdateInvasions()` | Antes e depois de `Main.UpdateInvasion`, quando a rotina nativa executa. |
-| `ModifyTimeRate(timeRate, tileUpdateRate, eventUpdateRate)` | Três `Ref` independentes. O relógio usa `double`; tiles e eventos acumulam frações entre ticks para alimentar os campos inteiros móveis. Valores não finitos, negativos ou acima de `Int32.MaxValue` mantêm o valor do jogo. |
-| `ModifySunLightColor(tileColor, backgroundColor)` | Dois `Ref<Color>` depois do cálculo nativo das cores do céu e dos tiles. |
-| `ModifyLightingBrightness(scale)` | `Ref<float>` depois de `Lighting.UpdateGlobalBrightness`; valores não finitos e negativos são ignorados. |
-| `ModifyScreenPosition()` | Depois do cálculo nativo da câmera e de ModPlayer, dentro do mundo. Altere `Main.screenPosition`. O hook é compartilhado e a ordem independe do registro. |
-| `ModifyTransformMatrix(transform)` | `Ref<SpriteViewMatrix>` depois do zoom nativo, antes de consumir a matriz no desenho. |
+| `UpdateUI(gameTime)` | After `Main.UpdateUIStates`, inside the world; includes the UI update while paused. |
+| `PostUpdateInput()` | After `Main.DoUpdate_HandleInput`. |
+| `PreUpdateEntities()` | Entry of `Main.DoUpdateInWorld`, before the groups. |
+| `PreUpdatePlayers()`, `PostUpdatePlayers()` | Edges of the player loop. |
+| `PreUpdateNPCs()`, `PostUpdateNPCs()` | Edges of the NPC group. |
+| `PreUpdateGores()`, `PostUpdateGores()` | Edges of the gore loop. |
+| `PreUpdateProjectiles()`, `PostUpdateProjectiles()` | Before and after the projectile group. |
+| `PreUpdateItems()`, `PostUpdateItems()` | Edges of the `WorldItem` loop. |
+| `PreUpdateDusts()`, `PostUpdateDusts()` | Before and after `Dust.UpdateDust`. |
+| `PreUpdateInvasions()`, `PostUpdateInvasions()` | Before and after `Main.UpdateInvasion`, when the native routine runs. |
+| `ModifyTimeRate(timeRate, tileUpdateRate, eventUpdateRate)` | Three independent `Ref`s. The clock uses `double`; tiles and events accumulate fractions between ticks to feed mobile's integer fields. Non-finite, negative values or values above `Int32.MaxValue` keep the game's value. |
+| `ModifySunLightColor(tileColor, backgroundColor)` | Two `Ref<Color>`s after the native calculation of the sky and tile colors. |
+| `ModifyLightingBrightness(scale)` | `Ref<float>` after `Lighting.UpdateGlobalBrightness`; non-finite and negative values are ignored. |
+| `ModifyScreenPosition()` | After the native camera calculation and ModPlayer, inside the world. Change `Main.screenPosition`. The hook is shared and the order does not depend on registration. |
+| `ModifyTransformMatrix(transform)` | `Ref<SpriteViewMatrix>` after the native zoom, before the matrix is consumed in drawing. |
 
-Os callbacks percorrem listas de sobrescritas calculadas quando sistemas são registrados. Os pontos nativos dentro dos laços preservam os registradores e conferem quatro instruções do binário antes de instalar. Um sistema sem sobrescritas de atualização não instala esses pontos. Os callbacks de grupo executam uma vez por grupo, e não uma vez por entidade.
+The callbacks walk override lists computed when systems are registered. The native points inside the loops preserve the registers and check four of the binary's instructions before installing. A system with no update overrides does not install those points. The group callbacks run once per group, not once per entity.
 
-## Conteúdo, mundo e rede
+## Content, world and network
 
-| Método | Contrato |
+| Method | Contract |
 | --- | --- |
-| `ResizeArrays()` | Conteúdo nativo pronto, antes das fases de setup dos mods. |
-| `OnLocalizationsLoaded()` | Depois de aplicar os JSONs dos mods, inicialmente e ao recarregar o idioma. |
-| `PostSetupRecipes()` | Depois de todas as receitas, `PostAddRecipes` e reconstrução dos caches. |
-| `OnModUnload()` | Uma vez na saída normal ou no shutdown do motor JS. Encerramento forçado pelo sistema não executa callbacks. |
-| `SaveWorldHeader(tag)` | `TagCompound` separado dos dados completos, em `<mundo>.wld.bl.header.json`. Mantém entradas de mods ausentes. Sem persistência em nuvem. |
-| `CanWorldBePlayed(playerData, worldData)` | Qualquer `false` impede seleção/carregamento. Recebe `PlayerFileData` e `WorldFileData`. |
-| `WorldCanBePlayedRejectionMessage(playerData, worldData)` | Mensagem do primeiro sistema que bloqueou. Texto vazio recebe uma mensagem padrão. |
-| `HijackGetData(messageType, reader, playerNumber)` | `Ref<byte>` e `Ref<BinaryReader>` nativo. A posição do leitor volta a 1 entre sistemas. Qualquer `true` cancela o pacote inteiro. `playerNumber` é `MessageBuffer.whoAmI`. Trocar o leitor copia seu payload para a rotina móvel. |
-| `HijackSendData(whoAmI, msgType, remoteClient, ignoreClient, text, number, number2, number3, number4, number5, number6, number7)` | Qualquer `true` cancela `SendData` e o envelope de dados de entidade. `whoAmI` é o índice do buffer: `remoteClient` no envio direcionado do servidor e 256 nos outros casos. `TrySendData` também passa por `SendData`. |
+| `ResizeArrays()` | Native content ready, before the mods' setup phases. |
+| `OnLocalizationsLoaded()` | After applying the mods' JSONs, initially and when the language reloads. |
+| `PostSetupRecipes()` | After every recipe, `PostAddRecipes` and rebuilding the caches. |
+| `OnModUnload()` | Once on a normal exit or on the JS engine's shutdown. A forced termination by the system does not run callbacks. |
+| `SaveWorldHeader(tag)` | A `TagCompound` separate from the full data, in `<world>.wld.bl.header.json`. Keeps entries from missing mods. No cloud persistence. |
+| `CanWorldBePlayed(playerData, worldData)` | Any `false` prevents selection/loading. Receives `PlayerFileData` and `WorldFileData`. |
+| `WorldCanBePlayedRejectionMessage(playerData, worldData)` | The message from the first system that blocked. Empty text gets a default message. |
+| `HijackGetData(messageType, reader, playerNumber)` | Native `Ref<byte>` and `Ref<BinaryReader>`. The reader's position goes back to 1 between systems. Any `true` cancels the whole packet. `playerNumber` is `MessageBuffer.whoAmI`. Swapping the reader copies its payload into the mobile routine. |
+| `HijackSendData(whoAmI, msgType, remoteClient, ignoreClient, text, number, number2, number3, number4, number5, number6, number7)` | Any `true` cancels `SendData` and the entity data envelope. `whoAmI` is the buffer index: `remoteClient` on the server's targeted send and 256 in the other cases. `TrySendData` also goes through `SendData`. |
 
-Consulte o cabeçalho sem carregar os dados completos do mundo:
+Read the header without loading the world's full data:
 
 ```javascript
 const header = new Ref();
@@ -74,12 +74,12 @@ if (worldData.TryGetHeaderData(MySystem, header)) {
 }
 ```
 
-`TryGetHeaderData` também aceita a instância do sistema. Ao mover um mundo manualmente, leve os dois arquivos auxiliares `.bl.json` e `.bl.header.json`.
+`TryGetHeaderData` also accepts the system's instance. When moving a world by hand, take both auxiliary files, `.bl.json` and `.bl.header.json`.
 
-## Método descartado
+## Dropped method
 
-`RequiresScreenTarget` não foi exposto. O renderer móvel usa Unity, não chama `FilterManager.CanCapture` e não possui `Main.finalScreenTarget`; retornar `true` nesse método não ativaria uma captura de tela compatível.
+`RequiresScreenTarget` was not exposed. The mobile renderer uses Unity, does not call `FilterManager.CanCapture` and has no `Main.finalScreenTarget`; returning `true` from this method would not enable a compatible screen capture.
 
-## Validação
+## Validation
 
-Veja [suíte e limites dos testes](../../tools/tests/modsystemhooks/README.md). Além do gerador sintético, o [teste de geração completa](../../tools/tests/genpassworld/README.md) criou um mundo de 4200 × 1200 pela thread normal `worldGenCallback`, mantendo as 106 etapas nativas. Subclasses diretas de GenPass e um PassLegacy executaram na ordem esperada; os 35 blocos da estrutura persistiram após salvar, reiniciar o processo e carregar o mundo. A conversão completa de Hardmode não foi executada. Os testes de rede desta rodada não equivalem a uma sessão multiplayer entre dispositivos.
+See the [test suite and its limits](../../tools/tests/modsystemhooks/README.md). Besides the synthetic generator, the [full generation test](../../tools/tests/genpassworld/README.md) created a 4200 × 1200 world through the normal `worldGenCallback` thread, keeping the 106 native steps. Direct GenPass subclasses and a PassLegacy ran in the expected order; the structure's 35 blocks persisted after saving, restarting the process and loading the world. The full Hardmode conversion was not run. This round's network tests are not equivalent to a multiplayer session between devices.

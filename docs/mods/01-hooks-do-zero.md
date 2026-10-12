@@ -1,69 +1,71 @@
-# 1. Hooks: mudar o que o jogo já tem
+# 1. Hooks: changing what the game already has
 
-Este guia faz um mod do zero e, no caminho, mostra tudo o que a **ponte**
-entre o JavaScript e o Terraria oferece: achar classes, ler e escrever campos,
-chamar métodos e, principalmente, **interceptar** métodos com hooks.
+This guide builds a mod from scratch and, along the way, shows everything the
+**bridge** between JavaScript and Terraria offers: finding classes, reading and
+writing fields, calling methods and, above all, **intercepting** methods with
+hooks.
 
-É o guia base. Os de conteúdo novo (itens, NPCs...) usam tudo daqui.
+It is the base guide. The new-content guides (items, NPCs...) use everything
+from here.
 
-## O que é um hook
+## What a hook is
 
-O Terraria é feito de métodos: `Player.Update` atualiza o jogador a cada
-quadro, `Item.SetDefaults` preenche os atributos de um item novo, `NPC.AI`
-move cada inimigo. Um **hook** é um desvio num desses métodos: toda vez que o
-jogo chamar o método, ele chama primeiro uma função **sua**. Dentro dela, você
-decide:
+Terraria is made of methods: `Player.Update` updates the player every frame,
+`Item.SetDefaults` fills in a new item's stats, `NPC.AI` moves each enemy. A
+**hook** is a detour in one of those methods: every time the game calls the
+method, it first calls a function of **yours**. Inside it, you decide:
 
-- deixar o jogo fazer o que já fazia (chamar o **original**), e mexer no
-  resultado depois;
-- mudar o que entra (os argumentos) antes de o jogo processar;
-- trocar o que sai (o retorno);
-- ou não deixar o método do jogo rodar.
+- let the game do what it already did (call the **original**), and tweak the
+  result afterwards;
+- change what goes in (the arguments) before the game processes it;
+- swap what comes out (the return value);
+- or not let the game's method run at all.
 
 ```mermaid
 sequenceDiagram
-    participant J as Jogo
-    participant M as Seu hook
-    participant O as Método original
+    participant J as Game
+    participant M as Your hook
+    participant O as Original method
     J->>M: Item.SetDefaults(98)
-    Note over M: antes: pode mudar os argumentos
+    Note over M: before: can change the arguments
     M->>O: original(self, 98)
-    O-->>M: o item preenchido
-    Note over M: depois: pode mexer no resultado
-    M-->>J: volta ao jogo
+    O-->>M: the filled-in item
+    Note over M: after: can tweak the result
+    M-->>J: back to the game
 ```
 
-O hook pega **toda** chamada ao método, venha de onde vier: do jogo, de outro
-mod ou do seu próprio código. É a ferramenta mais poderosa do Bunny Loader, e
-também a mais fácil de usar mal (ver o [guia de custo](03-custo-e-desempenho.md)).
+The hook catches **every** call to the method, wherever it comes from: the
+game, another mod or your own code. It is Bunny Loader's most powerful tool,
+and also the easiest to misuse (see the [cost guide](03-custo-e-desempenho.md)).
 
-**Hook ou classe de mod?** Para mudar o que o jogo **já tem** (a Minishark, o
-dano de toda arma, a queda), use hook. Para **criar** algo novo (um item, um
-inimigo), use as classes de mod do [guia 4](04-conteudo-novo.md): elas
-instalam os hooks certos por você, já filtrados.
+**Hook or mod class?** To change what the game **already has** (the
+Minishark, every weapon's damage, fall damage), use a hook. To **create**
+something new (an item, an enemy), use the mod classes from
+[guide 4](04-conteudo-novo.md): they install the right hooks for you, already
+filtered.
 
-## O primeiro mod: dano em dobro
+## The first mod: double damage
 
-Crie esta pasta:
+Create this folder:
 
 ```
-DanoEmDobro/
+DoubleDamage/
   manifest.json
   content/
     main.js
 ```
 
-`manifest.json` (gere um `uid` seu, ver o [README](README.md#o-manifestjson)):
+`manifest.json` (generate your own `uid`, see the [README](README.md#manifestjson)):
 
 ```json
 {
   "uid": "0b8f2a64-3c1d-4e7a-9f50-6d2e8c1b4a73",
-  "id": "danoemdobro",
-  "name": "Dano em Dobro",
+  "id": "doubledamage",
+  "name": "Double Damage",
   "version": "1.0.0",
-  "author": "Você",
+  "author": "You",
   "category": "Armas",
-  "summary": "Toda arma bate o dobro.",
+  "summary": "Every weapon hits twice as hard.",
   "blVersion": 2,
   "entry": "main.js"
 }
@@ -74,56 +76,57 @@ DanoEmDobro/
 ```js
 const SetDefaults = Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'];
 
-export default class DanoEmDobro extends Mod {
+export default class DoubleDamage extends Mod {
     Load() {
         SetDefaults.hook((original, self, type, variant) => {
-            original(self, type, variant);   // o jogo preenche o item primeiro
+            original(self, type, variant);   // the game fills in the item first
             if (self.damage > 0) {
                 self.damage = self.damage * 2;
             }
         });
-        bl.log('Dano em Dobro: ativo');
+        bl.log('Double Damage: active');
     }
 }
 ```
 
-Instale (ver o [README](README.md#instalando)), abra o jogo, e toda arma nasce
-com o dobro do dano. O log (`Android/data/com.bunnyloader/logs/`, ou
-`adb logcat -s BunnyLoader`) mostra `Dano em Dobro: ativo`.
+Install it (see the [README](README.md#installing)), open the game, and every
+weapon spawns with double damage. The log (`Android/data/com.bunnyloader/logs/`,
+or `adb logcat -s BunnyLoader`) shows `Double Damage: active`.
 
-### A anatomia
+### The anatomy
 
-A classe `DanoEmDobro` é a **classe do mod**: todo mod exporta uma, com
-`export default`, no arquivo de entrada (como o `public class ... : Mod` do
-tModLoader). O Bunny Loader a cria sozinho e roda o `Load()` dela uma vez, ao
-abrir o jogo; os hooks instalados ali valem o jogo inteiro. Sem ela, o mod não
-carrega.
+The `DoubleDamage` class is the **mod class**: every mod exports one, with
+`export default`, in the entry file (like tModLoader's
+`public class ... : Mod`). Bunny Loader creates it on its own and runs its
+`Load()` once, when the game opens; the hooks installed there last for the
+whole game. Without it, the mod does not load.
 
-As linhas do hook são o esqueleto de quase todo mod:
+The hook lines are the skeleton of almost every mod:
 
-1. **pegar o método** do jogo, pela classe e pela assinatura
+1. **get the method** from the game, by class and signature
    (`Terraria.Item['void SetDefaults(...)']`);
-2. **pendurar um hook** nele (`.hook(callback)`);
-3. **chamar o original**, para o jogo fazer o que já fazia;
-4. **mexer** no resultado.
+2. **attach a hook** to it (`.hook(callback)`);
+3. **call the original**, so the game does what it already did;
+4. **tweak** the result.
 
-`Item.SetDefaults` é onde o Terraria preenche um item novo: dano, cadência,
-tamanho da pilha. Ele roda uma vez para cada item criado, então mudar aqui
-vale para tudo: o que você fabrica, o que cai de inimigo, o que já está no
-baú quando o mundo carrega.
+`Item.SetDefaults` is where Terraria fills in a new item: damage, use time,
+max stack. It runs once for each item created, so changing it here applies
+to everything: what you craft, what enemies drop, what is already in a chest
+when the world loads.
 
-## Achando classes e métodos
+## Finding classes and methods
 
-O jogo é C# compilado para código nativo (IL2CPP). Os nomes de classe, campo e
-método são os do C#, e você os encontra no **dump** do jogo: o `refs/dump.cs`,
-gerado por [`tools/dump.sh`](../../tools/dump.sh) a partir do jogo instalado
-(ver [`refs/README.md`](../../refs/README.md)). Para ler uma classe inteira:
+The game is C# compiled to native code (IL2CPP). Class, field and method
+names are the C# ones, and you find them in the game's **dump**:
+`refs/dump.cs`, generated by [`tools/dump.sh`](../../tools/dump.sh) from the
+installed game (see [`refs/README.md`](../../refs/README.md)). To read a whole
+class:
 
 ```bash
 tools/dumpgrep.sh Player Terraria
 ```
 
-No JS, as classes ficam na árvore de namespaces do C#, sem declarar nada:
+In JS, classes sit in the C# namespace tree, with nothing to declare:
 
 ```js
 Terraria.Player
@@ -134,93 +137,108 @@ Terraria.GameContent.ItemDropRules.ItemDropRule
 System.Threading.Thread
 ```
 
-- Classe **sem namespace** (a interface do celular: `GUIBuffs`, `GUIInstance`,
-  `GUIChest`...) é global, pelo nome: `GUIBuffs['void Draw()']`.
-- Classe **aninhada** é propriedade da de fora: `SpriteFont.Glyph`,
+- A class **without a namespace** (the mobile UI: `GUIBuffs`, `GUIInstance`,
+  `GUIChest`...) is global, by name: `GUIBuffs['void Draw()']`.
+- A **nested** class is a property of the outer one: `SpriteFont.Glyph`,
   `Terraria.Player.Hooks`.
-- Quando a árvore não chega numa classe (nome gerado pelo compilador), use
-  `bl.classOf('Terraria', 'Player')` (sem namespace:
+- When the tree does not reach a class (a compiler-generated name), use
+  `bl.classOf('Terraria', 'Player')` (without a namespace:
   `bl.classOf('', 'GUIBuffs')`).
 
-Um caminho que não leva a nada dá erro no acesso final, com o caminho
-completo na mensagem.
+A path that leads nowhere throws on the final access, with the full path in
+the message.
 
-## Campos
+## Fields
 
-Campo é propriedade JS. Estático na classe, de instância no objeto:
+A field is a JS property. Static on the class, instance on the object:
 
 ```js
-Terraria.Main.dayTime                  // estático: true de dia
-Terraria.ID.ItemID.Minishark           // constante: 98
+Terraria.Main.dayTime                  // static: true during the day
+Terraria.ID.ItemID.Minishark           // constant: 98
 
 const p = Terraria.Main.player[Terraria.Main.myPlayer];
-p.statLife = p.statLifeMax2;           // de instância: vida cheia
+p.statLife = p.statLifeMax2;           // instance: full health
 ```
 
-- **Propriedade C#** (`get_X`/`set_X`) também vira propriedade:
-  `Terraria.Main.myPlayer` chama `get_myPlayer()` por baixo.
-- **O tipo do campo decide a escrita.** `item.shootSpeed = 10` grava um
-  `float`, `item.useTime = 4` um `int`. Um valor do tipo errado (texto onde se
-  espera número) dá `TypeError`, nunca vira 0 calado.
-- **Enum** é número: `Terraria.PartyHatColor.Pink` é `2`.
-- **Array** é array: `Terraria.Main.player[0]`, `Terraria.Main.npc.length`.
-  Onde o jogo espera um array (`int[]`, `string[]`), um array JS também serve.
-- **Objeto** é um objeto JS que embrulha o do jogo, e o mesmo objeto do jogo
-  é sempre o mesmo objeto JS: `Main.player[0] === self` dá `true`.
-- `bl.log(objeto)` mostra a classe: `[Player]`.
+- A **C# property** (`get_X`/`set_X`) also becomes a property:
+  `Terraria.Main.myPlayer` calls `get_myPlayer()` underneath.
+- **The field's type decides the write.** `item.shootSpeed = 10` writes a
+  `float`, `item.useTime = 4` an `int`. A value of the wrong type (text where a
+  number is expected) throws `TypeError`; it never silently becomes 0.
+- An **enum** is a number: `Terraria.PartyHatColor.Pink` is `2`.
+- An **array** is an array: `Terraria.Main.player[0]`, `Terraria.Main.npc.length`.
+  Where the game expects an array (`int[]`, `string[]`), a JS array works too.
+- An **object** is a JS object wrapping the game's, and the same game object
+  is always the same JS object: `Main.player[0] === self` is `true`.
+- `bl.log(object)` shows the class: `[Player]`.
 
-### Nome errado é erro
+### A wrong name is an error
 
-Os nomes são os do C#, com a mesma caixa: `player.whoAmI`, não
-`player.whoami`. Ler ou escrever um nome que a classe do jogo não tem dá erro
-na hora, com o nome parecido quando há um:
+Names are the C# ones, with the same case: `player.whoAmI`, not
+`player.whoami`. Reading or writing a name the game class does not have
+throws right away, with the similar name when there is one:
 
 ```
 TypeError: Member with name 'whoami' is not found in Terraria.Player. Did you mean 'whoAmI'?
 ```
 
-Vale para objeto, classe (`Terraria.Main.dayTme`), struct (`pos.Z`) e array
-(`Main.player.foo`: um array do jogo só tem `[i]`, `length` e
-`cloneResized`). Sem isso, a leitura devolveria `undefined` calada, e o erro
-só apareceria longe dali: um `NaN`, um `if` que nunca entra.
+This applies to objects, classes (`Terraria.Main.dayTme`), structs (`pos.Z`)
+and arrays (`Main.player.foo`: a game array only has `[i]`, `length` and
+`cloneResized`). Without this, the read would silently return `undefined`, and
+the error would only show up far away: a `NaN`, an `if` that never runs.
 
-Para **perguntar** se um membro existe, sem erro, use `in`:
+To **ask** whether a member exists, without an error, use `in`:
 
 ```js
-const item = 'Item' in source ? source.Item : null;   // nem toda IEntitySource tem Item
+const item = 'Item' in source ? source.Item : null;   // not every IEntitySource has Item
 'whoAmI' in player                                    // true
 ```
 
-Os campos que os mods põem nas classes do jogo (`item.ModItem`, `npc.ModNPC`,
-`proj.ModProjectile`) sempre existem e valem `undefined` no que não é de mod.
-Também dão erro, com o motivo: escrever numa propriedade só de leitura
-(`player.HeldItem = x`), atribuir a um método e ler pelo nome um método com
-vários overloads (a mensagem lista as assinaturas).
+The fields mods add to game classes (`item.ModItem`, `npc.ModNPC`,
+`proj.ModProjectile`) always exist and are `undefined` on non-mod content.
+These also throw, with the reason: writing to a read-only property
+(`player.HeldItem = x`), assigning to a method and reading by name a method
+with several overloads (the message lists the signatures).
 
-### Structs são vistas, não cópias
+### Structs are views, not copies
 
-`Vector2`, `Color`, `Rectangle` são **structs**: valores guardados dentro do
-objeto, não objetos à parte. Lidos de um campo, eles são uma **vista** para
-dentro do dono. Escrever na vista altera o jogo:
+`Vector2`, `Color`, `Rectangle` are **structs**: values stored inside the
+object, not separate objects. Read from a field, they are a **view** into the
+owner. Writing to the view changes the game:
 
 ```js
-npc.position.X = 100;          // move o NPC
+npc.position.X = 100;          // moves the NPC
 item.color.R = 255;
-npc.position = outroVector2;   // troca o struct inteiro
+npc.position = otherVector2;   // swaps the whole struct
 bl.log(npc.position);          // Vector2(X=100, Y=42)
 ```
 
-Duas exceções, que são a semântica de valor do C#: o struct que um **método
-devolve** e o que chega como **argumento de um hook** são **cópias**. Escrever
-neles não muda nada no jogo.
+Two exceptions, which are C#'s value semantics: the struct a **method
+returns** and the one that arrives as a **hook argument** are **copies**.
+Writing to them changes nothing in the game.
 
-Structs de números iguais (`proj.ai`, `proj.localAI`, `proj.oldPos`) aceitam
-índice como um array: `proj.ai[0]++`, `proj.oldPos[3].X`. Fora do tamanho, é
-`RangeError`.
+Structs of identical numbers (`proj.ai`, `proj.localAI`, `proj.oldPos`)
+accept indexes like an array: `proj.ai[0]++`, `proj.oldPos[3].X`. Out of
+range, it is a `RangeError`.
 
-## Métodos
+### NaN and infinity
 
-Pela **assinatura**, copiada do dump como está lá:
+Writing `NaN` or infinity to a numeric game field throws `RangeError` right
+away. It is JS's `undefined * 2`, which in the game makes the entity vanish
+without any error.
+
+The exception is a field that **already** holds `NaN` or infinity: it accepts
+another one, as in C#. This happens with the phantom dust, `Main.dust[6000]`:
+`NewDust` returns that index when the dust would spawn off screen, and nobody
+resets it. Every `dust.velocity *= ...` keeps accumulating there until the
+`float` overflows. A `_v.X *= 0.5` on it goes through, as it would in
+tModLoader.
+
+`float` method arguments are not checked.
+
+## Methods
+
+By **signature**, copied from the dump as it appears there:
 
 ```js
 const Update = Terraria.Player['void Update(int i)'];
@@ -228,40 +246,40 @@ Terraria.Main['int get_myPlayer()']();
 item['void SetDefaults(int Type, ItemVariant variant)'](98, null);
 ```
 
-- A assinatura é **a do jogo, exata**: os tipos e **o nome de cada
-  parâmetro, com a mesma caixa**. `PlayerDrawSet drawinfo` casa;
-  `PlayerDrawSet drawInfo`, ou só o tipo sem o nome, não. Um nome diferente
-  quer dizer que a assinatura veio de outro lugar (outra versão do jogo,
-  outro método), e o erro mostra a certa, pronta para copiar:
+- The signature is **the game's, exactly**: the types and **each parameter's
+  name, with the same case**. `PlayerDrawSet drawinfo` matches;
+  `PlayerDrawSet drawInfo`, or just the type without the name, does not. A
+  different name means the signature came from somewhere else (another game
+  version, another method), and the error shows the right one, ready to copy:
 
   ```
   assinatura 'void DrawPlayer_UseNormalLayers(PlayerDrawSet drawInfo)' em Terraria.Graphics.Renderers.LegacyPlayerRenderer:
   o parametro 1 se chama 'drawinfo', nao 'drawInfo'. No jogo: void DrawPlayer_UseNormalLayers(PlayerDrawSet drawinfo)
   ```
 
-  Os tipos aceitam a grafia do dump (`int`, `ItemVariant`) ou a completa
-  (`System.Int32`), e o tipo de retorno pode faltar.
-- O objeto é o `this`, como em qualquer método JS: `item['...'](98, null)`.
-  Chamando pela variável, o objeto vai como primeiro argumento:
+  Types accept the dump's spelling (`int`, `ItemVariant`) or the full one
+  (`System.Int32`), and the return type can be left out.
+- The object is `this`, as in any JS method: `item['...'](98, null)`.
+  Calling through a variable, the object goes as the first argument:
   `Update(player, 0)`.
-- Se o método tem **um só** overload, o nome basta:
-  `Terraria.Recipe.UpdateWhichItemsAreCrafted()`, `entry.Info.Add(x)`. Com mais
-  de um, o nome sozinho é **recusado**, com a lista dos overloads na mensagem.
-  Nunca é escolhido um ao acaso.
-- `null` vale para qualquer objeto. **Nullable** (`float?`, `Rectangle?`) é
-  `null` ou o valor, e na assinatura vale qualquer grafia (`float?`,
+- If the method has **a single** overload, the name is enough:
+  `Terraria.Recipe.UpdateWhichItemsAreCrafted()`, `entry.Info.Add(x)`. With
+  more than one, the bare name is **refused**, with the list of overloads in
+  the message. One is never picked at random.
+- `null` works for any object. A **nullable** (`float?`, `Rectangle?`) is
+  `null` or the value, and in the signature any spelling works (`float?`,
   `Nullable<float>`, ``Nullable`1``):
 
   ```js
   Terraria.Main['void StartRain(bool instant, float? strengthOverride, bool garenteeCoinRain)'](true, null, false);
   ```
 
-- Um método do jogo que lança exceção vira exceção JS (`InternalError`), que
-  dá para pegar com `try`/`catch`.
+- A game method that throws becomes a JS exception (`InternalError`), which
+  you can catch with `try`/`catch`.
 
-### Criando objetos
+### Creating objects
 
-`new Item()` do C# é `.new()` e depois o construtor, pela assinatura:
+C#'s `new Item()` is `.new()` followed by the constructor, by signature:
 
 ```js
 const it = Terraria.Item.new();
@@ -271,78 +289,78 @@ const v = Microsoft.Xna.Framework.Vector2.new();
 v['void .ctor(float x, float y)'](5, 10);
 ```
 
-Para os structs mais comuns há atalhos globais: `Vector2.new(5, 10)`,
-`Color.new(255, 0, 0)`, `Rectangle.new(0, 0, 16, 16)` (ver os
-[ajudantes](04-conteudo-novo.md#ajudantes)).
+The most common structs have global shortcuts: `Vector2.new(5, 10)`,
+`Color.new(255, 0, 0)`, `Rectangle.new(0, 0, 16, 16)` (see the
+[helpers](04-conteudo-novo.md#helpers)).
 
 ## Hooks
 
-### O callback
+### The callback
 
-`.hook(callback)` instala o hook. O callback recebe, em ordem:
+`.hook(callback)` installs the hook. The callback receives, in order:
 
-1. `original`: a função que roda o método do jogo;
-2. `self`: o objeto (só em método de **instância**);
-3. os argumentos do método, na ordem da assinatura.
+1. `original`: the function that runs the game's method;
+2. `self`: the object (only for **instance** methods);
+3. the method's arguments, in signature order.
 
 ```js
-// método de instância: self vem antes dos argumentos
+// instance method: self comes before the arguments
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
     original(self, i);
 });
 
-// método estático: não há self
+// static method: there is no self
 Terraria.Main['int DamageVar(float dmg, float luck)'].hook((original, dmg, luck) => {
     return original(dmg, luck);
 });
 ```
 
-### Chamar ou não o original
+### Calling the original or not
 
-É a decisão central de todo hook:
+It is the central decision of every hook:
 
 ```js
-// DEPOIS: o jogo faz o dele, você ajusta. O mais comum.
+// AFTER: the game does its part, you adjust. The most common.
 Update.hook((original, self, i) => {
     original(self, i);
     self.moveSpeed *= 1.5;
 });
 
-// ANTES: você prepara a entrada, o jogo processa.
+// BEFORE: you prepare the input, the game processes it.
 const Hurt = Terraria.Player['double Hurt(PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet, bool Crit, int cooldownCounter, bool dodgeable)'];
 Hurt.hook((original, self, source, damage) => {
-    return original(self, source, Math.floor(damage / 2));   // metade do dano; o resto como veio
+    return original(self, source, Math.floor(damage / 2));   // half the damage; the rest as it came
 });
 
-// NO LUGAR: o método do jogo não roda.
+// INSTEAD: the game's method does not run.
 Terraria.Player['void DropTombstone(long coinsOwned, NetworkText deathText, int hitDirection)']
-    .hook(() => {});   // morrer não deixa lápide
+    .hook(() => {});   // dying leaves no tombstone
 ```
 
-**`original` aceita argumentos novos.** Cada um substitui o seu, na ordem
-(`self` primeiro, se houver); o que você não passar fica como veio.
-`original()` sem nada reexecuta com os argumentos exatos que chegaram.
+**`original` accepts new arguments.** Each one replaces its counterpart, in
+order (`self` first, if there is one); whatever you leave out stays as it
+came. `original()` with nothing reruns with the exact arguments that arrived.
 
 ```js
-Dano.hook((original, self, dano) => original(self, dano * 2));
+Damage.hook((original, self, damage) => original(self, damage * 2));
 ```
 
-**O que o callback devolve vira o retorno** do método: número, bool, objeto
-ou struct pequeno. Se ele não devolve nada (`undefined`) e chamou o original,
-vale o retorno do original.
+**What the callback returns becomes the method's return value**: a number,
+bool, object or small struct. If it returns nothing (`undefined`) and called
+the original, the original's return value applies.
 
 ```js
-Distancia.hook((original, a, b) => original(a, b) * 10);
+Distance.hook((original, a, b) => original(a, b) * 10);
 ```
 
-`original` só vale **dentro do próprio hook, durante a chamada**. Guardada
-numa variável e chamada depois, ela lança `TypeError`.
+`original` is only valid **inside its own hook, during the call**. Stored in
+a variable and called later, it throws `TypeError`.
 
-### Hook roda para todos
+### Hooks run for everyone
 
-`Player.Update(int i)` é chamado para **cada** jogador do mundo. Sozinho, só
-existe você; no multijogador, os outros também passam por ali. Para mexer só
-no seu personagem:
+`Player.Update(int i)` is called for **each** player in the world. In single
+player, there is only you; in multiplayer, the others pass through there too.
+To change only your character:
 
 ```js
 Terraria.Player['void Update(int i)'].hook((original, self, i) => {
@@ -352,160 +370,161 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
 });
 ```
 
-O mesmo vale para NPC, projétil e item: o hook pega **todos**, não só os
-seus. Confira o `type` (ou o `whoAmI`, o `owner`) antes de mexer. Quando só
-os de mod interessam, o filtro nativo `minType` evita até entrar no JS (ver
-[custo](03-custo-e-desempenho.md#filtros-nativos)).
+The same goes for NPCs, projectiles and items: the hook catches **all** of
+them, not just yours. Check the `type` (or `whoAmI`, `owner`) before changing
+anything. When only mod content matters, the `minType` native filter avoids
+even entering JS (see [cost](03-custo-e-desempenho.md#native-filters)).
 
-### `self` pode vir `null`
+### `self` can be `null`
 
-Um método que não usa o próprio objeto pode ser chamado pelo jogo sem ele: o
-compilador do jogo percebe que o `this` não é lido e não se dá ao trabalho de
-passá-lo. É o caso do `GUINPCDialogue.Option1Clicked` (o botão "Loja" da
-conversa). O `self` desse hook chega `null`, ou, raramente, como um objeto
-inválido. Repasse-o ao `original` como veio (`original(self, ...)`), que o
-Bunny Loader devolve ao jogo o valor que ele mandou, e não leia nada dele.
+A method that does not use its own object can be called by the game without
+it: the game's compiler notices `this` is never read and does not bother
+passing it. That is the case of `GUINPCDialogue.Option1Clicked` (the "Shop"
+button in the NPC dialogue). That hook's `self` arrives as `null`, or, rarely,
+as an invalid object. Pass it on to `original` as it came
+(`original(self, ...)`), and Bunny Loader gives the game back the value it
+sent; do not read anything from it.
 
-### O hook vê as chamadas do próprio mod
+### The hook sees the mod's own calls
 
-Um hook pega também a chamada que o **seu** código fizer ao método, fora do
-callback. Com o hook de dano em dobro instalado, um `item.SetDefaults(98)`
-feito pelo mod também sai com o dobro.
+A hook also catches the calls **your** code makes to the method, outside the
+callback. With the double-damage hook installed, an `item.SetDefaults(98)`
+made by the mod also comes out doubled.
 
-**Dentro** do callback é diferente: chamar o **mesmo** método hookado (criar
-outro item com `SetDefaults` dentro do hook de `SetDefaults`, por exemplo)
-**não** dispara o seu callback de novo. A chamada de dentro vai direto ao
-método do jogo. Sem essa regra, um método que chama a si mesmo dispararia o
-callback em cascata até estourar a pilha.
+**Inside** the callback it is different: calling the **same** hooked method
+(creating another item with `SetDefaults` inside the `SetDefaults` hook, for
+example) does **not** fire your callback again. The inner call goes straight
+to the game's method. Without this rule, a method that calls itself would fire
+the callback in a cascade until the stack overflows.
 
-### Erros dentro do hook
+### Errors inside a hook
 
-Um erro dentro do callback não derruba o jogo:
+An error inside the callback does not crash the game:
 
-- ele vai para o log com o nome do método e a pilha JS
-  (`hook Item.SetDefaults: excecao no callback: ...`), **a cada chamada**,
-  então um erro num hook de todo quadro enche o log rápido;
-- se o callback quebrou **antes** de chamar o `original`, o Bunny Loader chama
-  o original por você, e o jogo segue como se o hook não existisse.
+- it goes to the log with the method name and the JS stack
+  (`hook Item.SetDefaults: exception in callback: ...`), **on every call**, so
+  an error in a per-frame hook fills the log fast;
+- if the callback broke **before** calling `original`, Bunny Loader calls the
+  original for you, and the game carries on as if the hook did not exist.
 
-Um callback que termina sem erro e sem chamar o `original` está suprimindo o
-método de propósito, e isso é respeitado.
+A callback that finishes without an error and without calling `original` is
+suppressing the method on purpose, and that is respected.
 
-### Vários hooks no mesmo método
+### Several hooks on the same method
 
-Dois mods (ou o mesmo mod duas vezes) podem hookar o mesmo método. Eles se
-**encadeiam**: o `original` do primeiro hook instalado chama o segundo, e
-assim por diante até o método do jogo.
+Two mods (or the same mod twice) can hook the same method. They are
+**chained**: the `original` of the first hook installed calls the second, and
+so on down to the game's method.
 
 ```mermaid
 flowchart LR
-    G["jogo chama<br/>Player.Update"] --> A["hook do mod A<br/>(carregou primeiro)"]
-    A -- "original()" --> B["hook do mod B"]
-    B -- "original()" --> F["Player.Update<br/>do jogo"]
+    G["game calls<br/>Player.Update"] --> A["mod A's hook<br/>(loaded first)"]
+    A -- "original()" --> B["mod B's hook"]
+    B -- "original()" --> F["the game's<br/>Player.Update"]
 ```
 
-- O mod carregado **antes** vê a chamada antes, e o que ele passar ao
-  `original()` é o que o próximo recebe.
-- Os mods carregam na ordem da aba Pacotes, que o jogador muda: não conte
-  com uma ordem entre mods, exceto a do seu `dependencies`
-  ([guia 11](11-conversa-entre-mods.md#dependências)).
-- Cada hook da cadeia fica aninhado dentro do anterior e gasta pilha do motor
-  JS. No teste ([`tools/tests/hookslots`](../../tools/tests/hookslots)), **55**
-  hooks encadeados no mesmo método couberam; os que passam disso dão erro no
-  log e o original roda por eles.
+- The mod loaded **first** sees the call first, and whatever it passes to
+  `original()` is what the next one receives.
+- Mods load in the order of the Packages tab, which the player changes: do not
+  count on an order between mods, except your `dependencies`
+  ([guide 11](11-conversa-entre-mods.md#dependencies)).
+- Each hook in the chain is nested inside the previous one and uses JS engine
+  stack. In the test ([`tools/tests/hookslots`](../../tools/tests/hookslots)),
+  **55** chained hooks on the same method fit; those beyond that log an error
+  and the original runs in their place.
 
-### Opções do hook
+### Hook options
 
-`.hook(callback, opções)` aceita filtros que decidem **antes** do JS. São o
-assunto do [guia de custo](03-custo-e-desempenho.md#filtros-nativos):
+`.hook(callback, options)` accepts filters that decide **before** JS. They are
+the subject of the [cost guide](03-custo-e-desempenho.md#native-filters):
 
-| Opção | O callback só roda quando... |
+| Option | The callback only runs when... |
 |---|---|
-| `{ minType: N }` | o `type` do `self` é ≥ `N` (só conteúdo de mod, por exemplo). |
-| `{ minType: N, on: i }` | o `type` do **parâmetro** `i` é ≥ `N`. |
-| `{ minType: N, on: i, field: 'shoot' }` | o campo `shoot` do parâmetro `i` é ≥ `N`. |
-| `{ minType: N, tile: i }` / `tileAt: [i, j]` | o bloco do mundo (pelo `Tile` ou pela posição) é de tipo ≥ `N`. |
-| `{ whileIn: outroMetodo }` | a thread está dentro do hook JS (ou do `scope()`) de `outroMetodo`. |
-| `{ ifBusy: 'original' \| 'skip' }` | (não filtra) o que fazer se o motor JS estiver com outra thread. |
+| `{ minType: N }` | `self`'s `type` is ≥ `N` (only mod content, for example). |
+| `{ minType: N, on: i }` | the `type` of **parameter** `i` is ≥ `N`. |
+| `{ minType: N, on: i, field: 'shoot' }` | the `shoot` field of parameter `i` is ≥ `N`. |
+| `{ minType: N, tile: i }` / `tileAt: [i, j]` | the world tile (by `Tile` or by position) has a type ≥ `N`. |
+| `{ whileIn: otherMethod }` | the thread is inside the JS hook (or the `scope()`) of `otherMethod`. |
+| `{ ifBusy: 'original' \| 'skip' }` | (does not filter) what to do if the JS engine is busy with another thread. |
 
-Para saber **quem** chamou sem pagar o JS em toda chamada, use o escopo:
-`metodo.scope()` marca, no nativo, que o jogo está dentro do método e guarda
-o objeto; `metodo.scopeSelf()` devolve esse objeto (ou `null` fora dele). O
-`Damage_PVE` roda para todo projétil a cada atualização: com `scope()` nele,
-um hook no `StrikeNPC` (que só roda no acerto) sabe qual projétil acertou.
+To know **who** called without paying for JS on every call, use the scope:
+`method.scope()` marks, natively, that the game is inside the method and keeps
+the object; `method.scopeSelf()` returns that object (or `null` outside it).
+`Damage_PVE` runs for every projectile on every update: with `scope()` on it,
+a hook on `StrikeNPC` (which only runs on a hit) knows which projectile hit.
 
 ```js
 const damage = Terraria.Projectile['void Damage_PVE(ref Rectangle projRectangle, float projectileSpecificDamageMultiplier)'];
 damage.scope();
 Terraria.NPC['int StrikeNPC(int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)'].hook((original, npc, ...args) => {
-    const projetil = damage.scopeSelf();   // null: não veio de projétil
+    const projectile = damage.scopeSelf();   // null: it did not come from a projectile
     return original(npc, ...args);
 });
 ```
 
-### `ref` e `out`
+### `ref` and `out`
 
-Um parâmetro `ref`/`out` chega no hook como um `Ref`, preso à variável de
-quem chamou: `.value` lê e escreve a variável do jogo. É o equivalente ao
-`ref int damage` do tModLoader:
+A `ref`/`out` parameter arrives in the hook as a `Ref`, bound to the caller's
+variable: `.value` reads and writes the game's variable. It is the equivalent
+of tModLoader's `ref int damage`:
 
 ```js
-Terraria.Main['bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeValue)'].hook((original, slot, tempo) => {
-    const r = original(slot, tempo);
-    tempo.value += 60;   // quem perguntou vê um segundo a mais
+Terraria.Main['bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeValue)'].hook((original, slot, time) => {
+    const r = original(slot, time);
+    time.value += 60;   // whoever asked sees one second more
     return r;
 });
 ```
 
-O [guia 2](02-ref-e-out.md) trata disso com calma: chamar com `ref`/`out`,
-struct por `ref`, e por que o `Ref` "se solta" depois do hook.
+[Guide 2](02-ref-e-out.md) covers this in depth: calling with `ref`/`out`,
+structs by `ref`, and why a `Ref` "comes loose" after the hook.
 
-### Quantos hooks cabem
+### How many hooks fit
 
-Cada `.hook()` ocupa um **slot**, e os slots são separados pela forma do
-retorno do método:
+Each `.hook()` takes a **slot**, and slots are split by the shape of the
+method's return value:
 
-| Retorno | Slots |
+| Return | Slots |
 |---|---:|
-| `void`, `int`, `bool`, objeto, string | 1024 |
+| `void`, `int`, `bool`, object, string | 1024 |
 | `float` | 64 |
 | `double` | 64 |
-| struct pequeno (`Vector2`, `Color`, `Rectangle`...) | 32 por forma |
+| small struct (`Vector2`, `Color`, `Rectangle`...) | 32 per shape |
 
-Os hooks das classes de mod (`ModItem`, `ModTile`...) são instalados uma vez e
-servem a todos os mods; o que gasta slot é cada `.hook()` escrito direto num
-mod. Com o Example Mod e todos os mods de teste juntos, são cerca de 80.
+The mod classes' hooks (`ModItem`, `ModTile`...) are installed once and serve
+every mod; what uses slots is each `.hook()` written directly in a mod. With
+the Example Mod and all the test mods together, it is about 80.
 
-Um hook instalado **não custa nada** enquanto o método não for chamado. O que
-custa é o JS rodar a cada chamada (ver o [guia de custo](03-custo-e-desempenho.md)).
+An installed hook **costs nothing** while the method is not called. What
+costs is JS running on every call (see the [cost guide](03-custo-e-desempenho.md)).
 
-### O que ainda não dá para hookar
+### What cannot be hooked yet
 
-- Método com mais de **16 argumentos inteiros** (8 em registrador e 8 na
-  pilha, contando o `this` e cada `ref`/`out`) ou mais de **8 de ponto
-  flutuante**. É recusado, com mensagem. O `Player.Hurt`, com 10, funciona.
-- Método que devolve struct **grande** (mais de 16 bytes, ou mais de 4
-  floats): também recusado, dizendo o tipo e o tamanho.
+- A method with more than **16 integer arguments** (8 in registers and 8 on
+  the stack, counting `this` and each `ref`/`out`) or more than **8 floating
+  point** ones. It is refused, with a message. `Player.Hurt`, with 10, works.
+- A method that returns a **large** struct (more than 16 bytes, or more than
+  4 floats): also refused, stating the type and size.
 
-Como tudo isso funciona por dentro (os slots, a cadeia, o despachante) está em
-[hooks por dentro](../nucleo/hooks.md).
+How all of this works inside (the slots, the chain, the dispatcher) is in
+[hooks under the hood](../nucleo/hooks.md).
 
-## Texturas e desenho
+## Textures and drawing
 
-`bl.loadTexture('caminho.png')` carrega um PNG ou JPG do mod como `Texture2D`
-do jogo. O caminho é relativo a `content/`; as texturas do mod moram em
-`Assets/Textures/`. Duas regras, que vêm da Unity:
+`bl.loadTexture('path.png')` loads a PNG or JPG from the mod as a game
+`Texture2D`. The path is relative to `content/`; the mod's textures live in
+`Assets/Textures/`. Two rules, which come from Unity:
 
-1. só funciona com o jogo rodando, **na thread do jogo**: carregue dentro de
-   um hook, na primeira chamada, nunca no topo do `main.js` nem no `Load()`
-   (que rodam na carga, noutra thread);
-2. desenhar exige um `SpriteBatch` aberto.
+1. it only works with the game running, **on the game thread**: load inside a
+   hook, on the first call, never at the top of `main.js` or in `Load()`
+   (which run during loading, on another thread);
+2. drawing requires an open `SpriteBatch`.
 
 ```js
 let tex = null;
 Terraria.Main['void DrawInterface(GameTime gameTime)'].hook((original, self, gt) => {
     original(self, gt);
-    if (!tex) tex = bl.loadTexture('Assets/Textures/meu.png');
+    if (!tex) tex = bl.loadTexture('Assets/Textures/mine.png');
     const sb = Terraria.Main.spriteBatch;
     sb['void Begin(SpriteSortMode sortMode, bool defferedBatch)'](0, true);
     sb['void Draw(Texture2D texture, Vector2 position, Color color)'](tex, Vector2.new(100, 100), Color.White);
@@ -513,42 +532,43 @@ Terraria.Main['void DrawInterface(GameTime gameTime)'].hook((original, self, gt)
 });
 ```
 
-Para o que o jogo guarda como `Asset<Texture2D>` (as tabelas `TextureAssets`),
-`bl.loadTextureAsset(caminho)`, ou o `ModContent.Request` do
-[guia 4](04-conteudo-novo.md#modcontent), que carrega uma vez só.
+For what the game keeps as `Asset<Texture2D>` (the `TextureAssets` tables),
+use `bl.loadTextureAsset(path)`, or `ModContent.Request` from
+[guide 4](04-conteudo-novo.md#modcontent), which loads only once.
 
-## Vários arquivos
+## Several files
 
-Um mod pode se dividir em arquivos com `import`/`export`, sempre com caminho
-**relativo** e dentro do próprio mod:
+A mod can be split into files with `import`/`export`, always with a
+**relative** path and inside the mod itself:
 
 ```js
 // content/Common/Util.js
-export function dobra(item) { item.damage *= 2; }
+export function double(item) { item.damage *= 2; }
 
 // content/main.js
-import { dobra } from './Common/Util.js';
+import { double } from './Common/Util.js';
 ```
 
-Os arquivos de `Content/` e `Common/` nem precisam de `import`: o Bunny Loader
-os carrega sozinho e registra as classes de conteúdo que eles exportam
-([README](README.md#o-registro-automático)).
+Files in `Content/` and `Common/` do not even need an `import`: Bunny Loader
+loads them on its own and registers the content classes they export
+([README](README.md#automatic-registration)).
 
-Cada arquivo é um **módulo**: o que um mod declara (`const Update = ...`) não
-colide com o de outro mod. `bl.readJson('config.json')` lê um JSON do mod (ou
-`undefined`, se não existe).
+Each file is a **module**: what one mod declares (`const Update = ...`) does
+not collide with another mod's. `bl.readJson('config.json')` reads a JSON from
+the mod (or `undefined`, if it does not exist).
 
-## Arquivos e dados
+## Files and data
 
-Caminho relativo é relativo à pasta do `main.js`; absoluto vale como está.
+A relative path is relative to `main.js`'s folder; an absolute one is used as
+is.
 
 ```js
-bl.mod.name            // "Dano em Dobro" (do manifest.json)
-bl.mod.id              // "danoemdobro"
+bl.mod.name            // "Double Damage" (from manifest.json)
+bl.mod.id              // "doubledamage"
 bl.mod.version         // "1.0.0"
-bl.mod.uuid            // o uid
-bl.mod.path            // a pasta do main.js (content/)
-bl.mod.root            // a pasta do pacote (a do manifest.json)
+bl.mod.uuid            // the uid
+bl.mod.path            // main.js's folder (content/)
+bl.mod.root            // the package folder (manifest.json's)
 bl.mod.dataDirectory   // Android/data/com.bunnyloader/mod_data/<uid>
 
 bl.info.appDirectory   // Android/data/com.bunnyloader (Players/, Worlds/...)
@@ -556,15 +576,15 @@ bl.info.logsDirectory
 bl.info.terrariaVersionCode
 
 bl.file.exists('config.json')
-bl.file.read('config.json')              // texto, ou undefined
-bl.file.readBytes('dados.bin')           // Uint8Array, ou undefined
-bl.file.write(caminho, 'texto')          // ou Uint8Array; cria as pastas
-bl.file.append(caminho, 'mais texto')
-bl.file.delete(caminho)                  // true se apagou
+bl.file.read('config.json')              // text, or undefined
+bl.file.readBytes('data.bin')            // Uint8Array, or undefined
+bl.file.write(path, 'text')              // or Uint8Array; creates the folders
+bl.file.append(path, 'more text')
+bl.file.delete(path)                     // true if it deleted
 
 bl.directory.exists('Assets/Textures')
-bl.directory.create(caminho)             // com as pastas do meio
-bl.directory.delete(caminho)             // e tudo dentro
+bl.directory.create(path)                // including the intermediate folders
+bl.directory.delete(path)                // and everything inside
 bl.directory.listFiles('Assets/Textures/Bg')   // ['Assets/Textures/Bg/a.png', ...]
 bl.directory.listDirectories('Assets/Textures')
 
@@ -574,16 +594,16 @@ bl.path.getParentPath('x/y/z.png')       // 'x/y'
 bl.path.getExtension('z.png')            // '.png'
 ```
 
-Para guardar dados do mod (configuração, progresso), use `bl.mod.dataDirectory`:
-a pasta do pacote é trocada inteira quando o mod é atualizado.
+To store mod data (settings, progress), use `bl.mod.dataDirectory`: the
+package folder is replaced entirely when the mod is updated.
 
-## Próximos passos
+## Next steps
 
-- [Guia 2: `ref` e `out`](02-ref-e-out.md), para métodos que devolvem por
-  parâmetro (pesca, spawn, colisão).
-- [Guia 3: custo e desempenho](03-custo-e-desempenho.md), antes de hookar
-  qualquer método de todo quadro.
-- [Referência da ponte e do `bl`](../referencia/ponte-e-bl.md): tudo deste
-  guia numa tabela.
-- O comentário do topo de [`samples/HelloMod/content/main.js`](../../samples/HelloMod/content/main.js)
-  tem esta mesma API com mais exemplos, inclusive os casos de borda.
+- [Guide 2: `ref` and `out`](02-ref-e-out.md), for methods that return
+  through parameters (fishing, spawning, collision).
+- [Guide 3: cost and performance](03-custo-e-desempenho.md), before hooking
+  any per-frame method.
+- [Bridge and `bl` reference](../referencia/ponte-e-bl.md): everything in
+  this guide in a table.
+- The comment at the top of [`samples/HelloMod/content/main.js`](../../samples/HelloMod/content/main.js)
+  has this same API with more examples, including the edge cases.

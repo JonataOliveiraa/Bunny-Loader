@@ -1,27 +1,29 @@
-# _sprites/ — sprites do jogo, por ID
+# _sprites/ — game sprites, by ID
 
-Extraidos de um dump de imagens do Terraria 1.4.5 (os itens 6145 a 6195 e os
-buffs 389 a 400, da 1.4.5.8 do celular) e renomeados para o **ID**,
-que e a chave que o menu de cheats tem em maos:
+Extracted from an image dump of Terraria 1.4.5 (items 6145 to 6195 and buffs
+389 to 400 from mobile 1.4.5.8) and renamed to the **ID**, which is the key the
+cheat menu has at hand:
 
 ```
 item/98.png     Item_98.png    -> Minishark
 npc/50.png      NPC_50.png     -> King Slime
-buff/3.png      Buff_3.png     -> Regeneracao
+buff/3.png      Buff_3.png     -> Regeneration
 ```
 
-`item/` tem 6134 arquivos, `npc/` 697 e `buff/` 400 — 4 MB somados. O nome de cada um NAO
-vem daqui: vem do proprio jogo, pela Localization (`Lang.GetItemNameValue`),
-entao sai no idioma do aparelho e nunca desatualiza.
+`item/` has 6134 files, `npc/` 697 and `buff/` 400 — 4 MB together. Each one's
+name does NOT come from here: it comes from the game itself, through
+Localization (`Lang.GetItemNameValue`), so it comes out in the device's
+language and never goes stale.
 
-Por que existe: as texturas do jogo vivem so na GPU. Medido no aparelho — o
-atlas de itens e 2048x2048 com `isReadable = 0`, `GetRawImageDataSize()` zero e
-`GetWritableImageData()` nulo, e os desvios (`Graphics.Blit`, `ReadPixels`,
-`GetNativeTexturePtr`) foram removidos deste binario pelo IL2CPP. Nao ha pixel
-para ler em tempo de execucao; ou o JOGO desenha, ou a imagem vem de fora. Esta
-pasta e o "de fora".
+Why it exists: the game's textures live only on the GPU. Measured on the
+device — the item atlas is 2048x2048 with `isReadable = 0`,
+`GetRawImageDataSize()` zero and `GetWritableImageData()` null, and the
+workarounds (`Graphics.Blit`, `ReadPixels`, `GetNativeTexturePtr`) were
+stripped from this binary by IL2CPP. There is no pixel to read at runtime;
+either the GAME draws it, or the image comes from outside. This folder is the
+"outside".
 
-## Esta pasta nao vai para o git
+## This folder does not go into git
 
-E arte do Terraria. Fica no `.gitignore`, como `_icons/` — so este README e
-versionado. O Gradle copia o conteudo para `assets/sprites/` no APK.
+It is Terraria art. It is in `.gitignore`, like `_icons/` — only this README is
+versioned. Gradle copies the content to `assets/sprites/` in the APK.

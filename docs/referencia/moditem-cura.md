@@ -1,48 +1,48 @@
-# ModItem: cura e atraso de poções
+# ModItem: healing and potion delay
 
-Os quatro métodos recebem o `item` da instância como primeiro argumento. Os modificadores usam `Ref<number>`: altere `.value`. O retorno dos modificadores é ignorado.
+The four methods receive the instance's `item` as the first argument. The modifiers use `Ref<number>`: change `.value`. The modifiers' return value is ignored.
 
-| Método | Contrato |
+| Method | Contract |
 | --- | --- |
-| `GetHealLife(item, player, quickHeal, healValue)` | Modifica a vida restaurada quando `item.healLife > 0`. Também participa da seleção de candidatos de `QuickHeal`. |
-| `GetHealMana(item, player, quickHeal, healValue)` | Modifica a mana restaurada quando `item.healMana > 0`. |
-| `ModifyPotionDelay(item, player, baseDelay)` | Modifica o atraso em ticks calculado pelo jogo móvel, antes da permissão e da aplicação do contador e do buff. |
-| `ApplyPotionDelay(item, player, potionDelay)` | Padrão `true`. `false` impede o contador e o buff de doença de poção desta aplicação. |
+| `GetHealLife(item, player, quickHeal, healValue)` | Modifies the life restored when `item.healLife > 0`. Also takes part in selecting `QuickHeal` candidates. |
+| `GetHealMana(item, player, quickHeal, healValue)` | Modifies the mana restored when `item.healMana > 0`. |
+| `ModifyPotionDelay(item, player, baseDelay)` | Modifies the delay in ticks computed by the mobile game, before the permission and the application of the counter and the buff. |
+| `ApplyPotionDelay(item, player, potionDelay)` | Default `true`. `false` prevents this application's counter and potion sickness buff. |
 
-## Cura normal e rápida
+## Normal and quick healing
 
-`quickHeal` é `true` na seleção de cura rápida e na aplicação feita por `QuickHeal` ou `QuickMana`; na aplicação normal é `false`. O contexto identifica o jogador que iniciou a operação. Uma cura de outro jogador durante esse contexto continua recebendo `false`.
+`quickHeal` is `true` in the quick heal selection and in the application done by `QuickHeal` or `QuickMana`; in a normal application it is `false`. The context identifies the player who started the operation. Another player's healing during that context still receives `false`.
 
-Para cada canal com valor base positivo, a ordem é `ModItem`, `ModPlayer` e aplicação nativa. Os campos `healLife` e `healMana` são substituídos temporariamente para o cálculo e restaurados em `finally`, incluindo falhas do helper nativo. Os máximos de vida e mana, efeitos visuais, doença de mana e consumo continuam no jogo. O callback não deve consumir o item.
+For each channel with a positive base value, the order is `ModItem`, `ModPlayer` and the native application. The `healLife` and `healMana` fields are replaced temporarily for the calculation and restored in `finally`, including on native helper failures. Max life and mana, visual effects, mana sickness and consumption stay with the game. The callback must not consume the item.
 
-A seleção de `QuickHeal` usa o valor modificado de vida para comparar candidatos e restaura o campo após cada comparação. Pode consultar o mesmo item antes de aplicá-lo; evite efeitos persistentes nesse modificador. Pilhas vazias, itens que não são poções e candidatos sem cura base positiva não executam o callback de seleção. `QuickMana` conserva a escolha nativa do primeiro candidato válido com mana positiva.
+`QuickHeal`'s selection uses the modified life value to compare candidates and restores the field after each comparison. It may query the same item before applying it; avoid persistent effects in this modifier. Empty stacks, items that are not potions and candidates without a positive base heal do not run the selection callback. `QuickMana` keeps the native choice of the first valid candidate with positive mana.
 
-Valores negativos são limitados a zero e frações são truncadas. Valores não finitos ou de outro tipo mantêm o valor nativo anterior. Valores muito grandes são limitados para impedir overflow na soma de inteiros do jogo. Um canal com valor base zero não é convertido em canal de cura por estes hooks, incluindo ModPlayer.
+Negative values are clamped to zero and fractions are truncated. Non-finite values or values of another type keep the previous native value. Very large values are clamped to prevent overflow in the game's integer sum. A channel with a zero base value is not turned into a healing channel by these hooks, including ModPlayer.
 
-`StrangeBrew` conserva o sorteio nativo de vida, que usa `healLife` como limite inferior. Uma alteração de ModPlayer nesse item muda esse limite, e não substitui o resultado sorteado. Preserve o intervalo aceito pelo sorteio nativo ao modificá-lo. Itens novos de ModItem não possuem o tipo vanilla de StrangeBrew.
+`StrangeBrew` keeps the native life roll, which uses `healLife` as its lower bound. A ModPlayer change on that item changes that bound, and does not replace the rolled result. Keep the range the native roll accepts when changing it. New ModItem items do not have the vanilla StrangeBrew type.
 
-## Atraso de poções
+## Potion delay
 
-1. O jogo calcula seu atraso, preservando os campos de duração e os casos especiais de RestorationPotion, Eggnog, Mushroom e StrangeBrew.
-2. `ModItem.ModifyPotionDelay` recebe esse resultado em uma `Ref`.
-3. `ModItem.ApplyPotionDelay` e `ModPlayer.ApplyPotionDelay` recebem o inteiro final. Ambos são consultados; qualquer `false` prevalece.
-4. Se o resultado for positivo e permitido, `player.potionDelay` e o buff `PotionSickness` recebem a mesma duração.
+1. The game computes its delay, keeping the duration fields and the special cases of RestorationPotion, Eggnog, Mushroom and StrangeBrew.
+2. `ModItem.ModifyPotionDelay` receives that result in a `Ref`.
+3. `ModItem.ApplyPotionDelay` and `ModPlayer.ApplyPotionDelay` receive the final integer. Both are asked; any `false` wins.
+4. If the result is positive and allowed, `player.potionDelay` and the `PotionSickness` buff get the same duration.
 
-Um veto ou uma duração zero conserva o contador anterior e impede o buff. Também impede a normalização de fome que ocorre dentro de `ApplyPotionDelay`. O uso nativo de Mushroom possui uma chamada adicional de fome fora desse método; ela mantém seu comportamento. O veto do atraso permite que a cura e o consumo continuem.
+A veto or a zero duration keeps the previous counter and prevents the buff. It also prevents the hunger normalization that happens inside `ApplyPotionDelay`. Mushroom's native use has an extra hunger call outside that method; it keeps its behavior. Vetoing the delay lets healing and consumption go on.
 
-Os callbacks de permissão veem o contador anterior, antes de aplicar o novo valor. `AddBuff` de outro jogador, outro tipo de buff ou fora do contexto de `ApplyPotionDelay` conserva o comportamento original. Exceções de callback são registradas com classe e método; os demais callbacks continuam. Uma falha do helper nativo restaura o contador anterior e libera o contexto, sem desfazer efeitos nativos que já ocorreram.
+The permission callbacks see the previous counter, before the new value is applied. `AddBuff` from another player, another buff type or outside the `ApplyPotionDelay` context keeps the original behavior. Callback exceptions are logged with class and method; the other callbacks go on. A native helper failure restores the previous counter and releases the context, without undoing native effects that already happened.
 
-No tModLoader, `ModifyPotionDelay` atua antes de `Player.PotionDelayModifier`. Esse modificador não existe no dump móvel usado pelo Bunny Loader. Aqui, `baseDelay` representa o atraso já calculado pelo jogo móvel, incluindo as reduções nativas. Não aplique novamente essas reduções. Essa diferença foi conferida nas [assinaturas de ModItem](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs) e no [fluxo de Player do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/Player.cs.patch).
+In tModLoader, `ModifyPotionDelay` acts before `Player.PotionDelayModifier`. That modifier does not exist in the mobile dump Bunny Loader uses. Here, `baseDelay` represents the delay already computed by the mobile game, including the native reductions. Do not apply those reductions again. This difference was checked in the [ModItem signatures](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModItem.cs) and in [tModLoader's Player flow](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/Player.cs.patch).
 
-## Filtros e validação
+## Filters and validation
 
-Os planos de sobrescritas ficam em cache por classe. Marcas por tipo filtram a cura e o atraso antes de entrar no JavaScript. A comparação de cura rápida lê o quarto argumento do método estático nativo e usa `whileIn` para restringir a seleção. Os hooks auxiliares de buff e fome só entram durante o método de atraso marcado. As consultas custam O(1) por candidato e a seleção mantém a varredura nativa O(s), com s igual ao número de slots consultados.
+The override plans are cached per class. Per-type marks filter healing and delay before entering JavaScript. The quick heal comparison reads the native static method's fourth argument and uses `whileIn` to restrict the selection. The auxiliary buff and hunger hooks only get in during the marked delay method. The queries cost O(1) per candidate and the selection keeps the native O(s) scan, with s equal to the number of slots consulted.
 
-Um observador de ModPlayer amplia as marcas uma vez no registro, incluindo itens registrados depois. ModItem e ModPlayer compartilham um único hook de aplicação de cura e um único hook de atraso, independentemente da ordem de registro.
+A ModPlayer observer widens the marks once on registration, including items registered later. ModItem and ModPlayer share a single healing application hook and a single delay hook, regardless of registration order.
 
-A execução no APK validou cura normal, `QuickHeal`, `QuickMana`, consumo, refs, contador e buff, seleção de vida e composição com ModPlayer em singleplayer. A validação entre dois processos permanece pendente. Evidências: [resultado da etapa 3](../../tools/tests/moditemhooks/RESULTADOS-CURA.md).
+Running in the APK validated normal healing, `QuickHeal`, `QuickMana`, consumption, refs, counter and buff, life selection and composition with ModPlayer in single player. Validation across two processes is still pending. Evidence: [step 3 results](../../tools/tests/moditemhooks/RESULTADOS-CURA.md).
 
-## Exemplo
+## Example
 
 ```js
 GetHealLife(item, player, quickHeal, healValue) {

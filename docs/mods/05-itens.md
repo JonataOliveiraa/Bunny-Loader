@@ -1,14 +1,14 @@
-# 5. Itens
+# 5. Items
 
-Um item novo é uma classe que estende `ModItem`. Este guia cobre o item em si
-(atributos, uso, tiro, acessório), os prefixos, o tooltip, a vara de pesca, as
-receitas e o `ModSystem`. Antes, leia as [ideias do guia 4](04-conteudo-novo.md): molde e
-instância, `register`, texturas, tradução.
+A new item is a class that extends `ModItem`. This guide covers the item
+itself (stats, use, shooting, accessories), prefixes, tooltips, fishing rods,
+recipes and `ModSystem`. Read the [ideas in guide 4](04-conteudo-novo.md)
+first: template and instance, `register`, textures, localization.
 
-A lista completa de campos e métodos está na
-[referência](../referencia/classes.md#moditem).
+The full list of fields and methods is in the
+[reference](../referencia/classes.md#moditem).
 
-## O item mais simples
+## The simplest item
 
 ```js
 export class ExampleItem extends ModItem {
@@ -28,124 +28,126 @@ export class ExampleItem extends ModItem {
 }
 ```
 
-`this.Item` é o `Item` do jogo desta instância: todo campo do C# está ali
-(`damage`, `useTime`, `shoot`, `rare`...). Ele também chega como argumento,
+`this.Item` is this instance's game `Item`: every C# field is there
+(`damage`, `useTime`, `shoot`, `rare`...). It also arrives as an argument,
 `SetDefaults(item)`.
 
-O nome e a descrição vêm de `ItemName.ExampleItem` e `ItemTooltip.ExampleItem`
-em `Localization/<idioma>.json`, ou dos campos `DisplayName` e `Tooltip` da
-classe.
+The name and description come from `ItemName.ExampleItem` and
+`ItemTooltip.ExampleItem` in `Localization/<language>.json`, or from the
+class's `DisplayName` and `Tooltip` fields.
 
-## Quando cada método roda
+## When each method runs
 
-A vida de um item de mod, do registro ao uso:
+A mod item's life, from registration to use:
 
 ```mermaid
 flowchart TD
-    R["ModItem.register"] --> S["SetStaticDefaults()<br/>uma vez, tela de título"]
-    S --> P["AddRecipeGroups() / AddRecipes() / PostSetupContent()<br/>uma vez, conteúdo pronto"]
-    S --> D["SetDefaults(item)<br/>cada item que nasce"]
-    D --> U["no inventário: UpdateInventory<br/>na mão: HoldItem, HoldStyle, HoldoutOffset<br/>usando: CanUseItem → UseItem → UseStyle<br/>atirando: CanShoot → ModifyShootStats → Shoot<br/>equipado: UpdateEquip, UpdateAccessory<br/>no chão: PreUpdateInWorld → PostUpdateInWorld, PostUpdate, GetAlpha"]
+    R["ModItem.register"] --> S["SetStaticDefaults()<br/>once, title screen"]
+    S --> P["AddRecipeGroups() / AddRecipes() / PostSetupContent()<br/>once, content ready"]
+    S --> D["SetDefaults(item)<br/>each item that spawns"]
+    D --> U["in the inventory: UpdateInventory<br/>in hand: HoldItem, HoldStyle, HoldoutOffset<br/>using: CanUseItem → UseItem → UseStyle<br/>shooting: CanShoot → ModifyShootStats → Shoot<br/>equipped: UpdateEquip, UpdateAccessory<br/>on the ground: PreUpdateInWorld → PostUpdateInWorld, PostUpdate, GetAlpha"]
 ```
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `SetStaticDefaults()` | Uma vez, com o tipo já no jogo. Para tabelas por tipo (`Terraria.ID.ItemID.Sets...[this.Type]`). |
-| `SetDefaults(item)` | Todo item deste tipo que nasce. Aqui vão os atributos. |
-| `AddRecipeGroups()` | Uma vez, antes de qualquer receita (de todos os mods). |
-| `AddRecipes()` | Uma vez, quando as receitas do jogo já existem. |
-| `PostSetupContent()` | Uma vez, com todo o conteúdo de mod no jogo. |
-| `OnCraft(item, player, recipe)` | Ao criar este item no menu; `item` é o que o jogador vai receber, e ainda dá para mudar. |
-| `ModifyTooltipLines()` | Uma vez por idioma, com `this.TooltipLines` preenchido: mude as linhas. |
-| `ModifyTooltips(item, tooltips)` | Toda vez que o tooltip aparece (ver [Tooltip](#tooltip)). |
-| `PreDrawTooltip(item, lines, x, y)`, `PostDrawTooltip(item, lines)` | O desenho do tooltip inteiro (ver [Desenhar o tooltip](#desenhar-o-tooltip)). |
-| `PreDrawTooltipLine(item, line, yOffset)`, `PostDrawTooltipLine(item, line)` | O desenho de cada linha. |
-| `CanUseItem(item, player)` | `false` impede o uso. |
-| `UseItem(item, player)` | A cada uso. Devolva `true` quando o item fez algo só aqui (invocar um chefe): conta como usado e o consumível é gasto. |
-| `HoldItem(item, player)` | Todo quadro com o item na mão. |
-| `UseStyle(...)`, `HoldStyle(...)` | Todo quadro de uso / de segurar, depois do estilo do jogo. |
-| `HoldoutOffset(item, player)` | Desloca a arma na mão: devolva `{ X, Y }` em pixels. |
-| `CanShoot(item, player)` | `false`: usa, mas não atira. |
-| `ModifyShootStats(item, player, stats)` | Antes de cada projétil: mude `stats.position`, `velocity`, `type`, `damage`, `knockBack`. |
-| `Shoot(item, player, position, velocity, type, damage, knockBack)` | `false`: o projétil do jogo não nasce (crie os seus aqui). |
-| `CanHitNPC(item, player, target)`, `ModifyHitNPC(item, player, target, modifiers)`, `OnHitNPC(item, player, target, hit, damageDone)` | O golpe corpo a corpo num NPC; `CanHitPvp`, `ModifyHitPvp`, `OnHitPvp` no PvP. Ver [Golpes](16-golpes.md). |
-| `UpdateInventory(item, player)` | Todo quadro, no inventário. |
-| `UpdateEquip(item, player)`, `UpdateAccessory(item, player, vanity, hideVisual)` | Todo quadro, equipado. No acessório, `vanity` é o slot de vaidade (só o visual) e `hideVisual` o olho fechado. |
-| `GetAlpha(item, lightColor)` | No chão: devolva a `Color` com que ele é desenhado (`Color.White` = brilha no escuro). O `item` só tem posição (`Center`) quando é o do chão; no inventário e na loja vem o `Item` sem posição: luz e poeira vão no `PostUpdate`. |
-| `PostUpdate(item)` | A cada quadro, com o item no chão (`item` é a `WorldItem`: `Center`, `position`, `velocity`). Lugar da luz e da poeira, como a da Alma de Exemplo. |
-| `PreUpdateInWorld(item, worldItem)`, `PostUpdateInWorld(item, worldItem)` | A cada quadro, em volta da atualização do item no chão (queda, água, ímã do jogador). `item` é o `Item`; `worldItem` é a `WorldItem` que o leva (`Center`, `position`, `velocity`). `false` no `Pre` pula a atualização do jogo naquele quadro (o item fica parado); o `Post` roda igual. No `GlobalItem` também, para qualquer item no chão. |
-| `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Vara de pesca: de onde a linha sai e a cor (ver [Vara de pesca](#vara-de-pesca)). |
-| `CanPickup`, `OnPickup`, `ItemSpace`, `GrabRange`, `GrabStyle` | A coleta do chão (ver [Pegar do chão](#pegar-do-chão)). |
+| `SetStaticDefaults()` | Once, with the type already in the game. For per-type tables (`Terraria.ID.ItemID.Sets...[this.Type]`). |
+| `SetDefaults(item)` | Every item of this type that spawns. The stats go here. |
+| `AddRecipeGroups()` | Once, before any recipe (from every mod). |
+| `AddRecipes()` | Once, when the game's recipes already exist. |
+| `PostSetupContent()` | Once, with all mod content in the game. |
+| `OnCraft(item, player, recipe)` | When crafting this item from the menu; `item` is what the player will receive, and it can still be changed. |
+| `ModifyTooltipLines()` | Once per language, with `this.TooltipLines` filled in: change the lines. |
+| `ModifyTooltips(item, tooltips)` | Every time the tooltip shows up (see [Tooltip](#tooltip)). |
+| `PreDrawTooltip(item, lines, x, y)`, `PostDrawTooltip(item, lines)` | Drawing the whole tooltip (see [Drawing the tooltip](#drawing-the-tooltip)). |
+| `PreDrawTooltipLine(item, line, yOffset)`, `PostDrawTooltipLine(item, line)` | Drawing each line. |
+| `CanUseItem(item, player)` | `false` prevents use. |
+| `UseItem(item, player)` | On each use. Return `true` when the item did something only here (summoning a boss): it counts as used and a consumable is spent. |
+| `HoldItem(item, player)` | Every frame with the item in hand. |
+| `UseStyle(...)`, `HoldStyle(...)` | Every frame of use / of holding, after the game's style. |
+| `HoldoutOffset(item, player)` | Shifts the weapon in hand: return `{ X, Y }` in pixels. |
+| `CanShoot(item, player)` | `false`: uses, but does not shoot. |
+| `ModifyShootStats(item, player, stats)` | Before each projectile: change `stats.position`, `velocity`, `type`, `damage`, `knockBack`. |
+| `Shoot(item, player, position, velocity, type, damage, knockBack)` | `false`: the game's projectile does not spawn (create yours here). |
+| `CanHitNPC(item, player, target)`, `ModifyHitNPC(item, player, target, modifiers)`, `OnHitNPC(item, player, target, hit, damageDone)` | The melee hit on an NPC; `CanHitPvp`, `ModifyHitPvp`, `OnHitPvp` in PvP. See [Hits](16-golpes.md). |
+| `UpdateInventory(item, player)` | Every frame, in the inventory. |
+| `UpdateEquip(item, player)`, `UpdateAccessory(item, player, vanity, hideVisual)` | Every frame, equipped. For accessories, `vanity` is the vanity slot (visuals only) and `hideVisual` the closed eye. |
+| `GetAlpha(item, lightColor)` | On the ground: return the `Color` it is drawn with (`Color.White` = glows in the dark). `item` only has a position (`Center`) when it is the one on the ground; in the inventory and shop it is an `Item` without a position: light and dust go in `PostUpdate`. |
+| `PostUpdate(item)` | Every frame, with the item on the ground (`item` is the `WorldItem`: `Center`, `position`, `velocity`). The place for light and dust, like the Example Soul's. |
+| `PreUpdateInWorld(item, worldItem)`, `PostUpdateInWorld(item, worldItem)` | Every frame, around the update of the item on the ground (falling, water, the player's magnet). `item` is the `Item`; `worldItem` is the `WorldItem` carrying it (`Center`, `position`, `velocity`). `false` in `Pre` skips the game's update for that frame (the item stays still); `Post` runs anyway. In `GlobalItem` too, for any item on the ground. |
+| `ModifyFishingLine(item, bobber, lineOriginOffset, lineColor)` | Fishing rod: where the line comes from and its color (see [Fishing rod](#fishing-rod)). |
+| `CanPickup`, `OnPickup`, `ItemSpace`, `GrabRange`, `GrabStyle` | Picking up from the ground (see [Picking up](#picking-up-from-the-ground)). |
 
-Só os métodos que você escrever custam alguma coisa: o hook do jogo por trás
-de cada um só é instalado quando alguma classe o sobrescreve, e quase todos só
-entram no JS para **itens de mod** (ver o [guia de custo](03-custo-e-desempenho.md#as-classes-de-mod-já-são-econômicas)).
+Only the methods you write cost anything: the game hook behind each one is
+only installed when some class overrides it, and almost all of them only
+enter JS for **mod items** (see the [cost guide](03-custo-e-desempenho.md#mod-classes-are-already-economical)).
 
-## Pegar do chão
+## Picking up from the ground
 
-Os métodos da coleta, como no tModLoader. `worldItem` é a `WorldItem` no chão
-(`Center`, `position`, `velocity`, e o `Item` em `worldItem.inner`); `player`,
-quem pega.
+The pickup methods, as in tModLoader. `worldItem` is the `WorldItem` on the
+ground (`Center`, `position`, `velocity`, and the `Item` in
+`worldItem.inner`); `player`, whoever picks it up.
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `CanPickup(worldItem, player)` | `false`: o jogador não pega nem puxa o item. |
-| `OnPickup(worldItem, player)` | Ao pegar, no aparelho de quem pega. `false`: o item some sem entrar no inventário. |
-| `ItemSpace(item, player)` | `true`: pega mesmo com o inventário cheio. Junto do `OnPickup`, que o consome. |
-| `GrabRange(worldItem, player, grabRange)` | O alcance da coleta, em pixels (`grabRange` é `Ref`: some ou tire do alcance do jogo). |
-| `GrabStyle(worldItem, player)` | `true`: o mod move o item até o jogador (mude o `worldItem.velocity`) e o jogo não puxa. |
+| `CanPickup(worldItem, player)` | `false`: the player neither picks up nor pulls the item. |
+| `OnPickup(worldItem, player)` | On pickup, on the picker's device. `false`: the item disappears without entering the inventory. |
+| `ItemSpace(item, player)` | `true`: picks it up even with a full inventory. Goes with `OnPickup`, which consumes it. |
+| `GrabRange(worldItem, player, grabRange)` | The pickup range, in pixels (`grabRange` is a `Ref`: add to or subtract from the game's range). |
+| `GrabStyle(worldItem, player)` | `true`: the mod moves the item to the player (change `worldItem.velocity`) and the game does not pull it. |
 
-Um coração de mod, que cura e some, como o do jogo:
+A mod heart that heals and disappears, like the game's:
 
 ```js
 export class LifeOrb extends ModItem {
-    ItemSpace(item, player) { return true; }   // pega com o inventário cheio
+    ItemSpace(item, player) { return true; }   // picks up with a full inventory
     GrabRange(worldItem, player, grabRange) { grabRange.value += 100; }
     OnPickup(worldItem, player) {
         player.Heal(20);
-        return false;   // não entra no inventário
+        return false;   // does not enter the inventory
     }
 }
 ```
 
-Com `ItemID.Sets.IsAPickup[this.Type] = true` no `SetStaticDefaults` (o que
-corações e estrelas têm), o próprio jogo pega com o inventário cheio, sem o
-`ItemSpace`. O `ExamplePickup` do Example Mod é assim: dá 10 segundos de Defesa,
-vem de mais longe com a Poção de Alcance Cardíaco (`GrabRange`) e cai dos
-inimigos como os corações (`Common/GlobalNPCs/ExamplePickupGlobalNPC.js`).
+With `ItemID.Sets.IsAPickup[this.Type] = true` in `SetStaticDefaults` (what
+hearts and stars have), the game itself picks it up with a full inventory,
+without `ItemSpace`. The Example Mod's `ExamplePickup` works like that: it
+gives 10 seconds of Ironskin, comes from farther away with the Heartreach
+Potion (`GrabRange`) and drops from enemies like hearts
+(`Common/GlobalNPCs/ExamplePickupGlobalNPC.js`).
 
-No `GlobalItem`, os mesmos métodos valem para qualquer item (e para todo item
-no alcance o hook entra no JS). No celular, a conta do alcance está embutida
-no `GrabItems` do jogo: um alcance maior que o do jogo é puxado pelo loader, e
-um menor faz o jogo ignorar o item fora dele (encostar ainda pega).
+In `GlobalItem`, the same methods apply to any item (and for every item in
+range the hook enters JS). On mobile, the range math is baked into the game's
+`GrabItems`: a range larger than the game's is pulled by the loader, and a
+smaller one makes the game ignore the item outside it (touching it still picks
+it up).
 
-## Atalhos
+## Shortcuts
 
 ```js
-this.SetWeaponValues(50, 6, 6);        // dano, repulsão, crítico
-this.SetDefaultWeaponStyle(20, true);  // useTime (e useAnimation), autoReuse
-this.SetShopValues(ItemRarityID.Green, Terraria.Item.sellPrice(0, 1, 0, 0));  // raridade, preço
-this.CloneDefaults(Terraria.ID.ItemID.Minishark);            // copia um item do jogo
+this.SetWeaponValues(50, 6, 6);        // damage, knockback, crit
+this.SetDefaultWeaponStyle(20, true);  // useTime (and useAnimation), autoReuse
+this.SetShopValues(ItemRarityID.Green, Terraria.Item.sellPrice(0, 1, 0, 0));  // rarity, price
+this.CloneDefaults(Terraria.ID.ItemID.Minishark);            // copies a vanilla item
 this.DefaultToPlaceableTile(tileType);
 this.DefaultToFood(buffType, buffTime);
-this.DefaultToGolfBall(projType);                            // tee e taco, como as do jogo
-this.DefaultToWhip(projType, dano, repulsao, velocidade);
-this.DefaultToSpear(projType, velocidade, tempo);
-this.SetItemAnimation(4, 6);                                 // no SetStaticDefaults: 4 quadros, 6 ticks cada
-ModItem.sellPrice(platina, ouro, prata, cobre);
-ModItem.buyPrice(platina, ouro, prata, cobre);
+this.DefaultToGolfBall(projType);                            // tee and club, like the game's
+this.DefaultToWhip(projType, damage, knockback, speed);
+this.DefaultToSpear(projType, speed, time);
+this.SetItemAnimation(4, 6);                                 // in SetStaticDefaults: 4 frames, 6 ticks each
+ModItem.sellPrice(platinum, gold, silver, copper);
+ModItem.buyPrice(platinum, gold, silver, copper);
 ```
 
-Raridade: `ItemRarityID.Green`, `ItemRarityID.Pink`... (este Terraria não traz
-os nomes; o Bunny Loader traz).
+Rarity: `ItemRarityID.Green`, `ItemRarityID.Pink`... (this Terraria does not
+ship the names; Bunny Loader does).
 
-## Uma arma que atira
+## A weapon that shoots
 
 ```js
 export class ExampleGun extends ModItem {
     SetDefaults() {
         this.Item.ranged = true;
-        this.Item.shoot = Terraria.ID.ProjectileID.PurificationPowder;  // trocado pela munição
+        this.Item.shoot = Terraria.ID.ProjectileID.PurificationPowder;  // replaced by the ammo
         this.Item.shootSpeed = 10;
         this.Item.useAmmo = Terraria.ID.AmmoID.Bullet;
         this.SetWeaponValues(20, 5, 0);
@@ -160,25 +162,27 @@ export class ExampleGun extends ModItem {
 }
 ```
 
-E a munição aponta para o projétil de mod:
+And the ammo points to the mod projectile:
 
 ```js
 this.Item.shoot = ModContent.ProjectileType('ExampleBulletProjectile');
 this.Item.ammo = Terraria.ID.AmmoID.Bullet;
 ```
 
-### O tiro, passo a passo
+### Shooting, step by step
 
-Quando o jogo vai atirar com um item de mod:
+When the game is about to shoot with a mod item:
 
-1. `CanShoot(item, player)`: `false`, e o uso acontece sem projétil;
-2. para **cada** projétil que o jogo criaria (a espingarda cria vários):
-   `ModifyShootStats(item, player, stats)`, com `stats.position`, `velocity`,
-   `type` (já trocado pela munição), `damage` e `knockBack`, que você muda;
-3. `Shoot(item, player, position, velocity, type, damage, knockBack)`: devolva
-   `false` para o jogo não criar o projétil dele, e crie os seus. `position` e
-   `velocity` são `Vector2` do jogo: dá para repassá-los direto a um
-   `NewProjectile`.
+1. `CanShoot(item, player)`: `false`, and the use happens without a
+   projectile;
+2. for **each** projectile the game would create (the shotgun creates
+   several): `ModifyShootStats(item, player, stats)`, with `stats.position`,
+   `velocity`, `type` (already replaced by the ammo), `damage` and
+   `knockBack`, which you change;
+3. `Shoot(item, player, position, velocity, type, damage, knockBack)`: return
+   `false` so the game does not create its projectile, and create yours.
+   `position` and `velocity` are game `Vector2`s: you can pass them straight
+   to a `NewProjectile`.
 
 ```js
 const NewProjectile = Terraria.Projectile['int NewProjectile(IEntitySource spawnSource, float X, float Y, float SpeedX, float SpeedY, int Type, int Damage, float KnockBack, int Owner, float ai0, float ai1, float ai2, NewProjectileModifier modifer)'];
@@ -189,14 +193,14 @@ Shoot(item, player, position, velocity, type, damage, knockBack) {
         NewProjectile(player.GetProjectileSource_Item(item), position.X, position.Y, v.X, v.Y,
                       type, damage, knockBack, player.whoAmI, 0, 0, 0, null);
     }
-    return false;   // os três acima no lugar do tiro do jogo
+    return false;   // the three above instead of the game's shot
 }
 ```
 
-## Acessórios e armaduras
+## Accessories and armor
 
-`UpdateEquip` roda todo quadro com o item equipado; `UpdateAccessory`, só para
-acessório, com dois parâmetros a mais:
+`UpdateEquip` runs every frame with the item equipped; `UpdateAccessory`, only
+for accessories, with two extra parameters:
 
 ```js
 export class ExampleShield extends ModItem {
@@ -206,41 +210,41 @@ export class ExampleShield extends ModItem {
     }
 
     UpdateAccessory(item, player, vanity, hideVisual) {
-        if (vanity) return;                 // no slot de vaidade: só o visual
+        if (vanity) return;                 // in the vanity slot: visuals only
         player.GetModPlayer(ExampleDashPlayer).DashAccessoryEquipped = true;
     }
 }
 ```
 
-O acessório costuma ligar um campo num `ModPlayer`, e o `ModPlayer` faz o
-efeito ([guia 8](08-jogador-e-buffs.md)). O `ResetEffects` do `ModPlayer`
-desliga o campo a cada quadro; se o acessório ainda estiver equipado, ele liga
-de novo.
+An accessory usually turns on a field in a `ModPlayer`, and the `ModPlayer`
+does the effect ([guide 8](08-jogador-e-buffs.md)). The `ModPlayer`'s
+`ResetEffects` turns the field off every frame; if the accessory is still
+equipped, it turns it back on.
 
-### A textura no corpo
+### The texture on the body
 
-Como o `[AutoloadEquip]` do tModLoader, mas pelo nome do arquivo: ao lado da
-textura do item, `<Textura>_<tipo>.png` vira a textura vestida. O
-`ExampleHelmet.png` tem o `ExampleHelmet_Head.png`; o `ExampleWings.png`, o
-`ExampleWings_Wings.png`. Os tipos (`EquipType`): `Head`, `Body`, `Legs`,
+Like tModLoader's `[AutoloadEquip]`, but by file name: next to the item's
+texture, `<Texture>_<type>.png` becomes the worn texture.
+`ExampleHelmet.png` has `ExampleHelmet_Head.png`; `ExampleWings.png`,
+`ExampleWings_Wings.png`. The types (`EquipType`): `Head`, `Body`, `Legs`,
 `HandsOn`, `HandsOff`, `Back`, `Front`, `Shoes`, `Waist`, `Wings`, `Shield`,
 `Neck`, `Face`, `Beard`, `Balloon`.
 
-Cada textura ganha um slot depois dos do jogo (`Item.headSlot`, `wingSlot`...),
-já posto no `SetDefaults` do item. O corpo usa a folha composta do 1.4
-(`ArmorIDs.Body.Sets.UsesNewFramingCode`), como no tModLoader. No
-`SetStaticDefaults`, o `this.Item` é a amostra do jogo, com os slots:
+Each texture gets a slot after the game's (`Item.headSlot`, `wingSlot`...),
+already set in the item's `SetDefaults`. The body uses 1.4's composite sheet
+(`ArmorIDs.Body.Sets.UsesNewFramingCode`), as in tModLoader. In
+`SetStaticDefaults`, `this.Item` is the game's sample, with the slots:
 
 ```js
 export class ExampleWings extends ModItem {
     SetStaticDefaults() {
         const stats = Terraria.ID.ArmorIDs.Wing.Sets.Stats[this.Item.wingSlot];
-        stats.FlyTime = 180;              // o WingStats(180, 9, 2.5) do tModLoader
+        stats.FlyTime = 180;              // tModLoader's WingStats(180, 9, 2.5)
         stats.AccRunSpeedOverride = 9;
         stats.AccRunAccelerationMult = 2.5;
     }
 
-    // Os cinco `ref` do WingMovement do jogo (Ref, .value).
+    // The five `ref`s of the game's WingMovement (Ref, .value).
     VerticalWingSpeeds(item, player, ascentWhenFalling, ascentWhenRising, maxCanAscendMultiplier, maxAscentMultiplier, constantAscend) {
         ascentWhenFalling.value = 0.85;
         ascentWhenRising.value = 0.15;
@@ -251,28 +255,28 @@ export class ExampleWings extends ModItem {
 }
 ```
 
-`EquipLoader.GetEquipSlot('ExampleHelmet', EquipType.Head)` devolve o slot
-(-1 se não há). Os acessórios guardam o slot num `sbyte`: até 127 por tipo,
-contando os do jogo. `SetWingStats(tempo, velocidade, aceleração, ...)` é o
-atalho do WingStats (o do ExMod do TL).
+`EquipLoader.GetEquipSlot('ExampleHelmet', EquipType.Head)` returns the slot
+(-1 if there is none). Accessories store the slot in an `sbyte`: up to 127
+per type, counting the game's. `SetWingStats(time, speed, acceleration, ...)`
+is the WingStats shortcut (TL's ExMod one).
 
-As asas ainda têm `HorizontalWingSpeeds(item, player, speed, acceleration)`
-(a corrida no ar, dois `Ref`) e `WingUpdate(player, inUse)`: `true` diz que o
-mod anima as asas, e o `WingFrame` do jogo não roda.
+Wings also have `HorizontalWingSpeeds(item, player, speed, acceleration)`
+(running in the air, two `Ref`s) and `WingUpdate(player, inUse)`: `true` says
+the mod animates the wings, and the game's `WingFrame` does not run.
 
-#### Registrar à mão
+#### Registering by hand
 
-Com `static AutoloadEquip = [EquipType.Body]` só os tipos da lista são achados
-pelo nome; `[]` desliga (o `[AutoloadEquip]` do tModLoader). O resto, no
-`Load()` do item, com `EquipLoader.AddEquipTexture(this.Mod, textura, tipo,
-item, nome, equipTexture)`: o slot só existe depois, então
-`GetEquipSlot(this.Mod, nome, tipo)` vale do `SetStaticDefaults` em diante. A
-`EquipTexture` própria muda o comportamento só daquela textura:
+With `static AutoloadEquip = [EquipType.Body]` only the listed types are found
+by name; `[]` turns it off (tModLoader's `[AutoloadEquip]`). The rest goes in
+the item's `Load()`, with `EquipLoader.AddEquipTexture(this.Mod, texture,
+type, item, name, equipTexture)`: the slot only exists afterwards, so
+`GetEquipSlot(this.Mod, name, type)` works from `SetStaticDefaults` on. A
+custom `EquipTexture` changes the behavior of that texture only:
 
 ```js
 class BlockyHead extends EquipTexture {
-    IsVanitySet(head, body, legs) { return true; }   // conjunto de vaidade sozinha
-    UpdateVanitySet(player) { /* faíscas */ }
+    IsVanitySet(head, body, legs) { return true; }   // a vanity set on its own
+    UpdateVanitySet(player) { /* sparks */ }
 }
 
 export class ExampleCostume extends ModItem {
@@ -286,18 +290,18 @@ export class ExampleCostume extends ModItem {
 }
 ```
 
-O visual do corpo vem das tabelas do tModLoader, que aqui são do Bunny
-Loader: `ArmorIDs.Head.Sets.DrawHead` (o `HidesHead` do jogo, ao contrário),
+The body's look comes from tModLoader's tables, which here belong to Bunny
+Loader: `ArmorIDs.Head.Sets.DrawHead` (the game's `HidesHead`, inverted),
 `ArmorIDs.Body.Sets.HidesTopSkin`/`HidesBottomSkin`/`HidesHands`/`HidesArms`
-e `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin`, aplicadas depois do
-`PlayerDrawSet.BoringSetup` do jogo.
+and `ArmorIDs.Legs.Sets.HidesTopSkin`/`HidesBottomSkin`, applied after the
+game's `PlayerDrawSet.BoringSetup`.
 
-#### Cabelo e chapéus
+#### Hair and hats
 
-`Player.GetHairSettings` consulta `ArmorIDs.Head.Sets.DrawFullHair`,
-`DrawHatHair` e `DrawsBackHairWithoutHeadgear`, com os padrões do tModLoader.
-Esses Sets usam o slot de equipamento (`Item.headSlot`), já disponível no
-`SetStaticDefaults`. Para um chapéu desenhado por cima do cabelo:
+`Player.GetHairSettings` consults `ArmorIDs.Head.Sets.DrawFullHair`,
+`DrawHatHair` and `DrawsBackHairWithoutHeadgear`, with tModLoader's defaults.
+These Sets use the equipment slot (`Item.headSlot`), already available in
+`SetStaticDefaults`. For a hat drawn over the hair:
 
 ```js
 SetStaticDefaults() {
@@ -305,47 +309,46 @@ SetStaticDefaults() {
 }
 ```
 
-`DrawFullHair` mostra o cabelo completo; `DrawHatHair` usa a textura de cabelo
-para chapéus (`PlayerHairAlt`). `DrawsBackHairWithoutHeadgear` permite o cabelo
-de trás inteiro. `ArmorIDs.Face.Sets.PreventHairDraw` e `player.faceHead` podem
-ocultar o cabelo.
+`DrawFullHair` shows the full hair; `DrawHatHair` uses the hat hair texture
+(`PlayerHairAlt`). `DrawsBackHairWithoutHeadgear` allows the full back hair.
+`ArmorIDs.Face.Sets.PreventHairDraw` and `player.faceHead` can hide the hair.
 
-O penteado usa o próprio tipo em `Terraria.ID.HairID.Sets.DrawBackHair`. Um
-`ModHair` pode marcar `HairID.Sets.DrawBackHair[this.Type] = true` no seu
-`SetStaticDefaults` para desenhar o cabelo atrás do jogador. Os Sets novos
-retornam `false` para slots de mod ainda não marcados.
+The hairstyle uses its own type in `Terraria.ID.HairID.Sets.DrawBackHair`. A
+`ModHair` can set `HairID.Sets.DrawBackHair[this.Type] = true` in its
+`SetStaticDefaults` to draw the hair behind the player. The new Sets return
+`false` for mod slots not yet set.
 
-#### Visual: FrameEffects, vaidade e manto
+#### Visuals: FrameEffects, vanity and robes
 
-- `ModPlayer.FrameEffects(player)` roda a cada quadro depois de o jogo montar
-  o que se desenha: trocar `player.head`/`body`/`legs` para um slot muda o
-  desenho (o `ExampleCostumePlayer` veste o fantasia assim).
-- `IsVanitySet(head, body, legs)` recebe os SLOTS desenhados (não itens) e é
-  perguntado à textura de cada um; se `true`, `PreUpdateVanitySet(player)`
-  (antes do FrameEffects), `UpdateVanitySet(player)` (depois) e
-  `ArmorSetShadows(player)` (os `armorEffectDraw*`). Sem sobrescrever, é o
-  `IsArmorSet` dos itens desses slots.
-- `SetMatch(male, equipSlot, robes)` decide o slot desenhado da peça. O manto
-  põe `robes.value = true` e as pernas dele em `equipSlot.value` (o
+- `ModPlayer.FrameEffects(player)` runs every frame after the game assembles
+  what gets drawn: switching `player.head`/`body`/`legs` to a slot changes the
+  drawing (`ExampleCostumePlayer` puts on the costume this way).
+- `IsVanitySet(head, body, legs)` receives the drawn SLOTS (not items) and is
+  asked of each one's texture; if `true`, `PreUpdateVanitySet(player)` (before
+  FrameEffects), `UpdateVanitySet(player)` (after) and
+  `ArmorSetShadows(player)` (the `armorEffectDraw*` fields). Without an
+  override, it is the `IsArmorSet` of those slots' items.
+- `SetMatch(male, equipSlot, robes)` decides the piece's drawn slot. The robe
+  sets `robes.value = true` and its legs in `equipSlot.value` (the
   `ExampleRobe`).
-- `EquipFrameEffects(player, type)` roda com a textura do item vestida;
-  `UpdateVanity(item, player)`, com o acessório no slot de vaidade.
+- `EquipFrameEffects(player, type)` runs with the item's texture worn;
+  `UpdateVanity(item, player)`, with the accessory in the vanity slot.
 
-O `FrameEffects` pode mudar o conjunto entre o `PreUpdateVanitySet` e o
-`UpdateVanitySet`: o ExampleCostume usa `ExampleCostume` seco e `BlockyAlt`
-quando `player.wet` é verdadeiro. Um `GlobalItem.IsVanitySet` que conta os
-callbacks dos dois visuais precisa reconhecer os dois slots de cabeça.
+`FrameEffects` can change the set between `PreUpdateVanitySet` and
+`UpdateVanitySet`: ExampleCostume uses `ExampleCostume` when dry and
+`BlockyAlt` when `player.wet` is true. A `GlobalItem.IsVanitySet` that counts
+the callbacks of both looks needs to recognize both head slots.
 
-O manequim (`TEDisplayDoll`) desenha as peças de mod como o jogador, e a
-armadura de mod volta no lugar ao carregar o personagem (`tools/tests/armor`
-e `armorsave`).
+The mannequin (`TEDisplayDoll`) draws mod pieces like the player does, and mod
+armor goes back into place when the character loads (`tools/tests/armor` and
+`armorsave`).
 
-### Conjunto de armadura
+### Armor sets
 
-`IsArmorSet(head, body, legs)` roda para cada peça vestida que é de mod; se
-devolver `true`, o `UpdateArmorSet(item, player)` dela dá o bônus. O texto do
-bônus vai em `player.setBonus`: o jogo mostra a linha "Bônus de Armadura" no
-tooltip das peças vestidas.
+`IsArmorSet(head, body, legs)` runs for each worn piece that is a mod item; if
+it returns `true`, its `UpdateArmorSet(item, player)` grants the bonus. The
+bonus text goes in `player.setBonus`: the game shows the "Set bonus" line in
+the tooltip of the worn pieces.
 
 ```js
 export class ExampleHelmet extends ModItem {
@@ -364,34 +367,34 @@ export class ExampleHelmet extends ModItem {
 }
 ```
 
-Esta versão do jogo não tem `DamageClass`: o dano é por classe
+This game version has no `DamageClass`: damage is per class
 (`meleeDamage`, `rangedDamage`, `magicDamage`, `minionDamage`).
 
-Para conjuntos de qualquer item (também os do jogo), o `GlobalItem`:
-`IsArmorSet(head, body, legs)` devolve o NOME do conjunto (`''` = nenhum), e
-`UpdateArmorSet(player, nome)` dá o efeito. Os de vaidade, sombras, `SetMatch`
-e asas também existem no `GlobalItem`, como no tModLoader.
+For sets made of any items (including vanilla ones), `GlobalItem`:
+`IsArmorSet(head, body, legs)` returns the set's NAME (`''` = none), and
+`UpdateArmorSet(player, name)` gives the effect. The vanity, shadow,
+`SetMatch` and wing methods also exist in `GlobalItem`, as in tModLoader.
 
-No multijogador vale o de sempre para item de mod: os dois lados com os mesmos
-mods, na mesma ordem. O jogo manda o ITEM de cada casa da armadura, e cada
-aparelho monta os slots sozinho (conferido em `tools/tests/mparmor`).
+In multiplayer the usual rule for mod items applies: both sides with the same
+mods, in the same order. The game sends the ITEM of each armor slot, and each
+device builds the slots on its own (checked in `tools/tests/mparmor`).
 
-## Prefixos
+## Prefixes
 
-Um prefixo novo é uma classe que estende `ModPrefix` (em `Content/Prefixes/`,
-por exemplo). O `ExamplePrefix` do Example Mod, como o do tModLoader:
+A new prefix is a class that extends `ModPrefix` (in `Content/Prefixes/`, for
+example). The Example Mod's `ExamplePrefix`, like tModLoader's:
 
 ```js
 export class ExamplePrefix extends ModPrefix {
     get Power() { return 1; }
 
-    // Que itens podem ganhar: Melee, Ranged, Magic, Summon, AnyWeapon, Accessory ou Custom.
+    // Which items can get it: Melee, Ranged, Magic, Summon, AnyWeapon, Accessory or Custom.
     get Category() { return PrefixCategory.AnyWeapon; }
 
-    // O peso na rolagem; cada prefixo do jogo pesa 1.
+    // The weight in the roll; each vanilla prefix weighs 1.
     RollChance(item) { return 5; }
 
-    // Os `ref` do tModLoader chegam como Ref.
+    // tModLoader's `ref`s arrive as Ref.
     SetStats(damageMult, knockbackMult, useTimeMult, scaleMult, shootSpeedMult, manaMult, critBonus) {
         damageMult.value *= 1 + 0.20 * this.Power;
     }
@@ -402,25 +405,26 @@ export class ExamplePrefix extends ModPrefix {
 }
 ```
 
-O nome vem de `PrefixName.ExamplePrefix` no `Localization/<cultura>.json` (ou
-`Prefixes.ExamplePrefix.DisplayName`, como no tModLoader). O jogo monta o nome
-do item com ele, na ordem do idioma (em português: "de Exemplo Lâmina da
-Noite").
+The name comes from `PrefixName.ExamplePrefix` in `Localization/<culture>.json`
+(or `Prefixes.ExamplePrefix.DisplayName`, as in tModLoader). The game builds
+the item's name with it, in the language's word order (in English: "Example
+Night's Edge").
 
-O resto é o jogo que faz, porque o `Item.Prefix` do celular é o do PC e chama
-por método os pedaços certos: o Bunny Loader põe o prefixo na lista do item
-(`GetRollablePrefixes`), no sorteio com o peso (`RollAPrefix`) e nos status
-(`TryGetPrefixStatMultipliersForItem`); o jogo aplica dano, velocidade,
-tamanho, mana e crítico, sobe a raridade, muda o preço e escreve no tooltip o
-"+20% de dano", como faz com os dele. Por isso vale também a regra do jogo: se
-algum status que o prefixo mexe não mudar de verdade no item (10% de uma arma
-de dano 3), o prefixo não pega nesse item. A reforja, o item criado e o baú do
-mundo gerado rolam os prefixos de mod do mesmo jeito.
+The rest is done by the game, because mobile's `Item.Prefix` is the PC one and
+calls the right pieces as methods: Bunny Loader puts the prefix in the item's
+list (`GetRollablePrefixes`), in the weighted roll (`RollAPrefix`) and in the
+stats (`TryGetPrefixStatMultipliersForItem`); the game applies damage, speed,
+size, mana and crit, raises the rarity, changes the price and writes the
+"+20% damage" in the tooltip, as it does with its own. That is why the game's
+rule also applies: if some stat the prefix touches does not actually change on
+the item (10% of a weapon with 3 damage), the prefix does not take on that
+item. Reforging, crafted items and the generated world's chests roll mod
+prefixes the same way.
 
-Para o que não é status do jogo: `Apply(item)` (depois dos status),
-`ApplyAccessoryEffects(player)` (a cada quadro, no acessório equipado) e
-`GetTooltipLines(item)` (linhas a mais; o jogo só escreve as linhas dos
-prefixos dele). O de acessório do Example Mod:
+For what is not a game stat: `Apply(item)` (after the stats),
+`ApplyAccessoryEffects(player)` (every frame, on the equipped accessory) and
+`GetTooltipLines(item)` (extra lines; the game only writes the lines of its
+own prefixes). The Example Mod's accessory one:
 
 ```js
 export class ExampleAccessoryPrefix extends ModPrefix {
@@ -432,25 +436,26 @@ export class ExampleAccessoryPrefix extends ModPrefix {
 
     GetTooltipLines(item) {
         const line = new TooltipLine(this.Mod, 'PrefixAccDefense', '+4' + Terraria.Lang.tip[25].Value);
-        line.IsModifier = true;   // a cor verde das linhas de prefixo
+        line.IsModifier = true;   // the green color of prefix lines
         return [line];
     }
 }
 ```
 
-Um prefixo pode herdar de outro: o `ExampleDerivedPrefix` só troca o `Power`
-(`get Power() { return super.Power * 2; }`) e ganha +40%.
+A prefix can inherit from another: `ExampleDerivedPrefix` only changes `Power`
+(`get Power() { return super.Power * 2; }`) and gets +40%.
 
-### O item de mod e os prefixos
+### Mod items and prefixes
 
-As tabelas do jogo que dizem quem é espada, arma de fogo ou mágica
-(`PrefixLegacy.ItemSets`) não conhecem item de mod. Como no tModLoader, a
-categoria vem da classe do item: `MeleePrefix`, `RangedPrefix`, `MagicPrefix`,
-`SummonPrefix` e `WeaponPrefix` do `ModItem`, com o padrão pelo `melee`,
-`ranged`, `magic` e `summon` do item. Só pega prefixo de arma o item com dano,
-que não é munição nem consumível (no celular todo item tem `maxStack` 9999, então
-não dá para decidir pela pilha). A `ExampleMultiplePrefixCategoryWeapon` é de
-longo alcance e pega os de corpo a corpo e de magia:
+The game tables that say what is a sword, a gun or a magic weapon
+(`PrefixLegacy.ItemSets`) do not know mod items. As in tModLoader, the
+category comes from the item's class: `ModItem`'s `MeleePrefix`,
+`RangedPrefix`, `MagicPrefix`, `SummonPrefix` and `WeaponPrefix`, defaulting
+to the item's `melee`, `ranged`, `magic` and `summon`. Only an item with
+damage that is neither ammo nor a consumable gets weapon prefixes (on mobile
+every item has `maxStack` 9999, so the stack cannot decide it).
+`ExampleMultiplePrefixCategoryWeapon` is ranged and takes melee and magic
+prefixes:
 
 ```js
 MeleePrefix(item) { return true; }
@@ -458,79 +463,81 @@ MagicPrefix(item) { return true; }
 RangedPrefix(item) { return false; }
 ```
 
-`ChoosePrefix(item, rand)` força um prefixo (é o jeito de dar um `Custom`),
-`PrefixChance(item, pre, rand)` impede ou garante, `AllowPrefix(item, pre)`
-tira um prefixo das opções e `ApplyPrefix(item, pre)` roda depois dos status.
-Os quatro também existem no `GlobalItem`, para qualquer item.
+`ChoosePrefix(item, rand)` forces a prefix (it is how to give a `Custom` one),
+`PrefixChance(item, pre, rand)` prevents or guarantees one,
+`AllowPrefix(item, pre)` removes a prefix from the options and
+`ApplyPrefix(item, pre)` runs after the stats. All four also exist in
+`GlobalItem`, for any item.
 
-### Save e multijogador
+### Saving and multiplayer
 
-O jogo guarda o prefixo num byte, e o número de um prefixo de mod depende de
-quais mods estão instalados e em que ordem carregam. O Bunny Loader grava o
-prefixo de mod também pelo nome, no personagem e nos baús: com outro mod
-instalado antes, o item volta com o prefixo certo, e sem o mod dele o item fica
-sem o prefixo até o mod voltar (conferido em `tools/tests/prefix`).
+The game stores the prefix in a byte, and a mod prefix's number depends on
+which mods are installed and in what order they load. Bunny Loader also writes
+mod prefixes by name, in the character and in chests: with another mod
+installed before, the item comes back with the right prefix, and without its
+mod the item stays without the prefix until the mod returns (checked in
+`tools/tests/prefix`).
 
-No multijogador o prefixo viaja como o número de sempre, e cada lado aplica o
-`ModPrefix` sozinho: os dois precisam dos mesmos mods, na mesma ordem, como
-para item de mod (`tools/tests/mpprefix`).
+In multiplayer the prefix travels as the usual number, and each side applies
+the `ModPrefix` on its own: both need the same mods, in the same order, as for
+mod items (`tools/tests/mpprefix`).
 
 ## Tooltip
 
-`ModifyTooltips(item, tooltips)` roda **toda vez** que o tooltip do item
-aparece, com as linhas que o jogo montou: uma lista de `TooltipLine`, cada uma
-com `Mod`, `Name`, `Text`, `OverrideColor`, `IsModifier` e `IsModifierBad`.
-Mude à vontade: troque o texto, pinte a linha inteira com `OverrideColor`,
-insira linhas novas (`splice`) ou esconda as que não quer (`line.Hide()`).
+`ModifyTooltips(item, tooltips)` runs **every time** the item's tooltip shows
+up, with the lines the game built: a list of `TooltipLine`s, each with `Mod`,
+`Name`, `Text`, `OverrideColor`, `IsModifier` and `IsModifierBad`. Change
+them freely: swap the text, paint the whole line with `OverrideColor`, insert
+new lines (`splice`) or hide the ones you do not want (`line.Hide()`).
 
-![O tooltip do ExampleTooltipItem: "Bunny Loader" em onda e arco-íris abaixo do nome, e a descrição em dourado](../imagens/tooltip-colorido.jpg)
+![The ExampleTooltipItem tooltip: "Bunny Loader" waving in rainbow colors below the name, and the description in gold](../imagens/tooltip-colorido.jpg)
 
 ```js
 ModifyTooltips(item, tooltips) {
-    tooltips.splice(1, 0, new TooltipLine(this.Mod, 'Aviso', 'Logo abaixo do nome'));
-    const descricao = tooltips.find((line) => line.Name === TooltipNames.Tooltip(0));
-    if (descricao) descricao.OverrideColor = Color.new(255, 215, 90);
-    const repulsao = tooltips.find((line) => line.Name === TooltipNames.Knockback);
-    if (repulsao) repulsao.Hide();
+    tooltips.splice(1, 0, new TooltipLine(this.Mod, 'Notice', 'Right below the name'));
+    const description = tooltips.find((line) => line.Name === TooltipNames.Tooltip(0));
+    if (description) description.OverrideColor = Color.new(255, 215, 90);
+    const knockback = tooltips.find((line) => line.Name === TooltipNames.Knockback);
+    if (knockback) knockback.Hide();
 }
 ```
 
-As linhas do jogo têm `Mod` `'Terraria'` e os nomes do tModLoader: `ItemName`,
+The game's lines have `Mod` `'Terraria'` and tModLoader's names: `ItemName`,
 `Favorite`, `NoSocial`, `Damage`, `CritChance`, `Speed`, `Knockback`,
 `FishingPower`, `Equipable`, `Vanity`, `Defense`, `PickPower`, `AxePower`,
 `HammerPower`, `TileBoost`, `HealLife`, `HealMana`, `UseMana`, `Placeable`,
-`Ammo`, `Consumable`, `Material`, `Tooltip0`, `Tooltip1`... (a descrição, uma
-por linha), `BuffTime`, `OneDropLogo`, `Expert`, `Master`, `PrefixDamage`,
-`PrefixSpeed`, `PrefixCritChance`... (as do prefixo), `SetBonus`,
-`JourneyResearch`, `Price` e `SpecialPrice`; e as do celular, `ReforgePrice` e
-`CraftingMaterials`. As linhas do `GetTooltipLines` de um prefixo de mod entram
-logo depois das do prefixo do jogo.
+`Ammo`, `Consumable`, `Material`, `Tooltip0`, `Tooltip1`... (the description,
+one per line), `BuffTime`, `OneDropLogo`, `Expert`, `Master`, `PrefixDamage`,
+`PrefixSpeed`, `PrefixCritChance`... (the prefix ones), `SetBonus`,
+`JourneyResearch`, `Price` and `SpecialPrice`; and mobile's own,
+`ReforgePrice` and `CraftingMaterials`. The lines from a mod prefix's
+`GetTooltipLines` go right after the vanilla prefix lines.
 
-Os nomes também estão em `TooltipNames`, para não escrever o texto solto:
-`line.Name === TooltipNames.Damage`. A descrição é `TooltipNames.Tooltip(0)`,
-`TooltipNames.Tooltip(1)`... Nome errado no enum dá `undefined`, e a busca
-não acha nada.
+The names are also in `TooltipNames`, so you do not write the bare text:
+`line.Name === TooltipNames.Damage`. The description is
+`TooltipNames.Tooltip(0)`, `TooltipNames.Tooltip(1)`... A wrong name in the
+enum gives `undefined`, and the search finds nothing.
 
-Para pintar **trechos**, use a tag `[c/RRGGBB:texto]` dentro do texto.
-`TooltipLine.colorTag(texto, cor)` monta a tag de um `Color`, de `{ R, G, B }`
-ou de `'#RRGGBB'`:
-
-```js
-const vermelho = TooltipLine.colorTag('fogo', Color.new(255, 60, 30));
-tooltips.push(new TooltipLine(this.Mod, 'Elemento', 'Dano de ' + vermelho));
-```
-
-Para o **ícone de um item** no meio do texto, `[i:tipo]`, com o número do
-item, do jogo ou de mod. Ele sai do tamanho da letra, em linha de qualquer cor,
-e vale no texto que o jogo desenha com a fonte, como o tooltip e o cabeçalho
-da Config. dos Mods.
+To paint **spans**, use the `[c/RRGGBB:text]` tag inside the text.
+`TooltipLine.colorTag(text, color)` builds the tag from a `Color`, from
+`{ R, G, B }` or from `'#RRGGBB'`:
 
 ```js
-tooltips.push(new TooltipLine(this.Mod, 'Troca', `Troque por [i:${ModContent.ItemType(ExampleItem)}]`));
+const red = TooltipLine.colorTag('fire', Color.new(255, 60, 30));
+tooltips.push(new TooltipLine(this.Mod, 'Element', 'Deals ' + red + ' damage'));
 ```
 
-O logo da One Drop, o dos ioiôs licenciados do jogo, é uma linha sem texto com
-`OneDropLogo = true`. O `ExampleYoyo` põe o dele no fim:
+For an **item icon** in the middle of the text, `[i:type]`, with the item's
+number, vanilla or mod. It comes out at the font's size, in a line of any
+color, and works in text the game draws with the font, like the tooltip and
+the Mod Configuration header.
+
+```js
+tooltips.push(new TooltipLine(this.Mod, 'Trade', `Trade for [i:${ModContent.ItemType(ExampleItem)}]`));
+```
+
+The One Drop logo, the one on the game's licensed yoyos, is a line with no
+text and `OneDropLogo = true`. `ExampleYoyo` puts its own at the end:
 
 ```js
 ModifyTooltips(item, tooltips) {
@@ -540,36 +547,36 @@ ModifyTooltips(item, tooltips) {
 }
 ```
 
-### Desenhar o tooltip
+### Drawing the tooltip
 
-Quatro métodos mexem no desenho, como no tModLoader:
+Four methods touch the drawing, as in tModLoader:
 
-| Método | Quando |
+| Method | When |
 |---|---|
-| `PreDrawTooltip(item, lines, x, y)` | Antes das linhas, com a caixa já desenhada. `x` e `y` são `Ref`: mudar move as linhas. `false` não desenha nenhuma. |
-| `PreDrawTooltipLine(item, line, yOffset)` | Antes de cada linha. `false` não desenha a linha (o mod pode desenhá-la do jeito dele). |
-| `PostDrawTooltipLine(item, line)` | Depois de cada linha, também da que não foi desenhada. |
-| `PostDrawTooltip(item, lines)` | Depois de todas, com as `DrawableTooltipLine`. |
+| `PreDrawTooltip(item, lines, x, y)` | Before the lines, with the box already drawn. `x` and `y` are `Ref`s: changing them moves the lines. `false` draws none of them. |
+| `PreDrawTooltipLine(item, line, yOffset)` | Before each line. `false` does not draw the line (the mod can draw it its own way). |
+| `PostDrawTooltipLine(item, line)` | After each line, including the one that was not drawn. |
+| `PostDrawTooltip(item, lines)` | After all of them, with the `DrawableTooltipLine`s. |
 
-A `line` é uma `DrawableTooltipLine`: tudo da `TooltipLine`, mais `Index`, `X`,
-`Y` (e `OriginalX`, `OriginalY`), `Color` (a cor final, com a transparência do
-tooltip), `Font`, `Rotation`, `Origin`, `BaseScale` e `Spread` (a distância da
-sombra). Mudar `X`, `Y`, `Rotation`, `BaseScale` ou `Spread` no
-`PreDrawTooltipLine` muda o desenho da linha; o texto e as linhas se mudam no
-`ModifyTooltips`.
+The `line` is a `DrawableTooltipLine`: everything from `TooltipLine`, plus
+`Index`, `X`, `Y` (and `OriginalX`, `OriginalY`), `Color` (the final color,
+with the tooltip's transparency), `Font`, `Rotation`, `Origin`, `BaseScale`
+and `Spread` (the shadow distance). Changing `X`, `Y`, `Rotation`,
+`BaseScale` or `Spread` in `PreDrawTooltipLine` changes how the line is drawn;
+text and lines are changed in `ModifyTooltips`.
 
-`yOffset` (um `Ref`, 0 no começo) é o espaço a mais **depois de cada linha**,
-daquela em diante, como no tModLoader: `yOffset.value = 6` numa linha afasta
-todas as seguintes; volte a 0 para parar. A caixa do tooltip é medida antes e
-não cresce com ele.
+`yOffset` (a `Ref`, 0 at the start) is the extra space **after each line**,
+from that one on, as in tModLoader: `yOffset.value = 6` on a line pushes all
+the following ones away; set it back to 0 to stop. The tooltip box is
+measured beforehand and does not grow with it.
 
-No celular o tooltip tem uma escala própria (`Settings.Tooltips.Scale`, que o
-PC não tem). Ela já vem na `BaseScale`: desenhe com `line.BaseScale.X` e o
-texto sai do tamanho das outras linhas.
+On mobile the tooltip has its own scale (`Settings.Tooltips.Scale`, which PC
+does not have). It is already included in `BaseScale`: draw with
+`line.BaseScale.X` and the text comes out the size of the other lines.
 
-O `ExampleTooltipItem` do Example Mod (exemplo do GST378) põe a linha "Bunny
-Loader" e a desenha no `PreDrawTooltipLine`, letra a letra, em onda; devolve
-`false` para o jogo não desenhá-la de novo. O miolo:
+The Example Mod's `ExampleTooltipItem` (an example by GST378) adds the "Bunny
+Loader" line and draws it in `PreDrawTooltipLine`, letter by letter, in a
+wave; it returns `false` so the game does not draw it again. The core:
 
 ```js
 PreDrawTooltipLine(item, line, yOffset) {
@@ -587,24 +594,25 @@ PreDrawTooltipLine(item, line, yOffset) {
 }
 ```
 
-(O do Example Mod desenha também as quatro sombras e uma cor por letra.)
+(The Example Mod's version also draws the four shadows and a color per
+letter.)
 
-**Por trás**: com um desses métodos (ou o `ModifyTooltips`) num `ModItem`, num
-`GlobalItem` ou num prefixo de mod, ou com raridade de mod no item, o Bunny
-Loader desenha o tooltip daquele item em JS: um porte do
-`Main.MouseText_DrawItemTooltip` do celular, feito pelo GST378, com os hooks de
-mod no meio. Os outros itens usam o desenho do jogo, sem custo. O popup do guia
-de criação (`GUICraftGuidePopup`) mostra as mesmas linhas, sem cor. O celular
-desenha o texto cru, sem o leitor de tags do PC, então a linha com tag é
-desenhada trecho a trecho (um hook no `SpriteBatch.DrawString` com `whileIn`,
-só durante o tooltip), e a caixa é medida sem as tags. Se o porte quebrar numa
-versão nova do jogo, o log diz uma vez e o tooltip volta a ser o do jogo.
+**Under the hood**: with one of these methods (or `ModifyTooltips`) in a
+`ModItem`, a `GlobalItem` or a mod prefix, or with a mod rarity on the item,
+Bunny Loader draws that item's tooltip in JS: a port of mobile's
+`Main.MouseText_DrawItemTooltip`, made by GST378, with the mod hooks in the
+middle. Other items use the game's drawing, at no cost. The crafting guide
+popup (`GUICraftGuidePopup`) shows the same lines, without color. Mobile draws
+raw text, without PC's tag parser, so a line with tags is drawn span by span
+(a hook on `SpriteBatch.DrawString` with `whileIn`, only during the tooltip),
+and the box is measured without the tags. If the port breaks on a new game
+version, the log says so once and the tooltip falls back to the game's.
 
-## Raridade de mod
+## Mod rarity
 
-Uma raridade nova é uma classe que estende `ModRarity`, em qualquer arquivo de
-`Content/`, como no tModLoader. O tipo sai no registro, depois das 12 do jogo;
-o item usa `ModContent.RarityType(Classe)`:
+A new rarity is a class that extends `ModRarity`, in any file in `Content/`,
+as in tModLoader. The type is assigned on registration, after the game's 12;
+the item uses `ModContent.RarityType(Class)`:
 
 ```js
 export class ExampleModRarity extends ModRarity {
@@ -612,44 +620,46 @@ export class ExampleModRarity extends ModRarity {
         return Color.new(200, 215, 230);
     }
 
-    // Prefixo bom (offset 1 ou 2): o item sobe para a raridade de cima.
+    // Good prefix (offset 1 or 2): the item moves up to the rarity above.
     GetPrefixedRarity(offset, valueMult) {
         if (offset > 0) return ModContent.RarityType(ExampleHigherTierModRarity);
         return this.Type;
     }
 }
 
-// no ModItem:
+// in the ModItem:
 SetDefaults() {
     this.Item.rare = ModContent.RarityType(ExampleModRarity);
 }
 ```
 
-`RarityColor` é lido a cada desenho e pode piscar (a
-`ExampleHigherTierModRarity` usa o `Main.DiscoR/G/B`). A cor vale no nome do
-tooltip, no nome do item no chão, no texto que sobe ao pegar o item e na
-etiqueta `[i:]` do chat (esta com a cor do carregamento).
+`RarityColor` is read on every draw and can flash
+(`ExampleHigherTierModRarity` uses `Main.DiscoR/G/B`). The color applies to
+the tooltip name, the item's name on the ground, the text that pops up on
+pickup and the chat's `[i:]` tag (this one with the color at load time).
 
-`GetPrefixedRarity(offset, valueMult)` decide a raridade quando um prefixo sobe
-(`offset` 1 ou 2) ou desce (-1 ou -2) o item; o padrão é ficar na mesma. O jogo
-prende toda raridade em 11 (roxo) ao pôr prefixo: sem isso, o item de mod
-perderia a raridade ao cair no chão com prefixo. `ModContent.GetModRarity(tipo)`
-devolve a instância.
+`GetPrefixedRarity(offset, valueMult)` decides the rarity when a prefix moves
+the item up (`offset` 1 or 2) or down (-1 or -2); the default is to stay the
+same. The game clamps every rarity to 11 (purple) when applying a prefix:
+without this, a mod item would lose its rarity when dropped on the ground with
+a prefix. `ModContent.GetModRarity(type)` returns the instance.
 
-## Classes de dano
+## Damage classes
 
-`this.Item.DamageType = DamageClass.Melee` (ou `Ranged`, `Magic`, `Summon`...)
-diz de quais bônus a arma se beneficia, que efeitos ativa e que prefixos
-aceita. Bônus por classe no jogador e classes novas: [guia 15](15-classes-de-dano.md).
+`this.Item.DamageType = DamageClass.Melee` (or `Ranged`, `Magic`,
+`Summon`...) says which bonuses the weapon benefits from, which effects it
+triggers and which prefixes it accepts. Per-class bonuses on the player and
+new classes: [guide 15](15-classes-de-dano.md).
 
-## Vara de pesca
+## Fishing rod
 
-O jogo só sabe onde fica a ponta das varas dele; sem o `ModifyFishingLine`, a
-linha de uma vara de mod sai do centro do jogador. Como no tModLoader, os dois
-últimos parâmetros são `Ref`: `lineOriginOffset.value` é de onde a linha sai,
-em pixels a partir do centro do jogador olhando para a direita (o Bunny Loader
-espelha para a esquerda e para a gravidade invertida); `lineColor.value` é a
-cor, e a linha colorida que o jogador equipou ganha dela.
+The game only knows where the tip of its own rods is; without
+`ModifyFishingLine`, a mod rod's line comes out of the player's center. As in
+tModLoader, the last two parameters are `Ref`s: `lineOriginOffset.value` is
+where the line comes from, in pixels from the player's center facing right
+(Bunny Loader mirrors it for facing left and for reversed gravity);
+`lineColor.value` is the color, and a colored fishing line the player has
+equipped overrides it.
 
 ```js
 ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {
@@ -658,15 +668,15 @@ ModifyFishingLine(item, bobber, lineOriginOffset, lineColor) {
 }
 ```
 
-O jeito antigo, com três parâmetros (`item, bobber, line`) e
-`line.lineOriginOffset` / `line.lineColor`, continua valendo.
+The old way, with three parameters (`item, bobber, line`) and
+`line.lineOriginOffset` / `line.lineColor`, still works.
 
-`bobber` é a boia (o projétil): a `ExampleFishingRod` pinta a linha com a cor
-que a `ExampleBobber` sorteou ao nascer (`bobber.ModProjectile`).
+`bobber` is the bobber (the projectile): `ExampleFishingRod` paints the line
+with the color `ExampleBobber` rolled when it spawned (`bobber.ModProjectile`).
 
-## Receitas
+## Recipes
 
-`this.CreateRecipe(quantidade)` dentro do `AddRecipes`, e uma corrente:
+`this.CreateRecipe(amount)` inside `AddRecipes`, and a chain:
 
 ```js
 this.CreateRecipe()
@@ -677,36 +687,37 @@ this.CreateRecipe()
     .Register();
 ```
 
-| Método | O que faz |
+| Method | What it does |
 |---|---|
-| `SetResult(tipo, n)` | O que a receita dá (o `CreateRecipe` já chama). |
-| `AddIngredient(tipo, n)` | Até 15 ingredientes. |
-| `AddRecipeGroup(grupo, n)` | Aceita qualquer item do grupo (veja abaixo). |
-| `AddTile(tipo)` | A estação. Uma só por receita (o jogo guarda um número). |
-| `SetProperty(nome, valor)` | `needWater`, `needLava`, `needHoney`, `needSnowBiome`, `needGraveyardBiome`, `needTorchGodsFavor`, `needMechdusa`, `notDecraftable`, `crimson`, `corruption`, `alchemy`. |
-| `AddCustomShimmerResult(tipo, n)` | O que sai ao jogar o item no Brilho, no lugar dos ingredientes. |
-| `Register()` | Põe a receita no jogo. |
+| `SetResult(type, n)` | What the recipe gives (`CreateRecipe` already calls it). |
+| `AddIngredient(type, n)` | Up to 15 ingredients. |
+| `AddRecipeGroup(group, n)` | Accepts any item in the group (see below). |
+| `AddTile(type)` | The crafting station. Only one per recipe (the game stores one number). |
+| `SetProperty(name, value)` | `needWater`, `needLava`, `needHoney`, `needSnowBiome`, `needGraveyardBiome`, `needTorchGodsFavor`, `needMechdusa`, `notDecraftable`, `crimson`, `corruption`, `alchemy`. |
+| `AddCustomShimmerResult(type, n)` | What comes out when the item is thrown into Shimmer, instead of the ingredients. |
+| `Register()` | Puts the recipe into the game. |
 
-Receita para um item **do jogo** também vale:
-`new ModRecipe().SetResult(tipo, n).AddIngredient(...).Register()`.
+A recipe for a **vanilla** item works too:
+`new ModRecipe().SetResult(type, n).AddIngredient(...).Register()`.
 
-### Grupos de receita
+### Recipe groups
 
-Um grupo faz a receita aceitar qualquer item de uma lista ("Qualquer barra de
-ferro"). Os do jogo vão pelo nome, como estão em `Terraria.ID.RecipeGroups`
-(`'IronBar'`, `'Wood'`, `'Sand'`, `'Fragment'`...):
+A group makes the recipe accept any item from a list ("Any Iron Bar"). The
+game's go by name, as they appear in `Terraria.ID.RecipeGroups` (`'IronBar'`,
+`'Wood'`, `'Sand'`, `'Fragment'`...):
 
 ```js
 new ModRecipe()
     .SetResult(Terraria.ID.ItemID.SpikyBall, 50)
-    .AddRecipeGroup('IronBar')          // barra de ferro OU de chumbo
+    .AddRecipeGroup('IronBar')          // iron bar OR lead bar
     .AddTile(Terraria.ID.TileID.Anvils)
     .Register();
 ```
 
-Grupo novo: `ModRecipe.CreateRecipeGroup(nome, [tipos])`, no `AddRecipeGroups`
-(que roda antes de qualquer receita). O menu mostra "Qualquer <nome>". O nome
-vem da tradução, em `RecipeGroups.<nome>`, e sem ela fica o próprio `nome`:
+A new group: `ModRecipe.CreateRecipeGroup(name, [types])`, in
+`AddRecipeGroups` (which runs before any recipe). The menu shows "Any <name>".
+The name comes from the localization, in `RecipeGroups.<name>`, and without it
+the `name` itself is used:
 
 ```js
 AddRecipeGroups() {
@@ -717,24 +728,25 @@ AddRecipeGroups() {
 }
 ```
 
-`AddRecipeGroup(grupo, n)` aceita o objeto, o nome de um grupo do jogo ou o
-nome de um criado por mod. Se nenhum ingrediente já posto é do grupo, ele põe
-o primeiro item do grupo com `n`. Se já há um, esse ingrediente passa a
-aceitar o grupo todo (`.AddIngredient(ExampleItem, 50).AddRecipeGroup(grupo)`).
+`AddRecipeGroup(group, n)` accepts the object, the name of a vanilla group or
+the name of one created by a mod. If no ingredient already added belongs to
+the group, it adds the group's first item with `n`. If one already does, that
+ingredient starts accepting the whole group
+(`.AddIngredient(ExampleItem, 50).AddRecipeGroup(group)`).
 
-### O limite de receitas
+### The recipe limit
 
-O jogo tem 3600 posições de receita (`Recipe.maxRecipes`, fixo no código), e
-as dele ocupam 3570. Passando disso, a tabela cresce, e o Bunny Loader percorre
-o resto depois do jogo, como o Recipe Limit Fix do TL Pro: hooks no
-`Recipe.FindRecipes` (menu de criação), no `GUICraftGuidePopup.FindRecipes`
-(Guia) e no `Recipe.UpdateItemVariants`. A receita além de 3600 aparece no
-menu como as outras, no fim da lista.
+The game has 3600 recipe slots (`Recipe.maxRecipes`, fixed in the code), and
+its own take 3570. Past that, the table grows, and Bunny Loader walks the rest
+after the game, like TL Pro's Recipe Limit Fix: hooks on `Recipe.FindRecipes`
+(crafting menu), `GUICraftGuidePopup.FindRecipes` (Guide) and
+`Recipe.UpdateItemVariants`. A recipe beyond 3600 shows up in the menu like
+the others, at the end of the list.
 
 ## ModSystem
 
-Para o que é do mod inteiro, não de um item: receitas de itens do jogo,
-grupos, preparação que depende de todo o conteúdo.
+For what belongs to the whole mod, not to one item: recipes for vanilla
+items, groups, setup that depends on all the content.
 
 ```js
 export class ExampleRecipes extends ModSystem {
@@ -744,25 +756,26 @@ export class ExampleRecipes extends ModSystem {
 }
 ```
 
-O `ModSystem` também acompanha o mundo (carregar, atualizar, sair) e salva
-dados junto com ele: está no [guia 12](12-globais-e-mundo.md#modsystem-o-mundo).
-Para mudar um item **do jogo** (dano da espada de cobre, tooltip do gel), o
-caminho é um `GlobalItem`, do mesmo guia.
+`ModSystem` also follows the world (loading, updating, leaving) and saves data
+along with it: that is in [guide 12](12-globais-e-mundo.md#modsystem-the-world).
+To change a **vanilla** item (the copper sword's damage, gel's tooltip), the
+way is a `GlobalItem`, from the same guide.
 
-## Save
+## Saving
 
-Item de mod no inventário, no cofre e nos baús é salvo **pelo nome** (mod +
-classe), num arquivo ao lado do save do jogo. Desligar o mod não perde nada: o
-item vira um "?" e volta ao normal quando o mod é religado.
+Mod items in the inventory, the piggy bank and chests are saved **by name**
+(mod + class), in a file next to the game's save. Turning the mod off loses
+nothing: the item becomes a "?" and goes back to normal when the mod is turned
+back on.
 
-### Dados de cada instância: SaveData e LoadData
+### Per-instance data: SaveData and LoadData
 
-Implemente os dois métodos para guardar campos próprios do item. O loader
-passa um `TagCompound` novo a `SaveData(tag)` e entrega os dados salvos a
-`LoadData(tag)`. O retorno dos métodos é ignorado; escreva no `tag`.
+Implement both methods to store the item's own fields. The loader passes a
+new `TagCompound` to `SaveData(tag)` and hands the saved data to
+`LoadData(tag)`. The methods' return value is ignored; write to the `tag`.
 
 ```js
-export class ItemComDono extends ModItem {
+export class OwnedItem extends ModItem {
     owner = '';
 
     SaveData(tag) {
@@ -779,45 +792,46 @@ export class ItemComDono extends ModItem {
 }
 ```
 
-O exemplo mostra somente os dados e a escolha do dono; acrescente textura e
-defaults do seu item. A condição em `UpdateInventory` mantém o dono já escolhido.
-Para itens que representam pessoas diferentes, use `maxStack = 1`.
+The example only shows the data and picking the owner; add your item's
+texture and defaults. The condition in `UpdateInventory` keeps an owner that
+was already chosen. For items that represent different people, use
+`maxStack = 1`.
 
-Os dados acompanham inventário, equipamento, cofres pessoais, conjuntos de
-equipamento e baús do mundo nos arquivos `.plr.bl`/`.wld.bl`, e os
-expositores (moldura, estante de armas, travessa, jarro, manequim e
-cabideiro) no `<mundo>.wld.bl.json`. Saves antigos,
-sem dados próprios, chamam `LoadData` com um tag vazio. Aceite campos ausentes
-e valide versões e valores específicos do seu mod. `GetString` retorna `''`
-quando a chave falta; `GetInt` retorna `0`.
+The data follows the inventory, equipment, personal storage, equipment
+loadouts and world chests in the `.plr.bl`/`.wld.bl` files, and the display
+furniture (item frame, weapon rack, food platter, jar, mannequin and hat rack)
+in `<world>.wld.bl.json`. Old saves, without their own data, call `LoadData`
+with an empty tag. Accept missing fields and validate your mod's versions and
+specific values. `GetString` returns `''` when the key is missing; `GetInt`
+returns `0`.
 
-Use strings, números finitos, booleanos, `null`, listas densas, objetos de
-dados e outros `TagCompound`. Referências ao jogo, funções, `undefined`,
-`BigInt`, ciclos, getters, propriedades não enumeráveis e valores não finitos são rejeitados, para evitar
-perdas silenciosas na conversão para JSON. Um erro em `SaveData` impede a
-substituição do save complementar do personagem. Um erro em `LoadData`
-preserva o texto original e bloqueia novo save daquele item até um load
-bem-sucedido ou sua reinicialização por `SetDefaults`.
+Use strings, finite numbers, booleans, `null`, dense lists, plain data objects
+and other `TagCompound`s. References to the game, functions, `undefined`,
+`BigInt`, cycles, getters, non-enumerable properties and non-finite values are
+rejected, to avoid silent losses in the JSON conversion. An error in
+`SaveData` prevents the character's companion save from being replaced. An
+error in `LoadData` keeps the original text and blocks a new save of that item
+until a successful load or until it is reset by `SetDefaults`.
 
-`Item.Clone`, `DeepClone` e `clientClone` copiam a instância por `Clone`.
-Quando houver objetos/listas mutáveis nos campos, sobrescreva `Clone` para
-copiá-los também; o clone padrão é superficial. Os drops de `DropSelectedItem`
-e do botão da interface mobile (`DropUIItem`) copiam a instância antes de
-transmitir o novo item. O item posto num expositor leva a instância do da
-mão, e o que sai dele (`DropItem`) cai com ela. Um mod que cria outro
-item manualmente por `NewItem(tipo, ...)` deve definir seus dados, pois essa
-chamada não recebe um item de origem.
+`Item.Clone`, `DeepClone` and `clientClone` copy the instance through
+`Clone`. When the fields hold mutable objects/lists, override `Clone` to copy
+them too; the default clone is shallow. Drops from `DropSelectedItem` and from
+the mobile UI button (`DropUIItem`) copy the instance before sending the new
+item. An item placed in a display piece carries the instance of the one in
+hand, and the one that comes out of it (`DropItem`) drops with it. A mod that
+creates another item manually through `NewItem(type, ...)` must set its data,
+since that call does not receive a source item.
 
-### Dados no multiplayer
+### Data in multiplayer
 
-Com os mesmos mods nos dois lados, o loader envia os dados junto das
-mensagens nativas de inventário (5), item no mundo (21/90), baú (32) e
-expositores (86, 89, 121, 123, 124, 133, 149 e os pedaços do mundo).
-O servidor aplica os dados antes de repassar o item. Se você implementar
-somente `SaveData`/`LoadData`, o JSON salvo também serve de sincronização.
-Por isso, esses métodos devem cuidar somente dos dados, sem efeitos de jogo.
+With the same mods on both sides, the loader sends the data together with the
+native messages for inventory (5), world item (21/90), chest (32) and display
+furniture (86, 89, 121, 123, 124, 133, 149 and the world chunks). The server
+applies the data before relaying the item. If you only implement
+`SaveData`/`LoadData`, the saved JSON also serves for syncing. That is why
+these methods should only deal with data, with no gameplay effects.
 
-Para usar uma representação diferente na rede, implemente **ambos**:
+To use a different representation on the network, implement **both**:
 
 ```js
 NetSend(writer) {
@@ -829,8 +843,8 @@ NetReceive(reader) {
 }
 ```
 
-Quando sobrescrito, `NetSend` tem precedência sobre o envio automático de
-`SaveData`. O limite do pacote de mod é 65000 bytes, incluindo o envelope.
-Itens largados seguem o ciclo normal do Terraria: o save do mundo não
-persiste itens no chão. Os arquivos complementares são locais; não há
-persistência desses dados em saves na nuvem.
+When overridden, `NetSend` takes precedence over the automatic `SaveData`
+sending. The mod packet limit is 65000 bytes, including the envelope. Dropped
+items follow Terraria's normal cycle: the world save does not persist items on
+the ground. The companion files are local; this data is not persisted in
+cloud saves.

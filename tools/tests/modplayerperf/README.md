@@ -1,39 +1,39 @@
-# Revisão de custo de ModPlayer
+# ModPlayer cost review
 
-A [medição de 6 de outubro no APK atual](../hookperf/RESULTADOS.md) acrescenta comparação de 0, 1 e 8 classes, filtros de ModItem, AddDrawData e custo de ocultação/reordenação de camadas. O relatório abaixo descreve a revisão anterior.
+The [October 6 measurement on the current APK](../hookperf/RESULTADOS.md) adds the comparison of 0, 1 and 8 classes, ModItem filters, AddDrawData and the cost of hiding/reordering layers. The report below describes the earlier review.
 
-A [comparação após as otimizações de desenho e cabelo](../hookperf/RESULTADOS-OTIMIZACOES.md) registra os resultados nativos e os testes de preservação do cache.
+The [comparison after the drawing and hair optimizations](../hookperf/RESULTADOS-OTIMIZACOES.md) records the native results and the cache preservation tests.
 
-## Análise
+## Analysis
 
-A API registra hooks sob demanda: uma classe que não sobrescreve um método não instala seu grupo de hooks. O custo depende dos métodos realmente sobrescritos, dos jogadores atualizados e das chamadas nativas observadas. A lista de classes interessadas em cada método já era armazenada em cache.
+The API registers hooks on demand: a class that does not override a method does not install its group of hooks. The cost depends on the methods actually overridden, the players updated and the native calls observed. The list of classes interested in each method was already cached.
 
-A revisão encontrou trabalho evitável no despacho por callback, nos estados de saltos, no desenho e em hooks globais que observavam chamadas fora de seu contexto. Também encontrou uma falha na ponte: `whileIn` consultava apenas o primeiro hook instalado para um método. Quando esse hook tinha um filtro que rejeitava a chamada, outro hook ativo do mesmo método não abria o contexto esperado.
+The review found avoidable work in per-callback dispatch, in jump states, in drawing and in global hooks that observed calls outside their context. It also found a flaw in the bridge: `whileIn` only checked the first hook installed for a method. When that hook had a filter that rejected the call, another active hook on the same method did not open the expected context.
 
-As restrições são preservar a ordem e a frequência dos callbacks, o isolamento dos jogadores, os vetos e as decisões anuláveis, a recuperação após exceções e o registro posterior de classes. Os casos exercitados incluem ausência de interessados, chamadas fora do contexto, falhas nativas, substituição de slots e reconexão.
+The constraints are preserving the order and frequency of the callbacks, player isolation, vetoes and nullable decisions, recovery after exceptions and later class registration. The cases exercised include no interested classes, calls outside the context, native failures, slot replacement and reconnecting.
 
-## Projeto
+## Design
 
-| Abordagem | Tempo | Espaço | Manutenção |
+| Approach | Time | Space | Maintenance |
 | --- | --- | --- | --- |
-| Reduzir alocações e filtrar chamadas antes do JavaScript | Despacho continua O(M); filtros O(1); acompanhamento de rede O(C) por tick local. | Menos objetos temporários; cache e estados limitados aos participantes. | Mantém os pontos existentes do jogo e a frequência dos hooks. |
-| Executar callbacks com menor frequência | Reduz chamadas conforme o intervalo escolhido. | Exige estado de agendamento. | Muda a semântica de métodos de atualização e efeitos. |
-| Reunir os pontos em novos hooks nativos | Pode reduzir travessias da ponte. | Exige novas estruturas e código nativo. | Exige localizar pontos equivalentes e preservar sua ordem em cada versão do jogo. |
+| Reduce allocations and filter calls before JavaScript | Dispatch stays O(M); O(1) filters; network tracking O(C) per local tick. | Fewer temporary objects; cache and states limited to the participants. | Keeps the game's existing points and the hooks' frequency. |
+| Run callbacks less often | Reduces calls according to the chosen interval. | Requires scheduling state. | Changes the semantics of update and effect methods. |
+| Gather the points into new native hooks | Can reduce bridge crossings. | Requires new structures and native code. | Requires finding equivalent points and keeping their order in each game version. |
 
-Foi aplicada a primeira abordagem. M é o número de classes interessadas em um callback; C é o número de jogadores acompanhados como conectados. Nenhum callback foi limitado a executar a cada vários ticks.
+The first approach was applied. M is the number of classes interested in a callback; C is the number of players tracked as connected. No callback was limited to running every few ticks.
 
-## Implementação
+## Implementation
 
-- `PlayerLoader`: despacho direto, sem closure e rótulo por instância. As exceções continuam isoladas e reportadas por `Safe.Report`. Vetos continuam consultando todas as classes; `First` mantém sua interrupção no primeiro `true`. Chamadas sem interessados não criam instâncias. O registro de uma classe invalida o cache.
-- `PlayerJumpHooks`: nomes de campos preparados uma vez e estados em máscaras de bits para os nove saltos existentes. Um veto sem entrada de salto evita ler todos os estados. `OnExtraJumpCleared` sozinho não instala `JumpMovement` nem hooks de som. Sons só entram no JavaScript dentro do movimento de salto.
-- `PlayerDrawHooks`: cinco referências de `DrawEffects` só são criadas se houver interessado. Dados de segmentos só são lidos quando há reordenação. As chamadas das camadas são filtradas nativamente quando nenhuma camada precisa de alteração. Os estados e filtros são restaurados ao sair, inclusive após exceções.
-- `PlayerCombatHooks` e `PlayerItemHooks`: colisões, dano contextual, criação de projéteis e limpeza de munição usam filtros nativos. A colisão global não é instalada para uma classe que só modifica dano de item.
-- `PlayerNetworkHooks`: guarda o endereço na conexão, consulta o array de jogadores uma vez por varredura e remove jogadores desconectados da coleção percorrida a cada tick. A deduplicação fica em uma coleção separada, sem manter referências ao jogador antigo após notificá-lo.
-- Ponte nativa: `whileIn` usa um contador compartilhado pelos hooks do mesmo método, por thread, em O(1). O controle de reentrância continua separado por hook. A tabela adicional usa 5.888 bytes por thread nesta configuração de slots.
+- `PlayerLoader`: direct dispatch, without a closure and a per-instance label. Exceptions stay isolated and reported through `Safe.Report`. Vetoes still ask every class; `First` keeps stopping at the first `true`. Calls with no interested classes create no instances. Registering a class invalidates the cache.
+- `PlayerJumpHooks`: field names prepared once and states in bit masks for the nine existing jumps. A veto without a jump entry avoids reading every state. `OnExtraJumpCleared` alone installs neither `JumpMovement` nor the sound hooks. Sounds only enter JavaScript inside the jump movement.
+- `PlayerDrawHooks`: `DrawEffects`' five references are only created if someone is interested. Segment data is only read when there is reordering. The layer calls are filtered natively when no layer needs a change. The states and filters are restored on exit, including after exceptions.
+- `PlayerCombatHooks` and `PlayerItemHooks`: collisions, contextual damage, projectile creation and ammo cleanup use native filters. Global collision is not installed for a class that only modifies item damage.
+- `PlayerNetworkHooks`: keeps the address on connect, reads the players array once per scan and removes disconnected players from the collection walked each tick. Deduplication lives in a separate collection, without keeping references to the old player after notifying it.
+- Native bridge: `whileIn` uses a counter shared by the hooks of the same method, per thread, in O(1). Reentry control stays separate per hook. The extra table uses 5,888 bytes per thread in this slot configuration.
 
-As referências entregues ao mod não são reutilizadas entre callbacks: o mod pode guardar esses objetos. A cópia do estado do cliente e a detecção de desconexão continuam na frequência original. Grupos que observam pontos diferentes da atualização ainda podem instalar vários hooks em `Player.Update`; esta revisão não altera a ordem dessa cadeia.
+The references handed to the mod are not reused between callbacks: the mod may keep those objects. Copying the client state and detecting disconnection stay at the original frequency. Groups that observe different update points can still install several hooks on `Player.Update`; this review does not change that chain's order.
 
-## Testes e medição
+## Tests and measurement
 
 ```bash
 node tools/tests/modplayerhooks/check.mjs
@@ -41,14 +41,14 @@ node tools/tests/modplayerperf/bench.mjs
 node tools/tests/modplayerperf/bench.mjs 44bd638
 ```
 
-O benchmark Node serve para comparar o despacho em isolamento. Seu runtime é V8; seus tempos não representam o QuickJS do Android.
+The Node benchmark is for comparing dispatch in isolation. Its runtime is V8; its times do not represent Android's QuickJS.
 
-Para a medição nativa, empacote `manifest.json` e `content/`, instale este pacote em um aparelho com o APK desejado e entre em um mundo de teste. O pacote registra oito ModPlayers com callbacks simples, aquece por 120 ticks, mede sete amostras de 20.000 chamadas e coleta estatísticas de 300 ticks. A saída começa com `modplayerperf`.
+For the native measurement, package `manifest.json` and `content/`, install this package on a device with the desired APK and enter a test world. The package registers eight ModPlayers with simple callbacks, warms up for 120 ticks, measures seven samples of 20,000 calls and collects statistics over 300 ticks. The output starts with `modplayerperf`.
 
-`CapAttackSpeeds_8` inclui a chamada nativa, a travessia da ponte e o callback `PostUpdateMiscEffects` das oito instâncias. `ItemCheck_veto_8` inclui o veto pelas oito instâncias e `PostItemCheck`; o corpo nativo é vetado. Esses números não são o tempo total de um quadro.
+`CapAttackSpeeds_8` includes the native call, the bridge crossing and the eight instances' `PostUpdateMiscEffects` callback. `ItemCheck_veto_8` includes the veto by the eight instances and `PostItemCheck`; the native body is vetoed. These numbers are not the total time of a frame.
 
-`whileIn_multiplos_hooks=ok` exige que um segundo hook abra o contexto quando o primeiro foi rejeitado por um filtro. Também verifica que a chamada fora desse contexto não passa pelo JavaScript.
+`whileIn_multiplos_hooks=ok` requires a second hook to open the context when the first was rejected by a filter. It also checks that the call outside that context does not go through JavaScript.
 
-Compare APKs no mesmo aparelho, personagem, mundo e conjunto de mods. O número de quadros desenhados pode variar durante os 300 ticks; normalize estatísticas de desenho por suas próprias chamadas. Os tempos de `bl.hookStats` excluem `original()` e não medem o custo do caminho nativo que rejeita um callback. Variação de carga do emulador impede interpretar uma única comparação como ganho garantido de FPS.
+Compare APKs on the same device, character, world and set of mods. The number of drawn frames can vary during the 300 ticks; normalize drawing statistics by their own calls. `bl.hookStats`' times exclude `original()` and do not measure the cost of the native path that rejects a callback. Emulator load variation prevents reading a single comparison as a guaranteed FPS gain.
 
-A suíte [multiplayer](../mpmodplayer/README.md) verifica comportamento em host e cliente reais após as otimizações. As regressões de lógica incluem filtragem, ausência de interessados, registro posterior, exceções e restauração de estado.
+The [multiplayer](../mpmodplayer/README.md) suite checks behavior on a real host and client after the optimizations. The logic regressions include filtering, no interested classes, later registration, exceptions and state restoration.

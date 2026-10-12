@@ -1,27 +1,27 @@
-# Cache de DrawData do jogador
+# The player's DrawData cache
 
-O fixture compara três formas de inserir um marcador em ModifyDrawInfo: escrever no próximo slot sem aumentar DrawDataCacheCount, atualizar o array e o contador manualmente e usar ModPlayer.AddDrawData. O marcador é produzido com MagicPixel nativo; o fixture não chama DrawData.Draw.
+The fixture compares three ways of inserting a marker in ModifyDrawInfo: writing into the next slot without increasing DrawDataCacheCount, updating the array and the counter by hand, and using ModPlayer.AddDrawData. The marker is produced with the native MagicPixel; the fixture does not call DrawData.Draw.
 
-O hook de diagnóstico observa o cache depois de DrawPlayer_RenderAllLayers. O caso sem contador precisa desaparecer do cache ativo; os casos manual e helper precisam sobreviver às camadas e transformações. O marcador magenta continua visível depois do término para conferência visual, até o processo ser encerrado.
+The diagnostic hook observes the cache after DrawPlayer_RenderAllLayers. The case without the counter has to disappear from the active cache; the manual and helper cases have to survive the layers and transformations. The magenta marker stays visible after the end for visual checking, until the process is closed.
 
-O marcador fica próximo ao centro da tela para continuar visível com o zoom do jogo. A presença no cache não substitui a conferência da imagem. Veja os [resultados e os limites da reprodução](RESULTADOS.md).
+The marker sits near the center of the screen so it stays visible with the game's zoom. Being in the cache does not replace checking the image. See the [results and the limits of the reproduction](RESULTADOS.md).
 
-O fixture também verifica o prefixo inserido pelo helper com Skin após Head, uma ordem já satisfeita e uma ordem cíclica. Marcadores adicionais dentro de Skin e Head permitem conferir a ordem efetiva dos segmentos no cache. A linha final exige desenhos observados em cada caso e nenhuma perda do marcador. O ciclo deve produzir o aviso de ordem ignorada e manter o desenho original.
+The fixture also checks the prefix inserted by the helper with Skin after Head, an order that is already satisfied and a cyclic order. Extra markers inside Skin and Head let you check the effective order of the segments in the cache. The final line requires draws observed in each case and no loss of the marker. The cycle must produce the ignored-order warning and keep the original drawing.
 
-O [fixture multiplayer](../mpmodplayer/README.md) repete os três modos para o jogador local e remoto nos dois processos, incluindo reordenação e reconexão. Seus [resultados](../mpmodplayer/RESULTADOS-DRAW-MODITEM.md) registram 28 verificações de DrawDataCache aprovadas e conferência visual nas duas telas.
+The [multiplayer fixture](../mpmodplayer/README.md) repeats the three modes for the local and the remote player in both processes, including reordering and reconnecting. Its [results](../mpmodplayer/RESULTADOS-DRAW-MODITEM.md) record 28 passing DrawDataCache checks and a visual check on both screens.
 
-Com uma instância Android de teste conectada e o APK instalado:
-
-```powershell
-python tools/tests/moditemhooks/device.py prepare --fixture playerdrawcache --run-id minha-execucao
-```
-
-Inicie o jogo pelo launcher. O fixture roda apenas para o jogador local e desenho sem sombra, entre as atualizações 60 e 260. Leia o log do processo com.bunnyloader:game: a linha playerdrawcache FIM deve terminar em passou=true, com lost=0, failed=0 e reordered/unchanged/cyclic maiores que zero. Os números de desenhos observados variam com a taxa de quadros.
-
-Depois da coleta do log e da captura visual:
+With a test Android instance connected and the APK installed:
 
 ```powershell
-python tools/tests/moditemhooks/device.py cleanup --fixture playerdrawcache --run-id minha-execucao
+python tools/tests/moditemhooks/device.py prepare --fixture playerdrawcache --run-id my-run
 ```
 
-O script usa o UID do manifesto, preserva as preferências próprias da sessão e verifica o caminho antes de remover o fixture. Use o mesmo run-id nas tentativas e na limpeza. O teste não altera o inventário ou os dados do personagem.
+Start the game from the launcher. The fixture only runs for the local player and draws without shadows, between updates 60 and 260. Read the log of the com.bunnyloader:game process: the playerdrawcache FIM line must end in passou=true, with lost=0, failed=0 and reordered/unchanged/cyclic greater than zero. The number of observed draws varies with the frame rate.
+
+After collecting the log and the screenshot:
+
+```powershell
+python tools/tests/moditemhooks/device.py cleanup --fixture playerdrawcache --run-id my-run
+```
+
+The script uses the manifest's UID, keeps the session's own preferences and checks the path before removing the fixture. Use the same run-id in the attempts and in the cleanup. The test does not change the inventory or the character's data.

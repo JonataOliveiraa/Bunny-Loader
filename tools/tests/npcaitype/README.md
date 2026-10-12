@@ -1,98 +1,99 @@
-# AIType de ModNPC
+# ModNPC AIType
 
-## Análise
+## Analysis
 
-Entrada: instância de `ModNPC`, `AIType`, `npc.aiStyle`, hooks locais e
-globais. Saída: execução da IA vanilla com um tipo temporário, conservando
-a identidade do NPC para os callbacks posteriores.
+Input: a `ModNPC` instance, `AIType`, `npc.aiStyle`, local and global hooks.
+Output: running the vanilla AI with a temporary type, keeping the NPC's
+identity for the later callbacks.
 
-Fontes conferidas:
+Sources checked:
 
-- [ModNPC.cs do tModLoader stable](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModNPC.cs):
-  `AIType` é um inteiro por instância, com padrão zero; `AnimationType` é
-  outra propriedade.
-- [NPCLoader.cs do tModLoader stable](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/NPCLoader.cs):
-  `NPCAI` consulta `PreAI`, troca `npc.type` quando `AIType > 0`, executa
-  `VanillaAI`, restaura o tipo, executa `AI` e depois `PostAI`.
-  Todos os globais `PreAI` são consultados antes do local; um veto global
-  impede o `PreAI` local. `AI` e `PostAI` executam o local antes dos globais.
-- [NPC.cs.patch do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/NPC.cs.patch):
-  separa `AI` e `VanillaAI`; a seleção de família continua em `aiStyle`.
-- Referências locais em `exmod_tl/ExMod_v1.7.1 (3)/Modified/1.mod/TL/` e
+- [tModLoader stable's ModNPC.cs](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ModNPC.cs):
+  `AIType` is a per-instance integer, defaulting to zero; `AnimationType` is
+  another property.
+- [tModLoader stable's NPCLoader.cs](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/NPCLoader.cs):
+  `NPCAI` asks `PreAI`, swaps `npc.type` when `AIType > 0`, runs `VanillaAI`,
+  restores the type, runs `AI` and then `PostAI`. Every global `PreAI` is
+  asked before the local one; a global veto prevents the local `PreAI`. `AI`
+  and `PostAI` run the local one before the globals.
+- [tModLoader's NPC.cs.patch](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/NPC.cs.patch):
+  separates `AI` and `VanillaAI`; family selection stays in `aiStyle`.
+- Local references in `exmod_tl/ExMod_v1.7.1 (3)/Modified/1.mod/TL/` and
   `exmod_tl/ExMod_v1.4.2 (2)/Modified/1.mod/TL/`: `ModNPC.js`,
-  `Hooks/NPC.js` e `Loaders/NPCLoader.js`. Ambas declaram `AIType = 0` e
-  fazem a troca ao redor do corpo original de `NPC.AI`, restaurando antes
-  dos callbacks. O ExMod busca o valor pelo molde do tipo, mantém um mapa
-  temporário `realTypes` e não protege a restauração com `finally` nesse
-  trecho. Seu `PreAI` local precede os globais, cuja busca pode terminar
-  no primeiro veto; essa ordenação difere do tModLoader.
-- `ModProjectile.js` e `Loaders/ProjectileLoader.js` do Bunny Loader:
-  propriedade por instância e restauração com `try/finally` já existentes.
-- Dump móvel `refs/dump.cs` e desmontagem de `Terraria.NPC$$AI`:
-  a família 2 chama `AI_002_FloatingEye`; o Android não tem o
-  `NPC.VanillaAI` acrescentado pelo tModLoader. Aqui o corpo original
-  de `NPC.AI` corresponde à etapa vanilla.
+  `Hooks/NPC.js` and `Loaders/NPCLoader.js`. Both declare `AIType = 0` and do
+  the swap around `NPC.AI`'s original body, restoring before the callbacks.
+  ExMod reads the value from the type's template, keeps a temporary
+  `realTypes` map and does not protect the restoration with `finally` in that
+  section. Its local `PreAI` comes before the globals, whose lookup can stop
+  at the first veto; that ordering differs from tModLoader.
+- Bunny Loader's `ModProjectile.js` and `Loaders/ProjectileLoader.js`: an
+  existing per-instance property and restoration with `try/finally`.
+- The mobile dump `refs/dump.cs` and the disassembly of `Terraria.NPC$$AI`:
+  family 2 calls `AI_002_FloatingEye`; Android does not have the
+  `NPC.VanillaAI` added by tModLoader. Here `NPC.AI`'s original body is the
+  vanilla step.
 
-Problemas identificados antes da mudança:
+Problems identified before the change:
 
-1. A base `ModNPC` não declarava `AIType`.
-2. O hook de IA era instalado e marcado apenas para classes que
-   sobrescreviam `PreAI`, `AI` ou `PostAI`. Só configurar a propriedade em
-   `SetDefaults` não instalaria nem habilitaria o hook.
-3. Hooks locais e globais eram wrappers independentes. Com a troca de
-   tipo, um wrapper global interno poderia receber o tipo emprestado,
-   reavaliar `AppliesToEntity` e perder a instância global original.
-   A ordem dos vetos e callbacks também dependia do encadeamento.
+1. The `ModNPC` base did not declare `AIType`.
+2. The AI hook was only installed and marked for classes that overrode
+   `PreAI`, `AI` or `PostAI`. Just setting the property in `SetDefaults`
+   would neither install nor enable the hook.
+3. Local and global hooks were independent wrappers. With the type swap, an
+   inner global wrapper could receive the borrowed type, re-evaluate
+   `AppliesToEntity` and lose the original global instance. The order of
+   vetoes and callbacks also depended on the chaining.
 
-Premissa de uso: `AIType` recebe um ID positivo de NPC vanilla compatível
-com `aiStyle`. O loader não escolhe a família nem clona atributos.
-Como em `ModProjectile`, a leitura usa um inteiro JS de 32 bits; valores
-não positivos não ativam a substituição. Isso não valida IDs positivos
-arbitrários nem torna toda IA vanilla adequada a qualquer NPC.
+Usage assumption: `AIType` receives a positive vanilla NPC ID compatible with
+`aiStyle`. The loader neither picks the family nor clones stats. As in
+`ModProjectile`, the read uses a 32-bit JS integer; non-positive values do not
+activate the replacement. That neither validates arbitrary positive IDs nor
+makes every vanilla AI suitable for any NPC.
 
-Casos de borda: propriedade sem hooks, herança, registro posterior,
-duas instâncias, troca em `PreAI`, zero, negativos, vetos, exceções,
-mudança de tipo dentro da IA, globais condicionais e por entidade,
-ordens distintas de instalação e repetição por centenas de ticks.
+Edge cases: the property without hooks, inheritance, later registration, two
+instances, swapping in `PreAI`, zero, negatives, vetoes, exceptions, a type
+change inside the AI, conditional and per-entity globals, different
+installation orders and repetition over hundreds of ticks.
 
-## Projeto
+## Design
 
-| Abordagem | Tempo por chamada | Espaço | Manutenção |
+| Approach | Time per call | Space | Maintenance |
 |---|---|---|---|
-| Troca dentro do wrapper local existente | O(1) local, O(G) nos globais | O(1) temporário | Simples, mas os globais internos podem ver o tipo emprestado e a ordem depende da instalação |
-| Despacho compartilhado de IA, com filtro nativo quando não há globais | O(1) local, O(G) nos globais | Plano por classe e O(1) temporário | Um contrato de ordem e restauração, independente da instalação |
+| Swap inside the existing local wrapper | O(1) local, O(G) in the globals | O(1) temporary | Simple, but the inner globals may see the borrowed type and the order depends on installation |
+| A shared AI dispatch, with a native filter when there are no globals | O(1) local, O(G) in the globals | A per-class plan and O(1) temporary | A single order and restoration contract, independent of installation |
 
-A segunda abordagem foi adotada. `NPCLoader.InstallAI` instala o caminho
-filtrado para qualquer ModNPC, permitindo configurar a propriedade sem
-sobrescrever AI. Quando existe um global com métodos de IA, instala o
-despacho global compartilhado e desativa o caminho local por flag nativa.
-Um registro local posterior não reativa o caminho desativado.
+The second approach was adopted. `NPCLoader.InstallAI` installs the filtered
+path for any ModNPC, allowing the property to be set without overriding AI.
+When there is a global with AI methods, it installs the shared global dispatch
+and turns the local path off through a native flag. A later local registration
+does not turn the disabled path back on.
 
-Sem global de IA, os NPCs vanilla passam pelo filtro `FIRST_NPC` sem entrar
-em JS. Com global de IA, há um despacho JS por chamada. Os planos e rótulos
-locais são reutilizados; os callbacks globais usam o registro existente.
-`GlobalNPC` que só implementa outros eventos não habilita o despacho global.
+With no AI global, vanilla NPCs pass the `FIRST_NPC` filter without entering
+JS. With an AI global, there is one JS dispatch per call. The local plans and
+labels are reused; the global callbacks use the existing registry. A
+`GlobalNPC` that only implements other events does not enable the global
+dispatch.
 
-## Implementação
+## Implementation
 
-O contrato segue o tModLoader para a ordem e os vetos, e a proteção já usada
-no ModProjectile do Bunny Loader para restaurar o tipo em `finally`.
-O valor é lido da instância depois de `PreAI`. Somente `npc.type` é
-substituído: `netID`, `aiStyle`, `AnimationType`, estado de IA e identidade
-da instância não são trocados. As alterações feitas pela IA em velocidade,
-estado e atividade são conservadas.
+The contract follows tModLoader for order and vetoes, and the protection
+already used in Bunny Loader's ModProjectile to restore the type in `finally`.
+The value is read from the instance after `PreAI`. Only `npc.type` is
+replaced: `netID`, `aiStyle`, `AnimationType`, AI state and the instance's
+identity are not swapped. Changes the AI makes to velocity, state and activity
+are kept.
 
-Como no trecho de `NPCAI` do tModLoader, se a IA emprestada mudar `type`,
-o tipo anterior ainda é restaurado. Sem `AIType`, mudanças nativas de tipo
-não são desfeitas. Transformações intencionais do mod podem ser feitas
-depois da etapa emprestada, em seu `AI`.
+As in tModLoader's `NPCAI` section, if the borrowed AI changes `type`, the
+previous type is still restored. Without `AIType`, native type changes are not
+undone. The mod's intentional transformations can be done after the borrowed
+step, in its `AI`.
 
-Uma exceção nos callbacks do mod é reportada pelo mecanismo `Safe` e os
-demais estágios continuam conforme o contrato existente. Uma exceção
-propagada pelo corpo original restaura o tipo antes de sair; não se promete
-executar `PostAI` nesse caminho excepcional, como no tModLoader.
+An exception in the mod's callbacks is reported through the `Safe` mechanism
+and the other stages go on according to the existing contract. An exception
+propagated by the original body restores the type before leaving; running
+`PostAI` on that exceptional path is not promised, as in tModLoader.
 
-## Testes sem dispositivo
+## Tests without a device
 
 ```powershell
 node tools/tests/npcaitype/check.mjs
@@ -102,25 +103,25 @@ node tools/tests/projectilekill/check.mjs
 node tools/tests/modplayerhooks/check.mjs
 ```
 
-A suíte carrega as classes de produção, `ModNPC.register`, `Entities`,
-`GlobalRegistry`, `GlobalNPC.register` e os loaders reais. Somente a ponte
-com o Terraria é simulada. Verifica filtros, flags nativas e ambos os
-sentidos de encadeamento de wrappers. Os casos `netMode` 0, 1 e 2 verificam
-que o despacho é independente do modo; não substituem teste multiplayer
-com dois dispositivos. A exceção da chamada original é injetada na
-simulação e verifica a restauração e a recuperação na chamada seguinte.
+The suite loads the production classes, `ModNPC.register`, `Entities`,
+`GlobalRegistry`, `GlobalNPC.register` and the real loaders. Only the bridge
+to Terraria is simulated. It checks filters, native flags and both wrapper
+chaining directions. The `netMode` 0, 1 and 2 cases check that the dispatch is
+independent of the mode; they do not replace a multiplayer test with two
+devices. The original call's exception is injected into the simulation and
+checks the restoration and the recovery on the next call.
 
-## Integração Android
+## Android integration
 
-Requer APK debug completo, ADB com root e saves locais. Encerre a sessão
-atual antes de preparar. O runner guarda preferências, habilita somente
-este fixture e usa `BL_NPCAIType_Test.plr/.wld`, cópias dos saves existentes.
-Restaura as preferências e remove somente o fixture ao terminar.
+Requires a full debug APK, ADB with root and local saves. End the current
+session before preparing. The runner keeps the preferences, enables only this
+fixture and uses `BL_NPCAIType_Test.plr/.wld`, copies of the existing saves.
+It restores the preferences and removes only the fixture when done.
 
 ```powershell
 python tools/tests/npcaitype/device.py prepare --order mod-first
 python tools/tests/npcaitype/device.py launch --order mod-first
-# Aguarde a conclusão no log do jogo.
+# Wait for completion in the game log.
 python tools/tests/npcaitype/device.py collect --order mod-first
 python tools/tests/npcaitype/device.py restore
 
@@ -135,14 +136,14 @@ python tools/tests/npcaitype/device.py collect --order local-only
 python tools/tests/npcaitype/device.py restore
 ```
 
-O fixture observa `AI_002_FloatingEye` e `AI_003_Fighters` dentro do corpo nativo, compara
-velocidade e direção com um Wandering Eye vanilla em condições controladas,
-verifica vetos, herança e instâncias independentes e executa 300 chamadas
-reais para conferir a restauração repetida. Também mantém um NPC com somente
-`AIType` durante 30 ticks do loop normal do mundo, sem chamar sua IA pelo
-fixture nesse intervalo. Os NPCs são temporários e
-desativados em `finally`; a alteração temporária de `Main.dayTime` é
-restaurada. Não concede itens nem muda blocos. Os logs ficam em
-`build/npcaitype/<dispositivo>/`.
+The fixture observes `AI_002_FloatingEye` and `AI_003_Fighters` inside the
+native body, compares velocity and direction with a vanilla Wandering Eye
+under controlled conditions, checks vetoes, inheritance and independent
+instances and runs 300 real calls to check repeated restoration. It also keeps
+an NPC with only `AIType` for 30 ticks of the normal world loop, without the
+fixture calling its AI during that interval. The NPCs are temporary and
+deactivated in `finally`; the temporary change to `Main.dayTime` is restored.
+It grants no items and does not change blocks. The logs live in
+`build/npcaitype/<device>/`.
 
-Os resultados da execução estão em [RESULTADOS.md](RESULTADOS.md).
+The run results are in [RESULTADOS.md](RESULTADOS.md).

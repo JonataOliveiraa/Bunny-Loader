@@ -1,85 +1,89 @@
-# 13. A página do pacote: descrição, novidades, licença e autores
+# 13. The package page: description, changelog, license and authors
 
-A ficha de um mod no launcher (o que abre quando alguém toca nele) é montada
-**pelo pacote**. O texto vem de arquivos Markdown, as fotos dos autores de uma
-pasta, e as cores do próprio manifesto. O launcher só desenha, no estilo dele:
-fonte pixelada com contorno, painéis com bisel e imagem sem borrar.
+A mod's page in the launcher (what opens when someone taps it) is built **by
+the package**. The text comes from Markdown files, the authors' photos from a
+folder, and the colors from the manifest itself. The launcher only draws, in
+its own style: an outlined pixel font, beveled panels and unblurred images.
 
 ```
-MeuMod/
-  authors/            fotos dos autores (opcional)
+MyMod/
+  authors/            the authors' photos (optional)
     potato.png
   content/
-    main.js           o mod em si (guias anteriores)
-  manifest.json       quem é o mod
-  description.md      aba Descrição
-  changelog.md        aba Novidades (opcional)
-  license.md          aba Licença (opcional)
-  icon.png            ícone quadrado, na lista
-  icon.gif            o ícone animado, no launcher (opcional)
-  banner.png          capa da ficha, ~3,4:1 (ex.: 384x112); banner.gif anima
-  thumbnails/         imagens extras, no pé da Descrição (opcional)
-  docs/               o que mais você quiser mostrar (opcional)
-    fundo.png         o fundo da ficha, se o theme pedir (opcional)
+    main.js           the mod itself (previous guides)
+  manifest.json       who the mod is
+  description.md      Description tab
+  changelog.md        Changelog tab (optional)
+  license.md          License tab (optional)
+  icon.png            square icon, in the list
+  icon.gif            the animated icon, in the launcher (optional)
+  banner.png          the page cover, ~3.4:1 (e.g. 384x112); banner.gif animates
+  thumbnails/         extra images, at the bottom of Description (optional)
+  docs/               anything else you want to show (optional)
+    background.png    the page background, if the theme asks for it (optional)
 ```
 
-**Formatos de imagem.** Em toda a ficha (capa, vitrine, fotos dos autores,
-fundo e imagens do Markdown) valem PNG, GIF, WebP, JPG e BMP. **GIF anima**
-na capa, no fundo, na vitrine e no Markdown (as fotos dos autores mostram só o
-primeiro quadro). WebP animado aparece parado. A capa pode ser `banner.gif`,
-`banner.png`, `banner.webp` ou `banner.jpg`; com mais de uma, vale nessa ordem.
+**Image formats.** Across the whole page (cover, showcase, author photos,
+background and Markdown images) PNG, GIF, WebP, JPG and BMP work. **GIF
+animates** on the cover, the background, the showcase and in Markdown (author
+photos show only the first frame). Animated WebP shows up still. The cover can
+be `banner.gif`, `banner.png`, `banner.webp` or `banner.jpg`; with more than
+one, that order applies.
 
-A ficha fica assim, de cima para baixo:
+The page looks like this, from top to bottom:
 
-1. a **capa** (`banner.png`), com voltar e favoritar;
-2. o **cabeçalho**: ícone, nome, as fotos e os nomes dos autores, a categoria,
-   a ficha técnica (versão, data, tamanho, licença), os botões (baixar, ligar,
-   remover, exportar) e os **links** do manifesto;
-3. as **abas**: Descrição, Novidades, Licença, Créditos e as que você criar.
-   Descrição aparece sempre; as outras dependem dos arquivos e campos do pacote.
+1. the **cover** (`banner.png`), with back and favorite;
+2. the **header**: icon, name, the authors' photos and names, the category,
+   the info sheet (version, date, size, license), the buttons (download,
+   enable, remove, export) and the manifest's **links**;
+3. the **tabs**: Description, Changelog, License, Credits and the ones you
+   create. Description always shows; the others depend on the package's files
+   and fields.
 
-### Ícone animado
+### Animated icon
 
-Um `icon.gif` ao lado do `icon.png` deixa o ícone animado no launcher (lista,
-destaque e ficha). O GIF tem a preferência; o `icon.png` continua sendo o
-ícone do mod **dentro do jogo** (o menu de mods e as Config. dos Mods não
-animam), então mande os dois. Sem filtro, como o PNG: o pixel fica quadrado.
+An `icon.gif` next to `icon.png` makes the icon animated in the launcher
+(list, featured and page). The GIF takes precedence; `icon.png` remains the
+mod's icon **inside the game** (the mods menu and Mod Configuration do not
+animate), so ship both. No filtering, like the PNG: the pixels stay square.
 
-- quadrado, de até 512x512 (passou disso, o launcher usa o `icon.png`);
-- o tempo de cada quadro vem do GIF; quadro sem tempo, ou de 10 ms, fica 100 ms;
-- transparência e quadros parciais funcionam;
-- um GIF muito longo é cortado nos primeiros quadros (uns 4 milhões de pixels
-  ao todo: 60 quadros de 256x256, ou 975 de 64x64).
+- square, up to 512x512 (beyond that, the launcher uses `icon.png`);
+- each frame's time comes from the GIF; a frame with no time, or 10 ms, gets
+  100 ms;
+- transparency and partial frames work;
+- a very long GIF is cut to its first frames (about 4 million pixels in
+  total: 60 frames of 256x256, or 975 of 64x64).
 
-Salve os documentos em **UTF-8**, com os nomes em minúsculas como no exemplo.
-Ao exportar o `.bl`, esses documentos e a pasta `authors/` vão junto com o mod.
+Save the documents in **UTF-8**, with lowercase names as in the example. When
+exporting the `.bl`, these documents and the `authors/` folder go along with
+the mod.
 
-## O `manifest.json`
+## `manifest.json`
 
-Os campos novos estão marcados. O resto está no [README](README.md#o-manifestjson).
+The new fields are marked. The rest is in the [README](README.md#manifestjson).
 
 ```json
 {
   "uid": "7c2e9d41-5b3a-4f8e-9a61-2d0c4e8b7f15",
-  "id": "meumod",
-  "name": "Meu Mod",
+  "id": "mymod",
+  "name": "My Mod",
   "version": "1.2.0",
   "authors": [
-    { "name": "Potato", "role": "Código", "avatar": "potato.png",
+    { "name": "Potato", "role": "Code", "avatar": "potato.png",
       "color": "#E8C170", "link": "https://github.com/JonataOliveiraa" },
-    "Ciclano"
+    "Someone Else"
   ],
   "category": "Armas",
-  "summary": "Uma linha, para o cartão da lista.",
+  "summary": "One line, for the list card.",
   "license": "MIT",
   "updated": "2026-10-01",
   "blVersion": 2,
   "links": [
-    { "title": "Código-fonte", "url": "https://github.com/voce/meumod" },
+    { "title": "Source code", "url": "https://github.com/you/mymod" },
     { "title": "Discord", "url": "https://discord.gg/..." }
   ],
   "pages": [
-    { "title": "Receitas", "file": "docs/receitas.md" }
+    { "title": "Recipes", "file": "docs/receitas.md" }
   ],
   "theme": {
     "accent": "#7FE07A",
@@ -88,7 +92,7 @@ Os campos novos estão marcados. O resto está no [README](README.md#o-manifestj
     "heading": "#FFFFFF",
     "button": "#2F6B4F",
     "buttonText": "#FFFFFF",
-    "background": "docs/fundo.png",
+    "background": "docs/background.png",
     "backgroundMode": "tile",
     "backgroundScale": 2,
     "backgroundDim": 0.3
@@ -96,334 +100,345 @@ Os campos novos estão marcados. O resto está no [README](README.md#o-manifestj
 }
 ```
 
-| Campo | |
+| Field | |
 |---|---|
-| `authors` | **Novo.** Quem fez o mod. Cada um é um nome solto (`"Ciclano"`) ou um objeto (abaixo). Um texto só também vale: `"authors": "Fulano"`. |
-| `author` | A forma antiga, um nome só. Ainda funciona; com `authors`, é ignorado. |
-| `summary` | Continua aqui: é a linha do cartão na lista, e não muda. |
-| `license` | **Novo.** O nome curto da licença (`MIT`, `CC BY-NC 4.0`, `Todos os direitos reservados`). Aparece na ficha técnica e no topo da aba Licença. O texto inteiro vai em `license.md`. |
-| `links` | **Novo.** Botões no cabeçalho. Só `https://` e `http://` aparecem. |
-| `pages` | **Novo.** Abas a mais, cada uma um `.md` do pacote. Uma página cujo arquivo não existe não aparece. |
-| `theme` | **Novo.** O tema da ficha deste mod: as cores do texto, dos painéis e dos botões, e o fundo da tela (abaixo). |
-| `description` | A forma antiga da descrição. Só vale quando o pacote **não** tem `description.md`. |
+| `authors` | **New.** Who made the mod. Each one is a plain name (`"Someone Else"`) or an object (below). A single string also works: `"authors": "Someone"`. |
+| `author` | The old form, a single name. It still works; with `authors`, it is ignored. |
+| `summary` | Still here: it is the list card's line, and it does not change. |
+| `license` | **New.** The license's short name (`MIT`, `CC BY-NC 4.0`, `All rights reserved`). It shows in the info sheet and at the top of the License tab. The full text goes in `license.md`. |
+| `links` | **New.** Buttons in the header. Only `https://` and `http://` show up. |
+| `pages` | **New.** Extra tabs, each one a `.md` from the package. A page whose file does not exist does not show up. |
+| `theme` | **New.** This mod's page theme: text, panel and button colors, and the screen background (below). |
+| `description` | The old form of the description. Only applies when the package has **no** `description.md`. |
 
-### Os autores
+### The authors
 
 ```json
 {
   "name": "Animatak_",
-  "role": "ExMod do TL Pro",
+  "role": "TL Pro's ExMod",
   "avatar": "animatak.png",
   "color": "#841FFF",
   "link": "https://discord.com/invite/..."
 }
 ```
 
-| Campo | |
+| Field | |
 |---|---|
-| `name` | **Obrigatório.** O nome que aparece. |
-| `role` | O que a pessoa fez: "Código", "Arte", "Música", "Tradução"... Aparece embaixo do nome na aba Créditos. |
-| `avatar` | O arquivo da foto **dentro de `authors/`**. |
-| `color` | A cor do nome (`#RRGGBB`). Sem foto, também é a cor do quadrado com a inicial. |
-| `link` | Tocar no autor, na aba Créditos, abre o link. |
+| `name` | **Required.** The name that shows up. |
+| `role` | What the person did: "Code", "Art", "Music", "Translation"... It shows below the name in the Credits tab. |
+| `avatar` | The photo file **inside `authors/`**. |
+| `color` | The name's color (`#RRGGBB`). Without a photo, it is also the color of the square with the initial. |
+| `link` | Tapping the author, in the Credits tab, opens the link. |
 
-**A foto.** Com `avatar`, vale `authors/<avatar>`. Sem ele, o app procura
-`authors/<nome>.png` e depois o nome em minúsculas com hífen
-(`"Bunny Loader"` → `authors/bunny-loader.png`); também aceita `.jpg`, `.jpeg`, `.webp` e
-`.gif` (parado). Sem foto nenhuma, aparece a inicial do nome.
+**The photo.** With `avatar`, `authors/<avatar>` is used. Without it, the app
+looks for `authors/<name>.png` and then the lowercase, hyphenated name
+(`"Bunny Loader"` → `authors/bunny-loader.png`); it also accepts `.jpg`,
+`.jpeg`, `.webp` and `.gif` (still). With no photo at all, the name's initial
+shows up.
 
-Use uma imagem **quadrada** (o que sobra é cortado). Pixel art pequena (32x32,
-64x64) é ampliada sem borrar; foto grande é reduzida com suavização. Não passe
-de 256x256: a foto aparece com no máximo 56 dp e o resto é peso no pacote.
+Use a **square** image (the excess is cropped). Small pixel art (32x32,
+64x64) is enlarged without blurring; a large photo is shrunk with smoothing.
+Do not go over 256x256: the photo shows at most 56 dp and the rest is dead
+weight in the package.
 
-A aba Créditos lista todos os autores, com a foto grande. No cabeçalho
-aparecem até quatro fotos, uma por cima da outra, e "por A, B e C".
+The Credits tab lists every author, with the large photo. The header shows up
+to four photos, overlapping, and "by A, B and C".
 
-### As cores (`theme`)
+### The colors (`theme`)
 
-| Cor | Onde |
+| Color | Where |
 |---|---|
-| `accent` | A aba escolhida, os links, o fio embaixo dos títulos, os marcadores de lista, as caixas de tarefa e a versão atual no changelog. Padrão: o amarelo do toque. |
-| `panel` | O fundo dos painéis da ficha (cabeçalho, conteúdo, abas). Padrão: o azul dos painéis do Terraria. |
-| `text` | O texto corrido. |
-| `heading` | Os títulos (`#`, `##`...) e o nome do mod. |
-| `button` | O fundo dos botões: baixar, atualizar, remover, exportar e os links. O botão apertado e a caixa de ligar/desligar usam a mesma cor, mais escura. Padrão: os botões do launcher (e os links no azul de seleção). |
-| `buttonText` | O texto dos botões, links inclusive. Padrão: branco nos botões e o `accent` nos links. |
+| `accent` | The selected tab, links, the line under headings, list bullets, task boxes and the current version in the changelog. Default: the touch yellow. |
+| `panel` | The background of the page's panels (header, content, tabs). Default: Terraria's panel blue. |
+| `text` | Body text. |
+| `heading` | Headings (`#`, `##`...) and the mod's name. |
+| `button` | The buttons' background: download, update, remove, export and the links. The pressed button and the on/off box use the same color, darker. Default: the launcher's buttons (and the links in the selection blue). |
+| `buttonText` | The buttons' text, links included. Default: white on buttons and `accent` on links. |
 
-Todas são `#RRGGBB`, `#AARRGGBB` ou `#RGB`. Uma cor que falta (ou que não se
-lê) fica a do launcher, então dá para mudar só o `accent`. O tema vale **só
-dentro da ficha do seu mod**; a lista e as outras telas seguem a paleta do app.
+All of them are `#RRGGBB`, `#AARRGGBB` or `#RGB`. A missing (or unreadable)
+color stays the launcher's, so you can change just `accent`. The theme applies
+**only inside your mod's page**; the list and the other screens keep the app's
+palette.
 
 > [!TIP]
-> Escolha um `panel` escuro: o texto tem contorno preto e branco por cima, e
-> num painel claro ele fica pesado.
+> Pick a dark `panel`: the text has a black and white outline on top, and on
+> a light panel it looks heavy.
 
-### O fundo (`background`)
+### The background (`background`)
 
-Com a ficha aberta, o cenário do launcher (a floresta, a neve...) dá lugar ao
-fundo do seu mod:
+With the page open, the launcher's scenery (the forest, the snow...) gives way
+to your mod's background:
 
-| Campo | |
+| Field | |
 |---|---|
-| `background` | Uma cor (`"#1B2430"`) ou uma imagem do pacote, pelo caminho a partir da raiz (`"docs/fundo.png"`). GIF anima. |
-| `backgroundMode` | `"cover"` (o padrão): a imagem enche a tela, cortando o que sobra. `"tile"`: repete a imagem lado a lado, como um papel de parede — bom para textura de bloco do jogo. |
-| `backgroundScale` | Só no `tile`: quantos pontos da tela cada pixel da imagem ocupa (padrão `2`; um bloco de 16x16 vira um quadrado de 32). |
-| `backgroundDim` | De `0` a `1`: uma camada preta por cima do fundo, para os painéis se destacarem. `0.3` já ajuda numa imagem clara. |
+| `background` | A color (`"#1B2430"`) or an image from the package, by path from the root (`"docs/background.png"`). GIF animates. |
+| `backgroundMode` | `"cover"` (the default): the image fills the screen, cropping the excess. `"tile"`: repeats the image side by side, like wallpaper — good for a game block texture. |
+| `backgroundScale` | Only for `tile`: how many screen points each image pixel takes (default `2`; a 16x16 block becomes a 32 square). |
+| `backgroundDim` | From `0` to `1`: a black layer over the background, so the panels stand out. `0.3` already helps on a light image. |
 
-O fundo fica parado atrás da ficha (não rola junto) e cobre a tela inteira,
-atrás da barra de baixo também. Sem `background`, continua o cenário do launcher.
+The background stays still behind the page (it does not scroll along) and
+covers the whole screen, behind the bottom bar too. Without `background`, the
+launcher's scenery remains.
 
-- Para `cover`, use uma imagem em pé, perto da proporção de um celular (por
-  exemplo 270x480 em pixel art, ou 1080x1920 em foto). Os lados mais largos que
-  a tela são cortados.
-- Para `tile`, use uma imagem pequena que encaixe nas bordas (16x16, 32x32, 48x48).
-- GIF animado vai até 512x512 em qualquer lugar da ficha; maior que isso ele
-  aparece parado, no primeiro quadro. Um GIF muito longo é cortado nos
-  primeiros quadros (uns 2 milhões de pixels ao todo: 30 quadros de 256x256).
+- For `cover`, use a portrait image, close to a phone's aspect ratio (for
+  example 270x480 in pixel art, or 1080x1920 for a photo). Sides wider than
+  the screen are cropped.
+- For `tile`, use a small image that tiles at the edges (16x16, 32x32,
+  48x48).
+- An animated GIF can be up to 512x512 anywhere on the page; larger than that
+  it shows still, on the first frame. A very long GIF is cut to its first
+  frames (about 2 million pixels in total: 30 frames of 256x256).
 
 ## `description.md`
 
-A aba Descrição. É Markdown comum (a [lista inteira](#o-markdown) está mais
-abaixo). As imagens de `thumbnails/` aparecem no fim dela.
+The Description tab. It is plain Markdown (the [full list](#the-markdown) is
+further down). The images in `thumbnails/` show up at its end.
 
-Se o pacote não tem `description.md`, a aba mostra o `description` do
-manifesto, e se ele também não existe, o `summary`.
+If the package has no `description.md`, the tab shows the manifest's
+`description`, and if that does not exist either, the `summary`.
 
-Um modelo para copiar, com um pouco de cada recurso:
+A template to copy, with a bit of each feature:
 [`samples/modelo-description.md`](../../samples/modelo-description.md).
 
 ## `changelog.md`
 
-A aba Novidades. Cada título `##` que **começa com um número de versão** vira um
-cartão que abre e fecha:
+The Changelog tab. Each `##` heading that **starts with a version number**
+becomes a card that opens and closes:
 
 ````markdown
-# Novidades
+# Changelog
 
-## Ainda sem versão
+## Unreleased
 
-- O que já está pronto mas não saiu.
+- What is already done but has not shipped.
 
 ## 1.2.0 - 2026-10-01
 
-- Espada nova.
-- **Correção:** o arco não atirava no multijogador.
+- New sword.
+- **Fix:** the bow did not shoot in multiplayer.
 
 ## [1.1.0] - 2026-09-20
 
-- Primeira versão pública.
+- First public version.
 ````
 
-- O número aceita `1.2.0`, `v1.2.0` e `[1.2.0]` (o formato do *Keep a
-  Changelog*). A data, opcional, é `AAAA-MM-DD`, depois de um `-` ou entre
-  parênteses, e aparece por extenso ("1 de out. de 2026").
-- Texto depois da data vira o título da versão: `## 1.2.0 - 2026-10-01 - A atualização do gelo`.
-- O primeiro cartão vem aberto. O da versão **instalada** (a `version` do
-  manifesto) também vem aberto e ganha a etiqueta *Atual*.
-- O que vem antes da primeira versão (como o "Ainda sem versão" acima) aparece
-  em cima, como Markdown comum. O `# Novidades` do topo some: é o nome da aba.
-- Um changelog sem títulos de versão sai como Markdown comum.
+- The number accepts `1.2.0`, `v1.2.0` and `[1.2.0]` (the *Keep a Changelog*
+  format). The date, optional, is `YYYY-MM-DD`, after a `-` or in
+  parentheses, and is shown spelled out ("Oct 1, 2026").
+- Text after the date becomes the version's title:
+  `## 1.2.0 - 2026-10-01 - The ice update`.
+- The first card starts open. The **installed** version's (the manifest's
+  `version`) also starts open and gets the *Current* tag.
+- Whatever comes before the first version (like "Unreleased" above) shows up
+  on top, as plain Markdown. The top `# Changelog` disappears: it is the tab's
+  name.
+- A changelog with no version headings comes out as plain Markdown.
 
 ## `license.md`
 
-A aba Licença: o `license` do manifesto numa etiqueta, e o texto do
-`license.md` embaixo. Com só um dos dois, a aba aparece do mesmo jeito.
+The License tab: the manifest's `license` in a tag, and the `license.md` text
+below. With only one of the two, the tab shows up the same way.
 
-Se o seu mod é um port ou usa arte de outro, é aqui que vai o aviso de
-copyright que a licença do original pede (o `ExampleMod` é um port do
-tModLoader e leva o aviso MIT dele).
+If your mod is a port or uses someone else's art, this is where the copyright
+notice the original's license requires goes (`ExampleMod` is a port of
+tModLoader's and carries its MIT notice).
 
-## Abas a mais (`pages`)
+## Extra tabs (`pages`)
 
 ```json
 "pages": [
-  { "title": "Receitas", "file": "docs/receitas.md" },
-  { "title": "Perguntas", "file": "docs/faq.md" }
+  { "title": "Recipes", "file": "docs/receitas.md" },
+  { "title": "FAQ", "file": "docs/faq.md" }
 ]
 ```
 
-Cada uma vira uma aba depois de Créditos, na ordem da lista. O caminho é
-relativo à raiz do pacote. A barra de abas rola de lado, então cabem quantas
-você quiser, mas nomes curtos ficam melhores.
+Each one becomes a tab after Credits, in list order. The path is relative to
+the package root. The tab bar scrolls sideways, so as many as you want fit,
+but short names look better.
 
-## O Markdown
+## The Markdown
 
-Tudo abaixo funciona em qualquer `.md` da ficha.
+Everything below works in any `.md` on the page.
 
-### Texto
+### Text
 
-| Você escreve | Sai |
+| You write | You get |
 |---|---|
-| `**negrito**` ou `__negrito__` | **negrito**, na cor dos títulos |
-| `*itálico*` ou `_itálico_` | *itálico* |
-| `~~riscado~~` | ~~riscado~~, apagado |
-| `==marcado==` | fundo na cor de destaque |
-| `` `código` `` | fonte de código, num fundo escuro |
-| `[texto](https://...)` | link (toque abre o navegador) |
-| `https://...` ou `<https://...>` | link solto |
-| `\*` | o caractere `*` mesmo (vale para `` ` _ [ ] # | `` etc.) |
-| dois espaços ou `\` no fim da linha | quebra de linha |
+| `**bold**` or `__bold__` | **bold**, in the heading color |
+| `*italic*` or `_italic_` | *italic* |
+| `~~strikethrough~~` | ~~strikethrough~~, dimmed |
+| `==highlighted==` | a background in the accent color |
+| `` `code` `` | code font, on a dark background |
+| `[text](https://...)` | a link (tapping opens the browser) |
+| `https://...` or `<https://...>` | a bare link |
+| `\*` | the `*` character itself (works for `` ` _ [ ] # | `` etc.) |
+| two spaces or `\` at the end of the line | line break |
 
-Links só abrem `https://`, `http://` e `mailto:`; os outros aparecem coloridos,
-mas não fazem nada.
+Links only open `https://`, `http://` and `mailto:`; the others show up
+colored, but do nothing.
 
-### Do Terraria
+### From Terraria
 
-| Você escreve | Sai |
+| You write | You get |
 |---|---|
-| `[c/FF8800:texto]` | o texto nessa cor (a tag de cor do chat do jogo) |
-| `[i:757]` | o ícone do item 757 (a Lâmina da Terra), do tamanho da letra |
-| `[b:2]` | o ícone do buff 2 (Regeneração) |
+| `[c/FF8800:text]` | the text in that color (the game chat's color tag) |
+| `[i:757]` | the icon of item 757 (the Terra Blade), at the font's size |
+| `[b:2]` | the icon of buff 2 (Regeneration) |
 
-Os IDs são os do jogo (`ItemID`, `BuffID`). Item de mod não tem ícone aqui:
-para ele, use a imagem do seu pacote (abaixo).
+The IDs are the game's (`ItemID`, `BuffID`). Mod items have no icon here: for
+them, use an image from your package (below).
 
-### Imagens
+### Images
 
 ```markdown
-![Legenda](content/Content/Items/Espada.png)
+![Caption](content/Content/Items/Sword.png)
 
-Pegue a ![](content/Content/Items/Moeda.png) Moeda e troque na loja.
+Grab the ![](content/Content/Items/Coin.png) Coin and trade it at the shop.
 ```
 
-- O caminho é **relativo à raiz do pacote**: `content/...`, `thumbnails/...`,
-  `docs/...`. Caminho com `..` ou que sai do pacote não carrega.
-- **Sozinha na linha**, a imagem vira um bloco: ampliada por número inteiro
-  (2x, 3x, até 4x) para o pixel continuar quadrado, com moldura, e com o texto
-  entre colchetes como legenda. A que é maior que a tela encolhe para caber.
-- **No meio do texto**, vira um ícone do tamanho da letra. É o jeito de mostrar
-  um item do seu mod numa frase.
-- PNG, GIF (animado), WebP, JPG e BMP. Imagem que não existe mostra o texto
-  alternativo.
+- The path is **relative to the package root**: `content/...`,
+  `thumbnails/...`, `docs/...`. A path with `..` or that leaves the package
+  does not load.
+- **Alone on its line**, the image becomes a block: enlarged by a whole number
+  (2x, 3x, up to 4x) so the pixels stay square, with a frame, and with the
+  text in brackets as its caption. One wider than the screen shrinks to fit.
+- **In the middle of text**, it becomes an icon at the font's size. It is the
+  way to show one of your mod's items in a sentence.
+- PNG, GIF (animated), WebP, JPG and BMP. A missing image shows the
+  alternative text.
 
-#### Tamanho e alinhamento
+#### Size and alignment
 
-Um `{...}` **colado** logo depois da imagem diz o tamanho e onde ela fica:
+A `{...}` **right after** the image sets its size and where it sits:
 
 ```markdown
-![Chefe](docs/chefe.gif){width=200 align=center}
+![Boss](docs/boss.gif){width=200 align=center}
 
-![](docs/mapa.png){width=50% align=right}
+![](docs/map.png){width=50% align=right}
 
-![](content/Content/Items/Espada.png){float=left width=96}
-Este parágrafo fica **ao lado** da espada, e não embaixo dela.
+![](content/Content/Items/Sword.png){float=left width=96}
+This paragraph sits **next to** the sword, not below it.
 
-Pegue a ![](content/Content/Items/Moeda.png){h=24} Moeda maior que a letra, e [i:757]{32} também.
+Grab the ![](content/Content/Items/Coin.png){h=24} Coin, larger than the text, and [i:757]{32} too.
 ```
 
-| Dentro do `{}` | |
+| Inside the `{}` | |
 |---|---|
-| `width=128` (ou `w=128`) | A largura, em pontos da tela (o "pixel" do launcher: a ficha tem uns 330 de largura no celular em pé). `px` e `dp` no fim são aceitos e dão no mesmo. |
-| `width=50%` | A largura em porcentagem do texto. |
-| `height=64` (ou `h=64`) | A altura. Só a largura **ou** só a altura mantém a proporção da imagem; as duas juntas esticam. |
-| `128x64`, `128x`, `x64` | Largura e altura de uma vez. Um número sozinho (`{128}` ou `{50%}`) é a largura. |
-| `align=left` / `center` / `right` | Onde a imagem sozinha na linha fica. Sem ele, à esquerda (ou no centro, dentro de `::: center`). Também vale só a palavra: `{right}`. |
-| `float=left` / `right` | Põe a imagem **ao lado do bloco seguinte** (um parágrafo, uma lista, uma tabela). A largura é a do `width` (até 60% do texto); sem ele, 40%. |
+| `width=128` (or `w=128`) | The width, in screen points (the launcher's "pixel": the page is about 330 wide on a phone held upright). `px` and `dp` at the end are accepted and mean the same. |
+| `width=50%` | The width as a percentage of the text. |
+| `height=64` (or `h=64`) | The height. Only the width **or** only the height keeps the image's aspect ratio; both together stretch it. |
+| `128x64`, `128x`, `x64` | Width and height at once. A number on its own (`{128}` or `{50%}`) is the width. |
+| `align=left` / `center` / `right` | Where an image alone on its line sits. Without it, on the left (or centered, inside `::: center`). The word alone also works: `{right}`. |
+| `float=left` / `right` | Puts the image **beside the next block** (a paragraph, a list, a table). The width is `width`'s (up to 60% of the text); without it, 40%. |
 
-- Os nomes em português também valem: `largura`, `altura`, `alinhar`,
-  `flutuar`, `esquerda`, `centro`, `direita`.
-- A imagem nunca passa da largura do texto: maior que isso, ela encolhe.
-- Ampliada (maior que o arquivo), a imagem fica sem filtro, com o pixel
-  quadrado; reduzida, ela é suavizada. Para pixel art nítida, use múltiplos do
-  tamanho do arquivo (uma arte de 32 com `width=64` ou `width=96`).
-- No meio do texto, só `width`/`height` em pontos valem (o `%` é ignorado); a
-  linha cresce para caber a imagem.
-- O `float` leva **um** bloco para o lado. Para pôr vários (dois parágrafos e
-  uma lista), junte-os num `::: group` logo depois da imagem:
+- The Portuguese names also work: `largura`, `altura`, `alinhar`, `flutuar`,
+  `esquerda`, `centro`, `direita`.
+- The image never goes beyond the text width: larger than that, it shrinks.
+- Enlarged (bigger than the file), the image has no filtering, with square
+  pixels; shrunk, it is smoothed. For crisp pixel art, use multiples of the
+  file size (a 32 art with `width=64` or `width=96`).
+- In the middle of text, only `width`/`height` in points work (`%` is
+  ignored); the line grows to fit the image.
+- `float` takes **one** block to the side. To put several (two paragraphs and
+  a list), group them in a `::: group` right after the image:
 
 ```markdown
-![](docs/guia.png){float=right width=40%}
+![](docs/guide.png){float=right width=40%}
 ::: group
-Primeiro parágrafo ao lado.
+First paragraph beside it.
 
-- e uma lista
-- também ao lado
+- and a list
+- also beside it
 :::
 ```
 
-### Blocos
+### Blocks
 
 ````markdown
-# Título grande        (com um fio de destaque embaixo)
-## Título médio
-### Título pequeno
+# Big heading          (with an accent line below)
+## Medium heading
+### Small heading
 
-- lista com marcador
-  - sublista (recuo de 2 espaços)
-1. lista numerada
-- [x] tarefa feita
-- [ ] tarefa por fazer
+- bulleted list
+  - sublist (2-space indent)
+1. numbered list
+- [x] done task
+- [ ] pending task
 
-> Citação, com uma barra na cor de destaque.
+> Quote, with a bar in the accent color.
 
----                    (linha separadora)
+---                    (separator line)
 
 ```js
-// bloco de código, rola de lado
+// code block, scrolls sideways
 ```
 
-| Coluna | Outra |
+| Column | Another |
 |:---|---:|
-| à esquerda | à direita |
+| on the left | on the right |
 ````
 
-Na tabela, `:---` alinha à esquerda, `---:` à direita e `:---:` no centro.
+In tables, `:---` aligns left, `---:` right and `:---:` center.
 
-### Avisos
+### Callouts
 
 ```markdown
 > [!NOTE]
-> Informação neutra.
+> Neutral information.
 
 > [!TIP]
-> Uma dica.
+> A tip.
 
-> [!WARNING] Cuidado com o chefe
-> Texto depois do [!...] vira o título.
+> [!WARNING] Watch out for the boss
+> Text after the [!...] becomes the title.
 ```
 
-| Tipo | Cor |
+| Type | Color |
 |---|---|
-| `[!NOTE]` (ou `[!NOTA]`) | azul |
-| `[!TIP]` (`[!DICA]`) | verde |
-| `[!IMPORTANT]` (`[!IMPORTANTE]`) | roxo |
-| `[!WARNING]` (`[!AVISO]`) | amarelo |
-| `[!CAUTION]` (`[!CUIDADO]`) | vermelho |
+| `[!NOTE]` (or `[!NOTA]`) | blue |
+| `[!TIP]` (`[!DICA]`) | green |
+| `[!IMPORTANT]` (`[!IMPORTANTE]`) | purple |
+| `[!WARNING]` (`[!AVISO]`) | yellow |
+| `[!CAUTION]` (`[!CUIDADO]`) | red |
 
-### Contêineres
+### Containers
 
-Uma linha com `:::` e o tipo abre um bloco especial; outra com só `:::` fecha:
+A line with `:::` and the type opens a special block; another with just `:::`
+closes it:
 
 ```markdown
 ::: center
-Tudo aqui fica **centralizado**, imagens inclusive.
+Everything here is **centered**, images included.
 :::
 
-::: spoiler Como derrotar o chefe
-Escondido até tocar no título.
+::: spoiler How to beat the boss
+Hidden until you tap the title.
 :::
 
-::: panel Requisitos
-Um painel afundado, com título opcional.
+::: panel Requirements
+A sunken panel, with an optional title.
 :::
 
 ::: group
-Só junta os blocos, sem desenhar nada: serve para pôr vários ao lado de
-uma imagem com `float`.
+Only groups the blocks, without drawing anything: useful for putting several
+next to an image with `float`.
 :::
 ```
 
-Dá para pôr um dentro do outro, e qualquer bloco (lista, tabela, imagem)
-dentro deles.
+You can nest one inside another, and any block (list, table, image) inside
+them.
 
-### O que não entra
+### What is not supported
 
-HTML (`<b>`, `<img>`, `<details>`) não é interpretado: aparece como texto. Os
-comentários `<!-- ... -->` somem. Para o que o HTML faria, use os contêineres acima.
+HTML (`<b>`, `<img>`, `<details>`) is not interpreted: it shows up as text.
+`<!-- ... -->` comments disappear. For what HTML would do, use the containers
+above.
 
-## Exemplos de verdade
+## Real examples
 
-Todos os mods de [`samples/`](../../samples) têm descrição, novidades, licença
-e autores. O [`ExampleMod`](../../samples/ExampleMod) usa quase tudo deste guia:
-quatro autores (três com foto), links, uma aba extra (`docs/receitas.md`) com
-tabelas e um spoiler, avisos, cores e ícones de item no meio do texto.
+Every mod in [`samples/`](../../samples) has a description, changelog,
+license and authors. [`ExampleMod`](../../samples/ExampleMod) uses almost
+everything in this guide: four authors (three with photos), links, an extra
+tab (`docs/receitas.md`) with tables and a spoiler, callouts, colors and item
+icons in the middle of the text.

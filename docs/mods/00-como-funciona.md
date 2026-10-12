@@ -1,79 +1,81 @@
-# 0. Como funciona: do TL Pro ao Bunny Loader
+# 0. How it works: from TL Pro to Bunny Loader
 
-Quem vem do TL Pro escreve mod do mesmo jeito aqui: `class X extends ModItem`,
+If you come from TL Pro, you write mods the same way here: `class X extends ModItem`,
 `SetDefaults`, `Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'].hook(...)`.
-O que muda é **quem faz o quê por baixo**. Este guia mostra o fluxo inteiro
-nos dois: o do TL Pro, pelo Example Mod dele (o ExMod v1.7.1, de GST378 e
-Animatak_), e o do Bunny Loader, do boot ao `UseItem` de uma espada.
+What changes is **who does what underneath**. This guide walks through the
+whole flow in both: TL Pro's, through its Example Mod (ExMod v1.7.1, by GST378
+and Animatak_), and Bunny Loader's, from boot to a sword's `UseItem`.
 
-Não é preciso ler para fazer um mod (os guias 1 a 12 bastam). É para
-entender de onde vem cada coisa, e por que o Bunny Loader tem C++ e JS.
+You do not need to read it to make a mod (guides 1 to 12 are enough). It is for
+understanding where each thing comes from, and why Bunny Loader has both C++
+and JS.
 
-## As quatro camadas
+## The four layers
 
-Todo loader de mods de Terraria Mobile tem as mesmas peças. A diferença é
-onde cada uma mora.
+Every Terraria Mobile mod loader has the same pieces. The difference is where
+each one lives.
 
 ```mermaid
 flowchart TB
-    M["4. O MOD<br/>class ExampleSword extends ModItem { UseItem() {...} }"]
-    C["3. AS CLASSES DE MOD<br/>ModItem, ModNPC, ItemLoader, NPCLoader...<br/>(o 'tModLoader': liga o jogo às classes do mod)"]
-    P["2. A PONTE<br/>Terraria.Player['void Update(int i)'], .hook(), Ref<br/>(deixa o JS ver e chamar o jogo)"]
-    N["1. O NÚCLEO NATIVO<br/>entra no processo, acha classes pelo nome,<br/>hook de código de máquina, memória"]
-    G["O JOGO: libil2cpp.so<br/>(o C# do Terraria compilado para ARM64)"]
+    M["4. THE MOD<br/>class ExampleSword extends ModItem { UseItem() {...} }"]
+    C["3. THE MOD CLASSES<br/>ModItem, ModNPC, ItemLoader, NPCLoader...<br/>(the 'tModLoader': connects the game to the mod's classes)"]
+    P["2. THE BRIDGE<br/>Terraria.Player['void Update(int i)'], .hook(), Ref<br/>(lets JS see and call the game)"]
+    N["1. THE NATIVE CORE<br/>gets into the process, finds classes by name,<br/>machine-code hooks, memory"]
+    G["THE GAME: libil2cpp.so<br/>(Terraria's C# compiled to ARM64)"]
     M --> C --> P --> N --> G
 ```
 
-| Camada | O que faz | No TL Pro | No Bunny Loader |
+| Layer | What it does | In TL Pro | In Bunny Loader |
 |---|---|---|---|
-| 1. Núcleo | Sobe junto com o jogo, hook inline, memória | O app TL Pro | `libbunny.so` (C++) |
-| 2. Ponte | `Terraria.*`, `.hook()`, `new Ref()` | O app TL Pro (`tl.*`, `NativeClass`) | `libbunny.so` (`script/bridge/`) + `bl.*` |
-| 3. Classes de mod | `ModItem`, `ItemLoader`, os hooks do jogo | **Dentro de cada mod** (a pasta `TL/`) | **Dentro do loader** (`script/js/mod/`), uma vez para todos |
-| 4. Conteúdo | As classes do autor, texturas, textos | O mod | O mod |
+| 1. Core | Boots with the game, inline hooks, memory | The TL Pro app | `libbunny.so` (C++) |
+| 2. Bridge | `Terraria.*`, `.hook()`, `new Ref()` | The TL Pro app (`tl.*`, `NativeClass`) | `libbunny.so` (`script/bridge/`) + `bl.*` |
+| 3. Mod classes | `ModItem`, `ItemLoader`, the game hooks | **Inside each mod** (the `TL/` folder) | **Inside the loader** (`script/js/mod/`), once for everyone |
+| 4. Content | The author's classes, textures, texts | The mod | The mod |
 
-A linha 3 é a diferença que importa. O resto deste guia é ela em detalhe.
+Row 3 is the difference that matters. The rest of this guide is that row in
+detail.
 
-### Por que existe C++
+### Why there is C++
 
-O Terraria do celular não tem C#. O IL2CPP converteu o jogo em código de
-máquina (`libil2cpp.so`) antes de ir para a loja. Não há máquina virtual .NET
-para carregar uma DLL, nem reflexão para trocar um método. Um método é só um
-trecho de ARM64, e quem o chama salta direto para o endereço dele.
+Terraria on mobile has no C#. IL2CPP turned the game into machine code
+(`libil2cpp.so`) before it shipped to the store. There is no .NET virtual
+machine to load a DLL, and no reflection to swap a method. A method is just a
+stretch of ARM64, and its callers jump straight to its address.
 
-Então só código nativo consegue:
+So only native code can:
 
-- **interceptar** um método: reescrever as primeiras instruções dele com um
-  salto (hook inline, [ShadowHook](https://github.com/bytedance/android-inline-hook));
-- **achar** classes e métodos pelo nome, pela API do IL2CPP
+- **intercept** a method: rewrite its first instructions with a jump (inline
+  hook, [ShadowHook](https://github.com/bytedance/android-inline-hook));
+- **find** classes and methods by name, through the IL2CPP API
   (`il2cpp_class_from_name`...);
-- **mexer na memória** com segurança: aumentar um array de 754 posições, trocar
-  um `cmp #752` compilado dentro de um método, gravar arquivos ao lado do save;
-- rodar o que precisa ser **rápido**: o que acontece para todo item, todo tile
-  na tela, todo quadro.
+- **touch memory** safely: grow an array of 754 slots, swap a `cmp #752`
+  compiled inside a method, write files next to the save;
+- run what has to be **fast**: what happens for every item, every tile on
+  screen, every frame.
 
-### Por que existe JS
+### Why there is JS
 
-O mod é JavaScript (o motor é o [QuickJS](https://github.com/quickjs-ng/quickjs),
-dentro do jogo). Para uma classe `ModItem` com `UseItem()` funcionar, alguém
-precisa ligar "o jogador usou um item" a "chamar o `UseItem` daquela classe".
-Esse alguém é a camada 3. Ela conversa o tempo todo com classes JS do mod, então
-é natural que também seja JS.
+The mod is JavaScript (the engine is [QuickJS](https://github.com/quickjs-ng/quickjs),
+inside the game). For a `ModItem` class with `UseItem()` to work, someone has
+to connect "the player used an item" to "call that class's `UseItem`". That
+someone is layer 3. It talks to the mod's JS classes all the time, so it makes
+sense for it to be JS too.
 
-## O fluxo no TL Pro (o ExMod v1.7.1)
+## The flow in TL Pro (ExMod v1.7.1)
 
-### O pacote
+### The package
 
 ```
 ExMod_v1.7.1/
-├── Settings.json            título, guid, autores, versão
+├── Settings.json            title, guid, authors, version
 └── Modified/
     ├── 1.json
     └── 1.mod/
-        ├── main.js          a entrada
-        ├── Register/        RegisterAll.js, RegisterItems.js, RegisterNPCs.js... (18 arquivos)
-        ├── Content/         as classes do mod (ExampleItem.js, ExampleSword.js...)
+        ├── main.js          the entry point
+        ├── Register/        RegisterAll.js, RegisterItems.js, RegisterNPCs.js... (18 files)
+        ├── Content/         the mod's classes (ExampleItem.js, ExampleSword.js...)
         ├── Textures/, Localization/
-        └── TL/              ← o framework: 104 arquivos, ~16,7 mil linhas
+        └── TL/              ← the framework: 104 files, ~16.7 thousand lines
             ├── Core/        ModLoader.js, FileManager.js, Prototypes.js...
             ├── Loaders/     ItemLoader.js, NPCLoader.js, TileLoader.js... (21)
             ├── Hooks/       Item.js, NPC.js, Player.js, Main.js... (14)
@@ -81,60 +83,60 @@ ExMod_v1.7.1/
             └── ModItem.js, ModNPC.js, ModSystem.js, GlobalItem.js...
 ```
 
-A pasta `TL/` é o "tModLoader" do ExMod, e ela vem **dentro do mod**. Um
-segundo mod feito a partir do ExMod leva a própria cópia.
+The `TL/` folder is ExMod's "tModLoader", and it ships **inside the mod**. A
+second mod built from ExMod carries its own copy.
 
-### A carga
+### Loading
 
 ```mermaid
 sequenceDiagram
-    participant TL as App TL Pro
+    participant TL as TL Pro app
     participant Main as main.js
     participant Reg as Register/*.js
-    participant ML as TL/Core/ModLoader<br/>(um ModSystem do mod)
+    participant ML as TL/Core/ModLoader<br/>(a ModSystem of the mod)
     participant H as TL/Hooks/*.js
     participant L as TL/Loaders/*.js
-    TL->>Main: roda o main.js do mod
+    TL->>Main: runs the mod's main.js
     Main->>Reg: RegisterAll()
     Reg->>Reg: ModSystem.register(ModLoader)
-    Reg->>L: RegisterItems(): ItemLoader.register(new ExampleItem())...<br/>(ordem fixa: "don't change the registration order")
+    Reg->>L: RegisterItems(): ItemLoader.register(new ExampleItem())...<br/>(fixed order: "don't change the registration order")
     Main->>ML: SystemLoader.OnModLoad()
-    ML->>ML: monta info { hasItems, hasNPCs, hasTiles... }
+    ML->>ML: builds info { hasItems, hasNPCs, hasTiles... }
     ML->>H: ModHooks.Initialize(info)
-    H->>H: ItemHooks, NPCHooks, PlayerHooks...<br/>hookam o jogo por CATEGORIA
-    Note over ML,L: depois, no SetupContent
+    H->>H: ItemHooks, NPCHooks, PlayerHooks...<br/>hook the game by CATEGORY
+    Note over ML,L: later, in SetupContent
     ML->>L: ItemLoader.LoadItems()
-    L->>TL: tl.item.registerNew(nome) → o tipo novo
-    L->>L: aumenta cada tabela do jogo, uma a uma, pelo nome<br/>(resizeArrayProperty(ItemID.Sets, 'ToolTipDamageMultiplier'...))
+    L->>TL: tl.item.registerNew(name) → the new type
+    L->>L: grows each game table, one by one, by name<br/>(resizeArrayProperty(ItemID.Sets, 'ToolTipDamageMultiplier'...))
 ```
 
-Em ordem:
+In order:
 
-1. O app TL Pro roda o `main.js`, que chama `RegisterAll()` e depois
+1. The TL Pro app runs `main.js`, which calls `RegisterAll()` and then
    `SystemLoader.OnModLoad()`.
-2. `RegisterAll()` registra **à mão**, arquivo por arquivo: primeiro o
-   `ModLoader` (que no ExMod é um `ModSystem` do próprio mod), depois
+2. `RegisterAll()` registers **by hand**, file by file: first the `ModLoader`
+   (which in ExMod is a `ModSystem` of the mod itself), then
    `RegisterBackgrounds()`, `RegisterBuffs()`, `RegisterNPCs()`,
-   `RegisterItems()`... numa ordem que o autor não deve mudar. Cada
-   `RegisterX.js` importa cada classe e registra (`new ExampleItem()`). Classe
-   nova no mod = uma linha nova no `Register`.
-3. `OnModLoad` monta um resumo (`hasItems`, `hasNPCs`...) e chama
-   `ModHooks.Initialize(info)`: cada arquivo de `TL/Hooks/` hooka os métodos do
-   jogo da **categoria** que o mod usa. Um mod com itens ganha todos os hooks
-   de item, mesmo os que nenhum item dele usa.
-4. No `SetupContent`, cada `Loader` cria o conteúdo: `tl.item.registerNew(nome)`
-   (a função nativa do TL Pro) devolve o tipo novo, e o **JS do mod** aumenta
-   as tabelas do jogo uma a uma, pelo nome. Só o `ItemLoader` do ExMod tem
-   umas 120 linhas assim
+   `RegisterItems()`... in an order the author must not change. Each
+   `RegisterX.js` imports each class and registers it (`new ExampleItem()`).
+   A new class in the mod = a new line in `Register`.
+3. `OnModLoad` builds a summary (`hasItems`, `hasNPCs`...) and calls
+   `ModHooks.Initialize(info)`: each file in `TL/Hooks/` hooks the game
+   methods of the **category** the mod uses. A mod with items gets every item
+   hook, even the ones none of its items use.
+4. In `SetupContent`, each `Loader` creates the content:
+   `tl.item.registerNew(name)` (TL Pro's native function) returns the new
+   type, and the **mod's JS** grows the game's tables one by one, by name.
+   ExMod's `ItemLoader` alone has about 120 lines like this
    (`resizeArrayProperty(Terraria.ID.ItemID.Sets, 'CanGetPrefixes', nextItem, true)`...).
-   Tabela que não está na lista fica curta.
-5. Para vários mods conviverem, o `ModLoader` do ExMod conta os nomes que já
-   existem (`ItemID.Search.Names.Count`) antes e depois, e desloca os próprios
-   tipos por essa diferença (`ModData`).
+   A table that is not on the list stays short.
+5. For several mods to coexist, ExMod's `ModLoader` counts the names that
+   already exist (`ItemID.Search.Names.Count`) before and after, and shifts its
+   own types by that difference (`ModData`).
 
-### Em jogo
+### In game
 
-O hook de `Item.SetDefaults` do ExMod (`TL/Hooks/Item.js`) é o exemplo típico:
+ExMod's `Item.SetDefaults` hook (`TL/Hooks/Item.js`) is the typical example:
 
 ```js
 Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'].hook((original, self, type, variant) => {
@@ -144,247 +146,249 @@ Terraria.Item['void SetDefaults(int Type, ItemVariant variant)'].hook((original,
 });
 ```
 
-**Todo** item do jogo que nasce (cada drop, cada item de loja, cada slot do
-inventário) entra no JS, e só lá dentro o mod descobre que não era dele.
+**Every** item the game creates (each drop, each shop item, each inventory
+slot) enters JS, and only in there does the mod find out it was not one of
+its own.
 
-### O que isso causa
+### What this leads to
 
-- **Cada mod carrega o framework inteiro** (~16,7 mil linhas). Corrigir um bug
-  no `ItemLoader` é atualizar todo mod que o copiou.
-- **Dois mods = dois frameworks.** Cada um hooka o `Item.SetDefaults`, cada um
-  aumenta as tabelas, cada um conta os tipos do outro para não colidir.
-- **O custo é por categoria, não por uso.** Os hooks entram no JS para toda
-  entidade do jogo, e o filtro ("é meu?") é feito em JS.
-- **O autor mantém o `Register/`** na mão e na ordem certa.
-- **As tabelas são uma lista escrita à mão.** Uma versão nova do jogo com uma
-  tabela nova (ou uma que o autor esqueceu) quebra em silêncio: o jogo lê além
-  do fim.
+- **Each mod carries the whole framework** (~16.7 thousand lines). Fixing a
+  bug in `ItemLoader` means updating every mod that copied it.
+- **Two mods = two frameworks.** Each one hooks `Item.SetDefaults`, each one
+  grows the tables, each one counts the other's types to avoid collisions.
+- **The cost is per category, not per use.** The hooks enter JS for every
+  entity in the game, and the "is it mine?" filter happens in JS.
+- **The author maintains `Register/`** by hand and in the right order.
+- **The tables are a hand-written list.** A new game version with a new table
+  (or one the author forgot) breaks silently: the game reads past the end.
 
-## O fluxo no Bunny Loader
+## The flow in Bunny Loader
 
-### O pacote
+### The package
 
 ```
-MeuMod/
-├── manifest.json        uid, id, nome, versão, versão do jogo
+MyMod/
+├── manifest.json        uid, id, name, version, game version
 └── content/
-    ├── main.js          export default class MeuMod extends Mod { }
-    ├── Content/         as classes (Items/ExampleSword.js...)
+    ├── main.js          export default class MyMod extends Mod { }
+    ├── Content/         the classes (Items/ExampleSword.js...)
     ├── Common/          ModPlayer, ModSystem, Global*
     ├── Assets/          Textures/, Sounds/, Music/
     └── Localization/    en-US.json, pt-BR.json...
 ```
 
-Não tem `TL/`, nem `Register/`. A camada 3 está no loader, e o registro é
-automático: toda classe exportada em `Content/` e `Common/` que estende uma
-classe de mod é registrada sozinha (`static Autoload = false` deixa uma de
-fora).
+There is no `TL/` and no `Register/`. Layer 3 lives in the loader, and
+registration is automatic: every class exported in `Content/` and `Common/`
+that extends a mod class registers itself (`static Autoload = false` leaves one
+out).
 
-### Onde mora cada camada
+### Where each layer lives
 
-| Camada | Onde | O que tem |
+| Layer | Where | What it has |
 |---|---|---|
-| Kotlin | `app/src/main/kotlin/` | O launcher (lista de mods, importar) e a `GameActivity`, que sobe o jogo. |
-| 1. Núcleo (C++) | `app/src/main/cpp/` (`boot/`, `hook/`, `il2cpp/`, `content/`) | Boot, hooks inline, tabelas, limites compilados, saves, Mod Menu. |
-| 2. Ponte (C++) | `app/src/main/cpp/script/bridge/`, `script/api/` | `Terraria.*`, `.hook()`, `Ref`, e as funções `bl.*` (`bl.items.register`...). |
-| Ajudantes (JS) | `app/src/main/cpp/script/js/ModHelpers.js` | `Vector2`, `Color`, `MathHelper`, `Rand`, `ItemRarityID`. |
-| 3. Classes de mod (JS) | `app/src/main/cpp/script/js/mod/` | Na raiz a API (`ModItem.js`, `ModTile.js`...), em `Loaders/` os hooks do jogo (`ItemLoader`, `TileLoader`...), em `Core/` o comum (`Safe`, `Hooks`, `Ready`, `ModNet`, `ContentAutoload`), em `Enums/` as constantes. |
-| 4. O mod (JS) | `Android/data/com.bunnyloader/bunny_packs/<uid>/` | O pacote acima. |
+| Kotlin | `app/src/main/kotlin/` | The launcher (mod list, import) and `GameActivity`, which boots the game. |
+| 1. Core (C++) | `app/src/main/cpp/` (`boot/`, `hook/`, `il2cpp/`, `content/`) | Boot, inline hooks, tables, compiled limits, saves, Mod Menu. |
+| 2. Bridge (C++) | `app/src/main/cpp/script/bridge/`, `script/api/` | `Terraria.*`, `.hook()`, `Ref`, and the `bl.*` functions (`bl.items.register`...). |
+| Helpers (JS) | `app/src/main/cpp/script/js/ModHelpers.js` | `Vector2`, `Color`, `MathHelper`, `Rand`, `ItemRarityID`. |
+| 3. Mod classes (JS) | `app/src/main/cpp/script/js/mod/` | At the root, the API (`ModItem.js`, `ModTile.js`...); in `Loaders/`, the game hooks (`ItemLoader`, `TileLoader`...); in `Core/`, the shared pieces (`Safe`, `Hooks`, `Ready`, `ModNet`, `ContentAutoload`); in `Enums/`, the constants. |
+| 4. The mod (JS) | `Android/data/com.bunnyloader/bunny_packs/<uid>/` | The package above. |
 
-O JS das camadas 2 e 3 é **embutido na `libbunny.so`** na compilação (o CMake
-junta os arquivos numa função só, na ordem da lista `BL_MOD_CLASSES_PARTS` do
-`CMakeLists.txt`). Nenhum mod vê as classes internas (`ItemLoader`, `Safe`...):
-só as exportadas (`ModItem`, `ModContent`, `SoundStyle`...).
+The JS of layers 2 and 3 is **embedded in `libbunny.so`** at build time (CMake
+joins the files into a single function, in the order of the
+`BL_MOD_CLASSES_PARTS` list in `CMakeLists.txt`). No mod sees the internal
+classes (`ItemLoader`, `Safe`...): only the exported ones (`ModItem`,
+`ModContent`, `SoundStyle`...).
 
-### O boot
+### Boot
 
 ```mermaid
 sequenceDiagram
     participant K as GameActivity (Kotlin)
     participant B as libbunny.so (C++)
-    participant U as Unity / IL2CPP (o jogo)
-    participant S as sonda (thread do núcleo)
+    participant U as Unity / IL2CPP (the game)
+    participant S as probe (core thread)
     participant J as QuickJS
-    participant G as thread do jogo
-    K->>U: carrega as .so do jogo
-    K->>B: carrega a libbunny.so
-    B->>B: hook em il2cpp_init, inicia a sonda
-    K->>B: NativeBridge.init(pasta dos mods, quais estão ligados)
-    U->>B: il2cpp_init (hookado): carrega a API do IL2CPP
-    S->>J: sobe o motor, instala a ponte e o bl.*
+    participant G as game thread
+    K->>U: loads the game's .so files
+    K->>B: loads libbunny.so
+    B->>B: hooks il2cpp_init, starts the probe
+    K->>B: NativeBridge.init(mods folder, which ones are enabled)
+    U->>B: il2cpp_init (hooked): loads the IL2CPP API
+    S->>J: starts the engine, installs the bridge and bl.*
     S->>J: ModHelpers.js (Vector2, Color...)
-    S->>J: script/js/mod (ModItem, ItemLoader... uma vez, para todos)
-    S->>J: 1ª passada: um objeto Mod por pacote ligado
-    S->>J: 2ª passada: cada mod importa main.js + Content/ + Common/
-    J->>J: ContentAutoload: registra as classes exportadas, roda Mod.Load()
-    G->>B: Main.DoUpdate (hook C++), todo quadro
-    B->>B: na tela de título: instala o conteúdo (tabelas, limites)
+    S->>J: script/js/mod (ModItem, ItemLoader... once, for everyone)
+    S->>J: 1st pass: one Mod object per enabled package
+    S->>J: 2nd pass: each mod imports main.js + Content/ + Common/
+    J->>J: ContentAutoload: registers the exported classes, runs Mod.Load()
+    G->>B: Main.DoUpdate (C++ hook), every frame
+    B->>B: on the title screen: installs the content (tables, limits)
     B->>J: SetStaticDefaults, AddRecipes, PostSetupContent
 ```
 
-1. **Kotlin.** A `GameActivity` carrega o jogo e a `libbunny.so`, e passa a
-   configuração (`boot/jni_entry.cpp`).
-2. **`il2cpp_init`.** A `libbunny` espera o IL2CPP terminar e carrega a API
-   dele (`boot/LibWatcher.cpp`, `il2cpp/Api.cpp`).
-3. **A sonda** (`boot/Probe.cpp`), uma thread do núcleo, espera o jogo assentar
-   e sobe o QuickJS: primeiro a ponte, depois o `ModHelpers.js`, depois as
-   classes de mod (`script/js/mod`). Tudo isso roda **uma vez**, antes de
-   qualquer mod.
-4. **Os mods, em duas passadas** (`mods/ModLoader.cpp`). Na primeira, todo mod
-   ligado ganha o objeto `Mod` dele (por isso `ModLoader.TryGetMod` acha um mod
-   que ainda não carregou). Na segunda, cada mod é importado como **módulo ES**
-   (escopo próprio: dois mods com um `const x` não colidem), e o
-   `ContentAutoload` (`Core/ContentAutoload.js`) registra as classes
-   exportadas numa ordem fixa por tipo (buffs, jogador, NPCs, projéteis,
-   itens, tiles, sistemas, globais) e roda o `Load()` da classe `Mod`.
-5. **A thread do jogo.** Um hook C++ no `Main.DoUpdate` roda todo quadro. Na
-   tela de título ele **instala** o conteúdo registrado (as tabelas, os limites,
-   os nomes) e chama o `SetStaticDefaults` de cada classe; depois, o
-   `onContentReady` roda os `AddRecipes` e `PostSetupContent`.
+1. **Kotlin.** `GameActivity` loads the game and `libbunny.so`, and passes the
+   configuration (`boot/jni_entry.cpp`).
+2. **`il2cpp_init`.** `libbunny` waits for IL2CPP to finish and loads its API
+   (`boot/LibWatcher.cpp`, `il2cpp/Api.cpp`).
+3. **The probe** (`boot/Probe.cpp`), a core thread, waits for the game to
+   settle and starts QuickJS: first the bridge, then `ModHelpers.js`, then the
+   mod classes (`script/js/mod`). All of this runs **once**, before any mod.
+4. **The mods, in two passes** (`mods/ModLoader.cpp`). In the first, every
+   enabled mod gets its `Mod` object (which is why `ModLoader.TryGetMod` finds
+   a mod that has not loaded yet). In the second, each mod is imported as an
+   **ES module** (its own scope: two mods with a `const x` do not collide), and
+   `ContentAutoload` (`Core/ContentAutoload.js`) registers the exported
+   classes in a fixed order by kind (buffs, player, NPCs, projectiles, items,
+   tiles, systems, globals) and runs `Load()` on the `Mod` class.
+5. **The game thread.** A C++ hook on `Main.DoUpdate` runs every frame. On the
+   title screen it **installs** the registered content (the tables, the
+   limits, the names) and calls each class's `SetStaticDefaults`; after that,
+   `onContentReady` runs `AddRecipes` and `PostSetupContent`.
 
-### O registro de um item
+### Registering an item
 
-O que acontece quando o `ContentAutoload` acha `export class ExampleSword extends ModItem`:
+What happens when `ContentAutoload` finds `export class ExampleSword extends ModItem`:
 
 ```mermaid
 flowchart TB
-    A["ContentAutoload acha<br/>class ExampleSword extends ModItem"] --> R["ModItem.register(ExampleSword)<br/>(ModItem.js)"]
-    R --> T["cria o molde: new ExampleSword()<br/>acha a textura (Content/Items/ExampleSword.png)"]
+    A["ContentAutoload finds<br/>class ExampleSword extends ModItem"] --> R["ModItem.register(ExampleSword)<br/>(ModItem.js)"]
+    R --> T["creates the template: new ExampleSword()<br/>finds the texture (Content/Items/ExampleSword.png)"]
     R --> N["bl.items.register({ name, texture, setDefaults, setStaticDefaults })<br/>(C++: script/api/Items.cpp)"]
-    N --> ID["reserva o tipo: 6196 + ordem de registro<br/>(o tipo já existe; dá para usar no topo do arquivo)"]
+    N --> ID["reserves the type: 6196 + registration order<br/>(the type already exists; usable at the top of the file)"]
     R --> H["ItemLoader.Hook(ExampleSword)<br/>(Loaders/ItemLoader.js)"]
-    H --> Q{"a classe sobrescreve<br/>UseItem? Shoot? UpdateAccessory?"}
-    Q -- "sim, e é o 1º" --> HK["hook no método do jogo por trás<br/>(Hooks.Once: um para todos os mods)"]
-    Q -- "não" --> X["nada: o método do jogo fica sem hook"]
-    ID --> I["na tela de título (C++, content/items/ModItems.cpp):<br/>aumenta TODAS as tabelas de item<br/>e troca os limites compilados"]
-    I --> S["SetStaticDefaults do mod"]
+    H --> Q{"does the class override<br/>UseItem? Shoot? UpdateAccessory?"}
+    Q -- "yes, and it is the 1st" --> HK["hook on the game method behind it<br/>(Hooks.Once: one for all mods)"]
+    Q -- "no" --> X["nothing: the game method stays unhooked"]
+    ID --> I["on the title screen (C++, content/items/ModItems.cpp):<br/>grows ALL item tables<br/>and swaps the compiled limits"]
+    I --> S["the mod's SetStaticDefaults"]
 ```
 
-Três diferenças para o TL Pro:
+Three differences from TL Pro:
 
-- **O tipo vem do núcleo, um para todos.** `bl.items.register` reserva os tipos
-  de todos os mods numa sequência só. Ninguém precisa contar os tipos do outro.
-- **As tabelas são achadas, não listadas.** O núcleo (`content/common/TypeTables.cpp`)
-  procura, nas classes do jogo, **todo** array estático com exatamente
-  `ItemID.Count` posições (~127 para itens, ~220 para tiles) e aumenta todos. A
-  lista de classes foi conferida contra toda alocação desse tamanho na
-  `libil2cpp.so`. O autor do mod não mantém lista nenhuma.
-- **Os limites compilados são trocados.** Parte do jogo tem o número escrito no
-  código de máquina (`if (type > 752) return false` no `PlaceTile`). O núcleo
-  acha essas comparações (`hook/CodePatch.cpp`) e troca o número pelo total
-  novo. Isso não existe em JS.
+- **The type comes from the core, one sequence for everyone.**
+  `bl.items.register` reserves every mod's types in a single sequence. Nobody
+  has to count the other mods' types.
+- **The tables are found, not listed.** The core (`content/common/TypeTables.cpp`)
+  searches the game's classes for **every** static array with exactly
+  `ItemID.Count` slots (~127 for items, ~220 for tiles) and grows all of them.
+  The class list was checked against every allocation of that size in
+  `libil2cpp.so`. The mod author maintains no list at all.
+- **The compiled limits are swapped.** Part of the game has the number written
+  into the machine code (`if (type > 752) return false` in `PlaceTile`). The
+  core finds those comparisons (`hook/CodePatch.cpp`) and swaps the number for
+  the new total. That does not exist in JS.
 
-### Quem faz os hooks
+### Who installs the hooks
 
-Três fontes. Todas terminam no mesmo mecanismo do C++.
+Three sources. All of them end up in the same C++ mechanism.
 
-| Quem | Onde | Quando | Exemplo |
+| Who | Where | When | Example |
 |---|---|---|---|
-| **O núcleo** | C++, `hook::install` (ou um slot com callback em C++) | Sempre | O tick do `Main.DoUpdate`, o save do mundo e do personagem, o `Item.SetDefaults` dos itens de mod (`script/api/Items.cpp`), o desenho dos móveis. |
-| **As classes de mod** | JS, `script/js/mod/Loaders/` | Só se **alguma** classe sobrescreve o método, e **uma vez** para todos os mods | `ItemLoader` hooka `Player.ItemCheck_StartActualUse` se alguém tem `UseItem`. |
-| **O próprio mod** | JS, `.hook()` no `Load()` ou no topo | Quando o autor quer | `Terraria.Player['void Update(int i)'].hook(...)`, como no TL Pro. |
+| **The core** | C++, `hook::install` (or a slot with a C++ callback) | Always | The `Main.DoUpdate` tick, saving the world and the character, `Item.SetDefaults` for mod items (`script/api/Items.cpp`), drawing furniture. |
+| **The mod classes** | JS, `script/js/mod/Loaders/` | Only if **some** class overrides the method, and **once** for all mods | `ItemLoader` hooks `Player.ItemCheck_StartActualUse` if someone has `UseItem`. |
+| **The mod itself** | JS, `.hook()` in `Load()` or at the top level | Whenever the author wants | `Terraria.Player['void Update(int i)'].hook(...)`, as in TL Pro. |
 
-Cada hook JS com tipo usa um **filtro nativo**: o C++ lê o `type` do objeto
-antes de acordar o JS. Item do jogo passa direto para o original, e o JS nem é
-chamado:
+Each typed JS hook uses a **native filter**: C++ reads the object's `type`
+before waking JS up. A vanilla item goes straight to the original, and JS is
+not even called:
 
 ```js
-// Loaders/ItemLoader.js: só item de mod (type >= 6196) entra no JS.
+// Loaders/ItemLoader.js: only mod items (type >= 6196) enter JS.
 P['void ItemCheck_StartActualUse(Item sItem)'].hook((original, self, item) => { ... }, { minType: FIRST_ITEM, on: 0 });
 ```
 
-Os mods também podem usar os filtros (`minType`, `on`, `tile`, `tileAt`); ver o
-[guia 3](03-custo-e-desempenho.md#filtros-nativos).
+Mods can use the filters too (`minType`, `on`, `tile`, `tileAt`); see
+[guide 3](03-custo-e-desempenho.md#native-filters).
 
-### Uma chamada, do jogo ao `UseItem`
+### One call, from the game to `UseItem`
 
-O jogador usa a `ExampleSword`:
+The player uses the `ExampleSword`:
 
 ```mermaid
 sequenceDiagram
-    participant G as código do jogo
+    participant G as game code
     participant SH as ShadowHook + HookManager (C++)
-    participant JH as JsHook: o slot do hook (C++)
-    participant IL as ItemLoader (JS, camada 3)
-    participant M as ExampleSword (JS, o mod)
+    participant JH as JsHook: the hook slot (C++)
+    participant IL as ItemLoader (JS, layer 3)
+    participant M as ExampleSword (JS, the mod)
     G->>SH: Player.ItemCheck_StartActualUse(item)
-    SH->>JH: salto: o começo do método foi reescrito
-    JH->>JH: filtro nativo: item.type >= 6196?
-    alt item do jogo
-        JH->>G: chama o original direto (o JS não acorda)
-    else item de mod
-        JH->>JH: trava o motor JS, converte os argumentos
-        JH->>IL: callback do ItemLoader
-        IL->>G: original(self, item): o jogo faz a parte dele
-        IL->>IL: ItemLoader.Of(item): a cópia da ExampleSword daquele item
+    SH->>JH: jump: the start of the method was rewritten
+    JH->>JH: native filter: item.type >= 6196?
+    alt vanilla item
+        JH->>G: calls the original directly (JS does not wake up)
+    else mod item
+        JH->>JH: locks the JS engine, converts the arguments
+        JH->>IL: ItemLoader callback
+        IL->>G: original(self, item): the game does its part
+        IL->>IL: ItemLoader.Of(item): that item's ExampleSword copy
         IL->>M: m.UseItem(item, player)
-        M-->>IL: volta
-        IL-->>JH: volta
-        JH-->>G: volta ao jogo
+        M-->>IL: returns
+        IL-->>JH: returns
+        JH-->>G: back to the game
     end
 ```
 
-- **ShadowHook** reescreveu o começo do método e guarda as instruções
-  originais num trampolim, que é o `original()`.
-- **HookManager** deixa vários hooks no mesmo método, em cadeia (o do
-  `ItemLoader`, o de um `GlobalItem`, o de um mod).
-- **JsHook** tem uma função pronta por hook (os slots). Ela confere o filtro,
-  trava o motor JS (que é um só para todos os mods), converte `Item` em objeto
-  JS e chama o callback.
-- **`ItemLoader.Of(item)`** acha a instância da `ExampleSword` daquele item: cada
-  `Item` de mod tem a própria cópia do molde (o `Clone`), guardada ao lado do
-  objeto do jogo.
-- Um erro no `UseItem` do mod vira uma linha de log (`Safe.Run`): o jogo segue.
+- **ShadowHook** rewrote the start of the method and keeps the original
+  instructions in a trampoline, which is `original()`.
+- **HookManager** allows several hooks on the same method, chained (the
+  `ItemLoader` one, a `GlobalItem` one, a mod's).
+- **JsHook** has one ready-made function per hook (the slots). It checks the
+  filter, locks the JS engine (which is shared by all mods), converts `Item`
+  into a JS object and calls the callback.
+- **`ItemLoader.Of(item)`** finds that item's `ExampleSword` instance: each
+  mod `Item` has its own copy of the template (the `Clone`), kept next to the
+  game object.
+- An error in the mod's `UseItem` becomes a log line (`Safe.Run`): the game
+  carries on.
 
-Os detalhes de cada peça estão em [hooks por dentro](../nucleo/hooks.md) e
-[threads e o motor JS](../nucleo/threads-e-motor-js.md).
+The details of each piece are in [hooks under the hood](../nucleo/hooks.md) and
+[threads and the JS engine](../nucleo/threads-e-motor-js.md).
 
-### O save
+### Saving
 
-O mundo e o personagem do jogo **nunca** levam conteúdo de mod. O que é de mod
-vai em arquivos ao lado, pelo nome (`<uid do mod>/<Classe>`), não pelo número:
+The game's world and character **never** carry mod content. Mod content goes
+into files next to them, by name (`<mod uid>/<Class>`), not by number:
 
-| Arquivo | O que guarda |
+| File | What it holds |
 |---|---|
-| `<personagem>.plr.bl` | Os itens de mod do inventário, equipamento, tinturas e baús pessoais, e os buffs de mod ativos. A lixeira não é salva. |
-| `<personagem>.plr.bl.json` | O `SaveData` de cada `ModPlayer`. |
-| `<mundo>.wld.bl` | Os itens de mod nos baús do mundo. |
-| `<mundo>.wld.tiles.bl` | Os tiles de mod (posição, quadro). |
-| `<mundo>.wld.bl.json` | O `SaveWorldData` de cada `ModSystem`. |
+| `<character>.plr.bl` | Mod items in the inventory, equipment, dyes and personal chests, and active mod buffs. The trash slot is not saved. |
+| `<character>.plr.bl.json` | Each `ModPlayer`'s `SaveData`. |
+| `<world>.wld.bl` | Mod items in the world's chests. |
+| `<world>.wld.tiles.bl` | Mod tiles (position, frame). |
+| `<world>.wld.bl.json` | Each `ModSystem`'s `SaveWorldData`. |
 
-Sem o mod, o mundo e o personagem abrem no jogo puro, e os arquivos ao lado
-guardam o conteúdo para quando o mod voltar. A ordem dos mods pode mudar: o
-conteúdo volta pelo nome.
+Without the mod, the world and the character open in the plain game, and the
+side files keep the content for when the mod comes back. The mod order can
+change: the content comes back by name.
 
-## Lado a lado
+## Side by side
 
 | | TL Pro (ExMod v1.7.1) | Bunny Loader |
 |---|---|---|
-| Onde fica o framework (`ModItem`, `ItemLoader`, hooks) | Em cada mod (`TL/`, ~16,7 mil linhas) | No loader (`script/js/mod/`), um para todos |
-| Registro | À mão, no `Register/`, em ordem fixa | Automático: toda classe exportada em `Content/` e `Common/` |
-| Entrada | `main.js` chama `RegisterAll()` | `main.js` exporta `class X extends Mod` |
-| Tipo novo | `tl.item.registerNew`, e o mod conta os tipos dos outros | `bl.items.register`, uma sequência só para todos |
-| Tabelas do jogo | Listadas à mão no `Loader` (~120 só de item) | Achadas pelo tamanho (~127 de item, ~220 de tile) |
-| Limites compilados (`type > 752`) | Não | Trocados no código de máquina |
-| Quando um hook é instalado | Por categoria (tem itens → todos os hooks de item) | Por método (só se alguma classe sobrescreve) |
-| Filtro "é meu?" | Em JS, dentro do hook | Nativo, antes do JS |
-| Dois mods no mesmo método | Dois frameworks, dois hooks | Um hook da camada 3, em cadeia com os dos mods |
-| Save | Pelo framework do mod (`TL/WorldDB.js`, `TL/PlayerDB.js`) | Pelo núcleo, ao lado do `.plr`/`.wld`, pelo nome; o jogo abre sem o mod |
-| Escopo de cada arquivo | Módulo ES | Módulo ES |
-| Sintaxe da ponte | `Terraria.X['assinatura'].hook(...)` | A mesma, com os nomes exatos dos parâmetros ([ponte](../referencia/ponte-e-bl.md)) |
+| Where the framework lives (`ModItem`, `ItemLoader`, hooks) | In each mod (`TL/`, ~16.7 thousand lines) | In the loader (`script/js/mod/`), one for everyone |
+| Registration | By hand, in `Register/`, in a fixed order | Automatic: every class exported in `Content/` and `Common/` |
+| Entry point | `main.js` calls `RegisterAll()` | `main.js` exports `class X extends Mod` |
+| New type | `tl.item.registerNew`, and the mod counts the others' types | `bl.items.register`, a single sequence for everyone |
+| Game tables | Listed by hand in the `Loader` (~120 for items alone) | Found by size (~127 for items, ~220 for tiles) |
+| Compiled limits (`type > 752`) | No | Swapped in the machine code |
+| When a hook is installed | By category (has items → every item hook) | By method (only if some class overrides it) |
+| "Is it mine?" filter | In JS, inside the hook | Native, before JS |
+| Two mods on the same method | Two frameworks, two hooks | One layer-3 hook, chained with the mods' |
+| Saving | Through the mod's framework (`TL/WorldDB.js`, `TL/PlayerDB.js`) | Through the core, next to the `.plr`/`.wld`, by name; the game opens without the mod |
+| Scope of each file | ES module | ES module |
+| Bridge syntax | `Terraria.X['signature'].hook(...)` | The same, with the exact parameter names ([bridge](../referencia/ponte-e-bl.md)) |
 
-## Trazendo um mod do TL Pro
+## Bringing over a TL Pro mod
 
-O código de conteúdo (`SetDefaults`, `AI`, `UseItem`...) quase não muda. O que
-sai:
+The content code (`SetDefaults`, `AI`, `UseItem`...) barely changes. What goes
+away:
 
-- a pasta **`TL/` inteira**: `ModItem`, `ModNPC`, `ModContent`, `Vector2`,
-  `Color`... já são globais;
-- a pasta **`Register/`**: exporte as classes (`export class ExampleSword extends ModItem`);
-- o **`main.js`** vira a classe do mod (`export default class MeuMod extends Mod {}`),
-  com os hooks próprios no `Load()`;
-- `tl.*` vira `bl.*` ([a ponte e o `bl`](../referencia/ponte-e-bl.md));
-- os imports entre arquivos do mod continuam valendo (`import { X } from './Y.js'`).
+- the **whole `TL/` folder**: `ModItem`, `ModNPC`, `ModContent`, `Vector2`,
+  `Color`... are already globals;
+- the **`Register/`** folder: export the classes (`export class ExampleSword extends ModItem`);
+- **`main.js`** becomes the mod class (`export default class MyMod extends Mod {}`),
+  with your own hooks in `Load()`;
+- `tl.*` becomes `bl.*` ([the bridge and `bl`](../referencia/ponte-e-bl.md));
+- imports between the mod's files keep working (`import { X } from './Y.js'`).
 
-A lista do que cada classe tem hoje, e do que ainda falta em relação ao
-tModLoader, está na [referência](../referencia/classes.md).
+The list of what each class has today, and what is still missing compared to
+tModLoader, is in the [reference](../referencia/classes.md).

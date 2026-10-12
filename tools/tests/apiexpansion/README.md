@@ -1,100 +1,101 @@
-# Regressão de desenho, CloneDefaults e banners
+# Drawing, CloneDefaults and banners regression
 
-Validado em 08/10/2026 contra o tModLoader 1.4.5,
-commit `39e7995fa519a94468ebaf4699508d25903e143e`, e Terraria Mobile
-1.4.5.8/301720 ARM64 no MuMu. A análise dos contratos e das alternativas
-está em [compatibilidade-tmodloader-desenho-banners.md](../../../docs/nucleo/compatibilidade-tmodloader-desenho-banners.md).
+Validated on 2026-10-08 against tModLoader 1.4.5, commit
+`39e7995fa519a94468ebaf4699508d25903e143e`, and Terraria Mobile
+1.4.5.8/301720 ARM64 on MuMu. The analysis of the contracts and the
+alternatives is in [compatibilidade-tmodloader-desenho-banners.md](../../../docs/nucleo/compatibilidade-tmodloader-desenho-banners.md).
 
-## Resultados
+## Results
 
-| Verificação | Resultado |
+| Check | Result |
 |---|---|
-| `check.mjs` | 27 casos comportamentais; JS de produção, chamadas nativas simuladas e assinaturas conferidas no dump |
-| `verify_native.py` | Quatro blocos de instruções dos pontos Pre/Post conferidos na libil2cpp |
-| Fixture no jogo, com ExampleMod carregado antes | **26 verificações, zero falhas** |
-| Rodada posterior no jogo, com balanço do banner | **27 verificações, zero falhas**; 120 chamadas e 360 sprites, rotação variável |
-| Regressão `npcaitype/check.mjs` | 39 casos |
-| Regressão `globalprojectilehooks/check.mjs` | 59 casos e 22 assinaturas nativas |
-| Regressão `moditemdata/check.mjs` | 67 casos, incluindo arraste/equipamento e persistência de instância |
-| Suítes migradas para CombatLoader | ModItem: 138, ModNPC: 46, ModPlayer: 55; zero falhas |
-| `pendingnetwork/check.mjs` | 8 casos: PvP recebido, repasse, veto, exceção, origem inválida e ordem de combate |
-| [PvP e banner entre dois processos](../pendingnetwork/README.md) | Host: 12, cliente: 12, reconexão: 2; zero falhas |
+| `check.mjs` | 27 behavioral cases; production JS, simulated native calls and signatures checked against the dump |
+| `verify_native.py` | Four instruction blocks of the Pre/Post points checked in libil2cpp |
+| In-game fixture, with ExampleMod loaded first | **26 checks, zero failures** |
+| Later in-game round, with banner sway | **27 checks, zero failures**; 120 calls and 360 sprites, varying rotation |
+| `npcaitype/check.mjs` regression | 39 cases |
+| `globalprojectilehooks/check.mjs` regression | 59 cases and 22 native signatures |
+| `moditemdata/check.mjs` regression | 67 cases, including drag/equipment and instance persistence |
+| Suites migrated to CombatLoader | ModItem: 138, ModNPC: 46, ModPlayer: 55; zero failures |
+| `pendingnetwork/check.mjs` | 8 cases: received PvP, relay, veto, exception, invalid origin and combat order |
+| [PvP and banner across two processes](../pendingnetwork/README.md) | Host: 12, client: 12, reconnect: 2; zero failures |
 | `:app:assembleDebug` | BUILD SUCCESSFUL |
 
-Total das suítes de JS acima: **439 casos**. As chamadas nativas dessas
-suítes são simuladas. As fixtures no jogo são contadas separadamente.
+Total of the JS suites above: **439 cases**. Those suites' native calls are
+simulated. The in-game fixtures are counted separately.
 
-A fixture nativa confirmou ordem, argumentos e cores do inventário,
-veto do sprite, Post após veto, retorno da escala, recursão no callback,
-refs de rotação/escala chegando ao desenho do mundo, defaults vanilla e
-de outro mod, dificuldades Clássica/Expert/Mestre, preservação de instância,
-globais e participação dos jogadores, mapeamento compartilhado de banner,
-50º abate, lista de resgate mobile, serialização e entrega do item pelo
-pedido nativo com loopback, ativação do bônus pelo tile e recarga do save.
+The native fixture confirmed the order, arguments and colors in the
+inventory, the sprite veto, Post after a veto, the returned scale, recursion
+in the callback, rotation/scale refs reaching the world drawing, vanilla
+defaults and those from another mod, Classic/Expert/Master difficulties,
+preserving the instance, globals and the players' participation, shared
+banner mapping, the 50th kill, the mobile claim list, serializing and
+delivering the item through the native request with loopback, activating the
+bonus through the tile and reloading the save.
 
-Evidência da troca de ordem: sem ExampleMod, o representante era **697**,
-com item **6197**. Carregando o ExampleMod completo antes, passou a **700**,
-com item **6280**. O sidecar recuperou 50 abates, um banner resgatável e o
-aviso de novidade. O item e o tile do `ExampleSlimeNPC` também foram conferidos.
-Nenhum erro de carregamento foi registrado; o aviso sobre emotes desligados
-é uma limitação anterior do ExampleMod.
+Evidence of the order change: without ExampleMod, the representative was
+**697**, with item **6197**. Loading the full ExampleMod first, it became
+**700**, with item **6280**. The sidecar recovered 50 kills, one claimable
+banner and the new-item notice. The `ExampleSlimeNPC`'s item and tile were
+also checked. No load error was logged; the warning about disabled emotes is
+an earlier ExampleMod limitation.
 
-O save vanilla serializou **293** entradas. O pacote de rede da fixture
-com ExampleMod serializou **702** entradas. Foi lido o inteiro do payload,
-em vez de usar a capacidade inicial `NetPacket.Length = 65535` como prova.
+The vanilla save serialized **293** entries. The fixture's network packet with
+ExampleMod serialized **702** entries. The payload's integer was read, instead
+of using the initial `NetPacket.Length = 65535` capacity as proof.
 
-## Executar
+## Running
 
 ```powershell
 node tools/tests/apiexpansion/check.mjs
 python tools/tests/apiexpansion/verify_native.py
 ```
 
-Para a execução nativa, instale o APK completo com o código atualizado.
-`device.py` usa o MuMu `127.0.0.1:16384` e os saves locais `sda.plr` e
-`Pesadelo_Odioso.wld` como fontes para cópias `BL_ApiDiag`. Esses nomes
-devem existir nesse ambiente; o script não gera um mundo do zero.
+For the native run, install the full APK with the updated code. `device.py`
+uses MuMu `127.0.0.1:16384` and the local saves `sda.plr` and
+`Pesadelo_Odioso.wld` as sources for `BL_ApiDiag` copies. Those names must
+exist in that environment; the script does not generate a world from scratch.
 
 ```powershell
 python tools/tests/apiexpansion/device.py prepare
 python tools/tests/apiexpansion/device.py run
 python tools/tests/apiexpansion/device.py collect
-# Reiniciar testa a recarga do sidecar salvo pela primeira execução.
+# Restarting tests reloading the sidecar saved by the first run.
 python tools/tests/apiexpansion/device.py run
 python tools/tests/apiexpansion/device.py collect
-# Inclui uma cópia isolada do ExampleMod e muda os IDs da fixture.
+# Includes an isolated copy of ExampleMod and changes the fixture's IDs.
 python tools/tests/apiexpansion/device.py example
 python tools/tests/apiexpansion/device.py run
 python tools/tests/apiexpansion/device.py collect
 python tools/tests/apiexpansion/device.py restore
 ```
 
-Espere a linha `apiexpansion WIND FIM` antes de coletar ou reiniciar;
-ela vem após os 120 quadros de medição do banner.
-`restore` compara byte a byte as preferências originais de settings, mods e
-powers, remove as cópias dos saves/pacotes e relança a sessão original.
-O backup e os logs ficam em `build/apiexpansion/` (ignorados pelo Git).
-O pacote original instalado do ExampleMod é preservado.
+Wait for the `apiexpansion WIND FIM` line before collecting or restarting; it
+comes after the banner's 120 measurement frames. `restore` compares the
+original settings, mods and powers preferences byte by byte, removes the
+save/package copies and relaunches the original session. The backup and the
+logs live in `build/apiexpansion/` (ignored by Git). The originally installed
+ExampleMod package is kept.
 
-APK conferido: `app/build/outputs/apk/debug/app-debug.apk`, 204975273 bytes.
+APK checked: `app/build/outputs/apk/debug/app-debug.apk`, 204975273 bytes.
 SHA-256: `247e0085978390efcb42f3d51ce397f09b18c336294737bfe5bec023505fcf48`.
 
-O ExampleMod foi empacotado como **1.9.0** para identificar a atualização
-com o novo banner. Após essa alteração de manifesto, o APK foi recompilado
-e o pacote `.bl` teve versão e presença dos novos arquivos conferidas.
+ExampleMod was packaged as **1.9.0** to identify the update with the new
+banner. After that manifest change, the APK was rebuilt and the `.bl`
+package's version and the presence of the new files were checked.
 
-## Limites
+## Limits
 
-- O teste de balanço cobre um banner 1x3 com âncora sólida, vento ativo e a
-  opção correspondente habilitada. Não cobre todas as texturas/alternates
-  de terceiros nem constitui benchmark de desempenho de muitos banners.
-- O PvP de item e os banners passaram entre dois processos no MuMu; os
-  cenários e limites estão no relatório específico de rede.
-- Não houve medição de FPS no aparelho físico do relato do EternalLaser.
-  Os dados anteriores no MuMu e a comparação do ExMod estão em
-  `out/diagnostics/eternal-laser/analise.md`; a sonda está disponível para
-  capturar o cenário afetado sem mudar AIType ou extraUpdates.
+- The sway test covers a 1x3 banner with a solid anchor, active wind and the
+  matching option enabled. It does not cover every third-party
+  texture/alternate nor is it a performance benchmark of many banners.
+- Item PvP and banners passed across two processes on MuMu; the scenarios
+  and limits are in the specific network report.
+- There was no FPS measurement on the physical device from the EternalLaser
+  report. The earlier MuMu data and the ExMod comparison are in
+  `out/diagnostics/eternal-laser/analise.md`; the probe is available to
+  capture the affected scenario without changing AIType or extraUpdates.
 
-Texturas de banner: ExampleMod do tModLoader, no commit citado, preservadas
-sem edição. A textura de slime e a de item de teste vêm dos exemplos e das
-fixtures existentes deste repositório.
+Banner textures: tModLoader's ExampleMod, at the cited commit, kept unedited.
+The slime texture and the test item's come from this repository's existing
+examples and fixtures.

@@ -1,127 +1,128 @@
-# Carregamento e engasgos do launcher
+# Launcher loading and stutters
 
-## Análise
+## Analysis
 
-Relato: pico ao abrir Explorar após atualizar o APK, além de engasgos em
-outras telas. A revisão inclui Explorar, Início, ficha do pacote e Config.
-Não foi fornecido o modelo do celular; medições Android são do emulador,
-não uma promessa de tempos iguais no aparelho.
+Report: a spike when opening Explore after updating the APK, plus stutters on
+other screens. The review includes Explore, Home, the package page and
+Settings. The phone model was not provided; Android measurements are from the
+emulator, not a promise of identical times on the device.
 
-Fatos encontrados no código anterior:
+Facts found in the previous code:
 
-- O caminho de índice antigo baixava manifesto **e ícone** de todos os
-  mods antigos, mesmo fora da tela. Só o manifesto é necessário para listá-los.
-- Cada arquivo baixado substituía a lista remota e incrementava uma versão
-  global, invalidando busca/ordenação e páginas de outros mods.
-- Havia decodificação/leitura síncrona em avatares, prévias, Markdown,
-  perfil e lista de personagens/mundos. As abas da ficha eram lidas e
-  analisadas durante a composição.
-- GIFs podiam reter cerca de 16 MB de pixels cada, além da cópia em bitmaps;
-  caches estática e animada tinham 24 MB cada. Vários GIFs podiam ser
-  decodificados simultaneamente. Falhas não eram memorizadas.
-- O cálculo do tamanho do pacote embutido alocava cada arquivo inteiro.
-  Entradas remotas percorriam a vitrine recursivamente, apesar de o índice
-  já informar o tamanho do pacote.
+- The old index path downloaded the manifest **and the icon** of every old
+  mod, even off screen. Only the manifest is needed to list them.
+- Each downloaded file replaced the remote list and incremented a global
+  version, invalidating search/sorting and other mods' pages.
+- There was synchronous decoding/reading in avatars, previews, Markdown, the
+  profile and the character/world list. The page's tabs were read and parsed
+  during composition.
+- GIFs could keep about 16 MB of pixels each, plus the copy in bitmaps; the
+  static and animated caches had 24 MB each. Several GIFs could be decoded at
+  the same time. Failures were not remembered.
+- Computing the embedded package's size allocated each whole file. Remote
+  entries walked the showcase recursively, even though the index already gave
+  the package's size.
 
-Hipótese: limitar alocação/concorrência e retirar I/O da composição deve
-reduzir picos. Ela é avaliada por testes de comportamento e medições
-separadas de cache real e de GIFs sintéticos. Quadros longos na entrada
-exigem observar o histograma agregado, além dos percentis da janela final.
+Hypothesis: limiting allocation/concurrency and removing I/O from composition
+should reduce spikes. It is assessed through behavior tests and separate
+measurements of the real cache and of synthetic GIFs. Long frames on entry
+require looking at the aggregated histogram, besides the final window's
+percentiles.
 
-Casos cobertos: pedidos concorrentes da mesma imagem, formatos misturados,
-falha repetida, exceção no carregador, LRU, orçamento de bytes/entradas,
-GIF corrompido, transparência/descarte/entrelaçamento, excesso de quadros,
-atualização de arquivo sem mudança nos caminhos, mudança de hash do pacote,
-consumidores de outros uids e preferência de início rápido durante carga.
+Cases covered: concurrent requests for the same image, mixed formats,
+repeated failure, an exception in the loader, LRU, byte/entry budget, a
+corrupted GIF, transparency/disposal/interlacing, too many frames, a file
+update without a change in the paths, a change in the package's hash,
+consumers of other uids and the quick start preference during loading.
 
-## Design e implementação
+## Design and implementation
 
-| Alternativa | Custo e manutenção |
+| Alternative | Cost and maintenance |
 |---|---|
-| Só mover cada operação para IO | UI deixa de esperar, mas muitos trabalhos e alocações podem continuar concorrendo; não corrige invalidação global |
-| Trocar o pipeline por biblioteca externa | Pode resolver cache/carga, mas adiciona dependência e exige adaptar GIF/pixel art e regras de arquivos do pacote |
-| Limitar e reutilizar o pipeline existente | Escolhida: cache de produção testável, dispatcher com duas tarefas, estado por uid e leituras assíncronas; mantém os formatos e caminhos existentes |
+| Just move each operation to IO | The UI stops waiting, but many jobs and allocations can still compete; does not fix the global invalidation |
+| Replace the pipeline with an external library | Could solve caching/loading, but adds a dependency and requires adapting GIF/pixel art and the package's file rules |
+| Limit and reuse the existing pipeline | Chosen: a testable production cache, a dispatcher with two tasks, per-uid state and asynchronous reads; keeps the existing formats and paths |
 
-`MediaCache` compartilha 24 MB e no máximo 256 entradas entre imagens e
-animações; lookup LRU é O(1) amortizado, e a admissão pode evictar entradas
-até caber no orçamento. Pedidos da mesma chave compartilham a decodificação.
-Resultados nulos também são retidos; a chave inclui revisão do arquivo e
-dimensão pretendida. Valores acima do orçamento não expulsam a cache útil.
+`MediaCache` shares 24 MB and at most 256 entries between images and
+animations; the LRU lookup is O(1) amortized, and admission can evict entries
+until it fits the budget. Requests for the same key share the decoding. Null
+results are also kept; the key includes the file's revision and the intended
+size. Values above the budget do not evict the useful cache.
 
-`MediaDispatcher` admite duas tarefas bloqueantes de mídia por vez. Isso
-evita ocupar uma thread IO por imagem aguardando o semáforo da cache. A
-cache também limita a duas decodificações caso seja chamada por outra
-thread. Bitmaps usam leitura de dimensões e inSampleSize; ícones até 256 px,
-avatares até 192 px e imagens de página até 1.024 px no maior lado. As
-texturas são preparadas antes de publicar o resultado para a UI.
+`MediaDispatcher` admits two blocking media tasks at a time. That avoids
+tying up an IO thread per image waiting on the cache's semaphore. The cache
+also limits itself to two decodings in case it is called from another thread.
+Bitmaps use bounds reading and inSampleSize; icons up to 256 px, avatars up to
+192 px and page images up to 1,024 px on the longest side. The textures are
+prepared before the result is published to the UI.
 
-GIFs de ícone aceitam até 4 MB de entrada, saída de até 256 px no maior
-lado, um milhão de pixels retidos (~4 MB) e 256 quadros. O orçamento de
-processamento da fonte continua com quatro milhões de pixels e lado 512.
-A composição/disposal acontece na tela original antes da amostragem.
-Animações que excedem o orçamento podem terminar antes; não se promete
-preservar todos os quadros de arquivos arbitrariamente longos.
+Icon GIFs accept up to 4 MB of input, output up to 256 px on the longest side,
+a million retained pixels (~4 MB) and 256 frames. The source processing budget
+stays at four million pixels and a side of 512. Composition/disposal happens on
+the original canvas before sampling. Animations that exceed the budget may end
+early; keeping every frame of arbitrarily long files is not promised.
 
-`StoreMedia` usa uma célula observável independente por uid. Um único
-SnapshotStateMap ainda invalidaria leitores de outras chaves; o teste
-observa os consumidores reais com SnapshotStateObserver. A revisão por
-uid muda inclusive quando só chega texto/foto e os caminhos de ícone e
-capa continuam iguais. Um hash antigo não pode substituir a entrada nova.
-A lista de catálogo/busca não é substituída na chegada de imagens.
+`StoreMedia` uses an independent observable cell per uid. A single
+SnapshotStateMap would still invalidate readers of other keys; the test
+observes the real consumers with SnapshotStateObserver. The per-uid revision
+changes even when only text/photo arrives and the icon and cover paths stay
+the same. An old hash cannot replace the new entry. The catalog/search list is
+not replaced when images arrive.
 
-Leituras de páginas, imagens inline, avatares e prévias saem da composição;
-prévias horizontais usam LazyRow. Perfil e saves são carregados fora da UI.
-O início rápido só corrige preferências após a lista terminar de carregar.
-A rotação do indicador lê o estado na camada gráfica, sem recompor a
-cada quadro. Metadados antigos e arquivos visíveis têm dois slots de rede
-em cada caminho; instalar pacotes mantém seu fluxo anterior.
+Reading pages, inline images, avatars and previews moved out of composition;
+horizontal previews use LazyRow. The profile and the saves are loaded off the
+UI. Quick start only fixes preferences after the list finishes loading. The
+indicator's rotation reads the state in the graphics layer, without
+recomposing every frame. Old metadata and visible files get two network slots
+on each path; installing packages keeps its previous flow.
 
-O orçamento da cache não limita todo o PSS do app: referências visíveis,
-buffers temporários, texturas da GPU, fontes e runtime também consomem
-memória. Uma página Markdown muito longa ainda pode custar composição e
-layout; retirar parsing/I/O não elimina todo custo da UI.
+The cache budget does not bound the app's whole PSS: visible references,
+temporary buffers, GPU textures, fonts and the runtime also consume memory. A
+very long Markdown page can still cost composition and layout; removing
+parsing/I/O does not eliminate every UI cost.
 
-## Testes JVM e build
+## JVM tests and build
 
 ```powershell
 gradle :app:testDebugUnitTest :app:assembleDebug --console=plain
 ```
 
-106 testes: 92 existentes e 14 novos, sendo sete de cache, quatro de GIF e
-três de observação por uid. Os testes de cache usam threads/latches reais;
-os de GIF comparam a saída reduzida à composição já validada contra Pillow.
-Eles não simulam velocidade do Android nem a saída gráfica da GPU.
+106 tests: 92 existing and 14 new, seven for the cache, four for GIF and
+three for per-uid observation. The cache tests use real threads/latches; the
+GIF ones compare the reduced output with the composition already validated
+against Pillow. They do not simulate Android's speed nor the GPU's graphics
+output.
 
-## Medição Android
+## Android measurement
 
-`device.py` requer ADB/su, launcher fechado e cópias de preparação em
-`build/launcherperf`. Não inicia GameActivity. Esta execução foi preparada
-com backups tar de `shared_prefs` e `cache/store`, o índice em
-`index.original.json` e uma hierarquia da tela inicial em `initial.xml`.
-Os APKs completos ficam em `baseline.apk` e `candidate.apk` nessa pasta.
-Não substitua os backups enquanto uma preparação estiver em uso.
+`device.py` requires ADB/su, the launcher closed and preparation copies in
+`build/launcherperf`. It does not start GameActivity. This run was prepared
+with tar backups of `shared_prefs` and `cache/store`, the index in
+`index.original.json` and a home screen hierarchy in `initial.xml`. The full
+APKs are `baseline.apk` and `candidate.apk` in that folder. Do not replace the
+backups while a preparation is in use.
 
-Os backups podem ser obtidos com `adb exec-out run-as com.bunnyloader tar
--cf - shared_prefs` e o equivalente para `cache/store`, gravando stdout
-binário diretamente, sem conversão de texto pelo PowerShell. O XML vem de
-`uiautomator dump`; ele fornece as coordenadas dos controles, em vez de
-supor posições. Em múltiplos displays, o runner move a task do launcher
-para o display 0 antes dos gestos. A resolução desta execução foi
-1.600 × 900, densidade 240 dpi.
+The backups can be obtained with `adb exec-out run-as com.bunnyloader tar
+-cf - shared_prefs` and the equivalent for `cache/store`, writing the binary
+stdout directly, without text conversion by PowerShell. The XML comes from
+`uiautomator dump`; it provides the controls' coordinates, instead of
+assuming positions. On multiple displays, the runner moves the launcher's task
+to display 0 before the gestures. This run's resolution was 1,600 × 900, at
+240 dpi.
 
 ```powershell
-# Instalar baseline antes destas chamadas:
+# Install the baseline before these calls:
 python tools/tests/launcherperf/device.py run --label before-1
 python tools/tests/launcherperf/device.py run --label before-2
 python tools/tests/launcherperf/device.py run --label before-3
 python tools/tests/launcherperf/device.py run --label before-stress --stress
-# Instalar candidato e repetir com labels after-1/2/3/stress.
+# Install the candidate and repeat with labels after-1/2/3/stress.
 python tools/tests/launcherperf/analyze.py
 python tools/tests/launcherperf/device.py restore
 ```
 
-Nesta execução houve uma contraprova adicional na ordem candidato, anterior,
-candidato. Instale o APK correspondente antes de cada comando:
+This run had an extra cross-check in the order candidate, previous,
+candidate. Install the matching APK before each command:
 
 ```powershell
 python tools/tests/launcherperf/device.py run --label after-check1
@@ -129,49 +130,49 @@ python tools/tests/launcherperf/device.py run --label before-check
 python tools/tests/launcherperf/device.py run --label after-check2
 ```
 
-`analyze.py` inclui essas rodadas separadamente quando presentes. Registros
-adicionais de build, JUnit, verificação online e restauração em
-`build/launcherperf/*.json` são opcionais; eles documentam as verificações
-desta execução e não são fabricados pelo analisador. `RESULTADOS.md` contém
-a interpretação manual dos dados, não é regenerado pelo analisador.
+`analyze.py` includes those rounds separately when present. The extra build,
+JUnit, online check and restoration records in `build/launcherperf/*.json` are
+optional; they document this run's checks and are not fabricated by the
+analyzer. `RESULTADOS.md` holds the manual interpretation of the data; it is
+not regenerated by the analyzer.
 
-As rodadas temporariamente rejeitam HTTPS no emulador, restaurando a regra
-em `finally`; não alteram Wi-Fi/dados móveis. Esse kernel não oferece o
-match iptables `owner`, portanto o bloqueio temporário de porta 443 cobre
-o emulador inteiro. `network.blocked.json` permite desfazer as regras após
-uma interrupção. `restore` também remove essa regra antes de restaurar os
-arquivos. Use apenas um runner por emulador e execute restore ao terminar.
+The rounds temporarily reject HTTPS on the emulator, restoring the rule in
+`finally`; they do not change Wi-Fi/mobile data. This kernel does not offer
+the iptables `owner` match, so the temporary port 443 block covers the whole
+emulator. `network.blocked.json` allows undoing the rules after an
+interruption. `restore` also removes that rule before restoring the files. Use
+only one runner per emulator and run restore when done.
 
-A comparação principal usa a mesma cache de 19 mods, sem variação de rede;
-são três rodadas consecutivas por APK, não alternadas. Cada abertura
-restaura as preferências anteriores à instalação, incluindo a marca do
-APK, para exercitar a preparação após atualização. Foram medidos entrada
-em Explorar, 16 gestos de rolagem, Config, ficha do Example Mod e repouso
-na ficha. Builds não rodaram junto com medições válidas.
+The main comparison uses the same 19-mod cache, with no network variation;
+three consecutive rounds per APK, not alternated. Each launch restores the
+preferences from before the installation, including the APK's mark, to
+exercise the preparation after an update. Measured: entering Explore, 16
+scroll gestures, Settings, the Example Mod page and idling on the page. Builds
+did not run alongside valid measurements.
 
-O diagnóstico separado gera 40 mods locais de teste com GIFs de
-512 × 512 e dez quadros; os pacotes não são instalados. Não representa o
-catálogo público nem é combinado com a mediana principal.
+The separate diagnosis generates 40 local test mods with 512 × 512 GIFs and
+ten frames; the packages are not installed. It does not represent the public
+catalog and is not combined with the main median.
 
-A verificação online foi feita depois das medições, com HTTPS liberado:
-restaurar os backups, esvaziar somente `cache/store`, restaurar índice/ETag
-do tar, abrir Explorar e inventariar os arquivos baixados. Depois abrir uma
-ficha remota, conferir texto/capa/avatar, visitar Config, voltar e arrastar
-para atualizar. Hierarquias, screenshots e inventários estão em
-`build/launcherperf/online-*`; os resultados conferidos estão em
-`online-validation.json`. Finalizar sempre com `device.py restore`.
+The online check was done after the measurements, with HTTPS allowed:
+restore the backups, empty only `cache/store`, restore the index/ETag from the
+tar, open Explore and inventory the downloaded files. Then open a remote page,
+check text/cover/avatar, visit Settings, go back and pull to refresh.
+Hierarchies, screenshots and inventories are in `build/launcherperf/online-*`;
+the checked results are in `online-validation.json`. Always finish with
+`device.py restore`.
 
-Gfxinfo registra histograma e ring buffer de até 120 quadros; o ring buffer
-do fim pode perder a travada inicial. `metrics.py` aceita os cabeçalhos CSV
-de diferentes versões Android e mantém ambos os resultados. Buckets do
-histograma são aproximações, não máximos exatos. PSS é amostrado após
-cada fase, não é uma medição de pico. Não use GPU timestamps inválidos
-do emulador (`GpuCompleted=-1`) para prometer FPS/latência física.
+Gfxinfo records a histogram and a ring buffer of up to 120 frames; the
+ring buffer at the end may miss the initial stutter. `metrics.py` accepts the
+CSV headers of different Android versions and keeps both results. The
+histogram buckets are approximations, not exact maximums. PSS is sampled after
+each phase; it is not a peak measurement. Do not use the emulator's invalid GPU
+timestamps (`GpuCompleted=-1`) to promise physical FPS/latency.
 
-Resultados e limitações: [RESULTADOS.md](RESULTADOS.md) e
-[measurements.json](measurements.json). Arquivos gfxinfo, meminfo, logcat,
-screenshots e backups completos ficam em `build/launcherperf`.
+Results and limitations: [RESULTADOS.md](RESULTADOS.md) and
+[measurements.json](measurements.json). The gfxinfo, meminfo, logcat,
+screenshot files and full backups live in `build/launcherperf`.
 
-As decisões seguem a documentação primária de
-[otimização de bitmaps](https://developer.android.com/develop/ui/compose/graphics/images/optimization)
-e [leituras de estado no Compose](https://developer.android.com/develop/ui/compose/performance/bestpractices).
+The decisions follow the primary documentation on
+[bitmap optimization](https://developer.android.com/develop/ui/compose/graphics/images/optimization)
+and [state reads in Compose](https://developer.android.com/develop/ui/compose/performance/bestpractices).

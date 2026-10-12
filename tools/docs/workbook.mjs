@@ -10,7 +10,7 @@ const option = (name) => {
     return index >= 0 ? process.argv[index + 1] : undefined;
 };
 const runtime = option('--runtime');
-if (!runtime) throw new Error('Informe --runtime com a pasta de trabalho que resolve @oai/artifact-tool.');
+if (!runtime) throw new Error('Pass --runtime with the working folder that resolves @oai/artifact-tool.');
 const requireRuntime = createRequire(path.resolve(runtime, 'package.json'));
 const { FileBlob, Workbook, SpreadsheetFile } = await import(pathToFileURL(requireRuntime.resolve('@oai/artifact-tool')).href);
 const catalog = JSON.parse(await fs.readFile(path.join(root, 'docs/referencia/metodos.json'), 'utf8'));
@@ -19,23 +19,23 @@ await fs.mkdir(outputDir, { recursive: true });
 
 if (process.argv.includes('--inspect-existing')) {
     const existing = await SpreadsheetFile.importXlsx(await FileBlob.load(path.join(root, 'docs/referencia/metodos.xlsx')));
-    const sheet = existing.worksheets.getItem('Métodos');
+    const sheet = existing.worksheets.getItem('Methods');
     const rows = sheet.getUsedRange().values;
     const method = option('--inspect-method') || 'Shoot';
     const targetClass = option('--inspect-class') || 'ModItem';
     const first = rows.findIndex(row => row[0] === targetClass && row[1] === method) + 1;
-    if (first < 1) throw new Error('Método de ' + targetClass + ' não encontrado: ' + method);
+    if (first < 1) throw new Error('Method of ' + targetClass + ' not found: ' + method);
     const range = process.argv.includes('--inspect-contract') ? `H${first}:K${first + 1}` : `A${first}:D${first + 5}`;
-    const preview = await existing.render({ sheetName: 'Métodos', range, scale: 1, format: 'png' });
+    const preview = await existing.render({ sheetName: 'Methods', range, scale: 1, format: 'png' });
     await fs.writeFile(path.join(outputDir, 'moditem-antes.png'), new Uint8Array(await preview.arrayBuffer()));
     console.log(JSON.stringify({ existingRows: rows.length, preview: outputDir }));
     process.exit(0);
 }
 
 const workbook = Workbook.create();
-const index = workbook.worksheets.add('Índice');
-const methods = workbook.worksheets.add('Métodos');
-const declared = catalog.rows.filter((row) => row.status === 'Declarado').length;
+const index = workbook.worksheets.add('Index');
+const methods = workbook.worksheets.add('Methods');
+const declared = catalog.rows.filter((row) => row.status === 'Declared').length;
 const unavailable = catalog.rows.length - declared;
 
 function style(sheet, lastRow, lastColumn, widths) {
@@ -58,9 +58,9 @@ function header(sheet, range) {
 
 const indexRows = catalog.classes.map((definition) => [definition.name, definition.base || '—', definition.own, definition.inherited,
     definition.own + definition.inherited]);
-index.getRange('A2').values = [['Bunny Loader — métodos por classe']];
-index.getRange('A3').values = [[`${catalog.classes.length} classes. ${declared} registros declarados. ${unavailable} métodos não implementados.`]];
-index.getRange('A6:E6').values = [['Classe', 'Classe base', 'Próprios', 'Herdados', 'Total']];
+index.getRange('A2').values = [['Bunny Loader — methods by class']];
+index.getRange('A3').values = [[`${catalog.classes.length} classes. ${declared} declared records. ${unavailable} methods not implemented.`]];
+index.getRange('A6:E6').values = [['Class', 'Base class', 'Own', 'Inherited', 'Total']];
 index.getRange(`A7:E${indexRows.length + 6}`).values = indexRows;
 style(index, indexRows.length + 6, 'E', [270, 210, 100, 100, 100]);
 index.getRange(`C7:E${indexRows.length + 6}`).setNumberFormat('0');
@@ -70,12 +70,12 @@ header(index, 'A6:E6');
 index.freezePanes.freezeRows(6);
 index.tabColor = '#273C5A';
 
-const labels = ['Classe', 'Método', 'Tipo', 'Assinatura', 'Declarado em', 'Herdado', 'Status', 'Retorno base', 'Contrato / limite', 'Etapa nativa', 'Fonte'];
+const labels = ['Class', 'Method', 'Kind', 'Signature', 'Declared in', 'Inherited', 'Status', 'Base return', 'Contract / limit', 'Native step', 'Source'];
 const keys = ['class', 'method', 'kind', 'signature', 'declaredIn', 'inherited', 'status', 'baseReturn', 'description', 'native', 'sourceUrl'];
-const values = catalog.rows.map((row) => keys.map((key) => key === 'inherited' ? row[key] ? 'Sim' : 'Não' : row[key]));
+const values = catalog.rows.map((row) => keys.map((key) => key === 'inherited' ? row[key] ? 'Yes' : 'No' : row[key]));
 const lastRow = values.length + 6;
-methods.getRange('A2').values = [['Catálogo de métodos']];
-methods.getRange('A3').values = [['Declarado confirma a existência na API JS. Consulte os contratos e os resultados dos testes para o comportamento no jogo.']];
+methods.getRange('A2').values = [['Methods catalog']];
+methods.getRange('A3').values = [['Declared confirms it exists in the JS API. See the contracts and the test results for the in-game behavior.']];
 methods.getRange('A6:K6').values = [labels];
 methods.getRange(`A7:K${lastRow}`).values = values;
 const widths = [225, 290, 150, 600, 200, 85, 170, 390, 780, 420, 960];
@@ -87,7 +87,7 @@ header(methods, 'A6:K6');
 methods.freezePanes.freezeRows(6);
 methods.freezePanes.freezeColumns(2);
 methods.getRange(`G7:G${lastRow}`).conditionalFormats.add('containsText', {
-    text: 'Não implementado', format: { fill: '#FFF0CC', font: { color: '#805209', bold: true } }
+    text: 'Not implemented', format: { fill: '#FFF0CC', font: { color: '#805209', bold: true } }
 });
 for (let row = 0; row < values.length; row++) {
     const lines = Math.max(...values[row].map((value, column) => Math.ceil(String(value).length / Math.max(12, (widths[column] - 16) / 7))));
@@ -95,20 +95,20 @@ for (let row = 0; row < values.length; row++) {
 }
 
 workbook.recalculate();
-const inspected = await workbook.inspect({ kind: 'table', range: 'Métodos!A6:I10', include: 'values,formulas', tableMaxRows: 5, tableMaxCols: 9, maxChars: 2400 });
+const inspected = await workbook.inspect({ kind: 'table', range: 'Methods!A6:I10', include: 'values,formulas', tableMaxRows: 5, tableMaxCols: 9, maxChars: 2400 });
 await fs.writeFile(path.join(outputDir, 'inspect.ndjson'), inspected.ndjson);
 const errors = await workbook.inspect({ kind: 'match', searchTerm: '#REF!|#DIV/0!|#VALUE!|#NAME\\?|#N/A|#NUM!|#NULL!|#SPILL!|#CALC!', options: { useRegex: true, maxResults: 20 }, maxChars: 1600 });
 await fs.writeFile(path.join(outputDir, 'errors.ndjson'), errors.ndjson);
 const previews = [
-    ['Índice', 'A1:E17', 'indice'],
-    ['Métodos', 'A1:D14', 'metodos-assinaturas'],
-    ['Métodos', 'E6:K12', 'metodos-contratos']
+    ['Index', 'A1:E17', 'indice'],
+    ['Methods', 'A1:D14', 'metodos-assinaturas'],
+    ['Methods', 'E6:K12', 'metodos-contratos']
 ];
 const npcFirst = catalog.rows.findIndex((row) => row.class === 'ModNPC' && row.method === 'UpdateLifeRegen') + 7;
-previews.push(['Métodos', `A${npcFirst}:I${npcFirst + 6}`, 'modnpc-limites']);
+previews.push(['Methods', `A${npcFirst}:I${npcFirst + 6}`, 'modnpc-limites']);
 const itemFirst = catalog.rows.findIndex(row => row.class === 'ModItem' && row.method === 'ModifyWeaponDamage') + 7;
-previews.push(['Métodos', `A${itemFirst}:D${itemFirst + 5}`, 'moditem-assinaturas']);
-previews.push(['Métodos', `H${itemFirst}:I${itemFirst + 5}`, 'moditem-contratos']);
+previews.push(['Methods', `A${itemFirst}:D${itemFirst + 5}`, 'moditem-assinaturas']);
+previews.push(['Methods', `H${itemFirst}:I${itemFirst + 5}`, 'moditem-contratos']);
 if (process.argv.includes('--preview')) {
     for (const [sheetName, range, name] of previews) {
         const preview = await workbook.render({ sheetName, range, scale: 1, format: 'png' });

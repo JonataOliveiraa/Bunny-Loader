@@ -1,94 +1,94 @@
-# Golpes: acertar, mudar o dano e reagir
+# Hits: landing, changing the damage and reacting
 
-Todo golpe do jogo passa pelos mesmos três momentos, como no tModLoader:
+Every hit in the game goes through the same three moments, as in tModLoader:
 
-1. **CanHit**: alguém pode vetar (`false`) ou forçar (`true`) o acerto;
-2. **ModifyHit**: o golpe vira um `HitModifiers` (no NPC) ou um
-   `HurtModifiers` (no jogador), que cada um ajusta;
-3. **OnHit**: depois do dano, com o resultado (`HitInfo` ou `HurtInfo`).
+1. **CanHit**: anyone can veto (`false`) or force (`true`) the hit;
+2. **ModifyHit**: the hit becomes a `HitModifiers` (on an NPC) or a
+   `HurtModifiers` (on a player), which each one adjusts;
+3. **OnHit**: after the damage, with the result (`HitInfo` or `HurtInfo`).
 
-Os métodos têm os nomes e a ordem do tModLoader 1.4.4 e valem igual para o
-item, o projétil e o NPC de mod (`ModItem`, `ModProjectile`, `ModNPC`), para os
-Globais (`GlobalItem`, `GlobalProjectile`, `GlobalNPC`, também nos do jogo) e
-para o `ModPlayer`. Quem junta tudo é o `CombatLoader`.
+The methods have tModLoader 1.4.4's names and order and apply the same way to
+mod items, projectiles and NPCs (`ModItem`, `ModProjectile`, `ModNPC`), to
+Globals (`GlobalItem`, `GlobalProjectile`, `GlobalNPC`, also on vanilla
+content) and to `ModPlayer`. `CombatLoader` ties it all together.
 
-## Quem é chamado em cada golpe
+## Who is called on each hit
 
-**Item corpo a corpo num NPC** (a espada do jogador):
+**Melee item on an NPC** (the player's sword):
 
-| | Item | NPC acertado | Jogador |
+| | Item | NPC hit | Player |
 |---|---|---|---|
 | CanHit | `CanHitNPC(item, player, target)` | `CanBeHitByItem(npc, player, item)` | `CanHitNPC`, `CanHitNPCWithItem` |
 | ModifyHit | `ModifyHitNPC(item, player, target, modifiers)` | `ModifyHitByItem(npc, player, item, modifiers)` | `ModifyHitNPCWithItem`, `ModifyHitNPC` |
 | OnHit | `OnHitNPC(item, player, target, hit, damageDone)` | `OnHitByItem(npc, player, item, hit, damageDone)` | `OnHitNPCWithItem`, `OnHitNPC` |
 
-**Projétil num NPC**:
+**Projectile on an NPC**:
 
-| | Projétil | NPC acertado | Dono (jogador) |
+| | Projectile | NPC hit | Owner (player) |
 |---|---|---|---|
 | CanHit | `CanHitNPC(proj, target)` | `CanBeHitByProjectile(npc, proj)` | `CanHitNPCWithProj` |
 | ModifyHit | `ModifyHitNPC(proj, target, modifiers)` | `ModifyHitByProjectile(npc, proj, modifiers)` | `ModifyHitNPCWithProj`, `ModifyHitNPC` |
 | OnHit | `OnHitNPC(proj, target, hit, damageDone)` | `OnHitByProjectile(npc, proj, hit, damageDone)` | `OnHitNPCWithProj`, `OnHitNPC` |
 
-**NPC em NPC** (o inimigo que encosta no morador):
+**NPC on NPC** (the enemy that touches a town NPC):
 
-| | Quem bate | Quem apanha |
+| | Attacker | Target |
 |---|---|---|
 | CanHit | `CanHitNPC(npc, target)` | `CanBeHitByNPC(npc, attacker)` |
 | ModifyHit | `ModifyHitNPC(npc, target, modifiers)` | |
 | OnHit | `OnHitNPC(npc, target, hit)` | |
 
-Em todo golpe num NPC, por último: `ModifyIncomingHit(npc, modifiers)` do NPC
-acertado (também no golpe sem autor: armadilha, explosão).
+On every hit on an NPC, last: the hit NPC's `ModifyIncomingHit(npc, modifiers)`
+(also on hits with no source: traps, explosions).
 
-**No jogador** (contato de NPC, projétil hostil, PvP):
+**On the player** (NPC contact, hostile projectile, PvP):
 
-| | NPC | Projétil hostil | PvP com item | PvP com projétil | Jogador acertado |
+| | NPC | Hostile projectile | PvP with item | PvP with projectile | Player hit |
 |---|---|---|---|---|---|
-| CanHit | `CanHitPlayer(npc, target, cooldownSlot)` | `CanHitPlayer(proj, target)` | `CanHitPvp(item, player, target)` e `ModPlayer.CanHitPvp` | `CanHitPvp(proj, target)` e `ModPlayer.CanHitPvpWithProj` | `CanBeHitByNPC`, `CanBeHitByProjectile`, `ImmuneTo` |
+| CanHit | `CanHitPlayer(npc, target, cooldownSlot)` | `CanHitPlayer(proj, target)` | `CanHitPvp(item, player, target)` and `ModPlayer.CanHitPvp` | `CanHitPvp(proj, target)` and `ModPlayer.CanHitPvpWithProj` | `CanBeHitByNPC`, `CanBeHitByProjectile`, `ImmuneTo` |
 | ModifyHit | `ModifyHitPlayer(npc, target, modifiers)` | `ModifyHitPlayer(proj, target, modifiers)` | `ModifyHitPvp(item, player, target, modifiers)` | `ModifyHitPlayer(proj, ...)` | `ModifyHitByNPC`, `ModifyHitByProjectile`, `ModifyHurt` |
 | OnHit | `OnHitPlayer(npc, target, hurtInfo)` | `OnHitPlayer(proj, target, info)` | `OnHitPvp(item, player, target, hurtInfo)` | `OnHitPlayer(proj, ...)` | `OnHitByNPC`, `OnHitByProjectile`, `OnHurt`, `PostHurt` |
 
-Os `Can` que devolvem `null` (os de "bool?" do tModLoader) deixam o jogo
-decidir: um `false` de qualquer um veta; senão um `true` força. Os que
-devolvem `true` por padrão (`CanHitPlayer`, `CanHitPvp`, `CanHitNPC` de NPC
-em NPC) só vetam.
+The `Can` methods that return `null` (tModLoader's "bool?" ones) let the game
+decide: a `false` from anyone vetoes; otherwise a `true` forces it. The ones
+that return `true` by default (`CanHitPlayer`, `CanHitPvp`, NPC-on-NPC
+`CanHitNPC`) only veto.
 
-## HitModifiers: o golpe no NPC
+## HitModifiers: the hit on an NPC
 
 ```js
 ModifyHitNPC(item, player, target, modifiers) {
-    modifiers.SourceDamage.Multiplicative *= 1.5;   // antes da defesa
+    modifiers.SourceDamage.Multiplicative *= 1.5;   // before defense
     modifiers.ArmorPenetration += 10;
-    if (target.boss) modifiers.FinalDamage.Flat += 20;   // depois da defesa e do crítico
+    if (target.boss) modifiers.FinalDamage.Flat += 20;   // after defense and crit
     modifiers.SetCrit();
 }
 ```
 
-A conta é a do tModLoader: `SourceDamage` no dano bruto, mais
-`FlatBonusDamage`, `ScalingBonusDamage` e `TargetDamageMultiplier`; tira a
-defesa (`Defense`, `ArmorPenetration`, `ScalingArmorPenetration`,
-`DefenseEffectiveness`, 0,5 por padrão, como no jogo); aplica `CritDamage` (×2
-por padrão) ou `NonCritDamage`; e por fim `FinalDamage`. Também:
+The math is tModLoader's: `SourceDamage` on the raw damage, plus
+`FlatBonusDamage`, `ScalingBonusDamage` and `TargetDamageMultiplier`; defense
+is subtracted (`Defense`, `ArmorPenetration`, `ScalingArmorPenetration`,
+`DefenseEffectiveness`, 0.5 by default, as in the game); `CritDamage` (×2 by
+default) or `NonCritDamage` is applied; and finally `FinalDamage`. Also:
 `SetMaxDamage(n)`, `SetInstantKill()`, `DisableCrit()`, `SetCrit()`,
-`DisableKnockback()`, `HideCombatText()`, `Knockback` (`StatModifier`) e
+`DisableKnockback()`, `HideCombatText()`, `Knockback` (`StatModifier`) and
 `HitDirectionOverride`.
 
-Os campos `AddableFloat` e `MultipliableFloat` do C# são números aqui:
+C#'s `AddableFloat` and `MultipliableFloat` fields are numbers here:
 `modifiers.ArmorPenetration += 5`, `modifiers.TargetDamageMultiplier *= 2`.
-Os nomes de antes (`modifiers.damage`, `knockBack`, `hitDirection`, `crit`)
-continuam valendo.
+The older names (`modifiers.damage`, `knockBack`, `hitDirection`, `crit`)
+still work.
 
-O `hit` do `OnHit` é um `HitInfo`: `Damage` (o que o NPC levou),
+The `hit` in `OnHit` is a `HitInfo`: `Damage` (what the NPC took),
 `SourceDamage`, `Crit`, `Knockback`, `HitDirection`, `InstantKill`,
 `HideCombatText`.
 
-**Multijogador:** o jogo do celular manda ao servidor o dano bruto do golpe (a
-mensagem 28), e o servidor refaz a conta da defesa. O loader converte o dano
-final num bruto que, pela conta do jogo, dá o mesmo número; com defesa ímpar e
-crítico pode sobrar 1 ponto.
+**Multiplayer:** the mobile game sends the server the hit's raw damage
+(message 28), and the server redoes the defense math. The loader converts the
+final damage into a raw value that, through the game's math, gives the same
+number; with odd defense and a crit, 1 point may be left over.
 
-## HurtModifiers: o golpe no jogador
+## HurtModifiers: the hit on the player
 
 ```js
 ModifyHurt(player, modifiers) {
@@ -97,24 +97,24 @@ ModifyHurt(player, modifiers) {
 }
 ```
 
-`SourceDamage` e `IncomingDamageMultiplier` antes da defesa;
-`ArmorPenetration` e `ScalingArmorPenetration` tiram defesa; `FinalDamage` e
-`SetMaxDamage` depois dela. `Cancel()` desfaz o golpe; `DamageSource`, `PvP`,
-`CooldownCounter`, `Dodgeable` e `HitDirectionOverride` como no tModLoader.
-O jogo do celular não tem repulsão variável no jogador: `Knockback` fica para
-quem lê. Os nomes de antes (`damage`, `hitDirection`, `quiet`, `crit`,
-`dodgeable`) continuam.
+`SourceDamage` and `IncomingDamageMultiplier` before defense;
+`ArmorPenetration` and `ScalingArmorPenetration` subtract defense;
+`FinalDamage` and `SetMaxDamage` after it. `Cancel()` undoes the hit;
+`DamageSource`, `PvP`, `CooldownCounter`, `Dodgeable` and
+`HitDirectionOverride` as in tModLoader. The mobile game has no variable
+knockback on the player: `Knockback` is only there to be read. The older names
+(`damage`, `hitDirection`, `quiet`, `crit`, `dodgeable`) still work.
 
-O `HurtInfo` dos `OnHit`: `Damage`, `SourceDamage`, `DamageSource`, `PvP`,
-`CooldownCounter`, `Dodgeable`, `HitDirection`, `Crit`, `Quiet`.
+The `HurtInfo` in the `OnHit`s: `Damage`, `SourceDamage`, `DamageSource`,
+`PvP`, `CooldownCounter`, `Dodgeable`, `HitDirection`, `Crit`, `Quiet`.
 
-## Limites
+## Limits
 
-- O `CanHitNPC` do projétil e o `CanBeHitByProjectile` valem para os projéteis
-  do jogador (o jogo só pergunta por eles); o projétil de um morador acerta
-  sem eles, mas passa pelo `ModifyHit` e pelo `OnHit`.
-- `true` no `CanHitNPC` de um projétil não faz ele acertar um NPC amigo (o
-  jogo decide isso antes de perguntar); no do item, faz.
-- Custo: cada golpe entra no JS uma vez por hook. O do item e o do projétil só
-  são instalados quando alguma classe escreve um desses métodos; o do jogador
-  (`Player.Hurt`) só com um método do jogador acertado.
+- The projectile's `CanHitNPC` and `CanBeHitByProjectile` apply to the
+  player's projectiles (the game only asks about those); a town NPC's
+  projectile hits without them, but goes through `ModifyHit` and `OnHit`.
+- `true` in a projectile's `CanHitNPC` does not make it hit a friendly NPC
+  (the game decides that before asking); in the item's, it does.
+- Cost: each hit enters JS once per hook. The item and projectile ones are
+  only installed when some class writes one of these methods; the player's
+  (`Player.Hurt`) only with a method of the player being hit.

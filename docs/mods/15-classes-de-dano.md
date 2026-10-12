@@ -1,22 +1,22 @@
-# 15. Classes de dano (`DamageClass`)
+# 15. Damage classes (`DamageClass`)
 
-A classe de dano diz três coisas sobre um ataque:
+The damage class says three things about an attack:
 
-1. **de quais bônus ele se beneficia**: o acessório "+10% de dano corpo a
-   corpo" vale para a espada, não para o cajado;
-2. **que efeitos ele ativa**: a Pedra de Magma põe fogo nos golpes corpo a
-   corpo, a armadura Spectre solta raios nos ataques mágicos;
-3. **que prefixos aceita**: "Lendário" é de arma corpo a corpo, "Místico" de
-   arma mágica.
+1. **which bonuses it benefits from**: the "+10% melee damage" accessory
+   applies to the sword, not to the staff;
+2. **which effects it triggers**: the Magma Stone sets melee hits on fire, the
+   Spectre armor shoots bolts on magic attacks;
+3. **which prefixes it accepts**: "Legendary" is for melee weapons, "Mythical"
+   for magic weapons.
 
-No jogo isso são quatro flags fixas no item (`melee`, `ranged`, `magic`,
-`summon`) e um campo por classe no jogador (`meleeDamage`, `meleeCrit`...). Não
-cabe uma quinta. O `DamageClass` do tModLoader troca isso por objetos: as
-classes do jogo viram objetos prontos, e um mod cria classes novas (um
-"ladino", um "bardo") com o mesmo poder das do jogo, que os outros mods também
-enxergam.
+In the game these are four fixed flags on the item (`melee`, `ranged`,
+`magic`, `summon`) and one field per class on the player (`meleeDamage`,
+`meleeCrit`...). There is no room for a fifth. tModLoader's `DamageClass`
+replaces that with objects: the vanilla classes become ready-made objects, and
+a mod creates new classes (a "rogue", a "bard") with the same power as the
+game's, which other mods can see too.
 
-## Usar uma classe do jogo
+## Using a vanilla class
 
 ```js
 SetDefaults() {
@@ -24,98 +24,98 @@ SetDefaults() {
 }
 ```
 
-| Classe | O que é |
+| Class | What it is |
 |---|---|
-| `DamageClass.Default` | Sem classe: não ganha bônus nenhum (dano de armadilha, de água jogada). |
-| `DamageClass.Generic` | A base de todas. Um "+10% de todo dano" vai aqui, e toda classe que herda dela ganha. |
-| `DamageClass.Melee` | Corpo a corpo. |
-| `DamageClass.MeleeNoSpeed` | Corpo a corpo que não fica mais rápido com velocidade de ataque (lanças). |
-| `DamageClass.Ranged` | À distância. |
-| `DamageClass.Magic` | Mágica. |
-| `DamageClass.Summon` | Invocação (lacaios, sentinelas): sem crítico. |
-| `DamageClass.SummonMeleeSpeed` | Chicotes: invocação que fica mais rápida com a velocidade do corpo a corpo. |
-| `DamageClass.MagicSummonHybrid` | Mágica e invocação ao mesmo tempo. |
-| `DamageClass.Throwing` | Arremesso: nenhum item do jogo usa; existe para os mods combinarem. |
+| `DamageClass.Default` | No class: gets no bonus at all (trap damage, thrown water). |
+| `DamageClass.Generic` | The base of all of them. A "+10% to all damage" goes here, and every class that inherits from it gets it. |
+| `DamageClass.Melee` | Melee. |
+| `DamageClass.MeleeNoSpeed` | Melee that does not get faster with attack speed (spears). |
+| `DamageClass.Ranged` | Ranged. |
+| `DamageClass.Magic` | Magic. |
+| `DamageClass.Summon` | Summon (minions, sentries): no crit. |
+| `DamageClass.SummonMeleeSpeed` | Whips: summon that gets faster with melee speed. |
+| `DamageClass.MagicSummonHybrid` | Magic and summon at the same time. |
+| `DamageClass.Throwing` | Throwing: no vanilla item uses it; it exists for mods to share. |
 
-`item.melee = true`, do jeito antigo, continua valendo: é o mesmo que
-`DamageClass.Melee`. O projétil tem `proj.DamageType` igual.
+`item.melee = true`, the old way, still works: it is the same as
+`DamageClass.Melee`. Projectiles have `proj.DamageType` too.
 
-## Dar bônus por classe
+## Giving per-class bonuses
 
-Num acessório, armadura, buff ou `ModPlayer`, nos ganchos de equipamento
-(`UpdateAccessory`, `UpdateEquip`, `PostUpdateEquips`, o `Update` do buff):
+On an accessory, armor, buff or `ModPlayer`, in the equipment hooks
+(`UpdateAccessory`, `UpdateEquip`, `PostUpdateEquips`, the buff's `Update`):
 
 ```js
 UpdateAccessory(item, player, vanity, hideVisual) {
-    player.GetDamage(DamageClass.Generic).Additive += 0.10;  // +10% em tudo
-    player.GetCritChance(DamageClass.Melee).value += 5;      // +5% de crítico corpo a corpo
-    player.GetAttackSpeed(DamageClass.Ranged).value += 0.15; // atira 15% mais rápido
+    player.GetDamage(DamageClass.Generic).Additive += 0.10;  // +10% to everything
+    player.GetCritChance(DamageClass.Melee).value += 5;      // +5% melee crit
+    player.GetAttackSpeed(DamageClass.Ranged).value += 0.15; // shoots 15% faster
     player.GetArmorPenetration(DamageClass.Magic).value += 5;
     player.GetKnockback(DamageClass.Summon).Additive += 0.5;
 }
 ```
 
-Os bônus valem no quadro em que são postos, como os do jogo: no quadro seguinte
-eles começam do zero e o acessório soma de novo.
+The bonuses apply on the frame they are set, like the game's: on the next
+frame they start from zero and the accessory adds them again.
 
-### O dano é um `StatModifier`
+### Damage is a `StatModifier`
 
 ```
-dano final = (dano da arma + Base) × Additive × Multiplicative + Flat
+final damage = (weapon damage + Base) × Additive × Multiplicative + Flat
 ```
 
-| Campo | Para quê | Exemplo |
+| Field | What for | Example |
 |---|---|---|
-| `Additive` | Os "+X%": somam entre si (dois +10% dão +20%, não +21%). | `.Additive += 0.25` |
-| `Multiplicative` | Os "×X": multiplicam por cima de tudo. | `.Multiplicative *= 1.12` |
-| `Base` | Somado ao dano da arma, antes das porcentagens. | `.Base += 4` |
-| `Flat` | Somado no fim, depois de tudo. | `.Flat += 5` |
+| `Additive` | The "+X%" ones: they add up (two +10% give +20%, not +21%). | `.Additive += 0.25` |
+| `Multiplicative` | The "×X" ones: they multiply on top of everything. | `.Multiplicative *= 1.12` |
+| `Base` | Added to the weapon's damage, before the percentages. | `.Base += 4` |
+| `Flat` | Added at the end, after everything. | `.Flat += 5` |
 
-A repulsão (`GetKnockback`) é um `StatModifier` igual. O crítico, a
-velocidade e a penetração são números: `.value`.
+Knockback (`GetKnockback`) is a `StatModifier` too. Crit, speed and armor
+penetration are numbers: `.value`.
 
-No C# do tModLoader é `player.GetDamage(x) += 0.1f`. JavaScript não tem esse
-operador para objetos, então aqui se soma no campo: `.Additive += 0.1`.
+In tModLoader's C# it is `player.GetDamage(x) += 0.1f`. JavaScript has no such
+operator for objects, so here you add to the field: `.Additive += 0.1`.
 
-### Os totais
+### The totals
 
-Para saber quanto o jogador tem numa classe, já com a herança:
+To know how much the player has in a class, inheritance included:
 
-| Método | Devolve |
+| Method | Returns |
 |---|---|
-| `player.GetTotalDamage(classe)` | `StatModifier` (use `.ApplyTo(dano)`) |
-| `player.GetTotalCritChance(classe)` | número |
-| `player.GetTotalAttackSpeed(classe)` | número (1 = normal) |
-| `player.GetTotalArmorPenetration(classe)` | número |
-| `player.GetTotalKnockback(classe)` | `StatModifier` |
-| `player.GetWeaponAttackSpeed(item)`, `player.GetWeaponArmorPenetration(item)` | o da arma |
+| `player.GetTotalDamage(class)` | `StatModifier` (use `.ApplyTo(damage)`) |
+| `player.GetTotalCritChance(class)` | number |
+| `player.GetTotalAttackSpeed(class)` | number (1 = normal) |
+| `player.GetTotalArmorPenetration(class)` | number |
+| `player.GetTotalKnockback(class)` | `StatModifier` |
+| `player.GetWeaponAttackSpeed(item)`, `player.GetWeaponArmorPenetration(item)` | the weapon's |
 
-`player.GetArmorPenetration(true)`, com um booleano, continua sendo o do jogo.
+`player.GetArmorPenetration(true)`, with a boolean, is still the game's.
 
-## Criar uma classe nova
+## Creating a new class
 
 ```js
 export class RogueDamageClass extends DamageClass {
-    // De quem ela herda os bônus: tudo do Generic e metade do Throwing.
+    // Whose bonuses it inherits: all of Generic and half of Throwing.
     GetModifierInheritance(damageClass) {
         if (damageClass === DamageClass.Generic) return StatInheritanceData.Full;
         if (damageClass === DamageClass.Throwing) return new StatInheritanceData({ damageInheritance: 0.5 });
         return StatInheritanceData.None;
     }
 
-    // Como quem ela "conta" para os efeitos do jogo: a Pedra de Magma funciona.
+    // What it "counts as" for the game's effects: the Magma Stone works.
     GetEffectInheritance(damageClass) {
         return damageClass === DamageClass.Melee;
     }
 
-    // Bônus que ela tem sempre, todo quadro.
+    // Bonuses it always has, every frame.
     SetDefaultStats(player) {
         player.GetCritChance(this).value += 4;
     }
 }
 ```
 
-Ela é registrada sozinha, como qualquer classe exportada. A arma:
+It registers on its own, like any exported class. The weapon:
 
 ```js
 import { RogueDamageClass } from '../DamageClasses/RogueDamageClass.js';
@@ -125,48 +125,48 @@ SetDefaults() {
 }
 ```
 
-E um acessório (deste mod ou de outro) dá bônus a ela:
+And an accessory (from this mod or another) gives it a bonus:
 `player.GetDamage(RogueDamageClass).Additive += 0.2`.
 
-### O que a classe pode decidir
+### What the class can decide
 
-| Método | O que decide | Padrão |
+| Method | What it decides | Default |
 |---|---|---|
-| `GetModifierInheritance(outra)` | Quanto herda dos bônus da outra: um `StatInheritanceData` com dano, crítico, velocidade, penetração e repulsão (1 = tudo, 0 = nada). | Tudo do Generic, nada das outras. |
-| `GetEffectInheritance(outra)` | `true`: conta como a outra para os efeitos do jogo. | Nenhuma. |
-| `GetPrefixInheritance(outra)` | `true`: aceita os prefixos da outra. | As mesmas do efeito. |
-| `SetDefaultStats(player)` | Os bônus que ela tem sempre. | Nenhum. |
-| `get UseStandardCritCalcs()` | `false`: sem crítico (e sem a linha de crítico no tooltip). | `true` |
-| `ShowStatTooltipLine(player, linha)` | `false` esconde a linha `'Damage'`, `'CritChance'`, `'Speed'` ou `'Knockback'`. | Todas aparecem. |
+| `GetModifierInheritance(other)` | How much it inherits from the other's bonuses: a `StatInheritanceData` with damage, crit, speed, penetration and knockback (1 = all, 0 = none). | All of Generic, none of the others. |
+| `GetEffectInheritance(other)` | `true`: counts as the other for the game's effects. | None. |
+| `GetPrefixInheritance(other)` | `true`: accepts the other's prefixes. | The same as the effects. |
+| `SetDefaultStats(player)` | The bonuses it always has. | None. |
+| `get UseStandardCritCalcs()` | `false`: no crit (and no crit line in the tooltip). | `true` |
+| `ShowStatTooltipLine(player, line)` | `false` hides the `'Damage'`, `'CritChance'`, `'Speed'` or `'Knockback'` line. | All show. |
 
-`StatInheritanceData.Full` herda tudo e `StatInheritanceData.None` nada. Para
-herdar só parte, use o construtor com os nomes:
+`StatInheritanceData.Full` inherits everything and `StatInheritanceData.None`
+nothing. To inherit only part of it, use the constructor with the names:
 `new StatInheritanceData({ damageInheritance: 1, attackSpeedInheritance: 0.5 })`.
 
-`classe.CountsAsClass(DamageClass.Melee)` e `item.CountsAsClass(DamageClass.Melee)`
-perguntam se ela conta como corpo a corpo.
+`class.CountsAsClass(DamageClass.Melee)` and `item.CountsAsClass(DamageClass.Melee)`
+ask whether it counts as melee.
 
-### O nome no tooltip
+### The name in the tooltip
 
-![O tooltip da arma de exemplo: "70 dano de exemplo", o crítico da classe e, escondida pela classe, nenhuma linha de velocidade](../imagens/classe-de-dano-tooltip.jpg)
+![The example weapon's tooltip: "70 example damage", the class's crit and, hidden by the class, no speed line](../imagens/classe-de-dano-tooltip.jpg)
 
-O tooltip mostra "70 dano de ladino". O texto vem do `Localization/<cultura>.json`
-do mod e inclui a palavra "dano":
+The tooltip shows "70 rogue damage". The text comes from the mod's
+`Localization/<culture>.json` and includes the word "damage":
 
 ```json
 {
   "DamageClasses": {
-    "RogueDamageClass": { "DisplayName": "dano de ladino" }
+    "RogueDamageClass": { "DisplayName": "rogue damage" }
   }
 }
 ```
 
-Sem ele, sai o nome da classe separado ("Rogue Damage Class"). Um
-`DisplayName = 'dano de ladino'` escrito na classe também vale.
+Without it, the class name comes out split into words ("Rogue Damage Class").
+A `DisplayName = 'rogue damage'` written on the class also works.
 
-## Trocar a classe de um item do jogo
+## Changing a vanilla item's class
 
-Num `GlobalItem`:
+In a `GlobalItem`:
 
 ```js
 SetDefaults(item) {
@@ -174,54 +174,54 @@ SetDefaults(item) {
 }
 ```
 
-A classe escrita no `SetDefaults` vale para o tipo inteiro: o item continua com
-ela quando é copiado, cai no chão ou vai pela rede. Mudar o `DamageType` de um
-item fora do `SetDefaults`, com o jogo rodando, vale só para aquele item, e se
-perde quando o jogo o copia.
+The class written in `SetDefaults` applies to the whole type: the item keeps
+it when it is copied, dropped on the ground or sent over the network.
+Changing an item's `DamageType` outside `SetDefaults`, with the game running,
+only applies to that item, and is lost when the game copies it.
 
 ## `ModifyWeaponDamage`
 
-No `ModPlayer` e no `GlobalItem`, o dano chega de um jeito que serve aos dois
-estilos:
+In `ModPlayer` and `GlobalItem`, damage arrives in a way that serves both
+styles:
 
 ```js
-// O de antes: devolver o dano novo.
+// The old way: return the new damage.
 ModifyWeaponDamage(player, item, damage) { return damage * 2; }
 
-// O do tModLoader: mexer no StatModifier.
+// tModLoader's way: change the StatModifier.
 ModifyWeaponDamage(player, item, damage) { damage.Additive += 1; }
 ```
 
-## Como funciona por dentro
+## How it works inside
 
-O jogo do celular é compilado: não dá para trocar os campos dele como o
-tModLoader faz. Então:
+The mobile game is compiled: its fields cannot be swapped the way tModLoader
+does it. So:
 
-- **as classes do jogo** continuam sendo as flags do item e os campos do
-  jogador. O que um mod soma em `GetDamage(DamageClass.Melee)` vai para o
-  `meleeDamage` a cada quadro, antes de o jogo usar o valor, e todo o código do
-  jogo já vê o bônus;
-- **as classes de mod** (e `Generic`, `Throwing` e `MagicSummonHybrid` numa
-  arma) o jogo não conhece: o dano, o crítico (sorteado de novo), a repulsão,
-  a velocidade, a penetração e o dano de lacaio e sentinela delas passam por
-  ganchos do Bunny Loader;
-- a arma de uma classe de mod liga as flags das classes que ela "conta como"
-  ou cujos prefixos aceita: assim os efeitos e os prefixos do jogo funcionam
-  sozinhos.
+- **the vanilla classes** remain the item's flags and the player's fields.
+  What a mod adds to `GetDamage(DamageClass.Melee)` goes into `meleeDamage`
+  every frame, before the game uses the value, and all of the game's code
+  already sees the bonus;
+- **mod classes** (and `Generic`, `Throwing` and `MagicSummonHybrid` on a
+  weapon) are unknown to the game: their damage, crit (rolled again),
+  knockback, speed, penetration and minion and sentry damage go through Bunny
+  Loader hooks;
+- a weapon of a mod class turns on the flags of the classes it "counts as" or
+  whose prefixes it accepts: that way the game's effects and prefixes work on
+  their own.
 
-Só paga quem usa: um mod que só escreve `DamageType = DamageClass.Melee` não
-instala gancho nenhum.
+Only those who use it pay: a mod that only writes
+`DamageType = DamageClass.Melee` installs no hook at all.
 
-## Limites
+## Limits
 
-- Código do jogo que lê `meleeDamage` direto (efeitos especiais de algumas
-  armaduras) vê os bônus das classes do jogo, mas não os de uma classe de mod.
-- O "Generic" que vem do equipamento do próprio jogo é a parte comum aos quatro
-  campos de dano: o jogo não guarda um "todo dano" separado.
-- A penetração de armadura de uma classe entra no projétil quando ele nasce.
+- Game code that reads `meleeDamage` directly (some armors' special effects)
+  sees the vanilla classes' bonuses, but not a mod class's.
+- The "Generic" that comes from the game's own equipment is the part common to
+  the four damage fields: the game does not keep a separate "all damage".
+- A class's armor penetration goes into the projectile when it spawns.
 
-## Exemplo completo
+## Complete example
 
-O Example Mod tem a `ExampleDamageClass` (`Content/DamageClasses`), a
-`ExampleCustomDamageWeapon` (uma espada com ela) e o
-`ExampleStatBonusAccessory` (um acessório que mexe em várias classes).
+The Example Mod has `ExampleDamageClass` (`Content/DamageClasses`),
+`ExampleCustomDamageWeapon` (a sword with it) and `ExampleStatBonusAccessory`
+(an accessory that changes several classes).

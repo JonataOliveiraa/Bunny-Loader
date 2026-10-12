@@ -1,300 +1,313 @@
-# tools/: ferramentas de PC
+# tools/: PC tools
 
-Nenhuma roda sozinha no build; todas são chamadas à mão (menos o `wiki.py`,
-que o GitHub roda a cada push na `main`).
+None of them run by themselves in the build; they are all called by hand
+(except `wiki.py`, which GitHub runs on every push to `main`).
 
-## Desenvolvimento
+## Development
 
-| Script | O que faz |
+| Script | What it does |
 |---|---|
-| [`ui.sh`](ui.sh) | Ciclo curto de interface: compila sem os assets e as `.so` do jogo, instala, abre e printa (~6 s). |
-| [`dump.sh`](dump.sh) | Regenera `refs/` a partir do jogo instalado (pull + extração + Il2CppDumper). |
-| [`dumpgrep.sh`](dumpgrep.sh) | Extrai o bloco de uma classe, struct ou enum do `refs/dump.cs`. |
-| [`gen-cheatdata.py`](gen-cheatdata.py) | Gera `cheatbridge/bunny/CheatData.java` (os NPCs escolhidos a mão) a partir do `refs/dump.cs`. Os itens não passam por aqui: o menu os separa pelos campos do próprio jogo. |
-| [`build-cheatbridge-dex.sh`](build-cheatbridge-dex.sh) | Compila o menu de cheats em dex e embute como header C. |
-| [`bin2header.py`](bin2header.py) | Binário → array C. Usado pelo script acima. |
-| [`ui-sprites.py`](ui-sprites.py) | Recorta as texturas de interface do jogo que o menu usa (horas da Jornada, setas) e o "?" do item de mod ausente (`content/items/UnloadedIcon.h`). Recebe a pasta `Images` do jogo. |
-| [`mod-art.py`](mod-art.py) | As capas e os ícones dos mods de exemplo. |
-| [`wiki.py`](wiki.py) | Gera a [wiki](https://github.com/JonataOliveiraa/Bunny-Loader/wiki) a partir do `README.md` e de `docs/`. Roda sozinho no workflow `.github/workflows/wiki.yml` a cada push na `main`; à mão, só para conferir. |
+| [`ui.sh`](ui.sh) | A short UI cycle: builds without the game's assets and `.so` files, installs, opens and takes a screenshot (~6 s). |
+| [`dump.sh`](dump.sh) | Regenerates `refs/` from the installed game (pull + extraction + Il2CppDumper). |
+| [`dumpgrep.sh`](dumpgrep.sh) | Extracts a class, struct or enum block from `refs/dump.cs`. |
+| [`gen-cheatdata.py`](gen-cheatdata.py) | Generates `cheatbridge/bunny/CheatData.java` (the hand-picked NPCs) from `refs/dump.cs`. Items do not go through here: the menu sorts them by the game's own fields. |
+| [`build-cheatbridge-dex.sh`](build-cheatbridge-dex.sh) | Compiles the cheat menu to dex and embeds it as a C header. |
+| [`bin2header.py`](bin2header.py) | Binary → C array. Used by the script above. |
+| [`ui-sprites.py`](ui-sprites.py) | Crops the game's UI textures the menu uses (Journey hours, arrows) and the "?" for a missing mod item (`content/items/UnloadedIcon.h`). Receives the game's `Images` folder. |
+| [`mod-art.py`](mod-art.py) | The example mods' covers and icons. |
+| [`wiki.py`](wiki.py) | Generates the [wiki](https://github.com/JonataOliveiraa/Bunny-Loader/wiki) from `README.md` and `docs/`. Runs by itself in the `.github/workflows/wiki.yml` workflow on every push to `main`; by hand, only to check. |
 
 ```bash
-tools/ui.sh                                     # iterar em tela
-tools/dump.sh                                   # pipeline completo
-tools/dump.sh --skip-pull                       # reaproveita refs/base.apk
-tools/dumpgrep.sh Projectile Terraria           # inspecionar uma classe
+tools/ui.sh                                     # iterate on screen
+tools/dump.sh                                   # full pipeline
+tools/dump.sh --skip-pull                       # reuses refs/base.apk
+tools/dumpgrep.sh Projectile Terraria           # inspect a class
 ```
 
-Não haverá empacotador de `.bmod`: o pacote é montado à mão pelo autor, com a
-documentação como referência.
+There will be no `.bmod` packer: the package is assembled by hand by the
+author, with the documentation as a reference.
 
-## Baixar e extrair mods do tModLoader
+## Downloading and extracting tModLoader mods
 
-Dois cliques em [`mods/baixar-tmod.bat`](mods/baixar-tmod.bat), cole um link do
-Workshop e aguarde. Também aceita IDs e vários links pela linha de comando:
+Double-click [`mods/baixar-tmod.bat`](mods/baixar-tmod.bat), paste a Workshop
+link and wait. It also accepts IDs and several links on the command line:
 
 ```powershell
 python tools/mods/tmod.py "https://steamcommunity.com/sharedfiles/filedetails/?id=3810452158"
 python tools/mods/tmod.py 3810452158 2824688072
-python tools/mods/tmod.py --local "C:/Mods/MeuMod.tmod"
+python tools/mods/tmod.py --local "C:/Mods/MyMod.tmod"
 ```
 
-Precisa de **Windows e Python 3.10+**. O script prepara versões portáteis do
-[SteamCMD oficial](https://developer.valvesoftware.com/wiki/SteamCMD),
-[tModUnpacker 1.3](https://github.com/IVogel/tModUnpacker/releases/tag/1.3) e
-[7-Zip standalone](https://www.7-zip.org/download.html) em `build/tmod-tools/`.
-O unpacker usa o .NET Framework 4.6.1 ou posterior do Windows; não precisa do
-SDK .NET. A release do unpacker tem SHA-256 fixado no script.
-No primeiro uso, a atualização do próprio SteamCMD pode levar alguns minutos;
-o script continua automaticamente quando o bootstrap termina de atualizar.
+Requires **Windows and Python 3.10+**. The script sets up portable versions of
+the [official SteamCMD](https://developer.valvesoftware.com/wiki/SteamCMD),
+[tModUnpacker 1.3](https://github.com/IVogel/tModUnpacker/releases/tag/1.3) and
+[standalone 7-Zip](https://www.7-zip.org/download.html) in `build/tmod-tools/`.
+The unpacker uses Windows' .NET Framework 4.6.1 or later; it does not need the
+.NET SDK. The unpacker release has its SHA-256 pinned in the script. On first
+use, SteamCMD's own update can take a few minutes; the script continues
+automatically when the bootstrap finishes updating.
 
-Cada execução gera uma pasta nova em `out/tmod/<ID>/<data-hora>-<sufixo>/`:
+Each run creates a new folder in `out/tmod/<ID>/<date-time>-<suffix>/`:
 
-- `tmod/`: os `.tmod` originais, preservando as pastas de versões do Workshop.
-- `extraido/`: uma pasta por pacote/versão; dentro dela, o unpacker cria a pasta
-  com o nome interno do mod, recursos e DLLs. `.rawimg` vira `.png`.
-- `steamcmd.log` e `logs/`: diagnóstico de download e extração.
+- `tmod/`: the original `.tmod` files, keeping the Workshop's version folders.
+- `extraido/`: one folder per package/version; inside it, the unpacker creates
+  the folder with the mod's internal name, resources and DLLs. `.rawimg`
+  becomes `.png`.
+- `steamcmd.log` and `logs/`: download and extraction diagnostics.
 
-Todos os `.tmod` do item são extraídos. Resultados anteriores são preservados.
-`--local` faz só a extração; `--out PASTA` muda a saída; `--cache PASTA` muda o
-cache; `--steamcmd CAMINHO.exe` e `--unpacker CAMINHO.exe` usam ferramentas já
-instaladas. `--timeout 900` é o limite padrão, em segundos, por chamada. Em
-lotes, uma falha é registrada e os outros itens continuam; qualquer falha
-resulta em código de saída 1.
+Every `.tmod` of the item is extracted. Earlier results are kept. `--local`
+only extracts; `--out FOLDER` changes the output; `--cache FOLDER` changes the
+cache; `--steamcmd PATH.exe` and `--unpacker PATH.exe` use already installed
+tools. `--timeout 900` is the default limit, in seconds, per call. In batches,
+a failure is logged and the other items continue; any failure results in exit
+code 1.
 
-O download usa acesso anônimo, como o
-[script de servidor do tModLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/release_extras/DedicatedServerUtils/manage-tModLoaderServer.sh).
-Itens privados, removidos, de outro jogo ou restritos podem não baixar.
-O script confere a confirmação do SteamCMD, a estrutura e o hash do `.tmod`,
-e recusa nomes internos que escapariam da pasta de extração.
+The download uses anonymous access, like
+[tModLoader's server script](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/release_extras/DedicatedServerUtils/manage-tModLoaderServer.sh).
+Private, removed, other-game or restricted items may not download. The script
+checks SteamCMD's confirmation, the `.tmod`'s structure and hash, and refuses
+internal names that would escape the extraction folder.
 
-Extrair não descompila as DLLs em C# e não converte o mod para o Bunny Loader.
-O conteúdo extraído depende do que o autor incluiu no pacote.
+Extracting does not decompile the C# DLLs and does not convert the mod to
+Bunny Loader. The extracted content depends on what the author put in the
+package.
 
-Teste das validações, sem rede:
+Validation tests, without network:
 
 ```powershell
 python -m unittest discover -s tools/mods -p test_tmod.py -v
 ```
 
-## Catálogo online
+## Online catalog
 
-Os mods que a aba Explorar baixa moram num repositório à parte,
-[Bunny-Loader-Mods](https://github.com/JonataOliveiraa/Bunny-Loader-Mods), sem
-servidor. Separado do código do app de propósito: um pedido de remoção contra um
-mod derruba só o catálogo, e o token de publicar não escreve no código.
+The mods the Explore tab downloads live in a separate repository,
+[Bunny-Loader-Mods](https://github.com/JonataOliveiraa/Bunny-Loader-Mods), with
+no server. Separate from the app's code on purpose: a takedown request against
+a mod only takes down the catalog, and the publishing token cannot write to the
+code.
 
-| Onde | O quê |
+| Where | What |
 |---|---|
-| `main` | `index.json` (a lista), `mods/<uid>/` (a vitrine de cada mod: manifesto, ícone, capa, `description.md`, fotos dos autores) e `ports/` (as fontes dos pacotes de textura portados). |
-| Releases `mod-<id>-v<versão>` | O `.bl` de cada versão. Nunca marcadas como *Latest*. |
+| `main` | `index.json` (the list), `mods/<uid>/` (each mod's showcase: manifest, icon, cover, `description.md`, the authors' photos) and `ports/` (the sources of the ported texture packs). |
+| Releases `mod-<id>-v<version>` | The `.bl` of each version. Never marked as *Latest*. |
 
-O app lê tudo sem login (`raw.githubusercontent.com` e o link de download da
-Release) e confere o sha256 do índice antes de instalar
+The app reads everything without logging in (`raw.githubusercontent.com` and
+the Release download link) and checks the index's sha256 before installing
 ([`RemoteCatalog.kt`](../app/src/main/kotlin/dev/bunnyloader/mods/RemoteCatalog.kt)).
-Não há token no APK. Só publicar pede um, no PC.
+There is no token in the APK. Only publishing needs one, on the PC.
 
-Ao abrir ou voltar ao launcher, o app consulta o catálogo. Durante a busca,
-Início e Explorar mostram o ícone girando e o progresso das vitrines; a última
-lista baixada continua disponível. No Início e em Explorar, puxe para baixo
-com a rolagem no topo e solte para atualizar a loja.
-As vitrines são sincronizadas com até quatro operações simultâneas.
+When the launcher opens or comes back, the app checks the catalog. During the
+fetch, Home and Explore show the spinning icon and the showcases' progress;
+the last downloaded list remains available. On Home and Explore, pull down with
+the scroll at the top and release to refresh the store. The showcases are
+synced with up to four simultaneous operations.
 
-Uma versão online mais nova de um mod instalado abre um popup com **Atualizar**,
-**Atualizar todos** e **Agora não**. Cada UID/versão é anunciado uma vez, quando
-o popup fica visível; dispensá-lo mantém o botão de atualização na ficha. Uma
-versão posterior gera outro aviso. Downloads seguem ao fechar o popup, com
-até três pacotes simultâneos e importação serializada. Sem rede, versões novas
-já conhecidas pelo cache também podem ser anunciadas.
+A newer online version of an installed mod opens a popup with **Update**,
+**Update all** and **Not now**. Each UID/version is announced once, when the
+popup becomes visible; dismissing it keeps the update button on the page. A
+later version produces another notice. Downloads continue after closing the
+popup, with up to three simultaneous packages and serialized import. Offline,
+new versions already known to the cache can also be announced.
 
-**O jeito fácil:** dois cliques em [`mods/gerenciar.bat`](mods/gerenciar.bat) (ou
-`python tools/mods/manager.py`). Abre uma página no navegador
-(`http://127.0.0.1:8770`) que mostra os mods de `samples/` com o status de cada
-um (em dia, versão nova pronta, mudou sem subir versão), publica com um clique,
-sobe a versão, confere e publica um `.bl` arrastado, e tira mods do catálogo.
-O token é colado na página e fica só na memória do gerenciador. A página só
-atende este computador e exige uma chave sorteada a cada execução.
+**The easy way:** double-click [`mods/gerenciar.bat`](mods/gerenciar.bat) (or
+`python tools/mods/manager.py`). It opens a page in the browser
+(`http://127.0.0.1:8770`) that shows the mods in `samples/` with each one's
+status (up to date, new version ready, changed without bumping the version),
+publishes with one click, bumps the version, checks and publishes a dragged
+`.bl`, and removes mods from the catalog. The token is pasted into the page and
+stays only in the manager's memory. The page only serves this computer and
+requires a key randomized on every run.
 
-Por baixo, ela chama os mesmos scripts da linha de comando.
-[`mods/publish.py`](mods/publish.py) confere o pacote com as regras do import do
-app, cria a Release, monta a vitrine em `build/mods-repo/` (um clone do
-repositório de mods) e faz o push do índice:
+Underneath, it calls the same command-line scripts.
+[`mods/publish.py`](mods/publish.py) checks the package with the app's import
+rules, creates the Release, builds the showcase in `build/mods-repo/` (a clone
+of the mods repository) and pushes the index:
 
-Só o ExampleMod vai dentro do APK (`BUNDLED_SAMPLES` no `app/build.gradle.kts`).
-Os outros de `samples/` são publicados aqui. [`mods/pack.py`](mods/pack.py) gera o
-`.bl` de uma pasta, sempre com os mesmos bytes, em `build/mods-packs/`.
+Only ExampleMod goes inside the APK (`BUNDLED_SAMPLES` in
+`app/build.gradle.kts`). The others in `samples/` are published here.
+[`mods/pack.py`](mods/pack.py) builds a folder's `.bl`, always with the same
+bytes, in `build/mods-packs/`.
 
-[`mods/port_textures.py`](mods/port_textures.py) copia as imagens de resource
-packs do Workshop local para `build/mods-repo/ports/textures/`, cria `manifest.json` com autoria
-e gera os `.bl`, sem exigir `main.js`. Exemplo:
-`python tools/mods/port_textures.py 2439853873 2796830227`.
-Cada port tem um README em `ports/textures/<nome>/` do repositório de mods; os
-`.bl` prontos ficam em `ports/textures/in bl/`.
+[`mods/port_textures.py`](mods/port_textures.py) copies the images of resource
+packs from the local Workshop to `build/mods-repo/ports/textures/`, creates
+`manifest.json` with authorship and builds the `.bl` files, without requiring
+`main.js`. Example: `python tools/mods/port_textures.py 2439853873 2796830227`.
+Each port has a README in `ports/textures/<name>/` of the mods repository; the
+finished `.bl` files sit in `ports/textures/in bl/`.
 
-O token pode vir de `BL_GITHUB_TOKEN`; sem ela, o script pede na hora, sem
-mostrar na tela.
+The token can come from `BL_GITHUB_TOKEN`; without it, the script asks for it
+on the spot, without showing it on screen.
 
 ```bash
 python tools/mods/pack.py samples/VidaCheia      # -> build/mods-packs/vidacheia-1.0.0.bl
-python tools/mods/publish.py --dry-run Mod.bl    # confere e monta, sem rede
-python tools/mods/publish.py Mod.bl Outro.bl     # publica
-python tools/mods/publish.py --remove <uid>      # tira do catálogo (a Release fica)
+python tools/mods/publish.py --dry-run Mod.bl    # checks and builds, no network
+python tools/mods/publish.py Mod.bl Other.bl     # publishes
+python tools/mods/publish.py --remove <uid>      # removes from the catalog (the Release stays)
 ```
 
-Atualizar um mod é publicar o `.bl` com a `version` maior no `manifest.json`:
-o app compara com a instalada e mostra "Atualizar". Republicar a mesma versão
-com outro conteúdo é recusado. O `raw.githubusercontent.com` guarda cache por
-alguns minutos, então a mudança pode demorar um pouco para aparecer no app.
+Updating a mod means publishing the `.bl` with a higher `version` in
+`manifest.json`: the app compares it with the installed one and shows
+"Update". Republishing the same version with different content is refused.
+`raw.githubusercontent.com` caches for a few minutes, so the change may take a
+moment to show up in the app.
 
-## Testes
+## Tests
 
-Os testes são **mods**: cada pasta de [`tests/`](tests) instala no jogo, faz o
-que testa de verdade (usa o item, invoca o chefe, salva e recarrega o mundo) e
-escreve no log uma linha por checagem, terminando em `<teste> FIM: tudo ok` ou
-`<teste> FIM: N falha(s)`.
+The tests are **mods**: each folder in [`tests/`](tests) installs into the
+game, does what it tests for real (uses the item, summons the boss, saves and
+reloads the world) and writes one log line per check, ending in
+`<test> FIM: tudo ok` or `<test> FIM: N falha(s)`.
 
-[`bench/run.sh`](bench/run.sh) roda um ciclo no emulador: instala os mods
-pedidos, abre o jogo, entra no **primeiro** mundo da lista, espera o `FIM` de
-cada teste e salva as linhas de resultado.
+[`bench/run.sh`](bench/run.sh) runs a cycle on the emulator: installs the
+requested mods, opens the game, enters the **first** world in the list, waits
+for each test's `FIM` and saves the result lines.
 
 ```bash
-tools/bench/run.sh saida.txt samples/ExampleMod tools/tests/boss
-BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh saida.txt tools/tests/refs   # outro emulador
+tools/bench/run.sh output.txt samples/ExampleMod tools/tests/boss
+BL_DEVICE=127.0.0.1:16416 tools/bench/run.sh output.txt tools/tests/refs   # another emulator
 ```
 
-[`bench/repeat.sh`](bench/repeat.sh) repete uma rodada até o jogo congelar, para
-travamento intermitente: vigia o `FIM` de um teste no logcat e guarda o logcat
-da rodada que travou. Apague antes os pacotes de teste que ficaram no aparelho.
+[`bench/repeat.sh`](bench/repeat.sh) repeats a round until the game freezes,
+for intermittent hangs: it watches for a test's `FIM` in logcat and keeps the
+logcat of the round that froze. Delete the test packages left on the device
+first.
 
 ```bash
 tools/bench/repeat.sh 12 modfurniture samples/ExampleMod tools/tests/modfurniture tools/tests/prefix
 ```
 
-- Pré-condições: o APK instalado, um mundo e o personagem de teste ("Bench")
-  primeiro da lista.
-- **Um teste por vez.** O `run.sh` não tira os mods de rodadas anteriores, e
-  juntos eles se atrapalham (o tiro do `hooks` mata o slime do `npcs`): apague
-  os `test-*` de `bunny_packs/` entre um e outro.
-- Os poderes do Mod Menu ficam salvos; o `run.sh` os apaga antes de abrir.
-- **Lápides:** o jogador que morre num teste deixa uma, e com algumas por
-  perto o jogo liga o cemitério (música, luz, névoa e spawn mudam). O
-  `run.sh` põe o `tests/cleanworld` em toda rodada: ao entrar no mundo, ele
-  tira as lápides (as paradas e as caindo) a 200 blocos do spawn e do
-  jogador e salva o mundo. `BL_KEEP_GRAVES=1` desliga (e tira o pacote dele do
-  aparelho).
-- Com mais de um emulador, `BL_DEVICE` escolhe qual. O `run.sh` só toca na
-  tela com o Bunny Loader na frente (um toque cego numa tela inicial do
-  emulador já instalou um jogo da loja).
+- Preconditions: the APK installed, a world and the test character ("Bench")
+  first in the list.
+- **One test at a time.** `run.sh` does not remove the mods from earlier
+  rounds, and together they get in each other's way (the `hooks` shot kills the
+  `npcs` slime): delete the `test-*` ones from `bunny_packs/` between runs.
+- The Mod Menu's powers stay saved; `run.sh` clears them before opening.
+- **Tombstones:** a player who dies in a test leaves one, and with a few nearby
+  the game turns on the graveyard (music, light, fog and spawning change).
+  `run.sh` adds `tests/cleanworld` to every round: on entering the world, it
+  removes the tombstones (standing and falling) within 200 tiles of the spawn
+  and the player and saves the world. `BL_KEEP_GRAVES=1` turns it off (and
+  removes its package from the device).
+- With more than one emulator, `BL_DEVICE` picks which. `run.sh` only taps the
+  screen with Bunny Loader in front (a blind tap on an emulator's home screen
+  once installed a game from the store).
 
-| Teste | O que confere | Precisa do Example Mod |
+| Test | What it checks | Needs the Example Mod |
 |---|---|---|
-| **A ponte** | | |
-| `nullable` | Tipos, structs, arrays, `Nullable<T>`, hooks com struct. | |
-| `optarg` | Método solto de um objeto (`const f = Main.spriteBatch['...']; f()`) chama no dono; `null` num struct com valor padrão vira o `default(T)` (chamada e `original()`), struct obrigatório e número recusam. | |
-| `wrappers` | Objeto segurado só pelo JS sobrevive ao coletor; identidade (`===`). | |
-| `structindex` | `proj.ai[0]`, `localAI.get_Item`, `oldPos[i].X`, `hideMisc[i]` e os limites; uma linha de log de 6 KB inteira no arquivo. | |
+| **The bridge** | | |
+| `nullable` | Types, structs, arrays, `Nullable<T>`, hooks with structs. | |
+| `optarg` | A loose method of an object (`const f = Main.spriteBatch['...']; f()`) calls on its owner; `null` in a struct with a default value becomes `default(T)` (call and `original()`), required structs and numbers refuse it. | |
+| `wrappers` | An object held only by JS survives the collector; identity (`===`). | |
+| `structindex` | `proj.ai[0]`, `localAI.get_Item`, `oldPos[i].X`, `hideMisc[i]` and the bounds; a whole 6 KB log line in the file. | |
 | `extrafields` | `bl.defineField`, `bl.defineMethod`. | |
-| `strictnames` | Membro que a classe não tem é erro (com sugestão), `in`, consultas do motor sem erro; assinatura só com os nomes exatos dos parâmetros. | |
-| `refs` | `ref`/`out` na chamada e no hook, struct por `ref`, `Ref` repassado e solto. | |
+| `strictnames` | A member the class does not have is an error (with a suggestion), `in`, engine queries without errors; signatures only with the exact parameter names. | |
+| `refs` | `ref`/`out` in calls and hooks, structs by `ref`, a `Ref` passed on and come loose. | |
 | `files` | `bl.file`, `bl.directory`, `bl.path`. | |
-| `hookslots` | Centenas de hooks de uma vez, e a profundidade de hooks encadeados no mesmo método. Com 25 hooks nos nomes, as listas do menu demoram a aceitar toque: se parar na seleção de mundo, toque em Jogar. | sim |
-| `ifbusy` | Hook que não espera o motor JS preso noutra thread (`ifBusy`). | **não**: rodar sem |
-| `enginethreads` | A thread do jogo e a do save no `original()` ao mesmo tempo, cada uma com a sua pilha JS. | |
-| `wrappermap` | Fuzz do `WrapperMap` contra `std::unordered_map` (roda como binário, `wrappermap/run.sh`). | |
-| `tilesettled` | Prontidão dos blocos de mod, incluindo zero blocos registrados: evita que o início rápido espere para sempre sem o Example Mod. Binário independente (`tilesettled/run.sh`), sem abrir o jogo nem alterar saves. | não |
-| **Conteúdo** | | |
-| `moditems` | As tabelas de item de mod. | |
-| `modsave` | Save de item de mod com o mod ligado e desligado (rodar mais de uma vez). | |
-| `projectiles`, `npcs`, `buffs`, `tiles` | Cada tipo de conteúdo de mod. | |
-| `trailcache` | Rastro de projétil de mod (`TrailingMode` 0 e 2, `TrailCacheLength`): `oldPos`, `oldRot` e `oldSpriteDirection` com o tamanho pedido e preenchidos, ao lado de projéteis do jogo. | |
-| `tilesave` | Três rodadas: com o mod, sem ele e com ele de novo. | |
-| `tileautosave` | Com o Example Mod: dispara a gravação automática (`WorldGen.saveAndPlay`, numa thread) e confere a cada quadro que os tiles de mod não somem enquanto ela grava. Rodar junto com o `tilesave`. | |
-| `bossbag` | Com o Example Mod: a `ExampleBossBag` é abrível, abrir pelo `ItemSlot.TryOpenContainer` gasta uma e dá o `ItemLoot` (ExampleItem e as moedas do chefe), e as regras do chefe têm o `NotExpert` e a bolsa. | |
-| `modmount` | `ModMount`: o tipo depois dos do jogo (`MountID.Count`, `Mount.mounts` e `MountID.Sets` crescidos), a textura `_Back`, e os hooks numa montaria do teste (`SetMount`/`Dismount` com `skipDust` e o dado por jogador, `UpdateEffects`, `UpdateFrame`, `JumpHeight`, `JumpSpeed`, `Draw`). Com o Example Mod: o carro (duas camadas, o buff, os balões) e o carrinho de mina (`Cart`, `SetAsMinecart`, os `delegations` copiados, montado pelo buff via `BuffID.Sets.MountType`) e o botão de montaria do toque (`Player.QuickMount`, pelo `miscEquips[3]`). No fim deixa o jogador montado no carro, para olhar na tela. | |
-| `hookchain` | Com o Example Mod (`samples/ExampleMod`): o gancho de exemplo no espaço de gancho, lançado a cada 90 quadros para o céu; o `PreDrawExtras` chamado. Na tela: só a corrente do mod, sem a do jogo por baixo. Do quadro 400 em diante, `PreDrawExtras` true e `PreDraw` false: a corrente do jogo sem a cabeça do gancho, e o `PostDraw` roda. | sim |
-| `frametime` | Tempo de quadro: o `DoUpdate` e o `DoDraw` do jogo e o intervalo entre quadros, com zoom 1, 2 e 0,75, e os hooks que mais custam (`bl.hookStats`: chamadas e tempo de JS por quadro), as coletas do QuickJS e o custo de uma coleta. O resumo sai também no chat do jogo: empacotado como `.bl` (`out/frametime.bl`), mede no celular sem adb. Para comparar o app com e sem mods, e versões dele (ver `bisect/`). Rodar com `BL_KEEP_GRAVES=1` e sem outros pacotes no aparelho. | não |
-| `bgreset` | Com o Example Mod: uma cena sempre ativa põe um fundo de superfície de mod (texturas do exemplo) e loga, a cada segundo, o estilo, os arrays de textura e de transparência e o `LocalUserGameState`. Para comparar antes e depois de um evento (segundo plano, troca de usuário). | não |
-| `tooltipdraw` | O tooltip de mod e a raridade de mod na tela: põe um item de teste (raridade e prefixo de mod) no `HoverItem` e pede o `MouseText` por uns quadros; confere os nomes das linhas do tModLoader, o `ModifyTooltips` (linha nova, `Hide`, `OverrideColor`), os `Pre/PostDrawTooltip(Line)`, o `yOffset`, a cor do nome e o `GetPrefixedRarity`. Com o Example Mod, mostra depois o `ExampleTooltipItem`; o tooltip fica uns 15 s na tela para uma captura. | não |
-| `oldpos` | O rastro do projétil lido de dois jeitos: `oldPos[i]` e `oldPos.get_Item(i)` (que no celular devolve `ref Vector2`), com `oldRot` e `oldSpriteDirection`. | |
-| `hookcost` | O custo de um hook que só repassa ao `original()`, em métodos de uma chamada por quadro, medido pelo `bl.hookStats` e por dentro do JS. | não |
-| `perfloader` | Desempenho do loader dos mods: na carga, os padrões dos loaders em JS puro; no mundo, com o Example Mod, o custo por entidade de cada hook com 60 projéteis e 15 slimes de mod, e o tempo de quadro com e sem elas. Ver `docs/historico/DESEMPENHO-LOADER.md`. | não |
-| `basecls` | O exemplo de classe base da documentação (`04-conteudo-novo.md`): a base com `static Autoload = false` e a base fora de `Content/` e `Common/` não são registradas; as filhas entram com o `SetDefaults` da base pelo `super`, os campos e os métodos herdados, e o `instanceof` pela base. | |
-| `getcontent` | `Mod.GetContent(Base)` e `ModContent.GetContent(Base)`: os `ModItem` do próprio mod na ordem do registro e com o `Type`, outra base (`ModBuff`, `ModSystem`), nada de outro mod, todos os mods juntos e erro com base que não é classe. | |
-| `dupnamesa`, `dupnamesb`, `dupnamesc` | Rodam juntos: A e B têm `ModPlayer` e `ModItem` com a mesma classe (`Abc`). Os dois registram; pelo nome cada um acha o seu; `'mod/Abc'` acha o do outro; o save grava uma chave por mod e o load devolve a cada um o seu (o A faz a volta e limpa). O C, sem `Abc`, recebe `undefined`/0 pelo nome e acha os dois por `'mod/Abc'`. | |
-| `itempostupdate` | `ModItem.PostUpdate`: a Alma de Exemplo jogada no chão chama o `PostUpdate` com a `WorldItem` (com `Center`), e a da hotbar (casa 48) desenha sem erro no `GetAlpha`. Limpa as duas no fim. | sim |
-| `modwall` | `ModWall` com a ExampleWall: tipo depois dos do jogo, `WallID.Count` aumentado, textura, `SetStaticDefaults` (`Main.wallHouse`), `wallBlend`, o item que coloca; `PlaceWall`, `KillWall` com drop; o mapa (`wallLookup` e a cor); a conversão da corrupção com `WallID.Sets.Conversion.Stone`; com a ExampleWallAdvanced, o `AnimateWall` trocando o `Main.wallFrame` e o `ModifyLight`; o save leva a parede e a tinta para o `.walls.bl`. Rodar duas vezes: a segunda confere que a parede e a tinta voltaram no load e limpa. | sim |
-| `achievements` | As conquistas do jogo com as de mod registradas: o `_completedCount` de cada uma igual às condições completas (a releitura do arquivo o dobrava, e as do jogo já completas apareciam bloqueadas), e a TIMBER completando pelo aviso de coleta de madeira. Zera a TIMBER do aparelho. | |
-| `menusky` | Com o Example Mod: o `DrawSunAndMoon` do tema de mod (filtro `flag: 'menu.sky'`) fora do JS no mundo e religado de volta aos menus (`SaveAndQuit`). | não |
-| `tilename` | Com o Example Mod: a estação de trabalho de mod no guia de criação, com o nome (`Recipe.GetRequiredTileName`, o do mapa, e o texto do `GUICraftGuidePopup.UpdateText` com a receita da `ExampleLamp`) e o ícone (`TileID.Sets.CraftingStationItemId`, tabela só do celular). | não |
-| `bgwatch` | Diagnóstico, não mexe em nada: loga o estado do fundo de superfície a cada 10 s e sempre que muda (estilo, soma das transparências das camadas — zero é a tela só com o céu —, arrays, `LocalUserGameState`, cena). Feito para rodar no celular do usuário com o logcat capturando. | não |
-| `cloudforce` | Diagnóstico: 5 s depois de entrar no mundo, e a cada 30 s, metade das nuvens vira o primeiro tipo de nuvem de mod, e loga se a máscara do horizonte (`TextureMaskManager.CloudMasks`) desse tipo existe. Para o desenho do horizonte do celular, que quebrava o fundo inteiro (ver `docs/historico/FUNDO-SUMINDO-NUVEM-DE-MOD.md`). | não |
-| `soltos` | A etapa 13, com conteúdo próprio e o do Example Mod: `ModCommand` pelo processador do chat (argumentos, apelido, `UsageException`, o que não é de mod segue, o `/help`; `/heal` e `/addtime` do exemplo), `ModHair` (tipo e textura, a lista da criação de personagem, o save pelo nome com 0 no arquivo do jogo), `ModCloud` (comum no `addCloud` com `OnSpawn`, peso 0, rara no `RollRareCloud`), `ModEmoteBubble` (`NewBubble` com `OnSpawn`, o menu por categoria, o desenho da bolha), `ModAchievement` (registro com nome, condição completa com `OnCompleted`, `OnNPCKilled`; o ManyWormsKilled do exemplo) e o peixe de missão (na lista, a fala do Pescador, fora do modo difícil não sorteia, `CatchFish` de ponta-cabeça). **Salva o personagem** (o teste do cabelo). | sim |
-| `tileframes` | Duas rodadas: o quadro de um 3x3 de mod e de um de pedra ao reabrir o mundo. | |
-| `localization` | `ModLocalization.Translate` devolve o texto (chave funda, queda para o inglês), `Language.GetText('Mods.<id>.…')` sem passo extra, `Key`/`GetText`/`Exists`, os `{$chave}` (inteira, relativa, do jogo, `@n`, circular, no `Register`), as categorias do jogo (`RandomFromCategory`), a variante `Chave$Variante` e a troca de idioma (ida e volta, no mesmo `LocalizedText`; com o Example Mod, também o nome de NPC e de item). | opcional |
-| `multitile` | Duas rodadas: a Pia de Exemplo (2x2, `TileObjectData`) colocada, quebrada por uma célula e pelo chão (um drop só), salva e reaberta. | sim |
-| `modfurniture` | Os móveis do Example Mod pelos caminhos do jogo: a casa com porta, mesa, cadeira e tocha de mod passa no `RoomNeeds`; porta abre e fecha (pelo toque, sozinha com o jogador encostando, com o morador passando, no fio; o goblin guerreiro arromba e o peão derruba, soltando o item da porta de mod); luz firme da tocha, fogueira, lustre e luminária; caixa de música no chão e equipada; toque na cadeira senta; fio apaga a luminária; buff da fogueira. Não salva. | sim |
-| `teitems` | Duas rodadas: item de mod com `SaveData` na moldura, estante, travessa e jarro (pela função de pôr com a mão), no manequim e no cabideiro; a moldura que solta o item (cai com os dados); a 1a salva o mundo, a 2a confere a volta, desmonta e salva de novo. | |
-| `globalhooks` | GlobalNPC, GlobalItem e GlobalProjectile nos NPCs, itens e projéteis do jogo: `FindFrame`, `CheckDead`, `CanChat`, `GetChat`, `GetAlpha`, ícone de chefe; as lojas (`ModifyShop`, `SetupShop` antigo, `ModifyActiveShop`, Mercador Viajante); crítico e repulsão do GlobalItem; os golpes do `CombatLoader` (item, projétil e NPC contra NPC no NPC; projétil hostil e PvP no jogador) e o `HitModifiers` (`FinalDamage`, `ArmorPenetration`, `SetMaxDamage`, `SetInstantKill`). Não salva. | |
-| `opcost` | O custo, em ns, de cada padrão de acesso da ponte que os hooks de todo quadro usam (campo, array, classe aninhada, `Vector2.new`, `bl.tiles.typeAt`...), medido no mundo. Não mexe no mundo. | |
-| `tileperf` | Tempo de quadro com 150 tochas do jogo e com 150 tochas e 10 fogueiras de mod na tela, e o custo de cada método do `ModTile` por quadro. Não salva. | sim |
-| `wallperf` | Tempo de quadro com 2130 paredes na tela (71x30): sem parede, parede do jogo, ExampleWall e ExampleWallAdvanced (luz, animação, `WallFrame`); o tempo de colocar, o custo de cada método do `ModWall` e o do save com 2130 paredes do jogo e de mod. Salva o mundo no fim já sem as paredes (a área cavada fica, a mesma do `tileperf`). | sim |
-| `armor` | Texturas vestidas (slots, `Count` e tabelas crescidos, `AddEquipTexture`, `EquipTexture` própria, `AutoloadEquip`), conjunto por item e por `GlobalItem`, vaidade e sombras, `FrameEffects` (fantasia seca e molhada, ordem Pre/EquipTexture/Update), `SetMatch` (manto), asas (`WingStats`, as três velocidades e `WingUpdate`), manequim. Veste e tira; não salva. | sim |
-| `loadorder/A`, `B`, `C`, `D` | Quatro mods no mesmo `Player.Update`: logam carga, entrada e saída da cadeia no primeiro quadro. Reordene pelas setas em Pacotes e confira com `python tools/tests/loadorder/check.py --device SERIAL --expected ACBD`. | não |
-| `loadordersort` | Ordenação por `dependencies` (`mods/LoadOrder.cpp`) e leitura do campo no manifesto (`mods/ManifestText.cpp`): dependência antes de quem pede, ordem do launcher no resto, ausente/ciclo/id ambíguo desligam o mod, lista já ordenada não muda (a da sincronização). Roda no PC: `wsl bash tools/tests/loadordersort/run.sh`. | não |
-| `armorsave` | Duas rodadas: veste e salva o personagem; depois confere que as peças voltaram, com os slots desenhados, e limpa. | sim |
-| `mparmor` | Multijogador (host e cliente, `mpa ...`): cada lado veste o conjunto, as asas e a barba e vê os slots de mod e o bônus do outro. | não (mp-session) |
-| `prefix` | Duas rodadas: status, nome, tooltip, rolagem e categorias dos prefixos do Example Mod; salva itens com prefixo de mod no inventário e num baú. Na 2ª um prefixo a mais desloca os números, e o save devolve pelo nome. Limpa no fim. | sim |
-| `mpbiome` | Multijogador (`mpb ...`, etapa B4 do ModBiome): o bioma do host chega a quem entra, o do cliente chega ao host ligado e desligado, a troca do host chega ao cliente, e ninguém recebe `OnEnter`/`OnLeave` de jogador remoto. | não (mp-session) |
-| `mpprefix` | Multijogador (`mpp ...`): cada lado põe itens com prefixo de mod e o outro confere prefixo e status; o host confere a defesa do acessório do cliente. | não (mp-session) |
-| `hooks` | Os hooks das classes: IA, spawn natural, Bestiário, tooltip, receita, uso de item. | |
-| `recipes` | Receitas e grupos. | |
-| `globals` | `GlobalItem`, `GlobalNPC`, `GlobalProjectile` (filtro, instância por entidade, `Clone`), drops por tipo e globais com o Bestiário, e o `ModSystem` (mundo, atualização, dados salvos). Rodar duas vezes: a segunda carrega o que a primeira salvou. | sim |
-| `modplayer` | `ModPlayer` (quadro, dano, morte, dados salvos). | |
-| `modplayerhooks` | Registra todos os hooks de jogador; verifica referências, mana, tempos, vetos, clone, crafting e callbacks de atualização e desenho. `node tools/tests/modplayerhooks/check.mjs` executa os testes de comportamento e confere assinaturas usando o dump local. | não |
-| `npcaitype` | `AIType` de ModNPC: tipo temporário na IA nativa, instâncias, herança, vetos e ordem de GlobalNPC. `node tools/tests/npcaitype/check.mjs` testa o despacho; o runner próprio e as rodadas Android estão no [README](tests/npcaitype/README.md). | só cópias de saves |
-| `projectilekill` | Regressão de `OnTileCollide false`: morte por tempo e acerto em NPC no chão continuam chamando `OnKill`; `Kill` dentro do callback não recursa. `node tools/tests/projectilekill/check.mjs` verifica o ciclo de vida sem o jogo. | não |
-| `hairsettings` | `GetHairSettings` usa os Sets de `ArmorIDs` e `HairID`: chapéu configurado em `SetStaticDefaults`, cabelo de mod, máscaras e slots negativos. `node tools/tests/hairsettings/check.mjs` executa os testes sem o jogo. | não |
-| `modcontent` | `ModContent` e o que fica fora do Mod Menu. | sim |
-| `exmod1`, `exmod2` | O Example Mod inteiro, usado. | sim |
-| `summons` | Pets, lacaio e sentinela usados como o dedo usaria. | sim |
-| `townnpc` | Morador de mod em quatro rodadas: com o mod, com, sem e com de novo. | sim |
-| `townshop` | Conversa, loja, felicidade, retrato e perfil. | sim |
-| `townfight` | Ataque e gore do morador. | sim |
-| `boss` | O chefe nascendo pelo item de invocação. | sim |
-| `drops` | Drop de item de mod pelas regras do jogo; 400 slots no chão, primeira criação e recriação de EmergencyStacking.GroupLookup, e 120 mortes no mesmo quadro. Usar mundo de teste: esvazia os drops existentes. | sim |
-| `fishline` | A linha da vara de mod. | sim |
-| `biomescan` | A contagem de blocos dos biomas (etapa B0 do ModBiome): todo `SceneMetrics._tileCounts` do jogo com o tamanho novo, a ordem e a frequência da varredura, e a contagem exata de `ExampleTile` com 0/39/40/41 blocos. Loga também as medições (`biomescan medida ...`). | sim |
-| `modbiome` (+ `modbiomeb`) | `ModBiome` e `ModSceneEffect` (etapa B1): `Type` e `ModContent.GetInstance`, `player.InModBiome`, `OnEnter`/`OnInBiome`/`OnLeave` uma vez por troca, dois biomas ao mesmo tempo, a música da cena pela prioridade, `IsBiomeActive` que lança, a mesma classe em dois mods e o bioma por 40 `ExampleTile` (`TileCountsAvailable`). Rodar as duas pastas juntas. | sim |
-| `arrays` | Arrays do jogo pelo JS: `lista.makeGeneric(tipo)` (nomes do C#, nome completo, classe, ajudante), `Uint8Array` numa cópia só, `Classe.newArray(n \| lista)`, `System.Array.Reverse` num deles, `fill`/`empty`/`find` (também num campo do jogo), e os erros. | sim |
-| `bgscan` | A medição dos fundos (etapa B5.0): tamanho dos arrays (`TextureAssets.Background`, `bgAlphaFrontLayer`...), ordem e thread de cada passo do desenho do fundo, e três faixas desenhadas pelo JS nas camadas longe, meio e perto (conferir no print). | sim |
-| `modbg` | Fundos de mod (etapa B5): `BackgroundTextureLoader`, os números dos estilos, `Priority` `None` sem efeito, `BiomeLow` ganhando da floresta (superfície e subsolo, com as 4 texturas trocadas em `backTexture`/`backTextureValues`) e a volta ao do jogo. Rodar de dia, numa floresta. | sim |
-| `modwater` | Água de mod (etapa B6): `ModWaterStyle`/`ModWaterfallStyle` com os números depois dos do jogo e as tabelas crescidas, a troca da água pela cena com o fade, o `CalculateWaterStyle`, o respingo, a chuva e a luz através da água, e a cachoeira de mod pedida ao jogo. Faz um lago na frente do jogador e loga `modwater: tela ...` para a captura (a textura do teste é vermelha). Não salva. | não |
-| `modmap` | Fundo do mapa de mod (etapa B6): `MapBackground` de uma cena no mapa em tela cheia (a textura cobre a tela no lugar do fundo do jogo, com a cor do céu na superfície), `MapBackgroundFullbright`, `MapBackgroundColor` e a volta ao fundo do jogo. Abre o mapa com o zoom longe (a borda do mundo à vista) e loga `modmap: tela ...` para a captura (a textura do teste é vermelha). Não salva. | não |
-| `modspawn` | Spawn natural como no tModLoader: `GlobalNPC.EditSpawnRate` (o jogador-alvo, a taxa do jogo, e a forçada vale), `EditSpawnInfo` antes do `EditSpawnPool` no mesmo ponto, o `SpawnChance` com o ponto, o chão, o bloco e os campos do `NPC.Spawner`, o pool só com o de mod, vazio e com um tipo do jogo (`GlobalNPC.SpawnNPC` depois), `EditSpawnRange` na área do `GetSpawnArea`, e o spawn do jogo sem mudanças. Tira os inimigos por perto: **não rodar junto do `hooks`** (apaga o NPC que ele observa). Não salva. | não |
-| `biomecontent` | O resto do ModBiome: `DisplayName`/`TownNPCDialogueName` (padrão, da classe por cultura e do `Localization` do Example Mod), `SetBiomeAffection` com bioma de mod (o Guia, com casa no lugar, cobra menos e a fala cita o bioma), o Bestiário (o bioma do `SpawnModBiomes` na entrada, o ícone 30 x 30, o fundo 115 x 65 e o filtro; e o do ExampleSlimeNPC e do ExamplePerson, que também ama o bioma de exemplo), `GlobalNPC.EditSpawnFlags` e o `SpawnCondition` (somam 1 no ponto). Precisa do Example Mod. Não salva. | não |
-| `cleanworld` | Não é um teste: tira as lápides (bloco 85 e as que ainda caem) a 200 blocos do spawn e do jogador, no 2º quadro dentro do mundo, e salva o mundo. O `run.sh` o põe em toda rodada (`BL_KEEP_GRAVES=1` desliga). | sim |
-| `biomeworld` | O ciclo de vida das flags (etapa B2): o bioma por blocos liga e desliga no próprio `Teleport`, e a saída do mundo (`WorldGen.SaveAndQuit`) chama o `OnLeave`, zera as flags e a cena e chama o `ResetNearbyTileEffects`. **Sai do mundo no fim**: rodar sozinho. | sim |
-| `biomemusic` | A música da cena contra a do jogo, degrau por degrau (etapa B3): superfície, silêncio, `Music -1`, `Priority None`, chuva de slime, um chefe do jogo (Geleia Rainha), a caixa de música do jogo, o Otherworld, e uma faixa de mod tocando e parando. Com "Sem inimigos" ligado no Mod Menu, o chefe some e o teste falha. | sim |
-| `exmodfixes` | Correções do Example Mod pelo caminho do jogo: o botão de gancho (`QuickGrapple`), `Item.material`, a luz do bloco de gemas, fogo vivo sobre fogo vivo, a origem e o **toque de verdade** no relógio (contra o do jogo), o conjunto do 1.4.5 (`ArmorSetBonuses`), escudo/bota do mesmo tipo e a troca pelo toque, e o chicote (curva sorteada, e acerto fora da linha de mira contra o de espinhos). O passo do relógio espera um `adb shell input tap` nas coordenadas que ele loga. | sim |
-| `sounds` | `SoundStyle`, `SoundEngine.PlaySound`, `MaxInstances`, `UseSound` de item usado. | sim |
-| `soundfilter` | Filtro nativo do SoundLoader: regressões JS e comparação A/B no Android, com cargas vanilla, mistas e customizadas, música e 32 NPCs. Usa runner próprio; veja [README](tests/soundfilter/README.md) e [resultados](tests/soundfilter/RESULTADOS.md). | só cópias de saves |
-| `soundasync` | Fila limitada de SFX fora do QuickJS: estados/falhas, cancelamento, pausa concorrente, retenção e A/B Android com carga normal, extrema e rajadas. Compartilha o runner de soundfilter com `--suite soundasync`; veja [README](tests/soundasync/README.md). | só cópias de saves |
-| `launcherperf` | Carregamento do launcher: cache/concorrência, GIFs e invalidação por uid, com comparação A/B de Explorar, Config e ficha no Android. Veja [README](tests/launcherperf/README.md) e [resultados](tests/launcherperf/RESULTADOS.md). | restaura preferências/cache; não inicia o jogo |
-| `music` | O chefe trocando a música do jogo pela dele, cada troca conferida no meio do fade. | sim |
-| `crossmod` (+ `crossmodtarget`) | `ModLoader.TryGetMod` e `Call`, nas duas ordens de carga. | |
-| `autoload` (+ `nomodclass`) | A estrutura do mod: a classe `Mod` do `export default` (`Load`, `bl.mod`), o registro automático de `Content/` e `Common/` (ordem, `Autoload = false`, o que não é de mod), a textura espelho e pelo nome em `Assets/Textures/`, gore, tradução, e um mod sem a classe `Mod` que não carrega. | |
-| **Multijogador** | | |
-| `serversync` | Versão exata dos mods entre host e cliente: handshake JS, metadados nativos de `manifest.json`/`mod.json`, planejamento/admissão/sessão Kotlin e duas instâncias Android. Runner próprio; veja [README](tests/serversync/README.md) e [resultados](tests/serversync/RESULTADOS.md). | só cópias de saves |
-| `mprecipes`, `mpplayer`, `mpitems`, `mptiles`, `mpglobals`, `mpnet` | Um cliente e um host (ver `mp-session.sh`): itens de mod usados pelo cliente e conferidos no host, o dash com toque de verdade. | sim |
-| `mpshop` | Loja de morador de mod no multijogador: o host põe a Pessoa ao lado do cliente; o cliente conversa, toca em Loja e compra em moedas e em moeda própria (e solta o item no inventário, como o dedo); o host confere a conversa, os itens e o pagamento pela rede, e que a Pessoa mantém a vida máxima. | sim |
+| `hookslots` | Hundreds of hooks at once, and the depth of chained hooks on the same method. With 25 hooks on the names, the menu lists are slow to accept taps: if it stops at world selection, tap Play. | yes |
+| `ifbusy` | A hook that does not wait for the JS engine held by another thread (`ifBusy`). | **no**: run without it |
+| `enginethreads` | The game thread and the save thread in `original()` at the same time, each with its own JS stack. | |
+| `wrappermap` | Fuzzing `WrapperMap` against `std::unordered_map` (runs as a binary, `wrappermap/run.sh`). | |
+| `tilesettled` | Mod tile readiness, including zero registered tiles: keeps quick start from waiting forever without the Example Mod. A standalone binary (`tilesettled/run.sh`), without opening the game or touching saves. | no |
+| **Content** | | |
+| `moditems` | The mod item tables. | |
+| `modsave` | Saving mod items with the mod on and off (run more than once). | |
+| `projectiles`, `npcs`, `buffs`, `tiles` | Each kind of mod content. | |
+| `trailcache` | Mod projectile trails (`TrailingMode` 0 and 2, `TrailCacheLength`): `oldPos`, `oldRot` and `oldSpriteDirection` at the requested size and filled in, next to vanilla projectiles. | |
+| `tilesave` | Three rounds: with the mod, without it and with it again. | |
+| `tileautosave` | With the Example Mod: triggers the autosave (`WorldGen.saveAndPlay`, on a thread) and checks every frame that mod tiles do not vanish while it saves. Run together with `tilesave`. | |
+| `bossbag` | With the Example Mod: `ExampleBossBag` is openable, opening it through `ItemSlot.TryOpenContainer` spends one and gives the `ItemLoot` (ExampleItem and the boss's coins), and the boss's rules have `NotExpert` and the bag. | |
+| `modmount` | `ModMount`: the type after the game's (`MountID.Count`, `Mount.mounts` and `MountID.Sets` grown), the `_Back` texture, and the hooks on a test mount (`SetMount`/`Dismount` with `skipDust` and per-player data, `UpdateEffects`, `UpdateFrame`, `JumpHeight`, `JumpSpeed`, `Draw`). With the Example Mod: the car (two layers, the buff, the balloons) and the minecart (`Cart`, `SetAsMinecart`, the copied `delegations`, mounted by the buff via `BuffID.Sets.MountType`) and the touch mount button (`Player.QuickMount`, through `miscEquips[3]`). At the end it leaves the player mounted on the car, to look at on screen. | |
+| `hookchain` | With the Example Mod (`samples/ExampleMod`): the example hook in the grapple slot, launched every 90 frames at the sky; `PreDrawExtras` called. On screen: only the mod's chain, without the game's underneath. From frame 400 on, `PreDrawExtras` true and `PreDraw` false: the game's chain without the hook's head, and `PostDraw` runs. | yes |
+| `frametime` | Frame time: the game's `DoUpdate` and `DoDraw` and the interval between frames, at zoom 1, 2 and 0.75, and the most expensive hooks (`bl.hookStats`: calls and JS time per frame), QuickJS collections and the cost of a collection. The summary also goes to the game chat: packaged as a `.bl` (`out/frametime.bl`), it measures on the phone without adb. For comparing the app with and without mods, and versions of it (see `bisect/`). Run with `BL_KEEP_GRAVES=1` and no other packages on the device. | no |
+| `bgreset` | With the Example Mod: an always-active scene sets a mod surface background (the example's textures) and logs, every second, the style, the texture and transparency arrays and `LocalUserGameState`. For comparing before and after an event (background, user switch). | no |
+| `tooltipdraw` | The mod tooltip and the mod rarity on screen: puts a test item (mod rarity and prefix) in `HoverItem` and asks for `MouseText` for a few frames; checks tModLoader's line names, `ModifyTooltips` (new line, `Hide`, `OverrideColor`), `Pre/PostDrawTooltip(Line)`, `yOffset`, the name color and `GetPrefixedRarity`. With the Example Mod, it then shows `ExampleTooltipItem`; the tooltip stays on screen for about 15 s for a screenshot. | no |
+| `oldpos` | The projectile trail read in two ways: `oldPos[i]` and `oldPos.get_Item(i)` (which on mobile returns `ref Vector2`), with `oldRot` and `oldSpriteDirection`. | |
+| `hookcost` | The cost of a hook that only forwards to `original()`, on methods called once per frame, measured through `bl.hookStats` and from inside JS. | no |
+| `perfloader` | The mod loader's performance: during loading, the loaders' patterns in pure JS; in the world, with the Example Mod, the per-entity cost of each hook with 60 projectiles and 15 mod slimes, and the frame time with and without them. See `docs/historico/DESEMPENHO-LOADER.md`. | no |
+| `basecls` | The documentation's base class example (`04-conteudo-novo.md`): the base with `static Autoload = false` and the base outside `Content/` and `Common/` are not registered; the subclasses get in with the base's `SetDefaults` through `super`, the inherited fields and methods, and `instanceof` through the base. | |
+| `getcontent` | `Mod.GetContent(Base)` and `ModContent.GetContent(Base)`: the mod's own `ModItem`s in registration order and with `Type`, another base (`ModBuff`, `ModSystem`), nothing from another mod, all mods together and an error with a base that is not a class. | |
+| `dupnamesa`, `dupnamesb`, `dupnamesc` | Run together: A and B have a `ModPlayer` and a `ModItem` with the same class (`Abc`). Both register; by name each finds its own; `'mod/Abc'` finds the other's; the save writes one key per mod and the load gives each its own back (A does the round trip and cleans up). C, without `Abc`, gets `undefined`/0 by name and finds both through `'mod/Abc'`. | |
+| `itempostupdate` | `ModItem.PostUpdate`: the Example Soul dropped on the ground calls `PostUpdate` with the `WorldItem` (with `Center`), and the hotbar one (slot 48) draws without errors in `GetAlpha`. Cleans both up at the end. | yes |
+| `modwall` | `ModWall` with ExampleWall: the type after the game's, `WallID.Count` increased, texture, `SetStaticDefaults` (`Main.wallHouse`), `wallBlend`, the item that places it; `PlaceWall`, `KillWall` with a drop; the map (`wallLookup` and the color); corruption conversion with `WallID.Sets.Conversion.Stone`; with ExampleWallAdvanced, `AnimateWall` switching `Main.wallFrame` and `ModifyLight`; the save takes the wall and the paint into `.walls.bl`. Run twice: the second checks the wall and the paint came back on load and cleans up. | yes |
+| `achievements` | The game's achievements with mod ones registered: each one's `_completedCount` equal to the completed conditions (rereading the file doubled it, and already-completed vanilla ones showed up locked), and TIMBER completing through the wood pickup notice. Resets the device's TIMBER. | |
+| `menusky` | With the Example Mod: the mod theme's `DrawSunAndMoon` (`flag: 'menu.sky'` filter) out of JS in the world and turned back on when returning to the menus (`SaveAndQuit`). | no |
+| `tilename` | With the Example Mod: the mod workbench in the crafting guide, with the name (`Recipe.GetRequiredTileName`, the map's, and the text of `GUICraftGuidePopup.UpdateText` with the `ExampleLamp` recipe) and the icon (`TileID.Sets.CraftingStationItemId`, a mobile-only table). | no |
+| `bgwatch` | Diagnostic, changes nothing: logs the surface background state every 10 s and whenever it changes (style, sum of the layers' transparencies — zero is the screen with only the sky —, arrays, `LocalUserGameState`, scene). Made to run on the user's phone with logcat capturing. | no |
+| `cloudforce` | Diagnostic: 5 s after entering the world, and every 30 s, half of the clouds become the first mod cloud type, and it logs whether that type's horizon mask (`TextureMaskManager.CloudMasks`) exists. For mobile's horizon drawing, which broke the whole background (see `docs/historico/FUNDO-SUMINDO-NUVEM-DE-MOD.md`). | no |
+| `soltos` | Step 13, with its own content and the Example Mod's: `ModCommand` through the chat processor (arguments, alias, `UsageException`, non-mod commands go on, `/help`; the example's `/heal` and `/addtime`), `ModHair` (type and texture, the character creation list, saving by name with 0 in the game's file), `ModCloud` (common in `addCloud` with `OnSpawn`, weight 0, rare in `RollRareCloud`), `ModEmoteBubble` (`NewBubble` with `OnSpawn`, the menu by category, drawing the bubble), `ModAchievement` (registration with a name, a completed condition with `OnCompleted`, `OnNPCKilled`; the example's ManyWormsKilled) and the quest fish (in the list, the Angler's line, outside hard mode it does not roll, `CatchFish` upside down). **Saves the character** (the hair test). | yes |
+| `tileframes` | Two rounds: the frame of a mod 3x3 and of a stone one when reopening the world. | |
+| `localization` | `ModLocalization.Translate` returns the text (deep key, English fallback), `Language.GetText('Mods.<id>.…')` without an extra step, `Key`/`GetText`/`Exists`, the `{$key}`s (full, relative, from the game, `@n`, circular, in `Register`), the game's categories (`RandomFromCategory`), the `Key$Variant` variant and switching languages (there and back, in the same `LocalizedText`; with the Example Mod, also NPC and item names). | optional |
+| `multitile` | Two rounds: the Example Sink (2x2, `TileObjectData`) placed, broken by one cell and by the floor (a single drop), saved and reopened. | yes |
+| `modfurniture` | The Example Mod furniture through the game's paths: the house with a mod door, table, chair and torch passes `RoomNeeds`; the door opens and closes (by tap, by itself with the player walking into it, with a town NPC passing, by wire; the goblin warrior breaks it in and the peon knocks it down, dropping the mod door's item); the torch's steady light, campfire, chandelier and lamp; a music box on the floor and equipped; tapping the chair sits; a wire turns the lamp off; the campfire buff. Does not save. | yes |
+| `teitems` | Two rounds: a mod item with `SaveData` in the item frame, weapon rack, food platter and jar (through the place-by-hand function), on the mannequin and the hat rack; the frame that drops the item (it falls with the data); the 1st saves the world, the 2nd checks it came back, dismantles and saves again. | |
+| `globalhooks` | GlobalNPC, GlobalItem and GlobalProjectile on vanilla NPCs, items and projectiles: `FindFrame`, `CheckDead`, `CanChat`, `GetChat`, `GetAlpha`, boss icon; the shops (`ModifyShop`, the old `SetupShop`, `ModifyActiveShop`, Traveling Merchant); GlobalItem crit and knockback; `CombatLoader`'s hits (item, projectile and NPC against an NPC; hostile projectile and PvP on the player) and `HitModifiers` (`FinalDamage`, `ArmorPenetration`, `SetMaxDamage`, `SetInstantKill`). Does not save. | |
+| `opcost` | The cost, in ns, of each bridge access pattern the per-frame hooks use (field, array, nested class, `Vector2.new`, `bl.tiles.typeAt`...), measured in the world. Does not touch the world. | |
+| `tileperf` | Frame time with 150 vanilla torches and with 150 mod torches and 10 mod campfires on screen, and the cost of each `ModTile` method per frame. Does not save. | yes |
+| `wallperf` | Frame time with 2130 walls on screen (71x30): no wall, vanilla wall, ExampleWall and ExampleWallAdvanced (light, animation, `WallFrame`); the time to place, the cost of each `ModWall` method and of the save with 2130 vanilla and mod walls. Saves the world at the end already without the walls (the dug-out area stays, the same as `tileperf`'s). | yes |
+| `armor` | Worn textures (slots, `Count` and tables grown, `AddEquipTexture`, custom `EquipTexture`, `AutoloadEquip`), sets per item and per `GlobalItem`, vanity and shadows, `FrameEffects` (dry and wet costume, Pre/EquipTexture/Update order), `SetMatch` (robe), wings (`WingStats`, the three speeds and `WingUpdate`), mannequin. Puts on and takes off; does not save. | yes |
+| `loadorder/A`, `B`, `C`, `D` | Four mods on the same `Player.Update`: they log loading, entering and leaving the chain on the first frame. Reorder with the arrows in Packages and check with `python tools/tests/loadorder/check.py --device SERIAL --expected ACBD`. | no |
+| `loadordersort` | Sorting by `dependencies` (`mods/LoadOrder.cpp`) and reading the field from the manifest (`mods/ManifestText.cpp`): a dependency before whoever asks for it, the launcher's order for the rest, missing/cycle/ambiguous id disables the mod, an already sorted list does not change (the sync's). Runs on the PC: `wsl bash tools/tests/loadordersort/run.sh`. | no |
+| `armorsave` | Two rounds: puts on and saves the character; then checks the pieces came back, with the drawn slots, and cleans up. | yes |
+| `mparmor` | Multiplayer (host and client, `mpa ...`): each side puts on the set, the wings and the beard and sees the other's mod slots and bonus. | no (mp-session) |
+| `prefix` | Two rounds: stats, name, tooltip, rolling and categories of the Example Mod prefixes; saves items with a mod prefix in the inventory and in a chest. In the 2nd an extra prefix shifts the numbers, and the save returns them by name. Cleans up at the end. | yes |
+| `mpbiome` | Multiplayer (`mpb ...`, ModBiome step B4): the host's biome reaches whoever joins, the client's reaches the host on and off, the host's change reaches the client, and nobody receives `OnEnter`/`OnLeave` for a remote player. | no (mp-session) |
+| `mpprefix` | Multiplayer (`mpp ...`): each side places items with a mod prefix and the other checks prefix and stats; the host checks the client's accessory defense. | no (mp-session) |
+| `hooks` | The classes' hooks: AI, natural spawning, Bestiary, tooltip, recipe, item use. | |
+| `recipes` | Recipes and groups. | |
+| `globals` | `GlobalItem`, `GlobalNPC`, `GlobalProjectile` (filter, per-entity instance, `Clone`), per-type drops and globals with the Bestiary, and `ModSystem` (world, update, saved data). Run twice: the second loads what the first saved. | yes |
+| `modplayer` | `ModPlayer` (frame, damage, death, saved data). | |
+| `modplayerhooks` | Registers every player hook; checks references, mana, times, vetoes, clone, crafting and update and drawing callbacks. `node tools/tests/modplayerhooks/check.mjs` runs the behavior tests and checks signatures using the local dump. | no |
+| `npcaitype` | ModNPC `AIType`: a temporary type in the native AI, instances, inheritance, vetoes and GlobalNPC order. `node tools/tests/npcaitype/check.mjs` tests the dispatch; its own runner and the Android rounds are in the [README](tests/npcaitype/README.md). | save copies only |
+| `projectilekill` | `OnTileCollide false` regression: death by time and hitting an NPC on the ground still call `OnKill`; `Kill` inside the callback does not recurse. `node tools/tests/projectilekill/check.mjs` checks the lifecycle without the game. | no |
+| `pylonmap` | Tapping a mod pylon opens the map in mobile's pylon mode, like the game's: `MapPylonTile`, the framing of the revealed pylons (checked against the game's in 2000 cases), the lines to the mod ones, the progression of the old failure (only the pylon itself was tappable) and the request made in the middle of drawing, which sees the mod ones in the list. `node tools/tests/pylonmap/check.mjs` runs without the game. | no |
+| `pylonprobe` | A probe (only logs) of the pylon teleport request: the `_pylons` list in the request and the two "near a pylon" checks. It found that a tap on a vanilla pylon, handled inside the map drawing, did not see the mod ones. Needs the Example Mod. | no |
+| `menutheme` | A 2nd title theme (long name, the classic title music) for the Menu Theme row in Settings; logs the title's music and fades in the menus. The taps come from outside. | no |
+| `nonfinite` | NaN and infinity in fields: the progression of Ocram's error in the phantom dust (`Main.dust[6000]`). A field that already holds infinity accepts another, as in C#; a new NaN or infinity in a field holding a number is still refused; a `float[]` element the same; a method's `float` argument already accepted it. | no |
+| `exmodnew` | The new Example Mod examples in the game (needs it enabled): pylon, tile entity, tree, boss bar, pickup, hook, shortsword and the buff's tip. | no |
+| `hairsettings` | `GetHairSettings` uses the `ArmorIDs` and `HairID` Sets: a hat set up in `SetStaticDefaults`, mod hair, masks and negative slots. `node tools/tests/hairsettings/check.mjs` runs the tests without the game. | no |
+| `modcontent` | `ModContent` and what stays out of the Mod Menu. | yes |
+| `exmod1`, `exmod2` | The whole Example Mod, used. | yes |
+| `summons` | Pets, minion and sentry used the way a finger would. | yes |
+| `townnpc` | A mod town NPC in four rounds: with the mod, with, without and with again. | yes |
+| `townshop` | Chat, shop, happiness, portrait and profile. | yes |
+| `townfight` | The town NPC's attack and gore. | yes |
+| `boss` | The boss spawning through the summon item. | yes |
+| `drops` | Mod item drops through the game's rules; 400 slots on the ground, the first creation and recreation of EmergencyStacking.GroupLookup, and 120 kills in the same frame. Use a test world: it clears the existing drops. | yes |
+| `fishline` | The mod rod's line. | yes |
+| `biomescan` | The biomes' block count (ModBiome step B0): every game `SceneMetrics._tileCounts` with the new size, the scan's order and frequency, and the exact `ExampleTile` count with 0/39/40/41 blocks. Also logs the measurements (`biomescan medida ...`). | yes |
+| `modbiome` (+ `modbiomeb`) | `ModBiome` and `ModSceneEffect` (step B1): `Type` and `ModContent.GetInstance`, `player.InModBiome`, `OnEnter`/`OnInBiome`/`OnLeave` once per change, two biomes at the same time, the scene's music by priority, an `IsBiomeActive` that throws, the same class in two mods and the biome from 40 `ExampleTile`s (`TileCountsAvailable`). Run both folders together. | yes |
+| `arrays` | Game arrays through JS: `list.makeGeneric(type)` (C# names, full name, class, helper), `Uint8Array` in a single copy, `Class.newArray(n \| list)`, `System.Array.Reverse` on one of them, `fill`/`empty`/`find` (also on a game field), and the errors. | yes |
+| `bgscan` | Measuring the backgrounds (step B5.0): the arrays' sizes (`TextureAssets.Background`, `bgAlphaFrontLayer`...), the order and thread of each background drawing step, and three bands drawn by JS on the far, middle and close layers (check in the screenshot). | yes |
+| `modbg` | Mod backgrounds (step B5): `BackgroundTextureLoader`, the style numbers, `Priority` `None` without effect, `BiomeLow` beating the forest (surface and underground, with the 4 textures swapped in `backTexture`/`backTextureValues`) and going back to the game's. Run during the day, in a forest. | yes |
+| `modwater` | Mod water (step B6): `ModWaterStyle`/`ModWaterfallStyle` with the numbers after the game's and the tables grown, the water switch through the scene with the fade, `CalculateWaterStyle`, the splash, the rain and the light through the water, and the mod waterfall requested from the game. Makes a pond in front of the player and logs `modwater: tela ...` for the screenshot (the test texture is red). Does not save. | no |
+| `modmap` | Mod map background (step B6): a scene's `MapBackground` on the full-screen map (the texture covers the screen instead of the game's background, with the sky color at the surface), `MapBackgroundFullbright`, `MapBackgroundColor` and going back to the game's background. Opens the map zoomed out (the world's edge in view) and logs `modmap: tela ...` for the screenshot (the test texture is red). Does not save. | no |
+| `modspawn` | Natural spawning as in tModLoader: `GlobalNPC.EditSpawnRate` (the target player, the game's rate, and the forced one applies), `EditSpawnInfo` before `EditSpawnPool` at the same point, `SpawnChance` with the point, the ground, the block and the `NPC.Spawner` fields, the pool with only the mod one, empty and with a vanilla type (`GlobalNPC.SpawnNPC` after), `EditSpawnRange` in `GetSpawnArea`'s area, and the game's spawn unchanged. Clears the nearby enemies: **do not run together with `hooks`** (it removes the NPC that one watches). Does not save. | no |
+| `biomecontent` | The rest of ModBiome: `DisplayName`/`TownNPCDialogueName` (default, from the class per culture and from the Example Mod's `Localization`), `SetBiomeAffection` with a mod biome (the Guide, with a house in place, charges less and the line mentions the biome), the Bestiary (the `SpawnModBiomes` biome in the entry, the 30 x 30 icon, the 115 x 65 background and the filter; and those of ExampleSlimeNPC and ExamplePerson, who also loves the example biome), `GlobalNPC.EditSpawnFlags` and `SpawnCondition` (they add up to 1 at the point). Needs the Example Mod. Does not save. | no |
+| `cleanworld` | Not a test: removes the tombstones (block 85 and the ones still falling) within 200 tiles of the spawn and the player, on the 2nd frame inside the world, and saves the world. `run.sh` adds it to every round (`BL_KEEP_GRAVES=1` turns it off). | yes |
+| `biomeworld` | The flags' lifecycle (step B2): the block-based biome turns on and off on `Teleport` itself, and leaving the world (`WorldGen.SaveAndQuit`) calls `OnLeave`, clears the flags and the scene and calls `ResetNearbyTileEffects`. **Leaves the world at the end**: run it alone. | yes |
+| `biomemusic` | The scene's music against the game's, tier by tier (step B3): surface, silence, `Music -1`, `Priority None`, slime rain, a vanilla boss (Queen Slime), the game's music box, Otherworld, and a mod track playing and stopping. With "No enemies" on in the Mod Menu, the boss disappears and the test fails. | yes |
+| `exmodfixes` | Example Mod fixes through the game's path: the grapple button (`QuickGrapple`), `Item.material`, the gem block's light, living fire on living fire, the origin and the **real tap** on the clock (against the game's), the 1.4.5 set (`ArmorSetBonuses`), shield/boots of the same type and the swap by tap, and the whip (a randomized curve, and a hit off the line of sight against the thorn one). The clock step waits for an `adb shell input tap` at the coordinates it logs. | yes |
+| `sounds` | `SoundStyle`, `SoundEngine.PlaySound`, `MaxInstances`, a used item's `UseSound`. | yes |
+| `soundfilter` | SoundLoader's native filter: JS regressions and an A/B comparison on Android, with vanilla, mixed and custom loads, music and 32 NPCs. Uses its own runner; see the [README](tests/soundfilter/README.md) and the [results](tests/soundfilter/RESULTADOS.md). | save copies only |
+| `soundasync` | A bounded SFX queue outside QuickJS: states/failures, cancellation, concurrent pause, retention and an Android A/B with normal and extreme load and bursts. Shares soundfilter's runner with `--suite soundasync`; see the [README](tests/soundasync/README.md). | save copies only |
+| `launcherperf` | Launcher loading: cache/concurrency, GIFs and per-uid invalidation, with an A/B comparison of Explore, Settings and the page on Android. See the [README](tests/launcherperf/README.md) and the [results](tests/launcherperf/RESULTADOS.md). | restores preferences/cache; does not start the game |
+| `music` | The boss swapping the game's music for its own, each switch checked in the middle of the fade. | yes |
+| `crossmod` (+ `crossmodtarget`) | `ModLoader.TryGetMod` and `Call`, in both load orders. | |
+| `autoload` (+ `nomodclass`) | The mod's structure: the `export default` `Mod` class (`Load`, `bl.mod`), automatic registration of `Content/` and `Common/` (order, `Autoload = false`, what is not mod content), the mirror texture and by name in `Assets/Textures/`, gore, localization, and a mod without the `Mod` class that does not load. | |
+| **Multiplayer** | | |
+| `serversync` | The mods' exact version between host and client: the JS handshake, native `manifest.json`/`mod.json` metadata, Kotlin planning/admission/session and two Android instances. Its own runner; see the [README](tests/serversync/README.md) and the [results](tests/serversync/RESULTADOS.md). | save copies only |
+| `mprecipes`, `mpplayer`, `mpitems`, `mptiles`, `mpglobals`, `mpnet` | A client and a host (see `mp-session.sh`): mod items used by the client and checked on the host, the dash with a real tap. | yes |
+| `mpshop` | A mod town NPC's shop in multiplayer: the host places the Person next to the client; the client chats, taps Shop and buys with coins and with a custom currency (and drops the item into the inventory, like a finger); the host checks the chat, the items and the payment over the network, and that the Person keeps its max life. | yes |
 
-[`mp-session.sh`](mp-session.sh) sobe uma sessão de multijogador entre duas
-instâncias do MuMu: uma hospeda, a outra entra, sem inimigos novos e de dia.
+[`mp-session.sh`](mp-session.sh) starts a multiplayer session between two
+MuMu instances: one hosts, the other joins, with no new enemies and during the
+day.
 
-## Medição e investigação
+## Measurement and investigation
 
-| Pasta | O que é |
+| Folder | What it is |
 |---|---|
-| [`bench/`](bench) | O mod de benchmark da ponte JS → IL2CPP (cada operação 20 mil vezes, melhor de 7) e o `compare.py`, que compara rodadas. Os números estão no [guia de custo](../docs/mods/03-custo-e-desempenho.md) e no [histórico da otimização](../docs/historico/PONTE-OTIMIZACAO.md). |
-| [`bisect/`](bisect) | `buildat.sh <commit>` compila o APK de um commit antigo numa worktree fora do repositório (QuickJS, assets e `.so` do jogo ligados por junção e desfeitos antes de apagar) e deixa em `out/bisect/app-<commit>.apk`: a busca binária de uma regressão. Uma compilação de cada vez. Cuidado: o MuMu só tem tela de 60 Hz, e outra instância ligada no PC distorce a medição. |
-| [`crash-trials/`](crash-trials) | Cria mundos em série no MuMu, reiniciando o app a cada tentativa, e conta crashes ([histórico](../docs/historico/AVALIACAO-PONTE-E-CRASH.md)). |
-| [`disasm/`](disasm) | Desassembly anotado da `libil2cpp.so` (`prep.sh` gera os caches a partir de `refs/`). Limites compilados: `scan_limits.py` (`cmp #N`), `scan_loops.py` (fim de laço em bytes), `scan_movs.py` (`new T[N]`) e `scan_halved.py` (o `0 < x < N` feito pela metade, do drop). Ver [conteúdo por dentro](../docs/nucleo/conteudo.md#os-limites-compilados). |
+| [`bench/`](bench) | The JS → IL2CPP bridge benchmark mod (each operation 20 thousand times, best of 7) and `compare.py`, which compares rounds. The numbers are in the [cost guide](../docs/mods/03-custo-e-desempenho.md) and in the [optimization history](../docs/historico/PONTE-OTIMIZACAO.md). |
+| [`bisect/`](bisect) | `buildat.sh <commit>` builds an old commit's APK in a worktree outside the repository (QuickJS, assets and the game's `.so` files linked through junctions and undone before deleting) and leaves it at `out/bisect/app-<commit>.apk`: the binary search for a regression. One build at a time. Careful: MuMu only has a 60 Hz screen, and another instance running on the PC distorts the measurement. |
+| [`crash-trials/`](crash-trials) | Creates worlds in a row on MuMu, restarting the app on each attempt, and counts crashes ([history](../docs/historico/AVALIACAO-PONTE-E-CRASH.md)). |
+| [`disasm/`](disasm) | Annotated disassembly of `libil2cpp.so` (`prep.sh` generates the caches from `refs/`). Compiled limits: `scan_limits.py` (`cmp #N`), `scan_loops.py` (end of a loop in bytes), `scan_movs.py` (`new T[N]`) and `scan_halved.py` (the drop's `0 < x < N` done by halves). See [content under the hood](../docs/nucleo/conteudo.md#the-compiled-limits). |
