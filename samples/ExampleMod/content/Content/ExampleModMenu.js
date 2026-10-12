@@ -9,6 +9,10 @@ export class ExampleModMenu extends ModMenu {
     get MenuBackgroundStyle() { return ModContent.GetInstance(ExampleSurfaceBackgroundStyle); }
     get DisplayName() { return 'Example ModMenu'; }
 
+    SetStaticDefaults() {
+        this.Music = MusicLoader.GetMusicSlot('Music/MysteriousMystery');
+    }
+
     OnSelected() {
         SoundEngine.PlaySound(Terraria.ID.SoundID.Thunder);
     }

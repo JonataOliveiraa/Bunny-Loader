@@ -1,5 +1,5 @@
-// Música de mod pelo Android (bl.music, MediaPlayer). Nos menus, sempre a do
-// jogo (o ModMenu não troca a música). No mundo, os candidatos: o ModNPC com
+// Música de mod pelo Android (bl.music, MediaPlayer). Nos menus, a do tema
+// (ModMenu.Music). No mundo, os candidatos: o ModNPC com
 // Music mais prioritário perto da tela e a cena do jogador local (ModBiome,
 // ModSceneEffect), que só troca o do NPC com prioridade maior, como no
 // tModLoader. O candidato ganha da escolha do jogo se a prioridade dele chegar
@@ -22,6 +22,11 @@ class ModMusic {
     static #chosenTow = null;
     static #hooked = false;
     static #savedSilenceFade = null;  // o musicFade[0] do jogo enquanto a nossa manda
+    // O título do celular (51) entra sem fade (musicNoCrossFade): nos menus o
+    // jogo põe o musicFade dele em 1 a cada quadro, e a música do tema tocava
+    // junto. Enquanto o tema manda, a marca fica desligada.
+    static #TITLE_LOOP = 51;
+    static #titleCrossFade = false;   // a marca do título foi desligada por nós
     static #base = 0;
 
     // O primeiro slot de mod: MusicID.Count. Lido na primeira vez: o topo deste
@@ -66,7 +71,7 @@ class ModMusic {
     // O slot que a música de mod pede, ou -1 (fica a do jogo).
     static #Choose(tow) {
         const Main = Terraria.Main;
-        if (Main.gameMenu) return -1;
+        if (Main.gameMenu) return MenuLoader.MenuMusic();
 
         const box = ModMusic.#MusicBox();
         if (box > 0) return box;
@@ -164,6 +169,20 @@ class ModMusic {
         }
     }
 
+    static #TitleCrossFade(theme) {
+        const flags = Terraria.Main.musicNoCrossFade;
+        const slot = ModMusic.#TITLE_LOOP;
+        if (theme) {
+            if (flags[slot]) {
+                flags[slot] = false;
+                ModMusic.#titleCrossFade = true;
+            }
+        } else if (ModMusic.#titleCrossFade) {
+            flags[slot] = true;
+            ModMusic.#titleCrossFade = false;
+        }
+    }
+
     // A nossa só cala o jogo quando já se ouve; até lá segura o que tocava.
     static #Decide(tow) {
         const Main = Terraria.Main;
@@ -173,6 +192,7 @@ class ModMusic {
             ModMusic.#chosenTow = tow;
         }
         const wanted = ModMusic.#wanted;
+        ModMusic.#TitleCrossFade(Main.gameMenu && wanted >= 0);
         const track = wanted >= ModMusic.Base() ? ModMusic.Track(wanted) : null;
         if (track && track.fade > ModMusic.AUDIBLE) return ModMusic.#SilenceGame(true);
 
@@ -183,7 +203,7 @@ class ModMusic {
 
     static #Step() {
         const Main = Terraria.Main;
-        const target = Main.gameMenu ? -1 : ModMusic.#wanted;
+        const target = Main.gameMenu ? MenuLoader.MenuMusic() : ModMusic.#wanted;
         const main = target >= ModMusic.Base() ? ModMusic.Track(target) : null;
         const current = Main.curMusic;
         const mainAudible = main

@@ -6,14 +6,16 @@
 //     centro, a rotação, a escala e a cor deles (a soma) o tema desenha o dele
 //     uma vez, ou refaz os do jogo com o que o PreDrawLogo mudou;
 //   - DrawSunAndMoon: o sol e a lua do tema, só nos menus;
-//   - o fundo (SurfaceBackgroundLoader) pergunta aqui.
-// Não há escolha: vale o último tema de mod disponível (o do mod carregado
-// por último), e sem nenhum, o título do jogo. A música dos menus é sempre a
-// do jogo (a do tema tocava junto com ela).
+//   - o fundo (SurfaceBackgroundLoader) e a música (ModMusic) perguntam aqui.
+// A escolha é a linha "Tema do Menu" das Configurações (MenuThemeSetting), e
+// fica em BunnyLoader.menu.json, na pasta de saves do jogo. Sem escolha (ou
+// com o tema escolhido fora), vale o último tema de mod disponível (o do mod
+// carregado por último); sem nenhum, o título do jogo.
 class MenuLoader {
     static List = [];               // os temas de mod, na ordem de registro
     static #vanilla = null;         // "Terraria": o título do jogo, sem mudança
     static #current = null;
+    static #chosen = undefined;     // FullName do tema escolhido; null sem escolha
     static #ready = false;
     static #logo = null;            // os desenhos do logo do jogo neste quadro
     static #sky = false;            // a chave 'menu.sky' (o sol e a lua do tema)
@@ -27,6 +29,39 @@ class MenuLoader {
         MenuLoader.#Install();
     }
 
+    static FullName(menu) {
+        if (menu === MenuLoader.#vanilla) return 'Terraria';
+
+        const mod = menu.Mod;
+        return (mod ? mod.id || mod.uuid : '?') + '/' + menu.constructor.name;
+    }
+
+    // O nome no botão das Configurações: DisplayName, ou o nome do mod.
+    static Name(menu) {
+        const name = Safe.Run(menu.constructor.name + '.DisplayName', () => menu.DisplayName);
+        if (name) return String(name);
+        return menu.Mod ? menu.Mod.name : menu.constructor.name;
+    }
+
+    // O próximo tema disponível (o do jogo conta), como o OffsetModMenu do
+    // tModLoader. Troca na hora: o fundo e a música mudam atrás da tela de
+    // Configurações.
+    static Next() {
+        const all = MenuLoader.#All();
+        let i = all.indexOf(MenuLoader.#current || MenuLoader.#vanilla);
+        for (let n = 0; n < all.length; n++) {
+            i = (i + 1) % all.length;
+            if (!MenuLoader.#Available(all[i])) continue;
+
+            MenuLoader.#chosen = MenuLoader.FullName(all[i]);
+            MenuLoader.#Save();
+            MenuLoader.#Switch(all[i]);
+            MenuLoader.#Refresh();
+            return all[i];
+        }
+        return MenuLoader.#current;
+    }
+
     // O estilo de fundo do tema (-1: o do jogo). O da semente especial fica.
     static BackgroundSlot() {
         const menu = MenuLoader.#Active();
@@ -34,6 +69,19 @@ class MenuLoader {
 
         const style = Safe.Run(menu.constructor.name + '.MenuBackgroundStyle', () => menu.MenuBackgroundStyle);
         return style && SurfaceBackgroundLoader.Get(style.Slot) === style ? style.Slot : -1;
+    }
+
+    // O slot da música do tema (-1: a do jogo). A do jogo fica na geração de
+    // mundo com semente especial e nos créditos (menu 3000), como no tModLoader.
+    static MenuMusic() {
+        const menu = MenuLoader.#Active();
+        if (!menu) return -1;
+
+        const W = Terraria.WorldGen;
+        if (W.drunkWorldGen || W.remixWorldGen || W.tenthAnniversaryWorldGen || Terraria.Main.menuMode === 3000) return -1;
+
+        const music = Safe.Run(menu.constructor.name + '.Music', () => menu.Music);
+        return Number.isInteger(music) ? music : -1;
     }
 
     // O tema de mod escolhido, nos menus; null com o do jogo.
@@ -50,23 +98,72 @@ class MenuLoader {
         return value !== false && value !== undefined;
     }
 
-    // O último tema de mod disponível; sem nenhum, o do jogo.
+    static #All() {
+        return [MenuLoader.#vanilla, ...MenuLoader.List];
+    }
+
+    static #File() {
+        return bl.path.join(Terraria.Main.SavePath, 'BunnyLoader.menu.json');
+    }
+
+    static #Restore() {
+        MenuLoader.#chosen = null;
+        const file = MenuLoader.#File();
+        const text = Safe.Run('ModMenu: ler o tema salvo', () => bl.file.exists(file) ? bl.file.read(file) : null);
+        if (!text) return;
+
+        try {
+            const data = JSON.parse(text) || {};
+            if (typeof data.Theme === 'string') MenuLoader.#chosen = data.Theme;
+        } catch (e) {
+            bl.error('ModMenu: ' + file + ' is broken (' + e + '); using the last mod theme');
+        }
+    }
+
+    static #Save() {
+        const data = { Theme: MenuLoader.#chosen };
+        Safe.Run('ModMenu: gravar o tema', () => bl.file.write(MenuLoader.#File(), JSON.stringify(data)));
+    }
+
+    // O tema escolhido, se ainda disponível; senão o último tema de mod
+    // disponível; sem nenhum, o do jogo.
     static #Pick() {
+        if (MenuLoader.#chosen === undefined) MenuLoader.#Restore();
+
+        const chosen = MenuLoader.#chosen;
+        if (chosen !== null) {
+            const menu = MenuLoader.#All().find((m) => MenuLoader.FullName(m) === chosen);
+            if (menu && MenuLoader.#Available(menu)) return menu;
+        }
         for (let i = MenuLoader.List.length - 1; i >= 0; i--) {
             if (MenuLoader.#Available(MenuLoader.List[i])) return MenuLoader.List[i];
         }
         return MenuLoader.#vanilla;
     }
 
+    static #Switch(next) {
+        const current = MenuLoader.#current || MenuLoader.#vanilla;
+        MenuLoader.#current = next;
+        if (next === current) return;
+
+        Safe.Run(current.constructor.name + '.OnDeselected', () => current.OnDeselected());
+        Safe.Run(next.constructor.name + '.OnSelected', () => next.OnSelected());
+    }
+
+    // O sol e a lua do tema só entram no JS com um tema de mod nos menus.
+    static #Refresh() {
+        const menu = MenuLoader.#current;
+        const sky = !!menu && menu !== MenuLoader.#vanilla;
+        if (sky !== MenuLoader.#sky) {
+            MenuLoader.#sky = sky;
+            bl.hookFlags.set('menu.sky', sky);
+        }
+        if (sky && MenuLoader.BackgroundSlot() >= 0) SurfaceBackgroundLoader.Wake();
+    }
+
     // Uma vez por quadro dos menus, antes do logo.
     static #Tick() {
-        const current = MenuLoader.#current || MenuLoader.#vanilla;
-        const next = MenuLoader.#Pick();
-        MenuLoader.#current = next;
-        if (next !== current) {
-            Safe.Run(current.constructor.name + '.OnDeselected', () => current.OnDeselected());
-            Safe.Run(next.constructor.name + '.OnSelected', () => next.OnSelected());
-        }
+        MenuLoader.#Switch(MenuLoader.#Pick());
 
         const menu = MenuLoader.#current;
         Safe.Run(menu.constructor.name + '.Update', () => menu.Update(Terraria.Main.menuMode === 0));
@@ -183,20 +280,16 @@ class MenuLoader {
             vanilla.DisplayName = 'Terraria';
 
             Ready.Add(() => { MenuLoader.#ready = true; });
+            ModMusic.Install();
+            MenuThemeSetting.Install();
 
             const logoDraw = GUILogo['void Draw()'];
             logoDraw.hook((original, self) => {
                 if (!MenuLoader.#ready) return original(self);
 
                 Safe.Run('ModMenu (troca)', () => MenuLoader.#Tick());
+                MenuLoader.#Refresh();
                 const menu = MenuLoader.#current;
-                // O sol e a lua do tema só entram no JS com um tema de mod nos menus.
-                const sky = !!menu && menu !== vanilla;
-                if (sky !== MenuLoader.#sky) {
-                    MenuLoader.#sky = sky;
-                    bl.hookFlags.set('menu.sky', sky);
-                }
-                if (sky && MenuLoader.BackgroundSlot() >= 0) SurfaceBackgroundLoader.Wake();
                 if (!menu || menu === vanilla) {
                     original(self);
                 } else {

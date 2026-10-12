@@ -3,7 +3,8 @@
 ## Ainda sem versão
 
 - Montaria de mod (`ModMount`) e o carrinho de mina do Exemplo.
-- Menu de título de mod (`ModMenu`).
+- Menu de título de mod (`ModMenu`), com a música própria (*Mysterious
+  Mystery*); escolha em Configurações > Tema do Menu.
 - Bioma de mod: nome, felicidade dos moradores, Bestiário, fundo do mapa e
   spawn natural.
 - `ModCommand`, `ModHair`, `ModCloud`, `ModEmoteBubble`, `ModAchievement` e pesca.

@@ -78,6 +78,9 @@ class ModConfigMenu {
 
     static #T = null;
 
+    // A linha "Config. dos Mods" da aba Geral (null antes da primeira vez).
+    static get MenuEntry() { return ModConfigMenu.#menuEntry; }
+
     static Install() {
         Hooks.Once('modconfig.pause', () => Safe.Run('ModConfigMenu.Install', () => ModConfigMenu.#Hook()));
     }
@@ -716,7 +719,8 @@ class ModConfigMenu {
         T.String[ModConfigMenu.#TEXT](label, text, color, false);
     }
 
-    static #Fit(layout, text, width) {
+    // O texto cortado com "..." para caber em width (unidades de UI) no botão.
+    static Fit(layout, text, width) {
         const label = layout.Label;
         const font = label ? label['SpriteFont GetFont()']() : null;
         if (!font) return text;
@@ -1107,7 +1111,7 @@ class ModConfigMenu {
         const link = o.type === 'link';
         const t = link ? S.LinkTemplate : S.UIButtonOptionTemplate;
         const main = link ? t.LinkButton : t.Option;
-        const caption = ModConfigMenu.#Fit(t.Caption, o.text || '', t.Caption.overloadedSize.X - 16);
+        const caption = ModConfigMenu.Fit(t.Caption, o.text || '', t.Caption.overloadedSize.X - 16);
         const focus = ModConfigMenu.#Focus();
         const s1 = Number(T.Button[ModConfigMenu.#DRAW](main, null, o.label, !enabled, st.scale, false, focus, false, false));
         const s2 = Number(T.Button[ModConfigMenu.#DRAW](t.Caption, null, caption, !enabled, st.scale2, false, focus, false, false));

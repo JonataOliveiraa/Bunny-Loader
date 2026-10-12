@@ -1,0 +1,18 @@
+{
+  "uid": "2b6e9d97-8050-497f-8fbf-aef1db043c28",
+  "id": "test-menutheme",
+  "name": "Teste: Tema do Menu",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um segundo tema de título (nome comprido, música do título clássico) para a linha Tema do Menu das Configurações.",
+  "description": "Loga 'menutheme ...' a cada 2 s nos menus: o tema atual, a música e os fades do título.",
+  "updated": "2026-10-11",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "main.js",
+  "dependencies": []
+}
