@@ -10,8 +10,8 @@ enum class ShaderState : int { Pending = 0, Ready = 1, Failed = -1 };
 
 // Os uniforms padrao do preludio (ShaderLibrary), com o lugar ja procurado.
 struct BuiltinUniforms {
-    GLint box = -1, screen = -1, view = -1, texSize = -1, resolution = -1, aspect = -1;
-    GLint time = -1, age = -1, progress = -1, intensity = -1, center = -1, radius = -1, color = -1;
+    GLint box = -1, screen = -1, source = -1, screenTexel = -1, sourceTexel = -1, view = -1, resolution = -1;
+    GLint aspect = -1, time = -1, age = -1, progress = -1, intensity = -1, center = -1, radius = -1, color = -1;
 };
 
 struct CompiledShader {

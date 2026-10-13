@@ -1,0 +1,13 @@
+{
+  "uid": "2a7a8470-9be2-4203-97fb-ba9493347960",
+  "id": "test-screenpasses",
+  "name": "Teste: distorção, passadas e quadro anterior",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Exercita o DistortionMap (BlackHole, HeatHaze e formas de dois efeitos numa passada só), as várias passadas com alvos (Blur, Bloom) e o quadro anterior (Echo), medindo o custo de GPU de cada fase.",
+  "description": "Loga 'screenpasses ...'. Prints: 'SHOT hole' (buraco negro acima do jogador, ar quente à direita), 'SHOT blur', 'SHOT bloom', 'SHOT echo' (rastro escorrendo para a direita), 'SHOT shapes' (anel e empurrão de dois efeitos).",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

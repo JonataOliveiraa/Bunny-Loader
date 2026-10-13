@@ -22,14 +22,14 @@ void installRenderHook();
 constexpr int kMarkerWidth = 17;
 constexpr int kMarkerHeight = 3;
 
-// Thread do jogo, a cada quadro (bl.screen.submit): os efeitos do quadro que
+// Thread do jogo, a cada quadro (bl.screen.submit): os passos do quadro que
 // vai ser desenhado. Sem submit no quadro, nada desenha.
-void submitEffects(EffectList&& effects);
+void submitEffects(EffectFrame&& frame);
 
-// Thread de render (GlHooks.cpp): a lista do marcador (depois do mundo) e a
+// Thread de render (GlHooks.cpp): o quadro do marcador (depois do mundo) e o
 // do fim do quadro (por cima da interface). false se nao ha.
-bool takeWorldEffects(EffectList& out);
-bool takeScreenEffects(EffectList& out);
+bool takeWorldEffects(EffectFrame& out);
+bool takeScreenEffects(EffectFrame& out);
 void noteMarkerHit();
 
 struct RenderStats {

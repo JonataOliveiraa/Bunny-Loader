@@ -145,7 +145,7 @@ void logTrace() {
 void onMarker() {
     traceEvent("MARCADOR");
     noteMarkerHit();
-    EffectList effects;
+    EffectFrame effects;
     if (!takeWorldEffects(effects) || g_lastDraw.viewport[2] <= 0) return;
     const GlShadow state = unityState();
     t_inside = true;
@@ -271,7 +271,7 @@ EGLBoolean hkSwap(EGLDisplay display, EGLSurface surface) {
 
     // A camada Screen (e os do mundo, quando nao ha marcador): no fim do
     // quadro, por cima da interface.
-    EffectList effects;
+    EffectFrame effects;
     if (takeScreenEffects(effects)) {
         const GlShadow state = unityState();
         DrawTarget target;

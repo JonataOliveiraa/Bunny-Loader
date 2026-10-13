@@ -10,7 +10,9 @@ namespace bl::graphics {
 namespace {
 
 // vUV: a posicao do fragmento em fracao do viewport da camera. O quad cobre
-// so a caixa do efeito (uBox, na mesma fracao) e o viewport e ela.
+// so a caixa do passo (uBox, na mesma fracao) e o viewport e ela. Toda
+// textura dos efeitos (a copia da tela, o quadro anterior, os alvos) cobre o
+// viewport inteiro: `texture(uAlgo, vUV)` le o mesmo lugar em qualquer uma.
 const char* kVertex = R"(#version 300 es
 layout(location = 0) in vec2 aPos;
 uniform vec4 uBox;
@@ -30,8 +32,10 @@ out vec4 fragColor;
 #define gl_FragColor fragColor
 #define texture2D texture
 uniform sampler2D uScreen;
+uniform sampler2D uSource;
+uniform vec2 uScreenTexel;
+uniform vec2 uSourceTexel;
 uniform vec4 uView;
-uniform vec2 uTexSize;
 uniform vec2 uResolution;
 uniform float uAspect;
 uniform float uTime;
@@ -42,7 +46,10 @@ uniform vec2 uCenter;
 uniform float uRadius;
 uniform vec4 uColor;
 vec4 blScreen(vec2 uv) {
-    return texture(uScreen, (uView.xy + uv * uView.zw) / uTexSize);
+    return texture(uScreen, uv);
+}
+vec4 blSource(vec2 uv) {
+    return texture(uSource, uv);
 }
 )";
 

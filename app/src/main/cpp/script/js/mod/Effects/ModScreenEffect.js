@@ -33,7 +33,10 @@ class ModScreenEffect {
     // A cada quadro, antes do Draw (o tempo anda em Age).
     Update() {}
     ShouldDraw() { return true; }
-    Draw(cmd) { cmd.DrawShader(); }
+    // As formas que o efeito soma no mapa de distorção do quadro (DistortionMap).
+    DrawDistortion(d) {}
+    // Os passos do efeito; o padrão desenha o shader dele na área dele.
+    Draw(cmd) { if (this.Shader) cmd.DrawShader(); }
     OnKill() {}
 
     Kill() {

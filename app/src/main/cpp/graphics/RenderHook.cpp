@@ -34,9 +34,9 @@ bool g_camerasLogged = false;
 // quadro). Sem consumidor (marcador perdido), as filas param em kMaxQueued.
 constexpr size_t kMaxQueued = 4;
 std::mutex g_queueMutex;
-EffectList g_pending;
+EffectFrame g_pending;
 bool g_pendingSet = false;
-std::deque<EffectList> g_worldQueue, g_screenQueue;
+std::deque<EffectFrame> g_worldQueue, g_screenQueue;
 
 std::mutex g_statsMutex;
 RenderStats g_stats;
@@ -178,24 +178,28 @@ bool issueMarker() {
     return false;
 }
 
-void push(std::deque<EffectList>& queue, EffectList&& list) {
+void push(std::deque<EffectFrame>& queue, EffectFrame&& frame) {
     if (queue.size() >= kMaxQueued) queue.pop_front();
-    queue.push_back(std::move(list));
+    queue.push_back(std::move(frame));
 }
 
-// O que o submit deixou para este quadro, separado por camada. Consumido: sem
-// submit no proximo quadro, nada desenha.
-void splitPending(EffectList& world, EffectList& screen) {
-    EffectList pending;
+// O que o submit deixou para este quadro, separado por camada (os alvos vao
+// para as duas; o quadro anterior e o do mundo). Consumido: sem submit no
+// proximo quadro, nada desenha.
+void splitPending(EffectFrame& world, EffectFrame& screen) {
+    EffectFrame pending;
     {
         std::lock_guard<std::mutex> lock(g_queueMutex);
         if (!g_pendingSet) return;
-        pending.swap(g_pending);
+        std::swap(pending, g_pending);
         g_pendingSet = false;
     }
-    for (EffectDraw& e : pending) {
-        (e.layer == EffectLayer::Screen ? screen : world).push_back(std::move(e));
+    for (EffectDraw& e : pending.draws) {
+        (e.layer == EffectLayer::Screen ? screen : world).draws.push_back(std::move(e));
     }
+    world.targets = pending.targets;
+    screen.targets = std::move(pending.targets);
+    world.history = pending.history;
 }
 
 void hkFireOnPostRender(Il2CppObject* camera, const MethodInfo* method) {
@@ -213,9 +217,9 @@ void hkFireOnPostRender(Il2CppObject* camera, const MethodInfo* method) {
     bool issued = false;
     int64_t markerNs = 0;
     if (camera == world) {
-        EffectList worldList, screenList;
+        EffectFrame worldList, screenList;
         splitPending(worldList, screenList);
-        if (!worldList.empty() && g_marker.ready) {
+        if ((!worldList.empty() || worldList.history) && g_marker.ready) {
             const auto started = std::chrono::steady_clock::now();
             issued = issueMarker();
             markerNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -223,8 +227,9 @@ void hkFireOnPostRender(Il2CppObject* camera, const MethodInfo* method) {
         }
         // Sem marcador, os do mundo vao no fim do quadro (por cima da interface).
         if (!issued) {
-            for (EffectDraw& e : worldList) screenList.push_back(std::move(e));
-            worldList.clear();
+            for (EffectDraw& e : worldList.draws) screenList.draws.push_back(std::move(e));
+            screenList.history = screenList.history || worldList.history;
+            worldList = EffectFrame();
         }
         std::lock_guard<std::mutex> lock(g_queueMutex);
         if (issued) push(g_worldQueue, std::move(worldList));
@@ -286,15 +291,15 @@ void noteMarkerHit() {
     g_stats.markerHits++;
 }
 
-void submitEffects(EffectList&& effects) {
+void submitEffects(EffectFrame&& frame) {
     // O marcador e montado na thread do jogo, fora do desenho das cameras.
-    if (!effects.empty() && !g_marker.tried) setupMarker();
+    if (!frame.empty() && !g_marker.tried) setupMarker();
     std::lock_guard<std::mutex> lock(g_queueMutex);
-    g_pending = std::move(effects);
+    g_pending = std::move(frame);
     g_pendingSet = true;
 }
 
-bool takeWorldEffects(EffectList& out) {
+bool takeWorldEffects(EffectFrame& out) {
     std::lock_guard<std::mutex> lock(g_queueMutex);
     if (g_worldQueue.empty()) return false;
     out = std::move(g_worldQueue.front());
@@ -302,7 +307,7 @@ bool takeWorldEffects(EffectList& out) {
     return true;
 }
 
-bool takeScreenEffects(EffectList& out) {
+bool takeScreenEffects(EffectFrame& out) {
     std::lock_guard<std::mutex> lock(g_queueMutex);
     if (g_screenQueue.empty()) return false;
     out = std::move(g_screenQueue.front());

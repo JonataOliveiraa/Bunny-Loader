@@ -44,20 +44,38 @@ void readArray(JSContext* ctx, JSValueConst obj, const char* name, float* out, i
     JS_FreeValue(ctx, v);
 }
 
-void readUniforms(JSContext* ctx, JSValueConst obj, graphics::EffectDraw& draw) {
-    JSValue map = JS_GetPropertyStr(ctx, obj, "uniforms");
+// Um uniform: numero, array de 1 a 4 ou { components, values } (array de
+// vetores: uniform vec4 uAlgo[8]). Ate 256 floats.
+bool readUniform(JSContext* ctx, JSValueConst v, graphics::UniformValue& u) {
+    if (JS_IsObject(v) && !JS_IsArray(v)) {
+        u.components = static_cast<int>(number(ctx, v, "components", 4));
+        if (u.components < 1 || u.components > 4) return false;
+        JSValue values = JS_GetPropertyStr(ctx, v, "values");
+        u.v.resize(256);
+        const int n = numbers(ctx, values, u.v.data(), 256);
+        JS_FreeValue(ctx, values);
+        u.v.resize(static_cast<size_t>(n - n % u.components));
+        return !u.v.empty();
+    }
+    float tmp[4];
+    const int n = numbers(ctx, v, tmp, 4);
+    if (n <= 0) return false;
+    u.components = n;
+    u.v.assign(tmp, tmp + n);
+    return true;
+}
+
+// Um objeto { nome: valor } chamando `fn(nome, valor)` para cada chave.
+template <typename Fn>
+void forEachKey(JSContext* ctx, JSValueConst obj, const char* field, Fn fn) {
+    JSValue map = JS_GetPropertyStr(ctx, obj, field);
     JSPropertyEnum* props = nullptr;
     uint32_t count = 0;
     if (JS_IsObject(map) && JS_GetOwnPropertyNames(ctx, &props, &count, map, JS_GPN_STRING_MASK | JS_GPN_ENUM_ONLY) == 0) {
         for (uint32_t i = 0; i < count; ++i) {
             const char* name = JS_AtomToCString(ctx, props[i].atom);
             JSValue v = JS_GetProperty(ctx, map, props[i].atom);
-            graphics::UniformValue u;
-            u.count = numbers(ctx, v, u.v, 4);
-            if (name && u.count > 0) {
-                u.name = name;
-                draw.uniforms.push_back(std::move(u));
-            }
+            if (name) fn(name, v);
             JS_FreeValue(ctx, v);
             JS_FreeCString(ctx, name);
             JS_FreeAtom(ctx, props[i].atom);
@@ -65,6 +83,39 @@ void readUniforms(JSContext* ctx, JSValueConst obj, graphics::EffectDraw& draw) 
         js_free(ctx, props);
     }
     JS_FreeValue(ctx, map);
+}
+
+uint32_t lengthOf(JSContext* ctx, JSValueConst array) {
+    JSValue v = JS_GetPropertyStr(ctx, array, "length");
+    uint32_t length = 0;
+    JS_ToUint32(ctx, &length, v);
+    JS_FreeValue(ctx, v);
+    return length;
+}
+
+graphics::EffectDraw readDraw(JSContext* ctx, JSValueConst item) {
+    graphics::EffectDraw d;
+    d.shader = static_cast<int>(number(ctx, item, "shader", 0));
+    d.layer = number(ctx, item, "layer", 0) >= 1 ? graphics::EffectLayer::Screen : graphics::EffectLayer::World;
+    d.dest = static_cast<int>(number(ctx, item, "dest", 0));
+    d.source = static_cast<int>(number(ctx, item, "source", graphics::kTexNone));
+    readArray(ctx, item, "box", d.box, 4);
+    readArray(ctx, item, "center", d.center, 2);
+    d.radius = static_cast<float>(number(ctx, item, "radius", 0));
+    d.intensity = static_cast<float>(number(ctx, item, "intensity", 1));
+    d.progress = static_cast<float>(number(ctx, item, "progress", 0));
+    d.age = static_cast<float>(number(ctx, item, "age", 0));
+    readArray(ctx, item, "color", d.color, 4);
+    forEachKey(ctx, item, "uniforms", [&](const char* name, JSValueConst v) {
+        graphics::UniformValue u;
+        u.name = name;
+        if (readUniform(ctx, v, u)) d.uniforms.push_back(std::move(u));
+    });
+    forEachKey(ctx, item, "textures", [&](const char* name, JSValueConst v) {
+        int32_t texture = 0;
+        if (JS_ToInt32(ctx, &texture, v) == 0 && texture != graphics::kTexNone) d.textures.push_back({name, texture});
+    });
+    return d;
 }
 
 // bl.screen.shader(nome, codigo) -> id. O GLSL compila na thread de render.
@@ -94,34 +145,48 @@ JSValue screen_shaderStatus(JSContext* ctx, JSValueConst, int argc, JSValueConst
     return o;
 }
 
-// bl.screen.submit([{shader, layer, box, center, radius, intensity, progress,
-// age, color, uniforms}]): os efeitos do quadro.
+// bl.screen.submit(passos, alvos, { history }): o quadro. Passo: { shader,
+// layer, dest, source, box, center, radius, intensity, progress, age, color,
+// uniforms: { nome: valor }, textures: { nome: textura } }; alvo: { id,
+// name, scale, persistent }. Texturas: -1 a tela, -2 o quadro anterior, > 0
+// um alvo.
 JSValue screen_submit(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
-    graphics::EffectList list;
+    graphics::EffectFrame frame;
     if (argc > 0 && JS_IsArray(argv[0])) {
-        JSValue lengthValue = JS_GetPropertyStr(ctx, argv[0], "length");
-        uint32_t length = 0;
-        JS_ToUint32(ctx, &length, lengthValue);
-        JS_FreeValue(ctx, lengthValue);
-        list.reserve(length);
+        const uint32_t length = lengthOf(ctx, argv[0]);
+        frame.draws.reserve(length);
         for (uint32_t i = 0; i < length; ++i) {
             JSValue item = JS_GetPropertyUint32(ctx, argv[0], i);
-            graphics::EffectDraw d;
-            d.shader = static_cast<int>(number(ctx, item, "shader", 0));
-            d.layer = number(ctx, item, "layer", 0) >= 1 ? graphics::EffectLayer::Screen : graphics::EffectLayer::World;
-            readArray(ctx, item, "box", d.box, 4);
-            readArray(ctx, item, "center", d.center, 2);
-            d.radius = static_cast<float>(number(ctx, item, "radius", 0));
-            d.intensity = static_cast<float>(number(ctx, item, "intensity", 1));
-            d.progress = static_cast<float>(number(ctx, item, "progress", 0));
-            d.age = static_cast<float>(number(ctx, item, "age", 0));
-            readArray(ctx, item, "color", d.color, 4);
-            readUniforms(ctx, item, d);
+            graphics::EffectDraw d = readDraw(ctx, item);
             JS_FreeValue(ctx, item);
-            if (d.shader > 0) list.push_back(std::move(d));
+            if (d.shader > 0) frame.draws.push_back(std::move(d));
         }
     }
-    graphics::submitEffects(std::move(list));
+    if (argc > 1 && JS_IsArray(argv[1])) {
+        const uint32_t length = lengthOf(ctx, argv[1]);
+        for (uint32_t i = 0; i < length; ++i) {
+            JSValue item = JS_GetPropertyUint32(ctx, argv[1], i);
+            graphics::TargetSpec t;
+            t.id = static_cast<int>(number(ctx, item, "id", 0));
+            t.scale = static_cast<float>(number(ctx, item, "scale", 1));
+            JSValue name = JS_GetPropertyStr(ctx, item, "name");
+            const char* text = JS_ToCString(ctx, name);
+            t.name = text ? text : "";
+            JS_FreeCString(ctx, text);
+            JS_FreeValue(ctx, name);
+            JSValue persistent = JS_GetPropertyStr(ctx, item, "persistent");
+            t.persistent = JS_ToBool(ctx, persistent) > 0;
+            JS_FreeValue(ctx, persistent);
+            JS_FreeValue(ctx, item);
+            if (t.id > 0 && t.scale > 0.f && t.scale <= 1.f) frame.targets.push_back(std::move(t));
+        }
+    }
+    if (argc > 2 && JS_IsObject(argv[2])) {
+        JSValue history = JS_GetPropertyStr(ctx, argv[2], "history");
+        frame.history = JS_ToBool(ctx, history) > 0;
+        JS_FreeValue(ctx, history);
+    }
+    graphics::submitEffects(std::move(frame));
     return JS_UNDEFINED;
 }
 
@@ -172,7 +237,7 @@ void installScreenApi(JSContext* ctx, JSValue bl) {
     static const JSCFunctionListEntry fns[] = {
         JS_CFUNC_DEF("shader", 2, screen_shader),
         JS_CFUNC_DEF("shaderStatus", 1, screen_shaderStatus),
-        JS_CFUNC_DEF("submit", 1, screen_submit),
+        JS_CFUNC_DEF("submit", 3, screen_submit),
         JS_CFUNC_DEF("__stats", 0, screen_stats),
         JS_CFUNC_DEF("__trace", 0, screen_trace),
     };

@@ -90,11 +90,12 @@ bool build(Entry& e) {
     CompiledShader& c = e.compiled;
     c.program = program;
     auto loc = [&](const char* name) { return g.GetUniformLocation(program, name); };
-    c.builtin = {loc("uBox"), loc("uScreen"), loc("uView"), loc("uTexSize"), loc("uResolution"), loc("uAspect"),
-                 loc("uTime"), loc("uAge"), loc("uProgress"), loc("uIntensity"), loc("uCenter"), loc("uRadius"),
-                 loc("uColor")};
+    c.builtin = {loc("uBox"), loc("uScreen"), loc("uSource"), loc("uScreenTexel"), loc("uSourceTexel"), loc("uView"),
+                 loc("uResolution"), loc("uAspect"), loc("uTime"), loc("uAge"), loc("uProgress"), loc("uIntensity"),
+                 loc("uCenter"), loc("uRadius"), loc("uColor")};
     g.UseProgram(program);
-    if (c.builtin.screen >= 0) g.Uniform1i(c.builtin.screen, static_cast<GLint>(kEffectTextureUnit - GL_TEXTURE0));
+    if (c.builtin.screen >= 0) g.Uniform1i(c.builtin.screen, static_cast<GLint>(kScreenUnit - GL_TEXTURE0));
+    if (c.builtin.source >= 0) g.Uniform1i(c.builtin.source, static_cast<GLint>(kSourceUnit - GL_TEXTURE0));
 
     std::lock_guard<std::mutex> lock(g_mutex);
     e.state = ShaderState::Ready;

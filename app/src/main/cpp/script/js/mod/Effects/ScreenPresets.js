@@ -4,4 +4,9 @@
 const ScreenPresets = Object.freeze({
     Twirl,
     Shockwave,
+    Blur,
+    Bloom,
+    Echo,
+    BlackHole,
+    HeatHaze,
 });

@@ -10,7 +10,7 @@ class ScreenEffects {
     static Frame = 0;
 
     static #active = [];
-    static #shaders = new Map();   // classe -> ScreenShader
+    static #shaders = new Map();   // classe -> ScreenShader (ou null: só distorce)
     static #submitted = false;
     static #lastTime = 0;
 
@@ -46,7 +46,9 @@ class ScreenEffects {
             if (Object.prototype.hasOwnProperty.call(owner, 'Source')) return ScreenEffects.Register(owner);
         }
 
-        throw new Error(cls.name + ' has no shader: put ' + cls.name + '.frag next to its .js, set `static Source` (GLSL) or Shader in SetDefaults');
+        // Sem shader vale (um efeito que só distorce, como o HeatHaze): o erro
+        // sai no cmd.DrawShader, se ele tentar desenhar.
+        return null;
     }
 
     // center: posição no mundo (copiada), uma entidade (o efeito a segue e
@@ -146,15 +148,28 @@ class ScreenEffects {
         ScreenEffects.Frame++;
         ScreenSpace.BeginFrame(ScreenEffects.Frame);
         const delta = ScreenEffects.#Delta();
-        const draws = [];
-        for (const fx of active) ScreenEffects.#Step(fx, delta, draws);
+        const frame = new ScreenFrame();
+        const distortion = new DistortionMap();
+        let distortionAt = -1;
+        for (const fx of active) {
+            const before = distortion.Count;
+            const at = frame.Draws.length;
+            ScreenEffects.#Step(fx, delta, frame, distortion);
+            if (before === 0 && distortion.Count > 0) distortionAt = at;
+        }
+
+        // A distorção de todos entra na posição do primeiro efeito que
+        // distorceu, antes dos passos dele (o núcleo do buraco negro, por
+        // exemplo, desenha por cima da imagem já puxada).
+        const pass = distortion.Build();
+        if (pass) frame.Draws.splice(distortionAt, 0, pass);
 
         ScreenEffects.#active = active.filter((fx) => fx.Active);
-        bl.screen.submit(draws);
+        frame.Submit();
         ScreenEffects.#submitted = true;
     }
 
-    static #Step(fx, delta, draws) {
+    static #Step(fx, delta, frame, distortion) {
         const name = fx.constructor.name;
         try {
             if (fx.Active && fx.Follow) {
@@ -169,7 +184,13 @@ class ScreenEffects {
                 fx.Update();
                 if (fx.Duration > 0 && fx.Age >= fx.Duration) fx.Kill();
             }
-            if (fx.Active && ScreenEffects.Enabled && fx.ShouldDraw()) fx.Draw(new ScreenCommands(fx, draws));
+            if (fx.Active && ScreenEffects.Enabled && fx.ShouldDraw()) {
+                if (fx.DrawDistortion !== ModScreenEffect.prototype.DrawDistortion) {
+                    distortion.Begin(fx);
+                    fx.DrawDistortion(distortion);
+                }
+                fx.Draw(new ScreenCommands(fx, frame));
+            }
         } catch (e) {
             Safe.Report('screen effect ' + name, e);
             fx.Kill();

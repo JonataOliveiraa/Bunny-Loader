@@ -6,8 +6,8 @@ namespace bl::graphics {
 
 /**
  * Devolve, na saida, o estado da Unity dado pelo espelho (GlShadow.h): sem
- * glGet*, e so o que um efeito muda. O efeito so liga a textura e o sampler
- * na unidade kEffectTextureUnit, que a Unity nao usa: essas nao voltam.
+ * glGet*, e so o que um efeito muda. As texturas e samplers que os efeitos
+ * ligam ficam nas unidades do fim (kScreenUnit...), que a Unity nao usa.
  */
 class GlRestore {
 public:
@@ -42,7 +42,13 @@ private:
     GlShadow s_;
 };
 
-constexpr GLenum kEffectTextureUnit = GL_TEXTURE0 + 15;
+// As unidades de textura dos efeitos, do fim para o comeco (a Unity usa as
+// primeiras): 15 a copia da tela (uScreen), 14 o uSource, 13 a 8 os
+// sampler2D do mod. Nao voltam ao estado da Unity (GlRestore).
+constexpr GLenum kScreenUnit = GL_TEXTURE0 + 15;
+constexpr GLenum kSourceUnit = GL_TEXTURE0 + 14;
+constexpr GLenum kFirstModUnit = GL_TEXTURE0 + 13;
+constexpr int kModUnits = 6;
 
 /**
  * O estado GL que a Unity deixou, perguntado ao driver na entrada e devolvido
