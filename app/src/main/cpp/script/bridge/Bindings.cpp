@@ -17,6 +17,7 @@
 #include "script/api/Files.h"
 #include "script/api/Texture.h"
 #include "script/api/Sounds.h"
+#include "script/api/Screen.h"
 #include "script/api/Console.h"
 #include "script/bridge/Marshal.h"
 #include "script/bridge/Ref.h"
@@ -1870,6 +1871,7 @@ void installBindings(void* context) {
     installFilesApi(ctx, bl);
     installNpcsApi(ctx, bl);
     installSoundsApi(ctx, bl);
+    installScreenApi(ctx, bl);
     installConsoleApi(ctx, global, bl);
     JS_SetPropertyStr(ctx, global, "bl", bl);
 
