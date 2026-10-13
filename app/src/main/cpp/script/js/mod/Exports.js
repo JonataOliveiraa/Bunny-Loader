@@ -12,6 +12,7 @@ Object.assign(globalThis, {
     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
     ModPacket, NetWriter, NetReader,
     SoundStyle, SoundEngine, SoundLimitBehavior, MusicLoader, SceneEffectPriority,
+    ModScreenEffect, ScreenEffects, ScreenPresets, ScreenGraphics, ScreenUtils,
 });
 
 ArmorSetLoader.InstallHairSettings();

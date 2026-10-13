@@ -1,6 +1,6 @@
 #include "graphics/RenderHook.h"
 #include "graphics/GlHooks.h"
-#include "graphics/PocTwirl.h"
+#include "graphics/EffectRenderer.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -8,6 +8,7 @@
 #include "il2cpp/Resolver.h"
 
 #include <chrono>
+#include <deque>
 #include <cstring>
 #include <initializer_list>
 #include <mutex>
@@ -27,8 +28,15 @@ const MethodInfo* g_getClearFlags = nullptr;
 const MethodInfo* g_getDepth = nullptr;
 bool g_camerasLogged = false;
 
-std::mutex g_pocMutex;
-PocParams g_poc;
+// Os efeitos do quadro: o submit da thread do jogo vai para `g_pending`; o
+// FireOnPostRender da camera do mundo os passa para as filas da thread de
+// render (uma lista por marcador emitido, na mesma ordem; outra para o fim do
+// quadro). Sem consumidor (marcador perdido), as filas param em kMaxQueued.
+constexpr size_t kMaxQueued = 4;
+std::mutex g_queueMutex;
+EffectList g_pending;
+bool g_pendingSet = false;
+std::deque<EffectList> g_worldQueue, g_screenQueue;
 
 std::mutex g_statsMutex;
 RenderStats g_stats;
@@ -119,17 +127,14 @@ void setupMarker() {
     Il2CppClass* device = il2cpp::findClass({"Microsoft.Xna.Framework.Graphics", "GraphicsDevice", {}});
     if (!renderTexture || !texture2D || !material || !graphics || !device) return;
 
-    BL_INFO("efeitos de tela: marcador: RenderTexture");
     int32_t w = kMarkerWidth, h = kMarkerHeight, depth = 0;
     void* rtArgs[3] = {&w, &h, &depth};
     Il2CppObject* target = construct(renderTexture, {"System.Int32", "System.Int32", "System.Int32"}, rtArgs);
-    BL_INFO("efeitos de tela: marcador: textura branca");
 
     Il2CppObject* exc = nullptr;
     const MethodInfo* white = a.class_get_method_from_name(texture2D, "get_whiteTexture", 0);
     Il2CppObject* source = white ? a.runtime_invoke(white, nullptr, nullptr, &exc) : nullptr;
 
-    BL_INFO("efeitos de tela: marcador: material do jogo");
     Il2CppObject* instance = nullptr;
     FieldInfo* instanceField = il2cpp::findField(device, "Instance");
     if (instanceField) a.field_static_get_value(instanceField, &instance);
@@ -138,7 +143,6 @@ void setupMarker() {
     void* matArgs[1] = {&offset};
     exc = nullptr;
     Il2CppObject* gameMaterial = instance && getMaterial ? a.runtime_invoke(getMaterial, instance, matArgs, &exc) : nullptr;
-    BL_INFO("efeitos de tela: marcador: copia do material");
     void* copyArgs[1] = {gameMaterial};
     Il2CppObject* copy = gameMaterial && !exc ? construct(material, {"UnityEngine.Material"}, copyArgs) : nullptr;
 
@@ -174,6 +178,26 @@ bool issueMarker() {
     return false;
 }
 
+void push(std::deque<EffectList>& queue, EffectList&& list) {
+    if (queue.size() >= kMaxQueued) queue.pop_front();
+    queue.push_back(std::move(list));
+}
+
+// O que o submit deixou para este quadro, separado por camada. Consumido: sem
+// submit no proximo quadro, nada desenha.
+void splitPending(EffectList& world, EffectList& screen) {
+    EffectList pending;
+    {
+        std::lock_guard<std::mutex> lock(g_queueMutex);
+        if (!g_pendingSet) return;
+        pending.swap(g_pending);
+        g_pendingSet = false;
+    }
+    for (EffectDraw& e : pending) {
+        (e.layer == EffectLayer::Screen ? screen : world).push_back(std::move(e));
+    }
+}
+
 void hkFireOnPostRender(Il2CppObject* camera, const MethodInfo* method) {
     g_origFire(camera, method);
 
@@ -188,11 +212,23 @@ void hkFireOnPostRender(Il2CppObject* camera, const MethodInfo* method) {
 
     bool issued = false;
     int64_t markerNs = 0;
-    if (camera == world && g_marker.ready && pocParams().enabled) {
-        const auto started = std::chrono::steady_clock::now();
-        issued = issueMarker();
-        markerNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now() - started).count();
+    if (camera == world) {
+        EffectList worldList, screenList;
+        splitPending(worldList, screenList);
+        if (!worldList.empty() && g_marker.ready) {
+            const auto started = std::chrono::steady_clock::now();
+            issued = issueMarker();
+            markerNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now() - started).count();
+        }
+        // Sem marcador, os do mundo vao no fim do quadro (por cima da interface).
+        if (!issued) {
+            for (EffectDraw& e : worldList) screenList.push_back(std::move(e));
+            worldList.clear();
+        }
+        std::lock_guard<std::mutex> lock(g_queueMutex);
+        if (issued) push(g_worldQueue, std::move(worldList));
+        if (!screenList.empty()) push(g_screenQueue, std::move(screenList));
     }
 
     std::lock_guard<std::mutex> lock(g_statsMutex);
@@ -250,20 +286,30 @@ void noteMarkerHit() {
     g_stats.markerHits++;
 }
 
-void noteSwapDraw() {
-    std::lock_guard<std::mutex> lock(g_statsMutex);
-    g_stats.swapDraws++;
+void submitEffects(EffectList&& effects) {
+    // O marcador e montado na thread do jogo, fora do desenho das cameras.
+    if (!effects.empty() && !g_marker.tried) setupMarker();
+    std::lock_guard<std::mutex> lock(g_queueMutex);
+    g_pending = std::move(effects);
+    g_pendingSet = true;
 }
 
-void setPoc(const PocParams& params) {
-    if (params.enabled && !g_marker.tried) setupMarker();
-    std::lock_guard<std::mutex> lock(g_pocMutex);
-    g_poc = params;
+bool takeWorldEffects(EffectList& out) {
+    std::lock_guard<std::mutex> lock(g_queueMutex);
+    if (g_worldQueue.empty()) return false;
+    out = std::move(g_worldQueue.front());
+    g_worldQueue.pop_front();
+    return true;
 }
 
-PocParams pocParams() {
-    std::lock_guard<std::mutex> lock(g_pocMutex);
-    return g_poc;
+bool takeScreenEffects(EffectList& out) {
+    std::lock_guard<std::mutex> lock(g_queueMutex);
+    if (g_screenQueue.empty()) return false;
+    out = std::move(g_screenQueue.front());
+    g_screenQueue.pop_front();
+    std::lock_guard<std::mutex> statsLock(g_statsMutex);
+    g_stats.screenFrames++;
+    return true;
 }
 
 RenderStats renderStats() {
@@ -272,7 +318,7 @@ RenderStats renderStats() {
         std::lock_guard<std::mutex> lock(g_statsMutex);
         copy = g_stats;
     }
-    PocTwirl::FillStats(copy);
+    EffectRenderer::FillStats(copy);
     fillGlHookStats(copy);
     return copy;
 }

@@ -1,0 +1,13 @@
+{
+  "uid": "fdb58da8-9285-4e69-9a3a-2a0de25efa83",
+  "id": "test-fxzoom",
+  "name": "Teste: efeitos de tela com zoom",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Aplica quatro níveis de zoom do celular (GUIZoom.ApplyPixelZoom) e põe o redemoinho da prova de conceito no jogador com raio em pixels do MUNDO (3 blocos), para conferir que posição e tamanho acompanham o zoom.",
+  "description": "Loga 'fxzoom ...' com a tela virtual, o zoom da câmera e o GameViewMatrix.Zoom de cada nível; 'fxzoom SHOT n' marca o print. O anel deve envolver sempre a mesma área do mundo em volta do jogador. Volta o zoom ao padrão no fim.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

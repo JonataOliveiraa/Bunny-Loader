@@ -1,0 +1,13 @@
+{
+  "uid": "b87107fa-1d0e-4a82-879c-3baccc308b6d",
+  "id": "test-screeneffects",
+  "name": "Teste: API dos efeitos de tela",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Exercita ModScreenEffect, ScreenEffects, ScreenPresets, ScreenGraphics e ScreenUtils: pronto seguindo o jogador, efeito com .frag próprio em Content/ (com #include), subclasse de pronto, Shockwave com duração, Key, zoom, camada Screen e shader quebrado.",
+  "description": "Loga 'screeneffects ...'. Prints em 'SHOT a' (redemoinho no jogador), 'SHOT b' (Rift acima, VoidTwirl à direita, onda de choque), 'SHOT c1'/'SHOT c2' (zoom mínimo/máximo: o anel acompanha o mundo), 'SHOT d' (camada Screen por cima da barra de itens). No fim abre o painel de erro de propósito (shader quebrado).",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

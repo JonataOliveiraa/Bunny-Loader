@@ -17,7 +17,7 @@ namespace bl::graphics {
     X(EnableVertexAttribArray) X(CreateShader) X(ShaderSource) X(CompileShader) \
     X(GetShaderiv) X(GetShaderInfoLog) X(DeleteShader) X(CreateProgram) \
     X(AttachShader) X(LinkProgram) X(GetProgramiv) X(GetProgramInfoLog) \
-    X(GetUniformLocation) X(Uniform1i) X(Uniform1f) X(Uniform2f) X(Uniform4f) \
+    X(GetUniformLocation) X(Uniform1i) X(Uniform1f) X(Uniform2f) X(Uniform3f) X(Uniform4f) \
     X(DrawArrays) X(DrawElements) X(Clear) X(GenSamplers) X(SamplerParameteri)
 
 struct GlApi {

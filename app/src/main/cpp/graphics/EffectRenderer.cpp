@@ -1,7 +1,8 @@
-#include "graphics/PocTwirl.h"
+#include "graphics/EffectRenderer.h"
 #include "graphics/GlApi.h"
 #include "graphics/GlState.h"
 #include "graphics/GpuTimer.h"
+#include "graphics/ShaderRegistry.h"
 #include "core/Log.h"
 
 #include <algorithm>
@@ -13,55 +14,10 @@ namespace bl::graphics {
 
 namespace {
 
-const char* kVertex = R"(#version 300 es
-layout(location = 0) in vec2 aPos;
-void main() {
-    gl_Position = vec4(aPos, 0.0, 1.0);
-}
-)";
-
-// O quad cobre so a caixa do efeito (o viewport e ela); a posicao na tela vem
-// do gl_FragCoord. uView: origem e tamanho do viewport da camera em pixels;
-// uTexSize: a copia, que comeca no pixel (0,0) do framebuffer.
-const char* kFragment = R"(#version 300 es
-precision highp float;
-out vec4 outColor;
-uniform sampler2D uScreen;
-uniform vec4 uView;
-uniform vec2 uTexSize;
-uniform vec2 uCenter;
-uniform float uRadius;
-uniform float uStrength;
-uniform float uTime;
-
-vec4 screenAt(vec2 uv) {
-    return texture(uScreen, (uView.xy + uv * uView.zw) / uTexSize);
-}
-
-void main() {
-    vec2 uv = (gl_FragCoord.xy - uView.xy) / uView.zw;
-    float aspect = uView.z / uView.w;
-    vec2 d = uv - uCenter;
-    d.x *= aspect;
-    float r = length(d);
-    if (r > uRadius) discard;
-
-    float f = 1.0 - smoothstep(0.0, uRadius, r);
-    float a = (uStrength + uTime * 0.8) * f * f;
-    vec2 rd = mat2(cos(a), sin(a), -sin(a), cos(a)) * d;
-    rd.x /= aspect;
-    vec4 c = screenAt(uCenter + rd);
-    // Anel fino na borda: deixa a area do efeito visivel no print da prova.
-    float ring = smoothstep(uRadius * 0.97, uRadius, r);
-    outColor = vec4(mix(c.rgb, vec3(1.0, 0.3, 0.9), ring * 0.8), 1.0);
-}
-)";
-
 struct Resources {
     bool tried = false, ok = false;
-    GLuint program = 0, vao = 0, vbo = 0, fbo = 0, texture = 0, sampler = 0;
+    GLuint vao = 0, vbo = 0, fbo = 0, texture = 0, sampler = 0;
     GLint texW = 0, texH = 0;
-    GLint uScreen = -1, uView = -1, uTexSize = -1, uCenter = -1, uRadius = -1, uStrength = -1, uTime = -1;
 };
 
 Resources g_res;
@@ -73,55 +29,11 @@ bool g_loggedFirst = false;
 int g_errorChecks = 30;
 bool g_useCopy = false;   // o blit falhou aqui: copia simples
 
-GLuint compile(GLenum type, const char* src) {
-    auto& g = gl();
-    GLuint s = g.CreateShader(type);
-    g.ShaderSource(s, 1, &src, nullptr);
-    g.CompileShader(s);
-    GLint ok = 0;
-    g.GetShaderiv(s, GL_COMPILE_STATUS, &ok);
-    if (!ok) {
-        char log[512] = {0};
-        g.GetShaderInfoLog(s, sizeof log - 1, nullptr, log);
-        BL_ERROR("efeitos de tela: shader nao compilou: %s", log);
-        g.DeleteShader(s);
-        return 0;
-    }
-    return s;
-}
-
 bool init() {
     if (g_res.tried) return g_res.ok;
     g_res.tried = true;
     auto& g = gl();
     GlStateGuard saved;
-
-    GLuint vs = compile(GL_VERTEX_SHADER, kVertex);
-    GLuint fs = compile(GL_FRAGMENT_SHADER, kFragment);
-    if (!vs || !fs) return false;
-    g_res.program = g.CreateProgram();
-    g.AttachShader(g_res.program, vs);
-    g.AttachShader(g_res.program, fs);
-    g.LinkProgram(g_res.program);
-    g.DeleteShader(vs);
-    g.DeleteShader(fs);
-    GLint linked = 0;
-    g.GetProgramiv(g_res.program, GL_LINK_STATUS, &linked);
-    if (!linked) {
-        char log[512] = {0};
-        g.GetProgramInfoLog(g_res.program, sizeof log - 1, nullptr, log);
-        BL_ERROR("efeitos de tela: programa nao ligou: %s", log);
-        return false;
-    }
-    g_res.uScreen = g.GetUniformLocation(g_res.program, "uScreen");
-    g_res.uView = g.GetUniformLocation(g_res.program, "uView");
-    g_res.uTexSize = g.GetUniformLocation(g_res.program, "uTexSize");
-    g_res.uCenter = g.GetUniformLocation(g_res.program, "uCenter");
-    g_res.uRadius = g.GetUniformLocation(g_res.program, "uRadius");
-    g_res.uStrength = g.GetUniformLocation(g_res.program, "uStrength");
-    g_res.uTime = g.GetUniformLocation(g_res.program, "uTime");
-    g.UseProgram(g_res.program);
-    g.Uniform1i(g_res.uScreen, static_cast<GLint>(kEffectTextureUnit - GL_TEXTURE0));
 
     static const float quad[8] = {-1.f, -1.f, 1.f, -1.f, -1.f, 1.f, 1.f, 1.f};
     g.GenVertexArrays(1, &g_res.vao);
@@ -187,17 +99,15 @@ struct Box {
     GLint x = 0, y = 0, w = 0, h = 0;
 };
 
-// A caixa do efeito em pixels do framebuffer, presa ao viewport, com 2 px de
-// folga para o filtro linear. O redemoinho so amostra dentro do proprio
-// circulo, entao a copia nao precisa de mais que isso.
-Box effectBox(const PocParams& p, const DrawTarget& t) {
-    const float r = p.radius * static_cast<float>(t.viewport[3]);
-    const float cx = static_cast<float>(t.viewport[0]) + p.u * static_cast<float>(t.viewport[2]);
-    const float cy = static_cast<float>(t.viewport[1]) + p.v * static_cast<float>(t.viewport[3]);
-    const GLint x0 = std::max(t.viewport[0], static_cast<GLint>(std::floor(cx - r)) - 2);
-    const GLint y0 = std::max(t.viewport[1], static_cast<GLint>(std::floor(cy - r)) - 2);
-    const GLint x1 = std::min(t.viewport[0] + t.viewport[2], static_cast<GLint>(std::ceil(cx + r)) + 2);
-    const GLint y1 = std::min(t.viewport[1] + t.viewport[3], static_cast<GLint>(std::ceil(cy + r)) + 2);
+// A caixa do efeito (fracao do viewport) em pixels do framebuffer, presa ao
+// viewport, com 2 px de folga para o filtro linear.
+Box pixelBox(const EffectDraw& e, const DrawTarget& t) {
+    const float vx = static_cast<float>(t.viewport[0]), vy = static_cast<float>(t.viewport[1]);
+    const float vw = static_cast<float>(t.viewport[2]), vh = static_cast<float>(t.viewport[3]);
+    const GLint x0 = std::max(t.viewport[0], static_cast<GLint>(std::floor(vx + e.box[0] * vw)) - 2);
+    const GLint y0 = std::max(t.viewport[1], static_cast<GLint>(std::floor(vy + e.box[1] * vh)) - 2);
+    const GLint x1 = std::min(t.viewport[0] + t.viewport[2], static_cast<GLint>(std::ceil(vx + e.box[2] * vw)) + 2);
+    const GLint y1 = std::min(t.viewport[1] + t.viewport[3], static_cast<GLint>(std::ceil(vy + e.box[3] * vh)) + 2);
     return {x0, y0, std::max(0, x1 - x0), std::max(0, y1 - y0)};
 }
 
@@ -238,11 +148,65 @@ float seconds() {
     return duration<float>(steady_clock::now() - start).count();
 }
 
+void setUniform(GLint loc, const UniformValue& u) {
+    if (loc < 0) return;
+    auto& g = gl();
+    switch (u.count) {
+        case 1: g.Uniform1f(loc, u.v[0]); break;
+        case 2: g.Uniform2f(loc, u.v[0], u.v[1]); break;
+        case 3: g.Uniform3f(loc, u.v[0], u.v[1], u.v[2]); break;
+        default: g.Uniform4f(loc, u.v[0], u.v[1], u.v[2], u.v[3]); break;
+    }
+}
+
+// Um efeito: copia a caixa e redesenha com o shader dele.
+bool drawOne(const EffectDraw& e, const DrawTarget& t, float now) {
+    auto& g = gl();
+    CompiledShader* shader = ShaderRegistry::Use(e.shader);
+    if (!shader) return false;
+    const Box box = pixelBox(e, t);
+    if (box.w <= 0 || box.h <= 0 || !capture(t, box)) return false;
+
+    g.BindFramebuffer(GL_FRAMEBUFFER, t.fbo);
+    g.Viewport(box.x, box.y, box.w, box.h);
+    g.UseProgram(shader->program);
+    g.ActiveTexture(kEffectTextureUnit);
+    g.BindTexture(GL_TEXTURE_2D, g_res.texture);
+    g.BindSampler(kEffectTextureUnit - GL_TEXTURE0, g_res.sampler);
+
+    const float vx = static_cast<float>(t.viewport[0]), vy = static_cast<float>(t.viewport[1]);
+    const float vw = static_cast<float>(t.viewport[2]), vh = static_cast<float>(t.viewport[3]);
+    const BuiltinUniforms& b = shader->builtin;
+    // uBox em fracao do viewport, recalculada dos pixels: o vUV bate com o fragmento.
+    if (b.box >= 0) {
+        g.Uniform4f(b.box, (box.x - vx) / vw, (box.y - vy) / vh, (box.x + box.w - vx) / vw, (box.y + box.h - vy) / vh);
+    }
+    if (b.view >= 0) g.Uniform4f(b.view, vx, vy, vw, vh);
+    if (b.texSize >= 0) g.Uniform2f(b.texSize, static_cast<float>(g_res.texW), static_cast<float>(g_res.texH));
+    if (b.resolution >= 0) g.Uniform2f(b.resolution, vw, vh);
+    if (b.aspect >= 0) g.Uniform1f(b.aspect, vw / vh);
+    if (b.time >= 0) g.Uniform1f(b.time, now);
+    if (b.age >= 0) g.Uniform1f(b.age, e.age);
+    if (b.progress >= 0) g.Uniform1f(b.progress, e.progress);
+    if (b.intensity >= 0) g.Uniform1f(b.intensity, e.intensity);
+    if (b.center >= 0) g.Uniform2f(b.center, e.center[0], e.center[1]);
+    if (b.radius >= 0) g.Uniform1f(b.radius, e.radius);
+    if (b.color >= 0) g.Uniform4f(b.color, e.color[0], e.color[1], e.color[2], e.color[3]);
+    for (const UniformValue& u : e.uniforms) setUniform(ShaderRegistry::Uniform(*shader, u.name), u);
+
+    g.BindVertexArray(g_res.vao);
+    g.DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+    std::lock_guard<std::mutex> lock(g_statsMutex);
+    g_local.boxPixels += static_cast<int64_t>(box.w) * box.h;
+    return true;
+}
+
 } // namespace
 
-void PocTwirl::Draw(const PocParams& params, const DrawTarget& target, const GlShadow& state) {
+void EffectRenderer::Execute(const EffectList& effects, const DrawTarget& target, const GlShadow& state) {
     auto& g = gl();
-    if (!g.load()) return;
+    if (effects.empty() || !g.load()) return;
     const bool context = g.eglGetCurrentContext() != nullptr;
     {
         std::lock_guard<std::mutex> lock(g_statsMutex);
@@ -252,22 +216,14 @@ void PocTwirl::Draw(const PocParams& params, const DrawTarget& target, const GlS
         for (int i = 0; i < 4; ++i) g_local.viewport[i] = target.viewport[i];
     }
     if (!context || target.viewport[2] <= 0 || target.viewport[3] <= 0) return;
-    const Box box = effectBox(params, target);
-    if (box.w <= 0 || box.h <= 0) return;
     logFirst(target);
     if (!init()) return;
 
     const auto started = std::chrono::steady_clock::now();
+    const float now = seconds();
     GlRestore restore(state);
     GpuTimer::Begin(GpuChannel::Effect);
     if (state.scissor) g.Disable(GL_SCISSOR_TEST);
-    if (!capture(target, box)) {
-        GpuTimer::End(GpuChannel::Effect);
-        return;
-    }
-
-    g.BindFramebuffer(GL_FRAMEBUFFER, target.fbo);
-    g.Viewport(box.x, box.y, box.w, box.h);
     if (state.blend) g.Disable(GL_BLEND);
     if (state.depth) g.Disable(GL_DEPTH_TEST);
     if (state.stencil) g.Disable(GL_STENCIL_TEST);
@@ -276,32 +232,22 @@ void PocTwirl::Draw(const PocParams& params, const DrawTarget& target, const GlS
         g.ColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     }
 
-    g.UseProgram(g_res.program);
-    g.ActiveTexture(kEffectTextureUnit);
-    g.BindTexture(GL_TEXTURE_2D, g_res.texture);
-    g.BindSampler(kEffectTextureUnit - GL_TEXTURE0, g_res.sampler);
-    g.Uniform4f(g_res.uView, static_cast<float>(target.viewport[0]), static_cast<float>(target.viewport[1]),
-                static_cast<float>(target.viewport[2]), static_cast<float>(target.viewport[3]));
-    g.Uniform2f(g_res.uTexSize, static_cast<float>(g_res.texW), static_cast<float>(g_res.texH));
-    g.Uniform2f(g_res.uCenter, params.u, params.v);
-    g.Uniform1f(g_res.uRadius, params.radius);
-    g.Uniform1f(g_res.uStrength, params.strength);
-    g.Uniform1f(g_res.uTime, seconds());
-    g.BindVertexArray(g_res.vao);
-    g.DrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    int drawn = 0;
+    for (const EffectDraw& e : effects) drawn += drawOne(e, target, now) ? 1 : 0;
     GpuTimer::End(GpuChannel::Effect);
 
     const auto cpuNs = std::chrono::duration_cast<std::chrono::nanoseconds>(
         std::chrono::steady_clock::now() - started).count();
     std::lock_guard<std::mutex> lock(g_statsMutex);
-    g_local.draws++;
+    g_local.draws += drawn;
+    g_local.frames++;
     g_local.renderCpuNs += cpuNs;
-    g_local.boxPixels += static_cast<int64_t>(box.w) * box.h;
 }
 
-void PocTwirl::FillStats(RenderStats& stats) {
+void EffectRenderer::FillStats(RenderStats& stats) {
     std::lock_guard<std::mutex> lock(g_statsMutex);
     stats.draws = g_local.draws;
+    stats.frames = g_local.frames;
     stats.drawFbo = g_local.drawFbo;
     stats.readFbo = g_local.readFbo;
     for (int i = 0; i < 4; ++i) stats.viewport[i] = g_local.viewport[i];

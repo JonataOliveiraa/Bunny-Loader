@@ -1,4 +1,5 @@
 #pragma once
+#include "graphics/EffectTypes.h"
 #include <cstdint>
 
 namespace bl::graphics {
@@ -11,7 +12,7 @@ namespace bl::graphics {
  * hook em Camera.FireOnPostRender ve cada uma terminar, na thread do jogo. O
  * GL roda em outra thread (UnityGfxDeviceW, render multithread) e esta
  * libunity nao tem GL.IssuePluginEvent: o desenho vai pelos hooks GL
- * (graphics/GlHooks.h).
+ * (graphics/GlHooks.h), achado por um marcador.
  */
 void installRenderHook();
 
@@ -21,25 +22,19 @@ void installRenderHook();
 constexpr int kMarkerWidth = 17;
 constexpr int kMarkerHeight = 3;
 
-// Contadores da thread de render (GlHooks.cpp).
+// Thread do jogo, a cada quadro (bl.screen.submit): os efeitos do quadro que
+// vai ser desenhado. Sem submit no quadro, nada desenha.
+void submitEffects(EffectList&& effects);
+
+// Thread de render (GlHooks.cpp): a lista do marcador (depois do mundo) e a
+// do fim do quadro (por cima da interface). false se nao ha.
+bool takeWorldEffects(EffectList& out);
+bool takeScreenEffects(EffectList& out);
 void noteMarkerHit();
-void noteSwapDraw();
-
-// ---- prova de conceito (tools/tests/fxpoc) ----
-
-struct PocParams {
-    bool enabled = false;
-    float u = 0.5f, v = 0.5f;      // centro, em fracao do viewport (v de baixo para cima)
-    float radius = 0.2f;           // em fracao da altura do viewport
-    float strength = 3.0f;         // giro no centro, em radianos
-};
-
-void setPoc(const PocParams& params);
-PocParams pocParams();
 
 struct RenderStats {
     int64_t worldPostRender = 0, uiPostRender = 0, otherPostRender = 0;
-    int64_t draws = 0, markersIssued = 0, markerHits = 0, swapDraws = 0;
+    int64_t draws = 0, frames = 0, markersIssued = 0, markerHits = 0, screenFrames = 0;
     int64_t renderCpuNs = 0, markerCpuNs = 0, gpuNs = 0, gpuSamples = 0;   // somas desde o boot
     int64_t gpuFrameNs = 0, gpuFrameSamples = 0;                           // quadro inteiro, alternados
     int64_t shadowChecks = 0, shadowMismatches = 0;                        // espelho do estado GL

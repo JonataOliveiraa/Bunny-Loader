@@ -2,7 +2,7 @@
 #include "graphics/GlApi.h"
 #include "graphics/GlShadow.h"
 #include "graphics/GpuTimer.h"
-#include "graphics/PocTwirl.h"
+#include "graphics/EffectRenderer.h"
 #include "graphics/RenderHook.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -72,7 +72,6 @@ bool tracked() {
 // o do desenho anterior.
 GlShadow g_shadow;
 DrawTarget g_lastDraw;
-bool g_markerSeenThisFrame = false;
 bool g_synced = false;
 bool g_trustShadow = true;
 std::atomic<int64_t> g_shadowChecks{0};
@@ -145,13 +144,12 @@ void logTrace() {
 // da interface ainda nao comecou.
 void onMarker() {
     traceEvent("MARCADOR");
-    g_markerSeenThisFrame = true;
     noteMarkerHit();
-    const PocParams params = pocParams();
-    if (!params.enabled || g_lastDraw.viewport[2] <= 0) return;
+    EffectList effects;
+    if (!takeWorldEffects(effects) || g_lastDraw.viewport[2] <= 0) return;
     const GlShadow state = unityState();
     t_inside = true;
-    PocTwirl::Draw(params, g_lastDraw, state);
+    EffectRenderer::Execute(effects, g_lastDraw, state);
     t_inside = false;
 }
 
@@ -271,20 +269,18 @@ EGLBoolean hkSwap(EGLDisplay display, EGLSurface surface) {
         g_trace = "SWAP";
     }
 
-    // Sem o marcador (o blit nao foi montado), o efeito vai no fim do quadro,
-    // por cima da interface tambem.
-    const PocParams params = pocParams();
-    if (params.enabled && !g_markerSeenThisFrame) {
+    // A camada Screen (e os do mundo, quando nao ha marcador): no fim do
+    // quadro, por cima da interface.
+    EffectList effects;
+    if (takeScreenEffects(effects)) {
         const GlShadow state = unityState();
         DrawTarget target;
         target.fbo = static_cast<int>(state.drawFbo);
         for (int i = 0; i < 4; ++i) target.viewport[i] = state.viewport[i];
         t_inside = true;
-        PocTwirl::Draw(params, target, state);
+        EffectRenderer::Execute(effects, target, state);
         t_inside = false;
-        noteSwapDraw();
     }
-    g_markerSeenThisFrame = false;
 
     // O quadro inteiro na GPU, de um swap ao outro, em quadros alternados (os
     // outros medem o efeito sozinho; consultas de tempo nao se aninham).

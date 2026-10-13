@@ -87,6 +87,9 @@ set(BL_MOD_CLASSES_PARTS
     NetWriter NetReader ModPacket Core/ModNet
     Loaders/SoundLoader SoundStyle SoundEngine Loaders/VanillaMusic Loaders/ModMusic MusicLoader
     Loaders/MenuLoader ModMenu Loaders/ConfigLoader ModConfig Loaders/ModConfigMenu Loaders/MenuThemeSetting Loaders/HostSettingsMenu Loaders/ServerSyncLoader Loaders/ServerSyncMenu
+    Effects/ScreenSpace Effects/Easing Effects/ScreenShader Effects/ScreenGraphics Effects/ScreenUtils
+    Effects/ScreenCommands Effects/ScreenEffects Effects/ModScreenEffect
+    Effects/Presets/Twirl Effects/Presets/Shockwave Effects/ScreenPresets
     Core/ContentLookup ModContent Core/ContentAutoload
     Exports)
 set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")
