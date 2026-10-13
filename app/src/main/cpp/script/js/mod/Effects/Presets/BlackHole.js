@@ -1,6 +1,6 @@
 // Buraco negro: o mapa de distorção puxa a imagem para o centro e a gira; por
 // cima, um núcleo escuro com um anel de luz (na cor do efeito).
-//   ScreenPresets.BlackHole.Spawn(projectile, { radius: 140, color: new Color(255, 160, 60) });
+//   ScreenPresets.BlackHole.Spawn(projectile, { radius: 140, color: Color.new(255, 160, 60) });
 class BlackHole extends ModScreenEffect {
     static Source = `
 #include <bl/screen>

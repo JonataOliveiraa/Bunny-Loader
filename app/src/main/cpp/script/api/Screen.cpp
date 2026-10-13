@@ -4,6 +4,8 @@
 #include "graphics/GlHooks.h"
 #include "graphics/RenderHook.h"
 #include "graphics/ShaderRegistry.h"
+#include "graphics/TextureRegistry.h"
+#include "script/api/Texture.h"
 
 namespace bl::script {
 
@@ -190,6 +192,37 @@ JSValue screen_submit(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv
     return JS_UNDEFINED;
 }
 
+// bl.screen.texture(caminho, linear, repetir) -> { id, width, height } ou null.
+// Caminho relativo a pasta do mod de quem chama, como o bl.loadTexture.
+JSValue screen_texture(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsString(argv[0])) return JS_ThrowTypeError(ctx, "bl.screen.texture(path, linear, repeat)");
+    const char* text = JS_ToCString(ctx, argv[0]);
+    const std::string path = resolveModPath(ctx, text ? text : "");
+    JS_FreeCString(ctx, text);
+    const bool linear = argc < 2 || JS_ToBool(ctx, argv[1]) > 0;
+    const bool repeat = argc > 2 && JS_ToBool(ctx, argv[2]) > 0;
+    int width = 0, height = 0;
+    const int id = graphics::TextureRegistry::Load(path, linear, repeat, &width, &height);
+    if (id == 0) return JS_NULL;
+    JSValue o = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, o, "id", JS_NewInt32(ctx, id));
+    JS_SetPropertyStr(ctx, o, "width", JS_NewInt32(ctx, width));
+    JS_SetPropertyStr(ctx, o, "height", JS_NewInt32(ctx, height));
+    return o;
+}
+
+// bl.screen.saveNeutralLut(caminho, tamanho) -> bool: a LUT neutra em tira
+// (tamanho^2 x tamanho) para o modder editar.
+JSValue screen_saveNeutralLut(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsString(argv[0])) return JS_ThrowTypeError(ctx, "bl.screen.saveNeutralLut(path, size)");
+    const char* text = JS_ToCString(ctx, argv[0]);
+    const std::string path = resolveModPath(ctx, text ? text : "");
+    JS_FreeCString(ctx, text);
+    int32_t size = 16;
+    if (argc > 1) JS_ToInt32(ctx, &size, argv[1]);
+    return JS_NewBool(ctx, graphics::TextureRegistry::SaveNeutralLut(path, size));
+}
+
 JSValue screen_stats(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     const graphics::RenderStats s = graphics::renderStats();
     JSValue o = JS_NewObject(ctx);
@@ -238,6 +271,8 @@ void installScreenApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("shader", 2, screen_shader),
         JS_CFUNC_DEF("shaderStatus", 1, screen_shaderStatus),
         JS_CFUNC_DEF("submit", 3, screen_submit),
+        JS_CFUNC_DEF("texture", 3, screen_texture),
+        JS_CFUNC_DEF("saveNeutralLut", 2, screen_saveNeutralLut),
         JS_CFUNC_DEF("__stats", 0, screen_stats),
         JS_CFUNC_DEF("__trace", 0, screen_trace),
     };

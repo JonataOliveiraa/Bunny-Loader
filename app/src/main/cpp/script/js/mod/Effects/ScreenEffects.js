@@ -77,7 +77,7 @@ class ScreenEffects {
 
         ScreenEffects.#active.push(fx);
         ScreenEffects.#active.sort((a, b) => a.Order - b.Order);
-        ScreenEffects.#Install();
+        ScreenEffects.Install();
         return fx;
     }
 
@@ -117,7 +117,8 @@ class ScreenEffects {
         }
     }
 
-    static #Install() {
+    // O hook do quadro (no primeiro Spawn ou Tween).
+    static Install() {
         Hooks.Once('screen.effects', () => {
             Terraria.Main['void DoDraw(GameTime gameTime)'].hook((original, self, gameTime) => {
                 original(self, gameTime);
@@ -137,17 +138,25 @@ class ScreenEffects {
     }
 
     static #Tick() {
-        const active = ScreenEffects.#active;
-        if (active.length === 0) {
+        if (ScreenEffects.#active.length === 0 && ScreenTween.Count === 0) {
             if (ScreenEffects.#submitted) bl.screen.submit([]);
             ScreenEffects.#submitted = false;
             ScreenEffects.#lastTime = 0;
             return;
         }
 
+        const delta = ScreenEffects.#Delta();
         ScreenEffects.Frame++;
         ScreenSpace.BeginFrame(ScreenEffects.Frame);
-        const delta = ScreenEffects.#Delta();
+        ScreenTween.Update(delta);
+
+        const active = ScreenEffects.#active;
+        if (active.length === 0) {
+            if (ScreenEffects.#submitted) bl.screen.submit([]);
+            ScreenEffects.#submitted = false;
+            return;
+        }
+
         const frame = new ScreenFrame();
         const distortion = new DistortionMap();
         let distortionAt = -1;

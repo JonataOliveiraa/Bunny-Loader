@@ -3,6 +3,7 @@
 #include "graphics/GlState.h"
 #include "graphics/GpuTimer.h"
 #include "graphics/ShaderRegistry.h"
+#include "graphics/TextureRegistry.h"
 #include "core/Log.h"
 
 #include <algorithm>
@@ -217,15 +218,15 @@ public:
         }
         g.UseProgram(shader->program);
 
-        bind(kScreenUnit, &g_res.copy);
-        const Surface* source = surface(e.source);
+        bind(kScreenUnit, texture(kTexScreen));
+        const Bound source = texture(e.source);
         bind(kSourceUnit, source);
         int unit = 0;
         for (const TextureBinding& tb : e.textures) {
             const GLint loc = ShaderRegistry::Uniform(*shader, tb.name);
             if (loc < 0 || unit >= kModUnits) continue;
             const GLenum glUnit = kFirstModUnit - unit++;
-            bind(glUnit, surface(tb.texture));
+            bind(glUnit, texture(tb.texture));
             g.Uniform1i(loc, static_cast<GLint>(glUnit - GL_TEXTURE0));
         }
 
@@ -237,7 +238,7 @@ public:
             g.Uniform4f(b.box, box.x / fw, box.y / fh, (box.x + box.w) / fw, (box.y + box.h) / fh);
         }
         if (b.screenTexel >= 0) g.Uniform2f(b.screenTexel, 1.f / vw, 1.f / vh);
-        if (b.sourceTexel >= 0 && source) g.Uniform2f(b.sourceTexel, 1.f / source->w, 1.f / source->h);
+        if (b.sourceTexel >= 0 && source.texture) g.Uniform2f(b.sourceTexel, 1.f / source.w, 1.f / source.h);
         if (b.view >= 0) g.Uniform4f(b.view, static_cast<float>(t_.viewport[0]), static_cast<float>(t_.viewport[1]), vw, vh);
         if (b.resolution >= 0) g.Uniform2f(b.resolution, vw, vh);
         if (b.aspect >= 0) g.Uniform1f(b.aspect, vw / vh);
@@ -272,13 +273,23 @@ private:
         return it == byId_.end() ? nullptr : it->second;
     }
 
-    // A textura de um kTex* ou alvo; o quadro anterior que ainda nao existe
-    // vira a copia da tela.
-    Surface* surface(int texture) {
-        if (texture == kTexScreen) return &g_res.copy;
-        if (texture == kTexHistory) return g_res.historyValid ? &g_res.history : &g_res.copy;
-        if (texture > 0) return find(texture);
-        return nullptr;
+    struct Bound {
+        GLuint texture = 0, sampler = 0;
+        GLint w = 1, h = 1;
+    };
+
+    // A textura de um kTex*, alvo ou textura do mod; o quadro anterior que
+    // ainda nao existe vira a copia da tela.
+    Bound texture(int id) {
+        const Surface* s = nullptr;
+        if (id == kTexScreen) s = &g_res.copy;
+        else if (id == kTexHistory) s = g_res.historyValid ? &g_res.history : &g_res.copy;
+        else if (id > 0) s = find(id);
+        else if (id <= kFirstModTexture) {
+            const LoadedTexture* t = TextureRegistry::Use(id);
+            return t ? Bound{t->texture, t->sampler, t->width, t->height} : Bound{};
+        }
+        return s ? Bound{s->texture, g_res.sampler, s->w, s->h} : Bound{};
     }
 
     static bool readsTexture(const EffectDraw& e, int texture) {
@@ -300,12 +311,12 @@ private:
         return true;
     }
 
-    void bind(GLenum unit, const Surface* s) {
-        if (!s) return;
+    void bind(GLenum unit, const Bound& t) {
+        if (!t.texture) return;
         auto& g = gl();
         g.ActiveTexture(unit);
-        g.BindTexture(GL_TEXTURE_2D, s->texture);
-        g.BindSampler(unit - GL_TEXTURE0, g_res.sampler);
+        g.BindTexture(GL_TEXTURE_2D, t.texture);
+        g.BindSampler(unit - GL_TEXTURE0, t.sampler);
     }
 
     const EffectFrame& frame_;

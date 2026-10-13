@@ -2,6 +2,7 @@
 // constantes BL_BLEND_* do `#include <bl/color>` (blBlend no GLSL).
 const ScreenGraphics = Object.freeze({
     Shader: ScreenShader,
+    Texture: ScreenTexture,
     Passes: ScreenPasses,
     // As texturas fixas: o que já está desenhado e o quadro anterior (o mundo
     // com os efeitos, guardado só nos quadros em que algum efeito o lê).

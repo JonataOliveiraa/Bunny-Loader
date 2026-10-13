@@ -1,0 +1,13 @@
+{
+  "uid": "cc5e1481-dba9-40a1-aba2-3e646f590b3e",
+  "id": "test-screencolor",
+  "name": "Teste: cor, máscaras, texturas e tweens dos efeitos",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Exercita ScreenGraphics.Texture (PNG do mod e a LUT neutra), ScreenUtils.Mask/Tween/Curve/ColorMath e os prontos Tint, ColorGrade e Vignette, medindo o custo de GPU de cada fase.",
+  "description": "Loga 'screencolor ...'. Prints: 'SHOT grade' (LUT que inverte as cores), 'SHOT neutral' (LUT neutra: a tela igual), 'SHOT rage' (vermelho pulsando nas bordas), 'SHOT gray' (mundo cinza menos um círculo no jogador), 'SHOT warm' (calor vindo de baixo), 'SHOT vignette', 'SHOT texmask' (tinta azul crescendo da esquerda para a direita).",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

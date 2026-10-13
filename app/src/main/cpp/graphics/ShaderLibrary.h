@@ -6,7 +6,7 @@ namespace bl::graphics {
 /**
  * O GLSL dos efeitos de tela: o vertex shader comum, o preludio que vai na
  * frente do fragment shader do mod (versao, uniforms padrao, blScreen) e a
- * biblioteca de `#include <bl/...>` (screen, math, noise, color, shapes).
+ * biblioteca de `#include <bl/...>` (screen, math, noise, color, shapes, mask).
  *
  * O mod escreve so o fragment shader, em GLSL ES 3.00 (`fragColor`,
  * `texture`) ou no estilo 1.00 (`gl_FragColor`, `texture2D`, viram os de

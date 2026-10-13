@@ -13,6 +13,8 @@ namespace bl::script {
  *   bl.screen.shader(nome, glsl)   -> id; compila na thread de render
  *   bl.screen.shaderStatus(id)     -> { state: 'pending' | 'ready' | 'failed', error }
  *   bl.screen.submit(passos, alvos, opcoes) -> o quadro (ver screen_submit)
+ *   bl.screen.texture(caminho, linear, repetir) -> { id, width, height } | null
+ *   bl.screen.saveNeutralLut(caminho, tamanho)  -> a LUT neutra em PNG
  *   bl.screen.__stats()            -> contadores do hook e do GL (testes)
  *   bl.screen.__trace()            -> um quadro de chamadas GL no log (testes)
  *

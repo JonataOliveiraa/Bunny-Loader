@@ -26,7 +26,9 @@ class ScreenCommands {
     //   fullscreen: a tela inteira  margin: pixels do mundo além do raio que o
     //     shader lê (o que ele amostra fora da caixa vem de quadros antigos)
     //   uniforms: { nome: número | [até 4] | Vector2 | Color | bool | ScreenGraphics.Array }
-    //   textures: { nome do sampler2D: alvo | ScreenGraphics.Sources.* }
+    //   textures: { nome do sampler2D: alvo | ScreenGraphics.Texture | Sources.* }
+    //   mask: ScreenUtils.Mask (padrão: o Mask do efeito) -> blMask(vUV) no GLSL;
+    //     com limite (círculo, retângulo), a caixa desenhada encolhe para ele
     //   source: o uSource/blSource do shader   layer: ScreenEffects.Layer
     DrawShader(shader = this.#effect.Shader, options = {}) {
         this.#Push(shader, null, options, 'DrawShader');
@@ -53,21 +55,27 @@ class ScreenCommands {
         const fullscreen = options.fullscreen ?? fx.Fullscreen;
         const uv = center ? ScreenSpace.WorldToUV(center) : { X: 0.5, Y: 0.5 };
         const r = ScreenSpace.PixelsToUV(radius);
+        const mask = options.mask ?? fx.Mask ?? ScreenMask.None();
+        let box = fullscreen || !center ? [0, 0, 1, 1] : ScreenCommands.#Box(uv, r + ScreenSpace.PixelsToUV(margin));
+        const limit = mask.Bounds();
+        if (limit) box = [Math.max(box[0], limit[0]), Math.max(box[1], limit[1]), Math.min(box[2], limit[2]), Math.min(box[3], limit[3])];
+        const textures = Object.assign({}, options.textures);
+        if (mask.Texture) textures.uMaskTexture = mask.Texture;
 
         this.#frame.Draws.push({
             shader: shader.Id,
             layer: options.layer ?? fx.Layer,
             dest: dest ? dest.Texture : 0,
             source: this.#Texture(options.source),
-            box: fullscreen || !center ? [0, 0, 1, 1] : ScreenCommands.#Box(uv, r + ScreenSpace.PixelsToUV(margin)),
+            box,
             center: [uv.X, uv.Y],
             radius: r,
             intensity: fx.Intensity * fx.Opacity,
             progress: fx.Progress,
             age: fx.Age / 60,
-            color: ScreenCommands.ToFloats(fx.Color) ?? [1, 1, 1, 1],
-            uniforms: ScreenCommands.#Uniforms(fx.Uniforms, options.uniforms),
-            textures: this.#Textures(options.textures),
+            color: ColorMath.ToFloats(fx.Color) ?? [1, 1, 1, 1],
+            uniforms: ScreenCommands.#Uniforms(mask.ToUniforms(), fx.Uniforms, options.uniforms),
+            textures: this.#Textures(textures),
         });
     }
 
@@ -107,11 +115,12 @@ class ScreenCommands {
         return out;
     }
 
-    // Número, array, bool, Vector2 ({X, Y}), Vector3/4 e Color (R, G, B, A de
-    // 0 a 255) -> floats para o GLSL. null se não dá.
+    // Número, array, bool, Vector2 ({X, Y}), Vector3/4, Color (R, G, B, A de
+    // 0 a 255) e '#rrggbb' -> floats para o GLSL. null se não dá.
     static ToFloats(value) {
         if (value === undefined || value === null) return null;
         if (typeof value === 'number') return [value];
+        if (typeof value === 'string') return ColorMath.FromHex(value);
         if (typeof value === 'boolean') return [value ? 1 : 0];
         if (Array.isArray(value)) return value.slice(0, 4).map(Number);
         if (typeof value.R === 'number') return [value.R / 255, value.G / 255, value.B / 255, (value.A ?? 255) / 255];

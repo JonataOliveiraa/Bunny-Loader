@@ -22,6 +22,7 @@ class ModScreenEffect {
     Order = 0;                  // menor desenha antes
     CaptureMargin = 8;          // pixels do mundo além do Radius que o shader lê
     Fullscreen = false;
+    Mask = null;                // ScreenUtils.Mask: onde o efeito vale (blMask no GLSL)
     Uniforms = {};
     Age = 0;
     Ended = false;
@@ -41,6 +42,11 @@ class ModScreenEffect {
 
     Kill() {
         this.#killed = true;
+    }
+
+    // Anima uma propriedade do efeito (ScreenUtils.Tween.To).
+    Tween(property, to, duration, easing = Easing.Linear, options = {}) {
+        return ScreenTween.To(this, property, to, duration, easing, options);
     }
 
     get Active() {

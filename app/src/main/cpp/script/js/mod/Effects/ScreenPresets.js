@@ -9,4 +9,7 @@ const ScreenPresets = Object.freeze({
     Echo,
     BlackHole,
     HeatHaze,
+    Tint,
+    ColorGrade,
+    Vignette,
 });

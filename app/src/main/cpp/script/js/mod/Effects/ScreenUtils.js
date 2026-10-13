@@ -3,4 +3,8 @@
 const ScreenUtils = Object.freeze({
     Space: ScreenSpace,
     Easing,
+    Mask: ScreenMask,
+    Tween: ScreenTween,
+    Curve: ScreenCurve,
+    ColorMath,
 });

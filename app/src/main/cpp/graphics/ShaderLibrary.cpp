@@ -162,6 +162,73 @@ vec3 blBlend(vec3 base, vec3 top, int mode) {
     if (mode == BL_BLEND_LUMINOSITY) return blSetLuma(base, blLuma(top));
     return top;
 }
+vec3 blAdjust(vec3 c, float saturation, float contrast, float brightness, float gamma, float hue, float temperature) {
+    c = (c + brightness - 0.5) * contrast + 0.5;
+    c = mix(vec3(blLuma(c)), c, saturation);
+    if (hue != 0.0) {
+        vec3 hsv = blRgbToHsv(clamp(c, 0.0, 1.0));
+        hsv.x = fract(hsv.x + hue);
+        c = blHsvToRgb(hsv);
+    }
+    c *= vec3(1.0 + 0.2 * temperature, 1.0 + 0.02 * temperature, 1.0 - 0.2 * temperature);
+    c = pow(max(c, 0.0), vec3(1.0 / max(gamma, 1e-3)));
+    return clamp(c, 0.0, 1.0);
+}
+vec3 blLut(sampler2D lut, vec3 c, float size) {
+    c = clamp(c, 0.0, 1.0);
+    float slice = c.b * (size - 1.0);
+    float s0 = floor(slice);
+    float s1 = min(s0 + 1.0, size - 1.0);
+    float x = (c.r * (size - 1.0) + 0.5) / (size * size);
+    float y = 1.0 - (c.g * (size - 1.0) + 0.5) / size;
+    vec3 a = texture(lut, vec2(x + s0 / size, y)).rgb;
+    vec3 b = texture(lut, vec2(x + s1 / size, y)).rgb;
+    return mix(a, b, slice - s0);
+}
+)"},
+    {"mask", R"(uniform float uMaskType;
+uniform vec4 uMaskA;
+uniform vec4 uMaskB;
+uniform sampler2D uMaskTexture;
+float blMaskEdge(float t, float falloff) {
+    t = clamp(t, 0.0, 1.0);
+    if (falloff > 1.5) return exp(-5.0 * t) * (1.0 - t);
+    if (falloff > 0.5) return 1.0 - smoothstep(0.0, 1.0, t);
+    return 1.0 - t;
+}
+float blMask(vec2 uv) {
+    int type = int(uMaskType + 0.5);
+    float m = 1.0;
+    if (type == 1) {
+        vec2 d = uv - uMaskA.xy;
+        d.x *= uAspect;
+        float inner = uMaskA.z - uMaskA.w;
+        float r = length(d);
+        m = r <= inner ? 1.0 : blMaskEdge((r - inner) / max(uMaskA.w, 1e-5), uMaskB.x);
+    } else if (type == 2) {
+        vec2 d = uv - uMaskA.xy;
+        d.x *= uAspect;
+        float dist = abs(length(d) - uMaskA.z) - uMaskA.w * 0.5;
+        m = dist <= 0.0 ? 1.0 : blMaskEdge(dist / max(uMaskB.z, 1e-5), uMaskB.x);
+    } else if (type == 3) {
+        vec2 outside = max(max(uMaskA.xy - uv, uv - uMaskA.zw), 0.0);
+        outside.x *= uAspect;
+        float dist = length(outside);
+        m = dist <= 0.0 ? 1.0 : blMaskEdge(dist / max(uMaskB.z, 1e-5), uMaskB.x);
+    } else if (type == 4) {
+        float t = dot(uv - 0.5, uMaskA.xy) + 0.5;
+        m = blMaskEdge((t - uMaskA.z) / max(uMaskA.w - uMaskA.z, 1e-5), uMaskB.x);
+    } else if (type == 5) {
+        vec2 scale = vec2(mix(1.0, uAspect, uMaskA.y), 1.0);
+        float r = length((uv - 0.5) * 2.0 * scale) / length(scale);
+        m = smoothstep(uMaskA.x, uMaskA.x + max(uMaskA.z, 1e-4), r);
+    } else if (type == 6) {
+        vec4 c = texture(uMaskTexture, uv);
+        m = uMaskB.z > 0.5 ? dot(c.rgb, vec3(0.2126, 0.7152, 0.0722)) : c.a;
+    }
+    if (uMaskB.y > 0.5) m = 1.0 - m;
+    return m;
+}
 )"},
     {"shapes", R"(float blCircle(float distance, float radius, float feather) {
     return 1.0 - smoothstep(radius - feather, radius, distance);
@@ -238,7 +305,7 @@ std::string ShaderLibrary::BuildFragment(const std::string& source, std::string&
         if (parseInclude(line, name)) {
             const Include* inc = findInclude(name);
             if (!inc) {
-                error = "line " + std::to_string(number) + ": unknown include '" + line + "' (available: bl/screen, bl/math, bl/noise, bl/color, bl/shapes)";
+                error = "line " + std::to_string(number) + ": unknown include '" + line + "' (available: bl/screen, bl/math, bl/noise, bl/color, bl/shapes, bl/mask)";
                 return {};
             }
             for (size_t k = 0; k < includes.size(); ++k) {
