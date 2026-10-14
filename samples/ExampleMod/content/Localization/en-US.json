@@ -212,7 +212,8 @@
     "RemainingTime": "Remaining time: {0}",
     "RandomBuff": "ExampleMod's touch button was just pressed. The {0} buff was given to the player.",
     "LearningExampleHeld": "LearningExample held for half a second",
-    "LearningExampleDoubleTap": "LearningExample double tapped within a quarter of a second"
+    "LearningExampleDoubleTap": "LearningExample double tapped within a quarter of a second",
+    "CannotCancel": "You must be moving to cancel this buff!"
   },
   "NPCChat": {
     "ExamplePerson_1": "Hello, how are you?",
@@ -442,5 +443,8 @@
     "LearningExample": {
       "DisplayName": "Learning Example"
     }
+  },
+  "Conditions": {
+    "LowHealth": "Below half health"
   }
 }

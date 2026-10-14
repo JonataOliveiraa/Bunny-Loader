@@ -33,6 +33,13 @@ Todas as receitas do mod. O que é feito na **Bancada de Exemplo** gasta só
 | Carrinho de Exemplo | [i:2343] Carrinho de Mina + 15 Exemplo de Item | Bigorna |
 | 20 Bloco Gemspark de Exemplo | 1 Exemplo de Item + 20 Vidro | Bancada |
 | 20 Fogo Vivo de Exemplo | 20 Bloco de Fogo Vivo + 1 Exemplo de Item | Bola de Cristal |
+| 100 Exemplo de Item | [i:3] Bloco de Pedra + 10 [i:27] Bolotas | Bancada, no deserto, perto de água, à noite e com menos da metade da vida |
+| [i:2721] Estátua da Letra J | 10 [i:3] Bloco de Pedra + [i:85] Corrente (não é gasta) | Bancada Pesada |
+| [i:2737] Estátua da Letra Z | 10 [i:3] Bloco de Pedra + [i:85] Corrente (às vezes solta fogos) | Bancada Pesada |
+
+Para todas as receitas, as do jogo também (`ExampleGlobalRecipe`): na Lua de
+Sangue a [i:24] Espada de Madeira some do menu; com a Defesa de Exemplo, a
+madeira sai pela metade; e o que sai da Bancada de Exemplo nasce com faíscas.
 
 ::: spoiler Por que o Exemplo de Item é tão barato?
 É um mod de **exemplo**: a ideia é ver cada coisa funcionando sem passar horas

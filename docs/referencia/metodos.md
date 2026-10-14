@@ -17,6 +17,7 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`BackgroundTextureLoader`](#backgroundtextureloader) | 6 | 0 | [Reference](classes.md#mod-backgrounds) |
 | [`CloudLoader`](#cloudloader) | 4 | 0 | [Reference](classes.md#modcloud) |
 | [`CommandLoader`](#commandloader) | 4 | 0 | [Reference](classes.md#modcommand) |
+| [`Condition`](#condition) | 4 | 0 | [Reference](classes.md#condition) |
 | [`DamageClass`](#damageclass) | 20 | 0 | [Reference](classes.md#damageclass) |
 | [`DamageClassLoader`](#damageclassloader) | 19 | 0 | [Reference](classes.md#damageclass) |
 | [`DrawableTooltipLine`](#drawabletooltipline) | 1 | 2 | [Reference](classes.md#tooltipline) |
@@ -24,10 +25,14 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`EquipTexture`](#equiptexture) | 9 | 0 | [Reference](classes.md#worn-textures-equiploader-and-equiptexture) |
 | [`ExtraJump`](#extrajump) | 1 | 0 | [Reference](classes.md#modplayer) |
 | [`GenPass`](#genpass) | 10 | 0 | [Reference](classes.md#genpass-and-passlegacy) |
+| [`GlobalBossBar`](#globalbossbar) | 5 | 0 | [Reference](classes.md#globalbossbar) |
+| [`GlobalBuff`](#globalbuff) | 11 | 0 | [Reference](classes.md#globalbuff) |
 | [`GlobalItem`](#globalitem) | 73 | 8 | [Reference](classes.md#globalitem) |
 | [`GlobalLoot`](#globalloot) | 11 | 0 | [Reference](classes.md#globalloot) |
 | [`GlobalNPC`](#globalnpc) | 52 | 8 | [Reference](classes.md#globalnpc) |
 | [`GlobalProjectile`](#globalprojectile) | 32 | 8 | [Reference](classes.md#globalprojectile) |
+| [`GlobalRecipe`](#globalrecipe) | 6 | 0 | [Reference](classes.md#globalrecipe) |
+| [`GlobalTile`](#globaltile) | 25 | 0 | [Reference](classes.md#globaltile) |
 | [`HitInfo`](#hitinfo) | 1 | 0 | [Reference](classes.md#hits) |
 | [`HitModifiers`](#hitmodifiers) | 18 | 0 | [Reference](classes.md#hits) |
 | [`HurtInfo`](#hurtinfo) | 1 | 0 | [Reference](classes.md#hits) |
@@ -39,7 +44,7 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`ModBannerTile`](#modbannertile) | 4 | 43 | [Reference](classes.md#modbannertile) |
 | [`ModBiome`](#modbiome) | 5 | 5 | [Reference](classes.md#modbiome-and-modsceneeffect) |
 | [`ModBossBar`](#modbossbar) | 11 | 0 | [Reference](classes.md#modbossbar) |
-| [`ModBuff`](#modbuff) | 18 | 0 | [Reference](classes.md#modbuff) |
+| [`ModBuff`](#modbuff) | 20 | 0 | [Reference](classes.md#modbuff) |
 | [`ModCloud`](#modcloud) | 5 | 0 | [Reference](classes.md#modcloud) |
 | [`ModCommand`](#modcommand) | 10 | 0 | [Reference](classes.md#modcommand) |
 | [`ModConfig`](#modconfig) | 15 | 0 | [Reference](classes.md#modconfig) |
@@ -59,7 +64,7 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`ModProjectile`](#modprojectile) | 59 | 0 | [Reference](classes.md#modprojectile) |
 | [`ModPylon`](#modpylon) | 12 | 43 | [Reference](classes.md#modpylon-and-temoddedpylon) |
 | [`ModRarity`](#modrarity) | 4 | 0 | [Reference](classes.md#modrarity) |
-| [`ModRecipe`](#modrecipe) | 11 | 0 | [Reference](classes.md#modrecipe) |
+| [`ModRecipe`](#modrecipe) | 16 | 0 | [Reference](classes.md#modrecipe) |
 | [`ModSceneEffect`](#modsceneeffect) | 6 | 0 | [Reference](classes.md#modbiome-and-modsceneeffect) |
 | [`ModScreenEffect`](#modscreeneffect) | 15 | 0 | [Reference](classes.md#screen-effects) |
 | [`ModSurfaceBackgroundStyle`](#modsurfacebackgroundstyle) | 7 | 0 | [Reference](classes.md#mod-backgrounds) |
@@ -96,7 +101,7 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`TouchButtonLoader`](#touchbuttonloader) | 22 | 0 | [Reference](classes.md#modtouchbutton) |
 | [`UsageException`](#usageexception) | 1 | 0 | [Reference](classes.md#modcommand) |
 
-81 public classes, 1522 declared records and 10 methods not implemented. The count includes the same member in each class that inherits it.
+86 public classes, 1580 declared records and 10 methods not implemented. The count includes the same member in each class that inherits it.
 
 ## Objects and enums
 
@@ -136,6 +141,17 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `GetHelp(callerType)` | Static | `CommandLoader` | `See source` | "/nome descrição" de cada comando que vale para este tipo de chamada (o GetHelp do tModLoader); o mod na frente quando o nome se repete. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/CommandLoader.js#L135) |
 | `Handle(input, caller)` | Static | `CommandLoader` | `See source` | true: era um comando de mod (rodou, ou respondeu o erro). | [Code](../../app/src/main/cpp/script/js/mod/Loaders/CommandLoader.js#L107) |
 | `Matches(commandType, callerType)` | Static | `CommandLoader` | `See source` | O CommandType.World vale como Chat sozinho e como Server no servidor (o netMode é campo de bits: quem hospeda e joga fica com 3). | [Code](../../app/src/main/cpp/script/js/mod/Loaders/CommandLoader.js#L28) |
+
+## Condition
+
+[Contract and fields](classes.md#condition).
+
+| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
+|---|---|---|---|---|---|
+| `constructor(description, predicate)` | Constructor | `Condition` | `instance` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Condition.js#L4) |
+| `get Description` | Getter | `Condition` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Condition.js#L22) |
+| `IsMet()` | Instance | `Condition` | `!!this.Predicate()` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Condition.js#L30) |
+| `toString()` | Instance | `Condition` | `this.Description` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Condition.js#L34) |
 
 ## DamageClass
 
@@ -255,6 +271,36 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `set Name(value)` | Setter | `GenPass` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/GenPass.js#L12) |
 | `get Weight` | Getter | `GenPass` | `this.Native.Weight` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/GenPass.js#L13) |
 | `set Weight(value)` | Setter | `GenPass` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/GenPass.js#L14) |
+
+## GlobalBossBar
+
+[Contract and fields](classes.md#globalbossbar).
+
+| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
+|---|---|---|---|---|---|
+| `PostDraw(spriteBatch, npc, drawParams)` | Instance | `GlobalBossBar` | `undefined` | After. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBossBar.js#L14) |
+| `PostSetupContent()` | Instance | `GlobalBossBar` | `undefined` | The base implementation does nothing. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBossBar.js#L10) |
+| `PreDraw(spriteBatch, npc, drawParams)` | Instance | `GlobalBossBar` | `true` | Before each bar. false: no bar (PostDraw runs anyway). | [Code](../../app/src/main/cpp/script/js/mod/GlobalBossBar.js#L13) |
+| `register(cls)` | Static | `GlobalBossBar` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBossBar.js#L16) |
+| `SetStaticDefaults()` | Instance | `GlobalBossBar` | `undefined` | With TileObjectData unlocked: changing a vanilla tile's shape or anchors works here. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBossBar.js#L9) |
+
+## GlobalBuff
+
+[Contract and fields](classes.md#globalbuff).
+
+| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
+|---|---|---|---|---|---|
+| `ModifyBuffText(type, buffName, tip, rare)` | Instance | `GlobalBuff` | `undefined` | After the ModBuff's own. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L19) |
+| `PostDraw(spriteBatch, type, buffIndex, drawParams)` | Instance | `GlobalBuff` | `undefined` | After. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L25) |
+| `PostSetupContent()` | Instance | `GlobalBuff` | `undefined` | The base implementation does nothing. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L6) |
+| `PreDraw(spriteBatch, type, buffIndex, drawParams)` | Instance | `GlobalBuff` | `true` | Before each bar. false: no bar (PostDraw runs anyway). | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L24) |
+| `ReApplyNPC(type, npc, time, buffIndex)` | Instance | `GlobalBuff` | `false` | The buff was there and got another AddBuff. true: the game does not renew the time (as in tModLoader; ModBuff's is the other way round). | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L15) |
+| `ReApplyPlayer(type, player, time, buffIndex)` | Instance | `GlobalBuff` | `false` | The buff was there and got another AddBuff. true: the game does not renew the time (as in tModLoader; ModBuff's is the other way round). | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L14) |
+| `register(cls)` | Static | `GlobalBuff` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L30) |
+| `RightClick(type, buffIndex)` | Instance | `GlobalBuff` | `true` | The tap that cancels the buff; false keeps it. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L28) |
+| `SetStaticDefaults()` | Instance | `GlobalBuff` | `undefined` | With TileObjectData unlocked: changing a vanilla tile's shape or anchors works here. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L5) |
+| `UpdateNPC(type, npc, buffIndex)` | Instance | `GlobalBuff` | `undefined` | Every frame, each active buff (tModLoader's two Update). buffIndex is Ref: whoever removes the buff lowers it by 1. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L10) |
+| `UpdatePlayer(type, player, buffIndex)` | Instance | `GlobalBuff` | `undefined` | Every frame, each active buff (tModLoader's two Update). buffIndex is Ref: whoever removes the buff lowers it by 1. | [Code](../../app/src/main/cpp/script/js/mod/GlobalBuff.js#L9) |
 
 ## GlobalItem
 
@@ -476,6 +522,51 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `TileCollideStyle(projectile, width, height, fallThrough, hitboxCenterFrac)` | Instance | `GlobalProjectile` | `true` | Four Refs, after the local method; the first false skips collision for this movement. | [Code](../../app/src/main/cpp/script/js/mod/GlobalProjectile.js#L24) |
 | `UseGrapple(player, type)` | Instance | `GlobalProjectile` | `undefined` | Type in a Ref<number>, after the local method, for every template that implements the method. | [Code](../../app/src/main/cpp/script/js/mod/GlobalProjectile.js#L29) |
 
+## GlobalRecipe
+
+[Contract and fields](classes.md#globalrecipe).
+
+| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
+|---|---|---|---|---|---|
+| `ConsumeItem(recipe, type, amount)` | Instance | `GlobalRecipe` | `undefined` | Each ingredient on each craft: amount (Ref) is how much is spent, already with the Alchemy Table discount. Never more than the player has. | [Code](../../app/src/main/cpp/script/js/mod/GlobalRecipe.js#L14) |
+| `OnCraft(item, recipe)` | Instance | `GlobalRecipe` | `undefined` | The crafted item, before it goes to the cursor or the inventory. | [Code](../../app/src/main/cpp/script/js/mod/GlobalRecipe.js#L17) |
+| `PostSetupContent()` | Instance | `GlobalRecipe` | `undefined` | The base implementation does nothing. | [Code](../../app/src/main/cpp/script/js/mod/GlobalRecipe.js#L7) |
+| `RecipeAvailable(recipe)` | Instance | `GlobalRecipe` | `true` | false: the recipe leaves the crafting menu (the Guide still shows it). | [Code](../../app/src/main/cpp/script/js/mod/GlobalRecipe.js#L10) |
+| `register(cls)` | Static | `GlobalRecipe` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/GlobalRecipe.js#L19) |
+| `SetStaticDefaults()` | Instance | `GlobalRecipe` | `undefined` | With TileObjectData unlocked: changing a vanilla tile's shape or anchors works here. | [Code](../../app/src/main/cpp/script/js/mod/GlobalRecipe.js#L6) |
+
+## GlobalTile
+
+[Contract and fields](classes.md#globaltile).
+
+| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
+|---|---|---|---|---|---|
+| `AdjTiles(type)` | Instance | `GlobalTile` | `[]` | The types a tile of type counts as near the player (crafting stations). Asked once per type. On mobile the game only checks with the inventory open. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L51) |
+| `AnimateTile()` | Instance | `GlobalTile` | `undefined` | Once per frame. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L49) |
+| `CanDrop(i, j, type)` | Instance | `GlobalTile` | `true` | false: the block drops nothing; Drop comes after its items. Vanilla multi-cell objects drop through their own code. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L23) |
+| `CanExplode(i, j, type)` | Instance | `GlobalTile` | `true` | false: a projectile's explosion spares it. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L31) |
+| `CanKillTile(i, j, type, blockDamaged)` | Instance | `GlobalTile` | `true` | false: the tile does not break. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L13) |
+| `CanPlace(i, j, type)` | Instance | `GlobalTile` | `true` | false: the player does not place it. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L28) |
+| `CreateDust(i, j, type, dustType)` | Instance | `GlobalTile` | `true` | Each particle, after the game picks it: dustType (Ref) swaps it; false removes it. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L19) |
+| `Drop(i, j, type)` | Instance | `GlobalTile` | `undefined` | false: the block drops nothing; Drop comes after its items. Vanilla multi-cell objects drop through their own code. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L25) |
+| `HitWire(i, j, type)` | Instance | `GlobalTile` | `undefined` | A wire signal; false stops it (the game's and HitWire). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L41) |
+| `KillSound(i, j, type, fail)` | Instance | `GlobalTile` | `true` | false: no sound. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L21) |
+| `KillTile(i, j, type, fail, effectOnly, noItem)` | Instance | `GlobalTile` | `undefined` | Before breaking (the three are Ref). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L15) |
+| `MouseOver(i, j, type)` | Instance | `GlobalTile` | `undefined` | The tap on a tile, the tile under the cursor (near and far). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L45) |
+| `MouseOverFar(i, j, type)` | Instance | `GlobalTile` | `undefined` | The tap on a tile, the tile under the cursor (near and far). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L46) |
+| `NumDust(i, j, type, fail, num)` | Instance | `GlobalTile` | `undefined` | How many particles (num, Ref; only lowers it). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L17) |
+| `PlaceInWorld(i, j, type, item)` | Instance | `GlobalTile` | `undefined` | After the player places it. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L29) |
+| `PostSetupContent()` | Instance | `GlobalTile` | `undefined` | The base implementation does nothing. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L8) |
+| `PostSetupTileMerge()` | Instance | `GlobalTile` | `undefined` | Once, after setup (Main.tileMerge). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L10) |
+| `PreHitWire(i, j, type)` | Instance | `GlobalTile` | `true` | A wire signal; false stops it (the game's and HitWire). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L40) |
+| `PreShakeTree(x, y, treeType)` | Instance | `GlobalTile` | `undefined` | Shaking a tree (TreeTypes): PreShakeTree before the drops; ShakeTree returning true means it dropped the main item. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L55) |
+| `RandomUpdate(i, j, type, underground)` | Instance | `GlobalTile` | `undefined` | Each tile the world update picks (hundreds per frame). | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L37) |
+| `register(cls)` | Static | `GlobalTile` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L58) |
+| `RightClick(i, j, type)` | Instance | `GlobalTile` | `undefined` | The tap that cancels the buff; false keeps it. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L44) |
+| `SetStaticDefaults()` | Instance | `GlobalTile` | `undefined` | With TileObjectData unlocked: changing a vanilla tile's shape or anchors works here. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L7) |
+| `ShakeTree(x, y, treeType)` | Instance | `GlobalTile` | `false` | Shaking a tree (TreeTypes): PreShakeTree before the drops; ShakeTree returning true means it dropped the main item. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L56) |
+| `Slope(i, j, type)` | Instance | `GlobalTile` | `true` | false: the player's hammer leaves it as it is. | [Code](../../app/src/main/cpp/script/js/mod/GlobalTile.js#L33) |
+
 ## HitInfo
 
 [Contract and fields](classes.md#hits).
@@ -696,17 +787,17 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 
 | Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
 |---|---|---|---|---|---|
-| `Collected(life, lifeMax, shield, shieldMax)` | Instance | `ModBossBar` | `See source` | Do BossBarLoader, a cada quadro com a barra. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L35) |
-| `GetIconTexture(iconFrame)` | Instance | `ModBossBar` | `null` | The icon (Asset<Texture2D> or Texture2D); iconFrame (Ref) crops it. null: the game's "?". | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L22) |
-| `get Life` | Getter | `ModBossBar` | `this.#life` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L13) |
-| `get LifeMax` | Getter | `ModBossBar` | `this.#lifeMax` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L14) |
-| `ModifyInfo(info, life, lifeMax, shield, shieldMax)` | Instance | `ModBossBar` | `null` | null: the NPC's life; true: the values given (Ref); false: no bar (the game looks for another). info.npcIndexToAimAt changes the NPC. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L27) |
-| `PostDraw(spriteBatch, npc, drawParams)` | Instance | `ModBossBar` | `undefined` | drawParams: { IconTexture, IconFrame, Life, LifeMax, Shield, ShieldMax }; false removes the game's drawing. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L32) |
-| `PreDraw(spriteBatch, npc, drawParams)` | Instance | `ModBossBar` | `true` | drawParams: { IconTexture, IconFrame, Life, LifeMax, Shield, ShieldMax }; false removes the game's drawing. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L31) |
-| `register(cls)` | Static | `ModBossBar` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L42) |
-| `SetStaticDefaults()` | Instance | `ModBossBar` | `undefined` | On registration. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L18) |
-| `get Shield` | Getter | `ModBossBar` | `this.#shield` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L15) |
-| `get ShieldMax` | Getter | `ModBossBar` | `this.#shieldMax` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L16) |
+| `Collected(life, lifeMax, shield, shieldMax)` | Instance | `ModBossBar` | `See source` | Do BossBarLoader, a cada quadro com a barra. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L36) |
+| `GetIconTexture(iconFrame)` | Instance | `ModBossBar` | `null` | The icon (Asset<Texture2D> or Texture2D); iconFrame (Ref) crops it. null: the game's "?". | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L23) |
+| `get Life` | Getter | `ModBossBar` | `this.#life` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L14) |
+| `get LifeMax` | Getter | `ModBossBar` | `this.#lifeMax` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L15) |
+| `ModifyInfo(info, life, lifeMax, shield, shieldMax)` | Instance | `ModBossBar` | `null` | null: the NPC's life; true: the values given (Ref); false: no bar (the game looks for another). info.npcIndexToAimAt changes the NPC. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L28) |
+| `PostDraw(spriteBatch, npc, drawParams)` | Instance | `ModBossBar` | `undefined` | drawParams: tModLoader's BossBarDrawParams (see GlobalBossBar); false removes the game's drawing. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L33) |
+| `PreDraw(spriteBatch, npc, drawParams)` | Instance | `ModBossBar` | `true` | drawParams: tModLoader's BossBarDrawParams (see GlobalBossBar); false removes the game's drawing. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L32) |
+| `register(cls)` | Static | `ModBossBar` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L43) |
+| `SetStaticDefaults()` | Instance | `ModBossBar` | `undefined` | On registration. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L19) |
+| `get Shield` | Getter | `ModBossBar` | `this.#shield` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L16) |
+| `get ShieldMax` | Getter | `ModBossBar` | `this.#shieldMax` | The last frame's values. | [Code](../../app/src/main/cpp/script/js/mod/ModBossBar.js#L17) |
 
 ## ModBuff
 
@@ -717,18 +808,20 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `ApplyNPC(npc, buffTime)` | Instance | `ModBuff` | `undefined` | When it is added. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L19) |
 | `ApplyPlayer(player, buffTime)` | Instance | `ModBuff` | `undefined` | When it is added. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L18) |
 | `CanRemove(player, buffTime, buffIndex, debuff)` | Instance | `ModBuff` | `null` | On tapping the icon: true/false decides; null, the game. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L24) |
-| `getModBuff(type)` | Static | `ModBuff` | `BuffLoader.ByType.get(type)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L68) |
-| `getTypeByName(name)` | Static | `ModBuff` | `bl.buffs.typeOf(name)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L67) |
-| `isModType(type)` | Static | `ModBuff` | `bl.buffs.isModBuff(type)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L66) |
+| `getModBuff(type)` | Static | `ModBuff` | `BuffLoader.ByType.get(type)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L71) |
+| `getTypeByName(name)` | Static | `ModBuff` | `bl.buffs.typeOf(name)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L70) |
+| `isModType(type)` | Static | `ModBuff` | `bl.buffs.isModBuff(type)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L69) |
 | `ModifyBuffText(buffName, tip, rare)` | Instance | `ModBuff` | `undefined` | The buff's name and tip in the bar (three Refs; rare does not change the color on mobile). | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L28) |
 | `ModifyDescription()` | Instance | `ModBuff` | `undefined` | Once per language: change this.DisplayName/this.Description. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L14) |
 | `ModifyDisplayName()` | Instance | `ModBuff` | `undefined` | Once per language: change this.DisplayName/this.Description. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L13) |
 | `OnRemove(player, buffTime, buffIndex)` | Instance | `ModBuff` | `undefined` | After being removed by the tap. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L25) |
+| `PostDraw(spriteBatch, buffIndex, drawParams)` | Instance | `ModBuff` | `undefined` | The icon in the buff bar. drawParams: see GlobalBuff; false hides the icon. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L31) |
 | `PostSetupContent()` | Instance | `ModBuff` | `undefined` | The base implementation does nothing. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L12) |
 | `PostStaticDefaults()` | Instance | `ModBuff` | `undefined` | The base implementation does nothing. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L11) |
+| `PreDraw(spriteBatch, buffIndex, drawParams)` | Instance | `ModBuff` | `true` | The icon in the buff bar. drawParams: see GlobalBuff; false hides the icon. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L30) |
 | `ReApplyNPC(npc, buffTime, buffIndex)` | Instance | `ModBuff` | `true` | When it is added again; false prevents renewing the time. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L22) |
 | `ReApplyPlayer(player, buffTime, buffIndex)` | Instance | `ModBuff` | `true` | When it is added again; false prevents renewing the time. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L21) |
-| `register(cls)` | Static | `ModBuff` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L30) |
+| `register(cls)` | Static | `ModBuff` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L33) |
 | `SetStaticDefaults()` | Instance | `ModBuff` | `undefined` | Once: Main.debuff[this.Type], buffNoSave, BuffID.Sets.... | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L10) |
 | `UpdateNPC(npc, buffIndex)` | Instance | `ModBuff` | `undefined` | Every frame, active on the NPC. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L17) |
 | `UpdatePlayer(player, buffIndex)` | Instance | `ModBuff` | `undefined` | Every frame, active on the player. | [Code](../../app/src/main/cpp/script/js/mod/ModBuff.js#L16) |
@@ -1482,17 +1575,22 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 
 | Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
 |---|---|---|---|---|---|
-| `AddCustomShimmerResult(type, stack = 1)` | Instance | `ModRecipe` | `See source` | What comes out in Shimmer. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L61) |
-| `AddIngredient(type, stack = 1)` | Instance | `ModRecipe` | `See source` | Up to 15. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L19) |
-| `AddRecipeGroup(group, stack = 1)` | Instance | `ModRecipe` | `See source` | Accepts any item in the group (object, a vanilla name like 'IronBar', or one created by a mod). | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L33) |
-| `AddTile(tileType)` | Instance | `ModRecipe` | `See source` | The station (one per recipe). | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L50) |
+| `AddCondition(condition, predicate)` | Instance | `ModRecipe` | `See source` | A Condition: outside it, the recipe leaves the crafting menu. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L74) |
+| `AddConsumeIngredientCallback(callback)` | Instance | `ModRecipe` | `See source` | How much of each ingredient is spent (amount is Ref; 0: not spent). AddConsumeItemCallback is the old name. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L87) |
+| `AddConsumeItemCallback(callback)` | Instance | `ModRecipe` | `this.AddConsumeIngredientCallback(callback)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L93) |
+| `AddCustomShimmerResult(type, stack = 1)` | Instance | `ModRecipe` | `See source` | What comes out in Shimmer. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L64) |
+| `AddIngredient(type, stack = 1)` | Instance | `ModRecipe` | `See source` | Up to 15. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L22) |
+| `AddOnCraftCallback(callback)` | Instance | `ModRecipe` | `See source` | After crafting. On mobile consumedItems and destinationStack arrive null. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L97) |
+| `AddRecipeGroup(group, stack = 1)` | Instance | `ModRecipe` | `See source` | Accepts any item in the group (object, a vanilla name like 'IronBar', or one created by a mod). | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L36) |
+| `AddTile(tileType)` | Instance | `ModRecipe` | `See source` | The station (one per recipe). | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L53) |
 | `constructor()` | Constructor | `ModRecipe` | `instance` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L5) |
-| `CreateRecipeGroup(name, itemTypes = [])` | Static | `ModRecipe` | `See source` | A new group (in AddRecipeGroups). | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L107) |
-| `GetGroup(groupOrName)` | Static | `ModRecipe` | `See source` | A group by object, name or number. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L86) |
-| `GetGroupByName(name)` | Static | `ModRecipe` | `ModRecipe.GetGroup(name)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L104) |
-| `Register()` | Instance | `ModRecipe` | `See source` | Puts it into the game. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L74) |
-| `SetProperty(name, value)` | Instance | `ModRecipe` | `See source` | needWater, needLava, needHoney, needSnowBiome, needGraveyardBiome, needTorchGodsFavor, needMechdusa, notDecraftable, crimson, corruption, alchemy. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L69) |
-| `SetResult(type, stack = 1)` | Instance | `ModRecipe` | `See source` | What it gives. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L12) |
+| `CreateRecipeGroup(name, itemTypes = [])` | Static | `ModRecipe` | `See source` | A new group (in AddRecipeGroups). | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L141) |
+| `GetGroup(groupOrName)` | Static | `ModRecipe` | `See source` | A group by object, name or number. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L120) |
+| `GetGroupByName(name)` | Static | `ModRecipe` | `ModRecipe.GetGroup(name)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L138) |
+| `Register()` | Instance | `ModRecipe` | `See source` | Puts it into the game. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L108) |
+| `RemoveCondition(condition)` | Instance | `ModRecipe` | `See source` | Takes one out (true if it was there). | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L79) |
+| `SetProperty(name, value)` | Instance | `ModRecipe` | `See source` | needWater, needLava, needHoney, needSnowBiome, needGraveyardBiome, needTorchGodsFavor, needMechdusa, notDecraftable, crimson, corruption, alchemy. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L103) |
+| `SetResult(type, stack = 1)` | Instance | `ModRecipe` | `See source` | What it gives. | [Code](../../app/src/main/cpp/script/js/mod/ModRecipe.js#L15) |
 
 ## ModSceneEffect
 
@@ -2170,28 +2268,28 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 
 | Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
 |---|---|---|---|---|---|
-| `ActionOf(entry)` | Static | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstAction + entry.index` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L76) |
-| `get All` | Static getter | `TouchButtonLoader` | `TouchButtonLoader.#entries` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L74) |
-| `ByAction(action)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L84) |
-| `ByKey(key)` | Static | `TouchButtonLoader` | `TouchButtonLoader.#byKey.get(key) \|\| null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L82) |
-| `ByQuick(quick)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L89) |
-| `Controller()` | Static | `TouchButtonLoader` | `Safe.Run('TouchButtons: controle', () => bl.classOf('', 'GUIInstance').Active.GUIVirtualInputController) \|\| null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L158) |
-| `ControlOf(entry)` | Static | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstControl + entry.index` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L78) |
-| `get Count` | Static getter | `TouchButtonLoader` | `TouchButtonLoader.#entries.length` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L73) |
-| `Enabled(entry)` | Static | `TouchButtonLoader` | `!entry.enabled \|\| Safe.Run(entry.key + ' enabled', () => entry.enabled() !== false) !== false` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L118) |
-| `get Ids` | Static getter | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L55) |
-| `IsBound(entry)` | Static | `TouchButtonLoader` | `See source` | Whether it is in the layout in use. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L166) |
-| `IsModded(action)` | Static | `TouchButtonLoader` | `action >= TouchButtonLoader.Ids.firstAction` | Uma ação além das do jogo: de um mod deste boot ou de um que saiu. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L95) |
-| `Label(entry)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L99) |
-| `get LastAction` | Static getter | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstAction + TouchButtonLoader.Count - 1` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L80) |
-| `Press(entry)` | Static | `TouchButtonLoader` | `See source` | Um toque no botão: o que dispara o onPress e garante o JustPressed de um toque mais curto que uma atualização. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L152) |
-| `QuickOf(entry)` | Static | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstQuick + entry.index` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L77) |
-| `RegisterButton(mod, name, options = {})` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L21) |
-| `State(entry)` | Static | `TouchButtonLoader` | `See source` | O estado da atualização em curso do jogo: tirado uma vez por atualização, na primeira leitura (o ProcessTriggers lê toda atualização). | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L124) |
-| `Styles()` | Static | `TouchButtonLoader` | `Safe.Run('TouchButtons: estilos', () => bl.classOf('', 'VirtualControlsStyles_Layout').Instance) \|\| null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L162) |
-| `Texture(entry)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L109) |
-| `Tick()` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L129) |
-| `Visible(entry)` | Static | `TouchButtonLoader` | `!entry.visible \|\| Safe.Run(entry.key + ' visible', () => entry.visible() !== false) !== false` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L114) |
+| `ActionOf(entry)` | Static | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstAction + entry.index` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L75) |
+| `get All` | Static getter | `TouchButtonLoader` | `TouchButtonLoader.#entries` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L73) |
+| `ByAction(action)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L83) |
+| `ByKey(key)` | Static | `TouchButtonLoader` | `TouchButtonLoader.#byKey.get(key) \|\| null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L81) |
+| `ByQuick(quick)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L88) |
+| `Controller()` | Static | `TouchButtonLoader` | `Safe.Run('TouchButtons: controle', () => bl.classOf('', 'GUIInstance').Active.GUIVirtualInputController) \|\| null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L157) |
+| `ControlOf(entry)` | Static | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstControl + entry.index` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L77) |
+| `get Count` | Static getter | `TouchButtonLoader` | `TouchButtonLoader.#entries.length` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L72) |
+| `Enabled(entry)` | Static | `TouchButtonLoader` | `!entry.enabled \|\| Safe.Run(entry.key + ' enabled', () => entry.enabled() !== false) !== false` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L117) |
+| `get Ids` | Static getter | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L54) |
+| `IsBound(entry)` | Static | `TouchButtonLoader` | `See source` | Whether it is in the layout in use. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L165) |
+| `IsModded(action)` | Static | `TouchButtonLoader` | `action >= TouchButtonLoader.Ids.firstAction` | Uma ação além das do jogo: de um mod deste boot ou de um que saiu. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L94) |
+| `Label(entry)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L98) |
+| `get LastAction` | Static getter | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstAction + TouchButtonLoader.Count - 1` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L79) |
+| `Press(entry)` | Static | `TouchButtonLoader` | `See source` | Um toque no botão: o que dispara o onPress e garante o JustPressed de um toque mais curto que uma atualização. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L151) |
+| `QuickOf(entry)` | Static | `TouchButtonLoader` | `TouchButtonLoader.Ids.firstQuick + entry.index` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L76) |
+| `RegisterButton(mod, name, options = {})` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L20) |
+| `State(entry)` | Static | `TouchButtonLoader` | `See source` | O estado da atualização em curso do jogo: tirado uma vez por atualização, na primeira leitura (o ProcessTriggers lê toda atualização). | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L123) |
+| `Styles()` | Static | `TouchButtonLoader` | `Safe.Run('TouchButtons: estilos', () => bl.classOf('', 'VirtualControlsStyles_Layout').Instance) \|\| null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L161) |
+| `Texture(entry)` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L108) |
+| `Tick()` | Static | `TouchButtonLoader` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L128) |
+| `Visible(entry)` | Static | `TouchButtonLoader` | `!entry.visible \|\| Safe.Run(entry.key + ' visible', () => entry.visible() !== false) !== false` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/TouchButtonLoader.js#L113) |
 
 ## UsageException
 

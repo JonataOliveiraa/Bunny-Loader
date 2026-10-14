@@ -1,0 +1,15 @@
+{
+  "uid": "75b68996-b4ed-4fef-b61d-2f25d006ad21",
+  "id": "test-globaltypes",
+  "name": "Teste: GlobalTile, GlobalBuff, GlobalRecipe e GlobalBossBar",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Os quatro Global com o conteúdo do jogo: buffs do jogador e de NPC (Update, ReApply, ModifyBuffText), tiles (quebra, partícula, queda, explosão, fio, AdjTiles, RandomUpdate, AnimateTile, sacudir árvore), receitas (RecipeAvailable, AddCondition, consumo, OnCraft) e a barra do Olho de Cthulhu.",
+  "description": "Loga 'globaltypes ...'.",
+  "updated": "2026-10-14",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

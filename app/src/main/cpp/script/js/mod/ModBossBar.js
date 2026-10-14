@@ -1,8 +1,9 @@
 // Uma barra de vida de chefe própria, como a ModBossBar do tModLoader. O NPC
 // de mod a pede no SetDefaults: `this.BossBar = ModContent.GetInstance(MinhaBarra)`.
 // Com ela, o NPC ganha a barra grande mesmo sem ser chefe e sem cabeça de
-// chefe. O desenho é o DrawFancyBar do jogo (moldura, vida, escudo e ícone);
-// o celular não deixa mudar a posição nem a escala dele. Ver BossBarLoader.
+// chefe. O desenho é o DrawFancyBar do jogo (moldura, vida, escudo e ícone),
+// com o BossBarDrawParams do PreDraw (cores, centro, escala do ícone, texto).
+// Ver BossBarLoader.
 class ModBossBar {
     #life = 0;
     #lifeMax = 0;
@@ -26,8 +27,8 @@ class ModBossBar {
     // null: a vida do NPC; true: desenha com os valores dados; false: não desenha.
     ModifyInfo(info, life, lifeMax, shield, shieldMax) { return null; }
 
-    // drawParams: { IconTexture, IconFrame, Life, LifeMax, Shield, ShieldMax },
-    // que valem para o desenho. false: sem a barra do jogo.
+    // drawParams: o BossBarDrawParams (ver GlobalBossBar), que vale para o
+    // desenho. false: sem a barra do jogo.
     PreDraw(spriteBatch, npc, drawParams) { return true; }
     PostDraw(spriteBatch, npc, drawParams) {}
 

@@ -16,7 +16,7 @@ class ContentAutoload {
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, ModMenu,
                      ModBossBar, ModNPC, ModProjectile, ModItem, ModTileEntity, ModPylon, ModTile, ModWall, ModTree, PlayerDrawLayer, ModSystem, ModScreenEffect,
-                     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot,
+                     GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot, GlobalTile, GlobalBuff, GlobalBossBar, GlobalRecipe,
                      ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement];
     static #fileOf = new Map();
 

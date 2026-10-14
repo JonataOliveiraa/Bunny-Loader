@@ -19,6 +19,13 @@
   com a tela ondulando onde os feixes batem), o Cajado da Fenda de Exemplo
   (efeito com shader `.frag` próprio, distorção e os prontos) e as bordas
   vermelhas com pouca vida (`ExampleLowLifePlayer`).
+- Globais para todo tile, buff, barra de chefe e receita: o que cai ao sacudir
+  árvores (`ShakeTrees`), o Girassol no Bloco de Exemplo (`SunflowerChanges`),
+  o tempo restante na dica de todo buff e o ícone da Fogueira tremendo
+  (`ExampleGlobalBuff`), a barra do Olho de Cthulhu (`ExampleGlobalBossBar`) e
+  o `ExampleGlobalRecipe`.
+- Receitas com condição (`AddCondition`) e com callbacks de consumo e de
+  criação (a Corrente que não é gasta, os fogos de artifício).
 
 ## 1.8.0 - 2026-09-27
 

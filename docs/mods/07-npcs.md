@@ -494,11 +494,13 @@ export class Fortress extends ModNPC {
 }
 ```
 
-`PreDraw(spriteBatch, npc, drawParams)` receives `{ IconTexture, IconFrame,
-Life, LifeMax, Shield, ShieldMax }`, which apply to the drawing (returning
-`false`, the game's bar does not show); `PostDraw` comes after. The drawing is
-the game's: on mobile the bar sits at the bottom, and position and scale do
-not change.
+`PreDraw(spriteBatch, npc, drawParams)` receives tModLoader's
+`BossBarDrawParams` (`IconTexture`, `IconFrame`, `Life`, `LifeMax`, `Shield`,
+`ShieldMax`, `BarCenter`, `BarColor`, `IconColor`, `IconScale`, `ShowText`,
+`TextOffset`, `BarTexture`), which apply to the drawing (returning `false`,
+the game's bar does not show); `PostDraw` comes after. A
+[`GlobalBossBar`](12-globais-e-mundo.md#tiles-buffs-boss-bars-and-recipes)
+changes every bar, the game's included.
 
 The Example Mod's Eye of ??? uses `ExampleBossBar`: the head icon for the
 current phase and, as a shield, what is left until the 2nd phase.

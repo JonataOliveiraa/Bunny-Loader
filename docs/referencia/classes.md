@@ -541,12 +541,12 @@ boss icon. See [guide 7](../mods/07-npcs.md#custom-bar-modbossbar).
 |---|---|---|
 | `GetIconTexture(iconFrame)` | The icon (`Asset<Texture2D>` or `Texture2D`); `iconFrame` (`Ref`) crops it. `null`: the game's "?". | |
 | `ModifyInfo(info, life, lifeMax, shield, shieldMax)` | `null`: the NPC's life; `true`: the values given (`Ref`); `false`: no bar (the game looks for another). `info.npcIndexToAimAt` changes the NPC. | `BigProgressBarSystem.Update` (in `Main.UpdateUIStates`) |
-| `PreDraw(spriteBatch, npc, drawParams)`, `PostDraw(...)` | `drawParams`: `{ IconTexture, IconFrame, Life, LifeMax, Shield, ShieldMax }`; `false` removes the game's drawing. | `BigProgressBarSystem.Draw` → `BigProgressBarHelper.DrawFancyBar` |
+| `PreDraw(spriteBatch, npc, drawParams)`, `PostDraw(...)` | `drawParams`: tModLoader's `BossBarDrawParams` (see [`GlobalBossBar`](#globalbossbar)); `false` removes the game's drawing. | `BigProgressBarSystem.Draw` → `BigProgressBarHelper.DrawFancyBar` |
 | `Life`, `LifeMax`, `Shield`, `ShieldMax` | The last frame's values. | |
 | `SetStaticDefaults()` | On registration. | |
 
-No `ModBossBarStyle` and no `GlobalBossBar`; the bar's position and scale are
-the game's.
+No `ModBossBarStyle`. Every bar, the game's included, also goes through the
+[`GlobalBossBar`](#globalbossbar)s: theirs first, then the bar's own.
 
 ## ModPlayer
 
@@ -656,6 +656,7 @@ methods receive the player or the NPC and the buff's position in its list.
 | `CanRemove(player, time, i, debuff)` | On tapping the icon: `true`/`false` decides; `null`, the game. | `GUIBuffs.RemoveBuff` |
 | `OnRemove(player, time, i)` | After being removed by the tap. | same |
 | `ModifyBuffText(buffName, tip, rare)` | The buff's name and tip in the bar (three `Ref`s; `rare` does not change the color on mobile). | `Lang.GetBuffName` (drawn by `GUIBuffs.Draw`) and `Main.GetBuffTooltip` (`GUIBuffs.ChangeBuffString`), `type` filter |
+| `PreDraw(spriteBatch, buffIndex, drawParams)`, `PostDraw(...)` | The icon in the buff bar. `drawParams`: see [`GlobalBuff`](#globalbuff); `false` hides the icon. | `GUIBuffs.ItemDraw` |
 
 ### Statics
 
@@ -663,7 +664,7 @@ methods receive the player or the NPC and the buff's position in its list.
 
 ### Not yet
 
-`PreDraw`/`PostDraw` of the icon, `RightClick`.
+`RightClick` (`CanRemove` does the same).
 
 ---
 
@@ -1190,8 +1191,9 @@ failures. The optional returns, the order with `ModProjectile` and
 ### Not yet
 
 `GlobalItem`'s `NetSend`/`NetReceive`, per-entity `SaveData`/`LoadData`,
-`GlobalTile`, `GlobalBuff`; on `GlobalNPC`, `UpdateLifeRegen`, the town NPC
-attacks and the chat buttons.
+`GlobalWall`; on `GlobalNPC`, `UpdateLifeRegen`, the town NPC attacks and the
+chat buttons. For tiles, buffs, boss bars and recipes, see
+[the type-wide Globals](#globaltile-globalbuff-globalbossbar-and-globalrecipe).
 
 ---
 
@@ -1213,6 +1215,80 @@ ExMod's way: `class X extends GlobalLoot { ModifyGlobalLoot() {...} }` and
 
 `NPCLoot` (the one from `ModifyNPCLoot`) has `Add`, `Remove`, `Get()` and
 `RemoveWhere`, the same.
+
+---
+
+## GlobalTile, GlobalBuff, GlobalBossBar and GlobalRecipe
+
+Code for **every** tile, buff, boss bar or recipe, the game's included. There
+is no per-entity copy: one instance per class, and the methods receive the
+type. A method no Global writes installs no hook. `SetStaticDefaults()` and
+`PostSetupContent()` run once, with content ready. See
+[guide 12](../mods/12-globais-e-mundo.md#tiles-buffs-boss-bars-and-recipes).
+
+### GlobalTile
+
+`ref` parameters arrive as `Ref`. They have no native type filter: the
+per-frame-per-cell methods (drawing, light, `NearbyEffects`, `TileFrame`) were
+left out, since on mobile they would enter JS for every tile on screen.
+
+| Method | When it runs | Behind it |
+|---|---|---|
+| `SetStaticDefaults()` | With `TileObjectData` unlocked: changing a vanilla tile's shape or anchors works here. | |
+| `PostSetupTileMerge()` | Once, after setup (`Main.tileMerge`). | |
+| `CanKillTile(i, j, type, blockDamaged)` | `false`: the tile does not break. | `WorldGen.CanKillTile` |
+| `KillTile(i, j, type, fail, effectOnly, noItem)` | Before breaking (the three are `Ref`). | `WorldGen.KillTile` |
+| `NumDust(i, j, type, fail, num)` | How many particles (`num`, `Ref`; only lowers it). | `WorldGen.KillTile` |
+| `CreateDust(i, j, type, dustType)` | Each particle, after the game picks it: `dustType` (`Ref`) swaps it; `false` removes it. | `WorldGen.KillTile_MakeTileDust` |
+| `KillSound(i, j, type, fail)` | `false`: no sound. | `WorldGen.KillTile_PlaySounds` |
+| `CanDrop(i, j, type)`, `Drop(i, j, type)` | `false`: the block drops nothing; `Drop` comes after its items. Vanilla multi-cell objects drop through their own code. | `WorldGen.KillTile_DropItems` |
+| `CanPlace(i, j, type)` | `false`: the player does not place it. | `Player.PlaceThing_Tiles_BlockPlacementForAssortedThings` |
+| `PlaceInWorld(i, j, type, item)` | After the player places it. | `TileObjectData.CallPostPlacementPlayerHook`, `WorldGen.PlaceTile` |
+| `CanExplode(i, j, type)` | `false`: a projectile's explosion spares it. | `Projectile.CanExplodeTile` |
+| `Slope(i, j, type)` | `false`: the player's hammer leaves it as it is. | `WorldGen.SlopeTile`/`PoundTile` inside `ItemCheck_UseMiningTools_TryPoundingTile` |
+| `RandomUpdate(i, j, type, underground)` | Each tile the world update picks (hundreds per frame). | `WorldGen.UpdateWorld_OvergroundTile`/`UndergroundTile` |
+| `PreHitWire(i, j, type)`, `HitWire(i, j, type)` | A wire signal; `false` stops it (the game's and `HitWire`). | `Wiring.HitWireSingle` |
+| `RightClick(i, j, type)`, `MouseOver(...)`, `MouseOverFar(...)` | The tap on a tile, the tile under the cursor (near and far). | `Player.TileInteractionsUse`/`MouseOver`/`CheckLongDistance` |
+| `AnimateTile()` | Once per frame. | `Main.AnimateTiles` |
+| `AdjTiles(type)` | The types a tile of `type` counts as near the player (crafting stations). Asked once per type. On mobile the game only checks with the inventory open. | `Player.AdjTiles` |
+| `PreShakeTree(x, y, treeType)`, `ShakeTree(x, y, treeType)` | Shaking a tree (`TreeTypes`): `PreShakeTree` before the drops; `ShakeTree` returning `true` means it dropped the main item. | `WorldGen.ShakeTree` |
+
+### GlobalBuff
+
+| Method | When it runs | Behind it |
+|---|---|---|
+| `UpdatePlayer(type, player, buffIndex)`, `UpdateNPC(type, npc, buffIndex)` | Every frame, each active buff (tModLoader's two `Update`). `buffIndex` is `Ref`: whoever removes the buff lowers it by 1. | `Player.UpdateBuffs`, `NPC.UpdateNPC_BuffSetFlags` |
+| `ReApplyPlayer(type, player, time, buffIndex)`, `ReApplyNPC(...)` | The buff was there and got another `AddBuff`. `true`: the game does not renew the time (as in tModLoader; `ModBuff`'s is the other way round). | `Player.AddBuff_TryUpdatingExistingBuffTime`, `NPC.AddBuff` |
+| `ModifyBuffText(type, buffName, tip, rare)` | After the `ModBuff`'s own. | `Lang.GetBuffName`, `Main.GetBuffTooltip` |
+| `PreDraw(spriteBatch, type, buffIndex, drawParams)`, `PostDraw(...)` | The icon. `drawParams`: `{ Texture, Position, TextPosition, SourceRectangle, MouseRectangle, DrawColor }`; what changes applies to the drawing. `false` hides it; `PostDraw` runs anyway. | `GUIBuffs.ItemDraw` |
+| `RightClick(type, buffIndex)` | The tap that cancels the buff; `false` keeps it. | `GUIBuffs.RemoveBuff` |
+
+### GlobalBossBar
+
+| Method | When it runs |
+|---|---|
+| `PreDraw(spriteBatch, npc, drawParams)` | Before each bar. `false`: no bar (`PostDraw` runs anyway). |
+| `PostDraw(spriteBatch, npc, drawParams)` | After. |
+
+`drawParams` is tModLoader's `BossBarDrawParams`: `BarTexture`, `BarCenter`,
+`BarColor`, `IconTexture`, `IconFrame`, `IconColor`, `Life`, `LifeMax`,
+`Shield`, `ShieldMax`, `IconScale`, `ShowText`, `TextOffset`. On a
+`ModBossBar` everything applies. The game's bars on mobile follow its own
+layout (under the minimap, `GUIBossBar.Draw`): `BarCenter` says where the bar
+is but changing it does not move it, `IconScale` and `TextOffset` do not
+apply, and `BarTexture` is `null`.
+
+### GlobalRecipe
+
+tModLoader 1.4 dropped this class in favor of each recipe's conditions and
+callbacks (which [`ModRecipe`](#modrecipe) has); the Bunny Loader keeps its
+three hooks, for every recipe.
+
+| Method | When it runs | Behind it |
+|---|---|---|
+| `RecipeAvailable(recipe)` | `false`: the recipe leaves the crafting menu (the Guide still shows it). | `Recipe.FindRecipes` |
+| `ConsumeItem(recipe, type, amount)` | Each ingredient on each craft: `amount` (`Ref`) is how much is spent, already with the Alchemy Table discount. Never more than the player has. | `Recipe.GetIngredientCraftingDiscount` |
+| `OnCraft(item, recipe)` | The crafted item, before it goes to the cursor or the inventory. | `Main.CraftItem_GrantItem` |
 
 ---
 
@@ -1644,12 +1720,33 @@ of that name (two: ask with `'mod/Name'`).
 | `AddTile(type)` | The station (one per recipe). |
 | `SetProperty(name, value)` | `needWater`, `needLava`, `needHoney`, `needSnowBiome`, `needGraveyardBiome`, `needTorchGodsFavor`, `needMechdusa`, `notDecraftable`, `crimson`, `corruption`, `alchemy`. |
 | `AddCustomShimmerResult(type, n)` | What comes out in Shimmer. |
+| `AddCondition(condition)`, `AddCondition(description, () => bool)` | A [`Condition`](#condition): outside it, the recipe leaves the crafting menu. |
+| `RemoveCondition(condition)` | Takes one out (`true` if it was there). |
+| `AddConsumeIngredientCallback((recipe, type, amount, isDecrafting) => ...)` | How much of each ingredient is spent (`amount` is `Ref`; `0`: not spent). `AddConsumeItemCallback` is the old name. |
+| `AddOnCraftCallback((recipe, item, consumedItems, destinationStack) => ...)` | After crafting. On mobile `consumedItems` and `destinationStack` arrive `null`. |
 | `Register()` | Puts it into the game. |
 | `ModRecipe.CreateRecipeGroup(name, types)` | A new group (in `AddRecipeGroups`). |
 | `ModRecipe.GetGroup(x)` | A group by object, name or number. |
 
-**Not yet**: `AddCondition` (tModLoader's conditions) and mod crafting
-stations.
+**Not yet**: shimmer conditions (`AddDecraftCondition`), `Clone`,
+`RemoveIngredient` and showing the conditions in the crafting menu.
+
+### Condition
+
+tModLoader's `Condition`: `new Condition(description, () => bool)`.
+`description` is a text key (`'Conditions.LowHealth'` of the mod itself, a
+full `Mods....` key, one of the game's) or the text itself. `IsMet()`,
+`Description` (the text in the current language) and `DescriptionKey`.
+
+The ready ones: `NearWater`, `NearLava`, `NearHoney`, `TimeDay`, `TimeNight`,
+the `In<Biome>` ones (`InDesert`, `InBeach`, `InSnow`, `InJungle`, `InHallow`,
+`InCorrupt`, `InCrimson`, `InDungeon`, `InGraveyard`...), the heights
+(`InSkyHeight`, `InUnderworldHeight`...), `InClassicMode`, `InExpertMode`,
+`InMasterMode`, `InJourneyMode`, `Hardmode`, `PreHardmode`, `SmashedShadowOrb`,
+`CrimsonWorld`, `CorruptWorld` and the special seeds (`DrunkWorld`,
+`RemixWorld`, `NotTheBeesWorld`, `ForTheWorthyWorld`, `TenthAnniversaryWorld`,
+`DontStarveWorld`, `NoTrapsWorld`, `ZenithWorld`). `NearShimmer` does not exist
+on mobile.
 
 ---
 

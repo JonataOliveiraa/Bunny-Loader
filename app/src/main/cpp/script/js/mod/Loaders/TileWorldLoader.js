@@ -114,15 +114,19 @@ class TileWorldLoader {
                 return r;
             }, { minType: FIRST_TILE, arg: 2, marks: 'tile.place' });
 
-        const placing = Terraria.Player['void PlaceThing_Tiles(bool doPlacementAction)'];
-        placing.hook((original, self, doPlacementAction) => original(self, doPlacementAction));
-
         Terraria.WorldGen['bool PlaceTile(int i, int j, int Type, bool mute, bool forced, int plr, int style)'].hook(
             (original, i, j, type, mute, forced, plr, style) => {
                 const ok = original(i, j, type, mute, forced, plr, style);
                 if (ok && !TileLoader.HasObjectData(type)) placed(i, j, type);
                 return ok;
-            }, { minType: FIRST_TILE, arg: 2, marks: 'tile.place', whileIn: placing });
+            }, { minType: FIRST_TILE, arg: 2, marks: 'tile.place', whileIn: TileWorldLoader.PlacingGate() });
+    }
+
+    // O jogador colocando: o escopo nativo do PlaceThing_Tiles (sem JS), para o whileIn.
+    static PlacingGate() {
+        const placing = Terraria.Player['void PlaceThing_Tiles(bool doPlacementAction)'];
+        Hooks.Once('tile.placing', () => placing.scope());
+        return placing;
     }
 
     // O martelo: Slope devolvendo false deixa o tile como está (a armadilha gira).

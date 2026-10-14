@@ -7,6 +7,9 @@ class ModRecipe {
         this.ingredients = 0;
         this.craftingStation = -1;
         this.customShimmerResults = [];
+        this.conditions = [];
+        this.consumeCallbacks = [];
+        this.craftCallbacks = [];
     }
 
     SetResult(type, stack = 1) {
@@ -66,6 +69,37 @@ class ModRecipe {
         return this;
     }
 
+    // Uma Condition, ou (descrição, () => bool) como no tModLoader. Fora dela,
+    // a receita sai do menu de criação.
+    AddCondition(condition, predicate) {
+        this.conditions.push(condition instanceof Condition ? condition : new Condition(condition, predicate));
+        return this;
+    }
+
+    RemoveCondition(condition) {
+        const i = this.conditions.indexOf(condition);
+        if (i >= 0) this.conditions.splice(i, 1);
+        return i >= 0;
+    }
+
+    // (recipe, type, amount, isDecrafting): amount é Ref, quanto sai do
+    // ingrediente `type` a cada criação (0: não sai).
+    AddConsumeIngredientCallback(callback) {
+        if (typeof callback !== 'function') throw new TypeError('AddConsumeIngredientCallback(callback): pass a function');
+        this.consumeCallbacks.push(callback);
+        return this;
+    }
+
+    AddConsumeItemCallback(callback) { return this.AddConsumeIngredientCallback(callback); }
+
+    // (recipe, item, consumedItems, destinationStack), antes de o item ir para
+    // o cursor ou o inventário. O celular não dá consumedItems nem destinationStack (null).
+    AddOnCraftCallback(callback) {
+        if (typeof callback !== 'function') throw new TypeError('AddOnCraftCallback(callback): pass a function');
+        this.craftCallbacks.push(callback);
+        return this;
+    }
+
     SetProperty(name, value) {
         this.recipe[name] = value;
         return this;
@@ -79,7 +113,7 @@ class ModRecipe {
         if (index >= Main.recipe.length) Main.recipe = Main.recipe.cloneResized(index + 1);
 
         Terraria.Recipe['void AddRecipe()']();
-        RecipeLoader.Added(index, this.craftingStation);
+        RecipeLoader.Added(index, this.craftingStation, this);
     }
 
     // Objeto, nome de um do jogo ('IronBar'), nome de um criado aqui, ou o número.

@@ -1,0 +1,15 @@
+{
+  "uid": "03c83ca2-22ea-49ba-b92e-2b7058d72cc0",
+  "id": "test-exmodglobals",
+  "name": "Teste: Global do Example Mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Os exemplos de GlobalTile, GlobalBuff, GlobalBossBar e GlobalRecipe do Example Mod carregam e fazem efeito (girassol, receitas com condição, tempo restante na dica); deixa o Olho de Cthulhu e a Fogueira na tela para a captura.",
+  "description": "Loga 'exmodglobals ...'. Precisa do Example Mod ligado.",
+  "updated": "2026-10-14",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

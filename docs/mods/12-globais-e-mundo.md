@@ -8,6 +8,8 @@ multiplayer:
 - `GlobalItem`, `GlobalNPC`, `GlobalProjectile`: code that runs for the
   **vanilla** items, NPCs and projectiles (and the mod ones), like making the
   copper sword stronger or making every slime drop extra gel;
+- `GlobalTile`, `GlobalBuff`, `GlobalBossBar`, `GlobalRecipe`: the same for
+  every tile, buff, boss bar and recipe;
 - **drops**: changing a vanilla NPC's table, or adding a rule that applies to
   all of them;
 - `ModSystem`: what belongs to the whole mod, and the world cycle (load, save,
@@ -293,6 +295,67 @@ The combination rules were checked against
 [tModLoader's ProjectileLoader](https://github.com/tModLoader/tModLoader/blob/stable/patches/tModLoader/Terraria/ModLoader/ProjectileLoader.cs).
 The adapted signatures are in the [GlobalProjectile reference](../referencia/classes.md#globalprojectile).
 
+## Tiles, buffs, boss bars and recipes
+
+`GlobalTile`, `GlobalBuff`, `GlobalBossBar` and `GlobalRecipe` work like the
+other Globals, but with **one instance per class** and no `AppliesToEntity`:
+the methods receive the type, and the code picks by it. The full list is in
+the [reference](../referencia/classes.md#globaltile-globalbuff-globalbossbar-and-globalrecipe).
+
+```js
+const { TileID, BuffID, ItemID } = Terraria.ID;
+
+export class SturdyGlass extends GlobalTile {
+    // Glass does not break, and explosions spare it.
+    CanKillTile(i, j, type, blockDamaged) { return type !== TileID.Glass; }
+    CanExplode(i, j, type) { return type !== TileID.Glass; }
+}
+
+export class ShortChill extends GlobalBuff {
+    // With more than 5 buffs, Chilled lasts at most 3 seconds.
+    UpdatePlayer(type, player, buffIndex) {
+        if (type === BuffID.Chilled && buffIndex.value >= 5) {
+            player.buffTime[buffIndex.value] = Math.min(player.buffTime[buffIndex.value], 180);
+        }
+    }
+}
+
+export class NoTorchesAtNight extends GlobalRecipe {
+    RecipeAvailable(recipe) {
+        return Terraria.Main.dayTime || recipe.createItem.type !== ItemID.Torch;
+    }
+}
+```
+
+The cost depends on the method: `CanKillTile`, `KillTile`, `ReApplyPlayer`,
+`OnCraft` and the like run on an event; `RandomUpdate` enters JS for every tile
+the world update picks (hundreds per frame), `UpdateNPC` for every NPC every
+frame, and `RecipeAvailable` for every recipe the crafting menu would show,
+each time it is rebuilt. Methods that would run per tile on screen every frame
+(drawing, light) do not exist on `GlobalTile`.
+
+On a single recipe, tModLoader 1.4's way: `AddCondition` with a
+[`Condition`](../referencia/classes.md#condition), and the callbacks.
+
+```js
+new ModRecipe()
+    .SetResult(ItemID.AlphabetStatueJ)
+    .AddIngredient(ItemID.StoneBlock, 10)
+    .AddIngredient(ItemID.Chain)
+    .AddCondition(Condition.TimeNight)
+    .AddCondition('Conditions.LowHealth', () => player.statLife < player.statLifeMax / 2)
+    .AddConsumeIngredientCallback((recipe, type, amount) => { if (type === ItemID.Chain) amount.value = 0; })
+    .AddOnCraftCallback((recipe, item) => { /* after crafting */ })
+    .Register();
+```
+
+The Example Mod has one of each: `Common/GlobalTiles/ShakeTrees.js` (what
+falls when shaking a tree) and `SunflowerChanges.js` (the Sunflower grows on
+the Example Block), `Common/GlobalBuffs/ExampleGlobalBuff.js` (remaining time
+in every tip, the Campfire icon shaking), `Common/GlobalBossBars/ExampleGlobalBossBar.js`
+(the Eye of Cthulhu's bar), `Common/GlobalRecipes/ExampleGlobalRecipe.js`, and
+the conditions and callbacks in `Content/ExampleRecipes.js`.
+
 ## Drops
 
 A vanilla NPC's drop table changes in a `GlobalNPC`'s `ModifyNPCLoot`. It runs
@@ -518,7 +581,9 @@ syncs carries one more packet. Keep what goes over the network small.
 - `GlobalItem`'s `NetSend`/`NetReceive` (items on the ground and in the
   inventory);
 - per-entity `SaveData`/`LoadData` (of an item or a town NPC);
-- `GlobalTile`, `GlobalBuff`, `GlobalWall`;
+- `GlobalWall`; on `GlobalTile`, the drawing and light methods,
+  `NearbyEffects`, `TileFrame`, `CanReplace`/`ReplaceTile` and the
+  spelunker/danger ones;
 - on `GlobalNPC`: `UpdateLifeRegen`, `SaveData`/`LoadData`, the town NPC
   attacks (`TownNPCAttack*`) and the chat buttons;
 - on `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, the separate

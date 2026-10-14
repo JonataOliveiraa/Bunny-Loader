@@ -26,6 +26,9 @@ class ModBuff {
     // O nome e a dica do buff tocado na barra (buffName, tip e rare são Ref;
     // o rare não muda a cor no celular).
     ModifyBuffText(buffName, tip, rare) {}
+    // O ícone na barra de buffs (drawParams: ver GlobalBuff.PreDraw). false: sem o ícone.
+    PreDraw(spriteBatch, buffIndex, drawParams) { return true; }
+    PostDraw(spriteBatch, buffIndex, drawParams) {}
 
     static register(cls) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof ModBuff)) {

@@ -212,7 +212,8 @@
     "RemainingTime": "Tempo restante: {0}",
     "RandomBuff": "O botão de toque do ExampleMod foi apertado. O jogador ganhou o buff {0}.",
     "LearningExampleHeld": "LearningExample segurado por meio segundo",
-    "LearningExampleDoubleTap": "LearningExample tocado duas vezes em um quarto de segundo"
+    "LearningExampleDoubleTap": "LearningExample tocado duas vezes em um quarto de segundo",
+    "CannotCancel": "Você precisa estar em movimento para cancelar este buff!"
   },
   "NPCChat": {
     "ExamplePerson_1": "Olá, como vai?",
@@ -442,5 +443,8 @@
     "LearningExample": {
       "DisplayName": "Exemplo de Aprendizado"
     }
+  },
+  "Conditions": {
+    "LowHealth": "Com menos da metade da vida"
   }
 }
