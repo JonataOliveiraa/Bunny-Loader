@@ -350,6 +350,7 @@ export class ExampleLoot extends GlobalLoot {
 
 | Method | When it runs |
 |---|---|
+| `Load()` | On registration, once, right before `OnModLoad` (as in tModLoader: register touch buttons here). |
 | `OnModLoad()` | On registration, once. |
 | `ClearWorld()` | On entering any world, before loading it (and before generating one). |
 | `OnWorldLoad()` | The world opened. On a multiplayer client, when the world arrives from the server. |

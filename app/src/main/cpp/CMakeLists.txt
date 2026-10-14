@@ -63,6 +63,7 @@ set(BL_MOD_CLASSES_PARTS
     TagCompound GenPass Loaders/SystemUpdateHooks Loaders/SystemDrawHooks Loaders/SystemWorldHooks Loaders/SystemNetworkHooks Loaders/SystemLoader ModSystem
     Loaders/CombatLoader Loaders/PvpItemNetwork Loaders/PlayerItemHooks Loaders/ItemCombatHooks Loaders/ItemUseHooks Loaders/ItemHealingHooks Loaders/PlayerUpdateHooks Loaders/PlayerJumpHooks
     Loaders/PlayerDrawHooks Loaders/PlayerWorldHooks Loaders/PlayerNetworkHooks Loaders/PlayerLoader ModPlayer
+    Loaders/TouchButtonLayouts Loaders/TouchButtonHooks Loaders/TouchButtonLoader ModTouchButton Loaders/KeybindLoader
     Loaders/BackgroundTextureLoader Loaders/SurfaceBackgroundLoader Loaders/UndergroundBackgroundLoader
     ModSurfaceBackgroundStyle ModUndergroundBackgroundStyle
     Loaders/WaterfallStyleLoader Loaders/WaterStyleLoader ModWaterfallStyle ModWaterStyle

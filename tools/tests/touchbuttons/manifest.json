@@ -1,0 +1,13 @@
+{
+  "uid": "f4e11b9f-b79a-4e71-9a89-34ab572dace5",
+  "id": "test-touchbuttons",
+  "name": "Teste: botões de toque de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "TouchButtonLoader.RegisterButton e KeybindLoader.RegisterKeybind: as ações de mod entram nas listas do jogo, o botão vai para um espaço do layout ativo e o toque vira JustPressed/Current/JustReleased no ProcessTriggers.",
+  "description": "Loga 'touchbuttons ...'. 'SHOT bound': o botão no lugar do espaço trocado (o 'espaço' do log). Segurar o botão loga Current; ao final o espaço volta à ação do jogo.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

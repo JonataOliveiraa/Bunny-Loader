@@ -29,6 +29,7 @@ reading order.
 15. [Damage classes](mods/15-classes-de-dano.md)
 16. [Hits](mods/16-golpes.md)
 17. [Screen effects](mods/17-efeitos-de-tela.md)
+18. [Touch buttons](mods/18-botoes-de-toque.md)
 
 [Texture packs](mods/14-pacotes-de-textura.md): replacing sprites with PNGs, no scripts.
 

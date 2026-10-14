@@ -61,6 +61,7 @@ Read them in order; each one builds on the previous.
 | [15. Damage classes](15-classes-de-dano.md) | `DamageClass`: a weapon's class, per-class bonuses on the player and new classes. |
 | [16. Hits](16-golpes.md) | `CanHit`, `ModifyHit` and `OnHit` for items, projectiles, NPCs and players (also in the Globals); `HitModifiers` and `HurtModifiers`. |
 | [17. Screen effects](17-efeitos-de-tela.md) | Post-processing between the world and the interface: the 18 presets, `ModScreenEffect` with your own GLSL (`.frag`), multi-pass drawing, distortion, masks, LUT grading, `/fx` and hot reload. |
+| [18. Touch buttons](18-botoes-de-toque.md) | `ModTouchButton`: your own buttons in the game's controls editor, read with `JustPressed`/`Current`/`JustReleased` (tModLoader's `ModKeybind`). |
 | **Between mods** | |
 | [11. Talking between mods](11-conversa-entre-mods.md) | Finding another mod and calling what it offers (`ModLoader.TryGetMod` + `Call`). |
 | [12. Globals and the world](12-globais-e-mundo.md) | Changing what the game already has (`GlobalItem`, `GlobalNPC`, `GlobalProjectile`), drops, and `ModSystem` with world data. |

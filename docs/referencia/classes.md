@@ -39,6 +39,7 @@ others extend); each one's `register` is for registering by hand, in the mod's
 | [`ModBuff`](#modbuff) | A new buff or debuff. | [8](../mods/08-jogador-e-buffs.md) |
 | [`ModMount`](#modmount) | A new mount (car, minecart). | — |
 | [`ModCommand`](#modcommand) | A chat command (`/name args`). | — |
+| [`ModTouchButton`](#modtouchbutton) | A button of your own in the game's touch controls (tModLoader's `ModKeybind`). | [18](../mods/18-botoes-de-toque.md) |
 | [`ModHair`](#modhair) | A new hairstyle (character creation and the Stylist). | — |
 | [`ModCloud`](#modcloud) | A new cloud in the sky (common or rare). | — |
 | [`ModEmoteBubble`](#modemotebubble) | A new emote (bubble and emote menu). | — |
@@ -737,6 +738,30 @@ with the slash, and the mod's runs in its place.
 
 `/mod:name` picks the mod when two have the same name. The game's `/help`
 lists the mod ones at the end.
+
+---
+
+## ModTouchButton
+
+A mod action in the game's touch controls, placed by the player in the
+controls editor like Jump or Heal: tModLoader's `ModKeybind` (which is an
+alias of this class). Created by
+`TouchButtonLoader.RegisterButton(mod, name, options)` in `Load()`, or by
+`KeybindLoader.RegisterKeybind(mod, name, defaultKey)` (the key is ignored).
+
+| | |
+|---|---|
+| `JustPressed`, `Current`, `JustReleased`, `Old` | The state in the current update. Read them in `ModPlayer.ProcessTriggers`. |
+| `RetroCurrent` | `Current`, false with the chat, a conversation or a sign open. |
+| `IsBound` | Whether it is in the layout in use. |
+| `Mod`, `Name`, `FullName` | `FullName` is `'modid/Name'`, the saved name. |
+| `DisplayName` | `{ Key, Value }`, from `TouchButtons.<Name>.DisplayName` (or `Keybinds.`). |
+| `GetAssignedKeys()` | The button's name when it is in the layout, or `[]`. |
+
+The options (`icon`, `label`, `visible`, `enabled`, `onPress`) and what the
+player sees are in [guide 18](../mods/18-botoes-de-toque.md). Cost: while some
+mod has a button, the controls' `Update` and `Draw` enter JS every frame; the
+drawing and editor hooks only enter for mod actions (native filter).
 
 ---
 
@@ -1850,6 +1875,6 @@ tModLoader classes with no equivalent today. You can get the effect with
 direct hooks ([guide 1](../mods/01-hooks-do-zero.md)), but with no shortcut:
 
 - `GlobalTile`, `GlobalBuff`, `GlobalWall`;
-- `ModDust` and `ModKeybind`;
+- `ModDust`;
 - custom UI (`UIState`, `ModifyInterfaceLayers`);
 - `ModTree`, `ModPalmTree`, `ModCactus` and pylons (`ModPylon`).

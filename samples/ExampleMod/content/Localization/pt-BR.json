@@ -209,7 +209,10 @@
   "CustomText": {
     "WelcomeMessage": "Bem-vindo(a) a {WorldName}!",
     "BasicTileEntityStatus": "Cheio: {0}%",
-    "RemainingTime": "Tempo restante: {0}"
+    "RemainingTime": "Tempo restante: {0}",
+    "RandomBuff": "O botão de toque do ExampleMod foi apertado. O jogador ganhou o buff {0}.",
+    "LearningExampleHeld": "LearningExample segurado por meio segundo",
+    "LearningExampleDoubleTap": "LearningExample tocado duas vezes em um quarto de segundo"
   },
   "NPCChat": {
     "ExamplePerson_1": "Olá, como vai?",
@@ -430,6 +433,14 @@
       "PetDistance": {
         "Label": "Distância dos pets"
       }
+    }
+  },
+  "TouchButtons": {
+    "RandomBuff": {
+      "DisplayName": "Buff Aleatório"
+    },
+    "LearningExample": {
+      "DisplayName": "Exemplo de Aprendizado"
     }
   }
 }
