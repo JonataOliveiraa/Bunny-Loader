@@ -217,7 +217,7 @@ class ModNPC {
                 ModLocalization.Register('TownNPCMood_' + searchName + 'Transformed.' + key, texts);
             }
 
-            if (!inst.HideFromBestiary) Safe.Run(name + '.SetBestiary', () => BestiaryLoader.Register(inst, townNpc));
+            Safe.Run(name + '.SetBestiary', () => BestiaryLoader.Register(inst, townNpc));
             if (Hooks.Overrides(cls, ModNPC, 'AddShops')) Safe.Run(name + '.AddShops', () => inst.AddShops());
             if (townNpc) Safe.Run(name + ' (perfil de morador)', () => TownNPCLoader.SetupLooks(inst, looks));
             if (Hooks.Overrides(cls, ModNPC, 'TownNPCProfile')) {

@@ -3,10 +3,19 @@ class BestiaryLoader {
     static #finished = false;
 
     // O jogo já criou uma entrada genérica para cada NPC das amostras: sem
-    // tirar, ficavam duas.
+    // tirar, ficavam duas. Com HideFromBestiary, ou Hide no
+    // NPCBestiaryDrawModifiers (corpo e cauda de serpente), a genérica sai e
+    // não entra outra, como no jogo (GetExclusions).
     static Register(inst, townNpc) {
         const { BestiaryEntry } = Terraria.GameContent.Bestiary;
         const type = inst.Type;
+        const db = Terraria.Main.BestiaryDB;
+        const generic = db['BestiaryEntry FindEntryByNPCID(int npcNetId)'](type);
+        if (generic && db.Entries.Contains(generic)) db.Entries.Remove(generic);
+        if (inst.HideFromBestiary || BestiaryLoader.#Hidden(type)) {
+            BestiaryLoader.#added++;
+            return;
+        }
 
         // O retrato lê as estrelas quando a entrada nasce (BestiaryEntry.Enemy...).
         const stars = inst.BestiaryRarityStars | 0;
@@ -16,10 +25,6 @@ class BestiaryLoader {
         if (townNpc) entry = BestiaryEntry.TownNPC(type);
         else if (Terraria.ID.NPCID.Sets.CountsAsCritter[type]) entry = BestiaryEntry.Critter(type);
         else entry = BestiaryEntry.Enemy(type);
-
-        const db = Terraria.Main.BestiaryDB;
-        const generic = db['BestiaryEntry FindEntryByNPCID(int npcNetId)'](type);
-        if (generic && db.Entries.Contains(generic)) db.Entries.Remove(generic);
 
         // Os biomas de mod do SpawnModBiomes, antes do SetBestiary, como o
         // tModLoader. O SetDefaults o escreve na cópia de cada NPC: vale o da
@@ -34,6 +39,11 @@ class BestiaryLoader {
         db['BestiaryEntry Register(BestiaryEntry entry)'](entry);
         db['void ExtractDropsForNPC(ItemDropDatabase dropsDatabase, int npcId)'](Terraria.Main.ItemDropsDB, type);
         BestiaryLoader.#added++;
+    }
+
+    static #Hidden(type) {
+        const drawn = Terraria.ID.NPCID.Sets.NPCBestiaryDrawOffset;
+        return drawn.ContainsKey(type) && !!drawn.get_Item(type).Hide;
     }
 
     // A imagem própria da entrada, no lugar do NPC desenhado: a lista e o

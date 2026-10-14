@@ -1,0 +1,13 @@
+{
+  "uid": "a52d1837-abc8-462b-8bc1-69bfa208f36c",
+  "id": "test-bestiaryhide",
+  "name": "Teste: NPC escondido do Bestiário",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Hide no NPCBestiaryDrawModifiers e HideFromBestiary tiram o NPC do Bestiário: sem a entrada genérica do jogo (a silhueta preta com o número repetido).",
+  "description": "Loga 'bestiaryhide ...'.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}
