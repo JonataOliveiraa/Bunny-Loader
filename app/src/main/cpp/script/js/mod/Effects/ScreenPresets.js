@@ -12,4 +12,12 @@ const ScreenPresets = Object.freeze({
     Tint,
     ColorGrade,
     Vignette,
+    Ripple,
+    ForceField,
+    ChromaticAberration,
+    Pixelate,
+    Flash,
+    Glitch,
+    ZoomBlur,
+    Lens,
 });

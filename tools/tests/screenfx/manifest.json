@@ -1,0 +1,13 @@
+{
+  "uid": "5d0c7a1e-3f62-4b8e-9a41-2c7e8f15b6d3",
+  "id": "test-screenfx",
+  "name": "Teste: prontos de efeito de tela",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Exercita os prontos Ripple, ForceField, ChromaticAberration, Pixelate, Flash, Glitch, ZoomBlur e Lens, medindo o custo de GPU de cada fase e conferindo se todos os shaders compilam.",
+  "description": "Loga 'screenfx ...'. Um print por fase ('SHOT ripple', 'SHOT puddle', 'SHOT field', 'SHOT chroma', 'SHOT chromadir', 'SHOT pixel', 'SHOT pixelfull', 'SHOT flash', 'SHOT glitch', 'SHOT zoom', 'SHOT lens').",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}
