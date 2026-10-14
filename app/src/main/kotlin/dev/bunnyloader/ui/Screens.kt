@@ -63,6 +63,7 @@ import dev.bunnyloader.game.SaveFiles
 import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.PackType
+import dev.bunnyloader.mods.compareVersions
 import dev.bunnyloader.mods.formatSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -379,21 +380,26 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
     // texto + deu certo? Uma recusa em verde de sucesso se le como sucesso.
     var aviso by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
     var asking by remember { mutableStateOf(false) }
-    var importing by remember { mutableStateOf(false) }
+    val importing = shell.importProgress != null || shell.pendingUpdate != null
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri != null) {
-            importing = true
             shell.importPackage(uri) { result ->
-                importing = false
                 aviso = result.fold(
                     onSuccess = { tr("%1\$s instalado", it.name) to true },
-                    onFailure = { tr("Não deu: %1\$s", it.message) to false },
+                    onFailure = {
+                        if (it is ImportCancelled) tr("Importação cancelada.") to true
+                        else tr("Não deu: %1\$s", it.message) to false
+                    },
                 )
             }
         }
+    }
+    shell.importProgress?.let { ImportProgressDialog(it) }
+    shell.pendingUpdate?.let { pkg ->
+        UpdateImportDialog(pkg.manifest, pkg.installed ?: pkg.manifest, shell::answerUpdate)
     }
 
     Column(Modifier.fillMaxSize()) {
@@ -419,7 +425,7 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                 for (line in listOf(
                     tr("Um mod roda código dentro do jogo: só instale pacotes de quem você confia."),
                     tr("O pacote é um .bl, .bmod ou .zip com manifest.json e a pasta content/."),
-                    tr("Se o mod já estiver instalado (o mesmo uid), a versão do arquivo substitui a atual."),
+                    tr("Se o mod já estiver instalado (o mesmo uid), o app pergunta antes de substituir."),
                 )) {
                     Row {
                         PixelText("•", size = Ts.Body, color = Bl.PressedText, modifier = Modifier.padding(end = 8.dp))
@@ -836,5 +842,41 @@ private fun Field(label: String, value: String, modifier: Modifier = Modifier) {
 private fun Empty(text: String) {
     Box(Modifier.fillMaxWidth().padding(vertical = 40.dp), contentAlignment = Alignment.Center) {
         PixelText(text, size = Ts.Body, color = Bl.TextFaint)
+    }
+}
+
+/** A janela do import: a barra e quanto já foi. Não fecha pelo toque fora. */
+@Composable
+private fun ImportProgressDialog(progress: Float) {
+    val pct = (progress.coerceIn(0f, 1f) * 100).toInt()
+    PixelDialog(tr("Importando pacote"), onDismiss = {}) {
+        Box(Modifier.fillMaxWidth().height(22.dp).pixelPanel(Bl.FrameFill, raised = false)) {
+            Box(
+                Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).height(22.dp).padding(4.dp)
+                    .background(Bl.Good),
+            )
+        }
+        PixelText(tr("%1\$s%% concluído", pct), size = Ts.Body, color = Bl.TextDim)
+    }
+}
+
+/** Um pacote de um mod que já está instalado: atualizar ou deixar como está. */
+@Composable
+private fun UpdateImportDialog(file: ModManifest, installed: ModManifest, onAnswer: (Boolean) -> Unit) {
+    PixelDialog(tr("Atualizar mod?"), onDismiss = { onAnswer(false) }) {
+        PixelText(tr("%1\$s já está instalado.", installed.name), size = Ts.Body)
+        PixelText(tr("Instalado: %1\$s · Arquivo: %2\$s", installed.version, file.version),
+            size = Ts.Small, color = Bl.TextDim)
+        val order = compareVersions(file.version, installed.version)
+        if (order == 0) {
+            PixelText(tr("É a mesma versão: atualizar reinstala o mod."), size = Ts.Small, color = Bl.TextFaint)
+        } else if (order < 0) {
+            PixelText(tr("O arquivo é mais antigo que o mod instalado."), size = Ts.Small, color = Bl.Bad)
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PixelButton(tr("Cancelar"), { onAnswer(false) }, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
+            PixelButton(tr("Atualizar"), { onAnswer(true) }, Modifier.weight(1f), fill = Bl.TitleFill,
+                fontSize = Ts.Body, shadow = false)
+        }
     }
 }

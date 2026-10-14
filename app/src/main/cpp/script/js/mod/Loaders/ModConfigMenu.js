@@ -77,6 +77,7 @@ class ModConfigMenu {
     static #CLICKED = 0;
 
     static #T = null;
+    static #back = null;
 
     // A linha "Config. dos Mods" da aba Geral (null antes da primeira vez).
     static get MenuEntry() { return ModConfigMenu.#menuEntry; }
@@ -217,6 +218,24 @@ class ModConfigMenu {
         return Terraria.Localization.Language['string GetTextValue(string key)'](key);
     }
 
+    // "Voltar" no idioma do jogo (a chave que existir); senão o nosso.
+    static #BackText() {
+        const culture = ModLocalization.ActiveCultureName || '';
+        if (ModConfigMenu.#back && ModConfigMenu.#back.culture === culture) return ModConfigMenu.#back.text;
+
+        let text = null;
+        for (const key of ['UI.Back', 'Mobile.Back', 'LegacyMenu.15']) {
+            const value = Safe.Run('ModConfigMenu: ' + key, () => ModConfigMenu.#Language(key));
+            if (typeof value === 'string' && value && value !== key) {
+                text = value;
+                break;
+            }
+        }
+        text = text || (/^pt/.test(culture) ? 'Voltar' : 'Back');
+        ModConfigMenu.#back = { culture, text };
+        return text;
+    }
+
     static #Step(L) {
         return L.Close.overloadedSize.Y + L.ButtonSpacing;
     }
@@ -331,8 +350,13 @@ class ModConfigMenu {
             if (action === 'defaults') {
                 ConfigLoader.Defaults(ModConfigMenu.#Entries(mod));
                 SoundEngine.PlaySound(ModConfigMenu.#TICK);
+            } else if (action === 'apply') {
+                // Grava e a tela fica: o rascunho recomeça do que acabou de valer.
+                ConfigLoader.Apply();
+                ConfigLoader.Begin();
+                SoundEngine.PlaySound(ModConfigMenu.#TICK);
             } else {
-                ModConfigMenu.#Close(true, action === 'apply');
+                ModConfigMenu.#Close(true);
                 return;
             }
         }
@@ -344,20 +368,22 @@ class ModConfigMenu {
         }
     }
 
-    // Descartar, Padrão e Aplicar, com os botões e os textos da tela de
+    // Descartar/Voltar, Padrão e Aplicar, com os botões e os textos da tela de
     // atribuições do teclado do jogo. Padrão volta o mod da aba ao padrão no
-    // rascunho; só o Aplicar grava.
+    // rascunho; Aplicar grava e a tela fica. O vermelho sai: "Descartar"
+    // (joga fora o que não foi aplicado) ou, sem nada pendente, "Voltar".
     static #DrawActions(T, mod) {
         const K = T.Mappings.Instance;
         const entries = mod ? ModConfigMenu.#Entries(mod) : [];
+        const pending = ConfigLoader.Pending();
         const buttons = [
-            ['discard', K.ResetSettings, 'Mobile.Discard', false],
-            ['defaults', K.Defaults, 'Mobile.Default', !entries.length || ConfigLoader.AtDefaults(entries)],
-            ['apply', K.Close, 'Mobile.ApplyChanges', !ConfigLoader.Pending()],
+            ['discard', K.ResetSettings, pending ? ModConfigMenu.#Language('Mobile.Discard') : ModConfigMenu.#BackText(), false],
+            ['defaults', K.Defaults, ModConfigMenu.#Language('Mobile.Default'), !entries.length || ConfigLoader.AtDefaults(entries)],
+            ['apply', K.Close, ModConfigMenu.#Language('Mobile.ApplyChanges'), !pending],
         ];
         let clicked = null;
         for (const [id, layout, text, disabled] of buttons) {
-            const state = Number(T.Button[ModConfigMenu.#DRAW](layout, null, ModConfigMenu.#Language(text), disabled,
+            const state = Number(T.Button[ModConfigMenu.#DRAW](layout, null, text, disabled,
                 ModConfigMenu.#scales[id], false, ModConfigMenu.#Focus(), false, false));
             if (state === ModConfigMenu.#CLICKED && !disabled) clicked = id;
         }

@@ -4,19 +4,19 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class ModOrderTest {
-    @Test fun activationAppendsToEnabledGroupAndKeepsOtherRelativePositions() {
+    @Test fun activationMovesThePackageToTheTopAndKeepsOtherRelativePositions() {
         val order = listOf("b", "a", "d", "c", "e")
         val activated = ModOrder.activate(order, "c", setOf("a", "b"))
-        assertEquals(listOf("b", "a", "c", "d", "e"), activated)
+        assertEquals(listOf("c", "b", "a", "d", "e"), activated)
         assertEquals(activated, ModOrder.resolve(order.reversed(), activated, setOf("a", "b", "c")))
     }
 
-    @Test fun reactivationAppendsAfterTheOtherEnabledPackages() {
+    @Test fun reactivationGoesAboveTheOtherEnabledPackages() {
         val installed = listOf("a", "b", "c", "d")
         val remaining = setOf("a", "c")
         val disabled = ModOrder.resolve(installed, installed, remaining)
         val activated = ModOrder.activate(disabled, "b", remaining)
-        assertEquals(listOf("a", "c", "b", "d"), activated)
+        assertEquals(listOf("b", "a", "c", "d"), activated)
         assertEquals(activated, ModOrder.resolve(installed, activated, remaining + "b"))
     }
 

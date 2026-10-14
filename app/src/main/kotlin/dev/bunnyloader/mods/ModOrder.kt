@@ -12,9 +12,10 @@ internal object ModOrder {
     fun enabledFirst(order: List<String>, enabled: Set<String>): List<String> =
         order.filter { it in enabled } + order.filter { it !in enabled }
 
+    /** Quem acabou de ser ligado vai para o topo da lista (e carrega primeiro). */
     fun activate(order: List<String>, uid: String, enabled: Set<String>): List<String> {
         if (uid !in order || uid in enabled) return order
-        return order.filter { it in enabled } + uid + order.filter { it !in enabled && it != uid }
+        return listOf(uid) + order.filter { it != uid }
     }
 
     fun move(order: List<String>, uid: String, direction: Int, enabled: Set<String> = emptySet()): List<String> {

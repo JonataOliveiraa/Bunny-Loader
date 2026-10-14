@@ -292,10 +292,72 @@ class Shell(context: Context) {
         mutatePackages { catalog.install(entry) }
     }
 
-    /** Instala fora da UI e entrega o nome do mod ou a mensagem de erro. */
+    /** O import do seletor em andamento: de 0 a 1; null fora dele (a janela de progresso). */
+    var importProgress by mutableStateOf<Float?>(null)
+        private set
+
+    /** Um pacote de um mod já instalado, esperando a resposta "atualizar?". */
+    var pendingUpdate by mutableStateOf<ModRepository.StagedPackage?>(null)
+        private set
+    private var pendingResult: ((Result<ModManifest>) -> Unit)? = null
+
+    /**
+     * Instala fora da UI e entrega o nome do mod ou a mensagem de erro. Se o
+     * mod já está instalado, para em pendingUpdate até answerUpdate.
+     */
     fun importPackage(uri: Uri, onResult: (Result<ModManifest>) -> Unit) {
+        if (importProgress != null || pendingUpdate != null) return
+        importProgress = 0f
         scope.launch {
-            val result = installLock.withLock { withContext(Dispatchers.IO) { repo.import(uri) } }
+            var shown = -1
+            val staged = installLock.withLock {
+                withContext(Dispatchers.IO) {
+                    repo.stage(uri) { p ->
+                        val pct = (p * 100).toInt()
+                        if (pct != shown) {
+                            shown = pct
+                            scope.launch { if (importProgress != null) importProgress = p }
+                        }
+                    }
+                }
+            }
+            staged.fold(
+                onSuccess = { pkg ->
+                    if (pkg.installed != null) {
+                        importProgress = null
+                        pendingResult = onResult
+                        pendingUpdate = pkg
+                    } else {
+                        finishImport(pkg, onResult)
+                    }
+                },
+                onFailure = {
+                    importProgress = null
+                    onResult(Result.failure(it))
+                },
+            )
+        }
+    }
+
+    /** A resposta da pergunta "atualizar?": instala por cima, ou joga o pacote fora. */
+    fun answerUpdate(update: Boolean) {
+        val pkg = pendingUpdate ?: return
+        val onResult = pendingResult
+        pendingUpdate = null
+        pendingResult = null
+        if (update) {
+            importProgress = 0.95f
+            finishImport(pkg, onResult ?: {})
+        } else {
+            scope.launch(Dispatchers.IO) { repo.discard(pkg) }
+            onResult?.invoke(Result.failure(ImportCancelled()))
+        }
+    }
+
+    private fun finishImport(pkg: ModRepository.StagedPackage, onResult: (Result<ModManifest>) -> Unit) {
+        scope.launch {
+            val result = installLock.withLock { withContext(Dispatchers.IO) { repo.commit(pkg) } }
+            importProgress = null
             onResult(result)
             rescan()
         }
@@ -392,6 +454,9 @@ class Shell(context: Context) {
         }
     }
 }
+
+/** O usuário respondeu "não" ao "atualizar?": não é erro. */
+class ImportCancelled : Exception("import cancelled")
 
 sealed interface RemoteStatus {
     data object Idle : RemoteStatus

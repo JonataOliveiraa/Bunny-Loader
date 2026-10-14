@@ -139,11 +139,6 @@
     "Пакет — это .bl, .bmod или .zip с manifest.json и папкой content/.",
     "El paquete es un .bl, .bmod o .zip con manifest.json y la carpeta content/."
   ],
-  "Se o mod já estiver instalado (o mesmo uid), a versão do arquivo substitui a atual.": [
-    "If the mod is already installed (same uid), the file version replaces the current one.",
-    "Если мод уже установлен (тот же uid), версия из файла заменит текущую.",
-    "Si el mod ya está instalado (mismo uid), la versión del archivo sustituye a la actual."
-  ],
   "Cancelar": [
     "Cancel",
     "Отмена",
@@ -1873,5 +1868,50 @@
     "%1$s mods",
     "Моды: %1$s",
     "%1$s mods"
+  ],
+  "Se o mod já estiver instalado (o mesmo uid), o app pergunta antes de substituir.": [
+    "If the mod is already installed (same uid), the app asks before replacing it.",
+    "Если мод уже установлен (тот же uid), приложение спросит перед заменой.",
+    "Si el mod ya está instalado (mismo uid), la app pregunta antes de reemplazarlo."
+  ],
+  "Importação cancelada.": [
+    "Import cancelled.",
+    "Импорт отменён.",
+    "Importación cancelada."
+  ],
+  "Importando pacote": [
+    "Importing package",
+    "Импорт пакета",
+    "Importando paquete"
+  ],
+  "%1$s%% concluído": [
+    "%1$s%% done",
+    "Готово: %1$s%%",
+    "%1$s%% completado"
+  ],
+  "Atualizar mod?": [
+    "Update mod?",
+    "Обновить мод?",
+    "¿Actualizar mod?"
+  ],
+  "%1$s já está instalado.": [
+    "%1$s is already installed.",
+    "%1$s уже установлен.",
+    "%1$s ya está instalado."
+  ],
+  "Instalado: %1$s · Arquivo: %2$s": [
+    "Installed: %1$s · File: %2$s",
+    "Установлен: %1$s · Файл: %2$s",
+    "Instalado: %1$s · Archivo: %2$s"
+  ],
+  "É a mesma versão: atualizar reinstala o mod.": [
+    "Same version: updating reinstalls the mod.",
+    "Та же версия: обновление переустановит мод.",
+    "Es la misma versión: actualizar reinstala el mod."
+  ],
+  "O arquivo é mais antigo que o mod instalado.": [
+    "The file is older than the installed mod.",
+    "Файл старее установленного мода.",
+    "El archivo es más antiguo que el mod instalado."
   ]
 }
