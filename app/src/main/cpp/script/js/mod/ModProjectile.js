@@ -9,6 +9,10 @@ class ModProjectile {
     get Projectile() { return Entities.Of(this); }
 
     Clone(newProjectile) { return Entities.Clone(this); }
+    // Uma instância para uma entidade nova (o NewInstance do tModLoader): pelo
+    // construtor; com CloneNewInstances, uma cópia do molde (Clone).
+    get CloneNewInstances() { return false; }
+    NewInstance(entity) { return this.CloneNewInstances ? this.Clone(entity) : Entities.NewInstance(this); }
 
     // Como o do tModLoader: roda antes do SetStaticDefaults, com this.Projectile
     // já montado pelo SetDefaults. Sem o projHook, o botão de gancho do
@@ -110,6 +114,7 @@ class ModProjectile {
         Entities.Define(Terraria.Projectile, 'ModProjectile');
 
         const inst = new cls();
+        Entities.Baseline(inst);
         const name = cls.name;
         Templates.Adopt(cls, inst);
         inst.Texture = ModFiles.ContentTexture(inst, cls);
@@ -119,7 +124,7 @@ class ModProjectile {
             texture: ModFiles.Texture(inst.Texture),
             displayName: inst.DisplayName || Lang.Localized('ProjectileName', name) || name,
             setDefaults(proj) {
-                const m = Entities.Bind(inst.Clone(proj), proj, 'ModProjectile');
+                const m = Entities.Bind(inst.NewInstance(proj), proj, 'ModProjectile');
                 DamageClassLoader.Defaulting(proj, () => {
                     m.SetDefaults(proj);
                     m.PostSetDefaults(proj);

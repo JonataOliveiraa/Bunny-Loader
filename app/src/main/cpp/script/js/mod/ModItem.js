@@ -13,6 +13,10 @@ class ModItem {
     get Item() { return Entities.Of(this); }
 
     Clone(newItem) { return Entities.Clone(this); }
+    // Uma instância para uma entidade nova (o NewInstance do tModLoader): pelo
+    // construtor; com CloneNewInstances, uma cópia do molde (Clone).
+    get CloneNewInstances() { return false; }
+    NewInstance(entity) { return this.CloneNewInstances ? this.Clone(entity) : Entities.NewInstance(this); }
 
     SaveData(tag) {}
 
@@ -329,6 +333,7 @@ class ModItem {
         Entities.Define(Terraria.Item, 'ModItem');
 
         const inst = new cls();
+        Entities.Baseline(inst);
         const name = cls.name;
         Templates.Adopt(cls, inst);
         inst.Texture = ModFiles.ContentTexture(inst, cls);
@@ -357,7 +362,7 @@ class ModItem {
                 // chama; sem o material, o Guia não o aceita.
                 item.material = Terraria.ID.ItemID.Sets.IsAMaterial[inst.Type];
 
-                const m = Entities.Bind(inst.Clone(item), item, 'ModItem');
+                const m = Entities.Bind(inst.NewInstance(item), item, 'ModItem');
                 DamageClassLoader.Defaulting(item, () => {
                     m.SetDefaults(item);
                     m.PostSetDefaults(item);

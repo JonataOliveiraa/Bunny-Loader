@@ -435,9 +435,9 @@ To keep effects cheap:
   (`AI`, `OnKill`, a hook), not only on the server (`Main.netMode !== 2`).
 - Up to 32 distortion shapes and 32 debug outlines per frame, 6 mod textures
   per step.
-- A `ModProjectile`, `ModNPC` or `ModPlayer` is copied for each entity: keep
-  the effect in a **public** field (`Ripple = null;`), not in a `#private`
-  one, which the copy does not have.
+- Keep the effect you spawned in a field of the entity's instance
+  (`Ripple = null;`) and kill it in `OnKill`: each projectile or NPC has its
+  own instance ([guide 4](04-conteudo-novo.md#template-and-instance)).
 - The phone's own screen filters (`Filters.Scene`) are a different system and
   some do not show on the emulator.
 

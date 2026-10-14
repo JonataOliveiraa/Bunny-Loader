@@ -7,7 +7,7 @@ class GlobalType {
     // lateInstantiation: true depois do SetDefaults (o tipo já é o final).
     AppliesToEntity(entity, lateInstantiation) { return true; }
     Clone(from, to) { return Entities.Clone(this); }
-    NewInstance(target) { return Entities.Clone(this); }
+    NewInstance(target) { return Entities.NewInstance(this); }
 
     SetStaticDefaults() {}
     SetDefaults(entity) {}

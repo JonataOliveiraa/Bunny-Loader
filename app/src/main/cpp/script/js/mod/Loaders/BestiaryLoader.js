@@ -8,6 +8,10 @@ class BestiaryLoader {
         const { BestiaryEntry } = Terraria.GameContent.Bestiary;
         const type = inst.Type;
 
+        // O retrato lê as estrelas quando a entrada nasce (BestiaryEntry.Enemy...).
+        const stars = inst.BestiaryRarityStars | 0;
+        if (stars > 0) Terraria.ID.ContentSamples.NpcBestiaryRarityStars.set_Item(type, stars);
+
         let entry;
         if (townNpc) entry = BestiaryEntry.TownNPC(type);
         else if (Terraria.ID.NPCID.Sets.CountsAsCritter[type]) entry = BestiaryEntry.Critter(type);

@@ -82,7 +82,8 @@ const steps = {
         check('soltou: prisma e feixes somem', count(T.holdout) === 0 && count(T.beam) === 0, count(T.holdout) + '/' + count(T.beam));
         check('Ripple morre junto', !effect('Ripple'), effect('Ripple') ? 'vivo' : 'morto');
         const p = player();
-        NewProjectile(p.GetProjectileSource_Item(p.HeldItem), Vector2.new(p.Center.X - 160, p.Center.Y - 90), Vector2.new(3, 0), T.rift, 30, 0, p.whoAmI, 0, 0, 0, null);
+        const k = NewProjectile(p.GetProjectileSource_Item(p.HeldItem), Vector2.new(p.Center.X - 160, p.Center.Y - 90), Vector2.new(3, 0), T.rift, 30, 0, p.whoAmI, 0, 0, 0, null);
+        Main.projectile[k].timeLeft = 6000;
     },
     380: () => {
         const rift = effect('ExampleRiftEffect');
@@ -93,11 +94,15 @@ const steps = {
         check('fenda abriu (Tween do Open)', rift && rift.Open > 0.9, rift && rift.Open.toFixed(2));
         log('SHOT rift');
     },
-    455: () => {
+    // O projétil ganhou vida longa ao nascer: com o emulador lento, o jogo
+    // roda mais de uma atualização por quadro e os 120 ticks dele acabavam
+    // antes; aqui ele morre na hora certa, e a explosão é conferida logo.
+    430: () => {
         const p = first(T.rift);
+        check('projétil da fenda ainda vivo', !!p, p ? 'vivo' : 'já morreu');
         if (p) p.Kill();
     },
-    457: () => {
+    432: () => {
         check('explosão: Shockwave, Flash e ChromaticAberration', !!(effect('Shockwave') && effect('Flash') && effect('ChromaticAberration')),
             ScreenEffects.Active.map((fx) => fx.constructor.name).join(','));
         log('SHOT boom');

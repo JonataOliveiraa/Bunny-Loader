@@ -1,0 +1,13 @@
+{
+  "uid": "4b8e2f17-93c6-4d0a-a5e1-7c2d9f6b3a18",
+  "id": "test-npcinstance",
+  "name": "Teste: instância por entidade e ordem do desenho",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Cada NPC/projétil de mod ganha uma instância nova pelo construtor (o NewInstance do tModLoader): campos por entidade, arrays separados, #privados e o que o SetStaticDefaults pôs no molde. Dois NPCs sobrepostos com brilho no PostDraw saem na ordem das chamadas (o lote reinicia em volta de cada um). AnimationType -1 não lança.",
+  "description": "Loga 'npcinstance ...'. 'SHOT order': os dois NPCs; o pixel conferido é logado (o corpo cinza do segundo tem de cobrir o brilho vermelho do primeiro).",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

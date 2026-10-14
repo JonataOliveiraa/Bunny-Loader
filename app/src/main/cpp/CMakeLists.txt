@@ -48,7 +48,7 @@ configure_file(
 # (um escopo so, privado) e embutidos como um texto. A ordem importa: a base
 # antes do `extends`, e as classes que um inicializador estatico usa antes dele.
 set(BL_MOD_CLASSES_PARTS
-    Core/Constants Core/Safe Core/Hooks Core/SharedHooks Core/Ready Core/Entities Core/Templates
+    Core/Constants Core/Safe Core/Hooks Core/SharedHooks Core/Ready Core/Entities Core/DrawBatches Core/Templates
     Core/ModFiles Core/Lang Core/ModRegistry
     Enums/AffectionLevel Enums/SoundLimitBehavior Enums/SceneEffectPriority Enums/EquipType Enums/PrefixCategory
     Enums/CommandType Enums/TooltipNames Enums/TreeTypes

@@ -40,9 +40,11 @@ class ModMusic {
         return ModMusic.Tracks[slot - ModMusic.Base()];
     }
 
-    // Sem música de mod nenhuma, o conjunto não guarda NPC nenhum.
+    // Sem música de mod nenhuma, o conjunto não guarda NPC nenhum. Com faixa
+    // de mod registrada, todo NPC de mod entra: o Music pode vir só na IA
+    // (a do chefe que muda com a Lua de Sangue, por exemplo).
     static TrackNpc(npc, m) {
-        if ((m.Music | 0) >= 0) ModMusic.Install();
+        if ((m.Music | 0) >= 0 || ModMusic.Tracks.length > 0) ModMusic.Install();
         else if (!ModMusic.#hooked) return;
 
         ModMusic.#npcs.add(npc);

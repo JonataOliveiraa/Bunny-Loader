@@ -41,7 +41,7 @@ class NPCLoader {
             // os defaults de mod/globais do tipo copiado precisam rodar aqui.
             if (nested) {
                 const template = NPCLoader.ByType.get(type);
-                if (template) NPCLoader.Defaults(Entities.Bind(template.Clone(npc), npc, 'ModNPC'), npc);
+                if (template) NPCLoader.Defaults(Entities.Bind(template.NewInstance(npc), npc, 'ModNPC'), npc);
                 if (globalNPCs.cached) globalNPCs.Attach(npc, true);
                 globalNPCs.Each(npc, 'SetDefaults', g => g.SetDefaults(npc));
             }
@@ -386,6 +386,12 @@ class NPCDrawHooks {
     static #behind = new Map();
     static #light = null;
 
+    static #DrawsOwn(npc) {
+        const m = NPCLoader.Of(npc);
+        if (m && (NPCLoader.Has(m, 'PreDraw') || NPCLoader.Has(m, 'PostDraw'))) return true;
+        return globalNPCs.For(npc, 'PreDraw').length > 0 || globalNPCs.For(npc, 'PostDraw').length > 0;
+    }
+
     static Track(npc) {
         NPCDrawHooks.#behind.set(npc.whoAmI, npc);
     }
@@ -404,6 +410,10 @@ class NPCDrawHooks {
                     const light = new Ref(Terraria.Lighting['Color GetColor(int x, int y)'](Math.floor(center.X / 16), Math.floor(center.Y / 16)));
                     const before = NPCDrawHooks.#ColorKey(light.value);
                     NPCLoader.CallAll(npc, 'DrawEffects', light);
+                    // Quem desenha por conta própria fica num lote só dele: no
+                    // celular o lote junta tudo da mesma textura (DrawBatches).
+                    const own = NPCDrawHooks.#DrawsOwn(npc);
+                    if (own) DrawBatches.Restart(batch);
                     // Os Globais antes do de mod no Pre, depois no Post (como o tModLoader).
                     let go = globals.AllCall(npc, 'PreDraw', batch, screen, light.value);
                     if (go) go = NPCLoader.Call(npc, 'PreDraw', batch, screen, light.value) !== false;
@@ -420,6 +430,7 @@ class NPCDrawHooks {
                         }
                     }
                     NPCLoader.CallAll(npc, 'PostDraw', batch, screen, light.value);
+                    if (own) DrawBatches.Restart(batch);
                 }, { ...draw, on: 1 });
             }
             N['Color GetNPCColorTintedByBuffs(Color npcColor)'].hook((original, npc, color) => {

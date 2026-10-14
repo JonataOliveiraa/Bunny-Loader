@@ -78,7 +78,7 @@ function afterFrames() {
     });
     check('arma e balas no inventario', () => {
         let gun = -1, bullet = -1;
-        for (let t = bl.items.vanillaCount; t < bl.items.vanillaCount + 64; t++) {
+        for (let t = bl.items.vanillaCount; t < bl.items.vanillaCount + 400; t++) {
             const n = itemName(t);
             if (gun < 0 && GUN_NAME.test(n)) gun = t;
             if (bullet < 0 && BULLET_NAME.test(n)) bullet = t;

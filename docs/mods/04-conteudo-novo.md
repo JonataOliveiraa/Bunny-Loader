@@ -281,14 +281,23 @@ const same = ModContent.Texture('Content/Items/Sword_Glow');   // shortcut for .
 ## Template and instance
 
 As in tModLoader, the class you register is a **template**. Each item,
-projectile or NPC of that type in the game gets **its own** instance, copied
-from the template, and that is where the methods run.
+projectile or NPC of that type in the game gets **its own** instance, and that
+is where the methods run.
+
+The instance is built by your class's **constructor** when the entity is
+created (tModLoader's `NewInstance`). So the field initializers run again for
+each entity: `bloodMoonMode = Main.bloodMoon;` is read when that NPC spawns, and
+an array or object in a field (`trail = [];`) belongs to that entity alone. What
+the registration and the static setup put on the template after it was built
+(`this.Type`, `this.Mod`, a texture kept in `this` in `SetStaticDefaults`)
+is carried over to every instance. A class that prefers a copy of the template
+can say so, as in tModLoader: `get CloneNewInstances() { return true; }`.
 
 ```mermaid
 flowchart LR
     C["class Chargeable<br/>extends ModItem"] -- "register" --> M["template<br/>(1 per type)"]
-    M -- "Clone()" --> I1["item 1's instance<br/>this.charge = 3"]
-    M -- "Clone()" --> I2["item 2's instance<br/>this.charge = 0"]
+    M -- "NewInstance()" --> I1["item 1's instance<br/>this.charge = 3"]
+    M -- "NewInstance()" --> I2["item 2's instance<br/>this.charge = 0"]
     I1 <--> E1["game Item 1<br/>item.ModItem"]
     I2 <--> E2["game Item 2<br/>item.ModItem"]
 ```
@@ -316,12 +325,12 @@ if (m instanceof Chargeable) bl.log(m.charge);
 `ModItem.getModItem(type)` and `ModContent.GetInstance(Class)` return the
 **template**, not an item's instance.
 
-**No instance `#private` members** in a content class (`#charge`,
-`#Blink()`): the instance is a copy of the template (`Object.create`), and JS
-only accepts a `#` member on an object the class constructor built. The first
-use throws `TypeError: invalid brand on object`. Use plain names
-(`this.charge`, `this.Blink()`). `static #` (on the class, not the instance)
-works.
+Instance `#private` members (`#charge`, `#Blink()`) work in NPCs and
+projectiles, whose instances come from the constructor. In an **item**, prefer
+plain names (`this.charge`, `this.Blink()`): the copy the game makes of an item
+(below) is not built by the constructor, and JS only accepts a `#` member on an
+object the constructor built (`TypeError: invalid brand on object`).
+`static #` (on the class) always works.
 
 When the game copies an item (`Item.Clone`), the copy gets a `Clone()` of the
 original's instance, with its state. The default `Clone` copies the shallow

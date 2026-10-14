@@ -20,6 +20,7 @@ class GlobalRegistry {
         }
 
         const inst = new cls();
+        Entities.Baseline(inst);
         const name = cls.name;
         Templates.Adopt(cls, inst);
         inst.__perEntity = !!inst.InstancePerEntity;

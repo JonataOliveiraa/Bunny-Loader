@@ -11,6 +11,10 @@ class ModNPC {
     DisplayName = '';
     Texture = this.constructor.name;
     HideFromBestiary = false;
+    // As estrelas de raridade no Bestiário (1 a 5); 0 = a conta do jogo (pela
+    // rarity, boss, dano, defesa e vida). No tModLoader:
+    // ContentSamples.NpcBestiaryRarityStars[Type] = n.
+    BestiaryRarityStars = 0;
     // Padrão: a Texture + '_BestiaryIcon'. A imagem da entrada no Bestiário
     // (lista e retrato) no lugar do NPC animado; sem o arquivo, o NPC.
     BestiaryIcon = '';
@@ -30,6 +34,10 @@ class ModNPC {
     get Happiness() { return new NPCHappiness(this.Type); }
 
     Clone(newNPC) { return Entities.Clone(this); }
+    // Uma instância para uma entidade nova (o NewInstance do tModLoader): pelo
+    // construtor; com CloneNewInstances, uma cópia do molde (Clone).
+    get CloneNewInstances() { return false; }
+    NewInstance(entity) { return this.CloneNewInstances ? this.Clone(entity) : Entities.NewInstance(this); }
 
     // Defaults clássicos; o SetDefaults externo aplica a dificuldade uma vez.
     CloneDefaults(type) { NPCLoader.CloneDefaults(this, type); }
@@ -126,11 +134,13 @@ class ModNPC {
         Entities.Define(Terraria.NPC, 'ModNPC');
 
         const inst = new cls();
+        Entities.Baseline(inst);
         const name = cls.name;
         Templates.Adopt(cls, inst);
         inst.Texture = ModFiles.ContentTexture(inst, cls);
 
-        let animation = inst.AnimationType | 0;
+        let animation = Math.max(inst.AnimationType | 0, 0);
+        if (animation >= bl.npcs.vanillaCount) animation = 0;
         let type = -1;
         let townNpc = false;
 
@@ -143,13 +153,19 @@ class ModNPC {
             animationType: animation,
             displayName: inst.DisplayName || Lang.Localized('NPCName', name) || name,
             setDefaults(npc) {
-                const m = Entities.Bind(inst.Clone(npc), npc, 'ModNPC');
+                const m = Entities.Bind(inst.NewInstance(npc), npc, 'ModNPC');
                 NPCLoader.Defaults(m, npc);
                 BannerLoader.Track(m);
                 ModMusic.TrackNpc(npc, m);
                 townNpc = !!npc.townNPC;
 
-                const now = m.AnimationType | 0;
+                // Como no tModLoader, só um NPC do jogo anima: -1, 0 ou um NPC
+                // de mod ficam sem (o FindFrame do mod decide).
+                let now = m.AnimationType | 0;
+                if (now < 0 || now >= bl.npcs.vanillaCount) {
+                    if (now >= bl.npcs.vanillaCount) Safe.Once('npc.animation.' + name, name + ': AnimationType ' + now + ' is not a vanilla NPC; ignored (animate a mod NPC in FindFrame)');
+                    now = 0;
+                }
                 if (now !== animation && type >= 0) {
                     animation = now;
                     inst.AnimationType = now;
