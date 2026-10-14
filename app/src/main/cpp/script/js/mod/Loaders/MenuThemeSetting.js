@@ -12,6 +12,9 @@ class MenuThemeSetting {
     static #GENERAL = 0;
     static #CAPTION_PAD = 16;
 
+    // A linha (null antes da primeira vez).
+    static get Entry() { return MenuThemeSetting.#entry; }
+
     static Install() {
         Hooks.Once('menu.theme', () => Safe.Run('MenuThemeSetting.Install', () => MenuThemeSetting.#Hook()));
     }

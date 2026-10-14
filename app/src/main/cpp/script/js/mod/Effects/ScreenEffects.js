@@ -7,6 +7,9 @@ class ScreenEffects {
     // Desligado (a linha "Efeitos de tela" das Configurações), os efeitos
     // continuam vivendo e contando o tempo, só não desenham.
     static Enabled = true;
+    // Ligado (/fx watch), os shaders de arquivo (.frag) são relidos a cada
+    // meio segundo e recompilam quando mudam.
+    static HotReload = false;
     static Frame = 0;
 
     static #active = [];
@@ -81,6 +84,32 @@ class ScreenEffects {
         return fx;
     }
 
+    // A sobreposição de debug (/fx debug): contornos e painel de custo.
+    static get Debug() {
+        return ScreenDebug.Enabled;
+    }
+
+    static set Debug(value) {
+        ScreenDebug.Enabled = value;
+    }
+
+    // As classes de efeito conhecidas: os prontos e as já registradas (as de
+    // Content/ entram na carga do mod).
+    static get Classes() {
+        const out = new Set(Object.values(ScreenPresets));
+        for (const cls of ScreenEffects.#shaders.keys()) out.add(cls);
+        return [...out];
+    }
+
+    // Relê os shaders de arquivo; quantos mudaram.
+    static Reload() {
+        let changed = 0;
+        for (const shader of ScreenShader.Files) {
+            if (Safe.Run('ScreenEffects.Reload ' + shader.Name, () => shader.Reload())) changed++;
+        }
+        return changed;
+    }
+
     static Find(key) {
         return ScreenEffects.#active.find((fx) => fx.Key === key && fx.Active) ?? null;
     }
@@ -120,6 +149,7 @@ class ScreenEffects {
     // O hook do quadro (no primeiro Spawn ou Tween).
     static Install() {
         Hooks.Once('screen.effects', () => {
+            ScreenEffectsSetting.Restore();
             Terraria.Main['void DoDraw(GameTime gameTime)'].hook((original, self, gameTime) => {
                 original(self, gameTime);
                 ScreenEffects.#Tick();
@@ -147,6 +177,7 @@ class ScreenEffects {
 
         const delta = ScreenEffects.#Delta();
         ScreenEffects.Frame++;
+        if (ScreenEffects.HotReload && ScreenEffects.Frame % 30 === 0) ScreenEffects.Reload();
         ScreenSpace.BeginFrame(ScreenEffects.Frame);
         ScreenTween.Update(delta);
 
@@ -165,6 +196,7 @@ class ScreenEffects {
             const at = frame.Draws.length;
             ScreenEffects.#Step(fx, delta, frame, distortion);
             if (before === 0 && distortion.Count > 0) distortionAt = at;
+            if (ScreenDebug.Enabled) ScreenDebug.Track(fx, frame.Draws.slice(at));
         }
 
         // A distorção de todos entra na posição do primeiro efeito que
@@ -172,6 +204,7 @@ class ScreenEffects {
         // exemplo, desenha por cima da imagem já puxada).
         const pass = distortion.Build();
         if (pass) frame.Draws.splice(distortionAt, 0, pass);
+        if (ScreenDebug.Enabled) ScreenDebug.Decorate(frame, pass);
 
         ScreenEffects.#active = active.filter((fx) => fx.Active);
         frame.Submit();

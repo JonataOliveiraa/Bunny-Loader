@@ -1,0 +1,13 @@
+{
+  "uid": "3c9a6f20-5b1d-4e7a-8f02-6d4b1e9c7a35",
+  "id": "test-screentools",
+  "name": "Teste: ferramentas dos efeitos de tela",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Exercita a recarga do .frag (ScreenEffects.Reload e HotReload, inclusive um shader quebrado), o comando /fx, a sobreposição de debug e o desligar salvo (BunnyLoader.screen.json).",
+  "description": "Loga 'screentools ...'. Prints: 'SHOT red' (o .frag original), 'SHOT blue' (recarregado), 'SHOT broken' (shader com erro: a tela sem o efeito), 'SHOT green' (recarga sozinha), 'SHOT debug' (contornos e painel), 'SHOT off' (desligados: nada).",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

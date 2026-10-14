@@ -268,6 +268,14 @@ JSValue path_getExtension(JSContext* ctx, JSValueConst, int argc, JSValueConst* 
     return JS_NewString(ctx, dot == std::string::npos || dot == 0 ? "" : name.substr(dot).c_str());
 }
 
+// O caminho absoluto, resolvido contra a pasta do mod de quem chamou (como
+// os outros bl.file.*): para guardar e usar depois de fora do mod.
+JSValue path_resolve(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    std::string p;
+    if (!pathArg(ctx, argc, argv, 0, "bl.path.resolve", &p)) return JS_EXCEPTION;
+    return JS_NewString(ctx, p.c_str());
+}
+
 // ----------------------------------- bl.mod -----------------------------------
 
 void setStr(JSContext* ctx, JSValue obj, const char* key, const std::string& v) {
@@ -416,6 +424,7 @@ void installFilesApi(JSContext* ctx, JSValue bl) {
         JS_CFUNC_DEF("getName", 1, path_getName),
         JS_CFUNC_DEF("getParentPath", 1, path_getParentPath),
         JS_CFUNC_DEF("getExtension", 1, path_getExtension),
+        JS_CFUNC_DEF("resolve", 1, path_resolve),
     };
     auto group = [&](const char* name, const JSCFunctionListEntry* fns, int n) {
         JSValue o = JS_NewObject(ctx);

@@ -95,7 +95,7 @@ set(BL_MOD_CLASSES_PARTS
     Effects/Presets/BlackHole Effects/Presets/HeatHaze Effects/Presets/Tint Effects/Presets/ColorGrade
     Effects/Presets/Vignette Effects/Presets/Ripple Effects/Presets/ForceField Effects/Presets/ChromaticAberration
     Effects/Presets/Pixelate Effects/Presets/Flash Effects/Presets/Glitch Effects/Presets/ZoomBlur Effects/Presets/Lens
-    Effects/ScreenPresets
+    Effects/ScreenPresets Effects/ScreenDebug Effects/ScreenFxCommand Loaders/ScreenEffectsSetting
     Core/ContentLookup ModContent Core/ContentAutoload
     Exports)
 set(BL_MOD_CLASSES_JS "(() => {\n'use strict';\n")

@@ -21,6 +21,9 @@ ArmorSetLoader.InstallHairSettings();
 ModConfigMenu.Install();
 // As opções do Bunny Loader na tela de Host do multijogador.
 HostSettingsMenu.Install();
+// Os efeitos de tela: a linha das Configurações e o /fx.
+ScreenEffectsSetting.Install();
+ScreenFxCommand.Install();
 // A conferência dos mods e das texturas ao entrar num servidor.
 ServerSyncLoader.Install();
 ServerSyncMenu.Install();
