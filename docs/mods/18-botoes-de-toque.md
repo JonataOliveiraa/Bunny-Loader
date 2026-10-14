@@ -24,9 +24,6 @@ export class DashPlayer extends ModPlayer {
 }
 ```
 
-The technique comes from **Mod Buttons**, by Animatak_, who designed it and
-gave it to Bunny Loader.
-
 ## Registering
 
 `TouchButtonLoader.RegisterButton(mod, name, options)` returns a

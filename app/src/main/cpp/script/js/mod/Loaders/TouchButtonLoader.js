@@ -1,8 +1,7 @@
 // Os botões de toque dos mods (ModTouchButton). Cada um vira uma ação nova
 // dos controles do jogo, depois das dele: o editor de controles a oferece na
 // lista de ações de um espaço (com ícone e nome próprios), ela funciona dentro
-// dos botões de grupo, e o layout a guarda. Técnica do Mod Buttons, do
-// Animatak_.
+// dos botões de grupo, e o layout a guarda.
 //
 // Os números: a ação de mod N (0, 1, 2...) é
 //   - ContolType.Count + 1 + N nos controles do layout (o Count é o "vazio");
