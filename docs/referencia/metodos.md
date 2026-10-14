@@ -60,6 +60,7 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`ModRarity`](#modrarity) | 4 | 0 | [Reference](classes.md#modrarity) |
 | [`ModRecipe`](#modrecipe) | 11 | 0 | [Reference](classes.md#modrecipe) |
 | [`ModSceneEffect`](#modsceneeffect) | 6 | 0 | [Reference](classes.md#modbiome-and-modsceneeffect) |
+| [`ModScreenEffect`](#modscreeneffect) | 15 | 0 | [Reference](classes.md#screen-effects) |
 | [`ModSurfaceBackgroundStyle`](#modsurfacebackgroundstyle) | 7 | 0 | [Reference](classes.md#mod-backgrounds) |
 | [`ModSystem`](#modsystem) | 57 | 0 | [Reference](classes.md#modsystem) |
 | [`ModTile`](#modtile) | 47 | 0 | [Reference](classes.md#modtile) |
@@ -80,6 +81,7 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`PlayerDrawLayer`](#playerdrawlayer) | 11 | 0 | [Reference](classes.md#modplayer) |
 | [`PrefixLoader`](#prefixloader) | 13 | 0 | [Reference](classes.md#modprefix) |
 | [`RarityLoader`](#rarityloader) | 4 | 0 | [Reference](classes.md#modrarity) |
+| [`ScreenEffects`](#screeneffects) | 11 | 0 | [Reference](classes.md#screen-effects) |
 | [`SoundEngine`](#soundengine) | 4 | 0 | [Reference](classes.md#sound-and-music) |
 | [`SoundStyle`](#soundstyle) | 1 | 0 | [Reference](classes.md#sound-and-music) |
 | [`SpawnCondition`](#spawncondition) | 7 | 0 | [Reference](classes.md#npc-helpers) |
@@ -91,11 +93,11 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | [`TooltipLine`](#tooltipline) | 3 | 0 | [Reference](classes.md#tooltipline) |
 | [`UsageException`](#usageexception) | 1 | 0 | [Reference](classes.md#modcommand) |
 
-76 public classes, 1453 declared records and 10 methods not implemented. The count includes the same member in each class that inherits it.
+78 public classes, 1479 declared records and 10 methods not implemented. The count includes the same member in each class that inherits it.
 
 ## Objects and enums
 
-`AffectionLevel`, `CommandType`, `EquipType`, `MountTextureType`, `PlayerDrawLayers`, `PrefixCategory`, `SceneEffectPriority`, `SoundLimitBehavior`, `TooltipNames`, `TreeTypes`. They are public exports with no JavaScript class declaration in this module.
+`AffectionLevel`, `CommandType`, `EquipType`, `MountTextureType`, `PlayerDrawLayers`, `PrefixCategory`, `SceneEffectPriority`, `ScreenGraphics`, `ScreenPresets`, `ScreenUtils`, `SoundLimitBehavior`, `TooltipNames`, `TreeTypes`. They are public exports with no JavaScript class declaration in this module.
 
 ## BackgroundTextureLoader
 
@@ -1488,6 +1490,28 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `SetStaticDefaults()` | Instance | `ModSceneEffect` | `undefined` | The base implementation does nothing. | [Code](../../app/src/main/cpp/script/js/mod/ModSceneEffect.js#L26) |
 | `SpecialVisuals(player, isActive)` | Instance | `ModSceneEffect` | `undefined` | Todo quadro, ativo ou não: é onde se liga e desliga um filtro de tela. | [Code](../../app/src/main/cpp/script/js/mod/ModSceneEffect.js#L24) |
 
+## ModScreenEffect
+
+[Contract and fields](classes.md#screen-effects).
+
+| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
+|---|---|---|---|---|---|
+| `get Active` | Getter | `ModScreenEffect` | `!this.#killed` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L52) |
+| `Draw(cmd)` | Instance | `ModScreenEffect` | `See source` | The life cycle. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L40) |
+| `DrawDistortion(d)` | Instance | `ModScreenEffect` | `undefined` | The life cycle. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L38) |
+| `Kill()` | Instance | `ModScreenEffect` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L43) |
+| `OnKill()` | Instance | `ModScreenEffect` | `undefined` | The life cycle. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L41) |
+| `OnSpawn()` | Instance | `ModScreenEffect` | `undefined` | The life cycle. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L33) |
+| `get Opacity` | Getter | `ModScreenEffect` | `See source` | Time in ticks. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L66) |
+| `get Progress` | Getter | `ModScreenEffect` | `this.Duration > 0 ? Math.min(this.Age / this.Duration, 1) : 0` | Time in ticks. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L57) |
+| `register(cls)` | Static | `ModScreenEffect` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L77) |
+| `SetDefaults()` | Instance | `ModScreenEffect` | `undefined` | The life cycle. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L32) |
+| `ShouldDraw()` | Instance | `ModScreenEffect` | `true` | The life cycle. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L36) |
+| `Spawn(center = null, options = {})` | Static | `ModScreenEffect` | `ScreenEffects.Spawn(this, center, options)` | center: a position, an entity (followed) or null (whole screen); options in camelCase. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L73) |
+| `get TimeLeft` | Getter | `ModScreenEffect` | `this.Duration > 0 ? Math.max(this.Duration - this.Age, 0) : Infinity` | Time in ticks. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L61) |
+| `Tween(property, to, duration, easing = Easing.Linear, options = {})` | Instance | `ModScreenEffect` | `ScreenTween.To(this, property, to, duration, easing, options)` | Anima uma propriedade do efeito (ScreenUtils.Tween.To). | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L48) |
+| `Update()` | Instance | `ModScreenEffect` | `undefined` | The life cycle. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ModScreenEffect.js#L35) |
+
 ## ModSurfaceBackgroundStyle
 
 [Contract and fields](classes.md#mod-backgrounds).
@@ -1945,6 +1969,24 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `ColorOf(type)` | Static | `RarityLoader` | `See source` | A cor de uma raridade de mod; branco se o RarityColor falhar. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js#L30) |
 | `GetRarity(type)` | Static | `RarityLoader` | `RarityLoader.ByType.get(type) \|\| null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js#L27) |
 | `get RarityCount` | Static getter | `RarityLoader` | `RarityLoader.VanillaCount + RarityLoader.ByType.size` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Loaders/RarityLoader.js#L17) |
+
+## ScreenEffects
+
+[Contract and fields](classes.md#screen-effects).
+
+| Method / signature | Kind | Declaration | Base return | Contract / limit | Source |
+|---|---|---|---|---|---|
+| `get Active` | Static getter | `ScreenEffects` | `ScreenEffects.#active.filter((fx) => fx.Active)` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L127) |
+| `get Classes` | Static getter | `ScreenEffects` | `See source` | As classes de efeito conhecidas: os prontos e as já registradas (as de Content/ entram na carga do mod). | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L98) |
+| `get Debug` | Static getter | `ScreenEffects` | `ScreenDebug.Enabled` | A sobreposição de debug (/fx debug): contornos e painel de custo. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L88) |
+| `set Debug(value)` | Static setter | `ScreenEffects` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L92) |
+| `Find(key)` | Static | `ScreenEffects` | `ScreenEffects.#active.find((fx) => fx.Key === key && fx.Active) ?? null` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L113) |
+| `Install()` | Static | `ScreenEffects` | `See source` | O hook do quadro (no primeiro Spawn ou Tween). | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L150) |
+| `Kill(key)` | Static | `ScreenEffects` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L117) |
+| `KillAll()` | Static | `ScreenEffects` | `See source` | See the implementation in the source. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L123) |
+| `Register(cls)` | Static | `ScreenEffects` | `See source` | Na carga do mod (ContentAutoload) ou no primeiro Spawn. O shader vem, nesta ordem: static Source da própria classe, o Shader que o SetDefaults deu (ScreenShader ou caminho), o .frag ao lado do .js e, por último, o static Source herdado (quem estende um pronto). | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L24) |
+| `Reload()` | Static | `ScreenEffects` | `See source` | Relê os shaders de arquivo; quantos mudaram. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L105) |
+| `Spawn(cls, center = null, options = {})` | Static | `ScreenEffects` | `See source` | center: a position, an entity (followed) or null (whole screen); options in camelCase. | [Code](../../app/src/main/cpp/script/js/mod/Effects/ScreenEffects.js#L60) |
 
 ## SoundEngine
 

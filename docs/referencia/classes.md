@@ -60,6 +60,7 @@ others extend); each one's `register` is for registering by hand, in the mod's
 | [`ModConfig`](#modconfig) | The mod's persistent options, changed in the pause menu and in the main menu's Settings. | [14](../mods/14-opcoes-do-mod.md) |
 | [`DamageClass`, `StatModifier`, `StatInheritanceData`](#damageclass) | Damage classes, stat modifiers and bonus inheritance. | [15](../mods/15-classes-de-dano.md) |
 | [`HitModifiers`, `HitInfo`, `HurtModifiers`, `HurtInfo`](#hits) | The hit on an NPC or a player, before (`ModifyHit*`) and after (`OnHit*`). | [16](../mods/16-golpes.md) |
+| [`ModScreenEffect`, `ScreenEffects`](#screen-effects) | A screen effect (GLSL post-processing between the world and the interface) and the manager of the live ones; `ScreenPresets`, `ScreenGraphics` and `ScreenUtils` are its tools. | [17](../mods/17-efeitos-de-tela.md) |
 | [`ModRecipe`](#modrecipe) | Recipes and recipe groups. | [5](../mods/05-itens.md#recipes) |
 | [`NPCLoot`, `NPCSpawnInfo`, `NPCShop`, `NPCHappiness`, `ModGore`](#npc-helpers) | Drops, spawning, shop, happiness, gore. | [7](../mods/07-npcs.md) |
 | [`TooltipLine`, `DrawableTooltipLine`](#tooltipline) | A tooltip line, and the line while drawing. | [5](../mods/05-itens.md#tooltip) |
@@ -1795,6 +1796,35 @@ Its fields are mutable in JavaScript. `ApplyTo`, `CombineWith`, `Scale`,
 `StatInheritanceData` accepts five factors or an object with those factors;
 `Full` and `None` return new instances. See the
 [damage classes guide](../mods/15-classes-de-dano.md) to combine these stats.
+
+## Screen effects
+
+A screen effect redraws part of what is already on screen with a GLSL
+shader, between the world and the interface. Everything is in
+[guide 17](../mods/17-efeitos-de-tela.md); this is the summary.
+
+**`ModScreenEffect`** (extend it; in `Content/` it registers on its own, and
+its shader is the `.frag` next to the `.js` or `static Source`):
+
+| | |
+|---|---|
+| `Center`, `Follow`, `Radius`, `Intensity`, `Color` | Where (world), what it follows, size (world pixels), strength, color (`uColor`). |
+| `Duration`, `FadeIn`, `FadeOut`, `Age`, `Progress`, `TimeLeft`, `Opacity` | Time in ticks. |
+| `Key`, `Layer`, `Order`, `Fullscreen`, `CaptureMargin`, `Mask`, `Uniforms`, `Shader` | Renewal by key, World/Screen layer, draw order, area, extra pixels read, where it applies, values for the shader, the shader. |
+| `SetDefaults()`, `OnSpawn()`, `Update()`, `ShouldDraw()`, `DrawDistortion(d)`, `Draw(cmd)`, `OnKill()` | The life cycle. |
+| `Kill()`, `Tween(property, to, ticks, easing, options)`, `Active` | |
+| `static Spawn(center, options)` | `center`: a position, an entity (followed) or `null` (whole screen); options in camelCase. |
+
+**`ScreenEffects`**: `Spawn(Class, center, options)`, `Find(key)`,
+`Kill(key)`, `KillAll()`, `Active`, `Classes`, `Register(Class)`, `Layer`,
+`Enabled` (the player's "Screen Effects" setting), `Debug`, `HotReload`,
+`Reload()`.
+
+**Tools**: `ScreenPresets` (18 ready-made effects, extendable classes),
+`ScreenGraphics` (`Shader`, `Texture`, `Passes`, `Sources`, `BlendMode`,
+`Array`) and `ScreenUtils` (`Space`, `Easing`, `Mask`, `Tween`, `Curve`,
+`ColorMath`). In `Draw(cmd)`: `cmd.DrawShader`, `cmd.Target`, `cmd.Blit`; in
+`DrawDistortion(d)`: `d.Radial`, `d.Swirl`, `d.Ring`, `d.Haze`, `d.Push`.
 
 ## Helpers
 

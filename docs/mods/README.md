@@ -60,6 +60,7 @@ Read them in order; each one builds on the previous.
 | [10. Sounds and music](10-sons-e-musica.md) | `SoundStyle`, `SoundEngine.PlaySound`, boss music. |
 | [15. Damage classes](15-classes-de-dano.md) | `DamageClass`: a weapon's class, per-class bonuses on the player and new classes. |
 | [16. Hits](16-golpes.md) | `CanHit`, `ModifyHit` and `OnHit` for items, projectiles, NPCs and players (also in the Globals); `HitModifiers` and `HurtModifiers`. |
+| [17. Screen effects](17-efeitos-de-tela.md) | Post-processing between the world and the interface: the 18 presets, `ModScreenEffect` with your own GLSL (`.frag`), multi-pass drawing, distortion, masks, LUT grading, `/fx` and hot reload. |
 | **Between mods** | |
 | [11. Talking between mods](11-conversa-entre-mods.md) | Finding another mod and calling what it offers (`ModLoader.TryGetMod` + `Call`). |
 | [12. Globals and the world](12-globais-e-mundo.md) | Changing what the game already has (`GlobalItem`, `GlobalNPC`, `GlobalProjectile`), drops, and `ModSystem` with world data. |
@@ -83,7 +84,7 @@ The mods in [`samples/`](../../samples) are complete examples:
 | [`DobroDeDano`](../../samples/DobroDeDano) | The smallest mod that does something: a hook on `Item.SetDefaults`. |
 | [`VidaCheia`](../../samples/VidaCheia), [`SemQueda`](../../samples/SemQueda) | A hook on `Player.Update`, changing the player's fields. |
 | [`HelloMod`](../../samples/HelloMod) | A faster Minishark; the comment at the top documents the whole API. |
-| [`ExampleMod`](../../samples/ExampleMod) | tModLoader's `ExampleMod`, ported: dozens of items, projectiles, NPCs, a town NPC, a boss, tiles, buffs, recipes, localization, sound and music. |
+| [`ExampleMod`](../../samples/ExampleMod) | tModLoader's `ExampleMod`, ported: dozens of items, projectiles, NPCs, a town NPC, a boss, tiles, buffs, recipes, localization, sound, music and screen effects. |
 
 ---
 

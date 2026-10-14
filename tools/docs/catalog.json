@@ -76,7 +76,9 @@
     "NetReader": "network",
     "SoundStyle": "sound-and-music",
     "SoundEngine": "sound-and-music",
-    "MusicLoader": "sound-and-music"
+    "MusicLoader": "sound-and-music",
+    "ModScreenEffect": "screen-effects",
+    "ScreenEffects": "screen-effects"
   },
   "notes": {
     "ModItem.ModifyWeaponDamage": "Shared order: ModItem, GlobalItem, ModPlayer. Finite, integer, non-negative result.",

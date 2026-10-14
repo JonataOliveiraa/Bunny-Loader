@@ -86,7 +86,9 @@
     "ExamplePylonItem": "Pilar de Exemplo",
     "BasicTileEntityItem": "Tile Entity Básica",
     "ExamplePickup": "Coleta de Exemplo",
-    "ExampleShortsword": "Espada Curta de Exemplo"
+    "ExampleShortsword": "Espada Curta de Exemplo",
+    "ExampleLastPrism": "Último Prisma de Exemplo",
+    "ExampleRiftStaff": "Cajado da Fenda de Exemplo"
   },
   "MapObject": {
     "ExampleTile": "Bloco de Exemplo",
@@ -123,7 +125,10 @@
     "ExampleMinion": "Lacaio de Exemplo",
     "ExampleSentry": "Sentinela de Exemplo",
     "ExampleSentryShot": "Tiro da Sentinela",
-    "ExampleShortswordProjectile": "Espada Curta de Exemplo"
+    "ExampleShortswordProjectile": "Espada Curta de Exemplo",
+    "ExampleLastPrismHoldout": "Último Prisma de Exemplo",
+    "ExampleLastPrismBeam": "Feixe do Último Prisma de Exemplo",
+    "ExampleRiftProjectile": "Fenda"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Slime de Exemplo",
@@ -169,7 +174,9 @@
     "ExampleMultiplePrefixCategoryWeapon": "Pode receber e manter prefixos de corpo a corpo e de magia",
     "ExampleMountItem": "Invoca uma montaria de mod.",
     "ExamplePylonItem": "Só funciona no bioma de exemplo, na superfície ou no subterrâneo\nNão precisa de moradores por perto!",
-    "BasicTileEntityItem": "Junta a água da chuva\nToque nele cheio para pegar um balde de água"
+    "BasicTileEntityItem": "Junta a água da chuva\nToque nele cheio para pegar um balde de água",
+    "ExampleLastPrism": "Dez feixes que se juntam em um\nOnde batem, a tela ondula",
+    "ExampleRiftStaff": "Abre uma fenda que torce o mundo em volta\nExemplo de efeito de tela com shader .frag próprio"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",

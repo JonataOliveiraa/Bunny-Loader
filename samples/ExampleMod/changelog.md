@@ -15,6 +15,10 @@
 - Item de coleta (`OnPickup`, `GrabRange`), Espada Curta de Exemplo
   (`ShouldUpdatePosition`), o gancho com `GrappleRange`, `NumGrappleHooks` e as
   velocidades, e o tempo restante na dica da Defesa (`ModifyBuffText`).
+- Efeitos de tela: o Último Prisma de Exemplo (porte do `ExampleLastPrism`,
+  com a tela ondulando onde os feixes batem), o Cajado da Fenda de Exemplo
+  (efeito com shader `.frag` próprio, distorção e os prontos) e as bordas
+  vermelhas com pouca vida (`ExampleLowLifePlayer`).
 
 ## 1.8.0 - 2026-09-27
 

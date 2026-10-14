@@ -86,7 +86,9 @@
     "ExamplePylonItem": "Example Pylon",
     "BasicTileEntityItem": "Basic Tile Entity",
     "ExamplePickup": "Example Pickup",
-    "ExampleShortsword": "Example Shortsword"
+    "ExampleShortsword": "Example Shortsword",
+    "ExampleLastPrism": "Example Last Prism",
+    "ExampleRiftStaff": "Example Rift Staff"
   },
   "MapObject": {
     "ExampleTile": "Example Block",
@@ -123,7 +125,10 @@
     "ExampleMinion": "Example Minion",
     "ExampleSentry": "Example Sentry",
     "ExampleSentryShot": "Example Sentry Shot",
-    "ExampleShortswordProjectile": "Example Shortsword"
+    "ExampleShortswordProjectile": "Example Shortsword",
+    "ExampleLastPrismHoldout": "Example Last Prism",
+    "ExampleLastPrismBeam": "Example Last Prism Beam",
+    "ExampleRiftProjectile": "Rift"
   },
   "NPCName": {
     "ExampleSlimeNPC": "Example Slime",
@@ -169,7 +174,9 @@
     "ExampleMultiplePrefixCategoryWeapon": "This can receive and keep both melee and magic prefixes",
     "ExampleMountItem": "This summons a modded mount.",
     "ExamplePylonItem": "Must be within the Example Surface or Underground Biome in order to function\nHas no NPC requirements!",
-    "BasicTileEntityItem": "Collects rain water\nInteract with it when full to claim a water bucket"
+    "BasicTileEntityItem": "Collects rain water\nInteract with it when full to claim a water bucket",
+    "ExampleLastPrism": "Ten beams that focus into one\nWhere they hit, the screen ripples",
+    "ExampleRiftStaff": "Opens a rift that twists the world around it\nScreen effect example: its own .frag shader"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",

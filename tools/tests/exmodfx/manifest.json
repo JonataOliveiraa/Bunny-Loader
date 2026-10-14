@@ -1,0 +1,13 @@
+{
+  "uid": "6e2b9d41-0c7f-4a58-b3e6-9f1d2a7c5e80",
+  "id": "test-exmodfx",
+  "name": "Teste: efeitos de tela do Example Mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Os exemplos de efeito de tela do Example Mod no jogo: o Último Prisma de Exemplo (10 feixes, carga e o Ripple onde batem), o Cajado da Fenda (ExampleRiftEffect com .frag, e a explosão com Shockwave, Flash e ChromaticAberration) e as bordas vermelhas com pouca vida (ExampleLowLifePlayer).",
+  "description": "Precisa do Example Mod ligado. Loga 'exmodfx ...'. Prints: 'SHOT prism' (carga cheia), 'SHOT rift', 'SHOT boom', 'SHOT lowlife'. Põe o prisma no slot da mão e devolve o item no fim.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

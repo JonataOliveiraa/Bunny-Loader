@@ -28,6 +28,8 @@ Todas as receitas do mod. O que é feito na **Bancada de Exemplo** gasta só
 |---|---|---|
 | ![](content/Content/Items/Consumables/ExampleBossSummonItem.png) Invocação do chefe | 10 Exemplo de Item | Altar Demoníaco |
 | Fogueira de Exemplo | 10 de qualquer madeira + 5 Tochas de Exemplo | à mão |
+| ![](content/Content/Items/Weapons/Magic/ExampleLaserWeapon.png) Último Prisma de Exemplo | 10 Exemplo de Item | Bancada de Exemplo |
+| ![](content/Content/Items/Weapons/Magic/ExampleMagicWeapon.png) Cajado da Fenda de Exemplo | 10 Exemplo de Item | Bancada de Exemplo |
 | Carrinho de Exemplo | [i:2343] Carrinho de Mina + 15 Exemplo de Item | Bigorna |
 | 20 Bloco Gemspark de Exemplo | 1 Exemplo de Item + 20 Vidro | Bancada |
 | 20 Fogo Vivo de Exemplo | 20 Bloco de Fogo Vivo + 1 Exemplo de Item | Bola de Cristal |

@@ -43,6 +43,16 @@ corpo **e** de magia.
   uma casa quando alguém tem o Exemplo de Item, conversa, vende armas do mod (uma
   delas na moeda do Exemplo de Item) e defende a vila.
 
+## Efeitos de tela
+
+- O ![](content/Content/Items/Weapons/Magic/ExampleLaserWeapon.png) **Último Prisma de
+  Exemplo** solta dez feixes que se juntam em um, e a tela ondula onde eles batem.
+- O ![](content/Content/Items/Weapons/Magic/ExampleMagicWeapon.png) **Cajado da Fenda de
+  Exemplo** abre uma fenda que torce o mundo em volta e explode numa onda de choque.
+- Com pouca vida, as bordas da tela ficam vermelhas e pulsam.
+
+Quem não gosta pode desligar tudo em Configurações > Efeitos de Tela.
+
 ## O chefe
 
 O **Olho de ???** nasce à noite com o

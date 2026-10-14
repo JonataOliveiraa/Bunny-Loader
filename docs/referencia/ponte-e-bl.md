@@ -113,6 +113,7 @@ is updated.
 | `bl.directory.listDirectories(path)` | The subfolders. |
 | `bl.path.join(a, b, ...)` | |
 | `bl.path.getName(p)`, `getParentPath(p)`, `getExtension(p)` | |
+| `bl.path.resolve(p)` | The absolute path, resolved against the calling mod's folder like the functions above: for keeping a path and using it later from outside the mod (a hook, a command). |
 
 ## `bl`: textures
 
@@ -124,6 +125,20 @@ Only on the **game thread** (in a hook, in `SetStaticDefaults`, in
 | `bl.loadTexture(path)` | A PNG/JPG from the mod → the game's `Texture2D`, new on every call. |
 | `bl.loadTextureAsset(path)` | A PNG/JPG from the mod → an already loaded `Asset<Texture2D>` (the type of the `TextureAssets` tables). |
 | `ModContent.Request(path)`, `ModContent.Texture(path)` | The same, loaded **once** per file ([guide 4](../mods/04-conteudo-novo.md#modcontent)). |
+
+## `bl.screen`: screen effects (low level)
+
+The [screen effect classes](../mods/17-efeitos-de-tela.md) use these
+underneath; a mod uses `ScreenGraphics` and `ModScreenEffect` instead.
+
+| | |
+|---|---|
+| `bl.screen.shader(name, source)` | Registers a fragment shader and returns its id at once (the same name and source give the same id). It compiles on the render thread at its first draw. |
+| `bl.screen.shaderStatus(id)` | `{ state: 'pending' \| 'ready' \| 'failed', error }`. |
+| `bl.screen.submit(draws, targets, { history })` | The frame's steps; `[]` clears them. `ScreenFrame.Submit` builds them. |
+| `bl.screen.texture(path, linear, repeat)` | A PNG from the mod as an effect texture: `{ id, width, height }`. |
+| `bl.screen.saveNeutralLut(path, size)` | Writes the neutral LUT strip (size² × size). |
+| `bl.screen.__stats()` | Counters since boot: frames, steps, GPU time, the GL state mirror's checks. For measuring (`/fx stats`, the debug overlay). |
 
 ## `bl`: fields and objects
 
