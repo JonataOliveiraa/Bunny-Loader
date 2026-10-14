@@ -177,6 +177,20 @@ The tests are mods in [`tools/tests/`](tools/tests), run on the emulator by
 Development happens on MuMu Player (which runs the game's ARM code through
 translation, and where hooks work) and is checked on a real ARM device.
 
+## Acknowledgments
+
+- The **tModLoader Team**, for the design of the mod classes and the original
+  ExampleMod that our [`ExampleMod`](samples/ExampleMod) ports.
+- **GST378** and **Animatak_**, authors of ExMod, the community port of
+  tModLoader's ExampleMod to mobile, which helped shape our first examples.
+- **TL Pro**, whose publicly documented JavaScript API (`NativeClass`,
+  signature strings, `hook((original, self, ...args) => ...)`, the global `tl`
+  object, later renamed `bl`) Bunny Loader's bridge was modeled on. Inspecting
+  the manifest, class names and file layout of TL Pro's Android package
+  (version 1.64.0) informed our choice of hosting Unity in our own process. No
+  TL Pro code or assets are part of Bunny Loader, and Bunny Loader is not
+  affiliated with or endorsed by TL Pro.
+
 ## License
 
 Bunny Loader is **source-available for noncommercial use** under the

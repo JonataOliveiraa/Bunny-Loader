@@ -377,18 +377,5 @@ change: the content comes back by name.
 | Scope of each file | ES module | ES module |
 | Bridge syntax | `Terraria.X['signature'].hook(...)` | The same, with the exact parameter names ([bridge](../referencia/ponte-e-bl.md)) |
 
-## Bringing over a TL Pro mod
-
-The content code (`SetDefaults`, `AI`, `UseItem`...) barely changes. What goes
-away:
-
-- the **whole `TL/` folder**: `ModItem`, `ModNPC`, `ModContent`, `Vector2`,
-  `Color`... are already globals;
-- the **`Register/`** folder: export the classes (`export class ExampleSword extends ModItem`);
-- **`main.js`** becomes the mod class (`export default class MyMod extends Mod {}`),
-  with your own hooks in `Load()`;
-- `tl.*` becomes `bl.*` ([the bridge and `bl`](../referencia/ponte-e-bl.md));
-- imports between the mod's files keep working (`import { X } from './Y.js'`).
-
 The list of what each class has today, and what is still missing compared to
 tModLoader, is in the [reference](../referencia/classes.md).
