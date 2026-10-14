@@ -21,6 +21,8 @@ class LocalizationTest {
         assertEquals("en", TranslationCatalog.resolveLanguage("en-GB", Locale.FRANCE))
         assertEquals("ru", TranslationCatalog.resolveLanguage("ru_RU", Locale.FRANCE))
         assertEquals("es", TranslationCatalog.resolveLanguage("", Locale.forLanguageTag("es-MX")))
+        assertEquals("zh", TranslationCatalog.resolveLanguage("", Locale.SIMPLIFIED_CHINESE))
+        assertEquals("zh", TranslationCatalog.resolveLanguage("zh-Hans-CN", Locale.US))
         assertEquals("pt-BR", TranslationCatalog.resolveLanguage("", Locale.JAPAN))
         assertEquals("pt-BR", TranslationCatalog.resolveLanguage("invalid", Locale.US))
     }
@@ -35,10 +37,10 @@ class LocalizationTest {
     @Test fun everyTranslationPreservesPlaceholdersAndUnicode() {
         val placeholder = Regex("%([1-9][0-9]*\\\$)?[sd]")
         for ((source, values) in rows) {
-            assertEquals(source, 3, values.size)
+            assertEquals(source, 4, values.size)
             val expected = placeholder.findAll(source).map { it.value }.sorted().toList()
             val args = Array<Any>(expected.size) { "Тест ñ %" }
-            for ((index, language) in listOf("en", "ru", "es").withIndex()) {
+            for ((index, language) in listOf("en", "ru", "es", "zh").withIndex()) {
                 assertTrue("$language: $source", values[index].isNotBlank())
                 assertEquals("$language: $source", expected,
                     placeholder.findAll(values[index]).map { it.value }.sorted().toList())
@@ -49,5 +51,6 @@ class LocalizationTest {
         }
         assertEquals("Суперспособности", catalog.text("ru", "Superpoderes"))
         assertEquals("Descargando 42%", catalog.text("es", "Baixando %1\$s%%", 42))
+        assertEquals("正在下载 42%", catalog.text("zh", "Baixando %1\$s%%", 42))
     }
 }

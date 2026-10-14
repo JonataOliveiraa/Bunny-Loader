@@ -34,7 +34,7 @@ public final class MenuLocalization {
                 while (keys.hasNext()) {
                     String key = keys.next();
                     JSONArray values = entries.getJSONArray(key);
-                    String[] translations = new String[3];
+                    String[] translations = new String[4];
                     for (int i = 0; i < translations.length; i++) translations[i] = values.optString(i, "");
                     rows.put(key, translations);
                 }

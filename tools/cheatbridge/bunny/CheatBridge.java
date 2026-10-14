@@ -1156,13 +1156,15 @@ public class CheatBridge {
         }
 
         @Override public void setText(CharSequence text, BufferType type) {
-            // Andy tem os acentos, mas nao as setas. O Layout preserva a fonte
-            // de apoio destes glifos inclusive quando o valor da barra muda.
+            // Andy tem os acentos, mas nao as setas, o cirilico nem o chines.
+            // O Layout preserva a fonte de apoio destes glifos inclusive
+            // quando o valor da barra muda.
             SpannableStringBuilder styled = null;
             if (text != null) {
                 for (int i = 0; i < text.length(); i++) {
                     char ch = text.charAt(i);
-                    if ((ch >= '\u2190' && ch <= '\u21FF') || ch == '\u2212' || (ch >= '\u0400' && ch <= '\u052F')) {
+                    if ((ch >= '\u2190' && ch <= '\u21FF') || ch == '\u2212' || (ch >= '\u0400' && ch <= '\u052F')
+                            || (ch >= '\u3000' && ch <= '\u9FFF') || (ch >= '\uFF00' && ch <= '\uFFEF')) {
                         if (styled == null) styled = new SpannableStringBuilder(text);
                         styled.setSpan(new TypefaceSpan("sans-serif"), i, i + 1,
                                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
