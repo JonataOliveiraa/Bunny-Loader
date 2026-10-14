@@ -53,6 +53,8 @@ PAGES = {
     "docs/mods/14-opcoes-do-mod.md": "Opções-do-mod",
     "docs/mods/15-classes-de-dano.md": "Classes-de-dano",
     "docs/mods/16-golpes.md": "Golpes",
+    "docs/mods/17-efeitos-de-tela.md": "Efeitos-de-tela",
+    "docs/mods/18-botoes-de-toque.md": "Botões-de-toque",
     "docs/mods/14-pacotes-de-textura.md": "Pacotes-de-textura",
     "docs/referencia/classes.md": "Referência-das-classes",
     "docs/referencia/metodos.md": "Métodos-por-classe",
@@ -104,6 +106,8 @@ SIDEBAR = [
         ("Opções-do-mod", "14. Opções do mod"),
         ("Classes-de-dano", "15. Classes de dano"),
         ("Golpes", "16. Golpes"),
+        ("Efeitos-de-tela", "17. Efeitos de tela"),
+        ("Botões-de-toque", "18. Botões de toque"),
         ("Pacotes-de-textura", "Pacotes de textura"),
     ]),
     ("Referência", [
