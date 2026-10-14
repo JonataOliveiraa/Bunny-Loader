@@ -45,37 +45,66 @@ and runs mods written in **JavaScript**, in the tModLoader style
 
 ## Documentation
 
-Everything is in [`docs/`](docs/README.md):
+Everything lives in [`docs/`](docs/README.md) (also on the
+[wiki](https://github.com/JonataOliveiraa/Bunny-Loader/wiki)). New to modding?
+Start with [Making mods](docs/mods/README.md), then read the guides in order:
+each one builds on the previous.
 
-- **[Making mods](docs/mods/README.md)**: from the first hook to a boss with
-  music and publishing the package.
-  1. [Hooks: changing what the game already has](docs/mods/01-hooks-do-zero.md)
-  2. [`ref` and `out`](docs/mods/02-ref-e-out.md)
-  3. [Cost and performance](docs/mods/03-custo-e-desempenho.md)
-  4. [New content: the ideas](docs/mods/04-conteudo-novo.md)
-  5. [Items](docs/mods/05-itens.md) · 6. [Projectiles](docs/mods/06-projeteis.md) ·
-     7. [NPCs](docs/mods/07-npcs.md) · 8. [Player and buffs](docs/mods/08-jogador-e-buffs.md) ·
-     9. [Tiles](docs/mods/09-blocos.md) · 10. [Sounds and music](docs/mods/10-sons-e-musica.md)
-  11. [Talking between mods](docs/mods/11-conversa-entre-mods.md)
-  12. [Globals and the world](docs/mods/12-globais-e-mundo.md)
-  13. [The package page](docs/mods/13-pagina-do-pacote.md): description and
-      changelog in Markdown, license, and authors with photos in `authors/`.
-  14. [Mod options](docs/mods/14-opcoes-do-mod.md): `ModConfig` and the
-      "Mod Configuration" screen in the pause menu.
-  15. [Damage classes](docs/mods/15-classes-de-dano.md): `DamageClass`, the
-      per-class bonuses on the player and new classes.
-  16. [Hits](docs/mods/16-golpes.md): `CanHit`, `ModifyHit` and `OnHit` for
-      items, projectiles, NPCs and players; `HitModifiers` and `HurtModifiers`.
-  - [Texture packs](docs/mods/14-pacotes-de-textura.md): PNG sprites, importing and priority between packs.
-- **Reference**: [methods by class](docs/referencia/metodos.md), with an
-  [Excel spreadsheet](docs/referencia/metodos.xlsx) and a [CSV](docs/referencia/metodos.csv);
-  [what each class has today](docs/referencia/classes.md) and
-  [the bridge and `bl`](docs/referencia/ponte-e-bl.md).
-- **[The native core](docs/nucleo/README.md)**, for people working on Bunny
-  Loader itself: [hooks](docs/nucleo/hooks.md), [threads and the JS engine](docs/nucleo/threads-e-motor-js.md),
-  [the bridge](docs/nucleo/ponte.md), [new content](docs/nucleo/conteudo.md).
-- **[History](docs/historico/README.md)**: decisions, investigations and
-  measurements.
+### Making mods
+
+| Guide | What you learn |
+|---|---|
+| **The bridge to the game** | |
+| [0. How it works](docs/mods/00-como-funciona.md) | The whole flow, from boot to `UseItem`: what is C++, what is JS. Optional. |
+| [1. Hooks](docs/mods/01-hooks-do-zero.md) | Your first mod: classes, fields, methods, structs and hooks on anything in the game. |
+| [2. `ref` and `out`](docs/mods/02-ref-e-out.md) | Calling and hooking methods that return through parameters. |
+| [3. Cost and performance](docs/mods/03-custo-e-desempenho.md) | What each thing costs and how to keep a mod light. |
+| **New content** | |
+| [4. New content: the ideas](docs/mods/04-conteudo-novo.md) | Template and instance, `ModContent`, textures, localization, saves. |
+| [5. Items](docs/mods/05-itens.md) | `ModItem`: weapons, accessories, tooltips, recipes, prefixes. |
+| [6. Projectiles](docs/mods/06-projeteis.md) | `ModProjectile`: AI, collision, drawing, pets, minions. |
+| [7. NPCs](docs/mods/07-npcs.md) | `ModNPC`: enemies, drops, spawning, Bestiary, town NPCs, bosses. |
+| [8. Player and buffs](docs/mods/08-jogador-e-buffs.md) | `ModPlayer` (dash, saved data) and `ModBuff`. |
+| [9. Tiles](docs/mods/09-blocos.md) | `ModTile` and `ModWall`: blocks, furniture, and worlds that open without the mod. |
+| [10. Sounds and music](docs/mods/10-sons-e-musica.md) | `SoundStyle`, `SoundEngine.PlaySound`, boss music. |
+| [15. Damage classes](docs/mods/15-classes-de-dano.md) | `DamageClass`, per-class bonuses and new classes. |
+| [16. Hits](docs/mods/16-golpes.md) | `CanHit`, `ModifyHit`, `OnHit`; `HitModifiers` and `HurtModifiers`. |
+| [17. Screen effects](docs/mods/17-efeitos-de-tela.md) | Post-processing with GLSL: 18 presets, `ModScreenEffect`, `/fx` and hot reload. |
+| [18. Touch buttons](docs/mods/18-botoes-de-toque.md) | `ModTouchButton` (tModLoader's `ModKeybind`): your own buttons in the game's controls. |
+| **Between mods and the world** | |
+| [11. Talking between mods](docs/mods/11-conversa-entre-mods.md) | `ModLoader.TryGetMod` and `Call`. |
+| [12. Globals and the world](docs/mods/12-globais-e-mundo.md) | `GlobalItem`/`GlobalNPC`/`GlobalProjectile`, `ModSystem`, world data, networking. |
+| **Publishing** | |
+| [13. The package page](docs/mods/13-pagina-do-pacote.md) | Description, changelog, license and authors with photos. |
+| [14. Mod options](docs/mods/14-opcoes-do-mod.md) | `ModConfig` and the "Mod Configuration" screen. |
+| [Texture packs](docs/mods/14-pacotes-de-textura.md) | Replacing sprites with PNGs, no code. |
+
+The [Example Mod](samples/ExampleMod) is a port of tModLoader's ExampleMod
+with working examples of what the guides teach.
+
+### Reference
+
+| Page | What it has |
+|---|---|
+| [Methods by class](docs/referencia/metodos.md) | Every method of the JavaScript API, also as an [Excel spreadsheet](docs/referencia/metodos.xlsx) and a [CSV](docs/referencia/metodos.csv). |
+| [What each class has today](docs/referencia/classes.md) | `ModItem`, `ModNPC`, `ModPlayer`... field by field, and what is still missing from tModLoader. |
+| [The bridge and `bl`](docs/referencia/ponte-e-bl.md) | The syntax for talking to the game and every `bl.*` function. |
+| [ModPlayer hooks](docs/referencia/modplayer-hooks.md) · [ModSystem hooks](docs/referencia/modsystem-hooks.md) | When each hook runs, for combat, items, drawing, saving, world generation and networking. |
+| [ModItem: use and ammo](docs/referencia/moditem-uso-municao.md) · [healing](docs/referencia/moditem-cura.md) · [combat](docs/referencia/moditem-combate.md) | The detailed contracts and how the mobile game differs. |
+| [PlayerDrawLayer](docs/referencia/playerdrawlayers.md) | Custom layers on the player. |
+
+### Working on Bunny Loader itself
+
+- [The native core](docs/nucleo/README.md): [hooks](docs/nucleo/hooks.md),
+  [threads and the JS engine](docs/nucleo/threads-e-motor-js.md),
+  [the bridge](docs/nucleo/ponte.md), [new content](docs/nucleo/conteudo.md),
+  [multiplayer sync](docs/nucleo/multijogador.md),
+  [menu localization](docs/nucleo/localizacao-menu.md),
+  [shader research](docs/nucleo/pesquisa-shaders.md) and
+  [tModLoader contracts](docs/nucleo/compatibilidade-tmodloader-desenho-banners.md).
+- [History](docs/historico/README.md): the decisions, investigations and
+  measurements behind the design (hosting Unity, the architecture choice,
+  bridge performance, crashes and freezes that were solved).
 
 Installed mods live in `Android/data/com.bunnyloader/bunny_packs/<uid>/`, and
 the game loads them from there: you can edit a mod right on the device and just
