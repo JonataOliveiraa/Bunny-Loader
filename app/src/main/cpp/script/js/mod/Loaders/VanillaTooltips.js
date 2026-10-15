@@ -171,7 +171,7 @@ class VanillaTooltips {
         if (tooltip !== null) {
             for (let i = 0; i < tooltip.Lines; i++) {
                 const cursed = i === 0 && ItemID.Sets.UsesCursedByPlanteraTooltip[item.type] && !NPC.downedPlantBoss;
-                add(TooltipNames.Tooltip + i, cursed ? Lang.tip[59].Value : tooltip.GetLine(i));
+                add(TooltipNames.Tooltip(i), cursed ? Lang.tip[59].Value : tooltip.GetLine(i));
             }
         }
 
