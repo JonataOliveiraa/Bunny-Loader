@@ -26,6 +26,8 @@
   o `ExampleGlobalRecipe`.
 - Receitas com condição (`AddCondition`) e com callbacks de consumo e de
   criação (a Corrente que não é gasta, os fogos de artifício).
+- A bolsa do Chefe de Exemplo marcada como `PreHardmodeLikeBossBag`: como as
+  bolsas pré-hardmode do jogo, não dá conjunto de desenvolvedor.
 
 ## 1.8.0 - 2026-09-27
 

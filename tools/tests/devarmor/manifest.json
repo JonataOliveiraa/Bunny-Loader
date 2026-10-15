@@ -1,0 +1,15 @@
+{
+  "uid": "2fa79bd6-fd1d-49af-a8f6-409d761af957",
+  "id": "test-devarmor",
+  "name": "Teste: PreHardmodeLikeBossBag",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Bolsa de mod com ItemID.Sets.BossBag tenta dar um conjunto de desenvolvedor ao abrir; com PreHardmodeLikeBossBag, e numa bolsa comum, não tenta. Confere também as bolsas do jogo no conjunto.",
+  "description": "Loga 'devarmor ...'.",
+  "updated": "2026-10-15",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

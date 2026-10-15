@@ -1,13 +1,15 @@
 // A bolsa de tesouro do Chefe de Exemplo (o MinionBossBag do tModLoader): o
 // chefe a solta no Expert e no Mestre, e ela traz o que ele daria no Clássico.
-// O ItemID.Sets.PreHardmodeLikeBossBag do tModLoader não existe no celular.
 const { ItemID } = Terraria.ID;
 const { ItemDropRule } = Terraria.GameContent.ItemDropRules;
 
 export class ExampleBossBag extends ModItem {
     SetStaticDefaults() {
-        // Brilha quando está no chão, como as bolsas do jogo.
+        // Brilha quando está no chão, como as bolsas do jogo, e pode dar um
+        // conjunto de desenvolvedor...
         ItemID.Sets.BossBag[this.Type] = true;
+        // ...mas o chefe é pré-hardmode, e as bolsas pré-hardmode do jogo não dão.
+        ItemID.Sets.PreHardmodeLikeBossBag[this.Type] = true;
     }
 
     SetDefaults() {

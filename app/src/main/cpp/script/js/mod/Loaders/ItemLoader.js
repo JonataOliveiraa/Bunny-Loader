@@ -140,7 +140,18 @@ class ItemLoader {
         const type = item.type;
         Safe.Run(name + '.RightClick', () => m.RightClick(item, player));
         ItemLoader.DropFromItem(m, type, player);
+        Safe.Run(name + ' (conjunto de desenvolvedor)', () => ItemLoader.#DevArmor(type, player));
         return Safe.Run(name + '.ConsumeItem', () => m.ConsumeItem(item, player)) !== false;
+    }
+
+    // O OpenBossBag do tModLoader: toda bolsa de chefe (ItemID.Sets.BossBag)
+    // pode dar um conjunto de desenvolvedor, menos as PreHardmodeLikeBossBag.
+    static #DevArmor(type, player) {
+        const Sets = Terraria.ID.ItemID.Sets;
+        if (!Sets.BossBag[type] || Sets.PreHardmodeLikeBossBag[type]) return;
+
+        const source = player['IEntitySource GetItemSource_OpenItem(int itemType)'](type);
+        player['void TryGettingDevArmor(IEntitySource source)'](source);
     }
 
     // As regras do ItemLoot do tipo, pelo resolvedor do jogo (que segue as

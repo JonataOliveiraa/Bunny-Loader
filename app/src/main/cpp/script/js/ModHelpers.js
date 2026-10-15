@@ -274,6 +274,12 @@ const TileSetsExtras = Object.freeze({
     IgnoredByGrowingSaplings: TypeSet(false),
 });
 
+// As bolsas de chefe que não dão os conjuntos de desenvolvedor (as do jogo
+// que não dão: as pré-hardmode e a da Rainha Slime). O ItemLoader confere ao abrir.
+const ItemSetsExtras = Object.freeze({
+    PreHardmodeLikeBossBag: BoolSet(3318, 3319, 3320, 3321, 3322, 3323, 3324, 4957, 5111),
+});
+
 // O visual vestido do tModLoader (ArmorIDs.*.Sets): o jogo daqui decide por
 // listas no código (PlayerDrawSet.BoringSetup), e o ArmorSetLoader aplica
 // depois dele o que um mod marcar. O DrawHead é o HidesHead do jogo, ao contrário.
@@ -612,6 +618,7 @@ globalThis.__blExtraStatics = Object.freeze({
     'Terraria.GameContent.UI.EmoteID': EmoteIDExtras,
     'Terraria.GameContent.ItemDropRules.ItemDropRule': ItemDropRuleExtras,
     'Terraria.ID.TileID.Sets': TileSetsExtras,
+    'Terraria.ID.ItemID.Sets': ItemSetsExtras,
     'Terraria.ObjectData.TileObjectData': TileObjectDataExtras,
     'Terraria.ID.ArmorIDs.Head.Sets': ArmorHeadSetsExtras,
     'Terraria.ID.ArmorIDs.Body.Sets': ArmorBodySetsExtras,

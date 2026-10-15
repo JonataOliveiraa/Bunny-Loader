@@ -505,5 +505,11 @@ changes every bar, the game's included.
 The Example Mod's Eye of ??? uses `ExampleBossBar`: the head icon for the
 current phase and, as a shield, what is left until the 2nd phase.
 
-Treasure bags and the boss-defeated flag do not have a Bunny Loader shortcut
+A treasure bag is a `ModItem` with `CanRightClick` and `ModifyItemLoot` (the
+Example Mod's `ExampleBossBag`). Marked with `ItemID.Sets.BossBag[Type] = true`,
+it glows on the ground and can drop a developer set when opened, like the
+game's hardmode bags; also marking `ItemID.Sets.PreHardmodeLikeBossBag[Type]`
+turns that off, like the pre-hardmode ones (and Queen Slime's).
+
+The boss-defeated flag does not have a Bunny Loader shortcut
 yet.
