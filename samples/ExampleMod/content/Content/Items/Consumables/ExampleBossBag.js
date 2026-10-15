@@ -10,6 +10,8 @@ export class ExampleBossBag extends ModItem {
         ItemID.Sets.BossBag[this.Type] = true;
         // ...mas o chefe é pré-hardmode, e as bolsas pré-hardmode do jogo não dão.
         ItemID.Sets.PreHardmodeLikeBossBag[this.Type] = true;
+
+        this.Item.ResearchUnlockCount = 3;
     }
 
     SetDefaults() {

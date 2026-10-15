@@ -28,6 +28,8 @@
   criação (a Corrente que não é gasta, os fogos de artifício).
 - A bolsa do Chefe de Exemplo marcada como `PreHardmodeLikeBossBag`: como as
   bolsas pré-hardmode do jogo, não dá conjunto de desenvolvedor.
+- Quantidade de pesquisa do modo Jornada (`Item.ResearchUnlockCount`): 100 no
+  Exemplo de Item, 3 na bolsa do chefe.
 
 ## 1.8.0 - 2026-09-27
 

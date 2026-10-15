@@ -17,6 +17,11 @@ export class ExampleCustomCurrency {
 }
 
 export class ExampleItem extends ModItem {
+    // Quantos o modo Jornada pede para pesquisar (sem isso, item de mod pede 1).
+    SetStaticDefaults() {
+        this.Item.ResearchUnlockCount = 100;
+    }
+
     SetDefaults() {
         this.Item.maxStack = ModItem.CommonMaxStack;
         this.Item.value = Terraria.Item.buyPrice(0, 0, 1, 0);

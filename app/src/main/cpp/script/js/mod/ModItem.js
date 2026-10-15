@@ -376,6 +376,9 @@ class ModItem {
                 Terraria.ID.ItemID.Sets.KillsToBanner[inst.Type] = 50;
                 EquipLoader.Install();
 
+                // Como no tModLoader, todo item de mod se pesquisa com 1 (Item.ResearchUnlockCount muda).
+                ItemLoader.SetResearchUnlockCount(inst.Type, 1);
+
                 // O this.Item do tModLoader no SetStaticDefaults (Item.wingSlot...): a amostra do jogo.
                 inst.__entity = ItemLoader.SampleAddress(inst.Type);
                 try {

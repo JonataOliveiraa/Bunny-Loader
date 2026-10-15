@@ -1,0 +1,15 @@
+{
+  "uid": "85c9f2ad-a61c-4cf3-9ba9-8d99e9a72ddd",
+  "id": "test-research",
+  "name": "Teste: ResearchUnlockCount",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Item.ResearchUnlockCount (a pesquisa do modo Jornada): posto no SetStaticDefaults e no SetDefaults de itens de mod, o padrão 1, o 0 que tira da pesquisa, e num item do jogo; os valores continuam depois de entrar no mundo.",
+  "description": "Loga 'research ...'.",
+  "updated": "2026-10-15",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

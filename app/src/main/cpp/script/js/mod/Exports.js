@@ -17,6 +17,8 @@ Object.assign(globalThis, {
 });
 
 ArmorSetLoader.InstallHairSettings();
+// Item.ResearchUnlockCount, a quantidade que o modo Jornada pede para pesquisar.
+ItemLoader.InstallResearch();
 
 // Sempre ligado, com ou sem mod: o "Config. dos Mods" do menu de pausa.
 ModConfigMenu.Install();

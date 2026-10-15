@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceHash": "7f222e7b5e14152673fb324846fd7c8f9165962596fcbc76d967066fd4bc50e1",
+  "sourceHash": "cbbe1b8c50777d8d867515765ac1661af8be6646578d4229cca363f97d34cc9c",
   "classes": [
     {
       "name": "BackgroundTextureLoader",
@@ -11192,8 +11192,8 @@
       "description": "The template.",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModItem.js",
-      "line": 416,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L416",
+      "line": 419,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L419",
       "reference": "docs/referencia/classes.md#moditem",
       "aliasOf": ""
     },
@@ -11243,8 +11243,8 @@
       "description": "The template.",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModItem.js",
-      "line": 415,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L415",
+      "line": 418,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L418",
       "reference": "docs/referencia/classes.md#moditem",
       "aliasOf": ""
     },
@@ -11260,8 +11260,8 @@
       "description": "The type of an item from this mod; -1 if there is none.",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModItem.js",
-      "line": 414,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L414",
+      "line": 417,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L417",
       "reference": "docs/referencia/classes.md#moditem",
       "aliasOf": ""
     },
@@ -11430,8 +11430,8 @@
       "description": "Is it mod content?",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModItem.js",
-      "line": 413,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L413",
+      "line": 416,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L416",
       "reference": "docs/referencia/classes.md#moditem",
       "aliasOf": ""
     },
@@ -11447,8 +11447,8 @@
       "description": "Is it mod content?",
       "native": "",
       "source": "app/src/main/cpp/script/js/mod/ModItem.js",
-      "line": 412,
-      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L412",
+      "line": 415,
+      "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L415",
       "reference": "docs/referencia/classes.md#moditem",
       "aliasOf": ""
     },
@@ -11495,8 +11495,8 @@
       "inherited": false,
       "status": "Declared",
       "baseReturn": "Entities.Of(this)",
-      "description": "game Item",
-      "native": "This instance's item. On the template, undefined.",
+      "description": "number",
+      "native": "How many Journey mode asks for to research it (per type). Mod items start at 1; 0 takes the item out of research. Set it in SetStaticDefaults (this.Item.ResearchUnlockCount = 3); it also works on any item, the game's included.",
       "source": "app/src/main/cpp/script/js/mod/ModItem.js",
       "line": 13,
       "sourceUrl": "https://github.com/JonataOliveiraa/Bunny-Loader/blob/main/app/src/main/cpp/script/js/mod/ModItem.js#L13",

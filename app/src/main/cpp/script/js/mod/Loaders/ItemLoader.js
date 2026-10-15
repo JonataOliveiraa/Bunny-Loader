@@ -216,6 +216,46 @@ class ItemLoader {
         if (money > 0) give(ItemID.PlatinumCoin, money);
     }
 
+    // Quanto pesquisar no modo Jornada, por tipo (o Item.ResearchUnlockCount do
+    // tModLoader). O jogo monta a tabela no Initialize_AlmostEverything e a
+    // limpa antes: o que os mods puseram volta depois dele.
+    static #research = new Map();
+
+    static InstallResearch() {
+        bl.defineProperty(Terraria.Item, 'ResearchUnlockCount',
+            function () { return ItemLoader.ResearchUnlockCount(this.type); },
+            function (value) { ItemLoader.SetResearchUnlockCount(this.type, value); });
+    }
+
+    static #Sacrifices() {
+        return Terraria.GameContent.Creative.CreativeItemSacrificesCatalog.Instance.SacrificeCountNeededByItemId;
+    }
+
+    static ResearchUnlockCount(type) {
+        const result = new Ref(0);
+        return ItemLoader.#Sacrifices()['bool TryGetValue(int key, out int value)'](type, result) ? result.value : 0;
+    }
+
+    // Menos de 1: sem pesquisa (o 0 na tabela daria errado, então sai dela).
+    static SetResearchUnlockCount(type, value) {
+        const count = Math.trunc(Number(value)) || 0;
+        ItemLoader.#research.set(type, count);
+        ItemLoader.#ApplyResearch(type, count);
+
+        Hooks.Once('item.Research', () => {
+            Terraria.GameContent.Creative.CreativeItemSacrificesCatalog['void Initialize()'].hook((original, self) => {
+                original(self);
+                for (const [t, n] of ItemLoader.#research) Safe.Run('ResearchUnlockCount', () => ItemLoader.#ApplyResearch(t, n));
+            });
+        });
+    }
+
+    static #ApplyResearch(type, count) {
+        const table = ItemLoader.#Sacrifices();
+        if (count < 1) table['bool Remove(int key)'](type);
+        else table['void set_Item(int key, int value)'](type, count);
+    }
+
     // O jogo zera as animações no InitializeItemAnimations, que roda depois do
     // SetStaticDefaults dos mods: reaplicadas a cada vez.
     static RegisterAnimation(type, animation) {

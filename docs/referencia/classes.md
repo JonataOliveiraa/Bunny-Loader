@@ -88,6 +88,7 @@ its own instance, with `this.Item` pointing to it.
 | `Tooltip` | text or `{ culture: text }` | The description, lines split by `\n`. Empty: `ItemTooltip.<Class>`. |
 | `TooltipLines` | array of text | The lines, for `ModifyTooltipLines` to change. |
 | `HideFromModMenu` | `boolean` | `true`: left out of the Mod Menu. |
+| `Item.ResearchUnlockCount` | number | How many Journey mode asks for to research it (per type). Mod items start at 1; `0` takes the item out of research. Set it in `SetStaticDefaults` (`this.Item.ResearchUnlockCount = 3`); it also works on any item, the game's included. |
 
 ### Methods you write
 
