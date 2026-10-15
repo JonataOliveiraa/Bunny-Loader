@@ -216,6 +216,8 @@ jobjectArray toJavaStringArray(JNIEnv* env, const std::vector<std::u16string>& n
     const std::unordered_set<int> hidden = runtime::hiddenFromModMenu(kind);
     jclass sc = env->FindClass("java/lang/String");
     if (!sc) return nullptr;
+    // A troca de idioma substitui as tabelas na thread do jogo.
+    std::lock_guard<std::mutex> guard(runtime::namesLock());
     jobjectArray out = env->NewObjectArray(static_cast<jsize>(names.size()), sc, nullptr);
     if (!out) return nullptr;
     for (size_t i = 0; i < names.size(); ++i) {
@@ -236,6 +238,10 @@ jobjectArray JNICALL jni_itemNames(JNIEnv* env, jclass) {
 
 jobjectArray JNICALL jni_npcNames(JNIEnv* env, jclass) {
     return toJavaStringArray(env, runtime::npcNames(), runtime::MenuKind::Npc);
+}
+
+jint JNICALL jni_namesGeneration(JNIEnv*, jclass) {
+    return runtime::namesGeneration();
 }
 
 jintArray JNICALL jni_npcFrames(JNIEnv* env, jclass) {
@@ -477,6 +483,7 @@ void installCheatButton() {
         {"nItemNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_itemNames)},
         {"nNpcNames", "()[Ljava/lang/String;", reinterpret_cast<void*>(&jni_npcNames)},
         {"nNpcFrames", "()[I", reinterpret_cast<void*>(&jni_npcFrames)},
+        {"nNamesGeneration", "()I", reinterpret_cast<void*>(&jni_namesGeneration)},
         {"nItemClasses", "()[B", reinterpret_cast<void*>(&jni_itemClasses)},
         {"nSetPower", "(II)V", reinterpret_cast<void*>(&jni_setPower)},
         {"nInWorld", "()Z", reinterpret_cast<void*>(&jni_inWorld)},

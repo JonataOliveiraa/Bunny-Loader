@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -53,6 +54,14 @@ void spawnNpcs(int type, int count, int player = -1);
 bool namesReady();
 const std::vector<std::u16string>& itemNames();
 const std::vector<std::u16string>& npcNames();
+/**
+ * Trocar o idioma do jogo rele os nomes (item, NPC e buff) em segundo plano e
+ * os troca de uma vez, sob este lock: quem copia as tabelas fora da thread do
+ * jogo (o JNI) segura ele enquanto copia.
+ */
+std::mutex& namesLock();
+/** Sobe a cada releitura terminada; negativa enquanto uma esta em andamento. */
+int namesGeneration();
 
 /**
  * Quantos quadros tem a tira de cada NPC (Main.npcFrameCount).

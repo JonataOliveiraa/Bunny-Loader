@@ -282,6 +282,20 @@ std::atomic<bool> g_namesReady{false};
 // as 6800 chamadas voltavam com texto vazio — a lista saia com "#0, #1, #2".
 // Quando o menu abre, o jogo ja esta de pe ha muito.
 std::atomic<bool> g_namesWanted{false};
+// O idioma em que os nomes foram lidos. Antes eles ficavam no idioma da
+// primeira leitura para sempre: trocar de idioma no jogo nao mudava o menu.
+// A cada kCultureCheckFrames quadros o jogo e perguntado de novo; se mudou, os
+// nomes sao relidos em g_next*, no mesmo orcamento por quadro, e trocados de
+// lugar com os de cima de uma vez, sob g_namesLock.
+constexpr int kCultureCheckFrames = 30;
+const MethodInfo* g_activeCulture = nullptr;
+Il2CppObject* g_namesCulture = nullptr;
+int g_cultureCheckWait = 0;
+std::vector<std::u16string> g_nextItemNames;
+std::vector<std::u16string> g_nextNpcNames;
+int g_renameProgress = -1;   // -1 = nenhuma releitura em andamento
+std::atomic<int> g_namesGeneration{0};
+std::mutex g_namesLock;
 
 std::vector<uint8_t> g_itemClass;
 std::vector<uint8_t> g_itemSub;
@@ -726,13 +740,93 @@ std::u16string toU16(Il2CppString* s) {
                           static_cast<size_t>(s->length));
 }
 
+/** Language.ActiveCulture; null se o jogo nao respondeu. */
+Il2CppObject* activeCulture() {
+    auto& a = il2cpp::api();
+    if (!g_activeCulture) {
+        Il2CppClass* language = il2cpp::findClass({"Terraria.Localization", "Language", {}});
+        g_activeCulture = language ? a.class_get_method_from_name(language, "get_ActiveCulture", 0) : nullptr;
+        if (!g_activeCulture) return nullptr;
+    }
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* r = a.runtime_invoke(g_activeCulture, nullptr, nullptr, &exc);
+    return exc ? nullptr : r;
+}
+
+/**
+ * Le os nomes de `progress` em diante, itens e depois NPCs, ate o fim ou ate
+ * `deadline`. true quando acabou.
+ */
+bool readNamesUntil(std::vector<std::u16string>& items, std::vector<std::u16string>& npcs,
+                    int& progress, std::chrono::steady_clock::time_point deadline) {
+    auto& a = il2cpp::api();
+    const int start = progress;
+    const int total = g_itemTotal + g_npcTotal;
+    for (; progress < total; ++progress) {
+        // O relogio a cada 16 nomes, e nao a cada um: perguntar a hora tambem
+        // custa. O primeiro lote sempre passa, entao todo quadro anda.
+        if ((progress & 15) == 0 && progress > start &&
+            std::chrono::steady_clock::now() > deadline) {
+            return false;
+        }
+        const bool item = progress < g_itemTotal;
+        int id = item ? progress : progress - g_itemTotal;
+        void* args[1] = {&id};
+        Il2CppObject* exc = nullptr;
+        Il2CppObject* r = a.runtime_invoke(item ? g_itemNameOf : g_npcNameOf,
+                                           nullptr, args, &exc);
+        if (exc) continue;   // id sem nome: fica vazio, o menu mostra so o id
+        std::u16string name = toU16(reinterpret_cast<Il2CppString*>(r));
+        if (item) items[id] = std::move(name);
+        else npcs[id] = std::move(name);
+    }
+    return true;
+}
+
+/**
+ * Depois da primeira leitura: confere o idioma de vez em quando e, se mudou,
+ * rele os nomes numa fatia por quadro.
+ */
+void refreshNamesSlice() {
+    if (!g_itemNameOf || !g_npcNameOf) return;
+    if (g_renameProgress < 0) {
+        if (++g_cultureCheckWait < kCultureCheckFrames) return;
+        g_cultureCheckWait = 0;
+        Il2CppObject* culture = activeCulture();
+        if (!culture || culture == g_namesCulture) return;
+        g_namesCulture = culture;
+        g_nextItemNames.assign(g_itemTotal, std::u16string());
+        g_nextNpcNames.assign(g_npcTotal, std::u16string());
+        g_renameProgress = 0;
+        g_namesGeneration.store(-g_namesGeneration.load() - 1);   // em andamento
+    }
+    using Clock = std::chrono::steady_clock;
+    const auto t0 = Clock::now();
+    if (!readNamesUntil(g_nextItemNames, g_nextNpcNames, g_renameProgress, t0 + kBudgetPerFrame)) {
+        return;
+    }
+    // ~400 buffs: de uma vez, como na primeira leitura.
+    std::vector<std::u16string> buffs = readBuffNames();
+    {
+        std::lock_guard<std::mutex> guard(g_namesLock);
+        g_itemNames.swap(g_nextItemNames);
+        g_npcNames.swap(g_nextNpcNames);
+        replaceBuffNames(buffs);
+    }
+    std::vector<std::u16string>().swap(g_nextItemNames);
+    std::vector<std::u16string>().swap(g_nextNpcNames);
+    g_renameProgress = -1;
+    g_namesGeneration.store(-g_namesGeneration.load(), std::memory_order_release);
+    BL_DEBUG("cheats: idioma trocado; nomes relidos (geracao %d)", g_namesGeneration.load());
+}
+
 /**
  * Uma fatia por quadro, no orcamento: primeiro os nomes, depois as classes.
  * Volta rapido quando ja acabou.
  */
 void readNamesSlice() {
     if (!g_namesWanted.load(std::memory_order_relaxed)) return;
-    if (g_namesReady.load(std::memory_order_relaxed)) return;
+    if (g_namesReady.load(std::memory_order_relaxed)) { refreshNamesSlice(); return; }
     auto& a = il2cpp::api();
 
     if (g_nameProgress < 0) {
@@ -754,32 +848,15 @@ void readNamesSlice() {
         g_npcNames.assign(g_npcTotal, std::u16string());
         g_nameProgress = 0;
         g_nameReadStart = std::chrono::steady_clock::now();
+        g_namesCulture = activeCulture();
     }
 
     using Clock = std::chrono::steady_clock;
     const auto t0 = Clock::now();
-    const int total = g_itemTotal + g_npcTotal;
-    for (; g_nameProgress < total; ++g_nameProgress) {
-        // O relogio a cada 16 nomes, e nao a cada um: perguntar a hora tambem
-        // custa. O primeiro lote sempre passa, entao todo quadro anda.
-        if ((g_nameProgress & 15) == 0 && g_nameProgress > 0 &&
-            Clock::now() - t0 > kBudgetPerFrame) {
-            break;
-        }
-        const bool item = g_nameProgress < g_itemTotal;
-        int id = item ? g_nameProgress : g_nameProgress - g_itemTotal;
-        void* args[1] = {&id};
-        Il2CppObject* exc = nullptr;
-        Il2CppObject* r = a.runtime_invoke(item ? g_itemNameOf : g_npcNameOf,
-                                           nullptr, args, &exc);
-        if (exc) continue;   // id sem nome: fica vazio, o menu mostra so o id
-        std::u16string name = toU16(reinterpret_cast<Il2CppString*>(r));
-        if (item) g_itemNames[id] = std::move(name);
-        else g_npcNames[id] = std::move(name);
-    }
     // Nomes prontos: o que sobra do orcamento vai para a classificacao, que
     // tambem para no limite e continua no proximo quadro.
-    const bool classified = g_nameProgress >= total && classifyUntil(t0 + kBudgetPerFrame);
+    const bool classified = readNamesUntil(g_itemNames, g_npcNames, g_nameProgress, t0 + kBudgetPerFrame) &&
+                            classifyUntil(t0 + kBudgetPerFrame);
     ++g_nameReadFrames;
     const int64_t us = std::chrono::duration_cast<std::chrono::microseconds>(
         Clock::now() - t0).count();
@@ -898,6 +975,8 @@ bool namesReady() {
 }
 const std::vector<std::u16string>& itemNames() { return g_itemNames; }
 const std::vector<std::u16string>& npcNames() { return g_npcNames; }
+std::mutex& namesLock() { return g_namesLock; }
+int namesGeneration() { return g_namesGeneration.load(std::memory_order_acquire); }
 const std::vector<int>& npcFrames() { return g_npcFrames; }
 bool inWorld() { return g_inWorld.load(std::memory_order_relaxed); }
 const std::vector<uint8_t>& itemClasses() { return g_itemClass; }

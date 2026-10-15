@@ -30,4 +30,12 @@ const std::vector<uint8_t>& npcClasses();          // indice = tipo
 const std::vector<std::u16string>& buffNames();    // indice = tipo; [0] vazio
 const std::vector<uint8_t>& buffClasses();
 
+/**
+ * Os nomes de buff de novo, no idioma ativo, para a troca de idioma. Thread do
+ * jogo. A troca (`replaceBuffNames`) e feita sob o namesLock (Cheats.h): o JNI
+ * pode estar copiando os antigos.
+ */
+std::vector<std::u16string> readBuffNames();
+void replaceBuffNames(std::vector<std::u16string>& names);
+
 } // namespace bl::runtime
