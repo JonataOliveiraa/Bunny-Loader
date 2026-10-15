@@ -5,11 +5,14 @@
 //     dela (false: o jogo procura outro);
 //   - sem nada acompanhado, um NPC de mod com barra também ganha a dele (o
 //     jogo só acompanha quem tem cabeça de chefe), procurado a cada 30 quadros;
-//   - o Draw dessas usa o DrawFancyBar do jogo, entre o PreDraw e o PostDraw;
-//   - as barras do jogo passam pelos GlobalBossBar. No celular elas não usam o
-//     DrawFancyBar: desenham pelo GUIBossBar.Draw (painéis do GUIPanel).
-// O que o BossBarDrawParams muda e o desenho não recebe (cores, centro,
-// escala do ícone, texto) entra nos desenhos de dentro dele (#Restyle e #MobileRestyle).
+//   - o desenho é o das barras do jogo no celular: GUIBossBar.Draw (painéis
+//     do GUIPanel, embaixo do minimapa), entre o PreDraw e o PostDraw. O
+//     DrawFancyBar do PC não tem quem o chame no celular;
+//   - as barras do jogo passam pelos GlobalBossBar.
+// O que o BossBarDrawParams muda e o GUIBossBar.Draw não recebe (cor da
+// faixa, do ícone, texto) entra nos desenhos de dentro dele. A posição é a
+// do layout do celular: o BarCenter diz onde ela está, mas mudar não a move
+// (nem o TextOffset), e o ícone é um botão do layout (o IconScale não vale).
 class BossBarLoader {
     static #state = null;   // a barra deste quadro: { bar, index, life, lifeMax, shield, shieldMax }
     static #tracked = -1;   // o NPC que só a barra de mod acompanha
@@ -17,22 +20,20 @@ class BossBarLoader {
     static #SCAN_EVERY = 30;
 
     static #system = null;      // o BigProgressBarSystem no Draw
-    static #drawing = false;    // dentro do DrawFancyBar que o Bunny Loader chamou
-    static #look = null;        // o desenho mudado deste DrawFancyBar
-    static #barTexture = undefined;   // a UI_BossBar, vista no primeiro desenho do jogo
-    static #mobileLook = null;   // o desenho mudado deste GUIBossBar.Draw
-    static #panel = null;        // o Panel_Layout da barra do celular (o centro dela)
+    static #drawing = false;    // dentro do GUIBossBar.Draw que o Bunny Loader chamou
+    static #look = null;        // o desenho mudado deste GUIBossBar.Draw
+    static #panel = null;       // o Panel_Layout da barra (o centro dela)
 
-    static #FANCY = 'void DrawFancyBar(SpriteBatch spriteBatch, float lifeAmount, float lifeMax, Texture2D barIconTexture, Rectangle barIconFrame)';
-    static #FANCY_SHIELD = 'void DrawFancyBar(SpriteBatch spriteBatch, float lifeAmount, float lifeMax, Texture2D barIconTexture, Rectangle barIconFrame, float shieldCurrent, float shieldMax)';
+    static #GUI_DRAW = 'void Draw(float life, float lifeMax, Texture2D bossIconTexture, Rectangle bossIconFrame, float shield, float shieldMax)';
+    static #REGION = 'Rectangle Region(Panel_Layout layout)';
 
     static Add(inst) {
-        Hooks.Once('bossbar', () => Safe.Run('ModBossBar: ganchos', () => BossBarLoader.#Hook()));
+        BossBarLoader.WantGlobals();
     }
 
     static WantGlobals() {
         Hooks.Once('bossbar', () => Safe.Run('ModBossBar: ganchos', () => BossBarLoader.#Hook()));
-        Hooks.Once('bossbar.mobile', () => Safe.Run('GlobalBossBar: ganchos', () => BossBarLoader.#HookMobile()));
+        Hooks.Once('bossbar.mobile', () => Safe.Run('ModBossBar: ganchos do desenho', () => BossBarLoader.#HookMobile()));
     }
 
     // A barra de mod do NPC (o BossBar do ModNPC dele), ou null.
@@ -111,12 +112,13 @@ class BossBarLoader {
         if (self.#state) self.#tracked = found;
     }
 
-    // O BossBarDrawParams com os valores do jogo.
+    // O BossBarDrawParams com os valores do jogo. Sem a UI_BossBar do PC: o
+    // BarTexture é null.
     static #Params(icon, frame, life, lifeMax, shield, shieldMax) {
         const size = Terraria.Main.ScreenSize;
         return {
-            BarTexture: BossBarLoader.#barTexture,
-            BarCenter: Vector2.new(size.X * 0.5, size.Y - 50),
+            BarTexture: null,
+            BarCenter: BossBarLoader.#Center() || Vector2.new(size.X * 0.5, size.Y - 50),
             BarColor: Color.White,
             IconTexture: icon,
             IconFrame: frame,
@@ -128,8 +130,20 @@ class BossBarLoader {
         };
     }
 
+    // O centro do painel da barra, visto no último desenho.
+    static #Center() {
+        const panel = BossBarLoader.#panel;
+        if (!panel) return null;
+
+        const r = bl.classOf('', 'GUIPanel')[BossBarLoader.#REGION](panel);
+        return Vector2.new(r.X + r.Width / 2, r.Y + r.Height / 2);
+    }
+
     static #DrawModBar(state, spriteBatch) {
         const { bar } = state;
+        const gui = bl.classOf('', 'GUIInstance').Active?.GUIBossBar;
+        if (!gui) return;
+
         const npc = Terraria.Main.npc[state.index];
         const frame = new Ref(null);
         const icon = Safe.Run(bar.constructor.name + '.GetIconTexture', () => bar.GetIconTexture(frame)) ||
@@ -137,65 +151,49 @@ class BossBarLoader {
         const texture = 'Value' in icon ? icon.Value : icon;
         const params = BossBarLoader.#Params(texture, frame.value || Rectangle.new(0, 0, texture.Width, texture.Height),
             state.life, state.lifeMax, state.shield, state.shieldMax);
-        BossBarLoader.#Run(spriteBatch, npc, params, bar);
-    }
 
-    // Uma barra do jogo, de dentro do DrawFancyBar dela.
-    static #DrawVanillaBar(spriteBatch, params, original) {
-        const system = BossBarLoader.#system;
-        const index = system ? system._info.npcIndexToAimAt : -1;
-        const npc = index >= 0 && index < 200 ? Terraria.Main.npc[index] : null;
-        if (!npc) return original();
-
-        BossBarLoader.#Run(spriteBatch, npc, params, null);
-        return undefined;
+        // Sem escudo, o -1 e 1 que as barras do jogo passam.
+        BossBarLoader.#Run(spriteBatch, npc, params, bar, (p) => {
+            const shielded = p.ShieldMax > 0;
+            gui[BossBarLoader.#GUI_DRAW](p.Life, p.LifeMax, p.IconTexture, p.IconFrame,
+                shielded ? p.Shield : -1, shielded ? p.ShieldMax : 1);
+        });
     }
 
     // A ordem do tModLoader: PreDraw dos Global, depois o da barra de mod;
     // PostDraw da barra de mod, depois os dos Global.
-    static #Run(spriteBatch, npc, params, bar) {
+    static #Run(spriteBatch, npc, params, bar, draw) {
         const before = BossBarLoader.#Snapshot(params);
 
-        let draw = globalBossBars.All('PreDraw', (g) => g.PreDraw(spriteBatch, npc, params));
-        if (draw && bar) draw = Safe.Run(bar.constructor.name + '.PreDraw', () => bar.PreDraw(spriteBatch, npc, params)) !== false;
-        if (draw) BossBarLoader.#Fancy(spriteBatch, params, before);
+        let ok = globalBossBars.All('PreDraw', (g) => g.PreDraw(spriteBatch, npc, params));
+        if (ok && bar) ok = Safe.Run(bar.constructor.name + '.PreDraw', () => bar.PreDraw(spriteBatch, npc, params)) !== false;
+        if (ok) BossBarLoader.#Draw(params, before, draw);
 
         if (bar) Safe.Run(bar.constructor.name + '.PostDraw', () => bar.PostDraw(spriteBatch, npc, params));
         globalBossBars.Each('PostDraw', (g) => g.PostDraw(spriteBatch, npc, params));
     }
 
-    static #Fancy(spriteBatch, params, before) {
-        const Helper = Terraria.GameContent.UI.BigProgressBar.BigProgressBarHelper;
-        const after = BossBarLoader.#Snapshot(params);
-        const look = BossBarLoader.#Changed(before, after) ? BossBarLoader.#Look(params, before, after) : null;
+    static #Draw(params, before, draw) {
+        const self = BossBarLoader;
+        const after = self.#Snapshot(params);
+        const look = self.#Changed(before, after) ? self.#Look(params, after) : null;
 
-        BossBarLoader.#drawing = true;
-        BossBarLoader.#look = look;
-        if (look) bl.hookFlags.set('bossbar.look', true);
+        self.#drawing = true;
+        self.#look = look;
+        if (look || !self.#panel) bl.hookFlags.set('bossbar.mobile', true);
         try {
-            if (params.Shield > 0 && params.ShieldMax > 0) {
-                Helper[BossBarLoader.#FANCY_SHIELD](spriteBatch, params.Life, params.LifeMax, params.IconTexture, params.IconFrame,
-                    params.Shield, params.ShieldMax);
-            } else {
-                Helper[BossBarLoader.#FANCY](spriteBatch, params.Life, params.LifeMax, params.IconTexture, params.IconFrame);
-            }
+            draw(params);
         } finally {
-            BossBarLoader.#drawing = false;
-            BossBarLoader.#look = null;
-            if (look) bl.hookFlags.set('bossbar.look', BossBarLoader.#barTexture === undefined);
+            self.#drawing = false;
+            self.#look = null;
+            bl.hookFlags.set('bossbar.mobile', false);
         }
     }
 
-    // Em números: o struct que o mod mexe (BarCenter.Y += 10) é o mesmo.
+    // Em números: o struct que o mod mexe (BarColor.R = ...) é o mesmo.
     static #Snapshot(p) {
         const packed = (c) => ((c.R << 24) | (c.G << 16) | (c.B << 8) | c.A) >>> 0;
-        return {
-            cx: p.BarCenter.X, cy: p.BarCenter.Y,
-            bar: packed(p.BarColor), icon: packed(p.IconColor),
-            scale: p.IconScale, text: p.ShowText !== false,
-            tx: p.TextOffset.X, ty: p.TextOffset.Y,
-            texture: p.BarTexture ? bl.addressOf(p.BarTexture) : 0,
-        };
+        return { bar: packed(p.BarColor), icon: packed(p.IconColor), text: p.ShowText !== false };
     }
 
     static #Changed(a, b) {
@@ -205,47 +203,12 @@ class BossBarLoader {
         return false;
     }
 
-    static #Look(params, before, after) {
+    static #Look(params, after) {
         return {
-            dx: after.cx - before.cx, dy: after.cy - before.cy,
             barColor: after.bar !== 0xFFFFFFFF ? params.BarColor : null,
             iconColor: after.icon !== 0xFFFFFFFF ? params.IconColor : null,
-            iconScale: after.scale,
             iconAddress: bl.addressOf(params.IconTexture),
-            barTexture: after.texture && after.texture !== before.texture ? params.BarTexture : null,
             showText: after.text,
-            tx: after.tx, ty: after.ty,
-        };
-    }
-
-    // Os argumentos de um SpriteBatch.Draw do DrawFancyBar, com o desenho
-    // mudado; null deixa como está. O primeiro desenho é sempre o da UI_BossBar.
-    static #Restyle(texture, position, color, scale) {
-        const icon = BossBarLoader.#look ? bl.addressOf(texture) === BossBarLoader.#look.iconAddress : false;
-        if (BossBarLoader.#barTexture === undefined && !icon) {
-            BossBarLoader.#barTexture = texture;
-            if (!BossBarLoader.#look) bl.hookFlags.set('bossbar.look', false);
-        }
-
-        const look = BossBarLoader.#look;
-        if (!look) return null;
-
-        const moved = look.dx || look.dy ? Vector2.new(position.X + look.dx, position.Y + look.dy) : position;
-        if (icon) {
-            const s = look.iconScale;
-            return {
-                texture,
-                position: moved,
-                color: look.iconColor || color,
-                scale: s === 1 ? scale : typeof scale === 'number' ? scale * s : Vector2.new(scale.X * s, scale.Y * s),
-            };
-        }
-
-        return {
-            texture: look.barTexture || texture,
-            position: moved,
-            color: look.barColor ? Color.Multiply(look.barColor, color.A / 255) : color,
-            scale,
         };
     }
 
@@ -262,68 +225,10 @@ class BossBarLoader {
             Safe.Run('ModBossBar: Draw', () => BossBarLoader.#DrawModBar(state, spriteBatch));
             return undefined;
         });
-
-        BossBarLoader.#HookFancy();
-        BossBarLoader.#HookLook();
     }
 
-    // As barras do jogo: o DrawFancyBar delas passa pelos GlobalBossBar.
-    static #HookFancy() {
-        const Helper = Terraria.GameContent.UI.BigProgressBar.BigProgressBarHelper;
-        const skip = () => BossBarLoader.#drawing || !globalBossBars.list.length;
-
-        Helper[BossBarLoader.#FANCY].hook((original, spriteBatch, life, lifeMax, icon, frame) => {
-            if (skip()) return original(spriteBatch, life, lifeMax, icon, frame);
-
-            const params = BossBarLoader.#Params(icon, frame, life, lifeMax, 0, 0);
-            return BossBarLoader.#DrawVanillaBar(spriteBatch, params, () => original(spriteBatch, life, lifeMax, icon, frame));
-        });
-
-        Helper[BossBarLoader.#FANCY_SHIELD].hook((original, spriteBatch, life, lifeMax, icon, frame, shield, shieldMax) => {
-            if (skip()) return original(spriteBatch, life, lifeMax, icon, frame, shield, shieldMax);
-
-            const params = BossBarLoader.#Params(icon, frame, life, lifeMax, shield, shieldMax);
-            return BossBarLoader.#DrawVanillaBar(spriteBatch, params,
-                () => original(spriteBatch, life, lifeMax, icon, frame, shield, shieldMax));
-        });
-    }
-
-    // Só entram no JS com a chave ligada: num desenho mudado, ou até achar a UI_BossBar.
-    static #HookLook() {
-        const Helper = Terraria.GameContent.UI.BigProgressBar.BigProgressBarHelper;
-        const SpriteBatch = Microsoft.Xna.Framework.Graphics.SpriteBatch;
-        const draws = [
-            'void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)',
-            'void Draw(Texture2D texture, Vector2 position, Nullable`1 sourceRectangle, Color color, float rotation, Vector2 origin, Vector2 scale, SpriteEffects effects, float layerDepth)',
-        ];
-
-        for (const fancy of [BossBarLoader.#FANCY, BossBarLoader.#FANCY_SHIELD]) {
-            for (const draw of draws) {
-                SpriteBatch[draw].hook((original, self, texture, position, source, color, rotation, origin, scale, effects, depth) => {
-                    const args = BossBarLoader.#Restyle(texture, position, color, scale);
-                    if (!args) return original();
-                    return original(self, args.texture, args.position, source, args.color, rotation, origin, args.scale, effects, depth);
-                }, { whileIn: Helper[fancy], flag: 'bossbar.look' });
-            }
-        }
-
-        Helper['void DrawHealthText(SpriteBatch spriteBatch, Rectangle area, float current, float max)'].hook(
-            (original, spriteBatch, area, current, max) => {
-                const look = BossBarLoader.#look;
-                if (!look) return original();
-                if (!look.showText) return undefined;
-                return original(spriteBatch, Rectangle.new(area.X + look.dx + look.tx, area.Y + look.dy + look.ty, area.Width, area.Height),
-                    current, max);
-            }, { flag: 'bossbar.look' });
-
-        bl.hookFlags.set('bossbar.look', true);
-    }
-
-    static #GUI_DRAW = 'void Draw(float life, float lifeMax, Texture2D bossIconTexture, Rectangle bossIconFrame, float shield, float shieldMax)';
-
-    // As barras do jogo no celular. A posição é a do layout do celular: o
-    // BarCenter diz onde ela está, mas mudar não a move (nem o TextOffset), e
-    // o ícone é um botão do layout (o IconScale não vale).
+    // O GUIBossBar.Draw: as barras do jogo passam pelos GlobalBossBar; o
+    // desenho de dentro dele (de todas) segue o BossBarDrawParams.
     static #HookMobile() {
         const GUIBossBar = bl.classOf('', 'GUIBossBar');
         const GUIPanel = bl.classOf('', 'GUIPanel');
@@ -339,15 +244,13 @@ class BossBarLoader {
             if (!npc) return run();
 
             const params = BossBarLoader.#Params(icon, frame, life, lifeMax, shield, shieldMax);
-            params.BarTexture = null;
-            const center = BossBarLoader.#MobileCenter(GUIPanel);
-            if (center) params.BarCenter = center;
-            BossBarLoader.#RunMobile(self, npc, params, original);
+            BossBarLoader.#Run(Terraria.Main.spriteBatch, npc, params, null,
+                (p) => original(self, p.Life, p.LifeMax, p.IconTexture, p.IconFrame, p.Shield, p.ShieldMax));
             return undefined;
         });
 
         const gate = { whileIn: draw, flag: 'bossbar.mobile' };
-        GUIPanel['Rectangle Region(Panel_Layout layout)'].hook((original, layout) => {
+        GUIPanel[BossBarLoader.#REGION].hook((original, layout) => {
             const region = original(layout);
             if (!BossBarLoader.#panel) BossBarLoader.#panel = layout;
             return region;
@@ -355,7 +258,7 @@ class BossBarLoader {
 
         GUIPanel['void DrawBacking(Vector2 position, Vector2 size, Texture2D texture, Color color, Nullable`1 sourceFrame)'].hook(
             (original, position, size, texture, color, source) => {
-                const look = BossBarLoader.#mobileLook;
+                const look = BossBarLoader.#look;
                 if (!look || !look.barColor) return original();
                 return original(position, size, texture, BossBarLoader.#Tint(color, look.barColor), source);
             }, gate);
@@ -363,7 +266,7 @@ class BossBarLoader {
         // O ícone é um botão do GUITransactionButton, que aceita a cor do item.
         bl.classOf('', 'GUITransactionButton')['GUITransactionButton.InputState Draw(TransactionButton_Layout layout, Texture2D itemTexture, Rectangle srcRect, string label, bool disabled, ref float scale, Nullable`1 overloadedItemColour, bool forcedPressed, bool hasControllerFocus, bool forceOver, bool disablePressedState)'].hook(
             (original, layout, texture, source, label, disabled, scale, colour, pressed, focus, over, noPressed) => {
-                const look = BossBarLoader.#mobileLook;
+                const look = BossBarLoader.#look;
                 if (!look || !look.iconColor || bl.addressOf(texture) !== look.iconAddress) return original();
                 return original(layout, texture, source, label, disabled, scale, look.iconColor, pressed, focus, over, noPressed);
             }, gate);
@@ -371,38 +274,10 @@ class BossBarLoader {
         const GUIString = bl.classOf('', 'GUIString');
         for (const signature of ['void Draw(String_Layout layout, StringBuilder value)', 'void Draw(String_Layout layout, StringBuilder value, Color overloadedColour)']) {
             GUIString[signature].hook((original) => {
-                const look = BossBarLoader.#mobileLook;
+                const look = BossBarLoader.#look;
                 return look && !look.showText ? undefined : original();
             }, gate);
         }
-    }
-
-    static #MobileCenter(GUIPanel) {
-        const panel = BossBarLoader.#panel;
-        if (!panel) return null;
-
-        const r = GUIPanel['Rectangle Region(Panel_Layout layout)'](panel);
-        return Vector2.new(r.X + r.Width / 2, r.Y + r.Height / 2);
-    }
-
-    static #RunMobile(self, npc, params, original) {
-        const spriteBatch = Terraria.Main.spriteBatch;
-        const before = BossBarLoader.#Snapshot(params);
-
-        if (globalBossBars.All('PreDraw', (g) => g.PreDraw(spriteBatch, npc, params))) {
-            const after = BossBarLoader.#Snapshot(params);
-            const look = BossBarLoader.#Changed(before, after) ? BossBarLoader.#Look(params, before, after) : null;
-            BossBarLoader.#mobileLook = look;
-            if (look || !BossBarLoader.#panel) bl.hookFlags.set('bossbar.mobile', true);
-            try {
-                original(self, params.Life, params.LifeMax, params.IconTexture, params.IconFrame, params.Shield, params.ShieldMax);
-            } finally {
-                BossBarLoader.#mobileLook = null;
-                bl.hookFlags.set('bossbar.mobile', false);
-            }
-        }
-
-        globalBossBars.Each('PostDraw', (g) => g.PostDraw(spriteBatch, npc, params));
     }
 
     // As duas cores multiplicadas, como o Color * Color do XNA.

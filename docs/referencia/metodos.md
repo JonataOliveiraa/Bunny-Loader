@@ -995,11 +995,11 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `DefaultToWhip(projType, damage, knockBack, shootSpeed, animationTime = 30)` | Instance | `ModItem` | `See source` | Whip. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L295) |
 | `EquipFrameEffects(player, type)` | Instance | `ModItem` | `undefined` | Every frame, with the item's texture worn. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L139) |
 | `GetAlpha(item, lightColor)` | Instance | `ModItem` | `undefined` | Return the drawing Color. On the ground item is the WorldItem (with Center); in the inventory, the Item, without a position. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L178) |
-| `getByName(name)` | Static | `ModItem` | `ItemLoader.ByType.get(bl.items.typeOf(name))` | The template. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L419) |
+| `getByName(name)` | Static | `ModItem` | `ItemLoader.ByType.get(bl.items.typeOf(name))` | The template. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L416) |
 | `GetHealLife(item, player, quickHeal, healValue)` | Instance | `ModItem` | `undefined` | Life restored (Ref), with a positive base heal; also in QuickHeal's selection. Life Ref, only with a positive base healLife. ModItem before ModPlayer. QuickHeal uses the value in the selection; temporary fields restored. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L83) |
 | `GetHealMana(item, player, quickHeal, healValue)` | Instance | `ModItem` | `undefined` | Mana restored (Ref), with a positive base heal. Mana Ref, only with a positive base healMana. quickHeal true in QuickHeal and QuickMana; ModItem before ModPlayer. Temporary fields restored. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L84) |
-| `getModItem(type)` | Static | `ModItem` | `ItemLoader.ByType.get(type)` | The template. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L418) |
-| `getTypeByName(name)` | Static | `ModItem` | `bl.items.typeOf(name)` | The type of an item from this mod; -1 if there is none. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L417) |
+| `getModItem(type)` | Static | `ModItem` | `ItemLoader.ByType.get(type)` | The template. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L415) |
+| `getTypeByName(name)` | Static | `ModItem` | `bl.items.typeOf(name)` | The type of an item from this mod; -1 if there is none. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L414) |
 | `GrabRange(worldItem, player, grabRange)` | Instance | `ModItem` | `undefined` | The pickup range in pixels (Ref, over the game's). | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L198) |
 | `GrabStyle(worldItem, player)` | Instance | `ModItem` | `false` | true: the mod moves the item to the player (change velocity) and the game does not pull it. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L199) |
 | `HoldItem(item, player)` | Instance | `ModItem` | `undefined` | Every frame with the item in hand. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L65) |
@@ -1009,11 +1009,11 @@ Install the dependency with `npm --prefix tools/docs ci` and update with `node t
 | `HorizontalWingSpeeds(item, player, speed, acceleration)` | Instance | `ModItem` | `undefined` | Running in the air with these wings (two Refs). | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L143) |
 | `IsAnglerQuestAvailable()` | Instance | `ModItem` | `true` | false: the daily roll does not land on it (it rolls again). | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L63) |
 | `IsArmorSet(head, body, legs)` | Instance | `ModItem` | `false` | For each worn mod piece: true = complete set. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L122) |
-| `isModItem(item)` | Static | `ModItem` | `!!item && bl.items.isModItem(item.type)` | Is it mod content? | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L416) |
-| `isModType(type)` | Static | `ModItem` | `bl.items.isModItem(type)` | Is it mod content? | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L415) |
+| `isModItem(item)` | Static | `ModItem` | `!!item && bl.items.isModItem(item.type)` | Is it mod content? | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L413) |
+| `isModType(type)` | Static | `ModItem` | `bl.items.isModItem(type)` | Is it mod content? | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L412) |
 | `IsQuestFish()` | Instance | `ModItem` | `false` | true: an Angler quest fish (the same as ItemID.Sets.IsQuestFish[this.Type] = true in SetStaticDefaults). Goes at the end of Main.anglerQuestItemNetIDs. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L62) |
 | `IsVanitySet(head, body, legs)` | Instance | `ModItem` | `See source` | The drawn SLOTS; true = vanity set (default: the IsArmorSet of those slots' items). | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L127) |
-| `get Item` | Getter | `ModItem` | `Entities.Of(this)` | number | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L13) |
+| `get Item` | Getter | `ModItem` | `Entities.Of(this)` | game Item | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L13) |
 | `ItemSpace(item, player)` | Instance | `ModItem` | `false` | true: picks it up even with a full inventory (together with OnPickup, which consumes it). | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L197) |
 | `Load()` | Instance | `ModItem` | `undefined` | On registration (AddEquipTexture goes here). | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L30) |
 | `LoadData(tag)` | Instance | `ModItem` | `undefined` | Read the instance's data; old tags may be empty. | [Code](../../app/src/main/cpp/script/js/mod/ModItem.js#L23) |

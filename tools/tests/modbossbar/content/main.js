@@ -2,12 +2,19 @@
 // chefe: o jogo não lhe daria barra) pede a TestBar.
 //   - a barra aparece com a vida do NPC e o ícone do mod;
 //   - ModifyInfo devolvendo true: vida 250/1000 e escudo 50/100 no desenho;
-//   - ModifyInfo devolvendo false: nada é desenhado.
+//   - ModifyInfo devolvendo false: nada é desenhado;
+//   - o desenho é o das barras do jogo no celular (GUIBossBar.Draw).
 // Loga "modbossbar <caso>: ok | FALHOU".
 const Main = Terraria.Main;
 
 let mode = 'default';
-let preDraws = 0, postDraws = 0, last = null;
+let preDraws = 0, postDraws = 0, last = null, gui = null;
+
+bl.classOf('', 'GUIBossBar')['void Draw(float life, float lifeMax, Texture2D bossIconTexture, Rectangle bossIconFrame, float shield, float shieldMax)'].hook(
+    (original, self, life, lifeMax, icon, frame, shield, shieldMax) => {
+        if (icon.Width === 30) gui = { life, lifeMax, shield, shieldMax };
+        return original();
+    });
 
 export class TestBar extends ModBossBar {
     GetIconTexture(frame) { return ModContent.Request('Textures/BarIcon'); }
@@ -77,11 +84,15 @@ Terraria.Player['void Update(int i)'].hook((original, self, i) => {
         check('a barra aparece com a vida do NPC e o ícone do mod', () =>
             (preDraws > 0 && postDraws > 0 && last && last.life === 1000 && last.lifeMax === 1000 && last.icon === 30 && last.npc === dummy.whoAmI &&
              ModContent.GetInstance(TestBar).Life === 1000) || JSON.stringify({ preDraws, postDraws, last }));
+        check('desenhada pelo GUIBossBar.Draw, sem escudo', () =>
+            (gui && gui.life === 1000 && gui.lifeMax === 1000 && gui.shield === -1 && gui.shieldMax === 1) || JSON.stringify(gui));
         mode = 'custom';
     }
     if (frames === 200) {
         check('ModifyInfo true: os valores dados (vida e escudo)', () =>
             (last.life === 250 && last.lifeMax === 1000 && last.shield === 50 && last.shieldMax === 100) || JSON.stringify(last));
+        check('GUIBossBar.Draw com os valores dados', () =>
+            (gui && gui.life === 250 && gui.lifeMax === 1000 && gui.shield === 50 && gui.shieldMax === 100) || JSON.stringify(gui));
         bl.log('modbossbar pose');
     }
     // A barra do quadro em que o modo muda já foi decidida no Update do jogo:

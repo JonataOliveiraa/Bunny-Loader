@@ -536,13 +536,15 @@ projectile.
 
 A mod NPC's big bar (`ModNPC.BossBar = ModContent.GetInstance(Bar)`, in
 `SetDefaults`). It also gives the bar to an NPC that is not a boss and has no
-boss icon. See [guide 7](../mods/07-npcs.md#custom-bar-modbossbar).
+boss icon. It is drawn like the game's bars on mobile (`GUIBossBar.Draw`: the
+panel under the minimap, with the icon, life and shield), in the same place
+and style as the Eye of Cthulhu's. See [guide 7](../mods/07-npcs.md#custom-bar-modbossbar).
 
 | | | |
 |---|---|---|
 | `GetIconTexture(iconFrame)` | The icon (`Asset<Texture2D>` or `Texture2D`); `iconFrame` (`Ref`) crops it. `null`: the game's "?". | |
 | `ModifyInfo(info, life, lifeMax, shield, shieldMax)` | `null`: the NPC's life; `true`: the values given (`Ref`); `false`: no bar (the game looks for another). `info.npcIndexToAimAt` changes the NPC. | `BigProgressBarSystem.Update` (in `Main.UpdateUIStates`) |
-| `PreDraw(spriteBatch, npc, drawParams)`, `PostDraw(...)` | `drawParams`: tModLoader's `BossBarDrawParams` (see [`GlobalBossBar`](#globalbossbar)); `false` removes the game's drawing. | `BigProgressBarSystem.Draw` → `BigProgressBarHelper.DrawFancyBar` |
+| `PreDraw(spriteBatch, npc, drawParams)`, `PostDraw(...)` | `drawParams`: tModLoader's `BossBarDrawParams` (see [`GlobalBossBar`](#globalbossbar)); `false` removes the game's drawing. | `BigProgressBarSystem.Draw` → `GUIBossBar.Draw` |
 | `Life`, `LifeMax`, `Shield`, `ShieldMax` | The last frame's values. | |
 | `SetStaticDefaults()` | On registration. | |
 
@@ -1273,11 +1275,13 @@ left out, since on mobile they would enter JS for every tile on screen.
 
 `drawParams` is tModLoader's `BossBarDrawParams`: `BarTexture`, `BarCenter`,
 `BarColor`, `IconTexture`, `IconFrame`, `IconColor`, `Life`, `LifeMax`,
-`Shield`, `ShieldMax`, `IconScale`, `ShowText`, `TextOffset`. On a
-`ModBossBar` everything applies. The game's bars on mobile follow its own
-layout (under the minimap, `GUIBossBar.Draw`): `BarCenter` says where the bar
-is but changing it does not move it, `IconScale` and `TextOffset` do not
-apply, and `BarTexture` is `null`.
+`Shield`, `ShieldMax`, `IconScale`, `ShowText`, `TextOffset`. Every bar on
+mobile, the game's and the `ModBossBar`s, follows the mobile layout (under the
+minimap, `GUIBossBar.Draw`): `Life`, `LifeMax`, `Shield`, `ShieldMax`,
+`IconTexture`, `IconFrame`, `BarColor`, `IconColor` and `ShowText` apply;
+`BarCenter` says where the bar is but changing it does not move it,
+`IconScale` and `TextOffset` do not apply, and `BarTexture` is `null` (there
+is no PC `UI_BossBar` frame).
 
 ### GlobalRecipe
 

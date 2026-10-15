@@ -2,9 +2,9 @@
 // o GlobalBossBar do tModLoader. drawParams é o BossBarDrawParams:
 // { BarTexture, BarCenter, BarColor, IconTexture, IconFrame, IconColor, Life,
 // LifeMax, Shield, ShieldMax, IconScale, ShowText, TextOffset }. O que mudar
-// nele vale para o desenho. No celular as barras do jogo seguem o layout dele
-// (embaixo do minimapa): o BarCenter diz onde ela está, mas mudar não a move;
-// IconScale e TextOffset não valem e o BarTexture é null. Nas ModBossBar vale tudo.
+// nele vale para o desenho. No celular toda barra (do jogo e de mod) segue o
+// layout dele (embaixo do minimapa): o BarCenter diz onde ela está, mas mudar
+// não a move; IconScale e TextOffset não valem e o BarTexture é null.
 class GlobalBossBar {
     SetStaticDefaults() {}
     PostSetupContent() {}
