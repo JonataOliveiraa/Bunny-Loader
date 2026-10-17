@@ -9,6 +9,7 @@ class ContentLookup {
         if (base === ModProjectile) return ProjectileLoader.ByType;
         if (base === ModNPC) return NPCLoader.ByType;
         if (base === ModBuff) return BuffLoader.ByType;
+        if (base === ModDust) return DustLoader.ByType;
         if (base === ModTile) return TileLoader.ByType;
         if (base === ModWall) return WallLoader.ByType;
         if (base === ModPrefix) return PrefixLoader.ByType;
@@ -19,7 +20,7 @@ class ContentLookup {
         if (base === ModAchievement) return AchievementLoader.ByName;
         if (base === ModRarity) return RarityLoader.ByType;
 
-        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModTile, ModWall, ModPrefix, ModMount, ModHair, ModCloud, ModEmoteBubble, ModAchievement ou ModRarity');
+        throw new TypeError('ModContent: espera ModItem, ModProjectile, ModNPC, ModBuff, ModDust, ModTile, ModWall, ModPrefix, ModMount, ModHair, ModCloud, ModEmoteBubble, ModAchievement ou ModRarity');
     }
 
     // Pelo nome: no mod de quem chama, ou no único mod que o tem.
@@ -100,6 +101,8 @@ class ContentLookup {
     }
 
     static Request(path) {
+        // As imagens do jogo, como no tModLoader: "Terraria/Images/UI/ButtonPlay".
+        if (/^Terraria\//.test(path)) return bl.vanillaTexture(path);
         const file = ContentLookup.FindTexture(path);
         if (!file) throw new Error("ModContent.Request: nao achei a textura '" + path + "' no mod");
 

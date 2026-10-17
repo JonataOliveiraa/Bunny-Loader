@@ -1,4 +1,6 @@
-const { DustID, ItemID, SoundID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { ItemID, SoundID, TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const { AnchorType } = Terraria.Enums;
 const Main = Terraria.Main;
@@ -27,7 +29,7 @@ export class ExampleChest extends ModTile {
         TileID.Sets.FriendlyFairyCanLureTo[this.Type] = true;
         TileID.Sets.GeneralPlacementTiles[this.Type] = false;
 
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.Containers];
         this.AddMapEntry(Color.new(200, 200, 200), 'ExampleChest');
         this.AddMapEntry(Color.new(0, 141, 63), 'ExampleChestLocked');

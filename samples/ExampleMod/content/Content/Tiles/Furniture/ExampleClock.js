@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const Main = Terraria.Main;
 
@@ -12,7 +14,7 @@ export class ExampleClock extends ModTile {
         Main.tileLavaDeath[this.Type] = true;
         TileID.Sets.Clock[this.Type] = true;
 
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.GrandfatherClocks];
 
         // Como o relógio do jogo: colocado pelo canto de baixo, 2 px para baixo.

@@ -1,4 +1,6 @@
-const { DustID, SoundID } = Terraria.ID;
+import { Sparkle } from '../Dusts/Sparkle.js';
+
+const { SoundID } = Terraria.ID;
 const PlaySound = Terraria.Audio.SoundEngine['SoundEffectInstance PlaySound(LegacySoundStyle type, Vector2 position, float pitchOffset, float volumeScale)'];
 const NewDustDirect = Terraria.Dust['Dust NewDustDirect(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
 
@@ -42,7 +44,7 @@ export class ExampleDrillProjectile extends ModProjectile {
 
         if (Rand.NextBool(10)) {
             const at = Vector2.Add(proj.position, Vector2.Multiply(proj.velocity, Rand.Next(6, 10) * 0.15));
-            const dust = NewDustDirect(at, proj.width, proj.height, DustID.Smoke, 0, 0, 100, Color.White, 1);
+            const dust = NewDustDirect(at, proj.width, proj.height, ModContent.DustType(Sparkle), 0, 0, 80, Color.White, 1);
             dust.position.X -= 4;
             dust.noGravity = true;
             dust.velocity.X *= 0.5;

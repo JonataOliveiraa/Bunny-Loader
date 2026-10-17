@@ -1,11 +1,13 @@
-const { DustID, WallID } = Terraria.ID;
+import { Sparkle } from '../Dusts/Sparkle.js';
+
+const { WallID } = Terraria.ID;
 const { Main } = Terraria;
 
 export class ExampleWall extends ModWall {
     SetStaticDefaults() {
         Main.wallHouse[this.Type] = true;
 
-        this.DustType = DustID.Stone;
+        this.DustType = ModContent.DustType(Sparkle);
         this.VanillaFallbackOnModDeletion = WallID.DiamondGemspark;
 
         this.AddMapEntry(Color.new(150, 150, 150));

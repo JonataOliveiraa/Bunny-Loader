@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const Main = Terraria.Main;
 
 // A cor da luz do fogo vivo de exemplo (o item também brilha dela no chão).
@@ -12,7 +14,7 @@ export class ExampleLivingFireTile extends ModTile {
         Main.tileLighted[this.Type] = true;
         TileID.Sets.CanPlaceNextToNonSolidTile[this.Type] = true;
 
-        this.DustType = DustID.WhiteTorch;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AddMapEntry(Color.new(LivingFireLight.X * 255, LivingFireLight.Y * 255, LivingFireLight.Z * 255));
     }
 

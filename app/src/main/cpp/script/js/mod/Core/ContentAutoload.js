@@ -12,12 +12,12 @@ class ContentAutoload {
     // A classe de dano antes do item e do projétil, que a pedem no SetDefaults.
     // A tile entity antes do tile, que a pede no SetStaticDefaults
     // (HookPostPlaceMyPlayer).
-    static #ORDER = [ModConfig, ModRarity, DamageClass, ModMount, ModBuff, ModPrefix, ModPlayer,
+    static #ORDER = [ModConfig, ModRarity, DamageClass, ModDust, ModMount, ModBuff, ModPrefix, ModPlayer,
                      ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, ModWaterfallStyle, ModWaterStyle,
                      ModBiome, ModSceneEffect, ModMenu,
                      ModBossBar, ModNPC, ModProjectile, ModItem, ModTileEntity, ModPylon, ModTile, ModWall, ModTree, PlayerDrawLayer, ModSystem, ModScreenEffect,
                      GlobalItem, GlobalNPC, GlobalProjectile, GlobalLoot, GlobalTile, GlobalBuff, GlobalBossBar, GlobalRecipe,
-                     ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement];
+                     ModCommand, ModHair, ModCloud, ModEmoteBubble, ModAchievement, ModResourceOverlay];
     static #fileOf = new Map();
 
     static FileOf(cls) {

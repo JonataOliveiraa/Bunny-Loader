@@ -32,6 +32,22 @@ JSValue loadTextureAsset(JSContext* ctx, int argc, JSValueConst* argv);
  */
 JSValue builtinTexture(JSContext* ctx, int argc, JSValueConst* argv);
 
+/**
+ * bl.vanillaTexture(caminho) -> Asset<Texture2D> de uma imagem do jogo, pelo
+ * nome do conteudo ('Images/UI/ButtonPlay'): a ja carregada, ou pedida ao
+ * Main.Assets (o ModContent.Request("Terraria/...") do tModLoader). Thread do jogo.
+ */
+JSValue vanillaTexture(JSContext* ctx, int argc, JSValueConst* argv);
+
+/** bl.textureSize(asset ou Texture2D) -> { Width, Height } (carrega o asset do jogo se preciso). */
+JSValue textureSize(JSContext* ctx, int argc, JSValueConst* argv);
+
+/** bl.assetOfTexture(Texture2D) -> o Asset<Texture2D> carregado que a guarda, ou null. */
+JSValue assetOfTexture(JSContext* ctx, int argc, JSValueConst* argv);
+
+/** bl.isTextureAsset(valor) -> o valor e um Asset<Texture2D>. */
+JSValue isTextureAsset(JSContext* ctx, int argc, JSValueConst* argv);
+
 /** Caminho relativo a pasta do mod de quem chamou (a mesma regra do loadTexture). */
 std::string resolveModPath(JSContext* ctx, const std::string& caminho);
 

@@ -116,6 +116,10 @@ struct Api {
     // System.Type, e System.Type -> classe.
     Il2CppObject* (*type_get_object)(const Il2CppType*) = nullptr;
     Il2CppClass* (*class_from_system_type)(Il2CppObject*) = nullptr;
+    // Metodo -> System.Reflection.MethodInfo e de volta: o MakeGenericMethod de
+    // um metodo generico (bl.vanillaTexture: AssetRepository.Request<Texture2D>).
+    Il2CppObject* (*method_get_object)(const MethodInfo*, Il2CppClass*) = nullptr;
+    const MethodInfo* (*method_get_from_reflection)(Il2CppObject*) = nullptr;
     // Classe aninhada -> a de fora (nullptr se nao e aninhada).
     Il2CppClass* (*class_get_declaring_type)(Il2CppClass*) = nullptr;
     Il2CppThread* (*thread_attach)(Il2CppDomain*) = nullptr;

@@ -55,6 +55,8 @@ PAGES = {
     "docs/mods/16-golpes.md": "Golpes",
     "docs/mods/17-efeitos-de-tela.md": "Efeitos-de-tela",
     "docs/mods/18-botoes-de-toque.md": "Botões-de-toque",
+    "docs/mods/19-poeiras.md": "Poeiras",
+    "docs/mods/20-interface.md": "Interface",
     "docs/mods/14-pacotes-de-textura.md": "Pacotes-de-textura",
     "docs/referencia/classes.md": "Referência-das-classes",
     "docs/referencia/metodos.md": "Métodos-por-classe",

@@ -38,6 +38,8 @@ class ModSystem {
     PostUpdateTime() {}
     PostUpdateEverything() {}
     UpdateUI(gameTime) {}
+    // As camadas do desenho da interface, neste quadro (InterfaceLayerList).
+    ModifyInterfaceLayers(layers) {}
     PostUpdateInput() {}
     PreUpdateEntities() {}
     PreUpdatePlayers() {}

@@ -1,12 +1,9 @@
 import { ExampleMountBuff } from '../Buffs/ExampleMountBuff.js';
+import { Sparkle } from '../Dusts/Sparkle.js';
 
-const { DustID } = Terraria.ID;
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
 const NewDustPerfect = Terraria.Dust['Dust NewDustPerfect(Vector2 Position, int Type, Nullable`1 Velocity, int Alpha, Color newColor, float Scale)'];
 
-// A poeira Sparkle do tModLoader é uma ModDust, que ainda não existe aqui:
-// fica a de diamante do jogo.
-const SPARKLE = DustID.GemDiamond;
 const OFFSETS = [0, 14, -14];   // os três balões, em x
 
 // O carro com três balões do ExampleMod: anda como o unicórnio. Os balões
@@ -32,7 +29,7 @@ export class ExampleMount extends ModMount {
 
         d.fatigueMax = 0;
         d.buff = ModContent.BuffType(ExampleMountBuff);
-        d.spawnDust = SPARKLE;
+        d.spawnDust = ModContent.DustType(Sparkle);
 
         // Quadros e deslocamentos do jogador
         d.totalFrames = 4;
@@ -87,7 +84,7 @@ export class ExampleMount extends ModMount {
 
         if (Math.abs(player.velocity.X) > 4) {
             const rect = player.getRect();
-            NewDust(Vector2.new(rect.X, rect.Y), rect.Width, rect.Height, SPARKLE, 0, 0, 0, Color.White, 1);
+            NewDust(Vector2.new(rect.X, rect.Y), rect.Width, rect.Height, ModContent.DustType(Sparkle), 0, 0, 0, Color.White, 1);
         }
     }
 

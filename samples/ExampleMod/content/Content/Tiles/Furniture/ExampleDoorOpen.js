@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const { AnchorType, TileObjectDirection } = Terraria.Enums;
 const Main = Terraria.Main;
@@ -18,7 +20,7 @@ export class ExampleDoorOpen extends ModTile {
         TileID.Sets.DrawTileInSolidLayer[this.Type] = true;
         TileID.Sets.RoomNeeds.CountsAsDoor[this.Type] = true;
 
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.OpenDoor];
         // Quebrada aberta, dá a porta (o item que coloca a fechada).
         this.RegisterItemDrop(ModContent.ItemType('ExampleDoor'), 0);

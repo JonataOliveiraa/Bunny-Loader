@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const { TileObjectDirection } = Terraria.Enums;
 const Main = Terraria.Main;
@@ -21,7 +23,7 @@ export class ExampleChair extends ModTile {
         TileID.Sets.DisableSmartCursor[this.Type] = true;
         TileID.Sets.RoomNeeds.CountsAsChair[this.Type] = true;
 
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.Chairs];
         this.AddMapEntry(Color.new(200, 200, 200), 'MapObject.Chair');
 

@@ -3,6 +3,7 @@ class SystemDrawHooks {
         const has = name => Hooks.Overrides(cls, ModSystem, name);
         const Main = Terraria.Main;
         const call = SystemLoader.Call;
+        if (has('ModifyInterfaceLayers')) Hooks.Once('system.Layers', () => InterfaceLayerLoader.Install());
         if (has('ModifyScreenPosition')) Hooks.Once('system.Camera', () => {
             PlayerDrawHooks.InstallCamera(false);
         });

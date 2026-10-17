@@ -5,6 +5,7 @@
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/buffs/ModBuffs.h"
+#include "content/dusts/ModDusts.h"
 #include "content/tiles/ModTiles.h"
 #include "content/walls/ModWalls.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -52,7 +53,7 @@ void setContentReadyHook(ContentReadyHook hook) {
 }
 
 bool contentSettled() {
-    if (!modItemsSettled() || !modProjectilesSettled() || !modNpcsSettled() || !modBuffsSettled() ||
+    if (!modItemsSettled() || !modProjectilesSettled() || !modNpcsSettled() || !modBuffsSettled() || !modDustsSettled() ||
         !modTilesSettled() || !modWallsSettled()) return false;
     const Refs& r = refs();
     // Sem as refs nao ha como saber (o erro ja foi logado): quem espera por

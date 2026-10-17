@@ -88,7 +88,11 @@
     "ExamplePickup": "Coleta de Exemplo",
     "ExampleShortsword": "Espada Curta de Exemplo",
     "ExampleLastPrism": "Último Prisma de Exemplo",
-    "ExampleRiftStaff": "Cajado da Fenda de Exemplo"
+    "ExampleRiftStaff": "Cajado da Fenda de Exemplo",
+    "ExampleCustomResourceWeapon": "Arma de Recurso de Exemplo",
+    "ExampleResourceAccessory": "Acessório de Recurso de Exemplo",
+    "ExampleLifeFruit": "Fruta da Vida de Exemplo",
+    "ExampleManaCrystal": "Cristal de Mana de Exemplo"
   },
   "MapObject": {
     "ExampleTile": "Bloco de Exemplo",
@@ -176,7 +180,11 @@
     "ExamplePylonItem": "Só funciona no bioma de exemplo, na superfície ou no subterrâneo\nNão precisa de moradores por perto!",
     "BasicTileEntityItem": "Junta a água da chuva\nToque nele cheio para pegar um balde de água",
     "ExampleLastPrism": "Dez feixes que se juntam em um\nOnde batem, a tela ondula",
-    "ExampleRiftStaff": "Abre uma fenda que torce o mundo em volta\nExemplo de efeito de tela com shader .frag próprio"
+    "ExampleRiftStaff": "Abre uma fenda que torce o mundo em volta\nExemplo de efeito de tela com shader .frag próprio",
+    "ExampleCustomResourceWeapon": "Usa o recurso de exemplo no lugar da mana",
+    "ExampleResourceAccessory": "Aumenta o recurso de exemplo máximo em {0}\nO recurso de exemplo volta mais rápido",
+    "ExampleLifeFruit": "Aumenta a vida máxima em {0} para sempre\nDá para usar até {1}",
+    "ExampleManaCrystal": "Aumenta a mana máxima em {0} para sempre\nDá para usar até {1}"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "Um slime azul-claro que só aparece de dia, na superfície.",
@@ -288,6 +296,9 @@
     "ExampleTimeCommand": {
       "Usage": "/addTime ticks\nticks: número positivo ou negativo, em ticks (1 segundo = 60 ticks).",
       "Description": "Avança ou volta a hora do mundo em ticks"
+    },
+    "ExampleCoinsCommand": {
+      "Description": "Mostra a tela de moedas por minuto"
     }
   },
   "Achievements": {
@@ -446,5 +457,16 @@
   },
   "Conditions": {
     "LowHealth": "Com menos da metade da vida"
+  },
+  "UI": {
+    "ExampleCoinsUIState": {
+      "Reset": "Zerar o contador de moedas por minuto"
+    },
+    "ExampleResource": "Recurso de Exemplo: {0} / {1}"
+  },
+  "Items": {
+    "ExampleCustomResourceWeapon": {
+      "UsesXExampleResource": "Usa {0} de recurso de exemplo"
+    }
   }
 }

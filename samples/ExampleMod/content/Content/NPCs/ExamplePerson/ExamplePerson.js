@@ -1,7 +1,8 @@
 import { ExampleCustomCurrency } from '../../Items/ExampleItem.js';
 import { ExampleSurfaceBiome } from '../../Biomes/ExampleSurfaceBiome.js';
+import { Sparkle } from '../../Dusts/Sparkle.js';
 
-const { DustID, NPCID, SoundID } = Terraria.ID;
+const { NPCID, SoundID } = Terraria.ID;
 const { FlavorTextBestiaryInfoElement } = Terraria.GameContent.Bestiary;
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
 const NewGore = Terraria.Gore['int NewGore(Vector2 Position, Vector2 Velocity, int Type, float Scale)'];
@@ -65,9 +66,9 @@ export class ExamplePerson extends ModNPC {
     }
 
     HitEffect(npc, hitDirection, damage) {
-        const dusts = npc.life > 0 ? 5 : 15;
+        const dusts = npc.life > 0 ? 1 : 5;
         for (let k = 0; k < dusts; k++) {
-            NewDust(npc.position, npc.width, npc.height, DustID.Blood, 0, 0, 0, Color.White, 1);
+            NewDust(npc.position, npc.width, npc.height, ModContent.DustType(Sparkle), 0, 0, 0, Color.White, 1);
         }
         if (npc.life > 0 || Terraria.Main.netMode === 2) return;
 

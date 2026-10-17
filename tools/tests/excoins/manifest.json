@@ -1,0 +1,1 @@
+{"uid":"b8e2c4a6-1f3d-4e5b-8a7c-9d0e1f2a3b4c","id":"test-excoins","name":"Teste: tela de moedas do Example Mod","version":"1.0.0","author":"teste","category":"Utilidade","summary":"Abre o ExampleCoinsUI pelo /coins e confere toque, contador e fechar.","description":"Loga excoins ... e excoins FIM. Precisa do Example Mod.","blVersion":2,"entry":"main.js","dependencies":[]}

@@ -1,0 +1,13 @@
+{
+  "uid": "7d1e5a90-4c2b-4f6e-8a1d-3b9c0e2f4a77",
+  "id": "test-moddust",
+  "name": "Teste: ModDust",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Exercita as poeiras de mod: registro, tabelas, OnSpawn, Update, MidUpdate, UpdateType, GetAlpha, PreDraw, a pilha de poeiras livres, desenho e custo.",
+  "description": "Loga 'moddust ...', 'SHOT desenho', 'SHOT vazio' e 'moddust FIM'.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

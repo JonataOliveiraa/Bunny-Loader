@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const { LiquidPlacement } = Terraria.Enums;
 const Main = Terraria.Main;
@@ -26,7 +28,7 @@ export class ExampleTorch extends ModTile {
         TileID.Sets.DisableSmartInteract[this.Type] = true;
         TileID.Sets.Torches[this.Type] = true;
 
-        this.DustType = DustID.WhiteTorch;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.Torches];
         TileID.Sets.RoomNeeds.CountsAsTorch[this.Type] = true;
 

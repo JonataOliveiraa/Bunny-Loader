@@ -12,6 +12,7 @@
 #include "script/api/Npcs.h"
 #include "script/api/Projectiles.h"
 #include "script/api/Buffs.h"
+#include "script/api/Dusts.h"
 #include "script/api/Walls.h"
 #include "script/api/Tiles.h"
 #include "script/api/Files.h"
@@ -1671,6 +1672,22 @@ JSValue js_builtinTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* 
     return builtinTexture(ctx, argc, argv);
 }
 
+JSValue js_vanillaTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return vanillaTexture(ctx, argc, argv);
+}
+
+JSValue js_textureSize(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return textureSize(ctx, argc, argv);
+}
+
+JSValue js_isTextureAsset(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return isTextureAsset(ctx, argc, argv);
+}
+
+JSValue js_assetOfTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return assetOfTexture(ctx, argc, argv);
+}
+
 JSValue js_classOf(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     if (argc < 2) return JS_ThrowTypeError(ctx, "bl.classOf(namespace, nome)");
     return js_NativeClass(ctx, JS_UNDEFINED, argc, argv);
@@ -1851,6 +1868,11 @@ void installBindings(void* context) {
                       JS_NewCFunction(ctx, js_loadTextureAsset, "loadTextureAsset", 1));
     JS_SetPropertyStr(ctx, bl, "builtinTexture",
                       JS_NewCFunction(ctx, js_builtinTexture, "builtinTexture", 1));
+    JS_SetPropertyStr(ctx, bl, "vanillaTexture",
+                      JS_NewCFunction(ctx, js_vanillaTexture, "vanillaTexture", 1));
+    JS_SetPropertyStr(ctx, bl, "textureSize", JS_NewCFunction(ctx, js_textureSize, "textureSize", 1));
+    JS_SetPropertyStr(ctx, bl, "isTextureAsset", JS_NewCFunction(ctx, js_isTextureAsset, "isTextureAsset", 1));
+    JS_SetPropertyStr(ctx, bl, "assetOfTexture", JS_NewCFunction(ctx, js_assetOfTexture, "assetOfTexture", 1));
     JSValue marks = JS_NewObject(ctx);
     JS_SetPropertyStr(ctx, marks, "set", JS_NewCFunction(ctx, js_hookMarksSet, "set", 3));
     JS_SetPropertyStr(ctx, marks, "has", JS_NewCFunction(ctx, js_hookMarksHas, "has", 2));
@@ -1866,6 +1888,7 @@ void installBindings(void* context) {
     installItemsApi(ctx, bl);
     installProjectilesApi(ctx, bl);
     installBuffsApi(ctx, bl);
+    installDustsApi(ctx, bl);
     installTilesApi(ctx, bl);
     installWallsApi(ctx, bl);
     installFilesApi(ctx, bl);

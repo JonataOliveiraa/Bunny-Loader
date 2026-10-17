@@ -3,6 +3,7 @@ class ModContent {
     static ProjectileType(which) { return ContentLookup.TypeOf(ProjectileLoader.ByType, which); }
     static NPCType(which) { return ContentLookup.TypeOf(NPCLoader.ByType, which); }
     static BuffType(which) { return ContentLookup.TypeOf(BuffLoader.ByType, which); }
+    static DustType(which) { return ContentLookup.TypeOf(DustLoader.ByType, which); }
     static TileType(which) { return ContentLookup.TypeOf(TileLoader.ByType, which); }
     static WallType(which) { return ContentLookup.TypeOf(WallLoader.ByType, which); }
     static PrefixType(which) { return ContentLookup.TypeOf(PrefixLoader.ByType, which); }

@@ -1,4 +1,5 @@
 import { ExampleWaterfallStyle } from './ExampleWaterfallStyle.js';
+import { ExampleSolutionDust } from '../Dusts/ExampleSolutionDust.js';
 
 // A água do bioma de superfície, como o ExampleWaterStyle do tModLoader: as
 // texturas ao lado deste arquivo (a superfície, _Block e _Slope), a
@@ -8,7 +9,7 @@ import { ExampleWaterfallStyle } from './ExampleWaterfallStyle.js';
 export class ExampleWaterStyle extends ModWaterStyle {
     ChooseWaterfallStyle() { return ModContent.GetInstance(ExampleWaterfallStyle).Slot; }
 
-    GetSplashDust() { return Terraria.ID.DustID.BlueCrystalShard; }
+    GetSplashDust() { return ModContent.DustType(ExampleSolutionDust); }
 
     GetDropletGore() { return ModGore.getTypeByName('ExampleDroplet'); }
 

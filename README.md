@@ -71,6 +71,8 @@ each one builds on the previous.
 | [16. Hits](docs/mods/16-golpes.md) | `CanHit`, `ModifyHit`, `OnHit`; `HitModifiers` and `HurtModifiers`. |
 | [17. Screen effects](docs/mods/17-efeitos-de-tela.md) | Post-processing with GLSL: 18 presets, `ModScreenEffect`, `/fx` and hot reload. |
 | [18. Touch buttons](docs/mods/18-botoes-de-toque.md) | `ModTouchButton` (tModLoader's `ModKeybind`): your own buttons in the game's controls. |
+| [19. Dust](docs/mods/19-poeiras.md) | `ModDust`: your own particles, with `Update`, `UpdateType`, `GetAlpha` and `PreDraw`. |
+| [20. Interface](docs/mods/20-interface.md) | `UIState`, `UserInterface`, panels, buttons, lists, `ModifyInterfaceLayers`, resource bars and `ModResourceOverlay`. |
 | **Between mods and the world** | |
 | [11. Talking between mods](docs/mods/11-conversa-entre-mods.md) | `ModLoader.TryGetMod` and `Call`. |
 | [12. Globals and the world](docs/mods/12-globais-e-mundo.md) | `GlobalItem`/`GlobalNPC`/`GlobalProjectile`, `ModSystem`, world data, networking. |

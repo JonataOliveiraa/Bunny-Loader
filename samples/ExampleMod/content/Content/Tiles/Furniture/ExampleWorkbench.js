@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const Main = Terraria.Main;
 
@@ -15,7 +17,7 @@ export class ExampleWorkbench extends ModTile {
         TileID.Sets.HasOutlines[this.Type] = true;
         TileID.Sets.IgnoredByNpcStepUp[this.Type] = true;
 
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.WorkBenches];
 
         TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);

@@ -1,4 +1,5 @@
 import { ExampleCostumePlayer } from '../../../Common/Players/ExampleCostumePlayer.js';
+import { Sparkle } from '../../Dusts/Sparkle.js';
 
 const { ArmorIDs, DustID } = Terraria.ID;
 const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
@@ -10,7 +11,7 @@ class BlockyHead extends EquipTexture {
     UpdateVanitySet(player) {
         if (Math.random() >= 1 / 20) return;
 
-        const dust = this.Name === 'ExampleCostume' ? DustID.GoldFlame : DustID.BlueFlare;
+        const dust = this.Name === 'ExampleCostume' ? ModContent.DustType(Sparkle) : DustID.BlueFlare;
         NewDust(player.position, player.width, player.height, dust, 0, 0, 0, Color.White, 1);
     }
 }

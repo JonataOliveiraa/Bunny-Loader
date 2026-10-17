@@ -1,0 +1,13 @@
+{
+  "uid": "a7c3f1d2-5e6b-4a8c-9d0e-1f2a3b4c5d6e",
+  "id": "test-uitest",
+  "name": "Teste: UI dos mods",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "UIState, UserInterface, UIPanel, UIText, UITextPanel, UIImageButton, UIList, UIScrollbar e ModifyInterfaceLayers, com toques de verdade.",
+  "description": "Loga 'uitest ...', pedidos TAP/SWIPE/SHOT/UISCALE para o roteiro, e 'uitest FIM'.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

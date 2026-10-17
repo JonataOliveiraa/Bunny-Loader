@@ -1,3 +1,7 @@
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const NewDust = Terraria.Dust['int NewDust(Vector2 Position, int Width, int Height, int Type, float SpeedX, float SpeedY, int Alpha, Color newColor, float Scale)'];
+
 export class ExampleHamaxe extends ModItem {
     SetDefaults() {
         this.Item.melee = true;
@@ -8,6 +12,13 @@ export class ExampleHamaxe extends ModItem {
         this.Item.value = Terraria.Item.sellPrice(0, 1, 0, 0);
         this.Item.rare = ItemRarityID.Green;
         this.Item.UseSound = Terraria.ID.SoundID.Item1;
+    }
+
+    // Em 1 de cada 10 quadros do golpe, uma Sparkle na área da batida.
+    MeleeEffects(item, player, hitbox) {
+        if (Rand.NextBool(10)) {
+            NewDust(Vector2.new(hitbox.X, hitbox.Y), hitbox.Width, hitbox.Height, ModContent.DustType(Sparkle), 0, 0, 0, Color.White, 1);
+        }
     }
 
     AddRecipes() {

@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const Main = Terraria.Main;
 
@@ -18,7 +20,7 @@ export class ExampleDoorClosed extends ModTile {
         TileID.Sets.OpenDoorID[this.Type] = ModContent.TileType('ExampleDoorOpen');
         TileID.Sets.RoomNeeds.CountsAsDoor[this.Type] = true;
 
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.ClosedDoor];
         this.AddMapEntry(Color.new(200, 200, 200), 'MapObject.Door');
 

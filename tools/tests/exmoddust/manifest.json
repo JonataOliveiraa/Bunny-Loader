@@ -1,0 +1,13 @@
+{
+  "uid": "e4d05c1a-7b3e-4f2a-9c11-5d8e6f0a2b44",
+  "id": "test-exmoddust",
+  "name": "Teste: poeiras do Example Mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Usa as poeiras portadas do ExampleMod (Sparkle, ExampleBubble, ExampleSolutionDust, ExampleCustomDrawDust, ExampleAdvancedDust) e os itens que as soltam.",
+  "description": "Loga 'exmoddust ...', 'SHOT exmoddust' e 'exmoddust FIM'. Precisa do Example Mod ligado.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

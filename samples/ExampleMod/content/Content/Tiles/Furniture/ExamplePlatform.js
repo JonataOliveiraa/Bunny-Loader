@@ -1,4 +1,6 @@
-const { DustID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const Main = Terraria.Main;
 
@@ -17,7 +19,7 @@ export class ExamplePlatform extends ModTile {
         TileID.Sets.RoomNeeds.CountsAsDoor[this.Type] = true;
 
         this.AddMapEntry(Color.new(200, 200, 200));
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AdjTiles = [TileID.Platforms];
 
         const tile = TileObjectData.newTile;

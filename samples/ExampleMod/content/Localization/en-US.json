@@ -88,7 +88,11 @@
     "ExamplePickup": "Example Pickup",
     "ExampleShortsword": "Example Shortsword",
     "ExampleLastPrism": "Example Last Prism",
-    "ExampleRiftStaff": "Example Rift Staff"
+    "ExampleRiftStaff": "Example Rift Staff",
+    "ExampleCustomResourceWeapon": "Example Custom Resource Weapon",
+    "ExampleResourceAccessory": "Example Resource Accessory",
+    "ExampleLifeFruit": "Example Life Fruit",
+    "ExampleManaCrystal": "Example Mana Crystal"
   },
   "MapObject": {
     "ExampleTile": "Example Block",
@@ -176,7 +180,11 @@
     "ExamplePylonItem": "Must be within the Example Surface or Underground Biome in order to function\nHas no NPC requirements!",
     "BasicTileEntityItem": "Collects rain water\nInteract with it when full to claim a water bucket",
     "ExampleLastPrism": "Ten beams that focus into one\nWhere they hit, the screen ripples",
-    "ExampleRiftStaff": "Opens a rift that twists the world around it\nScreen effect example: its own .frag shader"
+    "ExampleRiftStaff": "Opens a rift that twists the world around it\nScreen effect example: its own .frag shader",
+    "ExampleCustomResourceWeapon": "Uses the example resource instead of mana",
+    "ExampleResourceAccessory": "Increases maximum example resource by {0}\nThe example resource regenerates faster",
+    "ExampleLifeFruit": "Permanently increases maximum life by {0}\nUp to {1} can be used",
+    "ExampleManaCrystal": "Permanently increases maximum mana by {0}\nUp to {1} can be used"
   },
   "Bestiary": {
     "ExampleSlimeNPC": "A light blue slime that only shows up in the daytime, on the surface.",
@@ -288,6 +296,9 @@
     "ExampleTimeCommand": {
       "Usage": "/addTime numTicks\nnumTicks: positive or negative number in ticks (1 second = 60 ticks).",
       "Description": "Adds numTicks to fast forward or rewind world time"
+    },
+    "ExampleCoinsCommand": {
+      "Description": "Show the coin rate UI"
     }
   },
   "Achievements": {
@@ -446,5 +457,16 @@
   },
   "Conditions": {
     "LowHealth": "Below half health"
+  },
+  "UI": {
+    "ExampleCoinsUIState": {
+      "Reset": "Reset Coins Per Minute Counter"
+    },
+    "ExampleResource": "Example Resource: {0} / {1}"
+  },
+  "Items": {
+    "ExampleCustomResourceWeapon": {
+      "UsesXExampleResource": "Uses {0} example resource"
+    }
   }
 }

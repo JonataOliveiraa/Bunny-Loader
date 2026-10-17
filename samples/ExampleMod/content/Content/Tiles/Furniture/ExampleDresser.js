@@ -1,4 +1,6 @@
-const { DustID, ItemID, SoundID, TileID } = Terraria.ID;
+import { Sparkle } from '../../Dusts/Sparkle.js';
+
+const { ItemID, SoundID, TileID } = Terraria.ID;
 const { TileObjectData } = Terraria.ObjectData;
 const Main = Terraria.Main;
 const Chest = Terraria.Chest;
@@ -23,7 +25,7 @@ export class ExampleDresser extends ModTile {
         TileID.Sets.RoomNeeds.CountsAsTable[this.Type] = true;
 
         this.AdjTiles = [TileID.Dressers];
-        this.DustType = DustID.Platinum;
+        this.DustType = ModContent.DustType(Sparkle);
         this.AddMapEntry(Color.new(200, 200, 200), this.CreateMapEntryName());
 
         // A forma e os ganchos de colocar (criar o Main.chest) da cômoda do jogo.
