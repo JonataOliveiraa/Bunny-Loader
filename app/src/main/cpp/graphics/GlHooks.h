@@ -14,7 +14,7 @@ namespace bl::graphics {
  * (framebuffers, viewports, clears, desenhos) para achar a fronteira entre a
  * camera do mundo e a da interface.
  */
-void installGlHooks();
+void installGlHooks();   // uma vez so; as chamadas seguintes nao fazem nada
 
 // Grava o proximo quadro inteiro; o resultado sai no log ("rastro GL: ...").
 void requestGlTrace();

@@ -39,6 +39,7 @@ struct Channel {
 };
 
 Channel g_channels[2];
+std::atomic<bool> g_enabled{false};
 bool g_open = false;   // uma consulta de tempo aberta (de qualquer canal)
 int g_state = 0;       // 0 nao tentou, 1 ok, -1 sem extensao
 
@@ -89,8 +90,12 @@ void collect(Channel& c) {
 
 } // namespace
 
+void GpuTimer::Enable() {
+    g_enabled.store(true);
+}
+
 bool GpuTimer::Begin(GpuChannel which) {
-    if (g_open || !init()) return false;
+    if (!g_enabled.load(std::memory_order_relaxed) || g_open || !init()) return false;
     Channel& c = channel(which);
     collect(c);
     if (c.pending[c.next]) return false;   // o slot ainda nao voltou: pula

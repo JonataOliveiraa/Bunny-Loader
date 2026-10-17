@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
+#include <mutex>
 #include <sys/prctl.h>
 
 namespace bl::graphics {
@@ -302,28 +303,32 @@ bool hookGl(const char* name, void* address, Fn replacement, Fn* original) {
 } // namespace
 
 void installGlHooks() {
-    auto& g = gl();
-    if (!g.load()) return;
-    void* egl = dlopen("libEGL.so", RTLD_NOW);
-    void* swap = egl ? dlsym(egl, "eglSwapBuffers") : nullptr;
+    static std::once_flag once;
+    std::call_once(once, [] {
+        auto& g = gl();
+        if (!g.load()) return;
+        void* egl = dlopen("libEGL.so", RTLD_NOW);
+        void* swap = egl ? dlsym(egl, "eglSwapBuffers") : nullptr;
 
-    bool ok = hookGl("eglSwapBuffers", swap, hkSwap, &g_origSwap);
-    ok &= hookGl("glBindFramebuffer", reinterpret_cast<void*>(g.BindFramebuffer), hkBindFramebuffer, &g_origBindFramebuffer);
-    ok &= hookGl("glViewport", reinterpret_cast<void*>(g.Viewport), hkViewport, &g_origViewport);
-    ok &= hookGl("glUseProgram", reinterpret_cast<void*>(g.UseProgram), hkUseProgram, &g_origUseProgram);
-    ok &= hookGl("glBindVertexArray", reinterpret_cast<void*>(g.BindVertexArray), hkBindVertexArray, &g_origBindVertexArray);
-    ok &= hookGl("glActiveTexture", reinterpret_cast<void*>(g.ActiveTexture), hkActiveTexture, &g_origActiveTexture);
-    ok &= hookGl("glEnable", reinterpret_cast<void*>(g.Enable), hkEnable, &g_origEnable);
-    ok &= hookGl("glDisable", reinterpret_cast<void*>(g.Disable), hkDisable, &g_origDisable);
-    ok &= hookGl("glColorMask", reinterpret_cast<void*>(g.ColorMask), hkColorMask, &g_origColorMask);
-    ok &= hookGl("glClear", reinterpret_cast<void*>(g.Clear), hkClear, &g_origClear);
-    ok &= hookGl("glDrawElements", reinterpret_cast<void*>(g.DrawElements), hkDrawElements, &g_origDrawElements);
-    ok &= hookGl("glDrawArrays", reinterpret_cast<void*>(g.DrawArrays), hkDrawArrays, &g_origDrawArrays);
-    ok &= hookGl("glBlitFramebuffer", reinterpret_cast<void*>(g.BlitFramebuffer), hkBlit, &g_origBlit);
-    BL_INFO("efeitos de tela: hooks GL %s", ok ? "ok" : "com falha");
+        bool ok = hookGl("eglSwapBuffers", swap, hkSwap, &g_origSwap);
+        ok &= hookGl("glBindFramebuffer", reinterpret_cast<void*>(g.BindFramebuffer), hkBindFramebuffer, &g_origBindFramebuffer);
+        ok &= hookGl("glViewport", reinterpret_cast<void*>(g.Viewport), hkViewport, &g_origViewport);
+        ok &= hookGl("glUseProgram", reinterpret_cast<void*>(g.UseProgram), hkUseProgram, &g_origUseProgram);
+        ok &= hookGl("glBindVertexArray", reinterpret_cast<void*>(g.BindVertexArray), hkBindVertexArray, &g_origBindVertexArray);
+        ok &= hookGl("glActiveTexture", reinterpret_cast<void*>(g.ActiveTexture), hkActiveTexture, &g_origActiveTexture);
+        ok &= hookGl("glEnable", reinterpret_cast<void*>(g.Enable), hkEnable, &g_origEnable);
+        ok &= hookGl("glDisable", reinterpret_cast<void*>(g.Disable), hkDisable, &g_origDisable);
+        ok &= hookGl("glColorMask", reinterpret_cast<void*>(g.ColorMask), hkColorMask, &g_origColorMask);
+        ok &= hookGl("glClear", reinterpret_cast<void*>(g.Clear), hkClear, &g_origClear);
+        ok &= hookGl("glDrawElements", reinterpret_cast<void*>(g.DrawElements), hkDrawElements, &g_origDrawElements);
+        ok &= hookGl("glDrawArrays", reinterpret_cast<void*>(g.DrawArrays), hkDrawArrays, &g_origDrawArrays);
+        ok &= hookGl("glBlitFramebuffer", reinterpret_cast<void*>(g.BlitFramebuffer), hkBlit, &g_origBlit);
+        BL_INFO("efeitos de tela: hooks GL %s", ok ? "ok" : "com falha");
+    });
 }
 
 void requestGlTrace() {
+    installGlHooks();
     g_traceRequested.store(true);
 }
 

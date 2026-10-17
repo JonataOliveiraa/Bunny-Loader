@@ -282,8 +282,8 @@ void installRenderHook() {
         std::lock_guard<std::mutex> lock(g_statsMutex);
         g_stats.hookInstalled = hooked;
     }
-
-    installGlHooks();
+    // Os hooks GL so entram no primeiro efeito (submitEffects): sem mod
+    // desenhando efeito, o GL da Unity fica como no jogo.
 }
 
 void noteMarkerHit() {
@@ -292,8 +292,12 @@ void noteMarkerHit() {
 }
 
 void submitEffects(EffectFrame&& frame) {
-    // O marcador e montado na thread do jogo, fora do desenho das cameras.
-    if (!frame.empty() && !g_marker.tried) setupMarker();
+    // O marcador e os hooks GL entram na thread do jogo, fora do desenho das
+    // cameras, no primeiro quadro com efeito.
+    if (!frame.empty()) {
+        installGlHooks();
+        if (!g_marker.tried) setupMarker();
+    }
     std::lock_guard<std::mutex> lock(g_queueMutex);
     g_pending = std::move(frame);
     g_pendingSet = true;
