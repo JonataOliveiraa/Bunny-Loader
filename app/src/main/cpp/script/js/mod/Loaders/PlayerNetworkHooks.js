@@ -28,9 +28,11 @@ class PlayerNetworkHooks {
                     return clone;
                 } finally { PlayerNetworkHooks.#copying.delete(key); }
             });
+            // No celular o UpdateClient roda também em quem hospeda jogando
+            // (NetClient é netMode & 1): as mudanças do host vão aos clientes.
             Terraria.Main['void UpdateClient()'].hook((original) => {
                 const Main = Terraria.Main, player = Main.player[Main.myPlayer];
-                if (!player || Main.gameMenu || Main.netMode !== 1) {
+                if (!player || Main.gameMenu || !(Main.netMode & 1)) {
                     PlayerNetworkHooks.#baseline = null;
                     PlayerNetworkHooks.#source = null;
                     return original();
@@ -67,6 +69,16 @@ class PlayerNetworkHooks {
                     PlayerNetworkHooks.#Connect(index, player);
                     PlayerLoader.Call(player, 'PlayerConnect');
                 }
+            });
+            // O tModLoader chama o SyncPlayer do cliente na entrada (mensagem 3).
+            // Aqui vai no EnterWorld, logo depois da mensagem 12: antes dela o
+            // servidor recusa a entrada por causa do pacote de mod.
+            Terraria.Player.Hooks['void EnterWorld(int playerIndex)'].hook((original, index) => {
+                original(index);
+                const Main = Terraria.Main;
+                if (Main.netMode !== 1 || index !== Main.myPlayer) return;
+                const player = Main.player[index];
+                if (player) PlayerLoader.Call(player, 'SyncPlayer', -1, Main.myPlayer, true);
             });
             Terraria.Player.Hooks['void PlayerDisconnect(int playerIndex)'].hook((original, index) => {
                 PlayerNetworkHooks.#Disconnect(index);

@@ -19,6 +19,10 @@ class PlayerLoader {
         PlayerLoader.#overriders.clear();
     }
 
+    static OwnerOf(cls) {
+        return PlayerLoader.#owners.get(cls) || null;
+    }
+
     static Of(player) {
         let all = player.ModPlayers;
         const classes = PlayerLoader.Classes;

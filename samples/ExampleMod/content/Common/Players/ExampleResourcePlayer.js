@@ -1,3 +1,5 @@
+import { MessageType } from '../Networking/MessageType.js';
+
 const CombatText = Terraria.CombatText['int NewText(Rectangle location, Color color, int amount, bool dramatic, bool dot)'];
 
 // Um recurso novo (como a mana): o atual, o máximo e a regeneração. A arma
@@ -55,10 +57,44 @@ export class ExampleResourcePlayer extends ModPlayer {
         }
     }
 
+    // Aumenta o recurso; o número que sobe (CombatText) aparece também para os
+    // outros jogadores pelo pacote ExampleResourceEffect.
     HealExampleResource(player, healAmount) {
         this.exampleResourceCurrent = Math.min(Math.max(this.exampleResourceCurrent + healAmount, 0), this.exampleResourceMax2);
         if (Terraria.Main.myPlayer === player.whoAmI) {
-            CombatText(player.getRect(), ExampleResourcePlayer.HealExampleResourceColor, healAmount, false, false);
+            this.HealExampleResourceEffect(player, healAmount);
         }
+    }
+
+    // Só o número que sobe, e o pacote dele.
+    HealExampleResourceEffect(player, healAmount) {
+        CombatText(player.getRect(), ExampleResourcePlayer.HealExampleResourceColor, healAmount, false, false);
+        // netMode & 1: o cliente e quem hospeda jogando (3), que no celular também cura.
+        if ((Terraria.Main.netMode & 1) && player.whoAmI === Terraria.Main.myPlayer) {
+            ExampleResourcePlayer.SendExampleResourceEffectMessage(this.Mod, player.whoAmI, healAmount);
+        }
+    }
+
+    static HandleExampleResourceEffectMessage(reader, whoAmI) {
+        const Main = Terraria.Main;
+        let player = reader.ReadByte();
+        if (Main.netMode & 2) player = whoAmI;
+
+        const healAmount = reader.ReadInt32();
+        const target = Main.player[player];
+        const resource = target.GetModPlayer(ExampleResourcePlayer);
+        if (player !== Main.myPlayer) resource.HealExampleResourceEffect(target, healAmount);
+
+        // O servidor repassa aos outros clientes.
+        if (Main.netMode & 2) ExampleResourcePlayer.SendExampleResourceEffectMessage(resource.Mod, player, healAmount);
+    }
+
+    // Do cliente que curou e do servidor repassando.
+    static SendExampleResourceEffectMessage(mod, whoAmI, healAmount) {
+        const packet = mod.GetPacket();
+        packet.Write(MessageType.ExampleResourceEffect);
+        packet.Write(whoAmI);
+        packet.Write(healAmount);
+        packet.Send(-1, whoAmI);
     }
 }

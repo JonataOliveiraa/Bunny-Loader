@@ -4,6 +4,7 @@ class ModPlayer {
     WeaponDamage = 0;
 
     get Player() { return Entities.Of(this); }
+    get Mod() { return PlayerLoader.OwnerOf(this.constructor); }
 
     Initialize() {}
     OnEnterWorld(player) {}

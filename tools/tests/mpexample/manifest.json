@@ -1,0 +1,13 @@
+{
+  "uid": "c8db5391-2561-479b-b5ee-55a8dce58ccc",
+  "id": "test-mpexample",
+  "name": "Teste: poeiras, UI e recursos em multiplayer",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModDust, UserInterface, ExampleResourcePlayer e ExampleStatIncreasePlayer do Example Mod com um host e um cliente.",
+  "description": "Loga 'mpexample host ...' e 'mpexample cliente ...', TAP/SHOT/UISCALE para o roteiro e FIM dos dois lados. Precisa do Example Mod ligado nos dois.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

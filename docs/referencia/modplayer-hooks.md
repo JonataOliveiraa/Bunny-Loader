@@ -223,10 +223,14 @@ save; on a mediumcore death, after the replacement inventory.
 | `PostSavePlayer(player)` | When the native save and the auxiliary data finish, even if the native save throws. |
 | `PreSaveCustomData(player)` | Before building the `.plr.bl.json` file's data. |
 | `CopyClientState(player, targetCopy)` | Copies into another instance of the same class, tied to the native clone. |
-| `SendClientChanges(player, clientPlayer)` | On the client, compares with the instance copied on the previous frame. |
-| `SyncPlayer(player, toWho, fromWho, newPlayer)` | After syncing the native player. |
+| `SendClientChanges(player, clientPlayer)` | For the local player, compares with the instance copied on the previous frame. Runs on a client and on a phone hosting and playing (`netMode` 3). |
+| `SyncPlayer(player, toWho, fromWho, newPlayer)` | After syncing the native player. On a joining client, once with `newPlayer` true when it enters the world (tModLoader sends it earlier, but the server rejects mod packets before that point). |
 | `PlayerConnect(player)` | After the player connects. |
 | `PlayerDisconnect(player)` | Before removing the disconnected player. |
+
+`this.Mod` is the mod that owns the class, for `this.Mod.GetPacket()`. The
+Example Mod's `ExampleStatIncreasePlayer` and `ExampleResourcePlayer` show the
+full pattern (its `HandlePacket` is in `main.js`).
 
 Mod state messages are still sent explicitly through `ModPacket`. There is no
 automatic serialization of JS fields. Copy arrays and mutable objects in
