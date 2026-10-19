@@ -38,6 +38,17 @@ val releaseKeys: Map<String, String>? = run {
     }
 }
 
+// O Android só atualiza no lugar um APK com versionCode maior ou igual e a
+// mesma assinatura; alguns instaladores (One UI, HyperOS) recusam o igual. O
+// número de commits sobe a cada versão sem ninguém lembrar de mexer nele. Sem
+// git (fonte baixada em zip), fica 1.
+val commitCount: Int = runCatching {
+    providers.exec {
+        commandLine("git", "rev-list", "--count", "HEAD")
+        workingDir = rootDir
+    }.standardOutput.asText.get().trim().toInt()
+}.getOrDefault(1)
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -56,7 +67,7 @@ android {
         applicationId = "com.bunnyloader"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
+        versionCode = commitCount
         versionName = "0.1.0"
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
@@ -172,7 +183,13 @@ android {
     }
 
     buildTypes {
-        debug { isMinifyEnabled = false }
+        // Com a chave oficial configurada, o debug sai com ela também: é o APK
+        // que vai para out/ e para o Release. Sem ela, a chave de debug do PC
+        // (o APK não atualiza por cima do oficial).
+        debug {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))

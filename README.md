@@ -188,9 +188,25 @@ has the `keytool` command to create the key). The variables
 `BL_RELEASE_KEY_PASSWORD` work too. The key and the file stay out of Git.
 Without them, the release APK comes out unsigned.
 
+When that key is set, the debug APK is signed with it too. Without it, Gradle
+falls back to the debug key of the machine running the build.
+
 Keep the key safe: Android only updates the app in place with the same
-signature. Anyone who installed a debug APK has to uninstall it before moving
-to the release one.
+signature. The official APKs on the Releases page are signed with this
+certificate:
+
+```
+SHA-256: DB:68:1B:9C:95:91:58:E8:AF:08:65:EC:2F:F1:A0:A1:B5:EB:6C:41:41:2D:86:FD:29:E6:AA:91:9B:E3:A6:90
+```
+
+An APK built on another machine has a different signature: installing it over
+the official one (or the other way around) fails with "App not installed".
+Back up `Android/data/com.bunnyloader` (players, worlds, mods) and uninstall
+first. `apksigner verify --print-certs bunny-loader.apk` shows which key an APK
+carries.
+
+`versionCode` is the number of commits on the branch, so each new build can
+update the previous one.
 
 ### Game dump
 
