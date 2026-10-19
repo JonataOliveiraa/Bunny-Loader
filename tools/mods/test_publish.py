@@ -100,6 +100,31 @@ class PackageTests(unittest.TestCase):
         package.manifest['theme'] = {'background': '#203040'}
         self.assertNotIn('#203040', package.store_files())
 
+    def test_store_takes_localized_markdown_assets(self):
+        package = self.package([
+            'content/main.js', 'description_zh-Hans.md', 'changelog_zh-Hans.md',
+        ])
+        self.addCleanup(package.zip.close)
+        files = package.store_files()
+        self.assertEqual(
+            ['changelog_zh-Hans.md', 'description_zh-Hans.md'],
+            [f for f in files if f.startswith(('description_', 'changelog_'))],
+        )
+
+    def test_store_ignores_localized_description_lookalikes(self):
+        package = self.package([
+            'content/main.js', 'description_en_US.md', 'description_en.md.bak',
+            'description_en-US.MD', 'description_english.md', 'description_zh-Hans.txt',
+            'changelog_en_US.md', 'changelog_en.md.bak', 'changelog_en-US.MD',
+            'changelog_english.md', 'changelog_zh-Hans.txt', 'docs/changelog_en-US.md',
+            'docs/description_en-US.md',
+        ])
+        self.addCleanup(package.zip.close)
+        files = package.store_files()
+        self.assertFalse(any(f.startswith(('description_', 'changelog_')) for f in files))
+        self.assertNotIn('docs/description_en-US.md', files)
+        self.assertNotIn('docs/changelog_en-US.md', files)
+
     def test_store_paths_keep_launcher_restrictions(self):
         package = self.package(['content/main.js', 'page (1).md'])
         self.addCleanup(package.zip.close)

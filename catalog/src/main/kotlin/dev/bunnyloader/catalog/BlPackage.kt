@@ -88,6 +88,7 @@ class BlPackage(val file: File) {
     /** O que a ficha do mod precisa antes de baixar o pacote inteiro. */
     fun storeFiles(): List<String> {
         val files = STORE_ROOT_FILES.filter { it in names }.toMutableList()
+        files += names.filter { LOCALIZED_PAGE.matches(it) }.sorted()
         files += names.filter { n -> STORE_DIRS.any { n.startsWith(it) } }.sorted()
         (manifest["pages"] as? JsonArray)?.forEach { page ->
             val f = ((page as? JsonObject)?.get("file") as? JsonPrimitive)?.contentOrNull ?: ""
@@ -131,6 +132,7 @@ class BlPackage(val file: File) {
         private val STORE_ROOT_FILES = listOf("manifest.json", "icon.png", "icon.gif",
             "banner.gif", "banner.png", "banner.webp", "banner.jpg", "banner.jpeg",
             "description.md", "changelog.md", "license.md")
+        private val LOCALIZED_PAGE = Regex("^(?:description|changelog)_[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*\\.md$")
         private val HEX_COLOR = Regex("^#?([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$")
         private val STORE_DIRS = listOf("authors/", "thumbnails/")
 

@@ -81,7 +81,12 @@ data class ModManifest(
     /** Caminho do arquivo de entrada, relativo a `content/`. */
     val entry: String = "main.js",
     val dependencies: List<String> = emptyList(),
+    /** Nomes traduzidos, indexados pela cultura do jogo (ex.: zh-Hans). */
+    val localizedNames: Map<String, String> = emptyMap(),
 ) {
+    fun nameFor(language: String): String =
+        localizedNames[modCulture(language)]?.takeIf(String::isNotBlank) ?: name
+
     val hasValidUid: Boolean get() = isValidUid(uid)
 
     /** Mod, textura ou fonte: o `type` do manifesto, mod quando falta. */
