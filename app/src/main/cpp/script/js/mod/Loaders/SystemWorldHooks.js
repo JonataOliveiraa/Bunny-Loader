@@ -35,6 +35,7 @@ class SystemWorldHooks {
                     for (let i = 0; i < list._size; i++) tasks.push(SystemWorldHooks.#Wrap(list._items[i]));
                     SystemLoader.Call('ModifyWorldGenTasks', tasks);
                     SystemWorldHooks.#Validate(tasks);
+                    SystemWorldHooks.#KeepModChests(tasks);
                     list._items = Terraria.WorldBuilding.GenPass.newArray(tasks.map(pass => pass.Native));
                     list._size = tasks.length;
                     list._version++;
@@ -80,6 +81,47 @@ class SystemWorldHooks {
                 original(self);
             });
         });
+    }
+
+    // O "Tile Cleanup" do jogo reescreve todo baú (TileID.Sets.BasicChest)
+    // como 21 ou 467: um baú de mod posto numa etapa anterior virava baú de
+    // madeira. O tModLoader mantém o tipo no próprio laço; aqui a etapa ganha
+    // uma volta que guarda os baús de mod e devolve o tipo depois.
+    static #KeepModChests(tasks) {
+        const index = tasks.findIndex(pass => pass.Name === 'Tile Cleanup');
+        if (index < 0 || tasks[index] instanceof PassLegacy) return;
+
+        const cleanup = tasks[index];
+        const pass = new PassLegacy(cleanup.Name, (progress, config) => {
+            const chests = SystemWorldHooks.#ModChests();
+            cleanup.Apply(progress, config);
+            SystemWorldHooks.#RestoreChests(chests);
+        }, cleanup.Weight);
+        if (!cleanup.Enabled) pass.Disable();
+        tasks[index] = pass;
+    }
+
+    static #ModChests() {
+        const Main = Terraria.Main, chests = Main.chest, found = [];
+        for (let i = 0; i < chests.length; i++) {
+            const chest = chests[i];
+            if (!chest) continue;
+            const type = bl.tiles.typeAt(chest.x, chest.y);
+            if (TileLoader.ByType.has(type) && Terraria.ID.TileID.Sets.BasicChest[type]) found.push({ x: chest.x, y: chest.y, type });
+        }
+        return found;
+    }
+
+    static #RestoreChests(chests) {
+        const Main = Terraria.Main;
+        for (const { x, y, type } of chests) {
+            for (let i = x; i < x + 2; i++) {
+                for (let j = y; j < y + 2; j++) {
+                    const tile = Main.tile['Tile get_Item(int x, int y)'](i, j);
+                    if (tile['bool active()']() && Terraria.ID.TileID.Sets.BasicChest[tile.type]) tile.type = type;
+                }
+            }
+        }
     }
 
     static #Validate(tasks) {

@@ -38,7 +38,7 @@ flowchart LR
 
 ## The guides
 
-Packages without code: [Texture packs](14-pacotes-de-textura.md).
+Packages without code: [Texture packs](14-pacotes-de-textura.md) and [Font packs](21-pacotes-de-fonte.md).
 
 Read them in order; each one builds on the previous.
 

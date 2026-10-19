@@ -9,9 +9,14 @@ export class UIMoneyDisplay extends UIElement {
     collectedCoins = 0;
     startTime = null;
     coinsTextures = [];
+    exampleFont = null;
 
     constructor() {
         super();
+        // A fonte própria do mod (o ModContent.Request<DynamicSpriteFont> do
+        // tModLoader): Assets/Fonts/ExampleFont.json, gerada com
+        // tools/mods/fonts.py a partir da New Rocker.
+        this.exampleFont = ModContent.Request('Assets/Fonts/ExampleFont').Value;
         for (let j = 0; j < 4; j++) {
             Main.instance.LoadItem(74 - j);   // platina, ouro, prata e cobre
             this.coinsTextures[j] = TextureAssets.Item[74 - j].Value;
@@ -35,7 +40,7 @@ export class UIMoneyDisplay extends UIElement {
         const x = inner.X, y = inner.Y;
         this.DrawCoins(spriteBatch, x, y, CoinsSplit(this.collectedCoins));
         this.DrawCoins(spriteBatch, x, y, CoinsSplit(this.GetCoinsPerMinute()), 0, 25);
-        DrawBorderStringFourWay(spriteBatch, FontAssets.ItemStack.Value, 'CPM', x + 24 * 4, y + 25, Color.White, Color.Black, Vector2.new(0.3, 0.3), 0.75);
+        DrawBorderStringFourWay(spriteBatch, this.exampleFont, 'CPM', x + 24 * 4, y + 22, Color.Gold, Color.Black, Vector2.new(0.3, 0.3), 0.9);
     }
 
     DrawCoins(spriteBatch, x, y, coins, xOffset = 0, yOffset = 0) {

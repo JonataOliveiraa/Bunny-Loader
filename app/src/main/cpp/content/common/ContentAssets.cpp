@@ -149,14 +149,15 @@ Il2CppArray* readBytes(const std::string& path, const unsigned char* data, size_
 
 } // namespace
 
-Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* data, size_t size,
-                               const std::string& assetName, int* width, int* height) {
+Il2CppObject* loadGameTexture(const std::string& path, const unsigned char* data, size_t size,
+                              const std::string& what, int filterMode, int* width, int* height) {
     auto& a = il2cpp::api();
     const Refs& r = refs();
     if (!r.ok) return nullptr;
     Il2CppArray* bytes = readBytes(path, data, size);
     if (!bytes) return nullptr;
 
+    // Texture2D(2,2) nasce com mipmaps: o LoadImage os refaz no tamanho do PNG.
     Il2CppObject* ut = a.object_new(r.unityTex);
     int two = 2;
     void* c1[2] = {&two, &two};
@@ -165,15 +166,12 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
     void* c2[3] = {ut, bytes, &nonReadable};
     Il2CppObject* ok = invokeValue(r.loadImage, nullptr, c2, "ImageConversion.LoadImage");
     if (!ok || !*(reinterpret_cast<uint8_t*>(ok) + sizeof(Il2CppObject))) {
-        BL_ERROR("conteudo de mod: a Unity nao decodificou a textura de %s", assetName.c_str());
+        BL_ERROR("conteudo de mod: a Unity nao decodificou a textura de %s", what.c_str());
         if (r.destroy) { void* args[1] = {ut}; invoke(r.destroy, nullptr, args, "Object.Destroy"); }
         return nullptr;
     }
-    // Pixel art: vizinho-mais-proximo. A Unity nasce bilinear e a textura
-    // sairia borrada ao lado das do jogo.
     if (r.setFilterMode) {
-        int point = 0;   // FilterMode.Point
-        void* c3[1] = {&point};
+        void* c3[1] = {&filterMode};
         invoke(r.setFilterMode, ut, c3, "Texture.filterMode");
     }
     // Sem repetir: a Unity nasce em Repeat, e um recorte que passa da borda
@@ -190,6 +188,17 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
     Il2CppObject* gt = a.object_new(r.gameTex);
     void* c4[1] = {ut};
     if (!invoke(r.gameCtor, gt, c4, "Texture2D do jogo")) return nullptr;
+    return gt;
+}
+
+Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* data, size_t size,
+                               const std::string& assetName, int* width, int* height) {
+    auto& a = il2cpp::api();
+    const Refs& r = refs();
+    // Pixel art: vizinho-mais-proximo. A Unity nasce bilinear e a textura
+    // sairia borrada ao lado das do jogo.
+    Il2CppObject* gt = loadGameTexture(path, data, size, assetName, 0 /* FilterMode.Point */, width, height);
+    if (!gt) return nullptr;
 
     Il2CppObject* asset = a.object_new(r.assetCls);
     void* c5[1] = {a.string_new(assetName.c_str())};
@@ -327,9 +336,13 @@ bool textureAssetSize(Il2CppObject* asset, int* width, int* height) {
 
 void destroyTextureAsset(Il2CppObject* asset) {
     const Refs& r = refs();
-    if (!asset || r.valueOffset < 0 || r.unityOffset < 0 || !r.destroy) return;
-    auto* texture = *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.valueOffset);
-    if (!texture) return;
+    if (!asset || r.valueOffset < 0) return;
+    destroyGameTexture(*reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(asset) + r.valueOffset));
+}
+
+void destroyGameTexture(Il2CppObject* texture) {
+    const Refs& r = refs();
+    if (!texture || r.unityOffset < 0 || !r.destroy) return;
     auto* unity = *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(texture) + r.unityOffset);
     if (unity) { void* args[1] = {unity}; invoke(r.destroy, nullptr, args, "Object.Destroy"); }
 }

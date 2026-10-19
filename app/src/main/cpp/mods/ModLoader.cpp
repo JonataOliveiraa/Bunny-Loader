@@ -2,6 +2,7 @@
 #include "mods/LoadOrder.h"
 #include "mods/ManifestText.h"
 #include "core/Log.h"
+#include "content/textures/FontPacks.h"
 #include "content/textures/TexturePacks.h"
 #include "script/bridge/ScriptEngine.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
@@ -97,6 +98,7 @@ void readManifest(LoadedMod* mod) {
 
 void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
     runtime::configureTexturePacks(modsDir, enabled);
+    runtime::configureFontPacks(modsDir, enabled);
     registry().clear();
     dirsById().clear();
     BL_INFO("carregando mods de %s (%zu habilitados)", modsDir.c_str(), enabled.size());

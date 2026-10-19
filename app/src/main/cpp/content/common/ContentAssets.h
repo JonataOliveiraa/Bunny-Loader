@@ -22,6 +22,15 @@ namespace bl::runtime::content {
 Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* data, size_t size,
                                const std::string& assetName, int* width, int* height);
 
+/**
+ * So o Texture2D do jogo (Microsoft.Xna), sem Asset, com o FilterMode da Unity
+ * pedido (0 Point, 1 Bilinear, 2 Trilinear) e mipmaps. `what` so vai no log.
+ */
+Il2CppObject* loadGameTexture(const std::string& path, const unsigned char* data, size_t size,
+                              const std::string& what, int filterMode, int* width, int* height);
+/** Libera a textura Unity de um Texture2D criado por loadGameTexture. */
+void destroyGameTexture(Il2CppObject* texture);
+
 /** Dimensoes logicas do sprite vanilla (nao as da pagina Unity/atlas). */
 bool textureAssetSize(Il2CppObject* asset, int* width, int* height);
 Il2CppClass* textureAssetClass();

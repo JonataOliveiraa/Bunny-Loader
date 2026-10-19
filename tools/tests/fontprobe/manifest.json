@@ -1,0 +1,13 @@
+{
+  "uid": "5b0e6f3c-2a8d-4c71-9e5f-0d4a7b19c3e2",
+  "id": "test-fontprobe",
+  "name": "Teste: sonda das fontes",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Mede as fontes do jogo no celular (páginas, tamanho das glifos, filtro da textura, escala de desenho) e deixa um tooltip na tela para uma captura.",
+  "description": "Loga 'fontprobe ...' e 'fontprobe FIM'.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

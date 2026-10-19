@@ -275,8 +275,11 @@ const same = ModContent.Texture('Content/Items/Sword_Glow');   // shortcut for .
 - It always loads immediately (like tModLoader's `ImmediateLoad`), and only on
   the **game thread**: in a hook, in `SetStaticDefaults` or in
   `PostSetupContent`.
-- Textures only. For sound, `ModContent.SoundStyle(path, options)`, which is
-  the same as `new SoundStyle(path, options)` ([guide 10](10-sons-e-musica.md)).
+- Textures and fonts: a path to a font file (`'Assets/Fonts/ExampleFont'` for
+  `ExampleFont.json`) returns an asset whose `Value` is a `SpriteFont`
+  ([guide 21](21-pacotes-de-fonte.md#fonts-for-a-mods-own-ui)). For sound,
+  `ModContent.SoundStyle(path, options)`, which is the same as
+  `new SoundStyle(path, options)` ([guide 10](10-sons-e-musica.md)).
 
 ## Template and instance
 

@@ -1,0 +1,13 @@
+{
+  "uid": "15ea56bb-3292-459f-8920-53c8f66b3b04",
+  "id": "test-modfont",
+  "name": "Teste: fonte de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Carrega a fonte do Example Mod (ModContent.Request('examplemod/Assets/Fonts/ExampleFont')) e desenha um texto com ela no meio da tela.",
+  "description": "Precisa do Example Mod ligado. Loga 'modfont ...' e 'modfont FIM'.",
+  "blVersion": 2,
+  "entry": "main.js",
+  "dependencies": []
+}

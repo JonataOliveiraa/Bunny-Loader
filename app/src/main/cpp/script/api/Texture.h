@@ -45,6 +45,13 @@ JSValue textureSize(JSContext* ctx, int argc, JSValueConst* argv);
 /** bl.assetOfTexture(Texture2D) -> o Asset<Texture2D> carregado que a guarda, ou null. */
 JSValue assetOfTexture(JSContext* ctx, int argc, JSValueConst* argv);
 
+/**
+ * bl.loadFont(caminho) -> SpriteFont novo de um content/Fonts/<Fonte>.json
+ * (blfont/1) do mod, para desenhar texto com a fonte dele. Nao mexe nas
+ * fontes do jogo. Thread do jogo, com o conteudo pronto.
+ */
+JSValue loadFont(JSContext* ctx, int argc, JSValueConst* argv);
+
 /** bl.isTextureAsset(valor) -> o valor e um Asset<Texture2D>. */
 JSValue isTextureAsset(JSContext* ctx, int argc, JSValueConst* argv);
 

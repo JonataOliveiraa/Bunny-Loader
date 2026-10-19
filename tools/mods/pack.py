@@ -37,6 +37,10 @@ def pack_bytes(folder: Path) -> bytes:
         roots = [folder / "content" / "Images", folder / "Content" / "Images"]
         if not any(p.is_file() and p.suffix.lower() == ".png" for root in roots for p in root.rglob("*")):
             raise ValueError("pacote de textura sem PNGs em content/Images")
+    elif str(manifest.get("type", "")).strip().lower() in {"font", "fonts", "fonte", "fontes"}:
+        roots = [folder / "content" / "Fonts", folder / "Content" / "Fonts"]
+        if not any(p.is_file() and p.suffix.lower() == ".json" for root in roots if root.is_dir() for p in root.iterdir()):
+            raise ValueError("pacote de fonte sem .json em content/Fonts")
     files = sorted(p for p in folder.rglob("*") if p.is_file() and p.name not in SKIP)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as z:

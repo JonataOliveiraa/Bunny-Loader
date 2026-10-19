@@ -469,6 +469,64 @@ export class DownedBossSystem extends ModSystem {
 - The file belongs to the server: in multiplayer, the client receives the
   state through `NetSend`/`NetReceive` (see [Network](#network)).
 
+### World generation: structures
+
+`ModifyWorldGenTasks(tasks)` gets the game's generation steps as a JavaScript
+array. Find a game step by name and insert yours after it, as Calamity does:
+
+```js
+export class ExampleStructureSystem extends ModSystem {
+    ModifyWorldGenTasks(tasks) {
+        const index = tasks.findIndex((task) => task.Name === 'Sunflowers');
+        tasks.splice(index + 1, 0, new PassLegacy('Example Structure', (progress, configuration) => {
+            progress.Message = ModLocalization.Translate('WorldGen.ExampleStructure');
+            ExampleStructure.Generate();
+        }));
+    }
+}
+```
+
+The Example Mod's castle
+([`Content/Structures/ExampleStructure.js`](../../samples/ExampleMod/content/Content/Structures/ExampleStructure.js))
+follows what the big mods do:
+
+- **Draw the structure as text.** One map of blocks and one of walls, of the
+  same size, read from top to bottom. A letter stands for a block, a wall or
+  the top-left corner of a piece of furniture. Calamity keeps its structures
+  as schematic files with the same idea: block and wall per cell.
+- **Search with a limit.** Draw positions with `WorldGen.genRand` (the same
+  seed builds the same world) and give up after N attempts. Check flat,
+  natural ground, no liquid and `GenVars.structures.CanPlace(area, padding)`,
+  which knows the game's structures and those of the other mods.
+- **Clear the area first.** `WorldGen.KillTile(..., noItem: true)` on every
+  cell, then `ClearEverything()`: a tree or a piece of furniture cut in half
+  at the edge would be left broken.
+- **Blocks and walls, then the frame, then the furniture.** `ResetToType` and
+  `tile.wall`, `WorldGen.RangeFrame` over the area, and only then
+  `WorldGen.PlaceObject`/`PlaceChest`: furniture needs the blocks to anchor
+  to. The game places furniture by its `Origin`, so convert the map's corner
+  with `TileObjectData.GetTileData(type, 0, 0).Origin`.
+- **Walls only inside.** A wall draws a half-block border into an empty
+  neighboring cell: behind the outer blocks (sides, roofs, battlements,
+  foundation), that border sticks out of the structure.
+- **Fill the chest** with the index `PlaceChest` returns. On mobile, the
+  slots of `Main.chest[i].item` are `ChestItem` (type and stack), not `Item`:
+  `SetDefaults(id)` and `stack`. The game's `Tile Cleanup` step rewrites
+  every chest as a wooden chest; as in tModLoader, the loader keeps the type
+  of mod chests placed before it.
+- **Protect the area** with
+  `GenVars.structures.AddProtectedStructure(area, padding)`: the later steps
+  (trees, micro biomes) do not build over it.
+- Fill the ground under the foundation, so the structure does not float.
+
+Insert after `Sunflowers` for the surface (the trees and plants come after
+and respect the area). The names are the game's (`Final Cleanup`, `Micro
+Biomes`...); look them up defensively, as another version may not have
+them. In an existing world, the Example Mod's `/castle` command
+([`ExampleStructureCommand.js`](../../samples/ExampleMod/content/Common/Commands/ExampleStructureCommand.js))
+builds the castle under the player: in multiplayer the server builds it and
+sends the area with `NetMessage.SendTileSquare`.
+
 ## Multiplayer: who runs what
 
 Each device runs its own mods; the methods run where the game does that
@@ -586,5 +644,5 @@ syncs carries one more packet. Keep what goes over the network small.
   spelunker/danger ones;
 - on `GlobalNPC`: `UpdateLifeRegen`, `SaveData`/`LoadData`, the town NPC
   attacks (`TownNPCAttack*`) and the chat buttons;
-- on `ModSystem`: `ModifyWorldGenTasks`, `ModifyInterfaceLayers`, the separate
+- on `ModSystem`: the separate
   `Pre/PostUpdate` for players, NPCs, projectiles and items.

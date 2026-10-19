@@ -147,6 +147,8 @@ existing port keeps its identity. Each port has a README in
 `ports/textures/in bl/`.
 
 Localization, sounds and music are not applied by this loader. The port
-command copies images only; `type: "font"` is left for a future
-implementation. Matching names and dimensions does not guarantee every PC
-image has a visible equivalent element in the mobile UI.
+command copies images only; the `.xnb` fonts of a PC pack are converted with
+`tools/mods/fonts.py` (see [Font packs](21-pacotes-de-fonte.md)), and a
+`content/Fonts` folder in a texture pack is applied too. Matching names and
+dimensions does not guarantee every PC image has a visible equivalent element
+in the mobile UI.

@@ -1,0 +1,30 @@
+{
+  "uid": "19e3900c-83a2-4e9f-9724-1a38f82dcae9",
+  "id": "fontecomicneue",
+  "name": "Fonte Comic Neue",
+  "version": "1.0.0",
+  "authors": [
+    {
+      "name": "Bunny Loader",
+      "role": "Pacote",
+      "avatar": "bunny-loader.png",
+      "color": "#F9E141"
+    },
+    "Comic Neue Project Authors"
+  ],
+  "type": "font",
+  "category": "Fontes",
+  "summary": "Troca as fontes do jogo pela Comic Neue, nítida em qualquer tela",
+  "license": "OFL-1.1",
+  "updated": "2026-10-18",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "theme": {
+    "accent": "#7FD3FF",
+    "panel": "#1F2E44",
+    "heading": "#E3F4FF"
+  }
+}

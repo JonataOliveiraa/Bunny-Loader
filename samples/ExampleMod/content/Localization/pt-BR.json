@@ -299,6 +299,11 @@
     },
     "ExampleCoinsCommand": {
       "Description": "Mostra a tela de moedas por minuto"
+    },
+    "ExampleStructureCommand": {
+      "Description": "Constrói o castelo de exemplo no chão embaixo de você",
+      "NoGround": "Não há chão embaixo de você",
+      "Built": "Castelo de exemplo construído"
     }
   },
   "Achievements": {
@@ -457,6 +462,9 @@
   },
   "Conditions": {
     "LowHealth": "Com menos da metade da vida"
+  },
+  "WorldGen": {
+    "ExampleStructure": "Construindo o castelo de exemplo"
   },
   "UI": {
     "ExampleCoinsUIState": {

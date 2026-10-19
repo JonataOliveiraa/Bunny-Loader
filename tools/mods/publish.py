@@ -10,8 +10,8 @@ O catálogo mora no repositório JonataOliveiraa/Bunny-Loader-Mods, separado do
 código do app (um pedido de remoção contra um mod não derruba o app):
 
     main                index.json + mods/<uid>/ (a vitrine: manifest, ícone,
-                        capa, description.md, autores...) e ports/ (as fontes
-                        dos pacotes de textura portados).
+                        capa, description.md, autores...) e ports/ (a origem
+                        dos pacotes de textura e de fonte portados).
     Releases            uma por versão de mod, tag mod-<id>-v<versão>, com o .bl.
 
 Cada entrada do index.json leva o manifesto inteiro do mod (`manifest`): o app
@@ -152,6 +152,9 @@ class Package:
             if not any(n.startswith(("content/Images/", "Content/Images/")) and n.lower().endswith(".png")
                        for n in self.names):
                 raise Fail(f"{path.name}: pacote de textura sem PNGs em content/Images")
+        elif kind in {"font", "fonts", "fonte", "fontes"}:
+            if not any(re.match(r"^[cC]ontent/Fonts/[^/]+\.json$", n) for n in self.names):
+                raise Fail(f"{path.name}: pacote de fonte sem .json em content/Fonts")
         else:
             entry = f"content/{m.get('entry', 'main.js')}"
             if entry not in self.names:

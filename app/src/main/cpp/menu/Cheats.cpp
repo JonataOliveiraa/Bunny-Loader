@@ -12,6 +12,7 @@
 #include "il2cpp/Signature.h"
 #include "content/common/GameRefs.h"
 #include "content/common/ModContent.h"
+#include "content/textures/FontPacks.h"
 #include "content/textures/TexturePacks.h"
 #include "content/items/ModItems.h"
 #include "content/npcs/ModNpcs.h"
@@ -946,6 +947,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     tickModTiles();
     tickModWalls();
     tickTexturePacks();
+    tickFontPacks();
     tickContentReady();
     tickQuickStart();
     tickNetRequests();

@@ -41,7 +41,7 @@ class ModContent {
     // SetStaticDefaults ou no PostSetupContent).
     static Request(path) { return ContentLookup.Request(path); }
     static Texture(path) { return ContentLookup.Request(path).Value; }
-    static HasAsset(path) { return ContentLookup.FindTexture(path) !== null; }
+    static HasAsset(path) { return ContentLookup.FindTexture(path) !== null || ContentLookup.FindFont(path) !== null; }
     // A vaga de um ícone do Mod.AddBossHeadTexture (ou o _Head_Boss de um chefe), ou -1.
     static GetModBossHeadSlot(texture) {
         const file = ContentLookup.FindTexture(texture);

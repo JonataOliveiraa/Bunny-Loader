@@ -2,8 +2,8 @@ package dev.bunnyloader.mods
 
 /**
  * O tipo de um pacote, pelo `type` do manifesto. Só separa as listas do
- * launcher (Explorar e Pacotes). Texturas carregam PNGs, sem arquivo JavaScript;
- * fontes ainda nao tem carregador no jogo.
+ * launcher (Explorar e Pacotes). Texturas carregam PNGs e fontes, content/Fonts,
+ * ambas sem arquivo JavaScript.
  *
  * O manifesto pode escrever em inglês ou português, no singular ou plural:
  * quem faz pacote não deveria ter de adivinhar a grafia. O que não bate com

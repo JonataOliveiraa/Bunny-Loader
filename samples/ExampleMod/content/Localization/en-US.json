@@ -299,6 +299,11 @@
     },
     "ExampleCoinsCommand": {
       "Description": "Show the coin rate UI"
+    },
+    "ExampleStructureCommand": {
+      "Description": "Builds the example castle on the ground below you",
+      "NoGround": "There is no ground below you",
+      "Built": "Example castle built"
     }
   },
   "Achievements": {
@@ -457,6 +462,9 @@
   },
   "Conditions": {
     "LowHealth": "Below half health"
+  },
+  "WorldGen": {
+    "ExampleStructure": "Building the example castle"
   },
   "UI": {
     "ExampleCoinsUIState": {

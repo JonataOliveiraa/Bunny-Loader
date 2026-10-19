@@ -121,6 +121,10 @@ in tModLoader. Some PC images do not exist on the phone (`ButtonPlay`,
 `ButtonDelete`, the scrollbar): the call throws `does not exist on mobile`;
 `UIScrollbar` draws itself without them.
 
+For text in the mod's own font, `ModContent.Request('Assets/Fonts/MyFont').Value`
+is a `SpriteFont` for `DrawString` and `Utils.DrawBorderString*`
+([guide 21](21-pacotes-de-fonte.md#fonts-for-a-mods-own-ui)).
+
 ## Interface layers
 
 `ModifyInterfaceLayers(layers)` runs every frame with the game's layers in

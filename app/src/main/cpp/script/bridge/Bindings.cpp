@@ -1668,6 +1668,10 @@ JSValue js_loadTextureAsset(JSContext* ctx, JSValueConst, int argc, JSValueConst
     return loadTextureAsset(ctx, argc, argv);
 }
 
+JSValue js_loadFont(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
+    return loadFont(ctx, argc, argv);
+}
+
 JSValue js_builtinTexture(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
     return builtinTexture(ctx, argc, argv);
 }
@@ -1866,6 +1870,7 @@ void installBindings(void* context) {
                       JS_NewCFunction(ctx, js_loadTexture, "loadTexture", 1));
     JS_SetPropertyStr(ctx, bl, "loadTextureAsset",
                       JS_NewCFunction(ctx, js_loadTextureAsset, "loadTextureAsset", 1));
+    JS_SetPropertyStr(ctx, bl, "loadFont", JS_NewCFunction(ctx, js_loadFont, "loadFont", 1));
     JS_SetPropertyStr(ctx, bl, "builtinTexture",
                       JS_NewCFunction(ctx, js_builtinTexture, "builtinTexture", 1));
     JS_SetPropertyStr(ctx, bl, "vanillaTexture",

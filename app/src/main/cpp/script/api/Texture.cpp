@@ -10,6 +10,8 @@
 #include "boot/Boot.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/BunnyHeadIcon.h"
+#include "content/common/ModContent.h"
+#include "content/textures/FontPacks.h"
 #include "script/bridge/Invoke.h"
 
 #include <unistd.h>
@@ -423,6 +425,24 @@ JSValue textureSize(JSContext* ctx, int argc, JSValueConst* argv) {
     JS_SetPropertyStr(ctx, o, "Width", JS_NewInt32(ctx, w));
     JS_SetPropertyStr(ctx, o, "Height", JS_NewInt32(ctx, h));
     return o;
+}
+
+JSValue loadFont(JSContext* ctx, int argc, JSValueConst* argv) {
+    if (argc < 1 || !JS_IsString(argv[0])) return JS_ThrowTypeError(ctx, "bl.loadFont(path) expects a string");
+    const int gameThread = runtime::gameThreadId();
+    if (gameThread == 0 || static_cast<int>(gettid()) != gameThread || !runtime::contentSettled()) {
+        return JS_ThrowInternalError(ctx, "fonts can only be loaded on the game thread, after the content is ready "
+                                          "(in PostSetupContent or in a hook)");
+    }
+    const char* cs = JS_ToCString(ctx, argv[0]);
+    if (!cs) return JS_EXCEPTION;
+    std::string path = resolvePath(ctx, cs);
+    JS_FreeCString(ctx, cs);
+    if (path.size() < 5 || path.compare(path.size() - 5, 5, ".json") != 0) path += ".json";
+    if (access(path.c_str(), R_OK) != 0) return JS_ThrowReferenceError(ctx, "no font file %s", path.c_str());
+    Il2CppObject* font = runtime::loadModFont(path);
+    if (!font) return JS_ThrowInternalError(ctx, "could not load the font %s; the log says why", path.c_str());
+    return makeNativeObject(ctx, font);
 }
 
 JSValue builtinTexture(JSContext* ctx, int argc, JSValueConst* argv) {
