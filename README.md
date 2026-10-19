@@ -49,7 +49,7 @@ Everything lives in [`docs/`](docs/README.md) (also on the
 [wiki](https://github.com/JonataOliveiraa/Bunny-Loader/wiki)). New to modding?
 Start with [Making mods](docs/mods/README.md), then read the guides in order:
 each one builds on the previous. What changed in each version is in
-[`CHANGELOG.md`](CHANGELOG.md).
+[`changelogs/`](changelogs/), one file per version.
 
 ### Making mods
 
