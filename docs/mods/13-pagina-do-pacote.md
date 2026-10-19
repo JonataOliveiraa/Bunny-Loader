@@ -111,7 +111,7 @@ The new fields are marked. The rest is in the [README](README.md#manifestjson).
 | `theme` | **New.** This mod's page theme: text, panel and button colors, and the screen background (below). |
 | `description` | The manifest fallback when neither description Markdown file exists. |
 
-### Localized name and description
+### Localized name, description and changelog
 
 Keep `name` as the default and add `localizedNames` keyed by game culture:
 
@@ -122,12 +122,14 @@ Keep `name` as the default and add `localizedNames` keyed by game culture:
 ```
 
 The launcher language `zh` maps to `zh-Hans`. A missing translation uses
-`name`. For a translated long description, add `description_zh-Hans.md` beside
-`description.md`; the launcher uses the localized Markdown file when present,
-then falls back to `description.md`, manifest `description`, and `summary`.
+`name`. For translated Markdown pages, add `description_zh-Hans.md` or
+`changelog_zh-Hans.md` beside the corresponding default file. Each localized
+file falls back to its default Markdown file; the description then falls back
+to manifest `description` and `summary`.
 
-See `samples/ExampleMod/manifest.json` and
-`samples/ExampleMod/description_zh-Hans.md`.
+See `samples/ExampleMod/manifest.json`,
+`samples/ExampleMod/description_zh-Hans.md` and
+`samples/ExampleMod/changelog_zh-Hans.md`.
 
 ### The authors
 

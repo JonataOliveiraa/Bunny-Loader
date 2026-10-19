@@ -67,8 +67,9 @@ import kotlinx.coroutines.withContext
 
 /**
  * A ficha de um mod: capa, cabeçalho com as ações, e as abas que o PACOTE
- * escreve — `description.md`, `changelog.md`, `license.md`, os autores e as
- * páginas extras do manifesto. O launcher só desenha; o texto, as fotos e as
+ * escreve — `description.md`, `description_<culture>.md`, `changelog.md`,
+ * `changelog_<culture>.md`, `license.md`, os autores e páginas extras. O launcher
+ * só desenha; o texto, as fotos e as
  * cores são do mod (docs/mods/13-pagina-do-pacote.md).
  *
  * As ações ficam em cima, antes das abas: com uma descrição longa, o botão de
@@ -254,7 +255,8 @@ private fun readPages(entry: Catalog.Entry, catalog: Catalog, language: String):
     return buildList {
         val description = dev.bunnyloader.mods.readModDescription(m, language) { catalog.readText(entry, it) }
         add(Page.Description(Markdown.parse(description)))
-        catalog.readText(entry, Catalog.CHANGELOG)?.let { add(Page.Changelog(Markdown.parse(it))) }
+        dev.bunnyloader.mods.readModChangelog(language) { catalog.readText(entry, it) }
+            ?.let { add(Page.Changelog(Markdown.parse(it))) }
         val license = catalog.readText(entry, Catalog.LICENSE)
         if (license != null || m.license.isNotBlank()) {
             add(Page.License(license?.let(Markdown::parse).orEmpty()))

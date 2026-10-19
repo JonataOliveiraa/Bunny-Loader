@@ -29,4 +29,14 @@ class ModLocalizationTest {
         assertEquals("# Default description", readModDescription(manifest, "en", files::get))
         assertEquals("Default description", readModDescription(manifest, "en") { null })
     }
+
+    @Test fun localizedChangelogFallsBackToBaseMarkdown() {
+        val files = mapOf(
+            "changelog_zh-Hans.md" to "## 中文更新",
+            "changelog.md" to "## Default changes",
+        )
+        assertEquals("## 中文更新", readModChangelog("zh", files::get))
+        assertEquals("## Default changes", readModChangelog("en", files::get))
+        assertEquals(null, readModChangelog("en") { null })
+    }
 }

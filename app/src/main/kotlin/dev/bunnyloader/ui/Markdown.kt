@@ -60,8 +60,8 @@ import kotlinx.coroutines.withContext
 import kotlin.math.floor
 
 /**
- * Markdown dos pacotes: `description.md`, `changelog.md`, `license.md` e as
- * abas que o manifesto pede.
+ * Markdown dos pacotes: `description.md`, `description_<culture>.md`,
+ * `changelog.md`, `changelog_<culture>.md`, `license.md` e as abas do manifesto.
  *
  * Feito aqui, e não com uma biblioteca, porque o texto tem de sair do mesmo
  * material que o resto do launcher: fonte pixelada com o contorno preto do
