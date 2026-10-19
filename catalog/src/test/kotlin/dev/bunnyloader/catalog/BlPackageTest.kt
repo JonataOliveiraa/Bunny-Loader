@@ -39,6 +39,10 @@ class BlPackageTest {
             put("banner.gif", byteArrayOf(4, 5, 6))
             put("docs/bg.gif", byteArrayOf(7, 8, 9))
             put("description.md", "# Mod\n\nlinha 1\nlinha 2\n".repeat(20).toByteArray(), stored = true)
+            put("description_zh-Hans.md", "# 中文\n![预览](docs/english.png)".toByteArray())
+            put("changelog_zh-Hans.md", "## 新版本\n中文更新日志".toByteArray())
+            put("docs/english.png", byteArrayOf(1))
+            put("description_invalid/path.md", "Não publicar".toByteArray())
         }
         return out.toByteArray()
     }
@@ -59,6 +63,8 @@ class BlPackageTest {
         val file = File(temp.root, "ok.bl").apply { writeBytes(valid()) }
         val files = BlPackage(file).storeFiles()
         assertTrue(files.toString(), "banner.gif" in files && "docs/bg.gif" in files)
+        assertTrue(files.containsAll(listOf("description_zh-Hans.md", "changelog_zh-Hans.md", "docs/english.png")))
+        assertTrue("description_invalid/path.md" !in files)
     }
 
     @Test

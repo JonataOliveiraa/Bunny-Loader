@@ -104,12 +104,32 @@ The new fields are marked. The rest is in the [README](README.md#manifestjson).
 |---|---|
 | `authors` | **New.** Who made the mod. Each one is a plain name (`"Someone Else"`) or an object (below). A single string also works: `"authors": "Someone"`. |
 | `author` | The old form, a single name. It still works; with `authors`, it is ignored. |
-| `summary` | Still here: it is the list card's line, and it does not change. |
+| `summary` | Still here: it is the list card's line and the final description fallback. |
 | `license` | **New.** The license's short name (`MIT`, `CC BY-NC 4.0`, `All rights reserved`). It shows in the info sheet and at the top of the License tab. The full text goes in `license.md`. |
 | `links` | **New.** Buttons in the header. Only `https://` and `http://` show up. |
 | `pages` | **New.** Extra tabs, each one a `.md` from the package. A page whose file does not exist does not show up. |
 | `theme` | **New.** This mod's page theme: text, panel and button colors, and the screen background (below). |
-| `description` | The old form of the description. Only applies when the package has **no** `description.md`. |
+| `description` | The manifest fallback when neither description Markdown file exists. |
+
+### Localized name, description and changelog
+
+Keep `name` as the default and add `localizedNames` keyed by game culture:
+
+```json
+"localizedNames": {
+  "zh-Hans": "示例模组"
+}
+```
+
+The launcher language `zh` maps to `zh-Hans`. A missing translation uses
+`name`. For translated Markdown pages, add `description_zh-Hans.md` or
+`changelog_zh-Hans.md` beside the corresponding default file. Each localized
+file falls back to its default Markdown file; the description then falls back
+to manifest `description` and `summary`.
+
+See `samples/ExampleMod/manifest.json`,
+`samples/ExampleMod/description_zh-Hans.md` and
+`samples/ExampleMod/changelog_zh-Hans.md`.
 
 ### The authors
 

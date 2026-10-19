@@ -132,7 +132,7 @@ class Shell(context: Context) {
      */
     private val mergedCatalog = derivedStateOf {
         val builtIn = entries.map { it.uid }.toSet()
-        (entries + remote.filter { it.uid !in builtIn }).sortedBy { it.manifest.name.lowercase() }
+        (entries + remote.filter { it.uid !in builtIn }).sortedBy { it.manifest.nameFor(UiLocalization.language).lowercase() }
     }
     val catalogEntries: List<Catalog.Entry> get() = mergedCatalog.value
     fun entry(uid: String) = entries.firstOrNull { it.uid == uid }
@@ -173,7 +173,7 @@ class Shell(context: Context) {
         if (updateNotices.isNotEmpty()) return
         val unseen = unseenModUpdates(installedVersions,
             available.associate { it.uid to it.manifest.version }, announcedVersions)
-        updateNotices = available.filter { it.uid in unseen }.sortedBy { it.manifest.name.lowercase() }
+        updateNotices = available.filter { it.uid in unseen }.sortedBy { it.manifest.nameFor(UiLocalization.language).lowercase() }
     }
 
     /**

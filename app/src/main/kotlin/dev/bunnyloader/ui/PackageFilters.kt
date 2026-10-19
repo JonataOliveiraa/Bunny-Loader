@@ -23,11 +23,11 @@ private fun searchText(value: String): String = SEARCH_MARKS
     .replace(Normalizer.normalize(value, Normalizer.Form.NFD), "")
     .lowercase(Locale.ROOT).trim()
 
-internal class PackageSearchIndex(packages: List<Catalog.Entry>) {
+internal class PackageSearchIndex(packages: List<Catalog.Entry>, val language: String = "pt-BR") {
     private val textByUid = packages.associate { entry ->
         val m = entry.manifest
-        entry.uid to searchText(listOf(m.name, m.id, m.uid, m.category, m.summary,
-            m.credits.joinToString(" ") { it.name }).joinToString(" "))
+        entry.uid to searchText(listOf(m.nameFor(language), m.name, m.id, m.uid, m.category, m.summary,
+            m.description, m.credits.joinToString(" ") { it.name }).joinToString(" "))
     }
 
     fun matches(uid: String, terms: List<String>): Boolean =
@@ -37,9 +37,11 @@ internal class PackageSearchIndex(packages: List<Catalog.Entry>) {
 internal fun searchPackages(
     packages: List<Catalog.Entry>, query: String = "", type: PackType? = null,
     category: String? = null, index: PackageSearchIndex? = null,
+    language: String = index?.language ?: "pt-BR",
 ): List<Catalog.Entry> {
     val terms = searchText(query).split(SEARCH_SPACE).filter { it.isNotEmpty() }
-    val search = if (terms.isEmpty()) null else index ?: PackageSearchIndex(packages)
+    val search = if (terms.isEmpty()) null else (index?.takeIf { it.language == language }
+        ?: PackageSearchIndex(packages, language))
     val wantedCategory = category?.let(::searchText)
     return packages.filter {
         (type == null || it.manifest.packType == type) &&
@@ -52,8 +54,9 @@ internal fun filterPackages(
     packages: List<Catalog.Entry>, enabled: Set<String>, status: PackageStatus, sort: PackageSort,
     type: PackType? = null, query: String = "", category: String? = null,
     index: PackageSearchIndex? = null,
+    language: String = index?.language ?: "pt-BR",
 ): List<Catalog.Entry> {
-    val shown = searchPackages(packages, query, type, category, index).filter {
+    val shown = searchPackages(packages, query, type, category, index, language).filter {
         when (status) {
             PackageStatus.ALL -> true
             PackageStatus.ENABLED -> it.uid in enabled
@@ -65,8 +68,8 @@ internal fun filterPackages(
         PackageSort.SIZE_ASC -> shown.sortedBy { it.sizeBytes }
         PackageSort.SIZE_DESC -> shown.sortedByDescending { it.sizeBytes }
         PackageSort.NAME -> {
-            val names = Collator.getInstance(Locale.forLanguageTag("pt-BR")).apply { strength = Collator.PRIMARY }
-            shown.sortedWith { a, b -> names.compare(a.manifest.name, b.manifest.name) }
+            val names = Collator.getInstance(Locale.forLanguageTag(language)).apply { strength = Collator.PRIMARY }
+            shown.sortedWith { a, b -> names.compare(a.manifest.nameFor(language), b.manifest.nameFor(language)) }
         }
     }
     return sorted.sortedBy { it.uid !in enabled }

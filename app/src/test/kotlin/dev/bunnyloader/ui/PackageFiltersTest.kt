@@ -75,6 +75,19 @@ class PackageFiltersTest {
         }
     }
 
+    @Test fun languageChangeRebuildsSearchAndSortUsesVisibleNames() {
+        val translated = listOf(
+            mod("a", "Árvore", 1).let { it.copy(manifest = it.manifest.copy(
+                localizedNames = mapOf("zh-Hans" to "Zebra"))) },
+            mod("b", "Zebra", 1).let { it.copy(manifest = it.manifest.copy(localizedNames = mapOf("zh-Hans" to "Apple"))) },
+        )
+        val portugueseIndex = PackageSearchIndex(translated, "pt-BR")
+        assertEquals(listOf("b", "a"), filterPackages(translated, emptySet(), PackageStatus.ALL,
+            PackageSort.NAME, language = "zh").map { it.uid })
+        assertEquals(listOf("a", "b"), filterPackages(translated, emptySet(), PackageStatus.ALL,
+            PackageSort.NAME, language = "pt-BR").map { it.uid })
+    }
+
     @Test fun searchIgnoresAccentsCaseAndExtraWhitespace() {
         assertEquals(listOf("a"), searchPackages(packages, "  ARVORE  ").map { it.uid })
         assertEquals(packages, searchPackages(packages, " \t\n "))
