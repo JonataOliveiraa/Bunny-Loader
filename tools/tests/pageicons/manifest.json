@@ -1,0 +1,15 @@
+{
+  "uid": "5531e5ab-eb62-4c38-8e24-61637ab05e16",
+  "id": "test-pageicons",
+  "name": "Teste: ícones de baú, cômoda, placa e loja de mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O ícone da página do baú/cômoda de mod é o item dele, o da loja do morador de mod é a cabeça dele, e a placa de mod mostra o item e o nome no quadro.",
+  "description": "Precisa do Example Mod ligado. Loga 'pageicons ...' e 'pageicons pose <nome>' (hora da captura). Limpa tudo no fim.",
+  "updated": "2026-10-19",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

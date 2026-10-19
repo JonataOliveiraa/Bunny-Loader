@@ -123,6 +123,7 @@ class TownNPCLoader {
         });
 
         if (has('SetChatButtons') || has('OnChatButtonClicked')) Hooks.Once('npc.ChatButtons', TownNPCLoader.#HookChatButtons);
+        if (has('OnChatButtonClicked')) PageIconLoader.WantPageIcons();
 
         if (has('TownNPCAttackProj')) {
             // Só os tipos que atacam entram no JS a cada NPC.AI.

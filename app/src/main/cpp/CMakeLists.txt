@@ -106,7 +106,7 @@ set(BL_MOD_CLASSES_PARTS
     Loaders/ProjectileLoader ModProjectile
     Loaders/BossBarLoader ModBossBar
     NPCLoot NPCSpawnInfo SpawnPool SpawnCondition Loaders/SpawnLoader Loaders/NPCLoader Loaders/BestiaryLoader ModNPC Loaders/BannerLoader
-    NPCHappiness NPCShop Loaders/TownNPCLoader
+    NPCHappiness NPCShop Loaders/TownNPCLoader Loaders/PageIconLoader
     Loaders/GoreLoader ModGore
     Loaders/DustLoader ModDust
     UI/StyleDimension UI/CalculatedStyle UI/UIEvent UI/UIMouseEvent UI/UIScrollWheelEvent UI/UIElementEvent

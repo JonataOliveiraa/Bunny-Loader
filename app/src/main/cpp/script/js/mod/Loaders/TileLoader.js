@@ -84,7 +84,11 @@ class TileLoader {
             Hooks.Once('tile.adj', () => Safe.Run('ganchos de tile (tile.adj)', TileWorldLoader.HookAdjTiles));
         }
         if (Sets.HasOutlines[type]) TileLoader.#Highlight(m);
-        if (Sets.BasicChest[type] || Sets.BasicDresser[type]) ChestNetworkHooks.Install();
+        if (Sets.BasicChest[type] || Sets.BasicDresser[type]) {
+            ChestNetworkHooks.Install();
+            PageIconLoader.WantPageIcons();
+        }
+        if (Main.tileSign[type]) PageIconLoader.WantSignItem();
         if (Sets.CanPlaceNextToNonSolidTile[type]) TileUseLoader.WantNonSolidAnchor();
         TileLoader.#RoomNeeds(type);
         TileLoader.#Door(type);
