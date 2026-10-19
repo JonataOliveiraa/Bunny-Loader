@@ -213,6 +213,13 @@ struct Scan {
     std::vector<Il2CppObject*> mods;   // ativas de mod abaixo de `limit`
 };
 
+// As vagas onde pode haver poeira de mod: o NewDust de tipo de mod marca (de
+// qualquer thread) e a varredura inteira tambem. Ler as 6000 poeiras (uma ida
+// a memoria por objeto) duas vezes por quadro custava ~1,6% da thread do jogo
+// no celular; a de todo quadro passa so pelas marcas, e a inteira fica para a
+// cada kIdleScanEvery quadros (pega a poeira que virou de mod sem o NewDust).
+std::atomic<uint8_t> g_marked[kDustSlots];
+
 void scanDusts(Il2CppArray* dusts, int limit, Scan& out, bool collect) {
     out.active = 0;
     out.all.clear();
@@ -224,7 +231,24 @@ void scanDusts(Il2CppArray* dusts, int limit, Scan& out, bool collect) {
         ++out.active;
         if (!collect || i >= limit) continue;
         out.all.push_back(d);
-        if (modIndex(typeOf(d)) >= 0) out.mods.push_back(d);
+        if (modIndex(typeOf(d)) >= 0) {
+            out.mods.push_back(d);
+            g_marked[i].store(1, std::memory_order_relaxed);
+        }
+    }
+}
+
+/** As de mod ativas, so pelas vagas marcadas (sem `all` nem `active`). */
+void scanMarked(Il2CppArray* dusts, Scan& out) {
+    out.active = -1;
+    out.all.clear();
+    out.mods.clear();
+    Il2CppObject** slots = dustSlots(dusts);
+    for (int i = 0; i < kDustSlots; ++i) {
+        if (!g_marked[i].load(std::memory_order_relaxed)) continue;
+        Il2CppObject* d = slots[i];
+        if (d && activeOf(d) && modIndex(typeOf(d)) >= 0) out.mods.push_back(d);
+        else g_marked[i].store(0, std::memory_order_relaxed);
     }
 }
 
@@ -330,6 +354,7 @@ int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float 
     // O ChildSafety pode ter trocado o tipo (16) ou desligado a poeira.
     const int mi = d && activeOf(d) ? modIndex(typeOf(d)) : -1;
     if (mi < 0) return index;
+    g_marked[index].store(1, std::memory_order_relaxed);
     Rect& frame = field<Rect>(d, refs().frame);
     frame.x = 0;
     frame.y %= 30;
@@ -353,8 +378,12 @@ void hkUpdateDust(const MethodInfo* m) {
 
     Timed timed(g_updateNs);
     ++g_updates;
-    scanDusts(dusts, scanLimit(), g_scan, true);
-    checkPool(dusts, g_scan.active);
+    if (poolTopBroken() || g_frame % kIdleScanEvery == 0) {
+        scanDusts(dusts, scanLimit(), g_scan, true);
+        checkPool(dusts, g_scan.active);
+    } else {
+        scanMarked(dusts, g_scan);
+    }
     if (g_scan.mods.empty()) return g_origUpdateDust(m);
 
     // ModDust.Update: false tira a poeira do laco do jogo neste quadro.
@@ -436,7 +465,7 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
     Timed timed(g_drawNs);
     ++g_draws;
     Scan& scan = g_scan;
-    scanDusts(dusts, scanLimit(), scan, true);
+    scanMarked(dusts, scan);
     if (scan.mods.empty()) return g_origDrawDust(self, m);
 
     // ModDust.PreDraw, antes de tudo (o rastro fica por baixo). O lote e do JS.
@@ -481,6 +510,8 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
     // textura dela no lugar da folha do jogo. O jogo desenha, ilumina e apaga
     // (cor preta) cada uma como faria com as dele.
     if (groups == 0) return;
+    // As passadas escondem toda poeira que nao e da textura: aqui sim, todas.
+    scanDusts(dusts, scanLimit(), scan, true);
     Il2CppObject* sheet = readStatic<Il2CppObject*>(refs().texture);
     for (size_t g = 1; g <= groups; ++g) {
         Il2CppObject* asset = il2cpp::api().gchandle_get_target(g_groupAssets[g - 1]);

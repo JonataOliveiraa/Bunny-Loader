@@ -2,6 +2,8 @@
 // POR AQUI, com o que so ele pode ter: o JSRuntime e opaco fora dele. Assim o
 // clone fica intacto e nada se perde ao clonar de novo; se um dia o campo
 // mudar de nome, o build quebra aqui, e nao o motor em silencio.
+// O "quickjs.c" achado e a copia de gen/, com o hash do Map corrigido (ver
+// CMakeLists.txt).
 #include "quickjs.c"
 
 #include "script/bridge/QuickJsExt.h"

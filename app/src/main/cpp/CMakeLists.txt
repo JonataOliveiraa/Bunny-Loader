@@ -23,6 +23,32 @@ if(EXISTS ${QUICKJS_DIR}/quickjs.c)
         ${QUICKJS_DIR}/dtoa.c)
     set_source_files_properties(${BL_QUICKJS_SOURCES} PROPERTIES
         COMPILE_DEFINITIONS "_GNU_SOURCE")
+
+    # O hash do Map/Set do quickjs-ng v0.17 so mistura os bits altos, e o balde
+    # sai dos baixos: chave inteira (tipo de item, de tile...) caia TODA no
+    # mesmo balde e chave objeto em 1/16 deles, e cada Map.get virava busca
+    # linear. Uma copia do quickjs.c com a mistura final do murmur3 vai para
+    # gen/ (que vem antes do clone na busca do #include do QuickJsExt.c); o
+    # clone fica intacto. Se a linha mudar numa versao nova, o build para aqui.
+    file(READ ${QUICKJS_DIR}/quickjs.c BL_QJS_SOURCE)
+    set(BL_QJS_HASH_OLD "    return h ^ ctx->hash_seed ^ hash32(tag);\n}\n\nstatic JSMapRecord *map_find_record(")
+    set(BL_QJS_HASH_NEW "    h = h ^ ctx->hash_seed ^ hash32(tag);\n    /* Bunny Loader: mistura final (murmur3 fmix32), ver CMakeLists.txt */\n    h ^= h >> 16;\n    h *= 0x85ebca6b;\n    h ^= h >> 13;\n    h *= 0xc2b2ae35;\n    h ^= h >> 16;\n    return h;\n}\n\nstatic JSMapRecord *map_find_record(")
+    string(FIND "${BL_QJS_SOURCE}" "${BL_QJS_HASH_OLD}" BL_QJS_HASH_AT)
+    if(BL_QJS_HASH_AT EQUAL -1)
+        message(FATAL_ERROR "quickjs.c: o fim do map_hash_key mudou; refazer a correcao do hash do Map (CMakeLists.txt)")
+    endif()
+    string(REPLACE "${BL_QJS_HASH_OLD}" "${BL_QJS_HASH_NEW}" BL_QJS_SOURCE "${BL_QJS_SOURCE}")
+    set(BL_QJS_PATCHED ${CMAKE_CURRENT_BINARY_DIR}/gen/quickjs.c)
+    set(BL_QJS_PREVIOUS "")
+    if(EXISTS ${BL_QJS_PATCHED})
+        file(READ ${BL_QJS_PATCHED} BL_QJS_PREVIOUS)
+    endif()
+    if(NOT BL_QJS_PREVIOUS STREQUAL BL_QJS_SOURCE)
+        file(WRITE ${BL_QJS_PATCHED} "${BL_QJS_SOURCE}")
+    endif()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${QUICKJS_DIR}/quickjs.c)
+    set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/script/bridge/QuickJsExt.c PROPERTIES
+        OBJECT_DEPENDS ${BL_QJS_PATCHED})
     add_compile_definitions(BL_HAVE_QUICKJS=1)
     message(STATUS "QuickJS (quickjs-ng) encontrado — motor de script habilitado.")
 else()

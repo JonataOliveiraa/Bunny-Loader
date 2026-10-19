@@ -906,7 +906,7 @@ JSValue gm_call(JSContext* ctx, JSValueConst func, JSValueConst thisVal,
     return invokeMethod(ctx, r->method, thisPtr, argc, argv);
 }
 
-// NativeMethod.hook(callback[, { minType, on, field, tile, tileAt, arg, firstByte, marks, flag, whileIn, ifBusy }])
+// NativeMethod.hook(callback[, { minType, on, field, tile, tileAt, arg, firstByte, marks, flag, whileIn, ifBusy, memo }])
 //
 // Com `minType`, o hook so chama o JS quando o objeto `on` ('self', o padrao,
 // ou o indice de um parametro) tem `field` (padrao 'type') >= minType. Ex.:
@@ -950,6 +950,15 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
             if (mode == "original") filter.ifBusy = IfBusy::Original;
             else if (mode == "skip") filter.ifBusy = IfBusy::Skip;
             else if (mode != "wait") return JS_ThrowTypeError(ctx, "hook: ifBusy e 'wait', 'original' ou 'skip'");
+        }
+        JSValue memo = JS_GetPropertyStr(ctx, argv[1], "memo");
+        if (!JS_IsUndefined(memo)) {
+            const char* s = JS_ToCString(ctx, memo);
+            const std::string mode = s ? s : "";
+            if (s) JS_FreeCString(ctx, s);
+            JS_FreeValue(ctx, memo);
+            if (mode != "update") return JS_ThrowTypeError(ctx, "hook: memo e 'update'");
+            filter.memoUpdate = true;
         }
     }
     bool hasMin = false;

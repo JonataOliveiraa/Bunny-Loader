@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 namespace bl::runtime {
 
 /**
@@ -16,6 +18,12 @@ namespace bl::runtime {
  */
 int gameThreadId();
 void noteGameThread();
+
+/**
+ * Quantas vezes o Main.DoUpdate rodou (conta no noteGameThread). Muda a cada
+ * atualizacao do jogo: o hook com `memo: 'update'` guarda o resultado ate ela.
+ */
+uint32_t gameUpdateTick();
 
 // Roda logo depois do il2cpp_init, na thread principal da Unity.
 void boot();

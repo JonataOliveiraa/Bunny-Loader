@@ -68,6 +68,7 @@ differs and shows the game's signature.
 | `tileAt: [i, j]` | Parameters `i` and `j` are the position; the filter looks at the world's block. |
 | `whileIn: method` | Only enters JS inside `method`'s JS hook (or `scope()`). |
 | `ifBusy: 'wait' \| 'original' \| 'skip'` | With the JS engine on another thread: wait up to 3 s, run only the game, or nothing. |
+| `memo: 'update'` | Instance method with no parameters that returns a number: the callback's result is kept per object until the next game update (`Main.DoUpdate`), game thread only. For getters the game asks many times per frame (`NPC.GetBossHeadTextureIndex` from the minimap). |
 
 Details in the [cost guide](../mods/03-custo-e-desempenho.md#native-filters).
 

@@ -80,6 +80,12 @@ struct HookFilter {
     // guarda o self (hookScopeSelf), para o `whileIn` de outros hooks e para
     // quem precisa saber quem chamou sem entrar no JS a cada chamada.
     bool scopeOnly = false;
+    // `memo: 'update'`: metodo de instancia sem parametros que devolve numero.
+    // O resultado do callback fica guardado por objeto ate a proxima
+    // atualizacao do jogo (Main.DoUpdate), so na thread do jogo. O minimapa
+    // pergunta o GetBossHeadTextureIndex do chefe ~6 vezes por quadro, e cada
+    // pergunta era uma entrada fria no JS.
+    bool memoUpdate = false;
 };
 
 /** A tabela de marcas `name` (criada na primeira vez; nunca liberada). kMarkTypes entradas. */

@@ -12,11 +12,15 @@ namespace bl::runtime {
 
 namespace {
 std::atomic<int> g_gameTid{0};
+std::atomic<uint32_t> g_updateTick{1};
 }
 
 int gameThreadId() { return g_gameTid.load(std::memory_order_relaxed); }
 
+uint32_t gameUpdateTick() { return g_updateTick.load(std::memory_order_relaxed); }
+
 void noteGameThread() {
+    g_updateTick.fetch_add(1, std::memory_order_relaxed);
     int eu = static_cast<int>(gettid());
     if (g_gameTid.load(std::memory_order_relaxed) != eu) {
         g_gameTid.store(eu, std::memory_order_relaxed);

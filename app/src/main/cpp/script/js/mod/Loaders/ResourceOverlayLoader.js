@@ -98,7 +98,7 @@ class ResourceOverlayLoader {
         ctx.scale = scale;
         ctx.effects = effects;
         ctx.SpriteBatch = sb;
-        const before = [ctx.texture, ctx.position.X, ctx.position.Y, ctx.source, ctx.color, ctx.rotation, ctx.scale];
+        const texture0 = ctx.texture, x0 = ctx.position.X, y0 = ctx.position.Y;
 
         let draw = true;
         for (const m of ResourceOverlayLoader.List) {
@@ -109,8 +109,9 @@ class ResourceOverlayLoader {
             }
         }
         if (draw) {
-            const after = [ctx.texture, ctx.position.X, ctx.position.Y, ctx.source, ctx.color, ctx.rotation, ctx.scale];
-            if (after.every((v, i) => v === before[i])) original();
+            const same = ctx.texture === texture0 && ctx.position.X === x0 && ctx.position.Y === y0 && ctx.source === source &&
+                ctx.color === color && ctx.rotation === rotation && ctx.scale === scale;
+            if (same) original();
             else ctx.Draw();
         }
         for (const m of ResourceOverlayLoader.List) {

@@ -95,7 +95,7 @@ class TownNPCLoader {
         return m ? { npc, m } : null;
     }
 
-    static Hook(cls) {
+    static Hook(cls, type) {
         const has = (name) => Hooks.Overrides(cls, ModNPC, name);
 
         if (has('CanTownNPCSpawn')) Hooks.Once('npc.TownSpawn', TownNPCLoader.#HookSpawn);
@@ -124,7 +124,11 @@ class TownNPCLoader {
 
         if (has('SetChatButtons') || has('OnChatButtonClicked')) Hooks.Once('npc.ChatButtons', TownNPCLoader.#HookChatButtons);
 
-        if (has('TownNPCAttackProj')) Hooks.Once('npc.TownAttack', TownNPCLoader.#HookAttack);
+        if (has('TownNPCAttackProj')) {
+            // Só os tipos que atacam entram no JS a cada NPC.AI.
+            if (type >= 0) bl.hookMarks.set('npc.TownAttack', type);
+            Hooks.Once('npc.TownAttack', TownNPCLoader.#HookAttack);
+        }
     }
 
     // O jogo zera Main.townNPCCanSpawn e marca os dele a cada checagem; os de
@@ -248,7 +252,7 @@ class TownNPCLoader {
                 proj.npcProj = true;
                 proj.noDropItem = true;
             }
-        }, { minType: FIRST_NPC });
+        }, { minType: FIRST_NPC, marks: 'npc.TownAttack' });
     }
 
     static #NearestTarget(npc, here) {

@@ -74,7 +74,7 @@ class NPCLoader {
         if (has('SendExtraAI') || has('ReceiveExtraAI')) ModNet.InstallEntity(23);
         for (const key of NPCLoader.#everyType) bl.hookMarks.set(key, type);
 
-        TownNPCLoader.Hook(cls);
+        TownNPCLoader.Hook(cls, type);
         NPCLoader.#PlanFor(cls);
         NPCLoader.#Install(has, type);
         CombatLoader.WantNPC(cls, ModNPC);
@@ -456,11 +456,12 @@ class NPCDrawHooks {
         ]) {
             const filter = marked('npc.' + name, name);
             if (has(name)) Hooks.Once('npc.' + name, () => {
+                // O minimapa pergunta várias vezes por quadro: uma resposta por atualização.
                 N[signature].hook((original, npc) => {
                     const value = new Ref(original(npc));
                     NPCLoader.CallAll(npc, name, value);
                     return value.value;
-                }, filter);
+                }, { ...filter, memo: 'update' });
             });
         }
         if (has('DrawBehind')) Hooks.Once('npc.DrawBehind', () => {

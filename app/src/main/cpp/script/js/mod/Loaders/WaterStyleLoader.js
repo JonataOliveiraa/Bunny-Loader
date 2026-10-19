@@ -18,7 +18,7 @@ class WaterStyleLoader {
     static #installed = false;
     static #counted = false;
     static #dripGores = new Set();     // gores de gota de mod já pingados (como o UpdateType do tModLoader)
-    static #rainAssets = new Map();     // arquivo -> Asset<Texture2D> da chuva, ou null (falhou)
+    static #rainAssets = new Map();     // pasta do mod | GetRainTexture -> Asset<Texture2D> da chuva, ou null (falhou)
     static #raining = null;             // a água de mod do MakeRain em curso
 
     static get TotalCount() { return WaterStyleLoader.VanillaCount + WaterStyleLoader.List.length; }
@@ -269,17 +269,20 @@ class WaterStyleLoader {
         if (!got) return null;
         if (typeof got !== 'string') return got;
 
-        const name = ModFiles.Texture(ModFiles.TextureName(got), style.Mod);
-        const file = (style.Mod ? style.Mod.path + '/' : '') + name;
-        let asset = WaterStyleLoader.#rainAssets.get(file);
+        // Roda a cada quadro (DrawRain): a chave é o texto, porque o
+        // ModFiles.Texture consulta o disco.
+        const key = (style.Mod ? style.Mod.path : '') + '|' + got;
+        let asset = WaterStyleLoader.#rainAssets.get(key);
         if (asset === undefined) {
+            const name = ModFiles.Texture(ModFiles.TextureName(got), style.Mod);
+            const file = (style.Mod ? style.Mod.path + '/' : '') + name;
             asset = null;
             try {
                 asset = bl.loadTextureAsset(file);
             } catch (e) {
                 bl.log(`água de mod ${style.constructor.name}: sem a chuva ${name} (${e})`);
             }
-            WaterStyleLoader.#rainAssets.set(file, asset);
+            WaterStyleLoader.#rainAssets.set(key, asset);
         }
         return asset;
     }

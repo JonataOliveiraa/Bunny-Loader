@@ -5,6 +5,7 @@
 #include "script/bridge/ScriptEngine.h"
 #include "content/tiles/TileAccess.h"
 #include "script/bridge/Value.h"
+#include "boot/Boot.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -21,6 +22,7 @@
 #include <mutex>
 #include <string>
 #include <time.h>
+#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -149,6 +151,15 @@ struct HookCtx {
     IfBusy ifBusy = IfBusy::Wait;
     // HookFilter::scopeOnly: so a marca de escopo e o self; nunca entra no JS.
     bool scopeOnly = false;
+    // HookFilter::memoUpdate: o ultimo resultado de cada objeto, nesta atualizacao.
+    bool memo = false;
+    struct Memo {
+        intptr_t self = 0;
+        uint32_t tick = 0;
+        Outcome value;
+    };
+    static constexpr int kMemoSlots = 16;
+    Memo memos[kMemoSlots];
 };
 
 /** O campo do filtro na largura dele: Item.prefix e byte, e os 3 seguintes sao outros campos. */
@@ -445,6 +456,15 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
     // dispara o callback de novo — executa direto o original e volta.
     if (g_depth[slot] > 0) return callOriginal(c, rawA, rawD);
 
+    // memo: a mesma resposta ate a proxima atualizacao, sem entrar no JS.
+    HookCtx::Memo* memo = nullptr;
+    uint32_t memoTick = 0;
+    if (c->memo && static_cast<int>(gettid()) == runtime::gameThreadId()) {
+        memoTick = runtime::gameUpdateTick();
+        memo = &c->memos[(static_cast<uintptr_t>(rawA[0]) >> 4) % HookCtx::kMemoSlots];
+        if (memo->tick == memoTick && memo->self == rawA[0]) return memo->value;
+    }
+
     // ifBusy: o hook de todo quadro que pode ficar um quadro sem o mod nao
     // espera nada (a musica: esperar 3 s congelava a tela de carregamento).
     JsLock lock(c->ifBusy == IfBusy::Wait ? kLockTimeoutMs : 0);
@@ -525,10 +545,16 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
             const Outcome o = callOriginal(c, rawA, rawD);
             g_frames.back().originalResult = o;
         }
+        memo = nullptr;   // a do erro nao fica guardada
     }
     // O que o metodo devolve: o valor do callback tem prioridade; senao o do
     // original, se ele foi chamado.
     result = jsToOutcome(ctx, c->abi, ret, g_frames.back().originalResult);
+    if (memo) {
+        memo->self = rawA[0];
+        memo->tick = memoTick;
+        memo->value = result;
+    }
 
     // Os ref/out apontam para a pilha de quem chamou: o Ref que o mod guardou
     // fica com o ultimo valor, sem o endereco.
@@ -772,6 +798,17 @@ bool installJsHook(JSContext* ctx, const MethodInfo* method, int paramCount,
             if (g_hooks[i].used && g_hooks[i].method == method) return true;
         }
         probe.scopeOnly = true;
+    }
+    if (err.empty() && filter && filter->memoUpdate) {
+        const Prim r = probe.abi.retDesc.prim;
+        const bool number = r == Prim::Bool || r == Prim::I8 || r == Prim::U8 || r == Prim::I16 || r == Prim::U16 ||
+                            r == Prim::Char || r == Prim::I32 || r == Prim::U32 || r == Prim::I64 || r == Prim::U64 ||
+                            r == Prim::F32 || r == Prim::F64;
+        if (!isInstance || probe.selfStruct || !probe.abi.params.empty() || !number) {
+            err = "memo 'update' so vale em metodo de instancia (de classe) sem parametros que devolve numero";
+        } else {
+            probe.memo = true;
+        }
     }
     if (err.empty() && probe.ifBusy == IfBusy::Skip && probe.abi.retDesc.prim != Prim::Void) {
         err = "ifBusy 'skip' so vale em metodo void (sem o JS, nao ha o que devolver)";

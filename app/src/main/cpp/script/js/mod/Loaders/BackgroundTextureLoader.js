@@ -68,7 +68,28 @@ class BackgroundTextureLoader {
         return slot >= 0;
     }
 
+    // O Choose*Texture dos estilos pede o número a cada quadro: a resposta de
+    // cada (mod, caminho) fica guardada (eram duas regex e a busca do mod).
+    static #found = new Map();
+
     static #Find(modOrKey, path) {
+        const named = path !== undefined && modOrKey && typeof modOrKey === 'object';
+        const key = named ? modOrKey.uuid + '\n' + path : typeof modOrKey === 'string' ? '\n' + modOrKey : null;
+        const cached = key !== null ? BackgroundTextureLoader.#found.get(key) : undefined;
+        if (cached !== undefined) return cached;
+
+        const slot = BackgroundTextureLoader.#Resolve(modOrKey, path);
+        // Sem o nome do mod no texto vale o mod da pilha: só o achado pelo nome é guardado.
+        if (key !== null && slot >= 0 && BackgroundTextureLoader.#installed && (named || BackgroundTextureLoader.#resolvedByName)) {
+            BackgroundTextureLoader.#found.set(key, slot);
+        }
+        return slot;
+    }
+
+    static #resolvedByName = false;
+
+    static #Resolve(modOrKey, path) {
+        BackgroundTextureLoader.#resolvedByName = false;
         let mod = null, rel = null;
         if (path !== undefined && modOrKey && typeof modOrKey === 'object') {
             mod = modOrKey;
@@ -78,6 +99,7 @@ class BackgroundTextureLoader {
             if (slash > 0) {
                 mod = BackgroundTextureLoader.#ModByName(modOrKey.slice(0, slash));
                 rel = modOrKey.slice(slash + 1);
+                BackgroundTextureLoader.#resolvedByName = !!mod;
             }
             if (!mod) {
                 mod = bl.mod;

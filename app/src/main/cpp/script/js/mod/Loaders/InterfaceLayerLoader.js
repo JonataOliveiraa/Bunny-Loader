@@ -4,15 +4,21 @@
 // lista do jogo só é refeita quando a ordem final muda. Cada camada JS vira
 // um GameInterfaceLayer do jogo (só a base, que nenhuma camada do jogo usa): o
 // hook no DrawSelf da base chama a camada JS pelo nome.
+//
+// O mod cria a camada de novo a cada quadro (o padrão do tModLoader): o nativo
+// é o do NOME (e da repetição dele no quadro), não o do objeto. Pelo objeto,
+// eram dois GameInterfaceLayer novos por quadro presos para sempre, e a lista
+// do jogo refeita a cada quadro.
 class InterfaceLayerLoader {
     static #PREFIX = 'bl:';
     static #installed = false;
     static #nativeList = null;
     static #vanilla = [];          // { native, layer } na ordem do jogo
+    static #nativeOfVanilla = new Map();   // camada JS do jogo -> nativo
     static #applied = [];          // os nativos na lista do jogo agora
-    static #byName = new Map();    // nome do nativo -> camada JS
-    static #natives = new Map();   // camada JS -> nativo
-    static #scales = new Map();    // camada JS -> ScaleType já posto no nativo
+    static #byName = new Map();    // nome do nativo -> camada JS deste quadro
+    static #natives = new Map();   // nome da camada (e repetição) -> { native, scale }
+    static #seen = new Map();      // nome da camada -> vezes neste quadro
     static #counter = 0;
 
     static Install() {
@@ -42,25 +48,32 @@ class InterfaceLayerLoader {
             vanilla.push({ native, layer });
         }
         InterfaceLayerLoader.#vanilla = vanilla;
+        InterfaceLayerLoader.#nativeOfVanilla = new Map(vanilla.map((v) => [v.layer, v.native]));
         InterfaceLayerLoader.#applied = vanilla.map((v) => v.native);
         InterfaceLayerLoader.#nativeList = list;
     }
 
     static #NativeOf(layer) {
-        let native = InterfaceLayerLoader.#natives.get(layer);
-        if (!native) {
-            const name = InterfaceLayerLoader.#PREFIX + (InterfaceLayerLoader.#counter++) + ':' + layer.Name;
-            native = Terraria.UI.GameInterfaceLayer.new();
-            native['void .ctor(string name, InterfaceScaleType scaleType)'](name, layer.ScaleType);
-            InterfaceLayerLoader.#natives.set(layer, native);
-            InterfaceLayerLoader.#byName.set(name, layer);
-            InterfaceLayerLoader.#scales.set(layer, layer.ScaleType);
+        const seen = InterfaceLayerLoader.#seen;
+        const name = String(layer.Name);
+        const repeat = seen.get(name) || 0;
+        seen.set(name, repeat + 1);
+        const key = repeat ? name + '#' + repeat : name;
+
+        let entry = InterfaceLayerLoader.#natives.get(key);
+        if (!entry) {
+            const nativeName = InterfaceLayerLoader.#PREFIX + (InterfaceLayerLoader.#counter++) + ':' + name;
+            const native = Terraria.UI.GameInterfaceLayer.new();
+            native['void .ctor(string name, InterfaceScaleType scaleType)'](nativeName, layer.ScaleType);
+            entry = { native, nativeName, scale: layer.ScaleType };
+            InterfaceLayerLoader.#natives.set(key, entry);
         }
-        if (InterfaceLayerLoader.#scales.get(layer) !== layer.ScaleType) {
-            native.ScaleType = layer.ScaleType;
-            InterfaceLayerLoader.#scales.set(layer, layer.ScaleType);
+        if (entry.scale !== layer.ScaleType) {
+            entry.native.ScaleType = layer.ScaleType;
+            entry.scale = layer.ScaleType;
         }
-        return native;
+        InterfaceLayerLoader.#byName.set(entry.nativeName, layer);
+        return entry.native;
     }
 
     static #Apply(main) {
@@ -82,14 +95,17 @@ class InterfaceLayerLoader {
         }
         SystemLoader.Call('ModifyInterfaceLayers', layers);
 
-        const nativeOfVanilla = new Map(InterfaceLayerLoader.#vanilla.map((v) => [v.layer, v.native]));
+        const nativeOfVanilla = InterfaceLayerLoader.#nativeOfVanilla;
+        InterfaceLayerLoader.#seen.clear();
         const final = [];
         for (const layer of layers) {
             if (!layer || layer.Active === false) continue;
             final.push(nativeOfVanilla.get(layer) || InterfaceLayerLoader.#NativeOf(layer));
         }
         const applied = InterfaceLayerLoader.#applied;
-        if (final.length === applied.length && final.every((n, i) => n === applied[i])) return;
+        let same = final.length === applied.length;
+        for (let i = 0; same && i < final.length; i++) same = final[i] === applied[i];
+        if (same) return;
 
         list['void Clear()']();
         for (const n of final) list['void Add(GameInterfaceLayer item)'](n);

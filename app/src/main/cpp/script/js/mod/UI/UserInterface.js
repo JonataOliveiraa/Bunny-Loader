@@ -31,6 +31,7 @@ class UserInterface {
     static #events = [];   // { seq, left, right, x, y }: cada mudança do toque
     static #seq = 0;
     static #MAX_EVENTS = 32;
+    static #regionManager = null;
 
     MousePosition = Vector2.new(0, 0);
     IsVisible = false;
@@ -43,6 +44,9 @@ class UserInterface {
     #right = UserInterface.#NewPointer('Right');
     #sizeAtRecalculate = '';
     #seenSeq = UserInterface.#seq;
+    #mouse = null;      // o último Vector2 do MousePosition e o toque dele
+    #mouseX = NaN;
+    #mouseY = NaN;
 
     constructor() {
         UserInterface.#active = this;
@@ -75,7 +79,12 @@ class UserInterface {
     #ReadMouse() {
         const Main = Terraria.Main;
         try {
-            this.MousePosition = Vector2.new(Main.mouseX, Main.mouseY);
+            // Um Vector2 novo só quando o toque muda (o Update roda a cada quadro).
+            const x = Main.mouseX, y = Main.mouseY;
+            if (x === this.#mouseX && y === this.#mouseY && this.MousePosition === this.#mouse) return;
+            this.MousePosition = this.#mouse = Vector2.new(x, y);
+            this.#mouseX = x;
+            this.#mouseY = y;
         } catch (e) {
             // No Load do mod o jogo ainda não tem jogador nem mouse.
         }
@@ -99,6 +108,10 @@ class UserInterface {
     #WithInput(input, fn) {
         const Main = Terraria.Main;
         const live = { left: Main.mouseLeft, right: Main.mouseRight, x: Main.mouseX, y: Main.mouseY };
+        if (live.left === input.left && live.right === input.right && live.x === input.x && live.y === input.y) {
+            fn();
+            return;
+        }
         Main.mouseLeft = input.left;
         Main.mouseRight = input.right;
         Main.mouseX = input.x;
@@ -119,11 +132,10 @@ class UserInterface {
         if (!state) return;
         const Main = Terraria.Main;
         this.#ReadMouse();
-        const mouse = { X: this.MousePosition.X, Y: this.MousePosition.Y };
         // No toque não há "passar por cima": o Main.mouseX fica parado no último
         // toque. Só conta com o dedo na tela (e no quadro em que ele sai).
         const touching = !!Main.mouseLeft || this.#left.wasDown;
-        const hover = touching ? state.GetElementAt(mouse) : null;
+        const hover = touching ? state.GetElementAt({ X: this.MousePosition.X, Y: this.MousePosition.Y }) : null;
         if (hover !== this.#lastElementHover) {
             if (this.#lastElementHover) this.#lastElementHover.MouseOut(new UIMouseEvent(this.#lastElementHover, this.MousePosition));
             if (hover) hover.MouseOver(new UIMouseEvent(hover, this.MousePosition));
@@ -255,7 +267,8 @@ class UserInterface {
 
     // A área de cada elemento de primeiro nível que aceita toque.
     #RegisterRegions(state) {
-        const manager = bl.classOf('', 'GUIInputRegionManager').Instance;
+        const cls = UserInterface.#regionManager || (UserInterface.#regionManager = bl.classOf('', 'GUIInputRegionManager'));
+        const manager = cls.Instance;
         if (!manager) return;
         for (const e of state.Elements) {
             if (e.IgnoresMouseInteraction) continue;
