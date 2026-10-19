@@ -101,7 +101,7 @@ class BlPackage(val file: File) {
             if (background in names) files += background
             else warnings += "${file.name}: theme.background '$background' não está no pacote"
         }
-        for (md in files.filter { it.endsWith(".md") || it.endsWith(".txt") }) {
+        for (md in files.filter { it.endsWith(".md") }) {
             val text = String(read(md), Charsets.UTF_8)
             for (m in MD_IMAGE.findAll(text)) {
                 val ref = percentDecode(m.groupValues[1].substringBefore('#'))
