@@ -238,17 +238,21 @@ private sealed class Page(private val sourceTitle: String) {
  */
 @Composable
 private fun rememberPages(entry: Catalog.Entry, catalog: Catalog): List<Page> {
-    val pages by produceState<List<Page>>(listOf(Page.Description(emptyList())), entry, catalog) {
-        value = withContext(MediaDispatcher) { readPages(entry, catalog) }
+    val language = UiLocalization.language
+    val media = LocalRemoteMedia.current(entry)
+    // A chegada do Markdown remoto e a troca de idioma invalidam a mesma leitura.
+    return key(media, catalog, language) {
+        val pages by produceState<List<Page>>(listOf(Page.Description(emptyList())), media, catalog, language) {
+            value = withContext(MediaDispatcher) { readPages(media, catalog, language) }
+        }
+        pages
     }
-    return pages
 }
 
-private fun readPages(entry: Catalog.Entry, catalog: Catalog): List<Page> {
+private fun readPages(entry: Catalog.Entry, catalog: Catalog, language: String): List<Page> {
     val m = entry.manifest
     return buildList {
-        val description = catalog.readText(entry, Catalog.DESCRIPTION)
-            ?: m.description.ifBlank { m.summary }
+        val description = dev.bunnyloader.mods.readModDescription(m, language) { catalog.readText(entry, it) }
         add(Page.Description(Markdown.parse(description)))
         catalog.readText(entry, Catalog.CHANGELOG)?.let { add(Page.Changelog(Markdown.parse(it))) }
         val license = catalog.readText(entry, Catalog.LICENSE)
@@ -307,7 +311,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
     ) { uri ->
         if (uri != null) {
             exportMessage = shell.exportMod(entry.uid, uri).fold(
-                onSuccess = { tr("%1\$s exportado", m.name) to true },
+                onSuccess = { tr("%1\$s exportado", m.nameFor(UiLocalization.language)) to true },
                 onFailure = { tr("Não deu: %1\$s", it.message) to false },
             )
         }
@@ -320,7 +324,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
         Cover(entry, shell, onBack)
         // O texto começa depois do ícone, que pende da capa para dentro do painel.
         Column(Modifier.fillMaxWidth().padding(start = 86.dp, top = 6.dp, end = 4.dp).heightIn(min = 26.dp)) {
-            PixelText(m.name, size = Ts.Big, color = ctx.style.heading)
+            PixelText(m.nameFor(UiLocalization.language), size = Ts.Big, color = ctx.style.heading)
             AuthorStrip(entry, shell.catalog, Modifier.padding(top = 4.dp))
         }
         Column(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp)) {

@@ -2,6 +2,9 @@
   "uid": "31f7d550-a80e-4e5d-9dfa-1b3ea23c2584",
   "id": "examplemod",
   "name": "Example Mod",
+  "localizedNames": {
+    "zh-Hans": "示例模组"
+  },
   "version": "1.9.0",
   "authors": [
     {

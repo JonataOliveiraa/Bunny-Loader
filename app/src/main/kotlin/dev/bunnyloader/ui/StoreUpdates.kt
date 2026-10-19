@@ -65,7 +65,7 @@ fun ModUpdatesDialog(shell: Shell) {
                 items(notices, key = { it.uid }) { entry ->
                     Column(Modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false)
                         .padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        PixelText(entry.manifest.name, size = Ts.Item)
+                        PixelText(entry.manifest.nameFor(UiLocalization.language), size = Ts.Item)
                         PixelText(tr("Instalado: v%1\$s · Novo: v%2\$s", shell.installedVersion(entry.uid), entry.manifest.version),
                             size = Ts.Small, color = Bl.TextDim)
                         val progress = shell.downloads[entry.uid]

@@ -100,6 +100,25 @@ class PackageTests(unittest.TestCase):
         package.manifest['theme'] = {'background': '#203040'}
         self.assertNotIn('#203040', package.store_files())
 
+    def test_store_takes_localized_description_assets(self):
+        package = self.package([
+            'content/main.js', 'description_zh-Hans.md',
+        ])
+        self.addCleanup(package.zip.close)
+        files = package.store_files()
+        self.assertEqual(['description_zh-Hans.md'], [f for f in files if f.startswith('description_')])
+
+    def test_store_ignores_localized_description_lookalikes(self):
+        package = self.package([
+            'content/main.js', 'description_en_US.md', 'description_en.md.bak',
+            'description_en-US.MD', 'description_english.md', 'description_zh-Hans.txt',
+            'docs/description_en-US.md',
+        ])
+        self.addCleanup(package.zip.close)
+        files = package.store_files()
+        self.assertFalse(any(f.startswith('description_') for f in files))
+        self.assertNotIn('docs/description_en-US.md', files)
+
     def test_store_paths_keep_launcher_restrictions(self):
         package = self.package(['content/main.js', 'page (1).md'])
         self.addCleanup(package.zip.close)
