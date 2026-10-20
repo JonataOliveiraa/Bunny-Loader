@@ -14,6 +14,10 @@
          é preciso declarar visibilidade de pacotes. -->
     <queries>
         <package android:name="com.and.games505.TerrariaPaid" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:mimeType="vnd.android.document/directory" />
+        </intent>
     </queries>
 
     <!-- Jogo, como o manifest do Terraria: o modo de jogo do Android conta por
@@ -37,6 +41,17 @@
         <meta-data android:name="unity.launch-fullscreen" android:value="true" />
         <meta-data android:name="unity.auto-report-fully-drawn" android:value="true" />
         <meta-data android:name="notch.config" android:value="portrait|landscape" />
+
+        <provider
+            android:name=".mods.ModSourcesDocumentsProvider"
+            android:authorities="com.bunnyloader.documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
 
         <activity
             android:name=".LauncherActivity"

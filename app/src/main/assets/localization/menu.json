@@ -1,4 +1,172 @@
 {
+  "Código-fonte dos mods": [
+    "Mod Sources",
+    "Исходники модов",
+    "Código de mods",
+    "Mod 源码"
+  ],
+  "Locais de código-fonte": [
+    "Source locations",
+    "Папки исходников",
+    "Ubicaciones de código",
+    "源码位置"
+  ],
+  "Local do projeto": [
+    "Project location",
+    "Папка проекта",
+    "Ubicación del proyecto",
+    "项目位置"
+  ],
+  "Pasta padrão": [
+    "Default folder",
+    "Папка по умолчанию",
+    "Carpeta predeterminada",
+    "默认文件夹"
+  ],
+  "A pasta padrão e todos os locais adicionados são carregados juntos.": [
+    "The default folder and all added locations are scanned together.",
+    "Стандартная папка и все добавленные папки загружаются вместе.",
+    "La carpeta predeterminada y las ubicaciones añadidas se cargan juntas.",
+    "同时加载默认文件夹和所有已添加位置中的项目。"
+  ],
+  "Local adicionado.": [
+    "Location added.",
+    "Папка добавлена.",
+    "Ubicación añadida.",
+    "已添加源码位置。"
+  ],
+  "Não foi possível guardar a permissão desta pasta.": [
+    "Could not keep access to this folder.",
+    "Не удалось сохранить доступ к этой папке.",
+    "No se pudo conservar el acceso a esta carpeta.",
+    "无法保存对此文件夹的访问权限。"
+  ],
+  "Local removido. Os arquivos foram mantidos.": [
+    "Location removed. Files were kept.",
+    "Папка удалена из списка. Файлы сохранены.",
+    "Ubicación quitada. Los archivos se conservan.",
+    "已移除位置，源码文件保持不变。"
+  ],
+  "Remover local": [
+    "Remove location",
+    "Убрать папку",
+    "Quitar ubicación",
+    "移除位置"
+  ],
+  "Adicionar pasta": [
+    "Add folder",
+    "Добавить папку",
+    "Añadir carpeta",
+    "添加文件夹"
+  ],
+  "Não foi possível abrir a pasta. Use um gerenciador de arquivos compatível com documentos do Android.": [
+    "Could not open the folder. Use a file manager supporting Android documents.",
+    "Не удалось открыть папку. Используйте файловый менеджер с поддержкой документов Android.",
+    "No se pudo abrir la carpeta. Usa un gestor compatible con documentos de Android.",
+    "无法打开文件夹，请使用支持 Android 文档目录的文件管理器。"
+  ],
+  "Criar mod": [
+    "Create mod",
+    "Создать мод",
+    "Crear mod",
+    "新建 Mod"
+  ],
+  "Nome da espada básica (opcional)": [
+    "Basic sword name (optional)",
+    "Название простого меча (необязательно)",
+    "Nombre de espada básica (opcional)",
+    "基础剑名称（可选）"
+  ],
+  "Atualizar lista": [
+    "Refresh list",
+    "Обновить список",
+    "Actualizar lista",
+    "刷新列表"
+  ],
+  "Nenhum projeto. Crie seu primeiro mod.": [
+    "No projects. Create your first mod.",
+    "Нет проектов. Создайте первый мод.",
+    "Sin proyectos. Crea tu primer mod.",
+    "暂无项目，创建你的第一个 Mod。"
+  ],
+  "Nenhum projeto corresponde à busca.": [
+    "No projects match your search.",
+    "По запросу проекты не найдены.",
+    "No hay proyectos que coincidan con la búsqueda.",
+    "没有匹配的 Mod 源码项目。"
+  ],
+  "Buscar nome, ID ou autor": [
+    "Search name, ID or author",
+    "Поиск по имени, ID или автору",
+    "Buscar nombre, ID o autor",
+    "搜索 Mod 名称、ID 或作者"
+  ],
+  "Abrir pasta do projeto": [
+    "Open project folder",
+    "Открыть папку проекта",
+    "Abrir carpeta del proyecto",
+    "打开项目文件夹"
+  ],
+  "Processando...": [
+    "Working...",
+    "Обработка...",
+    "Procesando...",
+    "处理中…"
+  ],
+  "Construir e instalar": [
+    "Build and install",
+    "Собрать и установить",
+    "Compilar e instalar",
+    "构建并安装"
+  ],
+  "Nome interno (letras, números e _)": [
+    "Internal name (letters, numbers and _)",
+    "Внутреннее имя (буквы, цифры и _)",
+    "Nombre interno (letras, números y _)",
+    "内部名称（英文字母、数字和下划线）"
+  ],
+  "Nome do mod": [
+    "Mod name",
+    "Название мода",
+    "Nombre del mod",
+    "Mod 名称"
+  ],
+  "Aguarde a importação terminar antes de instalar o projeto.": [
+    "Wait for the import to finish before installing the project.",
+    "Дождитесь завершения импорта перед установкой проекта.",
+    "Espera a que termine la importación antes de instalar el proyecto.",
+    "请等待当前导入完成后，再安装源码项目。"
+  ],
+  "Projeto criado.": [
+    "Project created.",
+    "Проект создан.",
+    "Proyecto creado.",
+    "项目已创建。"
+  ],
+  "%1$s construído e instalado. Reabra o jogo para carregar.": [
+    "%1$s built and installed. Reopen the game to load it.",
+    "%1$s собран и установлен. Перезапустите игру.",
+    "%1$s creado e instalado. Vuelve a abrir el juego.",
+    "%1$s 已构建并安装，重新打开游戏即可加载。"
+  ],
+  "Pacote criado: %1$s": [
+    "Package created: %1$s",
+    "Пакет создан: %1$s",
+    "Paquete creado: %1$s",
+    "资源包已生成：%1$s"
+  ],
+  "Criar": [
+    "Create",
+    "Создать",
+    "Crear",
+    "创建"
+  ],
+  "Autor": [
+    "Author",
+    "Автор",
+    "Autor",
+    "作者"
+  ],
   "Início": [
     "Home",
     "Главная",
