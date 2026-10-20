@@ -559,8 +559,9 @@ class ModConfigMenu {
     static #ModIcon(mod) {
         let texture = ModConfigMenu.#icons.get(mod.uuid);
         if (texture) return texture;
-        const file = mod.root ? bl.path.join(mod.root, 'icon.png') : null;
-        texture = file && bl.file.exists(file) ? bl.loadTexture(file) : bl.builtinTexture('bunnyHead').Value;
+        const file = mod.root && ['icon_small.png', 'icon.png']
+            .map(name => bl.path.join(mod.root, name)).find(path => bl.file.exists(path));
+        texture = file ? bl.loadTexture(file) : bl.builtinTexture('bunnyHead').Value;
         ModConfigMenu.#icons.set(mod.uuid, texture);
         return texture;
     }
