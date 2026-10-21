@@ -183,9 +183,10 @@ class TouchButtonLoader {
         if (typeof icon === 'function') icon = icon();
         if (!icon) {
             const file = ContentLookup.As(entry.mod, () => ContentLookup.FindTexture('Assets/TouchButtons/' + entry.name));
-            const packIcon = entry.mod.root && bl.path.join(entry.mod.root, 'icon.png');
             if (file) return bl.loadTexture(file);
-            return packIcon && bl.file.exists(packIcon) ? bl.loadTexture(packIcon) : null;
+            const packIcon = entry.mod.root && ['icon_small.png', 'icon.png']
+                .map(name => bl.path.join(entry.mod.root, name)).find(path => bl.file.exists(path));
+            return packIcon ? bl.loadTexture(packIcon) : null;
         }
         if (typeof icon !== 'string') return icon && icon.Value ? icon.Value : icon;
 

@@ -205,11 +205,16 @@ bool loadModItemData(Il2CppObject* item, const std::string& data) {
     return ok;
 }
 
-/** O mod no menu: o nome do manifesto e o icon.png da raiz (se houver). */
+/** O mod no menu: nome do manifesto e ícone pequeno, com fallback para icon.png. */
 void noteModForMenu(const std::string& mod) {
     const std::string root = mods::rootOf(mod);
-    std::string icon = root.empty() ? std::string() : root + "/icon.png";
-    if (!icon.empty() && !fileExists(icon)) icon.clear();
+    std::string icon;
+    if (!root.empty()) {
+        for (const char* name : {"icon_small.png", "icon.png"}) {
+            const std::string candidate = root + "/" + name;
+            if (fileExists(candidate)) { icon = candidate; break; }
+        }
+    }
     runtime::setModMenuInfo(mod, mods::displayName(mod), icon);
 }
 
