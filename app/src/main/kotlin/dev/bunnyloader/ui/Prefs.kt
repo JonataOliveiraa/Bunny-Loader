@@ -76,6 +76,11 @@ class Prefs(context: Context) {
         get() = p.getBoolean(DEV_RESTART, true)
         set(v) = p.edit().putBoolean(DEV_RESTART, v).apply()
 
+    /** Árvores SAF adicionais com permissão persistente. A pasta padrão nunca é removida. */
+    var sourceTrees: Set<String>
+        get() = p.getStringSet(SOURCE_TREES, emptySet())?.toSet() ?: emptySet()
+        set(value) = p.edit().putStringSet(SOURCE_TREES, value.toSet()).apply()
+
     /** O nome do perfil, no topo da aba Config. Vazio: "Jogador". */
     var profileName: String
         get() = p.getString(PROFILE_NAME, "") ?: ""
@@ -129,6 +134,7 @@ class Prefs(context: Context) {
         const val DEV_MOD_MENU = "devModMenu"
         const val DEV_EDITOR = "devEditor"
         const val DEV_RESTART = "devRestart"
+        const val SOURCE_TREES = "sourceTrees"
         const val GAME_CHECK_DONE = "gameCheckDone"
         const val PROFILE_NAME = "profileName"
         const val THEME_EFFECTS = "themeEffects"
