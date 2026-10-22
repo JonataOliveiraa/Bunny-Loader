@@ -2,10 +2,12 @@ package dev.bunnyloader.catalog
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 import java.util.concurrent.TimeUnit
 
 object Repo {
@@ -19,7 +21,7 @@ object Repo {
 }
 
 class GitHub(private val token: String) {
-    /** null no 404, como o gh() do publish.py; outro erro vira Fail com o que o GitHub disse. */
+    /** null no 404, como o gh() do publish.py; outro erro vira Fail com o que o servidor disse. */
     fun call(method: String, url: String, body: JsonElement? = null): JsonElement? =
         send(method, url, body?.toString()?.toByteArray(), "application/json")
 
@@ -34,10 +36,13 @@ class GitHub(private val token: String) {
             .header("User-Agent", USER_AGENT)
             .method(method, data?.toRequestBody(contentType.toMediaType()))
             .build()
+        val started = System.nanoTime()
         client.newCall(request).execute().use { response ->
+            val raw = response.body?.bytes() ?: ByteArray(0)
+            Traffic.record(response, started, data?.size ?: 0, raw.size)
+            val text = String(raw, Charsets.UTF_8)
             if (response.code == 404) return null
-            val text = response.body?.string() ?: ""
-            if (!response.isSuccessful) throw Fail("GitHub $method $url: ${response.code} ${text.take(300)}")
+            if (!response.isSuccessful) throw Fail("HTTP $method ${url.toHttpUrl().encodedPath}: ${response.code} ${text.take(300)}")
             return if (text.isBlank()) null else Json.parseToJsonElement(text)
         }
     }
@@ -53,10 +58,35 @@ class GitHub(private val token: String) {
         /** Sem token: o índice público e o .bl de um Release. */
         fun download(url: String): ByteArray {
             val request = Request.Builder().url(url).header("User-Agent", USER_AGENT).build()
+            val started = System.nanoTime()
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw Fail("GET $url: ${response.code}")
-                return response.body?.bytes() ?: ByteArray(0)
+                val bytes = response.body?.bytes() ?: ByteArray(0)
+                Traffic.record(response, started, 0, bytes.size)
+                if (!response.isSuccessful) throw Fail("HTTP GET ${url.toHttpUrl().encodedPath}: ${response.code}")
+                return bytes
             }
         }
+    }
+}
+
+/** O que a tela mostra da rede: pedidos, bytes, a última latência e a cota da API. */
+object Traffic {
+    var requests = 0; private set
+    var sent = 0L; private set
+    var received = 0L; private set
+    var lastLatencyMs = -1L; private set
+    var quotaLimit = -1; private set
+    var quotaRemaining = -1; private set
+    var quotaReset = 0L; private set
+
+    @Synchronized
+    fun record(response: Response, started: Long, up: Int, down: Int) {
+        requests++
+        sent += up
+        received += down
+        lastLatencyMs = (System.nanoTime() - started) / 1_000_000
+        response.header("x-ratelimit-limit")?.toIntOrNull()?.let { quotaLimit = it }
+        response.header("x-ratelimit-remaining")?.toIntOrNull()?.let { quotaRemaining = it }
+        response.header("x-ratelimit-reset")?.toLongOrNull()?.let { quotaReset = it }
     }
 }

@@ -35,41 +35,41 @@ class BlPackage(val file: File) {
         val label = file.name
         for (n in names) {
             if (!PACKAGE_PATH.matches(n) || n.split('/').any { it == "." || it == ".." }) {
-                throw Fail("$label: caminho que o app recusa: '$n'")
+                throw Fail(I18n.tr("$label: caminho que o app recusa: '$n'", "$label: path the app rejects: '$n'"))
             }
         }
-        if ("manifest.json" !in names) throw Fail("$label: sem manifest.json na raiz")
+        if ("manifest.json" !in names) throw Fail(I18n.tr("$label: sem manifest.json na raiz", "$label: no manifest.json at the root"))
         manifestText = String(read("manifest.json"), Charsets.UTF_8).removePrefix("\uFEFF")
         manifest = try {
             Json.parseToJsonElement(manifestText).jsonObject
         } catch (e: Exception) {
-            throw Fail("$label: manifest.json inválido (${e.message})")
+            throw Fail(I18n.tr("$label: manifest.json inválido (${e.message})", "$label: invalid manifest.json (${e.message})"))
         }
         uid = text("uid") ?: ""
         id = text("id") ?: ""
         version = text("version") ?: ""
         name = text("name") ?: id
-        if (!UID.matches(uid)) throw Fail("$label: uid ausente ou fora do formato UUID minúsculo")
-        if (!ID.matches(id)) throw Fail("$label: id '$id' precisa ser minúsculo, sem espaço")
-        if (!VERSION.matches(version)) throw Fail("$label: versão '$version' não é do tipo 1.2.0")
+        if (!UID.matches(uid)) throw Fail(I18n.tr("$label: uid ausente ou fora do formato UUID minúsculo", "$label: uid missing or not a lowercase UUID"))
+        if (!ID.matches(id)) throw Fail(I18n.tr("$label: id '$id' precisa ser minúsculo, sem espaço", "$label: id '$id' must be lowercase, without spaces"))
+        if (!VERSION.matches(version)) throw Fail(I18n.tr("$label: versão '$version' não é do tipo 1.2.0", "$label: version '$version' is not in the 1.2.0 form"))
         val declared = manifest["blVersion"]
         val bl = if (declared == null) 1 else (declared as? JsonPrimitive)?.takeIf { !it.isString }?.intOrNull
-        if (bl != BL_VERSION) throw Fail("$label: blVersion ${declared ?: 1}; o app carrega $BL_VERSION")
+        if (bl != BL_VERSION) throw Fail(I18n.tr("$label: blVersion ${declared ?: 1}; o app carrega $BL_VERSION", "$label: blVersion ${declared ?: 1}; the app loads $BL_VERSION"))
         val kind = (text("type") ?: "").trim().lowercase()
         if (kind in TEXTURE_KINDS) {
             if (names.none { (it.startsWith("content/Images/") || it.startsWith("Content/Images/")) && it.lowercase().endsWith(".png") }) {
-                throw Fail("$label: pacote de textura sem PNGs em content/Images")
+                throw Fail(I18n.tr("$label: pacote de textura sem PNGs em content/Images", "$label: texture pack without PNGs in content/Images"))
             }
         } else {
             val entry = "content/${text("entry") ?: "main.js"}"
-            if (entry !in names) throw Fail("$label: sem $entry")
+            if (entry !in names) throw Fail(I18n.tr("$label: sem $entry", "$label: missing $entry"))
         }
         if ("icon.png" !in names && "icon.gif" !in names) {
             val other = names.firstOrNull { it.lowercase() == "icon.png" || it.lowercase() == "icon.gif" }
-            warnings += "$label sem icon.png" + (other?.let { " (achei '$it': o nome é minúsculo)" } ?: "") +
-                "; o app usa o ícone da categoria"
+            warnings += I18n.tr("$label sem icon.png", "$label has no icon.png") + (other?.let { I18n.tr(" (achei '$it': o nome é minúsculo)", " (found '$it': the name must be lowercase)") } ?: "") +
+                I18n.tr("; o app usa o ícone da categoria", "; the app falls back to the category icon")
         } else if ("icon.png" !in names) {
-            warnings += "$label tem icon.gif mas não icon.png; no jogo o mod fica sem ícone"
+            warnings += I18n.tr("$label tem icon.gif mas não icon.png; no jogo o mod fica sem ícone", "$label has icon.gif but no icon.png; in game the mod shows no icon")
         }
     }
 
@@ -99,7 +99,7 @@ class BlPackage(val file: File) {
             ?.contentOrNull?.trim().orEmpty()
         if (background.isNotEmpty() && !HEX_COLOR.matches(background)) {
             if (background in names) files += background
-            else warnings += "${file.name}: theme.background '$background' não está no pacote"
+            else warnings += I18n.tr("${file.name}: theme.background '$background' não está no pacote", "${file.name}: theme.background '$background' is not in the package")
         }
         for (md in files.filter { it.endsWith(".md") }) {
             val text = String(read(md), Charsets.UTF_8)
@@ -111,9 +111,9 @@ class BlPackage(val file: File) {
         val out = files.distinct()
         for (f in out) {
             if (!SAFE_PATH.matches(f) || f.split('/').any { it == "." || it == ".." }) {
-                throw Fail("${file.name}: caminho que a vitrine recusa: '$f'")
+                throw Fail(I18n.tr("${file.name}: caminho que a vitrine recusa: '$f'", "${file.name}: path the store page rejects: '$f'"))
             }
-            if (zip.getEntry(f).size > MAX_STORE_FILE) throw Fail("${file.name}: $f passa de 4 MB, o limite da vitrine")
+            if (zip.getEntry(f).size > MAX_STORE_FILE) throw Fail(I18n.tr("${file.name}: $f passa de 4 MB, o limite da vitrine", "${file.name}: $f exceeds 4 MB, the store page limit"))
         }
         return out
     }
@@ -144,11 +144,11 @@ class BlPackage(val file: File) {
             val zip = try {
                 ZipFile(file)
             } catch (e: Exception) {
-                throw Fail("${file.name}: não é zip: ${notZipReason(bytes)}")
+                throw Fail(I18n.tr("${file.name}: não é zip: ${notZipReason(bytes)}", "${file.name}: not a zip: ${notZipReason(bytes)}"))
             }
             if (!intact(bytes)) {
                 zip.close()
-                throw Fail("${file.name}: não é zip: ${notZipReason(bytes)}")
+                throw Fail(I18n.tr("${file.name}: não é zip: ${notZipReason(bytes)}", "${file.name}: not a zip: ${notZipReason(bytes)}"))
             }
             return zip
         }
@@ -174,21 +174,23 @@ class BlPackage(val file: File) {
          * pela página e não pelo arquivo.
          */
         fun notZipReason(data: ByteArray): String {
-            if (data.isEmpty()) return "o arquivo está vazio (0 bytes); exporte de novo"
+            if (data.isEmpty()) return I18n.tr("o arquivo está vazio (0 bytes); exporte de novo", "the file is empty (0 bytes); export it again")
             val head = String(data, 0, minOf(512, data.size), Charsets.ISO_8859_1).trimStart().lowercase()
             if (head.startsWith("<!doctype") || head.startsWith("<html") || (head.startsWith("<") && "<html" in head)) {
-                return "é uma página da web, não o pacote: o link baixou a página. Baixe o arquivo em si"
+                return I18n.tr("é uma página da web, não o pacote: o link baixou a página. Baixe o arquivo em si", "it is a web page, not the package: the link downloaded the page. Download the file itself")
             }
             if (data.size < 2 || data[0] != 'P'.code.toByte() || data[1] != 'K'.code.toByte()) {
                 val first = data.take(4).joinToString(" ") { "%02x".format(it) }
-                return "não começa como zip (os primeiros bytes são $first, um .bl começa com 50 4b)"
+                return I18n.tr("não começa como zip (os primeiros bytes são $first, um .bl começa com 50 4b)", "does not start like a zip (first bytes are $first; a .bl starts with 50 4b)")
             }
             if (hasCrlf(data) && intact(withoutCr(data))) {
-                return "o arquivo foi tratado como texto no caminho (cada \\n virou \\r\\n). " +
-                    "Mande-o como arquivo, ou renomeie para .zip antes de enviar"
+                return I18n.tr("o arquivo foi tratado como texto no caminho (cada \\n virou \\r\\n). " +
+                    "Mande-o como arquivo, ou renomeie para .zip antes de enviar",
+                    "the file was handled as text on the way (every \\n became \\r\\n). " +
+                    "Send it as a file, or rename it to .zip before sending")
             }
-            if (!hasEndRecord(data)) return "o zip está cortado: o fim dele não chegou (${data.size} bytes). Copie ou baixe de novo"
-            return "o zip está corrompido; exporte de novo pelo Bunny Loader"
+            if (!hasEndRecord(data)) return I18n.tr("o zip está cortado: o fim dele não chegou (${data.size} bytes). Copie ou baixe de novo", "the zip is truncated: its end is missing (${data.size} bytes). Copy or download it again")
+            return I18n.tr("o zip está corrompido; exporte de novo pelo Bunny Loader", "the zip is corrupted; export it again from Bunny Loader")
         }
 
         private const val CR: Byte = 13

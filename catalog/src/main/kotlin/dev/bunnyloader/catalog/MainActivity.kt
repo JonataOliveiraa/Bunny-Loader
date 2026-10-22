@@ -19,8 +19,8 @@ import kotlinx.serialization.json.JsonPrimitive
 import java.io.File
 
 /**
- * A página do gerenciador do PC (tools/mods/manager.html), servida dos assets
- * numa WebView. O que lá é o manager.py aqui é a [Bridge].
+ * A página do catálogo (assets/index.html), servida dos assets numa WebView.
+ * Quem responde o `/api/...` dela é a [Bridge].
  */
 class MainActivity : ComponentActivity() {
     private lateinit var web: WebView
@@ -41,7 +41,7 @@ class MainActivity : ComponentActivity() {
         val publisher = Publisher(EmbeddedToken.value(), File(cacheDir, "uploads"))
 
         web = WebView(this).apply {
-            setBackgroundColor(Color.rgb(7, 10, 28))
+            setBackgroundColor(Color.rgb(13, 15, 26))
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
             settings.allowFileAccess = false
@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
             }, "BLNative")
         }
         setContentView(web)
-        if (savedInstanceState == null) web.loadUrl("https://$HOST/manager.html") else web.restoreState(savedInstanceState)
+        if (savedInstanceState == null) web.loadUrl("https://$HOST/index.html") else web.restoreState(savedInstanceState)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

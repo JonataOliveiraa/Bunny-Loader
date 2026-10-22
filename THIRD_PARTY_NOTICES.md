@@ -95,7 +95,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ### Android Jetpack, Kotlin and kotlinx
 
-AndroidX and Jetpack Compose (The Android Open Source Project), the Kotlin standard library, kotlinx.serialization and kotlinx.coroutines (JetBrains s.r.o. and Kotlin Programming Language contributors), and, in the publisher app in `catalog/` only, AndroidX WebKit and OkHttp (Square, Inc.). All under the Apache License 2.0:
+AndroidX and Jetpack Compose (The Android Open Source Project), the Kotlin standard library, kotlinx.serialization and kotlinx.coroutines (JetBrains s.r.o. and Kotlin Programming Language contributors), and, in the publisher app in `catalog/` only, AndroidX WebKit, AndroidX Biometric and OkHttp (Square, Inc.). All under the Apache License 2.0:
 
 ```text
                                  Apache License

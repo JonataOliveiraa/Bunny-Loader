@@ -1,7 +1,7 @@
 <resources>
     <style name="Theme.Catalog" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/night</item>
-        <item name="android:statusBarColor">@color/game_panel</item>
+        <item name="android:statusBarColor">@color/bar</item>
         <item name="android:navigationBarColor">@color/night</item>
     </style>
 </resources>

@@ -1,5 +1,6 @@
 package dev.bunnyloader.catalog
 
+import android.os.Build
 import android.util.Base64
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -30,6 +31,7 @@ class Publisher(token: String, private val uploads: File) {
     private var head: Head? = null
     private var account: JsonObject? = null
     private val storeManifests = HashMap<String, JsonObject>()
+    private var statsCache: Pair<String, JsonObject>? = null
     var log: (String) -> Unit = {}
 
     private class Head(
@@ -38,54 +40,101 @@ class Publisher(token: String, private val uploads: File) {
         val files: Map<String, String>,
         val index: JsonObject,
         val indexText: String,
+        val commitDate: String = "",
+        val fetchedAt: Long = System.currentTimeMillis(),
+        val loadMs: Long = 0,
     )
 
+    /** Tudo o que a tela mostra: a chave, a ponta do índice, a rede e os mods. */
     fun state(): JsonObject {
         val h = head ?: loadHead().also { head = it }
         return buildJsonObject {
-            put("token", account())
-            put("worktree", true)
-            put("catalog", JsonArray(mods(h.index).map { pageEntry(h, it) }))
-            put("samples", JsonNull)
+            put("credential", account())
+            put("remote", buildJsonObject {
+                put("source", if (gh == null) "public" else "api")
+                put("branch", Repo.BRANCH)
+                put("commit", h.commit)
+                put("commitDate", h.commitDate)
+                put("tree", h.tree)
+                put("files", h.files.size)
+                put("format", (h.index["format"] as? JsonPrimitive)?.contentOrNull)
+                put("indexBytes", h.indexText.toByteArray().size)
+                put("fetchedAt", h.fetchedAt)
+                put("loadMs", h.loadMs)
+            })
+            put("traffic", buildJsonObject {
+                put("requests", Traffic.requests)
+                put("sent", Traffic.sent)
+                put("received", Traffic.received)
+                put("latencyMs", Traffic.lastLatencyMs)
+                put("quotaLimit", Traffic.quotaLimit)
+                put("quotaRemaining", Traffic.quotaRemaining)
+                put("quotaReset", Traffic.quotaReset)
+            })
+            put("app", buildJsonObject {
+                put("version", BuildConfig.VERSION_NAME)
+                put("build", BuildConfig.VERSION_CODE)
+                put("blVersion", BlPackage.BL_VERSION)
+                put("device", "${Build.MANUFACTURER} ${Build.MODEL}")
+                put("android", "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+            })
+            val stats = stats(h)
+            val downloads = stats["downloads"] as? JsonObject ?: JsonObject(emptyMap())
+            val featured = (h.index["featured"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }.orEmpty()
+            put("stats", buildJsonObject {
+                put("updatedAt", stats.text("updatedAt"))
+                put("total", downloads.values.sumOf { (it as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: 0L })
+            })
+            put("featured", JsonArray(featured.map(::JsonPrimitive)))
+            put("catalog", JsonArray(mods(h.index).map { mod ->
+                val uid = mod.text("uid") ?: ""
+                JsonObject(pageEntry(h, mod) + mapOf(
+                    "downloads" to (downloads[uid] ?: JsonNull),
+                    "featured" to JsonPrimitive(uid in featured),
+                ))
+            }))
         }
     }
 
     fun sync() {
         account = null
         head = loadHead()
-        log("Catálogo sincronizado com o GitHub.")
+        log(I18n.tr("Índice sincronizado: ${head!!.commit.take(7)} (${head!!.loadMs} ms)",
+            "Index synced: ${head!!.commit.take(7)} (${head!!.loadMs} ms)"))
     }
 
-    // ------------------------------------------------------------ conta
+    // ------------------------------------------------------------ chave de acesso
 
     private fun account(): JsonObject {
         account?.let { return it }
         val g = gh ?: return buildJsonObject {
-            put("set", false)
-            put("hint", "o APK foi gerado sem _token.txt")
+            put("present", false)
+            put("error", I18n.tr("o APK foi gerado sem chave de acesso", "the APK was built without an access key"))
         }
         return try {
             val user = g.call("GET", "https://api.github.com/user")?.jsonObject
+            val repo = g.call("GET", Repo.API)?.jsonObject
             buildJsonObject {
-                put("set", true)
-                put("source", "embedded")
+                put("present", true)
+                put("valid", true)
                 put("login", user?.text("login"))
-                put("avatar", user?.text("avatar_url"))
+                put("push", (repo?.obj("permissions")?.get("push") as? JsonPrimitive)?.booleanOrNull == true)
+                put("repo", "${Repo.OWNER}/${Repo.NAME}")
+                put("checkedAt", System.currentTimeMillis())
             }.also { account = it }
         } catch (e: Fail) {
             if (": 401 " in (e.message ?: "")) buildJsonObject {
-                put("set", true)
-                put("rejected", true)
-                put("error", "o GitHub recusou o token embutido (vencido ou revogado?): gere o APK de novo")
+                put("present", true)
+                put("valid", false)
+                put("error", I18n.tr("o servidor recusou a chave embutida (vencida ou revogada?): gere o APK de novo",
+                    "the server rejected the embedded key (expired or revoked?): rebuild the APK"))
             } else buildJsonObject {
-                put("set", true)
-                put("source", "embedded")
+                put("present", true)
                 put("error", e.message)
             }
         } catch (e: IOException) {
             buildJsonObject {
-                put("set", true)
-                put("source", "embedded")
+                put("present", true)
                 put("offline", true)
             }
         }
@@ -94,17 +143,20 @@ class Publisher(token: String, private val uploads: File) {
     // ------------------------------------------------------------ leitura
 
     private fun loadHead(): Head {
+        val started = System.currentTimeMillis()
         val g = gh ?: run {
             val text = String(GitHub.download("${Repo.RAW}/${Repo.BRANCH}/index.json"), Charsets.UTF_8)
-            return Head(Repo.BRANCH, "", emptyMap(), Json.parseToJsonElement(text).jsonObject, text)
+            return Head(Repo.BRANCH, "", emptyMap(), Json.parseToJsonElement(text).jsonObject, text,
+                loadMs = System.currentTimeMillis() - started)
         }
         val ref = g.call("GET", "${Repo.API}/git/ref/heads/${Repo.BRANCH}")?.jsonObject
-            ?: throw Fail("o branch ${Repo.BRANCH} não existe no GitHub")
+            ?: throw Fail(I18n.tr("o branch ${Repo.BRANCH} não existe no servidor", "branch ${Repo.BRANCH} does not exist on the server"))
         val commit = ref.obj("object").text("sha")!!
-        val tree = g.call("GET", "${Repo.API}/git/commits/$commit")!!.jsonObject.obj("tree").text("sha")!!
+        val commitInfo = g.call("GET", "${Repo.API}/git/commits/$commit")!!.jsonObject
+        val tree = commitInfo.obj("tree").text("sha")!!
         val listing = g.call("GET", "${Repo.API}/git/trees/$tree?recursive=1")!!.jsonObject
         if ((listing["truncated"] as? JsonPrimitive)?.booleanOrNull == true) {
-            throw Fail("a árvore do ${Repo.BRANCH} é grande demais para a API")
+            throw Fail(I18n.tr("a árvore do ${Repo.BRANCH} é grande demais para a API", "the ${Repo.BRANCH} tree is too large for the API"))
         }
         val files = listing["tree"]!!.jsonArray.map { it.jsonObject }
             .filter { it.text("type") == "blob" }
@@ -117,20 +169,24 @@ class Publisher(token: String, private val uploads: File) {
             put("format", FORMAT)
             put("mods", JsonArray(emptyList()))
         } else Json.parseToJsonElement(indexText).jsonObject
-        return Head(commit, tree, files, index, indexText)
+        return Head(commit, tree, files, index, indexText,
+            commitDate = commitInfo.obj("committer").text("date") ?: "",
+            loadMs = System.currentTimeMillis() - started)
     }
 
     private fun pageEntry(h: Head, mod: JsonObject): JsonObject {
         val manifest = mod["manifest"] as? JsonObject ?: storeManifest(h, mod.text("uid") ?: "")
         val files = (mod["files"] as? JsonArray)?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull } ?: emptyList()
-        val tag = (mod.obj("download").text("url") ?: "").substringAfter("/releases/download/").substringBefore('/')
+        val url = mod.obj("download").text("url") ?: ""
         val icon = ICONS.firstOrNull { it in files }?.let { "${Repo.RAW}/${h.commit}/mods/${mod.text("uid")}/$it" }
         return JsonObject(mod + mapOf(
+            "manifest" to manifest,
             "authors" to JsonPrimitive(authorLine(manifest)),
             "category" to JsonPrimitive(manifest.text("category") ?: ""),
             "summary" to JsonPrimitive(manifest.text("summary") ?: ""),
             "icon" to (icon?.let(::JsonPrimitive) ?: JsonNull),
-            "release" to JsonPrimitive("https://github.com/${Repo.OWNER}/${Repo.NAME}/releases/tag/$tag"),
+            "tag" to JsonPrimitive(url.substringAfter("/releases/download/").substringBefore('/')),
+            "asset" to JsonPrimitive(url.substringAfterLast('/')),
         ))
     }
 
@@ -139,12 +195,27 @@ class Publisher(token: String, private val uploads: File) {
         val g = gh ?: return JsonObject(emptyMap())
         val sha = h.files["mods/$uid/manifest.json"] ?: return JsonObject(emptyMap())
         return storeManifests.getOrPut(sha) {
-            runCatching {
-                val blob = g.call("GET", "${Repo.API}/git/blobs/$sha")!!.jsonObject
-                val text = String(Base64.decode(blob.text("content"), Base64.DEFAULT), Charsets.UTF_8)
-                Json.parseToJsonElement(text.removePrefix("\uFEFF")).jsonObject
-            }.getOrDefault(JsonObject(emptyMap()))
+            runCatching { Json.parseToJsonElement(blobText(g, sha)).jsonObject }.getOrDefault(JsonObject(emptyMap()))
         }
+    }
+
+    /** O stats.json da mesma ponta (downloads somados pela Action do reposit\u00F3rio de mods); sem ele, vazio. */
+    private fun stats(h: Head): JsonObject {
+        val g = gh
+        val key = if (g == null) "public:${h.fetchedAt}" else h.files["stats.json"] ?: return JsonObject(emptyMap())
+        statsCache?.let { (k, v) -> if (k == key) return v }
+        val parsed = runCatching {
+            val text = if (g == null) String(GitHub.download("${Repo.RAW}/${Repo.BRANCH}/stats.json"), Charsets.UTF_8)
+            else blobText(g, key)
+            Json.parseToJsonElement(text.removePrefix("\uFEFF")).jsonObject
+        }.getOrDefault(JsonObject(emptyMap()))
+        statsCache = key to parsed
+        return parsed
+    }
+
+    private fun blobText(g: GitHub, sha: String): String {
+        val blob = g.call("GET", "${Repo.API}/git/blobs/$sha")!!.jsonObject
+        return String(Base64.decode(blob.text("content"), Base64.DEFAULT), Charsets.UTF_8).removePrefix("\uFEFF")
     }
 
     // ------------------------------------------------------------ pacote enviado
@@ -159,20 +230,36 @@ class Publisher(token: String, private val uploads: File) {
     fun uploadFile(name: String): File {
         val clean = name.substringAfterLast('/').substringAfterLast('\\').replace(Regex("[^A-Za-z0-9._ -]"), "_")
         if (!clean.lowercase().let { it.endsWith(".bl") || it.endsWith(".bmod") || it.endsWith(".zip") }) {
-            throw Fail("o arquivo precisa ser .bl, .bmod ou .zip")
+            throw Fail(I18n.tr("o arquivo precisa ser .bl, .bmod ou .zip", "the file must be .bl, .bmod or .zip"))
         }
         return File(uploads, clean)
     }
 
     fun check(file: File): JsonObject {
         val pkg = BlPackage(file)
-        pkg.warnings.forEach { log("aviso: $it") }
+        val store = pkg.storeFiles()
+        pkg.warnings.forEach { log(I18n.tr("aviso: ", "warning: ") + it) }
         val h = head ?: loadHead().also { head = it }
         val (code, text) = status(h, pkg.uid, pkg.version, pkg.sha256)
+        val published = mods(h.index).firstOrNull { it.text("uid") == pkg.uid }
         val icon = ICONS.firstOrNull { it in pkg.names }?.let {
             "data:image/${it.substringAfter('.')};base64," + Base64.encodeToString(pkg.read(it), Base64.NO_WRAP)
         }
         return buildJsonObject {
+            put("manifest", pkg.manifest)
+            put("entries", pkg.names.size)
+            put("scripts", pkg.names.count { it.endsWith(".js") })
+            put("images", pkg.names.count { it.lowercase().let { n -> n.endsWith(".png") || n.endsWith(".gif") } })
+            put("tag", pkg.tag)
+            put("asset", pkg.asset)
+            put("warnings", buildJsonArray { pkg.warnings.forEach { add(JsonPrimitive(it)) } })
+            put("published", published?.let {
+                buildJsonObject {
+                    put("version", it.text("version"))
+                    put("sha256", it.obj("download").text("sha256"))
+                    put("size", (it.obj("download")["size"] as? JsonPrimitive)?.contentOrNull?.toLongOrNull())
+                }
+            } ?: JsonNull)
             put("file", file.name)
             put("uid", pkg.uid)
             put("id", pkg.id)
@@ -183,7 +270,7 @@ class Publisher(token: String, private val uploads: File) {
             put("summary", pkg.manifest.text("summary") ?: "")
             put("size", pkg.size)
             put("sha256", pkg.sha256)
-            put("store", buildJsonArray { pkg.storeFiles().forEach { add(JsonPrimitive(it)) } })
+            put("store", buildJsonArray { store.forEach { add(JsonPrimitive(it)) } })
             put("icon", icon)
             put("status", code)
             put("statusText", text)
@@ -191,14 +278,14 @@ class Publisher(token: String, private val uploads: File) {
     }
 
     private fun status(h: Head, uid: String, version: String, sha: String): Pair<String, String> {
-        val pub = mods(h.index).firstOrNull { it.text("uid") == uid } ?: return "new" to "Ainda não publicado"
-        if (pub.obj("download").text("sha256") == sha) return "same" to "Em dia"
+        val pub = mods(h.index).firstOrNull { it.text("uid") == uid } ?: return "new" to I18n.tr("Ainda não publicado", "Not published yet")
+        if (pub.obj("download").text("sha256") == sha) return "same" to I18n.tr("Em dia", "Up to date")
         val published = pub.text("version") ?: ""
         val c = compareVersions(version, published)
         return when {
-            c > 0 -> "newer" to "Versão nova pronta (publicado: v$published)"
-            c == 0 -> "changed" to "Mudou, mas a versão é a mesma: suba a versão"
-            else -> "older" to "Local é mais velho que o publicado (v$published)"
+            c > 0 -> "newer" to I18n.tr("Versão nova pronta (publicado: v$published)", "New version ready (published: v$published)")
+            c == 0 -> "changed" to I18n.tr("Mudou, mas a versão é a mesma: suba a versão", "Changed, but the version is the same: bump the version")
+            else -> "older" to I18n.tr("Local é mais velho que o publicado (v$published)", "Local is older than the published one (v$published)")
         }
     }
 
@@ -206,18 +293,18 @@ class Publisher(token: String, private val uploads: File) {
 
     /** `dry`: confere e monta tudo, como o --dry-run do publish.py, sem gravar nada no GitHub. */
     fun publish(file: File, dry: Boolean = false) {
-        val g = gh ?: throw Fail("sem token: gere o APK com o _token.txt")
-        if (!file.isFile) throw Fail("o arquivo enviado não está mais aqui; envie de novo")
+        val g = gh ?: throw Fail(I18n.tr("sem token: gere o APK com o _token.txt", "no access key: build the APK with bunnyloadermodstoken.txt"))
+        if (!file.isFile) throw Fail(I18n.tr("o arquivo enviado não está mais aqui; envie de novo", "the uploaded file is gone; upload it again"))
         val pkg = BlPackage(file)
         log("${pkg.name} v${pkg.version}  (${pkg.uid})")
         log("  ${pkg.size} bytes, sha256 ${pkg.sha256}")
-        pkg.warnings.forEach { log("  aviso: $it") }
+        pkg.warnings.forEach { log(I18n.tr("  aviso: $it", "  warning: $it")) }
         val files = pkg.storeFiles()
         releaseFor(g, pkg, dry)
         commitIndex(g, "Publicar ${pkg.name} v${pkg.version}", dry) { h ->
             val old = mods(h.index).firstOrNull { it.text("uid") == pkg.uid }
             if (old != null && old.text("id") != pkg.id) {
-                log("  aviso: o id mudou de '${old.text("id")}' para '${pkg.id}' (o uid manda)")
+                log(I18n.tr("  aviso: o id mudou de '${old.text("id")}' para '${pkg.id}' (o uid manda)", "  warning: id changed from '${old.text("id")}' to '${pkg.id}' (uid wins)"))
             }
             val prefix = "mods/${pkg.uid}/"
             val changes = mutableListOf<JsonObject>()
@@ -239,19 +326,21 @@ class Publisher(token: String, private val uploads: File) {
                 })
                 put("files", buildJsonArray { files.forEach { add(JsonPrimitive(it)) } })
                 put("manifest", Json.parseToJsonElement(pkg.manifestText))
+                // Como o publish.py: a data em que o mod entrou, mantida nas versões novas.
+                (if (old == null) utcNow() else old.text("publishedAt"))?.let { put("publishedAt", it) }
             }
-            log("  vitrine: ${files.joinToString(", ")}")
+            log(I18n.tr("  vitrine: ${files.joinToString(", ")}", "  store page: ${files.joinToString(", ")}"))
             changes to (mods(h.index).filter { it.text("uid") != pkg.uid } + entry)
         }
         if (!dry) file.delete()
     }
 
     fun remove(uid: String) {
-        val g = gh ?: throw Fail("sem token: gere o APK com o _token.txt")
-        if (!UID.matches(uid)) throw Fail("uid inválido")
+        val g = gh ?: throw Fail(I18n.tr("sem token: gere o APK com o _token.txt", "no access key: build the APK with bunnyloadermodstoken.txt"))
+        if (!UID.matches(uid)) throw Fail(I18n.tr("uid inválido", "invalid uid"))
         commitIndex(g, "Tirar $uid do catálogo") { h ->
             val mods = mods(h.index)
-            if (mods.none { it.text("uid") == uid }) throw Fail("$uid não está no catálogo")
+            if (mods.none { it.text("uid") == uid }) throw Fail(I18n.tr("$uid não está no catálogo", "$uid is not in the catalog"))
             h.files.keys.filter { it.startsWith("mods/$uid/") }.map(::deleteEntry) to
                 mods.filter { it.text("uid") != uid }
         }
@@ -268,14 +357,15 @@ class Publisher(token: String, private val uploads: File) {
                         .digest(GitHub.download(asset.text("browser_download_url")!!)))
                 }
                 if (digest != pkg.sha256) {
-                    throw Fail("${pkg.tag} já foi publicada com outro arquivo. " +
-                        "Suba a versão no manifest.json em vez de trocar a publicada.")
+                    throw Fail(I18n.tr("${pkg.tag} já foi publicada com outro arquivo. " +
+                        "Suba a versão no manifest.json em vez de trocar a publicada.", "${pkg.tag} was already published with a different file. " +
+                        "Bump the version in manifest.json instead of replacing the published one."))
                 }
-                log("  Release ${pkg.tag} já existe com este arquivo: reaproveitada")
+                log(I18n.tr("  Release ${pkg.tag} já existe com este arquivo: reaproveitada", "  Release ${pkg.tag} already has this file: reused"))
                 return
             }
         } else if (dry) {
-            log("  [dry-run] Release ${pkg.tag} com ${pkg.asset} (${pkg.size} bytes)")
+            log(I18n.tr("  [dry-run] Release ${pkg.tag} com ${pkg.asset} (${pkg.size} bytes)", "  [dry-run] Release ${pkg.tag} with ${pkg.asset} (${pkg.size} bytes)"))
             return
         } else {
             release = g.call("POST", "${Repo.API}/releases", buildJsonObject {
@@ -287,13 +377,13 @@ class Publisher(token: String, private val uploads: File) {
             })!!.jsonObject
         }
         if (dry) {
-            log("  [dry-run] ${pkg.asset} subiria para o Release ${pkg.tag}")
+            log(I18n.tr("  [dry-run] ${pkg.asset} subiria para o Release ${pkg.tag}", "  [dry-run] ${pkg.asset} would be uploaded to Release ${pkg.tag}"))
             return
         }
         val id = (release!!["id"] as JsonPrimitive).content
         g.upload("${Repo.UPLOADS}/releases/$id/assets?name=${URLEncoder.encode(pkg.asset, "UTF-8")}",
             pkg.bytes, "application/zip")
-        log("  Release ${pkg.tag} publicada")
+        log(I18n.tr("  Release ${pkg.tag} publicada", "  Release ${pkg.tag} published"))
     }
 
     /**
@@ -316,12 +406,12 @@ class Publisher(token: String, private val uploads: File) {
             if (text != h.indexText) all += textEntry("index.json", text)
             if (h.files["README.md"] != gitSha(README.toByteArray())) all += textEntry("README.md", README)
             if (all.isEmpty()) {
-                log("  índice sem mudança")
+                log(I18n.tr("  índice sem mudança", "  index unchanged"))
                 return
             }
             if (dry) {
-                all.forEach { log("  [dry-run] ${if (it["sha"] == JsonNull) "apagaria" else "gravaria"} ${it.text("path")}") }
-                log("  [dry-run] commit \"$message\" no ${Repo.BRANCH} (sem enviar)")
+                all.forEach { log(I18n.tr("  [dry-run] ${if (it["sha"] == JsonNull) "apagaria" else "gravaria"} ${it.text("path")}", "  [dry-run] would ${if (it["sha"] == JsonNull) "delete" else "write"} ${it.text("path")}")) }
+                log(I18n.tr("  [dry-run] commit \"$message\" no ${Repo.BRANCH} (sem enviar)", "  [dry-run] commit \"$message\" on ${Repo.BRANCH} (not pushed)"))
                 return
             }
             val tree = g.call("POST", "${Repo.API}/git/trees", buildJsonObject {
@@ -329,7 +419,7 @@ class Publisher(token: String, private val uploads: File) {
                 put("tree", JsonArray(all))
             })!!.jsonObject.text("sha")!!
             if (tree == h.tree) {
-                log("  índice sem mudança")
+                log(I18n.tr("  índice sem mudança", "  index unchanged"))
                 return
             }
             val commit = g.call("POST", "${Repo.API}/git/commits", buildJsonObject {
@@ -343,11 +433,11 @@ class Publisher(token: String, private val uploads: File) {
                     put("force", false)
                 })
                 head = null
-                log("  ${Repo.BRANCH} enviado")
+                log(I18n.tr("  ${Repo.BRANCH} enviado", "  ${Repo.BRANCH} pushed"))
                 return
             } catch (e: Fail) {
                 if (": 422 " !in (e.message ?: "") || attempt == 2) throw e
-                log("  o ${Repo.BRANCH} mudou no meio do caminho: refazendo em cima dele")
+                log(I18n.tr("  o ${Repo.BRANCH} mudou no meio do caminho: refazendo em cima dele", "  ${Repo.BRANCH} moved meanwhile: rebuilding on top of it"))
             }
         }
     }
@@ -360,6 +450,11 @@ class Publisher(token: String, private val uploads: File) {
         })!!.jsonObject.text("sha")!!
         return treeEntry(path) { put("sha", sha) }
     }
+
+    private fun utcNow(): String =
+        java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+            .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+            .format(java.util.Date())
 
     private fun textEntry(path: String, text: String) = treeEntry(path) { put("content", text) }
 

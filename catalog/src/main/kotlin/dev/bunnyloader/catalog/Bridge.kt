@@ -29,9 +29,11 @@ class Bridge(private val publisher: Publisher, private val reply: (Int, String) 
     private fun handle(path: String, body: String): JsonObject {
         val log = StringBuilder()
         publisher.log = { log.append(it).append('\n') }
+        val started = System.currentTimeMillis()
         return try {
             val data = Json.parseToJsonElement(body.ifBlank { "{}" }).jsonObject
             fun arg(key: String) = (data[key] as? JsonPrimitive)?.contentOrNull ?: ""
+            I18n.english = arg("lang") == "en"
             val result: JsonElement = when (path) {
                 "/api/state" -> publisher.state()
                 "/api/sync" -> { publisher.sync(); JsonNull }
@@ -39,10 +41,11 @@ class Bridge(private val publisher: Publisher, private val reply: (Int, String) 
                 "/api/publish-upload" -> { publisher.publish(publisher.uploadFile(arg("file"))); JsonNull }
                 "/api/publish-dry" -> { publisher.publish(publisher.uploadFile(arg("file")), dry = true); JsonNull }
                 "/api/remove" -> { publisher.remove(arg("uid")); JsonNull }
-                else -> throw Fail("$path não existe no app")
+                else -> throw Fail(I18n.tr("$path não existe no app", "$path does not exist in the app"))
             }
             buildJsonObject {
                 put("ok", true)
+                put("ms", System.currentTimeMillis() - started)
                 put("log", log.toString())
                 put("result", result)
             }
@@ -50,10 +53,12 @@ class Bridge(private val publisher: Publisher, private val reply: (Int, String) 
             if (e !is Fail) Log.e("BLCatalog", "falha em $path", e)
             buildJsonObject {
                 put("ok", false)
+                put("ms", System.currentTimeMillis() - started)
                 put("log", log.toString())
                 put("error", when (e) {
                     is Fail -> e.message
-                    is IOException -> "sem conexão com o GitHub (${e.javaClass.simpleName}: ${e.message})"
+                    is IOException -> I18n.tr("sem conexão com o servidor", "no connection to the server") +
+                        " (${e.javaClass.simpleName}: ${e.message})"
                     else -> "${e.javaClass.simpleName}: ${e.message}"
                 })
             }

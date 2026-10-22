@@ -11,10 +11,10 @@ plugins {
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use(::load)
 }
-// O token só do Bunny-Loader-Mods primeiro; o _token.txt antigo de reserva.
-val embeddedToken = listOf("bunnyloadermodstoken.txt", "_token.txt").asSequence()
-    .map { rootProject.file(it) }.filter { it.isFile }
-    .map { it.readText().trim() }.firstOrNull { it.isNotEmpty() }
+// Só o token do Bunny-Loader-Mods: o _token.txt antigo também abre o repo do app
+// e não deve ir para um APK.
+val embeddedToken = rootProject.file("bunnyloadermodstoken.txt").takeIf { it.isFile }?.readText()?.trim()
+    ?.takeIf { it.isNotEmpty() }
     ?: localProps.getProperty("bl.catalogToken", "").trim()
 
 fun tokenMask(size: Int): ByteArray {
@@ -41,8 +41,8 @@ android {
         applicationId = "com.bunnyloader.catalog"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
         buildConfigField("String", "EMBEDDED_TOKEN", "\"$hiddenToken\"")
     }
 
@@ -58,32 +58,28 @@ android {
         jvmTarget = "17"
     }
 
-    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/sharedAssets"))
+    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/launcherArt"))
 }
 
-// A página é a mesma do gerenciador do PC (tools/mods/manager.html), e as
-// imagens e a fonte são as do launcher: copiadas a cada build, um lugar só para editar.
-val sharedArt = listOf(
-    "img_title", "ic_bunny_menu", "ic_bunny_head", "ic_refresh", "ic_trash", "ic_start",
-    "ic_fechar", "ic_tab_explorar", "ic_tab_pacotes", "ic_folder", "ic_lupa", "ic_config",
-    "spr_loading", "bg_mountains", "bg_hills", "bg_forest", "bg_moon", "bg_star",
+// Os ícones e a fonte da página vêm do launcher: copiados a cada build, um lugar só para editar.
+val launcherArt = listOf(
+    "ic_bunny_head", "ic_refresh", "ic_trash", "ic_start", "ic_fechar", "ic_lupa", "ic_folder",
+    "ic_config", "ic_js", "ic_tab_pacotes", "ic_download", "ic_fav_on", "ic_sec_util", "ic_seta_dir",
+    "spr_loading",
 )
-val syncSharedAssets by tasks.registering(Sync::class) {
-    from(rootProject.file("tools/mods/manager.html"))
+val syncLauncherArt by tasks.registering(Sync::class) {
     from(rootProject.file("app/src/main/res/drawable-nodpi")) {
-        include(sharedArt.map { "$it.png" })
-        into("art")
+        include(launcherArt.map { "$it.png" })
     }
     // A Andy fica fora do Git; sem ela, a Comic Neue do app (ver app/build.gradle.kts).
     val fonts = rootProject.file("app/src/main/res/font").takeIf { it.resolve("bunny.ttf").isFile }
         ?: rootProject.file("app/src/fontFallback/res/font")
     from(fonts) {
         include("bunny.ttf")
-        into("art")
     }
-    into(layout.buildDirectory.dir("generated/sharedAssets"))
+    into(layout.buildDirectory.dir("generated/launcherArt/art"))
 }
-tasks.named("preBuild") { dependsOn(syncSharedAssets) }
+tasks.named("preBuild") { dependsOn(syncLauncherArt) }
 
 dependencies {
     implementation("androidx.activity:activity-ktx:1.9.2")
