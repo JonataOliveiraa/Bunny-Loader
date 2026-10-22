@@ -48,13 +48,32 @@ class TestWings extends ModItem {
 }
 const TEST_WINGS = ModItem.register(TestWings);
 
+// A ordem do tModLoader: ResetEffects, UpdateEquips, UpdateArmorSet,
+// PostUpdateEquips, PostUpdate. A marca do conjunto só aparece nos dois últimos.
+const setOrder = { equips: 0, postEquips: 0, post: 0, frames: 0 };
+class SetOrderPlayer extends ModPlayer {
+    ResetEffects() { this.setFlag = false; }
+    UpdateEquips(player) { if (this.setFlag && player.whoAmI === Main.myPlayer) setOrder.equips++; }
+    PostUpdateEquips(player) { if (this.setFlag && player.whoAmI === Main.myPlayer) setOrder.postEquips++; }
+    PostUpdate(player) {
+        if (player.whoAmI !== Main.myPlayer) return;
+        setOrder.frames++;
+        if (this.setFlag) setOrder.post++;
+    }
+}
+ModPlayer.register(SetOrderPlayer);
+
 // Os ganchos de conjunto e de asa do GlobalItem, contados.
 const counts = { armorSet: 0, preVanity: 0, vanity: 0, shadows: 0, setMatch: 0, vertical: 0, horizontal: 0, wingUpdate: 0 };
 const costumeHead = () => EquipLoader.GetEquipSlot('ExampleCostume', EquipType.Head);
 let vanityTrace = null;
 class TestArmorGlobal extends GlobalItem {
     IsArmorSet(head, body, legs) { return head.type === T('ExampleHelmet') ? 'teste' : ''; }
-    UpdateArmorSet(player, set) { if (set === 'teste' && player.whoAmI === Main.myPlayer) counts.armorSet++; }
+    UpdateArmorSet(player, set) {
+        if (set !== 'teste' || player.whoAmI !== Main.myPlayer) return;
+        counts.armorSet++;
+        player.GetModPlayer(SetOrderPlayer).setFlag = true;
+    }
     IsVanitySet(head, body, legs) {
         return head === costumeHead() || head === EquipLoader.GetEquipSlot('BlockyAlt', EquipType.Head) ? 'blocky' : '';
     }
@@ -264,6 +283,10 @@ function costumeChecks() {
         (counts.preVanity > 0 && counts.vanity > 0 && counts.shadows > 0) ||
         `pre ${counts.preVanity}, update ${counts.vanity}, sombras ${counts.shadows}`);
     check('Global: conjunto de armadura pelo nome', () => counts.armorSet > 0 || 'UpdateArmorSet ' + counts.armorSet);
+    check('ordem: UpdateArmorSet antes do PostUpdateEquips e do PostUpdate, depois do UpdateEquips', () =>
+        (setOrder.equips === 0 && setOrder.postEquips > 0 && setOrder.post > 0) ||
+        `com a marca: UpdateEquips ${setOrder.equips}, PostUpdateEquips ${setOrder.postEquips}, ` +
+        `PostUpdate ${setOrder.post} de ${setOrder.frames} quadros`);
     costumeVariantChecks(p, false);
     costumeVariantChecks(p, true);
 }

@@ -269,13 +269,16 @@ class PlayerLoader {
             });
         });
 
-        if (has('UpdateEquips') || has('PostUpdateEquips')) Hooks.Once('player.UpdateEquips', () => {
+        // Como no tModLoader: o UpdateEquips no fim do Player.UpdateEquips, antes
+        // dos conjuntos; o PostUpdateEquips depois deles (no ArmorSetLoader), para
+        // ver o que o UpdateArmorSet marcou.
+        if (has('UpdateEquips')) Hooks.Once('player.UpdateEquips', () => {
             P['void UpdateEquips(int i)'].hook((original, self, i) => {
                 original(self, i);
                 PlayerLoader.Call(self, 'UpdateEquips');
-                PlayerLoader.Call(self, 'PostUpdateEquips');
             });
         });
+        if (has('PostUpdateEquips')) ArmorSetLoader.WantArmorSets();
 
         if (has('UpdateBadLifeRegen') || has('UpdateLifeRegen')) Hooks.Once('player.LifeRegen', () => {
             P['void UpdateLifeRegen()'].hook((original, self) => {

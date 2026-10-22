@@ -106,7 +106,8 @@ class ArmorSetLoader {
     // peça por peça, e os Globais pelo nome do conjunto, como o
     // ItemLoader.UpdateArmorSet do tModLoader. O texto do conjunto no tooltip
     // vem do ArmorSetBonuses (CreateArmorSet): o Player.setBonus não existe
-    // mais desde a 1.4.5.8.
+    // mais desde a 1.4.5.8. O ModPlayer.PostUpdateEquips vem por último, como no
+    // tModLoader, para enxergar o que os conjuntos marcaram.
     static #HookArmorSets() {
         Terraria.Player['void UpdateArmorSets(int i)'].hook((original, self, i) => {
             original(self, i);
@@ -130,6 +131,8 @@ class ArmorSetLoader {
                 const set = Safe.Run(n + '.IsArmorSet', () => g.IsArmorSet(head, body, legs));
                 if (set) Safe.Run(n + '.UpdateArmorSet', () => g.UpdateArmorSet(self, set));
             }
+
+            PlayerLoader.Call(self, 'PostUpdateEquips');
         });
     }
 
