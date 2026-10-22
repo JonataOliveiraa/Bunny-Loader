@@ -16,6 +16,12 @@ internal enum class PackageSort(private val sourceLabel: String) {
     val label: String get() = tr(sourceLabel)
 }
 
+/** A ordem do Explorar. Mais baixados primeiro: é o que se espera de uma loja. */
+internal enum class ExploreSort(private val sourceLabel: String) {
+    POPULAR("Mais baixados"), NAME("A-Z"), LIGHTEST("Mais leves"), HEAVIEST("Mais pesados");
+    val label: String get() = tr(sourceLabel)
+}
+
 private val SEARCH_MARKS = Regex("\\p{M}+")
 private val SEARCH_SPACE = Regex("\\s+")
 
@@ -73,4 +79,22 @@ internal fun filterPackages(
         }
     }
     return sorted.sortedBy { it.uid !in enabled }
+}
+
+/**
+ * Ordena o resultado da busca do Explorar. Empate (ou mod sem contagem, como
+ * os embutidos) cai na ordem alfabética, para a lista não pular entre aberturas.
+ */
+internal fun sortExplore(
+    packages: List<Catalog.Entry>, sort: ExploreSort, downloads: Map<String, Long>,
+    language: String = "pt-BR",
+): List<Catalog.Entry> {
+    val names = Collator.getInstance(Locale.forLanguageTag(language)).apply { strength = Collator.PRIMARY }
+    val byName = Comparator<Catalog.Entry> { a, b -> names.compare(a.manifest.nameFor(language), b.manifest.nameFor(language)) }
+    return packages.sortedWith(when (sort) {
+        ExploreSort.POPULAR -> compareByDescending<Catalog.Entry> { downloads[it.uid] ?: -1L }.then(byName)
+        ExploreSort.NAME -> byName
+        ExploreSort.LIGHTEST -> compareBy<Catalog.Entry> { it.sizeBytes }.then(byName)
+        ExploreSort.HEAVIEST -> compareByDescending<Catalog.Entry> { it.sizeBytes }.then(byName)
+    })
 }

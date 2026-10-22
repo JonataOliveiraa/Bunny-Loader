@@ -107,9 +107,16 @@ class Prefs(context: Context) {
         get() = p.getString(SCENERY, "") ?: ""
         set(v) = p.edit().putString(SCENERY, v).apply()
 
+    /** A ordem do Explorar: o nome de um [ExploreSort]. */
+    var exploreSort: String
+        get() = p.getString(EXPLORE_SORT, "") ?: ""
+        set(v) = p.edit().putString(EXPLORE_SORT, v).apply()
+
     /** O cenário que vale agora. No automático, avança um e grava. */
     fun resolveScenery(choice: String): Biome {
         Biome.entries.firstOrNull { it.name == choice }?.let { return it }
+        // No automático, a semana do Halloween é dele (20/10 a 2/11).
+        if (isHalloweenSeason(java.util.Calendar.getInstance())) return Biome.HALLOWEEN
         val next = (p.getInt(LAST_SCENERY, -1) + 1).mod(Biome.entries.size)
         p.edit().putInt(LAST_SCENERY, next).apply()
         return Biome.entries[next]
@@ -119,6 +126,7 @@ class Prefs(context: Context) {
         const val NAME = "settings"
         const val SCENERY = "scenery"
         const val LAST_SCENERY = "lastScenery"
+        const val EXPLORE_SORT = "exploreSort"
         const val ENABLE_ON_INSTALL = "enableOnInstall"
         const val ERROR_PANEL = "errorPanel"
         const val DEV_CHANNEL = "devChannel"
@@ -134,5 +142,14 @@ class Prefs(context: Context) {
         const val THEME_EFFECTS = "themeEffects"
         /** Nenhum arquivo de mundo tem este nome (o jogo grava `*.wld`). */
         const val TITLE_ONLY = "-"
+    }
+}
+
+internal fun isHalloweenSeason(now: java.util.Calendar): Boolean {
+    val day = now.get(java.util.Calendar.DAY_OF_MONTH)
+    return when (now.get(java.util.Calendar.MONTH)) {
+        java.util.Calendar.OCTOBER -> day >= 20
+        java.util.Calendar.NOVEMBER -> day <= 2
+        else -> false
     }
 }

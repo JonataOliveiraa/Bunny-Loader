@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +42,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -64,6 +70,7 @@ import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.PackType
 import dev.bunnyloader.mods.compareVersions
+import dev.bunnyloader.mods.formatCount
 import dev.bunnyloader.mods.formatSize
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -73,10 +80,13 @@ internal val EdgePad = 14.dp
 // =============================== Início ===============================
 
 /**
- * A vitrine. Um mod pede destaque no próprio mod.json (`featured`); o resto,
- * embutido ou do catálogo online, entra em "Populares". Nenhum número
- * inventado aqui — não há contagem de download nem nota, porque não há
- * servidor para produzir isso.
+ * A vitrine: o convite do Discord, os números do catálogo, o destaque e os
+ * mais baixados.
+ *
+ * O destaque é escolhido no índice online (`featured`, ver RemoteIndex); sem
+ * ele, vale o `featured` do mod.json de um embutido. Populares ordena pelos
+ * downloads do stats.json — contagem do GitHub, não inventada; sem o arquivo
+ * (offline na primeira abertura), fica a lista por nome, sem posição.
  */
 @Composable
 fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
@@ -141,19 +151,40 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
             )
             Column(Modifier.padding(horizontal = EdgePad)) {
             RemoteStatusLine(shell, Modifier.padding(top = 6.dp))
+            DiscordCard(Modifier.padding(top = 8.dp))
+            CatalogNumbers(shell, Modifier.padding(top = 12.dp))
 
-            val featured = shell.entries.firstOrNull { it.manifest.featured }
-                ?: shell.entries.firstOrNull()
-            if (featured != null) {
-                SectionTitle(tr("Em destaque"))
-                FeaturedCard(featured, shell, onOpen)
+            val catalogEntries = shell.catalogEntries
+            val featured = remember(shell.featuredUids, catalogEntries, shell.entries) {
+                shell.featuredUids.mapNotNull { uid -> catalogEntries.firstOrNull { it.uid == uid } }
+                    .ifEmpty {
+                        listOfNotNull(shell.entries.firstOrNull { it.manifest.featured } ?: shell.entries.firstOrNull())
+                    }
+            }
+            if (featured.isNotEmpty()) {
+                SectionTitle(tr("Em destaque"), icon = R.drawable.ic_fav_on)
+                FeaturedCarousel(featured, shell, onOpen)
             }
 
-            val populares = shell.catalogEntries.filter { it.uid != featured?.uid }.take(3)
-            if (populares.isNotEmpty()) {
-                SectionTitle(tr("Populares"))
-                for (e in populares) {
-                    ModRow(e, shell.catalog, { onOpen(e.uid) }, Modifier.padding(bottom = 8.dp))
+            val counts = shell.downloadCounts
+            val ranked = counts.isNotEmpty()
+            val popular = remember(catalogEntries, counts, featured) {
+                if (!ranked) catalogEntries.filter { e -> featured.none { it.uid == e.uid } }.take(3)
+                else catalogEntries.filter { (counts[it.uid] ?: 0L) > 0L }
+                    .sortedByDescending { counts[it.uid] }.take(POPULAR_COUNT)
+            }
+            if (popular.isNotEmpty()) {
+                SectionTitle(tr("Populares"), icon = R.drawable.ic_download)
+                if (ranked) {
+                    PixelText(tr("Os mais baixados do catálogo."), size = Ts.Small, color = Bl.TextDim,
+                        modifier = Modifier.padding(start = 2.dp, bottom = 8.dp))
+                }
+                for ((i, e) in popular.withIndex()) {
+                    ModRow(e, shell.catalog, { onOpen(e.uid) }, Modifier.padding(bottom = 8.dp),
+                        downloads = counts[e.uid],
+                        besideIcon = if (ranked) ({ RankBadge(i + 1) }) else null) {
+                        StoreStatusTag(e, shell)
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -164,17 +195,87 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
     }
 }
 
+/** Quantos mods a lista de Populares do Início mostra. */
+private const val POPULAR_COUNT = 5
+
+/**
+ * Mods no catálogo, downloads somados e instalados, numa placa só. Os
+ * downloads só entram com o stats.json baixado.
+ */
+@Composable
+private fun CatalogNumbers(shell: Shell, modifier: Modifier = Modifier) {
+    val total = remember(shell.downloadCounts) { shell.downloadCounts.values.sum() }
+    PixelCard(modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
+            NumberCell("${shell.catalogEntries.size}", tr("no catálogo"), Modifier.weight(1f))
+            if (total > 0) NumberCell(formatCount(total), tr("downloads"), Modifier.weight(1f))
+            NumberCell("${shell.installed.size}", tr("instalados"), Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun NumberCell(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        PixelText(value, size = Ts.Head, color = Bl.PressedText)
+        PixelText(label, size = Ts.Small, color = Bl.TextFaint)
+    }
+}
+
+/**
+ * Um destaque é o cartão; mais de um vira carrossel, que passa sozinho a cada
+ * [FEATURED_TURN_MS] enquanto ninguém arrasta, com os pontos embaixo.
+ */
+@Composable
+private fun FeaturedCarousel(entries: List<Catalog.Entry>, shell: Shell, onOpen: (String) -> Unit) {
+    if (entries.size == 1) {
+        FeaturedCard(entries.single(), shell, onOpen)
+        return
+    }
+    val pager = rememberPagerState { entries.size }
+    LaunchedEffect(pager, entries.size) {
+        while (true) {
+            delay(FEATURED_TURN_MS)
+            if (!pager.isScrollInProgress) pager.animateScrollToPage((pager.currentPage + 1) % entries.size)
+        }
+    }
+    // A sombra do cartão passa da borda dele: a página reserva o espaço, ou
+    // o pager a cortaria.
+    HorizontalPager(pager, pageSpacing = 8.dp, verticalAlignment = Alignment.Top,
+        key = { entries[it].uid }) { page ->
+        Box(Modifier.padding(end = 4.dp, bottom = 5.dp)) { FeaturedCard(entries[page], shell, onOpen) }
+    }
+    Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.Center) {
+        for (i in entries.indices) {
+            val on = i == pager.currentPage
+            val description = tr("Destaque %1\$s de %2\$s", i + 1, entries.size)
+            Box(Modifier.padding(horizontal = 3.dp).size(if (on) 16.dp else 8.dp, 8.dp)
+                .pixelPanel(fill = if (on) Bl.PressedText else Bl.TitleFill)
+                .semantics { contentDescription = description })
+        }
+    }
+}
+
+private const val FEATURED_TURN_MS = 7_000L
+
 /**
  * O destaque reserva espaço para o ícone e separa autoria, resumo e ação.
  * A descrição completa continua na ficha do pacote.
  */
 @Composable
-private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) -> Unit) {
-    PixelCard(Modifier.fillMaxWidth(), onClick = { onOpen(entry.uid) }) {
+private fun FeaturedCard(
+    entry: Catalog.Entry,
+    shell: Shell,
+    onOpen: (String) -> Unit,
+    fill: Color = Bl.Panel,
+    isNew: Boolean = false,
+) {
+    PixelCard(Modifier.fillMaxWidth(), fill = fill, onClick = { onOpen(entry.uid) }) {
         Column(Modifier.padding(8.dp)) {
             Box(Modifier.fillMaxWidth()) {
                 ModBanner(entry, shell.catalog,
                     Modifier.fillMaxWidth().heightIn(min = 100.dp, max = 146.dp).aspectRatio(3.6f))
+                if (isNew) NewBadge(Modifier.align(Alignment.TopEnd).padding(8.dp))
 
                 Box(Modifier.align(Alignment.BottomStart).offset(x = 12.dp, y = 28.dp)) {
                     ModIcon(entry, shell.catalog, 64.dp)
@@ -206,6 +307,8 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
+                StoreStatusTag(entry, shell)
+                shell.downloadCounts[entry.uid]?.let { DownloadCount(it) }
                 Spacer(Modifier.weight(1f))
                 PixelText(tr("Ver detalhes"), size = Ts.Small, color = Bl.PressedText)
                 PixelIcon(R.drawable.ic_seta_esq, 16.dp, Modifier.rotate(180f))
@@ -219,6 +322,9 @@ private fun FeaturedCard(entry: Catalog.Entry, shell: Shell, onOpen: (String) ->
 /** Quantos cartões o Explorar acrescenta por vez. */
 private const val EXPLORE_PAGE = 10
 
+/** Quantos mods recém-publicados o topo do Explorar destaca. */
+private const val NEW_SPOTLIGHT = 3
+
 /**
  * O que vem dentro do app e o catálogo online. É daqui que um mod vai parar em
  * Pacotes. Ao voltar ao app a lista é atualizada; mudar de aba usa o cache
@@ -228,23 +334,39 @@ private const val EXPLORE_PAGE = 10
 fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf(PackType.MOD) }
+    val prefs = Prefs(LocalContext.current)
+    var sort by rememberSaveable {
+        mutableStateOf(ExploreSort.entries.firstOrNull { it.name == prefs.exploreSort } ?: ExploreSort.POPULAR)
+    }
     LaunchedEffect(Unit) { shell.refreshRemote() }
     // Montada e ordenada só quando a lista online muda (um ícone que chega a
     // troca), não a cada recomposição da aba.
     val all = shell.catalogEntries
     val search = rememberPackageSearchIndex(all)
     val counts = remember(all) { all.groupingBy { it.manifest.packType }.eachCount() }
-    val list = remember(all, type, query, search) {
-        searchPackages(all, query, type, index = search)
+    val downloads = shell.downloadCounts
+    val language = UiLocalization.language
+    val list = remember(all, type, query, search, sort, downloads, language) {
+        sortExplore(searchPackages(all, query, type, index = search), sort, downloads, language)
+    }
+    // Recém-publicados (RemoteMod.publishedAt), do mais novo ao mais antigo:
+    // ficam no topo enquanto não há busca, e com o selo também na lista.
+    val newest = remember(all) {
+        val now = System.currentTimeMillis()
+        all.filter { it.remote?.isNew(now) == true }.sortedByDescending { it.remote?.publishedMillis }
+    }
+    val newIds = remember(newest) { newest.map { it.uid }.toSet() }
+    val spotlight = remember(newest, type, query) {
+        if (query.isNotBlank()) emptyList() else newest.filter { it.manifest.packType == type }.take(NEW_SPOTLIGHT)
     }
     val state = rememberLazyListState()
-    LaunchedEffect(type, query) { state.scrollToItem(0) }
+    LaunchedEffect(type, query, sort) { state.scrollToItem(0) }
     // De 10 em 10: o catálogo vai passar de mil pacotes, e cada cartão que
     // aparece pede o ícone pela rede. A próxima página entra quando a rolagem
-    // chega perto do fim; trocar de busca ou de tipo volta à primeira.
-    var shown by rememberSaveable(type, query) { mutableIntStateOf(EXPLORE_PAGE) }
+    // chega perto do fim; trocar de busca, de tipo ou de ordem volta à primeira.
+    var shown by rememberSaveable(type, query, sort) { mutableIntStateOf(EXPLORE_PAGE) }
     val page = remember(list, shown) { list.take(shown) }
-    LaunchedEffect(state, list.size, type, query) {
+    LaunchedEffect(state, list.size, type, query, sort) {
         snapshotFlow { state.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
             .collect { last ->
                 if (last >= shown - 3 && shown < list.size) shown = (shown + EXPLORE_PAGE).coerceAtMost(list.size)
@@ -255,7 +377,9 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
         SearchField(query, { query = it }, Modifier.padding(horizontal = EdgePad, vertical = 10.dp))
         PackTypeTabs(type, counts, { type = it }, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
         FilterResultLine(list.size, query.isNotBlank(),
-            { query = "" }, Modifier.padding(horizontal = EdgePad, vertical = 6.dp))
+            { query = "" }, Modifier.padding(horizontal = EdgePad, vertical = 6.dp)) {
+            SortButton(sort) { sort = it; prefs.exploreSort = it.name }
+        }
         RemoteStatusLine(shell, Modifier.padding(start = EdgePad, end = EdgePad, bottom = 8.dp))
 
         PauseListAnimations({ state.isScrollInProgress }) {
@@ -268,15 +392,18 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
                     ),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(page, key = { it.uid }, contentType = { "package" }) { e ->
-                        ModRow(e, shell.catalog, { onOpen(e.uid) }) {
-                            val progress = shell.downloads[e.uid]
-                            when {
-                                progress != null -> PixelTag("${(progress * 100).toInt()}%")
-                                shell.updateFor(e.uid) != null -> PixelTag(tr("Atualizar"), Bl.Good)
-                                e.uid in shell.installed -> PixelTag(tr("Instalado"))
-                            }
+                    if (spotlight.isNotEmpty()) {
+                        item(key = "new-title", contentType = "title") { NewModsTitle() }
+                        item(key = "new-featured", contentType = "new-featured") {
+                            FeaturedCard(spotlight.first(), shell, onOpen, fill = Bl.NewPanel, isNew = true)
                         }
+                        items(spotlight.drop(1), key = { "new:" + it.uid }, contentType = { "package" }) { e ->
+                            ExploreRow(e, shell, onOpen, isNew = true, fill = Bl.NewPanel)
+                        }
+                        item(key = "all-title", contentType = "title") { SectionTitle(tr("Todos")) }
+                    }
+                    items(page, key = { it.uid }, contentType = { "package" }) { e ->
+                        ExploreRow(e, shell, onOpen, isNew = e.uid in newIds)
                     }
                     if (page.size < list.size) {
                         item(key = "more", contentType = "more") {
@@ -295,6 +422,68 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
     }
 }
 
+@Composable
+private fun ExploreRow(
+    entry: Catalog.Entry,
+    shell: Shell,
+    onOpen: (String) -> Unit,
+    isNew: Boolean,
+    fill: Color = Bl.Panel,
+) {
+    ModRow(entry, shell.catalog, { onOpen(entry.uid) }, fill = fill, downloads = shell.downloadCounts[entry.uid]) {
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            if (isNew) NewBadge()
+            StoreStatusTag(entry, shell)
+        }
+    }
+}
+
+/** Baixando, com versão nova ou já instalado: o mesmo selo na lista e no destaque. */
+@Composable
+private fun StoreStatusTag(entry: Catalog.Entry, shell: Shell) {
+    val progress = shell.downloads[entry.uid]
+    when {
+        progress != null -> PixelTag("${(progress * 100).toInt()}%")
+        shell.updateFor(entry.uid) != null -> PixelTag(tr("Atualizar"), Bl.Good)
+        entry.uid in shell.installed -> PixelTag(tr("Instalado"))
+    }
+}
+
+@Composable
+private fun NewModsTitle() {
+    Box(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)) {
+        Box(Modifier.pixelPanel(fill = Bl.NewTitleFill)
+            .padding(horizontal = 12.dp, vertical = 5.dp)) {
+            PixelText(tr("Novos no catálogo"), size = Ts.Head, color = Bl.Text)
+        }
+    }
+}
+
+/**
+ * O selo "NEW" (21x10, ampliado sem filtro). Sobe e desce devagar, só na
+ * camada: o cartão em volta não é redesenhado, e para durante a rolagem.
+ */
+@Composable
+private fun NewBadge(modifier: Modifier = Modifier) {
+    val fx = LocalThemeFx.current
+    val bob = androidx.compose.animation.core.rememberInfiniteTransition(label = "selo novo")
+    val lift by bob.animateFloat(0f, 1f,
+        androidx.compose.animation.core.infiniteRepeatable(
+            androidx.compose.animation.core.tween(700),
+            androidx.compose.animation.core.RepeatMode.Reverse),
+        label = "selo novo sobe")
+    val step = with(androidx.compose.ui.platform.LocalDensity.current) { 2.dp.toPx() }
+    Image(
+        bitmap = ImageBitmap.imageResource(R.drawable.ic_new),
+        contentDescription = tr("Novo"),
+        filterQuality = FilterQuality.None,
+        modifier = modifier.size(42.dp, 20.dp).graphicsLayer {
+            // Um pixel da arte (2 dp) por vez: nada de meio pixel borrado.
+            translationY = if (fx.paused()) 0f else -kotlin.math.round(lift) * step
+        },
+    )
+}
+
 /**
  * Falha do catálogo online. O progresso fica no indicador de atualização.
  */
@@ -309,7 +498,7 @@ private fun RemoteStatusLine(shell: Shell, modifier: Modifier = Modifier) {
             size = Ts.Small, color = Bl.Bad, modifier = Modifier.weight(1f),
         )
         PixelButton(tr("Tentar de novo"), { shell.refreshRemote(force = true) },
-            fontSize = Ts.Small, shadow = false)
+            fontSize = Ts.Small)
     }
 }
 
@@ -433,9 +622,9 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PixelButton(tr("Cancelar"), { asking = false }, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
+                    PixelButton(tr("Cancelar"), { asking = false }, Modifier.weight(1f), fontSize = Ts.Body)
                     PixelButton(tr("Escolher arquivo"), { asking = false; picker.launch(arrayOf("*/*")) },
-                        Modifier.weight(1f), fill = Bl.TitleFill, fontSize = Ts.Body, shadow = false)
+                        Modifier.weight(1f), fill = Bl.TitleFill, fontSize = Ts.Body)
                 }
             }
         }
@@ -506,13 +695,67 @@ private fun rememberPackageSearchIndex(packages: List<Catalog.Entry>): PackageSe
 }
 
 @Composable
-private fun FilterResultLine(count: Int, active: Boolean, onReset: () -> Unit, modifier: Modifier = Modifier) {
+private fun FilterResultLine(
+    count: Int, active: Boolean, onReset: () -> Unit, modifier: Modifier = Modifier,
+    trailing: @Composable (() -> Unit)? = null,
+) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         PixelText(tr(if (count == 1) "%1\$s pacote" else "%1\$s pacotes", count), size = Ts.Small,
             color = Bl.TextFaint, modifier = Modifier.weight(1f))
         if (active) {
             Box(Modifier.pixelClickable(onReset).padding(horizontal = 8.dp, vertical = 4.dp)) {
                 PixelText(tr("Limpar busca"), size = Ts.Small, color = Bl.PressedText)
+            }
+        }
+        trailing?.invoke()
+    }
+}
+
+/**
+ * "Ordenar: Mais baixados", e a lista das ordens logo abaixo dele. A ordem
+ * escolhida é a que fica acesa: o retorno é o próprio menu, sem aviso.
+ */
+@Composable
+private fun SortButton(sort: ExploreSort, onSort: (ExploreSort) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    var height by remember { mutableIntStateOf(0) }
+    Box {
+        Row(
+            Modifier.onSizeChanged { height = it.height }
+                .pixelPanel(fill = if (open) Bl.TitleFill else Bl.Select, raised = !open)
+                .pixelClickable { open = !open }
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            PixelText(tr("Ordenar:"), size = Ts.Small, color = Bl.TextFaint)
+            PixelText(sort.label, size = Ts.Small, color = Bl.PressedText)
+            PixelIcon(R.drawable.ic_seta_dir, 14.dp, Modifier.rotate(if (open) -90f else 90f))
+        }
+        if (open) {
+            androidx.compose.ui.window.Popup(
+                alignment = Alignment.TopEnd,
+                offset = androidx.compose.ui.unit.IntOffset(0, height + 4),
+                onDismissRequest = { open = false },
+                properties = androidx.compose.ui.window.PopupProperties(focusable = true),
+            ) {
+                Column(
+                    Modifier.width(androidx.compose.foundation.layout.IntrinsicSize.Max)
+                        .pixelPanel(corner = PixelCorner.LARGE).padding(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    for (option in ExploreSort.entries) {
+                        val on = option == sort
+                        Box(
+                            Modifier.fillMaxWidth()
+                                .then(if (on) Modifier.pixelPanel(fill = Bl.TitleFill) else Modifier)
+                                .pixelClickable { onSort(option); open = false }
+                                .padding(horizontal = 14.dp, vertical = 9.dp),
+                        ) {
+                            PixelText(option.label, size = Ts.Body, color = if (on) Bl.PressedText else Bl.Text)
+                        }
+                    }
+                }
             }
         }
     }
@@ -549,6 +792,9 @@ fun ConfigTab(
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
             ProfileHeader(prefs, Modifier.padding(top = 14.dp))
+
+            SectionTitle(tr("Comunidade"))
+            DiscordCard()
 
             SectionTitle(tr("Coleção"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -622,11 +868,11 @@ fun ConfigTab(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         PixelButton(tr("Ver relatório"), { log = BootLog.read(ctx) },
-                            fontSize = Ts.Small, shadow = false)
+                            fontSize = Ts.Small)
                         if (log.isNotEmpty()) {
                             PixelButton(tr("Copiar"), {
                                 clipboard.setText(AnnotatedString(log))
-                            }, fontSize = Ts.Small, shadow = false)
+                            }, fontSize = Ts.Small)
                         }
                     }
                     if (log.isNotEmpty()) {
@@ -875,9 +1121,9 @@ private fun UpdateImportDialog(file: ModManifest, installed: ModManifest, onAnsw
             PixelText(tr("O arquivo é mais antigo que o mod instalado."), size = Ts.Small, color = Bl.Bad)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PixelButton(tr("Cancelar"), { onAnswer(false) }, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
+            PixelButton(tr("Cancelar"), { onAnswer(false) }, Modifier.weight(1f), fontSize = Ts.Body)
             PixelButton(tr("Atualizar"), { onAnswer(true) }, Modifier.weight(1f), fill = Bl.TitleFill,
-                fontSize = Ts.Body, shadow = false)
+                fontSize = Ts.Body)
         }
     }
 }

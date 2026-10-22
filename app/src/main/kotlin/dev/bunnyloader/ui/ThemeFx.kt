@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -20,7 +21,13 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import dev.bunnyloader.R
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.sin
@@ -32,14 +39,19 @@ import kotlin.math.sin
  *  - Floresta: o cartão balança com o vento, em rajadas;
  *  - Oceano (chuva): uma faixa de brilho molhado escorre pelo cartão, com gotas;
  *  - Lago: bolhas pequenas, as do Terraria, sobem de dentro do cartão;
- *  - Neve: um montinho de neve em cima do cartão e um brilho de gelo que pisca.
+ *  - Neve: um montinho de neve em cima do cartão e um brilho de gelo que pisca;
+ *  - Halloween: teia no canto de alguns cartões, com a aranha descendo no fio;
+ *  - Cogumelos: esporos azuis subindo; Deserto: areia passando rente ao pé;
+ *  - Sagrado: cruzinhas coloridas piscando.
  *
  * Tudo é função do tempo ([ThemeFx.time]) e do lugar do cartão na composição:
  * nada é guardado por partícula, nada recompõe — só redesenha.
  */
-enum class CardFx { NONE, SWAY, WET, BUBBLES, FROST }
+enum class CardFx { NONE, SWAY, WET, BUBBLES, FROST, WEB, SPORES, SAND, SPARKLE }
 
 class ThemeFx(val card: CardFx, val time: State<Float>, val paused: () -> Boolean = { false })
+
+private val CardShape = PixelShape(PixelCorner.LARGE)
 
 val LocalThemeFx = staticCompositionLocalOf { ThemeFx(CardFx.NONE, mutableFloatStateOf(0f)) }
 
@@ -57,6 +69,10 @@ fun Biome.cardFx(): CardFx = when (this) {
     Biome.OCEAN -> CardFx.WET
     Biome.LAKE -> CardFx.BUBBLES
     Biome.SNOW -> CardFx.FROST
+    Biome.HALLOWEEN -> CardFx.WEB
+    Biome.MUSHROOM -> CardFx.SPORES
+    Biome.DESERT -> CardFx.SAND
+    Biome.HALLOW -> CardFx.SPARKLE
 }
 
 /** Um número de 0 a 1 que não muda para o mesmo cartão. */
@@ -96,13 +112,18 @@ fun Modifier.cardSway(fx: ThemeFx, seed: Int): Modifier =
  */
 @Composable
 fun BoxScope.CardFxOverlay(fx: ThemeFx, seed: Int) {
+    val web = if (fx.card == CardFx.WEB) ImageBitmap.imageResource(R.drawable.spr_web) else null
     val draw: (DrawScope.(Float) -> Unit) = when (fx.card) {
         CardFx.WET -> { t -> drawWet(t, seed) }
         CardFx.BUBBLES -> { t -> drawBubbles(t, seed) }
         CardFx.FROST -> { t -> drawFrost(t, seed) }
+        CardFx.WEB -> if (unit(seed, 4) < 0.4f) { t -> drawWeb(t, seed, web!!) } else return
+        CardFx.SPORES -> { t -> drawCardSpores(t, seed) }
+        CardFx.SAND -> { t -> drawCardSand(t, seed) }
+        CardFx.SPARKLE -> { t -> drawSparkles(t, seed) }
         else -> return
     }
-    Spacer(Modifier.matchParentSize().drawBehind { if (!fx.paused()) draw(fx.time.value) })
+    Spacer(Modifier.matchParentSize().clip(CardShape).drawBehind { if (!fx.paused()) draw(fx.time.value) })
 }
 
 /** Uma faixa clara que desce devagar, e gotas escorrendo. */
@@ -168,4 +189,77 @@ private fun DrawScope.drawFrost(t: Float, seed: Int) {
     val c = Color.White.copy(alpha = a * 0.9f)
     drawRect(c, Offset(sx, sy - px), Size(px, px * 3))
     drawRect(c, Offset(sx - px, sy), Size(px * 3, px))
+}
+
+/**
+ * Teia no canto de cima à direita (spr_web, 24x24, um pixel da arte por 2 dp)
+ * e uma aranha que desce e sobe pelo fio. Só em parte dos cartões: teia em
+ * todos vira papel de parede.
+ */
+private fun DrawScope.drawWeb(t: Float, seed: Int, web: ImageBitmap) {
+    val px = 2.dp.toPx()
+    val w = web.width * px
+    drawImage(
+        web, srcOffset = IntOffset.Zero, srcSize = IntSize(web.width, web.height),
+        dstOffset = IntOffset((size.width - w).toInt(), 0), dstSize = IntSize(w.toInt(), (web.height * px).toInt()),
+        alpha = 0.55f, filterQuality = FilterQuality.None,
+    )
+    val x = size.width - w * 0.55f
+    val drop = (0.5f + 0.5f * sin(t * 0.7f + unit(seed, 6) * 6.28f)) * minOf(size.height * 0.45f, 26.dp.toPx())
+    val y = w * 0.45f + drop
+    val thread = Color(0x8CE8E8F0)
+    drawRect(thread, Offset(x, w * 0.45f), Size(px / 2, drop))
+    // A aranha: corpo de 3x2 pixels e as pernas, pretas e roxas.
+    val body = Color(0xFF14081C)
+    drawRect(body, Offset(x - px, y), Size(px * 3, px * 2))
+    drawRect(Color(0xFF5A2A6A), Offset(x, y), Size(px, px))
+    for (side in listOf(-1f, 1f)) {
+        val lx = if (side < 0) x - px * 2 else x + px * 2
+        drawRect(body, Offset(lx, y - px / 2), Size(px, px / 2))
+        drawRect(body, Offset(lx, y + px * 2), Size(px, px / 2))
+    }
+}
+
+/** Esporos azuis subindo de dentro do cartão, como os do bioma. */
+private fun DrawScope.drawCardSpores(t: Float, seed: Int) {
+    val px = 2.dp.toPx()
+    for (k in 0 until 4) {
+        val period = 4f + 3f * unit(seed, 130 + k)
+        val q = ((t + unit(seed, 140 + k) * period) / period) % 1f
+        val x = size.width * (0.06f + 0.88f * unit(seed, 150 + k)) + sin(q * 7f + k) * 4.dp.toPx()
+        val y = size.height * (1f - q)
+        val a = 0.8f * sin(q * PI.toFloat())
+        drawRect(Color(0xFF7FE0FF).copy(alpha = a * 0.3f), Offset(x - px, y - px), Size(px * 3, px * 3))
+        drawRect(Color(0xFFBFF4FF).copy(alpha = a), Offset(x, y), Size(px, px))
+    }
+}
+
+/** Grãos de areia correndo rente ao pé do cartão. */
+private fun DrawScope.drawCardSand(t: Float, seed: Int) {
+    val px = 2.dp.toPx()
+    for (k in 0 until 6) {
+        val speed = 0.25f + 0.25f * unit(seed, 160 + k)
+        val q = (t * speed + unit(seed, 170 + k)) % 1f
+        val x = q * (size.width + 20.dp.toPx()) - 10.dp.toPx()
+        val y = size.height - px * (2 + (unit(seed, 180 + k) * 8).toInt())
+        drawRect(Color(0xFFF0D8A0).copy(alpha = 0.55f * sin(q * PI.toFloat())), Offset(x, y), Size(px * 2, px / 2 + px / 2))
+    }
+}
+
+/** Cruzinhas do Sagrado, cada uma acendendo e apagando no seu ritmo. */
+private fun DrawScope.drawSparkles(t: Float, seed: Int) {
+    val px = 2.dp.toPx()
+    val colors = listOf(Color(0xFFFF8AD8), Color(0xFF8AF0FF), Color(0xFFFFF08A))
+    for (k in 0 until 3) {
+        val period = 2.2f + unit(seed, 190 + k) * 1.6f
+        val cycle = ((t + unit(seed, 200 + k) * period) / period)
+        val q = cycle % 1f
+        val a = (1f - abs(q * 2f - 1f)).let { it * it }
+        val n = cycle.toInt()
+        val x = size.width * (0.08f + 0.84f * unit(seed, 210 + k * 7 + n))
+        val y = size.height * (0.15f + 0.7f * unit(seed, 220 + k * 7 + n))
+        val c = colors[k].copy(alpha = a * 0.9f)
+        drawRect(c, Offset(x, y - px), Size(px, px * 3))
+        drawRect(c, Offset(x - px, y), Size(px * 3, px))
+    }
 }

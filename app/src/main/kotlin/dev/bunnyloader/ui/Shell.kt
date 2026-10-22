@@ -8,13 +8,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.CatalogProgress
+import dev.bunnyloader.mods.CatalogSnapshot
 import dev.bunnyloader.mods.ModManifest
 import dev.bunnyloader.mods.ModOrder
 import dev.bunnyloader.mods.ModRepository
 import dev.bunnyloader.mods.RemoteCatalog
 import dev.bunnyloader.mods.compareVersions
 import dev.bunnyloader.mods.networkMessage
-import dev.bunnyloader.mods.unseenModUpdates
+import dev.bunnyloader.mods.UpdateNotice
+import dev.bunnyloader.mods.dueModUpdates
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
@@ -78,10 +80,16 @@ class Shell(context: Context) {
     private val filesLoaded = mutableSetOf<String>()
     private val remoteMedia = StoreMedia()
     private val noticePrefs = context.getSharedPreferences("mod_update_notices", Context.MODE_PRIVATE)
-    private var announcedVersions = noticePrefs.all.mapNotNull { (uid, value) ->
-        (value as? String)?.let { uid to it }
+    /** Versão e hora do último aviso de cada mod: "<uid>" e "<uid>@shownAt". */
+    private var announced = noticePrefs.all.mapNotNull { (uid, value) ->
+        (value as? String)?.let { uid to UpdateNotice(it, noticePrefs.getLong(uid + SHOWN_AT, 0L)) }
     }.toMap()
 
+    /**
+     * O que a janela de atualizações mostra. A lista fica parada enquanto ela
+     * está aberta: um mod atualizado continua nela, marcado como feito, e a
+     * janela só fecha pelo botão.
+     */
     var updateNotices by mutableStateOf(emptyList<Catalog.Entry>())
         private set
 
@@ -94,6 +102,12 @@ class Shell(context: Context) {
     var remoteStatus by mutableStateOf<RemoteStatus>(RemoteStatus.Idle)
         private set
     var remoteProgress by mutableStateOf<CatalogProgress?>(null)
+        private set
+    /** Os uids do "Em destaque", escolhidos no índice online. */
+    var featuredUids by mutableStateOf(emptyList<String>())
+        private set
+    /** Downloads de cada mod do catálogo online, pelo uid (stats.json). */
+    var downloadCounts by mutableStateOf(emptyMap<String, Long>())
         private set
     private var remoteFetchedAt = 0L
     private var remoteCacheLoaded = false
@@ -151,14 +165,25 @@ class Shell(context: Context) {
 
     fun installedVersion(uid: String): String? = installedVersions[uid]
 
-    /** Chamado quando o popup fica visível, não ao terminar a busca em segundo plano. */
+    /** O aviso desta versão já foi atendido: a instalada chegou nela. */
+    fun isUpdated(entry: Catalog.Entry): Boolean =
+        installedVersions[entry.uid]?.let { compareVersions(it, entry.manifest.version) >= 0 } == true
+
+    /**
+     * Chamado quando o popup fica visível, não ao terminar a busca em segundo
+     * plano. A hora é o que traz o mesmo aviso de volta (UPDATE_REMIND_MS).
+     */
     fun markUpdateNoticesShown() {
-        val notices = updateNotices
+        val notices = updateNotices.filterNot(::isUpdated)
         if (notices.isEmpty()) return
+        val now = System.currentTimeMillis()
         noticePrefs.edit().apply {
-            for (entry in notices) putString(entry.uid, entry.manifest.version)
+            for (entry in notices) {
+                putString(entry.uid, entry.manifest.version)
+                putLong(entry.uid + SHOWN_AT, now)
+            }
         }.apply()
-        announcedVersions = announcedVersions + notices.associate { it.uid to it.manifest.version }
+        announced = announced + notices.associate { it.uid to UpdateNotice(it.manifest.version, now) }
     }
 
     fun dismissUpdateNotices() {
@@ -171,9 +196,9 @@ class Shell(context: Context) {
 
     private fun offerUpdateNotices(available: List<Catalog.Entry>) {
         if (updateNotices.isNotEmpty()) return
-        val unseen = unseenModUpdates(installedVersions,
-            available.associate { it.uid to it.manifest.version }, announcedVersions)
-        updateNotices = available.filter { it.uid in unseen }.sortedBy { it.manifest.nameFor(UiLocalization.language).lowercase() }
+        val due = dueModUpdates(installedVersions,
+            available.associate { it.uid to it.manifest.version }, announced, System.currentTimeMillis())
+        updateNotices = available.filter { it.uid in due }.sortedBy { it.manifest.nameFor(UiLocalization.language).lowercase() }
     }
 
     /**
@@ -187,7 +212,7 @@ class Shell(context: Context) {
         remoteProgress = null
         scope.launch {
             if (!remoteCacheLoaded) {
-                remote = withContext(Dispatchers.IO) { remoteCatalog.cached() }
+                showRemote(withContext(Dispatchers.IO) { remoteCatalog.cached() })
                 remoteCacheLoaded = true
             }
             val result = withContext(Dispatchers.IO) {
@@ -203,15 +228,21 @@ class Shell(context: Context) {
                 }
             }
             result.onSuccess {
-                remote = it
+                showRemote(it)
                 remoteFetchedAt = System.currentTimeMillis()
                 remoteStatus = RemoteStatus.Ready
-                offerUpdateNotices(it)
+                offerUpdateNotices(it.entries)
             }.onFailure {
                 remoteStatus = RemoteStatus.Failed(networkMessage(it))
                 offerUpdateNotices(remote)
             }
         }
+    }
+
+    private fun showRemote(snapshot: CatalogSnapshot) {
+        remote = snapshot.entries
+        featuredUids = snapshot.featured
+        downloadCounts = snapshot.downloads
     }
 
     /**
@@ -246,6 +277,9 @@ class Shell(context: Context) {
                     }
                 }
             }
+            // A versão nova vale já, antes do rescan: sem isto, entre o fim do
+            // download e a releitura do disco, o botão "Atualizar" voltava.
+            result.onSuccess { installedVersions = installedVersions + (it.uid to it.version) }
             downloads = downloads - mod.uid
             result.onFailure {
                 downloadErrors = downloadErrors + (mod.uid to networkMessage(it))
@@ -436,9 +470,9 @@ class Shell(context: Context) {
                     installedVersions = scanned.associate { it.uid to it.manifest.version }
                     val catalogIds = entries.map { it.uid }.toSet()
                     imported = packages.filter { it.uid !in catalogIds }
-                    updateNotices = updateNotices.filter { entry ->
-                        installedVersions[entry.uid]?.let { compareVersions(entry.manifest.version, it) > 0 } == true
-                    }
+                    // Atualizado continua na janela aberta (marcado como feito); só
+                    // sai o que foi desinstalado.
+                    updateNotices = updateNotices.filter { it.uid in installedVersions }
                     if (remoteStatus == RemoteStatus.Ready || remoteStatus is RemoteStatus.Failed) {
                         offerUpdateNotices(remote)
                     }
@@ -464,6 +498,8 @@ sealed interface RemoteStatus {
     data object Ready : RemoteStatus
     data class Failed(val message: String) : RemoteStatus
 }
+
+private const val SHOWN_AT = "@shownAt"
 
 /** Voltar à aba Explorar dentro disto não baixa a lista de novo. */
 private const val REMOTE_TTL_MS = 10 * 60 * 1000L

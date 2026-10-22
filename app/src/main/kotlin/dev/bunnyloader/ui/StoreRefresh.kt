@@ -62,7 +62,7 @@ internal fun StorePullToRefresh(
                         alpha = distance.coerceIn(0f, 1f)
                         translationY = (distance.coerceIn(0f, 1f) - 1f) * size.height
                     }
-                    .pixelShadow(2.dp, 3.dp).pixelPanel(fill = Bl.Select)
+                    .pixelPanel(fill = Bl.Select)
                     .padding(horizontal = 12.dp, vertical = 8.dp)
                     .semantics { liveRegion = LiveRegionMode.Polite },
                 verticalAlignment = Alignment.CenterVertically,

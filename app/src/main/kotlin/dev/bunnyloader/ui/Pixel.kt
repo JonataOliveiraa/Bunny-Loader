@@ -29,6 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -36,6 +44,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.imageResource
@@ -156,14 +166,54 @@ private val OUTLINE_OFFSETS = listOf(-1 to 0, 1 to 0, 0 to -1, 0 to 1)
 // ------------------------------- painéis -------------------------------
 
 /**
- * Sombra projetada, do jeito que arte de pixel faz: um retângulo sólido
- * deslocado, sem desfoque nenhum. Desfoque num layout de pixel entrega que a
- * interface não é do mesmo material que o resto.
- *
- * Vem ANTES do pixelPanel na corrente — quem desenha primeiro fica atrás.
+ * O canto dos painéis do Terraria, em pixels da arte (2 dp): quanto cada linha
+ * do topo entra. LARGE é o do slot do inventário (Inventory_Back: 4, 2, 1, 1);
+ * SMALL, o de botões e etiquetas. O degrau é inteiro, nunca curva suavizada:
+ * o canto continua pixelado como o resto.
  */
-fun Modifier.pixelShadow(dx: Dp = 4.dp, dy: Dp = 5.dp): Modifier = drawBehind {
-    drawRect(Bl.Shadow, Offset(dx.toPx(), dy.toPx()), size)
+enum class PixelCorner(internal vararg val steps: Int) {
+    NONE(), SMALL(2, 1), LARGE(4, 2, 1, 1);
+}
+
+/** O tamanho de um pixel da arte na interface: também a espessura do contorno. */
+private val ArtPixel = 2.dp
+
+/**
+ * O contorno em degraus de um retângulo, no sentido horário. O canto de cima à
+ * esquerda é montado uma vez e espelhado nos outros três.
+ */
+internal fun steppedOutline(size: Size, unit: Float, corner: PixelCorner): Path {
+    val w = size.width
+    val h = size.height
+    val path = Path()
+    val steps = corner.steps
+    if (steps.isEmpty() || w < unit * steps[0] * 2 + unit || h < unit * steps.size * 2 + unit) {
+        path.addRect(Rect(0f, 0f, w, h))
+        return path
+    }
+    // Da borda esquerda (abaixo do canto) até a de cima (depois dele).
+    val n = steps.size
+    val corner0 = buildList {
+        add(Offset(0f, n * unit))
+        for (k in n - 1 downTo 0) {
+            add(Offset(steps[k] * unit, (k + 1) * unit))
+            add(Offset(steps[k] * unit, k * unit))
+        }
+    }
+    path.moveTo(corner0[0].x, corner0[0].y)
+    corner0.forEach { path.lineTo(it.x, it.y) }
+    corner0.asReversed().forEach { path.lineTo(w - it.x, it.y) }
+    corner0.forEach { path.lineTo(w - it.x, h - it.y) }
+    corner0.asReversed().forEach { path.lineTo(it.x, h - it.y) }
+    path.close()
+    return path
+}
+
+/** O mesmo degrau como Shape, para recortar o que vai dentro (efeitos do tema, imagens). */
+class PixelShape(private val corner: PixelCorner) : Shape {
+    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline =
+        if (corner == PixelCorner.NONE) Outline.Rectangle(Rect(0f, 0f, size.width, size.height))
+        else Outline.Generic(steppedOutline(size, with(density) { ArtPixel.toPx() }, corner))
 }
 
 /**
@@ -172,7 +222,11 @@ fun Modifier.pixelShadow(dx: Dp = 4.dp, dy: Dp = 5.dp): Modifier = drawBehind {
  *
  * A cor é chapada: é a da paleta, e um degradê por cima a tiraria do tom. Quem
  * dá o volume é a borda de três camadas — contorno, luz e sombra — que é o que
- * o próprio Terraria usa nos painéis dele.
+ * o próprio Terraria usa nos painéis dele. Sem sombra projetada embaixo: o
+ * painel do jogo não tem, e ela engrossava um lado só.
+ *
+ * O degrau do canto é recortado (o bisel não vaza) e o contorno segue o degrau:
+ * um traço de 2 pixels de arte centrado na borda, metade dele cortada fora.
  */
 fun Modifier.pixelPanel(
     fill: Color = Bl.Panel,
@@ -181,31 +235,39 @@ fun Modifier.pixelPanel(
     light: Color = fill.mix(Color.White, 0.14f),
     dark: Color = fill.mix(Bl.Night, 0.45f),
     gradient: Boolean = false,
-): Modifier = drawBehind {
-    val b = 2.dp.toPx()
-    val e = 2.dp.toPx()
-    val w = size.width
-    val h = size.height
-    drawRect(outline)
-    val inner = Size(w - 2 * b, h - 2 * b)
-    if (gradient) {
-        drawRect(
-            Brush.verticalGradient(
-                listOf(fill.mix(light, 0.22f), fill, fill.mix(Bl.Night, 0.18f)),
-                startY = b, endY = h - b,
-            ),
-            Offset(b, b), inner,
-        )
-    } else {
-        drawRect(fill, Offset(b, b), inner)
+    corner: PixelCorner = PixelCorner.SMALL,
+): Modifier = drawWithCache {
+    val b = ArtPixel.toPx()
+    val shape = if (corner == PixelCorner.NONE) null else steppedOutline(size, b, corner)
+    val stroke = Stroke(b * 2)
+    onDrawBehind {
+        val w = size.width
+        val h = size.height
+        val body: DrawScope.() -> Unit = {
+            if (shape == null) drawRect(outline)
+            val inner = Size(w - 2 * b, h - 2 * b)
+            if (gradient) {
+                drawRect(
+                    Brush.verticalGradient(
+                        listOf(fill.mix(light, 0.22f), fill, fill.mix(Bl.Night, 0.18f)),
+                        startY = b, endY = h - b,
+                    ),
+                    Offset(b, b), inner,
+                )
+            } else {
+                drawRect(fill, Offset(b, b), inner)
+            }
+            val top = if (raised) light else dark
+            val bottom = if (raised) dark else light
+            // Luz em cima e à esquerda; sombra embaixo e à direita.
+            drawRect(top, Offset(b, b), Size(w - 2 * b, b))
+            drawRect(top, Offset(b, b), Size(b, h - 2 * b))
+            drawRect(bottom, Offset(b, h - 2 * b), Size(w - 2 * b, b))
+            drawRect(bottom, Offset(w - 2 * b, b), Size(b, h - 2 * b))
+            if (shape != null) drawPath(shape, outline, style = stroke)
+        }
+        if (shape == null) body() else clipPath(shape) { body() }
     }
-    val top = if (raised) light else dark
-    val bottom = if (raised) dark else light
-    // Luz em cima e à esquerda; sombra embaixo e à direita.
-    drawRect(top, Offset(b, b), Size(w - 2 * b, e))
-    drawRect(top, Offset(b, b), Size(e, h - 2 * b))
-    drawRect(bottom, Offset(b, h - b - e), Size(w - 2 * b, e))
-    drawRect(bottom, Offset(w - b - e, b), Size(e, h - 2 * b))
 }
 
 /**
@@ -223,21 +285,55 @@ fun Modifier.framePanel(
 
 /**
  * Clique com a borda amarela do toque, desenhada POR CIMA do conteúdo: assim
- * vale para cartão, moldura e botão sem cada um saber disso.
+ * vale para cartão, moldura e botão sem cada um saber disso. O `corner` é o do
+ * painel por baixo, para a borda amarela seguir o mesmo degrau.
  */
-fun Modifier.pixelClickable(onClick: () -> Unit): Modifier = composed {
+fun Modifier.pixelClickable(onClick: () -> Unit): Modifier = pixelClickable(PixelCorner.SMALL, onClick)
+
+fun Modifier.pixelClickable(corner: PixelCorner, onClick: () -> Unit): Modifier = composed {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     drawWithContent {
         drawContent()
-        if (pressed) drawPressBorder()
+        if (pressed) drawPressBorder(corner)
     }.clickable(interaction, indication = null, onClick = onClick)
 }
 
-fun DrawScope.drawPressBorder() {
-    val b = 2.dp.toPx()
-    drawRect(Bl.PressedBorder, Offset(b / 2, b / 2), Size(size.width - b, size.height - b),
-        style = Stroke(b))
+fun DrawScope.drawPressBorder(corner: PixelCorner = PixelCorner.NONE) {
+    val b = ArtPixel.toPx()
+    if (corner == PixelCorner.NONE) {
+        drawRect(Bl.PressedBorder, Offset(b / 2, b / 2), Size(size.width - b, size.height - b),
+            style = Stroke(b))
+        return
+    }
+    val shape = steppedOutline(size, b, corner)
+    clipPath(shape) { drawPath(shape, Bl.PressedBorder, style = Stroke(b * 2)) }
+}
+
+/**
+ * Um disco em pixel de arte, pintado num bitmap de `diameter` pixels para ser
+ * ampliado sem filtro: contorno, aro (luz em cima à esquerda, sombra embaixo à
+ * direita), miolo e um brilho curto no alto do miolo.
+ */
+fun pixelDisk(diameter: Int, outline: Color, fill: Color, light: Color, dark: Color): ImageBitmap {
+    val bitmap = android.graphics.Bitmap.createBitmap(diameter, diameter, android.graphics.Bitmap.Config.ARGB_8888)
+    val r = diameter / 2f
+    val colors = intArrayOf(outline.toArgb(), light.toArgb(), dark.toArgb(), fill.toArgb(),
+        fill.mix(Color.White, 0.22f).toArgb())
+    for (y in 0 until diameter) for (x in 0 until diameter) {
+        val dx = x + 0.5f - r
+        val dy = y + 0.5f - r
+        val d = kotlin.math.sqrt(dx * dx + dy * dy)
+        val c = when {
+            d > r -> 0
+            d > r - 1.2f -> colors[0]
+            d > r - 2.4f -> if (dx + dy < 0) colors[1] else colors[2]
+            d > r - 4.6f && d < r - 3.4f && dy < -r * 0.45f && dx < 0 -> colors[4]
+            else -> colors[3]
+        }
+        bitmap.setPixel(x, y, c)
+    }
+    return bitmap.asImageBitmap()
 }
 
 fun Color.mix(other: Color, t: Float) = Color(
@@ -248,32 +344,29 @@ fun Color.mix(other: Color, t: Float) = Color(
 )
 
 /**
- * O recipiente padrão. Com sombra: sem ela o cartão vira um retângulo pintado
- * no fundo, e a tela inteira fica com cara de esboço.
+ * O recipiente padrão, com o canto grande do slot do inventário.
  */
 @Composable
 fun PixelCard(
     modifier: Modifier = Modifier,
     fill: Color = Bl.Panel,
-    shadow: Boolean = true,
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    // O efeito do tema (ThemeFx): o balanço vem por fora de tudo (sombra e
-    // conteúdo juntos); chuva, bolhas e neve, por cima do conteúdo.
+    // O efeito do tema (ThemeFx): o balanço vem por fora de tudo; chuva,
+    // bolhas e neve, por cima do conteúdo e recortadas pelo canto.
     val fx = LocalThemeFx.current
     val seed = androidx.compose.runtime.currentCompositeKeyHash
-    val themed = modifier.cardSway(fx, seed)
-    val base = (if (shadow) themed.pixelShadow() else themed).pixelPanel(fill = fill)
-    Box(if (onClick != null) base.pixelClickable(onClick) else base) {
+    val base = modifier.cardSway(fx, seed).pixelPanel(fill = fill, corner = PixelCorner.LARGE)
+    Box(if (onClick != null) base.pixelClickable(PixelCorner.LARGE, onClick) else base) {
         content()
         CardFxOverlay(fx, seed)
     }
 }
 
 /**
- * Botão de ação. Dentro de painéis, `shadow = false` mantém o botão no lugar.
- * Enquanto pressionado, afunda o bisel, clareia e ganha a borda amarela.
+ * Botão de ação. Enquanto pressionado, afunda o bisel, clareia e ganha a
+ * borda amarela.
  */
 @Composable
 fun PixelButton(
@@ -284,16 +377,12 @@ fun PixelButton(
     textColor: Color = Color.White,
     icon: Int? = null,
     fontSize: Int = Ts.Item,
-    shadow: Boolean = true,
     pressedFill: Color = Bl.ButtonPressed,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     Box(
         modifier
-            .then(if (!shadow) Modifier
-                  else if (pressed) Modifier.padding(start = 3.dp, top = 4.dp)
-                  else Modifier.pixelShadow(3.dp, 4.dp))
             .pixelPanel(
                 fill = if (pressed) pressedFill else fill,
                 raised = !pressed,
@@ -323,7 +412,6 @@ fun PixelButton(
 fun PixelTag(text: String, fill: Color = Bl.TitleFill, modifier: Modifier = Modifier) {
     Box(
         modifier
-            .pixelShadow(2.dp, 3.dp)
             .pixelPanel(fill = fill)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     ) {

@@ -46,7 +46,17 @@ import kotlin.random.Random
  *    inteiro na hora de desenhar: nenhum bitmap grande em memória, e o pixel
  *    continua quadrado.
  */
-enum class Biome(val label: String, val layers: List<SceneLayer>) {
+enum class Biome(
+    val label: String,
+    val layers: List<SceneLayer>,
+    /** Os tons da interface neste tema. */
+    val palette: UiPalette = UiPalette.CLASSIC,
+    /** Céu próprio; null é o do relógio ([SKY]). Uma chave só deixa o céu parado. */
+    internal val sky: List<SkyKey>? = null,
+    internal val body: SkyBody = SkyBody.SUN_AND_MOON,
+    /** A cor das nuvens nos céus parados (no do relógio, quem tinge é a hora); null = sem nuvens. */
+    internal val clouds: Color? = Color.White,
+) {
     FOREST("Floresta", listOf(
         SceneLayer(R.drawable.bg_mountains, 0.10f, 0.20f),
         SceneLayer(R.drawable.bg_hills, 0.20f, 0.27f),
@@ -63,7 +73,28 @@ enum class Biome(val label: String, val layers: List<SceneLayer>) {
         SceneLayer(R.drawable.bg_snow_mountains, 0.10f, 0.17f),
         SceneLayer(R.drawable.bg_snow, 0.40f, 0.31f),
     )),
+    /** Noite eterna: Lua de Abóbora, morcegos, fantasmas e o Cavaleiro sem Cabeça. */
+    HALLOWEEN("Halloween", listOf(
+        SceneLayer(R.drawable.bg_halloween_far, 0.10f, 0.30f),
+        SceneLayer(R.drawable.bg_halloween_near, 0.35f, 0.47f),
+    ), UiPalette.HALLOWEEN, HALLOWEEN_SKY, SkyBody.PUMPKIN_MOON, Color(0xFF6A4878)),
+    /** O bioma de cogumelos brilhantes: sempre noite, sem sol nem lua, esporos subindo. */
+    MUSHROOM("Cogumelos", listOf(
+        SceneLayer(R.drawable.bg_mushroom_far, 0.12f, 0.24f),
+        SceneLayer(R.drawable.bg_mushroom_near, 0.35f, 0.34f),
+    ), UiPalette.MUSHROOM, MUSHROOM_SKY, SkyBody.NONE, null),
+    DESERT("Deserto", listOf(
+        SceneLayer(R.drawable.bg_desert_far, 0.10f, 0.20f),
+        SceneLayer(R.drawable.bg_desert_near, 0.38f, 0.46f),
+    ), UiPalette.DESERT, DESERT_SKY),
+    HALLOW("Sagrado", listOf(
+        SceneLayer(R.drawable.bg_hallow_far, 0.10f, 0.22f),
+        SceneLayer(R.drawable.bg_hallow_near, 0.38f, 0.36f),
+    ), UiPalette.HALLOW, HALLOW_SKY),
 }
+
+/** O que anda no céu: sol e lua pelo relógio, a Lua de Abóbora parada, ou nada. */
+internal enum class SkyBody { SUN_AND_MOON, PUMPKIN_MOON, NONE }
 
 /** Uma camada: quanto ela anda com a câmera, e onde fica o topo dela (fração da altura). */
 class SceneLayer(val res: Int, val parallax: Float, val top: Float)
@@ -82,7 +113,7 @@ private const val SUNSET = 1170f
  * O céu ao longo do dia, em minutos: topo, pé do céu, e a luz que tinge as
  * camadas e as nuvens (multiplicada; branco = cor original).
  */
-private class SkyKey(val minute: Float, top: Long, bottom: Long, light: Long) {
+internal class SkyKey(val minute: Float, top: Long, bottom: Long, light: Long) {
     val top = Color(top or 0xFF000000)
     val bottom = Color(bottom or 0xFF000000)
     val light = Color(light or 0xFF000000)
@@ -97,6 +128,33 @@ private val SKY = listOf(
     SkyKey(1110f, 0x39397E, 0xEE7A50, 0xDDA08A),
     SkyKey(1185f, 0x070A1C, 0x1C2550, 0x4A5482),
     SkyKey(1440f, 0x070A1C, 0x1C2550, 0x4A5482),
+)
+
+// Os céus dos temas novos. Os de noite eterna não tingem as camadas (luz
+// branca): a arte deles já vem com a cor da noite.
+private val HALLOWEEN_SKY = listOf(SkyKey(0f, 0x12061E, 0x8A3A34, 0xFFFFFF))
+private val MUSHROOM_SKY = listOf(SkyKey(0f, 0x040818, 0x16306A, 0xFFFFFF))
+
+private val DESERT_SKY = listOf(
+    SkyKey(0f, 0x0A0C22, 0x2A2850, 0x5A5482),
+    SkyKey(SUNRISE, 0x0A0C22, 0x2A2850, 0x5A5482),
+    SkyKey(330f, 0x4A4A86, 0xF0A060, 0xD8B0A0),
+    SkyKey(420f, 0x4F86D9, 0xF2D7A0, 0xFFFFFF),
+    SkyKey(1020f, 0x4F86D9, 0xF2D7A0, 0xFFFFFF),
+    SkyKey(1110f, 0x4A3A7E, 0xF08048, 0xE0A080),
+    SkyKey(1185f, 0x0A0C22, 0x2A2850, 0x5A5482),
+    SkyKey(1440f, 0x0A0C22, 0x2A2850, 0x5A5482),
+)
+
+private val HALLOW_SKY = listOf(
+    SkyKey(0f, 0x140A2E, 0x3E2470, 0x6A5A9A),
+    SkyKey(SUNRISE, 0x140A2E, 0x3E2470, 0x6A5A9A),
+    SkyKey(330f, 0x5A4A9E, 0xF2A0C8, 0xD8B0D0),
+    SkyKey(420f, 0x7FA0F0, 0xF4C6EA, 0xFFFFFF),
+    SkyKey(1020f, 0x7FA0F0, 0xF4C6EA, 0xFFFFFF),
+    SkyKey(1110f, 0x5A3A8E, 0xF080B0, 0xE0A0C0),
+    SkyKey(1185f, 0x140A2E, 0x3E2470, 0x6A5A9A),
+    SkyKey(1440f, 0x140A2E, 0x3E2470, 0x6A5A9A),
 )
 
 private class Cloud(val sprite: Int, val x: Float, val y: Float, val speed: Float, val parallax: Float)
@@ -115,8 +173,15 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
     val floors = remember(biome) { layers.map { it.bottomColor() } }
     val cloudArt = CLOUD_SPRITES.map { ImageBitmap.imageResource(it) }
     val sun = ImageBitmap.imageResource(R.drawable.bg_sun)
-    val moon = ImageBitmap.imageResource(R.drawable.bg_moon)
+    val moon = ImageBitmap.imageResource(
+        if (biome.body == SkyBody.PUMPKIN_MOON) R.drawable.bg_moon_pumpkin else R.drawable.bg_moon)
     val starArt = ImageBitmap.imageResource(R.drawable.bg_star)
+    val halloween = if (biome == Biome.HALLOWEEN) HalloweenArt(
+        ImageBitmap.imageResource(R.drawable.spr_bat),
+        ImageBitmap.imageResource(R.drawable.spr_ghost),
+        ImageBitmap.imageResource(R.drawable.spr_horseman),
+        ImageBitmap.imageResource(R.drawable.spr_jack_o_lantern),
+    ) else null
 
     val clouds = remember {
         val r = Random(7)
@@ -135,7 +200,7 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
         val cam = t * DRIFT + pan()
         val s = max(1, (size.height / 800f).roundToInt())
         val minute = minuteOfDay()
-        val sky = skyAt(minute)
+        val sky = skyAt(biome.sky ?: SKY, minute)
         val tint = if (sky.light.isWhite()) null else ColorFilter.tint(sky.light, BlendMode.Modulate)
 
         drawRect(Brush.verticalGradient(
@@ -144,7 +209,7 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
         ))
 
         // Estrelas: somem com o dia, piscam devagar.
-        val night = ((0.75f - sky.light.red) / 0.45f).coerceIn(0f, 1f)
+        val night = if (biome.sky?.size == 1) 1f else ((0.75f - sky.light.red) / 0.45f).coerceIn(0f, 1f)
         if (night > 0f) {
             for (st in stars) {
                 val a = night * (0.55f + 0.45f * sin(t * 1.3f + st.phase))
@@ -162,25 +227,33 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
         // Sol de dia, lua de noite, num arco que termina atrás das camadas.
         val horizon = size.height * HORIZON
         val arc = horizon - size.height * 0.07f
-        if (minute in SUNRISE..SUNSET) {
-            val p = (minute - SUNRISE) / (SUNSET - SUNRISE)
-            drawBody(sun, 0, sun.height, p, horizon, arc, s)
-        } else {
-            val p = ((minute - SUNSET + 1440f) % 1440f) / (1440f - SUNSET + SUNRISE)
-            drawBody(moon, moonFrame * moon.width, moon.width, p, horizon, arc, s)
+        when (biome.body) {
+            SkyBody.SUN_AND_MOON -> if (minute in SUNRISE..SUNSET) {
+                val p = (minute - SUNRISE) / (SUNSET - SUNRISE)
+                drawBody(sun, 0, sun.height, p, horizon, arc, s)
+            } else {
+                val p = ((minute - SUNSET + 1440f) % 1440f) / (1440f - SUNSET + SUNRISE)
+                drawBody(moon, moonFrame * moon.width, moon.width, p, horizon, arc, s)
+            }
+            // Cheia, grande e parada no alto: a noite da Lua de Abóbora.
+            SkyBody.PUMPKIN_MOON -> drawBody(moon, 0, moon.width, 0.82f, horizon, arc, s * 2)
+            SkyBody.NONE -> Unit
         }
 
-        for (c in clouds) {
+        val cloudTint = biome.clouds?.takeIf { !it.isWhite() }?.let { ColorFilter.tint(it, BlendMode.Modulate) } ?: tint
+        if (biome.clouds != null) for (c in clouds) {
             val art = cloudArt[c.sprite]
             val w = art.width * s
             val span = size.width + w
             val pos = c.x * span + (t * c.speed - cam * c.parallax) * s
-            drawSprite(art, pos.mod(span) - w, c.y * size.height, s, tint)
+            drawSprite(art, pos.mod(span) - w, c.y * size.height, s, cloudTint)
         }
 
         biome.layers.forEachIndexed { i, layer ->
             drawLayer(layers[i], floors[i], layer, cam, s, sky.light, tint)
         }
+        // As abóboras acesas ficam mesmo sem efeitos: são do cenário, não do clima.
+        if (halloween != null) drawJackOLanterns(halloween.jack, layers.last(), biome.layers.last(), cam, s, t)
 
         if (effects) {
             // A noite escurece as partículas, mas não a ponto de sumirem; e o
@@ -193,6 +266,10 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
                 Biome.OCEAN -> drawRain(t, fx, light)
                 Biome.LAKE -> drawBubbles(t, fx, light, night)
                 Biome.SNOW -> drawSnow(t, fx, light)
+                Biome.HALLOWEEN -> if (halloween != null) drawHalloween(t, s, fx, halloween)
+                Biome.MUSHROOM -> drawSpores(t, fx)
+                Biome.DESERT -> drawSand(t, fx, light)
+                Biome.HALLOW -> drawPixieDust(t, fx, light, night)
             }
         }
     }
@@ -214,6 +291,146 @@ private val SNOW = particles(110, 22)
 private val LEAVES = particles(22, 23)
 private val BUBBLES = particles(36, 24)
 private val FIREFLIES = particles(26, 25)
+private val BATS = particles(7, 26)
+private val GHOSTS = particles(3, 27)
+private val SPORES = particles(60, 28)
+private val SAND = particles(90, 29)
+private val PIXIE = particles(40, 30)
+
+private val GREEN_LEAVES = listOf(Color(0xFF4F9B3A), Color(0xFF6DB847), Color(0xFF3C7A2E), Color(0xFFC98A2E))
+private val AUTUMN_LEAVES = listOf(Color(0xFFD9701E), Color(0xFFB8461C), Color(0xFF8A3A1A), Color(0xFFE8A030))
+
+/** Os sprites do Halloween, carregados só quando o tema está ativo. */
+private class HalloweenArt(val bat: ImageBitmap, val ghost: ImageBitmap, val horseman: ImageBitmap, val jack: ImageBitmap)
+
+/**
+ * A noite de Halloween: folhas de outono, morcegos batendo asa (NPC_49 em
+ * silhueta), dois fantasmas meio transparentes e, de tempos em tempos, o
+ * Cavaleiro sem Cabeça cruzando a tela a galope. Uma névoa roxa fecha o chão.
+ * Os sprites do jogo olham para a esquerda; tudo anda para a esquerda.
+ */
+private fun DrawScope.drawHalloween(t: Float, s: Int, fx: Int, art: HalloweenArt) {
+    drawLeaves(t, fx, 1f, AUTUMN_LEAVES)
+    // Fantasmas: devagar, subindo e descendo, aparecendo e sumindo.
+    for ((i, p) in GHOSTS.withIndex()) {
+        val w = art.ghost.width * s
+        val span = size.width + w * 2
+        val x = span - (p.x * span + t * (14f + 10f * p.speed) * s).mod(span) - w
+        val y = size.height * (0.28f + 0.3f * p.y) + sin(t * 0.8f + p.phase) * 12f * s
+        val a = 0.25f + 0.25f * (0.5f + 0.5f * sin(t * 0.5f + i * 2.1f))
+        drawFrame(art.ghost, ((t * 6f).toInt() + i) % 4, 56, x, y, s, a)
+    }
+    // Morcegos: rápidos, em ondas, na metade de cima.
+    for ((i, p) in BATS.withIndex()) {
+        val w = art.bat.width * s
+        val span = size.width + w * 2
+        val x = span - (p.x * span + t * (60f + 70f * p.speed) * s).mod(span) - w
+        val y = size.height * (0.06f + 0.34f * p.y) + sin(t * (1.6f + p.speed) + p.phase) * 16f * s
+        drawFrame(art.bat, ((t * 12f).toInt() + i) % 4, 32, x, y, s)
+    }
+    // O Cavaleiro: uma passagem a cada 40 s, de ponta a ponta, no chão.
+    val period = 40f
+    val run = t.mod(period)
+    val w = art.horseman.width * s
+    val speed = 240f * s
+    if (run * speed < size.width + w * 2) {
+        val x = size.width + w - run * speed
+        val y = size.height * 0.93f - 90f * s
+        drawFrame(art.horseman, (t * 14f).toInt() % 11, 90, x, y, s)
+    }
+    // Névoa: o pé da tela some num roxo que respira.
+    val fog = 0.30f + 0.08f * sin(t * 0.4f)
+    drawRect(
+        Brush.verticalGradient(
+            listOf(Color.Transparent, Color(0xFF3A1F4A).copy(alpha = fog)),
+            startY = size.height * 0.72f, endY = size.height,
+        ),
+        Offset(0f, size.height * 0.72f), Size(size.width, size.height * 0.28f),
+    )
+}
+
+/**
+ * Abóboras acesas no chão da camada da frente, andando com ela. A luz delas
+ * tremula como vela: um halo laranja que cresce e encolhe um pouco.
+ */
+private fun DrawScope.drawJackOLanterns(jack: ImageBitmap, ground: ImageBitmap, layer: SceneLayer,
+                                        cam: Float, s: Int, t: Float) {
+    val w = ground.width * s
+    val y = layer.top * size.height + ground.height * s * 0.5f
+    var x0 = -(cam * layer.parallax * s).mod(w.toFloat())
+    while (x0 < size.width) {
+        for ((k, at) in listOf(0.14f, 0.52f, 0.83f).withIndex()) {
+            val x = x0 + at * w
+            if (x < -64f * s || x > size.width + 64f * s) continue
+            val flicker = 0.75f + 0.25f * sin(t * 9f + k * 2.3f) * sin(t * 3.7f + k)
+            val cx = x + jack.width * s / 2f
+            val cy = y + jack.height * s * 0.55f
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(Color(0xFFFF9A2E).copy(alpha = 0.45f * flicker), Color.Transparent),
+                    center = Offset(cx, cy), radius = 46f * s * flicker,
+                ),
+                radius = 46f * s, center = Offset(cx, cy),
+            )
+            drawSprite(jack, x, y, s)
+        }
+        x0 += w
+    }
+}
+
+/** Esporos do bioma de cogumelos: pontinhos azuis com halo, subindo devagar. */
+private fun DrawScope.drawSpores(t: Float, s: Int) {
+    for (p in SPORES) {
+        val span = size.height * 0.9f
+        val q = ((p.y * span + t * 10f * s * (0.4f + p.speed)) % span) / span
+        val y = size.height - q * span
+        val x = (p.x * size.width + sin(t * 0.7f + p.phase) * 20f * s).mod(size.width)
+        val a = (0.35f + 0.65f * (0.5f + 0.5f * sin(t * 2f + p.phase))) * sin(q * PI.toFloat())
+        val d = (if (p.size > 0.6f) 2f else 1f) * s
+        drawRect(Color(0xFF7FE0FF).copy(alpha = a * 0.25f), Offset(x - d, y - d), Size(d * 3, d * 3))
+        drawRect(Color(0xFFBFF4FF).copy(alpha = a), Offset(x, y), Size(d, d))
+    }
+}
+
+/** Areia levada pelo vento: riscos curtos e rápidos, mais densos perto do chão. */
+private fun DrawScope.drawSand(t: Float, s: Int, light: Float) {
+    val color = Color(0xFFF0D8A0)
+    for (p in SAND) {
+        val len = (4f + 8f * p.size) * s
+        val span = size.width + len
+        val x = (p.x * span + t * (220f + 260f * p.speed) * s).mod(span) - len
+        val y = size.height * (0.35f + 0.65f * p.y * p.y.coerceAtLeast(0.3f)) + sin(t * 3f + p.phase) * 4f * s
+        drawRect(color.copy(alpha = (0.25f + 0.35f * p.size) * light), Offset(x, y), Size(len, s.toFloat()))
+    }
+}
+
+/**
+ * Pó de fada do Sagrado: cruzinhas em rosa, ciano e amarelo, caindo devagar
+ * e piscando. À noite brilham mais.
+ */
+private fun DrawScope.drawPixieDust(t: Float, s: Int, light: Float, night: Float) {
+    val colors = listOf(Color(0xFFFF8AD8), Color(0xFF8AF0FF), Color(0xFFFFF08A))
+    for ((i, p) in PIXIE.withIndex()) {
+        val y = (p.y * size.height + t * 8f * s * (0.4f + p.speed)).mod(size.height)
+        val x = (p.x * size.width + sin(t * 0.6f + p.phase) * 24f * s).mod(size.width)
+        val a = (0.5f + 0.5f * sin(t * (2f + p.speed * 2f) + p.phase)).coerceIn(0f, 1f) *
+            (0.45f + 0.45f * night) * light.coerceAtLeast(0.7f)
+        val c = colors[i % colors.size].copy(alpha = a)
+        val px = s.toFloat()
+        drawRect(c, Offset(x, y - px), Size(px, px * 3))
+        drawRect(c, Offset(x - px, y), Size(px * 3, px))
+    }
+}
+
+/** Um quadro de uma tira vertical de sprites (quadros de `frame` pixels de altura). */
+private fun DrawScope.drawFrame(img: ImageBitmap, index: Int, frame: Int, x: Float, y: Float, s: Int,
+                                alpha: Float = 1f) {
+    drawImage(
+        img, srcOffset = IntOffset(0, index * frame), srcSize = IntSize(img.width, frame),
+        dstOffset = IntOffset(x.toInt(), y.toInt()), dstSize = IntSize(img.width * s, frame * s),
+        alpha = alpha, filterQuality = FilterQuality.None,
+    )
+}
 
 /** Chuva do Terraria: riscos claros e inclinados, caindo rápido. */
 private fun DrawScope.drawRain(t: Float, s: Int, light: Float) {
@@ -246,8 +463,7 @@ private fun DrawScope.drawSnow(t: Float, s: Int, light: Float) {
  * Folhas caindo com o vento: um losango de pixel que, ao girar, fica de lado
  * (uma linha fina) e volta. Verdes, e umas poucas já secas.
  */
-private fun DrawScope.drawLeaves(t: Float, s: Int, light: Float) {
-    val colors = listOf(Color(0xFF4F9B3A), Color(0xFF6DB847), Color(0xFF3C7A2E), Color(0xFFC98A2E))
+private fun DrawScope.drawLeaves(t: Float, s: Int, light: Float, colors: List<Color> = GREEN_LEAVES) {
     for ((i, p) in LEAVES.withIndex()) {
         val px = (if (p.size > 0.5f) 3 else 2) * s / 2f
         val fall = 16f * s * (0.5f + p.speed)
@@ -331,10 +547,11 @@ private fun DrawScope.drawSprite(img: ImageBitmap, x: Float, y: Float, s: Int,
 
 private class Sky(val top: Color, val bottom: Color, val light: Color)
 
-private fun skyAt(minute: Float): Sky {
-    val i = SKY.indexOfLast { it.minute <= minute }.coerceIn(0, SKY.size - 2)
-    val a = SKY[i]
-    val b = SKY[i + 1]
+private fun skyAt(keys: List<SkyKey>, minute: Float): Sky {
+    if (keys.size == 1) return keys[0].let { Sky(it.top, it.bottom, it.light) }
+    val i = keys.indexOfLast { it.minute <= minute }.coerceIn(0, keys.size - 2)
+    val a = keys[i]
+    val b = keys[i + 1]
     val f = ((minute - a.minute) / (b.minute - a.minute)).coerceIn(0f, 1f)
     return Sky(lerp(a.top, b.top, f), lerp(a.bottom, b.bottom, f), lerp(a.light, b.light, f))
 }

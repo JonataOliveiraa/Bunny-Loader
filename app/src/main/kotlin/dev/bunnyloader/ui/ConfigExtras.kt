@@ -140,7 +140,7 @@ fun ProfileHeader(prefs: Prefs, modifier: Modifier = Modifier) {
                                 .focusRequester(focus),
                         )
                     }
-                    PixelButton("OK", save, Modifier.padding(start = 8.dp), fontSize = Ts.Small, shadow = false)
+                    PixelButton("OK", save, Modifier.padding(start = 8.dp), fontSize = Ts.Small)
                 }
             } else {
                 Box(Modifier.pixelClickable { draft = name; editing = true }) {
@@ -202,9 +202,9 @@ fun SavesCard(modifier: Modifier = Modifier) {
             )
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PixelButton(tr("Importar mundo"), { asking = SaveFiles.Kind.WORLD },
-                    Modifier.weight(1f), icon = R.drawable.ic_folder, fontSize = Ts.Small, shadow = false)
+                    Modifier.weight(1f), icon = R.drawable.ic_folder, fontSize = Ts.Small)
                 PixelButton(tr("Importar personagem"), { asking = SaveFiles.Kind.PLAYER },
-                    Modifier.weight(1f), icon = R.drawable.ic_folder, fontSize = Ts.Small, shadow = false)
+                    Modifier.weight(1f), icon = R.drawable.ic_folder, fontSize = Ts.Small)
             }
         }
     }
@@ -224,7 +224,7 @@ fun SavesCard(modifier: Modifier = Modifier) {
             if (ok) {
                 PixelText(tr("Ele já aparece na lista do jogo e no Início rápido."), size = Ts.Small, color = Bl.TextFaint)
             }
-            PixelButton("OK", { report = emptyList() }, Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
+            PixelButton("OK", { report = emptyList() }, Modifier.fillMaxWidth(), fontSize = Ts.Body)
         }
     }
 }
@@ -252,9 +252,9 @@ private fun ImportWarning(kind: SaveFiles.Kind, onCancel: () -> Unit, onContinue
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PixelButton(tr("Cancelar"), onCancel, Modifier.weight(1f), fontSize = Ts.Body, shadow = false)
+            PixelButton(tr("Cancelar"), onCancel, Modifier.weight(1f), fontSize = Ts.Body)
             PixelButton(tr("Escolher arquivos"), onContinue, Modifier.weight(1f), fill = Bl.TitleFill,
-                fontSize = Ts.Body, shadow = false)
+                fontSize = Ts.Body)
         }
     }
 }
@@ -264,7 +264,7 @@ private fun ImportWarning(kind: SaveFiles.Kind, onCancel: () -> Unit, onContinue
 fun PixelDialog(title: String, onDismiss: () -> Unit, content: @Composable () -> Unit) {
     androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
         Column(
-            Modifier.widthIn(max = 480.dp).fillMaxWidth().pixelPanel().padding(16.dp),
+            Modifier.widthIn(max = 480.dp).fillMaxWidth().pixelPanel(corner = PixelCorner.LARGE).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             PixelText(title, size = Ts.Head)
@@ -301,7 +301,7 @@ fun LicensesCard(modifier: Modifier = Modifier) {
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (text in LegalText.entries) {
                     PixelButton(tr(text.title), { open = text }, Modifier.weight(1f),
-                        fontSize = Ts.Small, shadow = false)
+                        fontSize = Ts.Small)
                 }
             }
         }
@@ -331,7 +331,7 @@ fun LicensesCard(modifier: Modifier = Modifier) {
                     else -> MarkdownView(blocks!!, md)
                 }
             }
-            PixelButton(tr("Fechar"), { open = null }, Modifier.fillMaxWidth(), fontSize = Ts.Body, shadow = false)
+            PixelButton(tr("Fechar"), { open = null }, Modifier.fillMaxWidth(), fontSize = Ts.Body)
         }
     }
 }

@@ -59,6 +59,18 @@
     "Destacados",
     "精选"
   ],
+  "Novos no catálogo": [
+    "New in the catalog",
+    "Новое в каталоге",
+    "Nuevos en el catálogo",
+    "目录新增"
+  ],
+  "Novo": [
+    "New",
+    "Новое",
+    "Nuevo",
+    "新"
+  ],
   "Populares": [
     "Popular",
     "Популярные",
@@ -868,6 +880,36 @@
     "Доступны новые версии установленных модов.",
     "Hay nuevas versiones de tus mods instalados.",
     "你已安装的模组有新版本可用。"
+  ],
+  "Tudo em dia. As versões novas valem na próxima vez que o jogo abrir.": [
+    "All up to date. The new versions take effect the next time the game opens.",
+    "Всё обновлено. Новые версии заработают при следующем запуске игры.",
+    "Todo al día. Las nuevas versiones se aplican la próxima vez que se abra el juego.",
+    "全部已是最新。新版本将在下次打开游戏时生效。"
+  ],
+  "Atualizar todos (%1$s)": [
+    "Update all (%1$s)",
+    "Обновить все (%1$s)",
+    "Actualizar todos (%1$s)",
+    "全部更新（%1$s）"
+  ],
+  "Pronto": [
+    "Done",
+    "Готово",
+    "Listo",
+    "完成"
+  ],
+  "v%1$s → v%2$s": [
+    "v%1$s → v%2$s",
+    "v%1$s → v%2$s",
+    "v%1$s → v%2$s",
+    "v%1$s → v%2$s"
+  ],
+  "Instalando...": [
+    "Installing...",
+    "Установка...",
+    "Instalando...",
+    "正在安装..."
   ],
   "Instalado: v%1$s · Novo: v%2$s": [
     "Installed: v%1$s · New: v%2$s",
@@ -2296,5 +2338,125 @@
     "Файл старее установленного мода.",
     "El archivo es más antiguo que el mod instalado.",
     "该文件比已安装的模组更旧。"
+  ],
+  "Entre no nosso Discord": [
+    "Join our Discord",
+    "Заходите в наш Discord",
+    "Únete a nuestro Discord",
+    "加入我们的 Discord"
+  ],
+  "Novidades, ajuda com mods e a comunidade do Bunny Loader.": [
+    "News, help with mods and the Bunny Loader community.",
+    "Новости, помощь с модами и сообщество Bunny Loader.",
+    "Novedades, ayuda con mods y la comunidad de Bunny Loader.",
+    "新闻、模组帮助和 Bunny Loader 社区。"
+  ],
+  "Entrar": [
+    "Join",
+    "Войти",
+    "Unirse",
+    "加入"
+  ],
+  "Comunidade": [
+    "Community",
+    "Сообщество",
+    "Comunidad",
+    "社区"
+  ],
+  "Os mais baixados do catálogo.": [
+    "The most downloaded in the catalog.",
+    "Самые скачиваемые в каталоге.",
+    "Los más descargados del catálogo.",
+    "目录中下载最多的。"
+  ],
+  "%1$s downloads": [
+    "%1$s downloads",
+    "Загрузок: %1$s",
+    "%1$s descargas",
+    "%1$s 次下载"
+  ],
+  "Downloads": [
+    "Downloads",
+    "Загрузки",
+    "Descargas",
+    "下载"
+  ],
+  "downloads": [
+    "downloads",
+    "загрузок",
+    "descargas",
+    "次下载"
+  ],
+  "%1$sº lugar": [
+    "#%1$s",
+    "%1$s место",
+    "Puesto %1$s",
+    "第 %1$s 名"
+  ],
+  "Destaque %1$s de %2$s": [
+    "Featured %1$s of %2$s",
+    "Рекомендация %1$s из %2$s",
+    "Destacado %1$s de %2$s",
+    "精选 %1$s / %2$s"
+  ],
+  "Ordenar:": [
+    "Sort:",
+    "Сортировка:",
+    "Ordenar:",
+    "排序："
+  ],
+  "Mais baixados": [
+    "Most downloaded",
+    "Популярные",
+    "Más descargados",
+    "下载最多"
+  ],
+  "Mais leves": [
+    "Smallest",
+    "Самые лёгкие",
+    "Más livianos",
+    "最小"
+  ],
+  "Mais pesados": [
+    "Largest",
+    "Самые тяжёлые",
+    "Más pesados",
+    "最大"
+  ],
+  "A-Z": [
+    "A-Z",
+    "А-Я",
+    "A-Z",
+    "A-Z"
+  ],
+  "Halloween": [
+    "Halloween",
+    "Хэллоуин",
+    "Halloween",
+    "万圣节"
+  ],
+  "Cogumelos": [
+    "Mushrooms",
+    "Грибы",
+    "Hongos",
+    "蘑菇"
+  ],
+  "Deserto": [
+    "Desert",
+    "Пустыня",
+    "Desierto",
+    "沙漠"
+  ],
+  "Sagrado": [
+    "Hallow",
+    "Святые земли",
+    "Sagrado",
+    "神圣之地"
+  ],
+  "Jogar": [
+    "Play",
+    "Играть",
+    "Jugar",
+    "开始游戏"
   ]
 }

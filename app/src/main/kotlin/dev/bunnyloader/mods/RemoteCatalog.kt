@@ -23,7 +23,10 @@ import java.util.concurrent.atomic.AtomicInteger
  * índice e a vitrine de cada mod no `main` e os pacotes nas Releases.
  *
  *     main/index.json                  a lista: uid, versão, pacote, arquivos e o
- *                                      manifesto de cada mod (`manifest`)
+ *                                      manifesto de cada mod (`manifest`), e
+ *                                      os mods em destaque no Início (`featured`)
+ *     main/stats.json                  downloads de cada mod, somados das
+ *                                      Releases por uma Action a cada 6 h
  *     main/mods/<uid>/...              icon.png (ou .gif), banner.png (ou .gif...), description.md,
  *                                      authors/... — o que a ficha mostra, sem
  *                                      baixar o mod inteiro
@@ -52,12 +55,14 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
     private val storeDir get() = File(context.cacheDir, "store")
     private val indexFile get() = File(storeDir, INDEX)
     private val etagFile get() = File(storeDir, ETAG)
+    private val statsFile get() = File(storeDir, STATS)
+    private val statsEtagFile get() = File(storeDir, STATS_ETAG)
     private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
 
     /** A última lista baixada, sem rede. Vazia na primeira abertura. */
-    fun cached(): List<Catalog.Entry> = runCatching {
-        entriesOf(json.decodeFromString<RemoteIndex>(indexFile.readText()))
-    }.getOrDefault(emptyList())
+    fun cached(): CatalogSnapshot = runCatching {
+        snapshotOf(json.decodeFromString<RemoteIndex>(indexFile.readText()), cachedDownloads())
+    }.getOrDefault(CatalogSnapshot())
 
     /**
      * Baixa o índice (ou confirma, pelo ETag, que é o mesmo) e acerta o cache:
@@ -65,10 +70,10 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
      * for vista. Com índice antigo, sem manifesto, baixa somente o manifesto
      * de cada mod que mudou.
      */
-    suspend fun refresh(onProgress: (CatalogProgress) -> Unit = {}): List<Catalog.Entry> {
+    suspend fun refresh(onProgress: (CatalogProgress) -> Unit = {}): CatalogSnapshot {
         storeDir.mkdirs()
         val etag = runCatching { etagFile.readText().trim() }.getOrNull()?.takeIf { indexFile.isFile }
-        val response = fetchIndex(etag)
+        val response = fetchIfChanged(INDEX_URL, etag, MAX_INDEX_BYTES)
         val raw = response?.body?.decodeToString() ?: indexFile.readText()
         val index = json.decodeFromString<RemoteIndex>(raw)
         require(index.format <= FORMAT) {
@@ -106,8 +111,29 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
             indexFile.writeText(raw)
             if (response.etag != null) etagFile.writeText(response.etag) else etagFile.delete()
         }
-        return entriesOf(index)
+        return snapshotOf(index, refreshDownloads())
     }
+
+    /**
+     * Os downloads de cada mod. São só um enfeite da lista: sem rede ou com o
+     * arquivo quebrado, ficam os da última vez (ou nenhum), e o catálogo segue.
+     */
+    private fun refreshDownloads(): Map<String, Long> = runCatching {
+        val etag = runCatching { statsEtagFile.readText().trim() }.getOrNull()?.takeIf { statsFile.isFile }
+        val response = fetchIfChanged(STATS_URL, etag, MAX_STATS_BYTES) ?: return cachedDownloads()
+        val raw = response.body.decodeToString()
+        val counts = downloadsOf(raw)
+        statsFile.writeText(raw)
+        if (response.etag != null) statsEtagFile.writeText(response.etag) else statsEtagFile.delete()
+        counts
+    }.getOrElse { cachedDownloads() }
+
+    private fun cachedDownloads(): Map<String, Long> =
+        runCatching { downloadsOf(statsFile.readText()) }.getOrDefault(emptyMap())
+
+    private fun downloadsOf(raw: String): Map<String, Long> =
+        json.decodeFromString<RemoteStats>(raw).downloads
+            .filter { (uid, count) -> ModManifest.isValidUid(uid) && count >= 0 }
 
     /**
      * Garante no cache estes arquivos da vitrine de um mod (os que o índice
@@ -191,8 +217,10 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         }
     }
 
-    private fun entriesOf(index: RemoteIndex): List<Catalog.Entry> =
-        index.mods.filter(::isSane).distinctBy { it.uid }.mapNotNull(::entryOf)
+    private fun snapshotOf(index: RemoteIndex, downloads: Map<String, Long>): CatalogSnapshot {
+        val entries = index.mods.filter(::isSane).distinctBy { it.uid }.mapNotNull(::entryOf)
+        return CatalogSnapshot(entries, index.featured.filter(ModManifest::isValidUid).distinct(), downloads)
+    }
 
     /**
      * A entrada de um mod: o manifesto do índice (ou, no índice antigo, o da
@@ -226,11 +254,11 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
             (mod.manifest != null || Catalog.MANIFESTS.first() in mod.files) &&
             mod.files.all { SAFE_PATH.matches(it) && it.split('/').none { s -> s == "." || s == ".." } }
 
-    private class IndexResponse(val body: ByteArray, val etag: String?)
+    private class CachedResponse(val body: ByteArray, val etag: String?)
 
-    /** O índice, ou null quando o servidor confirma (304) que é o mesmo do cache. */
-    private fun fetchIndex(etag: String?): IndexResponse? {
-        val conn = connect(INDEX_URL)
+    /** O arquivo, ou null quando o servidor confirma (304) que é o mesmo do cache. */
+    private fun fetchIfChanged(url: String, etag: String?, limit: Long): CachedResponse? {
+        val conn = connect(url)
         if (etag != null) conn.setRequestProperty("If-None-Match", etag)
         val code = conn.responseCode
         if (code == HttpURLConnection.HTTP_NOT_MODIFIED && etag != null) {
@@ -241,9 +269,9 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
             conn.disconnect()
             throw IOException("o servidor respondeu $code")
         }
-        val body = conn.inputStream.use { it.readNBytesCompat(MAX_INDEX_BYTES + 1) }
-        if (body.size > MAX_INDEX_BYTES) throw IOException("índice grande demais")
-        return IndexResponse(body, conn.getHeaderField("ETag"))
+        val body = conn.inputStream.use { it.readNBytesCompat(limit + 1) }
+        if (body.size > limit) throw IOException("arquivo grande demais: $url")
+        return CachedResponse(body, conn.getHeaderField("ETag"))
     }
 
     private fun fetch(url: String, limit: Long): ByteArray = open(url).use { input ->
@@ -275,9 +303,12 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
         const val FORMAT = 1
         private const val INDEX = "index.json"
         private const val ETAG = "index.etag"
+        private const val STATS = "stats.json"
+        private const val STATS_ETAG = "stats.etag"
         private const val STAMP = ".sha256"
         const val INDEX_URL =
             "https://raw.githubusercontent.com/JonataOliveiraa/Bunny-Loader-Mods/main/index.json"
+        private val STATS_URL = INDEX_URL.substringBeforeLast('/') + "/stats.json"
 
         /**
          * O pacote só pode vir das Releases do catálogo. As do repositório do
@@ -291,6 +322,8 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
 
         /** Com o manifesto de cada mod dentro, o índice cresce ~2 KB por mod. */
         private const val MAX_INDEX_BYTES = 8L shl 20
+        /** Um uid e um número por mod: ~60 bytes cada. */
+        private const val MAX_STATS_BYTES = 1L shl 20
         private const val MAX_STORE_FILE_BYTES = 4L shl 20
         private const val MAX_PACKAGE_BYTES = 200L shl 20
 
@@ -302,13 +335,43 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
     }
 }
 
+/** Por quanto tempo um mod recém-publicado aparece como novo no Explorar. */
+const val NEW_MOD_MS = 7L * 24 * 60 * 60 * 1000
+
 data class CatalogProgress(val completed: Int, val total: Int)
+
+/** O que uma leitura do catálogo online traz para a tela. */
+data class CatalogSnapshot(
+    val entries: List<Catalog.Entry> = emptyList(),
+    /** Os uids em destaque no Início, na ordem do índice. */
+    val featured: List<String> = emptyList(),
+    /** Downloads de cada mod, pelo uid. Vazio enquanto o stats.json não existe. */
+    val downloads: Map<String, Long> = emptyMap(),
+)
 
 /** O index.json do repositório de mods. */
 @Serializable
 data class RemoteIndex(
     val format: Int = 1,
     val mods: List<RemoteMod> = emptyList(),
+    /**
+     * Os mods do "Em destaque" do Início, escolhidos por quem cuida do
+     * catálogo (publish.py --feature). Vale mais que o `featured` do
+     * manifesto, que qualquer autor pode marcar.
+     */
+    val featured: List<String> = emptyList(),
+)
+
+/**
+ * O stats.json do repositório de mods: a Action download-stats soma, a cada
+ * 6 h, o download_count de todas as Releases de cada mod (versões antigas
+ * inclusive). Cada atualização conta de novo, como no GitHub.
+ */
+@Serializable
+data class RemoteStats(
+    val format: Int = 1,
+    val updatedAt: String? = null,
+    val downloads: Map<String, Long> = emptyMap(),
 )
 
 @Serializable
@@ -323,7 +386,27 @@ data class RemoteMod(
      * Sem ele (índice antigo), o manifesto vem da vitrine e é obrigatório nela.
      */
     val manifest: ModManifest? = null,
+    /**
+     * Quando o mod entrou no catálogo, em UTC ("2026-10-21T15:04:05Z"): o
+     * publish.py grava na primeira publicação e mantém nas versões seguintes.
+     * Mod publicado antes do campo vem sem ele e nunca conta como novo.
+     */
+    val publishedAt: String? = null,
 ) {
+    /** Entrou no catálogo há menos de [NEW_MOD_MS]. */
+    fun isNew(now: Long): Boolean {
+        val at = publishedMillis ?: return false
+        return now - at in 0 until NEW_MOD_MS
+    }
+
+    val publishedMillis: Long? get() = publishedAt?.let { text ->
+        runCatching {
+            java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", java.util.Locale.US)
+                .apply { timeZone = java.util.TimeZone.getTimeZone("UTC") }
+                .parse(text)?.time
+        }.getOrNull()
+    }
+
     /** O ícone que a lista baixa: o animado, se a vitrine tiver; um só dos dois. */
     val iconFile: String get() = Catalog.ICONS.firstOrNull { it in files } ?: Catalog.ICON
 

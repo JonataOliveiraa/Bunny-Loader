@@ -134,4 +134,16 @@ class PackageFiltersTest {
         assertEquals(listOf("c", "b", "a"), filterPackages(packages, setOf("b", "c"), PackageStatus.ALL,
             PackageSort.LOAD, query = "", category = null).map { it.uid })
     }
+
+    @Test fun exploreSortsByDownloadsThenName() {
+        assertEquals(listOf("a", "c", "b"),
+            sortExplore(packages, ExploreSort.POPULAR, mapOf("c" to 5L, "a" to 9L)).map { it.uid })
+        assertEquals(listOf("a", "b", "c"), sortExplore(packages, ExploreSort.POPULAR, emptyMap()).map { it.uid })
+    }
+
+    @Test fun exploreSortsByNameAndSize() {
+        assertEquals(listOf("a", "b", "c"), sortExplore(packages, ExploreSort.NAME, emptyMap()).map { it.uid })
+        assertEquals(listOf("a", "b", "c"), sortExplore(packages, ExploreSort.LIGHTEST, emptyMap()).map { it.uid })
+        assertEquals(listOf("c", "b", "a"), sortExplore(packages, ExploreSort.HEAVIEST, emptyMap()).map { it.uid })
+    }
 }

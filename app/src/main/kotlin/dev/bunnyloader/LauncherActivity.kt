@@ -67,6 +67,8 @@ import dev.bunnyloader.ui.PacotesTab
 import dev.bunnyloader.ui.ConfigTab
 import dev.bunnyloader.ui.PixelFont
 import dev.bunnyloader.ui.PixelIcon
+import dev.bunnyloader.ui.PixelCorner
+import dev.bunnyloader.ui.pixelPanel
 import dev.bunnyloader.ui.UiLocalization
 import dev.bunnyloader.ui.tr
 import dev.bunnyloader.ui.PixelText
@@ -144,6 +146,8 @@ private fun LauncherScreen(shell: Shell) {
     val biome = Biome.entries[rememberSaveable(sceneryChoice) {
         prefs.resolveScenery(sceneryChoice).ordinal
     }]
+    // A paleta antes de qualquer tela ler uma cor: o primeiro quadro já sai no tom do tema.
+    remember(biome) { dev.bunnyloader.ui.Bl.palette = biome.palette }
     var themeEffects by remember { mutableStateOf(prefs.themeEffects) }
     // Início sem nada por cima: só o cenário (ver InicioTab).
     var immersive by remember { mutableStateOf(false) }
@@ -307,33 +311,33 @@ private fun ImmersiveOverlay(onRestore: () -> Unit) {
 // ------------------------------- rodapé -------------------------------
 
 /**
- * Barra azul do Terraria, com o botão de jogar erguido no meio.
+ * A barra de baixo, montada como a barra de itens do Terraria: cada aba é um
+ * slot do inventário (o canto em degrau do Inventory_Back), a aba atual é o
+ * slot dourado do item selecionado e sobe um pouco. O botão de jogar é um
+ * disco em pixel de arte erguido no meio.
  *
- * Era chão de terra com um véu escuro por cima, e o véu roubava a cor: de longe
- * virava uma faixa preta translúcida. Agora é o painel do jogo — o mesmo
- * #3f5297 com contorno #131625 do menu de dentro.
- *
- * Reta e de cor chapada, de propósito: o degradê vertical dava um brilho de
- * plástico que destoa do resto, e o canto arredondado deixava dois buracos na
- * quina de baixo da tela, onde a barra encosta.
+ * A cor da barra e dos slots vem do tema (Bl.GamePanel, Bl.Select); só o
+ * dourado da seleção é fixo, como no jogo.
  */
 @Composable
 private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
-    val startInteraction = remember { MutableInteractionSource() }
-    val startPressed by startInteraction.collectIsPressedAsState()
-    Box(Modifier.fillMaxWidth().height(106.dp)) {
+    Box(Modifier.fillMaxWidth().height(112.dp)) {
         Row(
             Modifier.align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(84.dp)
+                .height(88.dp)
                 .drawBehind {
-                    val b = 3.dp.toPx()
-                    drawRect(Bl.Outline)
-                    drawRect(
-                        Bl.GamePanel,
-                        topLeft = Offset(b, b),
-                        size = Size(size.width - b * 2, size.height),
-                    )
+                    val u = 2.dp.toPx()
+                    val bar = Bl.GamePanel
+                    // Contorno, uma linha de luz e o corpo; embaixo, um tom mais
+                    // fundo dá peso à barra sem sombra projetada.
+                    drawRect(Bl.Outline, size = Size(size.width, u * 2))
+                    drawRect(bar, Offset(0f, u * 2), Size(size.width, size.height))
+                    drawRect(bar.mix(Color.White, 0.18f), Offset(0f, u * 2), Size(size.width, u))
+                    drawRect(bar.mix(Bl.Night, 0.22f), Offset(0f, size.height * 0.62f),
+                        Size(size.width, size.height * 0.38f))
+                    drawRect(bar.mix(Bl.Night, 0.12f), Offset(0f, size.height * 0.62f - u),
+                        Size(size.width, u))
                 }
                 .navigationBarsPadding(),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -341,34 +345,41 @@ private fun NavBar(current: Tab, onSelect: (Tab) -> Unit, onStart: () -> Unit) {
         ) {
             TabButton(Tab.INICIO, current, onSelect)
             TabButton(Tab.EXPLORAR, current, onSelect)
-            Spacer(Modifier.width(84.dp))
+            Spacer(Modifier.width(92.dp))
             TabButton(Tab.PACOTES, current, onSelect)
             TabButton(Tab.CONFIG, current, onSelect)
         }
+        PlayButton(onStart, Modifier.align(Alignment.TopCenter))
+    }
+}
 
-        Box(
-            Modifier.align(Alignment.TopCenter)
-                .padding(bottom = 8.dp)
-                .size(86.dp)
-                .drawBehind {
-                    // Só o contorno fino. A sombra deslocada que ele tinha
-                    // embaixo lia como uma borda grossa de um lado só.
-                    // No toque, a borda é a amarela.
-                    drawCircle(if (startPressed) Bl.PressedBorder else Bl.Outline)
-                    drawCircle(
-                        if (startPressed) Bl.ButtonPressed else Bl.TitleFill,
-                        radius = size.minDimension / 2 - 2.dp.toPx(),
-                    )
-                }
-                .clip(CircleShape)
-                .clickable(startInteraction, indication = null, onClick = onStart),
-            contentAlignment = Alignment.Center,
-        ) {
-            // Centro ótico, não geométrico: o triângulo tem a massa na base
-            // (à esquerda) e a arte traz a sombra embaixo à direita. Centrado
-            // pela caixa, ele parecia puxado para a esquerda e para cima.
-            PixelIcon(R.drawable.ic_start, 44.dp, Modifier.offset(x = 3.dp, y = 1.dp))
-        }
+/**
+ * O disco de jogar, desenhado pixel a pixel (43 de lado, 2 dp cada): contorno,
+ * aro com luz em cima e sombra embaixo, miolo na cor de título do tema e um
+ * brilho curto no alto. No toque, o contorno fica amarelo e o miolo clareia.
+ */
+@Composable
+private fun PlayButton(onStart: () -> Unit, modifier: Modifier = Modifier) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val fill = if (pressed) Bl.ButtonPressed else Bl.TitleFill
+    val disk = remember(fill, pressed) {
+        dev.bunnyloader.ui.pixelDisk(
+            43, outline = if (pressed) Bl.PressedBorder else Bl.Outline, fill = fill,
+            light = fill.mix(Color.White, 0.3f), dark = fill.mix(Bl.Night, 0.45f),
+        )
+    }
+    Box(
+        modifier.size(86.dp)
+            .clip(CircleShape)
+            .clickable(interaction, indication = null, onClick = onStart),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.foundation.Image(disk, tr("Jogar"), Modifier.size(86.dp),
+            filterQuality = androidx.compose.ui.graphics.FilterQuality.None)
+        // Centro ótico, não geométrico: o triângulo tem a massa na base
+        // (à esquerda) e a arte traz a sombra embaixo à direita.
+        PixelIcon(R.drawable.ic_start, 44.dp, Modifier.offset(x = 3.dp, y = if (pressed) 3.dp else 1.dp))
     }
 }
 
@@ -377,18 +388,32 @@ private fun TabButton(tab: Tab, current: Tab, onSelect: (Tab) -> Unit) {
     val selected = tab == current
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    // Botão sem caixa: quem acende no toque (e na aba atual) é o texto.
+    val lift by animateFloatAsState(if (selected) -5f else 0f, tween(180), label = "slot")
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable(interaction, indication = null) { onSelect(tab) }
-            .padding(horizontal = 4.dp),
+            .padding(horizontal = 2.dp),
     ) {
-        PixelIcon(tab.icon, if (selected) 38.dp else 32.dp, alpha = if (selected) 1f else 0.75f)
+        Box(
+            Modifier.offset(y = lift.dp).size(54.dp, 46.dp)
+                .pixelPanel(
+                    fill = if (selected) Bl.SlotGold else Bl.Select,
+                    outline = when {
+                        pressed -> Bl.PressedBorder
+                        selected -> Bl.SlotGoldOutline
+                        else -> Bl.Outline
+                    },
+                    corner = PixelCorner.LARGE,
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            PixelIcon(tab.icon, if (selected) 32.dp else 28.dp, alpha = if (selected || pressed) 1f else 0.85f)
+        }
         PixelText(
             tr(tab.label),
             size = Ts.Small,
-            color = if (selected || pressed) Bl.PressedText else Color.White,
-            modifier = Modifier.padding(top = 2.dp),
+            color = if (selected || pressed) Bl.PressedText else Bl.TextDim,
+            modifier = Modifier.padding(top = 3.dp),
         )
     }
 }

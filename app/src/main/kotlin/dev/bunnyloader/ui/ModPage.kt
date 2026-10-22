@@ -131,7 +131,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
             Column(
                 Modifier.padding(horizontal = EdgePad)
                     .padding(top = if (pages.size > 1) 0.dp else 10.dp)
-                    .pixelShadow().pixelPanel(fill = style.panel).padding(12.dp)
+                    .pixelPanel(fill = style.panel, corner = PixelCorner.LARGE).padding(12.dp)
                     .fillMaxWidth(),
             ) {
                 key(selected) {
@@ -321,7 +321,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
 
     Column(
         Modifier.padding(horizontal = EdgePad).padding(top = 10.dp, bottom = 12.dp)
-            .pixelShadow().pixelPanel(fill = ctx.style.panel).padding(6.dp),
+            .pixelPanel(fill = ctx.style.panel, corner = PixelCorner.LARGE).padding(6.dp),
     ) {
         Cover(entry, shell, onBack)
         // O texto começa depois do ícone, que pende da capa para dentro do painel.
@@ -335,8 +335,8 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
             if (m.isOutdated) PixelTag(tr("Formato antigo"), Bl.Bad, Modifier.padding(start = 8.dp))
         }
 
-        // Ficha técnica. Nada de estrela nem contagem de download: precisariam
-        // de um servidor que não existe, e número inventado é pior que nada.
+        // Ficha técnica. Os downloads vêm do stats.json (contagem das Releases
+        // no GitHub); sem ele, a célula não aparece. Nota/estrela não há.
         Row(
             Modifier.fillMaxWidth().padding(top = 12.dp)
                 .pixelPanel(fill = ctx.style.panel.mix(Bl.Night, 0.35f), raised = false)
@@ -345,6 +345,9 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
             InfoCell(tr("Versão"), "v${m.version}", Modifier.weight(1f))
             if (m.updated.isNotBlank()) InfoCell(tr("Atualizado"), formatDate(m.updated), Modifier.weight(1.4f))
             InfoCell(tr("Tamanho"), formatSize(entry.sizeBytes), Modifier.weight(1f))
+            shell.downloadCounts[entry.uid]?.let {
+                InfoCell(tr("Downloads"), dev.bunnyloader.mods.formatCount(it), Modifier.weight(1f))
+            }
             if (m.license.isNotBlank()) InfoCell(tr("Licença"), m.license, Modifier.weight(1f))
         }
 
@@ -358,7 +361,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
             PixelButton(
                 if (progress != null) tr("Baixando %1\$s%%", (progress * 100).toInt()) else tr("Baixar Mod"),
                 { if (progress == null) { if (online != null) shell.installRemote(online) else shell.install(entry) } },
-                Modifier.fillMaxWidth(), icon = R.drawable.ic_start, shadow = false,
+                Modifier.fillMaxWidth(), icon = R.drawable.ic_start,
                 fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
             )
         } else {
@@ -376,7 +379,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
                     }
                 }
                 PixelButton(tr("Remover"), { shell.uninstall(entry.uid) },
-                    icon = R.drawable.ic_trash, fontSize = Ts.Body, shadow = false,
+                    icon = R.drawable.ic_trash, fontSize = Ts.Body,
                     fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed)
             }
             if (update != null) {
@@ -385,14 +388,14 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
                     else tr("Atualizar para v%1\$s", update.manifest.version),
                     { if (progress == null) shell.installRemote(update) },
                     Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_start,
-                    fontSize = Ts.Body, shadow = false,
+                    fontSize = Ts.Body,
                     fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
                 )
             }
             PixelButton(tr("Exportar .bl"), {
                 exporter.launch("${m.id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.bl")
             }, Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_folder,
-                fontSize = Ts.Body, shadow = false,
+                fontSize = Ts.Body,
                 fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed)
             exportMessage?.let { (message, ok) ->
                 PixelText(message, size = Ts.Small, color = if (ok) Bl.TextDim else Bl.Bad,
@@ -414,7 +417,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
                 for (link in links) {
                     PixelButton(link.title, { ctx.openUrl(link.url) },
                         fill = buttons.link, textColor = buttons.linkText ?: ctx.style.accent,
-                        pressedFill = buttons.pressed, fontSize = Ts.Small, shadow = false)
+                        pressedFill = buttons.pressed, fontSize = Ts.Small)
                 }
             }
         }

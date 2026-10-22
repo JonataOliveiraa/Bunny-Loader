@@ -1,5 +1,8 @@
 package dev.bunnyloader.ui
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -12,24 +15,31 @@ import dev.bunnyloader.R
  * tom, e o amarelo aparece só no toque — é o destaque que o próprio jogo usa
  * quando o dedo (ou o mouse) está sobre alguma coisa. Com o cenário vivo atrás,
  * a interface fica numa família só de cor e quem dá variedade é o fundo.
+ *
+ * Os tons de painel, botão, campo, moldura, título e barra vêm do tema
+ * ([UiPalette], escolhido pelo [Biome]): lidos por estado, a troca de tema
+ * repinta a interface inteira sem cada tela saber dele.
  */
 object Bl {
+    /** A paleta do tema atual. Quem escreve é o launcher, ao resolver o cenário. */
+    var palette by mutableStateOf(UiPalette.CLASSIC)
+
     /** Fundo de painel, cartão e linha de lista. */
-    val Panel = Color(0xFF2B335A)
+    val Panel get() = palette.panel
 
     /** Botão em repouso, e o botão enquanto o dedo está nele. */
-    val Button = Color(0xFF323471)
-    val ButtonPressed = Color(0xFF717BD5)
+    val Button get() = palette.button
+    val ButtonPressed get() = palette.buttonPressed
 
     /** Campo de escolha e de texto (seletor, busca). */
-    val Select = Color(0xFF32407D)
+    val Select get() = palette.select
 
     /** Moldura e fundo de tudo que mostra imagem: ícone, banner, prévia. */
-    val FrameBorder = Color(0xFF4E5275)
-    val FrameFill = Color(0xFF1A1E39)
+    val FrameBorder get() = palette.frameBorder
+    val FrameFill get() = palette.frameFill
 
     /** Faixa atrás de título de seção, e etiqueta. */
-    val TitleFill = Color(0xFF4A5DAA)
+    val TitleFill get() = palette.titleFill
 
     /** Toque: a borda de qualquer botão e o texto de botão sem caixa. */
     val PressedBorder = Color(0xFFEBE27F)
@@ -42,14 +52,15 @@ object Bl {
     val Outline = Color(0xFF131625)
     val Night = Color(0xFF0D0F1A)
 
-    /** Sombra projetada dos cartões. Preta e opaca — sem desfoque. */
-    val Shadow = Color(0xB3000000)
-
     /** Contorno do texto. Preto puro: qualquer cinza some sobre o fundo. */
     val Ink = Color(0xFF000000)
 
     /** A barra de baixo: o painel de dentro do jogo. */
-    val GamePanel = Color(0xFF3F5297)
+    val GamePanel get() = palette.gamePanel
+
+    /** A aba atual no rodapé: o slot dourado do item selecionado na barra do jogo. */
+    val SlotGold = Color(0xFFE9B43A)
+    val SlotGoldOutline = Color(0xFF3A2608)
 
     // --- texto ---
     // Branco puro na frente, porque todo texto da interface leva contorno
@@ -65,6 +76,67 @@ object Bl {
 
     /** Fundo do cartão de um pacote ligado, em Pacotes: o verde do "Ligado" do jogo, escurecido. */
     val EnabledPanel = Color(0xFF2B5A3A)
+
+    /** Mod recém-publicado no topo do Explorar: o dourado de item raro, escurecido. */
+    val NewPanel = Color(0xFF5A4A2B)
+    val NewTitleFill = Color(0xFFA9822C)
+
+    /**
+     * O convite do Discord: o azul da marca, o único cartão fora da família de
+     * azuis do Terraria — é ele que tem que saltar aos olhos.
+     */
+    val Discord = Color(0xFF5865F2)
+    val DiscordDeep = Color(0xFF3B44A8)
+    val DiscordText = Color(0xFFE3E6FF)
+
+    /** As três primeiras posições de Populares. */
+    val Gold = Color(0xFFB8902C)
+    val Silver = Color(0xFF8790A8)
+    val Bronze = Color(0xFF9C5F32)
+}
+
+/**
+ * Os tons que cada tema troca. O clássico é o azul dos painéis do Terraria;
+ * os outros seguem o bioma (Halloween roxo com laranja, Cogumelos azul-noite,
+ * Deserto areia, Sagrado lilás com rosa).
+ */
+class UiPalette(
+    val panel: Color,
+    val button: Color,
+    val buttonPressed: Color,
+    val select: Color,
+    val titleFill: Color,
+    val gamePanel: Color,
+    val frameBorder: Color,
+    val frameFill: Color,
+) {
+    companion object {
+        val CLASSIC = UiPalette(
+            panel = Color(0xFF2B335A), button = Color(0xFF323471), buttonPressed = Color(0xFF717BD5),
+            select = Color(0xFF32407D), titleFill = Color(0xFF4A5DAA), gamePanel = Color(0xFF3F5297),
+            frameBorder = Color(0xFF4E5275), frameFill = Color(0xFF1A1E39),
+        )
+        val HALLOWEEN = UiPalette(
+            panel = Color(0xFF34213F), button = Color(0xFF472A5A), buttonPressed = Color(0xFFC0702E),
+            select = Color(0xFF452A58), titleFill = Color(0xFFC0621E), gamePanel = Color(0xFF4A2A60),
+            frameBorder = Color(0xFF5E4470), frameFill = Color(0xFF1A0F22),
+        )
+        val MUSHROOM = UiPalette(
+            panel = Color(0xFF1C2A57), button = Color(0xFF22357A), buttonPressed = Color(0xFF4F8FE0),
+            select = Color(0xFF23397E), titleFill = Color(0xFF2E6FC4), gamePanel = Color(0xFF20366F),
+            frameBorder = Color(0xFF3B5590), frameFill = Color(0xFF0C1330),
+        )
+        val DESERT = UiPalette(
+            panel = Color(0xFF5A4327), button = Color(0xFF6B4F2C), buttonPressed = Color(0xFFB98A45),
+            select = Color(0xFF6A4E2E), titleFill = Color(0xFFA8702E), gamePanel = Color(0xFF7A5A30),
+            frameBorder = Color(0xFF7D6440), frameFill = Color(0xFF2A1D0F),
+        )
+        val HALLOW = UiPalette(
+            panel = Color(0xFF3B3169), button = Color(0xFF4A3D86), buttonPressed = Color(0xFFB27AD8),
+            select = Color(0xFF4B3F8E), titleFill = Color(0xFFB0559E), gamePanel = Color(0xFF54479A),
+            frameBorder = Color(0xFF6A5DA6), frameFill = Color(0xFF1C1636),
+        )
+    }
 }
 
 /** Fonte pixelada de _icons/font.TTF — a mesma identidade do título. */

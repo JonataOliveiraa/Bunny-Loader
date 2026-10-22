@@ -5,38 +5,56 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ModUpdatesTest {
+    private val now = 10 * UPDATE_REMIND_MS
+    private fun seen(version: String, ago: Long = 0) = UpdateNotice(version, now - ago)
+
     @Test fun onlyInstalledModsWithNewerVersionsAreAnnounced() {
-        assertEquals(setOf("old"), unseenModUpdates(
+        assertEquals(setOf("old"), dueModUpdates(
             mapOf("old" to "1.0", "current" to "2.0", "ahead" to "3.0"),
             mapOf("old" to "1.1", "current" to "2.0", "ahead" to "2.0", "new" to "1.0"),
-            emptyMap(),
+            emptyMap(), now,
         ))
     }
 
-    @Test fun reopeningDoesNotRepeatTheSameNotice() {
-        assertTrue(unseenModUpdates(mapOf("a" to "1.0"), mapOf("a" to "1.1"),
-            mapOf("a" to "1.1")).isEmpty())
+    @Test fun reopeningSoonDoesNotRepeatTheSameNotice() {
+        assertTrue(dueModUpdates(mapOf("a" to "1.0"), mapOf("a" to "1.1"),
+            mapOf("a" to seen("1.1", UPDATE_REMIND_MS - 1)), now).isEmpty())
+    }
+
+    @Test fun aDeclinedUpdateIsRemindedLater() {
+        assertEquals(setOf("a"), dueModUpdates(mapOf("a" to "1.0"), mapOf("a" to "1.1"),
+            mapOf("a" to seen("1.1", UPDATE_REMIND_MS)), now))
+    }
+
+    @Test fun noticeFromBeforeTheReminderIsDue() {
+        assertEquals(setOf("a"), dueModUpdates(mapOf("a" to "1.0"), mapOf("a" to "1.1"),
+            mapOf("a" to UpdateNotice("1.1", 0)), now))
+    }
+
+    @Test fun clockGoingBackDoesNotRepeatTheNotice() {
+        assertTrue(dueModUpdates(mapOf("a" to "1.0"), mapOf("a" to "1.1"),
+            mapOf("a" to seen("1.1", -UPDATE_REMIND_MS)), now).isEmpty())
     }
 
     @Test fun nextReleaseIsAnnouncedEvenWhenThePreviousUpdateWasDeclined() {
-        assertEquals(setOf("a"), unseenModUpdates(mapOf("a" to "1.0"),
-            mapOf("a" to "1.2"), mapOf("a" to "1.1")))
+        assertEquals(setOf("a"), dueModUpdates(mapOf("a" to "1.0"),
+            mapOf("a" to "1.2"), mapOf("a" to seen("1.1")), now))
     }
 
     @Test fun oldCachedCatalogDoesNotRepeatANewerNotice() {
-        assertTrue(unseenModUpdates(mapOf("a" to "1.0"), mapOf("a" to "1.1"),
-            mapOf("a" to "1.2")).isEmpty())
+        assertTrue(dueModUpdates(mapOf("a" to "1.0"), mapOf("a" to "1.1"),
+            mapOf("a" to seen("1.2")), now).isEmpty())
     }
 
     @Test fun versionNumbersAreComparedNumericallyAndEquivalentVersionsAreIgnored() {
-        assertEquals(setOf("a"), unseenModUpdates(mapOf("a" to "1.9", "b" to "1.0"),
-            mapOf("a" to "1.10", "b" to "v1.0.0"), emptyMap()))
-        assertTrue(unseenModUpdates(mapOf("a" to "1.0"), mapOf("a" to "v1.1.0"),
-            mapOf("a" to "1.1")).isEmpty())
+        assertEquals(setOf("a"), dueModUpdates(mapOf("a" to "1.9", "b" to "1.0"),
+            mapOf("a" to "1.10", "b" to "v1.0.0"), emptyMap(), now))
+        assertTrue(dueModUpdates(mapOf("a" to "1.0"), mapOf("a" to "v1.1.0"),
+            mapOf("a" to seen("1.1")), now).isEmpty())
     }
 
     @Test fun eachModTracksItsOwnRelease() {
-        assertEquals(setOf("b"), unseenModUpdates(mapOf("a" to "1.0", "b" to "1.0"),
-            mapOf("a" to "2.0", "b" to "2.0"), mapOf("a" to "2.0")))
+        assertEquals(setOf("b"), dueModUpdates(mapOf("a" to "1.0", "b" to "1.0"),
+            mapOf("a" to "2.0", "b" to "2.0"), mapOf("a" to seen("2.0")), now))
     }
 }

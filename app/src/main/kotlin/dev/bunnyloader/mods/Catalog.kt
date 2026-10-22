@@ -392,6 +392,19 @@ fun formatSize(bytes: Long): String = when {
     else -> "$bytes B"
 }
 
+/** Contagem curta para um selo: 987, 1.2k, 34k, 1.5M. */
+fun formatCount(n: Long): String = when {
+    n < 1_000 -> "$n"
+    n < 10_000 -> oneDecimal(n / 100) + "k"
+    n < 1_000_000 -> "${n / 1_000}k"
+    n < 10_000_000 -> oneDecimal(n / 100_000) + "M"
+    else -> "${n / 1_000_000}M"
+}
+
+/** Décimos para "1.2", sem o ".0"; corta para baixo (1290 é 1.2k, não 1.3k). */
+private fun oneDecimal(tenths: Long): String =
+    if (tenths % 10 == 0L) "${tenths / 10}" else "${tenths / 10}.${tenths % 10}"
+
 /** "2026-09-22" -> "22 de set. de 2026". */
 fun formatDate(iso: String): String {
     val parts = iso.split("-")

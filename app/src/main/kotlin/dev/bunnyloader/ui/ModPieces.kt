@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import dev.bunnyloader.R
 import dev.bunnyloader.mods.Catalog
 import dev.bunnyloader.mods.IconAnimation
+import dev.bunnyloader.mods.formatCount
 import dev.bunnyloader.mods.formatSize
 import kotlinx.coroutines.withContext
 
@@ -174,7 +175,7 @@ private val FALLBACK_BANNERS = listOf(
     R.drawable.bg_forest, R.drawable.bg_ocean, R.drawable.bg_lake, R.drawable.bg_snow,
 )
 
-/** Linha da lista: ícone, nome, autor, categoria e tamanho. */
+/** Linha da lista: ícone, nome, autor, categoria, tamanho e, se houver, downloads. */
 @Composable
 fun ModRow(
     entry: Catalog.Entry,
@@ -182,6 +183,7 @@ fun ModRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     fill: Color = Bl.Panel,
+    downloads: Long? = null,
     besideIcon: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
 ) {
@@ -216,6 +218,7 @@ fun ModRow(
                         size = Ts.Small, color = Bl.TextFaint,
                         modifier = Modifier.padding(start = 12.dp),
                     )
+                    if (downloads != null) DownloadCount(downloads, Modifier.padding(start = 10.dp))
                 }
             }
             trailing?.invoke()
@@ -251,14 +254,52 @@ private fun ModOrderArrow(description: String, up: Boolean, enabled: Boolean, on
  * inteira cortaria a tela em fatias.
  */
 @Composable
-fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+fun SectionTitle(text: String, modifier: Modifier = Modifier, icon: Int? = null) {
     Box(modifier.fillMaxWidth().padding(top = 18.dp, bottom = 8.dp)) {
-        Box(
-            Modifier.pixelShadow(3.dp, 4.dp).pixelPanel(fill = Bl.TitleFill)
+        Row(
+            Modifier.pixelPanel(fill = Bl.TitleFill)
                 .padding(horizontal = 12.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (icon != null) PixelIcon(icon, 20.dp, Modifier.padding(end = 8.dp))
             PixelText(text, size = Ts.Head, color = Bl.Text)
         }
+    }
+}
+
+/**
+ * Os downloads de um mod do catálogo online (stats.json): a seta e o número
+ * curto. Só aparece com número de verdade; sem estatística, nada.
+ */
+@Composable
+fun DownloadCount(count: Long, modifier: Modifier = Modifier, color: Color = Bl.TextFaint) {
+    val description = tr("%1\$s downloads", count)
+    Row(
+        modifier.semantics(mergeDescendants = true) { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PixelIcon(R.drawable.ic_download, 14.dp)
+        PixelText(formatCount(count), size = Ts.Small, color = color, modifier = Modifier.padding(start = 4.dp))
+    }
+}
+
+/** A posição em Populares: ouro, prata e bronze nas três primeiras. */
+@Composable
+fun RankBadge(position: Int, modifier: Modifier = Modifier) {
+    val fill = when (position) {
+        1 -> Bl.Gold
+        2 -> Bl.Silver
+        3 -> Bl.Bronze
+        else -> Bl.TitleFill
+    }
+    val description = tr("%1\$sº lugar", position)
+    Box(
+        modifier.padding(end = 8.dp).size(30.dp)
+            .pixelPanel(fill = fill)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        PixelText("$position", size = Ts.Item, color = Bl.Text)
     }
 }
 
