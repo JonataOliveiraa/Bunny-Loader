@@ -312,6 +312,17 @@
 <main>
   <div class="stats" id="stats"></div>
 
+  <section id="discordSection" hidden>
+    <div class="head">
+      <div class="strip"><h2 class="pixel">Atualizações no Discord</h2></div>
+      <p class="hint" id="discordStatus"></p>
+      <div class="tools">
+        <button class="btn small quiet" id="discordTestBtn">Enviar teste</button>
+        <button class="btn small" id="discordRetryBtn">Reenviar pendentes</button>
+      </div>
+    </div>
+  </section>
+
   <section id="samplesSection">
     <div class="head">
       <div class="strip"><img src="/art/ic_folder.png" alt=""><h2 class="pixel">Nossos mods</h2></div>
@@ -508,6 +519,17 @@ function renderAccount() {
 function render() {
   const d = state.data;
   renderAccount();
+  $("discordSection").hidden = !!NATIVE;
+  const discord = d.discord;
+  $("discordStatus").textContent = !discord
+    ? "Reabra o gerenciador pelo gerenciar.bat para ativar as notificações."
+    : discord.error
+      ? `Discord: ${discord.error}`
+      : !discord.configured ? "Webhook não configurado."
+      : discord.pending ? `Ativo. ${discord.pending} notificação(ões) aguardando envio.`
+      : "Ativo. Publicações, atualizações e remoções confirmadas são enviadas em inglês, sem emojis.";
+  $("discordTestBtn").disabled = !discord?.configured;
+  $("discordRetryBtn").disabled = !discord?.configured || !discord.pending;
 
   const samples = d.samples || [];
   $("samplesSection").hidden = !d.samples;
@@ -555,20 +577,35 @@ function renderCatalog() {
         ${frame(m.icon)}
         <div>
           <div class="name"><span class="pixel">${esc(m.name)}</span><span class="ver">v${esc(m.version)}</span></div>
-          <div class="meta">${esc(m.authors || "autor desconhecido")}${m.category ? " · " + esc(m.category) : ""} · ${kb(m.download.size)}</div>
+          <div class="meta">${esc(m.authors || "autor desconhecido")}${m.category ? " · " + esc(m.category) : ""} · ${kb(m.download.size)}${m.downloads != null ? " · " + m.downloads + " downloads" : ""}</div>
         </div>
       </div>
       <p class="summary">${esc(m.summary)}</p>
       <div class="foot">
         <span class="links"><a href="${esc(m.release)}" target="_blank" rel="noopener">Release</a><a href="${esc(m.download.url)}">Baixar .bl</a></span>
+        <button class="btn small${m.featured ? " good" : " quiet"}" data-feature="${esc(m.uid)}" data-on="${m.featured ? "" : "1"}" data-name="${esc(m.name)}" title="O &quot;Em destaque&quot; do Início no app"><img src="/art/${m.featured ? "ic_fav_on" : "ic_fav_off"}.png" alt="">${m.featured ? "Em destaque" : "Destacar"}</button>
         <button class="btn small bad" data-remove="${esc(m.uid)}" data-name="${esc(m.name)}"><img src="/art/ic_trash.png" alt="">Tirar</button>
       </div>
     </div>`).join("")
     : empty(q ? "Nada com esse nome." : d.worktree ? "Catálogo vazio." : "Ainda não sincronizado.");
   document.querySelectorAll("[data-remove]").forEach((b) => (b.onclick = () => removeMod(b.dataset.remove, b.dataset.name)));
+  document.querySelectorAll("[data-feature]").forEach((b) => (b.onclick = () => featureMod(b.dataset.feature, !!b.dataset.on, b.dataset.name)));
+}
+
+async function featureMod(uid, on, name) {
+  await task(on ? `Destacar ${name} no Início` : `Tirar ${name} do destaque`, "/api/feature", { uid, on });
+  await refresh();
 }
 
 $("filter").oninput = (e) => { state.filter = e.target.value; if (state.data) renderCatalog(); };
+$("discordTestBtn").onclick = async () => {
+  await task("Testar notificações do Discord", "/api/discord-test");
+  await refresh();
+};
+$("discordRetryBtn").onclick = async () => {
+  await task("Reenviar notificações do Discord", "/api/discord-retry");
+  await refresh();
+};
 
 function sampleActions(s) {
   const tokenSet = state.data.token && state.data.token.set;

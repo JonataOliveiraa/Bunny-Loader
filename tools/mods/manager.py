@@ -36,6 +36,7 @@ from urllib.parse import unquote, urlparse
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pack  # noqa: E402
 import publish  # noqa: E402
+import discord_updates  # noqa: E402
 
 PORT = int(os.environ.get("BL_MANAGER_PORT") or 8770)
 # O ícone do cartão: o animado, se o pacote tiver (o navegador anima sozinho).
@@ -84,6 +85,8 @@ def run(action) -> dict:
             return {"ok": True, "log": out.getvalue(), "result": result}
         except publish.Fail as e:
             return {"ok": False, "log": out.getvalue(), "error": str(e)}
+        except discord_updates.NotificationError as e:
+            return {"ok": False, "log": out.getvalue(), "error": str(e)}
         except Exception as e:  # noqa: BLE001 — a página mostra; o servidor segue de pé
             traceback.print_exc()
             return {"ok": False, "log": out.getvalue(), "error": f"{type(e).__name__}: {e}"}
@@ -95,8 +98,14 @@ def index_entries() -> list[dict]:
     wt = publish.WORKTREE
     if not (wt / ".git").exists():
         return []
+    index = publish.load_index(wt)
+    featured = index.get("featured", [])
+    try:
+        downloads = json.loads((wt / "stats.json").read_text(encoding="utf-8")).get("downloads", {})
+    except (OSError, ValueError):
+        downloads = {}
     entries = []
-    for m in publish.load_index(wt).get("mods", []):
+    for m in index.get("mods", []):
         manifest = {}
         f = wt / "mods" / m["uid"] / "manifest.json"
         if f.exists():
@@ -109,6 +118,8 @@ def index_entries() -> list[dict]:
             "summary": manifest.get("summary", ""),
             "icon": next((f"/store/{m['uid']}/{n}" for n in ICONS if n in m.get("files", [])), None),
             "release": f"https://github.com/{publish.OWNER}/{publish.REPO}/releases/tag/{tag}",
+            "featured": m["uid"] in featured,
+            "downloads": downloads.get(m["uid"]),
         })
     return entries
 
@@ -211,6 +222,7 @@ def state() -> dict:
         "worktree": (publish.WORKTREE / ".git").exists(),
         "catalog": entries,
         "samples": samples_state(by_uid),
+        "discord": discord_updates.status(),
     }
 
 
@@ -218,6 +230,7 @@ def state() -> dict:
 
 def sync() -> None:
     publish.worktree()
+    discord_updates.flush()
     print("Catálogo sincronizado com o GitHub.")
 
 
@@ -270,6 +283,14 @@ def remove(uid: str) -> None:
     if not publish.UID.match(uid):
         raise publish.Fail("uid inválido")
     publish.remove(uid, dry=False)
+
+
+def toggle_featured(uid: str, on: bool) -> None:
+    """Põe ou tira um mod do "Em destaque" do Início, mantendo os outros."""
+    if not publish.UID.match(uid):
+        raise publish.Fail("uid inválido")
+    current = publish.load_index(publish.worktree()).get("featured", [])
+    publish.feature([u for u in current if u != uid] + ([uid] if on else []), dry=False)
 
 
 def bump(folder: str, part: str) -> str:
@@ -390,12 +411,18 @@ class Handler(BaseHTTPRequestHandler):
             return self.json(run(state))
         if path == "/api/sync":
             return self.json(run(sync))
+        if path == "/api/discord-test":
+            return self.json(run(discord_updates.send_test))
+        if path == "/api/discord-retry":
+            return self.json(run(discord_updates.flush))
         if path == "/api/publish-sample":
             return self.json(run(lambda: publish_sample(data.get("folder", ""))))
         if path == "/api/publish-upload":
             return self.json(run(lambda: publish_upload(data.get("file", ""))))
         if path == "/api/remove":
             return self.json(run(lambda: remove(data.get("uid", ""))))
+        if path == "/api/feature":
+            return self.json(run(lambda: toggle_featured(data.get("uid", ""), bool(data.get("on")))))
         if path == "/api/bump":
             return self.json(run(lambda: bump(data.get("folder", ""), data.get("part", "patch"))))
         self.send(404, b"", "text/plain")

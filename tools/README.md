@@ -114,9 +114,9 @@ new versions already known to the cache can also be announced.
 (`http://127.0.0.1:8770`) that shows the mods in `samples/` with each one's
 status (up to date, new version ready, changed without bumping the version),
 publishes with one click, bumps the version, checks and publishes a dragged
-`.bl`, and removes mods from the catalog. The token is pasted into the page and
-stays only in the manager's memory. The page only serves this computer and
-requires a key randomized on every run.
+`.bl`, and removes mods from the catalog. The GitHub token comes from a local
+file or environment variable and is never exposed to the page. The page only
+serves this computer and requires a key randomized on every run.
 
 Underneath, it calls the same command-line scripts.
 [`mods/publish.py`](mods/publish.py) checks the package with the app's import
@@ -143,13 +143,109 @@ python tools/mods/pack.py samples/VidaCheia      # -> build/mods-packs/vidacheia
 python tools/mods/publish.py --dry-run Mod.bl    # checks and builds, no network
 python tools/mods/publish.py Mod.bl Other.bl     # publishes
 python tools/mods/publish.py --remove <uid>      # removes from the catalog (the Release stays)
+python tools/mods/publish.py --feature consolaria # Home's "Featured" (uid or id; several = carousel)
+python tools/mods/publish.py --feature           # clears it (back to the built-in mod.json `featured`)
 ```
+
+The manager page has the same switch (the star on each catalog card).
+
+### Download counts
+
+GitHub counts every download of a Release asset. The `Download stats` Action
+in the mods repository ([`mods/download-stats.yml`](mods/download-stats.yml),
+copied to `.github/` by `publish.py`) runs every 6 hours, sums the `.bl`
+downloads of all Releases of each mod ([`mods/download_stats.py`](mods/download_stats.py))
+and commits `stats.json` when a number changed. The app reads it to rank the
+Home's "Popular" list and shows the count on cards and on the mod page; without
+the file, nothing is shown. Each update counts as a download, as on GitHub.
+Run it by hand with `python tools/mods/download_stats.py build/mods-repo`, or
+from the repository's Actions tab ("Run workflow").
 
 Updating a mod means publishing the `.bl` with a higher `version` in
 `manifest.json`: the app compares it with the installed one and shows
 "Update". Republishing the same version with different content is refused.
 `raw.githubusercontent.com` caches for a few minutes, so the change may take a
 moment to show up in the app.
+
+### Discord catalog updates
+
+The PC manager and `publish.py` can announce catalog changes through a Discord
+webhook. Set `BL_DISCORD_WEBHOOK_URL`, or put the webhook URL in
+`bunnyloaderdiscordwebhook.txt` at the project root. That file is ignored by
+Git. The URL is read only by the local Python process; it is not returned to
+the browser, stored in packages or embedded in the Android apps.
+
+After a successful GitHub push, each affected package gets one English embed:
+**New package published**, **Package updated**, **Catalog listing updated** or
+**Package removed**. Embeds contain the package's name, current and previous
+versions where relevant, authors, package type, size, icon and release/download
+links. Generated text is English; package and author names retain their names.
+Emojis are stripped and mentions are disabled. Package descriptions and release
+notes remain available through the links rather than being copied in their
+original language.
+
+Dry runs, local version bumps, uploads for validation, synchronization without
+publication and unchanged republishes do not create announcements. A failed
+GitHub push does not announce success; retrying its pending commit announces
+the changes after confirmation. Reindexing announces changed listings only.
+
+Discord failures do not turn a completed publication into an error. Pending
+embeds and delivery history are saved locally in `build/discord-updates.json`.
+They are retried on the next publication, manager synchronization/startup, or
+with **Reenviar pendentes**. Discord's rate-limit cooldown is respected, and
+each attempt sends at most ten queued embeds. Delivery requires Discord's
+message confirmation (`wait=true`). As with other webhook clients, an ambiguous
+network failure after Discord accepted a message can result in a duplicate on
+retry.
+
+The manager shows connection status and pending deliveries under
+**Atualizações no Discord**. **Enviar teste** sends a clearly labeled connection
+test without changing the catalog. Restart an already running manager and
+refresh its browser tab after installing this feature. The Android catalog
+publisher is independent and does not use this local webhook configuration.
+
+The payload format and limits follow the official [Discord webhook
+API](https://docs.discord.com/developers/resources/webhook#execute-webhook)
+and [embed limits](https://docs.discord.com/developers/resources/message#embed-limits).
+
+### Android catalog app
+
+`catalog/` builds **BL Catálogo**, the same manager page on the phone (the
+Kotlin [`Bridge`](../catalog/src/main/kotlin/dev/bunnyloader/catalog/Bridge.kt)
+answers in place of `manager.py`). The APK carries no token. Publishing signs in
+through a GitHub App with the device flow: the app shows a short code, you
+approve it at `github.com/login/device`, and GitHub returns a user token limited
+to what the App may do where it is installed.
+
+- **Access:** the GitHub App has only *Contents: Read and write* (plus the
+  mandatory *Metadata*) and is installed only on `Bunny-Loader-Mods`. The app
+  checks that installation right after signing in.
+- **Lifetimes:** the access token lasts 8 hours and lives only in memory. The
+  refresh token (6 months, replaced on every use) is encrypted with an Android
+  Keystore key that works only for 30 seconds after the fingerprint or the
+  device PIN, in `noBackupFilesDir`. A new fingerprint or lock screen deletes
+  it, so you sign in again.
+- **Confirmation:** each publication and removal asks for the fingerprint or
+  PIN, with the mod's name in the dialog. Opening the app asks once when the
+  8-hour token has expired; cancelling shows the public catalog.
+- **Signing out:** tap your account in the header. To cut access everywhere,
+  revoke the App in GitHub (Settings → Applications → Authorized GitHub Apps).
+- The phone needs a PIN, password or pattern (Android 11 or newer).
+
+Creating the GitHub App (once): **Settings → Developer settings → GitHub Apps →
+New GitHub App**, any homepage URL, no callback URL, *Expire user authorization
+tokens* on, *Enable Device Flow* on, webhook off, the permissions above, *Only
+on this account*. Then **Install App → Only select repositories →
+Bunny-Loader-Mods**. No client secret or private key is needed. Put the
+**Client ID** (public, starts with `Iv`) in `local.properties` and build:
+
+```
+bl.catalogClientId=Iv23li...
+```
+
+```bash
+gradle :catalog:testDebugUnitTest :catalog:assembleDebug
+```
 
 ## Tests
 

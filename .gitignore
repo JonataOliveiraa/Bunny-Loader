@@ -6,6 +6,8 @@ local.properties
 # mods no Bunny-Loader-Mods (publish.py, migrate_releases.py). Nunca no Git.
 _token.txt
 bunnyloadermodstoken.txt
+# Webhook privado usado pelo gerenciador para avisos no Discord.
+bunnyloaderdiscordwebhook.txt
 .idea/
 .DS_Store
 build/

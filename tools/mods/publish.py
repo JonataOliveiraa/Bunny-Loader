@@ -5,6 +5,8 @@
     python tools/mods/publish.py --dry-run pacote.bl     # só confere e monta, sem rede
     python tools/mods/publish.py --remove <uid>          # tira do catálogo (a Release fica)
     python tools/mods/publish.py --reindex               # põe o manifesto de cada mod no índice
+    python tools/mods/publish.py --feature consolaria    # "Em destaque" do Início (uid ou id; vários = carrossel)
+    python tools/mods/publish.py --feature               # sem nenhum: volta ao destaque do mod.json
 
 O catálogo mora no repositório JonataOliveiraa/Bunny-Loader-Mods, separado do
 código do app (um pedido de remoção contra um mod não derruba o app):
@@ -13,6 +15,8 @@ código do app (um pedido de remoção contra um mod não derruba o app):
                         capa, description.md, autores...) e ports/ (a origem
                         dos pacotes de textura e de fonte portados).
     Releases            uma por versão de mod, tag mod-<id>-v<versão>, com o .bl.
+    stats.json          downloads de cada mod, da Action download-stats (a
+                        cada 6 h; .github/, que este script mantém em dia).
 
 Cada entrada do index.json leva o manifesto inteiro do mod (`manifest`): o app
 monta a lista da aba Explorar só com o índice, numa requisição, e baixa ícone,
@@ -29,6 +33,8 @@ de novo reaproveita a Release (o sha256 confere) e só refaz o índice.
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
+from datetime import datetime, timezone
 import hashlib
 import io
 import json
@@ -44,8 +50,11 @@ import zipfile
 import zlib
 from pathlib import Path
 
+import discord_updates
+
 OWNER = "JonataOliveiraa"
 REPO = "Bunny-Loader-Mods"
+NOREPLY_EMAIL = "122224076+JonataOliveiraa@users.noreply.github.com"
 BRANCH = "main"
 ROOT = Path(__file__).resolve().parents[2]
 WORKTREE = ROOT / "build" / "mods-repo"
@@ -348,8 +357,17 @@ def worktree() -> Path:
         if r.returncode != 0:
             raise Fail(f"clone de {OWNER}/{REPO} falhou:\n{r.stderr}")
         git("config", "core.longpaths", "true", cwd=WORKTREE)
+    # O repositório é público: o e-mail do commit é o noreply, nunca o do
+    # .gitconfig global da máquina.
+    git("config", "user.name", OWNER, cwd=WORKTREE)
+    git("config", "user.email", NOREPLY_EMAIL, cwd=WORKTREE)
     discard_pending(WORKTREE)
-    git("pull", "--ff-only", "origin", BRANCH, cwd=WORKTREE, check=False)
+    r = git("pull", "--ff-only", "origin", BRANCH, cwd=WORKTREE, check=False)
+    if r.returncode != 0:
+        raise Fail(f"não foi possível sincronizar o catálogo em {WORKTREE}; "
+                   "a operação parou antes de alterar as Releases ou o índice. "
+                   "Confira a conexão e, se os históricos divergiram, integre os "
+                   f"commits locais com origin/{BRANCH} antes de tentar de novo:\n{r.stderr}")
     return WORKTREE
 
 
@@ -395,57 +413,123 @@ def readme(wt: Path) -> None:
         encoding="utf-8", newline="\n")
 
 
+def github_files(wt: Path) -> None:
+    """A Action dos downloads e o script dela, no .github/ do repositório de
+    mods. A cópia de verdade fica aqui (tools/mods/); lá é só o que roda."""
+    here = Path(__file__).resolve().parent
+    (wt / ".github" / "workflows").mkdir(parents=True, exist_ok=True)
+    for source, target in (("download_stats.py", ".github/download_stats.py"),
+                           ("download-stats.yml", ".github/workflows/download-stats.yml")):
+        text = (here / source).read_text(encoding="utf-8").replace("\r\n", "\n")
+        (wt / target).write_text(text, encoding="utf-8", newline="\n")
+
+
 def commit(wt: Path, message: str, dry: bool) -> None:
     git("add", "-A", cwd=wt)
-    if git("diff", "--cached", "--quiet", cwd=wt, check=False).returncode == 0:
+    changed = git("diff", "--cached", "--quiet", cwd=wt, check=False).returncode != 0
+    if not changed:
         print("  índice sem mudança")
-        return
     if dry:
         print(f"  [dry-run] commit no {BRANCH} montado em {wt} (sem commit nem push)")
         return
-    git("commit", "-m", message, cwd=wt)
+    if changed:
+        git("commit", "-m", message, cwd=wt)
+    # O push avança origin/main também: guarde antes a base para distinguir
+    # uma publicação nova de uma atualização, inclusive num push repetido.
+    notification_base = git("rev-parse", "--verify", f"origin/{BRANCH}", cwd=wt, check=False).stdout.strip()
+    # Uma tentativa anterior pode ter feito o commit e falhado só no push.
     r = git("push", "-u", "origin", BRANCH, cwd=wt, check=False)
+    if r.returncode != 0:
+        # A Action dos downloads pode ter gravado o stats.json no meio: os
+        # arquivos são outros, então o rebase passa limpo.
+        if git("pull", "--rebase", "origin", BRANCH, cwd=wt, check=False).returncode == 0:
+            r = git("push", "-u", "origin", BRANCH, cwd=wt, check=False)
+        else:
+            git("rebase", "--abort", cwd=wt, check=False)
     if r.returncode != 0:
         raise Fail(f"push do {BRANCH} falhou:\n{r.stderr}")
     print(f"  {BRANCH} enviado")
+    notify_catalog(wt, notification_base)
+
+
+def notify_catalog(wt: Path, previous_commit: str) -> None:
+    try:
+        if not discord_updates.webhook_url():
+            return
+        current = git("rev-parse", "HEAD", cwd=wt).stdout.strip()
+        if not previous_commit or current == previous_commit:
+            discord_updates.flush()
+            return
+
+        def snapshot(revision: str) -> dict:
+            result = git("show", f"{revision}:index.json", cwd=wt, check=False)
+            index = json.loads(result.stdout) if result.returncode == 0 else {"mods": []}
+            for entry in index.get("mods", []):
+                if "manifest" not in entry:
+                    manifest = git("show", f"{revision}:mods/{entry['uid']}/manifest.json", cwd=wt, check=False)
+                    if manifest.returncode == 0:
+                        entry["manifest"] = json.loads(manifest.stdout.lstrip("\ufeff"))
+            return index
+
+        before, after = snapshot(previous_commit), snapshot(current)
+        paths = git("diff", "--name-only", "-z", previous_commit, current, "--", "mods/", cwd=wt).stdout
+        discord_updates.notify(discord_updates.catalog_events(
+            before, after, previous_commit, current, [p for p in paths.split("\0") if p]))
+    except (discord_updates.NotificationError, OSError, ValueError, KeyError, TypeError, subprocess.CalledProcessError):
+        print("  Discord notifications could not be prepared. The catalog operation succeeded.")
 
 
 # ------------------------------------------------------------------ main
 
 def publish(paths: list[Path], dry: bool) -> None:
-    packages = []
-    for p in paths:
-        pkg = Package(p)
-        print(f"{pkg.name} v{pkg.version}  ({pkg.uid})")
-        print(f"  {pkg.size} bytes, sha256 {pkg.sha256}")
-        packages.append(pkg)
-    uids = [p.uid for p in packages]
-    if len(set(uids)) != len(uids):
-        raise Fail("dois pacotes com o mesmo uid na mesma chamada")
+    with ExitStack() as opened:
+        packages = []
+        for p in paths:
+            pkg = Package(p)
+            opened.enter_context(pkg.zip)
+            print(f"{pkg.name} v{pkg.version}  ({pkg.uid})")
+            print(f"  {pkg.size} bytes, sha256 {pkg.sha256}")
+            packages.append(pkg)
+        uids = [p.uid for p in packages]
+        if len(set(uids)) != len(uids):
+            raise Fail("dois pacotes com o mesmo uid na mesma chamada")
 
-    wt = worktree()
-    index = load_index(wt)
-    for pkg in packages:
-        old = next((m for m in index["mods"] if m["uid"] == pkg.uid), None)
-        if old and old.get("id") != pkg.id:
-            print(f"  aviso: o id mudou de {old.get('id')!r} para {pkg.id!r} (o uid manda)")
-        release_for(pkg, dry)
-        files = pkg.write_store(wt / "mods" / pkg.uid)
-        entry = {
-            "uid": pkg.uid,
-            "id": pkg.id,
-            "name": pkg.name,
-            "version": pkg.version,
-            "download": {"url": pkg.url, "sha256": pkg.sha256, "size": pkg.size},
-            "files": files,
-            "manifest": store_manifest(wt, pkg.uid),
-        }
-        index["mods"] = [m for m in index["mods"] if m["uid"] != pkg.uid] + [entry]
-        print(f"  vitrine: {', '.join(files)}")
-    readme(wt)
-    save_index(wt, index)
-    names = ", ".join(f"{p.name} v{p.version}" for p in packages)
-    commit(wt, f"Publicar {names}", dry)
+        wt = worktree()
+        index = load_index(wt)
+        for pkg in packages:
+            old = next((m for m in index["mods"] if m["uid"] == pkg.uid), None)
+            if old and old.get("id") != pkg.id:
+                print(f"  aviso: o id mudou de {old.get('id')!r} para {pkg.id!r} (o uid manda)")
+            release_for(pkg, dry)
+            files = pkg.write_store(wt / "mods" / pkg.uid)
+            entry = {
+                "uid": pkg.uid,
+                "id": pkg.id,
+                "name": pkg.name,
+                "version": pkg.version,
+                "download": {"url": pkg.url, "sha256": pkg.sha256, "size": pkg.size},
+                "files": files,
+                "manifest": store_manifest(wt, pkg.uid),
+            }
+            published_at = first_published(old)
+            if published_at:
+                entry["publishedAt"] = published_at
+            index["mods"] = [m for m in index["mods"] if m["uid"] != pkg.uid] + [entry]
+            print(f"  vitrine: {', '.join(files)}")
+        readme(wt)
+        github_files(wt)
+        save_index(wt, index)
+        names = ", ".join(f"{p.name} v{p.version}" for p in packages)
+        commit(wt, f"Publicar {names}", dry)
+
+
+def first_published(old: dict | None) -> str | None:
+    """Quando o mod entrou no catálogo (UTC, ISO 8601): o app marca como novo
+    por alguns dias. Uma versão nova mantém a data; mod publicado antes deste
+    campo fica sem ela, e o app não o trata como novo."""
+    if old is None:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return old.get("publishedAt")
 
 
 def store_manifest(wt: Path, uid: str) -> dict:
@@ -467,6 +551,30 @@ def reindex(dry: bool) -> None:
     commit(wt, "Manifesto de cada mod dentro do índice", dry)
 
 
+def feature(keys: list[str], dry: bool) -> None:
+    """O "Em destaque" do Início: a lista `featured` do índice, na ordem dada
+    (mais de um vira carrossel no app). Aceita uid ou id. Vazia, sai do índice
+    e o app volta ao `featured` do mod.json dos embutidos."""
+    wt = worktree()
+    index = load_index(wt)
+    uids = []
+    for key in keys:
+        found = next((m for m in index["mods"] if key in (m["uid"], m.get("id"))), None)
+        if found is None:
+            raise Fail(f"{key} não está no catálogo")
+        if found["uid"] not in uids:
+            uids.append(found["uid"])
+    names = [next(m.get("name", u) for m in index["mods"] if m["uid"] == u) for u in uids]
+    if uids:
+        index["featured"] = uids
+    else:
+        index.pop("featured", None)
+    github_files(wt)
+    save_index(wt, index)
+    print(f"  em destaque: {', '.join(names) if names else '(nenhum)'}")
+    commit(wt, f"Destaque: {', '.join(names)}" if names else "Sem destaque", dry)
+
+
 def remove(uid: str, dry: bool) -> None:
     wt = worktree()
     index = load_index(wt)
@@ -485,10 +593,13 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="confere e monta o índice, sem rede")
     ap.add_argument("--remove", metavar="UID")
     ap.add_argument("--reindex", action="store_true", help="põe o manifesto de cada mod no índice")
+    ap.add_argument("--feature", nargs="*", metavar="UID", help="mods em destaque no Início (uid ou id)")
     args = ap.parse_args()
     try:
         if args.remove:
             remove(args.remove, args.dry_run)
+        elif args.feature is not None:
+            feature(args.feature, args.dry_run)
         elif args.reindex:
             reindex(args.dry_run)
         elif args.packages:
