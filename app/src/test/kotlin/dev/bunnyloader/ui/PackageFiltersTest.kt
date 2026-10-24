@@ -106,6 +106,15 @@ class PackageFiltersTest {
         assertEquals(emptyList<Catalog.Entry>(), searchPackages(listOf(entry), "arvore ausente", index = index))
     }
 
+    @Test fun searchFindsLocalizedSummary() {
+        val entry = mod("s", "Floresta", 1).let {
+            it.copy(manifest = it.manifest.copy(summary = "Novas árvores",
+                localizedSummaries = mapOf("zh-Hans" to "新的树木")))
+        }
+        assertEquals(listOf(entry), searchPackages(listOf(entry), "新的树木", language = "zh"))
+        assertEquals(listOf(entry), searchPackages(listOf(entry), "arvores", language = "zh"))
+    }
+
     @Test fun searchSupportsLegacyAuthorAndKeepsSourceOrder() {
         val authored = packages.map { it.copy(manifest = it.manifest.copy(author = "José")) }
         assertEquals(authored, searchPackages(authored, "jose"))

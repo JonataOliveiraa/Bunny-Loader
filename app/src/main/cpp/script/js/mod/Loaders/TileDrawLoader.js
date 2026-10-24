@@ -77,10 +77,14 @@ class TileDrawLoader {
             const Main = Terraria.Main;
             const frames = Main.tileFrame, counters = Main.tileFrameCounter;
             const animated = TileLoader.Animated;
+            // Logo depois da carga dos mods, o jogo já anima um quadro antes de
+            // as tabelas de tiles crescerem: o tipo de mod ainda não cabe nelas.
+            const size = frames.length;
             // A cada quadro: o rótulo montado uma vez, e só o que mudou volta pela ponte.
             for (let k = 0; k < animated.length; k++) {
                 const m = animated[k];
                 const t = m.Type;
+                if (t >= size) continue;
                 const f0 = frames[t], c0 = counters[t];
                 frame.value = f0;
                 counter.value = c0;

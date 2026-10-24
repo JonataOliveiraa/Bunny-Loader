@@ -123,6 +123,11 @@ struct Api {
     // Classe aninhada -> a de fora (nullptr se nao e aninhada).
     Il2CppClass* (*class_get_declaring_type)(Il2CppClass*) = nullptr;
     Il2CppThread* (*thread_attach)(Il2CppDomain*) = nullptr;
+    // Toda thread nossa que se registrou com thread_attach e vai terminar
+    // precisa sair do registro antes: o coletor do il2cpp suspende todas as
+    // threads registradas, e uma que ja morreu deixa a thread do jogo presa
+    // esperando a resposta dela (a tela preta da abertura com mod, 24/10).
+    void (*thread_detach)(Il2CppThread*) = nullptr;
     // "System.NullReferenceException: Object reference..." de uma excecao
     // pega (il2cpp/GuardedCall.cpp). Trunca em `size`, sem garantir o terminador.
     void (*format_exception)(Il2CppObject*, char*, int) = nullptr;

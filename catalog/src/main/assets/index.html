@@ -528,6 +528,12 @@ function modName(m) {
   const names = (m.manifest && m.manifest.localizedNames) || {};
   return names[lang === "pt" ? "pt-BR" : "en-US"] || m.name || m.id || m.uid;
 }
+// O resumo na língua da página, quando o manifesto traz (localizedSummaries).
+function modSummary(m) {
+  const man = m.manifest || {};
+  const summaries = man.localizedSummaries || {};
+  return summaries[lang === "pt" ? "pt-BR" : "en-US"] || m.summary || man.summary || "";
+}
 function gameRange(v) {
   if (!Array.isArray(v) || !v.length) return "—";
   return v[0] === v[v.length - 1] ? String(v[0]) : `${v[0]} – ${v[v.length - 1]}`;
@@ -757,7 +763,7 @@ function modRow(m) {
   let body = "";
   if (open) {
     body = `<div class="mod-body">
-      ${m.summary ? `<p>${esc(m.summary)}</p>` : ""}
+      ${modSummary(m) ? `<p>${esc(modSummary(m))}</p>` : ""}
       ${kv([
         [t("f.uid"), esc(m.uid), m.uid],
         [t("f.id"), esc(m.id)],

@@ -108,6 +108,22 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
         )
     }
     val pages = rememberPages(entry, catalog)
+    // Ícone, capa e a vitrine, nessa ordem: o visualizador abre em qualquer um
+    // e desliza pelos outros.
+    val media = LocalRemoteMedia.current(entry)
+    val mediaVersion = "${media.remote?.download?.sha256 ?: media.manifest.version}:${media.mediaRevision}"
+    val gallery = remember(media, UiLocalization.language) {
+        buildList {
+            media.iconAsset?.let { add(ViewerImage(it, tr("Ícone"))) }
+            media.bannerAsset?.let { add(ViewerImage(it, tr("Capa"))) }
+            media.previews.forEach { add(ViewerImage(it)) }
+        }
+    }
+    var viewing by remember { mutableStateOf<Int?>(null) }
+    fun open(path: String?) {
+        val index = gallery.indexOfFirst { it.path == path }
+        if (index >= 0) viewing = index
+    }
     var tab by rememberSaveable(entry.uid) { mutableStateOf(0) }
     val selected = tab.coerceIn(0, pages.lastIndex)
     val scroll = rememberScrollState()
@@ -120,7 +136,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-            Header(entry, shell, ctx, buttons, onBack)
+            Header(entry, shell, ctx, buttons, onBack, onOpenPicture = ::open)
 
             if (pages.size > 1) {
                 TabStrip(pages.map { it.title }, selected, style,
@@ -138,7 +154,7 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
                     when (page) {
                         is Page.Description -> {
                             MarkdownView(page.blocks, ctx)
-                            Previews(entry, catalog)
+                            Previews(media.previews, catalog, mediaVersion, onOpen = ::open)
                         }
                         is Page.Changelog -> ChangelogView(page.blocks, m.version, ctx)
                         is Page.License -> LicenseView(m.license, page.blocks, ctx)
@@ -154,6 +170,9 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
             Spacer(Modifier.height(10.dp))
         }
         PixelScrollbar(scroll, Modifier.fillMaxSize())
+    }
+    viewing?.let { start ->
+        PictureViewer(gallery, start, catalog, mediaVersion) { viewing = null }
     }
 }
 
@@ -235,7 +254,7 @@ private sealed class Page(private val sourceTitle: String) {
 /**
  * As abas que este pacote tem. A Descrição existe sempre (sem
  * `description.md`, sai do `description` do manifesto, e sem ele do
- * `summary`); as outras só aparecem se o arquivo existir.
+ * `summary` da língua ativa); as outras só aparecem se o arquivo existir.
  */
 @Composable
 private fun rememberPages(entry: Catalog.Entry, catalog: Catalog): List<Page> {
@@ -277,10 +296,14 @@ private fun readPages(entry: Catalog.Entry, catalog: Catalog, language: String):
  * "Em destaque" do Início. Solta acima do painel, a capa parecia outra coisa.
  */
 @Composable
-private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
+private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit, onOpenPicture: (String?) -> Unit) {
     var favorite by remember { mutableStateOf(false) }
+    val media = LocalRemoteMedia.current(entry)
     Box(Modifier.fillMaxWidth()) {
-        ModBanner(entry, shell.catalog, Modifier.fillMaxWidth().height(170.dp))
+        // Sem capa própria (o trecho do cenário), o toque não abre nada.
+        ModBanner(entry, shell.catalog, Modifier.fillMaxWidth().height(170.dp)
+            .then(if (media.bannerAsset != null) Modifier.pixelClickable { onOpenPicture(media.bannerAsset) }
+            else Modifier))
         Row(
             Modifier.fillMaxWidth().padding(8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -292,7 +315,11 @@ private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
                 { favorite = !favorite },
             )
         }
-        Box(Modifier.align(Alignment.BottomStart).offset(x = 8.dp, y = 26.dp)) {
+        Box(
+            Modifier.align(Alignment.BottomStart).offset(x = 8.dp, y = 26.dp)
+                .then(if (media.iconAsset != null) Modifier.pixelClickable { onOpenPicture(media.iconAsset) }
+                else Modifier),
+        ) {
             ModIcon(entry, shell.catalog, 68.dp)
         }
     }
@@ -303,7 +330,10 @@ private fun Cover(entry: Catalog.Entry, shell: Shell, onBack: () -> Unit) {
  * sobre o cenário, o texto se perdia no fundo claro (neve, céu de dia).
  */
 @Composable
-private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: PageButtons, onBack: () -> Unit) {
+private fun Header(
+    entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: PageButtons, onBack: () -> Unit,
+    onOpenPicture: (String?) -> Unit,
+) {
     val m = entry.manifest
     val installed = entry.uid in shell.installed
     val on = entry.uid in shell.enabled
@@ -323,7 +353,7 @@ private fun Header(entry: Catalog.Entry, shell: Shell, ctx: MdContext, buttons: 
         Modifier.padding(horizontal = EdgePad).padding(top = 10.dp, bottom = 12.dp)
             .pixelPanel(fill = ctx.style.panel, corner = PixelCorner.LARGE).padding(6.dp),
     ) {
-        Cover(entry, shell, onBack)
+        Cover(entry, shell, onBack, onOpenPicture)
         // O texto começa depois do ícone, que pende da capa para dentro do painel.
         Column(Modifier.fillMaxWidth().padding(start = 86.dp, top = 6.dp, end = 4.dp).heightIn(min = 26.dp)) {
             PixelText(m.nameFor(UiLocalization.language), size = Ts.Big, color = ctx.style.heading)
@@ -476,20 +506,22 @@ private fun TabStrip(
     }
 }
 
+/** A vitrine (`thumbnails/`): o toque abre a imagem no visualizador. */
 @Composable
-private fun Previews(entry: Catalog.Entry, catalog: Catalog) {
-    if (entry.previews.isEmpty()) return
+private fun Previews(previews: List<String>, catalog: Catalog, version: String, onOpen: (String) -> Unit) {
+    if (previews.isEmpty()) return
     SectionTitle(tr("Imagens"))
     LazyRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(entry.previews, key = { it }) { p ->
-            val picture = rememberPackagePicture(catalog, p, entry.remote?.download?.sha256 ?: entry.manifest.version)
+        items(previews, key = { it }) { p ->
+            val picture = rememberPackagePicture(catalog, p, version)
             val first = picture?.frames?.first()
             if (picture != null && first != null) {
                 val width = 92.dp * first.width / first.height.coerceAtLeast(1)
-                PictureFrames(picture, Modifier.size(width + 4.dp, 96.dp).framePanel().padding(2.dp))
+                PictureFrames(picture, Modifier.size(width + 4.dp, 96.dp).framePanel()
+                    .pixelClickable { onOpen(p) }.padding(2.dp))
             } else {
                 Spacer(Modifier.size(160.dp, 96.dp).framePanel())
             }

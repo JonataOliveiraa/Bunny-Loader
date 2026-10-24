@@ -280,6 +280,15 @@ class Catalog(private val context: Context) {
         return loadBitmap(path)?.let { IconAnimation(listOf(it), intArrayOf(0)) }
     }
 
+    /**
+     * A imagem do visualizador em tela cheia: mais resolução que a da ficha,
+     * para o zoom não virar borrão. GIF continua no limite do [loadPicture].
+     */
+    fun loadViewerPicture(path: String): IconAnimation? {
+        if (path.endsWith(".gif", ignoreCase = true)) return loadPicture(path)
+        return loadBitmap(path, VIEWER_SIDE)?.let { IconAnimation(listOf(it), intArrayOf(0)) }
+    }
+
     private fun cacheKey(path: String) =
         if (path.startsWith("/")) File(path).let { "$path@${it.lastModified()}:${it.length()}" } else path
 
@@ -374,6 +383,7 @@ class Catalog(private val context: Context) {
         /** O que a ficha desenha: vitrine, fotos dos autores, Markdown, capa e fundo. */
         val IMAGE_EXTENSIONS = listOf("png", "gif", "webp", "jpg", "jpeg", "bmp")
         private const val PAGE_GIF_SIDE = 512
+        private const val VIEWER_SIDE = 2048
         private const val PAGE_GIF_PIXELS = 2_000_000
 
         fun isImageFile(name: String) = name.substringAfterLast('.', "").lowercase() in IMAGE_EXTENSIONS

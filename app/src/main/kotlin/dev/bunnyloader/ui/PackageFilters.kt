@@ -32,8 +32,8 @@ private fun searchText(value: String): String = SEARCH_MARKS
 internal class PackageSearchIndex(packages: List<Catalog.Entry>, val language: String = "pt-BR") {
     private val textByUid = packages.associate { entry ->
         val m = entry.manifest
-        entry.uid to searchText(listOf(m.nameFor(language), m.name, m.id, m.uid, m.category, m.summary,
-            m.description, m.credits.joinToString(" ") { it.name }).joinToString(" "))
+        entry.uid to searchText(listOf(m.nameFor(language), m.name, m.id, m.uid, m.category,
+            m.summaryFor(language), m.summary, m.description, m.credits.joinToString(" ") { it.name }).joinToString(" "))
     }
 
     fun matches(uid: String, terms: List<String>): Boolean =

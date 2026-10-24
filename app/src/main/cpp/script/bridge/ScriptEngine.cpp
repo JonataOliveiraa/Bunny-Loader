@@ -47,6 +47,9 @@ thread_local JsThread t_js;
 // solta o motor leva o seu (JsSuspend) e o devolve ao voltar.
 std::atomic<int> g_ownerTid{0};
 std::atomic<const void*> g_ownerHook{nullptr};
+// Conta cada vez que alguem pega o motor: o mesmo numero = a mesma posse,
+// sem soltar no meio (JsHook: nao esperar 3 s de novo pela mesma posse longa).
+std::atomic<uint64_t> g_ownerTerm{0};
 
 // O rt->current_stack_frame do QuickJS, pego no init (QuickJsExt.c): guardar
 // e devolver a pilha de uma thread e uma leitura e uma escrita, sem chamada.
@@ -55,6 +58,7 @@ void** g_frameSlot = nullptr;
 void markOwner(JsThread& t) {
     if (!t.tid) t.tid = gettid();
     g_ownerTid.store(t.tid, std::memory_order_relaxed);
+    g_ownerTerm.fetch_add(1, std::memory_order_relaxed);
 }
 
 void clearOwner() {
@@ -174,6 +178,8 @@ JsSuspend::~JsSuspend() {
 }
 
 int jsOwnerThread() { return g_ownerTid.load(std::memory_order_relaxed); }
+
+uint64_t jsOwnerTerm() { return g_ownerTerm.load(std::memory_order_relaxed); }
 
 const void* jsOwnerHook() { return g_ownerHook.load(std::memory_order_relaxed); }
 

@@ -10,9 +10,18 @@ class GlobalRegistry {
         this.field = field;
         this.getter = getter;
         this.list = [];
-        this.cached = false;   // alguma entidade precisa de lista própria (filtro ou cópia)?
+        this.cached = false;   // alguma entidade precisa de lista própria (cópia por entidade)?
+        this.filtered = false; // algum Global tem AppliesToEntity?
         this.ready = false;
     }
+
+    // Só com filtro (sem cópia por entidade), a lista depende do tipo: fica numa
+    // tabela por tipo, sem gravar nada na entidade. Gravar na entidade custava um
+    // objeto JS e um campo extra em CADA item/NPC/projétil criado, inclusive os
+    // milhares do jogo na abertura (ContentSamples e as cópias): dezenas de
+    // segundos com o motor preso num mod grande.
+    #byType = new Map();     // tipo -> lista filtrada
+    #byTypeCount = 0;        // this.list.length quando a tabela foi feita
 
     Register(cls, kind) {
         if (typeof cls !== 'function' || !(cls.prototype instanceof this.Base)) {
@@ -27,7 +36,13 @@ class GlobalRegistry {
         inst.__conditional = Hooks.Overrides(cls, this.Base, 'AppliesToEntity');
 
         this.list.push(inst);
-        if (inst.__perEntity || inst.__conditional) this.cached = true;
+        if (inst.__perEntity) this.cached = true;
+        if (inst.__conditional && !this.filtered) {
+            this.filtered = true;
+            // Um filtro pode depender do que o SetStaticDefaults registra (um Set de tipos, por
+            // exemplo); as listas por tipo feitas antes disso são refeitas no fim da carga.
+            Ready.Add(() => this.#byType.clear(), 'finish');
+        }
         if (!this.ready) this.#DefineAccessors();
 
         Ready.Add(() => inst.AddRecipeGroups(), 'groups');
@@ -49,7 +64,7 @@ class GlobalRegistry {
     // Sem filtro e sem cópia por entidade, são os próprios modelos.
     Of(entity) {
         if (!this.list.length || !(entity.type > 0)) return GlobalRegistry.#NONE;
-        if (!this.cached) return this.list;
+        if (!this.cached) return this.filtered ? this.#OfType(entity) : this.list;
 
         const current = entity[this.field];
         if (current && current.type === entity.type) {
@@ -59,6 +74,24 @@ class GlobalRegistry {
         }
 
         return this.Attach(entity, true);
+    }
+
+    // O AppliesToEntity roda uma vez por tipo, com a primeira entidade dele
+    // (lateInstantiation = true, como no Attach). No tModLoader ele roda por
+    // entidade, mas o filtro quase sempre só olha o tipo; quem precisar do
+    // estado da entidade usa InstancePerEntity, que segue pelo caminho antigo.
+    #OfType(entity) {
+        if (this.#byTypeCount !== this.list.length) {
+            this.#byType.clear();
+            this.#byTypeCount = this.list.length;
+        }
+        let list = this.#byType.get(entity.type);
+        if (!list) {
+            list = [];
+            this.#Append(entity, true, list, 0);
+            this.#byType.set(entity.type, list);
+        }
+        return list;
     }
 
     // A lista da entidade: filtrada pelo AppliesToEntity, com cópia para quem é
@@ -90,7 +123,8 @@ class GlobalRegistry {
     For(entity, method) {
         const templates = this.Templates(method);
         if (!templates.length) return GlobalRegistry.#NONE;
-        if (!this.cached) return entity.type > 0 ? templates : GlobalRegistry.#NONE;
+        // Sem filtro e sem cópia, os próprios modelos; com filtro, a lista do tipo (Of).
+        if (!this.cached && !this.filtered) return entity.type > 0 ? templates : GlobalRegistry.#NONE;
         return this.#ForList(this.Of(entity), method);
     }
 

@@ -30,6 +30,8 @@
 #if BL_HAVE_QUICKJS
 #include "quickjs.h"
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -1025,6 +1027,21 @@ JSValue nm_hook(JSContext* ctx, JSValueConst self, int argc, JSValueConst* argv)
 }
 
 
+// bl.yield(): solta o motor JS por um instante e pega de volta. Para trabalho
+// JS longo numa thread do jogo (um pass de geracao de mundo de dezenas de
+// segundos): sem soltar, a thread do jogo que voltava do original() de um
+// hook (Main.UpdateAudio) esperava o pass inteiro, com a tela congelada e o
+// aviso de 5 s do JsSuspend. Chamar entre etapas, a cada algumas dezenas de
+// ms de trabalho. E o mesmo JsSuspend do original() de um hook: a pilha JS
+// desta thread fica guardada e volta igual.
+JSValue js_yield(JSContext*, JSValueConst, int, JSValueConst*) {
+    JsSuspend suspend;
+    // Um instante para quem esperava o motor conseguir pega-lo: o timed_mutex
+    // nao e justo, e sem a pausa esta thread o pegaria de volta na hora.
+    if (suspend.released()) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    return JS_UNDEFINED;
+}
+
 // bl.hookStats(): [{ name, calls, js, jsMs }] por hook instalado, contados desde a
 // instalacao. `calls` inclui as chamadas que o filtro nativo devolve direto ao
 // jogo: e o custo de um hook num metodo quente (SpriteBatch.Draw).
@@ -1896,6 +1913,7 @@ void installBindings(void* context) {
     JS_SetPropertyStr(ctx, flags, "get", JS_NewCFunction(ctx, js_hookFlagsGet, "get", 1));
     JS_SetPropertyStr(ctx, bl, "hookFlags", flags);
     JS_SetPropertyStr(ctx, bl, "hookStats", JS_NewCFunction(ctx, js_hookStats, "hookStats", 0));
+    JS_SetPropertyStr(ctx, bl, "yield", JS_NewCFunction(ctx, js_yield, "yield", 0));
     JS_SetPropertyStr(ctx, bl, "gcThreshold", JS_NewCFunction(ctx, js_gcThreshold, "gcThreshold", 0));
     JS_SetPropertyStr(ctx, bl, "gc", JS_NewCFunction(ctx, js_gc, "gc", 0));
     installExtraFields(ctx, bl);

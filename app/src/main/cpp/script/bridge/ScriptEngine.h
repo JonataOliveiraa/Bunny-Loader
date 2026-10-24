@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -119,6 +120,8 @@ private:
  */
 int jsOwnerThread();
 const void* jsOwnerHook();
+/** Muda a cada vez que alguem pega o motor (a mesma posse = o mesmo numero). */
+uint64_t jsOwnerTerm();
 
 /** Marca o hook em que quem esta com o motor entrou. Devolve o de fora. */
 const void* setJsOwnerHook(const void* method);

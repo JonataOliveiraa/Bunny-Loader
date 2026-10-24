@@ -18,7 +18,7 @@ private fun readLocalizedMarkdown(name: String, language: String, readText: (Str
 /** Lê a descrição Markdown da cultura ativa, ou volta ao arquivo base. */
 fun readModDescription(manifest: ModManifest, language: String, readText: (String) -> String?): String =
     readLocalizedMarkdown("description", language, readText)
-        ?: manifest.description.ifBlank { manifest.summary }
+        ?: manifest.description.ifBlank { manifest.summaryFor(language) }
 
 /** Lê o changelog Markdown da cultura ativa, ou volta ao arquivo base. */
 fun readModChangelog(language: String, readText: (String) -> String?): String? =

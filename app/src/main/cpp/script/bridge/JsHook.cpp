@@ -212,6 +212,9 @@ static thread_local intptr_t g_scopeSelf[kMaxHooks];
 // threads num jogo congelado.
 constexpr int kLockTimeoutMs = 3000;
 static std::atomic<bool> g_lockWarned[kMaxHooks];
+// A posse do motor (jsOwnerTerm) pela qual algum hook ja esperou os 3 s e
+// desistiu. 0 = nenhuma (a primeira posse e 1).
+static std::atomic<uint64_t> g_givenUpTerm{0};
 
 // Contagem por hook, para o bl.hookStats (medir o que cada hook custa): as
 // chamadas que chegam ao despacho e as que chegam ao JS. Soma sem troca
@@ -465,10 +468,40 @@ static Outcome dispatch(BL_HOOK_PARAMS, int slot) {
         if (memo->tick == memoTick && memo->self == rawA[0]) return memo->value;
     }
 
+    // Outra thread esta com o motor FORA de hook: e a carga de mod ou de
+    // conteudo, que segura o motor o quanto precisar. Esperar aqui nao adianta
+    // (a carga nao solta o motor no meio) e custava ate 3 s POR CHAMADA: uma
+    // thread do jogo que chamasse NPC.SetDefaults centenas de vezes durante a
+    // carga ficava minutos parada (tela preta). Roda o metodo sem o mod na hora,
+    // como o ifBusy 'original', e so avisa no log (nao e erro do mod).
+    const int ownerTid = jsOwnerThread();
+    if (ownerTid && ownerTid != static_cast<int>(gettid()) && !jsOwnerHook()) {
+        if (c->ifBusy == IfBusy::Skip) return result;
+        if (!g_lockWarned[slot].exchange(true)) {
+            BL_WARN("hook %s: chamado durante a carga de mod ou de conteudo (motor com a thread %d); "
+                    "rodando o metodo sem o mod (aviso unico por hook)", hookName(c->method).c_str(), ownerTid);
+        }
+        return callOriginal(c, rawA, rawD);
+    }
+
+    // A mesma posse longa que ja fez alguem desistir depois de 3 s (um pass de
+    // geracao de mundo pesado, por exemplo): esperar de novo so somaria 3 s por
+    // chamada a cada hook de quadro da thread do jogo. Roda sem o mod na hora,
+    // ate o motor ser solto e pego de novo (outra posse).
+    if (ownerTid && ownerTid != static_cast<int>(gettid()) &&
+        jsOwnerTerm() == g_givenUpTerm.load(std::memory_order_relaxed)) {
+        if (c->ifBusy == IfBusy::Skip) return result;
+        return callOriginal(c, rawA, rawD);
+    }
+
     // ifBusy: o hook de todo quadro que pode ficar um quadro sem o mod nao
     // espera nada (a musica: esperar 3 s congelava a tela de carregamento).
+    const uint64_t termBefore = jsOwnerTerm();
     JsLock lock(c->ifBusy == IfBusy::Wait ? kLockTimeoutMs : 0);
     if (!lock.held()) {
+        if (c->ifBusy == IfBusy::Wait && jsOwnerTerm() == termBefore) {
+            g_givenUpTerm.store(termBefore, std::memory_order_relaxed);
+        }
         if (c->ifBusy == IfBusy::Skip) return result;
         if (c->ifBusy == IfBusy::Wait && !g_lockWarned[slot].exchange(true)) {
             BL_ERROR("hook %s: motor JS ocupado ha %d ms por %s; rodando o metodo sem o mod "

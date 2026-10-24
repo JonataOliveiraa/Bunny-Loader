@@ -101,6 +101,7 @@ bool Api::load() {
     bindSoft(lib, "il2cpp_method_get_from_reflection", &method_get_from_reflection);
     bindSoft(lib, "il2cpp_class_get_declaring_type", &class_get_declaring_type);
     ok &= bind(lib, "il2cpp_thread_attach", &thread_attach);
+    bindSoft(lib, "il2cpp_thread_detach", &thread_detach);
     bindSoft(lib, "il2cpp_format_exception", &format_exception);
     bindSoft(lib, "il2cpp_monitor_enter", &monitor_enter);
     bindSoft(lib, "il2cpp_monitor_exit", &monitor_exit);

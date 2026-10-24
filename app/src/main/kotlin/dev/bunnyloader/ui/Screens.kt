@@ -295,7 +295,7 @@ private fun FeaturedCard(
             }
 
             PixelText(
-                entry.manifest.summary,
+                entry.manifest.summaryFor(UiLocalization.language),
                 size = Ts.Body, color = Bl.TextDim,
                 maxLines = 3, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),

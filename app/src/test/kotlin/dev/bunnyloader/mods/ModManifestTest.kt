@@ -50,4 +50,10 @@ class ModManifestTest {
         assertEquals("测试模组", restored.nameFor("zh"))
         assertEquals("Teste", restored.name)
     }
+
+    @Test fun localizedSummaryIsReadFromJson() {
+        val m = manifest("\"summary\":\"Linha\",\"localizedSummaries\":{\"zh-Hans\":\"一行\"}")
+        assertEquals("一行", m.summaryFor("zh"))
+        assertEquals("Linha", m.summaryFor("en"))
+    }
 }

@@ -5,6 +5,10 @@
   "localizedNames": {
     "zh-Hans": "示例模组"
   },
+  "localizedSummaries": {
+    "en-US": "Items, weapons, armor (set with a bonus, vanity, cape, boss mask), wings, accessories, three prefixes, a potion, an NPC, buffs, tiles and furniture (workbench, table, chair, door, bed, chest, dresser, torch, chandelier, campfire, music box...), a teleport pylon, a tree, a tile entity, two pets, a minion, a sentry, the Person (a town NPC with a shop) and a boss, the Eye of ???, with its own music and health bar.",
+    "zh-Hans": "物品、武器、盔甲（带套装奖励的套装、时装、披风、Boss面具）、翅膀、饰品、三个前缀、药水、NPC、增益、物块和家具（工作台、桌子、椅子、门、床、箱子、梳妆台、火把、吊灯、篝火、八音盒……）、一个传送晶塔、一棵树、一个物块实体、两只宠物、一个召唤物、一个哨兵、Person（带商店的城镇NPC），以及一个拥有专属音乐和血条的Boss：???之眼。"
+  },
   "version": "1.9.0",
   "authors": [
     {

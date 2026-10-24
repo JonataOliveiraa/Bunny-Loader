@@ -14,9 +14,17 @@ class LocalizationLoader {
     static WantLoaded(callback) {
         LocalizationLoader.#loaded.push(callback);
         LocalizationLoader.#Hook();
+        LocalizationLoader.#Schedule();
+    }
+
+    // Os textos entram quando o conteúdo fica pronto e são conferidos no fim
+    // da carga: se o jogo recarregou o idioma enquanto o motor estava ocupado
+    // (o hook do idioma rodou sem o mod), entram de novo.
+    static #Schedule() {
         if (LocalizationLoader.#scheduled) return;
         LocalizationLoader.#scheduled = true;
         Ready.Add(() => LocalizationLoader.#ApplyAll(ModLocalization.ActiveCultureName), 'groups');
+        Ready.Add(() => LocalizationLoader.#Verify(), 'finish');
     }
 
     static get CultureName() {
@@ -31,10 +39,7 @@ class LocalizationLoader {
         if (!entry.paths.size) return;
 
         LocalizationLoader.#Hook();
-        if (LocalizationLoader.#scheduled) return;
-
-        LocalizationLoader.#scheduled = true;
-        Ready.Add(() => LocalizationLoader.#ApplyAll(ModLocalization.ActiveCultureName), 'groups');
+        LocalizationLoader.#Schedule();
     }
 
     static CallerEntry() {
@@ -229,6 +234,27 @@ class LocalizationLoader {
         for (const callback of LocalizationLoader.#loaded) Safe.Run('OnLocalizationsLoaded', callback);
     }
 
+    // No fim da carga: o idioma do jogo mudou, ou um texto do mod voltou a ser
+    // a própria chave (SetLanguage zera os textos antes de recarregar os
+    // arquivos)? Então o hook do idioma rodou sem o mod e os textos entram de
+    // novo. Basta uma chave de amostra por mod.
+    static #Verify() {
+        const culture = ModLocalization.ActiveCultureName;
+        const texts = LocalizationLoader.#resolved.get(LocalizationLoader.#culture);
+        let stale = culture !== LocalizationLoader.#culture || !texts;
+        if (!stale) {
+            const getText = Terraria.Localization.Language['string GetTextValue(string key)'];
+            for (const entry of LocalizationLoader.#mods.values()) {
+                const rel = entry.paths.values().next().value;
+                if (rel === undefined) continue;
+                const key = entry.prefix + rel;
+                const text = texts.get(key);
+                if (typeof text === 'string' && text !== key && getText(key) !== text) { stale = true; break; }
+            }
+        }
+        if (stale) LocalizationLoader.#ApplyAll(culture);
+    }
+
     // O mesmo formato dos arquivos do jogo, { Categoria: { Chave: texto } },
     // com a categoria sendo tudo antes do último ponto. O jogo junta as duas
     // com '.', troca o valor da chave que já existe (o mesmo LocalizedText),
@@ -314,6 +340,10 @@ class LocalizationLoader {
 
     // A troca de idioma põe cada texto registrado de volta na própria chave e
     // recarrega só os arquivos do jogo: os do mod entram de novo depois.
+    // ifBusy 'original': na abertura o jogo carrega o idioma em outra thread
+    // enquanto os mods ainda carregam; esperar o motor travava essa thread 3 s
+    // e acabava rodando sem o mod do mesmo jeito. O #Verify do fim da carga
+    // repõe os textos nesse caso.
     static #Hook() {
         Hooks.Once('localization.language', () => {
             const Manager = Terraria.Localization.LanguageManager;
@@ -321,7 +351,7 @@ class LocalizationLoader {
             Manager['void LoadFilesForCulture(GameCulture culture)'].hook((original, self, culture) => {
                 original(self, culture);
                 Safe.Run('ModLocalization (idioma)', () => LocalizationLoader.#ApplyAll(culture.Name));
-            });
+            }, { ifBusy: 'original' });
         });
     }
 }

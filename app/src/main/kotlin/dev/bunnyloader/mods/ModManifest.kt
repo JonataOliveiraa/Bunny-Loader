@@ -83,9 +83,14 @@ data class ModManifest(
     val dependencies: List<String> = emptyList(),
     /** Nomes traduzidos, indexados pela cultura do jogo (ex.: zh-Hans). */
     val localizedNames: Map<String, String> = emptyMap(),
+    /** A linha do cartão traduzida, indexada pela cultura do jogo (ex.: zh-Hans). */
+    val localizedSummaries: Map<String, String> = emptyMap(),
 ) {
     fun nameFor(language: String): String =
-        localizedNames[modCulture(language)]?.takeIf(String::isNotBlank) ?: name
+        localizedText(localizedNames, language) ?: name
+
+    fun summaryFor(language: String): String =
+        localizedText(localizedSummaries, language) ?: summary
 
     val hasValidUid: Boolean get() = isValidUid(uid)
 

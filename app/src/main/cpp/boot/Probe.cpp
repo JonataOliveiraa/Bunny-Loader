@@ -4,6 +4,7 @@
 #include "boot/QuickStart.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
+#include "il2cpp/Resolver.h"
 #include "content/common/GameRefs.h"
 
 #include "script/bridge/ScriptEngine.h"
@@ -45,6 +46,43 @@ bool il2cppReady() {
     return domain_get && domain_get() != nullptr;
 }
 
+constexpr int kLoadPollMs = 100;
+constexpr int kLoadWaitMaxMs = 180000;
+
+/**
+ * Espera a carga do proprio jogo acabar (Main._isAsyncLoadComplete) antes de
+ * carregar os mods.
+ *
+ * O prazo fixo de kSettleMs supunha o jogo pronto em 10 s. Com a CPU ocupada
+ * a carga dele passa disso, e a dos mods corria junto: o LoadContent_Deferred
+ * do jogo (no DrawSplash, thread do jogo) percorre o dicionario de textos no
+ * SetLanguage enquanto o registro dos itens do mod acrescenta chaves nele.
+ * O "Collection was modified" mata a carga do jogo, o splash nunca acaba e a
+ * tela fica preta (24/10, com o Thorium; reproduzido sob carga de CPU).
+ */
+void waitGameContentLoaded() {
+    Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+    FieldInfo* done = main ? il2cpp::findField(main, "_isAsyncLoadComplete") : nullptr;
+    if (!done) {
+        BL_WARN("sonda: Main._isAsyncLoadComplete nao encontrado; segue sem esperar a carga do jogo");
+        return;
+    }
+    auto& a = il2cpp::api();
+    for (int waited = 0;; waited += kLoadPollMs) {
+        uint8_t loaded = 0;
+        a.field_static_get_value(done, &loaded);
+        if (loaded) {
+            if (waited) BL_DEBUG("sonda: carga do jogo concluida (+%d ms de espera)", waited);
+            return;
+        }
+        if (waited >= kLoadWaitMaxMs) {
+            BL_ERROR("sonda: a carga do jogo nao terminou em %d s; mods carregam assim mesmo", kLoadWaitMaxMs / 1000);
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(kLoadPollMs));
+    }
+}
+
 void probeThread() {
     // O prazo fixo, com uma saida: com o inicio rapido, o hook do splash
     // avisa quando o jogo termina de carregar (Main._isAsyncLoadComplete).
@@ -63,12 +101,23 @@ void probeThread() {
                 BL_ERROR("sonda: Api::load() falhou");
                 return;
             }
-            a.thread_attach(a.domain_get());
+            // Esta thread termina no fim do bloco: sai do registro do il2cpp em
+            // qualquer saida. Registrada e morta, ela deixava o coletor (e com
+            // ele a thread do jogo) esperando a resposta dela para sempre: a
+            // tela preta intermitente da abertura com mod, sob carga de CPU.
+            struct Attached {
+                Il2CppThread* thread;
+                ~Attached() {
+                    auto& api = il2cpp::api();
+                    if (thread && api.thread_detach) api.thread_detach(thread);
+                }
+            } attached{a.thread_attach(a.domain_get())};
             if (!resolveGameRefs()) {
                 BL_ERROR("sonda: resolveGameRefs falhou");
                 return;
             }
             BL_DEBUG("sonda: RESOLUCAO OK");
+            waitGameContentLoaded();
 
             // Sobe o QuickJS e carrega os mods habilitados (main.js de cada um).
             if (!script::engine().init()) {
