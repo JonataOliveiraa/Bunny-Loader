@@ -152,8 +152,12 @@ class WallLoader {
             original();
             const Main = Terraria.Main;
             const frames = Main.wallFrame, counters = Main.wallFrameCounter;
+            // Como no AnimateTiles: o jogo anima quadros da tela de título antes de as
+            // tabelas de parede crescerem (tickModWalls), e o tipo de mod ainda não cabe nelas.
+            const size = frames.length;
             for (const m of WallLoader.Animated) {
                 const t = m.Type;
+                if (t >= size) continue;
                 const f0 = frames[t], c0 = counters[t];
                 frame.value = f0;
                 counter.value = c0;

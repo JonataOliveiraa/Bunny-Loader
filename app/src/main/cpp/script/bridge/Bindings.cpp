@@ -1246,8 +1246,8 @@ JSValue ga_exotic_get(JSContext* ctx, JSValueConst obj, JSAtom atom, JSValueCons
         return missingArrayMember(ctx, arr, atom);
     }
     if (static_cast<uint64_t>(idx) >= arr->length) {
-        return JS_ThrowRangeError(ctx, "indice %lld fora de 0..%llu", static_cast<long long>(idx),
-                                  static_cast<unsigned long long>(arr->length));
+        return JS_ThrowRangeError(ctx, "indice %lld fora de 0..%lld", static_cast<long long>(idx),
+                                  static_cast<long long>(arr->length) - 1);
     }
     const TypeDesc& d = elemOf(ctx, obj, arr);
     if (!d.size) return JS_EXCEPTION;
@@ -1275,8 +1275,8 @@ int ga_exotic_set(JSContext* ctx, JSValueConst obj, JSAtom atom,
         return -1;
     }
     if (static_cast<uint64_t>(idx) >= arr->length) {
-        JS_ThrowRangeError(ctx, "indice %lld fora de 0..%llu", static_cast<long long>(idx),
-                           static_cast<unsigned long long>(arr->length));
+        JS_ThrowRangeError(ctx, "indice %lld fora de 0..%lld", static_cast<long long>(idx),
+                           static_cast<long long>(arr->length) - 1);
         return -1;
     }
     const TypeDesc& d = elemOf(ctx, obj, arr);
