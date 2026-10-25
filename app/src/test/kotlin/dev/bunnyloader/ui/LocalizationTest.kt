@@ -1,6 +1,7 @@
 package dev.bunnyloader.ui
 
 import bunny.TranslationCatalog
+import dev.bunnyloader.game.Eligibility
 import java.io.File
 import java.util.Locale
 import kotlinx.serialization.json.Json
@@ -62,6 +63,10 @@ class LocalizationTest {
         val used = sources.flatMap { file -> call.findAll(file.readText()).map { file.name to it.groupValues[1] } }
         assertTrue(used.size > 100)
         for ((file, key) in used) assertTrue("$file: $key", key in english)
+        for (status in Eligibility.Status.entries.filter { it != Eligibility.Status.OK }) {
+            assertTrue("$status title", status.titleKey in english)
+            assertTrue("$status message", status.messageKey in english)
+        }
     }
 
     @Test fun everyTranslationPreservesPlaceholdersAndUnicode() {

@@ -80,7 +80,7 @@ sequenceDiagram
     participant U as Unity / IL2CPP
     participant S as probe (core thread)
     participant G as game thread
-    A->>A: eligibility (official Terraria installed)
+    A->>A: eligibility (Terraria installed, or it closes)
     A->>U: System.loadLibrary: c++_shared, main, unity, il2cpp
     A->>B: System.loadLibrary("bunny")
     B->>B: constructor: hooks il2cpp_init, starts the probe

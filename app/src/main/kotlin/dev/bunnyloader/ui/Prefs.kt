@@ -90,8 +90,12 @@ class Prefs(context: Context) {
         get() = p.getBoolean(THEME_EFFECTS, true)
         set(v) = p.edit().putBoolean(THEME_EFFECTS, v).apply()
 
-    /** O launcher já conferiu (e, se faltava, avisou) o Terraria instalado. */
-    var gameCheckDone: Boolean
+    /**
+     * O app já foi aberto (e o idioma, confirmado) antes. A chave é a do antigo
+     * aviso do Terraria, gravada na primeira abertura: quem atualiza não vê de
+     * novo a escolha de idioma, só quem acabou de instalar.
+     */
+    var launchedBefore: Boolean
         get() = p.getBoolean(GAME_CHECK_DONE, false)
         set(v) = p.edit().putBoolean(GAME_CHECK_DONE, v).apply()
 

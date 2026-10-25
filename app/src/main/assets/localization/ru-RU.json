@@ -405,5 +405,10 @@
   "Mushrooms": "Грибы",
   "Desert": "Пустыня",
   "Hallow": "Святые земли",
-  "Play": "Играть"
+  "Play": "Играть",
+  "TerrariaRequiredTitle": "Нужна Terraria",
+  "TerrariaRequiredDescription": "Чтобы играть, на этом телефоне должна быть установлена Terraria. Установите её из Play Маркета и вернитесь сюда.",
+  "OpenPlayStore": "Открыть Play Маркет",
+  "LanguageConfirmDescription": "Это ваш язык? Нажмите на другой, чтобы сменить его. Позже это можно сделать в настройках.",
+  "Confirm": "Подтвердить"
 }

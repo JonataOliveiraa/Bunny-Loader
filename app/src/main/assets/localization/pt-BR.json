@@ -405,5 +405,10 @@
   "Mushrooms": "Cogumelos",
   "Desert": "Deserto",
   "Hallow": "Sagrado",
-  "Play": "Jogar"
+  "Play": "Jogar",
+  "TerrariaRequiredTitle": "Terraria necessário",
+  "TerrariaRequiredDescription": "Para jogar, o Terraria precisa estar instalado neste celular. Instale pela Play Store e volte aqui.",
+  "OpenPlayStore": "Abrir Play Store",
+  "LanguageConfirmDescription": "Este é o seu idioma? Toque em outro para trocar. Dá para mudar depois nas Configurações.",
+  "Confirm": "Confirmar"
 }

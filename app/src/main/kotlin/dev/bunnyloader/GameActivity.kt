@@ -12,6 +12,7 @@ import android.view.MotionEvent
 import android.view.SurfaceView
 import android.view.Window
 import android.widget.Toast
+import bunny.MenuLocalization
 import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.Eligibility
@@ -71,8 +72,16 @@ class GameActivity : Activity() {
         BootLog.captureLogcat(this)
         BootLog.add(this, "=== GameActivity.onCreate ===")
 
-        // Só para o log: o aviso ao jogador é do launcher, uma vez. Nunca bloqueia.
-        BootLog.add(this, "elegibilidade: ${Eligibility.check(this).detail}")
+        // O launcher já barra o JOGAR; esta é a segunda trava, para nenhum
+        // caminho (reinício, atalho) abrir o jogo sem passar pela checagem.
+        val eligibility = Eligibility.check(this)
+        BootLog.add(this, "elegibilidade: $eligibility")
+        if (eligibility != Eligibility.Status.OK) {
+            MenuLocalization.initialize(this)
+            Toast.makeText(this, MenuLocalization.text(eligibility.messageKey), Toast.LENGTH_LONG).show()
+            finish()
+            return
+        }
 
         // O runtime integrado está nesta build? Um APK sem os arquivos compila
         // e instala igual; sem esta checagem o sintoma seria um SIGSEGV dentro

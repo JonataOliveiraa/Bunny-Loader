@@ -405,5 +405,10 @@
   "Mushrooms": "Mushrooms",
   "Desert": "Desert",
   "Hallow": "Hallow",
-  "Play": "Play"
+  "Play": "Play",
+  "TerrariaRequiredTitle": "Terraria required",
+  "TerrariaRequiredDescription": "To play, Terraria must be installed on this phone. Install it from the Play Store, then come back.",
+  "OpenPlayStore": "Open Play Store",
+  "LanguageConfirmDescription": "Is this your language? Tap another one to change it. You can also change it later in Settings.",
+  "Confirm": "Confirm"
 }

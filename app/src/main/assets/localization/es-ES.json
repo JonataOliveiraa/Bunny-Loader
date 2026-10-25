@@ -405,5 +405,10 @@
   "Mushrooms": "Hongos",
   "Desert": "Desierto",
   "Hallow": "Sagrado",
-  "Play": "Jugar"
+  "Play": "Jugar",
+  "TerrariaRequiredTitle": "Se necesita Terraria",
+  "TerrariaRequiredDescription": "Para jugar, Terraria debe estar instalado en este teléfono. Instálalo desde Play Store y vuelve aquí.",
+  "OpenPlayStore": "Abrir Play Store",
+  "LanguageConfirmDescription": "¿Es este tu idioma? Toca otro para cambiarlo. También puedes cambiarlo después en Ajustes.",
+  "Confirm": "Confirmar"
 }

@@ -2,7 +2,6 @@ package dev.bunnyloader
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -63,6 +62,8 @@ import dev.bunnyloader.ui.InicioTab
 import dev.bunnyloader.ui.ModBackdrop
 import dev.bunnyloader.ui.ModDetail
 import dev.bunnyloader.ui.ModUpdatesDialog
+import dev.bunnyloader.ui.GameBlockedDialog
+import dev.bunnyloader.ui.LanguageConfirmDialog
 import dev.bunnyloader.ui.PacotesTab
 import dev.bunnyloader.ui.ConfigTab
 import dev.bunnyloader.ui.PixelFont
@@ -95,7 +96,6 @@ class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         UiLocalization.initialize(this)
-        warnGameMissingOnce()
         val model = ViewModelProvider(this, object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 require(modelClass == LauncherState::class.java)
@@ -103,18 +103,6 @@ class LauncherActivity : ComponentActivity() {
             }
         })[LauncherState::class.java]
         setContent { LauncherScreen(model.shell) }
-    }
-
-    /**
-     * Só na primeira vez que o launcher abre: se o Terraria não estiver
-     * instalado, avisa. Não bloqueia nada, e depois disso não avisa mais.
-     */
-    private fun warnGameMissingOnce() {
-        val prefs = Prefs(this)
-        if (prefs.gameCheckDone) return
-        prefs.gameCheckDone = true
-        val result = Eligibility.check(this)
-        if (!result.found) Toast.makeText(this, result.detail, Toast.LENGTH_LONG).show()
     }
 }
 
@@ -138,6 +126,8 @@ private fun LauncherScreen(shell: Shell) {
     // sistema recriar a Activity, e a resposta dele só chega à aba que pediu
     // se ela for a mesma na volta.
     var tab by rememberSaveable { mutableStateOf(Tab.INICIO) }
+    var blocked by remember { mutableStateOf<Eligibility.Status?>(null) }
+    var askLanguage by remember { mutableStateOf(!prefs.launchedBefore) }
     var openMod by rememberSaveable { mutableStateOf<String?>(null) }
     val tabState = rememberSaveableStateHolder()
     var sceneryChoice by remember { mutableStateOf(prefs.scenery) }
@@ -263,12 +253,21 @@ private fun LauncherScreen(shell: Shell) {
                 NavBar(
                     current = tab,
                     onSelect = { tab = it; openMod = null },
-                    onStart = { ctx.startActivity(Intent(ctx, GameActivity::class.java)) },
+                    onStart = {
+                        val status = Eligibility.check(ctx)
+                        if (status == Eligibility.Status.OK) ctx.startActivity(Intent(ctx, GameActivity::class.java))
+                        else blocked = status
+                    },
                 )
             }
         }
         if (immersive) ImmersiveOverlay { immersive = false }
         ModUpdatesDialog(shell)
+        blocked?.let { GameBlockedDialog(it) { blocked = null } }
+        if (askLanguage) LanguageConfirmDialog {
+            prefs.launchedBefore = true
+            askLanguage = false
+        }
     }
     }
 }

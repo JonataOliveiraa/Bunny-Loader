@@ -405,5 +405,10 @@
   "Mushrooms": "蘑菇",
   "Desert": "沙漠",
   "Hallow": "神圣之地",
-  "Play": "开始游戏"
+  "Play": "开始游戏",
+  "TerrariaRequiredTitle": "需要 Terraria",
+  "TerrariaRequiredDescription": "要开始游戏，这台手机上必须安装 Terraria。请从 Play 商店安装后再回来。",
+  "OpenPlayStore": "打开 Play 商店",
+  "LanguageConfirmDescription": "这是你的语言吗？点按其他语言即可切换。之后也可以在设置中更改。",
+  "Confirm": "确认"
 }
