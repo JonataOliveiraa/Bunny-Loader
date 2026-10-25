@@ -11,8 +11,8 @@ package dev.bunnyloader.mods
  */
 enum class PackType(val label: String) {
     MOD("Mods"),
-    TEXTURE("Texturas"),
-    FONT("Fontes");
+    TEXTURE("Textures"),
+    FONT("Fonts");
 
     companion object {
         private val ALIASES = mapOf(

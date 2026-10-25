@@ -498,13 +498,13 @@ fun PixelSelect(value: String, onPrev: () -> Unit, onNext: () -> Unit,
         modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false).padding(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = tr("Anterior: %1\$s", label) } else Modifier)
+        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = tr("PreviousNamed", label) } else Modifier)
             .pixelClickable(onPrev).padding(8.dp)) {
             PixelIcon(dev.bunnyloader.R.drawable.ic_seta_esq, 22.dp)
         }
         PixelText(value, size = Ts.Item, align = TextAlign.Center,
             modifier = Modifier.weight(1f).wrapContentWidth(Alignment.CenterHorizontally))
-        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = tr("Próximo: %1\$s", label) } else Modifier)
+        Box(Modifier.then(if (label != null) Modifier.semantics { contentDescription = tr("NextNamed", label) } else Modifier)
             .pixelClickable(onNext).padding(8.dp)) {
             PixelIcon(dev.bunnyloader.R.drawable.ic_seta_dir, 22.dp)
         }

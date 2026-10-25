@@ -4,7 +4,6 @@ import bunny.TranslationCatalog
 import java.io.File
 import java.util.Locale
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
@@ -12,49 +11,77 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocalizationTest {
-    private val rows = Json.parseToJsonElement(
-        File("src/main/assets/localization/menu.json").readText()
-    ).jsonObject.mapValues { (_, value) -> value.jsonArray.map { it.jsonPrimitive.content }.toTypedArray() }
-    private val catalog = TranslationCatalog(rows)
+    private val folder = File("src/main/assets/localization")
+    private val tables = TranslationCatalog.LANGUAGES.associateWith { language ->
+        Json.parseToJsonElement(File(folder, "${TranslationCatalog.culture(language)}.json").readText())
+            .jsonObject.mapValues { (_, value) -> value.jsonPrimitive.content }
+    }
+    private val english = tables.getValue(TranslationCatalog.FALLBACK)
+    private val catalog = TranslationCatalog(tables)
 
     @Test fun regionalAndAutomaticChoicesResolveToSupportedLanguages() {
         assertEquals("en", TranslationCatalog.resolveLanguage("en-GB", Locale.FRANCE))
+        assertEquals("pt-BR", TranslationCatalog.resolveLanguage("", Locale.forLanguageTag("pt-BR")))
+        assertEquals("pt-BR", TranslationCatalog.resolveLanguage("pt-PT", Locale.US))
         assertEquals("ru", TranslationCatalog.resolveLanguage("ru_RU", Locale.FRANCE))
         assertEquals("es", TranslationCatalog.resolveLanguage("", Locale.forLanguageTag("es-MX")))
         assertEquals("zh", TranslationCatalog.resolveLanguage("", Locale.SIMPLIFIED_CHINESE))
         assertEquals("zh", TranslationCatalog.resolveLanguage("zh-Hans-CN", Locale.US))
         assertEquals("vi", TranslationCatalog.resolveLanguage("", Locale.forLanguageTag("vi-VN")))
         assertEquals("th", TranslationCatalog.resolveLanguage("th_TH", Locale.US))
-        assertEquals("pt-BR", TranslationCatalog.resolveLanguage("", Locale.JAPAN))
-        assertEquals("pt-BR", TranslationCatalog.resolveLanguage("invalid", Locale.US))
+        assertEquals("en", TranslationCatalog.resolveLanguage("", Locale.JAPAN))
+        assertEquals("en", TranslationCatalog.resolveLanguage("invalid", Locale.US))
     }
 
-    @Test fun missingOrInvalidTranslationsKeepTheInterfaceUsable() {
-        assertEquals("Texto novo", catalog.text("ru", "Texto novo"))
-        val incomplete = TranslationCatalog(mapOf("Olá %1\$s" to arrayOf("Hello %1\$s", "", "%2\$s")))
-        assertEquals("Olá Bunny", incomplete.text("ru", "Olá %1\$s", "Bunny"))
-        assertEquals("Olá Bunny", incomplete.text("es", "Olá %1\$s", "Bunny"))
+    @Test fun missingOrInvalidTranslationsFallBackToEnglish() {
+        assertEquals("NewText", catalog.text("ru", "NewText"))
+        val incomplete = TranslationCatalog(mapOf(
+            "en" to mapOf("Greeting" to "Hello %1\$s"),
+            "ru" to mapOf("Greeting" to ""),
+            "es" to mapOf("Greeting" to "%2\$s"),
+        ))
+        assertEquals("Hello Bunny", incomplete.text("ru", "Greeting", "Bunny"))
+        assertEquals("Hello Bunny", incomplete.text("es", "Greeting", "Bunny"))
+        assertEquals("Hello Bunny", incomplete.text("zh", "Greeting", "Bunny"))
+    }
+
+    @Test fun everyLanguageFileHasTheSameKeys() {
+        val expected = TranslationCatalog.LANGUAGES.map { "${TranslationCatalog.culture(it)}.json" }.sorted()
+        assertEquals(expected, folder.list { _, name -> name.endsWith(".json") }!!.sorted())
+        for ((language, table) in tables) {
+            assertEquals("$language: missing", emptySet<String>(), english.keys - table.keys)
+            assertEquals("$language: extra", emptySet<String>(), table.keys - english.keys)
+        }
+        for (key in english.keys) assertTrue(key, Regex("[A-Z][A-Za-z0-9]*").matches(key))
+    }
+
+    @Test fun everyKeyUsedInCodeExists() {
+        val call = Regex("""\btr\(\s*"([^"]*)"""")
+        val sources = listOf(File("src/main/kotlin"), File("src/main/java"), File("../tools/cheatbridge"))
+            .flatMap { root -> root.walk().filter { it.extension == "kt" || it.extension == "java" }.toList() }
+        val used = sources.flatMap { file -> call.findAll(file.readText()).map { file.name to it.groupValues[1] } }
+        assertTrue(used.size > 100)
+        for ((file, key) in used) assertTrue("$file: $key", key in english)
     }
 
     @Test fun everyTranslationPreservesPlaceholdersAndUnicode() {
         val placeholder = Regex("%([1-9][0-9]*\\\$)?[sd]")
-        for ((source, values) in rows) {
-            assertEquals(source, 6, values.size)
-            val expected = placeholder.findAll(source).map { it.value }.sorted().toList()
-            val args = Array<Any>(expected.size) { "Тест ñ %" }
-            for ((index, language) in listOf("en", "ru", "es", "zh", "vi", "th").withIndex()) {
-                assertTrue("$language: $source", values[index].isNotBlank())
-                assertEquals("$language: $source", expected,
-                    placeholder.findAll(values[index]).map { it.value }.sorted().toList())
-                assertEquals("$language: $source", String.format(Locale.forLanguageTag(language), values[index], *args),
-                    catalog.text(language, source, *args))
+        for ((language, table) in tables) {
+            for ((key, value) in table) {
+                val expected = placeholder.findAll(english.getValue(key)).map { it.value }.sorted().toList()
+                val args = Array<Any>(expected.size) { "Тест ñ %" }
+                assertTrue("$language: $key", value.isNotBlank())
+                assertEquals("$language: $key", expected, placeholder.findAll(value).map { it.value }.sorted().toList())
+                assertEquals("$language: $key", String.format(Locale.forLanguageTag(language), value, *args),
+                    catalog.text(language, key, *args))
             }
-            assertEquals(source, source, catalog.text("pt-BR", source))
         }
-        assertEquals("Суперспособности", catalog.text("ru", "Superpoderes"))
-        assertEquals("Descargando 42%", catalog.text("es", "Baixando %1\$s%%", 42))
-        assertEquals("正在下载 42%", catalog.text("zh", "Baixando %1\$s%%", 42))
-        assertEquals("Đang tải 42%", catalog.text("vi", "Baixando %1\$s%%", 42))
-        assertEquals("กำลังดาวน์โหลด 42%", catalog.text("th", "Baixando %1\$s%%", 42))
+        assertEquals("Суперспособности", catalog.text("ru", "Superpowers"))
+        assertEquals("Superpoderes", catalog.text("pt-BR", "Superpowers"))
+        assertEquals("Baixando 42%", catalog.text("pt-BR", "DownloadingPercent", 42))
+        assertEquals("Descargando 42%", catalog.text("es", "DownloadingPercent", 42))
+        assertEquals("正在下载 42%", catalog.text("zh", "DownloadingPercent", 42))
+        assertEquals("Đang tải 42%", catalog.text("vi", "DownloadingPercent", 42))
+        assertEquals("กำลังดาวน์โหลด 42%", catalog.text("th", "DownloadingPercent", 42))
     }
 }

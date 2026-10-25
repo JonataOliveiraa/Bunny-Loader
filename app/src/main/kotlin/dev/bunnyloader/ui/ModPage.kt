@@ -114,8 +114,8 @@ private fun ModDetailContent(entry: Catalog.Entry, shell: Shell, onBack: () -> U
     val mediaVersion = "${media.remote?.download?.sha256 ?: media.manifest.version}:${media.mediaRevision}"
     val gallery = remember(media, UiLocalization.language) {
         buildList {
-            media.iconAsset?.let { add(ViewerImage(it, tr("Ícone"))) }
-            media.bannerAsset?.let { add(ViewerImage(it, tr("Capa"))) }
+            media.iconAsset?.let { add(ViewerImage(it, tr("Icon"))) }
+            media.bannerAsset?.let { add(ViewerImage(it, tr("Banner"))) }
             media.previews.forEach { add(ViewerImage(it)) }
         }
     }
@@ -244,10 +244,10 @@ fun ModBackdrop(entry: Catalog.Entry, catalog: Catalog, modifier: Modifier = Mod
 
 private sealed class Page(private val sourceTitle: String) {
     val title: String get() = if (this is Custom) sourceTitle else tr(sourceTitle)
-    class Description(val blocks: List<MdBlock>) : Page("Descrição")
-    class Changelog(val blocks: List<MdBlock>) : Page("Novidades")
-    class License(val blocks: List<MdBlock>) : Page("Licença")
-    class Credits : Page("Créditos")
+    class Description(val blocks: List<MdBlock>) : Page("Description")
+    class Changelog(val blocks: List<MdBlock>) : Page("Changelog")
+    class License(val blocks: List<MdBlock>) : Page("License")
+    class Credits : Page("Credits")
     class Custom(title: String, val blocks: List<MdBlock>) : Page(title)
 }
 
@@ -343,8 +343,8 @@ private fun Header(
     ) { uri ->
         if (uri != null) {
             exportMessage = shell.exportMod(entry.uid, uri).fold(
-                onSuccess = { tr("%1\$s exportado", m.nameFor(UiLocalization.language)) to true },
-                onFailure = { tr("Não deu: %1\$s", it.message) to false },
+                onSuccess = { tr("ModExported", m.nameFor(UiLocalization.language)) to true },
+                onFailure = { tr("Failed", it.message) to false },
             )
         }
     }
@@ -362,7 +362,7 @@ private fun Header(
         Column(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp)) {
         Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             PixelTag(m.category, categoryColor(m.category))
-            if (m.isOutdated) PixelTag(tr("Formato antigo"), Bl.Bad, Modifier.padding(start = 8.dp))
+            if (m.isOutdated) PixelTag(tr("LegacyFormat"), Bl.Bad, Modifier.padding(start = 8.dp))
         }
 
         // Ficha técnica. Os downloads vêm do stats.json (contagem das Releases
@@ -372,13 +372,13 @@ private fun Header(
                 .pixelPanel(fill = ctx.style.panel.mix(Bl.Night, 0.35f), raised = false)
                 .padding(horizontal = 8.dp, vertical = 8.dp),
         ) {
-            InfoCell(tr("Versão"), "v${m.version}", Modifier.weight(1f))
-            if (m.updated.isNotBlank()) InfoCell(tr("Atualizado"), formatDate(m.updated), Modifier.weight(1.4f))
-            InfoCell(tr("Tamanho"), formatSize(entry.sizeBytes), Modifier.weight(1f))
+            InfoCell(tr("Version"), "v${m.version}", Modifier.weight(1f))
+            if (m.updated.isNotBlank()) InfoCell(tr("Updated"), formatDate(m.updated), Modifier.weight(1.4f))
+            InfoCell(tr("Size"), formatSize(entry.sizeBytes), Modifier.weight(1f))
             shell.downloadCounts[entry.uid]?.let {
                 InfoCell(tr("Downloads"), dev.bunnyloader.mods.formatCount(it), Modifier.weight(1f))
             }
-            if (m.license.isNotBlank()) InfoCell(tr("Licença"), m.license, Modifier.weight(1f))
+            if (m.license.isNotBlank()) InfoCell(tr("License"), m.license, Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -389,7 +389,7 @@ private fun Header(
         val update = shell.updateFor(entry.uid)
         if (!installed) {
             PixelButton(
-                if (progress != null) tr("Baixando %1\$s%%", (progress * 100).toInt()) else tr("Baixar Mod"),
+                if (progress != null) tr("DownloadingPercent", (progress * 100).toInt()) else tr("DownloadMod"),
                 { if (progress == null) { if (online != null) shell.installRemote(online) else shell.install(entry) } },
                 Modifier.fillMaxWidth(), icon = R.drawable.ic_start,
                 fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
@@ -402,27 +402,27 @@ private fun Header(
                     contentAlignment = Alignment.CenterStart,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        PixelText(if (on) tr("Ligado") else tr("Desligado"), size = Ts.Item,
+                        PixelText(if (on) tr("On") else tr("Off"), size = Ts.Item,
                             color = if (on) Bl.PressedText else Bl.TextFaint,
                             modifier = Modifier.weight(1f))
                         SwitchSprite(on) { shell.setEnabled(entry.uid, !on) }
                     }
                 }
-                PixelButton(tr("Remover"), { shell.uninstall(entry.uid) },
+                PixelButton(tr("Remove"), { shell.uninstall(entry.uid) },
                     icon = R.drawable.ic_trash, fontSize = Ts.Body,
                     fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed)
             }
             if (update != null) {
                 PixelButton(
-                    if (progress != null) tr("Baixando %1\$s%%", (progress * 100).toInt())
-                    else tr("Atualizar para v%1\$s", update.manifest.version),
+                    if (progress != null) tr("DownloadingPercent", (progress * 100).toInt())
+                    else tr("UpdateToVersion", update.manifest.version),
                     { if (progress == null) shell.installRemote(update) },
                     Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_start,
                     fontSize = Ts.Body,
                     fill = buttons.fill, textColor = buttons.text, pressedFill = buttons.pressed,
                 )
             }
-            PixelButton(tr("Exportar .bl"), {
+            PixelButton(tr("ExportBl"), {
                 exporter.launch("${m.id.replace(Regex("[^A-Za-z0-9._-]"), "_")}.bl")
             }, Modifier.fillMaxWidth().padding(top = 8.dp), icon = R.drawable.ic_folder,
                 fontSize = Ts.Body,
@@ -433,7 +433,7 @@ private fun Header(
             }
         }
         shell.downloadErrors[entry.uid]?.let {
-            PixelText(tr("Não deu: %1\$s", it), size = Ts.Small, color = Bl.Bad,
+            PixelText(tr("Failed", it), size = Ts.Small, color = Bl.Bad,
                 modifier = Modifier.padding(top = 6.dp))
         }
 
@@ -510,7 +510,7 @@ private fun TabStrip(
 @Composable
 private fun Previews(previews: List<String>, catalog: Catalog, version: String, onOpen: (String) -> Unit) {
     if (previews.isEmpty()) return
-    SectionTitle(tr("Imagens"))
+    SectionTitle(tr("Images"))
     LazyRow(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -591,7 +591,7 @@ private fun VersionCard(
                     PixelText(formatDate(date), size = Ts.Tiny, color = Bl.TextMuted)
                 }
             }
-            if (isCurrent) PixelTag(tr("Atual"), st.accent.mix(Bl.Night, 0.45f), Modifier.padding(end = 8.dp))
+            if (isCurrent) PixelTag(tr("Current"), st.accent.mix(Bl.Night, 0.45f), Modifier.padding(end = 8.dp))
             PixelText(if (open) "-" else "+", size = Ts.Head, color = st.accent)
         }
         if (open && body.isNotEmpty()) {
@@ -607,13 +607,13 @@ private fun LicenseView(name: String, blocks: List<MdBlock>, ctx: MdContext) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (name.isNotBlank()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                PixelText(tr("Licença"), size = Ts.Body, color = Bl.TextFaint,
+                PixelText(tr("License"), size = Ts.Body, color = Bl.TextFaint,
                     modifier = Modifier.padding(end = 10.dp))
                 PixelTag(name, Bl.TitleFill)
             }
         }
         if (blocks.isEmpty()) {
-            PixelText(tr("O pacote não traz o texto da licença (license.md)."),
+            PixelText(tr("PackageMissingLicense"),
                 size = Ts.Small, color = Bl.TextMuted)
         } else {
             MarkdownView(blocks, ctx)
@@ -666,7 +666,7 @@ internal fun AuthorStrip(entry: Catalog.Entry, catalog: Catalog, modifier: Modif
                 }
             }
         }
-        PixelText(tr("por %1\$s", entry.manifest.authorLine), size = Ts.Small, color = Bl.TextFaint,
+        PixelText(tr("ByAuthor", entry.manifest.authorLine), size = Ts.Small, color = Bl.TextFaint,
             maxLines = 2, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(start = if (shown.isEmpty()) 0.dp else 6.dp))
     }

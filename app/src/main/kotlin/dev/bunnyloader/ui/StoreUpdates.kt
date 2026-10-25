@@ -41,7 +41,7 @@ fun StoreLoadingIcon(modifier: Modifier = Modifier) {
         infiniteRepeatable(tween(1000, easing = LinearEasing), RepeatMode.Restart),
         label = "giro")
     PixelIcon(R.drawable.ic_refresh, 24.dp,
-        modifier.graphicsLayer { rotationZ = angle }.semantics { contentDescription = tr("Carregando mods") })
+        modifier.graphicsLayer { rotationZ = angle }.semantics { contentDescription = tr("LoadingMods") })
 }
 
 @Composable
@@ -65,23 +65,23 @@ fun ModUpdatesDialog(shell: Shell) {
     Dialog(onDismissRequest = shell::dismissUpdateNotices) {
         Column(Modifier.widthIn(max = 480.dp).fillMaxWidth().heightIn(max = 600.dp).pixelPanel(corner = PixelCorner.LARGE)
             .padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            PixelText(tr("Atualizações de mods"), size = Ts.Head)
-            PixelText(if (allDone) tr("Tudo em dia. As versões novas valem na próxima vez que o jogo abrir.")
-                      else tr("Há versões novas dos seus mods instalados."),
+            PixelText(tr("ModUpdates"), size = Ts.Head)
+            PixelText(if (allDone) tr("ModUpdatesAllDone")
+                      else tr("ModUpdatesAvailable"),
                 size = Ts.Body, color = Bl.TextDim)
             LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max = 300.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(notices, key = { it.uid }) { entry -> UpdateNoticeRow(entry, shell) }
             }
             if (pending.size > 1) {
-                PixelButton(tr("Atualizar todos (%1\$s)", pending.size), shell::updateAllNotices,
+                PixelButton(tr("UpdateAllCount", pending.size), shell::updateAllNotices,
                     Modifier.fillMaxWidth(), fill = Bl.Good, fontSize = Ts.Body)
             }
             PixelButton(
                 when {
-                    allDone -> tr("Pronto")
-                    busy -> tr("Continuar em segundo plano")
-                    else -> tr("Agora não")
+                    allDone -> tr("Done")
+                    busy -> tr("ContinueInBackground")
+                    else -> tr("NotNow")
                 },
                 shell::dismissUpdateNotices, Modifier.fillMaxWidth(), fontSize = Ts.Body,
             )
@@ -103,11 +103,11 @@ private fun UpdateNoticeRow(entry: Catalog.Entry, shell: Shell) {
         when {
             done -> Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PixelTag(tr("Atualizado"), Bl.Good)
+                PixelTag(tr("Updated"), Bl.Good)
                 PixelText("v${entry.manifest.version}", size = Ts.Small, color = Bl.TextDim)
             }
             progress != null -> {
-                PixelText(tr("v%1\$s → v%2\$s", shell.installedVersion(entry.uid), entry.manifest.version),
+                PixelText(tr("VersionChange", shell.installedVersion(entry.uid), entry.manifest.version),
                     size = Ts.Small, color = Bl.TextDim)
                 Row(verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -115,19 +115,19 @@ private fun UpdateNoticeRow(entry: Catalog.Entry, shell: Shell) {
                         Box(Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).height(18.dp).padding(3.dp)
                             .background(Bl.Good))
                     }
-                    PixelText(if (progress >= 1f) tr("Instalando...") else "${(progress * 100).toInt()}%",
+                    PixelText(if (progress >= 1f) tr("Installing") else "${(progress * 100).toInt()}%",
                         size = Ts.Small)
                 }
             }
             else -> {
-                PixelText(tr("Instalado: v%1\$s · Novo: v%2\$s", shell.installedVersion(entry.uid), entry.manifest.version),
+                PixelText(tr("InstalledAndNewVersion", shell.installedVersion(entry.uid), entry.manifest.version),
                     size = Ts.Small, color = Bl.TextDim)
-                PixelButton(if (entry.uid in shell.downloadErrors) tr("Tentar de novo") else tr("Atualizar"),
+                PixelButton(if (entry.uid in shell.downloadErrors) tr("TryAgain") else tr("Update"),
                     { shell.installRemote(entry) }, Modifier.fillMaxWidth(), fontSize = Ts.Body)
             }
         }
         if (!done && progress == null) shell.downloadErrors[entry.uid]?.let {
-            PixelText(tr("Não deu: %1\$s", it), size = Ts.Small, color = Bl.Bad)
+            PixelText(tr("Failed", it), size = Ts.Small, color = Bl.Bad)
         }
     }
 }

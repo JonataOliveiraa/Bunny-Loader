@@ -43,9 +43,10 @@ object SaveFiles {
 
     // ------------------------------------------------------------- importar
 
-    enum class Kind(val dir: String, val ext: String, val label: String) {
-        PLAYER("Players", ".plr", "personagem"),
-        WORLD("Worlds", ".wld", "mundo"),
+    /** [label] é a chave da tradução; [noun], a palavra das mensagens de erro. */
+    enum class Kind(val dir: String, val ext: String, val label: String, val noun: String) {
+        PLAYER("Players", ".plr", "CharacterNoun", "personagem"),
+        WORLD("Worlds", ".wld", "WorldNoun", "mundo"),
     }
 
     /** Um arquivo escolhido no seletor: o nome que ele tinha e o conteúdo. */
@@ -78,14 +79,14 @@ object SaveFiles {
             if (mains.isEmpty()) {
                 val other = if (kind == Kind.WORLD) Kind.PLAYER else Kind.WORLD
                 val hint = if (files.any { it.name.endsWith(other.ext, ignoreCase = true) })
-                    " (isso é um ${other.label}: use Importar ${other.label})" else ""
+                    " (isso é um ${other.noun}: use Importar ${other.noun})" else ""
                 return listOf(Result.failure(IllegalArgumentException(
                     "nenhum arquivo ${kind.ext} entre os escolhidos$hint")))
             }
             return mains.map { main ->
                 runCatching {
                     val save = runCatching { if (kind == Kind.PLAYER) readPlayer(main) else readWorld(main) }.getOrNull()
-                    requireNotNull(save) { "${main.name} não é um ${kind.label} do Terraria" }
+                    requireNotNull(save) { "${main.name} não é um ${kind.noun} do Terraria" }
                     val stem = main.name.dropLast(kind.ext.length)
                     val target = freeName(dir, stem, kind.ext)
                     main.copyTo(File(dir, target + kind.ext))

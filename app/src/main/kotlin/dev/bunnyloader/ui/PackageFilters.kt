@@ -7,18 +7,18 @@ import java.text.Normalizer
 import java.util.Locale
 
 internal enum class PackageStatus(private val sourceLabel: String) {
-    ALL("Todos"), ENABLED("Ativados"), DISABLED("Desativados");
+    ALL("FilterAll"), ENABLED("FilterEnabled"), DISABLED("FilterDisabled");
     val label: String get() = tr(sourceLabel)
 }
 
 internal enum class PackageSort(private val sourceLabel: String) {
-    LOAD("Ordem de carga"), SIZE_ASC("Menor tamanho"), SIZE_DESC("Maior tamanho"), NAME("A-Z");
+    LOAD("SortLoadOrder"), SIZE_ASC("SortSmallestSize"), SIZE_DESC("SortLargestSize"), NAME("SortAZ");
     val label: String get() = tr(sourceLabel)
 }
 
 /** A ordem do Explorar. Mais baixados primeiro: é o que se espera de uma loja. */
 internal enum class ExploreSort(private val sourceLabel: String) {
-    POPULAR("Mais baixados"), NAME("A-Z"), LIGHTEST("Mais leves"), HEAVIEST("Mais pesados");
+    POPULAR("SortMostDownloaded"), NAME("SortAZ"), LIGHTEST("SortSmallest"), HEAVIEST("SortLargest");
     val label: String get() = tr(sourceLabel)
 }
 

@@ -124,10 +124,10 @@ private class LauncherState(val shell: Shell) : ViewModel() {
 }
 
 private enum class Tab(val icon: Int, val label: String) {
-    INICIO(R.drawable.ic_tab_inicio, "Início"),
-    EXPLORAR(R.drawable.ic_tab_explorar, "Explorar"),
-    PACOTES(R.drawable.ic_tab_pacotes, "Pacotes"),
-    CONFIG(R.drawable.ic_config, "Config"),
+    INICIO(R.drawable.ic_tab_inicio, "Home"),
+    EXPLORAR(R.drawable.ic_tab_explorar, "Explore"),
+    PACOTES(R.drawable.ic_tab_pacotes, "Packages"),
+    CONFIG(R.drawable.ic_config, "Settings"),
 }
 
 @Composable
@@ -300,7 +300,7 @@ private fun ImmersiveOverlay(onRestore: () -> Unit) {
         },
     ) {
         PixelText(
-            tr("Arraste para baixo para voltar"),
+            tr("SwipeDownToReturn"),
             size = Ts.Small, color = Bl.TextDim,
             modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
                 .padding(bottom = 24.dp).graphicsLayer { alpha = hintAlpha },
@@ -375,7 +375,7 @@ private fun PlayButton(onStart: () -> Unit, modifier: Modifier = Modifier) {
             .clickable(interaction, indication = null, onClick = onStart),
         contentAlignment = Alignment.Center,
     ) {
-        androidx.compose.foundation.Image(disk, tr("Jogar"), Modifier.size(86.dp),
+        androidx.compose.foundation.Image(disk, tr("Play"), Modifier.size(86.dp),
             filterQuality = androidx.compose.ui.graphics.FilterQuality.None)
         // Centro ótico, não geométrico: o triângulo tem a massa na base
         // (à esquerda) e a arte traz a sombra embaixo à direita.

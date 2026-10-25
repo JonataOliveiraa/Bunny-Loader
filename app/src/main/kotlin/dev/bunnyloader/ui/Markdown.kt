@@ -882,11 +882,11 @@ private fun MdImage(block: MdBlock.Image, ctx: MdContext, modifier: Modifier = M
 @Composable
 private fun Callout(block: MdBlock.Callout, ctx: MdContext) {
     val (label, tint) = when (block.kind) {
-        "tip", "dica" -> tr("Dica") to Color(0xFF5FB86A)
-        "important", "importante" -> tr("Importante") to Color(0xFFA77BE0)
-        "warning", "aviso" -> tr("Aviso") to Color(0xFFE8B23F)
-        "caution", "cuidado", "danger", "perigo" -> tr("Cuidado") to Bl.Bad
-        else -> tr("Nota") to Color(0xFF6FA3E8)
+        "tip", "dica" -> tr("Tip") to Color(0xFF5FB86A)
+        "important", "importante" -> tr("Important") to Color(0xFFA77BE0)
+        "warning", "aviso" -> tr("Warning") to Color(0xFFE8B23F)
+        "caution", "cuidado", "danger", "perigo" -> tr("Caution") to Bl.Bad
+        else -> tr("Note") to Color(0xFF6FA3E8)
     }
     Column(
         Modifier.fillMaxWidth().pixelPanel(fill = tint.mix(ctx.style.panel, 0.78f)).padding(10.dp),
@@ -907,7 +907,7 @@ private fun Spoiler(block: MdBlock.Container, ctx: MdContext) {
         ) {
             PixelText(if (open) "-" else "+", size = Ts.Item, color = ctx.style.accent,
                 modifier = Modifier.width(18.dp))
-            MdText(block.title.ifEmpty { tr("Mostrar") }, ctx, size = Ts.Item, color = ctx.style.heading,
+            MdText(block.title.ifEmpty { tr("Show") }, ctx, size = Ts.Item, color = ctx.style.heading,
                 modifier = Modifier.weight(1f))
         }
         if (open) MarkdownView(block.children, ctx, Modifier.padding(start = 10.dp, end = 10.dp, bottom = 10.dp))

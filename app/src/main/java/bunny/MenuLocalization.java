@@ -3,7 +3,6 @@ package bunny;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
-import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -14,8 +13,8 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class MenuLocalization {
-    private static volatile TranslationCatalog catalog = new TranslationCatalog(new HashMap<String, String[]>());
-    private static volatile String language = "pt-BR";
+    private static volatile TranslationCatalog catalog = new TranslationCatalog(new HashMap<String, Map<String, String>>());
+    private static volatile String language = TranslationCatalog.FALLBACK;
     private static String choice = "";
     private static boolean loaded;
 
@@ -23,31 +22,40 @@ public final class MenuLocalization {
 
     public static synchronized void initialize(Context context) {
         if (!loaded) {
-            Map<String, String[]> rows = new HashMap<>();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    context.getAssets().open("localization/menu.json"), StandardCharsets.UTF_8))) {
-                StringBuilder json = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) json.append(line);
-                JSONObject entries = new JSONObject(json.toString());
-                Iterator<String> keys = entries.keys();
-                while (keys.hasNext()) {
-                    String key = keys.next();
-                    JSONArray values = entries.getJSONArray(key);
-                    String[] translations = new String[6];
-                    for (int i = 0; i < translations.length; i++) translations[i] = values.optString(i, "");
-                    rows.put(key, translations);
+            // Um arquivo por idioma; o que faltar ou estiver quebrado cai no português.
+            Map<String, Map<String, String>> tables = new HashMap<>();
+            for (String supported : TranslationCatalog.LANGUAGES) {
+                String path = "localization/" + TranslationCatalog.culture(supported) + ".json";
+                try {
+                    tables.put(supported, readTable(context, path));
+                } catch (Exception error) {
+                    Log.e("BunnyLoader", "Could not read " + path, error);
                 }
-                catalog = new TranslationCatalog(rows);
-                loaded = true;
-            } catch (Exception error) {
-                Log.e("BunnyLoader", "Não consegui ler as traduções do menu", error);
             }
+            catalog = new TranslationCatalog(tables);
+            loaded = true;
         }
         SharedPreferences prefs = context.getSharedPreferences("bunny_localization", Context.MODE_PRIVATE);
         try { choice = prefs.getString("language", ""); }
         catch (ClassCastException invalidPreference) { choice = ""; }
         language = TranslationCatalog.resolveLanguage(choice, Locale.getDefault());
+    }
+
+    private static Map<String, String> readTable(Context context, String path) throws Exception {
+        StringBuilder json = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                context.getAssets().open(path), StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) json.append(line);
+        }
+        JSONObject entries = new JSONObject(json.toString());
+        Map<String, String> table = new HashMap<>();
+        Iterator<String> keys = entries.keys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            table.put(key, entries.optString(key, ""));
+        }
+        return table;
     }
 
     public static String language() { return language; }
@@ -64,7 +72,7 @@ public final class MenuLocalization {
         return true;
     }
 
-    public static String text(String source, Object... args) {
-        return catalog.text(language, source, args);
+    public static String text(String key, Object... args) {
+        return catalog.text(language, key, args);
     }
 }

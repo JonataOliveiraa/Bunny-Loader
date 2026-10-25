@@ -201,7 +201,7 @@ fun ModRow(
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
                 PixelText(
-                    tr("por %1\$s", entry.manifest.authorLine),
+                    tr("ByAuthor", entry.manifest.authorLine),
                     size = Ts.Small, color = Bl.TextFaint,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
@@ -211,7 +211,7 @@ fun ModRow(
                 ) {
                     PixelTag(entry.manifest.category, categoryColor(entry.manifest.category))
                     if (entry.manifest.isOutdated) {
-                        PixelTag(tr("Formato antigo"), Bl.Bad, Modifier.padding(start = 8.dp))
+                        PixelTag(tr("LegacyFormat"), Bl.Bad, Modifier.padding(start = 8.dp))
                     }
                     PixelText(
                         formatSize(entry.sizeBytes),
@@ -229,8 +229,8 @@ fun ModRow(
 @Composable
 fun ModOrderButtons(name: String, canUp: Boolean, canDown: Boolean, onUp: () -> Unit, onDown: () -> Unit) {
     Column(Modifier.padding(end = 6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        ModOrderArrow(tr("Mover %1\$s para cima", name), true, canUp, onUp)
-        ModOrderArrow(tr("Mover %1\$s para baixo", name), false, canDown, onDown)
+        ModOrderArrow(tr("MoveUp", name), true, canUp, onUp)
+        ModOrderArrow(tr("MoveDown", name), false, canDown, onDown)
     }
 }
 
@@ -273,7 +273,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier, icon: Int? = null)
  */
 @Composable
 fun DownloadCount(count: Long, modifier: Modifier = Modifier, color: Color = Bl.TextFaint) {
-    val description = tr("%1\$s downloads", count)
+    val description = tr("DownloadCount", count)
     Row(
         modifier.semantics(mergeDescendants = true) { contentDescription = description },
         verticalAlignment = Alignment.CenterVertically,
@@ -292,7 +292,7 @@ fun RankBadge(position: Int, modifier: Modifier = Modifier) {
         3 -> Bl.Bronze
         else -> Bl.TitleFill
     }
-    val description = tr("%1\$sº lugar", position)
+    val description = tr("Rank", position)
     Box(
         modifier.padding(end = 8.dp).size(30.dp)
             .pixelPanel(fill = fill)

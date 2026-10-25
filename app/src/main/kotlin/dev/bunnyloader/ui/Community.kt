@@ -63,8 +63,8 @@ fun DiscordCard(modifier: Modifier = Modifier) {
                 )
             }
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                PixelText(tr("Entre no nosso Discord"), size = Ts.Item, color = Bl.Text)
-                PixelText(tr("Novidades, ajuda com mods e a comunidade do Bunny Loader."),
+                PixelText(tr("JoinOurDiscord"), size = Ts.Item, color = Bl.Text)
+                PixelText(tr("DiscordDescription"),
                     size = Ts.Small, color = Bl.DiscordText)
             }
             Row(
@@ -72,7 +72,7 @@ fun DiscordCard(modifier: Modifier = Modifier) {
                     .padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                PixelText(tr("Entrar"), size = Ts.Small, color = Bl.PressedText)
+                PixelText(tr("Join"), size = Ts.Small, color = Bl.PressedText)
                 PixelIcon(R.drawable.ic_seta_esq, 14.dp, Modifier.padding(start = 4.dp).rotate(180f))
             }
         }

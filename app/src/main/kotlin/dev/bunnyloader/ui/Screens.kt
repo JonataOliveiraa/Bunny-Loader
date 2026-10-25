@@ -162,7 +162,7 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
                     }
             }
             if (featured.isNotEmpty()) {
-                SectionTitle(tr("Em destaque"), icon = R.drawable.ic_fav_on)
+                SectionTitle(tr("Featured"), icon = R.drawable.ic_fav_on)
                 FeaturedCarousel(featured, shell, onOpen)
             }
 
@@ -174,9 +174,9 @@ fun InicioTab(shell: Shell, onHide: () -> Unit = {}, onOpen: (String) -> Unit) {
                     .sortedByDescending { counts[it.uid] }.take(POPULAR_COUNT)
             }
             if (popular.isNotEmpty()) {
-                SectionTitle(tr("Populares"), icon = R.drawable.ic_download)
+                SectionTitle(tr("Popular"), icon = R.drawable.ic_download)
                 if (ranked) {
-                    PixelText(tr("Os mais baixados do catálogo."), size = Ts.Small, color = Bl.TextDim,
+                    PixelText(tr("MostDownloadedDescription"), size = Ts.Small, color = Bl.TextDim,
                         modifier = Modifier.padding(start = 2.dp, bottom = 8.dp))
                 }
                 for ((i, e) in popular.withIndex()) {
@@ -207,9 +207,9 @@ private fun CatalogNumbers(shell: Shell, modifier: Modifier = Modifier) {
     val total = remember(shell.downloadCounts) { shell.downloadCounts.values.sum() }
     PixelCard(modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-            NumberCell("${shell.catalogEntries.size}", tr("no catálogo"), Modifier.weight(1f))
-            if (total > 0) NumberCell(formatCount(total), tr("downloads"), Modifier.weight(1f))
-            NumberCell("${shell.installed.size}", tr("instalados"), Modifier.weight(1f))
+            NumberCell("${shell.catalogEntries.size}", tr("StatInCatalog"), Modifier.weight(1f))
+            if (total > 0) NumberCell(formatCount(total), tr("StatDownloads"), Modifier.weight(1f))
+            NumberCell("${shell.installed.size}", tr("StatInstalled"), Modifier.weight(1f))
         }
     }
 }
@@ -248,7 +248,7 @@ private fun FeaturedCarousel(entries: List<Catalog.Entry>, shell: Shell, onOpen:
     Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.Center) {
         for (i in entries.indices) {
             val on = i == pager.currentPage
-            val description = tr("Destaque %1\$s de %2\$s", i + 1, entries.size)
+            val description = tr("FeaturedPosition", i + 1, entries.size)
             Box(Modifier.padding(horizontal = 3.dp).size(if (on) 16.dp else 8.dp, 8.dp)
                 .pixelPanel(fill = if (on) Bl.PressedText else Bl.TitleFill)
                 .semantics { contentDescription = description })
@@ -310,7 +310,7 @@ private fun FeaturedCard(
                 StoreStatusTag(entry, shell)
                 shell.downloadCounts[entry.uid]?.let { DownloadCount(it) }
                 Spacer(Modifier.weight(1f))
-                PixelText(tr("Ver detalhes"), size = Ts.Small, color = Bl.PressedText)
+                PixelText(tr("ViewDetails"), size = Ts.Small, color = Bl.PressedText)
                 PixelIcon(R.drawable.ic_seta_esq, 16.dp, Modifier.rotate(180f))
             }
         }
@@ -400,20 +400,20 @@ fun ExplorarTab(shell: Shell, onOpen: (String) -> Unit) {
                         items(spotlight.drop(1), key = { "new:" + it.uid }, contentType = { "package" }) { e ->
                             ExploreRow(e, shell, onOpen, isNew = true, fill = Bl.NewPanel)
                         }
-                        item(key = "all-title", contentType = "title") { SectionTitle(tr("Todos")) }
+                        item(key = "all-title", contentType = "title") { SectionTitle(tr("FilterAll")) }
                     }
                     items(page, key = { it.uid }, contentType = { "package" }) { e ->
                         ExploreRow(e, shell, onOpen, isNew = e.uid in newIds)
                     }
                     if (page.size < list.size) {
                         item(key = "more", contentType = "more") {
-                            PixelText(tr("Carregando mais... (%1\$s de %2\$s)", page.size, list.size), size = Ts.Small,
+                            PixelText(tr("LoadingMore", page.size, list.size), size = Ts.Small,
                                 color = Bl.TextFaint, modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                                 align = TextAlign.Center)
                         }
                     }
                     if (list.isEmpty() && shell.remoteStatus != RemoteStatus.Loading) {
-                        item { Empty(tr("Nenhum pacote corresponde aos filtros.")) }
+                        item { Empty(tr("NoPackagesMatchFilters")) }
                     }
                 }
                 PixelScrollbar(state, Modifier.fillMaxSize())
@@ -444,8 +444,8 @@ private fun StoreStatusTag(entry: Catalog.Entry, shell: Shell) {
     val progress = shell.downloads[entry.uid]
     when {
         progress != null -> PixelTag("${(progress * 100).toInt()}%")
-        shell.updateFor(entry.uid) != null -> PixelTag(tr("Atualizar"), Bl.Good)
-        entry.uid in shell.installed -> PixelTag(tr("Instalado"))
+        shell.updateFor(entry.uid) != null -> PixelTag(tr("Update"), Bl.Good)
+        entry.uid in shell.installed -> PixelTag(tr("Installed"))
     }
 }
 
@@ -454,7 +454,7 @@ private fun NewModsTitle() {
     Box(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)) {
         Box(Modifier.pixelPanel(fill = Bl.NewTitleFill)
             .padding(horizontal = 12.dp, vertical = 5.dp)) {
-            PixelText(tr("Novos no catálogo"), size = Ts.Head, color = Bl.Text)
+            PixelText(tr("NewInCatalog"), size = Ts.Head, color = Bl.Text)
         }
     }
 }
@@ -475,7 +475,7 @@ private fun NewBadge(modifier: Modifier = Modifier) {
     val step = with(androidx.compose.ui.platform.LocalDensity.current) { 2.dp.toPx() }
     Image(
         bitmap = ImageBitmap.imageResource(R.drawable.ic_new),
-        contentDescription = tr("Novo"),
+        contentDescription = tr("New"),
         filterQuality = FilterQuality.None,
         modifier = modifier.size(42.dp, 20.dp).graphicsLayer {
             // Um pixel da arte (2 dp) por vez: nada de meio pixel borrado.
@@ -493,11 +493,11 @@ private fun RemoteStatusLine(shell: Shell, modifier: Modifier = Modifier) {
     if (status !is RemoteStatus.Failed) return
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         PixelText(
-            tr("Catálogo online: %1\$s.", status.message) +
-                if (shell.remote.isEmpty()) "" else tr(" Mostrando a última lista baixada."),
+            tr("OnlineCatalog", status.message) +
+                if (shell.remote.isEmpty()) "" else tr("ShowingCachedList"),
             size = Ts.Small, color = Bl.Bad, modifier = Modifier.weight(1f),
         )
-        PixelButton(tr("Tentar de novo"), { shell.refreshRemote(force = true) },
+        PixelButton(tr("TryAgain"), { shell.refreshRemote(force = true) },
             fontSize = Ts.Small)
     }
 }
@@ -507,7 +507,7 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
     Box(modifier.fillMaxWidth().pixelPanel(fill = Bl.Select, raised = false)
         .padding(horizontal = 12.dp, vertical = 10.dp)) {
         if (value.isEmpty()) {
-            PixelText(tr("Nome, autor ou categoria..."), size = Ts.Body, color = Bl.TextMuted)
+            PixelText(tr("SearchPlaceholder"), size = Ts.Body, color = Bl.TextMuted)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             BasicTextField(
@@ -521,7 +521,7 @@ private fun SearchField(value: String, onChange: (String) -> Unit, modifier: Mod
                 modifier = Modifier.weight(1f),
             )
             if (value.isNotEmpty()) {
-                Box(Modifier.semantics { contentDescription = tr("Limpar busca") }
+                Box(Modifier.semantics { contentDescription = tr("ClearSearch") }
                     .pixelClickable { onChange("") }.padding(4.dp)) {
                     PixelIcon(R.drawable.ic_fechar, 18.dp)
                 }
@@ -577,10 +577,10 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
         if (uri != null) {
             shell.importPackage(uri) { result ->
                 aviso = result.fold(
-                    onSuccess = { tr("%1\$s instalado", it.nameFor(UiLocalization.language)) to true },
+                    onSuccess = { tr("InstalledCount", it.nameFor(UiLocalization.language)) to true },
                     onFailure = {
-                        if (it is ImportCancelled) tr("Importação cancelada.") to true
-                        else tr("Não deu: %1\$s", it.message) to false
+                        if (it is ImportCancelled) tr("ImportCancelled") to true
+                        else tr("Failed", it.message) to false
                     },
                 )
             }
@@ -596,25 +596,25 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             Modifier.fillMaxWidth().padding(start = EdgePad, end = EdgePad, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            PixelText(tr("Pacotes"), size = Ts.Big, modifier = Modifier.weight(1f))
-            PixelText(tr("%1\$s/%2\$s ligados", shell.enabled.size, shell.installed.size),
+            PixelText(tr("Packages"), size = Ts.Big, modifier = Modifier.weight(1f))
+            PixelText(tr("EnabledOfTotal", shell.enabled.size, shell.installed.size),
                 size = Ts.Body, color = Bl.TextFaint)
         }
 
         Box(Modifier.padding(start = EdgePad, end = EdgePad, top = 10.dp)) {
             PixelButton(
-                if (importing) tr("Importando...") else tr("Importar pacote"),
+                if (importing) tr("Importing") else tr("ImportPackage"),
                 { if (!importing) asking = true },
                 Modifier.fillMaxWidth(),
                 icon = R.drawable.ic_folder,
             )
         }
         if (asking) {
-            PixelDialog(tr("Importar pacote"), onDismiss = { asking = false }) {
+            PixelDialog(tr("ImportPackage"), onDismiss = { asking = false }) {
                 for (line in listOf(
-                    tr("Um mod roda código dentro do jogo: só instale pacotes de quem você confia."),
-                    tr("O pacote é um .bl, .bmod ou .zip com manifest.json e a pasta content/."),
-                    tr("Se o mod já estiver instalado (o mesmo uid), o app pergunta antes de substituir."),
+                    tr("ImportPackageWarning"),
+                    tr("ImportPackageFormat"),
+                    tr("ImportReplaceHint"),
                 )) {
                     Row {
                         PixelText("•", size = Ts.Body, color = Bl.PressedText, modifier = Modifier.padding(end = 8.dp))
@@ -622,8 +622,8 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PixelButton(tr("Cancelar"), { asking = false }, Modifier.weight(1f), fontSize = Ts.Body)
-                    PixelButton(tr("Escolher arquivo"), { asking = false; picker.launch(arrayOf("*/*")) },
+                    PixelButton(tr("Cancel"), { asking = false }, Modifier.weight(1f), fontSize = Ts.Body)
+                    PixelButton(tr("ChooseFile"), { asking = false; picker.launch(arrayOf("*/*")) },
                         Modifier.weight(1f), fill = Bl.TitleFill, fontSize = Ts.Body)
                 }
             }
@@ -639,8 +639,8 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
         PackTypeTabs(type, counts, { type = it }, Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
         FilterResultLine(packages.size, query.isNotBlank(), { query = "" },
             Modifier.padding(start = EdgePad, end = EdgePad, top = 6.dp))
-        PixelText(if (manualOrder) tr("Segure e arraste dentro do mesmo grupo. Primeiro ligado carrega primeiro.")
-                  else tr("Para mover, limpe a busca."), size = Ts.Small, color = Bl.TextFaint,
+        PixelText(if (manualOrder) tr("ReorderHint")
+                  else tr("ClearSearchToReorder"), size = Ts.Small, color = Bl.TextFaint,
             modifier = Modifier.padding(start = EdgePad, end = EdgePad, top = 8.dp))
 
         DraggablePackageList(
@@ -652,9 +652,9 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
             animateMoves = animateMoves,
             raisedUid = movedUid,
             modifier = Modifier.weight(1f).fillMaxWidth(),
-            empty = { Empty(if (shell.refreshingPackages && shell.packages.isEmpty()) tr("Lendo pacotes...")
-                           else if (shell.installed.isEmpty()) tr("Nenhum pacote. Pegue um em Explorar ou importe um .bmod.")
-                           else tr("Nenhum pacote neste filtro.")) },
+            empty = { Empty(if (shell.refreshingPackages && shell.packages.isEmpty()) tr("ReadingPackages")
+                           else if (shell.installed.isEmpty()) tr("PackagesEmpty")
+                           else tr("NoPackagesInThisFilter")) },
         ) { index, modifier, preview ->
             val e = packages[index]
             // Ligado: o cartão inteiro fica verde, e a lista se lê de longe.
@@ -700,11 +700,11 @@ private fun FilterResultLine(
     trailing: @Composable (() -> Unit)? = null,
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        PixelText(tr(if (count == 1) "%1\$s pacote" else "%1\$s pacotes", count), size = Ts.Small,
+        PixelText(tr(if (count == 1) "PackageCountOne" else "PackageCountOther", count), size = Ts.Small,
             color = Bl.TextFaint, modifier = Modifier.weight(1f))
         if (active) {
             Box(Modifier.pixelClickable(onReset).padding(horizontal = 8.dp, vertical = 4.dp)) {
-                PixelText(tr("Limpar busca"), size = Ts.Small, color = Bl.PressedText)
+                PixelText(tr("ClearSearch"), size = Ts.Small, color = Bl.PressedText)
             }
         }
         trailing?.invoke()
@@ -728,7 +728,7 @@ private fun SortButton(sort: ExploreSort, onSort: (ExploreSort) -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            PixelText(tr("Ordenar:"), size = Ts.Small, color = Bl.TextFaint)
+            PixelText(tr("SortLabel"), size = Ts.Small, color = Bl.TextFaint)
             PixelText(sort.label, size = Ts.Small, color = Bl.PressedText)
             PixelIcon(R.drawable.ic_seta_dir, 14.dp, Modifier.rotate(if (open) -90f else 90f))
         }
@@ -793,84 +793,84 @@ fun ConfigTab(
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
             ProfileHeader(prefs, Modifier.padding(top = 14.dp))
 
-            SectionTitle(tr("Comunidade"))
+            SectionTitle(tr("Community"))
             DiscordCard()
 
-            SectionTitle(tr("Coleção"))
+            SectionTitle(tr("Collection"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat("${shell.installed.size}", tr("instalados"), Modifier.weight(1f))
-                Stat("${shell.enabled.size}", tr("ligados"), Modifier.weight(1f))
-                Stat("${shell.catalogEntries.size}", tr("no catálogo"), Modifier.weight(1f))
+                Stat("${shell.installed.size}", tr("StatInstalled"), Modifier.weight(1f))
+                Stat("${shell.enabled.size}", tr("StatEnabled"), Modifier.weight(1f))
+                Stat("${shell.catalogEntries.size}", tr("StatInCatalog"), Modifier.weight(1f))
             }
 
-            SectionTitle(tr("Mundos e personagens"))
+            SectionTitle(tr("WorldsAndCharacters"))
             SavesCard()
 
-            SectionTitle(tr("Aparência"))
+            SectionTitle(tr("Appearance"))
             LanguagePicker()
             SceneryPicker(scenery, onScenery)
             Setting(
-                tr("Efeitos do tema"),
-                tr("Cada cenário tem o seu: folhas e cartões balançando na Floresta, chuva e brilho molhado no Oceano, bolhas no Lago, neve na Neve. Desligado, o fundo fica parado."),
+                tr("ThemeEffects"),
+                tr("ThemeEffectsDescription"),
                 themeEffects,
                 onThemeEffects,
             )
 
             SectionTitle(tr("Mods"))
             Setting(
-                tr("Ligar ao instalar"),
-                tr("Um pacote recém-instalado já entra valendo no próximo boot."),
+                tr("EnableOnInstall"),
+                tr("EnableOnInstallDescription"),
                 enableNewMods,
             ) { enableNewMods = it; prefs.enableOnInstall = it }
             Setting(
-                tr("Mostrar erro dentro do jogo"),
-                tr("Quando um mod quebra, o log aparece na tela em vez de só no logcat."),
+                tr("ShowErrorsInGame"),
+                tr("ShowErrorsInGameDescription"),
                 errorPanel,
             ) { errorPanel = it; prefs.errorPanel = it }
             Setting(
-                tr("Log detalhado"),
-                tr("O log de sessão (pasta logs/) ganha cada tabela, hook e tipo que o núcleo registra. Desligado, fica o resumo e as linhas dos mods."),
+                tr("DetailedLog"),
+                tr("DetailedLogDescription"),
                 verboseLog,
             ) { verboseLog = it; prefs.verboseLog = it }
             Setting(
-                tr("Canal de comando por arquivo"),
-                tr("Aceita comandos via adb durante o jogo. Só para desenvolver."),
+                tr("FileCommandChannel"),
+                tr("FileCommandChannelDescription"),
                 devChannel,
             ) { devChannel = it; prefs.devChannel = it }
 
-            SectionTitle(tr("Desenvolvedor"))
+            SectionTitle(tr("Developer"))
             QuickStartCard(prefs)
             Setting(
-                tr("Mod Menu"),
-                tr("O botão do coelho dentro do jogo: poderes, itens, NPCs e buffs. Desligado, nenhum poder volta ligado da última partida."),
+                tr("ModMenu"),
+                tr("ModMenuDescription"),
                 modMenu,
             ) { modMenu = it; prefs.devModMenu = it }
             Setting(
-                tr("Editor de JS"),
-                tr("Roda JavaScript dentro do jogo. O ícone flutuante de JS fica disponível desde o menu inicial, com ou sem o Mod Menu."),
+                tr("JsEditor"),
+                tr("JsEditorDescription"),
                 editor,
             ) { editor = it; prefs.devEditor = it }
             Setting(
-                tr("Reiniciar"),
-                tr("O botão que fecha e abre o jogo lendo os mods da pasta de novo (no Mod Menu e no Editor)."),
+                tr("Restart"),
+                tr("RestartDescription"),
                 restart,
             ) { restart = it; prefs.devRestart = it }
 
-            SectionTitle(tr("Diagnóstico"))
+            SectionTitle(tr("Diagnostics"))
             PixelCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     PixelText(
-                        tr("O jogo fechou sozinho, travou ou deu erro? Abra o relatório e mande o texto (Copiar) ou um print para quem cuida do Bunny Loader ou do mod."),
+                        tr("DiagnosticsDescription"),
                         size = Ts.Small, color = Bl.TextDim,
                     )
                     Row(
                         Modifier.padding(top = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        PixelButton(tr("Ver relatório"), { log = BootLog.read(ctx) },
+                        PixelButton(tr("ViewReport"), { log = BootLog.read(ctx) },
                             fontSize = Ts.Small)
                         if (log.isNotEmpty()) {
-                            PixelButton(tr("Copiar"), {
+                            PixelButton(tr("Copy"), {
                                 clipboard.setText(AnnotatedString(log))
                             }, fontSize = Ts.Small)
                         }
@@ -886,13 +886,13 @@ fun ConfigTab(
                 }
             }
 
-            SectionTitle(tr("Sobre"))
+            SectionTitle(tr("About"))
             PixelCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Field("Bunny Loader", "v${dev.bunnyloader.BuildConfig.VERSION_NAME}")
                     Spacer(Modifier.height(8.dp))
                     Field(
-                        tr("Terraria embutido"),
+                        tr("BundledTerraria"),
                         "${BundledRuntime.VERSION_NAME} (${BundledRuntime.VERSION_CODE})",
                     )
                 }
@@ -908,18 +908,18 @@ fun ConfigTab(
 private fun LanguagePicker() {
     val context = LocalContext.current
     val options = listOf("", "pt-BR", "en", "ru", "es", "zh", "vi", "th")
-    val names = listOf(tr("Automático"), "Português (Brasil)", "English", "Русский", "Español", "简体中文", "Tiếng Việt", "ไทย")
+    val names = listOf(tr("Automatic"), "Português (Brasil)", "English", "Русский", "Español", "简体中文", "Tiếng Việt", "ไทย")
     val index = options.indexOf(UiLocalization.choice).coerceAtLeast(0)
     PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            PixelText(tr("Idioma"), size = Ts.Item)
+            PixelText(tr("Language"), size = Ts.Item)
             PixelText(
-                tr("Usar o idioma do aparelho. A escolha também vale para o Mod Menu na próxima abertura do jogo."),
+                tr("LanguageDescription"),
                 size = Ts.Small, color = Bl.TextFaint,
             )
             PixelSelect(
                 names[index],
-                label = tr("Idioma"),
+                label = tr("Language"),
                 onPrev = { UiLocalization.select(context, options[(index - 1).mod(options.size)]) },
                 onNext = { UiLocalization.select(context, options[(index + 1).mod(options.size)]) },
                 modifier = Modifier.padding(top = 10.dp),
@@ -936,11 +936,11 @@ private fun LanguagePicker() {
 private fun SceneryPicker(choice: String, onChoice: (String) -> Unit) {
     val options = listOf("") + Biome.entries.map { it.name }
     val i = options.indexOf(choice).coerceAtLeast(0)
-    val label = Biome.entries.firstOrNull { it.name == choice }?.label?.let { tr(it) } ?: tr("Automático")
+    val label = Biome.entries.firstOrNull { it.name == choice }?.label?.let { tr(it) } ?: tr("Automatic")
     PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
-            PixelText(tr("Cenário"), size = Ts.Item)
-            PixelText(tr("O fundo do launcher. O céu segue o relógio do celular; no automático, o cenário troca a cada abertura."),
+            PixelText(tr("Scene"), size = Ts.Item)
+            PixelText(tr("SceneDescription"),
                 size = Ts.Small, color = Bl.TextFaint)
             PixelSelect(
                 label,
@@ -994,9 +994,9 @@ private fun QuickStartCard(prefs: Prefs) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                    PixelText(tr("Início rápido"), size = Ts.Item)
+                    PixelText(tr("QuickStart"), size = Ts.Item)
                     PixelText(
-                        tr("A logo da Re-Logic some assim que o jogo termina de carregar, e o jogo entra direto no mundo abaixo. Vale também para o Reiniciar do Mod Menu."),
+                        tr("QuickStartDescription"),
                         size = Ts.Small, color = Bl.TextFaint,
                     )
                 }
@@ -1004,15 +1004,15 @@ private fun QuickStartCard(prefs: Prefs) {
             }
             if (on) {
                 if (saves == null) {
-                    PixelText(tr("Carregando personagens e mundos..."), size = Ts.Small,
+                    PixelText(tr("LoadingCharactersAndWorlds"), size = Ts.Small,
                         modifier = Modifier.padding(top = 10.dp))
                 } else if (player == null) {
                     PixelText(
-                        tr("Nenhum personagem salvo ainda. Crie um no jogo; até lá, o jogo para no título."),
+                        tr("NoSavedCharacters"),
                         size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 10.dp),
                     )
                 } else {
-                    PixelText(tr("Personagem"), size = Ts.Small, color = Bl.TextFaint,
+                    PixelText(tr("Character"), size = Ts.Small, color = Bl.TextFaint,
                         modifier = Modifier.padding(top = 10.dp))
                     val pi = players.indexOf(player)
                     PixelSelect(
@@ -1021,21 +1021,21 @@ private fun QuickStartCard(prefs: Prefs) {
                         onNext = { playerFile = players[(pi + 1).mod(players.size)].file },
                         modifier = Modifier.padding(top = 4.dp),
                     )
-                    PixelText(tr("Mundo"), size = Ts.Small, color = Bl.TextFaint,
+                    PixelText(tr("World"), size = Ts.Small, color = Bl.TextFaint,
                         modifier = Modifier.padding(top = 8.dp))
                     val wi = worldOptions.indexOf(world)
                     val pickWorld = { i: Int ->
                         worldFile = worldOptions[i.mod(worldOptions.size)]?.file ?: Prefs.TITLE_ONLY
                     }
                     PixelSelect(
-                        world?.let { saveLabel(it) } ?: tr("Nenhum: parar no título"),
+                        world?.let { saveLabel(it) } ?: tr("QuickStartNone"),
                         onPrev = { pickWorld(wi - 1) },
                         onNext = { pickWorld(wi + 1) },
                         modifier = Modifier.padding(top = 4.dp),
                     )
                     if (fitting.isEmpty()) {
                         PixelText(
-                            if (player.journey) tr("Nenhum mundo de Jornada salvo.") else tr("Nenhum mundo salvo."),
+                            if (player.journey) tr("NoSavedJourneyWorlds") else tr("NoSavedWorlds"),
                             size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(top = 6.dp),
                         )
                     }
@@ -1045,7 +1045,7 @@ private fun QuickStartCard(prefs: Prefs) {
     }
 }
 
-private fun saveLabel(save: SaveFiles.Save) = if (save.journey) tr("%1\$s (Jornada)", save.name) else save.name
+private fun saveLabel(save: SaveFiles.Save) = if (save.journey) tr("JourneyWorldLabel", save.name) else save.name
 
 /** Uma linha de ajuste: nome, o que ela faz, e o interruptor. */
 @Composable
@@ -1096,33 +1096,33 @@ private fun Empty(text: String) {
 @Composable
 private fun ImportProgressDialog(progress: Float) {
     val pct = (progress.coerceIn(0f, 1f) * 100).toInt()
-    PixelDialog(tr("Importando pacote"), onDismiss = {}) {
+    PixelDialog(tr("ImportingPackage"), onDismiss = {}) {
         Box(Modifier.fillMaxWidth().height(22.dp).pixelPanel(Bl.FrameFill, raised = false)) {
             Box(
                 Modifier.fillMaxWidth(progress.coerceIn(0f, 1f)).height(22.dp).padding(4.dp)
                     .background(Bl.Good),
             )
         }
-        PixelText(tr("%1\$s%% concluído", pct), size = Ts.Body, color = Bl.TextDim)
+        PixelText(tr("PercentDone", pct), size = Ts.Body, color = Bl.TextDim)
     }
 }
 
 /** Um pacote de um mod que já está instalado: atualizar ou deixar como está. */
 @Composable
 private fun UpdateImportDialog(file: ModManifest, installed: ModManifest, onAnswer: (Boolean) -> Unit) {
-    PixelDialog(tr("Atualizar mod?"), onDismiss = { onAnswer(false) }) {
-        PixelText(tr("%1\$s já está instalado.", installed.nameFor(UiLocalization.language)), size = Ts.Body)
-        PixelText(tr("Instalado: %1\$s · Arquivo: %2\$s", installed.version, file.version),
+    PixelDialog(tr("UpdateModQuestion"), onDismiss = { onAnswer(false) }) {
+        PixelText(tr("AlreadyInstalled", installed.nameFor(UiLocalization.language)), size = Ts.Body)
+        PixelText(tr("InstalledVersionAndFile", installed.version, file.version),
             size = Ts.Small, color = Bl.TextDim)
         val order = compareVersions(file.version, installed.version)
         if (order == 0) {
-            PixelText(tr("É a mesma versão: atualizar reinstala o mod."), size = Ts.Small, color = Bl.TextFaint)
+            PixelText(tr("SameVersionReinstall"), size = Ts.Small, color = Bl.TextFaint)
         } else if (order < 0) {
-            PixelText(tr("O arquivo é mais antigo que o mod instalado."), size = Ts.Small, color = Bl.Bad)
+            PixelText(tr("FileOlderThanInstalled"), size = Ts.Small, color = Bl.Bad)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            PixelButton(tr("Cancelar"), { onAnswer(false) }, Modifier.weight(1f), fontSize = Ts.Body)
-            PixelButton(tr("Atualizar"), { onAnswer(true) }, Modifier.weight(1f), fill = Bl.TitleFill,
+            PixelButton(tr("Cancel"), { onAnswer(false) }, Modifier.weight(1f), fontSize = Ts.Body)
+            PixelButton(tr("Update"), { onAnswer(true) }, Modifier.weight(1f), fill = Bl.TitleFill,
                 fontSize = Ts.Body)
         }
     }

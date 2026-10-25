@@ -1,14 +1,6 @@
 package dev.bunnyloader.mods
 
-internal fun modCulture(language: String): String = when (language) {
-    "en" -> "en-US"
-    "ru" -> "ru-RU"
-    "es" -> "es-ES"
-    "zh" -> "zh-Hans"
-    "vi" -> "vi-VN"
-    "th" -> "th-TH"
-    else -> language
-}
+internal fun modCulture(language: String): String = bunny.TranslationCatalog.culture(language)
 
 internal fun localizedText(values: Map<String, String>, language: String): String? =
     values[modCulture(language)]?.takeIf(String::isNotBlank)

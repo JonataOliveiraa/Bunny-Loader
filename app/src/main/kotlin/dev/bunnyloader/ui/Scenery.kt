@@ -57,19 +57,19 @@ enum class Biome(
     /** A cor das nuvens nos céus parados (no do relógio, quem tinge é a hora); null = sem nuvens. */
     internal val clouds: Color? = Color.White,
 ) {
-    FOREST("Floresta", listOf(
+    FOREST("Forest", listOf(
         SceneLayer(R.drawable.bg_mountains, 0.10f, 0.20f),
         SceneLayer(R.drawable.bg_hills, 0.20f, 0.27f),
         SceneLayer(R.drawable.bg_forest, 0.40f, 0.36f),
     )),
-    OCEAN("Oceano", listOf(
+    OCEAN("Ocean", listOf(
         SceneLayer(R.drawable.bg_ocean, 0.15f, 0.30f),
     )),
-    LAKE("Lago", listOf(
+    LAKE("Lake", listOf(
         SceneLayer(R.drawable.bg_mountains, 0.10f, 0.18f),
         SceneLayer(R.drawable.bg_lake, 0.35f, 0.33f),
     )),
-    SNOW("Neve", listOf(
+    SNOW("Snow", listOf(
         SceneLayer(R.drawable.bg_snow_mountains, 0.10f, 0.17f),
         SceneLayer(R.drawable.bg_snow, 0.40f, 0.31f),
     )),
@@ -79,15 +79,15 @@ enum class Biome(
         SceneLayer(R.drawable.bg_halloween_near, 0.35f, 0.47f),
     ), UiPalette.HALLOWEEN, HALLOWEEN_SKY, SkyBody.PUMPKIN_MOON, Color(0xFF6A4878)),
     /** O bioma de cogumelos brilhantes: sempre noite, sem sol nem lua, esporos subindo. */
-    MUSHROOM("Cogumelos", listOf(
+    MUSHROOM("Mushrooms", listOf(
         SceneLayer(R.drawable.bg_mushroom_far, 0.12f, 0.24f),
         SceneLayer(R.drawable.bg_mushroom_near, 0.35f, 0.34f),
     ), UiPalette.MUSHROOM, MUSHROOM_SKY, SkyBody.NONE, null),
-    DESERT("Deserto", listOf(
+    DESERT("Desert", listOf(
         SceneLayer(R.drawable.bg_desert_far, 0.10f, 0.20f),
         SceneLayer(R.drawable.bg_desert_near, 0.38f, 0.46f),
     ), UiPalette.DESERT, DESERT_SKY),
-    HALLOW("Sagrado", listOf(
+    HALLOW("Hallow", listOf(
         SceneLayer(R.drawable.bg_hallow_far, 0.10f, 0.22f),
         SceneLayer(R.drawable.bg_hallow_near, 0.38f, 0.36f),
     ), UiPalette.HALLOW, HALLOW_SKY),
