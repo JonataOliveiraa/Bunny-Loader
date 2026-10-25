@@ -1176,14 +1176,15 @@ public class CheatBridge {
         }
 
         @Override public void setText(CharSequence text, BufferType type) {
-            // Andy tem os acentos, mas nao as setas, o cirilico nem o chines.
-            // O Layout preserva a fonte de apoio destes glifos inclusive
-            // quando o valor da barra muda.
+            // Andy tem os acentos, mas nao as setas, o cirilico, o tailandes
+            // nem o chines. O Layout preserva a fonte de apoio destes glifos
+            // inclusive quando o valor da barra muda.
             SpannableStringBuilder styled = null;
             if (text != null) {
                 for (int i = 0; i < text.length(); i++) {
                     char ch = text.charAt(i);
                     if ((ch >= '\u2190' && ch <= '\u21FF') || ch == '\u2212' || (ch >= '\u0400' && ch <= '\u052F')
+                            || (ch >= '\u0E00' && ch <= '\u0E7F')
                             || (ch >= '\u3000' && ch <= '\u9FFF') || (ch >= '\uFF00' && ch <= '\uFFEF')) {
                         if (styled == null) styled = new SpannableStringBuilder(text);
                         styled.setSpan(new TypefaceSpan("sans-serif"), i, i + 1,
@@ -1233,10 +1234,15 @@ public class CheatBridge {
      * Vem dos assets e nao de res/font: este menu roda de um dex carregado em
      * memoria, sem a classe R do app, e `Resources.getFont` so existe da API 26
      * para cima enquanto o app vai ate a 24.
+     *
+     * Em vietnamita o menu inteiro usa a fonte do sistema: Andy nao tem
+     * as vogais com breve e chifre, o d cortado nem os tons com gancho e
+     * ponto, e a troca por letra partia as palavras ao meio.
      */
     private static Typeface sFont;
 
     static Typeface font(Activity a) {
+        if ("vi".equals(MenuLocalization.language())) return Typeface.DEFAULT;
         if (sFont == null) {
             try {
                 sFont = Typeface.createFromAsset(a.getAssets(), "fonte/bunny.ttf");

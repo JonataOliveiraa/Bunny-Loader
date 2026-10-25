@@ -139,8 +139,17 @@ class UiPalette(
     }
 }
 
-/** Fonte pixelada de _icons/font.TTF — a mesma identidade do título. */
-val PixelFont = FontFamily(Font(R.font.bunny))
+private val BunnyFont = FontFamily(Font(R.font.bunny))
+
+/**
+ * Fonte pixelada de _icons/font.TTF — a mesma identidade do título.
+ *
+ * Em vietnamita a tela inteira usa a fonte do sistema: a pixelada não tem
+ * ă, đ, ơ, ư nem os tons com gancho e ponto, e o fallback por letra trocava
+ * de fonte no meio da palavra ("Việt"). Ler o idioma aqui recompõe os textos.
+ */
+val PixelFont: FontFamily
+    get() = if (UiLocalization.language == "vi") FontFamily.Default else BunnyFont
 
 /**
  * Escala de texto, num lugar só.

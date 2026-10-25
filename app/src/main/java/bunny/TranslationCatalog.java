@@ -26,13 +26,15 @@ public final class TranslationCatalog {
             case "ru": return "ru";
             case "es": return "es";
             case "zh": return "zh";
+            case "vi": return "vi";
+            case "th": return "th";
             default: return "pt-BR";
         }
     }
 
     public String text(String language, String source, Object... args) {
         int column = "en".equals(language) ? 0 : "ru".equals(language) ? 1 : "es".equals(language) ? 2
-            : "zh".equals(language) ? 3 : -1;
+            : "zh".equals(language) ? 3 : "vi".equals(language) ? 4 : "th".equals(language) ? 5 : -1;
         String[] row = translations.get(source);
         String translated = column >= 0 && row != null && column < row.length
             && row[column] != null && !row[column].isEmpty() ? row[column] : source;

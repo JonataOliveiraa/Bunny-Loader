@@ -2,12 +2,14 @@
 
 The launcher and the Mod Menu share `app/src/main/assets/localization/menu.json`.
 Each key is the original Portuguese text; its value holds the translations in
-**English, Russian and Spanish**, in that order. Portuguese remains available
+**English, Russian, Spanish, Simplified Chinese, Vietnamese and Thai**, in
+that order. Portuguese remains available
 and is the fallback for an unsupported language or a missing translation.
 
 In **Settings → Appearance → Language**, the arrows cycle through Automatic,
-Português (Brasil), English, Русский and Español. Automatic follows the
-device's language, including variants like `en-GB`, `es-MX` and `ru-RU`. The
+Português (Brasil), English, Русский, Español, 简体中文, Tiếng Việt and ไทย.
+Automatic follows the device's language, including variants like `en-GB`,
+`es-MX` and `ru-RU`. The
 choice is stored in `bunny_localization.xml`, separate from the game settings.
 The launcher changes immediately; the Mod Menu reads the choice when the game
 opens.
@@ -31,7 +33,10 @@ translation from the first initialization.
 `TranslationCatalog` holds language resolution, fallback and formatting,
 without depending on Android. `MenuLocalization` loads the asset and saves the
 choice; `UiLocalization` notifies Compose. The Mod Menu keeps a fallback font
-for Cyrillic characters that do not exist in the game's font.
+for Cyrillic, Thai and Chinese characters that do not exist in the game's font.
+Vietnamese switches the whole launcher and Mod Menu to the system font: the
+pixel font lacks most of its letters (ă, đ, ơ, ư and the hook and dot-below
+tones), and a per-letter fallback would change fonts in the middle of a word.
 
 ## Validating
 

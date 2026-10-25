@@ -5,6 +5,8 @@ internal fun modCulture(language: String): String = when (language) {
     "ru" -> "ru-RU"
     "es" -> "es-ES"
     "zh" -> "zh-Hans"
+    "vi" -> "vi-VN"
+    "th" -> "th-TH"
     else -> language
 }
 

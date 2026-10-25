@@ -907,8 +907,8 @@ fun ConfigTab(
 @Composable
 private fun LanguagePicker() {
     val context = LocalContext.current
-    val options = listOf("", "pt-BR", "en", "ru", "es", "zh")
-    val names = listOf(tr("Automático"), "Português (Brasil)", "English", "Русский", "Español", "简体中文")
+    val options = listOf("", "pt-BR", "en", "ru", "es", "zh", "vi", "th")
+    val names = listOf(tr("Automático"), "Português (Brasil)", "English", "Русский", "Español", "简体中文", "Tiếng Việt", "ไทย")
     val index = options.indexOf(UiLocalization.choice).coerceAtLeast(0)
     PixelCard(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         Column(Modifier.padding(12.dp).fillMaxWidth()) {

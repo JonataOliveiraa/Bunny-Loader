@@ -126,8 +126,9 @@ Keep `name` and `summary` as the defaults and add `localizedNames` and
 }
 ```
 
-The launcher languages map to `pt-BR`, `en-US`, `ru-RU`, `es-ES` and
-`zh-Hans`. A missing translation uses `name` or `summary`. The summary
+The launcher languages map to `pt-BR`, `en-US`, `ru-RU`, `es-ES`, `zh-Hans`,
+`vi-VN` and `th-TH`. Terraria has no Vietnamese or Thai culture, so those two
+keys only reach the launcher. A missing translation uses `name` or `summary`. The summary
 translation also shows on the list card, counts in the search and is the
 description's last fallback.
 
