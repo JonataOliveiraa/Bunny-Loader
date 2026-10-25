@@ -3,6 +3,16 @@
 
 namespace bl {
 
+/** Guardada pelo JNI_OnLoad da libbunny (boot/jni_entry.cpp). */
+void setAppJavaVM(JavaVM* vm);
+
+/**
+ * A JavaVM do app. A do JNI_OnLoad; sem ela (libbunny carregada por fora do
+ * System.loadLibrary), JNI_GetCreatedJavaVMs, que so se alcanca no Android 12+.
+ * nullptr se nenhuma das duas.
+ */
+JavaVM* appJavaVM();
+
 /**
  * O JNIEnv desta thread, anexando-a a JavaVM se preciso (e desanexando quando
  * a thread acaba). nullptr sem JavaVM.

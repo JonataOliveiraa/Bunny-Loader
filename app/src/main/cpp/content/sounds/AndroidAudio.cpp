@@ -1,5 +1,6 @@
 #include "content/sounds/AndroidAudio.h"
 
+#include "core/AppJni.h"
 #include "core/Log.h"
 
 #include <dlfcn.h>
@@ -34,19 +35,6 @@ Jni g_jni;
 std::once_flag g_once;
 bool g_ok = false;
 pthread_key_t g_detachKey;
-
-JavaVM* findJavaVM() {
-    using GetVMs = jint (*)(JavaVM**, jsize, jsize*);
-    for (const char* so : {"libnativehelper.so", "libart.so", "libandroid_runtime.so"}) {
-        void* h = dlopen(so, RTLD_NOW | RTLD_NOLOAD);
-        if (!h) h = dlopen(so, RTLD_NOW);
-        auto fn = h ? reinterpret_cast<GetVMs>(dlsym(h, "JNI_GetCreatedJavaVMs")) : nullptr;
-        JavaVM* vm = nullptr;
-        jsize n = 0;
-        if (fn && fn(&vm, 1, &n) == JNI_OK && n > 0) return vm;
-    }
-    return nullptr;
-}
 
 // A thread nativa anexada tem de se desanexar antes de acabar, senao o ART
 // aborta o processo. O destrutor da chave roda quando ela termina.
@@ -96,7 +84,7 @@ jclass appClass(JNIEnv* env, const char* dotted) {
 bool init() {
     std::call_once(g_once, [] {
         pthread_key_create(&g_detachKey, detachOnExit);
-        g_jni.vm = findJavaVM();
+        g_jni.vm = appJavaVM();
         if (!g_jni.vm) {
             BL_ERROR("sons: nenhuma JavaVM");
             return;

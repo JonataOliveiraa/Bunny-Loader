@@ -1,4 +1,5 @@
 #include "menu/CheatButton.h"
+#include "core/AppJni.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include <iterator>
@@ -16,10 +17,14 @@
 #include "menu/DevTools.h"
 #include "script/api/Console.h"
 
+#include <android/api-level.h>
 #include <atomic>
+#include <cerrno>
+#include <cstdio>
 #include <mutex>
 #include <unordered_set>
 #include <dlfcn.h>
+#include <unistd.h>
 #include <initializer_list>
 #include <jni.h>
 #include <iterator>
@@ -28,28 +33,6 @@
 namespace bl::ui {
 
 namespace {
-
-// --- JavaVM da libnativehelper/libart (estamos injetados; nao temos OnLoad) ---
-JavaVM* getJavaVM() {
-    using GetVMs = jint (*)(JavaVM**, jsize, jsize*);
-    GetVMs fn = nullptr;
-    for (const char* so : {"libnativehelper.so", "libart.so", "libandroid_runtime.so"}) {
-        void* h = dlopen(so, RTLD_NOW | RTLD_NOLOAD);
-        if (!h) h = dlopen(so, RTLD_NOW);
-        if (!h) continue;
-        fn = reinterpret_cast<GetVMs>(dlsym(h, "JNI_GetCreatedJavaVMs"));
-        if (fn) break;
-    }
-    if (!fn) { BL_ERROR("botao: JNI_GetCreatedJavaVMs nao encontrado"); return nullptr; }
-
-    JavaVM* vm = nullptr;
-    jsize n = 0;
-    if (fn(&vm, 1, &n) != JNI_OK || n == 0) {
-        BL_ERROR("botao: nenhuma JavaVM criada");
-        return nullptr;
-    }
-    return vm;
-}
 
 // Loga e limpa uma excecao Java pendente. Retorna true se havia excecao.
 bool checkExc(JNIEnv* env, const char* where) {
@@ -77,7 +60,7 @@ void onNativeError(const char* line) {
         std::lock_guard<std::mutex> guard(g_errorSeenLock);
         if (!g_errorSeen.insert(std::hash<std::string>()(line ? line : "")).second) return;
     }
-    JavaVM* vm = getJavaVM();
+    JavaVM* vm = appJavaVM();
     if (!vm || !g_bridge || !g_showError) return;
 
     JNIEnv* env = nullptr;
@@ -424,10 +407,60 @@ jclass loadClass(JNIEnv* env, jobject loader, const char* dotted) {
     return cls;
 }
 
+// Android 8+: o dex direto da memoria, sem arquivo.
+jobject loadDexInMemory(JNIEnv* env, jobject parent) {
+    jobject buffer = env->NewDirectByteBuffer(
+        const_cast<unsigned char*>(bl_cheatbridge_dex),
+        static_cast<jlong>(bl_cheatbridge_dex_len));
+    jclass cls = env->FindClass("dalvik/system/InMemoryDexClassLoader");
+    if (checkExc(env, "InMemoryDexClassLoader") || !cls) return nullptr;
+    jmethodID ctor = env->GetMethodID(cls, "<init>", "(Ljava/nio/ByteBuffer;Ljava/lang/ClassLoader;)V");
+    jobject loader = env->NewObject(cls, ctor, buffer, parent);
+    if (checkExc(env, "new InMemoryDexClassLoader")) return nullptr;
+    return loader;
+}
+
+// Android 7 nao tem o InMemoryDexClassLoader (API 26): grava o dex no
+// code_cache do app e carrega pelo DexClassLoader, que existe desde sempre.
+// Sem isso o Mod Menu, o icone de JS e o painel de erro nao apareciam.
+jobject loadDexFromFile(JNIEnv* env, jobject activity, jobject parent) {
+    jclass ctx = env->FindClass("android/content/Context");
+    jmethodID mDir = env->GetMethodID(ctx, "getCodeCacheDir", "()Ljava/io/File;");
+    jobject dir = env->CallObjectMethod(activity, mDir);
+    if (checkExc(env, "getCodeCacheDir") || !dir) return nullptr;
+    jclass file = env->FindClass("java/io/File");
+    jmethodID mPath = env->GetMethodID(file, "getAbsolutePath", "()Ljava/lang/String;");
+    auto jdir = static_cast<jstring>(env->CallObjectMethod(dir, mPath));
+    if (checkExc(env, "getAbsolutePath") || !jdir) return nullptr;
+    const char* cdir = env->GetStringUTFChars(jdir, nullptr);
+    const std::string path = std::string(cdir) + "/bunny_menu.dex";
+    env->ReleaseStringUTFChars(jdir, cdir);
+
+    // Sempre regravado: o dex muda a cada versao do app.
+    unlink(path.c_str());
+    FILE* f = std::fopen(path.c_str(), "wb");
+    const bool written = f && std::fwrite(bl_cheatbridge_dex, 1, bl_cheatbridge_dex_len, f) == bl_cheatbridge_dex_len;
+    if (f) std::fclose(f);
+    if (!written) {
+        BL_ERROR("botao: nao gravou o dex em %s (errno %d)", path.c_str(), errno);
+        return nullptr;
+    }
+
+    jclass cls = env->FindClass("dalvik/system/DexClassLoader");
+    if (checkExc(env, "DexClassLoader") || !cls) return nullptr;
+    jmethodID ctor = env->GetMethodID(
+        cls, "<init>", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/ClassLoader;)V");
+    jstring jpath = env->NewStringUTF(path.c_str());
+    jobject loader = env->NewObject(cls, ctor, jpath, jdir, nullptr, parent);
+    if (checkExc(env, "new DexClassLoader")) return nullptr;
+    BL_INFO("botao: dex carregado do arquivo (Android %d)", android_get_device_api_level());
+    return loader;
+}
+
 } // namespace
 
 void installCheatButton() {
-    JavaVM* vm = getJavaVM();
+    JavaVM* vm = appJavaVM();
     if (!vm) return;
 
     JNIEnv* env = nullptr;
@@ -457,18 +490,10 @@ void installCheatButton() {
     }
 
     // 3. Carrega o dex embutido (CheatBridge) com o classloader do app como pai.
-    jobject dexBuf = env->NewDirectByteBuffer(
-        const_cast<unsigned char*>(bl_cheatbridge_dex),
-        static_cast<jlong>(bl_cheatbridge_dex_len));
-    jclass imdcl = env->FindClass("dalvik/system/InMemoryDexClassLoader");
-    if (checkExc(env, "InMemoryDexClassLoader") || !imdcl) {
-        if (attached) vm->DetachCurrentThread();
-        return;
-    }
-    jmethodID ctor = env->GetMethodID(
-        imdcl, "<init>", "(Ljava/nio/ByteBuffer;Ljava/lang/ClassLoader;)V");
-    jobject dexLoader = env->NewObject(imdcl, ctor, dexBuf, appLoader);
-    if (checkExc(env, "new InMemoryDexClassLoader") || !dexLoader) {
+    jobject dexLoader = android_get_device_api_level() >= 26
+        ? loadDexInMemory(env, appLoader)
+        : loadDexFromFile(env, activity, appLoader);
+    if (!dexLoader) {
         if (attached) vm->DetachCurrentThread();
         return;
     }

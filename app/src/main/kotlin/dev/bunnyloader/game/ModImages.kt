@@ -39,10 +39,14 @@ object ModImages {
 
         try {
             val out = ByteBuffer.allocate(8 + bitmap.width * bitmap.height * 4).order(ByteOrder.LITTLE_ENDIAN)
-            out.putInt(bitmap.width)
-            out.putInt(bitmap.height)
+            // Pixels a partir do byte 0 e o cabecalho por ultimo: copiar a
+            // partir da posicao 8 derrubava o jogo em aparelhos antigos.
             bitmap.copyPixelsToBuffer(out)
-            return out.array()
+            val bytes = out.array()
+            System.arraycopy(bytes, 0, bytes, 8, bytes.size - 8)
+            out.putInt(0, bitmap.width)
+            out.putInt(4, bitmap.height)
+            return bytes
         } finally {
             bitmap.recycle()
         }

@@ -23,10 +23,10 @@ rm -rf "$OUT"; mkdir -p "$OUT/classes"
     -classpath "$(cygpath -w "$AJAR")" \
     -d "$(cygpath -w "$OUT/classes")" $(for f in $SRC; do cygpath -w "$f"; done)
 
-echo "==> d8 (min-api 26)"
+echo "==> d8 (min-api 24)"
 CLASSES=$(find "$OUT/classes" -name "*.class" | while read -r f; do cygpath -w "$f"; done)
 "$JAVA_HOME/bin/java" -cp "$(cygpath -w "$D8JAR")" com.android.tools.r8.D8 \
-    --release --min-api 26 --lib "$(cygpath -w "$AJAR")" \
+    --release --min-api 24 --lib "$(cygpath -w "$AJAR")" \
     --output "$(cygpath -w "$OUT")" $CLASSES
 
 echo "==> header embutido"

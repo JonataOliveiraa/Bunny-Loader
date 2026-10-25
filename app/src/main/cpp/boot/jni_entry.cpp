@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <string>
+#include "core/AppJni.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include "boot/LibWatcher.h"
@@ -19,6 +20,13 @@ std::string readString(JNIEnv* env, jobject obj, jclass cls, const char* name) {
 }
 
 } // namespace
+
+// O System.loadLibrary("bunny") do NativeBridge entrega a JavaVM aqui: o
+// unico jeito de te-la antes do Android 12 (core/AppJni.cpp).
+extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void*) {
+    bl::setAppJavaVM(vm);
+    return JNI_VERSION_1_6;
+}
 
 extern "C" JNIEXPORT jboolean JNICALL
 Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobject cfg) {

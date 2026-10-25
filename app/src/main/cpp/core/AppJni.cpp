@@ -1,5 +1,6 @@
 #include "core/AppJni.h"
 #include "core/Log.h"
+#include <atomic>
 #include <dlfcn.h>
 #include <mutex>
 #include <pthread.h>
@@ -8,9 +9,13 @@ namespace bl {
 
 namespace {
 
+std::atomic<JavaVM*> g_loadedVm{nullptr};
 JavaVM* g_vm = nullptr;
 pthread_key_t g_detachKey;
 
+// Ate o Android 11 a libnativehelper, a libart e a libandroid_runtime sao
+// privadas do sistema: o dlopen do app falha e nao ha JavaVM por aqui. Era o
+// Mod Menu, o icone de JS, os sons e as imagens de mod sumindo nesses aparelhos.
 JavaVM* findJavaVM() {
     using GetVMs = jint (*)(JavaVM**, jsize, jsize*);
     for (const char* so : {"libnativehelper.so", "libart.so", "libandroid_runtime.so"}) {
@@ -32,12 +37,25 @@ void detachOnExit(void*) {
 
 } // namespace
 
+void setAppJavaVM(JavaVM* vm) {
+    g_loadedVm.store(vm, std::memory_order_release);
+}
+
+JavaVM* appJavaVM() {
+    if (JavaVM* vm = g_loadedVm.load(std::memory_order_acquire)) return vm;
+    static JavaVM* found = [] {
+        JavaVM* vm = findJavaVM();
+        if (!vm) BL_ERROR("jni: nenhuma JavaVM (sem JNI_OnLoad e sem JNI_GetCreatedJavaVMs)");
+        return vm;
+    }();
+    return found;
+}
+
 JNIEnv* appJniEnv() {
     static std::once_flag once;
     std::call_once(once, [] {
         pthread_key_create(&g_detachKey, detachOnExit);
-        g_vm = findJavaVM();
-        if (!g_vm) BL_ERROR("jni: nenhuma JavaVM");
+        g_vm = appJavaVM();
     });
     if (!g_vm) return nullptr;
     JNIEnv* env = nullptr;
