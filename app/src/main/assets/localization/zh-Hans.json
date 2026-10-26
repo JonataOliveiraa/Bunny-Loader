@@ -62,6 +62,8 @@
   "JsEditorDescription": "在游戏中运行 JavaScript。悬浮的 JS 图标从标题界面起即可使用，无论是否开启模组菜单。",
   "Restart": "重启",
   "RestartDescription": "关闭并重新打开游戏，从文件夹重新加载模组（在模组菜单和编辑器中）。",
+  "QuickJs": "QuickJS",
+  "QuickJsDescription": "JavaScript 引擎。关闭后不加载 JS 模组，游戏在没有它的情况下启动；C# 模组照常加载。",
   "Diagnostics": "诊断",
   "DiagnosticsDescription": "游戏闪退、卡死或出现错误？打开报告，把文本（复制）或截图发给 Bunny Loader 或模组的维护者。",
   "ViewReport": "查看报告",

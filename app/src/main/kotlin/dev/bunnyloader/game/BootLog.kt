@@ -18,6 +18,8 @@ import java.io.File
  */
 object BootLog {
     private const val FILE = "hosted-boot.log"
+    /** Quantas linhas dos mods o relatório mostra (as últimas). */
+    private const val MOD_LINES = 200
 
     private fun file(ctx: Context) = File(ctx.filesDir, FILE)
 
@@ -113,6 +115,7 @@ object BootLog {
         header(ctx) +
             "\n--- por que o jogo fechou (últimas vezes) ---\n" + exitReasons(ctx) +
             "\n--- última partida: erros e avisos ---\n" + sessionProblems(ctx) +
+            "\n--- última partida: linhas dos mods ---\n" + sessionModLines(ctx) +
             "\n--- boot do jogo ---\n" +
             (runCatching { file(ctx).readText() }.getOrDefault("").ifBlank { "(sem registro ainda)" }) +
             "\n--- logcat do processo do jogo ---\n" + lastLogcat(ctx)
@@ -142,10 +145,24 @@ object BootLog {
      * abre): as linhas de erro e aviso, e o fim dele. Depois de um crash, o
      * mais novo é o da partida que caiu — o launcher não abre um novo.
      */
+    private fun lastSessionLog(ctx: Context): File? {
+        val base = ctx.getExternalFilesDir(null)?.parentFile ?: return null
+        return File(base, "logs").listFiles { f -> f.name.startsWith("bunny_") && f.name.endsWith(".txt") }
+            .orEmpty().maxByOrNull { it.name }
+    }
+
+    /**
+     * O que os mods escreveram (bl.log, Log.Info do C#): é onde um teste ou uma
+     * medição deixa o resultado para quem só tem o celular.
+     */
+    private fun sessionModLines(ctx: Context): String = runCatching {
+        val last = lastSessionLog(ctx) ?: return@runCatching "(nenhum log de sessão)\n"
+        val lines = last.readLines().filter { "[mod]" in it }.takeLast(MOD_LINES)
+        if (lines.isEmpty()) "(nenhuma)\n" else lines.joinToString("\n", postfix = "\n")
+    }.getOrElse { "(erro lendo: ${it.javaClass.simpleName})\n" }
+
     private fun sessionProblems(ctx: Context): String = runCatching {
-        val base = ctx.getExternalFilesDir(null)?.parentFile ?: return@runCatching "(sem pasta de logs)"
-        val last = File(base, "logs").listFiles { f -> f.name.startsWith("bunny_") && f.name.endsWith(".txt") }
-            .orEmpty().maxByOrNull { it.name } ?: return@runCatching "(nenhum log de sessão)"
+        val last = lastSessionLog(ctx) ?: return@runCatching "(nenhum log de sessão)"
         val lines = last.readLines()
         // "12:03:04.567 E texto": a letra depois da hora é o nível.
         val problems = lines.filter { it.length > 13 && (it[13] == 'E' || it[13] == 'W') }.takeLast(30)

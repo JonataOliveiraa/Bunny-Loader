@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A API C# dos mods. Vai no APK em assets/dotnet/ (app/build.gradle.kts) e o
+    nativo (script/dotnet/DotnetHost.cpp) a carrega antes do primeiro mod C#.
+    A versão do runtime é a do pacote Mono do build.gradle.kts.
+
+    As proxies do jogo (Terraria.*, Microsoft.Xna.Framework.*) e os On_<Tipo>
+    sao gerados no build pelo ProxyGen a partir de refs/DummyDll (o dump local
+    do jogo, ver refs/README.md) e da lista ProxyGen/types.txt.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>BunnyLoader</RootNamespace>
+    <DebugType>embedded</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../../../'))</RepoRoot>
+    <ProxyGenProject>$(MSBuildThisFileDirectory)../ProxyGen/ProxyGen.csproj</ProxyGenProject>
+    <ProxyGenDll>$(MSBuildThisFileDirectory)../ProxyGen/bin/Release/net10.0/ProxyGen.dll</ProxyGenDll>
+    <ProxyGenTypes>$(MSBuildThisFileDirectory)../ProxyGen/types.txt</ProxyGenTypes>
+    <ProxyGenDummy>$(RepoRoot)refs/DummyDll</ProxyGenDummy>
+    <ProxyGenOut>$(RepoRoot)app/build/generated/csharp/</ProxyGenOut>
+  </PropertyGroup>
+
+  <Target Name="GenerateGameProxies" BeforeTargets="BeforeBuild"
+          Inputs="$(ProxyGenTypes);$(ProxyGenDummy)/Assembly-CSharp.dll;@(ProxyGenSources)"
+          Outputs="$(ProxyGenOut)proxies.stamp">
+    <Exec Command="dotnet build &quot;$(ProxyGenProject)&quot; -c Release -nologo -v q" />
+    <Exec Command="dotnet &quot;$(ProxyGenDll)&quot; --dummy &quot;$(ProxyGenDummy)&quot; --types &quot;$(ProxyGenTypes)&quot; --out &quot;$(ProxyGenOut)&quot;" />
+    <Touch Files="$(ProxyGenOut)proxies.stamp" AlwaysCreate="true" />
+  </Target>
+
+  <ItemGroup>
+    <ProxyGenSources Include="$(MSBuildThisFileDirectory)../ProxyGen/*.cs" />
+  </ItemGroup>
+
+  <Target Name="IncludeGameProxies" AfterTargets="GenerateGameProxies" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Compile Include="$(ProxyGenOut)*.g.cs" />
+    </ItemGroup>
+  </Target>
+
+</Project>

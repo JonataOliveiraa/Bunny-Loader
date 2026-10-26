@@ -126,6 +126,7 @@ class Shell(context: Context) {
                     withContext(Dispatchers.IO) {
                         catalog.seedOnFirstRun()
                         catalog.refreshInstalledOnUpdate()
+                        catalog.seedBench()
                         catalog.entries
                     }
                 }

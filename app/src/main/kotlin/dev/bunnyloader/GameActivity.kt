@@ -15,6 +15,7 @@ import android.widget.Toast
 import bunny.MenuLocalization
 import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
+import dev.bunnyloader.game.DotnetRuntime
 import dev.bunnyloader.game.Eligibility
 import dev.bunnyloader.game.ModAudio
 import dev.bunnyloader.game.ServerSync
@@ -193,6 +194,9 @@ class GameActivity : Activity() {
                     joinPort = session?.port ?: 0,
                     joinPassword = session?.password.orEmpty(),
                     joinPlayer = session?.player.orEmpty(),
+                    quickJs = prefs.quickJs,
+                    dotnetDir = runCatching { DotnetRuntime.prepare(this) }
+                        .onFailure { logFailure("DotnetRuntime.prepare", it) }.getOrDefault(""),
                 ),
             )
         }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)

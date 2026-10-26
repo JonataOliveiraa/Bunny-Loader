@@ -62,6 +62,8 @@
   "JsEditorDescription": "Chạy JavaScript trong game. Biểu tượng JS nổi có sẵn từ màn hình tiêu đề, dù có hay không có Mod Menu.",
   "Restart": "Tải lại",
   "RestartDescription": "Đóng và mở lại game, tải lại mod từ thư mục (trong Mod Menu và trình soạn).",
+  "QuickJs": "QuickJS",
+  "QuickJsDescription": "Bộ máy JavaScript. Khi tắt, các mod JS không được tải và game mở mà không có nó; mod C# vẫn tải bình thường.",
   "Diagnostics": "Chẩn đoán",
   "DiagnosticsDescription": "Game bị đóng, treo hay hiện lỗi? Mở báo cáo và gửi văn bản (Sao chép) hoặc ảnh chụp màn hình cho Bunny Loader hoặc người duy trì mod.",
   "ViewReport": "Xem báo cáo",

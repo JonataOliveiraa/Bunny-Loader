@@ -5,6 +5,7 @@
 #include "content/textures/FontPacks.h"
 #include "content/textures/TexturePacks.h"
 #include "script/bridge/ScriptEngine.h"
+#include "script/dotnet/DotnetHost.h"
 #include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
 #include <algorithm>
 #include <cstdio>
@@ -153,8 +154,6 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         for (size_t d : sorted.needs[i]) needs[position[i]].push_back(position[d]);
     }
 
-    if (!script::engine().ready()) return;
-
     // 2a passada: cada mod, na mesma ordem. Por indice: o registro nao muda
     // durante a carga, mas uma referencia guardada atravessando o loadMod
     // seria a mesma armadilha do g_frames.back() do JsHook.
@@ -173,13 +172,26 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         const std::string id = registry()[i].id;
         const std::string path = registry()[i].dir + "/" + registry()[i].entry;
         const std::string dir = dirsById()[id];
-        std::vector<std::string> files{path.substr(dir.size() + 1)};
-        for (const char* folder : {"Common", "Content"}) collectScripts(dir, folder, &files);
-        files.erase(std::remove(files.begin() + 1, files.end(), files[0]), files.end());
-        BL_DEBUG("mod %s: %zu arquivo(s) em Common/ e Content/", id.c_str(), files.size() - 1);
+        // O .dll vai para o runtime .NET; o resto e JS, que so carrega com o
+        // QuickJS ligado.
+        const bool assembly = dotnet::isAssemblyEntry(path);
+        if (!assembly && !script::engine().ready()) {
+            BL_WARN("mod %s (%s) skipped: QuickJS is disabled", registry()[i].displayName.c_str(), id.c_str());
+            registry()[i].enabled = false;
+            continue;
+        }
         currentDirSlot() = dir;
         currentIdSlot() = id;
-        bool ok = script::engine().loadMod(id, files);
+        bool ok;
+        if (assembly) {
+            ok = dotnet::host().loadMod(id, path);
+        } else {
+            std::vector<std::string> files{path.substr(dir.size() + 1)};
+            for (const char* folder : {"Common", "Content"}) collectScripts(dir, folder, &files);
+            files.erase(std::remove(files.begin() + 1, files.end(), files[0]), files.end());
+            BL_DEBUG("mod %s: %zu arquivo(s) em Common/ e Content/", id.c_str(), files.size() - 1);
+            ok = script::engine().loadMod(id, files);
+        }
         currentDirSlot().clear();
         currentIdSlot().clear();
         if (!ok) {

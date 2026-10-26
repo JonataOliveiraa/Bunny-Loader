@@ -41,6 +41,8 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.verboseLog = env->GetBooleanField(cfg, env->GetFieldID(cls, "verboseLog", "Z"));
     c.gameVersion = env->GetLongField(cfg, env->GetFieldID(cls, "gameVersion", "J"));
     c.fastBoot   = env->GetBooleanField(cfg, env->GetFieldID(cls, "fastBoot", "Z"));
+    c.quickJs    = env->GetBooleanField(cfg, env->GetFieldID(cls, "quickJs", "Z"));
+    c.dotnetDir  = readString(env, cfg, cls, "dotnetDir");
     c.quickPlayer = readString(env, cfg, cls, "quickPlayer");
     c.quickWorld  = readString(env, cfg, cls, "quickWorld");
     c.joinAddress = readString(env, cfg, cls, "joinAddress");

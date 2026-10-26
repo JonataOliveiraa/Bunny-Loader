@@ -146,6 +146,22 @@ class Catalog(private val context: Context) {
     }
 
     /**
+     * O app de medição (BuildConfig.BENCH, `-Pbl.bench=true`): instala e liga
+     * os testes embutidos (`id` com `test-`) e desliga o resto, para nenhum
+     * outro mod pesar nos números. O painel de erro sai: o teste dos hooks
+     * provoca erros de propósito.
+     */
+    fun seedBench() {
+        if (!dev.bunnyloader.BuildConfig.BENCH) return
+        for (entry in entries) {
+            val test = entry.manifest.id.startsWith("test-")
+            if (test && !isInstalled(entry.uid)) install(entry)
+            if (isInstalled(entry.uid)) repo.setEnabled(entry.uid, test)
+        }
+        dev.bunnyloader.ui.Prefs(context).errorPanel = false
+    }
+
+    /**
      * Quando o app é atualizado, recopia os mods do catálogo que já estão
      * instalados. Sem isto a cópia em bunny_packs ficava a da primeira
      * instalação: o APK novo trazia o Example Mod com tiles e o aparelho seguia

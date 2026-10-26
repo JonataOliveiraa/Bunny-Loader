@@ -88,3 +88,10 @@ exmod_tl/
 # Bold, da Monotype (sem ela o build usa app/src/fontFallback).
 app/libs/unity-classes.jar
 app/src/main/res/font/bunny.ttf
+
+# Saida do SDK do .NET (a API C# e os mods C# de teste)
+app/src/main/csharp/**/bin/
+app/src/main/csharp/**/obj/
+tools/tests/*/src/bin/
+tools/tests/*/src/obj/
+tools/tests/*/content/*.dll

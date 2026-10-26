@@ -8,6 +8,7 @@
 #include "content/common/GameRefs.h"
 
 #include "script/bridge/ScriptEngine.h"
+#include "script/dotnet/DotnetHost.h"
 #include "mods/ModLoader.h"
 #include "core/Config.h"
 #include "menu/Cheats.h"
@@ -119,15 +120,20 @@ void probeThread() {
             BL_DEBUG("sonda: RESOLUCAO OK");
             waitGameContentLoaded();
 
-            // Sobe o QuickJS e carrega os mods habilitados (main.js de cada um).
-            if (!script::engine().init()) {
+            // Sobe o QuickJS e carrega os mods habilitados (main.js de cada um,
+            // e o .dll dos mods C#). Com o QuickJS desligado nas
+            // Configuracoes, o motor nem nasce e so os mods C# carregam.
+            if (!config().quickJs) {
+                BL_INFO("QuickJS disabled in settings: JS mods will not load");
+            } else if (!script::engine().init()) {
                 BL_ERROR("sonda: QuickJS nao iniciou");
                 return;
             }
             mods::loadAll(config().modsDir, config().enabledMods);
+            dotnet::host().finishLoading();
             // Sem pasta configurada, usa os embutidos. Uma lista vazia enviada
             // pelo launcher significa que o usuario desativou todos os mods.
-            if (config().modsDir.empty() && mods::loadedCount() == 0) {
+            if (config().quickJs && config().modsDir.empty() && mods::loadedCount() == 0) {
                 BL_INFO("sonda: sem pasta de mods configurada; usando embutidos");
                 mods::loadBuiltins();
             }

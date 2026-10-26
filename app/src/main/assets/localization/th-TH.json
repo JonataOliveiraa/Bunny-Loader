@@ -62,6 +62,8 @@
   "JsEditorDescription": "รัน JavaScript ในเกม ไอคอน JS แบบลอยใช้ได้ตั้งแต่หน้าจอเริ่มเกม จะมีหรือไม่มี Mod Menu ก็ได้",
   "Restart": "รีสตาร์ท",
   "RestartDescription": "ปิดและเปิดเกมใหม่ โหลดม็อดจากโฟลเดอร์อีกครั้ง (ใน Mod Menu และตัวแก้ไข)",
+  "QuickJs": "QuickJS",
+  "QuickJsDescription": "เอนจิน JavaScript เมื่อปิด ม็อด JS จะไม่ถูกโหลดและเกมจะเปิดโดยไม่มีมัน ส่วนม็อด C# ยังโหลดตามปกติ",
   "Diagnostics": "การวินิจฉัย",
   "DiagnosticsDescription": "เกมปิดเอง ค้าง หรือแสดงข้อผิดพลาดใช่ไหม? เปิดรายงานแล้วส่งข้อความ (คัดลอก) หรือภาพหน้าจอให้ Bunny Loader หรือผู้ดูแลม็อด",
   "ViewReport": "ดูรายงาน",

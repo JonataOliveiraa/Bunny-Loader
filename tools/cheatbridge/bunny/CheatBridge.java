@@ -1528,7 +1528,8 @@ public class CheatBridge {
         try {
             SharedPreferences p = act.getSharedPreferences("settings", Activity.MODE_PRIVATE);
             sMenuOn = p.getBoolean("devModMenu", true);
-            sEditorOn = p.getBoolean("devEditor", true);
+            // Sem o QuickJS (Config > Desenvolvedor) o editor nao teria onde rodar.
+            sEditorOn = p.getBoolean("devEditor", true) && p.getBoolean("quickJs", true);
             sRestartOn = p.getBoolean("devRestart", true);
         } catch (Throwable t) { /* fica tudo ligado */ }
     }

@@ -1,3 +1,5 @@
+import java.net.URI
+import java.security.MessageDigest
 import java.util.Properties
 
 // Fase 1 nao precisa da libbunny.so. Desligue o build nativo com
@@ -9,6 +11,15 @@ val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean
 // Terraria. Não vai para o Git: fica em src/main/res/font/bunny.ttf, integrada
 // à mão como os binários do jogo. Sem ela, entra a Comic Neue (OFL) de
 // src/fontFallback, com o mesmo nome de recurso.
+// Os mods C# (runtime Mono + a API em src/main/csharp/). Pede o SDK do .NET
+// no PATH (`dotnet`) e baixa o runtime do nuget.org uma vez. Sem eles:
+//   -Pbl.csharp=false
+// e o APK sai sem os mods C# (os JS seguem iguais).
+val csharpEnabled = (project.findProperty("bl.csharp") as String?)?.toBoolean() ?: true
+
+// O app de medicao C# x QuickJS (ver BENCH_TESTS).
+val benchBuild = (project.findProperty("bl.bench") as String?)?.toBoolean() ?: false
+
 val hasGameFont = file("src/main/res/font/bunny.ttf").isFile
 val fontDir = file(if (hasGameFont) "src/main/res/font" else "src/fontFallback/res/font")
 
@@ -69,6 +80,18 @@ android {
         targetSdk = 34
         versionCode = commitCount
         versionName = "0.3.3"
+
+        // -Pbl.bench=true: o app de medicao (com.bunnyloader.bench), ao lado
+        // do Bunny Loader de verdade. Traz os testes de BENCH_TESTS ligados e
+        // nenhum outro mod; o resultado sai no relatorio de Diagnostico.
+        if (benchBuild) {
+            applicationIdSuffix = ".bench"
+            // Cada APK de medicao instala por cima do anterior (a One UI recusa
+            // versionCode igual) e o personagem e o mundo criados la ficam.
+            versionCode = (System.currentTimeMillis() / 60_000).toInt()
+        }
+        manifestPlaceholders["appLabel"] = if (benchBuild) "Bunny Loader Bench" else "@string/app_name"
+        buildConfigField("boolean", "BENCH", benchBuild.toString())
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para
         // arm64-v8a; permitir armeabi-v7a instalaria o Bunny Loader em
@@ -136,6 +159,9 @@ android {
     // de lá para embutir o JS na libbunny), e o que o app lista é exatamente o
     // que o motor carrega.
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/blAssets"))
+    // A libmonosgen e as libs nativas da BCL, tiradas do pacote do NuGet (ver
+    // fetchMonoRuntime, lá embaixo).
+    if (csharpEnabled) sourceSets["main"].jniLibs.srcDir(layout.buildDirectory.dir("generated/monoJniLibs"))
 
     packaging {
         jniLibs {
@@ -208,8 +234,32 @@ val BUNDLED_SAMPLES = listOf("ExampleMod")
  * Só o ExampleMod vai no APK. Os outros de samples/ são publicados no catálogo
  * online (tools/mods/pack.py + publish.py) e baixados pela aba Explorar.
  */
+/**
+ * Os testes que o app de medicao (-Pbl.bench=true) traz embutidos e liga:
+ * a medicao C# x QuickJS e o teste dos hooks C#. So o manifesto e content/.
+ */
+val BENCH_TESTS = listOf("benchcs", "benchjs", "hookcs")
+
+/** Compila os .dll dos testes C# de BENCH_TESTS (tools/tests/<teste>/content/). */
+val buildBenchTests by tasks.registering {
+    enabled = benchBuild
+    dependsOn("buildBunnyLoaderCs")
+    doLast {
+        for (test in listOf("benchcs", "hookcs")) {
+            val csproj = rootProject.file("tools/tests/$test/src").listFiles { f -> f.extension == "csproj" }!!.single()
+            project.exec { commandLine("dotnet", "build", csproj.absolutePath, "-c", "Release", "-nologo", "-v", "q") }
+        }
+    }
+}
+
 val syncSampleMods by tasks.registering(Sync::class) {
     from(rootProject.file("samples")) { include(BUNDLED_SAMPLES.map { "$it/**" }) }
+    if (benchBuild) {
+        dependsOn(buildBenchTests)
+        from(rootProject.file("tools/tests")) {
+            include(BENCH_TESTS.flatMap { listOf("$it/manifest.json", "$it/content/**") })
+        }
+    }
     into(layout.buildDirectory.dir("generated/blAssets/mods"))
 }
 
@@ -244,8 +294,102 @@ val syncLegal by tasks.registering(Sync::class) {
     from(rootProject.file("LICENSE.md"), rootProject.file("THIRD_PARTY_NOTICES.md"))
     into(layout.buildDirectory.dir("generated/blAssets/legal"))
 }
+// --- Runtime .NET dos mods C# ---
+//
+// O Mono oficial para Android (o mesmo do .NET for Android), do pacote
+// Microsoft.NETCore.App.Runtime.Mono.android-arm64. A versão e o SHA-256 andam
+// juntos: trocar uma sem a outra para o build.
+val monoVersion = "10.0.14"
+val monoPackSha256 = "4c33596a1d084cae705933632528834cbcd07526a54ae30d5bf96f556c945204"
+val monoPack = rootProject.layout.buildDirectory.file("mono/$monoVersion/pack.nupkg")
+/** As libs nativas que vão para o nativeLibraryDir. */
+val monoNativeLibs = listOf(
+    "libmonosgen-2.0.so", "libSystem.Native.so", "libSystem.Globalization.Native.so",
+    "libmono-component-marshal-ilgen.so",
+)
+/**
+ * Os assemblies da BCL que vão no APK (assets/dotnet/, extraídos pelo
+ * DotnetRuntime.kt). Só o que a API e um mod comum usam; o pacote tem 19 MB
+ * deles.
+ */
+val monoManagedLibs = listOf(
+    "System.Runtime", "System.Runtime.Extensions", "System.Runtime.InteropServices", "System.Runtime.Loader",
+    "System.Runtime.Intrinsics", "System.Collections", "System.Collections.Concurrent", "System.Linq",
+    "System.Console", "System.Memory", "System.Threading", "System.Threading.Thread", "System.Private.Uri",
+    "System.Text.Encoding.Extensions", "System.Numerics.Vectors", "System.ObjectModel",
+)
+
+fun sha256(file: File): String =
+    MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
+
+val fetchMonoRuntime by tasks.registering {
+    inputs.property("sha256", monoPackSha256)
+    outputs.file(monoPack)
+    doLast {
+        val pack = monoPack.get().asFile
+        if (pack.isFile && sha256(pack) == monoPackSha256) return@doLast
+        pack.parentFile.mkdirs()
+        val id = "microsoft.netcore.app.runtime.mono.android-arm64"
+        val url = "https://api.nuget.org/v3-flatcontainer/$id/$monoVersion/$id.$monoVersion.nupkg"
+        URI(url).toURL().openStream().use { input -> pack.outputStream().use { input.copyTo(it) } }
+        val got = sha256(pack)
+        if (got != monoPackSha256) {
+            pack.delete()
+            throw GradleException("runtime Mono $monoVersion: SHA-256 $got, esperado $monoPackSha256")
+        }
+    }
+}
+
+val syncMonoJniLibs by tasks.registering(Sync::class) {
+    dependsOn(fetchMonoRuntime)
+    from(monoPack.map { zipTree(it) }) {
+        include(monoNativeLibs.map { "runtimes/android-arm64/native/$it" })
+        eachFile { path = name }
+    }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("generated/monoJniLibs/arm64-v8a"))
+}
+
+/**
+ * A API C# (src/main/csharp/BunnyLoader), compilada pelo SDK do .NET. O
+ * proprio build dela roda o ProxyGen, que gera as proxies do jogo a partir de
+ * refs/DummyDll (o dump local, ver refs/README.md).
+ */
+val buildBunnyLoaderCs by tasks.registering(Exec::class) {
+    val source = file("src/main/csharp/BunnyLoader")
+    val out = layout.buildDirectory.dir("csharp/BunnyLoader")
+    inputs.files(fileTree(source) { exclude("bin/**", "obj/**") })
+    inputs.files(fileTree(file("src/main/csharp/ProxyGen")) { exclude("bin/**", "obj/**") })
+    inputs.files(rootProject.file("refs/DummyDll/Assembly-CSharp.dll"))
+    outputs.dir(out)
+    commandLine(
+        "dotnet", "build", File(source, "BunnyLoader.csproj").absolutePath,
+        "-c", "Release", "-nologo", "-v", "q", "-o", out.get().asFile.absolutePath,
+    )
+}
+
+val syncDotnetAssets by tasks.registering(Sync::class) {
+    dependsOn(fetchMonoRuntime, buildBunnyLoaderCs)
+    from(monoPack.map { zipTree(it) }) {
+        include("runtimes/android-arm64/native/System.Private.CoreLib.dll")
+        include(monoManagedLibs.map { "runtimes/android-arm64/lib/net10.0/$it.dll" })
+        include("THIRD-PARTY-NOTICES.TXT")
+        eachFile { path = name }
+    }
+    from(layout.buildDirectory.dir("csharp/BunnyLoader")) { include("BunnyLoader.dll") }
+    includeEmptyDirs = false
+    into(layout.buildDirectory.dir("generated/blAssets/dotnet"))
+}
+
 tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
-    .configureEach { dependsOn(syncSampleMods, syncSprites, syncFonte, syncLegal) }
+    .configureEach {
+        dependsOn(syncSampleMods, syncSprites, syncFonte, syncLegal)
+        if (csharpEnabled) dependsOn(syncDotnetAssets)
+    }
+if (csharpEnabled) {
+    tasks.matching { it.name.startsWith("merge") && it.name.endsWith("JniLibFolders") }
+        .configureEach { dependsOn(syncMonoJniLibs) }
+}
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.09.02"))

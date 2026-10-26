@@ -62,6 +62,8 @@
   "JsEditorDescription": "Ejecuta JavaScript dentro del juego. El icono flotante de JS está disponible desde el menú inicial, con o sin el menú de mods.",
   "Restart": "Reiniciar",
   "RestartDescription": "Cierra y vuelve a abrir el juego, recargando los mods de la carpeta (en el menú de mods y el editor).",
+  "QuickJs": "QuickJS",
+  "QuickJsDescription": "El motor de JavaScript. Desactivado, los mods JS no se cargan y el juego se abre sin él; los mods C# se cargan con normalidad.",
   "Diagnostics": "Diagnóstico",
   "DiagnosticsDescription": "¿El juego se cerró, se bloqueó o dio un error? Abre el informe y envía el texto (Copiar) o una captura al responsable de Bunny Loader o del mod.",
   "ViewReport": "Ver informe",

@@ -1,0 +1,30 @@
+# Os tipos do jogo que ganham proxy completa (membros + On_<Tipo>), com os
+# aninhados. Os que aparecem nas assinaturas destes entram sozinhos, so com o
+# ponteiro (classes), o layout (structs) ou os valores (enums).
+Terraria.Main
+Terraria.Entity
+Terraria.Player
+Terraria.Item
+Terraria.NPC
+Terraria.Projectile
+Terraria.WorldGen
+Terraria.WorldItem
+Terraria.Dust
+Terraria.Collision
+Terraria.Utils
+Terraria.Lang
+Terraria.ID.ItemID
+Terraria.ID.NPCID
+Terraria.ID.ProjectileID
+Terraria.ID.BuffID
+Terraria.ID.DustID
+Microsoft.Xna.Framework.Vector2
+Microsoft.Xna.Framework.Vector3
+Microsoft.Xna.Framework.Vector4
+Microsoft.Xna.Framework.Rectangle
+Microsoft.Xna.Framework.Point
+Microsoft.Xna.Framework.Graphics.Color
+Microsoft.Xna.Framework.Matrix
+Microsoft.Xna.Framework.Quaternion
+Microsoft.Xna.Framework.Plane
+Microsoft.Xna.Framework.MathHelper

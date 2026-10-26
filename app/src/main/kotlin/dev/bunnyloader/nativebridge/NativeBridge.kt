@@ -28,6 +28,10 @@ class NativeConfig(
     @JvmField val joinPort: Int = 0,
     @JvmField val joinPassword: String = "",
     @JvmField val joinPlayer: String = "",
+    /** QuickJS (Configurações > Desenvolvedor): desligado, nenhum mod JS carrega. */
+    @JvmField val quickJs: Boolean = true,
+    /** Onde o [dev.bunnyloader.game.DotnetRuntime] pôs o runtime .NET. Vazio: sem mods C#. */
+    @JvmField val dotnetDir: String = "",
 )
 
 /**
