@@ -1,0 +1,15 @@
+{
+  "uid": "c9453821-ed0c-4bec-8ff8-8a95c41e3ab5",
+  "id": "test-csharphello",
+  "name": "Teste: mod C# (prova de conceito)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Mono no processo do jogo: hook C# no Item.SetDefaults e coletas do GC com o jogo rodando.",
+  "description": "Compilar antes com tools/tests/build-cs.sh. Loga 'csharphello ...'.",
+  "updated": "2026-10-26",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CSharpHello.dll",
+  "dependencies": []
+}

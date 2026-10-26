@@ -1,0 +1,15 @@
+{
+  "uid": "e15fc486-6505-45bf-9bcd-42c2e4af31cc",
+  "id": "test-hookcs",
+  "name": "Teste: chamadas e hooks C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Proxies e On_ gerados: ref, out, Nullable, structs por registrador e por x8, strings, excecoes e cadeia de hooks.",
+  "description": "Compilar antes com tools/tests/build-cs.sh. Loga 'hookcs PASS/FAIL ...' e 'hookcs FIM'.",
+  "updated": "2026-10-26",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "HookCs.dll",
+  "dependencies": []
+}

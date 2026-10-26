@@ -1,0 +1,15 @@
+{
+  "uid": "21a78d9d-bc9f-49d0-aded-7571d98200de",
+  "id": "test-benchcs",
+  "name": "Teste: medicao C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Os mesmos casos do benchjs, em C#: calculo puro, campos, chamadas e hooks.",
+  "description": "Compilar antes com tools/tests/build-cs.sh. Mede no quadro 120 dentro do mundo. Loga 'bench cs ...'.",
+  "updated": "2026-10-26",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "BenchCs.dll",
+  "dependencies": []
+}
