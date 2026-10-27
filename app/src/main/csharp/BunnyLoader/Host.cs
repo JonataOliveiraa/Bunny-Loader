@@ -45,7 +45,8 @@ public static unsafe class Host
         try
         {
             string file = Marshal.PtrToStringUTF8((IntPtr)path)!;
-            AddModFolder(Path.GetDirectoryName(file)!);
+            string folder = Path.GetDirectoryName(file)!;
+            AddModFolder(folder);
             if (ModBuild.IsSourceEntry(file))
             {
                 string? built = FromSources(uid, file);
@@ -53,20 +54,27 @@ public static unsafe class Host
                 file = built;
             }
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
-            int count = 0;
+            var mods = new List<Mod>();
             foreach (Type type in assembly.GetTypes())
             {
                 if (type.IsAbstract || !typeof(Mod).IsAssignableFrom(type)) continue;
                 var mod = (Mod)Activator.CreateInstance(type)!;
                 mod.Uid = uid;
-                LoadedMods.Add(mod);
-                mod.Load();
-                count++;
+                mod.Folder = folder;
+                mods.Add(mod);
             }
-            if (count == 0)
+            if (mods.Count == 0)
             {
                 Log.Error($"mod {uid}: no class extends BunnyLoader.Mod");
                 return 0;
+            }
+            // Como no tModLoader: o conteudo entra antes do Load. Ele pertence
+            // ao primeiro Mod do assembly.
+            mods[0].Autoload(assembly);
+            foreach (Mod mod in mods)
+            {
+                LoadedMods.Add(mod);
+                mod.Load();
             }
             return 1;
         }

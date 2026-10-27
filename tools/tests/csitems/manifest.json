@@ -1,0 +1,15 @@
+{
+  "uid": "f95e1c71-ed4e-4c89-a22f-7fb63abb271e",
+  "id": "test-csitems",
+  "name": "Teste: ModItem em C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Loader de ModItem do C#: registro, textura, SetDefaults e SetStaticDefaults, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csitems. Loga 'csitems <caso>: ok | FAIL'.",
+  "updated": "2026-10-27",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsItems.dll",
+  "dependencies": []
+}

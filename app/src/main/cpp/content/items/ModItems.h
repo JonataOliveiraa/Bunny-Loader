@@ -111,9 +111,10 @@ bool modItemsSettled();
  * Chamado uma vez por lote instalado (thread do jogo), com os tipos novos —
  * o jogo ja conhece o item: sets e amostras existem. E onde roda o
  * SetStaticDefaults do mod. Inclui a reserva "?", que nao e de mod nenhum.
+ * Cada motor de mod (JS, C#) poe o seu; o mesmo ponteiro duas vezes conta uma.
  */
 using ItemsInstalledHook = void (*)(int first, int last);
-void setItemsInstalledHook(ItemsInstalledHook hook);
+void addItemsInstalledHook(ItemsInstalledHook hook);
 
 /**
  * O que o SetDefaults do jogo faria antes dos SetDefaultsN: ResetStats e o

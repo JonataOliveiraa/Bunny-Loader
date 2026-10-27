@@ -18,6 +18,8 @@ Terraria.ID.NPCID
 Terraria.ID.ProjectileID
 Terraria.ID.BuffID
 Terraria.ID.DustID
+Terraria.ID.ItemUseStyleID
+Terraria.ID.SoundID
 Microsoft.Xna.Framework.Vector2
 Microsoft.Xna.Framework.Vector3
 Microsoft.Xna.Framework.Vector4

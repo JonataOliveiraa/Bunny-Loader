@@ -1,12 +1,16 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
+#include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+#include "menu/ModMenu.h"
+#include "mods/ModLoader.h"
 
 #include <dlfcn.h>
+#include <sys/stat.h>
 
 
 namespace bl::dotnet {
@@ -45,6 +49,11 @@ struct NativeApi {
     void* (*newArray)(void* elementClass, int32_t length);
     const char* (*className)(void* cls);
     void* (*virtualMethod)(void* obj, void* method);
+    int32_t (*registerItem)(const char* mod, const char* name, const char* texture,
+                            const char* displayName, const char* tooltip);
+    void (*prepareItem)(void* item, int32_t type);
+    void (*finishItem)(void* item, int32_t type);
+    void (*onItemsInstalled)(void (*callback)(int32_t first, int32_t last));
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -287,6 +296,81 @@ void* nativeVirtualMethod(void* obj, void* method) {
     return const_cast<MethodInfo*>(m ? m : static_cast<const MethodInfo*>(method));
 }
 
+bool fileExists(const char* path) {
+    struct stat st{};
+    return stat(path, &st) == 0 && S_ISREG(st.st_mode);
+}
+
+/** O mod no Mod Menu: nome do manifesto e o icone pequeno (ou o icon.png). */
+void noteModForMenu(const std::string& mod) {
+    const std::string root = mods::rootOf(mod);
+    std::string icon;
+    if (!root.empty()) {
+        for (const char* name : {"icon_small.png", "icon.png"}) {
+            const std::string candidate = root + "/" + name;
+            if (fileExists(candidate.c_str())) { icon = candidate; break; }
+        }
+    }
+    runtime::setModMenuInfo(mod, mods::displayName(mod), icon);
+}
+
+/**
+ * Texto por cultura que vem do C#: "texto" sozinho vale para qualquer uma;
+ * por cultura, "pt-BR\x1Ftexto\x1Een-US\x1Ftexto". Vazio = nenhum.
+ */
+std::vector<std::pair<std::string, std::string>> cultureTexts(const char* packed) {
+    std::vector<std::pair<std::string, std::string>> out;
+    if (!packed || !*packed) return out;
+    const std::string all = packed;
+    if (all.find('\x1F') == std::string::npos) {
+        out.push_back({"", all});
+        return out;
+    }
+    size_t start = 0;
+    while (start <= all.size()) {
+        size_t end = all.find('\x1E', start);
+        if (end == std::string::npos) end = all.size();
+        const std::string entry = all.substr(start, end - start);
+        const size_t sep = entry.find('\x1F');
+        if (sep != std::string::npos) out.push_back({entry.substr(0, sep), entry.substr(sep + 1)});
+        start = end + 1;
+    }
+    return out;
+}
+
+/**
+ * Um ModItem do C#: o tipo (ItemID.Count + a ordem), -1 se o mod ja tem um
+ * item com esse nome, -2 se a textura (caminho absoluto) nao existe. Nome e
+ * tooltip no formato do cultureTexts.
+ */
+int32_t nativeRegisterItem(const char* mod, const char* name, const char* texture,
+                           const char* displayName, const char* tooltip) {
+    if (!mod || !name || !texture || !*mod || !*name) return -1;
+    if (!fileExists(texture)) return -2;
+    runtime::ModItemDef d;
+    d.mod = mod;
+    d.name = name;
+    d.texture = texture;
+    d.names = cultureTexts(displayName);
+    d.tooltips = cultureTexts(tooltip);
+    const int type = runtime::registerModItem(std::move(d));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativePrepareItem(void* item, int32_t type) {
+    runtime::prepareModItem(static_cast<Il2CppObject*>(item), type);
+}
+
+void nativeFinishItem(void* item, int32_t type) {
+    runtime::finishModItem(static_cast<Il2CppObject*>(item), type);
+}
+
+/** O C# fica sabendo quando o jogo ja conhece os tipos (o SetStaticDefaults). */
+void nativeOnItemsInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::addItemsInstalledHook(reinterpret_cast<runtime::ItemsInstalledHook>(callback));
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -314,6 +398,10 @@ const NativeApi kNativeApi{
     nativeNewArray,
     nativeClassName,
     nativeVirtualMethod,
+    nativeRegisterItem,
+    nativePrepareItem,
+    nativeFinishItem,
+    nativeOnItemsInstalled,
 };
 
 } // namespace

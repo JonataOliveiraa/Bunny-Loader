@@ -1,0 +1,9 @@
+{
+  "ItemName": {
+    "ExampleItem": "Exemplo de Item",
+    "ExampleMeleeWeapon": "Espada"
+  },
+  "ItemTooltip": {
+    "ExampleItem": "Descrição do item"
+  }
+}

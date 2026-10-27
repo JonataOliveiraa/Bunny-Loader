@@ -7,7 +7,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 tests=("$@")
-[ ${#tests[@]} -gt 0 ] || tests=(csharphello hookcs benchcs compilebench)
+[ ${#tests[@]} -gt 0 ] || tests=(csharphello hookcs benchcs compilebench csitems)
 for t in "${tests[@]}"; do
     proj=$(ls "$here/$t/src/"*.csproj)
     echo "==> $t"

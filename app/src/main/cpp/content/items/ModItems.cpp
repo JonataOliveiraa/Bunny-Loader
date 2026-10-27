@@ -684,7 +684,8 @@ int itemTypeCount() {
 }
 
 namespace {
-std::atomic<ItemsInstalledHook> g_installedHook{nullptr};
+constexpr int kMaxInstalledHooks = 4;
+std::atomic<ItemsInstalledHook> g_installedHooks[kMaxInstalledHooks]{};
 } // namespace
 
 void tickModItems() {
@@ -754,7 +755,9 @@ void tickModItems() {
     installModItemSorting(from, to);
     BL_INFO("itens de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
-    if (ItemsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) hook(from, to - 1);
+    for (const auto& slot : g_installedHooks) {
+        if (ItemsInstalledHook hook = slot.load(std::memory_order_acquire)) hook(from, to - 1);
+    }
 }
 
 void setModItemTooltip(int type, std::vector<std::pair<std::string, std::string>> tooltips) {
@@ -769,8 +772,13 @@ bool modItemsSettled() {
     return g_failed || g_installed.load(std::memory_order_relaxed) == g_total.load(std::memory_order_acquire);
 }
 
-void setItemsInstalledHook(ItemsInstalledHook hook) {
-    g_installedHook.store(hook, std::memory_order_release);
+void addItemsInstalledHook(ItemsInstalledHook hook) {
+    if (!hook) return;
+    for (auto& slot : g_installedHooks) {
+        ItemsInstalledHook expected = nullptr;
+        if (slot.compare_exchange_strong(expected, hook, std::memory_order_acq_rel) || expected == hook) return;
+    }
+    BL_ERROR("mod items: no room for another items-installed hook");
 }
 
 void prepareModItem(Il2CppObject* item, int type) {

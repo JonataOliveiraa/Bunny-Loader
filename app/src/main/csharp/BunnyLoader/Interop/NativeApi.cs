@@ -34,4 +34,8 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, int, IntPtr> NewArray;
     public delegate* unmanaged<IntPtr, byte*> ClassName;
     public delegate* unmanaged<IntPtr, IntPtr, IntPtr> VirtualMethod;
+    public delegate* unmanaged<byte*, byte*, byte*, byte*, byte*, int> RegisterItem;
+    public delegate* unmanaged<IntPtr, int, void> PrepareItem;
+    public delegate* unmanaged<IntPtr, int, void> FinishItem;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnItemsInstalled;
 }

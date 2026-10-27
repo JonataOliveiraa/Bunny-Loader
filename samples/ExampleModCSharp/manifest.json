@@ -1,0 +1,45 @@
+{
+  "uid": "06d3ecd1-1f04-4925-a886-35c7c5120906",
+  "id": "examplemodcsharp",
+  "name": "Example Mod C#",
+  "localizedSummaries": {
+    "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item and the Sword."
+  },
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Potato",
+      "role": "Port para o Bunny Loader",
+      "avatar": "potato.png",
+      "color": "#E8C170",
+      "link": "https://github.com/JonataOliveiraa"
+    },
+    {
+      "name": "tModLoader Team",
+      "role": "O ExampleMod original",
+      "color": "#7FC8FF",
+      "link": "https://github.com/tModLoader/tModLoader"
+    }
+  ],
+  "category": "Itens",
+  "summary": "O ExampleMod do tModLoader em C#, portado conforme os loaders C# chegam. Por enquanto: o Exemplo de Item e a Espada.",
+  "license": "MIT",
+  "updated": "2026-10-27",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "ExampleMod.cs",
+  "dependencies": [],
+  "links": [
+    {
+      "title": "ExampleMod original",
+      "url": "https://github.com/tModLoader/tModLoader/tree/stable/ExampleMod"
+    },
+    {
+      "title": "Mods em C#",
+      "url": "https://github.com/JonataOliveiraa/Bunny-Loader/tree/main/docs/mods-em-csharp"
+    }
+  ]
+}
