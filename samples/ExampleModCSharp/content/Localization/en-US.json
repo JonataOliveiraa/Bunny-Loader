@@ -1,9 +1,15 @@
 {
   "ItemName": {
     "ExampleItem": "Example Item",
-    "ExampleMeleeWeapon": "Sword"
+    "ExampleMeleeWeapon": "Sword",
+    "ExampleCustomDamageWeapon": "Example Custom Damage Weapon"
   },
   "ItemTooltip": {
     "ExampleItem": "Item description"
+  },
+  "DamageClasses": {
+    "ExampleDamageClass": {
+      "DisplayName": "example damage"
+    }
   }
 }

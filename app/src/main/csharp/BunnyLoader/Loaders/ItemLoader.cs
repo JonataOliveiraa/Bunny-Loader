@@ -127,7 +127,8 @@ internal static unsafe class ItemLoader
         api->PrepareItem(self.Pointer, type);
         try
         {
-            template.NewInstance(self).SetDefaults();
+            // O DamageType escrito aqui vale para o tipo inteiro.
+            DamageClassLoader.Defaulting(self.Pointer, template.NewInstance(self).SetDefaults);
         }
         catch (Exception e)
         {

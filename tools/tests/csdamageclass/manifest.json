@@ -1,0 +1,15 @@
+{
+  "uid": "3d0f8a52-6c1e-4f7b-9a44-2b8e5c71d0a9",
+  "id": "test-csdamageclass",
+  "name": "Teste: DamageClass em C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "DamageClass do C#: as 10 do jogo, classe de mod, DamageType de item, bônus por classe no jogador (dano, Base/Flat, crítico, repulsão, velocidade, penetração) e herança.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csdamageclass. Loga 'csdamageclass <caso>: ok | FAIL'.",
+  "updated": "2026-10-27",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsDamageClass.dll",
+  "dependencies": []
+}

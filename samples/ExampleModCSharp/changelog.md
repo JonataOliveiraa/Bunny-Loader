@@ -1,5 +1,10 @@
 # Novidades
 
+## 0.2.0
+
+- Classes de dano em C#: a classe de dano de exemplo e a Arma de Dano
+  Personalizado, portadas do ExampleMod.
+
 ## 0.1.0
 
 - Primeira versão, com o loader de `ModItem` do C#: o Exemplo de Item e a

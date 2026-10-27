@@ -12,7 +12,12 @@ namespace BunnyLoader;
 public abstract class ModItem : ModType
 {
     // O item desta instancia. No molde (SetStaticDefaults, Load) e nulo.
-    public Item Item { get; internal set; }
+    // Por ref: a proxy e um struct, e assim `Item.DamageType = ...` (e
+    // qualquer propriedade com set) escreve nela como no tModLoader, em vez
+    // de cair no CS1612 de um valor temporario.
+    public ref Item Item => ref item;
+
+    Item item;
 
     public int Type { get; internal set; }
 
@@ -39,7 +44,7 @@ public abstract class ModItem : ModType
     public virtual ModItem NewInstance(Item entity)
     {
         var copy = (ModItem)MemberwiseClone();
-        copy.Item = entity;
+        copy.item = entity;
         return copy;
     }
 

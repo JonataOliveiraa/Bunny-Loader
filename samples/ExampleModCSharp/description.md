@@ -13,8 +13,15 @@ Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
 - ![](content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.png) **Espada**
   (`Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs`): dano, repulsão,
   crítico, uso e o som de golpe do jogo.
+- **Classe de dano de exemplo**
+  (`Content/DamageClasses/ExampleDamageClass.cs`): herda o "todo dano"
+  (Generic), conta como corpo a corpo e mágica, ganha 4% de crítico e 10 de
+  penetração, e esconde a linha de velocidade.
+- ![](content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.png) **Arma de
+  Dano Personalizado** (`Content/Items/Weapons/ExampleCustomDamageWeapon.cs`):
+  uma espada da classe de exemplo; o tooltip mostra "dano de exemplo".
 
-Os dois aparecem no Mod Menu, na pasta *Itens* do mod.
+Os itens aparecem no Mod Menu, na pasta *Itens* do mod.
 
 ## Ainda não
 

@@ -75,12 +75,22 @@ internal static class LocalizationLoader
         {
             if (section.Value.ValueKind != JsonValueKind.Object) continue;
             var entries = new Dictionary<string, string>();
-            foreach (JsonProperty entry in section.Value.EnumerateObject())
-            {
-                if (entry.Value.ValueKind == JsonValueKind.String) entries[entry.Name] = entry.Value.GetString()!;
-            }
+            Flatten(section.Value, "", entries);
             sections[section.Name] = entries;
         }
         return sections;
+    }
+
+    // Objetos dentro da secao viram chaves com ponto, como no tModLoader:
+    // { "DamageClasses": { "ExampleDamageClass": { "DisplayName": "..." } } }
+    // -> secao DamageClasses, chave "ExampleDamageClass.DisplayName".
+    static void Flatten(JsonElement node, string prefix, Dictionary<string, string> entries)
+    {
+        foreach (JsonProperty entry in node.EnumerateObject())
+        {
+            string key = prefix.Length == 0 ? entry.Name : prefix + "." + entry.Name;
+            if (entry.Value.ValueKind == JsonValueKind.String) entries[key] = entry.Value.GetString()!;
+            else if (entry.Value.ValueKind == JsonValueKind.Object) Flatten(entry.Value, key, entries);
+        }
     }
 }
