@@ -159,6 +159,10 @@ bool isAssemblyEntry(const std::string& entry) {
     return entry.size() > 4 && entry.compare(entry.size() - 4, 4, ".dll") == 0;
 }
 
+bool isCSharpEntry(const std::string& entry) {
+    return isAssemblyEntry(entry) || (entry.size() > 3 && entry.compare(entry.size() - 3, 3, ".cs") == 0);
+}
+
 bool DotnetHost::start() {
     if (started_) return true;
     if (failed_) return false;

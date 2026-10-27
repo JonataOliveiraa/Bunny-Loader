@@ -172,9 +172,9 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         const std::string id = registry()[i].id;
         const std::string path = registry()[i].dir + "/" + registry()[i].entry;
         const std::string dir = dirsById()[id];
-        // O .dll vai para o runtime .NET; o resto e JS, que so carrega com o
-        // QuickJS ligado.
-        const bool assembly = dotnet::isAssemblyEntry(path);
+        // O .dll e o .cs vao para o runtime .NET; o resto e JS, que so
+        // carrega com o QuickJS ligado.
+        const bool assembly = dotnet::isCSharpEntry(path);
         if (!assembly && !script::engine().ready()) {
             BL_WARN("mod %s (%s) skipped: QuickJS is disabled", registry()[i].displayName.c_str(), id.c_str());
             registry()[i].enabled = false;

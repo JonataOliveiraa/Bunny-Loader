@@ -37,7 +37,10 @@ private:
 
 DotnetHost& host();
 
-/** O arquivo de entrada de um mod e um assembly .NET (`.dll`)? */
+/** O arquivo e um assembly .NET (`.dll`)? */
 bool isAssemblyEntry(const std::string& entry);
+
+/** O mod e C#: um `.dll` pronto ou um `.cs` (o Host compila as fontes se o bin/ nao bater). */
+bool isCSharpEntry(const std::string& entry);
 
 } // namespace bl::dotnet

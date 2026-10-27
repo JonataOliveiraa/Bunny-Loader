@@ -397,6 +397,11 @@ const I18N = {
     "sys.latency": "Last latency", "sys.quota": "Quota remaining", "sys.reset": "Quota resets at",
     "sys.key": "Access key", "sys.status": "Status", "sys.account": "Account", "sys.write": "Write access", "sys.checked": "Checked at",
     "sys.lang": "Language", "lang.en": "English", "lang.pt": "Português",
+    "pub.csharp": "C# compilation", "cs.status": "Status", "cs.compiled": "compiled now", "cs.reused": "already compiled (bin/ matches the sources)",
+    "cs.files": "Source files", "cs.lines": "Lines", "cs.time": "Time", "cs.dll": "Output",
+    "sys.discord": "Discord announcements", "sys.dc.state": "Webhook", "sys.dc.on": "configured", "sys.dc.off": "not configured (rebuild the APK with bunnyloaderdiscordwebhook.txt)",
+    "sys.dc.pending": "Pending", "sys.dc.error": "Last error", "sys.dc.test": "Send test", "sys.dc.retry": "Retry pending",
+    "op.dcTest": "Discord test", "op.dcRetry": "Discord retry",
     "dlg.cancel": "Cancel",
     "rm.title": "Remove {name}?",
     "rm.body": "Deletes the index entry and its store page. The release package is kept, so existing installs keep working.",
@@ -445,6 +450,11 @@ const I18N = {
     "sys.latency": "Última latência", "sys.quota": "Cota restante", "sys.reset": "Cota renova às",
     "sys.key": "Chave de acesso", "sys.status": "Estado", "sys.account": "Conta", "sys.write": "Acesso de escrita", "sys.checked": "Conferida às",
     "sys.lang": "Idioma", "lang.en": "English", "lang.pt": "Português",
+    "pub.csharp": "Compilação do C#", "cs.status": "Estado", "cs.compiled": "compilado agora", "cs.reused": "já compilado (o bin/ bate com as fontes)",
+    "cs.files": "Arquivos-fonte", "cs.lines": "Linhas", "cs.time": "Tempo", "cs.dll": "Saída",
+    "sys.discord": "Avisos no Discord", "sys.dc.state": "Webhook", "sys.dc.on": "configurado", "sys.dc.off": "não configurado (gere o APK com o bunnyloaderdiscordwebhook.txt)",
+    "sys.dc.pending": "Pendentes", "sys.dc.error": "Último erro", "sys.dc.test": "Enviar teste", "sys.dc.retry": "Reenviar pendentes",
+    "op.dcTest": "Teste do Discord", "op.dcRetry": "Reenvio do Discord",
     "dlg.cancel": "Cancelar",
     "rm.title": "Tirar {name}?",
     "rm.body": "Apaga a entrada do índice e a vitrine dela. O pacote da release fica, então quem já instalou continua funcionando.",
@@ -859,6 +869,19 @@ function renderReport() {
         ])}
       </div>
     </div>
+    ${c.csharp ? `<div class="card">
+      <div class="card-h"><span class="grow lbl">${esc(t("pub.csharp"))}</span></div>
+      <div class="card-b">
+        ${kv([
+          [t("cs.status"), `<span class="ok-t">${esc(t("cs." + c.csharp.status))}</span>`],
+          [t("cs.files"), esc(num(c.csharp.files))],
+          [t("cs.lines"), esc(c.csharp.status === "compiled" ? num(c.csharp.lines) : "—")],
+          [t("cs.time"), esc(c.csharp.status === "compiled" ? num(c.csharp.ms) + " ms" : "—")],
+          [t("cs.dll"), esc(c.csharp.dll)],
+        ])}
+        ${(c.csharp.warnings || []).length ? `<ul class="warns">${c.csharp.warnings.map((w) => `<li>${ICON.warn}<span>${esc(w)}</span></li>`).join("")}</ul>` : ""}
+      </div>
+    </div>` : ""}
     <div class="card">
       <div class="card-h"><span class="grow lbl">${esc(t("pub.warnings"))}</span><span class="count ${warns.length ? "err" : ""}">${warns.length}</span></div>
       <div class="card-b">
@@ -924,6 +947,11 @@ function renderSystem() {
   const [keyCls, keyTxt] = credentialView(c);
   const card = (title, body) => `<div class="card"><div class="card-h"><span class="grow lbl">${esc(title)}</span></div><div class="card-b">${body}</div></div>`;
   const reset = n.quotaReset ? clock(n.quotaReset * 1000) : "—";
+  const dc = d.discord || {};
+  const dcButtons = dc.configured
+    ? `<div class="actions"><button class="btn small quiet" data-action data-discord="test">${esc(t("sys.dc.test"))}</button>` +
+      `<button class="btn small" data-action data-discord="retry"${dc.pending ? "" : " disabled"}>${esc(t("sys.dc.retry"))}</button></div>`
+    : "";
   $("sysInfo").innerHTML =
     card(t("sys.key"), kv([
       [t("sys.status"), `<span class="${keyCls}-t">${esc(keyTxt)}</span>${c.error ? ` <span class="faint">${esc(c.error)}</span>` : ""}`],
@@ -946,6 +974,11 @@ function renderSystem() {
       [t("sys.downloads"), esc(num(d.stats && d.stats.total))],
       [t("sys.statsAt"), esc(d.stats && d.stats.updatedAt ? new Date(d.stats.updatedAt).toLocaleString(locale(), { hour12: false }) : "—")],
     ])) +
+    card(t("sys.discord"), kv([
+      [t("sys.dc.state"), `<span class="${dc.configured ? "ok" : "err"}-t">${esc(t(dc.configured ? "sys.dc.on" : "sys.dc.off"))}</span>`],
+      [t("sys.dc.pending"), esc(num(dc.pending || 0))],
+      [t("sys.dc.error"), esc(dc.error || "—")],
+    ]) + dcButtons) +
     card(t("sys.net"), kv([
       [t("sys.requests"), esc(num(n.requests))],
       [t("sys.sent"), esc(bytes(n.sent))],
@@ -965,6 +998,14 @@ function renderSystem() {
 }
 
 // ------------------------------------------------------------ ações
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-discord]");
+  if (!b || b.disabled) return;
+  const test = b.dataset.discord === "test";
+  await task(t(test ? "op.dcTest" : "op.dcRetry"), test ? "/api/discord-test" : "/api/discord-retry");
+  await refresh();
+});
+
 function setTab(tab) {
   state.tab = tab;
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));

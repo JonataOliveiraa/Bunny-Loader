@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    O compilador dos mods C# com fontes no PC: o mesmo BunnyLoader.Compiler do
+    app e do catálogo. O publish.py chama este programa antes de empacotar.
+
+      dotnet run -c Release (args: entrada.cs, pasta do runtime, opcional force)
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../../app/src/main/csharp/BunnyLoader.Compiler/BunnyLoader.Compiler.csproj" />
+  </ItemGroup>
+
+</Project>

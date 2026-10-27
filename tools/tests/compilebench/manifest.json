@@ -1,0 +1,15 @@
+{
+  "uid": "fa27bb25-c01f-4899-b411-c9cb42b08dee",
+  "id": "test-compilebench",
+  "name": "Teste: medicao do compilador C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Compila mods C# gerados, do pequeno ao enorme, dentro do jogo (Roslyn).",
+  "description": "Compilar antes com tools/tests/build-cs.sh. Roda no quadro 910 dentro do mundo. Loga 'compile ...'.",
+  "updated": "2026-10-26",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CompileBench.dll",
+  "dependencies": []
+}

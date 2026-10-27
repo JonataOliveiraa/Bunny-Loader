@@ -28,10 +28,16 @@ fun tokenMask(size: Int): ByteArray {
     return out
 }
 
-val tokenBytes = embeddedToken.toByteArray()
-val maskBytes = tokenMask(tokenBytes.size)
-val hiddenToken = Base64.getEncoder().encodeToString(
-    ByteArray(tokenBytes.size) { (tokenBytes[it].toInt() xor maskBytes[it].toInt()).toByte() })
+// O webhook do canal de avisos do Discord: o mesmo arquivo do discord_updates.py.
+val embeddedWebhook = rootProject.file("bunnyloaderdiscordwebhook.txt").takeIf { it.isFile }
+    ?.readText()?.removePrefix("\uFEFF")?.trim()?.takeIf { it.isNotEmpty() }
+    ?: localProps.getProperty("bl.discordWebhook", "").trim()
+
+fun hide(value: String): String {
+    val bytes = value.toByteArray()
+    val mask = tokenMask(bytes.size)
+    return Base64.getEncoder().encodeToString(ByteArray(bytes.size) { (bytes[it].toInt() xor mask[it].toInt()).toByte() })
+}
 
 android {
     namespace = "dev.bunnyloader.catalog"
@@ -41,9 +47,28 @@ android {
         applicationId = "com.bunnyloader.catalog"
         minSdk = 24
         targetSdk = 34
-        versionCode = 2
-        versionName = "1.1.0"
-        buildConfigField("String", "EMBEDDED_TOKEN", "\"$hiddenToken\"")
+        versionCode = 3
+        versionName = "1.2.0"
+        buildConfigField("String", "EMBEDDED_TOKEN", "\"${hide(embeddedToken)}\"")
+        buildConfigField("String", "EMBEDDED_WEBHOOK", "\"${hide(embeddedWebhook)}\"")
+        // O Mono do compilador de C# só existe para arm64, como o Bunny Loader.
+        ndk {
+            abiFilters.clear()
+            abiFilters += "arm64-v8a"
+        }
+        externalNativeBuild {
+            cmake {
+                cppFlags += "-std=c++20"
+            }
+        }
+    }
+    ndkVersion = "30.0.16248370"
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
     }
 
     buildFeatures {
@@ -59,7 +84,30 @@ android {
     }
 
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/launcherArt"))
+    sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/compiler"))
+    sourceSets["main"].jniLibs.srcDir(layout.buildDirectory.dir("generated/compilerJniLibs"))
 }
+
+// O compilador dos mods C# com fontes: o Mono, a base do .NET, o Roslyn, o
+// BunnyLoader.Compiler, a API (BunnyLoader.dll, só como referência) e o
+// references.txt, exatamente os do app, para o .dll daqui ser o mesmo que o
+// Bunny Loader compilaria.
+evaluationDependsOn(":app")
+val app = project(":app")
+val syncCompilerAssets by tasks.registering(Sync::class) {
+    dependsOn(app.tasks.named("syncDotnetAssets"))
+    from(app.layout.buildDirectory.dir("generated/blAssets/dotnet"))
+    into(layout.buildDirectory.dir("generated/compiler/dotnet"))
+}
+val syncCompilerJniLibs by tasks.registering(Sync::class) {
+    dependsOn(app.tasks.named("syncMonoJniLibs"))
+    from(app.layout.buildDirectory.dir("generated/monoJniLibs"))
+    into(layout.buildDirectory.dir("generated/compilerJniLibs"))
+}
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }
+    .configureEach { dependsOn(syncCompilerAssets) }
+tasks.matching { it.name.startsWith("merge") && it.name.endsWith("JniLibFolders") }
+    .configureEach { dependsOn(syncCompilerJniLibs) }
 
 // Os ícones e a fonte da página vêm do launcher: copiados a cada build, um lugar só para editar.
 val launcherArt = listOf(
@@ -88,5 +136,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    // As classes Java que a criptografia do .NET procura (ver CompilerRuntime.kt).
+    implementation(files(app.layout.buildDirectory.file("generated/monoCrypto/libSystem.Security.Cryptography.Native.Android.jar"))
+        .builtBy(app.tasks.named("syncMonoCryptoJar")))
     testImplementation("junit:junit:4.13.2")
 }

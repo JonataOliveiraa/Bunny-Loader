@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using BunnyLoader.Compiler;
 using BunnyLoader.Interop;
 
 namespace BunnyLoader;
@@ -41,7 +44,15 @@ public static unsafe class Host
         string uid = Marshal.PtrToStringUTF8((IntPtr)id) ?? "";
         try
         {
-            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(Marshal.PtrToStringUTF8((IntPtr)path)!);
+            string file = Marshal.PtrToStringUTF8((IntPtr)path)!;
+            AddModFolder(Path.GetDirectoryName(file)!);
+            if (ModBuild.IsSourceEntry(file))
+            {
+                string? built = FromSources(uid, file);
+                if (built == null) return 0;
+                file = built;
+            }
+            var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
             int count = 0;
             foreach (Type type in assembly.GetTypes())
             {
@@ -64,6 +75,62 @@ public static unsafe class Host
             Log.Error($"mod {uid}: {e}");
             return 0;
         }
+    }
+
+    // Um mod com fontes ("entry": "MeuMod.cs"): o bin/MeuMod.dll do pacote,
+    // se o selo dele bate com as fontes e com esta API (o caso do que veio
+    // compilado do catalogo); senao, compila agora. null se nao compilou.
+    static string? FromSources(string uid, string entry)
+    {
+        string project = Path.GetDirectoryName(entry)!;
+        string name = Path.GetFileName(entry);
+        List<string> references = ModBuild.References(AppContext.BaseDirectory);
+        string api = ModBuild.ApiVersion(references);
+        if (ModBuild.IsCurrent(project, name, api, out string reason)) return ModBuild.DllPath(project, name);
+        Log.Info($"mod {uid}: compiling {name} ({reason})");
+        return Compile(uid, project, name, references);
+    }
+
+    // Separado do FromSources: o Roslyn so carrega quando ha o que compilar.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    static string? Compile(string uid, string project, string name, List<string> references)
+    {
+        BuildResult r = ModCompiler.Build(project, name, references, force: true);
+        foreach (string w in r.Warnings) Log.Warn($"mod {uid}: {w}");
+        if (!r.Success)
+        {
+            foreach (string e in r.Errors) Log.Error($"mod {uid}: {e}");
+            Log.Error($"mod {uid}: {name} did not compile ({r.Errors.Count} error(s))");
+            return null;
+        }
+        Log.Info($"mod {uid}: compiled {r.Files} file(s), {r.Lines} lines in {r.Milliseconds} ms");
+        return r.DllPath;
+    }
+
+    // As pastas dos mods C# carregados. Uma biblioteca que um mod traz junto
+    // (content/Algo.dll) e achada ali quando o mod a usa: o contexto padrao
+    // so conhece as do runtime (assets/dotnet).
+    static readonly List<string> ModFolders = new();
+
+    static void AddModFolder(string folder)
+    {
+        lock (ModFolders)
+        {
+            if (ModFolders.Count == 0) AssemblyLoadContext.Default.Resolving += ResolveFromMods;
+            if (!ModFolders.Contains(folder)) ModFolders.Add(folder);
+        }
+    }
+
+    static Assembly? ResolveFromMods(AssemblyLoadContext context, AssemblyName name)
+    {
+        string[] folders;
+        lock (ModFolders) folders = ModFolders.ToArray();
+        foreach (string folder in folders)
+        {
+            string candidate = Path.Combine(folder, name.Name + ".dll");
+            if (File.Exists(candidate)) return context.LoadFromAssemblyPath(candidate);
+        }
+        return null;
     }
 
     // Texto UTF-8 terminado em zero para o nativo, numa area que o chamador

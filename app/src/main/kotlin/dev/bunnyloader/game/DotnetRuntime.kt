@@ -20,6 +20,7 @@ object DotnetRuntime {
     fun prepare(ctx: Context): String {
         val names = ctx.assets.list(FOLDER).orEmpty()
         if (names.isEmpty()) return ""
+        loadCrypto()
         val dir = File(ctx.filesDir, FOLDER)
         val stamp = ctx.packageManager.getPackageInfo(ctx.packageName, 0).lastUpdateTime.toString()
         val stampFile = File(dir, STAMP)
@@ -33,5 +34,19 @@ object DotnetRuntime {
         }
         stampFile.writeText(stamp)
         return dir.absolutePath
+    }
+
+    /**
+     * A criptografia do .NET no Android (o compilador dos mods com fontes usa
+     * SHA-1 e SHA-256). O Mono a abre com dlopen, que não chama o JNI_OnLoad
+     * dela; carregada daqui, ele roda e acha as classes Java dela pelo class
+     * loader do app.
+     */
+    private fun loadCrypto() {
+        try {
+            System.loadLibrary("System.Security.Cryptography.Native.Android")
+        } catch (_: UnsatisfiedLinkError) {
+            // APK sem ela: os hashes do .NET lançam DllNotFoundException.
+        }
     }
 }

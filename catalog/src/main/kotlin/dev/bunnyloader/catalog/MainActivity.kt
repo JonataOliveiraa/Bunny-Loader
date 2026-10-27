@@ -38,7 +38,9 @@ class MainActivity : ComponentActivity() {
             .addPathHandler("/", WebViewAssetLoader.AssetsPathHandler(this))
             .build()
         if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
-        val publisher = Publisher(EmbeddedToken.value(), File(cacheDir, "uploads"))
+        val publisher = Publisher(Embedded.token(), File(cacheDir, "uploads"),
+            Discord(Embedded.webhook(), File(filesDir, "discord-updates.json")),
+            CSharpBuild(CompilerRuntime(applicationContext), File(cacheDir, "csbuild")))
 
         web = WebView(this).apply {
             setBackgroundColor(Color.rgb(13, 15, 26))

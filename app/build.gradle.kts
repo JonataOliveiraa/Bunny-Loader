@@ -238,14 +238,14 @@ val BUNDLED_SAMPLES = listOf("ExampleMod")
  * Os testes que o app de medicao (-Pbl.bench=true) traz embutidos e liga:
  * a medicao C# x QuickJS e o teste dos hooks C#. So o manifesto e content/.
  */
-val BENCH_TESTS = listOf("benchcs", "benchjs", "hookcs")
+val BENCH_TESTS = listOf("benchcs", "benchjs", "hookcs", "compilebench")
 
 /** Compila os .dll dos testes C# de BENCH_TESTS (tools/tests/<teste>/content/). */
 val buildBenchTests by tasks.registering {
     enabled = benchBuild
     dependsOn("buildBunnyLoaderCs")
     doLast {
-        for (test in listOf("benchcs", "hookcs")) {
+        for (test in listOf("benchcs", "hookcs", "compilebench")) {
             val csproj = rootProject.file("tools/tests/$test/src").listFiles { f -> f.extension == "csproj" }!!.single()
             project.exec { commandLine("dotnet", "build", csproj.absolutePath, "-c", "Release", "-nologo", "-v", "q") }
         }
@@ -306,7 +306,12 @@ val monoPack = rootProject.layout.buildDirectory.file("mono/$monoVersion/pack.nu
 val monoNativeLibs = listOf(
     "libmonosgen-2.0.so", "libSystem.Native.so", "libSystem.Globalization.Native.so",
     "libmono-component-marshal-ilgen.so",
+    // A criptografia do .NET no Android (SHA-1, SHA-256...) passa pelo Java:
+    // esta lib e o .jar com as classes que ela procura (monoCryptoJar). O
+    // compilador dos mods a usa: o selo do build e o SHA-1 de cada referência.
+    "libSystem.Security.Cryptography.Native.Android.so",
 )
+val monoCryptoJar = layout.buildDirectory.file("generated/monoCrypto/libSystem.Security.Cryptography.Native.Android.jar")
 /**
  * Os assemblies da BCL que vão no APK (assets/dotnet/, extraídos pelo
  * DotnetRuntime.kt). Só o que a API e um mod comum usam; o pacote tem 19 MB
@@ -318,6 +323,29 @@ val monoManagedLibs = listOf(
     "System.Console", "System.Memory", "System.Threading", "System.Threading.Thread", "System.Private.Uri",
     "System.Text.Encoding.Extensions", "System.Numerics.Vectors", "System.ObjectModel",
 )
+/**
+ * O que o compilador dos mods com fontes (BunnyLoader.Compiler + Roslyn) puxa
+ * além dos de cima: o fecho das referências do Microsoft.CodeAnalysis*.dll no
+ * pacote Mono (~10 MB).
+ */
+val monoCompilerLibs = listOf(
+    "Microsoft.Win32.Primitives", "System.Collections.Immutable", "System.Collections.NonGeneric",
+    "System.Collections.Specialized", "System.ComponentModel", "System.ComponentModel.Primitives",
+    "System.Diagnostics.DiagnosticSource", "System.Diagnostics.StackTrace", "System.Diagnostics.TraceSource",
+    "System.Diagnostics.Tracing", "System.Formats.Asn1", "System.IO.Compression", "System.IO.Compression.Brotli",
+    "System.IO.MemoryMappedFiles", "System.Linq.Expressions", "System.Net.Http", "System.Net.NameResolution",
+    "System.Net.NetworkInformation", "System.Net.Primitives", "System.Net.Quic", "System.Net.Security",
+    "System.Net.Sockets", "System.Private.Xml", "System.Private.Xml.Linq", "System.Reflection.Emit",
+    "System.Reflection.Emit.ILGeneration", "System.Reflection.Emit.Lightweight", "System.Reflection.Metadata",
+    "System.Reflection.Primitives", "System.Runtime.Numerics", "System.Runtime.Serialization.Primitives",
+    "System.Security.Claims", "System.Security.Cryptography", "System.Text.Encoding.CodePages",
+    "System.Text.RegularExpressions", "System.Threading.Channels", "System.Threading.Tasks.Parallel",
+    "System.Threading.ThreadPool", "System.Xml.ReaderWriter", "System.Xml.XDocument", "System.Xml.XPath.XDocument",
+)
+/** A BCL que vai no APK. */
+val monoShippedLibs = (monoManagedLibs + monoCompilerLibs).distinct()
+/** O compilador e o Roslyn, que o build da API copia para csharp/BunnyLoader. */
+val compilerAssemblies = listOf("BunnyLoader.Compiler", "Microsoft.CodeAnalysis", "Microsoft.CodeAnalysis.CSharp")
 
 fun sha256(file: File): String =
     MessageDigest.getInstance("SHA-256").digest(file.readBytes()).joinToString("") { "%02x".format(it) }
@@ -342,12 +370,25 @@ val fetchMonoRuntime by tasks.registering {
 
 val syncMonoJniLibs by tasks.registering(Sync::class) {
     dependsOn(fetchMonoRuntime)
+    // O include vem de um zipTree preguiçoso: sem isto, trocar a lista não
+    // refazia a cópia.
+    inputs.property("libs", monoNativeLibs)
     from(monoPack.map { zipTree(it) }) {
         include(monoNativeLibs.map { "runtimes/android-arm64/native/$it" })
         eachFile { path = name }
     }
     includeEmptyDirs = false
     into(layout.buildDirectory.dir("generated/monoJniLibs/arm64-v8a"))
+}
+
+val syncMonoCryptoJar by tasks.registering(Sync::class) {
+    dependsOn(fetchMonoRuntime)
+    from(monoPack.map { zipTree(it) }) {
+        include("runtimes/android-arm64/native/libSystem.Security.Cryptography.Native.Android.jar")
+        eachFile { path = name }
+    }
+    includeEmptyDirs = false
+    into(monoCryptoJar.map { it.asFile.parentFile })
 }
 
 /**
@@ -360,6 +401,7 @@ val buildBunnyLoaderCs by tasks.registering(Exec::class) {
     val out = layout.buildDirectory.dir("csharp/BunnyLoader")
     inputs.files(fileTree(source) { exclude("bin/**", "obj/**") })
     inputs.files(fileTree(file("src/main/csharp/ProxyGen")) { exclude("bin/**", "obj/**") })
+    inputs.files(fileTree(file("src/main/csharp/BunnyLoader.Compiler")) { exclude("bin/**", "obj/**") })
     inputs.files(rootProject.file("refs/DummyDll/Assembly-CSharp.dll"))
     outputs.dir(out)
     commandLine(
@@ -368,15 +410,39 @@ val buildBunnyLoaderCs by tasks.registering(Exec::class) {
     )
 }
 
+/**
+ * O references.txt: contra o que um mod com fontes compila (a base do .NET
+ * que vai no APK e a API). O mesmo no app, no catálogo e no PC.
+ */
+val writeDotnetReferences by tasks.registering {
+    val out = layout.buildDirectory.file("generated/dotnetReferences/references.txt")
+    val names = listOf("System.Private.CoreLib.dll") + monoShippedLibs.map { "$it.dll" } + "BunnyLoader.dll"
+    inputs.property("names", names)
+    outputs.file(out)
+    doLast {
+        out.get().asFile.apply { parentFile.mkdirs() }.writeText(
+            "# Gerado pelo app/build.gradle.kts: as referências dos mods C# com fontes.\n" +
+                names.joinToString("\n", postfix = "\n"))
+    }
+}
+
 val syncDotnetAssets by tasks.registering(Sync::class) {
-    dependsOn(fetchMonoRuntime, buildBunnyLoaderCs)
+    dependsOn(fetchMonoRuntime, buildBunnyLoaderCs, writeDotnetReferences)
+    inputs.property("libs", monoShippedLibs)
     from(monoPack.map { zipTree(it) }) {
         include("runtimes/android-arm64/native/System.Private.CoreLib.dll")
-        include(monoManagedLibs.map { "runtimes/android-arm64/lib/net10.0/$it.dll" })
+        include(monoShippedLibs.map { "runtimes/android-arm64/lib/net10.0/$it.dll" })
+        // O app de medicao leva a biblioteca inteira: o compilador do C#
+        // (tools/tests/compilebench) puxa dezenas delas.
+        if (benchBuild) include("runtimes/android-arm64/lib/net10.0/*.dll")
         include("THIRD-PARTY-NOTICES.TXT")
         eachFile { path = name }
     }
-    from(layout.buildDirectory.dir("csharp/BunnyLoader")) { include("BunnyLoader.dll") }
+    from(layout.buildDirectory.dir("csharp/BunnyLoader")) {
+        include("BunnyLoader.dll")
+        include(compilerAssemblies.map { "$it.dll" })
+    }
+    from(writeDotnetReferences)
     includeEmptyDirs = false
     into(layout.buildDirectory.dir("generated/blAssets/dotnet"))
 }
@@ -408,6 +474,8 @@ dependencies {
     // é carregada por reflection), mas o jogo não sobe, como sem os .so do jogo.
     val unityClasses = file("libs/unity-classes.jar")
     if (unityClasses.isFile) implementation(files(unityClasses))
+
+    if (csharpEnabled) implementation(files(monoCryptoJar).builtBy(syncMonoCryptoJar))
 
     // Hooking nativo (ARM32/ARM64). Consumido via prefab.
     // Confirme a versão mais recente em Maven Central.

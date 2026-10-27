@@ -26,13 +26,18 @@ import java.security.MessageDigest
  * commit e o ref andando para a frente). A ordem é a mesma de lá: Release
  * primeiro, índice depois.
  */
-class Publisher(token: String, private val uploads: File) {
+class Publisher(token: String, private val uploads: File, private val discord: Discord,
+                private val csharp: CSharpBuild) {
     private val gh = token.takeIf { it.isNotEmpty() }?.let(::GitHub)
     private var head: Head? = null
     private var account: JsonObject? = null
     private val storeManifests = HashMap<String, JsonObject>()
     private var statsCache: Pair<String, JsonObject>? = null
     var log: (String) -> Unit = {}
+        set(value) {
+            field = value
+            discord.log = value
+        }
 
     private class Head(
         val commit: String,
@@ -85,6 +90,7 @@ class Publisher(token: String, private val uploads: File) {
                 put("updatedAt", stats.text("updatedAt"))
                 put("total", downloads.values.sumOf { (it as? JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: 0L })
             })
+            put("discord", discord.status())
             put("featured", JsonArray(featured.map(::JsonPrimitive)))
             put("catalog", JsonArray(mods(h.index).map { mod ->
                 val uid = mod.text("uid") ?: ""
@@ -101,7 +107,12 @@ class Publisher(token: String, private val uploads: File) {
         head = loadHead()
         log(I18n.tr("Índice sincronizado: ${head!!.commit.take(7)} (${head!!.loadMs} ms)",
             "Index synced: ${head!!.commit.take(7)} (${head!!.loadMs} ms)"))
+        discord.flush()
     }
+
+    fun discordTest() = discord.sendTest()
+
+    fun discordRetry() = discord.flush()
 
     // ------------------------------------------------------------ chave de acesso
 
@@ -236,6 +247,7 @@ class Publisher(token: String, private val uploads: File) {
     }
 
     fun check(file: File): JsonObject {
+        val built = csharp.prepare(file, log)
         val pkg = BlPackage(file)
         val store = pkg.storeFiles()
         pkg.warnings.forEach { log(I18n.tr("aviso: ", "warning: ") + it) }
@@ -274,6 +286,7 @@ class Publisher(token: String, private val uploads: File) {
             put("icon", icon)
             put("status", code)
             put("statusText", text)
+            put("csharp", built.info ?: JsonNull)
         }
     }
 
@@ -295,6 +308,7 @@ class Publisher(token: String, private val uploads: File) {
     fun publish(file: File, dry: Boolean = false) {
         val g = gh ?: throw Fail(I18n.tr("sem token: gere o APK com o _token.txt", "no access key: build the APK with bunnyloadermodstoken.txt"))
         if (!file.isFile) throw Fail(I18n.tr("o arquivo enviado não está mais aqui; envie de novo", "the uploaded file is gone; upload it again"))
+        csharp.prepare(file, log)
         val pkg = BlPackage(file)
         log("${pkg.name} v${pkg.version}  (${pkg.uid})")
         log("  ${pkg.size} bytes, sha256 ${pkg.sha256}")
@@ -434,11 +448,27 @@ class Publisher(token: String, private val uploads: File) {
                 })
                 head = null
                 log(I18n.tr("  ${Repo.BRANCH} enviado", "  ${Repo.BRANCH} pushed"))
+                announce(h, mods, all, commit)
                 return
             } catch (e: Fail) {
                 if (": 422 " !in (e.message ?: "") || attempt == 2) throw e
                 log(I18n.tr("  o ${Repo.BRANCH} mudou no meio do caminho: refazendo em cima dele", "  ${Repo.BRANCH} moved meanwhile: rebuilding on top of it"))
             }
+        }
+    }
+
+    /** O aviso no Discord do commit que acabou de entrar; uma falha aqui não desfaz a publicação. */
+    private fun announce(h: Head, after: List<JsonObject>, changes: List<JsonObject>, commit: String) {
+        if (!discord.configured) return
+        try {
+            fun withManifest(list: List<JsonObject>) = list.map { mod ->
+                if (mod["manifest"] is JsonObject) mod
+                else JsonObject(mod + ("manifest" to storeManifest(h, mod.text("uid") ?: "")))
+            }
+            discord.announce(withManifest(mods(h.index)), withManifest(after), h.commit, commit,
+                changes.mapNotNull { it.text("path") })
+        } catch (e: Exception) {
+            log("  Discord notifications could not be prepared. The catalog operation succeeded.")
         }
     }
 
@@ -500,7 +530,7 @@ class Publisher(token: String, private val uploads: File) {
             return BlPackage.hex(md.digest())
         }
 
-        private fun authorLine(manifest: JsonObject): String {
+        fun authorLine(manifest: JsonObject): String {
             val names = (manifest["authors"] as? JsonArray)?.mapNotNull {
                 when (it) {
                     is JsonPrimitive -> it.contentOrNull

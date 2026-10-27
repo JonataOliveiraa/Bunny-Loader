@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    O compilador dos mods C# com fontes (.cs): o mesmo código no Bunny Loader
+    (o mod compila ao carregar, se o .dll do pacote não bate com as fontes), no
+    app do catálogo (compila antes de publicar) e no PC (tools/mods/csbuild).
+    Não depende do BunnyLoader.dll: o catálogo roda sem o jogo.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace>BunnyLoader.Compiler</RootNamespace>
+    <DebugType>embedded</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.6.0" />
+  </ItemGroup>
+
+</Project>

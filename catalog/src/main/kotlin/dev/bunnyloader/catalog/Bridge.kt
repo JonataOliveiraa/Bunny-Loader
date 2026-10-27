@@ -41,6 +41,8 @@ class Bridge(private val publisher: Publisher, private val reply: (Int, String) 
                 "/api/publish-upload" -> { publisher.publish(publisher.uploadFile(arg("file"))); JsonNull }
                 "/api/publish-dry" -> { publisher.publish(publisher.uploadFile(arg("file")), dry = true); JsonNull }
                 "/api/remove" -> { publisher.remove(arg("uid")); JsonNull }
+                "/api/discord-test" -> { publisher.discordTest(); JsonNull }
+                "/api/discord-retry" -> { publisher.discordRetry(); JsonNull }
                 else -> throw Fail(I18n.tr("$path não existe no app", "$path does not exist in the app"))
             }
             buildJsonObject {

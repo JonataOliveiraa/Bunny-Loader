@@ -1,0 +1,15 @@
+{
+  "uid": "9c65e25b-c568-4e03-8ae2-86ed382381e5",
+  "id": "test-cssource",
+  "name": "Teste: mod C# só com fontes",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Mod C# sem .dll: o Bunny Loader compila os .cs ao carregar e reaproveita o bin/ enquanto as fontes não mudam.",
+  "description": "Loga 'cssource ...'. Apague content/bin para forçar a compilação de novo.",
+  "updated": "2026-10-26",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsSource.cs",
+  "dependencies": []
+}

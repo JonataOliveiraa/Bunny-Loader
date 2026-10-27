@@ -235,6 +235,10 @@ def sync() -> None:
 
 
 def check_upload(path: Path) -> dict:
+    try:
+        csharp = publish.csharp_build.prepare(path)
+    except publish.csharp_build.BuildError as e:
+        raise publish.Fail(f"{path.name}: {e}") from None
     pkg = publish.Package(path)
     index = {e["uid"]: e for e in index_entries()}
     code, text = status_against(index, pkg.uid, pkg.version, pkg.sha256)
@@ -255,6 +259,7 @@ def check_upload(path: Path) -> dict:
                       for n in ICONS if n in pkg.names), None),
         "status": code,
         "statusText": text,
+        "csharp": csharp and {k: csharp[k] for k in ("status", "files", "lines", "ms", "dll", "warnings")},
     }
 
 

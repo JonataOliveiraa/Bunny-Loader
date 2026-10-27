@@ -50,6 +50,7 @@ import zipfile
 import zlib
 from pathlib import Path
 
+import csharp_build
 import discord_updates
 
 OWNER = "JonataOliveiraa"
@@ -485,6 +486,12 @@ def publish(paths: list[Path], dry: bool) -> None:
     with ExitStack() as opened:
         packages = []
         for p in paths:
+            # Mod C# com fontes: o .bl ganha o bin/ compilado antes de tudo
+            # (o sha256 e a Release são do pacote compilado).
+            try:
+                csharp_build.prepare(p)
+            except csharp_build.BuildError as e:
+                raise Fail(f"{p.name}: {e}") from None
             pkg = Package(p)
             opened.enter_context(pkg.zip)
             print(f"{pkg.name} v{pkg.version}  ({pkg.uid})")

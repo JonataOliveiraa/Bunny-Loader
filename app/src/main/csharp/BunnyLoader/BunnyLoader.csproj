@@ -37,6 +37,20 @@
     <ProxyGenSources Include="$(MSBuildThisFileDirectory)../ProxyGen/*.cs" />
   </ItemGroup>
 
+  <!--
+    Mods com fontes (.cs) compilam ao carregar quando o .dll do pacote não bate
+    com elas. O Roslyn vai junto para o APK: o build copia os .dll dele para a
+    saída (CopyLocalLockFileAssemblies), e o app/build.gradle.kts os pega lá.
+  -->
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../BunnyLoader.Compiler/BunnyLoader.Compiler.csproj" />
+  </ItemGroup>
+
   <Target Name="IncludeGameProxies" AfterTargets="GenerateGameProxies" BeforeTargets="CoreCompile">
     <ItemGroup>
       <Compile Include="$(ProxyGenOut)*.g.cs" />
