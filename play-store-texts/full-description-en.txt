@@ -1,0 +1,32 @@
+Customize your Terraria Mobile experience with Bunny Loader, an unofficial mod loader for Android.
+
+Browse the mod catalog, manage your installed content, and launch Terraria with your selected mods. Try new items, enemies, bosses, gameplay changes, and texture packs, or build your own content with JavaScript.
+
+EXPLORE AND MANAGE MODS
+
+• Discover published mods in the built-in catalog.
+• Download and update mods directly from the app.
+• Organize your collection and choose which mods to enable.
+• Browse the catalog without creating an account.
+
+CUSTOMIZE YOUR GAME
+
+• Add weapons, accessories, projectiles, pets, and minions.
+• Explore mods featuring enemies, town NPCs, and bosses.
+• Expand your worlds with tiles, walls, furniture, and crafting recipes.
+• Change the look of the game with texture packs.
+• Adjust supported mods through the in-game Mod Configuration menu.
+
+CREATE YOUR OWN CONTENT
+
+Bunny Loader supports JavaScript mods with APIs inspired by tModLoader. Create items, NPCs, projectiles, buffs, recipes, and more. Add custom behavior, sounds, interface elements, and configurable options.
+
+Documentation and example mods help you learn how the modding system works and develop your own ideas.
+
+REQUIREMENTS
+
+Bunny Loader requires the Google Play version of Terraria to be installed on your device. Terraria is purchased separately.
+
+An internet connection is required to browse the online catalog and download or update mods. Mod compatibility depends on the supported game version and the individual mod.
+
+Bunny Loader is an independent, unofficial project and is not affiliated with or endorsed by Re-Logic or 505 Games. Terraria and its related names and assets belong to their respective owners.
