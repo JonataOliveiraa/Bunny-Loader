@@ -35,6 +35,19 @@ reading order.
 
 [Texture packs](mods/14-pacotes-de-textura.md): replacing sprites with PNGs, no scripts.
 
+[**Mods in C#**](mods-em-csharp/README.md): hooks and full access to the game
+in typed, compiled C#, with tabs comparing it to JS and tModLoader, measured
+performance, and the path to moving Bunny Loader to C#.
+
+1. [Your first C# mod](mods-em-csharp/01-primeiro-mod.md)
+2. [Hooks](mods-em-csharp/02-hooks.md)
+3. [`ref`, `out` and `Nullable`](mods-em-csharp/03-ref-out-e-nullable.md)
+4. [Values and objects](mods-em-csharp/04-valores-e-objetos.md)
+5. [C# × JS × tModLoader](mods-em-csharp/05-comparacao.md)
+6. [Performance](mods-em-csharp/06-desempenho.md)
+7. [Moving to C#](mods-em-csharp/07-migracao-para-csharp.md)
+8. [Under the hood](mods-em-csharp/08-por-baixo-dos-panos.md)
+
 ## Reference
 
 - [Methods by class](referencia/metodos.md): the complete generated index of
