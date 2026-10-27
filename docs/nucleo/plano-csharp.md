@@ -1,0 +1,230 @@
+# The C# plan: every loader in C#, then no more JavaScript
+
+This is the plan Bunny Loader follows until **every mod loader runs in C#** and
+**QuickJS, the JS bridge and the JS loaders are removed**. It is a working
+document: each phase has a checklist that gets ticked as it lands, and the
+decisions it records are the ones every phase must respect.
+
+Status on 2026-10-27: the C# runtime (Mono, generated proxies, `On_<Type>`
+hooks, mods compiled from sources) and a basic `ModItem` loader are done
+(commit `9f60ef4e`). Everything else below is still to do.
+
+## 1. The rule: look like tModLoader
+
+A mod written for Bunny Loader in C# must read like a tModLoader mod. Porting
+from tModLoader should mean copying the class, fixing what the mobile game
+really lacks, and nothing else.
+
+- **Same names, same places.** Public classes live in tModLoader's namespaces
+  with tModLoader's names and member signatures: `Terraria.ModLoader.ModItem`,
+  `Terraria.ModLoader.IO.TagCompound`, `Terraria.ModLoader.ModContent`,
+  `Terraria.Localization.LocalizedText`... When the mobile game already has the
+  type (`TextureAssets`, `LocalizedText`, `Language`, `Filters`, `SkyManager`,
+  `Asset<T>`), the mod uses the game's own type through the generated proxy.
+- **No `bl` object.** tModLoader has no global helper object, and the C# API
+  will not have one either. What the JS `bl.*` does today splits in two:
+  1. **Plumbing** (registering types, growing tables, hook flags, `typeOf`,
+     `addressOf`, `classOf`...). In tModLoader this is the `internal` part of
+     each loader (`ItemLoader.Register` and friends). In C# it is `internal`
+     code in `BunnyLoader.dll` plus the native table (`NativeApi`). Mods never
+     see it.
+  2. **What mods call.** Each piece maps to where tModLoader puts it:
+
+     | JS today | tModLoader / C# |
+     |---|---|
+     | `bl.log` | `Mod.Logger.Info/Warn/Error/Debug` |
+     | `bl.loadTexture`, `bl.loadTextureAsset`, `bl.textureSize` | `ModContent.Request<Texture2D>(path)`, `Mod.Assets.Request`, `asset.Value.Width` |
+     | `bl.vanillaTexture`, `bl.builtinTexture` | `TextureAssets.Item[type]` and the other `TextureAssets` arrays |
+     | `bl.readJson`, `bl.file` | `Mod.GetFileBytes`, `Mod.GetFileStream`, `Mod.FileExists` |
+     | `bl.tiles.typeAt` | `Main.tile[x, y].TileType`, `Framing.GetTileSafely` |
+     | `bl.items/npcs/projectiles/... .typeOf` | `ModContent.ItemType<T>()`, `ModContent.Find<T>("Mod/Name")`, `Mod.Find<T>` |
+     | `bl.sounds`, `bl.music` | `SoundEngine.PlaySound`, `MusicLoader.GetMusicSlot`, `MusicLoader.AddMusic` |
+     | `bl.screen` | `Filters.Scene`, `SkyManager`, `ScreenShaderData` (section 4, phase 7) |
+     | `bl.chat` | `Main.NewText`, `ChatHelper.BroadcastChatMessage` |
+     | `bl.onContentReady` | `ModSystem.PostSetupContent`, `Mod.PostSetupContent` |
+     | `bl.info.terrariaVersionCode` | `BuildInfo`, `Main.versionNumber` |
+     | `bl.addressOf`, `bl.box/unbox`, `bl.gc`, `bl.yield`, `bl.hook*` | Nothing: they exist only because of the JS bridge |
+     | `bl.menu.*` (Mod Menu folders, hiding) | Bunny Loader only (section 1.1) |
+
+### 1.1 What tModLoader does not have
+
+Some features are Bunny Loader's own: the Mod Menu (cheat catalog), touch
+buttons, screen effects, texture and font packs, the mod page. They keep
+working, with three constraints:
+
+- When tModLoader has a close concept, use its name: touch buttons are
+  `ModKeybind` (with the mobile layout as extra members), not a new class.
+- What has no counterpart lives in the `BunnyLoader` namespace, so a reader
+  always knows it is not tModLoader: `BunnyLoader.ModMenu`, `BunnyLoader.Screen*`.
+- Extra members on a tModLoader class are allowed when they only add (for
+  example `ModItem.HideFromModMenu`), never when they change what an existing
+  member means.
+
+### 1.2 Where the game itself differs
+
+The proxies are the mobile game (1.4.5.8.6), not tModLoader's patched Terraria.
+Where tModLoader added members to vanilla types (`Item.ModItem`,
+`Item.DamageType`, `Item.ResearchUnlockCount`, `NPC.ModNPC`, `Player.GetModPlayer<T>()`,
+`Item.CloneDefaults`...), Bunny Loader adds them to the proxy structs, which are
+`partial`, with the same name and behavior. Where the mobile game lacks a type
+tModLoader assumes (`ItemRarityID`, for example), Bunny Loader provides it
+with tModLoader's name.
+
+## 2. Decisions every phase follows
+
+- **Native stays native.** The C++ content runtime (`content/*`: type tables,
+  textures, saves, tiles, walls, NPCs, dusts...) is not JS and is not rewritten.
+  C# reaches it through `NativeApi` entries, as `ModItem` does. The ~80 `bl.*`
+  functions in `script/api` become `NativeApi` entries where C# needs them.
+- **Synchronous, on the game thread.** C# hooks run where the game calls them,
+  with the real objects, like tModLoader. No worker thread, snapshots or
+  sampled AI.
+- **One class per file**, identifiers in English, comments in pt-BR, logs and
+  errors in English, tModLoader's member order and XML doc summaries kept short.
+- **A feature is done when** (all four):
+  1. the C# API matches tModLoader's signatures;
+  2. the ExampleMod example for it is ported into `samples/ExampleModCSharp`,
+     with tModLoader's textures and the translations;
+  3. a test pack in `tools/tests/cs<name>` passes on the MuMu with QuickJS off;
+  4. the guide in `docs/mods-em-csharp` covers it.
+  Hooks that run every frame are also measured on a real phone.
+- **Both engines coexist until phase 9.** Each C# loader is written beside the
+  JS one, sharing only the native runtime. Hooks that both install must chain
+  (as `Item.SetDefaults` does today).
+
+## 3. Decisions (settled on 2026-10-27)
+
+| Decision | Settled |
+|---|---|
+| Namespace of the API | Everything public moves from `BunnyLoader` to `Terraria.ModLoader` (and `.IO`, `.Config`, `.UI`...) in phase 0, while only the test packs and `ExampleModCSharp` use it. `BunnyLoader` keeps only what tModLoader does not have (section 1.1). |
+| Localization files | tModLoader's layout: `Localization/en-US.hjson` with `Mods.<Mod>.Items.<Name>.DisplayName`. The `ItemName`/`ItemTooltip` JSON added for the first `ModItem` stays readable until phase 9, and `ExampleModCSharp` switches to hjson in phase 0. |
+| Mod identity in `FullName` | tModLoader uses the internal mod name (`ExampleMod/ExampleItem`). Saves keep the uid key (`<uid>/<Name>`), since that is what existing saves store. |
+| What happens to the 47 JS mods in the catalog | All three options of section 6. |
+
+## 4. Phases
+
+Sizes are the JS lines each phase replaces, to compare phases, not to promise
+dates. The JS core folders (Core 1.5k, UI 1.5k, Effects 2.3k, Enums 0.1k) are
+split among the phases that need them.
+
+### Phase 0: the foundation (base for everything)
+
+- [ ] Public API moved to tModLoader's namespaces; `Mod.Logger`; `Log` becomes internal.
+- [ ] `ModType<TEntity, TModType>`, `ModTexturedType`, `ILoadable`, `[Autoload]`, `IsLoadingEnabled`, load and unload order (`Mod.Load`, `SetStaticDefaults`, `PostSetupContent`, `AddRecipes`).
+- [ ] `ModContent`: `Request<T>`, `Find`/`TryFind`, `GetInstance`, `<X>Type<T>()`, `Mod.Find`, `Mod.Assets`, `Mod.GetFileBytes`.
+- [ ] `ModLoader.TryGetMod`, `Mod.Call`, dependencies and load order between C# mods.
+- [ ] Localization: `LocalizedText`, `Language.GetTextValue`, the hjson layout (section 3), `this.GetLocalization`, `ExampleModCSharp` moved to hjson.
+- [ ] Per-entity instances: `Item.ModItem`, `IEntityWithInstances`, `NewInstance`/`Clone`, `CloneNewInstances`, the per-object data that `script/bridge/ExtraFields` gives JS today.
+- [ ] Globals: `GlobalType`, `GlobalItem`/`GlobalNPC`/... lists, `InstancePerEntity`, `AppliesToEntity`.
+- [ ] Saves: `TagCompound`, `TagIO`, `SaveData`/`LoadData`, wired to the native save files (`ModItemSave` and friends call C# instead of `script::saveModItemData`).
+- [ ] Networking: `ModPacket`, `Mod.GetPacket`, `HandlePacket`, `NetSend`/`NetReceive`, the join handshake (message 68).
+- [ ] ProxyGen: grow `types.txt` to every type the 175 JS hooks touch; generics (`Asset<T>`, `List<T>`), delegates, events, struct returns over 16 bytes. Each type that does not generate is recorded with the reason.
+- [ ] Hook cost on the phone for per-frame paths (`CallFast` where it is a leaf).
+
+JS replaced: Mod, ModContent, ModLoader, ModPacket, NetReader/Writer, TagCompound, Core/ (Entities, ExtraFields use, GlobalList/Registry, ModRegistry, ModNet, ModFiles, Lang, Safe, Hooks).
+
+### Phase 1: items (6.1k JS lines)
+
+- [ ] `ModItem` complete: use, combat, healing, drawing, pickup, networking, data hooks.
+- [ ] `GlobalItem`, tooltips (`TooltipLine`, `ModifyTooltips`, `DrawableTooltipLine`, vanilla tooltips).
+- [ ] `ModPrefix`, `ModRarity`, `DamageClass` (with `Item.DamageType`).
+- [ ] Recipes: `Recipe`, `CreateRecipe`, `Condition`, `RecipeGroup`, `GlobalRecipe`.
+- [ ] Equipment: `EquipLoader`, `[AutoloadEquip]`, armor sets, wings, PvP item sync.
+
+Ports: ItemLoader, Item*Hooks, ItemDataLoader, ItemDrawLoader, ItemPickupLoader, GlobalItemLoader, TooltipLoader, VanillaTooltips, PrefixLoader, RarityLoader, DamageClassLoader, RecipeLoader, EquipLoader, ArmorSetLoader, WingLoader, PvpItemNetwork.
+
+### Phase 2: player and buffs (4.0k)
+
+- [ ] `ModPlayer` with every Player hook group (update, items, jumps, drawing, network, world).
+- [ ] Combat: `HitInfo`, `HitModifiers`, `HurtInfo`, `HurtModifiers`, `StatModifier`.
+- [ ] `ModBuff`, `GlobalBuff`.
+- [ ] `ModResourceOverlay`, `ModHair`, `ModMount`.
+
+Ports: PlayerLoader, Player*Hooks, CombatLoader, BuffLoader, ResourceOverlayLoader, HairLoader, MountLoader.
+
+### Phase 3: projectiles, dusts, gores (1.2k)
+
+- [ ] `ModProjectile`, `GlobalProjectile`.
+- [ ] `ModDust`, `ModGore`.
+
+Ports: ProjectileLoader, GlobalProjectileLoader, DustLoader, GoreLoader.
+
+### Phase 4: NPCs (3.0k)
+
+- [ ] `ModNPC`, `GlobalNPC`; loot (`ItemLoot`, `NPCLoot`, `GlobalLoot`, drop rules).
+- [ ] Spawning (`NPCSpawnInfo`, `SpawnPool`, `SpawnCondition`); town NPCs, shops (`NPCShop`), happiness, bestiary.
+- [ ] Banners (`ModBannerTile`, needs phase 5 tiles), boss bars (`ModBossBar`, `GlobalBossBar`), `ModEmoteBubble`.
+
+Ports: NPCLoader, GlobalNPCLoader, GlobalLootLoader, SpawnLoader, TownNPCLoader, BestiaryLoader, BannerLoader, BossBarLoader, EmoteBubbleLoader.
+
+### Phase 5: tiles and the world (3.9k)
+
+- [ ] `ModTile`, `GlobalTile`, drawing, use, world hooks; `TileRestingInfo`, `TileObjectData`.
+- [ ] `ModWall`, `ModTree`, `ModTileEntity`, `ModPylon`/`TEModdedPylon`.
+- [ ] World generation (`GenPass`), chests and their sync, page and sign icons.
+
+Ports: TileLoader, TileDrawLoader, TileUseLoader, TileWorldLoader, GlobalTileLoader, WallLoader, TreeLoader, TileEntityLoader, TileEntityItemHooks, PylonLoader, ChestNetworkHooks, PageIconLoader.
+
+### Phase 6: systems and the environment (7.0k)
+
+- [ ] `ModSystem` with every hook group (update, draw, network, world).
+- [ ] `ModBiome`, `ModSceneEffect`, water and waterfall styles, surface and underground backgrounds, map backgrounds, `ModCloud`.
+- [ ] `ModMenu` (title menu and theme setting), music (`MusicLoader`) and sounds (`SoundEngine`, `SoundStyle`).
+- [ ] `ModAchievement`, angler quests, `ModCommand`.
+- [ ] `ModConfig` with the config menu, host settings and server sync.
+
+Ports: SystemLoader, System*Hooks, BiomeLoader, Biome*Loader, SceneEffectLoader, WaterStyleLoader, WaterfallStyleLoader, Surface/Underground/BackgroundTexture/MapBackground loaders, CloudLoader, MenuLoader, MenuThemeSetting, ModMusic, VanillaMusic, SoundLoader, AchievementLoader, AnglerQuestLoader, CommandLoader, ConfigLoader, ModConfigMenu, HostSettingsMenu, ServerSync*, LocalizationLoader.
+
+### Phase 7: UI, touch buttons, screen effects (0.9k + UI 1.5k + Effects 2.3k)
+
+- [ ] `Terraria.UI`: `UIState`, `UserInterface`, `UIElement` and the elements, `GameInterfaceLayer`, `ModSystem.ModifyInterfaceLayers`.
+- [ ] `ModKeybind` with the touch button layout (today's `ModTouchButton`).
+- [ ] Screen effects: `Filters`/`ScreenShaderData`/`SkyManager` where the game has them; the Bunny Loader layers (`BunnyLoader.Screen*`) for the rest.
+- [ ] Texture packs and font packs (today partly JS).
+
+Ports: InterfaceLayerLoader, KeybindLoader, TouchButton*, ScreenEffectsSetting, UI/, Effects/.
+
+### Phase 8: the mods
+
+- [ ] `samples/ExampleModCSharp` covers everything `samples/ExampleMod` (232 JS files, 9.6k lines) covers. This happens phase by phase; here only the leftovers are closed.
+- [ ] The other samples rewritten in C#: DobroDeDano, HelloMod, SemQueda, TemploPiramide, VidaCheia.
+- [ ] The 190 JS test packs: each one either gets a C# counterpart or is retired with a note on what covers it now.
+- [ ] Catalog: section 6.
+
+### Phase 9: removing JavaScript
+
+Only after phases 0–8 are ticked and a release with both engines has been out
+long enough for authors to port.
+
+- [ ] Native: `third_party/quickjs`, `script/bridge`, `script/api`, `script/js`, `JsHook`, the `ScriptEngine`, the QuickJS branches in `mods/ModLoader.cpp` and `boot/Probe.cpp`, `bl.*` installation, `BL_HAVE_QUICKJS`.
+- [ ] `content/*` callbacks that call into JS (`script::saveModItemData` and the like) point only to C#.
+- [ ] App: the QuickJS setting (`Prefs.quickJs`, Settings screen, `GameActivity`), `.js` entries in `ModManifest`, `Catalog`, `ModRepository`, `ModSources`, `NativeBridge`; the launcher refuses JS packs with a clear message.
+- [ ] BL Editor and Mod Sources: C# only.
+- [ ] Tools: `tools/mods` (`pack.py`, `publish.py`, `port_textures.py`, tests) without `main.js`; the catalog app.
+- [ ] Docs: `docs/mods` (the JS guides) archived to `docs/historico`; `docs/mods-em-csharp` becomes the mod guide; README, wiki and `docs/nucleo` updated.
+- [ ] The APK and `libbunny.so` size before and after, in the changelog.
+
+## 5. Order and parallel work
+
+Phase 0 blocks everything. After it, phases 1 and 3 can run side by side, 2
+after 1 (the player uses items), 4 after 3, 5 after 1, 6 and 7 after 0. Phase 8
+moves along with each phase; phase 9 is last.
+
+## 6. The JS mods that exist today
+
+The catalog has 61 packs: 47 JS mods and 14 texture or font packs (these have
+no code and keep working). Removing QuickJS breaks the 47. All three of these
+are done:
+
+1. **Port the ones we own** (Example Mod and the samples) and contact the
+   authors of the rest with the C# guide and a deadline.
+2. **Keep the last release with QuickJS downloadable** for anyone who needs a
+   JS mod, with the catalog showing which app version each mod needs.
+3. **Flag JS mods in the catalog** as soon as phase 1 lands, so new mods are
+   written in C#.
+
+When: (3) right away, (1) during phase 8, (2) at phase 9.
+
+- [ ] JS mods flagged in the catalog.
+- [ ] Authors of the other JS mods contacted, with the C# guide and a deadline.
+- [ ] The last QuickJS release kept downloadable, and the catalog says which app version each mod needs.

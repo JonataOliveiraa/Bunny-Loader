@@ -16,6 +16,7 @@ are enough.
 | [Joining a server](multijogador.md) | Syncing mods and textures from the Host screen, the handshake on join and the automatic return. |
 | [Menu localization](localizacao-menu.md) | The launcher's and the Mod Menu's language, the shared catalog and translations. |
 | [Shader research](pesquisa-shaders.md) | Evidence about Terraria's effects and Unity materials, loading hypotheses and criteria for practical proofs. |
+| [The C# plan](plano-csharp.md) | Every loader in C#, the tModLoader-shaped API, the phases and the removal of JavaScript. |
 | [tModLoader contracts](compatibilidade-tmodloader-desenho-banners.md) | Analysis of the item drawing, CloneDefaults and banner implementation; native boundaries, persistence, networking and combat limits. |
 
 ## What the core is
