@@ -18,7 +18,7 @@ namespace bl::runtime {
 struct ModMenuFolder {
     std::string mod;       // uid do mod
     std::string modName;   // nome do manifesto
-    std::string modIcon;   // icon.png do mod (caminho absoluto), ou vazio
+    std::string modIcon;   // icon_small.png ou icon.png do mod (caminho absoluto), ou vazio
     std::string name;      // nome da pasta
     std::string icon;      // PNG que o mod deu a pasta, ou vazio (usa o 1o da lista)
     bool npc = false;

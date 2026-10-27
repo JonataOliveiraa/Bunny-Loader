@@ -38,6 +38,140 @@ import kotlinx.coroutines.withContext
 class Shell(context: Context) {
     val catalog = Catalog(context)
     private val repo by lazy { ModRepository(context) }
+    val modSources = dev.bunnyloader.mods.ModSources(
+        java.io.File(context.getExternalFilesDir(null) ?: context.filesDir, "ModSources"),
+        { context.assets.open("templates/basic-sword.png") },
+    )
+    private val sourceBuilds = java.io.File(context.cacheDir, "ModBuilds")
+    private val sourceContext = context.applicationContext
+    val sourceLocations = dev.bunnyloader.mods.SourceLocations(sourceContext, modSources).apply {
+        trees = Prefs(sourceContext).sourceTrees
+    }
+    var sourceFolders by mutableStateOf(sourceLocations.locations)
+        private set
+    var sourceProjects by mutableStateOf(emptyList<dev.bunnyloader.mods.ModSources.Project>())
+        private set
+    var sourceBusy by mutableStateOf(false)
+        private set
+    var sourceMessage by mutableStateOf<String?>(null)
+        private set
+
+    fun sourceTask(operation: () -> String) {
+        if (sourceBusy) return
+        sourceBusy = true
+        sourceMessage = null
+        scope.launch {
+            try {
+                sourceMessage = withContext(Dispatchers.IO) { operation() }
+                sourceProjects = withContext(Dispatchers.IO) { sourceLocations.list() }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                sourceMessage = tr("Failed", e.message)
+            } finally {
+                sourceBusy = false
+            }
+        }
+    }
+
+    fun refreshSources() = sourceTask { "" }
+
+    fun addSourceFolder(uri: Uri) {
+        sourceTask {
+            try {
+                sourceContext.contentResolver.takePersistableUriPermission(uri,
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            } catch (e: Exception) {
+                throw IllegalArgumentException(tr("FolderPermissionFailed"), e)
+            }
+            sourceLocations.validateTree(uri)
+            val updated = Prefs(sourceContext).sourceTrees + uri.toString()
+            Prefs(sourceContext).sourceTrees = updated
+            sourceLocations.trees = updated
+            val folders = sourceLocations.locations
+            scope.launch { sourceFolders = folders }
+            tr("SourceLocationAdded")
+        }
+    }
+
+    fun removeSourceFolder(id: String) {
+        if (id.isEmpty()) return
+        sourceTask {
+            val updated = Prefs(sourceContext).sourceTrees - id
+            Prefs(sourceContext).sourceTrees = updated
+            sourceLocations.trees = updated
+            val folders = sourceLocations.locations
+            scope.launch { sourceFolders = folders }
+            // Removing a scan root does not delete its files.
+            runCatching {
+                sourceContext.contentResolver.releasePersistableUriPermission(Uri.parse(id),
+                    android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+            tr("SourceLocationRemoved")
+        }
+    }
+
+    fun sourceFolderUri(key: String): Uri = sourceLocations.folderUri(key)
+
+    fun createSource(
+        id: String,
+        name: String,
+        author: String,
+        basicSword: String = "",
+        language: String = UiLocalization.language,
+        location: String = "",
+        onCreated: (String) -> Unit,
+    ) {
+        sourceTask {
+            val project = sourceLocations.create(id.trim(), name.trim(), author.trim(), basicSword.trim(), language, location)
+            scope.launch { onCreated(project.key) }
+            tr("ProjectCreated")
+        }
+    }
+
+    fun buildSource(key: String, install: Boolean, destination: Uri? = null) {
+        if (sourceBusy) return
+        sourceBusy = true
+        sourceMessage = null
+        scope.launch {
+            try {
+                val (result, outputPath) = installLock.withLock {
+                    require(!install || (pendingUpdate == null && importProgress == null)) {
+                        tr("WaitForImport")
+                    }
+                    withContext(Dispatchers.IO) {
+                        val output = java.io.File(sourceBuilds, "source-${java.util.UUID.randomUUID()}.bl")
+                        try {
+                            val manifest = sourceLocations.build(key, output)
+                            if (destination != null) {
+                                requireNotNull(sourceContext.contentResolver.openOutputStream(destination, "wt")) {
+                                    "não consegui criar o arquivo"
+                                }.use { target -> output.inputStream().use { it.copyTo(target) } }
+                            }
+                            if (install) {
+                                repo.import(output).getOrThrow()
+                                if (Prefs(sourceContext).enableOnInstall) repo.setEnabled(manifest.uid, true)
+                            }
+                            manifest to output.absolutePath
+                        } finally {
+                            if (install || destination != null) output.delete()
+                        }
+                    }
+                }
+                sourceProjects = withContext(Dispatchers.IO) { sourceLocations.list() }
+                sourceMessage = if (install) tr("ModBuiltAndInstalled", result.name)
+                    else if (destination != null) tr("ModExported", result.name)
+                    else tr("PackageCreated", outputPath)
+                if (install) rescan()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                sourceMessage = tr("Failed", e.message)
+            } finally {
+                sourceBusy = false
+            }
+        }
+    }
 
     var installed by mutableStateOf(emptySet<String>())
         private set

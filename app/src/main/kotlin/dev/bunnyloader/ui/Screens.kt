@@ -789,6 +789,11 @@ fun ConfigTab(
     var editor by remember { mutableStateOf(prefs.devEditor) }
     var restart by remember { mutableStateOf(prefs.devRestart) }
     var quickJs by remember { mutableStateOf(prefs.quickJs) }
+    var sourcesOpen by rememberSaveable { mutableStateOf(false) }
+    if (sourcesOpen) {
+        ModSourcesScreen(shell) { sourcesOpen = false }
+        return
+    }
 
     Box {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = EdgePad)) {
@@ -840,6 +845,8 @@ fun ConfigTab(
             ) { devChannel = it; prefs.devChannel = it }
 
             SectionTitle(tr("Developer"))
+            PixelButton(tr("ModSources"), { sourcesOpen = true },
+                Modifier.fillMaxWidth().padding(bottom = 10.dp), icon = R.drawable.ic_folder)
             QuickStartCard(prefs)
             Setting(
                 tr("ModMenu"),
