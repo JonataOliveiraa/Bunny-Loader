@@ -116,6 +116,7 @@ struct Refs {
     const MethodInfo* chunkSave = nullptr;      // WorldMapChunk.SaveCompressed()
     const MethodInfo* chunkLoad = nullptr;      // WorldMapChunk.LoadTiles(bool)
     FieldInfo* worldData = nullptr;             // Main.ActiveWorldFileData
+    int32_t playerPath = -1;                    // FileData._path (o do personagem aberto)
     int32_t maxWidth = -1, maxHeight = -1, chunkWidth = -1, lockObject = -1;
     int32_t tileData = -1, dirty = -1, chunkX = -1, chunkY = -1;   // WorldMapChunk (X, Y: o pedaco, nao o tile)
 };
@@ -171,6 +172,7 @@ Refs& refs() {
     Il2CppClass* lang = findClass({"Terraria", "Lang", {}});
     Il2CppClass* language = findClass({"Terraria.Localization", "Language", {}});
     Il2CppClass* main = findClass({"Terraria", "Main", {}});
+    Il2CppClass* fileData = findClass({"Terraria.IO", "FileData", {}});
     Il2CppClass* map = findClass({"Terraria.Map", "WorldMap", {}});
     Il2CppClass* chunk = findClass({"Terraria.Map", "WorldMapChunk", {}});
     r.lookup = helper ? findField(helper, "tileLookup") : nullptr;
@@ -198,6 +200,7 @@ Refs& refs() {
     r.getMap = main ? a.class_get_method_from_name(main, "get_Map", 0) : nullptr;
     r.getPlayerData = main ? a.class_get_method_from_name(main, "get_ActivePlayerFileData", 0) : nullptr;
     r.worldData = main ? findField(main, "ActiveWorldFileData") : nullptr;
+    r.playerPath = fileData ? fieldOffset(fileData, "_path") : -1;
     r.maxWidth = map ? fieldOffset(map, "MaxWidth") : -1;
     r.maxHeight = map ? fieldOffset(map, "MaxHeight") : -1;
     r.chunkWidth = map ? fieldOffset(map, "MaxChunkWidth") : -1;
@@ -209,7 +212,7 @@ Refs& refs() {
     r.chunkSave = chunk ? a.class_get_method_from_name(chunk, "SaveCompressed", 0) : nullptr;
     r.chunkLoad = chunk ? a.class_get_method_from_name(chunk, "LoadTiles", 1) : nullptr;
     r.saveOk = r.createMapTile && r.saveCompressed && r.saveMap && r.mapLoad && r.getChunkTile && r.tryGetMapPath &&
-               r.getMap && r.getPlayerData && r.worldData && r.maxWidth >= 0 && r.maxHeight >= 0 &&
+               r.getMap && r.getPlayerData && r.worldData && r.playerPath >= 0 && r.maxWidth >= 0 && r.maxHeight >= 0 &&
                r.chunkWidth >= 0 && r.lockObject >= 0 && r.tileData >= 0 && r.dirty >= 0 &&
                r.chunkX >= 0 && r.chunkY >= 0 && r.chunkSave && r.chunkLoad &&
                a.monitor_enter && a.monitor_exit;
@@ -341,6 +344,11 @@ std::string mapPath(const Refs& r) {
     Il2CppObject* world = nullptr;
     il2cpp::api().field_static_get_value(r.worldData, &world);
     if (!player || !world) return {};
+    // O personagem do tutorial vem de Resources e nao tem arquivo (_path nulo):
+    // o TryGetMapPath do jogo estoura NullReferenceException nele. O tutorial
+    // tambem nao tem .map, entao nao ha caminho a procurar.
+    Il2CppString* playerPath = r.playerPath >= 0 ? field<Il2CppString*>(player, r.playerPath) : nullptr;
+    if (!playerPath || playerPath->length < 4) return {};
     Il2CppString* path = nullptr;
     const bool exists = call<bool>(r.tryGetMapPath, player, world, &path);
     return exists ? toUtf8(path) : std::string();
