@@ -1,0 +1,15 @@
+{
+  "uid": "194fe670-6c61-4a71-a5e5-01db1a2dc7bd",
+  "id": "test-csload",
+  "name": "Teste: ordem de carga do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ILoadable, [Autoload], IsLoadingEnabled, AddContent, NewInstance e a ordem Load, SetStaticDefaults, PostSetupContent, AddRecipes.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csload. Loga 'csload <caso>: ok | FAIL' e 'csload END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsLoad.dll",
+  "dependencies": []
+}

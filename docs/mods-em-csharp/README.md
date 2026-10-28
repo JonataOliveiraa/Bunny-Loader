@@ -1,6 +1,6 @@
 # Making mods in C#
 
-> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md)
+> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
 
 Bunny Loader runs mods in **two languages**, side by side, inside the same
 game:
@@ -11,9 +11,9 @@ game:
   compiled ahead of time (on your PC, by the catalog when you publish, or by
   the phone itself), and it is **much faster**. Today it
   gives you **hooks** and **full access to the game**: every field, method and
-  struct, with real types and autocomplete. The content classes (`ModItem`,
-  `ModNPC`, `ModSystem`...) are not there yet (see
-  [Moving to C#](07-migracao-para-csharp.md)).
+  struct, with real types and autocomplete. Of the content classes, `ModItem`
+  is there ([guide 9](09-conteudo.md)); `ModNPC`, `ModSystem` and the others
+  are not yet (see [Moving to C#](07-migracao-para-csharp.md)).
 
 Here is a whole C# mod. If you have ever seen a tModLoader hook, you already
 know how to read it:
@@ -63,8 +63,8 @@ flowchart LR
 
 ## The guides
 
-Read the first four in order. The other four are reference "tabs": open them
-when you need them.
+Read the first four in order, then guide 9 to add content. The other four are
+reference "tabs": open them when you need them.
 
 | Guide | What you learn |
 |---|---|
@@ -73,6 +73,8 @@ when you need them.
 | [2. Hooks](02-hooks.md) | Everything about `On_<Type>.<Method>`: before, after, replacing, skipping, overloads, getters, several hooks, errors. |
 | [3. `ref`, `out` and `Nullable`](03-ref-out-e-nullable.md) | Methods that return through parameters and values that may be missing. |
 | [4. Values and objects](04-valores-e-objetos.md) | `new Vector2`, `Item.New()`, fields, arrays, statics, strings, casts, keeping objects alive. |
+| **Content** | |
+| [9. Content classes](09-conteudo.md) | `ModItem`, what gets loaded (`[Autoload]`, `IsLoadingEnabled`, `AddContent`), the load order up to `AddRecipes`, templates and instances. |
 | **Tabs** | |
 | [5. C# × JS × tModLoader](05-comparacao.md) | The same mod in the three, and what is equal and different. |
 | [6. Performance](06-desempenho.md) | Measured on a real phone: where C# is 5× to 450× faster, and the one thing that still costs. |
@@ -85,7 +87,8 @@ when you need them.
 |---|---|
 | Change something the game already has (stats, rules, spawns, drops) | **C#** (faster, typed) or JS |
 | Run heavy logic every frame (AI, math over many entities) | **C#** |
-| Create new items, NPCs, projectiles, tiles, UI | **JS** for now (C# has no `ModItem` yet) |
+| Create new items | **C#** (`ModItem`, [guide 9](09-conteudo.md)) or JS |
+| Create new NPCs, projectiles, tiles, UI | **JS** for now (C# has only `ModItem` yet) |
 | Edit code on the phone, without a PC | **JS** (the in-game editor) |
 | Port code from tModLoader | **C#**: the hooks have the same shape |
 

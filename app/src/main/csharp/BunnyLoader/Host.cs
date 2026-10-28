@@ -20,13 +20,19 @@ internal static unsafe class Host
 
     static readonly List<Mod> LoadedMods = new();
 
-    internal static IReadOnlyList<Mod> Mods => LoadedMods;
+    // Os mods C# carregados, na ordem de carga (uma copia).
+    internal static Mod[] Mods
+    {
+        get { lock (LoadedMods) return LoadedMods.ToArray(); }
+    }
 
     [UnmanagedCallersOnly]
     static int Initialize(NativeApi* api)
     {
         if (api == null || api->Size < (uint)sizeof(NativeApi)) return 0;
         Api = api;
+        // O PostSetupContent e as receitas: uma vez, com todo o conteudo no jogo.
+        api->OnContentReady(&ModContent.ContentReady);
         try
         {
             List<string> bad = Layouts.Verify();
@@ -64,6 +70,7 @@ internal static unsafe class Host
                 mod.Folder = folder;
                 mod.Logger = new ModLogger(mod.Name);
                 mods.Add(mod);
+                ModContent.Add(mod);
             }
             if (mods.Count == 0)
             {
@@ -71,14 +78,19 @@ internal static unsafe class Host
                 return 0;
             }
             // Como no tModLoader: o conteudo entra antes do Load. Ele pertence
-            // ao primeiro Mod do assembly.
-            mods[0].Autoload(assembly);
-            foreach (Mod mod in mods)
+            // ao primeiro Mod do assembly. So entra na lista (PostSetupContent,
+            // receitas) o mod que carregou inteiro.
+            foreach (Mod mod in mods) mod.loading = true;
+            try
             {
-                LoadedMods.Add(mod);
-                ModContent.Add(mod);
-                mod.Load();
+                mods[0].Autoload(assembly);
+                foreach (Mod mod in mods) mod.Load();
             }
+            finally
+            {
+                foreach (Mod mod in mods) mod.loading = false;
+            }
+            lock (LoadedMods) LoadedMods.AddRange(mods);
             return 1;
         }
         catch (Exception e)

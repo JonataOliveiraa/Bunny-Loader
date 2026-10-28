@@ -8,7 +8,8 @@ decisions it records are the ones every phase must respect.
 Status on 2026-10-28: the C# runtime (Mono, generated proxies, `On_<Type>`
 hooks, mods compiled from sources) and a basic `ModItem` loader are done
 (commit `9f60ef4e`), and phase 0 has started: the API is in
-`Terraria.ModLoader`, with `Mod.Logger`. Everything else below is still to do.
+`Terraria.ModLoader`, with `Mod.Logger`, and C# mods load in tModLoader's
+order up to `AddRecipes`. Everything else below is still to do.
 
 ## 1. The rule: look like tModLoader
 
@@ -111,11 +112,11 @@ split among the phases that need them.
 ### Phase 0: the foundation (base for everything)
 
 - [x] Public API moved to tModLoader's namespaces; `Mod.Logger`; `Log` becomes internal.
-- [ ] `ModType<TEntity, TModType>`, `ModTexturedType`, `ILoadable`, `[Autoload]`, `IsLoadingEnabled`, load and unload order (`Mod.Load`, `SetStaticDefaults`, `PostSetupContent`, `AddRecipes`).
+- [x] `ModType<TEntity, TModType>`, `ModTexturedType`, `ILoadable`, `[Autoload]`, `IsLoadingEnabled`, load and unload order (`Mod.Load`, `SetStaticDefaults`, `PostSetupContent`, `AddRecipes`). `Unload` exists but is never called: mods are not unloaded during a session (changing mods restarts the game). Test pack: `tools/tests/csload`.
 - [ ] `ModContent`: `Request<T>`, `Find`/`TryFind`, `GetInstance`, `<X>Type<T>()`, `Mod.Find`, `Mod.Assets`, `Mod.GetFileBytes`.
 - [ ] `ModLoader.TryGetMod`, `Mod.Call`, dependencies and load order between C# mods.
 - [ ] Localization: `LocalizedText`, `Language.GetTextValue`, the hjson layout (section 3), `this.GetLocalization`, `ExampleModCSharp` moved to hjson.
-- [ ] Per-entity instances: `Item.ModItem`, `IEntityWithInstances`, `NewInstance`/`Clone`, `CloneNewInstances`, the per-object data that `script/bridge/ExtraFields` gives JS today.
+- [ ] Per-entity instances: `Item.ModItem`, `IEntityWithInstances`, `NewInstance`/`Clone`, `CloneNewInstances`, the per-object data that `script/bridge/ExtraFields` gives JS today. (`NewInstance`, `Clone` and `CloneNewInstances` are in `ModType<TEntity, TModType>` already; what is missing is keeping the instance on the entity.)
 - [ ] Globals: `GlobalType`, `GlobalItem`/`GlobalNPC`/... lists, `InstancePerEntity`, `AppliesToEntity`.
 - [ ] Saves: `TagCompound`, `TagIO`, `SaveData`/`LoadData`, wired to the native save files (`ModItemSave` and friends call C# instead of `script::saveModItemData`).
 - [ ] Networking: `ModPacket`, `Mod.GetPacket`, `HandlePacket`, `NetSend`/`NetReceive`, the join handshake (message 68).

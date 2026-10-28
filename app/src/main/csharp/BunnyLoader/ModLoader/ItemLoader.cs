@@ -57,7 +57,6 @@ internal static unsafe class ItemLoader
             all[index] = item;
             Volatile.Write(ref items, all);
         }
-        ModContent.Add(item);
     }
 
     // O DisplayName do item vale para todo idioma; sem ele, o ItemName das
@@ -127,7 +126,9 @@ internal static unsafe class ItemLoader
         api->PrepareItem(self.Pointer, type);
         try
         {
-            template.NewInstance(self).SetDefaults();
+            ModItem instance = template.NewInstance(self);
+            instance.Type = template.Type;
+            instance.SetDefaults();
         }
         catch (Exception e)
         {
@@ -146,7 +147,7 @@ internal static unsafe class ItemLoader
             if (item == null) continue;
             try
             {
-                item.SetStaticDefaults();
+                item.SetupContent();
             }
             catch (Exception e)
             {

@@ -1,5 +1,6 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
+#include "content/common/ModContent.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -54,6 +55,7 @@ struct NativeApi {
     void (*prepareItem)(void* item, int32_t type);
     void (*finishItem)(void* item, int32_t type);
     void (*onItemsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void (*onContentReady)(void (*callback)());
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -371,6 +373,11 @@ void nativeOnItemsInstalled(void (*callback)(int32_t first, int32_t last)) {
     runtime::addItemsInstalledHook(reinterpret_cast<runtime::ItemsInstalledHook>(callback));
 }
 
+/** O PostSetupContent e o AddRecipes do C#: uma vez, com o conteudo todo no jogo. */
+void nativeOnContentReady(void (*callback)()) {
+    runtime::addContentReadyHook(callback);
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -402,6 +409,7 @@ const NativeApi kNativeApi{
     nativePrepareItem,
     nativeFinishItem,
     nativeOnItemsInstalled,
+    nativeOnContentReady,
 };
 
 } // namespace

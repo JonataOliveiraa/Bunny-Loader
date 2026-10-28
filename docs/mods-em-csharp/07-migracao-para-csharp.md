@@ -1,6 +1,6 @@
 # 7. Moving to C#
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · **7. Moving to C#** · [8. Under the hood](08-por-baixo-dos-panos.md)
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · **7. Moving to C#** · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
 
 Bunny Loader started as a JavaScript mod loader. C# arrived next to it, and
 the measurements in [Performance](06-desempenho.md) raise an obvious
@@ -36,7 +36,8 @@ flowchart TB
 | `On_` hooks with `ref`, `out`, `Nullable`, structs | ✅ done, 43/43 checks |
 | Fast calls for XNA math and getters | ✅ done |
 | Turning QuickJS off (*Settings → Developer → QuickJS*) | ✅ done: JS mods stop loading, C# mods keep working |
-| **C# loaders**: `ModItem`, `ModNPC`, `ModProjectile`, `ModTile`, `ModBuff`, `ModPlayer`, `ModSystem`, `Global*` | ❌ not started |
+| **C# loaders**: the load order, `ModItem` ([guide 9](09-conteudo.md)) | ⚠️ started: items have defaults, texture, name and tooltip |
+| **C# loaders**: `ModNPC`, `ModProjectile`, `ModTile`, `ModBuff`, `ModPlayer`, `ModSystem`, `Global*` | ❌ not started |
 | Textures, sounds, music, localization, config and UI for C# mods | ❌ come with the loaders |
 | A ready template / NuGet package for C# mods | ❌ for now, the `.dll` comes from the APK |
 | C# mods in the online catalog | ⚠️ they install like any package; the catalog has not been tested with them |

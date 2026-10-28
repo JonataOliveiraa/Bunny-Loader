@@ -1,6 +1,6 @@
 # 8. Under the hood
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · **8. Under the hood**
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · **8. Under the hood** · [9. Content classes](09-conteudo.md)
 
 You do not need this page to write mods. It explains how C# mods work inside
 the game, for the curious and for whoever works on Bunny Loader itself.
@@ -214,4 +214,4 @@ loads `libSystem.Security.Cryptography.Native.Android.so` from Java, so its
 | The compiler of mods with sources | `app/src/main/csharp/BunnyLoader.Compiler/` |
 | The compiler in the catalog app | `catalog/src/main/cpp/CompilerHost.cpp`, `CompilerRuntime.kt`, `CSharpBuild.kt` |
 | The compiler on a PC | `tools/mods/csbuild/`, `tools/mods/csharp_build.py` |
-| Tests and benchmarks | `tools/tests/hookcs`, `benchcs`, `benchjs`, `cssource`, `compilebench` |
+| Tests and benchmarks | `tools/tests/hookcs`, `benchcs`, `benchjs`, `cssource`, `compilebench`, `csitems`, `csload` |

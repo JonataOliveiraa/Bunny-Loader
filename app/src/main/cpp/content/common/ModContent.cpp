@@ -16,7 +16,8 @@ namespace bl::runtime {
 
 namespace {
 
-std::atomic<ContentReadyHook> g_hook{nullptr};
+constexpr int kMaxReadyHooks = 4;
+std::atomic<ContentReadyHook> g_hooks[kMaxReadyHooks]{};
 bool g_done = false;
 
 struct Refs {
@@ -48,8 +49,13 @@ T readStatic(FieldInfo* f) {
 
 } // namespace
 
-void setContentReadyHook(ContentReadyHook hook) {
-    g_hook.store(hook, std::memory_order_release);
+void addContentReadyHook(ContentReadyHook hook) {
+    if (!hook) return;
+    for (auto& slot : g_hooks) {
+        ContentReadyHook expected = nullptr;
+        if (slot.compare_exchange_strong(expected, hook, std::memory_order_acq_rel) || expected == hook) return;
+    }
+    BL_ERROR("mod content: no room for another content-ready hook");
 }
 
 bool contentSettled() {
@@ -65,14 +71,15 @@ bool contentSettled() {
 
 void tickContentReady() {
     if (g_done) return;
-    ContentReadyHook hook = g_hook.load(std::memory_order_acquire);
-    if (!hook) return;
+    if (!g_hooks[0].load(std::memory_order_acquire)) return;
     if (!contentSettled()) return;
     g_done = true;
     const Refs& r = refs();
     if (!r.ok) return;
     BL_INFO("conteudo de mod: pronto (receitas do jogo: %d)", readStatic<int32_t>(r.numRecipes));
-    hook();
+    for (const auto& slot : g_hooks) {
+        if (ContentReadyHook hook = slot.load(std::memory_order_acquire)) hook();
+    }
 }
 
 } // namespace bl::runtime

@@ -38,4 +38,5 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, int, void> PrepareItem;
     public delegate* unmanaged<IntPtr, int, void> FinishItem;
     public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnItemsInstalled;
+    public delegate* unmanaged<delegate* unmanaged<void>, void> OnContentReady;
 }

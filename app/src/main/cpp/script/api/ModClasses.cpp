@@ -70,7 +70,7 @@ JSValue js_onContentReady(JSContext* ctx, JSValueConst, int argc, JSValueConst* 
     if (argc < 1 || !JS_IsFunction(ctx, argv[0])) return JS_ThrowTypeError(ctx, "bl.onContentReady(funcao)");
     g_ctx = ctx;
     g_ready.push_back(JS_DupValue(ctx, argv[0]));
-    runtime::setContentReadyHook(onContentReady);
+    runtime::addContentReadyHook(onContentReady);
     return JS_UNDEFINED;
 }
 
