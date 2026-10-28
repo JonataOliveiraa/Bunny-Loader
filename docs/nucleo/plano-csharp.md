@@ -10,8 +10,8 @@ hooks, mods compiled from sources) and a basic `ModItem` loader are done
 (commit `9f60ef4e`), and phase 0 has started: the API is in
 `Terraria.ModLoader`, with `Mod.Logger`, and C# mods load in tModLoader's
 order up to `AddRecipes`, with `ModContent` (`Find`, `Request<Texture2D>`, files)
-and `ModLoader` (`TryGetMod`, `Call`, C# dependencies), and translations in
-tModLoader's hjson. Everything else below is still to do.
+and `ModLoader` (`TryGetMod`, `Call`, C# dependencies), translations in
+tModLoader's hjson, and `Item.ModItem`. Everything else below is still to do.
 
 ## 1. The rule: look like tModLoader
 
@@ -118,7 +118,7 @@ split among the phases that need them.
 - [x] `ModContent`: `Request<T>`, `Find`/`TryFind`, `GetInstance`, `<X>Type<T>()`, `Mod.Find`, `Mod.Assets`, `Mod.GetFileBytes`. `Asset<T>` is written by hand in `ReLogic.Content` (only `Texture2D` for now) until ProxyGen generates generics; it loads on first `Value` on the game thread. `Mod.Assets` is a `BunnyLoader.ModAssets` (the name `AssetRepository` is the game's `Main.Assets`). Test pack: `tools/tests/csassets`.
 - [x] `ModLoader.TryGetMod`, `Mod.Call`, dependencies and load order between C# mods. The order is the native one (manifest `dependencies` first); a mod finds the ones created before it, and every mod from `PostSetupContent` on. A mod with sources compiles on the phone against its C# dependencies' `.dll`; the catalog and the PC tools cannot compile such a mod yet. C# and JS mods cannot call each other. Test packs: `tools/tests/csmodtarget`, `csmodref`, `cssourceref`.
 - [x] Localization: `LocalizedText`, `Language.GetTextValue`, the hjson layout (section 3), `this.GetLocalization`, `ExampleModCSharp` moved to hjson. `Language` and `LocalizedText` are the game's proxies, with `GetOrRegister`, `GetTextValue(key, args)` and `Format(args)` added in partials; the native `content/common/ModLanguage` keeps the mods' texts, puts them in the game's table on the game thread and re-applies them when the language changes. Test pack: `tools/tests/csloc`.
-- [ ] Per-entity instances: `Item.ModItem`, `IEntityWithInstances`, `NewInstance`/`Clone`, `CloneNewInstances`, the per-object data that `script/bridge/ExtraFields` gives JS today. (`NewInstance`, `Clone` and `CloneNewInstances` are in `ModType<TEntity, TModType>` already; what is missing is keeping the instance on the entity.)
+- [x] Per-entity instances: `Item.ModItem`, `IEntityWithInstances`, `NewInstance`/`Clone`, `CloneNewInstances`, the per-object data that `script/bridge/ExtraFields` gives JS today. `BunnyLoader.EntityInstances<T>` is the C# side of ExtraFields: a table keyed by the game object's address, with a weak handle (NativeApi `GcHandleNewWeak`) to tell it from a new object at the same address, swept as it grows. `Item.ModItem` is a partial on the proxy; `Item.Clone` clones the instance. `IEntityWithInstances` is left for the globals item, where tModLoader's entity-side lists (`EntityGlobals`) live. Test pack: `tools/tests/csinstances`.
 - [ ] Globals: `GlobalType`, `GlobalItem`/`GlobalNPC`/... lists, `InstancePerEntity`, `AppliesToEntity`.
 - [ ] Saves: `TagCompound`, `TagIO`, `SaveData`/`LoadData`, wired to the native save files (`ModItemSave` and friends call C# instead of `script::saveModItemData`).
 - [ ] Networking: `ModPacket`, `Mod.GetPacket`, `HandlePacket`, `NetSend`/`NetReceive`, the join handshake (message 68).

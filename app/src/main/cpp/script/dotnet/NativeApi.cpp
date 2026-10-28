@@ -70,6 +70,7 @@ struct NativeApi {
     void* (*textureAssetValue)(void* asset);
     int32_t (*modManifestField)(const char* uid, int32_t field, char* out, int32_t size);
     void* (*languageText)(const char* key, const char* packedTexts, int32_t replace);
+    uint32_t (*gcHandleNewWeak)(void* obj);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -456,6 +457,11 @@ void* nativeLanguageText(const char* key, const char* packedTexts, int32_t repla
     return runtime::modLanguageText(key, &names, replace != 0);
 }
 
+uint32_t nativeGcHandleNewWeak(void* obj) {
+    auto& a = il2cpp::api();
+    return obj && a.gchandle_new_weakref ? a.gchandle_new_weakref(static_cast<Il2CppObject*>(obj), false) : 0;
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -494,6 +500,7 @@ const NativeApi kNativeApi{
     nativeTextureAssetValue,
     nativeModManifestField,
     nativeLanguageText,
+    nativeGcHandleNewWeak,
 };
 
 } // namespace

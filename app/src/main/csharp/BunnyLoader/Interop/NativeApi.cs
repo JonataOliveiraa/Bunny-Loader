@@ -45,4 +45,5 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, IntPtr> TextureAssetValue;
     public delegate* unmanaged<byte*, int, byte*, int, int> ModManifestField;
     public delegate* unmanaged<byte*, byte*, int, IntPtr> LanguageText;
+    public delegate* unmanaged<IntPtr, uint> GcHandleNewWeak;
 }

@@ -18,6 +18,26 @@ internal static unsafe class ItemLoader
 
     static bool hooked;
 
+    static readonly EntityInstances<ModItem> Instances = new();
+
+    public static ModItem? InstanceOf(Item item)
+    {
+        if (item.IsNull) return null;
+        int type = item.type;
+        ModItem? template = Get(type);
+        if (template == null) return null;
+        ModItem? current = Instances.Get(item.Pointer);
+        return current != null && current.Type == type ? current : Bind(template, item);
+    }
+
+    static ModItem Bind(ModItem template, Item item)
+    {
+        ModItem instance = template.NewInstance(item);
+        instance.Type = template.Type;
+        Instances.Set(item.Pointer, instance);
+        return instance;
+    }
+
     public static ModItem? Get(int type)
     {
         ModItem?[] all = Volatile.Read(ref items);
@@ -38,6 +58,7 @@ internal static unsafe class ItemLoader
             if (!hooked)
             {
                 On_Item.SetDefaults += SetDefaults;
+                On_Item.Clone += Clone;
                 Host.Native()->OnItemsInstalled(&ItemsInstalled);
                 hooked = true;
             }
@@ -111,21 +132,38 @@ internal static unsafe class ItemLoader
         if (template == null)
         {
             orig(self, type, variant);
+            if (Instances.Count > 0) Instances.Set(self.Pointer, null);
             return;
         }
         NativeApi* api = Host.Native();
         api->PrepareItem(self.Pointer, type);
         try
         {
-            ModItem instance = template.NewInstance(self);
-            instance.Type = template.Type;
-            instance.SetDefaults();
+            Bind(template, self).SetDefaults();
         }
         catch (Exception e)
         {
             Log.Error($"item {template.FullName}: SetDefaults threw: {e}");
         }
         api->FinishItem(self.Pointer, type);
+    }
+
+    static Item Clone(On_Item.orig_Clone orig, Item self)
+    {
+        Item copy = orig(self);
+        ModItem? source = copy.IsNull ? null : Instances.Get(self.Pointer);
+        if (source == null || source.Type != copy.type) return copy;
+        try
+        {
+            ModItem cloned = source.Clone(copy);
+            cloned.Type = source.Type;
+            Instances.Set(copy.Pointer, cloned);
+        }
+        catch (Exception e)
+        {
+            Log.Error($"item {source.FullName}: Clone threw: {e}");
+        }
+        return copy;
     }
 
     [UnmanagedCallersOnly]

@@ -1,0 +1,15 @@
+{
+  "uid": "566a1793-863d-4b74-a1d9-4a90baa43612",
+  "id": "test-csinstances",
+  "name": "Teste: instancias de ModItem do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Item.ModItem: uma instancia por item, que dura, segue o Item.Clone e some quando o item vira outro tipo, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csinstances. Loga 'csinstances <caso>: ok | FAIL' e 'csinstances END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsInstances.dll",
+  "dependencies": []
+}

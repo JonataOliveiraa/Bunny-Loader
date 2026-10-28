@@ -133,11 +133,38 @@ protected override bool CloneNewInstances => true;
 ```
 
 The copy is shallow: a list or array in a field is shared with the template.
-Override `Clone(Item newEntity)` to copy it deeper.
+Override `Clone(Item newEntity)` to copy it deeper:
 
-For now the instance is not kept on the item afterwards (that comes with
-`Item.ModItem`, see the plan): put data that has to last in the item's own
-fields.
+```csharp
+public List<int> Charges = new();
+
+public override ModItem Clone(Item newEntity)
+{
+    var copy = (ShinyRock)base.Clone(newEntity);
+    copy.Charges = new List<int>(Charges);
+    return copy;
+}
+```
+
+### `Item.ModItem`
+
+The instance stays with its item: `item.ModItem` gives it back, the same
+object every time, so its fields are per item.
+
+```csharp
+if (Main.LocalPlayer.HeldItem.ModItem is ShinyRock rock)
+    rock.Polish++;
+```
+
+- `item.ModItem` is `null` for an item of the game, and becomes `null` again
+  when `SetDefaults` turns the item into a vanilla one.
+- `Item.Clone()` gives the copy a `Clone` of the instance (with your `Clone`
+  override, if there is one), so the data follows the item into the copy.
+- An item that became your type without `SetDefaults` (its `type` written by
+  hand) gets a new instance the first time `item.ModItem` is read.
+- The data lives as long as the game keeps the item: Bunny Loader holds no
+  item alive. It is not saved with the world or the player yet, and not sent
+  in multiplayer (`SaveData` and `NetSend` come later, see the plan).
 
 ## Finding content by name
 
