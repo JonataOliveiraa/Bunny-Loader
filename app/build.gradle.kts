@@ -310,6 +310,7 @@ val monoNativeLibs = listOf(
     // esta lib e o .jar com as classes que ela procura (monoCryptoJar). O
     // compilador dos mods a usa: o selo do build e o SHA-1 de cada referência.
     "libSystem.Security.Cryptography.Native.Android.so",
+    "libSystem.IO.Compression.Native.so",
 )
 val monoCryptoJar = layout.buildDirectory.file("generated/monoCrypto/libSystem.Security.Cryptography.Native.Android.jar")
 /**
