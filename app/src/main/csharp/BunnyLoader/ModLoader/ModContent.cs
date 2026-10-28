@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using BunnyLoader;
 using BunnyLoader.Interop;
@@ -131,16 +132,44 @@ public static class ModContent
             }
             try { PrefixLoader.ContentReady(); }
             catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
-            foreach (Mod mod in mods) Run(mod, "PostSetupContent", mod.PostSetupContent);
-            try { ItemOpenHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
-            foreach (Mod mod in mods) Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);
             foreach (Mod mod in mods)
             {
-                Run(mod, "AddRecipes", mod.AddRecipes);
-                foreach (ModItem item in mod.GetContent<ModItem>()) Run(mod, $"{item.Name}.AddRecipes", item.AddRecipes);
+                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.SetStaticDefaults", system.SetupContent);
             }
-            foreach (Mod mod in mods) Run(mod, "PostAddRecipes", mod.PostAddRecipes);
+            foreach (Mod mod in mods)
+            {
+                Run(mod, "PostSetupContent", mod.PostSetupContent);
+                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostSetupContent", system.PostSetupContent);
+            }
+            try { ItemOpenHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);
+                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.AddRecipeGroups", system.AddRecipeGroups);
+            }
+            RecipeLoader.BeginSetup();
+            foreach (Mod mod in mods)
+            {
+                RecipeLoader.SetCurrentMod(mod);
+                Run(mod, "AddRecipes", mod.AddRecipes);
+                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.AddRecipes", system.AddRecipes);
+                foreach (ModItem item in mod.GetContent<ModItem>()) Run(mod, $"{item.Name}.AddRecipes", item.AddRecipes);
+                foreach (GlobalItem global in mod.GetContent<GlobalItem>()) Run(mod, $"{global.Name}.AddRecipes", global.AddRecipes);
+            }
+            foreach (Mod mod in mods)
+            {
+                RecipeLoader.SetCurrentMod(mod);
+                Run(mod, "PostAddRecipes", mod.PostAddRecipes);
+                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostAddRecipes", system.PostAddRecipes);
+            }
+            RecipeLoader.EndSetup();
+            foreach (Mod mod in mods)
+            {
+                bool created = mod.GetContent<ModItem>().Any(i => ItemHooks.Overrides(i.GetType(), typeof(ModItem), nameof(ModItem.OnCreated))) ||
+                               mod.GetContent<GlobalItem>().Any(g => ItemHooks.Overrides(g.GetType(), typeof(GlobalItem), nameof(GlobalItem.OnCreated)));
+                if (created) RecipeLoader.WantCraft();
+            }
         }
         catch (Exception e)
         {

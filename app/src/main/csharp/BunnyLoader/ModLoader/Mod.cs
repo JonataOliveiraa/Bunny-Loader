@@ -46,6 +46,8 @@ public abstract class Mod
 
     public virtual void PostAddRecipes() { }
 
+    public Recipe CreateRecipe(int result, int amount = 1) => Recipe.Create(result, amount);
+
     public virtual void Unload() { }
 
     public virtual object? Call(params object?[] args) => null;

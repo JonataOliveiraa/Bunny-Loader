@@ -33,6 +33,10 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void AddRecipes() { }
 
+    public Recipe CreateRecipe(int amount = 1) => Recipe.Create(Type, amount);
+
+    public virtual void OnCreated(ItemCreationContext context) { }
+
     public virtual bool CanUseItem(Player player) => true;
 
     public virtual bool? UseItem(Player player) => null;

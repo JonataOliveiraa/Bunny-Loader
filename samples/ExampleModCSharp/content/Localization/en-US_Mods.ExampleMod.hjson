@@ -9,3 +9,7 @@ Items: {
 		Tooltip: ""
 	}
 }
+
+Conditions: {
+	LowHealth: Low Health
+}

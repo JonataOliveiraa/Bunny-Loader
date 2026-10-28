@@ -63,6 +63,22 @@ internal static unsafe class ItemLoader
         return instance;
     }
 
+    internal static void OnCreated(Item item, ItemCreationContext context)
+    {
+        if (item.IsNull) return;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { modItem.OnCreated(context); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.OnCreated", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { global.OnCreated(item, context); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.OnCreated", e); }
+        }
+    }
+
     public static ModItem? Get(int type)
     {
         ModItem?[] all = Volatile.Read(ref items);

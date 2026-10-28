@@ -99,11 +99,11 @@ Your own classes can join the load too: implement `ILoadable` and its
 | When | What runs | Thread |
 |---|---|---|
 | 1. The mod loads (the game is opening) | each content class: `IsLoadingEnabled`, then its `Load()`; then your `Mod.Load()` | the loader's |
-| 2. The game knows the new types | each item's `SetStaticDefaults()` | the game's |
-| 3. All mods' content is in the game | `Mod.PostSetupContent()` | the game's |
-| 4. | `Mod.AddRecipeGroups()` | the game's |
-| 5. | `Mod.AddRecipes()`, then each item's `AddRecipes()` | the game's |
-| 6. | `Mod.PostAddRecipes()` | the game's |
+| 2. The game knows the new types | each item's and each `ModSystem`'s `SetStaticDefaults()` | the game's |
+| 3. All mods' content is in the game | `Mod.PostSetupContent()`, then each `ModSystem`'s | the game's |
+| 4. | `Mod.AddRecipeGroups()`, then each `ModSystem`'s | the game's |
+| 5. | `Mod.AddRecipes()`, each `ModSystem`'s, each item's and each `GlobalItem`'s `AddRecipes()` | the game's |
+| 6. | `Mod.PostAddRecipes()`, then each `ModSystem`'s | the game's |
 
 Each of steps 3 to 6 runs in **every** C# mod (in load order) before the next
 one starts, as in tModLoader: in `AddRecipes` you can use any mod's items. An
@@ -115,8 +115,9 @@ Two differences from tModLoader:
 - `Unload()` exists (on `Mod`, `ModType` and `ILoadable`) but is **never
   called**: Bunny Loader does not unload mods while the game runs; changing
   mods restarts the game.
-- There is no recipe API in C# yet, so `AddRecipes` has nothing to call. It
-  runs at the right time, ready for when `Recipe` arrives.
+- `ModSystem` has, for now, only these steps (`SetStaticDefaults`,
+  `PostSetupContent`, `AddRecipeGroups`, `AddRecipes`, `PostAddRecipes`);
+  its other hooks come later.
 
 ## The template and its instances
 
@@ -369,7 +370,7 @@ drawn (it can blink with `Main.DiscoR`...). When a prefix changes how much
 the item is worth, `offset` goes from -2 to +2 and `GetPrefixedRarity`
 decides (the game alone would turn every rarity above 11 into purple). The
 color shows on the text that rises when the item is picked up and on the
-item's name under the cursor; the phone's tooltip has no name line.
+item's name under the cursor and in the tooltip.
 
 ## Prefixes: `ModPrefix`
 
@@ -406,6 +407,62 @@ rand)` (`false`: no prefix; `true`: always one), and `MeleePrefix()`,
 which of the game's prefixes it rolls (by default, from `Item.melee`,
 `ranged`, `magic`, `summon` and `noUseGraphic`). A `GlobalItem` has the first
 three, with the `Item` first.
+
+## Recipes
+
+As in tModLoader, a recipe is the game's `Recipe`, created in `AddRecipes`
+(of the `Mod`, a `ModSystem`, a `ModItem` or a `GlobalItem`):
+
+```csharp
+public override void AddRecipes()
+{
+    CreateRecipe(999)
+        .AddIngredient(ItemID.DirtBlock, 10)
+        .AddRecipeGroup(RecipeGroups.IronBar, 2)
+        .AddTile(TileID.WorkBenches)
+        .AddCondition(Condition.NearWater)
+        .Register();
+}
+```
+
+`Recipe.Create(result, amount)` and `Mod.CreateRecipe(result, amount)` do the
+same for any item. A recipe takes at most 15 ingredients (the game's limit;
+one more throws `RecipeException`) and one crafting station. The rest is
+tModLoader's: `AddIngredient<T>()`, `AddIngredient(Mod, "Name")`,
+`AddRecipeGroup` (by object, registered id or key: `"Wood"`, `"IronBar"`...),
+`AddCondition` (a `Condition`, or a `LocalizedText` and a `Func<bool>`),
+`AddOnCraftCallback`, `AddConsumeIngredientCallback` (how many of an
+ingredient is used, after the Alchemy Table's discount), `DisableDecraft`,
+`Clone`, `DisableRecipe`, and to change recipes in `PostAddRecipes`:
+`TryGetIngredient`, `RemoveIngredient`, `RemoveCondition`, `ReplaceResult`,
+`HasIngredient`, `HasTile`... (`Main.recipe[i]` up to `Recipe.numRecipes`).
+
+`Condition` has tModLoader's ready ones (`NearWater`, `TimeNight`,
+`InDesert`, `Hardmode`...). Its text comes from the translation key; without
+one, from the key's last word (`Conditions.NearWater` reads "Near Water").
+A recipe whose condition fails, or a disabled one, leaves the crafting menu;
+the Guide still lists it, unless it is disabled.
+
+Groups go in `AddRecipeGroups`:
+
+```csharp
+ExampleRecipeGroup = RecipeGroup.Register("ExampleMod:ExampleItem",
+    ModContent.GetInstance<ExampleItem>().DisplayName.Key, ModContent.ItemType<ExampleItem>());
+RecipeGroups.Bugs.Add(ModContent.ItemType<MyBug>());
+```
+
+The text is "Any <name of the key>". `Register(key, () => "Text", items)`
+shows the function's text instead. Registering a key that exists (yours,
+another mod's, or a game group's name: `"SilverBar"`) adds the items to that
+group, as in tModLoader. The phone's `ValidItems` is a game `HashSet` that C#
+cannot reach yet: add items with `group.Add(type)`.
+
+Not on the phone yet: `DecraftConditions` are kept but the Shimmer does not
+read them (`DisableDecraft` does work), `SortBefore`/`SortAfter`, and mod
+tiles as stations (`AddTile<T>()`, with `ModTile`). The game has 3603 recipes
+and stops at 3700: the ones past it are added by Bunny Loader to the crafting
+menu and the Guide. Crafting runs `ModItem.OnCreated` and
+`GlobalItem.OnCreated` with a `RecipeItemCreationContext`.
 
 ## Changing every item: `GlobalItem`
 

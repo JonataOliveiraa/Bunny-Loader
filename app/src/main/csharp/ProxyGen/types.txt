@@ -146,3 +146,6 @@ XNAUnityRunner
 Terraria.ID.PrefixID
 Terraria.GameContent.Prefixes.PrefixLegacy
 Terraria.Utilities.UnifiedRandom
+Terraria.ID.TileID
+Terraria.ID.RecipeGroups
+Terraria.GameContent.ShimmerTransforms

@@ -23,4 +23,12 @@ public class ExampleMeleeWeapon : ModItem
         Item.rare = 2;
         Item.UseSound = SoundID.Item1;
     }
+
+    public override void AddRecipes()
+    {
+        CreateRecipe()
+            .AddIngredient<ExampleItem>()
+            .AddTile(TileID.WorkBenches)
+            .Register();
+    }
 }

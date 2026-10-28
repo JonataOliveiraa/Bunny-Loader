@@ -1,4 +1,5 @@
 using Terraria;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items;
@@ -12,5 +13,13 @@ public class ExampleItem : ModItem
 
         Item.maxStack = Item.CommonMaxStack;
         Item.value = Item.buyPrice(silver: 1);
+    }
+
+    public override void AddRecipes()
+    {
+        CreateRecipe(999)
+            .AddIngredient(ItemID.DirtBlock, 10)
+            .AddTile(TileID.WorkBenches)
+            .Register();
     }
 }

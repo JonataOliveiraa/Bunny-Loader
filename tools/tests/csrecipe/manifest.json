@@ -1,0 +1,15 @@
+{
+  "uid": "c516105e-219e-41eb-9618-0cbcb92398c0",
+  "id": "test-csrecipe",
+  "name": "Teste: receitas no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Recipe, RecipeGroup, Condition, ModSystem e os callbacks de receita, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csrecipe. No mundo, loga 'csrecipe <caso>: ok | FAIL' e 'csrecipe END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsRecipe.dll",
+  "dependencies": []
+}

@@ -15,6 +15,10 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void SetDefaults(Item entity) { }
 
+    public virtual void AddRecipes() { }
+
+    public virtual void OnCreated(Item item, ItemCreationContext context) { }
+
     public virtual bool CanUseItem(Item item, Player player) => true;
 
     public virtual bool? UseItem(Item item, Player player) => null;

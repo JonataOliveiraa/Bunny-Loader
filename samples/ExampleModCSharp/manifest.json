@@ -3,9 +3,9 @@
   "id": "examplemodcsharp",
   "name": "Example Mod C#",
   "localizedSummaries": {
-    "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item and the Sword."
+    "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item, the Sword and the recipes."
   },
-  "version": "0.2.0",
+  "version": "0.3.0",
   "authors": [
     {
       "name": "Potato",
@@ -22,7 +22,7 @@
     }
   ],
   "category": "Itens",
-  "summary": "O ExampleMod do tModLoader em C#, portado conforme os loaders C# chegam. Por enquanto: o Exemplo de Item e a Espada.",
+  "summary": "O ExampleMod do tModLoader em C#, portado conforme os loaders C# chegam. Por enquanto: o Exemplo de Item, a Espada e as receitas.",
   "license": "MIT",
   "updated": "2026-10-28",
   "blVersion": 2,
