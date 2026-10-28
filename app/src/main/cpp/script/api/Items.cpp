@@ -118,8 +118,14 @@ bool installSetDefaultsHook(JSContext* ctx) {
 } // namespace
 
 bool saveModItemData(Il2CppObject* item, std::string& data) {
+    if (!item) return false;
+    // Sem o QuickJS no ar (desligado nas configuracoes, ou so mods C#) nao ha
+    // dado JS a salvar: o item segue salvo pelo nome, como o de mod C#. Antes,
+    // isto contava como falha e o save complementar do personagem inteiro
+    // era abandonado (os itens de mod sumiam ao recarregar).
+    if (!g_ctx) return true;
     JsLock lock(3000);
-    if (!lock.held() || !g_ctx || !item) return false;
+    if (!lock.held()) return false;
 
     const JSAtom atom = JS_NewAtom(g_ctx, "__blItemData");
     JSValue cached = extraFieldGet(g_ctx, item, atom);
