@@ -75,7 +75,7 @@ public static unsafe class PrefixLoader
         if (Has(nameof(ModPrefix.ApplyAccessoryEffects)))
             ItemHooks.Once("PrefixAccessory", () => accessory = ItemHooks.Raw("void GrantPrefixBenefits(Item item)",
                 (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, void>)&GrantPrefixBenefits));
-        if (Has(nameof(ModPrefix.GetTooltipLines))) ItemTooltipHooks.WantPrefixLines();
+        ItemTooltipHooks.WantPrefixLines();
     }
 
     internal static void WantItemHooks(Func<string, bool> has)

@@ -29,6 +29,9 @@ public class ShinyRock : ModItem
 }
 ```
 
+`maxStack` starts at 1, as in tModLoader (the phone's game would start every
+item at 9999): set it for anything that stacks.
+
 The texture is `content/Content/Items/ShinyRock.png`: the namespace plus the
 class name, as in tModLoader, and the first part (the mod's name) may be
 missing on disk. The name and tooltip come from the mod's translations,

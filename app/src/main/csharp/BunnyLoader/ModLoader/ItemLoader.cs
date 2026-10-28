@@ -161,6 +161,7 @@ internal static unsafe class ItemLoader
         }
         NativeApi* api = Host.Native();
         api->PrepareItem(self.Pointer, type);
+        self.maxStack = 1;
         ModItem instance = Bind(template, self);
         GlobalItem?[]? slots = Globals.Begin(self);
         try

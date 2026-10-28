@@ -37,7 +37,7 @@ public static class Checks
     {
         ModPrefix shiny = ModContent.GetInstance<Shiny>(), lucky = ModContent.GetInstance<Lucky>();
         Report("the prefixes get types after the game's", shiny.Type >= PrefixLoader.VanillaCount && PrefixLoader.GetPrefix(shiny.Type) == shiny &&
-            lucky.Type > shiny.Type && lucky.Type < PrefixLoader.PrefixCount, $"shiny={shiny.Type} lucky={lucky.Type} count={PrefixLoader.PrefixCount}");
+            lucky.Type >= PrefixLoader.VanillaCount && lucky.Type != shiny.Type && lucky.Type < PrefixLoader.PrefixCount, $"shiny={shiny.Type} lucky={lucky.Type} count={PrefixLoader.PrefixCount}");
         string name = Lang.prefix[shiny.Type].Value ?? "";
         Report("the name goes into Lang.prefix", name == "Shiny", $"'{name}'");
 
@@ -62,6 +62,9 @@ public static class Checks
 
         List<string> lines = Lines(sword);
         Report("GetTooltipLines adds a line", lines.Contains("Shines"), string.Join(" | ", lines));
+        Report("a prefixed item's tooltip starts with its name, as the game's prefixes do", lines.Count > 0 && lines[0] == sword.HoverName,
+            $"first='{(lines.Count > 0 ? lines[0] : "")}' name='{sword.HoverName}'");
+        Report("a mod weapon does not stack by default (tModLoader's maxStack 1)", sword.maxStack == 1, $"maxStack={sword.maxStack}");
 
         Item charm = Make(ModContent.ItemType<Charm>());
         bool accessory = charm.Prefix(lucky.Type, out _);

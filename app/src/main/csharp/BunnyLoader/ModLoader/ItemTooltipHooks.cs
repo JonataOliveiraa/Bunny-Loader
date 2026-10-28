@@ -146,9 +146,12 @@ internal static unsafe class ItemTooltipHooks
                                    Dictionary<int, string> roles)
     {
         var names = new Names(item);
-        var lines = new List<TooltipLine>(count + 5) { new("Terraria", "ItemName", item.HoverName ?? "") { Role = "name" } };
+        string hoverName = item.HoverName ?? "";
+        bool prefixed = item.prefix > 0;
+        bool named = prefixed && count > 0 && texts[0].ToString() == hoverName;
+        var lines = new List<TooltipLine>(count + 5) { new("Terraria", "ItemName", hoverName) { Role = prefixed ? "" : "name" } };
         var used = new HashSet<string> { "ItemName" };
-        for (int i = 0; i < count; i++)
+        for (int i = named ? 1 : 0; i < count; i++)
         {
             string text = texts[i].ToString() ?? "";
             roles.TryGetValue(i, out string? role);
