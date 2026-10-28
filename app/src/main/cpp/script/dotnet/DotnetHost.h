@@ -27,12 +27,18 @@ public:
 
     bool started() const { return started_; }
 
+    bool consoleSubmit(const std::string& code);
+
+    void consoleTick();
+
 private:
     bool start();
 
     bool started_ = false;
     bool failed_ = false;
     int (*loadModFn_)(const char* id, const char* path) = nullptr;
+    void (*consoleSubmitFn_)(const char* code) = nullptr;
+    void (*consoleTickFn_)() = nullptr;
 };
 
 DotnetHost& host();

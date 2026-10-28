@@ -363,6 +363,8 @@
   "Fullscreen": "Pantalla completa",
   "Run": "Ejecutar",
   "EditorHelp": "El código se ejecuta en el hilo del juego, como un hook. Main, ID y player (tu personaje) están disponibles. print(...) escribe en el chat; bl.log(...), en el registro (también visible aquí). let/const solo duran una ejecución; usa var o globalThis.x para conservar valores entre ejecuciones.",
+  "EditorCsHelp": "El código C# se compila en el teléfono (la primera ejecución tarda unos segundos) y se ejecuta en el hilo del juego, como un hook. Una expresión muestra su valor: player.statLife = 500. Terraria, Terraria.ID, Microsoft.Xna.Framework y los mods C# cargados ya están abiertos; player es tu personaje y print(...) escribe en el chat. C# necesita al menos un mod C# activado.",
+  "EditorLanguage": "Lenguaje del código (JS o C#)",
   "Window": "Ventana",
   "NativeCoreNoResponse": "el núcleo nativo no respondió: %1$s",
   "Tip": "Consejo",

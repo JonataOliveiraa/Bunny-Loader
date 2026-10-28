@@ -15,6 +15,7 @@
 #include "il2cpp/Signature.h"
 #include "menu/ModMenu.h"
 #include "mods/ModLoader.h"
+#include "script/api/Console.h"
 
 #include <dlfcn.h>
 #include <sys/stat.h>
@@ -81,6 +82,7 @@ struct NativeApi {
     int32_t (*netMode)();
     void (*netHello)(const char* hello, const char* refusal);
     int32_t (*itemDrawListen)(int32_t kind, int32_t (*pre)(void* args), void (*post)(), uint8_t* active);
+    void (*consolePrint)(int32_t kind, const char* text);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -522,6 +524,10 @@ int32_t nativeItemDrawListen(int32_t kind, int32_t (*pre)(void* args), void (*po
     return 0;
 }
 
+void nativeConsolePrint(int32_t kind, const char* text) {
+    script::consolePrint(static_cast<char>(kind), text ? text : "");
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -568,6 +574,7 @@ const NativeApi kNativeApi{
     nativeNetMode,
     nativeNetHello,
     nativeItemDrawListen,
+    nativeConsolePrint,
 };
 
 } // namespace

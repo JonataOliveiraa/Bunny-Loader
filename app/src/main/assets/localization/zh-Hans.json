@@ -363,6 +363,8 @@
   "Fullscreen": "全屏",
   "Run": "运行",
   "EditorHelp": "代码在游戏线程上运行，就像钩子一样。Main、ID 和 player（你的角色）都已就绪。print(...) 写入聊天栏；bl.log(...) 写入日志（也会显示在这里）。let/const 只在单次执行中有效；要在多次运行之间保留值，请使用 var 或 globalThis.x。",
+  "EditorCsHelp": "C# 代码在手机上编译（第一次运行需要几秒钟），并像钩子一样在游戏线程上运行。表达式会显示其值：player.statLife = 500。Terraria、Terraria.ID、Microsoft.Xna.Framework 和已加载的 C# 模组均已打开；player 是你的角色，print(...) 会写入聊天。C# 至少需要启用一个 C# 模组。",
+  "EditorLanguage": "代码语言（JS 或 C#）",
   "Window": "窗口",
   "NativeCoreNoResponse": "原生核心没有响应：%1$s",
   "Tip": "提示",

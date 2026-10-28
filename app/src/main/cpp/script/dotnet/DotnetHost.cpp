@@ -213,6 +213,8 @@ bool DotnetHost::start() {
     auto initialize = reinterpret_cast<int (*)(const void*)>(entryPoint("Initialize", 1));
     loadModFn_ = reinterpret_cast<int (*)(const char*, const char*)>(entryPoint("LoadMod", 2));
     if (!initialize || !loadModFn_) return false;
+    consoleSubmitFn_ = reinterpret_cast<void (*)(const char*)>(entryPoint("ConsoleSubmit", 1));
+    consoleTickFn_ = reinterpret_cast<void (*)()>(entryPoint("ConsoleTick", 0));
     if (!initialize(nativeApiTable())) {
         BL_ERROR("dotnet: BunnyLoader.Host.Initialize refused the native table");
         return false;
@@ -231,6 +233,16 @@ bool DotnetHost::loadMod(const std::string& id, const std::string& path) {
     const bool ok = loadModFn_(id.c_str(), path.c_str()) != 0;
     BL_DEBUG("dotnet: mod %s returned from Host.LoadMod (%s)", id.c_str(), ok ? "ok" : "failed");
     return ok;
+}
+
+bool DotnetHost::consoleSubmit(const std::string& code) {
+    if (!started_ || !consoleSubmitFn_) return false;
+    consoleSubmitFn_(code.c_str());
+    return true;
+}
+
+void DotnetHost::consoleTick() {
+    if (started_ && consoleTickFn_) consoleTickFn_();
 }
 
 void DotnetHost::finishLoading() {

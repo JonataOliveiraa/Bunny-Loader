@@ -20,6 +20,7 @@
 #include "content/walls/ModWalls.h"
 #include "menu/CheatButton.h"
 #include "menu/DevTools.h"
+#include "script/api/Console.h"
 
 #include <chrono>
 #include <dlfcn.h>
@@ -119,6 +120,8 @@ void probeThread() {
             }
             BL_DEBUG("sonda: RESOLUCAO OK");
             waitGameContentLoaded();
+
+            script::installConsoleLog();
 
             // Sobe o QuickJS e carrega os mods habilitados (main.js de cada um,
             // e o .dll dos mods C#). Com o QuickJS desligado nas

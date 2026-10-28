@@ -118,8 +118,10 @@ bool installSetDefaultsHook(JSContext* ctx) {
 } // namespace
 
 bool saveModItemData(Il2CppObject* item, std::string& data) {
+    if (!item) return false;
+    if (!g_ctx) return true;
     JsLock lock(3000);
-    if (!lock.held() || !g_ctx || !item) return false;
+    if (!lock.held()) return false;
 
     const JSAtom atom = JS_NewAtom(g_ctx, "__blItemData");
     JSValue cached = extraFieldGet(g_ctx, item, atom);
