@@ -45,6 +45,7 @@ internal static unsafe class ItemHooks
                 (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, void>)&UpdateEquips));
         ItemHealHooks.Install(Has);
         ItemPickupHooks.Install(Has, baseType == typeof(GlobalItem));
+        ItemDrawHooks.Install(Has, baseType == typeof(GlobalItem));
     }
 
     internal static GlobalItem?[] GlobalsOf(Item item) => ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>();
@@ -61,15 +62,17 @@ internal static unsafe class ItemHooks
         }
     }
 
-    internal static Hook? Raw(string signature, IntPtr replacement)
+    internal static Hook? Raw(string signature, IntPtr replacement) => Raw("Terraria", "Player", signature, replacement);
+
+    internal static Hook? Raw(string ns, string type, string signature, IntPtr replacement)
     {
         try
         {
-            return Hook.Install("Terraria", "Player", signature, replacement);
+            return Hook.Install(ns, type, signature, replacement);
         }
         catch (Exception e)
         {
-            Log.Error($"item hooks: Player.{signature} is not hooked: {e.Message}");
+            Log.Error($"item hooks: {type}.{signature} is not hooked: {e.Message}");
             return null;
         }
     }

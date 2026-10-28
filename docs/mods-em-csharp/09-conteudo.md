@@ -269,12 +269,28 @@ public override bool GrabStyle(Player player)
 }
 ```
 
+Drawing the item:
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `GetAlpha(Color lightColor)` | Whenever the game asks the item's color (on the ground, in the inventory) | `Color?`: the color to use; `null` leaves it to the game |
+| `PreDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI)` | Before the item on the ground is drawn | `false`: the game does not draw it (draw it yourself); change `rotation` and `scale` to draw it differently |
+| `PostDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, float rotation, float scale, int whoAmI)` | After it, also when `PreDrawInWorld` returned `false` | |
+| `PreDrawInInventory(SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale)` | Before the item's icon is drawn in a slot | `false`: the game does not draw the icon |
+| `PostDrawInInventory(...)` | After it, with the same arguments | |
+
+`whoAmI` is the item's index in `Main.item`. `Color` and `SpriteBatch` are in
+`Microsoft.Xna.Framework.Graphics` (the phone's XNA keeps `Color` there).
+The `GlobalItem`s are asked first for `GetAlpha` (the first color wins) and
+for `PreDrawInInventory`; for the others the `ModItem` goes first, as in
+tModLoader.
+
 A hook only costs anything when some mod overrides it: Bunny Loader hooks the
 game method behind it the first time a loaded `ModItem` or `GlobalItem`
 overrides that hook. An exception in a hook goes to the log once (not every
 frame), and the game goes on as if the hook were not there.
 
-The other item hooks (combat, ammo, drawing, tooltips, network) come
+The other item hooks (combat, ammo, tooltips, network) come
 next; see the plan.
 
 ## Changing every item: `GlobalItem`

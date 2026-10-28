@@ -5,6 +5,7 @@
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
 #include "content/common/ModNet.h"
+#include "content/items/ItemDrawStages.h"
 #include "content/items/ModItemData.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
@@ -79,6 +80,7 @@ struct NativeApi {
     int32_t (*netSend)(const uint8_t* data, int32_t length, int32_t toClient, int32_t ignoreClient);
     int32_t (*netMode)();
     void (*netHello)(const char* hello, const char* refusal);
+    int32_t (*itemDrawListen)(int32_t kind, int32_t (*pre)(void* args), void (*post)(), uint8_t* active);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -495,6 +497,31 @@ void nativeNetHello(const char* hello, const char* refusal) {
     runtime::setManagedHello(hello ? hello : "", cultureTexts(refusal));
 }
 
+struct ManagedDraw {
+    int32_t (*pre)(void* args) = nullptr;
+    void (*post)() = nullptr;
+};
+
+ManagedDraw g_managedDraw[2];
+
+bool managedDrawPre(void* user, void* args) { return static_cast<ManagedDraw*>(user)->pre(args) != 0; }
+
+void managedDrawPost(void* user) { static_cast<ManagedDraw*>(user)->post(); }
+
+int32_t nativeItemDrawListen(int32_t kind, int32_t (*pre)(void* args), void (*post)(), uint8_t* active) {
+    if (kind < 0 || kind > 1 || !pre || !post || !active || g_managedDraw[kind].pre) return 0;
+    g_managedDraw[kind].pre = pre;
+    g_managedDraw[kind].post = post;
+    runtime::content::ItemDrawListener listener;
+    listener.active = reinterpret_cast<const std::atomic<uint8_t>*>(active);
+    listener.pre = managedDrawPre;
+    listener.post = managedDrawPost;
+    listener.user = &g_managedDraw[kind];
+    if (runtime::content::addItemDrawListener(static_cast<runtime::content::ItemDrawKind>(kind), listener)) return 1;
+    g_managedDraw[kind] = ManagedDraw{};
+    return 0;
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -540,6 +567,7 @@ const NativeApi kNativeApi{
     nativeNetSend,
     nativeNetMode,
     nativeNetHello,
+    nativeItemDrawListen,
 };
 
 } // namespace

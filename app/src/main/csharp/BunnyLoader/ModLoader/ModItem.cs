@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.Localization;
 using Terraria.ModLoader.IO;
 
@@ -61,6 +62,16 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual bool OnPickup(Player player) => true;
 
     public virtual bool ItemSpace(Player player) => false;
+
+    public virtual Color? GetAlpha(Color lightColor) => null;
+
+    public virtual bool PreDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI) => true;
+
+    public virtual void PostDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, float rotation, float scale, int whoAmI) { }
+
+    public virtual bool PreDrawInInventory(SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale) => true;
+
+    public virtual void PostDrawInInventory(SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale) { }
 
     public virtual void SaveData(TagCompound tag) { }
 

@@ -1,0 +1,15 @@
+{
+  "uid": "4bfc8937-401e-4b1f-8b7d-6f34673817b9",
+  "id": "test-csdraw",
+  "name": "Teste: hooks de desenho de item do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "PreDrawInWorld, PostDrawInWorld, PreDrawInInventory, PostDrawInInventory e GetAlpha do ModItem e do GlobalItem, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csdraw. No mundo, loga 'csdraw <caso>: ok | FAIL' e 'csdraw END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsDraw.dll",
+  "dependencies": []
+}
