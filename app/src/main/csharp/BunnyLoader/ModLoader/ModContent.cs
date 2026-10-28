@@ -123,6 +123,7 @@ public static class ModContent
             ModNet.SetHello(mods);
             foreach (Mod mod in mods)
             {
+                foreach (DamageClass damageClass in mod.GetContent<DamageClass>()) Run(mod, $"{damageClass.Name}.SetStaticDefaults", damageClass.SetupContent);
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
             }
             foreach (Mod mod in mods)

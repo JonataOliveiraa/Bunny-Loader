@@ -1,5 +1,10 @@
 # Novidades
 
+## 0.3.0
+
+- Classes de dano: a classe de dano de exemplo e a Arma de Dano
+  Personalizado, portadas do ExampleMod.
+
 ## 0.2.0
 
 - As traduções vão para `Localization/<idioma>_Mods.ExampleMod.hjson`, no

@@ -407,6 +407,96 @@ which of the game's prefixes it rolls (by default, from `Item.melee`,
 `ranged`, `magic`, `summon` and `noUseGraphic`). A `GlobalItem` has the first
 three, with the `Item` first.
 
+## Damage classes
+
+A damage class says what kind of damage a weapon does (melee, ranged, magic,
+summon, or one of your own) and which bonuses apply to it. It is tModLoader's
+`DamageClass`, with the same members.
+
+```csharp
+public override void SetDefaults()
+{
+    Item.DamageType = DamageClass.Melee;
+    Item.damage = 30;
+}
+```
+
+The ten classes of the game are static members of `DamageClass`, in
+tModLoader's order: `Default`, `Generic`, `Melee`, `MeleeNoSpeed`, `Ranged`,
+`Magic`, `Summon`, `SummonMeleeSpeed` (whips), `MagicSummonHybrid` and
+`Throwing`. `Projectile.DamageType` works the same way, and
+`item.CountsAsClass(DamageClass.Magic)` asks whether the item's class counts as
+magic for the game's effects.
+
+The class belongs to the object, as in tModLoader: `SetDefaults` starts it
+over (`Item.ResetStats`), and `Clone` copies it. Your item sets it in its own
+`SetDefaults`; a `GlobalItem` can set it on the game's items in its
+`SetDefaults`.
+
+### Bonuses on the player
+
+The player's bonuses go back to normal every frame. Add them every frame,
+where tModLoader adds them (an accessory, armor, a buff):
+
+```csharp
+player.GetDamage(DamageClass.Generic) += 0.25f;   // +25% damage (additive)
+player.GetDamage(DamageClass.Generic) *= 1.12f;   // x1.12 (multiplicative)
+player.GetDamage(DamageClass.Generic).Base += 4;  // +4 before the multipliers
+player.GetDamage(DamageClass.Generic).Flat += 5;  // +5 after them
+player.GetCritChance(DamageClass.Melee) += 10;    // +10% melee crit
+player.GetAttackSpeed(DamageClass.Ranged) += 0.15f;
+player.GetArmorPenetration(DamageClass.Magic) += 5;
+player.GetKnockback<ExampleDamageClass>() += 1f;
+```
+
+`GetDamage`, `GetCritChance`, `GetAttackSpeed`, `GetArmorPenetration` and
+`GetKnockback` return the value by `ref`, so `+=` writes into the player. The
+`GetTotal*` versions add what the class inherits from the others, and
+`GetWeaponAttackSpeed(item)` and `GetWeaponArmorPenetration(item)` give an
+item's numbers. `StatModifier` is tModLoader's:
+`(value + Base) * Additive * Multiplicative + Flat`.
+
+### Your own class
+
+```csharp
+public class ExampleDamageClass : DamageClass
+{
+    public override StatInheritanceData GetModifierInheritance(DamageClass damageClass) =>
+        damageClass == DamageClass.Generic ? StatInheritanceData.Full : StatInheritanceData.None;
+
+    public override bool GetEffectInheritance(DamageClass damageClass) =>
+        damageClass == DamageClass.Melee || damageClass == DamageClass.Magic;
+
+    public override void SetDefaultStats(Player player)
+    {
+        player.GetCritChance<ExampleDamageClass>() += 4;
+        player.GetArmorPenetration<ExampleDamageClass>() += 10;
+    }
+
+    public override bool ShowStatTooltipLine(Player player, string lineName) => lineName != "Speed";
+}
+```
+
+It loads by itself, and an item takes it with
+`Item.DamageType = ModContent.GetInstance<ExampleDamageClass>();`.
+
+| Member | Decides |
+|---|---|
+| `GetModifierInheritance(other)` | How much of `other`'s bonuses this class gets (`StatInheritanceData`, 1 = all). Default: all of `Generic`, nothing else. |
+| `GetEffectInheritance(other)` | Whether it counts as `other` for the game's effects. |
+| `GetPrefixInheritance(other)` | Whether its items take `other`'s prefixes. Default: the classes it counts as. |
+| `SetDefaultStats(player)` | Base bonuses, added every frame. |
+| `UseStandardCritCalcs` | `false`: no crits (like summon). |
+| `ShowStatTooltipLine(player, line)` | Hides `"Damage"`, `"CritChance"`, `"Speed"` or `"Knockback"` from the tooltip. |
+| `DisplayName` | The name in the tooltip: `DamageClasses.<Name>.DisplayName` in the translations (`70 example damage`). |
+
+The phone's game has no damage classes, only the item's flags (`melee`,
+`ranged`, `magic`, `summon`) and the player's fields (`meleeDamage`,
+`meleeCrit`, `meleeSpeed`...). Bonuses on the game's classes go into those
+fields, so the whole game sees them. An item of a class of yours gets the flags
+of the classes it counts as or takes prefixes from, and its damage, crit,
+knockback, speed, armor penetration and tooltip go through Bunny Loader.
+
 ## Changing every item: `GlobalItem`
 
 A `GlobalItem` runs for items that are not yours: the game's and other mods'.

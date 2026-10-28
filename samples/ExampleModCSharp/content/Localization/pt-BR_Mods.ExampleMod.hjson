@@ -8,4 +8,15 @@ Items: {
 		DisplayName: Espada
 		Tooltip: ""
 	}
+
+	ExampleCustomDamageWeapon: {
+		DisplayName: Arma de Dano Personalizado
+		Tooltip: ""
+	}
+}
+
+DamageClasses: {
+	ExampleDamageClass: {
+		DisplayName: dano de exemplo
+	}
 }

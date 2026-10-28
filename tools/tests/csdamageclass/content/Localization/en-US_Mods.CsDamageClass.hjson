@@ -1,0 +1,12 @@
+Items: {
+	TestBlade: {
+		DisplayName: Test Blade
+		Tooltip: ""
+	}
+}
+
+DamageClasses: {
+	TestClass: {
+		DisplayName: test damage
+	}
+}

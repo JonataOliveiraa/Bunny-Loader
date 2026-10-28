@@ -8,4 +8,15 @@ Items: {
 		DisplayName: Sword
 		Tooltip: ""
 	}
+
+	ExampleCustomDamageWeapon: {
+		DisplayName: Example Custom Damage Weapon
+		Tooltip: ""
+	}
+}
+
+DamageClasses: {
+	ExampleDamageClass: {
+		DisplayName: example damage
+	}
 }

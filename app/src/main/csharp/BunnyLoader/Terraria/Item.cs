@@ -16,4 +16,14 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
     public bool TryGetGlobalItem<T>(out T result) where T : GlobalItem => ItemLoader.Globals.TryGet(this, out result);
 
     public WorldItem GetWorldItem() => ItemPickupHooks.WorldItemOf(this);
+
+    public DamageClass DamageType
+    {
+        get => DamageClassLoader.ItemClass(this);
+        set => DamageClassLoader.SetItemClass(this, value);
+    }
+
+    public bool CountsAsClass(DamageClass damageClass) => DamageClassLoader.ItemClass(this).CountsAsClass(damageClass);
+
+    public bool CountsAsClass<T>() where T : DamageClass => CountsAsClass(ModContent.GetInstance<T>());
 }
