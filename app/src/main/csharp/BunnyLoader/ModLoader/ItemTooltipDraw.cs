@@ -197,30 +197,30 @@ internal static unsafe class ItemTooltipDraw
         ItemHooks.Original(ref call, hook, "SpriteBatch.DrawString");
     }
 
+    const int PassesPerLine = 5;
+
     static bool Take(Drawing state, string text, Pass pass)
     {
-        bool shadow = (pass.Color & 0x00FFFFFF) == 0;
-        if (state.Index < 0 || text != state.Text)
-        {
-            int at = state.Lines.FindIndex(state.Next, l => l.Text == text);
-            if (at < 0) at = state.Lines.FindIndex(l => l.Text == text);
-            if (at < 0) return false;
-            Flush(state);
-            state.Index = at;
-            state.Text = text;
-            state.Next = at + 1;
-        }
-        if (shadow)
+        if (state.Index >= 0 && text == state.Text && state.Shadows.Count < PassesPerLine)
         {
             state.Shadows.Add(pass);
+            if (state.Shadows.Count == PassesPerLine) Flush(state);
             return true;
         }
-        Line(state, pass);
+        int at = state.Lines.FindIndex(state.Next, l => l.Text == text);
+        if (at < 0) at = state.Lines.FindIndex(l => l.Text == text);
+        if (at < 0) return false;
+        Flush(state);
+        state.Index = at;
+        state.Text = text;
+        state.Next = at + 1;
+        state.Shadows.Add(pass);
         return true;
     }
 
     static void Line(Drawing state, Pass main)
     {
+        state.Shadows.RemoveAt(state.Shadows.Count - 1);
         TooltipLine line = state.Lines[state.Index];
         Color color = *(Color*)&main.Color;
         if (line.OverrideColor is Color over)
@@ -322,12 +322,7 @@ internal static unsafe class ItemTooltipDraw
 
     static void Flush(Drawing state)
     {
-        Hook? hook = drawString;
-        if (state.Index >= 0 && hook != null)
-        {
-            IntPtr text = GameString.New(Strip(state.Text));
-            foreach (Pass s in state.Shadows) Original(hook, s, text);
-        }
+        if (state.Index >= 0 && state.Shadows.Count > 0) Line(state, state.Shadows[^1]);
         state.Shadows.Clear();
         state.Index = -1;
         state.Text = "";

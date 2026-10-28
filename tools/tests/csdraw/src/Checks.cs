@@ -14,6 +14,8 @@ public static class Checks
 {
     static int pass, fail, frames, glow = -1, gel = -1, slot = -1;
     static bool done;
+    static Item borrowed;
+    static BunnyLoader.Interop.GameHandle? borrowedHandle;
 
     static ILog Log => ModContent.GetInstance<CsDrawMod>().Logger;
 
@@ -59,7 +61,15 @@ public static class Checks
             glow = Drop(p, ModContent.ItemType<Glow>(), 6 * 16);
             gel = Drop(p, ItemID.Gel, -6 * 16);
             slot = EmptyHotbarSlot(p);
-            if (slot >= 0) p.inventory[slot].SetDefaults(ModContent.ItemType<Glow>(), default);
+            if (slot < 0)
+            {
+                slot = 9;
+                borrowed = p.inventory[slot];
+                borrowedHandle = new BunnyLoader.Interop.GameHandle(borrowed.Pointer);
+                Item fresh = Item.New();
+                p.inventory[slot] = fresh;
+            }
+            p.inventory[slot].SetDefaults(ModContent.ItemType<Glow>(), default);
             Glow.Reset();
             GelDraw.WorldPre = 0;
         }
@@ -90,6 +100,13 @@ public static class Checks
             Remove(glow);
             Remove(gel);
             if (slot >= 0 && p.inventory[slot].type == ModContent.ItemType<Glow>()) p.inventory[slot].TurnToAir();
+            if (slot >= 0 && !borrowed.IsNull)
+            {
+                p.inventory[slot] = borrowed;
+                borrowed = default;
+                borrowedHandle?.Dispose();
+                borrowedHandle = null;
+            }
         }
         catch (Exception e)
         {
