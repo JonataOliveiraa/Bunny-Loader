@@ -363,6 +363,8 @@
   "Fullscreen": "Toàn màn hình",
   "Run": "Chạy",
   "EditorHelp": "Mã chạy trên luồng của game, như một hook. Main, ID và player (nhân vật của bạn) đã sẵn sàng. print(...) ghi vào khung chat; bl.log(...) ghi vào nhật ký (cũng hiện ở đây). let/const chỉ tồn tại trong một lần chạy; dùng var hoặc globalThis.x để giữ giá trị giữa các lần chạy.",
+  "EditorCsHelp": "Mã C# được biên dịch trên điện thoại (lần chạy đầu mất vài giây) và chạy trên luồng của trò chơi, như một hook. Một biểu thức hiển thị giá trị của nó: player.statLife = 500. Terraria, Terraria.ID, Microsoft.Xna.Framework và các mod C# đã tải đều sẵn sàng; player là nhân vật của bạn và print(...) ghi vào khung chat. C# cần ít nhất một mod C# được bật.",
+  "EditorLanguage": "Ngôn ngữ mã (JS hoặc C#)",
   "Window": "Cửa sổ",
   "NativeCoreNoResponse": "lõi native không phản hồi: %1$s",
   "Tip": "Mẹo",

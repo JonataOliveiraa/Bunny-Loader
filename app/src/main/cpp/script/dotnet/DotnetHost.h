@@ -27,12 +27,23 @@ public:
 
     bool started() const { return started_; }
 
+    /**
+     * Codigo C# do console do Editor. O C# compila fora da thread do jogo e
+     * guarda o resultado; false se o runtime nao subiu (nenhum mod C#).
+     */
+    bool consoleSubmit(const std::string& code);
+
+    /** Thread do jogo: roda o codigo do console que ja compilou. */
+    void consoleTick();
+
 private:
     bool start();
 
     bool started_ = false;
     bool failed_ = false;
     int (*loadModFn_)(const char* id, const char* path) = nullptr;
+    void (*consoleSubmitFn_)(const char* code) = nullptr;
+    void (*consoleTickFn_)() = nullptr;
 };
 
 DotnetHost& host();

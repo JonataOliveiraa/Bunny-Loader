@@ -9,9 +9,18 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 export MSYS_NO_PATHCONV=1
 JAVA_HOME="${JAVA_HOME:-/c/Program Files/Android/Android Studio/jbr}"
-SDK="${ANDROID_SDK:-$LOCALAPPDATA/Android/Sdk}"
+SDK="${ANDROID_SDK:-${ANDROID_HOME:-${LOCALAPPDATA:-}/Android/Sdk}}"
 AJAR="$SDK/platforms/android-34/android.jar"
-D8JAR="$SDK/build-tools/36.1.0/lib/d8.jar"
+D8JAR="${D8JAR:-$SDK/build-tools/36.1.0/lib/d8.jar}"
+# Sem o 36.1.0, o build-tools mais novo instalado.
+[ -f "$D8JAR" ] || D8JAR="$(ls "$SDK"/build-tools/*/lib/d8.jar 2>/dev/null | sort -V | tail -n 1)"
+PYTHON="${PYTHON:-$(command -v python3 || command -v python)}"
+
+# Windows (Git Bash): caminhos no formato do Windows para o java. Linux e
+# macOS (o Actions, por exemplo): o caminho como esta.
+cygpath() {
+    if command -v cygpath.exe >/dev/null 2>&1; then cygpath.exe "$@"; else printf '%s\n' "$2"; fi
+}
 SRC="app/src/main/java/bunny/TranslationCatalog.java app/src/main/java/bunny/MenuLocalization.java tools/cheatbridge/bunny/CheatBridge.java tools/cheatbridge/bunny/CheatData.java tools/cheatbridge/bunny/DevTools.java"
 OUT=".cheatbridge"
 
@@ -30,6 +39,6 @@ CLASSES=$(find "$OUT/classes" -name "*.class" | while read -r f; do cygpath -w "
     --output "$(cygpath -w "$OUT")" $CLASSES
 
 echo "==> header embutido"
-python tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex \
+"$PYTHON" tools/bin2header.py "$OUT/classes.dex" bl_cheatbridge_dex \
     > app/src/main/cpp/menu/CheatBridgeDex.h
 echo "    app/src/main/cpp/menu/CheatBridgeDex.h ($(wc -c < "$OUT/classes.dex") bytes de dex)"

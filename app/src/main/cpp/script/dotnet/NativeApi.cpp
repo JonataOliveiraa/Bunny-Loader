@@ -8,6 +8,7 @@
 #include "il2cpp/Signature.h"
 #include "menu/ModMenu.h"
 #include "mods/ModLoader.h"
+#include "script/api/Console.h"
 
 #include <dlfcn.h>
 #include <sys/stat.h>
@@ -54,6 +55,7 @@ struct NativeApi {
     void (*prepareItem)(void* item, int32_t type);
     void (*finishItem)(void* item, int32_t type);
     void (*onItemsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void (*consolePrint)(int32_t kind, const char* text);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -371,6 +373,11 @@ void nativeOnItemsInstalled(void (*callback)(int32_t first, int32_t last)) {
     runtime::addItemsInstalledHook(reinterpret_cast<runtime::ItemsInstalledHook>(callback));
 }
 
+/** Uma entrada na saida do console do Editor (script/api/Console.h). */
+void nativeConsolePrint(int32_t kind, const char* text) {
+    script::consolePrint(static_cast<char>(kind), text ? text : "");
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -402,6 +409,7 @@ const NativeApi kNativeApi{
     nativePrepareItem,
     nativeFinishItem,
     nativeOnItemsInstalled,
+    nativeConsolePrint,
 };
 
 } // namespace

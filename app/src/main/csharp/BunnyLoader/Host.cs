@@ -10,7 +10,7 @@ using BunnyLoader.Interop;
 
 namespace BunnyLoader;
 
-// Por onde o nativo entra no C#. Os dois metodos sao [UnmanagedCallersOnly]:
+// Por onde o nativo entra no C#. Os metodos sao [UnmanagedCallersOnly]:
 // o DotnetHost pega o ponteiro de cada um uma vez e chama direto. Nenhuma
 // excecao pode sair daqui (derrubaria o processo do jogo).
 public static unsafe class Host
@@ -82,6 +82,35 @@ public static unsafe class Host
         {
             Log.Error($"mod {uid}: {e}");
             return 0;
+        }
+    }
+
+    // O console C# do Editor (script/api/Console.cpp): o codigo vem da thread
+    // do jogo e compila fora dela; o ConsoleTick, a cada quadro depois do
+    // primeiro codigo, roda o que ja compilou.
+    [UnmanagedCallersOnly]
+    static void ConsoleSubmit(byte* code)
+    {
+        try
+        {
+            DevConsole.Submit(Marshal.PtrToStringUTF8((IntPtr)code) ?? "");
+        }
+        catch (Exception e)
+        {
+            Log.Error($"console: {e}");
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    static void ConsoleTick()
+    {
+        try
+        {
+            DevConsole.Tick();
+        }
+        catch (Exception e)
+        {
+            Log.Error($"console: {e}");
         }
     }
 

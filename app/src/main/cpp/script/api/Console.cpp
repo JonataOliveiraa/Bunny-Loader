@@ -1,6 +1,7 @@
 #include "script/api/Console.h"
 
 #include "core/Log.h"
+#include "script/dotnet/DotnetHost.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 
@@ -33,6 +34,10 @@ struct ChatLine {
 std::mutex g_mutex;
 std::deque<std::string> g_out;
 std::deque<std::string> g_code;
+// O codigo C# do console (o Java o marca com kCSharpMark no primeiro byte).
+std::deque<std::string> g_csCode;
+bool g_csActive = false;  // thread do jogo
+constexpr char kCSharpMark = '\x02';
 std::deque<ChatLine> g_chat;
 std::atomic<bool> g_pending{false};
 
@@ -261,9 +266,18 @@ JSValue js_chat(JSContext* ctx, JSValueConst, int argc, JSValueConst* argv) {
 void consoleSubmit(std::string code) {
     {
         std::lock_guard<std::mutex> guard(g_mutex);
-        g_code.push_back(std::move(code));
+        if (!code.empty() && code[0] == kCSharpMark) g_csCode.push_back(code.substr(1));
+        else g_code.push_back(std::move(code));
     }
     g_pending.store(true, std::memory_order_release);
+}
+
+void consolePrint(char kind, const std::string& text) {
+    push(kind, text);
+}
+
+void installConsoleLog() {
+    log::onLine(&onLogLine);
 }
 
 std::vector<std::string> consoleTake() {
@@ -274,8 +288,25 @@ std::vector<std::string> consoleTake() {
 }
 
 void tickConsole() {
+    // O console C# compila fora da thread do jogo e roda aqui: depois do
+    // primeiro codigo C#, ele olha a cada quadro se ha algo pronto.
+    if (g_csActive) dotnet::host().consoleTick();
     if (!g_pending.exchange(false, std::memory_order_acq_rel)) return;
     drainChat();
+    {
+        std::deque<std::string> cs;
+        {
+            std::lock_guard<std::mutex> guard(g_mutex);
+            cs.swap(g_csCode);
+        }
+        for (const std::string& code : cs) {
+            if (dotnet::host().consoleSubmit(code)) {
+                g_csActive = true;
+            } else {
+                push('x', "C#: the .NET runtime is not running (it starts with the first C# mod enabled)");
+            }
+        }
+    }
 #if BL_HAVE_QUICKJS
     std::deque<std::string> codes;
     {
