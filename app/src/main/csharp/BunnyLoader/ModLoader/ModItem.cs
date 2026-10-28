@@ -52,6 +52,16 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual bool ApplyPotionDelay(Player player, int potionDelay) => true;
 
+    public virtual void GrabRange(Player player, ref int grabRange) { }
+
+    public virtual bool GrabStyle(Player player) => false;
+
+    public virtual bool CanPickup(Player player) => true;
+
+    public virtual bool OnPickup(Player player) => true;
+
+    public virtual bool ItemSpace(Player player) => false;
+
     public virtual void SaveData(TagCompound tag) { }
 
     public virtual void LoadData(TagCompound tag) { }

@@ -33,4 +33,14 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual void ModifyPotionDelay(Item item, Player player, ref int baseDelay) { }
 
     public virtual bool ApplyPotionDelay(Item item, Player player, int potionDelay) => true;
+
+    public virtual void GrabRange(Item item, Player player, ref int grabRange) { }
+
+    public virtual bool GrabStyle(Item item, Player player) => false;
+
+    public virtual bool CanPickup(Item item, Player player) => true;
+
+    public virtual bool OnPickup(Item item, Player player) => true;
+
+    public virtual bool ItemSpace(Item item, Player player) => false;
 }

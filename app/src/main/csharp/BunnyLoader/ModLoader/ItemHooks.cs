@@ -44,6 +44,7 @@ internal static unsafe class ItemHooks
             Once("Inventory", () => updateEquips = Raw("void UpdateEquips(int i)",
                 (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, void>)&UpdateEquips));
         ItemHealHooks.Install(Has);
+        ItemPickupHooks.Install(Has, baseType == typeof(GlobalItem));
     }
 
     internal static GlobalItem?[] GlobalsOf(Item item) => ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>();
@@ -251,13 +252,13 @@ internal static unsafe class ItemHooks
         Original(ref call, hook, what);
     }
 
-    internal static void Call(Hook hook, IntPtr self, IntPtr argument, IntPtr method, string what)
+    internal static long Call(Hook hook, IntPtr self, IntPtr argument, IntPtr method, string what)
     {
         var call = GameCall.Returning(RetKind.Int);
         call.Arg(self);
         call.Arg(argument);
         call.Arg(method);
-        Original(ref call, hook, what);
+        return Original(ref call, hook, what);
     }
 
     internal static long Call(Hook hook, IntPtr self, IntPtr method, string what)

@@ -14,4 +14,6 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
     public T GetGlobalItem<T>(T baseInstance) where T : GlobalItem => ItemLoader.Globals.Get(this, baseInstance);
 
     public bool TryGetGlobalItem<T>(out T result) where T : GlobalItem => ItemLoader.Globals.TryGet(this, out result);
+
+    public WorldItem GetWorldItem() => ItemPickupHooks.WorldItemOf(this);
 }

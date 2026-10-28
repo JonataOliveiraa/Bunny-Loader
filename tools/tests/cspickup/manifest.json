@@ -1,0 +1,15 @@
+{
+  "uid": "ad557b59-21d0-4685-be96-b7b6512452a5",
+  "id": "test-cspickup",
+  "name": "Teste: hooks de coleta de item do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "CanPickup, OnPickup, ItemSpace, GrabRange e GrabStyle do ModItem e do GlobalItem, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh cspickup. No mundo, loga 'cspickup <caso>: ok | FAIL' e 'cspickup END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPickup.dll",
+  "dependencies": []
+}

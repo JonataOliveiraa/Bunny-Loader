@@ -243,12 +243,38 @@ Healing items (potions, food that heals) have their own:
 `quickHeal` is `true` when the heal comes from the quick heal or quick mana
 button.
 
+Picking an item up from the ground:
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `CanPickup(Player player)` | Before the player grabs the item | `false`: it stays on the ground (the `GlobalItem`s are asked first; one `false` is enough) |
+| `GrabRange(Player player, ref int grabRange)` | When the game measures how close the item has to be | change `grabRange`, in pixels; more pulls it from farther, less takes it only closer |
+| `GrabStyle(Player player)` | Every frame the item is pulled toward the player | `true`: you moved it (change its `WorldItem`'s `velocity` or `position`) and the game does not |
+| `ItemSpace(Player player)` | When the inventory is full | `true`: it is picked up anyway (pair it with `OnPickup`) |
+| `OnPickup(Player player)` | When the player touches the item | `false`: the item leaves the ground and does not go into the inventory |
+
+On the phone an item on the ground is a `WorldItem` that holds the `Item`
+(`WorldItem.inner`). The pickup hooks get the `Item`, as in tModLoader;
+`Item.GetWorldItem()` gives its `WorldItem` (its `IsNull` is `true` when the
+item is not on the ground), which has the position and the velocity:
+
+```csharp
+public override bool GrabStyle(Player player)
+{
+    WorldItem w = Item.GetWorldItem();
+    if (w.IsNull) return false;
+    Vector2 toPlayer = player.position - w.position;
+    w.velocity = toPlayer / Math.Max(1f, toPlayer.LengthValue) * 8f;
+    return true;
+}
+```
+
 A hook only costs anything when some mod overrides it: Bunny Loader hooks the
 game method behind it the first time a loaded `ModItem` or `GlobalItem`
 overrides that hook. An exception in a hook goes to the log once (not every
 frame), and the game goes on as if the hook were not there.
 
-The other item hooks (combat, ammo, drawing, pickup, tooltips, network) come
+The other item hooks (combat, ammo, drawing, tooltips, network) come
 next; see the plan.
 
 ## Changing every item: `GlobalItem`
