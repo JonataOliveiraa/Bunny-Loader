@@ -36,7 +36,7 @@ public sealed class CsNetItemMod : Mod
         try
         {
             if (Main.netMode == 1 && frames == 120) Client(self);
-            if (Main.netMode == 2 && frames % 60 == 0) Watch();
+            if (Main.netMode >= 2 && frames % 60 == 0) Watch();
         }
         catch (Exception e)
         {

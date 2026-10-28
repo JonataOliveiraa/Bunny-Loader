@@ -17,7 +17,7 @@ internal static unsafe class ItemTooltipDraw
 
     static readonly Regex Tag = new(@"\[c/([0-9a-fA-F]{6}):([^\]]*)\]", RegexOptions.Compiled);
 
-    static Hook? drawString, measure;
+    static Hook? drawString, measure, tooltip;
 
     static Drawing? drawing;
 
@@ -45,9 +45,29 @@ internal static unsafe class ItemTooltipDraw
         public readonly List<DrawableTooltipLine> Drawn = new();
     }
 
-    public static void Install()
+    public static void Install() =>
+        tooltip = ItemHooks.Raw("Terraria", "Main", "void MouseText_DrawItemTooltip(Main.MouseTextCache info, int rare, byte diff, int X, int Y)",
+            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, int, byte, int, int, IntPtr, void>)&DrawItemTooltip);
+
+    [UnmanagedCallersOnly]
+    static void DrawItemTooltip(IntPtr self, IntPtr info, int rare, byte diff, int x, int y, IntPtr method)
     {
-        On_Main.MouseText_DrawItemTooltip += (orig, self, info, rare, diff, x, y) => Draw(() => orig(self, info, rare, diff, x, y), x, y);
+        Hook? hook = tooltip;
+        if (hook == null) return;
+        void Original()
+        {
+            var call = GameCall.Returning(RetKind.Int);
+            call.Arg(self);
+            call.Arg(info);
+            call.Arg(rare);
+            call.Arg(diff);
+            call.Arg(x);
+            call.Arg(y);
+            call.Arg(method);
+            ItemHooks.Original(ref call, hook, "Main.MouseText_DrawItemTooltip");
+        }
+        try { Draw(Original, x, y); }
+        catch (Exception e) { ItemHooks.Report("tooltip drawing", e); }
     }
 
     static void EnsureStringHooks() => ItemHooks.Once("TooltipStrings", () =>

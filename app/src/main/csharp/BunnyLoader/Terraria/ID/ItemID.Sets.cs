@@ -4,7 +4,7 @@ namespace Terraria.ID;
 
 public readonly partial struct ItemID
 {
-    public static partial class Sets
+    public readonly partial struct Sets
     {
         static readonly object Gate = new();
 

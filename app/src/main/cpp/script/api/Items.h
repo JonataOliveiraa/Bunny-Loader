@@ -5,6 +5,7 @@
 namespace bl::script {
 bool saveModItemData(Il2CppObject* item, std::string& data);
 bool loadModItemData(Il2CppObject* item, const std::string& data);
+bool itemDataEngineReady();
 }
 
 #if BL_HAVE_QUICKJS

@@ -44,6 +44,10 @@ internal static unsafe class ItemNetHooks
     static readonly ConcurrentDictionary<(Type, string), bool> Overridden = new();
     static Receiving? receiving;
 
+    static readonly List<int> Resend = new();
+
+    static int inWorld;
+
     public static void Install(Func<string, bool> has, bool global)
     {
         bool net = has(nameof(ModItem.NetSend)) || has(nameof(ModItem.NetReceive));
@@ -58,6 +62,11 @@ internal static unsafe class ItemNetHooks
                 (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, int, IntPtr, IntPtr, void>)&ProcessData);
             reset = ItemHooks.Raw("Terraria", "MessageBuffer", "void Reset(bool setupActive)",
                 (IntPtr)(delegate* unmanaged<IntPtr, byte, IntPtr, void>)&Reset);
+            On_Player.Update += (orig, self, i) =>
+            {
+                orig(self, i);
+                if (i == Main.myPlayer) AfterJoin();
+            };
         });
     }
 
@@ -192,12 +201,47 @@ internal static unsafe class ItemNetHooks
         ItemHooks.Original(ref call, hook, "NetMessage.SendData");
     }
 
+    static void AfterJoin()
+    {
+        if (ModNet.NetMode != 1 || Main.gameMenu)
+        {
+            inWorld = 0;
+            return;
+        }
+        if (inWorld < 60 && ++inWorld < 60) return;
+        int[] slots;
+        lock (Gate)
+        {
+            if (Resend.Count == 0) return;
+            slots = Resend.ToArray();
+            Resend.Clear();
+        }
+        int me = Main.myPlayer;
+        foreach (int slot in slots)
+        {
+            try
+            {
+                Item item = ItemFor(5, me, slot);
+                if (item.IsNull || item.type <= 0 || item.stack <= 0) continue;
+                NetMessage.SendData(5, -1, -1, default(Terraria.Localization.NetworkText), me, slot, item.prefix, 0, 0, 0, 0);
+            }
+            catch (Exception e) { ItemHooks.Report("NetSend (after joining)", e); }
+        }
+    }
+
     static void BeforeSend(int packet, int remote, int ignore, int index, int slot)
     {
         if (ModNet.NetMode == 0) return;
         if (packet != 5 && packet != 32) slot = 0;
         Item item = ItemFor(packet, index, slot);
         if (item.IsNull || item.type <= 0 || item.stack <= 0) return;
+        if (ModNet.NetMode == 1 && (Main.gameMenu || inWorld < 60))
+        {
+            if (packet == 5 && index == Main.myPlayer && (ItemLoader.Get(item.type) != null || globalWanted))
+                lock (Gate)
+                    if (!Resend.Contains(slot)) Resend.Add(slot);
+            return;
+        }
         using var root = new GameHandle(item.Pointer);
         Receiving? incoming = receiving;
         if (incoming != null && !incoming.Applied && incoming.Envelope.Packet == packet &&

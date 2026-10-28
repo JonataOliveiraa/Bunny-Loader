@@ -83,11 +83,14 @@ internal static unsafe class ItemTooltipHooks
                 lines.RemoveAll(l => !l.Visible);
             }
             Last = lines;
-            int written = Math.Min(lines.Count, Math.Min(texts.Length, Math.Min(prefix.Length, bad.Length)));
+            int capacity = Math.Min(texts.Length, Math.Min(prefix.Length, bad.Length));
+            int written = 0;
             *yoyoLogo = *researchLine = *materialsLine = *setBonusLine = *sharedLine = -1;
-            for (int i = 0; i < written; i++)
+            foreach (TooltipLine line in lines)
             {
-                TooltipLine line = lines[i];
+                if (line.Role == "name") continue;
+                if (written >= capacity) break;
+                int i = written++;
                 texts[i] = GameString.From(line.Text ?? "");
                 prefix[i] = line.IsModifier || line.IsModifierBad;
                 bad[i] = line.IsModifierBad;
@@ -124,8 +127,8 @@ internal static unsafe class ItemTooltipHooks
                                    Dictionary<int, string> roles)
     {
         var names = new Names(item);
-        var lines = new List<TooltipLine>(count + 4);
-        var used = new HashSet<string>();
+        var lines = new List<TooltipLine>(count + 5) { new("Terraria", "ItemName", item.HoverName ?? "") { Role = "name" } };
+        var used = new HashSet<string> { "ItemName" };
         for (int i = 0; i < count; i++)
         {
             string text = texts[i].ToString() ?? "";
@@ -143,7 +146,7 @@ internal static unsafe class ItemTooltipHooks
                 IsModifier = modifier,
                 IsModifierBad = modifier && bad[i],
                 OneDropLogo = role == "logo",
-                Role = i == 0 ? "name" : role ?? "",
+                Role = role ?? "",
             };
             lines.Add(line);
         }
@@ -190,7 +193,6 @@ internal static unsafe class ItemTooltipHooks
 
         public string Of(int index, string text, string? role, bool modifier)
         {
-            if (index == 0) return "ItemName";
             switch (role)
             {
                 case "logo": return "OneDropLogo";

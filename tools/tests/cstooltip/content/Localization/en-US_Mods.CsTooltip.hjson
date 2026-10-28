@@ -1,14 +1,10 @@
-Mods: {
-	CsTooltip: {
-		Items: {
-			Lore: {
-				DisplayName: Lore Stone
-				Tooltip:
-					'''
-					First line
-					Second line
-					'''
-			}
-		}
+Items: {
+	Lore: {
+		DisplayName: Lore Stone
+		Tooltip:
+			'''
+			First line
+			Second line
+			'''
 	}
 }

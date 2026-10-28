@@ -117,6 +117,8 @@ bool installSetDefaultsHook(JSContext* ctx) {
 
 } // namespace
 
+bool itemDataEngineReady() { return g_ctx != nullptr; }
+
 bool saveModItemData(Il2CppObject* item, std::string& data) {
     if (!item) return false;
     if (!g_ctx) return true;
@@ -619,5 +621,6 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
 namespace bl::script {
 bool saveModItemData(Il2CppObject*, std::string&) { return true; }
 bool loadModItemData(Il2CppObject*, const std::string&) { return true; }
+bool itemDataEngineReady() { return false; }
 }
 #endif

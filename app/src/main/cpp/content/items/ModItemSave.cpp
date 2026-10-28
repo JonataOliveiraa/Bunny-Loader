@@ -881,6 +881,15 @@ void hkSetDefaults(Il2CppObject* self, int32_t type, Il2CppObject* variant, cons
     g_origSetDefaults(self, type, variant, m);
 }
 
+using CloneFn = Il2CppObject* (*)(Il2CppObject*, const MethodInfo*);
+CloneFn g_origClone = nullptr;
+
+Il2CppObject* hkClone(Il2CppObject* self, const MethodInfo* m) {
+    Il2CppObject* copy = g_origClone(self, m);
+    copyUnloadedItemData(self, copy);
+    return copy;
+}
+
 
 bool resolve() {
     using namespace il2cpp;
@@ -1002,6 +1011,11 @@ void installModItemSave() {
 
     if (!hook::install(g_refs.setDefaults, hkSetDefaults, &g_origSetDefaults)) {
         BL_ERROR("save de itens de mod: sem hook em Item.SetDefaults; item \"?\" nao funciona");
+    }
+    Il2CppClass* itemClass = il2cpp::findClass({"Terraria", "Item", {}});
+    const MethodInfo* clone = itemClass ? il2cpp::findMethodBySignature(itemClass, il2cpp::parseSignature("Item Clone()")) : nullptr;
+    if (!clone || !hook::install(clone, hkClone, &g_origClone)) {
+        BL_ERROR("unloaded mod items: Item.Clone is not hooked; without QuickJS a copied unloaded item loses its data");
     }
 
     Il2CppClass* worldFile = il2cpp::findClass({"Terraria.IO", "WorldFile", {}});
