@@ -283,7 +283,10 @@ loads (asked on a fresh item of that type), so the "Open" button shows up for
 it. A `GlobalItem` can do the same for a vanilla item, and its `RightClick`
 also runs when a vanilla bag or crate opens (the game still gives what is
 inside). A boss bag of yours (`ItemID.Sets.BossBag`) can also give a
-developer set, as in tModLoader. `ModifyItemLoot` comes with the loot rules
+developer set, as in tModLoader, unless you mark it pre-Hardmode in
+`SetStaticDefaults` (`ItemID.Sets.PreHardmodeLikeBossBag[Type] = true;`, a
+tModLoader set that Bunny Loader adds, with the game's pre-Hardmode bags
+already marked). `ModifyItemLoot` comes with the loot rules
 (`ItemLoot`, `IItemDropRule`).
 
 Drawing the item:
