@@ -3,6 +3,7 @@
 #include "boot/Boot.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
+#include "content/common/ModLanguage.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -68,6 +69,7 @@ struct NativeApi {
     void* (*requestVanillaTexture)(const char* name, int32_t* missingOnMobile);
     void* (*textureAssetValue)(void* asset);
     int32_t (*modManifestField)(const char* uid, int32_t field, char* out, int32_t size);
+    void* (*languageText)(const char* key, const char* packedTexts, int32_t replace);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -458,6 +460,14 @@ int32_t nativeModManifestField(const char* uid, int32_t field, char* out, int32_
     return static_cast<int32_t>(value.size());
 }
 
+void* nativeLanguageText(const char* key, const char* packedTexts, int32_t replace) {
+    if (!key || !*key) return nullptr;
+    if (!packedTexts) return runtime::modLanguageText(key, nullptr, false);
+    runtime::content::CultureNames names = cultureTexts(packedTexts);
+    if (names.empty()) names.push_back({"", ""});
+    return runtime::modLanguageText(key, &names, replace != 0);
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -495,6 +505,7 @@ const NativeApi kNativeApi{
     nativeRequestVanillaTexture,
     nativeTextureAssetValue,
     nativeModManifestField,
+    nativeLanguageText,
 };
 
 } // namespace

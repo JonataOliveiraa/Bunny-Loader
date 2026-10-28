@@ -6,6 +6,7 @@ using BunnyLoader;
 using BunnyLoader.Interop;
 using Terraria.GameContent.Items;
 using Terraria.ID;
+using Terraria.Localization;
 
 namespace Terraria.ModLoader;
 
@@ -59,17 +60,19 @@ internal static unsafe class ItemLoader
         }
     }
 
-    // O DisplayName do item vale para todo idioma; sem ele, o ItemName das
-    // traducoes do mod; sem nenhum, o nome da classe separado.
-    static string DisplayNames(ModItem item)
-    {
-        if (item.DisplayName != null) return item.DisplayName;
-        var texts = LocalizationLoader.Texts(item.Mod, "ItemName", item.Name);
-        return texts.Count > 0 ? LocalizationLoader.Pack(texts) : item.PrettyPrintName();
-    }
+    static string DisplayNames(ModItem item) => Localized(item, item.DisplayName, nameof(ModItem.DisplayName));
 
-    static string Tooltips(ModItem item) =>
-        item.Tooltip ?? LocalizationLoader.Pack(LocalizationLoader.Texts(item.Mod, "ItemTooltip", item.Name));
+    static string Tooltips(ModItem item) => Localized(item, item.Tooltip, nameof(ModItem.Tooltip));
+
+    static string Localized(ModItem item, LocalizedText text, string property)
+    {
+        if (item.GetType().GetProperty(property)!.DeclaringType == typeof(ModItem))
+        {
+            var texts = LocalizationLoader.Texts(item.Mod, item.GetLocalizationKey(property));
+            if (texts.Count > 0) return LocalizationLoader.Pack(texts);
+        }
+        return text.IsNull ? "" : text.Value ?? "";
+    }
 
     static int Native(ModItem item, string texture, string displayName, string tooltip)
     {

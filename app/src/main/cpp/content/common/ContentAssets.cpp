@@ -348,7 +348,7 @@ void destroyGameTexture(Il2CppObject* texture) {
     if (unity) { void* args[1] = {unity}; invoke(r.destroy, nullptr, args, "Object.Destroy"); }
 }
 
-std::string textForCulture(const CultureNames& names, const std::string& fallback) {
+std::string activeCultureName() {
     const Refs& r = refs();
     std::string culture;
     if (r.activeCulture && r.cultureName) {
@@ -357,6 +357,11 @@ std::string textForCulture(const CultureNames& names, const std::string& fallbac
                     : nullptr;
         if (s) for (int i = 0; i < s->length; ++i) culture += static_cast<char>(s->chars[i]);
     }
+    return culture;
+}
+
+std::string textForCulture(const CultureNames& names, const std::string& fallback) {
+    const std::string culture = activeCultureName();
     const std::string language = culture.substr(0, culture.find('-'));
     const std::string* match = nullptr;
     for (const auto& n : names) if (n.first == culture) match = &n.second;
@@ -374,11 +379,10 @@ namespace {
  * em tabelas por tipo, mas partes dele buscam pela CHAVE: a plaquinha do
  * Bestiario (Language.GetTextValue("NPCName.X")) mostrava a chave crua.
  */
-void registerLanguageKey(Il2CppString* key, Il2CppObject* text) {
+Il2CppObject* languageDictionary() {
     auto& a = il2cpp::api();
     static FieldInfo* instance = nullptr;
     static int32_t offTexts = -2;
-    static const MethodInfo* setItem = nullptr;
     if (offTexts == -2) {
         Il2CppClass* lm = il2cpp::findClass({"Terraria.Localization", "LanguageManager", {}});
         instance = lm ? il2cpp::findField(lm, "Instance") : nullptr;
@@ -386,8 +390,14 @@ void registerLanguageKey(Il2CppString* key, Il2CppObject* text) {
     }
     Il2CppObject* manager = nullptr;
     if (instance) a.field_static_get_value(instance, &manager);
-    if (!manager || offTexts < 0) return;
-    Il2CppObject* dict = *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(manager) + offTexts);
+    if (!manager || offTexts < 0) return nullptr;
+    return *reinterpret_cast<Il2CppObject**>(reinterpret_cast<char*>(manager) + offTexts);
+}
+
+void registerLanguageKey(Il2CppString* key, Il2CppObject* text) {
+    auto& a = il2cpp::api();
+    static const MethodInfo* setItem = nullptr;
+    Il2CppObject* dict = languageDictionary();
     if (!dict) return;
     if (!setItem) setItem = a.class_get_method_from_name(a.object_get_class(dict), "set_Item", 2);
     if (!setItem) return;
@@ -407,6 +417,65 @@ Il2CppObject* makeLocalizedText(const std::string& key, const std::string& text)
     if (!invoke(r.localizedTextCtor, t, c, "LocalizedText.ctor")) return nullptr;
     registerLanguageKey(k, t);
     return t;
+}
+
+Il2CppObject* newLocalizedText(const std::string& key, const std::string& text) {
+    auto& a = il2cpp::api();
+    const Refs& r = refs();
+    if (!r.ok) return nullptr;
+    Il2CppObject* t = a.object_new(r.localizedTextCls);
+    void* c[2] = {a.string_new(key.c_str()), a.string_new(text.c_str())};
+    if (!invoke(r.localizedTextCtor, t, c, "LocalizedText.ctor")) return nullptr;
+    return t;
+}
+
+void addLanguageKey(const std::string& key, Il2CppObject* text) {
+    if (text) registerLanguageKey(il2cpp::api().string_new(key.c_str()), text);
+}
+
+Il2CppObject* findLanguageText(const std::string& key) {
+    auto& a = il2cpp::api();
+    static const MethodInfo* tryGet = nullptr;
+    Il2CppObject* dict = languageDictionary();
+    if (!dict) return nullptr;
+    if (!tryGet) tryGet = a.class_get_method_from_name(a.object_get_class(dict), "TryGetValue", 2);
+    if (!tryGet) return nullptr;
+    Il2CppObject* found = nullptr;
+    void* args[2] = {a.string_new(key.c_str()), &found};
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* boxed = a.runtime_invoke(tryGet, dict, args, &exc);
+    if (exc || !boxed || !*reinterpret_cast<bool*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject))) return nullptr;
+    return found;
+}
+
+bool setLocalizedTextValue(Il2CppObject* text, const std::string& value) {
+    auto& a = il2cpp::api();
+    const Refs& r = refs();
+    static const MethodInfo* setValue = nullptr;
+    if (!text || !r.localizedTextCls) return false;
+    if (!setValue) setValue = a.class_get_method_from_name(r.localizedTextCls, "SetValue", 1);
+    if (!setValue) return false;
+    void* args[1] = {a.string_new(value.c_str())};
+    return invoke(setValue, text, args, "LocalizedText.SetValue");
+}
+
+std::string localizedTextValue(Il2CppObject* text) {
+    auto& a = il2cpp::api();
+    const Refs& r = refs();
+    static const MethodInfo* getValue = nullptr;
+    if (!text || !r.localizedTextCls) return {};
+    if (!getValue) getValue = a.class_get_method_from_name(r.localizedTextCls, "get_Value", 0);
+    auto* s = getValue ? reinterpret_cast<Il2CppString*>(invokeValue(getValue, text, nullptr, "LocalizedText.Value")) : nullptr;
+    std::string out;
+    if (s) {
+        for (int i = 0; i < s->length; ++i) {
+            const uint32_t c = s->chars[i];
+            if (c < 0x80) out += static_cast<char>(c);
+            else if (c < 0x800) { out += static_cast<char>(0xC0 | (c >> 6)); out += static_cast<char>(0x80 | (c & 0x3F)); }
+            else { out += static_cast<char>(0xE0 | (c >> 12)); out += static_cast<char>(0x80 | ((c >> 6) & 0x3F)); out += static_cast<char>(0x80 | (c & 0x3F)); }
+        }
+    }
+    return out;
 }
 
 bool setTableElement(FieldInfo* table, int index, Il2CppObject* value) {

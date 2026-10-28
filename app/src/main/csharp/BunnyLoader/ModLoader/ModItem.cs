@@ -1,3 +1,5 @@
+using Terraria.Localization;
+
 namespace Terraria.ModLoader;
 
 // Um item novo. O tipo e ItemID.Count + a ordem de registro: o mesmo a cada
@@ -6,7 +8,7 @@ namespace Terraria.ModLoader;
 // O registrado e o MOLDE. Cada Item.SetDefaults do tipo roda numa instancia
 // nova (NewInstance) com o Item daquela chamada; a instancia ainda nao fica
 // presa ao item (dados por item vem depois).
-public abstract class ModItem : ModType<Item, ModItem>
+public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 {
     // O item desta instancia. No molde (Load, SetStaticDefaults) e nulo: o
     // molde ainda nao tem um Item do jogo.
@@ -22,13 +24,11 @@ public abstract class ModItem : ModType<Item, ModItem>
         ? (ns + "." + Name).Replace('.', '/')
         : Name;
 
-    // Nome e tooltip para qualquer idioma (linhas do tooltip separadas por
-    // '\n'). null = as traducoes do mod (content/Localization/<cultura>.json,
-    // secoes ItemName e ItemTooltip, chave Name); sem elas, o nome da classe
-    // separado ("ExampleItem" -> "Example Item") e sem tooltip.
-    public virtual string? DisplayName => null;
+    public virtual string LocalizationCategory => "Items";
 
-    public virtual string? Tooltip => null;
+    public virtual LocalizedText DisplayName => this.GetLocalization(nameof(DisplayName), PrettyPrintName);
+
+    public virtual LocalizedText Tooltip => this.GetLocalization(nameof(Tooltip), () => "");
 
     protected sealed override Item CreateTemplateEntity() => default;
 

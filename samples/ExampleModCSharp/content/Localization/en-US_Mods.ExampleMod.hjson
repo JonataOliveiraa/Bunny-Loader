@@ -1,0 +1,11 @@
+Items: {
+	ExampleItem: {
+		DisplayName: Example Item
+		Tooltip: Item description
+	}
+
+	ExampleMeleeWeapon: {
+		DisplayName: Sword
+		Tooltip: ""
+	}
+}

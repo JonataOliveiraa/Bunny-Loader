@@ -1,9 +1,0 @@
-{
-  "ItemName": {
-    "ExampleItem": "Example Item",
-    "ExampleMeleeWeapon": "Sword"
-  },
-  "ItemTooltip": {
-    "ExampleItem": "Item description"
-  }
-}

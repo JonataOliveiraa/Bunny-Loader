@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using BunnyLoader;
 using log4net;
+using Terraria.Localization;
 
 namespace Terraria.ModLoader;
 
@@ -91,6 +92,11 @@ public abstract class Mod
     public IEnumerable<ILoadable> GetContent() => content.AsReadOnly();
 
     public IEnumerable<T> GetContent<T>() where T : ILoadable => content.OfType<T>();
+
+    public string GetLocalizationKey(string suffix) => $"Mods.{Name}.{suffix}";
+
+    public LocalizedText GetLocalization(string suffix, Func<string>? makeDefaultValue = null) =>
+        Language.GetOrRegister(GetLocalizationKey(suffix), makeDefaultValue);
 
     // O conteudo deste mod pelo nome (Name, sem o do mod).
     public T Find<T>(string name) where T : IModType => ModContent.Find<T>(Name, name);

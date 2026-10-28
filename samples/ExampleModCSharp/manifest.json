@@ -5,7 +5,7 @@
   "localizedSummaries": {
     "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item and the Sword."
   },
-  "version": "0.1.0",
+  "version": "0.2.0",
   "authors": [
     {
       "name": "Potato",
@@ -24,7 +24,7 @@
   "category": "Itens",
   "summary": "O ExampleMod do tModLoader em C#, portado conforme os loaders C# chegam. Por enquanto: o Exemplo de Item e a Espada.",
   "license": "MIT",
-  "updated": "2026-10-27",
+  "updated": "2026-10-28",
   "blVersion": 2,
   "gameVersion": [
     301720,

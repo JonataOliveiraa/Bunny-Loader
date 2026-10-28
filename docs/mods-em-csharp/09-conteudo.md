@@ -31,13 +31,16 @@ public class ShinyRock : ModItem
 
 The texture is `content/Content/Items/ShinyRock.png`: the namespace plus the
 class name, as in tModLoader, and the first part (the mod's name) may be
-missing on disk. The name and tooltip come from
-`content/Localization/<culture>.json`:
+missing on disk. The name and tooltip come from the mod's translations,
+`content/Localization/en-US_Mods.MyMod.hjson` (see
+[Translations](#translations)):
 
-```json
-{
-  "ItemName": { "ShinyRock": "Shiny Rock" },
-  "ItemTooltip": { "ShinyRock": "It glows a little" }
+```hjson
+Items: {
+	ShinyRock: {
+		DisplayName: Shiny Rock
+		Tooltip: It glows a little
+	}
 }
 ```
 
@@ -285,6 +288,83 @@ int answer = OtherModApi.Answer;   // a public class of the other mod
   dependency as a reference, and compiles again when one of them changes.
   The catalog and the PC tools do not have the other mod, so they cannot
   compile such a mod yet: ship it as a `.dll`, or let the phone compile it.
+
+## Translations
+
+Translations follow tModLoader: [hjson](https://hjson.github.io/) files
+with keys like `Mods.MyMod.Items.ShinyRock.DisplayName`.
+
+### The files
+
+Any `.hjson` file of the mod with a culture in its name counts (`bin/` and
+`obj/` aside). The part after the culture is a prefix put in front of every
+key in the file:
+
+| File | Keys inside start at |
+|---|---|
+| `Localization/en-US_Mods.MyMod.hjson` | `Mods.MyMod.` |
+| `Localization/pt-BR_Mods.MyMod.hjson` | `Mods.MyMod.` |
+| `Localization/en-US.hjson` | the root: write `Mods: { MyMod: { ... } }` |
+| `Localization/en-US/Mods.MyMod.Items.hjson` | `Mods.MyMod.Items.` |
+
+What hjson allows, and Bunny Loader reads: braces around the whole file are
+optional; no quotes around names or around a value that takes the rest of its
+line; `#`, `//` and `/* */` comments; commas optional; `"..."` and `'...'`
+with `\n`, `\t`, `\"` escapes; multiline text between `'''` lines, with the
+indentation of the opening `'''` removed:
+
+```hjson
+# Localization/en-US_Mods.MyMod.hjson
+Greeting: Hello, {0}!
+Items: {
+	ShinyRock: {
+		DisplayName: Shiny Rock
+		Tooltip:
+			'''
+			It glows a little
+			Right click to polish
+			'''
+	}
+}
+```
+
+A value that takes the rest of its line ends only at the line's end: write
+`{ Name: "x" }` with quotes when an object fits in one line.
+
+The game's culture picks the text: the exact culture (`pt-BR`), then the
+same language, then `en-US`, then any. Changing the language in the game
+updates every text of the mods.
+
+### In code
+
+| Call | Gives |
+|---|---|
+| `Language.GetTextValue("Mods.MyMod.Greeting", "Bunny")` | `"Hello, Bunny!"` (the arguments fill `{0}`, `{1}`...) |
+| `Language.GetText(key)` | the game's `LocalizedText` for the key |
+| `Language.GetOrRegister(key, () => "default")` | the `LocalizedText`; with the default when no file has it |
+| `Mod.GetLocalization("Greeting")` | `Mods.MyMod.Greeting` |
+| `this.GetLocalization("Glow")` in a `ModItem` | `Mods.MyMod.Items.ShinyRock.Glow` |
+| `this.GetLocalizedValue("Glow")` | its text |
+| `text.Value`, `text.Format(args)` | the text, and the text with `{0}`... filled |
+
+`using Terraria.Localization;` brings `Language` and `LocalizedText`, which
+are the game's own.
+
+A `ModItem`'s `DisplayName` and `Tooltip` are its `GetLocalization("DisplayName")`
+and `GetLocalization("Tooltip")`. Without a translation, the name is the class
+name split in words (`ShinyRock` → `Shiny Rock`) and the tooltip is empty. To
+use a text of the game instead, override them:
+
+```csharp
+public override LocalizedText DisplayName => Language.GetText("ItemName.IronPickaxe");
+```
+
+**When the texts work:** `GetLocalization(...).Value` works from `Load` on.
+`Language.GetTextValue` looks the key up in the game's own table, and the
+mods' keys only enter it on the game thread: from `SetStaticDefaults` on.
+
+The old format, `Localization/<culture>.json` with `ItemName` and
+`ItemTooltip` sections, is still read (a key of a `.hjson` wins).
 
 ## Logging from content
 

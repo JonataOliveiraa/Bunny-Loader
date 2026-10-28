@@ -21,6 +21,8 @@ Terraria.ID.DustID
 Terraria.ID.ItemUseStyleID
 Terraria.ID.SoundID
 Microsoft.Xna.Framework.Graphics.Texture2D
+Terraria.Localization.Language
+Terraria.Localization.LocalizedText
 Microsoft.Xna.Framework.Vector2
 Microsoft.Xna.Framework.Vector3
 Microsoft.Xna.Framework.Vector4

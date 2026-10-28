@@ -1,0 +1,22 @@
+# a comment
+Plain: plain text
+Quoted: "tab\tand \"quotes\""
+Single: 'it\'s'
+Number: 42
+Greeting: Hello, {0}!
+Spaced     :    trailing spaces kept inside   
+// another comment
+Multi:
+	'''
+	line 1
+	line 2
+	'''
+/* a block
+comment */
+Items: {
+	LocGem: {
+		DisplayName: Localized Gem
+		Custom: from the item
+	}
+}
+Nested: { Deep: { Value: "deep" } }

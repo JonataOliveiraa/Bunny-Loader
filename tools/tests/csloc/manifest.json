@@ -1,0 +1,15 @@
+{
+  "uid": "bd2b43f8-35c7-4f45-a7e3-595c4027dee7",
+  "id": "test-csloc",
+  "name": "Teste: localizacao do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Os .hjson do tModLoader, LocalizedText, Language.GetTextValue, GetLocalization e GetOrRegister, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csloc. Loga 'csloc <caso>: ok | FAIL' e 'csloc END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsLoc.dll",
+  "dependencies": []
+}

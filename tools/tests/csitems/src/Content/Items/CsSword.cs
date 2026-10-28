@@ -3,13 +3,8 @@ using Terraria.ModLoader;
 
 namespace CsItems.Content.Items;
 
-// O ExampleSword do ExampleMod, com nome e tooltip proprios.
 public class CsSword : ModItem
 {
-    public override string? DisplayName => "Espada C#";
-
-    public override string? Tooltip => "Feita pelo loader C#\nSem QuickJS";
-
     public override void SetDefaults()
     {
         Item.width = 40;

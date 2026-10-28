@@ -99,6 +99,7 @@ internal static unsafe class Host
                 Log.Error($"mod {uid}: no class extends Terraria.ModLoader.Mod");
                 return 0;
             }
+            foreach (Mod mod in mods) LocalizationLoader.Load(mod);
             // Como no tModLoader: o conteudo entra antes do Load. Ele pertence
             // ao primeiro Mod do assembly. So entra na lista (PostSetupContent,
             // receitas) o mod que carregou inteiro.

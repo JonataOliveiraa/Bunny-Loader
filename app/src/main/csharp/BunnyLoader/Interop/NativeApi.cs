@@ -44,4 +44,5 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, int*, IntPtr> RequestVanillaTexture;
     public delegate* unmanaged<IntPtr, IntPtr> TextureAssetValue;
     public delegate* unmanaged<byte*, int, byte*, int, int> ModManifestField;
+    public delegate* unmanaged<byte*, byte*, int, IntPtr> LanguageText;
 }

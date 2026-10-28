@@ -62,6 +62,13 @@ std::string textForCulture(const CultureNames& names, const std::string& fallbac
 /** new LocalizedText(key, text), ou nullptr. */
 Il2CppObject* makeLocalizedText(const std::string& key, const std::string& text);
 
+std::string activeCultureName();
+Il2CppObject* newLocalizedText(const std::string& key, const std::string& text);
+void addLanguageKey(const std::string& key, Il2CppObject* text);
+Il2CppObject* findLanguageText(const std::string& key);
+bool setLocalizedTextValue(Il2CppObject* text, const std::string& value);
+std::string localizedTextValue(Il2CppObject* text);
+
 /** tabela[index] = value no array estatico `table`, pelo Array.SetValue (barreira do coletor). */
 bool setTableElement(FieldInfo* table, int index, Il2CppObject* value);
 

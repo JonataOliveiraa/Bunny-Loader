@@ -1,0 +1,10 @@
+Items: {
+	CsSword: {
+		DisplayName: Espada C#
+		Tooltip:
+			'''
+			Feita pelo loader C#
+			Sem QuickJS
+			'''
+	}
+}

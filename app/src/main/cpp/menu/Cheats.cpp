@@ -12,6 +12,7 @@
 #include "il2cpp/Signature.h"
 #include "content/common/GameRefs.h"
 #include "content/common/ModContent.h"
+#include "content/common/ModLanguage.h"
 #include "content/textures/FontPacks.h"
 #include "content/textures/TexturePacks.h"
 #include "content/items/ModItems.h"
@@ -939,6 +940,7 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     updateInWorld();
     readNamesSlice();
     tickPowers();
+    tickModLanguage();
     tickModItems();
     tickModProjectiles();
     tickModNpcs();

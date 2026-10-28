@@ -9,7 +9,7 @@ Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
 
 - ![](content/Content/Items/ExampleItem.png) **Exemplo de Item**
   (`Content/Items/ExampleItem.cs`): o `ModItem` mais simples, com nome e
-  descrição vindos de `Localization/<idioma>.json`.
+  descrição vindos de `Localization/<idioma>_Mods.ExampleMod.hjson`.
 - ![](content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.png) **Espada**
   (`Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs`): dano, repulsão,
   crítico, uso e o som de golpe do jogo.

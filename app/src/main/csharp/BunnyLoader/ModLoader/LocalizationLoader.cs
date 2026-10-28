@@ -4,31 +4,58 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using BunnyLoader;
+using Terraria.Localization;
 
 namespace Terraria.ModLoader;
 
-// As traducoes do mod: content/Localization/<cultura>.json, no mesmo formato
-// dos mods JS ({ "ItemName": { "ExampleItem": "Exemplo de Item" }, ... }).
-// Lidas uma vez por mod, na carga.
-internal static class LocalizationLoader
+internal static unsafe class LocalizationLoader
 {
-    static readonly Dictionary<Mod, Dictionary<string, Dictionary<string, Dictionary<string, string>>>> Cache = new();
+    static readonly Regex CultureName = new(@"^[a-z]{2,3}(-[A-Za-z]{2,4})?$", RegexOptions.CultureInvariant);
 
-    // (cultura, texto) da chave na secao, em cada idioma que a tem.
-    public static List<(string Culture, string Text)> Texts(Mod mod, string section, string key)
+    static readonly Dictionary<Mod, Dictionary<string, List<(string Culture, string Text)>>> ByMod = new();
+
+    public static void Load(Mod mod)
     {
-        var found = new List<(string, string)>();
-        foreach ((string culture, var sections) in Files(mod))
+        var all = new Dictionary<string, List<(string Culture, string Text)>>(StringComparer.Ordinal);
+        foreach (string file in ModFiles(mod, "*.hjson"))
         {
-            if (sections.TryGetValue(section, out var entries) && entries.TryGetValue(key, out string? text))
-                found.Add((culture, text));
+            string relative = Path.GetRelativePath(mod.Folder, file).Replace('\\', '/');
+            if (!CultureAndPrefix(relative, out string culture, out string prefix)) continue;
+            try
+            {
+                foreach ((string key, string text) in HjsonReader.Flatten(File.ReadAllText(file), prefix)) Add(all, key, culture, text, replace: true);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"mod {mod.Uid}: {relative}: {e.Message}");
+            }
         }
-        return found;
+        LoadLegacyJson(mod, all);
+        lock (ByMod) ByMod[mod] = all;
+        foreach ((string key, List<(string Culture, string Text)> texts) in all) Native(key, Pack(texts), replace: true);
     }
 
-    // Para o nativo: o texto sozinho (qualquer cultura) ou "cultura\x1Ftexto"
-    // separados por \x1E.
+    public static List<(string Culture, string Text)> Texts(Mod mod, string key)
+    {
+        lock (ByMod)
+        {
+            return ByMod.TryGetValue(mod, out var all) && all.TryGetValue(key, out var texts)
+                ? new List<(string Culture, string Text)>(texts)
+                : new List<(string Culture, string Text)>();
+        }
+    }
+
+    public static LocalizedText GetOrRegister(string key, Func<string>? makeDefaultValue)
+    {
+        IntPtr found = Native(key, null, replace: false);
+        if (found != IntPtr.Zero) return new LocalizedText(found);
+        IntPtr created = Native(key, makeDefaultValue?.Invoke() ?? key, replace: false);
+        if (created == IntPtr.Zero) Log.Error($"localization: could not register '{key}'");
+        return new LocalizedText(created);
+    }
+
     public static string Pack(IReadOnlyList<(string Culture, string Text)> texts)
     {
         if (texts.Count == 1 && texts[0].Culture.Length == 0) return texts[0].Text;
@@ -41,47 +68,81 @@ internal static class LocalizationLoader
         return packed.ToString();
     }
 
-    static Dictionary<string, Dictionary<string, Dictionary<string, string>>> Files(Mod mod)
+    static IntPtr Native(string key, string? packed, bool replace)
     {
-        lock (Cache)
+        byte* k = Host.Utf8(key);
+        byte* p = packed == null ? null : Host.Utf8(packed);
+        try { return Host.Native()->LanguageText(k, p, replace ? 1 : 0); }
+        finally
         {
-            if (Cache.TryGetValue(mod, out var loaded)) return loaded;
-            loaded = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
-            string folder = Path.Combine(mod.Folder, "Localization");
-            if (Directory.Exists(folder))
-            {
-                foreach (string file in Directory.GetFiles(folder, "*.json").OrderBy(f => f, StringComparer.Ordinal))
-                {
-                    try
-                    {
-                        loaded[Path.GetFileNameWithoutExtension(file)] = Read(file);
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error($"mod {mod.Uid}: {Path.GetFileName(file)}: {e.Message}");
-                    }
-                }
-            }
-            Cache[mod] = loaded;
-            return loaded;
+            Host.FreeUtf8(k);
+            if (p != null) Host.FreeUtf8(p);
         }
     }
 
-    static Dictionary<string, Dictionary<string, string>> Read(string file)
+    static void Add(Dictionary<string, List<(string Culture, string Text)>> all, string key, string culture, string text, bool replace)
     {
-        var options = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(file), options);
-        var sections = new Dictionary<string, Dictionary<string, string>>();
-        foreach (JsonProperty section in document.RootElement.EnumerateObject())
+        if (!all.TryGetValue(key, out var texts)) all[key] = texts = new List<(string Culture, string Text)>();
+        int index = texts.FindIndex(t => t.Culture == culture);
+        if (index < 0) texts.Add((culture, text));
+        else if (replace) texts[index] = (culture, text);
+    }
+
+    static bool CultureAndPrefix(string relative, out string culture, out string prefix)
+    {
+        culture = "";
+        prefix = "";
+        string[] segments = Path.ChangeExtension(relative, null)!.Split('/');
+        for (int s = 0; s < segments.Length; s++)
         {
-            if (section.Value.ValueKind != JsonValueKind.Object) continue;
-            var entries = new Dictionary<string, string>();
-            foreach (JsonProperty entry in section.Value.EnumerateObject())
+            string[] parts = segments[s].Split('_');
+            for (int p = 0; p < parts.Length; p++)
             {
-                if (entry.Value.ValueKind == JsonValueKind.String) entries[entry.Name] = entry.Value.GetString()!;
+                if (!CultureName.IsMatch(parts[p])) continue;
+                culture = parts[p];
+                prefix = string.Join("_", parts.Skip(p + 1));
+                if (prefix.Length == 0 && s < segments.Length - 1) prefix = segments[^1];
+                return true;
             }
-            sections[section.Name] = entries;
         }
-        return sections;
+        return false;
+    }
+
+    static IEnumerable<string> ModFiles(Mod mod, string pattern)
+    {
+        if (!Directory.Exists(mod.Folder)) return Array.Empty<string>();
+        return Directory.EnumerateFiles(mod.Folder, pattern, SearchOption.AllDirectories)
+            .Where(f => !Path.GetRelativePath(mod.Folder, f).Replace('\\', '/').Split('/')[..^1]
+                .Any(part => part.Equals("bin", StringComparison.OrdinalIgnoreCase) || part.Equals("obj", StringComparison.OrdinalIgnoreCase)))
+            .OrderBy(f => f, StringComparer.Ordinal);
+    }
+
+    static void LoadLegacyJson(Mod mod, Dictionary<string, List<(string Culture, string Text)>> all)
+    {
+        string folder = Path.Combine(mod.Folder, "Localization");
+        if (!Directory.Exists(folder)) return;
+        var sections = new Dictionary<string, string> { ["ItemName"] = "DisplayName", ["ItemTooltip"] = "Tooltip" };
+        var options = new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true };
+        foreach (string file in Directory.GetFiles(folder, "*.json").OrderBy(f => f, StringComparer.Ordinal))
+        {
+            string culture = Path.GetFileNameWithoutExtension(file);
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(File.ReadAllText(file), options);
+                foreach (JsonProperty section in document.RootElement.EnumerateObject())
+                {
+                    if (!sections.TryGetValue(section.Name, out string? suffix) || section.Value.ValueKind != JsonValueKind.Object) continue;
+                    foreach (JsonProperty entry in section.Value.EnumerateObject())
+                    {
+                        if (entry.Value.ValueKind != JsonValueKind.String) continue;
+                        Add(all, $"Mods.{mod.Name}.Items.{entry.Name}.{suffix}", culture, entry.Value.GetString()!, replace: false);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Error($"mod {mod.Uid}: {Path.GetFileName(file)}: {e.Message}");
+            }
+        }
     }
 }

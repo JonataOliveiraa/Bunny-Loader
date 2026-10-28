@@ -1,0 +1,8 @@
+{
+	Mods: {
+		CsLoc: {
+			OnlyEnglish: english only
+			Both: english
+		}
+	}
+}
