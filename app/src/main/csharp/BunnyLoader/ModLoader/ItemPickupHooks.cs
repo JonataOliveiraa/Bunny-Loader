@@ -181,7 +181,10 @@ internal static unsafe class ItemPickupHooks
         if (Meets(0)) return true;
         if (range < vanilla) return Meets(range);
         if (!Meets(range) || Meets(vanilla)) return true;
-        Pull(player, w, item);
+        IntPtr outer = grabbing;
+        grabbing = IntPtr.Zero;
+        try { Pull(player, w, item); }
+        finally { grabbing = outer; }
         return true;
     }
 

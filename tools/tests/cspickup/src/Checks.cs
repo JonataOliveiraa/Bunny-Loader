@@ -64,7 +64,7 @@ public static class Checks
         }
         if (frames == 20)
         {
-            WorldItem w = Main.item[orb];
+            WorldItem w = Main.item[untouchable];
             Report("Item.GetWorldItem finds the item on the ground", w.active && w.inner.GetWorldItem() == w, $"active={w.active}");
         }
         if (frames == 60)
@@ -88,22 +88,22 @@ public static class Checks
             FillInventory(p);
             Item sample = Item.New();
             sample.SetDefaults(ModContent.ItemType<FullOrb>(), default);
-            Item log = Item.New();
-            log.SetDefaults(ItemID.Wood, default);
-            bool orbFits = p.ItemSpace(sample).CanTakeItem, woodFits = p.ItemSpace(log).CanTakeItem;
-            Report("ItemSpace true: the game says it fits with a full inventory", orbFits && !woodFits,
-                $"orb={orbFits} wood={woodFits} filled={filled.Count}");
+            Item other = Item.New();
+            other.SetDefaults(ModContent.ItemType<Plain>(), default);
+            bool orbFits = p.ItemSpace(sample).CanTakeItem, plainFits = p.ItemSpace(other).CanTakeItem;
+            Report("ItemSpace true: the game says it fits with a full inventory", orbFits && !plainFits,
+                $"orb={orbFits} plain={plainFits} filled={filled.Count}");
             fullOrb = Drop(p, ModContent.ItemType<FullOrb>(), 0);
-            wood = Drop(p, ItemID.Wood, 0);
-            woodBefore = Count(p, ItemID.Wood);
+            wood = Drop(p, ModContent.ItemType<Plain>(), 0);
+            woodBefore = Count(p, ModContent.ItemType<Plain>());
         }
         if (frames == 120)
         {
             WorldItem f = Main.item[fullOrb], w = Main.item[wood];
             Report("ItemSpace + OnPickup: picked up and consumed with a full inventory", !f.active && FullOrb.Calls == 1,
                 $"active={f.active} calls={FullOrb.Calls}");
-            Report("without ItemSpace the wood does not fit and stays", w.active && Count(p, ItemID.Wood) == woodBefore,
-                $"active={w.active} inventory {woodBefore} -> {Count(p, ItemID.Wood)}");
+            Report("without ItemSpace an item that does not fit stays", w.active && Count(p, ModContent.ItemType<Plain>()) == woodBefore,
+                $"active={w.active} inventory {woodBefore} -> {Count(p, ModContent.ItemType<Plain>())}");
             Remove(wood);
             EmptyFilled(p);
         }

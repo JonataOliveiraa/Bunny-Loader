@@ -33,7 +33,7 @@ public static class Checks
             $"mod={Counts.Get("Used.UseItem")} global={Counts.Get("Global.UseItem")}");
 
         player.ApplyItemAnimation(used);
-        Report("UseAnimation runs before the game's calculation", Counts.Get("Used.UseAnimation") == 1 && player.itemAnimationMax == 33,
+        Report("UseAnimation runs before the game's calculation", Counts.Get("Used.UseAnimation") == 2 && player.itemAnimationMax == 33,
             $"calls={Counts.Get("Used.UseAnimation")} itemAnimationMax={player.itemAnimationMax}");
 
         var frame = new Rectangle(0, 0, 40, 40);

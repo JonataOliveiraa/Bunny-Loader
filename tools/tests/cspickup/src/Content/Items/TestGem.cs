@@ -13,6 +13,10 @@ public abstract class TestGem : ModItem
     }
 }
 
+public class Plain : TestGem
+{
+}
+
 public class Untouchable : TestGem
 {
     public static string Seen = "";
