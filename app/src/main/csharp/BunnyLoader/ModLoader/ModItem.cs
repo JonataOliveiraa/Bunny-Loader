@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using Terraria.Localization;
 using Terraria.ModLoader.IO;
 
@@ -26,6 +27,22 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual void SetDefaults() { }
 
     public virtual void AddRecipes() { }
+
+    public virtual bool CanUseItem(Player player) => true;
+
+    public virtual bool? UseItem(Player player) => null;
+
+    public virtual void UseAnimation(Player player) { }
+
+    public virtual void HoldItem(Player player) { }
+
+    public virtual void UseStyle(Player player, Rectangle heldItemFrame) { }
+
+    public virtual void HoldStyle(Player player, Rectangle heldItemFrame) { }
+
+    public virtual Vector2? HoldoutOffset() => null;
+
+    public virtual void UpdateInventory(Player player) { }
 
     public virtual void SaveData(TagCompound tag) { }
 

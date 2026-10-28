@@ -214,6 +214,31 @@ fields.
 
 A `GlobalItem` has no `SaveData` yet: its data is not saved.
 
+## Using an item
+
+These run while a player holds or uses the item. Each one exists on
+`ModItem` (for your item) and on `GlobalItem` (with the `Item` first, for any
+item), with tModLoader's signatures:
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `CanUseItem(Player player)` | Before a use starts | `false` stops it (every mod is asked; one `false` is enough) |
+| `UseItem(Player player)` | The frame the use starts | `bool?`: `true` makes it count as used (the use time is applied); `null` leaves it to the game |
+| `UseAnimation(Player player)` | Before the game computes the animation length | change `Item.useAnimation` here to change it |
+| `UseStyle(Player player, Rectangle heldItemFrame)` | Every frame of a use, after the game places the item | |
+| `HoldStyle(Player player, Rectangle heldItemFrame)` | Every frame the item is held but not used | |
+| `HoldItem(Player player)` | Every frame the item is in hand | |
+| `HoldoutOffset()` | With the styles | `Vector2?`: moves the item in the hand (x forward, y down) |
+| `UpdateInventory(Player player)` | Every frame the item is in the inventory (the 58 slots, coins and ammo too) | |
+
+A hook only costs anything when some mod overrides it: Bunny Loader hooks the
+game method behind it the first time a loaded `ModItem` or `GlobalItem`
+overrides that hook. An exception in a hook goes to the log once (not every
+frame), and the game goes on as if the hook were not there.
+
+The other item hooks (combat, ammo, healing, drawing, pickup, tooltips,
+network) come next; see the plan.
+
 ## Changing every item: `GlobalItem`
 
 A `GlobalItem` runs for items that are not yours: the game's and other mods'.
@@ -268,8 +293,9 @@ item. `Item.Clone()` gives the copy a `Clone(from, to)` of each instance
 (shallow, as `MemberwiseClone`; override it to copy lists). A global's data is
 not saved or sent in multiplayer yet.
 
-Today a `GlobalItem` has `SetDefaults`; its other hooks (use, combat,
-tooltips, drawing...) come with the item hooks (phase 1 of the plan).
+Today a `GlobalItem` has `SetDefaults` and the use hooks above; the others
+(combat, tooltips, drawing...) come with the rest of the item hooks (phase 1 of
+the plan).
 
 ## Finding content by name
 

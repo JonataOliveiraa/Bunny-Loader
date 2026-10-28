@@ -27,6 +27,7 @@ internal static unsafe class ItemLoader
     {
         Globals.Add(global);
         EnsureHooked();
+        ItemHooks.Install(global.GetType(), typeof(GlobalItem));
     }
 
     static void EnsureHooked()
@@ -78,6 +79,7 @@ internal static unsafe class ItemLoader
         item.Type = type;
 
         EnsureHooked();
+        ItemHooks.Install(item.GetType(), typeof(ModItem));
         lock (Gate)
         {
             int index = type - ItemID.Count;

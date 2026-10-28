@@ -1,0 +1,15 @@
+{
+  "uid": "ebbee8f8-7618-42dc-b06d-0696981cd3ae",
+  "id": "test-csuse",
+  "name": "Teste: hooks de uso de item do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "CanUseItem, UseItem, UseAnimation, UseStyle, HoldStyle, HoldItem, HoldoutOffset e UpdateInventory do ModItem e do GlobalItem, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csuse. No mundo, loga 'csuse <caso>: ok | FAIL' e 'csuse END'. Depois, use a Espada Usada: o log conta os hooks.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsUse.dll",
+  "dependencies": []
+}

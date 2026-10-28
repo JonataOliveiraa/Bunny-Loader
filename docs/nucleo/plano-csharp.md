@@ -135,6 +135,13 @@ JS replaced: Mod, ModContent, ModLoader, ModPacket, NetReader/Writer, TagCompoun
 ### Phase 1: items (6.1k JS lines)
 
 - [ ] `ModItem` complete: use, combat, healing, drawing, pickup, networking, data hooks.
+  - [x] Use: `CanUseItem`, `UseItem` (with the use time when it returns `true`), `UseAnimation`, `UseStyle`, `HoldStyle`, `HoldItem`, `HoldoutOffset`, `UpdateInventory`, on `ModItem` and `GlobalItem`. `ModLoader/ItemHooks.cs` hooks the same `Player` methods as the JS (`ItemCheck_CheckCanUse_Inner`, `ItemCheck_StartActualUse`, `ItemCheck_OwnerOnlyCode`, `ApplyItemAnimation`, `ItemCheck_ApplyUseStyle`/`ApplyHoldStyle`, `UpdateEquips`), by signature through `BunnyLoader.Hook` (the generated `On_` names of overloaded methods are not known without the dump), and only when a loaded class overrides the hook. Test pack: `tools/tests/csuse`.
+  - [ ] Combat and ammo: `ModifyWeaponDamage`/`Crit`/`Knockback`, `ModifyItemScale`, `CanShoot`, `ModifyShootStats`, `Shoot`, the ammo hooks, `CanHitNPC`/`ModifyHitNPC`/`OnHitNPC`, PvP, `MeleeEffects`, `UseItemHitbox` (needs `HitInfo`/`HitModifiers`/`StatModifier`, phase 2).
+  - [ ] Healing: `GetHealLife`/`GetHealMana`, potion delay.
+  - [ ] Drawing: `PreDrawInWorld`/`PostDrawInWorld`, `PreDrawInInventory`/`PostDrawInInventory`, `GetAlpha`.
+  - [ ] Pickup: `CanPickup`, `OnPickup`, `GrabRange`, `ItemSpace`.
+  - [ ] Network: `NetSend`/`NetReceive` (with the item sync messages 5, 21, 32 and 90).
+  - [ ] Right click and opening: `CanRightClick`, `RightClick`, `ModifyItemLoot`, `ConsumeItem`.
 - [ ] `GlobalItem`, tooltips (`TooltipLine`, `ModifyTooltips`, `DrawableTooltipLine`, vanilla tooltips).
 - [ ] `ModPrefix`, `ModRarity`, `DamageClass` (with `Item.DamageType`).
 - [ ] Recipes: `Recipe`, `CreateRecipe`, `Condition`, `RecipeGroup`, `GlobalRecipe`.
