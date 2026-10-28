@@ -194,11 +194,39 @@ loads `libSystem.Security.Cryptography.Native.Android.so` from Java, so its
 
 - Only the types listed in `ProxyGen/types.txt` have members and hooks; the
   others are handles (see [guide 4](04-valores-e-objetos.md#what-is-in-bunnyloaderdll-today)).
-- Generic methods (`T Get<T>()`) are not generated.
-- Methods with more than eight `float`/`double` arguments are skipped (42 of
-  them, listed in `skipped.txt` by the generator).
+- Generic types (`Asset<T>`, `List<T>`) and generic methods (`T Get<T>()`)
+  are not generated: a generic type is a plain handle. `Asset<T>` is written by
+  hand for now ([guide 9](09-conteudo.md#textures-and-files)).
+- Methods with more than eight `float`/`double` arguments are skipped.
 - A struct with a field the generator cannot describe is not mirrored, and
   methods that use it are skipped.
+- Every type and member the generator leaves out is in
+  `app/build/generated/csharp/skipped.txt`, one per line with the reason
+  (`type X: not found in Assembly-CSharp`, `Player.Foo: parameter 'bar': ...
+  has no C# mapping`, `generic methods are not generated yet`...).
+
+### Growing `types.txt`
+
+`types.txt` lists the types that get members and hooks. A listed type that is
+not in the game is skipped (and written to `skipped.txt`); the build only
+fails if none is found, which means the dump is wrong. A nested type can be
+written with a dot (`Terraria.NPC.Spawner`) or a slash (`Terraria.NPC/Spawner`).
+
+`tools/proxygen/js_types.py` writes `ProxyGen/types-js.txt`: the game types the
+JS loaders call by signature (`Type['void Foo(int a)']`, `Type.new(...)`,
+`bl.classOf`) that are not in `types.txt` yet. Some of its lines are a
+property and not a type (`Terraria.Main.ItemDropsDB`): the generator reports
+them as not found. To try them, with the dump in `refs/DummyDll`:
+
+```bash
+python3 tools/proxygen/js_types.py
+dotnet build app/src/main/csharp/ProxyGen/ProxyGen.csproj -c Release
+dotnet app/src/main/csharp/ProxyGen/bin/Release/net10.0/ProxyGen.dll --dummy refs/DummyDll --types app/src/main/csharp/ProxyGen/types.txt --types app/src/main/csharp/ProxyGen/types-js.txt --out /tmp/proxies
+```
+
+Then read `/tmp/proxies/skipped.txt`, move to `types.txt` the types that
+generate, and build `BunnyLoader.dll` to see that the generated code
+compiles.
 - .NET cannot unload an assembly: a new build of your mod needs a game
   restart.
 

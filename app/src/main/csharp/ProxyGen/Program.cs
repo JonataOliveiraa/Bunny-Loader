@@ -24,19 +24,20 @@ static class Program
 
     static int Main(string[] args)
     {
-        string? dummy = null, typesFile = null, outDir = null;
+        string? dummy = null, outDir = null;
+        var typesFiles = new List<string>();
         for (int i = 0; i + 1 < args.Length; i += 2)
         {
             switch (args[i])
             {
                 case "--dummy": dummy = args[i + 1]; break;
-                case "--types": typesFile = args[i + 1]; break;
+                case "--types": typesFiles.Add(args[i + 1]); break;
                 case "--out": outDir = args[i + 1]; break;
             }
         }
-        if (dummy == null || typesFile == null || outDir == null)
+        if (dummy == null || typesFiles.Count == 0 || outDir == null)
         {
-            Console.Error.WriteLine("usage: ProxyGen --dummy <DummyDll> --types <types.txt> --out <dir>");
+            Console.Error.WriteLine("usage: ProxyGen --dummy <DummyDll> --types <types.txt> [--types <more.txt>...] --out <dir>");
             return 2;
         }
         if (!File.Exists(Path.Combine(dummy, "Assembly-CSharp.dll")))
@@ -55,17 +56,29 @@ static class Program
         foreach (Type t in types) byName[TypeMap.Key(t)] = t;
 
         var listed = new List<Type>();
-        foreach (string raw in File.ReadAllLines(typesFile))
+        var missing = new List<string>();
+        foreach (string raw in typesFiles.SelectMany(File.ReadAllLines))
         {
             string line = raw.Split('#')[0].Trim();
             if (line.Length == 0) continue;
-            string key = line.Replace('/', '+');
-            if (!byName.TryGetValue(key, out Type? t))
+            Type? t = Lookup(byName, line);
+            if (t == null)
             {
-                Console.Error.WriteLine($"ProxyGen: type {line} not found in Assembly-CSharp");
-                return 4;
+                missing.Add($"{line}: not found in Assembly-CSharp");
+                continue;
             }
-            listed.Add(t);
+            if (t.IsGenericTypeDefinition)
+            {
+                missing.Add($"{line}: generic types are not generated yet");
+                continue;
+            }
+            if (!listed.Contains(t)) listed.Add(t);
+        }
+        foreach (string m in missing) Console.WriteLine($"ProxyGen: skipped type {m}");
+        if (listed.Count == 0)
+        {
+            Console.Error.WriteLine($"ProxyGen: none of the listed types is in {dummy}/Assembly-CSharp.dll (see refs/README.md)");
+            return 4;
         }
 
         var map = new TypeMap(listed.Select(TypeMap.Key).ToHashSet(), t => t.Assembly == gameAssembly);
@@ -125,11 +138,23 @@ static class Program
         support.Append("        };\n    }\n}\n");
         File.WriteAllText(Path.Combine(outDir, "BunnyLoader.Generated.g.cs"), support.ToString());
 
-        File.WriteAllLines(Path.Combine(outDir, "skipped.txt"), emitter.Skipped);
+        File.WriteAllLines(Path.Combine(outDir, "skipped.txt"), missing.Select(m => "type " + m).Concat(emitter.Skipped));
         Console.WriteLine($"ProxyGen: {map.Generated.Count} types ({plans.Count} full) in {files} files; " +
                           $"{emitter.Methods} methods, {emitter.Hooks} hooks, {emitter.Fields} fields, {emitter.Properties} properties; " +
-                          $"{emitter.Skipped.Count} skipped (skipped.txt)");
+                          $"{missing.Count} types and {emitter.Skipped.Count} members skipped (skipped.txt)");
         return 0;
+    }
+
+    static Type? Lookup(Dictionary<string, Type> byName, string line)
+    {
+        string key = line.Replace('/', '+');
+        if (byName.TryGetValue(key, out Type? t)) return t;
+        for (int dot = key.LastIndexOf('.'); dot > 0; dot = key.LastIndexOf('.', dot - 1))
+        {
+            string nested = key[..dot] + "+" + key[(dot + 1)..].Replace('.', '+');
+            if (byName.TryGetValue(nested, out t)) return t;
+        }
+        return null;
     }
 
     // Os DummyDll nao tem a versao nem a chave que o Assembly-CSharp pede
@@ -207,7 +232,11 @@ static class Program
                 if (t.IsValueType && !f.IsStatic && !f.IsLiteral) continue;  // o espelho ja tem
                 if (isStatic && !f.IsStatic && !f.IsLiteral) continue;
                 TypeUse? use = map.Map(f.FieldType, true);
-                if (use == null || use.Abi == AbiClass.Void) continue;
+                if (use == null || use.Abi == AbiClass.Void)
+                {
+                    emitter.Skip(owner, f.Name, $"field type {TypeMap.DumpName(f.FieldType)} has no C# mapping");
+                    continue;
+                }
                 if (f.IsLiteral)
                 {
                     object? v;

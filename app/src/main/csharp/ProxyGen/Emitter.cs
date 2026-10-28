@@ -29,20 +29,28 @@ sealed class Emitter
     const string G = RT + ".GameInterop";
     readonly TypeMap map;
     public readonly SortedSet<int> RetBufSizes = new();
-    public readonly List<string> Skipped = new();
+    public readonly SortedSet<string> Skipped = new(StringComparer.Ordinal);
     public int Methods, Hooks, Fields, Properties;
     int uid;
 
     public Emitter(TypeMap map) => this.map = map;
 
+    public void Skip(Type owner, string member, string reason) => Skipped.Add($"{owner.FullName}.{member}: {reason}");
+
+    MethodModel? Skip(MethodBase m, Type owner, string reason)
+    {
+        Skip(owner, m is ConstructorInfo ? ".ctor" : m.Name, reason);
+        return null;
+    }
+
     // ---- modelo de metodo ----
 
     public MethodModel? Model(MethodBase m, Type owner, bool forHook)
     {
-        if (m.IsGenericMethodDefinition || m.ContainsGenericParameters) return null;
         bool ctor = m is ConstructorInfo;
         if (ctor && m.IsStatic) return null;
         if (!ctor && !TypeMap.ValidName(m.Name)) return null;
+        if (m.IsGenericMethodDefinition || m.ContainsGenericParameters) return Skip(m, owner, "generic methods are not generated yet");
         var model = new MethodModel
         {
             Method = m, Owner = owner, IsStatic = m.IsStatic, IsCtor = ctor,
@@ -54,7 +62,7 @@ sealed class Emitter
             if (owner.IsValueType)
             {
                 TypeUse? self = map.Map(owner, true);
-                if (self == null) return null;
+                if (self == null) return Skip(m, owner, $"the struct {TypeMap.DumpName(owner)} has no layout mirror");
                 args.Add(new ArgPlan { Name = "self", Use = self, Mode = ArgMode.ThisRef });
             }
             else
@@ -82,7 +90,8 @@ sealed class Emitter
                 else { mode = ArgMode.Ref; prefix = "ref "; }
             }
             TypeUse? use = map.Map(pt, mode != ArgMode.Value);
-            if (use == null || use.Abi == AbiClass.Void) return null;
+            if (use == null || use.Abi == AbiClass.Void)
+                return Skip(m, owner, $"parameter '{p.Name}': {TypeMap.DumpName(pt)} has no C# mapping");
             string name = p.Name != null && TypeMap.ValidName(p.Name) ? p.Name : $"arg{index}";
             string ident = TypeMap.Ident(name);
             while (!names.Add(ident)) ident += "_";
@@ -109,19 +118,18 @@ sealed class Emitter
         {
             if (rt.IsByRef)
             {
-                if (forHook) return null;
+                if (forHook) return Skip(m, owner, "no hook: it returns by reference");
                 ret.ByRef = true;
                 rt = rt.GetElementType()!;
             }
             TypeUse? r = map.Map(rt, ret.ByRef);
-            if (r == null) return null;
+            if (r == null) return Skip(m, owner, $"return type {TypeMap.DumpName(rt)} has no C# mapping");
             ret.Use = r;
         }
         model.Plan = Aapcs.Plan(args, ret);
         if (model.Plan.Error != null)
         {
-            Skipped.Add($"{owner.FullName}.{m.Name}: {model.Plan.Error}");
-            return null;
+            return Skip(m, owner, model.Plan.Error);
         }
         string retSig = ctor ? "void" : ret.ByRef ? "" : ret.Use.Sig;
         string mname = ctor ? ".ctor" : m.Name;
