@@ -11,9 +11,7 @@ namespace BunnyLoader.Compiler;
 
 public sealed class BuildResult
 {
-    /** O .dll serve: compilado agora ou reaproveitado. */
     public bool Success { get; init; }
-    /** false quando o bin/ ja estava em dia e nada foi compilado. */
     public bool Compiled { get; init; }
     public string DllPath { get; init; } = "";
     public string Reason { get; init; } = "";
@@ -23,16 +21,6 @@ public sealed class BuildResult
     public List<string> Errors { get; } = new();
     public List<string> Warnings { get; } = new();
 
-    /**
-     * O resultado em texto, uma linha por item (o app do catalogo e o
-     * tools/mods/csbuild leem assim):
-     *
-     *   status compiled|reused|failed
-     *   reason ...
-     *   stats <ms> <files> <lines>
-     *   error ...      (uma por erro)
-     *   warning ...    (uma por aviso)
-     */
     public string ToReport()
     {
         var text = new System.Text.StringBuilder();
@@ -47,10 +35,6 @@ public sealed class BuildResult
     internal static string OneLine(string value) => value.Replace('\r', ' ').Replace('\n', ' ');
 }
 
-// O Roslyn sobre um projeto de mod (ver ModBuild). As opcoes sao as do
-// .csproj da documentacao: C# mais novo, nullable ligado, unsafe permitido,
-// Release, deterministico (as mesmas fontes dao o mesmo .dll no celular e no
-// PC).
 public static class ModCompiler
 {
     const int MaxMessages = 40;
@@ -58,10 +42,6 @@ public static class ModCompiler
     public static string RoslynVersion =>
         typeof(CSharpCompilation).Assembly.GetName().Version?.ToString() ?? "?";
 
-    /**
-     * Compila `projectDir` (a pasta do `entryFile`) contra `references`, a nao
-     * ser que o bin/ ja esteja em dia; `force` compila de qualquer jeito.
-     */
     public static BuildResult Build(string projectDir, string entryFile, IReadOnlyList<string> references, bool force = false,
                                     IReadOnlyList<string>? modReferences = null)
     {
@@ -94,8 +74,6 @@ public static class ModCompiler
         {
             string text = File.ReadAllText(Path.Combine(projectDir, relative));
             lines += text.AsSpan().Count('\n') + 1;
-            // O caminho relativo, e nao o do aparelho: entra no .dll (CallerFilePath)
-            // e precisa ser o mesmo em todo lugar.
             trees.Add(CSharpSyntaxTree.ParseText(text, parse, relative));
         }
         var metadata = references.Concat(modReferences).Concat(libraries.Select(l => Path.Combine(projectDir, l)))
@@ -114,9 +92,6 @@ public static class ModCompiler
                 nullableContextOptions: NullableContextOptions.Enable));
 
         using var dll = new MemoryStream();
-        // Sem PDB. O deterministico usa SHA-256: no Android, a criptografia do
-        // .NET precisa da libSystem.Security.Cryptography.Native.Android
-        // carregada pelo Java (DotnetRuntime.kt, CompilerRuntime.kt).
         EmitResult emitted = compilation.Emit(dll);
 
         if (emitted.Success)
@@ -139,7 +114,6 @@ public static class ModCompiler
         return result;
     }
 
-    /** `Items/Sword.cs(12,5): CS0103: The name 'x' does not exist...` (a lista ja diz se e erro ou aviso). */
     static string Format(Diagnostic d)
     {
         FileLinePositionSpan span = d.Location.GetLineSpan();

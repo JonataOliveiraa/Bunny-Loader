@@ -3,9 +3,6 @@ using System.Collections.Generic;
 
 namespace BunnyLoader.Interop;
 
-// Os structs espelhados pelo gerador tem o layout do dump em que foram
-// gerados. Uma versao do jogo que muda um deles faria cada leitura cair no
-// byte errado: na subida, o tamanho de cada um e conferido contra o jogo.
 public static unsafe class Layouts
 {
     public static List<string> Verify()

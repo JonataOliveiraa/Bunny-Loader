@@ -3,8 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace BunnyLoader.Interop;
 
-// O espelho da tabela de app/src/main/cpp/script/dotnet/NativeApi.cpp: mesma
-// ordem, mesmo layout. Campo novo entra no fim dos dois lados.
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe struct NativeApi
 {

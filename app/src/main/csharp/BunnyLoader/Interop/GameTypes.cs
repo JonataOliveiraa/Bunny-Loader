@@ -4,15 +4,11 @@ using System.Runtime.InteropServices;
 
 namespace BunnyLoader.Interop;
 
-// Toda proxy de objeto do jogo: so o ponteiro. Copiar uma proxy nao copia o
-// objeto, e a proxy nao o segura vivo: guardar uma entre quadros pede um
-// GameHandle (o coletor do jogo nao enxerga a memoria do C#).
 public interface IGameObject
 {
     IntPtr Pointer { get; }
 }
 
-// Um objeto do jogo sem tipo conhecido (object, interfaces, genericos).
 public readonly struct GameObject : IGameObject, IEquatable<GameObject>
 {
     public readonly IntPtr Pointer;
@@ -38,9 +34,6 @@ public readonly struct GameObject : IGameObject, IEquatable<GameObject>
     public override string ToString() => IsNull ? "null" : $"{ClassName}@{Pointer:x}";
 }
 
-// Uma string do jogo (System.String do IL2CPP: tamanho em +0x10, UTF-16 em
-// +0x14). Nos parametros e retornos as proxies ja convertem para string; esta
-// aparece onde a referencia importa: ref/out e elementos de array.
 public readonly unsafe struct GameString : IGameObject
 {
     public readonly IntPtr Pointer;
@@ -72,9 +65,6 @@ public readonly unsafe struct GameString : IGameObject
     public static GameString From(string? value) => new GameString(New(value));
 }
 
-// Um array do jogo. Elemento de referencia e uma proxy (um ponteiro), elemento
-// de valor e o proprio struct: os dois tem o tamanho certo para o indice.
-// Layout do Il2CppArray: max_length em +0x18, dados em +0x20.
 public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
 {
     public readonly IntPtr Pointer;
@@ -104,8 +94,6 @@ public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
     static void ThrowIndex(int index) => throw new IndexOutOfRangeException($"index {index} out of the game array");
 }
 
-// Um array de duas dimensoes do jogo (T[,]): os limites ficam num bloco
-// apontado por +0x10, 16 bytes por dimensao (tamanho, limite inferior).
 public readonly unsafe struct GameArray2D<T> : IGameObject where T : unmanaged
 {
     public readonly IntPtr Pointer;
@@ -130,10 +118,6 @@ public readonly unsafe struct GameArray2D<T> : IGameObject where T : unmanaged
     }
 }
 
-// O Nullable<T> do jogo: o mesmo layout do IL2CPP (hasValue no byte 0, o
-// valor alinhado depois). O `T?` do C# tem o mesmo layout, mas nao conta como
-// unmanaged e nao entra em ponteiro nem em GameArray; as conversoes deixam o
-// mod escrever `5f`, `null` ou ler como `float?`.
 [StructLayout(LayoutKind.Sequential)]
 public struct GameNullable<T> where T : unmanaged
 {
@@ -161,7 +145,6 @@ public struct GameNullable<T> where T : unmanaged
     public override readonly string ToString() => hasValue ? value.ToString() ?? "" : "null";
 }
 
-// Um objeto do jogo seguro vivo pelo coletor dele: para guardar entre quadros.
 public sealed unsafe class GameHandle : IDisposable
 {
     uint handle;

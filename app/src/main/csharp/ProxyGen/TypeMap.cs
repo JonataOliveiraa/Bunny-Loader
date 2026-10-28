@@ -6,30 +6,25 @@ using System.Reflection;
 
 namespace ProxyGen;
 
-// Como um tipo do jogo viaja pela ABI.
 enum AbiClass { Void, Int, F32, F64, Composite }
 
 enum HfaKind { None, F32, F64 }
 
-// Um tipo do jogo visto do C# gerado: o texto do tipo, como ele viaja e como
-// converter de/para o registrador (classe Int).
 sealed class TypeUse
 {
     public string Cs = "";
-    public string Sig = "";           // como o dump escreve (a assinatura)
+    public string Sig = "";
     public AbiClass Abi;
     public int Size, Align;
     public HfaKind Hfa;
     public int HfaCount;
-    public bool CheckSize;            // struct que o runtime confere (checkLayout)
-    public bool IsString;             // string por valor (conversao com alocacao)
-    public Func<string, string> ToRaw = e => e;     // expressao C# -> long
-    public Func<string, string> FromRaw = e => e;   // long -> expressao C#
+    public bool CheckSize;
+    public bool IsString;
+    public Func<string, string> ToRaw = e => e;
+    public Func<string, string> FromRaw = e => e;
     public List<Type> Refs = new();
 }
 
-// Como um tipo e gerado: completo (membros e hooks), so o ponteiro, so o
-// layout (struct) ou enum.
 enum GenMode { Full, Opaque, Mirror, Enum }
 
 sealed class StructLayout
@@ -56,8 +51,6 @@ sealed class TypeMap
         this.isGame = isGame;
     }
 
-    // So os tipos do Assembly-CSharp ganham proxy: um System.Exception do
-    // jogo gerado aqui esconderia o do .NET no proprio codigo gerado.
     public bool IsGame(Type t) => isGame(t);
 
     static readonly HashSet<string> Handwritten = new()
@@ -68,7 +61,6 @@ sealed class TypeMap
 
     public static string Key(Type t) => t.FullName ?? t.Name;
 
-    // O nome C# da proxy: global::Ns.Externo.Interno.
     public static string ProxyName(Type t)
     {
         var parts = new List<string>();
@@ -89,7 +81,6 @@ sealed class TypeMap
         return t;
     }
 
-    // Nome como o dump escreve: curto, aninhado com ponto.
     public static string DumpName(Type t)
     {
         if (t.IsByRef) return DumpName(t.GetElementType()!);
@@ -157,7 +148,6 @@ sealed class TypeMap
         return CsKeywords.Contains(name) ? "@" + name : name;
     }
 
-    // O tipo e gerado inteiro? (listado em types.txt, ou aninhado num listado)
     public bool IsFull(Type t)
     {
         for (Type? cur = t; cur != null; cur = cur.IsNested ? cur.DeclaringType : null)
@@ -177,19 +167,16 @@ sealed class TypeMap
             if (have.Mode == GenMode.Full || mode != GenMode.Full) return;
         }
         Generated[key] = (t, ModeFor(t, IsFull(t) ? GenMode.Full : mode));
-        // A proxy de um aninhado mora dentro da do externo.
         if (t.IsNested && !Generated.ContainsKey(Key(t.DeclaringType!)))
         {
             Type outer = t.DeclaringType!;
             if (!outer.IsGenericTypeDefinition)
                 Register(outer, outer.IsEnum ? GenMode.Enum : outer.IsValueType ? GenMode.Mirror : GenMode.Opaque);
         }
-        // As bases geradas viram conversoes implicitas.
         if (!t.IsValueType && t.BaseType != null && IsGame(t.BaseType) && Supported(t.BaseType))
             Register(t.BaseType, GenMode.Opaque);
     }
 
-    // Enum e enum, e delegate so tem o ponteiro, mesmo dentro de um tipo completo.
     static GenMode ModeFor(Type t, GenMode wanted)
     {
         if (t.IsEnum) return GenMode.Enum;
@@ -216,15 +203,10 @@ sealed class TypeMap
             Register(t.BaseType, GenMode.Opaque);
     }
 
-    // Classes que da para ter proxy propria: nao generica, nome valido.
     static bool Supported(Type t) =>
         !t.IsGenericType && !t.IsGenericParameter && ValidName(t.Name.Split('`')[0]) && t.Name.IndexOf('`') < 0 &&
         (!t.IsNested || Supported(t.DeclaringType!));
 
-    // ---- mapeamento ----
-
-    // `memory`: o tipo como mora na memoria (campo, elemento, alvo de ref):
-    // string vira GameString, sem conversao.
     public TypeUse? Map(Type t, bool memory)
     {
         if (t.IsByRef || t.IsGenericParameter || t.ContainsGenericParameters) return null;
@@ -319,7 +301,6 @@ sealed class TypeMap
             Register(t, GenMode.Opaque);
             return Ref(ProxyName(t), sig, new[] { t });
         }
-        // struct
         if (!Supported(t)) return null;
         StructLayout? layout = Layout(t);
         if (layout == null) return null;
@@ -356,8 +337,6 @@ sealed class TypeMap
 
     public static int Round(int v, int a) => (v + a - 1) / a * a;
 
-    // ---- layout dos structs ----
-
     public static int? FieldOffsetOf(FieldInfo f)
     {
         foreach (CustomAttributeData a in f.GetCustomAttributesData())
@@ -378,7 +357,7 @@ sealed class TypeMap
     {
         string key = Key(t);
         if (layouts.TryGetValue(key, out StructLayout? have)) return have;
-        layouts[key] = null;  // ciclo = sem layout
+        layouts[key] = null;
         var layout = new StructLayout { Align = 1 };
         int end = 0;
         var leaves = new List<AbiClass>();

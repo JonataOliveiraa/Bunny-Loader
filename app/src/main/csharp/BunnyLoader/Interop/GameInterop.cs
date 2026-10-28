@@ -222,7 +222,6 @@ public static unsafe class GameInterop
         obj == IntPtr.Zero ? "null" : Marshal.PtrToStringUTF8((IntPtr)Host.Native()->ClassName(*(IntPtr*)obj)) ?? "?";
 }
 
-// Uma excecao que o jogo lancou dentro de um metodo chamado pelo C#.
 public sealed class GameException : Exception
 {
     public GameException(string message) : base(message) { }

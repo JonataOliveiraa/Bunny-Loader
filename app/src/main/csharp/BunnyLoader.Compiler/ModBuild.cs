@@ -7,15 +7,6 @@ using System.Text.RegularExpressions;
 
 namespace BunnyLoader.Compiler;
 
-// O que diz se um mod com fontes ja esta compilado, sem tocar no Roslyn (o
-// Bunny Loader passa por aqui em toda carga; o compilador so entra quando
-// precisa).
-//
-// Um mod com fontes tem `"entry": "MeuMod.cs"` no manifest.json. A pasta
-// desse arquivo e o projeto: todos os .cs dela (e das subpastas, menos bin/ e
-// obj/) viram bin/MeuMod.dll, e bin/MeuMod.build.json guarda a impressao das
-// fontes, a versao da API e o hash do .dll. O .dll serve enquanto os tres
-// baterem.
 public static class ModBuild
 {
     public const string OutputFolder = "bin";
@@ -34,10 +25,8 @@ public static class ModBuild
 
     public static bool IsSourceEntry(string entry) => entry.EndsWith(".cs", StringComparison.OrdinalIgnoreCase);
 
-    /** Os .cs do projeto, em caminhos relativos com '/', na ordem ordinal (a mesma em todo lugar). */
     public static List<string> Sources(string projectDir) => Files(projectDir, "*.cs");
 
-    /** As bibliotecas que o mod traz junto (Algo.dll fora de bin/): entram como referencia. */
     public static List<string> Libraries(string projectDir) => Files(projectDir, "*.dll");
 
     static List<string> Files(string projectDir, string pattern)
@@ -55,7 +44,6 @@ public static class ModBuild
         return found;
     }
 
-    /** As referencias da API (references.txt da pasta do runtime): a base do .NET e o BunnyLoader.dll. */
     public static List<string> References(string runtimeDir)
     {
         var list = new List<string>();
@@ -67,7 +55,6 @@ public static class ModBuild
         return list;
     }
 
-    /** A versao do BunnyLoader.dll entre as referencias: so muda quando a API quebra. */
     public static string ApiVersion(IEnumerable<string> references)
     {
         foreach (string path in references)
@@ -88,7 +75,6 @@ public static class ModBuild
         return api.ToString();
     }
 
-    /** O hash das fontes, das bibliotecas do mod e da versao da API. */
     public static string Fingerprint(string projectDir, IReadOnlyList<string> sources, IReadOnlyList<string> libraries, string api)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
@@ -140,11 +126,6 @@ public static class ModBuild
         WriteAtomic(StampPath(projectDir, entryFile), Encoding.UTF8.GetBytes(text));
     }
 
-    /**
-     * Se o bin/ do projeto serve como esta: o .dll existe, e o selo bate com as
-     * fontes de agora, com a API de agora e com o proprio .dll. `reason` diz o
-     * que faltou (para o registro).
-     */
     public static bool IsCurrent(string projectDir, string entryFile, string api, out string reason)
     {
         string dll = DllPath(projectDir, entryFile);

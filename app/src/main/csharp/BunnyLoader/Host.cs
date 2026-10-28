@@ -11,9 +11,6 @@ using Terraria.ModLoader;
 
 namespace BunnyLoader;
 
-// Por onde o nativo entra no C#. Os metodos sao [UnmanagedCallersOnly]:
-// o DotnetHost pega o ponteiro de cada um uma vez e chama direto. Nenhuma
-// excecao pode sair daqui (derrubaria o processo do jogo).
 internal static unsafe class Host
 {
     internal static NativeApi* Api;
@@ -145,9 +142,6 @@ internal static unsafe class Host
         }
     }
 
-    // Um mod com fontes ("entry": "MeuMod.cs"): o bin/MeuMod.dll do pacote,
-    // se o selo dele bate com as fontes e com esta API (o caso do que veio
-    // compilado do catalogo); senao, compila agora. null se nao compilou.
     static string? FromSources(string uid, string entry, string[] dependencies)
     {
         string project = Path.GetDirectoryName(entry)!;
@@ -193,7 +187,6 @@ internal static unsafe class Host
         finally { FreeUtf8(id); }
     }
 
-    // Separado do FromSources: o Roslyn so carrega quando ha o que compilar.
     [MethodImpl(MethodImplOptions.NoInlining)]
     static string? Compile(string uid, string project, string name, List<string> references, List<string> modReferences)
     {
@@ -209,9 +202,6 @@ internal static unsafe class Host
         return r.DllPath;
     }
 
-    // As pastas dos mods C# carregados. Uma biblioteca que um mod traz junto
-    // (content/Algo.dll) e achada ali quando o mod a usa: o contexto padrao
-    // so conhece as do runtime (assets/dotnet).
     static readonly List<string> ModFolders = new();
 
     static void AddModFolder(string folder)
@@ -235,8 +225,6 @@ internal static unsafe class Host
         return null;
     }
 
-    // Texto UTF-8 terminado em zero para o nativo, numa area que o chamador
-    // libera com FreeUtf8.
     internal static byte* Utf8(string text) => (byte*)Marshal.StringToCoTaskMemUTF8(text);
 
     internal static void FreeUtf8(byte* text) => Marshal.FreeCoTaskMem((IntPtr)text);

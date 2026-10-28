@@ -7,18 +7,16 @@ using System.Text;
 
 namespace ProxyGen;
 
-// Um metodo do jogo pronto para gerar: os tipos mapeados e a ABI decidida.
 sealed class MethodModel
 {
     public MethodBase Method = null!;
-    public Type Owner = null!;          // a proxy onde a chamada e gerada
-    public string Name = "";            // nome C# do membro
-    public string Signature = "";       // como o dump escreve (Signature.h)
+    public Type Owner = null!;
+    public string Name = "";
+    public string Signature = "";
     public bool IsStatic, IsCtor, IsVirtual, OwnerIsStruct;
-    // Chamada sem a transicao de GC (GameInterop.CallFast): so metodo folha.
     public bool Fast;
     public MethodPlan Plan = null!;
-    public List<ArgPlan> Params = new();   // sem this e sem MethodInfo
+    public List<ArgPlan> Params = new();
     public int[] Layout = Array.Empty<int>();
     public List<string?> Defaults = new();
 }
@@ -42,8 +40,6 @@ sealed class Emitter
         Skip(owner, m is ConstructorInfo ? ".ctor" : m.Name, reason);
         return null;
     }
-
-    // ---- modelo de metodo ----
 
     public MethodModel? Model(MethodBase m, Type owner, bool forHook)
     {
@@ -142,12 +138,6 @@ sealed class Emitter
         return model;
     }
 
-    /**
-     * Metodo folha: nao bloqueia nem roda codigo de mod por dentro (a nao ser
-     * um hook nele mesmo, que o Mono aceita). Sao a matematica do XNA (os
-     * structs e o MathHelper) e os getters de propriedade sem indice. So eles
-     * pulam a transicao de GC (GameInterop.CallFast).
-     */
     static bool IsLeaf(MethodBase m, MethodModel model)
     {
         Type? declaring = m.DeclaringType;
@@ -196,10 +186,6 @@ sealed class Emitter
         _ => null,
     };
 
-    // ---- corpo de uma chamada ao jogo ----
-
-    // Lista de parametros C# (com ref/out/in). `defaults`: valores padrao
-    // so no fim (o C# exige).
     static string ParamList(MethodModel m, bool withDefaults)
     {
         var parts = new List<string>();
@@ -220,8 +206,6 @@ sealed class Emitter
 
     static string RetCs(MethodModel m) => m.Plan.Ret.ByRef ? "ref " + m.Plan.Ret.Use.Cs : m.Plan.Ret.Use.Cs;
 
-    // O corpo que chama `fnExpr` com `infoExpr`. `selfExpr`: o ponteiro do
-    // objeto (classe) ou do struct (ThisRef, ja fixado como `__self`).
     void EmitCall(StringBuilder sb, string ind, MethodModel m, string fnExpr, string infoExpr, string? selfExpr,
                   string? afterReturnValue = null)
     {
@@ -245,7 +229,6 @@ sealed class Emitter
             }
             else if (a.Mode == ArgMode.ThisRef && selfExpr == "__obj")
             {
-                // O local do construtor de struct: o endereco ja e fixo.
             }
             else if (a.Mode == ArgMode.ThisRef)
             {
@@ -332,8 +315,6 @@ sealed class Emitter
         sb.Append(inner).Append("}\n");
     }
 
-    // ---- membros de uma proxy ----
-
     public void EmitMethod(StringBuilder sb, string ind, MethodModel m, string classExpr, string name, string access = "public")
     {
         int id = uid++;
@@ -345,7 +326,6 @@ sealed class Emitter
         string isStatic = m.IsStatic || m.IsCtor ? "static " : "";
         if (m.IsCtor)
         {
-            // Classe: Tipo.New(...) aloca e roda o construtor do jogo.
             string self = TypeMap.ProxyName(m.Owner);
             sb.Append(ind).Append($"{access} static {self} {name}({ParamList(m, true)})\n");
             sb.Append(ind).Append("{\n");
@@ -353,7 +333,6 @@ sealed class Emitter
             sb.Append(b0).Append($"ref readonly var __m = ref {G}.Method(ref __m{id}, {classExpr}, {sig}, __L{id});\n");
             if (m.OwnerIsStruct)
             {
-                // Struct: um valor zerado que o construtor do jogo preenche.
                 sb.Append(b0).Append($"{self} __obj = default;\n");
                 EmitCall(sb, b0, m, "__m.Fn", "__m.Info", "__obj");
                 sb.Append(b0).Append("return __obj;\n");
@@ -396,8 +375,6 @@ sealed class Emitter
         sb.Append(ind).Append("}\n");
     }
 
-    // ---- hooks (On_<Tipo>) ----
-
     public void EmitHook(StringBuilder sb, string ind, MethodModel m, string classExpr, string eventName, string label)
     {
         int id = uid++;
@@ -436,7 +413,6 @@ sealed class Emitter
         sb.Append(ind).Append($"    (__hk, __nx) => ({fullParams}) => __hk(__nx{(argNames.Length > 0 ? ", " + argNames : "")}),\n");
         sb.Append(ind).Append($"    __o{id}, __i{id});\n");
 
-        // instala o trampolim
         string rawTypes = string.Join(", ", m.Plan.Raw.Select(r => r.Type).Append(ret.RawType));
         sb.Append(ind).Append($"static void __i{id}()\n");
         sb.Append(ind).Append("{\n");
@@ -444,7 +420,6 @@ sealed class Emitter
         sb.Append(ind).Append($"    __s{id} = (nint*)global::BunnyLoader.Hook.Install(__m.Info, (nint)(delegate* unmanaged<{rawTypes}>)&__n{id}).OriginalSlot;\n");
         sb.Append(ind).Append("}\n");
 
-        // o orig mais de dentro: o proximo elo nativo (o jogo, ou outro hook)
         sb.Append(ind).Append($"static {retCs} __o{id}({fullParams})\n");
         sb.Append(ind).Append("{\n");
         sb.Append(ind).Append($"    __r{id}++;\n");
@@ -453,7 +428,6 @@ sealed class Emitter
                  isVoid ? null : after);
         sb.Append(ind).Append("}\n");
 
-        // o trampolim: registradores -> valores tipados -> cadeia
         string rawParams = string.Join(", ", m.Plan.Raw.Select(r => $"{r.Type} {r.Name}"));
         var callArgs = new List<string>();
         foreach (ArgPlan a in m.Plan.Args)
