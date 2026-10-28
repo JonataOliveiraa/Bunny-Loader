@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <map>
 
 namespace bl::runtime::content {
 
@@ -416,6 +417,103 @@ bool setTableElement(FieldInfo* table, int index, Il2CppObject* value) {
     if (!arr || index < 0 || static_cast<uintptr_t>(index) >= arr->length) return false;
     void* sv[2] = {value, &index};
     return invoke(r.arraySet, arr, sv, "Array.SetValue");
+}
+
+namespace {
+
+/** AssetRepository.Request<Texture2D>, montado por reflexao (so existe o compartilhado Request<object>). */
+const MethodInfo* requestTextureMethod(Il2CppClass* repository) {
+    static const MethodInfo* inflated = nullptr;
+    static bool tried = false;
+    if (tried) return inflated;
+    tried = true;
+    auto& a = il2cpp::api();
+    Il2CppClass* texture = il2cpp::findClass({"Microsoft.Xna.Framework.Graphics", "Texture2D", {}});
+    Il2CppClass* type = il2cpp::findClass({"System", "Type", {}});
+    Il2CppClass* methodInfo = il2cpp::findClass({"System.Reflection", "MethodInfo", {}});
+    const MethodInfo* generic = repository ? a.class_get_method_from_name(repository, "Request", 2) : nullptr;
+    const MethodInfo* make = methodInfo ? a.class_get_method_from_name(methodInfo, "MakeGenericMethod", 1) : nullptr;
+    if (!texture || !type || !generic || !make || !a.method_get_object || !a.method_get_from_reflection || !a.type_get_object) {
+        BL_ERROR("vanilla texture: Request<Texture2D> indisponivel (Request=%p MakeGenericMethod=%p)",
+                 (void*)generic, (void*)make);
+        return nullptr;
+    }
+    Il2CppObject* reflected = a.method_get_object(generic, repository);
+    Il2CppArray* args = a.array_new(type, 1);
+    if (!reflected || !args) return nullptr;
+    Il2CppObject* textureType = a.type_get_object(a.class_get_type(texture));
+    a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(args), static_cast<void**>(arrayData(args)), textureType);
+    void* params[1] = {args};
+    Il2CppObject* exc = nullptr;
+    // MakeGenericMethod e abstrato no MethodInfo: a implementacao e a da classe
+    // do objeto (RuntimeMethodInfo); o runtime_invoke nao despacha sozinho.
+    const MethodInfo* virt = a.class_get_method_from_name(a.object_get_class(reflected), "MakeGenericMethod", 1);
+    if (!virt) virt = make;
+    Il2CppObject* made = a.runtime_invoke(virt, reflected, params, &exc);
+    if (exc || !made) {
+        BL_ERROR("vanilla texture: MakeGenericMethod(Texture2D) lancou");
+        return nullptr;
+    }
+    inflated = a.method_get_from_reflection(made);
+    return inflated;
+}
+
+} // namespace
+
+std::string normalizeTextureAssetName(std::string name) {
+    for (char& c : name) {
+        if (c == '\\') c = '/';
+    }
+    if (name.rfind("Terraria/", 0) == 0) name.erase(0, 9);
+    const size_t dot = name.rfind('.');
+    if (dot != std::string::npos && name.find('/', dot) == std::string::npos) name.erase(dot);
+    return name;
+}
+
+Il2CppObject* vanillaTextureAsset(const std::string& name, bool* missingOnMobile) {
+    if (missingOnMobile) *missingOnMobile = false;
+    const std::string wanted = normalizeTextureAssetName(name);
+    static std::map<std::string, uint32_t> cache;
+    auto& a = il2cpp::api();
+    auto it = cache.find(wanted);
+    if (it != cache.end()) {
+        if (Il2CppObject* asset = a.gchandle_get_target(it->second)) return asset;
+    }
+    Il2CppObject* found = nullptr;
+    for (Il2CppObject* asset : textureAssets()) {
+        if (normalizeTextureAssetName(textureAssetName(asset)) == wanted) {
+            found = asset;
+            break;
+        }
+    }
+    if (!found) {
+        Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
+        FieldInfo* assets = main ? il2cpp::findField(main, "Assets") : nullptr;
+        Il2CppObject* repository = nullptr;
+        if (assets) a.field_static_get_value(assets, &repository);
+        const MethodInfo* request = repository ? requestTextureMethod(a.object_get_class(repository)) : nullptr;
+        if (request) {
+            std::string backslashed = wanted;
+            for (char& c : backslashed) {
+                if (c == '/') c = '\\';
+            }
+            Il2CppString* str = a.string_new(backslashed.c_str());
+            int32_t mode = 2;   // AssetRequestMode.ImmediateLoad
+            void* params[2] = {str, &mode};
+            Il2CppObject* exc = nullptr;
+            found = a.runtime_invoke(request, repository, params, &exc);
+            if (exc) found = nullptr;
+            // O que nao existe no celular volta como um 1x1 vazio.
+            int w = 0, h = 0;
+            if (found && textureAssetSize(found, &w, &h) && w <= 1 && h <= 1) {
+                if (missingOnMobile) *missingOnMobile = true;
+                return nullptr;
+            }
+        }
+    }
+    if (!found) return nullptr;
+    cache[wanted] = a.gchandle_new(found, false);
+    return found;
 }
 
 } // namespace bl::runtime::content

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using BunnyLoader;
 using log4net;
 
 namespace Terraria.ModLoader;
@@ -17,6 +19,7 @@ namespace Terraria.ModLoader;
 public abstract class Mod
 {
     readonly List<ILoadable> content = new();
+    ModAssets? assets;
 
     // So durante a carga do mod (autoload e Load): o AddContent recusa fora dela.
     internal bool loading;
@@ -31,6 +34,9 @@ public abstract class Mod
 
     // A pasta da entrada (content/): onde Texture e outros caminhos sao procurados.
     public string Folder { get; internal set; } = "";
+
+    // As texturas do mod, pelo caminho dentro da pasta da entrada.
+    public ModAssets Assets => assets ??= new ModAssets(this);
 
     // false: nenhuma classe do assembly entra sozinha; o mod chama AddContent
     // no Load. Para mudar, no construtor do mod.
@@ -69,6 +75,45 @@ public abstract class Mod
     public IEnumerable<ILoadable> GetContent() => content.AsReadOnly();
 
     public IEnumerable<T> GetContent<T>() where T : ILoadable => content.OfType<T>();
+
+    // O conteudo deste mod pelo nome (Name, sem o do mod).
+    public T Find<T>(string name) where T : IModType => ModContent.Find<T>(Name, name);
+
+    public bool TryFind<T>(string name, out T value) where T : IModType => ModContent.TryFind(Name, name, out value);
+
+    // Os arquivos do mod, pelo caminho dentro da pasta da entrada, com "/" e
+    // extensao: "Localization/en-US.json". Nada fora dela.
+    public bool FileExists(string name) => ResolveFile(name) is string path && File.Exists(path);
+
+    public byte[] GetFileBytes(string name) => File.ReadAllBytes(ExistingFile(name));
+
+    // Sempre um FileStream novo (o newFileStream do tModLoader nao muda nada aqui).
+    public Stream GetFileStream(string name, bool newFileStream = false) => File.OpenRead(ExistingFile(name));
+
+    public List<string> GetFileNames()
+    {
+        if (!Directory.Exists(Folder)) return new List<string>();
+        return Directory.EnumerateFiles(Folder, "*", SearchOption.AllDirectories)
+            .Select(f => Path.GetRelativePath(Folder, f).Replace('\\', '/'))
+            .OrderBy(f => f, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    // O caminho no disco de um arquivo do mod; null se o nome sai da pasta.
+    internal string? ResolveFile(string name)
+    {
+        if (Folder.Length == 0 || string.IsNullOrEmpty(name)) return null;
+        string root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(Folder));
+        string path = Path.GetFullPath(Path.Combine(root, name.Replace('\\', '/').TrimStart('/')));
+        return path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? path : null;
+    }
+
+    string ExistingFile(string name)
+    {
+        string? path = ResolveFile(name);
+        if (path == null || !File.Exists(path)) throw new FileNotFoundException($"{Name}: no file '{name}' in the mod", name);
+        return path;
+    }
 
     // Cada ILoadable nao abstrato do assembly com construtor sem parametros e
     // sem [Autoload(false)], na ordem do nome completo (o tipo do item nao

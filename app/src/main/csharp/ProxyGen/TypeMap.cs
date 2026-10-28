@@ -58,6 +58,14 @@ sealed class TypeMap
     // jogo gerado aqui esconderia o do .NET no proprio codigo gerado.
     public bool IsGame(Type t) => isGame(t);
 
+    // Tipos do jogo que o BunnyLoader.dll escreve a mao, com o mesmo nome e
+    // os mesmos valores: o codigo gerado usa os dele, e nada e gerado por cima.
+    static readonly HashSet<string> Handwritten = new()
+    {
+        "ReLogic.Content.AssetRequestMode",
+        "ReLogic.Content.AssetState",
+    };
+
     public static string Key(Type t) => t.FullName ?? t.Name;
 
     // O nome C# da proxy: global::Ns.Externo.Interno.
@@ -162,7 +170,7 @@ sealed class TypeMap
 
     void Register(Type t, GenMode mode)
     {
-        if (!IsGame(t)) return;
+        if (!IsGame(t) || Handwritten.Contains(Key(t))) return;
         string key = Key(t);
         if (Generated.TryGetValue(key, out var have))
         {

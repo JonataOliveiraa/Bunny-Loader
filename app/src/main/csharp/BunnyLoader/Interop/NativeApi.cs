@@ -39,4 +39,8 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, int, void> FinishItem;
     public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnItemsInstalled;
     public delegate* unmanaged<delegate* unmanaged<void>, void> OnContentReady;
+    public delegate* unmanaged<int> IsGameThread;
+    public delegate* unmanaged<byte*, byte*, IntPtr> RequestModTexture;
+    public delegate* unmanaged<byte*, int*, IntPtr> RequestVanillaTexture;
+    public delegate* unmanaged<IntPtr, IntPtr> TextureAssetValue;
 }

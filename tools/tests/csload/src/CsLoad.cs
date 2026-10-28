@@ -59,16 +59,6 @@ public sealed class CsLoadMod : Mod
         Checks.Log.Info($"csload END pass={Checks.Pass} fail={Checks.Fail}");
     }
 
-    static bool Missing<T>() where T : class
-    {
-        try
-        {
-            ModContent.GetInstance<T>();
-            return false;
-        }
-        catch (KeyNotFoundException)
-        {
-            return true;
-        }
-    }
+    // Como no tModLoader: o que nao carregou nao tem instancia.
+    static bool Missing<T>() where T : class => ModContent.GetInstance<T>() == null;
 }

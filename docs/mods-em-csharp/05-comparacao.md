@@ -135,6 +135,11 @@ Content (`ModItem` & co.) cannot be ported to C# yet.
 | `F.hook((original, self, a) => { original(self, a); })` | `On_Item.SetDefaults += (orig, self, a, v) => { orig(self, a, v); };` |
 | `bl.log('x')` | `Mod.Logger.Info("x")` |
 | `bl.error('x')` | `Mod.Logger.Error("x")` |
+| `bl.loadTextureAsset('Content/X.png')` | `Mod.Assets.Request<Texture2D>("Content/X")` |
+| `bl.vanillaTexture('Images/Item_1')` | `ModContent.Request<Texture2D>("Terraria/Images/Item_1")` |
+| `bl.textureSize(asset).Width` | `asset.Value.Width` |
+| `bl.readJson('data.json')`, `bl.file(...)` | `Mod.GetFileBytes("data.json")`, `Mod.GetFileStream(...)` |
+| `bl.items.typeOf(MyItem)` | `ModContent.ItemType<MyItem>()` |
 | `Terraria.Main.player[Terraria.Main.myPlayer]` | `Main.player[Main.myPlayer]` |
 | `Terraria.ID.ItemID.Minishark` | `ItemID.Minishark` (`using Terraria.ID;`) |
 | `Vector2.new(1, 2)` | `new Vector2(1, 2)` |
@@ -146,7 +151,8 @@ Content (`ModItem` & co.) cannot be ported to C# yet.
 ## Which one should I use?
 
 - **Changing the game's behavior, especially every frame:** C#.
-- **New items, NPCs, tiles, UI:** JS for now.
+- **New items:** C# ([guide 9](09-conteudo.md)) or JS.
+- **New NPCs, tiles, UI:** JS for now.
 - **Both in one mod idea?** Two packages work fine together: the content in
   JS, the heavy logic as C# hooks.
 

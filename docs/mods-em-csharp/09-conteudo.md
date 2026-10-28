@@ -43,7 +43,8 @@ missing on disk. The name and tooltip come from
 
 Nothing registers the class by hand: Bunny Loader finds it in your `.dll`.
 `ModContent.ItemType<ShinyRock>()` is its item ID, and
-`ModContent.GetInstance<ShinyRock>()` is the registered object. A complete
+`ModContent.GetInstance<ShinyRock>()` is the registered object (both are `0`
+and `null` for a class that did not load, as in tModLoader). A complete
 example is [`samples/ExampleModCSharp`](../../samples/ExampleModCSharp), the
 port of tModLoader's ExampleMod.
 
@@ -134,6 +135,77 @@ Override `Clone(Item newEntity)` to copy it deeper.
 For now the instance is not kept on the item afterwards (that comes with
 `Item.ModItem`, see the plan): put data that has to last in the item's own
 fields.
+
+## Finding content by name
+
+The **full name** of a content class is `<mod>/<Name>`: the mod's internal
+name (the name of its assembly) and the class name. Any mod can find any
+other mod's content by it:
+
+```csharp
+ModItem rock = ModContent.Find<ModItem>("MyMod/ShinyRock");
+if (ModContent.TryFind("OtherMod/Ruby", out ModItem ruby))
+    Mod.Logger.Info($"OtherMod is here, and its ruby is item {ruby.Type}");
+
+ModItem mine = Mod.Find<ModItem>("ShinyRock");   // in this mod
+```
+
+`Find` throws when there is no such content; `TryFind` returns `false`.
+
+## Textures and files
+
+Textures come as `Asset<Texture2D>` (`using ReLogic.Content;` and
+`using Microsoft.Xna.Framework.Graphics;`), as in tModLoader:
+
+```csharp
+// A PNG of this mod, by its path inside content/ (no extension).
+Asset<Texture2D> glow = Mod.Assets.Request<Texture2D>("Content/Items/ShinyRock_Glow");
+
+// The same, from anywhere: the mod's name first.
+Asset<Texture2D> same = ModContent.Request<Texture2D>("MyMod/Content/Items/ShinyRock_Glow");
+
+// A game image.
+Asset<Texture2D> pickaxe = ModContent.Request<Texture2D>("Terraria/Images/Item_1");
+```
+
+The same path gives back the same `Asset`. A missing PNG throws right at the
+request; `Mod.Assets.HasAsset<Texture2D>(path)` and
+`ModContent.HasAsset("MyMod/...")` ask first.
+
+**The texture loads on the game thread only.** The game's engine (Unity)
+kills the app when a texture is created anywhere else, and mods load on
+another thread. So a request made in `Load` stays `NotLoaded`, and the
+texture loads the first time something reads `Value` (or calls `Wait()`) on
+the game thread: in `SetStaticDefaults`, `PostSetupContent`, a hook or a draw
+call. Reading `Value` in `Load` throws an `InvalidOperationException` that
+says so. Keep the `Asset` from `Load` in a field, and read `Value` later:
+
+```csharp
+public static Asset<Texture2D> Glow;
+
+public override void Load() => Glow = Mod.Assets.Request<Texture2D>("Content/Items/ShinyRock_Glow");
+
+// later, in a hook on the game thread:
+Texture2D texture = Glow.Value;
+int width = texture.Width;
+```
+
+For now only `Texture2D` can be requested (sounds, effects and fonts come
+with their loaders), and a game image that the mobile version does not have
+throws when it loads.
+
+Any other file of the mod is read by its path inside `content/`, with the
+extension:
+
+| Call | Gives |
+|---|---|
+| `Mod.FileExists("Data/drops.json")` | `true` if the file is there |
+| `Mod.GetFileBytes("Data/drops.json")` | its bytes |
+| `Mod.GetFileStream("Data/drops.json")` | a `Stream` (dispose it) |
+| `Mod.GetFileNames()` | every file of the mod, like `"Content/Items/ShinyRock.png"` |
+| `ModContent.GetFileBytes("MyMod/Data/drops.json")` | the same, by the mod's name |
+
+A path that leaves the mod's folder (`"../..."`) is never read.
 
 ## Logging from content
 

@@ -1,5 +1,7 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
+#include "boot/Boot.h"
+#include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
@@ -12,6 +14,9 @@
 
 #include <dlfcn.h>
 #include <sys/stat.h>
+#include <unistd.h>
+
+#include <map>
 
 
 namespace bl::dotnet {
@@ -56,6 +61,10 @@ struct NativeApi {
     void (*finishItem)(void* item, int32_t type);
     void (*onItemsInstalled)(void (*callback)(int32_t first, int32_t last));
     void (*onContentReady)(void (*callback)());
+    int32_t (*isGameThread)();
+    void* (*requestModTexture)(const char* file, const char* assetName);
+    void* (*requestVanillaTexture)(const char* name, int32_t* missingOnMobile);
+    void* (*textureAssetValue)(void* asset);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -378,6 +387,45 @@ void nativeOnContentReady(void (*callback)()) {
     runtime::addContentReadyHook(callback);
 }
 
+int32_t nativeIsGameThread() {
+    const int game = runtime::gameThreadId();
+    return game != 0 && static_cast<int>(gettid()) == game ? 1 : 0;
+}
+
+/**
+ * O Asset<Texture2D> de um PNG de mod, ja carregado, um por nome (o segundo
+ * pedido devolve o mesmo). Thread do jogo, senao nullptr: a Unity aborta o
+ * processo se a textura nasce fora dela. nullptr tambem se o PNG nao abriu.
+ */
+void* nativeRequestModTexture(const char* file, const char* assetName) {
+    if (!file || !assetName || !nativeIsGameThread()) return nullptr;
+    static std::map<std::string, uint32_t> loaded;
+    auto& a = il2cpp::api();
+    auto it = loaded.find(assetName);
+    if (it != loaded.end()) {
+        if (Il2CppObject* asset = a.gchandle_get_target(it->second)) return asset;
+    }
+    int w = 0, h = 0;
+    Il2CppObject* asset = runtime::content::loadTextureAsset(file, nullptr, 0, assetName, &w, &h);
+    if (!asset) return nullptr;
+    loaded[assetName] = a.gchandle_new(asset, false);
+    return asset;
+}
+
+/** Uma imagem do jogo ("Images/Item_1"). Thread do jogo, senao nullptr. */
+void* nativeRequestVanillaTexture(const char* name, int32_t* missingOnMobile) {
+    if (missingOnMobile) *missingOnMobile = 0;
+    if (!name || !nativeIsGameThread()) return nullptr;
+    bool missing = false;
+    Il2CppObject* asset = runtime::content::vanillaTextureAsset(name, &missing);
+    if (missingOnMobile) *missingOnMobile = missing ? 1 : 0;
+    return asset;
+}
+
+void* nativeTextureAssetValue(void* asset) {
+    return runtime::content::textureAssetValue(static_cast<Il2CppObject*>(asset));
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -410,6 +458,10 @@ const NativeApi kNativeApi{
     nativeFinishItem,
     nativeOnItemsInstalled,
     nativeOnContentReady,
+    nativeIsGameThread,
+    nativeRequestModTexture,
+    nativeRequestVanillaTexture,
+    nativeTextureAssetValue,
 };
 
 } // namespace

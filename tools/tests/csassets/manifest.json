@@ -1,0 +1,15 @@
+{
+  "uid": "d477ddcd-b9ad-4f0d-b235-35586de3800e",
+  "id": "test-csassets",
+  "name": "Teste: ModContent do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModContent.Request, Mod.Assets, Find/TryFind, GetInstance e os arquivos do mod, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csassets. Loga 'csassets <caso>: ok | FAIL' e 'csassets END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsAssets.dll",
+  "dependencies": []
+}

@@ -220,9 +220,9 @@ Every member and hook exists for these game types (and their nested types):
 
 `Main`, `Entity`, `Player`, `Item`, `NPC`, `Projectile`, `WorldGen`,
 `WorldItem`, `Dust`, `Collision`, `Utils`, `Lang`, `ItemID`, `NPCID`,
-`ProjectileID`, `BuffID`, `DustID`, and from XNA `Vector2`, `Vector3`,
-`Vector4`, `Rectangle`, `Point`, `Color`, `Matrix`, `Quaternion`, `Plane`,
-`MathHelper`.
+`ProjectileID`, `BuffID`, `DustID`, `ItemUseStyleID`, `SoundID`, and from XNA
+`Vector2`, `Vector3`, `Vector4`, `Rectangle`, `Point`, `Color`, `Matrix`,
+`Quaternion`, `Plane`, `MathHelper`, `Texture2D`.
 
 Any other game type that appears in their signatures (`ItemVariant`,
 `IEntitySource`, `SpriteBatch`...) exists as a handle, so you can pass it

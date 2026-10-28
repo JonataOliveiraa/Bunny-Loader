@@ -20,6 +20,15 @@ internal static unsafe class Host
 
     static readonly List<Mod> LoadedMods = new();
 
+    // Pelo Name, desde a criacao (o Load de um mod ja acha a si mesmo): os
+    // caminhos "Mod/..." do ModContent.
+    static readonly Dictionary<string, Mod> ModsByName = new(StringComparer.Ordinal);
+
+    internal static Mod? FindMod(string name)
+    {
+        lock (ModsByName) return ModsByName.TryGetValue(name, out Mod? mod) ? mod : null;
+    }
+
     // Os mods C# carregados, na ordem de carga (uma copia).
     internal static Mod[] Mods
     {
@@ -49,6 +58,7 @@ internal static unsafe class Host
     static int LoadMod(byte* id, byte* path)
     {
         string uid = Marshal.PtrToStringUTF8((IntPtr)id) ?? "";
+        var mods = new List<Mod>();
         try
         {
             string file = Marshal.PtrToStringUTF8((IntPtr)path)!;
@@ -61,7 +71,6 @@ internal static unsafe class Host
                 file = built;
             }
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(file);
-            var mods = new List<Mod>();
             foreach (Type type in assembly.GetTypes())
             {
                 if (type.IsAbstract || !typeof(Mod).IsAssignableFrom(type)) continue;
@@ -71,6 +80,7 @@ internal static unsafe class Host
                 mod.Logger = new ModLogger(mod.Name);
                 mods.Add(mod);
                 ModContent.Add(mod);
+                lock (ModsByName) ModsByName[mod.Name] = mod;
             }
             if (mods.Count == 0)
             {
@@ -96,6 +106,10 @@ internal static unsafe class Host
         catch (Exception e)
         {
             Log.Error($"mod {uid}: {e}");
+            lock (ModsByName)
+            {
+                foreach (Mod mod in mods) ModsByName.Remove(mod.Name);
+            }
             return 0;
         }
     }

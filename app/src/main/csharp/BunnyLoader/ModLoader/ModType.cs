@@ -5,7 +5,7 @@ namespace Terraria.ModLoader;
 // A base do conteudo de mod (ModItem e os que vierem), no modelo do ModType do
 // tModLoader: o carregador acha cada classe nao abstrata do assembly do mod,
 // cria uma instancia (o molde) e a registra antes do Mod.Load.
-public abstract class ModType : ILoadable
+public abstract class ModType : IModType, ILoadable
 {
     public Mod Mod { get; internal set; } = null!;
 
