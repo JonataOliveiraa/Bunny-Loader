@@ -118,6 +118,10 @@ public static class ModContent
         try
         {
             Mod[] mods = Host.Mods;
+            foreach (Mod mod in mods)
+            {
+                foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+            }
             foreach (Mod mod in mods) Run(mod, "PostSetupContent", mod.PostSetupContent);
             foreach (Mod mod in mods) Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);
             foreach (Mod mod in mods)

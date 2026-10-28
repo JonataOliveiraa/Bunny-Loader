@@ -74,7 +74,7 @@ reference "tabs": open them when you need them.
 | [3. `ref`, `out` and `Nullable`](03-ref-out-e-nullable.md) | Methods that return through parameters and values that may be missing. |
 | [4. Values and objects](04-valores-e-objetos.md) | `new Vector2`, `Item.New()`, fields, arrays, statics, strings, casts, keeping objects alive. |
 | **Content** | |
-| [9. Content classes](09-conteudo.md) | `ModItem`, what gets loaded (`[Autoload]`, `IsLoadingEnabled`, `AddContent`), the load order up to `AddRecipes`, templates and instances, `Find`, textures and files, other mods (`ModLoader`, `Call`, dependencies), translations (hjson, `Language`, `GetLocalization`), `Item.ModItem`. |
+| [9. Content classes](09-conteudo.md) | `ModItem`, what gets loaded (`[Autoload]`, `IsLoadingEnabled`, `AddContent`), the load order up to `AddRecipes`, templates and instances, `Find`, textures and files, other mods (`ModLoader`, `Call`, dependencies), translations (hjson, `Language`, `GetLocalization`), `Item.ModItem`, `GlobalItem`. |
 | **Tabs** | |
 | [5. C# × JS × tModLoader](05-comparacao.md) | The same mod in the three, and what is equal and different. |
 | [6. Performance](06-desempenho.md) | Measured on a real phone: where C# is 5× to 450× faster, and the one thing that still costs. |
@@ -87,7 +87,7 @@ reference "tabs": open them when you need them.
 |---|---|
 | Change something the game already has (stats, rules, spawns, drops) | **C#** (faster, typed) or JS |
 | Run heavy logic every frame (AI, math over many entities) | **C#** |
-| Create new items | **C#** (`ModItem`, [guide 9](09-conteudo.md)) or JS |
+| Create new items, or change every item (`GlobalItem`) | **C#** ([guide 9](09-conteudo.md)) or JS |
 | Create new NPCs, projectiles, tiles, UI | **JS** for now (C# has only `ModItem` yet) |
 | Edit code on the phone, without a PC | **JS** (the in-game editor) |
 | Port code from tModLoader | **C#**: the hooks have the same shape |

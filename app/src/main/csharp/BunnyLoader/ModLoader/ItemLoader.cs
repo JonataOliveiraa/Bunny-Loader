@@ -20,6 +20,26 @@ internal static unsafe class ItemLoader
 
     static readonly EntityInstances<ModItem> Instances = new();
 
+    internal static readonly GlobalList<Item, GlobalItem> Globals = new();
+
+    public static void RegisterGlobal(GlobalItem global)
+    {
+        Globals.Add(global);
+        EnsureHooked();
+    }
+
+    static void EnsureHooked()
+    {
+        lock (Gate)
+        {
+            if (hooked) return;
+            On_Item.SetDefaults += SetDefaults;
+            On_Item.Clone += Clone;
+            Host.Native()->OnItemsInstalled(&ItemsInstalled);
+            hooked = true;
+        }
+    }
+
     public static ModItem? InstanceOf(Item item)
     {
         if (item.IsNull) return null;
@@ -53,15 +73,9 @@ internal static unsafe class ItemLoader
         if (type < 0) throw new InvalidOperationException($"{item.FullName}: registration failed ({type})");
         item.Type = type;
 
+        EnsureHooked();
         lock (Gate)
         {
-            if (!hooked)
-            {
-                On_Item.SetDefaults += SetDefaults;
-                On_Item.Clone += Clone;
-                Host.Native()->OnItemsInstalled(&ItemsInstalled);
-                hooked = true;
-            }
             int index = type - ItemID.Count;
             ModItem?[] all = items;
             if (index >= all.Length)
@@ -133,36 +147,65 @@ internal static unsafe class ItemLoader
         {
             orig(self, type, variant);
             if (Instances.Count > 0) Instances.Set(self.Pointer, null);
+            if (Globals.Count == 0) return;
+            Globals.Finish(self, Globals.Begin(self));
+            GlobalSetDefaults(self);
             return;
         }
         NativeApi* api = Host.Native();
         api->PrepareItem(self.Pointer, type);
+        ModItem instance = Bind(template, self);
+        GlobalItem?[]? slots = Globals.Begin(self);
         try
         {
-            Bind(template, self).SetDefaults();
+            instance.SetDefaults();
         }
         catch (Exception e)
         {
             Log.Error($"item {template.FullName}: SetDefaults threw: {e}");
         }
+        Globals.Finish(self, slots);
         api->FinishItem(self.Pointer, type);
+        GlobalSetDefaults(self);
+    }
+
+    static void GlobalSetDefaults(Item item)
+    {
+        GlobalItem?[]? slots = Globals.Slots(item);
+        if (slots == null) return;
+        foreach (GlobalItem? global in slots)
+        {
+            if (global == null) continue;
+            try
+            {
+                global.SetDefaults(item);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"{global.FullName}: SetDefaults threw: {e}");
+            }
+        }
     }
 
     static Item Clone(On_Item.orig_Clone orig, Item self)
     {
         Item copy = orig(self);
-        ModItem? source = copy.IsNull ? null : Instances.Get(self.Pointer);
-        if (source == null || source.Type != copy.type) return copy;
-        try
+        if (copy.IsNull) return copy;
+        ModItem? source = Instances.Get(self.Pointer);
+        if (source != null && source.Type == copy.type)
         {
-            ModItem cloned = source.Clone(copy);
-            cloned.Type = source.Type;
-            Instances.Set(copy.Pointer, cloned);
+            try
+            {
+                ModItem cloned = source.Clone(copy);
+                cloned.Type = source.Type;
+                Instances.Set(copy.Pointer, cloned);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"item {source.FullName}: Clone threw: {e}");
+            }
         }
-        catch (Exception e)
-        {
-            Log.Error($"item {source.FullName}: Clone threw: {e}");
-        }
+        Globals.Clone(self, copy);
         return copy;
     }
 

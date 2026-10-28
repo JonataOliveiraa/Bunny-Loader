@@ -1,0 +1,15 @@
+{
+  "uid": "036471d9-f78a-435b-9891-9d65e45c894f",
+  "id": "test-csglobals",
+  "name": "Teste: GlobalItem do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "GlobalItem: AppliesToEntity cedo e tarde, InstancePerEntity, GetGlobalItem/TryGetGlobalItem, Clone e a ordem do SetDefaults, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csglobals. Loga 'csglobals <caso>: ok | FAIL' e 'csglobals END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsGlobals.dll",
+  "dependencies": []
+}

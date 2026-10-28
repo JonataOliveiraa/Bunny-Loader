@@ -166,6 +166,63 @@ if (Main.LocalPlayer.HeldItem.ModItem is ShinyRock rock)
   item alive. It is not saved with the world or the player yet, and not sent
   in multiplayer (`SaveData` and `NetSend` come later, see the plan).
 
+## Changing every item: `GlobalItem`
+
+A `GlobalItem` runs for items that are not yours: the game's and other mods'.
+It loads like any content class (by itself, from your `.dll`).
+
+```csharp
+public class HeavierWeapons : GlobalItem
+{
+    public override bool AppliesToEntity(Item entity, bool lateInstantiation) =>
+        lateInstantiation && entity.damage > 0;
+
+    public override void SetDefaults(Item entity) => entity.knockBack *= 1.5f;
+}
+```
+
+- **`AppliesToEntity(entity, lateInstantiation)`** picks the items it is for
+  (`true` for all, by default). It is asked twice for each `SetDefaults`:
+  first with `lateInstantiation` `false`, when only `type` is set (to choose
+  by type), then with `true` for the globals that said no, after the item's
+  own `SetDefaults` (to choose by `damage`, `useStyle`...).
+- **`SetDefaults(Item entity)`** runs after the item's own (the game's, or
+  the `ModItem`'s), for every global that applies.
+- **`SetStaticDefaults`** runs once, with every item in the game, before
+  `PostSetupContent`.
+
+### Data per item: `InstancePerEntity`
+
+By default there is one object of your `GlobalItem` for the whole game, so it
+cannot have instance fields: Bunny Loader refuses to load one that does, as
+tModLoader does. For data per item, ask for an instance per item:
+
+```csharp
+public class KillCounter : GlobalItem
+{
+    public int Kills;
+
+    public override bool InstancePerEntity => true;
+}
+
+// anywhere:
+if (item.TryGetGlobalItem(out KillCounter counter)) counter.Kills++;
+```
+
+| Call | Gives |
+|---|---|
+| `item.GetGlobalItem<KillCounter>()` | this item's instance; throws if the global does not apply to it |
+| `item.TryGetGlobalItem(out KillCounter counter)` | `true` and the instance, or `false` |
+| `item.EntityGlobals` | every global that applies to the item |
+
+A global without `InstancePerEntity` gives back the same object for every
+item. `Item.Clone()` gives the copy a `Clone(from, to)` of each instance
+(shallow, as `MemberwiseClone`; override it to copy lists). As with
+`Item.ModItem`, the data is not saved or sent in multiplayer yet.
+
+Today a `GlobalItem` has `SetDefaults`; its other hooks (use, combat,
+tooltips, drawing...) come with the item hooks (phase 1 of the plan).
+
 ## Finding content by name
 
 The **full name** of a content class is `<mod>/<Name>`: the mod's internal
