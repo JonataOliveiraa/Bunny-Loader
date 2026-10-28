@@ -22,15 +22,62 @@ public static class Checks
     {
         frames = pass = fail = 0;
         done = false;
+        Lore.PreLines = Lore.PostLines = Lore.PostTooltips = 0;
+        Lore.Drawn = "";
     }
 
     public static void Frame(Player p)
     {
-        if (done || ++frames != 120) return;
+        if (done) return;
+        frames++;
+        if (frames == 120)
+        {
+            try
+            {
+                Run();
+                Give(p);
+            }
+            catch (Exception e) { Report("run", false, e.ToString()); }
+            Log.Info("cstooltip: open the inventory and hold your finger on the Lore Stone to test the drawing (2 minutes)");
+            return;
+        }
+        if (frames < 120 || frames % 60 != 0) return;
+        if (Lore.PostTooltips > 0)
+        {
+            Report("PreDrawTooltipLine and PostDrawTooltipLine run for each line", Lore.PreLines > 0 && Lore.PostLines == Lore.PreLines,
+                $"pre={Lore.PreLines} post={Lore.PostLines}");
+            Report("PostDrawTooltip gets the drawn lines", Lore.Drawn.Contains("ItemName") && Lore.Drawn.Contains("Gold") && Lore.Drawn.Contains("Tagged"),
+                Lore.Drawn);
+            Finish();
+        }
+        else if (frames >= 120 + 60 * 120)
+        {
+            Report("the tooltip was drawn", false, "the Lore Stone tooltip was not shown in 2 minutes");
+            Finish();
+        }
+    }
+
+    static void Finish()
+    {
         done = true;
-        try { Run(); }
-        catch (Exception e) { Report("run", false, e.ToString()); }
-        Log.Info($"cstooltip END pass={pass} fail={fail}");
+        Log.Info($"cstooltip END pass={pass} fail={fail} (look at the tooltip: 'Gold line' in gold and moved right, 'red' in red)");
+    }
+
+    static void Give(Player p)
+    {
+        int type = ModContent.ItemType<Lore>();
+        for (int k = 0; k < 50; k++)
+        {
+            Item item = p.inventory[k];
+            if (item.type == type) return;
+        }
+        for (int k = 0; k < 50; k++)
+        {
+            Item item = p.inventory[k];
+            if (item.type > 0 && item.stack > 0) continue;
+            item.SetDefaults(type, default);
+            return;
+        }
     }
 
     static void Run()
@@ -41,6 +88,7 @@ public static class Checks
         Report("a changed line is drawn with its new text", lore.Exists(l => l.Text == "Changed first line"), Dump(lore));
         Report("a hidden line is gone", !lore.Exists(l => l.Text == "Second line"), Dump(lore));
         Report("an added line comes last, as a modifier", lore.Count > 0 && lore[^1].Text == "Added by the mod" && lore[^1].Modifier, Dump(lore));
+        Report("a color tag stays in the line text", lore.Exists(l => l.Text == "Plain and [c/FF4040:red] text"), Dump(lore));
 
         List<(string Text, bool Modifier)> sword = Lines(ItemID.CopperShortsword);
         Report("GlobalItem.ModifyTooltips on a vanilla weapon", SwordTip.Seen.Contains("Damage") && SwordTip.Seen.Contains("Speed") &&

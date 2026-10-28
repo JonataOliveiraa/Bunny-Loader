@@ -305,10 +305,22 @@ The game's lines have `Mod` `"Terraria"` and tModLoader's names
 `Tooltip0`, `Tooltip1`..., `Material`, `PrefixDamage`, `SetBonus`...).
 `Hide()` takes a line out; `IsModifier`/`IsModifierBad` draw it in the green
 or red of a prefix line. A `GlobalItem` gets `ModifyTooltips(Item item,
-List<TooltipLine> tooltips)` for any item, after the `ModItem`. On the phone
-the game still draws the tooltip: `OverrideColor`, the `[c/RRGGBB:text]`
-tags and `PreDrawTooltip`/`PostDrawTooltip`/`PreDrawTooltipLine` come with
-the C# port of the tooltip drawing (next in the plan).
+List<TooltipLine> tooltips)` for any item, after the `ModItem`. `OverrideColor` gives a line its own color, and `[c/RRGGBB:text]` colors a
+part of a line (the phone's game has no such tags; Bunny Loader draws them).
+
+Drawing the tooltip yourself, as in tModLoader:
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `PreDrawTooltip(ReadOnlyCollection<TooltipLine> lines, ref int x, ref int y)` | Before the tooltip is drawn | `false`: no line is drawn (the line hooks still run); change `x`/`y` to move it |
+| `PreDrawTooltipLine(DrawableTooltipLine line, ref int yOffset)` | Before each line | `false`: the line is not drawn; change `line.X`/`Y`, `Color`, `Rotation`, `Origin`, `BaseScale`, `Spread`; `yOffset` moves the lines below |
+| `PostDrawTooltipLine(DrawableTooltipLine line)` | After each line | |
+| `PostDrawTooltip(ReadOnlyCollection<DrawableTooltipLine> lines)` | After the tooltip | |
+
+The game still lays out the tooltip and draws its box; Bunny Loader steps
+in when it draws each line's text. The price lines (shop, reforge), the
+One Drop logo and the materials grid of the crafting guide are drawn by the
+game without the line hooks.
 
 Drawing the item:
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -72,6 +73,14 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual bool ConsumeItem(Player player) => true;
 
     public virtual void ModifyTooltips(List<TooltipLine> tooltips) { }
+
+    public virtual bool PreDrawTooltip(ReadOnlyCollection<TooltipLine> lines, ref int x, ref int y) => true;
+
+    public virtual void PostDrawTooltip(ReadOnlyCollection<DrawableTooltipLine> lines) { }
+
+    public virtual bool PreDrawTooltipLine(DrawableTooltipLine line, ref int yOffset) => true;
+
+    public virtual void PostDrawTooltipLine(DrawableTooltipLine line) { }
 
     public virtual Color? GetAlpha(Color lightColor) => null;
 

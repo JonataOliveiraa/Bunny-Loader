@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -58,6 +59,14 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual bool ConsumeItem(Item item, Player player) => true;
 
     public virtual void ModifyTooltips(Item item, List<TooltipLine> tooltips) { }
+
+    public virtual bool PreDrawTooltip(Item item, ReadOnlyCollection<TooltipLine> lines, ref int x, ref int y) => true;
+
+    public virtual void PostDrawTooltip(Item item, ReadOnlyCollection<DrawableTooltipLine> lines) { }
+
+    public virtual bool PreDrawTooltipLine(Item item, DrawableTooltipLine line, ref int yOffset) => true;
+
+    public virtual void PostDrawTooltipLine(Item item, DrawableTooltipLine line) { }
 
     public virtual Color? GetAlpha(Item item, Color lightColor) => null;
 

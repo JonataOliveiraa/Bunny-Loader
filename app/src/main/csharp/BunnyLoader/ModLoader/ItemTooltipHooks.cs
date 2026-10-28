@@ -13,19 +13,30 @@ internal static unsafe class ItemTooltipHooks
 
     static bool globalWanted;
 
+    internal static readonly string[] HookNames = { nameof(ModItem.ModifyTooltips), nameof(ModItem.PreDrawTooltip), nameof(ModItem.PostDrawTooltip), nameof(ModItem.PreDrawTooltipLine), nameof(ModItem.PostDrawTooltipLine) };
+
+    internal static IntPtr PreparedItem;
+
+    internal static List<TooltipLine>? Prepared;
+
+    internal static List<TooltipLine>? Last;
+
     public static void Install(Func<string, bool> has, bool global)
     {
-        if (!has(nameof(ModItem.ModifyTooltips))) return;
+        if (!Array.Exists(HookNames, n => has(n))) return;
         if (global) globalWanted = true;
+        ItemHooks.Once("TooltipDraw", ItemTooltipDraw.Install);
         ItemHooks.Once("Tooltips", () => linesInfo = ItemHooks.Raw("Terraria", "Main",
             "void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)",
             (IntPtr)(delegate* unmanaged<IntPtr, int*, int*, int*, float, int*, IntPtr, IntPtr, IntPtr, int*, uint*, int*, IntPtr, void>)&GetLinesInfo));
     }
 
-    static bool Wanted(Item item) =>
-        !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Overrides(m));
+    internal static bool Wanted(Item item) =>
+        !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)));
 
-    static bool Overrides(ModItem m) => ItemHooks.Overrides(m.GetType(), typeof(ModItem), nameof(ModItem.ModifyTooltips));
+    internal static bool Has(ModItem m, string name) => ItemHooks.Overrides(m.GetType(), typeof(ModItem), name);
+
+    static bool Overrides(ModItem m) => Has(m, nameof(ModItem.ModifyTooltips));
 
     [UnmanagedCallersOnly]
     static void GetLinesInfo(IntPtr itemPointer, int* yoyoLogo, int* researchLine, int* materialsLine, float oldKB, int* numLines,
@@ -63,9 +74,15 @@ internal static unsafe class ItemTooltipHooks
                 [*yoyoLogo] = "logo", [*researchLine] = "research", [*materialsLine] = "materials",
                 [*setBonusLine] = "setBonus", [*sharedLine] = "shared",
             };
-            List<TooltipLine> lines = Lines(item, texts, prefix, bad, count, roles);
-            Modify(item, lines);
-            lines.RemoveAll(l => !l.Visible);
+            List<TooltipLine> lines;
+            if (Prepared != null && PreparedItem == itemPointer) lines = Prepared;
+            else
+            {
+                lines = Lines(item, texts, prefix, bad, count, roles);
+                Modify(item, lines);
+                lines.RemoveAll(l => !l.Visible);
+            }
+            Last = lines;
             int written = Math.Min(lines.Count, Math.Min(texts.Length, Math.Min(prefix.Length, bad.Length)));
             *yoyoLogo = *researchLine = *materialsLine = *setBonusLine = *sharedLine = -1;
             for (int i = 0; i < written; i++)
