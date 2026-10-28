@@ -73,6 +73,7 @@ internal static unsafe class ItemTooltipHooks
         call.Arg((IntPtr)setBonusColour);
         call.Arg((IntPtr)sharedLine);
         call.Arg(method);
+        int first = *numLines;
         ItemHooks.Original(ref call, hook, "Main.MouseText_DrawItemTooltip_GetLinesInfo");
         try
         {
@@ -92,7 +93,7 @@ internal static unsafe class ItemTooltipHooks
             if (Prepared != null && PreparedItem == itemPointer) lines = Prepared;
             else
             {
-                lines = Lines(item, texts, prefix, bad, count, roles);
+                lines = Lines(item, texts, prefix, bad, first > 0, count, roles);
                 if (prefixLines && PrefixLoader.TooltipLines(item) is List<TooltipLine> extra)
                 {
                     int at = lines.FindLastIndex(l => l.IsModifier || l.IsModifierBad);
@@ -142,14 +143,12 @@ internal static unsafe class ItemTooltipHooks
         }
     }
 
-    static List<TooltipLine> Lines(Item item, GameArray<GameString> texts, GameArray<bool> prefix, GameArray<bool> bad, int count,
+    static List<TooltipLine> Lines(Item item, GameArray<GameString> texts, GameArray<bool> prefix, GameArray<bool> bad, bool named, int count,
                                    Dictionary<int, string> roles)
     {
         var names = new Names(item);
-        string hoverName = item.HoverName ?? "";
-        bool prefixed = item.prefix > 0;
-        bool named = prefixed && count > 0 && texts[0].ToString() == hoverName;
-        var lines = new List<TooltipLine>(count + 5) { new("Terraria", "ItemName", hoverName) { Role = prefixed ? "" : "name" } };
+        string name0 = named && count > 0 ? texts[0].ToString() ?? "" : item.HoverName ?? "";
+        var lines = new List<TooltipLine>(count + 5) { new("Terraria", "ItemName", name0) { Role = named ? "" : "name" } };
         var used = new HashSet<string> { "ItemName" };
         for (int i = named ? 1 : 0; i < count; i++)
         {

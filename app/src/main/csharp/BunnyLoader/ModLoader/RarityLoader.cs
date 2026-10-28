@@ -64,6 +64,7 @@ public static unsafe class RarityLoader
             (IntPtr)(delegate* unmanaged<IntPtr, int, byte*, IntPtr, byte>)&Prefix);
         mouseText = ItemHooks.Raw("Terraria", "Main", "void MouseTextInner(Main.MouseTextCache info, bool worldMouse)",
             (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, byte, IntPtr, void>)&MouseTextInner);
+        ItemHooks.Once("TooltipDraw", ItemTooltipDraw.Install);
     }
 
     [UnmanagedCallersOnly]

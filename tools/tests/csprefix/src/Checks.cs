@@ -86,7 +86,7 @@ public static class Checks
         var texts = GameArray<GameString>.New(new GameClass("System", "String"), 30);
         var prefix = GameArray<bool>.New(new GameClass("System", "Boolean"), 30);
         var bad = GameArray<bool>.New(new GameClass("System", "Boolean"), 30);
-        int yoyo = -1, research = -1, materials = -1, count = 0, setBonus = -1, shared = -1;
+        int yoyo = -1, research = -1, materials = -1, count = 1, setBonus = -1, shared = -1;
         Color setColor = new(255, 255, 255, 255);
         Main.MouseText_DrawItemTooltip_GetLinesInfo(item, ref yoyo, ref research, ref materials, item.knockBack, ref count, texts, prefix, bad,
             ref setBonus, ref setColor, ref shared);

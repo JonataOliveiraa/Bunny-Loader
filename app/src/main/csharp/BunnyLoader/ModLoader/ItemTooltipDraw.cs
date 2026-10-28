@@ -46,6 +46,7 @@ internal static unsafe class ItemTooltipDraw
         public int Shift;
         public int YOffset;
         public int Index = -1;
+        public Color? NameColor;
         public string Text = "";
         public readonly List<Pass> Shadows = new();
         public readonly List<DrawableTooltipLine> Drawn = new();
@@ -73,7 +74,7 @@ internal static unsafe class ItemTooltipDraw
             call.Arg(method);
             ItemHooks.Original(ref call, hook, "Main.MouseText_DrawItemTooltip");
         }
-        try { Draw(Original, x, y); }
+        try { Draw(Original, rare, x, y); }
         catch (Exception e) { ItemHooks.Report("tooltip drawing", e); }
     }
 
@@ -120,7 +121,7 @@ internal static unsafe class ItemTooltipDraw
         var texts = GameArray<GameString>.New(new GameClass("System", "String"), 64);
         var prefix = GameArray<bool>.New(new GameClass("System", "Boolean"), 64);
         var bad = GameArray<bool>.New(new GameClass("System", "Boolean"), 64);
-        int yoyo = -1, research = -1, materials = -1, count = 0, setBonus = -1, shared = -1;
+        int yoyo = -1, research = -1, materials = -1, count = 1, setBonus = -1, shared = -1;
         Color setColor = new(255, 255, 255, 255);
         ItemTooltipHooks.Last = null;
         Main.MouseText_DrawItemTooltip_GetLinesInfo(item, ref yoyo, ref research, ref materials, item.knockBack, ref count, texts, prefix, bad,
@@ -128,7 +129,7 @@ internal static unsafe class ItemTooltipDraw
         return ItemTooltipHooks.Last;
     }
 
-    static void Draw(Action orig, int x, int y)
+    static void Draw(Action orig, int rare, int x, int y)
     {
         Item item = default;
         Drawing? state = null;
@@ -154,11 +155,20 @@ internal static unsafe class ItemTooltipDraw
             ItemHooks.Report("PreDrawTooltip", e);
             state = null;
         }
+        Color? rarity = null;
+        try
+        {
+            if ((RarityLoader.GetRarity(rare) ?? (item.IsNull ? null : RarityLoader.GetRarity(item.rare))) is ModRarity r) rarity = RarityLoader.ColorOf(r);
+        }
+        catch (Exception e) { ItemHooks.Report("RarityColor (tooltip)", e); }
         drawing = state;
+        if (state != null) state.NameColor = rarity;
+        else if (rarity is Color c && !item.IsNull && item.HoverName is string name) Recolor(name, c);
         try { orig(); }
         finally
         {
             drawing = null;
+            if (state == null && rarity != null) EndRecolor();
             ItemTooltipHooks.Prepared = null;
             ItemTooltipHooks.PreparedItem = IntPtr.Zero;
         }
@@ -246,6 +256,11 @@ internal static unsafe class ItemTooltipDraw
         state.Shadows.RemoveAt(state.Shadows.Count - 1);
         TooltipLine line = state.Lines[state.Index];
         Color color = *(Color*)&main.Color;
+        if (state.NameColor is Color named && line.Mod == "Terraria" && line.Name == "ItemName")
+        {
+            float alpha = color.A / 255f;
+            color = new Color((int)(named.R * alpha), (int)(named.G * alpha), (int)(named.B * alpha), color.A);
+        }
         if (line.OverrideColor is Color over)
         {
             float alpha = color.A / 255f;

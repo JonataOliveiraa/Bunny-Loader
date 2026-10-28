@@ -94,6 +94,16 @@ public static class Checks
         Report("GlobalItem.ModifyTooltips on a vanilla weapon", SwordTip.Seen.Contains("Damage") && SwordTip.Seen.Contains("Speed") &&
             SwordTip.Seen.Contains("Knockback"), SwordTip.Seen);
         Report("the Damage line changed", sword.Exists(l => l.Text.EndsWith(" (global)", StringComparison.Ordinal)), Dump(sword));
+        string loreName = Name(ModContent.ItemType<Lore>()), swordName = Name(ItemID.CopperShortsword);
+        Report("the name stays the first line, as the game draws it", lore.Count > 0 && lore[0].Text == loreName && sword.Count > 0 && sword[0].Text == swordName,
+            $"'{(lore.Count > 0 ? lore[0].Text : "")}'/'{loreName}' '{(sword.Count > 0 ? sword[0].Text : "")}'/'{swordName}'");
+    }
+
+    static string Name(int type)
+    {
+        Item item = Item.New();
+        item.SetDefaults(type, default);
+        return item.HoverName ?? "";
     }
 
     static List<(string, bool)> Lines(int type)
@@ -103,7 +113,7 @@ public static class Checks
         var texts = GameArray<GameString>.New(new GameClass("System", "String"), 30);
         var prefix = GameArray<bool>.New(new GameClass("System", "Boolean"), 30);
         var bad = GameArray<bool>.New(new GameClass("System", "Boolean"), 30);
-        int yoyo = -1, research = -1, materials = -1, count = 0, setBonus = -1, shared = -1;
+        int yoyo = -1, research = -1, materials = -1, count = 1, setBonus = -1, shared = -1;
         Color setColor = new(255, 255, 255, 255);
         Main.MouseText_DrawItemTooltip_GetLinesInfo(item, ref yoyo, ref research, ref materials, item.knockBack, ref count, texts, prefix, bad,
             ref setBonus, ref setColor, ref shared);
