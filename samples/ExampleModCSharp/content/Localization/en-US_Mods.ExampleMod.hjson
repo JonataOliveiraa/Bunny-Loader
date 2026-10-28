@@ -8,6 +8,41 @@ Items: {
 		DisplayName: Sword
 		Tooltip: ""
 	}
+
+	ExampleHelmet: {
+		DisplayName: Example Helmet
+		Tooltip: This is a modded helmet.
+	}
+
+	ExampleBreastplate: {
+		DisplayName: Example Breastplate
+		Tooltip:
+			'''
+			This is a modded body armor.
+			Immunity to 'On Fire!'
+			20 increased maximum mana
+			Increases your max number of minions by 1
+			'''
+	}
+
+	ExampleLeggings: {
+		DisplayName: Example Leggings
+		Tooltip:
+			'''
+			This is a modded leg armor.
+			5% increased movement speed
+			'''
+	}
+
+	ExampleWings: {
+		DisplayName: Example Wings
+		Tooltip: This is a modded wing.
+	}
+
+	ExampleShield: {
+		DisplayName: Example Shield
+		Tooltip: This is a modded shield.
+	}
 }
 
 Conditions: {

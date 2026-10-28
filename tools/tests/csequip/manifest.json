@@ -1,0 +1,15 @@
+{
+  "uid": "bd143f0f-3d93-40a1-80d2-4d2aa5d864a4",
+  "id": "test-csequip",
+  "name": "Teste: equipamentos no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "AutoloadEquip, EquipLoader, armaduras, conjuntos, asas e acessórios, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csequip. No mundo, loga 'csequip <caso>: ok | FAIL' e 'csequip END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsEquip.dll",
+  "dependencies": []
+}

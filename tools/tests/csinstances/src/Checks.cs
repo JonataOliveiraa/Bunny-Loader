@@ -59,7 +59,7 @@ public static class Checks
         Report("an item of the type without SetDefaults gets a new one", bare.ModItem is CounterItem { Count: 0, RanSetDefaults: false }, "");
 
         CounterItem template = ModContent.GetInstance<CounterItem>();
-        Report("the template is untouched", template.Count == 0 && template.Item.IsNull, $"count={template.Count}");
+        Report("the template is untouched by the items' instances", template.Count == 0 && !template.Item.IsNull, $"count={template.Count}");
 
         var many = new List<Item>();
         var kept = new List<GameHandle>();

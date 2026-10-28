@@ -14,6 +14,8 @@ internal sealed class GlobalList<TEntity, TGlobal> where TEntity : struct, IGame
 
     public int Count => Volatile.Read(ref templates).Length;
 
+    public TGlobal[] Templates => Volatile.Read(ref templates);
+
     public void Add(TGlobal global)
     {
         global.ValidateInstanceFields();

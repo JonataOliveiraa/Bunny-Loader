@@ -1,5 +1,10 @@
 # Novidades
 
+## 0.4.0
+
+- A armadura de exemplo (elmo, peitoral e perneiras, com o bônus do
+  conjunto), as asas e o escudo, com as texturas vestidas do ExampleMod.
+
 ## 0.3.0
 
 - As receitas do ExampleMod (`ExampleRecipes`): grupos, condições, cópia de

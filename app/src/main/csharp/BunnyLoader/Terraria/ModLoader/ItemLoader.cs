@@ -96,6 +96,7 @@ internal static unsafe class ItemLoader
         item.Type = type;
 
         EnsureHooked();
+        EquipLoader.Autoload(item);
         ItemHooks.Install(item.GetType(), typeof(ModItem));
         PrefixLoader.WantRollable();
         lock (Gate)
@@ -179,6 +180,8 @@ internal static unsafe class ItemLoader
         NativeApi* api = Host.Native();
         api->PrepareItem(self.Pointer, type);
         self.maxStack = 1;
+        EquipLoader.Install();
+        EquipLoader.Apply(self, type);
         ModItem instance = Bind(template, self);
         GlobalItem?[]? slots = Globals.Begin(self);
         try
@@ -300,15 +303,25 @@ internal static unsafe class ItemLoader
     internal static bool Overrides(ModItem item, string method) =>
         item.GetType().GetMethod(method, new[] { typeof(TagCompound) })!.DeclaringType != typeof(ModItem);
 
+    static readonly System.Collections.Generic.List<GameHandle> TemplatePins = new();
+
     [UnmanagedCallersOnly]
     static void ItemsInstalled(int first, int last)
     {
+        EquipLoader.Install();
         for (int type = first; type <= last; type++)
         {
             ModItem? item = Get(type);
             if (item == null) continue;
             try
             {
+                if (item.Entity.IsNull)
+                {
+                    Item template = Item.New();
+                    TemplatePins.Add(new GameHandle(template.Pointer));
+                    template.SetDefaults(type, default);
+                    item.Entity = template;
+                }
                 item.SetupContent();
             }
             catch (Exception e)

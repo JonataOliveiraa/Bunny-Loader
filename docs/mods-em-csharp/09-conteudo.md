@@ -464,6 +464,44 @@ and stops at 3700: the ones past it are added by Bunny Loader to the crafting
 menu and the Guide. Crafting runs `ModItem.OnCreated` and
 `GlobalItem.OnCreated` with a `RecipeItemCreationContext`.
 
+## Armor, accessories and wings
+
+```csharp
+[AutoloadEquip(EquipType.Head)]
+public class ExampleHelmet : ModItem
+{
+    public override bool IsArmorSet(Item head, Item body, Item legs) =>
+        body.type == ModContent.ItemType<ExampleBreastplate>() && legs.type == ModContent.ItemType<ExampleLeggings>();
+
+    public override void UpdateArmorSet(Player player) => player.meleeDamage += 0.2f;
+}
+```
+
+`[AutoloadEquip(EquipType.Head, ...)]` takes the worn textures next to the
+item's: `ExampleHelmet_Head.png`, `_Body`, `_Legs`, `_Wings`, `_Shield`,
+`_Back`... Each gets a slot after the game's (`Item.headSlot`,
+`Item.wingSlot`... are set before your `SetDefaults`), counted together with
+the JS mods' slots. In `SetStaticDefaults`, `Item` is the template item, as in
+tModLoader, so wings can write
+`ArmorIDs.Wing.Sets.Stats[Item.wingSlot] = new WingStats(180, 9f, 2.5f);`.
+`EquipLoader.AddEquipTexture(mod, texture, type, name: "...")` in `Load`
+adds one by hand; its slot exists from `SetStaticDefaults` on
+(`EquipLoader.GetEquipSlot(mod, name, type)`).
+
+The hooks are tModLoader's: `UpdateEquip`, `UpdateAccessory(player,
+hideVisual)`, `UpdateVanity`, `CanAccessoryBeEquippedWith`, `IsArmorSet` and
+`UpdateArmorSet` (on each worn piece), `IsVanitySet` (by the drawn slots; by
+default the `IsArmorSet` of those slots' items), `PreUpdateVanitySet`,
+`UpdateVanitySet`, `ArmorSetShadows`, `SetMatch`, `EquipFrameEffects`,
+`VerticalWingSpeeds`, `HorizontalWingSpeeds`, `WingUpdate`. A `GlobalItem`
+has them with the `Item` first and the set as a string, and an
+`EquipTexture` subclass can replace them for one texture.
+
+Not on the phone yet: the set bonus line in the tooltip (the game has no
+`Player.setBonus` since 1.4.5.8), `DrawArmorColor`, `ArmorArmGlowMask`,
+`CanEquipAccessory`, the `HidesTopSkin`/`HidesHands` flags of
+`ArmorIDs.Body.Sets` and the item sync in PvP.
+
 ## Changing every item: `GlobalItem`
 
 A `GlobalItem` runs for items that are not yours: the game's and other mods'.

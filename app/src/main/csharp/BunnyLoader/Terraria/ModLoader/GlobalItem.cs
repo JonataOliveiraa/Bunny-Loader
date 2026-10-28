@@ -35,6 +35,36 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void UpdateInventory(Item item, Player player) { }
 
+    public virtual void UpdateEquip(Item item, Player player) { }
+
+    public virtual void UpdateAccessory(Item item, Player player, bool hideVisual) { }
+
+    public virtual void UpdateVanity(Item item, Player player) { }
+
+    public virtual string IsArmorSet(Item head, Item body, Item legs) => "";
+
+    public virtual void UpdateArmorSet(Player player, string set) { }
+
+    public virtual string IsVanitySet(int head, int body, int legs) =>
+        IsArmorSet(Core.ItemEquipHooks.Sample(Item.headType, head), Core.ItemEquipHooks.Sample(Item.bodyType, body), Core.ItemEquipHooks.Sample(Item.legType, legs));
+
+    public virtual void PreUpdateVanitySet(Player player, string set) { }
+
+    public virtual void UpdateVanitySet(Player player, string set) { }
+
+    public virtual void ArmorSetShadows(Player player, string set) { }
+
+    public virtual void SetMatch(int armorSlot, int type, bool male, ref int equipSlot, ref bool robes) { }
+
+    public virtual void VerticalWingSpeeds(Item item, Player player, ref float ascentWhenFalling, ref float ascentWhenRising,
+                                           ref float maxCanAscendMultiplier, ref float maxAscentMultiplier, ref float constantAscend) { }
+
+    public virtual void HorizontalWingSpeeds(Item item, Player player, ref float speed, ref float acceleration) { }
+
+    public virtual bool WingUpdate(int wings, Player player, bool inUse) => false;
+
+    public virtual bool CanAccessoryBeEquippedWith(Item equippedItem, Item incomingItem, Player player) => true;
+
     public virtual void GetHealLife(Item item, Player player, bool quickHeal, ref int healValue) { }
 
     public virtual void GetHealMana(Item item, Player player, bool quickHeal, ref int healValue) { }

@@ -30,7 +30,8 @@ public static class Checks
         Report("cloned instance", CloneItem.SeenMarker == 42 && CloneItem.SeenType == clone.Type && b.type == clone.Type,
             $"marker={CloneItem.SeenMarker} type={CloneItem.SeenType}/{clone.Type}");
 
-        Report("template has no item", fresh.Item.IsNull && fresh.Marker == 42, $"marker={fresh.Marker}");
+        Report("the template has its own item, set up by SetDefaults (tModLoader)", !fresh.Item.IsNull && fresh.Item.type == fresh.Type && fresh.Marker == 42,
+            $"marker={fresh.Marker} item={(fresh.Item.IsNull ? 0 : fresh.Item.type)}/{fresh.Type}");
     }
 
     public static void Report(string name, bool ok, string detail)

@@ -8,6 +8,41 @@ Items: {
 		DisplayName: Espada
 		Tooltip: ""
 	}
+
+	ExampleHelmet: {
+		DisplayName: Elmo de Exemplo
+		Tooltip: Este é um elmo de mod.
+	}
+
+	ExampleBreastplate: {
+		DisplayName: Peitoral de Exemplo
+		Tooltip:
+			'''
+			Esta é uma armadura de corpo de mod.
+			Imunidade a 'Em chamas!'
+			Aumenta a mana máxima em 20
+			Aumenta o número máximo de lacaios em 1
+			'''
+	}
+
+	ExampleLeggings: {
+		DisplayName: Perneiras de Exemplo
+		Tooltip:
+			'''
+			Esta é uma armadura de pernas de mod.
+			Aumenta a velocidade de movimento em 5%
+			'''
+	}
+
+	ExampleWings: {
+		DisplayName: Asas de Exemplo
+		Tooltip: Estas são asas de mod.
+	}
+
+	ExampleShield: {
+		DisplayName: Escudo de Exemplo
+		Tooltip: Este é um escudo de mod.
+	}
 }
 
 Conditions: {

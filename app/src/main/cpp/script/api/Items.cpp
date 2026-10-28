@@ -6,6 +6,7 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 #include "mods/ModLoader.h"
+#include "content/items/ModEquips.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModItemSave.h"
 #include "content/items/ModPrefixes.h"
@@ -544,19 +545,9 @@ JSValue js_growEquipSets(JSContext* ctx, JSValueConst, int argc, JSValueConst* a
         if (kind) JS_FreeCString(ctx, kind);
         return JS_ThrowTypeError(ctx, "bl.items.growEquipSets(tipo, de, para)");
     }
-    // A TableClass guarda o ponteiro do nome: fica viva junto com a tabela.
-    static std::map<std::string, std::unique_ptr<runtime::TypeTables>> tables;
-    static std::map<std::string, std::string> names;
-    const std::string& name = names[kind] = kind;
+    const int32_t grown = runtime::growEquipSets(kind, from, to);
     JS_FreeCString(ctx, kind);
-    auto& t = tables[name];
-    if (!t) {
-        t = std::make_unique<runtime::TypeTables>(
-            "equipamento", from,
-            std::vector<runtime::TableClass>{{"Terraria.ID", "ArmorIDs", name.c_str(), "Sets"}},
-            runtime::TypeTables::Fill::Mode);
-    }
-    return JS_NewInt32(ctx, t->grow(from, to));
+    return JS_NewInt32(ctx, grown);
 }
 
 /**

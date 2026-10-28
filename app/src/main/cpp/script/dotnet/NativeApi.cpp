@@ -5,7 +5,9 @@
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
 #include "content/common/ModNet.h"
+#include "content/common/TypeTables.h"
 #include "content/items/ItemDrawStages.h"
+#include "content/items/ModEquips.h"
 #include "content/items/ModItemData.h"
 #include "content/items/ModItemSave.h"
 #include "content/items/ModPrefixes.h"
@@ -92,6 +94,8 @@ struct NativeApi {
     int32_t (*rarityCount)();
     int32_t (*registerPrefix)(const char* mod, const char* name);
     int32_t (*prefixCount)();
+    int32_t (*growEquipSets)(const char* kind, int32_t from, int32_t to);
+    void* (*resizeArray)(void* array, int32_t length);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -549,6 +553,13 @@ int32_t nativeRegisterPrefix(const char* mod, const char* name) {
 
 int32_t nativePrefixCount() { return runtime::modPrefixCount(); }
 
+int32_t nativeGrowEquipSets(const char* kind, int32_t from, int32_t to) { return runtime::growEquipSets(kind, from, to); }
+
+void* nativeResizeArray(void* array, int32_t length) {
+    if (!array || length < 0) return nullptr;
+    return runtime::TypeTables::resizedCopy(static_cast<Il2CppArray*>(array), static_cast<uintptr_t>(length));
+}
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -606,6 +617,8 @@ const NativeApi kNativeApi{
     nativeRarityCount,
     nativeRegisterPrefix,
     nativePrefixCount,
+    nativeGrowEquipSets,
+    nativeResizeArray,
 };
 
 } // namespace

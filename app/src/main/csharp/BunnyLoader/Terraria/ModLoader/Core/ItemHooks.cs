@@ -50,7 +50,20 @@ internal static unsafe class ItemHooks
         ItemOpenHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemNetHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemTooltipHooks.Install(Has, baseType == typeof(GlobalItem));
+        ItemEquipHooks.Install(Has, baseType == typeof(GlobalItem));
         PrefixLoader.WantItemHooks(Has);
+    }
+
+    static readonly Dictionary<(Type, string), bool> OverrideCache = new();
+
+    internal static bool Wants(GlobalItem global, string name)
+    {
+        var key = (global.GetType(), name);
+        lock (OverrideCache)
+        {
+            if (OverrideCache.TryGetValue(key, out bool wants)) return wants;
+            return OverrideCache[key] = Overrides(key.Item1, typeof(GlobalItem), name);
+        }
     }
 
     internal static GlobalItem?[] GlobalsOf(Item item) => ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>();
