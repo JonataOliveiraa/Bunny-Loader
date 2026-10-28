@@ -45,6 +45,12 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual bool ItemSpace(Item item, Player player) => false;
 
+    public virtual bool CanRightClick(Item item) => false;
+
+    public virtual void RightClick(Item item, Player player) { }
+
+    public virtual bool ConsumeItem(Item item, Player player) => true;
+
     public virtual Color? GetAlpha(Item item, Color lightColor) => null;
 
     public virtual bool PreDrawInWorld(Item item, SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI) => true;

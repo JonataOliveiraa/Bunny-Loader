@@ -1,0 +1,15 @@
+{
+  "uid": "afac9297-2423-46ad-af60-43e0d2ebe886",
+  "id": "test-csopen",
+  "name": "Teste: abrir item com o clique direito no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "CanRightClick, RightClick e ConsumeItem do ModItem e do GlobalItem, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csopen. No mundo, loga 'csopen <caso>: ok | FAIL' e 'csopen END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsOpen.dll",
+  "dependencies": []
+}

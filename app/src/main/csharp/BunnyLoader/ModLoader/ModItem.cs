@@ -63,6 +63,12 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual bool ItemSpace(Player player) => false;
 
+    public virtual bool CanRightClick() => false;
+
+    public virtual void RightClick(Player player) { }
+
+    public virtual bool ConsumeItem(Player player) => true;
+
     public virtual Color? GetAlpha(Color lightColor) => null;
 
     public virtual bool PreDrawInWorld(SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI) => true;

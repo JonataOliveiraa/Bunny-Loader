@@ -269,6 +269,23 @@ public override bool GrabStyle(Player player)
 }
 ```
 
+Opening an item (a bag, a crate):
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `CanRightClick()` | When the game loads (for the touch "Open" button) and when the player opens it | `true`: the item opens |
+| `RightClick(Player player)` | When it opens: give the contents here (`player.QuickSpawnItem`) | |
+| `ConsumeItem(Player player)` | Right after | `false`: the item is not spent |
+
+The phone's game opens only the items in `ItemID.Sets.OpenableBag`: Bunny
+Loader adds every item whose `CanRightClick()` returns `true` when the game
+loads (asked on a fresh item of that type), so the "Open" button shows up for
+it. A `GlobalItem` can do the same for a vanilla item, and its `RightClick`
+also runs when a vanilla bag or crate opens (the game still gives what is
+inside). A boss bag of yours (`ItemID.Sets.BossBag`) can also give a
+developer set, as in tModLoader. `ModifyItemLoot` comes with the loot rules
+(`ItemLoot`, `IItemDropRule`).
+
 Drawing the item:
 
 | `ModItem` | When | Return |

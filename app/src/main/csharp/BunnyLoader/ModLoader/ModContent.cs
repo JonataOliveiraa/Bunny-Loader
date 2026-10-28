@@ -124,6 +124,8 @@ public static class ModContent
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
             }
             foreach (Mod mod in mods) Run(mod, "PostSetupContent", mod.PostSetupContent);
+            try { ItemOpenHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
             foreach (Mod mod in mods) Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);
             foreach (Mod mod in mods)
             {
