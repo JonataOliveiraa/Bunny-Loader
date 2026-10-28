@@ -326,6 +326,13 @@ final class DevTools {
     private static int sOutputLines;
     private static ArrayList<String> sHistory;
     private static Console sConsole;
+    /**
+     * A linguagem do codigo digitado: C# sempre que o QuickJS esta desligado;
+     * com ele ligado, a escolhida no botao JS/C# do topo (lembrada).
+     */
+    private static boolean sCSharp;
+    /** Marca do codigo C# para o nativo (script/api/Console.cpp). */
+    private static final char CSHARP_MARK = '\u0002';
     private static View sFloatIcon;
 
     static void openConsole(Activity act) {
@@ -336,6 +343,7 @@ final class DevTools {
             return;
         }
         loadHistory(act);
+        sCSharp = !CheatBridge.sJsOn || prefs(act).getBoolean("csharp", false);
         sConsole = new Console(act);
         sConsole.show();
     }
@@ -368,6 +376,11 @@ final class DevTools {
             b.append(sHistory.get(i));
         }
         try { prefs(act).edit().putString("history", b.toString()).apply(); } catch (Throwable t) { }
+    }
+
+    /** A ajuda da linguagem atual, a primeira linha da saida. */
+    private static String helpText() {
+        return sCSharp ? tr("EditorCsHelp") : tr("EditorHelp");
     }
 
     /** Uma entrada da saida: especie (o 1o caractere, como no nativo) e texto. */
@@ -421,6 +434,7 @@ final class DevTools {
         final ScrollView outputScroll;
         final EditText editor;
         final TextView fullButton;
+        final TextView langButton;
         final Handler handler = new Handler(Looper.getMainLooper());
         KeyboardWatcher keyboard;
         int keyboardHeight;
@@ -462,6 +476,13 @@ final class DevTools {
             title.setSingleLine(true);
             title.setPadding(px(a, 8), 0, px(a, 6), 0);
             head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+            // JS ou C#: com o QuickJS desligado, so C# (o rotulo fica, sem toque).
+            langButton = textButton(a, sCSharp ? "C#" : "JS", BUTTON, new Runnable() {
+                @Override public void run() { if (CheatBridge.sJsOn) toggleLanguage(); }
+            });
+            langButton.setContentDescription(tr("EditorLanguage"));
+            head.addView(langButton);
 
             head.addView(iconButton(a, arrow(a, -90), tr("Previous"), new Runnable() {
                 @Override public void run() { history(-1); }
@@ -577,7 +598,7 @@ final class DevTools {
             a.addContentView(panel, layout);
 
             if (sOutput.length() == 0) {
-                appendEntry('h', tr("EditorHelp"));
+                appendEntry('h', helpText());
             }
             output.setText(sOutput);
         }
@@ -720,10 +741,19 @@ final class DevTools {
             scratch = "";
             editor.setText("");
             saveDraft();
-            try { CheatBridge.nConsoleRun(code); } catch (Throwable t) {
+            try { CheatBridge.nConsoleRun(sCSharp ? CSHARP_MARK + code : code); } catch (Throwable t) {
                 appendEntry('x', tr("NativeCoreNoResponse", t));
                 refreshOutput();
             }
+        }
+
+        /** O botao JS/C#: troca a linguagem e mostra a ajuda dela. */
+        void toggleLanguage() {
+            sCSharp = !sCSharp;
+            langButton.setText(sCSharp ? "C#" : "JS");
+            try { prefs(act).edit().putBoolean("csharp", sCSharp).apply(); } catch (Throwable t) { }
+            appendEntry('h', helpText());
+            refreshOutput();
         }
 
         void history(int step) {

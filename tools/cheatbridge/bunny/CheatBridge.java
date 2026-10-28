@@ -1520,16 +1520,17 @@ public class CheatBridge {
     // ------------------------------ menu ------------------------------
 
     // Config > Desenvolvedor do launcher (ui/Prefs.kt), lidas quando o jogo
-    // abre: o Mod Menu (o coelho), o Editor de JS e o Reiniciar. O Editor
-    // tem seu proprio icone, disponivel tambem na tela de titulo.
-    static boolean sMenuOn = true, sEditorOn = true, sRestartOn = true;
+    // abre: o Mod Menu (o coelho), o Editor e o Reiniciar, e se o QuickJS
+    // sobe. O Editor tem seu proprio icone, disponivel tambem na tela de titulo.
+    static boolean sMenuOn = true, sEditorOn = true, sRestartOn = true, sJsOn = true;
 
     private static void readDevSettings(Activity act) {
         try {
             SharedPreferences p = act.getSharedPreferences("settings", Activity.MODE_PRIVATE);
             sMenuOn = p.getBoolean("devModMenu", true);
-            // Sem o QuickJS (Config > Desenvolvedor) o editor nao teria onde rodar.
-            sEditorOn = p.getBoolean("devEditor", true) && p.getBoolean("quickJs", true);
+            // Sem o QuickJS o Editor fica: mostra o log e roda C# (DevTools).
+            sEditorOn = p.getBoolean("devEditor", true);
+            sJsOn = p.getBoolean("quickJs", true);
             sRestartOn = p.getBoolean("devRestart", true);
         } catch (Throwable t) { /* fica tudo ligado */ }
     }
