@@ -67,6 +67,11 @@ int registerModPrefix(const std::string& mod, const std::string& name) {
     return id;
 }
 
+int modPrefixCount() {
+    std::lock_guard<std::mutex> l(g_mx);
+    return vanillaLocked() + static_cast<int>(g_keys.size());
+}
+
 std::string modPrefixKey(int id) {
     std::lock_guard<std::mutex> l(g_mx);
     const int i = id - vanillaLocked();

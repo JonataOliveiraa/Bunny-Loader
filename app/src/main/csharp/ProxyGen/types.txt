@@ -143,3 +143,6 @@ VirtualControlsStyles_Layout
 VirtualInputControllerControlConfiguration_Layout
 XNAUIInputLayer
 XNAUnityRunner
+Terraria.ID.PrefixID
+Terraria.GameContent.Prefixes.PrefixLegacy
+Terraria.Utilities.UnifiedRandom

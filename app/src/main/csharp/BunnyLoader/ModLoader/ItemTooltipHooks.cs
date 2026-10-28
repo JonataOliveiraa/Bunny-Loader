@@ -21,10 +21,23 @@ internal static unsafe class ItemTooltipHooks
 
     internal static List<TooltipLine>? Last;
 
+    static bool prefixLines;
+
+    internal static void WantPrefixLines()
+    {
+        prefixLines = true;
+        InstallHooks();
+    }
+
     public static void Install(Func<string, bool> has, bool global)
     {
         if (!Array.Exists(HookNames, n => has(n))) return;
         if (global) globalWanted = true;
+        InstallHooks();
+    }
+
+    static void InstallHooks()
+    {
         ItemHooks.Once("TooltipDraw", ItemTooltipDraw.Install);
         ItemHooks.Once("Tooltips", () => linesInfo = ItemHooks.Raw("Terraria", "Main",
             "void MouseText_DrawItemTooltip_GetLinesInfo(Item item, ref int yoyoLogo, ref int researchLine, ref int materialsLine, float oldKB, ref int numLines, string[] toolTipLine, bool[] preFixLine, bool[] badPreFixLine, ref int setBonusLine, ref Color setBonusColour, ref int sharedLine)",
@@ -32,7 +45,8 @@ internal static unsafe class ItemTooltipHooks
     }
 
     internal static bool Wanted(Item item) =>
-        !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)));
+        !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)) ||
+                                          prefixLines && PrefixLoader.GetPrefix(item.prefix) != null);
 
     internal static bool Has(ModItem m, string name) => ItemHooks.Overrides(m.GetType(), typeof(ModItem), name);
 
@@ -79,6 +93,11 @@ internal static unsafe class ItemTooltipHooks
             else
             {
                 lines = Lines(item, texts, prefix, bad, count, roles);
+                if (prefixLines && PrefixLoader.TooltipLines(item) is List<TooltipLine> extra)
+                {
+                    int at = lines.FindLastIndex(l => l.IsModifier || l.IsModifierBad);
+                    lines.InsertRange(at < 0 ? lines.Count : at + 1, extra);
+                }
                 Modify(item, lines);
                 lines.RemoveAll(l => !l.Visible);
             }

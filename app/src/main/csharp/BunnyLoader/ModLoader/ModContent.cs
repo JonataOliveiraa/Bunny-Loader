@@ -129,6 +129,8 @@ public static class ModContent
             {
                 foreach (ModRarity rarity in mod.GetContent<ModRarity>()) Run(mod, $"{rarity.Name}.SetStaticDefaults", rarity.SetupContent);
             }
+            try { PrefixLoader.ContentReady(); }
+            catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
             foreach (Mod mod in mods) Run(mod, "PostSetupContent", mod.PostSetupContent);
             try { ItemOpenHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }

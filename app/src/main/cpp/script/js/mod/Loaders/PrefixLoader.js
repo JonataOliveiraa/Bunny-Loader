@@ -21,7 +21,7 @@ class PrefixLoader {
         return PrefixLoader.#vanilla;
     }
 
-    static get PrefixCount() { return PrefixLoader.VanillaCount + PrefixLoader.ByType.size; }
+    static get PrefixCount() { return bl.items.prefixCount(); }
 
     static GetPrefix(type) { return PrefixLoader.ByType.get(type); }
 

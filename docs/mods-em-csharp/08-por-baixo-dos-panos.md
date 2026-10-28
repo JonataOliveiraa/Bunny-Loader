@@ -246,4 +246,4 @@ compiles; a listed nested type brings the types around it along.
 | The compiler of mods with sources | `app/src/main/csharp/BunnyLoader.Compiler/` |
 | The compiler in the catalog app | `catalog/src/main/cpp/CompilerHost.cpp`, `CompilerRuntime.kt`, `CSharpBuild.kt` |
 | The compiler on a PC | `tools/mods/csbuild/`, `tools/mods/csharp_build.py` |
-| Tests and benchmarks | `tools/tests/hookcs`, `benchcs`, `benchjs`, `cssource`, `compilebench`, `csitems`, `csload`, `csassets`, `csmodtarget`, `csmodref`, `cssourceref`, `csloc`, `csinstances`, `csglobals`, `cssave`, `csnet`, `csuse`, `csheal`, `cspickup`, `csdraw`, `csopen`, `csnetitem`, `cstooltip`, `csrarity` |
+| Tests and benchmarks | `tools/tests/hookcs`, `benchcs`, `benchjs`, `cssource`, `compilebench`, `csitems`, `csload`, `csassets`, `csmodtarget`, `csmodref`, `cssourceref`, `csloc`, `csinstances`, `csglobals`, `cssave`, `csnet`, `csuse`, `csheal`, `cspickup`, `csdraw`, `csopen`, `csnetitem`, `cstooltip`, `csrarity`, `csprefix` |

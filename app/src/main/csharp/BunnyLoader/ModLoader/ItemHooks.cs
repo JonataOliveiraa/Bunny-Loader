@@ -49,6 +49,7 @@ internal static unsafe class ItemHooks
         ItemOpenHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemNetHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemTooltipHooks.Install(Has, baseType == typeof(GlobalItem));
+        PrefixLoader.WantItemHooks(Has);
     }
 
     internal static GlobalItem?[] GlobalsOf(Item item) => ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>();

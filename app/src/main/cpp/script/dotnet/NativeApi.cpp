@@ -8,6 +8,7 @@
 #include "content/items/ItemDrawStages.h"
 #include "content/items/ModItemData.h"
 #include "content/items/ModItemSave.h"
+#include "content/items/ModPrefixes.h"
 #include "content/items/ModRarities.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
@@ -89,6 +90,8 @@ struct NativeApi {
     int32_t (*storeChestItem)(int32_t chest, int32_t slot, void* item);
     int32_t (*allocateRarity)();
     int32_t (*rarityCount)();
+    int32_t (*registerPrefix)(const char* mod, const char* name);
+    int32_t (*prefixCount)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -540,6 +543,12 @@ int32_t nativeAllocateRarity() { return runtime::allocateModRarity(); }
 
 int32_t nativeRarityCount() { return runtime::modRarityCount(); }
 
+int32_t nativeRegisterPrefix(const char* mod, const char* name) {
+    return mod && name ? runtime::registerModPrefix(mod, name) : -1;
+}
+
+int32_t nativePrefixCount() { return runtime::modPrefixCount(); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -595,6 +604,8 @@ const NativeApi kNativeApi{
     nativeStoreChestItem,
     nativeAllocateRarity,
     nativeRarityCount,
+    nativeRegisterPrefix,
+    nativePrefixCount,
 };
 
 } // namespace

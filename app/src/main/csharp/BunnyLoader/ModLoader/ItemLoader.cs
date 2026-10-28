@@ -80,6 +80,7 @@ internal static unsafe class ItemLoader
 
         EnsureHooked();
         ItemHooks.Install(item.GetType(), typeof(ModItem));
+        PrefixLoader.WantRollable();
         lock (Gate)
         {
             int index = type - ItemID.Count;

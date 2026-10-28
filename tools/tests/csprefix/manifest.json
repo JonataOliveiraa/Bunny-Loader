@@ -1,0 +1,15 @@
+{
+  "uid": "a617d63d-699e-4683-b6a5-24e0b341136c",
+  "id": "test-csprefix",
+  "name": "Teste: ModPrefix no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPrefix (status, valor, Apply, acessório, tooltip) e os hooks de prefixo do ModItem, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csprefix. No mundo, loga 'csprefix <caso>: ok | FAIL' e 'csprefix END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPrefix.dll",
+  "dependencies": []
+}

@@ -584,6 +584,10 @@ JSValue js_vanillaPrefixCount(JSContext* ctx, JSValueConst, int, JSValueConst*) 
     return JS_NewInt32(ctx, runtime::vanillaPrefixCount());
 }
 
+JSValue js_prefixCount(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewInt32(ctx, runtime::modPrefixCount());
+}
+
 JSValue js_allocateRarity(JSContext* ctx, JSValueConst, int, JSValueConst*) {
     return JS_NewInt32(ctx, runtime::allocateModRarity());
 }
@@ -607,6 +611,7 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, items, "__chestData", JS_NewCFunction(ctx, js_chestData, "chestData", 3));
     JS_SetPropertyStr(ctx, items, "growEquipSets", JS_NewCFunction(ctx, js_growEquipSets, "growEquipSets", 3));
     JS_SetPropertyStr(ctx, items, "registerPrefix", JS_NewCFunction(ctx, js_registerPrefix, "registerPrefix", 1));
+    JS_SetPropertyStr(ctx, items, "prefixCount", JS_NewCFunction(ctx, js_prefixCount, "prefixCount", 0));
     JS_SetPropertyStr(ctx, items, "allocateRarity", JS_NewCFunction(ctx, js_allocateRarity, "allocateRarity", 0));
     JS_SetPropertyStr(ctx, items, "rarityCount", JS_NewCFunction(ctx, js_rarityCount, "rarityCount", 0));
     JS_SetPropertyStr(ctx, items, "vanillaPrefixCount",

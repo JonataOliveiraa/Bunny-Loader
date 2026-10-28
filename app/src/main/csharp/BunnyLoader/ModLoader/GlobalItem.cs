@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Terraria.Utilities;
 
 namespace Terraria.ModLoader;
 
@@ -51,6 +52,12 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual void NetSend(Item item, BinaryWriter writer) { }
 
     public virtual void NetReceive(Item item, BinaryReader reader) { }
+
+    public virtual bool AllowPrefix(Item item, int pre) => true;
+
+    public virtual int ChoosePrefix(Item item, UnifiedRandom rand) => -1;
+
+    public virtual bool? PrefixChance(Item item, int pre, UnifiedRandom rand) => null;
 
     public virtual bool CanRightClick(Item item) => false;
 

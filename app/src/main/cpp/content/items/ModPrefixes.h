@@ -19,6 +19,8 @@ int vanillaPrefixCount();
  */
 int registerModPrefix(const std::string& mod, const std::string& name);
 
+int modPrefixCount();
+
 /** "<uid>/<nome>" do prefixo de mod, ou "" se `id` nao e de mod. */
 std::string modPrefixKey(int id);
 

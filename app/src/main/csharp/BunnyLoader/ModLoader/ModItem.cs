@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.Localization;
 using Terraria.ModLoader.IO;
+using Terraria.Utilities;
 
 namespace Terraria.ModLoader;
 
@@ -65,6 +66,22 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual bool OnPickup(Player player) => true;
 
     public virtual bool ItemSpace(Player player) => false;
+
+    public virtual bool MeleePrefix() => Item.melee && !Item.noUseGraphic;
+
+    public virtual bool WeaponPrefix() => Item.melee && Item.noUseGraphic;
+
+    public virtual bool RangedPrefix() => Item.ranged;
+
+    public virtual bool MagicPrefix() => Item.magic;
+
+    public virtual bool SummonPrefix() => Item.summon;
+
+    public virtual bool AllowPrefix(int pre) => true;
+
+    public virtual int ChoosePrefix(UnifiedRandom rand) => -1;
+
+    public virtual bool? PrefixChance(int pre, UnifiedRandom rand) => null;
 
     public virtual bool CanRightClick() => false;
 

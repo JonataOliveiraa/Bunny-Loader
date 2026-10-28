@@ -368,6 +368,42 @@ decides (the game alone would turn every rarity above 11 into purple). The
 color shows on the text that rises when the item is picked up and on the
 item's name under the cursor; the phone's tooltip has no name line.
 
+## Prefixes: `ModPrefix`
+
+```csharp
+public class Shiny : ModPrefix
+{
+    public override PrefixCategory Category => PrefixCategory.Melee;
+
+    public override void SetStats(ref float damageMult, ref float knockbackMult, ref float useTimeMult, ref float scaleMult,
+                                  ref float shootSpeedMult, ref float manaMult, ref int critBonus)
+    {
+        damageMult *= 1.2f;
+        critBonus += 5;
+    }
+
+    public override void ModifyValue(ref float valueMult) => valueMult *= 1.1f;
+}
+```
+
+`Category` says which items can roll it (`Melee`, `Ranged`, `Magic`,
+`Summon`, `AnyWeapon`, `Accessory`; `Custom` only where `CanRoll` or the
+item lets it). `RollChance` is its weight against the game's prefixes (each
+weighs 1). The game applies the stats (a prefix whose stats change nothing on
+an item does not roll there), then `Apply(Item item)` runs;
+`ApplyAccessoryEffects(Player player)` runs every frame while the accessory
+is equipped, and `GetTooltipLines(Item item)` adds lines after the game's
+prefix lines. The name comes from `Mods.<Mod>.Prefixes.<Name>.DisplayName`.
+Prefix numbers are shared with the JS mods' and saved by name.
+
+An item decides too: `AllowPrefix(int pre)`, `ChoosePrefix(UnifiedRandom
+rand)` (a number forces that prefix), `PrefixChance(int pre, UnifiedRandom
+rand)` (`false`: no prefix; `true`: always one), and `MeleePrefix()`,
+`RangedPrefix()`, `MagicPrefix()`, `SummonPrefix()`, `WeaponPrefix()` for
+which of the game's prefixes it rolls (by default, from `Item.melee`,
+`ranged`, `magic`, `summon` and `noUseGraphic`). A `GlobalItem` has the first
+three, with the `Item` first.
+
 ## Changing every item: `GlobalItem`
 
 A `GlobalItem` runs for items that are not yours: the game's and other mods'.
