@@ -7,6 +7,7 @@ using BunnyLoader.Interop;
 using Terraria.GameContent.Items;
 using Terraria.ID;
 using Terraria.Localization;
+using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
 
@@ -35,7 +36,10 @@ internal static unsafe class ItemLoader
             if (hooked) return;
             On_Item.SetDefaults += SetDefaults;
             On_Item.Clone += Clone;
+            On_Item.DeepClone += DeepClone;
+            On_Item.clientClone += ClientClone;
             Host.Native()->OnItemsInstalled(&ItemsInstalled);
+            Host.Native()->OnItemData(&SaveItemData, &LoadItemData);
             hooked = true;
         }
     }
@@ -187,10 +191,15 @@ internal static unsafe class ItemLoader
         }
     }
 
-    static Item Clone(On_Item.orig_Clone orig, Item self)
+    static Item Clone(On_Item.orig_Clone orig, Item self) => CopyInstances(self, orig(self));
+
+    static Item DeepClone(On_Item.orig_DeepClone orig, Item self) => CopyInstances(self, orig(self));
+
+    static Item ClientClone(On_Item.orig_clientClone orig, Item self, Item cloneDestination) => CopyInstances(self, orig(self, cloneDestination));
+
+    static Item CopyInstances(Item self, Item copy)
     {
-        Item copy = orig(self);
-        if (copy.IsNull) return copy;
+        if (copy.IsNull || copy == self) return copy;
         ModItem? source = Instances.Get(self.Pointer);
         if (source != null && source.Type == copy.type)
         {
@@ -208,6 +217,64 @@ internal static unsafe class ItemLoader
         Globals.Clone(self, copy);
         return copy;
     }
+
+    [UnmanagedCallersOnly]
+    static int SaveItemData(IntPtr itemPointer, byte* current, IntPtr sink)
+    {
+        ModItem? instance = null;
+        try
+        {
+            instance = InstanceOf(new Item(itemPointer));
+            if (instance == null) return 1;
+            string text;
+            if (instance.LoadFailed || !Overrides(instance, nameof(ModItem.SaveData)))
+            {
+                text = instance.SavedData ?? Marshal.PtrToStringUTF8((IntPtr)current) ?? "";
+            }
+            else
+            {
+                var tag = new TagCompound();
+                instance.SaveData(tag);
+                text = tag.Count == 0 ? "" : TagJson.Write(tag);
+                instance.SavedData = text;
+            }
+            byte* utf8 = Host.Utf8(text);
+            try { Host.Native()->WriteString(sink, utf8); }
+            finally { Host.FreeUtf8(utf8); }
+            return 1;
+        }
+        catch (Exception e)
+        {
+            Log.Error($"item {instance?.FullName ?? "?"}: SaveData threw: {e}");
+            return 0;
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    static int LoadItemData(IntPtr itemPointer, byte* data)
+    {
+        ModItem? instance = null;
+        try
+        {
+            instance = InstanceOf(new Item(itemPointer));
+            if (instance == null) return 1;
+            string text = Marshal.PtrToStringUTF8((IntPtr)data) ?? "";
+            instance.SavedData = text;
+            instance.LoadFailed = true;
+            TagCompound tag = text.Length == 0 ? new TagCompound() : TagJson.Read(text);
+            if (Overrides(instance, nameof(ModItem.LoadData))) instance.LoadData(tag);
+            instance.LoadFailed = false;
+            return 1;
+        }
+        catch (Exception e)
+        {
+            Log.Error($"item {instance?.FullName ?? "?"}: LoadData threw (its saved data is kept as it was): {e}");
+            return 0;
+        }
+    }
+
+    static bool Overrides(ModItem item, string method) =>
+        item.GetType().GetMethod(method, new[] { typeof(TagCompound) })!.DeclaringType != typeof(ModItem);
 
     [UnmanagedCallersOnly]
     static void ItemsInstalled(int first, int last)

@@ -1,0 +1,15 @@
+{
+  "uid": "ddb9db93-b28e-4c92-bab7-622674736984",
+  "id": "test-cssave",
+  "name": "Teste: saves do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "TagCompound, TagIO e ModItem.SaveData/LoadData no save do personagem, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh cssave. Na carga loga 'cssave tag <caso>: ok | FAIL'. No mundo, a primeira vez poe uma gema no inventario; salve, saia e entre de novo: loga 'cssave reloaded: ok'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsSave.dll",
+  "dependencies": []
+}

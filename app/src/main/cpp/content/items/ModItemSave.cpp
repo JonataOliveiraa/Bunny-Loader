@@ -7,6 +7,7 @@
 #include "il2cpp/Signature.h"
 #include "content/common/GameRefs.h"
 #include "content/buffs/ModBuffs.h"
+#include "content/items/ModItemData.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 #include "script/api/Items.h"
@@ -281,7 +282,7 @@ void hkInternalSavePlayerFile(Il2CppObject* fileData, const MethodInfo* m) {
             SavedItem it{c.name, slot, stack, 0, field<uint8_t>(item, r.favorited) != 0, modItemKey(type), {}};
             encodePrefix(it, prefix);
             if (prefix == 0) it.prefixKey = pendingPrefixFor(path, c.name, slot, type);
-            if (!script::saveModItemData(item, it.data)) {
+            if (!saveModItemData(item, it.data)) {
                 BL_ERROR("ModItem.SaveData: save complementar do personagem preservado apos falha");
                 return;
             }
@@ -366,7 +367,7 @@ bool restore(Il2CppObject* item, int type, const SavedItem& saved) {
         a.runtime_invoke(r.applyPrefix, item, pa, &exc);
     }
     field<uint8_t>(item, r.favorited) = saved.favorited ? 1 : 0;
-    script::loadModItemData(item, saved.data);
+    loadModItemData(item, saved.data);
     return true;
 }
 
@@ -449,7 +450,7 @@ Il2CppObject* hkLoadPlayer(Il2CppString* playerPath, bool cloudSave, const Metho
             // como ocupado punha uma copia no inventario.
             const int slotType = slotItem ? field<int32_t>(slotItem, g_refs.type) : 0;
             if (slotItem && slotType == type) {
-                script::loadModItemData(slotItem, s.data);
+                loadModItemData(slotItem, s.data);
                 ++restored;
                 continue;
             }
@@ -542,7 +543,7 @@ ChestSetFn g_origChestSet = nullptr;
 void hkChestSet(void* slot, Il2CppObject* item, const MethodInfo* method) {
     std::string data;
     const int type = item ? field<int32_t>(item, g_refs.type) : 0;
-    if (isModItem(type)) script::saveModItemData(item, data);
+    if (isModItem(type)) saveModItemData(item, data);
 
     g_origChestSet(slot, item, method);
     setChestData(slot, type, std::move(data));
@@ -554,7 +555,7 @@ Il2CppObject* hkChestExpand(void* slot, const MethodInfo* method) {
     Il2CppObject* item = g_origChestExpand(slot, method);
     if (item && isModItem(field<int32_t>(item, g_refs.type))) {
         const std::string data = chestData(slot, field<int32_t>(item, g_refs.type));
-        script::loadModItemData(item, data);
+        loadModItemData(item, data);
     }
 
     return item;

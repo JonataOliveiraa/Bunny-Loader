@@ -46,4 +46,6 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, int, byte*, int, int> ModManifestField;
     public delegate* unmanaged<byte*, byte*, int, IntPtr> LanguageText;
     public delegate* unmanaged<IntPtr, uint> GcHandleNewWeak;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, byte*, IntPtr, int>, delegate* unmanaged<IntPtr, byte*, int>, void> OnItemData;
+    public delegate* unmanaged<IntPtr, byte*, void> WriteString;
 }

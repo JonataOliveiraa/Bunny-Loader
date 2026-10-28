@@ -163,8 +163,56 @@ if (Main.LocalPlayer.HeldItem.ModItem is ShinyRock rock)
 - An item that became your type without `SetDefaults` (its `type` written by
   hand) gets a new instance the first time `item.ModItem` is read.
 - The data lives as long as the game keeps the item: Bunny Loader holds no
-  item alive. It is not saved with the world or the player yet, and not sent
-  in multiplayer (`SaveData` and `NetSend` come later, see the plan).
+  item alive. To keep it across sessions, save it (next section); it is not
+  sent in multiplayer yet (`NetSend` comes later, see the plan).
+
+### Saving: `SaveData` and `LoadData`
+
+```csharp
+using Terraria.ModLoader.IO;
+
+public class ShinyRock : ModItem
+{
+    public int Polish;
+
+    public override void SaveData(TagCompound tag) => tag["polish"] = Polish;
+
+    public override void LoadData(TagCompound tag) => Polish = tag.GetInt("polish");
+}
+```
+
+The item's data goes with the item wherever the game saves it: the player's
+inventory, equipment (armor, accessories, dyes), piggy bank, safe and the
+other banks (in `<player>.plr.bl`, next to the `.plr`) and chests
+(`<world>.wld.bl`). Items on the ground are not saved,
+as in the game. Bunny Loader stores each item by its name, so the data
+survives other mods being added or removed; an item of a mod that is not
+loaded keeps its data until the mod comes back.
+
+`TagCompound` is tModLoader's:
+
+| Call | Does |
+|---|---|
+| `tag["key"] = value` | sets (or replaces) a value |
+| `tag.Add("key", value)` | sets; throws if the key is already there |
+| `tag.GetInt("key")`, `GetFloat`, `GetBool`, `GetString`, `GetByteArray`, `GetIntArray`, `GetCompound`, `GetList<T>` | reads; a missing key gives `0`, `""`, an empty list or an empty `TagCompound` |
+| `tag.Get<T>("key")` | reads as `T` (numbers convert); a value of another kind throws |
+| `tag.TryGet("key", out T value)` | `false` instead of throwing |
+| `tag.ContainsKey("key")`, `tag.Remove("key")` | as in a dictionary |
+
+What can go in: `bool`, the number types, `string`, `byte[]`, `int[]`, lists
+of these, and other `TagCompound`s. For a `Vector2` or a `Color`, save their
+fields.
+
+- If `LoadData` throws, the error goes to the log, and the saved data is kept
+  as it was: the next save writes it back untouched instead of losing it.
+- The data is stored as JSON, the same format JavaScript mods use, so a JS
+  mod ported to C# keeps its players' saved items.
+- `TagIO.ToFile(tag, path)` and `TagIO.FromFile(path)` write and read a
+  `TagCompound` to a file of your own, in tModLoader's binary format
+  (compressed by default).
+
+A `GlobalItem` has no `SaveData` yet: its data is not saved.
 
 ## Changing every item: `GlobalItem`
 
@@ -217,8 +265,8 @@ if (item.TryGetGlobalItem(out KillCounter counter)) counter.Kills++;
 
 A global without `InstancePerEntity` gives back the same object for every
 item. `Item.Clone()` gives the copy a `Clone(from, to)` of each instance
-(shallow, as `MemberwiseClone`; override it to copy lists). As with
-`Item.ModItem`, the data is not saved or sent in multiplayer yet.
+(shallow, as `MemberwiseClone`; override it to copy lists). A global's data is
+not saved or sent in multiplayer yet.
 
 Today a `GlobalItem` has `SetDefaults`; its other hooks (use, combat,
 tooltips, drawing...) come with the item hooks (phase 1 of the plan).

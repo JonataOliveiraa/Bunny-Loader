@@ -4,6 +4,7 @@
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
+#include "content/items/ModItemData.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -71,6 +72,8 @@ struct NativeApi {
     int32_t (*modManifestField)(const char* uid, int32_t field, char* out, int32_t size);
     void* (*languageText)(const char* key, const char* packedTexts, int32_t replace);
     uint32_t (*gcHandleNewWeak)(void* obj);
+    void (*onItemData)(int32_t (*save)(void* item, const char* current, void* sink), int32_t (*load)(void* item, const char* data));
+    void (*writeString)(void* sink, const char* text);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -371,7 +374,10 @@ int32_t nativeRegisterItem(const char* mod, const char* name, const char* textur
     d.names = cultureTexts(displayName);
     d.tooltips = cultureTexts(tooltip);
     const int type = runtime::registerModItem(std::move(d));
-    if (type >= 0) noteModForMenu(mod);
+    if (type >= 0) {
+        runtime::markManagedItem(type);
+        noteModForMenu(mod);
+    }
     return type;
 }
 
@@ -462,6 +468,14 @@ uint32_t nativeGcHandleNewWeak(void* obj) {
     return obj && a.gchandle_new_weakref ? a.gchandle_new_weakref(static_cast<Il2CppObject*>(obj), false) : 0;
 }
 
+void nativeOnItemData(int32_t (*save)(void*, const char*, void*), int32_t (*load)(void*, const char*)) {
+    runtime::setManagedItemData(save, load);
+}
+
+void nativeWriteString(void* sink, const char* text) {
+    if (sink) static_cast<std::string*>(sink)->assign(text ? text : "");
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -501,6 +515,8 @@ const NativeApi kNativeApi{
     nativeModManifestField,
     nativeLanguageText,
     nativeGcHandleNewWeak,
+    nativeOnItemData,
+    nativeWriteString,
 };
 
 } // namespace

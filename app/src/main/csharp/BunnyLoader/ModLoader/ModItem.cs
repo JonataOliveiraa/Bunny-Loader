@@ -1,4 +1,5 @@
 using Terraria.Localization;
+using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
 
@@ -25,6 +26,14 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual void SetDefaults() { }
 
     public virtual void AddRecipes() { }
+
+    public virtual void SaveData(TagCompound tag) { }
+
+    public virtual void LoadData(TagCompound tag) { }
+
+    internal string? SavedData;
+
+    internal bool LoadFailed;
 
     protected sealed override void Register() => ItemLoader.Register(this);
 }
