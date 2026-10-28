@@ -1,14 +1,15 @@
-using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
+using BunnyLoader;
 using Terraria.ID;
+using Terraria.ModLoader;
 
-namespace Terraria.ModLoader;
+namespace Terraria.ModLoader.Core;
 
 internal static unsafe class ItemNetHooks
 {

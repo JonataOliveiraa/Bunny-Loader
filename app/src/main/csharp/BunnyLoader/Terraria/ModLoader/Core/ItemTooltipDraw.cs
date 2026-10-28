@@ -1,14 +1,15 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
-using Microsoft.Xna.Framework;
+using BunnyLoader;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework;
+using Terraria.ModLoader;
 
-namespace Terraria.ModLoader;
+namespace Terraria.ModLoader.Core;
 
 internal static unsafe class ItemTooltipDraw
 {

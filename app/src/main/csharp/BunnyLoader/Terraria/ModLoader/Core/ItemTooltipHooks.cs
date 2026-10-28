@@ -1,11 +1,12 @@
-using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
+using BunnyLoader;
 using Terraria.Localization;
+using Terraria.ModLoader;
 
-namespace Terraria.ModLoader;
+namespace Terraria.ModLoader.Core;
 
 internal static unsafe class ItemTooltipHooks
 {

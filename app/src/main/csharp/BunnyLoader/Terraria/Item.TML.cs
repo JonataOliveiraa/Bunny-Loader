@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Terraria.ModLoader.Core;
 using Terraria.ModLoader;
 
 namespace Terraria;

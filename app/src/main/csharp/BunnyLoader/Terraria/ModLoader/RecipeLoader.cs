@@ -1,9 +1,10 @@
-using System;
 using System.Collections.Generic;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
+using BunnyLoader;
 using Terraria.GameContent;
 using Terraria.ID;
+using Terraria.ModLoader.Core;
 using Terraria.ModLoader.Exceptions;
 
 namespace Terraria.ModLoader;

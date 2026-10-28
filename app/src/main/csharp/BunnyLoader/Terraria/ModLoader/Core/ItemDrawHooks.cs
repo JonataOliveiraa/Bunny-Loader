@@ -1,11 +1,12 @@
-using System;
 using System.Runtime.InteropServices;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
-using Microsoft.Xna.Framework;
+using BunnyLoader;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework;
+using Terraria.ModLoader;
 
-namespace Terraria.ModLoader;
+namespace Terraria.ModLoader.Core;
 
 internal static unsafe class ItemDrawHooks
 {

@@ -1,10 +1,11 @@
-using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
+using BunnyLoader;
 using Microsoft.Xna.Framework.Graphics;
+using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
 

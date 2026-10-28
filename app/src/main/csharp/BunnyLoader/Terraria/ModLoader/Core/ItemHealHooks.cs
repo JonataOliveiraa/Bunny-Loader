@@ -1,10 +1,11 @@
-using System;
 using System.Runtime.InteropServices;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
+using BunnyLoader;
 using Terraria.ID;
+using Terraria.ModLoader;
 
-namespace Terraria.ModLoader;
+namespace Terraria.ModLoader.Core;
 
 internal static unsafe class ItemHealHooks
 {

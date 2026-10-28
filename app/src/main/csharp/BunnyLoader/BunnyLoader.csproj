@@ -1,14 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!--
-    A API C# dos mods. Vai no APK em assets/dotnet/ (app/build.gradle.kts) e o
-    nativo (script/dotnet/DotnetHost.cpp) a carrega antes do primeiro mod C#.
-    A versão do runtime é a do pacote Mono do build.gradle.kts.
-
-    As proxies do jogo (Terraria.*, Microsoft.Xna.Framework.*) e os On_<Tipo>
-    sao gerados no build pelo ProxyGen a partir de refs/DummyDll (o dump local
-    do jogo, ver refs/README.md) e da lista ProxyGen/types.txt.
-  -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -38,11 +29,6 @@
     <ProxyGenSources Include="$(MSBuildThisFileDirectory)../ProxyGen/*.cs" />
   </ItemGroup>
 
-  <!--
-    Mods com fontes (.cs) compilam ao carregar quando o .dll do pacote não bate
-    com elas. O Roslyn vai junto para o APK: o build copia os .dll dele para a
-    saída (CopyLocalLockFileAssemblies), e o app/build.gradle.kts os pega lá.
-  -->
   <PropertyGroup>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

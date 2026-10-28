@@ -1,12 +1,13 @@
-using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
-using BunnyLoader;
+using System;
 using BunnyLoader.Interop;
+using BunnyLoader;
 using Terraria.GameContent.Items;
 using Terraria.ID;
 using Terraria.Localization;
+using Terraria.ModLoader.Core;
 using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
