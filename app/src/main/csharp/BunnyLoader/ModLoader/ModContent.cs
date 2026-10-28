@@ -23,6 +23,8 @@ public static class ModContent
 
     public static int ItemType<T>() where T : ModItem => GetInstance<T>()?.Type ?? 0;
 
+    public static int RarityType<T>() where T : ModRarity => GetInstance<T>()?.Type ?? 0;
+
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
 
     public static T Find<T>(string fullname) where T : IModType =>
@@ -122,6 +124,10 @@ public static class ModContent
             foreach (Mod mod in mods)
             {
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+            }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModRarity rarity in mod.GetContent<ModRarity>()) Run(mod, $"{rarity.Name}.SetStaticDefaults", rarity.SetupContent);
             }
             foreach (Mod mod in mods) Run(mod, "PostSetupContent", mod.PostSetupContent);
             try { ItemOpenHooks.ContentReady(); }

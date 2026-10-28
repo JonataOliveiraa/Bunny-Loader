@@ -348,6 +348,26 @@ frame), and the game goes on as if the hook were not there.
 The other item hooks (combat, ammo, tooltips, network) come
 next; see the plan.
 
+## Rarities: `ModRarity`
+
+```csharp
+public class Teal : ModRarity
+{
+    public override Color RarityColor => new(0, 200, 200);
+
+    public override int GetPrefixedRarity(int offset, float valueMult) => offset < 0 ? ItemRarityID.Blue : Type;
+}
+```
+
+`Item.rare = ModContent.RarityType<Teal>();` gives it to an item. The type
+comes after the game's 12 (`RarityLoader.VanillaCount`), counted together
+with the JS mods' rarities. `RarityColor` is read each time the color is
+drawn (it can blink with `Main.DiscoR`...). When a prefix changes how much
+the item is worth, `offset` goes from -2 to +2 and `GetPrefixedRarity`
+decides (the game alone would turn every rarity above 11 into purple). The
+color shows on the text that rises when the item is picked up and on the
+item's name under the cursor; the phone's tooltip has no name line.
+
 ## Changing every item: `GlobalItem`
 
 A `GlobalItem` runs for items that are not yours: the game's and other mods'.

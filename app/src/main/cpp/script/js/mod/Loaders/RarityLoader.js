@@ -14,10 +14,10 @@ class RarityLoader {
     static VanillaCount = 12;   // ItemRarityID.Count
     static #DRAW_STRING = 'void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)';
 
-    static get RarityCount() { return RarityLoader.VanillaCount + RarityLoader.ByType.size; }
+    static get RarityCount() { return bl.items.rarityCount(); }
 
     static Add(inst) {
-        inst.Type = RarityLoader.RarityCount;
+        inst.Type = bl.items.allocateRarity();
         RarityLoader.ByType.set(inst.Type, inst);
         if (RarityLoader.ByType.size === 1) Ready.Add(() => RarityLoader.#Install(), 'setup');
         Hooks.Once('item.Tooltips', TooltipLoader.Install);   // a cor do nome no tooltip

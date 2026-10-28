@@ -9,6 +9,7 @@
 #include "content/items/ModItems.h"
 #include "content/items/ModItemSave.h"
 #include "content/items/ModPrefixes.h"
+#include "content/items/ModRarities.h"
 #include "content/common/TypeTables.h"
 #include "menu/ModMenu.h"
 #include "script/bridge/Bridge.h"
@@ -583,6 +584,14 @@ JSValue js_vanillaPrefixCount(JSContext* ctx, JSValueConst, int, JSValueConst*) 
     return JS_NewInt32(ctx, runtime::vanillaPrefixCount());
 }
 
+JSValue js_allocateRarity(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewInt32(ctx, runtime::allocateModRarity());
+}
+
+JSValue js_rarityCount(JSContext* ctx, JSValueConst, int, JSValueConst*) {
+    return JS_NewInt32(ctx, runtime::modRarityCount());
+}
+
 } // namespace
 
 void installItemsApi(JSContext* ctx, JSValue bl) {
@@ -598,6 +607,8 @@ void installItemsApi(JSContext* ctx, JSValue bl) {
     JS_SetPropertyStr(ctx, items, "__chestData", JS_NewCFunction(ctx, js_chestData, "chestData", 3));
     JS_SetPropertyStr(ctx, items, "growEquipSets", JS_NewCFunction(ctx, js_growEquipSets, "growEquipSets", 3));
     JS_SetPropertyStr(ctx, items, "registerPrefix", JS_NewCFunction(ctx, js_registerPrefix, "registerPrefix", 1));
+    JS_SetPropertyStr(ctx, items, "allocateRarity", JS_NewCFunction(ctx, js_allocateRarity, "allocateRarity", 0));
+    JS_SetPropertyStr(ctx, items, "rarityCount", JS_NewCFunction(ctx, js_rarityCount, "rarityCount", 0));
     JS_SetPropertyStr(ctx, items, "vanillaPrefixCount",
                       JS_NewCFunction(ctx, js_vanillaPrefixCount, "vanillaPrefixCount", 0));
     JS_SetPropertyStr(ctx, bl, "items", items);

@@ -1,0 +1,15 @@
+{
+  "uid": "075b3563-f8d2-4112-8019-7ae291ae8534",
+  "id": "test-csrarity",
+  "name": "Teste: ModRarity no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModRarity: tipo, RarityColor, GetPrefixedRarity, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csrarity. No mundo, loga 'csrarity <caso>: ok | FAIL' e 'csrarity END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsRarity.dll",
+  "dependencies": []
+}

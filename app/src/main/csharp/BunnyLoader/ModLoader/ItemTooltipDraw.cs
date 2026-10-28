@@ -21,6 +21,12 @@ internal static unsafe class ItemTooltipDraw
 
     static Drawing? drawing;
 
+    static string? recolorText;
+
+    static Color recolorColor;
+
+    static int recolorCount;
+
     struct Pass
     {
         public IntPtr Self, Font;
@@ -70,6 +76,16 @@ internal static unsafe class ItemTooltipDraw
         try { Draw(Original, x, y); }
         catch (Exception e) { ItemHooks.Report("tooltip drawing", e); }
     }
+
+    internal static void Recolor(string text, Color color)
+    {
+        EnsureStringHooks();
+        recolorText = text;
+        recolorColor = color;
+        recolorCount = 0;
+    }
+
+    internal static void EndRecolor() => recolorText = null;
 
     static void EnsureStringHooks() => ItemHooks.Once("TooltipStrings", () =>
     {
@@ -174,6 +190,13 @@ internal static unsafe class ItemTooltipDraw
                 if (Take(state, GameString.Read(text) ?? "", pass)) return;
             }
             catch (Exception e) { ItemHooks.Report("PreDrawTooltipLine", e); }
+        }
+        else if (recolorText != null && text != IntPtr.Zero && GameString.Read(text) == recolorText && ++recolorCount % PassesPerLine == 0)
+        {
+            Color game = *(Color*)&pass.Color;
+            float alpha = game.A / 255f;
+            var c = new Color((int)(recolorColor.R * alpha), (int)(recolorColor.G * alpha), (int)(recolorColor.B * alpha), game.A);
+            pass.Color = *(uint*)&c;
         }
         Original(hook, pass, text);
     }

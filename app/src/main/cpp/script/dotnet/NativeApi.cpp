@@ -8,6 +8,7 @@
 #include "content/items/ItemDrawStages.h"
 #include "content/items/ModItemData.h"
 #include "content/items/ModItemSave.h"
+#include "content/items/ModRarities.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -86,6 +87,8 @@ struct NativeApi {
     void (*consolePrint)(int32_t kind, const char* text);
     void* (*expandChestItem)(int32_t chest, int32_t slot);
     int32_t (*storeChestItem)(int32_t chest, int32_t slot, void* item);
+    int32_t (*allocateRarity)();
+    int32_t (*rarityCount)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -533,6 +536,10 @@ void nativeConsolePrint(int32_t kind, const char* text) {
 
 void* nativeExpandChestItem(int32_t chest, int32_t slot) { return runtime::expandChestItem(chest, slot); }
 
+int32_t nativeAllocateRarity() { return runtime::allocateModRarity(); }
+
+int32_t nativeRarityCount() { return runtime::modRarityCount(); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -586,6 +593,8 @@ const NativeApi kNativeApi{
     nativeConsolePrint,
     nativeExpandChestItem,
     nativeStoreChestItem,
+    nativeAllocateRarity,
+    nativeRarityCount,
 };
 
 } // namespace
