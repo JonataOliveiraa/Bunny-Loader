@@ -7,19 +7,20 @@ using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using BunnyLoader.Compiler;
 using BunnyLoader.Interop;
+using Terraria.ModLoader;
 
 namespace BunnyLoader;
 
 // Por onde o nativo entra no C#. Os dois metodos sao [UnmanagedCallersOnly]:
 // o DotnetHost pega o ponteiro de cada um uma vez e chama direto. Nenhuma
 // excecao pode sair daqui (derrubaria o processo do jogo).
-public static unsafe class Host
+internal static unsafe class Host
 {
     internal static NativeApi* Api;
 
     static readonly List<Mod> LoadedMods = new();
 
-    public static IReadOnlyList<Mod> Mods => LoadedMods;
+    internal static IReadOnlyList<Mod> Mods => LoadedMods;
 
     [UnmanagedCallersOnly]
     static int Initialize(NativeApi* api)
@@ -61,11 +62,12 @@ public static unsafe class Host
                 var mod = (Mod)Activator.CreateInstance(type)!;
                 mod.Uid = uid;
                 mod.Folder = folder;
+                mod.Logger = new ModLogger(mod.Name);
                 mods.Add(mod);
             }
             if (mods.Count == 0)
             {
-                Log.Error($"mod {uid}: no class extends BunnyLoader.Mod");
+                Log.Error($"mod {uid}: no class extends Terraria.ModLoader.Mod");
                 return 0;
             }
             // Como no tModLoader: o conteudo entra antes do Load. Ele pertence
@@ -74,6 +76,7 @@ public static unsafe class Host
             foreach (Mod mod in mods)
             {
                 LoadedMods.Add(mod);
+                ModContent.Add(mod);
                 mod.Load();
             }
             return 1;

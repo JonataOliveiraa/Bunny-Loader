@@ -19,9 +19,9 @@ Here is a whole C# mod. If you have ever seen a tModLoader hook, you already
 know how to read it:
 
 ```csharp
-using BunnyLoader;
 using Terraria;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 public class MinisharkTurbo : Mod
 {

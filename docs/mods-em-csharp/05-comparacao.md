@@ -9,8 +9,8 @@
 **Bunny Loader, C# (a hook):**
 
 ```csharp
-using BunnyLoader;
 using Terraria;
+using Terraria.ModLoader;
 
 public class DoubleDamage : Mod
 {
@@ -133,8 +133,8 @@ Content (`ModItem` & co.) cannot be ported to C# yet.
 | `export default class M extends Mod { Load() {} }` | `public class M : Mod { public override void Load() {} }` |
 | `const F = Terraria.Item['void SetDefaults(int Type, ItemVariant variant)']` | nothing: use `On_Item.SetDefaults` or `item.SetDefaults(...)` |
 | `F.hook((original, self, a) => { original(self, a); })` | `On_Item.SetDefaults += (orig, self, a, v) => { orig(self, a, v); };` |
-| `bl.log('x')` | `Log.Info("x")` |
-| `bl.error('x')` | `Log.Error("x")` |
+| `bl.log('x')` | `Mod.Logger.Info("x")` |
+| `bl.error('x')` | `Mod.Logger.Error("x")` |
 | `Terraria.Main.player[Terraria.Main.myPlayer]` | `Main.player[Main.myPlayer]` |
 | `Terraria.ID.ItemID.Minishark` | `ItemID.Minishark` (`using Terraria.ID;`) |
 | `Vector2.new(1, 2)` | `new Vector2(1, 2)` |

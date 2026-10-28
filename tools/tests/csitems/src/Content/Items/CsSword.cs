@@ -1,5 +1,5 @@
-using BunnyLoader;
 using Terraria;
+using Terraria.ModLoader;
 
 namespace CsItems.Content.Items;
 

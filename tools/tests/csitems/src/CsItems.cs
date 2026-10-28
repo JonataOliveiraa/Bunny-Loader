@@ -1,12 +1,12 @@
-using System;
-using BunnyLoader;
 using CsItems.Content.Items;
+using log4net;
 using Terraria;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 namespace CsItems;
 
-// Teste do loader de ModItem do C# (BunnyLoader/Loaders/ItemLoader.cs).
+// Teste do loader de ModItem do C# (BunnyLoader/ModLoader/ItemLoader.cs).
 // Load: os tipos ja sairam. Checks.Run: o jogo ja conhece os itens (chamado
 // do SetStaticDefaults do ultimo item registrado, na thread do jogo).
 public sealed class CsItemsMod : Mod
@@ -52,4 +52,6 @@ public static class Checks
 
     public static void Report(string name, bool ok, string detail) =>
         Log.Info($"csitems {name}: {(ok ? "ok" : "FAIL")} {detail}");
+
+    static ILog Log => ModContent.GetInstance<CsItemsMod>().Logger;
 }

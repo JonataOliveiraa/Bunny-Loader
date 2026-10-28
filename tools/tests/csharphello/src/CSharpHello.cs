@@ -1,25 +1,29 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using BunnyLoader;
+using log4net;
 using Terraria;
 using Terraria.GameContent.Items;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 public sealed class CSharpHello : Mod
 {
+    static ILog log = null!;
+
     const int GcRounds = 60;
 
     static int hookCalls, minisharkCalls;
 
     public override void Load()
     {
+        log = Logger;
         On_Item.SetDefaults += SetDefaults;
 
         Item item = Item.New();
         item.SetDefaults(ItemID.Minishark, default);
         bool ok = item.useTime == 4 && item.useAnimation == 4 && item.shootSpeed == 10f;
-        Log.Info($"csharphello load useTime={item.useTime} useAnimation={item.useAnimation} shootSpeed={item.shootSpeed} damage={item.damage} {(ok ? "ok" : "FAIL")}");
+        log.Info($"csharphello load useTime={item.useTime} useAnimation={item.useAnimation} shootSpeed={item.shootSpeed} damage={item.damage} {(ok ? "ok" : "FAIL")}");
 
         new Thread(GcStress) { IsBackground = true, Name = "csharphello-gc" }.Start();
     }
@@ -33,7 +37,7 @@ public sealed class CSharpHello : Mod
         self.useAnimation = 4;
         self.shootSpeed = 10f;
         if (Interlocked.Increment(ref minisharkCalls) <= 3)
-            Log.Info($"csharphello hook Minishark on managed thread {Environment.CurrentManagedThreadId}");
+            log.Info($"csharphello hook Minishark on managed thread {Environment.CurrentManagedThreadId}");
     }
 
     // Coletas do SGen enquanto o jogo roda (e o Boehm dele coleta tambem): a
@@ -47,10 +51,10 @@ public sealed class CSharpHello : Mod
             if (keep.Count > 20000) keep.RemoveRange(0, 10000);
             GC.Collect();
             if (round % 10 == 0)
-                Log.Info($"csharphello gc round {round} {Collections()} hooks={hookCalls} minishark={minisharkCalls}");
+                log.Info($"csharphello gc round {round} {Collections()} hooks={hookCalls} minishark={minisharkCalls}");
             Thread.Sleep(1000);
         }
-        Log.Info($"csharphello FIM hooks={hookCalls} minishark={minisharkCalls} {Collections()}");
+        log.Info($"csharphello FIM hooks={hookCalls} minishark={minisharkCalls} {Collections()}");
     }
 
     static string Collections() =>

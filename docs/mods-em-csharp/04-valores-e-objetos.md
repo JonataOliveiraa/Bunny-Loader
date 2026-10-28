@@ -105,7 +105,7 @@ An object handle can be empty. Check before using it:
 ```csharp
 Item maybe = player.inventory[10];
 if (!maybe.IsNull && maybe.type > 0)
-    Log.Info($"slot 10 has {Lang.GetItemNameValue(maybe.type)}");
+    Logger.Info($"slot 10 has {Lang.GetItemNameValue(maybe.type)}");
 ```
 
 `==` compares addresses: `a == b` means "the same object".
@@ -208,9 +208,9 @@ Indexes (`Main.npc[i]`) and IDs need none of this: store the number.
 ## Talking to the player
 
 ```csharp
-Log.Info("goes to the mod log");
-Log.Warn("a warning");
-Log.Error("an error: also opens the error panel");
+Logger.Info("goes to the mod log");
+Logger.Warn("a warning");
+Logger.Error("an error: also opens the error panel");
 Main.NewText("goes to the in-game chat", 255, 240, 120);
 ```
 

@@ -172,17 +172,17 @@ public static class CompilerBench
         using System;
         using System.Collections.Generic;
         using System.Linq;
-        using BunnyLoader;
         using Microsoft.Xna.Framework;
         using Terraria;
         using Terraria.ID;
+        using Terraria.ModLoader;
 
         """;
 
     const string Tiny = """
-        using BunnyLoader;
         using Terraria;
         using Terraria.ID;
+        using Terraria.ModLoader;
 
         namespace Generated
         {
@@ -199,7 +199,7 @@ public static class CompilerBench
                             self.useAnimation = 4;
                         }
                     };
-                    Log.Info("Minishark Turbo: active");
+                    Logger.Info("Minishark Turbo: active");
                 }
             }
         }

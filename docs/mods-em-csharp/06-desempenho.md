@@ -151,7 +151,7 @@ using System.Diagnostics;
 long t0 = Stopwatch.GetTimestamp();
 // ...the code you want to measure, many times...
 double us = Stopwatch.GetElapsedTime(t0).TotalMicroseconds;
-Log.Info($"took {us:0.0} µs");
+Logger.Info($"took {us:0.0} µs");
 ```
 
 The benchmark above is in the repository: `tools/tests/benchcs` and

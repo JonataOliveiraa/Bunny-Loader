@@ -15,6 +15,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <RootNamespace>BunnyLoader</RootNamespace>
+    <!--
+      Sobe quando a API quebra: o selo dos mods com fontes guarda esta versao
+      (ModBuild.ApiVersion), e um .dll compilado contra outra e refeito ao
+      carregar. 2: a API foi para os namespaces do tModLoader (Terraria.ModLoader).
+    -->
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
     <DebugType>embedded</DebugType>
     <GenerateDependencyFile>false</GenerateDependencyFile>
     <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../../../'))</RepoRoot>

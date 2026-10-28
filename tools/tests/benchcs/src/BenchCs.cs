@@ -2,25 +2,32 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using BunnyLoader;
 using BunnyLoader.Interop;
+using log4net;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 // Os mesmos casos do tools/tests/benchjs, com os mesmos nomes. Mede no quadro
 // 120 dentro do mundo (o benchjs no 400): 3 rodadas de cada caso, mediana,
 // menos o laco vazio. Loga "bench cs <caso>: <valor> <unidade>".
 public sealed unsafe class BenchCs : Mod
 {
+    static ILog log = null!;
+
     const int Frame = 120, Rounds = 3, N = 20000;
     static int frames;
     static bool done;
     static long sink;
     static float fsink;
 
-    public override void Load() => On_Player.Update += OnUpdate;
+    public override void Load()
+    {
+        log = Logger;
+        On_Player.Update += OnUpdate;
+    }
 
     static void OnUpdate(On_Player.orig_Update orig, Player self, int i)
     {
@@ -29,8 +36,8 @@ public sealed unsafe class BenchCs : Mod
         done = true;
         Main.NewText("Medindo C#... (fique parado uns segundos)", 255, 240, 120);
         try { Run(self); }
-        catch (Exception e) { Log.Error($"bench cs error: {e}"); }
-        Log.Info("bench cs FIM");
+        catch (Exception e) { log.Error($"bench cs error: {e}"); }
+        log.Info("bench cs FIM");
     }
 
     static double Seconds(long ticks) => ticks / (double)Stopwatch.Frequency;
@@ -67,7 +74,7 @@ public sealed unsafe class BenchCs : Mod
         return runs[Rounds / 2];
     }
 
-    static void Report(string name, double value, string unit) => Log.Info($"bench cs {name}: {value:0.##} {unit}");
+    static void Report(string name, double value, string unit) => log.Info($"bench cs {name}: {value:0.##} {unit}");
 
     static int Fib(int n) => n < 2 ? n : Fib(n - 1) + Fib(n - 2);
 
@@ -182,6 +189,6 @@ public sealed unsafe class BenchCs : Mod
         On_Quaternion.Dot_refQuaternion_refQuaternion_outfloat -= refPass;
         Report("hook ref/out: overhead per call (Quaternion.Dot, C# only)", Math.Max(0, refHooked - refPlain), "ns/op");
 
-        Log.Info($"bench cs sink {sink} {fsink}");
+        log.Info($"bench cs sink {sink} {fsink}");
     }
 }

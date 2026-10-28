@@ -86,9 +86,9 @@ package).
 ### `src/MinisharkTurbo.cs`
 
 ```csharp
-using BunnyLoader;
 using Terraria;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 public class MinisharkTurbo : Mod
 {
@@ -103,7 +103,7 @@ public class MinisharkTurbo : Mod
                 self.useAnimation = 4;
             }
         };
-        Log.Info("Minishark Turbo: active");
+        Logger.Info("Minishark Turbo: active");
     }
 }
 ```
@@ -112,15 +112,15 @@ Line by line:
 
 | Line | What it means |
 |---|---|
-| `using BunnyLoader;` | Brings `Mod` and `Log`. |
 | `using Terraria;` | Brings the game's classes: `Item`, `Player`, `Main`... and their hooks (`On_Item`, `On_Player`...). |
 | `using Terraria.ID;` | Brings the ID tables: `ItemID.Minishark` is `98`. |
+| `using Terraria.ModLoader;` | Brings `Mod`, `ModItem`, `ModContent`...: the same names, in the same namespace, as in tModLoader. |
 | `public class MinisharkTurbo : Mod` | Your **mod class**. Bunny Loader finds every class that extends `Mod` in your `.dll` and creates it on its own. Have exactly one. |
 | `public override void Load()` | Runs **once**, when the game opens. It is where you install hooks. |
 | `On_Item.SetDefaults += ...` | A **hook**: from now on, every time the game fills in an item (`Item.SetDefaults`), your function runs. [Guide 2](02-hooks.md) is all about this. |
 | `orig(self, type, variant);` | Lets the game do its normal work first. |
 | `self.useTime = 4;` | Then changes the item. `self` is the item being filled in. |
-| `Log.Info(...)` | Writes to the mod log (see step 6). |
+| `Logger.Info(...)` | Writes to the mod log (see step 6). `Logger` is the mod's own, as in tModLoader. |
 
 ### `package/manifest.json`
 
@@ -169,7 +169,7 @@ Zip the **contents** of `package/` (so the zip has `manifest.json` and
 ## Step 6: run and read the log
 
 Open the game and pick up a Minishark (or spawn one with the Mod Menu): it
-fires like crazy. Your `Log.Info` line goes to:
+fires like crazy. Your `Logger.Info` line goes to:
 
 - the session log, `Android/data/com.bunnyloader/logs/bunny_<date>.txt`;
 - the **Mod Menu console**, live;
@@ -178,11 +178,15 @@ fires like crazy. Your `Log.Info` line goes to:
 - `adb logcat -s BunnyLoader`, if you have a PC connected.
 
 ```
-16:52:04.340 I [mod] Minishark Turbo: active
+16:52:04.340 I [mod] [MinisharkTurbo] Minishark Turbo: active
 ```
 
-`Log.Warn` and `Log.Error` exist too. `Log.Error` also opens the error panel
-inside the game (unless the player turned it off in Settings).
+`Logger` is tModLoader's `ILog`: `Debug`, `Warn`, `Error`, `Fatal` and the
+`...Format` variants exist too, and each takes an exception as a second
+argument. `Error` and `Fatal` also open the error panel inside the game
+(unless the player turned it off in Settings). In a content class (a
+`ModItem`...) it is `Mod.Logger`; anywhere else,
+`ModContent.GetInstance<MinisharkTurbo>().Logger`.
 
 ## The other way: ship the `.cs` files
 
@@ -301,7 +305,7 @@ Everything below shows up in the log and in the error panel.
 
 | The log says | What it means | What to do |
 |---|---|---|
-| `mod <uid>: no class extends BunnyLoader.Mod` | The `.dll` has no `: Mod` class. | Add one. |
+| `mod <uid>: no class extends Terraria.ModLoader.Mod` | The `.dll` has no `: Mod` class. | Add one (`using Terraria.ModLoader;`). |
 | `mod <uid>: X.cs did not compile (N error(s))` | A mod with sources has errors (listed just above, with file and line). | Fix them; the next load compiles again. |
 | `mod <uid>: compiling X.cs (the sources changed)` | Not an error: the stamp in `bin/` did not match, so the phone compiled. | Publish through the catalog so players get it compiled. |
 | `mod <uid>: the .NET runtime did not start` | The APK has no C# runtime. | Update Bunny Loader. |

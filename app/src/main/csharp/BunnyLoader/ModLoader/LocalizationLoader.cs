@@ -4,8 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using BunnyLoader;
 
-namespace BunnyLoader.Loaders;
+namespace Terraria.ModLoader;
 
 // As traducoes do mod: content/Localization/<cultura>.json, no mesmo formato
 // dos mods JS ({ "ItemName": { "ExampleItem": "Exemplo de Item" }, ... }).

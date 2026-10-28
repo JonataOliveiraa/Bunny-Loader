@@ -24,7 +24,7 @@ The game uses `out` a lot for "try to get" methods:
 ```csharp
 // bool TryGetBuffTime(int buffSlotOnPlayer, out int buffTimeValue)
 if (Main.TryGetBuffTime(0, out int time))
-    Log.Info($"the first buff has {time} ticks left");
+    Logger.Info($"the first buff has {time} ticks left");
 ```
 
 And XNA uses `ref` and `out` to avoid copying structs:
@@ -134,7 +134,7 @@ Reading one:
 // Vector2? Player.HandPosition (a property)
 GameNullable<Vector2> hand = player.HandPosition;
 if (hand.HasValue)
-    Log.Info($"hand at {hand.Value}");
+    Logger.Info($"hand at {hand.Value}");
 
 Vector2? asCSharp = hand;                          // to a normal C# nullable
 Vector2 orZero = hand.GetValueOrDefault();          // or a fallback

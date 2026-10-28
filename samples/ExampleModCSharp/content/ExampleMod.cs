@@ -1,4 +1,4 @@
-using BunnyLoader;
+using Terraria.ModLoader;
 
 namespace ExampleMod;
 

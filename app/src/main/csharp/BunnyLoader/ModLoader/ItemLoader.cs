@@ -2,12 +2,12 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
+using BunnyLoader;
 using BunnyLoader.Interop;
-using Terraria;
 using Terraria.GameContent.Items;
 using Terraria.ID;
 
-namespace BunnyLoader.Loaders;
+namespace Terraria.ModLoader;
 
 // Os ModItem do C#. O nativo (content/items/ModItems.cpp) da o tipo, aumenta
 // as tabelas do jogo, carrega a textura e salva o item pelo nome; daqui saem

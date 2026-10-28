@@ -258,7 +258,7 @@ On_Collision.CanHit_Entity_Entity += (orig, source, target) =>
     try { return orig(source, target); }
     catch (GameException e)
     {
-        Log.Warn($"CanHit failed: {e.Message}");
+        Logger.Warn($"CanHit failed: {e.Message}");
         return false;
     }
 };

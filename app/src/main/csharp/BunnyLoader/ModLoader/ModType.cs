@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace BunnyLoader;
+namespace Terraria.ModLoader;
 
 // A base do conteudo de mod (ModItem e os que vierem), no modelo do ModType do
 // tModLoader: o carregador acha cada classe nao abstrata do assembly do mod,

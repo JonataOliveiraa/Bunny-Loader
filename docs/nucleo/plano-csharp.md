@@ -5,9 +5,10 @@ This is the plan Bunny Loader follows until **every mod loader runs in C#** and
 document: each phase has a checklist that gets ticked as it lands, and the
 decisions it records are the ones every phase must respect.
 
-Status on 2026-10-27: the C# runtime (Mono, generated proxies, `On_<Type>`
+Status on 2026-10-28: the C# runtime (Mono, generated proxies, `On_<Type>`
 hooks, mods compiled from sources) and a basic `ModItem` loader are done
-(commit `9f60ef4e`). Everything else below is still to do.
+(commit `9f60ef4e`), and phase 0 has started: the API is in
+`Terraria.ModLoader`, with `Mod.Logger`. Everything else below is still to do.
 
 ## 1. The rule: look like tModLoader
 
@@ -109,7 +110,7 @@ split among the phases that need them.
 
 ### Phase 0: the foundation (base for everything)
 
-- [ ] Public API moved to tModLoader's namespaces; `Mod.Logger`; `Log` becomes internal.
+- [x] Public API moved to tModLoader's namespaces; `Mod.Logger`; `Log` becomes internal.
 - [ ] `ModType<TEntity, TModType>`, `ModTexturedType`, `ILoadable`, `[Autoload]`, `IsLoadingEnabled`, load and unload order (`Mod.Load`, `SetStaticDefaults`, `PostSetupContent`, `AddRecipes`).
 - [ ] `ModContent`: `Request<T>`, `Find`/`TryFind`, `GetInstance`, `<X>Type<T>()`, `Mod.Find`, `Mod.Assets`, `Mod.GetFileBytes`.
 - [ ] `ModLoader.TryGetMod`, `Mod.Call`, dependencies and load order between C# mods.

@@ -1,7 +1,4 @@
-using BunnyLoader.Loaders;
-using Terraria;
-
-namespace BunnyLoader;
+namespace Terraria.ModLoader;
 
 // Um item novo. O tipo e ItemID.Count + a ordem de registro: o mesmo a cada
 // boot com os mesmos mods, e o save guarda o item pelo nome ("<uid>/<Name>").

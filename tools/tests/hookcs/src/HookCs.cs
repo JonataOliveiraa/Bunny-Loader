@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
-using BunnyLoader;
 using BunnyLoader.Interop;
+using log4net;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
+using Terraria.ModLoader;
 
 public sealed class HookCs : Mod
 {
+    static ILog log = null!;
+
     static int pass, fail;
     static int frames, setDefaultsCalls;
     static uint firstUpdateCount;
@@ -15,11 +18,12 @@ public sealed class HookCs : Mod
 
     public override void Load()
     {
+        log = Logger;
         Calls();
         Hooks();
         On_Item.SetDefaults += CountSetDefaults;
         On_Player.Update += WorldPhase;
-        Log.Info($"hookcs load phase: pass={pass} fail={fail}");
+        log.Info($"hookcs load phase: pass={pass} fail={fail}");
     }
 
     static void Check(string name, Func<string?> body)
@@ -30,18 +34,18 @@ public sealed class HookCs : Mod
             if (error == null)
             {
                 pass++;
-                Log.Info($"hookcs PASS {name}");
+                log.Info($"hookcs PASS {name}");
             }
             else
             {
                 fail++;
-                Log.Warn($"hookcs FAIL {name}: {error}");
+                log.Warn($"hookcs FAIL {name}: {error}");
             }
         }
         catch (Exception e)
         {
             fail++;
-            Log.Warn($"hookcs FAIL {name}: {e.GetType().Name}: {e.Message}");
+            log.Warn($"hookcs FAIL {name}: {e.GetType().Name}: {e.Message}");
         }
     }
 
@@ -127,7 +131,7 @@ public sealed class HookCs : Mod
         Check("call string return: Lang.GetItemNameValue(98)", () =>
         {
             string? s = Lang.GetItemNameValue(98);
-            Log.Info($"hookcs   item 98 is '{s}'");
+            log.Info($"hookcs   item 98 is '{s}'");
             return string.IsNullOrEmpty(s) ? "empty" : null;
         });
         Check("call default args + bool: WorldGen.InWorld", () =>
@@ -138,7 +142,7 @@ public sealed class HookCs : Mod
         Check("static string field: Main.versionNumber", () =>
         {
             string? v = Main.versionNumber;
-            Log.Info($"hookcs   version='{v}'");
+            log.Info($"hookcs   version='{v}'");
             return string.IsNullOrEmpty(v) ? "empty version" : null;
         });
         Check("constructor + instance method + fields: Item.New().SetDefaults(98)", () =>
@@ -158,7 +162,7 @@ public sealed class HookCs : Mod
             }
             catch (GameException e)
             {
-                Log.Info($"hookcs   game said: {e.Message}");
+                log.Info($"hookcs   game said: {e.Message}");
                 return null;
             }
         });
@@ -173,7 +177,7 @@ public sealed class HookCs : Mod
             }
             catch (GameException e)
             {
-                Log.Info($"hookcs   game said: {e.Message}");
+                log.Info($"hookcs   game said: {e.Message}");
                 return null;
             }
         });
@@ -386,7 +390,7 @@ public sealed class HookCs : Mod
         worldDone = true;
         Check("world: game-driven hooks on the main thread (Player.Update, Item.SetDefaults)", () =>
         {
-            Log.Info($"hookcs   Player.Update frames={frames} Item.SetDefaults calls={setDefaultsCalls}");
+            log.Info($"hookcs   Player.Update frames={frames} Item.SetDefaults calls={setDefaultsCalls}");
             return frames == 30 ? null : "frames";
         });
         Check("world: Main.player[myPlayer] and ref field Entity.position", () =>
@@ -404,19 +408,19 @@ public sealed class HookCs : Mod
         Check("world: out Nullable<int> + proxy return: Player.GetEffectiveArmor", () =>
         {
             Item armor = self.GetEffectiveArmor(0, out GameNullable<int> shared);
-            Log.Info($"hookcs   armor[0] type={(armor.IsNull ? -1 : armor.type)} shared={shared}");
+            log.Info($"hookcs   armor[0] type={(armor.IsNull ? -1 : armor.type)} shared={shared}");
             return armor.IsNull ? "null item" : null;
         });
         Check("world: Nullable<Vector2> return (12 bytes): Player.HandPosition", () =>
         {
             GameNullable<Vector2> hand = self.HandPosition;
-            Log.Info($"hookcs   HandPosition={hand}");
+            log.Info($"hookcs   HandPosition={hand}");
             return null;
         });
         Check("world: array of proxies + property: inventory[selectedItem].type", () =>
         {
             Item held = self.inventory[self.selectedItem];
-            Log.Info($"hookcs   holding type {held.type} ('{Lang.GetItemNameValue(held.type)}')");
+            log.Info($"hookcs   holding type {held.type} ('{Lang.GetItemNameValue(held.type)}')");
             return held.IsNull ? "null" : null;
         });
         Check("world: fast-path getter runs its hook, and a Mono GC inside it: On_Player.get_HandPosition", () =>
@@ -448,7 +452,7 @@ public sealed class HookCs : Mod
             return now > firstUpdateCount ? null : $"first={firstUpdateCount} now={now}";
         });
         On_Item.SetDefaults -= CountSetDefaults;
-        Log.Info($"hookcs FIM pass={pass} fail={fail}");
+        log.Info($"hookcs FIM pass={pass} fail={fail}");
         Main.NewText($"Teste dos hooks C#: {pass} ok, {fail} falha(s)", 255, 240, 120);
     }
 }

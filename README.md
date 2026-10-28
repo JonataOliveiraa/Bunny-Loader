@@ -151,8 +151,8 @@ The same mod in C#:
 
 ```csharp
 // DoubleDamage.cs: every weapon hits twice as hard
-using BunnyLoader;
 using Terraria;
+using Terraria.ModLoader;
 
 public class DoubleDamage : Mod
 {
