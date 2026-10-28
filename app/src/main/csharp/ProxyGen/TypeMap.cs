@@ -58,8 +58,6 @@ sealed class TypeMap
     // jogo gerado aqui esconderia o do .NET no proprio codigo gerado.
     public bool IsGame(Type t) => isGame(t);
 
-    // Tipos do jogo que o BunnyLoader.dll escreve a mao, com o mesmo nome e
-    // os mesmos valores: o codigo gerado usa os dele, e nada e gerado por cima.
     static readonly HashSet<string> Handwritten = new()
     {
         "ReLogic.Content.AssetRequestMode",

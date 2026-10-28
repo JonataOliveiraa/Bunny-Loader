@@ -7,19 +7,14 @@ using Terraria.ModLoader;
 
 namespace BunnyLoader;
 
-// O Mod.Assets: as texturas do mod pelo caminho dentro dele. No tModLoader
-// ele e um AssetRepository, mas esse nome ja e o do Main.Assets do jogo.
 public sealed class ModAssets
 {
     readonly Mod mod;
 
-    // Os pedidos ja feitos, pelo caminho: o mesmo pedido devolve o mesmo Asset.
     readonly Dictionary<string, object> requested = new();
 
     internal ModAssets(Mod mod) => this.mod = mod;
 
-    // Sem extensao (".png" tambem vale), relativo a pasta da entrada do mod:
-    // "Content/Items/ExampleItem". O mesmo caminho devolve o mesmo Asset.
     public Asset<T> Request<T>(string assetName, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
     {
         Asset<T>.CheckSupported();

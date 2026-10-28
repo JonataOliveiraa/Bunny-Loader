@@ -2,7 +2,6 @@ using Terraria.ModLoader;
 
 namespace CsLoad.Content.Items;
 
-// Fora do autoload: o Mod.Load o registra com AddContent.
 [Autoload(false)]
 public class ManualItem : ModItem
 {

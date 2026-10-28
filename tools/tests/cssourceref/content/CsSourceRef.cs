@@ -3,8 +3,6 @@ using Terraria.ModLoader;
 
 namespace CsSourceRef;
 
-// So fontes, e usa um tipo da dependencia (csmodtarget): o celular compila
-// com o .dll dela como referencia.
 public sealed class CsSourceRefMod : Mod
 {
     public override void Load()

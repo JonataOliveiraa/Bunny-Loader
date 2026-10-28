@@ -61,8 +61,6 @@ public static class ModCompiler
     /**
      * Compila `projectDir` (a pasta do `entryFile`) contra `references`, a nao
      * ser que o bin/ ja esteja em dia; `force` compila de qualquer jeito.
-     * `modReferences`: os .dll dos mods C# de que este depende (o mod usa os
-     * tipos deles).
      */
     public static BuildResult Build(string projectDir, string entryFile, IReadOnlyList<string> references, bool force = false,
                                     IReadOnlyList<string>? modReferences = null)

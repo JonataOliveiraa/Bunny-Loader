@@ -8,10 +8,6 @@ namespace bl::runtime {
  * ja rodado), as receitas do jogo montadas, a tabela de drop e o Bestiario
  * criados. E a hora do PostSetupContent do tModLoader: receitas de mod,
  * entradas do Bestiario.
- *
- * Uma vez por sessao. Thread do jogo, chamado do DoUpdate. Cada motor de mod
- * (JS, C#) poe o seu, e eles rodam na ordem em que se inscreveram; o mesmo
- * ponteiro duas vezes conta uma.
  */
 using ContentReadyHook = void (*)();
 void addContentReadyHook(ContentReadyHook hook);

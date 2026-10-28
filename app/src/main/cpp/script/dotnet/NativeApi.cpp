@@ -387,7 +387,6 @@ void nativeOnItemsInstalled(void (*callback)(int32_t first, int32_t last)) {
     runtime::addItemsInstalledHook(reinterpret_cast<runtime::ItemsInstalledHook>(callback));
 }
 
-/** O PostSetupContent e o AddRecipes do C#: uma vez, com o conteudo todo no jogo. */
 void nativeOnContentReady(void (*callback)()) {
     runtime::addContentReadyHook(callback);
 }
@@ -397,11 +396,6 @@ int32_t nativeIsGameThread() {
     return game != 0 && static_cast<int>(gettid()) == game ? 1 : 0;
 }
 
-/**
- * O Asset<Texture2D> de um PNG de mod, ja carregado, um por nome (o segundo
- * pedido devolve o mesmo). Thread do jogo, senao nullptr: a Unity aborta o
- * processo se a textura nasce fora dela. nullptr tambem se o PNG nao abriu.
- */
 void* nativeRequestModTexture(const char* file, const char* assetName) {
     if (!file || !assetName || !nativeIsGameThread()) return nullptr;
     static std::map<std::string, uint32_t> loaded;
@@ -417,7 +411,6 @@ void* nativeRequestModTexture(const char* file, const char* assetName) {
     return asset;
 }
 
-/** Uma imagem do jogo ("Images/Item_1"). Thread do jogo, senao nullptr. */
 void* nativeRequestVanillaTexture(const char* name, int32_t* missingOnMobile) {
     if (missingOnMobile) *missingOnMobile = 0;
     if (!name || !nativeIsGameThread()) return nullptr;
@@ -431,11 +424,6 @@ void* nativeTextureAssetValue(void* asset) {
     return runtime::content::textureAssetValue(static_cast<Il2CppObject*>(asset));
 }
 
-/**
- * Um campo do manifesto do mod (0 id, 1 name, 2 version, 3 dependencies, uma
- * por linha) em `out`, cortado em `size` - 1 bytes. Devolve o tamanho inteiro
- * (o C# pede de novo com mais espaco se faltou); -1 se nao ha esse mod.
- */
 int32_t nativeModManifestField(const char* uid, int32_t field, char* out, int32_t size) {
     const mods::LoadedMod* mod = uid ? mods::find(uid) : nullptr;
     if (!mod) return -1;

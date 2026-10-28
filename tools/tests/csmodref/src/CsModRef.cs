@@ -6,8 +6,6 @@ using Terraria.ModLoader;
 
 namespace CsModRef;
 
-// Teste do ModLoader do C# (BunnyLoader/ModLoader/ModLoader.cs) e de uma
-// dependencia C# (manifest "dependencies": o csmodtarget carrega antes).
 public sealed class CsModRefMod : Mod
 {
     int pass, fail;

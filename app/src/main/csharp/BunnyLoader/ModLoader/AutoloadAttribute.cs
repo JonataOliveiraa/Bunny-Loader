@@ -3,9 +3,6 @@ using System.Linq;
 
 namespace Terraria.ModLoader;
 
-// [Autoload(false)] tira a classe do autoload do assembly (o mod a registra
-// com AddContent, se quiser). Herdado: vale para as subclasses tambem, e o
-// da classe mais derivada ganha.
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
 public sealed class AutoloadAttribute : Attribute
 {

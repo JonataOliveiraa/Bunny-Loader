@@ -2,7 +2,6 @@ using Terraria.ModLoader;
 
 namespace CsLoad.Content.Items;
 
-// Com CloneNewInstances: a instancia do SetDefaults e copia do molde.
 public class CloneItem : ModItem
 {
     public static int SeenMarker, SeenType;

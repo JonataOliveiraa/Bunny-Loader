@@ -43,15 +43,8 @@ std::vector<Il2CppObject*> textureAssets();
 /** Libera a textura Unity criada por loadTextureAsset. Nunca para assets vanilla. */
 void destroyTextureAsset(Il2CppObject* asset);
 
-/** "Terraria\\Images\\Item_1.png" -> "Images/Item_1": o nome de uma imagem do jogo. */
 std::string normalizeTextureAssetName(std::string name);
 
-/**
- * O Asset<Texture2D> de uma imagem do jogo ("Images/Item_1"), carregado: o
- * que ja esta nas TextureAssets, ou o Main.Assets.Request<Texture2D> dele.
- * nullptr se nao ha; `missingOnMobile` = o jogo devolveu o 1x1 vazio de uma
- * imagem que o celular nao tem. Fica vivo ate o fim da sessao. Thread do jogo.
- */
 Il2CppObject* vanillaTextureAsset(const std::string& name, bool* missingOnMobile);
 
 using CultureNames = std::vector<std::pair<std::string, std::string>>;

@@ -2,9 +2,6 @@ using System;
 
 namespace log4net;
 
-// O tipo do Mod.Logger do tModLoader (o ILog do log4net), com os membros que os
-// mods usam. Aqui nao ha log4net: cada linha vai para o log da sessao e para o
-// logcat, com o nome do mod na frente.
 public interface ILog
 {
     bool IsDebugEnabled { get; }
@@ -35,7 +32,6 @@ public interface ILog
 
     void WarnFormat(string format, params object[] args);
 
-    // Error e Fatal abrem o painel de erro dentro do jogo.
     void Error(object message);
 
     void Error(object message, Exception exception);

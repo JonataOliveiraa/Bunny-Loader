@@ -10,16 +10,10 @@ using Terraria.Localization;
 
 namespace Terraria.ModLoader;
 
-// Os ModItem do C#. O nativo (content/items/ModItems.cpp) da o tipo, aumenta
-// as tabelas do jogo, carrega a textura e salva o item pelo nome; daqui saem
-// o SetDefaults e o SetStaticDefaults de cada um.
 internal static unsafe class ItemLoader
 {
     static readonly object Gate = new();
 
-    // Indice = tipo - ItemID.Count. Os tipos de mod sao divididos com o resto
-    // do loader (a reserva "?"), entao ha buracos. So cresce, na carga; o
-    // jogo le sem trava.
     static ModItem?[] items = Array.Empty<ModItem?>();
 
     static bool hooked;
@@ -89,8 +83,6 @@ internal static unsafe class ItemLoader
         }
     }
 
-    // O PNG do Texture: caminho absoluto, ou relativo a pasta da entrada,
-    // com ou sem o primeiro trecho (o nome do mod, no jeito do tModLoader).
     static string ResolveTexture(ModItem item)
     {
         string texture = item.Texture.Replace('\\', '/');
@@ -113,10 +105,6 @@ internal static unsafe class ItemLoader
         throw new FileNotFoundException($"{item.FullName}: texture '{item.Texture}' not found in {item.Mod.Folder}");
     }
 
-    // Para tipo de mod o original NAO roda: o SetDefaults do jogo zera o tipo
-    // de quem passa de ItemID.Count. O nativo faz o que ele faria (ResetStats,
-    // tipo) e o ModItem faz o resto. Nenhum erro sai daqui: o hook gerado
-    // chamaria o original como protecao, e o item viraria "nada".
     static void SetDefaults(On_Item.orig_SetDefaults orig, Item self, int type, ItemVariant variant)
     {
         ModItem? template = Get(type);
@@ -140,7 +128,6 @@ internal static unsafe class ItemLoader
         api->FinishItem(self.Pointer, type);
     }
 
-    // Um lote de tipos acabou de entrar nas tabelas do jogo (thread do jogo).
     [UnmanagedCallersOnly]
     static void ItemsInstalled(int first, int last)
     {

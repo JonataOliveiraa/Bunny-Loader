@@ -13,7 +13,6 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../../app/src/main/csharp/BunnyLoader/BunnyLoader.csproj" Private="false" />
-    <!-- A dependencia do manifesto: os tipos dela, sem copiar o .dll (vem do pacote dela). -->
     <ProjectReference Include="../../csmodtarget/src/CsModTarget.csproj" Private="false" />
   </ItemGroup>
 

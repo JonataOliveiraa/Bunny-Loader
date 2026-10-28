@@ -16,8 +16,6 @@ public static class Checks
 
     public static void Note(string step) => Events.Add(step);
 
-    // Instancias novas: sem CloneNewInstances, limpas (o campo do construtor);
-    // com ele, copias do molde. As duas com o Item, o Type e o Mod.
     public static void RunInstances()
     {
         var fresh = ModContent.GetInstance<OrderItem>();

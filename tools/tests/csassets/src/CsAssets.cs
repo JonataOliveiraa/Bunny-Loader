@@ -8,9 +8,6 @@ using Terraria.ModLoader;
 
 namespace CsAssets;
 
-// Teste do ModContent do C# (BunnyLoader/ModLoader/ModContent.cs, Mod.cs,
-// ModAssets.cs, ReLogic/Content/Asset.cs). Load: o que vale fora da thread
-// do jogo. AssetGem.SetStaticDefaults chama Checks.OnGameThread.
 public sealed class CsAssetsMod : Mod
 {
     public override void Load()

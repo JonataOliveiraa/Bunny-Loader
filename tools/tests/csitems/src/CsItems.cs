@@ -6,9 +6,6 @@ using Terraria.ModLoader;
 
 namespace CsItems;
 
-// Teste do loader de ModItem do C# (BunnyLoader/ModLoader/ItemLoader.cs).
-// Load: os tipos ja sairam. Checks.Run: o jogo ja conhece os itens (chamado
-// do SetStaticDefaults do ultimo item registrado, na thread do jogo).
 public sealed class CsItemsMod : Mod
 {
     public override void Load()

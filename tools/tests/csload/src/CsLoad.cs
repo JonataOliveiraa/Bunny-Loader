@@ -7,9 +7,6 @@ using Terraria.ModLoader;
 
 namespace CsLoad;
 
-// Teste da carga do C# (BunnyLoader/ModLoader/Mod.cs e ModContent.cs): o que
-// o autoload pega e deixa de fora, o AddContent, e a ordem dos passos ate o
-// PostAddRecipes, onde o resultado sai.
 public sealed class CsLoadMod : Mod
 {
     public override void Load()
@@ -59,6 +56,5 @@ public sealed class CsLoadMod : Mod
         Checks.Log.Info($"csload END pass={Checks.Pass} fail={Checks.Fail}");
     }
 
-    // Como no tModLoader: o que nao carregou nao tem instancia.
     static bool Missing<T>() where T : class => ModContent.GetInstance<T>() == null;
 }

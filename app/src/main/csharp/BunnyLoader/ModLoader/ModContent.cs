@@ -7,18 +7,12 @@ using ReLogic.Content;
 
 namespace Terraria.ModLoader;
 
-// O conteudo registrado, como o ModContent do tModLoader: pela classe
-// (GetInstance), pelo nome ("Mod/Name", Find) e os arquivos e texturas pelo
-// caminho com o nome do mod na frente.
 public static class ModContent
 {
     static readonly Dictionary<Type, object> Instances = new();
 
-    // FullName -> o conteudo com esse nome (um item e um NPC podem dividir um).
     static readonly Dictionary<string, List<IModType>> ByName = new(StringComparer.Ordinal);
 
-    // A instancia da classe (o molde de um ModType, o Mod ou outro ILoadable);
-    // null se ela nao foi carregada, como no tModLoader.
     public static T GetInstance<T>() where T : class
     {
         lock (Instances)
@@ -27,13 +21,10 @@ public static class ModContent
         }
     }
 
-    // 0 se o item nao foi carregado.
     public static int ItemType<T>() where T : ModItem => GetInstance<T>()?.Type ?? 0;
 
-    // O ModItem do tipo, ou null se o tipo nao e de um item C#.
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
 
-    // "ExampleMod/ExampleItem". Erro se nao ha.
     public static T Find<T>(string fullname) where T : IModType =>
         TryFind(fullname, out T value) ? value : throw new KeyNotFoundException($"{typeof(T).Name} '{fullname}' not found");
 
@@ -62,9 +53,6 @@ public static class ModContent
     public static bool TryFind<T>(string modName, string name, out T value) where T : IModType =>
         TryFind(modName + "/" + name, out value);
 
-    // "ExampleMod/Content/Items/ExampleItem" (o Mod.Assets daquele mod) ou
-    // "Terraria/Images/Item_1" (uma imagem do jogo). Por enquanto so Texture2D,
-    // carregada na primeira leitura do Value, na thread do jogo.
     public static Asset<T> Request<T>(string name, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
     {
         Asset<T>.CheckSupported();
@@ -73,8 +61,6 @@ public static class ModContent
         return ModOf(modName, name).Assets.Request<T>(path, mode);
     }
 
-    // Mod: o arquivo existe. Jogo: so na thread do jogo, que e quando da para
-    // perguntar (e pergunta carregando a imagem).
     public static bool HasAsset(string assetName)
     {
         (string modName, string path) = SplitName(assetName);
@@ -90,7 +76,6 @@ public static class ModContent
         }
     }
 
-    // "ExampleMod/Localization/en-US.json": um arquivo daquele mod.
     public static bool FileExists(string name)
     {
         (string modName, string path) = SplitName(name);
@@ -103,7 +88,6 @@ public static class ModContent
         return ModOf(modName, name).GetFileBytes(path);
     }
 
-    // "Mod/resto" -> ("Mod", "resto").
     public static (string modName, string subName) SplitName(string name)
     {
         string clean = name.Replace('\\', '/');
@@ -128,10 +112,6 @@ public static class ModContent
         }
     }
 
-    // Todo o conteudo de mod no jogo, os SetStaticDefaults ja rodados e as
-    // receitas do jogo montadas (content/common/ModContent.h). Uma vez, na
-    // thread do jogo. Cada passo vai a todos os mods antes do proximo; o erro
-    // de um mod nao para os outros.
     [UnmanagedCallersOnly]
     internal static void ContentReady()
     {

@@ -1,8 +1,5 @@
 using System;
 
-// Construtores dos structs do XNA que todo mod usa. As proxies geradas so
-// tem o `New(...)`, que chama o construtor do jogo (uma ida ao nativo); estes
-// preenchem os campos direto, como o XNA faz.
 namespace Microsoft.Xna.Framework
 {
     public partial struct Vector2

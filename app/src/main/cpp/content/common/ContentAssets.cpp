@@ -490,7 +490,6 @@ bool setTableElement(FieldInfo* table, int index, Il2CppObject* value) {
 
 namespace {
 
-/** AssetRepository.Request<Texture2D>, montado por reflexao (so existe o compartilhado Request<object>). */
 const MethodInfo* requestTextureMethod(Il2CppClass* repository) {
     static const MethodInfo* inflated = nullptr;
     static bool tried = false;
@@ -514,8 +513,6 @@ const MethodInfo* requestTextureMethod(Il2CppClass* repository) {
     a.gc_wbarrier_set_field(reinterpret_cast<Il2CppObject*>(args), static_cast<void**>(arrayData(args)), textureType);
     void* params[1] = {args};
     Il2CppObject* exc = nullptr;
-    // MakeGenericMethod e abstrato no MethodInfo: a implementacao e a da classe
-    // do objeto (RuntimeMethodInfo); o runtime_invoke nao despacha sozinho.
     const MethodInfo* virt = a.class_get_method_from_name(a.object_get_class(reflected), "MakeGenericMethod", 1);
     if (!virt) virt = make;
     Il2CppObject* made = a.runtime_invoke(virt, reflected, params, &exc);
@@ -527,7 +524,7 @@ const MethodInfo* requestTextureMethod(Il2CppClass* repository) {
     return inflated;
 }
 
-} // namespace
+}
 
 std::string normalizeTextureAssetName(std::string name) {
     for (char& c : name) {
@@ -567,12 +564,11 @@ Il2CppObject* vanillaTextureAsset(const std::string& name, bool* missingOnMobile
                 if (c == '/') c = '\\';
             }
             Il2CppString* str = a.string_new(backslashed.c_str());
-            int32_t mode = 2;   // AssetRequestMode.ImmediateLoad
+            int32_t mode = 2;
             void* params[2] = {str, &mode};
             Il2CppObject* exc = nullptr;
             found = a.runtime_invoke(request, repository, params, &exc);
             if (exc) found = nullptr;
-            // O que nao existe no celular volta como um 1x1 vazio.
             int w = 0, h = 0;
             if (found && textureAssetSize(found, &w, &h) && w <= 1 && h <= 1) {
                 if (missingOnMobile) *missingOnMobile = true;

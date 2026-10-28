@@ -7,19 +7,10 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace ReLogic.Content;
 
-// Um pedido de ModContent.Request ou Mod.Assets.Request, como o Asset<T> do
-// tModLoader. Por baixo e o Asset<Texture2D> do proprio jogo.
-//
-// A textura so nasce na thread do jogo (a Unity aborta o processo se ela
-// nasce fora dela), e os mods carregam em outra: o pedido no Load fica
-// NotLoaded, e carrega na primeira leitura do Value (ou no Wait) na thread do
-// jogo. Por enquanto so Texture2D.
 public sealed unsafe class Asset<T> where T : struct, IGameObject
 {
-    // O PNG do mod; null = uma imagem do jogo (Name).
     readonly string? file;
 
-    // O Asset<Texture2D> do jogo, 0 ate carregar. O nativo o segura vivo.
     IntPtr asset;
 
     internal Asset(string name, string? file)
@@ -36,7 +27,6 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     public bool IsDisposed => false;
 
-    // Carrega se precisar (so na thread do jogo).
     public T Value
     {
         get
@@ -47,7 +37,6 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
         }
     }
 
-    // Carrega agora. Fora da thread do jogo (no Load, por exemplo), erro.
     public void Wait()
     {
         if (Volatile.Read(ref asset) != IntPtr.Zero) return;
@@ -78,7 +67,6 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
         Volatile.Write(ref asset, loaded);
     }
 
-    // O pedido de um tipo que ainda nao tem como carregar.
     internal static void CheckSupported()
     {
         if (typeof(T) != typeof(Texture2D))

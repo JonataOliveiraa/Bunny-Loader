@@ -12,7 +12,6 @@ public static class Checks
 
     static int pass, fail;
 
-    // Na thread do jogo (SetStaticDefaults do AssetGem): as texturas carregam.
     public static void OnGameThread()
     {
         Asset<Texture2D> gem = ModContent.Request<Texture2D>("CsAssets/Content/Items/AssetGem");

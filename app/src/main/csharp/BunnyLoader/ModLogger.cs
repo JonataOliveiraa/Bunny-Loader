@@ -4,8 +4,6 @@ using log4net;
 
 namespace BunnyLoader;
 
-// O Mod.Logger: as linhas do mod no Log, com "[<Nome>]" na frente. Debug vai
-// como Info (o nativo nao tem esse nivel).
 internal sealed class ModLogger : ILog
 {
     readonly string prefix;

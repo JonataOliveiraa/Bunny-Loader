@@ -4,14 +4,6 @@ using System.Threading;
 
 namespace BunnyLoader.Hooks;
 
-// Os hooks de UM metodo do jogo, no modelo do On_ do tModLoader: cada um
-// recebe o `orig` e decide se e quando chama-lo. O ultimo adicionado roda por
-// fora. A cadeia e montada quando a lista muda, nunca por chamada.
-//
-// O codigo gerado (On_<Tipo>) entrega tres pecas por metodo: `wrap`, que
-// encaixa um hook na frente do proximo; `native`, o `orig` mais de dentro
-// (chama o metodo do jogo); e `install`, que poe o trampolim nativo no metodo
-// na primeira vez que alguem se inscreve.
 public sealed class HookChain<THook, TOrig> where THook : System.Delegate where TOrig : System.Delegate
 {
     readonly object gate = new();
@@ -29,7 +21,6 @@ public sealed class HookChain<THook, TOrig> where THook : System.Delegate where 
         this.install = install;
     }
 
-    // A cadeia atual; null sem nenhum hook (o trampolim chama o jogo direto).
     public TOrig? Chain => Volatile.Read(ref chain);
 
     public int Count => hooks.Count;
@@ -69,8 +60,6 @@ public sealed class HookChain<THook, TOrig> where THook : System.Delegate where 
     }
 }
 
-// Erro que escapou de um hook: vai ao log de erro (o painel dentro do jogo) e
-// o metodo do jogo segue, como no hook JS.
 public static class HookErrors
 {
     public static void Report(string method, Exception error) => Log.Error($"hook {method}: {error}");

@@ -3,8 +3,6 @@ using Terraria.ModLoader;
 
 namespace CsModTarget;
 
-// O alvo dos testes csmodref e cssourceref: um Call com comandos e um tipo
-// publico que os outros usam direto.
 public sealed class CsModTargetMod : Mod
 {
     public override void Load() => TargetApi.Loaded = true;

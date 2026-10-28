@@ -2,8 +2,6 @@ using Terraria.ModLoader;
 
 namespace CsLoad.Content.Items;
 
-// Marca cada passo dele. O Marker do molde vira 42 no Load; a instancia do
-// SetDefaults e nova (sem CloneNewInstances) e tem o 1 do construtor.
 public class OrderItem : ModItem
 {
     public static int SeenMarker, SeenType;

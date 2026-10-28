@@ -5,8 +5,6 @@ using ReLogic.Content;
 
 namespace BunnyLoader;
 
-// Os pedidos de imagem do jogo ("Images/Item_1"): o mesmo nome devolve o
-// mesmo Asset.
 internal static class VanillaAsset<T> where T : struct, IGameObject
 {
     static readonly Dictionary<string, Asset<T>> Requested = new(StringComparer.Ordinal);

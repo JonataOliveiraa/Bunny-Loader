@@ -20,9 +20,6 @@ internal static unsafe class Host
 
     static readonly List<Mod> LoadedMods = new();
 
-    // Os mods desde a criacao, antes do autoload (o Load de um mod ja acha a
-    // si mesmo); o que falha na carga sai. Os caminhos "Mod/..." do
-    // ModContent e o ModLoader.TryGetMod procuram aqui.
     static readonly List<Mod> Created = new();
 
     internal static Mod[] CreatedMods
@@ -30,13 +27,11 @@ internal static unsafe class Host
         get { lock (Created) return Created.ToArray(); }
     }
 
-    // Pelo Name (o do assembly).
     internal static Mod? FindMod(string name)
     {
         lock (Created) return Created.Find(m => m.Name == name);
     }
 
-    // Os mods C# carregados, na ordem de carga (uma copia).
     internal static Mod[] Mods
     {
         get { lock (LoadedMods) return LoadedMods.ToArray(); }
@@ -47,7 +42,6 @@ internal static unsafe class Host
     {
         if (api == null || api->Size < (uint)sizeof(NativeApi)) return 0;
         Api = api;
-        // O PostSetupContent e as receitas: uma vez, com todo o conteudo no jogo.
         api->OnContentReady(&ModContent.ContentReady);
         try
         {
@@ -100,9 +94,6 @@ internal static unsafe class Host
                 return 0;
             }
             foreach (Mod mod in mods) LocalizationLoader.Load(mod);
-            // Como no tModLoader: o conteudo entra antes do Load. Ele pertence
-            // ao primeiro Mod do assembly. So entra na lista (PostSetupContent,
-            // receitas) o mod que carregou inteiro.
             foreach (Mod mod in mods) mod.loading = true;
             try
             {
@@ -130,9 +121,6 @@ internal static unsafe class Host
     // Um mod com fontes ("entry": "MeuMod.cs"): o bin/MeuMod.dll do pacote,
     // se o selo dele bate com as fontes e com esta API (o caso do que veio
     // compilado do catalogo); senao, compila agora. null se nao compilou.
-    //
-    // As dependencias C# ja carregadas (o nativo as carrega antes) entram como
-    // referencia: o mod usa os tipos delas.
     static string? FromSources(string uid, string entry, string[] dependencies)
     {
         string project = Path.GetDirectoryName(entry)!;
@@ -145,7 +133,6 @@ internal static unsafe class Host
         return Compile(uid, project, name, references, modReferences);
     }
 
-    // O .dll de cada dependencia que e um mod C# carregado (as JS ficam de fora).
     static List<string> DependencyAssemblies(string[] dependencies)
     {
         var found = new List<string>();
@@ -158,7 +145,6 @@ internal static unsafe class Host
         return found;
     }
 
-    // Um campo do manifesto (NativeApi.cpp, nativeModManifestField); "" se nao ha.
     static string ManifestField(string uid, int field)
     {
         byte* id = Utf8(uid);

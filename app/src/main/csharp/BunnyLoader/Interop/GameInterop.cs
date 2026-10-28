@@ -5,8 +5,6 @@ using System.Threading;
 
 namespace BunnyLoader.Interop;
 
-// Uma classe do jogo, achada por nome na primeira vez que alguem a usa.
-// `Nested` e o caminho das aninhadas ("Sets", "Head/Sets").
 public sealed unsafe class GameClass
 {
     readonly string ns, name, nested;
@@ -50,16 +48,12 @@ public sealed unsafe class GameClass
     }
 }
 
-// Um metodo do jogo resolvido: o MethodInfo e o ponteiro de entrada (que
-// passa pelos hooks, como uma chamada do proprio jogo).
 public struct MethodRef
 {
     public IntPtr Info;
     public IntPtr Fn;
 }
 
-// O metodo virtual que roda para uma classe concreta. Trocado inteiro (nunca
-// campo a campo): duas threads com classes diferentes nao misturam os dados.
 public sealed class VirtualCache
 {
     public readonly IntPtr Klass, Info, Fn;
@@ -72,16 +66,12 @@ public sealed class VirtualCache
     }
 }
 
-// Um campo estatico: o endereco direto (Il2CppClass::static_fields), ou o
-// FieldInfo para o caminho lento quando o endereco nao serve.
 public struct StaticRef
 {
     public IntPtr Address;
     public IntPtr Field;
 }
 
-// O que o codigo gerado usa para falar com o jogo. Tudo e resolvido por nome
-// uma vez e guardado no proprio membro gerado.
 public static unsafe class GameInterop
 {
     public static IntPtr FindClass(string ns, string name)
@@ -91,7 +81,6 @@ public static unsafe class GameInterop
         finally { Host.FreeUtf8(n); Host.FreeUtf8(c); }
     }
 
-    // O offset de um campo de instancia (sobe a hierarquia).
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int Offset(ref int slot, GameClass cls, string field)
     {
@@ -135,7 +124,6 @@ public static unsafe class GameInterop
         Volatile.Write(ref slot.Fn, Host.Native()->MethodPointer(info));
     }
 
-    // O override que roda para `self`. A classe do objeto e o 1o campo dele.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static VirtualCache Virtual(ref VirtualCache? cache, in MethodRef method, IntPtr self)
     {
@@ -159,11 +147,6 @@ public static unsafe class GameInterop
         if (Host.Api->CallGame(fn, frame) == 0) ThrowGame();
     }
 
-    // A mesma chamada sem a transicao de GC do Mono: a thread segue "rodando
-    // C#" enquanto o metodo do jogo roda. Corta ~130 ns por chamada no
-    // celular, mas o coletor do Mono espera ate a chamada voltar. O gerador
-    // so usa isto em metodo folha, que nao bloqueia: a matematica do XNA e os
-    // getters de propriedade. A guarda de excecao continua (CallGame).
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void CallFast(IntPtr fn, CallFrame* frame)
     {
@@ -172,8 +155,6 @@ public static unsafe class GameInterop
     }
 
     static void ThrowGame() => throw new GameException(Marshal.PtrToStringUTF8((IntPtr)Host.Native()->LastCallError()) ?? "game exception");
-
-    // ---- campos estaticos ----
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref StaticRef Static(ref StaticRef slot, GameClass cls, string field)
@@ -193,7 +174,6 @@ public static unsafe class GameInterop
         Volatile.Write(ref slot.Field, info);
     }
 
-    // O endereco do estatico, para as proxies devolverem `ref`.
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IntPtr StaticAddress(ref StaticRef slot, GameClass cls, string field)
     {
@@ -214,8 +194,6 @@ public static unsafe class GameInterop
         return value;
     }
 
-    // `reference`: o campo guarda um objeto (o il2cpp_field_static_set_value
-    // quer o proprio ponteiro, nao o endereco dele).
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteStatic<T>(ref StaticRef slot, GameClass cls, string field, T value, bool reference) where T : unmanaged
     {
@@ -228,8 +206,6 @@ public static unsafe class GameInterop
         Host.Native()->StaticFieldSet(s.Field, reference ? *(void**)&value : &value);
     }
 
-    // ---- objetos ----
-
     public static IntPtr NewObject(GameClass cls)
     {
         IntPtr obj = Host.Native()->NewObject(cls.Handle);
@@ -237,7 +213,6 @@ public static unsafe class GameInterop
         return obj;
     }
 
-    // Uma ida ao nativo que nao faz nada: mede o custo da transicao.
     public static int NativeNoOp() => Host.Native()->ClassValueSize(IntPtr.Zero);
 
     public static bool IsInstance(IntPtr obj, GameClass cls) =>
