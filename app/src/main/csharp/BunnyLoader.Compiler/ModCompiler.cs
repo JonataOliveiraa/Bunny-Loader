@@ -61,11 +61,15 @@ public static class ModCompiler
     /**
      * Compila `projectDir` (a pasta do `entryFile`) contra `references`, a nao
      * ser que o bin/ ja esteja em dia; `force` compila de qualquer jeito.
+     * `modReferences`: os .dll dos mods C# de que este depende (o mod usa os
+     * tipos deles).
      */
-    public static BuildResult Build(string projectDir, string entryFile, IReadOnlyList<string> references, bool force = false)
+    public static BuildResult Build(string projectDir, string entryFile, IReadOnlyList<string> references, bool force = false,
+                                    IReadOnlyList<string>? modReferences = null)
     {
         var watch = Stopwatch.StartNew();
-        string api = ModBuild.ApiVersion(references);
+        modReferences ??= Array.Empty<string>();
+        string api = ModBuild.ApiVersion(references, modReferences);
         List<string> sources = ModBuild.Sources(projectDir);
         List<string> libraries = ModBuild.Libraries(projectDir);
         string dllPath = ModBuild.DllPath(projectDir, entryFile);
@@ -96,7 +100,7 @@ public static class ModCompiler
             // e precisa ser o mesmo em todo lugar.
             trees.Add(CSharpSyntaxTree.ParseText(text, parse, relative));
         }
-        var metadata = references.Concat(libraries.Select(l => Path.Combine(projectDir, l)))
+        var metadata = references.Concat(modReferences).Concat(libraries.Select(l => Path.Combine(projectDir, l)))
             .Select(path => (MetadataReference)MetadataReference.CreateFromFile(path))
             .ToList();
         var compilation = CSharpCompilation.Create(

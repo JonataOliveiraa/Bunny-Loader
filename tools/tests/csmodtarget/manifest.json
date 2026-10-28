@@ -1,0 +1,15 @@
+{
+  "uid": "0f9f4a32-f6d1-4e05-897e-e845271b066a",
+  "id": "test-csmodtarget",
+  "name": "Teste: alvo do C#",
+  "version": "2.1.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "O mod que csmodref e cssourceref procuram, chamam e usam como dependencia.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csmodtarget. Instale junto com csmodref e cssourceref.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsModTarget.dll",
+  "dependencies": []
+}

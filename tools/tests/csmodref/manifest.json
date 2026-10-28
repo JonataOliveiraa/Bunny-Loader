@@ -1,0 +1,15 @@
+{
+  "uid": "f1616856-05bc-4733-93aa-33dd5a45edad",
+  "id": "test-csmodref",
+  "name": "Teste: mods C# entre si",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModLoader.TryGetMod/GetMod/HasMod/Mods, Mod.Call e os tipos de uma dependencia C#, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csmodtarget csmodref. Pede o csmodtarget. Loga 'csmodref <caso>: ok | FAIL' e 'csmodref END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsModRef.dll",
+  "dependencies": ["test-csmodtarget"]
+}

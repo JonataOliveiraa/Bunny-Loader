@@ -29,6 +29,17 @@ public abstract class Mod
     // O nome interno (o do assembly), o primeiro trecho do FullName do conteudo.
     public string Name => GetType().Assembly.GetName().Name ?? GetType().Name;
 
+    // O "name" e o "version" do manifesto (0.0 se a versao nao e numerica).
+    public string DisplayName { get; internal set; } = "";
+
+    public Version Version { get; internal set; } = new(0, 0);
+
+    // O "id" do manifesto: com o Uid e o Name, o que o ModLoader.TryGetMod aceita.
+    internal string ManifestId = "";
+
+    // O "dependencies" do manifesto (id ou uid de cada um).
+    internal string[] Dependencies = Array.Empty<string>();
+
     // As linhas do mod no log da sessao e no logcat, com "[Name]" na frente.
     public ILog Logger { get; internal set; } = null!;
 
@@ -56,6 +67,11 @@ public abstract class Mod
 
     // Pelo tModLoader: nao e chamado (ILoadable.Unload).
     public virtual void Unload() { }
+
+    // O que este mod oferece a outros: ModLoader.GetMod("este").Call("Comando", ...).
+    // Por convencao o primeiro argumento nomeia o comando; o desconhecido
+    // devolve null. Um erro aqui chega a quem chamou.
+    public virtual object? Call(params object?[] args) => null;
 
     // Carrega a instancia como conteudo deste mod. false se ela mesma se
     // desligou (IsLoadingEnabled). So no Load ou no autoload.

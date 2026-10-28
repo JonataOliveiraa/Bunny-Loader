@@ -16,6 +16,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <cstring>
 #include <map>
 
 
@@ -65,6 +67,7 @@ struct NativeApi {
     void* (*requestModTexture)(const char* file, const char* assetName);
     void* (*requestVanillaTexture)(const char* name, int32_t* missingOnMobile);
     void* (*textureAssetValue)(void* asset);
+    int32_t (*modManifestField)(const char* uid, int32_t field, char* out, int32_t size);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -426,6 +429,35 @@ void* nativeTextureAssetValue(void* asset) {
     return runtime::content::textureAssetValue(static_cast<Il2CppObject*>(asset));
 }
 
+/**
+ * Um campo do manifesto do mod (0 id, 1 name, 2 version, 3 dependencies, uma
+ * por linha) em `out`, cortado em `size` - 1 bytes. Devolve o tamanho inteiro
+ * (o C# pede de novo com mais espaco se faltou); -1 se nao ha esse mod.
+ */
+int32_t nativeModManifestField(const char* uid, int32_t field, char* out, int32_t size) {
+    const mods::LoadedMod* mod = uid ? mods::find(uid) : nullptr;
+    if (!mod) return -1;
+    std::string value;
+    switch (field) {
+        case 0: value = mod->internalName; break;
+        case 1: value = mod->displayName; break;
+        case 2: value = mod->version; break;
+        case 3:
+            for (const std::string& dependency : mod->dependencies) {
+                if (!value.empty()) value += '\n';
+                value += dependency;
+            }
+            break;
+        default: return -1;
+    }
+    if (out && size > 0) {
+        const size_t n = std::min(value.size(), static_cast<size_t>(size - 1));
+        std::memcpy(out, value.data(), n);
+        out[n] = '\0';
+    }
+    return static_cast<int32_t>(value.size());
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -462,6 +494,7 @@ const NativeApi kNativeApi{
     nativeRequestModTexture,
     nativeRequestVanillaTexture,
     nativeTextureAssetValue,
+    nativeModManifestField,
 };
 
 } // namespace

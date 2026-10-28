@@ -9,8 +9,9 @@ Status on 2026-10-28: the C# runtime (Mono, generated proxies, `On_<Type>`
 hooks, mods compiled from sources) and a basic `ModItem` loader are done
 (commit `9f60ef4e`), and phase 0 has started: the API is in
 `Terraria.ModLoader`, with `Mod.Logger`, and C# mods load in tModLoader's
-order up to `AddRecipes`, with `ModContent` (`Find`, `Request<Texture2D>`, files).
-Everything else below is still to do.
+order up to `AddRecipes`, with `ModContent` (`Find`, `Request<Texture2D>`, files)
+and `ModLoader` (`TryGetMod`, `Call`, C# dependencies). Everything else below is
+still to do.
 
 ## 1. The rule: look like tModLoader
 
@@ -115,7 +116,7 @@ split among the phases that need them.
 - [x] Public API moved to tModLoader's namespaces; `Mod.Logger`; `Log` becomes internal.
 - [x] `ModType<TEntity, TModType>`, `ModTexturedType`, `ILoadable`, `[Autoload]`, `IsLoadingEnabled`, load and unload order (`Mod.Load`, `SetStaticDefaults`, `PostSetupContent`, `AddRecipes`). `Unload` exists but is never called: mods are not unloaded during a session (changing mods restarts the game). Test pack: `tools/tests/csload`.
 - [x] `ModContent`: `Request<T>`, `Find`/`TryFind`, `GetInstance`, `<X>Type<T>()`, `Mod.Find`, `Mod.Assets`, `Mod.GetFileBytes`. `Asset<T>` is written by hand in `ReLogic.Content` (only `Texture2D` for now) until ProxyGen generates generics; it loads on first `Value` on the game thread. `Mod.Assets` is a `BunnyLoader.ModAssets` (the name `AssetRepository` is the game's `Main.Assets`). Test pack: `tools/tests/csassets`.
-- [ ] `ModLoader.TryGetMod`, `Mod.Call`, dependencies and load order between C# mods.
+- [x] `ModLoader.TryGetMod`, `Mod.Call`, dependencies and load order between C# mods. The order is the native one (manifest `dependencies` first); a mod finds the ones created before it, and every mod from `PostSetupContent` on. A mod with sources compiles on the phone against its C# dependencies' `.dll`; the catalog and the PC tools cannot compile such a mod yet. C# and JS mods cannot call each other. Test packs: `tools/tests/csmodtarget`, `csmodref`, `cssourceref`.
 - [ ] Localization: `LocalizedText`, `Language.GetTextValue`, the hjson layout (section 3), `this.GetLocalization`, `ExampleModCSharp` moved to hjson.
 - [ ] Per-entity instances: `Item.ModItem`, `IEntityWithInstances`, `NewInstance`/`Clone`, `CloneNewInstances`, the per-object data that `script/bridge/ExtraFields` gives JS today. (`NewInstance`, `Clone` and `CloneNewInstances` are in `ModType<TEntity, TModType>` already; what is missing is keeping the instance on the entity.)
 - [ ] Globals: `GlobalType`, `GlobalItem`/`GlobalNPC`/... lists, `InstancePerEntity`, `AppliesToEntity`.

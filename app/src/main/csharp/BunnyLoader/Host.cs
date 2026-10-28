@@ -20,13 +20,20 @@ internal static unsafe class Host
 
     static readonly List<Mod> LoadedMods = new();
 
-    // Pelo Name, desde a criacao (o Load de um mod ja acha a si mesmo): os
-    // caminhos "Mod/..." do ModContent.
-    static readonly Dictionary<string, Mod> ModsByName = new(StringComparer.Ordinal);
+    // Os mods desde a criacao, antes do autoload (o Load de um mod ja acha a
+    // si mesmo); o que falha na carga sai. Os caminhos "Mod/..." do
+    // ModContent e o ModLoader.TryGetMod procuram aqui.
+    static readonly List<Mod> Created = new();
 
+    internal static Mod[] CreatedMods
+    {
+        get { lock (Created) return Created.ToArray(); }
+    }
+
+    // Pelo Name (o do assembly).
     internal static Mod? FindMod(string name)
     {
-        lock (ModsByName) return ModsByName.TryGetValue(name, out Mod? mod) ? mod : null;
+        lock (Created) return Created.Find(m => m.Name == name);
     }
 
     // Os mods C# carregados, na ordem de carga (uma copia).
@@ -64,9 +71,10 @@ internal static unsafe class Host
             string file = Marshal.PtrToStringUTF8((IntPtr)path)!;
             string folder = Path.GetDirectoryName(file)!;
             AddModFolder(folder);
+            string[] dependencies = ManifestField(uid, 3).Split('\n', StringSplitOptions.RemoveEmptyEntries);
             if (ModBuild.IsSourceEntry(file))
             {
-                string? built = FromSources(uid, file);
+                string? built = FromSources(uid, file, dependencies);
                 if (built == null) return 0;
                 file = built;
             }
@@ -78,9 +86,13 @@ internal static unsafe class Host
                 mod.Uid = uid;
                 mod.Folder = folder;
                 mod.Logger = new ModLogger(mod.Name);
+                mod.ManifestId = ManifestField(uid, 0);
+                mod.DisplayName = ManifestField(uid, 1) is { Length: > 0 } display ? display : mod.Name;
+                mod.Version = Version.TryParse(ManifestField(uid, 2), out Version? version) ? version : new Version(0, 0);
+                mod.Dependencies = dependencies;
                 mods.Add(mod);
                 ModContent.Add(mod);
-                lock (ModsByName) ModsByName[mod.Name] = mod;
+                lock (Created) Created.Add(mod);
             }
             if (mods.Count == 0)
             {
@@ -106,9 +118,9 @@ internal static unsafe class Host
         catch (Exception e)
         {
             Log.Error($"mod {uid}: {e}");
-            lock (ModsByName)
+            lock (Created)
             {
-                foreach (Mod mod in mods) ModsByName.Remove(mod.Name);
+                foreach (Mod mod in mods) Created.Remove(mod);
             }
             return 0;
         }
@@ -117,22 +129,61 @@ internal static unsafe class Host
     // Um mod com fontes ("entry": "MeuMod.cs"): o bin/MeuMod.dll do pacote,
     // se o selo dele bate com as fontes e com esta API (o caso do que veio
     // compilado do catalogo); senao, compila agora. null se nao compilou.
-    static string? FromSources(string uid, string entry)
+    //
+    // As dependencias C# ja carregadas (o nativo as carrega antes) entram como
+    // referencia: o mod usa os tipos delas.
+    static string? FromSources(string uid, string entry, string[] dependencies)
     {
         string project = Path.GetDirectoryName(entry)!;
         string name = Path.GetFileName(entry);
         List<string> references = ModBuild.References(AppContext.BaseDirectory);
-        string api = ModBuild.ApiVersion(references);
+        List<string> modReferences = DependencyAssemblies(dependencies);
+        string api = ModBuild.ApiVersion(references, modReferences);
         if (ModBuild.IsCurrent(project, name, api, out string reason)) return ModBuild.DllPath(project, name);
         Log.Info($"mod {uid}: compiling {name} ({reason})");
-        return Compile(uid, project, name, references);
+        return Compile(uid, project, name, references, modReferences);
+    }
+
+    // O .dll de cada dependencia que e um mod C# carregado (as JS ficam de fora).
+    static List<string> DependencyAssemblies(string[] dependencies)
+    {
+        var found = new List<string>();
+        foreach (Mod mod in CreatedMods)
+        {
+            if (Array.IndexOf(dependencies, mod.Uid) < 0 && Array.IndexOf(dependencies, mod.ManifestId) < 0) continue;
+            string location = mod.GetType().Assembly.Location;
+            if (location.Length > 0 && !found.Contains(location)) found.Add(location);
+        }
+        return found;
+    }
+
+    // Um campo do manifesto (NativeApi.cpp, nativeModManifestField); "" se nao ha.
+    static string ManifestField(string uid, int field)
+    {
+        byte* id = Utf8(uid);
+        try
+        {
+            int size = 256;
+            while (true)
+            {
+                byte[] managed = new byte[size];
+                fixed (byte* p = managed)
+                {
+                    int length = Native()->ModManifestField(id, field, p, size);
+                    if (length < 0) return "";
+                    if (length < size) return Marshal.PtrToStringUTF8((IntPtr)p, length);
+                    size = length + 1;
+                }
+            }
+        }
+        finally { FreeUtf8(id); }
     }
 
     // Separado do FromSources: o Roslyn so carrega quando ha o que compilar.
     [MethodImpl(MethodImplOptions.NoInlining)]
-    static string? Compile(string uid, string project, string name, List<string> references)
+    static string? Compile(string uid, string project, string name, List<string> references, List<string> modReferences)
     {
-        BuildResult r = ModCompiler.Build(project, name, references, force: true);
+        BuildResult r = ModCompiler.Build(project, name, references, force: true, modReferences: modReferences);
         foreach (string w in r.Warnings) Log.Warn($"mod {uid}: {w}");
         if (!r.Success)
         {

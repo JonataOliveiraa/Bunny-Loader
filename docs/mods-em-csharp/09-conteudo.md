@@ -207,6 +207,85 @@ extension:
 
 A path that leaves the mod's folder (`"../..."`) is never read.
 
+## Other mods
+
+### Finding one: `ModLoader`
+
+```csharp
+// In your Mod class.
+public override void PostSetupContent()
+{
+    if (ModLoader.TryGetMod("wikithis", out Mod wikithis))
+        wikithis.Call("AddModURL", this, "https://mymod.wiki.gg/wiki/{}");
+}
+```
+
+| Call | Gives |
+|---|---|
+| `ModLoader.TryGetMod(name, out Mod mod)` | `true` and the mod, or `false` and `null` |
+| `ModLoader.GetMod(name)` | the mod; throws if it is not there |
+| `ModLoader.HasMod(name)` | is it loaded? |
+| `ModLoader.Mods` | every C# mod that loaded, in load order |
+
+The name can be the other mod's internal `Name` (its assembly, as in
+tModLoader), its manifest `id` or its `uid`. If two mods answer to the same
+`Name` or `id`, `TryGetMod` picks neither and the log says to ask by `uid`.
+Only C# mods are found: a JS mod cannot be called from C# (nor the other way
+around) yet.
+
+C# mods load one at a time. In `Load`, a mod finds itself and the mods
+loaded before it, which include all of its dependencies; from
+`PostSetupContent` on, it finds every mod. Optional compatibility goes in
+`PostSetupContent`.
+
+Each `Mod` also has `DisplayName` and `Version`, from the manifest's `name`
+and `version`.
+
+### Offering something: `Call`
+
+```csharp
+public class Wikithis : Mod
+{
+    public override object? Call(params object?[] args)
+    {
+        switch (args[0] as string)
+        {
+            case "AddModURL":
+                // ...
+                return true;
+        }
+        return null;
+    }
+}
+```
+
+The first argument names the command, by convention. Values go through as
+they are (it is a plain C# call), an unknown command returns `null`, and an
+exception thrown inside `Call` reaches the caller.
+
+### Depending on a mod
+
+A mod yours cannot work without goes in the manifest's `dependencies`, by
+`id` or `uid`, as for JS mods ([the JS guide](../mods/11-conversa-entre-mods.md#dependencies)):
+it loads before yours, and without it yours does not load.
+
+When the dependency is a C# mod, you can also use its **types** directly, as
+with tModLoader's `modReferences`:
+
+```csharp
+using OtherMod;
+
+int answer = OtherModApi.Answer;   // a public class of the other mod
+```
+
+- **A `.dll` mod:** reference the other mod's `.dll` (or project) in your
+  `.csproj` with `<Private>false</Private>`, so it is not copied into your
+  package; on the phone it is found in the other package.
+- **A mod with sources:** the phone compiles it with the `.dll` of each C#
+  dependency as a reference, and compiles again when one of them changes.
+  The catalog and the PC tools do not have the other mod, so they cannot
+  compile such a mod yet: ship it as a `.dll`, or let the phone compile it.
+
 ## Logging from content
 
 A content class has `Mod`, so it logs through `Mod.Logger`:

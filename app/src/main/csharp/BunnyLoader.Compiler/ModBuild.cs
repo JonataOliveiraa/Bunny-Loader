@@ -78,6 +78,21 @@ public static class ModBuild
         throw new FileNotFoundException("BunnyLoader.dll is not among the references");
     }
 
+    /**
+     * A versao da API mais os mods C# que este referencia (as dependencias do
+     * manifesto), cada um pelo nome e pelo hash do .dll: quando um deles muda,
+     * o mod compila de novo. Sem nenhum, igual ao ApiVersion(references).
+     */
+    public static string ApiVersion(IEnumerable<string> references, IReadOnlyList<string> modReferences)
+    {
+        var api = new StringBuilder(ApiVersion(references));
+        var sorted = new List<string>(modReferences);
+        sorted.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));
+        foreach (string path in sorted)
+            api.Append('+').Append(Path.GetFileNameWithoutExtension(path)).Append('@').Append(Sha256(File.ReadAllBytes(path))[..16]);
+        return api.ToString();
+    }
+
     /** O hash das fontes, das bibliotecas do mod e da versao da API. */
     public static string Fingerprint(string projectDir, IReadOnlyList<string> sources, IReadOnlyList<string> libraries, string api)
     {

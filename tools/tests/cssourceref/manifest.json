@@ -1,0 +1,15 @@
+{
+  "uid": "101dad12-ab27-441b-b33a-afce357fbdcd",
+  "id": "test-cssourceref",
+  "name": "Teste: fontes C# que usam outro mod",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Um mod so com .cs que usa os tipos de uma dependencia C#: o celular compila com o .dll dela como referencia.",
+  "description": "Pede o csmodtarget. Loga 'cssourceref ...: ok | FAIL'. Apague content/bin para forcar a compilacao de novo.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsSourceRef.cs",
+  "dependencies": ["test-csmodtarget"]
+}
