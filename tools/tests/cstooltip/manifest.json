@@ -1,0 +1,15 @@
+{
+  "uid": "2a28ab35-de69-4160-8010-8e6cf11af395",
+  "id": "test-cstooltip",
+  "name": "Teste: ModifyTooltips no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "TooltipLine e ModifyTooltips do ModItem e do GlobalItem, com os nomes das linhas do jogo, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh cstooltip. No mundo, loga 'cstooltip <caso>: ok | FAIL' e 'cstooltip END'. Segure um item para ver o tooltip mudado.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsTooltip.dll",
+  "dependencies": []
+}

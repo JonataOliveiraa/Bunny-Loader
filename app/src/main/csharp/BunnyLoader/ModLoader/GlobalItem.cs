@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -55,6 +56,8 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual void RightClick(Item item, Player player) { }
 
     public virtual bool ConsumeItem(Item item, Player player) => true;
+
+    public virtual void ModifyTooltips(Item item, List<TooltipLine> tooltips) { }
 
     public virtual Color? GetAlpha(Item item, Color lightColor) => null;
 

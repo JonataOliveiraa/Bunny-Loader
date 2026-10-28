@@ -81,6 +81,8 @@ public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
 
     public GameArray(IntPtr pointer) => Pointer = pointer;
 
+    public static GameArray<T> New(GameClass element, int length) => new(Host.Native()->NewArray(element.Handle, length));
+
     IntPtr IGameObject.Pointer => Pointer;
 
     public bool IsNull => Pointer == IntPtr.Zero;

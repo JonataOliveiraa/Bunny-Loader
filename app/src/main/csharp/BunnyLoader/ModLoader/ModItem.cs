@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -69,6 +70,8 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual void RightClick(Player player) { }
 
     public virtual bool ConsumeItem(Player player) => true;
+
+    public virtual void ModifyTooltips(List<TooltipLine> tooltips) { }
 
     public virtual Color? GetAlpha(Color lightColor) => null;
 

@@ -48,6 +48,7 @@ internal static unsafe class ItemHooks
         ItemDrawHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemOpenHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemNetHooks.Install(Has, baseType == typeof(GlobalItem));
+        ItemTooltipHooks.Install(Has, baseType == typeof(GlobalItem));
     }
 
     internal static GlobalItem?[] GlobalsOf(Item item) => ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>();

@@ -289,6 +289,27 @@ tModLoader set that Bunny Loader adds, with the game's pre-Hardmode bags
 already marked). `ModifyItemLoot` comes with the loot rules
 (`ItemLoot`, `IItemDropRule`).
 
+The tooltip, as a list of `TooltipLine`:
+
+```csharp
+public override void ModifyTooltips(List<TooltipLine> tooltips)
+{
+    TooltipLine? damage = tooltips.Find(l => l.Mod == "Terraria" && l.Name == "Damage");
+    if (damage != null) damage.Text += " (charged)";
+    tooltips.Add(new TooltipLine(Mod, "Charge", $"Charge: {Charge}"));
+}
+```
+
+The game's lines have `Mod` `"Terraria"` and tModLoader's names
+(`ItemName`, `Damage`, `CritChance`, `Speed`, `Knockback`, `Defense`,
+`Tooltip0`, `Tooltip1`..., `Material`, `PrefixDamage`, `SetBonus`...).
+`Hide()` takes a line out; `IsModifier`/`IsModifierBad` draw it in the green
+or red of a prefix line. A `GlobalItem` gets `ModifyTooltips(Item item,
+List<TooltipLine> tooltips)` for any item, after the `ModItem`. On the phone
+the game still draws the tooltip: `OverrideColor`, the `[c/RRGGBB:text]`
+tags and `PreDrawTooltip`/`PostDrawTooltip`/`PreDrawTooltipLine` come with
+the C# port of the tooltip drawing (next in the plan).
+
 Drawing the item:
 
 | `ModItem` | When | Return |
