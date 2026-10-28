@@ -44,6 +44,14 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void UpdateInventory(Player player) { }
 
+    public virtual void GetHealLife(Player player, bool quickHeal, ref int healValue) { }
+
+    public virtual void GetHealMana(Player player, bool quickHeal, ref int healValue) { }
+
+    public virtual void ModifyPotionDelay(Player player, ref int baseDelay) { }
+
+    public virtual bool ApplyPotionDelay(Player player, int potionDelay) => true;
+
     public virtual void SaveData(TagCompound tag) { }
 
     public virtual void LoadData(TagCompound tag) { }

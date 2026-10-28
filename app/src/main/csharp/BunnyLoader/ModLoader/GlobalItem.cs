@@ -25,4 +25,12 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual Vector2? HoldoutOffset(int type) => null;
 
     public virtual void UpdateInventory(Item item, Player player) { }
+
+    public virtual void GetHealLife(Item item, Player player, bool quickHeal, ref int healValue) { }
+
+    public virtual void GetHealMana(Item item, Player player, bool quickHeal, ref int healValue) { }
+
+    public virtual void ModifyPotionDelay(Item item, Player player, ref int baseDelay) { }
+
+    public virtual bool ApplyPotionDelay(Item item, Player player, int potionDelay) => true;
 }

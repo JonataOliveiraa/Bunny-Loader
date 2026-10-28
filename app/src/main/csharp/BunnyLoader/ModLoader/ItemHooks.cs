@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using BunnyLoader;
+using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 
 namespace Terraria.ModLoader;
@@ -42,13 +43,16 @@ internal static unsafe class ItemHooks
         if (Has(nameof(ModItem.UpdateInventory)))
             Once("Inventory", () => updateEquips = Raw("void UpdateEquips(int i)",
                 (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, void>)&UpdateEquips));
+        ItemHealHooks.Install(Has);
     }
 
-    static bool Overrides(Type type, Type baseType, string name) =>
+    internal static GlobalItem?[] GlobalsOf(Item item) => ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>();
+
+    internal static bool Overrides(Type type, Type baseType, string name) =>
         type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
             .Any(m => m.Name == name && m.DeclaringType != baseType && m.GetBaseDefinition().DeclaringType == baseType);
 
-    static void Once(string key, Action install)
+    internal static void Once(string key, Action install)
     {
         lock (Gate)
         {
@@ -56,7 +60,7 @@ internal static unsafe class ItemHooks
         }
     }
 
-    static Hook? Raw(string signature, IntPtr replacement)
+    internal static Hook? Raw(string signature, IntPtr replacement)
     {
         try
         {
@@ -69,14 +73,24 @@ internal static unsafe class ItemHooks
         }
     }
 
-    static void Report(string who, Exception e)
+    internal static void Report(string who, Exception e)
     {
         bool first;
         lock (Reported) first = Reported.Add(who + "|" + e.GetType().FullName);
         if (first) Log.Error($"{who} threw: {e}");
     }
 
-    static ModItem? ModItemOf(Item item) => ItemLoader.Get(item.type) != null ? ItemLoader.InstanceOf(item) : null;
+    internal static long Original(ref GameCall call, Hook hook, string what)
+    {
+        try { return call.Invoke(hook.Original); }
+        catch (GameException e)
+        {
+            Report(what, e);
+            return 0;
+        }
+    }
+
+    internal static ModItem? ModItemOf(Item item) => ItemLoader.Get(item.type) != null ? ItemLoader.InstanceOf(item) : null;
 
     [UnmanagedCallersOnly]
     static byte CheckCanUse(IntPtr self, IntPtr itemPointer, byte ignoreCursed, IntPtr method)
@@ -87,7 +101,12 @@ internal static unsafe class ItemHooks
         try { allowed = CanUseItem(new Item(itemPointer), new Player(self)); }
         catch (Exception e) { Report("CanUseItem", e); }
         if (!allowed) return 0;
-        return ((delegate* unmanaged<IntPtr, IntPtr, byte, IntPtr, byte>)hook.Original)(self, itemPointer, ignoreCursed, method);
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(self);
+        call.Arg(itemPointer);
+        call.Arg(ignoreCursed);
+        call.Arg(method);
+        return (byte)(Original(ref call, hook, "Player.ItemCheck_CheckCanUse_Inner") & 0xFF);
     }
 
     static bool CanUseItem(Item item, Player player)
@@ -112,7 +131,7 @@ internal static unsafe class ItemHooks
     {
         Hook? hook = startUse;
         if (hook == null) return;
-        ((delegate* unmanaged<IntPtr, IntPtr, IntPtr, void>)hook.Original)(self, itemPointer, method);
+        Call(hook, self, itemPointer, method, "Player.ItemCheck_StartActualUse");
         try
         {
             var player = new Player(self);
@@ -152,7 +171,14 @@ internal static unsafe class ItemHooks
     {
         Hook? hook = ownerOnly;
         if (hook == null) return;
-        ((delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, Rectangle, IntPtr, void>)hook.Original)(self, context, itemPointer, weaponDamage, heldItemFrame, method);
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(self);
+        call.Arg(context);
+        call.Arg(itemPointer);
+        call.Arg(weaponDamage);
+        call.Arg(heldItemFrame);
+        call.Arg(method);
+        Original(ref call, hook, "Player.ItemCheck_OwnerOnlyCode");
         try
         {
             var player = new Player(self);
@@ -191,7 +217,7 @@ internal static unsafe class ItemHooks
             }
         }
         catch (Exception e) { Report("UseAnimation", e); }
-        ((delegate* unmanaged<IntPtr, IntPtr, IntPtr, void>)hook.Original)(self, itemPointer, method);
+        Call(hook, self, itemPointer, method, "Player.ApplyItemAnimation");
     }
 
     [UnmanagedCallersOnly]
@@ -199,7 +225,7 @@ internal static unsafe class ItemHooks
     {
         Hook? hook = useStyle;
         if (hook == null) return;
-        ((delegate* unmanaged<IntPtr, float, IntPtr, Rectangle, IntPtr, void>)hook.Original)(self, mountOffset, itemPointer, heldItemFrame, method);
+        Styled(hook, self, mountOffset, itemPointer, heldItemFrame, method, "Player.ItemCheck_ApplyUseStyle");
         try { Style(new Player(self), new Item(itemPointer), heldItemFrame, use: true); }
         catch (Exception e) { Report("UseStyle", e); }
     }
@@ -209,9 +235,37 @@ internal static unsafe class ItemHooks
     {
         Hook? hook = holdStyle;
         if (hook == null) return;
-        ((delegate* unmanaged<IntPtr, float, IntPtr, Rectangle, IntPtr, void>)hook.Original)(self, mountOffset, itemPointer, heldItemFrame, method);
+        Styled(hook, self, mountOffset, itemPointer, heldItemFrame, method, "Player.ItemCheck_ApplyHoldStyle");
         try { Style(new Player(self), new Item(itemPointer), heldItemFrame, use: false); }
         catch (Exception e) { Report("HoldStyle", e); }
+    }
+
+    static void Styled(Hook hook, IntPtr self, float mountOffset, IntPtr itemPointer, Rectangle frame, IntPtr method, string what)
+    {
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(self);
+        call.Arg(mountOffset);
+        call.Arg(itemPointer);
+        call.Arg(frame);
+        call.Arg(method);
+        Original(ref call, hook, what);
+    }
+
+    internal static void Call(Hook hook, IntPtr self, IntPtr argument, IntPtr method, string what)
+    {
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(self);
+        call.Arg(argument);
+        call.Arg(method);
+        Original(ref call, hook, what);
+    }
+
+    internal static long Call(Hook hook, IntPtr self, IntPtr method, string what)
+    {
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(self);
+        call.Arg(method);
+        return Original(ref call, hook, what);
     }
 
     static void Style(Player player, Item item, Rectangle frame, bool use)
@@ -269,7 +323,11 @@ internal static unsafe class ItemHooks
     {
         Hook? hook = updateEquips;
         if (hook == null) return;
-        ((delegate* unmanaged<IntPtr, int, IntPtr, void>)hook.Original)(self, i, method);
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(self);
+        call.Arg(i);
+        call.Arg(method);
+        Original(ref call, hook, "Player.UpdateEquips");
         try
         {
             var player = new Player(self);

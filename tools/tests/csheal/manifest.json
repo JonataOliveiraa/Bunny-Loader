@@ -1,0 +1,15 @@
+{
+  "uid": "22cac76a-0664-46a2-a730-1146d03c0ffd",
+  "id": "test-csheal",
+  "name": "Teste: hooks de cura de item do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "GetHealLife, GetHealMana, ModifyPotionDelay e ApplyPotionDelay do ModItem e do GlobalItem, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csheal. No mundo, loga 'csheal <caso>: ok | FAIL' e 'csheal END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsHeal.dll",
+  "dependencies": []
+}

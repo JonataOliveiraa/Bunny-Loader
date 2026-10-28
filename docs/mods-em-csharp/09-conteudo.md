@@ -231,13 +231,25 @@ item), with tModLoader's signatures:
 | `HoldoutOffset()` | With the styles | `Vector2?`: moves the item in the hand (x forward, y down) |
 | `UpdateInventory(Player player)` | Every frame the item is in the inventory (the 58 slots, coins and ammo too) | |
 
+Healing items (potions, food that heals) have their own:
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `GetHealLife(Player player, bool quickHeal, ref int healValue)` | When the item heals, and when the quick heal button picks the best potion | change `healValue` |
+| `GetHealMana(Player player, bool quickHeal, ref int healValue)` | When the item restores mana | change `healValue` |
+| `ModifyPotionDelay(Player player, ref int baseDelay)` | When a potion gives Potion Sickness | change the length, in ticks |
+| `ApplyPotionDelay(Player player, int potionDelay)` | Right after | `false`: no Potion Sickness this time |
+
+`quickHeal` is `true` when the heal comes from the quick heal or quick mana
+button.
+
 A hook only costs anything when some mod overrides it: Bunny Loader hooks the
 game method behind it the first time a loaded `ModItem` or `GlobalItem`
 overrides that hook. An exception in a hook goes to the log once (not every
 frame), and the game goes on as if the hook were not there.
 
-The other item hooks (combat, ammo, healing, drawing, pickup, tooltips,
-network) come next; see the plan.
+The other item hooks (combat, ammo, drawing, pickup, tooltips, network) come
+next; see the plan.
 
 ## Changing every item: `GlobalItem`
 
