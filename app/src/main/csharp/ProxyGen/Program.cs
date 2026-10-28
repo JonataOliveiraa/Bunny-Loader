@@ -88,17 +88,24 @@ static class Program
         // 1a passada: os modelos dos tipos completos (mapear os tipos das
         // assinaturas registra os referenciados).
         var plans = new Dictionary<string, TypePlan>();
+        var laidOut = new HashSet<string>();
         bool grew = true;
         while (grew)
         {
             grew = false;
             foreach (var (key, (type, mode)) in map.Generated.ToList())
             {
+                if (type.IsValueType && !type.IsEnum && laidOut.Add(key))
+                {
+                    map.Layout(type);
+                    grew = true;
+                }
                 if (mode != GenMode.Full || plans.ContainsKey(key)) continue;
                 plans[key] = BuildPlan(type, map, emitter);
                 grew = true;
             }
         }
+        foreach (var (key, plan) in plans) Prune(map.Generated[key].Type, plan, map, emitter);
 
         // 2a passada: um arquivo por tipo de fora.
         Directory.CreateDirectory(outDir);
@@ -340,6 +347,46 @@ static class Program
         return plan;
     }
 
+    static string? MissingIn(MethodModel m, TypeMap map)
+    {
+        foreach (TypeUse use in m.Params.Select(a => a.Use).Prepend(m.Plan.Ret.Use))
+            if (map.Missing(use) is Type t) return TypeMap.DumpName(t);
+        return null;
+    }
+
+    static void Prune(Type t, TypePlan plan, TypeMap map, Emitter emitter)
+    {
+        string Reason(string type) => $"type {type} is not generated";
+        plan.Fields.RemoveAll(f =>
+        {
+            if (map.Missing(f.Use) is not Type missing) return false;
+            emitter.Skip(t, f.Field.Name, Reason(TypeMap.DumpName(missing)));
+            return true;
+        });
+        plan.Props.RemoveAll(p =>
+        {
+            string? missing = null;
+            if (p.Get != null && MissingIn(p.Get, map) is string g) { missing = g; p.Get = null; }
+            if (p.Set != null && MissingIn(p.Set, map) is string s) { missing ??= s; p.Set = null; }
+            if (p.Get == null && p.Set == null)
+            {
+                emitter.Skip(t, p.Name, Reason(missing ?? "?"));
+                return true;
+            }
+            p.Use = p.Get != null ? p.Get.Plan.Ret.Use : p.Set!.Params[0].Use;
+            return false;
+        });
+        bool Drop(MethodModel m, string what)
+        {
+            if (MissingIn(m, map) is not string missing) return false;
+            emitter.Skip(t, what, Reason(missing));
+            return true;
+        }
+        plan.Methods.RemoveAll(m => Drop(m, m.Method.Name));
+        plan.Ctors.RemoveAll(m => Drop(m, ".ctor"));
+        plan.Hooks.RemoveAll(h => Drop(h.Model, "On_" + h.Event));
+    }
+
     static string Token(ArgPlan a)
     {
         string mod = a.Mode switch { ArgMode.Ref => "ref", ArgMode.Out => "out", ArgMode.In => "in", _ => "" };
@@ -415,6 +462,11 @@ static class Program
             var used = new HashSet<string>(Reserved(t));
             foreach (var (f, offset, use) in layout.Fields)
             {
+                if (map.Missing(use) is Type missing)
+                {
+                    emitter.Skip(t, f.Name, $"type {TypeMap.DumpName(missing)} is not generated");
+                    continue;
+                }
                 string id = TypeMap.Ident(f.Name);
                 if (!TypeMap.ValidName(f.Name)) id = $"__field{offset}";
                 while (!used.Add(id)) id += "_";

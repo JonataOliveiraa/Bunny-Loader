@@ -25,6 +25,7 @@ sealed class TypeUse
     public bool IsString;             // string por valor (conversao com alocacao)
     public Func<string, string> ToRaw = e => e;     // expressao C# -> long
     public Func<string, string> FromRaw = e => e;   // long -> expressao C#
+    public List<Type> Refs = new();
 }
 
 // Como um tipo e gerado: completo (membros e hooks), so o ponteiro, so o
@@ -45,6 +46,7 @@ sealed class TypeMap
 
     public readonly Dictionary<string, (Type Type, GenMode Mode)> Generated = new();
     readonly Dictionary<string, StructLayout?> layouts = new();
+    readonly Dictionary<string, bool> emitted = new();
     readonly HashSet<string> full;
     readonly Func<Type, bool> isGame;
 
@@ -198,6 +200,12 @@ sealed class TypeMap
     public void RegisterFull(Type t)
     {
         Generated[Key(t)] = (t, ModeFor(t, GenMode.Full));
+        if (t.IsNested && !Generated.ContainsKey(Key(t.DeclaringType!)))
+        {
+            Type outer = t.DeclaringType!;
+            if (!outer.IsGenericTypeDefinition)
+                Register(outer, outer.IsEnum ? GenMode.Enum : outer.IsValueType ? GenMode.Mirror : GenMode.Opaque);
+        }
         foreach (Type n in t.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic))
         {
             if (!ValidName(n.Name) || n.IsGenericTypeDefinition) continue;
@@ -275,6 +283,7 @@ sealed class TypeMap
                 Cs = cs, Sig = sig, Abi = AbiClass.Int, Size = under.Size, Align = under.Align,
                 ToRaw = e => $"(long)({u})({e})",
                 FromRaw = e => $"({cs})({u})({e})",
+                Refs = { t },
             };
         }
         if (t.IsArray)
@@ -282,8 +291,8 @@ sealed class TypeMap
             TypeUse? elem = Map(t.GetElementType()!, true);
             if (elem == null || elem.Abi == AbiClass.Void) return Ref($"{RT}.GameObject", sig);
             int rank = t.GetArrayRank();
-            if (rank == 1) return Ref($"{RT}.GameArray<{elem.Cs}>", sig);
-            if (rank == 2) return Ref($"{RT}.GameArray2D<{elem.Cs}>", sig);
+            if (rank == 1) return Ref($"{RT}.GameArray<{elem.Cs}>", sig, elem.Refs);
+            if (rank == 2) return Ref($"{RT}.GameArray2D<{elem.Cs}>", sig, elem.Refs);
             return Ref($"{RT}.GameObject", sig);
         }
         if (t.IsGenericType)
@@ -298,6 +307,7 @@ sealed class TypeMap
                 return new TypeUse
                 {
                     Cs = $"{RT}.GameNullable<{v.Cs}>", Sig = sig, Abi = AbiClass.Composite, Size = size, Align = align, CheckSize = true,
+                    Refs = new List<Type>(v.Refs),
                 };
             }
             if (t.IsValueType) return null;
@@ -307,7 +317,7 @@ sealed class TypeMap
         {
             if (!Supported(t)) return Ref($"{RT}.GameObject", sig);
             Register(t, GenMode.Opaque);
-            return Ref(ProxyName(t), sig);
+            return Ref(ProxyName(t), sig, new[] { t });
         }
         // struct
         if (!Supported(t)) return null;
@@ -318,15 +328,31 @@ sealed class TypeMap
         {
             Cs = ProxyName(t), Sig = sig, Abi = AbiClass.Composite, Size = layout.Size, Align = layout.Align,
             Hfa = layout.Hfa, HfaCount = layout.HfaCount, CheckSize = true,
+            Refs = { t },
         };
     }
 
-    static TypeUse Ref(string cs, string sig) => new()
+    static TypeUse Ref(string cs, string sig, IEnumerable<Type>? refs = null) => new()
     {
         Cs = cs, Sig = sig, Abi = AbiClass.Int, Size = 8, Align = 8,
         ToRaw = e => $"(long)({e}).Pointer",
         FromRaw = e => $"new {cs}((nint)({e}))",
+        Refs = refs == null ? new List<Type>() : new List<Type>(refs),
     };
+
+    public bool Emits(Type t)
+    {
+        string key = Key(t);
+        if (emitted.TryGetValue(key, out bool have)) return have;
+        if (Handwritten.Contains(key)) return true;
+        emitted[key] = true;
+        bool ok = Generated.ContainsKey(key) && (!t.IsNested || Emits(t.DeclaringType!));
+        if (ok && t.IsValueType && !t.IsEnum) ok = Layout(t) != null;
+        emitted[key] = ok;
+        return ok;
+    }
+
+    public Type? Missing(TypeUse use) => use.Refs.FirstOrDefault(r => !Emits(r));
 
     public static int Round(int v, int a) => (v + a - 1) / a * a;
 

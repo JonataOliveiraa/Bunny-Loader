@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using Terraria.ModLoader;
 
 namespace BunnyLoader;
@@ -23,18 +22,18 @@ internal static unsafe class ModNet
     public static void SetHello(Mod[] mods)
     {
         Mod[] sorted = mods.OrderBy(m => m.Name, StringComparer.Ordinal).ToArray();
-        string json = JsonSerializer.Serialize(sorted.Select(m => new[] { m.Name, m.Version.ToString() }).ToArray());
+        string hello = string.Concat(sorted.Select(m => $"\n{m.Name}\t{m.Version}").Prepend("1"));
         string list = sorted.Length == 0 ? "-" : string.Join(", ", sorted.Select(m => $"{m.DisplayName} {m.Version}"));
         string refusal = LocalizationLoader.Pack(new[]
         {
-            ("en-US", $"This server uses other C# mods: {list}. Install the same ones to join."),
-            ("pt-BR", $"Este servidor usa outros mods C#: {list}. Instale os mesmos para entrar."),
+            ("en-US", $"This server uses other C# mods: {list}.\u001D Missing here: {{0}}.\u001D Not on this server: {{0}}.\u001D Install the same ones to join."),
+            ("pt-BR", $"Este servidor usa outros mods C#: {list}.\u001D Faltam aqui: {{0}}.\u001D Não estão no servidor: {{0}}.\u001D Instale os mesmos para entrar."),
         });
-        byte* j = Host.Utf8(json), r = Host.Utf8(refusal);
-        try { Host.Native()->NetHello(j, r); }
+        byte* h = Host.Utf8(hello), r = Host.Utf8(refusal);
+        try { Host.Native()->NetHello(h, r); }
         finally
         {
-            Host.FreeUtf8(j);
+            Host.FreeUtf8(h);
             Host.FreeUtf8(r);
         }
     }

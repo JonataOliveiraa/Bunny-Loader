@@ -5,9 +5,12 @@
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cstring>
 #include <mutex>
+#include <string>
+#include <vector>
 
 namespace bl::runtime {
 
@@ -203,6 +206,52 @@ void boot(int32_t player, const std::string& reason) {
     call(g_refs.bootPlayer, nullptr, bootArgs, "NetMessage.BootPlayer");
 }
 
+std::vector<std::string> helloMods(const std::string& hello) {
+    std::vector<std::string> mods;
+    size_t start = hello.find('\n');
+    while (start != std::string::npos) {
+        const size_t end = hello.find('\n', start + 1);
+        std::string line = hello.substr(start + 1, end == std::string::npos ? std::string::npos : end - start - 1);
+        std::replace(line.begin(), line.end(), '\t', ' ');
+        if (!line.empty()) mods.push_back(line);
+        start = end;
+    }
+    return mods;
+}
+
+std::string notIn(const std::vector<std::string>& mods, const std::vector<std::string>& other) {
+    std::string out;
+    for (const std::string& mod : mods) {
+        if (std::find(other.begin(), other.end(), mod) != other.end()) continue;
+        if (!out.empty()) out += ", ";
+        out += mod;
+    }
+    return out;
+}
+
+std::string fill(std::string text, const std::string& value) {
+    const size_t at = text.find("{0}");
+    if (at != std::string::npos) text.replace(at, 3, value);
+    return text;
+}
+
+std::string refusalText(const std::string& text, const std::string& client, const std::string& server) {
+    std::vector<std::string> parts;
+    size_t start = 0;
+    for (size_t at = text.find('\x1D'); at != std::string::npos; at = text.find('\x1D', start)) {
+        parts.push_back(text.substr(start, at - start));
+        start = at + 1;
+    }
+    parts.push_back(text.substr(start));
+    if (parts.size() != 4) return text;
+    const std::vector<std::string> clientMods = helloMods(client), serverMods = helloMods(server);
+    const std::string missing = notIn(serverMods, clientMods), extra = notIn(clientMods, serverMods);
+    std::string out = parts[0];
+    if (!missing.empty()) out += fill(parts[1], missing);
+    if (!extra.empty()) out += fill(parts[2], extra);
+    return out + parts[3];
+}
+
 using ProcessDataFn = void (*)(Il2CppObject*, Il2CppArray*, int32_t, int32_t*, const MethodInfo*);
 ProcessDataFn g_origProcessData = nullptr;
 
@@ -223,8 +272,10 @@ void hkProcessData(Il2CppObject* self, Il2CppArray* data, int32_t length, int32_
         refusal = g_refusal;
     }
     if (from < 0 || from >= 255 || hello == ours) return;
-    BL_WARN("C# net: player %d refused, other C# mods (%s; this server: %s)", from, hello.c_str(), ours.c_str());
-    boot(from, content::textForCulture(refusal, "This server uses other C# mods."));
+    const std::vector<std::string> clientMods = helloMods(hello), serverMods = helloMods(ours);
+    BL_WARN("C# net: player %d refused, other C# mods (missing on the client: [%s]; only on the client: [%s])", from,
+            notIn(serverMods, clientMods).c_str(), notIn(clientMods, serverMods).c_str());
+    boot(from, refusalText(content::textForCulture(refusal, "This server uses other C# mods."), hello, ours));
 }
 
 }
@@ -252,9 +303,9 @@ bool installManagedNet(ManagedPacketHandler handler) {
     return installed;
 }
 
-void setManagedHello(const std::string& json, const content::CultureNames& refusal) {
+void setManagedHello(const std::string& hello, const content::CultureNames& refusal) {
     std::lock_guard<std::mutex> l(g_helloMx);
-    g_hello = json;
+    g_hello = hello;
     g_refusal = refusal;
 }
 

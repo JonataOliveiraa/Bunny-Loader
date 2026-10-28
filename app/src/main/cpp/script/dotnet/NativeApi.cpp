@@ -78,7 +78,7 @@ struct NativeApi {
     int32_t (*netInstall)(void (*handler)(const uint8_t* data, int32_t length, int32_t from));
     int32_t (*netSend)(const uint8_t* data, int32_t length, int32_t toClient, int32_t ignoreClient);
     int32_t (*netMode)();
-    void (*netHello)(const char* json, const char* refusal);
+    void (*netHello)(const char* hello, const char* refusal);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -491,8 +491,8 @@ int32_t nativeNetSend(const uint8_t* data, int32_t length, int32_t toClient, int
 
 int32_t nativeNetMode() { return runtime::gameNetMode(); }
 
-void nativeNetHello(const char* json, const char* refusal) {
-    runtime::setManagedHello(json ? json : "", cultureTexts(refusal));
+void nativeNetHello(const char* hello, const char* refusal) {
+    runtime::setManagedHello(hello ? hello : "", cultureTexts(refusal));
 }
 
 const NativeApi kNativeApi{

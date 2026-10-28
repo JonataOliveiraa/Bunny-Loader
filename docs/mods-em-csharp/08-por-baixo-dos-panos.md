@@ -214,9 +214,10 @@ written with a dot (`Terraria.NPC.Spawner`) or a slash (`Terraria.NPC/Spawner`).
 
 `tools/proxygen/js_types.py` writes `ProxyGen/types-js.txt`: the game types the
 JS loaders call by signature (`Type['void Foo(int a)']`, `Type.new(...)`,
-`bl.classOf`) that are not in `types.txt` yet. Some of its lines are a
-property and not a type (`Terraria.Main.ItemDropsDB`): the generator reports
-them as not found. To try them, with the dump in `refs/DummyDll`:
+`bl.classOf`) that are not in `types.txt` yet. A name that reads like a type
+but is a member (`Terraria.Main.ItemDropsDB`) is left out by checking
+`refs/dump.cs`; without the dump the script guesses by the name and says
+which ones it left out. To try them, with the dump in `refs/DummyDll`:
 
 ```bash
 python3 tools/proxygen/js_types.py
@@ -226,7 +227,10 @@ dotnet app/src/main/csharp/ProxyGen/bin/Release/net10.0/ProxyGen.dll --dummy ref
 
 Then read `/tmp/proxies/skipped.txt`, move to `types.txt` the types that
 generate, and build `BunnyLoader.dll` to see that the generated code
-compiles.
+compiles. A member whose type is not generated (a type nested in one that is
+not listed, a struct without a layout) is left out and written to
+`skipped.txt` as `type X is not generated`, so the generated code always
+compiles; a listed nested type brings the types around it along.
 - .NET cannot unload an assembly: a new build of your mod needs a game
   restart.
 

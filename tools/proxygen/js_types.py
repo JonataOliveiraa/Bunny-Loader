@@ -12,6 +12,40 @@ PATTERNS = [
 ]
 OUTSIDE = ("System.", "UnityEngine.")
 CLASS_OF = re.compile(r"bl\.classOf\(\s*['\"]([^'\"]*)['\"]\s*,\s*['\"]([^'\"]+)['\"]")
+DUMP = ROOT / "refs/dump.cs"
+NAMESPACE = re.compile(r"^// Namespace: ?(.*)$")
+TYPE = re.compile(r"^(?:[a-z]+ )*(?:class|struct|enum|interface) ([^\s:<]+)")
+
+
+def dumped():
+    if not DUMP.exists():
+        return None
+    found, ns = [], ""
+    with DUMP.open(encoding="utf-8", errors="replace") as lines:
+        for line in lines:
+            m = NAMESPACE.match(line)
+            if m:
+                ns = m.group(1).strip()
+                continue
+            m = TYPE.match(line)
+            if m:
+                found.append((ns, m.group(1)))
+    spaces = {}
+    for ns, name in found:
+        if "." not in name:
+            spaces.setdefault(name, set()).add(ns)
+    names = set()
+    for ns, name in found:
+        names.add(f"{ns}.{name}" if ns else name)
+        if not ns and "." in name:
+            names.update(f"{outer}.{name}" for outer in spaces.get(name.split(".")[0], ()) if outer)
+    return names
+
+
+def is_type(name, types):
+    if types is not None:
+        return name in types
+    return all(part[:1].isupper() or part[:1] == "_" for part in name.split(".")[1:])
 
 
 def listed(path):
@@ -41,7 +75,12 @@ def found():
 def main():
     out = PROXYGEN / "types-js.txt"
     known = listed(PROXYGEN / "types.txt")
-    names = sorted(n for n in found() - known if not n.startswith(OUTSIDE))
+    types = dumped()
+    candidates = sorted(n for n in found() - known if not n.startswith(OUTSIDE))
+    names = [n for n in candidates if is_type(n, types)]
+    for n in candidates:
+        if n not in names:
+            print(f"not a type{'' if types is not None else ' (no refs/dump.cs, guessed by name)'}: {n}")
     out.write_text("".join(n + "\n" for n in names), encoding="utf-8")
     print(f"{len(names)} types used by the JS code and not in types.txt -> {out.relative_to(ROOT)}")
     return 0

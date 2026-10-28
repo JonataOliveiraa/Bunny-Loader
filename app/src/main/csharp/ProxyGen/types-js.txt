@@ -65,7 +65,6 @@ Terraria.GameContent.TeleportPylonsSystem
 Terraria.GameContent.UI.Elements.UIPanel
 Terraria.GameContent.UI.Elements.UIText
 Terraria.GameInput.TriggersSet
-Terraria.Graphics.Effects.SkyManager.Instance
 Terraria.Graphics.Light.LegacyLighting
 Terraria.Graphics.Light.LightingEngine
 Terraria.Graphics.Renderers.LegacyPlayerRenderer
@@ -78,9 +77,6 @@ Terraria.Initializers.DyeInitializer
 Terraria.InventoryStorage
 Terraria.Lighting
 Terraria.Localization.NetworkText
-Terraria.Main.ItemDropSolver
-Terraria.Main.ItemDropsDB
-Terraria.Main.instance.TilesRenderer
 Terraria.Map.TeleportPylonsMapLayer
 Terraria.MessageBuffer
 Terraria.NPC.Spawner

@@ -600,7 +600,8 @@ public override void HandlePacket(BinaryReader reader, int whoAmI)
 
 **Joining a server.** When a client joins, it tells the server which C# mods
 it has (name and version). A client whose C# mods are not the same as the
-server's is refused, with a message that lists the server's mods. JS mods are
+server's is refused, with a message that lists the server's mods, the ones
+the client is missing and the ones only the client has. JS mods are
 checked by the JS side, which can also offer to sync them; for C# mods there
 is no offer yet (it comes with the server sync menu, phase 6 of the plan). A
 client without the .NET runtime (no C# mod enabled) sends nothing and is not
