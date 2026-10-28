@@ -318,7 +318,9 @@ Drawing the tooltip yourself, as in tModLoader:
 | `PostDrawTooltip(ReadOnlyCollection<DrawableTooltipLine> lines)` | After the tooltip | |
 
 The game still lays out the tooltip and draws its box; Bunny Loader steps
-in when it draws each line's text. The price lines (shop, reforge), the
+in when it draws each line's text. The phone's tooltip box has no item name:
+the `ItemName` line is in the list for `ModifyTooltips`, but it is never
+drawn, so the line hooks do not run for it. The price lines (shop, reforge), the
 One Drop logo and the materials grid of the crafting guide are drawn by the
 game without the line hooks.
 

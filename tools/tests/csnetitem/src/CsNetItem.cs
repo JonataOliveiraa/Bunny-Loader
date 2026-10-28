@@ -48,6 +48,13 @@ public sealed class CsNetItemMod : Mod
     static void Client(Player p)
     {
         done = true;
+        for (int k = 0; k < 58; k++)
+        {
+            Item item = p.inventory[k];
+            bool old = item.type == ModContent.ItemType<Tagged>() || item.type == ModContent.ItemType<Noted>() ||
+                (item.type == ItemID.Wood && item.GetGlobalItem<Stamp>().Mark == StampMark);
+            if (old) item.TurnToAir();
+        }
         int tagged = Put(p, ModContent.ItemType<Tagged>()), noted = Put(p, ModContent.ItemType<Noted>()), wood = Put(p, ItemID.Wood);
         if (tagged < 0 || noted < 0 || wood < 0)
         {

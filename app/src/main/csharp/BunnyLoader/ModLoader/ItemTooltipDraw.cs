@@ -43,6 +43,7 @@ internal static unsafe class ItemTooltipDraw
         public string Text = "";
         public readonly List<Pass> Shadows = new();
         public readonly List<DrawableTooltipLine> Drawn = new();
+        public readonly Dictionary<int, (DrawableTooltipLine Line, bool Go, int Shift)> Done = new();
     }
 
     public static void Install() =>
@@ -202,6 +203,7 @@ internal static unsafe class ItemTooltipDraw
         if (state.Index < 0 || text != state.Text)
         {
             int at = state.Lines.FindIndex(state.Next, l => l.Text == text);
+            if (at < 0) at = state.Lines.FindIndex(l => l.Text == text);
             if (at < 0) return false;
             Flush(state);
             state.Index = at;
@@ -226,17 +228,27 @@ internal static unsafe class ItemTooltipDraw
             float alpha = color.A / 255f;
             color = new Color((int)(over.R * alpha), (int)(over.G * alpha), (int)(over.B * alpha), color.A);
         }
-        var dl = new DrawableTooltipLine(line, state.Index, (int)main.X, (int)main.Y, color)
+        bool first = !state.Done.TryGetValue(state.Index, out var done);
+        DrawableTooltipLine dl;
+        bool go;
+        int shift;
+        if (first)
         {
-            Font = new GameObject(main.Font),
-            Rotation = main.Rotation,
-            Origin = new Vector2(main.OriginX, main.OriginY),
-            BaseScale = new Vector2(main.Scale),
-        };
-        bool go = PreDrawTooltipLine(state.Item, dl, ref state.YOffset) && state.CanDraw;
+            dl = new DrawableTooltipLine(line, state.Index, (int)main.X, (int)main.Y, color)
+            {
+                Font = new GameObject(main.Font),
+                Rotation = main.Rotation,
+                Origin = new Vector2(main.OriginX, main.OriginY),
+                BaseScale = new Vector2(main.Scale),
+            };
+            go = PreDrawTooltipLine(state.Item, dl, ref state.YOffset) && state.CanDraw;
+            shift = state.Shift;
+            state.Done[state.Index] = (dl, go, shift);
+        }
+        else (dl, go, shift) = done;
         if (go)
         {
-            float dx = dl.X - dl.OriginalX + state.Dx, dy = dl.Y - dl.OriginalY + state.Dy + state.Shift;
+            float dx = dl.X - dl.OriginalX + state.Dx, dy = dl.Y - dl.OriginalY + state.Dy + shift;
             float spread = dl.Spread / 2f;
             foreach (Pass s in state.Shadows)
             {
@@ -255,9 +267,12 @@ internal static unsafe class ItemTooltipDraw
             Write(text, line.Text, shadowColor: false, dl);
         }
         state.Shadows.Clear();
-        PostDrawTooltipLine(state.Item, dl);
-        state.Drawn.Add(dl);
-        state.Shift += state.YOffset;
+        if (first)
+        {
+            PostDrawTooltipLine(state.Item, dl);
+            state.Drawn.Add(dl);
+            state.Shift += state.YOffset;
+        }
         state.Index = -1;
         state.Text = "";
     }

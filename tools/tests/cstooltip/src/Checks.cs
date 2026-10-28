@@ -46,7 +46,7 @@ public static class Checks
         {
             Report("PreDrawTooltipLine and PostDrawTooltipLine run for each line", Lore.PreLines > 0 && Lore.PostLines == Lore.PreLines,
                 $"pre={Lore.PreLines} post={Lore.PostLines}");
-            Report("PostDrawTooltip gets the drawn lines", Lore.Drawn.Contains("ItemName") && Lore.Drawn.Contains("Gold") && Lore.Drawn.Contains("Tagged"),
+            Report("PostDrawTooltip gets the drawn lines", Lore.Drawn.Contains("Tooltip0") && Lore.Drawn.Contains("Gold") && Lore.Drawn.Contains("Tagged"),
                 Lore.Drawn);
             Finish();
         }
