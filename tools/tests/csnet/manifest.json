@@ -1,0 +1,15 @@
+{
+  "uid": "ef2a48b5-7100-492d-af55-ac8d630c425f",
+  "id": "test-csnet",
+  "name": "Teste: rede do C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPacket, Mod.GetPacket e HandlePacket, sem QuickJS. Em um jogador, confere os erros; com um servidor e um cliente, o ida e volta.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csnet. Instale nos dois aparelhos. O cliente loga 'csnet pong: ok' e o servidor 'csnet ping from N: ok'. Um cliente com outros mods C# e recusado ao entrar.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNet.dll",
+  "dependencies": []
+}

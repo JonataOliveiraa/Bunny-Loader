@@ -498,6 +498,53 @@ mods' keys only enter it on the game thread: from `SetStaticDefaults` on.
 The old format, `Localization/<culture>.json` with `ItemName` and
 `ItemTooltip` sections, is still read (a key of a `.hjson` wins).
 
+## Multiplayer: `ModPacket`
+
+A mod talks to itself on the other side of the connection with packets, as
+in tModLoader:
+
+```csharp
+// send (a client sends to the server; the server to one client or to all)
+ModPacket packet = Mod.GetPacket();
+packet.Write((byte)MyMessage.Heal);
+packet.Write(Main.myPlayer);
+packet.Write(50);
+packet.Send();                 // the server: Send(toClient, ignoreClient)
+
+// receive, in your Mod class
+public override void HandlePacket(BinaryReader reader, int whoAmI)
+{
+    switch ((MyMessage)reader.ReadByte())
+    {
+        case MyMessage.Heal:
+            int player = reader.ReadInt32();
+            int amount = reader.ReadInt32();
+            // ...
+            break;
+    }
+}
+```
+
+- `ModPacket` is a `BinaryWriter`: `Write` takes numbers, `bool`, `string`,
+  `byte[]`. `HandlePacket` gets a `BinaryReader` positioned at what you wrote:
+  read in the same order.
+- `whoAmI` is the sender: on the server, the client's player index; on a
+  client, `256` (the server).
+- `Send()` in single player throws. A packet holds at most 65,000 bytes.
+- A packet for a mod that the other side does not have is dropped, with a
+  line in the log.
+
+**Joining a server.** When a client joins, it tells the server which C# mods
+it has (name and version). A client whose C# mods are not the same as the
+server's is refused, with a message that lists the server's mods. JS mods are
+checked by the JS side, which can also offer to sync them; for C# mods there
+is no offer yet (it comes with the server sync menu, phase 6 of the plan). A
+client without the .NET runtime (no C# mod enabled) sends nothing and is not
+checked.
+
+Items do not send their own data yet (`ModItem.NetSend`/`NetReceive`): that
+comes with the item hooks, in phase 1.
+
 ## Logging from content
 
 A content class has `Mod`, so it logs through `Mod.Logger`:

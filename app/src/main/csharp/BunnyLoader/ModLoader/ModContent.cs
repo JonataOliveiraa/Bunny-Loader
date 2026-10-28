@@ -118,6 +118,7 @@ public static class ModContent
         try
         {
             Mod[] mods = Host.Mods;
+            ModNet.SetHello(mods);
             foreach (Mod mod in mods)
             {
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);

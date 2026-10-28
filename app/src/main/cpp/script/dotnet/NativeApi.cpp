@@ -4,6 +4,7 @@
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
+#include "content/common/ModNet.h"
 #include "content/items/ModItemData.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
@@ -74,6 +75,10 @@ struct NativeApi {
     uint32_t (*gcHandleNewWeak)(void* obj);
     void (*onItemData)(int32_t (*save)(void* item, const char* current, void* sink), int32_t (*load)(void* item, const char* data));
     void (*writeString)(void* sink, const char* text);
+    int32_t (*netInstall)(void (*handler)(const uint8_t* data, int32_t length, int32_t from));
+    int32_t (*netSend)(const uint8_t* data, int32_t length, int32_t toClient, int32_t ignoreClient);
+    int32_t (*netMode)();
+    void (*netHello)(const char* json, const char* refusal);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -476,6 +481,20 @@ void nativeWriteString(void* sink, const char* text) {
     if (sink) static_cast<std::string*>(sink)->assign(text ? text : "");
 }
 
+int32_t nativeNetInstall(void (*handler)(const uint8_t*, int32_t, int32_t)) {
+    return runtime::installManagedNet(handler) ? 1 : 0;
+}
+
+int32_t nativeNetSend(const uint8_t* data, int32_t length, int32_t toClient, int32_t ignoreClient) {
+    return runtime::sendManagedPacket(data, length, toClient, ignoreClient) ? 1 : 0;
+}
+
+int32_t nativeNetMode() { return runtime::gameNetMode(); }
+
+void nativeNetHello(const char* json, const char* refusal) {
+    runtime::setManagedHello(json ? json : "", cultureTexts(refusal));
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -517,6 +536,10 @@ const NativeApi kNativeApi{
     nativeGcHandleNewWeak,
     nativeOnItemData,
     nativeWriteString,
+    nativeNetInstall,
+    nativeNetSend,
+    nativeNetMode,
+    nativeNetHello,
 };
 
 } // namespace

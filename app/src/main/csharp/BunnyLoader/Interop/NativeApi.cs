@@ -48,4 +48,8 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<IntPtr, uint> GcHandleNewWeak;
     public delegate* unmanaged<delegate* unmanaged<IntPtr, byte*, IntPtr, int>, delegate* unmanaged<IntPtr, byte*, int>, void> OnItemData;
     public delegate* unmanaged<IntPtr, byte*, void> WriteString;
+    public delegate* unmanaged<delegate* unmanaged<byte*, int, int, void>, int> NetInstall;
+    public delegate* unmanaged<byte*, int, int, int, int> NetSend;
+    public delegate* unmanaged<int> NetMode;
+    public delegate* unmanaged<byte*, byte*, void> NetHello;
 }

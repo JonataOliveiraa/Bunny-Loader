@@ -50,6 +50,10 @@ public abstract class Mod
 
     public virtual object? Call(params object?[] args) => null;
 
+    public ModPacket GetPacket(int capacity = 256) => new(this, capacity);
+
+    public virtual void HandlePacket(BinaryReader reader, int whoAmI) { }
+
     public bool AddContent(ILoadable instance)
     {
         if (!loading) throw new InvalidOperationException($"{Name}: AddContent can only be called while the mod loads (Mod.Load)");

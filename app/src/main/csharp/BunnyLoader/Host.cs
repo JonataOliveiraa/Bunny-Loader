@@ -43,6 +43,7 @@ internal static unsafe class Host
         if (api == null || api->Size < (uint)sizeof(NativeApi)) return 0;
         Api = api;
         api->OnContentReady(&ModContent.ContentReady);
+        ModNet.Install();
         try
         {
             List<string> bad = Layouts.Verify();
