@@ -10,6 +10,7 @@
 #include "content/items/ModItemData.h"
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
+#include "il2cpp/GuardedCall.h"
 #include "script/api/Items.h"
 #include <fstream>
 
@@ -551,6 +552,7 @@ void hkChestSet(void* slot, Il2CppObject* item, const MethodInfo* method) {
 
 using ChestExpandFn = Il2CppObject* (*)(void*, const MethodInfo*);
 ChestExpandFn g_origChestExpand = nullptr;
+const MethodInfo* g_chestExpandMethod = nullptr;
 Il2CppObject* hkChestExpand(void* slot, const MethodInfo* method) {
     Il2CppObject* item = g_origChestExpand(slot, method);
     if (item && isModItem(field<int32_t>(item, g_refs.type))) {
@@ -944,6 +946,42 @@ bool setModChestItemData(Il2CppObject* chest, int slot, const std::string& data)
     return true;
 }
 
+namespace {
+
+char* chestSlotAt(int chestIndex, int slot) {
+    if (!g_chest.ok || chestIndex < 0) return nullptr;
+    Il2CppArray* chests = nullptr;
+    il2cpp::api().field_static_get_value(g_chest.chests, &chests);
+    if (!chests || static_cast<uintptr_t>(chestIndex) >= chests->length) return nullptr;
+    Il2CppObject* chest = static_cast<Il2CppObject**>(arrayData(chests))[chestIndex];
+    auto* items = chest ? reinterpret_cast<Il2CppArray*>(objectAt(chest, g_chest.items)) : nullptr;
+    return items ? slotOf(items, slot).data : nullptr;
+}
+
+}
+
+Il2CppObject* expandChestItem(int chestIndex, int slot) {
+    char* data = chestSlotAt(chestIndex, slot);
+    if (!data || !g_origChestExpand || !g_chestExpandMethod) return nullptr;
+    Il2CppObject* item = nullptr;
+    auto body = [&] { item = g_origChestExpand(data, g_chestExpandMethod); };
+    if (!il2cpp::guarded(body) || !item) return nullptr;
+    const int type = field<int32_t>(item, g_refs.type);
+    if (isModItem(type)) loadModItemData(item, chestData(data, type));
+    return item;
+}
+
+bool storeChestItemData(int chestIndex, int slot, Il2CppObject* item) {
+    char* data = chestSlotAt(chestIndex, slot);
+    if (!data || !item) return false;
+    const int type = field<int32_t>(item, g_refs.type);
+    if (type != ChestSlot{data}.type()) return false;
+    std::string saved;
+    if (isModItem(type) && !saveModItemData(item, saved)) return false;
+    setChestData(data, type, std::move(saved));
+    return true;
+}
+
 void installModItemSave() {
     if (!resolve()) {
         BL_ERROR("save de itens de mod: refs faltando; itens de mod somem ao sair do mundo");
@@ -985,7 +1023,8 @@ void installModItemSave() {
     };
     const bool okData = okWorld &&
         hook::install(method(chestItem, "void SetToItem(Item item)"), hkChestSet, &g_origChestSet) &&
-        hook::install(method(chestItem, "Item ExpandItem()"), hkChestExpand, &g_origChestExpand) &&
+        (g_chestExpandMethod = method(chestItem, "Item ExpandItem()")) != nullptr &&
+        hook::install(g_chestExpandMethod, hkChestExpand, &g_origChestExpand) &&
         hook::install(method(chestItem, "void Clear()"), hkChestClear, &g_origChestClear) &&
         hook::install(method(chestItem, "void TurnToAir()"), hkChestAir, &g_origChestAir) &&
         hook::install(method(chestItem, "void SetDefaults(int id)"), hkChestDefaults, &g_origChestDefaults) &&

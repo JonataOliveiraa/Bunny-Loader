@@ -46,7 +46,14 @@ internal static unsafe class ModNet
         {
             using var stream = new UnmanagedMemoryStream(data, length);
             using var reader = new BinaryReader(stream);
-            if (reader.ReadByte() != KindPacket) return;
+            byte kind = reader.ReadByte();
+            if (kind == ItemNetHooks.KindItem)
+            {
+                name = "item data";
+                ItemNetHooks.Queue(reader, from);
+                return;
+            }
+            if (kind != KindPacket) return;
             name = reader.ReadString();
             Mod? mod = Host.FindMod(name);
             if (mod == null)

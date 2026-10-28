@@ -54,4 +54,6 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, byte*, void> NetHello;
     public delegate* unmanaged<int, delegate* unmanaged<void*, int>, delegate* unmanaged<void>, byte*, int> ItemDrawListen;
     public delegate* unmanaged<int, byte*, void> ConsolePrint;
+    public delegate* unmanaged<int, int, IntPtr> ExpandChestItem;
+    public delegate* unmanaged<int, int, IntPtr, int> StoreChestItem;
 }

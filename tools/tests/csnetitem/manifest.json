@@ -1,0 +1,15 @@
+{
+  "uid": "964cd313-33de-4136-ae97-93942529c8c8",
+  "id": "test-csnetitem",
+  "name": "Teste: dados de item de mod na rede no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "NetSend/NetReceive do ModItem e do GlobalItem, e o SaveData de um item, na mensagem 5 do jogo. Dois aparelhos.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csnetitem. Instalar nos dois. O cliente poe os itens no inventario; o servidor (o anfitriao) loga 'csnetitem <caso>: ok | FAIL' e 'csnetitem END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNetItem.dll",
+  "dependencies": []
+}

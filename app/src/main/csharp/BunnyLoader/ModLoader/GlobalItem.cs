@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
@@ -44,6 +45,10 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual bool OnPickup(Item item, Player player) => true;
 
     public virtual bool ItemSpace(Item item, Player player) => false;
+
+    public virtual void NetSend(Item item, BinaryWriter writer) { }
+
+    public virtual void NetReceive(Item item, BinaryReader reader) { }
 
     public virtual bool CanRightClick(Item item) => false;
 

@@ -1,3 +1,4 @@
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.Localization;
@@ -78,6 +79,10 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual bool PreDrawInInventory(SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale) => true;
 
     public virtual void PostDrawInInventory(SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale) { }
+
+    public virtual void NetSend(BinaryWriter writer) { }
+
+    public virtual void NetReceive(BinaryReader reader) { }
 
     public virtual void SaveData(TagCompound tag) { }
 

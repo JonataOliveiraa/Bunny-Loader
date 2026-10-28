@@ -228,18 +228,7 @@ internal static unsafe class ItemLoader
         {
             instance = InstanceOf(new Item(itemPointer));
             if (instance == null) return 1;
-            string text;
-            if (instance.LoadFailed || !Overrides(instance, nameof(ModItem.SaveData)))
-            {
-                text = instance.SavedData ?? Marshal.PtrToStringUTF8((IntPtr)current) ?? "";
-            }
-            else
-            {
-                var tag = new TagCompound();
-                instance.SaveData(tag);
-                text = tag.Count == 0 ? "" : TagJson.Write(tag);
-                instance.SavedData = text;
-            }
+            string text = SavedText(instance) ?? Marshal.PtrToStringUTF8((IntPtr)current) ?? "";
             byte* utf8 = Host.Utf8(text);
             try { Host.Native()->WriteString(sink, utf8); }
             finally { Host.FreeUtf8(utf8); }
@@ -260,12 +249,7 @@ internal static unsafe class ItemLoader
         {
             instance = InstanceOf(new Item(itemPointer));
             if (instance == null) return 1;
-            string text = Marshal.PtrToStringUTF8((IntPtr)data) ?? "";
-            instance.SavedData = text;
-            instance.LoadFailed = true;
-            TagCompound tag = text.Length == 0 ? new TagCompound() : TagJson.Read(text);
-            if (Overrides(instance, nameof(ModItem.LoadData))) instance.LoadData(tag);
-            instance.LoadFailed = false;
+            LoadText(instance, Marshal.PtrToStringUTF8((IntPtr)data) ?? "");
             return 1;
         }
         catch (Exception e)
@@ -275,7 +259,26 @@ internal static unsafe class ItemLoader
         }
     }
 
-    static bool Overrides(ModItem item, string method) =>
+    internal static string? SavedText(ModItem instance)
+    {
+        if (instance.LoadFailed || !Overrides(instance, nameof(ModItem.SaveData))) return instance.SavedData;
+        var tag = new TagCompound();
+        instance.SaveData(tag);
+        string text = tag.Count == 0 ? "" : TagJson.Write(tag);
+        instance.SavedData = text;
+        return text;
+    }
+
+    internal static void LoadText(ModItem instance, string text)
+    {
+        instance.SavedData = text;
+        instance.LoadFailed = true;
+        TagCompound tag = text.Length == 0 ? new TagCompound() : TagJson.Read(text);
+        if (Overrides(instance, nameof(ModItem.LoadData))) instance.LoadData(tag);
+        instance.LoadFailed = false;
+    }
+
+    internal static bool Overrides(ModItem item, string method) =>
         item.GetType().GetMethod(method, new[] { typeof(TagCompound) })!.DeclaringType != typeof(ModItem);
 
     [UnmanagedCallersOnly]

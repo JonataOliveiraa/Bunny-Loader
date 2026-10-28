@@ -646,6 +646,32 @@ checked.
 Items do not send their own data yet (`ModItem.NetSend`/`NetReceive`): that
 comes with the item hooks, in phase 1.
 
+### An item's data on the network
+
+The game sends an item when it changes hands: a player's slot (message 5),
+an item on the ground (21 and 90), a chest slot (32). The data of a `ModItem`
+goes with it:
+
+```csharp
+public class Charged : ModItem
+{
+    public int Charge;
+
+    public override void NetSend(BinaryWriter writer) => writer.Write(Charge);
+
+    public override void NetReceive(BinaryReader reader) => Charge = reader.ReadInt32();
+}
+```
+
+`GlobalItem` has the same two, with the `Item` first (`InstancePerEntity`
+for per-item fields), for any item. A `ModItem` without `NetSend` that has
+`SaveData` sends what `SaveData` writes instead, and the other side runs
+`LoadData` with it, so a saved field also reaches the server (which saves
+the chests) and the other players. Write and read the same things, in the
+same order. The data goes as a C# packet just before the game's message, and
+is applied right after the game reads it; on a server, before the game
+passes the message on to the other players.
+
 ## Logging from content
 
 A content class has `Mod`, so it logs through `Mod.Logger`:

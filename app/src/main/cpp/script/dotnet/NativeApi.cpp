@@ -7,6 +7,7 @@
 #include "content/common/ModNet.h"
 #include "content/items/ItemDrawStages.h"
 #include "content/items/ModItemData.h"
+#include "content/items/ModItemSave.h"
 #include "content/items/ModItems.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -83,6 +84,8 @@ struct NativeApi {
     void (*netHello)(const char* hello, const char* refusal);
     int32_t (*itemDrawListen)(int32_t kind, int32_t (*pre)(void* args), void (*post)(), uint8_t* active);
     void (*consolePrint)(int32_t kind, const char* text);
+    void* (*expandChestItem)(int32_t chest, int32_t slot);
+    int32_t (*storeChestItem)(int32_t chest, int32_t slot, void* item);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -528,6 +531,12 @@ void nativeConsolePrint(int32_t kind, const char* text) {
     script::consolePrint(static_cast<char>(kind), text ? text : "");
 }
 
+void* nativeExpandChestItem(int32_t chest, int32_t slot) { return runtime::expandChestItem(chest, slot); }
+
+int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
+    return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
+}
+
 const NativeApi kNativeApi{
     sizeof(NativeApi),
     nativeLog,
@@ -575,6 +584,8 @@ const NativeApi kNativeApi{
     nativeNetHello,
     nativeItemDrawListen,
     nativeConsolePrint,
+    nativeExpandChestItem,
+    nativeStoreChestItem,
 };
 
 } // namespace
