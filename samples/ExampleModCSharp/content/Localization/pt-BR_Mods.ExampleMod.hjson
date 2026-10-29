@@ -64,6 +64,11 @@ Items: {
 		Tooltip: Esta é uma espada de mod.
 	}
 
+	ExampleMagicWeapon: {
+		DisplayName: Arma Mágica de Exemplo
+		Tooltip: Esta é uma arma mágica de exemplo
+	}
+
 	ExampleStatBonusAccessory: {
 		DisplayName: Acessório de Bônus de Exemplo
 		Tooltip:

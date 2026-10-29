@@ -68,7 +68,93 @@ public static class Checks
                 $"mod={Counts.Get("Used.UpdateInventory")} global={Counts.Get("Global.UpdateInventory")}");
             player.inventory[slot].TurnToAir();
         }
+        Timing(player);
         Log.Info($"csuse END pass={pass} fail={fail}");
+    }
+
+    static void Timing(Player player)
+    {
+        Item timed = Make(ModContent.ItemType<TimedItem>());
+        var pin = new BunnyLoader.Interop.GameHandle(timed.Pointer);
+        int time = player.itemTime, timeMax = player.itemTimeMax, animation = player.itemAnimation, animationMax = player.itemAnimationMax;
+
+        player.ApplyItemTime(timed);
+        int applied = player.itemTime;
+        player.ApplyItemTime(timed, 1f);
+        int appliedMultiplied = player.itemTime;
+        player.ApplyItemAnimation(timed);
+        int animated = player.itemAnimation;
+        Report("UseTimeMultiplier and UseSpeedMultiplier", applied == 40 && appliedMultiplied == 40, $"itemTime={applied} withMultiplier={appliedMultiplied}");
+        Report("UseAnimationMultiplier", animated == 60, $"itemAnimation={animated}");
+
+        bool reuse = timed.autoReuse;
+        player.releaseUseItem = false;
+        TimedItem.AutoReuse = true;
+        player.ItemCheck_AutoReuseLogic(timed);
+        bool forced = player.releaseUseItem;
+        timed.autoReuse = true;
+        player.releaseUseItem = false;
+        TimedItem.AutoReuse = false;
+        player.ItemCheck_AutoReuseLogic(timed);
+        bool blocked = !player.releaseUseItem && timed.autoReuse;
+        TimedItem.AutoReuse = null;
+        timed.autoReuse = reuse;
+        Report("CanAutoReuseItem forces and stops the reuse", forced && blocked && Counts.Get("Timed.CanAutoReuseItem") == 2, $"forced={forced} blocked={blocked}");
+
+        var inventory = player.inventory;
+        int slot = player.selectedItem;
+        Item held = inventory[slot];
+        var heldPin = held.IsNull ? null : new BunnyLoader.Interop.GameHandle(held.Pointer);
+        int mana = player.statMana;
+        try
+        {
+            inventory[slot] = timed;
+            player.itemAnimation = 5;
+            player.PlayerFrame();
+            player.itemAnimation = 0;
+            player.PlayerFrame();
+            Report("UseItemFrame and HoldItemFrame", Counts.Get("Timed.UseItemFrame") == 1 && Counts.Get("Timed.HoldItemFrame") == 1,
+                $"use={Counts.Get("Timed.UseItemFrame")} hold={Counts.Get("Timed.HoldItemFrame")}");
+
+            float cost = player.manaCost;
+            player.statMana = 100;
+            bool paid = player.CheckMana(10, true, true);
+            int left = player.statMana;
+            player.statMana = 2;
+            bool short_ = player.CheckMana(10, false, true);
+            bool missing = player.CheckMana(10, false, false);
+            int expected = (int)(10 * cost * 0.5f);
+            Report("ModifyManaCost, OnConsumeMana and OnMissingMana", paid && left == 100 - expected && TimedItem.LastConsumed == expected &&
+                Counts.Get("Timed.OnMissingMana") == 1 && TimedItem.LastMissing == expected && player.manaCost == cost,
+                $"paid={paid} short={short_} missingResult={missing} left={left} expected={expected} consumed={TimedItem.LastConsumed} missing={TimedItem.LastMissing} calls={Counts.Get("Timed.OnMissingMana")} manaCost={player.manaCost}");
+
+            player.altFunctionUse = 0;
+            player.controlUseItem = false;
+            player.controlUseTile = true;
+            player.releaseUseItem = true;
+            player.tileInteractionHappened = false;
+            player.mouseInterface = false;
+            Main.mouseRightRelease = true;
+            player.ItemCheck_ManageRightClickFeatures();
+            int alt = player.altFunctionUse;
+            bool use = player.controlUseItem;
+            Report("AltFunctionUse starts the alternate use", alt == 1 && use && Counts.Get("Timed.AltFunctionUse") == 1,
+                $"altFunctionUse={alt} controlUseItem={use} calls={Counts.Get("Timed.AltFunctionUse")}");
+        }
+        finally
+        {
+            inventory[slot] = held;
+            heldPin?.Dispose();
+            player.statMana = mana;
+            player.altFunctionUse = 0;
+            player.controlUseItem = false;
+            player.controlUseTile = false;
+            player.itemTime = time;
+            player.itemTimeMax = timeMax;
+            player.itemAnimation = animation;
+            player.itemAnimationMax = animationMax;
+            pin.Dispose();
+        }
     }
 
     static Item Make(int type)

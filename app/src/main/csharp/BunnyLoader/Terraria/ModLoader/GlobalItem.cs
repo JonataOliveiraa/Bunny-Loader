@@ -26,6 +26,26 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void UseAnimation(Item item, Player player) { }
 
+    public virtual bool? CanAutoReuseItem(Item item, Player player) => null;
+
+    public virtual float UseTimeMultiplier(Item item, Player player) => 1f;
+
+    public virtual float UseAnimationMultiplier(Item item, Player player) => 1f;
+
+    public virtual float UseSpeedMultiplier(Item item, Player player) => 1f;
+
+    public virtual void ModifyManaCost(Item item, Player player, ref float reduce, ref float mult) { }
+
+    public virtual void OnMissingMana(Item item, Player player, int neededMana) { }
+
+    public virtual void OnConsumeMana(Item item, Player player, int manaConsumed) { }
+
+    public virtual void UseItemFrame(Item item, Player player) { }
+
+    public virtual void HoldItemFrame(Item item, Player player) { }
+
+    public virtual bool AltFunctionUse(Item item, Player player) => false;
+
     public virtual void HoldItem(Item item, Player player) { }
 
     public virtual void UseStyle(Item item, Player player, Rectangle heldItemFrame) { }

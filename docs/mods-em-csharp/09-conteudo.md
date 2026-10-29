@@ -234,6 +234,13 @@ item), with tModLoader's signatures:
 | `HoldItem(Player player)` | Every frame the item is in hand | |
 | `HoldoutOffset()` | With the styles | `Vector2?`: moves the item in the hand (x forward, y down) |
 | `UpdateInventory(Player player)` | Every frame the item is in the inventory (the 58 slots, coins and ammo too) | |
+| `UseTimeMultiplier(Player player)`, `UseAnimationMultiplier(Player player)`, `UseSpeedMultiplier(Player player)` | When a use starts | `float`: the use time is multiplied by `UseTimeMultiplier`, the animation by `UseAnimationMultiplier`, and both divided by `UseSpeedMultiplier` (the `GlobalItem`s multiply in) |
+| `CanAutoReuseItem(Player player)` | When the game decides whether the use repeats | `bool?`: `true` repeats it even without `autoReuse`, `false` never |
+| `AltFunctionUse(Player player)` | When the player uses the tile control (right click) with the item | `true`: the item is used with `player.altFunctionUse == 2` (check it in `UseItem`, `CanUseItem`, `Shoot`...) |
+| `UseItemFrame(Player player)` / `HoldItemFrame(Player player)` | Every frame, after the game picks the player's body frame, while the item is used / held | change `player.bodyFrame` |
+| `ModifyManaCost(Player player, ref float reduce, ref float mult)` | When the game checks or spends the mana of a use | `reduce` starts at `player.manaCost`; the cost is the item's mana × `reduce` × `mult` (multiply `mult`) |
+| `OnMissingMana(Player player, int neededMana)` | When the player has less mana than the use needs | |
+| `OnConsumeMana(Player player, int manaConsumed)` | After the mana is spent | |
 
 Healing items (potions, food that heals) have their own:
 

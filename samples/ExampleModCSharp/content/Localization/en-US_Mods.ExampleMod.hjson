@@ -64,6 +64,11 @@ Items: {
 		Tooltip: This is a modded sword.
 	}
 
+	ExampleMagicWeapon: {
+		DisplayName: Example Magic Weapon
+		Tooltip: This is an example magic weapon
+	}
+
 	ExampleStatBonusAccessory: {
 		DisplayName: Example Stat Bonus Accessory
 		Tooltip:

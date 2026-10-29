@@ -44,6 +44,26 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void UseAnimation(Player player) { }
 
+    public virtual bool? CanAutoReuseItem(Player player) => null;
+
+    public virtual float UseTimeMultiplier(Player player) => 1f;
+
+    public virtual float UseAnimationMultiplier(Player player) => 1f;
+
+    public virtual float UseSpeedMultiplier(Player player) => 1f;
+
+    public virtual void ModifyManaCost(Player player, ref float reduce, ref float mult) { }
+
+    public virtual void OnMissingMana(Player player, int neededMana) { }
+
+    public virtual void OnConsumeMana(Player player, int manaConsumed) { }
+
+    public virtual void UseItemFrame(Player player) { }
+
+    public virtual void HoldItemFrame(Player player) { }
+
+    public virtual bool AltFunctionUse(Player player) => false;
+
     public virtual void HoldItem(Player player) { }
 
     public virtual void UseStyle(Player player, Rectangle heldItemFrame) { }

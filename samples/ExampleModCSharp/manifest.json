@@ -3,7 +3,7 @@
   "id": "examplemodcsharp",
   "name": "Example Mod C#",
   "localizedSummaries": {
-    "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item, the Sword, the recipes, the Example armor, wings and shield, the Example damage class with its weapon and stat bonus accessory, the Example shotgun, minigun and sword."
+    "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item, the Sword, the recipes, the Example armor, wings and shield, the Example damage class with its weapon and stat bonus accessory, the Example shotgun, minigun, sword and magic weapon."
   },
   "version": "0.6.0",
   "authors": [
@@ -22,7 +22,7 @@
     }
   ],
   "category": "Itens",
-  "summary": "O ExampleMod do tModLoader em C#, portado conforme os loaders C# chegam. Por enquanto: o Exemplo de Item, a Espada, as receitas, a armadura, as asas e o escudo, a classe de dano de exemplo, a escopeta, a metralhadora e a espada de exemplo.",
+  "summary": "O ExampleMod do tModLoader em C#, portado conforme os loaders C# chegam. Por enquanto: o Exemplo de Item, a Espada, as receitas, a armadura, as asas e o escudo, a classe de dano de exemplo, a escopeta, a metralhadora, a espada e a arma mágica de exemplo.",
   "license": "MIT",
   "updated": "2026-10-29",
   "blVersion": 2,
