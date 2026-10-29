@@ -49,6 +49,21 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleShotgun: {
+		DisplayName: Example Shotgun
+		Tooltip: This is a modded shotgun.
+	}
+
+	ExampleMinigun: {
+		DisplayName: Example Minigun
+		Tooltip: This is a modded minigun.
+	}
+
+	ExampleSword: {
+		DisplayName: Example Sword
+		Tooltip: This is a modded sword.
+	}
+
 	ExampleStatBonusAccessory: {
 		DisplayName: Example Stat Bonus Accessory
 		Tooltip:

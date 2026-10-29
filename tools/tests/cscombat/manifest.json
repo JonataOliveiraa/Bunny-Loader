@@ -1,0 +1,15 @@
+{
+  "uid": "cbbc47e7-8d5a-408b-82e7-8bb401396923",
+  "id": "test-cscombat",
+  "name": "Teste: combate do item no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModifyWeapon*, escala, hitbox, MeleeEffects, tiro, munição e golpe no NPC (HitModifiers), sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh cscombat. No mundo, loga 'cscombat <caso>: ok | FAIL' e 'cscombat END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsCombat.dll",
+  "dependencies": []
+}

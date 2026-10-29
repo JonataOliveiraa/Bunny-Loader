@@ -479,6 +479,13 @@ static class Program
                 sb.Append(i1).Append($"public static implicit operator {bn}({self} v) => new {bn}(v.Pointer);\n");
                 sb.Append(i1).Append($"public static explicit operator {self}({bn} v) => new {self}(v.Pointer);\n");
             }
+            foreach (Type it in t.GetInterfaces().OrderBy(x => x.FullName, StringComparer.Ordinal))
+            {
+                if (!map.Generated.TryGetValue(TypeMap.Key(it), out var ie) || ie.Mode == GenMode.Enum) continue;
+                string iname = TypeMap.ProxyName(it);
+                sb.Append(i1).Append($"public static implicit operator {iname}({self} v) => new {iname}(v.Pointer);\n");
+                sb.Append(i1).Append($"public static explicit operator {self}({iname} v) => new {self}(v.Pointer);\n");
+            }
         }
 
         if (plan != null) EmitMembers(sb, i1, t, plan, emitter);

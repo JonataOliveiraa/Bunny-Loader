@@ -349,8 +349,80 @@ game method behind it the first time a loaded `ModItem` or `GlobalItem`
 overrides that hook. An exception in a hook goes to the log once (not every
 frame), and the game goes on as if the hook were not there.
 
-The other item hooks (combat, ammo, tooltips, network) come
-next; see the plan.
+### Combat: the weapon's numbers
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `ModifyWeaponDamage(Player player, ref StatModifier damage)` | Whenever the game asks the weapon's damage (the use, the tooltip) | change `damage`: `damage += 0.5f` (additive), `damage *= 1.2f`, `damage.Flat += 3` |
+| `ModifyWeaponCrit(Player player, ref float crit)` | Whenever the game asks the crit chance | change `crit`, in percent |
+| `ModifyWeaponKnockback(Player player, ref StatModifier knockback)` | Whenever the game asks the knockback | change `knockback` |
+| `ModifyItemScale(Player player, ref float scale)` | When the item is drawn and when its melee hitbox is measured | change `scale` |
+| `UseItemHitbox(Player player, ref Rectangle hitbox, ref bool noHitbox)` | When the melee hitbox is measured | change `hitbox`; `noHitbox = true` hits nothing |
+| `MeleeEffects(Player player, Rectangle hitbox)` | Every frame of a swing, with the hitbox | dusts, light |
+
+`damage` starts as the player's total for the weapon, as in tModLoader: the
+phone's game computes it from the player's fields, and Bunny Loader hands it
+to you as one additive bonus (`Additive` is the game's damage over
+`Item.damage`), so `+=`, `*=`, `Base` and `Flat` give tModLoader's numbers.
+`knockback` works the same way.
+
+### Shooting and ammo
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `CanShoot(Player player)` | Before the item shoots | `false`: nothing is shot (the use time still runs) |
+| `ModifyShootStats(Player player, ref Vector2 position, ref Vector2 velocity, ref int type, ref int damage, ref float knockback)` | Right before the projectile is made | change any of them |
+| `Shoot(Player player, EntitySource_ItemUse_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback)` | Right after | `false`: the game does not make its projectile (make your own with `Projectile.NewProjectile(source, ...)`) |
+| `NeedsAmmo(Player player)` | When the game looks for ammo | `false`: the weapon shoots without ammo (as if it had the basic ammo of its `useAmmo`) |
+| `CanChooseAmmo(Item ammo, Player player)` | For each ammo in the inventory | `bool?`: `true` takes it even of another kind, `false` skips it |
+| `CanConsumeAmmo(Item ammo, Player player)` | Before the ammo is spent | `false`: it is not spent this time |
+| `OnConsumeAmmo(Item ammo, Player player)` | After it is spent | |
+
+The ammo item has the other side: `CanBeChosenAsAmmo(Item weapon, Player
+player)`, `CanBeConsumedAsAmmo(Item weapon, Player player)`,
+`OnConsumedAsAmmo(Item weapon, Player player)` and `PickAmmo(Item weapon,
+Player player, ref int type, ref float speed, ref StatModifier damage, ref
+float knockback)` (the projectile, speed and damage it gives the shot). The
+`GlobalItem` versions take the weapon and the ammo first, as in tModLoader.
+
+```csharp
+public override bool Shoot(Player player, EntitySource_ItemUse_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback)
+{
+    for (int i = 0; i < 8; i++)
+    {
+        Vector2 spread = velocity.RotatedByRandom(MathHelper.ToRadians(15)) * (1f - Main.rand.NextFloat(0.3f));
+        Projectile.NewProjectileDirect(source, position, spread, type, damage, knockback, player.whoAmI);
+    }
+    return false;
+}
+```
+
+`ModifyShootStats` and `Shoot` run on the first projectile the game makes for
+the shot. A game weapon that makes several (a shotgun) has its first one
+changed; the others come as the game makes them. `Main.rand.NextBool`,
+`NextFloat`, `RotatedBy`, `RotatedByRandom`, `ToRotation` and `SafeNormalize`
+are extensions, as in tModLoader (the phone's `Utils` has them only as plain
+static methods).
+
+### Hitting an NPC
+
+| `ModItem` | When | Return |
+|---|---|---|
+| `CanHitNPC(Player player, NPC target)` | Before a swing hits an NPC | `bool?`: `false` skips it, `true` hits it even if the game would not (a town NPC) |
+| `CanMeleeAttackCollideWithNPC(Rectangle meleeAttackHitbox, Player player, NPC target)` | When the swing's hitbox is checked against the NPC | `bool?`: `true` hits it out of reach, `false` misses |
+| `ModifyHitNPC(Player player, NPC target, ref NPC.HitModifiers modifiers)` | Right before the damage | change `modifiers` |
+| `OnHitNPC(Player player, NPC target, NPC.HitInfo hit, int damageDone)` | After the damage | `hit.Damage`, `hit.Crit`, `hit.Knockback`... |
+
+`NPC.HitModifiers` and `NPC.HitInfo` are tModLoader's, with the same math
+(`SourceDamage`, `FlatBonusDamage`, `Defense`, `ArmorPenetration`,
+`ScalingArmorPenetration`, `CritDamage`, `FinalDamage`, `Knockback`,
+`SetMaxDamage`, `DisableCrit`, `SetCrit`, `SetInstantKill`,
+`HideCombatText`...). The phone's game takes the damage before defense and
+sends that to the server; Bunny Loader works out the final damage the
+tModLoader way and gives the game the raw damage that comes to it, so the
+server reaches the same number. These are the melee hits; the projectile's
+side comes with `ModProjectile`, and `CanHitPvp`/`ModifyHitPvp`/`OnHitPvp`
+with the player's hurt hooks (phase 2).
 
 ## Rarities: `ModRarity`
 

@@ -20,6 +20,8 @@ Terraria.ID.BuffID
 Terraria.ID.DustID
 Terraria.ID.ItemUseStyleID
 Terraria.ID.SoundID
+Terraria.ID.AmmoID
+Terraria.ID.AmmoID.Sets
 Microsoft.Xna.Framework.Graphics.Texture2D
 Terraria.Localization.Language
 Terraria.Localization.LocalizedText
@@ -76,6 +78,8 @@ Terraria.CombatText
 Terraria.DataStructures.ArmorSetBonuses.Benefits
 Terraria.DataStructures.DrawAnimationVertical
 Terraria.DataStructures.DrawData
+Terraria.DataStructures.EntitySource_ItemUse
+Terraria.DataStructures.EntitySource_ItemUse_WithAmmo
 Terraria.DataStructures.PlacementHook
 Terraria.DataStructures.PlayerDrawLayers
 Terraria.DataStructures.PlayerDrawSet
