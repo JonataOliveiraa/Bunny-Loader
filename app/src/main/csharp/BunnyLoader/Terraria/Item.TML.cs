@@ -27,4 +27,12 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
     public bool CountsAsClass<T>() where T : DamageClass => CountsAsClass(ModContent.GetInstance<T>());
 
     public bool CountsAsClass(DamageClass damageClass) => DamageType.CountsAsClass(damageClass);
+
+    public void CloneDefaults(int TypeToClone) => ItemLoader.CloneDefaults(this, TypeToClone);
+
+    public int ResearchUnlockCount
+    {
+        get => ItemLoader.ResearchUnlockCount(type);
+        set => ItemLoader.SetResearchUnlockCount(type, value);
+    }
 }

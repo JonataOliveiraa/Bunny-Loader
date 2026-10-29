@@ -1,9 +1,12 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System;
 using BunnyLoader.Interop;
 using BunnyLoader;
+using Terraria.GameContent.Creative;
 using Terraria.GameContent.Items;
 using Terraria.ID;
 using Terraria.Localization;
@@ -222,6 +225,79 @@ internal static unsafe class ItemLoader
                 Log.Error($"{global.FullName}: SetDefaults threw: {e}");
             }
         }
+    }
+
+    internal static void CloneDefaults(Item item, int typeToClone)
+    {
+        int type = item.type;
+        bool material = item.material;
+        ModItem? instance = Instances.Get(item.Pointer);
+        GlobalItem?[]? slots = Globals.Slots(item);
+        item.SetDefaults(typeToClone, default);
+        item.type = type;
+        item.material = material;
+        Instances.Set(item.Pointer, instance);
+        Globals.Restore(item, slots);
+    }
+
+    static readonly Dictionary<int, int> Research = new();
+
+    static IntPtr Sacrifices() => CreativeItemSacrificesCatalog.Instance.SacrificeCountNeededByItemId.Pointer;
+
+    static IntPtr DictionaryMethod(IntPtr dictionary, string signature, out IntPtr info)
+    {
+        IntPtr klass = *(IntPtr*)dictionary;
+        byte* s = Host.Utf8(signature);
+        try { info = Host.Native()->FindMethodBySignature(klass, s); }
+        finally { Host.FreeUtf8(s); }
+        if (info == IntPtr.Zero) throw new MissingMethodException($"Dictionary<int, int>: '{signature}' not found");
+        return Host.Native()->MethodPointer(info);
+    }
+
+    internal static int ResearchUnlockCount(int type)
+    {
+        IntPtr table = Sacrifices();
+        if (table == IntPtr.Zero) return 0;
+        IntPtr fn = DictionaryMethod(table, "bool TryGetValue(int key, out int value)", out IntPtr info);
+        int value = 0;
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(table);
+        call.Arg(type);
+        call.Arg((IntPtr)(&value));
+        call.Arg(info);
+        return (call.Invoke(fn) & 0xFF) != 0 ? value : 0;
+    }
+
+    internal static void SetResearchUnlockCount(int type, int count)
+    {
+        lock (Research) Research[type] = count;
+        ApplyResearch(type, count);
+        ItemHooks.Once("Research", () => On_CreativeItemSacrificesCatalog.Initialize += SacrificesInitialize);
+    }
+
+    static void SacrificesInitialize(On_CreativeItemSacrificesCatalog.orig_Initialize orig, CreativeItemSacrificesCatalog self)
+    {
+        orig(self);
+        KeyValuePair<int, int>[] all;
+        lock (Research) all = Research.ToArray();
+        foreach ((int type, int count) in all)
+        {
+            try { ApplyResearch(type, count); }
+            catch (Exception e) { Log.Error($"ResearchUnlockCount {type}: {e.Message}"); }
+        }
+    }
+
+    static void ApplyResearch(int type, int count)
+    {
+        IntPtr table = Sacrifices();
+        if (table == IntPtr.Zero) return;
+        IntPtr fn = DictionaryMethod(table, count < 1 ? "bool Remove(int key)" : "void set_Item(int key, int value)", out IntPtr info);
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(table);
+        call.Arg(type);
+        if (count >= 1) call.Arg(count);
+        call.Arg(info);
+        call.Invoke(fn);
     }
 
     static Item Clone(On_Item.orig_Clone orig, Item self) => CopyInstances(self, orig(self));

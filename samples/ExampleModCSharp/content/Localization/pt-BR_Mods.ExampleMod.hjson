@@ -40,6 +40,24 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleLifeFruit: {
+		DisplayName: Fruta da Vida de Exemplo
+		Tooltip:
+			'''
+			Aumenta a vida máxima permanentemente em {0}
+			Pode ser usada até {1} vezes
+			'''
+	}
+
+	ExampleManaCrystal: {
+		DisplayName: Cristal de Mana de Exemplo
+		Tooltip:
+			'''
+			Aumenta a mana máxima permanentemente em {0}
+			Pode ser usado até {1} vezes
+			'''
+	}
+
 	ExampleWings: {
 		DisplayName: Asas de Exemplo
 		Tooltip: Estas são asas de mod.

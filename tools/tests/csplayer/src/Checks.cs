@@ -113,7 +113,30 @@ public static class Checks
         PlayerFileData loaded = Player.LoadPlayer(path, false);
         int saved = loaded.IsNull || loaded.Player.IsNull ? -2 : loaded.Player.GetModPlayer<TestPlayer>().Saved;
         Report("LoadData reads it back on LoadPlayer", saved == 7, $"saved={saved}");
+        Content(p);
         Finish();
+    }
+
+    static void Content(Player p)
+    {
+        Item fruit = Item.New();
+        fruit.SetDefaults(ModContent.ItemType<TestFruit>(), default);
+        Item life = Item.New();
+        life.SetDefaults(ItemID.LifeFruit, default);
+        Report("CloneDefaults copies the game item and keeps the mod type", fruit.type == ModContent.ItemType<TestFruit>() && fruit.ModItem is TestFruit &&
+            fruit.consumable && fruit.useStyle == life.useStyle && fruit.useTime == life.useTime && fruit.maxStack == life.maxStack && fruit.rare == life.rare,
+            $"type={fruit.type} modItem={fruit.ModItem?.Name} useStyle={fruit.useStyle}/{life.useStyle} maxStack={fruit.maxStack}/{life.maxStack}");
+        Report("ResearchUnlockCount goes into the sacrifice table", fruit.ResearchUnlockCount == 7 && life.ResearchUnlockCount > 0,
+            $"mod={fruit.ResearchUnlockCount} lifeFruit={life.ResearchUnlockCount}");
+
+        int baseLife = p.statLifeMax, baseMana = p.statManaMax;
+        Report("ConsumedLifeCrystals and ConsumedManaCrystals follow the saved max", p.ConsumedLifeCrystals == (System.Math.Min(baseLife, 400) - 100) / 20 &&
+            p.ConsumedManaCrystals == (baseMana - 20) / 20, $"statLifeMax={baseLife} crystals={p.ConsumedLifeCrystals} fruit={p.ConsumedLifeFruit} statManaMax={baseMana} mana={p.ConsumedManaCrystals}");
+        int max2 = p.statLifeMax2, life2 = p.statLife;
+        p.UseHealthMaxIncreasingItem(10);
+        Report("UseHealthMaxIncreasingItem raises this frame's max, not the saved one", p.statLifeMax2 == max2 + 10 && p.statLife == life2 + 10 && p.statLifeMax == baseLife,
+            $"max2 {max2}->{p.statLifeMax2} life {life2}->{p.statLife} statLifeMax={p.statLifeMax}");
+        p.statLife = life2;
     }
 
     static void Finish()

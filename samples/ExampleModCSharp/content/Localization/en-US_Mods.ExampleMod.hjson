@@ -40,6 +40,24 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleLifeFruit: {
+		DisplayName: Example Life Fruit
+		Tooltip:
+			'''
+			Permanently increases maximum life by {0}
+			Up to {1} can be used
+			'''
+	}
+
+	ExampleManaCrystal: {
+		DisplayName: Example Mana Crystal
+		Tooltip:
+			'''
+			Permanently increases maximum mana by {0}
+			Up to {1} can be used
+			'''
+	}
+
 	ExampleWings: {
 		DisplayName: Example Wings
 		Tooltip: This is a modded wing.

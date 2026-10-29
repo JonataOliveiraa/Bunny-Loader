@@ -802,8 +802,47 @@ comes first. A `ModPlayer` hook covers every item, the game's included.
 | `ModifyHitNPC`, `ModifyHitNPCWithItem`, `OnHitNPC`, `OnHitNPCWithItem` | an item's melee hit, after the item's hooks |
 | `OnHitAnything(x, y, victim)` | after the game's `Player.OnHit` |
 
+### `ModPlayer` in multiplayer
+
+As in tModLoader, `ExampleStatIncreasePlayer`:
+
+```csharp
+public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
+{
+    ModPacket packet = Mod.GetPacket();
+    packet.Write((byte)ExampleMod.MessageType.ExampleStatIncreasePlayerSync);
+    packet.Write((byte)Player.whoAmI);
+    packet.Write((byte)exampleLifeFruits);
+    packet.Write((byte)exampleManaCrystals);
+    packet.Send(toWho, fromWho);
+}
+
+public override void CopyClientState(ModPlayer targetCopy) =>
+    ((ExampleStatIncreasePlayer)targetCopy).exampleLifeFruits = exampleLifeFruits;
+
+public override void SendClientChanges(ModPlayer clientPlayer)
+{
+    if (exampleLifeFruits != ((ExampleStatIncreasePlayer)clientPlayer).exampleLifeFruits)
+        SyncPlayer(toWho: -1, fromWho: Main.myPlayer, newPlayer: false);
+}
+```
+
+| Hook | When |
+| --- | --- |
+| `SyncPlayer(toWho, fromWho, newPlayer)` | after the game's `NetMessage.SyncOnePlayer` (`newPlayer` the first time for that slot), and on the client right after it enters the world (`toWho -1`, `newPlayer true`) |
+| `CopyClientState(targetCopy)` | when the game copies the local player (`Player.clientClone`) |
+| `SendClientChanges(clientPlayer)` | every client update, with the copy from the last one |
+| `PlayerConnect()`, `PlayerDisconnect()` | on the server when a player joins or leaves (also when the slot just goes empty) |
+
+The phone's host plays in the same game: its `Main.netMode` is 3, so it is
+both a client (`(Main.netMode & 1) != 0`, it runs `SendClientChanges`) and
+the server (`(Main.netMode & NetmodeID.Server) != 0`). Code from
+tModLoader that tests `Main.netMode == NetmodeID.Server` to pass a packet on
+to the other clients has to use the `&` form, as the ExampleMod's
+`HandlePacket` does.
+
 The rest of tModLoader's `ModPlayer` (hurts, projectile hits, jumps,
-drawing, network, fishing, shops) comes in the next steps of phase 2.
+drawing, fishing, shops) comes in the next steps of phase 2.
 
 ## Finding content by name
 

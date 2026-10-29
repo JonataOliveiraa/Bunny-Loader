@@ -43,6 +43,16 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void LoadData(TagCompound tag) { }
 
+    public virtual void CopyClientState(ModPlayer targetCopy) { }
+
+    public virtual void SyncPlayer(int toWho, int fromWho, bool newPlayer) { }
+
+    public virtual void SendClientChanges(ModPlayer clientPlayer) { }
+
+    public virtual void PlayerConnect() { }
+
+    public virtual void PlayerDisconnect() { }
+
     public virtual void PreSavePlayer() { }
 
     public virtual void PostSavePlayer() { }
