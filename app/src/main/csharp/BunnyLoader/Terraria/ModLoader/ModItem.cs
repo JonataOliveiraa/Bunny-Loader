@@ -11,7 +11,7 @@ namespace Terraria.ModLoader;
 
 public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 {
-    public Item Item => Entity;
+    public ref Item Item => ref entity;
 
     public int Type { get; internal set; }
 

@@ -3,9 +3,9 @@
   "id": "examplemodcsharp",
   "name": "Example Mod C#",
   "localizedSummaries": {
-    "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item, the Sword, the recipes, the Example armor, wings and shield."
+    "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item, the Sword, the recipes, the Example armor, wings and shield, the Example damage class with its weapon and stat bonus accessory."
   },
-  "version": "0.4.0",
+  "version": "0.5.0",
   "authors": [
     {
       "name": "Potato",

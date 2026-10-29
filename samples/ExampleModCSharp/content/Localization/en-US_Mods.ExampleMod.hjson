@@ -43,8 +43,34 @@ Items: {
 		DisplayName: Example Shield
 		Tooltip: This is a modded shield.
 	}
+
+	ExampleCustomDamageWeapon: {
+		DisplayName: Example Custom Damage Weapon
+		Tooltip: ""
+	}
+
+	ExampleStatBonusAccessory: {
+		DisplayName: Example Stat Bonus Accessory
+		Tooltip:
+			'''
+			25% increased damage, this is an additive multiplier with other damage bonuses
+			12% increased multiplicative damage multiplier; this is multiplicative with other damage bonuses
+			Increases base damage for all weapons by 4
+			Increases total damage for all weapons by 5
+			10% increased melee critical strike chance
+			Increases ranged firing speed by 15%
+			5 magic armor penetration
+			100% increased example knockback
+			'''
+	}
 }
 
 Conditions: {
 	LowHealth: Low Health
+}
+
+DamageClasses: {
+	ExampleDamageClass: {
+		DisplayName: example damage
+	}
 }

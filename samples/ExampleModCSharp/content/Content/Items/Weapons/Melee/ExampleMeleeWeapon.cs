@@ -16,7 +16,7 @@ public class ExampleMeleeWeapon : ModItem
         Item.useAnimation = 20;
         Item.autoReuse = true;
 
-        Item.melee = true;
+        Item.DamageType = DamageClass.Melee;
         Item.SetWeaponValues(50, 6, 6);
 
         Item.value = Item.sellPrice(gold: 1);

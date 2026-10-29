@@ -4,7 +4,13 @@ namespace Terraria.ModLoader;
 
 public abstract class ModType<TEntity, TModType> : ModType where TModType : ModType<TEntity, TModType>
 {
-    public TEntity Entity { get; internal set; } = default!;
+    internal TEntity entity = default!;
+
+    public TEntity Entity
+    {
+        get => entity;
+        internal set => entity = value;
+    }
 
     protected virtual bool CloneNewInstances => false;
 

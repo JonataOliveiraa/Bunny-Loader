@@ -1,0 +1,15 @@
+{
+  "uid": "0b5a3f3e-6c1e-4f7a-9d1c-2e8f4b7a6c51",
+  "id": "test-flatworld",
+  "name": "Teste: mundo plano",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Ao entrar no mundo, apaga tudo e deixa um chão plano de terra com grama, sem árvores, lápides, baús, líquidos nem paredes; tira os NPCs hostis, põe o spawn no meio e salva.",
+  "description": "Roda uma vez (com QuickJS) para gerar o mundo de teste dos mods C#. Loga 'flatworld ...' e 'flatworld END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "main.js",
+  "dependencies": []
+}

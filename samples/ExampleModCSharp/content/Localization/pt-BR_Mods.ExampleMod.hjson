@@ -43,8 +43,34 @@ Items: {
 		DisplayName: Escudo de Exemplo
 		Tooltip: Este é um escudo de mod.
 	}
+
+	ExampleCustomDamageWeapon: {
+		DisplayName: Arma de Dano Personalizado de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleStatBonusAccessory: {
+		DisplayName: Acessório de Bônus de Exemplo
+		Tooltip:
+			'''
+			25% de dano aumentado, somado aos outros bônus de dano
+			12% de multiplicador de dano, multiplicado pelos outros bônus
+			Aumenta o dano base de todas as armas em 4
+			Aumenta o dano total de todas as armas em 5
+			10% de chance de acerto crítico corpo a corpo aumentada
+			Aumenta a velocidade de disparo à distância em 15%
+			5 de penetração de armadura mágica
+			100% de repulsão de exemplo aumentada
+			'''
+	}
 }
 
 Conditions: {
 	LowHealth: Vida baixa
+}
+
+DamageClasses: {
+	ExampleDamageClass: {
+		DisplayName: dano de exemplo
+	}
 }

@@ -24,9 +24,17 @@ internal static unsafe class ItemTooltipHooks
 
     static bool prefixLines;
 
+    static bool damageLines;
+
     internal static void WantPrefixLines()
     {
         prefixLines = true;
+        InstallHooks();
+    }
+
+    internal static void WantDamageLines()
+    {
+        damageLines = true;
         InstallHooks();
     }
 
@@ -47,7 +55,7 @@ internal static unsafe class ItemTooltipHooks
 
     internal static bool Wanted(Item item) =>
         !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)) ||
-                                          prefixLines && PrefixLoader.GetPrefix(item.prefix) != null);
+                                          prefixLines && PrefixLoader.GetPrefix(item.prefix) != null || damageLines && item.damage > 0);
 
     internal static bool Has(ModItem m, string name) => ItemHooks.Overrides(m.GetType(), typeof(ModItem), name);
 
@@ -99,6 +107,11 @@ internal static unsafe class ItemTooltipHooks
                 {
                     int at = lines.FindLastIndex(l => l.IsModifier || l.IsModifierBad);
                     lines.InsertRange(at < 0 ? lines.Count : at + 1, extra);
+                }
+                if (damageLines)
+                {
+                    try { DamageClassHooks.Tooltip(item, lines); }
+                    catch (Exception e) { ItemHooks.Report("DamageClass (tooltip)", e); }
                 }
                 Modify(item, lines);
                 lines.RemoveAll(l => !l.Visible);

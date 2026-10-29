@@ -1,0 +1,15 @@
+{
+  "uid": "03148fbd-af80-472d-8e5c-3f9f789ea82f",
+  "id": "test-csenv",
+  "name": "Teste: ambiente dos testes C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Ligado em toda rodada de teste C#: o jogador local fica invencível, nenhum monstro nasce e os hostis que existirem somem.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csenv. Loga 'csenv ready' ao entrar no mundo.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsEnv.dll",
+  "dependencies": []
+}

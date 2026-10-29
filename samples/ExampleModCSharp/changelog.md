@@ -1,5 +1,11 @@
 # Novidades
 
+## 0.5.0
+
+- A classe de dano de exemplo (`ExampleDamageClass`), a arma que a usa
+  (`ExampleCustomDamageWeapon`) e o acessório de bônus por classe
+  (`ExampleStatBonusAccessory`). O elmo e a espada usam `DamageClass`.
+
 ## 0.4.0
 
 - A armadura de exemplo (elmo, peitoral e perneiras, com o bônus do

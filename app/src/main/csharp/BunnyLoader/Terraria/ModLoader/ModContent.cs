@@ -131,6 +131,10 @@ public static class ModContent
             {
                 foreach (ModRarity rarity in mod.GetContent<ModRarity>()) Run(mod, $"{rarity.Name}.SetStaticDefaults", rarity.SetupContent);
             }
+            foreach (Mod mod in mods)
+            {
+                foreach (DamageClass damageClass in mod.GetContent<DamageClass>()) Run(mod, $"{damageClass.Name}.SetStaticDefaults", damageClass.SetupContent);
+            }
             try { PrefixLoader.ContentReady(); }
             catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
             foreach (Mod mod in mods)

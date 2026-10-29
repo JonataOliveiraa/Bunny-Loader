@@ -174,7 +174,10 @@ internal static unsafe class ItemLoader
             if (Instances.Count > 0) Instances.Set(self.Pointer, null);
             if (Globals.Count == 0) return;
             Globals.Finish(self, Globals.Begin(self));
-            GlobalSetDefaults(self);
+            IntPtr previous = DamageClassLoader.Defaulting;
+            DamageClassLoader.Defaulting = self.Pointer;
+            try { GlobalSetDefaults(self); }
+            finally { DamageClassLoader.Defaulting = previous; }
             return;
         }
         NativeApi* api = Host.Native();
@@ -184,17 +187,23 @@ internal static unsafe class ItemLoader
         EquipLoader.Apply(self, type);
         ModItem instance = Bind(template, self);
         GlobalItem?[]? slots = Globals.Begin(self);
+        IntPtr outer = DamageClassLoader.Defaulting;
+        DamageClassLoader.Defaulting = self.Pointer;
         try
         {
-            instance.SetDefaults();
+            try
+            {
+                instance.SetDefaults();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"item {template.FullName}: SetDefaults threw: {e}");
+            }
+            Globals.Finish(self, slots);
+            api->FinishItem(self.Pointer, type);
+            GlobalSetDefaults(self);
         }
-        catch (Exception e)
-        {
-            Log.Error($"item {template.FullName}: SetDefaults threw: {e}");
-        }
-        Globals.Finish(self, slots);
-        api->FinishItem(self.Pointer, type);
-        GlobalSetDefaults(self);
+        finally { DamageClassLoader.Defaulting = outer; }
     }
 
     static void GlobalSetDefaults(Item item)

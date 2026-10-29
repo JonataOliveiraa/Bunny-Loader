@@ -502,6 +502,58 @@ Not on the phone yet: the set bonus line in the tooltip (the game has no
 `CanEquipAccessory`, the `HidesTopSkin`/`HidesHands` flags of
 `ArmorIDs.Body.Sets` and the item sync in PvP.
 
+## Damage classes: `DamageClass`
+
+An item's class is `Item.DamageType`, as in tModLoader:
+
+```csharp
+Item.DamageType = DamageClass.Melee;
+Item.DamageType = ModContent.GetInstance<ExampleDamageClass>();
+```
+
+The game's classes are `DamageClass.Default`, `Generic`, `Melee`,
+`MeleeNoSpeed`, `Ranged`, `Magic`, `Summon`, `SummonMeleeSpeed`,
+`MagicSummonHybrid` and `Throwing`, with tModLoader's types (0 to 9). A class
+of your own extends `DamageClass` and is loaded like any other content; it
+can override `GetModifierInheritance` (whose bonuses it takes, as a
+`StatInheritanceData`), `GetEffectInheritance` (which classes it counts as,
+for effects such as the Magma Stone), `GetPrefixInheritance`,
+`SetDefaultStats`, `UseStandardCritCalcs` and `ShowStatTooltipLine`. Its name
+in the tooltip is `Mods.<Mod>.DamageClasses.<Class>.DisplayName`, and should
+include the word "damage" ("example damage").
+
+The player's bonuses per class are tModLoader's `ref` methods, reset every
+frame:
+
+```csharp
+player.GetDamage(DamageClass.Generic) += 0.25f;
+player.GetDamage(DamageClass.Generic) *= 1.12f;
+player.GetDamage(DamageClass.Generic).Flat += 5;
+player.GetCritChance(DamageClass.Melee) += 10;
+player.GetAttackSpeed(DamageClass.Ranged) += 0.15f;
+player.GetArmorPenetration(DamageClass.Magic) += 5;
+player.GetKnockback<ExampleDamageClass>() += 1f;
+```
+
+`GetTotalDamage`, `GetTotalCritChance`, `GetTotalAttackSpeed`,
+`GetTotalArmorPenetration` and `GetTotalKnockback` add the inherited classes,
+and `GetWeaponAttackSpeed`/`GetWeaponArmorPenetration` give an item's.
+`Item.CountsAsClass` and `Projectile.CountsAsClass` follow the class's
+`GetEffectInheritance`.
+
+The phone's game has no damage classes, only the item's `melee`, `ranged`,
+`magic` and `summon` flags and the player's fields (`meleeDamage`,
+`meleeCrit`, `meleeSpeed`, `minionDamage`...). What you add to `Generic`,
+`Melee`, `Ranged`, `Magic` and `Summon` goes into those fields once a frame,
+so the game's own code sees it. Any other class (yours, `Generic`,
+`MagicSummonHybrid` or `Throwing` set on an item) sets the flags of the
+classes it counts as or takes prefixes from, so the game's effects and
+prefixes follow, and its damage, crit, speed, knockback and armor
+penetration come from the class. The tooltip names the class and shows its
+crit. `DamageType` set in `SetDefaults` is the item type's; set anywhere
+else, it is that item's only. `ModItem.Item` is a `ref Item`, so
+`Item.DamageType = ...` works on it.
+
 ## Changing every item: `GlobalItem`
 
 A `GlobalItem` runs for items that are not yours: the game's and other mods'.

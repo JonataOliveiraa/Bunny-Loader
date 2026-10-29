@@ -22,11 +22,7 @@ public class ExampleHelmet : ModItem
 
     public override void UpdateArmorSet(Player player)
     {
-        float bonus = AdditiveGenericDamageBonus / 100f;
-        player.meleeDamage += bonus;
-        player.rangedDamage += bonus;
-        player.magicDamage += bonus;
-        player.minionDamage += bonus;
+        player.GetDamage(DamageClass.Generic) += AdditiveGenericDamageBonus / 100f;
     }
 
     public override void AddRecipes()

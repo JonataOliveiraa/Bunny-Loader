@@ -1,0 +1,15 @@
+{
+  "uid": "e46768b6-9a3c-440f-815b-8d53522dc336",
+  "id": "test-csdamage",
+  "name": "Teste: classes de dano no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "DamageClass, Item.DamageType, StatModifier e os bônus por classe do jogador, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csdamage. No mundo, loga 'csdamage <caso>: ok | FAIL' e 'csdamage END'.",
+  "updated": "2026-10-28",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsDamage.dll",
+  "dependencies": []
+}
