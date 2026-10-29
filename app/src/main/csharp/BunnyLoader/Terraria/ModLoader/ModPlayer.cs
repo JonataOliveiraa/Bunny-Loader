@@ -75,6 +75,30 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void FrameEffects() { }
 
+    public virtual bool ImmuneTo(PlayerDeathReason damageSource, int cooldownCounter, bool dodgeable) => false;
+
+    public virtual bool FreeDodge(Player.HurtInfo info) => false;
+
+    public virtual bool ConsumableDodge(Player.HurtInfo info) => false;
+
+    public virtual void ModifyHurt(ref Player.HurtModifiers modifiers) { }
+
+    public virtual void OnHurt(Player.HurtInfo info) { }
+
+    public virtual void PostHurt(Player.HurtInfo info) { }
+
+    public virtual bool CanBeHitByNPC(NPC npc, ref int cooldownSlot) => true;
+
+    public virtual bool CanBeHitByProjectile(Projectile proj) => true;
+
+    public virtual void ModifyHitByNPC(NPC npc, ref Player.HurtModifiers modifiers) { }
+
+    public virtual void ModifyHitByProjectile(Projectile proj, ref Player.HurtModifiers modifiers) { }
+
+    public virtual void OnHitByNPC(NPC npc, Player.HurtInfo hurtInfo) { }
+
+    public virtual void OnHitByProjectile(Projectile proj, Player.HurtInfo hurtInfo) { }
+
     public virtual bool PreKill(double damage, int hitDirection, bool pvp, ref bool playSound, ref bool genDust, ref PlayerDeathReason damageSource) => true;
 
     public virtual void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource) { }

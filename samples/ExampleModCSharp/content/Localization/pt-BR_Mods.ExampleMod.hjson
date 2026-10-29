@@ -58,6 +58,11 @@ Items: {
 			'''
 	}
 
+	ExampleImmunityAccessory: {
+		DisplayName: Acessório de Imunidade de Exemplo
+		Tooltip: Um colar de cruz de mod que aumenta o tempo de imunidade em 1 segundo.
+	}
+
 	ExampleWings: {
 		DisplayName: Asas de Exemplo
 		Tooltip: Estas são asas de mod.

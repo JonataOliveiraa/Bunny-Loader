@@ -841,8 +841,47 @@ tModLoader that tests `Main.netMode == NetmodeID.Server` to pass a packet on
 to the other clients has to use the `&` form, as the ExampleMod's
 `HandlePacket` does.
 
-The rest of tModLoader's `ModPlayer` (hurts, projectile hits, jumps,
-drawing, fishing, shops) comes in the next steps of phase 2.
+### Getting hurt: `Player.HurtModifiers` and `HurtInfo`
+
+```csharp
+public class ExampleImmunityPlayer : ModPlayer
+{
+    public bool HasExampleImmunityAcc;
+
+    public override void ResetEffects() => HasExampleImmunityAcc = false;
+
+    public override void PostHurt(Player.HurtInfo info)
+    {
+        if (HasExampleImmunityAcc && !info.PvP) Player.AddImmuneTime(info.CooldownCounter, 60);
+    }
+}
+```
+
+The hurt hooks run around the game's `Player.Hurt`, so every hit is seen:
+an NPC's, a projectile's (its index is in the `PlayerDeathReason`), a fall,
+lava, a debuff.
+
+| Hook | When |
+| --- | --- |
+| `ImmuneTo(damageSource, cooldownCounter, dodgeable)` | first; `true` skips the hit |
+| `CanBeHitByNPC(npc, ref cooldownSlot)`, `CanBeHitByProjectile(proj)` | when the hit comes from an NPC or a projectile; `false` skips it |
+| `ModifyHitByNPC`, `ModifyHitByProjectile`, then `ModifyHurt(ref modifiers)` | on tModLoader's `Player.HurtModifiers` |
+| `FreeDodge(info)`, `ConsumableDodge(info)` | for a dodgeable hit on the local player; `true` skips it |
+| `OnHitByNPC`, `OnHitByProjectile`, `OnHurt(info)` | after the game applied the hit, with the damage it took |
+| `PostHurt(info)` | after that, if the player is still alive |
+
+`HurtModifiers` does tModLoader's math: `SourceDamage` and
+`IncomingDamageMultiplier` act before the defense, `ArmorPenetration`,
+`ScalingArmorPenetration`, `FinalDamage` and `SetMaxDamage` after it, and
+`Cancel()` skips the hit. The game still does the rest of its `Hurt` (the
+crit of the phone's `Hurt`, endurance, the beetle and paladin's shield
+reductions), and `HurtInfo.Damage` in `OnHurt` is what it took. Not used
+yet: `Knockback`, `KnockbackImmunityEffectiveness`, `HitDirectionOverride`
+only changes the direction passed to the game, and `DisableDust` and
+`DisableSound` have no effect.
+
+The rest of tModLoader's `ModPlayer` (PvP, projectile hits, jumps, drawing,
+fishing, shops) comes in the next steps of phase 2.
 
 ## Finding content by name
 

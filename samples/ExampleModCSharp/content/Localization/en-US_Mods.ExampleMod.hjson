@@ -58,6 +58,11 @@ Items: {
 			'''
 	}
 
+	ExampleImmunityAccessory: {
+		DisplayName: Example Immunity Accessory
+		Tooltip: This is a modded cross necklace that increases your immunity time by 1 second.
+	}
+
 	ExampleWings: {
 		DisplayName: Example Wings
 		Tooltip: This is a modded wing.

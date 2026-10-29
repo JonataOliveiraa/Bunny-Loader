@@ -33,6 +33,7 @@ internal static class PlayerHooks
         if (Has(nameof(ModPlayer.PreItemCheck)) || Has(nameof(ModPlayer.PostItemCheck))) ItemHooks.Once("PlayerItemCheck", () => On_Player.ItemCheck += ItemCheck);
         if (Has(nameof(ModPlayer.OnHitAnything))) ItemHooks.Once("PlayerOnHit", () => On_Player.OnHit += OnHit);
         PlayerNetHooks.Install(Has);
+        PlayerHurtHooks.Install(Has);
         ItemCombatHooks.Install(Has, true);
         ItemShootHooks.Install(Has, true);
         ItemTimingHooks.Install(Has, true);

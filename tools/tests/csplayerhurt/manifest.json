@@ -1,0 +1,15 @@
+{
+  "uid": "26ed3ce5-2724-43bc-8b4e-8388a2622c71",
+  "id": "test-csplayerhurt",
+  "name": "Teste: dano recebido do ModPlayer no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer: ImmuneTo, esquivas, ModifyHurt com HurtModifiers, OnHurt, PostHurt e golpes de NPC e projétil, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csplayerhurt. No mundo, loga 'csplayerhurt <caso>: ok | FAIL' e 'csplayerhurt END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPlayerHurt.dll",
+  "dependencies": []
+}

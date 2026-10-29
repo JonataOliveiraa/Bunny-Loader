@@ -49,6 +49,12 @@ public readonly partial struct Player
         if (Main.myPlayer == whoAmI) ManaEffect(increase);
     }
 
+    public void AddImmuneTime(int cooldownCounterId, int immuneTime)
+    {
+        if (cooldownCounterId < 0) this.immuneTime += immuneTime;
+        else hurtCooldowns[cooldownCounterId] += immuneTime;
+    }
+
     public ModPlayer[] ModPlayers => PlayerLoader.Of(this);
 
     public T GetModPlayer<T>() where T : ModPlayer => GetModPlayer(ModContent.GetInstance<T>());
