@@ -81,6 +81,7 @@ Terraria.DataStructures.DrawData
 Terraria.DataStructures.EntitySource_ItemUse
 Terraria.DataStructures.EntitySource_ItemUse_WithAmmo
 Terraria.DataStructures.PlacementHook
+Terraria.DataStructures.PlayerDeathReason
 Terraria.DataStructures.PlayerDrawLayers
 Terraria.DataStructures.PlayerDrawSet
 Terraria.DataStructures.SpriteFrame
@@ -93,6 +94,7 @@ Terraria.GameContent.BannerSystem.NetBannersModule
 Terraria.GameContent.CraftingRequests
 Terraria.GameContent.Creative.CreativeItemSacrificesCatalog
 Terraria.GameContent.DestinationInventory
+Terraria.GameContent.Events.LanternNight
 Terraria.GameContent.Generation.PassLegacy
 Terraria.GameContent.ItemDropRules.CommonCode
 Terraria.GameContent.ItemDropRules.DropAttemptInfo
@@ -111,6 +113,8 @@ Terraria.Graphics.SpriteViewMatrix
 Terraria.ID.ContentSamples
 Terraria.ID.ItemID.BannerEffect
 Terraria.ID.PlayerItemSlotID.SlotReference
+Terraria.IO.FileData
+Terraria.IO.PlayerFileData
 Terraria.IO.WorldFile
 Terraria.Initializers.DyeInitializer
 Terraria.InventoryStorage

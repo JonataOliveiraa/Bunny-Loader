@@ -64,7 +64,7 @@ internal static unsafe class ItemEquipHooks
         if (Has(nameof(EquipTexture.WingUpdate))) ItemWingHooks.Want(ItemWingHooks.Update, false);
     }
 
-    static void WantArmorSets() => ItemHooks.Once("ArmorSets", () => On_Player.UpdateArmorSets += UpdateArmorSets);
+    internal static void WantArmorSets() => ItemHooks.Once("ArmorSets", () => On_Player.UpdateArmorSets += UpdateArmorSets);
 
     internal static string GetSetBonus(Player player) => SetBonuses.Get(player.Pointer) ?? "";
 
@@ -79,7 +79,7 @@ internal static unsafe class ItemEquipHooks
         SetBonuses.Set(player.Pointer, string.IsNullOrEmpty(text) ? null : text);
     }
 
-    static void WantFrame() => ItemHooks.Once("ArmorFrame", () => On_Player.PlayerFrame += PlayerFrame);
+    internal static void WantFrame() => ItemHooks.Once("ArmorFrame", () => On_Player.PlayerFrame += PlayerFrame);
 
     static void WantShadows() => ItemHooks.Once("ArmorShadows", () => On_Player.SetArmorEffectVisuals += SetArmorEffectVisuals);
 
@@ -282,6 +282,7 @@ internal static unsafe class ItemEquipHooks
             }
         }
         catch (Exception e) { ItemHooks.Report("UpdateArmorSet", e); }
+        PlayerLoader.Each(self, nameof(ModPlayer.PostUpdateEquips), m => m.PostUpdateEquips());
     }
 
     static void PlayerFrame(On_Player.orig_PlayerFrame orig, Player self)
@@ -290,6 +291,7 @@ internal static unsafe class ItemEquipHooks
         try
         {
             Vanity(self, nameof(EquipTexture.PreUpdateVanitySet));
+            PlayerLoader.Each(self, nameof(ModPlayer.FrameEffects), m => m.FrameEffects());
             foreach (EquipType type in EquipLoader.Installed())
             {
                 if (EquipLoader.GetEquipTexture(type, EquipLoader.PlayerSlot(self, type)) is EquipTexture texture)

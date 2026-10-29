@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -6,6 +7,27 @@ namespace Terraria;
 public readonly partial struct Player
 {
     public bool HasBuff(int type) => FindBuffIndex(type) != -1;
+
+    public ModPlayer[] ModPlayers => PlayerLoader.Of(this);
+
+    public T GetModPlayer<T>() where T : ModPlayer => GetModPlayer(ModContent.GetInstance<T>());
+
+    public T GetModPlayer<T>(T baseInstance) where T : ModPlayer =>
+        PlayerLoader.Of(this)[baseInstance.Index] as T ?? throw new KeyNotFoundException($"Instance of '{typeof(T).Name}' does not exist on the current player.");
+
+    public bool TryGetModPlayer<T>(out T result) where T : ModPlayer => TryGetModPlayer(ModContent.GetInstance<T>(), out result);
+
+    public bool TryGetModPlayer<T>(T baseInstance, out T result) where T : ModPlayer
+    {
+        ModPlayer[] instances = PlayerLoader.Of(this);
+        if (baseInstance == null || baseInstance.Index >= instances.Length)
+        {
+            result = default!;
+            return false;
+        }
+        result = (T)instances[baseInstance.Index];
+        return true;
+    }
 
     public string setBonus
     {

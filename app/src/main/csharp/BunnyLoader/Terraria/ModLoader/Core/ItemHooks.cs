@@ -22,9 +22,7 @@ internal static unsafe class ItemHooks
     public static void Install(Type type, Type baseType)
     {
         bool Has(string name) => Overrides(type, baseType, name);
-        if (Has(nameof(ModItem.CanUseItem)))
-            Once("CanUse", () => canUse = Raw("bool ItemCheck_CheckCanUse_Inner(Item sItem, bool ignoreCursed)",
-                (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, byte, IntPtr, byte>)&CheckCanUse));
+        if (Has(nameof(ModItem.CanUseItem))) WantCanUse();
         if (Has(nameof(ModItem.UseItem)))
         {
             Once("OwnerOnly", () => ownerOnly = Raw("void ItemCheck_OwnerOnlyCode(ref Player.ItemCheckContext context, Item sItem, int weaponDamage, Rectangle heldItemFrame)",
@@ -59,6 +57,10 @@ internal static unsafe class ItemHooks
         ItemManaHooks.Install(Has, baseType == typeof(GlobalItem));
         PrefixLoader.WantItemHooks(Has);
     }
+
+    internal static void WantCanUse() =>
+        Once("CanUse", () => canUse = Raw("bool ItemCheck_CheckCanUse_Inner(Item sItem, bool ignoreCursed)",
+            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, byte, IntPtr, byte>)&CheckCanUse));
 
     static readonly Dictionary<(Type, string), bool> OverrideCache = new();
 
@@ -139,7 +141,7 @@ internal static unsafe class ItemHooks
 
     static bool CanUseItem(Item item, Player player)
     {
-        bool allowed = true;
+        bool allowed = PlayerLoader.All(player, nameof(ModPlayer.CanUseItem), m => m.CanUseItem(item));
         if (ModItemOf(item) is ModItem m)
         {
             try { allowed &= m.CanUseItem(player); }

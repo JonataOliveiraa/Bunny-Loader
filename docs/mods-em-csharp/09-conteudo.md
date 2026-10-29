@@ -747,6 +747,46 @@ Today a `GlobalItem` has `SetDefaults` and the use hooks above; the others
 (combat, tooltips, drawing...) come with the rest of the item hooks (phase 1 of
 the plan).
 
+## The player: `ModPlayer`
+
+```csharp
+public class ExampleLuckPlayer : ModPlayer
+{
+    public override void ModifyLuck(ref float luck)
+    {
+        if (Main.hardMode) luck += 0.5f;
+    }
+}
+```
+
+Each `ModPlayer` class gets one instance per player, made the first time
+something asks for it (`Initialize` runs then), with `Player` set to that
+player. From anywhere: `player.GetModPlayer<ExampleLuckPlayer>()`,
+`player.TryGetModPlayer(out ExampleLuckPlayer luck)` or `player.ModPlayers`.
+Fields are per player, so keep the state there and reset what an effect
+turns on in `ResetEffects`.
+
+The hooks so far, with tModLoader's signatures, each installed only when a
+loaded `ModPlayer` overrides it:
+
+| Hook | When |
+| --- | --- |
+| `ResetEffects`, `ModifyMaxStats(out health, out mana)` | after the game's `Player.ResetEffects`; the max stats are tModLoader's `StatModifier`s applied to `statLifeMax`/`statManaMax` and added to `statLifeMax2`/`statManaMax2` (the saved base is not touched) |
+| `PreUpdate`, `PostUpdate` | around `Player.Update` |
+| `PreUpdateBuffs`, `PostUpdateBuffs` | around `Player.UpdateBuffs` |
+| `UpdateEquips`, `PostUpdateEquips` | after `Player.UpdateEquips`; after the armor sets (`UpdateArmorSets`) |
+| `UpdateBadLifeRegen`, `UpdateLifeRegen` | before and after `Player.UpdateLifeRegen` |
+| `PreModifyLuck(ref luck)`, `ModifyLuck(ref luck)` | around `Player.RecalculateLuck`; `false` skips the game's luck |
+| `FrameEffects` | after the drawn slots are set (`PlayerFrame`) |
+| `UpdateDead` | after `Player.UpdateDead` |
+| `PreKill`, `Kill` | around `Player.KillMe` (not in god mode); `false` keeps the player alive. `playSound` and `genDust` are not used yet |
+| `OnEnterWorld`, `OnRespawn` | after `Player.Hooks.EnterWorld`; after `Player.Spawn` when the player was dead, as in tModLoader |
+| `CanUseItem(item)` | before the item's own `CanUseItem` |
+| `SaveData`, `LoadData`, `PreSavePlayer`, `PostSavePlayer`, `PreSaveCustomData` | the character's `<file>.plr.bl.json`, under `<mod uid>/<class>` (shared with the JS mods' `ModPlayer` data) |
+
+The rest of tModLoader's `ModPlayer` (hits and hurts, items, jumps,
+drawing, network, fishing, shops) comes in the next steps of phase 2.
+
 ## Finding content by name
 
 The **full name** of a content class is `<mod>/<Name>`: the mod's internal

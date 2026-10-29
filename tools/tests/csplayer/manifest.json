@@ -1,0 +1,15 @@
+{
+  "uid": "d535b06e-86f0-4fcc-ae54-e3ce9914100c",
+  "id": "test-csplayer",
+  "name": "Teste: ModPlayer no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer: instâncias, GetModPlayer, atualização, vida máxima, sorte, morte, uso de item e dados salvos, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csplayer. No mundo, loga 'csplayer <caso>: ok | FAIL' e 'csplayer END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPlayer.dll",
+  "dependencies": []
+}
