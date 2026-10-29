@@ -53,6 +53,48 @@ class ModSourcesTest {
         assertNotEquals(manifest.uid, sources.create("Outro", "Outro", "Autor").manifest!!.uid)
     }
 
+    @Test fun csharpCreationCanAddBasicSwordSourceTextureLocalizationAndArchiveEntries() {
+        val sprite = File("src/main/assets/templates/basic-sword.png")
+        assertTrue("A imagem da espada deve estar nos assets do aplicativo", sprite.isFile)
+        val sources = ModSources(File(temporary.root, "sources")) { sprite.inputStream() }
+        val manifest = sources.create("CSharpMod", "CSharp Mod", "Author", "BasicSword", "zh",
+            ModSources.SourceLanguage.CSHARP).manifest!!
+        val swordPath = "content/Content/Items/BasicSword"
+        val code = sources.readText("CSharpMod", "$swordPath.cs")
+        assertTrue(code.contains("namespace CSharpMod.Content.Items;"))
+        assertTrue(code.contains("public class BasicSword : ModItem"))
+        assertTrue(code.contains("Item.DamageType = DamageClass.Melee;"))
+        assertTrue(code.contains("Item.SetWeaponValues(50, 6, 0);"))
+        assertTrue(code.contains(".AddIngredient(ItemID.DirtBlock, 10)"))
+        assertTrue(sources.files("CSharpMod").contains("$swordPath.cs"))
+        assertTrue(File(sources.root, "CSharpMod/$swordPath.png").readBytes().contentEquals(sprite.readBytes()))
+        val localization = json.parseToJsonElement(
+            sources.readText("CSharpMod", "content/Localization/en-US.json"))
+        assertEquals("Basic Sword", localization.jsonObject["ItemName"]!!.jsonObject["BasicSword"]!!.jsonPrimitive.content)
+        sources.build("CSharpMod", output())
+        ZipFile(output()).use { zip ->
+            assertNotNull(zip.getEntry("$swordPath.cs"))
+            assertNotNull(zip.getEntry("$swordPath.png"))
+            assertNotNull(zip.getEntry("content/Localization/en-US.json"))
+            assertNotNull(zip.getEntry("content/Localization/zh-Hans.json"))
+        }
+        assertEquals("CSharpMod.cs", manifest.entry)
+    }
+
+    @Test fun csharpCreationProducesExampleStyleEntryAndBuildArchive() {
+        val sources = sources()
+        val project = sources.create("ExampleModCSharp", "Example Mod C#", "Author",
+            sourceLanguage = ModSources.SourceLanguage.CSHARP)
+        val manifest = project.manifest!!
+        assertEquals("ExampleModCSharp.cs", manifest.entry)
+        assertEquals(ModSources.SourceLanguage.CSHARP, project.language)
+        val code = sources.readText("ExampleModCSharp", "content/ExampleModCSharp.cs")
+        assertTrue(code.contains("using Terraria.ModLoader;"))
+        assertTrue(code.contains("namespace ExampleModCSharp;"))
+        assertTrue(code.contains("public class ExampleModCSharp : Mod"))
+        assertEquals(manifest.uid, sources.build("ExampleModCSharp", output()).uid)
+    }
+
     @Test fun optionalSwordCreatesAutoloadedWeaponTextureLocalizationAndBuildArchive() {
         val sprite = File("src/main/assets/templates/basic-sword.png")
         assertTrue("A imagem da espada deve estar nos assets do aplicativo", sprite.isFile)

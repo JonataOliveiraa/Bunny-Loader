@@ -18,7 +18,12 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         val manifest: ModManifest?,
         val error: String? = null,
         val sourceRoot: String = "",
-    )
+    ) {
+        val language: SourceLanguage get() = if (manifest?.entry?.substringAfterLast('.', "")?.equals("cs", true) == true)
+            SourceLanguage.CSHARP else SourceLanguage.JAVASCRIPT
+    }
+
+    enum class SourceLanguage { JAVASCRIPT, CSHARP }
 
     private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true; prettyPrint = true }
 
@@ -45,6 +50,7 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         author: String,
         basicSword: String = "",
         language: String = "pt-BR",
+        sourceLanguage: SourceLanguage = SourceLanguage.JAVASCRIPT,
     ): Project = operation("Não foi possível criar o projeto") {
         check(ID.matches(id), "ID inválido: use uma letra seguida de até 63 letras, números ou sublinhados")
         check(name.isNotBlank(), "O nome do mod não pode ficar vazio")
@@ -52,8 +58,8 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         val sword = basicSword.trim()
         check(sword.isEmpty() || ID.matches(sword),
             "Nome da espada inválido: use uma letra seguida de até 63 letras, números ou sublinhados")
-        check(sword.isEmpty() || sword !in JS_RESERVED_WORDS,
-            "Nome da espada inválido: escolha um nome que não seja palavra reservada do JavaScript")
+        check(sword.isEmpty() || sword !in JS_RESERVED_WORDS && sword !in CS_RESERVED_WORDS,
+            "Nome da espada inválido: escolha um nome que não seja palavra reservada da linguagem")
         check(sword.isEmpty() || basicSwordImage != null, "A imagem da espada não está disponível")
         check(!root.exists() || root.isDirectory, "A raiz dos projetos não é uma pasta")
         if (!root.exists()) check(root.mkdirs(), "Não foi possível criar a pasta dos projetos")
@@ -65,18 +71,56 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
             uid = UUID.randomUUID().toString(), id = id, name = name.trim(), version = "1.0.0",
             author = author.trim(), type = "mod", blVersion = 2,
             localizedNames = mapOf(modCulture(language) to name.trim()),
+            entry = if (sourceLanguage == SourceLanguage.CSHARP) "$id.cs" else "main.js",
         )
         File(directory, "manifest.json").writeText(json.encodeToString(manifest), Charsets.UTF_8)
         listOf("Assets", "Common", "Content", "Localization").forEach {
             check(File(directory, "content/$it").mkdirs(), "Não foi possível criar as pastas do projeto")
         }
-        val className = if (id in JS_RESERVED_WORDS) "${id}Mod" else id
-        File(directory, "content/main.js").writeText(
-            "export default class $className extends Mod {\n    Load() {}\n}\n", Charsets.UTF_8)
+        val csharpNamespace = id.replace(Regex("[^A-Za-z0-9_]"), "_")
+            .let { if (it in CS_RESERVED_WORDS) "${it}Mod" else it }
+        if (sourceLanguage == SourceLanguage.CSHARP) {
+            File(directory, "content/$id.cs").writeText(
+                "using Terraria.ModLoader;\n\nnamespace $csharpNamespace;\n\npublic class $csharpNamespace : Mod\n{\n}\n",
+                Charsets.UTF_8)
+        } else {
+            val className = if (id in JS_RESERVED_WORDS) "${id}Mod" else id
+            File(directory, "content/main.js").writeText(
+                "export default class $className extends Mod {\n    Load() {}\n}\n", Charsets.UTF_8)
+        }
         if (sword.isNotEmpty()) {
             val swordDir = File(directory, "content/Content/Items")
             check(swordDir.isDirectory || swordDir.mkdirs(), "Não foi possível criar a pasta da espada")
-            File(swordDir, "$sword.js").writeText(
+            val swordSource = if (sourceLanguage == SourceLanguage.CSHARP) {
+                "using Terraria;\n" +
+                    "using Terraria.ID;\n" +
+                    "using Terraria.ModLoader;\n\n" +
+                    "namespace $csharpNamespace.Content.Items;\n\n" +
+                    "public class $sword : ModItem\n" +
+                    "{\n" +
+                    "    public override void SetDefaults()\n" +
+                    "    {\n" +
+                    "        Item.width = 40;\n" +
+                    "        Item.height = 40;\n" +
+                    "        Item.useStyle = ItemUseStyleID.Swing;\n" +
+                    "        Item.useTime = 20;\n" +
+                    "        Item.useAnimation = 20;\n" +
+                    "        Item.autoReuse = true;\n" +
+                    "        Item.DamageType = DamageClass.Melee;\n" +
+                    "        Item.SetWeaponValues(50, 6, 0);\n" +
+                    "        Item.value = Item.buyPrice(silver: 1);\n" +
+                    "        Item.rare = 2;\n" +
+                    "        Item.UseSound = SoundID.Item1;\n" +
+                    "    }\n\n" +
+                    "    public override void AddRecipes()\n" +
+                    "    {\n" +
+                    "        CreateRecipe()\n" +
+                    "            .AddIngredient(ItemID.DirtBlock, 10)\n" +
+                    "            .AddTile(TileID.WorkBenches)\n" +
+                    "            .Register();\n" +
+                    "    }\n" +
+                    "}\n"
+            } else {
                 "// Arma inicial criada pelo assistente de novo Mod.\n" +
                     "// A textura fica ao lado deste arquivo, como no tModLoader.\n" +
                     "export class $sword extends ModItem {\n" +
@@ -90,14 +134,16 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
                     "        this.Item.rare = ItemRarityID.Blue;\n" +
                     "        this.Item.UseSound = Terraria.ID.SoundID.Item1;\n" +
                     "    }\n\n" +
-                    "    // 10 blocos de terra numa bancada.\n" +
                     "    AddRecipes() {\n" +
                     "        this.CreateRecipe()\n" +
                     "            .AddIngredient(Terraria.ID.ItemID.DirtBlock, 10)\n" +
                     "            .AddTile(Terraria.ID.TileID.WorkBenches)\n" +
                     "            .Register();\n" +
                     "    }\n" +
-                    "}\n", Charsets.UTF_8)
+                    "}\n"
+            }
+            val extension = if (sourceLanguage == SourceLanguage.CSHARP) "cs" else "js"
+            File(swordDir, "$sword.$extension").writeText(swordSource, Charsets.UTF_8)
             basicSwordImage!!.invoke().use { input ->
                 File(swordDir, "$sword.png").outputStream().use { output -> input.copyTo(output) }
             }
@@ -205,6 +251,8 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         val entry = safePath(content, manifest.entry)
         check(!excluded(manifest.entry.replace('\\', '/').split('/')), "O arquivo de entrada está em uma pasta excluída")
         check(entry.isFile, "O arquivo de entrada não existe em content")
+        check(manifest.entry.endsWith(".js", true) || manifest.entry.endsWith(".cs", true),
+            "A entrada deve ser um arquivo .js ou .cs")
     }
 
     fun projectDirectoryPath(key: String): File {
@@ -320,7 +368,18 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
     private companion object {
         const val MAX_TEXT_BYTES = 1024 * 1024
         val ID = Regex("^[A-Za-z][A-Za-z0-9_]{0,63}$")
-        val TEXT_EXTENSIONS = setOf("js", "json", "md", "txt", "hjson")
+        val TEXT_EXTENSIONS = setOf("js", "cs", "json", "md", "txt", "hjson")
+        val CS_RESERVED_WORDS = setOf(
+            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
+            "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else",
+            "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for",
+            "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
+            "long", "namespace", "new", "null", "object", "operator", "out", "override", "params",
+            "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed", "short",
+            "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true",
+            "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual",
+            "void", "volatile", "while",
+        )
         val JS_RESERVED_WORDS = setOf(
             "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default",
             "delete", "do", "else", "enum", "export", "extends", "false", "finally", "for", "function",
