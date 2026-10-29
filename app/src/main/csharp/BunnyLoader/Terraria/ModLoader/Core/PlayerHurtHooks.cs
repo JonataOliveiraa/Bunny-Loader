@@ -1,4 +1,5 @@
 using System;
+using BunnyLoader.Interop;
 using Terraria.DataStructures;
 
 namespace Terraria.ModLoader.Core;
@@ -10,17 +11,31 @@ internal static class PlayerHurtHooks
         nameof(ModPlayer.ImmuneTo), nameof(ModPlayer.FreeDodge), nameof(ModPlayer.ConsumableDodge), nameof(ModPlayer.ModifyHurt),
         nameof(ModPlayer.OnHurt), nameof(ModPlayer.PostHurt), nameof(ModPlayer.CanBeHitByNPC), nameof(ModPlayer.CanBeHitByProjectile),
         nameof(ModPlayer.ModifyHitByNPC), nameof(ModPlayer.ModifyHitByProjectile), nameof(ModPlayer.OnHitByNPC), nameof(ModPlayer.OnHitByProjectile),
+        nameof(ModPlayer.CanHitPvpWithProj),
     };
 
     internal static void Install(Func<string, bool> has)
     {
-        if (Array.Exists(Names, n => has(n))) ItemHooks.Once("PlayerHurt", () => On_Player.Hurt += Hurt);
+        if (Array.Exists(Names, n => has(n))) Want();
+        if (has(nameof(ModPlayer.CanHitPvp))) ItemPvpHooks.WantCanHit();
     }
+
+    internal static void Want() => ItemHooks.Once("PlayerHurt", () => On_Player.Hurt += Hurt);
 
     static double Hurt(On_Player.orig_Hurt orig, Player self, PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet,
                        bool Crit, int cooldownCounter, bool dodgeable)
     {
+        GameHandle? pin = null;
+        try { return Hurt(orig, self, damageSource, Damage, hitDirection, pvp, quiet, Crit, cooldownCounter, dodgeable, ref pin); }
+        finally { pin?.Dispose(); }
+    }
+
+    static double Hurt(On_Player.orig_Hurt orig, Player self, PlayerDeathReason damageSource, int Damage, int hitDirection, bool pvp, bool quiet,
+                       bool Crit, int cooldownCounter, bool dodgeable, ref GameHandle? pin)
+    {
         NPC npc = default;
+        Player attacker = default;
+        Item weapon = default;
         Projectile projectile = default;
         Player.HurtModifiers modifiers;
         Player.HurtInfo pending;
@@ -47,10 +62,19 @@ internal static class PlayerHurtHooks
             if (!projectile.IsNull && !pvp &&
                 !PlayerLoader.All(self, nameof(ModPlayer.CanBeHitByProjectile), projectile, static (m, p) => m.CanBeHitByProjectile(p)))
                 return 0;
+            if (!projectile.IsNull && pvp && (uint)projectile.owner < 255u)
+            {
+                Player owner = Main.player[projectile.owner];
+                if (!owner.IsNull && !PlayerLoader.All(owner, nameof(ModPlayer.CanHitPvpWithProj), (projectile, self),
+                        static (m, s) => m.CanHitPvpWithProj(s.projectile, s.self)))
+                    return 0;
+            }
             modifiers = new Player.HurtModifiers
             {
                 DamageSource = damageSource, PvP = pvp, CooldownCounter = slot, Dodgeable = dodgeable, HitDirection = hitDirection,
             };
+            if (pvp && (Main.netMode == 0 || self.whoAmI == Main.myPlayer) && ItemPvpHooks.Source(damageSource, self.whoAmI, out attacker, out weapon, out pin))
+                ItemPvpHooks.ModifyHitPvp(weapon, attacker, self, ref modifiers);
             if (!npc.IsNull)
                 PlayerLoader.Each(self, nameof(ModPlayer.ModifyHitByNPC), npc, ref modifiers, static (m, n, ref h) => m.ModifyHitByNPC(n, ref h));
             if (!projectile.IsNull)
@@ -79,6 +103,7 @@ internal static class PlayerHurtHooks
         {
             Player.HurtInfo info = pending;
             info.Damage = (int)done;
+            if (!weapon.IsNull) ItemPvpHooks.OnHitPvp(weapon, attacker, self, info);
             if (!npc.IsNull) PlayerLoader.Each(self, nameof(ModPlayer.OnHitByNPC), (npc, info), static (m, s) => m.OnHitByNPC(s.npc, s.info));
             if (!projectile.IsNull)
                 PlayerLoader.Each(self, nameof(ModPlayer.OnHitByProjectile), (projectile, info), static (m, s) => m.OnHitByProjectile(s.projectile, s.info));

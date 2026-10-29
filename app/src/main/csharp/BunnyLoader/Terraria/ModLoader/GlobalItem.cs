@@ -98,6 +98,12 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void OnHitNPC(Item item, Player player, NPC target, NPC.HitInfo hit, int damageDone) { }
 
+    public virtual bool CanHitPvp(Item item, Player player, Player target) => true;
+
+    public virtual void ModifyHitPvp(Item item, Player player, Player target, ref Player.HurtModifiers modifiers) { }
+
+    public virtual void OnHitPvp(Item item, Player player, Player target, Player.HurtInfo hurtInfo) { }
+
     public virtual void UpdateEquip(Item item, Player player) { }
 
     public virtual void UpdateAccessory(Item item, Player player, bool hideVisual) { }

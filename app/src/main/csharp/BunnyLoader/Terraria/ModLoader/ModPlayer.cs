@@ -165,6 +165,10 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void OnHitNPCWithItem(Item item, NPC target, NPC.HitInfo hit, int damageDone) { }
 
+    public virtual bool CanHitPvp(Item item, Player target) => true;
+
+    public virtual bool CanHitPvpWithProj(Projectile proj, Player target) => true;
+
     public virtual bool CanUseItem(Item item) => true;
 
     public virtual bool? CanAutoReuseItem(Item item) => null;

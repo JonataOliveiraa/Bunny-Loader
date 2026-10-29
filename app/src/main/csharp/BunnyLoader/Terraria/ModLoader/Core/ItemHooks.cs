@@ -52,6 +52,7 @@ internal static unsafe class ItemHooks
         ItemCombatHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemShootHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemHitHooks.Install(Has, baseType == typeof(GlobalItem));
+        ItemPvpHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemTimingHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemFrameHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemManaHooks.Install(Has, baseType == typeof(GlobalItem));

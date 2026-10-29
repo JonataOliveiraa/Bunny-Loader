@@ -880,7 +880,23 @@ yet: `Knockback`, `KnockbackImmunityEffectiveness`, `HitDirectionOverride`
 only changes the direction passed to the game, and `DisableDust` and
 `DisableSound` have no effect.
 
-The rest of tModLoader's `ModPlayer` (PvP, projectile hits, jumps, drawing,
+### PvP
+
+| Hook | Where it runs |
+| --- | --- |
+| `ModItem.CanHitPvp(player, target)`, `GlobalItem.CanHitPvp`, `ModPlayer.CanHitPvp(item, target)` | on the attacker, for each player its melee swing touches; `false` skips that player |
+| `ModItem.ModifyHitPvp(player, target, ref modifiers)`, `GlobalItem.ModifyHitPvp` | on the victim's own game, before its `ModifyHurt` |
+| `ModItem.OnHitPvp(player, target, hurtInfo)`, `GlobalItem.OnHitPvp` | on the victim, after the hit, with the damage it took |
+| `ModPlayer.CanHitPvpWithProj(proj, target)` | on the game that applies a PvP projectile hit, for the projectile's owner |
+
+The weapon is the one in the attacker's hand: the game's death reason only
+carries its type and prefix, so the Bunny Loader sends the attacker's item
+data (its `NetSend`, or its `SaveData` without one, and the globals'
+`NetSend`) right before the game's hurt message, and the victim's
+`ModifyHitPvp`/`OnHitPvp` see a copy with that data. The attacker's own copy
+of the victim takes the game's damage, as in the base game.
+
+The rest of tModLoader's `ModPlayer` (projectile hits, jumps, drawing,
 fishing, shops) comes in the next steps of phase 2.
 
 ## Finding content by name

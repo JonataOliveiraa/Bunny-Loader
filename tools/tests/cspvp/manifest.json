@@ -1,0 +1,15 @@
+{
+  "uid": "629d8b91-fda3-497e-8d5c-df69da4dbb6e",
+  "id": "test-cspvp",
+  "name": "Teste: PvP do item no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "CanHitPvp, ModifyHitPvp, OnHitPvp e os dados do item do atacante pela rede, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh cspvp. Instalar nos dois, sem o csenv no cliente (a vítima precisa tomar dano). O anfitrião bate no cliente; os dois logam 'cspvp <caso>: ok | FAIL' e 'cspvp host END' / 'cspvp client END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPvp.dll",
+  "dependencies": []
+}

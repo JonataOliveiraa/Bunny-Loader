@@ -116,6 +116,12 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void OnHitNPC(Player player, NPC target, NPC.HitInfo hit, int damageDone) { }
 
+    public virtual bool CanHitPvp(Player player, Player target) => true;
+
+    public virtual void ModifyHitPvp(Player player, Player target, ref Player.HurtModifiers modifiers) { }
+
+    public virtual void OnHitPvp(Player player, Player target, Player.HurtInfo hurtInfo) { }
+
     public virtual void UpdateEquip(Player player) { }
 
     public virtual void UpdateAccessory(Player player, bool hideVisual) { }
