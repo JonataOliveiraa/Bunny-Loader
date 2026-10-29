@@ -1,5 +1,13 @@
 # Novidades
 
+## 0.6.0
+
+- A escopeta (`ExampleShotgun`, oito balas pelo `Shoot`), a metralhadora
+  (`ExampleMinigun`, que poupa munição e atira sem ela com dez Exemplos de
+  Item) e a espada de exemplo (`ExampleSword`, que põe fogo no golpe). O pó
+  da espada e a raridade dela são os do jogo até o `ModDust` e o
+  `ExampleModRarity` chegarem.
+
 ## 0.5.0
 
 - A classe de dano de exemplo (`ExampleDamageClass`), a arma que a usa

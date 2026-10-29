@@ -49,6 +49,21 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleShotgun: {
+		DisplayName: Escopeta de Exemplo
+		Tooltip: Esta é uma escopeta de mod.
+	}
+
+	ExampleMinigun: {
+		DisplayName: Metralhadora de Exemplo
+		Tooltip: Esta é uma metralhadora de mod.
+	}
+
+	ExampleSword: {
+		DisplayName: Espada de Exemplo
+		Tooltip: Esta é uma espada de mod.
+	}
+
 	ExampleStatBonusAccessory: {
 		DisplayName: Acessório de Bônus de Exemplo
 		Tooltip:

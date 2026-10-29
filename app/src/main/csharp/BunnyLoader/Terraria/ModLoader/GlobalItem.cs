@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Terraria.DataStructures;
 using Terraria.Utilities;
 
 namespace Terraria.ModLoader;
@@ -34,6 +35,48 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual Vector2? HoldoutOffset(int type) => null;
 
     public virtual void UpdateInventory(Item item, Player player) { }
+
+    public virtual void ModifyWeaponDamage(Item item, Player player, ref StatModifier damage) { }
+
+    public virtual void ModifyWeaponKnockback(Item item, Player player, ref StatModifier knockback) { }
+
+    public virtual void ModifyWeaponCrit(Item item, Player player, ref float crit) { }
+
+    public virtual bool NeedsAmmo(Item item, Player player) => true;
+
+    public virtual void PickAmmo(Item weapon, Item ammo, Player player, ref int type, ref float speed, ref StatModifier damage, ref float knockback) { }
+
+    public virtual bool? CanChooseAmmo(Item weapon, Item ammo, Player player) => null;
+
+    public virtual bool? CanBeChosenAsAmmo(Item ammo, Item weapon, Player player) => null;
+
+    public virtual bool CanConsumeAmmo(Item weapon, Item ammo, Player player) => true;
+
+    public virtual bool CanBeConsumedAsAmmo(Item ammo, Item weapon, Player player) => true;
+
+    public virtual void OnConsumeAmmo(Item weapon, Item ammo, Player player) { }
+
+    public virtual void OnConsumedAsAmmo(Item ammo, Item weapon, Player player) { }
+
+    public virtual bool CanShoot(Item item, Player player) => true;
+
+    public virtual void ModifyShootStats(Item item, Player player, ref Vector2 position, ref Vector2 velocity, ref int type, ref int damage, ref float knockback) { }
+
+    public virtual bool Shoot(Item item, Player player, EntitySource_ItemUse_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback) => true;
+
+    public virtual void UseItemHitbox(Item item, Player player, ref Rectangle hitbox, ref bool noHitbox) { }
+
+    public virtual void MeleeEffects(Item item, Player player, Rectangle hitbox) { }
+
+    public virtual void ModifyItemScale(Item item, Player player, ref float scale) { }
+
+    public virtual bool? CanHitNPC(Item item, Player player, NPC target) => null;
+
+    public virtual bool? CanMeleeAttackCollideWithNPC(Item item, Rectangle meleeAttackHitbox, Player player, NPC target) => null;
+
+    public virtual void ModifyHitNPC(Item item, Player player, NPC target, ref NPC.HitModifiers modifiers) { }
+
+    public virtual void OnHitNPC(Item item, Player player, NPC target, NPC.HitInfo hit, int damageDone) { }
 
     public virtual void UpdateEquip(Item item, Player player) { }
 
