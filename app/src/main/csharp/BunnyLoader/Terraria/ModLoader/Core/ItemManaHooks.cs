@@ -40,6 +40,12 @@ internal static class ItemManaHooks
             try { g.ModifyManaCost(item, player, ref reduce, ref mult); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyManaCost", e); }
         }
+        if (PlayerLoader.Hooked(nameof(ModPlayer.ModifyManaCost)).Length > 0)
+        {
+            (float Reduce, float Mult) cost = (reduce, mult);
+            PlayerLoader.Each(player, nameof(ModPlayer.ModifyManaCost), item, ref cost, static (m, i, ref c) => m.ModifyManaCost(i, ref c.Reduce, ref c.Mult));
+            (reduce, mult) = cost;
+        }
         float value = reduce * mult;
         return float.IsFinite(value) ? Math.Max(0f, value) : player.manaCost;
     }
@@ -95,6 +101,7 @@ internal static class ItemManaHooks
             try { g.OnMissingMana(item, player, neededMana); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.OnMissingMana", e); }
         }
+        PlayerLoader.Each(player, nameof(ModPlayer.OnMissingMana), (item, neededMana), static (m, s) => m.OnMissingMana(s.item, s.neededMana));
     }
 
     static void OnConsumeMana(Item item, Player player, int manaConsumed)
@@ -110,5 +117,6 @@ internal static class ItemManaHooks
             try { g.OnConsumeMana(item, player, manaConsumed); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.OnConsumeMana", e); }
         }
+        PlayerLoader.Each(player, nameof(ModPlayer.OnConsumeMana), (item, manaConsumed), static (m, s) => m.OnConsumeMana(s.item, s.manaConsumed));
     }
 }

@@ -77,6 +77,8 @@ internal static unsafe class ItemHealHooks
             }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.{(life ? "GetHealLife" : "GetHealMana")}", e); }
         }
+        if (life) PlayerLoader.Each(player, nameof(ModPlayer.GetHealLife), (item, quick), ref value, static (m, s, ref v) => m.GetHealLife(s.item, s.quick, ref v));
+        else PlayerLoader.Each(player, nameof(ModPlayer.GetHealMana), (item, quick), ref value, static (m, s, ref v) => m.GetHealMana(s.item, s.quick, ref v));
         return Clamp(value, current);
     }
 
@@ -231,6 +233,7 @@ internal static unsafe class ItemHealHooks
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyPotionDelay", e); }
             }
             delay = Clamp(delay, 0);
+            allowed &= PlayerLoader.All(player, nameof(ModPlayer.ApplyPotionDelay), (item, delay), static (pm, s) => pm.ApplyPotionDelay(s.item, s.delay));
             if (m != null)
             {
                 try { allowed &= m.ApplyPotionDelay(player, delay); }

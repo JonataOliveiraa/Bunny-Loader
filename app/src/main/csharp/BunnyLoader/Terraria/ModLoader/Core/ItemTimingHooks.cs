@@ -62,13 +62,16 @@ internal static class ItemTimingHooks
     }
 
     static float SpeedMultiplier(Item item, Player player) =>
-        Multiplier(item, player, nameof(ModItem.UseSpeedMultiplier), m => m.UseSpeedMultiplier(player), g => g.UseSpeedMultiplier(item, player));
+        Multiplier(item, player, nameof(ModItem.UseSpeedMultiplier), m => m.UseSpeedMultiplier(player), g => g.UseSpeedMultiplier(item, player)) *
+        PlayerLoader.Product(player, nameof(ModPlayer.UseSpeedMultiplier), item, static (m, i) => m.UseSpeedMultiplier(i));
 
     static float TimeFactor(Item item, Player player) =>
-        Multiplier(item, player, nameof(ModItem.UseTimeMultiplier), m => m.UseTimeMultiplier(player), g => g.UseTimeMultiplier(item, player)) / SpeedMultiplier(item, player);
+        Multiplier(item, player, nameof(ModItem.UseTimeMultiplier), m => m.UseTimeMultiplier(player), g => g.UseTimeMultiplier(item, player)) *
+        PlayerLoader.Product(player, nameof(ModPlayer.UseTimeMultiplier), item, static (m, i) => m.UseTimeMultiplier(i)) / SpeedMultiplier(item, player);
 
     static float AnimationFactor(Item item, Player player) =>
-        Multiplier(item, player, nameof(ModItem.UseAnimationMultiplier), m => m.UseAnimationMultiplier(player), g => g.UseAnimationMultiplier(item, player)) / SpeedMultiplier(item, player);
+        Multiplier(item, player, nameof(ModItem.UseAnimationMultiplier), m => m.UseAnimationMultiplier(player), g => g.UseAnimationMultiplier(item, player)) *
+        PlayerLoader.Product(player, nameof(ModPlayer.UseAnimationMultiplier), item, static (m, i) => m.UseAnimationMultiplier(i)) / SpeedMultiplier(item, player);
 
     static void ScaleTime(Player self, Item sItem)
     {
@@ -118,7 +121,8 @@ internal static class ItemTimingHooks
 
     static bool? CanAutoReuseItem(Item item, Player player)
     {
-        bool? flag = null;
+        bool? flag = PlayerLoader.Nullable(player, nameof(ModPlayer.CanAutoReuseItem), item, static (m, i) => m.CanAutoReuseItem(i));
+        if (flag == false) return false;
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;

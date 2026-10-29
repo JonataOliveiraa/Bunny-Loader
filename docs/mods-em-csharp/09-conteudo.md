@@ -784,7 +784,25 @@ loaded `ModPlayer` overrides it:
 | `CanUseItem(item)` | before the item's own `CanUseItem` |
 | `SaveData`, `LoadData`, `PreSavePlayer`, `PostSavePlayer`, `PreSaveCustomData` | the character's `<file>.plr.bl.json`, under `<mod uid>/<class>` (shared with the JS mods' `ModPlayer` data) |
 
-The rest of tModLoader's `ModPlayer` (hits and hurts, items, jumps,
+The item hooks run inside the same game points as the `ModItem` ones, in
+tModLoader's `CombinedHooks` order: the item and its globals first, then the
+player, except `CanShoot`, `Shoot`, `CanConsumeAmmo`, `OnConsumeAmmo`,
+`ApplyPotionDelay`, `CanUseItem` and `CanAutoReuseItem`, where the player
+comes first. A `ModPlayer` hook covers every item, the game's included.
+
+| Hook | When |
+| --- | --- |
+| `PreItemCheck`, `PostItemCheck` | around `Player.ItemCheck`; `false` skips the game's item use for the frame |
+| `ModifyWeaponDamage`, `ModifyWeaponCrit`, `ModifyWeaponKnockback`, `ModifyItemScale`, `MeleeEffects` | as the item's |
+| `UseTimeMultiplier`, `UseAnimationMultiplier`, `UseSpeedMultiplier`, `CanAutoReuseItem` | multiplied with the item's |
+| `ModifyManaCost(item, ref reduce, ref mult)`, `OnMissingMana`, `OnConsumeMana` | as the item's |
+| `GetHealLife`, `GetHealMana`, `ApplyPotionDelay` | as the item's |
+| `CanShoot`, `ModifyShootStats`, `Shoot`, `CanConsumeAmmo`, `OnConsumeAmmo` | as the item's |
+| `CanHitNPC(target)`, `CanHitNPCWithItem`, `CanMeleeAttackCollideWithNPC` | an item's melee hit; `CanHitNPC` `false` refuses every hit of this player |
+| `ModifyHitNPC`, `ModifyHitNPCWithItem`, `OnHitNPC`, `OnHitNPCWithItem` | an item's melee hit, after the item's hooks |
+| `OnHitAnything(x, y, victim)` | after the game's `Player.OnHit` |
+
+The rest of tModLoader's `ModPlayer` (hurts, projectile hits, jumps,
 drawing, network, fishing, shops) comes in the next steps of phase 2.
 
 ## Finding content by name

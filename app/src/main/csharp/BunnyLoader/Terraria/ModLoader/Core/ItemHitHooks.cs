@@ -41,7 +41,9 @@ internal static class ItemHitHooks
 
     static bool? CanHitNPC(Item item, Player player, NPC target)
     {
-        bool? flag = null;
+        if (!PlayerLoader.All(player, nameof(ModPlayer.CanHitNPC), target, static (m, t) => m.CanHitNPC(t))) return false;
+        bool? flag = PlayerLoader.Nullable(player, nameof(ModPlayer.CanHitNPCWithItem), (item, target), static (m, s) => m.CanHitNPCWithItem(s.item, s.target));
+        if (flag == false) return false;
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
@@ -64,7 +66,9 @@ internal static class ItemHitHooks
 
     static bool? CanMeleeAttackCollideWithNPC(Item item, Rectangle meleeAttackHitbox, Player player, NPC target)
     {
-        bool? flag = null;
+        bool? flag = PlayerLoader.Nullable(player, nameof(ModPlayer.CanMeleeAttackCollideWithNPC), (item, meleeAttackHitbox, target),
+            static (m, s) => m.CanMeleeAttackCollideWithNPC(s.item, s.meleeAttackHitbox, s.target));
+        if (flag == false) return false;
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
@@ -204,6 +208,9 @@ internal static class ItemHitHooks
             try { g.ModifyHitNPC(item, player, target, ref modifiers); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyHitNPC", e); }
         }
+        PlayerLoader.Each(player, nameof(ModPlayer.ModifyHitNPC), target, ref modifiers, static (m, t, ref h) => m.ModifyHitNPC(t, ref h));
+        PlayerLoader.Each(player, nameof(ModPlayer.ModifyHitNPCWithItem), (item, target), ref modifiers,
+            static (m, s, ref h) => m.ModifyHitNPCWithItem(s.item, s.target, ref h));
     }
 
     static void OnHitNPC(Item item, Player player, NPC target, NPC.HitInfo hit, int damageDone)
@@ -219,5 +226,8 @@ internal static class ItemHitHooks
             try { g.OnHitNPC(item, player, target, hit, damageDone); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.OnHitNPC", e); }
         }
+        PlayerLoader.Each(player, nameof(ModPlayer.OnHitNPC), (target, hit, damageDone), static (m, s) => m.OnHitNPC(s.target, s.hit, s.damageDone));
+        PlayerLoader.Each(player, nameof(ModPlayer.OnHitNPCWithItem), (item, target, hit, damageDone),
+            static (m, s) => m.OnHitNPCWithItem(s.item, s.target, s.hit, s.damageDone));
     }
 }

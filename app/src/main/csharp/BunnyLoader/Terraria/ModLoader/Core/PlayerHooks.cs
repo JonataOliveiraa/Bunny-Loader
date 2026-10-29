@@ -30,6 +30,14 @@ internal static class PlayerHooks
         if (Has(nameof(ModPlayer.OnEnterWorld))) ItemHooks.Once("PlayerEnterWorld", () => On_Player_Hooks.EnterWorld += EnterWorld);
         if (Has(nameof(ModPlayer.OnRespawn))) ItemHooks.Once("PlayerSpawn", () => On_Player.Spawn += Spawn);
         if (Has(nameof(ModPlayer.CanUseItem))) ItemHooks.WantCanUse();
+        if (Has(nameof(ModPlayer.PreItemCheck)) || Has(nameof(ModPlayer.PostItemCheck))) ItemHooks.Once("PlayerItemCheck", () => On_Player.ItemCheck += ItemCheck);
+        if (Has(nameof(ModPlayer.OnHitAnything))) ItemHooks.Once("PlayerOnHit", () => On_Player.OnHit += OnHit);
+        ItemCombatHooks.Install(Has, true);
+        ItemShootHooks.Install(Has, true);
+        ItemTimingHooks.Install(Has, true);
+        ItemManaHooks.Install(Has, true);
+        ItemHealHooks.Install(Has);
+        ItemHitHooks.Install(name => Has(name) || Has(name + "WithItem"), true);
         if (Has(nameof(ModPlayer.SaveData)) || Has(nameof(ModPlayer.LoadData)) || Has(nameof(ModPlayer.PreSavePlayer)) ||
             Has(nameof(ModPlayer.PostSavePlayer)) || Has(nameof(ModPlayer.PreSaveCustomData)))
             ItemHooks.Once("PlayerSave", () =>
@@ -120,6 +128,18 @@ internal static class PlayerHooks
         }
         orig(self, damageSource, dmg, hitDirection, pvp);
         if (dies && self.dead) PlayerLoader.Each(self, nameof(ModPlayer.Kill), m => m.Kill(dmg, hitDirection, pvp, damageSource));
+    }
+
+    static void ItemCheck(On_Player.orig_ItemCheck orig, Player self)
+    {
+        if (PlayerLoader.All(self, nameof(ModPlayer.PreItemCheck), self, static (m, _) => m.PreItemCheck())) orig(self);
+        PlayerLoader.Each(self, nameof(ModPlayer.PostItemCheck), m => m.PostItemCheck());
+    }
+
+    static void OnHit(On_Player.orig_OnHit orig, Player self, float x, float y, Entity victim)
+    {
+        orig(self, x, y, victim);
+        PlayerLoader.Each(self, nameof(ModPlayer.OnHitAnything), (x, y, victim), static (m, s) => m.OnHitAnything(s.x, s.y, s.victim));
     }
 
     static void EnterWorld(On_Player_Hooks.orig_EnterWorld orig, int playerIndex)

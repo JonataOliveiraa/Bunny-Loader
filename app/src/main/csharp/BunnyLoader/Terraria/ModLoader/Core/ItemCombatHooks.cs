@@ -84,6 +84,7 @@ internal static class ItemCombatHooks
             try { g.ModifyWeaponDamage(item, player, ref damage); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyWeaponDamage", e); }
         }
+        PlayerLoader.Each(player, nameof(ModPlayer.ModifyWeaponDamage), item, ref damage, static (m, i, ref d) => m.ModifyWeaponDamage(i, ref d));
     }
 
     static int GetWeaponCrit(On_Player.orig_GetWeaponCrit orig, Player self, Item sItem)
@@ -102,6 +103,7 @@ internal static class ItemCombatHooks
             try { g.ModifyWeaponCrit(sItem, self, ref crit); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyWeaponCrit", e); }
         }
+        PlayerLoader.Each(self, nameof(ModPlayer.ModifyWeaponCrit), sItem, ref crit, static (m, i, ref c) => m.ModifyWeaponCrit(i, ref c));
         if (crit == value || !float.IsFinite(crit)) return value;
         return (int)(crit + 5E-06f);
     }
@@ -123,6 +125,7 @@ internal static class ItemCombatHooks
             try { g.ModifyWeaponKnockback(sItem, self, ref knockback); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyWeaponKnockback", e); }
         }
+        PlayerLoader.Each(self, nameof(ModPlayer.ModifyWeaponKnockback), sItem, ref knockback, static (m, i, ref k) => m.ModifyWeaponKnockback(i, ref k));
         if (knockback == start) return value;
         float result = value + (knockback.ApplyTo(knockBack) - start.ApplyTo(knockBack));
         return float.IsFinite(result) ? Math.Max(0f, result) : value;
@@ -141,6 +144,7 @@ internal static class ItemCombatHooks
             try { g.ModifyItemScale(item, player, ref scale); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyItemScale", e); }
         }
+        PlayerLoader.Each(player, nameof(ModPlayer.ModifyItemScale), item, ref scale, static (m, i, ref s) => m.ModifyItemScale(i, ref s));
     }
 
     static float GetAdjustedItemScale(On_Player.orig_GetAdjustedItemScale orig, Player self, Item item)
@@ -213,5 +217,6 @@ internal static class ItemCombatHooks
             try { g.MeleeEffects(sItem, self, itemRectangle); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.MeleeEffects", e); }
         }
+        PlayerLoader.Each(self, nameof(ModPlayer.MeleeEffects), (sItem, itemRectangle), static (m, s) => m.MeleeEffects(s.sItem, s.itemRectangle));
     }
 }
