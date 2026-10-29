@@ -119,12 +119,18 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void SetMatch(int armorSlot, int type, bool male, ref int equipSlot, ref bool robes) { }
 
+    public virtual void DrawArmorColor(EquipType type, int slot, Player drawPlayer, float shadow, ref Color color, ref int glowMask, ref Color glowMaskColor) { }
+
+    public virtual void ArmorArmGlowMask(int slot, Player drawPlayer, float shadow, ref int glowMask, ref Color color) { }
+
     public virtual void VerticalWingSpeeds(Item item, Player player, ref float ascentWhenFalling, ref float ascentWhenRising,
                                            ref float maxCanAscendMultiplier, ref float maxAscentMultiplier, ref float constantAscend) { }
 
     public virtual void HorizontalWingSpeeds(Item item, Player player, ref float speed, ref float acceleration) { }
 
     public virtual bool WingUpdate(int wings, Player player, bool inUse) => false;
+
+    public virtual bool CanEquipAccessory(Item item, Player player, int slot, bool modded) => true;
 
     public virtual bool CanAccessoryBeEquippedWith(Item equippedItem, Item incomingItem, Player player) => true;
 

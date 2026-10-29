@@ -12,6 +12,7 @@ Items: {
 	ExampleHelmet: {
 		DisplayName: Example Helmet
 		Tooltip: This is a modded helmet.
+		SetBonus: Increases dealt damage by {0}%
 	}
 
 	ExampleBreastplate: {
@@ -32,6 +33,11 @@ Items: {
 			This is a modded leg armor.
 			5% increased movement speed
 			'''
+	}
+
+	ExampleRobe: {
+		DisplayName: Example Robe
+		Tooltip: ""
 	}
 
 	ExampleWings: {

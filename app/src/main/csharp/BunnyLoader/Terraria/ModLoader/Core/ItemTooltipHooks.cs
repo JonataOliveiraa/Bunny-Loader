@@ -1,8 +1,10 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System;
 using BunnyLoader.Interop;
 using BunnyLoader;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.Localization;
 using Terraria.ModLoader;
 
@@ -26,6 +28,10 @@ internal static unsafe class ItemTooltipHooks
 
     static bool damageLines;
 
+    static bool setBonusLines;
+
+    static readonly uint SetBonusColor = LimeGreen();
+
     internal static void WantPrefixLines()
     {
         prefixLines = true;
@@ -35,6 +41,12 @@ internal static unsafe class ItemTooltipHooks
     internal static void WantDamageLines()
     {
         damageLines = true;
+        InstallHooks();
+    }
+
+    internal static void WantSetBonusLines()
+    {
+        setBonusLines = true;
         InstallHooks();
     }
 
@@ -55,7 +67,8 @@ internal static unsafe class ItemTooltipHooks
 
     internal static bool Wanted(Item item) =>
         !item.IsNull && item.type > 0 && (globalWanted || ItemHooks.ModItemOf(item) is ModItem m && Array.Exists(HookNames, n => Has(m, n)) ||
-                                          prefixLines && PrefixLoader.GetPrefix(item.prefix) != null || damageLines && item.damage > 0);
+                                          prefixLines && PrefixLoader.GetPrefix(item.prefix) != null || damageLines && item.damage > 0 ||
+                                          setBonusLines && item.wornArmor);
 
     internal static bool Has(ModItem m, string name) => ItemHooks.Overrides(m.GetType(), typeof(ModItem), name);
 
@@ -113,6 +126,7 @@ internal static unsafe class ItemTooltipHooks
                     try { DamageClassHooks.Tooltip(item, lines); }
                     catch (Exception e) { ItemHooks.Report("DamageClass (tooltip)", e); }
                 }
+                if (setBonusLines) AddSetBonus(item, lines);
                 Modify(item, lines);
                 lines.RemoveAll(l => !l.Visible);
             }
@@ -133,13 +147,33 @@ internal static unsafe class ItemTooltipHooks
                 {
                     case "research": *researchLine = i; break;
                     case "materials": *materialsLine = i; break;
-                    case "setBonus": *setBonusLine = i; break;
+                    case "setBonus":
+                        *setBonusLine = i;
+                        if (line.RoleColor is uint color) *setBonusColour = color;
+                        break;
                     case "shared": *sharedLine = i; break;
                 }
             }
             *numLines = written;
         }
         catch (Exception e) { ItemHooks.Report("ModifyTooltips", e); }
+    }
+
+    static uint LimeGreen()
+    {
+        Color color = new(50, 205, 50, 255);
+        return Unsafe.As<Color, uint>(ref color);
+    }
+
+    static void AddSetBonus(Item item, List<TooltipLine> lines)
+    {
+        if (!item.wornArmor || lines.Exists(l => l.Role == "setBonus")) return;
+        string bonus = ItemEquipHooks.GetSetBonus(Main.LocalPlayer);
+        if (bonus.Length == 0) return;
+        string template = Language.GetTextValue("UI.ItemSetBonusGeneral") ?? "";
+        string text = template.Contains("{Description}", StringComparison.Ordinal) ? template.Replace("{Description}", bonus) : bonus;
+        int at = lines.FindIndex(l => l.Role is "shared" or "research" || l.Name is "LoadoutShareHint" or "JourneyResearch" or "JourneyResearchByTeammate");
+        lines.Insert(at < 0 ? lines.Count : at, new TooltipLine("Terraria", "SetBonus", text) { Role = "setBonus", RoleColor = SetBonusColor });
     }
 
     static void Modify(Item item, List<TooltipLine> lines)

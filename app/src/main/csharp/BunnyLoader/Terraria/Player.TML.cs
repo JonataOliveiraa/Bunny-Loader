@@ -7,6 +7,12 @@ public readonly partial struct Player
 {
     public bool HasBuff(int type) => FindBuffIndex(type) != -1;
 
+    public string setBonus
+    {
+        get => Terraria.ModLoader.Core.ItemEquipHooks.GetSetBonus(this);
+        set => Terraria.ModLoader.Core.ItemEquipHooks.SetSetBonus(this, value);
+    }
+
     public ref StatModifier GetDamage<T>() where T : DamageClass => ref GetDamage(ModContent.GetInstance<T>());
 
     public ref StatModifier GetDamage(DamageClass damageClass) => ref DamageClassLoader.Stats(this, damageClass).damage;

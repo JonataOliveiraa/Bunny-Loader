@@ -17,6 +17,10 @@ internal static unsafe class ItemEquipHooks
 
     static Hook? setMatch;
 
+    static readonly EntityInstances<string> SetBonuses = new();
+
+    static volatile bool setBonusWanted;
+
     internal static void Install(Func<string, bool> has, bool global)
     {
         if (has(nameof(ModItem.UpdateEquip)) || has(nameof(ModItem.UpdateAccessory)))
@@ -27,12 +31,21 @@ internal static unsafe class ItemEquipHooks
             });
         if (has(nameof(ModItem.UpdateVanity))) ItemHooks.Once("EquipVanity", () => On_Player.ApplyEquipVanity += ApplyEquipVanity);
         if (has(nameof(ModItem.CanAccessoryBeEquippedWith))) ItemHooks.Once("AccessoryPairs", () => On_ItemSlot.CanEquipBothAccessories += CanEquipBothAccessories);
+        if (has(nameof(ModItem.CanEquipAccessory)))
+            ItemHooks.Once("AccessorySlots", () =>
+            {
+                On_ItemSlot.PickItemMovementAction += PickItemMovementAction;
+                On_ItemSlot.ArmorSwap += ArmorSwap;
+                On_ItemSlot.CanEquipAccessoryInSlot += CanEquipAccessoryInSlot;
+                On_ItemSlot.CanEquipAccessoryInVanitySlot += CanEquipAccessoryInVanitySlot;
+            });
         if (has(nameof(ModItem.IsArmorSet)) || has(nameof(ModItem.UpdateArmorSet))) WantArmorSets();
         if (has(nameof(ModItem.IsVanitySet)) || has(nameof(ModItem.PreUpdateVanitySet)) || has(nameof(ModItem.UpdateVanitySet)) ||
             has(nameof(ModItem.EquipFrameEffects)))
             WantFrame();
         if (has(nameof(ModItem.IsVanitySet)) || has(nameof(ModItem.ArmorSetShadows))) WantShadows();
         if (has(nameof(ModItem.SetMatch))) WantSetMatch();
+        ItemArmorDrawHooks.Install(has);
         ItemWingHooks.Install(has, global);
     }
 
@@ -45,12 +58,26 @@ internal static unsafe class ItemEquipHooks
             WantFrame();
         if (Has(nameof(EquipTexture.IsVanitySet)) || Has(nameof(EquipTexture.ArmorSetShadows))) WantShadows();
         if (Has(nameof(EquipTexture.SetMatch))) WantSetMatch();
+        if (Has(nameof(EquipTexture.DrawArmorColor)) || Has(nameof(EquipTexture.ArmorArmGlowMask))) ItemArmorDrawHooks.WantColors();
         if (Has(nameof(EquipTexture.VerticalWingSpeeds))) ItemWingHooks.Want(ItemWingHooks.Vertical, false);
         if (Has(nameof(EquipTexture.HorizontalWingSpeeds))) ItemWingHooks.Want(ItemWingHooks.Horizontal, false);
         if (Has(nameof(EquipTexture.WingUpdate))) ItemWingHooks.Want(ItemWingHooks.Update, false);
     }
 
     static void WantArmorSets() => ItemHooks.Once("ArmorSets", () => On_Player.UpdateArmorSets += UpdateArmorSets);
+
+    internal static string GetSetBonus(Player player) => SetBonuses.Get(player.Pointer) ?? "";
+
+    internal static void SetSetBonus(Player player, string? text)
+    {
+        if (!setBonusWanted)
+        {
+            setBonusWanted = true;
+            WantArmorSets();
+            ItemTooltipHooks.WantSetBonusLines();
+        }
+        SetBonuses.Set(player.Pointer, string.IsNullOrEmpty(text) ? null : text);
+    }
 
     static void WantFrame() => ItemHooks.Once("ArmorFrame", () => On_Player.PlayerFrame += PlayerFrame);
 
@@ -167,8 +194,73 @@ internal static unsafe class ItemEquipHooks
         return true;
     }
 
+    static int PickItemMovementAction(On_ItemSlot.orig_PickItemMovementAction orig, GameArray<Item> inv, int context, int slot, Item checkItem,
+                                      bool backwardCheck, int initialSlot)
+    {
+        int action = orig(inv, context, slot, checkItem, backwardCheck, initialSlot);
+        if (action == -1 || Math.Abs(context) is not (ItemSlot.Context.EquipAccessory or ItemSlot.Context.EquipAccessoryVanity)) return action;
+        if (checkItem.IsNull || checkItem.type <= 0 || !checkItem.accessory) return action;
+        return CanEquipAccessory(checkItem, slot, context < 0) ? action : -1;
+    }
+
+    static Item ArmorSwap(On_ItemSlot.orig_ArmorSwap orig, Item item, out bool success, out int targetSlot)
+    {
+        Item result = orig(item, out success, out targetSlot);
+        if (!success || targetSlot < 0) return result;
+        try
+        {
+            var armor = Main.LocalPlayer.armor;
+            if (armor.IsNull || targetSlot >= armor.Length) return result;
+            Item incoming = armor[targetSlot];
+            if (incoming.IsNull || !incoming.accessory || CanEquipAccessory(incoming, targetSlot, false)) return result;
+            armor[targetSlot] = result;
+            success = false;
+            targetSlot = -1;
+            return incoming;
+        }
+        catch (Exception e)
+        {
+            ItemHooks.Report("CanEquipAccessory", e);
+            return result;
+        }
+    }
+
+    static bool CanEquipAccessoryInSlot(On_ItemSlot.orig_CanEquipAccessoryInSlot orig, Item checkItem, int slot) =>
+        orig(checkItem, slot) && (checkItem.IsNull || checkItem.type <= 0 || CanEquipAccessory(checkItem, slot, false));
+
+    static bool CanEquipAccessoryInVanitySlot(On_ItemSlot.orig_CanEquipAccessoryInVanitySlot orig, Item checkItem, int slot) =>
+        orig(checkItem, slot) && (checkItem.IsNull || checkItem.type <= 0 || CanEquipAccessory(checkItem, slot, false));
+
+    internal static bool CanEquipAccessory(Item item, int slot, bool modded)
+    {
+        try
+        {
+            Player player = Main.LocalPlayer;
+            if (ItemHooks.ModItemOf(item) is ModItem m)
+            {
+                bool ok = true;
+                Run(m.FullName, nameof(ModItem.CanEquipAccessory), () => ok = m.CanEquipAccessory(player, slot, modded));
+                if (!ok) return false;
+            }
+            foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+            {
+                if (g == null || !Wants(g, nameof(GlobalItem.CanEquipAccessory))) continue;
+                bool ok = true;
+                Run(g.FullName, nameof(GlobalItem.CanEquipAccessory), () => ok = g.CanEquipAccessory(item, player, slot, modded));
+                if (!ok) return false;
+            }
+            return true;
+        }
+        catch (Exception e)
+        {
+            ItemHooks.Report("CanEquipAccessory", e);
+            return true;
+        }
+    }
+
     static void UpdateArmorSets(On_Player.orig_UpdateArmorSets orig, Player self, int i)
     {
+        if (setBonusWanted) SetBonuses.Set(self.Pointer, null);
         orig(self, i);
         try
         {

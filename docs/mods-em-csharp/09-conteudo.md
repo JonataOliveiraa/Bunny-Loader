@@ -576,10 +576,66 @@ default the `IsArmorSet` of those slots' items), `PreUpdateVanitySet`,
 has them with the `Item` first and the set as a string, and an
 `EquipTexture` subclass can replace them for one texture.
 
-Not on the phone yet: the set bonus line in the tooltip (the game has no
-`Player.setBonus` since 1.4.5.8), `DrawArmorColor`, `ArmorArmGlowMask`,
-`CanEquipAccessory`, the `HidesTopSkin`/`HidesHands` flags of
-`ArmorIDs.Body.Sets` and the item sync in PvP.
+The set bonus text is tModLoader's `player.setBonus`, set in
+`UpdateArmorSet` (or anywhere in the player's update):
+
+```csharp
+public static LocalizedText SetBonusText { get; private set; }
+
+public override void SetStaticDefaults() =>
+    SetBonusText = this.GetLocalization("SetBonus").WithFormatArgs(AdditiveGenericDamageBonus);
+
+public override void UpdateArmorSet(Player player)
+{
+    player.setBonus = SetBonusText.Value;
+    player.GetDamage(DamageClass.Generic) += AdditiveGenericDamageBonus / 100f;
+}
+```
+
+The game has no `Player.setBonus` since 1.4.5.8 (its sets are in
+`ArmorSetBonuses`); the Bunny Loader keeps the text per player, clears it at
+the start of each `UpdateArmorSets` and adds a `SetBonus` line, in the game's
+"Set Bonus: ..." format and green, to the worn pieces' tooltip (an item the
+game already gives a set line keeps the game's). `ModifyTooltips` sees it as
+`Terraria/SetBonus`. `WithFormatArgs` makes a new text with the arguments
+filled in; it does not follow a language change made after it.
+
+`DrawArmorColor(drawPlayer, shadow, ref color, ref glowMask, ref
+glowMaskColor)` (head, body and legs) and `ArmorArmGlowMask(drawPlayer,
+shadow, ref glowMask, ref color)` (the body's arms) run through the worn
+slot's `EquipTexture` (by default the item's) and then the `GlobalItem`s,
+after the game's `PlayerDrawSet.BoringSetup`. Since that is after the game's
+own effects (buff tints, stealth), a part the game made fully transparent
+keeps its color; a changed glow color gets the game's immunity blink
+(`GetImmuneAlphaPure`). `glowMask` is one of the game's glow masks
+(`GlowMaskID`).
+
+`CanEquipAccessory(player, slot, modded)` (`false` refuses) is asked when
+the item is dropped on an accessory slot (`ItemSlot.PickItemMovementAction`),
+on the quick swap (`ItemSlot.ArmorSwap`: the swap is undone and the item
+stays where it was) and by the phone's `ItemSlot.CanEquipAccessoryInSlot` /
+`CanEquipAccessoryInVanitySlot`. `slot` is the index in `player.armor`;
+`modded` is always `false` (there are no mod accessory slots yet).
+
+tModLoader's drawing flags are on the game's sets, sized to the slots
+(the mod ones included), with tModLoader's defaults for the game's:
+`ArmorIDs.Head.Sets.DrawFullHair`, `DrawHatHair`,
+`DrawsBackHairWithoutHeadgear` (read after `Player.GetHairSettings`),
+`ArmorIDs.Body.Sets.HidesTopSkin`, `HidesBottomSkin`, `HidesHands` (default
+`true`), `HidesArms` and `ArmorIDs.Legs.Sets.HidesTopSkin`,
+`HidesBottomSkin` (applied after `BoringSetup`). Set them in
+`SetStaticDefaults`, as `ExampleRobe` does:
+
+```csharp
+public override void SetStaticDefaults() => ArmorIDs.Body.Sets.HidesHands[Item.bodySlot] = false;
+```
+
+They only add to what the game decides: a `true` hides, a `HidesHands` of
+`false` shows the hand, a `HidesArms` of `true` hides the arm. The hooks are
+installed the first time a mod reads one of these sets.
+
+Not yet: `ArmorIDs.Head.Sets.IsTallHat` and `DrawHead`, and the PvP item
+sync, which comes with the PvP hooks in phase 2.
 
 ## Damage classes: `DamageClass`
 

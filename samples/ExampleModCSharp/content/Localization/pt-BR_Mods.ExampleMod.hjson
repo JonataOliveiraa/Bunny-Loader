@@ -12,6 +12,7 @@ Items: {
 	ExampleHelmet: {
 		DisplayName: Elmo de Exemplo
 		Tooltip: Este é um elmo de mod.
+		SetBonus: Aumenta o dano causado em {0}%
 	}
 
 	ExampleBreastplate: {
@@ -32,6 +33,11 @@ Items: {
 			Esta é uma armadura de pernas de mod.
 			Aumenta a velocidade de movimento em 5%
 			'''
+	}
+
+	ExampleRobe: {
+		DisplayName: Manto de Exemplo
+		Tooltip: ""
 	}
 
 	ExampleWings: {

@@ -1,3 +1,5 @@
+using Microsoft.Xna.Framework.Graphics;
+
 namespace Terraria.ModLoader;
 
 public class EquipTexture
@@ -23,6 +25,12 @@ public class EquipTexture
     public virtual void ArmorSetShadows(Player player) => Item?.ArmorSetShadows(player);
 
     public virtual void SetMatch(bool male, ref int equipSlot, ref bool robes) => Item?.SetMatch(male, ref equipSlot, ref robes);
+
+    public virtual void DrawArmorColor(Player drawPlayer, float shadow, ref Color color, ref int glowMask, ref Color glowMaskColor) =>
+        Item?.DrawArmorColor(drawPlayer, shadow, ref color, ref glowMask, ref glowMaskColor);
+
+    public virtual void ArmorArmGlowMask(Player drawPlayer, float shadow, ref int glowMask, ref Color color) =>
+        Item?.ArmorArmGlowMask(drawPlayer, shadow, ref glowMask, ref color);
 
     public virtual void VerticalWingSpeeds(Player player, ref float ascentWhenFalling, ref float ascentWhenRising,
                                            ref float maxCanAscendMultiplier, ref float maxAscentMultiplier, ref float constantAscend) =>

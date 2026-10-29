@@ -139,12 +139,18 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void SetMatch(bool male, ref int equipSlot, ref bool robes) { }
 
+    public virtual void DrawArmorColor(Player drawPlayer, float shadow, ref Color color, ref int glowMask, ref Color glowMaskColor) { }
+
+    public virtual void ArmorArmGlowMask(Player drawPlayer, float shadow, ref int glowMask, ref Color color) { }
+
     public virtual void VerticalWingSpeeds(Player player, ref float ascentWhenFalling, ref float ascentWhenRising,
                                            ref float maxCanAscendMultiplier, ref float maxAscentMultiplier, ref float constantAscend) { }
 
     public virtual void HorizontalWingSpeeds(Player player, ref float speed, ref float acceleration) { }
 
     public virtual bool WingUpdate(Player player, bool inUse) => false;
+
+    public virtual bool CanEquipAccessory(Player player, int slot, bool modded) => true;
 
     public virtual bool CanAccessoryBeEquippedWith(Item equippedItem, Item incomingItem, Player player) => true;
 
