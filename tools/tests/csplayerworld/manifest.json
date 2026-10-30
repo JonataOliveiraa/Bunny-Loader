@@ -1,0 +1,15 @@
+{
+  "uid": "45d62379-96bb-4809-bc20-0d69db04ec33",
+  "id": "test-csplayerworld",
+  "name": "Teste: ModPlayer no mundo (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer: coleta, teletransporte, espiar e shift-clique em slot, compra e venda, enfermeira, captura de bichos e itens iniciais, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csplayerworld. No mundo, loga 'csplayerworld <caso>: ok | FAIL' e 'csplayerworld END'. Usa a dificuldade média por um instante (o inventário cai no chão).",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPlayerWorld.dll",
+  "dependencies": []
+}

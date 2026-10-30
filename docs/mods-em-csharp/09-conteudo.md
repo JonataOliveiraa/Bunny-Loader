@@ -906,8 +906,47 @@ data (its `NetSend`, or its `SaveData` without one, and the globals'
 `ModifyHitPvp`/`OnHitPvp` see a copy with that data. The attacker's own copy
 of the victim takes the game's damage, as in the base game.
 
+### In the world: pickups, slots, shops, the nurse, critters
+
+| Hook | When |
+| --- | --- |
+| `OnPickup(WorldItem item)` | before `Player.PickupItem`; `false` destroys the item on the ground (`TurnToAirAndSync`), as in tModLoader |
+| `CanBeTeleportedTo(teleportPosition, context)` | before `Player.Teleport` (`"TeleportRod"` for style 1, `"TeleportationPotion"` for 2, `"Teleport"` for the rest) and `UnityTeleport` (`"Wormhole"`); `false` keeps the player in place |
+| `HoverSlot(inventory, context, slot)` | in `ItemSlot.OverrideHover` for the local player; `true` skips the game's cursor choice (set `Main.cursorOverride` with `CursorOverrideID`) |
+| `ShiftClickSlot(inventory, context, slot)` | in `ItemSlot.OverrideLeftClick` while `ItemSlot.ShiftInUse`; `true` skips the game's click |
+| `CanBuyItem`, `PostBuyItem(vendor, shopInventory, item)` | a purchase in `ItemSlot.HandleShopSlot`; `false` blocks it; `item` is the one now on the cursor |
+| `CanSellItem`, `PostSellItem(vendor, shopInventory, item)` | around `Player.SellItem` while talking to a vendor |
+| `ModifyNurseHeal(nurse, ref health, ref removeDebuffs, ref chatText)` | before the nurse's price and heal; `false` shows `chatText` and heals nothing |
+| `ModifyNursePrice(nurse, health, removeDebuffs, ref price)` | after `Main.GetNurseHealCost` |
+| `PostNurseHeal(nurse, health, removeDebuffs, price)` | after a paid heal |
+| `CanCatchNPC(target, item)`, `OnCatchNPC(npc, item, failed)` | a bug net swing (`ItemCheck_CatchCritters`) or `NPC.CatchNPC`; `true` catches, `false` refuses; `failed` is `true` when the critter hurt the player instead |
+| `AddStartingItems(mediumCoreDeath)`, `ModifyStartingInventory(itemsByMod, mediumCoreDeath)` | a new character (`GUIPlayerCreateMenu.SetupStartingItems`) and a mediumcore death (`Player.DropItems`); the game's items are under `"Terraria"`, each mod's under its `Name`; what does not fit in the 50 slots goes to `GetOrDropItem` |
+
+The arrays are copies: changing `inventory[slot]` to another `Item` puts it
+back in the game's array after the hook. `new Item(type, stack, prefix)` makes
+a new item, as in tModLoader.
+
+```csharp
+public class ExampleInventoryPlayer : ModPlayer
+{
+    public override IEnumerable<Item> AddStartingItems(bool mediumCoreDeath)
+    {
+        if (mediumCoreDeath)
+            return [new Item(ItemID.HealingPotion)];
+        return [new Item(ModContent.ItemType<ExampleItem>()), new Item(ItemID.GoldOre, 256)];
+    }
+
+    public override void ModifyStartingInventory(IReadOnlyDictionary<string, List<Item>> itemsByMod, bool mediumCoreDeath)
+    {
+        itemsByMod["Terraria"].RemoveAll(item => item.type == ItemID.IronAxe);
+    }
+}
+```
+
+On the phone, `ItemSlot.ShiftInUse` does not read `ItemSlot.ShiftForcedOn`.
+
 The rest of tModLoader's `ModPlayer` (projectile hits, jumps, drawing,
-fishing, shops) comes in the next steps of phase 2.
+fishing) comes in the next steps of phase 2.
 
 ## Buffs: `ModBuff` and `GlobalBuff`
 

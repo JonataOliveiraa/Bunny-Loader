@@ -227,6 +227,18 @@ internal static unsafe class ItemLoader
         }
     }
 
+    static readonly System.Collections.Generic.Queue<(long Time, GameHandle Pin)> Kept = new();
+
+    internal static void KeepAlive(Item item)
+    {
+        long now = Environment.TickCount64;
+        lock (Kept)
+        {
+            while (Kept.Count > 0 && now - Kept.Peek().Time > 10000) Kept.Dequeue().Pin.Dispose();
+            Kept.Enqueue((now, new GameHandle(item.Pointer)));
+        }
+    }
+
     internal static void CloneDefaults(Item item, int typeToClone)
     {
         int type = item.type;

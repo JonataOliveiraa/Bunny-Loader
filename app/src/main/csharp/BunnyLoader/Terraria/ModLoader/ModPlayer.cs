@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria.GameInput;
 using Terraria.DataStructures;
@@ -199,6 +200,36 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
     public virtual bool CanUseItem(Item item) => true;
 
     public virtual bool? CanAutoReuseItem(Item item) => null;
+
+    public virtual bool? CanCatchNPC(NPC target, Item item) => null;
+
+    public virtual void OnCatchNPC(NPC npc, Item item, bool failed) { }
+
+    public virtual bool ShiftClickSlot(Item[] inventory, int context, int slot) => false;
+
+    public virtual bool HoverSlot(Item[] inventory, int context, int slot) => false;
+
+    public virtual void PostSellItem(NPC vendor, Item[] shopInventory, Item item) { }
+
+    public virtual bool CanSellItem(NPC vendor, Item[] shopInventory, Item item) => true;
+
+    public virtual void PostBuyItem(NPC vendor, Item[] shopInventory, Item item) { }
+
+    public virtual bool CanBuyItem(NPC vendor, Item[] shopInventory, Item item) => true;
+
+    public virtual bool ModifyNurseHeal(NPC nurse, ref int health, ref bool removeDebuffs, ref string chatText) => true;
+
+    public virtual void ModifyNursePrice(NPC nurse, int health, bool removeDebuffs, ref int price) { }
+
+    public virtual void PostNurseHeal(NPC nurse, int health, bool removeDebuffs, int price) { }
+
+    public virtual IEnumerable<Item> AddStartingItems(bool mediumCoreDeath) => System.Array.Empty<Item>();
+
+    public virtual void ModifyStartingInventory(IReadOnlyDictionary<string, List<Item>> itemsByMod, bool mediumCoreDeath) { }
+
+    public virtual bool OnPickup(WorldItem item) => true;
+
+    public virtual bool CanBeTeleportedTo(Vector2 teleportPosition, string context) => true;
 
     public virtual void OnEnterWorld() { }
 

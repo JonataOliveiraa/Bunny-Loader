@@ -145,3 +145,7 @@ ExampleGlobalBuff: {
 	RemainingTime: "[ExampleGlobalBuff] Tempo restante: {0}"
 	CannotCancel: Não dá para cancelar este buff parado!
 }
+
+GelGlobalItem: {
+	SpecialShiftClick: Shift-clique neste item no inventário para ganhar uma cor e uma raridade aleatórias!
+}

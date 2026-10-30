@@ -28,6 +28,19 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
 
     public bool CountsAsClass(DamageClass damageClass) => DamageType.CountsAsClass(damageClass);
 
+    public Item(int setDefaultsToType, int stack = 1, int prefix = 0)
+    {
+        Item item = New();
+        ItemLoader.KeepAlive(item);
+        item.SetDefaults(setDefaultsToType, default);
+        if (item.type > 0)
+        {
+            item.stack = stack;
+            if (prefix > 0) item.Prefix(prefix);
+        }
+        Pointer = item.Pointer;
+    }
+
     public void CloneDefaults(int TypeToClone) => ItemLoader.CloneDefaults(this, TypeToClone);
 
     public int ResearchUnlockCount

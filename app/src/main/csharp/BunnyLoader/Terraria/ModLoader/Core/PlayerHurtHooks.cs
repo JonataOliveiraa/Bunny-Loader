@@ -43,6 +43,7 @@ internal static class PlayerHurtHooks
         float perPoint;
         try
         {
+            PlayerWorldHooks.HurtWhileCatching(self, damageSource);
             if (!PlayerLoader.All(self, nameof(ModPlayer.ImmuneTo), (damageSource, cooldownCounter, dodgeable),
                     static (m, s) => !m.ImmuneTo(s.damageSource, s.cooldownCounter, s.dodgeable)))
                 return 0;
