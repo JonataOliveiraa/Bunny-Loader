@@ -273,6 +273,14 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void GetDyeTraderReward(List<int> rewardPool) { }
 
+    public delegate void ItemConsumedCallback(Item item, int index);
+
+    public virtual IEnumerable<Item> AddMaterialsForCrafting(out ItemConsumedCallback itemConsumedCallback)
+    {
+        itemConsumedCallback = null!;
+        return null!;
+    }
+
     public virtual bool OnPickup(WorldItem item) => true;
 
     public virtual bool CanBeTeleportedTo(Vector2 teleportPosition, string context) => true;

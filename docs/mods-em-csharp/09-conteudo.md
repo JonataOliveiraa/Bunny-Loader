@@ -1069,8 +1069,29 @@ and `Skin`) and no `FinchNest`, and `HeldItem` behind the front arm and
 | `ModifyScreenPosition()` | after `Main.DoDraw_UpdateCameraPosition`, for the local player |
 | `ModifyZoom(ref zoom)` | when the game sets `Main.GameViewMatrix.Zoom` |
 
-The rest of tModLoader's `ModPlayer` (projectile hits,
-`AddMaterialsForCrafting`) comes with the projectiles and the crafting.
+### Extra crafting materials
+
+`AddMaterialsForCrafting(out ItemConsumedCallback itemConsumedCallback)`
+returns items the player can craft with as if they were in a nearby chest; the
+callback runs for each of them that a craft used, with its index in what the
+hook returned:
+
+```csharp
+public class BagPlayer : ModPlayer
+{
+    public Item[] Bag = { new Item(ItemID.Ruby, 5) };
+
+    public override IEnumerable<Item> AddMaterialsForCrafting(out ItemConsumedCallback itemConsumedCallback)
+    {
+        itemConsumedCallback = (item, index) => Main.NewText($"slot {index}: {item.stack} left");
+        return Bag;
+    }
+}
+```
+
+The items stay the mod's: when a craft uses one up, the same `Item` turns to
+air instead of being replaced. The rest of tModLoader's `ModPlayer` (the
+projectile hits) comes with the projectiles.
 
 ## Buffs: `ModBuff` and `GlobalBuff`
 
