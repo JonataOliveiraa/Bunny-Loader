@@ -5,6 +5,7 @@
 #include "content/players/PlayerStages.h"
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
+#include "content/projectiles/ModProjectiles.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
@@ -109,6 +110,10 @@ struct NativeApi {
     int32_t (*onResourceDraw)(int32_t (*callback)(int32_t phase, void* spriteBatch, void* args));
     void (*resourceDrawActive)(int32_t active);
     void* (*assetOfTexture)(void* texture);
+    int32_t (*registerProjectile)(const char* mod, const char* name, const char* texture, const char* displayName);
+    void (*onProjectilesInstalled)(void (*callback)(int32_t first, int32_t last));
+    void (*finishProjectile)(void* projectile, int32_t type);
+    void (*setProjectileFrames)(int32_t type, int32_t frames);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -613,6 +618,29 @@ void nativeResourceDrawActive(int32_t active) { runtime::setResourceDrawActive(a
 
 void* nativeAssetOfTexture(void* texture) { return runtime::assetOfTexture(texture); }
 
+int32_t nativeRegisterProjectile(const char* mod, const char* name, const char* texture, const char* displayName) {
+    if (!mod || !name || !texture || !*mod || !*name) return -1;
+    if (!fileExists(texture)) return -2;
+    runtime::ModProjectileDef d;
+    d.mod = mod;
+    d.name = name;
+    d.texture = texture;
+    d.names = cultureTexts(displayName);
+    const int type = runtime::registerModProjectile(std::move(d));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeOnProjectilesInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::setProjectilesInstalledHook(reinterpret_cast<runtime::ProjectilesInstalledHook>(callback));
+}
+
+void nativeFinishProjectile(void* projectile, int32_t type) {
+    runtime::finishModProjectile(static_cast<Il2CppObject*>(projectile), type);
+}
+
+void nativeSetProjectileFrames(int32_t type, int32_t frames) { runtime::setModProjectileFrames(type, frames); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -681,6 +709,10 @@ const NativeApi kNativeApi{
     nativeOnResourceDraw,
     nativeResourceDrawActive,
     nativeAssetOfTexture,
+    nativeRegisterProjectile,
+    nativeOnProjectilesInstalled,
+    nativeFinishProjectile,
+    nativeSetProjectileFrames,
 };
 
 } // namespace

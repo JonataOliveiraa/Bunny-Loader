@@ -69,4 +69,8 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<delegate* unmanaged<int, IntPtr, IntPtr, int>, int> OnResourceDraw;
     public delegate* unmanaged<int, void> ResourceDrawActive;
     public delegate* unmanaged<IntPtr, IntPtr> AssetOfTexture;
+    public delegate* unmanaged<byte*, byte*, byte*, byte*, int> RegisterProjectile;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnProjectilesInstalled;
+    public delegate* unmanaged<IntPtr, int, void> FinishProjectile;
+    public delegate* unmanaged<int, int, void> SetProjectileFrames;
 }

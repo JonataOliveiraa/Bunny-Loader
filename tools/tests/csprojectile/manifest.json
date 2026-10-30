@@ -1,0 +1,18 @@
+{
+  "uid": "76cd8219-c0ee-4dfa-ac8b-280629f7df48",
+  "id": "test-csprojectile",
+  "name": "Teste: ModProjectile (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModProjectile: registro, IA, OnSpawn, colisão com bloco, morte e desenho, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csprojectile. No mundo, loga 'csprojectile <caso>: ok | FAIL' e 'csprojectile END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "CsProjectile.dll",
+  "dependencies": []
+}

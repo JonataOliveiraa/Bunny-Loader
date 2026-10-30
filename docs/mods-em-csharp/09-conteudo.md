@@ -1155,6 +1155,58 @@ public override void DrawCustomBuffTip(string buffTip, SpriteBatch spriteBatch, 
     spriteBatch.DrawString(FontAssets.MouseText.Value, "More text", new Vector2(originX, originY), Color.Yellow);
 ```
 
+## Projectiles: `ModProjectile`
+
+```csharp
+public class ExampleBullet : ModProjectile
+{
+    public override void SetDefaults()
+    {
+        Projectile.width = 8;
+        Projectile.height = 8;
+        Projectile.aiStyle = ProjAIStyleID.Arrow;
+        Projectile.friendly = true;
+        Projectile.DamageType = DamageClass.Ranged;
+        Projectile.penetrate = 5;
+        Projectile.timeLeft = 600;
+        AIType = ProjectileID.Bullet;
+    }
+
+    public override bool OnTileCollide(Vector2 oldVelocity)
+    {
+        Projectile.penetrate--;
+        if (Projectile.penetrate <= 0) Projectile.Kill();
+        else Projectile.velocity = -oldVelocity;
+        return false;
+    }
+}
+```
+
+The texture is `Texture` (`ExampleBullet.png`, frames stacked vertically:
+`Main.projFrames[Type]` in `SetStaticDefaults`), the name
+`Mods.<Mod>.Projectiles.<Name>.DisplayName`, and the type comes after the game's
+1136 (`ModContent.ProjectileType<T>()`, `ProjectileLoader.GetProjectile`). An
+item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
+`Projectile.ModProjectile` is the mod's instance for that projectile.
+
+| Hook | When |
+| --- | --- |
+| `SetStaticDefaults`, `SetDefaults` | after the game has the type; for each new projectile (`Projectile.SetDefaults`) |
+| `OnSpawn(source)` | after `Projectile.NewProjectile`, with the spawn source |
+| `PreAI`, `AI`, `PostAI` | around the game's AI (`aiStyle`); `AIType` runs the AI of that game projectile; `PreAI` `false` skips the game's AI and `AI` |
+| `OnTileCollide(oldVelocity)` | when the projectile hits a tile while moving; `false` keeps it alive where the game would kill it |
+| `PreKill(timeLeft)`, `OnKill(timeLeft)` | before `Projectile.Kill`; `PreKill` `false` removes it without the game's death effects |
+| `ShouldUpdatePosition` | `false` keeps it where it is this update |
+| `Colliding(projHitbox, targetHitbox)` | a custom hit test against NPCs and players |
+| `CanDamage`, `MinionContactDamage`, `ModifyDamageHitbox` | in `Projectile.Damage` |
+| `GetAlpha(lightColor)` | the color it is drawn with |
+| `PreDraw(player, ref lightColor)`, `PostDraw(player, lightColor)` | around the game's draw (`Main.DrawProjDirect`); `Projectile.GetDefaultDrawData(player, lightColor)` gives the draw the game would make, for afterimages |
+
+`Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
+index as in tModLoader. The hit hooks (`CanHitNPC`, `ModifyHitNPC`,
+`OnHitNPC`, the player ones), `GlobalProjectile`, grappling hooks and
+`TileCollideStyle` come next.
+
 ## Mounts: `ModMount`
 
 A mount is set up as in tModLoader: `SetStaticDefaults` fills `MountData`

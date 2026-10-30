@@ -24,4 +24,40 @@ public readonly partial struct Projectile
 
     public static Projectile NewProjectileDirect(IEntitySource spawnSource, Vector2 position, Vector2 velocity, int type, int damage, float knockback, int owner = -1, float ai0 = 0f, float ai1 = 0f, float ai2 = 0f) =>
         Main.projectile[NewProjectile(spawnSource, position, velocity, type, damage, knockback, owner, ai0, ai1, ai2)];
+
+    public ModProjectile ModProjectile => ProjectileLoader.InstanceOf(this)!;
+
+    public DrawData GetDefaultDrawData(Player player, Microsoft.Xna.Framework.Graphics.Color lightColor)
+    {
+        Microsoft.Xna.Framework.Graphics.Texture2D texture = Terraria.GameContent.TextureAssets.Projectile[type].Value;
+        int drawOffsetX = 0;
+        int originOffsetY = 0;
+        float originX = (texture.Width - width) * 0.5f + width * 0.5f;
+        if (ModProjectile is ModProjectile m)
+        {
+            drawOffsetX = m.DrawOffsetX;
+            originOffsetY = -m.DrawOriginOffsetY;
+            originX += m.DrawOriginOffsetX;
+        }
+        var effects = spriteDirection == -1 ? Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally : Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+        Rectangle sourceRectangle;
+        int frames = Main.projFrames[type];
+        if (frames > 1)
+        {
+            int frameHeight = texture.Height / frames;
+            sourceRectangle = new Rectangle(0, frameHeight * frame, texture.Width, frameHeight - 1);
+        }
+        else
+        {
+            sourceRectangle = new Rectangle(0, 0, texture.Width, texture.Height);
+            if (ownerHitCheck && player.gravDir == -1f)
+            {
+                if (player.direction == 1) effects = Microsoft.Xna.Framework.Graphics.SpriteEffects.FlipHorizontally;
+                else if (player.direction == -1) effects = Microsoft.Xna.Framework.Graphics.SpriteEffects.None;
+            }
+        }
+        return new DrawData(texture,
+            new Vector2(position.X - Main.screenPosition.X + originX + drawOffsetX, position.Y - Main.screenPosition.Y + height / 2 + gfxOffY),
+            sourceRectangle, GetAlpha(lightColor), rotation, new Vector2(originX, height / 2 + originOffsetY), scale, effects);
+    }
 }

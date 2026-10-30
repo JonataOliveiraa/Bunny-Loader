@@ -1,4 +1,9 @@
 Items: {
+	ExampleBullet: {
+		DisplayName: Bala de Exemplo
+		Tooltip: Uma munição de bala de mod.
+	}
+
 	ExampleItem: {
 		DisplayName: Exemplo de Item
 		Tooltip: Descrição do item
@@ -167,4 +172,8 @@ ExampleGlobalBuff: {
 
 GelGlobalItem: {
 	SpecialShiftClick: Shift-clique neste item no inventário para ganhar uma cor e uma raridade aleatórias!
+}
+
+Projectiles: {
+	ExampleBullet.DisplayName: Bala de Exemplo
 }

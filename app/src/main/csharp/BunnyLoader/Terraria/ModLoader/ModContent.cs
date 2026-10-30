@@ -31,6 +31,8 @@ public static class ModContent
 
     public static int MountType<T>() where T : ModMount => GetInstance<T>()?.Type ?? 0;
 
+    public static int ProjectileType<T>() where T : ModProjectile => GetInstance<T>()?.Type ?? 0;
+
     public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
 
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
