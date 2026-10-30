@@ -60,9 +60,10 @@ internal static class PlayerHurtHooks
                 if (!gate.Allowed) return 0;
                 slot = gate.Slot;
             }
-            if (!projectile.IsNull && !pvp &&
-                !PlayerLoader.All(self, nameof(ModPlayer.CanBeHitByProjectile), projectile, static (m, p) => m.CanBeHitByProjectile(p)))
+            if (!projectile.IsNull && !pvp && (!ProjectileLoader.CanHitPlayer(projectile, self) ||
+                !PlayerLoader.All(self, nameof(ModPlayer.CanBeHitByProjectile), projectile, static (m, p) => m.CanBeHitByProjectile(p))))
                 return 0;
+            if (!projectile.IsNull && pvp && !ProjectileLoader.CanHitPvp(projectile, self)) return 0;
             if (!projectile.IsNull && pvp && (uint)projectile.owner < 255u)
             {
                 Player owner = Main.player[projectile.owner];
@@ -79,8 +80,11 @@ internal static class PlayerHurtHooks
             if (!npc.IsNull)
                 PlayerLoader.Each(self, nameof(ModPlayer.ModifyHitByNPC), npc, ref modifiers, static (m, n, ref h) => m.ModifyHitByNPC(n, ref h));
             if (!projectile.IsNull)
+            {
+                ProjectileLoader.ModifyHitPlayer(projectile, self, ref modifiers);
                 PlayerLoader.Each(self, nameof(ModPlayer.ModifyHitByProjectile), projectile, ref modifiers,
                     static (m, p, ref h) => m.ModifyHitByProjectile(p, ref h));
+            }
             PlayerLoader.Each(self, nameof(ModPlayer.ModifyHurt), 0, ref modifiers, static (m, _, ref h) => m.ModifyHurt(ref h));
             if (modifiers.Cancelled) return 0;
             defense = self.statDefense;
@@ -107,7 +111,10 @@ internal static class PlayerHurtHooks
             if (!weapon.IsNull) ItemPvpHooks.OnHitPvp(weapon, attacker, self, info);
             if (!npc.IsNull) PlayerLoader.Each(self, nameof(ModPlayer.OnHitByNPC), (npc, info), static (m, s) => m.OnHitByNPC(s.npc, s.info));
             if (!projectile.IsNull)
+            {
+                ProjectileLoader.OnHitPlayer(projectile, self, info);
                 PlayerLoader.Each(self, nameof(ModPlayer.OnHitByProjectile), (projectile, info), static (m, s) => m.OnHitByProjectile(s.projectile, s.info));
+            }
             PlayerLoader.Each(self, nameof(ModPlayer.OnHurt), info, static (m, i) => m.OnHurt(i));
             if (!self.dead && self.statLife > 0) PlayerLoader.Each(self, nameof(ModPlayer.PostHurt), info, static (m, i) => m.PostHurt(i));
         }

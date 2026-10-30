@@ -102,6 +102,11 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleModifiedProjectilesItem: {
+		DisplayName: Example Modified Projectiles Item
+		Tooltip: ""
+	}
+
 	ExampleShotgun: {
 		DisplayName: Example Shotgun
 		Tooltip: This is a modded shotgun.

@@ -1,11 +1,28 @@
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Terraria.DataStructures;
 using Terraria.ModLoader;
 
 namespace Terraria;
 
-public readonly partial struct Projectile
+public readonly partial struct Projectile : IEntityWithGlobals<GlobalProjectile>
 {
+    public IReadOnlyList<GlobalProjectile> EntityGlobals => ProjectileLoader.Globals.Of(this);
+
+    public T GetGlobalProjectile<T>() where T : GlobalProjectile => ProjectileLoader.Globals.Get<T>(this);
+
+    public T GetGlobalProjectile<T>(T baseInstance) where T : GlobalProjectile => ProjectileLoader.Globals.Get(this, baseInstance);
+
+    public bool TryGetGlobalProjectile<T>(out T result) where T : GlobalProjectile => ProjectileLoader.Globals.TryGet(this, out result);
+
+    public bool TryGetOwner(out Player player)
+    {
+        player = default;
+        if (npcProj || trap || (uint)owner > 255u) return false;
+        player = Main.player[owner];
+        return !player.IsNull && player.active;
+    }
+
     public DamageClass DamageType
     {
         get => DamageClassLoader.ProjectileClass(this);

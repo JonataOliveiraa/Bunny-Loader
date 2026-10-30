@@ -7,6 +7,7 @@
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "content/npcs/ModNpcs.h"
+#include "content/projectiles/ProjectileStrikes.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
@@ -120,6 +121,8 @@ struct NativeApi {
     void (*finishNPC)(void* npc, int32_t type, void* spawnParams);
     void (*setNPCFrames)(int32_t type, int32_t frames);
     int32_t (*npcCount)();
+    int32_t (*watchProjectileDamage)();
+    void* (*projectileDamaging)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -672,6 +675,10 @@ void nativeSetNPCFrames(int32_t type, int32_t frames) { runtime::setModNpcFrames
 
 int32_t nativeNPCCount() { return runtime::registeredNpcTypeCount(); }
 
+int32_t nativeWatchProjectileDamage() { return runtime::watchProjectileDamage() ? 1 : 0; }
+
+void* nativeProjectileDamaging() { return runtime::projectileDamaging(); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -749,6 +756,8 @@ const NativeApi kNativeApi{
     nativeFinishNPC,
     nativeSetNPCFrames,
     nativeNPCCount,
+    nativeWatchProjectileDamage,
+    nativeProjectileDamaging,
 };
 
 } // namespace

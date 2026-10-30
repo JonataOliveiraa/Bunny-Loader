@@ -171,7 +171,7 @@ internal static class ItemHitHooks
         try { done = orig(npc, raw, hit.Knockback, hit.HitDirection, hit.Crit && !hit.InstantKill, false, owner); }
         finally
         {
-            if (hide) hidingText = false;
+            if (hide) ShowText();
         }
         if (done <= 0) return done;
         hit.Damage = done;
@@ -179,14 +179,16 @@ internal static class ItemHitHooks
         return done;
     }
 
-    static int RawDamage(NPC npc, NPC.HitInfo hit)
+    internal static int RawDamage(NPC npc, NPC.HitInfo hit)
     {
         if (hit.InstantKill) return Math.Max(1, npc.life) + (int)Math.Ceiling(npc.defense / 2.0) + 1;
         int factor = hit.Crit ? 2 : 1;
         return Math.Max(1, (int)Math.Ceiling(hit.Damage / (double)factor + npc.defense / 2.0 - 1e-9));
     }
 
-    static void HideText()
+    internal static void ShowText() => hidingText = false;
+
+    internal static void HideText()
     {
         hidingText = true;
         ItemHooks.Once("HideCombatText", () => On_CombatText.NewText_Rectangle_Color_int_bool_bool += NewText);

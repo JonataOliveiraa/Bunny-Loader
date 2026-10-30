@@ -193,6 +193,12 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void OnHitNPCWithItem(Item item, NPC target, NPC.HitInfo hit, int damageDone) { }
 
+    public virtual bool? CanHitNPCWithProj(Projectile proj, NPC target) => null;
+
+    public virtual void ModifyHitNPCWithProj(Projectile proj, NPC target, ref NPC.HitModifiers modifiers) { }
+
+    public virtual void OnHitNPCWithProj(Projectile proj, NPC target, NPC.HitInfo hit, int damageDone) { }
+
     public virtual bool CanHitPvp(Item item, Player target) => true;
 
     public virtual bool CanHitPvpWithProj(Projectile proj, Player target) => true;

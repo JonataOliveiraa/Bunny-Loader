@@ -1203,9 +1203,61 @@ item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
 | `PreDraw(player, ref lightColor)`, `PostDraw(player, lightColor)` | around the game's draw (`Main.DrawProjDirect`); `Projectile.GetDefaultDrawData(player, lightColor)` gives the draw the game would make, for afterimages |
 
 `Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
-index as in tModLoader. The hit hooks (`CanHitNPC`, `ModifyHitNPC`,
-`OnHitNPC`, the player ones), `GlobalProjectile`, grappling hooks and
-`TileCollideStyle` come next.
+index as in tModLoader. Grappling hooks, `TileCollideStyle`, `CutTiles`,
+`PreDrawExtras` and `SendExtraAI`/`ReceiveExtraAI` come next.
+
+### Hits
+
+| Hook | When |
+| --- | --- |
+| `CanHitNPC(target)` | before the game checks whether the projectile may hit this NPC; `false` never hits it, `true` hits it even where the game would skip it (critters), `null` leaves it to the game |
+| `ModifyHitNPC(target, ref modifiers)`, `OnHitNPC(target, hit, damageDone)` | around the strike, as for items: `modifiers` start with the projectile's `DamageType` and the NPC's defense |
+| `CanHitPlayer(target)`, `CanHitPvp(target)` | before a hostile projectile (or a PvP one) hurts a player; `false` stops it |
+| `ModifyHitPlayer(target, ref modifiers)`, `OnHitPlayer(target, info)` | around `Player.Hurt` when the projectile is the cause |
+
+The order is tModLoader's: for a hit on an NPC, the owner's `ModPlayer.CanHitNPC`
+and `CanHitNPCWithProj`, then the projectile's `CanHitNPC` (the first answer that
+is not `null` wins, a `false` before it stops); then `ModifyHitNPC` on the
+projectile, its `GlobalProjectile`s, the owner's `ModPlayer.ModifyHitNPC` and
+`ModifyHitNPCWithProj`, and `OnHitNPC` in the same order. A `true` from
+`CanHitNPC` does not make a friendly NPC hittable.
+
+The strike is found without running C# for every projectile: a native marker on
+`Projectile.Damage_PVE` says which projectile is dealing damage, and only the
+strike itself calls the mod. `CanHitNPC` is the exception: the game asks it for
+every NPC near every friendly projectile, so override it only when needed.
+
+## Every projectile: `GlobalProjectile`
+
+```csharp
+public class ExampleProjectileModifications : GlobalProjectile
+{
+    public override bool InstancePerEntity => true;
+    public bool applyBuffOnHit;
+
+    public override void OnHitNPC(Projectile projectile, NPC target, NPC.HitInfo hit, int damageDone)
+    {
+        if (applyBuffOnHit) target.AddBuff(BuffID.OnFire, 50);
+    }
+}
+```
+
+A `GlobalProjectile` has the same hooks as `ModProjectile`, with the
+`Projectile` first, plus `SetDefaults(Projectile entity)`. They run for the
+game's projectiles and the mods'. `AppliesToEntity(entity, lateInstantiation)`
+picks the projectiles (first before the projectile's `SetDefaults`, then after
+it), and with `InstancePerEntity` each projectile gets its own instance:
+`projectile.GetGlobalProjectile<T>()`, `TryGetGlobalProjectile<T>(out T)` and
+`EntityGlobals` read it. The order is tModLoader's: in `PreAI`, `OnTileCollide`,
+`PreKill`, `PreDraw`, `CanHitNPC`, `CanHitPlayer`, `CanHitPvp`, `Colliding`,
+`GetAlpha` and `CanDamage` the globals answer before the `ModProjectile`; in
+`AI`, `PostAI`, `OnKill`, `OnSpawn`, `ModifyHitNPC`, `OnHitNPC`, `ModifyHitPlayer`,
+`OnHitPlayer` and `PostDraw` the `ModProjectile` runs first. The loader's
+`ProjectileLoader.PreAI`, `OnHitNPC` and the others are public, as in
+tModLoader.
+
+`projectile.TryGetOwner(out Player player)` gives the owning player of a
+player's projectile.
 
 ## Mounts: `ModMount`
 

@@ -46,6 +46,7 @@ internal static class PlayerHooks
         ItemManaHooks.Install(Has, true);
         ItemHealHooks.Install(Has);
         ItemHitHooks.Install(name => Has(name) || Has(name + "WithItem"), true);
+        ProjectileHitHooks.Install(name => Has(name) || Has(name + "WithProj"), true);
         if (Has(nameof(ModPlayer.SaveData)) || Has(nameof(ModPlayer.LoadData)) || Has(nameof(ModPlayer.PreSavePlayer)) ||
             Has(nameof(ModPlayer.PostSavePlayer)) || Has(nameof(ModPlayer.PreSaveCustomData)))
             ItemHooks.Once("PlayerSave", () =>
