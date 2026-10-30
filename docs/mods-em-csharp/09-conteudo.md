@@ -1019,8 +1019,58 @@ too. Also there: `player.ExtraJumps`, `blockExtraJumps`, `AnyExtraJumpUsable()`,
 | `ExtraJumpVisuals(jump)`, `CanShowExtraJumpVisuals(jump)` | in `DoubleJumpVisuals`; `false` hides the jump's effects |
 | `OnExtraJumpCleared(jump)` | when an available jump is taken away (unequipped in the air, a mount that blocks jumps, `ConsumeAllExtraJumps`) |
 
-The rest of tModLoader's `ModPlayer` (projectile hits, drawing,
-`AddMaterialsForCrafting`) comes in the next steps of phase 2.
+### Drawing the player: `PlayerDrawLayer`
+
+The player is drawn layer by layer, as in tModLoader: the game's layers are
+`PlayerDrawLayers.Wings`, `Head`, `Torso`, `HeldItem` and the rest, and a mod
+adds its own:
+
+```csharp
+public class ExamplePlayerDrawLayer : PlayerDrawLayer
+{
+    public override bool IsHeadLayer => true;
+
+    public override bool GetDefaultVisibility(PlayerDrawSet drawInfo) =>
+        drawInfo.drawPlayer.HeldItem.type == ModContent.ItemType<ExampleItem>();
+
+    public override Position GetDefaultPosition() => new BeforeParent(PlayerDrawLayers.Head);
+
+    protected override void Draw(ref PlayerDrawSet drawInfo)
+    {
+        var texture = TextureAssets.Item[ModContent.ItemType<ExampleItem>()];
+        var position = drawInfo.Center + new Vector2(0f, -20f) - Main.screenPosition;
+        drawInfo.DrawDataCache.Add(new DrawData(texture.Value, position, null, Color.White, 0f, texture.Size() * 0.5f, 1f, SpriteEffects.None, 0));
+    }
+}
+```
+
+`GetDefaultPosition` takes `Between(layer1, layer2)` (either may be `null`),
+`BeforeParent`/`AfterParent` (drawn with the parent, and hidden with it) or
+`Multiple`. The order is set once after loading (`PlayerDrawLayerLoader.DrawOrder`).
+`drawInfo.DrawDataCache` works as tModLoader's list (`Add`, `Insert`,
+`RemoveAt`, `RemoveAll`, `FindIndex`, `Count`, the indexer, `foreach`) over the
+phone's array and count, and `DrawData` has tModLoader's constructors (a `null`
+source rectangle is the whole texture). `TextureAssets.Item[type]` is an
+`Asset<Texture2D>` and loads the game's texture when it is not loaded yet.
+
+The phone draws the same layers as the PC 1.4.5, which tModLoader (1.4.4) does
+not all have: there is `PlayerDrawLayers.ArmorBackCoat` (between `BalloonAcc`
+and `Skin`) and no `FinchNest`, and `HeldItem` behind the front arm and
+`FrontAccFront` over the arm keep the game's torso offset.
+
+| Hook | When |
+| --- | --- |
+| `DrawEffects(drawInfo, ref r, ref g, ref b, ref a, ref fullBright)` | after `PlayerDrawSet.BoringSetup`; the player's colors are multiplied, and `fullBright` ignores the light |
+| `ModifyDrawInfo(ref drawInfo)` | right after it |
+| `ModifyDrawLayerOrdering(positions)` | once, when the order is built |
+| `HideDrawLayers(drawInfo)` | every draw, before the layers (call `layer.Hide()`) |
+| `TransformDrawData(ref drawInfo)` | before `DrawPlayer_RenderAllLayers`, with every layer's `DrawData` |
+| `DrawPlayer(camera)` | after `LegacyPlayerRenderer.PrepareDrawForFrame`, once per player per frame |
+| `ModifyScreenPosition()` | after `Main.DoDraw_UpdateCameraPosition`, for the local player |
+| `ModifyZoom(ref zoom)` | when the game sets `Main.GameViewMatrix.Zoom` |
+
+The rest of tModLoader's `ModPlayer` (projectile hits,
+`AddMaterialsForCrafting`) comes with the projectiles and the crafting.
 
 ## Buffs: `ModBuff` and `GlobalBuff`
 

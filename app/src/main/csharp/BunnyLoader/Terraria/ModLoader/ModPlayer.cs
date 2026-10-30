@@ -227,6 +227,22 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void ModifyStartingInventory(IReadOnlyDictionary<string, List<Item>> itemsByMod, bool mediumCoreDeath) { }
 
+    public virtual void DrawEffects(PlayerDrawSet drawInfo, ref float r, ref float g, ref float b, ref float a, ref bool fullBright) { }
+
+    public virtual void ModifyDrawInfo(ref PlayerDrawSet drawInfo) { }
+
+    public virtual void TransformDrawData(ref PlayerDrawSet drawInfo) { }
+
+    public virtual void ModifyDrawLayerOrdering(IDictionary<PlayerDrawLayer, PlayerDrawLayer.Position> positions) { }
+
+    public virtual void HideDrawLayers(PlayerDrawSet drawInfo) { }
+
+    public virtual void ModifyScreenPosition() { }
+
+    public virtual void ModifyZoom(ref float zoom) { }
+
+    public virtual void DrawPlayer(Terraria.Graphics.Camera camera) { }
+
     public virtual void ModifyExtraJumpDurationMultiplier(ExtraJump jump, ref float duration) { }
 
     public virtual bool CanStartExtraJump(ExtraJump jump) => true;

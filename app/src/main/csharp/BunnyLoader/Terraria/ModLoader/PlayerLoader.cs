@@ -49,6 +49,18 @@ public static class PlayerLoader
         return grown;
     }
 
+    internal static void ModifyDrawLayerOrdering(IDictionary<PlayerDrawLayer, PlayerDrawLayer.Position> positions)
+    {
+        foreach (ModPlayer player in Hooked(nameof(ModPlayer.ModifyDrawLayerOrdering)))
+        {
+            try { player.ModifyDrawLayerOrdering(positions); }
+            catch (Exception e) { ItemHooks.Report($"{player.FullName}.ModifyDrawLayerOrdering", e); }
+        }
+    }
+
+    internal static void HideDrawLayers(Terraria.DataStructures.PlayerDrawSet drawInfo) =>
+        Each(drawInfo.drawPlayer, nameof(ModPlayer.HideDrawLayers), drawInfo, static (m, i) => m.HideDrawLayers(i));
+
     internal static ModPlayer[] Hooked(string method) =>
         Overriders.TryGetValue(method, out ModPlayer[]? list)
             ? list

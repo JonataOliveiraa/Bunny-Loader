@@ -1,0 +1,15 @@
+{
+  "uid": "2eaea5b3-d9ca-4586-bd11-98681c1a74c0",
+  "id": "test-csplayerdraw",
+  "name": "Teste: desenho do jogador (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "PlayerDrawLayer de mod, ordem, esconder camadas, cores, DrawData, câmera e zoom do ModPlayer, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csplayerdraw. No mundo, loga 'csplayerdraw <caso>: ok | FAIL' e 'csplayerdraw END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPlayerDraw.dll",
+  "dependencies": []
+}

@@ -28,6 +28,10 @@ public static class UtilsExtensions
 
     public static float ToRotation(this Vector2 v) => MathF.Atan2(v.Y, v.X);
 
+    public static Vector2 Size(this Microsoft.Xna.Framework.Graphics.Texture2D texture) => new(texture.Width, texture.Height);
+
+    public static Vector2 Size(this ReLogic.Content.Asset<Microsoft.Xna.Framework.Graphics.Texture2D> asset) => asset.Value.Size();
+
     public static Vector2 RotatedBy(this Vector2 spinningpoint, double radians, Vector2 center = default)
     {
         float cos = (float)Math.Cos(radians), sin = (float)Math.Sin(radians);

@@ -19,6 +19,14 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
         this.file = file;
     }
 
+    internal Asset(string name, IntPtr gameAsset)
+    {
+        Name = name;
+        asset = gameAsset;
+    }
+
+    internal IntPtr GameAsset => asset;
+
     public string Name { get; }
 
     public AssetState State => Volatile.Read(ref asset) != IntPtr.Zero ? AssetState.Loaded : AssetState.NotLoaded;

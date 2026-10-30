@@ -146,6 +146,12 @@ public static class ModContent
             }
             try { ExtraJumpLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                foreach (PlayerDrawLayer layer in mod.GetContent<PlayerDrawLayer>()) Run(mod, $"{layer.Name}.SetStaticDefaults", layer.SetupContent);
+            }
+            try { PlayerDrawLayerLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"player draw layers: the order could not be set up: {e}"); }
             try { PrefixLoader.ContentReady(); }
             catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
             foreach (Mod mod in mods)

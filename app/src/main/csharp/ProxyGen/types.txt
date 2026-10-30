@@ -195,3 +195,5 @@ Terraria.GetItemSettings
 Terraria.Mount
 Terraria.Gore
 Terraria.DataStructures.EntitySource_Parent
+!Terraria.DataStructures.PlayerDrawSet.DrawDataCache
+!Terraria.GameContent.TextureAssets.Item
