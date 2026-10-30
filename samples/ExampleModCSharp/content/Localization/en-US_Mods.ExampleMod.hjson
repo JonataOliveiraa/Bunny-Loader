@@ -177,3 +177,7 @@ GelGlobalItem: {
 Projectiles: {
 	ExampleBullet.DisplayName: Example Bullet
 }
+
+NPCs: {
+	PartyZombie.DisplayName: Party Zombie
+}

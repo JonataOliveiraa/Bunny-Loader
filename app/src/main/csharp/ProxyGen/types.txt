@@ -222,3 +222,6 @@ Terraria.ID.MountID.Sets
 !Terraria.Mount+MountData.frontTextureExtra
 !Terraria.Mount+MountData.frontTextureExtraGlow
 !Terraria.GameContent.TextureAssets.Projectile
+!Terraria.GameContent.TextureAssets.Npc
+Terraria.DataStructures.GameDifficultyLevel
+ReLogic.Reflection.IdDictionary

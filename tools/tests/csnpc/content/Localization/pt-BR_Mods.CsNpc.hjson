@@ -1,0 +1,7 @@
+NPCs: {
+    TestNpc.DisplayName: NPC de Teste
+    ClonedNpc.DisplayName: NPC Clonado
+    CopiedNpc.DisplayName: NPC Copiado
+    VanillaCloneNpc.DisplayName: Clone de NPC Vanilla
+    PartyZombie.DisplayName: Zumbi Festeiro
+}

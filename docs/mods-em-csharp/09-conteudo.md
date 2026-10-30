@@ -1292,6 +1292,88 @@ is the heart or star (0 is the first), `context.snapshot` has the player's
 The phone has no hover text on the bar, so `DisplayHoverText` is not called,
 and `drawText` only hides the life text.
 
+## NPCs: `ModNPC` and `GlobalNPC`
+
+A `ModNPC` registers a new NPC type after the game's types. Its texture and
+display name follow the same conventions as items:
+
+```csharp
+using Terraria;
+using Terraria.ModLoader;
+
+namespace MyMod.Content.NPCs;
+
+public class FloatingFriend : ModNPC
+{
+    public override void SetDefaults()
+    {
+        NPC.width = 24;
+        NPC.height = 26;
+        NPC.lifeMax = 120;
+        NPC.friendly = true;
+        NPC.noGravity = true;
+        NPC.noTileCollide = true;
+        NPC.aiStyle = -1;
+    }
+}
+```
+
+The texture is `content/Content/NPCs/FloatingFriend.png`, and the name is
+`Mods.MyMod.NPCs.FloatingFriend.DisplayName` in the localization files.
+`ModContent.NPCType<FloatingFriend>()` gives the type,
+`NPCLoader.GetNPC(type)` and `ModContent.GetModNPC(type)` give the registered
+template, and `ModContent.Find<ModNPC>("MyMod/FloatingFriend")` finds it by name.
+`NPCLoader.NPCCount` includes every registered type, including JavaScript NPCs;
+the game tables have that size by `SetStaticDefaults`.
+
+The template has a real `NPC` in `SetStaticDefaults`, and its `NPC.ModNPC` is
+the template itself. `AutoStaticDefaults` assigns `TextureAssets.Npc[Type]`
+before that method. Set `Main.npcFrameCount[Type]` there for a sprite sheet;
+`TextureAssets.Npc` exposes `Asset<Texture2D>` entries, including a setter.
+
+Each `NPC.SetDefaults` creates a new mod instance. Read it through
+`npc.ModNPC`; it stays the same until the object receives new defaults.
+Constructor fields start fresh unless `CloneNewInstances` is true, in which
+case `Clone(newEntity)` copies the template. `ModNPC.NPC` is a `ref` property,
+so assignments to the pointer struct work as they do on tModLoader's class.
+The instances use the same weak-handle storage as items and do not keep game
+objects alive.
+
+`NPC.CloneDefaults(type)` copies another type's defaults, including its mod
+and globals, at Classic difficulty and scale 1. It restores the receiving
+NPC's type, net ID, mod instance, globals and player interaction flags. The
+outer defaults apply the requested difficulty once; `NPCSpawnParams` size
+and difficulty overrides also work for mod NPCs. `SetDefaults(type)` and
+`SetDefaultsKeepPlayerInteraction(type, spawnParams)` are available. The
+game's `NPC.Clone()` also clones mod and per-entity global state; override
+`Clone` to copy reference fields such as lists.
+
+A `GlobalNPC` uses the same `InstancePerEntity`, `AppliesToEntity`, cloning
+and instance-field validation as `GlobalItem`. Its hooks currently available
+are `SetStaticDefaults` and `SetDefaults(NPC entity)`. For each defaults run:
+
+1. Globals that apply with `lateInstantiation == false` are attached.
+2. The `ModNPC.SetDefaults` runs, then those globals' `SetDefaults`.
+3. The remaining globals are checked with `lateInstantiation == true` and
+   attached, then their `SetDefaults` run.
+
+Use `npc.GetGlobalNPC<T>()`, `GetGlobalNPC(baseInstance)`,
+`TryGetGlobalNPC(out T value)`, `TryGetGlobalNPC(baseInstance, out T value)`
+or `npc.EntityGlobals`. A global without `InstancePerEntity` is shared;
+per-entity globals are reset even when the game reuses the same NPC object.
+For vanilla NPCs these hooks run after the mobile game's own `SetDefaults`,
+as in the JavaScript loader; its difficulty scaling has already run. For mod
+NPCs the final difficulty scaling runs after all the defaults hooks.
+
+`NPC.NewNPC(default, x, y, type)` uses this path too. The initial
+`PartyZombie` port demonstrates registration, frame count, texture and base
+stats. Its borrowed zombie AI/animation, sounds, natural spawn, loot,
+combat callbacks, banners and bestiary/biome integration arrive with the
+corresponding phase 4 steps. It uses the mobile fighter style number 3 until
+`NPCAIStyleID` is ported. No C# AI, drawing or UpdateNPC hook is installed by
+this registration step. Extra AI networking and custom saved NPC data are
+also later steps.
+
 ## Finding content by name
 
 The **full name** of a content class is `<mod>/<Name>`: the mod's internal

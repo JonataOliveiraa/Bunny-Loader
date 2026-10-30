@@ -177,3 +177,7 @@ GelGlobalItem: {
 Projectiles: {
 	ExampleBullet.DisplayName: Bala de Exemplo
 }
+
+NPCs: {
+	PartyZombie.DisplayName: Zumbi Festeiro
+}

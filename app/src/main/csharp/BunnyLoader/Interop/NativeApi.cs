@@ -73,4 +73,9 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnProjectilesInstalled;
     public delegate* unmanaged<IntPtr, int, void> FinishProjectile;
     public delegate* unmanaged<int, int, void> SetProjectileFrames;
+    public delegate* unmanaged<byte*, byte*, byte*, byte*, int> RegisterNPC;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnNPCsInstalled;
+    public delegate* unmanaged<IntPtr, int, void*, void> FinishNPC;
+    public delegate* unmanaged<int, int, void> SetNPCFrames;
+    public delegate* unmanaged<int> NPCCount;
 }

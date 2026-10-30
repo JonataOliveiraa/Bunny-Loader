@@ -13,6 +13,8 @@ public static partial class TextureAssets
 
     public static TextureAssetArray Projectile { get; } = new(3, "Images/Projectile_", static () => Projectile_, static i => Main.instance.LoadProjectile(i));
 
+    public static TextureAssetArray Npc { get; } = new(4, "Images/NPC_", static () => Npc_, static i => Main.instance.LoadNPC(i));
+
     public static TextureAssetArray PlayerHair { get; } = new(1, "Images/Player_Hair_", static () => PlayerHair_, static i => Main.instance.LoadHair(i));
 
     public static TextureAssetArray PlayerHairAlt { get; } = new(2, "Images/Player_HairAlt_", static () => PlayerHairAlt_, static i => Main.instance.LoadHair(i));

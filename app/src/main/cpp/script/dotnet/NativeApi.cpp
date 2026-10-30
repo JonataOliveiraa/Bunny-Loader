@@ -6,6 +6,7 @@
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
+#include "content/npcs/ModNpcs.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
@@ -114,6 +115,11 @@ struct NativeApi {
     void (*onProjectilesInstalled)(void (*callback)(int32_t first, int32_t last));
     void (*finishProjectile)(void* projectile, int32_t type);
     void (*setProjectileFrames)(int32_t type, int32_t frames);
+    int32_t (*registerNPC)(const char* mod, const char* name, const char* texture, const char* displayName);
+    void (*onNPCsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void (*finishNPC)(void* npc, int32_t type, void* spawnParams);
+    void (*setNPCFrames)(int32_t type, int32_t frames);
+    int32_t (*npcCount)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -641,6 +647,31 @@ void nativeFinishProjectile(void* projectile, int32_t type) {
 
 void nativeSetProjectileFrames(int32_t type, int32_t frames) { runtime::setModProjectileFrames(type, frames); }
 
+int32_t nativeRegisterNPC(const char* mod, const char* name, const char* texture, const char* displayName) {
+    if (!mod || !name || !texture || !*mod || !*name) return -1;
+    if (!fileExists(texture)) return -2;
+    runtime::ModNpcDef def;
+    def.mod = mod;
+    def.name = name;
+    def.texture = texture;
+    def.names = cultureTexts(displayName);
+    const int type = runtime::registerModNpc(std::move(def));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeOnNPCsInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::setNpcsInstalledHook(reinterpret_cast<runtime::NpcsInstalledHook>(callback));
+}
+
+void nativeFinishNPC(void* npc, int32_t type, void* spawnParams) {
+    runtime::finishModNpc(static_cast<Il2CppObject*>(npc), type, spawnParams);
+}
+
+void nativeSetNPCFrames(int32_t type, int32_t frames) { runtime::setModNpcFrames(type, frames); }
+
+int32_t nativeNPCCount() { return runtime::registeredNpcTypeCount(); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -713,6 +744,11 @@ const NativeApi kNativeApi{
     nativeOnProjectilesInstalled,
     nativeFinishProjectile,
     nativeSetProjectileFrames,
+    nativeRegisterNPC,
+    nativeOnNPCsInstalled,
+    nativeFinishNPC,
+    nativeSetNPCFrames,
+    nativeNPCCount,
 };
 
 } // namespace

@@ -35,7 +35,8 @@ std::vector<Entry> g_regs;               // indice = type - kVanillaNpcCount
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
-NpcsInstalledHook g_installedHook = nullptr;
+std::mutex g_hooksMx;
+std::vector<NpcsInstalledHook> g_installedHooks;
 bool g_staticDefaultsPending = false;   // instalado, esperando a tabela de drop do jogo
 
 // animationType por tipo de mod, lido a cada quadro por NPC: copia sem trava,
@@ -392,6 +393,10 @@ int npcTypeCount() {
     return kVanillaNpcCount + g_installed.load(std::memory_order_acquire);
 }
 
+int registeredNpcTypeCount() {
+    return kVanillaNpcCount + g_total.load(std::memory_order_acquire);
+}
+
 void prepareModNpcs() {
     const int total = g_total.load(std::memory_order_acquire);
     if (total > 0) {
@@ -406,7 +411,12 @@ bool modNpcsSettled() {
 }
 
 void setNpcsInstalledHook(NpcsInstalledHook hook) {
-    g_installedHook = hook;
+    if (!hook) return;
+    std::lock_guard<std::mutex> l(g_hooksMx);
+    for (NpcsInstalledHook current : g_installedHooks) {
+        if (current == hook) return;
+    }
+    g_installedHooks.push_back(hook);
 }
 
 void tickModNpcs() {
@@ -434,7 +444,12 @@ void tickModNpcs() {
             if (refs().itemDrops) il2cpp::api().field_static_get_value(refs().itemDrops, &drops);
             if (drops || !refs().itemDrops) {
                 g_staticDefaultsPending = false;
-                if (g_installedHook) g_installedHook(kVanillaNpcCount, from - 1);
+                std::vector<NpcsInstalledHook> hooks;
+                {
+                    std::lock_guard<std::mutex> l(g_hooksMx);
+                    hooks = g_installedHooks;
+                }
+                for (NpcsInstalledHook hook : hooks) hook(kVanillaNpcCount, from - 1);
             }
         }
         g_tables.checkPending(from);
@@ -555,7 +570,7 @@ int modNpcTypeByName(const std::string& mod, const std::string& name) {
     return -1;
 }
 
-void finishModNpc(Il2CppObject* npc, int type) {
+void finishModNpc(Il2CppObject* npc, int type, void* spawnParams) {
     const Refs& r = refs();
     if (!r.ok || !npc) return;
     int w = 0, h = 0;
@@ -580,10 +595,9 @@ void finishModNpc(Il2CppObject* npc, int type) {
     // cliente desligava a moradora a cada pacote.
     field<int32_t>(npc, r.defLifeMax) = field<int32_t>(npc, r.lifeMax);
     if (r.scaleStats) {
-        // Nullable vazio nos dois: jogadores ativos e forca de agora (o que o
-        // SetDefaults faz sem NPCSpawnParams).
         alignas(8) uint8_t players[8] = {}, strength[8] = {};
-        void* args[2] = {players, strength};
+        auto* params = static_cast<uint8_t*>(spawnParams);
+        void* args[2] = {params ? params + 8 : players, params ? params + 16 : strength};
         invoke(r.scaleStats, npc, args, "NPC.ScaleStats");
         field<int32_t>(npc, r.life) = field<int32_t>(npc, r.lifeMax);   // a escala mexe no lifeMax
     }

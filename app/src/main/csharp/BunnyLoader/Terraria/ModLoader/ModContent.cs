@@ -33,6 +33,10 @@ public static class ModContent
 
     public static int ProjectileType<T>() where T : ModProjectile => GetInstance<T>()?.Type ?? 0;
 
+    public static int NPCType<T>() where T : ModNPC => GetInstance<T>()?.Type ?? 0;
+
+    public static ModNPC? GetModNPC(int type) => NPCLoader.GetNPC(type);
+
     public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
 
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
