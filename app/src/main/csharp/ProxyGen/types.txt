@@ -209,3 +209,15 @@ Terraria.GameContent.UI.ResourceSets.PlayerStatsSnapshot
 !Terraria.GameContent.TextureAssets.Heart
 !Terraria.GameContent.TextureAssets.Heart2
 !Terraria.GameContent.TextureAssets.Mana
+Terraria.ID.MountID
+Terraria.ID.MountID.Sets
+!Terraria.Mount._mountSpecificData
+!Terraria.Mount+MountData.playerYOffsets
+!Terraria.Mount+MountData.backTexture
+!Terraria.Mount+MountData.backTextureGlow
+!Terraria.Mount+MountData.backTextureExtra
+!Terraria.Mount+MountData.backTextureExtraGlow
+!Terraria.Mount+MountData.frontTexture
+!Terraria.Mount+MountData.frontTextureGlow
+!Terraria.Mount+MountData.frontTextureExtra
+!Terraria.Mount+MountData.frontTextureExtraGlow

@@ -1155,6 +1155,38 @@ public override void DrawCustomBuffTip(string buffTip, SpriteBatch spriteBatch, 
     spriteBatch.DrawString(FontAssets.MouseText.Value, "More text", new Vector2(originX, originY), Color.Yellow);
 ```
 
+## Mounts: `ModMount`
+
+A mount is set up as in tModLoader: `SetStaticDefaults` fills `MountData`
+(speeds, frames, offsets, `buff`, `spawnDust`), and the textures come from
+`Texture + "_Back"`, `"_Front"`, `"_BackGlow"` and the other
+`MountTextureType`s, when the files exist. A buff mounts it:
+
+```csharp
+public class ExampleMountBuff : ModBuff
+{
+    public override void Update(Player player, ref int buffIndex)
+    {
+        player.mount.SetMount(ModContent.MountType<ExampleMount>(), player);
+        player.buffTime[buffIndex] = 10;
+    }
+}
+```
+
+and an item with `Item.mountType = ModContent.MountType<ExampleMount>()` gives
+the buff. The hooks: `SetMount(player, ref skipDust)`,
+`Dismount(player, ref skipDust)`, `UpdateEffects`, `UpdateFrame` (`false` skips
+the game's animation), `JumpHeight`, `JumpSpeed`, `UseAbility`, `AimAbility` and
+`Draw` (`false` draws nothing; what the hook adds to `playerDrawData` is drawn
+behind the mount). `player.mount._mountSpecificData` holds any C# object for
+that mount until it dismounts. The types come after the game's (`MountID.Count`,
+`MountLoader.GetMount`), and `MountID.Sets` grow with them.
+
+`MountData.backTexture` and the other texture fields are `Asset<Texture2D>`, and
+`MountData.playerYOffsets` is an `int[]` copied in and out of the game's array:
+set it whole (`MountData.playerYOffsets = new[] { ... }`), as tModLoader's
+examples do.
+
 ## Hairstyles: `ModHair`
 
 ```csharp

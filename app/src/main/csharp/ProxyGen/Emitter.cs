@@ -104,6 +104,11 @@ sealed class Emitter
         {
             if (model.Defaults[i] == null && model.Params[i].Mode == ArgMode.Value) model.Defaults[i] = "default";
         }
+        for (int i = firstDefault - 1; firstDefault > 0 && i >= 0; i--)
+        {
+            if (model.Params[i].Mode != ArgMode.Value || !model.Params[i].Use.Cs.StartsWith(RT + ".GameNullable<", StringComparison.Ordinal)) break;
+            model.Defaults[i] = "default";
+        }
         args.Add(new ArgPlan
         {
             Name = "method", Mode = ArgMode.MethodInfo,

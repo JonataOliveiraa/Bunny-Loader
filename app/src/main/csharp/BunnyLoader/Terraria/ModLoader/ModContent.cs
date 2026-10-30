@@ -29,6 +29,8 @@ public static class ModContent
 
     public static int BuffType<T>() where T : ModBuff => GetInstance<T>()?.Type ?? 0;
 
+    public static int MountType<T>() where T : ModMount => GetInstance<T>()?.Type ?? 0;
+
     public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
 
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
@@ -67,6 +69,17 @@ public static class ModContent
         (string modName, string path) = SplitName(name);
         if (modName == "Terraria") return VanillaAsset<T>.Get(path);
         return ModOf(modName, name).Assets.Request<T>(path, mode);
+    }
+
+    public static bool RequestIfExists<T>(string name, out Asset<T> asset, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
+    {
+        if (!HasAsset(name))
+        {
+            asset = null!;
+            return false;
+        }
+        asset = Request<T>(name, mode);
+        return true;
     }
 
     public static bool HasAsset(string assetName)
@@ -147,6 +160,12 @@ public static class ModContent
             foreach (Mod mod in mods)
             {
                 foreach (ModResourceOverlay overlay in mod.GetContent<ModResourceOverlay>()) Run(mod, $"{overlay.Name}.SetStaticDefaults", overlay.SetupContent);
+            }
+            try { MountLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"mounts: the tables could not be resized: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModMount mount in mod.GetContent<ModMount>()) Run(mod, $"{mount.Name}.SetStaticDefaults", mount.SetupContent);
             }
             try { HairLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"hairs: the tables could not be resized: {e}"); }
