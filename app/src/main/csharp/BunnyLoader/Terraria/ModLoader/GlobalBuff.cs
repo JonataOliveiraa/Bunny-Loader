@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 
@@ -18,6 +20,10 @@ public abstract class GlobalBuff : ModType
     public virtual bool ReApply(int type, NPC npc, int time, int buffIndex) => false;
 
     public virtual void ModifyBuffText(int type, ref string buffName, ref string tip, ref int rare) { }
+
+    public virtual void CustomBuffTipSize(string buffTip, List<Vector2> sizes) { }
+
+    public virtual void DrawCustomBuffTip(string buffTip, SpriteBatch spriteBatch, int originX, int originY) { }
 
     public virtual bool PreDraw(SpriteBatch spriteBatch, int type, int buffIndex, ref BuffDrawParams drawParams) => true;
 

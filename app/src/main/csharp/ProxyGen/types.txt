@@ -197,3 +197,8 @@ Terraria.Gore
 Terraria.DataStructures.EntitySource_Parent
 !Terraria.DataStructures.PlayerDrawSet.DrawDataCache
 !Terraria.GameContent.TextureAssets.Item
+Microsoft.Xna.Framework.Graphics.SpriteFont
+Terraria.GameContent.FontAssets
+!Terraria.GameContent.FontAssets.MouseText
+!Terraria.GameContent.FontAssets.ItemStack
+!Terraria.GameContent.FontAssets.DeathText

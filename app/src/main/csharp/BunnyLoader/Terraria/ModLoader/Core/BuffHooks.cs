@@ -54,6 +54,8 @@ internal static unsafe class BuffHooks
                 On_Main.GetBuffTooltip += GetBuffTooltip;
             });
         if (Has(nameof(ModBuff.RightClick))) ItemHooks.Once("BuffRightClick", () => On_GUIBuffs.RemoveBuff_int += RemoveBuff);
+        if (Has(nameof(GlobalBuff.CustomBuffTipSize)) || Has(nameof(GlobalBuff.DrawCustomBuffTip)))
+            ItemHooks.Once("BuffTip", () => On_Main.MouseText_DrawBuffTooltip += DrawBuffTooltip);
         if (Has(nameof(ModBuff.PreDraw)) || Has(nameof(ModBuff.PostDraw)))
             ItemHooks.Once("BuffDraw", () =>
             {
@@ -61,6 +63,39 @@ internal static unsafe class BuffHooks
                 if (look == null) Log.Error("buff hooks: the icon drawing hooks are not installed; PreDraw changes are not drawn");
                 On_GUIBuffs.ItemDraw += ItemDraw;
             });
+    }
+
+    static void DrawBuffTooltip(On_Main.orig_MouseText_DrawBuffTooltip orig, Main self, string? cursorText, string? buffString, ref int X, ref int Y)
+    {
+        string tip = buffString ?? "";
+        SpriteFont font = FontAssets.MouseText.Value;
+        var sizes = new System.Collections.Generic.List<Vector2> { font.MeasureString(tip), font.MeasureString(cursorText ?? "") };
+        int fixedSizes = sizes.Count;
+        foreach (GlobalBuff g in BuffLoader.Globals)
+        {
+            if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.CustomBuffTipSize))) continue;
+            try { g.CustomBuffTipSize(tip, sizes); }
+            catch (Exception e) { ItemHooks.Report($"{g.FullName}.CustomBuffTipSize", e); }
+        }
+        if (sizes.Count > fixedSizes)
+        {
+            Vector2 largest = Vector2.Zero;
+            foreach (Vector2 size in sizes)
+            {
+                largest.X = Math.Max(largest.X, size.X);
+                largest.Y = Math.Max(largest.Y, size.Y);
+            }
+            if (X + largest.X + 24f > Main.screenWidth) X = (int)(Main.screenWidth - largest.X - 24f);
+            if (Y + largest.Y + 4f > Main.screenHeight) Y = (int)(Main.screenHeight - largest.Y - 4f);
+        }
+        orig(self, cursorText, buffString, ref X, ref Y);
+        int originY = Y + (int)font.MeasureString(tip).Y;
+        foreach (GlobalBuff g in BuffLoader.Globals)
+        {
+            if (!Over(g, typeof(GlobalBuff), nameof(GlobalBuff.DrawCustomBuffTip))) continue;
+            try { g.DrawCustomBuffTip(tip, Main.spriteBatch, X, originY); }
+            catch (Exception e) { ItemHooks.Report($"{g.FullName}.DrawCustomBuffTip", e); }
+        }
     }
 
     static bool WantsDraw(int type, out ModBuff? own)

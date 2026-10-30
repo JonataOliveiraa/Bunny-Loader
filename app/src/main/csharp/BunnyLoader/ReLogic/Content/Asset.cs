@@ -35,14 +35,26 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     public bool IsDisposed => false;
 
+    static int valueOffset = -1;
+
     public T Value
     {
         get
         {
             Wait();
-            IntPtr value = Host.Native()->TextureAssetValue(asset);
+            IntPtr value = typeof(T) == typeof(Texture2D) ? Host.Native()->TextureAssetValue(asset) : *(IntPtr*)(asset + ValueOffset());
             return Unsafe.As<IntPtr, T>(ref value);
         }
+    }
+
+    int ValueOffset()
+    {
+        if (valueOffset >= 0) return valueOffset;
+        byte* name = Host.Utf8("Value");
+        try { valueOffset = Host.Native()->FieldOffset(*(IntPtr*)asset, name); }
+        finally { Host.FreeUtf8(name); }
+        if (valueOffset < 0) throw new MissingFieldException($"asset {Name}: the game's Asset has no Value field");
+        return valueOffset;
     }
 
     public void Wait()

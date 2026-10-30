@@ -1120,8 +1120,19 @@ params start as the game draws it: `Position` is the icon's top left corner,
 (`Main.buffAlpha`). A change to `Texture`, `Position`, `SourceRectangle` or
 `DrawColor` goes to the game's draw of that icon, a change to `TextPosition`
 moves its time text, and `false` hides the icon (the text stays, as in
-tModLoader). The phone draws the bar at a 0.8 scale. Not yet: the
-`GlobalBuff` tip size hooks (`CustomBuffTipSize`, `DrawCustomBuffTip`).
+tModLoader). The phone draws the bar at a 0.8 scale.
+
+The buff's tip (tapping the icon shows it through `Main.MouseText`):
+`GlobalBuff.CustomBuffTipSize(buffTip, sizes)` adds the sizes of what a mod
+draws under it, so the game moves the box back on screen, and
+`DrawCustomBuffTip(buffTip, spriteBatch, originX, originY)` draws it, with the
+origin just under the tip text. `FontAssets.MouseText`, `ItemStack` and
+`DeathText` are `Asset<SpriteFont>`s, as in tModLoader:
+
+```csharp
+public override void DrawCustomBuffTip(string buffTip, SpriteBatch spriteBatch, int originX, int originY) =>
+    spriteBatch.DrawString(FontAssets.MouseText.Value, "More text", new Vector2(originX, originY), Color.Yellow);
+```
 
 ## Finding content by name
 
