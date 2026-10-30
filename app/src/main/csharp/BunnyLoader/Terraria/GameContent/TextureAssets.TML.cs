@@ -9,34 +9,65 @@ namespace Terraria.GameContent;
 
 public static partial class TextureAssets
 {
-    public static ItemTextureAssets Item => default;
+    public static TextureAssetArray Item { get; } = new(0, "Images/Item_", static () => Item_, static i => Main.instance.LoadItem(i));
+
+    public static TextureAssetArray PlayerHair { get; } = new(1, "Images/Player_Hair_", static () => PlayerHair_, static i => Main.instance.LoadHair(i));
+
+    public static TextureAssetArray PlayerHairAlt { get; } = new(2, "Images/Player_HairAlt_", static () => PlayerHairAlt_, static i => Main.instance.LoadHair(i));
+
+    internal static void ResizePlayerHair(int length)
+    {
+        if (PlayerHair_.Length < length) PlayerHair_ = PlayerHair_.Resized(length);
+        if (PlayerHairAlt_.Length < length) PlayerHairAlt_ = PlayerHairAlt_.Resized(length);
+    }
 }
 
-public readonly unsafe struct ItemTextureAssets
+public sealed unsafe class TextureAssetArray
 {
-    static readonly Dictionary<int, Asset<Texture2D>> Cache = new();
+    static readonly Dictionary<(int, int), Asset<Texture2D>> Cache = new();
 
-    public int Length => TextureAssets.Item_.Length;
+    readonly int id;
+    readonly string prefix;
+    readonly Func<GameArray<GameObject>> array;
+    readonly Action<int> load;
 
-    public Asset<Texture2D> this[int type]
+    internal TextureAssetArray(int id, string prefix, Func<GameArray<GameObject>> array, Action<int> load)
+    {
+        this.id = id;
+        this.prefix = prefix;
+        this.array = array;
+        this.load = load;
+    }
+
+    public int Length => array().Length;
+
+    public Asset<Texture2D> this[int index]
     {
         get
         {
-            GameArray<GameObject> items = TextureAssets.Item_;
-            if ((uint)type >= (uint)items.Length) throw new IndexOutOfRangeException($"TextureAssets.Item[{type}]: there are {items.Length} item textures");
-            IntPtr asset = items[type].Pointer;
+            GameArray<GameObject> items = array();
+            if ((uint)index >= (uint)items.Length) throw new IndexOutOfRangeException($"{prefix}{index}: there are {items.Length} textures");
+            IntPtr asset = items[index].Pointer;
             if (asset == IntPtr.Zero || Host.Native()->TextureAssetValue(asset) == IntPtr.Zero)
             {
-                Main.instance.LoadItem(type);
-                asset = TextureAssets.Item_[type].Pointer;
+                load(index);
+                asset = array()[index].Pointer;
             }
             lock (Cache)
             {
-                if (Cache.TryGetValue(type, out Asset<Texture2D>? cached) && cached.GameAsset == asset) return cached;
-                var wrapped = new Asset<Texture2D>($"Images/Item_{type}", asset);
-                Cache[type] = wrapped;
+                if (Cache.TryGetValue((id, index), out Asset<Texture2D>? cached) && cached.GameAsset == asset) return cached;
+                var wrapped = new Asset<Texture2D>(prefix + index, asset);
+                Cache[(id, index)] = wrapped;
                 return wrapped;
             }
+        }
+        set
+        {
+            GameArray<GameObject> items = array();
+            if ((uint)index >= (uint)items.Length) throw new IndexOutOfRangeException($"{prefix}{index}: there are {items.Length} textures");
+            value.Wait();
+            items[index] = new GameObject(value.GameAsset);
+            lock (Cache) Cache[(id, index)] = value;
         }
     }
 }

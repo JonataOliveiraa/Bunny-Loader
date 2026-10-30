@@ -221,7 +221,7 @@ internal static class PlayerHooks
         return data;
     }
 
-    static string? DataFile(PlayerFileData data)
+    internal static string? DataFile(PlayerFileData data)
     {
         FileData file = data;
         if (file.IsCloudSave) return null;
@@ -229,7 +229,7 @@ internal static class PlayerHooks
         return string.IsNullOrEmpty(path) ? null : path + ".bl.json";
     }
 
-    static JsonObject Read(string file)
+    internal static JsonObject Read(string file)
     {
         if (!File.Exists(file)) return new JsonObject();
         try { return JsonNode.Parse(File.ReadAllText(file)) as JsonObject ?? new JsonObject(); }

@@ -55,11 +55,10 @@ internal static unsafe class ItemNetHooks
         if (!net && (global || !has(nameof(ModItem.SaveData)))) return;
         if (global) globalWanted = true;
         WantProcessData();
+        WantSendData();
         ItemHooks.Once("NetItems", () =>
         {
-            sendData = ItemHooks.Raw("Terraria", "NetMessage",
-                "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)",
-                (IntPtr)(delegate* unmanaged<int, int, int, IntPtr, int, float, float, float, int, int, int, IntPtr, void>)&SendData);
+            itemsWanted = true;
             On_Player.Update += (orig, self, i) =>
             {
                 orig(self, i);
@@ -67,6 +66,17 @@ internal static unsafe class ItemNetHooks
             };
         });
     }
+
+    internal static Action<int, int, int, int>? AfterSend;
+
+    static bool itemsWanted;
+
+    internal static void WantSendData() => ItemHooks.Once("NetSendData", () =>
+    {
+        sendData = ItemHooks.Raw("Terraria", "NetMessage",
+            "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)",
+            (IntPtr)(delegate* unmanaged<int, int, int, IntPtr, int, float, float, float, int, int, int, IntPtr, void>)&SendData);
+    });
 
     internal static void WantProcessData() => ItemHooks.Once("NetProcess", () =>
     {
@@ -186,7 +196,7 @@ internal static unsafe class ItemNetHooks
     {
         Hook? hook = sendData;
         if (hook == null) return;
-        if (IsItemPacket(msgType))
+        if (itemsWanted && IsItemPacket(msgType))
         {
             try { BeforeSend(msgType, remote, ignore, number, (int)number2); }
             catch (Exception e) { ItemHooks.Report("NetSend", e); }
@@ -205,6 +215,10 @@ internal static unsafe class ItemNetHooks
         call.Arg(number7);
         call.Arg(method);
         ItemHooks.Original(ref call, hook, "NetMessage.SendData");
+        Action<int, int, int, int>? after = AfterSend;
+        if (after == null) return;
+        try { after(msgType, remote, ignore, number); }
+        catch (Exception e) { ItemHooks.Report("NetMessage.SendData", e); }
     }
 
     static void AfterJoin()

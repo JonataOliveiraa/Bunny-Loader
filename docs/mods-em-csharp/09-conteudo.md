@@ -1155,6 +1155,38 @@ public override void DrawCustomBuffTip(string buffTip, SpriteBatch spriteBatch, 
     spriteBatch.DrawString(FontAssets.MouseText.Value, "More text", new Vector2(originX, originY), Color.Yellow);
 ```
 
+## Hairstyles: `ModHair`
+
+```csharp
+public class ExampleHair : ModHair
+{
+    public override bool AvailableDuringCharacterCreation => false;
+
+    public override void SetStaticDefaults() => HairID.Sets.DrawBackHair[Type] = true;
+
+    public override IEnumerable<Condition> GetUnlockConditions()
+    {
+        yield return Condition.TimeNight;
+    }
+}
+```
+
+The textures are `Texture` and `AltTexture` (`ExampleHair.png` and
+`ExampleHair_Alt.png`, the one under a hat), set in `AutoStaticDefaults`
+into `TextureAssets.PlayerHair`/`PlayerHairAlt` (now `Asset<Texture2D>`
+arrays, as in tModLoader). The types come after the game's 228 (`HairID.Count`,
+`HairLoader.Count`, `HairLoader.GetHair`). The hair shows at character
+creation when `AvailableDuringCharacterCreation`, and at the Stylist when every
+`GetUnlockConditions` condition is met. `HairID.Sets.DrawBackHair` decides the
+back hair, the game's hairs included.
+
+The game's player file keeps the hair as a number the game checks against its
+228, so a mod hair is saved there as 0 and by name in the character's
+`.plr.bl.json` (`bunny:hair`, the key the JS mods use). In multiplayer the
+game's appearance message turns a mod hair into 0; the Bunny Loader sends the
+real one right after it. Not used yet: `RandomizedCharacterCreationGender`.
+JS and C# mod hairs at the same time would share type numbers.
+
 ## Finding content by name
 
 The **full name** of a content class is `<mod>/<Name>`: the mod's internal

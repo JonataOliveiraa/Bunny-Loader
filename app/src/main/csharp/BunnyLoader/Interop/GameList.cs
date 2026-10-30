@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 
 namespace BunnyLoader.Interop;
 
-internal readonly unsafe struct GameList
+public readonly unsafe struct GameList
 {
     static readonly ConcurrentDictionary<(IntPtr, string), int> Offsets = new();
     static readonly ConcurrentDictionary<(IntPtr, string, int), IntPtr> Methods = new();
@@ -67,6 +67,23 @@ internal readonly unsafe struct GameList
             call.Arg(info);
             call.Invoke(fn);
         }
+    }
+
+    public T Get<T>(int index) where T : unmanaged
+    {
+        if ((uint)index >= (uint)Count) throw new IndexOutOfRangeException($"index {index} out of the game List");
+        IntPtr items = *(IntPtr*)(list + Offset("_items"));
+        return ((T*)(items + 0x20))[index];
+    }
+
+    public bool Contains<T>(T value) where T : unmanaged, IEquatable<T>
+    {
+        int count = Count;
+        for (int i = 0; i < count; i++)
+        {
+            if (Get<T>(i).Equals(value)) return true;
+        }
+        return false;
     }
 
     public void Add(IntPtr item) => Add<IntPtr>(item);

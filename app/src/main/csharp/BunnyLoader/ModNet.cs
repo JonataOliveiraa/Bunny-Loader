@@ -60,6 +60,12 @@ internal static unsafe class ModNet
                 ItemPvpHooks.Queue(reader, from);
                 return;
             }
+            if (kind == HairHooks.KindHair)
+            {
+                name = "hair";
+                HairHooks.Receive(reader, from);
+                return;
+            }
             if (kind != KindPacket) return;
             name = reader.ReadString();
             Mod? mod = Host.FindMod(name);

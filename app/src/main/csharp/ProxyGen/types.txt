@@ -202,3 +202,6 @@ Terraria.GameContent.FontAssets
 !Terraria.GameContent.FontAssets.MouseText
 !Terraria.GameContent.FontAssets.ItemStack
 !Terraria.GameContent.FontAssets.DeathText
+!Terraria.GameContent.TextureAssets.PlayerHair
+!Terraria.GameContent.TextureAssets.PlayerHairAlt
+Terraria.GameContent.HairstyleUnlocksHelper
