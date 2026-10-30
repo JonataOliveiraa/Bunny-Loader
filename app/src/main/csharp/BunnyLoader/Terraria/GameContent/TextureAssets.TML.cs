@@ -15,6 +15,15 @@ public static partial class TextureAssets
 
     public static TextureAssetArray PlayerHairAlt { get; } = new(2, "Images/Player_HairAlt_", static () => PlayerHairAlt_, static i => Main.instance.LoadHair(i));
 
+    public static Asset<Texture2D> Heart => Wrap(Heart_, "Images/Heart");
+
+    public static Asset<Texture2D> Heart2 => Wrap(Heart2_, "Images/Heart2");
+
+    public static Asset<Texture2D> Mana => Wrap(Mana_, "Images/Mana");
+
+    static Asset<Texture2D> Wrap(GameObject asset, string name) =>
+        asset.IsNull ? throw new InvalidOperationException($"TextureAssets: {name} is not loaded yet") : Asset<Texture2D>.ForGameAsset(asset.Pointer, name);
+
     internal static void ResizePlayerHair(int length)
     {
         if (PlayerHair_.Length < length) PlayerHair_ = PlayerHair_.Resized(length);
@@ -56,7 +65,7 @@ public sealed unsafe class TextureAssetArray
             lock (Cache)
             {
                 if (Cache.TryGetValue((id, index), out Asset<Texture2D>? cached) && cached.GameAsset == asset) return cached;
-                var wrapped = new Asset<Texture2D>(prefix + index, asset);
+                Asset<Texture2D> wrapped = Asset<Texture2D>.ForGameAsset(asset, prefix + index);
                 Cache[(id, index)] = wrapped;
                 return wrapped;
             }
@@ -65,6 +74,7 @@ public sealed unsafe class TextureAssetArray
         {
             GameArray<GameObject> items = array();
             if ((uint)index >= (uint)items.Length) throw new IndexOutOfRangeException($"{prefix}{index}: there are {items.Length} textures");
+            if (value.IsDirect) throw new InvalidOperationException($"{prefix}{index}: this asset is a bare texture, not a game asset");
             value.Wait();
             items[index] = new GameObject(value.GameAsset);
             lock (Cache) Cache[(id, index)] = value;

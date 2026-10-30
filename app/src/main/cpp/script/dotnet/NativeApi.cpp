@@ -3,6 +3,7 @@
 #include "boot/Boot.h"
 #include "content/buffs/BuffIconLook.h"
 #include "content/players/PlayerStages.h"
+#include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
@@ -105,6 +106,9 @@ struct NativeApi {
     int32_t (*onNaturalRegen)(float (*callback)(void* player, float regen));
     int32_t (*onConsumeBait)(int32_t (*callback)(void* player, void* bait));
     int32_t (*onDyeReward)(int32_t (*callback)(void* player, int32_t* pool, int32_t count, int32_t capacity));
+    int32_t (*onResourceDraw)(int32_t (*callback)(int32_t phase, void* spriteBatch, void* args));
+    void (*resourceDrawActive)(int32_t active);
+    void* (*assetOfTexture)(void* texture);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -601,6 +605,14 @@ int32_t nativeOnDyeReward(int32_t (*callback)(void* player, int32_t* pool, int32
     return callback && runtime::setDyeRewardCallback(callback) ? 1 : 0;
 }
 
+int32_t nativeOnResourceDraw(int32_t (*callback)(int32_t phase, void* spriteBatch, void* args)) {
+    return callback && runtime::setResourceDrawCallback(reinterpret_cast<runtime::ResourceDrawCallback>(callback)) ? 1 : 0;
+}
+
+void nativeResourceDrawActive(int32_t active) { runtime::setResourceDrawActive(active != 0); }
+
+void* nativeAssetOfTexture(void* texture) { return runtime::assetOfTexture(texture); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -666,6 +678,9 @@ const NativeApi kNativeApi{
     nativeOnNaturalRegen,
     nativeOnConsumeBait,
     nativeOnDyeReward,
+    nativeOnResourceDraw,
+    nativeResourceDrawActive,
+    nativeAssetOfTexture,
 };
 
 } // namespace

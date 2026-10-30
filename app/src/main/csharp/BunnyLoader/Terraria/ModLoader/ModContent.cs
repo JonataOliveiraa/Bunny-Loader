@@ -144,6 +144,10 @@ public static class ModContent
             {
                 foreach (ExtraJump jump in mod.GetContent<ExtraJump>()) Run(mod, $"{jump.Name}.SetStaticDefaults", jump.SetupContent);
             }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModResourceOverlay overlay in mod.GetContent<ModResourceOverlay>()) Run(mod, $"{overlay.Name}.SetStaticDefaults", overlay.SetupContent);
+            }
             try { HairLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"hairs: the tables could not be resized: {e}"); }
             foreach (Mod mod in mods)

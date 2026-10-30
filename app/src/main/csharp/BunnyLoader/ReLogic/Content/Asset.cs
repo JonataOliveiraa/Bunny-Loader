@@ -27,6 +27,62 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     internal IntPtr GameAsset => asset;
 
+    IntPtr directTexture;
+
+    internal bool IsDirect => directTexture != IntPtr.Zero;
+
+    IntPtr Resolved()
+    {
+        if (directTexture != IntPtr.Zero) return directTexture;
+        if (Volatile.Read(ref asset) == IntPtr.Zero && Host.Native()->IsGameThread() != 0) Wait();
+        return asset;
+    }
+
+    public static bool operator ==(Asset<T>? left, Asset<T>? right)
+    {
+        if (ReferenceEquals(left, right)) return true;
+        if (left is null || right is null) return false;
+        IntPtr a = left.Resolved(), b = right.Resolved();
+        if (a == IntPtr.Zero || b == IntPtr.Zero) return false;
+        if (left.IsDirect == right.IsDirect) return a == b;
+        return Unsafe.As<T, IntPtr>(ref Unsafe.AsRef(left.Value)) == Unsafe.As<T, IntPtr>(ref Unsafe.AsRef(right.Value));
+    }
+
+    public static bool operator !=(Asset<T>? left, Asset<T>? right) => !(left == right);
+
+    public override bool Equals(object? obj) => obj is Asset<T> other && this == other;
+
+    public override int GetHashCode() => Name.GetHashCode();
+
+    static readonly System.Collections.Generic.Dictionary<IntPtr, Asset<T>> ByGameAsset = new();
+
+    internal static Asset<T> ForGameAsset(IntPtr gameAsset, string name)
+    {
+        lock (ByGameAsset)
+        {
+            if (ByGameAsset.TryGetValue(gameAsset, out Asset<T>? known)) return known;
+            var wrapped = new Asset<T>(name, gameAsset);
+            ByGameAsset[gameAsset] = wrapped;
+            return wrapped;
+        }
+    }
+
+    internal static Asset<T> ForTexture(IntPtr texture)
+    {
+        IntPtr gameAsset = Host.Native()->AssetOfTexture(texture);
+        if (gameAsset != IntPtr.Zero) return ForGameAsset(gameAsset, NameOf(gameAsset));
+        return new Asset<T>("?", IntPtr.Zero) { directTexture = texture, asset = (IntPtr)1 };
+    }
+
+    static string NameOf(IntPtr gameAsset)
+    {
+        byte* field = Host.Utf8("<Name>k__BackingField");
+        int offset;
+        try { offset = Host.Native()->FieldOffset(*(IntPtr*)gameAsset, field); }
+        finally { Host.FreeUtf8(field); }
+        return offset >= 0 ? GameString.Read(*(IntPtr*)(gameAsset + offset)) ?? "?" : "?";
+    }
+
     public string Name { get; }
 
     public AssetState State => Volatile.Read(ref asset) != IntPtr.Zero ? AssetState.Loaded : AssetState.NotLoaded;
@@ -42,7 +98,8 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
         get
         {
             Wait();
-            IntPtr value = typeof(T) == typeof(Texture2D) ? Host.Native()->TextureAssetValue(asset) : *(IntPtr*)(asset + ValueOffset());
+            IntPtr value = directTexture != IntPtr.Zero ? directTexture
+                : typeof(T) == typeof(Texture2D) ? Host.Native()->TextureAssetValue(asset) : *(IntPtr*)(asset + ValueOffset());
             return Unsafe.As<IntPtr, T>(ref value);
         }
     }

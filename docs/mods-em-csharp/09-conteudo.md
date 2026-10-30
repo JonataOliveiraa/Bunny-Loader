@@ -1187,6 +1187,27 @@ game's appearance message turns a mod hair into 0; the Bunny Loader sends the
 real one right after it. Not used yet: `RandomizedCharacterCreationGender`.
 JS and C# mod hairs at the same time would share type numbers.
 
+## The life and mana bar: `ModResourceOverlay`
+
+A `ModResourceOverlay` sees every heart and star the bar draws and can draw
+over it, as in tModLoader:
+
+| Hook | When |
+| --- | --- |
+| `PreDrawResource(context)` | before each piece of a heart or star (`GUIHearts.HeartDraw`, `GUIMana.StarDraw`); `false` skips the game's draw |
+| `PostDrawResource(context)` | after it; `context.Draw()` draws `context.texture` with the context's position, source, color, rotation, origin, scale and effects |
+| `PreDrawResourceDisplay(snapshot, displaySet, drawingLife, ref textColor, out drawText)` | before the whole life or mana display (`GUIHearts.Draw`, `GUIMana.Draw`); `false` skips it, `drawText = false` hides the life text |
+| `PostDrawResourceDisplay(...)` | after it |
+
+`context.texture` is the game's `Asset<Texture2D>`, so the comparisons of
+tModLoader's examples work: `asset == TextureAssets.Heart`, or
+`asset == Main.Assets.Request<Texture2D>("Images/UI/PlayerResourceSets/FancyClassic/Heart_Fill")`
+(the phone's bar uses the same images as the PC's). `context.resourceNumber`
+is the heart or star (0 is the first), `context.snapshot` has the player's
+`Life`, `LifeMax`, `Mana`, `ManaMax` and `AmountOfLifeHearts`/`AmountOfManaStars`.
+The phone has no hover text on the bar, so `DisplayHoverText` is not called,
+and `drawText` only hides the life text.
+
 ## Finding content by name
 
 The **full name** of a content class is `<mod>/<Name>`: the mod's internal

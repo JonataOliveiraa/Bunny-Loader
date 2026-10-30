@@ -1,0 +1,18 @@
+{
+  "uid": "363127f7-dcf0-4ee1-9022-b69dbeae3ba2",
+  "id": "test-csresource",
+  "name": "Teste: ModResourceOverlay (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModResourceOverlay: corações e estrelas, textos da barra, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csresource. No mundo, loga 'csresource <caso>: ok | FAIL' e 'csresource END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "CsResource.dll",
+  "dependencies": []
+}
