@@ -191,4 +191,8 @@ Projectiles: {
 
 NPCs: {
 	PartyZombie.DisplayName: Party Zombie
+	ExampleCustomAISlimeNPC: {
+		DisplayName: Flutter Slime
+		GotStomped: You got stomped
+	}
 }

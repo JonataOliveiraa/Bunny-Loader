@@ -10,7 +10,7 @@ using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
 
-public static unsafe class NPCLoader
+public static unsafe partial class NPCLoader
 {
     const int VanillaCount = 697;
 
@@ -18,7 +18,7 @@ public static unsafe class NPCLoader
     static readonly EntityInstances<ModNPC> Instances = new();
     static readonly List<GameHandle> TemplatePins = new();
     static ModNPC?[] npcs = Array.Empty<ModNPC?>();
-    static bool hooked;
+    static bool hooked, cloneHooked;
 
     internal static readonly GlobalList<NPC, GlobalNPC> Globals = new();
 
@@ -34,16 +34,18 @@ public static unsafe class NPCLoader
     internal static ModNPC? InstanceOf(NPC npc)
     {
         if (npc.IsNull) return null;
+        if (NPCEventHooks.Borrowed(npc) is ModNPC borrowed) return borrowed;
         ModNPC? template = GetNPC(npc.type);
         if (template == null) return null;
         ModNPC? current = Instances.Get(npc.Pointer);
-        return current != null && current.Type == template.Type ? current : Bind(template, npc);
+        return current != null && current.RegisteredType == template.RegisteredType ? current : Bind(template, npc);
     }
 
     static ModNPC Bind(ModNPC template, NPC npc)
     {
         ModNPC instance = template.Entity == npc ? template : template.NewInstance(npc);
         instance.Type = template.Type;
+        instance.Hooks = template.Hooks;
         Instances.Set(npc.Pointer, instance);
         return instance;
     }
@@ -65,6 +67,7 @@ public static unsafe class NPCLoader
         if (type == -1) throw new InvalidOperationException($"{npc.FullName}: the mod already has an NPC named '{npc.Name}'");
         if (type < 0) throw new InvalidOperationException($"{npc.FullName}: registration failed ({type})");
         npc.Type = type;
+        npc.Hooks = NPCEventHooks.Install(npc.GetType(), typeof(ModNPC), type);
         lock (Gate)
         {
             int index = type - VanillaCount;
@@ -84,18 +87,29 @@ public static unsafe class NPCLoader
     internal static void RegisterGlobal(GlobalNPC global)
     {
         Globals.Add(global);
+        global.Hooks = NPCEventHooks.Install(global.GetType(), typeof(GlobalNPC), -1);
+        NPCEventHooks.Want(-1, 64);
+        ItemHooks.Once("NPCDefaultsScaling", () => On_NPC.ScaleStats += NPCDefaultsHooks.BeforeScaling);
         EnsureHooked();
     }
 
-    static void EnsureHooked()
+    internal static void WantDefaults() => EnsureHooked(false);
+
+    static void EnsureHooked(bool clones = true)
     {
         lock (Gate)
         {
-            if (hooked) return;
-            On_NPC.SetDefaults += NPCDefaultsHooks.SetDefaults;
-            On_NPC.Clone += Clone;
-            Host.Native()->OnNPCsInstalled(&Installed);
-            hooked = true;
+            if (!hooked)
+            {
+                On_NPC.SetDefaults += NPCDefaultsHooks.SetDefaults;
+                Host.Native()->OnNPCsInstalled(&Installed);
+                hooked = true;
+            }
+            if (clones && !cloneHooked)
+            {
+                On_NPC.Clone += Clone;
+                cloneHooked = true;
+            }
         }
     }
 
@@ -119,9 +133,14 @@ public static unsafe class NPCLoader
             Globals.Clear(npc);
             return;
         }
+        NPCImmunity.Apply(npc);
         GlobalNPC?[]? slots = Globals.Begin(npc);
         bool[] early = slots == null ? Array.Empty<bool>() : new bool[slots.Length];
-        for (int i = 0; i < early.Length; i++) early[i] = slots![i] != null;
+        for (int i = 0; i < early.Length; i++)
+        {
+            early[i] = slots![i] != null;
+            if (slots[i] is GlobalNPC global) global.Hooks = Globals.Templates[i].Hooks;
+        }
         if (instance != null)
         {
             try { instance.SetDefaults(); }
@@ -134,8 +153,14 @@ public static unsafe class NPCLoader
         Globals.Finish(npc, slots);
         for (int i = 0; i < early.Length; i++)
         {
-            if (!early[i] && slots![i] is GlobalNPC global) SetGlobalDefaults(npc, global);
+            if (!early[i] && slots![i] is GlobalNPC global)
+            {
+                global.Hooks = Globals.Templates[i].Hooks;
+                SetGlobalDefaults(npc, global);
+            }
         }
+        if (instance?.AIType is > 0) NPCEventHooks.Want(npc.type, 1);
+        if (instance?.AnimationType is > 0) NPCEventHooks.Want(npc.type, 2);
     }
 
     static void SetGlobalDefaults(NPC npc, GlobalNPC global)
@@ -156,7 +181,7 @@ public static unsafe class NPCLoader
         var copy = new NPC(result.Pointer);
         if (copy.IsNull || copy == self) return result;
         ModNPC? source = Instances.Get(self.Pointer);
-        if (source != null && source.Type == copy.type)
+        if (source != null && source.RegisteredType == copy.type)
         {
             try
             {
@@ -173,6 +198,7 @@ public static unsafe class NPCLoader
     [UnmanagedCallersOnly]
     static void Installed(int first, int last)
     {
+        NPCImmunity.Resize();
         for (int type = first; type <= last; type++)
         {
             ModNPC? npc = GetNPC(type);

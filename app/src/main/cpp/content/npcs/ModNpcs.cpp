@@ -1,4 +1,5 @@
 #include "content/npcs/ModNpcs.h"
+#include "content/npcs/NpcEvents.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -297,6 +298,8 @@ void patchLimits(int total) {
 
 using FindFrameFn = void (*)(Il2CppObject*, const MethodInfo*);
 FindFrameFn g_origFindFrame = nullptr;
+std::mutex g_frameMx;
+std::atomic<int> g_frameState{0};
 
 /**
  * A animacao do jogo e um switch pelo tipo. Com `animationType`, o NPC de mod
@@ -311,16 +314,14 @@ FindFrameFn g_origFindFrame = nullptr;
  * textura e a contagem do NPC de mod vao para o lugar do outro, tambem so
  * durante a chamada. Tudo na thread principal, como o desenho.
  */
-void hkFindFrame(Il2CppObject* self, const MethodInfo* m) {
+void vanillaFindFrame(Il2CppObject* self, int32_t borrowed, const MethodInfo* m) {
     const Refs& r = refs();
     int32_t& type = field<int32_t>(self, r.type);
-    const int i = type - kVanillaNpcCount;
-    if (i < 0 || static_cast<size_t>(i) >= g_animation.size() || g_animation[static_cast<size_t>(i)] <= 0) {
+    if (borrowed <= 0 || borrowed >= kVanillaNpcCount || borrowed == type) {
         g_origFindFrame(self, m);
         return;
     }
     const int32_t own = type;
-    const int32_t borrowed = g_animation[static_cast<size_t>(i)];
     Il2CppArray* textures = readStatic(r.textures);
     Il2CppArray* frames = readStatic(r.frames);
     const bool swap = textures && frames && static_cast<uintptr_t>(own) < textures->length &&
@@ -342,6 +343,16 @@ void hkFindFrame(Il2CppObject* self, const MethodInfo* m) {
         tex[borrowed] = savedTex;
         count[borrowed] = savedCount;
     }
+}
+
+int borrowedAnimation(Il2CppObject* self) {
+    const int i = field<int32_t>(self, refs().type) - kVanillaNpcCount;
+    return i >= 0 && static_cast<size_t>(i) < g_animation.size() ? g_animation[static_cast<size_t>(i)] : 0;
+}
+
+void hkFindFrame(Il2CppObject* self, const MethodInfo* m) {
+    if (npcFrameEvent(self)) return;
+    vanillaFindFrame(self, borrowedAnimation(self), m);
 }
 
 // ---- Player.npcTypeNoAggro ----
@@ -506,7 +517,7 @@ void tickModNpcs() {
             samples.push_back({type, e.def.mod + "/" + e.def.name});
         }
     }
-    if (!hook::install(refs().findFrame, hkFindFrame, &g_origFindFrame)) {
+    if (!ensureNpcFrameHook()) {
         BL_ERROR("NPCs de mod: sem hook em NPC.FindFrame; NPC de mod nao anima");
     }
     installTownNpcs(to);
@@ -558,6 +569,19 @@ void setModNpcAnimation(int type, int animationType) {
     g_regs[i].def.animationType = animationType;
     // O FindFrame le sem trava: um int trocado por inteiro, na mesma thread.
     if (i < g_animation.size()) g_animation[i] = animationType;
+}
+
+bool ensureNpcFrameHook() {
+    int state = g_frameState.load(std::memory_order_acquire);
+    if (state != 0) return state == 1;
+    std::lock_guard<std::mutex> lock(g_frameMx);
+    if (g_frameState.load(std::memory_order_relaxed) == 0)
+        g_frameState.store(hook::install(refs().findFrame, hkFindFrame, &g_origFindFrame) ? 1 : -1, std::memory_order_release);
+    return g_frameState.load(std::memory_order_relaxed) == 1;
+}
+
+void runNpcFindFrame(Il2CppObject* npc, int borrowed) {
+    if (npc && ensureNpcFrameHook()) vanillaFindFrame(npc, borrowed > 0 ? borrowed : borrowedAnimation(npc), refs().findFrame);
 }
 
 int modNpcTypeByName(const std::string& mod, const std::string& name) {

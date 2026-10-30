@@ -191,4 +191,8 @@ Projectiles: {
 
 NPCs: {
 	PartyZombie.DisplayName: Zumbi Festeiro
+	ExampleCustomAISlimeNPC: {
+		DisplayName: Slime Esvoaçante
+		GotStomped: Você foi esmagado
+	}
 }

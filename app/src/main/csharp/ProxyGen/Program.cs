@@ -544,6 +544,20 @@ static class Program
             if (f.IsStatic)
             {
                 sb.Append(ind).Append($"static {RT}.StaticRef __s{n};\n");
+                if (f.Field.GetCustomAttributesData().Any(a => a.AttributeType.FullName == "System.ThreadStaticAttribute"))
+                {
+                    string access = $"ref __s{n}, {cls}, {fname}";
+                    string type = f.Use.IsString ? "nint" : f.Use.Cs;
+                    string read = $"{RT}.GameInterop.ReadStatic<{type}>({access})";
+                    string value = f.Use.IsString ? $"{RT}.GameString.New(value)" : "value";
+                    string reference = !f.Field.FieldType.IsValueType && !f.Field.FieldType.IsPointer ? "true" : "false";
+                    sb.Append(ind).Append($"public static {f.Use.Cs} {id}\n").Append(ind).Append("{\n");
+                    sb.Append(ind).Append($"    get => {(f.Use.IsString ? $"{RT}.GameString.Read({read})" : read)};\n");
+                    sb.Append(ind).Append($"    set => {RT}.GameInterop.WriteStatic<{type}>({access}, {value}, {reference});\n");
+                    sb.Append(ind).Append("}\n");
+                    n++;
+                    continue;
+                }
                 string addr = $"{RT}.GameInterop.StaticAddress(ref __s{n}, {cls}, {fname})";
                 if (f.Use.IsString)
                 {

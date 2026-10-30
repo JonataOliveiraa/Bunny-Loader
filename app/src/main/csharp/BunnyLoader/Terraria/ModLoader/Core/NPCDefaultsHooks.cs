@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using BunnyLoader;
+using BunnyLoader.Interop;
 using Terraria.DataStructures;
 
 namespace Terraria.ModLoader.Core;
@@ -8,6 +9,34 @@ namespace Terraria.ModLoader.Core;
 internal static unsafe class NPCDefaultsHooks
 {
     [ThreadStatic] static HashSet<(IntPtr, int)>? cloning;
+    [ThreadStatic] static DefaultsContext current;
+
+    struct DefaultsContext
+    {
+        public NPC NPC;
+        public ModNPC? Template;
+        public bool Handled;
+        public bool[]? Immunity;
+        public int Type;
+    }
+
+    internal static void BeforeScaling(On_NPC.orig_ScaleStats orig, NPC npc, GameNullable<int> activePlayersCount, GameNullable<float> strengthOverride)
+    {
+        if (current.NPC == npc && current.Immunity is bool[] saved)
+        {
+            saved.AsSpan().CopyTo(npc.buffImmune.AsSpan());
+            current.Immunity = null;
+        }
+        orig(npc, activePlayersCount, strengthOverride);
+    }
+
+    internal static void BeforeVanillaTail(NPC npc)
+    {
+        if (current.NPC != npc || current.Template != null || current.Handled || npc.type <= 0) return;
+        current.Handled = true;
+        NPCLoader.SetDefaults(npc, null);
+        current.Immunity = npc.buffImmune.AsSpan().ToArray();
+    }
 
     internal static void SetDefaults(On_NPC.orig_SetDefaults orig, NPC self, int type, NPCSpawnParams spawnparams)
     {
@@ -17,8 +46,24 @@ internal static unsafe class NPCDefaultsHooks
             difficultyOverride = GameDifficultyLevel.Classic,
             sizeScaleOverride = 1f,
         };
-        orig(self, type, reset);
-        NPCLoader.SetDefaults(self, template);
+        DefaultsContext outer = current;
+        current = new DefaultsContext { NPC = self, Template = template, Type = type };
+        try
+        {
+            orig(self, type, reset);
+            if (!current.Handled)
+            {
+                current.Handled = true;
+                NPCLoader.SetDefaults(self, template);
+            }
+            if (current.Immunity is bool[] saved) saved.AsSpan().CopyTo(self.buffImmune.AsSpan());
+        }
+        finally
+        {
+            bool handled = current.Handled;
+            current = outer;
+            if (handled && type >= 0 && current.NPC == self && current.Type < 0) current.Handled = true;
+        }
         if (template == null) return;
         Host.Native()->FinishNPC(self.Pointer, type, &spawnparams);
         float scale = self.scale;

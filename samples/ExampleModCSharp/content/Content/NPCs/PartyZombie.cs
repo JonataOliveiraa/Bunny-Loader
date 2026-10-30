@@ -17,6 +17,10 @@ public class PartyZombie : ModNPC
         NPC.lifeMax = 200;
         NPC.value = 60f;
         NPC.knockBackResist = 0.5f;
-        NPC.aiStyle = 3;
+        NPC.HitSound = SoundID.NPCHit1;
+        NPC.DeathSound = SoundID.NPCDeath2;
+        NPC.aiStyle = NPCAIStyleID.Fighter;
+        AIType = NPCID.Zombie;
+        AnimationType = NPCID.Zombie;
     }
 }

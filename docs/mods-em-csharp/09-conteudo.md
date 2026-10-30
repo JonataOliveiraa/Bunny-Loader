@@ -1444,18 +1444,118 @@ Use `npc.GetGlobalNPC<T>()`, `GetGlobalNPC(baseInstance)`,
 `TryGetGlobalNPC(out T value)`, `TryGetGlobalNPC(baseInstance, out T value)`
 or `npc.EntityGlobals`. A global without `InstancePerEntity` is shared;
 per-entity globals are reset even when the game reuses the same NPC object.
-For vanilla NPCs these hooks run after the mobile game's own `SetDefaults`,
-as in the JavaScript loader; its difficulty scaling has already run. For mod
-NPCs the final difficulty scaling runs after all the defaults hooks.
+For vanilla NPCs the hooks run after the game's type-specific defaults and
+before its final frame, size and difficulty calculations. Changes to
+`buffImmune` also survive the mobile game's later immunity initialization.
+For C# mod NPCs the final difficulty scaling runs after all the defaults hooks.
 
 `NPC.NewNPC(default, x, y, type)` uses this path too. The initial
 `PartyZombie` port demonstrates registration, frame count, texture and base
-stats. Its borrowed zombie AI/animation, sounds, natural spawn, loot,
-combat callbacks, banners and bestiary/biome integration arrive with the
-corresponding phase 4 steps. It uses the mobile fighter style number 3 until
-`NPCAIStyleID` is ported. No C# AI, drawing or UpdateNPC hook is installed by
-this registration step. Extra AI networking and custom saved NPC data are
-also later steps.
+stats. It now also borrows zombie AI and animation through `AIType` and
+`AnimationType`, uses `NPCAIStyleID.Fighter`, and has the vanilla hit/death
+sounds. Natural spawn, loot, combat callbacks, banners and bestiary/biome
+integration arrive with their corresponding phase 4 steps. Extra AI networking
+and custom saved NPC data are also later steps.
+
+### AI and lifecycle
+
+`ModNPC` and `GlobalNPC` support the following lifecycle hooks. A global's
+signature has an `NPC npc` parameter before the parameters shown below.
+
+| Hook | Behavior |
+|---|---|
+| `PreAI()` | All applicable globals run first, combining their results. The mod NPC runs only if all globals allow it. Returning false skips vanilla AI and the `AI` hooks. |
+| `AI()` | Runs after vanilla AI: mod NPC first, then globals. |
+| `PostAI()` | Mod NPC first, then globals, including when `PreAI` returned false. |
+| `FindFrame(int frameHeight)` | Runs after vanilla framing: mod NPC first, then globals. `frameHeight` comes from the NPC's own sprite sheet and frame count. |
+| `ResetEffects()` | Runs after vanilla buff flags are reset and before buffs are applied. Reset temporary fields belonging to the mod here. |
+| `CheckActive()` | Returning false skips despawning and nearby NPC slot counting. Vanilla guards, including town NPCs and entities that do not despawn, run first. The mod NPC can stop the global checks; globals stop at the first false. |
+| `CheckDead()` | All applicable callbacks run even after a false result. Any false stops death. Vanilla body-part guards and special boss phase transitions run before this point. |
+| `HitEffect(NPC.HitInfo hit)` | Runs after vanilla hit effects, mod NPC first and then globals. |
+| `UpdateLifeRegen(ref int damage)` | Changes `NPC.lifeRegen` and the damage batch used for damage-over-time text and health loss. Mod NPC first, then globals. |
+| `OnSpawn(IEntitySource source)` | Runs once after `NPC.NewNPC` has set position, AI slots and target. Mod NPC first, then globals. `SetDefaults` by itself does not call it. |
+| `ApplyDifficultyAndPlayerScaling(int numPlayers, float balance, float bossAdjustment)` | Runs in expert-or-higher scaling, after difficulty changes and before the final player-count life multiplier. Mod NPC first, then globals. |
+
+`GlobalNPC.SetDefaultsFromNetId(NPC npc)` also runs after the mobile game's
+negative-ID variant setup, when `netID` has its final value.
+
+Use `AIType` to borrow a vanilla type's AI while keeping this NPC's own stats.
+Set a matching `NPC.aiStyle`; `NPCAIStyleID` exposes the named style constants,
+and `NPCAIStyleID.Search` maps those names and IDs in both directions.
+The type substitution is limited to vanilla AI, and `NPC.ModNPC` keeps the
+same managed instance during that call. `NPC.VanillaAI()` calls just vanilla
+AI, whereas `NPCLoader.NPCAI(npc)` includes the lifecycle callbacks.
+
+`AnimationType` independently borrows vanilla framing. Set
+`Main.npcFrameCount[Type]` in `SetStaticDefaults` to match the intended sheet.
+The borrowed routine uses the mod NPC's texture and frame count. `FindFrame`
+then runs even if vanilla framing ran; it is not a replacement for vanilla
+framing. Change `NPC.frame.Y`, `NPC.frameCounter` and `NPC.spriteDirection`
+there to supply custom animation.
+
+For hit effects, `npc.HitEffect(hit)` preserves the supplied `HitInfo`.
+The overload `HitEffect(int hitDirection = 0, double dmg = 10,
+bool? instantKill = null)` reconstructs legacy metadata, treating damage
+9999 as an instant kill unless explicitly overridden. Calls originating from
+the game's two-argument method have legacy damage/direction metadata.
+Item and projectile combat integrations supply their richer combat data in
+the corresponding combat steps.
+
+For damage over time, subtract from `NPC.lifeRegen` rather than replacing
+other mods' contributions. Raise `damage` when a larger damage batch is
+needed. Vanilla DOT can block positive regeneration after the hook; the
+adapter preserves the requested damage batch through the mobile game's
+`DOTTally` calculation. The callbacks also work for vanilla NPCs.
+
+The scaling callback receives `bossAdjustment == 1f`, matching the selected
+local tModLoader checkout. Its patch currently uses a placeholder value here;
+the adapter does not substitute the older master-mode adjustment. The mobile
+game's final player-count multiplier still runs after the callbacks.
+
+The `ExampleCustomAISlimeNPC` port demonstrates the five-state Flutter Slime
+AI and its six animation frames. Its banner, natural spawning, platform
+fall-through and collision-damage behavior are deferred to their planned
+steps. Immunity to `ExampleGravityDebuff`, and PartyZombie's custom liquid
+gravity adjustments, require the separate NPC gravity-multiplier API; those
+parts are explicitly deferred. Existing vanilla sounds are used.
+
+### NPC buff immunity
+
+Set immunity by NPC type in `SetStaticDefaults`:
+
+```csharp
+public override void SetStaticDefaults()
+{
+    NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Poisoned] = true;
+    NPCID.Sets.ImmuneToRegularBuffs[Type] = true;
+    NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.OnFire] = false;
+}
+```
+
+`NPCID.Sets.ImmuneToRegularBuffs` excludes tag buffs, while
+`ImmuneToWhipTags` covers tag buffs. The masks combine when both are true.
+`SpecificDebuffImmunity` is indexed by NPC type and buff type: null keeps the
+default, true forces immunity, and false forces vulnerability. The tables
+include registered mod NPCs and buffs and preserve the mobile game's
+declared vanilla immunities.
+
+These managed sets initialize on first use and enable NPC defaults support
+even for a mod that does not add a `ModNPC` or `GlobalNPC`. Reading unrelated
+game `NPCID.Sets` members does not enable that support. Instance cloning
+hooks are installed only when NPC or global NPC content is registered.
+
+`BuffID.Sets.IsATagBuff` marks tag buffs. Add parent buff types to
+`BuffID.Sets.GrantImmunityWith[Type]` in a mod buff's `SetStaticDefaults` to
+inherit their NPC immunity. For an ordinarily vulnerable NPC, any immune
+parent grants immunity. For a broadly immune NPC, vulnerability to every
+parent grants vulnerability. Explicit overrides have final priority.
+
+`npc.BecomeImmuneTo(buffType)` changes a live NPC and also grants immunity to
+buffs that directly inherit from that buff. Follow it with
+`npc.ClearImmuneToBuffs(out bool anyBuffsCleared)` to remove active buffs to
+which the NPC is now immune. Run this change on the authoritative side; the
+clear helper sends message 54 for mobile server/host modes. Network validation
+is part of the coordinated multiplayer steps.
 
 ## Finding content by name
 

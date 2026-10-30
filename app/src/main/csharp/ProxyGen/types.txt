@@ -227,3 +227,5 @@ Terraria.DataStructures.GameDifficultyLevel
 ReLogic.Reflection.IdDictionary
 Terraria.Tile
 Terraria.TileData
+Terraria.DataStructures.NPCDebuffImmunityData
+!Terraria.NPC.HitEffect

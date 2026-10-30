@@ -7,6 +7,7 @@
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "content/npcs/ModNpcs.h"
+#include "content/npcs/NpcEvents.h"
 #include "content/projectiles/ProjectileStrikes.h"
 #include "content/projectiles/ProjectileDrawSplit.h"
 #include "content/common/ContentAssets.h"
@@ -126,6 +127,9 @@ struct NativeApi {
     void* (*projectileDamaging)();
     int32_t (*beginProjectileDrawSplit)(void* texture, int32_t extras, int32_t sprite);
     void (*endProjectileDrawSplit)();
+    int32_t (*npcEvents)(int32_t type, uint32_t events, int32_t (*callback)(int32_t event, void* npc, void* args));
+    void (*npcOriginal)(void* npc, int32_t event, int32_t argument);
+    void* (*npcImmunityData)(int32_t type);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -678,6 +682,12 @@ void nativeSetNPCFrames(int32_t type, int32_t frames) { runtime::setModNpcFrames
 
 int32_t nativeNPCCount() { return runtime::registeredNpcTypeCount(); }
 
+int32_t nativeNPCEvents(int32_t type, uint32_t events, runtime::NpcEventCallback callback) { return runtime::setNpcEvents(type, events, callback) ? 1 : 0; }
+
+void nativeNPCOriginal(void* npc, int32_t event, int32_t argument) { runtime::runNpcOriginal(static_cast<Il2CppObject*>(npc), event, argument); }
+
+void* nativeNPCImmunityData(int32_t type) { return runtime::npcImmunityData(type); }
+
 int32_t nativeWatchProjectileDamage() { return runtime::watchProjectileDamage() ? 1 : 0; }
 
 void* nativeProjectileDamaging() { return runtime::projectileDamaging(); }
@@ -769,6 +779,9 @@ const NativeApi kNativeApi{
     nativeProjectileDamaging,
     nativeBeginProjectileDrawSplit,
     nativeEndProjectileDrawSplit,
+    nativeNPCEvents,
+    nativeNPCOriginal,
+    nativeNPCImmunityData,
 };
 
 } // namespace

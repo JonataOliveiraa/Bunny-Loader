@@ -88,6 +88,9 @@ void setModNpcFrames(int type, int frames);
 /** AnimationType definido depois do registro (o SetDefaults do ModNPC). */
 void setModNpcAnimation(int type, int animationType);
 
+bool ensureNpcFrameHook();
+void runNpcFindFrame(Il2CppObject* npc, int borrowed);
+
 /** O tipo do NPC `name` do mod `mod`, ou -1. */
 int modNpcTypeByName(const std::string& mod, const std::string& name);
 
