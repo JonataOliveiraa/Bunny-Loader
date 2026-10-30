@@ -1200,19 +1200,25 @@ item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
 | `Colliding(projHitbox, targetHitbox)` | a custom hit test against NPCs and players |
 | `CanDamage`, `MinionContactDamage`, `ModifyDamageHitbox` | in `Projectile.Damage` |
 | `GetAlpha(lightColor)` | the color it is drawn with |
-| `PreDraw(player, ref lightColor)`, `PostDraw(player, lightColor)` | around the game's draw (`Main.DrawProjDirect`); `Projectile.GetDefaultDrawData(player, lightColor)` gives the draw the game would make, for afterimages |
+| `PreDrawExtras(player)` | before the game draws the projectile's extras: a hook's chain, a flail's chain, a yoyo's string, a fishing line; `false` hides them and lets the mod draw its own |
+| `PreDraw(player, ref lightColor)`, `PostDraw(player, lightColor)` | around the game's draw (`Main.DrawProjDirect`); `Projectile.GetDefaultDrawData(player, lightColor)` gives the draw the game would make, for afterimages; `PreDraw` `false` hides the sprite and keeps the extras |
 
 `Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
 index as in tModLoader. `Projectile.CloneDefaults(type)` copies another
 projectile's defaults and keeps the type, the `ModProjectile` and the globals.
-`TileCollideStyle`, `CutTiles`, `PreDrawExtras` and
-`SendExtraAI`/`ReceiveExtraAI` come next.
+`TileCollideStyle`, `CutTiles` and `SendExtraAI`/`ReceiveExtraAI` come next.
+
+On the phone the extras and the sprite are drawn by the same game method, the
+extras first. When only one of them is hidden, the draws are told apart by the
+texture: until the first draw with the projectile's own texture they are
+extras, from it on they are the sprite.
 
 ### Grappling hooks
 
 A hook is a projectile with `aiStyle = ProjAIStyleID.Hook` (7), shot by an item
 whose `shoot` is that type; `Projectile.CloneDefaults(ProjectileID.GemHookAmethyst)`
-is the usual start.
+is the usual start. The ExampleMod's `ExampleHook` (`Content/Items/Tools`) uses
+every hook below and draws its own chain in `PreDrawExtras`.
 
 | Hook | When |
 | --- | --- |
@@ -1274,7 +1280,7 @@ picks the projectiles (first before the projectile's `SetDefaults`, then after
 it), and with `InstancePerEntity` each projectile gets its own instance:
 `projectile.GetGlobalProjectile<T>()`, `TryGetGlobalProjectile<T>(out T)` and
 `EntityGlobals` read it. The order is tModLoader's: in `PreAI`, `OnTileCollide`,
-`PreKill`, `PreDraw`, `CanHitNPC`, `CanHitPlayer`, `CanHitPvp`, `Colliding`,
+`PreKill`, `PreDrawExtras`, `PreDraw`, `CanHitNPC`, `CanHitPlayer`, `CanHitPvp`, `Colliding`,
 `GetAlpha` and `CanDamage` the globals answer before the `ModProjectile`; in
 `AI`, `PostAI`, `OnKill`, `OnSpawn`, `ModifyHitNPC`, `OnHitNPC`, `ModifyHitPlayer`,
 `OnHitPlayer` and `PostDraw` the `ModProjectile` runs first. The loader's

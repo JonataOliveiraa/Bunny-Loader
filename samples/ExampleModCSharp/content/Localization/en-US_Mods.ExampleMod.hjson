@@ -4,6 +4,11 @@ Items: {
 		Tooltip: This is a modded bullet ammo.
 	}
 
+	ExampleHookItem: {
+		DisplayName: Example Hook
+		Tooltip: Can grapple onto trees
+	}
+
 	ExampleItem: {
 		DisplayName: Example Item
 		Tooltip: Item description
@@ -181,6 +186,7 @@ GelGlobalItem: {
 
 Projectiles: {
 	ExampleBullet.DisplayName: Example Bullet
+	ExampleHookProjectile.DisplayName: Example Hook
 }
 
 NPCs: {

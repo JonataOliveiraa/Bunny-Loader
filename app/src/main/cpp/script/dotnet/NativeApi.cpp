@@ -8,6 +8,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/projectiles/ProjectileStrikes.h"
+#include "content/projectiles/ProjectileDrawSplit.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
@@ -123,6 +124,8 @@ struct NativeApi {
     int32_t (*npcCount)();
     int32_t (*watchProjectileDamage)();
     void* (*projectileDamaging)();
+    int32_t (*beginProjectileDrawSplit)(void* texture, int32_t extras, int32_t sprite);
+    void (*endProjectileDrawSplit)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -679,6 +682,12 @@ int32_t nativeWatchProjectileDamage() { return runtime::watchProjectileDamage() 
 
 void* nativeProjectileDamaging() { return runtime::projectileDamaging(); }
 
+int32_t nativeBeginProjectileDrawSplit(void* texture, int32_t extras, int32_t sprite) {
+    return runtime::beginProjectileDrawSplit(texture, extras != 0, sprite != 0) ? 1 : 0;
+}
+
+void nativeEndProjectileDrawSplit() { runtime::endProjectileDrawSplit(); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -758,6 +767,8 @@ const NativeApi kNativeApi{
     nativeNPCCount,
     nativeWatchProjectileDamage,
     nativeProjectileDamaging,
+    nativeBeginProjectileDrawSplit,
+    nativeEndProjectileDrawSplit,
 };
 
 } // namespace

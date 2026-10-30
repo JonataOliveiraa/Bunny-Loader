@@ -499,6 +499,23 @@ public static unsafe class ProjectileLoader
         return null;
     }
 
+    public static bool PreDrawExtras(Projectile projectile, Player player)
+    {
+        bool result = true;
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try { result &= g.PreDrawExtras(projectile, player); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.PreDrawExtras), e); }
+        }
+        if (result && InstanceOf(projectile) is ModProjectile m)
+        {
+            try { return m.PreDrawExtras(player); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.PreDrawExtras), e); }
+        }
+        return result;
+    }
+
     public static bool PreDraw(Projectile projectile, Player player, ref Color lightColor)
     {
         bool result = true;

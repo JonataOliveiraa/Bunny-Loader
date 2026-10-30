@@ -5,7 +5,7 @@
   "localizedSummaries": {
     "en-US": "The tModLoader ExampleMod in C#, ported as the C# loaders arrive. For now: the Example Item, the Sword, the recipes, the Example armor with its set bonus, the Example robe, the Example life fruit and mana crystal, the Example immunity accessory, the Example buffs and buff potion, wings and shield, the Example damage class with its weapon and stat bonus accessory, the Example shotgun, minigun, sword and magic weapon."
   },
-  "version": "0.20.0",
+  "version": "0.21.0",
   "authors": [
     {
       "name": "Potato",

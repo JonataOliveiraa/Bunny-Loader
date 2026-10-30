@@ -4,6 +4,11 @@ Items: {
 		Tooltip: Uma munição de bala de mod.
 	}
 
+	ExampleHookItem: {
+		DisplayName: Gancho de Exemplo
+		Tooltip: Prende em árvores
+	}
+
 	ExampleItem: {
 		DisplayName: Exemplo de Item
 		Tooltip: Descrição do item
@@ -181,6 +186,7 @@ GelGlobalItem: {
 
 Projectiles: {
 	ExampleBullet.DisplayName: Bala de Exemplo
+	ExampleHookProjectile.DisplayName: Gancho de Exemplo
 }
 
 NPCs: {

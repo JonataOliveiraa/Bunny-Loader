@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
+using BunnyLoader;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
+using Terraria.GameContent;
 
 namespace Terraria.ModLoader.Core;
 
-internal static class ProjectileHooks
+internal static unsafe class ProjectileHooks
 {
     sealed class Movement
     {
@@ -50,7 +52,8 @@ internal static class ProjectileHooks
         if (Has(nameof(ModProjectile.CanDamage)) || Has(nameof(ModProjectile.MinionContactDamage))) ItemHooks.Once("ProjectileDamage", () => On_Projectile.Damage += Damage);
         if (Has(nameof(ModProjectile.ModifyDamageHitbox))) ItemHooks.Once("ProjectileHitbox", () => On_Projectile.Damage_GetHitbox += DamageHitbox);
         if (Has(nameof(ModProjectile.GetAlpha)) || Has(nameof(ModProjectile.PreDraw))) ItemHooks.Once("ProjectileAlpha", () => On_Projectile.GetAlpha += GetAlpha);
-        if (Has(nameof(ModProjectile.PreDraw)) || Has(nameof(ModProjectile.PostDraw))) ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+        if (Has(nameof(ModProjectile.PreDraw)) || Has(nameof(ModProjectile.PostDraw)) || Has(nameof(ModProjectile.PreDrawExtras)))
+            ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
         ProjectileHitHooks.Install(Has);
         ProjectileGrappleHooks.Install(Has);
     }
@@ -223,22 +226,34 @@ internal static class ProjectileHooks
 
     static void DrawProjDirect(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer)
     {
-        if (!Wants(proj, nameof(ModProjectile.PreDraw)) && !Wants(proj, nameof(ModProjectile.PostDraw)))
+        bool draw = Wants(proj, nameof(ModProjectile.PreDraw)) || Wants(proj, nameof(ModProjectile.PostDraw));
+        bool wantsExtras = Wants(proj, nameof(ModProjectile.PreDrawExtras));
+        if (!draw && !wantsExtras)
         {
             orig(self, proj, overridePlayer);
             return;
         }
         Player player = overridePlayer.IsNull ? Main.player[proj.owner] : overridePlayer;
+        bool extras = !wantsExtras || ProjectileLoader.PreDrawExtras(proj, player);
         Vector2 center = proj.Center;
         Color light = float.IsFinite(center.X) && float.IsFinite(center.Y) ? Lighting.GetColor((int)(center.X / 16f), (int)(center.Y / 16f)) : Color.White;
         Color original = light;
-        if (ProjectileLoader.PreDraw(proj, player, ref light))
+        bool sprite = !draw || ProjectileLoader.PreDraw(proj, player, ref light);
+        bool split = sprite != extras && HasExtras(proj) &&
+            Host.Native()->BeginProjectileDrawSplit(TextureAssets.Projectile[proj.type].Value.Pointer, extras ? 1 : 0, sprite ? 1 : 0) != 0;
+        if (sprite || split)
         {
             var outer = drawLight;
             if (!light.Equals(original)) drawLight = (proj.Pointer, light);
             try { orig(self, proj, overridePlayer); }
-            finally { drawLight = outer; }
+            finally
+            {
+                drawLight = outer;
+                if (split) Host.Native()->EndProjectileDrawSplit();
+            }
         }
-        ProjectileLoader.PostDraw(proj, player, light);
+        if (draw) ProjectileLoader.PostDraw(proj, player, light);
     }
+
+    static bool HasExtras(Projectile proj) => proj.bobber || proj.aiStyle is 7 or 13 or 15 or 99;
 }

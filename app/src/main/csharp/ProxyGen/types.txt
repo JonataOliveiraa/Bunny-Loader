@@ -225,3 +225,5 @@ Terraria.ID.MountID.Sets
 !Terraria.GameContent.TextureAssets.Npc
 Terraria.DataStructures.GameDifficultyLevel
 ReLogic.Reflection.IdDictionary
+Terraria.Tile
+Terraria.TileData

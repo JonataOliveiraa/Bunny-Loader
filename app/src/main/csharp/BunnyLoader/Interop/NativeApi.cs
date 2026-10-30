@@ -80,4 +80,6 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int> NPCCount;
     public delegate* unmanaged<int> WatchProjectileDamage;
     public delegate* unmanaged<IntPtr> ProjectileDamaging;
+    public delegate* unmanaged<IntPtr, int, int, int> BeginProjectileDrawSplit;
+    public delegate* unmanaged<void> EndProjectileDrawSplit;
 }

@@ -12,7 +12,6 @@ internal static unsafe class ProjectileGrappleHooks
     const int HookStyle = 7;
 
     static bool canUse, use;
-    static int tileWidth = -1;
     [ThreadStatic] static IntPtr firing;
 
     internal static void Install(Func<string, bool> has)
@@ -221,7 +220,7 @@ internal static unsafe class ProjectileGrappleHooks
     static int TileWidth()
     {
         TileData tiles = Main.tile;
-        return tiles.IsNull ? 0 : *(int*)(tiles.Pointer + GameInterop.Offset(ref tileWidth, TileData.Class, "_width"));
+        return tiles.IsNull ? 0 : tiles._width;
     }
 
     static void GrapplingForces(On_Player.orig_GetGrapplingForces orig, Player self, Vector2 fromPosition,
