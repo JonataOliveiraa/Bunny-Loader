@@ -975,7 +975,51 @@ public class ExampleFishingPlayer : ModPlayer
 }
 ```
 
-The rest of tModLoader's `ModPlayer` (projectile hits, jumps, drawing,
+### Extra jumps: `ExtraJump`
+
+An `ExtraJump` is a double jump: the game's ones are `ExtraJump.CloudInABottle`,
+`SandstormInABottle`, `BlizzardInABottle`, `FartInAJar`, `TsunamiInABottle`,
+`UnicornMount`, `SantankMount`, `GoatMount`, `BasiliskMount` and `Flipper`. A
+mod adds its own as in tModLoader, and turns it on each frame with
+`player.GetJumpState<T>().Enable()`:
+
+```csharp
+public class SimpleExtraJump : ExtraJump
+{
+    public override Position GetDefaultPosition() => new After(BlizzardInABottle);
+
+    public override float GetDurationMultiplier(Player player) => 2.25f;
+
+    public override void UpdateHorizontalSpeeds(Player player)
+    {
+        player.runAcceleration *= 1.75f;
+        player.maxRunSpeed *= 2f;
+    }
+}
+
+public override void UpdateAccessory(Player player, bool hideVisual) =>
+    player.GetJumpState<SimpleExtraJump>().Enable();
+```
+
+`GetDefaultPosition` puts it before or after one of the game's jumps, and
+`GetModdedConstraints` orders it among the mods' jumps there
+(`ExtraJumpLoader.OrderedJumps`). `GetJumpState` of a game jump reads and
+writes the game's own fields (`hasJumpOption_*`, `canJumpAgain_*`,
+`isPerformingJump_*`), so `Enable()`, `Disable()` and `Available` work on them
+too. Also there: `player.ExtraJumps`, `blockExtraJumps`, `AnyExtraJumpUsable()`,
+`StopExtraJumpInProgress()`, `ConsumeAllExtraJumps()`.
+
+| Hook | When |
+| --- | --- |
+| `ModifyExtraJumpDurationMultiplier(jump, ref duration)` | when a jump starts; the jump time is `Player.jumpHeight * duration`, for the game's jumps too |
+| `CanStartExtraJump(jump)` | before a jump starts in the air; `false` skips it and leaves it available |
+| `OnExtraJumpStarted(jump, ref playSound)` | after it starts; `playSound = false` silences it (the game's jump sounds as well) |
+| `OnExtraJumpEnded(jump)` | when it stops (`CancelAllJumpVisualEffects`, or when it is disabled mid-jump) |
+| `OnExtraJumpRefreshed(jump)` | when the jumps come back (`RefreshDoubleJumps`, on the ground) |
+| `ExtraJumpVisuals(jump)`, `CanShowExtraJumpVisuals(jump)` | in `DoubleJumpVisuals`; `false` hides the jump's effects |
+| `OnExtraJumpCleared(jump)` | when an available jump is taken away (unequipped in the air, a mount that blocks jumps, `ConsumeAllExtraJumps`) |
+
+The rest of tModLoader's `ModPlayer` (projectile hits, drawing,
 `AddMaterialsForCrafting`) comes in the next steps of phase 2.
 
 ## Buffs: `ModBuff` and `GlobalBuff`

@@ -192,3 +192,6 @@ Terraria.Initializers.WingStatsInitializer
 Terraria.PopupText
 Terraria.AdvancedPopupRequest
 Terraria.GetItemSettings
+Terraria.Mount
+Terraria.Gore
+Terraria.DataStructures.EntitySource_Parent

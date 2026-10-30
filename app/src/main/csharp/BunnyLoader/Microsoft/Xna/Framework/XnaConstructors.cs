@@ -22,6 +22,12 @@ namespace Microsoft.Xna.Framework
 
         public static Vector2 operator /(Vector2 a, float s) => new(a.X / s, a.Y / s);
 
+        public static Vector2 operator *(Vector2 a, Vector2 b) => new(a.X * b.X, a.Y * b.Y);
+
+        public static Vector2 operator /(Vector2 a, Vector2 b) => new(a.X / b.X, a.Y / b.Y);
+
+        public static Vector2 operator -(Vector2 a) => new(-a.X, -a.Y);
+
         public static bool operator ==(Vector2 a, Vector2 b) => a.X == b.X && a.Y == b.Y;
 
         public static bool operator !=(Vector2 a, Vector2 b) => a.X != b.X || a.Y != b.Y;

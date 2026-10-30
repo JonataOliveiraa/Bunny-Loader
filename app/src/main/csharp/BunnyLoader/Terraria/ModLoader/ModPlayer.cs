@@ -227,6 +227,22 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void ModifyStartingInventory(IReadOnlyDictionary<string, List<Item>> itemsByMod, bool mediumCoreDeath) { }
 
+    public virtual void ModifyExtraJumpDurationMultiplier(ExtraJump jump, ref float duration) { }
+
+    public virtual bool CanStartExtraJump(ExtraJump jump) => true;
+
+    public virtual void OnExtraJumpStarted(ExtraJump jump, ref bool playSound) { }
+
+    public virtual void OnExtraJumpEnded(ExtraJump jump) { }
+
+    public virtual void OnExtraJumpRefreshed(ExtraJump jump) { }
+
+    public virtual void ExtraJumpVisuals(ExtraJump jump) { }
+
+    public virtual bool CanShowExtraJumpVisuals(ExtraJump jump) => true;
+
+    public virtual void OnExtraJumpCleared(ExtraJump jump) { }
+
     public virtual void ModifyFishingAttempt(ref FishingAttempt attempt) { }
 
     public virtual void CatchFish(FishingAttempt attempt, ref int itemDrop, ref int npcSpawn, ref AdvancedPopupRequest sonar, ref Vector2 sonarPosition) { }

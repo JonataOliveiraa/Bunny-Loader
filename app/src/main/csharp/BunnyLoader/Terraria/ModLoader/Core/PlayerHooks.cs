@@ -36,6 +36,7 @@ internal static class PlayerHooks
         PlayerUpdateHooks.Install(Has);
         PlayerWorldHooks.Install(Has);
         PlayerFishingHooks.Install(Has);
+        PlayerJumpHooks.Install(Has);
         PlayerHurtHooks.Install(Has);
         ItemCombatHooks.Install(Has, true);
         ItemShootHooks.Install(Has, true);

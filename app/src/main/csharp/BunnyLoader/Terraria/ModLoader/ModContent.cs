@@ -140,6 +140,12 @@ public static class ModContent
             {
                 foreach (DamageClass damageClass in mod.GetContent<DamageClass>()) Run(mod, $"{damageClass.Name}.SetStaticDefaults", damageClass.SetupContent);
             }
+            foreach (Mod mod in mods)
+            {
+                foreach (ExtraJump jump in mod.GetContent<ExtraJump>()) Run(mod, $"{jump.Name}.SetStaticDefaults", jump.SetupContent);
+            }
+            try { ExtraJumpLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
             try { PrefixLoader.ContentReady(); }
             catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
             foreach (Mod mod in mods)

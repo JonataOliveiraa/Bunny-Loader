@@ -13,7 +13,7 @@ internal static unsafe class PlayerUpdateHooks
     internal static void Install(Func<string, bool> has)
     {
         if (has(nameof(ModPlayer.PostUpdateMiscEffects))) ItemHooks.Once("PlayerMiscEffects", () => On_Player.CapAttackSpeeds += CapAttackSpeeds);
-        if (has(nameof(ModPlayer.PostUpdateRunSpeeds))) ItemHooks.Once("PlayerRunSpeeds", () => On_Player.HorizontalMovement += HorizontalMovement);
+        if (has(nameof(ModPlayer.PostUpdateRunSpeeds))) WantRunSpeeds();
         if (has(nameof(ModPlayer.PreUpdateMovement)))
             ItemHooks.Once("PlayerPreMovement", () =>
             {
@@ -46,8 +46,11 @@ internal static unsafe class PlayerUpdateHooks
         PlayerLoader.Each(self, nameof(ModPlayer.PostUpdateMiscEffects), m => m.PostUpdateMiscEffects());
     }
 
+    internal static void WantRunSpeeds() => ItemHooks.Once("PlayerRunSpeeds", () => On_Player.HorizontalMovement += HorizontalMovement);
+
     static void HorizontalMovement(On_Player.orig_HorizontalMovement orig, Player self)
     {
+        ExtraJumpLoader.UpdateHorizontalSpeeds(self);
         PlayerLoader.Each(self, nameof(ModPlayer.PostUpdateRunSpeeds), m => m.PostUpdateRunSpeeds());
         orig(self);
     }

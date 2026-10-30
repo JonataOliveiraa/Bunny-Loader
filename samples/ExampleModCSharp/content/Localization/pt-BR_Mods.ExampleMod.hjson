@@ -77,6 +77,11 @@ Items: {
 		Tooltip: Dá um leve buff de defesa.
 	}
 
+	ExampleExtraJumpAccessory: {
+		DisplayName: Acessório de Pulo Extra de Exemplo
+		Tooltip: Permite dar um pulo extra de exemplo no ar
+	}
+
 	ExampleWings: {
 		DisplayName: Asas de Exemplo
 		Tooltip: Estas são asas de mod.

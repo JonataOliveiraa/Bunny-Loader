@@ -77,6 +77,11 @@ Items: {
 		Tooltip: Gives a light defense buff.
 	}
 
+	ExampleExtraJumpAccessory: {
+		DisplayName: Example Extra Jump Accessory
+		Tooltip: Allows the user to perform an example mid-air extra jump
+	}
+
 	ExampleWings: {
 		DisplayName: Example Wings
 		Tooltip: This is a modded wing.
