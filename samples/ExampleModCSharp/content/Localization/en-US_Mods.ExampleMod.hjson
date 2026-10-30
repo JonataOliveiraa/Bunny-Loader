@@ -63,6 +63,15 @@ Items: {
 		Tooltip: This is a modded cross necklace that increases your immunity time by 1 second.
 	}
 
+	ExampleCratePotion: {
+		DisplayName: Example Crate Potion
+		Tooltip:
+			'''
+			Increases chance to get a crate
+			Stacks with Crate Potion
+			'''
+	}
+
 	ExampleBuffPotion: {
 		DisplayName: Example Buff Potion
 		Tooltip: Gives a light defense buff.
@@ -130,6 +139,11 @@ DamageClasses: {
 }
 
 Buffs: {
+	ExampleCrateBuff: {
+		DisplayName: Example Crate
+		Description: Greater chance of fishing up a crate
+	}
+
 	ExampleDefenseBuff: {
 		DisplayName: Defensive Buff
 		Description: Increases defense by {0}

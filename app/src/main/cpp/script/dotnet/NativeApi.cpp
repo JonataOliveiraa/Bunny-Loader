@@ -103,6 +103,8 @@ struct NativeApi {
     void (*onBuffsInstalled)(void (*callback)(int32_t first, int32_t last));
     void* (*buffIconLook)();
     int32_t (*onNaturalRegen)(float (*callback)(void* player, float regen));
+    int32_t (*onConsumeBait)(int32_t (*callback)(void* player, void* bait));
+    int32_t (*onDyeReward)(int32_t (*callback)(void* player, int32_t* pool, int32_t count, int32_t capacity));
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -591,6 +593,14 @@ int32_t nativeOnNaturalRegen(float (*callback)(void* player, float regen)) {
     return callback && runtime::setNaturalRegenCallback(callback) ? 1 : 0;
 }
 
+int32_t nativeOnConsumeBait(int32_t (*callback)(void* player, void* bait)) {
+    return callback && runtime::setConsumeBaitCallback(callback) ? 1 : 0;
+}
+
+int32_t nativeOnDyeReward(int32_t (*callback)(void* player, int32_t* pool, int32_t count, int32_t capacity)) {
+    return callback && runtime::setDyeRewardCallback(callback) ? 1 : 0;
+}
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -654,6 +664,8 @@ const NativeApi kNativeApi{
     nativeOnBuffsInstalled,
     nativeBuffIconLook,
     nativeOnNaturalRegen,
+    nativeOnConsumeBait,
+    nativeOnDyeReward,
 };
 
 } // namespace

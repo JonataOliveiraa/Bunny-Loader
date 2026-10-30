@@ -189,3 +189,6 @@ Terraria.ID.ArmorIDs.Beard.Sets
 Terraria.ID.ArmorIDs.Shield
 Terraria.GameContent.TextureAssets
 Terraria.Initializers.WingStatsInitializer
+Terraria.PopupText
+Terraria.AdvancedPopupRequest
+Terraria.GetItemSettings

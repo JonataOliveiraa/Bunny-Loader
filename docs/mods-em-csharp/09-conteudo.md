@@ -945,8 +945,38 @@ public class ExampleInventoryPlayer : ModPlayer
 
 On the phone, `ItemSlot.ShiftInUse` does not read `ItemSlot.ShiftForcedOn`.
 
+### Fishing
+
+| Hook | When |
+| --- | --- |
+| `GetFishingLevel(fishingRod, bait, ref fishingLevel)` | after `Player.GetFishingConditions`; `fishingLevel` is the level multiplier (`LevelMultipliers`), as in tModLoader, and `FinalFishingLevel` is worked out again from it |
+| `ModifyFishingAttempt(ref attempt)` | before `Projectile.FishingCheck_ProbeForQuestFish`, with the drop levels rolled; `rolledItemDrop` and `rolledEnemySpawn` are put back |
+| `CatchFish(attempt, ref itemDrop, ref npcSpawn, ref sonar, ref sonarPosition)` | after `FishingCheck_RollItemDrop`; a `sonar.Text` shows with the Sonar Potion |
+| `ModifyCaughtFish(fish)` | in `AI_061_FishingBobber_GiveItemToPlayer`, before the fish goes to the player |
+| `CanConsumeBait(bait)` | when the bobber uses the bait; `false` keeps it, `true` always uses it, `null` lets the game roll |
+| `AnglerQuestReward(rareMultiplier, rewardItems)` | after `Player.GetAnglerReward`, with the game's rewards in the list; the list is what the player gets |
+| `GetDyeTraderReward(rewardPool)` | in `Player.GetDyeTraderReward`, on the pool the dye comes from |
+
+`PlayerFishingConditions` on the phone has the types (`PoleItemType`,
+`BaitItemType`), not tModLoader's `Pole`/`Bait` items.
+
+```csharp
+public class ExampleFishingPlayer : ModPlayer
+{
+    public bool hasExampleCrateBuff;
+
+    public override void ResetEffects() => hasExampleCrateBuff = false;
+
+    public override void ModifyFishingAttempt(ref FishingAttempt attempt)
+    {
+        if (hasExampleCrateBuff && !attempt.crate && Main.rand.Next(100) < 10)
+            attempt.crate = true;
+    }
+}
+```
+
 The rest of tModLoader's `ModPlayer` (projectile hits, jumps, drawing,
-fishing) comes in the next steps of phase 2.
+`AddMaterialsForCrafting`) comes in the next steps of phase 2.
 
 ## Buffs: `ModBuff` and `GlobalBuff`
 

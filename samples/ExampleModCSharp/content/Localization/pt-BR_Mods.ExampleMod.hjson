@@ -63,6 +63,15 @@ Items: {
 		Tooltip: Um colar de cruz de mod que aumenta o tempo de imunidade em 1 segundo.
 	}
 
+	ExampleCratePotion: {
+		DisplayName: Poção de Caixote de Exemplo
+		Tooltip:
+			'''
+			Aumenta a chance de pescar um caixote
+			Acumula com a Poção de Caixote
+			'''
+	}
+
 	ExampleBuffPotion: {
 		DisplayName: Poção de Buff de Exemplo
 		Tooltip: Dá um leve buff de defesa.
@@ -130,6 +139,11 @@ DamageClasses: {
 }
 
 Buffs: {
+	ExampleCrateBuff: {
+		DisplayName: Caixote de Exemplo
+		Description: Mais chance de pescar um caixote
+	}
+
 	ExampleDefenseBuff: {
 		DisplayName: Buff Defensivo
 		Description: Aumenta a defesa em {0}

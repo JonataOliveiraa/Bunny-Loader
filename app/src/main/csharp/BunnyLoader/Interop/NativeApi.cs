@@ -64,4 +64,6 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnBuffsInstalled;
     public delegate* unmanaged<IntPtr> BuffIconLook;
     public delegate* unmanaged<delegate* unmanaged<IntPtr, float, float>, int> OnNaturalRegen;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, IntPtr, int>, int> OnConsumeBait;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, int*, int, int, int>, int> OnDyeReward;
 }

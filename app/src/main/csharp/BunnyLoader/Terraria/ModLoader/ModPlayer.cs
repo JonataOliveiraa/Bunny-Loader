@@ -227,6 +227,20 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void ModifyStartingInventory(IReadOnlyDictionary<string, List<Item>> itemsByMod, bool mediumCoreDeath) { }
 
+    public virtual void ModifyFishingAttempt(ref FishingAttempt attempt) { }
+
+    public virtual void CatchFish(FishingAttempt attempt, ref int itemDrop, ref int npcSpawn, ref AdvancedPopupRequest sonar, ref Vector2 sonarPosition) { }
+
+    public virtual void ModifyCaughtFish(Item fish) { }
+
+    public virtual bool? CanConsumeBait(Item bait) => null;
+
+    public virtual void GetFishingLevel(Item fishingRod, Item bait, ref float fishingLevel) { }
+
+    public virtual void AnglerQuestReward(float rareMultiplier, List<Item> rewardItems) { }
+
+    public virtual void GetDyeTraderReward(List<int> rewardPool) { }
+
     public virtual bool OnPickup(WorldItem item) => true;
 
     public virtual bool CanBeTeleportedTo(Vector2 teleportPosition, string context) => true;
