@@ -22,6 +22,14 @@ namespace Microsoft.Xna.Framework
 
         public static Vector2 operator /(Vector2 a, float s) => new(a.X / s, a.Y / s);
 
+        public static bool operator ==(Vector2 a, Vector2 b) => a.X == b.X && a.Y == b.Y;
+
+        public static bool operator !=(Vector2 a, Vector2 b) => a.X != b.X || a.Y != b.Y;
+
+        public override readonly bool Equals(object? obj) => obj is Vector2 other && this == other;
+
+        public override readonly int GetHashCode() => HashCode.Combine(X, Y);
+
         public readonly float LengthValue => MathF.Sqrt(X * X + Y * Y);
 
         public override readonly string ToString() => $"{{X:{X} Y:{Y}}}";

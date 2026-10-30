@@ -92,7 +92,7 @@ internal static unsafe class ItemLoader
 
     public static void Register(ModItem item)
     {
-        string texture = ResolveTexture(item);
+        string texture = ResolveTexture(item, item.Texture);
         int type = Native(item, texture, DisplayNames(item), Tooltips(item));
         if (type == -1) throw new InvalidOperationException($"{item.FullName}: the mod already has an item named '{item.Name}'");
         if (type < 0) throw new InvalidOperationException($"{item.FullName}: registration failed ({type})");
@@ -146,9 +146,9 @@ internal static unsafe class ItemLoader
         }
     }
 
-    static string ResolveTexture(ModItem item)
+    internal static string ResolveTexture(ModType content, string path)
     {
-        string texture = item.Texture.Replace('\\', '/');
+        string texture = path.Replace('\\', '/');
         if (!texture.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) texture += ".png";
         if (Path.IsPathRooted(texture))
         {
@@ -156,16 +156,16 @@ internal static unsafe class ItemLoader
         }
         else
         {
-            string direct = Path.Combine(item.Mod.Folder, texture);
+            string direct = Path.Combine(content.Mod.Folder, texture);
             if (File.Exists(direct)) return direct;
             int slash = texture.IndexOf('/');
             if (slash > 0)
             {
-                string withoutMod = Path.Combine(item.Mod.Folder, texture.Substring(slash + 1));
+                string withoutMod = Path.Combine(content.Mod.Folder, texture.Substring(slash + 1));
                 if (File.Exists(withoutMod)) return withoutMod;
             }
         }
-        throw new FileNotFoundException($"{item.FullName}: texture '{item.Texture}' not found in {item.Mod.Folder}");
+        throw new FileNotFoundException($"{content.FullName}: texture '{path}' not found in {content.Mod.Folder}");
     }
 
     static void SetDefaults(On_Item.orig_SetDefaults orig, Item self, int type, ItemVariant variant)

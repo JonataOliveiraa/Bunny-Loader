@@ -27,6 +27,10 @@ public static class ModContent
 
     public static int RarityType<T>() where T : ModRarity => GetInstance<T>()?.Type ?? 0;
 
+    public static int BuffType<T>() where T : ModBuff => GetInstance<T>()?.Type ?? 0;
+
+    public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
+
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
 
     public static T Find<T>(string fullname) where T : IModType =>
@@ -126,6 +130,7 @@ public static class ModContent
             foreach (Mod mod in mods)
             {
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                foreach (GlobalBuff global in mod.GetContent<GlobalBuff>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
             }
             foreach (Mod mod in mods)
             {

@@ -60,4 +60,6 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int> PrefixCount;
     public delegate* unmanaged<byte*, int, int, int> GrowEquipSets;
     public delegate* unmanaged<IntPtr, int, IntPtr> ResizeArray;
+    public delegate* unmanaged<byte*, byte*, byte*, byte*, byte*, int> RegisterBuff;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnBuffsInstalled;
 }

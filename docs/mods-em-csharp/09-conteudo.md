@@ -899,6 +899,48 @@ of the victim takes the game's damage, as in the base game.
 The rest of tModLoader's `ModPlayer` (projectile hits, jumps, drawing,
 fishing, shops) comes in the next steps of phase 2.
 
+## Buffs: `ModBuff` and `GlobalBuff`
+
+```csharp
+public class ExampleLifeRegenDebuff : ModBuff
+{
+    public override void SetStaticDefaults()
+    {
+        Main.debuff[Type] = true;
+        Main.pvpBuff[Type] = true;
+        Main.buffNoSave[Type] = true;
+        BuffID.Sets.BuffTimeIsExtendedWithGameDifficulty[Type] = true;
+    }
+
+    public override void Update(Player player, ref int buffIndex) =>
+        player.GetModPlayer<ExampleLifeRegenDebuffPlayer>().lifeRegenDebuff = true;
+}
+```
+
+A `ModBuff` gets a type after the game's (`BuffID.Count` is 401):
+`ModContent.BuffType<T>()`, `BuffLoader.GetBuff(type)`. The icon is the
+class's texture (`ExampleLifeRegenDebuff.png`, 32x32), the name and
+description come from `Mods.<Mod>.Buffs.<Name>.DisplayName`/`Description`.
+`SetStaticDefaults` runs when the game's buff tables (`Main.debuff`,
+`Main.buffNoSave`, `BuffID.Sets`...) have the type; give it to a player with
+`player.AddBuff(type, time)` or to an item with `Item.buffType`. The
+Bunny Loader also patches the places where the phone's game had the buff
+count compiled in (the buff bar, the nurse, the network) and saves the mod
+buffs of a character by name.
+
+| Hook (`ModBuff`; `GlobalBuff` has the type first, for every buff) | When |
+| --- | --- |
+| `Update(Player player, ref int buffIndex)` | each frame, after the game's `Player.UpdateBuffs` |
+| `Update(NPC npc, ref int buffIndex)` | each frame, after the game's `NPC.UpdateNPC_BuffSetFlags` |
+| `ReApply(Player player, int time, int buffIndex)`, `ReApply(NPC ...)` | when the buff is given again; `true` keeps the game from renewing the time |
+| `ModifyBuffText(ref string buffName, ref string tip, ref int rare)` | for the name (`Lang.GetBuffName`) and the tip (`Main.GetBuffTooltip`) the buff bar shows; `rare` has no effect on the phone |
+| `RightClick(int buffIndex)` | when the player taps the buff to cancel it; `false` keeps it |
+
+`GlobalBuff.Update` runs for each active buff, the game's included, after
+the `ModBuff`'s; a hook that removes the buff lowers `buffIndex`, as in
+tModLoader. Not yet: `PreDraw`/`PostDraw` with `BuffDrawParams` (the icon
+drawing), and the `GlobalBuff` tip size hooks.
+
 ## Finding content by name
 
 The **full name** of a content class is `<mod>/<Name>`: the mod's internal

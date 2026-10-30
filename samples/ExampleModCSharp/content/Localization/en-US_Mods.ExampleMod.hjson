@@ -63,6 +63,11 @@ Items: {
 		Tooltip: This is a modded cross necklace that increases your immunity time by 1 second.
 	}
 
+	ExampleBuffPotion: {
+		DisplayName: Example Buff Potion
+		Tooltip: Gives a light defense buff.
+	}
+
 	ExampleWings: {
 		DisplayName: Example Wings
 		Tooltip: This is a modded wing.
@@ -122,4 +127,21 @@ DamageClasses: {
 	ExampleDamageClass: {
 		DisplayName: example damage
 	}
+}
+
+Buffs: {
+	ExampleDefenseBuff: {
+		DisplayName: Defensive Buff
+		Description: Increases defense by {0}
+	}
+
+	ExampleLifeRegenDebuff: {
+		DisplayName: Fire debuff
+		Description: Losing life
+	}
+}
+
+ExampleGlobalBuff: {
+	RemainingTime: "[ExampleGlobalBuff] Remaining time: {0}"
+	CannotCancel: Cannot cancel this buff while stationary!
 }

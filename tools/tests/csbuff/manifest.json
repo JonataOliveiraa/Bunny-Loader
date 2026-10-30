@@ -1,0 +1,15 @@
+{
+  "uid": "008e089a-1233-4b2e-8a15-9ac0dc8c5434",
+  "id": "test-csbuff",
+  "name": "Teste: ModBuff no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModBuff e GlobalBuff: tipo, SetStaticDefaults, Update no jogador e no NPC, ReApply, ModifyBuffText e RightClick, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csbuff. No mundo, loga 'csbuff <caso>: ok | FAIL' e 'csbuff END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsBuff.dll",
+  "dependencies": []
+}

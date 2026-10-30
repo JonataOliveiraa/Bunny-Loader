@@ -1,6 +1,7 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
 #include "boot/Boot.h"
+#include "content/buffs/ModBuffs.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
@@ -96,6 +97,8 @@ struct NativeApi {
     int32_t (*prefixCount)();
     int32_t (*growEquipSets)(const char* kind, int32_t from, int32_t to);
     void* (*resizeArray)(void* array, int32_t length);
+    int32_t (*registerBuff)(const char* mod, const char* name, const char* texture, const char* displayName, const char* description);
+    void (*onBuffsInstalled)(void (*callback)(int32_t first, int32_t last));
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -560,6 +563,24 @@ void* nativeResizeArray(void* array, int32_t length) {
     return runtime::TypeTables::resizedCopy(static_cast<Il2CppArray*>(array), static_cast<uintptr_t>(length));
 }
 
+int32_t nativeRegisterBuff(const char* mod, const char* name, const char* texture, const char* displayName, const char* description) {
+    if (!mod || !name || !texture || !*mod || !*name) return -1;
+    if (!fileExists(texture)) return -2;
+    runtime::ModBuffDef d;
+    d.mod = mod;
+    d.name = name;
+    d.texture = texture;
+    d.names = cultureTexts(displayName);
+    d.descriptions = cultureTexts(description);
+    const int type = runtime::registerModBuff(std::move(d));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeOnBuffsInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::setBuffsInstalledHook(reinterpret_cast<runtime::BuffsInstalledHook>(callback));
+}
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -619,6 +640,8 @@ const NativeApi kNativeApi{
     nativePrefixCount,
     nativeGrowEquipSets,
     nativeResizeArray,
+    nativeRegisterBuff,
+    nativeOnBuffsInstalled,
 };
 
 } // namespace

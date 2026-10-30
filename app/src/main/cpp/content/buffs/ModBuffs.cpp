@@ -23,7 +23,8 @@ struct Entry {
 
 std::mutex g_mx;
 std::vector<Entry> g_regs;   // indice = type - kVanillaBuffCount
-std::atomic<BuffsInstalledHook> g_installedHook{nullptr};
+std::mutex g_hooksMx;
+std::vector<BuffsInstalledHook> g_installedHooks;
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
@@ -308,9 +309,12 @@ void tickModBuffs() {
     }
     BL_INFO("buffs de mod: %d instalado(s) (ids %d..%d), %d tabela(s) aumentadas de %d para %d",
             total - installed, from, to - 1, grown, from, to);
-    if (BuffsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
-        hook(from, to - 1);
+    std::vector<BuffsInstalledHook> hooks;
+    {
+        std::lock_guard<std::mutex> l(g_hooksMx);
+        hooks = g_installedHooks;
     }
+    for (BuffsInstalledHook hook : hooks) hook(from, to - 1);
 }
 
 bool modBuffsSettled() {
@@ -318,7 +322,12 @@ bool modBuffsSettled() {
 }
 
 void setBuffsInstalledHook(BuffsInstalledHook hook) {
-    g_installedHook.store(hook, std::memory_order_release);
+    if (!hook) return;
+    std::lock_guard<std::mutex> l(g_hooksMx);
+    for (BuffsInstalledHook h : g_installedHooks) {
+        if (h == hook) return;
+    }
+    g_installedHooks.push_back(hook);
 }
 
 int modBuffTypeByName(const std::string& mod, const std::string& name) {

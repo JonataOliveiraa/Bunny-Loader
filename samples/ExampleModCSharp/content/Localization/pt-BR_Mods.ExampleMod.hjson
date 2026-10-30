@@ -63,6 +63,11 @@ Items: {
 		Tooltip: Um colar de cruz de mod que aumenta o tempo de imunidade em 1 segundo.
 	}
 
+	ExampleBuffPotion: {
+		DisplayName: Poção de Buff de Exemplo
+		Tooltip: Dá um leve buff de defesa.
+	}
+
 	ExampleWings: {
 		DisplayName: Asas de Exemplo
 		Tooltip: Estas são asas de mod.
@@ -122,4 +127,21 @@ DamageClasses: {
 	ExampleDamageClass: {
 		DisplayName: dano de exemplo
 	}
+}
+
+Buffs: {
+	ExampleDefenseBuff: {
+		DisplayName: Buff Defensivo
+		Description: Aumenta a defesa em {0}
+	}
+
+	ExampleLifeRegenDebuff: {
+		DisplayName: Debuff de fogo
+		Description: Perdendo vida
+	}
+}
+
+ExampleGlobalBuff: {
+	RemainingTime: "[ExampleGlobalBuff] Tempo restante: {0}"
+	CannotCancel: Não dá para cancelar este buff parado!
 }

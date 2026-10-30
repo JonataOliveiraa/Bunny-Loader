@@ -45,7 +45,7 @@ void tickModBuffs();
 /** Tudo que foi registrado ja esta nas tabelas do jogo (ou falhou de vez). */
 bool modBuffsSettled();
 
-/** Chamado uma vez por lote instalado (thread do jogo): a hora do SetStaticDefaults. */
+/** Chamado uma vez por lote instalado (thread do jogo): a hora do SetStaticDefaults. Cada ouvinte entra uma vez. */
 using BuffsInstalledHook = void (*)(int first, int last);
 void setBuffsInstalledHook(BuffsInstalledHook hook);
 
