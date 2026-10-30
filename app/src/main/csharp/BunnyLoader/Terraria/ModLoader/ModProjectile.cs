@@ -104,4 +104,20 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
     public virtual bool PreDraw(Player player, ref Color lightColor) => true;
 
     public virtual void PostDraw(Player player, Color lightColor) { }
+
+    public virtual bool? CanUseGrapple(Player player) => null;
+
+    public virtual void UseGrapple(Player player, ref int type) { }
+
+    public virtual float GrappleRange() => 300f;
+
+    public virtual void NumGrappleHooks(Player player, ref int numHooks) { }
+
+    public virtual void GrappleRetreatSpeed(Player player, ref float speed) { }
+
+    public virtual void GrapplePullSpeed(Player player, ref float speed) { }
+
+    public virtual void GrappleTargetPoint(Player player, ref float grappleX, ref float grappleY) { }
+
+    public virtual bool? GrappleCanLatchOnTo(Player player, int x, int y) => null;
 }

@@ -28,6 +28,8 @@ public static class UtilsExtensions
 
     public static float ToRotation(this Vector2 v) => MathF.Atan2(v.Y, v.X);
 
+    public static Point ToTileCoordinates(this Vector2 vec) => new((int)vec.X >> 4, (int)vec.Y >> 4);
+
     public static float AngleLerp(this float curAngle, float targetAngle, float amount)
     {
         float angle;

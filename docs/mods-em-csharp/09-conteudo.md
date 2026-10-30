@@ -1203,8 +1203,33 @@ item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
 | `PreDraw(player, ref lightColor)`, `PostDraw(player, lightColor)` | around the game's draw (`Main.DrawProjDirect`); `Projectile.GetDefaultDrawData(player, lightColor)` gives the draw the game would make, for afterimages |
 
 `Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
-index as in tModLoader. Grappling hooks, `TileCollideStyle`, `CutTiles`,
-`PreDrawExtras` and `SendExtraAI`/`ReceiveExtraAI` come next.
+index as in tModLoader. `Projectile.CloneDefaults(type)` copies another
+projectile's defaults and keeps the type, the `ModProjectile` and the globals.
+`TileCollideStyle`, `CutTiles`, `PreDrawExtras` and
+`SendExtraAI`/`ReceiveExtraAI` come next.
+
+### Grappling hooks
+
+A hook is a projectile with `aiStyle = ProjAIStyleID.Hook` (7), shot by an item
+whose `shoot` is that type; `Projectile.CloneDefaults(ProjectileID.GemHookAmethyst)`
+is the usual start.
+
+| Hook | When |
+| --- | --- |
+| `CanUseGrapple(player)` | before the hook is shot; `false` stops it, `true` shoots it even past the game's limit of hooks in flight, `null` leaves it to the game |
+| `UseGrapple(player, ref type)` | right before the projectile is created; change `type` to shoot another hook (the Dual Hook does this) |
+| `GrappleRange()` | how far the hook flies before it comes back (300 by default); a hook with `AIType` keeps that game hook's range |
+| `NumGrappleHooks(player, ref numHooks)` | how many hooks may be latched at once; the oldest goes when a new one latches past it |
+| `GrappleRetreatSpeed(player, ref speed)` | the speed back to the player when it misses (11 by default) |
+| `GrapplePullSpeed(player, ref speed)` | how fast the player is pulled (11 by default); the first latched hook decides |
+| `GrappleTargetPoint(player, ref grappleX, ref grappleY)` | the point the player is pulled to; starts at the sum of the latched hooks' centers so far |
+| `GrappleCanLatchOnTo(player, x, y)` | whether the hook may latch onto the tile at `(x, y)`; `null` uses the game's rule (solid tiles) |
+
+`GlobalProjectile` has the same hooks with the `Projectile` first, except
+`CanUseGrapple(type, player)` and `UseGrapple(player, ref type)`, which take the
+hook's type (`AppliesToEntity` is asked on a sample projectile of that type), and
+`GrappleRange`, which is only on `ModProjectile`. As in tModLoader, a global's
+`false` in `GrappleCanLatchOnTo` wins over everything else.
 
 ### Hits
 

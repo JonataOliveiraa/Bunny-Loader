@@ -63,4 +63,18 @@ public abstract class GlobalProjectile : GlobalType<Projectile, GlobalProjectile
     public virtual bool PreDraw(Projectile projectile, Player player, ref Color lightColor) => true;
 
     public virtual void PostDraw(Projectile projectile, Player player, Color lightColor) { }
+
+    public virtual bool? CanUseGrapple(int type, Player player) => null;
+
+    public virtual void UseGrapple(Player player, ref int type) { }
+
+    public virtual void NumGrappleHooks(Projectile projectile, Player player, ref int numHooks) { }
+
+    public virtual void GrappleRetreatSpeed(Projectile projectile, Player player, ref float speed) { }
+
+    public virtual void GrapplePullSpeed(Projectile projectile, Player player, ref float speed) { }
+
+    public virtual void GrappleTargetPoint(Projectile projectile, Player player, ref float grappleX, ref float grappleY) { }
+
+    public virtual bool? GrappleCanLatchOnTo(Projectile projectile, Player player, int x, int y) => null;
 }

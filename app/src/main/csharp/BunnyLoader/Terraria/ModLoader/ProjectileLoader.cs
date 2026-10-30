@@ -22,6 +22,8 @@ public static unsafe class ProjectileLoader
     static readonly List<GameHandle> TemplatePins = new();
     internal static readonly GlobalList<Projectile, GlobalProjectile> Globals = new();
     static bool hooked, installed;
+    static readonly Dictionary<int, (GameHandle Pin, Projectile Sample)> Samples = new();
+    [ThreadStatic] static (IntPtr Pointer, ModProjectile? Instance) borrowed;
 
     public static int ProjectileCount => VanillaCount + Volatile.Read(ref projectiles).Length;
 
@@ -35,11 +37,22 @@ public static unsafe class ProjectileLoader
     internal static ModProjectile? InstanceOf(Projectile projectile)
     {
         if (projectile.IsNull) return null;
+        if (borrowed.Pointer == projectile.Pointer) return borrowed.Instance;
         ModProjectile? template = GetProjectile(projectile.type);
         if (template == null) return null;
         ModProjectile? current = Instances.Get(projectile.Pointer);
         return current != null && current.Type == template.Type ? current : Bind(template, projectile);
     }
+
+    internal static IntPtr Borrow(Projectile projectile, ModProjectile? instance, out ModProjectile? outer)
+    {
+        IntPtr pointer = borrowed.Pointer;
+        outer = borrowed.Instance;
+        borrowed = (projectile.Pointer, instance);
+        return pointer;
+    }
+
+    internal static void Return(IntPtr pointer, ModProjectile? instance) => borrowed = (pointer, instance);
 
     static ModProjectile Bind(ModProjectile template, Projectile projectile)
     {
@@ -516,6 +529,182 @@ public static unsafe class ProjectileLoader
             try { g.PostDraw(projectile, player, lightColor); }
             catch (Exception e) { Report(g, nameof(GlobalProjectile.PostDraw), e); }
         }
+    }
+
+    internal static void CloneDefaults(Projectile projectile, int type)
+    {
+        if (projectile.IsNull) throw new ArgumentException("CloneDefaults requires a projectile", nameof(projectile));
+        int originalType = projectile.type;
+        ModProjectile? originalMod = Instances.Get(projectile.Pointer);
+        GlobalProjectile?[]? originalGlobals = Globals.Slots(projectile);
+        try { projectile.SetDefaults(type); }
+        finally
+        {
+            projectile.type = originalType;
+            Instances.Set(projectile.Pointer, originalMod);
+            Globals.Restore(projectile, originalGlobals);
+        }
+    }
+
+    static Projectile Sample(int type)
+    {
+        lock (Samples)
+        {
+            if (Samples.TryGetValue(type, out var found)) return found.Sample;
+            Projectile sample = Projectile.New();
+            var pin = new GameHandle(sample.Pointer);
+            sample.SetDefaults(type);
+            Samples[type] = (pin, sample);
+            return sample;
+        }
+    }
+
+    static IEnumerable<GlobalProjectile> GlobalsFor(int type)
+    {
+        Projectile? sample = null;
+        foreach (GlobalProjectile g in Globals.Templates)
+        {
+            bool applies;
+            try { applies = g.AppliesToEntity(sample ??= Sample(type), true); }
+            catch (Exception e)
+            {
+                Report(g, nameof(GlobalProjectile.AppliesToEntity), e);
+                continue;
+            }
+            if (applies) yield return g;
+        }
+    }
+
+    public static bool? CanUseGrapple(int type, Player player)
+    {
+        bool? flag = null;
+        if (GetProjectile(type) is ModProjectile m)
+        {
+            try { flag = m.CanUseGrapple(player); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.CanUseGrapple), e); }
+        }
+        foreach (GlobalProjectile g in GlobalsFor(type))
+        {
+            try
+            {
+                bool? canGrapple = g.CanUseGrapple(type, player);
+                if (canGrapple.HasValue) flag = canGrapple;
+            }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.CanUseGrapple), e); }
+        }
+        return flag;
+    }
+
+    public static void UseGrapple(Player player, ref int type)
+    {
+        if (GetProjectile(type) is ModProjectile m)
+        {
+            try { m.UseGrapple(player, ref type); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.UseGrapple), e); }
+        }
+        foreach (GlobalProjectile g in Globals.Templates)
+        {
+            try { g.UseGrapple(player, ref type); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.UseGrapple), e); }
+        }
+    }
+
+    public static bool GrappleOutOfRange(float distance, Projectile projectile)
+    {
+        if (InstanceOf(projectile) is not ModProjectile m) return false;
+        try { return distance > m.GrappleRange(); }
+        catch (Exception e)
+        {
+            Report(m, nameof(ModProjectile.GrappleRange), e);
+            return false;
+        }
+    }
+
+    public static void NumGrappleHooks(Projectile projectile, Player player, ref int numHooks)
+    {
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { m.NumGrappleHooks(player, ref numHooks); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.NumGrappleHooks), e); }
+        }
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try { g.NumGrappleHooks(projectile, player, ref numHooks); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.NumGrappleHooks), e); }
+        }
+    }
+
+    public static void GrappleRetreatSpeed(Projectile projectile, Player player, ref float speed)
+    {
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { m.GrappleRetreatSpeed(player, ref speed); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.GrappleRetreatSpeed), e); }
+        }
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try { g.GrappleRetreatSpeed(projectile, player, ref speed); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.GrappleRetreatSpeed), e); }
+        }
+    }
+
+    public static void GrapplePullSpeed(Projectile projectile, Player player, ref float speed)
+    {
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { m.GrapplePullSpeed(player, ref speed); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.GrapplePullSpeed), e); }
+        }
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try { g.GrapplePullSpeed(projectile, player, ref speed); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.GrapplePullSpeed), e); }
+        }
+    }
+
+    public static void GrappleTargetPoint(Projectile projectile, Player player, ref float grappleX, ref float grappleY)
+    {
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { m.GrappleTargetPoint(player, ref grappleX, ref grappleY); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.GrappleTargetPoint), e); }
+        }
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try { g.GrappleTargetPoint(projectile, player, ref grappleX, ref grappleY); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.GrappleTargetPoint), e); }
+        }
+    }
+
+    public static bool? GrappleCanLatchOnTo(Projectile projectile, Player player, int x, int y)
+    {
+        bool? flag = null;
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { flag = m.GrappleCanLatchOnTo(player, x, y); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.GrappleCanLatchOnTo), e); }
+        }
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            bool? globalFlag;
+            try { globalFlag = g.GrappleCanLatchOnTo(projectile, player, x, y); }
+            catch (Exception e)
+            {
+                Report(g, nameof(GlobalProjectile.GrappleCanLatchOnTo), e);
+                continue;
+            }
+            if (globalFlag.HasValue)
+            {
+                if (!globalFlag.Value) return false;
+                flag = globalFlag;
+            }
+        }
+        return flag;
     }
 
     [UnmanagedCallersOnly]

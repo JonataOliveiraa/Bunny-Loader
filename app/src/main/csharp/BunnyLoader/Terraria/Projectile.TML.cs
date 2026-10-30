@@ -44,6 +44,8 @@ public readonly partial struct Projectile : IEntityWithGlobals<GlobalProjectile>
 
     public ModProjectile ModProjectile => ProjectileLoader.InstanceOf(this)!;
 
+    public void CloneDefaults(int TypeToClone) => ProjectileLoader.CloneDefaults(this, TypeToClone);
+
     public DrawData GetDefaultDrawData(Player player, Microsoft.Xna.Framework.Graphics.Color lightColor)
     {
         Microsoft.Xna.Framework.Graphics.Texture2D texture = Terraria.GameContent.TextureAssets.Projectile[type].Value;

@@ -52,9 +52,10 @@ internal static class ProjectileHooks
         if (Has(nameof(ModProjectile.GetAlpha)) || Has(nameof(ModProjectile.PreDraw))) ItemHooks.Once("ProjectileAlpha", () => On_Projectile.GetAlpha += GetAlpha);
         if (Has(nameof(ModProjectile.PreDraw)) || Has(nameof(ModProjectile.PostDraw))) ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
         ProjectileHitHooks.Install(Has);
+        ProjectileGrappleHooks.Install(Has);
     }
 
-    static bool Wants(Projectile projectile, string method)
+    internal static bool Wants(Projectile projectile, string method)
     {
         if (ProjectileLoader.InstanceOf(projectile) is ModProjectile m && ModHooks.TryGetValue(m.GetType(), out var names) && names.Contains(method)) return true;
         return GlobalHooks.Contains(method) && ProjectileLoader.Globals.Slots(projectile) != null;
@@ -98,13 +99,19 @@ internal static class ProjectileHooks
         }
         if (ProjectileLoader.PreAI(self))
         {
-            int aiType = ProjectileLoader.InstanceOf(self)?.AIType ?? 0;
+            ModProjectile? instance = ProjectileLoader.InstanceOf(self);
+            int aiType = instance?.AIType ?? 0;
             if (aiType > 0)
             {
                 int type = self.type;
+                IntPtr outer = ProjectileLoader.Borrow(self, instance, out ModProjectile? outerInstance);
                 self.type = aiType;
                 try { orig(self); }
-                finally { self.type = type; }
+                finally
+                {
+                    self.type = type;
+                    ProjectileLoader.Return(outer, outerInstance);
+                }
             }
             else orig(self);
             ProjectileLoader.AI(self);
