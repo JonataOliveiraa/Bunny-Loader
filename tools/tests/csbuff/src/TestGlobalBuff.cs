@@ -1,4 +1,6 @@
+using Microsoft.Xna.Framework.Graphics;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -20,4 +22,13 @@ public class TestGlobalBuff : GlobalBuff
     }
 
     public override bool RightClick(int type, int buffIndex) => !(KeepVanilla && type == BuffID.Regeneration);
+
+    public static int Hidden;
+
+    public override bool PreDraw(SpriteBatch spriteBatch, int type, int buffIndex, ref BuffDrawParams drawParams)
+    {
+        if (type != BuffID.Regeneration) return true;
+        Hidden++;
+        return false;
+    }
 }

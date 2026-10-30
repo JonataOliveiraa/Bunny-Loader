@@ -1,6 +1,8 @@
 using ExampleMod.Content.Buffs;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -28,6 +30,32 @@ public class ExampleGlobalBuff : GlobalBuff
                 player.buffTime[buffIndex] = limit;
             }
         }
+    }
+
+    public override bool PreDraw(SpriteBatch spriteBatch, int type, int buffIndex, ref BuffDrawParams drawParams)
+    {
+        if (type == BuffID.Campfire)
+        {
+            drawParams.DrawColor = Main.DiscoColor * Main.buffAlpha[buffIndex];
+
+            Vector2 shake = new Vector2(Main.rand.Next(-2, 3), Main.rand.Next(-2, 3));
+
+            drawParams.Position += shake;
+            drawParams.TextPosition += shake;
+        }
+
+        if (Main.EquipPage != 2 && (type == BuffID.Regeneration || type == BuffID.Ironskin || type == BuffID.Swiftness))
+        {
+            int interval = 60;
+            float time = ((int)Main.GameUpdateCount + 4 * buffIndex) % interval / (float)interval;
+
+            int offset = (int)(6 * time);
+
+            ref Vector2 textPos = ref drawParams.TextPosition;
+            textPos.Y += offset;
+        }
+
+        return true;
     }
 
     private static string randomBuffTextCache;

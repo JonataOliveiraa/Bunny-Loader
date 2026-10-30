@@ -97,6 +97,11 @@ namespace Microsoft.Xna.Framework.Graphics
 
         public Color(float r, float g, float b) : this(r, g, b, 1f) { }
 
+        public static Color operator *(Color value, float scale) =>
+            new((int)(value.R * scale), (int)(value.G * scale), (int)(value.B * scale), (int)(value.A * scale));
+
+        public static Color operator *(float scale, Color value) => value * scale;
+
         public Color(float r, float g, float b, float a)
             : this((int)(r * 255f + 0.5f), (int)(g * 255f + 0.5f), (int)(b * 255f + 0.5f), (int)(a * 255f + 0.5f)) { }
 

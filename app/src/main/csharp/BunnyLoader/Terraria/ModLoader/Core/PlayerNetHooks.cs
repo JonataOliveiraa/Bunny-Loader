@@ -119,13 +119,14 @@ internal static class PlayerNetHooks
     static void SyncOnePlayer(On_NetMessage.orig_SyncOnePlayer orig, int plr, int toWho, int fromWho)
     {
         orig(plr, toWho, fromWho);
-        if ((uint)plr >= 255u) return;
+        if ((uint)plr >= 255u || Main.netMode == 0) return;
         Player player = Main.player[plr];
         if (player.IsNull) return;
         if (Connected.TryGetValue(plr, out Entry? previous) && previous.Player != player) Disconnect(plr);
+        if (!player.active) return;
         bool fresh = !Connected.ContainsKey(plr);
         PlayerLoader.Each(player, nameof(ModPlayer.SyncPlayer), (toWho, fromWho, fresh), static (m, s) => m.SyncPlayer(s.toWho, s.fromWho, s.fresh));
-        if (player.active) Connect(plr, player);
+        Connect(plr, player);
     }
 
     static void PlayerConnect(On_Player_Hooks.orig_PlayerConnect orig, int playerIndex)

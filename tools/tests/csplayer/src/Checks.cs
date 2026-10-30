@@ -51,6 +51,7 @@ public static class Checks
         Report("UpdateBadLifeRegen and UpdateLifeRegen run", TestPlayer.BadRegen > 0 && TestPlayer.Regen > 0, $"bad={TestPlayer.BadRegen} regen={TestPlayer.Regen}");
         Report("FrameEffects runs", TestPlayer.Frames > 0, $"calls={TestPlayer.Frames}");
         Report("OnEnterWorld runs on entering", TestPlayer.EnterWorlds > 0, $"calls={TestPlayer.EnterWorlds}");
+        Report("SyncPlayer does not run in single player", TestPlayer.Syncs == 0, $"calls={TestPlayer.Syncs}");
         lifeBefore = p.statLifeMax2 - p.statLifeMax;
         TestPlayer.ExtraLife = 40;
     }

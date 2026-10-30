@@ -938,8 +938,17 @@ buffs of a character by name.
 
 `GlobalBuff.Update` runs for each active buff, the game's included, after
 the `ModBuff`'s; a hook that removes the buff lowers `buffIndex`, as in
-tModLoader. Not yet: `PreDraw`/`PostDraw` with `BuffDrawParams` (the icon
-drawing), and the `GlobalBuff` tip size hooks.
+tModLoader.
+
+The icon in the buff bar: `PreDraw(spriteBatch, buffIndex, ref BuffDrawParams
+drawParams)` (`GlobalBuff`s first, then the `ModBuff`) and `PostDraw`. The
+params start as the game draws it: `Position` is the icon's top left corner,
+`TextPosition` the time text's, `DrawColor` the bar's fade
+(`Main.buffAlpha`). A change to `Texture`, `Position`, `SourceRectangle` or
+`DrawColor` goes to the game's draw of that icon, a change to `TextPosition`
+moves its time text, and `false` hides the icon (the text stays, as in
+tModLoader). The phone draws the bar at a 0.8 scale. Not yet: the
+`GlobalBuff` tip size hooks (`CustomBuffTipSize`, `DrawCustomBuffTip`).
 
 ## Finding content by name
 

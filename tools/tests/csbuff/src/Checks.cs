@@ -27,7 +27,7 @@ public static class Checks
         try
         {
             if (frames == 120) Start(p);
-            else if (frames == 240) Finish(p);
+            else if (frames == 400) Finish(p);
         }
         catch (Exception e)
         {
@@ -57,6 +57,8 @@ public static class Checks
         int x = (int)p.position.X + 300, y = (int)p.position.Y;
         npcIndex = NPC.NewNPC(default, x, y, NPCID.Bunny);
         if ((uint)npcIndex < 200u) Main.npc[npcIndex].AddBuff(type, 600);
+        Main.playerInventory = true;
+        Log.Info("csbuff inventory open for the buff icons");
     }
 
     static void Finish(Player p)
@@ -68,6 +70,10 @@ public static class Checks
         Report("Update runs for the player", TestBuff.PlayerUpdates >= 60 && p.statDefense >= defenseWithout + 7,
             $"calls={TestBuff.PlayerUpdates} defense {defenseWithout}->{p.statDefense}");
         Report("Update runs for an NPC", TestBuff.NpcUpdates > 0, $"calls={TestBuff.NpcUpdates} npc={npcIndex}");
+        Main.playerInventory = false;
+        Report("PreDraw and PostDraw run for the icon", TestBuff.PreDraws > 0 && TestBuff.PostDraws > 0 && TestBuff.LastPost.DrawColor.R == 255 &&
+            TestBuff.LastPost.DrawColor.G == 80 && TestGlobalBuff.Hidden > 0,
+            $"pre={TestBuff.PreDraws} post={TestBuff.PostDraws} color={TestBuff.LastPost.DrawColor.R},{TestBuff.LastPost.DrawColor.G} hidden={TestGlobalBuff.Hidden} at={TestBuff.LastPost.Position.X},{TestBuff.LastPost.Position.Y}");
         Report("GlobalBuff.Update runs for a game buff", TestGlobalBuff.VanillaUpdates >= 60, $"calls={TestGlobalBuff.VanillaUpdates}");
         if ((uint)npcIndex < 200u) Main.npc[npcIndex].active = false;
 

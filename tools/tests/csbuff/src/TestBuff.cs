@@ -1,4 +1,7 @@
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ModLoader;
 
 namespace CsBuff;
@@ -31,4 +34,21 @@ public class TestBuff : ModBuff
     }
 
     public override bool RightClick(int buffIndex) => !Keep;
+
+    public static int PreDraws, PostDraws;
+    public static BuffDrawParams LastPost;
+
+    public override bool PreDraw(SpriteBatch spriteBatch, int buffIndex, ref BuffDrawParams drawParams)
+    {
+        PreDraws++;
+        drawParams.Position += new Vector2(0, 6);
+        drawParams.DrawColor = new Color(255, 80, 80);
+        return true;
+    }
+
+    public override void PostDraw(SpriteBatch spriteBatch, int buffIndex, BuffDrawParams drawParams)
+    {
+        PostDraws++;
+        LastPost = drawParams;
+    }
 }

@@ -1,6 +1,7 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
 #include "boot/Boot.h"
+#include "content/buffs/BuffIconLook.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
@@ -99,6 +100,7 @@ struct NativeApi {
     void* (*resizeArray)(void* array, int32_t length);
     int32_t (*registerBuff)(const char* mod, const char* name, const char* texture, const char* displayName, const char* description);
     void (*onBuffsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void* (*buffIconLook)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -581,6 +583,8 @@ void nativeOnBuffsInstalled(void (*callback)(int32_t first, int32_t last)) {
     runtime::setBuffsInstalledHook(reinterpret_cast<runtime::BuffsInstalledHook>(callback));
 }
 
+void* nativeBuffIconLook() { return runtime::buffIconLook(); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -642,6 +646,7 @@ const NativeApi kNativeApi{
     nativeResizeArray,
     nativeRegisterBuff,
     nativeOnBuffsInstalled,
+    nativeBuffIconLook,
 };
 
 } // namespace

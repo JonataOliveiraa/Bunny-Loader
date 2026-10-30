@@ -51,6 +51,16 @@ public class TestPlayer : ModPlayer
 
     public override void OnEnterWorld() => EnterWorlds++;
 
+    public static int Syncs;
+
+    public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
+    {
+        Syncs++;
+        ModPacket packet = Mod.GetPacket();
+        packet.Write(1);
+        packet.Send(toWho, fromWho);
+    }
+
     public override void ModifyLuck(ref float luck)
     {
         if (Lucky) luck += 0.25f;
