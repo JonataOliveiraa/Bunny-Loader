@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Terraria.GameInput;
 using Terraria.DataStructures;
 using Terraria.ModLoader.IO;
 
@@ -28,6 +29,32 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
     public virtual void Initialize() { }
 
     public virtual void ResetEffects() { }
+
+    public virtual void ResetInfoAccessories() { }
+
+    public virtual void NaturalLifeRegen(ref float regen) { }
+
+    public virtual void UpdateAutopause() { }
+
+    public virtual void ProcessTriggers(TriggersSet triggersSet) { }
+
+    public virtual void ArmorSetBonusActivated() { }
+
+    public virtual void ArmorSetBonusHeld(int holdTime) { }
+
+    public virtual void UpdateVisibleAccessories() { }
+
+    public virtual void UpdateVisibleVanityAccessories() { }
+
+    public virtual void UpdateDyes() { }
+
+    public virtual void PostUpdateMiscEffects() { }
+
+    public virtual void PostUpdateRunSpeeds() { }
+
+    public virtual void PreUpdateMovement() { }
+
+    public virtual void OnEquipmentLoadoutSwitched(int oldLoadoutIndex, int loadoutIndex) { }
 
     public virtual void ModifyMaxStats(out StatModifier health, out StatModifier mana)
     {

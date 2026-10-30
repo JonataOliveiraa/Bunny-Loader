@@ -13,7 +13,7 @@ internal static class PlayerHooks
     internal static void Install(Type type)
     {
         bool Has(string name) => ItemHooks.Overrides(type, typeof(ModPlayer), name);
-        if (Has(nameof(ModPlayer.ResetEffects)) || Has(nameof(ModPlayer.ModifyMaxStats)))
+        if (Has(nameof(ModPlayer.ResetEffects)) || Has(nameof(ModPlayer.ModifyMaxStats)) || Has(nameof(ModPlayer.ResetInfoAccessories)))
             ItemHooks.Once("PlayerResetEffects", () => On_Player.ResetEffects += ResetEffects);
         if (Has(nameof(ModPlayer.PreUpdate)) || Has(nameof(ModPlayer.PostUpdate))) ItemHooks.Once("PlayerUpdate", () => On_Player.Update += Update);
         if (Has(nameof(ModPlayer.PreUpdateBuffs)) || Has(nameof(ModPlayer.PostUpdateBuffs)))
@@ -33,6 +33,7 @@ internal static class PlayerHooks
         if (Has(nameof(ModPlayer.PreItemCheck)) || Has(nameof(ModPlayer.PostItemCheck))) ItemHooks.Once("PlayerItemCheck", () => On_Player.ItemCheck += ItemCheck);
         if (Has(nameof(ModPlayer.OnHitAnything))) ItemHooks.Once("PlayerOnHit", () => On_Player.OnHit += OnHit);
         PlayerNetHooks.Install(Has);
+        PlayerUpdateHooks.Install(Has);
         PlayerHurtHooks.Install(Has);
         ItemCombatHooks.Install(Has, true);
         ItemShootHooks.Install(Has, true);
@@ -53,6 +54,7 @@ internal static class PlayerHooks
     {
         orig(self);
         PlayerLoader.Each(self, nameof(ModPlayer.ResetEffects), m => m.ResetEffects());
+        PlayerLoader.Each(self, nameof(ModPlayer.ResetInfoAccessories), m => m.ResetInfoAccessories());
         StatModifier health = StatModifier.Default, mana = StatModifier.Default;
         bool any = false;
         PlayerLoader.Each(self, nameof(ModPlayer.ModifyMaxStats), m =>

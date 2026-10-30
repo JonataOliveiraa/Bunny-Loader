@@ -782,6 +782,16 @@ loaded `ModPlayer` overrides it:
 | `PreKill`, `Kill` | around `Player.KillMe` (not in god mode); `false` keeps the player alive. `playSound` and `genDust` are not used yet |
 | `OnEnterWorld`, `OnRespawn` | after `Player.Hooks.EnterWorld`; after `Player.Spawn` when the player was dead, as in tModLoader |
 | `CanUseItem(item)` | before the item's own `CanUseItem` |
+| `ResetInfoAccessories` | after `ResetEffects`, and after `Player.RefreshInfoAccs` |
+| `PreUpdateMovement` | once per update, before the first of the game's collision steps (wet, dry, sloping, borders), not when dead |
+| `PostUpdateMiscEffects` | after `Player.CapAttackSpeeds` |
+| `PostUpdateRunSpeeds` | before `Player.HorizontalMovement` |
+| `NaturalLifeRegen(ref float regen)` | inside `Player.UpdateLifeRegen`, on the natural regen value (a native hook in the middle of the method) |
+| `UpdateDyes`, `UpdateVisibleAccessories`, `UpdateVisibleVanityAccessories` | after `Player.UpdateDyes`; after `Player.UpdateVisibleAccessories` (the phone does both kinds in one method) |
+| `UpdateAutopause` | after `Main.DoUpdate_WhilePaused`, for the local player |
+| `ProcessTriggers(TriggersSet triggersSet)` | after `TriggersSet.CopyInto` for the local player |
+| `ArmorSetBonusActivated`, `ArmorSetBonusHeld(int holdTime)` | after `Player.KeyDoubleTap`/`KeyHoldDown` on the set bonus key (down, or up with `Main.ReversedUpDownArmorSetBonuses`) |
+| `OnEquipmentLoadoutSwitched(int oldLoadoutIndex, int loadoutIndex)` | after `Player.TrySwitchingLoadout` changed the loadout |
 | `SaveData`, `LoadData`, `PreSavePlayer`, `PostSavePlayer`, `PreSaveCustomData` | the character's `<file>.plr.bl.json`, under `<mod uid>/<class>` (shared with the JS mods' `ModPlayer` data) |
 
 The item hooks run inside the same game points as the `ModItem` ones, in
