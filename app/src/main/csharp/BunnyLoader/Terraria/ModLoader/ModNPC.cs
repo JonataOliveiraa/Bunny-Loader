@@ -87,6 +87,20 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
 
     public virtual void OnHitByProjectile(Projectile projectile, NPC.HitInfo hit, int damageDone) { }
 
+    public virtual bool CanHitPlayer(Player target, ref int cooldownSlot) => true;
+
+    public virtual void ModifyHitPlayer(Player target, ref Player.HurtModifiers modifiers) { }
+
+    public virtual void OnHitPlayer(Player target, Player.HurtInfo hurtInfo) { }
+
+    public virtual bool CanHitNPC(NPC target) => true;
+
+    public virtual bool CanBeHitByNPC(NPC attacker) => true;
+
+    public virtual void ModifyHitNPC(NPC target, ref NPC.HitModifiers modifiers) { }
+
+    public virtual void OnHitNPC(NPC target, NPC.HitInfo hit) { }
+
     public virtual void AutoStaticDefaults() =>
         TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));
 }

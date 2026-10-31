@@ -1661,10 +1661,9 @@ damage cap of 3 into an actual hit of 4. Exact arbitrary critical caps remain
 an open precision issue in the shared primitive strike path. If a strict
 one-point cap is required, combine `SetMaxDamage(1)` with `DisableCrit()`.
 
-`ModifyIncomingHit` runs at the start of item strikes, of projectile strikes
-and of direct calls to `NPCLoader.ModifyIncomingHit`. NPC-contact integration
-belongs to its following combat step. Raw `NPC.StrikeNPC` calls by themselves
-do not enter these callbacks.
+`ModifyIncomingHit` runs at the start of item strikes, of projectile strikes,
+of NPC contact strikes and of direct calls to `NPCLoader.ModifyIncomingHit`.
+Raw `NPC.StrikeNPC` calls by themselves do not enter these callbacks.
 
 `DamageModificationGlobalNPC` and `ExampleDefenseDebuff` demonstrate a
 temporary 25% defense reduction. The global resets its per-entity flag before
@@ -1689,6 +1688,25 @@ order is `ModifyIncomingHit`, the projectile, the NPC, then the owner, and
 `damageDone` is limited to the health left, as for items. These hooks run for
 the game's projectiles too, and an NPC that overrides them installs the
 projectile strike path by itself.
+
+### NPC contact
+
+| Hook | Behavior |
+| --- | --- |
+| `CanHitPlayer(Player target, ref int cooldownSlot)` | false stops the contact damage. NPC globals run first, then the mod NPC; a false stops the rest. Runs before the player's `ModPlayer.CanBeHitByNPC`. |
+| `ModifyHitPlayer(Player target, ref Player.HurtModifiers modifiers)` | The mod NPC, then its globals, then the player's `ModifyHitByNPC` and `ModifyHurt`. |
+| `OnHitPlayer(Player target, Player.HurtInfo hurtInfo)` | Same order, after the game applied the hit. |
+| `CanHitNPC(NPC target)` | A hostile NPC touching a friendly one (a town NPC, for example). false stops it. |
+| `CanBeHitByNPC(NPC attacker)` | The other side of the same check. |
+| `ModifyHitNPC(NPC target, ref NPC.HitModifiers modifiers)` | After the target's `ModifyIncomingHit`; the mod NPC, then its globals. |
+| `OnHitNPC(NPC target, NPC.HitInfo hit)` | Same order, after the damage. |
+
+The NPC × NPC check follows tModLoader's `NPCLoader.CanHitNPC`: the attacker's
+globals, the target's globals (`CanBeHitByNPC`), the attacker, then the
+target; the first false wins. The contact goes through the game's
+`NPC.BeHurtByOtherNPC`, so a false there also skips the knockback and the
+immunity frames. The player side uses the same `Player.Hurt` path as the
+`ModPlayer` hooks, with the NPC's `cooldownSlot` passed on to them.
 
 ### NPC buff immunity
 

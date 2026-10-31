@@ -55,6 +55,7 @@ internal static class PlayerHurtHooks
             }
             if (!npc.IsNull)
             {
+                if (!NPCLoader.CanHitPlayer(npc, self, ref slot)) return 0;
                 (bool Allowed, int Slot) gate = (true, slot);
                 PlayerLoader.Each(self, nameof(ModPlayer.CanBeHitByNPC), npc, ref gate, static (m, n, ref g) => g.Allowed &= m.CanBeHitByNPC(n, ref g.Slot));
                 if (!gate.Allowed) return 0;
@@ -78,7 +79,10 @@ internal static class PlayerHurtHooks
             if (pvp && (Main.netMode == 0 || self.whoAmI == Main.myPlayer) && ItemPvpHooks.Source(damageSource, self.whoAmI, out attacker, out weapon, out pin))
                 ItemPvpHooks.ModifyHitPvp(weapon, attacker, self, ref modifiers);
             if (!npc.IsNull)
+            {
+                NPCLoader.ModifyHitPlayer(npc, self, ref modifiers);
                 PlayerLoader.Each(self, nameof(ModPlayer.ModifyHitByNPC), npc, ref modifiers, static (m, n, ref h) => m.ModifyHitByNPC(n, ref h));
+            }
             if (!projectile.IsNull)
             {
                 ProjectileLoader.ModifyHitPlayer(projectile, self, ref modifiers);
@@ -109,7 +113,11 @@ internal static class PlayerHurtHooks
             Player.HurtInfo info = pending;
             info.Damage = (int)done;
             if (!weapon.IsNull) ItemPvpHooks.OnHitPvp(weapon, attacker, self, info);
-            if (!npc.IsNull) PlayerLoader.Each(self, nameof(ModPlayer.OnHitByNPC), (npc, info), static (m, s) => m.OnHitByNPC(s.npc, s.info));
+            if (!npc.IsNull)
+            {
+                NPCLoader.OnHitPlayer(npc, self, info);
+                PlayerLoader.Each(self, nameof(ModPlayer.OnHitByNPC), (npc, info), static (m, s) => m.OnHitByNPC(s.npc, s.info));
+            }
             if (!projectile.IsNull)
             {
                 ProjectileLoader.OnHitPlayer(projectile, self, info);
