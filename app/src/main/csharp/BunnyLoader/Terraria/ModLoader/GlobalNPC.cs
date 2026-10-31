@@ -45,4 +45,10 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual void ModifyHitByItem(NPC npc, Player player, Item item, ref NPC.HitModifiers modifiers) { }
 
     public virtual void OnHitByItem(NPC npc, Player player, Item item, NPC.HitInfo hit, int damageDone) { }
+
+    public virtual bool? CanBeHitByProjectile(NPC npc, Projectile projectile) => null;
+
+    public virtual void ModifyHitByProjectile(NPC npc, Projectile projectile, ref NPC.HitModifiers modifiers) { }
+
+    public virtual void OnHitByProjectile(NPC npc, Projectile projectile, NPC.HitInfo hit, int damageDone) { }
 }

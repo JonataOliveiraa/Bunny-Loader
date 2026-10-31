@@ -1,0 +1,15 @@
+{
+  "uid": "314ce215-e0ae-4f42-9475-5685712481b5",
+  "id": "test-csnpcproj",
+  "name": "Test: NPC side of projectile hits (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "CanBeHitByProjectile, ModifyHitByProjectile, OnHitByProjectile and ModifyIncomingHit for projectile strikes, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csnpcproj. Logs csnpcproj <case>: ok | FAIL and csnpcproj END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpcProj.dll",
+  "dependencies": []
+}

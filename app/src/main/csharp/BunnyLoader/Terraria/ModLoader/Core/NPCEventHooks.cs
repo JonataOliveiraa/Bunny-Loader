@@ -14,7 +14,8 @@ internal enum NPCMethod : uint
     CheckDead = 64, HitEffect = 128, UpdateLifeRegen = 256, OnSpawn = 512,
     ApplyDifficultyAndPlayerScaling = 1024, SetDefaultsFromNetId = 2048,
     CanBeHitByItem = 4096, CanCollideWithPlayerMeleeAttack = 8192, ModifyIncomingHit = 16384,
-    ModifyHitByItem = 32768, OnHitByItem = 65536,
+    ModifyHitByItem = 32768, OnHitByItem = 65536, CanBeHitByProjectile = 131072, ModifyHitByProjectile = 262144,
+    OnHitByProjectile = 524288,
 }
 
 internal static unsafe class NPCEventHooks
@@ -51,6 +52,7 @@ internal static unsafe class NPCEventHooks
         if ((flags & NPCMethod.OnSpawn) != 0) ItemHooks.Once("NPCSpawn", () => On_NPC.NewNPC += NewNPC);
         if ((flags & NPCMethod.SetDefaultsFromNetId) != 0) ItemHooks.Once("NPCVariantDefaults", () => On_NPC.SetDefaultsFromNetId += VariantDefaults);
         ItemHitHooks.InstallNPC(flags);
+        ProjectileHitHooks.InstallNPC(flags);
         return flags;
     }
 

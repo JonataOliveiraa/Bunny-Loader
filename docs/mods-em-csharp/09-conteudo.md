@@ -1661,10 +1661,10 @@ damage cap of 3 into an actual hit of 4. Exact arbitrary critical caps remain
 an open precision issue in the shared primitive strike path. If a strict
 one-point cap is required, combine `SetMaxDamage(1)` with `DisableCrit()`.
 
-`ModifyIncomingHit` currently participates in this item path and in direct
-calls to `NPCLoader.ModifyIncomingHit`. Projectile and NPC-contact integration
-belong to their following combat steps. Raw `NPC.StrikeNPC` calls by
-themselves do not enter these item callbacks.
+`ModifyIncomingHit` runs at the start of item strikes, of projectile strikes
+and of direct calls to `NPCLoader.ModifyIncomingHit`. NPC-contact integration
+belongs to its following combat step. Raw `NPC.StrikeNPC` calls by themselves
+do not enter these callbacks.
 
 `DamageModificationGlobalNPC` and `ExampleDefenseDebuff` demonstrate a
 temporary 25% defense reduction. The global resets its per-entity flag before
@@ -1672,7 +1672,23 @@ buff updates; the buff sets it again, and the incoming hook changes
 `modifiers.Defense`. The debuff inherits Ichor immunity. Its draw tint waits
 for NPC drawing, and its player branch uses the mobile integer defense
 field. PartyZombie's incoming hook reduces magic damage by 75%; projectile
-magic damage receives that behavior when the projectile integration lands.
+magic damage receives the same behavior.
+
+### Projectile hits on an NPC
+
+| Hook | Behavior |
+| --- | --- |
+| `CanBeHitByProjectile(Projectile projectile)` | Returns `bool?`: false blocks the projectile, null keeps the default. NPC globals run first, followed by the mod NPC; a false stops the rest. |
+| `ModifyHitByProjectile(Projectile projectile, ref NPC.HitModifiers modifiers)` | The mod NPC runs before its globals, after the projectile's own `ModifyHitNPC` and before the owner's `ModPlayer` hooks. |
+| `OnHitByProjectile(Projectile projectile, NPC.HitInfo hit, int damageDone)` | Same order, after the projectile's `OnHitNPC`. |
+
+The decision order is tModLoader's `CombinedHooks.CanHitNPCWithProj`: the
+owner's `ModPlayer`, then the projectile and its globals, then the NPC; the
+first non-null answer wins and a false before it stops the checks. The damage
+order is `ModifyIncomingHit`, the projectile, the NPC, then the owner, and
+`damageDone` is limited to the health left, as for items. These hooks run for
+the game's projectiles too, and an NPC that overrides them installs the
+projectile strike path by itself.
 
 ### NPC buff immunity
 
