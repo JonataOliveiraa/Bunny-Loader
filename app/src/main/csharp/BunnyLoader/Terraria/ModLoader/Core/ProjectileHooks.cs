@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 using Terraria.GameContent;
+using Terraria.ID;
 
 namespace Terraria.ModLoader.Core;
 
@@ -13,8 +14,9 @@ internal static unsafe class ProjectileHooks
     sealed class Movement
     {
         public Projectile Projectile;
-        public Vector2 Velocity;
-        public bool Reported, PendingKill, Kept;
+        public Vector2 Velocity, Anchor;
+        public int Width, Height;
+        public bool Reported, PendingKill, Kept, HasCollision, HasStyle, Bypass;
         public Movement? Outer;
     }
 
@@ -41,13 +43,17 @@ internal static unsafe class ProjectileHooks
             });
         if (baseType == typeof(ModProjectile) || Has(nameof(ModProjectile.PreAI)) || Has(nameof(ModProjectile.AI)) || Has(nameof(ModProjectile.PostAI)))
             ItemHooks.Once("ProjectileAI", () => On_Projectile.AI += AI);
-        if (Has(nameof(ModProjectile.OnTileCollide)) || Has(nameof(ModProjectile.PreKill)) || Has(nameof(ModProjectile.OnKill)) || Has(nameof(ModProjectile.ShouldUpdatePosition)))
+        if (Has(nameof(ModProjectile.OnTileCollide)) || Has(nameof(ModProjectile.TileCollideStyle)) || Has(nameof(ModProjectile.PreKill)) ||
+            Has(nameof(ModProjectile.OnKill)) || Has(nameof(ModProjectile.ShouldUpdatePosition)))
             ItemHooks.Once("ProjectileMovement", () =>
             {
                 On_Projectile.HandleMovement += HandleMovement;
                 On_Projectile.UpdatePosition += UpdatePosition;
                 On_Projectile.Kill += Kill;
             });
+        if (Has(nameof(ModProjectile.TileCollideStyle))) ItemHooks.Once("ProjectileCollideStyle", () => On_Projectile.GetCollisionParams += CollisionParams);
+        if (Has(nameof(ModProjectile.CanCutTiles)) || Has(nameof(ModProjectile.CutTiles))) ItemHooks.Once("ProjectileCanCut", () => On_Projectile.CanCutTiles += CanCutTiles);
+        if (Has(nameof(ModProjectile.CutTiles))) ItemHooks.Once("ProjectileCut", () => On_Projectile.CutTiles += CutTiles);
         if (Has(nameof(ModProjectile.Colliding))) ItemHooks.Once("ProjectileColliding", () => On_Projectile.Colliding += Colliding);
         if (Has(nameof(ModProjectile.CanDamage)) || Has(nameof(ModProjectile.MinionContactDamage))) ItemHooks.Once("ProjectileDamage", () => On_Projectile.Damage += Damage);
         if (Has(nameof(ModProjectile.ModifyDamageHitbox))) ItemHooks.Once("ProjectileHitbox", () => On_Projectile.Damage_GetHitbox += DamageHitbox);
@@ -135,30 +141,117 @@ internal static unsafe class ProjectileHooks
 
     static void HandleMovement(On_Projectile.orig_HandleMovement orig, Projectile self, Vector2 wetVelocity)
     {
-        if (!self.tileCollide || !Wants(self, nameof(ModProjectile.OnTileCollide)))
+        bool collision = Wants(self, nameof(ModProjectile.OnTileCollide)), style = Wants(self, nameof(ModProjectile.TileCollideStyle));
+        if (!self.tileCollide || !collision && !style)
         {
             orig(self, wetVelocity);
             return;
         }
         float startX = self.position.X, startY = self.position.Y;
-        var move = new Movement { Projectile = self, Velocity = new Vector2(self.velocity.X, self.velocity.Y), Outer = moving };
+        var move = new Movement { Projectile = self, Velocity = new Vector2(self.velocity.X, self.velocity.Y), Outer = moving, HasCollision = collision };
+        bool manual = self.decidesManualFallThrough, should = self.shouldFallThrough;
+        if (style) ApplyCollideStyle(self, move);
         moving = move;
         try
         {
             orig(self, wetVelocity);
-            if (!move.Reported && self.active && (move.PendingKill || self.tileCollide && Collided(self, move))) ReportCollision(self, move);
+            if (collision && !move.Reported && self.active && (move.PendingKill || self.tileCollide && !move.Bypass && Collided(self, move))) ReportCollision(self, move);
             if (move.Kept && self.active) self.position = new Vector2(startX + self.velocity.X, startY + self.velocity.Y);
         }
-        finally { moving = move.Outer; }
+        finally
+        {
+            moving = move.Outer;
+            if (style)
+            {
+                self.decidesManualFallThrough = manual;
+                self.shouldFallThrough = should;
+                if (move.Bypass) self.tileCollide = true;
+            }
+        }
+    }
+
+    static void ApplyCollideStyle(Projectile self, Movement move)
+    {
+        self.GetCollisionParams(out Vector2 anchor, out int width, out int height);
+        bool fallThrough = VanillaFallThrough(self);
+        move.Bypass = !ProjectileLoader.TileCollideStyle(self, ref width, ref height, ref fallThrough, ref anchor);
+        move.HasStyle = true;
+        move.Anchor = anchor;
+        move.Width = width;
+        move.Height = height;
+        self.decidesManualFallThrough = true;
+        self.shouldFallThrough = fallThrough;
+        if (move.Bypass) self.tileCollide = false;
+    }
+
+    static void CollisionParams(On_Projectile.orig_GetCollisionParams orig, Projectile self, out Vector2 resizeAnchor, out int colWidth, out int colHeight)
+    {
+        orig(self, out resizeAnchor, out colWidth, out colHeight);
+        Movement? move = moving;
+        if (move == null || move.Projectile != self || !move.HasStyle) return;
+        resizeAnchor = move.Anchor;
+        colWidth = move.Width;
+        colHeight = move.Height;
+    }
+
+    static bool VanillaFallThrough(Projectile p)
+    {
+        if (p.decidesManualFallThrough) return p.shouldFallThrough;
+        int style = p.aiStyle, type = p.type;
+        bool fall = true;
+        if (Main.projPet[type])
+        {
+            Player owner = Main.player[p.owner];
+            fall = owner.position.Y + owner.height - 12 > p.position.Y + p.height;
+        }
+        if (type is 500 or 653 or 1018)
+        {
+            Player owner = Main.player[p.owner];
+            fall = owner.position.Y + owner.height > p.position.Y + p.height + 4;
+        }
+        fall = ((fall && type != 378) || style == 62 || style == 66 || type == 317 || type == 373) && type != 281 && type != 253 && style != 53 || style == 197;
+        if (type is 9 or 12 or 13 or 15 or 24 or 663 or 665 or 667 or 677 or 678 or 679 or 688 or 689 or 690 or 691 or 692 or 693 or 1037 or 1049 or 1105) fall = false;
+        if (style == 10 && ProjectileID.Sets.FallingBlockDoesNotFallThroughPlatforms[type]) fall = false;
+        if (style == 99 && p.ai[0] == -2f) fall = false;
+        if (type == 759) fall = true;
+        if (type == 1020)
+        {
+            float rotation = p.rotation % (MathF.PI * 2f);
+            if (rotation >= MathF.PI) rotation -= MathF.PI * 2f;
+            if (rotation < -MathF.PI) rotation += MathF.PI * 2f;
+            fall = rotation >= MathF.PI / 2f || rotation < -MathF.PI / 2f;
+        }
+        return fall;
     }
 
     static void UpdatePosition(On_Projectile.orig_UpdatePosition orig, Projectile self, Vector2 wetVelocity)
     {
         Movement? move = moving;
-        if (move != null && move.Projectile == self && !move.Reported && self.active && self.tileCollide && Collided(self, move))
-            ReportCollision(self, move);
+        if (move != null && move.Projectile == self)
+        {
+            if (move.Bypass) self.tileCollide = true;
+            else if (move.HasCollision && !move.Reported && self.active && self.tileCollide && Collided(self, move)) ReportCollision(self, move);
+        }
         if (Wants(self, nameof(ModProjectile.ShouldUpdatePosition)) && !ProjectileLoader.ShouldUpdatePosition(self)) return;
         orig(self, wetVelocity);
+    }
+
+    static bool CanCutTiles(On_Projectile.orig_CanCutTiles orig, Projectile self)
+    {
+        if (!Wants(self, nameof(ModProjectile.CanCutTiles))) return orig(self);
+        return ProjectileLoader.CanCutTiles(self) ?? orig(self);
+    }
+
+    static void CutTiles(On_Projectile.orig_CutTiles orig, Projectile self)
+    {
+        if (!Wants(self, nameof(ModProjectile.CutTiles)))
+        {
+            orig(self);
+            return;
+        }
+        if (!self.CanCutTiles()) return;
+        orig(self);
+        ProjectileLoader.CutTiles(self);
     }
 
     static void Kill(On_Projectile.orig_Kill orig, Projectile self)
@@ -169,7 +262,7 @@ internal static unsafe class ProjectileHooks
             return;
         }
         Movement? move = moving;
-        if (move != null && move.Projectile == self && !move.Reported && self.tileCollide && Collided(self, move))
+        if (move != null && move.Projectile == self && move.HasCollision && !move.Reported && self.tileCollide && Collided(self, move))
         {
             move.PendingKill = true;
             return;

@@ -246,6 +246,62 @@ public static unsafe class ProjectileLoader
         return true;
     }
 
+    public static bool TileCollideStyle(Projectile projectile, ref int width, ref int height, ref bool fallThrough, ref Vector2 hitboxCenterFrac)
+    {
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try
+            {
+                if (!m.TileCollideStyle(ref width, ref height, ref fallThrough, ref hitboxCenterFrac)) return false;
+            }
+            catch (Exception e) { Report(m, nameof(ModProjectile.TileCollideStyle), e); }
+        }
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try
+            {
+                if (!g.TileCollideStyle(projectile, ref width, ref height, ref fallThrough, ref hitboxCenterFrac)) return false;
+            }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.TileCollideStyle), e); }
+        }
+        return true;
+    }
+
+    public static bool? CanCutTiles(Projectile projectile)
+    {
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try
+            {
+                if (g.CanCutTiles(projectile) is bool result) return result;
+            }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.CanCutTiles), e); }
+        }
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { return m.CanCutTiles(); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.CanCutTiles), e); }
+        }
+        return null;
+    }
+
+    public static void CutTiles(Projectile projectile)
+    {
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try { g.CutTiles(projectile); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.CutTiles), e); }
+        }
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { m.CutTiles(); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.CutTiles), e); }
+        }
+    }
+
     public static bool OnTileCollide(Projectile projectile, Vector2 oldVelocity)
     {
         bool result = true;

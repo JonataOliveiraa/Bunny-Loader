@@ -1194,7 +1194,9 @@ item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
 | `SetStaticDefaults`, `SetDefaults` | after the game has the type; for each new projectile (`Projectile.SetDefaults`) |
 | `OnSpawn(source)` | after `Projectile.NewProjectile`, with the spawn source |
 | `PreAI`, `AI`, `PostAI` | around the game's AI (`aiStyle`); `AIType` runs the AI of that game projectile; `PreAI` `false` skips the game's AI and `AI` |
+| `TileCollideStyle(ref width, ref height, ref fallThrough, ref hitboxCenterFrac)` | before the tile collision of each move: the box the tiles see (its size and where its center sits in the hitbox) and whether platforms let it through; `false` skips the tile collision for that move |
 | `OnTileCollide(oldVelocity)` | when the projectile hits a tile while moving; `false` keeps it alive where the game would kill it |
+| `CanCutTiles()`, `CutTiles()` | whether it cuts grass, vines and pots on its way (`null` leaves it to the game); `CutTiles` runs after the game's cut, to cut more |
 | `PreKill(timeLeft)`, `OnKill(timeLeft)` | before `Projectile.Kill`; `PreKill` `false` removes it without the game's death effects |
 | `ShouldUpdatePosition` | `false` keeps it where it is this update |
 | `Colliding(projHitbox, targetHitbox)` | a custom hit test against NPCs and players |
@@ -1206,7 +1208,7 @@ item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
 `Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
 index as in tModLoader. `Projectile.CloneDefaults(type)` copies another
 projectile's defaults and keeps the type, the `ModProjectile` and the globals.
-`TileCollideStyle`, `CutTiles` and `SendExtraAI`/`ReceiveExtraAI` come next.
+`SendExtraAI`/`ReceiveExtraAI` come next.
 
 On the phone the extras and the sprite are drawn by the same game method, the
 extras first. When only one of them is hidden, the draws are told apart by the
