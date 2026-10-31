@@ -9,6 +9,7 @@ public sealed class DataBolt : ModProjectile
 {
     public int Number;
     public string Text = "";
+    public bool Dirty;
 
     public override void SetDefaults()
     {
@@ -20,6 +21,13 @@ public sealed class DataBolt : ModProjectile
         Projectile.tileCollide = false;
         Projectile.penetrate = -1;
         Projectile.timeLeft = 3600;
+    }
+
+    public override void AI()
+    {
+        if (!Dirty) return;
+        Dirty = false;
+        Projectile.netUpdate = true;
     }
 
     public override void SendExtraAI(BinaryWriter writer)

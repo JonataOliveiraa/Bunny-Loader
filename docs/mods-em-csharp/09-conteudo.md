@@ -1220,8 +1220,9 @@ projectile's defaults and keeps the type, the `ModProjectile` and the globals.
 
 The game syncs a projectile's position, velocity and `ai` with its message 27;
 fields of your own travel with `SendExtraAI(BinaryWriter writer)` and
-`ReceiveExtraAI(BinaryReader reader)`. Set `Projectile.netUpdate = true` when
-they change, and read them back in the same order.
+`ReceiveExtraAI(BinaryReader reader)`. Set `Projectile.netUpdate = true` in
+`AI` when they change (the game clears it right before the AI, so setting it
+elsewhere does nothing), and read them back in the same order.
 
 ```csharp
 public override void SendExtraAI(BinaryWriter writer) => writer.Write((byte)fishingLineColorIndex);
@@ -1233,8 +1234,8 @@ A `GlobalProjectile` has `SendExtraAI(projectile, bitWriter, binaryWriter)`
 and `ReceiveExtraAI(projectile, bitReader, binaryReader)`: `BitWriter.WriteBit`
 packs flags. The data is laid out as in tModLoader (the globals' bits, then
 the `ModProjectile`'s bytes, then the globals' bytes), and reading less or more
-than was written is logged as an error. It goes right after the game's message,
-from the projectile's owner; the server passes a client's on to the others.
+than was written is logged as an error. It travels with the game's message, from
+the projectile's owner; the server passes a client's on to the others.
 `ProjectileLoader.WriteExtraAI`/`ReceiveExtraAI` are public, as in tModLoader.
 
 On the phone the extras and the sprite are drawn by the same game method, the

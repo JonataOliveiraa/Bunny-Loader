@@ -60,7 +60,7 @@ public static class Checks
         bits.First = first;
         bits.Second = second;
         bits.Value = value;
-        bolt.netUpdate = true;
+        data.Dirty = true;
         return bolt;
     }
 
@@ -126,18 +126,19 @@ public static class Checks
             own = bolt.whoAmI;
             Log.Info($"csextraai spawned {(client ? "client" : "host")} bolt {Describe(bolt)}");
         }
+        if ((uint)own < 1000u && Main.projectile[own].active && frames % 120 == 0 && Main.projectile[own].ModProjectile is DataBolt dirty) dirty.Dirty = true;
         if (!reported && frames >= 300 && frames % 60 == 0)
         {
             Projectile? other = FindOther(Main.myPlayer);
             bool ok = other is Projectile seen && (client ? Matches(seen, HostNumber, "from host", true, true, 8.5f) : Matches(seen, ClientNumber, "from client", false, true, -2.25f));
-            if (ok || frames >= 1500)
+            if (ok || frames >= 3000)
             {
                 Report(client ? "the client receives the host's extra AI" : "the host receives the client's extra AI", ok,
                     other is Projectile found ? Describe(found) : "no bolt from the other side");
                 reported = true;
             }
         }
-        if (reported && frames >= 1200) done = true;
+        if (reported && frames >= 3600) done = true;
     }
 
     static void Report(string name, bool ok, string detail)
