@@ -8,7 +8,7 @@ using Terraria.GameContent;
 namespace Terraria.ModLoader.Core;
 
 [Flags]
-internal enum NPCMethod : uint
+internal enum NPCMethod : ulong
 {
     PreAI = 1, AI = 2, PostAI = 4, FindFrame = 8, ResetEffects = 16, CheckActive = 32,
     CheckDead = 64, HitEffect = 128, UpdateLifeRegen = 256, OnSpawn = 512,
