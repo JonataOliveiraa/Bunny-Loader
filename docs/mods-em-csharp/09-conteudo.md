@@ -1655,11 +1655,14 @@ retains the mobile raw-damage message 28 flow and skips local modifiers on a
 strike received from the network. A two-device network result is still
 pending the coordinated network steps.
 
-The primitive mobile strike can quantize critical damage after conversion
-back to raw integers. With defense 10, the current adapter turns a critical
-damage cap of 3 into an actual hit of 4. Exact arbitrary critical caps remain
-an open precision issue in the shared primitive strike path. If a strict
-one-point cap is required, combine `SetMaxDamage(1)` with `DisableCrit()`.
+The final damage is exact, critical hits included. The game's own strike
+can only produce critical damage of the defense's parity (even against even
+defense) and at least 2, so a critical hit the modifiers bring to such a value
+(`SetMaxDamage(3)` against defense 10, `SetMaxDamage(1)`) is struck as a normal
+hit for that damage: the hit stays critical for every hook, the damage number
+keeps the critical color and size, and the knockback gets the game's critical
+1.4 multiplier (applied before the game's knockback taper, so very strong
+knockback can differ slightly). Other players receive the same damage.
 
 `ModifyIncomingHit` runs at the start of item strikes, of projectile strikes,
 of NPC contact strikes and of direct calls to `NPCLoader.ModifyIncomingHit`.

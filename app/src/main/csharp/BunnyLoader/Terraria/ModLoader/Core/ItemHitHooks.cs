@@ -23,7 +23,9 @@ internal static class ItemHitHooks
     [ThreadStatic] static Attack attack;
     [ThreadStatic] static bool hasAttack;
 
-    [ThreadStatic] static int hidingText;
+    [ThreadStatic] static int hidingText, critText;
+
+    const float CritKnockback = 1.4f;
 
     public static void Install(Func<string, bool> has, bool global)
     {
@@ -206,7 +208,7 @@ internal static class ItemHitHooks
             ItemHooks.Report("ModifyHitNPC", e);
             return orig(npc, damage, knockBack, hitDirection, crit, false, owner);
         }
-        int raw = RawDamage(npc, hit);
+        StrikePlan strike = PlanStrike(npc, hit);
         bool hide = hit.HideCombatText;
         if (hide) HideText();
         NPC health = (uint)npc.realLife < 200u ? Main.npc[npc.realLife] : npc;
@@ -215,7 +217,8 @@ internal static class ItemHitHooks
         int done;
         using (var context = new NPCEventHooks.HitContext(npc, hit))
         {
-            try { done = orig(npc, raw, hit.Knockback, hit.HitDirection, hit.Crit && !hit.InstantKill, false, owner); }
+            using var crits = new CritTextScope(strike);
+            try { done = orig(npc, strike.Raw, strike.Knockback, hit.HitDirection, strike.Crit, false, owner); }
             finally
             {
                 if (hide) ShowText();
@@ -235,6 +238,57 @@ internal static class ItemHitHooks
         return Math.Max(1, (int)Math.Ceiling(hit.Damage / (double)factor + npc.defense / 2.0 - 1e-9));
     }
 
+    internal readonly struct StrikePlan
+    {
+        public readonly int Raw;
+        public readonly float Knockback;
+        public readonly bool Crit, CritText;
+
+        public StrikePlan(int raw, float knockback, bool crit, bool critText)
+        {
+            Raw = raw;
+            Knockback = knockback;
+            Crit = crit;
+            CritText = critText;
+        }
+    }
+
+    static int Predict(int raw, int defense, int factor) => (int)Math.Max(1.0, factor * Math.Max(1.0, raw - defense * 0.5));
+
+    internal static StrikePlan PlanStrike(NPC npc, NPC.HitInfo hit)
+    {
+        int raw = RawDamage(npc, hit);
+        bool crit = hit.Crit && !hit.InstantKill;
+        if (!crit || Predict(raw, npc.defense, 2) == hit.Damage) return new StrikePlan(raw, hit.Knockback, crit, false);
+        int plain = Math.Max(1, (int)Math.Ceiling(hit.Damage + npc.defense / 2.0 - 1e-9));
+        ItemHooks.Once("HideCombatText", () => On_CombatText.NewText_Rectangle_Color_int_bool_bool += NewText);
+        return new StrikePlan(plain, hit.Knockback * CritKnockback, false, true);
+    }
+
+    internal readonly struct CritTextScope : IDisposable
+    {
+        readonly bool active;
+
+        internal CritTextScope(in StrikePlan strike)
+        {
+            active = strike.CritText;
+            if (active) critText++;
+        }
+
+        public void Dispose()
+        {
+            if (active && critText > 0) critText--;
+        }
+    }
+
+    static Color CritColor(Color color)
+    {
+        if (color.Equals(CombatText.DamagedHostile)) return CombatText.DamagedHostileCrit;
+        if (color.Equals(CombatText.OthersDamagedHostile)) return CombatText.OthersDamagedHostileCrit;
+        if (color.Equals(CombatText.DamagedFriendly)) return CombatText.DamagedFriendlyCrit;
+        return color;
+    }
+
     internal static void ShowText() { if (hidingText > 0) hidingText--; }
 
     internal static void HideText()
@@ -243,8 +297,12 @@ internal static class ItemHitHooks
         ItemHooks.Once("HideCombatText", () => On_CombatText.NewText_Rectangle_Color_int_bool_bool += NewText);
     }
 
-    static int NewText(On_CombatText.orig_NewText_Rectangle_Color_int_bool_bool orig, Rectangle location, Color color, int amount, bool dramatic, bool dot) =>
-        hidingText > 0 ? -1 : orig(location, color, amount, dramatic, dot);
+    static int NewText(On_CombatText.orig_NewText_Rectangle_Color_int_bool_bool orig, Rectangle location, Color color, int amount, bool dramatic, bool dot)
+    {
+        if (hidingText > 0) return -1;
+        if (critText > 0) return orig(location, CritColor(color), amount, true, dot);
+        return orig(location, color, amount, dramatic, dot);
+    }
 
     static void ModifyHitNPC(Item item, Player player, NPC target, ref NPC.HitModifiers modifiers)
     {

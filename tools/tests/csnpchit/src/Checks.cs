@@ -318,9 +318,37 @@ public static class Checks
             target.Own!.DisableCrit = false;
             target.Own.Crit = true;
             target.Own.Limit = 3;
+            int texts = CritTexts();
             Hit(player, item, target, 1000);
-            Log.Info($"csnpchit LIMITATION raw critical quantization cap=3 actual={target.Own.Done} defense={target.NPC.defense}");
+            int shown = CritTexts() - texts;
+            Report("an odd critical cap is exact and keeps the critical effects", target.Own.Done == 3 && target.Own.Hit.Damage == 3 && target.Own.Hit.Crit &&
+                target.Own.Effect.Crit && RawCrit == 0 && shown == 1, $"done={target.Own.Done} crit={target.Own.Hit.Crit} raw={RawDamage} rawCrit={RawCrit} critTexts={shown} defense={target.NPC.defense}");
         }
+        using (var target = new Target(player))
+        {
+            target.Own!.DisableCrit = false;
+            target.Own.Crit = true;
+            target.Own.Limit = 1;
+            Hit(player, item, target, 1000);
+            Report("a one-point critical cap is exact", target.Own.Done == 1 && target.Own.Hit.Damage == 1 && target.Own.Hit.Crit, $"done={target.Own.Done}");
+        }
+        using (var target = new Target(player))
+        {
+            target.NPC.defense = 11;
+            target.Own!.DisableCrit = false;
+            target.Own.Crit = true;
+            target.Own.Limit = 6;
+            Hit(player, item, target, 1000);
+            Report("an even critical cap against odd defense is exact", target.Own.Done == 6 && target.Own.Hit.Crit, $"done={target.Own.Done} defense={target.NPC.defense}");
+        }
+    }
+
+    static int CritTexts()
+    {
+        int count = 0;
+        foreach (var text in Main.combatText.AsSpan())
+            if (text.active && text.crit && (text.color.Equals(CombatText.DamagedHostileCrit) || text.color.Equals(CombatText.OthersDamagedHostileCrit))) count++;
+        return count;
     }
 
     static int CombatTexts()

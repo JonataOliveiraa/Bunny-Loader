@@ -58,13 +58,14 @@ internal static class NPCContactHooks
             ItemHooks.Report("ModifyHitNPC (NPC contact)", e);
             return orig(self, Damage, knockBack, hitDirection, crit, fromNet, owner);
         }
-        int raw = ItemHitHooks.RawDamage(self, hit);
+        ItemHitHooks.StrikePlan strike = ItemHitHooks.PlanStrike(self, hit);
         bool hide = hit.HideCombatText;
         if (hide) ItemHitHooks.HideText();
         int done;
         using (var context = new NPCEventHooks.HitContext(self, hit))
         {
-            try { done = orig(self, raw, hit.Knockback, hit.HitDirection, hit.Crit && !hit.InstantKill, false, owner); }
+            using var crits = new ItemHitHooks.CritTextScope(strike);
+            try { done = orig(self, strike.Raw, strike.Knockback, hit.HitDirection, strike.Crit, false, owner); }
             finally
             {
                 if (hide) ItemHitHooks.ShowText();

@@ -101,7 +101,7 @@ internal static unsafe class ProjectileHitHooks
             ItemHooks.Report("ModifyHitNPC (projectile)", e);
             return orig(npc, damage, knockBack, hitDirection, crit, false, owner);
         }
-        int raw = ItemHitHooks.RawDamage(npc, hit);
+        ItemHitHooks.StrikePlan strike = ItemHitHooks.PlanStrike(npc, hit);
         bool hide = hit.HideCombatText;
         if (hide) ItemHitHooks.HideText();
         NPC health = (uint)npc.realLife < 200u ? Main.npc[npc.realLife] : npc;
@@ -110,7 +110,8 @@ internal static unsafe class ProjectileHitHooks
         int done;
         using (var context = new NPCEventHooks.HitContext(npc, hit))
         {
-            try { done = orig(npc, raw, hit.Knockback, hit.HitDirection, hit.Crit && !hit.InstantKill, false, owner); }
+            using var crits = new ItemHitHooks.CritTextScope(strike);
+            try { done = orig(npc, strike.Raw, strike.Knockback, hit.HitDirection, strike.Crit, false, owner); }
             finally
             {
                 if (hide) ItemHitHooks.ShowText();
