@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria.DataStructures;
 using Terraria.GameContent.Bestiary;
+using Terraria.GameContent.UI;
 using Terraria.Localization;
 using Terraria.ModLoader.Core;
 
@@ -128,6 +129,10 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual void DrawBehind(int index) { }
 
     public virtual void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry) { }
+
+    public virtual int? PickEmote(Player closestPlayer, List<int> emoteList, WorldUIAnchor otherAnchor) => null;
+
+    public virtual void EmoteBubblePosition(ref Vector2 position, ref SpriteEffects spriteEffects) { }
 
     public virtual void AutoStaticDefaults() =>
         TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));

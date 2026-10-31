@@ -3,6 +3,7 @@
 #include "boot/Boot.h"
 #include "content/buffs/BuffIconLook.h"
 #include "content/players/PlayerStages.h"
+#include "content/ui/EmoteMenuIcon.h"
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -149,6 +150,8 @@ struct NativeApi {
     int32_t (*reserveTownHead)(int32_t type, int32_t variant, const char* texture, const char* asset);
     int32_t (*townHeadSlot)(int32_t type, int32_t variant);
     int32_t (*installTownNPCHooks)(int32_t type, uint32_t flags, runtime::NpcTownCallback callback);
+    int32_t (*installEmoteMenuIcon)();
+    void (*setEmoteMenuIcon)(void* texture);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -875,6 +878,8 @@ const NativeApi kNativeApi{
     },
     [](int32_t type, int32_t variant) -> int32_t { return runtime::modNpcHeadSlot(type, variant); },
     [](int32_t type, uint32_t flags, runtime::NpcTownCallback callback) -> int32_t { return runtime::installNpcTownHooks(type, flags, callback) ? 1 : 0; },
+    []() -> int32_t { return runtime::installEmoteMenuIcon() ? 1 : 0; },
+    [](void* texture) { runtime::setEmoteMenuIcon(texture); },
 };
 
 } // namespace

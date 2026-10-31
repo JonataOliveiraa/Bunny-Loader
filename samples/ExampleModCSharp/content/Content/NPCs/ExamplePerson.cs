@@ -6,7 +6,9 @@ using Terraria;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent;
+using ExampleMod.Content.EmoteBubbles;
 using Terraria.GameContent.Bestiary;
+using Terraria.GameContent.UI;
 using Terraria.GameContent.Personalities;
 using Terraria.ID;
 using Terraria.Localization;
@@ -31,6 +33,7 @@ public class ExamplePerson : ModNPC
         NPCID.Sets.AttackTime[Type] = 90;
         NPCID.Sets.AttackAverageChance[Type] = 30;
         NPCID.Sets.HatOffsetY[Type] = 4;
+        NPCID.Sets.FaceEmote[Type] = ModContent.EmoteBubbleType<ExamplePersonEmote>();
         NPCID.Sets.NPCBestiaryDrawModifiers drawModifiers = new() { Velocity = 1f, Direction = 1 };
         NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, drawModifiers);
         ContentSamples.NpcBestiaryRarityStars[Type] = 3;
@@ -53,6 +56,14 @@ public class ExamplePerson : ModNPC
             new FlavorTextBestiaryInfoElement("Mods.ExampleMod.Bestiary.ExamplePerson_1"),
             new FlavorTextBestiaryInfoElement("Mods.ExampleMod.Bestiary.ExamplePerson_2"),
         ]);
+    }
+
+    public override int? PickEmote(Player closestPlayer, List<int> emoteList, WorldUIAnchor otherAnchor)
+    {
+        int type = ModContent.EmoteBubbleType<ExamplePersonEmote>();
+        if (NPC.Is(otherAnchor.entity) && new NPC(otherAnchor.entity.Pointer).type == NPCID.Demolitionist) type = EmoteID.EmotionAnger;
+        for (int i = 0; i < 4; i++) emoteList.Add(type);
+        return base.PickEmote(closestPlayer, emoteList, otherAnchor);
     }
 
     public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)

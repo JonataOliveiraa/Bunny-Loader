@@ -98,6 +98,9 @@ Terraria.GameContent.Bestiary.BestiaryDatabaseNPCsPopulator
 Terraria.GameContent.Bestiary.FlavorTextBestiaryInfoElement
 Terraria.GameContent.Bestiary.UnlockableNPCEntryIcon
 Terraria.GameContent.Bestiary.ItemDropBestiaryInfoElement
+Terraria.GameContent.UI.EmoteBubble
+Terraria.GameContent.UI.WorldUIAnchor
+GUIEmotesWindow
 Terraria.ID.NPCID.Sets.NPCBestiaryDrawModifiers
 Terraria.GameContent.BannerSystem.NetBannersModule
 Terraria.GameContent.CraftingRequests

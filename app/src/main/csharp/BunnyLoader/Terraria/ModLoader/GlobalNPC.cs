@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 using Terraria.GameContent.Bestiary;
+using Terraria.GameContent.UI;
 using Terraria.ModLoader.IO;
 using Terraria.ModLoader.Core;
 
@@ -46,6 +47,10 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual void DrawBehind(NPC npc, int index) { }
 
     public virtual void SetBestiary(NPC npc, BestiaryDatabase database, BestiaryEntry bestiaryEntry) { }
+
+    public virtual int? PickEmote(NPC npc, Player closestPlayer, List<int> emoteList, WorldUIAnchor otherAnchor) => null;
+
+    public virtual void EmoteBubblePosition(NPC npc, ref Vector2 position, ref SpriteEffects spriteEffects) { }
 
     public virtual void ResetEffects(NPC npc) { }
 

@@ -1,0 +1,15 @@
+{
+  "uid": "8703beb8-1fa0-4c62-b684-5751f0a3e236",
+  "id": "test-csemote",
+  "name": "Test: emote bubbles (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModEmoteBubble (spawn, per-bubble instance, frames, drawing, emote menu) and GlobalEmoteBubble, ModNPC.PickEmote and NPCID.Sets.FaceEmote, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csemote. Logs csemote <case>: ok | FAIL and csemote END pass=N fail=M. The emote menu opens during the run.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsEmote.dll",
+  "dependencies": []
+}

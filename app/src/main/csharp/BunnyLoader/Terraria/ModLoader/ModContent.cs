@@ -39,6 +39,10 @@ public static class ModContent
 
     public static int GetModBossHeadSlot(string texture) => NPCLoader.BossHeadSlot(texture);
 
+    public static int EmoteBubbleType<T>() where T : ModEmoteBubble => GetInstance<T>()?.Type ?? 0;
+
+    public static ModEmoteBubble? GetModEmoteBubble(int type) => EmoteBubbleLoader.GetEmoteBubble(type);
+
     public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
 
     public static int DustType<T>() where T : ModDust => GetInstance<T>()?.Type ?? 0;
@@ -162,6 +166,12 @@ public static class ModContent
             foreach (Mod mod in mods)
             {
                 foreach (ModRarity rarity in mod.GetContent<ModRarity>()) Run(mod, $"{rarity.Name}.SetStaticDefaults", rarity.SetupContent);
+            }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModEmoteBubble emote in mod.GetContent<ModEmoteBubble>()) Run(mod, $"{emote.Name}.SetStaticDefaults", emote.SetupContent);
+                foreach (ModBossBar bar in mod.GetContent<ModBossBar>()) Run(mod, $"{bar.Name}.SetStaticDefaults", bar.SetupContent);
+                foreach (GlobalBossBar bar in mod.GetContent<GlobalBossBar>()) Run(mod, $"{bar.Name}.SetStaticDefaults", bar.SetupContent);
             }
             foreach (Mod mod in mods)
             {

@@ -99,4 +99,6 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int, byte*, byte*, int> ReserveTownHead;
     public delegate* unmanaged<int, int, int> TownHeadSlot;
     public delegate* unmanaged<int, uint, delegate* unmanaged<int, IntPtr, void*, void>, int> InstallTownNPCHooks;
+    public delegate* unmanaged<int> InstallEmoteMenuIcon;
+    public delegate* unmanaged<IntPtr, void> SetEmoteMenuIcon;
 }

@@ -1796,6 +1796,49 @@ replacing its modifiers in `PreDraw`.
 (`BestiaryPortraitBackgroundProviderPreferenceInfoElement`) wait for
 `ModBiome` (phase 6).
 
+### Emote bubbles
+
+A `ModEmoteBubble` is an emote of your own. Its texture holds two frames side
+by side (34 x 28 each, like the game's); `AddToCategory` puts it in the emote
+menu:
+
+```csharp
+public class ExampleItemEmote : ModEmoteBubble
+{
+    public override void SetStaticDefaults() => AddToCategory(EmoteID.Category.Items);
+}
+```
+
+| Hook | Behavior |
+| --- | --- |
+| `IsUnlocked()` | false keeps it out of the emote menu. |
+| `OnSpawn()` | When a bubble with this emote appears. `EmoteBubble` is that bubble, and each bubble has its own instance, so instance fields are per bubble. |
+| `UpdateFrame()` | false stops the game's two-frame animation; set `EmoteBubble.frame` yourself. |
+| `GetFrame()` | The frame in your texture; null uses the frame of the bubble's animation. |
+| `GetFrameInEmoteMenu(int frame, int frameCounter)` | The frame shown in the emote menu. |
+| `PreDraw(...)`, `PostDraw(...)` | false from `PreDraw` skips the bubble; `PostDraw` runs anyway. |
+
+`ModContent.EmoteBubbleType<T>()` gives the emote's type, which starts after
+`EmoteID.Count` (151 on the phone). Spawn one with
+`EmoteBubble.NewBubble(type, WorldUIAnchor.New(player), time)`. A
+`GlobalEmoteBubble` gets the same hooks for every bubble, the game's included,
+running before the emote's own; its `GetFrame` applies to the game's emotes.
+
+NPCs choose emotes with `ModNPC.PickEmote(Player closestPlayer, List<int> emoteList, WorldUIAnchor otherAnchor)`
+(and `GlobalNPC.PickEmote`): return a type, or add to `emoteList` and return
+null to let the game draw one from it. On the phone the list starts with the
+game's own pick, so adding a type several times makes it more likely.
+`NPCID.Sets.FaceEmote[Type]` gives a town NPC the emote other NPCs use to
+mention it. `EmoteBubblePosition(ref Vector2 position, ref SpriteEffects spriteEffects)`
+moves the bubble above an NPC.
+
+On the phone the emote menu is the game's `GUIEmotesWindow`. `UpdateFrameInEmoteMenu`,
+`PreDrawInEmoteMenu`/`PostDrawInEmoteMenu` (built around the PC's
+`EmoteButton`) and the `Command` chat text are not used there. In multiplayer
+the game drops an emote above `EmoteID.Count` that a player sends (message
+120), so mod emotes chosen in the menu stay local. NPC emotes in multiplayer
+have not been tested yet.
+
 ### NPC contact
 
 | Hook | Behavior |
