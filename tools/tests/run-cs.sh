@@ -8,7 +8,7 @@ run() {
     [ "${NOENV:-0}" = 1 ] || env=(csenv)
     prepare "$dev" 1 "$test" "${env[@]}"
     launch "$dev"
-    enter_single "$dev" && wait_end "$dev" "$test" "${WAIT:-180}"
+    wait_mods "$dev" && enter_single "$dev" && wait_end "$dev" "$test" "${WAIT:-180}"
     results "$dev" "$test"
 }
 

@@ -93,6 +93,8 @@ public readonly partial struct Recipe
         return this;
     }
 
+    public Recipe AddTile<T>() where T : ModTile => AddTile(ModContent.TileType<T>());
+
     public Recipe AddTile(int tileID)
     {
         if (tileID < 0) throw new RecipeException($"No tile has ID '{tileID}'.");

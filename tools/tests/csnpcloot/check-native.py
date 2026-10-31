@@ -26,5 +26,7 @@ assert len(fields) == len(delegates), (len(fields), len(delegates))
 assert [name.lower() for name in fields] == [name.lower() for name in delegates], (fields, delegates)
 loot_index = fields.index("newParameterObject")
 assert fields[loot_index:loot_index + 2] == ["newParameterObject", "installNpcLootHooks"]
+tile_index = fields.index("registerTile")
+assert fields[tile_index:tile_index + 7] == ["registerTile", "onTilesInstalled", "tileMapEntry", "tileAnimation", "tileEvents", "scanTiles", "readTileDrawData"]
 print(f"NativeApi order: ok ({len(fields)} entries)")
 print(f"csnpcloot native END pass={len(checks) + 1} fail=0")

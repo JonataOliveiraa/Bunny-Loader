@@ -9,6 +9,8 @@ namespace Terraria.GameContent;
 
 public static partial class TextureAssets
 {
+    public static TextureAssetArray Tile { get; } = new(7, "Images/Tiles_", static () => Tile_, static i => Main.instance.LoadTiles(i));
+
     public static TextureAssetArray Item { get; } = new(0, "Images/Item_", static () => Item_, static i => Main.instance.LoadItem(i));
 
     public static TextureAssetArray Projectile { get; } = new(3, "Images/Projectile_", static () => Projectile_, static i => Main.instance.LoadProjectile(i));

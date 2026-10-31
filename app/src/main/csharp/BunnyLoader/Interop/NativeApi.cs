@@ -106,4 +106,11 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<delegate* unmanaged<IntPtr, int>, delegate* unmanaged<IntPtr, IntPtr, int>, delegate* unmanaged<IntPtr, byte*, void>, void> OnNpcData;
     public delegate* unmanaged<delegate* unmanaged<int, int, IntPtr, nint*, int>, int> InstallTownProfiles;
     public delegate* unmanaged<int, int, int> SetTownProfileCarrier;
+    public delegate* unmanaged<byte*, byte*, byte*, int> RegisterTile;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnTilesInstalled;
+    public delegate* unmanaged<int, uint, byte*, int> TileMapEntry;
+    public delegate* unmanaged<int, int, void> TileAnimation;
+    public delegate* unmanaged<int, uint, delegate* unmanaged<int, int, int, int, void*, int>, int> TileEvents;
+    public delegate* unmanaged<int, int, int, int, uint, int*, int, int> ScanTiles;
+    public delegate* unmanaged<IntPtr, int, int, int, int, void*, int*, void> ReadTileDrawData;
 }

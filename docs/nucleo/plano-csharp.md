@@ -254,7 +254,12 @@ Ports: NPCLoader, GlobalNPCLoader, GlobalLootLoader, SpawnLoader, TownNPCLoader,
 
 ### Phase 5: tiles and the world (3.9k)
 
-- [ ] `ModTile`, `GlobalTile`, drawing, use, world hooks; `TileRestingInfo`, `TileObjectData`.
+- [ ] Tiles and tile objects:
+  - [x] `ModTile`, `GlobalTile`, `TileObjectData`, registration, map entries, mining, drops, touch interaction, wiring, framing, replacement, random updates, nearby effects, light, animation, drawing and danger/spelunker highlighting. Native filters select overridden hooks and reuse cell buffers. C# shares the native tile registry and `.wld.tiles.bl` backend with JS.
+  - Validation on MuMu `127.0.0.1:16416`: `cstile` 31/31 on a fresh world and 32/32 after reopening; Regressions: `csitems` 9/9, `csnpc` 19/19, `csnpcloot` 41/41 and `cstownnpc` 33/33 (`NOENV=1`). APK and ExampleModCSharp compile; NativeApi order check passes with 99 entries. The test runner waits for all mods before loading a world, so the native save hooks are installed before world deserialization.
+  - Example: original ExampleMod block/workbench textures, `ExampleBlockItem`, the workbench item, station aliases and a recipe using the custom workbench. Guide: [Tiles](../mods-em-csharp/10-tiles.md).
+  - Mobile limits: global light uses additive cached emissions; the override drawing pass uses rectangles and does not reproduce every specialized vanilla slope, paint, glow or liquid effect. The ordinary native tile renderer keeps handling tiles without those drawing overrides. Map option selection remains the mobile default; coordinate-dependent map names are rejected explicitly. Missing mod tiles remain empty in the vanilla world file, following the existing native backend; `VanillaFallbackOnModDeletion` does not alter that behavior. Multiplayer tile behavior has not been validated in this step.
+  - [ ] `TileRestingInfo` (sitting/sleeping); chests and tile entities remain in the following steps.
 - [ ] `ModWall`, `ModTree`, `ModTileEntity`, `ModPylon`/`TEModdedPylon`.
 - [ ] World generation (`GenPass`), chests and their sync, page and sign icons.
 

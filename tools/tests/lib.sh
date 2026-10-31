@@ -136,6 +136,16 @@ enter_client() {
         adb -s "$dev" shell input tap 550 532
 }
 
+wait_mods() {
+    local dev="$1" seconds="${2:-180}"
+    for _ in $(seq 1 "$seconds"); do
+        adb -s "$dev" logcat -d | grep -qE 'sonda: [0-9]+ mod[(]s[)] carregado[(]s[)]' && return 0
+        adb -s "$dev" logcat -d | grep -qE "Forwarding signal|FATAL" && break
+        sleep 1
+    done
+    fail "$dev" mods-ready "mods did not finish loading"
+}
+
 wait_end() {
     local dev="$1" test="$2" seconds="${3:-180}"
     for _ in $(seq 1 "$seconds"); do

@@ -55,6 +55,7 @@ bool modTilesSettled();
 /** Chamado uma vez por lote instalado (thread do jogo): a hora do SetStaticDefaults. */
 using TilesInstalledHook = void (*)(int first, int last);
 void setTilesInstalledHook(TilesInstalledHook hook);
+void setManagedTilesInstalledHook(TilesInstalledHook hook);
 
 /** O tipo do tile `name` do mod `mod`, ou -1. */
 int modTileTypeByName(const std::string& mod, const std::string& name);
@@ -84,6 +85,7 @@ struct ModTileInfo {
  * (Main.tileFrame[type]) vezes esta altura desce a textura. 0 = sem animacao.
  */
 void setModTileAnimation(int type, int frameHeight);
+void readManagedTileDrawData(void* renderer, int x, int y, int offset, int type, void* data, int* halfBrick);
 
 /**
  * O que o desenho de uma celula usa (TileDrawing.GetTileDrawData), para o

@@ -141,6 +141,10 @@ Terraria.Net.NetManager
 Terraria.Net.NetPacket
 Terraria.NetMessage
 Terraria.ObjectData.TileObjectData
+!Terraria.ObjectData.TileObjectData.CoordinateHeights
+Terraria.GameContent.Drawing.TileDrawing
+Terraria.DataStructures.TileDrawInfo
+Terraria.Enums.AnchorType
 Terraria.Player.Hooks
 Terraria.Recipe
 Terraria.RecipeGroup
@@ -167,6 +171,7 @@ XNAUnityRunner
 Terraria.ID.PrefixID
 Terraria.GameContent.Prefixes.PrefixLegacy
 Terraria.Utilities.UnifiedRandom
+!Terraria.GameContent.TextureAssets.Tile
 Terraria.ID.TileID
 Terraria.ID.RecipeGroups
 Terraria.GameContent.ShimmerTransforms
@@ -311,3 +316,6 @@ Terraria.GameContent.Personalities.MushroomBiome
 Terraria.GameContent.Personalities.CorruptionBiome
 Terraria.GameContent.Personalities.CrimsonBiome
 Terraria.GameContent.Personalities.DungeonBiome
+
+Terraria.IO.WorldFileData
+Terraria.Map.MapHelper

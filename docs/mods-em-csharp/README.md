@@ -1,6 +1,6 @@
 # Making mods in C#
 
-> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
+> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md)
 
 Bunny Loader runs mods in **two languages**, side by side, inside the same
 game:
@@ -75,6 +75,7 @@ reference "tabs": open them when you need them.
 | [4. Values and objects](04-valores-e-objetos.md) | `new Vector2`, `Item.New()`, fields, arrays, statics, strings, casts, keeping objects alive. |
 | **Content** | |
 | [9. Content classes](09-conteudo.md) | `ModItem`, what gets loaded (`[Autoload]`, `IsLoadingEnabled`, `AddContent`), the load order up to `AddRecipes`, templates and instances, `Find`, textures and files, other mods (`ModLoader`, `Call`, dependencies), translations (hjson, `Language`, `GetLocalization`), `Item.ModItem`, `GlobalItem`, saving (`SaveData`, `TagCompound`), multiplayer (`ModPacket`). |
+| [10. Tiles](10-tiles.md) | `ModTile`, `GlobalTile`, object data, mining, drops, touch, drawing and world persistence. |
 | **Tabs** | |
 | [5. C# × JS × tModLoader](05-comparacao.md) | The same mod in the three, and what is equal and different. |
 | [6. Performance](06-desempenho.md) | Measured on a real phone: where C# is 5× to 450× faster, and the one thing that still costs. |

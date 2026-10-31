@@ -23,6 +23,10 @@ public static class ModContent
         }
     }
 
+    public static int TileType<T>() where T : ModTile => GetInstance<T>()?.Type ?? 0;
+
+    public static ModTile? GetModTile(int type) => TileLoader.GetTile(type);
+
     public static int ItemType<T>() where T : ModItem => GetInstance<T>()?.Type ?? 0;
 
     public static int RarityType<T>() where T : ModRarity => GetInstance<T>()?.Type ?? 0;
@@ -221,6 +225,8 @@ public static class ModContent
             {
                 foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.SetStaticDefaults", system.SetupContent);
             }
+            try { TileLoader.ContentReady(); }
+            catch (Exception e) { Log.Error($"tiles: setup failed: {e}"); }
             foreach (Mod mod in mods)
             {
                 Run(mod, "PostSetupContent", mod.PostSetupContent);

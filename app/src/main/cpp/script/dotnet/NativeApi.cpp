@@ -4,6 +4,9 @@
 #include "content/buffs/BuffIconLook.h"
 #include "content/players/PlayerStages.h"
 #include "content/ui/EmoteMenuIcon.h"
+#include "content/tiles/ModTiles.h"
+#include "content/tiles/ModTileMap.h"
+#include "content/tiles/TileEvents.h"
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -159,6 +162,13 @@ struct NativeApi {
     void (*onNpcData)(runtime::ManagedNpcNeeds needs, runtime::ManagedNpcSave save, runtime::ManagedNpcLoad load);
     int32_t (*installTownProfiles)(runtime::TownProfileCallback callback);
     int32_t (*setTownProfileCarrier)(int32_t type, int32_t onlyExisting);
+    int32_t (*registerTile)(const char* mod, const char* name, const char* texture);
+    void (*onTilesInstalled)(runtime::TilesInstalledHook callback);
+    int32_t (*tileMapEntry)(int32_t type, uint32_t color, const char* name);
+    void (*tileAnimation)(int32_t type, int32_t height);
+    int32_t (*tileEvents)(int32_t type, uint32_t flags, runtime::TileEventCallback callback);
+    int32_t (*scanTiles)(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells, int32_t capacity);
+    void (*readTileDrawData)(void* renderer, int32_t x, int32_t y, int32_t offset, int32_t type, void* data, int32_t* halfBrick);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -892,6 +902,18 @@ const NativeApi kNativeApi{
     [](runtime::ManagedNpcNeeds needs, runtime::ManagedNpcSave save, runtime::ManagedNpcLoad load) { runtime::setManagedNpcData(needs, save, load); },
     [](runtime::TownProfileCallback callback) -> int32_t { return runtime::installTownProfiles(callback) ? 1 : 0; },
     [](int32_t type, int32_t onlyExisting) -> int32_t { return runtime::setTownProfileCarrier(type, onlyExisting != 0) ? 1 : 0; },
+    [](const char* mod, const char* name, const char* texture) -> int32_t {
+        if (!mod || !name || !texture || !fileExists(texture)) return -2;
+        return runtime::registerModTile({mod, name, texture});
+    },
+    runtime::setManagedTilesInstalledHook,
+    [](int32_t type, uint32_t color, const char* name) -> int32_t {
+        return runtime::addModTileMapEntry(type, color & 255, (color >> 8) & 255, (color >> 16) & 255, name ? name : "");
+    },
+    runtime::setModTileAnimation,
+    [](int32_t type, uint32_t flags, runtime::TileEventCallback callback) -> int32_t { return runtime::installTileEvents(type, flags, callback) ? 1 : 0; },
+    runtime::scanTileEvents,
+    runtime::readManagedTileDrawData,
 };
 
 } // namespace

@@ -9,6 +9,7 @@
 #include "content/common/GameRefs.h"
 #include "content/common/TypeTables.h"
 #include "content/tiles/ModTileMap.h"
+#include "content/tiles/TileEvents.h"
 
 #include <atomic>
 #include <cstdlib>
@@ -28,6 +29,7 @@ struct Entry {
 std::mutex g_mx;
 std::vector<Entry> g_regs;   // indice = type - kVanillaTileCount
 std::atomic<TilesInstalledHook> g_installedHook{nullptr};
+std::atomic<TilesInstalledHook> g_managedInstalledHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 // O SetStaticDefaults do lote ja rodou (ele espera o TileObjectData existir).
@@ -753,6 +755,12 @@ void hkGetTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* info, uin
     g_origDrawData(self, x, y, info, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
     noteTreeDrawTile(x, y, type, *frameX, *frameY);
     applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, false);
+    if (hasManagedTileDrawData(type)) {
+        TileDrawData managed{*frameX, *frameY, *width, *height, *top, *addFrX, *addFrY, *effects};
+        managedTileDrawData(x, y, type, &managed, false);
+        *frameX = managed.frameX; *frameY = managed.frameY; *width = managed.width; *height = managed.height;
+        *top = managed.top; *addFrX = managed.addFrX; *addFrY = managed.addFrY; *effects = managed.effects;
+    }
 }
 
 void hkGetSpecialTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* tile, uint16_t type, int16_t* frameX,
@@ -761,6 +769,12 @@ void hkGetSpecialTileDrawData(Il2CppObject* self, int32_t x, int32_t y, void* ti
                        void* glowColor, const MethodInfo* m) {
     g_origSpecialDrawData(self, x, y, tile, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, glow, glowRect, glowColor, m);
     applyTileDrawData(x, y, type, frameX, frameY, width, height, top, halfBrick, addFrX, addFrY, effects, true);
+    if (hasManagedTileDrawData(type)) {
+        TileDrawData managed{*frameX, *frameY, *width, *height, *top, *addFrX, *addFrY, *effects};
+        managedTileDrawData(x, y, type, &managed, true);
+        *frameX = managed.frameX; *frameY = managed.frameY; *width = managed.width; *height = managed.height;
+        *top = managed.top; *addFrX = managed.addFrX; *addFrY = managed.addFrY; *effects = managed.effects;
+    }
 }
 
 int invokeInt(Il2CppObject* obj, const char* getter, bool* ok) {
@@ -873,11 +887,10 @@ void keepObjectData(int first, int last) {
 void runStaticDefaults(int first, int last) {
     if (hasObjectDataField() && !objectDataList()) return;   // a proxima volta tenta de novo
     padTileObjectData(last + 1);
-    if (TilesInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
-        const bool wasLocked = setObjectDataLocked(false);
-        hook(first, last);
-        setObjectDataLocked(wasLocked);
-    }
+    const bool wasLocked = setObjectDataLocked(false);
+    if (TilesInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) hook(first, last);
+    if (TilesInstalledHook hook = g_managedInstalledHook.load(std::memory_order_acquire)) hook(first, last);
+    setObjectDataLocked(wasLocked);
     keepObjectData(first, last);
     g_staticDone.store(true, std::memory_order_release);
 }
@@ -1069,6 +1082,24 @@ bool modTilesSettled() {
     // Sem tiles registrados, tickModTiles nao roda SetStaticDefaults: nao ha lote a esperar.
     return total == 0 || g_failed || (g_installed.load(std::memory_order_relaxed) == total &&
                         g_staticDone.load(std::memory_order_acquire));
+}
+
+void readManagedTileDrawData(void* renderer, int x, int y, int offset, int type, void* data, int* halfBrick) {
+    auto* d = static_cast<TileDrawData*>(data);
+    if (!renderer || !d || !halfBrick || !g_origSpecialDrawData) return;
+    int16_t frameX = d->frameX, frameY = d->frameY;
+    Il2CppObject* glow = nullptr;
+    int32_t rectangle[4]{}; uint32_t color = 0;
+    g_origSpecialDrawData(static_cast<Il2CppObject*>(renderer), x, y, reinterpret_cast<void*>(static_cast<intptr_t>(offset)), type,
+        &frameX, &frameY, &d->width, &d->height, &d->top, halfBrick, &d->addFrX, &d->addFrY, &d->effects, &glow, rectangle, &color, nullptr);
+    d->frameX = frameX; d->frameY = frameY;
+    applyTileDrawData(x,y,type,&frameX,&frameY,&d->width,&d->height,&d->top,halfBrick,&d->addFrX,&d->addFrY,&d->effects,true);
+    d->frameX = frameX; d->frameY = frameY;
+    managedTileDrawData(x,y,type,d,true);
+}
+
+void setManagedTilesInstalledHook(TilesInstalledHook hook) {
+    g_managedInstalledHook.store(hook, std::memory_order_release);
 }
 
 void setTilesInstalledHook(TilesInstalledHook hook) {
