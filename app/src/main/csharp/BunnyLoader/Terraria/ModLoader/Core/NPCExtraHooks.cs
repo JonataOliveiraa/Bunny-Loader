@@ -239,6 +239,8 @@ internal static unsafe class NPCExtraHooks
             orig(i, j);
             return;
         }
+        using TileHooks.WireScope scope = TileHooks.BeginWire(i, j);
+        if (!scope.Allowed) return;
         for (int x = 0; x < 2; x++)
             for (int y = 0; y < 3; y++)
                 Wiring.SkipWire(left + x, top + y);

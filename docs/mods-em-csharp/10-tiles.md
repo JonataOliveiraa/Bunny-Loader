@@ -86,6 +86,8 @@ On mobile, a touch needs a cursor item icon before it reaches `RightClick`. The 
 
 `PreDraw`, `DrawEffects` and `PostDraw` run on the rendering thread. A tile using `PreDraw` or `DrawEffects` suppresses its normal base draw and receives a base draw in that pass when `PreDraw` permits it. A reused `TileDrawInfo` supplies the cell's frame, dimensions, offsets, texture, color and effects. `Main.instance.TilesRenderer.AddSpecialLegacyPoint(i, j)` queues `SpecialDraw` for the same pass. Global drawing hooks also apply to vanilla tiles.
 
+Global hook arrays are prepared once at content setup. Crafting station aliases are merged per tile type, and adjacency updates visit only types with extra aliases. Tile and NPC statue handlers share a wiring scope, so global pre/post wiring hooks run once around king/queen statue handling regardless of installation order.
+
 The native filter avoids entering C# for unmarked types during framing, random updates and native draw-data processing. Area scans return only matching cells into reused buffers. Reflection runs during registration, rather than once per cell. Drawing uses the mobile overlay path; specialized vanilla slope, paint, glow and liquid rendering remain in the game's renderer.
 
 ## World persistence

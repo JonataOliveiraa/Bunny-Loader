@@ -16,7 +16,8 @@ public sealed class ExampleBlock : ModTile
         Main.tileBlockLight[Type] = true;
         DustType = ModContent.DustType<Sparkle>();
         VanillaFallbackOnModDeletion = TileID.DiamondGemspark;
-        AddMapEntry(new Color(200,200,200));
+        AddMapEntry(new Color(200, 200, 200));
     }
-    public override void NumDust(int i,int j,bool fail,ref int num) => num = fail ? 1 : 3;
+
+    public override void NumDust(int i, int j, bool fail, ref int num) => num = fail ? 1 : 3;
 }

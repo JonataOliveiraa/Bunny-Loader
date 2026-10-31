@@ -13,5 +13,9 @@ public sealed class ExampleWorkbench : ModItem
         Item.height = 14;
         Item.value = 150;
     }
-    public override void AddRecipes() => CreateRecipe().AddIngredient(ItemID.WorkBench).AddIngredient<ExampleItem>(10).Register();
+
+    public override void AddRecipes()
+    {
+        CreateRecipe().AddIngredient(ItemID.WorkBench).AddIngredient<ExampleItem>(10).Register();
+    }
 }

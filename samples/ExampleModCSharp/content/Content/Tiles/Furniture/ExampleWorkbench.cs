@@ -21,12 +21,19 @@ public sealed class ExampleWorkbench : ModTile
         TileID.Sets.HasOutlines[Type] = true;
         TileID.Sets.IgnoredByNpcStepUp[Type] = true;
         DustType = ModContent.DustType<Sparkle>();
-        AdjTiles = new[] { (int)TileID.WorkBenches };
+        AdjTiles = new[]
+        {
+            (int)TileID.WorkBenches
+        };
         TileObjectData.newTile.CopyFrom(TileObjectData.Style2x1);
-        TileObjectData.newTile.CoordinateHeights = new[] {18};
+        TileObjectData.newTile.CoordinateHeights = new[]
+        {
+            18
+        };
         TileObjectData.addTile(Type);
         TileID.Sets.RoomNeeds.CountsAsTable[Type] = true;
-        AddMapEntry(new Color(200,200,200),CreateMapEntryName());
+        AddMapEntry(new Color(200, 200, 200), CreateMapEntryName());
     }
-    public override void NumDust(int i,int j,bool fail,ref int num) => num = fail ? 1 : 3;
+
+    public override void NumDust(int i, int j, bool fail, ref int num) => num = fail ? 1 : 3;
 }
