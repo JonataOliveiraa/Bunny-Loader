@@ -127,4 +127,14 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
 
     public virtual void AutoStaticDefaults() =>
         TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));
+
+    public virtual void ModifyNPCLoot(NPCLoot npcLoot) { }
+
+    public virtual bool PreKill() => true;
+
+    public virtual void OnKill() { }
+
+    public virtual void BossLoot(ref int potionType) { }
+
+    public virtual void BossLoot(ref int potionType, ref int potionStack, ref int heartStack) => BossLoot(ref potionType);
 }

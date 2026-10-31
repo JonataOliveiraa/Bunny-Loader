@@ -20,7 +20,7 @@ internal static unsafe class ItemOpenHooks
 
     public static void Install(Func<string, bool> has, bool global)
     {
-        if (!has(nameof(ModItem.CanRightClick)) && !has(nameof(ModItem.RightClick)) && !has(nameof(ModItem.ConsumeItem))) return;
+        if (!has(nameof(ModItem.CanRightClick)) && !has(nameof(ModItem.RightClick)) && !has(nameof(ModItem.ConsumeItem)) && !has(nameof(ModItem.ModifyItemLoot))) return;
         wanted = true;
         if (global) globalWanted = true;
         ItemHooks.Once("Open", () =>
@@ -146,6 +146,7 @@ internal static unsafe class ItemOpenHooks
                 var player = new Player(playerPointer);
                 if (ours && !CanRightClick(item)) return 0;
                 RightClick(item, player);
+                ItemLootHooks.Open(item, player);
                 if (modded)
                 {
                     try { DevArmor(type, player); }

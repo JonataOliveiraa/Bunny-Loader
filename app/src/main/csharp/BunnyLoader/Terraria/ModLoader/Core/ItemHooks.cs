@@ -57,6 +57,7 @@ internal static unsafe class ItemHooks
         ItemFrameHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemManaHooks.Install(Has, baseType == typeof(GlobalItem));
         FishingLineHooks.Install(Has);
+        ItemLootHooks.Install(Has, baseType == typeof(GlobalItem));
         PrefixLoader.WantItemHooks(Has);
     }
 

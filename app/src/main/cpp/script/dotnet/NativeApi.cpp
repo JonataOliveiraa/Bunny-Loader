@@ -9,6 +9,7 @@
 #include "content/npcs/ModBossHeads.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/npcs/NpcEvents.h"
+#include "content/npcs/NpcLootHooks.h"
 #include "content/projectiles/ProjectileStrikes.h"
 #include "content/projectiles/ProjectileDrawSplit.h"
 #include "content/dusts/ModDusts.h"
@@ -141,6 +142,8 @@ struct NativeApi {
     void* (*dustTextureAsset)(int32_t type);
     int32_t (*reserveBossHead)(const char* texture, const char* assetName, int32_t npcType);
     int32_t (*bossHeadSlotOf)(const char* texture);
+    void* (*newParameterObject)(void* method, int32_t parameter);
+    int32_t (*installNpcLootHooks)(uint32_t flags, runtime::NpcLootCallback callback);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -215,6 +218,23 @@ void* nativeNewObject(void* cls) {
 void* nativeFindNestedClass(void* outer, const char* name) {
     if (!outer || !name) return nullptr;
     return il2cpp::findNested(static_cast<Il2CppClass*>(outer), name);
+}
+
+void* nativeNewParameterObject(void* method, int32_t parameter) {
+    const auto* info = static_cast<const MethodInfo*>(method);
+    auto& a = il2cpp::api();
+    const auto& e = extra();
+    if (!info || parameter < 0 || static_cast<uint32_t>(parameter) >= a.method_get_param_count(info) || !e.classFromType) return nullptr;
+    Il2CppClass* cls = e.classFromType(a.method_get_param(info, static_cast<uint32_t>(parameter)));
+    if (!cls) return nullptr;
+    a.runtime_class_init(cls);
+    const MethodInfo* ctor = a.class_get_method_from_name(cls, ".ctor", 0);
+    if (!ctor) return nullptr;
+    Il2CppObject* value = a.object_new(cls);
+    if (!value) return nullptr;
+    Il2CppObject* error = nullptr;
+    a.runtime_invoke(ctor, value, nullptr, &error);
+    return error ? nullptr : value;
 }
 
 /** A assinatura no formato do dump, com os nomes dos parametros (Signature.h). */
@@ -841,6 +861,8 @@ const NativeApi kNativeApi{
     nativeDustTextureAsset,
     nativeReserveBossHead,
     nativeBossHeadSlotOf,
+    nativeNewParameterObject,
+    [](uint32_t flags, runtime::NpcLootCallback callback) -> int32_t { return runtime::installNpcLootHooks(flags, callback) ? 1 : 0; },
 };
 
 } // namespace

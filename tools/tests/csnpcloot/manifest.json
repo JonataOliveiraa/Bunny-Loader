@@ -1,0 +1,18 @@
+{
+  "uid": "f83fd323-afdc-4c58-a8aa-59cb6a339f60",
+  "id": "test-csnpcloot",
+  "name": "Test: NPC and item loot (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Native NPC drop tables, managed conditions and chains, death hooks and item loot.",
+  "description": "Build with tools/tests/build-cs.sh csnpcloot. Logs csnpcloot <case>: ok | FAIL and csnpcloot END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "CsNpcLoot.dll",
+  "dependencies": []
+}

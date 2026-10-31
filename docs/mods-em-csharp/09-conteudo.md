@@ -297,7 +297,7 @@ inside). A boss bag of yours (`ItemID.Sets.BossBag`) can also give a
 developer set, as in tModLoader, unless you mark it pre-Hardmode in
 `SetStaticDefaults` (`ItemID.Sets.PreHardmodeLikeBossBag[Type] = true;`, a
 tModLoader set that Bunny Loader adds, with the game's pre-Hardmode bags
-already marked). `ModifyItemLoot` comes with the loot rules
+already marked). `ModifyItemLoot` uses the loot rules described under NPC loot
 (`ItemLoot`, `IItemDropRule`).
 
 The tooltip, as a list of `TooltipLine`:
@@ -1742,6 +1742,127 @@ target; the first false wins. The contact goes through the game's
 `NPC.BeHurtByOtherNPC`, so a false there also skips the knockback and the
 immunity frames. The player side uses the same `Player.Hurt` path as the
 `ModPlayer` hooks, with the NPC's `cooldownSlot` passed on to them.
+
+### NPC loot
+
+Use `Terraria.GameContent.ItemDropRules` for rules and `Terraria.ModLoader`
+for `NPCLoot`, `GlobalLoot` and `ItemLoot`. Loot tables are built once after
+content setup. A mod NPC runs before its applicable globals; `ModifyGlobalLoot`
+runs once per global, after the per-NPC tables. `AppliesToEntity(npc, false)`
+filters a global's per-type loot changes, including vanilla NPC variants.
+
+```csharp
+public override void ModifyNPCLoot(NPCLoot npcLoot)
+{
+    npcLoot.Add(ItemDropRule.Common(ModContent.ItemType<ExampleItem>(), 2, 1, 3));
+    var daytime = new LeadingConditionRule(new DayDropCondition());
+    daytime.OnSuccess(ItemDropRule.Common(ItemID.Wood));
+    npcLoot.Add(daytime);
+}
+```
+
+A `GlobalNPC` receives `ModifyNPCLoot(NPC npc, NPCLoot npcLoot)` and
+`ModifyGlobalLoot(GlobalLoot globalLoot)`. All three loot views implement
+`ILoot`: `Add`, `Remove`, `RemoveWhere` and `Get` return or operate on
+`IItemDropRule` objects. `Get()` includes global drops for NPC tables;
+`Get(false)` returns only that NPC's own rules. Removing a rule from an NPC
+does not remove a global rule. Use `GlobalLoot` to change global entries.
+`Get` returns a new list containing the existing rules; modifying the list
+does not modify the table. `Remove` expects a rule retrieved from the table.
+
+```csharp
+npcLoot.RemoveWhere(rule => rule is CommonDrop drop && drop.itemId == ItemID.Gel, false);
+foreach (IItemDropRule rule in npcLoot.Get(false))
+    if (rule is CommonDrop drop && drop.itemId == ItemID.Wood)
+        drop.chanceDenominator = 3;
+```
+
+The database, factory rules, chance rolls, player luck and chain resolution
+use the mobile game's objects. Factories include `Common`, `NotScalingWithLuck`,
+`ScalingWithOnlyBadLuck`, `WithRerolls`, `BossBag`, `ByCondition`,
+`OneFromOptions`, `NormalvsExpert`, `MasterModeCommonDrop` and the game's
+other factory variants. `CommonDrop` exposes its native item, chance and
+stack fields. Existing `DropBasedOnExpertMode` rules expose their child
+rules. Option arrays are copied across the interop boundary; assign the
+edited array back to `dropIds` or `options`.
+
+Custom conditions implement `IItemDropRuleCondition`:
+
+```csharp
+public sealed class DayDropCondition : IItemDropRuleCondition
+{
+    public bool CanDrop(DropAttemptInfo info) => Main.dayTime;
+    public bool CanShowItemDropInUI() => true;
+    public string GetConditionDescription() => "During daytime";
+}
+```
+
+`Conditions.*` wraps the conditions present in the mobile game, including
+`IsExpert`, `NotExpert`, `IsMasterMode`, `NotMasterMode`, `IsHardmode` and
+`NamedNPC`. `OnSuccess`, `OnFailedRoll` and `OnFailedConditions` add native
+chains and return the child rule. The editable `ChainedRules` list is
+synchronized when a rule is registered, resolved or reported. Adapters whose
+managed chain lists are exposed remain alive for the content lifetime so
+list edits survive garbage collection. A custom
+`IItemDropRule` implements `CanDrop`, `TryDroppingItem`, `ReportDroprates`
+and the chain list; `INestedItemDropRule` also receives a resolver callback.
+`CommonCode.DropItem(info, itemType, stack)` supports both NPC and item
+attempts. Use `info.rng` for rolls. `ItemDropAttemptResult.State` selects
+`Success`, `FailedRandomRoll`, `DoesntFillConditions` or `DidNotRunCode`.
+
+`ReportDroprates` accepts a managed `List<DropRateInfo>` and
+`DropRateInfoChainFeed`. Reports from native rules and custom rules preserve
+stacks, probabilities and condition objects. The current step does not
+refresh already built bestiary entries or add bestiary UI hooks; that work
+remains in the bestiary step.
+
+| Death hook | Behavior |
+| --- | --- |
+| `PreKill()` | All applicable globals run first and their results are combined. If all allow the death, the mod NPC runs. A false skips the loot and death-event tail, including `OnKill`. |
+| `OnKill()` | The mod NPC, then its globals, after item drops and before the game's death events. |
+| `BossLoot(ref int potionType, ref int potionStack, ref int heartStack)` | Changes the boss potion and heart drops. Zero stacks suppress the corresponding drops. |
+
+The current local tModLoader uses the three-parameter `BossLoot` signature.
+The one-parameter `BossLoot(ref int potionType)` remains available as a
+compatibility bridge; the base three-parameter method calls it. There is
+no `CanDropLoot` virtual in the selected checkout, so none is introduced.
+The native stages preserve the game's authority, statue and special-world
+filters before `PreKill`. These are death-only hooks, with no new AI,
+drawing or per-frame NPC callback. Multiplayer validation remains part of
+the coordinated two-device network windows.
+
+For a right-click container, override `ModItem.ModifyItemLoot(ItemLoot itemLoot)`
+or `GlobalItem.ModifyItemLoot(Item item, ItemLoot itemLoot)`. A mod container
+also needs `CanRightClick()` to allow opening. The game still controls the
+open action and item consumption; `ConsumeItem` can keep the container.
+
+```csharp
+public override bool CanRightClick() => true;
+
+public override void ModifyItemLoot(ItemLoot itemLoot)
+{
+    itemLoot.Add(ItemDropRule.Common(ModContent.ItemType<ExampleItem>(), 1, 2, 4));
+}
+```
+
+During an item attempt, `info.item` is the container type, `info.npc` is
+null and `info.player` is the opener. Native rules use a scoped NPC adapter
+at the player's bounds, and their drops use the player's open-item source.
+Boss bags set the attempt's expert flag. Direct calls to
+`ItemDropResolver.TryDropping`, `ResolveRule` and a native rule's
+`TryDroppingItem` accept the same managed item attempt context.
+The mobile database has no item
+table: `ItemLoot` stores registered rules in a managed table and resolves
+them through the native resolver. Vanilla containers retain their game's
+hardcoded contents; `Get` and removal expose registered rules only. They do
+not extract or remove those hardcoded vanilla contents.
+
+The ExampleMod port copies Zombie loot into PartyZombie and adds Confetti.
+`ExampleNPCLoot` adds ExampleItem, changes the Guide cap rule, edits the
+Dreadnautilus normal-mode rule and demonstrates a custom daytime condition.
+The journey research present, WaspNest and biome-dependent ExampleSoul rules
+wait for their content dependencies. There is no MinionBossBag in the current
+sample, so its loot example is deferred with the boss content.
 
 ### NPC buff immunity
 

@@ -89,4 +89,12 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual void ModifyHitNPC(NPC npc, NPC target, ref NPC.HitModifiers modifiers) { }
 
     public virtual void OnHitNPC(NPC npc, NPC target, NPC.HitInfo hit) { }
+
+    public virtual void ModifyNPCLoot(NPC npc, NPCLoot npcLoot) { }
+
+    public virtual void ModifyGlobalLoot(GlobalLoot globalLoot) { }
+
+    public virtual bool PreKill(NPC npc) => true;
+
+    public virtual void OnKill(NPC npc) { }
 }

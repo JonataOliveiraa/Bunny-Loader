@@ -94,4 +94,6 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, IntPtr> DustTextureAsset;
     public delegate* unmanaged<byte*, byte*, int, int> ReserveBossHead;
     public delegate* unmanaged<byte*, int> BossHeadSlotOf;
+    public delegate* unmanaged<IntPtr, int, IntPtr> NewParameterObject;
+    public delegate* unmanaged<uint, delegate* unmanaged<int, IntPtr, int*, int>, int> InstallNPCLootHooks;
 }

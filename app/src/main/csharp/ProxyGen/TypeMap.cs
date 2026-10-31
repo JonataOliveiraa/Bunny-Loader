@@ -61,6 +61,14 @@ sealed class TypeMap
 
     public static string Key(Type t) => t.FullName ?? t.Name;
 
+    public static string ProxyNamespace(Type t)
+    {
+        Type top = Outermost(t);
+        string ns = top.Namespace ?? "";
+        return ns == "Terraria.GameContent.ItemDropRules" && top.Name is not ("ItemDropDatabase" or "ItemDropResolver" or "CommonCode")
+            ? "BunnyLoader.Interop.DropRules" : ns;
+    }
+
     public static string ProxyName(Type t)
     {
         var parts = new List<string>();
@@ -71,7 +79,7 @@ sealed class TypeMap
             if (!cur.IsNested) break;
             cur = cur.DeclaringType;
         }
-        string ns = Outermost(t).Namespace ?? "";
+        string ns = ProxyNamespace(t);
         return "global::" + (ns.Length > 0 ? ns + "." : "") + string.Join(".", parts);
     }
 

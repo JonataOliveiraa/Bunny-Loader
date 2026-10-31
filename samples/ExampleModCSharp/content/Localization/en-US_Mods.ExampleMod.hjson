@@ -211,3 +211,7 @@ NPCs: {
 		GotStomped: You got stomped
 	}
 }
+
+DropConditions: {
+	Example: During daytime
+}

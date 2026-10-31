@@ -235,4 +235,6 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     internal bool LoadFailed;
 
     protected sealed override void Register() => ItemLoader.Register(this);
+
+    public virtual void ModifyItemLoot(ItemLoot itemLoot) { }
 }

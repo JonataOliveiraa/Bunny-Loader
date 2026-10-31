@@ -216,6 +216,10 @@ public static class ModContent
                 Run(mod, "PostSetupContent", mod.PostSetupContent);
                 foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostSetupContent", system.PostSetupContent);
             }
+            try { NPCLootHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"NPC loot: the tables could not be set up: {e}"); }
+            try { ItemLootHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"item loot: the tables could not be set up: {e}"); }
             try { ItemOpenHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
             foreach (Mod mod in mods)

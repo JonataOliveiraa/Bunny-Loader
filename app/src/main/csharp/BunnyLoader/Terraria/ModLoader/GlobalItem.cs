@@ -193,4 +193,6 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual bool PreDrawInInventory(Item item, SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale) => true;
 
     public virtual void PostDrawInInventory(Item item, SpriteBatch spriteBatch, Vector2 position, Rectangle frame, Color drawColor, Color itemColor, Vector2 origin, float scale) { }
+
+    public virtual void ModifyItemLoot(Item item, ItemLoot itemLoot) { }
 }

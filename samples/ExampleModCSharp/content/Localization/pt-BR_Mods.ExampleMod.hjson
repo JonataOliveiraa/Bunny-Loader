@@ -211,3 +211,7 @@ NPCs: {
 		GotStomped: Você foi esmagado
 	}
 }
+
+DropConditions: {
+	Example: Durante o dia
+}
