@@ -20,6 +20,8 @@ internal enum NPCMethod : ulong
     GetAlpha = 1UL << 40, DrawEffects = 1UL << 41, PreDraw = 1UL << 42, PostDraw = 1UL << 43, DrawBehind = 1UL << 44,
     BossHeadSlot = 1UL << 45, BossHeadRotation = 1UL << 46, BossHeadSpriteEffects = 1UL << 47,
     SendExtraAI = 1UL << 48, ReceiveExtraAI = 1UL << 49,
+    SpawnChance = 1UL << 37, SpawnNPC = 1UL << 38, EditSpawnRate = 1UL << 39,
+    EditSpawnRange = 1UL << 50, EditSpawnPool = 1UL << 51,
     PreKill = 1UL << 32, OnKill = 1UL << 33, BossLoot = 1UL << 34,
     ModifyNPCLoot = 1UL << 35, ModifyGlobalLoot = 1UL << 36,
 }
@@ -63,6 +65,7 @@ internal static unsafe class NPCEventHooks
         NPCDrawHooks.Install(flags);
         NPCNetHooks.Install(flags);
         NPCLootHooks.Install(flags);
+        NPCSpawnHooks.Install(type, baseType, npcType, ref flags);
         return flags;
     }
 

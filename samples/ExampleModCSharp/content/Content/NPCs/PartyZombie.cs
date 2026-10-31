@@ -1,3 +1,4 @@
+using Terraria.ModLoader.Utilities;
 using Terraria;
 using Terraria.ID;
 using Terraria.GameContent.ItemDropRules;
@@ -35,4 +36,6 @@ public class PartyZombie : ModNPC
         foreach (IItemDropRule rule in Main.ItemDropsDB.GetRulesForNPCID(NPCID.Zombie, false)) npcLoot.Add(rule);
         npcLoot.Add(ItemDropRule.Common(ItemID.Confetti, 100));
     }
+
+    public override float SpawnChance(NPC.Spawner spawner) => SpawnCondition.OverworldNightMonster.Chance * 0.2f;
 }

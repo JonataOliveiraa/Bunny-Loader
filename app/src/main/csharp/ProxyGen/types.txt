@@ -276,3 +276,7 @@ Terraria.GameContent.ItemDropRules.OneFromRulesRule
 Terraria.GameContent.ItemDropRules.SlimeBodyItemDropRule
 Terraria.GameContent.ItemDropRules.StatueMimicItemDropRule
 !Terraria.GameContent.ItemDropRules.ItemDropDatabase.GetRulesForNPCID
+
+Terraria.GameContent.Events.DD2Event
+Terraria.GameContent.Events.Sandstorm
+Terraria.ID.WallID

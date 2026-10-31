@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -97,4 +98,18 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual bool PreKill(NPC npc) => true;
 
     public virtual void OnKill(NPC npc) { }
+
+    public virtual void EditSpawnRate(Player player, ref int spawnRate, ref int maxSpawns) { }
+
+    public virtual void EditSpawnRange(Player player, ref int spawnRangeX, ref int spawnRangeY, ref int safeRangeX, ref int safeRangeY) { }
+
+    public virtual void EditSpawnFlags(NPC.Spawner spawner) { }
+
+    public virtual void EditSpawnInfo(NPC.Spawner spawner) { }
+
+    public virtual void EditSpawnPool(IDictionary<int, float> pool, NPC.Spawner spawner) => EditSpawnPool(pool, Core.NPCSpawnHooks.InfoOf(spawner));
+
+    public virtual void EditSpawnPool(IDictionary<int, float> pool, NPCSpawnInfo spawnInfo) { }
+
+    public virtual void SpawnNPC(int npc, int tileX, int tileY) { }
 }

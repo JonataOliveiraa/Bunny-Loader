@@ -137,4 +137,10 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual void BossLoot(ref int potionType) { }
 
     public virtual void BossLoot(ref int potionType, ref int potionStack, ref int heartStack) => BossLoot(ref potionType);
+
+    public virtual float SpawnChance(NPC.Spawner spawner) => SpawnChance(NPCSpawnHooks.InfoOf(spawner));
+
+    public virtual float SpawnChance(NPCSpawnInfo spawnInfo) => 0f;
+
+    public virtual int SpawnNPC(int tileX, int tileY) => Terraria.NPC.NewNPC(Terraria.NPC.GetSpawnSourceForNaturalSpawn(), tileX * 16 + 8, tileY * 16, Type);
 }

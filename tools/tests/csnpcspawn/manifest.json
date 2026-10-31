@@ -1,0 +1,18 @@
+{
+  "uid": "048e2105-7f6a-46d9-b455-2447552d8b08",
+  "id": "test-csnpcspawn",
+  "name": "Test: NPC spawning (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Native NPC.Spawner, spawn weights, context, rate and range callbacks.",
+  "description": "Use NOENV=1 DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh csnpcspawn. Logs csnpcspawn END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "CsNpcSpawn.dll",
+  "dependencies": []
+}

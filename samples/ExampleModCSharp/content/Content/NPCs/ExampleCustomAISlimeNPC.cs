@@ -1,3 +1,4 @@
+using Terraria.ModLoader.Utilities;
 using Microsoft.Xna.Framework;
 using System;
 using Terraria;
@@ -200,5 +201,6 @@ namespace ExampleMod.Content.NPCs
 			}
 		}
 
+		public override float SpawnChance(NPC.Spawner spawner) => SpawnCondition.OverworldDaySlime.Chance * 0.1f;
 	}
 }

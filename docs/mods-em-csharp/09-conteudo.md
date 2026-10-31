@@ -1895,6 +1895,65 @@ The journey research present, WaspNest and biome-dependent ExampleSoul rules
 wait for their content dependencies. There is no MinionBossBag in the current
 sample, so its loot example is deferred with the boss content.
 
+### NPC spawning
+
+Natural spawning uses the mobile game's `NPC.Spawner`. Override
+`ModNPC.SpawnChance(NPC.Spawner spawner)` to contribute a positive weight:
+
+```csharp
+using Terraria;
+using Terraria.ModLoader;
+using Terraria.ModLoader.Utilities;
+
+public override float SpawnChance(NPC.Spawner spawner) =>
+    SpawnCondition.OverworldNightMonster.Chance * 0.2f;
+```
+
+The conditions and their `Chance` values follow the local tModLoader's
+`SpawnCondition` tree. They are evaluated for the current attempt before mod
+weights are collected. Use them on the game thread, inside the spawn
+callbacks. The native spawner retains its invasion, water, biome, safety and
+special-world flags. `SpawnTileX`, `SpawnTileY`, `GroundTileY`,
+`SpawnTileType`, `SpawnWallType`, `Player` and `SafeRangeX` expose the selected
+attempt through the same spawner.
+
+`GlobalNPC.EditSpawnRate` edits the rate and maximum count for a player.
+`EditSpawnRange` edits the horizontal/vertical spawn and safe ranges, in
+tiles. A rate is clamped to at least one; a maximum count of zero disables
+natural spawning. `EditSpawnFlags` runs after the native player flags;
+`EditSpawnInfo` runs after the chosen tile's flags. Both receive the live
+`NPC.Spawner`. `NPCID.Sets` remains backed by the game's resized native arrays.
+
+```csharp
+public override void EditSpawnPool(IDictionary<int, float> pool, NPC.Spawner spawner)
+{
+    if (spawner.Player.ZoneDungeon) pool[ModContent.NPCType<MyNPC>()] = 0.5f;
+}
+```
+
+Pool key `0` has weight `1` initially and selects the original mobile spawn
+branch. Removing it gives mods control over the whole attempt. An empty pool
+spawns nothing. Positive registered types and vanilla negative net IDs are
+accepted; invalid IDs, non-positive weights, NaN and infinity are ignored.
+`ModNPC.SpawnNPC(int tileX, int tileY)` can replace creation. The default
+creates an NPC at the selected tile with the natural-spawn entity source.
+Applicable `GlobalNPC.SpawnNPC(int npc, int tileX, int tileY)` callbacks run
+with the resulting NPC index after creation. Selection and notification run
+on the server or in a standalone world.
+
+The older `SpawnChance(NPCSpawnInfo)` and
+`EditSpawnPool(IDictionary<int, float>, NPCSpawnInfo)` signatures also work.
+Their snapshot includes the selected tile, player and the standard biome
+flags. Prefer the live spawner contract when porting the local tModLoader.
+The mobile 1.4.5 flags do not preserve every old 1.4.4 distinction:
+`PlayerSafe` is mapped from `spawnFriendly || noWorms`, and
+`PlayerInTown` from `spawnFriendly`.
+
+PartyZombie and ExampleCustomAISlimeNPC demonstrate night-monster and
+day-slime weights. The `csnpcspawn` pack performs a fixed number of native
+spawn attempts and counts the results. Run it with `NOENV=1`: `csenv`
+intentionally suppresses both native spawn paths.
+
 ### NPC buff immunity
 
 Set immunity by NPC type in `SetStaticDefaults`:
