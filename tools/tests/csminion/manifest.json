@@ -1,0 +1,15 @@
+{
+  "uid": "27dfc8f0-3cd6-43c7-b4b9-98f366ab347f",
+  "id": "test-csminion",
+  "name": "Test: summon a minion (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Uses a summon staff for a few frames and counts the minions, to reproduce freezes with other mods enabled.",
+  "description": "Build with tools/tests/build-cs.sh csminion. Logs csminion <case>: ok | FAIL and csminion END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsMinion.dll",
+  "dependencies": []
+}

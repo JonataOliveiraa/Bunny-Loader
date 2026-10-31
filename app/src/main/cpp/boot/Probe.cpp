@@ -13,6 +13,7 @@
 #include "core/Config.h"
 #include "menu/Cheats.h"
 #include "content/items/ModItemSave.h"
+#include "content/items/VisualItemClone.h"
 #include "content/tiles/ModTileSave.h"
 #include "content/npcs/ModNpcSave.h"
 #include "content/items/ModItems.h"
@@ -152,6 +153,7 @@ void probeThread() {
             installFramePacing();
             graphics::installRenderHook();
             installModItemSave();
+            installVisualItemClone();
             installModTileSave();
             installModNpcSave();
             ui::installCheatButton();
