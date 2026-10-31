@@ -14,7 +14,7 @@ public static class Checks
     const int ServerNumber = 4242;
     const string ServerText = "from server";
 
-    static int pass, fail, frames, draw = -1, head = -1, net = -1;
+    static int pass, fail, frames, draw = -1, head = -1, net = -1, high = -1;
     static bool done, reported;
 
     static ILog Log => ModContent.GetInstance<CsNpcDrawMod>().Logger;
@@ -22,7 +22,7 @@ public static class Checks
     public static void Reset()
     {
         pass = fail = frames = 0;
-        draw = head = net = -1;
+        draw = head = net = high = -1;
         done = reported = false;
         DrawNpc.Recording = DrawNpc.Skip = false;
     }
@@ -44,7 +44,7 @@ public static class Checks
         if (done)
         {
             DrawNpc.Recording = DrawNpc.Skip = false;
-            foreach (int index in new[] { draw, head, net })
+            foreach (int index in new[] { draw, head, net, high })
                 if ((uint)index < 200u) Main.npc[index].active = false;
             Log.Info($"csnpcdraw END pass={pass} fail={fail}");
         }
@@ -121,9 +121,9 @@ public static class Checks
             $"extra={CsNpcDrawMod.ExtraHead} index={drawIndex} rotation={rotation} effects={effects}");
     }
 
-    static NetNpc Spawn(Player p, Vector2 offset, int number, string text, bool first, bool second, float value)
+    static NetNpc Spawn(Player p, Vector2 offset, int number, string text, bool first, bool second, float value, int start = 0)
     {
-        int index = NPC.NewNPC(p.GetSource_FromThis(), (int)(p.Center.X + offset.X), (int)(p.Center.Y + offset.Y), ModContent.NPCType<NetNpc>());
+        int index = NPC.NewNPC(p.GetSource_FromThis(), (int)(p.Center.X + offset.X), (int)(p.Center.Y + offset.Y), ModContent.NPCType<NetNpc>(), start);
         NPC npc = Main.npc[index];
         var data = (NetNpc)npc.ModNPC;
         data.Number = number;
@@ -173,25 +173,35 @@ public static class Checks
             if (frames == 120)
             {
                 net = Spawn(p, new Vector2(-80f, -100f), ServerNumber, ServerText, true, true, 8.5f).NPC.whoAmI;
-                Log.Info($"csnpcdraw spawned server NPC {Describe(Main.npc[net])}");
+                high = Spawn(p, new Vector2(80f, -100f), ServerNumber, ServerText, true, true, 8.5f, 150).NPC.whoAmI;
+                Log.Info($"csnpcdraw spawned server NPCs {net} and {high}: {Describe(Main.npc[net])}");
             }
-            if ((uint)net < 200u && frames % 120 == 0 && Main.npc[net].ModNPC is NetNpc dirty) dirty.Dirty = true;
+            if (frames % 120 == 0)
+                foreach (int index in new[] { net, high })
+                    if ((uint)index < 200u && Main.npc[index].ModNPC is NetNpc dirty) dirty.Dirty = true;
             if (frames == 3600)
             {
-                Report("the server keeps its NPC", (uint)net < 200u && Main.npc[net].active, $"index={net}");
+                Report("the server keeps its NPCs", (uint)net < 200u && Main.npc[net].active && (uint)high < 200u && high >= 128 && Main.npc[high].active, $"index={net},{high}");
                 done = true;
             }
             return;
         }
         if (!reported && frames >= 300 && frames % 60 == 0)
         {
-            NPC? seen = null;
+            int seen = 0, matched = 0;
+            string detail = "";
             for (int i = 0; i < 200; i++)
-                if (Main.npc[i].active && Main.npc[i].ModNPC is NetNpc) seen = Main.npc[i];
-            bool ok = seen is NPC found && Matches(found, ServerNumber, ServerText, true, true, 8.5f);
+            {
+                NPC npc = Main.npc[i];
+                if (!npc.active || npc.ModNPC is not NetNpc) continue;
+                seen++;
+                if (Matches(npc, ServerNumber, ServerText, true, true, 8.5f)) matched++;
+                detail += $" [{i}] {Describe(npc)}";
+            }
+            bool ok = seen == 2 && matched == 2;
             if (ok || frames >= 3000)
             {
-                Report("the client receives the server's NPC extra AI", ok, seen is NPC any ? Describe(any) : "no NPC from the server");
+                Report("the client receives the server's NPC extra AI, below and above index 127", ok, seen == 0 ? "no NPC from the server" : detail.Trim());
                 reported = true;
             }
         }
