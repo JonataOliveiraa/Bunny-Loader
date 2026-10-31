@@ -3,7 +3,10 @@ using ExampleMod.Content.Items;
 using ExampleMod.Content.Items.Ammo;
 using ExampleMod.Content.Items.Weapons;
 using Terraria;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent;
+using Terraria.GameContent.Bestiary;
 using Terraria.GameContent.Personalities;
 using Terraria.ID;
 using Terraria.Localization;
@@ -28,6 +31,9 @@ public class ExamplePerson : ModNPC
         NPCID.Sets.AttackTime[Type] = 90;
         NPCID.Sets.AttackAverageChance[Type] = 30;
         NPCID.Sets.HatOffsetY[Type] = 4;
+        NPCID.Sets.NPCBestiaryDrawModifiers drawModifiers = new() { Velocity = 1f, Direction = 1 };
+        NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, drawModifiers);
+        ContentSamples.NpcBestiaryRarityStars[Type] = 3;
         NPC.Happiness
             .SetBiomeAffection<ForestBiome>(AffectionLevel.Like)
             .SetBiomeAffection<SnowBiome>(AffectionLevel.Dislike)
@@ -38,6 +44,26 @@ public class ExamplePerson : ModNPC
             .SetNPCAffection(NPCID.Merchant, AffectionLevel.Dislike)
             .SetNPCAffection(NPCID.Golfer, AffectionLevel.Dislike)
             .SetNPCAffection(NPCID.Demolitionist, AffectionLevel.Hate);
+    }
+
+    public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+    {
+        bestiaryEntry.Info.AddRange([
+            BestiaryDatabaseNPCsPopulator.CommonTags.SpawnConditions.Biomes.Surface,
+            new FlavorTextBestiaryInfoElement("Mods.ExampleMod.Bestiary.ExamplePerson_1"),
+            new FlavorTextBestiaryInfoElement("Mods.ExampleMod.Bestiary.ExamplePerson_2"),
+        ]);
+    }
+
+    public override bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
+    {
+        if (NPCID.Sets.NPCBestiaryDrawOffset.TryGetValue(Type, out NPCID.Sets.NPCBestiaryDrawModifiers drawModifiers))
+        {
+            drawModifiers.Rotation += 0.001f;
+            NPCID.Sets.NPCBestiaryDrawOffset.Remove(Type);
+            NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, drawModifiers);
+        }
+        return true;
     }
 
     public override void SetDefaults()

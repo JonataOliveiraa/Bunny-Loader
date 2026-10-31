@@ -220,6 +220,12 @@ DropConditions: {
 	Example: Durante o dia
 }
 
+Bestiary: {
+	ExamplePerson_1: Vindo de um misterioso mundo de cubos em tons de cinza, o Example Person está aqui para ajudar você a entender tudo sobre o tModLoader.
+	ExamplePerson_2: Feito de blocos, com braços de aço. Puxa ferro dia e noite.
+	PartyZombie: Por algum motivo, este tipo de zumbi adora espalhar confete por aí. Fora isso, age como um zumbi qualquer.
+}
+
 Dialogue.ExamplePerson: {
     StandardDialogue1: Às vezes sinto que sou diferente de todos por aqui.
     StandardDialogue2: Qual é sua cor favorita? As minhas são branco e preto.

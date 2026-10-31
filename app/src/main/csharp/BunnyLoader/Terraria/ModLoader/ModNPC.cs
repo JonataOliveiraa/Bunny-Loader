@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria.DataStructures;
+using Terraria.GameContent.Bestiary;
 using Terraria.Localization;
 using Terraria.ModLoader.Core;
 
@@ -125,6 +126,8 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual void PostDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor) { }
 
     public virtual void DrawBehind(int index) { }
+
+    public virtual void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry) { }
 
     public virtual void AutoStaticDefaults() =>
         TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));

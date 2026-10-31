@@ -1,6 +1,7 @@
 using Terraria.ModLoader.Utilities;
 using Terraria;
 using Terraria.ID;
+using Terraria.GameContent.Bestiary;
 using Terraria.GameContent.ItemDropRules;
 using Terraria.ModLoader;
 
@@ -8,7 +9,20 @@ namespace ExampleMod.Content.NPCs;
 
 public class PartyZombie : ModNPC
 {
-    public override void SetStaticDefaults() => Main.npcFrameCount[Type] = Main.npcFrameCount[NPCID.Zombie];
+    public override void SetStaticDefaults()
+    {
+        Main.npcFrameCount[Type] = Main.npcFrameCount[NPCID.Zombie];
+        NPCID.Sets.NPCBestiaryDrawModifiers value = new() { Velocity = 1f };
+        NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, value);
+    }
+
+    public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+    {
+        bestiaryEntry.Info.AddRange([
+            BestiaryDatabaseNPCsPopulator.CommonTags.SpawnConditions.Times.NightTime,
+            new FlavorTextBestiaryInfoElement("Mods.ExampleMod.Bestiary.PartyZombie"),
+        ]);
+    }
 
     public override void SetDefaults()
     {

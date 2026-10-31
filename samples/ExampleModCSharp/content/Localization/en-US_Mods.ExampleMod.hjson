@@ -220,6 +220,12 @@ DropConditions: {
 	Example: During daytime
 }
 
+Bestiary: {
+	ExamplePerson_1: Hailing from a mysterious greyscale cube world, the Example Person is here to help you understand everything about tModLoader.
+	ExamplePerson_2: Built of blocks with arms of steel. Pumps iron day and night.
+	PartyZombie: This type of zombie for some reason really likes to spread confetti around. Otherwise, it behaves just like a normal zombie.
+}
+
 Dialogue.ExamplePerson: {
 	StandardDialogue1: "Sometimes I feel like I'm different from everyone else here."
 	StandardDialogue2: "What's your favorite color? My favorite colors are white and black."

@@ -19,7 +19,7 @@ internal enum NPCMethod : ulong
     CanHitNPC = 8388608, CanBeHitByNPC = 16777216, ModifyHitNPC = 33554432, OnHitNPC = 67108864,
     GetAlpha = 1UL << 40, DrawEffects = 1UL << 41, PreDraw = 1UL << 42, PostDraw = 1UL << 43, DrawBehind = 1UL << 44,
     BossHeadSlot = 1UL << 45, BossHeadRotation = 1UL << 46, BossHeadSpriteEffects = 1UL << 47,
-    SendExtraAI = 1UL << 48, ReceiveExtraAI = 1UL << 49,
+    SendExtraAI = 1UL << 48, ReceiveExtraAI = 1UL << 49, SetBestiary = 1UL << 60,
     SpawnChance = 1UL << 37, SpawnNPC = 1UL << 38, EditSpawnRate = 1UL << 39,
     EditSpawnRange = 1UL << 50, EditSpawnPool = 1UL << 51,
     TownSpawn = 1UL << 52, TownRoom = 1UL << 53, TownNames = 1UL << 54, TownChat = 1UL << 55,

@@ -1,0 +1,15 @@
+{
+  "uid": "a5ebf57c-9da3-421b-a332-3b8d9124690f",
+  "id": "test-csnpcbestiary",
+  "name": "Test: NPC bestiary (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Bestiary entries for mod NPCs (SetBestiary, draw modifiers, rarity stars, custom icon, Hide, drops) and GlobalNPC.SetBestiary on vanilla NPCs, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csnpcbestiary. Logs csnpcbestiary <case>: ok | FAIL and csnpcbestiary END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpcBestiary.dll",
+  "dependencies": []
+}

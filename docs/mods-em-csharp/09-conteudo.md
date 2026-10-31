@@ -1755,6 +1755,47 @@ move the panel; `IconScale`, `TextOffset` and `BarTexture` (null on the phone)
 do nothing. `BarCenter` is right for drawing text above the bar in `PostDraw`,
 as `ExampleGlobalBossBar` does.
 
+### Bestiary
+
+Every mod NPC gets a bestiary entry: a town NPC entry for town NPCs, a critter
+entry for `NPCID.Sets.CountsAsCritter`, an enemy entry otherwise. Its drops
+come from `ModifyNPCLoot`. Add the rest in `SetBestiary`:
+
+```csharp
+public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
+{
+    bestiaryEntry.Info.AddRange([
+        BestiaryDatabaseNPCsPopulator.CommonTags.SpawnConditions.Biomes.Surface,
+        new FlavorTextBestiaryInfoElement("Mods.ExampleMod.Bestiary.ExamplePerson_1"),
+    ]);
+}
+```
+
+`GlobalNPC.SetBestiary(NPC npc, BestiaryDatabase database, BestiaryEntry bestiaryEntry)`
+runs for the game's NPCs too. `bestiaryEntry.Info` has `Add`, `AddRange`,
+`Count`, the indexer, `RemoveAt` and `RemoveAll`. When a global changes the loot
+of the game's NPCs, their entries list the new drops.
+
+How the NPC looks in the bestiary is set in `SetStaticDefaults`, as in
+tModLoader:
+
+```csharp
+NPCID.Sets.NPCBestiaryDrawModifiers drawModifiers = new() { Velocity = 1f, Direction = 1 };
+NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, drawModifiers);
+ContentSamples.NpcBestiaryRarityStars[Type] = 3;
+```
+
+`Hide = true` leaves the NPC out of the bestiary, as for worm bodies and tails.
+A `CustomTexturePath` from the mod (`"ExampleMod/Content/NPCs/MyIcon"`) becomes
+the entry's icon in place of the drawn NPC; the game's own `Images/...` paths
+work as well. `NPCBestiaryDrawOffset` also has `TryGetValue`, `Remove`,
+`ContainsKey` and the indexer: `ExamplePerson` turns slowly in the bestiary by
+replacing its modifiers in `PreDraw`.
+
+`SpawnModBiomes` and the biome background preference
+(`BestiaryPortraitBackgroundProviderPreferenceInfoElement`) wait for
+`ModBiome` (phase 6).
+
 ### NPC contact
 
 | Hook | Behavior |
