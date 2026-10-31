@@ -2143,8 +2143,9 @@ mobile build.
 
 ExamplePerson ports the ExampleMod town NPC with its body/head textures,
 names, inventory-based spawn gate, chat, two shops, conditional stock,
-happiness and the SparklingBall attack. Party, shimmer and portrait texture
-profiles (`TownNPCProfiles`/`ITownNPCProfile`) are deferred. The `cstownnpc`
+happiness and the SparklingBall attack, and switches to its party and shimmer
+textures through `TownNPCProfile` (see "Other NPC hooks"). Portraits are
+deferred. The `cstownnpc`
 pack exercises the native town, dialogue, inventory, shopping-price, attack
 and weapon-drawing paths. Two-device shop validation requires a coordinated
 multiplayer window.
@@ -2186,6 +2187,85 @@ buffs that directly inherit from that buff. Follow it with
 which the NPC is now immune. Run this change on the authoritative side; the
 clear helper sends message 54 for mobile server/host modes. Network validation
 is part of the coordinated multiplayer steps.
+
+### Other NPC hooks
+
+These `ModNPC` and `GlobalNPC` hooks follow tModLoader's names, parameters
+and order. Each one installs its game hook the first time a loaded type
+overrides it; a mod that doesn't override any of them adds no cost.
+
+| Hook | When it runs |
+| --- | --- |
+| `CanFallThroughPlatforms` | The NPC decides whether to fall through platforms. `false` wins over `true`; `null` keeps the game's choice. |
+| `ModifyCollisionData` | Before contact damage: change the immunity slot (`ImmunityCooldownID`), the damage multiplier and the hitbox. `false` skips the game's special hitboxes. |
+| `SpecialOnKill` | At the start of the loot; `true` skips the drops (also the Eater of Worlds' segment loot). |
+| `DeathMessage` / `ModifyDeathMessage` | The red town NPC death message and the purple boss defeat message, in singleplayer and on the server. `false` hides the message. |
+| `ModifyTypeName` | Every `npc.TypeName` read. |
+| `CanGoToStatue` / `OnGoToStatue` | When the king or queen statue is activated by wire. A mod NPC must return `true`; a global can let a vanilla NPC in or keep it out. |
+| `CanBeCaughtBy` / `OnCaughtBy` | Bug net swings. `true` catches even without `catchItem` rules; `failed` is `true` when lava bait hurts the player. |
+| `UsesPartyHat` | Whether a town NPC wears the party hat. |
+| `BuffTownNPC` (global) | After each town NPC update: extra defense, and a damage multiplier applied to town NPC attacks. |
+| `DrawHealthBar` | For each health bar under an NPC. `false` hides it, `true` draws it at the changed position and scale. |
+| `PartyHatPosition` / `ChatBubblePosition` | Changes where the hat (world coordinates) and the chat bubble (screen coordinates) are drawn, and their flip. |
+| `ModifyHoverBoundingBox` / `PreHoverInteract` | The box the mouse hovers to talk to the NPC or see its name; `PreHoverInteract` returning `false` ignores the NPC this frame. |
+| `NeedSaving` / `SaveData` / `LoadData` | The world save. See below. |
+| `TownNPCProfile` / `ModifyTownNPCProfile` (global) | The town NPC's appearance profile. See below. |
+
+`ModifyNPCHappiness` isn't part of the API: in tModLoader it exists only as
+commented-out code. Happiness goes in `SetStaticDefaults` through
+`NPC.Happiness`.
+
+**World save.** A mod NPC is saved when it is a town NPC, when
+`NPCID.Sets.SavesAndLoads` is set, or when `NeedSaving()` returns `true`.
+A global's `NeedSaving(npc)` also keeps vanilla NPCs that the game wouldn't
+save. Data from `SaveData` goes into `<world>.wld.npcs.bl`, next to the world,
+never into the `.wld`. On load, `LoadData` gets the same `TagCompound` back
+after `SetDefaults`. A global's data is stored under its mod and name, and
+also works for vanilla town NPCs that the `.wld` saves. Data from a mod that
+isn't loaded is dropped on the next save.
+
+```csharp
+public class Totem : ModNPC
+{
+    public int Charges;
+
+    public override bool NeedSaving() => true;
+
+    public override void SaveData(TagCompound tag) => tag["charges"] = Charges;
+
+    public override void LoadData(TagCompound tag) => Charges = tag.GetInt("charges");
+}
+```
+
+**Town NPC profiles.** `TownNPCProfile()` returns an `ITownNPCProfile`. It
+picks the variation and name when the NPC appears, the texture for each
+frame and the head index. `Profiles.DefaultNPCProfile(texture, headIndex,
+partyTexture)` and `Profiles.StackedNPCProfile(...)` work as in tModLoader:
+the second profile is the shimmer one. `Mod.AddNPCHeadTexture(Type, path)`
+in `Load` registers the shimmer head. Unlike tModLoader, its slot is only
+known from `SetStaticDefaults` on, through `NPCHeadLoader.GetHeadSlot(path)`:
+
+```csharp
+static Profiles.StackedNPCProfile profile = null!;
+
+public override void Load() => Mod.AddNPCHeadTexture(Type, Texture + "_Shimmer_Head");
+
+public override void SetStaticDefaults()
+{
+    profile = new Profiles.StackedNPCProfile(
+        new Profiles.DefaultNPCProfile(Texture, NPCHeadLoader.GetHeadSlot(HeadTexture), Texture + "_Party"),
+        new Profiles.DefaultNPCProfile(Texture + "_Shimmer", NPCHeadLoader.GetHeadSlot(Texture + "_Shimmer_Head"), Texture + "_Shimmer_Party"));
+}
+
+public override ITownNPCProfile TownNPCProfile() => profile;
+```
+
+A global's `ModifyTownNPCProfile(npc)` overrides the profile of any town NPC,
+vanilla or modded; `null` keeps the current one. The game keeps calling its
+own profiles directly; only types with a C# profile go through C#.
+ExamplePerson uses this to switch its party and shimmer textures. The
+`csnpcextra` pack checks every hook in this section, including a save and a
+second load (`KEEPSAVES=1`).
 
 ## Finding content by name
 

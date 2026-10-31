@@ -101,4 +101,9 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, uint, delegate* unmanaged<int, IntPtr, void*, void>, int> InstallTownNPCHooks;
     public delegate* unmanaged<int> InstallEmoteMenuIcon;
     public delegate* unmanaged<IntPtr, void> SetEmoteMenuIcon;
+    public delegate* unmanaged<IntPtr, int, delegate* unmanaged<int, float*, int*, void>, int> BeginDrawAdjust;
+    public delegate* unmanaged<void> EndDrawAdjust;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, int>, delegate* unmanaged<IntPtr, IntPtr, int>, delegate* unmanaged<IntPtr, byte*, void>, void> OnNpcData;
+    public delegate* unmanaged<delegate* unmanaged<int, int, IntPtr, nint*, int>, int> InstallTownProfiles;
+    public delegate* unmanaged<int, int, int> SetTownProfileCarrier;
 }

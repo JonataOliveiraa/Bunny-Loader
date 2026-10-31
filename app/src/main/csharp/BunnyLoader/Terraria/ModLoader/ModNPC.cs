@@ -9,6 +9,7 @@ using Terraria.GameContent.Bestiary;
 using Terraria.GameContent.UI;
 using Terraria.Localization;
 using Terraria.ModLoader.Core;
+using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
 
@@ -19,6 +20,7 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     int registeredType, aiType, animationType;
 
     internal NPCMethod Hooks;
+    internal NPCHook Extra;
     internal int RegisteredType => registeredType;
 
     public int Type { get => entity.IsNull ? registeredType : entity.type; internal set => registeredType = value; }
@@ -133,6 +135,46 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual int? PickEmote(Player closestPlayer, List<int> emoteList, WorldUIAnchor otherAnchor) => null;
 
     public virtual void EmoteBubblePosition(ref Vector2 position, ref SpriteEffects spriteEffects) { }
+
+    public virtual LocalizedText DeathMessage => default;
+
+    public virtual bool? CanFallThroughPlatforms() => null;
+
+    public virtual bool ModifyCollisionData(Rectangle victimHitbox, ref int immunityCooldownSlot, ref MultipliableFloat damageMultiplier, ref Rectangle npcHitbox) => true;
+
+    public virtual bool SpecialOnKill() => false;
+
+    public virtual bool ModifyDeathMessage(ref NetworkText customText, ref Color color) => true;
+
+    public virtual void ModifyTypeName(ref string typeName) { }
+
+    public virtual bool CanGoToStatue(bool toKingStatue) => false;
+
+    public virtual void OnGoToStatue(bool toKingStatue) { }
+
+    public virtual bool? CanBeCaughtBy(Item item, Player player) => null;
+
+    public virtual void OnCaughtBy(Player player, Item item, bool failed) { }
+
+    public virtual bool UsesPartyHat() => true;
+
+    public virtual bool? DrawHealthBar(byte hbPosition, ref float scale, ref Vector2 position) => null;
+
+    public virtual void PartyHatPosition(ref Vector2 position, ref SpriteEffects spriteEffects) { }
+
+    public virtual void ChatBubblePosition(ref Vector2 position, ref SpriteEffects spriteEffects) { }
+
+    public virtual void ModifyHoverBoundingBox(ref Rectangle boundingBox) { }
+
+    public virtual bool PreHoverInteract(bool mouseIntersects) => true;
+
+    public virtual bool NeedSaving() => false;
+
+    public virtual ITownNPCProfile? TownNPCProfile() => null;
+
+    public virtual void SaveData(TagCompound tag) { }
+
+    public virtual void LoadData(TagCompound tag) { }
 
     public virtual void AutoStaticDefaults() =>
         TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));

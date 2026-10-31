@@ -234,6 +234,8 @@ public static class ModContent
             catch (Exception e) { Log.Error($"item loot: the tables could not be set up: {e}"); }
             try { BestiaryHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"bestiary: the entries could not be set up: {e}"); }
+            try { NPCProfileHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"town NPC profiles: they could not be set up: {e}"); }
             try { ItemOpenHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
             foreach (Mod mod in mods)

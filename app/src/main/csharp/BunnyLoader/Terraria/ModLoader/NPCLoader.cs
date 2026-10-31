@@ -12,7 +12,7 @@ namespace Terraria.ModLoader;
 
 public static unsafe partial class NPCLoader
 {
-    const int VanillaCount = 697;
+    internal const int VanillaCount = 697;
 
     static readonly object Gate = new();
     static readonly EntityInstances<ModNPC> Instances = new();
@@ -46,6 +46,7 @@ public static unsafe partial class NPCLoader
         ModNPC instance = template.Entity == npc ? template : template.NewInstance(npc);
         instance.Type = template.Type;
         instance.Hooks = template.Hooks;
+        instance.Extra = template.Extra;
         Instances.Set(npc.Pointer, instance);
         return instance;
     }
@@ -68,6 +69,7 @@ public static unsafe partial class NPCLoader
         if (type < 0) throw new InvalidOperationException($"{npc.FullName}: registration failed ({type})");
         npc.Type = type;
         npc.Hooks = NPCEventHooks.Install(npc.GetType(), typeof(ModNPC), type);
+        npc.Extra = NPCExtraHooks.Install(npc.GetType(), typeof(ModNPC));
         ReserveBossHead(npc);
         NPCHeadLoader.Register(npc);
         lock (Gate)
@@ -90,6 +92,7 @@ public static unsafe partial class NPCLoader
     {
         Globals.Add(global);
         global.Hooks = NPCEventHooks.Install(global.GetType(), typeof(GlobalNPC), -1);
+        global.Extra = NPCExtraHooks.Install(global.GetType(), typeof(GlobalNPC));
         NPCEventHooks.Want(-1, 64);
         ItemHooks.Once("NPCDefaultsScaling", () => On_NPC.ScaleStats += NPCDefaultsHooks.BeforeScaling);
         EnsureHooked();
@@ -141,7 +144,11 @@ public static unsafe partial class NPCLoader
         for (int i = 0; i < early.Length; i++)
         {
             early[i] = slots![i] != null;
-            if (slots[i] is GlobalNPC global) global.Hooks = Globals.Templates[i].Hooks;
+            if (slots[i] is GlobalNPC global)
+            {
+                global.Hooks = Globals.Templates[i].Hooks;
+                global.Extra = Globals.Templates[i].Extra;
+            }
         }
         if (instance != null)
         {
@@ -158,6 +165,7 @@ public static unsafe partial class NPCLoader
             if (!early[i] && slots![i] is GlobalNPC global)
             {
                 global.Hooks = Globals.Templates[i].Hooks;
+                global.Extra = Globals.Templates[i].Extra;
                 SetGlobalDefaults(npc, global);
             }
         }

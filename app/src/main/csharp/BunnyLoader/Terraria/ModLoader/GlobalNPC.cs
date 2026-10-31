@@ -7,6 +7,7 @@ using Terraria.DataStructures;
 using Terraria.GameContent.Bestiary;
 using Terraria.GameContent.UI;
 using Terraria.ModLoader.IO;
+using Terraria.Localization;
 using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
@@ -14,6 +15,7 @@ namespace Terraria.ModLoader;
 public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
 {
     internal NPCMethod Hooks;
+    internal NPCHook Extra;
     protected sealed override void Register() => NPCLoader.RegisterGlobal(this);
 
     public sealed override void SetupContent() => SetStaticDefaults();
@@ -51,6 +53,44 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual int? PickEmote(NPC npc, Player closestPlayer, List<int> emoteList, WorldUIAnchor otherAnchor) => null;
 
     public virtual void EmoteBubblePosition(NPC npc, ref Vector2 position, ref SpriteEffects spriteEffects) { }
+
+    public virtual bool? CanFallThroughPlatforms(NPC npc) => null;
+
+    public virtual bool ModifyCollisionData(NPC npc, Rectangle victimHitbox, ref int immunityCooldownSlot, ref MultipliableFloat damageMultiplier, ref Rectangle npcHitbox) => true;
+
+    public virtual bool SpecialOnKill(NPC npc) => false;
+
+    public virtual bool ModifyDeathMessage(NPC npc, ref NetworkText customText, ref Color color) => true;
+
+    public virtual void ModifyTypeName(NPC npc, ref string typeName) { }
+
+    public virtual bool? CanGoToStatue(NPC npc, bool toKingStatue) => null;
+
+    public virtual void OnGoToStatue(NPC npc, bool toKingStatue) { }
+
+    public virtual bool? CanBeCaughtBy(NPC npc, Item item, Player player) => null;
+
+    public virtual void OnCaughtBy(NPC npc, Player player, Item item, bool failed) { }
+
+    public virtual void BuffTownNPC(ref float damageMult, ref int defense) { }
+
+    public virtual bool? DrawHealthBar(NPC npc, byte hbPosition, ref float scale, ref Vector2 position) => null;
+
+    public virtual void PartyHatPosition(NPC npc, ref Vector2 position, ref SpriteEffects spriteEffects) { }
+
+    public virtual void ChatBubblePosition(NPC npc, ref Vector2 position, ref SpriteEffects spriteEffects) { }
+
+    public virtual void ModifyHoverBoundingBox(NPC npc, ref Rectangle boundingBox) { }
+
+    public virtual bool PreHoverInteract(NPC npc, bool mouseIntersects) => true;
+
+    public virtual bool NeedSaving(NPC npc) => false;
+
+    public virtual ITownNPCProfile? ModifyTownNPCProfile(NPC npc) => null;
+
+    public virtual void SaveData(NPC npc, TagCompound tag) { }
+
+    public virtual void LoadData(NPC npc, TagCompound tag) { }
 
     public virtual void ResetEffects(NPC npc) { }
 

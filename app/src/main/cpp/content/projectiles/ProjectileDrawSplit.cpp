@@ -36,6 +36,20 @@ constexpr int kDepth = 8;
 thread_local Split t_splits[kDepth];
 thread_local int t_depth = 0;
 
+struct Adjust {
+    void* texture;
+    int32_t kind;
+    DrawAdjustFn fn;
+};
+
+thread_local Adjust t_adjusts[kDepth];
+thread_local int t_adjustDepth = 0;
+
+void adjust(void* texture, Vec2* position, int32_t* effects) {
+    const Adjust& a = t_adjusts[t_adjustDepth - 1];
+    if (texture == a.texture && a.fn) a.fn(a.kind, &position->x, effects);
+}
+
 BatchFloatFn g_batchFloat = nullptr;
 BatchVectorFn g_batchVector = nullptr;
 BatchRefFloatFn g_batchRefFloat = nullptr;
@@ -52,24 +66,28 @@ bool pass(void* texture) {
 
 void hkBatchFloat(void* self, void* texture, Vec2 position, NullableRect source, uint32_t color, float rotation, Vec2 origin, float scale,
                   int32_t effects, float depth, const MethodInfo* method) {
+    if (t_adjustDepth > 0) adjust(texture, &position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
     g_batchFloat(self, texture, position, source, color, rotation, origin, scale, effects, depth, method);
 }
 
 void hkBatchVector(void* self, void* texture, Vec2 position, NullableRect source, uint32_t color, float rotation, Vec2 origin, Vec2 scale,
                    int32_t effects, float depth, const MethodInfo* method) {
+    if (t_adjustDepth > 0) adjust(texture, &position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
     g_batchVector(self, texture, position, source, color, rotation, origin, scale, effects, depth, method);
 }
 
 void hkBatchRefFloat(void* self, void* texture, Vec2* position, void* source, uint32_t* color, float rotation, Vec2 origin, float scale,
                      int32_t effects, const MethodInfo* method) {
+    if (t_adjustDepth > 0 && position) adjust(texture, position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
     g_batchRefFloat(self, texture, position, source, color, rotation, origin, scale, effects, method);
 }
 
 void hkBatchRefVector(void* self, void* texture, Vec2* position, void* source, uint32_t* color, float rotation, Vec2 origin, Vec2 scale,
                       int32_t effects, const MethodInfo* method) {
+    if (t_adjustDepth > 0 && position) adjust(texture, position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
     g_batchRefVector(self, texture, position, source, color, rotation, origin, scale, effects, method);
 }
@@ -108,12 +126,24 @@ bool install() {
 
 }
 
+bool drawFilterReady() {
+    std::lock_guard<std::mutex> lock(g_mx);
+    if (g_state == 0) g_state = install() ? 1 : -1;
+    return g_state == 1;
+}
+
+bool beginDrawAdjust(void* texture, int32_t kind, DrawAdjustFn fn) {
+    if (!texture || !fn || !drawFilterReady() || t_adjustDepth >= kDepth) return false;
+    t_adjusts[t_adjustDepth++] = Adjust{texture, kind, fn};
+    return true;
+}
+
+void endDrawAdjust() {
+    if (t_adjustDepth > 0) --t_adjustDepth;
+}
+
 bool beginProjectileDrawSplit(void* ownTexture, bool extras, bool sprite) {
-    {
-        std::lock_guard<std::mutex> lock(g_mx);
-        if (g_state == 0) g_state = install() ? 1 : -1;
-        if (g_state != 1) return false;
-    }
+    if (!drawFilterReady()) return false;
     if (t_depth >= kDepth) return false;
     t_splits[t_depth++] = Split{ownTexture, extras, sprite, false};
     return true;

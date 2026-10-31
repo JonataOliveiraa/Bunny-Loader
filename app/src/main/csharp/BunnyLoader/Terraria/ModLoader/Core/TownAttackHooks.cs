@@ -32,6 +32,11 @@ internal static unsafe class TownAttackHooks
             throw new InvalidOperationException($"Town NPC hooks could not be installed for type {type}");
     }
 
+    internal static void InstallAll()
+    {
+        if (Host.Native()->InstallTownNPCHooks(-1, 1, &Event) == 0) throw new InvalidOperationException("Town NPC attack hooks could not be installed for every NPC");
+    }
+
     [UnmanagedCallersOnly]
     static void Event(int kind, IntPtr pointer, void* arguments)
     {
@@ -54,6 +59,7 @@ internal static unsafe class TownAttackHooks
                 return;
             }
             ref AttackArgs args = ref *(AttackArgs*)arguments;
+            args.Damage = (int)(args.Damage * NPCExtraHooks.TownDamage(npc));
             NPCLoader.TownNPCAttackStrength(npc, ref args.Damage, ref args.Knockback);
             NPCLoader.TownNPCAttackCooldown(npc, ref args.Cooldown, ref args.Extra);
             if (kind == 3) NPCLoader.TownNPCAttackSwing(npc, ref args.Width, ref args.Height);

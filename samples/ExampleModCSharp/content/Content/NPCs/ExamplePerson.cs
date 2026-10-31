@@ -22,6 +22,9 @@ public class ExamplePerson : ModNPC
     public const string ShopName = "Shop";
     public const string DayOnlyShopName = "DayOnlyShop";
     public int NumberOfTimesTalkedTo;
+    static Profiles.StackedNPCProfile NPCProfile = null!;
+
+    public override void Load() => Mod.AddNPCHeadTexture(Type, Texture + "_Shimmer_Head");
 
     public override void SetStaticDefaults()
     {
@@ -47,7 +50,13 @@ public class ExamplePerson : ModNPC
             .SetNPCAffection(NPCID.Merchant, AffectionLevel.Dislike)
             .SetNPCAffection(NPCID.Golfer, AffectionLevel.Dislike)
             .SetNPCAffection(NPCID.Demolitionist, AffectionLevel.Hate);
+
+        NPCProfile = new Profiles.StackedNPCProfile(
+            new Profiles.DefaultNPCProfile(Texture, NPCHeadLoader.GetHeadSlot(HeadTexture), Texture + "_Party"),
+            new Profiles.DefaultNPCProfile(Texture + "_Shimmer", NPCHeadLoader.GetHeadSlot(Texture + "_Shimmer_Head"), Texture + "_Shimmer_Party"));
     }
+
+    public override ITownNPCProfile TownNPCProfile() => NPCProfile;
 
     public override void SetBestiary(BestiaryDatabase database, BestiaryEntry bestiaryEntry)
     {

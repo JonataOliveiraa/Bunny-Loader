@@ -56,6 +56,8 @@ public abstract class Mod
 
     public int AddBossHeadTexture(string texture, int npcType = -1) => NPCLoader.ReserveBossHead(this, texture, npcType);
 
+    public int AddNPCHeadTexture(int npcType, string texture) => NPCHeadLoader.Add(this, npcType, texture);
+
     public virtual void HandlePacket(BinaryReader reader, int whoAmI) { }
 
     public bool AddContent(ILoadable instance)

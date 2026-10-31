@@ -480,7 +480,8 @@ static class Program
             sb.Append(i1).Append("public override int GetHashCode() => Pointer.GetHashCode();\n");
             sb.Append(i1).Append($"public static bool operator ==({self} a, {self} b) => a.Pointer == b.Pointer;\n");
             sb.Append(i1).Append($"public static bool operator !=({self} a, {self} b) => a.Pointer != b.Pointer;\n");
-            sb.Append(i1).Append($"public override string ToString() => new {RT}.GameObject(Pointer).ToString();\n");
+            if (!(HandWritten.TryGetValue(t.FullName ?? t.Name, out HashSet<string>? own) && own.Contains("ToString")))
+                sb.Append(i1).Append($"public override string ToString() => new {RT}.GameObject(Pointer).ToString();\n");
             sb.Append(i1).Append($"public static implicit operator {RT}.GameObject({self} v) => new {RT}.GameObject(v.Pointer);\n");
             sb.Append(i1).Append($"public static {self} From({RT}.GameObject o) => new {self}(o.Pointer);\n");
             sb.Append(i1).Append($"public static bool Is({RT}.GameObject o) => {RT}.GameInterop.IsInstance(o.Pointer, Class);\n");

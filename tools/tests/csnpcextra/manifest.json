@@ -1,0 +1,15 @@
+{
+  "uid": "868d89b0-1cb5-45ab-897f-547643c79853",
+  "id": "test-csnpcextra",
+  "name": "Test: last ModNPC hooks (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Platforms, collision data, SpecialOnKill, death message, type name, statues, catching, party hat, town buffs, health bar, hat and bubble positions, hover box, town NPC profiles and NPC save data, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csnpcextra. Run once (phase save), then again with KEEPSAVES=1 (phase load). Logs csnpcextra <case>: ok | FAIL and csnpcextra END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpcExtra.dll",
+  "dependencies": []
+}

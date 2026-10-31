@@ -132,6 +132,7 @@ Terraria.Initializers.DyeInitializer
 Terraria.InventoryStorage
 Terraria.Lighting
 Terraria.Localization.NetworkText
+!Terraria.Localization.NetworkText.ToString
 Terraria.Map.TeleportPylonsMapLayer
 Terraria.MessageBuffer
 Terraria.NPC.Spawner

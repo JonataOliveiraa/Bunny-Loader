@@ -7,6 +7,8 @@
 #include "content/common/GameRefs.h"
 #include "content/npcs/ModNpcs.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <map>
@@ -20,6 +22,7 @@ namespace {
 
 constexpr const char* kSuffix = ".npcs.bl";
 constexpr const char* kHeader = "bunny-npcs 1";
+constexpr int kTravellingMerchant = 368;
 
 struct SavedNpc {
     std::string key;           // "<uid>/<nome>"
@@ -33,6 +36,9 @@ struct SavedRoom {
 };
 
 std::mutex g_mx;
+ManagedNpcNeeds g_needs = nullptr;
+ManagedNpcSave g_save = nullptr;
+ManagedNpcLoad g_load = nullptr;
 // Por mundo: as linhas de mod nao carregado (voltam ao arquivo como estavam).
 std::map<std::string, std::vector<std::string>> g_kept;
 
@@ -158,11 +164,17 @@ std::vector<std::string> readLines(const std::string& path) {
     std::vector<std::string> out;
     FILE* f = std::fopen(path.c_str(), "rb");
     if (!f) return out;
-    char line[2048];
+    std::string all;
+    char chunk[4096];
+    for (size_t got; (got = std::fread(chunk, 1, sizeof(chunk), f)) > 0;) all.append(chunk, got);
+    std::fclose(f);
     bool header = false;
-    while (std::fgets(line, sizeof(line), f)) {
-        std::string s(line);
-        while (!s.empty() && (s.back() == '\n' || s.back() == '\r')) s.pop_back();
+    for (size_t start = 0; start < all.size();) {
+        size_t end = all.find('\n', start);
+        if (end == std::string::npos) end = all.size();
+        std::string s = all.substr(start, end - start);
+        start = end + 1;
+        while (!s.empty() && s.back() == '\r') s.pop_back();
         if (!header) {
             header = true;
             if (s != kHeader) {
@@ -173,7 +185,6 @@ std::vector<std::string> readLines(const std::string& path) {
         }
         if (!s.empty()) out.push_back(s);
     }
-    std::fclose(f);
     return out;
 }
 
@@ -197,6 +208,23 @@ void writeLines(const std::string& path, const std::vector<std::string>& lines) 
         BL_ERROR("moradores de mod: falha ao gravar %s", path.c_str());
         std::remove(tmp.c_str());
     }
+}
+
+std::string managedData(Il2CppObject* n) {
+    std::string data;
+    if (g_save && !g_save(n, &data)) data.clear();
+    for (char& c : data) {
+        if (c == '\t' || c == '\n' || c == '\r') c = ' ';
+    }
+    return data;
+}
+
+std::string savedColumns(const Refs& r, Il2CppObject* n) {
+    char buf[128];
+    std::snprintf(buf, sizeof(buf), "%.2f\t%.2f\t%d\t%d\t%d\t%d", at<float>(n, r.position),
+                  at<float>(n, r.position + 4), at<uint8_t>(n, r.homeless) ? 1 : 0, at<int32_t>(n, r.homeX),
+                  at<int32_t>(n, r.homeY), at<int32_t>(n, r.variation));
+    return std::string(buf) + "\t" + toUtf8(at<Il2CppString*>(n, r.givenName));
 }
 
 // O que o save de agora tirou do .wld, para o arquivo ao lado (NPCs e
@@ -224,17 +252,26 @@ int32_t hkSaveNpcs(Il2CppObject* writer, const MethodInfo* m) {
         Il2CppObject* n = static_cast<Il2CppObject**>(arrayData(npcs))[i];
         if (!n || !at<uint8_t>(n, r.active)) continue;
         const int type = at<int32_t>(n, r.type);
-        if (!isModNpc(type)) continue;
         const bool saves = sets && static_cast<uintptr_t>(type) < sets->length &&
                            static_cast<uint8_t*>(arrayData(sets))[type];
-        if (!at<uint8_t>(n, r.townNPC) && !saves) continue;
+        if (!isModNpc(type)) {
+            if (!g_needs) continue;
+            const bool inWorld = saves || (at<uint8_t>(n, r.townNPC) && type != kTravellingMerchant);
+            if (inWorld) {
+                const std::string data = managedData(n);
+                if (data.empty()) continue;
+                char buf[64];
+                std::snprintf(buf, sizeof(buf), "%d\t%.2f\t%.2f", type, at<float>(n, r.position), at<float>(n, r.position + 4));
+                lines.push_back("gdata\t" + std::string(buf) + "\t" + data);
+            } else if (g_needs(n)) {
+                lines.push_back("vnpc\t" + std::to_string(type) + "\t" + savedColumns(r, n) + "\t" + managedData(n));
+            }
+            continue;
+        }
+        if (!at<uint8_t>(n, r.townNPC) && !saves && !(g_needs && g_needs(n))) continue;
         const std::string key = keyOf(type);
         if (key.empty()) continue;
-        char buf[128];
-        std::snprintf(buf, sizeof(buf), "%.2f\t%.2f\t%d\t%d\t%d\t%d", at<float>(n, r.position),
-                      at<float>(n, r.position + 4), at<uint8_t>(n, r.homeless) ? 1 : 0, at<int32_t>(n, r.homeX),
-                      at<int32_t>(n, r.homeY), at<int32_t>(n, r.variation));
-        lines.push_back("npc\t" + key + "\t" + buf + "\t" + toUtf8(at<Il2CppString*>(n, r.givenName)));
+        lines.push_back("npc\t" + key + "\t" + savedColumns(r, n) + "\t" + managedData(n));
         if (at<uint8_t>(n, r.townNPC)) {
             at<uint8_t>(n, r.townNPC) = 0;
             hidden.push_back(n);
@@ -329,13 +366,13 @@ Il2CppObject* freeNpc() {
     return nullptr;
 }
 
-void restoreNpc(const SavedNpc& s, int type) {
+Il2CppObject* restoreNpc(const SavedNpc& s, int type) {
     const Refs& r = g_refs;
     auto& a = il2cpp::api();
     Il2CppObject* n = freeNpc();
     if (!n) {
-        BL_ERROR("moradores de mod: sem lugar livre em Main.npc para %s", s.key.c_str());
-        return;
+        BL_ERROR("mod NPC save: no free slot in Main.npc for %s", s.key.c_str());
+        return nullptr;
     }
     int32_t t = type;
     alignas(8) uint8_t spawnParams[32] = {};   // NPCSpawnParams sem nada
@@ -343,8 +380,8 @@ void restoreNpc(const SavedNpc& s, int type) {
     Il2CppObject* exc = nullptr;
     a.runtime_invoke(r.setDefaults, n, args, &exc);   // passa pelo SetDefaults do mod
     if (exc) {
-        BL_ERROR("moradores de mod: SetDefaults de %s lancou excecao", s.key.c_str());
-        return;
+        BL_ERROR("mod NPC save: SetDefaults of %s threw", s.key.c_str());
+        return nullptr;
     }
     at<float>(n, r.position) = s.x;
     at<float>(n, r.position + 4) = s.y;
@@ -356,6 +393,38 @@ void restoreNpc(const SavedNpc& s, int type) {
     Il2CppString* name = a.string_new(s.name.c_str());
     void* nameArg[1] = {name};
     a.runtime_invoke(r.setGivenName, n, nameArg, &exc);
+    return n;
+}
+
+SavedNpc parseSaved(const std::vector<std::string>& c) {
+    SavedNpc s;
+    s.key = c[1];
+    s.x = std::strtof(c[2].c_str(), nullptr);
+    s.y = std::strtof(c[3].c_str(), nullptr);
+    s.homeless = std::atoi(c[4].c_str());
+    s.homeX = std::atoi(c[5].c_str());
+    s.homeY = std::atoi(c[6].c_str());
+    s.variation = std::atoi(c[7].c_str());
+    s.name = c[8];
+    return s;
+}
+
+void loadData(Il2CppObject* n, const std::vector<std::string>& c, size_t column) {
+    if (n && g_load && c.size() > column && !c[column].empty()) g_load(n, c[column].c_str());
+}
+
+Il2CppObject* vanillaAt(int type, float x, float y, std::vector<Il2CppObject*>& used) {
+    const Refs& r = g_refs;
+    Il2CppArray* npcs = readStatic<Il2CppArray*>(r.npcs);
+    for (uintptr_t i = 0; npcs && i < npcs->length; ++i) {
+        Il2CppObject* n = static_cast<Il2CppObject**>(arrayData(npcs))[i];
+        if (!n || !at<uint8_t>(n, r.active) || at<int32_t>(n, r.type) != type) continue;
+        if (std::fabs(at<float>(n, r.position) - x) > 1 || std::fabs(at<float>(n, r.position + 4) - y) > 1) continue;
+        if (std::find(used.begin(), used.end(), n) != used.end()) continue;
+        used.push_back(n);
+        return n;
+    }
+    return nullptr;
 }
 
 void hkLoadNpcs(Il2CppObject* reader, const MethodInfo* m) {
@@ -365,25 +434,28 @@ void hkLoadNpcs(Il2CppObject* reader, const MethodInfo* m) {
     std::vector<std::string> kept;
     int restored = 0;
     Il2CppArray* shimmer = readStatic<Il2CppArray*>(g_refs.shimmered);
+    std::vector<Il2CppObject*> used;
     for (const std::string& line : readLines(path + kSuffix)) {
         const std::vector<std::string> c = split(line);
         if (c.size() < 2) continue;
+        if (c[0] == "gdata" || c[0] == "vnpc") {
+            const int vanilla = std::atoi(c[1].c_str());
+            if (vanilla <= 0 || vanilla >= kVanillaNpcCount) continue;
+            if (c[0] == "gdata" && c.size() >= 5) {
+                loadData(vanillaAt(vanilla, std::strtof(c[2].c_str(), nullptr), std::strtof(c[3].c_str(), nullptr), used), c, 4);
+            } else if (c[0] == "vnpc" && c.size() >= 9) {
+                loadData(restoreNpc(parseSaved(c), vanilla), c, 9);
+                ++restored;
+            }
+            continue;
+        }
         const int type = typeOf(c[1]);
         if (type < 0) {   // o mod nao esta: fica para quando voltar
             kept.push_back(line);
             continue;
         }
         if (c[0] == "npc" && c.size() >= 9) {
-            SavedNpc s;
-            s.key = c[1];
-            s.x = std::strtof(c[2].c_str(), nullptr);
-            s.y = std::strtof(c[3].c_str(), nullptr);
-            s.homeless = std::atoi(c[4].c_str());
-            s.homeX = std::atoi(c[5].c_str());
-            s.homeY = std::atoi(c[6].c_str());
-            s.variation = std::atoi(c[7].c_str());
-            s.name = c[8];
-            restoreNpc(s, type);
+            loadData(restoreNpc(parseSaved(c), type), c, 9);
             ++restored;
         } else if (c[0] == "shimmer" && shimmer && static_cast<uintptr_t>(type) < shimmer->length) {
             static_cast<uint8_t*>(arrayData(shimmer))[type] = 1;
@@ -423,6 +495,12 @@ void hkRoomsLoad(Il2CppObject* self, Il2CppObject* reader, const MethodInfo* m) 
 }
 
 } // namespace
+
+void setManagedNpcData(ManagedNpcNeeds needs, ManagedNpcSave save, ManagedNpcLoad load) {
+    g_needs = needs;
+    g_save = save;
+    g_load = load;
+}
 
 void installModNpcSave() {
     Il2CppClass* worldFile = il2cpp::findClass({"Terraria.IO", "WorldFile", {}});

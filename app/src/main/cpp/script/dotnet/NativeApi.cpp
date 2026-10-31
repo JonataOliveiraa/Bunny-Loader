@@ -8,9 +8,11 @@
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
 #include "content/npcs/ModBossHeads.h"
+#include "content/npcs/ModNpcSave.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/npcs/NpcEvents.h"
 #include "content/npcs/ModTownNpcs.h"
+#include "content/npcs/TownNpcProfiles.h"
 #include "content/npcs/NpcTownHooks.h"
 #include "content/npcs/NpcLootHooks.h"
 #include "content/projectiles/ProjectileStrikes.h"
@@ -152,6 +154,11 @@ struct NativeApi {
     int32_t (*installTownNPCHooks)(int32_t type, uint32_t flags, runtime::NpcTownCallback callback);
     int32_t (*installEmoteMenuIcon)();
     void (*setEmoteMenuIcon)(void* texture);
+    int32_t (*beginDrawAdjust)(void* texture, int32_t kind, runtime::DrawAdjustFn fn);
+    void (*endDrawAdjust)();
+    void (*onNpcData)(runtime::ManagedNpcNeeds needs, runtime::ManagedNpcSave save, runtime::ManagedNpcLoad load);
+    int32_t (*installTownProfiles)(runtime::TownProfileCallback callback);
+    int32_t (*setTownProfileCarrier)(int32_t type, int32_t onlyExisting);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -880,6 +887,11 @@ const NativeApi kNativeApi{
     [](int32_t type, uint32_t flags, runtime::NpcTownCallback callback) -> int32_t { return runtime::installNpcTownHooks(type, flags, callback) ? 1 : 0; },
     []() -> int32_t { return runtime::installEmoteMenuIcon() ? 1 : 0; },
     [](void* texture) { runtime::setEmoteMenuIcon(texture); },
+    [](void* texture, int32_t kind, runtime::DrawAdjustFn fn) -> int32_t { return runtime::beginDrawAdjust(texture, kind, fn) ? 1 : 0; },
+    []() { runtime::endDrawAdjust(); },
+    [](runtime::ManagedNpcNeeds needs, runtime::ManagedNpcSave save, runtime::ManagedNpcLoad load) { runtime::setManagedNpcData(needs, save, load); },
+    [](runtime::TownProfileCallback callback) -> int32_t { return runtime::installTownProfiles(callback) ? 1 : 0; },
+    [](int32_t type, int32_t onlyExisting) -> int32_t { return runtime::setTownProfileCarrier(type, onlyExisting != 0) ? 1 : 0; },
 };
 
 } // namespace
