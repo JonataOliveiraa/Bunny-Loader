@@ -390,6 +390,7 @@ internal static unsafe class ItemNetHooks
         Receiving? context = null;
         ItemPvpHooks.Received? pvp = null;
         ProjectileNetHooks.Arriving? projectile = null;
+        NPCNetHooks.Arriving? npc = null;
         int packet = 0, index = 0, slot = 0;
         try
         {
@@ -400,6 +401,8 @@ internal static unsafe class ItemNetHooks
                 if (packet == ItemPvpHooks.HurtPacket) pvp = ItemPvpHooks.Take(ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI, b[1]);
                 if (packet == 27 && length >= 5)
                     projectile = ProjectileNetHooks.Take(ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI, *(uint*)(b + 1));
+                if (packet == 23 && length >= 3 && ModNet.NetMode == 1)
+                    npc = NPCNetHooks.Take(256, *(short*)(b + 1));
                 if (IsItemPacket(packet) && !((packet == 5 || packet == 32) && length < 4) && AnyPending())
                 {
                     int from = ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
@@ -438,6 +441,11 @@ internal static unsafe class ItemNetHooks
             try { ProjectileNetHooks.Apply(projectile); }
             catch (Exception e) { ItemHooks.Report("ReceiveExtraAI", e); }
         }
+        if (npc != null)
+        {
+            try { NPCNetHooks.Apply(npc); }
+            catch (Exception e) { ItemHooks.Report("ReceiveExtraAI", e); }
+        }
         if (context == null || context.Applied) return;
         try
         {
@@ -460,6 +468,7 @@ internal static unsafe class ItemNetHooks
             lock (Gate) Pending.Remove(from);
             ItemPvpHooks.Forget(from);
             ProjectileNetHooks.Forget(from);
+            NPCNetHooks.Forget(from);
         }
         catch (Exception e) { ItemHooks.Report("NetReceive (reset)", e); }
         var call = GameCall.Returning(RetKind.Int);

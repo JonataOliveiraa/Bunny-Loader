@@ -1,0 +1,15 @@
+{
+  "uid": "6dfbd0f5-b8f5-41e0-90a4-2a5fbe36a8a4",
+  "id": "test-csnpcdraw",
+  "name": "Test: NPC drawing and extra AI (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "DrawEffects, PreDraw, PostDraw, GetAlpha, DrawBehind, boss head hooks and NPC SendExtraAI/ReceiveExtraAI, alone and on two devices, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csnpcdraw. Logs csnpcdraw <case>: ok | FAIL and csnpcdraw END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpcDraw.dll",
+  "dependencies": []
+}

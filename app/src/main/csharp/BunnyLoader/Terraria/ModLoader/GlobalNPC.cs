@@ -1,4 +1,8 @@
+using System.IO;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
+using Terraria.ModLoader.IO;
 using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
@@ -17,6 +21,26 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual void OnSpawn(NPC npc, IEntitySource source) { }
 
     public virtual void ApplyDifficultyAndPlayerScaling(NPC npc, int numPlayers, float balance, float bossAdjustment) { }
+
+    public virtual void SendExtraAI(NPC npc, BitWriter bitWriter, BinaryWriter binaryWriter) { }
+
+    public virtual void ReceiveExtraAI(NPC npc, BitReader bitReader, BinaryReader binaryReader) { }
+
+    public virtual void BossHeadSlot(NPC npc, ref int index) { }
+
+    public virtual void BossHeadRotation(NPC npc, ref float rotation) { }
+
+    public virtual void BossHeadSpriteEffects(NPC npc, ref SpriteEffects spriteEffects) { }
+
+    public virtual Color? GetAlpha(NPC npc, Color drawColor) => null;
+
+    public virtual void DrawEffects(NPC npc, ref Color drawColor) { }
+
+    public virtual bool PreDraw(NPC npc, SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor) => true;
+
+    public virtual void PostDraw(NPC npc, SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor) { }
+
+    public virtual void DrawBehind(NPC npc, int index) { }
 
     public virtual void ResetEffects(NPC npc) { }
 

@@ -6,6 +6,7 @@
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
+#include "content/npcs/ModBossHeads.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/npcs/NpcEvents.h"
 #include "content/projectiles/ProjectileStrikes.h"
@@ -138,6 +139,8 @@ struct NativeApi {
                              int32_t (*getAlpha)(void*, uint32_t*));
     void (*onDustsInstalled)(void (*callback)(int32_t first, int32_t last));
     void* (*dustTextureAsset)(int32_t type);
+    int32_t (*reserveBossHead)(const char* texture, const char* assetName, int32_t npcType);
+    int32_t (*bossHeadSlotOf)(const char* texture);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -740,6 +743,13 @@ void nativeOnDustsInstalled(void (*callback)(int32_t first, int32_t last)) {
 
 void* nativeDustTextureAsset(int32_t type) { return runtime::modDustTextureAsset(type); }
 
+int32_t nativeReserveBossHead(const char* texture, const char* assetName, int32_t npcType) {
+    if (!texture || !*texture || !assetName || !fileExists(texture)) return -1;
+    return runtime::reserveBossHead(texture, assetName, npcType);
+}
+
+int32_t nativeBossHeadSlotOf(const char* texture) { return texture ? runtime::bossHeadSlotOf(texture) : -1; }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -829,6 +839,8 @@ const NativeApi kNativeApi{
     nativeSetDustCallbacks,
     nativeOnDustsInstalled,
     nativeDustTextureAsset,
+    nativeReserveBossHead,
+    nativeBossHeadSlotOf,
 };
 
 } // namespace

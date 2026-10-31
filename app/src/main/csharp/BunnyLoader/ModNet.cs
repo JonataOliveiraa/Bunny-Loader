@@ -66,6 +66,12 @@ internal static unsafe class ModNet
                 ProjectileNetHooks.Receive(reader, from);
                 return;
             }
+            if (kind == NPCNetHooks.KindExtraAI)
+            {
+                name = "NPC extra AI";
+                NPCNetHooks.Receive(reader, from);
+                return;
+            }
             if (kind == HairHooks.KindHair)
             {
                 name = "hair";

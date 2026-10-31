@@ -17,6 +17,9 @@ internal enum NPCMethod : ulong
     ModifyHitByItem = 32768, OnHitByItem = 65536, CanBeHitByProjectile = 131072, ModifyHitByProjectile = 262144,
     OnHitByProjectile = 524288, CanHitPlayer = 1048576, ModifyHitPlayer = 2097152, OnHitPlayer = 4194304,
     CanHitNPC = 8388608, CanBeHitByNPC = 16777216, ModifyHitNPC = 33554432, OnHitNPC = 67108864,
+    GetAlpha = 1UL << 40, DrawEffects = 1UL << 41, PreDraw = 1UL << 42, PostDraw = 1UL << 43, DrawBehind = 1UL << 44,
+    BossHeadSlot = 1UL << 45, BossHeadRotation = 1UL << 46, BossHeadSpriteEffects = 1UL << 47,
+    SendExtraAI = 1UL << 48, ReceiveExtraAI = 1UL << 49,
 }
 
 internal static unsafe class NPCEventHooks
@@ -55,6 +58,8 @@ internal static unsafe class NPCEventHooks
         ItemHitHooks.InstallNPC(flags);
         ProjectileHitHooks.InstallNPC(flags);
         NPCContactHooks.Install(flags);
+        NPCDrawHooks.Install(flags);
+        NPCNetHooks.Install(flags);
         return flags;
     }
 

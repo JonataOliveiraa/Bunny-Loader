@@ -1,4 +1,6 @@
 using ExampleMod.Content.Buffs;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.ModLoader;
 
@@ -14,5 +16,10 @@ internal class DamageModificationGlobalNPC : GlobalNPC
     public override void ModifyIncomingHit(NPC npc, ref NPC.HitModifiers modifiers)
     {
         if (exampleDefenseDebuff) modifiers.Defense *= ExampleDefenseDebuff.DefenseMultiplier;
+    }
+
+    public override void DrawEffects(NPC npc, ref Color drawColor)
+    {
+        if (exampleDefenseDebuff) drawColor.G = 0;
     }
 }

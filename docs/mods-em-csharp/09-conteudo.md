@@ -1668,9 +1668,9 @@ Raw `NPC.StrikeNPC` calls by themselves do not enter these callbacks.
 `DamageModificationGlobalNPC` and `ExampleDefenseDebuff` demonstrate a
 temporary 25% defense reduction. The global resets its per-entity flag before
 buff updates; the buff sets it again, and the incoming hook changes
-`modifiers.Defense`. The debuff inherits Ichor immunity. Its draw tint waits
-for NPC drawing, and its player branch uses the mobile integer defense
-field. PartyZombie's incoming hook reduces magic damage by 75%; projectile
+`modifiers.Defense`. The debuff inherits Ichor immunity. The global's
+`DrawEffects` tints the NPC (`drawColor.G = 0`), and the player branch uses
+the mobile integer defense field. PartyZombie's incoming hook reduces magic damage by 75%; projectile
 magic damage receives the same behavior.
 
 ### Projectile hits on an NPC
@@ -1688,6 +1688,41 @@ order is `ModifyIncomingHit`, the projectile, the NPC, then the owner, and
 `damageDone` is limited to the health left, as for items. These hooks run for
 the game's projectiles too, and an NPC that overrides them installs the
 projectile strike path by itself.
+
+### NPC drawing
+
+| Hook | Behavior |
+| --- | --- |
+| `DrawEffects(ref Color drawColor)` | Changes the light color before the NPC is drawn. The mod NPC runs first, then its globals. The game's own draw uses the new color too. |
+| `PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)` | false skips the game's drawing of the NPC. The globals run first, then the mod NPC. A false from a global skips the mod NPC. |
+| `PostDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)` | Runs after the game's drawing, even when `PreDraw` returned false. The mod NPC runs first, then its globals. |
+| `GetAlpha(Color drawColor)` | Returns `Color?`: the first non-null answer replaces the game's color. The globals run first, then the mod NPC. A bestiary icon receives white. |
+| `DrawBehind(int index)` | After the game sorts the NPCs into its draw lists (`Main.CacheNPCDraws`). Set `NPC.behindTiles` or `NPC.hide` there to move or hide the NPC. The `Main.instance.DrawCacheNPCs*` lists are raw game objects for now (generic `List<int>` proxies are not generated yet). |
+| `BossHeadSlot(ref int index)`, `BossHeadRotation(ref float rotation)`, `BossHeadSpriteEffects(ref SpriteEffects spriteEffects)` | Change the icon that the boss bar and the map use. |
+
+The hooks run for the game's NPCs too, through globals, and in the bestiary.
+`screenPos` is the screen position to subtract from world coordinates. On the
+phone the sprite batch groups draws by texture. An NPC that overrides
+`PreDraw` or `PostDraw` gets a batch of its own, so its glow stays on top of
+its body and does not mix with another NPC of the same type.
+
+A file named after `BossHeadTexture` (by default `Texture + "_Head_Boss"`)
+becomes the NPC's boss icon on its own. Other icons are added in `Load` with
+`Mod.AddBossHeadTexture("ModName/Path", npcType)`, which returns the slot.
+`ModContent.GetModBossHeadSlot("ModName/Path")` finds a slot later, for
+`BossHeadSlot`.
+
+### NPCs in multiplayer: `SendExtraAI`
+
+The server syncs an NPC with message 23 (position, velocity, `ai`, life).
+Fields of your own travel with `SendExtraAI(BinaryWriter writer)` and
+`ReceiveExtraAI(BinaryReader reader)`. Set `NPC.netUpdate = true` when they
+change, and read them back in the same order. A `GlobalNPC` has
+`SendExtraAI(npc, bitWriter, binaryWriter)` and
+`ReceiveExtraAI(npc, bitReader, binaryReader)`. The layout and the
+underflow errors are the same as for projectiles. The data goes from the
+server to the clients only, with the game's message, and is applied once the
+client has read it. `NPCLoader.WriteExtraAI`/`ReceiveExtraAI` are public.
 
 ### NPC contact
 

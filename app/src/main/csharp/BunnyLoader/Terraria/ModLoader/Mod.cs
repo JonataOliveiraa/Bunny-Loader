@@ -54,6 +54,8 @@ public abstract class Mod
 
     public ModPacket GetPacket(int capacity = 256) => new(this, capacity);
 
+    public int AddBossHeadTexture(string texture, int npcType = -1) => NPCLoader.ReserveBossHead(this, texture, npcType);
+
     public virtual void HandlePacket(BinaryReader reader, int whoAmI) { }
 
     public bool AddContent(ILoadable instance)

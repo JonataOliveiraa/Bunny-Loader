@@ -1,3 +1,5 @@
+using System.IO;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria.DataStructures;
@@ -35,6 +37,8 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual LocalizedText DisplayName => this.GetLocalization(nameof(DisplayName), PrettyPrintName);
 
     public virtual string Texture => (GetType().Namespace + "." + Name).Replace('.', '/');
+
+    public virtual string BossHeadTexture => Texture + "_Head_Boss";
 
     protected sealed override NPC CreateTemplateEntity() => default;
 
@@ -100,6 +104,26 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual void ModifyHitNPC(NPC target, ref NPC.HitModifiers modifiers) { }
 
     public virtual void OnHitNPC(NPC target, NPC.HitInfo hit) { }
+
+    public virtual void SendExtraAI(BinaryWriter writer) { }
+
+    public virtual void ReceiveExtraAI(BinaryReader reader) { }
+
+    public virtual void BossHeadSlot(ref int index) { }
+
+    public virtual void BossHeadRotation(ref float rotation) { }
+
+    public virtual void BossHeadSpriteEffects(ref SpriteEffects spriteEffects) { }
+
+    public virtual Color? GetAlpha(Color drawColor) => null;
+
+    public virtual void DrawEffects(ref Color drawColor) { }
+
+    public virtual bool PreDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor) => true;
+
+    public virtual void PostDraw(SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor) { }
+
+    public virtual void DrawBehind(int index) { }
 
     public virtual void AutoStaticDefaults() =>
         TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));

@@ -37,6 +37,8 @@ public static class ModContent
 
     public static ModNPC? GetModNPC(int type) => NPCLoader.GetNPC(type);
 
+    public static int GetModBossHeadSlot(string texture) => NPCLoader.BossHeadSlot(texture);
+
     public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
 
     public static int DustType<T>() where T : ModDust => GetInstance<T>()?.Type ?? 0;

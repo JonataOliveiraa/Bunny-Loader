@@ -92,4 +92,6 @@ internal unsafe struct NativeApi
         delegate* unmanaged<IntPtr, uint*, int>, void> SetDustCallbacks;
     public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnDustsInstalled;
     public delegate* unmanaged<int, IntPtr> DustTextureAsset;
+    public delegate* unmanaged<byte*, byte*, int, int> ReserveBossHead;
+    public delegate* unmanaged<byte*, int> BossHeadSlotOf;
 }

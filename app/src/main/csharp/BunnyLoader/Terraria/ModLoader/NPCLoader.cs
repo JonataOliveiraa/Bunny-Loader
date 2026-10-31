@@ -68,6 +68,7 @@ public static unsafe partial class NPCLoader
         if (type < 0) throw new InvalidOperationException($"{npc.FullName}: registration failed ({type})");
         npc.Type = type;
         npc.Hooks = NPCEventHooks.Install(npc.GetType(), typeof(ModNPC), type);
+        ReserveBossHead(npc);
         lock (Gate)
         {
             int index = type - VanillaCount;
