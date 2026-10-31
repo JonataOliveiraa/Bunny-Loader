@@ -12,6 +12,7 @@
 #include "content/projectiles/ModProjectiles.h"
 #include "content/npcs/ModBossHeads.h"
 #include "content/npcs/ModNpcSave.h"
+#include "content/systems/SystemStages.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/npcs/NpcEvents.h"
 #include "content/npcs/ModTownNpcs.h"
@@ -169,6 +170,7 @@ struct NativeApi {
     int32_t (*tileEvents)(int32_t type, uint32_t flags, runtime::TileEventCallback callback);
     int32_t (*scanTiles)(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells, int32_t capacity);
     void (*readTileDrawData)(void* renderer, int32_t x, int32_t y, int32_t offset, int32_t type, void* data, int32_t* halfBrick);
+    int32_t (*installSystemStage)(int32_t stage, runtime::SystemStageFn callback);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -914,6 +916,9 @@ const NativeApi kNativeApi{
     [](int32_t type, uint32_t flags, runtime::TileEventCallback callback) -> int32_t { return runtime::installTileEvents(type, flags, callback) ? 1 : 0; },
     runtime::scanTileEvents,
     runtime::readManagedTileDrawData,
+    [](int32_t stage, runtime::SystemStageFn callback) -> int32_t {
+        return runtime::installSystemStage(stage, runtime::kStageClientManaged, callback) ? 1 : 0;
+    },
 };
 
 } // namespace

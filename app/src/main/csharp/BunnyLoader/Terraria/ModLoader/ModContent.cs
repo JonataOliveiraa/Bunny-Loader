@@ -162,6 +162,8 @@ public static class ModContent
         {
             Mod[] mods = Host.Mods;
             ModNet.SetHello(mods);
+            SystemLoader.ResizeArrays();
+            SystemLoader.OnLocalizationsLoaded();
             foreach (Mod mod in mods)
             {
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
@@ -265,6 +267,7 @@ public static class ModContent
                 foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostAddRecipes", system.PostAddRecipes);
             }
             RecipeLoader.EndSetup();
+            SystemLoader.PostSetupRecipes();
             foreach (Mod mod in mods)
             {
                 bool created = mod.GetContent<ModItem>().Any(i => ItemHooks.Overrides(i.GetType(), typeof(ModItem), nameof(ModItem.OnCreated))) ||

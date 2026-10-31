@@ -98,12 +98,13 @@ Your own classes can join the load too: implement `ILoadable` and its
 
 | When | What runs | Thread |
 |---|---|---|
-| 1. The mod loads (the game is opening) | each content class: `IsLoadingEnabled`, then its `Load()`; then your `Mod.Load()` | the loader's |
-| 2. The game knows the new types | each item's and each `ModSystem`'s `SetStaticDefaults()` | the game's |
+| 1. The mod loads (the game is opening) | each content class: `IsLoadingEnabled`, then its `Load()`; then your `Mod.Load()`, then each `ModSystem`'s `OnModLoad()` | the loader's |
+| 2. The game knows the new types | each `ModSystem`'s `ResizeArrays()` and `OnLocalizationsLoaded()`, then each item's and each `ModSystem`'s `SetStaticDefaults()` | the game's |
 | 3. All mods' content is in the game | `Mod.PostSetupContent()`, then each `ModSystem`'s | the game's |
 | 4. | `Mod.AddRecipeGroups()`, then each `ModSystem`'s | the game's |
 | 5. | `Mod.AddRecipes()`, each `ModSystem`'s, each item's and each `GlobalItem`'s `AddRecipes()` | the game's |
 | 6. | `Mod.PostAddRecipes()`, then each `ModSystem`'s | the game's |
+| 7. | each `ModSystem`'s `PostSetupRecipes()` | the game's |
 
 Each of steps 3 to 6 runs in **every** C# mod (in load order) before the next
 one starts, as in tModLoader: in `AddRecipes` you can use any mod's items. An

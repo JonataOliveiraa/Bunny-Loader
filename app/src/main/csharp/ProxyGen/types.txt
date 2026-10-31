@@ -131,6 +131,7 @@ Terraria.IO.WorldFile
 Terraria.Initializers.DyeInitializer
 Terraria.InventoryStorage
 Terraria.Lighting
+Terraria.Localization.LanguageManager
 Terraria.Localization.NetworkText
 !Terraria.Localization.NetworkText.ToString
 Terraria.Map.TeleportPylonsMapLayer

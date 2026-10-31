@@ -97,6 +97,7 @@ internal static unsafe class Host
             {
                 mods[0].Autoload(assembly);
                 foreach (Mod mod in mods) mod.Load();
+                foreach (Mod mod in mods) SystemLoader.OnModLoad(mod);
             }
             finally
             {
