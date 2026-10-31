@@ -1724,6 +1724,37 @@ underflow errors are the same as for projectiles. The data goes from the
 server to the clients only, with the game's message, and is applied once the
 client has read it. `NPCLoader.WriteExtraAI`/`ReceiveExtraAI` are public.
 
+### Boss bars
+
+A `ModBossBar` gives an NPC the large health bar, even when it is not a boss
+and has no boss head. Set it in the NPC's `SetDefaults`:
+
+```csharp
+NPC.BossBar = ModContent.GetInstance<ExampleBossBar>();
+```
+
+| Hook | Behavior |
+| --- | --- |
+| `GetIconTexture(ref Rectangle? iconFrame)` | The icon, an `Asset<Texture2D>` such as `TextureAssets.NpcHead[36]`. null shows the game's question mark; `iconFrame` null uses the whole texture. |
+| `ModifyInfo(ref BigProgressBarInfo info, ref float life, ref float lifeMax, ref float shield, ref float shieldMax)` | null reads the NPC's own life. true draws with the values you set, false hides the bar. Change `info.npcIndexToAimAt` to follow another NPC, such as a worm's head. |
+| `PreDraw(SpriteBatch spriteBatch, NPC npc, ref BossBarDrawParams drawParams)` | false skips the bar. |
+| `PostDraw(SpriteBatch spriteBatch, NPC npc, BossBarDrawParams drawParams)` | Runs after the bar, even when `PreDraw` returned false. |
+
+`Life`, `LifeMax`, `Shield` and `ShieldMax` keep the values of the last frame.
+A `GlobalBossBar` has the same `PreDraw`/`PostDraw` for every bar, the game's
+included. The order is tModLoader's: the globals' `PreDraw`, then the mod
+bar's; the mod bar's `PostDraw`, then the globals'. The bar the game follows
+(a boss with a head icon) goes through its `ModifyInfo` when it has a mod bar.
+With nothing followed, the nearest NPC with a mod bar gets it.
+
+On the phone every bar is the game's `GUIBossBar` panel under the minimap.
+`BarColor`, `IconColor` and `ShowText` from `BossBarDrawParams` reach that
+panel, and so do `Life`, `LifeMax`, `Shield`, `ShieldMax`, `IconTexture` and
+`IconFrame`. `BarCenter` tells where the panel is, but changing it does not
+move the panel; `IconScale`, `TextOffset` and `BarTexture` (null on the phone)
+do nothing. `BarCenter` is right for drawing text above the bar in `PostDraw`,
+as `ExampleGlobalBossBar` does.
+
 ### NPC contact
 
 | Hook | Behavior |

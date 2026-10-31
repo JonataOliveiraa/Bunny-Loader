@@ -90,6 +90,8 @@ Terraria.GameContent.Achievements.CustomFlagCondition
 Terraria.GameContent.Achievements.CustomFloatCondition
 Terraria.GameContent.Achievements.CustomIntCondition
 Terraria.GameContent.BannerSystem
+Terraria.GameContent.UI.BigProgressBar.BigProgressBarSystem
+Terraria.GameContent.UI.BigProgressBar.BigProgressBarInfo
 Terraria.GameContent.BannerSystem.NetBannersModule
 Terraria.GameContent.CraftingRequests
 Terraria.GameContent.Creative.CreativeItemSacrificesCatalog
@@ -209,6 +211,7 @@ Terraria.GameContent.UI.ResourceSets.PlayerStatsSnapshot
 !Terraria.GameContent.TextureAssets.Heart
 !Terraria.GameContent.TextureAssets.Heart2
 !Terraria.GameContent.TextureAssets.Mana
+!Terraria.GameContent.TextureAssets.NpcHead
 Terraria.ID.MountID
 Terraria.ID.MountID.Sets
 !Terraria.Mount._mountSpecificData

@@ -75,6 +75,16 @@ public static class UtilsExtensions
     public static Vector2 RotatedByRandom(this Vector2 spinninpoint, double maxRadians) =>
         spinninpoint.RotatedBy(Main.rand.NextDouble() * maxRadians - Main.rand.NextDouble() * maxRadians);
 
+    public static Vector2 ToRotationVector2(this float f) => new(MathF.Cos(f), MathF.Sin(f));
+
+    public static Vector2 NextVector2Unit(this UnifiedRandom r, float startRotation = 0f, float rotationRange = MathF.PI * 2f) =>
+        (startRotation + rotationRange * r.NextFloat()).ToRotationVector2();
+
+    public static Vector2 NextVector2Square(this UnifiedRandom r, float min, float max) => new(r.NextFloat(min, max), r.NextFloat(min, max));
+
+    public static Vector2 NextVector2Circular(this UnifiedRandom r, float circleHalfWidth, float circleHalfHeight) =>
+        r.NextVector2Unit() * new Vector2(circleHalfWidth, circleHalfHeight) * r.NextFloat();
+
     public static Vector2 SafeNormalize(this Vector2 v, Vector2 defaultValue)
     {
         if (v.X == 0 && v.Y == 0 || float.IsNaN(v.X) || float.IsNaN(v.Y)) return defaultValue;

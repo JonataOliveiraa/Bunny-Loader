@@ -7,6 +7,12 @@ namespace Terraria;
 
 public readonly partial struct NPC : IEntityWithGlobals<GlobalNPC>
 {
+    public ModBossBar? BossBar
+    {
+        get => BossBarLoader.Get(this);
+        set => BossBarLoader.Set(this, value);
+    }
+
     public unsafe void VanillaAI()
     {
         if (IsNull) throw new NullReferenceException("NPC.VanillaAI: game object is null");

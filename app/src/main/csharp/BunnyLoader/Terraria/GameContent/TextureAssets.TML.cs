@@ -17,6 +17,8 @@ public static partial class TextureAssets
 
     public static TextureAssetArray Gore { get; } = new(5, "Images/Gore_", static () => Gore_, static i => Main.instance.LoadGore(i));
 
+    public static TextureAssetArray NpcHead { get; } = new(6, "Images/NPC_Head_", static () => NpcHead_, static i => { });
+
     public static TextureAssetArray PlayerHair { get; } = new(1, "Images/Player_Hair_", static () => PlayerHair_, static i => Main.instance.LoadHair(i));
 
     public static TextureAssetArray PlayerHairAlt { get; } = new(2, "Images/Player_HairAlt_", static () => PlayerHairAlt_, static i => Main.instance.LoadHair(i));
