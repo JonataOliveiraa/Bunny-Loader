@@ -1,0 +1,15 @@
+{
+  "uid": "c2a7e66c-aa5f-41c4-bbae-984cf5be7b31",
+  "id": "test-csauto",
+  "name": "Test helper: autopilot state log (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Logs the menu and world state for the test scripts, without QuickJS.",
+  "description": "Pushed by tools/tests/run-cs.sh and run-mp.sh next to the test pack. Logs 'csauto state ...' on every change.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsAuto.dll",
+  "dependencies": []
+}

@@ -98,7 +98,22 @@ with tModLoader's name.
      (`/data/local/tmp/plrbak`, and `/data/local/tmp/wldflat`, the flat world
      that `tools/tests/flatworld` makes once with QuickJS: grass on dirt, no
      trees, graves, chests, liquids or walls);
+     a multiplayer pack runs on two emulators with `tools/tests/run-mp.sh <pack>...`
+     (`HOST`, default `127.0.0.1:16384`, hosts the world; `CLIENT`, default
+     `127.0.0.1:16416`, joins it through `adb forward tcp:7777` and is moved 12
+     tiles away from the host on arrival);
   4. the guide in `docs/mods-em-csharp` covers it.
+- **The runners** (`tools/tests/lib.sh`) push the pack, `csenv` (unless
+  `NOENV=1`) and `tools/tests/csauto`, a helper pack that logs the menu and world
+  state (`csauto state menu mode=N ...`, `csauto state world net=N players=N`)
+  on every change. The menu is walked with taps that are repeated until the
+  logged state moves on (title 0, players 1, worlds 6, lobby 446, host settings
+  448, loading 10, connecting 14), and each run ends on the pack's `END` line
+  (`WAIT`, 180 s by default) instead of a fixed sleep. A step that does not move
+  on stops the run with the state and a screenshot in `tools/tests/out/`.
+  `KEEPSAVES=1` keeps the device's saves, `WORLD` picks another world backup,
+  `QJS=true` turns QuickJS on, `DEVICE` picks the device of `run-cs.sh`, and
+  `KEEP=1` leaves both games open after `run-mp.sh`.
   Hooks that run every frame are also measured on a real phone.
 - **Both engines coexist until phase 9.** Each C# loader is written beside the
   JS one, sharing only the native runtime. Hooks that both install must chain
