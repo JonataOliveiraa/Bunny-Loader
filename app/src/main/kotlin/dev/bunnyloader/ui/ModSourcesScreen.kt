@@ -33,6 +33,8 @@ fun ModSourcesScreen(shell: Shell, onBack: () -> Unit) {
     var query by rememberSaveable { mutableStateOf("") }
     var exportProject by rememberSaveable { mutableStateOf<String?>(null) }
     var localError by remember { mutableStateOf<String?>(null) }
+    var listLanguage by rememberSaveable { mutableStateOf(dev.bunnyloader.mods.ModSources.SourceLanguage.JAVASCRIPT) }
+    var createLanguage by rememberSaveable { mutableStateOf(dev.bunnyloader.mods.ModSources.SourceLanguage.JAVASCRIPT) }
     val busy = shell.sourceBusy
     BackHandler { onBack() }
     LaunchedEffect(Unit) { shell.refreshSources() }
@@ -53,6 +55,7 @@ fun ModSourcesScreen(shell: Shell, onBack: () -> Unit) {
         (localError ?: shell.sourceMessage)?.takeIf { it.isNotBlank() }?.let {
             PixelText(it, size = Ts.Small, color = Bl.TextDim, modifier = Modifier.padding(bottom = 8.dp))
         }
+        SourceLanguageTabs(listLanguage, { listLanguage = it })
         SourceSearchField(query, { query = it })
         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             Box(Modifier.semantics { contentDescription = tr("RefreshList") }
@@ -63,9 +66,11 @@ fun ModSourcesScreen(shell: Shell, onBack: () -> Unit) {
             PixelButton(tr("CreateMod"), { if (!busy) creating = true }, Modifier.weight(1f), fontSize = Ts.Tiny)
         }
         val filtered = filterSourceProjects(shell.sourceProjects, query, UiLocalization.language)
+            .filter { it.language == listLanguage }
         if (filtered.isEmpty() && !busy) {
             PixelText(if (shell.sourceProjects.isEmpty()) tr("NoProjects")
-                else tr("NoProjectsMatch"), size = Ts.Body)
+                else if (filterSourceProjects(shell.sourceProjects, query, UiLocalization.language).isEmpty()) tr("NoProjectsMatch")
+                else tr("NoProjectsInLanguage"), size = Ts.Body)
         }
         LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(7.dp),
             contentPadding = PaddingValues(bottom = 12.dp)) {
@@ -129,6 +134,8 @@ fun ModSourcesScreen(shell: Shell, onBack: () -> Unit) {
                 SourceField(tr("InternalName"), id) { id = it }
                 SourceField(tr("ModName"), name) { name = it }
                 SourceField(tr("Author"), author) { author = it }
+                PixelText(tr("ModLanguage"), size = Ts.Small, color = Bl.TextFaint)
+                SourceLanguageTabs(createLanguage, { createLanguage = it })
                 SourceField(tr("BasicSwordName"), sword) { sword = it }
                 PixelText(tr("ProjectLocation"), size = Ts.Small)
                 for (folder in shell.sourceFolders) {
@@ -138,7 +145,7 @@ fun ModSourcesScreen(shell: Shell, onBack: () -> Unit) {
                 PixelButton(tr("Create"), {
                     if (!busy) {
                         creating = false
-                        shell.createSource(id, name, author, sword, UiLocalization.language, location) {
+                        shell.createSource(id, name, author, sword, UiLocalization.language, location, createLanguage) {
                             query = ""
                             id = ""; name = ""; author = ""; sword = ""
                         }
@@ -186,6 +193,22 @@ internal fun filterSourceProjects(
     return projects.filter { entry ->
         listOf(entry.manifest?.nameFor(language) ?: entry.name, entry.name, entry.manifest?.id.orEmpty(),
             entry.manifest?.author.orEmpty()).any { it.contains(term, ignoreCase = true) }
+    }
+}
+
+@Composable
+private fun SourceLanguageTabs(
+    selected: dev.bunnyloader.mods.ModSources.SourceLanguage,
+    onSelected: (dev.bunnyloader.mods.ModSources.SourceLanguage) -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (language in dev.bunnyloader.mods.ModSources.SourceLanguage.entries) {
+            PixelButton(
+                (if (selected == language) "✓ " else "") + if (language == dev.bunnyloader.mods.ModSources.SourceLanguage.CSHARP) tr("CSharpMods") else tr("JavaScriptMods"),
+                { onSelected(language) }, Modifier.weight(1f), fontSize = Ts.Tiny,
+                fill = if (selected == language) Bl.TitleFill else Bl.Select,
+            )
+        }
     }
 }
 

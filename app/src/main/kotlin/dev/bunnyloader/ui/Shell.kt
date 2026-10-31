@@ -120,10 +120,11 @@ class Shell(context: Context) {
         basicSword: String = "",
         language: String = UiLocalization.language,
         location: String = "",
+        sourceLanguage: dev.bunnyloader.mods.ModSources.SourceLanguage = dev.bunnyloader.mods.ModSources.SourceLanguage.JAVASCRIPT,
         onCreated: (String) -> Unit,
     ) {
         sourceTask {
-            val project = sourceLocations.create(id.trim(), name.trim(), author.trim(), basicSword.trim(), language, location)
+            val project = sourceLocations.create(id.trim(), name.trim(), author.trim(), basicSword.trim(), language, location, sourceLanguage)
             scope.launch { onCreated(project.key) }
             tr("ProjectCreated")
         }
