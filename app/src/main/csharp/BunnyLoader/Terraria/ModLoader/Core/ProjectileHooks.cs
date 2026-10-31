@@ -62,6 +62,8 @@ internal static unsafe class ProjectileHooks
             ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
         ProjectileHitHooks.Install(Has);
         ProjectileGrappleHooks.Install(Has);
+        ProjectileNetHooks.Install(Has);
+        FishingLineHooks.Install(Has);
     }
 
     internal static bool Wants(Projectile projectile, string method)

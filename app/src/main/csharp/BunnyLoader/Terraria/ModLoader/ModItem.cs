@@ -66,6 +66,8 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void HoldItem(Player player) { }
 
+    public virtual void ModifyFishingLine(Projectile bobber, ref Vector2 lineOriginOffset, ref Color lineColor) { }
+
     public virtual void UseStyle(Player player, Rectangle heldItemFrame) { }
 
     public virtual void HoldStyle(Player player, Rectangle heldItemFrame) { }

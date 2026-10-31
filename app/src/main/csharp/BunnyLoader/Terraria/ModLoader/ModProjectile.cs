@@ -61,6 +61,8 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
 
     public virtual void ReceiveExtraAI(BinaryReader reader) { }
 
+    public virtual void ModifyFishingLine(ref Vector2 lineOriginOffset, ref Color lineColor) { }
+
     public virtual bool ShouldUpdatePosition() => true;
 
     public virtual bool TileCollideStyle(ref int width, ref int height, ref bool fallThrough, ref Vector2 hitboxCenterFrac) => true;

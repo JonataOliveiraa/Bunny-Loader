@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading;
 using BunnyLoader;
@@ -9,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader.Core;
+using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
 
@@ -244,6 +246,83 @@ public static unsafe class ProjectileLoader
             catch (Exception e) { Report(g, nameof(GlobalProjectile.ShouldUpdatePosition), e); }
         }
         return true;
+    }
+
+    public static void ModifyFishingLine(Projectile projectile, ref float polePosX, ref float polePosY, ref Color lineColor)
+    {
+        if (InstanceOf(projectile) is not ModProjectile m) return;
+        Vector2 lineOriginOffset = Vector2.Zero;
+        Player player = Main.player[projectile.owner];
+        try { m.ModifyFishingLine(ref lineOriginOffset, ref lineColor); }
+        catch (Exception e) { Report(m, nameof(ModProjectile.ModifyFishingLine), e); }
+        polePosX += lineOriginOffset.X * player.direction;
+        polePosY += lineOriginOffset.Y * player.gravDir;
+    }
+
+    public static void SendExtraAI(BinaryWriter writer, byte[] extraAI)
+    {
+        writer.Write7BitEncodedInt(extraAI.Length);
+        if (extraAI.Length > 0) writer.Write(extraAI);
+    }
+
+    public static byte[]? WriteExtraAI(Projectile projectile)
+    {
+        using var stream = new MemoryStream();
+        using var modWriter = new BinaryWriter(stream);
+        using var bufferedStream = new MemoryStream();
+        using var binaryWriter = new BinaryWriter(bufferedStream);
+        var bitWriter = new BitWriter();
+        if (InstanceOf(projectile) is ModProjectile m)
+        {
+            try { m.SendExtraAI(binaryWriter); }
+            catch (Exception e) { Report(m, nameof(ModProjectile.SendExtraAI), e); }
+        }
+        foreach (GlobalProjectile? g in GlobalsOf(projectile))
+        {
+            if (g == null) continue;
+            try { g.SendExtraAI(projectile, bitWriter, binaryWriter); }
+            catch (Exception e) { Report(g, nameof(GlobalProjectile.SendExtraAI), e); }
+        }
+        binaryWriter.Flush();
+        bitWriter.Flush(modWriter);
+        modWriter.Write(bufferedStream.ToArray());
+        modWriter.Flush();
+        byte[] bytes = stream.ToArray();
+        return bytes.Length == 1 ? null : bytes;
+    }
+
+    public static byte[] ReadExtraAI(BinaryReader reader) => reader.ReadBytes(reader.Read7BitEncodedInt());
+
+    public static void ReceiveExtraAI(Projectile projectile, byte[] extraAI)
+    {
+        using var stream = new MemoryStream(extraAI);
+        using var modReader = new BinaryReader(stream);
+        ModType? last = null;
+        try
+        {
+            var bitReader = new BitReader(modReader);
+            long bitReaderEnd = stream.Position;
+            if (InstanceOf(projectile) is ModProjectile m)
+            {
+                last = m;
+                m.ReceiveExtraAI(modReader);
+            }
+            foreach (GlobalProjectile? g in GlobalsOf(projectile))
+            {
+                if (g == null) continue;
+                last = g;
+                g.ReceiveExtraAI(projectile, bitReader, modReader);
+            }
+            if (bitReader.BitsRead < bitReader.MaxBits)
+                throw new IOException($"Read underflow {bitReader.MaxBits - bitReader.BitsRead} of {bitReader.MaxBits} compressed bits in ReceiveExtraAI");
+            if (stream.Position < stream.Length)
+                throw new IOException($"Read underflow {stream.Length - stream.Position} of {stream.Length - bitReaderEnd} bytes in ReceiveExtraAI");
+        }
+        catch (Exception e)
+        {
+            string owner = last?.FullName ?? (InstanceOf(projectile)?.FullName ?? $"projectile {projectile.type}");
+            ItemHooks.Report($"{owner}.ReceiveExtraAI", e);
+        }
     }
 
     public static bool TileCollideStyle(Projectile projectile, ref int width, ref int height, ref bool fallThrough, ref Vector2 hitboxCenterFrac)

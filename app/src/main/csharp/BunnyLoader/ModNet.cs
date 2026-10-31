@@ -60,6 +60,12 @@ internal static unsafe class ModNet
                 ItemPvpHooks.Queue(reader, from);
                 return;
             }
+            if (kind == ProjectileNetHooks.KindExtraAI)
+            {
+                name = "projectile extra AI";
+                ProjectileNetHooks.Receive(reader, from);
+                return;
+            }
             if (kind == HairHooks.KindHair)
             {
                 name = "hair";

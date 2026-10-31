@@ -4,6 +4,15 @@ Items: {
 		Tooltip: Uma munição de bala de mod.
 	}
 
+	ExampleFishingRod: {
+		DisplayName: Vara de Pesca de Exemplo
+		Tooltip:
+			'''
+			Lança várias linhas de uma vez. Pesca na lava.
+			A linha nunca arrebenta.
+			'''
+	}
+
 	ExampleHookItem: {
 		DisplayName: Gancho de Exemplo
 		Tooltip: Prende em árvores
@@ -185,6 +194,7 @@ GelGlobalItem: {
 }
 
 Projectiles: {
+	ExampleBobber.DisplayName: Boia de Exemplo
 	ExampleBullet.DisplayName: Bala de Exemplo
 	ExampleHookProjectile.DisplayName: Gancho de Exemplo
 }

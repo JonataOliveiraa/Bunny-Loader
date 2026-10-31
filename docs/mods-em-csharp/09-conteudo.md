@@ -957,6 +957,13 @@ On the phone, `ItemSlot.ShiftInUse` does not read `ItemSlot.ShiftForcedOn`.
 | `AnglerQuestReward(rareMultiplier, rewardItems)` | after `Player.GetAnglerReward`, with the game's rewards in the list; the list is what the player gets |
 | `GetDyeTraderReward(rewardPool)` | in `Player.GetDyeTraderReward`, on the pool the dye comes from |
 
+The rod itself can move the line's start and color: `ModItem.ModifyFishingLine(bobber,
+ref lineOriginOffset, ref lineColor)` (the offset is from the player's center,
+mirrored when facing left), and a bobber can do the same with
+`ModProjectile.ModifyFishingLine(ref lineOriginOffset, ref lineColor)`. The
+ExampleMod's `ExampleFishingRod` casts three to five `ExampleBobber`s, each with
+its own line color, synced with `SendExtraAI`.
+
 `PlayerFishingConditions` on the phone has the types (`PoleItemType`,
 `BaitItemType`), not tModLoader's `Pole`/`Bait` items.
 
@@ -1208,7 +1215,27 @@ item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
 `Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
 index as in tModLoader. `Projectile.CloneDefaults(type)` copies another
 projectile's defaults and keeps the type, the `ModProjectile` and the globals.
-`SendExtraAI`/`ReceiveExtraAI` come next.
+
+### Projectiles in multiplayer: `SendExtraAI`
+
+The game syncs a projectile's position, velocity and `ai` with its message 27;
+fields of your own travel with `SendExtraAI(BinaryWriter writer)` and
+`ReceiveExtraAI(BinaryReader reader)`. Set `Projectile.netUpdate = true` when
+they change, and read them back in the same order.
+
+```csharp
+public override void SendExtraAI(BinaryWriter writer) => writer.Write((byte)fishingLineColorIndex);
+
+public override void ReceiveExtraAI(BinaryReader reader) => fishingLineColorIndex = reader.ReadByte();
+```
+
+A `GlobalProjectile` has `SendExtraAI(projectile, bitWriter, binaryWriter)`
+and `ReceiveExtraAI(projectile, bitReader, binaryReader)`: `BitWriter.WriteBit`
+packs flags. The data is laid out as in tModLoader (the globals' bits, then
+the `ModProjectile`'s bytes, then the globals' bytes), and reading less or more
+than was written is logged as an error. It goes right after the game's message,
+from the projectile's owner; the server passes a client's on to the others.
+`ProjectileLoader.WriteExtraAI`/`ReceiveExtraAI` are public, as in tModLoader.
 
 On the phone the extras and the sprite are drawn by the same game method, the
 extras first. When only one of them is hidden, the draws are told apart by the

@@ -6,6 +6,8 @@ using System.Threading;
 using System;
 using BunnyLoader.Interop;
 using BunnyLoader;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.GameContent.Creative;
 using Terraria.GameContent.Items;
 using Terraria.ID;
@@ -426,5 +428,17 @@ internal static unsafe class ItemLoader
                 Log.Error($"item {item.FullName}: SetStaticDefaults threw: {e}");
             }
         }
+    }
+
+    public static void ModifyFishingLine(Projectile projectile, Player player, ref float polePosX, ref float polePosY, ref Color lineColor)
+    {
+        Item item = player.inventory[player.selectedItem];
+        if (ItemHooks.ModItemOf(item) is not ModItem m) return;
+        Vector2 lineOriginOffset = Vector2.Zero;
+        try { m.ModifyFishingLine(projectile, ref lineOriginOffset, ref lineColor); }
+        catch (Exception e) { ItemHooks.Report($"{m.FullName}.ModifyFishingLine", e); }
+        polePosX += lineOriginOffset.X * player.direction;
+        if (player.direction < 0) polePosX -= 13f;
+        polePosY += lineOriginOffset.Y * player.gravDir;
     }
 }

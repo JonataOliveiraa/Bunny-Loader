@@ -1,6 +1,8 @@
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
+using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
 
@@ -63,6 +65,10 @@ public abstract class GlobalProjectile : GlobalType<Projectile, GlobalProjectile
     public virtual bool PreDraw(Projectile projectile, Player player, ref Color lightColor) => true;
 
     public virtual void PostDraw(Projectile projectile, Player player, Color lightColor) { }
+
+    public virtual void SendExtraAI(Projectile projectile, BitWriter bitWriter, BinaryWriter binaryWriter) { }
+
+    public virtual void ReceiveExtraAI(Projectile projectile, BitReader bitReader, BinaryReader binaryReader) { }
 
     public virtual bool? CanUseGrapple(int type, Player player) => null;
 

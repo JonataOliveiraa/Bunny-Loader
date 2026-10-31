@@ -4,6 +4,15 @@ Items: {
 		Tooltip: This is a modded bullet ammo.
 	}
 
+	ExampleFishingRod: {
+		DisplayName: Example Fishing Rod
+		Tooltip:
+			'''
+			Fires multiple lines at once. Can fish in lava.
+			The fishing line never snaps.
+			'''
+	}
+
 	ExampleHookItem: {
 		DisplayName: Example Hook
 		Tooltip: Can grapple onto trees
@@ -185,6 +194,7 @@ GelGlobalItem: {
 }
 
 Projectiles: {
+	ExampleBobber.DisplayName: Example Bobber
 	ExampleBullet.DisplayName: Example Bullet
 	ExampleHookProjectile.DisplayName: Example Hook
 }
