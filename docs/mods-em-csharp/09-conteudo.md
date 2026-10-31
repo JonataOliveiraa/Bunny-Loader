@@ -1320,6 +1320,78 @@ tModLoader.
 `projectile.TryGetOwner(out Player player)` gives the owning player of a
 player's projectile.
 
+## Dusts: `ModDust`
+
+```csharp
+public class Sparkle : ModDust
+{
+    public override void OnSpawn(Dust dust)
+    {
+        dust.velocity *= 0.4f;
+        dust.noGravity = true;
+        dust.noLight = true;
+        dust.scale *= 1.5f;
+    }
+
+    public override bool Update(Dust dust)
+    {
+        dust.position += dust.velocity;
+        dust.rotation += dust.velocity.X * 0.15f;
+        dust.scale *= 0.99f;
+        if (dust.scale < 0.5f) dust.active = false;
+        return false;
+    }
+}
+```
+
+A dust is spawned by type: `Dust.NewDust(position, width, height, ModContent.DustType<Sparkle>())`.
+Its texture is `Texture` (`Sparkle.png`, frames of 8x8 like the game's sheet);
+`Texture => null` uses the game's dust sheet, and `Texture2D` is the loaded one.
+There is one `ModDust` per type: the dust itself is the game's `Dust`, which
+every hook gets.
+
+| Hook | When |
+| --- | --- |
+| `SetStaticDefaults` | once, when the game has the type; set `UpdateType` here to copy a game dust's behavior |
+| `OnSpawn(dust)` | in `Dust.NewDust`, with the frame already at the top of the texture |
+| `Update(dust)` | every update; `false` skips the game's update (the usual with your own movement) |
+| `MidUpdate(dust)` | after the game's update; `true` undoes its horizontal slowdown |
+| `GetAlpha(dust, lightColor)` | the color it is drawn with; `null` keeps the game's |
+| `PreDraw(dust)` | before the dusts are drawn, with `Main.spriteBatch` open; `false` hides it |
+
+`dust.active = false` works as in tModLoader: on the phone the free dust slots
+are a stack that only `Dust.SetNotActive` refills, and the slot of a dust a mod
+turned off is put back for you.
+
+## Gores: `ModGore`
+
+Every PNG in a `Gores/` folder of the mod becomes a gore named after the file
+(`Mod.Find<ModGore>("MyGore").Type`); a class adds hooks:
+
+```csharp
+public class ExampleDroplet : ModGore
+{
+    public override void SetStaticDefaults()
+    {
+        ChildSafety.SafeGore[Type] = true;
+        GoreID.Sets.IsDrip[Type] = true;
+        UpdateType = GoreID.WaterDrip;
+    }
+}
+```
+
+| Hook | When |
+| --- | --- |
+| `SetStaticDefaults` | once, when the gore tables have grown; `UpdateType` copies a game gore's behavior |
+| `OnSpawn(gore, source)` | in `Gore.NewGore`; `source` is the one passed to `Gore.NewGore(source, ...)` |
+| `Update(gore)` | every update; `false` skips the game's update |
+| `GetAlpha(gore, lightColor)` | the color it is drawn with; `null` keeps the game's |
+
+`GoreLoader.AddGoreFromTexture<TGore>(mod, texture)` adds one from any texture
+in `Load`. The types come after the game's (`GoreLoader.GoreCount`) and are set
+once the content is ready, so read `ModContent.GoreType<T>()` from then on. The
+phone has `GoreID.Sets.IsDrip` where tModLoader has `LiquidDroplet`.
+
 ## Mounts: `ModMount`
 
 A mount is set up as in tModLoader: `SetStaticDefaults` fills `MountData`

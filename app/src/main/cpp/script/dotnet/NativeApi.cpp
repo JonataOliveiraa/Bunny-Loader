@@ -10,6 +10,7 @@
 #include "content/npcs/NpcEvents.h"
 #include "content/projectiles/ProjectileStrikes.h"
 #include "content/projectiles/ProjectileDrawSplit.h"
+#include "content/dusts/ModDusts.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
@@ -130,6 +131,13 @@ struct NativeApi {
     int32_t (*npcEvents)(int32_t type, uint32_t events, int32_t (*callback)(int32_t event, void* npc, void* args));
     void (*npcOriginal)(void* npc, int32_t event, int32_t argument);
     void* (*npcImmunityData)(int32_t type);
+    int32_t (*registerDust)(const char* mod, const char* name, const char* texture, uint32_t hooks);
+    void (*setDustUpdateType)(int32_t type, int32_t updateType);
+    void (*setDustCallbacks)(void (*spawn)(int32_t, void*), void (*update)(void**, int32_t, uint8_t*),
+                             void (*midUpdate)(void**, int32_t, uint8_t*), void (*preDraw)(void**, int32_t, uint8_t*),
+                             int32_t (*getAlpha)(void*, uint32_t*));
+    void (*onDustsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void* (*dustTextureAsset)(int32_t type);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -698,6 +706,40 @@ int32_t nativeBeginProjectileDrawSplit(void* texture, int32_t extras, int32_t sp
 
 void nativeEndProjectileDrawSplit() { runtime::endProjectileDrawSplit(); }
 
+int32_t nativeRegisterDust(const char* mod, const char* name, const char* texture, uint32_t hooks) {
+    if (!mod || !name || !*mod || !*name) return -1;
+    runtime::ModDustDef def;
+    def.mod = mod;
+    def.name = name;
+    def.texture = texture ? texture : "";
+    if (!def.texture.empty() && !fileExists(def.texture.c_str())) return -2;
+    def.hooks = hooks;
+    def.engine = 1;
+    const int type = runtime::registerModDust(std::move(def));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeSetDustUpdateType(int32_t type, int32_t updateType) { runtime::setModDustUpdateType(type, updateType); }
+
+void nativeSetDustCallbacks(void (*spawn)(int32_t, void*), void (*update)(void**, int32_t, uint8_t*),
+                            void (*midUpdate)(void**, int32_t, uint8_t*), void (*preDraw)(void**, int32_t, uint8_t*),
+                            int32_t (*getAlpha)(void*, uint32_t*)) {
+    runtime::DustNativeCallbacks callbacks;
+    callbacks.spawn = spawn;
+    callbacks.update = update;
+    callbacks.midUpdate = midUpdate;
+    callbacks.preDraw = preDraw;
+    callbacks.getAlpha = getAlpha;
+    runtime::setDustNativeCallbacks(callbacks);
+}
+
+void nativeOnDustsInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::addDustsInstalledHook(reinterpret_cast<runtime::DustsInstalledHook>(callback));
+}
+
+void* nativeDustTextureAsset(int32_t type) { return runtime::modDustTextureAsset(type); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -782,6 +824,11 @@ const NativeApi kNativeApi{
     nativeNPCEvents,
     nativeNPCOriginal,
     nativeNPCImmunityData,
+    nativeRegisterDust,
+    nativeSetDustUpdateType,
+    nativeSetDustCallbacks,
+    nativeOnDustsInstalled,
+    nativeDustTextureAsset,
 };
 
 } // namespace

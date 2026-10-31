@@ -1,0 +1,15 @@
+{
+  "uid": "7b2ea93d-7a2d-485d-885a-f813d440c92b",
+  "id": "test-csdust",
+  "name": "Test: ModDust (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModDust: textures, OnSpawn, Update, UpdateType, MidUpdate, GetAlpha, PreDraw, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csdust. Logs csdust <case>: ok | FAIL and csdust END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsDust.dll",
+  "dependencies": []
+}

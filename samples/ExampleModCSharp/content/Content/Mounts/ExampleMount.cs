@@ -45,7 +45,7 @@ public class ExampleMount : ModMount
         MountData.fatigueMax = 0;
         MountData.buff = ModContent.BuffType<Buffs.ExampleMountBuff>();
 
-        MountData.spawnDust = DustID.MagicMirror;
+        MountData.spawnDust = ModContent.DustType<Dusts.Sparkle>();
 
         MountData.totalFrames = 4;
         MountData.playerYOffsets = Enumerable.Repeat(20, MountData.totalFrames).ToArray();
@@ -102,7 +102,7 @@ public class ExampleMount : ModMount
         {
             Rectangle rect = player.getRect();
 
-            Dust.NewDust(new Vector2(rect.X, rect.Y), rect.Width, rect.Height, DustID.MagicMirror);
+            Dust.NewDust(new Vector2(rect.X, rect.Y), rect.Width, rect.Height, ModContent.DustType<Dusts.Sparkle>());
         }
     }
 

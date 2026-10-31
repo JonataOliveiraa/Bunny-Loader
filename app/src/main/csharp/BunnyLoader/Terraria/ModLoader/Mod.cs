@@ -116,6 +116,7 @@ public abstract class Mod
         if (!ContentAutoloadingEnabled) return;
         foreach (Type type in assembly.GetTypes().Where(IsAutoloaded).OrderBy(t => t.FullName, StringComparer.Ordinal))
             AddContent((ILoadable)Activator.CreateInstance(type, true)!);
+        GoreLoader.AutoloadGores(this);
     }
 
     static bool IsAutoloaded(Type type) =>

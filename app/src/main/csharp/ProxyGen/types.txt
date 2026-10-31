@@ -229,3 +229,11 @@ Terraria.Tile
 Terraria.TileData
 Terraria.DataStructures.NPCDebuffImmunityData
 !Terraria.NPC.HitEffect
+Microsoft.Xna.Framework.Graphics.BlendState
+Microsoft.Xna.Framework.Graphics.SamplerState
+Microsoft.Xna.Framework.Graphics.DepthStencilState
+Microsoft.Xna.Framework.Graphics.RasterizerState
+!Terraria.GameContent.TextureAssets.Gore
+Terraria.ID.GoreID
+Terraria.ID.GoreID.Sets
+Terraria.GameContent.ChildSafety

@@ -85,4 +85,11 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, uint, delegate* unmanaged<int, IntPtr, void*, int>, int> NPCEvents;
     public delegate* unmanaged<IntPtr, int, int, void> NPCOriginal;
     public delegate* unmanaged<int, IntPtr> NPCImmunityData;
+    public delegate* unmanaged<byte*, byte*, byte*, uint, int> RegisterDust;
+    public delegate* unmanaged<int, int, void> SetDustUpdateType;
+    public delegate* unmanaged<delegate* unmanaged<int, IntPtr, void>, delegate* unmanaged<IntPtr*, int, byte*, void>,
+        delegate* unmanaged<IntPtr*, int, byte*, void>, delegate* unmanaged<IntPtr*, int, byte*, void>,
+        delegate* unmanaged<IntPtr, uint*, int>, void> SetDustCallbacks;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnDustsInstalled;
+    public delegate* unmanaged<int, IntPtr> DustTextureAsset;
 }

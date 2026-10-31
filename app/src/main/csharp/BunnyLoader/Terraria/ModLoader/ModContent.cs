@@ -39,6 +39,12 @@ public static class ModContent
 
     public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
 
+    public static int DustType<T>() where T : ModDust => GetInstance<T>()?.Type ?? 0;
+
+    public static int GoreType<T>() where T : ModGore => GetInstance<T>()?.Type ?? 0;
+
+    public static ModDust? GetModDust(int type) => DustLoader.GetDust(type);
+
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
 
     public static T Find<T>(string fullname) where T : IModType =>
@@ -175,6 +181,16 @@ public static class ModContent
             }
             try { HairLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"hairs: the tables could not be resized: {e}"); }
+            try { GoreLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"gores: the tables could not be resized: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModGore gore in mod.GetContent<ModGore>())
+                {
+                    Run(mod, $"{gore.Name}.SetStaticDefaults", gore.SetupContent);
+                    if (gore.UpdateType > 0) GoreHooks.WantUpdate();
+                }
+            }
             foreach (Mod mod in mods)
             {
                 foreach (ModHair hair in mod.GetContent<ModHair>()) Run(mod, $"{hair.Name}.SetStaticDefaults", hair.SetupContent);
