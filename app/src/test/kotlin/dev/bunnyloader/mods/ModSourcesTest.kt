@@ -68,15 +68,17 @@ class ModSourcesTest {
         assertTrue(code.contains(".AddIngredient(ItemID.DirtBlock, 10)"))
         assertTrue(sources.files("CSharpMod").contains("$swordPath.cs"))
         assertTrue(File(sources.root, "CSharpMod/$swordPath.png").readBytes().contentEquals(sprite.readBytes()))
-        val localization = json.parseToJsonElement(
-            sources.readText("CSharpMod", "content/Localization/en-US.json"))
-        assertEquals("Basic Sword", localization.jsonObject["ItemName"]!!.jsonObject["BasicSword"]!!.jsonPrimitive.content)
+        val localization = sources.readText("CSharpMod", "content/Localization/en-US_Mods.CSharpMod.hjson")
+        assertTrue(localization.contains("Items: {"))
+        assertTrue(localization.contains("BasicSword: {"))
+        assertTrue(localization.contains("DisplayName: Basic Sword"))
+        assertTrue(localization.contains("Tooltip: \"\""))
         sources.build("CSharpMod", output())
         ZipFile(output()).use { zip ->
             assertNotNull(zip.getEntry("$swordPath.cs"))
             assertNotNull(zip.getEntry("$swordPath.png"))
-            assertNotNull(zip.getEntry("content/Localization/en-US.json"))
-            assertNotNull(zip.getEntry("content/Localization/zh-Hans.json"))
+            assertNotNull(zip.getEntry("content/Localization/en-US_Mods.CSharpMod.hjson"))
+            assertNotNull(zip.getEntry("content/Localization/zh-Hans_Mods.CSharpMod.hjson"))
         }
         assertEquals("CSharpMod.cs", manifest.entry)
     }

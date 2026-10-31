@@ -148,11 +148,20 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
                 File(swordDir, "$sword.png").outputStream().use { output -> input.copyTo(output) }
             }
             val culture = templateCulture(language)
-            val names = mapOf("ItemName" to mapOf(sword to displaySwordName(sword)))
-            val content = json.encodeToString(names)
-            File(directory, "content/Localization/en-US.json").writeText(content, Charsets.UTF_8)
-            if (culture != "en-US") {
-                File(directory, "content/Localization/$culture.json").writeText(content, Charsets.UTF_8)
+            if (sourceLanguage == SourceLanguage.CSHARP) {
+                val displayName = displaySwordName(sword)
+                val content = "Items: {\n\t$sword: {\n\t\tDisplayName: $displayName\n\t\tTooltip: \"\"\n\t}\n}\n"
+                File(directory, "content/Localization/en-US_Mods.$id.hjson").writeText(content, Charsets.UTF_8)
+                if (culture != "en-US") {
+                    File(directory, "content/Localization/${culture}_Mods.$id.hjson").writeText(content, Charsets.UTF_8)
+                }
+            } else {
+                val names = mapOf("ItemName" to mapOf(sword to displaySwordName(sword)))
+                val content = json.encodeToString(names)
+                File(directory, "content/Localization/en-US.json").writeText(content, Charsets.UTF_8)
+                if (culture != "en-US") {
+                    File(directory, "content/Localization/$culture.json").writeText(content, Charsets.UTF_8)
+                }
             }
         }
         val culture = templateCulture(language)
