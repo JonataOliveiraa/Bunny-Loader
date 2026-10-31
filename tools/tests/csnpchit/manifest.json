@@ -1,0 +1,15 @@
+{
+  "uid": "a20ea534-874e-4d0a-a08a-40aea7460f33",
+  "id": "test-csnpchit",
+  "name": "Test: NPC item hits (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "NPC item hit decisions, ordering, damage and hit metadata.",
+  "description": "Build with tools/tests/build-cs.sh csnpchit. Logs csnpchit <case>: ok | FAIL and csnpchit END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpcHit.dll",
+  "dependencies": []
+}

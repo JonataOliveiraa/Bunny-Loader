@@ -71,6 +71,16 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
 
     public virtual bool CheckDead() => true;
 
+    public virtual bool? CanBeHitByItem(Player player, Item item) => null;
+
+    public virtual bool? CanCollideWithPlayerMeleeAttack(Player player, Item item, Microsoft.Xna.Framework.Rectangle meleeAttackHitbox) => null;
+
+    public virtual void ModifyIncomingHit(ref NPC.HitModifiers modifiers) { }
+
+    public virtual void ModifyHitByItem(Player player, Item item, ref NPC.HitModifiers modifiers) { }
+
+    public virtual void OnHitByItem(Player player, Item item, NPC.HitInfo hit, int damageDone) { }
+
     public virtual void AutoStaticDefaults() =>
         TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));
 }

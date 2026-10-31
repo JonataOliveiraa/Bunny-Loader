@@ -1621,6 +1621,59 @@ steps. Immunity to `ExampleGravityDebuff`, and PartyZombie's custom liquid
 gravity adjustments, require the separate NPC gravity-multiplier API; those
 parts are explicitly deferred. Existing vanilla sounds are used.
 
+### Item hits on an NPC
+
+These hooks belong to the target. A `GlobalNPC` adds `NPC npc` as its first
+parameter:
+
+| Hook | Behavior |
+| --- | --- |
+| `CanBeHitByItem(Player player, Item item)` | Returns `bool?`: false blocks, true permits otherwise restricted targets such as friendly NPCs, and null keeps the default. NPC globals run first, followed by the mod NPC. A false stops the remaining NPC callbacks. |
+| `CanCollideWithPlayerMeleeAttack(Player player, Item item, Rectangle meleeAttackHitbox)` | Returns `bool?` to replace the melee collision decision. It does not bypass the game's wall or invulnerability checks. NPC globals run before the mod NPC. |
+| `ModifyIncomingHit(ref NPC.HitModifiers modifiers)` | The mod NPC runs before its globals, at the start of the accepted item strike, before item-specific modifiers. |
+| `ModifyHitByItem(Player player, Item item, ref NPC.HitModifiers modifiers)` | The mod NPC runs before its globals, after the item callbacks and before the player's callbacks. |
+| `OnHitByItem(Player player, Item item, NPC.HitInfo hit, int damageDone)` | The mod NPC runs before its globals, after the item callbacks and before the player's callbacks. Use this for side effects after the strike. |
+
+Across player, item and NPC decision sources, the first non-null decision
+has priority, following the selected local `CombinedHooks`. An earlier false
+ends the checks; after a true, later sources still run and their decisions do
+not replace it. Within the NPC source, any global or mod NPC false vetoes that
+source. The player's general `CanHitNPC` veto runs before its nullable
+`CanHitNPCWithItem` decision.
+
+The damage order is incoming NPC modifiers, item modifiers, NPC item
+modifiers, then player modifiers. The post-hit order is item, NPC, then
+player. `HitEffect` receives the full item hit metadata, including its damage
+class, source damage and critical flag. `hit.Damage` describes the strike;
+`damageDone` is limited to available health and is zero for an immortal
+target. An accepted hit still has a post-hit callback when the target is
+immortal. A nested raw `StrikeNPC` is not attributed to the outer item.
+
+The hooks extend the existing item combat path. They also install that path
+when only NPC callbacks are present and the weapon is vanilla. The adapter
+retains the mobile raw-damage message 28 flow and skips local modifiers on a
+strike received from the network. A two-device network result is still
+pending the coordinated network steps.
+
+The primitive mobile strike can quantize critical damage after conversion
+back to raw integers. With defense 10, the current adapter turns a critical
+damage cap of 3 into an actual hit of 4. Exact arbitrary critical caps remain
+an open precision issue in the shared primitive strike path. If a strict
+one-point cap is required, combine `SetMaxDamage(1)` with `DisableCrit()`.
+
+`ModifyIncomingHit` currently participates in this item path and in direct
+calls to `NPCLoader.ModifyIncomingHit`. Projectile and NPC-contact integration
+belong to their following combat steps. Raw `NPC.StrikeNPC` calls by
+themselves do not enter these item callbacks.
+
+`DamageModificationGlobalNPC` and `ExampleDefenseDebuff` demonstrate a
+temporary 25% defense reduction. The global resets its per-entity flag before
+buff updates; the buff sets it again, and the incoming hook changes
+`modifiers.Defense`. The debuff inherits Ichor immunity. Its draw tint waits
+for NPC drawing, and its player branch uses the mobile integer defense
+field. PartyZombie's incoming hook reduces magic damage by 75%; projectile
+magic damage receives that behavior when the projectile integration lands.
+
 ### NPC buff immunity
 
 Set immunity by NPC type in `SetStaticDefaults`:

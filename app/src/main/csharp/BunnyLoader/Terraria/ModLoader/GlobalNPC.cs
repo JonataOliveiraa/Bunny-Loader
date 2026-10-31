@@ -35,4 +35,14 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual bool CheckActive(NPC npc) => true;
 
     public virtual bool CheckDead(NPC npc) => true;
+
+    public virtual bool? CanBeHitByItem(NPC npc, Player player, Item item) => null;
+
+    public virtual bool? CanCollideWithPlayerMeleeAttack(NPC npc, Player player, Item item, Microsoft.Xna.Framework.Rectangle meleeAttackHitbox) => null;
+
+    public virtual void ModifyIncomingHit(NPC npc, ref NPC.HitModifiers modifiers) { }
+
+    public virtual void ModifyHitByItem(NPC npc, Player player, Item item, ref NPC.HitModifiers modifiers) { }
+
+    public virtual void OnHitByItem(NPC npc, Player player, Item item, NPC.HitInfo hit, int damageDone) { }
 }

@@ -13,6 +13,8 @@ internal enum NPCMethod : uint
     PreAI = 1, AI = 2, PostAI = 4, FindFrame = 8, ResetEffects = 16, CheckActive = 32,
     CheckDead = 64, HitEffect = 128, UpdateLifeRegen = 256, OnSpawn = 512,
     ApplyDifficultyAndPlayerScaling = 1024, SetDefaultsFromNetId = 2048,
+    CanBeHitByItem = 4096, CanCollideWithPlayerMeleeAttack = 8192, ModifyIncomingHit = 16384,
+    ModifyHitByItem = 32768, OnHitByItem = 65536,
 }
 
 internal static unsafe class NPCEventHooks
@@ -48,6 +50,7 @@ internal static unsafe class NPCEventHooks
         if ((flags & NPCMethod.HitEffect) != 0) ItemHooks.Once("NPCHitEffect", () => On_NPC.HitEffect += HitEffect);
         if ((flags & NPCMethod.OnSpawn) != 0) ItemHooks.Once("NPCSpawn", () => On_NPC.NewNPC += NewNPC);
         if ((flags & NPCMethod.SetDefaultsFromNetId) != 0) ItemHooks.Once("NPCVariantDefaults", () => On_NPC.SetDefaultsFromNetId += VariantDefaults);
+        ItemHitHooks.InstallNPC(flags);
         return flags;
     }
 
@@ -115,12 +118,23 @@ internal static unsafe class NPCEventHooks
         return new NPC.HitInfo { DamageType = DamageClass.Default, SourceDamage = value, Damage = value, HitDirection = direction, InstantKill = instant };
     }
 
+    internal readonly struct HitContext : IDisposable
+    {
+        readonly (IntPtr Pointer, NPC.HitInfo Hit)? previous;
+
+        internal HitContext(NPC npc, NPC.HitInfo hit)
+        {
+            previous = hitting;
+            hitting = (npc.Pointer, hit);
+        }
+
+        public void Dispose() => hitting = previous;
+    }
+
     internal static void Hit(NPC npc, NPC.HitInfo hit)
     {
-        var previous = hitting;
-        hitting = (npc.Pointer, hit);
-        try { npc.HitEffect_(hit.HitDirection, hit.InstantKill ? 9999 : hit.Damage); }
-        finally { hitting = previous; }
+        using var context = new HitContext(npc, hit);
+        npc.HitEffect_(hit.HitDirection, hit.InstantKill ? 9999 : hit.Damage);
     }
 
     static int NewNPC(On_NPC.orig_NewNPC orig, IEntitySource source, int X, int Y, int Type, int Start, float ai0, float ai1, float ai2, float ai3, int Target)

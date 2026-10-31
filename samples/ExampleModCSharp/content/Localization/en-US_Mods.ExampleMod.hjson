@@ -168,6 +168,11 @@ DamageClasses: {
 }
 
 Buffs: {
+	ExampleDefenseDebuff: {
+		DisplayName: Example Defense Debuff
+		Description: Defense reduced by 25%
+	}
+
 	ExampleCrateBuff: {
 		DisplayName: Example Crate
 		Description: Greater chance of fishing up a crate

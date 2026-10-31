@@ -7,7 +7,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 tests=("$@")
-[ ${#tests[@]} -gt 0 ] || tests=(csharphello hookcs benchcs compilebench csitems csload csassets csmodtarget csmodref csloc csinstances csglobals cssave csnet csuse csheal cspickup csdraw csopen csnetitem cstooltip csrarity csprefix csrecipe csequip csdamage csenv cscombat csarmor csplayer csplayeritems csnetplayer csplayerhurt cspvp csbuff csplayerupdate csplayerworld csfishing csjump csplayerdraw csbufftip csmaterials cshair csresource csmount csprojectile csnpc csprojhit csgrapple csprojextras csnpcai cscollide csextraai csauto csdust csgore)
+[ ${#tests[@]} -gt 0 ] || tests=(csharphello hookcs benchcs compilebench csitems csload csassets csmodtarget csmodref csloc csinstances csglobals cssave csnet csuse csheal cspickup csdraw csopen csnetitem cstooltip csrarity csprefix csrecipe csequip csdamage csenv cscombat csarmor csplayer csplayeritems csnetplayer csplayerhurt cspvp csbuff csplayerupdate csplayerworld csfishing csjump csplayerdraw csbufftip csmaterials cshair csresource csmount csprojectile csnpc csprojhit csgrapple csprojextras csnpcai cscollide csextraai csauto csdust csgore csnpchit)
 for t in "${tests[@]}"; do
     proj=$(ls "$here/$t/src/"*.csproj)
     echo "==> $t"

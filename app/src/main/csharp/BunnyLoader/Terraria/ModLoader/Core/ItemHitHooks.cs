@@ -7,7 +7,7 @@ namespace Terraria.ModLoader.Core;
 
 internal static class ItemHitHooks
 {
-    sealed class Attack
+    struct Attack
     {
         public Player Player;
         public Item Item;
@@ -15,13 +15,15 @@ internal static class ItemHitHooks
         public bool? CanHit;
         public bool Friendly;
         public bool RestoreFriendly;
+        public bool Struck;
     }
 
-    static bool globalHit;
+    static bool globalHit, npcHit;
 
-    static Attack? attack;
+    [ThreadStatic] static Attack attack;
+    [ThreadStatic] static bool hasAttack;
 
-    static bool hidingText;
+    [ThreadStatic] static int hidingText;
 
     public static void Install(Func<string, bool> has, bool global)
     {
@@ -29,21 +31,42 @@ internal static class ItemHitHooks
         if (canHit || has(nameof(ModItem.CanMeleeAttackCollideWithNPC)) || has(nameof(ModItem.ModifyHitNPC)) || has(nameof(ModItem.OnHitNPC)))
         {
             if (global) globalHit = true;
-            ItemHooks.Once("ItemAttack", () =>
-            {
-                On_Player.ProcessHitAgainstNPC += ProcessHitAgainstNPC;
-                On_NPC.StrikeNPC += StrikeNPC;
-            });
+            WantAttack();
         }
         if (canHit)
             ItemHooks.Once("ItemCanHit", () => On_Player.CanNPCBeHitByPlayerOrPlayerProjectile += CanNPCBeHit);
     }
 
+    internal static void InstallNPC(NPCMethod methods)
+    {
+        if ((methods & NPCLoader.ItemHitMethods) == 0) return;
+        npcHit = true;
+        WantAttack();
+        if ((methods & NPCMethod.CanBeHitByItem) != 0)
+            ItemHooks.Once("ItemCanHit", () => On_Player.CanNPCBeHitByPlayerOrPlayerProjectile += CanNPCBeHit);
+    }
+
+    static void WantAttack() => ItemHooks.Once("ItemAttack", () =>
+    {
+        On_Player.ProcessHitAgainstNPC += ProcessHitAgainstNPC;
+        On_NPC.StrikeNPC += StrikeNPC;
+    });
+
     static bool? CanHitNPC(Item item, Player player, NPC target)
     {
         if (!PlayerLoader.All(player, nameof(ModPlayer.CanHitNPC), target, static (m, t) => m.CanHitNPC(t))) return false;
-        bool? flag = PlayerLoader.Nullable(player, nameof(ModPlayer.CanHitNPCWithItem), (item, target), static (m, s) => m.CanHitNPCWithItem(s.item, s.target));
-        if (flag == false) return false;
+        bool? result = PlayerLoader.Nullable(player, nameof(ModPlayer.CanHitNPCWithItem), (item, target), static (m, s) => m.CanHitNPCWithItem(s.item, s.target));
+        if (result == false) return false;
+        bool? own = CanItemHitNPC(item, player, target);
+        result ??= own;
+        if (result == false) return false;
+        bool? npc = NPCLoader.CanBeHitByItem(target, player, item);
+        return result ?? npc;
+    }
+
+    static bool? CanItemHitNPC(Item item, Player player, NPC target)
+    {
+        bool? flag = null;
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
@@ -66,9 +89,19 @@ internal static class ItemHitHooks
 
     static bool? CanMeleeAttackCollideWithNPC(Item item, Rectangle meleeAttackHitbox, Player player, NPC target)
     {
-        bool? flag = PlayerLoader.Nullable(player, nameof(ModPlayer.CanMeleeAttackCollideWithNPC), (item, meleeAttackHitbox, target),
+        bool? result = PlayerLoader.Nullable(player, nameof(ModPlayer.CanMeleeAttackCollideWithNPC), (item, meleeAttackHitbox, target),
             static (m, s) => m.CanMeleeAttackCollideWithNPC(s.item, s.meleeAttackHitbox, s.target));
-        if (flag == false) return false;
+        if (result == false) return false;
+        bool? own = CanItemMeleeAttackCollideWithNPC(item, meleeAttackHitbox, player, target);
+        result ??= own;
+        if (result == false) return false;
+        bool? npc = NPCLoader.CanCollideWithPlayerMeleeAttack(target, player, item, meleeAttackHitbox);
+        return result ?? npc;
+    }
+
+    static bool? CanItemMeleeAttackCollideWithNPC(Item item, Rectangle meleeAttackHitbox, Player player, NPC target)
+    {
+        bool? flag = null;
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
@@ -91,12 +124,17 @@ internal static class ItemHitHooks
 
     static void ProcessHitAgainstNPC(On_Player.orig_ProcessHitAgainstNPC orig, Player self, Item sItem, Rectangle itemRectangle, int originalDamage, float knockBack, int npcIndex)
     {
-        if (!ItemCombatHooks.Wanted(globalHit, sItem) || (uint)npcIndex >= 200u)
+        if ((uint)npcIndex >= 200u)
         {
             orig(self, sItem, itemRectangle, originalDamage, knockBack, npcIndex);
             return;
         }
         NPC target = Main.npc[npcIndex];
+        if (!ItemCombatHooks.Wanted(globalHit, sItem) && !(npcHit && NPCLoader.HasHooks(target, NPCLoader.ItemHitMethods)))
+        {
+            orig(self, sItem, itemRectangle, originalDamage, knockBack, npcIndex);
+            return;
+        }
         bool? canHit = CanHitNPC(sItem, self, target);
         if (canHit == false) return;
         bool? collide = CanMeleeAttackCollideWithNPC(sItem, itemRectangle, self, target);
@@ -109,21 +147,23 @@ internal static class ItemHitHooks
             int right = Math.Max(rect.X + rect.Width, hitbox.X + hitbox.Width), bottom = Math.Max(rect.Y + rect.Height, hitbox.Y + hitbox.Height);
             rect = new Rectangle(left, top, right - left, bottom - top);
         }
-        Attack? outer = attack;
-        var current = new Attack { Player = self, Item = sItem, Target = target, CanHit = canHit };
-        attack = current;
+        Attack outer = attack;
+        bool outerActive = hasAttack;
+        attack = new Attack { Player = self, Item = sItem, Target = target, CanHit = canHit };
+        hasAttack = true;
         try { orig(self, sItem, rect, originalDamage, knockBack, npcIndex); }
         finally
         {
-            if (current.RestoreFriendly) target.friendly = current.Friendly;
+            if (attack.RestoreFriendly) target.friendly = attack.Friendly;
             attack = outer;
+            hasAttack = outerActive;
         }
     }
 
     static bool CanNPCBeHit(On_Player.orig_CanNPCBeHitByPlayerOrPlayerProjectile orig, Player self, NPC npc, Projectile projectile)
     {
-        Attack? a = attack;
-        if (a == null || !projectile.IsNull || a.CanHit != true || a.Player != self || a.Target != npc) return orig(self, npc, projectile);
+        if (!hasAttack || !projectile.IsNull || attack.CanHit != true || attack.Player != self || attack.Target != npc) return orig(self, npc, projectile);
+        ref Attack a = ref attack;
         if (npc.friendly && !a.RestoreFriendly)
         {
             a.Friendly = true;
@@ -135,16 +175,17 @@ internal static class ItemHitHooks
 
     static int StrikeNPC(On_NPC.orig_StrikeNPC orig, NPC self, int Damage, float knockBack, int hitDirection, bool crit, bool fromNet, int owner)
     {
-        Attack? a = attack;
-        if (fromNet || a == null || a.Target != self) return orig(self, Damage, knockBack, hitDirection, crit, fromNet, owner);
+        if (fromNet || !hasAttack || attack.Struck || attack.Target != self) return orig(self, Damage, knockBack, hitDirection, crit, fromNet, owner);
+        attack.Struck = true;
+        Attack a = attack;
         if (a.RestoreFriendly)
         {
             self.friendly = a.Friendly;
             a.RestoreFriendly = false;
         }
-        attack = null;
+        hasAttack = false;
         try { return Strike(orig, self, Damage, knockBack, hitDirection, crit, owner, a); }
-        finally { attack = a; }
+        finally { attack = a; hasAttack = true; }
     }
 
     static int Strike(On_NPC.orig_StrikeNPC orig, NPC npc, int damage, float knockBack, int hitDirection, bool crit, int owner, Attack a)
@@ -156,6 +197,7 @@ internal static class ItemHitHooks
         {
             var modifiers = new NPC.HitModifiers { DamageType = DamageClassLoader.ItemClass(item), HitDirection = hitDirection };
             modifiers.Defense.Base = npc.defense;
+            NPCLoader.ModifyIncomingHit(npc, ref modifiers);
             ModifyHitNPC(item, player, npc, ref modifiers);
             hit = modifiers.ToHitInfo(damage, crit, knockBack);
         }
@@ -167,14 +209,21 @@ internal static class ItemHitHooks
         int raw = RawDamage(npc, hit);
         bool hide = hit.HideCombatText;
         if (hide) HideText();
+        NPC health = (uint)npc.realLife < 200u ? Main.npc[npc.realLife] : npc;
+        int lifeBefore = health.life;
+        bool immortal = npc.immortal;
         int done;
-        try { done = orig(npc, raw, hit.Knockback, hit.HitDirection, hit.Crit && !hit.InstantKill, false, owner); }
-        finally
+        using (var context = new NPCEventHooks.HitContext(npc, hit))
         {
-            if (hide) ShowText();
+            try { done = orig(npc, raw, hit.Knockback, hit.HitDirection, hit.Crit && !hit.InstantKill, false, owner); }
+            finally
+            {
+                if (hide) ShowText();
+            }
         }
         if (done <= 0) return done;
-        hit.Damage = done;
+        if (!hit.InstantKill) hit.Damage = done;
+        done = immortal ? 0 : Math.Min(Math.Max(lifeBefore, 0), done);
         OnHitNPC(item, player, npc, hit, done);
         return done;
     }
@@ -186,16 +235,16 @@ internal static class ItemHitHooks
         return Math.Max(1, (int)Math.Ceiling(hit.Damage / (double)factor + npc.defense / 2.0 - 1e-9));
     }
 
-    internal static void ShowText() => hidingText = false;
+    internal static void ShowText() { if (hidingText > 0) hidingText--; }
 
     internal static void HideText()
     {
-        hidingText = true;
+        hidingText++;
         ItemHooks.Once("HideCombatText", () => On_CombatText.NewText_Rectangle_Color_int_bool_bool += NewText);
     }
 
     static int NewText(On_CombatText.orig_NewText_Rectangle_Color_int_bool_bool orig, Rectangle location, Color color, int amount, bool dramatic, bool dot) =>
-        hidingText ? -1 : orig(location, color, amount, dramatic, dot);
+        hidingText > 0 ? -1 : orig(location, color, amount, dramatic, dot);
 
     static void ModifyHitNPC(Item item, Player player, NPC target, ref NPC.HitModifiers modifiers)
     {
@@ -210,6 +259,7 @@ internal static class ItemHitHooks
             try { g.ModifyHitNPC(item, player, target, ref modifiers); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyHitNPC", e); }
         }
+        NPCLoader.ModifyHitByItem(target, player, item, ref modifiers);
         PlayerLoader.Each(player, nameof(ModPlayer.ModifyHitNPC), target, ref modifiers, static (m, t, ref h) => m.ModifyHitNPC(t, ref h));
         PlayerLoader.Each(player, nameof(ModPlayer.ModifyHitNPCWithItem), (item, target), ref modifiers,
             static (m, s, ref h) => m.ModifyHitNPCWithItem(s.item, s.target, ref h));
@@ -228,6 +278,7 @@ internal static class ItemHitHooks
             try { g.OnHitNPC(item, player, target, hit, damageDone); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.OnHitNPC", e); }
         }
+        NPCLoader.OnHitByItem(target, player, item, hit, damageDone);
         PlayerLoader.Each(player, nameof(ModPlayer.OnHitNPC), (target, hit, damageDone), static (m, s) => m.OnHitNPC(s.target, s.hit, s.damageDone));
         PlayerLoader.Each(player, nameof(ModPlayer.OnHitNPCWithItem), (item, target, hit, damageDone),
             static (m, s) => m.OnHitNPCWithItem(s.item, s.target, s.hit, s.damageDone));

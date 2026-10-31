@@ -23,4 +23,9 @@ public class PartyZombie : ModNPC
         AIType = NPCID.Zombie;
         AnimationType = NPCID.Zombie;
     }
+
+    public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)
+    {
+        if (modifiers.DamageType.CountsAsClass(DamageClass.Magic)) modifiers.FinalDamage *= 0.25f;
+    }
 }

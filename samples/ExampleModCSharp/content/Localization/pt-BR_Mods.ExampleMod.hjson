@@ -168,6 +168,11 @@ DamageClasses: {
 }
 
 Buffs: {
+	ExampleDefenseDebuff: {
+		DisplayName: Debuff de Defesa de Exemplo
+		Description: Defesa reduzida em 25%
+	}
+
 	ExampleCrateBuff: {
 		DisplayName: Caixote de Exemplo
 		Description: Mais chance de pescar um caixote

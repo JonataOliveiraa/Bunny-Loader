@@ -1,0 +1,12 @@
+NPCs: {
+    ProbeNpc.DisplayName: Item Hit Probe
+    PartyZombie.DisplayName: Party Zombie
+}
+Items.HitItem: {
+    DisplayName: Hit Probe Sword
+    Tooltip: Tests NPC item combat
+}
+Buffs.ExampleDefenseDebuff: {
+    DisplayName: Example Defense Debuff
+    Description: Defense reduced by 25%
+}
