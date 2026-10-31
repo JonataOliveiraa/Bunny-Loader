@@ -11,6 +11,15 @@ The first run checks 31 cases. A preserved world containing the Block sidecar en
 
 The test runner waits for the complete mod load before opening the world. Opening it as soon as csauto first logs the menu can happen before the native save backend is installed. The touch-controls dialog pauses the world; dismiss it on the visible emulator with the normal Later button.
 
+## JS save compatibility
+
+```sh
+QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstilelegacy
+QJS=false DEVICE=127.0.0.1:16416 KEEPSAVES=1 bash tools/tests/run-cs.sh cstile
+```
+
+`cstilelegacy` intentionally shares this pack's mod UID and Block name. It registers ABefore first, so JS saves Block as numeric ID 755. C# registers Block as 754. Only one of these two packs should be enabled at a time. The C# reload assertion verifies the UID/name mapping and both frame coordinates.
+
 ## Recorded validation
 
 On 2026-10-31, MuMu 127.0.0.1:16416:
@@ -19,6 +28,8 @@ On 2026-10-31, MuMu 127.0.0.1:16416:
 | --- | --- |
 | Fresh C# world | 31/31 |
 | Reopened C# world | 32/32 |
+| JS writer | 1/1 |
+| JS world reopened with C# | 32/32 |
 | csitems | 9/9 |
 | csnpc | 19/19 |
 | csnpcloot | 41/41 |

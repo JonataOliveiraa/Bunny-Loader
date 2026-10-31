@@ -103,6 +103,8 @@ DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstile
 DEVICE=127.0.0.1:16416 KEEPSAVES=1 bash tools/tests/run-cs.sh cstile
 ```
 
+To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstilelegacy`, then run `cstile` with `KEEPSAVES=1`. The legacy writer deliberately registers an additional tile first, so the Block numeric ID differs while its UID/name key remains the same.
+
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
 Tile entities, chests, pylons, `TileRestingInfo`, `ModTree` and `ModWall` are deferred to the next phase-5 steps.
