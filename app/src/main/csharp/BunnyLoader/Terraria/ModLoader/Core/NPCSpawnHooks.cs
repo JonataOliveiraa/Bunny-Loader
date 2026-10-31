@@ -45,6 +45,7 @@ internal static class NPCSpawnHooks
 
     internal static void Install(Type type, Type baseType, int npcType, ref NPCMethod flags)
     {
+        TownNPCHooks.Install(type, baseType, npcType, ref flags);
         bool Has(string name) => ItemHooks.Overrides(type, baseType, name);
         if (Has(nameof(GlobalNPC.EditSpawnFlags)) || Has(nameof(GlobalNPC.EditSpawnInfo))) flags |= NPCMethod.EditSpawnPool;
         if ((flags & (NPCMethod.SpawnChance | NPCMethod.EditSpawnPool)) != 0)

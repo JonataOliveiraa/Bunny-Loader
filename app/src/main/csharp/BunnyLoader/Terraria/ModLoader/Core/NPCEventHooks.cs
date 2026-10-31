@@ -22,6 +22,8 @@ internal enum NPCMethod : ulong
     SendExtraAI = 1UL << 48, ReceiveExtraAI = 1UL << 49,
     SpawnChance = 1UL << 37, SpawnNPC = 1UL << 38, EditSpawnRate = 1UL << 39,
     EditSpawnRange = 1UL << 50, EditSpawnPool = 1UL << 51,
+    TownSpawn = 1UL << 52, TownRoom = 1UL << 53, TownNames = 1UL << 54, TownChat = 1UL << 55,
+    TownButtons = 1UL << 56, TownShops = 1UL << 57, TownAttack = 1UL << 58, TownAttackDraw = 1UL << 59,
     PreKill = 1UL << 32, OnKill = 1UL << 33, BossLoot = 1UL << 34,
     ModifyNPCLoot = 1UL << 35, ModifyGlobalLoot = 1UL << 36,
 }

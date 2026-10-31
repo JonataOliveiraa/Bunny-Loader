@@ -216,6 +216,8 @@ public static class ModContent
                 Run(mod, "PostSetupContent", mod.PostSetupContent);
                 foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostSetupContent", system.PostSetupContent);
             }
+            try { TownShopHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"NPC shops: the tables could not be set up: {e}"); }
             try { NPCLootHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"NPC loot: the tables could not be set up: {e}"); }
             try { ItemLootHooks.ContentReady(); }

@@ -1,3 +1,4 @@
+using Terraria.GameContent;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework;
@@ -112,4 +113,40 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
     public virtual void EditSpawnPool(IDictionary<int, float> pool, NPCSpawnInfo spawnInfo) { }
 
     public virtual void SpawnNPC(int npc, int tileX, int tileY) { }
+
+    public virtual bool? CanChat(NPC npc) => null;
+
+    public virtual void GetChat(NPC npc, ref string chat) { }
+
+    public virtual void ModifyNPCNameList(NPC npc, List<string> nameList) { }
+
+    public virtual void RegisterChatButtons(NPC npc, NPCInteractionList interactions) { }
+
+    public virtual bool PreChatButtonClicked(NPC npc, NPCInteraction interaction) => true;
+
+    public virtual void OnChatButtonClicked(NPC npc, NPCInteraction interaction) { }
+
+    public virtual void ModifyShop(NPCShop shop) { }
+
+    public virtual void ModifyActiveShop(NPC npc, string shopName, Item[] items) { }
+
+    public virtual void SetupTravelShop(int[] shop, ref int nextSlot) { }
+
+    public virtual void TownNPCAttackStrength(NPC npc, ref int damage, ref float knockback) { }
+
+    public virtual void TownNPCAttackCooldown(NPC npc, ref int cooldown, ref int randExtraCooldown) { }
+
+    public virtual void TownNPCAttackProj(NPC npc, ref int projType, ref int attackDelay) { }
+
+    public virtual void TownNPCAttackProjSpeed(NPC npc, ref float multiplier, ref float gravityCorrection, ref float randomOffset) { }
+
+    public virtual void TownNPCAttackShoot(NPC npc, ref bool inBetweenShots) { }
+
+    public virtual void TownNPCAttackMagic(NPC npc, ref float auraLightMultiplier) { }
+
+    public virtual void TownNPCAttackSwing(NPC npc, ref int itemWidth, ref int itemHeight) { }
+
+    public virtual void DrawTownAttackGun(NPC npc, ref Texture2D item, ref Rectangle itemFrame, ref float scale, ref int horizontalHoldoutOffset) { }
+
+    public virtual void DrawTownAttackSwing(NPC npc, ref Texture2D item, ref Rectangle itemFrame, ref int itemSize, ref float scale, ref Vector2 offset) { }
 }

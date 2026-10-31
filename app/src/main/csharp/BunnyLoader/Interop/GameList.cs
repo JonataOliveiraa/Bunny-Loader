@@ -98,4 +98,15 @@ public readonly unsafe struct GameList
         call.Arg(info);
         call.Invoke(fn);
     }
+
+    public void RemoveAt(int index)
+    {
+        if ((uint)index >= (uint)Count) throw new ArgumentOutOfRangeException(nameof(index));
+        IntPtr fn = Method("RemoveAt", 1, out IntPtr info);
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(list);
+        call.Arg(index);
+        call.Arg(info);
+        call.Invoke(fn);
+    }
 }

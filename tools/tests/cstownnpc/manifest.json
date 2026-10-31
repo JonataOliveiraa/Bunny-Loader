@@ -1,0 +1,18 @@
+{
+  "uid": "7d1673be-4182-465d-b15a-5e84a3088d32",
+  "id": "test-cstownnpc",
+  "name": "Test: town NPCs (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Town spawning, housing, names, dialogue, shops, happiness and native attack stages.",
+  "description": "Use DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstownnpc. Logs cstownnpc END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "CsTownNpc.dll",
+  "dependencies": []
+}

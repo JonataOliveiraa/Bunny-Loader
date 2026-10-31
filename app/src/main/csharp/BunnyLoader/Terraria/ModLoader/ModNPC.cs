@@ -1,9 +1,10 @@
+using System.Collections.Generic;
+using Terraria.GameContent;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using Terraria.DataStructures;
-using Terraria.GameContent;
 using Terraria.Localization;
 using Terraria.ModLoader.Core;
 
@@ -143,4 +144,46 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual float SpawnChance(NPCSpawnInfo spawnInfo) => 0f;
 
     public virtual int SpawnNPC(int tileX, int tileY) => Terraria.NPC.NewNPC(Terraria.NPC.GetSpawnSourceForNaturalSpawn(), tileX * 16 + 8, tileY * 16, Type);
+
+    public virtual string HeadTexture => Texture + "_Head";
+
+    public virtual bool CanTownNPCSpawn(int numTownNPCs) => false;
+
+    public virtual bool CheckConditions(int left, int right, int top, int bottom) => true;
+
+    public virtual List<string> SetNPCNameList() => new();
+
+    public virtual bool CanChat() => NPC.townNPC;
+
+    public virtual string GetChat() => Language.GetTextValue("LegacyDialog.1") ?? "";
+
+    public virtual void RegisterChatButtons(NPCInteractionList interactions) { }
+
+    public virtual void OnChatButtonClicked(NPCInteraction interaction) { }
+
+    public virtual void SetChatButtons(ref string button, ref string button2) { }
+
+    public virtual void OnChatButtonClicked(bool firstButton, ref string shopName) { }
+
+    public virtual void AddShops() { }
+
+    public virtual void ModifyActiveShop(string shopName, Item[] items) { }
+
+    public virtual void TownNPCAttackStrength(ref int damage, ref float knockback) { }
+
+    public virtual void TownNPCAttackCooldown(ref int cooldown, ref int randExtraCooldown) { }
+
+    public virtual void TownNPCAttackProj(ref int projType, ref int attackDelay) { }
+
+    public virtual void TownNPCAttackProjSpeed(ref float multiplier, ref float gravityCorrection, ref float randomOffset) { }
+
+    public virtual void TownNPCAttackShoot(ref bool inBetweenShots) { }
+
+    public virtual void TownNPCAttackMagic(ref float auraLightMultiplier) { }
+
+    public virtual void TownNPCAttackSwing(ref int itemWidth, ref int itemHeight) { }
+
+    public virtual void DrawTownAttackGun(ref Texture2D item, ref Rectangle itemFrame, ref float scale, ref int horizontalHoldoutOffset) { }
+
+    public virtual void DrawTownAttackSwing(ref Texture2D item, ref Rectangle itemFrame, ref int itemSize, ref float scale, ref Vector2 offset) { }
 }

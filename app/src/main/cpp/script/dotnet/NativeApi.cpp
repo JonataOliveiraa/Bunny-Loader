@@ -9,6 +9,8 @@
 #include "content/npcs/ModBossHeads.h"
 #include "content/npcs/ModNpcs.h"
 #include "content/npcs/NpcEvents.h"
+#include "content/npcs/ModTownNpcs.h"
+#include "content/npcs/NpcTownHooks.h"
 #include "content/npcs/NpcLootHooks.h"
 #include "content/projectiles/ProjectileStrikes.h"
 #include "content/projectiles/ProjectileDrawSplit.h"
@@ -144,6 +146,9 @@ struct NativeApi {
     int32_t (*bossHeadSlotOf)(const char* texture);
     void* (*newParameterObject)(void* method, int32_t parameter);
     int32_t (*installNpcLootHooks)(uint32_t flags, runtime::NpcLootCallback callback);
+    int32_t (*reserveTownHead)(int32_t type, int32_t variant, const char* texture, const char* asset);
+    int32_t (*townHeadSlot)(int32_t type, int32_t variant);
+    int32_t (*installTownNPCHooks)(int32_t type, uint32_t flags, runtime::NpcTownCallback callback);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -863,6 +868,13 @@ const NativeApi kNativeApi{
     nativeBossHeadSlotOf,
     nativeNewParameterObject,
     [](uint32_t flags, runtime::NpcLootCallback callback) -> int32_t { return runtime::installNpcLootHooks(flags, callback) ? 1 : 0; },
+    [](int32_t type, int32_t variant, const char* texture, const char* asset) -> int32_t {
+        if (!texture || !*texture || !asset || !fileExists(texture)) return 0;
+        runtime::setModNpcHead(type, variant, texture, asset);
+        return 1;
+    },
+    [](int32_t type, int32_t variant) -> int32_t { return runtime::modNpcHeadSlot(type, variant); },
+    [](int32_t type, uint32_t flags, runtime::NpcTownCallback callback) -> int32_t { return runtime::installNpcTownHooks(type, flags, callback) ? 1 : 0; },
 };
 
 } // namespace

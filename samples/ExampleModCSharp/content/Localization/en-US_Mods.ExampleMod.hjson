@@ -205,6 +205,10 @@ Projectiles: {
 }
 
 NPCs: {
+	ExamplePerson: {
+		DisplayName: Example Person
+		Interactions.DayOnlyShopButton: Day Only Shop
+	}
 	PartyZombie.DisplayName: Party Zombie
 	ExampleCustomAISlimeNPC: {
 		DisplayName: Flutter Slime
@@ -214,4 +218,11 @@ NPCs: {
 
 DropConditions: {
 	Example: During daytime
+}
+
+Dialogue.ExamplePerson: {
+	StandardDialogue1: "Sometimes I feel like I'm different from everyone else here."
+	StandardDialogue2: "What's your favorite color? My favorite colors are white and black."
+	StandardDialogue3: "What? I don't have any arms or legs? Oh, don't be ridiculous!"
+	TalkALot: "I'm getting tired of talking to you. I have to go."
 }

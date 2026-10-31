@@ -205,6 +205,10 @@ Projectiles: {
 }
 
 NPCs: {
+	ExamplePerson: {
+		DisplayName: Pessoa de Exemplo
+		Interactions.DayOnlyShopButton: Loja Diurna
+	}
 	PartyZombie.DisplayName: Zumbi Festeiro
 	ExampleCustomAISlimeNPC: {
 		DisplayName: Slime Esvoaçante
@@ -214,4 +218,11 @@ NPCs: {
 
 DropConditions: {
 	Example: Durante o dia
+}
+
+Dialogue.ExamplePerson: {
+    StandardDialogue1: Às vezes sinto que sou diferente de todos por aqui.
+    StandardDialogue2: Qual é sua cor favorita? As minhas são branco e preto.
+    StandardDialogue3: O quê? Não tenho braços nem pernas? Ah, não seja ridículo!
+    TalkALot: Estou cansando de conversar. Tenho que ir.
 }

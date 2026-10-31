@@ -1954,6 +1954,114 @@ day-slime weights. The `csnpcspawn` pack performs a fixed number of native
 spawn attempts and counts the results. Run it with `NOENV=1`: `csenv`
 intentionally suppresses both native spawn paths.
 
+### Town NPCs
+
+A resident needs `NPC.townNPC = true`, a town AI style and a housing head.
+`[AutoloadHead]` loads `HeadTexture`, which defaults to `Texture + "_Head"`,
+through the native town NPC loader. `NPCHeadLoader.GetHeadSlot` and
+`GetNPCHeadSlot` expose the installed head index.
+
+`CanTownNPCSpawn(int numTownNPCs)` participates in the native town selection
+cycle after its vanilla candidates. An existing NPC or a missing housing
+head prevents a duplicate candidate. `CheckConditions(left, right, top,
+bottom)` adds a room condition after the normal housing checks.
+`SetNPCNameList()` supplies names; `GlobalNPC.ModifyNPCNameList` can edit the
+list, including vanilla NPC names. Vanilla globals receive the native
+selected candidate; a mod NPC exposes its full provided list.
+`NPC.TownNPCName` reads and writes the native given name.
+
+`CanChat()` controls talk availability. A global's `false` vetoes it.
+`GetChat()` supplies the text, followed by
+`GlobalNPC.GetChat(NPC npc, ref string chat)`.
+
+The local tModLoader uses `RegisterChatButtons(NPCInteractionList)` and
+`OnChatButtonClicked(NPCInteraction)`. For example:
+
+```csharp
+public override void RegisterChatButtons(NPCInteractionList interactions)
+{
+    interactions.InsertBefore(NPCInteractions.Shop("Shop"), NPCInteractionDatabase.CloseButton);
+}
+```
+
+An `NPCInteraction` provides `Condition`, `GetText` and `Interact`.
+`NPCInteractions.Shop` opens the named shop. Global pre-click callbacks can
+veto an interaction; mod and global post-click callbacks run afterward.
+The mobile dialogue has two action slots: the first two enabled, available
+custom interactions fill those slots. Close, happiness and housing remain
+native controls; their predefined interaction objects serve as ordering
+anchors. Additional custom interactions beyond the two visible slots wait
+for a mobile dialogue extension.
+
+The older `SetChatButtons(ref string button, ref string button2)` and
+`OnChatButtonClicked(bool firstButton, ref string shopName)` also work.
+Returning a nonempty `shopName` opens that registered shop. Use either the
+modern interaction list or the legacy pair for a given NPC.
+
+Register shops in `ModNPC.AddShops`:
+
+```csharp
+public override void AddShops()
+{
+    new NPCShop(Type)
+        .Add(ItemID.WoodenArrow)
+        .Add(ItemID.Torch, Condition.TimeNight)
+        .Register();
+}
+```
+
+`NPCShop.Entry` supports additional conditions, disabling, reserved slots,
+ordering and shop-open callbacks. An `Item` template can set
+`shopCustomPrice` and `shopSpecialCurrency`. `NPCShopDatabase.GetShopName`
+builds the tModLoader full name, and `Main.instance.OpenShop(string)` opens
+it. Mobile custom shops occupy free native indices from 99 down to 26;
+registration fails if they are exhausted. One slot stays empty unless
+`AllowFillingLastSlot()` is used.
+
+`GlobalNPC.ModifyShop` runs once for a registered shop. For vanilla shops,
+the first native `InventoryStorage.SetupShop` supplies the initial entries;
+the game still constructs its conditional stock each time the shop opens.
+`GetEntry`/`TryGetEntry` expose that initial snapshot and mod additions.
+Vanilla entries absent from the first snapshot cannot be looked up through
+this adapter. Changes to a captured item's template apply when that native
+item is present. Mod-added conditions are evaluated on each opening.
+`ModNPC.ModifyActiveShop(string shopName, Item[] items)` and
+`GlobalNPC.ModifyActiveShop(NPC npc, string shopName, Item[] items)` then edit
+the live inventory. Both active-shop callbacks receive the full shop name
+from `NPCShopDatabase.GetShopName`. `SetupTravelShop` edits the native travel
+stock.
+
+Set relationships in `SetStaticDefaults`:
+
+```csharp
+NPC.Happiness
+    .SetBiomeAffection<ForestBiome>(AffectionLevel.Like)
+    .SetNPCAffection(NPCID.Guide, AffectionLevel.Love);
+```
+
+These update the game's personality database, so native shopping settings
+calculate the price. Repeating a relationship replaces its level; level
+zero removes it. The generic biome overload accepts the game's shopping
+biome proxies. Custom shopping biomes depend on the future biome loader.
+
+All `TownNPCAttack*` methods dispatch at the native AI's attack stages, in
+tModLoader order: strength, cooldown, projectile and speed, followed by the
+shoot or magic modifier when appropriate. Swing attacks use strength,
+cooldown and the weapon dimensions. Damage is modified before the native
+town scaling. Gun and swing drawing expose their texture, frame and
+placement through `DrawTownAttackGun`/`DrawTownAttackSwing`. Native filters
+check the requested NPC type before entering C#; no managed allocation is
+needed by the dispatch itself. Instruction guards reject a mismatched
+mobile build.
+
+ExamplePerson ports the ExampleMod town NPC with its body/head textures,
+names, inventory-based spawn gate, chat, two shops, conditional stock,
+happiness and the SparklingBall attack. Party, shimmer and portrait texture
+profiles (`TownNPCProfiles`/`ITownNPCProfile`) are deferred. The `cstownnpc`
+pack exercises the native town, dialogue, inventory, shopping-price, attack
+and weapon-drawing paths. Two-device shop validation requires a coordinated
+multiplayer window.
+
 ### NPC buff immunity
 
 Set immunity by NPC type in `SetStaticDefaults`:

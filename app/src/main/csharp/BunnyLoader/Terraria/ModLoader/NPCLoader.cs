@@ -69,6 +69,7 @@ public static unsafe partial class NPCLoader
         npc.Type = type;
         npc.Hooks = NPCEventHooks.Install(npc.GetType(), typeof(ModNPC), type);
         ReserveBossHead(npc);
+        NPCHeadLoader.Register(npc);
         lock (Gate)
         {
             int index = type - VanillaCount;

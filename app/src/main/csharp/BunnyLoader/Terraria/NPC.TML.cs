@@ -77,4 +77,8 @@ public readonly partial struct NPC : IEntityWithGlobals<GlobalNPC>
         try { SetDefaults(Type, spawnParams); }
         finally { saved.AsSpan().CopyTo(playerInteraction.AsSpan()); }
     }
+
+    public NPCHappiness Happiness => NPCHappiness.Get(type);
+
+    public string TownNPCName { get => GivenName ?? ""; set => GivenName = value; }
 }

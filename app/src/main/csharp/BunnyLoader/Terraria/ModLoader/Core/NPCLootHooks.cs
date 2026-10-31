@@ -57,7 +57,7 @@ internal static unsafe class NPCLootHooks
         return false;
     }
 
-    static bool TryGetSample(int type, out NPC npc)
+    internal static bool TryGetSample(int type, out NPC npc)
     {
         GameObject samples = ContentSamples.NpcsByNetId;
         if (samples.IsNull) { npc = default; return false; }

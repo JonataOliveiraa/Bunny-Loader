@@ -96,4 +96,7 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, int> BossHeadSlotOf;
     public delegate* unmanaged<IntPtr, int, IntPtr> NewParameterObject;
     public delegate* unmanaged<uint, delegate* unmanaged<int, IntPtr, int*, int>, int> InstallNPCLootHooks;
+    public delegate* unmanaged<int, int, byte*, byte*, int> ReserveTownHead;
+    public delegate* unmanaged<int, int, int> TownHeadSlot;
+    public delegate* unmanaged<int, uint, delegate* unmanaged<int, IntPtr, void*, void>, int> InstallTownNPCHooks;
 }
