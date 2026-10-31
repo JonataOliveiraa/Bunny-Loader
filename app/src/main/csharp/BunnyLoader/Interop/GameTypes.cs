@@ -62,6 +62,8 @@ public readonly unsafe struct GameString : IGameObject
 
     public static implicit operator string?(GameString s) => Read(s.Pointer);
 
+    public static implicit operator GameString(string? value) => From(value);
+
     public static GameString From(string? value) => new GameString(New(value));
 }
 

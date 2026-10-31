@@ -1,0 +1,15 @@
+{
+  "uid": "ef70a2d8-80ff-4c0d-bb92-b2574fbd990b",
+  "id": "test-csprojextras",
+  "name": "Test: PreDrawExtras (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "PreDrawExtras and PreDraw splitting the game's projectile draw, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csprojextras. Logs csprojextras <case>: ok | FAIL and csprojextras END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsProjExtras.dll",
+  "dependencies": []
+}

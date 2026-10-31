@@ -1,0 +1,15 @@
+{
+  "uid": "f1311b4b-e7e9-4345-8d25-ec4183721b26",
+  "id": "test-csarmor",
+  "name": "Teste: armadura no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "setBonus no tooltip, DrawArmorColor, ArmorArmGlowMask, CanEquipAccessory, Hides* e cabelo, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csarmor. No mundo, loga 'csarmor <caso>: ok | FAIL' e 'csarmor END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsArmor.dll",
+  "dependencies": []
+}

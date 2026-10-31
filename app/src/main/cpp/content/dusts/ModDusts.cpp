@@ -38,9 +38,13 @@ std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
 DustCallbacks g_cb;
+DustNativeCallbacks g_native;
+std::vector<DustsInstalledHook> g_installedHooks;
 
 // Por tipo de mod, copiados na instalacao (thread do jogo; leitura nos hooks).
 std::vector<unsigned> g_hooks;
+std::vector<int> g_engine;
+bool g_anyNative = false;
 std::vector<int> g_updateType;
 std::vector<int> g_group;           // 0 = folha do jogo; k = g_groupAssets[k - 1]
 std::vector<uint32_t> g_groupAssets;
@@ -154,6 +158,36 @@ int modIndex(int type) {
 }
 
 using SetNotActiveFn = void (*)(Il2CppObject*, const MethodInfo*);
+
+using JsBatch = void (*)(const std::vector<Il2CppObject*>&, std::vector<bool>&);
+using NativeBatch = void (*)(void**, int32_t, uint8_t*);
+
+void dispatch(const std::vector<Il2CppObject*>& list, std::vector<bool>& flags, JsBatch js, NativeBatch native) {
+    if (!g_anyNative) {
+        if (js) js(list, flags);
+        return;
+    }
+    std::vector<Il2CppObject*> parts[2];
+    std::vector<size_t> where[2];
+    for (size_t i = 0; i < list.size(); ++i) {
+        const int mi = modIndex(field<int32_t>(list[i], refs().type));
+        const int e = mi >= 0 && g_engine[static_cast<size_t>(mi)] == 1 ? 1 : 0;
+        parts[e].push_back(list[i]);
+        where[e].push_back(i);
+    }
+    if (!parts[0].empty() && js) {
+        std::vector<bool> part(parts[0].size());
+        for (size_t k = 0; k < part.size(); ++k) part[k] = flags[where[0][k]];
+        js(parts[0], part);
+        for (size_t k = 0; k < part.size(); ++k) flags[where[0][k]] = part[k];
+    }
+    if (!parts[1].empty() && native) {
+        std::vector<uint8_t> part(parts[1].size());
+        for (size_t k = 0; k < part.size(); ++k) part[k] = flags[where[1][k]] ? 1 : 0;
+        native(reinterpret_cast<void**>(parts[1].data()), static_cast<int32_t>(part.size()), part.data());
+        for (size_t k = 0; k < part.size(); ++k) flags[where[1][k]] = part[k] != 0;
+    }
+}
 
 void setNotActive(Il2CppObject* d) {
     const Refs& r = refs();
@@ -358,7 +392,13 @@ int32_t hkNewDust(Vec2 pos, int32_t w, int32_t h, int32_t type, float sx, float 
     Rect& frame = field<Rect>(d, refs().frame);
     frame.x = 0;
     frame.y %= 30;
-    if ((g_hooks[mi] & kDustOnSpawn) && g_cb.spawn) g_cb.spawn(typeOf(d), d);
+    if (g_hooks[mi] & kDustOnSpawn) {
+        if (g_engine[mi] == 1) {
+            if (g_native.spawn) g_native.spawn(typeOf(d), d);
+        } else if (g_cb.spawn) {
+            g_cb.spawn(typeOf(d), d);
+        }
+    }
     return index;
 }
 
@@ -394,9 +434,9 @@ void hkUpdateDust(const MethodInfo* m) {
         }
     }
     g_flags.assign(g_list.size(), true);
-    if (!g_list.empty() && g_cb.update) {
+    if (!g_list.empty() && (g_cb.update || g_native.update)) {
         beginKillTracking();
-        g_cb.update(g_list, g_flags);
+        dispatch(g_list, g_flags, g_cb.update, g_native.update);
         endKillTracking(g_list);
     }
 
@@ -437,9 +477,9 @@ void hkUpdateDust(const MethodInfo* m) {
             if (mi >= 0 && (g_hooks[mi] & kDustMidUpdate)) g_list.push_back(d);
         }
         g_flags.assign(g_list.size(), false);
-        if (!g_list.empty() && g_cb.midUpdate) {
+        if (!g_list.empty() && (g_cb.midUpdate || g_native.midUpdate)) {
             beginKillTracking();
-            g_cb.midUpdate(g_list, g_flags);
+            dispatch(g_list, g_flags, g_cb.midUpdate, g_native.midUpdate);
             endKillTracking(g_list);
         }
         for (size_t i = 0; i < g_list.size(); ++i) {
@@ -476,9 +516,9 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
             if (g_hooks[modIndex(typeOf(d))] & kDustPreDraw) g_list.push_back(d);
         }
         g_flags.assign(g_list.size(), true);
-        if (!g_list.empty() && g_cb.preDraw) {
+        if (!g_list.empty() && (g_cb.preDraw || g_native.preDraw)) {
             beginKillTracking();
-            g_cb.preDraw(g_list, g_flags);
+            dispatch(g_list, g_flags, g_cb.preDraw, g_native.preDraw);
             endKillTracking(g_list);
         }
         for (size_t i = 0; i < g_list.size(); ++i) {
@@ -539,13 +579,19 @@ void hkDrawDust(Il2CppObject* self, const MethodInfo* m) {
 bool wantsAlpha(Il2CppObject* self) {
     if (field<bool>(self, refs().fullBright)) return false;
     const int mi = modIndex(typeOf(self));
-    return mi >= 0 && (g_hooks[mi] & kDustGetAlpha) && g_cb.getAlpha;
+    return mi >= 0 && (g_hooks[mi] & kDustGetAlpha) && (g_engine[mi] == 1 ? g_native.getAlpha != nullptr : g_cb.getAlpha != nullptr);
+}
+
+bool askAlpha(Il2CppObject* self, uint32_t& color) {
+    const int mi = modIndex(typeOf(self));
+    if (g_engine[mi] == 1) return g_native.getAlpha(self, &color) != 0;
+    return g_cb.getAlpha(self, color);
 }
 
 void hkGetAlphaRef(Il2CppObject* self, Color32* color, const MethodInfo* m) {
     if (color && wantsAlpha(self)) {
         uint32_t c = color->packed;
-        if (g_cb.getAlpha(self, c)) { color->packed = c; return; }
+        if (askAlpha(self, c)) { color->packed = c; return; }
     }
     g_origGetAlphaRef(self, color, m);
 }
@@ -553,7 +599,7 @@ void hkGetAlphaRef(Il2CppObject* self, Color32* color, const MethodInfo* m) {
 Color32 hkGetAlphaValue(Il2CppObject* self, Color32 color, const MethodInfo* m) {
     if (wantsAlpha(self)) {
         uint32_t c = color.packed;
-        if (g_cb.getAlpha(self, c)) return Color32{c};
+        if (askAlpha(self, c)) return Color32{c};
     }
     return g_origGetAlphaValue(self, color, m);
 }
@@ -634,6 +680,19 @@ void setDustCallbacks(const DustCallbacks& callbacks) {
     g_cb = callbacks;
 }
 
+void setDustNativeCallbacks(const DustNativeCallbacks& callbacks) {
+    g_native = callbacks;
+}
+
+void addDustsInstalledHook(DustsInstalledHook hook) {
+    if (!hook) return;
+    std::lock_guard<std::mutex> l(g_mx);
+    for (DustsInstalledHook h : g_installedHooks) {
+        if (h == hook) return;
+    }
+    g_installedHooks.push_back(hook);
+}
+
 void tickModDusts() {
     if (g_failed) return;
     if (!gameReady()) return;
@@ -674,12 +733,15 @@ void tickModDusts() {
     {
         std::lock_guard<std::mutex> l(g_mx);
         g_hooks.assign(static_cast<size_t>(total), 0);
+        g_engine.assign(static_cast<size_t>(total), 0);
         g_updateType.assign(static_cast<size_t>(total), -1);
         g_group.assign(static_cast<size_t>(total), 0);
         std::vector<std::string> paths;
         for (int i = 0; i < total; ++i) {
             Entry& e = g_regs[static_cast<size_t>(i)];
             g_hooks[static_cast<size_t>(i)] = e.def.hooks;
+            g_engine[static_cast<size_t>(i)] = e.def.engine;
+            if (e.def.engine == 1) g_anyNative = true;
             g_updateType[static_cast<size_t>(i)] = e.updateType;
             g_anyHooks |= e.def.hooks;
             if (e.def.texture.empty()) continue;
@@ -706,6 +768,12 @@ void tickModDusts() {
     }
     g_installed.store(total, std::memory_order_release);
     installModHooks();
+    std::vector<DustsInstalledHook> listeners;
+    {
+        std::lock_guard<std::mutex> l(g_mx);
+        listeners = g_installedHooks;
+    }
+    for (DustsInstalledHook h : listeners) h(from, to - 1);
     BL_INFO("poeiras de mod: %d instalada(s) (tipos %d..%d), %d tabela(s) aumentadas, %zu textura(s)",
             total, from, to - 1, grown, g_groupAssets.size());
 }

@@ -1,0 +1,15 @@
+{
+  "uid": "e02ba6b5-85ef-46d6-bf77-0615c5e42e01",
+  "id": "test-cshair",
+  "name": "Teste: ModHair (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModHair: tipo, texturas, cabelo de trás, Cabeleireiro e save, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh cshair. No mundo, loga 'cshair <caso>: ok | FAIL' e 'cshair END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsHair.dll",
+  "dependencies": []
+}

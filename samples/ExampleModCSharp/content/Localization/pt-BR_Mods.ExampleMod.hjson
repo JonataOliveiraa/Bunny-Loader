@@ -1,4 +1,23 @@
 Items: {
+	ExampleBullet: {
+		DisplayName: Bala de Exemplo
+		Tooltip: Uma munição de bala de mod.
+	}
+
+	ExampleFishingRod: {
+		DisplayName: Vara de Pesca de Exemplo
+		Tooltip:
+			'''
+			Lança várias linhas de uma vez. Pesca na lava.
+			A linha nunca arrebenta.
+			'''
+	}
+
+	ExampleHookItem: {
+		DisplayName: Gancho de Exemplo
+		Tooltip: Prende em árvores
+	}
+
 	ExampleItem: {
 		DisplayName: Exemplo de Item
 		Tooltip: Descrição do item
@@ -12,6 +31,7 @@ Items: {
 	ExampleHelmet: {
 		DisplayName: Elmo de Exemplo
 		Tooltip: Este é um elmo de mod.
+		SetBonus: Aumenta o dano causado em {0}%
 	}
 
 	ExampleBreastplate: {
@@ -34,6 +54,53 @@ Items: {
 			'''
 	}
 
+	ExampleRobe: {
+		DisplayName: Manto de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleLifeFruit: {
+		DisplayName: Fruta da Vida de Exemplo
+		Tooltip:
+			'''
+			Aumenta a vida máxima permanentemente em {0}
+			Pode ser usada até {1} vezes
+			'''
+	}
+
+	ExampleManaCrystal: {
+		DisplayName: Cristal de Mana de Exemplo
+		Tooltip:
+			'''
+			Aumenta a mana máxima permanentemente em {0}
+			Pode ser usado até {1} vezes
+			'''
+	}
+
+	ExampleImmunityAccessory: {
+		DisplayName: Acessório de Imunidade de Exemplo
+		Tooltip: Um colar de cruz de mod que aumenta o tempo de imunidade em 1 segundo.
+	}
+
+	ExampleCratePotion: {
+		DisplayName: Poção de Caixote de Exemplo
+		Tooltip:
+			'''
+			Aumenta a chance de pescar um caixote
+			Acumula com a Poção de Caixote
+			'''
+	}
+
+	ExampleBuffPotion: {
+		DisplayName: Poção de Buff de Exemplo
+		Tooltip: Dá um leve buff de defesa.
+	}
+
+	ExampleExtraJumpAccessory: {
+		DisplayName: Acessório de Pulo Extra de Exemplo
+		Tooltip: Permite dar um pulo extra de exemplo no ar
+	}
+
 	ExampleWings: {
 		DisplayName: Asas de Exemplo
 		Tooltip: Estas são asas de mod.
@@ -46,6 +113,11 @@ Items: {
 
 	ExampleCustomDamageWeapon: {
 		DisplayName: Arma de Dano Personalizado de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleModifiedProjectilesItem: {
+		DisplayName: Item de Projéteis Modificados de Exemplo
 		Tooltip: ""
 	}
 
@@ -62,6 +134,11 @@ Items: {
 	ExampleSword: {
 		DisplayName: Espada de Exemplo
 		Tooltip: Esta é uma espada de mod.
+	}
+
+	ExampleMagicWeapon: {
+		DisplayName: Arma Mágica de Exemplo
+		Tooltip: Esta é uma arma mágica de exemplo
 	}
 
 	ExampleStatBonusAccessory: {
@@ -87,5 +164,50 @@ Conditions: {
 DamageClasses: {
 	ExampleDamageClass: {
 		DisplayName: dano de exemplo
+	}
+}
+
+Buffs: {
+	ExampleDefenseDebuff: {
+		DisplayName: Debuff de Defesa de Exemplo
+		Description: Defesa reduzida em 25%
+	}
+
+	ExampleCrateBuff: {
+		DisplayName: Caixote de Exemplo
+		Description: Mais chance de pescar um caixote
+	}
+
+	ExampleDefenseBuff: {
+		DisplayName: Buff Defensivo
+		Description: Aumenta a defesa em {0}
+	}
+
+	ExampleLifeRegenDebuff: {
+		DisplayName: Debuff de fogo
+		Description: Perdendo vida
+	}
+}
+
+ExampleGlobalBuff: {
+	RemainingTime: "[ExampleGlobalBuff] Tempo restante: {0}"
+	CannotCancel: Não dá para cancelar este buff parado!
+}
+
+GelGlobalItem: {
+	SpecialShiftClick: Shift-clique neste item no inventário para ganhar uma cor e uma raridade aleatórias!
+}
+
+Projectiles: {
+	ExampleBobber.DisplayName: Boia de Exemplo
+	ExampleBullet.DisplayName: Bala de Exemplo
+	ExampleHookProjectile.DisplayName: Gancho de Exemplo
+}
+
+NPCs: {
+	PartyZombie.DisplayName: Zumbi Festeiro
+	ExampleCustomAISlimeNPC: {
+		DisplayName: Slime Esvoaçante
+		GotStomped: Você foi esmagado
 	}
 }

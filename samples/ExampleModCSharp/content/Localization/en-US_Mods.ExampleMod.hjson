@@ -1,4 +1,23 @@
 Items: {
+	ExampleBullet: {
+		DisplayName: Example Bullet
+		Tooltip: This is a modded bullet ammo.
+	}
+
+	ExampleFishingRod: {
+		DisplayName: Example Fishing Rod
+		Tooltip:
+			'''
+			Fires multiple lines at once. Can fish in lava.
+			The fishing line never snaps.
+			'''
+	}
+
+	ExampleHookItem: {
+		DisplayName: Example Hook
+		Tooltip: Can grapple onto trees
+	}
+
 	ExampleItem: {
 		DisplayName: Example Item
 		Tooltip: Item description
@@ -12,6 +31,7 @@ Items: {
 	ExampleHelmet: {
 		DisplayName: Example Helmet
 		Tooltip: This is a modded helmet.
+		SetBonus: Increases dealt damage by {0}%
 	}
 
 	ExampleBreastplate: {
@@ -34,6 +54,53 @@ Items: {
 			'''
 	}
 
+	ExampleRobe: {
+		DisplayName: Example Robe
+		Tooltip: ""
+	}
+
+	ExampleLifeFruit: {
+		DisplayName: Example Life Fruit
+		Tooltip:
+			'''
+			Permanently increases maximum life by {0}
+			Up to {1} can be used
+			'''
+	}
+
+	ExampleManaCrystal: {
+		DisplayName: Example Mana Crystal
+		Tooltip:
+			'''
+			Permanently increases maximum mana by {0}
+			Up to {1} can be used
+			'''
+	}
+
+	ExampleImmunityAccessory: {
+		DisplayName: Example Immunity Accessory
+		Tooltip: This is a modded cross necklace that increases your immunity time by 1 second.
+	}
+
+	ExampleCratePotion: {
+		DisplayName: Example Crate Potion
+		Tooltip:
+			'''
+			Increases chance to get a crate
+			Stacks with Crate Potion
+			'''
+	}
+
+	ExampleBuffPotion: {
+		DisplayName: Example Buff Potion
+		Tooltip: Gives a light defense buff.
+	}
+
+	ExampleExtraJumpAccessory: {
+		DisplayName: Example Extra Jump Accessory
+		Tooltip: Allows the user to perform an example mid-air extra jump
+	}
+
 	ExampleWings: {
 		DisplayName: Example Wings
 		Tooltip: This is a modded wing.
@@ -46,6 +113,11 @@ Items: {
 
 	ExampleCustomDamageWeapon: {
 		DisplayName: Example Custom Damage Weapon
+		Tooltip: ""
+	}
+
+	ExampleModifiedProjectilesItem: {
+		DisplayName: Example Modified Projectiles Item
 		Tooltip: ""
 	}
 
@@ -62,6 +134,11 @@ Items: {
 	ExampleSword: {
 		DisplayName: Example Sword
 		Tooltip: This is a modded sword.
+	}
+
+	ExampleMagicWeapon: {
+		DisplayName: Example Magic Weapon
+		Tooltip: This is an example magic weapon
 	}
 
 	ExampleStatBonusAccessory: {
@@ -87,5 +164,50 @@ Conditions: {
 DamageClasses: {
 	ExampleDamageClass: {
 		DisplayName: example damage
+	}
+}
+
+Buffs: {
+	ExampleDefenseDebuff: {
+		DisplayName: Example Defense Debuff
+		Description: Defense reduced by 25%
+	}
+
+	ExampleCrateBuff: {
+		DisplayName: Example Crate
+		Description: Greater chance of fishing up a crate
+	}
+
+	ExampleDefenseBuff: {
+		DisplayName: Defensive Buff
+		Description: Increases defense by {0}
+	}
+
+	ExampleLifeRegenDebuff: {
+		DisplayName: Fire debuff
+		Description: Losing life
+	}
+}
+
+ExampleGlobalBuff: {
+	RemainingTime: "[ExampleGlobalBuff] Remaining time: {0}"
+	CannotCancel: Cannot cancel this buff while stationary!
+}
+
+GelGlobalItem: {
+	SpecialShiftClick: Shift-click on this item from your inventory to get a random color and rarity!
+}
+
+Projectiles: {
+	ExampleBobber.DisplayName: Example Bobber
+	ExampleBullet.DisplayName: Example Bullet
+	ExampleHookProjectile.DisplayName: Example Hook
+}
+
+NPCs: {
+	PartyZombie.DisplayName: Party Zombie
+	ExampleCustomAISlimeNPC: {
+		DisplayName: Flutter Slime
+		GotStomped: You got stomped
 	}
 }

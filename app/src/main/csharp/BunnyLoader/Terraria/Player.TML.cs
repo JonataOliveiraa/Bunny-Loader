@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -6,6 +8,79 @@ namespace Terraria;
 public readonly partial struct Player
 {
     public bool HasBuff(int type) => FindBuffIndex(type) != -1;
+
+    public const int LifeCrystalMax = 15;
+
+    public const int LifeFruitMax = 20;
+
+    public const int ManaCrystalMax = 9;
+
+    public int ConsumedLifeCrystals
+    {
+        get => Math.Clamp((Math.Min(statLifeMax, 400) - 100) / 20, 0, LifeCrystalMax);
+        set => statLifeMax = 100 + 20 * Math.Clamp(value, 0, LifeCrystalMax) + 5 * ConsumedLifeFruit;
+    }
+
+    public int ConsumedLifeFruit
+    {
+        get => Math.Clamp((statLifeMax - 400) / 5, 0, LifeFruitMax);
+        set => statLifeMax = 100 + 20 * ConsumedLifeCrystals + 5 * Math.Clamp(value, 0, LifeFruitMax);
+    }
+
+    public int ConsumedManaCrystals
+    {
+        get => Math.Clamp((statManaMax - 20) / 20, 0, ManaCrystalMax);
+        set => statManaMax = 20 + 20 * Math.Clamp(value, 0, ManaCrystalMax);
+    }
+
+    public void UseHealthMaxIncreasingItem(int increase)
+    {
+        increase = Math.Max(0, increase);
+        statLifeMax2 += increase;
+        statLife += increase;
+        if (Main.myPlayer == whoAmI) HealEffect(increase);
+    }
+
+    public void UseManaMaxIncreasingItem(int increase)
+    {
+        increase = Math.Max(0, increase);
+        statManaMax2 += increase;
+        statMana += increase;
+        if (Main.myPlayer == whoAmI) ManaEffect(increase);
+    }
+
+    public void AddImmuneTime(int cooldownCounterId, int immuneTime)
+    {
+        if (cooldownCounterId < 0) this.immuneTime += immuneTime;
+        else hurtCooldowns[cooldownCounterId] += immuneTime;
+    }
+
+    public ModPlayer[] ModPlayers => PlayerLoader.Of(this);
+
+    public T GetModPlayer<T>() where T : ModPlayer => GetModPlayer(ModContent.GetInstance<T>());
+
+    public T GetModPlayer<T>(T baseInstance) where T : ModPlayer =>
+        PlayerLoader.Of(this)[baseInstance.Index] as T ?? throw new KeyNotFoundException($"Instance of '{typeof(T).Name}' does not exist on the current player.");
+
+    public bool TryGetModPlayer<T>(out T result) where T : ModPlayer => TryGetModPlayer(ModContent.GetInstance<T>(), out result);
+
+    public bool TryGetModPlayer<T>(T baseInstance, out T result) where T : ModPlayer
+    {
+        ModPlayer[] instances = PlayerLoader.Of(this);
+        if (baseInstance == null || baseInstance.Index >= instances.Length)
+        {
+            result = default!;
+            return false;
+        }
+        result = (T)instances[baseInstance.Index];
+        return true;
+    }
+
+    public string setBonus
+    {
+        get => Terraria.ModLoader.Core.ItemEquipHooks.GetSetBonus(this);
+        set => Terraria.ModLoader.Core.ItemEquipHooks.SetSetBonus(this, value);
+    }
 
     public ref StatModifier GetDamage<T>() where T : DamageClass => ref GetDamage(ModContent.GetInstance<T>());
 

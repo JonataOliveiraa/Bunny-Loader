@@ -1,0 +1,15 @@
+{
+  "uid": "3f94bc13-f5d1-4217-a0cd-b2a680239a77",
+  "id": "test-csgrapple",
+  "name": "Test: grappling hooks (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModProjectile and GlobalProjectile grapple hooks without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csgrapple. Logs csgrapple <case>: ok | FAIL and csgrapple END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsGrapple.dll",
+  "dependencies": []
+}

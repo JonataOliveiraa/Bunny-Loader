@@ -1,0 +1,6 @@
+Buffs: {
+	TestBuff: {
+		DisplayName: Buff de Teste
+		Description: Um buff de teste
+	}
+}

@@ -43,6 +43,7 @@ struct ModDustDef {
     std::string name;      // nome da classe
     std::string texture;   // caminho absoluto do PNG; "" = a folha do jogo (TextureAssets.Dust)
     unsigned hooks = 0;    // DustHook
+    int engine = 0;
 };
 
 /** Reserva o proximo tipo. THREAD-SAFE. -1 se o mesmo mod ja registrou esse nome. */
@@ -73,6 +74,18 @@ struct DustCallbacks {
     bool (*getAlpha)(Il2CppObject* dust, uint32_t& color) = nullptr;
 };
 void setDustCallbacks(const DustCallbacks& callbacks);
+
+struct DustNativeCallbacks {
+    void (*spawn)(int32_t type, void* dust) = nullptr;
+    void (*update)(void** dusts, int32_t count, uint8_t* flags) = nullptr;
+    void (*midUpdate)(void** dusts, int32_t count, uint8_t* flags) = nullptr;
+    void (*preDraw)(void** dusts, int32_t count, uint8_t* flags) = nullptr;
+    int32_t (*getAlpha)(void* dust, uint32_t* color) = nullptr;
+};
+void setDustNativeCallbacks(const DustNativeCallbacks& callbacks);
+
+using DustsInstalledHook = void (*)(int first, int last);
+void addDustsInstalledHook(DustsInstalledHook hook);
 
 /** Thread do jogo, a cada quadro: tabelas, texturas e hooks quando o jogo estiver pronto. */
 void tickModDusts();

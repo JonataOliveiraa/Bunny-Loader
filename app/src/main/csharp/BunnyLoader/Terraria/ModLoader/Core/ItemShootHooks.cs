@@ -28,6 +28,13 @@ internal static class ItemShootHooks
         public bool Clear;
     }
 
+    struct ShotStats
+    {
+        public Vector2 Position, Velocity;
+        public int Type, Damage;
+        public float Knockback;
+    }
+
     static bool globalShoot, globalSelection, globalAvailability, globalAmmo;
 
     static Shot? shot;
@@ -75,6 +82,7 @@ internal static class ItemShootHooks
 
     static bool CanShoot(Item item, Player player)
     {
+        if (!PlayerLoader.All(player, nameof(ModPlayer.CanShoot), item, static (m, i) => m.CanShoot(i))) return false;
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
@@ -135,6 +143,13 @@ internal static class ItemShootHooks
                 try { g.ModifyShootStats(item, player, ref position, ref velocity, ref type, ref damage, ref knockBack); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyShootStats", e); }
             }
+            if (PlayerLoader.Hooked(nameof(ModPlayer.ModifyShootStats)).Length > 0)
+            {
+                var stats = new ShotStats { Position = position, Velocity = velocity, Type = type, Damage = damage, Knockback = knockBack };
+                PlayerLoader.Each(player, nameof(ModPlayer.ModifyShootStats), item, ref stats,
+                    static (m, i, ref s) => m.ModifyShootStats(i, ref s.Position, ref s.Velocity, ref s.Type, ref s.Damage, ref s.Knockback));
+                (position, velocity, type, damage, knockBack) = (stats.Position, stats.Velocity, stats.Type, stats.Damage, stats.Knockback);
+            }
             var source = EntitySource_ItemUse_WithAmmo.Is(spawnSource) ? EntitySource_ItemUse_WithAmmo.From(spawnSource) : default;
             if (!Shoot(item, player, source, position, velocity, type, damage, knockBack)) return 1000;
             return orig(spawnSource, position.X, position.Y, velocity.X, velocity.Y, type, damage, knockBack, owner, ai0, ai1, ai2, modifier);
@@ -144,7 +159,8 @@ internal static class ItemShootHooks
 
     static bool Shoot(Item item, Player player, EntitySource_ItemUse_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback)
     {
-        bool result = true;
+        bool result = PlayerLoader.All(player, nameof(ModPlayer.Shoot), (item, source, position, velocity, type, damage, knockback),
+            static (m, s) => m.Shoot(s.item, s.source, s.position, s.velocity, s.type, s.damage, s.knockback));
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
@@ -224,6 +240,7 @@ internal static class ItemShootHooks
 
     static bool CanConsumeAmmo(Item weapon, Item ammo, Player player)
     {
+        if (!PlayerLoader.All(player, nameof(ModPlayer.CanConsumeAmmo), (weapon, ammo), static (m, s) => m.CanConsumeAmmo(s.weapon, s.ammo))) return false;
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(weapon))
         {
             if (g == null) continue;
@@ -263,6 +280,7 @@ internal static class ItemShootHooks
 
     static void OnConsumeAmmo(Item weapon, Item ammo, Player player)
     {
+        PlayerLoader.Each(player, nameof(ModPlayer.OnConsumeAmmo), (weapon, ammo), static (m, s) => m.OnConsumeAmmo(s.weapon, s.ammo));
         if (ItemHooks.ModItemOf(weapon) is ModItem w)
         {
             try { w.OnConsumeAmmo(ammo, player); }

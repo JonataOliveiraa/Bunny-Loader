@@ -1,0 +1,15 @@
+{
+  "uid": "5ef15036-ca66-4cde-9d52-50d76692a252",
+  "id": "test-csnetplayer",
+  "name": "Teste: rede do ModPlayer no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer em multijogador: SyncPlayer, CopyClientState, SendClientChanges, PlayerConnect e PlayerDisconnect, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csnetplayer. Instalar nos dois. O cliente loga 'csnetplayer client END'; o anfitrião loga 'csnetplayer <caso>: ok | FAIL' e 'csnetplayer END' depois que o cliente sai.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNetPlayer.dll",
+  "dependencies": []
+}

@@ -1,0 +1,15 @@
+{
+  "uid": "173c6356-5a25-43de-a0c3-4a9143b5aec7",
+  "id": "test-csplayerupdate",
+  "name": "Teste: atualização do ModPlayer no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer: movimento, efeitos, regeneração natural, pausa, gatilhos, acessórios de informação, bônus de conjunto, equipamento e tinturas, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csplayerupdate. No mundo, loga 'csplayerupdate <caso>: ok | FAIL' e 'csplayerupdate END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPlayerUpdate.dll",
+  "dependencies": []
+}

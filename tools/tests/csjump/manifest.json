@@ -1,0 +1,15 @@
+{
+  "uid": "4e5f9aad-ba97-4407-9ad3-46c56ca401c4",
+  "id": "test-csjump",
+  "name": "Teste: pulos extras (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ExtraJump de mod e os pulos do jogo com os ganchos do ModPlayer, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csjump. No mundo, loga 'csjump <caso>: ok | FAIL' e 'csjump END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsJump.dll",
+  "dependencies": []
+}

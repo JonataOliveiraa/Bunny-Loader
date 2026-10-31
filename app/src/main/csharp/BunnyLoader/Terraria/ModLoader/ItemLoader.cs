@@ -1,9 +1,14 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System;
 using BunnyLoader.Interop;
 using BunnyLoader;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Terraria.GameContent.Creative;
 using Terraria.GameContent.Items;
 using Terraria.ID;
 using Terraria.Localization;
@@ -89,7 +94,7 @@ internal static unsafe class ItemLoader
 
     public static void Register(ModItem item)
     {
-        string texture = ResolveTexture(item);
+        string texture = ResolveTexture(item, item.Texture);
         int type = Native(item, texture, DisplayNames(item), Tooltips(item));
         if (type == -1) throw new InvalidOperationException($"{item.FullName}: the mod already has an item named '{item.Name}'");
         if (type < 0) throw new InvalidOperationException($"{item.FullName}: registration failed ({type})");
@@ -143,9 +148,9 @@ internal static unsafe class ItemLoader
         }
     }
 
-    static string ResolveTexture(ModItem item)
+    internal static string ResolveTexture(ModType content, string path)
     {
-        string texture = item.Texture.Replace('\\', '/');
+        string texture = path.Replace('\\', '/');
         if (!texture.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) texture += ".png";
         if (Path.IsPathRooted(texture))
         {
@@ -153,16 +158,16 @@ internal static unsafe class ItemLoader
         }
         else
         {
-            string direct = Path.Combine(item.Mod.Folder, texture);
+            string direct = Path.Combine(content.Mod.Folder, texture);
             if (File.Exists(direct)) return direct;
             int slash = texture.IndexOf('/');
             if (slash > 0)
             {
-                string withoutMod = Path.Combine(item.Mod.Folder, texture.Substring(slash + 1));
+                string withoutMod = Path.Combine(content.Mod.Folder, texture.Substring(slash + 1));
                 if (File.Exists(withoutMod)) return withoutMod;
             }
         }
-        throw new FileNotFoundException($"{item.FullName}: texture '{item.Texture}' not found in {item.Mod.Folder}");
+        throw new FileNotFoundException($"{content.FullName}: texture '{path}' not found in {content.Mod.Folder}");
     }
 
     static void SetDefaults(On_Item.orig_SetDefaults orig, Item self, int type, ItemVariant variant)
@@ -222,6 +227,91 @@ internal static unsafe class ItemLoader
                 Log.Error($"{global.FullName}: SetDefaults threw: {e}");
             }
         }
+    }
+
+    static readonly System.Collections.Generic.Queue<(long Time, GameHandle Pin)> Kept = new();
+
+    internal static void KeepAlive(Item item)
+    {
+        long now = Environment.TickCount64;
+        lock (Kept)
+        {
+            while (Kept.Count > 0 && now - Kept.Peek().Time > 10000) Kept.Dequeue().Pin.Dispose();
+            Kept.Enqueue((now, new GameHandle(item.Pointer)));
+        }
+    }
+
+    internal static void CloneDefaults(Item item, int typeToClone)
+    {
+        int type = item.type;
+        bool material = item.material;
+        ModItem? instance = Instances.Get(item.Pointer);
+        GlobalItem?[]? slots = Globals.Slots(item);
+        item.SetDefaults(typeToClone, default);
+        item.type = type;
+        item.material = material;
+        Instances.Set(item.Pointer, instance);
+        Globals.Restore(item, slots);
+    }
+
+    static readonly Dictionary<int, int> Research = new();
+
+    static IntPtr Sacrifices() => CreativeItemSacrificesCatalog.Instance.SacrificeCountNeededByItemId.Pointer;
+
+    static IntPtr DictionaryMethod(IntPtr dictionary, string signature, out IntPtr info)
+    {
+        IntPtr klass = *(IntPtr*)dictionary;
+        byte* s = Host.Utf8(signature);
+        try { info = Host.Native()->FindMethodBySignature(klass, s); }
+        finally { Host.FreeUtf8(s); }
+        if (info == IntPtr.Zero) throw new MissingMethodException($"Dictionary<int, int>: '{signature}' not found");
+        return Host.Native()->MethodPointer(info);
+    }
+
+    internal static int ResearchUnlockCount(int type)
+    {
+        IntPtr table = Sacrifices();
+        if (table == IntPtr.Zero) return 0;
+        IntPtr fn = DictionaryMethod(table, "bool TryGetValue(int key, out int value)", out IntPtr info);
+        int value = 0;
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(table);
+        call.Arg(type);
+        call.Arg((IntPtr)(&value));
+        call.Arg(info);
+        return (call.Invoke(fn) & 0xFF) != 0 ? value : 0;
+    }
+
+    internal static void SetResearchUnlockCount(int type, int count)
+    {
+        lock (Research) Research[type] = count;
+        ApplyResearch(type, count);
+        ItemHooks.Once("Research", () => On_CreativeItemSacrificesCatalog.Initialize += SacrificesInitialize);
+    }
+
+    static void SacrificesInitialize(On_CreativeItemSacrificesCatalog.orig_Initialize orig, CreativeItemSacrificesCatalog self)
+    {
+        orig(self);
+        KeyValuePair<int, int>[] all;
+        lock (Research) all = Research.ToArray();
+        foreach ((int type, int count) in all)
+        {
+            try { ApplyResearch(type, count); }
+            catch (Exception e) { Log.Error($"ResearchUnlockCount {type}: {e.Message}"); }
+        }
+    }
+
+    static void ApplyResearch(int type, int count)
+    {
+        IntPtr table = Sacrifices();
+        if (table == IntPtr.Zero) return;
+        IntPtr fn = DictionaryMethod(table, count < 1 ? "bool Remove(int key)" : "void set_Item(int key, int value)", out IntPtr info);
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(table);
+        call.Arg(type);
+        if (count >= 1) call.Arg(count);
+        call.Arg(info);
+        call.Invoke(fn);
     }
 
     static Item Clone(On_Item.orig_Clone orig, Item self) => CopyInstances(self, orig(self));
@@ -338,5 +428,17 @@ internal static unsafe class ItemLoader
                 Log.Error($"item {item.FullName}: SetStaticDefaults threw: {e}");
             }
         }
+    }
+
+    public static void ModifyFishingLine(Projectile projectile, Player player, ref float polePosX, ref float polePosY, ref Color lineColor)
+    {
+        Item item = player.inventory[player.selectedItem];
+        if (ItemHooks.ModItemOf(item) is not ModItem m) return;
+        Vector2 lineOriginOffset = Vector2.Zero;
+        try { m.ModifyFishingLine(projectile, ref lineOriginOffset, ref lineColor); }
+        catch (Exception e) { ItemHooks.Report($"{m.FullName}.ModifyFishingLine", e); }
+        polePosX += lineOriginOffset.X * player.direction;
+        if (player.direction < 0) polePosX -= 13f;
+        polePosY += lineOriginOffset.Y * player.gravDir;
     }
 }

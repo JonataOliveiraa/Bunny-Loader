@@ -1,0 +1,15 @@
+{
+  "uid": "c96ff0a8-d5c2-43b9-ac06-8dfeef5025be",
+  "id": "test-csbufftip",
+  "name": "Teste: tooltip de buff (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "GlobalBuff.CustomBuffTipSize e DrawCustomBuffTip, FontAssets.MouseText, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csbufftip. No mundo, loga 'csbufftip <caso>: ok | FAIL' e 'csbufftip END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsBuffTip.dll",
+  "dependencies": []
+}

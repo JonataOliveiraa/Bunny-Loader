@@ -54,6 +54,14 @@ static class Program
         {
             string line = raw.Split('#')[0].Trim();
             if (line.Length == 0) continue;
+            if (line.StartsWith('!'))
+            {
+                int dot = line.LastIndexOf('.');
+                string owner = line[1..dot];
+                if (!HandWritten.TryGetValue(owner, out HashSet<string>? names)) HandWritten[owner] = names = new HashSet<string>();
+                names.Add(line[(dot + 1)..]);
+                continue;
+            }
             Type? t = Lookup(byName, line);
             if (t == null)
             {
@@ -374,9 +382,13 @@ static class Program
         return mod + new string(s.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
     }
 
+    static readonly Dictionary<string, HashSet<string>> HandWritten = new();
+
     static IEnumerable<string> Reserved(Type t)
     {
         yield return TypeMap.Ident(t.Name);
+        if (HandWritten.TryGetValue(t.FullName ?? t.Name, out HashSet<string>? hand))
+            foreach (string name in hand) yield return name;
         foreach (string r in new[] { "Pointer", "IsNull", "Class", "New", "Equals", "GetHashCode", "ToString", "GetType", "From", "Is", "Finalize", "MemberwiseClone" })
             yield return r;
         foreach (Type n in t.GetNestedTypes(BindingFlags.Public | BindingFlags.NonPublic)) yield return TypeMap.Ident(n.Name);
@@ -532,6 +544,20 @@ static class Program
             if (f.IsStatic)
             {
                 sb.Append(ind).Append($"static {RT}.StaticRef __s{n};\n");
+                if (f.Field.GetCustomAttributesData().Any(a => a.AttributeType.FullName == "System.ThreadStaticAttribute"))
+                {
+                    string access = $"ref __s{n}, {cls}, {fname}";
+                    string type = f.Use.IsString ? "nint" : f.Use.Cs;
+                    string read = $"{RT}.GameInterop.ReadStatic<{type}>({access})";
+                    string value = f.Use.IsString ? $"{RT}.GameString.New(value)" : "value";
+                    string reference = !f.Field.FieldType.IsValueType && !f.Field.FieldType.IsPointer ? "true" : "false";
+                    sb.Append(ind).Append($"public static {f.Use.Cs} {id}\n").Append(ind).Append("{\n");
+                    sb.Append(ind).Append($"    get => {(f.Use.IsString ? $"{RT}.GameString.Read({read})" : read)};\n");
+                    sb.Append(ind).Append($"    set => {RT}.GameInterop.WriteStatic<{type}>({access}, {value}, {reference});\n");
+                    sb.Append(ind).Append("}\n");
+                    n++;
+                    continue;
+                }
                 string addr = $"{RT}.GameInterop.StaticAddress(ref __s{n}, {cls}, {fname})";
                 if (f.Use.IsString)
                 {

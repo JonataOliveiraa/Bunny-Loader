@@ -1,0 +1,15 @@
+{
+  "uid": "6e634e4f-88ad-4ee9-b55b-4198a46e53eb",
+  "id": "test-csplayeritems",
+  "name": "Teste: ganchos de item do ModPlayer no C#",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer: dano, crítico, recuo, escala, tempo, mana, cura, tiro, munição e golpes com item, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csplayeritems. No mundo, loga 'csplayeritems <caso>: ok | FAIL' e 'csplayeritems END'.",
+  "updated": "2026-10-29",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPlayerItems.dll",
+  "dependencies": []
+}

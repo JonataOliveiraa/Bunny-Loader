@@ -1,0 +1,15 @@
+{
+  "uid": "47304e2d-02d9-4138-9116-fa735ad25371",
+  "id": "test-csextraai",
+  "name": "Test: projectile extra AI sync (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "SendExtraAI and ReceiveExtraAI, alone and on two devices, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csextraai. Logs csextraai <case>: ok | FAIL and csextraai END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsExtraAI.dll",
+  "dependencies": []
+}

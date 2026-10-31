@@ -1,0 +1,15 @@
+{
+  "uid": "ac0b766c-3712-4653-b377-3cfbfca5fdba",
+  "id": "test-csgore",
+  "name": "Test: ModGore (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModGore and autoloaded Gores textures: OnSpawn, Update, GetAlpha, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csgore. Logs csgore <case>: ok | FAIL and csgore END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsGore.dll",
+  "dependencies": []
+}

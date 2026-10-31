@@ -92,6 +92,8 @@ internal sealed class GlobalList<TEntity, TGlobal> where TEntity : struct, IGame
         TryGet(entity, baseInstance.StaticIndex, out T result) ? result
             : throw new KeyNotFoundException($"{typeof(T).Name} does not apply to this {typeof(TEntity).Name}");
 
+    public void Restore(TEntity entity, TGlobal?[]? slots) => perEntity.Set(entity.Pointer, slots);
+
     public void Clear(TEntity entity)
     {
         if (Count > 0) perEntity.Set(entity.Pointer, null);

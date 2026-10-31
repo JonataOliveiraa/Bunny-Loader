@@ -234,6 +234,13 @@ item), with tModLoader's signatures:
 | `HoldItem(Player player)` | Every frame the item is in hand | |
 | `HoldoutOffset()` | With the styles | `Vector2?`: moves the item in the hand (x forward, y down) |
 | `UpdateInventory(Player player)` | Every frame the item is in the inventory (the 58 slots, coins and ammo too) | |
+| `UseTimeMultiplier(Player player)`, `UseAnimationMultiplier(Player player)`, `UseSpeedMultiplier(Player player)` | When a use starts | `float`: the use time is multiplied by `UseTimeMultiplier`, the animation by `UseAnimationMultiplier`, and both divided by `UseSpeedMultiplier` (the `GlobalItem`s multiply in) |
+| `CanAutoReuseItem(Player player)` | When the game decides whether the use repeats | `bool?`: `true` repeats it even without `autoReuse`, `false` never |
+| `AltFunctionUse(Player player)` | When the player uses the tile control (right click) with the item | `true`: the item is used with `player.altFunctionUse == 2` (check it in `UseItem`, `CanUseItem`, `Shoot`...) |
+| `UseItemFrame(Player player)` / `HoldItemFrame(Player player)` | Every frame, after the game picks the player's body frame, while the item is used / held | change `player.bodyFrame` |
+| `ModifyManaCost(Player player, ref float reduce, ref float mult)` | When the game checks or spends the mana of a use | `reduce` starts at `player.manaCost`; the cost is the item's mana × `reduce` × `mult` (multiply `mult`) |
+| `OnMissingMana(Player player, int neededMana)` | When the player has less mana than the use needs | |
+| `OnConsumeMana(Player player, int manaConsumed)` | After the mana is spent | |
 
 Healing items (potions, food that heals) have their own:
 
@@ -569,10 +576,66 @@ default the `IsArmorSet` of those slots' items), `PreUpdateVanitySet`,
 has them with the `Item` first and the set as a string, and an
 `EquipTexture` subclass can replace them for one texture.
 
-Not on the phone yet: the set bonus line in the tooltip (the game has no
-`Player.setBonus` since 1.4.5.8), `DrawArmorColor`, `ArmorArmGlowMask`,
-`CanEquipAccessory`, the `HidesTopSkin`/`HidesHands` flags of
-`ArmorIDs.Body.Sets` and the item sync in PvP.
+The set bonus text is tModLoader's `player.setBonus`, set in
+`UpdateArmorSet` (or anywhere in the player's update):
+
+```csharp
+public static LocalizedText SetBonusText { get; private set; }
+
+public override void SetStaticDefaults() =>
+    SetBonusText = this.GetLocalization("SetBonus").WithFormatArgs(AdditiveGenericDamageBonus);
+
+public override void UpdateArmorSet(Player player)
+{
+    player.setBonus = SetBonusText.Value;
+    player.GetDamage(DamageClass.Generic) += AdditiveGenericDamageBonus / 100f;
+}
+```
+
+The game has no `Player.setBonus` since 1.4.5.8 (its sets are in
+`ArmorSetBonuses`); the Bunny Loader keeps the text per player, clears it at
+the start of each `UpdateArmorSets` and adds a `SetBonus` line, in the game's
+"Set Bonus: ..." format and green, to the worn pieces' tooltip (an item the
+game already gives a set line keeps the game's). `ModifyTooltips` sees it as
+`Terraria/SetBonus`. `WithFormatArgs` makes a new text with the arguments
+filled in; it does not follow a language change made after it.
+
+`DrawArmorColor(drawPlayer, shadow, ref color, ref glowMask, ref
+glowMaskColor)` (head, body and legs) and `ArmorArmGlowMask(drawPlayer,
+shadow, ref glowMask, ref color)` (the body's arms) run through the worn
+slot's `EquipTexture` (by default the item's) and then the `GlobalItem`s,
+after the game's `PlayerDrawSet.BoringSetup`. Since that is after the game's
+own effects (buff tints, stealth), a part the game made fully transparent
+keeps its color; a changed glow color gets the game's immunity blink
+(`GetImmuneAlphaPure`). `glowMask` is one of the game's glow masks
+(`GlowMaskID`).
+
+`CanEquipAccessory(player, slot, modded)` (`false` refuses) is asked when
+the item is dropped on an accessory slot (`ItemSlot.PickItemMovementAction`),
+on the quick swap (`ItemSlot.ArmorSwap`: the swap is undone and the item
+stays where it was) and by the phone's `ItemSlot.CanEquipAccessoryInSlot` /
+`CanEquipAccessoryInVanitySlot`. `slot` is the index in `player.armor`;
+`modded` is always `false` (there are no mod accessory slots yet).
+
+tModLoader's drawing flags are on the game's sets, sized to the slots
+(the mod ones included), with tModLoader's defaults for the game's:
+`ArmorIDs.Head.Sets.DrawFullHair`, `DrawHatHair`,
+`DrawsBackHairWithoutHeadgear` (read after `Player.GetHairSettings`),
+`ArmorIDs.Body.Sets.HidesTopSkin`, `HidesBottomSkin`, `HidesHands` (default
+`true`), `HidesArms` and `ArmorIDs.Legs.Sets.HidesTopSkin`,
+`HidesBottomSkin` (applied after `BoringSetup`). Set them in
+`SetStaticDefaults`, as `ExampleRobe` does:
+
+```csharp
+public override void SetStaticDefaults() => ArmorIDs.Body.Sets.HidesHands[Item.bodySlot] = false;
+```
+
+They only add to what the game decides: a `true` hides, a `HidesHands` of
+`false` shows the hand, a `HidesArms` of `true` hides the arm. The hooks are
+installed the first time a mod reads one of these sets.
+
+Not yet: `ArmorIDs.Head.Sets.IsTallHat` and `DrawHead`, and the PvP item
+sync, which comes with the PvP hooks in phase 2.
 
 ## Damage classes: `DamageClass`
 
@@ -683,6 +746,1005 @@ not saved or sent in multiplayer yet.
 Today a `GlobalItem` has `SetDefaults` and the use hooks above; the others
 (combat, tooltips, drawing...) come with the rest of the item hooks (phase 1 of
 the plan).
+
+## The player: `ModPlayer`
+
+```csharp
+public class ExampleLuckPlayer : ModPlayer
+{
+    public override void ModifyLuck(ref float luck)
+    {
+        if (Main.hardMode) luck += 0.5f;
+    }
+}
+```
+
+Each `ModPlayer` class gets one instance per player, made the first time
+something asks for it (`Initialize` runs then), with `Player` set to that
+player. From anywhere: `player.GetModPlayer<ExampleLuckPlayer>()`,
+`player.TryGetModPlayer(out ExampleLuckPlayer luck)` or `player.ModPlayers`.
+Fields are per player, so keep the state there and reset what an effect
+turns on in `ResetEffects`.
+
+The hooks so far, with tModLoader's signatures, each installed only when a
+loaded `ModPlayer` overrides it:
+
+| Hook | When |
+| --- | --- |
+| `ResetEffects`, `ModifyMaxStats(out health, out mana)` | after the game's `Player.ResetEffects`; the max stats are tModLoader's `StatModifier`s applied to `statLifeMax`/`statManaMax` and added to `statLifeMax2`/`statManaMax2` (the saved base is not touched) |
+| `PreUpdate`, `PostUpdate` | around `Player.Update` |
+| `PreUpdateBuffs`, `PostUpdateBuffs` | around `Player.UpdateBuffs` |
+| `UpdateEquips`, `PostUpdateEquips` | after `Player.UpdateEquips`; after the armor sets (`UpdateArmorSets`) |
+| `UpdateBadLifeRegen`, `UpdateLifeRegen` | before and after `Player.UpdateLifeRegen` |
+| `PreModifyLuck(ref luck)`, `ModifyLuck(ref luck)` | around `Player.RecalculateLuck`; `false` skips the game's luck |
+| `FrameEffects` | after the drawn slots are set (`PlayerFrame`) |
+| `UpdateDead` | after `Player.UpdateDead` |
+| `PreKill`, `Kill` | around `Player.KillMe` (not in god mode); `false` keeps the player alive. `playSound` and `genDust` are not used yet |
+| `OnEnterWorld`, `OnRespawn` | after `Player.Hooks.EnterWorld`; after `Player.Spawn` when the player was dead, as in tModLoader |
+| `CanUseItem(item)` | before the item's own `CanUseItem` |
+| `ResetInfoAccessories` | after `ResetEffects`, and after `Player.RefreshInfoAccs` |
+| `PreUpdateMovement` | once per update, before the first of the game's collision steps (wet, dry, sloping, borders), not when dead |
+| `PostUpdateMiscEffects` | after `Player.CapAttackSpeeds` |
+| `PostUpdateRunSpeeds` | before `Player.HorizontalMovement` |
+| `NaturalLifeRegen(ref float regen)` | inside `Player.UpdateLifeRegen`, on the natural regen value (a native hook in the middle of the method) |
+| `UpdateDyes`, `UpdateVisibleAccessories`, `UpdateVisibleVanityAccessories` | after `Player.UpdateDyes`; after `Player.UpdateVisibleAccessories` (the phone does both kinds in one method) |
+| `UpdateAutopause` | after `Main.DoUpdate_WhilePaused`, for the local player |
+| `ProcessTriggers(TriggersSet triggersSet)` | after `TriggersSet.CopyInto` for the local player |
+| `ArmorSetBonusActivated`, `ArmorSetBonusHeld(int holdTime)` | after `Player.KeyDoubleTap`/`KeyHoldDown` on the set bonus key (down, or up with `Main.ReversedUpDownArmorSetBonuses`) |
+| `OnEquipmentLoadoutSwitched(int oldLoadoutIndex, int loadoutIndex)` | after `Player.TrySwitchingLoadout` changed the loadout |
+| `SaveData`, `LoadData`, `PreSavePlayer`, `PostSavePlayer`, `PreSaveCustomData` | the character's `<file>.plr.bl.json`, under `<mod uid>/<class>` (shared with the JS mods' `ModPlayer` data) |
+
+The item hooks run inside the same game points as the `ModItem` ones, in
+tModLoader's `CombinedHooks` order: the item and its globals first, then the
+player, except `CanShoot`, `Shoot`, `CanConsumeAmmo`, `OnConsumeAmmo`,
+`ApplyPotionDelay`, `CanUseItem` and `CanAutoReuseItem`, where the player
+comes first. A `ModPlayer` hook covers every item, the game's included.
+
+| Hook | When |
+| --- | --- |
+| `PreItemCheck`, `PostItemCheck` | around `Player.ItemCheck`; `false` skips the game's item use for the frame |
+| `ModifyWeaponDamage`, `ModifyWeaponCrit`, `ModifyWeaponKnockback`, `ModifyItemScale`, `MeleeEffects` | as the item's |
+| `UseTimeMultiplier`, `UseAnimationMultiplier`, `UseSpeedMultiplier`, `CanAutoReuseItem` | multiplied with the item's |
+| `ModifyManaCost(item, ref reduce, ref mult)`, `OnMissingMana`, `OnConsumeMana` | as the item's |
+| `GetHealLife`, `GetHealMana`, `ApplyPotionDelay` | as the item's |
+| `CanShoot`, `ModifyShootStats`, `Shoot`, `CanConsumeAmmo`, `OnConsumeAmmo` | as the item's |
+| `CanHitNPC(target)`, `CanHitNPCWithItem`, `CanMeleeAttackCollideWithNPC` | an item's melee hit; `CanHitNPC` `false` refuses every hit of this player |
+| `ModifyHitNPC`, `ModifyHitNPCWithItem`, `OnHitNPC`, `OnHitNPCWithItem` | an item's melee hit, after the item's hooks |
+| `OnHitAnything(x, y, victim)` | after the game's `Player.OnHit` |
+
+### `ModPlayer` in multiplayer
+
+As in tModLoader, `ExampleStatIncreasePlayer`:
+
+```csharp
+public override void SyncPlayer(int toWho, int fromWho, bool newPlayer)
+{
+    ModPacket packet = Mod.GetPacket();
+    packet.Write((byte)ExampleMod.MessageType.ExampleStatIncreasePlayerSync);
+    packet.Write((byte)Player.whoAmI);
+    packet.Write((byte)exampleLifeFruits);
+    packet.Write((byte)exampleManaCrystals);
+    packet.Send(toWho, fromWho);
+}
+
+public override void CopyClientState(ModPlayer targetCopy) =>
+    ((ExampleStatIncreasePlayer)targetCopy).exampleLifeFruits = exampleLifeFruits;
+
+public override void SendClientChanges(ModPlayer clientPlayer)
+{
+    if (exampleLifeFruits != ((ExampleStatIncreasePlayer)clientPlayer).exampleLifeFruits)
+        SyncPlayer(toWho: -1, fromWho: Main.myPlayer, newPlayer: false);
+}
+```
+
+| Hook | When |
+| --- | --- |
+| `SyncPlayer(toWho, fromWho, newPlayer)` | after the game's `NetMessage.SyncOnePlayer` (`newPlayer` the first time for that slot), and on the client right after it enters the world (`toWho -1`, `newPlayer true`) |
+| `CopyClientState(targetCopy)` | when the game copies the local player (`Player.clientClone`) |
+| `SendClientChanges(clientPlayer)` | every client update, with the copy from the last one |
+| `PlayerConnect()`, `PlayerDisconnect()` | on the server when a player joins or leaves (also when the slot just goes empty) |
+
+The phone's host plays in the same game: its `Main.netMode` is 3, so it is
+both a client (`(Main.netMode & 1) != 0`, it runs `SendClientChanges`) and
+the server (`(Main.netMode & NetmodeID.Server) != 0`). Code from
+tModLoader that tests `Main.netMode == NetmodeID.Server` to pass a packet on
+to the other clients has to use the `&` form, as the ExampleMod's
+`HandlePacket` does.
+
+### Getting hurt: `Player.HurtModifiers` and `HurtInfo`
+
+```csharp
+public class ExampleImmunityPlayer : ModPlayer
+{
+    public bool HasExampleImmunityAcc;
+
+    public override void ResetEffects() => HasExampleImmunityAcc = false;
+
+    public override void PostHurt(Player.HurtInfo info)
+    {
+        if (HasExampleImmunityAcc && !info.PvP) Player.AddImmuneTime(info.CooldownCounter, 60);
+    }
+}
+```
+
+The hurt hooks run around the game's `Player.Hurt`, so every hit is seen:
+an NPC's, a projectile's (its index is in the `PlayerDeathReason`), a fall,
+lava, a debuff.
+
+| Hook | When |
+| --- | --- |
+| `ImmuneTo(damageSource, cooldownCounter, dodgeable)` | first; `true` skips the hit |
+| `CanBeHitByNPC(npc, ref cooldownSlot)`, `CanBeHitByProjectile(proj)` | when the hit comes from an NPC or a projectile; `false` skips it |
+| `ModifyHitByNPC`, `ModifyHitByProjectile`, then `ModifyHurt(ref modifiers)` | on tModLoader's `Player.HurtModifiers` |
+| `FreeDodge(info)`, `ConsumableDodge(info)` | for a dodgeable hit on the local player; `true` skips it |
+| `OnHitByNPC`, `OnHitByProjectile`, `OnHurt(info)` | after the game applied the hit, with the damage it took |
+| `PostHurt(info)` | after that, if the player is still alive |
+
+`HurtModifiers` does tModLoader's math: `SourceDamage` and
+`IncomingDamageMultiplier` act before the defense, `ArmorPenetration`,
+`ScalingArmorPenetration`, `FinalDamage` and `SetMaxDamage` after it, and
+`Cancel()` skips the hit. The game still does the rest of its `Hurt` (the
+crit of the phone's `Hurt`, endurance, the beetle and paladin's shield
+reductions), and `HurtInfo.Damage` in `OnHurt` is what it took. Not used
+yet: `Knockback`, `KnockbackImmunityEffectiveness`, `HitDirectionOverride`
+only changes the direction passed to the game, and `DisableDust` and
+`DisableSound` have no effect.
+
+### PvP
+
+| Hook | Where it runs |
+| --- | --- |
+| `ModItem.CanHitPvp(player, target)`, `GlobalItem.CanHitPvp`, `ModPlayer.CanHitPvp(item, target)` | on the attacker, for each player its melee swing touches; `false` skips that player |
+| `ModItem.ModifyHitPvp(player, target, ref modifiers)`, `GlobalItem.ModifyHitPvp` | on the victim's own game, before its `ModifyHurt` |
+| `ModItem.OnHitPvp(player, target, hurtInfo)`, `GlobalItem.OnHitPvp` | on the victim, after the hit, with the damage it took |
+| `ModPlayer.CanHitPvpWithProj(proj, target)` | on the game that applies a PvP projectile hit, for the projectile's owner |
+
+The weapon is the one in the attacker's hand: the game's death reason only
+carries its type and prefix, so the Bunny Loader sends the attacker's item
+data (its `NetSend`, or its `SaveData` without one, and the globals'
+`NetSend`) right before the game's hurt message, and the victim's
+`ModifyHitPvp`/`OnHitPvp` see a copy with that data. The attacker's own copy
+of the victim takes the game's damage, as in the base game.
+
+### In the world: pickups, slots, shops, the nurse, critters
+
+| Hook | When |
+| --- | --- |
+| `OnPickup(WorldItem item)` | before `Player.PickupItem`; `false` destroys the item on the ground (`TurnToAirAndSync`), as in tModLoader |
+| `CanBeTeleportedTo(teleportPosition, context)` | before `Player.Teleport` (`"TeleportRod"` for style 1, `"TeleportationPotion"` for 2, `"Teleport"` for the rest) and `UnityTeleport` (`"Wormhole"`); `false` keeps the player in place |
+| `HoverSlot(inventory, context, slot)` | in `ItemSlot.OverrideHover` for the local player; `true` skips the game's cursor choice (set `Main.cursorOverride` with `CursorOverrideID`) |
+| `ShiftClickSlot(inventory, context, slot)` | in `ItemSlot.OverrideLeftClick` while `ItemSlot.ShiftInUse`; `true` skips the game's click |
+| `CanBuyItem`, `PostBuyItem(vendor, shopInventory, item)` | a purchase in `ItemSlot.HandleShopSlot`; `false` blocks it; `item` is the one now on the cursor |
+| `CanSellItem`, `PostSellItem(vendor, shopInventory, item)` | around `Player.SellItem` while talking to a vendor |
+| `ModifyNurseHeal(nurse, ref health, ref removeDebuffs, ref chatText)` | before the nurse's price and heal; `false` shows `chatText` and heals nothing |
+| `ModifyNursePrice(nurse, health, removeDebuffs, ref price)` | after `Main.GetNurseHealCost` |
+| `PostNurseHeal(nurse, health, removeDebuffs, price)` | after a paid heal |
+| `CanCatchNPC(target, item)`, `OnCatchNPC(npc, item, failed)` | a bug net swing (`ItemCheck_CatchCritters`) or `NPC.CatchNPC`; `true` catches, `false` refuses; `failed` is `true` when the critter hurt the player instead |
+| `AddStartingItems(mediumCoreDeath)`, `ModifyStartingInventory(itemsByMod, mediumCoreDeath)` | a new character (`GUIPlayerCreateMenu.SetupStartingItems`) and a mediumcore death (`Player.DropItems`); the game's items are under `"Terraria"`, each mod's under its `Name`; what does not fit in the 50 slots goes to `GetOrDropItem` |
+
+The arrays are copies: changing `inventory[slot]` to another `Item` puts it
+back in the game's array after the hook. `new Item(type, stack, prefix)` makes
+a new item, as in tModLoader.
+
+```csharp
+public class ExampleInventoryPlayer : ModPlayer
+{
+    public override IEnumerable<Item> AddStartingItems(bool mediumCoreDeath)
+    {
+        if (mediumCoreDeath)
+            return [new Item(ItemID.HealingPotion)];
+        return [new Item(ModContent.ItemType<ExampleItem>()), new Item(ItemID.GoldOre, 256)];
+    }
+
+    public override void ModifyStartingInventory(IReadOnlyDictionary<string, List<Item>> itemsByMod, bool mediumCoreDeath)
+    {
+        itemsByMod["Terraria"].RemoveAll(item => item.type == ItemID.IronAxe);
+    }
+}
+```
+
+On the phone, `ItemSlot.ShiftInUse` does not read `ItemSlot.ShiftForcedOn`.
+
+### Fishing
+
+| Hook | When |
+| --- | --- |
+| `GetFishingLevel(fishingRod, bait, ref fishingLevel)` | after `Player.GetFishingConditions`; `fishingLevel` is the level multiplier (`LevelMultipliers`), as in tModLoader, and `FinalFishingLevel` is worked out again from it |
+| `ModifyFishingAttempt(ref attempt)` | before `Projectile.FishingCheck_ProbeForQuestFish`, with the drop levels rolled; `rolledItemDrop` and `rolledEnemySpawn` are put back |
+| `CatchFish(attempt, ref itemDrop, ref npcSpawn, ref sonar, ref sonarPosition)` | after `FishingCheck_RollItemDrop`; a `sonar.Text` shows with the Sonar Potion |
+| `ModifyCaughtFish(fish)` | in `AI_061_FishingBobber_GiveItemToPlayer`, before the fish goes to the player |
+| `CanConsumeBait(bait)` | when the bobber uses the bait; `false` keeps it, `true` always uses it, `null` lets the game roll |
+| `AnglerQuestReward(rareMultiplier, rewardItems)` | after `Player.GetAnglerReward`, with the game's rewards in the list; the list is what the player gets |
+| `GetDyeTraderReward(rewardPool)` | in `Player.GetDyeTraderReward`, on the pool the dye comes from |
+
+The rod itself can move the line's start and color: `ModItem.ModifyFishingLine(bobber,
+ref lineOriginOffset, ref lineColor)` (the offset is from the player's center,
+mirrored when facing left), and a bobber can do the same with
+`ModProjectile.ModifyFishingLine(ref lineOriginOffset, ref lineColor)`. The
+ExampleMod's `ExampleFishingRod` casts three to five `ExampleBobber`s, each with
+its own line color, synced with `SendExtraAI`.
+
+`PlayerFishingConditions` on the phone has the types (`PoleItemType`,
+`BaitItemType`), not tModLoader's `Pole`/`Bait` items.
+
+```csharp
+public class ExampleFishingPlayer : ModPlayer
+{
+    public bool hasExampleCrateBuff;
+
+    public override void ResetEffects() => hasExampleCrateBuff = false;
+
+    public override void ModifyFishingAttempt(ref FishingAttempt attempt)
+    {
+        if (hasExampleCrateBuff && !attempt.crate && Main.rand.Next(100) < 10)
+            attempt.crate = true;
+    }
+}
+```
+
+### Extra jumps: `ExtraJump`
+
+An `ExtraJump` is a double jump: the game's ones are `ExtraJump.CloudInABottle`,
+`SandstormInABottle`, `BlizzardInABottle`, `FartInAJar`, `TsunamiInABottle`,
+`UnicornMount`, `SantankMount`, `GoatMount`, `BasiliskMount` and `Flipper`. A
+mod adds its own as in tModLoader, and turns it on each frame with
+`player.GetJumpState<T>().Enable()`:
+
+```csharp
+public class SimpleExtraJump : ExtraJump
+{
+    public override Position GetDefaultPosition() => new After(BlizzardInABottle);
+
+    public override float GetDurationMultiplier(Player player) => 2.25f;
+
+    public override void UpdateHorizontalSpeeds(Player player)
+    {
+        player.runAcceleration *= 1.75f;
+        player.maxRunSpeed *= 2f;
+    }
+}
+
+public override void UpdateAccessory(Player player, bool hideVisual) =>
+    player.GetJumpState<SimpleExtraJump>().Enable();
+```
+
+`GetDefaultPosition` puts it before or after one of the game's jumps, and
+`GetModdedConstraints` orders it among the mods' jumps there
+(`ExtraJumpLoader.OrderedJumps`). `GetJumpState` of a game jump reads and
+writes the game's own fields (`hasJumpOption_*`, `canJumpAgain_*`,
+`isPerformingJump_*`), so `Enable()`, `Disable()` and `Available` work on them
+too. Also there: `player.ExtraJumps`, `blockExtraJumps`, `AnyExtraJumpUsable()`,
+`StopExtraJumpInProgress()`, `ConsumeAllExtraJumps()`.
+
+| Hook | When |
+| --- | --- |
+| `ModifyExtraJumpDurationMultiplier(jump, ref duration)` | when a jump starts; the jump time is `Player.jumpHeight * duration`, for the game's jumps too |
+| `CanStartExtraJump(jump)` | before a jump starts in the air; `false` skips it and leaves it available |
+| `OnExtraJumpStarted(jump, ref playSound)` | after it starts; `playSound = false` silences it (the game's jump sounds as well) |
+| `OnExtraJumpEnded(jump)` | when it stops (`CancelAllJumpVisualEffects`, or when it is disabled mid-jump) |
+| `OnExtraJumpRefreshed(jump)` | when the jumps come back (`RefreshDoubleJumps`, on the ground) |
+| `ExtraJumpVisuals(jump)`, `CanShowExtraJumpVisuals(jump)` | in `DoubleJumpVisuals`; `false` hides the jump's effects |
+| `OnExtraJumpCleared(jump)` | when an available jump is taken away (unequipped in the air, a mount that blocks jumps, `ConsumeAllExtraJumps`) |
+
+### Drawing the player: `PlayerDrawLayer`
+
+The player is drawn layer by layer, as in tModLoader: the game's layers are
+`PlayerDrawLayers.Wings`, `Head`, `Torso`, `HeldItem` and the rest, and a mod
+adds its own:
+
+```csharp
+public class ExamplePlayerDrawLayer : PlayerDrawLayer
+{
+    public override bool IsHeadLayer => true;
+
+    public override bool GetDefaultVisibility(PlayerDrawSet drawInfo) =>
+        drawInfo.drawPlayer.HeldItem.type == ModContent.ItemType<ExampleItem>();
+
+    public override Position GetDefaultPosition() => new BeforeParent(PlayerDrawLayers.Head);
+
+    protected override void Draw(ref PlayerDrawSet drawInfo)
+    {
+        var texture = TextureAssets.Item[ModContent.ItemType<ExampleItem>()];
+        var position = drawInfo.Center + new Vector2(0f, -20f) - Main.screenPosition;
+        drawInfo.DrawDataCache.Add(new DrawData(texture.Value, position, null, Color.White, 0f, texture.Size() * 0.5f, 1f, SpriteEffects.None, 0));
+    }
+}
+```
+
+`GetDefaultPosition` takes `Between(layer1, layer2)` (either may be `null`),
+`BeforeParent`/`AfterParent` (drawn with the parent, and hidden with it) or
+`Multiple`. The order is set once after loading (`PlayerDrawLayerLoader.DrawOrder`).
+`drawInfo.DrawDataCache` works as tModLoader's list (`Add`, `Insert`,
+`RemoveAt`, `RemoveAll`, `FindIndex`, `Count`, the indexer, `foreach`) over the
+phone's array and count, and `DrawData` has tModLoader's constructors (a `null`
+source rectangle is the whole texture). `TextureAssets.Item[type]` is an
+`Asset<Texture2D>` and loads the game's texture when it is not loaded yet.
+
+The phone draws the same layers as the PC 1.4.5, which tModLoader (1.4.4) does
+not all have: there is `PlayerDrawLayers.ArmorBackCoat` (between `BalloonAcc`
+and `Skin`) and no `FinchNest`, and `HeldItem` behind the front arm and
+`FrontAccFront` over the arm keep the game's torso offset.
+
+| Hook | When |
+| --- | --- |
+| `DrawEffects(drawInfo, ref r, ref g, ref b, ref a, ref fullBright)` | after `PlayerDrawSet.BoringSetup`; the player's colors are multiplied, and `fullBright` ignores the light |
+| `ModifyDrawInfo(ref drawInfo)` | right after it |
+| `ModifyDrawLayerOrdering(positions)` | once, when the order is built |
+| `HideDrawLayers(drawInfo)` | every draw, before the layers (call `layer.Hide()`) |
+| `TransformDrawData(ref drawInfo)` | before `DrawPlayer_RenderAllLayers`, with every layer's `DrawData` |
+| `DrawPlayer(camera)` | after `LegacyPlayerRenderer.PrepareDrawForFrame`, once per player per frame |
+| `ModifyScreenPosition()` | after `Main.DoDraw_UpdateCameraPosition`, for the local player |
+| `ModifyZoom(ref zoom)` | when the game sets `Main.GameViewMatrix.Zoom` |
+
+### Extra crafting materials
+
+`AddMaterialsForCrafting(out ItemConsumedCallback itemConsumedCallback)`
+returns items the player can craft with as if they were in a nearby chest; the
+callback runs for each of them that a craft used, with its index in what the
+hook returned:
+
+```csharp
+public class BagPlayer : ModPlayer
+{
+    public Item[] Bag = { new Item(ItemID.Ruby, 5) };
+
+    public override IEnumerable<Item> AddMaterialsForCrafting(out ItemConsumedCallback itemConsumedCallback)
+    {
+        itemConsumedCallback = (item, index) => Main.NewText($"slot {index}: {item.stack} left");
+        return Bag;
+    }
+}
+```
+
+The items stay the mod's: when a craft uses one up, the same `Item` turns to
+air instead of being replaced. The rest of tModLoader's `ModPlayer` (the
+projectile hits) comes with the projectiles.
+
+## Buffs: `ModBuff` and `GlobalBuff`
+
+```csharp
+public class ExampleLifeRegenDebuff : ModBuff
+{
+    public override void SetStaticDefaults()
+    {
+        Main.debuff[Type] = true;
+        Main.pvpBuff[Type] = true;
+        Main.buffNoSave[Type] = true;
+        BuffID.Sets.BuffTimeIsExtendedWithGameDifficulty[Type] = true;
+    }
+
+    public override void Update(Player player, ref int buffIndex) =>
+        player.GetModPlayer<ExampleLifeRegenDebuffPlayer>().lifeRegenDebuff = true;
+}
+```
+
+A `ModBuff` gets a type after the game's (`BuffID.Count` is 401):
+`ModContent.BuffType<T>()`, `BuffLoader.GetBuff(type)`. The icon is the
+class's texture (`ExampleLifeRegenDebuff.png`, 32x32), the name and
+description come from `Mods.<Mod>.Buffs.<Name>.DisplayName`/`Description`.
+`SetStaticDefaults` runs when the game's buff tables (`Main.debuff`,
+`Main.buffNoSave`, `BuffID.Sets`...) have the type; give it to a player with
+`player.AddBuff(type, time)` or to an item with `Item.buffType`. The
+Bunny Loader also patches the places where the phone's game had the buff
+count compiled in (the buff bar, the nurse, the network) and saves the mod
+buffs of a character by name.
+
+| Hook (`ModBuff`; `GlobalBuff` has the type first, for every buff) | When |
+| --- | --- |
+| `Update(Player player, ref int buffIndex)` | each frame, after the game's `Player.UpdateBuffs` |
+| `Update(NPC npc, ref int buffIndex)` | each frame, after the game's `NPC.UpdateNPC_BuffSetFlags` |
+| `ReApply(Player player, int time, int buffIndex)`, `ReApply(NPC ...)` | when the buff is given again; `true` keeps the game from renewing the time |
+| `ModifyBuffText(ref string buffName, ref string tip, ref int rare)` | for the name (`Lang.GetBuffName`) and the tip (`Main.GetBuffTooltip`) the buff bar shows; `rare` has no effect on the phone |
+| `RightClick(int buffIndex)` | when the player taps the buff to cancel it; `false` keeps it |
+
+`GlobalBuff.Update` runs for each active buff, the game's included, after
+the `ModBuff`'s; a hook that removes the buff lowers `buffIndex`, as in
+tModLoader.
+
+The icon in the buff bar: `PreDraw(spriteBatch, buffIndex, ref BuffDrawParams
+drawParams)` (`GlobalBuff`s first, then the `ModBuff`) and `PostDraw`. The
+params start as the game draws it: `Position` is the icon's top left corner,
+`TextPosition` the time text's, `DrawColor` the bar's fade
+(`Main.buffAlpha`). A change to `Texture`, `Position`, `SourceRectangle` or
+`DrawColor` goes to the game's draw of that icon, a change to `TextPosition`
+moves its time text, and `false` hides the icon (the text stays, as in
+tModLoader). The phone draws the bar at a 0.8 scale.
+
+The buff's tip (tapping the icon shows it through `Main.MouseText`):
+`GlobalBuff.CustomBuffTipSize(buffTip, sizes)` adds the sizes of what a mod
+draws under it, so the game moves the box back on screen, and
+`DrawCustomBuffTip(buffTip, spriteBatch, originX, originY)` draws it, with the
+origin just under the tip text. `FontAssets.MouseText`, `ItemStack` and
+`DeathText` are `Asset<SpriteFont>`s, as in tModLoader:
+
+```csharp
+public override void DrawCustomBuffTip(string buffTip, SpriteBatch spriteBatch, int originX, int originY) =>
+    spriteBatch.DrawString(FontAssets.MouseText.Value, "More text", new Vector2(originX, originY), Color.Yellow);
+```
+
+## Projectiles: `ModProjectile`
+
+```csharp
+public class ExampleBullet : ModProjectile
+{
+    public override void SetDefaults()
+    {
+        Projectile.width = 8;
+        Projectile.height = 8;
+        Projectile.aiStyle = ProjAIStyleID.Arrow;
+        Projectile.friendly = true;
+        Projectile.DamageType = DamageClass.Ranged;
+        Projectile.penetrate = 5;
+        Projectile.timeLeft = 600;
+        AIType = ProjectileID.Bullet;
+    }
+
+    public override bool OnTileCollide(Vector2 oldVelocity)
+    {
+        Projectile.penetrate--;
+        if (Projectile.penetrate <= 0) Projectile.Kill();
+        else Projectile.velocity = -oldVelocity;
+        return false;
+    }
+}
+```
+
+The texture is `Texture` (`ExampleBullet.png`, frames stacked vertically:
+`Main.projFrames[Type]` in `SetStaticDefaults`), the name
+`Mods.<Mod>.Projectiles.<Name>.DisplayName`, and the type comes after the game's
+1136 (`ModContent.ProjectileType<T>()`, `ProjectileLoader.GetProjectile`). An
+item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
+`Projectile.ModProjectile` is the mod's instance for that projectile.
+
+| Hook | When |
+| --- | --- |
+| `SetStaticDefaults`, `SetDefaults` | after the game has the type; for each new projectile (`Projectile.SetDefaults`) |
+| `OnSpawn(source)` | after `Projectile.NewProjectile`, with the spawn source |
+| `PreAI`, `AI`, `PostAI` | around the game's AI (`aiStyle`); `AIType` runs the AI of that game projectile; `PreAI` `false` skips the game's AI and `AI` |
+| `TileCollideStyle(ref width, ref height, ref fallThrough, ref hitboxCenterFrac)` | before the tile collision of each move: the box the tiles see (its size and where its center sits in the hitbox) and whether platforms let it through; `false` skips the tile collision for that move |
+| `OnTileCollide(oldVelocity)` | when the projectile hits a tile while moving; `false` keeps it alive where the game would kill it |
+| `CanCutTiles()`, `CutTiles()` | whether it cuts grass, vines and pots on its way (`null` leaves it to the game); `CutTiles` runs after the game's cut, to cut more |
+| `PreKill(timeLeft)`, `OnKill(timeLeft)` | before `Projectile.Kill`; `PreKill` `false` removes it without the game's death effects |
+| `ShouldUpdatePosition` | `false` keeps it where it is this update |
+| `Colliding(projHitbox, targetHitbox)` | a custom hit test against NPCs and players |
+| `CanDamage`, `MinionContactDamage`, `ModifyDamageHitbox` | in `Projectile.Damage` |
+| `GetAlpha(lightColor)` | the color it is drawn with |
+| `PreDrawExtras(player)` | before the game draws the projectile's extras: a hook's chain, a flail's chain, a yoyo's string, a fishing line; `false` hides them and lets the mod draw its own |
+| `PreDraw(player, ref lightColor)`, `PostDraw(player, lightColor)` | around the game's draw (`Main.DrawProjDirect`); `Projectile.GetDefaultDrawData(player, lightColor)` gives the draw the game would make, for afterimages; `PreDraw` `false` hides the sprite and keeps the extras |
+
+`Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
+index as in tModLoader. `Projectile.CloneDefaults(type)` copies another
+projectile's defaults and keeps the type, the `ModProjectile` and the globals.
+
+### Projectiles in multiplayer: `SendExtraAI`
+
+The game syncs a projectile's position, velocity and `ai` with its message 27;
+fields of your own travel with `SendExtraAI(BinaryWriter writer)` and
+`ReceiveExtraAI(BinaryReader reader)`. Set `Projectile.netUpdate = true` in
+`AI` when they change (the game clears it right before the AI, so setting it
+elsewhere does nothing), and read them back in the same order.
+
+```csharp
+public override void SendExtraAI(BinaryWriter writer) => writer.Write((byte)fishingLineColorIndex);
+
+public override void ReceiveExtraAI(BinaryReader reader) => fishingLineColorIndex = reader.ReadByte();
+```
+
+A `GlobalProjectile` has `SendExtraAI(projectile, bitWriter, binaryWriter)`
+and `ReceiveExtraAI(projectile, bitReader, binaryReader)`: `BitWriter.WriteBit`
+packs flags. The data is laid out as in tModLoader (the globals' bits, then
+the `ModProjectile`'s bytes, then the globals' bytes), and reading less or more
+than was written is logged as an error. It travels with the game's message, from
+the projectile's owner; the server passes a client's on to the others.
+`ProjectileLoader.WriteExtraAI`/`ReceiveExtraAI` are public, as in tModLoader.
+
+On the phone the extras and the sprite are drawn by the same game method, the
+extras first. When only one of them is hidden, the draws are told apart by the
+texture: until the first draw with the projectile's own texture they are
+extras, from it on they are the sprite.
+
+### Grappling hooks
+
+A hook is a projectile with `aiStyle = ProjAIStyleID.Hook` (7), shot by an item
+whose `shoot` is that type; `Projectile.CloneDefaults(ProjectileID.GemHookAmethyst)`
+is the usual start. The ExampleMod's `ExampleHook` (`Content/Items/Tools`) uses
+every hook below and draws its own chain in `PreDrawExtras`.
+
+| Hook | When |
+| --- | --- |
+| `CanUseGrapple(player)` | before the hook is shot; `false` stops it, `true` shoots it even past the game's limit of hooks in flight, `null` leaves it to the game |
+| `UseGrapple(player, ref type)` | right before the projectile is created; change `type` to shoot another hook (the Dual Hook does this) |
+| `GrappleRange()` | how far the hook flies before it comes back (300 by default); a hook with `AIType` keeps that game hook's range |
+| `NumGrappleHooks(player, ref numHooks)` | how many hooks may be latched at once; the oldest goes when a new one latches past it |
+| `GrappleRetreatSpeed(player, ref speed)` | the speed back to the player when it misses (11 by default) |
+| `GrapplePullSpeed(player, ref speed)` | how fast the player is pulled (11 by default); the first latched hook decides |
+| `GrappleTargetPoint(player, ref grappleX, ref grappleY)` | the point the player is pulled to; starts at the sum of the latched hooks' centers so far |
+| `GrappleCanLatchOnTo(player, x, y)` | whether the hook may latch onto the tile at `(x, y)`; `null` uses the game's rule (solid tiles) |
+
+`GlobalProjectile` has the same hooks with the `Projectile` first, except
+`CanUseGrapple(type, player)` and `UseGrapple(player, ref type)`, which take the
+hook's type (`AppliesToEntity` is asked on a sample projectile of that type), and
+`GrappleRange`, which is only on `ModProjectile`. As in tModLoader, a global's
+`false` in `GrappleCanLatchOnTo` wins over everything else.
+
+### Hits
+
+| Hook | When |
+| --- | --- |
+| `CanHitNPC(target)` | before the game checks whether the projectile may hit this NPC; `false` never hits it, `true` hits it even where the game would skip it (critters), `null` leaves it to the game |
+| `ModifyHitNPC(target, ref modifiers)`, `OnHitNPC(target, hit, damageDone)` | around the strike, as for items: `modifiers` start with the projectile's `DamageType` and the NPC's defense |
+| `CanHitPlayer(target)`, `CanHitPvp(target)` | before a hostile projectile (or a PvP one) hurts a player; `false` stops it |
+| `ModifyHitPlayer(target, ref modifiers)`, `OnHitPlayer(target, info)` | around `Player.Hurt` when the projectile is the cause |
+
+The order is tModLoader's: for a hit on an NPC, the owner's `ModPlayer.CanHitNPC`
+and `CanHitNPCWithProj`, then the projectile's `CanHitNPC` (the first answer that
+is not `null` wins, a `false` before it stops); then `ModifyHitNPC` on the
+projectile, its `GlobalProjectile`s, the owner's `ModPlayer.ModifyHitNPC` and
+`ModifyHitNPCWithProj`, and `OnHitNPC` in the same order. A `true` from
+`CanHitNPC` does not make a friendly NPC hittable.
+
+The strike is found without running C# for every projectile: a native marker on
+`Projectile.Damage_PVE` says which projectile is dealing damage, and only the
+strike itself calls the mod. `CanHitNPC` is the exception: the game asks it for
+every NPC near every friendly projectile, so override it only when needed.
+
+## Every projectile: `GlobalProjectile`
+
+```csharp
+public class ExampleProjectileModifications : GlobalProjectile
+{
+    public override bool InstancePerEntity => true;
+    public bool applyBuffOnHit;
+
+    public override void OnHitNPC(Projectile projectile, NPC target, NPC.HitInfo hit, int damageDone)
+    {
+        if (applyBuffOnHit) target.AddBuff(BuffID.OnFire, 50);
+    }
+}
+```
+
+A `GlobalProjectile` has the same hooks as `ModProjectile`, with the
+`Projectile` first, plus `SetDefaults(Projectile entity)`. They run for the
+game's projectiles and the mods'. `AppliesToEntity(entity, lateInstantiation)`
+picks the projectiles (first before the projectile's `SetDefaults`, then after
+it), and with `InstancePerEntity` each projectile gets its own instance:
+`projectile.GetGlobalProjectile<T>()`, `TryGetGlobalProjectile<T>(out T)` and
+`EntityGlobals` read it. The order is tModLoader's: in `PreAI`, `OnTileCollide`,
+`PreKill`, `PreDrawExtras`, `PreDraw`, `CanHitNPC`, `CanHitPlayer`, `CanHitPvp`, `Colliding`,
+`GetAlpha` and `CanDamage` the globals answer before the `ModProjectile`; in
+`AI`, `PostAI`, `OnKill`, `OnSpawn`, `ModifyHitNPC`, `OnHitNPC`, `ModifyHitPlayer`,
+`OnHitPlayer` and `PostDraw` the `ModProjectile` runs first. The loader's
+`ProjectileLoader.PreAI`, `OnHitNPC` and the others are public, as in
+tModLoader.
+
+`projectile.TryGetOwner(out Player player)` gives the owning player of a
+player's projectile.
+
+## Dusts: `ModDust`
+
+```csharp
+public class Sparkle : ModDust
+{
+    public override void OnSpawn(Dust dust)
+    {
+        dust.velocity *= 0.4f;
+        dust.noGravity = true;
+        dust.noLight = true;
+        dust.scale *= 1.5f;
+    }
+
+    public override bool Update(Dust dust)
+    {
+        dust.position += dust.velocity;
+        dust.rotation += dust.velocity.X * 0.15f;
+        dust.scale *= 0.99f;
+        if (dust.scale < 0.5f) dust.active = false;
+        return false;
+    }
+}
+```
+
+A dust is spawned by type: `Dust.NewDust(position, width, height, ModContent.DustType<Sparkle>())`.
+Its texture is `Texture` (`Sparkle.png`, frames of 8x8 like the game's sheet);
+`Texture => null` uses the game's dust sheet, and `Texture2D` is the loaded one.
+There is one `ModDust` per type: the dust itself is the game's `Dust`, which
+every hook gets.
+
+| Hook | When |
+| --- | --- |
+| `SetStaticDefaults` | once, when the game has the type; set `UpdateType` here to copy a game dust's behavior |
+| `OnSpawn(dust)` | in `Dust.NewDust`, with the frame already at the top of the texture |
+| `Update(dust)` | every update; `false` skips the game's update (the usual with your own movement) |
+| `MidUpdate(dust)` | after the game's update; `true` undoes its horizontal slowdown |
+| `GetAlpha(dust, lightColor)` | the color it is drawn with; `null` keeps the game's |
+| `PreDraw(dust)` | before the dusts are drawn, with `Main.spriteBatch` open; `false` hides it |
+
+`dust.active = false` works as in tModLoader: on the phone the free dust slots
+are a stack that only `Dust.SetNotActive` refills, and the slot of a dust a mod
+turned off is put back for you.
+
+## Gores: `ModGore`
+
+Every PNG in a `Gores/` folder of the mod becomes a gore named after the file
+(`Mod.Find<ModGore>("MyGore").Type`); a class adds hooks:
+
+```csharp
+public class ExampleDroplet : ModGore
+{
+    public override void SetStaticDefaults()
+    {
+        ChildSafety.SafeGore[Type] = true;
+        GoreID.Sets.IsDrip[Type] = true;
+        UpdateType = GoreID.WaterDrip;
+    }
+}
+```
+
+| Hook | When |
+| --- | --- |
+| `SetStaticDefaults` | once, when the gore tables have grown; `UpdateType` copies a game gore's behavior |
+| `OnSpawn(gore, source)` | in `Gore.NewGore`; `source` is the one passed to `Gore.NewGore(source, ...)` |
+| `Update(gore)` | every update; `false` skips the game's update |
+| `GetAlpha(gore, lightColor)` | the color it is drawn with; `null` keeps the game's |
+
+`GoreLoader.AddGoreFromTexture<TGore>(mod, texture)` adds one from any texture
+in `Load`. The types come after the game's (`GoreLoader.GoreCount`) and are set
+once the content is ready, so read `ModContent.GoreType<T>()` from then on. The
+phone has `GoreID.Sets.IsDrip` where tModLoader has `LiquidDroplet`.
+
+## Mounts: `ModMount`
+
+A mount is set up as in tModLoader: `SetStaticDefaults` fills `MountData`
+(speeds, frames, offsets, `buff`, `spawnDust`), and the textures come from
+`Texture + "_Back"`, `"_Front"`, `"_BackGlow"` and the other
+`MountTextureType`s, when the files exist. A buff mounts it:
+
+```csharp
+public class ExampleMountBuff : ModBuff
+{
+    public override void Update(Player player, ref int buffIndex)
+    {
+        player.mount.SetMount(ModContent.MountType<ExampleMount>(), player);
+        player.buffTime[buffIndex] = 10;
+    }
+}
+```
+
+and an item with `Item.mountType = ModContent.MountType<ExampleMount>()` gives
+the buff. The hooks: `SetMount(player, ref skipDust)`,
+`Dismount(player, ref skipDust)`, `UpdateEffects`, `UpdateFrame` (`false` skips
+the game's animation), `JumpHeight`, `JumpSpeed`, `UseAbility`, `AimAbility` and
+`Draw` (`false` draws nothing; what the hook adds to `playerDrawData` is drawn
+behind the mount). `player.mount._mountSpecificData` holds any C# object for
+that mount until it dismounts. The types come after the game's (`MountID.Count`,
+`MountLoader.GetMount`), and `MountID.Sets` grow with them.
+
+`MountData.backTexture` and the other texture fields are `Asset<Texture2D>`, and
+`MountData.playerYOffsets` is an `int[]` copied in and out of the game's array:
+set it whole (`MountData.playerYOffsets = new[] { ... }`), as tModLoader's
+examples do.
+
+## Hairstyles: `ModHair`
+
+```csharp
+public class ExampleHair : ModHair
+{
+    public override bool AvailableDuringCharacterCreation => false;
+
+    public override void SetStaticDefaults() => HairID.Sets.DrawBackHair[Type] = true;
+
+    public override IEnumerable<Condition> GetUnlockConditions()
+    {
+        yield return Condition.TimeNight;
+    }
+}
+```
+
+The textures are `Texture` and `AltTexture` (`ExampleHair.png` and
+`ExampleHair_Alt.png`, the one under a hat), set in `AutoStaticDefaults`
+into `TextureAssets.PlayerHair`/`PlayerHairAlt` (now `Asset<Texture2D>`
+arrays, as in tModLoader). The types come after the game's 228 (`HairID.Count`,
+`HairLoader.Count`, `HairLoader.GetHair`). The hair shows at character
+creation when `AvailableDuringCharacterCreation`, and at the Stylist when every
+`GetUnlockConditions` condition is met. `HairID.Sets.DrawBackHair` decides the
+back hair, the game's hairs included.
+
+The game's player file keeps the hair as a number the game checks against its
+228, so a mod hair is saved there as 0 and by name in the character's
+`.plr.bl.json` (`bunny:hair`, the key the JS mods use). In multiplayer the
+game's appearance message turns a mod hair into 0; the Bunny Loader sends the
+real one right after it. Not used yet: `RandomizedCharacterCreationGender`.
+JS and C# mod hairs at the same time would share type numbers.
+
+## The life and mana bar: `ModResourceOverlay`
+
+A `ModResourceOverlay` sees every heart and star the bar draws and can draw
+over it, as in tModLoader:
+
+| Hook | When |
+| --- | --- |
+| `PreDrawResource(context)` | before each piece of a heart or star (`GUIHearts.HeartDraw`, `GUIMana.StarDraw`); `false` skips the game's draw |
+| `PostDrawResource(context)` | after it; `context.Draw()` draws `context.texture` with the context's position, source, color, rotation, origin, scale and effects |
+| `PreDrawResourceDisplay(snapshot, displaySet, drawingLife, ref textColor, out drawText)` | before the whole life or mana display (`GUIHearts.Draw`, `GUIMana.Draw`); `false` skips it, `drawText = false` hides the life text |
+| `PostDrawResourceDisplay(...)` | after it |
+
+`context.texture` is the game's `Asset<Texture2D>`, so the comparisons of
+tModLoader's examples work: `asset == TextureAssets.Heart`, or
+`asset == Main.Assets.Request<Texture2D>("Images/UI/PlayerResourceSets/FancyClassic/Heart_Fill")`
+(the phone's bar uses the same images as the PC's). `context.resourceNumber`
+is the heart or star (0 is the first), `context.snapshot` has the player's
+`Life`, `LifeMax`, `Mana`, `ManaMax` and `AmountOfLifeHearts`/`AmountOfManaStars`.
+The phone has no hover text on the bar, so `DisplayHoverText` is not called,
+and `drawText` only hides the life text.
+
+## NPCs: `ModNPC` and `GlobalNPC`
+
+A `ModNPC` registers a new NPC type after the game's types. Its texture and
+display name follow the same conventions as items:
+
+```csharp
+using Terraria;
+using Terraria.ModLoader;
+
+namespace MyMod.Content.NPCs;
+
+public class FloatingFriend : ModNPC
+{
+    public override void SetDefaults()
+    {
+        NPC.width = 24;
+        NPC.height = 26;
+        NPC.lifeMax = 120;
+        NPC.friendly = true;
+        NPC.noGravity = true;
+        NPC.noTileCollide = true;
+        NPC.aiStyle = -1;
+    }
+}
+```
+
+The texture is `content/Content/NPCs/FloatingFriend.png`, and the name is
+`Mods.MyMod.NPCs.FloatingFriend.DisplayName` in the localization files.
+`ModContent.NPCType<FloatingFriend>()` gives the type,
+`NPCLoader.GetNPC(type)` and `ModContent.GetModNPC(type)` give the registered
+template, and `ModContent.Find<ModNPC>("MyMod/FloatingFriend")` finds it by name.
+`NPCLoader.NPCCount` includes every registered type, including JavaScript NPCs;
+the game tables have that size by `SetStaticDefaults`.
+
+The template has a real `NPC` in `SetStaticDefaults`, and its `NPC.ModNPC` is
+the template itself. `AutoStaticDefaults` assigns `TextureAssets.Npc[Type]`
+before that method. Set `Main.npcFrameCount[Type]` there for a sprite sheet;
+`TextureAssets.Npc` exposes `Asset<Texture2D>` entries, including a setter.
+
+Each `NPC.SetDefaults` creates a new mod instance. Read it through
+`npc.ModNPC`; it stays the same until the object receives new defaults.
+Constructor fields start fresh unless `CloneNewInstances` is true, in which
+case `Clone(newEntity)` copies the template. `ModNPC.NPC` is a `ref` property,
+so assignments to the pointer struct work as they do on tModLoader's class.
+The instances use the same weak-handle storage as items and do not keep game
+objects alive.
+
+`NPC.CloneDefaults(type)` copies another type's defaults, including its mod
+and globals, at Classic difficulty and scale 1. It restores the receiving
+NPC's type, net ID, mod instance, globals and player interaction flags. The
+outer defaults apply the requested difficulty once; `NPCSpawnParams` size
+and difficulty overrides also work for mod NPCs. `SetDefaults(type)` and
+`SetDefaultsKeepPlayerInteraction(type, spawnParams)` are available. The
+game's `NPC.Clone()` also clones mod and per-entity global state; override
+`Clone` to copy reference fields such as lists.
+
+A `GlobalNPC` uses the same `InstancePerEntity`, `AppliesToEntity`, cloning
+and instance-field validation as `GlobalItem`. Its hooks currently available
+are `SetStaticDefaults` and `SetDefaults(NPC entity)`. For each defaults run:
+
+1. Globals that apply with `lateInstantiation == false` are attached.
+2. The `ModNPC.SetDefaults` runs, then those globals' `SetDefaults`.
+3. The remaining globals are checked with `lateInstantiation == true` and
+   attached, then their `SetDefaults` run.
+
+Use `npc.GetGlobalNPC<T>()`, `GetGlobalNPC(baseInstance)`,
+`TryGetGlobalNPC(out T value)`, `TryGetGlobalNPC(baseInstance, out T value)`
+or `npc.EntityGlobals`. A global without `InstancePerEntity` is shared;
+per-entity globals are reset even when the game reuses the same NPC object.
+For vanilla NPCs the hooks run after the game's type-specific defaults and
+before its final frame, size and difficulty calculations. Changes to
+`buffImmune` also survive the mobile game's later immunity initialization.
+For C# mod NPCs the final difficulty scaling runs after all the defaults hooks.
+
+`NPC.NewNPC(default, x, y, type)` uses this path too. The initial
+`PartyZombie` port demonstrates registration, frame count, texture and base
+stats. It now also borrows zombie AI and animation through `AIType` and
+`AnimationType`, uses `NPCAIStyleID.Fighter`, and has the vanilla hit/death
+sounds. Natural spawn, loot, combat callbacks, banners and bestiary/biome
+integration arrive with their corresponding phase 4 steps. Extra AI networking
+and custom saved NPC data are also later steps.
+
+### AI and lifecycle
+
+`ModNPC` and `GlobalNPC` support the following lifecycle hooks. A global's
+signature has an `NPC npc` parameter before the parameters shown below.
+
+| Hook | Behavior |
+|---|---|
+| `PreAI()` | All applicable globals run first, combining their results. The mod NPC runs only if all globals allow it. Returning false skips vanilla AI and the `AI` hooks. |
+| `AI()` | Runs after vanilla AI: mod NPC first, then globals. |
+| `PostAI()` | Mod NPC first, then globals, including when `PreAI` returned false. |
+| `FindFrame(int frameHeight)` | Runs after vanilla framing: mod NPC first, then globals. `frameHeight` comes from the NPC's own sprite sheet and frame count. |
+| `ResetEffects()` | Runs after vanilla buff flags are reset and before buffs are applied. Reset temporary fields belonging to the mod here. |
+| `CheckActive()` | Returning false skips despawning and nearby NPC slot counting. Vanilla guards, including town NPCs and entities that do not despawn, run first. The mod NPC can stop the global checks; globals stop at the first false. |
+| `CheckDead()` | All applicable callbacks run even after a false result. Any false stops death. Vanilla body-part guards and special boss phase transitions run before this point. |
+| `HitEffect(NPC.HitInfo hit)` | Runs after vanilla hit effects, mod NPC first and then globals. |
+| `UpdateLifeRegen(ref int damage)` | Changes `NPC.lifeRegen` and the damage batch used for damage-over-time text and health loss. Mod NPC first, then globals. |
+| `OnSpawn(IEntitySource source)` | Runs once after `NPC.NewNPC` has set position, AI slots and target. Mod NPC first, then globals. `SetDefaults` by itself does not call it. |
+| `ApplyDifficultyAndPlayerScaling(int numPlayers, float balance, float bossAdjustment)` | Runs in expert-or-higher scaling, after difficulty changes and before the final player-count life multiplier. Mod NPC first, then globals. |
+
+`GlobalNPC.SetDefaultsFromNetId(NPC npc)` also runs after the mobile game's
+negative-ID variant setup, when `netID` has its final value.
+
+Use `AIType` to borrow a vanilla type's AI while keeping this NPC's own stats.
+Set a matching `NPC.aiStyle`; `NPCAIStyleID` exposes the named style constants,
+and `NPCAIStyleID.Search` maps those names and IDs in both directions.
+The type substitution is limited to vanilla AI, and `NPC.ModNPC` keeps the
+same managed instance during that call. `NPC.VanillaAI()` calls just vanilla
+AI, whereas `NPCLoader.NPCAI(npc)` includes the lifecycle callbacks.
+
+`AnimationType` independently borrows vanilla framing. Set
+`Main.npcFrameCount[Type]` in `SetStaticDefaults` to match the intended sheet.
+The borrowed routine uses the mod NPC's texture and frame count. `FindFrame`
+then runs even if vanilla framing ran; it is not a replacement for vanilla
+framing. Change `NPC.frame.Y`, `NPC.frameCounter` and `NPC.spriteDirection`
+there to supply custom animation.
+
+For hit effects, `npc.HitEffect(hit)` preserves the supplied `HitInfo`.
+The overload `HitEffect(int hitDirection = 0, double dmg = 10,
+bool? instantKill = null)` reconstructs legacy metadata, treating damage
+9999 as an instant kill unless explicitly overridden. Calls originating from
+the game's two-argument method have legacy damage/direction metadata.
+Item and projectile combat integrations supply their richer combat data in
+the corresponding combat steps.
+
+For damage over time, subtract from `NPC.lifeRegen` rather than replacing
+other mods' contributions. Raise `damage` when a larger damage batch is
+needed. Vanilla DOT can block positive regeneration after the hook; the
+adapter preserves the requested damage batch through the mobile game's
+`DOTTally` calculation. The callbacks also work for vanilla NPCs.
+
+The scaling callback receives `bossAdjustment == 1f`, matching the selected
+local tModLoader checkout. Its patch currently uses a placeholder value here;
+the adapter does not substitute the older master-mode adjustment. The mobile
+game's final player-count multiplier still runs after the callbacks.
+
+The `ExampleCustomAISlimeNPC` port demonstrates the five-state Flutter Slime
+AI and its six animation frames. Its banner, natural spawning, platform
+fall-through and collision-damage behavior are deferred to their planned
+steps. Immunity to `ExampleGravityDebuff`, and PartyZombie's custom liquid
+gravity adjustments, require the separate NPC gravity-multiplier API; those
+parts are explicitly deferred. Existing vanilla sounds are used.
+
+### Item hits on an NPC
+
+These hooks belong to the target. A `GlobalNPC` adds `NPC npc` as its first
+parameter:
+
+| Hook | Behavior |
+| --- | --- |
+| `CanBeHitByItem(Player player, Item item)` | Returns `bool?`: false blocks, true permits otherwise restricted targets such as friendly NPCs, and null keeps the default. NPC globals run first, followed by the mod NPC. A false stops the remaining NPC callbacks. |
+| `CanCollideWithPlayerMeleeAttack(Player player, Item item, Rectangle meleeAttackHitbox)` | Returns `bool?` to replace the melee collision decision. It does not bypass the game's wall or invulnerability checks. NPC globals run before the mod NPC. |
+| `ModifyIncomingHit(ref NPC.HitModifiers modifiers)` | The mod NPC runs before its globals, at the start of the accepted item strike, before item-specific modifiers. |
+| `ModifyHitByItem(Player player, Item item, ref NPC.HitModifiers modifiers)` | The mod NPC runs before its globals, after the item callbacks and before the player's callbacks. |
+| `OnHitByItem(Player player, Item item, NPC.HitInfo hit, int damageDone)` | The mod NPC runs before its globals, after the item callbacks and before the player's callbacks. Use this for side effects after the strike. |
+
+Across player, item and NPC decision sources, the first non-null decision
+has priority, following the selected local `CombinedHooks`. An earlier false
+ends the checks; after a true, later sources still run and their decisions do
+not replace it. Within the NPC source, any global or mod NPC false vetoes that
+source. The player's general `CanHitNPC` veto runs before its nullable
+`CanHitNPCWithItem` decision.
+
+The damage order is incoming NPC modifiers, item modifiers, NPC item
+modifiers, then player modifiers. The post-hit order is item, NPC, then
+player. `HitEffect` receives the full item hit metadata, including its damage
+class, source damage and critical flag. `hit.Damage` describes the strike;
+`damageDone` is limited to available health and is zero for an immortal
+target. An accepted hit still has a post-hit callback when the target is
+immortal. A nested raw `StrikeNPC` is not attributed to the outer item.
+
+The hooks extend the existing item combat path. They also install that path
+when only NPC callbacks are present and the weapon is vanilla. The adapter
+retains the mobile raw-damage message 28 flow and skips local modifiers on a
+strike received from the network. A two-device network result is still
+pending the coordinated network steps.
+
+The primitive mobile strike can quantize critical damage after conversion
+back to raw integers. With defense 10, the current adapter turns a critical
+damage cap of 3 into an actual hit of 4. Exact arbitrary critical caps remain
+an open precision issue in the shared primitive strike path. If a strict
+one-point cap is required, combine `SetMaxDamage(1)` with `DisableCrit()`.
+
+`ModifyIncomingHit` runs at the start of item strikes, of projectile strikes,
+of NPC contact strikes and of direct calls to `NPCLoader.ModifyIncomingHit`.
+Raw `NPC.StrikeNPC` calls by themselves do not enter these callbacks.
+
+`DamageModificationGlobalNPC` and `ExampleDefenseDebuff` demonstrate a
+temporary 25% defense reduction. The global resets its per-entity flag before
+buff updates; the buff sets it again, and the incoming hook changes
+`modifiers.Defense`. The debuff inherits Ichor immunity. Its draw tint waits
+for NPC drawing, and its player branch uses the mobile integer defense
+field. PartyZombie's incoming hook reduces magic damage by 75%; projectile
+magic damage receives the same behavior.
+
+### Projectile hits on an NPC
+
+| Hook | Behavior |
+| --- | --- |
+| `CanBeHitByProjectile(Projectile projectile)` | Returns `bool?`: false blocks the projectile, null keeps the default. NPC globals run first, followed by the mod NPC; a false stops the rest. |
+| `ModifyHitByProjectile(Projectile projectile, ref NPC.HitModifiers modifiers)` | The mod NPC runs before its globals, after the projectile's own `ModifyHitNPC` and before the owner's `ModPlayer` hooks. |
+| `OnHitByProjectile(Projectile projectile, NPC.HitInfo hit, int damageDone)` | Same order, after the projectile's `OnHitNPC`. |
+
+The decision order is tModLoader's `CombinedHooks.CanHitNPCWithProj`: the
+owner's `ModPlayer`, then the projectile and its globals, then the NPC; the
+first non-null answer wins and a false before it stops the checks. The damage
+order is `ModifyIncomingHit`, the projectile, the NPC, then the owner, and
+`damageDone` is limited to the health left, as for items. These hooks run for
+the game's projectiles too, and an NPC that overrides them installs the
+projectile strike path by itself.
+
+### NPC contact
+
+| Hook | Behavior |
+| --- | --- |
+| `CanHitPlayer(Player target, ref int cooldownSlot)` | false stops the contact damage. NPC globals run first, then the mod NPC; a false stops the rest. Runs before the player's `ModPlayer.CanBeHitByNPC`. |
+| `ModifyHitPlayer(Player target, ref Player.HurtModifiers modifiers)` | The mod NPC, then its globals, then the player's `ModifyHitByNPC` and `ModifyHurt`. |
+| `OnHitPlayer(Player target, Player.HurtInfo hurtInfo)` | Same order, after the game applied the hit. |
+| `CanHitNPC(NPC target)` | A hostile NPC touching a friendly one (a town NPC, for example). false stops it. |
+| `CanBeHitByNPC(NPC attacker)` | The other side of the same check. |
+| `ModifyHitNPC(NPC target, ref NPC.HitModifiers modifiers)` | After the target's `ModifyIncomingHit`; the mod NPC, then its globals. |
+| `OnHitNPC(NPC target, NPC.HitInfo hit)` | Same order, after the damage. |
+
+The NPC × NPC check follows tModLoader's `NPCLoader.CanHitNPC`: the attacker's
+globals, the target's globals (`CanBeHitByNPC`), the attacker, then the
+target; the first false wins. The contact goes through the game's
+`NPC.BeHurtByOtherNPC`, so a false there also skips the knockback and the
+immunity frames. The player side uses the same `Player.Hurt` path as the
+`ModPlayer` hooks, with the NPC's `cooldownSlot` passed on to them.
+
+### NPC buff immunity
+
+Set immunity by NPC type in `SetStaticDefaults`:
+
+```csharp
+public override void SetStaticDefaults()
+{
+    NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Poisoned] = true;
+    NPCID.Sets.ImmuneToRegularBuffs[Type] = true;
+    NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.OnFire] = false;
+}
+```
+
+`NPCID.Sets.ImmuneToRegularBuffs` excludes tag buffs, while
+`ImmuneToWhipTags` covers tag buffs. The masks combine when both are true.
+`SpecificDebuffImmunity` is indexed by NPC type and buff type: null keeps the
+default, true forces immunity, and false forces vulnerability. The tables
+include registered mod NPCs and buffs and preserve the mobile game's
+declared vanilla immunities.
+
+These managed sets initialize on first use and enable NPC defaults support
+even for a mod that does not add a `ModNPC` or `GlobalNPC`. Reading unrelated
+game `NPCID.Sets` members does not enable that support. Instance cloning
+hooks are installed only when NPC or global NPC content is registered.
+
+`BuffID.Sets.IsATagBuff` marks tag buffs. Add parent buff types to
+`BuffID.Sets.GrantImmunityWith[Type]` in a mod buff's `SetStaticDefaults` to
+inherit their NPC immunity. For an ordinarily vulnerable NPC, any immune
+parent grants immunity. For a broadly immune NPC, vulnerability to every
+parent grants vulnerability. Explicit overrides have final priority.
+
+`npc.BecomeImmuneTo(buffType)` changes a live NPC and also grants immunity to
+buffs that directly inherit from that buff. Follow it with
+`npc.ClearImmuneToBuffs(out bool anyBuffsCleared)` to remove active buffs to
+which the NPC is now immune. Run this change on the authoritative side; the
+clear helper sends message 54 for mobile server/host modes. Network validation
+is part of the coordinated multiplayer steps.
 
 ## Finding content by name
 

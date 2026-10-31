@@ -1,0 +1,7 @@
+NPCs: {
+    TestNpc.DisplayName: Test NPC
+    ClonedNpc.DisplayName: Cloned NPC
+    CopiedNpc.DisplayName: Copied NPC
+    VanillaCloneNpc.DisplayName: Vanilla Clone NPC
+    PartyZombie.DisplayName: Party Zombie
+}

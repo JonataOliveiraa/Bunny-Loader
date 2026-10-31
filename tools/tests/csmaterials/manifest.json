@@ -1,0 +1,15 @@
+{
+  "uid": "5561d081-0df8-4521-b5fd-bf7161aca311",
+  "id": "test-csmaterials",
+  "name": "Teste: materiais extras para criar itens (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer.AddMaterialsForCrafting com o callback de item consumido, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csmaterials. No mundo, loga 'csmaterials <caso>: ok | FAIL' e 'csmaterials END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsMaterials.dll",
+  "dependencies": []
+}

@@ -1,0 +1,15 @@
+{
+  "uid": "cf0836e0-7708-4d7a-9c7f-5ca50fd0f5d8",
+  "id": "test-csfishing",
+  "name": "Teste: pesca do ModPlayer (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "ModPlayer: nível de pesca, tentativa, peixe pego, isca, recompensa do pescador e do tintureiro, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csfishing. No mundo, loga 'csfishing <caso>: ok | FAIL' e 'csfishing END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsFishing.dll",
+  "dependencies": []
+}

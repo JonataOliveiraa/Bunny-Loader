@@ -98,6 +98,17 @@ sealed class Emitter
             model.Defaults.Add(DefaultOf(p, use, mode));
             index++;
         }
+        int lastDefault = model.Defaults.FindLastIndex(d => d != null);
+        int firstDefault = model.Defaults.FindIndex(d => d != null);
+        for (int i = firstDefault + 1; firstDefault >= 0 && i < lastDefault; i++)
+        {
+            if (model.Defaults[i] == null && model.Params[i].Mode == ArgMode.Value) model.Defaults[i] = "default";
+        }
+        for (int i = firstDefault - 1; firstDefault > 0 && i >= 0; i--)
+        {
+            if (model.Params[i].Mode != ArgMode.Value || !model.Params[i].Use.Cs.StartsWith(RT + ".GameNullable<", StringComparison.Ordinal)) break;
+            model.Defaults[i] = "default";
+        }
         args.Add(new ArgPlan
         {
             Name = "method", Mode = ArgMode.MethodInfo,

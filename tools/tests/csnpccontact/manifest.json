@@ -1,0 +1,15 @@
+{
+  "uid": "cd6407e8-ad22-4a8b-ab6a-2d440bb5ab50",
+  "id": "test-csnpccontact",
+  "name": "Test: NPC contact hits (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "NPC contact with the player and with other NPCs: CanHitPlayer, ModifyHitPlayer, OnHitPlayer, CanHitNPC, CanBeHitByNPC, ModifyHitNPC, OnHitNPC, without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csnpccontact; run with NOENV=1 (the player must take damage). Logs csnpccontact <case>: ok | FAIL and csnpccontact END pass=N fail=M.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpcContact.dll",
+  "dependencies": []
+}

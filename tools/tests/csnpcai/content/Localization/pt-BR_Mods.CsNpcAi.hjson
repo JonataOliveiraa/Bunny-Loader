@@ -1,0 +1,14 @@
+NPCs: {
+    ProbeNpc.DisplayName: Sonda de Ciclo de Vida
+    ScaleNpc.DisplayName: Sonda de Escala
+    PlainNpc.DisplayName: Sonda Simples
+    PartyZombie.DisplayName: Zumbi Festeiro
+    ExampleCustomAISlimeNPC: {
+        DisplayName: Slime Esvoaçante
+        GotStomped: Você foi esmagado
+    }
+}
+Buffs.ProbeBuff: {
+    DisplayName: Sonda de Imunidade
+    Description: Testa a herança de imunidade dos NPCs
+}

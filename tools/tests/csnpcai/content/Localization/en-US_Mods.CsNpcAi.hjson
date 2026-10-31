@@ -1,0 +1,14 @@
+NPCs: {
+    ProbeNpc.DisplayName: Lifecycle Probe
+    ScaleNpc.DisplayName: Scaling Probe
+    PlainNpc.DisplayName: Plain Probe
+    PartyZombie.DisplayName: Party Zombie
+    ExampleCustomAISlimeNPC: {
+        DisplayName: Flutter Slime
+        GotStomped: You got stomped
+    }
+}
+Buffs.ProbeBuff: {
+    DisplayName: Immunity Probe
+    Description: Tests NPC immunity inheritance
+}

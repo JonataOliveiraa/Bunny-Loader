@@ -1,0 +1,15 @@
+{
+  "uid": "c7ad6097-df69-4e8a-9b2d-b8377465f4f0",
+  "id": "test-csnpc",
+  "name": "Test: ModNPC and GlobalNPC (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "NPC registration, instances, defaults, globals and cloning without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh csnpc. Logs csnpc <case>: ok | FAIL and csnpc END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpc.dll",
+  "dependencies": []
+}

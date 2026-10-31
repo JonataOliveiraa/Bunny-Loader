@@ -45,6 +45,8 @@ bool isModNpc(int type);
 /** Vanilla + NPCs de mod JA instalados nas tabelas do jogo. */
 int npcTypeCount();
 
+int registeredNpcTypeCount();
+
 /**
  * Troca os limites compilados no codigo (CodePatch.h) para o total registrado.
  * Chamar logo depois de carregar os mods, ANTES de o jogo rodar esses metodos:
@@ -86,6 +88,9 @@ void setModNpcFrames(int type, int frames);
 /** AnimationType definido depois do registro (o SetDefaults do ModNPC). */
 void setModNpcAnimation(int type, int animationType);
 
+bool ensureNpcFrameHook();
+void runNpcFindFrame(Il2CppObject* npc, int borrowed);
+
 /** O tipo do NPC `name` do mod `mod`, ou -1. */
 int modNpcTypeByName(const std::string& mod, const std::string& name);
 
@@ -94,6 +99,6 @@ int modNpcTypeByName(const std::string& mod, const std::string& name);
  * dano e defesa de base, netID, escala de dificuldade), ativo, e tamanho pela
  * textura se o mod nao disse.
  */
-void finishModNpc(Il2CppObject* npc, int type);
+void finishModNpc(Il2CppObject* npc, int type, void* spawnParams = nullptr);
 
 } // namespace bl::runtime

@@ -1,4 +1,5 @@
 using Terraria;
+using Terraria.Localization;
 using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Armor;
@@ -7,6 +8,13 @@ namespace ExampleMod.Content.Items.Armor;
 public class ExampleHelmet : ModItem
 {
     public static readonly int AdditiveGenericDamageBonus = 20;
+
+    public static LocalizedText SetBonusText { get; private set; }
+
+    public override void SetStaticDefaults()
+    {
+        SetBonusText = this.GetLocalization("SetBonus").WithFormatArgs(AdditiveGenericDamageBonus);
+    }
 
     public override void SetDefaults()
     {
@@ -22,6 +30,7 @@ public class ExampleHelmet : ModItem
 
     public override void UpdateArmorSet(Player player)
     {
+        player.setBonus = SetBonusText.Value;
         player.GetDamage(DamageClass.Generic) += AdditiveGenericDamageBonus / 100f;
     }
 

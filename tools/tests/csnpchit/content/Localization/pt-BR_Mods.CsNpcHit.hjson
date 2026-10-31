@@ -1,0 +1,12 @@
+NPCs: {
+    ProbeNpc.DisplayName: Sonda de Golpe de Item
+    PartyZombie.DisplayName: Zumbi Festeiro
+}
+Items.HitItem: {
+    DisplayName: Espada de Teste de Golpes
+    Tooltip: Testa o combate de itens contra NPCs
+}
+Buffs.ExampleDefenseDebuff: {
+    DisplayName: Debuff de Defesa de Exemplo
+    Description: Defesa reduzida em 25%
+}

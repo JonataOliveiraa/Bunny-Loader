@@ -22,6 +22,20 @@ namespace Microsoft.Xna.Framework
 
         public static Vector2 operator /(Vector2 a, float s) => new(a.X / s, a.Y / s);
 
+        public static Vector2 operator *(Vector2 a, Vector2 b) => new(a.X * b.X, a.Y * b.Y);
+
+        public static Vector2 operator /(Vector2 a, Vector2 b) => new(a.X / b.X, a.Y / b.Y);
+
+        public static Vector2 operator -(Vector2 a) => new(-a.X, -a.Y);
+
+        public static bool operator ==(Vector2 a, Vector2 b) => a.X == b.X && a.Y == b.Y;
+
+        public static bool operator !=(Vector2 a, Vector2 b) => a.X != b.X || a.Y != b.Y;
+
+        public override readonly bool Equals(object? obj) => obj is Vector2 other && this == other;
+
+        public override readonly int GetHashCode() => HashCode.Combine(X, Y);
+
         public readonly float LengthValue => MathF.Sqrt(X * X + Y * Y);
 
         public override readonly string ToString() => $"{{X:{X} Y:{Y}}}";
@@ -88,6 +102,11 @@ namespace Microsoft.Xna.Framework.Graphics
         }
 
         public Color(float r, float g, float b) : this(r, g, b, 1f) { }
+
+        public static Color operator *(Color value, float scale) =>
+            new((int)(value.R * scale), (int)(value.G * scale), (int)(value.B * scale), (int)(value.A * scale));
+
+        public static Color operator *(float scale, Color value) => value * scale;
 
         public Color(float r, float g, float b, float a)
             : this((int)(r * 255f + 0.5f), (int)(g * 255f + 0.5f), (int)(b * 255f + 0.5f), (int)(a * 255f + 0.5f)) { }

@@ -7,6 +7,8 @@
   Item) e a espada de exemplo (`ExampleSword`, que põe fogo no golpe). O pó
   da espada e a raridade dela são os do jogo até o `ModDust` e o
   `ExampleModRarity` chegarem.
+- A arma mágica de exemplo (`ExampleMagicWeapon`), que gasta metade da mana
+  com pouca vida.
 
 ## 0.5.0
 

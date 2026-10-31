@@ -1,6 +1,16 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
 #include "boot/Boot.h"
+#include "content/buffs/BuffIconLook.h"
+#include "content/players/PlayerStages.h"
+#include "content/ui/ResourceDraws.h"
+#include "content/buffs/ModBuffs.h"
+#include "content/projectiles/ModProjectiles.h"
+#include "content/npcs/ModNpcs.h"
+#include "content/npcs/NpcEvents.h"
+#include "content/projectiles/ProjectileStrikes.h"
+#include "content/projectiles/ProjectileDrawSplit.h"
+#include "content/dusts/ModDusts.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
@@ -96,6 +106,38 @@ struct NativeApi {
     int32_t (*prefixCount)();
     int32_t (*growEquipSets)(const char* kind, int32_t from, int32_t to);
     void* (*resizeArray)(void* array, int32_t length);
+    int32_t (*registerBuff)(const char* mod, const char* name, const char* texture, const char* displayName, const char* description);
+    void (*onBuffsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void* (*buffIconLook)();
+    int32_t (*onNaturalRegen)(float (*callback)(void* player, float regen));
+    int32_t (*onConsumeBait)(int32_t (*callback)(void* player, void* bait));
+    int32_t (*onDyeReward)(int32_t (*callback)(void* player, int32_t* pool, int32_t count, int32_t capacity));
+    int32_t (*onResourceDraw)(int32_t (*callback)(int32_t phase, void* spriteBatch, void* args));
+    void (*resourceDrawActive)(int32_t active);
+    void* (*assetOfTexture)(void* texture);
+    int32_t (*registerProjectile)(const char* mod, const char* name, const char* texture, const char* displayName);
+    void (*onProjectilesInstalled)(void (*callback)(int32_t first, int32_t last));
+    void (*finishProjectile)(void* projectile, int32_t type);
+    void (*setProjectileFrames)(int32_t type, int32_t frames);
+    int32_t (*registerNPC)(const char* mod, const char* name, const char* texture, const char* displayName);
+    void (*onNPCsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void (*finishNPC)(void* npc, int32_t type, void* spawnParams);
+    void (*setNPCFrames)(int32_t type, int32_t frames);
+    int32_t (*npcCount)();
+    int32_t (*watchProjectileDamage)();
+    void* (*projectileDamaging)();
+    int32_t (*beginProjectileDrawSplit)(void* texture, int32_t extras, int32_t sprite);
+    void (*endProjectileDrawSplit)();
+    int32_t (*npcEvents)(int32_t type, uint32_t events, int32_t (*callback)(int32_t event, void* npc, void* args));
+    void (*npcOriginal)(void* npc, int32_t event, int32_t argument);
+    void* (*npcImmunityData)(int32_t type);
+    int32_t (*registerDust)(const char* mod, const char* name, const char* texture, uint32_t hooks);
+    void (*setDustUpdateType)(int32_t type, int32_t updateType);
+    void (*setDustCallbacks)(void (*spawn)(int32_t, void*), void (*update)(void**, int32_t, uint8_t*),
+                             void (*midUpdate)(void**, int32_t, uint8_t*), void (*preDraw)(void**, int32_t, uint8_t*),
+                             int32_t (*getAlpha)(void*, uint32_t*));
+    void (*onDustsInstalled)(void (*callback)(int32_t first, int32_t last));
+    void* (*dustTextureAsset)(int32_t type);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -560,6 +602,144 @@ void* nativeResizeArray(void* array, int32_t length) {
     return runtime::TypeTables::resizedCopy(static_cast<Il2CppArray*>(array), static_cast<uintptr_t>(length));
 }
 
+int32_t nativeRegisterBuff(const char* mod, const char* name, const char* texture, const char* displayName, const char* description) {
+    if (!mod || !name || !texture || !*mod || !*name) return -1;
+    if (!fileExists(texture)) return -2;
+    runtime::ModBuffDef d;
+    d.mod = mod;
+    d.name = name;
+    d.texture = texture;
+    d.names = cultureTexts(displayName);
+    d.descriptions = cultureTexts(description);
+    const int type = runtime::registerModBuff(std::move(d));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeOnBuffsInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::setBuffsInstalledHook(reinterpret_cast<runtime::BuffsInstalledHook>(callback));
+}
+
+void* nativeBuffIconLook() { return runtime::buffIconLook(); }
+
+int32_t nativeOnNaturalRegen(float (*callback)(void* player, float regen)) {
+    return callback && runtime::setNaturalRegenCallback(callback) ? 1 : 0;
+}
+
+int32_t nativeOnConsumeBait(int32_t (*callback)(void* player, void* bait)) {
+    return callback && runtime::setConsumeBaitCallback(callback) ? 1 : 0;
+}
+
+int32_t nativeOnDyeReward(int32_t (*callback)(void* player, int32_t* pool, int32_t count, int32_t capacity)) {
+    return callback && runtime::setDyeRewardCallback(callback) ? 1 : 0;
+}
+
+int32_t nativeOnResourceDraw(int32_t (*callback)(int32_t phase, void* spriteBatch, void* args)) {
+    return callback && runtime::setResourceDrawCallback(reinterpret_cast<runtime::ResourceDrawCallback>(callback)) ? 1 : 0;
+}
+
+void nativeResourceDrawActive(int32_t active) { runtime::setResourceDrawActive(active != 0); }
+
+void* nativeAssetOfTexture(void* texture) { return runtime::assetOfTexture(texture); }
+
+int32_t nativeRegisterProjectile(const char* mod, const char* name, const char* texture, const char* displayName) {
+    if (!mod || !name || !texture || !*mod || !*name) return -1;
+    if (!fileExists(texture)) return -2;
+    runtime::ModProjectileDef d;
+    d.mod = mod;
+    d.name = name;
+    d.texture = texture;
+    d.names = cultureTexts(displayName);
+    const int type = runtime::registerModProjectile(std::move(d));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeOnProjectilesInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::setProjectilesInstalledHook(reinterpret_cast<runtime::ProjectilesInstalledHook>(callback));
+}
+
+void nativeFinishProjectile(void* projectile, int32_t type) {
+    runtime::finishModProjectile(static_cast<Il2CppObject*>(projectile), type);
+}
+
+void nativeSetProjectileFrames(int32_t type, int32_t frames) { runtime::setModProjectileFrames(type, frames); }
+
+int32_t nativeRegisterNPC(const char* mod, const char* name, const char* texture, const char* displayName) {
+    if (!mod || !name || !texture || !*mod || !*name) return -1;
+    if (!fileExists(texture)) return -2;
+    runtime::ModNpcDef def;
+    def.mod = mod;
+    def.name = name;
+    def.texture = texture;
+    def.names = cultureTexts(displayName);
+    const int type = runtime::registerModNpc(std::move(def));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeOnNPCsInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::setNpcsInstalledHook(reinterpret_cast<runtime::NpcsInstalledHook>(callback));
+}
+
+void nativeFinishNPC(void* npc, int32_t type, void* spawnParams) {
+    runtime::finishModNpc(static_cast<Il2CppObject*>(npc), type, spawnParams);
+}
+
+void nativeSetNPCFrames(int32_t type, int32_t frames) { runtime::setModNpcFrames(type, frames); }
+
+int32_t nativeNPCCount() { return runtime::registeredNpcTypeCount(); }
+
+int32_t nativeNPCEvents(int32_t type, uint32_t events, runtime::NpcEventCallback callback) { return runtime::setNpcEvents(type, events, callback) ? 1 : 0; }
+
+void nativeNPCOriginal(void* npc, int32_t event, int32_t argument) { runtime::runNpcOriginal(static_cast<Il2CppObject*>(npc), event, argument); }
+
+void* nativeNPCImmunityData(int32_t type) { return runtime::npcImmunityData(type); }
+
+int32_t nativeWatchProjectileDamage() { return runtime::watchProjectileDamage() ? 1 : 0; }
+
+void* nativeProjectileDamaging() { return runtime::projectileDamaging(); }
+
+int32_t nativeBeginProjectileDrawSplit(void* texture, int32_t extras, int32_t sprite) {
+    return runtime::beginProjectileDrawSplit(texture, extras != 0, sprite != 0) ? 1 : 0;
+}
+
+void nativeEndProjectileDrawSplit() { runtime::endProjectileDrawSplit(); }
+
+int32_t nativeRegisterDust(const char* mod, const char* name, const char* texture, uint32_t hooks) {
+    if (!mod || !name || !*mod || !*name) return -1;
+    runtime::ModDustDef def;
+    def.mod = mod;
+    def.name = name;
+    def.texture = texture ? texture : "";
+    if (!def.texture.empty() && !fileExists(def.texture.c_str())) return -2;
+    def.hooks = hooks;
+    def.engine = 1;
+    const int type = runtime::registerModDust(std::move(def));
+    if (type >= 0) noteModForMenu(mod);
+    return type;
+}
+
+void nativeSetDustUpdateType(int32_t type, int32_t updateType) { runtime::setModDustUpdateType(type, updateType); }
+
+void nativeSetDustCallbacks(void (*spawn)(int32_t, void*), void (*update)(void**, int32_t, uint8_t*),
+                            void (*midUpdate)(void**, int32_t, uint8_t*), void (*preDraw)(void**, int32_t, uint8_t*),
+                            int32_t (*getAlpha)(void*, uint32_t*)) {
+    runtime::DustNativeCallbacks callbacks;
+    callbacks.spawn = spawn;
+    callbacks.update = update;
+    callbacks.midUpdate = midUpdate;
+    callbacks.preDraw = preDraw;
+    callbacks.getAlpha = getAlpha;
+    runtime::setDustNativeCallbacks(callbacks);
+}
+
+void nativeOnDustsInstalled(void (*callback)(int32_t first, int32_t last)) {
+    runtime::addDustsInstalledHook(reinterpret_cast<runtime::DustsInstalledHook>(callback));
+}
+
+void* nativeDustTextureAsset(int32_t type) { return runtime::modDustTextureAsset(type); }
+
 int32_t nativeStoreChestItem(int32_t chest, int32_t slot, void* item) {
     return runtime::storeChestItemData(chest, slot, static_cast<Il2CppObject*>(item)) ? 1 : 0;
 }
@@ -619,6 +799,36 @@ const NativeApi kNativeApi{
     nativePrefixCount,
     nativeGrowEquipSets,
     nativeResizeArray,
+    nativeRegisterBuff,
+    nativeOnBuffsInstalled,
+    nativeBuffIconLook,
+    nativeOnNaturalRegen,
+    nativeOnConsumeBait,
+    nativeOnDyeReward,
+    nativeOnResourceDraw,
+    nativeResourceDrawActive,
+    nativeAssetOfTexture,
+    nativeRegisterProjectile,
+    nativeOnProjectilesInstalled,
+    nativeFinishProjectile,
+    nativeSetProjectileFrames,
+    nativeRegisterNPC,
+    nativeOnNPCsInstalled,
+    nativeFinishNPC,
+    nativeSetNPCFrames,
+    nativeNPCCount,
+    nativeWatchProjectileDamage,
+    nativeProjectileDamaging,
+    nativeBeginProjectileDrawSplit,
+    nativeEndProjectileDrawSplit,
+    nativeNPCEvents,
+    nativeNPCOriginal,
+    nativeNPCImmunityData,
+    nativeRegisterDust,
+    nativeSetDustUpdateType,
+    nativeSetDustCallbacks,
+    nativeOnDustsInstalled,
+    nativeDustTextureAsset,
 };
 
 } // namespace

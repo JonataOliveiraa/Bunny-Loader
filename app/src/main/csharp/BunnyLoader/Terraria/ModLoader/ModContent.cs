@@ -27,6 +27,24 @@ public static class ModContent
 
     public static int RarityType<T>() where T : ModRarity => GetInstance<T>()?.Type ?? 0;
 
+    public static int BuffType<T>() where T : ModBuff => GetInstance<T>()?.Type ?? 0;
+
+    public static int MountType<T>() where T : ModMount => GetInstance<T>()?.Type ?? 0;
+
+    public static int ProjectileType<T>() where T : ModProjectile => GetInstance<T>()?.Type ?? 0;
+
+    public static int NPCType<T>() where T : ModNPC => GetInstance<T>()?.Type ?? 0;
+
+    public static ModNPC? GetModNPC(int type) => NPCLoader.GetNPC(type);
+
+    public static ModBuff? GetModBuff(int type) => BuffLoader.GetBuff(type);
+
+    public static int DustType<T>() where T : ModDust => GetInstance<T>()?.Type ?? 0;
+
+    public static int GoreType<T>() where T : ModGore => GetInstance<T>()?.Type ?? 0;
+
+    public static ModDust? GetModDust(int type) => DustLoader.GetDust(type);
+
     public static ModItem? GetModItem(int type) => ItemLoader.Get(type);
 
     public static T Find<T>(string fullname) where T : IModType =>
@@ -63,6 +81,17 @@ public static class ModContent
         (string modName, string path) = SplitName(name);
         if (modName == "Terraria") return VanillaAsset<T>.Get(path);
         return ModOf(modName, name).Assets.Request<T>(path, mode);
+    }
+
+    public static bool RequestIfExists<T>(string name, out Asset<T> asset, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
+    {
+        if (!HasAsset(name))
+        {
+            asset = null!;
+            return false;
+        }
+        asset = Request<T>(name, mode);
+        return true;
     }
 
     public static bool HasAsset(string assetName)
@@ -126,6 +155,7 @@ public static class ModContent
             foreach (Mod mod in mods)
             {
                 foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                foreach (GlobalBuff global in mod.GetContent<GlobalBuff>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
             }
             foreach (Mod mod in mods)
             {
@@ -135,6 +165,44 @@ public static class ModContent
             {
                 foreach (DamageClass damageClass in mod.GetContent<DamageClass>()) Run(mod, $"{damageClass.Name}.SetStaticDefaults", damageClass.SetupContent);
             }
+            foreach (Mod mod in mods)
+            {
+                foreach (ExtraJump jump in mod.GetContent<ExtraJump>()) Run(mod, $"{jump.Name}.SetStaticDefaults", jump.SetupContent);
+            }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModResourceOverlay overlay in mod.GetContent<ModResourceOverlay>()) Run(mod, $"{overlay.Name}.SetStaticDefaults", overlay.SetupContent);
+            }
+            try { MountLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"mounts: the tables could not be resized: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModMount mount in mod.GetContent<ModMount>()) Run(mod, $"{mount.Name}.SetStaticDefaults", mount.SetupContent);
+            }
+            try { HairLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"hairs: the tables could not be resized: {e}"); }
+            try { GoreLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"gores: the tables could not be resized: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModGore gore in mod.GetContent<ModGore>())
+                {
+                    Run(mod, $"{gore.Name}.SetStaticDefaults", gore.SetupContent);
+                    if (gore.UpdateType > 0) GoreHooks.WantUpdate();
+                }
+            }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModHair hair in mod.GetContent<ModHair>()) Run(mod, $"{hair.Name}.SetStaticDefaults", hair.SetupContent);
+            }
+            try { ExtraJumpLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                foreach (PlayerDrawLayer layer in mod.GetContent<PlayerDrawLayer>()) Run(mod, $"{layer.Name}.SetStaticDefaults", layer.SetupContent);
+            }
+            try { PlayerDrawLayerLoader.ResizeArrays(); }
+            catch (Exception e) { Log.Error($"player draw layers: the order could not be set up: {e}"); }
             try { PrefixLoader.ContentReady(); }
             catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
             foreach (Mod mod in mods)

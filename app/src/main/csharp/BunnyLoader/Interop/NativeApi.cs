@@ -60,4 +60,36 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int> PrefixCount;
     public delegate* unmanaged<byte*, int, int, int> GrowEquipSets;
     public delegate* unmanaged<IntPtr, int, IntPtr> ResizeArray;
+    public delegate* unmanaged<byte*, byte*, byte*, byte*, byte*, int> RegisterBuff;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnBuffsInstalled;
+    public delegate* unmanaged<IntPtr> BuffIconLook;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, float, float>, int> OnNaturalRegen;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, IntPtr, int>, int> OnConsumeBait;
+    public delegate* unmanaged<delegate* unmanaged<IntPtr, int*, int, int, int>, int> OnDyeReward;
+    public delegate* unmanaged<delegate* unmanaged<int, IntPtr, IntPtr, int>, int> OnResourceDraw;
+    public delegate* unmanaged<int, void> ResourceDrawActive;
+    public delegate* unmanaged<IntPtr, IntPtr> AssetOfTexture;
+    public delegate* unmanaged<byte*, byte*, byte*, byte*, int> RegisterProjectile;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnProjectilesInstalled;
+    public delegate* unmanaged<IntPtr, int, void> FinishProjectile;
+    public delegate* unmanaged<int, int, void> SetProjectileFrames;
+    public delegate* unmanaged<byte*, byte*, byte*, byte*, int> RegisterNPC;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnNPCsInstalled;
+    public delegate* unmanaged<IntPtr, int, void*, void> FinishNPC;
+    public delegate* unmanaged<int, int, void> SetNPCFrames;
+    public delegate* unmanaged<int> NPCCount;
+    public delegate* unmanaged<int> WatchProjectileDamage;
+    public delegate* unmanaged<IntPtr> ProjectileDamaging;
+    public delegate* unmanaged<IntPtr, int, int, int> BeginProjectileDrawSplit;
+    public delegate* unmanaged<void> EndProjectileDrawSplit;
+    public delegate* unmanaged<int, uint, delegate* unmanaged<int, IntPtr, void*, int>, int> NPCEvents;
+    public delegate* unmanaged<IntPtr, int, int, void> NPCOriginal;
+    public delegate* unmanaged<int, IntPtr> NPCImmunityData;
+    public delegate* unmanaged<byte*, byte*, byte*, uint, int> RegisterDust;
+    public delegate* unmanaged<int, int, void> SetDustUpdateType;
+    public delegate* unmanaged<delegate* unmanaged<int, IntPtr, void>, delegate* unmanaged<IntPtr*, int, byte*, void>,
+        delegate* unmanaged<IntPtr*, int, byte*, void>, delegate* unmanaged<IntPtr*, int, byte*, void>,
+        delegate* unmanaged<IntPtr, uint*, int>, void> SetDustCallbacks;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnDustsInstalled;
+    public delegate* unmanaged<int, IntPtr> DustTextureAsset;
 }

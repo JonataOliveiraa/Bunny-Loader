@@ -1,0 +1,15 @@
+{
+  "uid": "9c8d96c3-c487-436b-ac81-e4f484a7095d",
+  "id": "test-csnpcai",
+  "name": "Test: NPC AI and lifecycle (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "NPC lifecycle, scaling, native filters and immunity contracts.",
+  "description": "Build with tools/tests/build-cs.sh csnpcai. Logs csnpcai <case>: ok | FAIL and csnpcai END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsNpcAi.dll",
+  "dependencies": []
+}

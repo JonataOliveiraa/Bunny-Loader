@@ -21,7 +21,7 @@ internal static unsafe class ItemNetHooks
 
     static bool globalWanted;
 
-    sealed class Envelope
+    internal sealed class Envelope
     {
         public byte Packet;
         public int Index;
@@ -54,15 +54,11 @@ internal static unsafe class ItemNetHooks
         bool net = has(nameof(ModItem.NetSend)) || has(nameof(ModItem.NetReceive));
         if (!net && (global || !has(nameof(ModItem.SaveData)))) return;
         if (global) globalWanted = true;
+        WantProcessData();
+        WantSendData();
         ItemHooks.Once("NetItems", () =>
         {
-            sendData = ItemHooks.Raw("Terraria", "NetMessage",
-                "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)",
-                (IntPtr)(delegate* unmanaged<int, int, int, IntPtr, int, float, float, float, int, int, int, IntPtr, void>)&SendData);
-            processData = ItemHooks.Raw("Terraria", "MessageBuffer", "void ProcessData(byte[] messageData, int length, out int messageType)",
-                (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, int, IntPtr, IntPtr, void>)&ProcessData);
-            reset = ItemHooks.Raw("Terraria", "MessageBuffer", "void Reset(bool setupActive)",
-                (IntPtr)(delegate* unmanaged<IntPtr, byte, IntPtr, void>)&Reset);
+            itemsWanted = true;
             On_Player.Update += (orig, self, i) =>
             {
                 orig(self, i);
@@ -70,6 +66,27 @@ internal static unsafe class ItemNetHooks
             };
         });
     }
+
+    internal static Action<int, int, int, int>? AfterSend;
+
+    internal static Action<int, int, int, int>? SendingData;
+
+    static bool itemsWanted;
+
+    internal static void WantSendData() => ItemHooks.Once("NetSendData", () =>
+    {
+        sendData = ItemHooks.Raw("Terraria", "NetMessage",
+            "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)",
+            (IntPtr)(delegate* unmanaged<int, int, int, IntPtr, int, float, float, float, int, int, int, IntPtr, void>)&SendData);
+    });
+
+    internal static void WantProcessData() => ItemHooks.Once("NetProcess", () =>
+    {
+        processData = ItemHooks.Raw("Terraria", "MessageBuffer", "void ProcessData(byte[] messageData, int length, out int messageType)",
+            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, int, IntPtr, IntPtr, void>)&ProcessData);
+        reset = ItemHooks.Raw("Terraria", "MessageBuffer", "void Reset(bool setupActive)",
+            (IntPtr)(delegate* unmanaged<IntPtr, byte, IntPtr, void>)&Reset);
+    });
 
     static bool IsItemPacket(int packet) => packet is 5 or 21 or 32 or 90;
 
@@ -107,7 +124,7 @@ internal static unsafe class ItemNetHooks
         return stream.ToArray();
     }
 
-    static Envelope? Payload(Item item)
+    internal static Envelope? Payload(Item item)
     {
         var envelope = new Envelope { Key = KeyOf(item) };
         if (ItemHooks.ModItemOf(item) is ModItem m)
@@ -135,7 +152,7 @@ internal static unsafe class ItemNetHooks
         return envelope.Net == null && envelope.Saved == null && envelope.Globals.Count == 0 ? null : envelope;
     }
 
-    static bool Apply(Item item, Envelope envelope)
+    internal static bool Apply(Item item, Envelope envelope)
     {
         if (item.IsNull || item.type <= 0 || KeyOf(item) != envelope.Key) return false;
         if (ItemHooks.ModItemOf(item) is ModItem m)
@@ -181,10 +198,16 @@ internal static unsafe class ItemNetHooks
     {
         Hook? hook = sendData;
         if (hook == null) return;
-        if (IsItemPacket(msgType))
+        if (itemsWanted && IsItemPacket(msgType))
         {
             try { BeforeSend(msgType, remote, ignore, number, (int)number2); }
             catch (Exception e) { ItemHooks.Report("NetSend", e); }
+        }
+        Action<int, int, int, int>? sending = SendingData;
+        if (sending != null)
+        {
+            try { sending(msgType, remote, ignore, number); }
+            catch (Exception e) { ItemHooks.Report("NetMessage.SendData", e); }
         }
         var call = GameCall.Returning(RetKind.Int);
         call.Arg(msgType);
@@ -200,6 +223,10 @@ internal static unsafe class ItemNetHooks
         call.Arg(number7);
         call.Arg(method);
         ItemHooks.Original(ref call, hook, "NetMessage.SendData");
+        Action<int, int, int, int>? after = AfterSend;
+        if (after == null) return;
+        try { after(msgType, remote, ignore, number); }
+        catch (Exception e) { ItemHooks.Report("NetMessage.SendData", e); }
     }
 
     static void AfterJoin()
@@ -274,6 +301,11 @@ internal static unsafe class ItemNetHooks
         w.Write(e.Packet);
         w.Write(e.Index);
         w.Write(e.Slot);
+        WriteBody(w, e);
+    });
+
+    internal static void WriteBody(BinaryWriter w, Envelope e)
+    {
         w.Write(e.Key);
         w.Write(e.Net != null);
         if (e.Net != null)
@@ -290,21 +322,26 @@ internal static unsafe class ItemNetHooks
             w.Write(data.Length);
             w.Write(data);
         }
-    });
+    }
 
-    public static void Queue(BinaryReader reader, int from)
+    internal static Envelope ReadBody(BinaryReader reader)
     {
-        var e = new Envelope
-        {
-            Packet = reader.ReadByte(),
-            Index = reader.ReadInt32(),
-            Slot = reader.ReadInt32(),
-            Key = reader.ReadString(),
-        };
+        var e = new Envelope { Key = reader.ReadString() };
         if (reader.ReadBoolean()) e.Net = reader.ReadBytes(Math.Clamp(reader.ReadInt32(), 0, MaxBytes));
         if (reader.ReadBoolean()) e.Saved = reader.ReadString();
         int count = Math.Clamp(reader.ReadInt32(), 0, 256);
         for (int i = 0; i < count; i++) e.Globals.Add((reader.ReadString(), reader.ReadBytes(Math.Clamp(reader.ReadInt32(), 0, MaxBytes))));
+        return e;
+    }
+
+    public static void Queue(BinaryReader reader, int from)
+    {
+        byte packetType = reader.ReadByte();
+        int index = reader.ReadInt32(), slot = reader.ReadInt32();
+        Envelope e = ReadBody(reader);
+        e.Packet = packetType;
+        e.Index = index;
+        e.Slot = slot;
         if (!IsItemPacket(e.Packet) || e.Index < 0 || e.Index >= 8000 || e.Slot < 0 || e.Slot > 65535 || e.Key.Length == 0) return;
         if ((e.Packet == 5 && e.Index > 255) || ((e.Packet == 21 || e.Packet == 90) && e.Index > 400)) return;
         if (ModNet.NetMode != 1 && e.Packet == 5 && e.Index != from) return;
@@ -351,6 +388,8 @@ internal static unsafe class ItemNetHooks
         Hook? hook = processData;
         if (hook == null) return;
         Receiving? context = null;
+        ItemPvpHooks.Received? pvp = null;
+        ProjectileNetHooks.Arriving? projectile = null;
         int packet = 0, index = 0, slot = 0;
         try
         {
@@ -358,6 +397,9 @@ internal static unsafe class ItemNetHooks
             {
                 byte* b = (byte*)(data + 0x20);
                 packet = b[0];
+                if (packet == ItemPvpHooks.HurtPacket) pvp = ItemPvpHooks.Take(ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI, b[1]);
+                if (packet == 27 && length >= 5)
+                    projectile = ProjectileNetHooks.Take(ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI, *(uint*)(b + 1));
                 if (IsItemPacket(packet) && !((packet == 5 || packet == 32) && length < 4) && AnyPending())
                 {
                     int from = ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
@@ -371,6 +413,10 @@ internal static unsafe class ItemNetHooks
         catch (Exception e) { ItemHooks.Report("NetReceive", e); }
         Receiving? outer = receiving;
         if (context != null) receiving = context;
+        ItemPvpHooks.Received? outerPvp = ItemPvpHooks.Receiving;
+        if (pvp != null) ItemPvpHooks.Receiving = pvp;
+        ProjectileNetHooks.Arriving? outerProjectile = ProjectileNetHooks.Receiving;
+        if (projectile != null) ProjectileNetHooks.Receiving = projectile;
         try
         {
             var call = GameCall.Returning(RetKind.Int);
@@ -381,7 +427,17 @@ internal static unsafe class ItemNetHooks
             call.Arg(method);
             ItemHooks.Original(ref call, hook, "MessageBuffer.ProcessData");
         }
-        finally { receiving = outer; }
+        finally
+        {
+            receiving = outer;
+            ItemPvpHooks.Receiving = outerPvp;
+            ProjectileNetHooks.Receiving = outerProjectile;
+        }
+        if (projectile != null)
+        {
+            try { ProjectileNetHooks.Apply(projectile); }
+            catch (Exception e) { ItemHooks.Report("ReceiveExtraAI", e); }
+        }
         if (context == null || context.Applied) return;
         try
         {
@@ -402,6 +458,8 @@ internal static unsafe class ItemNetHooks
         {
             int from = ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
             lock (Gate) Pending.Remove(from);
+            ItemPvpHooks.Forget(from);
+            ProjectileNetHooks.Forget(from);
         }
         catch (Exception e) { ItemHooks.Report("NetReceive (reset)", e); }
         var call = GameCall.Returning(RetKind.Int);

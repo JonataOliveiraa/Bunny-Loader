@@ -1,0 +1,18 @@
+{
+  "uid": "ae278f25-3da5-443e-be4d-13f1681b642c",
+  "id": "test-csprojhit",
+  "name": "Teste: golpes de projétil e GlobalProjectile (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Golpes de projétil em NPC e no jogador, GlobalProjectile e os ganchos WithProj do ModPlayer, sem QuickJS.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csprojhit. No mundo, loga 'csprojhit <caso>: ok | FAIL' e 'csprojhit END'.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "entry": "CsProjHit.dll",
+  "dependencies": []
+}

@@ -1,0 +1,15 @@
+{
+  "uid": "94d46b40-c3f6-442d-8a27-7d21a2cca5f1",
+  "id": "test-cscollide",
+  "name": "Test: projectile tile collision and cutting (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "TileCollideStyle, CanCutTiles and CutTiles without QuickJS.",
+  "description": "Build with tools/tests/build-cs.sh cscollide. Logs cscollide <case>: ok | FAIL and cscollide END pass=N fail=M.",
+  "updated": "2026-10-30",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsCollide.dll",
+  "dependencies": []
+}

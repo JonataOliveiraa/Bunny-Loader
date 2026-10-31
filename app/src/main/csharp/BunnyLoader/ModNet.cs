@@ -54,6 +54,24 @@ internal static unsafe class ModNet
                 ItemNetHooks.Queue(reader, from);
                 return;
             }
+            if (kind == ItemPvpHooks.KindPvp)
+            {
+                name = "PvP item";
+                ItemPvpHooks.Queue(reader, from);
+                return;
+            }
+            if (kind == ProjectileNetHooks.KindExtraAI)
+            {
+                name = "projectile extra AI";
+                ProjectileNetHooks.Receive(reader, from);
+                return;
+            }
+            if (kind == HairHooks.KindHair)
+            {
+                name = "hair";
+                HairHooks.Receive(reader, from);
+                return;
+            }
             if (kind != KindPacket) return;
             name = reader.ReadString();
             Mod? mod = Host.FindMod(name);

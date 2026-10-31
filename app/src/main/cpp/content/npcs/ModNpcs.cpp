@@ -1,4 +1,5 @@
 #include "content/npcs/ModNpcs.h"
+#include "content/npcs/NpcEvents.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -35,7 +36,8 @@ std::vector<Entry> g_regs;               // indice = type - kVanillaNpcCount
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 bool g_failed = false;
-NpcsInstalledHook g_installedHook = nullptr;
+std::mutex g_hooksMx;
+std::vector<NpcsInstalledHook> g_installedHooks;
 bool g_staticDefaultsPending = false;   // instalado, esperando a tabela de drop do jogo
 
 // animationType por tipo de mod, lido a cada quadro por NPC: copia sem trava,
@@ -296,6 +298,8 @@ void patchLimits(int total) {
 
 using FindFrameFn = void (*)(Il2CppObject*, const MethodInfo*);
 FindFrameFn g_origFindFrame = nullptr;
+std::mutex g_frameMx;
+std::atomic<int> g_frameState{0};
 
 /**
  * A animacao do jogo e um switch pelo tipo. Com `animationType`, o NPC de mod
@@ -310,16 +314,14 @@ FindFrameFn g_origFindFrame = nullptr;
  * textura e a contagem do NPC de mod vao para o lugar do outro, tambem so
  * durante a chamada. Tudo na thread principal, como o desenho.
  */
-void hkFindFrame(Il2CppObject* self, const MethodInfo* m) {
+void vanillaFindFrame(Il2CppObject* self, int32_t borrowed, const MethodInfo* m) {
     const Refs& r = refs();
     int32_t& type = field<int32_t>(self, r.type);
-    const int i = type - kVanillaNpcCount;
-    if (i < 0 || static_cast<size_t>(i) >= g_animation.size() || g_animation[static_cast<size_t>(i)] <= 0) {
+    if (borrowed <= 0 || borrowed >= kVanillaNpcCount || borrowed == type) {
         g_origFindFrame(self, m);
         return;
     }
     const int32_t own = type;
-    const int32_t borrowed = g_animation[static_cast<size_t>(i)];
     Il2CppArray* textures = readStatic(r.textures);
     Il2CppArray* frames = readStatic(r.frames);
     const bool swap = textures && frames && static_cast<uintptr_t>(own) < textures->length &&
@@ -341,6 +343,16 @@ void hkFindFrame(Il2CppObject* self, const MethodInfo* m) {
         tex[borrowed] = savedTex;
         count[borrowed] = savedCount;
     }
+}
+
+int borrowedAnimation(Il2CppObject* self) {
+    const int i = field<int32_t>(self, refs().type) - kVanillaNpcCount;
+    return i >= 0 && static_cast<size_t>(i) < g_animation.size() ? g_animation[static_cast<size_t>(i)] : 0;
+}
+
+void hkFindFrame(Il2CppObject* self, const MethodInfo* m) {
+    if (npcFrameEvent(self)) return;
+    vanillaFindFrame(self, borrowedAnimation(self), m);
 }
 
 // ---- Player.npcTypeNoAggro ----
@@ -392,6 +404,10 @@ int npcTypeCount() {
     return kVanillaNpcCount + g_installed.load(std::memory_order_acquire);
 }
 
+int registeredNpcTypeCount() {
+    return kVanillaNpcCount + g_total.load(std::memory_order_acquire);
+}
+
 void prepareModNpcs() {
     const int total = g_total.load(std::memory_order_acquire);
     if (total > 0) {
@@ -406,7 +422,12 @@ bool modNpcsSettled() {
 }
 
 void setNpcsInstalledHook(NpcsInstalledHook hook) {
-    g_installedHook = hook;
+    if (!hook) return;
+    std::lock_guard<std::mutex> l(g_hooksMx);
+    for (NpcsInstalledHook current : g_installedHooks) {
+        if (current == hook) return;
+    }
+    g_installedHooks.push_back(hook);
 }
 
 void tickModNpcs() {
@@ -434,7 +455,12 @@ void tickModNpcs() {
             if (refs().itemDrops) il2cpp::api().field_static_get_value(refs().itemDrops, &drops);
             if (drops || !refs().itemDrops) {
                 g_staticDefaultsPending = false;
-                if (g_installedHook) g_installedHook(kVanillaNpcCount, from - 1);
+                std::vector<NpcsInstalledHook> hooks;
+                {
+                    std::lock_guard<std::mutex> l(g_hooksMx);
+                    hooks = g_installedHooks;
+                }
+                for (NpcsInstalledHook hook : hooks) hook(kVanillaNpcCount, from - 1);
             }
         }
         g_tables.checkPending(from);
@@ -491,7 +517,7 @@ void tickModNpcs() {
             samples.push_back({type, e.def.mod + "/" + e.def.name});
         }
     }
-    if (!hook::install(refs().findFrame, hkFindFrame, &g_origFindFrame)) {
+    if (!ensureNpcFrameHook()) {
         BL_ERROR("NPCs de mod: sem hook em NPC.FindFrame; NPC de mod nao anima");
     }
     installTownNpcs(to);
@@ -545,6 +571,19 @@ void setModNpcAnimation(int type, int animationType) {
     if (i < g_animation.size()) g_animation[i] = animationType;
 }
 
+bool ensureNpcFrameHook() {
+    int state = g_frameState.load(std::memory_order_acquire);
+    if (state != 0) return state == 1;
+    std::lock_guard<std::mutex> lock(g_frameMx);
+    if (g_frameState.load(std::memory_order_relaxed) == 0)
+        g_frameState.store(hook::install(refs().findFrame, hkFindFrame, &g_origFindFrame) ? 1 : -1, std::memory_order_release);
+    return g_frameState.load(std::memory_order_relaxed) == 1;
+}
+
+void runNpcFindFrame(Il2CppObject* npc, int borrowed) {
+    if (npc && ensureNpcFrameHook()) vanillaFindFrame(npc, borrowed > 0 ? borrowed : borrowedAnimation(npc), refs().findFrame);
+}
+
 int modNpcTypeByName(const std::string& mod, const std::string& name) {
     std::lock_guard<std::mutex> l(g_mx);
     for (size_t i = 0; i < g_regs.size(); ++i) {
@@ -555,7 +594,7 @@ int modNpcTypeByName(const std::string& mod, const std::string& name) {
     return -1;
 }
 
-void finishModNpc(Il2CppObject* npc, int type) {
+void finishModNpc(Il2CppObject* npc, int type, void* spawnParams) {
     const Refs& r = refs();
     if (!r.ok || !npc) return;
     int w = 0, h = 0;
@@ -580,10 +619,9 @@ void finishModNpc(Il2CppObject* npc, int type) {
     // cliente desligava a moradora a cada pacote.
     field<int32_t>(npc, r.defLifeMax) = field<int32_t>(npc, r.lifeMax);
     if (r.scaleStats) {
-        // Nullable vazio nos dois: jogadores ativos e forca de agora (o que o
-        // SetDefaults faz sem NPCSpawnParams).
         alignas(8) uint8_t players[8] = {}, strength[8] = {};
-        void* args[2] = {players, strength};
+        auto* params = static_cast<uint8_t*>(spawnParams);
+        void* args[2] = {params ? params + 8 : players, params ? params + 16 : strength};
         invoke(r.scaleStats, npc, args, "NPC.ScaleStats");
         field<int32_t>(npc, r.life) = field<int32_t>(npc, r.lifeMax);   // a escala mexe no lifeMax
     }

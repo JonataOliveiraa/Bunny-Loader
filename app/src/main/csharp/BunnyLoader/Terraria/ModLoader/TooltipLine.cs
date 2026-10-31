@@ -20,6 +20,8 @@ public class TooltipLine
 
     internal string Role = "";
 
+    internal uint? RoleColor;
+
     public bool Visible { get; private set; } = true;
 
     public string FullName => $"{Mod}/{Name}";

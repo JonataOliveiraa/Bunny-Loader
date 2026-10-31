@@ -26,6 +26,26 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void UseAnimation(Item item, Player player) { }
 
+    public virtual bool? CanAutoReuseItem(Item item, Player player) => null;
+
+    public virtual float UseTimeMultiplier(Item item, Player player) => 1f;
+
+    public virtual float UseAnimationMultiplier(Item item, Player player) => 1f;
+
+    public virtual float UseSpeedMultiplier(Item item, Player player) => 1f;
+
+    public virtual void ModifyManaCost(Item item, Player player, ref float reduce, ref float mult) { }
+
+    public virtual void OnMissingMana(Item item, Player player, int neededMana) { }
+
+    public virtual void OnConsumeMana(Item item, Player player, int manaConsumed) { }
+
+    public virtual void UseItemFrame(Item item, Player player) { }
+
+    public virtual void HoldItemFrame(Item item, Player player) { }
+
+    public virtual bool AltFunctionUse(Item item, Player player) => false;
+
     public virtual void HoldItem(Item item, Player player) { }
 
     public virtual void UseStyle(Item item, Player player, Rectangle heldItemFrame) { }
@@ -78,6 +98,12 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void OnHitNPC(Item item, Player player, NPC target, NPC.HitInfo hit, int damageDone) { }
 
+    public virtual bool CanHitPvp(Item item, Player player, Player target) => true;
+
+    public virtual void ModifyHitPvp(Item item, Player player, Player target, ref Player.HurtModifiers modifiers) { }
+
+    public virtual void OnHitPvp(Item item, Player player, Player target, Player.HurtInfo hurtInfo) { }
+
     public virtual void UpdateEquip(Item item, Player player) { }
 
     public virtual void UpdateAccessory(Item item, Player player, bool hideVisual) { }
@@ -99,12 +125,18 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void SetMatch(int armorSlot, int type, bool male, ref int equipSlot, ref bool robes) { }
 
+    public virtual void DrawArmorColor(EquipType type, int slot, Player drawPlayer, float shadow, ref Color color, ref int glowMask, ref Color glowMaskColor) { }
+
+    public virtual void ArmorArmGlowMask(int slot, Player drawPlayer, float shadow, ref int glowMask, ref Color color) { }
+
     public virtual void VerticalWingSpeeds(Item item, Player player, ref float ascentWhenFalling, ref float ascentWhenRising,
                                            ref float maxCanAscendMultiplier, ref float maxAscentMultiplier, ref float constantAscend) { }
 
     public virtual void HorizontalWingSpeeds(Item item, Player player, ref float speed, ref float acceleration) { }
 
     public virtual bool WingUpdate(int wings, Player player, bool inUse) => false;
+
+    public virtual bool CanEquipAccessory(Item item, Player player, int slot, bool modded) => true;
 
     public virtual bool CanAccessoryBeEquippedWith(Item equippedItem, Item incomingItem, Player player) => true;
 

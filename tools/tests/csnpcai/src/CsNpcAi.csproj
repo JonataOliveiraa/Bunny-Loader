@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DebugType>embedded</DebugType>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <OutDir>$(MSBuildThisFileDirectory)../content/</OutDir>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../../app/src/main/csharp/BunnyLoader/BunnyLoader.csproj" Private="false" />
+    <Compile Include="../../../../samples/ExampleModCSharp/content/Content/NPCs/ExampleCustomAISlimeNPC.cs" Link="Content/ExampleCustomAISlimeNPC.cs" />
+    <Compile Include="../../../../samples/ExampleModCSharp/content/Content/NPCs/PartyZombie.cs" Link="Content/PartyZombie.cs" />
+  </ItemGroup>
+</Project>
