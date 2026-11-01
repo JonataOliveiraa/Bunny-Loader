@@ -213,6 +213,21 @@ public static class ModContent
             {
                 foreach (ModHair hair in mod.GetContent<ModHair>()) Run(mod, $"{hair.Name}.SetStaticDefaults", hair.SetupContent);
             }
+            try
+            {
+                WaterStylesLoader.ResizeArrays();
+                WaterFallStylesLoader.ResizeArrays();
+                BackgroundTextureLoader.ResizeArrays();
+            }
+            catch (Exception e) { Log.Error($"water and backgrounds: the tables could not be resized: {e}"); }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModWaterStyle style in mod.GetContent<ModWaterStyle>()) Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
+                foreach (ModWaterfallStyle style in mod.GetContent<ModWaterfallStyle>()) Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
+                foreach (ModBackgroundStyle style in mod.GetContent<ModBackgroundStyle>()) Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
+                foreach (GlobalBackgroundStyle global in mod.GetContent<GlobalBackgroundStyle>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                foreach (ModSceneEffect effect in mod.GetContent<ModSceneEffect>()) Run(mod, $"{effect.Name}.SetStaticDefaults", effect.SetupContent);
+            }
             try { ExtraJumpLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
             foreach (Mod mod in mods)

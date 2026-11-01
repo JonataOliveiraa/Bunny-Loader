@@ -1,4 +1,5 @@
 using System;
+using ExampleMod.Backgrounds;
 using ExampleMod.Common.Systems;
 using Microsoft.Xna.Framework.Graphics;
 using Terraria;
@@ -8,6 +9,9 @@ namespace ExampleMod.Content.Biomes;
 
 public class ExampleSurfaceBiome : ModBiome
 {
+    public override ModWaterStyle WaterStyle => ModContent.GetInstance<ExampleWaterStyle>();
+    public override ModSurfaceBackgroundStyle SurfaceBackgroundStyle => ModContent.GetInstance<ExampleSurfaceBackgroundStyle>();
+
     public override int Music => MusicLoader.GetMusicSlot(Mod, "Assets/Music/MysteriousMystery");
 
     public override string BestiaryIcon => base.BestiaryIcon;

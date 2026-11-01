@@ -1,8 +1,8 @@
 # Biomes and scene effects
 
 A `ModBiome` is a place the player can be in; a `ModSceneEffect` is anything
-that can take over the scene (music now; backgrounds, water and the map
-background come in the next steps). Both are `ModType`s: declare the class
+that can take over the scene: music, water, surface and underground
+backgrounds and the map background. Both are `ModType`s: declare the class
 and it registers itself.
 
 ```csharp
@@ -48,16 +48,24 @@ sets it. Today the channels are:
 
 - `Music`: a music id; `-1` leaves the choice to others. A `ModBiome` defaults
   to `0`, silence, as in tModLoader; return `-1` to keep the game's music.
+- `WaterStyle`, `SurfaceBackgroundStyle` and `UndergroundBackgroundStyle`:
+  the instance of a `ModWaterStyle`, `ModSurfaceBackgroundStyle` or
+  `ModUndergroundBackgroundStyle` (`null` leaves them to others).
 - `BiomeTorchItemType` and `BiomeCampfireItemType` (biomes only).
-- `MapBackground`: a texture path, kept for the map step.
+- `MapBackground`: a texture path for the fullscreen map.
 
 `player.CurrentSceneEffect` (a `SceneEffectLoader.SceneEffectInstance`) holds
-the result: `anyActive`, `music.value`, `music.priority` and the others.
+the result: `anyActive`, `music.value`, `music.priority`, `waterStyle`,
+`surfaceBackground`, `undergroundBackground`, `mapBackground` and the others.
 
-Music is applied (next section). Water styles, surface and underground
-backgrounds and the map background are the next steps of phase 6:
-`ModWaterStyle`, `ModSurfaceBackgroundStyle` and
-`ModUndergroundBackgroundStyle` overrides do not exist yet.
+```csharp
+public class ExampleSurfaceBiome : ModBiome
+{
+    public override ModWaterStyle WaterStyle => ModContent.GetInstance<ExampleWaterStyle>();
+    public override ModSurfaceBackgroundStyle SurfaceBackgroundStyle => ModContent.GetInstance<ExampleSurfaceBackgroundStyle>();
+    public override string? MapBackground => BackgroundPath;
+}
+```
 
 ## Music
 
@@ -90,6 +98,90 @@ The game's own tracks are played by the game. Mod tracks are streamed by
 Android's media player next to the game: the new one fades in, and the game's
 music fades out once the mod track is heard, then comes back the same way.
 Mod music boxes and the title menu's music are not there yet.
+
+## Water and waterfalls
+
+A `ModWaterStyle` takes the slot after the game's 15 (`WaterStylesLoader`);
+its textures are `Texture` (the liquid), `BlockTexture` (`Texture + "_Block"`)
+and `SlopeTexture` (`Texture + "_Slope"`). A missing one falls back to the
+forest water.
+
+```csharp
+public class ExampleWaterStyle : ModWaterStyle
+{
+    public override int ChooseWaterfallStyle() => ModContent.GetInstance<ExampleWaterfallStyle>().Slot;
+    public override int GetSplashDust() => ModContent.DustType<ExampleSolutionDust>();
+    public override int GetDropletGore() => ModContent.GoreType<ExampleDroplet>();
+    public override Asset<Texture2D> GetRainTexture() => rainTexture;
+}
+```
+
+The scene's water replaces the game's (`Main.CalculateWaterStyle`) with
+priority `BiomeLow` or higher, as in tModLoader: a water fountain, a Blood
+Moon night and the game's own biome backgrounds (corruption, desert, jungle,
+ocean, hallow, snow, crimson and the desert variants) keep theirs. The game
+fades the water in and out itself (its loops in `Main.DrawWaters` are made
+to reach the mod styles). With a mod water:
+
+- `GetSplashDust` is the splash (`Dust.dustWater`);
+- `GetDropletGore` is the drip of water drip tiles; a mod gore is spawned as
+  the game's drip and switched, so give it `UpdateType = GoreID.WaterDrip`;
+- `GetRainTexture` and `GetRainVariant` draw the rain (the variant is the
+  column of the texture, 4 px wide);
+- `LightColorMultiplier` is how light goes through the water (times 0.91, as
+  in tModLoader);
+- `BiomeHairColor` is the color of the Biome Hair Dye.
+
+A `ModWaterfallStyle` (slot after the game's 28, `WaterFallStylesLoader`)
+is drawn by the game for every visible mod water, through
+`ChooseWaterfallStyle`. `ColorMultiplier(ref r, ref g, ref b, a)` gets the
+color of each piece (0 to 255) and `AddLight(i, j)` runs every 3 tiles of the
+water waterfalls on screen.
+
+## Backgrounds
+
+Every PNG in a `Backgrounds/` folder of the mod gets a background slot after
+the game's (`Main.maxBackgrounds`); `BackgroundTextureLoader.AddBackgroundTexture`
+adds one from elsewhere while the mod loads, and `BackgroundAutoloadingEnabled
+= false` on the `Mod` turns the folder off. The key is the path without the
+extension, with the mod's name in front:
+
+```csharp
+BackgroundTextureLoader.GetBackgroundSlot(Mod, "Assets/Textures/Backgrounds/ExampleBiomeSurfaceFar");
+BackgroundTextureLoader.GetBackgroundSlot("ExampleMod/Assets/Textures/Backgrounds/ExampleBiomeSurfaceMid3");
+```
+
+`GetBackgroundSlot` throws for a missing one; `TryGetBackgroundSlot` does not.
+`TextureAssets.Background[slot]`, `Main.backgroundWidth` and
+`Main.backgroundHeight` cover the mod slots.
+
+A `ModSurfaceBackgroundStyle` (slot after the game's 16) wins over the game's
+by priority, as in tModLoader: `BiomeHigh` over everything, `BiomeMedium`
+over the forest, the jungle and the snow, `BiomeLow` over the forest only.
+`ModifyFarFades(fades, transitionSpeed)` moves the layers' alphas (your
+`Slot` up, the others down); `ChooseFarTexture` and `ChooseMiddleTexture` are
+drawn with the position and scale of the game's mountains, and
+`ChooseCloseTexture(ref scale, ref parallax, ref a, ref b)` right after the
+game's background trees; `PreDrawCloseBackground` returning false skips it.
+
+A `ModUndergroundBackgroundStyle` (slot after the game's 22) fills four
+textures in `FillTextureArray`: 0 the border of sky and ground, 1 the ground
+layer, 2 the border of ground and rock, 3 the rock layer. `BiomeLow` replaces
+the plain cave only, `BiomeMedium` the snow and the jungle as well,
+`BiomeHigh` everything. The phone's old background drawing (backgrounds off
+in the settings) does not use the textures.
+
+A `GlobalBackgroundStyle` can change either choice
+(`ChooseSurfaceBackgroundStyle`, `ChooseUndergroundBackgroundStyle`), the
+underground textures of any style (`FillUndergroundTextureArray`) and the
+surface fades (`ModifyFarSurfaceFades`).
+
+## Map background
+
+`MapBackground` is a texture path with the mod's name in front (`BackgroundPath`
+fits). It covers the fullscreen map's background with the sky color on the
+surface and white below; `MapBackgroundFullbright` makes it always white and
+`MapBackgroundColor(ref color)` sets the color.
 
 ## Names and town NPCs
 
@@ -127,4 +219,5 @@ and passes them on; a player joining gets everyone's. Receivers only store
 the flags: `OnEnter`/`OnLeave` run on the player's own device. Two devices
 have not been tested yet.
 
-The `csbiome` pack checks all of the above on one device.
+The `csbiome` pack checks biomes and scenes on one device, `csmusic` the music
+and `csbackground` the water, waterfalls, backgrounds and map background.

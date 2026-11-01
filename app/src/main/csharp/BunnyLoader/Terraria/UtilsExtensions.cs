@@ -30,6 +30,8 @@ public static class UtilsExtensions
 
     public static Point ToTileCoordinates(this Vector2 vec) => new((int)vec.X >> 4, (int)vec.Y >> 4);
 
+    public static Vector2 ToWorldCoordinates(this Vector2 v, float autoAddX = 8f, float autoAddY = 8f) => v * 16f + new Vector2(autoAddX, autoAddY);
+
     public static float AngleLerp(this float curAngle, float targetAngle, float amount)
     {
         float angle;

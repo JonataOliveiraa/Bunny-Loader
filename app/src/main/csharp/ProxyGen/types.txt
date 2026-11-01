@@ -337,3 +337,13 @@ Terraria.Chest
 Terraria.WorldBuilding.GenPassResult
 Terraria.ID.MusicID
 Terraria.GameContent.Events.CreditsRollEvent
+
+Terraria.WaterfallManager
+Terraria.Rain
+Terraria.GameContent.Liquid.LiquidRenderer
+Terraria.ID.SurfaceBackgroundID
+Terraria.ID.SurfaceBackgroundID.Sets
+Terraria.Graphics.Effects.SkyManager
+Terraria.Graphics.Light.LightMap
+!Terraria.GameContent.TextureAssets.Rain
+!Terraria.GameContent.TextureAssets.Background

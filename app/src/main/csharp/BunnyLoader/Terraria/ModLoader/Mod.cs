@@ -36,6 +36,8 @@ public abstract class Mod
 
     public bool ContentAutoloadingEnabled { get; init; } = true;
 
+    public bool BackgroundAutoloadingEnabled { get; init; } = true;
+
     public virtual void Load() { }
 
     public virtual void PostSetupContent() { }
@@ -121,6 +123,7 @@ public abstract class Mod
         foreach (Type type in assembly.GetTypes().Where(IsAutoloaded).OrderBy(t => t.FullName, StringComparer.Ordinal))
             AddContent((ILoadable)Activator.CreateInstance(type, true)!);
         GoreLoader.AutoloadGores(this);
+        if (BackgroundAutoloadingEnabled) BackgroundTextureLoader.AutoloadBackgrounds(this);
     }
 
     static bool IsAutoloaded(Type type) =>

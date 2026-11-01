@@ -25,11 +25,15 @@ public static partial class TextureAssets
 
     public static TextureAssetArray PlayerHairAlt { get; } = new(2, "Images/Player_HairAlt_", static () => PlayerHairAlt_, static i => Main.instance.LoadHair(i));
 
+    public static TextureAssetArray Background { get; } = new(8, "Images/Background_", static () => Background_, static i => Main.instance.LoadBackground(i));
+
     public static Asset<Texture2D> Heart => Wrap(Heart_, "Images/Heart");
 
     public static Asset<Texture2D> Heart2 => Wrap(Heart2_, "Images/Heart2");
 
     public static Asset<Texture2D> Mana => Wrap(Mana_, "Images/Mana");
+
+    public static Asset<Texture2D> Rain => Wrap(Rain_, "Images/Rain");
 
     static Asset<Texture2D> Wrap(GameObject asset, string name) =>
         asset.IsNull ? throw new InvalidOperationException($"TextureAssets: {name} is not loaded yet") : Asset<Texture2D>.ForGameAsset(asset.Pointer, name);

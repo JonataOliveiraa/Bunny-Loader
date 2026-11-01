@@ -118,4 +118,7 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, int> MusicRegister;
     public delegate* unmanaged<int, float, void> MusicVolume;
     public delegate* unmanaged<int, int> MusicState;
+    public delegate* unmanaged<int, int> SetWaterStyleCount;
+    public delegate* unmanaged<IntPtr, delegate* unmanaged<uint*, int, void>, int> BeginDrawTint;
+    public delegate* unmanaged<void> EndDrawTint;
 }

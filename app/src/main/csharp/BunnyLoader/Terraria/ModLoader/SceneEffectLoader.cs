@@ -50,6 +50,7 @@ public static class SceneEffectLoader
         Effects.Add(effect);
         BiomeHooks.Install();
         MusicHooks.Install();
+        if (ItemHooks.Overrides(effect.GetType(), typeof(ModSceneEffect), "get_MapBackground")) MapBackgroundHooks.Install();
         return Effects.Count - 1;
     }
 
@@ -107,6 +108,12 @@ public static class SceneEffectLoader
     static void Fill(SceneEffectInstance result, ModSceneEffect effect)
     {
         SceneEffectPriority priority = effect.Priority;
+        if (result.waterStyle.value == -1 && effect.WaterStyle is { } water)
+            result.waterStyle = new SceneEffectInstance.PrioritizedPair { value = water.Slot, priority = priority };
+        if (result.undergroundBackground.value == -1 && effect.UndergroundBackgroundStyle is { } underground)
+            result.undergroundBackground = new SceneEffectInstance.PrioritizedPair { value = underground.Slot, priority = priority };
+        if (result.surfaceBackground.value == -1 && effect.SurfaceBackgroundStyle is { } surface)
+            result.surfaceBackground = new SceneEffectInstance.PrioritizedPair { value = surface.Slot, priority = priority };
         if (result.music.value == -1)
         {
             int music = effect.Music;

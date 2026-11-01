@@ -6,6 +6,7 @@
 #include "content/players/PlayerStages.h"
 #include "content/ui/EmoteMenuIcon.h"
 #include "content/tiles/ModTiles.h"
+#include "content/tiles/ModWater.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileEvents.h"
 #include "content/ui/ResourceDraws.h"
@@ -177,6 +178,9 @@ struct NativeApi {
     int32_t (*musicRegister)(const char* path);
     void (*musicVolume)(int32_t id, float volume);
     int32_t (*musicState)(int32_t id);
+    int32_t (*setWaterStyleCount)(int32_t total);
+    int32_t (*beginDrawTint)(void* texture, runtime::DrawTintFn fn);
+    void (*endDrawTint)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -933,6 +937,9 @@ const NativeApi kNativeApi{
     },
     [](int32_t id, float volume) { runtime::content::setMusicVolume(id, volume); },
     [](int32_t id) -> int32_t { return runtime::content::musicState(id); },
+    [](int32_t total) -> int32_t { return runtime::setWaterStyleCount(total) ? 1 : 0; },
+    [](void* texture, runtime::DrawTintFn fn) -> int32_t { return runtime::beginDrawTint(texture, profile::wrap(fn, "DrawTint")) ? 1 : 0; },
+    []() { runtime::endDrawTint(); },
 };
 
 } // namespace

@@ -7,6 +7,12 @@ public abstract class ModSceneEffect : ModType
 {
     public int Type { get; internal set; }
 
+    public virtual ModWaterStyle? WaterStyle => null;
+
+    public virtual ModSurfaceBackgroundStyle? SurfaceBackgroundStyle => null;
+
+    public virtual ModUndergroundBackgroundStyle? UndergroundBackgroundStyle => null;
+
     public virtual int Music => -1;
 
     public virtual string? MapBackground => null;

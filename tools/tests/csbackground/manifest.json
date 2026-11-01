@@ -1,0 +1,15 @@
+{
+  "uid": "5b0e2a51-7c4d-4f3e-9a86-2d1f0c7b3e94",
+  "id": "test-csbackground",
+  "name": "Test: water, waterfalls and backgrounds (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModWaterStyle, ModWaterfallStyle, ModSurfaceBackgroundStyle, ModUndergroundBackgroundStyle, BackgroundTextureLoader and the map background, applied from the scene: water choice and fade, splash, rain, light, biome hair dye, waterfall color, background choice by priority, the three surface layers, the underground textures and the fullscreen map.",
+  "description": "Build with tools/tests/build-cs.sh csbackground. Logs csbackground <case>: ok | FAIL and csbackground END pass=N fail=M.",
+  "updated": "2026-11-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsBackground.dll",
+  "dependencies": []
+}

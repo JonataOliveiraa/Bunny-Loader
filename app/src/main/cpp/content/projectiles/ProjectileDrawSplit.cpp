@@ -25,6 +25,7 @@ using BatchFloatFn = void (*)(void*, void*, Vec2, NullableRect, uint32_t, float,
 using BatchVectorFn = void (*)(void*, void*, Vec2, NullableRect, uint32_t, float, Vec2, Vec2, int32_t, float, const MethodInfo*);
 using BatchRefFloatFn = void (*)(void*, void*, Vec2*, void*, uint32_t*, float, Vec2, float, int32_t, const MethodInfo*);
 using BatchRefVectorFn = void (*)(void*, void*, Vec2*, void*, uint32_t*, float, Vec2, Vec2, int32_t, const MethodInfo*);
+using BatchRefVertexFn = void (*)(void*, void*, Vec2, void*, uint32_t*, float, Vec2, float, int32_t, float, const MethodInfo*);
 using DrawDataFn = void (*)(void*, void*, const MethodInfo*);
 
 struct Split {
@@ -45,6 +46,19 @@ struct Adjust {
 thread_local Adjust t_adjusts[kDepth];
 thread_local int t_adjustDepth = 0;
 
+struct Tint {
+    void* texture;
+    DrawTintFn fn;
+};
+
+thread_local Tint t_tints[kDepth];
+thread_local int t_tintDepth = 0;
+
+DrawTintFn tintOf(void* texture) {
+    const Tint& t = t_tints[t_tintDepth - 1];
+    return texture == t.texture ? t.fn : nullptr;
+}
+
 void adjust(void* texture, Vec2* position, int32_t* effects) {
     const Adjust& a = t_adjusts[t_adjustDepth - 1];
     if (texture == a.texture && a.fn) a.fn(a.kind, &position->x, effects);
@@ -54,9 +68,11 @@ BatchFloatFn g_batchFloat = nullptr;
 BatchVectorFn g_batchVector = nullptr;
 BatchRefFloatFn g_batchRefFloat = nullptr;
 BatchRefVectorFn g_batchRefVector = nullptr;
+BatchRefVertexFn g_batchRefVertex = nullptr;
 DrawDataFn g_drawData = nullptr;
 std::mutex g_mx;
 int g_state = 0;
+int g_vertexState = 0;
 
 bool pass(void* texture) {
     Split& split = t_splits[t_depth - 1];
@@ -68,6 +84,9 @@ void hkBatchFloat(void* self, void* texture, Vec2 position, NullableRect source,
                   int32_t effects, float depth, const MethodInfo* method) {
     if (t_adjustDepth > 0) adjust(texture, &position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
+    if (t_tintDepth > 0) {
+        if (DrawTintFn fn = tintOf(texture)) fn(&color, 1);
+    }
     g_batchFloat(self, texture, position, source, color, rotation, origin, scale, effects, depth, method);
 }
 
@@ -82,7 +101,30 @@ void hkBatchRefFloat(void* self, void* texture, Vec2* position, void* source, ui
                      int32_t effects, const MethodInfo* method) {
     if (t_adjustDepth > 0 && position) adjust(texture, position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
+    if (t_tintDepth > 0 && color) {
+        if (DrawTintFn fn = tintOf(texture)) {
+            const uint32_t saved = *color;
+            fn(color, 1);
+            g_batchRefFloat(self, texture, position, source, color, rotation, origin, scale, effects, method);
+            *color = saved;
+            return;
+        }
+    }
     g_batchRefFloat(self, texture, position, source, color, rotation, origin, scale, effects, method);
+}
+
+void hkBatchRefVertex(void* self, void* texture, Vec2 position, void* source, uint32_t* colors, float rotation, Vec2 origin, float scale,
+                      int32_t effects, float depth, const MethodInfo* method) {
+    if (t_tintDepth > 0 && colors) {
+        if (DrawTintFn fn = tintOf(texture)) {
+            uint32_t saved[4] = {colors[0], colors[1], colors[2], colors[3]};
+            fn(colors, 4);
+            g_batchRefVertex(self, texture, position, source, colors, rotation, origin, scale, effects, depth, method);
+            for (int k = 0; k < 4; ++k) colors[k] = saved[k];
+            return;
+        }
+    }
+    g_batchRefVertex(self, texture, position, source, colors, rotation, origin, scale, effects, depth, method);
 }
 
 void hkBatchRefVector(void* self, void* texture, Vec2* position, void* source, uint32_t* color, float rotation, Vec2 origin, Vec2 scale,
@@ -124,6 +166,18 @@ bool install() {
     return true;
 }
 
+bool installVertex() {
+    using namespace bl::il2cpp;
+    auto* batch = findClass({"Microsoft.Xna.Framework.Graphics", "SpriteBatch", ""});
+    auto* draw = batch ? findMethodBySignature(batch, parseSignature(
+        "void Draw(Texture2D texture, Vector2 position, ref Rectangle srcRect, ref VertexColors color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)")) : nullptr;
+    if (!draw || !hook::install(draw, hkBatchRefVertex, &g_batchRefVertex)) {
+        BL_ERROR("draw tint: the vertex colors draw is not hooked");
+        return false;
+    }
+    return true;
+}
+
 }
 
 bool drawFilterReady() {
@@ -140,6 +194,20 @@ bool beginDrawAdjust(void* texture, int32_t kind, DrawAdjustFn fn) {
 
 void endDrawAdjust() {
     if (t_adjustDepth > 0) --t_adjustDepth;
+}
+
+bool beginDrawTint(void* texture, DrawTintFn fn) {
+    if (!texture || !fn || !drawFilterReady() || t_tintDepth >= kDepth) return false;
+    {
+        std::lock_guard<std::mutex> lock(g_mx);
+        if (g_vertexState == 0) g_vertexState = installVertex() ? 1 : -1;
+    }
+    t_tints[t_tintDepth++] = Tint{texture, fn};
+    return true;
+}
+
+void endDrawTint() {
+    if (t_tintDepth > 0) --t_tintDepth;
 }
 
 bool beginProjectileDrawSplit(void* ownTexture, bool extras, bool sprite) {

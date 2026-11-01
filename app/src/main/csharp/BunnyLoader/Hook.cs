@@ -20,9 +20,11 @@ public sealed unsafe class Hook
         return new Hook(slot);
     }
 
-    public static Hook Install(string ns, string cls, string signature, IntPtr replacement)
+    public static Hook Install(string ns, string cls, string signature, IntPtr replacement) =>
+        Install(new GameClass(ns, cls), signature, replacement);
+
+    public static Hook Install(GameClass gameClass, string signature, IntPtr replacement)
     {
-        var gameClass = new GameClass(ns, cls);
         MethodRef method = default;
         GameInterop.Method(ref method, gameClass, signature, LayoutUnchecked(signature));
         return Install(method.Info, replacement);
