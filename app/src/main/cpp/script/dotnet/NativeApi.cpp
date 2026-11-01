@@ -35,6 +35,7 @@
 #include "content/items/ModPrefixes.h"
 #include "content/items/ModRarities.h"
 #include "content/items/ModItems.h"
+#include "content/sounds/AndroidAudio.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -173,6 +174,9 @@ struct NativeApi {
     void (*readTileDrawData)(void* renderer, int32_t x, int32_t y, int32_t offset, int32_t type, void* data, int32_t* halfBrick);
     int32_t (*installSystemStage)(int32_t stage, runtime::SystemStageFn callback);
     int32_t (*hookProfile)(int32_t index, uint64_t* values, const char** name);
+    int32_t (*musicRegister)(const char* path);
+    void (*musicVolume)(int32_t id, float volume);
+    int32_t (*musicState)(int32_t id);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -923,6 +927,12 @@ const NativeApi kNativeApi{
         return runtime::installSystemStage(stage, runtime::kStageClientManaged, profile::wrap(callback, "SystemStage")) ? 1 : 0;
     },
     profile::read,
+    [](const char* path) -> int32_t {
+        if (!path || !fileExists(path)) return 0;
+        return runtime::content::registerMusic(path);
+    },
+    [](int32_t id, float volume) { runtime::content::setMusicVolume(id, volume); },
+    [](int32_t id) -> int32_t { return runtime::content::musicState(id); },
 };
 
 } // namespace

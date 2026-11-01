@@ -49,6 +49,7 @@ public static class SceneEffectLoader
     {
         Effects.Add(effect);
         BiomeHooks.Install();
+        MusicHooks.Install();
         return Effects.Count - 1;
     }
 

@@ -54,10 +54,42 @@ sets it. Today the channels are:
 `player.CurrentSceneEffect` (a `SceneEffectLoader.SceneEffectInstance`) holds
 the result: `anyActive`, `music.value`, `music.priority` and the others.
 
-The channels are computed but not yet applied: the music player, water
-styles, surface and underground backgrounds and the map background are the
-next steps of phase 6. `ModWaterStyle`, `ModSurfaceBackgroundStyle` and
+Music is applied (next section). Water styles, surface and underground
+backgrounds and the map background are the next steps of phase 6:
+`ModWaterStyle`, `ModSurfaceBackgroundStyle` and
 `ModUndergroundBackgroundStyle` overrides do not exist yet.
+
+## Music
+
+Put the file in the mod (`.ogg`, `.wav` or `.mp3`) and ask for its slot:
+
+```csharp
+public override int Music => MusicLoader.GetMusicSlot(Mod, "Assets/Music/MysteriousMystery");
+```
+
+The path is relative to the mod's folder, with or without the extension;
+`MusicLoader.GetMusicSlot("ExampleMod/Assets/Music/MysteriousMystery")` works
+too. Mod slots start at `MusicID.Count` (105 on the phone); a missing file
+gives 0 and a warning in the log. The slot is looked up once, so the getter
+can call it every frame. `MusicLoader.MusicExists`, `AddMusic`, `MusicCount`
+and `IsMusicPlaying(slot)` are there as well.
+
+A `ModNPC` can set `Music` and `SceneEffectPriority` (default `BossLow`) in
+`SetDefaults`: the NPC with the highest priority within 5000 px of the screen
+is a candidate, and the scene replaces it only with a higher priority, as in
+tModLoader.
+
+Who wins: a music box on screen wins over everything. Otherwise the candidate
+plays when its priority reaches the tier of the music the game picked (bosses
+`BossLow` to `BossHigh`, events `Event`, eclipse, town and underworld
+`Environment`, dungeon or corruption `BiomeHigh`, jungle or snow
+`BiomeMedium`, the rest `BiomeLow`); `None` never plays. The choice is made
+every 10 frames.
+
+The game's own tracks are played by the game. Mod tracks are streamed by
+Android's media player next to the game: the new one fades in, and the game's
+music fades out once the mod track is heard, then comes back the same way.
+Mod music boxes and the title menu's music are not there yet.
 
 ## Names and town NPCs
 

@@ -8,6 +8,8 @@ namespace ExampleMod.Content.Biomes;
 
 public class ExampleSurfaceBiome : ModBiome
 {
+    public override int Music => MusicLoader.GetMusicSlot(Mod, "Assets/Music/MysteriousMystery");
+
     public override string BestiaryIcon => base.BestiaryIcon;
     public override string BackgroundPath => base.BackgroundPath;
     public override Color? BackgroundColor => base.BackgroundColor;

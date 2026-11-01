@@ -8,6 +8,7 @@ namespace ExampleMod.Content.Biomes;
 
 public class ExampleUndergroundBiome : ModBiome
 {
+    public override int Music => MusicLoader.GetMusicSlot(Mod, "Assets/Music/MysteriousMystery");
     public override SceneEffectPriority Priority => SceneEffectPriority.BiomeLow;
     public override string BestiaryIcon => base.BestiaryIcon;
     public override string BackgroundPath => base.BackgroundPath;

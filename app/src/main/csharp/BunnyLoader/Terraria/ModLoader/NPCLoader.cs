@@ -154,6 +154,7 @@ public static unsafe partial class NPCLoader
         {
             try { instance.SetDefaults(); }
             catch (Exception e) { ItemHooks.Report($"{instance.FullName}.SetDefaults", e); }
+            if (instance.Music >= 0) MusicHooks.Install();
         }
         for (int i = 0; i < early.Length; i++)
         {

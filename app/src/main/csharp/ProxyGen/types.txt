@@ -335,3 +335,5 @@ GUIWorldCreateMenu
 Terraria.Chest
 
 Terraria.WorldBuilding.GenPassResult
+Terraria.ID.MusicID
+Terraria.GameContent.Events.CreditsRollEvent

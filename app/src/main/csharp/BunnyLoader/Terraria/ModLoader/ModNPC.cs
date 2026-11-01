@@ -37,6 +37,10 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
         set { animationType = value; if (value > 0 && Type >= Terraria.ID.NPCID.Count) NPCEventHooks.Want(Type, 2); }
     }
 
+    public int Music { get; set; } = -1;
+
+    public SceneEffectPriority SceneEffectPriority { get; set; } = SceneEffectPriority.BossLow;
+
     public virtual string LocalizationCategory => "NPCs";
 
     public virtual LocalizedText DisplayName => this.GetLocalization(nameof(DisplayName), PrettyPrintName);
