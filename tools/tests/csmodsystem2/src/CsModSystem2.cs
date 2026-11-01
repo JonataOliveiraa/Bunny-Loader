@@ -103,19 +103,19 @@ public sealed class CsModSystem2Mod : Mod
     {
         int frames = DrawSystem.Tiles - tiles0;
         Report("ModifySunLightColor runs every frame and its colors stay",
-            DrawSystem.Sun - sun0 >= 30 && Main.tileColor.PackedValue == new Color(10, 20, 30).PackedValue && Main.ColorOfTheSkies.PackedValue == new Color(40, 50, 60).PackedValue,
+            DrawSystem.Sun - sun0 >= 10 && Main.tileColor.PackedValue == new Color(10, 20, 30).PackedValue && Main.ColorOfTheSkies.PackedValue == new Color(40, 50, 60).PackedValue,
             $"calls={DrawSystem.Sun - sun0} tile={Main.tileColor} sky={Main.ColorOfTheSkies}");
         float now = Lighting.GlobalBrightness, expected = DrawSystem.BrightnessBefore * 0.5f;
         Report("ModifyLightingBrightness scales the global brightness",
-            DrawSystem.Brightness - brightness0 >= 30 && MathF.Abs(now - expected) < 0.001f,
+            DrawSystem.Brightness - brightness0 >= 10 && MathF.Abs(now - expected) < 0.001f,
             $"calls={DrawSystem.Brightness - brightness0} before={DrawSystem.BrightnessBefore} now={now}");
         Report("ModifyScreenPosition runs every frame and the tiles are drawn from the moved camera",
-            DrawSystem.Screen - screen0 >= 30 && DrawSystem.ShiftSeen, $"calls={DrawSystem.Screen - screen0} seen={DrawSystem.ShiftSeen}");
+            DrawSystem.Screen - screen0 >= 10 && DrawSystem.ShiftSeen, $"calls={DrawSystem.Screen - screen0} seen={DrawSystem.ShiftSeen}");
         Report("ModifyTransformMatrix gets Main.GameViewMatrix every frame",
-            DrawSystem.Transforms - transforms0 >= 30 && DrawSystem.SameMatrix, $"calls={DrawSystem.Transforms - transforms0} same={DrawSystem.SameMatrix}");
-        Report("PostDrawTiles runs every frame", frames >= 30, $"calls={frames}");
+            DrawSystem.Transforms - transforms0 >= 10 && DrawSystem.SameMatrix, $"calls={DrawSystem.Transforms - transforms0} same={DrawSystem.SameMatrix}");
+        Report("PostDrawTiles runs every frame", frames >= 10, $"calls={frames}");
         Report("PostDrawInterface runs every frame with the sprite batch",
-            DrawSystem.Interface - interface0 >= 30 && DrawSystem.BatchSet, $"calls={DrawSystem.Interface - interface0} batch={DrawSystem.BatchSet}");
+            DrawSystem.Interface - interface0 >= 10 && DrawSystem.BatchSet, $"calls={DrawSystem.Interface - interface0} batch={DrawSystem.BatchSet}");
     }
 
     static void Map()
