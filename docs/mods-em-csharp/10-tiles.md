@@ -236,6 +236,38 @@ public class ExampleTree : ModTree
 - `CountsAsTreeType` (`TreeTypes.Custom` by default), `TreeLeaf`, `Shake`, `CreateDust`, `CanDropAcorn` and `DropWood` work as in tModLoader; `PlantLoader.Get<ModTree>(TileID.Trees, groundType)` finds the tree.
 - Not available yet: `ModPalmTree`, `ModCactus`, `SetTreeFoliageSettings` (it is not called) and tree painting (`TreeShaderSettings` is not used). `TileID.Sets.TreeSapling` is kept by the loader, since the mobile game has no such set.
 
+## Pylons
+
+A `ModPylon` is a `ModTile` with a `TEModdedPylon` entity, written as in tModLoader:
+
+```csharp
+public sealed class SimplePylonTileEntity : TEModdedPylon { }
+
+public class ExamplePylonTile : ModPylon
+{
+    public override void SetStaticDefaults()
+    {
+        Main.tileFrameImportant[Type] = true;
+        TileObjectData.newTile.CopyFrom(TileObjectData.Style3x4);
+        TEModdedPylon moddedPylon = ModContent.GetInstance<SimplePylonTileEntity>();
+        TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(moddedPylon.PlacementPreviewHook_CheckIfCanPlace, 1, 0, true);
+        TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(moddedPylon.Hook_AfterPlacement, -1, 0, false);
+        TileObjectData.addTile(Type);
+        AddToArray(ref TileID.Sets.CountsAsPylon);
+        AddMapEntry(Color.White, CreateMapEntryName());
+    }
+
+    public override void KillMultiTile(int i, int j, int frameX, int frameY) => ModContent.GetInstance<SimplePylonTileEntity>().Kill(i, j);
+}
+```
+
+- Each `ModPylon` gets a `PylonType` after the game's (11, 12, ...). Its entities join the game's pylon list (`Main.PylonSystem`), so `HasPylonOfType`, teleporting, the "near a pylon" check and multiplayer sync work with the game's own code.
+- `CanPlacePylon` (one per type by default), `ValidTeleportCheck_NPCCount` and `ValidTeleportCheck_BiomeRequirements` (called with the `SceneMetrics` scanned around the destination) decide placement and teleporting.
+- `DrawMapIcon` draws the icon on the full map, usually with `DefaultDrawMapIcon` and `DefaultMapClickHandle`. `SpecialDraw` with `DefaultDrawPylonCrystal` draws the floating crystal (`DrawEffects` already asks for `SpecialDraw` once per pylon).
+- Touching the pylon opens the map in the mobile pylon mode, framing every revealed pylon, like a vanilla pylon.
+- `GetNPCShopEntry` adds the pylon item to town NPC shops, except those in `NPCShopDatabase.NoPylons`.
+- Not available yet: `GlobalPylon`, `ValidTeleportCheck_DestinationPostCheck`, `ValidTeleportCheck_NearbyPostCheck`, `ModifyTeleportationPosition`, the smart cursor crystal highlight, `HasSmartInteract`, and the `TileFrame` override tModLoader uses to break a pylon. `TileID.Sets.CountsAsPylon` is kept by the loader, since the mobile game has no such set.
+
 ## World persistence
 
 C# uses the existing native `.wld.tiles.bl` backend. Its stable tile key is `<mod UID>/<tile name>`, shared with JS. A JS mod and its C# port must keep both values to reuse saved tiles. No conversion of the sidecar format is needed.
@@ -255,4 +287,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees. Pylons and `TileRestingInfo` are deferred to the next phase-5 steps.
+The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees and `cspylon` pylons. `TileRestingInfo` is deferred to the next phase-5 step.

@@ -131,6 +131,15 @@ Items: {
 		Tooltip: This is an advanced modded wall.
 	}
 
+	ExamplePylonItem: {
+		DisplayName: Example Pylon
+		Tooltip:
+			'''
+			Must be within the Example Surface or Underground Biome in order to function.
+			Has no NPC requirements!
+			'''
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Basic Tile Entity Item
 		Tooltip: Collects rain water. Interact with it when full to claim a water bucket.
@@ -194,6 +203,7 @@ Items: {
 
 Conditions: {
 	LowHealth: Low Health
+	InExampleBiome: In the Example biome
 }
 
 DamageClasses: {
@@ -294,6 +304,7 @@ Tiles: {
 	}
 
 	ExampleDresser.MapEntry: Example Dresser
+	ExamplePylonTile.MapEntry: "{$Mods.ExampleMod.Items.ExamplePylonItem.DisplayName}"
 }
 
 Walls: {

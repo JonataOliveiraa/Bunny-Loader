@@ -131,6 +131,15 @@ Items: {
 		Tooltip: Esta é uma parede de mod avançada.
 	}
 
+	ExamplePylonItem: {
+		DisplayName: Pilar de Exemplo
+		Tooltip:
+			'''
+			Precisa estar no bioma de Exemplo (superfície ou subterrâneo) para funcionar.
+			Não precisa de NPCs!
+			'''
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Item de Tile Entity Básica
 		Tooltip: Junta água da chuva. Toque nele quando estiver cheio para pegar um balde de água.
@@ -194,6 +203,7 @@ Items: {
 
 Conditions: {
 	LowHealth: Vida baixa
+	InExampleBiome: No bioma de Exemplo
 }
 
 DamageClasses: {
@@ -294,6 +304,7 @@ Tiles: {
 	}
 
 	ExampleDresser.MapEntry: Cômoda de Exemplo
+	ExamplePylonTile.MapEntry: "{$Mods.ExampleMod.Items.ExamplePylonItem.DisplayName}"
 }
 
 Walls: {

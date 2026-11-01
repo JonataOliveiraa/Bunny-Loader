@@ -73,6 +73,7 @@ internal static class TileEntityHooks
         if (ByPosition.TryGetValue(key, out ModTileEntity? old) && old != entity) ByID.Remove(old.ID);
         ByID[entity.ID] = entity;
         ByPosition[key] = entity;
+        if (entity is Default.TEModdedPylon) PylonHooks.Changed();
     }
 
     static void Remove(ModTileEntity entity)
@@ -80,6 +81,7 @@ internal static class TileEntityHooks
         ByID.Remove(entity.ID);
         int key = Key(entity.Position.X, entity.Position.Y);
         if (ByPosition.TryGetValue(key, out ModTileEntity? here) && here == entity) ByPosition.Remove(key);
+        if (entity is Default.TEModdedPylon) PylonHooks.Changed();
     }
 
     static ModTileEntity PlaceQuiet(ModTileEntity template, int x, int y)
@@ -187,19 +189,17 @@ internal static class TileEntityHooks
     internal static void ServerPlace(string key, int x, int y)
     {
         if (!ByKey.TryGetValue(key, out ModTileEntity? template) || !WorldGen.InWorld(x, y) || At(x, y) != null) return;
-        try
-        {
-            if (!template.IsTileValidForEntity(x, y)) return;
-        }
-        catch (Exception e)
-        {
-            ItemHooks.Report($"{template.FullName}.IsTileValidForEntity", e);
-            return;
-        }
+        try { template.NetPlaceEntityAttempt(x, y); }
+        catch (Exception e) { ItemHooks.Report($"{template.FullName}.NetPlaceEntityAttempt", e); }
+    }
+
+    internal static int NetPlace(ModTileEntity template, int x, int y)
+    {
         ModTileEntity entity = PlaceQuiet(template, x, y);
         try { entity.OnNetPlace(); }
         catch (Exception e) { ItemHooks.Report($"{entity.FullName}.OnNetPlace", e); }
         SendEntity(entity, -1, -1);
+        return entity.ID;
     }
 
     static void SendSection(On_NetMessage.orig_SendSection orig, int whoAmi, int sectionX, int sectionY)

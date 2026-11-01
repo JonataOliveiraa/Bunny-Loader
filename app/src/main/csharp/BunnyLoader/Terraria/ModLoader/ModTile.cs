@@ -79,6 +79,12 @@ public abstract class ModTile : ModBlockType
         TileLoader.AddMapEntry(this, color, name ?? CreateMapEntryName(), nameFunc);
     }
 
+    public void AddToArray(ref int[] array)
+    {
+        Array.Resize(ref array, array.Length + 1);
+        array[^1] = Type;
+    }
+
     public void RegisterItemDrop(int itemType, params int[] tileStyles)
     {
         TileLoader.RegisterItemDrop(Type, itemType, tileStyles);

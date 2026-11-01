@@ -9,6 +9,8 @@ public readonly partial struct TileID
     {
         static readonly object Gate = new();
 
+        public static int[] CountsAsPylon = new int[] { TeleportationPylon };
+
         static bool[] treeSapling = Array.Empty<bool>();
 
         public static bool[] TreeSapling

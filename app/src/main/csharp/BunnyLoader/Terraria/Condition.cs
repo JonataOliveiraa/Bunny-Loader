@@ -56,6 +56,7 @@ public sealed record Condition(LocalizedText Description, Func<bool> Predicate)
     public static readonly Condition InAether = new("Conditions.InAether", () => Me.ZoneShimmer);
     public static readonly Condition InShoppingZoneForest = new("Conditions.InShoppingForest", () => Me.ShoppingZone_Forest);
     public static readonly Condition InEvilBiome = new("Conditions.InEvilBiome", () => Me.ZoneCrimson || Me.ZoneCorrupt);
+    public static readonly Condition AnotherTownNPCNearby = new("Conditions.AnotherTownNPCNearby", () => GameContent.TeleportPylonsSystem.DoesPositionHaveEnoughNPCs(2, Me.Center.ToTileCoordinates16()));
     public static readonly Condition NotInEvilBiome = new("Conditions.NotInEvilBiome", () => !Me.ZoneCrimson && !Me.ZoneCorrupt);
     public static readonly Condition NotInHallow = new("Conditions.NotInHallow", () => !Me.ZoneHallow);
     public static readonly Condition NotInGraveyard = new("Conditions.NotInGraveyard", () => !Me.ZoneGraveyard);

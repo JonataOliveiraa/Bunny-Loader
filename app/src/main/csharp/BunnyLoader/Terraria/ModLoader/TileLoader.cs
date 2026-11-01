@@ -203,6 +203,8 @@ public static unsafe partial class TileLoader
         if (Host.Native()->TileEvents(type, flags, &Event) == 0)
             throw new InvalidOperationException($"{tile.FullName}: native tile hooks could not be installed");
         TileHooks.Install(flags, true);
+        if (tile is ModPylon pylon)
+            PylonHooks.Add(pylon);
     }
 
     internal static void Mark(int type, uint flag)

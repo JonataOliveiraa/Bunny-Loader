@@ -303,6 +303,9 @@ Terraria.ID.WallID
 Terraria.Framing
 =Terraria.Enums.TreeTypes.Custom 13
 Terraria.GameContent.TreePaintingSettings
+Terraria.DataStructures.TileReachCheckSettings
+XNAUICameraSettings
+Terraria.UI.Alignment
 !Terraria.Item.DefaultToPlaceableWall
 
 Terraria.GameContent.ShopHelper

@@ -11,6 +11,10 @@ public static class NPCShopDatabase
     internal static readonly Dictionary<int, NPCShop> ByIndex = new();
     static int nextIndex = 99;
     public static IEnumerable<AbstractNPCShop> AllShops => Shops.Values;
+    public static readonly ISet<string> NoPylons = new HashSet<string>
+    {
+        GetShopName(ID.NPCID.TravellingMerchant), GetShopName(ID.NPCID.SkeletonMerchant), GetShopName(ID.NPCID.DD2Bartender), GetShopName(ID.NPCID.SantaClaus)
+    };
     public static string GetShopName(int npcType, string shopName = "Shop") =>
         $"{(NPCLoader.GetNPC(npcType) is ModNPC own ? own.FullName : "Terraria/" + NPCID.Search.GetName(npcType))}/{shopName}";
 
@@ -48,6 +52,7 @@ public static class NPCShopDatabase
         {
             if (shop.Vanilla) continue;
             NPCLoader.ModifyShop(shop);
+            Core.PylonHooks.AddShopEntries(shop);
             shop.Modified = true;
             shop.FinishSetup();
         }

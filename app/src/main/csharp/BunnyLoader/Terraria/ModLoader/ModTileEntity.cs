@@ -51,6 +51,12 @@ public abstract class ModTileEntity : ModType
         return Place(topLeft.X, topLeft.Y);
     }
 
+    public virtual void NetPlaceEntityAttempt(int x, int y)
+    {
+        if (IsTileValidForEntity(x, y))
+            TileEntityHooks.NetPlace(this, x, y);
+    }
+
     public virtual void Update() { }
 
     public virtual void OnNetPlace() { }

@@ -48,6 +48,7 @@ internal static class TownShopHooks
                 if (!item.IsNull && item.type > 0) shop.Add(new NPCShop.Entry(item.Clone()) { Native = true });
             }
             NPCLoader.ModifyShop(shop);
+            PylonHooks.AddShopEntries(shop);
             shop.FinishSetup();
         }
         Item[] items = new Item[native.Length];
