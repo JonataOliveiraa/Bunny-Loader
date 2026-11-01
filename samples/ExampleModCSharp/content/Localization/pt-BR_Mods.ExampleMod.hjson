@@ -121,6 +121,11 @@ Items: {
 		Tooltip: ""
 	}
 
+	BasicTileEntityItem: {
+		DisplayName: Item de Tile Entity Básica
+		Tooltip: Junta água da chuva. Toque nele quando estiver cheio para pegar um balde de água.
+	}
+
 	ExampleChest: {
 		DisplayName: Baú de Exemplo
 		Tooltip: Este é um baú de mod.
@@ -267,6 +272,11 @@ Biomes: {
 }
 
 Tiles: {
+	BasicTileEntityTile: {
+		MapEntry: Tile de Tile Entity Básica
+		StatusText: Cheio: {0}%
+	}
+
 	ExampleChest: {
 		MapEntry0: Baú de Exemplo
 		MapEntry1: Baú de Exemplo Trancado

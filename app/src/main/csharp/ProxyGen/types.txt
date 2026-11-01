@@ -366,3 +366,4 @@ TransactionButton_Layout
 String_Layout
 Terraria.ID.MessageID
 Terraria.DataStructures.TrackedProjectileReference
+Terraria.DataStructures.EntitySource_TileBreak

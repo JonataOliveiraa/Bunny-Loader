@@ -123,6 +123,50 @@ the game's chests. `RightClick` opens it (`player.OpenChest`) and
 `AddMapEntry` with a name callback (`MapChestName` in tModLoader) is not
 available: the phone's map legend only takes fixed names.
 
+## Tile entities
+
+A `ModTileEntity` keeps data and code on one placed object, as in tModLoader:
+
+```csharp
+public class BasicTileEntity : ModTileEntity
+{
+    public override bool IsTileValidForEntity(int x, int y)
+    {
+        Tile tile = Main.tile[x, y];
+        return tile.HasTile && tile.TileType == ModContent.TileType<BasicTileEntityTile>();
+    }
+}
+```
+
+The tile places it and removes it:
+
+```csharp
+TileObjectData.newTile.HookPostPlaceMyPlayer = ModContent.GetInstance<BasicTileEntity>().Generic_HookPostPlaceMyPlayer;
+
+public override void KillMultiTile(int i, int j, int frameX, int frameY) => ModContent.GetInstance<BasicTileEntity>().Kill(i, j);
+```
+
+`TileEntity.TryGet(i, j, out BasicTileEntity entity)` finds the entity of the
+object that has the cell (i, j). Each entity has `ID`, `Position` (the top
+left cell, a `Point16`) and `Type`; the template (`ModContent.GetInstance`)
+has `Place`, `Kill`, `Find` and `ModTileEntity.CountInWorld()`.
+
+- `Update` (only when overridden, `RequiresUpdates`), `PreGlobalUpdate` and
+  `PostGlobalUpdate` run on the server (or alone) once per world update,
+  around the game's own tile entities.
+- `SaveData`/`LoadData` keep the data in `<world>.wld.bl.json`; when the world
+  loads, an entity whose tile is no longer valid (`IsTileValidForEntity`) is
+  dropped, and entities of mods that are not loaded are kept as they were.
+- `NetSend`/`NetReceive` carry it to clients: when it is placed, when a player
+  gets that part of the world, and on `NetMessage.SendData(MessageID.TileEntitySharing, number: ID)`.
+  A client's placement asks the server, which checks the tile, places it,
+  calls `OnNetPlace` and sends it to everyone. `OnKill` runs on `Kill`.
+- `Hook_AfterPlacement` and other C# methods also work in a `PlacementHook`
+  for `HookPostPlaceMyPlayer`.
+
+The game itself cannot hold new tile entity classes, so mod entities live in
+the loader and are not in the game's `TileEntity.ByID`; use `TileEntity.TryGet`.
+
 ## World persistence
 
 C# uses the existing native `.wld.tiles.bl` backend. Its stable tile key is `<mod UID>/<tile name>`, shared with JS. A JS mod and its C# port must keep both values to reuse saved tiles. No conversion of the sidecar format is needed.
@@ -142,4 +186,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-The `cschest` pack (run twice, the second time with `KEEPSAVES=1`) checks chests and dressers. Tile entities, pylons, `TileRestingInfo`, `ModTree` and `ModWall` are deferred to the next phase-5 steps.
+The `cschest` and `cstileentity` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers and tile entities. Pylons, `TileRestingInfo`, `ModTree` and `ModWall` are deferred to the next phase-5 steps.

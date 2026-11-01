@@ -269,7 +269,7 @@ internal static unsafe class SystemHooks
 
     static string HeaderFile(string worldPath) => worldPath + ".bl.header.json";
 
-    static JsonObject ReadObject(string? file)
+    internal static JsonObject ReadObject(string? file)
     {
         try
         {
@@ -283,7 +283,7 @@ internal static unsafe class SystemHooks
         }
     }
 
-    static void WriteObject(string file, JsonObject all)
+    internal static void WriteObject(string file, JsonObject all)
     {
         try
         {
@@ -299,7 +299,7 @@ internal static unsafe class SystemHooks
         catch (Exception e) { Log.Error($"ModSystem: {file} could not be written: {e.Message}"); }
     }
 
-    static TagCompound TagOf(JsonNode? node)
+    internal static TagCompound TagOf(JsonNode? node)
     {
         if (node is not JsonObject) return new TagCompound();
         try { return TagJson.Read(node.ToJsonString()); }

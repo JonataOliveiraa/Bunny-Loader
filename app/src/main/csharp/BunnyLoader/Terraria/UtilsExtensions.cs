@@ -32,6 +32,10 @@ public static class UtilsExtensions
 
     public static Vector2 ToWorldCoordinates(this Vector2 v, float autoAddX = 8f, float autoAddY = 8f) => v * 16f + new Vector2(autoAddX, autoAddY);
 
+    public static Vector2 ToWorldCoordinates(this Terraria.DataStructures.Point16 p, float autoAddX = 8f, float autoAddY = 8f) => new(p.X * 16f + autoAddX, p.Y * 16f + autoAddY);
+
+    public static Vector2 ToVector2(this Terraria.DataStructures.Point16 p) => new(p.X, p.Y);
+
     public static float AngleLerp(this float curAngle, float targetAngle, float amount)
     {
         float angle;
