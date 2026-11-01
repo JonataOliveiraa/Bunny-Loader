@@ -27,6 +27,8 @@ public static partial class TextureAssets
 
     public static TextureAssetArray Background { get; } = new(8, "Images/Background_", static () => Background_, static i => Main.instance.LoadBackground(i));
 
+    public static TextureAssetArray Cloud { get; } = new(9, "Images/Cloud_", static () => Cloud_, static i => { });
+
     public static Asset<Texture2D> Heart => Wrap(Heart_, "Images/Heart");
 
     public static Asset<Texture2D> Heart2 => Wrap(Heart2_, "Images/Heart2");

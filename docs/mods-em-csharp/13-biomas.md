@@ -183,6 +183,33 @@ fits). It covers the fullscreen map's background with the sky color on the
 surface and white below; `MapBackgroundFullbright` makes it always white and
 `MapBackgroundColor(ref color)` sets the color.
 
+## Clouds
+
+Every PNG in a `Clouds/` folder of the mod becomes a common cloud with spawn
+chance 1 (`CloudAutoloadingEnabled = false` on the `Mod` turns it off). A
+`ModCloud` class gives a cloud its own behavior, and
+`CloudLoader.AddCloudFromTexture(mod, "ExampleMod/Content/Clouds/ExampleCloud", spawnChance: 0.1f, rareCloud: false)`
+sets the chance and the pool; call it from an `ICustomAutoload`, which runs
+before the folder is scanned, so the same PNG is not added twice:
+
+```csharp
+public class DefaultCloudsLoader : ICustomAutoload
+{
+    public static void Autoload(Mod mod)
+    {
+        CloudLoader.AddCloudFromTexture(mod, "ExampleMod/Content/Clouds/ExampleCloud", spawnChance: 0.1f, rareCloud: false);
+    }
+}
+```
+
+Types come after the game's (`CloudID.Count`). `SpawnChance()` is the weight
+against the game's 22 common clouds (each weight 1), or against its rare ones
+(18, 15 in a tenth anniversary world) when `RareCloud` is true; `OnSpawn` runs
+when the cloud appears. `Draw(drawDataCache, cloud, cloudIndex, ref drawData)`
+gets the cloud's draw data: change it, add more to the list (drawn before the
+cloud) or return false to hide it. An unchanged cloud is drawn by the game as
+usual; a changed one and the extra ones go to the game's cloud batch.
+
 ## Names and town NPCs
 
 `DisplayName` and `TownNPCDialogueName` come from the `Biomes` section of the
@@ -220,4 +247,5 @@ the flags: `OnEnter`/`OnLeave` run on the player's own device. Two devices
 have not been tested yet.
 
 The `csbiome` pack checks biomes and scenes on one device, `csmusic` the music
-and `csbackground` the water, waterfalls, backgrounds and map background.
+`csbackground` the water, waterfalls, backgrounds and map background, and
+`csclouds` the clouds.

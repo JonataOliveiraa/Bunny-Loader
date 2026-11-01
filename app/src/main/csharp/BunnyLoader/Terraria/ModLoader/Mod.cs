@@ -38,6 +38,8 @@ public abstract class Mod
 
     public bool BackgroundAutoloadingEnabled { get; init; } = true;
 
+    public bool CloudAutoloadingEnabled { get; init; } = true;
+
     public virtual void Load() { }
 
     public virtual void PostSetupContent() { }
@@ -122,9 +124,15 @@ public abstract class Mod
         if (!ContentAutoloadingEnabled) return;
         foreach (Type type in assembly.GetTypes().Where(IsAutoloaded).OrderBy(t => t.FullName, StringComparer.Ordinal))
             AddContent((ILoadable)Activator.CreateInstance(type, true)!);
+        foreach (Type type in assembly.GetTypes().Where(IsCustomAutoloaded).OrderBy(t => t.FullName, StringComparer.Ordinal))
+            type.GetMethod(nameof(ICustomAutoload.Autoload), BindingFlags.Public | BindingFlags.Static, new[] { typeof(Mod) })?.Invoke(null, new object[] { this });
         GoreLoader.AutoloadGores(this);
         if (BackgroundAutoloadingEnabled) BackgroundTextureLoader.AutoloadBackgrounds(this);
+        if (CloudAutoloadingEnabled) CloudLoader.AutoloadClouds(this);
     }
+
+    static bool IsCustomAutoloaded(Type type) =>
+        !type.IsAbstract && !type.IsInterface && !type.ContainsGenericParameters && typeof(ICustomAutoload).IsAssignableFrom(type);
 
     static bool IsAutoloaded(Type type) =>
         !type.IsAbstract && !type.ContainsGenericParameters && typeof(ILoadable).IsAssignableFrom(type) &&

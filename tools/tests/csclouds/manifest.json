@@ -1,0 +1,15 @@
+{
+  "uid": "8f3c6d2e-41a7-4b9e-b5d0-7e2a9c1f6b38",
+  "id": "test-csclouds",
+  "name": "Test: ModCloud (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModCloud and CloudLoader: types after the game's, textures and horizon masks, autoload of Clouds/, AddCloudFromTexture from ICustomAutoload, the common and rare rolls, OnSpawn, and Draw with extra draw data.",
+  "description": "Build with tools/tests/build-cs.sh csclouds. Logs csclouds <case>: ok | FAIL and csclouds END pass=N fail=M.",
+  "updated": "2026-11-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsClouds.dll",
+  "dependencies": []
+}

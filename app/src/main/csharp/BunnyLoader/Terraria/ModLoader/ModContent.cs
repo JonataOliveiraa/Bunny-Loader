@@ -218,6 +218,7 @@ public static class ModContent
                 WaterStylesLoader.ResizeArrays();
                 WaterFallStylesLoader.ResizeArrays();
                 BackgroundTextureLoader.ResizeArrays();
+                CloudLoader.ResizeArrays();
             }
             catch (Exception e) { Log.Error($"water and backgrounds: the tables could not be resized: {e}"); }
             foreach (Mod mod in mods)
@@ -227,6 +228,7 @@ public static class ModContent
                 foreach (ModBackgroundStyle style in mod.GetContent<ModBackgroundStyle>()) Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
                 foreach (GlobalBackgroundStyle global in mod.GetContent<GlobalBackgroundStyle>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
                 foreach (ModSceneEffect effect in mod.GetContent<ModSceneEffect>()) Run(mod, $"{effect.Name}.SetStaticDefaults", effect.SetupContent);
+                foreach (ModCloud cloud in mod.GetContent<ModCloud>()) Run(mod, $"{cloud.Name}.SetStaticDefaults", cloud.SetupContent);
             }
             try { ExtraJumpLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }

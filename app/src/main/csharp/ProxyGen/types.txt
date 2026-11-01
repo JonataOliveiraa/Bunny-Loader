@@ -347,3 +347,8 @@ Terraria.Graphics.Effects.SkyManager
 Terraria.Graphics.Light.LightMap
 !Terraria.GameContent.TextureAssets.Rain
 !Terraria.GameContent.TextureAssets.Background
+Terraria.Cloud
+Terraria.ID.CloudID
+Terraria.GameContent.Drawing.NextHorizonRenderer
+!Terraria.GameContent.TextureAssets.Cloud
+Microsoft.Xna.Framework.Graphics.SpriteBatch_Cloud
