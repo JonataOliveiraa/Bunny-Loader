@@ -183,6 +183,11 @@ struct NativeApi {
     void (*endDrawTint)();
     int32_t (*beginDrawCapture)(void* texture, runtime::DrawCaptureFn fn);
     void (*endDrawCapture)();
+    int32_t (*soundLoad)(const char* path);
+    int32_t (*soundEnqueue)(int32_t group, int32_t id, float left, float right, float rate, int32_t max, int32_t ignore);
+    void (*soundCancel)(int32_t handle);
+    int32_t (*soundPlaybackState)(int32_t handle);
+    int32_t (*soundActive)(int32_t group);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -944,6 +949,16 @@ const NativeApi kNativeApi{
     []() { runtime::endDrawTint(); },
     [](void* texture, runtime::DrawCaptureFn fn) -> int32_t { return runtime::beginDrawCapture(texture, profile::wrap(fn, "DrawCapture")) ? 1 : 0; },
     []() { runtime::endDrawCapture(); },
+    [](const char* path) -> int32_t {
+        if (!path || !fileExists(path)) return 0;
+        return runtime::content::loadSound(path);
+    },
+    [](int32_t group, int32_t id, float left, float right, float rate, int32_t max, int32_t ignore) -> int32_t {
+        return runtime::content::enqueueSound(group, id, left, right, rate, max, ignore != 0);
+    },
+    [](int32_t handle) { runtime::content::cancelSound(handle); },
+    [](int32_t handle) -> int32_t { return runtime::content::playbackState(handle); },
+    [](int32_t group) -> int32_t { return runtime::content::activeSound(group); },
 };
 
 } // namespace

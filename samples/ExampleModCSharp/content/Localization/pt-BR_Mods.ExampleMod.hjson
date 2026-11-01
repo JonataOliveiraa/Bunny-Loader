@@ -121,6 +121,11 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleGun: {
+		DisplayName: Arma de Exemplo
+		Tooltip: Esta é uma arma de mod.
+	}
+
 	ExampleShotgun: {
 		DisplayName: Escopeta de Exemplo
 		Tooltip: Esta é uma escopeta de mod.
@@ -201,6 +206,7 @@ GelGlobalItem: {
 Projectiles: {
 	ExampleBobber.DisplayName: Boia de Exemplo
 	ExampleBullet.DisplayName: Bala de Exemplo
+	ExampleInstancedProjectile.DisplayName: Projétil Instanciado de Exemplo
 	ExampleHookProjectile.DisplayName: Gancho de Exemplo
 }
 

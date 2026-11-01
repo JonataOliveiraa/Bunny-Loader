@@ -123,6 +123,11 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<void> EndDrawTint;
     public delegate* unmanaged<IntPtr, delegate* unmanaged<DrawCapture*, int>, int> BeginDrawCapture;
     public delegate* unmanaged<void> EndDrawCapture;
+    public delegate* unmanaged<byte*, int> SoundLoad;
+    public delegate* unmanaged<int, int, float, float, float, int, int, int> SoundEnqueue;
+    public delegate* unmanaged<int, void> SoundCancel;
+    public delegate* unmanaged<int, int> SoundPlaybackState;
+    public delegate* unmanaged<int, int> SoundActive;
 }
 
 [StructLayout(LayoutKind.Sequential)]
