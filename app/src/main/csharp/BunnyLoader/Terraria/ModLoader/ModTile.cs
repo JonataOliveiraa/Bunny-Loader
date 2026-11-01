@@ -132,6 +132,14 @@ public abstract class ModTile : ModBlockType
 
     public virtual bool RightClick(int i, int j) => false;
 
+    public virtual bool IsLockedChest(int i, int j) => false;
+
+    public virtual bool UnlockChest(int i, int j, ref short frameXAdjustment, ref int dustType, ref bool manual) => false;
+
+    public virtual bool LockChest(int i, int j, ref short frameXAdjustment, ref bool manual) => false;
+
+    public virtual LocalizedText DefaultContainerName(int frameX, int frameY) => default;
+
     public virtual void MouseOver(int i, int j)
     {
     }

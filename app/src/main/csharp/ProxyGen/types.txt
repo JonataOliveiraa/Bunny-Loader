@@ -364,3 +364,5 @@ Terraria.Localization.GameCulture
 SettingsOverlayListOption_Layout
 TransactionButton_Layout
 String_Layout
+Terraria.ID.MessageID
+Terraria.DataStructures.TrackedProjectileReference

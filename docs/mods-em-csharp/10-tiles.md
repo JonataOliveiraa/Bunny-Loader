@@ -90,6 +90,39 @@ Global hook arrays are prepared once at content setup. Crafting station aliases 
 
 The native filter avoids entering C# for unmarked types during framing, random updates and native draw-data processing. Area scans return only matching cells into reused buffers. Reflection runs during registration, rather than once per cell. Drawing uses the mobile overlay path; specialized vanilla slope, paint, glow and liquid rendering remain in the game's renderer.
 
+## Chests and dressers
+
+A chest is a 2x2 `ModTile` with `TileID.Sets.BasicChest` (a dresser: 3x2 with
+`TileID.Sets.BasicDresser`) and the game's own chest placement hooks, as in
+tModLoader:
+
+```csharp
+TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(Chest.FindEmptyChest, -1, 0, true);
+TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(Chest.AfterPlacement_Hook, -1, 0, false);
+```
+
+On the phone `PlacementHook` takes these two game methods (other methods are
+refused). The items live in the game's `Main.chest`, saved with the world as
+the game's chests. `RightClick` opens it (`player.OpenChest`) and
+`KillMultiTile` calls `Chest.DestroyChest`; see `ExampleChest` and
+`ExampleDresser` in the ExampleMod.
+
+- `IsLockedChest(i, j)`, `UnlockChest(i, j, ref frameXAdjustment, ref dustType, ref manual)`
+  and `LockChest(i, j, ref frameXAdjustment, ref manual)` answer `Chest.IsLocked`,
+  `Chest.Unlock` and `Chest.Lock`; without `manual`, the 2x2 frame moves by
+  `frameXAdjustment` (36 to lock, -36 to unlock) with the unlock sound and dust.
+- `DefaultContainerName(frameX, frameY)` is the name `TileLoader.DefaultContainerName`
+  gives (for the cursor text, as the ExampleMod does).
+- The chest and dresser pages of the inventory show the item the tile drops.
+- A mod dresser stays open while the player is next to it and opens the
+  clothes window, which the phone otherwise keeps for the game's dresser only.
+- In multiplayer, placing and breaking a mod chest or dresser goes to the
+  server through the loader's own packet (the game's message only knows its
+  three container tiles), as tModLoader's extra actions of that message do.
+
+`AddMapEntry` with a name callback (`MapChestName` in tModLoader) is not
+available: the phone's map legend only takes fixed names.
+
 ## World persistence
 
 C# uses the existing native `.wld.tiles.bl` backend. Its stable tile key is `<mod UID>/<tile name>`, shared with JS. A JS mod and its C# port must keep both values to reuse saved tiles. No conversion of the sidecar format is needed.
@@ -109,4 +142,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-Tile entities, chests, pylons, `TileRestingInfo`, `ModTree` and `ModWall` are deferred to the next phase-5 steps.
+The `cschest` pack (run twice, the second time with `KEEPSAVES=1`) checks chests and dressers. Tile entities, pylons, `TileRestingInfo`, `ModTree` and `ModWall` are deferred to the next phase-5 steps.

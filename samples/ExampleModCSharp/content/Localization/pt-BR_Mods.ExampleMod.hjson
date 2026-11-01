@@ -121,6 +121,21 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleChest: {
+		DisplayName: Baú de Exemplo
+		Tooltip: Este é um baú de mod.
+	}
+
+	ExampleChestKey: {
+		DisplayName: Chave do Baú de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleDresser: {
+		DisplayName: Cômoda de Exemplo
+		Tooltip: Esta é uma cômoda de mod.
+	}
+
 	ExampleGun: {
 		DisplayName: Arma de Exemplo
 		Tooltip: Esta é uma arma de mod.
@@ -249,4 +264,14 @@ Biomes: {
 		DisplayName: Subsolo de Exemplo
 		TownNPCDialogueName: o Subsolo de Exemplo
 	}
+}
+
+Tiles: {
+	ExampleChest: {
+		MapEntry0: Baú de Exemplo
+		MapEntry1: Baú de Exemplo Trancado
+		Locked: O baú se recusa a abrir à luz do dia. Tente de novo à noite.
+	}
+
+	ExampleDresser.MapEntry: Cômoda de Exemplo
 }

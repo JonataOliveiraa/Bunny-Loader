@@ -121,6 +121,21 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleChest: {
+		DisplayName: Example Chest
+		Tooltip: This is a modded chest.
+	}
+
+	ExampleChestKey: {
+		DisplayName: Example Chest Key
+		Tooltip: ""
+	}
+
+	ExampleDresser: {
+		DisplayName: Example Dresser
+		Tooltip: This is a modded dresser.
+	}
+
 	ExampleGun: {
 		DisplayName: Example Gun
 		Tooltip: This is a modded gun.
@@ -249,4 +264,14 @@ Biomes: {
 		DisplayName: Example Underground
 		TownNPCDialogueName: the Example Underground Biome
 	}
+}
+
+Tiles: {
+	ExampleChest: {
+		MapEntry0: Example Chest
+		MapEntry1: Locked Example Chest
+		Locked: The chest stubbornly refuses to open in the light of the day. Try again at night.
+	}
+
+	ExampleDresser.MapEntry: Example Dresser
 }

@@ -84,6 +84,12 @@ internal static unsafe class ModNet
                 SystemNetHooks.Receive(reader, from);
                 return;
             }
+            if (kind == ChestHooks.KindChest)
+            {
+                name = "chests";
+                ChestHooks.Receive(reader, from);
+                return;
+            }
             if (kind == HairHooks.KindHair)
             {
                 name = "hair";

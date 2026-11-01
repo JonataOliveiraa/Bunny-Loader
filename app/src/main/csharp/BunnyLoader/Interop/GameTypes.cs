@@ -67,6 +67,7 @@ public readonly unsafe struct GameString : IGameObject
     public static GameString From(string? value) => new GameString(New(value));
 }
 
+[CollectionBuilder(typeof(GameArrayBuilder), nameof(GameArrayBuilder.Create))]
 public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
 {
     public readonly IntPtr Pointer;
@@ -95,7 +96,36 @@ public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
 
     public Span<T> AsSpan() => new Span<T>((void*)(Pointer + 0x20), Length);
 
+    public Span<T>.Enumerator GetEnumerator() => AsSpan().GetEnumerator();
+
     static void ThrowIndex(int index) => throw new IndexOutOfRangeException($"index {index} out of the game array");
+}
+
+public static class GameArrayBuilder
+{
+    public static GameArray<T> Create<T>(ReadOnlySpan<T> items) where T : unmanaged
+    {
+        GameArray<T> array = GameArray<T>.New(ElementClass(typeof(T)), items.Length);
+        items.CopyTo(array.AsSpan());
+        return array;
+    }
+
+    static GameClass ElementClass(Type type) => Type.GetTypeCode(type) switch
+    {
+        TypeCode.Boolean => new GameClass("System", "Boolean"),
+        TypeCode.Byte => new GameClass("System", "Byte"),
+        TypeCode.SByte => new GameClass("System", "SByte"),
+        TypeCode.Int16 => new GameClass("System", "Int16"),
+        TypeCode.UInt16 => new GameClass("System", "UInt16"),
+        TypeCode.Int32 => new GameClass("System", "Int32"),
+        TypeCode.UInt32 => new GameClass("System", "UInt32"),
+        TypeCode.Int64 => new GameClass("System", "Int64"),
+        TypeCode.UInt64 => new GameClass("System", "UInt64"),
+        TypeCode.Single => new GameClass("System", "Single"),
+        TypeCode.Double => new GameClass("System", "Double"),
+        TypeCode.Char => new GameClass("System", "Char"),
+        _ => throw new NotSupportedException($"a collection expression can only make a game array of numbers or bools, not {type.Name}"),
+    };
 }
 
 public readonly unsafe struct GameArray2D<T> : IGameObject where T : unmanaged

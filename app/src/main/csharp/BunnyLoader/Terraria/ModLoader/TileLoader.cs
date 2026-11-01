@@ -259,6 +259,7 @@ public static unsafe partial class TileLoader
                 RoomNeed(TileID.Sets.RoomNeeds.CountsAsTable, ref TileID.Sets.RoomNeeds.CountsAsTableTypes, i);
                 RoomNeed(TileID.Sets.RoomNeeds.CountsAsTorch, ref TileID.Sets.RoomNeeds.CountsAsTorchTypes, i);
                 RoomNeed(TileID.Sets.RoomNeeds.CountsAsDoor, ref TileID.Sets.RoomNeeds.CountsAsDoorTypes, i);
+                ChestHooks.Install(tile);
             }
             catch (Exception e)
             {
@@ -323,6 +324,17 @@ public static unsafe partial class TileLoader
         }
     }
 
+    public static string DefaultContainerName(int type, int frameX, int frameY) =>
+        GetTile(type) is ModTile tile && tile.DefaultContainerName(frameX, frameY) is { IsNull: false } name ? name.Value ?? string.Empty : string.Empty;
+
+    public static bool IsLockedChest(int i, int j, int type) => GetTile(type)?.IsLockedChest(i, j) ?? false;
+
+    public static bool UnlockChest(int i, int j, int type, ref short frameXAdjustment, ref int dustType, ref bool manual) =>
+        GetTile(type)?.UnlockChest(i, j, ref frameXAdjustment, ref dustType, ref manual) ?? false;
+
+    public static bool LockChest(int i, int j, int type, ref short frameXAdjustment, ref bool manual) =>
+        GetTile(type)?.LockChest(i, j, ref frameXAdjustment, ref manual) ?? false;
+
     internal static void RegisterItemDrop(int type, int item, int[] styles)
     {
         if (styles.Length == 0)
@@ -344,9 +356,10 @@ public static unsafe partial class TileLoader
             yield return new Item(item);
     }
 
-    internal static int StyleAt(int i, int j)
+    internal static int StyleAt(int i, int j) => StyleOf(Main.tile[i, j]);
+
+    internal static int StyleOf(Tile tile)
     {
-        Tile tile = Main.tile[i, j];
         var data = TileObjectData.GetTileData(tile.type, 0, 0);
         if (data.IsNull)
             return 0;
