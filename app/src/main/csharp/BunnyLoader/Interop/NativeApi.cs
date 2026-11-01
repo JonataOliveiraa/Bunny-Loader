@@ -133,6 +133,7 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, uint, byte*, int> WallMapEntry;
     public delegate* unmanaged<int, uint, delegate* unmanaged<int, int, int, int, void*, int>, int> WallEvents;
     public delegate* unmanaged<int, int, int, int, uint, int*, int, int> ScanWalls;
+    public delegate* unmanaged<int, IntPtr, int, void> SetModTree;
 }
 
 [StructLayout(LayoutKind.Sequential)]

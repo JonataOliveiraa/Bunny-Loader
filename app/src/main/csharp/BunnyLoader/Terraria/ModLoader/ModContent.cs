@@ -249,6 +249,8 @@ public static class ModContent
             }
             try { TileLoader.ContentReady(); }
             catch (Exception e) { Log.Error($"tiles: setup failed: {e}"); }
+            try { PlantLoader.FinishSetup(); }
+            catch (Exception e) { Log.Error($"trees: setup failed: {e}"); }
             foreach (Mod mod in mods)
             {
                 Run(mod, "PostSetupContent", mod.PostSetupContent);

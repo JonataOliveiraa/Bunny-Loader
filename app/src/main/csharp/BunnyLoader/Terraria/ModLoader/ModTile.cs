@@ -157,4 +157,6 @@ public abstract class ModTile : ModBlockType
     public virtual bool TileFrame(int i, int j, ref bool resetFrame, ref bool noBreak) => true;
 
     public virtual bool CanReplace(int i, int j, int tileTypeBeingPlaced) => true;
+
+    public virtual bool GrowSapling(int i, int j, bool underground, int treeHeightAddon, bool ignoreWalls) => false;
 }

@@ -54,6 +54,15 @@ static class Program
         {
             string line = raw.Split('#')[0].Trim();
             if (line.Length == 0) continue;
+            if (line.StartsWith('='))
+            {
+                string[] parts = line[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                int dot = parts[0].LastIndexOf('.');
+                string owner = parts[0][..dot];
+                if (!ExtraEnumValues.TryGetValue(owner, out List<(string Name, string Value)>? values)) ExtraEnumValues[owner] = values = new List<(string Name, string Value)>();
+                values.Add((parts[0][(dot + 1)..], parts[1]));
+                continue;
+            }
             if (line.StartsWith('!'))
             {
                 int dot = line.LastIndexOf('.');
@@ -384,6 +393,8 @@ static class Program
 
     static readonly Dictionary<string, HashSet<string>> HandWritten = new();
 
+    static readonly Dictionary<string, List<(string Name, string Value)>> ExtraEnumValues = new();
+
     static IEnumerable<string> Reserved(Type t)
     {
         yield return TypeMap.Ident(t.Name);
@@ -430,6 +441,10 @@ static class Program
                 if (lit == null || !names.Add(id)) continue;
                 sb.Append(i1).Append($"{id} = unchecked(({under.Cs})({lit})),\n");
             }
+            if (ExtraEnumValues.TryGetValue(t.FullName ?? t.Name, out List<(string Name, string Value)>? extra))
+                foreach (var (extraName, extraValue) in extra)
+                    if (names.Add(extraName))
+                        sb.Append(i1).Append($"{extraName} = unchecked(({under.Cs})({extraValue})),\n");
             sb.Append(ind).Append("}\n");
             return;
         }

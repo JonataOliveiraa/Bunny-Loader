@@ -301,6 +301,8 @@ Terraria.GameContent.Events.DD2Event
 Terraria.GameContent.Events.Sandstorm
 Terraria.ID.WallID
 Terraria.Framing
+=Terraria.Enums.TreeTypes.Custom 13
+Terraria.GameContent.TreePaintingSettings
 !Terraria.Item.DefaultToPlaceableWall
 
 Terraria.GameContent.ShopHelper

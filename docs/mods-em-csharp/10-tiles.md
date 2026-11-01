@@ -198,6 +198,44 @@ public class ExampleWallItem : ModItem
 
 Not available yet: `GlobalWall`, `CanPlace`, `PlaceInWorld`, `CanExplode`, `PreDraw`/`PostDraw` (the mobile game draws walls in one threaded pass), `CanBeTeleportedTo`, biome conversion (`WallLoader.RegisterConversion`, `OnWallConverted`) and the coordinate-dependent map name.
 
+## Trees
+
+A `ModTree` is written as in tModLoader and is loaded on its own (it is not a `ModType`). The tree grows from the vanilla tree tile (5) on the ground tiles in `GrowsOnTileId`:
+
+```csharp
+public class ExampleTree : ModTree
+{
+    private Asset<Texture2D> texture, branchesTexture, topsTexture;
+
+    public override TreePaintingSettings TreeShaderSettings => new TreePaintingSettings { UseSpecialGroups = true };
+
+    public override void SetStaticDefaults()
+    {
+        GrowsOnTileId = [ModContent.TileType<ExampleBlock>()];
+        texture = ModContent.Request<Texture2D>("ExampleMod/Content/Tiles/Plants/ExampleTree");
+        branchesTexture = ModContent.Request<Texture2D>("ExampleMod/Content/Tiles/Plants/ExampleTree_Branches");
+        topsTexture = ModContent.Request<Texture2D>("ExampleMod/Content/Tiles/Plants/ExampleTree_Tops");
+    }
+
+    public override Asset<Texture2D> GetTexture() => texture;
+    public override Asset<Texture2D> GetTopTextures() => topsTexture;
+    public override Asset<Texture2D> GetBranchTextures() => branchesTexture;
+
+    public override int SaplingGrowthType(ref int style)
+    {
+        style = 0;
+        return ModContent.TileType<Plants.ExampleSapling>();
+    }
+
+    public override int DropWood() => ModContent.ItemType<ExampleItem>();
+}
+```
+
+- The trunk, branch and top textures use the vanilla tree sheet layouts (the trunk is a 176-pixel-wide strip, the tops are three 80x80 frames).
+- An acorn planted on the ground becomes the sapling returned by `SaplingGrowthType`. The sapling is a `ModTile` with `TileID.Sets.TreeSapling[Type] = true`; its `GrowSapling` is called by `WorldGen.AttemptToGrowTreeFromSapling`, and `WorldGen.GrowTree` accepts it.
+- `CountsAsTreeType` (`TreeTypes.Custom` by default), `TreeLeaf`, `Shake`, `CreateDust`, `CanDropAcorn` and `DropWood` work as in tModLoader; `PlantLoader.Get<ModTree>(TileID.Trees, groundType)` finds the tree.
+- Not available yet: `ModPalmTree`, `ModCactus`, `SetTreeFoliageSettings` (it is not called) and tree painting (`TreeShaderSettings` is not used). `TileID.Sets.TreeSapling` is kept by the loader, since the mobile game has no such set.
+
 ## World persistence
 
 C# uses the existing native `.wld.tiles.bl` backend. Its stable tile key is `<mod UID>/<tile name>`, shared with JS. A JS mod and its C# port must keep both values to reuse saved tiles. No conversion of the sidecar format is needed.
@@ -217,4 +255,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls. Pylons, `TileRestingInfo` and `ModTree` are deferred to the next phase-5 steps.
+The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees. Pylons and `TileRestingInfo` are deferred to the next phase-5 steps.
