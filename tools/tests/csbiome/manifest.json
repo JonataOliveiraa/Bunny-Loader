@@ -1,0 +1,15 @@
+{
+  "uid": "122ca3e6-d0c3-4b7b-8411-bafb7d195e7e",
+  "id": "test-csbiome",
+  "name": "Test: ModBiome and ModSceneEffect (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Biome detection, enter/in/leave, InModBiome, scene music by priority, SpecialVisuals, leaving the world, NPC happiness with a mod biome and the biome packet.",
+  "description": "Build with tools/tests/build-cs.sh csbiome. Logs csbiome <case>: ok | FAIL and csbiome END pass=N fail=M.",
+  "updated": "2026-11-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsBiome.dll",
+  "dependencies": []
+}

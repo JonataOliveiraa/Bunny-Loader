@@ -40,13 +40,21 @@ public readonly struct NPCHappiness
         return this;
     }
 
-    public NPCHappiness SetBiomeAffection<T>(AffectionLevel affectionLevel) where T : struct, IGameObject
+    public NPCHappiness SetBiomeAffection<T>(AffectionLevel affectionLevel) where T : notnull
     {
+        if (typeof(ModBiome).IsAssignableFrom(typeof(T)))
+        {
+            ModBiome modBiome = BiomeLoader.ByType(typeof(T)) ?? throw new ArgumentException($"{typeof(T).Name} is not a loaded ModBiome");
+            return SetBiomeAffection(modBiome, affectionLevel);
+        }
         var factory = typeof(T).GetMethod("New", Type.EmptyTypes) ?? throw new ArgumentException($"{typeof(T).Name} is not a native shopping biome");
         if (factory.Invoke(null, null) is not IGameObject biome) throw new InvalidOperationException("Shopping biome construction failed");
         if (!AShoppingBiome.Is(new GameObject(biome.Pointer))) throw new ArgumentException($"{typeof(T).Name} is not a native shopping biome");
         return SetBiomeAffection(new AShoppingBiome(biome.Pointer), affectionLevel);
     }
+
+    public NPCHappiness SetBiomeAffection(ModBiome biome, AffectionLevel affectionLevel) =>
+        SetBiomeAffection(BiomeLoader.ShoppingOf(biome), affectionLevel);
 
     public unsafe NPCHappiness SetBiomeAffection(AShoppingBiome biome, AffectionLevel affectionLevel)
     {
@@ -66,7 +74,9 @@ public readonly struct NPCHappiness
                 for (int j = 0; j < preferences.Count; j++)
                 {
                     var entry = new BiomePreferenceListTrait.BiomePreference(preferences.Get<IntPtr>(j));
-                    if (entry.Biome.IsNull || *(IntPtr*)entry.Biome.Pointer != *(IntPtr*)biome.Pointer) continue;
+                    if (entry.Biome.IsNull) continue;
+                    bool mod = BiomeLoader.OfShopping(entry.Biome.Pointer) != null || BiomeLoader.OfShopping(biome.Pointer) != null;
+                    if (mod ? entry.Biome.Pointer != biome.Pointer : *(IntPtr*)entry.Biome.Pointer != *(IntPtr*)biome.Pointer) continue;
                     if (affectionLevel == 0) preferences.RemoveAt(j);
                     else entry.Affection = affectionLevel;
                     return this;

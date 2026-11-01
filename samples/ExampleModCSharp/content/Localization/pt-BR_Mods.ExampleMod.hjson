@@ -232,3 +232,15 @@ Dialogue.ExamplePerson: {
     StandardDialogue3: O quê? Não tenho braços nem pernas? Ah, não seja ridículo!
     TalkALot: Estou cansando de conversar. Tenho que ir.
 }
+
+Biomes: {
+	ExampleSurfaceBiome: {
+		DisplayName: Superfície de Exemplo
+		TownNPCDialogueName: a Superfície de Exemplo
+	}
+
+	ExampleUndergroundBiome: {
+		DisplayName: Subsolo de Exemplo
+		TownNPCDialogueName: o Subsolo de Exemplo
+	}
+}

@@ -72,6 +72,12 @@ internal static unsafe class ModNet
                 NPCNetHooks.Receive(reader, from);
                 return;
             }
+            if (kind == BiomeHooks.KindBiomes)
+            {
+                name = "biomes";
+                BiomeHooks.Receive(reader, from);
+                return;
+            }
             if (kind == SystemNetHooks.KindWorld)
             {
                 name = "world data";

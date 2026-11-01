@@ -232,3 +232,15 @@ Dialogue.ExamplePerson: {
 	StandardDialogue3: "What? I don't have any arms or legs? Oh, don't be ridiculous!"
 	TalkALot: "I'm getting tired of talking to you. I have to go."
 }
+
+Biomes: {
+	ExampleSurfaceBiome: {
+		DisplayName: Example Surface
+		TownNPCDialogueName: the Example Surface Biome
+	}
+
+	ExampleUndergroundBiome: {
+		DisplayName: Example Underground
+		TownNPCDialogueName: the Example Underground Biome
+	}
+}

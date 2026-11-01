@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using ExampleMod.Content.Biomes;
 using ExampleMod.Content.Items;
 using ExampleMod.Content.Items.Ammo;
 using ExampleMod.Content.Items.Weapons;
@@ -41,6 +42,7 @@ public class ExamplePerson : ModNPC
         NPCID.Sets.NPCBestiaryDrawOffset.Add(Type, drawModifiers);
         ContentSamples.NpcBestiaryRarityStars[Type] = 3;
         NPC.Happiness
+            .SetBiomeAffection<ExampleSurfaceBiome>(AffectionLevel.Love)
             .SetBiomeAffection<ForestBiome>(AffectionLevel.Like)
             .SetBiomeAffection<SnowBiome>(AffectionLevel.Dislike)
             .SetBiomeAffection<DesertBiome>(AffectionLevel.Dislike)
