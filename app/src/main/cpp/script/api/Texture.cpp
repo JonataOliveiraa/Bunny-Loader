@@ -11,6 +11,7 @@
 #include "content/common/ContentAssets.h"
 #include "content/common/BunnyHeadIcon.h"
 #include "content/common/ModContent.h"
+#include "content/ui/ResourceDraws.h"
 #include "content/textures/FontPacks.h"
 #include "script/bridge/Invoke.h"
 
@@ -304,10 +305,8 @@ JSValue vanillaTexture(JSContext* ctx, int argc, JSValueConst* argv) {
 JSValue assetOfTexture(JSContext* ctx, int argc, JSValueConst* argv) {
     Il2CppObject* texture = argc >= 1 ? objectFromJS(argv[0]) : nullptr;
     if (!texture) return JS_NULL;
-    for (Il2CppObject* asset : runtime::content::textureAssets()) {
-        if (runtime::content::textureAssetValue(asset) == texture) return makeNativeObject(ctx, asset);
-    }
-    return JS_NULL;
+    auto* asset = static_cast<Il2CppObject*>(runtime::assetOfTexture(texture));
+    return asset ? makeNativeObject(ctx, asset) : JS_NULL;
 }
 
 JSValue isTextureAsset(JSContext* ctx, int argc, JSValueConst* argv) {

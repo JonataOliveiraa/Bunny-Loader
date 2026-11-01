@@ -114,4 +114,19 @@ times only compare within a run.
 4. Allocations of 10-22 KB per frame make a gen0 GC every 5-7 s; the frames
    with a GC were not slower than the average here. Low priority.
 
-Not optimized yet: these are the numbers before any change.
+## After the texture asset cache (2026-11-01)
+
+`AssetOfTexture` now keeps a texture-to-asset map: a hit is checked against
+the asset's current texture, a miss scans again at most every 300 updates
+for that texture. `Asset.ForTexture` looks up its wrapper before reading the
+asset name. The JS `bl.assetOfTexture` uses the same native lookup. Same
+scenario, one run:
+
+| | Idle | 60 projectiles + 15 NPCs |
+|-|---:|---:|
+| `ResourceDraw` | 13-18 µs/call, 0.3-0.4 ms/frame | 13 µs/call, 0.3 ms/frame |
+| C# self time | 4.2 ms/frame (was 17.5-20.2) | 12.7 ms/frame (was 22.5-25.3) |
+| DoDraw | 12.6 ms (was 23-26) | 12.2 ms (was 22-24) |
+| Managed allocation | 6.6 KB/frame | 17.2 KB/frame |
+
+Items 2 to 4 above are still open.

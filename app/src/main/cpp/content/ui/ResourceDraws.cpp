@@ -1,5 +1,6 @@
 #include "content/ui/ResourceDraws.h"
 
+#include "boot/Boot.h"
 #include "content/common/ContentAssets.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -8,6 +9,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <unordered_map>
 
 namespace bl::runtime {
 
@@ -99,13 +101,38 @@ bool setResourceDrawCallback(ResourceDrawCallback callback) {
     return true;
 }
 
+namespace {
+
+constexpr uint32_t kAssetRetryTicks = 300;
+constexpr size_t kMaxMissed = 4096;
+std::mutex g_assetMx;
+std::unordered_map<Il2CppObject*, Il2CppObject*> g_assetByTexture;
+std::unordered_map<Il2CppObject*, uint32_t> g_missedAt;
+
+}
+
 void setResourceDrawActive(bool active) { g_active.store(active, std::memory_order_relaxed); }
 
 void* assetOfTexture(void* texture) {
     if (!texture) return nullptr;
+    auto* wanted = static_cast<Il2CppObject*>(texture);
+    std::lock_guard<std::mutex> lock(g_assetMx);
+    auto hit = g_assetByTexture.find(wanted);
+    if (hit != g_assetByTexture.end() && content::textureAssetValue(hit->second) == wanted) return hit->second;
+    const uint32_t tick = gameUpdateTick();
+    auto missed = g_missedAt.find(wanted);
+    if (missed != g_missedAt.end() && tick - missed->second < kAssetRetryTicks) return nullptr;
+    g_assetByTexture.clear();
     for (Il2CppObject* asset : content::textureAssets()) {
-        if (content::textureAssetValue(asset) == static_cast<Il2CppObject*>(texture)) return asset;
+        if (Il2CppObject* value = content::textureAssetValue(asset)) g_assetByTexture.emplace(value, asset);
     }
+    hit = g_assetByTexture.find(wanted);
+    if (hit != g_assetByTexture.end()) {
+        g_missedAt.erase(wanted);
+        return hit->second;
+    }
+    if (g_missedAt.size() > kMaxMissed) g_missedAt.clear();
+    g_missedAt[wanted] = tick;
     return nullptr;
 }
 

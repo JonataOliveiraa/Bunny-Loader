@@ -70,7 +70,12 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
     internal static Asset<T> ForTexture(IntPtr texture)
     {
         IntPtr gameAsset = Host.Native()->AssetOfTexture(texture);
-        if (gameAsset != IntPtr.Zero) return ForGameAsset(gameAsset, NameOf(gameAsset));
+        if (gameAsset != IntPtr.Zero)
+        {
+            lock (ByGameAsset)
+                if (ByGameAsset.TryGetValue(gameAsset, out Asset<T>? known)) return known;
+            return ForGameAsset(gameAsset, NameOf(gameAsset));
+        }
         return new Asset<T>("?", IntPtr.Zero) { directTexture = texture, asset = (IntPtr)1 };
     }
 
