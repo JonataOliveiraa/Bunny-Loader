@@ -13,7 +13,7 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class SystemHooks
 {
-    const int PlayersBegin = 0, PlayersEnd = 1, NPCsBegin = 2, NPCsEnd = 3, GoresEnd = 4, ItemsBegin = 5, ItemsEnd = 6, ClockAdvance = 8;
+    const int PlayersBegin = 0, PlayersEnd = 1, NPCsBegin = 2, NPCsEnd = 3, GoresEnd = 4, ItemsBegin = 5, ItemsEnd = 6, Transform = 7, ClockAdvance = 8;
 
     static double clockRate = 1, tileRemainder, eventRemainder;
     static readonly Dictionary<string, JsonObject> Headers = new(StringComparer.Ordinal);
@@ -29,6 +29,9 @@ internal static unsafe class SystemHooks
             return false;
         }
 
+        SystemDrawHooks.Install(name => Has(type, name));
+        SystemNetHooks.Install(name => Has(type, name));
+        if (Any(nameof(ModSystem.ModifyTransformMatrix))) Stage(Transform);
         if (Any(nameof(ModSystem.PreUpdatePlayers))) Stage(PlayersBegin);
         if (Any(nameof(ModSystem.PostUpdatePlayers))) Stage(PlayersEnd);
         if (Any(nameof(ModSystem.PreUpdateNPCs))) Stage(NPCsBegin);
@@ -120,6 +123,9 @@ internal static unsafe class SystemHooks
                     break;
                 case ItemsEnd:
                     SystemLoader.PostUpdateItems();
+                    break;
+                case Transform:
+                    SystemDrawHooks.ModifyTransformMatrix();
                     break;
                 case ClockAdvance:
                     if (value != null) *value = clockRate;

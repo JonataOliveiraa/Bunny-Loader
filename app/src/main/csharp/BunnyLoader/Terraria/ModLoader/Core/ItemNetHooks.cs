@@ -198,6 +198,11 @@ internal static unsafe class ItemNetHooks
     {
         Hook? hook = sendData;
         if (hook == null) return;
+        try
+        {
+            if (SystemNetHooks.HijackSend(msgType, remote, ignore, text, number, number2, number3, number4, number5, number6, number7)) return;
+        }
+        catch (Exception e) { ItemHooks.Report("HijackSendData", e); }
         if (itemsWanted && IsItemPacket(msgType))
         {
             try { BeforeSend(msgType, remote, ignore, number, (int)number2); }
@@ -387,6 +392,19 @@ internal static unsafe class ItemNetHooks
     {
         Hook? hook = processData;
         if (hook == null) return;
+        GameArray<byte> replacement = default;
+        try
+        {
+            int sender = ModNet.NetMode == 1 ? 256 : new MessageBuffer(self).whoAmI;
+            if (SystemNetHooks.HijackGet(sender, data, length, typeOut, out replacement)) return;
+        }
+        catch (Exception e) { ItemHooks.Report("HijackGetData", e); }
+        if (!replacement.IsNull)
+        {
+            data = replacement.Pointer;
+            length = replacement.Length;
+        }
+        using GameHandle? replacementRoot = replacement.IsNull ? null : new GameHandle(replacement.Pointer);
         Receiving? context = null;
         ItemPvpHooks.Received? pvp = null;
         ProjectileNetHooks.Arriving? projectile = null;
@@ -445,6 +463,11 @@ internal static unsafe class ItemNetHooks
         {
             try { NPCNetHooks.Apply(npc); }
             catch (Exception e) { ItemHooks.Report("ReceiveExtraAI", e); }
+        }
+        if (packet == 7 && ModNet.NetMode == 1)
+        {
+            try { SystemNetHooks.AfterWorldData(); }
+            catch (Exception e) { ItemHooks.Report("ModSystem.NetReceive", e); }
         }
         if (context == null || context.Applied) return;
         try

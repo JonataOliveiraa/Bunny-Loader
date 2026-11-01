@@ -320,3 +320,7 @@ Terraria.GameContent.Personalities.DungeonBiome
 
 Terraria.IO.WorldFileData
 Terraria.Map.MapHelper
+GUIMap
+Terraria.Map.MapIconOverlay
+Terraria.Map.IMapLayer
+Terraria.Map.MapOverlayDrawContext

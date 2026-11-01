@@ -1,8 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Terraria.Graphics;
 using Terraria.IO;
+using Terraria.Localization;
+using Terraria.Map;
 using Terraria.ModLoader.Core;
 using Terraria.ModLoader.IO;
 
@@ -40,6 +45,16 @@ public static class SystemLoader
     }
 
     internal static string KeyOf(ModSystem system) => $"{system.Mod.Uid}/{system.Name}";
+
+    internal static ModSystem? ByKey(string key)
+    {
+        lock (Systems)
+        {
+            foreach (ModSystem system in Systems)
+                if (KeyOf(system) == key) return system;
+            return null;
+        }
+    }
 
     static void Run(string hook, Action<ModSystem> action)
     {
@@ -171,6 +186,112 @@ public static class SystemLoader
             return false;
         }
         return true;
+    }
+
+    public static void ModifyScreenPosition() => Run(nameof(ModSystem.ModifyScreenPosition), s => s.ModifyScreenPosition());
+
+    public static void ModifyTransformMatrix(ref SpriteViewMatrix Transform)
+    {
+        foreach (ModSystem system in With(nameof(ModSystem.ModifyTransformMatrix)))
+        {
+            try { system.ModifyTransformMatrix(ref Transform); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.ModifyTransformMatrix", e); }
+        }
+    }
+
+    public static void ModifySunLightColor(ref Color tileColor, ref Color backgroundColor)
+    {
+        if (Main.gameMenu) return;
+        foreach (ModSystem system in With(nameof(ModSystem.ModifySunLightColor)))
+        {
+            try { system.ModifySunLightColor(ref tileColor, ref backgroundColor); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.ModifySunLightColor", e); }
+        }
+    }
+
+    public static void ModifyLightingBrightness(ref float scale)
+    {
+        foreach (ModSystem system in With(nameof(ModSystem.ModifyLightingBrightness)))
+        {
+            try { system.ModifyLightingBrightness(ref scale); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.ModifyLightingBrightness", e); }
+        }
+    }
+
+    public static void PostDrawTiles() => Run(nameof(ModSystem.PostDrawTiles), s => s.PostDrawTiles());
+
+    public static void PostDrawInterface(SpriteBatch spriteBatch)
+    {
+        foreach (ModSystem system in With(nameof(ModSystem.PostDrawInterface)))
+        {
+            try { system.PostDrawInterface(spriteBatch); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.PostDrawInterface", e); }
+        }
+    }
+
+    public static void PreDrawMapIconOverlay(IReadOnlyList<IMapLayer> layers, MapOverlayDrawContext mapOverlayDrawContext)
+    {
+        foreach (ModSystem system in With(nameof(ModSystem.PreDrawMapIconOverlay)))
+        {
+            try { system.PreDrawMapIconOverlay(layers, mapOverlayDrawContext); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.PreDrawMapIconOverlay", e); }
+        }
+    }
+
+    public static void PostDrawFullscreenMap(ref string mouseText)
+    {
+        foreach (ModSystem system in With(nameof(ModSystem.PostDrawFullscreenMap)))
+        {
+            try { system.PostDrawFullscreenMap(ref mouseText); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.PostDrawFullscreenMap", e); }
+        }
+    }
+
+    internal static bool HijackGetData(ref byte messageType, ref BinaryReader reader, int playerNumber)
+    {
+        bool hijacked = false;
+        long readerPos = reader.BaseStream.Position;
+        long biggestReaderPos = readerPos;
+        foreach (ModSystem system in With(nameof(ModSystem.HijackGetData)))
+        {
+            try
+            {
+                if (system.HijackGetData(ref messageType, ref reader, playerNumber))
+                {
+                    hijacked = true;
+                    biggestReaderPos = Math.Max(reader.BaseStream.Position, biggestReaderPos);
+                }
+            }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.HijackGetData", e); }
+            reader.BaseStream.Position = readerPos;
+        }
+        if (hijacked) reader.BaseStream.Position = biggestReaderPos;
+        return hijacked;
+    }
+
+    internal static bool HijackSendData(int whoAmI, int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)
+    {
+        bool result = false;
+        foreach (ModSystem system in With(nameof(ModSystem.HijackSendData)))
+        {
+            try { result |= system.HijackSendData(whoAmI, msgType, remoteClient, ignoreClient, text, number, number2, number3, number4, number5, number6, number7); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.HijackSendData", e); }
+        }
+        return result;
+    }
+
+    internal static ModSystem[] NetSystems() => With(nameof(ModSystem.NetSend));
+
+    internal static void NetSend(ModSystem system, BinaryWriter writer)
+    {
+        try { system.NetSend(writer); }
+        catch (Exception e) { ItemHooks.Report($"{system.FullName}.NetSend", e); }
+    }
+
+    internal static void NetReceive(ModSystem system, BinaryReader reader)
+    {
+        try { system.NetReceive(reader); }
+        catch (Exception e) { ItemHooks.Report($"{system.FullName}.NetReceive", e); }
     }
 
     internal static void SaveWorldData(ModSystem system, TagCompound tag)

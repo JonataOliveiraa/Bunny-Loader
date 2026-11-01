@@ -47,10 +47,18 @@ internal static class PlayerDrawHooks
                 On_LegacyPlayerRenderer.DrawPlayerFull += DrawPlayerFull;
                 On_LegacyPlayerRenderer.PrepareDrawForFrame += PrepareDrawForFrame;
             });
-        if (has(nameof(ModPlayer.ModifyScreenPosition)))
-            ItemHooks.Once("PlayerScreenPosition", () => On_Main.DoDraw_UpdateCameraPosition += UpdateCameraPosition);
+        if (has(nameof(ModPlayer.ModifyScreenPosition))) InstallCamera(true);
         if (has(nameof(ModPlayer.ModifyZoom)))
             ItemHooks.Once("PlayerZoom", () => On_SpriteViewMatrix.set_Zoom += SetZoom);
+    }
+
+    static bool cameraPlayer, cameraSystem;
+
+    internal static void InstallCamera(bool player)
+    {
+        if (player) cameraPlayer = true;
+        else cameraSystem = true;
+        ItemHooks.Once("ScreenPosition", () => On_Main.DoDraw_UpdateCameraPosition += UpdateCameraPosition);
     }
 
     internal static void InstallLayers() =>
@@ -139,7 +147,8 @@ internal static class PlayerDrawHooks
     {
         orig();
         if (Main.gameMenu) return;
-        PlayerLoader.Each(Main.LocalPlayer, nameof(ModPlayer.ModifyScreenPosition), static m => m.ModifyScreenPosition());
+        if (cameraPlayer) PlayerLoader.Each(Main.LocalPlayer, nameof(ModPlayer.ModifyScreenPosition), static m => m.ModifyScreenPosition());
+        if (cameraSystem) SystemLoader.ModifyScreenPosition();
     }
 
     static void SetZoom(On_SpriteViewMatrix.orig_set_Zoom orig, SpriteViewMatrix self, Vector2 value)

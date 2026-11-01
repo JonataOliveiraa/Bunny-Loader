@@ -105,8 +105,59 @@ during the call. The reset also comes when leaving the world and when
 entering another.
 
 The `csmodsystem` pack checks these hooks, including a save and a second
-load (`KEEPSAVES=1`). Drawing (`ModifySunLightColor`,
-`ModifyLightingBrightness`, `ModifyScreenPosition`, `ModifyTransformMatrix`,
-`PostDrawTiles`...) and networking (`NetSend`, `NetReceive`, `HijackGetData`,
-`HijackSendData`) come in the next step; `ModifyInterfaceLayers` comes with
-the UI.
+load (`KEEPSAVES=1`).
+
+## Drawing
+
+| Hook | When it runs on the phone |
+|------|---------------------------|
+| `ModifySunLightColor(ref Color tileColor, ref Color backgroundColor)` | After the game picks the sky and tile colors (`Main.ApplyColorOfTheSkiesToTiles`), outside the title menu. What you leave in the two colors is what the frame uses. |
+| `ModifyLightingBrightness(ref float scale)` | After `Lighting.UpdateGlobalBrightness`. `scale` starts at 1 and multiplies the global brightness: 0.5 halves it. |
+| `ModifyScreenPosition()` | After the camera moves (`Main.DoDraw_UpdateCameraPosition`), after every `ModPlayer.ModifyScreenPosition`. Change `Main.screenPosition` here. |
+| `ModifyTransformMatrix(ref SpriteViewMatrix Transform)` | In `Main.DoDraw`, with `Main.GameViewMatrix`. Replacing the matrix replaces the game's. |
+| `PostDrawTiles()` | After walls, tiles and NPCs are drawn and the sprite batch is ended, before the projectiles. Begin and end your own batch. |
+| `PostDrawInterface(SpriteBatch spriteBatch)` | At the start of the mouse text layer, the last interface layer, with the batch already begun. |
+
+`ModifyInterfaceLayers` comes with the UI.
+
+## The map
+
+`PreDrawMapIconOverlay(IReadOnlyList<IMapLayer> layers, MapOverlayDrawContext mapOverlayDrawContext)`
+runs before the map icons are drawn, on the minimap, the overlay and the
+fullscreen map. Every layer starts visible; set `layer.Visible = false` to
+skip it in this draw. The game's list is left as it was afterwards.
+
+`PostDrawFullscreenMap(ref string mouseText)` runs after the icons of the
+fullscreen map, with the batch begun. Set `mouseText` to show a hover text.
+
+## Networking
+
+`NetSend(BinaryWriter writer)` and `NetReceive(BinaryReader reader)` carry a
+system's data with the world data (message 7), from the server to each
+client, as in tModLoader. The data goes in a C# packet right before the
+message, and the client reads it right after the game applies the world
+data. Override both. `writer.WriteFlags(...)` and `reader.ReadFlags(out ...)`
+(`Terraria.ModLoader.IO.BinaryIO`) pack up to eight `bool`s in one byte:
+
+```csharp
+public override void NetSend(BinaryWriter writer)
+{
+    writer.WriteFlags(downedMinionBoss);
+}
+
+public override void NetReceive(BinaryReader reader)
+{
+    reader.ReadFlags(out downedMinionBoss);
+}
+```
+
+`HijackSendData(...)` runs before every message the game sends in
+multiplayer; return `true` to stop it. `HijackGetData(ref byte messageType, ref BinaryReader reader, int playerNumber)`
+runs before every message the game reads: the reader starts after the type
+byte; return `true` to keep the game from reading it, or change
+`messageType` or give another `reader` to make the game read something else.
+`HijackSendData` is skipped in singleplayer, as in tModLoader.
+
+The `csmodsystem2` pack checks the drawing and map hooks, the world data
+round trip and the hijacks on one device. Two devices (a client really
+receiving `NetReceive`) are not tested yet.

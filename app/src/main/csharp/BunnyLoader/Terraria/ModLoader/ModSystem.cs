@@ -1,6 +1,12 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Terraria.Graphics;
 using Terraria.IO;
+using Terraria.Localization;
+using Terraria.Map;
 using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
@@ -97,4 +103,28 @@ public abstract partial class ModSystem : ModType
     public virtual void ResetNearbyTileEffects() { }
 
     public virtual void TileCountsAvailable(ReadOnlySpan<int> tileCounts) { }
+
+    public virtual void ModifyScreenPosition() { }
+
+    public virtual void ModifyTransformMatrix(ref SpriteViewMatrix Transform) { }
+
+    public virtual void ModifySunLightColor(ref Color tileColor, ref Color backgroundColor) { }
+
+    public virtual void ModifyLightingBrightness(ref float scale) { }
+
+    public virtual void PostDrawTiles() { }
+
+    public virtual void PostDrawInterface(SpriteBatch spriteBatch) { }
+
+    public virtual void PreDrawMapIconOverlay(IReadOnlyList<IMapLayer> layers, MapOverlayDrawContext mapOverlayDrawContext) { }
+
+    public virtual void PostDrawFullscreenMap(ref string mouseText) { }
+
+    public virtual void NetSend(BinaryWriter writer) { }
+
+    public virtual void NetReceive(BinaryReader reader) { }
+
+    public virtual bool HijackGetData(ref byte messageType, ref BinaryReader reader, int playerNumber) => false;
+
+    public virtual bool HijackSendData(int whoAmI, int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7) => false;
 }
