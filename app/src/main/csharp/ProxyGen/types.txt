@@ -324,3 +324,14 @@ GUIMap
 Terraria.Map.MapIconOverlay
 Terraria.Map.IMapLayer
 Terraria.Map.MapOverlayDrawContext
+
+Terraria.WorldBuilding.GenPass
+Terraria.WorldBuilding.GenerationProgress
+Terraria.WorldBuilding.WorldGenConfiguration
+Terraria.WorldBuilding.GenVars
+Terraria.IO.GameConfiguration
+GUIWorldCreateMenu
+
+Terraria.Chest
+
+Terraria.WorldBuilding.GenPassResult
