@@ -1,0 +1,15 @@
+{
+  "uid": "8f913c2a-102e-4b48-9180-e2af859a5a7b",
+  "id": "test-csperf",
+  "name": "Test: C# hook entry cost",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Cost of entering a C# On_ hook from the game: isolated, right after and in a burst, with 1 and 3 hooks and with the hooks removed. Frame times, managed allocations and Mono GCs per window.",
+  "description": "Build with tools/tests/build-cs.sh csperf. Needs the profiler: adb shell setprop debug.bl.cshookprofile 1 before launching. Run with jsentry and QJS=true to compare with JS in the same run. Logs csperf ... and csperf END.",
+  "updated": "2026-10-31",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsPerf.dll",
+  "dependencies": []
+}

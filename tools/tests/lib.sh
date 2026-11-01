@@ -9,12 +9,16 @@ tmp="$(cygpath -m "$tmpdir" 2>/dev/null || echo "$tmpdir")"
 
 pack_dir() { case "$1" in /*|?:*) echo "$1" ;; *) echo "$here/$1" ;; esac; }
 
-uid() { python -I -c "import json,sys; print(json.load(open(sys.argv[1], encoding='utf-8'))['uid'])" "$(pack_dir "$1")/manifest.json"; }
+uid() { python -I -c "import json,sys; print(json.load(open(sys.argv[1], encoding='utf-8'))['uid'])" "$(cygpath -m "$(pack_dir "$1")" 2>/dev/null || pack_dir "$1")/manifest.json"; }
 
 push() {
     local dev="$1" dir u
     dir="$(pack_dir "$2")"
     u=$(uid "$dir")
+    case "$u" in
+        ????????-????-????-????-????????????) ;;
+        *) echo "!! no uid for pack '$2' ($dir); nothing pushed" >&2; return 1 ;;
+    esac
     tar --force-local -C "$dir" -cf "$tmp/pack.tar" .
     adb -s "$dev" push "$tmp/pack.tar" /data/local/tmp/blpack.tar >/dev/null
     adb -s "$dev" shell "rm -rf $data/bunny_packs/$u 2>/dev/null || su -c 'rm -rf $data/bunny_packs/$u'; mkdir -p $data/bunny_packs/$u && tar -xf /data/local/tmp/blpack.tar -C $data/bunny_packs/$u && chmod -R 777 $data/bunny_packs/$u; rm -f /data/local/tmp/blpack.tar"
@@ -43,7 +47,7 @@ prepare() {
     [ "$saves" = 1 ] && [ "${KEEPSAVES:-0}" != 1 ] && restore_saves "$dev"
     printf '<?xml version='"'"'1.0'"'"' encoding='"'"'utf-8'"'"' standalone='"'"'yes'"'"' ?>\n<map>\n' > "$tmp/mods.xml"
     for pack in "$@" csauto; do
-        u=$(push "$dev" "$pack")
+        u=$(push "$dev" "$pack") || return 1
         printf '    <boolean name="%s" value="true" />\n' "$u" >> "$tmp/mods.xml"
     done
     printf '</map>\n' >> "$tmp/mods.xml"

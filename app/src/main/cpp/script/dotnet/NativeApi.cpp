@@ -1,5 +1,6 @@
 #include "script/dotnet/NativeApi.h"
 #include "script/dotnet/DotnetCall.h"
+#include "script/dotnet/HookProfile.h"
 #include "boot/Boot.h"
 #include "content/buffs/BuffIconLook.h"
 #include "content/players/PlayerStages.h"
@@ -171,6 +172,7 @@ struct NativeApi {
     int32_t (*scanTiles)(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells, int32_t capacity);
     void (*readTileDrawData)(void* renderer, int32_t x, int32_t y, int32_t offset, int32_t type, void* data, int32_t* halfBrick);
     int32_t (*installSystemStage)(int32_t stage, runtime::SystemStageFn callback);
+    int32_t (*hookProfile)(int32_t index, uint64_t* values, const char** name);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -225,6 +227,7 @@ void* nativeFindMethod(void* cls, const char* name, int32_t argc) {
  */
 void** nativeInstallHook(void* method, void* replacement) {
     if (!method || !replacement) return nullptr;
+    if (profile::enabled()) return profile::installHook(static_cast<const MethodInfo*>(method), replacement);
     auto** slot = new void*(nullptr);
     if (!hook::install(static_cast<const MethodInfo*>(method), replacement, slot)) {
         delete slot;
@@ -617,8 +620,8 @@ void managedDrawPost(void* user) { static_cast<ManagedDraw*>(user)->post(); }
 
 int32_t nativeItemDrawListen(int32_t kind, int32_t (*pre)(void* args), void (*post)(), uint8_t* active) {
     if (kind < 0 || kind > 1 || !pre || !post || !active || g_managedDraw[kind].pre) return 0;
-    g_managedDraw[kind].pre = pre;
-    g_managedDraw[kind].post = post;
+    g_managedDraw[kind].pre = profile::wrap(pre, kind == 0 ? "ItemDraw.pre" : "ItemDrawInventory.pre");
+    g_managedDraw[kind].post = profile::wrap(post, kind == 0 ? "ItemDraw.post" : "ItemDrawInventory.post");
     runtime::content::ItemDrawListener listener;
     listener.active = reinterpret_cast<const std::atomic<uint8_t>*>(active);
     listener.pre = managedDrawPre;
@@ -673,7 +676,7 @@ void nativeOnBuffsInstalled(void (*callback)(int32_t first, int32_t last)) {
 void* nativeBuffIconLook() { return runtime::buffIconLook(); }
 
 int32_t nativeOnNaturalRegen(float (*callback)(void* player, float regen)) {
-    return callback && runtime::setNaturalRegenCallback(callback) ? 1 : 0;
+    return callback && runtime::setNaturalRegenCallback(profile::wrap(callback, "NaturalRegen")) ? 1 : 0;
 }
 
 int32_t nativeOnConsumeBait(int32_t (*callback)(void* player, void* bait)) {
@@ -685,7 +688,7 @@ int32_t nativeOnDyeReward(int32_t (*callback)(void* player, int32_t* pool, int32
 }
 
 int32_t nativeOnResourceDraw(int32_t (*callback)(int32_t phase, void* spriteBatch, void* args)) {
-    return callback && runtime::setResourceDrawCallback(reinterpret_cast<runtime::ResourceDrawCallback>(callback)) ? 1 : 0;
+    return callback && runtime::setResourceDrawCallback(reinterpret_cast<runtime::ResourceDrawCallback>(profile::wrap(callback, "ResourceDraw"))) ? 1 : 0;
 }
 
 void nativeResourceDrawActive(int32_t active) { runtime::setResourceDrawActive(active != 0); }
@@ -740,7 +743,7 @@ void nativeSetNPCFrames(int32_t type, int32_t frames) { runtime::setModNpcFrames
 
 int32_t nativeNPCCount() { return runtime::registeredNpcTypeCount(); }
 
-int32_t nativeNPCEvents(int32_t type, uint32_t events, runtime::NpcEventCallback callback) { return runtime::setNpcEvents(type, events, callback) ? 1 : 0; }
+int32_t nativeNPCEvents(int32_t type, uint32_t events, runtime::NpcEventCallback callback) { return runtime::setNpcEvents(type, events, profile::wrap(callback, "NPCEvents")) ? 1 : 0; }
 
 void nativeNPCOriginal(void* npc, int32_t event, int32_t argument) { runtime::runNpcOriginal(static_cast<Il2CppObject*>(npc), event, argument); }
 
@@ -776,11 +779,11 @@ void nativeSetDustCallbacks(void (*spawn)(int32_t, void*), void (*update)(void**
                             void (*midUpdate)(void**, int32_t, uint8_t*), void (*preDraw)(void**, int32_t, uint8_t*),
                             int32_t (*getAlpha)(void*, uint32_t*)) {
     runtime::DustNativeCallbacks callbacks;
-    callbacks.spawn = spawn;
-    callbacks.update = update;
-    callbacks.midUpdate = midUpdate;
-    callbacks.preDraw = preDraw;
-    callbacks.getAlpha = getAlpha;
+    callbacks.spawn = profile::wrap(spawn, "Dust.spawn");
+    callbacks.update = profile::wrap(update, "Dust.update");
+    callbacks.midUpdate = profile::wrap(midUpdate, "Dust.midUpdate");
+    callbacks.preDraw = profile::wrap(preDraw, "Dust.preDraw");
+    callbacks.getAlpha = profile::wrap(getAlpha, "Dust.getAlpha");
     runtime::setDustNativeCallbacks(callbacks);
 }
 
@@ -896,13 +899,13 @@ const NativeApi kNativeApi{
         return 1;
     },
     [](int32_t type, int32_t variant) -> int32_t { return runtime::modNpcHeadSlot(type, variant); },
-    [](int32_t type, uint32_t flags, runtime::NpcTownCallback callback) -> int32_t { return runtime::installNpcTownHooks(type, flags, callback) ? 1 : 0; },
+    [](int32_t type, uint32_t flags, runtime::NpcTownCallback callback) -> int32_t { return runtime::installNpcTownHooks(type, flags, profile::wrap(callback, "NPCTown")) ? 1 : 0; },
     []() -> int32_t { return runtime::installEmoteMenuIcon() ? 1 : 0; },
     [](void* texture) { runtime::setEmoteMenuIcon(texture); },
-    [](void* texture, int32_t kind, runtime::DrawAdjustFn fn) -> int32_t { return runtime::beginDrawAdjust(texture, kind, fn) ? 1 : 0; },
+    [](void* texture, int32_t kind, runtime::DrawAdjustFn fn) -> int32_t { return runtime::beginDrawAdjust(texture, kind, profile::wrap(fn, "DrawAdjust")) ? 1 : 0; },
     []() { runtime::endDrawAdjust(); },
     [](runtime::ManagedNpcNeeds needs, runtime::ManagedNpcSave save, runtime::ManagedNpcLoad load) { runtime::setManagedNpcData(needs, save, load); },
-    [](runtime::TownProfileCallback callback) -> int32_t { return runtime::installTownProfiles(callback) ? 1 : 0; },
+    [](runtime::TownProfileCallback callback) -> int32_t { return runtime::installTownProfiles(profile::wrap(callback, "TownProfiles")) ? 1 : 0; },
     [](int32_t type, int32_t onlyExisting) -> int32_t { return runtime::setTownProfileCarrier(type, onlyExisting != 0) ? 1 : 0; },
     [](const char* mod, const char* name, const char* texture) -> int32_t {
         if (!mod || !name || !texture || !fileExists(texture)) return -2;
@@ -913,12 +916,13 @@ const NativeApi kNativeApi{
         return runtime::addModTileMapEntry(type, color & 255, (color >> 8) & 255, (color >> 16) & 255, name ? name : "");
     },
     runtime::setModTileAnimation,
-    [](int32_t type, uint32_t flags, runtime::TileEventCallback callback) -> int32_t { return runtime::installTileEvents(type, flags, callback) ? 1 : 0; },
+    [](int32_t type, uint32_t flags, runtime::TileEventCallback callback) -> int32_t { return runtime::installTileEvents(type, flags, profile::wrap(callback, "TileEvents")) ? 1 : 0; },
     runtime::scanTileEvents,
     runtime::readManagedTileDrawData,
     [](int32_t stage, runtime::SystemStageFn callback) -> int32_t {
-        return runtime::installSystemStage(stage, runtime::kStageClientManaged, callback) ? 1 : 0;
+        return runtime::installSystemStage(stage, runtime::kStageClientManaged, profile::wrap(callback, "SystemStage")) ? 1 : 0;
     },
+    profile::read,
 };
 
 } // namespace

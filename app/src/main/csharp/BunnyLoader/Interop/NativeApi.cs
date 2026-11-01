@@ -114,4 +114,5 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int, int, int, uint, int*, int, int> ScanTiles;
     public delegate* unmanaged<IntPtr, int, int, int, int, void*, int*, void> ReadTileDrawData;
     public delegate* unmanaged<int, delegate* unmanaged<int, double*, void>, int> InstallSystemStage;
+    public delegate* unmanaged<int, ulong*, byte**, int> HookProfile;
 }
