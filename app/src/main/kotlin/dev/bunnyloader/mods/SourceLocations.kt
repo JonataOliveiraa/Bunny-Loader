@@ -155,8 +155,9 @@ class SourceLocations(private val context: Context, val local: ModSources) {
         }
     }
 
-    fun create(id: String, name: String, author: String, sword: String, language: String, location: String): ModSources.Project {
-        if (location.isEmpty()) return local.create(id, name, author, sword, language)
+    fun create(id: String, name: String, author: String, sword: String, language: String,
+               location: String, sourceLanguage: ModSources.SourceLanguage = ModSources.SourceLanguage.JAVASCRIPT): ModSources.Project {
+        if (location.isEmpty()) return local.create(id, name, author, sword, language, sourceLanguage)
         check(Regex("^[A-Za-z][A-Za-z0-9_]{0,63}$").matches(id)) { "Invalid project ID" }
         check(location in trees) { "Source location was removed" }
         val tree = Uri.parse(location)
@@ -168,7 +169,7 @@ class SourceLocations(private val context: Context, val local: ModSources) {
         var created: Uri? = null
         try {
             val template = ModSources(staging) { context.assets.open("templates/basic-sword.png") }
-            val result = template.create(id, name, author, sword, language)
+            val result = template.create(id, name, author, sword, language, sourceLanguage = sourceLanguage)
             created = Docs.createDocument(resolver, parent, Docs.Document.MIME_TYPE_DIR, id)
                 ?: error("Cannot create project folder")
             copyToTree(File(staging, id), created)
