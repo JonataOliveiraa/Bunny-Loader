@@ -140,6 +140,16 @@ Items: {
 			'''
 	}
 
+	ExampleBed: {
+		DisplayName: Example Bed
+		Tooltip: This is a modded bed.
+	}
+
+	ExampleChair: {
+		DisplayName: Example Chair
+		Tooltip: This is a modded chair.
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Basic Tile Entity Item
 		Tooltip: Collects rain water. Interact with it when full to claim a water bucket.

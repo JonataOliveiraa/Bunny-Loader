@@ -140,6 +140,16 @@ Items: {
 			'''
 	}
 
+	ExampleBed: {
+		DisplayName: Cama de Exemplo
+		Tooltip: Esta é uma cama de mod.
+	}
+
+	ExampleChair: {
+		DisplayName: Cadeira de Exemplo
+		Tooltip: Esta é uma cadeira de mod.
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Item de Tile Entity Básica
 		Tooltip: Junta água da chuva. Toque nele quando estiver cheio para pegar um balde de água.

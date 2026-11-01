@@ -13,25 +13,28 @@ public readonly partial struct TileID
 
         static bool[] treeSapling = Array.Empty<bool>();
 
-        public static bool[] TreeSapling
+        static bool[] isValidSpawnPoint = Array.Empty<bool>();
+
+        public static bool[] IsValidSpawnPoint => Grow(ref isValidSpawnPoint, Beds);
+
+        public static bool[] TreeSapling => Grow(ref treeSapling, Saplings, GemSaplings, VanityTreeSakuraSaplings, VanityTreeWillowSaplings);
+
+        static bool[] Grow(ref bool[] set, params int[] vanilla)
         {
-            get
+            int count = Math.Max(TileLoader.TileCount, Main.tileFrameImportant.Length);
+            lock (Gate)
             {
-                int count = Math.Max(TileLoader.TileCount, Main.tileFrameImportant.Length);
-                lock (Gate)
+                if (set.Length >= count) return set;
+                bool first = set.Length == 0;
+                Array.Resize(ref set, count);
+                if (first)
                 {
-                    if (treeSapling.Length >= count) return treeSapling;
-                    bool first = treeSapling.Length == 0;
-                    Array.Resize(ref treeSapling, count);
-                    if (first)
+                    foreach (int type in vanilla)
                     {
-                        foreach (int type in new[] { Saplings, GemSaplings, VanityTreeSakuraSaplings, VanityTreeWillowSaplings })
-                        {
-                            if (type < count) treeSapling[type] = true;
-                        }
+                        if (type < count) set[type] = true;
                     }
-                    return treeSapling;
                 }
+                return set;
             }
         }
     }

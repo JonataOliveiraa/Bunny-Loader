@@ -164,5 +164,13 @@ public abstract class ModTile : ModBlockType
 
     public virtual bool CanReplace(int i, int j, int tileTypeBeingPlaced) => true;
 
+    public virtual void ModifySittingTargetInfo(int i, int j, ref TileRestingInfo info)
+    {
+    }
+
+    public virtual void ModifySleepingTargetInfo(int i, int j, ref TileRestingInfo info)
+    {
+    }
+
     public virtual bool GrowSapling(int i, int j, bool underground, int treeHeightAddon, bool ignoreWalls) => false;
 }

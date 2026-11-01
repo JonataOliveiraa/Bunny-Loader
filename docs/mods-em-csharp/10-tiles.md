@@ -90,6 +90,37 @@ Global hook arrays are prepared once at content setup. Crafting station aliases 
 
 The native filter avoids entering C# for unmarked types during framing, random updates and native draw-data processing. Area scans return only matching cells into reused buffers. Reflection runs during registration, rather than once per cell. Drawing uses the mobile overlay path; specialized vanilla slope, paint, glow and liquid rendering remain in the game's renderer.
 
+## Chairs and beds
+
+Set `TileID.Sets.CanBeSatOnForPlayers`/`CanBeSatOnForNPCs` or `CanBeSleptIn`, then adjust where the entity rests with `ModifySittingTargetInfo` and `ModifySleepingTargetInfo`, as in tModLoader:
+
+```csharp
+public override void ModifySittingTargetInfo(int i, int j, ref TileRestingInfo info)
+{
+    Tile tile = Framing.GetTileSafely(i, j);
+    info.TargetDirection = tile.TileFrameX != 0 ? 1 : -1;
+    info.AnchorTilePosition.X = i;
+    info.AnchorTilePosition.Y = j;
+    if (tile.TileFrameY % 40 == 0)
+        info.AnchorTilePosition.Y++;
+}
+
+public override bool RightClick(int i, int j)
+{
+    Player player = Main.LocalPlayer;
+    if (player.IsWithinSnappngRangeToTile(i, j, PlayerSittingHelper.ChairSittingMaxDistance))
+    {
+        player.GamepadEnableGrappleCooldown();
+        player.sitting.SitDown(player, i, j);
+    }
+    return true;
+}
+```
+
+- The anchor is the bottom tile the entity rests on; `TargetDirection`, `DirectionOffset`, `VisualOffset`, `FinalOffset` and `ExtraInfo` work as in tModLoader. The hooks run when sitting or sleeping starts and on every update while it lasts.
+- `TileID.Sets.IsValidSpawnPoint` makes a mod bed a spawn point for `Player.CheckSpawn` (the game still requires a valid room). The mobile game has no such set; the loader keeps it.
+- Not available yet: `HasSmartInteract` and `ModifySmartInteractCoords`.
+
 ## Chests and dressers
 
 A chest is a 2x2 `ModTile` with `TileID.Sets.BasicChest` (a dresser: 3x2 with
@@ -287,4 +318,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees and `cspylon` pylons. `TileRestingInfo` is deferred to the next phase-5 step.
+The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees, `cspylon` pylons and `csresting` chairs and beds.

@@ -56,6 +56,7 @@ internal static partial class TileHooks
         if (own)
         {
             Once("Pick", () => On_Player.GetPickaxeDamage += Pick);
+            Once("Resting", InstallResting);
         }
 
         if (Has(2))

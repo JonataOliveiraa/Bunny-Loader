@@ -306,6 +306,8 @@ Terraria.GameContent.TreePaintingSettings
 Terraria.DataStructures.TileReachCheckSettings
 XNAUICameraSettings
 Terraria.UI.Alignment
+Terraria.GameContent.PlayerSittingHelper
+Terraria.GameContent.PlayerSleepingHelper
 !Terraria.Item.DefaultToPlaceableWall
 
 Terraria.GameContent.ShopHelper
