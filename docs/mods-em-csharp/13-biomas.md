@@ -234,8 +234,27 @@ NPC.Happiness.SetBiomeAffection<ExampleSurfaceBiome>(AffectionLevel.Love);
 The phone's happiness table only holds the game's biome classes, so each mod
 biome gets a stand-in shopping biome that answers with the player's flag; the
 town NPC dialogue names the biome with `TownNPCDialogueName`.
-`BestiaryIcon`, `BackgroundPath` and `BackgroundColor` exist (by default the
-class path plus `_Icon` and `_Background`); the Bestiary entry comes later.
+## Bestiary
+
+A `ModNPC` lists the biomes it spawns in, by type, in `SetDefaults`:
+
+```csharp
+SpawnModBiomes = [ModContent.GetInstance<ExampleSurfaceBiome>().Type];
+```
+
+Its Bestiary entry then shows each biome (name, icon and portrait background)
+and every biome some NPC uses gets a Bestiary filter. `BestiaryIcon` is a
+30x30 image and `BackgroundPath` a 115x65 one, by default the class path plus
+`_Icon` and `_Background`; a missing file or another size falls back to the
+game's shadow icon and background (with a line in the mod's log).
+`BackgroundColor` tints the portrait. `ModBiomeBestiaryInfoElement` is the
+biome's element, to add to other entries in `SetBestiary`.
+
+## Capture biome
+
+`TileColorStyle` (`CaptureBiome.TileColorStyle`) goes with the scene's water
+and surface background into the capture biome, as in tModLoader, when the
+game has none of its own for them.
 
 ## Multiplayer
 
@@ -247,5 +266,5 @@ the flags: `OnEnter`/`OnLeave` run on the player's own device. Two devices
 have not been tested yet.
 
 The `csbiome` pack checks biomes and scenes on one device, `csmusic` the music
-`csbackground` the water, waterfalls, backgrounds and map background, and
-`csclouds` the clouds.
+`csbackground` the water, waterfalls, backgrounds and map background, 
+`csclouds` the clouds, and `csbiomebestiary` the Bestiary and the capture biome.

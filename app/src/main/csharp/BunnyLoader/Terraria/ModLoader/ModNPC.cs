@@ -41,6 +41,8 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
 
     public SceneEffectPriority SceneEffectPriority { get; set; } = SceneEffectPriority.BossLow;
 
+    public int[] SpawnModBiomes { get; set; } = System.Array.Empty<int>();
+
     public virtual string LocalizationCategory => "NPCs";
 
     public virtual LocalizedText DisplayName => this.GetLocalization(nameof(DisplayName), PrettyPrintName);

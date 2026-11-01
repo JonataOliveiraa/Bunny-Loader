@@ -20,6 +20,8 @@ public static class BiomeLoader
 
     internal static IReadOnlyList<ModBiome> All => Biomes;
 
+    public static ModBiome? Get(int type) => (uint)type < (uint)Biomes.Count ? Biomes[type] : null;
+
     internal static int Register(ModBiome biome)
     {
         Biomes.Add(biome);
@@ -32,6 +34,7 @@ public static class BiomeLoader
         string dialogue = Language.GetOrRegister(biome.ShoppingNameKey, () => "the " + Regex.Replace(biome.Name, "([A-Z])", " $1").Trim()).Value ?? "";
         Language.GetOrRegister("TownNPCMoodBiomes." + biome.ShoppingNameKey, () => dialogue);
         _ = biome.DisplayName;
+        biome.ModBiomeBestiaryInfoElement = BiomeBestiaryHooks.Create(biome);
     }
 
     internal static bool[] FlagsOf(int who)

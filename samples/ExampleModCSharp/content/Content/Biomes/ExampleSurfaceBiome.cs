@@ -2,6 +2,7 @@ using System;
 using ExampleMod.Backgrounds;
 using ExampleMod.Common.Systems;
 using Microsoft.Xna.Framework.Graphics;
+using Terraria.Graphics.Capture;
 using Terraria;
 using Terraria.ModLoader;
 
@@ -11,6 +12,7 @@ public class ExampleSurfaceBiome : ModBiome
 {
     public override ModWaterStyle WaterStyle => ModContent.GetInstance<ExampleWaterStyle>();
     public override ModSurfaceBackgroundStyle SurfaceBackgroundStyle => ModContent.GetInstance<ExampleSurfaceBackgroundStyle>();
+    public override CaptureBiome.TileColorStyle TileColorStyle => CaptureBiome.TileColorStyle.Crimson;
 
     public override int Music => MusicLoader.GetMusicSlot(Mod, "Assets/Music/MysteriousMystery");
 

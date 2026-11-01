@@ -31,6 +31,7 @@ public static class WaterStylesLoader
         Styles.Add(style);
         WaterHooks.Install();
         WaterHooks.InstallStyle(style.GetType());
+        CaptureBiomeHooks.Install();
         return VanillaCount + Styles.Count - 1;
     }
 

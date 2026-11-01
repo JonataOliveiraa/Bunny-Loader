@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework.Graphics;
+using Terraria.Graphics.Capture;
 
 namespace Terraria.ModLoader;
 
@@ -20,6 +21,8 @@ public abstract class ModSceneEffect : ModType
     public virtual bool MapBackgroundFullbright => false;
 
     public virtual SceneEffectPriority Priority => SceneEffectPriority.None;
+
+    public virtual CaptureBiome.TileColorStyle TileColorStyle => CaptureBiome.TileColorStyle.Normal;
 
     protected override void Register() => Type = SceneEffectLoader.Register(this);
 

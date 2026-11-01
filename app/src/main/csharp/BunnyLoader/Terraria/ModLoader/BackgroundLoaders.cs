@@ -166,6 +166,7 @@ public static class SurfaceBackgroundStylesLoader
     {
         Styles.Add(style);
         BackgroundHooks.InstallSurface();
+        CaptureBiomeHooks.Install();
         return VanillaCount + Styles.Count - 1;
     }
 

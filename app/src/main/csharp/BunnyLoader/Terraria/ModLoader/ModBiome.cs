@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
+using Terraria.GameContent.Bestiary;
 using Terraria.Localization;
 
 namespace Terraria.ModLoader;
@@ -24,6 +25,8 @@ public abstract class ModBiome : ModSceneEffect, ILocalizedModType
     public virtual string BackgroundPath => (GetType().Namespace + "." + Name + "_Background").Replace('.', '/');
 
     public virtual Color? BackgroundColor => null;
+
+    public ModBiomeBestiaryInfoElement ModBiomeBestiaryInfoElement { get; internal set; }
 
     internal string ShoppingNameKey => this.GetLocalizationKey("TownNPCDialogueName");
 

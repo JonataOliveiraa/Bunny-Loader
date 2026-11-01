@@ -13,5 +13,6 @@
     <ProjectReference Include="../../../../app/src/main/csharp/BunnyLoader/BunnyLoader.csproj" Private="false" />
     <Compile Include="../../../../samples/ExampleModCSharp/content/Content/NPCs/ExampleCustomAISlimeNPC.cs" Link="Content/ExampleCustomAISlimeNPC.cs" />
     <Compile Include="../../../../samples/ExampleModCSharp/content/Content/NPCs/PartyZombie.cs" Link="Content/PartyZombie.cs" />
+    <Compile Include="../../shared/ExampleSurfaceBiomeStub.cs" Link="Content/ExampleSurfaceBiomeStub.cs" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Terraria.Graphics.Capture;
 using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
@@ -27,6 +28,7 @@ public static class SceneEffectLoader
         public ModSceneEffect? mapBackgroundSceneEffect;
         public PrioritizedPair biomeTorchItemType;
         public PrioritizedPair biomeCampfireItemType;
+        public CaptureBiome.TileColorStyle tileColorStyle;
 
         public SceneEffectInstance()
         {
@@ -126,6 +128,8 @@ public static class SceneEffectLoader
             if (result.biomeCampfireItemType.value == -1 && biome.BiomeCampfireItemType != -1)
                 result.biomeCampfireItemType = new SceneEffectInstance.PrioritizedPair { value = biome.BiomeCampfireItemType, priority = priority };
         }
+        if (result.tileColorStyle == CaptureBiome.TileColorStyle.Normal && effect.TileColorStyle != CaptureBiome.TileColorStyle.Normal)
+            result.tileColorStyle = effect.TileColorStyle;
         if (result.mapBackground == null && effect.MapBackground is { Length: > 0 } map)
         {
             result.mapBackground = map;

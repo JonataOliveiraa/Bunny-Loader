@@ -1,3 +1,4 @@
+using ExampleMod.Content.Biomes;
 using Terraria.ModLoader.Utilities;
 using Terraria;
 using Terraria.ID;
@@ -38,6 +39,7 @@ public class PartyZombie : ModNPC
         NPC.aiStyle = NPCAIStyleID.Fighter;
         AIType = NPCID.Zombie;
         AnimationType = NPCID.Zombie;
+        SpawnModBiomes = [ModContent.GetInstance<ExampleSurfaceBiome>().Type];
     }
 
     public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)

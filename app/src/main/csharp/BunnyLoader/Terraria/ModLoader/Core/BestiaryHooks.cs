@@ -35,6 +35,7 @@ internal static class BestiaryHooks
                 catch (Exception e) { ItemHooks.Report($"bestiary entry of NPC {type}", e); }
             }
         }
+        BiomeBestiaryHooks.RegisterFilters(database);
         if (added == 0 && !globals && !loot) return;
         ContentSamples.CreateBestiarySortingIds(database);
         Log.Info($"bestiary: {added} mod NPC entr{(added == 1 ? "y" : "ies")}");
@@ -69,6 +70,7 @@ internal static class BestiaryHooks
         if (!sample.IsNull && sample.townNPC) entry = BestiaryEntry.TownNPC(type);
         else if (NPCID.Sets.CountsAsCritter[type]) entry = BestiaryEntry.Critter(type);
         else entry = BestiaryEntry.Enemy(type);
+        BiomeBestiaryHooks.AddTo(entry, (sample.IsNull ? null : NPCLoader.InstanceOf(sample)) ?? own);
         NPCLoader.SetBestiary(sample, own, database, entry);
         Icon(own, entry);
         database.Register(entry);
