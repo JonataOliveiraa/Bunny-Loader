@@ -59,6 +59,60 @@ DrawTintFn tintOf(void* texture) {
     return texture == t.texture ? t.fn : nullptr;
 }
 
+struct Capture {
+    void* texture;
+    DrawCaptureFn fn;
+};
+
+thread_local Capture t_captures[kDepth];
+thread_local int t_captureDepth = 0;
+thread_local bool t_inCapture = false;
+
+DrawCaptureFn captureOf(void* texture) {
+    if (t_inCapture) return nullptr;
+    const Capture& c = t_captures[t_captureDepth - 1];
+    return !c.texture || texture == c.texture ? c.fn : nullptr;
+}
+
+bool runCapture(DrawCaptureFn fn, DrawCapture& draw) {
+    t_inCapture = true;
+    const int32_t skip = fn(&draw);
+    t_inCapture = false;
+    return skip != 0;
+}
+
+DrawCapture captured(void* texture, float x, float y, bool hasSource, const int32_t* rect, uint32_t color, float rotation, Vec2 origin,
+                     float scaleX, float scaleY, int32_t effects, float depth) {
+    DrawCapture d{};
+    d.texture = texture;
+    d.x = x;
+    d.y = y;
+    d.hasSource = hasSource ? 1 : 0;
+    if (hasSource) {
+        d.sx = rect[0];
+        d.sy = rect[1];
+        d.sw = rect[2];
+        d.sh = rect[3];
+    }
+    d.color = color;
+    d.rotation = rotation;
+    d.ox = origin.x;
+    d.oy = origin.y;
+    d.scaleX = scaleX;
+    d.scaleY = scaleY;
+    d.effects = effects;
+    d.depth = depth;
+    return d;
+}
+
+void fromCapture(const DrawCapture& d, NullableRect& source) {
+    source.has = d.hasSource ? 1 : 0;
+    source.x = d.sx;
+    source.y = d.sy;
+    source.w = d.sw;
+    source.h = d.sh;
+}
+
 void adjust(void* texture, Vec2* position, int32_t* effects) {
     const Adjust& a = t_adjusts[t_adjustDepth - 1];
     if (texture == a.texture && a.fn) a.fn(a.kind, &position->x, effects);
@@ -84,6 +138,20 @@ void hkBatchFloat(void* self, void* texture, Vec2 position, NullableRect source,
                   int32_t effects, float depth, const MethodInfo* method) {
     if (t_adjustDepth > 0) adjust(texture, &position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
+    if (t_captureDepth > 0) {
+        if (DrawCaptureFn fn = captureOf(texture)) {
+            DrawCapture d = captured(texture, position.x, position.y, source.has != 0, &source.x, color, rotation, origin, scale, scale, effects, depth);
+            if (runCapture(fn, d)) return;
+            position = Vec2{d.x, d.y};
+            fromCapture(d, source);
+            color = d.color;
+            rotation = d.rotation;
+            origin = Vec2{d.ox, d.oy};
+            scale = d.scaleX;
+            effects = d.effects;
+            depth = d.depth;
+        }
+    }
     if (t_tintDepth > 0) {
         if (DrawTintFn fn = tintOf(texture)) fn(&color, 1);
     }
@@ -94,6 +162,20 @@ void hkBatchVector(void* self, void* texture, Vec2 position, NullableRect source
                    int32_t effects, float depth, const MethodInfo* method) {
     if (t_adjustDepth > 0) adjust(texture, &position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
+    if (t_captureDepth > 0) {
+        if (DrawCaptureFn fn = captureOf(texture)) {
+            DrawCapture d = captured(texture, position.x, position.y, source.has != 0, &source.x, color, rotation, origin, scale.x, scale.y, effects, depth);
+            if (runCapture(fn, d)) return;
+            position = Vec2{d.x, d.y};
+            fromCapture(d, source);
+            color = d.color;
+            rotation = d.rotation;
+            origin = Vec2{d.ox, d.oy};
+            scale = Vec2{d.scaleX, d.scaleY};
+            effects = d.effects;
+            depth = d.depth;
+        }
+    }
     g_batchVector(self, texture, position, source, color, rotation, origin, scale, effects, depth, method);
 }
 
@@ -101,6 +183,27 @@ void hkBatchRefFloat(void* self, void* texture, Vec2* position, void* source, ui
                      int32_t effects, const MethodInfo* method) {
     if (t_adjustDepth > 0 && position) adjust(texture, position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
+    if (t_captureDepth > 0 && position && source && color) {
+        if (DrawCaptureFn fn = captureOf(texture)) {
+            DrawCapture d = captured(texture, position->x, position->y, true, static_cast<int32_t*>(source), *color, rotation, origin, scale, scale, effects, 0);
+            if (runCapture(fn, d)) return;
+            const Vec2 savedPosition = *position;
+            int32_t* rect = static_cast<int32_t*>(source);
+            const int32_t savedRect[4] = {rect[0], rect[1], rect[2], rect[3]};
+            const uint32_t savedColor = *color;
+            *position = Vec2{d.x, d.y};
+            rect[0] = d.sx;
+            rect[1] = d.sy;
+            rect[2] = d.sw;
+            rect[3] = d.sh;
+            *color = d.color;
+            g_batchRefFloat(self, texture, position, source, color, d.rotation, Vec2{d.ox, d.oy}, d.scaleX, d.effects, method);
+            *position = savedPosition;
+            for (int k = 0; k < 4; ++k) rect[k] = savedRect[k];
+            *color = savedColor;
+            return;
+        }
+    }
     if (t_tintDepth > 0 && color) {
         if (DrawTintFn fn = tintOf(texture)) {
             const uint32_t saved = *color;
@@ -131,6 +234,27 @@ void hkBatchRefVector(void* self, void* texture, Vec2* position, void* source, u
                       int32_t effects, const MethodInfo* method) {
     if (t_adjustDepth > 0 && position) adjust(texture, position, &effects);
     if (t_depth > 0 && !pass(texture)) return;
+    if (t_captureDepth > 0 && position && source && color) {
+        if (DrawCaptureFn fn = captureOf(texture)) {
+            DrawCapture d = captured(texture, position->x, position->y, true, static_cast<int32_t*>(source), *color, rotation, origin, scale.x, scale.y, effects, 0);
+            if (runCapture(fn, d)) return;
+            const Vec2 savedPosition = *position;
+            int32_t* rect = static_cast<int32_t*>(source);
+            const int32_t savedRect[4] = {rect[0], rect[1], rect[2], rect[3]};
+            const uint32_t savedColor = *color;
+            *position = Vec2{d.x, d.y};
+            rect[0] = d.sx;
+            rect[1] = d.sy;
+            rect[2] = d.sw;
+            rect[3] = d.sh;
+            *color = d.color;
+            g_batchRefVector(self, texture, position, source, color, d.rotation, Vec2{d.ox, d.oy}, Vec2{d.scaleX, d.scaleY}, d.effects, method);
+            *position = savedPosition;
+            for (int k = 0; k < 4; ++k) rect[k] = savedRect[k];
+            *color = savedColor;
+            return;
+        }
+    }
     g_batchRefVector(self, texture, position, source, color, rotation, origin, scale, effects, method);
 }
 
@@ -208,6 +332,16 @@ bool beginDrawTint(void* texture, DrawTintFn fn) {
 
 void endDrawTint() {
     if (t_tintDepth > 0) --t_tintDepth;
+}
+
+bool beginDrawCapture(void* texture, DrawCaptureFn fn) {
+    if (!fn || !drawFilterReady() || t_captureDepth >= kDepth) return false;
+    t_captures[t_captureDepth++] = Capture{texture, fn};
+    return true;
+}
+
+void endDrawCapture() {
+    if (t_captureDepth > 0) --t_captureDepth;
 }
 
 bool beginProjectileDrawSplit(void* ownTexture, bool extras, bool sprite) {

@@ -229,6 +229,7 @@ public static class ModContent
                 foreach (GlobalBackgroundStyle global in mod.GetContent<GlobalBackgroundStyle>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
                 foreach (ModSceneEffect effect in mod.GetContent<ModSceneEffect>()) Run(mod, $"{effect.Name}.SetStaticDefaults", effect.SetupContent);
                 foreach (ModCloud cloud in mod.GetContent<ModCloud>()) Run(mod, $"{cloud.Name}.SetStaticDefaults", cloud.SetupContent);
+                foreach (ModMenu menu in mod.GetContent<ModMenu>()) Run(mod, $"{menu.Name}.SetStaticDefaults", menu.SetupContent);
             }
             try { ExtraJumpLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
@@ -285,6 +286,7 @@ public static class ModContent
             }
             RecipeLoader.EndSetup();
             SystemLoader.PostSetupRecipes();
+            MenuLoader.Ready = true;
             foreach (Mod mod in mods)
             {
                 bool created = mod.GetContent<ModItem>().Any(i => ItemHooks.Overrides(i.GetType(), typeof(ModItem), nameof(ModItem.OnCreated))) ||

@@ -90,6 +90,13 @@ internal static partial class TileHooks
         InstallDrawing(flags);
     }
 
+    internal static void InstallMusicBoxes()
+    {
+        Once("Click", () => On_Player.TileInteractionsUse += Click);
+        Once("Mouse", () => On_Player.TileInteractionsMouseOver += Mouse);
+        Once("Wire", () => On_Wiring.HitWireSingle += Wire);
+    }
+
     static bool Explode(On_Projectile.orig_CanExplodeTile orig, Projectile projectile, int i, int j, bool ores)
     {
         if (!orig(projectile, i, j, ores))
@@ -397,8 +404,12 @@ internal static partial class TileHooks
     static void Wire(On_Wiring.orig_HitWireSingle orig, int i, int j)
     {
         using WireScope scope = BeginWire(i, j);
-        if (scope.Allowed)
-            orig(i, j);
+        if (!scope.Allowed)
+            return;
+        orig(i, j);
+        int type = Main.tile[i, j].type;
+        if (MusicLoader.IsModMusicBox(type) && TileLoader.GetTile(type) is ModTile box && !TileLoader.Has(box, 7))
+            MusicBoxHooks.Toggle(i, j, true);
     }
 
     static bool AllowSlope(int i, int j)
@@ -536,6 +547,11 @@ internal static partial class TileHooks
             return;
         if (mod?.RightClick(i, j) == true)
             player.tileInteractionHappened = true;
+        else if (mod != null && !right && MusicLoader.IsModMusicBox(type))
+        {
+            MusicBoxHooks.Toggle(i, j, false);
+            player.tileInteractionHappened = true;
+        }
         foreach (GlobalTile g in TileLoader.Hooks.RightClick)
             g.RightClick(i, j, type);
     }

@@ -86,6 +86,11 @@ internal static class BackgroundHooks
 
     static void UpdateBGVisibility_BackLayer(On_Main.orig_UpdateBGVisibility_BackLayer orig, Main self, GameNullable<int> targetBiomeOverride, GameNullable<float> transitionAmountOverride)
     {
+        if (Main.gameMenu && !targetBiomeOverride.HasValue && MenuLoader.BackgroundSlot() is int menu and >= 0)
+        {
+            Ensure();
+            Main.bgStyle = menu;
+        }
         int style = targetBiomeOverride.HasValue ? targetBiomeOverride.Value : Main.bgStyle;
         if (SurfaceBackgroundStylesLoader.Get(style) == null)
         {
@@ -99,7 +104,7 @@ internal static class BackgroundHooks
     static void UpdateBGVisibility_FrontLayer(On_Main.orig_UpdateBGVisibility_FrontLayer orig, Main self, GameNullable<int> targetBiomeOverride, GameNullable<float> transitionAmountOverride)
     {
         orig(self, targetBiomeOverride, transitionAmountOverride);
-        if (Main.gameMenu) return;
+        if (Main.gameMenu && MenuLoader.BackgroundSlot() < 0) return;
         int style = targetBiomeOverride.HasValue ? targetBiomeOverride.Value : Main.bgStyle;
         if (SurfaceBackgroundStylesLoader.Get(style) == null && GlobalBackgroundStyleLoader.All.Count == 0) return;
         try
@@ -146,7 +151,7 @@ internal static class BackgroundHooks
 
     static void DrawBack(Main self, bool middle)
     {
-        if (Main.gameMenu || SurfaceBackgroundStylesLoader.All.Count == 0) return;
+        if ((Main.gameMenu && MenuLoader.BackgroundSlot() < 0) || SurfaceBackgroundStylesLoader.All.Count == 0) return;
         GameArray<float> fades = Main.bgAlphaFarBackLayer;
         foreach (ModSurfaceBackgroundStyle style in SurfaceBackgroundStylesLoader.All)
         {
@@ -169,7 +174,7 @@ internal static class BackgroundHooks
 
     static void DrawClose(Main self)
     {
-        if (Main.gameMenu || SurfaceBackgroundStylesLoader.All.Count == 0) return;
+        if ((Main.gameMenu && MenuLoader.BackgroundSlot() < 0) || SurfaceBackgroundStylesLoader.All.Count == 0) return;
         GameArray<float> fades = Main.bgAlphaFrontLayer;
         foreach (ModSurfaceBackgroundStyle style in SurfaceBackgroundStylesLoader.All)
         {

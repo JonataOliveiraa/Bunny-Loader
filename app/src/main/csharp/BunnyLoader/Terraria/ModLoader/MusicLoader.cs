@@ -21,6 +21,9 @@ public static unsafe class MusicLoader
     static readonly Dictionary<string, int> Slots = new(StringComparer.Ordinal);
     static readonly Dictionary<(Mod, string), int> ByPath = new();
     internal static readonly List<Track> Tracks = new();
+    internal static readonly Dictionary<int, int> musicToItem = new();
+    internal static readonly Dictionary<int, int> itemToMusic = new();
+    internal static readonly Dictionary<int, Dictionary<int, int>> tileToMusic = new();
 
     public static int MusicCount => MusicID.Count + Tracks.Count;
 
@@ -84,6 +87,43 @@ public static unsafe class MusicLoader
     public static void AddMusic(Mod mod, string musicPath)
     {
         if (GetMusicSlot(mod, musicPath) == 0) throw new FileNotFoundException($"MusicLoader.AddMusic: '{musicPath}' not found in {mod.Name}");
+    }
+
+    public static void AddMusicBox(Mod mod, int musicSlot, int itemType, int tileType, int tileFrameY = 0)
+    {
+        if (musicSlot < MusicID.Count)
+        {
+            if (musicSlot == 0) throw new ArgumentOutOfRangeException(nameof(musicSlot), "An invalid music audio file was provided: GetMusicSlot takes the path without the extension (.ogg, .wav or .mp3)");
+            throw new ArgumentOutOfRangeException(nameof(musicSlot), $"Cannot assign music box to vanilla music ID {musicSlot}");
+        }
+        if (musicSlot >= MusicCount) throw new ArgumentOutOfRangeException(nameof(musicSlot), $"Music ID {musicSlot} does not exist");
+        if (itemType < ItemID.Count) throw new ArgumentOutOfRangeException(nameof(itemType), $"Cannot assign music box to vanilla item ID {itemType}");
+        if (ItemLoader.Get(itemType) == null) throw new ArgumentOutOfRangeException(nameof(itemType), $"Item ID {itemType} does not exist");
+        if (tileType < TileID.Count) throw new ArgumentOutOfRangeException(nameof(tileType), $"Cannot assign music box to vanilla tile ID {tileType}");
+        if (TileLoader.GetTile(tileType) == null) throw new ArgumentOutOfRangeException(nameof(tileType), $"Tile ID {tileType} does not exist");
+        lock (Slots)
+        {
+            if (musicToItem.ContainsKey(musicSlot)) throw new ArgumentException($"Music ID {musicSlot} has already been assigned a music box");
+            if (itemToMusic.ContainsKey(itemType)) throw new ArgumentException($"Item ID {itemType} has already been assigned a music");
+            if (!tileToMusic.TryGetValue(tileType, out Dictionary<int, int>? frames)) tileToMusic[tileType] = frames = new Dictionary<int, int>();
+            if (frames.ContainsKey(tileFrameY)) throw new ArgumentException($"Y-frame {tileFrameY} of tile type {tileType} has already been assigned a music");
+            if (tileFrameY % 36 != 0) throw new ArgumentException("Y-frame must be divisible by 36");
+            musicToItem[musicSlot] = itemType;
+            itemToMusic[itemType] = musicSlot;
+            frames[tileFrameY] = musicSlot;
+        }
+        MusicBoxHooks.Install(tileType);
+    }
+
+    internal static int TileMusic(int type, int frameY)
+    {
+        lock (Slots)
+            return tileToMusic.TryGetValue(type, out Dictionary<int, int>? frames) && frames.TryGetValue(frameY - frameY % 36, out int slot) ? slot : 0;
+    }
+
+    internal static bool IsModMusicBox(int type)
+    {
+        lock (Slots) return tileToMusic.ContainsKey(type);
     }
 
     public static bool IsMusicPlaying(int slot) => TrackOf(slot) is { } track && Host.Native()->MusicState(track.Id) == 2;

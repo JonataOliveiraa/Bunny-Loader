@@ -205,6 +205,12 @@ public static unsafe partial class TileLoader
         TileHooks.Install(flags, true);
     }
 
+    internal static void Mark(int type, uint flag)
+    {
+        if (Host.Native()->TileEvents(type, flag, &Event) == 0)
+            throw new InvalidOperationException($"tile {type}: native tile hooks could not be installed");
+    }
+
     internal static void Register(GlobalTile tile)
     {
         globals.Add(tile);

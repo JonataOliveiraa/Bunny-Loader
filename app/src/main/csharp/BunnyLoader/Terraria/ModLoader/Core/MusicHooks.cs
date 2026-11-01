@@ -9,10 +9,13 @@ internal static class MusicHooks
     const int ChooseEvery = 10;
 
     static int wanted = -1, chooseIn;
-    static bool chosenOtherworld;
+    static bool chosenOtherworld, titleCrossFade;
+    const int TitleLoop = MusicID.TitleJourneysBeginning;
     static float? savedSilenceFade;
 
     internal static int Wanted => wanted;
+
+    internal static int Playing => MusicLoader.TrackOf(wanted) is { } track && track.Fade > Audible ? wanted : -1;
 
     internal static void Install() => ItemHooks.Once("Music", () =>
     {
@@ -42,7 +45,9 @@ internal static class MusicHooks
 
     static int Choose(bool otherworld)
     {
-        if (Main.gameMenu) return -1;
+        if (Main.gameMenu) return MenuLoader.MenuMusic();
+        int box = MusicBoxHooks.Active();
+        if (box > 0) return box;
         if (Main.SceneMetrics.ActiveMusicBox >= 0) return -1;
         int music = -1;
         SceneEffectPriority priority = SceneEffectPriority.None;
@@ -73,6 +78,23 @@ internal static class MusicHooks
         }
     }
 
+    static void TitleCrossFade(bool theme)
+    {
+        var flags = Main.musicNoCrossFade;
+        if (flags.IsNull || flags.Length <= TitleLoop) return;
+        if (theme)
+        {
+            if (!flags[TitleLoop]) return;
+            flags[TitleLoop] = false;
+            titleCrossFade = true;
+        }
+        else if (titleCrossFade)
+        {
+            flags[TitleLoop] = true;
+            titleCrossFade = false;
+        }
+    }
+
     static void SilenceGame(bool on)
     {
         var fade = Main.musicFade;
@@ -93,12 +115,13 @@ internal static class MusicHooks
     {
         try
         {
-            if (--chooseIn <= 0 || chosenOtherworld != otherworld)
+            if (--chooseIn <= 0 || chosenOtherworld != otherworld || Main.gameMenu)
             {
                 wanted = Choose(otherworld);
                 chooseIn = ChooseEvery;
                 chosenOtherworld = otherworld;
             }
+            TitleCrossFade(Main.gameMenu && wanted >= 0);
             MusicLoader.Track? track = MusicLoader.TrackOf(wanted);
             if (track != null && track.Fade > Audible)
             {
@@ -115,7 +138,7 @@ internal static class MusicHooks
     static void Step()
     {
         if (MusicLoader.Tracks.Count == 0) return;
-        MusicLoader.Track? main = Main.gameMenu ? null : MusicLoader.TrackOf(wanted);
+        MusicLoader.Track? main = MusicLoader.TrackOf(Main.gameMenu ? MenuLoader.MenuMusic() : wanted);
         int current = Main.curMusic;
         bool mainAudible = main != null ? main.Fade > Audible : current <= 0 || Main.musicFade[current] > Audible;
         float volume = Main.musicVolume;

@@ -181,6 +181,8 @@ struct NativeApi {
     int32_t (*setWaterStyleCount)(int32_t total);
     int32_t (*beginDrawTint)(void* texture, runtime::DrawTintFn fn);
     void (*endDrawTint)();
+    int32_t (*beginDrawCapture)(void* texture, runtime::DrawCaptureFn fn);
+    void (*endDrawCapture)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -940,6 +942,8 @@ const NativeApi kNativeApi{
     [](int32_t total) -> int32_t { return runtime::setWaterStyleCount(total) ? 1 : 0; },
     [](void* texture, runtime::DrawTintFn fn) -> int32_t { return runtime::beginDrawTint(texture, profile::wrap(fn, "DrawTint")) ? 1 : 0; },
     []() { runtime::endDrawTint(); },
+    [](void* texture, runtime::DrawCaptureFn fn) -> int32_t { return runtime::beginDrawCapture(texture, profile::wrap(fn, "DrawCapture")) ? 1 : 0; },
+    []() { runtime::endDrawCapture(); },
 };
 
 } // namespace

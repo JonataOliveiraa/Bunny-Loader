@@ -43,6 +43,13 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
 
     public void CloneDefaults(int TypeToClone) => ItemLoader.CloneDefaults(this, TypeToClone);
 
+    public void DefaultToMusicBox(int tileIDToPlace, int style = 0)
+    {
+        DefaultToMusicBox(style);
+        createTile = tileIDToPlace;
+        placeStyle = style;
+    }
+
     public int ResearchUnlockCount
     {
         get => ItemLoader.ResearchUnlockCount(type);

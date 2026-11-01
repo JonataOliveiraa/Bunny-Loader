@@ -1,6 +1,6 @@
 # Making mods in C#
 
-> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md) · [11. Systems](11-sistemas.md) · [12. World generation](12-worldgen.md) · [13. Biomes and scenes](13-biomas.md)
+> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md) · [11. Systems](11-sistemas.md) · [12. World generation](12-worldgen.md) · [13. Biomes and scenes](13-biomas.md) · [14. Title menu](14-menu.md)
 
 Bunny Loader runs mods in **two languages**, side by side, inside the same
 game:
@@ -78,6 +78,8 @@ reference "tabs": open them when you need them.
 | [10. Tiles](10-tiles.md) | `ModTile`, `GlobalTile`, object data, mining, drops, touch, drawing and world persistence. |
 | [11. Systems](11-sistemas.md) | `ModSystem`: load, world entry and exit, world data and header, the update hooks and their order, time rate, tile counts. |
 | [12. World generation](12-worldgen.md) | `GenPass`, `PassLegacy`, progress, generation and Hardmode task editing, mod chest cleanup. |
+| [13. Biomes and scenes](13-biomas.md) | `ModBiome`, `ModSceneEffect`, music and music boxes, water and waterfalls, backgrounds, map background, clouds, Bestiary. |
+| [14. Title menu](14-menu.md) | `ModMenu`: theme choice in the settings, logo, sun and moon, background and music. |
 | **Tabs** | |
 | [5. C# × JS × tModLoader](05-comparacao.md) | The same mod in the three, and what is equal and different. |
 | [6. Performance](06-desempenho.md) | Measured on a real phone: where C# is 5× to 450× faster, and the one thing that still costs. |

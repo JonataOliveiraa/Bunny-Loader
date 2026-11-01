@@ -99,6 +99,28 @@ public readonly unsafe struct GameList
         call.Invoke(fn);
     }
 
+    public void Insert(int index, IntPtr item)
+    {
+        if ((uint)index > (uint)Count) throw new ArgumentOutOfRangeException(nameof(index));
+        IntPtr fn = Method("Insert", 2, out IntPtr info);
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(list);
+        call.Arg(index);
+        call.Arg(item);
+        call.Arg(info);
+        call.Invoke(fn);
+    }
+
+    public int IndexOf(IntPtr item)
+    {
+        int count = Count;
+        for (int i = 0; i < count; i++)
+        {
+            if (this[i] == item) return i;
+        }
+        return -1;
+    }
+
     public void RemoveAt(int index)
     {
         if ((uint)index >= (uint)Count) throw new ArgumentOutOfRangeException(nameof(index));

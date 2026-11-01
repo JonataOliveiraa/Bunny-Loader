@@ -97,7 +97,35 @@ every 10 frames.
 The game's own tracks are played by the game. Mod tracks are streamed by
 Android's media player next to the game: the new one fades in, and the game's
 music fades out once the mod track is heard, then comes back the same way.
-Mod music boxes and the title menu's music are not there yet.
+The title menu's music comes from the theme (see [Title menu](14-menu.md)).
+
+## Music boxes
+
+```csharp
+public override void SetStaticDefaults()
+{
+    MusicLoader.AddMusicBox(Mod, MusicLoader.GetMusicSlot(Mod, "Assets/Music/MysteriousMystery"),
+        ModContent.ItemType<ExampleMusicBox>(), ModContent.TileType<ExampleMusicBoxTile>());
+}
+
+public override void SetDefaults() => Item.DefaultToMusicBox(ModContent.TileType<ExampleMusicBoxTile>(), 0);
+```
+
+`AddMusicBox(mod, musicSlot, itemType, tileType, tileFrameY = 0)` ties a mod
+track to a mod item and a 2x2 mod tile style (`tileFrameY` a multiple of 36),
+with tModLoader's checks: no vanilla music, item or tile, one box per track
+and per item. Then:
+
+- touching the tile (when it has no `RightClick`) or a wire turns the whole
+  2x2 on and off, as the game's box (X frame + 36 is on); a `HitWire` of the
+  tile replaces the wire toggle;
+- a box that is on and on screen, or the item worn as an accessory or social
+  accessory, plays its track over everything, as the game's boxes;
+- an empty Music Box (`ItemID.MusicBox`) worn while a mod track with a box is
+  heard can record it (the game's 1 in 540 per frame).
+
+The game's music notes over a playing box (`EmitParticles` in tModLoader) are
+not there yet.
 
 ## Water and waterfalls
 

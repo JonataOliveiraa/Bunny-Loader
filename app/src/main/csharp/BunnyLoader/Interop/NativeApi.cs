@@ -121,4 +121,18 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int> SetWaterStyleCount;
     public delegate* unmanaged<IntPtr, delegate* unmanaged<uint*, int, void>, int> BeginDrawTint;
     public delegate* unmanaged<void> EndDrawTint;
+    public delegate* unmanaged<IntPtr, delegate* unmanaged<DrawCapture*, int>, int> BeginDrawCapture;
+    public delegate* unmanaged<void> EndDrawCapture;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct DrawCapture
+{
+    public IntPtr Texture;
+    public float X, Y;
+    public int HasSource, SourceX, SourceY, SourceWidth, SourceHeight;
+    public uint Color;
+    public float Rotation, OriginX, OriginY, ScaleX, ScaleY;
+    public int Effects;
+    public float Depth;
 }

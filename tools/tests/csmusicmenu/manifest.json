@@ -1,0 +1,15 @@
+{
+  "uid": "e2a7c9d4-5b31-4f86-a0c2-9d6e1b8f4a75",
+  "id": "test-csmusicmenu",
+  "name": "Test: music boxes and ModMenu (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModMenu on the title screen (theme choice, OnSelected, Update, logo hooks, menu background and music, switching themes) and mod music boxes in the world (wired on and off, equipped, recorded, AddMusicBox checks).",
+  "description": "Build with tools/tests/build-cs.sh csmusicmenu. Logs csmusicmenu <case>: ok | FAIL and csmusicmenu END pass=N fail=M.",
+  "updated": "2026-11-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsMusicMenu.dll",
+  "dependencies": []
+}
