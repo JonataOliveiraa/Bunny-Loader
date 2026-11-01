@@ -9,6 +9,8 @@
 #include "content/tiles/ModWater.h"
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileEvents.h"
+#include "content/walls/ModWalls.h"
+#include "content/walls/WallEvents.h"
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -188,6 +190,11 @@ struct NativeApi {
     void (*soundCancel)(int32_t handle);
     int32_t (*soundPlaybackState)(int32_t handle);
     int32_t (*soundActive)(int32_t group);
+    int32_t (*registerWall)(const char* mod, const char* name, const char* texture);
+    void (*onWallsInstalled)(runtime::WallsInstalledHook callback);
+    int32_t (*wallMapEntry)(int32_t type, uint32_t color, const char* name);
+    int32_t (*wallEvents)(int32_t type, uint32_t flags, runtime::WallEventCallback callback);
+    int32_t (*scanWalls)(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells, int32_t capacity);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -959,6 +966,20 @@ const NativeApi kNativeApi{
     [](int32_t handle) { runtime::content::cancelSound(handle); },
     [](int32_t handle) -> int32_t { return runtime::content::playbackState(handle); },
     [](int32_t group) -> int32_t { return runtime::content::activeSound(group); },
+    [](const char* mod, const char* name, const char* texture) -> int32_t {
+        if (!mod || !name || !texture || !fileExists(texture)) return -2;
+        runtime::ModWallDef d;
+        d.mod = mod;
+        d.name = name;
+        d.texture = texture;
+        return runtime::registerModWall(std::move(d));
+    },
+    runtime::setManagedWallsInstalledHook,
+    [](int32_t type, uint32_t color, const char* name) -> int32_t {
+        return runtime::addModWallMapEntry(type, color & 255, (color >> 8) & 255, (color >> 16) & 255, name ? name : "");
+    },
+    [](int32_t type, uint32_t flags, runtime::WallEventCallback callback) -> int32_t { return runtime::installWallEvents(type, flags, profile::wrap(callback, "WallEvents")) ? 1 : 0; },
+    runtime::scanWallEvents,
 };
 
 } // namespace

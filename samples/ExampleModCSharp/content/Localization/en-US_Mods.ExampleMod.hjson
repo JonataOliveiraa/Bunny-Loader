@@ -121,6 +121,16 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleWallItem: {
+		DisplayName: Example Wall
+		Tooltip: This is a modded wall.
+	}
+
+	ExampleWallAdvancedItem: {
+		DisplayName: Example Wall Advanced
+		Tooltip: This is an advanced modded wall.
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Basic Tile Entity Item
 		Tooltip: Collects rain water. Interact with it when full to claim a water bucket.
@@ -284,4 +294,10 @@ Tiles: {
 	}
 
 	ExampleDresser.MapEntry: Example Dresser
+}
+
+Walls: {
+	ExampleWall.MapEntry: Example Wall
+	ExampleWallAdvanced.MapEntry: Example Wall Advanced
+	ExampleWallUnsafe.MapEntry: Example Wall
 }

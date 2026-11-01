@@ -121,6 +121,16 @@ Items: {
 		Tooltip: ""
 	}
 
+	ExampleWallItem: {
+		DisplayName: Parede de Exemplo
+		Tooltip: Esta é uma parede de mod.
+	}
+
+	ExampleWallAdvancedItem: {
+		DisplayName: Parede de Exemplo Avançada
+		Tooltip: Esta é uma parede de mod avançada.
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Item de Tile Entity Básica
 		Tooltip: Junta água da chuva. Toque nele quando estiver cheio para pegar um balde de água.
@@ -284,4 +294,10 @@ Tiles: {
 	}
 
 	ExampleDresser.MapEntry: Cômoda de Exemplo
+}
+
+Walls: {
+	ExampleWall.MapEntry: Parede de Exemplo
+	ExampleWallAdvanced.MapEntry: Parede de Exemplo Avançada
+	ExampleWallUnsafe.MapEntry: Parede de Exemplo
 }

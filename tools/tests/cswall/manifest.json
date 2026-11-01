@@ -1,0 +1,15 @@
+{
+  "uid": "6c1d664e-a702-4d59-9359-a47be091b18b",
+  "id": "test-cswall",
+  "name": "Test: ModWall (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModWall: registration, DefaultToPlaceableWall, WallFrame, KillWall/NumDust/CreateDust/KillSound, Drop with the placing item and RegisterItemDrop, AnimateWall, ModifyLight, RandomUpdate, and the wall kept in the saved world.",
+  "description": "Build with tools/tests/build-cs.sh cswall; run twice, the second time with KEEPSAVES=1. Logs cswall <case>: ok | FAIL and cswall END pass=N fail=M.",
+  "updated": "2026-11-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsWall.dll",
+  "dependencies": []
+}

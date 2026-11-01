@@ -29,6 +29,7 @@ bool modWallsSettled();
 
 using WallsInstalledHook = void (*)(int first, int last);
 void setWallsInstalledHook(WallsInstalledHook hook);
+void setManagedWallsInstalledHook(WallsInstalledHook hook);
 
 int modWallTypeByName(const std::string& mod, const std::string& name);
 

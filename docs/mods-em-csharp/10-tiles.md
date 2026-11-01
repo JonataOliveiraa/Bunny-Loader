@@ -167,6 +167,37 @@ has `Place`, `Kill`, `Find` and `ModTileEntity.CountInWorld()`.
 The game itself cannot hold new tile entity classes, so mod entities live in
 the loader and are not in the game's `TileEntity.ByID`; use `TileEntity.TryGet`.
 
+## Walls
+
+A `ModWall` is written as in tModLoader; the texture is found the same way as a tile's:
+
+```csharp
+public class ExampleWall : ModWall
+{
+    public override void SetStaticDefaults()
+    {
+        Main.wallHouse[Type] = true;
+        DustType = ModContent.DustType<Sparkle>();
+        AddMapEntry(new Color(150, 150, 150));
+    }
+
+    public override void NumDust(int i, int j, bool fail, ref int num) => num = fail ? 1 : 3;
+}
+
+public class ExampleWallItem : ModItem
+{
+    public override void SetDefaults() => Item.DefaultToPlaceableWall(ModContent.WallType<ExampleWall>());
+}
+```
+
+- The wall drops the mod item that places it; `RegisterItemDrop(itemType)` sets another one, and `Drop(i, j, ref type)` can change or cancel it.
+- `KillWall`, `NumDust`, `CreateDust` (starting from `DustType`), `KillSound` (then `HitSound`) run when the wall is hit or broken.
+- `WallFrame(i, j, randomizeFrame, ref style, ref frameNumber)`, `RandomUpdate`, `AnimateWall(ref frame, ref frameCounter)` and `ModifyLight` run only for walls that override them; the cell filter is native, so other walls cost nothing.
+- `Tile.WallType`, `WallFrameX`, `WallFrameY` and `WallFrameNumber` read and write a cell's wall; `WallLoader.GetWall(type)` and `WallLoader.WallCount` work as in tModLoader.
+- Mod walls are saved in `<world>.wld.walls.bl` by mod and name (the `.wld` keeps no mod wall), so their numeric IDs may change between sessions. A wall of a mod that is not loaded is kept in the file, with the loader's unloaded wall in its place.
+
+Not available yet: `GlobalWall`, `CanPlace`, `PlaceInWorld`, `CanExplode`, `PreDraw`/`PostDraw` (the mobile game draws walls in one threaded pass), `CanBeTeleportedTo`, biome conversion (`WallLoader.RegisterConversion`, `OnWallConverted`) and the coordinate-dependent map name.
+
 ## World persistence
 
 C# uses the existing native `.wld.tiles.bl` backend. Its stable tile key is `<mod UID>/<tile name>`, shared with JS. A JS mod and its C# port must keep both values to reuse saved tiles. No conversion of the sidecar format is needed.
@@ -186,4 +217,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-The `cschest` and `cstileentity` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers and tile entities. Pylons, `TileRestingInfo`, `ModTree` and `ModWall` are deferred to the next phase-5 steps.
+The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls. Pylons, `TileRestingInfo` and `ModTree` are deferred to the next phase-5 steps.

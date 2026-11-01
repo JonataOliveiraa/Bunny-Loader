@@ -20,6 +20,30 @@ public unsafe partial struct Tile
         set => frameY = value;
     }
 
+    public ushort WallType
+    {
+        get => wall;
+        set => wall = value;
+    }
+
+    public int WallFrameX
+    {
+        get => wallFrameX();
+        set => wallFrameX(value);
+    }
+
+    public int WallFrameY
+    {
+        get => wallFrameY();
+        set => wallFrameY(value);
+    }
+
+    public int WallFrameNumber
+    {
+        get => wallFrameNumber();
+        set => wallFrameNumber((byte)value);
+    }
+
     public bool HasTile => active();
 
     public bool HasUnactuatedTile => nactive();

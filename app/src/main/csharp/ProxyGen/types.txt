@@ -300,6 +300,8 @@ Terraria.GameContent.ItemDropRules.StatueMimicItemDropRule
 Terraria.GameContent.Events.DD2Event
 Terraria.GameContent.Events.Sandstorm
 Terraria.ID.WallID
+Terraria.Framing
+!Terraria.Item.DefaultToPlaceableWall
 
 Terraria.GameContent.ShopHelper
 Terraria.GameContent.Personalities.PersonalityDatabase

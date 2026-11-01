@@ -24,6 +24,8 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
         set => DamageClassLoader.SetItemClass(this, value);
     }
 
+    public void DefaultToPlaceableWall(int wallToPlace) => DefaultToPlaceableWall_((ushort)wallToPlace);
+
     public bool CountsAsClass<T>() where T : DamageClass => CountsAsClass(ModContent.GetInstance<T>());
 
     public bool CountsAsClass(DamageClass damageClass) => DamageType.CountsAsClass(damageClass);

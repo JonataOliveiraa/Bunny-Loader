@@ -25,6 +25,7 @@ struct Entry {
 std::mutex g_mx;
 std::vector<Entry> g_regs;
 std::atomic<WallsInstalledHook> g_installedHook{nullptr};
+std::atomic<WallsInstalledHook> g_managedInstalledHook{nullptr};
 std::atomic<int> g_total{0};
 std::atomic<int> g_installed{0};
 std::atomic<int> g_unloadedType{-1};
@@ -196,6 +197,9 @@ void tickModWalls() {
     if (WallsInstalledHook hook = g_installedHook.load(std::memory_order_acquire)) {
         hook(from, to - 1);
     }
+    if (WallsInstalledHook hook = g_managedInstalledHook.load(std::memory_order_acquire)) {
+        hook(from, to - 1);
+    }
 }
 
 bool modWallsSettled() {
@@ -204,6 +208,10 @@ bool modWallsSettled() {
 
 void setWallsInstalledHook(WallsInstalledHook hook) {
     g_installedHook.store(hook, std::memory_order_release);
+}
+
+void setManagedWallsInstalledHook(WallsInstalledHook hook) {
+    g_managedInstalledHook.store(hook, std::memory_order_release);
 }
 
 int modWallTypeByName(const std::string& mod, const std::string& name) {

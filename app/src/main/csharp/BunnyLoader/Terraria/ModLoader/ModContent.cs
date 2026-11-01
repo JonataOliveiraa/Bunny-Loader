@@ -25,6 +25,8 @@ public static class ModContent
 
     public static int TileType<T>() where T : ModTile => GetInstance<T>()?.Type ?? 0;
 
+    public static int WallType<T>() where T : ModWall => GetInstance<T>()?.Type ?? 0;
+
     public static ModTile? GetModTile(int type) => TileLoader.GetTile(type);
 
     public static int ItemType<T>() where T : ModItem => GetInstance<T>()?.Type ?? 0;

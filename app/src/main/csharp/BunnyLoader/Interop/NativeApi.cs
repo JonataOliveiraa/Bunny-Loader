@@ -128,6 +128,11 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, void> SoundCancel;
     public delegate* unmanaged<int, int> SoundPlaybackState;
     public delegate* unmanaged<int, int> SoundActive;
+    public delegate* unmanaged<byte*, byte*, byte*, int> RegisterWall;
+    public delegate* unmanaged<delegate* unmanaged<int, int, void>, void> OnWallsInstalled;
+    public delegate* unmanaged<int, uint, byte*, int> WallMapEntry;
+    public delegate* unmanaged<int, uint, delegate* unmanaged<int, int, int, int, void*, int>, int> WallEvents;
+    public delegate* unmanaged<int, int, int, int, uint, int*, int, int> ScanWalls;
 }
 
 [StructLayout(LayoutKind.Sequential)]
