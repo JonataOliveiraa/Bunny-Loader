@@ -437,6 +437,26 @@ public static unsafe class ItemLoader
         }
     }
 
+    public static void IsAnglerQuestAvailable(int itemID, ref bool notAvailable)
+    {
+        if (Get(itemID) is ModItem modItem)
+            notAvailable |= !modItem.IsAnglerQuestAvailable();
+        foreach (GlobalItem g in Globals.Templates)
+            notAvailable |= !g.IsAnglerQuestAvailable(itemID);
+    }
+
+    public static string? AnglerChat(int type)
+    {
+        string chat = "";
+        string catchLocation = "";
+        Get(type)?.AnglerQuestChat(ref chat, ref catchLocation);
+        foreach (GlobalItem g in Globals.Templates)
+            g.AnglerChat(type, ref chat, ref catchLocation);
+        if (string.IsNullOrEmpty(chat) || string.IsNullOrEmpty(catchLocation))
+            return null;
+        return chat + "\n\n(" + catchLocation + ")";
+    }
+
     internal static void ModifyFishingLine(Projectile projectile, Player player, ref float polePosX, ref float polePosY, ref Color lineColor)
     {
         Item item = player.inventory[player.selectedItem];

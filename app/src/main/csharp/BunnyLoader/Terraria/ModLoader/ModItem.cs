@@ -68,6 +68,12 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void ModifyFishingLine(Projectile bobber, ref Vector2 lineOriginOffset, ref Color lineColor) { }
 
+    public virtual bool IsQuestFish() => false;
+
+    public virtual bool IsAnglerQuestAvailable() => true;
+
+    public virtual void AnglerQuestChat(ref string description, ref string catchLocation) { }
+
     public virtual void UseStyle(Player player, Rectangle heldItemFrame) { }
 
     public virtual void HoldStyle(Player player, Rectangle heldItemFrame) { }

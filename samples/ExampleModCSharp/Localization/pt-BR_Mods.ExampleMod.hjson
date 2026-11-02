@@ -18,6 +18,13 @@ Items: {
 		Tooltip: Prende em árvores
 	}
 
+	ExampleQuestFish: {
+		DisplayName: Peixe de Ponta-Cabeça
+		Tooltip: Pescado em qualquer lugar, de ponta-cabeça
+		Description: Ouvi histórias de um peixe que nada de ponta-cabeça. Dizem que você mesmo precisa estar de ponta-cabeça para achar um. Um desses ficaria ótimo no meu teto. Vai buscar!
+		CatchLocation: Pescado em qualquer lugar, de ponta-cabeça.
+	}
+
 	ExampleItem: {
 		DisplayName: Exemplo de Item
 		Tooltip: Descrição do item
@@ -368,5 +375,17 @@ Commands: {
 		Description: Muda ModConfigShowcaseAcceptClientChanges.SomeNumber. Mostra um comando mudando um valor de ModConfig e salvando a config.
 		Error_0: Era esperado pelo menos um argumento.
 		Error_1: "{0} não é um número inteiro válido."
+	}
+}
+
+Achievements: {
+	PartyZombieKilled: {
+		FriendlyName: Estraga-Festa
+		Description: Derrote um Zumbi Festeiro.
+	}
+
+	ManyGiantWormsKilled: {
+		FriendlyName: Caçador de Vermes
+		Description: Derrote 5 Vermes Gigantes.
 	}
 }

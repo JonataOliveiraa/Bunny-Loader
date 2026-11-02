@@ -1,0 +1,14 @@
+{
+  "uid": "5c3a9e1d-7f24-4b68-a0d1-93e6b2c4f817",
+  "id": "CsAchievement",
+  "name": "Test: ModAchievement (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModAchievement in the game's manager: registration, texts, category, icon, trackers, conditions, OnCompleted, AchievementsHelper events and saved progress.",
+  "description": "Build with tools/tests/build-cs.sh csachievement. Logs csachievement <case>: ok | FAIL and csachievement END pass=N fail=M. Run twice (KEEPSAVES=1) to see persisted=True.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

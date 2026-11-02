@@ -983,6 +983,24 @@ public class ExampleFishingPlayer : ModPlayer
 }
 ```
 
+#### Angler quests
+
+An item becomes one of the Angler's daily fish with three `ModItem` hooks,
+as in tModLoader:
+
+| Hook | What it does |
+| --- | --- |
+| `IsQuestFish()` | `true` adds the item to the end of `Main.anglerQuestItemNetIDs` |
+| `IsAnglerQuestAvailable()` | `false` makes the daily swap pick another fish (for example, only in hardmode) |
+| `AnglerQuestChat(ref description, ref catchLocation)` | the Angler's text, shown as `description` and then `(catchLocation)` |
+
+`GlobalItem.IsAnglerQuestAvailable(type)` and `GlobalItem.AnglerChat(type,
+ref chat, ref catchLocation)` do the same for any fish, the game's included.
+The Angler uses the mod's text only when both strings are set. The fish
+itself is caught in `ModPlayer.CatchFish` when `attempt.questFish` is that
+item. The ExampleMod's `ExampleQuestFish` is caught in water while standing
+upside-down (`ExampleFishingPlayer`). Test pack: `tools/tests/csangler`.
+
 ### Extra jumps: `ExtraJump`
 
 An `ExtraJump` is a double jump: the game's ones are `ExtraJump.CloudInABottle`,

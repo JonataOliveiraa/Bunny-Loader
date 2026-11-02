@@ -233,6 +233,13 @@ public static class ModContent
                 foreach (ModCloud cloud in mod.GetContent<ModCloud>()) Run(mod, $"{cloud.Name}.SetStaticDefaults", cloud.SetupContent);
                 foreach (ModMenu menu in mod.GetContent<ModMenu>()) Run(mod, $"{menu.Name}.SetStaticDefaults", menu.SetupContent);
             }
+            foreach (Mod mod in mods)
+            {
+                foreach (ModCommand command in mod.GetContent<ModCommand>()) Run(mod, $"{command.Name}.SetStaticDefaults", command.SetupContent);
+                foreach (ModAchievement achievement in mod.GetContent<ModAchievement>()) Run(mod, $"{achievement.Name}.SetStaticDefaults", achievement.SetupContent);
+            }
+            try { AchievementLoader.FinishSetup(); }
+            catch (Exception e) { Log.Error($"achievements: the saved progress could not be read: {e}"); }
             try { ExtraJumpLoader.ResizeArrays(); }
             catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
             foreach (Mod mod in mods)
@@ -268,6 +275,8 @@ public static class ModContent
             catch (Exception e) { Log.Error($"town NPC profiles: they could not be set up: {e}"); }
             try { ItemOpenHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
+            try { AnglerQuestHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"angler quests: the quest fish could not be added: {e}"); }
             foreach (Mod mod in mods)
             {
                 Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);

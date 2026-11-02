@@ -18,6 +18,13 @@ Items: {
 		Tooltip: Can grapple onto trees
 	}
 
+	ExampleQuestFish: {
+		DisplayName: Upside-down Fish
+		Tooltip: Caught anywhere while standing upside-down
+		Description: I've heard stories of a fish that swims upside-down. Supposedly you have to stand upside-down yourself to even find one. One of those would go great on my ceiling. Go fetch!
+		CatchLocation: Caught anywhere while standing upside-down.
+	}
+
 	ExampleItem: {
 		DisplayName: Example Item
 		Tooltip: Item description
@@ -368,5 +375,17 @@ Commands: {
 		Description: Sets ModConfigShowcaseAcceptClientChanges.SomeNumber. Showcases a command setting a ModConfig value and saving that config.
 		Error_0: At least one argument was expected.
 		Error_1: "{0} is not a correct integer value."
+	}
+}
+
+Achievements: {
+	PartyZombieKilled: {
+		FriendlyName: Party Crasher
+		Description: Defeat a Party Zombie.
+	}
+
+	ManyGiantWormsKilled: {
+		FriendlyName: Worm Hunter
+		Description: Defeat 5 Giant Worms.
 	}
 }

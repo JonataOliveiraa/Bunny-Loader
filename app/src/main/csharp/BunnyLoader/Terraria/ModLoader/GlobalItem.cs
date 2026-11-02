@@ -168,6 +168,10 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual bool? PrefixChance(Item item, int pre, UnifiedRandom rand) => null;
 
+    public virtual bool IsAnglerQuestAvailable(int type) => true;
+
+    public virtual void AnglerChat(int type, ref string chat, ref string catchLocation) { }
+
     public virtual bool CanRightClick(Item item) => false;
 
     public virtual void RightClick(Item item, Player player) { }

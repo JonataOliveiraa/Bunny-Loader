@@ -1,0 +1,6 @@
+Achievements: {
+	FlagAchievement: {
+		FriendlyName: Flag Test
+		Description: Complete the flag.
+	}
+}

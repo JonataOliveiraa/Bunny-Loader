@@ -36,6 +36,8 @@ Microsoft.Xna.Framework.Quaternion
 Microsoft.Xna.Framework.Plane
 Microsoft.Xna.Framework.MathHelper
 Achievements_Layout
+LocalUser
+GUIAchievementsMenu
 ControlAnchor
 GUIBossBar
 GUIBuffs
@@ -72,6 +74,8 @@ QuickActionButton_Layout
 SettingsOverlay_Layout
 SettingsPauseMenu_Layout
 Terraria.Achievements.Achievement
+Terraria.Achievements.AchievementManager
+Terraria.Achievements.AchievementCondition
 Terraria.Audio.LegacySoundPlayer
 Terraria.Audio.LegacySoundStyle
 Terraria.Audio.SoundEngine
@@ -95,6 +99,16 @@ Terraria.DataStructures.TileEntity
 Terraria.GameContent.Achievements.CustomFlagCondition
 Terraria.GameContent.Achievements.CustomFloatCondition
 Terraria.GameContent.Achievements.CustomIntCondition
+Terraria.GameContent.Achievements.ItemCraftCondition
+Terraria.GameContent.Achievements.ItemPickupCondition
+Terraria.GameContent.Achievements.NPCKilledCondition
+Terraria.GameContent.Achievements.TileDestroyedCondition
+Terraria.GameContent.Achievements.AchievementsHelper
+!Terraria.GameContent.Achievements.AchievementsHelper.OnItemPickup
+!Terraria.GameContent.Achievements.AchievementsHelper.OnItemCraft
+!Terraria.GameContent.Achievements.AchievementsHelper.OnTileDestroyed
+!Terraria.GameContent.Achievements.AchievementsHelper.OnNPCKilled
+!Terraria.GameContent.Achievements.AchievementsHelper.OnProgressionEvent
 Terraria.GameContent.BannerSystem
 Terraria.GameContent.UI.BigProgressBar.BigProgressBarSystem
 Terraria.GameContent.UI.BigProgressBar.BigProgressBarInfo
@@ -160,7 +174,7 @@ Terraria.SceneMetrics
 Terraria.SceneMetricsScanSettings
 Terraria.TileObject
 Terraria.UI.GameInterfaceLayer
-Terraria.UI.InGamePopups.AchievementUnlockedPopup
+Terraria.UI.InGamePopups+AchievementUnlockedPopup
 Terraria.UI.ItemSlot
 Terraria.UI.ItemTooltip
 Terraria.Wiring

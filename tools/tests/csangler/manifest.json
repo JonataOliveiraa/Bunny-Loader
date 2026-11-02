@@ -1,0 +1,14 @@
+{
+  "uid": "2f8d6b41-93ce-4a07-8c15-e7a0b9d43c26",
+  "id": "CsAngler",
+  "name": "Test: angler quests (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModItem.IsQuestFish, IsAnglerQuestAvailable and AnglerQuestChat, and the GlobalItem angler hooks: the quest list, the daily swap and the Angler's text.",
+  "description": "Build with tools/tests/build-cs.sh csangler. Logs csangler <case>: ok | FAIL and csangler END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

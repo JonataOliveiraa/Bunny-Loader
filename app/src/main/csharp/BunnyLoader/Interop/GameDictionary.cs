@@ -39,6 +39,18 @@ public readonly unsafe struct GameDictionary
         else call.Arg(*value);
     }
 
+    public int Count
+    {
+        get
+        {
+            IntPtr fn = Method("get_Count", 0, out IntPtr info);
+            var call = GameCall.Returning(RetKind.Int);
+            call.Arg(dictionary);
+            call.Arg(info);
+            return (int)call.Invoke(fn);
+        }
+    }
+
     public bool TryGetValue<TKey, TValue>(TKey key, out TValue value) where TKey : unmanaged where TValue : unmanaged
     {
         IntPtr fn = Method("TryGetValue", 2, out IntPtr info);
