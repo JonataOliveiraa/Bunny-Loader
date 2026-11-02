@@ -332,3 +332,41 @@ Walls: {
 	ExampleWallAdvanced.MapEntry: Parede de Exemplo Avançada
 	ExampleWallUnsafe.MapEntry: Parede de Exemplo
 }
+
+Commands: {
+	ExampleItemCommand: {
+		Usage:
+			'''
+			/item <tipo|nome> [quantidade]
+			tipo — o ItemID do item.
+			nome — o nome do item na língua atual.
+			Troque os espaços do nome por sublinhados.
+			'''
+		Description: Cria um item pelo nome ou pelo tipo
+		Error_0: Era esperado pelo menos um argumento.
+		Error_1: Item desconhecido — use um nome válido ou 0 < tipo < {0}
+		Error_2: A quantidade deve ser um número inteiro, mas veio: {0}
+	}
+
+	ExampleTimeCommand: {
+		Usage:
+			'''
+			/addTime ticks
+			ticks — número positivo ou negativo de ticks (1 segundo = 60 ticks).
+			'''
+		Description: Soma ticks à hora do mundo, para avançar ou voltar
+		Error_0: Era esperado pelo menos um argumento.
+		Error_1: "{0} não é um número inteiro válido."
+	}
+
+	ModifyServerConfigValueCommand: {
+		Usage:
+			'''
+			/setSomeNumber valor
+			valor — um número para ModConfigShowcaseAcceptClientChanges.SomeNumber
+			'''
+		Description: Muda ModConfigShowcaseAcceptClientChanges.SomeNumber. Mostra um comando mudando um valor de ModConfig e salvando a config.
+		Error_0: Era esperado pelo menos um argumento.
+		Error_1: "{0} não é um número inteiro válido."
+	}
+}

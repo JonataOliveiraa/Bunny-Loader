@@ -76,6 +76,10 @@ Terraria.Audio.LegacySoundPlayer
 Terraria.Audio.LegacySoundStyle
 Terraria.Audio.SoundEngine
 Terraria.Chat.ChatHelper
+Terraria.Chat.ChatCommandProcessor
+Terraria.Chat.Commands.HelpCommand
+Terraria.Chat.ChatMessage
+Terraria.UI.Chat.ChatManager
 Terraria.CombatText
 Terraria.DataStructures.ArmorSetBonuses.Benefits
 Terraria.DataStructures.DrawAnimationVertical

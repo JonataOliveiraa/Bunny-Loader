@@ -26,6 +26,7 @@ the game in typed, compiled C#, and the tModLoader content classes.
 14. [Title menu](mods-em-csharp/14-menu.md)
 15. [Sounds](mods-em-csharp/15-sons.md)
 16. [Mod configs](mods-em-csharp/16-configs.md)
+17. [Chat commands](mods-em-csharp/17-comandos.md)
 
 ## For people working on Bunny Loader
 

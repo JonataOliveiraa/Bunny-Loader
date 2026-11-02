@@ -17,11 +17,15 @@ using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
 
-internal static unsafe class ItemLoader
+public static unsafe class ItemLoader
 {
     static readonly object Gate = new();
 
     static ModItem?[] items = Array.Empty<ModItem?>();
+
+    static int itemCount = ItemID.Count;
+
+    public static int ItemCount => Volatile.Read(ref itemCount);
 
     static bool hooked;
 
@@ -29,7 +33,7 @@ internal static unsafe class ItemLoader
 
     internal static readonly GlobalList<Item, GlobalItem> Globals = new();
 
-    public static void RegisterGlobal(GlobalItem global)
+    internal static void RegisterGlobal(GlobalItem global)
     {
         Globals.Add(global);
         EnsureHooked();
@@ -51,7 +55,7 @@ internal static unsafe class ItemLoader
         }
     }
 
-    public static ModItem? InstanceOf(Item item)
+    internal static ModItem? InstanceOf(Item item)
     {
         if (item.IsNull) return null;
         int type = item.type;
@@ -85,20 +89,23 @@ internal static unsafe class ItemLoader
         }
     }
 
-    public static ModItem? Get(int type)
+    public static ModItem? GetItem(int type) => Get(type);
+
+    internal static ModItem? Get(int type)
     {
         ModItem?[] all = Volatile.Read(ref items);
         uint index = (uint)(type - ItemID.Count);
         return index < (uint)all.Length ? all[index] : null;
     }
 
-    public static void Register(ModItem item)
+    internal static void Register(ModItem item)
     {
         string texture = ResolveTexture(item, item.Texture);
         int type = Native(item, texture, DisplayNames(item), Tooltips(item));
         if (type == -1) throw new InvalidOperationException($"{item.FullName}: the mod already has an item named '{item.Name}'");
         if (type < 0) throw new InvalidOperationException($"{item.FullName}: registration failed ({type})");
         item.Type = type;
+        if (type + 1 > Volatile.Read(ref itemCount)) Volatile.Write(ref itemCount, type + 1);
 
         EnsureHooked();
         EquipLoader.Autoload(item);
@@ -430,7 +437,7 @@ internal static unsafe class ItemLoader
         }
     }
 
-    public static void ModifyFishingLine(Projectile projectile, Player player, ref float polePosX, ref float polePosY, ref Color lineColor)
+    internal static void ModifyFishingLine(Projectile projectile, Player player, ref float polePosX, ref float polePosY, ref Color lineColor)
     {
         Item item = player.inventory[player.selectedItem];
         if (ItemHooks.ModItemOf(item) is not ModItem m) return;

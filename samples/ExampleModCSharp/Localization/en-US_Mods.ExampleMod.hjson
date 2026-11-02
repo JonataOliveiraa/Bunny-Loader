@@ -332,3 +332,41 @@ Walls: {
 	ExampleWallAdvanced.MapEntry: Example Wall Advanced
 	ExampleWallUnsafe.MapEntry: Example Wall
 }
+
+Commands: {
+	ExampleItemCommand: {
+		Usage:
+			'''
+			/item <type|name> [stack]
+			type — ItemID of item.
+			name — name of Item in current localization.
+			Replace spaces in item name with underscores.
+			'''
+		Description: Spawn an item by name or by typeId
+		Error_0: At least one argument was expected.
+		Error_1: Unknown item — Must be valid name or 0 < type < {0}
+		Error_2: Stack value must be integer, but met: {0}
+	}
+
+	ExampleTimeCommand: {
+		Usage:
+			'''
+			/addTime numTicks
+			numTicks — positive or negative number in ticks (1 second = 60 ticks).
+			'''
+		Description: Adds numTicks to fast forward or rewind world time
+		Error_0: At least one argument was expected.
+		Error_1: "{0} is not a correct integer value."
+	}
+
+	ModifyServerConfigValueCommand: {
+		Usage:
+			'''
+			/setSomeNumber value
+			value — A number to assign to ModConfigShowcaseAcceptClientChanges.SomeNumber
+			'''
+		Description: Sets ModConfigShowcaseAcceptClientChanges.SomeNumber. Showcases a command setting a ModConfig value and saving that config.
+		Error_0: At least one argument was expected.
+		Error_1: "{0} is not a correct integer value."
+	}
+}

@@ -1,0 +1,14 @@
+{
+  "uid": "8e1f6c2a-4b7d-4a95-b3c8-2d9e0f71a654",
+  "id": "CsModCommand",
+  "name": "Test: ModCommand (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModCommand through the game's chat path: arguments, case, UsageException, command types, mod:command, /help and GetHelp.",
+  "description": "Build with tools/tests/build-cs.sh csmodcommand. Logs csmodcommand <case>: ok | FAIL and csmodcommand END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

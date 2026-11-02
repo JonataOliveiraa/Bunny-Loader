@@ -42,5 +42,9 @@
   "tModLoader.ModConfigAccepted": "已接受更改",
   "tModLoader.ModConfigRejectChangesNotHost": "只有主机才可以更改此配置",
   "tModLoader.ModConfigServerSide": "服务端配置",
-  "tModLoader.ModConfigClientSide": "客户端配置"
+  "tModLoader.ModConfigClientSide": "客户端配置",
+  "CommandUnknownMod": "未知模组：{0}",
+  "CommandMissingInMod": "模组 {0} 没有 /{1} 命令。",
+  "CommandAmbiguous": "命令 /{0} 存在于多个模组中。请使用：",
+  "CommandUsage": "用法：{0}"
 }

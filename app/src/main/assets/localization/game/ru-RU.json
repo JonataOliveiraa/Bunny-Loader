@@ -42,5 +42,9 @@
   "tModLoader.ModConfigAccepted": "Изменения приняты",
   "tModLoader.ModConfigRejectChangesNotHost": "Изменение конфигурации доступно только для хоста",
   "tModLoader.ModConfigServerSide": "Серверная конфигурация",
-  "tModLoader.ModConfigClientSide": "Клиентская конфигурация"
+  "tModLoader.ModConfigClientSide": "Клиентская конфигурация",
+  "CommandUnknownMod": "Неизвестный мод: {0}",
+  "CommandMissingInMod": "У мода {0} нет команды /{1}.",
+  "CommandAmbiguous": "Команда /{0} есть в нескольких модах. Используйте:",
+  "CommandUsage": "Использование: {0}"
 }

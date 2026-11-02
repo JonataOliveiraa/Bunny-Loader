@@ -42,5 +42,9 @@
   "tModLoader.ModConfigAccepted": "Aceito",
   "tModLoader.ModConfigRejectChangesNotHost": "Apenas o host pode alterar esta configuração",
   "tModLoader.ModConfigServerSide": "Config. do servidor",
-  "tModLoader.ModConfigClientSide": "Config. do cliente"
+  "tModLoader.ModConfigClientSide": "Config. do cliente",
+  "CommandUnknownMod": "Mod desconhecido: {0}",
+  "CommandMissingInMod": "O mod {0} não tem o comando /{1}.",
+  "CommandAmbiguous": "O comando /{0} existe em mais de um mod. Use:",
+  "CommandUsage": "Uso: {0}"
 }
