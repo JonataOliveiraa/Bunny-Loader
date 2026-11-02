@@ -312,6 +312,18 @@ Terraria.GameContent.ObjectInteractions.TileSmartInteractCandidateProvider
 Terraria.GameContent.ObjectInteractions.SmartInteractScanSettings
 Terraria.Sign
 Terraria.DataStructures.DrawAnimation
+SettingsOverlayCategories_Layout
+SettingsOverlayLink_Layout
+SettingsOverlaySlider_Layout
+SettingsOverlayToggle_Layout
+SettingsOverlayPulldown_Layout
+Slider_Layout
+StringButton_Layout
+GUIContollerTransactionButtonList
+GUIKeyboardMappings
+SettingsOverlayOptionCategories_Layout
+GUISettingEntry
+Microsoft.Xna.Framework.Graphics.SpriteBatchItem
 !Terraria.Item.DefaultToPlaceableWall
 
 Terraria.GameContent.ShopHelper

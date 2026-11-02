@@ -12,6 +12,7 @@
 #include "content/walls/ModWalls.h"
 #include "content/walls/WallEvents.h"
 #include "content/tiles/ModTrees.h"
+#include "content/common/BunnyHeadIcon.h"
 #include "content/ui/ResourceDraws.h"
 #include "content/buffs/ModBuffs.h"
 #include "content/projectiles/ModProjectiles.h"
@@ -197,6 +198,7 @@ struct NativeApi {
     int32_t (*wallEvents)(int32_t type, uint32_t flags, runtime::WallEventCallback callback);
     int32_t (*scanWalls)(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells, int32_t capacity);
     void (*setModTree)(int32_t ground, void* trunk, int32_t topStyle);
+    void* (*bunnyHeadTexture)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -983,6 +985,14 @@ const NativeApi kNativeApi{
     [](int32_t type, uint32_t flags, runtime::WallEventCallback callback) -> int32_t { return runtime::installWallEvents(type, flags, profile::wrap(callback, "WallEvents")) ? 1 : 0; },
     runtime::scanWallEvents,
     [](int32_t ground, void* trunk, int32_t topStyle) { runtime::setModTree(ground, static_cast<Il2CppObject*>(trunk), topStyle); },
+    []() -> void* {
+        static uint32_t handle = 0;
+        if (handle) return il2cpp::api().gchandle_get_target(handle);
+        int w = 0, h = 0;
+        Il2CppObject* asset = runtime::content::loadTextureAsset("", bl_bunny_head_png, bl_bunny_head_png_len, "bunny:bunnyHead", &w, &h);
+        if (asset) handle = il2cpp::api().gchandle_new(asset, false);
+        return asset;
+    },
 };
 
 } // namespace

@@ -325,6 +325,7 @@ val monoManagedLibs = listOf(
     "System.Text.Encoding.Extensions", "System.Numerics.Vectors", "System.ObjectModel",
     // As traducoes dos mods (content/Localization/*.json).
     "System.Text.Json", "System.Text.Encodings.Web", "System.IO.Pipelines",
+    "System.ComponentModel.TypeConverter",
 )
 /**
  * O que o compilador dos mods com fontes (BunnyLoader.Compiler + Roslyn) puxa

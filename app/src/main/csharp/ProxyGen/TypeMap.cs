@@ -260,7 +260,13 @@ sealed class TypeMap
         if (t.IsPointer) return Prim("nint", AbiClass.Int, 8);
         if (!t.IsArray && !t.IsGenericType && !IsGame(t))
         {
-            if (t.IsEnum) return Map(t.GetEnumUnderlyingType(), memory);
+            if (t.IsEnum)
+            {
+                TypeUse? under = Map(t.GetEnumUnderlyingType(), memory);
+                if (under != null)
+                    under.Sig = sig;
+                return under;
+            }
             return t.IsValueType ? null : Ref($"{RT}.GameObject", sig);
         }
         if (t.IsEnum)

@@ -1,0 +1,45 @@
+ExampleModConfig: {
+	DisplayName: Example Mod Config
+
+	ExampleWingsToggle: {
+		Label: Example Wings Toggle
+		Tooltip: Enables or disables the ExampleWings item
+	}
+
+	WeaponWithGrowingDamageToggle: {
+		Label: Weapon With Growing Damage Toggle
+		Tooltip: ""
+	}
+
+	WingSlotLoadoutSupportToggle: {
+		Label: Loadout support for ExampleModWingSlot
+		Tooltip: Disable this to share a single Wing item between all loadouts!
+	}
+
+	Headers: {
+		Items: Items
+		Other: Other
+	}
+}
+
+ModConfigShowcaseRanges: {
+	DisplayName: "ModConfig Showcase B: Ranges"
+}
+
+ModConfigShowcaseMisc: {
+	DisplayName: "ModConfig Showcase E: Misc"
+
+	Headers: {
+		Colors: Colors
+		EnumOptions: Enum Options
+	}
+
+	hsl.Label: HSL Color
+}
+
+SampleEnum: {
+	Weird.Label: Weird
+	Odd.Label: Odd
+	Strange.Label: Strange
+	Peculiar.Label: Very Peculiar
+}

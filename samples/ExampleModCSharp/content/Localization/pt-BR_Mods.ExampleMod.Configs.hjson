@@ -1,0 +1,45 @@
+ExampleModConfig: {
+	DisplayName: Config. do Example Mod
+
+	ExampleWingsToggle: {
+		Label: Asas de Exemplo
+		Tooltip: Liga ou desliga o item ExampleWings
+	}
+
+	WeaponWithGrowingDamageToggle: {
+		Label: Arma com dano crescente
+		Tooltip: ""
+	}
+
+	WingSlotLoadoutSupportToggle: {
+		Label: Equipamentos no espaço de asas
+		Tooltip: Desligue para usar as mesmas asas em todos os equipamentos!
+	}
+
+	Headers: {
+		Items: Itens
+		Other: Outros
+	}
+}
+
+ModConfigShowcaseRanges: {
+	DisplayName: "Vitrine B: Faixas"
+}
+
+ModConfigShowcaseMisc: {
+	DisplayName: "Vitrine E: Diversos"
+
+	Headers: {
+		Colors: Cores
+		EnumOptions: Opções de enum
+	}
+
+	hsl.Label: Cor HSL
+}
+
+SampleEnum: {
+	Weird.Label: Esquisito
+	Odd.Label: Estranho
+	Strange.Label: Incomum
+	Peculiar.Label: Muito peculiar
+}
