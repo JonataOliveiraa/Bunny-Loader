@@ -96,6 +96,8 @@ public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
 
     public Span<T> AsSpan() => new Span<T>((void*)(Pointer + 0x20), Length);
 
+    public static implicit operator T[](GameArray<T> array) => array.IsNull ? Array.Empty<T>() : array.AsSpan().ToArray();
+
     public Span<T>.Enumerator GetEnumerator() => AsSpan().GetEnumerator();
 
     static void ThrowIndex(int index) => throw new IndexOutOfRangeException($"index {index} out of the game array");

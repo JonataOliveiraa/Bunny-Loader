@@ -1,0 +1,14 @@
+{
+  "uid": "4e9c2a71-6b0d-4f58-9a3e-d17f8c2b5e60",
+  "id": "CsUI",
+  "name": "Test: mod UI (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "UIState, UserInterface, ModifyInterfaceLayers and the elements (UIPanel, UIText, UITextPanel, UIImageButton, UIList, UIScrollbar) with real taps.",
+  "description": "Build with tools/tests/build-cs.sh csui. The test logs csui TAP x y / SWIPE x1 y1 x2 y2 ms in UI units and csui UISCALE w; a runner taps them. Logs csui <case>: ok | FAIL and csui END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

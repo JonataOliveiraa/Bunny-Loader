@@ -68,7 +68,12 @@ sealed class TypeMap
         if ((ns == "Terraria.WorldBuilding" && top.Name is "GenPass" or "GenBase") ||
             (ns == "Terraria.GameContent.Generation" && top.Name is "PassLegacy" or "WorldGenLegacyMethod"))
             return "BunnyLoader.Interop.WorldGen";
-        return ns == "Terraria.GameContent.ItemDropRules" && top.Name is not ("ItemDropDatabase" or "ItemDropResolver" or "CommonCode")
+        if (ns == "Terraria.UI" && top.Name is "UIElement" or "UIState" or "UserInterface" or "StyleDimension" or "CalculatedStyle" or "UIEvent" or "UIMouseEvent"
+                or "UIScrollWheelEvent" or "GameInterfaceLayer" or "LegacyGameInterfaceLayer" or "GameInterfaceDrawMethod" or "UIAlign")
+            return "BunnyLoader.Interop.UI";
+        if (ns == "Terraria.GameContent.UI.Elements")
+            return "BunnyLoader.Interop.UI.Elements";
+        return ns =="Terraria.GameContent.ItemDropRules" && top.Name is not ("ItemDropDatabase" or "ItemDropResolver" or "CommonCode")
             ? "BunnyLoader.Interop.DropRules" : ns;
     }
 

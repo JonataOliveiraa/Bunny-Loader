@@ -25,6 +25,7 @@ internal static class SystemDrawHooks
             ItemHooks.Once("SystemPostDrawTiles", () => On_Main.DrawSuperSpecialProjectiles += DrawSuperSpecialProjectiles);
         if (has(nameof(ModSystem.PostDrawInterface)))
             ItemHooks.Once("SystemPostDrawInterface", () => On_Main.DrawInterface_33_MouseText += DrawMouseText);
+        if (has(nameof(ModSystem.ModifyInterfaceLayers))) InterfaceLayerHooks.Install();
         if (has(nameof(ModSystem.PreDrawMapIconOverlay))) preMapIcons = true;
         if (has(nameof(ModSystem.PostDrawFullscreenMap))) postFullscreenMap = true;
         if (preMapIcons || postFullscreenMap)

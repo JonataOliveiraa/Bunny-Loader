@@ -220,6 +220,15 @@ public static class SystemLoader
 
     public static void PostDrawTiles() => Run(nameof(ModSystem.PostDrawTiles), s => s.PostDrawTiles());
 
+    public static void ModifyInterfaceLayers(List<Terraria.UI.GameInterfaceLayer> layers)
+    {
+        foreach (ModSystem system in With(nameof(ModSystem.ModifyInterfaceLayers)))
+        {
+            try { system.ModifyInterfaceLayers(layers); }
+            catch (Exception e) { ItemHooks.Report($"{system.FullName}.ModifyInterfaceLayers", e); }
+        }
+    }
+
     public static void PostDrawInterface(SpriteBatch spriteBatch)
     {
         foreach (ModSystem system in With(nameof(ModSystem.PostDrawInterface)))

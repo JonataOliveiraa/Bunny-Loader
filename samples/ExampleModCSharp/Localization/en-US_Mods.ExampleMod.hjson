@@ -341,6 +341,10 @@ Walls: {
 }
 
 Commands: {
+	ExampleCoinsCommand: {
+		Description: Show the Coins Per Minute UI
+	}
+
 	ExampleItemCommand: {
 		Usage:
 			'''
@@ -399,4 +403,8 @@ ExampleKeybindPlayer: {
 Keybinds: {
 	RandomBuff.DisplayName: Random Buff
 	LearningExample.DisplayName: Learning Example
+}
+
+UI: {
+	ExampleCoinsUIState.Reset: Reset Coins Per Minute Counter
 }

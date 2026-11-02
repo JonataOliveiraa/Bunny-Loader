@@ -114,6 +114,8 @@ public abstract partial class ModSystem : ModType
 
     public virtual void PostDrawTiles() { }
 
+    public virtual void ModifyInterfaceLayers(List<Terraria.UI.GameInterfaceLayer> layers) { }
+
     public virtual void PostDrawInterface(SpriteBatch spriteBatch) { }
 
     public virtual void PreDrawMapIconOverlay(IReadOnlyList<IMapLayer> layers, MapOverlayDrawContext mapOverlayDrawContext) { }

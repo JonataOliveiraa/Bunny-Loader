@@ -341,6 +341,10 @@ Walls: {
 }
 
 Commands: {
+	ExampleCoinsCommand: {
+		Description: Mostra a tela de moedas por minuto
+	}
+
 	ExampleItemCommand: {
 		Usage:
 			'''
@@ -399,4 +403,8 @@ ExampleKeybindPlayer: {
 Keybinds: {
 	RandomBuff.DisplayName: Buff Aleatório
 	LearningExample.DisplayName: Exemplo de Aprendizado
+}
+
+UI: {
+	ExampleCoinsUIState.Reset: Zerar o contador de moedas por minuto
 }
