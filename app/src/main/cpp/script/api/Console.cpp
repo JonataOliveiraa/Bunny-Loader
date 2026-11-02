@@ -21,7 +21,6 @@ std::mutex g_mutex;
 std::deque<std::string> g_out;
 std::deque<std::string> g_csCode;
 bool g_csActive = false;
-constexpr char kCSharpMark = '\x02';
 std::atomic<bool> g_pending{false};
 
 void push(char kind, const std::string& text) {
@@ -41,7 +40,7 @@ void onLogLine(int level, const char* line) {
 void consoleSubmit(std::string code) {
     {
         std::lock_guard<std::mutex> guard(g_mutex);
-        g_csCode.push_back(!code.empty() && code[0] == kCSharpMark ? code.substr(1) : std::move(code));
+        g_csCode.push_back(std::move(code));
     }
     g_pending.store(true, std::memory_order_release);
 }

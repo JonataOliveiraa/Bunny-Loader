@@ -62,13 +62,13 @@ import static bunny.CheatBridge.tr;
 
 /**
  * As ferramentas de quem faz mod, dentro do jogo: reiniciar (os mods sao lidos
- * de novo da pasta) e o Editor de JS.
+ * de novo da pasta) e o Editor de C#.
  *
  * O Editor e um painel no pe da tela, e nao uma janela por cima: o jogo segue
  * visivel e tocavel acima dele. Em tela cheia ele cobre o jogo e o congela
- * (o jogo so volta a andar quando o Editor minimiza ou fecha). O icone
- * flutuante de JS fica disponivel desde a tela de titulo e reabre o Editor
- * como estava (janela ou tela cheia). Com o teclado
+ * (o jogo so volta a andar quando o Editor minimiza ou fecha). Ele abre pelo
+ * botao do Mod Menu; minimizado, fica um icone flutuante que o reabre como
+ * estava (janela ou tela cheia), e o X fecha e tira o icone. Com o teclado
  * aberto, o painel sobe junto e
  * fica logo acima dele — sem a tela cheia de edicao que o Android poe no lugar
  * do jogo quando o aparelho esta deitado (IME_FLAG_NO_EXTRACT_UI), e sem
@@ -326,8 +326,6 @@ final class DevTools {
     private static int sOutputLines;
     private static ArrayList<String> sHistory;
     private static Console sConsole;
-    private static boolean sCSharp;
-    private static final char CSHARP_MARK = '\u0002';
     private static View sFloatIcon;
 
     static void openConsole(Activity act) {
@@ -338,7 +336,6 @@ final class DevTools {
             return;
         }
         loadHistory(act);
-        sCSharp = !CheatBridge.sJsOn || prefs(act).getBoolean("csharp", false);
         sConsole = new Console(act);
         sConsole.show();
     }
@@ -374,7 +371,7 @@ final class DevTools {
     }
 
     private static String helpText() {
-        return sCSharp ? tr("EditorCsHelp") : tr("EditorHelp");
+        return tr("EditorHelp");
     }
 
     /** Uma entrada da saida: especie (o 1o caractere, como no nativo) e texto. */
@@ -428,7 +425,6 @@ final class DevTools {
         final ScrollView outputScroll;
         final EditText editor;
         final TextView fullButton;
-        final TextView langButton;
         final Handler handler = new Handler(Looper.getMainLooper());
         KeyboardWatcher keyboard;
         int keyboardHeight;
@@ -471,12 +467,6 @@ final class DevTools {
             title.setPadding(px(a, 8), 0, px(a, 6), 0);
             head.addView(title, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
 
-            langButton = textButton(a, sCSharp ? "C#" : "JS", BUTTON, new Runnable() {
-                @Override public void run() { if (CheatBridge.sJsOn) toggleLanguage(); }
-            });
-            langButton.setContentDescription(tr("EditorLanguage"));
-            head.addView(langButton);
-
             head.addView(iconButton(a, arrow(a, -90), tr("Previous"), new Runnable() {
                 @Override public void run() { history(-1); }
             }));
@@ -499,7 +489,7 @@ final class DevTools {
                 @Override public void run() { minimize(); }
             }));
             head.addView(iconButton(a, icon(a, sprite(a, "ic_fechar"), 20), tr("Close"), new Runnable() {
-                @Override public void run() { hide(); }
+                @Override public void run() { close(); }
             }));
             panel.addView(head, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, px(a, 28)));
@@ -553,9 +543,9 @@ final class DevTools {
             editor.setOnKeyListener(new View.OnKeyListener() {
                 @Override public boolean onKey(View v, int keyCode, KeyEvent e) {
                     if (e.getAction() != KeyEvent.ACTION_DOWN) {
-                        // Voltar com o teclado ja fechado: fecha o console.
+                        // Voltar com o teclado ja fechado: minimiza o console.
                         if (keyCode == KeyEvent.KEYCODE_BACK && e.getAction() == KeyEvent.ACTION_UP
-                            && keyboardHeight == 0) { hide(); return true; }
+                            && keyboardHeight == 0) { minimize(); return true; }
                         return false;
                     }
                     // Teclado fisico: Ctrl+Enter roda.
@@ -617,12 +607,13 @@ final class DevTools {
             updateFreeze();
         }
 
-        /** O X recolhe o painel; o atalho de JS continua disponivel. */
-        void hide() {
-            minimize();
+        /** O X fecha o painel e tira o icone; reabrir so pelo Mod Menu. */
+        void close() {
+            dismiss();
+            removeFloatIcon();
         }
 
-        /** O "_": o painel sai da tela e fica o icone de JS no lugar. */
+        /** O "_": o painel sai da tela e fica o icone do Editor no lugar. */
         void minimize() {
             dismiss();
             showFloatIcon(act);
@@ -734,18 +725,10 @@ final class DevTools {
             scratch = "";
             editor.setText("");
             saveDraft();
-            try { CheatBridge.nConsoleRun(sCSharp ? CSHARP_MARK + code : code); } catch (Throwable t) {
+            try { CheatBridge.nConsoleRun(code); } catch (Throwable t) {
                 appendEntry('x', tr("NativeCoreNoResponse", t));
                 refreshOutput();
             }
-        }
-
-        void toggleLanguage() {
-            sCSharp = !sCSharp;
-            langButton.setText(sCSharp ? "C#" : "JS");
-            try { prefs(act).edit().putBoolean("csharp", sCSharp).apply(); } catch (Throwable t) { }
-            appendEntry('h', helpText());
-            refreshOutput();
         }
 
         void history(int step) {
@@ -839,11 +822,10 @@ final class DevTools {
     /** Lado do icone flutuante do Editor, o mesmo do coelho do Mod Menu. */
     private static final float FLOAT_SIZE = 40;
 
-    /** Atalho independente do Mod Menu e do painel, criado sem montar o Editor. */
-    static void showFloatIcon(final Activity act) {
+    /** O Editor minimizado: o toque o reabre, arrastar muda o lugar. */
+    private static void showFloatIcon(final Activity act) {
         if (!CheatBridge.sEditorOn || sFloatIcon != null || (sConsole != null && sConsole.showing)) return;
-        ImageView b = icon(act, sprite(act, "ic_js"), FLOAT_SIZE);
-        b.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+        TextView b = consoleBadge(act, 16);
         b.setBackground(panel(act, PANEL, OUTLINE));
         b.setContentDescription(tr("Editor"));
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(px(act, FLOAT_SIZE), px(act, FLOAT_SIZE));
