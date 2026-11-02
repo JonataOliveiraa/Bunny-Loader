@@ -135,6 +135,10 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int, int, int, int, uint, int*, int, int> ScanWalls;
     public delegate* unmanaged<int, IntPtr, int, void> SetModTree;
     public delegate* unmanaged<IntPtr> BunnyHeadTexture;
+    public delegate* unmanaged<byte*, int, int> PackInfo;
+    public delegate* unmanaged<byte*, byte*, byte*, int, int> ServerSync;
+    public delegate* unmanaged<delegate* unmanaged<int, byte*, void>, void> NetHelloListen;
+    public delegate* unmanaged<int, void> HostRules;
 }
 
 [StructLayout(LayoutKind.Sequential)]

@@ -17,6 +17,7 @@ import dev.bunnyloader.game.BootLog
 import dev.bunnyloader.game.BundledRuntime
 import dev.bunnyloader.game.DotnetRuntime
 import dev.bunnyloader.game.Eligibility
+import dev.bunnyloader.game.GameTexts
 import dev.bunnyloader.game.ModAudio
 import dev.bunnyloader.game.ServerSync
 import dev.bunnyloader.game.UnityHost
@@ -197,6 +198,8 @@ class GameActivity : Activity() {
                     quickJs = prefs.quickJs,
                     dotnetDir = runCatching { DotnetRuntime.prepare(this) }
                         .onFailure { logFailure("DotnetRuntime.prepare", it) }.getOrDefault(""),
+                    gameTexts = runCatching { GameTexts.pack(this) }
+                        .onFailure { logFailure("GameTexts.pack", it) }.getOrDefault(""),
                 ),
             )
         }.onFailure { logFailure("NativeBridge.init", it) }.getOrDefault(false)

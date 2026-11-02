@@ -1,4 +1,5 @@
 #include "menu/Powers.h"
+#include "content/common/ModNet.h"
 #include "menu/NetRequests.h"
 #include "menu/Cheats.h"
 #include "core/Log.h"
@@ -1849,6 +1850,10 @@ int worldRainPosition() { return g_stateRain.load(std::memory_order_relaxed); }
 int worldWindPosition() { return g_stateWind.load(std::memory_order_relaxed); }
 
 void tickPowers() {
+    if (cheatsBlocked()) {
+        for (int i = 0; i < kPowerCount; ++i) g_level[i].store(0, std::memory_order_relaxed);
+        g_timeRequest.store(-1, std::memory_order_relaxed);
+    }
     updateWorldState();
     if (isNetClientOnly()) forwardWorldPowers();
     else resyncWorldFromHost();

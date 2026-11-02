@@ -1,4 +1,6 @@
 #include "boot/Probe.h"
+#include "content/common/GameTexts.h"
+#include "content/common/ModNet.h"
 #include "boot/FramePacing.h"
 #include "graphics/RenderHook.h"
 #include "boot/QuickStart.h"
@@ -133,8 +135,10 @@ void probeThread() {
                 BL_ERROR("sonda: QuickJS nao iniciou");
                 return;
             }
+            runtime::registerGameTexts();
             mods::loadAll(config().modsDir, config().enabledMods);
             dotnet::host().finishLoading();
+            runtime::installNetGuard();
             // Sem pasta configurada, usa os embutidos. Uma lista vazia enviada
             // pelo launcher significa que o usuario desativou todos os mods.
             if (config().quickJs && config().modsDir.empty() && mods::loadedCount() == 0) {

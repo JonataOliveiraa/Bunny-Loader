@@ -32,6 +32,8 @@
 #include "content/common/ModContent.h"
 #include "content/common/ModLanguage.h"
 #include "content/common/ModNet.h"
+#include "content/common/ServerSyncBridge.h"
+#include "core/Config.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ItemDrawStages.h"
 #include "content/items/ModEquips.h"
@@ -55,6 +57,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <cstring>
 #include <map>
 
@@ -199,6 +202,10 @@ struct NativeApi {
     int32_t (*scanWalls)(int32_t x, int32_t y, int32_t width, int32_t height, uint32_t flags, int32_t* cells, int32_t capacity);
     void (*setModTree)(int32_t ground, void* trunk, int32_t topStyle);
     void* (*bunnyHeadTexture)();
+    int32_t (*packInfo)(char* out, int32_t size);
+    int32_t (*serverSync)(const char* method, const char* arg, char* out, int32_t size);
+    void (*netHelloListen)(void (*listener)(int32_t from, const char* hello));
+    void (*hostRules)(int32_t rules);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -629,8 +636,77 @@ int32_t nativeNetSend(const uint8_t* data, int32_t length, int32_t toClient, int
 
 int32_t nativeNetMode() { return runtime::gameNetMode(); }
 
-void nativeNetHello(const char* hello, const char* refusal) {
-    runtime::setManagedHello(hello ? hello : "", cultureTexts(refusal));
+void nativeNetHello(const char* hello, const char*) {
+    runtime::setManagedHello(hello ? hello : "");
+}
+
+std::string jsonEscape(const std::string& text) {
+    std::string out;
+    for (char c : text) {
+        if (c == '"' || c == '\\') {
+            out += '\\';
+            out += c;
+        } else if (static_cast<unsigned char>(c) < 0x20) {
+            char hex[8];
+            std::snprintf(hex, sizeof hex, "\\u%04x", static_cast<unsigned char>(c));
+            out += hex;
+        } else {
+            out += c;
+        }
+    }
+    return out;
+}
+
+int32_t copyOut(const std::string& value, char* out, int32_t size) {
+    if (out && size > 0) {
+        const size_t n = std::min(value.size(), static_cast<size_t>(size - 1));
+        std::memcpy(out, value.data(), n);
+        out[n] = 0;
+    }
+    return static_cast<int32_t>(value.size());
+}
+
+int32_t nativePackInfo(char* out, int32_t size) {
+    std::string json = "{\"quickJs\":";
+    json += config().quickJs ? "true" : "false";
+    json += ",\"mods\":[";
+    bool first = true;
+    for (size_t i = 0; i < mods::loadedCount(); ++i) {
+        const mods::LoadedMod* m = mods::get(static_cast<uint16_t>(i));
+        if (!m || !m->enabled) continue;
+        if (!first) json += ',';
+        first = false;
+        json += "{\"uid\":\"" + jsonEscape(m->id) + "\",\"id\":\"" + jsonEscape(m->internalName) + "\",\"name\":\"" +
+                jsonEscape(m->displayName) + "\",\"version\":\"" + jsonEscape(m->version) + "\"}";
+    }
+    json += "],\"textures\":[";
+    first = true;
+    for (const ModSpec& spec : config().enabledMods) {
+        if (spec.entry != "@texture") continue;
+        if (!first) json += ',';
+        first = false;
+        json += "\"" + jsonEscape(spec.id) + "\"";
+    }
+    json += "]}";
+    return copyOut(json, out, size);
+}
+
+int32_t nativeServerSync(const char* method, const char* arg, char* out, int32_t size) {
+    if (!method) return -1;
+    const std::string name = method;
+    std::string result;
+    bool ok;
+    if (name == "offer") {
+        const std::string text = arg ? arg : "";
+        ok = runtime::callServerSync("offer", "(Ljava/lang/String;)V", &text, nullptr);
+    } else if (name == "state") {
+        ok = runtime::callServerSync("state", "()Ljava/lang/String;", nullptr, &result);
+    } else if (name == "apply" || name == "cancel") {
+        ok = runtime::callServerSync(method, "()V", nullptr, nullptr);
+    } else {
+        return -1;
+    }
+    return ok ? copyOut(result, out, size) : -1;
 }
 
 struct ManagedDraw {
@@ -993,6 +1069,10 @@ const NativeApi kNativeApi{
         if (asset) handle = il2cpp::api().gchandle_new(asset, false);
         return asset;
     },
+    nativePackInfo,
+    nativeServerSync,
+    [](void (*listener)(int32_t from, const char* hello)) { runtime::setManagedHelloListener(listener); },
+    runtime::setHostRules,
 };
 
 } // namespace

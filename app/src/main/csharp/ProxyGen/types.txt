@@ -66,6 +66,7 @@ KeyboardMappings_Layout
 LayoutCalculator
 Microsoft.Xna.Framework.Graphics.SpriteBatch
 MultiplayerHost_Layout
+MaxPlayersSlider_Layout
 NPCDialogue_Layout
 QuickActionButton_Layout
 SettingsOverlay_Layout
@@ -142,6 +143,7 @@ Terraria.NPCSpawnParams
 Terraria.Net.NetManager
 Terraria.Net.NetPacket
 Terraria.NetMessage
+Terraria.Netplay
 Terraria.ObjectData.TileObjectData
 !Terraria.ObjectData.TileObjectData.CoordinateHeights
 Terraria.GameContent.Drawing.TileDrawing

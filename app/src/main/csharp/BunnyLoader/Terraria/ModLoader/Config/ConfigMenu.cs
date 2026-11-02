@@ -231,9 +231,9 @@ internal static unsafe class ConfigMenu
 
     static bool Ours(GUIOpenUIButtonSetting self) => menuEntry != null && self.Pointer == menuEntry.Target;
 
-    static string? GetOption(On_GUIOpenUIButtonSetting.orig_GetOption orig, GUIOpenUIButtonSetting self) => Ours(self) ? Text("row") : orig(self);
+    static string? GetOption(On_GUIOpenUIButtonSetting.orig_GetOption orig, GUIOpenUIButtonSetting self) => Ours(self) ? Text("ModConfigRow") : orig(self);
 
-    static string? GetButtonCaption(On_GUIOpenUIButtonSetting.orig_GetButtonCaption orig, GUIOpenUIButtonSetting self) => Ours(self) ? Text("open") : orig(self);
+    static string? GetButtonCaption(On_GUIOpenUIButtonSetting.orig_GetButtonCaption orig, GUIOpenUIButtonSetting self) => Ours(self) ? Text("ModConfigOpen") : orig(self);
 
     static void OpenUI(On_GUIOpenUIButtonSetting.orig_OpenUI orig, GUIOpenUIButtonSetting self)
     {
@@ -306,16 +306,8 @@ internal static unsafe class ConfigMenu
 
     static string Text(string key)
     {
-        bool pt = (Language.ActiveCulture.Name ?? "").StartsWith("pt", StringComparison.Ordinal);
-        string text = key switch
-        {
-            "button" => pt ? "Config. dos Mods" : "Mod Configuration",
-            "row" => pt ? "Config. dos Mods:" : "Mod Configuration:",
-            "open" => pt ? "Abrir" : "Open",
-            "empty" => pt ? "Nenhum mod tem opções." : "No mod has options.",
-            _ => key
-        };
-        return (key == "button" || key == "row") && JsPresent() ? text.TrimEnd(':') + " (C#)" + (key == "row" ? ":" : "") : text;
+        string text = Language.GetTextValue("BunnyLoader." + key);
+        return (key == "ModConfigButton" || key == "ModConfigRow") && JsPresent() ? text.TrimEnd(':', '：') + " (C#)" + (key == "ModConfigRow" ? ":" : "") : text;
     }
 
     static string BackText()
@@ -334,7 +326,7 @@ internal static unsafe class ConfigMenu
             }
         }
 
-        text ??= culture.StartsWith("pt", StringComparison.Ordinal) ? "Voltar" : "Back";
+        text ??= Language.GetTextValue("BunnyLoader.Back");
         back = (culture, text);
         return text;
     }
@@ -423,7 +415,7 @@ internal static unsafe class ConfigMenu
         TransactionButton_Layout ours = ButtonLayout(l);
         ours.overloadedSize = l.Settings.overloadedSize;
         ours.Location = new Vector2(l.Settings.Location.X, ours.Location.Y);
-        var state = GUITransactionButton.Draw(ours, default(Item), Text("button"), false, ref buttonScale, false, Focus(), false, false);
+        var state = GUITransactionButton.Draw(ours, default(Item), Text("ModConfigButton"), false, ref buttonScale, false, Focus(), false, false);
         if (state != GUITransactionButton.InputState.Clicked)
             return;
         XNAUIInputLayer.Instance.CaptureUICrusorDrag(-1);
@@ -584,7 +576,7 @@ internal static unsafe class ConfigMenu
         if (mod != null)
             mod = DrawTabs(s, mods, mod);
         selected = mod;
-        string title = mod != null ? (string.IsNullOrEmpty(mod.DisplayName) ? mod.Name : mod.DisplayName) : Text("button");
+        string title = mod != null ? (string.IsNullOrEmpty(mod.DisplayName) ? mod.Name : mod.DisplayName) : Text("ModConfigButton");
         GUIStringButton.DrawButton(s.Title, title, ref titleScale, false, true);
         DrawList(s, mod);
         string? action = DrawActions(mod);
@@ -964,7 +956,7 @@ internal static unsafe class ConfigMenu
         if (rows.Count == 0)
         {
             p.Empty.Location = new Vector2(left + 12, top + 10);
-            GUIString.Draw(p.Empty, Text("empty"), p.Empty.Color, false);
+            GUIString.Draw(p.Empty, Text("ModConfigEmpty"), p.Empty.Color, false);
             return;
         }
 

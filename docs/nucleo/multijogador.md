@@ -1,13 +1,52 @@
 # Joining a server: syncing mods and textures
 
-The Host screen (Multiplayer > Host > the world) has two Bunny Loader options,
-after the Password, in a scrolling list (`HostSettingsMenu`). Both start on
+The Host screen (Multiplayer > Host > the world) has Bunny Loader options,
+after the Password, in a scrolling list (`HostSettingsMenu`). They start on
 and apply while the game is open:
 
 | Option | On | Off |
 |---|---|---|
 | Mod sync | Anyone joining with different mods is refused and offered a sync. | Joins as always (with different mods, it may freeze while loading the world). |
 | Allow textures | Anyone joining can have texture packs enabled. | Anyone with a texture pack enabled is refused, with the reason. |
+| Allow cheat menu | Anyone joining can use the cheat menu. | The cheat menu of anyone joining is turned off while on this server (C# screen only). |
+| Allow JS mods | Anyone joining can have QuickJS on. | Anyone with QuickJS on is refused, with the reason (C# screen only). |
+
+## Bunny Loader only joins Bunny Loader servers
+
+Always on, in the core (`content/common/ModNet.cpp`), with or without QuickJS
+and C# mods. The client introduces itself in a message 68
+(`bunnyloader-cs:`, plus `js:` when QuickJS is on) before asking for the
+world. Every Bunny Loader server answers it with a **welcome** (a C# net
+packet, kind 200, carrying the host rules: bit 0 cheat menu, bit 1 JS). If the
+world data (message 7) arrives without a welcome, the server is vanilla (or an
+older Bunny Loader): the core turns that message 7 into a message 2 (kick)
+with "Bunny Loader only joins Bunny Loader servers.", and the client leaves.
+With the welcome, it leaves the same way when the host does not allow JS and
+QuickJS is on, and `cheatsBlocked()` turns the cheat menu off: the button is
+hidden (`nCheatsBlocked` in the CheatBridge), its native calls do nothing and
+the powers are reset. The host itself refuses a client with QuickJS on when
+JS is not allowed, before comparing mods.
+
+For tests, `adb shell setprop debug.bl.nowelcome 1` on the host makes it skip
+the welcome, acting as a vanilla server.
+
+## The C# version
+
+With QuickJS off, the JS loaders above do not exist, and C# does the same job
+(`Terraria/ModLoader/Core/ServerSyncHooks.cs`, `HostSettingsMenu.cs`,
+`ServerSyncMenu.cs`). The C# introduction is JSON (`{"mods":[...],
+"textures":N}`, the pack list from the core's `PackInfo`, the same rows as
+`bl.__mods`), the host judges it in a listener the core calls from
+`ProcessData` (`NetHelloListen`), sends its list in a C# packet (kind 11) and
+refuses; the client offers the sync through `NativeApi.ServerSync`, which calls
+the same `ServerSync.kt`. With QuickJS on, the JS version stays in charge (its
+list already includes the C# packs) and the core compares only the C# mods.
+
+The in-game texts of these screens come from
+`app/src/main/assets/localization/game/<culture>.json`, in the game's
+language: the launcher packs them into `NativeConfig.gameTexts` and the core
+registers each key in Terraria's localization (`BunnyLoader.<Key>`; keys with a
+dot, like `tModLoader.ModConfigAccepted`, as they are).
 
 ## The handshake
 
@@ -86,6 +125,8 @@ valid entry file.
 - A mod outside the store does not come from the host over the network: the
   player installs it by hand.
 - The Host screen options are not saved between game launches.
+- With QuickJS on in the host, the JS Host screen has no cheat menu and JS
+  rows, so both stay allowed.
 - Without sync, different mods can still freeze the join.
 - The introduction compares uid, version and order; it does not compare the
   content by hash. Two different packages published with the same version are

@@ -1,4 +1,5 @@
 #include "menu/CheatButton.h"
+#include "content/common/ModNet.h"
 #include "core/AppJni.h"
 #include "core/Config.h"
 #include "core/Log.h"
@@ -151,6 +152,7 @@ jstring toJava(JNIEnv* env, const std::string& s) {
 // ---- console e reiniciar (DevTools.java) ----
 
 void JNICALL jni_consoleRun(JNIEnv* env, jclass, jstring code) {
+    if (bl::runtime::cheatsBlocked()) return;
     bl::script::consoleSubmit(fromJava(env, code));
 }
 
@@ -182,6 +184,7 @@ jboolean JNICALL jni_restartReady(JNIEnv*, jclass) {
 
 // Metodos nativos ligados ao CheatBridge.
 void JNICALL jni_onGive(JNIEnv*, jclass, jint type, jint stack) {
+    if (bl::runtime::cheatsBlocked()) return;
     bl::runtime::requestGive(type, stack);
 }
 
@@ -236,6 +239,7 @@ jintArray JNICALL jni_npcFrames(JNIEnv* env, jclass) {
 }
 
 void JNICALL jni_onSpawn(JNIEnv*, jclass, jint type, jint count) {
+    if (bl::runtime::cheatsBlocked()) return;
     bl::runtime::requestSpawn(type, count);
 }
 
@@ -281,14 +285,17 @@ jbyteArray JNICALL jni_buffClasses(JNIEnv* env, jclass) {
 }
 
 void JNICALL jni_onBuff(JNIEnv*, jclass, jint type, jint seconds) {
+    if (bl::runtime::cheatsBlocked()) return;
     bl::runtime::requestBuff(type, seconds);
 }
 
 void JNICALL jni_setPower(JNIEnv*, jclass, jint id, jint level) {
+    if (bl::runtime::cheatsBlocked()) return;
     bl::runtime::setPower(id, level);
 }
 
 void JNICALL jni_setTimeOfDay(JNIEnv*, jclass, jint which) {
+    if (bl::runtime::cheatsBlocked()) return;
     bl::runtime::setTimeOfDay(which);
 }
 
@@ -304,6 +311,10 @@ jintArray JNICALL jni_worldState(JNIEnv* env, jclass) {
     jintArray out = env->NewIntArray(n);
     if (out) env->SetIntArrayRegion(out, 0, n, v);
     return out;
+}
+
+jboolean JNICALL jni_cheatsBlocked(JNIEnv*, jclass) {
+    return bl::runtime::cheatsBlocked() ? JNI_TRUE : JNI_FALSE;
 }
 
 jboolean JNICALL jni_inWorld(JNIEnv*, jclass) {
@@ -532,6 +543,7 @@ void installCheatButton() {
         {"nRequestRestart", "(Z)V", reinterpret_cast<void*>(&jni_requestRestart)},
         {"nRestartReady", "()Z", reinterpret_cast<void*>(&jni_restartReady)},
         {"nSetGameFrozen", "(Z)V", reinterpret_cast<void*>(&jni_setGameFrozen)},
+        {"nCheatsBlocked", "()Z", reinterpret_cast<void*>(&jni_cheatsBlocked)},
     };
     if (env->RegisterNatives(bridge, nm, sizeof(nm) / sizeof(nm[0])) != JNI_OK) {
         checkExc(env, "RegisterNatives");

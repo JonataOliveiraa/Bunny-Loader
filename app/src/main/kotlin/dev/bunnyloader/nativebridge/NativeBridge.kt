@@ -32,6 +32,7 @@ class NativeConfig(
     @JvmField val quickJs: Boolean = true,
     /** Onde o [dev.bunnyloader.game.DotnetRuntime] pôs o runtime .NET. Vazio: sem mods C#. */
     @JvmField val dotnetDir: String = "",
+    @JvmField val gameTexts: String = "",
 )
 
 /**

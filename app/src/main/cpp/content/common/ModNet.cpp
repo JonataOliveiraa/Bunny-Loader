@@ -1,9 +1,13 @@
 #include "content/common/ModNet.h"
+#include "content/common/GameTexts.h"
+#include "core/Config.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
 #include "il2cpp/Signature.h"
+
+#include <sys/system_properties.h>
 
 #include <algorithm>
 #include <atomic>
@@ -19,6 +23,12 @@ namespace {
 constexpr int32_t kRequestWorld = 6;
 constexpr int32_t kClientUuid = 68;
 constexpr const char* kHelloPrefix = "bunnyloader-cs:";
+constexpr const char* kHelloJs = "js:";
+constexpr int32_t kWorldData = 7;
+constexpr int32_t kKick = 2;
+constexpr uint8_t kWelcome = 200;
+constexpr uint8_t kRuleCheats = 1;
+constexpr uint8_t kRuleJs = 2;
 
 struct Refs {
     bool ok = false;
@@ -46,7 +56,10 @@ Refs g_refs;
 std::atomic<ManagedPacketHandler> g_handler{nullptr};
 std::mutex g_helloMx;
 std::string g_hello;
-content::CultureNames g_refusal;
+std::atomic<ManagedHelloListener> g_helloListener{nullptr};
+std::atomic<bool> g_welcomed{false};
+std::atomic<uint8_t> g_serverRules{kRuleCheats | kRuleJs};
+std::atomic<uint8_t> g_hostRules{kRuleCheats | kRuleJs};
 
 const MethodInfo* sig(Il2CppClass* cls, const char* text) {
     return cls ? il2cpp::findMethodBySignature(cls, il2cpp::parseSignature(text)) : nullptr;
@@ -131,7 +144,7 @@ ReadFn g_origRead = nullptr;
 
 void hkRead(Il2CppObject* self, Il2CppObject* reader, int32_t userId, int32_t readLength, const MethodInfo* method) {
     ManagedPacketHandler handler = g_handler.load(std::memory_order_acquire);
-    if (!handler || !reader || readLength < 2) return g_origRead(self, reader, userId, readLength, method);
+    if (!reader || readLength < 2) return g_origRead(self, reader, userId, readLength, method);
     Il2CppObject* stream = invoke(methodOf(reader, "get_BaseStream", 0), reader, nullptr, "BinaryReader.BaseStream");
     const MethodInfo* getPosition = methodOf(stream, "get_Position", 0);
     const MethodInfo* setPosition = methodOf(stream, "set_Position", 1);
@@ -152,8 +165,17 @@ void hkRead(Il2CppObject* self, Il2CppObject* reader, int32_t userId, int32_t re
     void* args[1] = {&count};
     auto* bytes = reinterpret_cast<Il2CppArray*>(invoke(methodOf(reader, "ReadBytes", 1), reader, args, "BinaryReader.ReadBytes"));
     if (!bytes) return;
-    const int32_t from = gameNetMode() == 1 ? 256 : userId;
-    handler(static_cast<const uint8_t*>(arrayData(bytes)), static_cast<int32_t>(bytes->length), from);
+    const auto* payload = static_cast<const uint8_t*>(arrayData(bytes));
+    const bool client = gameNetMode() == 1;
+    if (client && bytes->length >= 2 && payload[0] == kWelcome) {
+        g_serverRules.store(payload[1], std::memory_order_relaxed);
+        g_welcomed.store(true, std::memory_order_release);
+        BL_INFO("net: Bunny Loader server (cheats %s, JS %s)", (payload[1] & kRuleCheats) ? "allowed" : "blocked",
+                (payload[1] & kRuleJs) ? "allowed" : "blocked");
+        return;
+    }
+    if (!handler) return;
+    handler(payload, static_cast<int32_t>(bytes->length), client ? 256 : userId);
 }
 
 using SendDataFn = void (*)(int32_t, int32_t, int32_t, Il2CppObject*, int32_t, float, float, float, int32_t, int32_t, int32_t,
@@ -163,16 +185,18 @@ SendDataFn g_origSendData = nullptr;
 void hkSendData(int32_t msgType, int32_t remote, int32_t ignore, Il2CppObject* text, int32_t number, float n2, float n3, float n4,
                 int32_t n5, int32_t n6, int32_t n7, const MethodInfo* method) {
     if (msgType == kRequestWorld && gameNetMode() == 1 && g_refs.clientUuid) {
+        g_welcomed.store(false, std::memory_order_release);
+        g_serverRules.store(kRuleCheats | kRuleJs, std::memory_order_relaxed);
         std::string hello;
         {
             std::lock_guard<std::mutex> l(g_helloMx);
             hello = g_hello;
         }
-        if (!hello.empty()) {
+        {
             auto& a = il2cpp::api();
             Il2CppObject* previous = nullptr;
             a.field_static_get_value(g_refs.clientUuid, &previous);
-            Il2CppString* ours = a.string_new((std::string(kHelloPrefix) + hello).c_str());
+            Il2CppString* ours = a.string_new((std::string(kHelloPrefix) + (config().quickJs ? kHelloJs : "") + hello).c_str());
             a.field_static_set_value(g_refs.clientUuid, ours);
             g_origSendData(kClientUuid, -1, -1, nullptr, 0, 0, 0, 0, 0, 0, 0, method);
             a.field_static_set_value(g_refs.clientUuid, previous);
@@ -235,27 +259,62 @@ std::string fill(std::string text, const std::string& value) {
     return text;
 }
 
-std::string refusalText(const std::string& text, const std::string& client, const std::string& server) {
-    std::vector<std::string> parts;
-    size_t start = 0;
-    for (size_t at = text.find('\x1D'); at != std::string::npos; at = text.find('\x1D', start)) {
-        parts.push_back(text.substr(start, at - start));
-        start = at + 1;
-    }
-    parts.push_back(text.substr(start));
-    if (parts.size() != 4) return text;
+std::string refusalText(const std::string& client, const std::string& server) {
     const std::vector<std::string> clientMods = helloMods(client), serverMods = helloMods(server);
-    const std::string missing = notIn(serverMods, clientMods), extra = notIn(clientMods, serverMods);
-    std::string out = parts[0];
-    if (!missing.empty()) out += fill(parts[1], missing);
-    if (!extra.empty()) out += fill(parts[2], extra);
-    return out + parts[3];
+    const std::string all = notIn(serverMods, {}), missing = notIn(serverMods, clientMods), extra = notIn(clientMods, serverMods);
+    std::string out = fill(gameText("ServerOtherCSharpMods"), all.empty() ? "-" : all);
+    if (!missing.empty()) out += fill(gameText("ServerRefusedMissing"), missing);
+    if (!extra.empty()) out += fill(gameText("ServerRefusedExtra"), extra);
+    return out + gameText("ServerInstallSame");
 }
 
 using ProcessDataFn = void (*)(Il2CppObject*, Il2CppArray*, int32_t, int32_t*, const MethodInfo*);
 ProcessDataFn g_origProcessData = nullptr;
 
+void kickSelf(Il2CppObject* self, const std::string& reason, int32_t* messageType, const MethodInfo* method) {
+    std::vector<uint8_t> message{static_cast<uint8_t>(kKick), 0};
+    uint32_t size = static_cast<uint32_t>(reason.size());
+    while (size >= 0x80) {
+        message.push_back(static_cast<uint8_t>(size | 0x80));
+        size >>= 7;
+    }
+    message.push_back(static_cast<uint8_t>(size));
+    message.insert(message.end(), reason.begin(), reason.end());
+    Il2CppArray* bytes = il2cpp::api().array_new(g_refs.byteCls, message.size());
+    if (!bytes) return;
+    std::memcpy(arrayData(bytes), message.data(), message.size());
+    g_origProcessData(self, bytes, static_cast<int32_t>(message.size()), messageType, method);
+}
+
+bool guardWorldData(Il2CppObject* self, int32_t* messageType, const MethodInfo* method) {
+    if (!g_welcomed.load(std::memory_order_acquire)) {
+        BL_WARN("net: not a Bunny Loader server; leaving");
+        kickSelf(self, gameText("ServerVanillaRefused"), messageType, method);
+        return true;
+    }
+    if (!(g_serverRules.load(std::memory_order_relaxed) & kRuleJs) && config().quickJs) {
+        BL_WARN("net: the server does not allow JS mods; leaving");
+        kickSelf(self, gameText("ServerJsRefused"), messageType, method);
+        return true;
+    }
+    return false;
+}
+
+void sendWelcome(int32_t client) {
+    char test[PROP_VALUE_MAX] = {};
+    if (__system_property_get("debug.bl.nowelcome", test) > 0 && test[0] == '1') {
+        BL_WARN("net: debug.bl.nowelcome is set; acting as a vanilla server");
+        return;
+    }
+    const uint8_t welcome[2] = {kWelcome, g_hostRules.load(std::memory_order_relaxed)};
+    if (!sendManagedPacket(welcome, 2, client, -1)) BL_WARN("net: the welcome to player %d was not sent", client);
+}
+
 void hkProcessData(Il2CppObject* self, Il2CppArray* data, int32_t length, int32_t* messageType, const MethodInfo* method) {
+    if (data && length >= 1 && static_cast<uintptr_t>(length) <= data->length && gameNetMode() == 1 &&
+        static_cast<const uint8_t*>(arrayData(data))[0] == kWorldData && guardWorldData(self, messageType, method)) {
+        return;
+    }
     if (!data || length <= 2 || static_cast<uintptr_t>(length) > data->length ||
         static_cast<const uint8_t*>(arrayData(data))[0] != kClientUuid || gameNetMode() == 1) {
         return g_origProcessData(self, data, length, messageType, method);
@@ -265,17 +324,28 @@ void hkProcessData(Il2CppObject* self, Il2CppArray* data, int32_t length, int32_
     if (messageType) *messageType = kClientUuid;
     const int32_t from = self && g_refs.whoAmI >= 0 ? *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(self) + g_refs.whoAmI) : -1;
     std::string ours;
-    content::CultureNames refusal;
     {
         std::lock_guard<std::mutex> l(g_helloMx);
         ours = g_hello;
-        refusal = g_refusal;
     }
-    if (from < 0 || from >= 255 || hello == ours) return;
+    if (from < 0 || from >= 255) return;
+    sendWelcome(from);
+    const bool clientJs = hello.compare(0, std::strlen(kHelloJs), kHelloJs) == 0;
+    if (clientJs) hello.erase(0, std::strlen(kHelloJs));
+    if (clientJs && !(g_hostRules.load(std::memory_order_relaxed) & kRuleJs)) {
+        BL_WARN("net: player %d refused, QuickJS is on and this server does not allow JS mods", from);
+        boot(from, gameText("ServerJsRefused"));
+        return;
+    }
+    if (ManagedHelloListener listener = g_helloListener.load(std::memory_order_acquire)) {
+        listener(from, hello.c_str());
+        return;
+    }
+    if (hello == ours) return;
     const std::vector<std::string> clientMods = helloMods(hello), serverMods = helloMods(ours);
     BL_WARN("C# net: player %d refused, other C# mods (missing on the client: [%s]; only on the client: [%s])", from,
             notIn(serverMods, clientMods).c_str(), notIn(clientMods, serverMods).c_str());
-    boot(from, refusalText(content::textForCulture(refusal, "This server uses other C# mods."), hello, ours));
+    boot(from, refusalText(hello, ours));
 }
 
 }
@@ -288,9 +358,13 @@ int32_t gameNetMode() {
 }
 
 bool installManagedNet(ManagedPacketHandler handler) {
+    g_handler.store(handler, std::memory_order_release);
+    return installNetGuard();
+}
+
+bool installNetGuard() {
     static std::once_flag once;
     static bool installed = false;
-    g_handler.store(handler, std::memory_order_release);
     std::call_once(once, [] {
         if (!resolve()) return;
         installed = hook::install(g_refs.read, hkRead, &g_origRead);
@@ -303,11 +377,18 @@ bool installManagedNet(ManagedPacketHandler handler) {
     return installed;
 }
 
-void setManagedHello(const std::string& hello, const content::CultureNames& refusal) {
+void setManagedHello(const std::string& hello) {
     std::lock_guard<std::mutex> l(g_helloMx);
     g_hello = hello;
-    g_refusal = refusal;
 }
+
+void setHostRules(int32_t rules) { g_hostRules.store(static_cast<uint8_t>(rules & (kRuleCheats | kRuleJs)), std::memory_order_relaxed); }
+
+bool cheatsBlocked() {
+    return gameNetMode() == 1 && g_welcomed.load(std::memory_order_acquire) && !(g_serverRules.load(std::memory_order_relaxed) & kRuleCheats);
+}
+
+void setManagedHelloListener(ManagedHelloListener listener) { g_helloListener.store(listener, std::memory_order_release); }
 
 bool sendManagedPacket(const uint8_t* data, int32_t length, int32_t toClient, int32_t ignoreClient) {
     if (!resolve() || !data || length < 0) return false;

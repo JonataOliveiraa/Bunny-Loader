@@ -101,6 +101,7 @@ public class CheatBridge {
     public static native void nSetPower(int id, int level);
     /** bl::runtime::inWorld — o jogador esta num mundo (nao na tela de titulo). */
     public static native boolean nInWorld();
+    public static native boolean nCheatsBlocked();
     /** bl::runtime::setTimeOfDay — 0 amanhecer, 1 meio-dia, 2 anoitecer, 3 meia-noite. */
     public static native void nSetTimeOfDay(int which);
     /** {hardmode, modo, minuto 0..1439, chuva 0..100, vento 0..100}; -1 fora do mundo. */
@@ -1684,6 +1685,7 @@ public class CheatBridge {
                 if (act.isFinishing() || act.isDestroyed()) return;
                 boolean inWorld;
                 try { inWorld = nInWorld(); } catch (Throwable t) { inWorld = true; }
+                try { if (inWorld && nCheatsBlocked()) inWorld = false; } catch (Throwable t) { }
                 int vis = inWorld ? View.VISIBLE : View.GONE;
                 if (b.getVisibility() != vis) b.setVisibility(vis);
                 // Saiu do mundo com o menu aberto: fecha junto, senao ele

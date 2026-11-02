@@ -56,6 +56,7 @@ struct Config {
     int32_t joinPort = 0;
     std::string joinPassword;
     std::string joinPlayer;
+    std::string gameTexts;
 };
 
 inline Config& config() {

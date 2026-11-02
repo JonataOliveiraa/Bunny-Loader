@@ -18,16 +18,8 @@ internal static class ConfigNetHooks
 
     static readonly Dictionary<ModConfig, JsonObject> synced = new();
 
-    static bool texts;
-
     internal static void Install()
     {
-        if (!texts)
-        {
-            texts = true;
-            Texts();
-        }
-
         ItemHooks.Once("ConfigNet", () =>
         {
             ItemNetHooks.WantSendData();
@@ -35,21 +27,6 @@ internal static class ConfigNetHooks
             On_WorldGen.SaveAndQuit += SaveAndQuit;
             On_Player_Hooks.EnterWorld += EnterWorld;
         });
-    }
-
-    static void Texts()
-    {
-        LocalizationLoader.Builtin("tModLoader.ModConfigConfigSaved", "Config Saved", "Config. Salva");
-        LocalizationLoader.Builtin("tModLoader.ModConfigAskingServerToAcceptChanges", "Asking server to accept changes...", "Solicitando ao servidor para aceitar as mudanças...");
-        LocalizationLoader.Builtin("tModLoader.ModConfigCantSaveBecauseChangesWouldRequireAReload", "Can't save because changes would require a reload", "Não foi possível salvar pois as mudanças exigiriam um recarregamento");
-        LocalizationLoader.Builtin("tModLoader.ModConfigServerResponse", "Server response: {0}", "Resposta do servidor: {0}");
-        LocalizationLoader.Builtin("tModLoader.ModConfigServerRejectedChanges", "Server rejected changes: {0}", "O servidor rejeitou as mudanças: {0}");
-        LocalizationLoader.Builtin("tModLoader.ModConfigSharedConfigChanged", "Shared config changed: Message: {0}, Mod: {1}, Config: {2}", "Config. compartilhada mudou: Mensagem: {0}, Mod: {1}, Config.: {2}");
-        LocalizationLoader.Builtin("tModLoader.ModConfigAccepted", "Accepted", "Aceito");
-        LocalizationLoader.Builtin("tModLoader.ModConfigRejectChangesNotHost", "Only the host can change this config", "Apenas o host pode alterar esta configuração");
-        LocalizationLoader.Builtin("tModLoader.ModConfigServerSide", "Server Side Config", "Config. do servidor");
-        LocalizationLoader.Builtin("tModLoader.ModConfigClientSide", "Client Side Config", "Config. do cliente");
-        LocalizationLoader.Builtin("BunnyLoader.ModConfigServerNeedsRestart", "{0}: this server uses other values in options that need a restart; they only fully apply after restarting the game with them.", "{0}: este servidor usa outros valores em opções que exigem reiniciar; eles só valem por completo depois de reiniciar o jogo com eles.");
     }
 
     static IEnumerable<ModConfig> ServerConfigs => ConfigManager.All.Where(c => c.Mode == ConfigScope.ServerSide);

@@ -49,6 +49,7 @@ Java_dev_bunnyloader_nativebridge_NativeBridge_init(JNIEnv* env, jobject, jobjec
     c.joinPort    = env->GetIntField(cfg, env->GetFieldID(cls, "joinPort", "I"));
     c.joinPassword = readString(env, cfg, cls, "joinPassword");
     c.joinPlayer  = readString(env, cfg, cls, "joinPlayer");
+    c.gameTexts   = readString(env, cfg, cls, "gameTexts");
 
     auto arr = reinterpret_cast<jobjectArray>(
         env->GetObjectField(cfg, env->GetFieldID(cls, "enabledMods", "[Ljava/lang/String;")));
