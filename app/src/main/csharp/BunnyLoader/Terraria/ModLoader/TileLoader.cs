@@ -142,6 +142,11 @@ public static unsafe partial class TileLoader
         new[]
         {
             "AdjTiles"
+        },
+        new[]
+        {
+            "HasSmartInteract",
+            "RightClick"
         }
     };
 

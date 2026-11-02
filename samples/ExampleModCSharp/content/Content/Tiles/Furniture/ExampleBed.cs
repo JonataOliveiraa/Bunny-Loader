@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Terraria;
 using Terraria.DataStructures;
 using Terraria.GameContent;
+using Terraria.GameContent.ObjectInteractions;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
@@ -35,6 +36,17 @@ public class ExampleBed : ModTile
         TileObjectData.addTile(Type);
 
         AddMapEntry(new Color(191, 142, 111), Language.GetText("ItemName.Bed"));
+    }
+
+    public override bool HasSmartInteract(int i, int j, SmartInteractScanSettings settings)
+    {
+        return true;
+    }
+
+    public override void ModifySmartInteractCoords(ref int width, ref int height, ref int frameWidth, ref int frameHeight, ref int extraY)
+    {
+        width = 2;
+        height = 2;
     }
 
     public override void ModifySleepingTargetInfo(int i, int j, ref TileRestingInfo info)

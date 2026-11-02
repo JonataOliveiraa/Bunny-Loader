@@ -88,7 +88,40 @@ internal static partial class TileHooks
             Once("Mouse", () => On_Player.TileInteractionsMouseOver += Mouse);
         if (Has(16))
             Once("Far", () => On_Player.TileInteractionsCheckLongDistance += Far);
+        if (Has(27))
+            Once("Smart", () => GameContent.ObjectInteractions.On_TileSmartInteractCandidateProvider.FillPotentialTargetTiles += Smart);
         InstallDrawing(flags);
+    }
+
+    static int[] smartCells = new int[768];
+
+    static void Smart(GameContent.ObjectInteractions.On_TileSmartInteractCandidateProvider.orig_FillPotentialTargetTiles orig, GameContent.ObjectInteractions.TileSmartInteractCandidateProvider self, GameContent.ObjectInteractions.SmartInteractScanSettings settings)
+    {
+        orig(self, settings);
+        int count = Scan(ref smartCells, settings.LX, settings.LY, settings.HX - settings.LX + 1, settings.HY - settings.LY + 1, 1u << 27);
+        if (count == 0)
+            return;
+        var targets = new GameList(self.targets);
+        for (int k = 0; k < count; k++)
+        {
+            int i = smartCells[k * 3], j = smartCells[k * 3 + 1];
+            if (TileLoader.GetTile(smartCells[k * 3 + 2]) is not ModTile tile)
+                continue;
+            try
+            {
+                if (!tile.HasSmartInteract(i, j, settings))
+                    continue;
+            }
+            catch (Exception e)
+            {
+                ItemHooks.Report($"{tile.FullName}.HasSmartInteract", e);
+                continue;
+            }
+
+            int value = self.JoinValue(i, j);
+            if (!targets.Contains(value))
+                targets.Add(value);
+        }
     }
 
     internal static void InstallMusicBoxes()

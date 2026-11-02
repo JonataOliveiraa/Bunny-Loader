@@ -119,7 +119,20 @@ public override bool RightClick(int i, int j)
 
 - The anchor is the bottom tile the entity rests on; `TargetDirection`, `DirectionOffset`, `VisualOffset`, `FinalOffset` and `ExtraInfo` work as in tModLoader. The hooks run when sitting or sleeping starts and on every update while it lasts.
 - `TileID.Sets.IsValidSpawnPoint` makes a mod bed a spawn point for `Player.CheckSpawn` (the game still requires a valid room). The mobile game has no such set; the loader keeps it.
-- Not available yet: `HasSmartInteract` and `ModifySmartInteractCoords`.
+## Smart interact
+
+On mobile, touching furniture goes through the game's smart interact, which only knows its own tile types. `HasSmartInteract(i, j, settings)` adds a mod tile to the targets, as in tModLoader:
+
+```csharp
+public override bool HasSmartInteract(int i, int j, SmartInteractScanSettings settings)
+{
+    return settings.player.IsWithinSnappngRangeToTile(i, j, PlayerSittingHelper.ChairSittingMaxDistance);
+}
+```
+
+- Unlike tModLoader, the default is `true` for tiles that override `RightClick` (`false` otherwise), so a ported tile stays usable by touch; return `false` to opt out. `ModPylon` returns `true`.
+- The cell filter is native: only types that override `HasSmartInteract` or `RightClick` are looked at.
+- `ModifySmartInteractCoords` exists but is not called yet: the mobile game keeps the highlighted cells in its own structure, and mod tiles get no highlight outline from smart interact.
 
 ## Chests and dressers
 
@@ -318,4 +331,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees, `cspylon` pylons and `csresting` chairs and beds.
+The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees, `cspylon` pylons, `csresting` chairs and beds, and `cssmart` smart interact.

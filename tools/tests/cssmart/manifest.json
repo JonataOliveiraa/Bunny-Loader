@@ -1,0 +1,15 @@
+{
+  "uid": "b6b78c6f-352c-4510-a3f5-9284ba22523a",
+  "id": "test-cssmart",
+  "name": "Test: HasSmartInteract (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModTile.HasSmartInteract: a mod tile with RightClick joins the game's smart interact targets, one that returns false does not, and the game picks the mod tile near the player.",
+  "description": "Build with tools/tests/build-cs.sh cssmart. Logs cssmart <case>: ok | FAIL and cssmart END pass=N fail=M.",
+  "updated": "2026-11-01",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsSmart.dll",
+  "dependencies": []
+}

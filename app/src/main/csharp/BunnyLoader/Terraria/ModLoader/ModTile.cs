@@ -5,6 +5,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Terraria.Audio;
 using Terraria.DataStructures;
 using Terraria.GameContent.Drawing;
+using Terraria.GameContent.ObjectInteractions;
 using Terraria.Localization;
 
 namespace Terraria.ModLoader;
@@ -137,6 +138,12 @@ public abstract class ModTile : ModBlockType
     }
 
     public virtual bool RightClick(int i, int j) => false;
+
+    public virtual bool HasSmartInteract(int i, int j, SmartInteractScanSettings settings) => TileLoader.Has(this, 14);
+
+    public virtual void ModifySmartInteractCoords(ref int width, ref int height, ref int frameWidth, ref int frameHeight, ref int extraY)
+    {
+    }
 
     public virtual bool IsLockedChest(int i, int j) => false;
 
