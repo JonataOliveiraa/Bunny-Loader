@@ -111,6 +111,9 @@ internal static unsafe class ConfigMenu
     static string? slider;
     static int guardIdle, pauseDrawing;
     static Popup? popup;
+    static Action? onClose;
+    static bool fromCode;
+    static (ModConfig Config, string Name, bool Center)? scrollTo;
     static (string Culture, string Text)? back;
 
     static nint Keep(nint pointer)
@@ -447,14 +450,66 @@ internal static unsafe class ConfigMenu
         if (!open)
             return;
         open = false;
+        string? closed = where;
         where = null;
         popup = null;
+        scrollTo = null;
         ReleaseSliders();
         if (apply)
             Apply();
         entries.Clear();
         if (sound)
             SoundEngine.PlaySound(MenuCloseSound);
+        if (!fromCode)
+            return;
+        fromCode = false;
+        if (closed == "pause")
+            ShowPause(false);
+        Action? action = onClose;
+        onClose = null;
+        try { action?.Invoke(); }
+        catch (Exception e) { Report("onClose", e); }
+    }
+
+    static void ShowPause(bool show)
+    {
+        GUIInstance gi = GUIInstance.Active;
+        if (gi.IsNull)
+            return;
+        if (!gi.GUISettingsPauseMenu.IsNull)
+            gi.GUISettingsPauseMenu.Enabled = show;
+        if (!gi.GUISettings.IsNull)
+            gi.GUISettings.Visible = show;
+        Main.ingameOptionsWindow = show;
+    }
+
+    internal static void Open(ModConfig config, Action? close, string? scrollToOption, bool centerScrolledOption, bool playSound)
+    {
+        Close(false);
+        if (Main.gameMenu)
+        {
+            GUIInstance gi = GUIInstance.Active;
+            if (!gi.IsNull && !gi.GUISettings.IsNull)
+                gi.GUISettings.Visible = true;
+        }
+        else
+        {
+            Main.playerInventory = false;
+            ShowPause(true);
+        }
+
+        if (playSound)
+            SoundEngine.PlaySound(MenuOpenSound);
+        open = true;
+        where = Main.gameMenu ? "menu" : "pause";
+        fromCode = true;
+        onClose = close;
+        selected = config.Mod;
+        Begin();
+        ResetScroll();
+        Guard();
+        if (!string.IsNullOrEmpty(scrollToOption))
+            scrollTo = (config, scrollToOption, centerScrolledOption);
     }
 
     static bool Pending() => entries.Any(e => e.Draft != null && !ConfigManager.SameValues(e.Draft, e.Active));
@@ -914,6 +969,28 @@ internal static unsafe class ConfigMenu
         }
 
         float total = rows.Sum(r => r.Height) - Gap;
+        if (scrollTo is { } target)
+        {
+            scrollTo = null;
+            string key = target.Name.StartsWith("Header:", StringComparison.Ordinal)
+                ? $"{target.Config.FullName}.{target.Name.Substring(7)}:header"
+                : $"{target.Config.FullName}.{target.Name}";
+            float offset = 0;
+            foreach (Row row in rows)
+            {
+                bool header = key.EndsWith(":header", StringComparison.Ordinal);
+                if (row.Entry.Active == target.Config && (row.Key == key || !header && row.Kind != "header" && row.Key.StartsWith(key + ":", StringComparison.Ordinal)))
+                {
+                    float view = bottom - top;
+                    scroll = Math.Clamp(target.Center ? offset - (view - row.Height) / 2 : offset, 0, Math.Max(0, total - view));
+                    momentum = 0;
+                    break;
+                }
+
+                offset += row.Height;
+            }
+        }
+
         Rectangle area = Rect(left, top, width, bottom - top);
         Scroll(area, total, left, top, width, bottom);
         Rectangle saved = ControlAnchor._gridItemRegion;

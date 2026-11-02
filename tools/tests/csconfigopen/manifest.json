@@ -1,0 +1,15 @@
+{
+  "uid": "5d2e7a91-3c4b-4f8e-a1d6-9b0c2e4f7a18",
+  "id": "test-csconfigopen",
+  "name": "Test: ModConfig.Open (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModConfig.Open in the world: opens the config screen on the mod's tab, scrolled to an option, and runs onClose on Back. Checked by a screenshot and the log.",
+  "description": "Build with tools/tests/build-cs.sh csconfigopen. Logs csconfigopen opened, csconfigopen END and csconfigopen closed after Back.",
+  "updated": "2026-11-02",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsConfigOpen.dll",
+  "dependencies": []
+}

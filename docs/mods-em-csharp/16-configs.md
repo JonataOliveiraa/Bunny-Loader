@@ -74,6 +74,18 @@ world, a change to a `[ReloadRequired]` field is refused (`NeedsReload`) and
 its row is greyed out; in the title screen it is saved and takes effect the
 next time the game starts.
 
+## Opening a config from code
+
+`config.Open()` opens the screen on the mod's tab, as in tModLoader. In a
+world it opens over the game and Back returns to it; `onClose` runs when the
+screen closes. `scrollToOption` scrolls to a field (`nameof(MyConfig.Field)`),
+or to the header above it with `"Header:Field"`; `centerScrolledOption: false`
+puts it at the top instead of the middle.
+
+```csharp
+ModContent.GetInstance<ExampleModConfig>().Open(onClose: () => Main.NewText("Closed"), scrollToOption: nameof(ExampleModConfig.SpawnRate));
+```
+
 ## Client-side and server-side configs
 
 `Mode` says whose values count:
@@ -113,11 +125,12 @@ the mods instead).
 
 ## Not available yet
 
-`ModConfig.Open`, tooltips on the screen, custom elements
+Tooltips on the screen, custom elements
 (`[CustomModConfigItem]`), separate pages, and editing lists, dictionaries,
 vectors and free text.
 
 Example: `samples/ExampleModCSharp` (`ExampleModConfig`,
 `ModConfigShowcaseRanges`, `ModConfigShowcaseAcceptClientChanges` and the
 supported part of `ModConfigShowcaseMisc`). Test packs: `tools/tests/csconfig`,
-and `tools/tests/csconfigmp` on two devices (`tools/tests/run-mp.sh csconfigmp`).
+`tools/tests/csconfigopen` (`Open`, checked by a screenshot), and
+`tools/tests/csconfigmp` on two devices (`tools/tests/run-mp.sh csconfigmp`).

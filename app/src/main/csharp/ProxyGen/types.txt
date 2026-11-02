@@ -54,6 +54,7 @@ GUIPanel
 GUIPlayerCreateMenu
 GUISettingsOverlay
 GUISettingsPauseMenu
+GUISettings
 GUISlider
 GUIString
 GUIStringButton

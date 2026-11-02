@@ -48,6 +48,9 @@ public abstract class ModConfig : ILocalizedModType, ILoadable
     public ConfigSaveResult SaveChanges(ModConfig? pendingConfig = null, Action<string, Color>? status = null, bool silent = true, bool broadcast = true) =>
         ConfigManager.SaveChanges(this, pendingConfig ?? this, status, silent, broadcast);
 
+    public void Open(Action? onClose = null, string? scrollToOption = null, bool centerScrolledOption = true, bool playSound = true) =>
+        ConfigMenu.Open(this, onClose, scrollToOption, centerScrolledOption, playSound);
+
     bool ILoadable.IsLoadingEnabled(Mod mod) => true;
 
     void ILoadable.Load(Mod mod)
