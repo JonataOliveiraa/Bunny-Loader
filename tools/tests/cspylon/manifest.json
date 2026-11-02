@@ -1,6 +1,6 @@
 {
   "uid": "a786faf4-4f1a-4966-93f8-478f03517422",
-  "id": "test-cspylon",
+  "id": "CsPylon",
   "name": "Test: ModPylon (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "ModPylon and TEModdedPylon: PylonType, CountsAsPylon, placement and the game's pylon list, one per type, near a pylon, teleporting with the biome and NPC checks, the shop entry, the map icon and breaking it.",
   "description": "Build with tools/tests/build-cs.sh cspylon. Logs cspylon <case>: ok | FAIL and cspylon END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsPylon.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

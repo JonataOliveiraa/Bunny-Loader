@@ -36,16 +36,16 @@ class ModSourcesTest {
         assertEquals("Meu mod", manifest.name)
         assertEquals("Autora", manifest.author)
         assertEquals("1.0.0", manifest.version)
-        assertEquals(2, manifest.blVersion)
+        assertEquals(3, manifest.blVersion)
         assertEquals("mod", manifest.type)
-        assertEquals("Teste.cs", manifest.entry)
-        assertTrue(sources.readText("Teste", "content/Teste.cs")
+        assertEquals(listOf("Teste.dll", "Teste.cs"), manifest.entryNames)
+        assertTrue(sources.readText("Teste", "Teste.cs")
             .contains("public class Teste : Mod"))
         for (folder in listOf("Assets", "Common", "Content", "Localization")) {
-            assertTrue(File(sources.root, "Teste/content/$folder").isDirectory)
+            assertTrue(File(sources.root, "Teste/$folder").isDirectory)
         }
         assertTrue(sources.readText("Teste", "description.md").contains("Meu mod"))
-        assertTrue(sources.readText("Teste", "manifest.json").contains("\"entry\""))
+        assertFalse(sources.readText("Teste", "manifest.json").contains("\"entry\""))
         assertEquals(manifest.uid, sources.list().single().manifest!!.uid)
         assertEquals(manifest.uid, sources.build("Teste", output()).uid)
         assertEquals(manifest.uid, sources.build("Teste", output()).uid)
@@ -57,7 +57,7 @@ class ModSourcesTest {
         assertTrue("A imagem da espada deve estar nos assets do aplicativo", sprite.isFile)
         val sources = ModSources(File(temporary.root, "sources")) { sprite.inputStream() }
         val manifest = sources.create("SwordMod", "Sword Mod", "Author", "  CopperSword  ", "zh").manifest!!
-        val weapon = "content/Content/Items/CopperSword"
+        val weapon = "Content/Items/CopperSword"
         val code = sources.readText("SwordMod", "$weapon.cs")
         assertTrue(code.contains("namespace SwordMod.Content.Items;"))
         assertTrue(code.contains("public class CopperSword : ModItem"))
@@ -66,7 +66,7 @@ class ModSourcesTest {
         assertTrue(code.contains("CreateRecipe()"))
         assertTrue(code.contains(".AddIngredient(ItemID.DirtBlock, 10)"))
         for (culture in listOf("en-US", "zh-Hans")) {
-            assertTrue(sources.readText("SwordMod", "content/Localization/${culture}_Mods.SwordMod.hjson")
+            assertTrue(sources.readText("SwordMod", "Localization/${culture}_Mods.SwordMod.hjson")
                 .contains("DisplayName: Copper Sword"))
         }
         assertEquals("Sword Mod", manifest.nameFor("zh"))
@@ -82,8 +82,8 @@ class ModSourcesTest {
         assertTrue(File(sources.root, "SwordMod/$weapon.png").readBytes().contentEquals(sprite.readBytes()))
         assertEquals(manifest.uid, sources.build("SwordMod", output()).uid)
         ZipFile(output()).use { zip ->
-            for (path in listOf("$weapon.cs", "$weapon.png", "content/Localization/en-US_Mods.SwordMod.hjson",
-                "content/Localization/zh-Hans_Mods.SwordMod.hjson", "description.md", "description_zh-Hans.md", "content/SwordMod.cs")) {
+            for (path in listOf("$weapon.cs", "$weapon.png", "Localization/en-US_Mods.SwordMod.hjson",
+                "Localization/zh-Hans_Mods.SwordMod.hjson", "description.md", "description_zh-Hans.md", "SwordMod.cs")) {
                 assertNotNull("Não empacotou $path", zip.getEntry(path))
             }
             assertTrue(zip.getInputStream(zip.getEntry("$weapon.png")).readBytes().contentEquals(sprite.readBytes()))
@@ -100,8 +100,8 @@ class ModSourcesTest {
         rejects("imagem") { sources().create("SwordMod", "Sword Mod", "Author", "Sword") }
         assertFalse(sources.root.exists())
         sources.create("Empty", "No weapon", "Author", "  ")
-        assertFalse(File(sources.root, "Empty/content/Content/Items").exists())
-        assertFalse(File(sources.root, "Empty/content/Localization/en-US_Mods.Empty.hjson").exists())
+        assertFalse(File(sources.root, "Empty/Content/Items").exists())
+        assertFalse(File(sources.root, "Empty/Localization/en-US_Mods.Empty.hjson").exists())
         assertEquals("No weapon", sources.list().single().manifest!!.nameFor("pt-BR"))
         assertTrue(sources.readText("Empty", "description_pt-BR.md")
             .contains("# No weapon\n\nEste é o projeto-fonte do mod No weapon."))
@@ -111,7 +111,7 @@ class ModSourcesTest {
     @Test fun csharpKeywordsStillProduceValidClassNames() {
         val sources = sources()
         sources.create("class", "Classe", "Autor")
-        val code = sources.readText("class", "content/class.cs")
+        val code = sources.readText("class", "class.cs")
         assertTrue(code.contains("namespace @class;"))
         assertTrue(code.contains("public class classMod : Mod"))
     }
@@ -140,18 +140,23 @@ class ModSourcesTest {
         val sources = sources()
         sources.create("Teste", "Teste", "Autor")
         val edited = "public class Teste : Mod { public override void Load() => Logger.Info(\"olá\"); }\n"
-        sources.writeText("Teste", "content/Teste.cs", edited)
-        sources.writeText("Teste", "content/Localization/pt-BR.hjson", "{ saudacao: Olá }")
+        sources.writeText("Teste", "Teste.cs", edited)
+        sources.writeText("Teste", "Localization/pt-BR.hjson", "{ saudacao: Olá }")
         sources.writeText("Teste", "docs/novo.txt", "Novo arquivo 🐰")
         val project = File(sources.root, "Teste")
         File(project, ".git").mkdir()
         File(project, ".git/config").writeText("segredo")
-        File(project, "content/.cache").mkdir()
-        File(project, "content/.cache/gerado.js").writeText("ignorar")
+        File(project, "Content/.cache").mkdir()
+        File(project, "Content/.cache/gerado.js").writeText("ignorar")
+        File(project, "bin").mkdir()
+        File(project, "bin/Teste.dll").writeText("ignorar")
+        File(project, "obj").mkdir()
+        File(project, "obj/gerado.cs").writeText("ignorar")
+        File(project, "Teste.csproj").writeText("ignorar")
         File(project, "build").mkdir()
         File(project, "build/antigo.bl").writeText("ignorar")
-        File(project, "content/Assets/imagem.png").writeBytes(byteArrayOf(1, 2, 3))
-        assertEquals(edited, sources.readText("Teste", "content\\Teste.cs"))
+        File(project, "Assets/imagem.png").writeBytes(byteArrayOf(1, 2, 3))
+        assertEquals(edited, sources.readText("Teste", "Teste.cs"))
         assertTrue("docs/novo.txt" in sources.files("Teste"))
         assertFalse(sources.files("Teste").any { it.endsWith(".png") || it.contains(".git") })
         sources.build("Teste", output())
@@ -159,9 +164,10 @@ class ModSourcesTest {
             val paths = zip.entries().asSequence().map { it.name }.toList()
             assertTrue("manifest.json" in paths)
             assertTrue("description.md" in paths)
-            assertTrue("content/Assets/imagem.png" in paths)
+            assertTrue("Assets/imagem.png" in paths)
+            assertFalse(paths.any { it.startsWith("bin/") || it.startsWith("obj/") || it.endsWith(".csproj") })
             assertFalse(paths.any { it.startsWith("build/") || it.contains("/.") || it.startsWith(".") })
-            assertEquals(edited, zip.getInputStream(zip.getEntry("content/Teste.cs")).reader(Charsets.UTF_8).readText())
+            assertEquals(edited, zip.getInputStream(zip.getEntry("Teste.cs")).reader(Charsets.UTF_8).readText())
             assertEquals("Novo arquivo 🐰", zip.getInputStream(zip.getEntry("docs/novo.txt")).reader(Charsets.UTF_8).readText())
             assertEquals(sources.list().single().manifest,
                 json.decodeFromString<ModManifest>(zip.getInputStream(zip.getEntry("manifest.json")).reader().readText()))
@@ -206,8 +212,8 @@ class ModSourcesTest {
             valid.copy(name = " ") to "nome",
             valid.copy(version = "") to "versão",
             valid.copy(version = "1\n2") to "versão",
-            valid.copy(blVersion = 1) to "blVersion",
-            valid.copy(blVersion = 3) to "blVersion",
+            valid.copy(blVersion = 2) to "blVersion",
+            valid.copy(blVersion = 4) to "blVersion",
             valid.copy(type = "texture") to "tipo",
         )
         for ((manifest, error) in invalid) {
@@ -219,18 +225,16 @@ class ModSourcesTest {
         assertFalse(temporary.root.listFiles()!!.any { it.name.startsWith(".bunny-mod-") })
     }
 
-    @Test fun entryMustBeAnExistingVisibleFileInsideContent() {
+    @Test fun entryIsTheModClassFileAtTheRoot() {
         val sources = sources()
         val valid = sources.create("Teste", "Teste", "Autor").manifest!!
-        for (entry in listOf("inexistente.js", "../description.md", "/main.js", "C:/main.js", ".privado/main.js", "build/main.js", "Assets")) {
-            sources.writeText("Teste", "manifest.json", json.encodeToString(valid.copy(entry = entry)))
-            rejects { sources.build("Teste", output()) }
-            assertNotNull(sources.list().single().error)
-            assertFalse(output().exists())
-        }
-        sources.writeText("Teste", "content/Common/Novo.cs", "public class Teste : Mod { }")
-        sources.writeText("Teste", "manifest.json", json.encodeToString(valid.copy(entry = "Common/Novo.cs")))
-        assertEquals("Common/Novo.cs", sources.build("Teste", output()).entry)
+        File(sources.root, "Teste/Teste.cs").delete()
+        sources.writeText("Teste", "Common/Teste.cs", "public class Teste : Mod { }")
+        rejects("Teste.cs") { sources.build("Teste", output()) }
+        assertNotNull(sources.list().single().error)
+        assertFalse(output().exists())
+        sources.writeText("Teste", "Teste.cs", "public class Teste : Mod { }")
+        assertEquals(valid.uid, sources.build("Teste", output()).uid)
     }
 
     @Test fun unknownManifestFieldsAndOriginalManifestBytesArePreservedInArchive() {
@@ -238,14 +242,14 @@ class ModSourcesTest {
         val manifest = sources.create("Teste", "Teste", "Autor").manifest!!
         sources.writeText("Teste", "manifest.json", """
             {"uid":"${manifest.uid}","id":"Teste","name":"Teste","version":"1.0",
-             "type":"mod","blVersion":2,"entry":"Teste.cs","futureOption":{"value":true}}
+             "type":"mod","blVersion":3,"futureOption":{"value":true}}
         """.trimIndent())
         sources.build("Teste", output())
         ZipFile(output()).use { zip ->
             val text = zip.getInputStream(zip.getEntry("manifest.json")).reader().readText()
             assertTrue(text.contains("\"futureOption\""))
             assertEquals(sources.readText("Teste", "manifest.json"), text)
-            assertEquals("Teste.cs", json.decodeFromString<ModManifest>(text).entry)
+            assertEquals("Teste", json.decodeFromString<ModManifest>(text).id)
         }
     }
 
@@ -253,7 +257,7 @@ class ModSourcesTest {
         val sources = sources()
         sources.create("Teste", "Teste", "Autor")
         val forbidden = listOf("../fora.txt", "content/../../fora.txt", "/fora.txt", "C:/fora.txt",
-            "\\fora.txt", "content\\..\\..\\fora.txt", "content/.oculto/a.js", ".git/config.txt", "a\u0000.js", "", ".")
+            "\\fora.txt", "content\\..\\..\\fora.txt", "Content/.oculto/a.js", ".git/config.txt", "a\u0000.js", "", ".")
         for (path in forbidden) {
             rejects { sources.readText("Teste", path) }
             rejects { sources.writeText("Teste", path, "texto") }
@@ -286,7 +290,7 @@ class ModSourcesTest {
         val sources = sources()
         sources.create("Teste", "Teste", "Autor")
         for (file in listOf(File(sources.root, "saida.bl"), File(sources.root, "Teste/saida.bl"),
-            File(sources.root, "Teste/content/saida.bl"))) {
+            File(sources.root, "Teste/Content/saida.bl"))) {
             rejects("fora") { sources.build("Teste", file) }
             assertFalse(file.exists())
         }
@@ -298,14 +302,14 @@ class ModSourcesTest {
         sources.create("Teste", "Teste", "Autor")
         val project = File(sources.root, "Teste")
         val link = File(project, "atalho")
-        try { Files.createSymbolicLink(link.toPath(), File(project, "content").toPath()) }
+        try { Files.createSymbolicLink(link.toPath(), File(project, "Content").toPath()) }
         catch (e: Exception) { assumeNoException("O ambiente não permite criar links simbólicos", e); return }
         rejects("simbólicos") { sources.readText("Teste", "atalho/Teste.cs") }
         rejects("simbólicos") { sources.writeText("Teste", "atalho/Teste.cs", "não sobrescrever") }
         output().writeText("anterior")
         rejects("simbólicos") { sources.build("Teste", output()) }
         assertEquals("anterior", output().readText())
-        assertTrue(sources.readText("Teste", "content/Teste.cs").contains(": Mod"))
+        assertTrue(sources.readText("Teste", "Teste.cs").contains(": Mod"))
     }
 
     private fun rejects(fragment: String? = null, action: () -> Unit) {

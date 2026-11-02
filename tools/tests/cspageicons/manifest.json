@@ -1,6 +1,6 @@
 {
   "uid": "2b22e857-1840-4685-b7b1-c4c981f29459",
-  "id": "test-cspageicons",
+  "id": "CsPageIcons",
   "name": "Test: page and sign icons (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "The shop page icon shows the mod town NPC's head, and an open mod sign shows the item that places it in the dialogue.",
   "description": "Build with tools/tests/build-cs.sh cspageicons. Logs cspageicons <case>: ok | FAIL and cspageicons END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsPageIcons.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

@@ -41,7 +41,7 @@ restore_saves() {
 prepare() {
     local dev="$1" saves="$2" u
     shift 2
-    [ -f "$here/csauto/content/CsAuto.dll" ] || bash "$here/build-cs.sh" csauto >/dev/null
+    [ -f "$here/csauto/CsAuto.dll" ] || bash "$here/build-cs.sh" csauto >/dev/null
     adb -s "$dev" shell am force-stop $pkg
     adb -s "$dev" shell "run-as $pkg rm -f shared_prefs/bunny_powers.xml" >/dev/null 2>&1
     [ "$saves" = 1 ] && [ "${KEEPSAVES:-0}" != 1 ] && restore_saves "$dev"

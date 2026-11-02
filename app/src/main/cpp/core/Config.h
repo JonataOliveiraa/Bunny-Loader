@@ -17,7 +17,7 @@ struct ModSpec {
     std::string entry;   // relativo a pasta do mod; vazio = descobrir
 };
 
-/** "uid=content/main.js" -> {uid, content/main.js}. Sem `=`, entry vazio. */
+/** "uid=MyMod.dll" -> {uid, MyMod.dll}. Sem `=`, entry vazio. */
 ModSpec parseModSpec(const std::string& texto);
 
 struct Config {

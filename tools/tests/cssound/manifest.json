@@ -1,6 +1,6 @@
 {
   "uid": "a6d3f1c8-2e47-4b95-8c1a-7f0e5d9b3c24",
-  "id": "test-cssound",
+  "id": "CsSound",
   "name": "Test: SoundStyle and SoundEngine (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "tModLoader's SoundStyle (defaults, pitch range, volume scale, variants), mod sounds in Item.UseSound, through the game's SoundEngine, with position and distance, a missing file, and MaxInstances with IgnoreNew.",
   "description": "Build with tools/tests/build-cs.sh cssound. Logs cssound <case>: ok | FAIL and cssound END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsSound.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

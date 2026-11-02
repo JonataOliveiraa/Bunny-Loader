@@ -16,7 +16,7 @@
 #include <sys/stat.h>
 #include <vector>
 
-// Fontes de pacote: content/Fonts/<Fonte>.json + paginas PNG trocam as
+// Fontes de pacote: Fonts/<Fonte>.json + paginas PNG trocam as
 // fontes do jogo (FontAssets). O SpriteFont do celular indexa por uma tabela
 // direta char -> glifo (ushort[65535]), entao o pacote substitui os glifos que
 // o jogo ja tem e acrescenta os novos; o que o pacote nao traz continua com a
@@ -283,7 +283,7 @@ bool directory(const std::string& path) {
     return lstat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
 }
 
-/** content/Fonts/<arquivo>.json do alvo, ou "" (aceita Mouse_Text.json e MouseText.json). */
+/** Fonts/<arquivo>.json do alvo, ou "" (aceita Mouse_Text.json e MouseText.json). */
 std::string fontFile(const std::string& fonts, const Target& t) {
     DIR* dir = opendir(fonts.c_str());
     if (!dir) return {};
@@ -302,7 +302,7 @@ std::string parentOf(const std::string& path) {
     return slash == std::string::npos ? std::string(".") : path.substr(0, slash);
 }
 
-/** O arquivo da pagina, sem sair da pasta content/Fonts do pacote. */
+/** O arquivo da pagina, sem sair da pasta Fonts do pacote. */
 bool safeRelative(const std::string& name) {
     if (name.empty() || name[0] == '/' || name.find('\\') != std::string::npos) return false;
     size_t start = 0;
@@ -560,10 +560,8 @@ void configureFontPacks(const std::string& root, const std::vector<ModSpec>& ena
     g_pending.clear();
     for (const auto& spec : enabled) {
         if (spec.entry != "@texture" && spec.entry != "@font") continue;
-        const std::string base = root + "/" + spec.id;
-        for (const char* folder : {"/content/Fonts", "/Content/Fonts", "/content/fonts"}) {
-            if (directory(base + folder)) { g_pending.push_back({spec.id, base + folder}); break; }
-        }
+        const std::string folder = root + "/" + spec.id + "/Fonts";
+        if (directory(folder)) g_pending.push_back({spec.id, folder});
     }
     g_dirty.store(true, std::memory_order_release);
 }

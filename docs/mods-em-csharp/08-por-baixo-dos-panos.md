@@ -142,8 +142,8 @@ The exact list is `assets/dotnet/references.txt` in the APK: it is also what a
 mod with sources compiles against. A mod that needs another one
 (`System.Text.Json`...) fails to load with `FileNotFoundException`.
 
-**Libraries of your own** are fine: a `.dll` you ship next to your mod's in
-`content/` (a NuGet package, a shared library of yours) is found when your
+**Libraries of your own** are fine: a `.dll` you ship next to your mod's, in
+the mod folder (a NuGet package, a shared library of yours) is found when your
 code first uses it. It must target .NET 10 or .NET Standard, and its own
 dependencies must be there too. In the `.csproj`,
 `<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>` makes

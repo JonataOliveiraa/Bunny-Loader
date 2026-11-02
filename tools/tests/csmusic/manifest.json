@@ -1,6 +1,6 @@
 {
   "uid": "6f99f826-e3e1-4345-a5a7-07a2ae7dcd19",
-  "id": "test-csmusic",
+  "id": "CsMusic",
   "name": "Test: MusicLoader and scene music (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "MusicLoader slots and files, a ModBiome playing mod music over the game's, a higher scene asking for a vanilla track, and the fade out when leaving.",
   "description": "Build with tools/tests/build-cs.sh csmusic. Logs csmusic <case>: ok | FAIL and csmusic END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsMusic.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

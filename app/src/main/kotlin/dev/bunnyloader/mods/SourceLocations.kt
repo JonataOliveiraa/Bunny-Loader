@@ -76,24 +76,16 @@ class SourceLocations(private val context: Context, val local: ModSources) {
                         manifest = json.decodeFromString<ModManifest>(
                             Charsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(bytes)).toString())
                         val sourceManifest = requireNotNull(manifest)
-                        check(sourceManifest.hasValidUid && sourceManifest.blVersion == 2 && sourceManifest.type == "mod" &&
+                        check(sourceManifest.hasValidUid && sourceManifest.blVersion == ModRepository.BL_VERSION &&
+                            sourceManifest.type == "mod" &&
                             sourceManifest.name.isNotBlank() && sourceManifest.version.isNotBlank() &&
                             sourceManifest.version.none { it.isISOControl() } &&
-                            Regex("^[A-Za-z][A-Za-z0-9_]{0,63}$").matches(sourceManifest.id)) {
+                            ModSources.ID.matches(sourceManifest.id)) {
                             "Invalid mod manifest"
                         }
-                        val content = children(directory.uri).firstOrNull { it.name == "content" && it.directory }
-                            ?: error("Missing content folder")
-                        val entry = sourceManifest.entry.replace('\\', '/').split('/')
-                        check(entry.all { it.isNotBlank() && it != "." && it != ".." &&
-                            !it.startsWith('.') && !it.equals("build", true) }) { "Invalid entry path" }
-                        var current = content.uri
-                        for ((index, part) in entry.withIndex()) {
-                            val next = children(current).firstOrNull { it.name == part }
-                                ?: error("Missing entry file")
-                            if (index == entry.lastIndex) check(!next.directory) { "Entry is a folder" }
-                            else check(next.directory) { "Entry parent is not a folder" }
-                            current = next.uri
+                        val files = children(directory.uri)
+                        check(sourceManifest.entryNames.any { name -> files.any { it.name == name && !it.directory } }) {
+                            "Missing entry file"
                         }
                     }.exceptionOrNull()?.message
                     result += ModSources.Project(key, manifest?.name ?: directory.name, manifest, failure, value)

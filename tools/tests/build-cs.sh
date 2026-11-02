@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Compila os mods C# de teste (o .dll vai para content/ de cada um). Pede o
+# Compila os mods C# de teste (o .dll vai para a raiz de cada um). Pede o
 # SDK do .NET e o dump do jogo em refs/DummyDll (as proxies sao geradas dele).
 #
 #   tools/tests/build-cs.sh            # todos

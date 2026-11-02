@@ -42,7 +42,7 @@ flowchart LR
         CS["MyMod.cs"] -- "dotnet build" --> DLL["MyMod.dll"]
         REF["BunnyLoader.dll<br/>(the game's types)"] -. "reference" .-> CS
     end
-    DLL -- "zip + import" --> PKG["bunny_packs/(uid)/content/MyMod.dll"]
+    DLL -- "zip + import" --> PKG["bunny_packs/(uid)/MyMod.dll"]
     subgraph Phone["the phone"]
         PKG --> MONO[".NET runtime (Mono)<br/>inside the game"]
         MONO -- "Load()" --> HOOKS["your hooks"]

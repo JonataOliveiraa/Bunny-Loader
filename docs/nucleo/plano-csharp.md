@@ -127,6 +127,7 @@ with tModLoader's name.
 | Localization files | tModLoader's layout: `Localization/en-US.hjson` with `Mods.<Mod>.Items.<Name>.DisplayName`. The `ItemName`/`ItemTooltip` JSON added for the first `ModItem` stays readable until phase 9, and `ExampleModCSharp` switches to hjson in phase 0. |
 | Mod identity in `FullName` | tModLoader uses the internal mod name (`ExampleMod/ExampleItem`). Saves keep the uid key (`<uid>/<Name>`), since that is what existing saves store. |
 | What happens to the 47 JS mods in the catalog | All three options of section 6. |
+| Package layout (2026-11-02, format 3) | Similar to tModLoader, not equal: the `Mod` class in `<id>.cs` (or the compiled `<id>.dll`) and `Assets/`, `Common/`, `Content/`, `Localization/` at the root, next to `manifest.json` and the page (`icon.png`, `description.md`, `changelog.md`, `license.md`, `authors/`); no `content/` folder and no `entry` field. The manifest `id` is the internal name (assembly, `Mods.<id>`, folder in Mod Sources). Texture and font packs use `Images/` and `Fonts/` at the root. `bin/`, `obj/` and `.csproj` are left out of packages. Format 2 no longer loads. |
 
 ## 4. Phases
 

@@ -75,12 +75,13 @@ internal object ServerModSync {
     /** Re-read versions after downloads: the repository may have changed since planning. */
     fun sessionSpecs(
         required: List<ServerSync.HostMod>, installed: List<ModManifest>, textures: List<String>, fonts: List<String> = emptyList(),
+        entryOf: (ModManifest) -> String? = { it.entryNames.first() },
     ): List<String> {
         val byUid = installed.associateBy { it.uid }
         return required.map { mod ->
             val manifest = byUid[mod.uid] ?: error("${label(mod)} não ficou instalado")
             requireMatch(mod, manifest)
-            "${mod.uid}=${manifest.entry}"
+            "${mod.uid}=${entryOf(manifest) ?: error("${label(mod)} ficou sem o arquivo de entrada")}"
         } + textures.filter { byUid[it]?.packType == PackType.TEXTURE }.map { "$it=@texture" } +
             fonts.filter { byUid[it]?.packType == PackType.FONT }.map { "$it=@font" }
     }

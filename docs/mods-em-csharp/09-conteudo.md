@@ -32,10 +32,10 @@ public class ShinyRock : ModItem
 `maxStack` starts at 1, as in tModLoader (the phone's game would start every
 item at 9999): set it for anything that stacks.
 
-The texture is `content/Content/Items/ShinyRock.png`: the namespace plus the
+The texture is `Content/Items/ShinyRock.png`: the namespace plus the
 class name, as in tModLoader, and the first part (the mod's name) may be
 missing on disk. The name and tooltip come from the mod's translations,
-`content/Localization/en-US_Mods.MyMod.hjson` (see
+`Localization/en-US_Mods.MyMod.hjson` (see
 [Translations](#translations)):
 
 ```hjson
@@ -1504,7 +1504,7 @@ public class FloatingFriend : ModNPC
 }
 ```
 
-The texture is `content/Content/NPCs/FloatingFriend.png`, and the name is
+The texture is `Content/NPCs/FloatingFriend.png`, and the name is
 `Mods.MyMod.NPCs.FloatingFriend.DisplayName` in the localization files.
 `ModContent.NPCType<FloatingFriend>()` gives the type,
 `NPCLoader.GetNPC(type)` and `ModContent.GetModNPC(type)` give the registered
@@ -2290,7 +2290,7 @@ Textures come as `Asset<Texture2D>` (`using ReLogic.Content;` and
 `using Microsoft.Xna.Framework.Graphics;`), as in tModLoader:
 
 ```csharp
-// A PNG of this mod, by its path inside content/ (no extension).
+// A PNG of this mod, by its path in the mod folder (no extension).
 Asset<Texture2D> glow = Mod.Assets.Request<Texture2D>("Content/Items/ShinyRock_Glow");
 
 // The same, from anywhere: the mod's name first.
@@ -2326,7 +2326,7 @@ For now only `Texture2D` can be requested (sounds, effects and fonts come
 with their loaders), and a game image that the mobile version does not have
 throws when it loads.
 
-Any other file of the mod is read by its path inside `content/`, with the
+Any other file of the mod is read by its path in the mod folder, with the
 extension:
 
 | Call | Gives |

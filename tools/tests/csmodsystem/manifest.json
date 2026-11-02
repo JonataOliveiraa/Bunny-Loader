@@ -1,6 +1,6 @@
 {
   "uid": "019bfd39-3458-4a2c-baca-5e70c7b45ecc",
-  "id": "test-csmodsystem",
+  "id": "CsModSystem",
   "name": "Test: ModSystem (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "ModSystem lifecycle, update hooks and their order, time rate, tile counts, world data and world header, without QuickJS.",
   "description": "Build with tools/tests/build-cs.sh csmodsystem. Run once (phase save), then again with KEEPSAVES=1 (phase load). Logs csmodsystem <case>: ok | FAIL and csmodsystem END pass=N fail=M.",
   "updated": "2026-10-31",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsModSystem.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

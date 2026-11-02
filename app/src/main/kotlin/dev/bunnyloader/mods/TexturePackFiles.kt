@@ -17,15 +17,15 @@ internal object TexturePackFiles {
     private const val TAG = "BunnyLoader"
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
-    fun images(dir: File): File? = listOf("content/Images", "Content/Images")
+    fun images(dir: File): File? = listOf("Images", "Content/Images")
         .map { File(dir, it) }.firstOrNull { it.isDirectory }
 
     fun hasImages(dir: File): Boolean = images(dir)?.walkTopDown()?.any {
         it.isFile && it.extension.equals("png", ignoreCase = true)
     } == true
 
-    /** content/Fonts: um .json por fonte do jogo (Mouse_Text.json...) e as paginas PNG. */
-    fun fonts(dir: File): File? = listOf("content/Fonts", "Content/Fonts", "content/fonts")
+    /** Fonts/: um .json por fonte do jogo (Mouse_Text.json...) e as paginas PNG. */
+    fun fonts(dir: File): File? = listOf("Fonts", "Content/Fonts")
         .map { File(dir, it) }.firstOrNull { it.isDirectory }
 
     fun hasFonts(dir: File): Boolean = fonts(dir)?.listFiles()?.any {
@@ -71,10 +71,13 @@ internal object TexturePackFiles {
             description = text("Description"), blVersion = ModRepository.BL_VERSION,
             links = workshop?.let { listOf(PackLink("Steam Workshop", "https://steamcommunity.com/sharedfiles/filedetails/?id=$it")) }.orEmpty(),
         )
-        val oldContent = File(root, "Content")
-        val content = File(root, "content")
-        if (oldContent.isDirectory && !content.exists()) {
-            require(oldContent.renameTo(content)) { "não consegui converter Content/ para content/" }
+        val pcContent = File(root, "Content")
+        if (pcContent.isDirectory) {
+            for (child in pcContent.listFiles().orEmpty()) {
+                val target = File(root, child.name)
+                require(!target.exists() && child.renameTo(target)) { "não consegui mover Content/${child.name} para a raiz" }
+            }
+            pcContent.delete()
         }
         File(root, "manifest.json").writeText(json.encodeToString(manifest))
         return manifest

@@ -11,7 +11,7 @@ class ServerModSyncTest {
     private val other = "22222222-2222-2222-2222-222222222222"
     private fun host(version: String = "1.1.0", id: String = uid) = ServerSync.HostMod(id, "probe", "Probe", version)
     private fun local(version: String = "1.0.0", id: String = uid) =
-        ModManifest(uid = id, id = "probe", name = "Probe", version = version, blVersion = 2)
+        ModManifest(uid = id, id = "Probe", name = "Probe", version = version, blVersion = 3)
     private fun remote(version: String = "1.1.0") = RemoteMod(uid, version,
         RemoteDownload("https://example.invalid/probe.bl", "a".repeat(64)), manifest = local(version))
     private fun plan(required: ServerSync.HostMod = host(), installed: ModManifest = local(), store: List<RemoteMod> = listOf(remote()), enabled: Set<String> = setOf(uid)) =
@@ -79,8 +79,8 @@ class ServerModSyncTest {
     @Test fun downloadedPackageMustMatchUidVersionTypeAndFormat() {
         val expected = host()
         for (manifest in listOf(local("1.0.0"), local("1.1.0", other),
-            local("1.1.0").copy(type = "texture"), local("1.1.0").copy(blVersion = 1),
-            local("1.1.0").copy(blVersion = 3))) {
+            local("1.1.0").copy(type = "texture"), local("1.1.0").copy(blVersion = 2),
+            local("1.1.0").copy(blVersion = 4))) {
             rejected { ServerModSync.requireMatch(expected, manifest) }
         }
         ServerModSync.requireMatch(expected, local("1.1.0"))
@@ -104,11 +104,12 @@ class ServerModSyncTest {
     }
 
     @Test fun sessionPreservesHostOrderEntryPointsAndOnlyValidTextures() {
-        val installed = listOf(local("1.1.0"), local("1.1.0", other).copy(entry = "start.js"),
+        val installed = listOf(local("1.1.0"), local("1.1.0", other).copy(id = "Other"),
             local("5", "33333333-3333-3333-3333-333333333333").copy(type = "texture"))
         val textures = listOf(uid, "missing", installed.last().uid)
-        assertEquals(listOf("$other=start.js", "$uid=main.js", "${installed.last().uid}=@texture"),
-            ServerModSync.sessionSpecs(listOf(host(id = other), host()), installed, textures))
+        val entries = mapOf(uid to "Probe.dll", other to "Other.cs")
+        assertEquals(listOf("$other=Other.cs", "$uid=Probe.dll", "${installed.last().uid}=@texture"),
+            ServerModSync.sessionSpecs(listOf(host(id = other), host()), installed, textures) { entries[it.uid] })
     }
 
     @Test fun extraModsAreDisabledForThisSessionButTexturesStayOutsideTheModPlan() {

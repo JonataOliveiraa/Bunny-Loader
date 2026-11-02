@@ -90,11 +90,10 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         mod.dir = modsDir + "/" + id;
         readManifest(&mod);
 
-        // O `entry` do manifesto manda, relativo a content/ (sem ele, main.js).
-        const std::string name = spec.entry.empty() ? std::string("main.js") : spec.entry;
-        const std::string path = mod.dir + "/content/" + name;
-        if (!fileExists(path)) {
-            BL_ERROR("mod %s: nao achei o arquivo de entrada content/%s", id.c_str(), name.c_str());
+        const std::string& name = spec.entry;
+        const std::string path = mod.dir + "/" + name;
+        if (name.empty() || !fileExists(path)) {
+            BL_ERROR("mod %s: entry file %s not found", id.c_str(), name.c_str());
             mod.enabled = false;
         } else {
             mod.entry = path.substr(mod.dir.size() + 1);

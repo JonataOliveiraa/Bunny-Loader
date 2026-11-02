@@ -1,6 +1,6 @@
 {
   "uid": "64385a9b-1e4f-4867-80b9-8180ef35241b",
-  "id": "test-csperfmod",
+  "id": "CsPerfMod",
   "name": "Test: C# cost per frame with ExampleModCSharp",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "C# self time per frame by hook with ExampleModCSharp: idle, then with 60 SparklingBall projectiles and 15 ExampleCustomAISlimeNPC. Includes a ModSystem with every Pre/PostUpdate hook. Frame times, managed allocations and Mono GCs.",
   "description": "Build with tools/tests/build-cs.sh csperfmod. Needs adb shell setprop debug.bl.cshookprofile 1 and ExampleModCSharp on. Logs csperfmod ... and csperfmod END.",
   "updated": "2026-10-31",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsPerfMod.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

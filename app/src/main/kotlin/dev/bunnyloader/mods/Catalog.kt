@@ -147,14 +147,14 @@ class Catalog(private val context: Context) {
 
     /**
      * O app de medição (BuildConfig.BENCH, `-Pbl.bench=true`): instala e liga
-     * os testes embutidos (`id` com `test-`) e desliga o resto, para nenhum
+     * os testes embutidos (nome com "Test") e desliga o resto, para nenhum
      * outro mod pesar nos números. O painel de erro sai: o teste dos hooks
      * provoca erros de propósito.
      */
     fun seedBench() {
         if (!dev.bunnyloader.BuildConfig.BENCH) return
         for (entry in entries) {
-            val test = entry.manifest.id.startsWith("test-")
+            val test = entry.manifest.name.startsWith("Test")
             if (test && !isInstalled(entry.uid)) install(entry)
             if (isInstalled(entry.uid)) repo.setEnabled(entry.uid, test)
         }
@@ -376,8 +376,9 @@ class Catalog(private val context: Context) {
          *     banner.png       capa da vitrine, ~3,4:1 (opcional; .gif anima, e
  *                      .webp/.jpg também valem)
          *     thumbnails/      imagens da vitrine (opcional)
-         *     content/         o mod em si: main.js (a classe Mod), Assets/,
-         *                      Common/, Content/ e Localization/
+         *     <id>.cs          a classe Mod (ou o <id>.dll compilado), como no
+         *                      tModLoader, com Assets/, Common/, Content/ e
+         *                      Localization/ ao lado
          *
          * O `uid` é obrigatório e é emitido pelo site do Bunny Loader, não pelo
          * autor: é o que garante que dois mods de pessoas diferentes nunca
@@ -403,7 +404,6 @@ class Catalog(private val context: Context) {
         private const val PAGE_GIF_PIXELS = 2_000_000
 
         fun isImageFile(name: String) = name.substringAfterLast('.', "").lowercase() in IMAGE_EXTENSIONS
-        const val CONTENT = "content"
         const val DESCRIPTION = "description.md"
         const val CHANGELOG = "changelog.md"
         const val LICENSE = "license.md"

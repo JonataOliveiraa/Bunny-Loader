@@ -63,17 +63,17 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         check(directory.mkdir(), "Não foi possível criar a pasta do projeto")
         val manifest = ModManifest(
             uid = UUID.randomUUID().toString(), id = id, name = name.trim(), version = "1.0.0",
-            author = author.trim(), type = "mod", blVersion = 2, entry = "$id.cs",
+            author = author.trim(), type = "mod", blVersion = ModRepository.BL_VERSION,
             localizedNames = mapOf(modCulture(language) to name.trim()),
         )
         File(directory, "manifest.json").writeText(json.encodeToString(manifest), Charsets.UTF_8)
         listOf("Assets", "Common", "Content", "Localization").forEach {
-            check(File(directory, "content/$it").mkdirs(), "Não foi possível criar as pastas do projeto")
+            check(File(directory, it).mkdirs(), "Não foi possível criar as pastas do projeto")
         }
         val keyword = id in CSHARP_KEYWORDS
         val namespace = if (keyword) "@$id" else id
         val className = if (keyword) "${id}Mod" else id
-        File(directory, "content/$id.cs").writeText(
+        File(directory, "$id.cs").writeText(
             """
             |using Terraria.ModLoader;
             |
@@ -84,7 +84,7 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
             |}
             |""".trimMargin(), Charsets.UTF_8)
         if (sword.isNotEmpty()) {
-            val swordDir = File(directory, "content/Content/Items")
+            val swordDir = File(directory, "Content/Items")
             check(swordDir.isDirectory || swordDir.mkdirs(), "Não foi possível criar a pasta da espada")
             File(swordDir, "$sword.cs").writeText(
                 """
@@ -136,9 +136,9 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
                 |	}
                 |}
                 |""".trimMargin()
-            File(directory, "content/Localization/en-US_Mods.$id.hjson").writeText(content, Charsets.UTF_8)
+            File(directory, "Localization/en-US_Mods.$id.hjson").writeText(content, Charsets.UTF_8)
             if (culture != "en-US") {
-                File(directory, "content/Localization/${culture}_Mods.$id.hjson").writeText(content, Charsets.UTF_8)
+                File(directory, "Localization/${culture}_Mods.$id.hjson").writeText(content, Charsets.UTF_8)
             }
         }
         val culture = templateCulture(language)
@@ -230,13 +230,9 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         check(ID.matches(manifest.id), "O ID do manifesto é inválido")
         check(manifest.name.isNotBlank(), "O nome do mod não pode ficar vazio")
         check(manifest.version.isNotBlank() && manifest.version.none { it.isISOControl() }, "A versão do mod é inválida")
-        check(manifest.blVersion == 2, "O manifesto deve usar blVersion 2")
+        check(manifest.blVersion == ModRepository.BL_VERSION, "O manifesto deve usar blVersion ${ModRepository.BL_VERSION}")
         check(manifest.type == "mod", "O tipo do manifesto deve ser mod")
-        val content = safePath(directory, "content")
-        check(content.isDirectory, "O projeto não tem a pasta content")
-        val entry = safePath(content, manifest.entry)
-        check(!excluded(manifest.entry.replace('\\', '/').split('/')), "O arquivo de entrada está em uma pasta excluída")
-        check(entry.isFile, "O arquivo de entrada não existe em content")
+        check(manifest.entryNames.any { safePath(directory, it).isFile }, "O projeto não tem ${manifest.id}.cs na raiz")
     }
 
     fun projectDirectoryPath(key: String): File {
@@ -285,7 +281,7 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         val result = mutableListOf<Pair<String, File>>()
         fun visit(folder: File, prefix: String) {
             for (child in children(folder)) {
-                if (hidden(child) || child.name.equals("build", ignoreCase = true)) continue
+                if (hidden(child) || excluded(listOf(child.name))) continue
                 val relative = prefix + child.name
                 val safe = safePath(directory, relative)
                 if (safe.isDirectory) visit(safe, "$relative/")
@@ -342,16 +338,19 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
     }
 
     private fun hidden(file: File) = file.name.startsWith('.') || file.isHidden
-    private fun excluded(parts: List<String>) = parts.any { it.startsWith('.') || it.equals("build", ignoreCase = true) }
+    private fun excluded(parts: List<String>) = parts.any { part ->
+        part.startsWith('.') || EXCLUDED_FOLDERS.any { it.equals(part, ignoreCase = true) }
+    } || parts.lastOrNull()?.endsWith(".csproj", ignoreCase = true) == true
     private fun check(condition: Boolean, message: String) { if (!condition) throw SourceException(message) }
     private class SourceException(message: String, cause: Throwable? = null) : IllegalArgumentException(message, cause)
     private inline fun <T> operation(message: String, block: () -> T): T = try { block() }
         catch (e: SourceException) { throw e }
         catch (e: Exception) { throw SourceException(message, e) }
 
-    private companion object {
+    internal companion object {
         const val MAX_TEXT_BYTES = 1024 * 1024
         val ID = Regex("^[A-Za-z][A-Za-z0-9_]{0,63}$")
+        private val EXCLUDED_FOLDERS = listOf("build", "bin", "obj")
         val TEXT_EXTENSIONS = setOf("cs", "json", "md", "txt", "hjson")
         val CSHARP_KEYWORDS = setOf(
             "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class",

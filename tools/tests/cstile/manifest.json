@@ -1,6 +1,6 @@
 {
   "uid": "cbd56088-bc74-47ac-8e52-577889e145b1",
-  "id": "test-cstile",
+  "id": "CsTile",
   "name": "Test: tiles (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,11 +8,10 @@
   "summary": "Tile registration, objects, hooks, rendering and world persistence.",
   "description": "Use DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstile. Repeat with KEEPSAVES=1 to verify world persistence.",
   "updated": "2026-10-31",
-  "blVersion": 2,
+  "blVersion": 3,
   "gameVersion": [
     301720,
     301720
   ],
-  "entry": "CsTile.dll",
   "dependencies": []
 }

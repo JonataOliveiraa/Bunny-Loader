@@ -7,7 +7,7 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <DebugType>embedded</DebugType>
     <GenerateDependencyFile>false</GenerateDependencyFile>
-    <OutDir>$(MSBuildThisFileDirectory)../content/</OutDir>
+    <OutDir>$(MSBuildThisFileDirectory)../</OutDir>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
 

@@ -1,6 +1,6 @@
 {
   "uid": "ed77d31e-e6a0-4004-94e2-755e1a2db403",
-  "id": "test-csconfig",
+  "id": "CsConfig",
   "name": "Test: ModConfig (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "ModConfig: autoload and Instance, default values, SaveChanges with OnChanged and the JSON file, ReloadRequired refused in the world and reading the file back. The screen is checked by hand (pause menu, Mod Configuration).",
   "description": "Build with tools/tests/build-cs.sh csconfig. Logs csconfig <case>: ok | FAIL and csconfig END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsConfig.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

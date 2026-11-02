@@ -14,10 +14,9 @@ class TexturePackFilesTest {
 
     @Test fun texturesNeedImagesAndNoScript() = temporary { dir ->
         assertFalse(TexturePackFiles.hasImages(dir))
-        File(dir, "content/Images").mkdirs()
-        File(dir, "content/Images/NPC_125.png").writeBytes(byteArrayOf(1))
+        File(dir, "Images").mkdirs()
+        File(dir, "Images/NPC_125.png").writeBytes(byteArrayOf(1))
         assertTrue(TexturePackFiles.hasImages(dir))
-        assertFalse(File(dir, "content/main.js").exists())
     }
 
     @Test fun convertsPcMetadataAndKeepsIdentityAcrossVersions() = temporary { dir ->
@@ -31,8 +30,8 @@ class TexturePackFilesTest {
         assertEquals("1.12.0", m.version)
         assertEquals(PackType.TEXTURE, m.packType)
         assertTrue(m.hasValidUid)
-        assertTrue(File(dir, "content/Images/NPC_125.png").isFile)
-        assertFalse(File(dir, "content/main.js").exists())
+        assertTrue(File(dir, "Images/NPC_125.png").isFile)
+        assertFalse(File(dir, "Content").exists())
         assertEquals(m, Json.decodeFromString<ModManifest>(File(dir, "manifest.json").readText()))
         File(dir, "manifest.json").delete()
         File(dir, "pack.json").writeText("""{"Name":"Renamed","Author":"TdT","Version":{"major":2,"minor":0}}""")

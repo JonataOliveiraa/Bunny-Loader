@@ -152,9 +152,7 @@ void configureTexturePacks(const std::string& root, const std::vector<ModSpec>& 
     g_pending.clear();
     for (const auto& spec : enabled) {
         if (spec.entry != "@texture") continue;
-        const std::string base = root + "/" + spec.id;
-        const std::string content = directory(base + "/content") ? "/content" : "/Content";
-        g_pending.push_back({spec.id, base + content + "/Images"});
+        g_pending.push_back({spec.id, root + "/" + spec.id + "/Images"});
     }
     g_dirty.store(true, std::memory_order_release);
 }

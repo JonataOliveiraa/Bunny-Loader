@@ -1,6 +1,6 @@
 {
   "uid": "c4e81b37-9d25-4a60-8f1e-5b7d2a3c9e06",
-  "id": "test-csbiomebestiary",
+  "id": "CsBiomeBestiary",
   "name": "Test: ModBiome in the Bestiary and TileColorStyle (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "SpawnModBiomes puts the biome's element in the NPC's entry, a filter per used biome, the 30x30 icon and the 115x65 portrait background with fallbacks, and the scene's TileColorStyle in the capture biome.",
   "description": "Build with tools/tests/build-cs.sh csbiomebestiary. Logs csbiomebestiary <case>: ok | FAIL and csbiomebestiary END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsBiomeBestiary.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

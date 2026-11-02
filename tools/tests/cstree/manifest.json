@@ -1,6 +1,6 @@
 {
   "uid": "031550a5-a2e7-4bc5-b448-4eab613f84de",
-  "id": "test-cstree",
+  "id": "CsTree",
   "name": "Test: ModTree (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "ModTree: registration and PlantLoader, the ground fit for trees and TreeTypes.Custom, an acorn becoming the mod sapling, ModTile.GrowSapling growing the tree, its top style, TreeLeaf, Shake, CreateDust and DropWood.",
   "description": "Build with tools/tests/build-cs.sh cstree. Logs cstree <case>: ok | FAIL and cstree END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsTree.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

@@ -1,6 +1,6 @@
 {
   "uid": "8318f539-49db-490e-8047-5ff6db345d2a",
-  "id": "test-csresting",
+  "id": "CsResting",
   "name": "Test: TileRestingInfo (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "TileRestingInfo: sitting on a mod chair (ModifySittingTargetInfo, direction and seat position), sleeping in a mod bed (ModifySleepingTargetInfo, visual offset) and the bed as a spawn point (TileID.Sets.IsValidSpawnPoint).",
   "description": "Build with tools/tests/build-cs.sh csresting. Logs csresting <case>: ok | FAIL and csresting END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsResting.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

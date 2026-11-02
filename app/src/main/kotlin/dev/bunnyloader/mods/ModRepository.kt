@@ -158,7 +158,7 @@ class ModRepository(private val context: Context) {
                 ?: error("não consegui abrir o arquivo")
             require(entries > 0) {
                 "isto não é um pacote: o arquivo precisa ser um zip (.bl, .bmod ou .zip) com " +
-                    "manifest.json, icon.png e a pasta content/"
+                    "manifest.json e o mod na raiz"
             }
             onProgress(UNZIP_SHARE)
 
@@ -186,18 +186,16 @@ class ModRepository(private val context: Context) {
             }
             require(!manifest.isOutdated) {
                 "pacote do formato antigo (blVersion ${manifest.blVersion}). O Bunny Loader $BL_VERSION " +
-                    "pede Assets/, Common/, Content/ e a classe Mod no arquivo de entrada " +
-                    "(export default class ... extends Mod): peça ao autor uma versão nova."
+                    "pede a classe Mod em <id>.cs (ou <id>.dll) e Assets/, Common/, Content/ na raiz: " +
+                    "peça ao autor uma versão nova."
             }
             if (manifest.packType == PackType.TEXTURE) {
-                require(TexturePackFiles.hasImages(root)) { "pacote de textura sem PNGs em content/Images" }
+                require(TexturePackFiles.hasImages(root)) { "pacote de textura sem PNGs em Images/" }
             } else if (manifest.packType == PackType.FONT) {
-                require(TexturePackFiles.hasFonts(root)) { "pacote de fonte sem .json em content/Fonts" }
+                require(TexturePackFiles.hasFonts(root)) { "pacote de fonte sem .json em Fonts/" }
             } else {
-                require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
-                require(manifest.entry.endsWith(".dll") || manifest.entry.endsWith(".cs")) {
-                    "JS mods are not supported: this version of Bunny Loader only loads C# mods"
-                }
+                require(ModSources.ID.matches(manifest.id)) { "o id do mod deve ser um nome de classe C# (${manifest.id})" }
+                require(entryOf(root) != null) { "pacote sem ${manifest.id}.cs ou ${manifest.id}.dll na raiz" }
             }
 
             // Admission runs before replacing an existing installation.
@@ -306,20 +304,23 @@ class ModRepository(private val context: Context) {
             .getBoolean("enableOnInstall", true)
     /**
      * O que vai para o núcleo nativo: `uid=entry` para mods, `uid=@texture`
-     * para PNGs sem codigo e `uid=@font` para fontes (content/Fonts).
+     * para PNGs sem codigo e `uid=@font` para fontes (Fonts/).
      *
      * Os dois juntos na mesma entrada, e não em duas listas alinhadas por
      * índice, que é uma dessincronização esperando acontecer. O núcleo parte
      * no primeiro `=`.
      */
     fun enabledSpecs(): List<String> =
-        list().filter { !it.isOutdated && isEnabled(it.uid) }.map { "${it.uid}=${nativeEntry(it)}" }
+        list().filter { !it.isOutdated && isEnabled(it.uid) }.mapNotNull { m -> nativeEntry(m)?.let { "${m.uid}=$it" } }
 
-    private fun nativeEntry(m: ModManifest): String = when (m.packType) {
+    private fun nativeEntry(m: ModManifest): String? = when (m.packType) {
         PackType.TEXTURE -> "@texture"
         PackType.FONT -> "@font"
-        PackType.MOD -> m.entry
+        PackType.MOD -> entryName(m.uid)
     }
+
+    /** O nome do arquivo de entrada do mod no disco (`MyMod.dll` ou `MyMod.cs`). */
+    fun entryName(uid: String): String? = dirOf(uid)?.let { entryOf(it)?.name }
 
     /** O pacote esta no disco: script de mod, imagens de textura ou fontes no lugar. */
     fun hasEntry(uid: String): Boolean = dirOf(uid)?.let { entryOf(it) != null } ?: false
@@ -328,8 +329,9 @@ class ModRepository(private val context: Context) {
         val m = readManifest(dir) ?: return null
         if (m.packType == PackType.TEXTURE) return TexturePackFiles.images(dir)?.takeIf { TexturePackFiles.hasImages(dir) }
         if (m.packType == PackType.FONT) return TexturePackFiles.fonts(dir)?.takeIf { TexturePackFiles.hasFonts(dir) }
-        val path = resolvePackagePath(dir.path, true, "${Catalog.CONTENT}/${m.entry}") ?: return null
-        return File(path).takeIf { it.isFile }
+        return m.entryNames.firstNotNullOfOrNull { name ->
+            resolvePackagePath(dir.path, true, name)?.let(::File)?.takeIf { it.isFile }
+        }
     }
 
     private fun readManifest(dir: File): ModManifest? = Catalog.MANIFESTS
@@ -371,12 +373,12 @@ class ModRepository(private val context: Context) {
     fun dirOf(uid: String): File? = File(modsDir, uid).takeIf { it.isDirectory }
 
     companion object {
-        const val BL_VERSION = 2
+        const val BL_VERSION = 3
         /** A extração é quase todo o trabalho do import: o resto (conferir, mover) é o fim da barra. */
         private const val UNZIP_SHARE = 0.95f
         private const val COPY_BUFFER = 64 * 1024
         /** O formato mais antigo que ainda carrega (ModManifest.blVersion). */
-        const val MIN_BL_VERSION = 2
+        const val MIN_BL_VERSION = 3
         const val PACKS_DIR = "bunny_packs"
 
         /**

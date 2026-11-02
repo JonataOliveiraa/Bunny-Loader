@@ -38,23 +38,24 @@ the phone already has it.
 
 ## Step 3: the project
 
-Make this folder layout. `src/` is your code, `package/` is what goes to the
-phone:
+Make this folder layout. As in tModLoader, the mod is one folder named after
+the mod, with the `Mod` class in `<Name>.cs` at its root:
 
 ```
-MinisharkTurbo/
-  lib/
-    BunnyLoader.dll          ← from step 2 (not shipped)
-  src/
-    MinisharkTurbo.csproj
-    MinisharkTurbo.cs
-  package/                   ← this folder becomes the mod
+Mods/
+  BunnyLoader.dll            ← from step 2 (shared by your mods, not shipped)
+  MinisharkTurbo/            ← this folder becomes the mod
     manifest.json
-    content/
-      MinisharkTurbo.dll     ← dotnet build puts it here
+    MinisharkTurbo.cs        ← the Mod class
+    MinisharkTurbo.csproj    ← for building on your PC (not shipped)
+    MinisharkTurbo.dll       ← dotnet build puts it here
 ```
 
-### `src/MinisharkTurbo.csproj`
+Bigger mods add `Assets/`, `Common/`, `Content/` and `Localization/` next to
+it, and the package page (`icon.png`, `description.md`, `changelog.md`,
+`license.md`, `authors/`) lives there too.
+
+### `MinisharkTurbo.csproj`
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -62,15 +63,15 @@ MinisharkTurbo/
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <!-- the .dll goes straight into the package -->
-    <OutDir>../package/content/</OutDir>
+    <!-- the .dll goes next to the manifest -->
+    <OutDir>./</OutDir>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="BunnyLoader">
-      <HintPath>../lib/BunnyLoader.dll</HintPath>
+      <HintPath>../BunnyLoader.dll</HintPath>
       <!-- reference only: do not copy it into the package -->
       <Private>false</Private>
     </Reference>
@@ -83,7 +84,7 @@ The two lines that matter: `net10.0` (the .NET version Bunny Loader runs) and
 `<Private>false</Private>` (so `BunnyLoader.dll` does not end up in your
 package).
 
-### `src/MinisharkTurbo.cs`
+### `MinisharkTurbo.cs`
 
 ```csharp
 using Terraria;
@@ -122,23 +123,24 @@ Line by line:
 | `self.useTime = 4;` | Then changes the item. `self` is the item being filled in. |
 | `Logger.Info(...)` | Writes to the mod log (see step 6). `Logger` is the mod's own, as in tModLoader. |
 
-### `package/manifest.json`
+### `manifest.json`
 
-The same manifest as a JS mod (all fields are explained in the
-[JS guide](../historico/mods-js/README.md#manifestjson)). The only difference is the
-`entry`: it points to your `.dll`.
+The package's metadata (the fields of the page are explained in the
+[old guide](../historico/mods-js/README.md#manifestjson)). The `id` is the mod's
+internal name, as in tModLoader: the name of the `.cs`/`.dll`, of the
+assembly and of the `Mods.<id>` localization keys. Bunny Loader loads
+`<id>.dll`, or compiles `<id>.cs` when there is no `.dll`.
 
 ```json
 {
   "uid": "5d0e8f3a-1b2c-4d5e-8f90-a1b2c3d4e5f6",
-  "id": "minisharkturbo",
-  "name": "Minishark Turbo (C#)",
+  "id": "MinisharkTurbo",
+  "name": "Minishark Turbo",
   "version": "1.0.0",
   "authors": [{ "name": "You" }],
   "category": "Armas",
   "summary": "The Minishark becomes a machine gun.",
-  "blVersion": 2,
-  "entry": "MinisharkTurbo.dll"
+  "blVersion": 3
 }
 ```
 
@@ -151,19 +153,19 @@ python -c "import uuid; print(uuid.uuid4())"
 ## Step 4: build
 
 ```bash
-cd MinisharkTurbo/src
+cd Mods/MinisharkTurbo
 dotnet build -c Release
 ```
 
-`package/content/MinisharkTurbo.dll` appears. If the build fails, the error
+`MinisharkTurbo.dll` appears next to the manifest. If the build fails, the error
 names the file and line: that is the first big gift of C#. A typo like
 `self.useTiem` never reaches the phone.
 
 ## Step 5: install
 
-Zip the **contents** of `package/` (so the zip has `manifest.json` and
-`content/` at its root) and import it on the phone: *Packages* tab →
-*Import package*. Copying the folder or using adb works too: see
+Zip the **contents** of `MinisharkTurbo/` (so the zip has `manifest.json` and
+`MinisharkTurbo.dll` at its root; leave out the `.csproj`, `bin/` and `obj/`)
+and import it on the phone: *Packages* tab → *Import package*. Copying the folder or using adb works too: see
 [Installing](../historico/mods-js/README.md#installing).
 
 ## Step 6: run and read the log
@@ -191,35 +193,23 @@ argument. `Error` and `Fatal` also open the error panel inside the game
 ## The other way: ship the `.cs` files
 
 You do not have to build anything. A mod can carry its **source files**, and
-Bunny Loader compiles them itself. Point `entry` at a `.cs` file:
-
-```json
-{
-  "uid": "5d0e8f3a-1b2c-4d5e-8f90-a1b2c3d4e5f6",
-  "id": "minisharkturbo",
-  "name": "Minishark Turbo (C#)",
-  "version": "1.0.0",
-  "blVersion": 2,
-  "entry": "MinisharkTurbo.cs"
-}
-```
-
-and put the code in `content/`, in as many files and folders as you like:
+Bunny Loader compiles them itself: leave the `.dll` out and keep the code, in
+as many files and folders as you like:
 
 ```
-package/
+MinisharkTurbo/
   manifest.json
-  content/
-    MinisharkTurbo.cs        ← the entry: the class that extends Mod
+  MinisharkTurbo.cs          ← the entry: the class that extends Mod
+  Content/
     Items/
       Tuning.cs              ← every .cs here is part of the mod
 ```
 
 The rules:
 
-- **Every `.cs` file** in the entry's folder and its subfolders is compiled
-  into one assembly named after the entry (`MinisharkTurbo.dll`). Folders
-  named `bin/` and `obj/` are skipped.
+- **Every `.cs` file** in the mod folder and its subfolders is compiled into
+  one assembly named after the mod (`MinisharkTurbo.dll`). Folders named
+  `bin/` and `obj/` are skipped.
 - **A `.dll` next to the sources** (a library you ship) is a reference, and
   is found at run time too.
 - **The options are those of the `.csproj` above**: the newest C#, nullable
@@ -231,15 +221,14 @@ The rules:
 
 ```mermaid
 flowchart LR
-    S["content/*.cs"] --> P{"bin/ matches<br/>the sources?"}
+    S["*.cs"] --> P{"bin/ matches<br/>the sources?"}
     P -- yes --> L["load bin/MinisharkTurbo.dll"]
     P -- no --> C["compile on the phone<br/>(once)"] --> L
 ```
 
 - **When you publish it to the catalog**, the catalog compiles it (the
   catalog app and `tools/mods/publish.py` alike). The package gets
-  `content/bin/MinisharkTurbo.dll` and a stamp,
-  `content/bin/MinisharkTurbo.build.json`. Players who download it never
+  `bin/MinisharkTurbo.dll` and a stamp, `bin/MinisharkTurbo.build.json`. Players who download it never
   wait: Bunny Loader checks the stamp and loads the `.dll`.
 - **When the stamp does not match**, Bunny Loader compiles on the phone the
   first time the game loads the mod, writes `bin/`, and from then on only
@@ -309,7 +298,7 @@ Everything below shows up in the log and in the error panel.
 | `mod <uid>: X.cs did not compile (N error(s))` | A mod with sources has errors (listed just above, with file and line). | Fix them; the next load compiles again. |
 | `mod <uid>: compiling X.cs (the sources changed)` | Not an error: the stamp in `bin/` did not match, so the phone compiled. | Publish through the catalog so players get it compiled. |
 | `mod <uid>: the .NET runtime did not start` | The APK has no C# runtime. | Update Bunny Loader. |
-| `FileNotFoundException: Could not load file or assembly 'X'` | Your mod uses a library the phone does not have. | A library of your own (a NuGet package): put its `.dll` next to yours in `content/`. A `System.*` one outside [the list](08-por-baixo-dos-panos.md#the-net-libraries-on-the-phone): not available yet. |
+| `FileNotFoundException: Could not load file or assembly 'X'` | Your mod uses a library the phone does not have. | A library of your own (a NuGet package): put its `.dll` next to yours, in the mod folder. A `System.*` one outside [the list](08-por-baixo-dos-panos.md#the-net-libraries-on-the-phone): not available yet. |
 | `game class Terraria.X not found` | A type that does not exist in this game version. | Check the name in the game's dump. |
 | `MissingMethodException: Terraria.Item: 'void Foo(int x)' not found` | The method changed or does not exist in this game version. | Update `BunnyLoader.dll` and rebuild. |
 | `struct layout ... differs from the game` | Your `BunnyLoader.dll` was made for another game version. | Use the `.dll` from the APK you have installed. |

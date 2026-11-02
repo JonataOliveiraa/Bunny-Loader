@@ -94,9 +94,9 @@ app/src/main/csharp/**/bin/
 app/src/main/csharp/**/obj/
 tools/tests/*/src/bin/
 tools/tests/*/src/obj/
-tools/tests/*/content/*.dll
+tools/tests/*/*.dll
 
 # Saída do compilador dos mods com fontes (bin/MeuMod.dll + selo)
-tools/tests/*/content/bin/
+tools/tests/*/bin/
 tools/mods/csbuild/bin/
 tools/mods/csbuild/obj/

@@ -1,6 +1,6 @@
 {
   "uid": "0928fed0-fdfe-4e5e-a139-8e7326994121",
-  "id": "test-csmount",
+  "id": "CsMount",
   "name": "Teste: ModMount (C#)",
   "version": "1.0.0",
   "author": "teste",
@@ -8,11 +8,10 @@
   "summary": "ModMount: montar pelo buff, efeitos, quadros, pulo, desenho e desmontar, sem QuickJS.",
   "description": "Compilar antes com tools/tests/build-cs.sh csmount. No mundo, loga 'csmount <caso>: ok | FAIL' e 'csmount END'; termina montado.",
   "updated": "2026-10-30",
-  "blVersion": 2,
+  "blVersion": 3,
   "gameVersion": [
     301720,
     301720
   ],
-  "entry": "CsMount.dll",
   "dependencies": []
 }

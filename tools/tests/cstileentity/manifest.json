@@ -1,6 +1,6 @@
 {
   "uid": "7c1e4b92-3a5f-4d68-9e07-b2f8a6d1c35e",
-  "id": "test-cstileentity",
+  "id": "CsTileEntity",
   "name": "Test: ModTileEntity (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "ModTileEntity: placement through Generic_HookPostPlaceMyPlayer, TileEntity.TryGet, Find and CountInWorld, the update hooks, NetSend/NetReceive, the server placing for a client, Kill and OnKill, and the entity kept in the saved world.",
   "description": "Build with tools/tests/build-cs.sh cstileentity; run twice, the second time with KEEPSAVES=1. Logs cstileentity <case>: ok | FAIL and cstileentity END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsTileEntity.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

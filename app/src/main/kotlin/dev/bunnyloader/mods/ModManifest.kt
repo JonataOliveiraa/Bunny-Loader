@@ -72,14 +72,13 @@ data class ModManifest(
     /** Pede lugar no destaque da tela inicial. */
     val featured: Boolean = false,
     /**
-     * O formato do pacote. 2: `content/` com Assets/, Common/, Content/ e
-     * Localization/, e o arquivo de entrada com `export default class ...
-     * extends Mod`. O 1 (sem a classe Mod) não carrega mais.
+     * O formato do pacote. 3: como no tModLoader, a classe Mod em `<id>.cs`
+     * (ou o `<id>.dll` compilado) e Assets/, Common/, Content/ e
+     * Localization/ na raiz, ao lado do manifesto. O 2 (tudo dentro de
+     * `content/`) não carrega mais.
      */
     val blVersion: Int = 1,
     val gameVersion: List<Long> = emptyList(),
-    /** Caminho do arquivo de entrada, relativo a `content/`. */
-    val entry: String = "main.js",
     val dependencies: List<String> = emptyList(),
     /** Nomes traduzidos, indexados pela cultura do jogo (ex.: zh-Hans). */
     val localizedNames: Map<String, String> = emptyMap(),
@@ -93,6 +92,9 @@ data class ModManifest(
         localizedText(localizedSummaries, language) ?: summary
 
     val hasValidUid: Boolean get() = isValidUid(uid)
+
+    /** O arquivo de entrada, na raiz: o `.dll` compilado ganha das fontes. */
+    val entryNames: List<String> get() = listOf("$id.dll", "$id.cs")
 
     /** Mod, textura ou fonte: o `type` do manifesto, mod quando falta. */
     val packType: PackType get() = PackType.of(type)

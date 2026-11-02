@@ -1,6 +1,6 @@
 {
   "uid": "3f9a2c71-6d8e-4b05-a4c3-1e7b9d2f5a60",
-  "id": "test-cschest",
+  "id": "CsChest",
   "name": "Test: mod chests and dressers (C#)",
   "version": "1.0.0",
   "author": "test",
@@ -8,8 +8,10 @@
   "summary": "Mod chests and dressers: tModLoader's PlacementHook with the game's chest hooks, placing and storing, locking and unlocking through ModTile, page icons, dresser reach, the server side of placing and breaking, and the chest kept in the saved world.",
   "description": "Build with tools/tests/build-cs.sh cschest; run twice, the second time with KEEPSAVES=1. Logs cschest <case>: ok | FAIL and cschest END pass=N fail=M.",
   "updated": "2026-11-01",
-  "blVersion": 2,
-  "gameVersion": [301720, 301720],
-  "entry": "CsChest.dll",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
   "dependencies": []
 }

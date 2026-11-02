@@ -15,15 +15,15 @@ public sealed class CsModRefMod : Mod
         Report("dependency loaded first", TargetApi.Loaded, "");
         Report("dependency types", TargetApi.Answer == 42 && TargetApi.Greet("ref") == "hello, ref", "");
 
-        bool byId = ModLoader.TryGetMod("test-csmodtarget", out Mod target);
+        bool byId = ModLoader.TryGetMod("CsModTarget", out Mod target);
         Report("TryGetMod by manifest id", byId && target is CsModTargetMod, $"{target?.Name}");
         if (!byId) return;
         Report("TryGetMod by Name and uid",
             ModLoader.TryGetMod("CsModTarget", out Mod byName) && byName == target &&
             ModLoader.TryGetMod("0f9f4a32-f6d1-4e05-897e-e845271b066a", out Mod byUid) && byUid == target, "");
         Report("TryGetMod of a missing mod", !ModLoader.TryGetMod("no-such-mod", out Mod missing) && missing == null, "");
-        Report("HasMod", ModLoader.HasMod("test-csmodtarget") && !ModLoader.HasMod("no-such-mod"), "");
-        Report("GetMod finds itself in Load", ModLoader.GetMod("test-csmodref") == this, "");
+        Report("HasMod", ModLoader.HasMod("CsModTarget") && !ModLoader.HasMod("no-such-mod"), "");
+        Report("GetMod finds itself in Load", ModLoader.GetMod("CsModRef") == this, "");
         try
         {
             ModLoader.GetMod("no-such-mod");
