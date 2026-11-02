@@ -22,6 +22,10 @@ namespace bl::runtime::content {
 Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* data, size_t size,
                                const std::string& assetName, int* width, int* height);
 
+bool isVanillaTexturePath(const std::string& path);
+
+Il2CppObject* missingTextureAsset(int* width, int* height);
+
 /**
  * So o Texture2D do jogo (Microsoft.Xna), sem Asset, com o FilterMode da Unity
  * pedido (0 Point, 1 Bilinear, 2 Trilinear) e mipmaps. `what` so vai no log.

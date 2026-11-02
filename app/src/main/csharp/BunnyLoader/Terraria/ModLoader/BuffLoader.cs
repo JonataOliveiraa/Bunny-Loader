@@ -29,7 +29,7 @@ public static unsafe class BuffLoader
 
     internal static void Register(ModBuff buff)
     {
-        string texture = ItemLoader.ResolveTexture(buff, buff.Texture);
+        string texture = ItemLoader.ResolveTexture(buff, buff.Texture, true);
         int type = Native(buff, texture, Localized(buff, buff.DisplayName, nameof(ModBuff.DisplayName)),
             Localized(buff, buff.Description, nameof(ModBuff.Description)));
         if (type == -1) throw new InvalidOperationException($"{buff.FullName}: the mod already has a buff named '{buff.Name}'");

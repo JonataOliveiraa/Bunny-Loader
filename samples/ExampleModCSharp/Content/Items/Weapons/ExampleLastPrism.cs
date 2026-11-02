@@ -8,6 +8,8 @@ namespace ExampleMod.Content.Items.Weapons;
 
 public class ExampleLastPrism : ModItem
 {
+    public override string Texture => "Terraria/Images/Item_" + ItemID.LastPrism;
+
     public static Color OverrideColor = new(122, 173, 255);
 
     public override void SetDefaults()

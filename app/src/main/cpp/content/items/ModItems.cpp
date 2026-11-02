@@ -736,9 +736,10 @@ void tickModItems() {
         for (int i = installed; i < total; ++i) {
             Entry& reg = g_regs[static_cast<size_t>(i)];
             const int type = kVanillaItemCount + i;
-            Il2CppObject* asset = content::loadTextureAsset(
+            Il2CppObject* asset = reg.def.texture.empty() && !reg.def.textureData ? nullptr : content::loadTextureAsset(
                 reg.def.texture, reg.def.textureData, reg.def.textureSize,
                 reg.def.mod + "/" + reg.def.name, &reg.width, &reg.height);
+            if (!asset) asset = content::missingTextureAsset(&reg.width, &reg.height);
             if (asset) reg.asset = a.gchandle_new(asset, false);
             applyTexture(type, reg);
             loadFlame(reg);

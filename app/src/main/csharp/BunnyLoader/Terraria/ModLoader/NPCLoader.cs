@@ -53,7 +53,7 @@ public static unsafe partial class NPCLoader
 
     internal static void Register(ModNPC npc)
     {
-        string texture = ItemLoader.ResolveTexture(npc, npc.Texture);
+        string texture = ItemLoader.ResolveTexture(npc, npc.Texture, true);
         string displayName = DisplayNames(npc);
         int type;
         byte* mod = Host.Utf8(npc.Mod.Uid), name = Host.Utf8(npc.Name), tex = Host.Utf8(texture), dn = Host.Utf8(displayName);

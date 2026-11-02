@@ -1,0 +1,17 @@
+{
+  "uid": "5bfc4717-59ea-4a73-a7c9-dff4d27cf63b",
+  "id": "CsVanillaTex",
+  "name": "Teste: textura do jogo (C#)",
+  "version": "1.0.0",
+  "author": "teste",
+  "category": "Utilidade",
+  "summary": "Texture => \"Terraria/Images/...\" em ModItem, ModProjectile, ModBuff e ModNPC; textura inexistente vira marcador sem derrubar o mod.",
+  "description": "Compilar antes com tools/tests/build-cs.sh csvanillatex. No mundo, loga 'csvanillatex <caso>: ok | FAIL' e 'csvanillatex END'.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

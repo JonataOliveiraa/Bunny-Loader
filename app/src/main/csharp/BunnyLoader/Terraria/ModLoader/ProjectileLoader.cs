@@ -66,7 +66,7 @@ public static unsafe class ProjectileLoader
 
     internal static void Register(ModProjectile projectile)
     {
-        string texture = ItemLoader.ResolveTexture(projectile, projectile.Texture);
+        string texture = ItemLoader.ResolveTextureOrMissing(projectile, projectile.Texture);
         string displayName = DisplayNames(projectile);
         int type;
         byte* mod = Host.Utf8(projectile.Mod.Uid), name = Host.Utf8(projectile.Name), tex = Host.Utf8(texture), dn = Host.Utf8(displayName);

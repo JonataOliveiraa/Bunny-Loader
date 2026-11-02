@@ -34,7 +34,11 @@ item at 9999): set it for anything that stacks.
 
 The texture is `Content/Items/ShinyRock.png`: the namespace plus the
 class name, as in tModLoader, and the first part (the mod's name) may be
-missing on disk. The name and tooltip come from the mod's translations,
+missing on disk. Override `Texture` to use another path, or a game image as in
+tModLoader: `public override string Texture => "Terraria/Images/Item_" + ItemID.LastPrism;`
+(the same works for `ModProjectile`, `ModBuff` and `ModNPC`). A texture that
+does not exist logs an error and the item or projectile draws a placeholder; the
+rest of the mod still loads. The name and tooltip come from the mod's translations,
 `Localization/en-US_Mods.MyMod.hjson` (see
 [Translations](#translations)):
 

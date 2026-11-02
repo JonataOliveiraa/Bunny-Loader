@@ -480,6 +480,10 @@ bool fileExists(const char* path) {
     return stat(path, &st) == 0 && S_ISREG(st.st_mode);
 }
 
+bool textureExists(const char* path) {
+    return path && (runtime::content::isVanillaTexturePath(path) || fileExists(path));
+}
+
 /** O mod no Mod Menu: nome do manifesto e o icone pequeno (ou o icon.png). */
 void noteModForMenu(const std::string& mod) {
     const std::string root = mods::rootOf(mod);
@@ -525,7 +529,7 @@ std::vector<std::pair<std::string, std::string>> cultureTexts(const char* packed
 int32_t nativeRegisterItem(const char* mod, const char* name, const char* texture,
                            const char* displayName, const char* tooltip) {
     if (!mod || !name || !texture || !*mod || !*name) return -1;
-    if (!fileExists(texture)) return -2;
+    if (*texture && !textureExists(texture)) return -2;
     runtime::ModItemDef d;
     d.mod = mod;
     d.name = name;
@@ -766,7 +770,7 @@ void* nativeResizeArray(void* array, int32_t length) {
 
 int32_t nativeRegisterBuff(const char* mod, const char* name, const char* texture, const char* displayName, const char* description) {
     if (!mod || !name || !texture || !*mod || !*name) return -1;
-    if (!fileExists(texture)) return -2;
+    if (!textureExists(texture)) return -2;
     runtime::ModBuffDef d;
     d.mod = mod;
     d.name = name;
@@ -806,7 +810,7 @@ void* nativeAssetOfTexture(void* texture) { return runtime::assetOfTexture(textu
 
 int32_t nativeRegisterProjectile(const char* mod, const char* name, const char* texture, const char* displayName) {
     if (!mod || !name || !texture || !*mod || !*name) return -1;
-    if (!fileExists(texture)) return -2;
+    if (*texture && !textureExists(texture)) return -2;
     runtime::ModProjectileDef d;
     d.mod = mod;
     d.name = name;
@@ -829,7 +833,7 @@ void nativeSetProjectileFrames(int32_t type, int32_t frames) { runtime::setModPr
 
 int32_t nativeRegisterNPC(const char* mod, const char* name, const char* texture, const char* displayName) {
     if (!mod || !name || !texture || !*mod || !*name) return -1;
-    if (!fileExists(texture)) return -2;
+    if (!textureExists(texture)) return -2;
     runtime::ModNpcDef def;
     def.mod = mod;
     def.name = name;

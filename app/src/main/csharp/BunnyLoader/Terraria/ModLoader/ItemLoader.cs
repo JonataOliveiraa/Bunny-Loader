@@ -100,7 +100,7 @@ public static unsafe class ItemLoader
 
     internal static void Register(ModItem item)
     {
-        string texture = ResolveTexture(item, item.Texture);
+        string texture = ResolveTextureOrMissing(item, item.Texture);
         int type = Native(item, texture, DisplayNames(item), Tooltips(item));
         if (type == -1) throw new InvalidOperationException($"{item.FullName}: the mod already has an item named '{item.Name}'");
         if (type < 0) throw new InvalidOperationException($"{item.FullName}: registration failed ({type})");
@@ -155,9 +155,20 @@ public static unsafe class ItemLoader
         }
     }
 
-    internal static string ResolveTexture(ModType content, string path)
+    internal static string ResolveTextureOrMissing(ModType content, string path)
+    {
+        try { return ResolveTexture(content, path, true); }
+        catch (FileNotFoundException e)
+        {
+            Log.Error($"{e.Message}; drawing a placeholder instead");
+            return "";
+        }
+    }
+
+    internal static string ResolveTexture(ModType content, string path, bool vanilla = false)
     {
         string texture = path.Replace('\\', '/');
+        if (vanilla && texture.StartsWith("Terraria/", StringComparison.Ordinal)) return texture;
         if (!texture.EndsWith(".png", StringComparison.OrdinalIgnoreCase)) texture += ".png";
         if (Path.IsPathRooted(texture))
         {

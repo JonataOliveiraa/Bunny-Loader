@@ -265,8 +265,9 @@ void tickModProjectiles() {
             Entry& e = g_regs[static_cast<size_t>(i)];
             const int type = kVanillaProjectileCount + i;
             int w = 0, h = 0;
-            Il2CppObject* asset = content::loadTextureAsset(e.def.texture, nullptr, 0,
+            Il2CppObject* asset = e.def.texture.empty() ? nullptr : content::loadTextureAsset(e.def.texture, nullptr, 0,
                                                             e.def.mod + "/" + e.def.name, &w, &h);
+            if (!asset) asset = content::missingTextureAsset(&w, &h);
             if (asset) e.asset = il2cpp::api().gchandle_new(asset, false);
             e.width = w;
             e.textureHeight = h;

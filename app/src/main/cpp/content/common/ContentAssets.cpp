@@ -1,4 +1,5 @@
 #include "content/common/ContentAssets.h"
+#include "content/items/UnloadedIcon.h"
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
@@ -192,10 +193,28 @@ Il2CppObject* loadGameTexture(const std::string& path, const unsigned char* data
     return gt;
 }
 
+bool isVanillaTexturePath(const std::string& path) {
+    return path.rfind("Terraria/", 0) == 0 || path.rfind("Terraria\\", 0) == 0;
+}
+
 Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* data, size_t size,
                                const std::string& assetName, int* width, int* height) {
     auto& a = il2cpp::api();
     const Refs& r = refs();
+    if (!data && isVanillaTexturePath(path)) {
+        bool missing = false;
+        Il2CppObject* asset = vanillaTextureAsset(path, &missing);
+        if (!asset) {
+            BL_ERROR(missing ? "mod content %s: the game image '%s' does not exist on mobile"
+                             : "mod content %s: no game texture named '%s'", assetName.c_str(), path.c_str());
+            return nullptr;
+        }
+        int w = 0, h = 0;
+        textureAssetSize(asset, &w, &h);
+        if (width) *width = w;
+        if (height) *height = h;
+        return asset;
+    }
     // Pixel art: vizinho-mais-proximo. A Unity nasce bilinear e a textura
     // sairia borrada ao lado das do jogo.
     Il2CppObject* gt = loadGameTexture(path, data, size, assetName, 0 /* FilterMode.Point */, width, height);
@@ -206,6 +225,23 @@ Il2CppObject* loadTextureAsset(const std::string& path, const unsigned char* dat
     if (!invoke(r.assetCtor, asset, c5, "Asset.ctor")) return nullptr;
     void* c6[2] = {gt, nullptr};
     if (!invoke(r.assetSubmit, asset, c6, "Asset.SubmitLoadedContent")) return nullptr;
+    return asset;
+}
+
+Il2CppObject* missingTextureAsset(int* width, int* height) {
+    static uint32_t handle = 0;
+    auto& a = il2cpp::api();
+    Il2CppObject* asset = handle ? a.gchandle_get_target(handle) : nullptr;
+    if (!asset) {
+        int w = 0, h = 0;
+        asset = loadTextureAsset("", bl_unloaded_icon_png, bl_unloaded_icon_png_len, "bl/MissingTexture", &w, &h);
+        if (!asset) return nullptr;
+        handle = a.gchandle_new(asset, false);
+    }
+    int w = 0, h = 0;
+    textureAssetSize(asset, &w, &h);
+    if (width) *width = w;
+    if (height) *height = h;
     return asset;
 }
 

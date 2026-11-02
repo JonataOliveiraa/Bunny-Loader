@@ -11,6 +11,8 @@ namespace ExampleMod.Content.Projectiles;
 
 public class ExampleLastPrismHoldout : ModProjectile
 {
+    public override string Texture => "Terraria/Images/Projectile_" + ProjectileID.LastPrism;
+
     const int NumAnimationFrames = 5;
 
     public const int NumBeams = 10;

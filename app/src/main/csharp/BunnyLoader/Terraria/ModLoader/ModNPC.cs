@@ -183,7 +183,7 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
     public virtual void LoadData(TagCompound tag) { }
 
     public virtual void AutoStaticDefaults() =>
-        TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture));
+        TextureAssets.Npc[Type] = new Asset<Texture2D>(Texture, ItemLoader.ResolveTexture(this, Texture, true));
 
     public virtual void ModifyNPCLoot(NPCLoot npcLoot) { }
 
