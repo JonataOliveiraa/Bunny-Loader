@@ -46,5 +46,7 @@
   "CommandUnknownMod": "未知模组：{0}",
   "CommandMissingInMod": "模组 {0} 没有 /{1} 命令。",
   "CommandAmbiguous": "命令 /{0} 存在于多个模组中。请使用：",
-  "CommandUsage": "用法：{0}"
+  "CommandUsage": "用法：{0}",
+  "TouchButtonsMods": "模组按钮",
+  "TouchButtonsMore": "更多"
 }

@@ -46,5 +46,7 @@
   "CommandUnknownMod": "Неизвестный мод: {0}",
   "CommandMissingInMod": "У мода {0} нет команды /{1}.",
   "CommandAmbiguous": "Команда /{0} есть в нескольких модах. Используйте:",
-  "CommandUsage": "Использование: {0}"
+  "CommandUsage": "Использование: {0}",
+  "TouchButtonsMods": "Кнопки модов",
+  "TouchButtonsMore": "Ещё"
 }

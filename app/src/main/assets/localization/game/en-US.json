@@ -46,5 +46,7 @@
   "CommandUnknownMod": "Unknown mod: {0}",
   "CommandMissingInMod": "The mod {0} does not have the command /{1}.",
   "CommandAmbiguous": "The command /{0} exists in more than one mod. Try:",
-  "CommandUsage": "Usage: {0}"
+  "CommandUsage": "Usage: {0}",
+  "TouchButtonsMods": "Mod buttons",
+  "TouchButtonsMore": "More"
 }

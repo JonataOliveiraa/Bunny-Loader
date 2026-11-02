@@ -28,6 +28,7 @@ the game in typed, compiled C#, and the tModLoader content classes.
 16. [Mod configs](mods-em-csharp/16-configs.md)
 17. [Chat commands](mods-em-csharp/17-comandos.md)
 18. [Achievements](mods-em-csharp/18-conquistas.md)
+19. [Touch buttons](mods-em-csharp/19-botoes-de-toque.md)
 
 ## For people working on Bunny Loader
 

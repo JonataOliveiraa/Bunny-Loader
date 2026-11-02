@@ -1,0 +1,14 @@
+{
+  "uid": "7b2e4c90-15ad-4f3e-9d61-c0a8e2f45b17",
+  "id": "CsTouch",
+  "name": "Test: touch buttons (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModKeybind and ModTouchButton: the game's lists, a button in the active layout, touch to JustPressed/Current/JustReleased, and 40 extra buttons for the editor list.",
+  "description": "Build with tools/tests/build-cs.sh cstouch. Tap the mount slot (1513,760 on MuMu) while it runs. Logs cstouch <case>: ok | FAIL and cstouch END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

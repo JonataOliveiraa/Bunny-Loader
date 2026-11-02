@@ -389,3 +389,14 @@ Achievements: {
 		Description: Defeat 5 Giant Worms.
 	}
 }
+
+ExampleKeybindPlayer: {
+	RandomBuff: ExampleMod's ModKeybind was just pressed. The {0} buff was given to the player.
+	LearningExampleHeld: LearningExampleKeybind held for half a second
+	LearningExampleDoubleTap: LearningExampleKeybind double tapped within a quarter of a second
+}
+
+Keybinds: {
+	RandomBuff.DisplayName: Random Buff
+	LearningExample.DisplayName: Learning Example
+}

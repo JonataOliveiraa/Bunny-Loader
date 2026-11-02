@@ -389,3 +389,14 @@ Achievements: {
 		Description: Derrote 5 Vermes Gigantes.
 	}
 }
+
+ExampleKeybindPlayer: {
+	RandomBuff: O botão do ExampleMod foi apertado. O jogador ganhou o buff {0}.
+	LearningExampleHeld: LearningExampleKeybind segurado por meio segundo
+	LearningExampleDoubleTap: LearningExampleKeybind tocado duas vezes em um quarto de segundo
+}
+
+Keybinds: {
+	RandomBuff.DisplayName: Buff Aleatório
+	LearningExample.DisplayName: Exemplo de Aprendizado
+}

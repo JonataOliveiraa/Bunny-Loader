@@ -277,6 +277,8 @@ public static class ModContent
             catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
             try { AnglerQuestHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"angler quests: the quest fish could not be added: {e}"); }
+            try { TouchButtonLoader.ContentReady(); }
+            catch (Exception e) { Log.Error($"touch buttons: the saved layout could not be applied: {e}"); }
             foreach (Mod mod in mods)
             {
                 Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);

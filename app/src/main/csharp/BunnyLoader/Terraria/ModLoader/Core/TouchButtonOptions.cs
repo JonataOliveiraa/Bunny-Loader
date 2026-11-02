@@ -1,0 +1,190 @@
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using BunnyLoader;
+using BunnyLoader.Interop;
+using Microsoft.Xna.Framework;
+using Terraria.Audio;
+using Terraria.Localization;
+using ContolType = VirtualControlsHardwareConfigurationMapping_Layout.ContolType;
+using ActionSetting = GUIVirtualInputControllerEdit_ControlPanel.ControlPanelActionSetting;
+
+namespace Terraria.ModLoader.Core;
+
+internal static unsafe class TouchButtonOptions
+{
+    internal const int PageActions = 3;
+    const int ClickedState = (int)GUITransactionButton.InputState.Clicked;
+    const int NoneState = (int)GUITransactionButton.InputState.None;
+    const int OverState = (int)GUITransactionButton.InputState.Over;
+
+    static Hook? transactionDraw;
+    static int[]? vanilla;
+    static int lines = 1;
+    static int page;
+    static int drawFrame, lastOptionFrame = int.MinValue;
+    static bool capturing, clicked;
+
+    internal static int ModsAction => TouchButtonLoader.FirstAction + TouchButtonLoader.Count;
+
+    internal static int BackAction => ModsAction + 1;
+
+    internal static int MoreAction => ModsAction + 2;
+
+    internal static bool IsPageAction(int action) => action >= ModsAction && action < ModsAction + PageActions;
+
+    static int PerPage => Math.Max(1, (vanilla?.Length ?? 27) - 2);
+
+    static int Pages => (TouchButtonLoader.Count + PerPage - 1) / PerPage;
+
+    internal static void Install()
+    {
+        On_GUIVirtualInputControllerEdit_ControlPanel_ControlPanelActionSetting.PulldownOptionDraw += PulldownOptionDraw;
+        On_GUIVirtualInputControllerEdit.Draw += (orig, self) =>
+        {
+            drawFrame++;
+            if (page != 0 && drawFrame - lastOptionFrame > 2)
+            {
+                page = 0;
+                Apply();
+            }
+            orig(self);
+        };
+        transactionDraw = ItemHooks.Raw("", "GUITransactionButton",
+            "GUITransactionButton.InputState Draw(TransactionButton_Layout layout, Item item, string label, bool disabled, ref float scale, bool forcedPressed, bool hasControllerFocus, bool forceOver, bool disablePressedState)",
+            (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr, byte, float*, byte, byte, byte, byte, IntPtr, int>)&TransactionDraw);
+    }
+
+    internal static string Label(int action) =>
+        Language.GetTextValue(action == ModsAction ? "BunnyLoader.TouchButtonsMods" : action == BackAction ? "BunnyLoader.Back" : "BunnyLoader.TouchButtonsMore");
+
+    internal static void Refresh()
+    {
+        VirtualInputControllerControlConfiguration_Layout config = VirtualInputControllerControlConfiguration_Layout.Instance;
+        if (config.IsNull || config.ButtonControls.IsNull) return;
+        if (vanilla == null)
+        {
+            var own = new List<int>();
+            foreach (ContolType action in config.ButtonControls)
+                if ((int)action < TouchButtonLoader.FirstAction) own.Add((int)action);
+            vanilla = own.ToArray();
+            ItemGrid_Layout grid = config.PulldownOptionGrid;
+            if (!grid.IsNull) lines = Math.Max(1, grid.ItemLineCount);
+        }
+        Apply();
+    }
+
+    static List<int> Build()
+    {
+        var list = new List<int>();
+        int count = TouchButtonLoader.Count;
+        if (page <= 0 || count == 0)
+        {
+            list.AddRange(vanilla!);
+            if (count > 0) list.Add(ModsAction);
+            return list;
+        }
+        list.Add(BackAction);
+        int first = (page - 1) * PerPage;
+        for (int i = first; i < Math.Min(count, first + PerPage); i++) list.Add(TouchButtonLoader.FirstAction + i);
+        if (page < Pages) list.Add(MoreAction);
+        return list;
+    }
+
+    static void Apply()
+    {
+        if (vanilla == null) return;
+        VirtualInputControllerControlConfiguration_Layout config = VirtualInputControllerControlConfiguration_Layout.Instance;
+        if (config.IsNull) return;
+        List<int> wanted = Build();
+        GameArray<ContolType> current = config.ButtonControls;
+        if (!Same(current, wanted))
+        {
+            GameArray<ContolType> list = current.IsNull || current.Length != wanted.Count ? current.Resized(wanted.Count) : current;
+            for (int i = 0; i < wanted.Count; i++) list[i] = (ContolType)wanted[i];
+            config.ButtonControls = list;
+        }
+        ItemGrid_Layout grid = config.PulldownOptionGrid;
+        if (grid.IsNull) return;
+        int items = (wanted.Count + lines - 1) / lines * lines;
+        if (grid.ItemLineCount != lines) grid.ItemLineCount = lines;
+        if (grid.ItemCount != items) grid.ItemCount = items;
+    }
+
+    static bool Same(GameArray<ContolType> array, List<int> wanted)
+    {
+        if (array.IsNull || array.Length != wanted.Count) return false;
+        for (int i = 0; i < wanted.Count; i++)
+            if ((int)array[i] != wanted[i]) return false;
+        return true;
+    }
+
+    static int PageOf(int action)
+    {
+        int index = action - TouchButtonLoader.FirstAction;
+        return index >= 0 && index < TouchButtonLoader.Count ? index / PerPage + 1 : 0;
+    }
+
+    static void PulldownOptionDraw(On_GUIVirtualInputControllerEdit_ControlPanel_ControlPanelActionSetting.orig_PulldownOptionDraw orig, ActionSetting self,
+        ItemGrid_Layout gridLayout, int index, Vector2 position, float scale)
+    {
+        if (drawFrame - lastOptionFrame > 1)
+        {
+            try
+            {
+                int wanted = PageOf((int)self.GetControlType());
+                if (wanted != page)
+                {
+                    page = wanted;
+                    Apply();
+                }
+            }
+            catch (Exception e) { ItemHooks.Report("TouchButtons: open the list", e); }
+        }
+        lastOptionFrame = drawFrame;
+        GameArray<ContolType> options = self.controlOptions;
+        int action = !options.IsNull && index >= 0 && index < options.Length ? (int)options[index] : -1;
+        if (!IsPageAction(action))
+        {
+            orig(self, gridLayout, index, position, scale);
+            return;
+        }
+        capturing = true;
+        clicked = false;
+        try { orig(self, gridLayout, index, position, scale); }
+        finally { capturing = false; }
+        if (!clicked) return;
+        self.selectedOption = index;
+        page = action == ModsAction ? 1 : action == MoreAction ? page + 1 : page - 1;
+        page = Math.Clamp(page, 0, Pages);
+        try
+        {
+            SoundEngine.PlaySound(12);
+            Apply();
+        }
+        catch (Exception e) { ItemHooks.Report("TouchButtons: change page", e); }
+    }
+
+    [UnmanagedCallersOnly]
+    static int TransactionDraw(IntPtr layout, IntPtr item, IntPtr label, byte disabled, float* scale, byte forcedPressed, byte hasControllerFocus, byte forceOver,
+        byte disablePressedState, IntPtr method)
+    {
+        Hook? hook = transactionDraw;
+        if (hook == null) return NoneState;
+        var call = GameCall.Returning(RetKind.Int);
+        call.Arg(layout);
+        call.Arg(item);
+        call.Arg(label);
+        call.Arg(disabled);
+        call.Arg((IntPtr)scale);
+        call.Arg(forcedPressed);
+        call.Arg(hasControllerFocus);
+        call.Arg(forceOver);
+        call.Arg(disablePressedState);
+        call.Arg(method);
+        int state = (int)ItemHooks.Original(ref call, hook, "GUITransactionButton.Draw");
+        if (!capturing || state != ClickedState) return state;
+        clicked = true;
+        return OverState;
+    }
+}
