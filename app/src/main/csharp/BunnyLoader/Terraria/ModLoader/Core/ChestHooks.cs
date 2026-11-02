@@ -28,13 +28,13 @@ internal static class ChestHooks
         bool chest = TileID.Sets.BasicChest[type], dresser = TileID.Sets.BasicDresser[type];
         if (chest || dresser)
         {
+            PageIconHooks.Install();
             ItemHooks.Once("Chests", () =>
             {
                 ModNet.Install();
                 On_NetMessage.SendData += SendData;
                 On_Player.PickTile += PickTile;
                 On_Player.ClearMiningCacheAt += ClearMiningCacheAt;
-                On_GUIPageIcons.GetCategoryTexture += GetCategoryTexture;
             });
         }
         if (dresser)
@@ -154,25 +154,6 @@ internal static class ChestHooks
             if (after.type == TileID.Dressers) after.type = (ushort)tile.Type;
         }
     }
-
-    static Texture2D GetCategoryTexture(On_GUIPageIcons.orig_GetCategoryTexture orig, GUIPageIcons self, GUIPageIcons.Category category, bool selected)
-    {
-        try
-        {
-            int item = 0;
-            if (category == GUIPageIcons.Category.Chest)
-            {
-                Player player = Main.LocalPlayer;
-                if (player.chest >= 0) item = ItemOf(player.chestX, player.chestY);
-            }
-            else if (category == GUIPageIcons.Category.Dresser) item = ItemOf(Main.interactedDresserTopLeftX, Main.interactedDresserTopLeftY);
-            if (item > 0) return TextureAssets.Item[item].Value;
-        }
-        catch (Exception e) { ItemHooks.Report("ModTile (chest page icon)", e); }
-        return orig(self, category, selected);
-    }
-
-    static int ItemOf(int x, int y) => At(x, y) is ModTile tile ? TileLoader.DropType(tile.Type, TileLoader.StyleAt(x, y)) : 0;
 
     static int Kind(int type) =>
         TileLoader.GetTile(type) == null ? 0 : TileID.Sets.BasicDresser[type] ? 2 : TileID.Sets.BasicChest[type] ? 1 : 0;

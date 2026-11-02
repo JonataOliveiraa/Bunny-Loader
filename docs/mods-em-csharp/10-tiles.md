@@ -167,6 +167,12 @@ the game's chests. `RightClick` opens it (`player.OpenChest`) and
 `AddMapEntry` with a name callback (`MapChestName` in tModLoader) is not
 available: the phone's map legend only takes fixed names.
 
+## Signs and page icons
+
+A mod sign is a `ModTile` with `Main.tileSign[Type] = true` (and usually `TileID.Sets.TileInteractRead`), using `Sign.ReadSign`, `Sign.TextSign` and `Sign.KillSign` as in tModLoader. The mobile game draws a fixed item in the sign dialogue (sign, tombstone...); for a mod sign the loader draws the item that places it, with its name.
+
+The mobile page icons also come from fixed tables: a mod chest or dresser shows the item that places it, and the shop page of a mod town NPC shows its head (the shimmered head when it is shimmered).
+
 ## Tile entities
 
 A `ModTileEntity` keeps data and code on one placed object, as in tModLoader:
@@ -331,4 +337,4 @@ To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-c
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 
-The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees, `cspylon` pylons, `csresting` chairs and beds, and `cssmart` smart interact.
+The `cschest`, `cstileentity` and `cswall` packs (each run twice, the second time with `KEEPSAVES=1`) check chests, dressers, tile entities and walls; `cstree` checks trees, `cspylon` pylons, `csresting` chairs and beds, `cssmart` smart interact and `cspageicons` the shop and sign icons.

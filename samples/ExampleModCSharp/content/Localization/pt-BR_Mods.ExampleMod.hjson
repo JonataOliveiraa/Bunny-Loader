@@ -150,6 +150,11 @@ Items: {
 		Tooltip: Esta é uma cadeira de mod.
 	}
 
+	ExampleSignItem: {
+		DisplayName: Placa de Exemplo
+		Tooltip: ""
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Item de Tile Entity Básica
 		Tooltip: Junta água da chuva. Toque nele quando estiver cheio para pegar um balde de água.
@@ -302,6 +307,11 @@ Biomes: {
 }
 
 Tiles: {
+	ExampleSign: {
+		DefaultSignText: Interaja comigo!
+		MapEntry: Placa de Exemplo
+	}
+
 	BasicTileEntityTile: {
 		MapEntry: Tile de Tile Entity Básica
 		StatusText: Cheio: {0}%

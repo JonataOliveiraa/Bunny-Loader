@@ -150,6 +150,11 @@ Items: {
 		Tooltip: This is a modded chair.
 	}
 
+	ExampleSignItem: {
+		DisplayName: Example Sign
+		Tooltip: ""
+	}
+
 	BasicTileEntityItem: {
 		DisplayName: Basic Tile Entity Item
 		Tooltip: Collects rain water. Interact with it when full to claim a water bucket.
@@ -302,6 +307,11 @@ Biomes: {
 }
 
 Tiles: {
+	ExampleSign: {
+		DefaultSignText: Interact with me!
+		MapEntry: Example Sign
+	}
+
 	BasicTileEntityTile: {
 		MapEntry: Basic Tile Entity Tile
 		StatusText: Filled: {0}%

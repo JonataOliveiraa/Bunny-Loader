@@ -267,6 +267,8 @@ public static unsafe partial class TileLoader
                 RoomNeed(TileID.Sets.RoomNeeds.CountsAsTorch, ref TileID.Sets.RoomNeeds.CountsAsTorchTypes, i);
                 RoomNeed(TileID.Sets.RoomNeeds.CountsAsDoor, ref TileID.Sets.RoomNeeds.CountsAsDoorTypes, i);
                 ChestHooks.Install(tile);
+                if (Main.tileSign[i])
+                    PageIconHooks.InstallSign();
             }
             catch (Exception e)
             {

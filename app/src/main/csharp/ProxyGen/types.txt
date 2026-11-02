@@ -310,6 +310,8 @@ Terraria.GameContent.PlayerSittingHelper
 Terraria.GameContent.PlayerSleepingHelper
 Terraria.GameContent.ObjectInteractions.TileSmartInteractCandidateProvider
 Terraria.GameContent.ObjectInteractions.SmartInteractScanSettings
+Terraria.Sign
+Terraria.DataStructures.DrawAnimation
 !Terraria.Item.DefaultToPlaceableWall
 
 Terraria.GameContent.ShopHelper

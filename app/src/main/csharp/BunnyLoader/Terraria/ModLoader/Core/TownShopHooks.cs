@@ -6,7 +6,11 @@ namespace Terraria.ModLoader.Core;
 
 internal static class TownShopHooks
 {
-    internal static void Install() => ItemHooks.Once("TownShops", () => On_InventoryStorage.SetupShop += SetupShop);
+    internal static void Install()
+    {
+        PageIconHooks.Install();
+        ItemHooks.Once("TownShops", () => On_InventoryStorage.SetupShop += SetupShop);
+    }
     internal static void InstallTravel() => ItemHooks.Once("TownTravelShop", () => On_InventoryStorage.SetupTravelShop += Travel);
 
     internal static void ContentReady()
