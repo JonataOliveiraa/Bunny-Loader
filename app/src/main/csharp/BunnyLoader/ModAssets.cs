@@ -19,29 +19,35 @@ public sealed class ModAssets
     {
         Asset<T>.CheckSupported();
         string relative = Relative(assetName);
+        string extension = Extension<T>();
         lock (requested)
         {
-            if (requested.TryGetValue(relative, out object? have)) return (Asset<T>)have;
-            string? file = Find(relative);
+            if (requested.TryGetValue(relative + extension, out object? have)) return (Asset<T>)have;
+            string? file = Find(relative, extension);
             if (file == null) throw new FileNotFoundException($"{mod.Name}: asset '{assetName}' not found in {mod.Folder}");
             var asset = new Asset<T>($"{mod.Name}/{relative}", file);
-            requested[relative] = asset;
+            requested[relative + extension] = asset;
             return asset;
         }
     }
 
     public bool HasAsset<T>(string assetName) where T : struct, IGameObject =>
-        typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.Texture2D) && Find(Relative(assetName)) != null;
+        (typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.Texture2D) || typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont)) &&
+        Find(Relative(assetName), Extension<T>()) != null;
+
+    static string Extension<T>() => typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont) ? ".json" : ".png";
 
     static string Relative(string assetName)
     {
         string name = assetName.Replace('\\', '/').TrimStart('/');
-        return name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ? name[..^4] : name;
+        foreach (string extension in new[] { ".png", ".json" })
+            if (name.EndsWith(extension, StringComparison.OrdinalIgnoreCase)) return name[..^extension.Length];
+        return name;
     }
 
-    string? Find(string relative)
+    string? Find(string relative, string extension)
     {
-        string? path = mod.ResolveFile(relative + ".png");
+        string? path = mod.ResolveFile(relative + extension);
         return path != null && File.Exists(path) ? path : null;
     }
 }

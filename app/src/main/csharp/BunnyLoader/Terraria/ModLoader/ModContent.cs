@@ -91,8 +91,21 @@ public static class ModContent
     {
         Asset<T>.CheckSupported();
         (string modName, string path) = SplitName(name);
-        if (modName == "Terraria") return VanillaAsset<T>.Get(path);
+        if (modName == "Terraria") return typeof(T) == typeof(Microsoft.Xna.Framework.Graphics.SpriteFont) ? (Asset<T>)(object)VanillaFont(path) : VanillaAsset<T>.Get(path);
         return ModOf(modName, name).Assets.Request<T>(path, mode);
+    }
+
+    static Asset<Microsoft.Xna.Framework.Graphics.SpriteFont> VanillaFont(string path)
+    {
+        string font = path.Replace('\\', '/').TrimStart('/');
+        if (font.StartsWith("Images/", StringComparison.Ordinal)) font = font["Images/".Length..];
+        return font switch
+        {
+            "Fonts/Mouse_Text" => Terraria.GameContent.FontAssets.MouseText,
+            "Fonts/Item_Stack" => Terraria.GameContent.FontAssets.ItemStack,
+            "Fonts/Death_Text" => Terraria.GameContent.FontAssets.DeathText,
+            _ => throw new NotSupportedException($"ModContent.Request: no game font '{path}' on mobile (Fonts/Mouse_Text, Fonts/Item_Stack and Fonts/Death_Text are)"),
+        };
     }
 
     public static bool RequestIfExists<T>(string name, out Asset<T> asset, AssetRequestMode mode = AssetRequestMode.AsyncLoad) where T : struct, IGameObject
@@ -109,7 +122,9 @@ public static class ModContent
     public static bool HasAsset(string assetName)
     {
         (string modName, string path) = SplitName(assetName);
-        if (modName != "Terraria") return Host.FindMod(modName) is Mod mod && mod.Assets.HasAsset<Microsoft.Xna.Framework.Graphics.Texture2D>(path);
+        if (modName != "Terraria")
+            return Host.FindMod(modName) is Mod mod &&
+                (mod.Assets.HasAsset<Microsoft.Xna.Framework.Graphics.Texture2D>(path) || mod.Assets.HasAsset<Microsoft.Xna.Framework.Graphics.SpriteFont>(path));
         try
         {
             VanillaAsset<Microsoft.Xna.Framework.Graphics.Texture2D>.Get(path).Wait();
@@ -164,6 +179,8 @@ public static class ModContent
         {
             Mod[] mods = Host.Mods;
             ServerSyncHooks.Install();
+            BunnyLoader.ScreenEffectsSetting.Install();
+            BunnyLoader.ScreenFxCommand.Install();
             SystemLoader.ResizeArrays();
             SystemLoader.OnLocalizationsLoaded();
             foreach (Mod mod in mods)

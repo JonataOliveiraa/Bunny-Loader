@@ -399,6 +399,16 @@ Terraria.GameContent.Liquid.LiquidRenderer
 Terraria.ID.SurfaceBackgroundID
 Terraria.ID.SurfaceBackgroundID.Sets
 Terraria.Graphics.Effects.SkyManager
+Terraria.Graphics.Effects.Filters
+Terraria.Graphics.Effects.Filter
+Terraria.Graphics.Effects.FilterManager
+Terraria.Graphics.Effects.GameEffect
+Terraria.Graphics.Effects.CustomSky
+Terraria.Graphics.Effects.Overlays
+Terraria.Graphics.Effects.Overlay
+Terraria.Graphics.Effects.OverlayManager
+Terraria.Graphics.Shaders.ShaderData
+Terraria.Graphics.Shaders.ScreenShaderData
 Terraria.Graphics.Light.LightMap
 !Terraria.GameContent.TextureAssets.Rain
 !Terraria.GameContent.TextureAssets.Background
@@ -421,4 +431,4 @@ TransactionButton_Layout
 String_Layout
 Terraria.ID.MessageID
 Terraria.DataStructures.TrackedProjectileReference
-Terraria.DataStructures.EntitySource_TileBreak
+Terraria.DataStructures.EntitySource_TileBreak 

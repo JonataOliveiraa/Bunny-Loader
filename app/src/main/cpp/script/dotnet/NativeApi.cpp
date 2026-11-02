@@ -30,10 +30,12 @@
 #include "content/dusts/ModDusts.h"
 #include "content/common/ContentAssets.h"
 #include "content/common/ModContent.h"
+#include "content/textures/FontPacks.h"
 #include "content/common/ModLanguage.h"
 #include "content/common/ModNet.h"
 #include "content/common/ServerSyncBridge.h"
 #include "core/Config.h"
+#include "graphics/ScreenApi.h"
 #include "content/common/TypeTables.h"
 #include "content/items/ItemDrawStages.h"
 #include "content/items/ModEquips.h"
@@ -206,6 +208,13 @@ struct NativeApi {
     int32_t (*serverSync)(const char* method, const char* arg, char* out, int32_t size);
     void (*netHelloListen)(void (*listener)(int32_t from, const char* hello));
     void (*hostRules)(int32_t rules);
+    int32_t (*screenShader)(const char* name, const char* source);
+    int32_t (*screenShaderStatus)(int32_t id, char* error, int32_t capacity);
+    int32_t (*screenSubmit)(const uint8_t* data, int32_t length);
+    int32_t (*screenTexture)(const char* path, int32_t linear, int32_t repeat, int32_t* width, int32_t* height);
+    int32_t (*screenSaveNeutralLut)(const char* path, int32_t size);
+    int32_t (*screenStats)(int64_t* out, int32_t capacity);
+    void* (*requestModFont)(const char* path);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -1071,6 +1080,16 @@ const NativeApi kNativeApi{
     nativeServerSync,
     [](void (*listener)(int32_t from, const char* hello)) { runtime::setManagedHelloListener(listener); },
     runtime::setHostRules,
+    graphics::screenShader,
+    graphics::screenShaderStatus,
+    graphics::screenSubmit,
+    graphics::screenTexture,
+    graphics::screenSaveNeutralLut,
+    graphics::screenStats,
+    [](const char* path) -> void* {
+        if (!path || !fileExists(path)) return nullptr;
+        return runtime::loadModFont(path);
+    },
 };
 
 } // namespace

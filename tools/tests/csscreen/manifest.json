@@ -1,0 +1,14 @@
+{
+  "uid": "8b1f4d27-3c6a-4e95-a0d2-5f7e9c41b863",
+  "id": "CsScreen",
+  "name": "Test: screen effects (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModScreenEffect, ScreenEffects, the presets, targets, textures and LUTs, a .frag next to the class, and the game's Filters and SkyManager.",
+  "description": "Build with tools/tests/build-cs.sh csscreen. Logs csscreen SHOT <name> where a screenshot shows the effects, csscreen <case>: ok | FAIL and csscreen END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

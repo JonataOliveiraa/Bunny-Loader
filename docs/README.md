@@ -30,6 +30,8 @@ the game in typed, compiled C#, and the tModLoader content classes.
 18. [Achievements](mods-em-csharp/18-conquistas.md)
 19. [Touch buttons](mods-em-csharp/19-botoes-de-toque.md)
 20. [Interface](mods-em-csharp/20-interface.md)
+21. [Screen effects](mods-em-csharp/21-efeitos-de-tela.md)
+22. [Fonts and texture packs](mods-em-csharp/22-fontes-e-pacotes.md)
 
 ## For people working on Bunny Loader
 

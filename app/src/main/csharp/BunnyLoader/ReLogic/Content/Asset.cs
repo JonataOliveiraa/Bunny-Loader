@@ -126,6 +126,17 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
         if (api->IsGameThread() == 0)
             throw new InvalidOperationException($"asset {Name}: textures only load on the game thread (SetStaticDefaults, hooks, drawing), not while the mod loads");
         IntPtr loaded;
+        if (typeof(T) == typeof(SpriteFont))
+        {
+            if (file == null) throw new InvalidOperationException($"asset {Name}: no game font with this name");
+            byte* f = Host.Utf8(file);
+            try { loaded = api->RequestModFont(f); }
+            finally { Host.FreeUtf8(f); }
+            if (loaded == IntPtr.Zero) throw new InvalidOperationException($"asset {Name}: {file} is not a font the game can load (blfont/1, after the content is ready)");
+            directTexture = loaded;
+            Volatile.Write(ref asset, (IntPtr)1);
+            return;
+        }
         if (file != null)
         {
             byte* f = Host.Utf8(file), n = Host.Utf8(Name);
@@ -151,7 +162,7 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     internal static void CheckSupported()
     {
-        if (typeof(T) != typeof(Texture2D))
-            throw new NotSupportedException($"Asset<{typeof(T).Name}>: only Texture2D can be requested for now");
+        if (typeof(T) != typeof(Texture2D) && typeof(T) != typeof(SpriteFont))
+            throw new NotSupportedException($"Asset<{typeof(T).Name}>: only Texture2D and SpriteFont can be requested");
     }
 }

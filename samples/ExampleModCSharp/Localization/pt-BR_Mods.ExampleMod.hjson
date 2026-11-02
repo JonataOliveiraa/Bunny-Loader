@@ -207,6 +207,24 @@ Items: {
 		Tooltip: Esta é uma arma mágica de exemplo
 	}
 
+	ExampleRiftStaff: {
+		DisplayName: Cajado da Fenda de Exemplo
+		Tooltip:
+			'''
+			Abre uma fenda que torce o mundo em volta
+			Exemplo de efeito de tela com shader .frag próprio
+			'''
+	}
+
+	ExampleLastPrism: {
+		DisplayName: Último Prisma de Exemplo
+		Tooltip:
+			'''
+			Dez feixes que se juntam em um
+			Onde batem, a tela ondula
+			'''
+	}
+
 	ExampleStatBonusAccessory: {
 		DisplayName: Acessório de Bônus de Exemplo
 		Tooltip:
@@ -270,6 +288,9 @@ Projectiles: {
 	ExampleBullet.DisplayName: Bala de Exemplo
 	ExampleInstancedProjectile.DisplayName: Projétil Instanciado de Exemplo
 	ExampleHookProjectile.DisplayName: Gancho de Exemplo
+	ExampleLastPrismHoldout.DisplayName: Último Prisma de Exemplo
+	ExampleLastPrismBeam.DisplayName: Feixe do Último Prisma de Exemplo
+	ExampleRiftProjectile.DisplayName: Fenda
 }
 
 NPCs: {

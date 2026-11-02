@@ -1,0 +1,14 @@
+{
+  "uid": "2d7e5b90-8f14-4c3a-b6e1-9a0c47f3d528",
+  "id": "CsFont",
+  "name": "Test: mod fonts (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModContent.Request<SpriteFont> with a blfont/1 file in the mod, the game fonts by name, drawing with the mod font.",
+  "description": "Build with tools/tests/build-cs.sh csfont. Logs csfont SHOT font, csfont <case>: ok | FAIL and csfont END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [301720, 301720],
+  "dependencies": []
+}

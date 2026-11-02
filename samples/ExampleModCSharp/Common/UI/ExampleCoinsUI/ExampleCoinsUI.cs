@@ -74,10 +74,12 @@ public class UIMoneyDisplay : UIElement
     public long collectedCoins;
     private DateTime? startTime;
     private readonly Texture2D[] coinsTextures = new Texture2D[4];
+    private readonly SpriteFont exampleFont;
 
     public UIMoneyDisplay()
     {
         startTime = null;
+        exampleFont = ModContent.Request<SpriteFont>("ExampleMod/Assets/Fonts/ExampleFont").Value;
 
         for (int j = 0; j < 4; j++)
         {
@@ -110,7 +112,7 @@ public class UIMoneyDisplay : UIElement
 
         DrawCoins(spriteBatch, shopx, shopy, Utils.CoinsSplit(collectedCoins));
         DrawCoins(spriteBatch, shopx, shopy, Utils.CoinsSplit(GetCoinsPerMinute()), 0, 25);
-        Utils.DrawBorderStringFourWay(spriteBatch, FontAssets.ItemStack.Value, "CPM", shopx + (float)(24 * 4), shopy + 25f, Color.White, Color.Black, new Vector2(0.3f), 0.75f);
+        Utils.DrawBorderStringFourWay(spriteBatch, exampleFont, "CPM", shopx + (float)(24 * 4), shopy + 22f, Color.Gold, Color.Black, new Vector2(0.3f), 0.9f);
     }
 
     private void DrawCoins(SpriteBatch spriteBatch, float shopx, float shopy, int[] coinsArray, int xOffset = 0, int yOffset = 0)

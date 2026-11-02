@@ -139,6 +139,13 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<byte*, byte*, byte*, int, int> ServerSync;
     public delegate* unmanaged<delegate* unmanaged<int, byte*, void>, void> NetHelloListen;
     public delegate* unmanaged<int, void> HostRules;
+    public delegate* unmanaged<byte*, byte*, int> ScreenShader;
+    public delegate* unmanaged<int, byte*, int, int> ScreenShaderStatus;
+    public delegate* unmanaged<byte*, int, int> ScreenSubmit;
+    public delegate* unmanaged<byte*, int, int, int*, int*, int> ScreenTexture;
+    public delegate* unmanaged<byte*, int, int> ScreenSaveNeutralLut;
+    public delegate* unmanaged<long*, int, int> ScreenStats;
+    public delegate* unmanaged<byte*, IntPtr> RequestModFont;
 }
 
 [StructLayout(LayoutKind.Sequential)]

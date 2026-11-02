@@ -207,6 +207,24 @@ Items: {
 		Tooltip: This is an example magic weapon
 	}
 
+	ExampleRiftStaff: {
+		DisplayName: Example Rift Staff
+		Tooltip:
+			'''
+			Opens a rift that twists the world around it
+			Screen effect example: its own .frag shader
+			'''
+	}
+
+	ExampleLastPrism: {
+		DisplayName: Example Last Prism
+		Tooltip:
+			'''
+			Ten beams that focus into one
+			Where they hit, the screen ripples
+			'''
+	}
+
 	ExampleStatBonusAccessory: {
 		DisplayName: Example Stat Bonus Accessory
 		Tooltip:
@@ -270,6 +288,10 @@ Projectiles: {
 	ExampleBullet.DisplayName: Example Bullet
 	ExampleInstancedProjectile.DisplayName: Example Instanced Projectile
 	ExampleHookProjectile.DisplayName: Example Hook
+	ExampleHookProjectile.DisplayName: Example Hook
+	ExampleLastPrismHoldout.DisplayName: Example Last Prism
+	ExampleLastPrismBeam.DisplayName: Example Last Prism Beam
+	ExampleRiftProjectile.DisplayName: Rift
 }
 
 NPCs: {

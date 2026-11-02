@@ -28,6 +28,12 @@ public static class UtilsExtensions
 
     public static float ToRotation(this Vector2 v) => MathF.Atan2(v.Y, v.X);
 
+    public static Vector2 Floor(this Vector2 vec) => new(MathF.Floor(vec.X), MathF.Floor(vec.Y));
+
+    public static Vector2 TopLeft(this Rectangle r) => new(r.X, r.Y);
+
+    public static Vector2 Size(this Rectangle r) => new(r.Width, r.Height);
+
     public static Point ToTileCoordinates(this Vector2 vec) => new((int)vec.X >> 4, (int)vec.Y >> 4);
 
     public static Terraria.DataStructures.Point16 ToTileCoordinates16(this Vector2 vec) => new((int)vec.X >> 4, (int)vec.Y >> 4);

@@ -1,0 +1,18 @@
+{
+  "uid": "6c3a9e15-47d2-4b8f-9e0a-1f5d72c4b9e3",
+  "id": "CsTexPack",
+  "name": "Test: texture pack",
+  "version": "1.0.0",
+  "author": "test",
+  "type": "texture",
+  "category": "Utilidade",
+  "summary": "Replaces the copper shortsword icon (Item_3507) with a magenta diagonal.",
+  "description": "Run next to any C# test (tools/tests/lib.sh prepare with this folder); the hotbar shows the magenta sword.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

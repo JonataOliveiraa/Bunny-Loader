@@ -1,0 +1,17 @@
+{
+  "uid": "a4f0c2d8-61b9-4e37-8d5a-3c9e7b120f64",
+  "id": "CsExFx",
+  "name": "Test: Example Mod screen effects (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "The C# Example Mod's screen effects: the rift staff projectile, the Last Prism ripple and the low life tint.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexfx SHOT <name>, csexfx <case>: ok | FAIL and csexfx END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
