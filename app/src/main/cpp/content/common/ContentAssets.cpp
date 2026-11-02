@@ -21,6 +21,7 @@ struct Refs {
     Il2CppClass* assetCls = nullptr;          // Asset<Texture2D>
     Il2CppClass* localizedTextCls = nullptr;
     const MethodInfo* unityCtor = nullptr;
+    const MethodInfo* unityCtorNoMips = nullptr;
     const MethodInfo* loadImage = nullptr;
     const MethodInfo* setFilterMode = nullptr;
     const MethodInfo* setWrapMode = nullptr;
@@ -76,6 +77,7 @@ Refs& refs() {
     r.unityOffset = r.gameTex ? fieldOffset(r.gameTex, "_unityTexture") : -1;
     r.destroy = sig(findClass({"UnityEngine", "Object", {}}), "void Destroy(Object obj)");
     r.unityCtor = sig(r.unityTex, "void .ctor(int width, int height)");
+    r.unityCtorNoMips = sig(r.unityTex, "void .ctor(int width, int height, TextureFormat textureFormat, bool mipChain)");
     r.loadImage = sig(conv, "bool LoadImage(Texture2D tex, byte[] data, bool markNonReadable)");
     r.setFilterMode = unityTexBase ? a.class_get_method_from_name(unityTexBase, "set_filterMode", 1) : nullptr;
     r.setWrapMode = unityTexBase ? a.class_get_method_from_name(unityTexBase, "set_wrapMode", 1) : nullptr;
@@ -151,20 +153,27 @@ Il2CppArray* readBytes(const std::string& path, const unsigned char* data, size_
 
 } // namespace
 
-Il2CppObject* loadGameTexture(const std::string& path, const unsigned char* data, size_t size,
-                              const std::string& what, int filterMode, int* width, int* height) {
+static Il2CppObject* decodeGameTexture(const std::string& path, const unsigned char* data, size_t size,
+                                       const std::string& what, int filterMode, bool lean, int* width, int* height) {
     auto& a = il2cpp::api();
     const Refs& r = refs();
-    if (!r.ok) return nullptr;
+    if (!r.ok || (lean && !r.unityCtorNoMips)) return nullptr;
     Il2CppArray* bytes = readBytes(path, data, size);
     if (!bytes) return nullptr;
 
     // Texture2D(2,2) nasce com mipmaps: o LoadImage os refaz no tamanho do PNG.
     Il2CppObject* ut = a.object_new(r.unityTex);
     int two = 2;
-    void* c1[2] = {&two, &two};
-    if (!invoke(r.unityCtor, ut, c1, "Texture2D(2,2)")) return nullptr;
-    uint8_t nonReadable = 0;
+    if (lean) {
+        int rgba32 = 4;
+        uint8_t mipChain = 0;
+        void* c0[4] = {&two, &two, &rgba32, &mipChain};
+        if (!invoke(r.unityCtorNoMips, ut, c0, "Texture2D(2,2,RGBA32,false)")) return nullptr;
+    } else {
+        void* c1[2] = {&two, &two};
+        if (!invoke(r.unityCtor, ut, c1, "Texture2D(2,2)")) return nullptr;
+    }
+    uint8_t nonReadable = lean ? 1 : 0;
     void* c2[3] = {ut, bytes, &nonReadable};
     Il2CppObject* ok = invokeValue(r.loadImage, nullptr, c2, "ImageConversion.LoadImage");
     if (!ok || !*(reinterpret_cast<uint8_t*>(ok) + sizeof(Il2CppObject))) {
@@ -191,6 +200,15 @@ Il2CppObject* loadGameTexture(const std::string& path, const unsigned char* data
     void* c4[1] = {ut};
     if (!invoke(r.gameCtor, gt, c4, "Texture2D do jogo")) return nullptr;
     return gt;
+}
+
+Il2CppObject* loadGameTexture(const std::string& path, const unsigned char* data, size_t size,
+                              const std::string& what, int filterMode, int* width, int* height) {
+    return decodeGameTexture(path, data, size, what, filterMode, false, width, height);
+}
+
+Il2CppObject* loadPackTexture(const std::string& path, int* width, int* height) {
+    return decodeGameTexture(path, nullptr, 0, path, 0, true, width, height);
 }
 
 bool isVanillaTexturePath(const std::string& path) {

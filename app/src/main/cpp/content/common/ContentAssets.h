@@ -32,6 +32,7 @@ Il2CppObject* missingTextureAsset(int* width, int* height);
  */
 Il2CppObject* loadGameTexture(const std::string& path, const unsigned char* data, size_t size,
                               const std::string& what, int filterMode, int* width, int* height);
+Il2CppObject* loadPackTexture(const std::string& path, int* width, int* height);
 /** Libera a textura Unity de um Texture2D criado por loadGameTexture. */
 void destroyGameTexture(Il2CppObject* texture);
 

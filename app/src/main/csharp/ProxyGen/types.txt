@@ -421,6 +421,7 @@ Terraria.GameContent.Bestiary.FilterProviderInfoElement
 Terraria.GameContent.Bestiary.SpawnConditionBestiaryInfoElement
 Terraria.GameContent.Bestiary.Filters.ByInfoElement
 GUIBestiary
+TextureAtlasDB
 Bestiary_Layout
 Panel_Layout
 Terraria.Graphics.Capture.CaptureBiome

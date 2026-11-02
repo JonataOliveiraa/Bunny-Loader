@@ -1,0 +1,17 @@
+{
+  "uid": "9d3f6b18-2e47-4c5a-a8b9-0f1e7d2c4a63",
+  "id": "CsTexHearts",
+  "name": "Test: life and mana overlays with texture packs (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Gives Example life fruits and mana crystals, holds life and mana low at draw time and logs SHOT lines of the hearts and stars.",
+  "description": "Run with samples/ExampleModCSharp and a texture pack next to it. Logs cstexhearts SHOT <n> and cstexhearts END.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

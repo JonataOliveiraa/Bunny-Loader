@@ -89,6 +89,26 @@ Packs are applied by the native core, with no C# involved: the topmost package
 on the Packages tab wins per file. A server that does not allow texture packs
 refuses players that use one (`Allow textures` in the host settings).
 
+How a PNG gets in, and what it costs:
+
+- The pack's PNG replaces the `Value` of the game's own asset (the same
+  `Asset<Texture2D>` object the tables and the UI hold), never the table
+  entry. Textures the game has already loaded are replaced when the world
+  opens; the rest when the game first loads them, and again if the game
+  unloads and reloads them.
+- A pack texture is uploaded once to the GPU and keeps no copy in RAM and no
+  mipmaps. A large pack (the Calamity Texture Pack: 3211 PNGs, ~225 MB of
+  pixels) adds ~25 MB to the game's memory and ~2 s to opening the world on
+  the MuMu emulator; it used to add ~290 MB and ~12 s.
+- Each replaced sprite is its own texture, outside the game's atlas pages, so
+  many different replaced sprites on screen mean more draw calls than the
+  vanilla atlas. Keep the sheet sizes of the originals: a different size logs
+  `size mismatch` and sprite frames may break.
+- Test: `tools/tests/cstexperf` (frame time and memory every 2 s through
+  desert, snow and jungle, the low resolution texture setting and low life),
+  `tools/tests/cstexhearts` (the Example Mod life and mana overlays over a
+  pack).
+
 Packages with `blVersion` below 3 (texture and font packs included) do not
 load: move `content/Images` and `content/Fonts` to the root and set
 `"blVersion": 3`.

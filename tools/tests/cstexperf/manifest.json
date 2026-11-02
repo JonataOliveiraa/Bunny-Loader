@@ -1,0 +1,17 @@
+{
+  "uid": "c71e3b04-5a2d-4f86-9e1b-2d8a6f3c7e95",
+  "id": "CsTexPerf",
+  "name": "Test: texture pack cost and biomes (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Frame time and memory every 2 s, and a walk through desert, snow and jungle built on the flat world.",
+  "description": "Run with a texture pack next to it (lib.sh prepare). Logs cstexperf <phase> fps=... and cstexperf SHOT <biome>, ends with cstexperf END.",
+  "updated": "2026-11-02",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
