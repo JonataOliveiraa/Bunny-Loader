@@ -20,10 +20,8 @@ internal static unsafe class ModNet
         fixed (byte* data = buffer) return Host.Native()->NetSend(data, length, toClient, ignoreClient) != 0;
     }
 
-    public static void SetHello(Mod[] mods, string? custom = null)
+    public static void SetHello(string hello)
     {
-        Mod[] sorted = mods.OrderBy(m => m.Name, StringComparer.Ordinal).ToArray();
-        string hello = custom ?? string.Concat(sorted.Select(m => $"\n{m.Name}\t{m.Version}").Prepend("1"));
         byte* h = Host.Utf8(hello);
         try { Host.Native()->NetHello(h, null); }
         finally { Host.FreeUtf8(h); }

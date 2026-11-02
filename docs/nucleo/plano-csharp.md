@@ -322,16 +322,24 @@ Ports: InterfaceLayerLoader, KeybindLoader, TouchButton*, ScreenEffectsSetting, 
 
 ### Phase 9: removing JavaScript
 
-Only after phases 0–8 are ticked and a release with both engines has been out
-long enough for authors to port.
+Brought forward on 2026-11-02 (the user's call): this C# version is only
+released when everything is ready, with the mods already ported, so nobody
+loses JS mods in the meantime. The last version with QuickJS is the `js-final`
+tag (and the `release-js` branch, for fixes to the published version). Until
+the mods are ported, the app does not connect to the online catalog
+(`RemoteCatalog.ENABLED = false`); the catalog repository is untouched.
 
-- [ ] Native: `third_party/quickjs`, `script/bridge`, `script/api`, `script/js`, `JsHook`, the `ScriptEngine`, the QuickJS branches in `mods/ModLoader.cpp` and `boot/Probe.cpp`, `bl.*` installation, `BL_HAVE_QUICKJS`.
-- [ ] `content/*` callbacks that call into JS (`script::saveModItemData` and the like) point only to C#.
-- [ ] App: the QuickJS setting (`Prefs.quickJs`, Settings screen, `GameActivity`), `.js` entries in `ModManifest`, `Catalog`, `ModRepository`, `ModSources`, `NativeBridge`; the launcher refuses JS packs with a clear message.
-- [ ] BL Editor and Mod Sources: C# only.
+- [x] Native: `third_party/quickjs`, `script/bridge`, `script/js` and the `bl.*` APIs of `script/api` removed (only the console stays, C# only); the QuickJS branches in `mods/ModLoader.cpp` (a JS entry is skipped with "JS mods are no longer supported") and `boot/Probe.cpp`; the embedded MiniShark; the JS rule and the old C# judge in `ModNet.cpp`. `libbunny.so`: 5.4 MB → 2.2 MB (the APK barely changes, the game's assets dominate).
+- [x] `content/*` callbacks that called into JS (`script::saveModItemData` and the like) point only to C#; the .NET runtime starts even without C# mods (`DotnetHost::finishLoading`), so the Host screen, the sync and the config screen always exist.
+- [x] App: the QuickJS setting removed (`Prefs`, Settings screen, `GameActivity`, `NativeBridge`, the `QuickJs` texts); the launcher refuses JS packs ("JS mods are not supported: this version of Bunny Loader only loads C# mods"); the bundled catalog is the Example Mod C#.
+- [x] Mod Sources: a new project is C# (`content/<Id>.cs`, the optional sword in `Content/Items`, names in `Localization/<culture>_Mods.<Id>.hjson`, `"entry": "<Id>.cs"`); `.cs` instead of `.js` among the editable files. The BL Editor (its own repository) is not touched here.
+- [x] Coexistence code in C#: the "(C#)" button, the stacking under the JS button, the "Allow JS mods" host row.
+- [x] Tests: the 192 JS test packs, `configtabs`, `loadorder`, `pylonmap`, `wrappermap` and `tools/bench` removed (they are in `js-final`).
+- [x] Docs: the JS guides, the JS reference and the bridge docs archived to `docs/historico`; README, `docs/README.md`, `tools/README.md`, `multijogador.md` and the C# overview updated.
+- [ ] Docs still to revise: the C# guides compare with JS in places, and `docs/nucleo/README.md` and `hooks.md` still describe the JS engine.
+- [ ] The JS samples (`samples/ExampleMod`, `HelloMod`, `DobroDeDano`, `SemQueda`, `TemploPiramide`, `VidaCheia`) stay until their C# port; the catalog is reconnected when the mods are ported.
 - [ ] Tools: `tools/mods` (`pack.py`, `publish.py`, `port_textures.py`, tests) without `main.js`; the catalog app.
-- [ ] Docs: `docs/mods` (the JS guides) archived to `docs/historico`; `docs/mods-em-csharp` becomes the mod guide; README, wiki and `docs/nucleo` updated.
-- [ ] The APK and `libbunny.so` size before and after, in the changelog.
+- [ ] Bunny Loader features that were JS and come back in C# with their phases: the "Menu theme" row (phase 6, `ModMenu`), the "Screen effects" row and the effects (phase 7), touch buttons (phase 7).
 
 ## 5. Order and parallel work
 

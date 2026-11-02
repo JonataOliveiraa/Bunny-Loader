@@ -41,18 +41,7 @@ void boot() {
         return;
     }
 
-    // Script e mods NAO sobem aqui — quem faz isso e a sonda (Probe.cpp).
-    //
-    // Estavam nos dois lugares, e o resultado era pior que duplicacao: o
-    // QuickJS nascia nesta thread (o hook de il2cpp_init) e os mods eram
-    // avaliados na thread da sonda. O QuickJS fixa o limite de pilha a partir
-    // do ponteiro de pilha de quando o runtime e criado, entao avaliar noutra
-    // thread faz a checagem concluir que a pilha acabou:
-    //
-    //     erro em minishark: Maximum call stack size exceeded
-    //
-    // ...na primeira chamada, com um script de 20 linhas. Deixando uma dona so,
-    // criacao e avaliacao ficam na mesma thread.
+    // Os mods NAO sobem aqui — quem faz isso e a sonda (Probe.cpp).
     //
     // A sonda tambem espera o jogo assentar antes de tocar no il2cpp, o que
     // aqui, dentro do proprio il2cpp_init, nao daria para fazer.

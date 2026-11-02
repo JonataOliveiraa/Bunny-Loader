@@ -1,7 +1,7 @@
 # New content under the hood
 
 > Part of the core documentation ([overview](README.md)). To **create**
-> content in a mod, see [guide 4](../mods/04-conteudo-novo.md). This page
+> content in a mod, see [guide 4](../historico/mods-js/04-conteudo-novo.md). This page
 > covers what the core does so that a new item, projectile, NPC, buff or tile
 > can exist in a game that was compiled without knowing about it.
 

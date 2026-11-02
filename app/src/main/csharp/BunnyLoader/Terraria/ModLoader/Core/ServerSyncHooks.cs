@@ -16,7 +16,7 @@ internal static unsafe class ServerSyncHooks
 
     internal static bool SyncMods = true, AllowTextures = true;
 
-    static bool allowCheats = true, allowJs = true;
+    static bool allowCheats = true;
 
     internal static bool AllowCheats
     {
@@ -24,41 +24,29 @@ internal static unsafe class ServerSyncHooks
         set
         {
             allowCheats = value;
-            SendRules();
+            Host.Native()->HostRules(value ? 1 : 0);
         }
     }
-
-    internal static bool AllowJs
-    {
-        get => allowJs;
-        set
-        {
-            allowJs = value;
-            SendRules();
-        }
-    }
-
-    static void SendRules() => Host.Native()->HostRules((allowCheats ? 1 : 0) | (allowJs ? 2 : 0));
 
     static JsonArray? ownMods;
     static JsonArray? ownTextures;
 
     internal static bool Active { get; private set; }
 
-    internal static void Install(Mod[] mods)
+    internal static void Install()
     {
         JsonObject? info = PackInfo();
-        if (info == null || info["quickJs"]?.GetValue<bool>() != false)
+        if (info == null)
             return;
         ownMods = info["mods"] as JsonArray ?? new JsonArray();
         ownTextures = info["textures"] as JsonArray ?? new JsonArray();
         var hello = new JsonObject { ["mods"] = ownMods.DeepClone(), ["textures"] = ownTextures.Count };
-        ModNet.SetHello(mods, hello.ToJsonString());
+        ModNet.SetHello(hello.ToJsonString());
         Host.Native()->NetHelloListen(&Hello);
         Active = true;
         HostSettingsMenu.Install();
         ServerSyncMenu.Install();
-        Log.Info($"server sync: C# handles it ({ownMods.Count} mods, QuickJS is off)");
+        Log.Info($"server sync: {ownMods.Count} mods");
     }
 
     static JsonObject? PackInfo()

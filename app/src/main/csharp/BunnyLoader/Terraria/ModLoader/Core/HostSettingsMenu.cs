@@ -93,8 +93,7 @@ internal static unsafe class HostSettingsMenu
         {
             Make("HostSyncMods", "HostSyncModsDescription", () => ServerSyncHooks.SyncMods, v => ServerSyncHooks.SyncMods = v),
             Make("HostAllowTextures", "HostAllowTexturesDescription", () => ServerSyncHooks.AllowTextures, v => ServerSyncHooks.AllowTextures = v),
-            Make("HostAllowCheats", "HostAllowCheatsDescription", () => ServerSyncHooks.AllowCheats, v => ServerSyncHooks.AllowCheats = v),
-            Make("HostAllowJs", "HostAllowJsDescription", () => ServerSyncHooks.AllowJs, v => ServerSyncHooks.AllowJs = v)
+            Make("HostAllowCheats", "HostAllowCheatsDescription", () => ServerSyncHooks.AllowCheats, v => ServerSyncHooks.AllowCheats = v)
         };
     }
 

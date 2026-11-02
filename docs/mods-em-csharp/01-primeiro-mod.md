@@ -125,7 +125,7 @@ Line by line:
 ### `package/manifest.json`
 
 The same manifest as a JS mod (all fields are explained in the
-[JS guide](../mods/README.md#manifestjson)). The only difference is the
+[JS guide](../historico/mods-js/README.md#manifestjson)). The only difference is the
 `entry`: it points to your `.dll`.
 
 ```json
@@ -164,7 +164,7 @@ names the file and line: that is the first big gift of C#. A typo like
 Zip the **contents** of `package/` (so the zip has `manifest.json` and
 `content/` at its root) and import it on the phone: *Packages* tab →
 *Import package*. Copying the folder or using adb works too: see
-[Installing](../mods/README.md#installing).
+[Installing](../historico/mods-js/README.md#installing).
 
 ## Step 6: run and read the log
 

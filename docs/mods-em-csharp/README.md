@@ -2,18 +2,15 @@
 
 > **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md) · [11. Systems](11-sistemas.md) · [12. World generation](12-worldgen.md) · [13. Biomes and scenes](13-biomas.md) · [14. Title menu](14-menu.md) · [15. Sounds](15-sons.md) · [16. Mod configs](16-configs.md)
 
-Bunny Loader runs mods in **two languages**, side by side, inside the same
-game:
+Bunny Loader runs mods in **C#**, the language of Terraria and of tModLoader.
+A mod is compiled ahead of time (on your PC or by the phone itself), it gets
+**full access to the game** (every field, method and struct, with real types
+and autocomplete) and the tModLoader content classes: `ModItem`, `ModNPC`,
+`ModProjectile`, `ModTile`, `ModSystem`, `ModConfig` and the others in guides
+9 to 16. What is still missing is in the [C# plan](../nucleo/plano-csharp.md).
 
-- **JavaScript** ([the JS guides](../mods/README.md)), the original engine. It
-  has everything: hooks, `ModItem`, `ModNPC`, tiles, UI, screen effects.
-- **C#**, the new one. It is the language of Terraria and of tModLoader, it is
-  compiled ahead of time (on your PC, by the catalog when you publish, or by
-  the phone itself), and it is **much faster**. Today it
-  gives you **hooks** and **full access to the game**: every field, method and
-  struct, with real types and autocomplete. Of the content classes, `ModItem`
-  is there ([guide 9](09-conteudo.md)); `ModNPC`, `ModSystem` and the others
-  are not yet (see [Moving to C#](07-migracao-para-csharp.md)).
+The first engine, JavaScript, was removed; its guides are in the
+[history](../historico/mods-js/README.md).
 
 Here is a whole C# mod. If you have ever seen a tModLoader hook, you already
 know how to read it:

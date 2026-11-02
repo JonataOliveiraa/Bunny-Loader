@@ -28,11 +28,7 @@ struct LoadedMod {
  */
 void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled);
 
-// Carrega os mods embutidos na libbunny (JS compilado no binário). Usado como
-// fallback no celular quando não há mods externos provisionados (sem adb).
-void loadBuiltins();
-
-// Quantos mods estão registrados (externos + embutidos já carregados).
+// Quantos mods estão registrados.
 size_t loadedCount();
 
 LoadedMod* get(uint16_t index);

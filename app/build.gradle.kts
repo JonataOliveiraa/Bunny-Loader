@@ -14,10 +14,10 @@ val nativeBuild = (project.findProperty("bl.nativeBuild") as String?)?.toBoolean
 // Os mods C# (runtime Mono + a API em src/main/csharp/). Pede o SDK do .NET
 // no PATH (`dotnet`) e baixa o runtime do nuget.org uma vez. Sem eles:
 //   -Pbl.csharp=false
-// e o APK sai sem os mods C# (os JS seguem iguais).
+// e o APK sai sem os mods C#.
 val csharpEnabled = (project.findProperty("bl.csharp") as String?)?.toBoolean() ?: true
 
-// O app de medicao C# x QuickJS (ver BENCH_TESTS).
+// O app de medicao dos hooks C# (ver BENCH_TESTS).
 val benchBuild = (project.findProperty("bl.bench") as String?)?.toBoolean() ?: false
 
 val hasGameFont = file("src/main/res/font/bunny.ttf").isFile
@@ -155,9 +155,8 @@ android {
     }
 
     // Os mods de samples/ em BUNDLED_SAMPLES viram o catálogo embutido do launcher. Uma cópia, não
-    // uma segunda fonte: samples/ continua sendo a verdade (o CMake também lê
-    // de lá para embutir o JS na libbunny), e o que o app lista é exatamente o
-    // que o motor carrega.
+    // uma segunda fonte: samples/ continua sendo a verdade, e o que o app lista
+    // é exatamente o que o motor carrega.
     sourceSets["main"].assets.srcDir(layout.buildDirectory.dir("generated/blAssets"))
     // A libmonosgen e as libs nativas da BCL, tiradas do pacote do NuGet (ver
     // fetchMonoRuntime, lá embaixo).
@@ -226,19 +225,18 @@ android {
 }
 
 /** Os mods de samples/ que vêm dentro do APK. */
-val BUNDLED_SAMPLES = listOf("ExampleMod")
+val BUNDLED_SAMPLES = listOf("ExampleModCSharp")
 
 /**
  * samples/<Mod>/ -> assets/mods/<Mod>/, antes do merge de assets.
  *
- * Só o ExampleMod vai no APK. Os outros de samples/ são publicados no catálogo
- * online (tools/mods/pack.py + publish.py) e baixados pela aba Explorar.
+ * Só o Example Mod C# vai no APK.
  */
 /**
  * Os testes que o app de medicao (-Pbl.bench=true) traz embutidos e liga:
- * a medicao C# x QuickJS e o teste dos hooks C#. So o manifesto e content/.
+ * a medicao e o teste dos hooks C#. So o manifesto e content/.
  */
-val BENCH_TESTS = listOf("benchcs", "benchjs", "hookcs", "compilebench")
+val BENCH_TESTS = listOf("benchcs", "hookcs", "compilebench")
 
 /** Compila os .dll dos testes C# de BENCH_TESTS (tools/tests/<teste>/content/). */
 val buildBenchTests by tasks.registering {
@@ -253,7 +251,10 @@ val buildBenchTests by tasks.registering {
 }
 
 val syncSampleMods by tasks.registering(Sync::class) {
-    from(rootProject.file("samples")) { include(BUNDLED_SAMPLES.map { "$it/**" }) }
+    from(rootProject.file("samples")) {
+        include(BUNDLED_SAMPLES.map { "$it/**" })
+        exclude("**/bin/**", "**/obj/**")
+    }
     if (benchBuild) {
         dependsOn(buildBenchTests)
         from(rootProject.file("tools/tests")) {

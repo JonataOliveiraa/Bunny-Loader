@@ -35,9 +35,6 @@ struct Config {
     // "Log detalhado" (Configuracoes): as linhas BL_DEBUG tambem no arquivo.
     bool verboseLog = false;
     int64_t gameVersion = 0;
-    // "QuickJS" (Configuracoes > Desenvolvedor). Desligado, o motor JS nem
-    // sobe e todo mod JS fica de fora; os mods C# carregam normalmente.
-    bool quickJs = true;
     // Onde o launcher extraiu o runtime .NET (System.Private.CoreLib.dll,
     // BunnyLoader.dll...). Vazio = mods C# desligados. Ver script/dotnet/.
     std::string dotnetDir;

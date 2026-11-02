@@ -2398,7 +2398,7 @@ exception thrown inside `Call` reaches the caller.
 ### Depending on a mod
 
 A mod yours cannot work without goes in the manifest's `dependencies`, by
-`id` or `uid`, as for JS mods ([the JS guide](../mods/11-conversa-entre-mods.md#dependencies)):
+`id` or `uid`, as for JS mods ([the JS guide](../historico/mods-js/11-conversa-entre-mods.md#dependencies)):
 it loads before yours, and without it yours does not load.
 
 When the dependency is a C# mod, you can also use its **types** directly, as

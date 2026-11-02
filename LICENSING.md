@@ -12,7 +12,7 @@ source" in the OSI sense, which requires allowing commercial use.
 | `samples/` | MIT, each with its own `license.md`. `ExampleMod` is a port of tModLoader's ExampleMod and keeps its MIT license |
 | Code examples in the documentation (`docs/`) | You may copy them into your mod under the MIT license (the same text as `samples/HelloMod/license.md`) |
 | Code adapted from tModLoader | tModLoader Team's MIT license still applies to the parts that came from there; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
-| Libraries (QuickJS-ng, ShadowHook, AndroidX...) | Their own licenses, listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
+| Libraries (ShadowHook, AndroidX...) | Their own licenses, listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 | Terraria (game binaries, game data and the art cropped for the app screens), the Andy font and the Unity player classes | **Not licensed here.** They belong to their owners; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |
 
 ## Mods are separate works

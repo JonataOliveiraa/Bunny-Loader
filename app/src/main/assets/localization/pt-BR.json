@@ -62,8 +62,6 @@
   "JsEditorDescription": "Roda código no jogo: JavaScript com o QuickJS ligado, C# sempre (com um mod C# ligado), e mostra o log dos mods. O ícone flutuante fica disponível desde a tela de título, com ou sem o Mod Menu.",
   "Restart": "Reiniciar",
   "RestartDescription": "O botão que fecha e abre o jogo lendo os mods da pasta de novo (no Mod Menu e no Editor).",
-  "QuickJs": "QuickJS",
-  "QuickJsDescription": "O motor de JavaScript. Desligado, os mods JS não carregam e o jogo abre sem ele; os mods C# carregam normalmente.",
   "Diagnostics": "Diagnóstico",
   "DiagnosticsDescription": "O jogo fechou sozinho, travou ou deu erro? Abra o relatório e mande o texto (Copiar) ou um print para quem cuida do Bunny Loader ou do mod.",
   "ViewReport": "Ver relatório",

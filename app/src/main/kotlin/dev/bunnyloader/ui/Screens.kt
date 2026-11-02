@@ -788,7 +788,6 @@ fun ConfigTab(
     var modMenu by remember { mutableStateOf(prefs.devModMenu) }
     var editor by remember { mutableStateOf(prefs.devEditor) }
     var restart by remember { mutableStateOf(prefs.devRestart) }
-    var quickJs by remember { mutableStateOf(prefs.quickJs) }
     var sourcesOpen by rememberSaveable { mutableStateOf(false) }
     if (sourcesOpen) {
         ModSourcesScreen(shell) { sourcesOpen = false }
@@ -863,11 +862,6 @@ fun ConfigTab(
                 tr("RestartDescription"),
                 restart,
             ) { restart = it; prefs.devRestart = it }
-            Setting(
-                tr("QuickJs"),
-                tr("QuickJsDescription"),
-                quickJs,
-            ) { quickJs = it; prefs.quickJs = it }
 
             SectionTitle(tr("Diagnostics"))
             PixelCard(Modifier.fillMaxWidth()) {

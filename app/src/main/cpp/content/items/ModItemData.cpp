@@ -2,7 +2,6 @@
 #include "content/items/ModItems.h"
 #include "il2cpp/Api.h"
 #include "il2cpp/Resolver.h"
-#include "script/api/Items.h"
 
 #include <atomic>
 #include <mutex>
@@ -66,7 +65,7 @@ bool unloadedLoad(Il2CppObject* item, int type, const std::string& data) {
     return true;
 }
 
-bool nativeUnloaded(int type) { return isUnloadedType(type) && !script::itemDataEngineReady(); }
+bool nativeUnloaded(int type) { return isUnloadedType(type); }
 
 int typeOf(Il2CppObject* item) {
     static int32_t offset = -1;
@@ -97,7 +96,7 @@ bool saveModItemData(Il2CppObject* item, std::string& data) {
     if (!item) return false;
     const int type = typeOf(item);
     if (nativeUnloaded(type)) return unloadedSave(item, type, data);
-    if (!isManaged(type)) return script::saveModItemData(item, data);
+    if (!isManaged(type)) return true;
     ManagedItemSave save = g_save.load(std::memory_order_acquire);
     if (!save) return true;
     const std::string current = data;
@@ -108,7 +107,7 @@ bool loadModItemData(Il2CppObject* item, const std::string& data) {
     if (!item) return false;
     const int type = typeOf(item);
     if (nativeUnloaded(type)) return unloadedLoad(item, type, data);
-    if (!isManaged(type)) return script::loadModItemData(item, data);
+    if (!isManaged(type)) return true;
     ManagedItemLoad load = g_load.load(std::memory_order_acquire);
     return !load || load(item, data.c_str()) != 0;
 }

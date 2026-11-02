@@ -667,9 +667,7 @@ int32_t copyOut(const std::string& value, char* out, int32_t size) {
 }
 
 int32_t nativePackInfo(char* out, int32_t size) {
-    std::string json = "{\"quickJs\":";
-    json += config().quickJs ? "true" : "false";
-    json += ",\"mods\":[";
+    std::string json = "{\"mods\":[";
     bool first = true;
     for (size_t i = 0; i < mods::loadedCount(); ++i) {
         const mods::LoadedMod* m = mods::get(static_cast<uint16_t>(i));

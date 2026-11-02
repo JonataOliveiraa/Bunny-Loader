@@ -87,7 +87,7 @@ internal static unsafe class ConfigMenu
 
     const float Gap = 4, HeaderExtra = 8, SwatchInset = 4, CycleX = 24, PopupMargin = 8, DragPx = 8, Friction = 0.92f, IconScale = 1.1f;
     const int ScreenAnchor = 0, TopLeft = 9, Center = 18, Middle = 16, MenuOpenSound = 10, MenuCloseSound = 11, TickSound = 12, SettingNone = 192, General = 0;
-    const string IconId = "bunny/coelho_cabeca_cs", JsIconId = "bunny/coelho_cabeca";
+    const string IconId = "bunny/coelho_cabeca_cs";
 
     static readonly List<GameHandle> kept = new();
     static readonly Dictionary<string, RowState> rowState = new();
@@ -290,25 +290,7 @@ internal static unsafe class ConfigMenu
 
     static IEnumerable<Entry> EntriesOf(Mod mod) => entries.Where(e => e.Active.Mod == mod);
 
-    static bool JsPresent()
-    {
-        GUISettingsPauseMenu menu = GUIInstance.Active.IsNull ? default : GUIInstance.Active.GUISettingsPauseMenu;
-        if (menu.IsNull || menu._controllerList.IsNull)
-            return false;
-        var items = menu._controllerList._items;
-        for (int i = 0; i < items.Length; i++)
-            if (IsJsButton(items[i]))
-                return true;
-        return false;
-    }
-
-    static bool IsJsButton(TransactionButton_Layout layout) => !layout.IsNull && layout.Pointer != button.Pointer && !layout.IconTexture.IsNull && layout.IconTexture.TextureId == JsIconId;
-
-    static string Text(string key)
-    {
-        string text = Language.GetTextValue("BunnyLoader." + key);
-        return (key == "ModConfigButton" || key == "ModConfigRow") && JsPresent() ? text.TrimEnd(':', '：') + " (C#)" + (key == "ModConfigRow" ? ":" : "") : text;
-    }
+    static string Text(string key) => Language.GetTextValue("BunnyLoader." + key);
 
     static string BackText()
     {
@@ -369,20 +351,9 @@ internal static unsafe class ConfigMenu
         Panel_Layout backing = l.Backing;
         backing.Size = new Vector2(backing.Size.X, backing.Size.Y + step);
         var list = self._controllerList;
-        TransactionButton_Layout js = default;
-        if (!list.IsNull)
-        {
-            var current = list._items;
-            for (int i = 0; i < current.Length; i++)
-                if (IsJsButton(current[i]))
-                    js = current[i];
-        }
-
         var above = new List<TransactionButton_Layout> { l.Close, l.Controls, l.Settings };
         if (self.includeMPInviteActive)
             above.Add(l.Invite);
-        if (!js.IsNull)
-            above.Add(js);
         var below = new List<TransactionButton_Layout> { l.Achievements, l.Bestiary, l.Home };
         if (self.creativeModeActive)
             below.Add(l.JourneySettings);
@@ -391,8 +362,7 @@ internal static unsafe class ConfigMenu
         foreach (TransactionButton_Layout b in below)
             Move(b, step / 2);
         TransactionButton_Layout ours = ButtonLayout(l);
-        Vector2 anchor = js.IsNull ? l.Settings.Location : js.Location;
-        ours.Location = new Vector2(l.Settings.Location.X, anchor.Y + step);
+        ours.Location = new Vector2(l.Settings.Location.X, l.Settings.Location.Y + step);
         if (list.IsNull)
             return;
         var items = list._items;

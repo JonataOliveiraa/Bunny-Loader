@@ -1,6 +1,5 @@
 #include "content/common/ModNet.h"
 #include "content/common/GameTexts.h"
-#include "core/Config.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
 #include "il2cpp/Api.h"
@@ -23,12 +22,10 @@ namespace {
 constexpr int32_t kRequestWorld = 6;
 constexpr int32_t kClientUuid = 68;
 constexpr const char* kHelloPrefix = "bunnyloader-cs:";
-constexpr const char* kHelloJs = "js:";
 constexpr int32_t kWorldData = 7;
 constexpr int32_t kKick = 2;
 constexpr uint8_t kWelcome = 200;
 constexpr uint8_t kRuleCheats = 1;
-constexpr uint8_t kRuleJs = 2;
 
 struct Refs {
     bool ok = false;
@@ -43,8 +40,6 @@ struct Refs {
     const MethodInfo* read = nullptr;
     const MethodInfo* sendData = nullptr;
     const MethodInfo* processData = nullptr;
-    const MethodInfo* bootPlayer = nullptr;
-    const MethodInfo* fromLiteral = nullptr;
     FieldInfo* managerInstance = nullptr;
     const MethodInfo* managerGetter = nullptr;
     FieldInfo* netMode = nullptr;
@@ -58,8 +53,8 @@ std::mutex g_helloMx;
 std::string g_hello;
 std::atomic<ManagedHelloListener> g_helloListener{nullptr};
 std::atomic<bool> g_welcomed{false};
-std::atomic<uint8_t> g_serverRules{kRuleCheats | kRuleJs};
-std::atomic<uint8_t> g_hostRules{kRuleCheats | kRuleJs};
+std::atomic<uint8_t> g_serverRules{kRuleCheats};
+std::atomic<uint8_t> g_hostRules{kRuleCheats};
 
 const MethodInfo* sig(Il2CppClass* cls, const char* text) {
     return cls ? il2cpp::findMethodBySignature(cls, il2cpp::parseSignature(text)) : nullptr;
@@ -76,7 +71,6 @@ bool resolve() {
     Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
     Il2CppClass* message = il2cpp::findClass({"Terraria", "NetMessage", {}});
     Il2CppClass* buffer = il2cpp::findClass({"Terraria", "MessageBuffer", {}});
-    Il2CppClass* networkText = il2cpp::findClass({"Terraria.Localization", "NetworkText", {}});
     r.byteCls = il2cpp::findClass({"System", "Byte", {}});
     r.packetCtor = sig(r.packet, "void .ctor(ushort id, int size)");
     r.packetWriter = r.packet ? a.class_get_method_from_name(r.packet, "get_Writer", 0) : nullptr;
@@ -87,8 +81,6 @@ bool resolve() {
     r.read = sig(manager, "void Read(BinaryReader reader, int userId, int readLength)");
     r.sendData = sig(message, "void SendData(int msgType, int remoteClient, int ignoreClient, NetworkText text, int number, float number2, float number3, float number4, int number5, int number6, int number7)");
     r.processData = sig(buffer, "void ProcessData(byte[] messageData, int length, out int messageType)");
-    r.bootPlayer = sig(message, "void BootPlayer(int plr, NetworkText msg)");
-    r.fromLiteral = sig(networkText, "NetworkText FromLiteral(string text)");
     r.managerInstance = manager ? il2cpp::findField(manager, "Instance") : nullptr;
     r.managerGetter = manager && !r.managerInstance ? a.class_get_method_from_name(manager, "get_Instance", 0) : nullptr;
     r.netMode = main ? il2cpp::findField(main, "netMode") : nullptr;
@@ -170,8 +162,7 @@ void hkRead(Il2CppObject* self, Il2CppObject* reader, int32_t userId, int32_t re
     if (client && bytes->length >= 2 && payload[0] == kWelcome) {
         g_serverRules.store(payload[1], std::memory_order_relaxed);
         g_welcomed.store(true, std::memory_order_release);
-        BL_INFO("net: Bunny Loader server (cheats %s, JS %s)", (payload[1] & kRuleCheats) ? "allowed" : "blocked",
-                (payload[1] & kRuleJs) ? "allowed" : "blocked");
+        BL_INFO("net: Bunny Loader server (cheats %s)", (payload[1] & kRuleCheats) ? "allowed" : "blocked");
         return;
     }
     if (!handler) return;
@@ -186,7 +177,7 @@ void hkSendData(int32_t msgType, int32_t remote, int32_t ignore, Il2CppObject* t
                 int32_t n5, int32_t n6, int32_t n7, const MethodInfo* method) {
     if (msgType == kRequestWorld && gameNetMode() == 1 && g_refs.clientUuid) {
         g_welcomed.store(false, std::memory_order_release);
-        g_serverRules.store(kRuleCheats | kRuleJs, std::memory_order_relaxed);
+        g_serverRules.store(kRuleCheats, std::memory_order_relaxed);
         std::string hello;
         {
             std::lock_guard<std::mutex> l(g_helloMx);
@@ -196,7 +187,7 @@ void hkSendData(int32_t msgType, int32_t remote, int32_t ignore, Il2CppObject* t
             auto& a = il2cpp::api();
             Il2CppObject* previous = nullptr;
             a.field_static_get_value(g_refs.clientUuid, &previous);
-            Il2CppString* ours = a.string_new((std::string(kHelloPrefix) + (config().quickJs ? kHelloJs : "") + hello).c_str());
+            Il2CppString* ours = a.string_new((std::string(kHelloPrefix) + hello).c_str());
             a.field_static_set_value(g_refs.clientUuid, ours);
             g_origSendData(kClientUuid, -1, -1, nullptr, 0, 0, 0, 0, 0, 0, 0, method);
             a.field_static_set_value(g_refs.clientUuid, previous);
@@ -220,54 +211,6 @@ bool readHello(const Il2CppArray* data, int32_t length, std::string* out) {
     return true;
 }
 
-void boot(int32_t player, const std::string& reason) {
-    auto& a = il2cpp::api();
-    if (!g_refs.bootPlayer || !g_refs.fromLiteral) return;
-    void* textArgs[1] = {a.string_new(reason.c_str())};
-    Il2CppObject* text = invoke(g_refs.fromLiteral, nullptr, textArgs, "NetworkText.FromLiteral");
-    if (!text) return;
-    void* bootArgs[2] = {&player, text};
-    call(g_refs.bootPlayer, nullptr, bootArgs, "NetMessage.BootPlayer");
-}
-
-std::vector<std::string> helloMods(const std::string& hello) {
-    std::vector<std::string> mods;
-    size_t start = hello.find('\n');
-    while (start != std::string::npos) {
-        const size_t end = hello.find('\n', start + 1);
-        std::string line = hello.substr(start + 1, end == std::string::npos ? std::string::npos : end - start - 1);
-        std::replace(line.begin(), line.end(), '\t', ' ');
-        if (!line.empty()) mods.push_back(line);
-        start = end;
-    }
-    return mods;
-}
-
-std::string notIn(const std::vector<std::string>& mods, const std::vector<std::string>& other) {
-    std::string out;
-    for (const std::string& mod : mods) {
-        if (std::find(other.begin(), other.end(), mod) != other.end()) continue;
-        if (!out.empty()) out += ", ";
-        out += mod;
-    }
-    return out;
-}
-
-std::string fill(std::string text, const std::string& value) {
-    const size_t at = text.find("{0}");
-    if (at != std::string::npos) text.replace(at, 3, value);
-    return text;
-}
-
-std::string refusalText(const std::string& client, const std::string& server) {
-    const std::vector<std::string> clientMods = helloMods(client), serverMods = helloMods(server);
-    const std::string all = notIn(serverMods, {}), missing = notIn(serverMods, clientMods), extra = notIn(clientMods, serverMods);
-    std::string out = fill(gameText("ServerOtherCSharpMods"), all.empty() ? "-" : all);
-    if (!missing.empty()) out += fill(gameText("ServerRefusedMissing"), missing);
-    if (!extra.empty()) out += fill(gameText("ServerRefusedExtra"), extra);
-    return out + gameText("ServerInstallSame");
-}
-
 using ProcessDataFn = void (*)(Il2CppObject*, Il2CppArray*, int32_t, int32_t*, const MethodInfo*);
 ProcessDataFn g_origProcessData = nullptr;
 
@@ -287,17 +230,10 @@ void kickSelf(Il2CppObject* self, const std::string& reason, int32_t* messageTyp
 }
 
 bool guardWorldData(Il2CppObject* self, int32_t* messageType, const MethodInfo* method) {
-    if (!g_welcomed.load(std::memory_order_acquire)) {
-        BL_WARN("net: not a Bunny Loader server; leaving");
-        kickSelf(self, gameText("ServerVanillaRefused"), messageType, method);
-        return true;
-    }
-    if (!(g_serverRules.load(std::memory_order_relaxed) & kRuleJs) && config().quickJs) {
-        BL_WARN("net: the server does not allow JS mods; leaving");
-        kickSelf(self, gameText("ServerJsRefused"), messageType, method);
-        return true;
-    }
-    return false;
+    if (g_welcomed.load(std::memory_order_acquire)) return false;
+    BL_WARN("net: not a Bunny Loader server; leaving");
+    kickSelf(self, gameText("ServerVanillaRefused"), messageType, method);
+    return true;
 }
 
 void sendWelcome(int32_t client) {
@@ -323,29 +259,9 @@ void hkProcessData(Il2CppObject* self, Il2CppArray* data, int32_t length, int32_
     if (!readHello(data, length, &hello)) return g_origProcessData(self, data, length, messageType, method);
     if (messageType) *messageType = kClientUuid;
     const int32_t from = self && g_refs.whoAmI >= 0 ? *reinterpret_cast<int32_t*>(reinterpret_cast<char*>(self) + g_refs.whoAmI) : -1;
-    std::string ours;
-    {
-        std::lock_guard<std::mutex> l(g_helloMx);
-        ours = g_hello;
-    }
     if (from < 0 || from >= 255) return;
     sendWelcome(from);
-    const bool clientJs = hello.compare(0, std::strlen(kHelloJs), kHelloJs) == 0;
-    if (clientJs) hello.erase(0, std::strlen(kHelloJs));
-    if (clientJs && !(g_hostRules.load(std::memory_order_relaxed) & kRuleJs)) {
-        BL_WARN("net: player %d refused, QuickJS is on and this server does not allow JS mods", from);
-        boot(from, gameText("ServerJsRefused"));
-        return;
-    }
-    if (ManagedHelloListener listener = g_helloListener.load(std::memory_order_acquire)) {
-        listener(from, hello.c_str());
-        return;
-    }
-    if (hello == ours) return;
-    const std::vector<std::string> clientMods = helloMods(hello), serverMods = helloMods(ours);
-    BL_WARN("C# net: player %d refused, other C# mods (missing on the client: [%s]; only on the client: [%s])", from,
-            notIn(serverMods, clientMods).c_str(), notIn(clientMods, serverMods).c_str());
-    boot(from, refusalText(hello, ours));
+    if (ManagedHelloListener listener = g_helloListener.load(std::memory_order_acquire)) listener(from, hello.c_str());
 }
 
 }
@@ -382,7 +298,7 @@ void setManagedHello(const std::string& hello) {
     g_hello = hello;
 }
 
-void setHostRules(int32_t rules) { g_hostRules.store(static_cast<uint8_t>(rules & (kRuleCheats | kRuleJs)), std::memory_order_relaxed); }
+void setHostRules(int32_t rules) { g_hostRules.store(static_cast<uint8_t>(rules & kRuleCheats), std::memory_order_relaxed); }
 
 bool cheatsBlocked() {
     return gameNetMode() == 1 && g_welcomed.load(std::memory_order_acquire) && !(g_serverRules.load(std::memory_order_relaxed) & kRuleCheats);

@@ -11,7 +11,6 @@
 #include "content/items/ModItems.h"
 #include "content/items/ModPrefixes.h"
 #include "il2cpp/GuardedCall.h"
-#include "script/api/Items.h"
 #include <fstream>
 
 #include <cstdio>
@@ -1015,7 +1014,7 @@ void installModItemSave() {
     Il2CppClass* itemClass = il2cpp::findClass({"Terraria", "Item", {}});
     const MethodInfo* clone = itemClass ? il2cpp::findMethodBySignature(itemClass, il2cpp::parseSignature("Item Clone()")) : nullptr;
     if (!clone || !hook::install(clone, hkClone, &g_origClone)) {
-        BL_ERROR("unloaded mod items: Item.Clone is not hooked; without QuickJS a copied unloaded item loses its data");
+        BL_ERROR("unloaded mod items: Item.Clone is not hooked; a copied unloaded item loses its data");
     }
 
     Il2CppClass* worldFile = il2cpp::findClass({"Terraria.IO", "WorldFile", {}});

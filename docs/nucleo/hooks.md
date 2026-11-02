@@ -1,7 +1,7 @@
 # Hooks under the hood
 
 > Part of the core documentation ([overview](README.md)). To **use** hooks in
-> a mod, see [guide 1](../mods/01-hooks-do-zero.md). This page covers what
+> a mod, see [guide 1](../historico/mods-js/01-hooks-do-zero.md). This page covers what
 > happens in C++ between the game calling a method and your callback running.
 
 ## What a hook is, and why it is "inline"
@@ -234,7 +234,7 @@ flowchart TD
    to the original, with no callback. Without this, a recursive method would
    fire the callback in a cascade until the JS stack overflows.
 3. **The engine.** `JsLock` takes the JS engine, waiting at most 3 s (or not
-   at all, with `ifBusy`). See [threads and the JS engine](threads-e-motor-js.md).
+   at all, with `ifBusy`). See [threads and the JS engine](../historico/threads-e-motor-js.md).
 4. **The Frame.** The received registers go into a `Frame`, pushed onto a
    per-thread `vector` (`g_frames`). `original()` reads from there.
 5. **The JS arguments.** `argv[0]` is the `original` function (created once at
@@ -254,7 +254,7 @@ flowchart TD
    hand (the real body threw), stops at `original()`, goes to the log with the
    game's text, and `original()` returns a zeroed value: the one who called
    the method was the game, and there is nowhere to send it back to (see
-   [game exceptions](ponte.md#game-exceptions)).
+   [game exceptions](../historico/ponte-js.md#game-exceptions)).
 8. **The return.** What the callback returns becomes the method's return
    value. If it returns nothing (`undefined`) and called the original, the
    original's return value applies.
@@ -293,7 +293,7 @@ The function the callback receives as its first argument:
   variable and called later, it would run with another call's registers: the
   dispatcher refuses with `TypeError`.
 - It releases the JS engine while the game's method runs (`JsSuspend`, see
-  [threads](threads-e-motor-js.md)). A whole `Player.Update` can run without
+  [threads](../historico/threads-e-motor-js.md)). A whole `Player.Update` can run without
   holding the engine.
 - If the game's method throws a C# exception, there is no one to return it to
   (the caller was the game, not JS): it is logged (`o metodo original lancou
@@ -304,7 +304,7 @@ The function the callback receives as its first argument:
 
 The `.hook(cb, options)` options that decide **before** JS. They exist because
 the expensive part of a hook is entering the engine (see
-[cost](../mods/03-custo-e-desempenho.md)): if most calls do not matter to the
+[cost](../historico/mods-js/03-custo-e-desempenho.md)): if most calls do not matter to the
 mod, it is better not to enter at all.
 
 | Option | What the dispatcher does | Who uses it |

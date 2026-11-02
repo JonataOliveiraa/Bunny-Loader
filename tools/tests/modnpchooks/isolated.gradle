@@ -1,3 +1,0 @@
-allprojects {
-    layout.buildDirectory.set(rootProject.file("build/modnpchooks/builds/" + (project == rootProject ? "root" : project.name)))
-}

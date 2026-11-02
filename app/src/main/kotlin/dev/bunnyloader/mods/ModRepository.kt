@@ -195,6 +195,9 @@ class ModRepository(private val context: Context) {
                 require(TexturePackFiles.hasFonts(root)) { "pacote de fonte sem .json em content/Fonts" }
             } else {
                 require(entryOf(root) != null) { "pacote sem ${Catalog.CONTENT}/${manifest.entry}" }
+                require(manifest.entry.endsWith(".dll") || manifest.entry.endsWith(".cs")) {
+                    "JS mods are not supported: this version of Bunny Loader only loads C# mods"
+                }
             }
 
             // Admission runs before replacing an existing installation.

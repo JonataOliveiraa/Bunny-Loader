@@ -240,7 +240,7 @@ In the future test, record in particular:
 - Settings that disable filters, capture or render targets.
 - Separation between the game thread and the render thread: the existing
   mechanism for creating textures on the game thread does not authorize
-  arbitrary GL commands on that same thread. See [threads](threads-e-motor-js.md).
+  arbitrary GL commands on that same thread. See [threads](../historico/threads-e-motor-js.md).
 
 Before setting a performance budget, choose the device, backend, resolution
 and control scene. Do not estimate FPS from the shader's name.

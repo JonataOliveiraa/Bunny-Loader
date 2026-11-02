@@ -4,9 +4,7 @@
 #include "core/Log.h"
 #include "content/textures/FontPacks.h"
 #include "content/textures/TexturePacks.h"
-#include "script/bridge/ScriptEngine.h"
 #include "script/dotnet/DotnetHost.h"
-#include "mods/BuiltinMods.h"  // gerado pelo CMake a partir do .js
 #include <algorithm>
 #include <cstdio>
 #include <map>
@@ -45,30 +43,6 @@ bool fileExists(const std::string& path) {
     if (!f) return false;
     std::fclose(f);
     return true;
-}
-
-/**
- * Os .js de uma pasta do mod (Content/, Common/), recursivo e em ordem
- * alfabetica, relativos a `base`. A ordem e a do registro dos tipos, e ela
- * precisa ser a mesma em todo aparelho (cliente e servidor).
- */
-void collectScripts(const std::string& base, const std::string& rel, std::vector<std::string>* out) {
-    DIR* d = opendir((base + "/" + rel).c_str());
-    if (!d) return;
-    std::vector<std::string> names;
-    while (dirent* e = readdir(d)) {
-        const std::string name = e->d_name;
-        if (name != "." && name != "..") names.push_back(name);
-    }
-    closedir(d);
-    std::sort(names.begin(), names.end());
-    for (const std::string& name : names) {
-        const std::string child = rel + "/" + name;
-        struct stat st{};
-        if (stat((base + "/" + child).c_str(), &st) != 0) continue;
-        if (S_ISDIR(st.st_mode)) collectScripts(base, child, out);
-        else if (name.size() > 3 && name.compare(name.size() - 3, 3, ".js") == 0) out->push_back(child);
-    }
 }
 
 void readManifest(LoadedMod* mod) {
@@ -172,26 +146,14 @@ void loadAll(const std::string& modsDir, const std::vector<ModSpec>& enabled) {
         const std::string id = registry()[i].id;
         const std::string path = registry()[i].dir + "/" + registry()[i].entry;
         const std::string dir = dirsById()[id];
-        // O .dll e o .cs vao para o runtime .NET; o resto e JS, que so
-        // carrega com o QuickJS ligado.
-        const bool assembly = dotnet::isCSharpEntry(path);
-        if (!assembly && !script::engine().ready()) {
-            BL_WARN("mod %s (%s) skipped: QuickJS is disabled", registry()[i].displayName.c_str(), id.c_str());
+        if (!dotnet::isCSharpEntry(path)) {
+            BL_WARN("mod %s (%s) skipped: JS mods are no longer supported", registry()[i].displayName.c_str(), id.c_str());
             registry()[i].enabled = false;
             continue;
         }
         currentDirSlot() = dir;
         currentIdSlot() = id;
-        bool ok;
-        if (assembly) {
-            ok = dotnet::host().loadMod(id, path);
-        } else {
-            std::vector<std::string> files{path.substr(dir.size() + 1)};
-            for (const char* folder : {"Common", "Content"}) collectScripts(dir, folder, &files);
-            files.erase(std::remove(files.begin() + 1, files.end(), files[0]), files.end());
-            BL_DEBUG("mod %s: %zu arquivo(s) em Common/ e Content/", id.c_str(), files.size() - 1);
-            ok = script::engine().loadMod(id, files);
-        }
+        const bool ok = dotnet::host().loadMod(id, path);
         currentDirSlot().clear();
         currentIdSlot().clear();
         if (!ok) {
@@ -225,33 +187,6 @@ const std::string& dirOf(const std::string& id) {
     static const std::string none;
     auto it = dirsById().find(id);
     return it == dirsById().end() ? none : it->second;
-}
-
-void loadBuiltins() {
-    if (!script::engine().ready()) {
-        BL_ERROR("mods embutidos: QuickJS nao esta pronto");
-        return;
-    }
-    BL_INFO("carregando %d mod(s) embutido(s) na libbunny", kBuiltinModCount);
-    const size_t first = registry().size();
-    for (int i = 0; i < kBuiltinModCount; ++i) {
-        LoadedMod mod;
-        mod.id = kBuiltinMods[i].id;
-        mod.internalName = mod.id;
-        mod.displayName = mod.id;
-        mod.dir = "(builtin)";
-        mod.entry = "(builtin)";
-        registry().push_back(mod);
-    }
-    for (int i = 0; i < kBuiltinModCount; ++i) {
-        const auto& b = kBuiltinMods[i];
-        currentIdSlot() = b.id;
-        const bool ok = script::engine().loadBuiltinMod(b.source, b.id);
-        currentIdSlot().clear();
-        if (!ok) BL_ERROR("mod embutido %s falhou ao carregar", b.id);
-        registry()[first + i].enabled = ok;
-        registry()[first + i].loaded = ok;
-    }
 }
 
 size_t loadedCount() { return registry().size(); }

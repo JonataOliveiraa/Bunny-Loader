@@ -163,8 +163,7 @@ public static class ModContent
         try
         {
             Mod[] mods = Host.Mods;
-            ModNet.SetHello(mods);
-            ServerSyncHooks.Install(mods);
+            ServerSyncHooks.Install();
             SystemLoader.ResizeArrays();
             SystemLoader.OnLocalizationsLoaded();
             foreach (Mod mod in mods)

@@ -3,15 +3,15 @@
 This part of the documentation is for people who want to understand, or work
 on, Bunny Loader's **C++**: how it gets into the game, how it intercepts
 methods, how it shares the JS engine between threads and how it puts new
-content into a compiled game. To **write mods**, the [mod guides](../mods/README.md)
+content into a compiled game. To **write mods**, the [mod guides](../historico/mods-js/README.md)
 are enough.
 
 | Document | Subject |
 |---|---|
 | This one | What the core is, the boot, the folders, the general rules. |
 | [Hooks under the hood](hooks.md) | ShadowHook, the hook chain, the slots, the dispatcher, `original()`, the native filters. |
-| [Threads and the JS engine](threads-e-motor-js.md) | Who runs mod code, the engine lock, the per-thread stack, `ifBusy`. |
-| [The JS ↔ game bridge](ponte.md) | Names, types, structs, calls, garbage collector anchors, object identity. |
+| [Threads and the JS engine](../historico/threads-e-motor-js.md) | Who runs mod code, the engine lock, the per-thread stack, `ifBusy`. |
+| [The JS ↔ game bridge](../historico/ponte-js.md) | Names, types, structs, calls, garbage collector anchors, object identity. |
 | [New content under the hood](conteudo.md) | Per-type tables, compiled limits, installation, saves. |
 | [Joining a server](multijogador.md) | Syncing mods and textures from the Host screen, the handshake on join and the automatic return. |
 | [Menu localization](localizacao-menu.md) | The launcher's and the Mod Menu's language, the shared catalog and translations. |
@@ -120,7 +120,7 @@ In order:
    kills the process), starts QuickJS, installs the bridge and the mod
    classes, and loads each enabled mod. Then it installs the content saves and
    the Mod Menu. The JS engine is created and loads the mods on the **same**
-   thread (see [threads](threads-e-motor-js.md#the-lock-jslock)).
+   thread (see [threads](../historico/threads-e-motor-js.md#the-lock-jslock)).
 6. **Game thread.** The core has a C++ hook on `Main.DoUpdate`
    ([`menu/Cheats.cpp`](../../app/src/main/cpp/menu/Cheats.cpp), `hkDoUpdate`).
    On the first frame, it records which thread is the game thread; on every
@@ -178,7 +178,7 @@ nothing of it is installed. On:
   mod that asks for it (`mods/LoadOrder.cpp`; a missing dependency or a cycle
   disables the mod, with the reason in the panel). That way
   `ModLoader.TryGetMod` finds a mod that has not loaded yet
-  ([guide 11](../mods/11-conversa-entre-mods.md));
+  ([guide 11](../historico/mods-js/11-conversa-entre-mods.md));
 - loading a mod is `ScriptEngine::loadMod`
   ([`script/bridge/ScriptEngine.cpp`](../../app/src/main/cpp/script/bridge/ScriptEngine.cpp)):
   it imports the entry file and the `.js` files in `Common/` and `Content/`

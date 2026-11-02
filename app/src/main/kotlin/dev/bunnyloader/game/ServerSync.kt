@@ -190,7 +190,8 @@ object ServerSync {
         val repo = ModRepository(context)
         val store = RemoteCatalog(context, Catalog(context))
         // A loja na hora: sem rede, a última lista baixada.
-        val shop = runCatching { runBlocking { store.refresh() } }.getOrElse { store.cached() }
+        val shop = if (!RemoteCatalog.ENABLED) emptyList()
+        else runCatching { runBlocking { store.refresh() } }.getOrElse { store.cached() }
             .entries.mapNotNull { it.remote }
         val installed = repo.list()
         return ServerModSync.plan(offer.mods, installed, shop,

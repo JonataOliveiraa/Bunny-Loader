@@ -341,7 +341,7 @@ class Shell(context: Context) {
      * novo. Sem ele, voltar à aba não pede a lista outra vez a cada toque.
      */
     fun refreshRemote(force: Boolean = false) {
-        if (remoteStatus == RemoteStatus.Loading) return
+        if (!RemoteCatalog.ENABLED || remoteStatus == RemoteStatus.Loading) return
         if (!force && System.currentTimeMillis() - remoteFetchedAt < REMOTE_TTL_MS) return
         remoteStatus = RemoteStatus.Loading
         remoteProgress = null

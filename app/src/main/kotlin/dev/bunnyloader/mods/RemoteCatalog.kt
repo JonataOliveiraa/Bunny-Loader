@@ -300,6 +300,7 @@ class RemoteCatalog(private val context: Context, private val catalog: Catalog) 
     }
 
     companion object {
+        const val ENABLED = false
         const val FORMAT = 1
         private const val INDEX = "index.json"
         private const val ETAG = "index.etag"

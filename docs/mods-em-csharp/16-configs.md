@@ -31,7 +31,7 @@ Read it with `ModContent.GetInstance<ExampleModConfig>()`, or declare
 
 The players change the options in **Mod Configuration**: a button in the pause
 menu and a row at the top of the General tab of the title screen's settings.
-It is the same screen as the JS configs, with one tab per mod (with the mod's
+It has one tab per mod (with the mod's
 `icon.png`), **Discard/Back**, **Default** and **Apply**. Nothing reaches the
 config before **Apply**; then `SaveChanges` runs for each config that changed.
 

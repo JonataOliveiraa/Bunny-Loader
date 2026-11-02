@@ -246,7 +246,7 @@ void DotnetHost::consoleTick() {
 }
 
 void DotnetHost::finishLoading() {
-    if (!started_) return;
+    if (!start()) return;
     auto& m = mono();
     // O detach desfaz o registro inteiro, entao a volta ao BLOCKING nao
     // precisa do par (exit_gc_unsafe).

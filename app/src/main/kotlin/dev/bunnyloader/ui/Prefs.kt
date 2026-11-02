@@ -47,14 +47,6 @@ class Prefs(context: Context) {
         get() = p.getBoolean(QUICK_START, false)
         set(v) = p.edit().putBoolean(QUICK_START, v).apply()
 
-    /**
-     * Lido por GameActivity: desligado, o núcleo nem sobe o QuickJS e nenhum
-     * mod JS carrega (os C# seguem).
-     */
-    var quickJs: Boolean
-        get() = p.getBoolean(QUICK_JS, true)
-        set(v) = p.edit().putBoolean(QUICK_JS, v).apply()
-
     /** O arquivo do personagem do início rápido (`Bench.plr`), em Players/. */
     var quickPlayer: String
         get() = p.getString(QUICK_PLAYER, "") ?: ""
@@ -149,7 +141,6 @@ class Prefs(context: Context) {
         const val DEV_CHANNEL = "devChannel"
         const val VERBOSE_LOG = "verboseLog"
         const val QUICK_START = "quickStart"
-        const val QUICK_JS = "quickJs"
         const val QUICK_PLAYER = "quickPlayer"
         const val QUICK_WORLD = "quickWorld"
         const val DEV_MOD_MENU = "devModMenu"

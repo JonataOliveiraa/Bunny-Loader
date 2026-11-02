@@ -17,5 +17,18 @@ applies.
 | [DESEMPENHO-LOADER.md](DESEMPENHO-LOADER.md) | How much the mod loader costs per frame (the fixed cost of entering JS, hooks for methods the class does not write, two-part drawing) and the three optimizations: per-type marks, the `flag` filter and per-frame JS without closures. **Measurement on the phone pending.** |
 | [TRAVAMENTO-SAVE-DO-MAPA.md](TRAVAMENTO-SAVE-DO-MAPA.md) | The game freezing when entering the world: the map save hook held `LockObject` outside each chunk's lock, inverting the lock order with the game thread. |
 
+## The JavaScript engine
+
+Bunny Loader first ran mods in JavaScript (QuickJS). It was removed when the C#
+API took over; the last version with it is the `js-final` tag (and the
+`release-js` branch). Its documentation stays here:
+
+| Document | What it records |
+|---|---|
+| [mods-js/](mods-js/README.md) | The JS mod guides, from the first hook to a boss with music. |
+| [referencia-js/](referencia-js/metodos.md) | The JS API reference: methods by class, what each class had, the bridge and `bl`. |
+| [ponte-js.md](ponte-js.md) | The JS ↔ game bridge: names, types, structs, objects pinned against the garbage collector. |
+| [threads-e-motor-js.md](threads-e-motor-js.md) | The engine lock, the per-thread stack, `ifBusy`. |
+
 The raw data (crash logs, attempts, benchmark rounds) is in
 [`dados/`](dados/).
