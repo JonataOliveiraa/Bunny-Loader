@@ -1,0 +1,15 @@
+{
+  "uid": "b4f1c2d8-6a3e-4e59-9d7a-2f0c8e5a1b63",
+  "id": "test-csconfigmp",
+  "name": "Test: server-side ModConfig sync (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ServerSide ModConfig on two devices: values sent on join, client requests with AcceptClientChanges and HandleAcceptClientChangesReply, rejections, ReloadRequired, host changes broadcast, ClientSide stays local.",
+  "description": "Run with tools/tests/run-mp.sh csconfigmp. Logs csconfigmp <case>: ok | FAIL and csconfigmp END pass=N fail=M.",
+  "updated": "2026-11-02",
+  "blVersion": 2,
+  "gameVersion": [301720, 301720],
+  "entry": "CsConfigMp.dll",
+  "dependencies": []
+}

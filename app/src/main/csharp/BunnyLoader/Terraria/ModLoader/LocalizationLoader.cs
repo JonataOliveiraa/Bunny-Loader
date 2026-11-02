@@ -56,6 +56,9 @@ internal static unsafe class LocalizationLoader
         return new LocalizedText(created);
     }
 
+    public static void Builtin(string key, string english, string portuguese) =>
+        Native(key, Pack(new[] { ("en-US", english), ("pt-BR", portuguese) }), replace: false);
+
     public static string Pack(IReadOnlyList<(string Culture, string Text)> texts)
     {
         if (texts.Count == 1 && texts[0].Culture.Length == 0) return texts[0].Text;

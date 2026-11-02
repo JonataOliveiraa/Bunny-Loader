@@ -276,9 +276,13 @@ internal static unsafe class ConfigMenu
 
     static void Begin()
     {
+        if (Main.gameMenu)
+            ConfigNetHooks.RestoreLocal();
         entries.Clear();
+        bool client = !Main.gameMenu && ModNet.NetMode == 1;
         foreach (ModConfig config in ConfigManager.All)
-            entries.Add(new Entry { Active = config, Draft = config.Clone(), Options = ConfigManager.OptionsOf(config.GetType()) });
+            if (!client || config.Mode != ConfigScope.ServerSide)
+                entries.Add(new Entry { Active = config, Draft = config.Clone(), Options = ConfigManager.OptionsOf(config.GetType()) });
     }
 
     static IEnumerable<Entry> EntriesOf(Mod mod) => entries.Where(e => e.Active.Mod == mod);
@@ -495,9 +499,16 @@ internal static unsafe class ConfigMenu
     {
         if (Main.gameMenu)
             return false;
-        if (option.ReloadRequired)
-            return true;
-        return entry.Active.Mode == ConfigScope.ServerSide && Main.netMode == 1;
+        return option.ReloadRequired;
+    }
+
+    internal static void Refresh(ModConfig active)
+    {
+        if (!open)
+            return;
+        foreach (Entry entry in entries)
+            if (entry.Active == active)
+                entry.Draft = active.Clone();
     }
 
     static void DrawScreen()
@@ -841,8 +852,11 @@ internal static unsafe class ConfigMenu
         List<Entry> modEntries = EntriesOf(mod).Where(e => e.Options.Any(o => o.Kind != ConfigOptionKind.Data)).ToList();
         foreach (Entry entry in modEntries)
         {
-            if (modEntries.Count > 1)
-                rows.Add(new Row { Kind = "header", Entry = entry, Header = entry.Active.DisplayName.Value, Key = entry.Active.FullName + ":title", Height = height + HeaderExtra });
+            if (modEntries.Count > 1 || entry.Active.Mode == ConfigScope.ServerSide)
+            {
+                string scope = Language.GetTextValue(entry.Active.Mode == ConfigScope.ServerSide ? "tModLoader.ModConfigServerSide" : "tModLoader.ModConfigClientSide");
+                rows.Add(new Row { Kind = "header", Entry = entry, Header = $"{entry.Active.DisplayName.Value} ({scope})", Key = entry.Active.FullName + ":title", Height = height + HeaderExtra });
+            }
             foreach (ConfigOption option in entry.Options)
             {
                 if (option.Kind == ConfigOptionKind.Data)

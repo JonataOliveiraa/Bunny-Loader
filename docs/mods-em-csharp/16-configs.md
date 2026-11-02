@@ -74,15 +74,50 @@ world, a change to a `[ReloadRequired]` field is refused (`NeedsReload`) and
 its row is greyed out; in the title screen it is saved and takes effect the
 next time the game starts.
 
+## Client-side and server-side configs
+
+`Mode` says whose values count:
+
+- `ConfigScope.ClientSide`: each player has their own values, saved on their
+  device. They never go over the network.
+- `ConfigScope.ServerSide`: in multiplayer the host's values count for
+  everyone. A player who joins receives them (their own file is not touched)
+  and gets their own values back on leaving. Only the host sees these configs
+  on the screen, under "Server Side Config"; a client in multiplayer does not
+  see them. They also show in single player and on the title screen.
+
+When a mod's code on a client changes a `ServerSide` config, `SaveChanges` returns
+`RequestSentToServer` and the change is not applied yet. The host checks it:
+a `[ReloadRequired]` change is refused, and then `AcceptClientChanges` decides.
+An accepted change is saved by the host and sent to every player, a refusal
+only to the one who asked. Everyone then gets
+`HandleAcceptClientChangesReply(success, player, message)`, and the chat shows
+the result. The host's own changes are applied directly and sent to everyone.
+
+```csharp
+public override bool AcceptClientChanges(ModConfig pendingConfig, int whoAmI, ref NetworkText message)
+{
+    if (!NetMessage.DoesPlayerSlotCountAsAHost(whoAmI))
+    {
+        message = NetworkText.FromKey("tModLoader.ModConfigRejectChangesNotHost");
+        return false;
+    }
+    return true;
+}
+```
+
+If the host uses other values in `[ReloadRequired]` options, the joining
+player gets them anyway, with a chat warning: content loaded at start only
+follows them after restarting the game with those values (tModLoader reloads
+the mods instead).
+
 ## Not available yet
 
-Server-side configs in multiplayer are not synced: a client cannot change a
-`ServerSide` config (its rows are greyed out), and the server does not send its
-values to the clients (`AcceptClientChanges` is never called). Also missing:
 `ModConfig.Open`, tooltips on the screen, custom elements
 (`[CustomModConfigItem]`), separate pages, and editing lists, dictionaries,
 vectors and free text.
 
 Example: `samples/ExampleModCSharp` (`ExampleModConfig`,
-`ModConfigShowcaseRanges` and the supported part of `ModConfigShowcaseMisc`).
-Test pack: `tools/tests/csconfig`.
+`ModConfigShowcaseRanges`, `ModConfigShowcaseAcceptClientChanges` and the
+supported part of `ModConfigShowcaseMisc`). Test packs: `tools/tests/csconfig`,
+and `tools/tests/csconfigmp` on two devices (`tools/tests/run-mp.sh csconfigmp`).

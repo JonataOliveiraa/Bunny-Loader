@@ -102,6 +102,12 @@ internal static unsafe class ModNet
                 HairHooks.Receive(reader, from);
                 return;
             }
+            if (kind == ConfigNetHooks.KindConfig)
+            {
+                name = "configs";
+                ConfigNetHooks.Receive(reader, from);
+                return;
+            }
             if (kind != KindPacket) return;
             name = reader.ReadString();
             Mod? mod = Host.FindMod(name);

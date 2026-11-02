@@ -43,3 +43,10 @@ SampleEnum: {
 	Strange.Label: Incomum
 	Peculiar.Label: Muito peculiar
 }
+
+ModConfigShowcaseAcceptClientChanges: {
+	RejectChangesDaytime: Só Muda à Noite não pode ser alterado durante o dia.
+	DisplayName: "Vitrine H: AcceptClientChanges"
+	OnlyChangeableDuringNight.Label: Só Muda à Noite
+	SomeNumber.Label: Um Número
+}

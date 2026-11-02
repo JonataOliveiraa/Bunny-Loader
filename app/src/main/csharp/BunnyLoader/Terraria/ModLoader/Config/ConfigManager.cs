@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Terraria.Audio;
 using Terraria.ID;
 using Terraria.Localization;
+using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader.Config;
 
@@ -85,6 +86,7 @@ public static class ConfigManager
     internal static void Add(ModConfig config)
     {
         ConfigMenu.Install();
+        ConfigNetHooks.Install();
         FindSavePath(config.Mod);
         Load(config);
         if (!Configs.TryGetValue(config.Mod, out List<ModConfig>? list))
@@ -153,8 +155,12 @@ public static class ConfigManager
             return;
         }
 
-        if (data == null)
-            return;
+        if (data != null)
+            Populate(config, data);
+    }
+
+    internal static void Populate(ModConfig config, JsonObject data)
+    {
         foreach (ConfigOption option in OptionsOf(config.GetType()))
         {
             if (!data.TryGetPropertyValue(option.Name, out JsonNode? node) || node == null)
@@ -179,7 +185,7 @@ public static class ConfigManager
         }
     }
 
-    internal static void Save(ModConfig config)
+    internal static JsonObject ToJson(ModConfig config)
     {
         var data = new JsonObject();
         foreach (ConfigOption option in OptionsOf(config.GetType()))
@@ -195,11 +201,16 @@ public static class ConfigManager
             };
         }
 
+        return data;
+    }
+
+    internal static void Save(ModConfig config)
+    {
         string file = FileOf(config);
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-            File.WriteAllText(file, data.ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
+            File.WriteAllText(file, ToJson(config).ToJsonString(new JsonSerializerOptions { WriteIndented = true }));
         }
         catch (Exception e)
         {
@@ -234,8 +245,15 @@ public static class ConfigManager
         }
         else
         {
-            if (pending.Mode == ConfigScope.ServerSide && Main.netMode == NetmodeID.MultiplayerClient)
-                throw new NotSupportedException($"{active.FullName}: changing a server-side config from a client is not supported yet");
+            if (pending.Mode == ConfigScope.ServerSide && ModNet.NetMode == NetmodeID.MultiplayerClient)
+            {
+                status?.Invoke(Language.GetTextValue("tModLoader.ModConfigAskingServerToAcceptChanges"), new Color(255, 255, 0, 255));
+                ConfigNetHooks.Request(pending, broadcast);
+                if (pendingIsActive)
+                    ConfigNetHooks.Revert(active);
+                return ConfigSaveResult.RequestSentToServer;
+            }
+
             ModConfig? loadTime = GetLoadTimeConfig(active.Mod, active.Name);
             if (loadTime != null && loadTime.NeedsReload(pending))
             {
@@ -253,13 +271,15 @@ public static class ConfigManager
             if (!pendingIsActive)
                 CopyValues(pending, active);
             Changed(active);
+            if (active.Mode == ConfigScope.ServerSide && (ModNet.NetMode & 2) != 0)
+                ConfigNetHooks.Broadcast(active, broadcast);
         }
 
         status?.Invoke(Language.GetTextValue("tModLoader.ModConfigConfigSaved"), new Color(0, 255, 0, 255));
         return ConfigSaveResult.Success;
     }
 
-    static void Changed(ModConfig config)
+    internal static void Changed(ModConfig config)
     {
         try
         {
