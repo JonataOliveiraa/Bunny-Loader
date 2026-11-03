@@ -58,6 +58,7 @@ internal static unsafe class ItemHooks
         ItemManaHooks.Install(Has, baseType == typeof(GlobalItem));
         FishingLineHooks.Install(Has);
         ItemResearchHooks.Install(Has);
+        if (Has(nameof(ModItem.ModifyEquipTextureDraw))) EquipDrawHooks.Install();
         AnglerQuestHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemLootHooks.Install(Has, baseType == typeof(GlobalItem));
         PrefixLoader.WantItemHooks(Has);

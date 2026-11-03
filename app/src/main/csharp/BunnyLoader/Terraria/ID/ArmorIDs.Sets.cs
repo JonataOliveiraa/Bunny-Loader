@@ -24,6 +24,17 @@ public readonly partial struct ArmorIDs
             public static bool[] DrawHatHair => HatHair.Values;
 
             public static bool[] DrawsBackHairWithoutHeadgear => BackHairWithoutHeadgear.Values;
+
+            public static DrawHeadSet DrawHead { get; } = new();
+
+            public sealed class DrawHeadSet
+            {
+                public bool this[int head]
+                {
+                    get => !HidesHead[head];
+                    set => HidesHead[head] = !value;
+                }
+            }
         }
     }
 

@@ -138,7 +138,7 @@ public class MoneyCounterGlobalItem : GlobalItem
         return item.type >= ItemID.CopperCoin && item.type <= ItemID.PlatinumCoin;
     }
 
-    public override bool OnPickup(Item item, Player player)
+    public override bool OnPickup(WorldItem item, Player player)
     {
         ModContent.GetInstance<ExampleCoinsUISystem>().exampleCoinsUI.UpdateValue(item.stack * (item.value / 5));
         return base.OnPickup(item, player);

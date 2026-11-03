@@ -21,7 +21,7 @@ public class Untouchable : TestGem
 {
     public static string Seen = "";
 
-    public override bool CanPickup(Player player)
+    public override bool CanPickup(WorldItem item, Player player)
     {
         Seen = $"{Item.type} {player.whoAmI}";
         return false;
@@ -32,7 +32,7 @@ public class Orb : TestGem
 {
     public static int Calls;
 
-    public override bool OnPickup(Player player)
+    public override bool OnPickup(WorldItem item, Player player)
     {
         Calls++;
         return false;
@@ -45,7 +45,7 @@ public class FullOrb : TestGem
 
     public override bool ItemSpace(Player player) => true;
 
-    public override bool OnPickup(Player player)
+    public override bool OnPickup(WorldItem item, Player player)
     {
         Calls++;
         return false;
@@ -54,16 +54,16 @@ public class FullOrb : TestGem
 
 public class Magnet : TestGem
 {
-    public override void GrabRange(Player player, ref int grabRange) => grabRange += 400;
+    public override void GrabRange(WorldItem item, Player player, ref int grabRange) => grabRange += 400;
 }
 
 public class Styled : TestGem
 {
     public static int Calls;
 
-    public override void GrabRange(Player player, ref int grabRange) => grabRange += 400;
+    public override void GrabRange(WorldItem item, Player player, ref int grabRange) => grabRange += 400;
 
-    public override bool GrabStyle(Player player)
+    public override bool GrabStyle(WorldItem item, Player player)
     {
         WorldItem w = Item.GetWorldItem();
         if (w.IsNull) return false;
@@ -81,5 +81,5 @@ public class Styled : TestGem
 
 public class Shy : TestGem
 {
-    public override void GrabRange(Player player, ref int grabRange) => grabRange -= 1000;
+    public override void GrabRange(WorldItem item, Player player, ref int grabRange) => grabRange -= 1000;
 }

@@ -178,13 +178,15 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual bool ApplyPotionDelay(Player player, int potionDelay) => true;
 
-    public virtual void GrabRange(Player player, ref int grabRange) { }
+    public virtual void GrabRange(WorldItem item, Player player, ref int grabRange) { }
 
-    public virtual bool GrabStyle(Player player) => false;
+    public virtual bool GrabStyle(WorldItem item, Player player) => false;
 
-    public virtual bool CanPickup(Player player) => true;
+    public virtual bool CanPickup(WorldItem item, Player player) => true;
 
-    public virtual bool OnPickup(Player player) => true;
+    public virtual bool OnPickup(WorldItem item, Player player) => true;
+
+    public virtual bool ModifyEquipTextureDraw(ref PlayerDrawSet drawInfo, ref DrawData drawData, EquipTexture equipTexture, string methodName) => true;
 
     public virtual bool ItemSpace(Player player) => false;
 

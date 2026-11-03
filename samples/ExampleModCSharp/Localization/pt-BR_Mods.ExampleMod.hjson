@@ -342,6 +342,69 @@ Items: {
 		DisplayName: Carrinho de Mina de Exemplo
 		Tooltip: ""
 	}
+
+	ExampleBoots: {
+		DisplayName: Botas de Exemplo
+		Tooltip:
+			'''
+			Permite voar, correr super rápido, correr ainda mais rápido na areia e ter mobilidade extra no gelo
+			{0}% de velocidade de movimento
+			Proporciona a habilidade de andar sobre água, mel, lava e brilho
+			Concede imunidade a blocos de fogo e {1} segundos de imunidade à lava
+			Reduz o dano causado pelo contato com lava
+			Previne dano por queda
+			Deixa um rastro de chamas por onde você passar
+			'''
+	}
+
+	ExampleResourceAccessory: {
+		DisplayName: Acessório de Recurso de Exemplo
+		Tooltip:
+			'''
+			Aumenta muito a regeneração do recurso de exemplo
+			Aumenta o recurso de exemplo máximo em {0}
+			Aumenta o alcance de coleta do recurso de exemplo
+			'''
+	}
+
+	ExampleCustomResourceWeapon: {
+		DisplayName: Arma de Recurso de Exemplo
+		Tooltip: ""
+		UsesXExampleResource: Usa {0} de recurso de exemplo
+	}
+
+	ExampleResourcePickup: {
+		DisplayName: Coleta de Recurso de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleCostume: {
+		DisplayName: Amuleto de Exemplo
+		Tooltip:
+			'''
+			Perto de moradores, transforma quem o usa no Quadrado
+			As cores do Quadrado se invertem na água
+			'''
+	}
+
+	ExampleBeard: {
+		DisplayName: Barba de Exemplo
+		Tooltip: Uma barba de mod, da cor do seu cabelo.
+	}
+
+	ExampleCustomDrawWings: {
+		DisplayName: Asas Desenhadas de Exemplo
+		Tooltip: ""
+	}
+
+	WaspNest: {
+		DisplayName: Ninho de Vespas
+		Tooltip:
+			'''
+			{$ItemTooltip.HiveBackpack}
+			Solta abelhas ao levar dano
+			'''
+	}
 }
 
 Conditions: {
@@ -389,6 +452,11 @@ Buffs: {
 	ExampleLightPetBuff: {
 		DisplayName: Luz Irritante
 		Description: Argh, muuuito irritante
+	}
+
+	Blocky: {
+		DisplayName: Quadrado
+		Description: Pulo mais alto
 	}
 }
 
@@ -560,6 +628,7 @@ Keybinds: {
 
 UI: {
 	ExampleCoinsUIState.Reset: Zerar o contador de moedas por minuto
+	ExampleResource: Recurso de Exemplo: {0} / {1}
 }
 
 Common: {

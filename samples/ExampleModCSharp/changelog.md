@@ -1,5 +1,13 @@
 # Novidades
 
+## 0.36.0
+
+- As botas de exemplo, com todos os efeitos e o rastro de chamas.
+- O recurso de exemplo: jogador, barra na tela, acessório, arma que gasta e
+  coleta que cai dos inimigos.
+- O dash do escudo, a fantasia do Quadrado, a barba, as asas desenhadas com
+  brilho e o Ninho de Vespas.
+
 ## 0.35.0
 
 - O lacaio e a sentinela de exemplo, com os cajados deles.

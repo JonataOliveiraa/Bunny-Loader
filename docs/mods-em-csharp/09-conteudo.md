@@ -265,27 +265,34 @@ Picking an item up from the ground:
 
 | `ModItem` | When | Return |
 |---|---|---|
-| `CanPickup(Player player)` | Before the player grabs the item | `false`: it stays on the ground (the `GlobalItem`s are asked first; one `false` is enough) |
-| `GrabRange(Player player, ref int grabRange)` | When the game measures how close the item has to be | change `grabRange`, in pixels; more pulls it from farther, less takes it only closer |
-| `GrabStyle(Player player)` | Every frame the item is pulled toward the player | `true`: you moved it (change its `WorldItem`'s `velocity` or `position`) and the game does not |
+| `CanPickup(WorldItem item, Player player)` | Before the player grabs the item | `false`: it stays on the ground (the `GlobalItem`s are asked first; one `false` is enough) |
+| `GrabRange(WorldItem item, Player player, ref int grabRange)` | When the game measures how close the item has to be | change `grabRange`, in pixels; more pulls it from farther, less takes it only closer |
+| `GrabStyle(WorldItem item, Player player)` | Every frame the item is pulled toward the player | `true`: you moved it (change its `WorldItem`'s `velocity` or `position`) and the game does not |
 | `ItemSpace(Player player)` | When the inventory is full | `true`: it is picked up anyway (pair it with `OnPickup`) |
-| `OnPickup(Player player)` | When the player touches the item | `false`: the item leaves the ground and does not go into the inventory |
+| `OnPickup(WorldItem item, Player player)` | When the player touches the item | `false`: the item leaves the ground and does not go into the inventory |
 
-On the phone an item on the ground is a `WorldItem` that holds the `Item`
-(`WorldItem.inner`). The pickup hooks get the `Item`, as in tModLoader;
-`Item.GetWorldItem()` gives its `WorldItem` (its `IsNull` is `true` when the
-item is not on the ground), which has the position and the velocity:
+An item on the ground is a `WorldItem` that holds the `Item`
+(`WorldItem.inner`), as in tModLoader. The pickup hooks get it, with the position
+and the velocity; `Item.GetWorldItem()` gives it from an `Item` (`IsNull` when
+the item is not on the ground):
 
 ```csharp
-public override bool GrabStyle(Player player)
+public override bool GrabStyle(WorldItem item, Player player)
 {
-    WorldItem w = Item.GetWorldItem();
-    if (w.IsNull) return false;
-    Vector2 toPlayer = player.position - w.position;
-    w.velocity = toPlayer / Math.Max(1f, toPlayer.LengthValue) * 8f;
+    Vector2 toPlayer = player.position - item.position;
+    item.velocity = toPlayer / Math.Max(1f, toPlayer.LengthValue) * 8f;
     return true;
 }
 ```
+
+`ExampleResourcePickup` is an item that never enters the inventory
+(`ItemID.Sets.IsAPickup`): `OnPickup` fills the Example resource and returns
+`false`, and `ExampleResourcePickupGlobalNPC` drops it. `Item.NewItem` also
+takes a `Rectangle`, or a position and a size, to spawn at the middle of a box.
+`NPC.GetSource_Loot`, `Player.GetSource_Buff`, `GetSource_Accessory` and
+`GetSource_Accessory_OnHurt` are there as in tModLoader.
+`NPCID.Sets.NeverDropsResourcePickups` is there for mods to read, as this
+example does; the game's own hearts and stars on the phone do not check it.
 
 Opening an item (a bag, a crate):
 
@@ -649,6 +656,25 @@ installed the first time a mod reads one of these sets.
 
 Not yet: `ArmorIDs.Head.Sets.IsTallHat` and `DrawHead`, and the PvP item
 sync, which comes with the PvP hooks in phase 2.
+
+### Custom equip drawing
+
+`ModItem.ModifyEquipTextureDraw(ref drawInfo, ref drawData, equipTexture, methodName)`
+(through `EquipTexture.ModifyDraw`) changes the draw of the item's equip texture
+or adds others to `drawInfo.DrawDataCache`; `false` drops the original.
+`ExampleCustomDrawWings` draws the wing with a glow this way. On the phone it
+runs for wings, back, balloons, shoes, waist, neck and shields; the other equip
+types (head, body, legs, face, front) do not call it yet.
+
+`ExampleCostume` shows the rest of a full costume: `EquipLoader.AddEquipTexture`
+with a `name` for each set, `ArmorIDs.Head.Sets.DrawHead[slot] = false` (the
+game's `HidesHead`, inverted), `ArmorIDs.Body.Sets.HidesTopSkin`, and
+`ModPlayer.FrameEffects` swapping `Player.head`, `body` and `legs`.
+
+`ExampleDashPlayer` (in `ExampleShield.cs`) is a dash made in
+`ModPlayer.PreUpdateMovement` with `DashID.None` as the check that no other dash
+is on. On the phone `Item.backSlot` and the other slots are `sbyte`, and the
+`WaspNest` swaps the bee type with `On_Player.beeType` where tModLoader uses IL.
 
 ## Damage classes: `DamageClass`
 

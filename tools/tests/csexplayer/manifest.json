@@ -1,0 +1,17 @@
+{
+  "uid": "e8f7bb2d-ada3-4b9e-a67e-8e72b549a39d",
+  "id": "CsExPlayer",
+  "name": "Test: Example Mod player and accessories (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Equips the C# Example Mod's boots, resource accessory, shield dash, wasp nest, custom draw wings, costume and beard, and checks the resource weapon, bar and pickup.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexplayer SHOT <name>, csexplayer <case>: ok | FAIL and csexplayer END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

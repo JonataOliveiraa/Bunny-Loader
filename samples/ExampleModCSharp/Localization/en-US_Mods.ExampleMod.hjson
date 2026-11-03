@@ -342,6 +342,69 @@ Items: {
 		DisplayName: Example Minecart
 		Tooltip: ""
 	}
+
+	ExampleBoots: {
+		DisplayName: Example Boots
+		Tooltip:
+			'''
+			Allows flight, super fast running, even faster running on sand, and extra mobility on ice
+			{0}% increased movement speed
+			Provides the ability to walk on water, honey, lava, and shimmer
+			Grants immunity to fire blocks and {1} seconds of immunity to lava
+			Reduces damage from touching lava
+			Prevents fall damage
+			Leaves a trail of flames in your wake
+			'''
+	}
+
+	ExampleResourceAccessory: {
+		DisplayName: Example Resource Accessory
+		Tooltip:
+			'''
+			Drastically increases example resource regen rate
+			Increases maximum example resource by {0}
+			Increases pickup range for Example Resource Pickup
+			'''
+	}
+
+	ExampleCustomResourceWeapon: {
+		DisplayName: Example Custom Resource Weapon
+		Tooltip: ""
+		UsesXExampleResource: Uses {0} example resource
+	}
+
+	ExampleResourcePickup: {
+		DisplayName: Example Resource Pickup
+		Tooltip: ""
+	}
+
+	ExampleCostume: {
+		DisplayName: Charm of Example
+		Tooltip:
+			'''
+			Turns the holder into Blocky near town NPC
+			Blocky's colors will invert in water
+			'''
+	}
+
+	ExampleBeard: {
+		DisplayName: Example Beard
+		Tooltip: This is a modded beard which matches your hair color.
+	}
+
+	ExampleCustomDrawWings: {
+		DisplayName: Example Custom Draw Wings
+		Tooltip: ""
+	}
+
+	WaspNest: {
+		DisplayName: Wasp Nest
+		Tooltip:
+			'''
+			{$ItemTooltip.HiveBackpack}
+			Releases bees when damaged
+			'''
+	}
 }
 
 Conditions: {
@@ -389,6 +452,11 @@ Buffs: {
 	ExampleLightPetBuff: {
 		DisplayName: Annoying Light
 		Description: Ugh, soooo annoying
+	}
+
+	Blocky: {
+		DisplayName: Blocky
+		Description: Jumping power is increased
 	}
 }
 
@@ -561,6 +629,7 @@ Keybinds: {
 
 UI: {
 	ExampleCoinsUIState.Reset: Reset Coins Per Minute Counter
+	ExampleResource: Example Resource: {0} / {1}
 }
 
 Common: {

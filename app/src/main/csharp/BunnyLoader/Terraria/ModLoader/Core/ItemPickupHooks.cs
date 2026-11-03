@@ -110,13 +110,13 @@ internal static unsafe class ItemPickupHooks
     }
 
     static bool CanPickup(Item item, Player player) =>
-        !Until(item, nameof(ModItem.CanPickup), false, g => g.CanPickup(item, player), m => m.CanPickup(player));
+        !Until(item, nameof(ModItem.CanPickup), false, g => g.CanPickup(WorldItemOf(item), player), m => m.CanPickup(WorldItemOf(item), player));
 
     static bool OnPickup(Item item, Player player) =>
-        !Until(item, nameof(ModItem.OnPickup), false, g => g.OnPickup(item, player), m => m.OnPickup(player));
+        !Until(item, nameof(ModItem.OnPickup), false, g => g.OnPickup(WorldItemOf(item), player), m => m.OnPickup(WorldItemOf(item), player));
 
     static bool GrabStyle(Item item, Player player) =>
-        Until(item, nameof(ModItem.GrabStyle), true, g => g.GrabStyle(item, player), m => m.GrabStyle(player));
+        Until(item, nameof(ModItem.GrabStyle), true, g => g.GrabStyle(WorldItemOf(item), player), m => m.GrabStyle(WorldItemOf(item), player));
 
     static bool ItemSpace(Item item, Player player)
     {
@@ -129,13 +129,13 @@ internal static unsafe class ItemPickupHooks
         int range = baseRange;
         if (ItemHooks.ModItemOf(item) is ModItem m)
         {
-            try { m.GrabRange(player, ref range); }
+            try { m.GrabRange(WorldItemOf(item), player, ref range); }
             catch (Exception e) { ItemHooks.Report($"{m.FullName}.GrabRange", e); }
         }
         foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
         {
             if (g == null) continue;
-            try { g.GrabRange(item, player, ref range); }
+            try { g.GrabRange(WorldItemOf(item), player, ref range); }
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.GrabRange", e); }
         }
         return range;

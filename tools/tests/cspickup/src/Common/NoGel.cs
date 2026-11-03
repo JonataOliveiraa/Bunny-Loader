@@ -6,5 +6,5 @@ namespace CsPickup.Common;
 
 public class NoGel : GlobalItem
 {
-    public override bool CanPickup(Item item, Player player) => item.type != ItemID.Gel;
+    public override bool CanPickup(WorldItem item, Player player) => item.type != ItemID.Gel;
 }

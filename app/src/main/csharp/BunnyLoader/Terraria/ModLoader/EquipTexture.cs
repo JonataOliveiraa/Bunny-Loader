@@ -40,4 +40,7 @@ public class EquipTexture
         Item?.HorizontalWingSpeeds(player, ref speed, ref acceleration);
 
     public virtual bool WingUpdate(Player player, bool inUse) => Item != null && Item.WingUpdate(player, inUse);
+
+    public virtual bool ModifyDraw(ref Terraria.DataStructures.PlayerDrawSet drawInfo, ref Terraria.DataStructures.DrawData drawData, string methodName) =>
+        Item?.ModifyEquipTextureDraw(ref drawInfo, ref drawData, this, methodName) ?? true;
 }

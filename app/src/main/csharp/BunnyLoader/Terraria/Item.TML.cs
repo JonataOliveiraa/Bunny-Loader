@@ -30,6 +30,12 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
         set => DamageClassLoader.SetAnimationOnly(type, value);
     }
 
+    public static int NewItem(Terraria.DataStructures.IEntitySource source, Microsoft.Xna.Framework.Rectangle rectangle, int type, int stack = 1, int prefix = 0, NewItemOwnership ownership = NewItemOwnership.None) =>
+        NewItem(source, new Microsoft.Xna.Framework.Vector2(rectangle.X + rectangle.Width / 2f, rectangle.Y + rectangle.Height / 2f), type, stack, prefix, ownership);
+
+    public static int NewItem(Terraria.DataStructures.IEntitySource source, Microsoft.Xna.Framework.Vector2 position, Microsoft.Xna.Framework.Vector2 size, int type, int stack = 1, int prefix = 0, NewItemOwnership ownership = NewItemOwnership.None) =>
+        NewItem(source, new Microsoft.Xna.Framework.Vector2(position.X + size.X / 2f, position.Y + size.Y / 2f), type, stack, prefix, ownership);
+
     public void DefaultToPlaceableWall(int wallToPlace) => DefaultToPlaceableWall_((ushort)wallToPlace);
 
     public bool CountsAsClass<T>() where T : DamageClass => CountsAsClass(ModContent.GetInstance<T>());

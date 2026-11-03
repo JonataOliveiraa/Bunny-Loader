@@ -11,6 +11,7 @@ public class ExampleMod : Mod
     internal enum MessageType : byte
     {
         ExampleStatIncreasePlayerSync,
+        ExampleResourceEffect,
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
@@ -28,6 +29,9 @@ public class ExampleMod : Mod
                 {
                     examplePlayer.SyncPlayer(-1, whoAmI, false);
                 }
+                break;
+            case MessageType.ExampleResourceEffect:
+                ExampleResourcePlayer.HandleExampleResourceEffectMessage(reader, whoAmI);
                 break;
             default:
                 Logger.WarnFormat("ExampleMod: Unknown Message type: {0}", msgType);
