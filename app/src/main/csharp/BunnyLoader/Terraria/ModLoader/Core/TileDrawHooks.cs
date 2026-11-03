@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.GameContent.Drawing;
+using Terraria.ObjectData;
 
 namespace Terraria.ModLoader.Core;
 
@@ -18,6 +19,12 @@ internal static unsafe partial class TileHooks
     static int lightCount;
 
     static readonly List<Point> special = new();
+
+    static readonly List<Point> vines = new();
+
+    static SceneMetrics scanning;
+
+    internal static SceneMetrics ScanningMetrics => scanning.IsNull ? Main.PlayerSceneMetrics : scanning;
 
     static GameHandle? drawHandle;
 
@@ -100,11 +107,20 @@ internal static unsafe partial class TileHooks
         orig(self, settings);
         int x = (int)settings.BiomeScanCenterPositionInWorld.X / 16, y = (int)settings.BiomeScanCenterPositionInWorld.Y / 16;
         int width = Main.buffScanAreaWidth, height = Main.buffScanAreaHeight;
-        NearArea(x - width / 2, y - height / 2, width, height, false);
-        if (settings.VisualScanArea.HasValue)
+        SceneMetrics outer = scanning;
+        scanning = self;
+        try
         {
-            Rectangle area = settings.VisualScanArea.Value;
-            NearArea(area.X, area.Y, area.Width, area.Height, true);
+            NearArea(x - width / 2, y - height / 2, width, height, false);
+            if (settings.VisualScanArea.HasValue)
+            {
+                Rectangle area = settings.VisualScanArea.Value;
+                NearArea(area.X, area.Y, area.Width, area.Height, true);
+            }
+        }
+        finally
+        {
+            scanning = outer;
         }
     }
 
@@ -136,6 +152,12 @@ internal static unsafe partial class TileHooks
             orig(self, x, y);
     }
 
+    internal static void AddVine(int i, int j)
+    {
+        if (drawing)
+            vines.Add(new Point(i, j));
+    }
+
     static void Draw(On_TileDrawing.orig_PostDrawTiles orig, TileDrawing self, bool solid, bool targets, bool intoTargets)
     {
         orig(self, solid, targets, intoTargets);
@@ -153,6 +175,7 @@ internal static unsafe partial class TileHooks
         Main.drawToScreen = true;
         drawing = true;
         special.Clear();
+        vines.Clear();
         if (drawHandle == null)
             drawHandle = new GameHandle(TileDrawInfo.New().Pointer);
         try
@@ -240,6 +263,14 @@ internal static unsafe partial class TileHooks
                 TileLoader.GetTile(type)?.SpecialDraw(point.X, point.Y, batch);
                 foreach (GlobalTile global in TileLoader.Hooks.SpecialDraw)
                     global.SpecialDraw(point.X, point.Y, type, batch);
+            }
+
+            for (int k = 0; k < vines.Count; k++)
+            {
+                Point point = vines[k];
+                var data = TileObjectData.GetTileData(Main.tile[point.X, point.Y]);
+                if (!data.IsNull)
+                    self.DrawMultiTileVinesInWind(Main.screenPosition, Vector2.Zero, point.X, point.Y, data.Width, data.Height);
             }
         }
         finally

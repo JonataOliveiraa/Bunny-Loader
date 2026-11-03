@@ -318,6 +318,45 @@ public class ExamplePylonTile : ModPylon
 - `GetNPCShopEntry` adds the pylon item to town NPC shops, except those in `NPCShopDatabase.NoPylons`.
 - Not available yet: `GlobalPylon`, `ValidTeleportCheck_DestinationPostCheck`, `ValidTeleportCheck_NearbyPostCheck`, `ModifyTeleportationPosition`, the smart cursor crystal highlight, `HasSmartInteract`, and the `TileFrame` override tModLoader uses to break a pylon. `TileID.Sets.CountsAsPylon` is kept by the loader, since the mobile game has no such set.
 
+## Enemy banners
+
+An enemy banner is a `ModBannerTile`. It sets up the 1x3 banner object (hanging from a block or a platform), the map entry, the sway in the wind and the bonus against the banner's enemies. Each placed style is one banner, and the item that places that style is the banner item:
+
+```csharp
+public class EnemyBanner : ModBannerTile
+{
+    public enum StyleID
+    {
+        ExampleWormHead,
+        ExampleCustomAISlimeNPC
+    }
+}
+
+public class ExampleCustomAISlimeNPCBanner : ModItem
+{
+    public override void SetDefaults()
+    {
+        Item.DefaultToPlaceableTile(ModContent.TileType<EnemyBanner>(), (int)EnemyBanner.StyleID.ExampleCustomAISlimeNPC);
+        Item.width = 10;
+        Item.height = 24;
+    }
+}
+```
+
+The NPC links itself to the banner in `ModNPC.SetDefaults`, as in tModLoader:
+
+```csharp
+Banner = Type;
+BannerItem = ModContent.ItemType<ExampleCustomAISlimeNPCBanner>();
+ItemID.Sets.KillsToBanner[BannerItem] = 25; // optional, 50 by default
+```
+
+- A mod banner's ID is the type of its representative NPC, the one with `Banner = Type` and a `BannerItem`. Other NPCs of the same family set `Banner` to that type and count on the same banner. To share a vanilla banner, use `Banner = BannerSystem.NPCtoBanner(NPCID.Zombie)` and `BannerItem = BannerSystem.BannerToItem(Banner)`.
+- `BannerSystem.NPCtoBanner`, `BannerToItem` and `BannerToNPC` know the mod banners, so the game's own code handles kills, the kill announcement, claiming at the banner screen and the bonus.
+- The bonus works when the banner is near the player, through `ModBannerTile.NearbyEffects`. The banner item needs `ItemID.Sets.BannerStrength[item].Enabled`, which is on by default.
+- The kill counts and the banners left to claim are saved in the world's `.wld.bl.json` under `<mod UID>/<NPC name>`, so they survive a different load order. The `.wld` file itself keeps only the vanilla banners. In multiplayer the game's own banner packet carries the mod banners too.
+- Not available yet: the banner bonus line in the buff tooltip (the game lists only vanilla banners). A tile that does not extend `ModBannerTile` cannot get the wind sway from `TilesRenderer.AddSpecialPoint(i, j, TileCounterType.MultiTileVine)`.
+
 ## World persistence
 
 C# uses the existing native `.wld.tiles.bl` backend. Its stable tile key is `<mod UID>/<tile name>`, shared with JS. A JS mod and its C# port must keep both values to reuse saved tiles. No conversion of the sidecar format is needed.

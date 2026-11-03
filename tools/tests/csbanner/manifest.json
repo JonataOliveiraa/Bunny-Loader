@@ -1,0 +1,17 @@
+{
+  "uid": "088b36cd-9668-4088-b4aa-a6ff67602453",
+  "id": "CsBanner",
+  "name": "Test: mod banners (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "ModNPC.Banner/BannerItem, the BannerSystem relations, kills, claiming, the placed banner's bonus, wind drawing and the world save by name.",
+  "description": "Build with tools/tests/build-cs.sh csbanner. Logs csbanner <case>: ok | FAIL and csbanner END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

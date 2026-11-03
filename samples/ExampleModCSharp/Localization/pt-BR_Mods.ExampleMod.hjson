@@ -1,4 +1,9 @@
 Items: {
+	ExampleCustomAISlimeNPCBanner: {
+		DisplayName: "Bandeira de {$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
+		Tooltip: "{$CommonItemTooltip.BannerBonus}{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
+	}
+
 	ExampleBullet: {
 		DisplayName: Bala de Exemplo
 		Tooltip: Uma munição de bala de mod.

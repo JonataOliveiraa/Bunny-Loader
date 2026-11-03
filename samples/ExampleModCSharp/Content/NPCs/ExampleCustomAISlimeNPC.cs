@@ -1,3 +1,4 @@
+using ExampleMod.Content.Items.Placeable.Banners;
 using Terraria.ModLoader.Utilities;
 using Microsoft.Xna.Framework;
 using System;
@@ -58,6 +59,8 @@ namespace ExampleMod.Content.NPCs
 			NPC.DeathSound = SoundID.NPCDeath1;
 			NPC.value = 25f;
 
+			Banner = Type;
+			BannerItem = ModContent.ItemType<ExampleCustomAISlimeNPCBanner>();
 		}
 
 		public override void AI() {

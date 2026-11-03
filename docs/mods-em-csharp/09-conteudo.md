@@ -1578,7 +1578,8 @@ For C# mod NPCs the final difficulty scaling runs after all the defaults hooks.
 `PartyZombie` port demonstrates registration, frame count, texture and base
 stats. It now also borrows zombie AI and animation through `AIType` and
 `AnimationType`, uses `NPCAIStyleID.Fighter`, and has the vanilla hit/death
-sounds. Natural spawn, loot, combat callbacks, banners and bestiary/biome
+sounds. It shares the zombie banner through `Banner` and `BannerItem` (see
+[Enemy banners](10-tiles.md#enemy-banners)). Natural spawn, loot, combat callbacks and bestiary/biome
 integration arrive with their corresponding phase 4 steps. Extra AI networking
 and custom saved NPC data are also later steps.
 
@@ -1638,7 +1639,8 @@ the adapter does not substitute the older master-mode adjustment. The mobile
 game's final player-count multiplier still runs after the callbacks.
 
 The `ExampleCustomAISlimeNPC` port demonstrates the five-state Flutter Slime
-AI and its six animation frames. Its banner, natural spawning, platform
+AI and its six animation frames, and its own banner (`EnemyBanner` and
+`ExampleCustomAISlimeNPCBanner`). Its natural spawning, platform
 fall-through and collision-damage behavior are deferred to their planned
 steps. Immunity to `ExampleGravityDebuff`, and PartyZombie's custom liquid
 gravity adjustments, require the separate NPC gravity-multiplier API; those

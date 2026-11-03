@@ -353,6 +353,8 @@ public static unsafe partial class TileLoader
                 drops[(type, style)] = item;
     }
 
+    public static int GetItemDropFromTypeAndStyle(int type, int style = 0) => DropType(type, style);
+
     internal static int DropType(int type, int style)
     {
         return drops.GetValueOrDefault((type, style), drops.GetValueOrDefault((type, -1)));

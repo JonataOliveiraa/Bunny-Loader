@@ -39,6 +39,10 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
 
     public int Music { get; set; } = -1;
 
+    public int Banner { get; set; }
+
+    public int BannerItem { get; set; }
+
     public SceneEffectPriority SceneEffectPriority { get; set; } = SceneEffectPriority.BossLow;
 
     public int[] SpawnModBiomes { get; set; } = System.Array.Empty<int>();

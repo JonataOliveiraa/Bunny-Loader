@@ -1,4 +1,9 @@
 Items: {
+	ExampleCustomAISlimeNPCBanner: {
+		DisplayName: "{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName} Banner"
+		Tooltip: "{$CommonItemTooltip.BannerBonus}{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
+	}
+
 	ExampleBullet: {
 		DisplayName: Example Bullet
 		Tooltip: This is a modded bullet ammo.

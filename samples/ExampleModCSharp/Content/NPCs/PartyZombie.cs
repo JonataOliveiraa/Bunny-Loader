@@ -2,6 +2,7 @@ using ExampleMod.Content.Biomes;
 using Terraria.ModLoader.Utilities;
 using Terraria;
 using Terraria.ID;
+using Terraria.GameContent;
 using Terraria.GameContent.Bestiary;
 using Terraria.GameContent.ItemDropRules;
 using Terraria.ModLoader;
@@ -40,6 +41,8 @@ public class PartyZombie : ModNPC
         AIType = NPCID.Zombie;
         AnimationType = NPCID.Zombie;
         SpawnModBiomes = [ModContent.GetInstance<ExampleSurfaceBiome>().Type];
+        Banner = BannerSystem.NPCtoBanner(NPCID.Zombie);
+        BannerItem = BannerSystem.BannerToItem(Banner);
     }
 
     public override void ModifyIncomingHit(ref NPC.HitModifiers modifiers)

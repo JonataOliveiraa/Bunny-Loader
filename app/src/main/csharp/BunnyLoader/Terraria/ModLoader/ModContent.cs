@@ -286,6 +286,8 @@ public static class ModContent
             catch (Exception e) { Log.Error($"NPC loot: the tables could not be set up: {e}"); }
             try { ItemLootHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"item loot: the tables could not be set up: {e}"); }
+            try { BannerHooks.ContentReady(); }
+            catch (Exception e) { Log.Error($"banners: the tables could not be set up: {e}"); }
             try { BestiaryHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"bestiary: the entries could not be set up: {e}"); }
             try { NPCProfileHooks.ContentReady(); }
