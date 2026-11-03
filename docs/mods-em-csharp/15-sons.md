@@ -30,7 +30,10 @@ leaves a warning in the log; nothing throws.
   does `with { ... }`.
 
 The game's sounds stay as they are: `Item.UseSound = SoundID.Item1;`,
-`NPC.HitSound = SoundID.NPCHit1;`.
+`NPC.HitSound = SoundID.NPCHit1;`. `Item.UseSound` is the game's
+`LegacySoundStyle`, not a `SoundStyle?`; `HasValue` and `Value` are there so
+tModLoader's `if (Item.UseSound.HasValue) SoundEngine.PlaySound(Item.UseSound.Value, ...)`
+works unchanged.
 
 ## Playing
 

@@ -26,6 +26,16 @@ public static class UtilsExtensions
 
     public static float NextFloat(this UnifiedRandom r, float minValue, float maxValue) => (float)r.NextDouble() * (maxValue - minValue) + minValue;
 
+    public static float NextFloatDirection(this UnifiedRandom r) => (float)r.NextDouble() * 2f - 1f;
+
+    public static Vector2 NextVector2FromRectangle(this UnifiedRandom r, Rectangle rect) =>
+        new(rect.X + r.NextFloat() * rect.Width, rect.Y + r.NextFloat() * rect.Height);
+
+    public static int ToDirectionInt(this bool value) => value ? 1 : -1;
+
+    public static bool IntersectsConeSlowMoreAccurate(this Rectangle targetRect, Vector2 coneCenter, float coneLength, float coneRotation, float maximumAngle) =>
+        Utils.IntersectsConeSlowMoreAccurate(targetRect, coneCenter, coneLength, coneRotation, maximumAngle);
+
     public static float ToRotation(this Vector2 v) => MathF.Atan2(v.Y, v.X);
 
     public static Vector2 Floor(this Vector2 vec) => new(MathF.Floor(vec.X), MathF.Floor(vec.Y));

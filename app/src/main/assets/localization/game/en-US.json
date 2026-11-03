@@ -70,5 +70,6 @@
   "FxPanelOff": "OFF",
   "FxPanelHotReload": "hot reload on",
   "FxPanelScreen": "screen",
-  "FxShaderFailed": "(shader failed)"
+  "FxShaderFailed": "(shader failed)",
+  "CommonItemTooltip.SummonTagDamage": "{0} summon tag damage"
 }

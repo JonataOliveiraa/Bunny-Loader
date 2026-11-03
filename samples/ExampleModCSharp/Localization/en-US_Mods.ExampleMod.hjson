@@ -244,6 +244,55 @@ Items: {
 			100% increased example knockback
 			'''
 	}
+
+	ExampleShortsword: {
+		DisplayName: Example Shortsword
+		Tooltip: ""
+	}
+
+	ExampleSpear: {
+		DisplayName: Example Spear
+		Tooltip: This is a modded spear
+	}
+
+	ExampleFlail: {
+		DisplayName: Example Flail
+		Tooltip: This is a modded flail with normal behavior.
+	}
+
+	ExampleYoyo: {
+		DisplayName: Example Yoyo
+		Tooltip: This is a modded yoyo with normal behavior. It won't receive bad prefixes.
+	}
+
+	ExampleWhip: {
+		DisplayName: Example Whip
+		Tooltip:
+			'''
+			{$CommonItemTooltip.SummonTagDamage}
+			{$CommonItemTooltip.Whips}
+			'''
+	}
+
+	ExampleSwingingEnergySword: {
+		DisplayName: Example Swinging Energy Sword
+		Tooltip: ""
+	}
+
+	ExamplePickaxe: {
+		DisplayName: Example Pickaxe
+		Tooltip: This is a modded pickaxe.
+	}
+
+	ExampleHamaxe: {
+		DisplayName: Example Hamaxe
+		Tooltip: This is a modded hamaxe.
+	}
+
+	ExampleDrill: {
+		DisplayName: Example Drill
+		Tooltip: ""
+	}
 }
 
 Conditions: {
@@ -297,6 +346,13 @@ Projectiles: {
 	ExampleLastPrismHoldout.DisplayName: Example Last Prism
 	ExampleLastPrismBeam.DisplayName: Example Last Prism Beam
 	ExampleRiftProjectile.DisplayName: Rift
+	ExampleShortswordProjectile.DisplayName: Example Shortsword
+	ExampleSpearProjectile.DisplayName: Spear
+	ExampleFlailProjectile.DisplayName: Example Flail
+	ExampleYoyoProjectile.DisplayName: Example Yoyo Projectile
+	ExampleWhipProjectile.DisplayName: Example Whip Projectile
+	ExampleSwingingEnergySwordProjectile.DisplayName: Example Swinging Energy Sword Projectile
+	ExampleDrillProjectile.DisplayName: Example Drill Projectile
 }
 
 NPCs: {

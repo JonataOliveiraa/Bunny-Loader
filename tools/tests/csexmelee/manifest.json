@@ -1,0 +1,17 @@
+{
+  "uid": "e2360c91-7727-4e84-ba0d-bbe4595217cc",
+  "id": "CsExMelee",
+  "name": "Test: Example Mod melee weapons and tools (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Uses the C# Example Mod's shortsword, spear, flail, yoyo, whip, energy sword, drill, pickaxe and hamaxe on a slime held in place.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexmelee SHOT <name>, csexmelee <case>: ok | FAIL and csexmelee END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

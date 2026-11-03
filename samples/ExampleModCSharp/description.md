@@ -6,9 +6,11 @@ Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
 
 ## O que tem
 
-- ![](Content/Items/ExampleItem.png) **Itens**: o Exemplo de Item, armas,
-  ferramentas, armaduras com bônus de conjunto, acessórios, asas, poções,
-  munição e receitas.
+- ![](Content/Items/ExampleItem.png) **Itens**: o Exemplo de Item, armas
+  (espada curta, lança, mangual, ioiô, chicote, espada de energia e as de
+  longe e mágicas), ferramentas (picareta, martelo-machado, broca, gancho,
+  vara de pesca), armaduras com bônus de conjunto, acessórios, asas, poções,
+  munição, raridades e receitas.
 - **Jogador e buffs**: `ModPlayer`, buffs, cabelos, montarias, barras de vida
   e mana.
 - **Projéteis, poeiras e gores**.

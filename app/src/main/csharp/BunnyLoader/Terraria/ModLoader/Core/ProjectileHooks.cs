@@ -329,7 +329,24 @@ internal static unsafe class ProjectileHooks
             return;
         }
         Player player = overridePlayer.IsNull ? Main.player[proj.owner] : overridePlayer;
+        IntPtr outer = ProjectileLoader.Borrow(proj, ProjectileLoader.InstanceOf(proj), out ModProjectile? outerInstance);
+        try { Draw(orig, self, proj, overridePlayer, player, draw, wantsExtras); }
+        finally { ProjectileLoader.Return(outer, outerInstance); }
+    }
+
+    static void Draw(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer, Player player, bool draw, bool wantsExtras)
+    {
+        int type = proj.type;
         bool extras = !wantsExtras || ProjectileLoader.PreDrawExtras(proj, player);
+        if (extras && proj.type != type && HasExtras(proj))
+        {
+            if (Host.Native()->BeginProjectileDrawSplit(TextureAssets.Projectile[proj.type].Value.Pointer, 1, 0) != 0)
+            {
+                try { orig(self, proj, overridePlayer); }
+                finally { Host.Native()->EndProjectileDrawSplit(); }
+                extras = false;
+            }
+        }
         Vector2 center = proj.Center;
         Color light = float.IsFinite(center.X) && float.IsFinite(center.Y) ? Lighting.GetColor((int)(center.X / 16f), (int)(center.Y / 16f)) : Color.White;
         Color original = light;

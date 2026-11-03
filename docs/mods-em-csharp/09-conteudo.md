@@ -1232,7 +1232,10 @@ item shoots it with `Item.shoot`, and `Projectile.NewProjectile` spawns it.
 | `PreDraw(player, ref lightColor)`, `PostDraw(player, lightColor)` | around the game's draw (`Main.DrawProjDirect`); `Projectile.GetDefaultDrawData(player, lightColor)` gives the draw the game would make, for afterimages; `PreDraw` `false` hides the sprite and keeps the extras |
 
 `Projectile.oldPos` (with `ProjectileID.Sets.TrailCacheLength[Type]`) reads by
-index as in tModLoader. `Projectile.CloneDefaults(type)` copies another
+index as in tModLoader. `Main.EntitySpriteDraw` takes a `Rectangle?` (null is the
+whole texture) and an optional last argument, as in tModLoader, and
+`Collision.CheckAABBvLineCollision(..., lineWidth, ref collisionPoint)` tests a
+thick line against a box. `Projectile.CloneDefaults(type)` copies another
 projectile's defaults and keeps the type, the `ModProjectile` and the globals.
 
 ### Projectiles in multiplayer: `SendExtraAI`
@@ -1306,6 +1309,42 @@ The strike is found without running C# for every projectile: a native marker on
 `Projectile.Damage_PVE` says which projectile is dealing damage, and only the
 strike itself calls the mod. `CanHitNPC` is the exception: the game asks it for
 every NPC near every friendly projectile, so override it only when needed.
+
+### Melee weapons that are projectiles
+
+Most melee weapons past the plain sword are a projectile the item shoots, and
+the ExampleMod has one of each (`Content/Items/Weapons`, `Content/Items/Tools`
+and their projectiles in `Content/Projectiles`):
+
+| Example | How it works |
+| --- | --- |
+| `ExampleShortsword` | `ItemUseStyleID.Rapier`, `noMelee`, `noUseGraphic`; the projectile (`aiStyle = -1`) sticks out of the hand for 16 updates, hits with `Colliding` and cuts grass with `CutTiles` |
+| `ExampleSpear` | `ItemID.Sets.Spears`, `CloneDefaults(ProjectileID.Spear)`; the thrust is its own `PreAI` |
+| `ExampleFlail` | `ProjAIStyleID.Flail` with `AIType = ProjectileID.Sunfury`; `channel` spins it, letting go throws it |
+| `ExampleYoyo` | `ItemID.Sets.Yoyo`, `ProjAIStyleID.Yoyo` and the `ProjectileID.Sets.Yoyos*` sets |
+| `ExampleWhip` | `Item.DefaultToWhip`, `ProjectileID.Sets.IsAWhip`, a `WhipTagEffect` in `ItemID.Sets.UniqueTagEffects`; draws itself from `Projectile.FillWhipControlPoints` |
+| `ExampleSwingingEnergySword` | a projectile per swing (`shootsEveryUse`) that hits in a cone |
+| `ExampleDrill` | `ItemID.Sets.IsDrill`, `channel`; the projectile follows the cursor and mines with the item's `pick` |
+| `ExamplePickaxe`, `ExampleHamaxe` | plain tools with `MeleeEffects` dust; the pickaxe sometimes shows `ExamplePickaxeEmote` |
+
+`Projectile.WhipSettings` (`Segments`, `RangeMultiplier`) starts with what the
+game uses for that projectile (20 and 1 for a mod whip) and, once changed, is
+what the game's `Projectile.GetWhipSettings` returns: the hit test and
+`FillWhipControlPoints` follow it. `SetDefaults` puts it back.
+`Projectile.FillWhipControlPoints(proj, List<Vector2>, player)` fills a C# list.
+
+`Item.attackSpeedOnlyAffectsWeaponAnimation` is kept per item type: the attack
+speed of a mod damage class then speeds up the swing but not the use time, as
+tModLoader does for tools. The game's own melee speed never shortens a melee
+tool's use time on the phone. `ItemID.Sets.Spears` only marks spears, as in
+tModLoader (which reads it for the game's spears only).
+
+Not on the phone: `FlailStats` and `FlailSpinCollisionRange` (the flail's
+numbers are local variables of the game's flail AI, picked by projectile type,
+so a flail with `AIType` gets that flail's numbers) and `DisplayDollSettings`
+(weapons held by mannequins).
+
+The `csexmelee` pack uses each of these weapons on a slime held in place.
 
 ## Every projectile: `GlobalProjectile`
 
@@ -1842,7 +1881,10 @@ public class ExampleItemEmote : ModEmoteBubble
 
 `ModContent.EmoteBubbleType<T>()` gives the emote's type, which starts after
 `EmoteID.Count` (151 on the phone). Spawn one with
-`EmoteBubble.NewBubble(type, WorldUIAnchor.New(player), time)`. A
+`EmoteBubble.NewBubble(type, WorldUIAnchor.New(player), time)`, or over a
+player with `EmoteBubble.MakePlayerEmote(player, type)` (in multiplayer a game
+emote goes through message 120; a mod emote shows only on this device, see
+below). A
 `GlobalEmoteBubble` gets the same hooks for every bubble, the game's included,
 running before the emote's own; its `GetFrame` applies to the game's emotes.
 
@@ -2478,6 +2520,14 @@ A value that takes the rest of its line ends only at the line's end: write
 The game's culture picks the text: the exact culture (`pt-BR`), then the
 same language, then `en-US`, then any. Changing the language in the game
 updates every text of the mods.
+
+`{$Key}` inside a text is replaced by another text when the mod loads, as in
+tModLoader: a key of the mod (`{$Mods.MyMod.NPCs.Slime.DisplayName}`, or just
+`{$NPCs.Slime.DisplayName}` from inside `Mods.MyMod`), of a mod loaded before,
+or of the game (`{$CommonItemTooltip.Whips}`). `{$Key@1}` adds 1 to the
+`{0}`-style arguments of the text it brings in. A game text comes in the
+language the game had when the mod loaded. The phone lacks
+`CommonItemTooltip.SummonTagDamage`, which Bunny Loader adds.
 
 ### In code
 

@@ -14,6 +14,10 @@ internal static unsafe class LocalizationLoader
 {
     static readonly Regex CultureName = new(@"^[a-z]{2,3}(-[A-Za-z]{2,4})?$", RegexOptions.CultureInvariant);
 
+    static readonly Regex Reference = new(@"{\$([\w\./]+)(?:@(\d+))?}", RegexOptions.CultureInvariant);
+
+    static readonly Regex ArgumentIndex = new(@"(?<={\^?)(\d+)(?=(?::[^\r\n]+?)?})", RegexOptions.CultureInvariant);
+
     static readonly Dictionary<Mod, Dictionary<string, List<(string Culture, string Text)>>> ByMod = new();
 
     public static void Load(Mod mod)
@@ -33,6 +37,7 @@ internal static unsafe class LocalizationLoader
             }
         }
         LoadLegacyJson(mod, all);
+        ResolveReferences(all);
         lock (ByMod) ByMod[mod] = all;
         foreach ((string key, List<(string Culture, string Text)> texts) in all) Native(key, Pack(texts), replace: true);
     }
@@ -66,6 +71,69 @@ internal static unsafe class LocalizationLoader
             packed.Append(culture).Append('\x1F').Append(text);
         }
         return packed.ToString();
+    }
+
+    static void ResolveReferences(Dictionary<string, List<(string Culture, string Text)>> all)
+    {
+        foreach ((string key, List<(string Culture, string Text)> texts) in all)
+        {
+            for (int i = 0; i < texts.Count; i++)
+            {
+                (string culture, string text) = texts[i];
+                if (text.Contains("{$")) texts[i] = (culture, Resolve(all, key, culture, text, new HashSet<string> { key }));
+            }
+        }
+    }
+
+    static string Resolve(Dictionary<string, List<(string Culture, string Text)>> all, string scope, string culture, string text, HashSet<string> visiting) =>
+        Reference.Replace(text, match =>
+        {
+            string key = KeyInScope(all, match.Groups[1].Value, scope);
+            string value = Lookup(all, key, culture, visiting) ?? key;
+            if (match.Groups[2].Success && int.TryParse(match.Groups[2].Value, out int offset))
+                value = ArgumentIndex.Replace(value, m => (int.Parse(m.Groups[1].Value) + offset).ToString());
+            return value;
+        });
+
+    static string? Lookup(Dictionary<string, List<(string Culture, string Text)>> all, string key, string culture, HashSet<string> visiting)
+    {
+        List<(string Culture, string Text)>? texts = Own(all, key);
+        if (texts == null || texts.Count == 0) return GameText(key);
+        string text = texts.FirstOrDefault(t => t.Culture == culture).Text
+            ?? texts.FirstOrDefault(t => t.Culture == "en-US").Text
+            ?? texts[0].Text;
+        if (!text.Contains("{$") || !visiting.Add(key)) return text;
+        try { return Resolve(all, key, culture, text, visiting); }
+        finally { visiting.Remove(key); }
+    }
+
+    static List<(string Culture, string Text)>? Own(Dictionary<string, List<(string Culture, string Text)>> all, string key)
+    {
+        if (all.TryGetValue(key, out var texts)) return texts;
+        lock (ByMod)
+        {
+            foreach (var other in ByMod.Values)
+                if (other.TryGetValue(key, out texts)) return texts;
+        }
+        return null;
+    }
+
+    static string? GameText(string key)
+    {
+        IntPtr text = Native(key, null, replace: false);
+        return text == IntPtr.Zero ? null : new LocalizedText(text).Value;
+    }
+
+    static string KeyInScope(Dictionary<string, List<(string Culture, string Text)>> all, string key, string scope)
+    {
+        if (Own(all, key) != null || GameText(key) != null) return key;
+        string[] parts = scope.Split('.');
+        for (int j = parts.Length - 1; j >= 0; j--)
+        {
+            string combined = string.Join(".", parts.Take(j + 1)) + "." + key;
+            if (Own(all, combined) != null || GameText(combined) != null) return combined;
+        }
+        return key;
     }
 
     static IntPtr Native(string key, string? packed, bool replace)

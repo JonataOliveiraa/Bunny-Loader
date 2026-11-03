@@ -129,6 +129,7 @@ public static unsafe class ProjectileLoader
 
     static void SetDefaults(On_Projectile.orig_SetDefaults orig, Projectile self, int Type)
     {
+        WhipHooks.Reset(self);
         orig(self, Type);
         ModProjectile? template = GetProjectile(Type);
         if (template == null)

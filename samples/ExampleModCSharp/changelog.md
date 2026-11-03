@@ -1,5 +1,13 @@
 # Novidades
 
+## 0.33.0
+
+- As armas corpo a corpo que são projéteis: espada curta, lança, mangual,
+  ioiô, chicote e espada de energia, cada uma com o projétil dela.
+- As ferramentas: picareta, martelo-machado e broca.
+- A raridade de exemplo (e a de nível acima), que o ioiô usa, e o pó
+  desenhado à mão que a picareta solta.
+
 ## 0.6.0
 
 - A escopeta (`ExampleShotgun`, oito balas pelo `Shoot`), a metralhadora

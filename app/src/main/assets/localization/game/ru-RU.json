@@ -70,5 +70,6 @@
   "FxPanelOff": "ВЫКЛ.",
   "FxPanelHotReload": "автоперезагрузка",
   "FxPanelScreen": "экран",
-  "FxShaderFailed": "(ошибка шейдера)"
+  "FxShaderFailed": "(ошибка шейдера)",
+  "CommonItemTooltip.SummonTagDamage": "{0} ед. урона от метки призыва"
 }

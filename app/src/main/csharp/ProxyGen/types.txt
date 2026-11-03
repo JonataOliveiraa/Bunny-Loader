@@ -418,3 +418,8 @@ String_Layout
 Terraria.ID.MessageID
 Terraria.DataStructures.TrackedProjectileReference
 Terraria.DataStructures.EntitySource_TileBreak 
+Terraria.ID.ProjectileDrawLayerID
+Terraria.ID.ExtrasID
+Terraria.GameContent.Items.WhipTagEffect
+Terraria.DelegateMethods
+Terraria.GameContent.Drawing.ParticleOrchestrator

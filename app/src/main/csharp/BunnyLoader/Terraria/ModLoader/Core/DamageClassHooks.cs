@@ -154,6 +154,7 @@ internal static class DamageClassHooks
         orig(self, item);
         try
         {
+            if (DamageClassLoader.AnimationOnly(item.type)) return;
             DamageClass cls = DamageClassLoader.ItemClass(item);
             bool hooked = DamageClassLoader.IsHooked(cls);
             if (!hooked && (MeleeLike(cls) || !HasData(self))) return;

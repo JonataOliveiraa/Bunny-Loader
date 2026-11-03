@@ -70,5 +70,6 @@
   "FxPanelOff": "DESACTIVADOS",
   "FxPanelHotReload": "recarga activada",
   "FxPanelScreen": "pantalla",
-  "FxShaderFailed": "(shader con error)"
+  "FxShaderFailed": "(shader con error)",
+  "CommonItemTooltip.SummonTagDamage": "{0} de daño de marca de invocación"
 }

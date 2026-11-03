@@ -70,5 +70,6 @@
   "FxPanelOff": "已关闭",
   "FxPanelHotReload": "热重载开启",
   "FxPanelScreen": "全屏",
-  "FxShaderFailed": "（着色器出错）"
+  "FxShaderFailed": "（着色器出错）",
+  "CommonItemTooltip.SummonTagDamage": "{0} 召唤标记伤害"
 }

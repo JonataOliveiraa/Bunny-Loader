@@ -268,6 +268,30 @@ public static class DamageClassLoader
         }
     }
 
+    static bool[] animationOnly = Array.Empty<bool>();
+
+    internal static bool AnimationOnly(int type)
+    {
+        bool[] table = Volatile.Read(ref animationOnly);
+        return (uint)type < (uint)table.Length && table[type];
+    }
+
+    internal static void SetAnimationOnly(int type, bool value)
+    {
+        if (type < 0) return;
+        lock (Gate)
+        {
+            bool[] table = animationOnly;
+            if (type >= table.Length)
+            {
+                if (!value) return;
+                Array.Resize(ref table, Math.Max(type + 1, table.Length * 2));
+            }
+            table[type] = value;
+            Volatile.Write(ref animationOnly, table);
+        }
+    }
+
     static DamageClass?[] Store(DamageClass?[] table, int type, DamageClass cls)
     {
         if (type < 0) return table;

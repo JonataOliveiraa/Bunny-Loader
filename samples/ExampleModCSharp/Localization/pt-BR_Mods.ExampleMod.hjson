@@ -244,6 +244,55 @@ Items: {
 			100% de repulsão de exemplo aumentada
 			'''
 	}
+
+	ExampleShortsword: {
+		DisplayName: Espada Curta de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleSpear: {
+		DisplayName: Lança de Exemplo
+		Tooltip: Uma lança de mod
+	}
+
+	ExampleFlail: {
+		DisplayName: Mangual de Exemplo
+		Tooltip: Um mangual de mod com o comportamento normal.
+	}
+
+	ExampleYoyo: {
+		DisplayName: Ioiô de Exemplo
+		Tooltip: Um ioiô de mod com o comportamento normal. Não recebe prefixos ruins.
+	}
+
+	ExampleWhip: {
+		DisplayName: Chicote de Exemplo
+		Tooltip:
+			'''
+			{$CommonItemTooltip.SummonTagDamage}
+			{$CommonItemTooltip.Whips}
+			'''
+	}
+
+	ExampleSwingingEnergySword: {
+		DisplayName: Espada de Energia de Exemplo
+		Tooltip: ""
+	}
+
+	ExamplePickaxe: {
+		DisplayName: Picareta de Exemplo
+		Tooltip: Uma picareta de mod.
+	}
+
+	ExampleHamaxe: {
+		DisplayName: Martelo-Machado de Exemplo
+		Tooltip: Um martelo-machado de mod.
+	}
+
+	ExampleDrill: {
+		DisplayName: Broca de Exemplo
+		Tooltip: ""
+	}
 }
 
 Conditions: {
@@ -296,6 +345,13 @@ Projectiles: {
 	ExampleLastPrismHoldout.DisplayName: Último Prisma de Exemplo
 	ExampleLastPrismBeam.DisplayName: Feixe do Último Prisma de Exemplo
 	ExampleRiftProjectile.DisplayName: Fenda
+	ExampleShortswordProjectile.DisplayName: Espada Curta de Exemplo
+	ExampleSpearProjectile.DisplayName: Lança
+	ExampleFlailProjectile.DisplayName: Mangual de Exemplo
+	ExampleYoyoProjectile.DisplayName: Projétil do Ioiô de Exemplo
+	ExampleWhipProjectile.DisplayName: Projétil do Chicote de Exemplo
+	ExampleSwingingEnergySwordProjectile.DisplayName: Projétil da Espada de Energia de Exemplo
+	ExampleDrillProjectile.DisplayName: Projétil da Broca de Exemplo
 }
 
 NPCs: {
