@@ -203,10 +203,17 @@ loads `libSystem.Security.Cryptography.Native.Android.so` from Java, so its
   struct, or passed by `ref`, an asset is still a plain handle (`GameObject`).
 - Other generic types (`List<T>`, `Dictionary<TKey, TValue>`...) and generic
   methods (`T Get<T>()`) are not generated: a generic type is a plain handle.
-- Game events (`Main.OnPostDraw`, `Main.OnResolutionChanged`...) are not
-  generated, and a C# method cannot be passed where the game expects one of its
-  delegate types: that needs game delegates created from C#, which the runtime
-  does not do yet. Use the `On_` hook of the method that raises the event.
+- Game events of the listed types are generated as C# events whose type is
+  `Action<...>` or `Func<...>` with the proxy types: `Main.OnPostDraw +=
+  (GameTime time) => ...`, `Player.Hooks.OnEnterWorld += player => ...`,
+  `Main.OnResolutionChanged`, `LanguageManager.OnLanguageChanged`... Each
+  subscriber becomes a game delegate (built with the delegate's own
+  constructor, so the game can combine it with others), `-=` removes it, and an
+  exception inside a handler is logged once and does not stop the other
+  subscribers. An event whose delegate has `ref`/`out` parameters, more than
+  sixteen parameters or a large struct return is skipped (`skipped.txt`).
+- A C# method still cannot be passed as a parameter where a game method expects
+  one of its delegate types (only events take C# handlers).
 - Methods with more than eight `float`/`double` arguments are skipped.
 - A struct with a field the generator cannot describe is not mirrored, and
   methods that use it are skipped.

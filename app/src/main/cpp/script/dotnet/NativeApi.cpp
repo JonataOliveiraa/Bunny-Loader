@@ -61,8 +61,10 @@
 
 #include <algorithm>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <map>
+#include <mutex>
 
 
 namespace bl::dotnet {
@@ -217,6 +219,8 @@ struct NativeApi {
     int32_t (*screenStats)(int64_t* out, int32_t capacity);
     void* (*requestModFont)(const char* path);
     int32_t (*isCoreReady)();
+    void* (*newDelegate)(void* klass, void* fn, void** target);
+    void* (*paramClass)(void* method, int32_t parameter);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -292,6 +296,50 @@ void* nativeNewObject(void* cls) {
 void* nativeFindNestedClass(void* outer, const char* name) {
     if (!outer || !name) return nullptr;
     return il2cpp::findNested(static_cast<Il2CppClass*>(outer), name);
+}
+
+void* nativeParamClass(void* method, int32_t parameter) {
+    const auto* info = static_cast<const MethodInfo*>(method);
+    auto& a = il2cpp::api();
+    const auto& e = extra();
+    if (!info || parameter < 0 || static_cast<uint32_t>(parameter) >= a.method_get_param_count(info) || !e.classFromType) return nullptr;
+    return e.classFromType(a.method_get_param(info, static_cast<uint32_t>(parameter)));
+}
+
+void* nativeNewDelegate(void* klass, void* fn, void** target) {
+    if (!klass || !fn) return nullptr;
+    auto& a = il2cpp::api();
+    static Il2CppClass* const objectClass = il2cpp::findClass({"System", "Object", {}});
+    if (!objectClass) return nullptr;
+    auto* cls = static_cast<Il2CppClass*>(klass);
+    const MethodInfo* invoke = a.class_get_method_from_name(cls, "Invoke", -1);
+    const MethodInfo* ctor = a.class_get_method_from_name(cls, ".ctor", 2);
+    if (!invoke || !ctor) return nullptr;
+    constexpr size_t kMethodInfoSize = 0x58;
+    static std::mutex lock;
+    static std::map<std::pair<Il2CppClass*, void*>, void*> forged;
+    void* method;
+    {
+        std::lock_guard<std::mutex> guard(lock);
+        void*& slot = forged[{cls, fn}];
+        if (!slot) {
+            slot = std::calloc(1, kMethodInfoSize);
+            if (!slot) return nullptr;
+            std::memcpy(slot, invoke, kMethodInfoSize);
+            static_cast<void**>(slot)[0] = fn;
+            static_cast<void**>(slot)[1] = fn;
+        }
+        method = slot;
+    }
+    Il2CppObject* owner = a.object_new(objectClass);
+    Il2CppObject* d = a.object_new(cls);
+    if (!owner || !d) return nullptr;
+    void* args[2] = {owner, &method};
+    Il2CppObject* exc = nullptr;
+    a.runtime_invoke(ctor, d, args, &exc);
+    if (exc) return nullptr;
+    if (target) *target = owner;
+    return d;
 }
 
 void* nativeNewParameterObject(void* method, int32_t parameter) {
@@ -1097,6 +1145,8 @@ const NativeApi kNativeApi{
         return runtime::loadModFont(path);
     },
     []() -> int32_t { return runtime::isCoreReady() ? 1 : 0; },
+    nativeNewDelegate,
+    nativeParamClass,
 };
 
 } // namespace

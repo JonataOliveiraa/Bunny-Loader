@@ -58,6 +58,7 @@ internal static unsafe class Host
     {
         string uid = Marshal.PtrToStringUTF8((IntPtr)id) ?? "";
         var mods = new List<Mod>();
+        Hooks.HookGate.Loading = true;
         try
         {
             string file = Marshal.PtrToStringUTF8((IntPtr)path)!;
@@ -114,6 +115,10 @@ internal static unsafe class Host
                 foreach (Mod mod in mods) Created.Remove(mod);
             }
             return 0;
+        }
+        finally
+        {
+            Hooks.HookGate.Loading = false;
         }
     }
 

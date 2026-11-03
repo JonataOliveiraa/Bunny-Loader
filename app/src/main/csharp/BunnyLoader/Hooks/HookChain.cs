@@ -64,7 +64,9 @@ internal static unsafe class HookGate
 {
     static volatile bool open;
 
-    internal static bool Open => open || (open = Host.Native()->IsCoreReady() != 0);
+    [ThreadStatic] internal static bool Loading;
+
+    internal static bool Open => open || Loading || (open = Host.Native()->IsCoreReady() != 0);
 }
 
 public static class HookErrors

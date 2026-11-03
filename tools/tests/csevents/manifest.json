@@ -1,0 +1,17 @@
+{
+  "uid": "9ed7d438-0166-44fa-841c-559e7f47eeb2",
+  "id": "CsEvents",
+  "name": "Test: game events from C# (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Main.OnPostDraw with two subscribers, removing one, Player.Hooks.OnEnterWorld and an exception inside a handler.",
+  "description": "Build with tools/tests/build-cs.sh csevents. Logs csevents <case>: ok | FAIL and csevents END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

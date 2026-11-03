@@ -28,8 +28,106 @@ sealed class Emitter
     readonly TypeMap map;
     public readonly SortedSet<int> RetBufSizes = new();
     public readonly SortedSet<string> Skipped = new(StringComparer.Ordinal);
-    public int Methods, Hooks, Fields, Properties;
+    public int Methods, Hooks, Fields, Properties, Events;
+    public readonly System.Text.StringBuilder Bridges = new();
+    readonly Dictionary<string, string> bridges = new();
     int uid;
+
+    public static string? ManagedDelegate(MethodModel invoke)
+    {
+        RetPlan ret = invoke.Plan.Ret;
+        if (ret.ByRef || ret.Indirect || invoke.Params.Any(a => a.Mode != ArgMode.Value)) return null;
+        var types = invoke.Params.Select(a => a.Use.Cs).ToList();
+        bool isVoid = ret.Use.Abi == AbiClass.Void;
+        if (types.Count > (isVoid ? 16 : 15)) return null;
+        if (isVoid) return types.Count == 0 ? "global::System.Action" : $"global::System.Action<{string.Join(", ", types)}>";
+        types.Add(ret.Use.Cs);
+        return $"global::System.Func<{string.Join(", ", types)}>";
+    }
+
+    string Bridge(MethodModel invoke, Type handler, string managed)
+    {
+        string key = TypeMap.Key(handler);
+        if (bridges.TryGetValue(key, out string? have)) return have;
+        string name = $"D{bridges.Count}";
+        string full = $"global::BunnyLoader.Interop.Delegates.{name}";
+        bridges[key] = full;
+        RetPlan ret = invoke.Plan.Ret;
+        bool isVoid = ret.Use.Abi == AbiClass.Void;
+        string rawTypes = string.Join(", ", invoke.Plan.Raw.Select(r => r.Type).Append(ret.RawType));
+        string rawParams = string.Join(", ", invoke.Plan.Raw.Select(r => $"{r.Type} {r.Name}"));
+        string target = "0";
+        var callArgs = new List<string>();
+        foreach (ArgPlan a in invoke.Plan.Args)
+        {
+            if (a.Mode == ArgMode.MethodInfo) continue;
+            if (a.Mode == ArgMode.This)
+            {
+                target = a.Raw[0].Name;
+                continue;
+            }
+            string[] rn = a.Raw.Select(r => r.Name).ToArray();
+            callArgs.Add(a.Place switch
+            {
+                Placement.X => a.Use.FromRaw(rn[0]),
+                Placement.D => rn[0],
+                Placement.HfaD => $"{RT}.Abi.{(a.Use.Hfa == HfaKind.F32 ? "FromF" : "FromD")}<{a.Use.Cs}>({string.Join(", ", rn)})",
+                Placement.CompositeX => $"{RT}.Abi.FromX<{a.Use.Cs}>({string.Join(", ", rn)})",
+                Placement.ByRefCopy => $"*({a.Use.Cs}*){rn[0]}",
+                _ => throw new InvalidOperationException(),
+            });
+        }
+        string Conv(string e) => ret.Use.Abi switch
+        {
+            AbiClass.Void => e,
+            AbiClass.Int => ret.Use.ToRaw(e),
+            AbiClass.F32 or AbiClass.F64 => e,
+            _ => $"{RT}.Abi.As<{ret.Use.Cs}, {ret.RawType}>({e})",
+        };
+        string call = $"__d({string.Join(", ", callArgs)})";
+        string label = Literal("delegate " + TypeMap.DumpName(handler))!;
+        var b = Bridges;
+        b.Append($"    public static unsafe class {name}\n    {{\n");
+        b.Append($"        public static nint Fn => (nint)(delegate* unmanaged<{rawTypes}>)&Invoke;\n");
+        b.Append("        [global::System.Runtime.InteropServices.UnmanagedCallersOnly]\n");
+        b.Append($"        static {ret.RawType} Invoke({rawParams})\n        {{\n");
+        b.Append("            try\n            {\n");
+        b.Append($"                var __d = {RT}.GameDelegates.Get<{managed}>((nint)({target}));\n");
+        if (isVoid)
+            b.Append($"                if (__d != null) {call};\n");
+        else
+            b.Append($"                if (__d != null) return {Conv(call)};\n");
+        b.Append("            }\n");
+        b.Append($"            catch (global::System.Exception __e) {{ {RT}.GameDelegates.Report({label}, __e); }}\n");
+        if (!isVoid) b.Append("            return default;\n");
+        b.Append("        }\n    }\n");
+        return full;
+    }
+
+    public void EmitEvent(StringBuilder sb, string ind, string name, string key, bool isStatic, MethodModel add, MethodModel remove, MethodModel invoke, Type handler, string classExpr)
+    {
+        string managed = ManagedDelegate(invoke)!;
+        string bridge = Bridge(invoke, handler, managed);
+        int id = uid++;
+        Events++;
+        string addName = $"__add_{id}", removeName = $"__remove_{id}";
+        EmitMethod(sb, ind, add, classExpr, addName, "private");
+        EmitMethod(sb, ind, remove, classExpr, removeName, "private");
+        string st = isStatic ? "static " : "";
+        string owner = isStatic ? "0" : "__self.Pointer";
+        string self = isStatic ? "" : "__self.";
+        string keep = isStatic ? "" : "var __self = this; ";
+        string addArg = add.Params[0].Use.FromRaw("__g"), removeArg = remove.Params[0].Use.FromRaw("__g");
+        string keyLit = Literal(key)!;
+        sb.Append(ind).Append($"static {RT}.MethodRef __em{id};\n");
+        sb.Append(ind).Append($"static readonly int[] __eL{id} = {{ {string.Join(", ", add.Layout)} }};\n");
+        sb.Append(ind).Append($"static nint __ek{id};\n");
+        sb.Append(ind).Append($"static nint __EK{id} => __ek{id} != 0 ? __ek{id} : (__ek{id} = {RT}.GameDelegates.ParamClass({G}.Method(ref __em{id}, {classExpr}, {Literal(add.Signature)}, __eL{id}).Info, 0));\n");
+        sb.Append(ind).Append($"public {st}event {managed}? {name}\n").Append(ind).Append("{\n");
+        sb.Append(ind).Append($"    add {{ {keep}{RT}.GameDelegates.Add(value, {keyLit}, {owner}, __EK{id}, {bridge}.Fn, __g => {self}{addName}({addArg})); }}\n");
+        sb.Append(ind).Append($"    remove {{ {keep}{RT}.GameDelegates.Remove(value, {keyLit}, {owner}, __g => {self}{removeName}({removeArg})); }}\n");
+        sb.Append(ind).Append("}\n");
+    }
 
     public Emitter(TypeMap map) => this.map = map;
 
