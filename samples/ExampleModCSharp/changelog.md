@@ -1,5 +1,12 @@
 # Novidades
 
+## 0.35.0
+
+- O lacaio e a sentinela de exemplo, com os cajados deles.
+- O aviãozinho de papel e a luz irritante, com os itens e buffs deles.
+- O carrinho de mina de exemplo, com as faíscas do Miaumiau e os sons do
+  carrinho de pum.
+
 ## 0.34.0
 
 - O lança-foguetes, que transforma o Foguete III em Miaumiau e usa o

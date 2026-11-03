@@ -1494,6 +1494,32 @@ that mount until it dismounts. The types come after the game's (`MountID.Count`,
 set it whole (`MountData.playerYOffsets = new[] { ... }`), as tModLoader's
 examples do.
 
+A minecart (`ExampleMinecartMount`) sets `MountID.Sets.Cart[Type]`, calls
+`Mount.SetAsMinecart(MountData, buff, MountData.frontTexture)` and points
+`MountData.delegations.MinecartDust`, `MinecartJumpingSound`,
+`MinecartLandingSound` and `MinecartBumperSound` at a method (the game's own,
+such as `DelegateMethods.Minecart.SparksMeow`, or one of yours). Its buff sets
+`BuffID.Sets.MountType[Type]`, and the game mounts the player while it lasts.
+The phone has no `MinecartUpgradeRunSpeed`, `MinecartUpgradeDashSpeed` or
+`MinecartUpgradeAcceleration`: the upgrade kit uses the game's values.
+
+### Minions, sentries and pets
+
+`ExampleSimpleMinion`, `ExampleSentry` and the two pets (`Content/Pets`) are
+tModLoader's. A minion's or sentry's damage comes from `Projectile.originalDamage`,
+recalculated every update: for a mod projectile it starts as the damage of the
+item that spawned it (or the damage passed to `NewProjectile`), as in
+tModLoader. Things they use: `BuffID.Sets.BuffTextHandlers.Add(Type, new
+CachedProjectileCounterBuffTextHandler(type))` (the minion count in the buff's
+tooltip), `ContentSamples.ProjectilesByType[type]` (a sample of each
+projectile, made the first time it is asked for; the phone has no such table),
+`Main.ActiveNPCs`, `npc.CanBeChasedBy(this)` from a `ModProjectile`,
+`Projectile.OwnerMinionAttackTargetNPC` (`IsNull` when there is none, as every
+game object here) and `ProjectileID.Sets.CharacterPreviewAnimations`. On the
+phone `ItemID.Sets.StaffMinionSlotsRequired` is an `int[]`, and
+`SoundID.Item102 with { Volume = 0.4f }` does not compile (see sounds), so the
+sentry plays the plain sound.
+
 ## Hairstyles: `ModHair`
 
 ```csharp
@@ -2555,6 +2581,10 @@ language the game had when the mod loaded. The phone lacks
 
 `using Terraria.Localization;` brings `Language` and `LocalizedText`, which
 are the game's own.
+
+A `ModBuff`'s `DisplayName` and `Description` can be overridden with another
+text, even another content's (`ExampleMinecartBuff` takes the item's name):
+they are read after every mod has loaded, not when the buff registers.
 
 A `ModItem`'s `DisplayName` and `Tooltip` are its `GetLocalization("DisplayName")`
 and `GetLocalization("Tooltip")`. Without a translation, the name is the class

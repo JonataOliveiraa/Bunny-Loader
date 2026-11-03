@@ -104,6 +104,9 @@ public static class UtilsExtensions
     public static Vector2 NextVector2Unit(this UnifiedRandom r, float startRotation = 0f, float rotationRange = MathF.PI * 2f) =>
         (startRotation + rotationRange * r.NextFloat()).ToRotationVector2();
 
+    public static Vector2 NextVector2CircularEdge(this UnifiedRandom r, float circleHalfWidth, float circleHalfHeight) =>
+        r.NextVector2Unit() * new Vector2(circleHalfWidth, circleHalfHeight);
+
     public static Vector2 NextVector2Square(this UnifiedRandom r, float min, float max) => new(r.NextFloat(min, max), r.NextFloat(min, max));
 
     public static Vector2 NextVector2Circular(this UnifiedRandom r, float circleHalfWidth, float circleHalfHeight) =>

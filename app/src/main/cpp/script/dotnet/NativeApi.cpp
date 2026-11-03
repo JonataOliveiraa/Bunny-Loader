@@ -221,6 +221,7 @@ struct NativeApi {
     int32_t (*isCoreReady)();
     void* (*newDelegate)(void* klass, void* fn, void** target);
     void* (*paramClass)(void* method, int32_t parameter);
+    void (*setBuffTexts)(int32_t type, const char* displayName, const char* description);
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -832,6 +833,10 @@ int32_t nativeRegisterBuff(const char* mod, const char* name, const char* textur
     return type;
 }
 
+void nativeSetBuffTexts(int32_t type, const char* displayName, const char* description) {
+    runtime::setModBuffTexts(type, cultureTexts(displayName), cultureTexts(description));
+}
+
 void nativeOnBuffsInstalled(void (*callback)(int32_t first, int32_t last)) {
     runtime::setBuffsInstalledHook(reinterpret_cast<runtime::BuffsInstalledHook>(callback));
 }
@@ -1147,6 +1152,7 @@ const NativeApi kNativeApi{
     []() -> int32_t { return runtime::isCoreReady() ? 1 : 0; },
     nativeNewDelegate,
     nativeParamClass,
+    nativeSetBuffTexts,
 };
 
 } // namespace

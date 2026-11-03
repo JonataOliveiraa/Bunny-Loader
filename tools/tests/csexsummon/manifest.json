@@ -1,0 +1,17 @@
+{
+  "uid": "558fa834-622e-47f3-b46d-838e9f9c9725",
+  "id": "CsExSummon",
+  "name": "Test: Example Mod minion, sentry, pets and minecart (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Summons the C# Example Mod's minion and sentry against a slime held in place, calls its pet and light pet, and rides its minecart.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexsummon SHOT <name>, csexsummon <case>: ok | FAIL and csexsummon END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

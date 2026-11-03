@@ -35,6 +35,7 @@ internal static unsafe class ProjectileHooks
             foreach (var method in baseType.GetMethods())
                 if (method.DeclaringType == baseType && Has(method.Name)) names.Add(method.Name);
         }
+        if (baseType == typeof(ModProjectile)) ItemHooks.Once("ProjectileOriginalDamage", () => On_Projectile.ApplyStatsFromSource += ApplyStatsFromSource);
         if (Has(nameof(ModProjectile.OnSpawn)))
             ItemHooks.Once("ProjectileSpawn", () =>
             {
@@ -70,6 +71,14 @@ internal static unsafe class ProjectileHooks
     {
         if (ProjectileLoader.InstanceOf(projectile) is ModProjectile m && ModHooks.TryGetValue(m.GetType(), out var names) && names.Contains(method)) return true;
         return GlobalHooks.Contains(method) && ProjectileLoader.Globals.Slots(projectile) != null;
+    }
+
+    static void ApplyStatsFromSource(On_Projectile.orig_ApplyStatsFromSource orig, Projectile self, IEntitySource spawnSource)
+    {
+        orig(self, spawnSource);
+        if (ProjectileLoader.InstanceOf(self) == null || self.originalDamage != 0) return;
+        Item item = BunnyLoader.Interop.GameInterop.IsInstance(spawnSource.Pointer, EntitySource_ItemUse.Class) ? new EntitySource_ItemUse(spawnSource.Pointer).Item : default;
+        self.originalDamage = !item.IsNull && item.damage >= 0 ? item.damage : self.damage;
     }
 
     static void Spawned(int index, IEntitySource source)

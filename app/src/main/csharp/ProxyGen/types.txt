@@ -424,3 +424,13 @@ Terraria.GameContent.Items.WhipTagEffect
 Terraria.DelegateMethods
 Terraria.GameContent.Drawing.ParticleOrchestrator
 !Terraria.ID.AmmoID+Sets.SpecificLauncherAmmoProjectileMatches
+!Terraria.Mount+MountDelegatesData.MinecartDust
+!Terraria.Mount+MountDelegatesData.MinecartJumpingSound
+!Terraria.Mount+MountDelegatesData.MinecartLandingSound
+!Terraria.Mount+MountDelegatesData.MinecartBumperSound
+Terraria.DataStructures.CachedProjectileCounterBuffTextHandler
+Terraria.Graphics.Shaders.GameShaders
+Terraria.DataStructures.SettingsForCharacterPreview
+!Terraria.ID.BuffID+Sets.BuffTextHandlers
+Terraria.DataStructures.IBuffTextHandler
+Terraria.Graphics.Shaders.ArmorShaderDataSet

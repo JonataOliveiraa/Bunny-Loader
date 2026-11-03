@@ -16,6 +16,18 @@ public readonly partial struct Main
     public static void EntitySpriteDraw(Texture2D texture, Microsoft.Xna.Framework.Vector2 position, Microsoft.Xna.Framework.Rectangle? sourceRectangle, Color color, float rotation, Microsoft.Xna.Framework.Vector2 origin, Microsoft.Xna.Framework.Vector2 scale, SpriteEffects effects, float worthless = 0f) =>
         EntitySpriteDraw(texture, position, sourceRectangle ?? new Microsoft.Xna.Framework.Rectangle(0, 0, texture.Width, texture.Height), color, rotation, origin, scale, effects, worthless);
 
+    public static IEnumerable<NPC> ActiveNPCs
+    {
+        get
+        {
+            for (int i = 0; i < maxNPCs; i++)
+            {
+                NPC n = npc[i];
+                if (n.active) yield return n;
+            }
+        }
+    }
+
     public static IEnumerable<Projectile> ActiveProjectiles
     {
         get

@@ -253,6 +253,18 @@ bool isModBuff(int type) {
     return type >= kVanillaBuffCount && type < kVanillaBuffCount + g_total.load(std::memory_order_acquire);
 }
 
+void setModBuffTexts(int type,
+                     std::vector<std::pair<std::string, std::string>> names,
+                     std::vector<std::pair<std::string, std::string>> descriptions) {
+    std::lock_guard<std::mutex> l(g_mx);
+    const int index = type - kVanillaBuffCount;
+    if (index < 0 || index >= static_cast<int>(g_regs.size())) return;
+    Entry& e = g_regs[static_cast<size_t>(index)];
+    e.def.names = std::move(names);
+    e.def.descriptions = std::move(descriptions);
+    if (index < g_installed.load(std::memory_order_acquire)) applyTexts(type, e);
+}
+
 int buffTypeCount() {
     return kVanillaBuffCount + g_installed.load(std::memory_order_acquire);
 }

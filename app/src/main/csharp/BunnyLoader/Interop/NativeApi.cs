@@ -149,6 +149,7 @@ internal unsafe struct NativeApi
     public delegate* unmanaged<int> IsCoreReady;
     public delegate* unmanaged<IntPtr, IntPtr, IntPtr*, IntPtr> NewDelegate;
     public delegate* unmanaged<IntPtr, int, IntPtr> ParamClass;
+    public delegate* unmanaged<int, byte*, byte*, void> SetBuffTexts;
 }
 
 [StructLayout(LayoutKind.Sequential)]

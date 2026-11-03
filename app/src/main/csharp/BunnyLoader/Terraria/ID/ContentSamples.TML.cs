@@ -1,11 +1,39 @@
 using System.Collections.Generic;
 using BunnyLoader.Interop;
+using Terraria.ModLoader;
 
 namespace Terraria.ID;
 
 public static partial class ContentSamples
 {
     public static BestiaryRarityStars NpcBestiaryRarityStars { get; } = new();
+
+    public static ProjectileSamples ProjectilesByType { get; } = new();
+
+    public sealed class ProjectileSamples
+    {
+        readonly Dictionary<int, Projectile> samples = new();
+        readonly List<GameHandle> kept = new();
+
+        public Projectile this[int type] => TryGetValue(type, out Projectile sample) ? sample : throw new KeyNotFoundException($"ProjectilesByType has no projectile {type}");
+
+        public bool ContainsKey(int type) => type > 0 && type < ProjectileLoader.ProjectileCount;
+
+        public bool TryGetValue(int type, out Projectile sample)
+        {
+            sample = default;
+            if (!ContainsKey(type)) return false;
+            lock (samples)
+            {
+                if (samples.TryGetValue(type, out sample)) return true;
+                sample = Projectile.New();
+                kept.Add(new GameHandle(sample.Pointer));
+                sample.SetDefaults(type);
+                samples[type] = sample;
+                return true;
+            }
+        }
+    }
 
     public sealed class BestiaryRarityStars
     {

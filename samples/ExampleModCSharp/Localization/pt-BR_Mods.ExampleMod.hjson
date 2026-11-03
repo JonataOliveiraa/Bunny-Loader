@@ -313,6 +313,35 @@ Items: {
 		DisplayName: Item do Projétil Animado Avançado de Exemplo
 		Tooltip: ""
 	}
+
+	ExampleSimpleMinionItem: {
+		DisplayName: Cajado do Lacaio de Exemplo
+		Tooltip: Invoca um lacaio de exemplo que luta por você
+	}
+
+	ExampleSentryItem: {
+		DisplayName: Cajado da Sentinela de Exemplo
+		Tooltip: Invoca uma sentinela de exemplo que luta por você
+	}
+
+	ExamplePetItem: {
+		DisplayName: "{$Common.PaperAirplane}"
+		Tooltip:
+			'''
+			Invoca um {$Mods.ExampleMod.Common.PaperAirplane} que te segue sem rumo
+			Segunda linha!
+			'''
+	}
+
+	ExampleLightPetItem: {
+		DisplayName: Luz Irritante
+		Tooltip: Invoca uma luz irritante
+	}
+
+	ExampleMinecart: {
+		DisplayName: Carrinho de Mina de Exemplo
+		Tooltip: ""
+	}
 }
 
 Conditions: {
@@ -346,6 +375,21 @@ Buffs: {
 		DisplayName: Debuff de fogo
 		Description: Perdendo vida
 	}
+
+	ExampleSimpleMinionBuff: {
+		DisplayName: Lacaio de Exemplo
+		Description: O lacaio de exemplo vai lutar por você
+	}
+
+	ExamplePetBuff: {
+		DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+		Description: '''"Que este pet sirva de exemplo para você!"'''
+	}
+
+	ExampleLightPetBuff: {
+		DisplayName: Luz Irritante
+		Description: Argh, muuuito irritante
+	}
 }
 
 ExampleGlobalBuff: {
@@ -374,6 +418,11 @@ Projectiles: {
 	ExampleDrillProjectile.DisplayName: Projétil da Broca de Exemplo
 	ExampleGolfBallProjectile.DisplayName: Bola de Golfe de Exemplo
 	ExampleAdvancedAnimatedProjectile.DisplayName: Projétil Animado Avançado de Exemplo
+	ExampleSimpleMinion.DisplayName: Lacaio de Exemplo
+	ExampleSentry.DisplayName: Sentinela de Exemplo
+	ExampleSentryShot.DisplayName: Tiro da Sentinela
+	ExamplePetProjectile.DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+	ExampleLightPetProjectile.DisplayName: Luz Irritante
 }
 
 NPCs: {
@@ -511,4 +560,8 @@ Keybinds: {
 
 UI: {
 	ExampleCoinsUIState.Reset: Zerar o contador de moedas por minuto
+}
+
+Common: {
+	PaperAirplane: Aviãozinho de Papel
 }

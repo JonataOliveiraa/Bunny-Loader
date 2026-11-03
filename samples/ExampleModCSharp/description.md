@@ -11,8 +11,8 @@ Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
   longe e mágicas), ferramentas (picareta, martelo-machado, broca, gancho,
   vara de pesca), armaduras com bônus de conjunto, acessórios, asas, poções,
   munição, raridades e receitas.
-- **Jogador e buffs**: `ModPlayer`, buffs, cabelos, montarias, barras de vida
-  e mana.
+- **Jogador e buffs**: `ModPlayer`, buffs, cabelos, montarias, carrinho de
+  mina, lacaio, sentinela, mascotes, barras de vida e mana.
 - **Projéteis, poeiras e gores**.
 - **NPCs**: inimigos com IA própria, loot, banners, NPC da cidade com loja,
   barra de chefe e emotes.
@@ -24,5 +24,5 @@ Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
 
 ## Ainda não
 
-Parte dos exemplos do original ainda está a caminho: chefe, lacaios e
-mascotes, móveis restantes e alguns sistemas.
+Parte dos exemplos do original ainda está a caminho: chefe, móveis restantes e
+alguns sistemas.

@@ -313,6 +313,35 @@ Items: {
 		DisplayName: Example Advanced Animated Projectile Item
 		Tooltip: ""
 	}
+
+	ExampleSimpleMinionItem: {
+		DisplayName: Example Minion Item
+		Tooltip: Summons an example minion to fight for you
+	}
+
+	ExampleSentryItem: {
+		DisplayName: Example Sentry Item
+		Tooltip: Summons an example sentry to fight for you
+	}
+
+	ExamplePetItem: {
+		DisplayName: "{$Common.PaperAirplane}"
+		Tooltip:
+			'''
+			Summons a {$Mods.ExampleMod.Common.PaperAirplane} to follow aimlessly behind you
+			Second Line!
+			'''
+	}
+
+	ExampleLightPetItem: {
+		DisplayName: Annoying Light
+		Tooltip: Summons an annoying light
+	}
+
+	ExampleMinecart: {
+		DisplayName: Example Minecart
+		Tooltip: ""
+	}
 }
 
 Conditions: {
@@ -346,6 +375,21 @@ Buffs: {
 		DisplayName: Fire debuff
 		Description: Losing life
 	}
+
+	ExampleSimpleMinionBuff: {
+		DisplayName: Example Minion
+		Description: The example minion will fight for you
+	}
+
+	ExamplePetBuff: {
+		DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+		Description: '''"Let this pet be an example to you!"'''
+	}
+
+	ExampleLightPetBuff: {
+		DisplayName: Annoying Light
+		Description: Ugh, soooo annoying
+	}
 }
 
 ExampleGlobalBuff: {
@@ -375,6 +419,11 @@ Projectiles: {
 	ExampleDrillProjectile.DisplayName: Example Drill Projectile
 	ExampleGolfBallProjectile.DisplayName: Example Golf Ball
 	ExampleAdvancedAnimatedProjectile.DisplayName: Example Advanced Animated Projectile
+	ExampleSimpleMinion.DisplayName: Example Minion
+	ExampleSentry.DisplayName: Example Sentry
+	ExampleSentryShot.DisplayName: Example Sentry Shot
+	ExamplePetProjectile.DisplayName: "{$Mods.ExampleMod.Common.PaperAirplane}"
+	ExampleLightPetProjectile.DisplayName: Annoying Light
 }
 
 NPCs: {
@@ -512,4 +561,8 @@ Keybinds: {
 
 UI: {
 	ExampleCoinsUIState.Reset: Reset Coins Per Minute Counter
+}
+
+Common: {
+	PaperAirplane: Paper Airplane
 }

@@ -30,8 +30,7 @@ public static unsafe class BuffLoader
     internal static void Register(ModBuff buff)
     {
         string texture = ItemLoader.ResolveTexture(buff, buff.Texture, true);
-        int type = Native(buff, texture, Localized(buff, buff.DisplayName, nameof(ModBuff.DisplayName)),
-            Localized(buff, buff.Description, nameof(ModBuff.Description)));
+        int type = Native(buff, texture, Own(buff, nameof(ModBuff.DisplayName)), Own(buff, nameof(ModBuff.Description)));
         if (type == -1) throw new InvalidOperationException($"{buff.FullName}: the mod already has a buff named '{buff.Name}'");
         if (type < 0) throw new InvalidOperationException($"{buff.FullName}: registration failed ({type})");
         buff.Type = type;
@@ -71,14 +70,36 @@ public static unsafe class BuffLoader
         Host.Native()->OnBuffsInstalled(&BuffsInstalled);
     }
 
-    static string Localized(ModBuff buff, LocalizedText text, string property)
+    static bool Overridden(ModBuff buff, string property) => buff.GetType().GetProperty(property)!.DeclaringType != typeof(ModBuff);
+
+    static string Own(ModBuff buff, string property)
     {
-        if (buff.GetType().GetProperty(property)!.DeclaringType == typeof(ModBuff))
-        {
-            var texts = LocalizationLoader.Texts(buff.Mod, buff.GetLocalizationKey(property));
-            if (texts.Count > 0) return LocalizationLoader.Pack(texts);
-        }
+        if (Overridden(buff, property)) return "";
+        var texts = LocalizationLoader.Texts(buff.Mod, buff.GetLocalizationKey(property));
+        if (texts.Count > 0) return LocalizationLoader.Pack(texts);
+        LocalizedText text = property == nameof(ModBuff.DisplayName) ? buff.DisplayName : buff.Description;
         return text.IsNull ? "" : text.Value ?? "";
+    }
+
+    static string Late(ModBuff buff, LocalizedText text, string property)
+    {
+        if (!Overridden(buff, property)) return Own(buff, property);
+        if (text.IsNull) return "";
+        var texts = LocalizationLoader.Texts(buff.Mod, text.Key ?? "");
+        return texts.Count > 0 ? LocalizationLoader.Pack(texts) : text.Value ?? "";
+    }
+
+    static void ApplyOverriddenTexts(ModBuff buff)
+    {
+        if (!Overridden(buff, nameof(ModBuff.DisplayName)) && !Overridden(buff, nameof(ModBuff.Description))) return;
+        byte* name = Host.Utf8(Late(buff, buff.DisplayName, nameof(ModBuff.DisplayName)));
+        byte* description = Host.Utf8(Late(buff, buff.Description, nameof(ModBuff.Description)));
+        try { Host.Native()->SetBuffTexts(buff.Type, name, description); }
+        finally
+        {
+            Host.FreeUtf8(name);
+            Host.FreeUtf8(description);
+        }
     }
 
     static int Native(ModBuff buff, string texture, string displayName, string description)
@@ -103,6 +124,8 @@ public static unsafe class BuffLoader
         {
             ModBuff? buff = GetBuff(type);
             if (buff == null) continue;
+            try { ApplyOverriddenTexts(buff); }
+            catch (Exception e) { Log.Error($"buff {buff.FullName}: DisplayName or Description threw: {e}"); }
             try { buff.SetupContent(); }
             catch (Exception e) { Log.Error($"buff {buff.FullName}: SetStaticDefaults threw: {e}"); }
         }

@@ -34,6 +34,10 @@ struct ModBuffDef {
 /** Reserva o proximo id. THREAD-SAFE. -1 se o mesmo mod ja registrou esse nome. */
 int registerModBuff(ModBuffDef def);
 
+void setModBuffTexts(int type,
+                     std::vector<std::pair<std::string, std::string>> names,
+                     std::vector<std::pair<std::string, std::string>> descriptions);
+
 bool isModBuff(int type);
 
 /** Vanilla + buffs de mod JA instalados nas tabelas do jogo. */

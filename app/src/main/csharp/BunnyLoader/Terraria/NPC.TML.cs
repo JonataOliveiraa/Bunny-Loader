@@ -7,6 +7,16 @@ namespace Terraria;
 
 public readonly partial struct NPC : IEntityWithGlobals<GlobalNPC>
 {
+    public bool CanBeChasedBy(object? attacker = null, bool ignoreDontTakeDamage = false) =>
+        CanBeChasedBy(new BunnyLoader.Interop.GameObject(attacker switch
+        {
+            ModProjectile p => p.Projectile.Pointer,
+            ModNPC n => n.NPC.Pointer,
+            ModPlayer m => m.Player.Pointer,
+            BunnyLoader.Interop.IGameObject g => g.Pointer,
+            _ => IntPtr.Zero,
+        }), ignoreDontTakeDamage);
+
     public ModBossBar? BossBar
     {
         get => BossBarLoader.Get(this);
