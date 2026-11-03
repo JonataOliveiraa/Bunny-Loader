@@ -1,0 +1,17 @@
+{
+  "uid": "4a4f2f19-74fc-4761-8564-12c6d40b6586",
+  "id": "CsFilter",
+  "name": "Test: a game filter from a ModSceneEffect (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "A ModSceneEffect turns the game's testInvert filter (inverted colors) on for ten seconds through SpecialVisuals, then off. Changes nothing in the world.",
+  "description": "Build with tools/tests/build-cs.sh csfilter. Logs csfilter scene on/off and csfilter END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

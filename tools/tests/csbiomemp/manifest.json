@@ -1,0 +1,17 @@
+{
+  "uid": "3fff827c-ce72-498c-8bd1-30890108346a",
+  "id": "CsBiomeMp",
+  "name": "Test: biome flags and ModSystem in multiplayer (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Two devices: each side's mod biome flag reaches the other, ModSystem world data reaches the client, and the world and data hooks run on the right side.",
+  "description": "Build with tools/tests/build-cs.sh csbiomemp; run with tools/tests/run-mp.sh csbiomemp. Logs csbiomemp <case>: ok | FAIL and csbiomemp END pass=N fail=M on both devices.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

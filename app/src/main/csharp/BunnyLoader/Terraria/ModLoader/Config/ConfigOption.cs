@@ -35,6 +35,8 @@ internal sealed class ConfigOption
         Header = member.GetCustomAttribute<HeaderAttribute>();
         LabelKey = member.GetCustomAttribute<LabelKeyAttribute>();
         LabelArgs = member.GetCustomAttribute<LabelArgsAttribute>();
+        TooltipKey = member.GetCustomAttribute<TooltipKeyAttribute>();
+        TooltipArgs = member.GetCustomAttribute<TooltipArgsAttribute>();
         Slider = member.GetCustomAttribute<SliderAttribute>() != null || Type.GetCustomAttribute<SliderAttribute>() != null;
         ColorNoAlpha = member.GetCustomAttribute<ColorNoAlphaAttribute>() != null;
         var hsl = member.GetCustomAttribute<ColorHSLSliderAttribute>();
@@ -63,6 +65,10 @@ internal sealed class ConfigOption
     internal LabelKeyAttribute? LabelKey { get; }
 
     internal LabelArgsAttribute? LabelArgs { get; }
+
+    internal TooltipKeyAttribute? TooltipKey { get; }
+
+    internal TooltipArgsAttribute? TooltipArgs { get; }
 
     internal bool Slider { get; }
 
@@ -218,6 +224,15 @@ internal sealed class ConfigOption
         string key = LabelKey != null && !LabelKey.malformed ? LabelKey.key : $"Mods.{config.Mod.Name}.Configs.{config.Name}.{Name}.Label";
         string text = Language.GetOrRegister(key, () => Regex.Replace(Name, "([a-z0-9])([A-Z])", "$1 $2")).Value ?? Name;
         return LabelArgs != null && LabelArgs.args.Length > 0 ? Formatting.Apply(text, LabelArgs.args) : text;
+    }
+
+    internal string? Tooltip(ModConfig config)
+    {
+        string key = TooltipKey != null && !TooltipKey.malformed ? TooltipKey.key : $"Mods.{config.Mod.Name}.Configs.{config.Name}.{Name}.Tooltip";
+        string text = Language.GetOrRegister(key, () => "").Value ?? "";
+        if (TooltipArgs != null && TooltipArgs.args.Length > 0)
+            text = Formatting.Apply(text, TooltipArgs.args);
+        return string.IsNullOrWhiteSpace(text) ? null : text;
     }
 
     internal string? HeaderText(ModConfig config)

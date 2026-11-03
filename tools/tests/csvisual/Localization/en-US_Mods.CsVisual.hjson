@@ -1,0 +1,24 @@
+Configs: {
+	VisualConfig: {
+		DisplayName: Visual Config
+
+		Flag: {
+			Label: Show the thing
+			Tooltip: "Turns the thing on.\nA second line explains more, long enough to wrap inside the panel on a phone screen."
+		}
+
+		Amount: {
+			Label: Amount
+			Tooltip: How many things there are.
+		}
+
+		Choice: {
+			Label: Choice
+			Tooltip: Pick one of the three.
+		}
+
+		Plain.Label: No tooltip here
+
+		Headers.Tips: Options with tips
+	}
+}

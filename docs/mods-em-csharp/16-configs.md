@@ -123,10 +123,30 @@ player gets them anyway, with a chat warning: content loaded at start only
 follows them after restarting the game with those values (tModLoader reloads
 the mods instead).
 
+## Tooltips
+
+An option's tooltip comes from `Mods.<Mod>.Configs.<Config>.<Option>.Tooltip`,
+or from `[TooltipKey]` and `[TooltipArgs]`, as in tModLoader. The touch screen
+has no hover, so an option with a tooltip shows a `?` button right after its
+name. Touching it opens a panel over the list with the option's name and the
+tooltip, wrapped to the panel's width (`
+` starts a new line). Any touch
+closes it, and touching the `?` does not change the option.
+
+```hjson
+Configs: {
+	ExampleConfig: {
+		ShowTrail: {
+			Label: Show trail
+			Tooltip: Draws a trail behind the sword.
+		}
+	}
+}
+```
+
 ## Not available yet
 
-Tooltips on the screen, custom elements
-(`[CustomModConfigItem]`), separate pages, and editing lists, dictionaries,
+Custom elements (`[CustomModConfigItem]`), separate pages, and editing lists, dictionaries,
 vectors and free text.
 
 Example: `samples/ExampleModCSharp` (`ExampleModConfig`,

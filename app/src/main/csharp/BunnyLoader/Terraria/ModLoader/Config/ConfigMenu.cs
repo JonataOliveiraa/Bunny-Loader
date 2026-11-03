@@ -44,7 +44,7 @@ internal static unsafe class ConfigMenu
 
     sealed class RowState
     {
-        internal float Scale = 1, Scale2 = 1, Value;
+        internal float Scale = 1, Scale2 = 1, TipScale = 1, Value;
 
         internal GUISlider.DragState Drag;
     }
@@ -58,6 +58,13 @@ internal static unsafe class ConfigMenu
         internal bool Down, DownInside, Armed;
 
         internal required float[] Scales;
+    }
+
+    sealed class Tip
+    {
+        internal required string Title, Text;
+
+        internal bool Down, Armed;
     }
 
     sealed class Tab
@@ -85,7 +92,8 @@ internal static unsafe class ConfigMenu
         internal TransactionButton_Layout Option;
     }
 
-    const float Gap = 4, HeaderExtra = 8, SwatchInset = 4, CycleX = 24, PopupMargin = 8, DragPx = 8, Friction = 0.92f, IconScale = 1.1f;
+    const float TipInset = 10, TipGap = 10, TipSize = 0.62f, TipWidth = 0.82f, TipMaxLines = 24,
+        Gap = 4, HeaderExtra = 8, SwatchInset = 4, CycleX = 24, PopupMargin = 8, DragPx = 8, Friction = 0.92f, IconScale = 1.1f;
     const int ScreenAnchor = 0, TopLeft = 9, Center = 18, Middle = 16, MenuOpenSound = 10, MenuCloseSound = 11, TickSound = 12, SettingNone = 192, General = 0;
     const string IconId = "bunny/coelho_cabeca_cs";
 
@@ -99,7 +107,7 @@ internal static unsafe class ConfigMenu
     static MethodRef cloneMethod;
     static readonly int[] cloneLayout = { -1 };
 
-    static bool open, installed, guard, dragged, pressInList, tabDragged, tabPressIn;
+    static bool open, installed, guard, dragged, pressInList, pressOnTip, tabDragged, tabPressIn;
     static string? where;
     static GameHandle? menuEntry;
     static TransactionButton_Layout button;
@@ -111,6 +119,8 @@ internal static unsafe class ConfigMenu
     static string? slider;
     static int guardIdle, pauseDrawing;
     static Popup? popup;
+    static Tip? tip;
+    static readonly List<Rectangle> tipRects = new();
     static Action? onClose;
     static bool fromCode;
     static (ModConfig Config, string Name, bool Center)? scrollTo;
@@ -552,6 +562,8 @@ internal static unsafe class ConfigMenu
         string? action = DrawActions(mod);
         try { DrawPopup(s); }
         catch (Exception e) { Report("popup", e); }
+        try { DrawTip(s); }
+        catch (Exception e) { Report("tooltip", e); }
         if (action != null && !Blocked())
         {
             XNAUIInputLayer.Instance.CaptureUICrusorDrag(-1);
@@ -580,6 +592,8 @@ internal static unsafe class ConfigMenu
                 gi.GUIKeyboardMappings.DisableEscapeKeyUsage();
             if (popup != null)
                 popup = null;
+            else if (tip != null)
+                tip = null;
             else
                 Close();
         }
@@ -955,6 +969,7 @@ internal static unsafe class ConfigMenu
 
         Rectangle area = Rect(left, top, width, bottom - top);
         Scroll(area, total, left, top, width, bottom);
+        tipRects.Clear();
         Rectangle saved = ControlAnchor._gridItemRegion;
         SpriteBatchItem.EnableClipping(area, area, Main.spriteBatch, true);
         try
@@ -966,7 +981,11 @@ internal static unsafe class ConfigMenu
                 if (y + h > top && y < bottom)
                 {
                     ControlAnchor._gridItemRegion = Rect(left, y, width, h);
-                    try { DrawOption(s, p, row); }
+                    try
+                    {
+                        DrawOption(s, p, row);
+                        DrawTipButton(s, p, row, top, bottom);
+                    }
                     catch (Exception e) { Report(row.Key, e); }
                 }
 
@@ -980,9 +999,9 @@ internal static unsafe class ConfigMenu
         }
     }
 
-    static bool Blocked() => guard || dragged || popup != null;
+    static bool Blocked() => guard || dragged || popup != null || tip != null;
 
-    static bool RowBlocked() => Blocked() || !pressInList;
+    static bool RowBlocked() => Blocked() || !pressInList || pressOnTip;
 
     static void ResetScroll()
     {
@@ -1010,7 +1029,8 @@ internal static unsafe class ConfigMenu
                 pressY = Main.mouseY;
                 lastY = Main.mouseY;
                 dragged = false;
-                pressInList = inside && !guard && popup == null;
+                pressInList = inside && !guard && popup == null && tip == null;
+                pressOnTip = pressInList && tipRects.Exists(t => t.Contains(Main.mouseX, Main.mouseY));
                 momentum = 0;
             }
             else if (slider == null && pressInList && Math.Abs(Main.mouseY - pressY.Value) > DragPx)
@@ -1350,6 +1370,121 @@ internal static unsafe class ConfigMenu
         if (close)
         {
             popup = null;
+            Guard();
+        }
+    }
+
+    static void DrawTipButton(SettingsOverlay_Layout s, Parts p, Row row, float top, float bottom)
+    {
+        if (row.Option == null || row.Kind is "header" or "hue" or "saturation" or "lightness")
+            return;
+        string? text = row.Option.Tooltip(row.Entry.Active);
+        if (text == null)
+            return;
+        Rectangle r = ControlAnchor._gridItemRegion;
+        String_Layout label = s.ToggleTemplate.ToggleButton.Label;
+        SpriteFont font = label.GetFont();
+        string title = Label(row);
+        float measured = font.IsNull ? 0 : font.MeasureString(title).X * label.Scale;
+        float size = r.Height * TipSize;
+        float x = r.X + TipInset + measured + TipGap;
+        float y = r.Y + (r.Height - size) / 2;
+        if (y < top || y + size > bottom)
+            return;
+        Rectangle rect = Rect(x, y, size, size);
+        tipRects.Add(rect);
+        RowState st = StateOf(row);
+        Rectangle saved = ControlAnchor._gridItemRegion;
+        p.Option.overloadedSize = new Vector2(size, size);
+        p.Option.Location = new Vector2(-size / 2, -size / 2);
+        ControlAnchor._gridItemRegion = rect;
+        try
+        {
+            var state = GUITransactionButton.Draw(p.Option, default(Item), "?", false, ref st.TipScale, tip?.Title == title, Focus(), false, false);
+            if (state == GUITransactionButton.InputState.Clicked && pressOnTip && tip == null && !guard && popup == null)
+            {
+                tip = new Tip { Title = title, Text = text };
+                SoundEngine.PlaySound(TickSound);
+            }
+        }
+        finally
+        {
+            ControlAnchor._gridItemRegion = saved;
+        }
+    }
+
+    static List<string> Wrap(SpriteFont font, float scale, string text, float width)
+    {
+        var lines = new List<string>();
+        foreach (string paragraph in text.Replace("\r", "").Split('\n'))
+        {
+            string line = "";
+            foreach (string word in paragraph.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                string candidate = line.Length == 0 ? word : line + " " + word;
+                if (line.Length > 0 && font.MeasureString(candidate).X * scale > width)
+                {
+                    lines.Add(line);
+                    line = word;
+                }
+                else
+                {
+                    line = candidate;
+                }
+            }
+
+            lines.Add(line);
+        }
+
+        return lines;
+    }
+
+    static void DrawTip(SettingsOverlay_Layout s)
+    {
+        Tip? t = tip;
+        if (t == null)
+            return;
+        Parts parts = PartsOf(s);
+        SpriteBatch batch = Main.spriteBatch;
+        batch.End();
+        batch.Begin((SpriteSortMode)0, default, default, default, default, default, default, true);
+        GUIInputRegionManager.Instance.RegisterInputRegion(Rect(-4000, -4000, 12000, 12000));
+        parts.Greyout.Location = Vector2.Zero;
+        parts.Greyout.Size = new Vector2(12000, 12000);
+        GUIPanel.Draw(parts.Greyout, false, default, default, default);
+        Rectangle frame = GUIPanel.Region(s.Backing);
+        String_Layout body = parts.Empty;
+        SpriteFont font = body.GetFont();
+        float width = frame.Width * TipWidth;
+        List<string> lines = font.IsNull ? new List<string> { t.Text } : Wrap(font, body.Scale, t.Text, width - 4 * PopupMargin);
+        if (lines.Count > TipMaxLines)
+            lines.RemoveRange((int)TipMaxLines, lines.Count - (int)TipMaxLines);
+        float lineH = font.IsNull ? 24 : font.MeasureString("Ag").Y * body.Scale;
+        float titleH = font.IsNull ? 28 : font.MeasureString("Ag").Y * parts.Header.Scale;
+        float height = PopupMargin * 4 + titleH + lineH * lines.Count;
+        float x0 = frame.X + (frame.Width - width) / 2, y0 = frame.Y + Math.Max(PopupMargin, (frame.Height - height) / 2);
+        parts.PopBacking.Location = new Vector2(x0 + width / 2, y0 + height / 2);
+        parts.PopBacking.Size = new Vector2(width, height);
+        GUIPanel.Draw(parts.PopBacking, false, default, default, default);
+        parts.Header.Location = new Vector2(x0 + width / 2, y0 + PopupMargin + titleH / 2);
+        GUIString.Draw(parts.Header, t.Title, new Color(255, 255, 255, 255), false);
+        float y = y0 + PopupMargin * 2 + titleH;
+        foreach (string line in lines)
+        {
+            body.Location = new Vector2(x0 + PopupMargin * 2, y);
+            GUIString.Draw(body, line, body.Color, false);
+            y += lineH;
+        }
+
+        if (!Main.mouseLeft && !t.Down)
+            t.Armed = true;
+        if (Main.mouseLeft && t.Armed)
+        {
+            t.Down = true;
+        }
+        else if (t.Down)
+        {
+            tip = null;
             Guard();
         }
     }

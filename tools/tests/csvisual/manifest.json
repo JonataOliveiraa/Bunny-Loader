@@ -1,0 +1,17 @@
+{
+  "uid": "816d6ece-1b45-4585-b59b-419cb1e404f4",
+  "id": "CsVisual",
+  "name": "Test: things to check by eye (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Holds two scenes for screenshots: mod clouds in the sky and the mod biome icon and background in the Bestiary entry, next to a vanilla entry.",
+  "description": "Build with tools/tests/build-cs.sh csvisual. Logs csvisual scene <name> when each scene starts and csvisual END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
