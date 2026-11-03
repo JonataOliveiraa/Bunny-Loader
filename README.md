@@ -1,12 +1,12 @@
 <p align="center"><img src="_icons/launcher/titulo.png" alt="Bunny Loader"></p>
 
 <p align="center">
-  <b>A mod loader for Terraria Mobile, with tModLoader's API in C#.</b>
+  <b>Play Terraria Mobile with mods.</b>
 </p>
 
 <p align="center">
   <a href="https://play.google.com/store/apps/details?id=com.and.games505.TerrariaPaid"><img alt="Terraria Mobile 1.4.5.8.6" src="https://img.shields.io/badge/Terraria%20Mobile-1.4.5.8.6-6aa84f"></a>
-  <img alt="Android 7.0+ arm64" src="https://img.shields.io/badge/Android-7.0%2B%20%C2%B7%20arm64-3DDC84?logo=android&logoColor=white">
+  <img alt="Android 7.0+" src="https://img.shields.io/badge/Android-7.0%2B-3DDC84">
   <a href="docs/mods-em-csharp/README.md"><img alt="Mods in C#" src="https://img.shields.io/badge/mods-C%23%20%C2%B7%20.NET%2010-512BD4?logo=dotnet&logoColor=white"></a>
   <a href="docs/mods-em-csharp/05-comparacao.md"><img alt="tModLoader-style API" src="https://img.shields.io/badge/API-tModLoader--style-8a5cf6"></a>
   <a href="LICENSE.md"><img alt="License: PolyForm Noncommercial" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-orange"></a>
@@ -25,10 +25,13 @@
   <a href="https://discord.gg/HgH3CfC8yV">Community</a>
 </p>
 
-Bunny Loader is an Android app that boots Terraria Mobile inside its own
-process, hooks the game's native code and runs mods written in **C#**, with
-the classes, names and load order of tModLoader: `ModItem`, `ModNPC`,
-`ModProjectile`, `ModTile`, `ModSystem`, `On_Item.SetDefaults`...
+Bunny Loader is a free app that brings mods to **Terraria on Android**. New
+weapons, bosses, biomes, pets, furniture, texture packs and more: the kind of
+mods PC players enjoy with tModLoader, now on your phone. Install the app,
+pick your mods and play, alone or with friends.
+
+It is also a place to **make mods**. Bunny Loader follows tModLoader's way of
+writing them, so what you learn here works there, and the other way around.
 
 ## Contents
 
@@ -43,22 +46,19 @@ the classes, names and load order of tModLoader: `ModItem`, `ModNPC`,
 
 ## Features
 
-- **Mods in C#**, on a .NET runtime (Mono) inside the game: typed access to
-  every class, field and method of the game, with autocomplete. A mod ships a
-  compiled `.dll` or just its `.cs` files, which the phone compiles.
-- **tModLoader's content classes**: items, weapons, projectiles, pets,
-  minions, enemies, town NPCs with shops, bosses with music, tiles, walls,
-  buffs, biomes, recipes, world generation, configs, UI and screen effects.
-- **`On_` hooks** on any game method, with `ref`, `out` and structs, as in
-  tModLoader.
-- **Clean saves**: mod content is stored next to the game's save, by name, and
-  the world still opens without the mod.
-- **In-game Mod Menu**: each mod's items and NPCs, superpowers, and per-mod
-  options under *Mod Configuration* in the pause menu.
-- **Texture and font packs**, including PC resource packs imported as they
-  are.
-- **Multiplayer between Bunny Loader players**, with the host's mods offered
-  to whoever joins. A Bunny Loader client does not join vanilla servers.
+- **New content**: items, weapons, enemies, bosses with their own music,
+  town NPCs with shops, pets, biomes, blocks and furniture.
+- **Your saves stay safe**: mod content is kept next to your character and
+  world, which still open without the mod.
+- **Mod Menu in game**: each mod's items and NPCs at a tap, superpowers, and
+  each mod's options in the pause menu.
+- **Texture and font packs**, including resource packs made for the PC.
+- **Multiplayer** with friends who also use Bunny Loader: whoever joins gets
+  the host's mods offered to download.
+- **Made for touch**: mod buttons on screen, menus that work with your
+  fingers.
+- **For mod makers**: mods in C#, with tModLoader's classes and the whole game
+  available to your code ([Making mods](#making-mods)).
 
 ## Playing
 
