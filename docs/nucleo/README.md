@@ -2,22 +2,20 @@
 
 This part of the documentation is for people who want to understand, or work
 on, Bunny Loader's **C++**: how it gets into the game, how it intercepts
-methods, how it shares the JS engine between threads and how it puts new
-content into a compiled game. To **write mods**, the [mod guides](../historico/mods-js/README.md)
-are enough.
+methods, how it hosts the .NET runtime the mods run on and how it puts new
+content into a compiled game. To **write mods**, the
+[mod guides](../mods-em-csharp/README.md) are enough.
 
 | Document | Subject |
 |---|---|
 | This one | What the core is, the boot, the folders, the general rules. |
 | [Hooks under the hood](hooks.md) | ShadowHook, the hook chain, the slots, the dispatcher, `original()`, the native filters. |
-| [Threads and the JS engine](../historico/threads-e-motor-js.md) | Who runs mod code, the engine lock, the per-thread stack, `ifBusy`. |
-| [The JS ↔ game bridge](../historico/ponte-js.md) | Names, types, structs, calls, garbage collector anchors, object identity. |
+| [C# under the hood](../mods-em-csharp/08-por-baixo-dos-panos.md) | The .NET runtime, the generated game API, calls, hooks and the two garbage collectors. |
 | [New content under the hood](conteudo.md) | Per-type tables, compiled limits, installation, saves. |
 | [Joining a server](multijogador.md) | Syncing mods and textures from the Host screen, the handshake on join and the automatic return. |
 | [Menu localization](localizacao-menu.md) | The launcher's and the Mod Menu's language, the shared catalog and translations. |
 | [Shader research](pesquisa-shaders.md) | Evidence about Terraria's effects and Unity materials, loading hypotheses and criteria for practical proofs. |
-| [The C# plan](plano-csharp.md) | Every loader in C#, the tModLoader-shaped API, the phases and the removal of JavaScript. |
-| [tModLoader contracts](compatibilidade-tmodloader-desenho-banners.md) | Analysis of the item drawing, CloneDefaults and banner implementation; native boundaries, persistence, networking and combat limits. |
+| [The cost of C# hooks](custo-csharp.md) | The hook profiler and what entering C# costs per frame, on the emulator and on a phone. |
 
 ## What the core is
 
@@ -33,9 +31,8 @@ process** and plays the role tModLoader plays on PC:
 2. **finds the game's classes and methods by name**, through IL2CPP's
    embedding API (`il2cpp_class_from_name`, `il2cpp_class_get_method_from_name`...);
 3. **intercepts** the game's methods (inline hooks);
-4. **hosts the mod engine**, [QuickJS](https://github.com/quickjs-ng/quickjs)
-   (JavaScript ES2020, no JIT), and the **bridge** between JS and the game's
-   objects;
+4. **hosts the .NET runtime** (Mono) in which the mods run, with
+   `BunnyLoader.dll`: the game as typed C# and the tModLoader-shaped API;
 5. **puts new content** (items, NPCs, projectiles, buffs, tiles) into the
    game's tables, and saves that content next to the game's saves;
 6. **the Mod Menu**, the superpowers and the in-game error panel.
@@ -47,7 +44,7 @@ flowchart TB
         subgraph P[":game (the game process)"]
             U["Unity + libil2cpp.so<br/>(Terraria)"]
             B["libbunny.so<br/>(the core)"]
-            Q["QuickJS<br/>(the mods)"]
+            Q["Mono<br/>(BunnyLoader.dll + the mods)"]
         end
     end
     M["bunny_packs/(uid)/<br/>the installed mods"]
@@ -55,7 +52,7 @@ flowchart TB
     K -- "loads and configures" --> B
     B -- "hooks and calls" --> U
     B -- "embeds" --> Q
-    M -- "main.js, Content/, Common/" --> Q
+    M -- "Id.cs or Id.dll, Assets/, Localization/" --> Q
 ```
 
 ## The process
@@ -90,8 +87,8 @@ sequenceDiagram
     U->>B: il2cpp_init (hooked)
     B->>U: lets it finish, then loads the IL2CPP API and resolves GameRefs
     S->>S: waits for the game to settle
-    S->>B: QuickJS + bindings + mod classes (script/js/mod/)
-    S->>B: ModLoader: loads each enabled mod (Mod class + content)
+    S->>B: ModLoader: each enabled mod goes to Host.LoadMod (Mono starts on the first)
+    S->>B: finishLoading: Mono is up even without mods
     S->>B: content saves, Mod Menu (on-screen button)
     G->>B: 1st Main.DoUpdate (C++ hook)
     B->>G: every frame: content tables, powers, menu requests
@@ -117,16 +114,18 @@ In order:
    it is an incompatible version and mods stay off.
 5. **The probe** ([`boot/Probe.cpp`](../../app/src/main/cpp/boot/Probe.cpp))
    waits for the game to settle (calling the IL2CPP API during initialization
-   kills the process), starts QuickJS, installs the bridge and the mod
-   classes, and loads each enabled mod. Then it installs the content saves and
-   the Mod Menu. The JS engine is created and loads the mods on the **same**
-   thread (see [threads](../historico/threads-e-motor-js.md#the-lock-jslock)).
+   kills the process), then loads each enabled mod into the .NET runtime
+   (started on the first one, or by `finishLoading` when there are none,
+   because the Host screen, the server sync and the config screens run on it).
+   Then it installs the content saves and the Mod Menu, and marks the core
+   ready: C# hooks installed during loading only start running from there.
 6. **Game thread.** The core has a C++ hook on `Main.DoUpdate`
    ([`menu/Cheats.cpp`](../../app/src/main/cpp/menu/Cheats.cpp), `hkDoUpdate`).
    On the first frame, it records which thread is the game thread; on every
    frame, it runs the *ticks*: content installation on the title screen,
-   pending tables, `bl.onContentReady`, superpowers, Mod Menu and network
-   requests, the JS console's code and the save before a "Restart".
+   pending tables, the content-ready step (`ModContent.ContentReady` in C#),
+   superpowers, Mod Menu and network requests, the C# console's code and the
+   save before a "Restart".
 
 The Mod Menu's **Restart** ([`menu/DevTools.cpp`](../../app/src/main/cpp/menu/DevTools.cpp)
 and `DevTools.java`) saves, if asked, on the game thread; then Java opens
@@ -165,98 +164,90 @@ nothing of it is installed. On:
    controls have never been configured is dismissed only for this session
    (`DisableCheck`; `Main.PerformedTouchInputConfig` would go into the save).
 
-### The mods: modules, in two passes
+### The mods, in two passes
 
 [`mods/ModLoader.cpp`](../../app/src/main/cpp/mods/ModLoader.cpp):
 
-- each mod file is an **ES module** (strict mode, its own scope). Two mods can
-  each have a `const Update` without colliding; relative `import` works inside
-  the mod, with the module named `<uid>/<path>`;
 - loading has **two passes**: first every manifest is read and every mod gets
-  its `Mod` object (with `id`, `name`, `version`); only then do the mods load,
-  in the launcher's order with each `dependencies` entry pulled ahead of the
-  mod that asks for it (`mods/LoadOrder.cpp`; a missing dependency or a cycle
-  disables the mod, with the reason in the panel). That way
-  `ModLoader.TryGetMod` finds a mod that has not loaded yet
-  ([guide 11](../historico/mods-js/11-conversa-entre-mods.md));
-- loading a mod is `ScriptEngine::loadMod`
-  ([`script/bridge/ScriptEngine.cpp`](../../app/src/main/cpp/script/bridge/ScriptEngine.cpp)):
-  it imports the entry file and the `.js` files in `Common/` and `Content/`
-  (in alphabetical order, the same on every device) and hands the namespaces
-  to the JS loader ([`script/js/mod/Core/ContentAutoload.js`](../../app/src/main/cpp/script/js/mod/Core/ContentAutoload.js)),
-  which requires the `Mod` class as the entry file's `export default`,
-  registers the exported content classes in a fixed order by kind and runs
-  `Load()`;
-- the core knows **which mod** is calling from QuickJS's module stack, and
-  that is how `bl.mod`, `bl.loadTexture('x.png')` and `bl.file.read('...')`
-  resolve relative paths to the right folder, even inside a hook, long after
-  loading;
-- a mod that throws (at the top of a file, during registration or in
-  `Load()`), or has no `Mod` class, is marked as failed; the other mods load
-  normally.
+  its entry in the registry; only then do the mods load, in the launcher's
+  order with each `dependencies` entry pulled ahead of the mod that asks for
+  it (`mods/LoadOrder.cpp`; a missing dependency or a cycle disables the mod,
+  with the reason in the panel). That way `ModLoader.TryGetMod` finds a mod
+  that has not loaded yet;
+- a mod's entry is `<Id>.dll` or, without it, `<Id>.cs` at the package root.
+  any other entry is skipped, with a line in the log;
+- loading a mod is `DotnetHost::loadMod`
+  ([`script/dotnet/DotnetHost.cpp`](../../app/src/main/cpp/script/dotnet/DotnetHost.cpp)),
+  which calls `BunnyLoader.Host.LoadMod`
+  ([`Host.cs`](../../app/src/main/csharp/BunnyLoader/Host.cs)): a source mod
+  is compiled first (`BunnyLoader.Compiler`, skipped when the stamp in `bin/`
+  matches), the assembly is loaded, its `Mod` classes are created, the
+  translations read, the content autoloaded in tModLoader's order and `Load()`
+  run;
+- a mod that throws while loading, or has no `Mod` class, is marked as failed;
+  the other mods load normally.
 
-The mod classes (`Mod`, `ModItem`, `ModNPC`...) are JS embedded in
-`libbunny`: [`script/js/mod/`](../../app/src/main/cpp/script/js/mod/), one
-class per file, which CMake joins into a single function, in the order of the
-list in `CMakeLists.txt`, in `ModClassesJs.h`:
+The mod API (`Mod`, `ModItem`, `ModNPC`...) is C#, in
+[`app/src/main/csharp/BunnyLoader`](../../app/src/main/csharp/BunnyLoader):
 
-- at the root, the API mods use (`ModItem.js`, `ModNPC.js`, `ModTile.js`...);
-- `Loaders/`, the registration and game hooks for each kind of content
-  (`ItemLoader`, `NPCLoader`, `TileLoader`...), like tModLoader's;
-- `Core/`, what everyone uses (`Safe`, `Hooks`, `Ready`, `Entities`, the mod
-  registry, the network, loading);
-- `Enums/`, the constants (`AffectionLevel`, `SceneEffectPriority`...).
-
-Internal methods start with an uppercase letter (`TileLoader.CheckObject`);
-the mod API keeps the names it already had (`ModItem.register`,
-`getTypeByName`).
+- `Terraria/ModLoader/`, the API mods use, with tModLoader's names, and the
+  loaders (`ItemLoader`, `NPCLoader`, `TileLoader`...);
+- `Terraria/ModLoader/Core/`, the game hooks behind each loader
+  (`ItemCombatHooks`, `NPCDrawHooks`, `TileDrawHooks`...);
+- `Interop/`, the native table (`NativeApi`), calls into the game, game
+  arrays, lists and delegates;
+- the generated game API (`Terraria.Player`, `On_Player`...), written by
+  `ProxyGen` from the game's dump at build time.
 
 ## The folders
 
 ```
 app/src/main/cpp/
   boot/       Entry and boot: Entry (constructor), jni_entry (NativeBridge),
-              LibWatcher (il2cpp_init hook), Boot, Probe (the probe)
+              LibWatcher (il2cpp_init hook), Boot, Probe (the probe),
+              QuickStart, FramePacing
   core/       Global config and log (logcat + session file)
   il2cpp/     The IL2CPP API (Api: il2cpp_* via dlsym), Resolver
-              (name → class/method/field), Signature (signature matching)
+              (name → class/method/field), Signature (signature matching),
+              GuardedCall (calls that turn game exceptions into errors)
   hook/       HookManager (chained hooks) and CodePatch (compiled limits)
   mods/       ModLoader: finds the packages and loads each one
   content/    Mod content in the game's tables
-    common/     ModContent (bl.onContentReady), TypeTables (per-type tables),
-                ContentAssets (texture, name), GameRefs, TileAccess
-    items/ npcs/ projectiles/ buffs/ tiles/    one loader per kind, with its save
+    common/     ModContent (content ready), TypeTables (per-type tables),
+                ContentAssets (texture, name), GameRefs, ModNet, GameTexts
+    items/ npcs/ projectiles/ buffs/ dusts/ tiles/ walls/    one per kind,
+                with its save and the native stages the C# hooks run in
+    players/ systems/ ui/   the player, ModSystem and HUD stages
     sounds/     AndroidAudio (mod sound and music through Android)
+    textures/   texture and font packs
+  graphics/   screen effects: render hook, shaders, GL state
   menu/       In-game Mod Menu: CheatButton (the bridge to Java), Cheats
               (the DoUpdate hook and the actions), Powers, MapReveal, ModMenu,
               MenuCatalog, NetRequests (client requests in multiplayer)
   script/
-    bridge/     The JS ↔ IL2CPP bridge: ScriptEngine (QuickJS, JsLock, JsSuspend),
-                Bindings (the JS objects), JsHook (hooks), Invoke and Abi
-                (calls), Value and Marshal (types), Members (name cache),
-                Roots and WrapperMap (pinned objects), ExtraFields, Ref,
-                QuickJsExt.c
-    api/        The mods' bl.*: items, NPCs, projectiles, buffs, tiles,
-                textures, files, sounds; ModClasses.cpp embeds the JS
-    js/         mod/ (Mod, ModItem, ModNPC... and the class hooks, one
-                file per subject) and ModHelpers.js (Vector2, Color, Rand...)
-  third_party/  QuickJS (cloned separately, see the README there)
+    dotnet/     The .NET host: DotnetHost (starts Mono, Host.LoadMod),
+                MonoApi (the runtime's functions), NativeApi (the table
+                of native functions C# calls), DotnetCall, HookProfile
+    api/        Console (the in-game console's log)
+  third_party/  notes on the native dependencies (ShadowHook comes by Gradle)
+
+app/src/main/csharp/
+  BunnyLoader/            the mod API and the loaders (BunnyLoader.dll)
+  BunnyLoader.Compiler/   compiles source mods (Roslyn), on the phone and in the catalog
+  ProxyGen/               generates the game API from the dump
 ```
 
-The mod classes (`ModItem`, `ModNPC`...) are written **in JavaScript**
-([`script/js/mod/`](../../app/src/main/cpp/script/js/mod/)), embedded in
-`libbunny.so` by CMake and evaluated in the global scope before the mods. They
-use the same bridge and the same hooks a mod would, plus the native loaders
-(`bl.items.register`...) for what only C++ can do.
+The loaders (`ItemLoader`, `NPCLoader`...) are C#. The native core keeps what
+only it can do: growing the game's tables, the saves next to the game's files,
+the native stages and filters around hot game code, and the hooks themselves.
 
 ## General rules
 
 1. **Everything by name.** No game offset or address is hard-coded:
    classes, fields and methods are resolved through the IL2CPP API. A game
    update changes every address; the names almost never.
-2. **A broken mod does not break the game.** A JS error in a hook is logged,
-   and the game's method runs anyway. In mod classes, the error is logged once
-   per method.
+2. **A broken mod does not break the game.** An exception in a C# hook is
+   logged, and the game's method runs anyway.
 3. **Check before writing.** A compiled limit is only swapped if the pattern
    matches exactly; a table only grows if it has its factory size. Otherwise,
    nothing is written and the log says why.
@@ -264,7 +255,10 @@ use the same bridge and the same hooks a mod would, plus the native loaders
    next to it, by name.
 5. **Only the game thread creates Unity objects** and touches the content
    tables.
-6. **One engine, one lock.** Every entry into QuickJS goes through `JsLock`.
+6. **One table between C++ and C#.** C# reaches the core only through
+   `NativeApi`, a table of function pointers that only grows at the end; its
+   size is checked when the runtime starts, so a `BunnyLoader.dll` from
+   another build is refused instead of calling the wrong function.
 
 ## The log
 
@@ -281,10 +275,11 @@ an overlay of Android Views with the accumulated log and a copy button.
 ## Where to test
 
 Development happens on MuMu Player (x86_64, which runs the game's ARM code
-through translation) and is checked on a real ARM device. The tests are mods
-in [`tools/tests/`](../../tools/tests), run by
-[`tools/bench/run.sh`](../../tools/bench/run.sh), which installs the mod,
-opens the game, enters the test world and waits for the `FIM` line in the log.
+through translation) and is checked on a real ARM device. The tests are C#
+mods in [`tools/tests/`](../../tools/tests), run by
+[`tools/tests/run-cs.sh`](../../tools/tests/run-cs.sh), which installs the
+mod, opens the game, enters the flat test world and waits for the mod's `END`
+line in the log.
 See [`tools/README.md`](../../tools/README.md).
 
 ## History

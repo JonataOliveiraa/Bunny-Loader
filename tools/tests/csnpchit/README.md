@@ -3,7 +3,7 @@
 Build with `bash tools/tests/build-cs.sh csnpchit` and run alone with
 `DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh csnpchit`. Enter BagTest and
 QA_B1_Sonda, and dismiss the first-run touch control dialog if necessary.
-The runner enables csenv and disables QuickJS.
+The runner enables csenv.
 
 Checks cover NPC/global nullable decisions, collision overrides, the selected
 local CombinedHooks order and first-non-null source priority, incoming and

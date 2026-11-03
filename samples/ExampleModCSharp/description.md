@@ -1,22 +1,26 @@
-O **ExampleMod do tModLoader** em **C#**, para o Bunny Loader. É o par do
-Example Mod em JavaScript: cada loader C# que fica pronto ganha aqui o exemplo
-dele, portado do original.
+O **ExampleMod do tModLoader** em **C#**, para o Bunny Loader. Cada classe da
+API ganha aqui o exemplo dela, portado do original.
 
-O código vai junto com o pacote (`content/*.cs`): o catálogo compila e o Bunny
+O código vai junto com o pacote (os `.cs`): o catálogo compila e o Bunny
 Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
 
-## O que já tem
+## O que tem
 
-- ![](content/Content/Items/ExampleItem.png) **Exemplo de Item**
-  (`Content/Items/ExampleItem.cs`): o `ModItem` mais simples, com nome e
-  descrição vindos de `Localization/<idioma>_Mods.ExampleMod.hjson`.
-- ![](content/Content/Items/Weapons/Melee/ExampleMeleeWeapon.png) **Espada**
-  (`Content/Items/Weapons/Melee/ExampleMeleeWeapon.cs`): dano, repulsão,
-  crítico, uso e o som de golpe do jogo.
-
-Os dois aparecem no Mod Menu, na pasta *Itens* do mod.
+- ![](Content/Items/ExampleItem.png) **Itens**: o Exemplo de Item, armas,
+  ferramentas, armaduras com bônus de conjunto, acessórios, asas, poções,
+  munição e receitas.
+- **Jogador e buffs**: `ModPlayer`, buffs, cabelos, montarias, barras de vida
+  e mana.
+- **Projéteis, poeiras e gores**.
+- **NPCs**: inimigos com IA própria, loot, banners, NPC da cidade com loja,
+  barra de chefe e emotes.
+- **Tiles e mundo**: blocos, móveis, paredes, árvores, baús, pilares,
+  entidades e geração de mundo.
+- **Sistemas**: bioma com música, água, fundos e nuvens, tema do menu,
+  sons, configurações, comandos, conquistas, botões de toque, interface e
+  efeitos de tela.
 
 ## Ainda não
 
-Receitas, pesquisa do modo Jornada e o resto do ExampleMod chegam com os
-loaders C# correspondentes.
+Parte dos exemplos do original ainda está a caminho: chefe, lacaios e
+mascotes, móveis restantes e alguns sistemas.

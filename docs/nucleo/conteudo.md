@@ -1,7 +1,7 @@
 # New content under the hood
 
 > Part of the core documentation ([overview](README.md)). To **create**
-> content in a mod, see [guide 4](../historico/mods-js/04-conteudo-novo.md). This page
+> content in a mod, see [guide 9](../mods-em-csharp/09-conteudo.md). This page
 > covers what the core does so that a new item, projectile, NPC, buff or tile
 > can exist in a game that was compiled without knowing about it.
 
@@ -21,7 +21,7 @@ constant, and the whole game was written assuming that:
 | Wall | 0–366 | `WallID.Count` = 367 | 367 |
 
 (Numbers from 1.4.5.8.6. Each game version changes some of them: they are in
-the core's `kVanilla*Count` and in `bl.*.vanillaCount`.)
+the core's `kVanilla*Count` and in the C# loaders' vanilla counts.)
 
 A new type needs a number above that, and every place in the game that
 assumes the limit has to be found and adjusted. There are four kinds of place:
@@ -45,10 +45,10 @@ assumes the limit has to be found and adjusted. There are four kinds of place:
 
 ```mermaid
 sequenceDiagram
-    participant S as probe (main.js)
+    participant S as probe (Host.LoadMod)
     participant N as core
     participant G as game thread
-    S->>N: ModItem.register(ExampleItem)
+    S->>N: autoload ExampleItem: NativeApi.RegisterItem
     N-->>S: type 6196 (right away)
     Note over N: stores the definition<br/>(name, texture, localization, callbacks)
     G->>N: 1st Main.DoUpdate (title screen)
@@ -56,12 +56,12 @@ sequenceDiagram
     G->>N: following DoUpdates
     N->>G: tables the game created later (pending)
     Note over N,G: everything installed + the game's<br/>recipes and Bestiary ready
-    N->>S: bl.onContentReady: AddRecipeGroups,<br/>AddRecipes, SetBestiary, PostSetupContent
+    N->>S: ModContent.ContentReady: AddRecipeGroups,<br/>AddRecipes, SetBestiary, PostSetupContent
 ```
 
-1. **Registration (probe thread).** Each class's `register` calls the kind's
-   native loader (`bl.items.register`...), which **reserves the number right
-   away** (`Count` + registration order) and stores the definition: a stable
+1. **Registration (probe thread).** Autoloading each content class calls the
+   kind's native loader through `NativeApi` (`RegisterItem`...), which
+   **reserves the number right away** (`Count` + registration order) and stores the definition: a stable
    name (`<mod uid>/<Class>`), the texture path, names per language,
    callbacks. The mod can already use the number. The game knows nothing yet.
 2. **Installation (game thread).** The core has a C++ hook on
@@ -81,7 +81,7 @@ sequenceDiagram
    and get back what belongs to the mods.
 4. **Content ready.** When every loader has finished and the game has already
    built its recipes, the drop database (`ItemDropsDB`) and the Bestiary
-   (`BestiaryDB`), `tickContentReady` calls `bl.onContentReady`. That is when
+   (`BestiaryDB`), `tickContentReady` calls `ModContent.ContentReady` in C#. That is when
    `AddRecipeGroups` (from every mod, before any recipe), `AddRecipes`,
    `SetBestiary`, the shops and `PostSetupContent` run.
 
@@ -222,9 +222,8 @@ Walls are the simplest case (`content/walls/ModWalls.cpp`):
   copy of `TileWall` with the mod walls zeroed, and those go to `.walls.bl`;
   on load, they come back through `Tile.set_wall` and `Framing.WallFrame`
   redoes the border;
-- the JS hooks for a broken wall (`KillWall*`) use the native `wall: true`
-  filter (with `tile`/`tileAt`), which reads the wall at the position instead
-  of the block type;
+- the hooks for a broken wall (`KillWall*`) read the wall at the position
+  instead of the block type;
 - the map uses the same color index space as tiles (after the underworld
   color): wall entries come after the tile ones, and `.map.bl` stores them
   with the `wall:<uid>/<Class>` key;

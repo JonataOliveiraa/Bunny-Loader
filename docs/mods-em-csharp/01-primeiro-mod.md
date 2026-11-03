@@ -1,6 +1,6 @@
 # 1. Your first C# mod
 
-> [Overview](README.md) · **1. First mod** · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
+> [Overview](README.md) · **1. First mod** · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
 
 By the end of this page you will have a mod that turns the Minishark into a
 machine gun, built on your PC and running on your phone. Every step is here,
@@ -125,11 +125,10 @@ Line by line:
 
 ### `manifest.json`
 
-The package's metadata (the fields of the page are explained in the
-[old guide](../historico/mods-js/README.md#manifestjson)). The `id` is the mod's
-internal name, as in tModLoader: the name of the `.cs`/`.dll`, of the
-assembly and of the `Mods.<id>` localization keys. Bunny Loader loads
-`<id>.dll`, or compiles `<id>.cs` when there is no `.dll`.
+The package's metadata. The `id` is the mod's internal name, as in
+tModLoader: the name of the `.cs`/`.dll`, of the assembly and of the
+`Mods.<id>` localization keys. Bunny Loader loads `<id>.dll`, or compiles
+`<id>.cs` when there is no `.dll`.
 
 ```json
 {
@@ -143,6 +142,18 @@ assembly and of the `Mods.<id>` localization keys. Bunny Loader loads
   "blVersion": 3
 }
 ```
+
+| Field | |
+|---|---|
+| `uid` | **Required.** A lowercase UUID: the mod's identity and its folder name. Two packages with the same `uid` are the same mod (installing one replaces the other). |
+| `id` | The internal name (above). Other mods find yours by it (`ModLoader.TryGetMod`). |
+| `name`, `version` | What the list shows. |
+| `authors` | Plain names, or objects with a photo (`authors/`), role, color and link. |
+| `category` | Free text. `Textura`, `Armas`, `Jogabilidade`, `Cheat`, `Utilidade` and `Itens` get their own color and icon. |
+| `summary`, `updated` | The list card's line and the date of the latest version (`YYYY-MM-DD`). The long description goes in `description.md`. |
+| `license`, `links`, `pages`, `theme` | Optional: the license, link buttons, extra tabs and the package page's colors and background. |
+| `dependencies` | Optional: the mods (`id` or `uid`) that load before this one; if one of them is not enabled, this one does not load. |
+| `blVersion` | The package format: `3`. |
 
 Generate your **own** `uid` once and never change it:
 
@@ -165,8 +176,21 @@ names the file and line: that is the first big gift of C#. A typo like
 
 Zip the **contents** of `MinisharkTurbo/` (so the zip has `manifest.json` and
 `MinisharkTurbo.dll` at its root; leave out the `.csproj`, `bin/` and `obj/`)
-and import it on the phone: *Packages* tab → *Import package*. Copying the folder or using adb works too: see
-[Installing](../historico/mods-js/README.md#installing).
+and import it on the phone: *Packages* tab → *Import package*.
+
+Installed mods live in `Android/data/com.bunnyloader/bunny_packs/<uid>/`, so
+copying the folder there works too. During development, adb is the fastest
+(send a `.tar` and extract it: on some devices `adb push` of a folder with
+subfolders into `Android/data` arrives half-done):
+
+```bash
+tar -C MinisharkTurbo -cf mod.tar manifest.json MinisharkTurbo.dll
+adb push mod.tar /data/local/tmp/mod.tar
+adb shell "P=/sdcard/Android/data/com.bunnyloader/bunny_packs/5d0e8f3a-1b2c-4d5e-8f90-a1b2c3d4e5f6; rm -rf \$P; mkdir -p \$P && tar -xf /data/local/tmp/mod.tar -C \$P && chmod -R 777 \$P"
+```
+
+The `chmod` lets the app delete or update the mod later (a file put there by
+adb belongs to the `shell` user).
 
 ## Step 6: run and read the log
 
@@ -267,7 +291,7 @@ sequenceDiagram
     participant M as .NET runtime
     participant Y as Your MinisharkTurbo.dll
     participant G as Terraria
-    A->>M: a C# mod is enabled: start .NET
+    A->>M: the game opens: start .NET
     M->>Y: load the .dll
     Y-->>M: class MinisharkTurbo : Mod
     M->>Y: new MinisharkTurbo().Load()
@@ -279,14 +303,10 @@ sequenceDiagram
 
 Things worth knowing:
 
-- **The runtime only starts if a C# mod is enabled.** Without one, Bunny
-  Loader costs exactly what it cost before.
 - **`Load()` runs before any world exists**, on a background thread. Install
   hooks there; do not read `Main.player` there (there is no player yet).
 - **To load a new build of your `.dll`, restart the game** (the Mod Menu has a
   *Restart* button). .NET cannot unload an assembly from a running game.
-- **JS mods keep working** next to yours. *Settings → Developer → QuickJS*
-  turns the JavaScript engine off entirely, if you want only C# mods.
 
 ## When something goes wrong
 

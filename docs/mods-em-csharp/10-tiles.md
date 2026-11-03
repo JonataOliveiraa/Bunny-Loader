@@ -359,7 +359,7 @@ ItemID.Sets.KillsToBanner[BannerItem] = 25; // optional, 50 by default
 
 ## World persistence
 
-C# uses the existing native `.wld.tiles.bl` backend. Its stable tile key is `<mod UID>/<tile name>`, shared with JS. A JS mod and its C# port must keep both values to reuse saved tiles. No conversion of the sidecar format is needed.
+Mod tiles are saved by the native core in `<world>.wld.tiles.bl`. Their stable key is `<mod UID>/<tile name>`: keep both to reuse saved tiles across versions of your mod; the numeric type may change.
 
 The native backend saves tile coordinates, type keys, frames and tile headers, restores the tile object's registered shape, and preserves unresolved entries when their cells remain empty. The ordinary `.wld` contains the compatible vanilla world. Keep the `.wld.tiles.bl` file with the world. This backend currently leaves missing tiles empty in the vanilla file; `VanillaFallbackOnModDeletion` does not change that mobile save behavior.
 
@@ -371,8 +371,6 @@ The native backend saves tile coordinates, type keys, frames and tile headers, r
 DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstile
 DEVICE=127.0.0.1:16416 KEEPSAVES=1 bash tools/tests/run-cs.sh cstile
 ```
-
-To check a JS world, run `QJS=true DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstilelegacy`, then run `cstile` with `KEEPSAVES=1`. The legacy writer deliberately registers an additional tile first, so the Block numeric ID differs while its UID/name key remains the same.
 
 The second run preserves the saved test world and verifies the tile at its fixed persistence coordinate. The suite exercises registration, object data, map legend, simple and 2x2 placement/breaking, drops, mining hooks, direct touch interaction, animation, light, drawing and global hooks on vanilla tiles.
 

@@ -6,10 +6,10 @@ Input: SoundStyle requests, including UseSound/HitSound/DeathSound and the
 direct API. Output: a queryable identifier, a start confirmed by Android's
 return or a terminal state, without waiting for SoundPool on the game thread.
 
-Facts measured in the previous step: the filter eliminates the vanilla entries
-in QuickJS; in a diagnostic round, about 90–93% of the custom batches' time
-was inside bl.sounds.play. That interval includes JNI and waiting on Android;
-it does not measure pure QuickJS CPU.
+Facts measured in the previous step: the native filter kept vanilla sounds
+out of the mod hook; in a diagnostic round, about 90–93% of the custom
+batches' time was inside the synchronous play call. That interval includes
+JNI and waiting on Android.
 
 Hypotheses checked in this step: removing that wait should reduce the time of
 the batches and the updates; a queue needs limits and must drop old effects so
@@ -25,12 +25,12 @@ requests.
 
 | Alternative | Time and space | Assessment |
 |---|---|---|
-| Limit instances in JS and stay synchronous | Per-request work proportional to the style's instances; the backend still blocks the caller | Reduces calls, but changes how many sounds each mod asks for and keeps the bottleneck |
+| Limit instances in the mod API and stay synchronous | Per-request work proportional to the style's instances; the backend still blocks the caller | Reduces calls, but changes how many sounds each mod asks for and keeps the bottleneck |
 | An executor with a task/cleanup per request | The queue and timers grow with the number of requests; needs to synchronize tokens and lifecycle | The original suggestion had failure, pause and task buildup regressions |
 | A single worker with bounded history and pending requests | Active lookup O(L), L ≤ 64 requests/streams in progress; history H ≤ 256; up to 32 pending including the native call; O(H + L) memory | Implemented in SfxQueue, separate from Android for deterministic tests |
 
 The worker calls play/stop/autoPause/autoResume outside the producer's lock.
-It runs no JS. The limits count pending requests, the duration starts after
+It runs no mod code. The limits count pending requests, the duration starts after
 play's positive return and uses a monotonic clock frozen during the applied
 pause. A cancellation during play keeps the record until the returned stream
 can be stopped. The requests in progress are separate from the history:
@@ -47,7 +47,7 @@ per-stream position/end query.
 SoundEngine's contract was updated explicitly: PlaySound returns an accepted
 request, GetSoundState tells pending/started/failed apart, StopSound also
 cancels pending requests and FindActiveSound excludes pending/failed/paused
-ones. The low-level bl.sounds.play/stop stays synchronous and uses Android
+ones. The low-level play/stop stays synchronous and uses Android
 streams; do not mix those streams up with SoundEngine's requests. Using it
 directly stays outside the queue's limit control. Music keeps the previous
 path.
@@ -127,5 +127,6 @@ phase boundaries: use pendingAtEnd to assess work still in progress. Do not
 confuse SoundPool.play's confirmation with measuring physical output. In the
 profile, `failed` counts the transport's zero returns: in the synchronous
 variant they are play failures; in the asynchronous one they are admission
-refusals. The asynchronous start failure is `queue.failed`. See RESULTADOS.md
+refusals. The asynchronous start failure is `queue.failed`. See
+[the results](../../../docs/historico/dados/soundasync-resultados.md)
 and measurements.json for the run.

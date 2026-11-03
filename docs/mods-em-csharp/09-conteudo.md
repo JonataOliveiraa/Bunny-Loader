@@ -1,13 +1,12 @@
 # 9. Content classes
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · **9. Content classes**
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · **9. Content classes**
 
 Hooks change what the game already has. **Content classes** add new things:
 a class that extends `ModItem` becomes a new item. They follow tModLoader:
 the same names, in the same namespace (`Terraria.ModLoader`), loaded in the
-same order. C# has `ModItem` today; the other content classes (`ModNPC`,
-`ModProjectile`, `ModSystem`...) come one by one (see
-[the C# plan](../nucleo/plano-csharp.md)).
+same order. This guide covers items, players, buffs, projectiles and NPCs;
+guides 10 to 22 cover the rest.
 
 ## A new item
 
@@ -215,8 +214,7 @@ fields.
 
 - If `LoadData` throws, the error goes to the log, and the saved data is kept
   as it was: the next save writes it back untouched instead of losing it.
-- The data is stored as JSON, the same format JavaScript mods use, so a JS
-  mod ported to C# keeps its players' saved items.
+- The data is stored as JSON in the item sidecars, next to the game's save.
 - `TagIO.ToFile(tag, path)` and `TagIO.FromFile(path)` write and read a
   `TagCompound` to a file of your own, in tModLoader's binary format
   (compressed by default).
@@ -448,8 +446,7 @@ public class Teal : ModRarity
 ```
 
 `Item.rare = ModContent.RarityType<Teal>();` gives it to an item. The type
-comes after the game's 12 (`RarityLoader.VanillaCount`), counted together
-with the JS mods' rarities. `RarityColor` is read each time the color is
+comes after the game's 12 (`RarityLoader.VanillaCount`). `RarityColor` is read each time the color is
 drawn (it can blink with `Main.DiscoR`...). When a prefix changes how much
 the item is worth, `offset` goes from -2 to +2 and `GetPrefixedRarity`
 decides (the game alone would turn every rarity above 11 into purple). The
@@ -482,7 +479,7 @@ an item does not roll there), then `Apply(Item item)` runs;
 `ApplyAccessoryEffects(Player player)` runs every frame while the accessory
 is equipped, and `GetTooltipLines(Item item)` adds lines after the game's
 prefix lines. The name comes from `Mods.<Mod>.Prefixes.<Name>.DisplayName`.
-Prefix numbers are shared with the JS mods' and saved by name.
+Prefix numbers are saved by name, so they may change between sessions.
 
 An item decides too: `AllowPrefix(int pre)`, `ChoosePrefix(UnifiedRandom
 rand)` (a number forces that prefix), `PrefixChance(int pre, UnifiedRandom
@@ -564,8 +561,7 @@ public class ExampleHelmet : ModItem
 `[AutoloadEquip(EquipType.Head, ...)]` takes the worn textures next to the
 item's: `ExampleHelmet_Head.png`, `_Body`, `_Legs`, `_Wings`, `_Shield`,
 `_Back`... Each gets a slot after the game's (`Item.headSlot`,
-`Item.wingSlot`... are set before your `SetDefaults`), counted together with
-the JS mods' slots. In `SetStaticDefaults`, `Item` is the template item, as in
+`Item.wingSlot`... are set before your `SetDefaults`). In `SetStaticDefaults`, `Item` is the template item, as in
 tModLoader, so wings can write
 `ArmorIDs.Wing.Sets.Stats[Item.wingSlot] = new WingStats(180, 9f, 2.5f);`.
 `EquipLoader.AddEquipTexture(mod, texture, type, name: "...")` in `Load`
@@ -797,7 +793,7 @@ loaded `ModPlayer` overrides it:
 | `ProcessTriggers(TriggersSet triggersSet)` | after `TriggersSet.CopyInto` for the local player |
 | `ArmorSetBonusActivated`, `ArmorSetBonusHeld(int holdTime)` | after `Player.KeyDoubleTap`/`KeyHoldDown` on the set bonus key (down, or up with `Main.ReversedUpDownArmorSetBonuses`) |
 | `OnEquipmentLoadoutSwitched(int oldLoadoutIndex, int loadoutIndex)` | after `Player.TrySwitchingLoadout` changed the loadout |
-| `SaveData`, `LoadData`, `PreSavePlayer`, `PostSavePlayer`, `PreSaveCustomData` | the character's `<file>.plr.bl.json`, under `<mod uid>/<class>` (shared with the JS mods' `ModPlayer` data) |
+| `SaveData`, `LoadData`, `PreSavePlayer`, `PostSavePlayer`, `PreSaveCustomData` | the character's `<file>.plr.bl.json`, under `<mod uid>/<class>` |
 
 The item hooks run inside the same game points as the `ModItem` ones, in
 tModLoader's `CombinedHooks` order: the item and its globals first, then the
@@ -1474,10 +1470,9 @@ back hair, the game's hairs included.
 
 The game's player file keeps the hair as a number the game checks against its
 228, so a mod hair is saved there as 0 and by name in the character's
-`.plr.bl.json` (`bunny:hair`, the key the JS mods use). In multiplayer the
+`.plr.bl.json` (`bunny:hair`). In multiplayer the
 game's appearance message turns a mod hair into 0; the Bunny Loader sends the
 real one right after it. Not used yet: `RandomizedCharacterCreationGender`.
-JS and C# mod hairs at the same time would share type numbers.
 
 ## The life and mana bar: `ModResourceOverlay`
 
@@ -1531,8 +1526,7 @@ The texture is `Content/NPCs/FloatingFriend.png`, and the name is
 `ModContent.NPCType<FloatingFriend>()` gives the type,
 `NPCLoader.GetNPC(type)` and `ModContent.GetModNPC(type)` give the registered
 template, and `ModContent.Find<ModNPC>("MyMod/FloatingFriend")` finds it by name.
-`NPCLoader.NPCCount` includes every registered type, including JavaScript NPCs;
-the game tables have that size by `SetStaticDefaults`.
+`NPCLoader.NPCCount` includes every registered type; the game tables have that size by `SetStaticDefaults`.
 
 The template has a real `NPC` in `SetStaticDefaults`, and its `NPC.ModNPC` is
 the template itself. `AutoStaticDefaults` assigns `TextureAssets.Npc[Type]`
@@ -2386,8 +2380,6 @@ public override void PostSetupContent()
 The name can be the other mod's internal `Name` (its assembly, as in
 tModLoader), its manifest `id` or its `uid`. If two mods answer to the same
 `Name` or `id`, `TryGetMod` picks neither and the log says to ask by `uid`.
-Only C# mods are found: a JS mod cannot be called from C# (nor the other way
-around) yet.
 
 C# mods load one at a time. In `Load`, a mod finds itself and the mods
 loaded before it, which include all of its dependencies; from
@@ -2422,8 +2414,7 @@ exception thrown inside `Call` reaches the caller.
 ### Depending on a mod
 
 A mod yours cannot work without goes in the manifest's `dependencies`, by
-`id` or `uid`, as for JS mods ([the JS guide](../historico/mods-js/11-conversa-entre-mods.md#dependencies)):
-it loads before yours, and without it yours does not load.
+`id` or `uid`: it loads before yours, and without it yours does not load.
 
 When the dependency is a C# mod, you can also use its **types** directly, as
 with tModLoader's `modReferences`:
@@ -2558,14 +2549,9 @@ public override void HandlePacket(BinaryReader reader, int whoAmI)
 **Joining a server.** When a client joins, it tells the server which C# mods
 it has (name and version). A client whose C# mods are not the same as the
 server's is refused, with a message that lists the server's mods, the ones
-the client is missing and the ones only the client has. JS mods are
-checked by the JS side, which can also offer to sync them; for C# mods there
-is no offer yet (it comes with the server sync menu, phase 6 of the plan). A
-client without the .NET runtime (no C# mod enabled) sends nothing and is not
-checked.
-
-Items do not send their own data yet (`ModItem.NetSend`/`NetReceive`): that
-comes with the item hooks, in phase 1.
+the client is missing and the ones only the client has. With *Mod sync* on
+in the host's settings, the client is offered the server's mods to download
+([Joining a server](../nucleo/multijogador.md)).
 
 ### An item's data on the network
 

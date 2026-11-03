@@ -1,6 +1,6 @@
 # 3. `ref`, `out` and `Nullable`
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · **3. `ref`, `out`, `Nullable`** · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · **3. `ref`, `out`, `Nullable`** · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
 
 Some game methods hand back more than one value, and some values may be
 missing. C# has words for both, and in Bunny Loader they work exactly as in
@@ -168,14 +168,5 @@ Item armor = player.GetEffectiveArmor(0, out GameNullable<int> shared);
 > needs raw memory (pointers, game arrays). `GameNullable<int>` is the same
 > bytes, allowed everywhere. The conversions make the difference almost
 > invisible.
-
-## Coming from the JS bridge
-
-| | JavaScript | C# |
-|---|---|---|
-| Call with `out` | `const t = new Ref(); f(0, t); t.value` | `f(0, out int t);` |
-| Hook with `ref`/`out` | the callback receives `Ref` objects, `.value` | the parameter **is** the variable |
-| Nullable | `null` or a number | `GameNullable<T>`, converts from `null` and values |
-| Struct `self` | a view object | `ref self` |
 
 Next: [4. Values and objects](04-valores-e-objetos.md).

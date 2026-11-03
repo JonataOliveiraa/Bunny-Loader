@@ -14,9 +14,9 @@ the game in typed, compiled C#, and the tModLoader content classes.
 2. [Hooks](mods-em-csharp/02-hooks.md)
 3. [`ref`, `out` and `Nullable`](mods-em-csharp/03-ref-out-e-nullable.md)
 4. [Values and objects](mods-em-csharp/04-valores-e-objetos.md)
-5. [C# × JS × tModLoader](mods-em-csharp/05-comparacao.md)
+5. [Bunny Loader × tModLoader](mods-em-csharp/05-comparacao.md)
 6. [Performance](mods-em-csharp/06-desempenho.md)
-7. [Moving to C#](mods-em-csharp/07-migracao-para-csharp.md)
+7. [Migration to C#](mods-em-csharp/07-migracao-para-csharp.md)
 8. [Under the hood](mods-em-csharp/08-por-baixo-dos-panos.md)
 9. [Content classes](mods-em-csharp/09-conteudo.md)
 10. [Tiles](mods-em-csharp/10-tiles.md)
@@ -45,15 +45,15 @@ the game in typed, compiled C#, and the tModLoader content classes.
 - [Joining a server](nucleo/multijogador.md): the welcome that keeps Bunny
   Loader out of vanilla servers, the host rules, syncing mods and textures and
   the automatic return.
-- [The C# plan](nucleo/plano-csharp.md) and [the cost of C# hooks](nucleo/custo-csharp.md).
+- [The cost of C# hooks](nucleo/custo-csharp.md): the hook profiler and the
+  measurements, on the emulator and on a phone.
 - [Shader research](nucleo/pesquisa-shaders.md): internal investigation notes,
   with evidence, limitations and next experiments; support not validated yet.
 
 [**History**](historico/README.md): the architecture decisions, the crash
-investigations and the optimization rounds, with the measured data. The
-JavaScript engine, removed in favor of C#, is documented there too: its mod
-guides, its reference and the bridge. The last version with it is the
-`js-final` tag.
+investigations and the optimization rounds, with the measured data, and the
+documentation of the engine used before 0.4.0. Moving a mod from that engine
+is in [Migration to C#](mods-em-csharp/07-migracao-para-csharp.md).
 
 The PC tools (fast build, game dump, tests, benchmark) are in
 [`tools/`](../tools/README.md).

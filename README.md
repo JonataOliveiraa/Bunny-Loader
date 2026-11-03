@@ -63,11 +63,11 @@ guides in order: each one builds on the previous. What changed in each version i
 | [2. Hooks](docs/mods-em-csharp/02-hooks.md) | `On_<Type>.<Method>`: before, after, replacing, skipping, overloads, getters. |
 | [3. `ref`, `out` and `Nullable`](docs/mods-em-csharp/03-ref-out-e-nullable.md) | Methods that return through parameters and values that may be missing. |
 | [4. Values and objects](docs/mods-em-csharp/04-valores-e-objetos.md) | `new Vector2`, `Item.New()`, fields, arrays, statics, strings, casts. |
-| [5. C# × JS × tModLoader](docs/mods-em-csharp/05-comparacao.md) | The same mod in the three. |
-| [6. Performance](docs/mods-em-csharp/06-desempenho.md) | Measured on a real phone, C# against JS. |
-| [7. Moving to C#](docs/mods-em-csharp/07-migracao-para-csharp.md) | What exists, what is missing, what changes for you. |
+| [5. Bunny Loader × tModLoader](docs/mods-em-csharp/05-comparacao.md) | The same API on PC and on the phone: what is equal and what differs. |
+| [6. Performance](docs/mods-em-csharp/06-desempenho.md) | Measured on a real phone: reads, calls, hooks, and how to write a fast mod. |
+| [7. Migration to C#](docs/mods-em-csharp/07-migracao-para-csharp.md) | For mods made before 0.4.0: the measured comparison, porting and what is left. |
 | [8. Under the hood](docs/mods-em-csharp/08-por-baixo-dos-panos.md) | The runtime, the generated proxies, the calling convention, the two garbage collectors. |
-| [9 to 16](docs/mods-em-csharp/README.md) | Content classes, tiles, systems, world generation, biomes, the title menu, sounds and mod configs. |
+| [9 to 22](docs/mods-em-csharp/README.md) | Content classes, tiles, systems, world generation, biomes, the title menu, sounds, configs, commands, achievements, touch buttons, interface, screen effects, fonts and packs. |
 
 The [Example Mod C#](samples/ExampleModCSharp) is a port of tModLoader's
 ExampleMod with working examples of what the guides teach.
@@ -75,15 +75,14 @@ ExampleMod with working examples of what the guides teach.
 ### Working on Bunny Loader itself
 
 - [The native core](docs/nucleo/README.md): [hooks](docs/nucleo/hooks.md),
-  [new content](docs/nucleo/conteudo.md), [the C# plan](docs/nucleo/plano-csharp.md),
+  [new content](docs/nucleo/conteudo.md), [the cost of C# hooks](docs/nucleo/custo-csharp.md),
   [multiplayer sync](docs/nucleo/multijogador.md),
   [menu localization](docs/nucleo/localizacao-menu.md),
-  [shader research](docs/nucleo/pesquisa-shaders.md) and
-  [tModLoader contracts](docs/nucleo/compatibilidade-tmodloader-desenho-banners.md).
+  and [shader research](docs/nucleo/pesquisa-shaders.md).
 - [History](docs/historico/README.md): the decisions, investigations and
   measurements behind the design (hosting Unity, the architecture choice,
-  bridge performance, crashes and freezes that were solved), and the removed
-  JavaScript engine (the last version with it is the `js-final` tag).
+  bridge performance, crashes and freezes that were solved), and the engine
+  used before 0.4.0.
 
 Installed mods live in `Android/data/com.bunnyloader/bunny_packs/<uid>/`, and
 the game loads them from there: you can edit a mod right on the device and just
@@ -110,8 +109,8 @@ public class DoubleDamage : Mod
 ```
 
 The complete example is [`ExampleModCSharp`](samples/ExampleModCSharp), the
-port of tModLoader's. The other mods in [`samples/`](samples) are still in
-JavaScript and wait for their C# port.
+port of tModLoader's. The other mods in [`samples/`](samples) are from before
+0.4.0 and wait for their C# port.
 
 ## Stack
 
@@ -220,10 +219,10 @@ translation, and where hooks work) and is checked on a real ARM device.
   ExampleMod that our [`ExampleModCSharp`](samples/ExampleModCSharp) ports.
 - **GST378** and **Animatak_**, authors of ExMod, the community port of
   tModLoader's ExampleMod to mobile, which helped shape our first examples.
-- **TL Pro**, whose publicly documented JavaScript API (`NativeClass`,
+- **TL Pro**, whose publicly documented scripting API (`NativeClass`,
   signature strings, `hook((original, self, ...args) => ...)`, the global `tl`
-  object, later renamed `bl`) Bunny Loader's first bridge, the JavaScript one
-  removed since, was modeled on. Inspecting
+  object, later renamed `bl`) Bunny Loader's first bridge, removed since, was
+  modeled on. Inspecting
   the manifest, class names and file layout of TL Pro's Android package
   (version 1.64.0) informed our choice of hosting Unity in our own process. No
   TL Pro code or assets are part of Bunny Loader, and Bunny Loader is not

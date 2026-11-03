@@ -61,10 +61,33 @@ MyPack/
 `TextureAssets.Item[N]`, `NPC_N`, `Projectile_N`, `Tiles_N`, `Wall_N`,
 `Buff_N`, `Gore_N` and the armor sheets go to their tables, and any other path
 (`UI/...`, `Backgrounds/...`) replaces the asset with that name when the game
-loads it. The full name table and the import of PC resource packs are in the
-[old guide](../historico/mods-js/14-pacotes-de-textura.md); since format 3 the
-folder is `Images/` at the root, not `content/Images/`. A texture pack may
-carry a `Fonts/` folder too. Test: `tools/tests/cstexpack` (the Copper
+loads it. A texture pack may carry a `Fonts/` folder too.
+
+| File in `Images/` | Game table |
+|---|---|
+| `Item_N.png` | `TextureAssets.Item[N]` |
+| `NPC_N.png` | `TextureAssets.Npc[N]` |
+| `Projectile_N.png` | `TextureAssets.Projectile[N]` |
+| `Tiles_N.png` | `TextureAssets.Tile[N]` |
+| `Wall_N.png` | `TextureAssets.Wall[N]` |
+| `Buff_N.png` | `TextureAssets.Buff[N]` |
+| `Gore_N.png` | `TextureAssets.Gore[N]` |
+| `Armor_Head_N.png`, `Armor_Body_N.png`, `Armor_Arm_N.png`, `Armor_Legs_N.png` | `TextureAssets.ArmorHead`/`ArmorBody`/`ArmorArm`/`ArmorLeg[N]` |
+| `Female_Body_N.png` | `TextureAssets.FemaleBody[N]` |
+| `Armor/Armor_N.png` | `TextureAssets.ArmorBodyComposite[N]` |
+
+`N` is the vanilla number (`Item_1` is the Copper Pickaxe, `NPC_4` the Eye of
+Cthulhu, `Tiles_0` dirt). Any other path must match the `Name` of the asset
+the game requests (`Images/Inventory_Back.png`,
+`Images/UI/Minimap/Default/MinimapFrame.png`, `Images/TownNPCs/Wizard_Default.png`);
+the match ignores case and normalizes slashes. PC-only images and UI the phone
+draws differently may have no visible effect.
+
+To import a PC resource pack, pick its ZIP (`pack.json`, `icon.png` and
+`Content/Images/`) in *Packages → Import package*: the launcher writes the
+`manifest.json` with `type: "texture"`, and a `workshop.json` keeps the
+identity across updates. `tools/mods/port_textures.py <workshop ids>` does the
+same from the local Workshop folder, for the catalog. Test: `tools/tests/cstexpack` (the Copper
 Shortsword icon turns magenta).
 
 ## Font packs
@@ -81,9 +104,63 @@ MyFont/
 ```
 
 Each file replaces that game font (a missing one keeps the original). The
-sample is [`samples/FonteComicNeue`](../../samples/FonteComicNeue); the atlas
-tool, the JSON and how the letters stay sharp are in the
-[old guide](../historico/mods-js/21-pacotes-de-fonte.md).
+sample is [`samples/FonteComicNeue`](../../samples/FonteComicNeue).
+
+| File in `Fonts/` | Game font | Where it shows |
+|---|---|---|
+| `Mouse_Text.json` | `FontAssets.MouseText` | Tooltips, menus, almost the whole UI |
+| `Item_Stack.json` | `FontAssets.ItemStack` | Item counts in the inventory |
+| `Death_Text.json` | `FontAssets.DeathText` | Death message and big titles |
+| `Combat_Text.json` | `FontAssets.CombatText[0]` | Damage numbers |
+| `Combat_Crit.json` | `FontAssets.CombatText[1]` | Critical damage numbers |
+
+The name is matched without case, spaces or underscores.
+
+**Making the files.** `tools/mods/fonts.py` builds the atlas from a font file
+(it needs Python with Pillow, NumPy and fontTools):
+
+```powershell
+python tools/mods/fonts.py ttf "MyFont.ttf" --out "MyFont/Fonts"
+```
+
+It fits the font to the measurements of the mobile fonts (capital height,
+baseline, line spacing), so the UI does not move, and draws every glyph with
+3 times the pixels the game uses (`--scale` changes it). `--preset`
+(`latin`, `europe`, `all`) or `--ranges` choose the characters,
+`--size-factor` and `--stroke` adjust the letters, `--only` picks fonts.
+Characters the font lacks keep the game's glyph.
+
+**PC resource packs.** The launcher imports a zip with `pack.json` and
+`Content/Fonts/*.xnb`: each `.xnb` becomes `<Font>.json` plus its pages, at
+the PC resolution. `fonts.py xnb "<pack>/Content/Fonts" --out "MyFont/Fonts"`
+does the same by hand. Compressed XNB files (LZX/LZ4) are not read.
+
+**Why the letters stay sharp.** A page with `"scale": 3` is three times its
+logical size; Bunny Loader sets the font's `TexelWidth`/`TexelHeight` to
+match, so each glyph is drawn at the game's size with three times the detail,
+with trilinear filtering and mipmaps.
+
+**The JSON** (`blfont/1`):
+
+```json
+{
+  "format": "blfont/1",
+  "scale": 3,
+  "lineSpacing": 24,
+  "spacing": 0,
+  "pages": ["Mouse_Text.0.png"],
+  "fields": "code,page,bx,by,bw,bh,cx,cy,cw,ch,leftBearing,width,rightBearing",
+  "glyphs": [[65, 0, 120, 3, 12, 14, 0, 2, 12, 24, 0, 12, -0.667]]
+}
+```
+
+Each glyph has its UTF-16 `code`, its `page`, its rectangle in the page
+(`bx,by,bw,bh`, in logical pixels), its offset from the pen and the top of the
+line (`cx,cy,cw,ch`, as XNA's `SpriteFont.Glyph.Cropping`) and its advance
+(`leftBearing + width + rightBearing`). `lineSpacing` and `spacing` are
+informative: the game's values are kept. The game's `SpriteFont` objects are
+edited in place (characters replaced, new ones appended), because the mobile
+UI keeps references to them.
 
 Packs are applied by the native core, with no C# involved: the topmost package
 on the Packages tab wins per file. A server that does not allow texture packs

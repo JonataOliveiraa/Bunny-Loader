@@ -2,7 +2,7 @@
 
 Build the pack with `bash tools/tests/build-cs.sh csnpcai`, then run it alone
 with `DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh csnpcai`. The runner
-enables csenv and disables QuickJS. Enter BagTest and QA_B1_Sonda manually if
+enables csenv. Enter BagTest and QA_B1_Sonda manually if
 the device's menu order differs from the runner's saved coordinates.
 
 The default mode checks mod/global ordering and vetoes, borrowed type and

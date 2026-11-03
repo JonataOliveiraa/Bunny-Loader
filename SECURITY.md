@@ -1,6 +1,6 @@
 # Security policy
 
-Bunny Loader downloads mods from its catalog and runs their JavaScript inside
+Bunny Loader downloads mods from its catalog and runs their code inside
 the game, with access to the game's code. A flaw in the loader, in the package
 format or in the catalog can reach every player, so please report it privately.
 

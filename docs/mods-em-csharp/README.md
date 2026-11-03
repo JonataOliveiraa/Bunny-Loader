@@ -1,16 +1,14 @@
 # Making mods in C#
 
-> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md) · [11. Systems](11-sistemas.md) · [12. World generation](12-worldgen.md) · [13. Biomes and scenes](13-biomas.md) · [14. Title menu](14-menu.md) · [15. Sounds](15-sons.md) · [16. Mod configs](16-configs.md) · [17. Chat commands](17-comandos.md) · [18. Achievements](18-conquistas.md) · [19. Touch buttons](19-botoes-de-toque.md) · [20. Interface](20-interface.md) · [21. Screen effects](21-efeitos-de-tela.md) · [22. Fonts and texture packs](22-fontes-e-pacotes.md)
+> **Overview** · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md) · [10. Tiles](10-tiles.md) · [11. Systems](11-sistemas.md) · [12. World generation](12-worldgen.md) · [13. Biomes and scenes](13-biomas.md) · [14. Title menu](14-menu.md) · [15. Sounds](15-sons.md) · [16. Mod configs](16-configs.md) · [17. Chat commands](17-comandos.md) · [18. Achievements](18-conquistas.md) · [19. Touch buttons](19-botoes-de-toque.md) · [20. Interface](20-interface.md) · [21. Screen effects](21-efeitos-de-tela.md) · [22. Fonts and texture packs](22-fontes-e-pacotes.md)
 
 Bunny Loader runs mods in **C#**, the language of Terraria and of tModLoader.
 A mod is compiled ahead of time (on your PC or by the phone itself), it gets
 **full access to the game** (every field, method and struct, with real types
 and autocomplete) and the tModLoader content classes: `ModItem`, `ModNPC`,
 `ModProjectile`, `ModTile`, `ModSystem`, `ModConfig` and the others in guides
-9 to 16. What is still missing is in the [C# plan](../nucleo/plano-csharp.md).
-
-The first engine, JavaScript, was removed; its guides are in the
-[history](../historico/mods-js/README.md).
+9 to 22. What the phone does differently from tModLoader is in
+[Bunny Loader × tModLoader](05-comparacao.md).
 
 Here is a whole C# mod. If you have ever seen a tModLoader hook, you already
 know how to read it:
@@ -54,8 +52,7 @@ flowchart LR
    whole game in C#: `Terraria.Player`, `Terraria.Item`,
    `Microsoft.Xna.Framework.Vector2`, the `On_` hooks...
 2. `dotnet build` turns it into a `.dll`. That `.dll` **is** your mod.
-3. On the phone, when a C# mod is enabled, Bunny Loader starts a .NET runtime
-   inside the game, loads your `.dll` and calls your `Load()`.
+3. On the phone, Bunny Loader starts a .NET runtime inside the game, loads your `.dll` and calls your `Load()`.
 4. From then on, the game calls your hooks.
 
 ## The guides
@@ -79,24 +76,10 @@ reference "tabs": open them when you need them.
 | [14. Title menu](14-menu.md) | `ModMenu`: theme choice in the settings, logo, sun and moon, background and music. |
 | [15. Sounds](15-sons.md) | `SoundStyle` (volume, pitch, instances, variants), `SoundEngine.PlaySound`, sounds in items, NPCs and tiles. |
 | **Tabs** | |
-| [5. C# × JS × tModLoader](05-comparacao.md) | The same mod in the three, and what is equal and different. |
-| [6. Performance](06-desempenho.md) | Measured on a real phone: where C# is 5× to 450× faster, and the one thing that still costs. |
-| [7. Moving to C#](07-migracao-para-csharp.md) | Can Bunny Loader become C# only? What exists, what is missing, what changes for you. |
+| [5. Bunny Loader × tModLoader](05-comparacao.md) | The same API on PC and on the phone: what is equal and what differs. |
+| [6. Performance](06-desempenho.md) | Measured on a real phone: what reading the game, calling it and hooking it cost, and how to write a fast mod. |
+| [7. Migration to C#](07-migracao-para-csharp.md) | For mods made for Bunny Loader 0.3 and older: why the engine changed, the measured comparison, porting and saves. |
 | [8. Under the hood](08-por-baixo-dos-panos.md) | The runtime, the generated proxies, the calling convention and the two garbage collectors. |
-
-## C# or JavaScript?
-
-| You want to... | Use |
-|---|---|
-| Change something the game already has (stats, rules, spawns, drops) | **C#** (faster, typed) or JS |
-| Run heavy logic every frame (AI, math over many entities) | **C#** |
-| Create new items, or change every item (`GlobalItem`) | **C#** ([guide 9](09-conteudo.md)) or JS |
-| Create new NPCs, projectiles, tiles, UI | **JS** for now (C# has only `ModItem` yet) |
-| Edit code on the phone, without a PC | **JS** (the in-game editor) |
-| Port code from tModLoader | **C#**: the hooks have the same shape |
-
-Both can be installed together, and their hooks on the same method share one
-chain.
 
 ## What you need
 
@@ -104,7 +87,6 @@ chain.
   the `.dll` yourself. Optional: a mod can ship its `.cs` files instead, and
   the catalog (or the phone) compiles them (see
   [guide 1](01-primeiro-mod.md#the-other-way-ship-the-cs-files)).
-- A Bunny Loader **with C# support** on the phone (the first version after
-  0.3.3).
+- Bunny Loader **0.4.0 or later** on the phone.
 - An editor that understands C#: VS Code with *C# Dev Kit*, Visual Studio or
   Rider. Autocomplete matters here: it is how you discover the game.

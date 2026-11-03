@@ -62,8 +62,7 @@ nothing to the frame.
 
 The data goes into `<world>.wld.bl.json` and the header into
 `<world>.wld.bl.header.json`, next to the world and never inside the `.wld`,
-each under `<mod uid>/<class name>`. This is the same file and key as the JS
-`ModSystem`: a mod ported from JS keeps its worlds' data.
+each under `<mod uid>/<class name>`.
 
 Cloud worlds aren't saved there. World generation (`PreWorldGen`,
 `ModifyWorldGenTasks`, `PostWorldGen`, `ModifyHardmodeTasks`) comes with the

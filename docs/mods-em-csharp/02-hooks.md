@@ -1,6 +1,6 @@
 # 2. Hooks
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · **2. Hooks** · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · **2. Hooks** · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · [8. Under the hood](08-por-baixo-dos-panos.md) · [9. Content classes](09-conteudo.md)
 
 A hook is how a C# mod changes Terraria. This page teaches hooks from zero,
 one idea at a time, with an example for each.
@@ -219,7 +219,7 @@ Hook only what you need ([Performance](06-desempenho.md)).
 
 ## Several hooks on the same method
 
-Your mod, another C# mod and a JS mod can all hook `Player.Update`. They form
+Your mod and other mods can all hook `Player.Update`. They form
 a **chain**: each one's `orig` is the next one, and the last `orig` is the
 game.
 

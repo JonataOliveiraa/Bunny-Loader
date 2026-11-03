@@ -8,7 +8,7 @@ source" in the OSI sense, which requires allowing commercial use.
 
 | Part | License |
 |---|---|
-| Everything in this repository except the rows below: the app, the native core, the JS mod runtime, the tools and the documentation | [PolyForm Noncommercial 1.0.0](LICENSE.md) |
+| Everything in this repository except the rows below: the app, the native core, the C# mod runtime, the tools and the documentation | [PolyForm Noncommercial 1.0.0](LICENSE.md) |
 | `samples/` | MIT, each with its own `license.md`. `ExampleMod` is a port of tModLoader's ExampleMod and keeps its MIT license |
 | Code examples in the documentation (`docs/`) | You may copy them into your mod under the MIT license (the same text as `samples/HelloMod/license.md`) |
 | Code adapted from tModLoader | tModLoader Team's MIT license still applies to the parts that came from there; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) |

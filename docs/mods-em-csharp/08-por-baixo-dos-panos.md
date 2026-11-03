@@ -1,30 +1,28 @@
 # 8. Under the hood
 
-> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. C# × JS × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Moving to C#](07-migracao-para-csharp.md) · **8. Under the hood** · [9. Content classes](09-conteudo.md)
+> [Overview](README.md) · [1. First mod](01-primeiro-mod.md) · [2. Hooks](02-hooks.md) · [3. `ref`, `out`, `Nullable`](03-ref-out-e-nullable.md) · [4. Values and objects](04-valores-e-objetos.md) · [5. Bunny Loader × tModLoader](05-comparacao.md) · [6. Performance](06-desempenho.md) · [7. Migration to C#](07-migracao-para-csharp.md) · **8. Under the hood** · [9. Content classes](09-conteudo.md)
 
 You do not need this page to write mods. It explains how C# mods work inside
 the game, for the curious and for whoever works on Bunny Loader itself.
 
-## Three runtimes in one process
+## Two runtimes in one process
 
 ```mermaid
 flowchart LR
     subgraph P["the game process"]
         U["Unity + IL2CPP<br/>(Terraria, compiled to ARM)"]
         B["libbunny<br/>(Bunny Loader's native core)"]
-        Q["QuickJS<br/>(JS mods)"]
         M["Mono<br/>(C# mods)"]
     end
     B -- "hooks" --> U
-    Q <--> B
     M <--> B
 ```
 
 Terraria Mobile is C# compiled to native ARM code by Unity's **IL2CPP**:
 there is no .NET runtime in the game. Bunny Loader brings its own: the
 official **Mono** runtime for Android (the one .NET for Android uses), in the
-same process as the game. It starts only when an enabled mod's entry is a
-`.dll`.
+same process as the game. It starts with the game, even without C# mods,
+because the Host screen, the server sync and the config screens run on it.
 
 ## `BunnyLoader.dll`: the game, generated
 
@@ -95,13 +93,13 @@ sequenceDiagram
     T-->>G: result → registers
 ```
 
-1. The first `+=` on a method patches the game's entry point (the same hook
-   engine the JS mods use, so hooks of both languages form one chain).
+1. The first `+=` on a method patches the game's entry point, through the
+   core's hook chain (the same one the core's own C++ hooks use).
 2. The patch jumps into a generated **trampoline**: a C# method the native
    code can call directly, with the exact native signature.
 3. The trampoline turns registers into typed values (`ref` parameters become
    real C# references to the game's variables) and calls your hooks.
-4. `orig` calls the next link: another hook (C# or JS) or the game.
+4. `orig` calls the next link: another hook or the game.
 5. If your hook throws, the trampoline logs it and makes sure the game's
    method still ran.
 
@@ -233,17 +231,12 @@ not in the game is skipped (and written to `skipped.txt`); the build only
 fails if none is found, which means the dump is wrong. A nested type can be
 written with a dot (`Terraria.NPC.Spawner`) or a slash (`Terraria.NPC/Spawner`).
 
-`tools/proxygen/js_types.py` writes `ProxyGen/types-js.txt`: the game types the
-JS loaders call by signature (`Type['void Foo(int a)']`, `Type.new(...)`,
-`bl.classOf`) that are not in `types.txt` yet. A name that reads like a type
-but is a member (`Terraria.Main.ItemDropsDB`) is left out by checking
-`refs/dump.cs`; without the dump the script guesses by the name and says
-which ones it left out. To try them, with the dump in `refs/DummyDll`:
+To try new types, write them in a second list and run ProxyGen with both,
+with the dump in `refs/DummyDll`:
 
 ```bash
-python3 tools/proxygen/js_types.py
 dotnet build app/src/main/csharp/ProxyGen/ProxyGen.csproj -c Release
-dotnet app/src/main/csharp/ProxyGen/bin/Release/net10.0/ProxyGen.dll --dummy refs/DummyDll --types app/src/main/csharp/ProxyGen/types.txt --types app/src/main/csharp/ProxyGen/types-js.txt --out /tmp/proxies
+dotnet app/src/main/csharp/ProxyGen/bin/Release/net10.0/ProxyGen.dll --dummy refs/DummyDll --types app/src/main/csharp/ProxyGen/types.txt --types /tmp/new-types.txt --out /tmp/proxies
 ```
 
 Then read `/tmp/proxies/skipped.txt`, move to `types.txt` the types that
@@ -267,4 +260,4 @@ compiles; a listed nested type brings the types around it along.
 | The compiler of mods with sources | `app/src/main/csharp/BunnyLoader.Compiler/` |
 | The compiler in the catalog app | `catalog/src/main/cpp/CompilerHost.cpp`, `CompilerRuntime.kt`, `CSharpBuild.kt` |
 | The compiler on a PC | `tools/mods/csbuild/`, `tools/mods/csharp_build.py` |
-| Tests and benchmarks | `tools/tests/hookcs`, `benchcs`, `benchjs`, `cssource`, `compilebench`, `csitems`, `csload`, `csassets`, `csmodtarget`, `csmodref`, `cssourceref`, `csloc`, `csinstances`, `csglobals`, `cssave`, `csnet`, `csuse`, `csheal`, `cspickup`, `csdraw`, `csopen`, `csnetitem`, `cstooltip`, `csrarity`, `csprefix` |
+| Tests and benchmarks | `tools/tests/hookcs`, `benchcs`, `cssource`, `compilebench`, `csitems`, `csload`, `csassets`, `csmodtarget`, `csmodref`, `cssourceref`, `csloc`, `csinstances`, `csglobals`, `cssave`, `csnet`, `csuse`, `csheal`, `cspickup`, `csdraw`, `csopen`, `csnetitem`, `cstooltip`, `csrarity`, `csprefix` |

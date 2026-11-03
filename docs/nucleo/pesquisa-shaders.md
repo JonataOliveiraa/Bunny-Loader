@@ -135,7 +135,7 @@ changing an isolated material modifies every batch.
 
 ### Bunny already has a hook point for scene effects
 
-[SceneEffectLoader](../../app/src/main/cpp/script/js/mod/Loaders/SceneEffectLoader.js)
+[SceneEffectLoader](../../app/src/main/csharp/BunnyLoader/Terraria/ModLoader/SceneEffectLoader.cs)
 calls `SpecialVisuals(player, active)` for both active and inactive effects.
 That allows investigating activation and deactivation by biome/event.
 
@@ -187,7 +187,7 @@ compatibility.
 
 `Shader.Find` looks up an existing shader; it does not compile a `.fx`'s text.
 The dump marks the `Material` constructor from shader text as obsolete and
-unsupported. Loading PNG through `bl.loadTexture` does not offer an equivalent
+unsupported. Loading a PNG as a texture does not offer an equivalent
 path for loading shaders either.
 
 An effect's math can be ported, but vertex inputs, textures, properties,
@@ -240,7 +240,7 @@ In the future test, record in particular:
 - Settings that disable filters, capture or render targets.
 - Separation between the game thread and the render thread: the existing
   mechanism for creating textures on the game thread does not authorize
-  arbitrary GL commands on that same thread. See [threads](../historico/threads-e-motor-js.md).
+  arbitrary GL commands on that same thread.
 
 Before setting a performance budget, choose the device, backend, resolution
 and control scene. Do not estimate FPS from the shader's name.

@@ -17,7 +17,7 @@ The Hardmode test disables `Hardmode Conversion` and runs passes on either side.
 
 ## Recorded validation
 
-On 2026-10-31, MuMu `127.0.0.1:16416`, QuickJS off:
+On 2026-10-31, MuMu `127.0.0.1:16416`:
 
 | Check | Result |
 | --- | --- |

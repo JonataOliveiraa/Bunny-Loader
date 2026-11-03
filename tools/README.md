@@ -130,8 +130,7 @@ bytes, in `build/mods-packs/`.
 
 [`mods/port_textures.py`](mods/port_textures.py) copies the images of resource
 packs from the local Workshop to `build/mods-repo/ports/textures/`, creates
-`manifest.json` with authorship and builds the `.bl` files, without requiring
-`main.js`. Example: `python tools/mods/port_textures.py 2439853873 2796830227`.
+`manifest.json` with authorship and builds the `.bl` files. Example: `python tools/mods/port_textures.py 2439853873 2796830227`.
 Each port has a README in `ports/textures/<name>/` of the mods repository; the
 finished `.bl` files sit in `ports/textures/in bl/`.
 
@@ -252,8 +251,7 @@ gradle :catalog:testDebugUnitTest :catalog:assembleDebug
 The tests are **C# mods**: each folder in [`tests/`](tests) installs into the
 game, does what it tests for real (uses the item, summons the boss, saves and
 reloads the world) and writes one log line per check, ending in
-`<test> END pass=N fail=M`. The JavaScript tests were removed with the JS
-engine; they are in the `js-final` tag.
+`<test> END pass=N fail=M`.
 
 [`tests/run-cs.sh`](tests/run-cs.sh) builds nothing: it installs the test (with
 `csenv` and `csauto`), opens the game, enters the test world, waits for `END`
@@ -273,7 +271,7 @@ CLIENT=127.0.0.1:16417 bash tools/tests/run-mp.sh csconfigmp
 | `tilesettled` | Mod tile readiness, including zero registered tiles: keeps quick start from waiting forever without the Example Mod. A standalone binary (`tilesettled/run.sh`), without opening the game or touching saves. | no |
 | **Content** | | |
 | `loadordersort` | Sorting by `dependencies` (`mods/LoadOrder.cpp`) and reading the field from the manifest (`mods/ManifestText.cpp`): a dependency before whoever asks for it, the launcher's order for the rest, missing/cycle/ambiguous id disables the mod, an already sorted list does not change (the sync's). Runs on the PC: `wsl bash tools/tests/loadordersort/run.sh`. | no |
-| `soundasync` | A bounded SFX queue outside QuickJS: states/failures, cancellation, concurrent pause, retention and an Android A/B with normal and extreme load and bursts. Shares soundfilter's runner with `--suite soundasync`; see the [README](tests/soundasync/README.md). | save copies only |
+| `soundasync` | A bounded SFX queue off the game thread: states/failures, cancellation, concurrent pause, retention and an Android A/B with normal and extreme load and bursts. Shares soundfilter's runner with `--suite soundasync`; see the [README](tests/soundasync/README.md). | save copies only |
 | `launcherperf` | Launcher loading: cache/concurrency, GIFs and per-uid invalidation, with an A/B comparison of Explore, Settings and the page on Android. See the [README](tests/launcherperf/README.md) and the [results](tests/launcherperf/RESULTADOS.md). | restores preferences/cache; does not start the game |
 | **Multiplayer** | | |
 
@@ -285,6 +283,6 @@ day.
 
 | Folder | What it is |
 |---|---|
-| [`bisect/`](bisect) | `buildat.sh <commit>` builds an old commit's APK in a worktree outside the repository (QuickJS, assets and the game's `.so` files linked through junctions and undone before deleting) and leaves it at `out/bisect/app-<commit>.apk`: the binary search for a regression. One build at a time. Careful: MuMu only has a 60 Hz screen, and another instance running on the PC distorts the measurement. |
+| [`bisect/`](bisect) | `buildat.sh <commit>` builds an old commit's APK in a worktree outside the repository (third-party sources, assets and the game's `.so` files linked through junctions and undone before deleting) and leaves it at `out/bisect/app-<commit>.apk`: the binary search for a regression. One build at a time. Careful: MuMu only has a 60 Hz screen, and another instance running on the PC distorts the measurement. |
 | [`crash-trials/`](crash-trials) | Creates worlds in a row on MuMu, restarting the app on each attempt, and counts crashes ([history](../docs/historico/AVALIACAO-PONTE-E-CRASH.md)). |
 | [`disasm/`](disasm) | Annotated disassembly of `libil2cpp.so` (`prep.sh` generates the caches from `refs/`). Compiled limits: `scan_limits.py` (`cmp #N`), `scan_loops.py` (end of a loop in bytes), `scan_movs.py` (`new T[N]`) and `scan_halved.py` (the drop's `0 < x < N` done by halves). See [content under the hood](../docs/nucleo/conteudo.md#the-compiled-limits). |

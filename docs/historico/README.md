@@ -29,6 +29,8 @@ API took over; the last version with it is the `js-final` tag (and the
 | [referencia-js/](referencia-js/metodos.md) | The JS API reference: methods by class, what each class had, the bridge and `bl`. |
 | [ponte-js.md](ponte-js.md) | The JS ↔ game bridge: names, types, structs, objects pinned against the garbage collector. |
 | [threads-e-motor-js.md](threads-e-motor-js.md) | The engine lock, the per-thread stack, `ifBusy`. |
+| [compatibilidade-tmodloader-desenho-banners.md](compatibilidade-tmodloader-desenho-banners.md) | The tModLoader contracts for item drawing, `CloneDefaults` and banners, as analyzed and built in the JS loaders (2026-10-08). |
+| [plano-csharp.md](plano-csharp.md) | The plan that moved every loader to C# and removed JavaScript, phase by phase, with what each phase delivered. What is left is in [Migration to C#](../mods-em-csharp/07-migracao-para-csharp.md#what-is-left-of-the-migration). |
 
 The raw data (crash logs, attempts, benchmark rounds) is in
 [`dados/`](dados/).
