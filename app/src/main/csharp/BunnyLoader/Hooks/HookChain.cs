@@ -21,7 +21,7 @@ public sealed class HookChain<THook, TOrig> where THook : System.Delegate where 
         this.install = install;
     }
 
-    public TOrig? Chain => Volatile.Read(ref chain);
+    public TOrig? Chain => HookGate.Open ? Volatile.Read(ref chain) : null;
 
     public int Count => hooks.Count;
 
@@ -58,6 +58,13 @@ public sealed class HookChain<THook, TOrig> where THook : System.Delegate where 
         foreach (THook hook in hooks) next = wrap(hook, next);
         Volatile.Write(ref chain, next);
     }
+}
+
+internal static unsafe class HookGate
+{
+    static volatile bool open;
+
+    internal static bool Open => open || (open = Host.Native()->IsCoreReady() != 0);
 }
 
 public static class HookErrors

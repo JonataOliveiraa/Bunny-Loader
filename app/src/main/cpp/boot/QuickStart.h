@@ -33,6 +33,7 @@ void waitForGameLoaded(std::chrono::milliseconds max);
  * sempre (mods carregados antes do resto da inicializacao do jogo).
  */
 void markCoreReady();
+bool isCoreReady();
 
 /** Thread do jogo, a cada quadro (hook de Main.DoUpdate). */
 void tickQuickStart();

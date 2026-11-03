@@ -2,6 +2,7 @@
 #include "script/dotnet/DotnetCall.h"
 #include "script/dotnet/HookProfile.h"
 #include "boot/Boot.h"
+#include "boot/QuickStart.h"
 #include "content/buffs/BuffIconLook.h"
 #include "content/players/PlayerStages.h"
 #include "content/ui/EmoteMenuIcon.h"
@@ -215,6 +216,7 @@ struct NativeApi {
     int32_t (*screenSaveNeutralLut)(const char* path, int32_t size);
     int32_t (*screenStats)(int64_t* out, int32_t capacity);
     void* (*requestModFont)(const char* path);
+    int32_t (*isCoreReady)();
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -1094,6 +1096,7 @@ const NativeApi kNativeApi{
         if (!path || !fileExists(path)) return nullptr;
         return runtime::loadModFont(path);
     },
+    []() -> int32_t { return runtime::isCoreReady() ? 1 : 0; },
 };
 
 } // namespace

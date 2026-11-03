@@ -479,6 +479,8 @@ void waitForGameLoaded(std::chrono::milliseconds max) {
     g_loadedCv.wait_for(lock, max, [] { return g_gameLoaded; });
 }
 
+bool isCoreReady() { return g_coreReady.load(std::memory_order_acquire); }
+
 void markCoreReady() {
     g_coreReady.store(true, std::memory_order_release);
     if (config().fastBoot) BL_INFO("inicio rapido: mods carregados em %.1f s", sinceStart());

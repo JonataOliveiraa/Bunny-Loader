@@ -218,7 +218,7 @@ internal static unsafe class SystemHooks
         orig(self);
         if (!IsPlayerScan(self)) return;
         GameArray<int> counts = self._tileCounts;
-        if (!counts.IsNull) SystemLoader.TileCountsAvailable(counts.AsSpan());
+        if (!counts.IsNull && counts.Length >= TileLoader.TileCount) SystemLoader.TileCountsAvailable(counts.AsSpan());
     }
 
     static void ResetOnQuit(On_WorldGen.orig_SaveAndQuit orig)
