@@ -93,13 +93,16 @@ How a PNG gets in, and what it costs:
 
 - The pack's PNG replaces the `Value` of the game's own asset (the same
   `Asset<Texture2D>` object the tables and the UI hold), never the table
-  entry. Textures the game has already loaded are replaced when the world
-  opens; the rest when the game first loads them, and again if the game
-  unloads and reloads them.
+  entry. The PNG goes in at the moment the game loads that texture, during
+  the loading screen, and again if the game unloads and reloads it; the few
+  the game loads before its texture tables exist are replaced right after,
+  and with the fast intro on, the splash waits for them. Enabling or
+  reordering packs in the menu applies them on the next frames.
 - A pack texture is uploaded once to the GPU and keeps no copy in RAM and no
   mipmaps. A large pack (the Calamity Texture Pack: 3211 PNGs, ~225 MB of
-  pixels) adds ~25 MB to the game's memory and ~2 s to opening the world on
-  the MuMu emulator; it used to add ~290 MB and ~12 s.
+  pixels) adds ~25 MB to the game's memory and a few seconds to the loading screen
+  on the MuMu emulator, with no pause on the menu or when opening the world;
+  it used to add ~290 MB and ~12 s to opening the world.
 - Each replaced sprite is its own texture, outside the game's atlas pages, so
   many different replaced sprites on screen mean more draw calls than the
   vanilla atlas. Keep the sheet sizes of the originals: a different size logs

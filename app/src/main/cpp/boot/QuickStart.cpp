@@ -2,6 +2,7 @@
 
 #include "content/common/GameRefs.h"
 #include "content/common/ModContent.h"
+#include "content/textures/TexturePacks.h"
 #include "core/Config.h"
 #include "core/Log.h"
 #include "hook/HookManager.h"
@@ -142,7 +143,7 @@ void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* 
     // O jogo marca o fim da carga DENTRO do DrawSplash; aqui ve-se no quadro
     // seguinte. Com os mods ja carregados, o splash acaba agora.
     if (!g_splashCut && staticBool(g_intro.asyncLoadComplete) &&
-        g_coreReady.load(std::memory_order_acquire)) {
+        g_coreReady.load(std::memory_order_acquire) && !runtime::texturePacksBusy()) {
         const double left = advanceSplashTimer();
         g_splashCut = true;
         if (left >= 0) {

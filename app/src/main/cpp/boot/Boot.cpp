@@ -3,6 +3,8 @@
 #include "core/Log.h"
 #include "il2cpp/Api.h"
 #include "content/common/GameRefs.h"
+#include "content/textures/TexturePacks.h"
+#include "core/Config.h"
 
 #include <unistd.h>
 
@@ -51,6 +53,7 @@ void boot() {
     // caminho (watcher sem hook, como ja foi no MuMu), a sonda instala depois
     // dos 10 s dela, ainda a tempo de encurtar o splash.
     installFastIntro();
+    prepareTexturePacks(config().modsDir, config().enabledMods);
 
     // TODO(Fase 3): installProjectileHooks() e demais hooks de runtime.
     BL_DEBUG("runtime pronto; mods ficam a cargo da sonda");
