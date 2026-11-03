@@ -28,7 +28,7 @@ sealed class Emitter
     readonly TypeMap map;
     public readonly SortedSet<int> RetBufSizes = new();
     public readonly SortedSet<string> Skipped = new(StringComparer.Ordinal);
-    public int Methods, Hooks, Fields, Properties, Events;
+    public int Methods, Hooks, Fields, Properties, Events, Overloads;
     public readonly System.Text.StringBuilder Bridges = new();
     readonly Dictionary<string, string> bridges = new();
     int uid;
@@ -453,6 +453,7 @@ sealed class Emitter
                 sb.Append(b0).Append($"return new {self}(__obj);\n");
             }
             sb.Append(ind).Append("}\n");
+            EmitDelegateOverload(sb, ind, m, classExpr, name, access, id);
             return;
         }
         string unsafeRet = RetCs(m);
@@ -482,6 +483,70 @@ sealed class Emitter
         }
         EmitCall(sb, bb, m, fn, info, self2);
         sb.Append(ind).Append("}\n");
+        EmitDelegateOverload(sb, ind, m, classExpr, name, access, id);
+    }
+
+    public readonly Dictionary<string, (MethodModel Invoke, string Managed)?> DelegateModels = new();
+
+    (MethodModel Invoke, string Managed)? DelegateOf(Type t)
+    {
+        if (t.BaseType?.FullName != "System.MulticastDelegate") return null;
+        string key = TypeMap.Key(t);
+        if (DelegateModels.TryGetValue(key, out var have)) return have;
+        DelegateModels[key] = null;
+        MethodInfo? invoke = t.GetMethod("Invoke");
+        MethodModel? model = invoke != null ? Model(invoke, t, true) : null;
+        string? managed = model != null ? ManagedDelegate(model) : null;
+        if (model == null || managed == null || model.Params.Select(a => a.Use).Prepend(model.Plan.Ret.Use).Any(u => map.Missing(u) != null)) return null;
+        return DelegateModels[key] = (model, managed);
+    }
+
+    void EmitDelegateOverload(StringBuilder sb, string ind, MethodModel m, string classExpr, string name, string access, int id)
+    {
+        if (name.StartsWith("__", StringComparison.Ordinal)) return;
+        ParameterInfo[] infos = m.Method.GetParameters();
+        if (infos.Length != m.Params.Count) return;
+        var delegates = new Dictionary<int, (string Managed, string Bridge)>();
+        for (int i = 0; i < infos.Length; i++)
+        {
+            if (m.Params[i].Mode != ArgMode.Value) continue;
+            if (DelegateOf(infos[i].ParameterType) is not (MethodModel invoke, string managed)) continue;
+            delegates[i] = (managed, Bridge(invoke, infos[i].ParameterType, managed));
+        }
+        if (delegates.Count == 0) return;
+        int last = delegates.Keys.Max();
+        var parts = new List<string>();
+        var args = new List<string>();
+        for (int i = 0; i < m.Params.Count; i++)
+        {
+            ArgPlan a = m.Params[i];
+            string mod = a.Mode switch { ArgMode.Ref => "ref ", ArgMode.Out => "out ", ArgMode.In => "in ", _ => "" };
+            if (delegates.TryGetValue(i, out var d))
+            {
+                parts.Add($"{d.Managed}? {a.Name}");
+                args.Add(a.Use.FromRaw($"__d{i}"));
+                continue;
+            }
+            string def = i > last && m.Defaults[i] != null && Enumerable.Range(i, m.Params.Count - i).All(k => m.Defaults[k] != null) ? " = " + m.Defaults[i] : "";
+            parts.Add($"{mod}{a.Use.Cs} {a.Name}{def}");
+            args.Add(mod + a.Name);
+        }
+        string sig = Emitter.Literal(m.Signature)!;
+        string isStatic = m.IsStatic || m.IsCtor ? "static " : "";
+        string ret = m.IsCtor ? TypeMap.ProxyName(m.Owner) : RetCs(m);
+        string call = $"{name}({string.Join(", ", args)})";
+        sb.Append(ind).Append($"{access} {isStatic}{ret} {name}({string.Join(", ", parts)})\n");
+        sb.Append(ind).Append("{\n");
+        string b = ind + "    ";
+        foreach ((int i, var d) in delegates)
+        {
+            sb.Append(b).Append($"nint __d{i} = {RT}.GameDelegates.Create({m.Params[i].Name}, {RT}.GameDelegates.ParamClass({G}.Method(ref __m{id}, {classExpr}, {sig}, __L{id}).Info, {i}), {d.Bridge}.Fn);\n");
+            sb.Append(b).Append($"using var __h{i} = __d{i} != 0 ? new {RT}.GameHandle(__d{i}) : null;\n");
+        }
+        bool isVoid = !m.IsCtor && m.Plan.Ret.Use.Abi == AbiClass.Void && !m.Plan.Ret.ByRef;
+        sb.Append(b).Append(isVoid ? $"{call};\n" : (m.Plan.Ret.ByRef ? $"return ref {call};\n" : $"return {call};\n"));
+        sb.Append(ind).Append("}\n");
+        Overloads++;
     }
 
     public void EmitHook(StringBuilder sb, string ind, MethodModel m, string classExpr, string eventName, string label)

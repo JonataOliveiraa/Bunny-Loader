@@ -154,7 +154,7 @@ static class Program
 
         File.WriteAllLines(Path.Combine(outDir, "skipped.txt"), missing.Select(m => "type " + m).Concat(emitter.Skipped));
         Console.WriteLine($"ProxyGen: {map.Generated.Count} types ({plans.Count} full) in {files} files; " +
-                          $"{emitter.Methods} methods, {emitter.Hooks} hooks, {emitter.Fields} fields, {emitter.Properties} properties, {emitter.Events} events; " +
+                          $"{emitter.Methods} methods, {emitter.Hooks} hooks, {emitter.Fields} fields, {emitter.Properties} properties, {emitter.Events} events, {emitter.Overloads} delegate overloads; " +
                           $"{missing.Count} types and {emitter.Skipped.Count} members skipped (skipped.txt)");
         return 0;
     }

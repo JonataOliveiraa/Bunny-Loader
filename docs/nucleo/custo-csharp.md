@@ -130,3 +130,27 @@ scenario, one run:
 | Managed allocation | 6.6 KB/frame | 17.2 KB/frame |
 
 Items 2 to 4 above are still open.
+
+## On a phone (2026-11-03)
+
+Samsung Galaxy A15 (SM-A156M), reached through ZeroTier and wireless
+debugging; `csperf` with `debug.bl.cshookprofile 1`, ExampleModCSharp on,
+standing in the world. Four windows of 300 frames:
+
+| | Phone | MuMu (above) |
+|-|---:|---:|
+| Frame | 16.7-16.9 ms (60 fps) | |
+| DoUpdate / DoDraw | 2.7-3.3 ms / 5.7-6.4 ms | |
+| C# self time | 2.07-2.23 ms/frame, ~90 hooks, 209-611 entries/frame | 4.2 ms/frame |
+| Hot hook entry (`WorldItem.UpdateItem`, 400/frame) | 0.52-0.60 µs/call | 1.45 µs (burst) |
+| Cold hook entry, once per frame | 2.0-6.1 µs/call | 26-34 µs (isolated) |
+| Managed allocation | 6.4 KB/frame, one gen0 GC per ~5 s, no frame spike | 6.6 KB/frame |
+| Profiler bias / clock | 204 ns / 97 ns | |
+
+Entering a hook costs about a third of MuMu's on the phone, where the
+emulator's translation is not in the way. The largest single costs are
+handlers, not entries: `TeleportPylonsSystem.IsPlayerNearAPylon` takes
+320-330 µs in its one call per frame (0.33 ms/frame, the mod pylon check),
+`LegacyPlayerRenderer.DrawPlayer_UseNormalLayers` 150 µs, the `ResourceDraw`
+callback 24 × 5.6 µs, `Lighting.LightTiles` 90 µs and `Player.UpdateBiomes`
+65-95 µs.

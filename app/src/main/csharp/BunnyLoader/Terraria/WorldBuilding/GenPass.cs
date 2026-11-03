@@ -51,7 +51,7 @@ public abstract class GenPass : GenBase, IGameObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ValidateWeight(loadWeight);
-        NativeLegacy pass = NativeLegacy.New(name, default, loadWeight);
+        NativeLegacy pass = NativeLegacy.New(name, default(BunnyLoader.Interop.WorldGen.WorldGenLegacyMethod), loadWeight);
         handle = new GameHandle(pass.Pointer);
         WorldGenHooks.Track(this);
     }

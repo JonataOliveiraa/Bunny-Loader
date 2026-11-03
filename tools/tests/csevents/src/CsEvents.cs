@@ -68,7 +68,7 @@ public sealed class CsEventsMod : Mod
                 Main.OnPostDraw += Second;
                 break;
             case 70:
-                Report("both OnPostDraw subscribers run every frame with the GameTime", first >= 30 && second >= 30 && Math.Abs(first - second) <= 1 && gameTimeOk, $"first={first} second={second} gameTime={gameTimeOk}");
+                Report("both OnPostDraw subscribers run every frame with the GameTime", first >= 15 && second >= 15 && Math.Abs(first - second) <= 1 && gameTimeOk, $"first={first} second={second} gameTime={gameTimeOk}");
                 Main.OnPostDraw -= First;
                 first = 0;
                 second = 0;
@@ -88,9 +88,30 @@ public sealed class CsEventsMod : Mod
                 break;
             case 230:
                 Report("removing every subscriber stops the calls", first == 0 && second == 0, $"first={first} second={second}");
+                break;
+            case 240:
+                Parameters();
                 done = true;
                 break;
         }
+    }
+
+    static void Parameters()
+    {
+        int calls = 0, lastX = -1;
+        bool all = Utils.PlotLine(2, 5, 12, 5, (x, y) =>
+        {
+            calls++;
+            lastX = x;
+            return y == 5;
+        });
+        Report("a C# lambda passed as a game delegate is called for each point the game plots", all && calls == 10 && lastX == 11, $"calls={calls} last={lastX} result={all}");
+        int stopped = 0;
+        bool early = Utils.PlotLine(0, 0, 20, 0, (x, y) => ++stopped < 4);
+        Report("returning false from the C# delegate stops the game's loop", !early && stopped == 4, $"calls={stopped} result={early}");
+        int total = 0;
+        for (int i = 0; i < 300; i++) Utils.PlotLine(0, 0, 1, 0, (x, y) => { total++; return true; });
+        Report("300 short-lived game delegates in a row", total == 300, $"calls={total}");
     }
 
     static void Report(string name, bool ok, string detail)

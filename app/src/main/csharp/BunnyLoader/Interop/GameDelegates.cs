@@ -16,6 +16,8 @@ public static unsafe class GameDelegates
     static readonly Dictionary<IntPtr, Delegate> ByTarget = new();
     static readonly Dictionary<(string Event, IntPtr Owner), List<Entry>> ByEvent = new();
     static readonly HashSet<string> Reported = new();
+    static readonly Dictionary<IntPtr, uint> Loose = new();
+    static int created;
 
     public static void Report(string what, Exception e)
     {
@@ -39,6 +41,33 @@ public static unsafe class GameDelegates
         lock (Gate) ByTarget[owner] = handler;
         target = owner;
         return game;
+    }
+
+    public static IntPtr Create(Delegate? handler, IntPtr klass, IntPtr fn)
+    {
+        if (handler == null) return IntPtr.Zero;
+        IntPtr game = New(handler, klass, fn, out IntPtr target);
+        uint weak = Host.Native()->GcHandleNewWeak(target);
+        lock (Gate)
+        {
+            Loose[target] = weak;
+            if (++created % 256 == 0) Sweep();
+        }
+        return game;
+    }
+
+    static void Sweep()
+    {
+        var dead = new List<IntPtr>();
+        foreach ((IntPtr target, uint weak) in Loose)
+            if (Host.Native()->GcHandleTarget(weak) == IntPtr.Zero)
+                dead.Add(target);
+        foreach (IntPtr target in dead)
+        {
+            Host.Native()->GcHandleFree(Loose[target]);
+            Loose.Remove(target);
+            ByTarget.Remove(target);
+        }
     }
 
     public static void Add(Delegate? handler, string name, IntPtr owner, IntPtr klass, IntPtr fn, Action<IntPtr> add)

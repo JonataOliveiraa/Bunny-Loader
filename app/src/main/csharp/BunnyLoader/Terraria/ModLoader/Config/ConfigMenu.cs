@@ -1214,7 +1214,7 @@ internal static unsafe class ConfigMenu
         ConfigOption o = row.Option!;
         double current = Convert.ToDouble(o.Get(row.Entry.View), System.Globalization.CultureInfo.InvariantCulture);
         float? v = DrawSlider(s, row, Label(row), enabled, s.SliderTemplate.Option, (float)((current - o.Min) / (o.Max - o.Min)),
-            (Slider_Layout l, bool disable, ref float value, GUISlider.DragState drag, bool force) => GUISlider.Draw(l, disable, ref value, drag, default, force, -1, -1, false));
+            (Slider_Layout l, bool disable, ref float value, GUISlider.DragState drag, bool force) => GUISlider.Draw(l, disable, ref value, drag, default(GUISlider.DrawBackingHandler), force, -1, -1, false));
         if (v != null)
             SetValue(row, o.Min + v.Value * (o.Max - o.Min));
         double shown = Convert.ToDouble(o.Get(row.Entry.View), System.Globalization.CultureInfo.InvariantCulture);
@@ -1584,7 +1584,7 @@ internal static unsafe class ConfigMenu
         Slider_Layout layout = row.Kind == "hue" ? t.HueOption : row.Kind == "saturation" ? t.SaturationOption : t.LightOption;
         SliderDraw draw = row.Kind switch
         {
-            "hue" => (Slider_Layout l, bool disable, ref float value, GUISlider.DragState drag, bool force) => GUISlider.Draw(l, disable, ref value, drag, default, force, -1, -1, false),
+            "hue" => (Slider_Layout l, bool disable, ref float value, GUISlider.DragState drag, bool force) => GUISlider.Draw(l, disable, ref value, drag, default(GUISlider.DrawBackingHandler), force, -1, -1, false),
             "saturation" => GUISlider.DrawSaturation,
             _ => GUISlider.DrawLightness
         };

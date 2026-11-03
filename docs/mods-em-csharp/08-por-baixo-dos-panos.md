@@ -212,8 +212,12 @@ loads `libSystem.Security.Cryptography.Native.Android.so` from Java, so its
   exception inside a handler is logged once and does not stop the other
   subscribers. An event whose delegate has `ref`/`out` parameters, more than
   sixteen parameters or a large struct return is skipped (`skipped.txt`).
-- A C# method still cannot be passed as a parameter where a game method expects
-  one of its delegate types (only events take C# handlers).
+- A game method or constructor that takes one of the game's delegates also has
+  an overload taking the matching `Action<...>`/`Func<...>`, so a lambda goes
+  straight in: `Utils.PlotLine(0, 0, 20, 0, (x, y) => ...)`. The game delegate
+  stays alive while the game holds it; the ones it drops are cleaned up later.
+  Passing `default` or `null` to such a parameter needs a type
+  (`default(GUISlider.DrawBackingHandler)`), since both overloads take it.
 - Methods with more than eight `float`/`double` arguments are skipped.
 - A struct with a field the generator cannot describe is not mirrored, and
   methods that use it are skipped.

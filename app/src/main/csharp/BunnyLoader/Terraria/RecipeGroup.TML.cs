@@ -8,7 +8,7 @@ public readonly partial struct RecipeGroup
 {
     public string Key => RecipeLoader.KeyOf(this);
 
-    public RecipeGroup Add(int itemID) => Add(itemID, default);
+    public RecipeGroup Add(int itemID) => Add(itemID, default(BunnyLoader.Interop.GameObject));
 
     public static RecipeGroup Register(string key, string groupDescriptorKey, params int[] validItems)
     {
