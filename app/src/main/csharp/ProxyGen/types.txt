@@ -423,3 +423,4 @@ Terraria.ID.ExtrasID
 Terraria.GameContent.Items.WhipTagEffect
 Terraria.DelegateMethods
 Terraria.GameContent.Drawing.ParticleOrchestrator
+!Terraria.ID.AmmoID+Sets.SpecificLauncherAmmoProjectileMatches

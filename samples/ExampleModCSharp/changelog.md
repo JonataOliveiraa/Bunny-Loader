@@ -1,5 +1,13 @@
 # Novidades
 
+## 0.34.0
+
+- O lança-foguetes, que transforma o Foguete III em Miaumiau e usa o
+  Lança-Foguetes do jogo para as outras munições.
+- A arma de várias categorias, que recebe prefixos de corpo a corpo e de
+  magia.
+- A bola de golfe e o projétil animado avançado (com o item que o dispara).
+
 ## 0.33.0
 
 - As armas corpo a corpo que são projéteis: espada curta, lança, mangual,

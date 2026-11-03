@@ -1,0 +1,17 @@
+{
+  "uid": "20361a1c-cb8f-437d-83b2-98d41ef101bc",
+  "id": "CsExRanged",
+  "name": "Test: Example Mod ranged and magic weapons (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "The C# Example Mod's rocket launcher and its ammo matches, the weapon with several prefix categories, the golf ball and the advanced animated projectile.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexranged SHOT <name>, csexranged <case>: ok | FAIL and csexranged END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

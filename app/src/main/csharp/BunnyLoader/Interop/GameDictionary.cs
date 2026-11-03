@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 
 namespace BunnyLoader.Interop;
 
 public readonly unsafe struct GameDictionary
 {
     static readonly ConcurrentDictionary<(IntPtr, string, int), IntPtr> Methods = new();
+    static readonly ConcurrentDictionary<(IntPtr, string), int> Offsets = new();
 
     readonly IntPtr dictionary;
 
@@ -85,6 +87,35 @@ public readonly unsafe struct GameDictionary
         call.Arg(info);
         call.Invoke(fn);
     }
+
+    public KeyValuePair<int, int>[] IntEntries()
+    {
+        IntPtr entries = *(IntPtr*)(dictionary + Offset("_entries"));
+        int count = *(int*)(dictionary + Offset("_count"));
+        int free = *(int*)(dictionary + Offset("_freeCount"));
+        var result = new List<KeyValuePair<int, int>>(count);
+        if (entries == IntPtr.Zero) return result.ToArray();
+        int* entry = (int*)(entries + 0x20);
+        for (int i = 0; i < count; i++, entry += 4)
+        {
+            if (free > 0 && (entry[0] == -1 || entry[1] < -1)) continue;
+            result.Add(new KeyValuePair<int, int>(entry[2], entry[3]));
+        }
+        return result.ToArray();
+    }
+
+    int Offset(string field) =>
+        Offsets.GetOrAdd((Class, field), key =>
+        {
+            byte* name = Host.Utf8(key.Item2);
+            try
+            {
+                int offset = Host.Native()->FieldOffset(key.Item1, name);
+                if (offset < 0) throw new MissingFieldException($"game Dictionary: no field {key.Item2}");
+                return offset;
+            }
+            finally { Host.FreeUtf8(name); }
+        });
 
     public bool Remove<TKey>(TKey key) where TKey : unmanaged
     {

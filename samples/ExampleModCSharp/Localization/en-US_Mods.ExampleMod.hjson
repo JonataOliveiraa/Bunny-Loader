@@ -293,6 +293,26 @@ Items: {
 		DisplayName: Example Drill
 		Tooltip: ""
 	}
+
+	ExampleRocketLauncher: {
+		DisplayName: Example Rocket Launcher
+		Tooltip: ""
+	}
+
+	ExampleMultiplePrefixCategoryWeapon: {
+		DisplayName: Example Multiple Prefix Category Weapon
+		Tooltip: This can receive and keep both melee and magic prefixes
+	}
+
+	ExampleGolfBall: {
+		DisplayName: Example Golf Ball
+		Tooltip: ""
+	}
+
+	ExampleAdvancedAnimatedProjectileItem: {
+		DisplayName: Example Advanced Animated Projectile Item
+		Tooltip: ""
+	}
 }
 
 Conditions: {
@@ -353,6 +373,8 @@ Projectiles: {
 	ExampleWhipProjectile.DisplayName: Example Whip Projectile
 	ExampleSwingingEnergySwordProjectile.DisplayName: Example Swinging Energy Sword Projectile
 	ExampleDrillProjectile.DisplayName: Example Drill Projectile
+	ExampleGolfBallProjectile.DisplayName: Example Golf Ball
+	ExampleAdvancedAnimatedProjectile.DisplayName: Example Advanced Animated Projectile
 }
 
 NPCs: {

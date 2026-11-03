@@ -54,6 +54,8 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual Vector2? HoldoutOffset(int type) => null;
 
+    public virtual void ModifyResearchSorting(Item item, ref Terraria.ID.ContentSamples.CreativeHelper.ItemGroup itemGroup) { }
+
     public virtual void UpdateInventory(Item item, Player player) { }
 
     public virtual void ModifyWeaponDamage(Item item, Player player, ref StatModifier damage) { }

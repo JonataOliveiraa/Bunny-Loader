@@ -80,6 +80,8 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual Vector2? HoldoutOffset() => null;
 
+    public virtual void ModifyResearchSorting(ref Terraria.ID.ContentSamples.CreativeHelper.ItemGroup itemGroup) { }
+
     public virtual void UpdateInventory(Player player) { }
 
     public virtual void ModifyWeaponDamage(Player player, ref StatModifier damage) { }

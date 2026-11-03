@@ -293,6 +293,26 @@ Items: {
 		DisplayName: Broca de Exemplo
 		Tooltip: ""
 	}
+
+	ExampleRocketLauncher: {
+		DisplayName: Lança-Foguetes de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleMultiplePrefixCategoryWeapon: {
+		DisplayName: Arma de Exemplo de Várias Categorias
+		Tooltip: Pode receber e manter prefixos de corpo a corpo e de magia
+	}
+
+	ExampleGolfBall: {
+		DisplayName: Bola de Golfe de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleAdvancedAnimatedProjectileItem: {
+		DisplayName: Item do Projétil Animado Avançado de Exemplo
+		Tooltip: ""
+	}
 }
 
 Conditions: {
@@ -352,6 +372,8 @@ Projectiles: {
 	ExampleWhipProjectile.DisplayName: Projétil do Chicote de Exemplo
 	ExampleSwingingEnergySwordProjectile.DisplayName: Projétil da Espada de Energia de Exemplo
 	ExampleDrillProjectile.DisplayName: Projétil da Broca de Exemplo
+	ExampleGolfBallProjectile.DisplayName: Bola de Golfe de Exemplo
+	ExampleAdvancedAnimatedProjectile.DisplayName: Projétil Animado Avançado de Exemplo
 }
 
 NPCs: {

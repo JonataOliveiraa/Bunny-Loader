@@ -245,6 +245,10 @@ item), with tModLoader's signatures:
 | `OnMissingMana(Player player, int neededMana)` | When the player has less mana than the use needs | |
 | `OnConsumeMana(Player player, int manaConsumed)` | After the mana is spent | |
 
+`ModifyResearchSorting(ref ContentSamples.CreativeHelper.ItemGroup itemGroup)`
+moves the item to another group of the Journey research list
+(`ExampleGolfBall` sorts with the golf items).
+
 Healing items (potions, food that heals) have their own:
 
 | `ModItem` | When | Return |
@@ -394,6 +398,14 @@ player)`, `CanBeConsumedAsAmmo(Item weapon, Player player)`,
 Player player, ref int type, ref float speed, ref StatModifier damage, ref
 float knockback)` (the projectile, speed and damage it gives the shot). The
 `GlobalItem` versions take the weapon and the ammo first, as in tModLoader.
+
+Launchers that turn each rocket into its own projectile use
+`AmmoID.Sets.SpecificLauncherAmmoProjectileMatches` (launcher → ammo →
+projectile) and `AmmoID.Sets.SpecificLauncherAmmoProjectileFallback` (the
+launcher whose matches cover any ammo not listed, usually
+`ItemID.RocketLauncher`), as `ExampleRocketLauncher` does in
+`SetStaticDefaults`. Reading a game launcher's entry gives a copy that becomes
+the one used, so changing it changes that launcher.
 
 ```csharp
 public override bool Shoot(Player player, EntitySource_ItemUse_WithAmmo source, Vector2 position, Vector2 velocity, int type, int damage, float knockback)
