@@ -160,3 +160,46 @@ pylon type every frame, even with no mod pylon in the world. It now looks at
 the `TEModdedPylon` entities first and scans only when one is inside that
 region: on MuMu, with ExampleModCSharp, 150-180 µs per frame before and
 21-24 µs after (`csperf` now reports it as a focus hook).
+
+## C# against QuickJS on the same phone (2026-11-03)
+
+Samsung Galaxy A15 (SM-A156M) over ZeroTier. JS: release 0.3.3 (commit
+`11a9da4b`, QuickJS) with that commit's test packs and ExampleMod. C#: 0.4.0
+from `master` (after `7b703529`), `ExampleModCSharp` already compiled. Both on
+the flat test world with the test character; `bench-noenemies` (JS) and
+`csenv` (C#) remove hostile NPCs. "Mod code" is `frametime`/`perfloader`'s
+"JS nos hooks" for JS and the profiler's C# self time for C#: different
+instruments, same meaning.
+
+| | QuickJS (0.3.3) | C# (0.4.0) |
+|-|---:|---:|
+| No mods: frame / DoUpdate / DoDraw | 16.66 / 2.71 / 5.10 ms | 16.62 / 2.67 / 5.11 ms |
+| No mods: memory (PSS) | 870-905 MB | 930-985 MB |
+| Hook entry, isolated (once per frame) | 10.8 µs | 12.5-17.5 µs |
+| Hook entry, right after another | 1.85 µs | 2.1-3.9 µs |
+| Hook entry, burst (400 per frame) | 0.87 µs | 0.53-0.77 µs |
+| ExampleMod idle: mod code | 3.04 ms/frame (54 hooks) | 1.79 ms/frame (86 hooks) |
+| ExampleMod idle: DoUpdate / DoDraw | 3.57 / 5.73 ms | 3.06 / 5.60 ms |
+| ExampleMod idle: mod pylon check | 320 µs | 9.5 µs |
+| ExampleMod idle: memory (PSS) | 1.06 GB | 1.30 GB |
+| ExampleMod: loading the mods (il2cpp ready to mods loaded) | 1.3 s | 6.5 s (plus 6.3 s compiling once) |
+| 60 projectiles + 15 NPCs: mod code | 7.50 ms/frame | 4.10 ms/frame |
+| 60 projectiles + 15 NPCs: DoUpdate / DoDraw | 5.59 / 8.94 ms | 5.37 / 6.42 ms |
+| Per projectile: draw hook / AI hook | 49 / 14 µs | 4.2 / 8.2 µs |
+
+The two ExampleMods are not the same mod: the JS sample has more content
+(232 files) than the C# port (136), so the idle "mod code" rows compare the
+same kind of mod, not the same work. The heavy rows use the same entities
+(`SparklingBall` and `ExampleCustomAISlimeNPC`).
+
+Micro cases (`benchjs` from `js-final`, `benchcs`), C# against QuickJS:
+pure computation 3.6-47x faster (int loop 33x, `fib(20)` 21x, sort 3.6x,
+allocation 9.4x), game fields 12-56x, `new Vector2` 515x and `new Color` 122x,
+array reads 4-8x, game calls 1.1-5x (`WorldGen.InWorld` 1.1x, `Vector2.Distance`
+5.1x), a pass-through hook 2.1x. Two calls are slower in C#: `p.CountBuffs()`
+(344 against 247 ns) and `Lang.GetItemNameValue` (322 against 269 ns), both
+with the GC transition of a guarded call.
+
+Where C# loses: loading the mods takes about five times longer, the process
+uses about 240 MB more with the ExampleMod (the Mono runtime and the mod
+assemblies), and entering one isolated hook costs a little more.
