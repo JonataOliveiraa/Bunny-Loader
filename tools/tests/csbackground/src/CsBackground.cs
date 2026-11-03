@@ -185,7 +185,7 @@ public sealed unsafe class CsBackgroundMod : Mod
         int s = water.Slot;
         bool tables = LiquidRenderer._liquidTextures.Length > s && TextureAssets.Liquid.Length > s && TextureAssets.LiquidSlope.Length > s &&
             WaterfallManager.waterfallTexture.Length > waterfall.Slot;
-        Report("water and waterfall texture tables grew", tables && LiquidRenderer._liquidTextures[s].Pointer != IntPtr.Zero,
+        Report("water and waterfall texture tables grew", tables && LiquidRenderer._liquidTextures[s] != null,
             $"{LiquidRenderer._liquidTextures.Length}/{TextureAssets.Liquid.Length}/{TextureAssets.LiquidSlope.Length} waterfalls {WaterfallManager.waterfallTexture.Length}");
         int far = Slot("ExampleBiomeSurfaceFar");
         Report("background textures after the game's, with width and height",

@@ -85,9 +85,9 @@ internal static class BiomeBestiaryHooks
         frame = new Rectangle(0, 0, 30, 30);
     }
 
-    static GameObject GetBackgroundImage(On_SpawnConditionBestiaryInfoElement.orig_GetBackgroundImage orig, SpawnConditionBestiaryInfoElement self)
+    static Asset<Texture2D> GetBackgroundImage(On_SpawnConditionBestiaryInfoElement.orig_GetBackgroundImage orig, SpawnConditionBestiaryInfoElement self)
     {
-        if (Arts.TryGetValue(self.Pointer, out Art? art) && art.Background != IntPtr.Zero) return new GameObject(art.Background);
+        if (Arts.TryGetValue(self.Pointer, out Art? art) && art.Background != IntPtr.Zero) return Asset<Texture2D>.FromGame(art.Background);
         return orig(self);
     }
 

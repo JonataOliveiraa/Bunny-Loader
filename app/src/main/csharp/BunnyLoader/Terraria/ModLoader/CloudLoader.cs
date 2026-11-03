@@ -109,7 +109,7 @@ public static class CloudLoader
             {
                 var asset = new Asset<Texture2D>(cloud.Texture, ItemLoader.ResolveTexture(cloud, cloud.Texture));
                 asset.Wait();
-                TextureAssets.Cloud_[cloud.Type] = new GameObject(asset.GameAsset);
+                TextureAssets.Cloud_[cloud.Type] = asset;
                 clouds[cloud.Type] = cloud;
             }
             catch (Exception e) { Log.Error($"cloud {cloud.FullName}: the texture could not be loaded: {e.Message}"); }

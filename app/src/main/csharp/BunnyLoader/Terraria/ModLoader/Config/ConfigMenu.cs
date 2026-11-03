@@ -1570,7 +1570,7 @@ internal static unsafe class ConfigMenu
         p.Swatch.Size = new Vector2(seg.Each - 2, seg.Height);
         GUIPanel.Draw(p.Swatch, false, default, default, default);
         Rectangle box = GUIPanel.Region(p.Swatch);
-        Main.spriteBatch.Draw(Asset<Texture2D>.ForGameAsset(TextureAssets.MagicPixel.Pointer, "Images/MagicPixel").Value, Rect(box.X + SwatchInset, box.Y + SwatchInset, box.Width - SwatchInset * 2, box.Height - SwatchInset * 2), new Color(color.R, color.G, color.B, 255));
+        Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, Rect(box.X + SwatchInset, box.Y + SwatchInset, box.Width - SwatchInset * 2, box.Height - SwatchInset * 2), new Color(color.R, color.G, color.B, 255));
         String_Layout value = s.SliderTemplate.Value;
         GUIString.Draw(value, Hex(color), enabled ? value.Color : s.SliderTemplate.DisabledValueColor, false);
     }

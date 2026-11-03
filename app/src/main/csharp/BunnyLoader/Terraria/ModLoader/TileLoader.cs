@@ -257,7 +257,7 @@ public static unsafe partial class TileLoader
                 {
                     string? path = tile.Mod.ResolveFile(tile.HighlightTexture.StartsWith(tile.Mod.Name + "/", StringComparison.Ordinal) ? tile.HighlightTexture[(tile.Mod.Name.Length + 1)..] + ".png" : tile.HighlightTexture + ".png");
                     if (path != null && System.IO.File.Exists(path))
-                        TextureAssets.HighlightMask[i] = new GameObject(ModContent.Request<Texture2D>(tile.HighlightTexture).GameAsset);
+                        TextureAssets.HighlightMask[i] = ModContent.Request<Texture2D>(tile.HighlightTexture);
                     else
                         TileID.Sets.HasOutlines[i] = false;
                 }

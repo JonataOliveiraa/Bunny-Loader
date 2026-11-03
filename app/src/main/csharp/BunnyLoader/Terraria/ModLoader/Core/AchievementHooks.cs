@@ -155,8 +155,8 @@ internal static unsafe class AchievementHooks
         Texture2D texture = achievement != null ? TextureOf(achievement) : default;
         if (texture.IsNull)
             return false;
-        if (self._achievementTexture.Pointer != achievement!.Texture.GameAsset)
-            self._achievementTexture = new GameObject(achievement.Texture.GameAsset);
+        if (self._achievementTexture?.Pointer != achievement!.Texture.GameAsset)
+            self._achievementTexture = achievement.Texture;
         return BeginRemap(texture);
     }
 

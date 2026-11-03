@@ -29,17 +29,6 @@ public static partial class TextureAssets
 
     public static TextureAssetArray Cloud { get; } = new(9, "Images/Cloud_", static () => Cloud_, static i => { });
 
-    public static Asset<Texture2D> Heart => Wrap(Heart_, "Images/Heart");
-
-    public static Asset<Texture2D> Heart2 => Wrap(Heart2_, "Images/Heart2");
-
-    public static Asset<Texture2D> Mana => Wrap(Mana_, "Images/Mana");
-
-    public static Asset<Texture2D> Rain => Wrap(Rain_, "Images/Rain");
-
-    static Asset<Texture2D> Wrap(GameObject asset, string name) =>
-        asset.IsNull ? throw new InvalidOperationException($"TextureAssets: {name} is not loaded yet") : Asset<Texture2D>.ForGameAsset(asset.Pointer, name);
-
     internal static void ResizeGore(int length)
     {
         if (Gore_.Length < length) Gore_ = Gore_.Resized(length);

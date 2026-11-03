@@ -77,7 +77,7 @@ public static class Checks
             $"draws={Counts.Of("ProjectilePreDraw")} active={Main.projectile[holdout].active}");
 
         int buff = ModContent.BuffType<VanillaBuff>();
-        bool sameBuff = TextureAssets.Buff[buff].Pointer == TextureAssets.Buff[BuffID.Ironskin].Pointer;
+        bool sameBuff = TextureAssets.Buff[buff] == TextureAssets.Buff[BuffID.Ironskin];
         Report("ModBuff with a game texture uses the game's image", sameBuff && p.HasBuff(buff), $"type={buff} same={sameBuff} has={p.HasBuff(buff)}");
 
         int npc = ModContent.NPCType<VanillaSlime>();

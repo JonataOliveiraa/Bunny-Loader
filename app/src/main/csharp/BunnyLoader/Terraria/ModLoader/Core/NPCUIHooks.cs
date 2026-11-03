@@ -76,7 +76,7 @@ internal static unsafe class NPCUIHooks
     static void DrawNPCExtras(On_Main.orig_DrawNPCExtras orig, Main self, NPC n, bool beforeDraw, float addHeight, float addY, Color npcColor, Vector2 halfSize,
         SpriteEffects npcSpriteEffect, Vector2 screenPosition)
     {
-        bool armed = !beforeDraw && NPCLoader.HasHooks(n, NPCHook.PartyHatPosition) && Arm(TextureOf(new GameObjectRef(TextureAssets.Extra[72].Pointer)), PartyHat, n);
+        bool armed = !beforeDraw && NPCLoader.HasHooks(n, NPCHook.PartyHatPosition) && Arm(TextureOf(new GameObjectRef(TextureAssets.Extra[72]?.Pointer ?? IntPtr.Zero)), PartyHat, n);
         try { orig(self, n, beforeDraw, addHeight, addY, npcColor, halfSize, npcSpriteEffect, screenPosition); }
         finally
         {
@@ -87,7 +87,7 @@ internal static unsafe class NPCUIHooks
     static void DrawNPCChatBubble(On_Main.orig_DrawNPCChatBubble orig, int i)
     {
         bool armed = (uint)i < 200u && NPCLoader.HasHooks(Main.npc[i], NPCHook.ChatBubblePosition) &&
-            Arm(TextureOf(new GameObjectRef(TextureAssets.Chat.Pointer)), ChatBubble, Main.npc[i]);
+            Arm(TextureOf(new GameObjectRef(TextureAssets.Chat?.Pointer ?? IntPtr.Zero)), ChatBubble, Main.npc[i]);
         try { orig(i); }
         finally
         {

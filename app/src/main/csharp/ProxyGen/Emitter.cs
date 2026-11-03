@@ -168,13 +168,13 @@ sealed class Emitter
         catch { return null; }
         if (v == null || v == DBNull.Value || v is Missing)
         {
-            if (use.IsString) return "null";
+            if (use.IsString || use.Converted) return "null!";
             if (use.Abi == AbiClass.Composite || use.Cs.StartsWith(RT) || use.Cs.StartsWith("global::")) return "default";
             return null;
         }
         string? lit = Literal(v);
         if (lit == null) return null;
-        if (use.Abi == AbiClass.Int && use.Cs.StartsWith("global::") && !use.IsString) return $"({use.Cs})({lit})";
+        if (use.Abi == AbiClass.Int && use.Cs.StartsWith("global::") && !use.IsString && !use.Converted) return $"({use.Cs})({lit})";
         return use.Cs switch
         {
             "bool" or "int" or "uint" or "long" or "ulong" or "short" or "ushort" or "byte" or "sbyte" or "char"

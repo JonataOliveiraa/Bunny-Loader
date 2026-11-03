@@ -170,18 +170,19 @@ internal static unsafe class MenuHooks
         }
         IntPtr sun = AssetOf(menu, m => m.SunTexture, nameof(ModMenu.SunTexture));
         IntPtr moon = AssetOf(menu, m => m.MoonTexture, nameof(ModMenu.MoonTexture));
-        GameArray<GameObject> moons = TextureAssets.Moon;
+        GameArray<GameObject> moons = TextureAssets.Moon.Raw;
         if ((sun == IntPtr.Zero && moon == IntPtr.Zero) || moons.Length == 0)
         {
             orig(self, sceneArea, moonColor, sunColor, tempMushroomInfluence);
             return;
         }
         int index = Math.Clamp(Main.moonType, 0, moons.Length - 1);
-        GameObject oldSun = TextureAssets.Sun, oldMoon = moons[index];
+        Asset<Texture2D> oldSun = TextureAssets.Sun;
+        GameObject oldMoon = moons[index];
         int oldPhase = Main.moonPhase;
         try
         {
-            if (sun != IntPtr.Zero) TextureAssets.Sun = new GameObject(sun);
+            if (sun != IntPtr.Zero) TextureAssets.Sun = Asset<Texture2D>.FromGame(sun);
             if (moon != IntPtr.Zero)
             {
                 moons[index] = new GameObject(moon);

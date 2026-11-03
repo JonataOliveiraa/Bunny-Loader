@@ -122,7 +122,7 @@ internal static unsafe class EmoteBubbleHooks
         }
     }
 
-    static Texture2D Sheet => new(Host.Native()->TextureAssetValue(TextureAssets.Extra[48].Pointer));
+    static Texture2D Sheet => new(Host.Native()->TextureAssetValue(TextureAssets.Extra[48]?.Pointer ?? IntPtr.Zero));
 
     static void Draw(On_EmoteBubble.orig_Draw orig, EmoteBubble self, SpriteBatch sb)
     {

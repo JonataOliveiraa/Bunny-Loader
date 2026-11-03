@@ -253,7 +253,7 @@ static class Program
                 plan.Fields.Add(new FieldModel
                 {
                     Field = f, Name = Claim(f.Name), IsStatic = f.IsStatic, IsConst = f.IsLiteral,
-                    Use = f.FieldType.FullName == "System.String" && !f.IsLiteral ? map.Map(f.FieldType, false)! : use,
+                    Use = (f.FieldType.FullName == "System.String" || map.AssetOf(f.FieldType) != null) && !f.IsLiteral ? map.Map(f.FieldType, false)! : use,
                 });
             }
         }
@@ -563,23 +563,24 @@ static class Program
                 if (f.Field.GetCustomAttributesData().Any(a => a.AttributeType.FullName == "System.ThreadStaticAttribute"))
                 {
                     string access = $"ref __s{n}, {cls}, {fname}";
-                    string type = f.Use.IsString ? "nint" : f.Use.Cs;
+                    bool raw = f.Use.IsString || f.Use.Converted;
+                    string type = raw ? "nint" : f.Use.Cs;
                     string read = $"{RT}.GameInterop.ReadStatic<{type}>({access})";
-                    string value = f.Use.IsString ? $"{RT}.GameString.New(value)" : "value";
+                    string value = raw ? $"(nint)({f.Use.ToRaw("value")})" : "value";
                     string reference = !f.Field.FieldType.IsValueType && !f.Field.FieldType.IsPointer ? "true" : "false";
                     sb.Append(ind).Append($"public static {f.Use.Cs} {id}\n").Append(ind).Append("{\n");
-                    sb.Append(ind).Append($"    get => {(f.Use.IsString ? $"{RT}.GameString.Read({read})" : read)};\n");
+                    sb.Append(ind).Append($"    get => {(raw ? f.Use.FromRaw(read) : read)};\n");
                     sb.Append(ind).Append($"    set => {RT}.GameInterop.WriteStatic<{type}>({access}, {value}, {reference});\n");
                     sb.Append(ind).Append("}\n");
                     n++;
                     continue;
                 }
                 string addr = $"{RT}.GameInterop.StaticAddress(ref __s{n}, {cls}, {fname})";
-                if (f.Use.IsString)
+                if (f.Use.IsString || f.Use.Converted)
                 {
-                    sb.Append(ind).Append($"public static string? {id}\n").Append(ind).Append("{\n");
-                    sb.Append(ind).Append($"    get => {RT}.GameString.Read(*(nint*){addr});\n");
-                    sb.Append(ind).Append($"    set => *(nint*){addr} = {RT}.GameString.New(value);\n");
+                    sb.Append(ind).Append($"public static {f.Use.Cs} {id}\n").Append(ind).Append("{\n");
+                    sb.Append(ind).Append($"    get => {f.Use.FromRaw($"*(nint*){addr}")};\n");
+                    sb.Append(ind).Append($"    set => *(nint*){addr} = (nint)({f.Use.ToRaw("value")});\n");
                     sb.Append(ind).Append("}\n");
                 }
                 else
@@ -591,11 +592,11 @@ static class Program
             }
             sb.Append(ind).Append($"static int __f{n} = -1;\n");
             string at = $"(Pointer + {RT}.GameInterop.Offset(ref __f{n}, {cls}, {fname}))";
-            if (f.Use.IsString)
+            if (f.Use.IsString || f.Use.Converted)
             {
-                sb.Append(ind).Append($"public string? {id}\n").Append(ind).Append("{\n");
-                sb.Append(ind).Append($"    get => {RT}.GameString.Read(*(nint*){at});\n");
-                sb.Append(ind).Append($"    set => *(nint*){at} = {RT}.GameString.New(value);\n");
+                sb.Append(ind).Append($"public {f.Use.Cs} {id}\n").Append(ind).Append("{\n");
+                sb.Append(ind).Append($"    get => {f.Use.FromRaw($"*(nint*){at}")};\n");
+                sb.Append(ind).Append($"    set => *(nint*){at} = (nint)({f.Use.ToRaw("value")});\n");
                 sb.Append(ind).Append("}\n");
             }
             else

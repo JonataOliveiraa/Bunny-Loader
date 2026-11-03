@@ -28,32 +28,6 @@ public readonly partial struct Mount
 
     public readonly partial struct MountData
     {
-        static Asset<Texture2D>? Get(GameObject asset) => asset.IsNull ? null : Asset<Texture2D>.ForGameAsset(asset.Pointer, "?");
-
-        static GameObject Set(Asset<Texture2D>? value)
-        {
-            if (value == null) return default;
-            if (value.IsDirect) throw new InvalidOperationException("MountData: this asset is a bare texture, not a game asset");
-            value.Wait();
-            return new GameObject(value.GameAsset);
-        }
-
-        public Asset<Texture2D>? backTexture { get => Get(backTexture_); set => backTexture_ = Set(value); }
-
-        public Asset<Texture2D>? backTextureGlow { get => Get(backTextureGlow_); set => backTextureGlow_ = Set(value); }
-
-        public Asset<Texture2D>? backTextureExtra { get => Get(backTextureExtra_); set => backTextureExtra_ = Set(value); }
-
-        public Asset<Texture2D>? backTextureExtraGlow { get => Get(backTextureExtraGlow_); set => backTextureExtraGlow_ = Set(value); }
-
-        public Asset<Texture2D>? frontTexture { get => Get(frontTexture_); set => frontTexture_ = Set(value); }
-
-        public Asset<Texture2D>? frontTextureGlow { get => Get(frontTextureGlow_); set => frontTextureGlow_ = Set(value); }
-
-        public Asset<Texture2D>? frontTextureExtra { get => Get(frontTextureExtra_); set => frontTextureExtra_ = Set(value); }
-
-        public Asset<Texture2D>? frontTextureExtraGlow { get => Get(frontTextureExtraGlow_); set => frontTextureExtraGlow_ = Set(value); }
-
         public int[] playerYOffsets
         {
             get

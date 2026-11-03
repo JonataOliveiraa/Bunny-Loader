@@ -189,7 +189,7 @@ public sealed class CsWallMod : Mod
     {
         Item item = Item.New();
         item.SetDefaults(ModContent.ItemType<TestWallItem>(), default);
-        bool texture = !TextureAssets.Wall[Type].IsNull;
+        bool texture = TextureAssets.Wall[Type] != null;
         Report("the wall gets a type after the game's walls, its texture and SetStaticDefaults", Type >= 367 && WallLoader.GetWall(Type) is TestWall && texture && Main.wallHouse[Type] && WallLoader.WallCount > Type,
             $"type={Type} plain={ModContent.WallType<TestWallPlain>()} count={WallLoader.WallCount} texture={texture} house={Main.wallHouse[Type]}");
         Report("DefaultToPlaceableWall places the mod wall", item.createWall == Type, $"createWall={item.createWall}");

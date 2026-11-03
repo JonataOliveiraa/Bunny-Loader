@@ -146,7 +146,7 @@ public sealed class CsMusicMenuMod : Mod
             Type loader = Api.GetType("Terraria.ModLoader.MenuLoader", true)!;
             loader.GetField("chosen", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, null);
             loader.GetField("restored", BindingFlags.NonPublic | BindingFlags.Static)!.SetValue(null, true);
-            selectedBase = TestMenu.Selected;
+            selectedBase = TestMenu.Selected - (MenuLoader.CurrentMenu == menu && TestMenu.Selected > 0 ? 1 : 0);
             deselectedBase = TestMenu.Deselected;
             return;
         }

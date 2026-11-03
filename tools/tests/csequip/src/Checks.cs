@@ -61,15 +61,15 @@ public static class Checks
             body.bodySlot > 0 && Item.bodyType[body.bodySlot] == body.type && legs.legSlot > 0 && Item.legType[legs.legSlot] == legs.type &&
             wings.wingSlot > 0 && shield.shieldSlot > 0,
             $"head={helmet.headSlot}/{ArmorIDs.Head.Count} body={body.bodySlot}/{ArmorIDs.Body.Count} legs={legs.legSlot}/{ArmorIDs.Legs.Count} wings={wings.wingSlot}/{ArmorIDs.Wing.Count} shield={shield.shieldSlot}/{ArmorIDs.Shield.Count}");
-        Report("the textures go into TextureAssets", !TextureAssets.ArmorHead[helmet.headSlot].IsNull && !TextureAssets.ArmorBodyComposite[body.bodySlot].IsNull &&
-            !TextureAssets.ArmorLeg[legs.legSlot].IsNull && !TextureAssets.Wings[wings.wingSlot].IsNull && !TextureAssets.AccShield[shield.shieldSlot].IsNull &&
+        Report("the textures go into TextureAssets", TextureAssets.ArmorHead[helmet.headSlot] != null && TextureAssets.ArmorBodyComposite[body.bodySlot] != null &&
+            TextureAssets.ArmorLeg[legs.legSlot] != null && TextureAssets.Wings[wings.wingSlot] != null && TextureAssets.AccShield[shield.shieldSlot] != null &&
             ArmorIDs.Body.Sets.UsesNewFramingCode[body.bodySlot], "");
         Report("SetStaticDefaults sees Item.wingSlot and sets WingStats", TestWings.SlotInStatic == wings.wingSlot && ArmorIDs.Wing.Sets.Stats[wings.wingSlot].FlyTime == 180,
             $"static={TestWings.SlotInStatic} flyTime={ArmorIDs.Wing.Sets.Stats[wings.wingSlot].FlyTime}");
         var mod = ModContent.GetInstance<CsEquipMod>();
         int cape = EquipLoader.GetEquipSlot(mod, "Cape", EquipType.Back);
         Report("AddEquipTexture registers by name", cape > 0 && EquipLoader.GetEquipTexture(EquipType.Back, cape)?.Name == $"{mod.Name}/Cape" &&
-            !TextureAssets.AccBack[cape].IsNull, $"slot={cape}");
+            TextureAssets.AccBack[cape] != null, $"slot={cape}");
 
         Item charm = Make(ModContent.ItemType<TestCharm>()), band = Make(ItemID.BandofRegeneration);
         Report("CanAccessoryBeEquippedWith refuses a pair", !ItemSlot.CanEquipBothAccessories(shield, charm, false) &&

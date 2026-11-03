@@ -62,7 +62,7 @@ public class UIScrollbar : UIElement
         return new Rectangle((int)inner.X, (int)(inner.Y + inner.Height * (viewPosition / maxViewSize)) - 3, 20, (int)(inner.Height * (viewSize / maxViewSize)) + 7);
     }
 
-    static Texture2D Pixel() => Asset<Texture2D>.ForGameAsset(TextureAssets.MagicPixel.Pointer, "Images/MagicPixel").Value;
+    static Texture2D Pixel() => TextureAssets.MagicPixel.Value;
 
     void DrawBar(SpriteBatch spriteBatch, Asset<Texture2D>? asset, Rectangle r, Color color, bool handle)
     {

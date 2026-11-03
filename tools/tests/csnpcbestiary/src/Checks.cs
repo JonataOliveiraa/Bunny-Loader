@@ -75,7 +75,7 @@ public static class Checks
             modifiers && drawModifiers.Velocity == 1f && drawModifiers.Direction.HasValue && drawModifiers.Direction.Value == 1 && drawModifiers.Scale == 1f &&
             drawModifiers.CustomTexturePath == "CsNpcBestiary/Content/BeastIcon",
             $"found={modifiers} velocity={drawModifiers.Velocity} direction={drawModifiers.Direction} scale={drawModifiers.Scale} texture={(string?)drawModifiers.CustomTexturePath}");
-        bool icon = UnlockableNPCEntryIcon.Is(entry.Icon) && !new UnlockableNPCEntryIcon(entry.Icon.Pointer)._customTexture.IsNull;
+        bool icon = UnlockableNPCEntryIcon.Is(entry.Icon) && new UnlockableNPCEntryIcon(entry.Icon.Pointer)._customTexture != null;
         Report("a mod CustomTexturePath becomes the entry icon", icon, $"icon={icon}");
         int hiddenCount = Entries(database, hidden);
         Report("Hide keeps the NPC out of the bestiary", hiddenCount == 0 && HiddenNpc.Calls == 0, $"entries={hiddenCount} calls={HiddenNpc.Calls}");

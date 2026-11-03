@@ -194,9 +194,19 @@ loads `libSystem.Security.Cryptography.Native.Android.so` from Java, so its
 
 - Only the types listed in `ProxyGen/types.txt` have members and hooks; the
   others are handles (see [guide 4](04-valores-e-objetos.md#what-is-in-bunnyloaderdll-today)).
-- Generic types (`Asset<T>`, `List<T>`) and generic methods (`T Get<T>()`)
-  are not generated: a generic type is a plain handle. `Asset<T>` is written by
-  hand for now ([guide 9](09-conteudo.md#textures-and-files)).
+- The game's `Asset<T>` comes out typed: a field, property, parameter, return
+  value or hook argument of type `Asset<Texture2D>` (or `Asset<SpriteFont>`...)
+  is a `ReLogic.Content.Asset<T>`, the same class `ModContent.Request` returns
+  ([guide 9](09-conteudo.md#textures-and-files)), and an `Asset<T>[]` is an
+  `AssetArray<T>` (indexer, `Length`, `Resized`). A game asset that is not set
+  reads as `null`, so compare with `null`, as in tModLoader. Inside a mirrored
+  struct, or passed by `ref`, an asset is still a plain handle (`GameObject`).
+- Other generic types (`List<T>`, `Dictionary<TKey, TValue>`...) and generic
+  methods (`T Get<T>()`) are not generated: a generic type is a plain handle.
+- Game events (`Main.OnPostDraw`, `Main.OnResolutionChanged`...) are not
+  generated, and a C# method cannot be passed where the game expects one of its
+  delegate types: that needs game delegates created from C#, which the runtime
+  does not do yet. Use the `On_` hook of the method that raises the event.
 - Methods with more than eight `float`/`double` arguments are skipped.
 - A struct with a field the generator cannot describe is not mirrored, and
   methods that use it are skipped.

@@ -135,7 +135,7 @@ internal static unsafe class BuffHooks
         bool draw = true;
         try
         {
-            var texture = new Texture2D(Host.Native()->TextureAssetValue(TextureAssets.Buff[type].Pointer));
+            var texture = new Texture2D(Host.Native()->TextureAssetValue(TextureAssets.Buff[type]?.Pointer ?? IntPtr.Zero));
             int width = texture.Width, height = texture.Height;
             var alphas = Main.buffAlpha;
             float alpha = (uint)buffIndex < (uint)alphas.Length ? alphas[buffIndex] : 1f;

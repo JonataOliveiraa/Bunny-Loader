@@ -27,6 +27,8 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
 
     internal IntPtr GameAsset => asset;
 
+    internal IntPtr Pointer => directTexture != IntPtr.Zero ? IntPtr.Zero : Volatile.Read(ref asset);
+
     IntPtr directTexture;
 
     internal bool IsDirect => directTexture != IntPtr.Zero;
@@ -65,6 +67,16 @@ public sealed unsafe class Asset<T> where T : struct, IGameObject
             ByGameAsset[gameAsset] = wrapped;
             return wrapped;
         }
+    }
+
+    public static Asset<T> FromGame(IntPtr gameAsset) => gameAsset == IntPtr.Zero ? null! : ForGameAsset(gameAsset, NameOf(gameAsset));
+
+    public static IntPtr ToGame(Asset<T>? asset)
+    {
+        if (asset is null) return IntPtr.Zero;
+        if (asset.IsDirect) throw new InvalidOperationException($"asset {asset.Name}: this asset is a bare texture, not a game asset");
+        asset.Wait();
+        return asset.GameAsset;
     }
 
     internal static Asset<T> ForTexture(IntPtr texture)

@@ -145,10 +145,10 @@ public sealed class CsBiomeBestiaryMod : Mod
         Report("the filter icon is the 30x30 BestiaryIcon; a wrong size keeps the shadow icon",
             icon.Width == 30 && icon.Height == 30 && frame.Width == 30 && shadow.Pointer != icon.Pointer && shadow.Width == 480,
             $"icon {icon.Width}x{icon.Height} frame {frame.Width} shadow {shadow.Width}x{shadow.Height} frame {shadowFrame.Width}");
-        GameObject background = test.ModBiomeBestiaryInfoElement.Element.GetBackgroundImage();
-        GameObject none = unused.ModBiomeBestiaryInfoElement.Element.GetBackgroundImage();
-        Report("the portrait background is the 115x65 BackgroundPath; without one, the game's", !background.IsNull && none.IsNull,
-            $"background {(background.IsNull ? "null" : "set")} unused {(none.IsNull ? "null" : "set")}");
+        var background = test.ModBiomeBestiaryInfoElement.Element.GetBackgroundImage();
+        var none = unused.ModBiomeBestiaryInfoElement.Element.GetBackgroundImage();
+        Report("the portrait background is the 115x65 BackgroundPath; without one, the game's", background != null && none == null,
+            $"background {(background == null ? "null" : "set")} unused {(none == null ? "null" : "set")}");
     }
 
     static void Capture()

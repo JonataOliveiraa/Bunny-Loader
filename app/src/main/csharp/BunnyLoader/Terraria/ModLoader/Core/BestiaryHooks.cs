@@ -92,7 +92,7 @@ internal static class BestiaryHooks
         var asset = new Asset<Texture2D>(path, file);
         _ = asset.Value;
         if (asset.GameAsset == IntPtr.Zero || entry.Icon.IsNull) return;
-        new UnlockableNPCEntryIcon(entry.Icon.Pointer)._customTexture = new GameObject(asset.GameAsset);
+        new UnlockableNPCEntryIcon(entry.Icon.Pointer)._customTexture = asset;
     }
 
     static void Vanilla(BestiaryDatabase database, int type, bool globals, bool loot)

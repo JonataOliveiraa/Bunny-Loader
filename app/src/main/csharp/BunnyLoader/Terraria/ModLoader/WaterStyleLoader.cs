@@ -49,9 +49,9 @@ public static class WaterStylesLoader
     {
         int slot = style.Slot;
         IntPtr water = Load(style, style.Texture), block = Load(style, style.BlockTexture), slope = Load(style, style.SlopeTexture);
-        LiquidRenderer._liquidTextures[slot] = new GameObject(water != IntPtr.Zero ? water : LiquidRenderer._liquidTextures[0].Pointer);
-        TextureAssets.Liquid[slot] = new GameObject(block != IntPtr.Zero ? block : TextureAssets.Liquid[0].Pointer);
-        TextureAssets.LiquidSlope[slot] = new GameObject(slope != IntPtr.Zero ? slope : TextureAssets.Liquid[slot].Pointer);
+        LiquidRenderer._liquidTextures.Raw[slot] = new GameObject(water != IntPtr.Zero ? water : LiquidRenderer._liquidTextures.Raw[0].Pointer);
+        TextureAssets.Liquid.Raw[slot] = new GameObject(block != IntPtr.Zero ? block : TextureAssets.Liquid.Raw[0].Pointer);
+        TextureAssets.LiquidSlope.Raw[slot] = new GameObject(slope != IntPtr.Zero ? slope : TextureAssets.Liquid.Raw[slot].Pointer);
     }
 
     internal static IntPtr Load(ModType content, string texture)
@@ -67,6 +67,13 @@ public static class WaterStylesLoader
             Log.Error($"{content.FullName}: the texture {texture} could not be loaded: {e.Message}");
             return IntPtr.Zero;
         }
+    }
+
+    internal static void Grow<T>(ref AssetArray<T> array, int total) where T : struct, IGameObject
+    {
+        GameArray<GameObject> raw = array;
+        Grow(ref raw, total);
+        array = raw;
     }
 
     internal static void Grow(ref GameArray<GameObject> array, int total)
@@ -120,6 +127,6 @@ public static class WaterFallStylesLoader
     internal static void SetupTexture(ModWaterfallStyle style)
     {
         IntPtr texture = WaterStylesLoader.Load(style, style.Texture);
-        if (texture != IntPtr.Zero) WaterfallManager.waterfallTexture[style.Slot] = new GameObject(texture);
+        if (texture != IntPtr.Zero) WaterfallManager.waterfallTexture.Raw[style.Slot] = new GameObject(texture);
     }
 }

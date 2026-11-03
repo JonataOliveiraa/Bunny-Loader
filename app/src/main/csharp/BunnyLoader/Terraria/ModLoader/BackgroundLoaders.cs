@@ -87,7 +87,7 @@ public static unsafe class BackgroundTextureLoader
             {
                 var asset = new Asset<Texture2D>(key, file);
                 asset.Wait();
-                TextureAssets.Background_[slot] = new GameObject(asset.GameAsset);
+                TextureAssets.Background_[slot] = asset;
                 Texture2D texture = asset.Value;
                 Main.backgroundWidth[slot] = texture.Width;
                 Main.backgroundHeight[slot] = texture.Height;

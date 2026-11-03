@@ -5,6 +5,7 @@ using BunnyLoader;
 using BunnyLoader.Interop;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ReLogic.Content;
 using Terraria.GameContent;
 using Terraria.GameContent.Drawing;
 using Terraria.Graphics.Light;
@@ -305,15 +306,15 @@ internal static unsafe class WaterHooks
             }
             catch (Exception e) { ItemHooks.Report($"{style.FullName}.GetRainTexture", e); }
         }
-        GameObject vanilla = TextureAssets.Rain_;
-        if (own == IntPtr.Zero || own == vanilla.Pointer)
+        Asset<Texture2D> vanilla = TextureAssets.Rain;
+        if (own == IntPtr.Zero || own == vanilla?.Pointer)
         {
             orig(self);
             return;
         }
-        TextureAssets.Rain_ = new GameObject(own);
+        TextureAssets.Rain = Asset<Texture2D>.FromGame(own);
         try { orig(self); }
-        finally { TextureAssets.Rain_ = vanilla; }
+        finally { TextureAssets.Rain = vanilla; }
     }
 
     static void UpdateLightDecay(On_LightingEngine.orig_UpdateLightDecay orig, LightingEngine self)

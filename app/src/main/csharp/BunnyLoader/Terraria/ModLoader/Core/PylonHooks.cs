@@ -303,7 +303,7 @@ internal static class PylonHooks
         Point16 from = Main.MapPylonTile;
         if (!Main.mapFullscreen || from.X == -1 || from.Y == -1)
             return;
-        Texture2D texture = ReLogic.Content.Asset<Texture2D>.ForGameAsset(TextureAssets.Extra[182].Pointer, "Images/Extra_182").Value;
+        Texture2D texture = TextureAssets.Extra[182].Value;
         var frame = new SpriteFrame(11, 1, 0, 0) { PaddingY = 0 };
         Vector2 start = Center(ref context, texture, frame, from.X, from.Y);
         foreach (var entry in entries)

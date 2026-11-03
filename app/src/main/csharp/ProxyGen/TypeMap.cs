@@ -20,6 +20,7 @@ sealed class TypeUse
     public int HfaCount;
     public bool CheckSize;
     public bool IsString;
+    public bool Converted;
     public Func<string, string> ToRaw = e => e;
     public Func<string, string> FromRaw = e => e;
     public List<Type> Refs = new();
@@ -292,6 +293,8 @@ sealed class TypeMap
         }
         if (t.IsArray)
         {
+            if (t.GetArrayRank() == 1 && AssetOf(t.GetElementType()!) is string assetArg)
+                return Ref($"global::ReLogic.Content.AssetArray<{assetArg}>", sig);
             TypeUse? elem = Map(t.GetElementType()!, true);
             if (elem == null || elem.Abi == AbiClass.Void) return Ref($"{RT}.GameObject", sig);
             int rank = t.GetArrayRank();
@@ -301,6 +304,16 @@ sealed class TypeMap
         }
         if (t.IsGenericType)
         {
+            if (!memory && AssetOf(t) is string arg)
+            {
+                string cs = $"global::ReLogic.Content.Asset<{arg}>";
+                return new TypeUse
+                {
+                    Cs = cs, Sig = sig, Abi = AbiClass.Int, Size = 8, Align = 8, Converted = true,
+                    ToRaw = e => $"(long){cs}.ToGame({e})",
+                    FromRaw = e => $"{cs}.FromGame((nint)({e}))",
+                };
+            }
             if (t.GetGenericTypeDefinition().FullName == "System.Nullable`1")
             {
                 Type inner = t.GetGenericArguments()[0];
@@ -333,6 +346,14 @@ sealed class TypeMap
             Hfa = layout.Hfa, HfaCount = layout.HfaCount, CheckSize = true,
             Refs = { t },
         };
+    }
+
+    public string? AssetOf(Type t)
+    {
+        if (!t.IsGenericType || t.IsGenericTypeDefinition || t.GetGenericTypeDefinition().FullName != "ReLogic.Content.Asset`1") return null;
+        TypeUse? inner = Map(t.GetGenericArguments()[0], true);
+        if (inner == null || inner.Abi != AbiClass.Int || inner.Converted || inner.IsString || !inner.Cs.StartsWith("global::") || inner.Cs.StartsWith(RT)) return null;
+        return inner.Cs;
     }
 
     static TypeUse Ref(string cs, string sig, IEnumerable<Type>? refs = null) => new()
