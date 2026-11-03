@@ -154,3 +154,9 @@ handlers, not entries: `TeleportPylonsSystem.IsPlayerNearAPylon` takes
 `LegacyPlayerRenderer.DrawPlayer_UseNormalLayers` 150 µs, the `ResourceDraw`
 callback 24 × 5.6 µs, `Lighting.LightTiles` 90 µs and `Player.UpdateBiomes`
 65-95 µs.
+
+The mod pylon check scanned the whole 121x123-tile pylon reach once per mod
+pylon type every frame, even with no mod pylon in the world. It now looks at
+the `TEModdedPylon` entities first and scans only when one is inside that
+region: on MuMu, with ExampleModCSharp, 150-180 µs per frame before and
+21-24 µs after (`csperf` now reports it as a focus hook).

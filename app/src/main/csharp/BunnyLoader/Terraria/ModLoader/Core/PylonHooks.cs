@@ -20,7 +20,7 @@ namespace Terraria.ModLoader.Core;
 
 internal static class PylonHooks
 {
-    const int FirstPylonType = 11;
+    const int FirstPylonType = 11, PylonSpan = 4;
 
     static readonly GameClass ObjectClass = new("System", "Object");
 
@@ -152,8 +152,37 @@ internal static class PylonHooks
         if (orig(player))
             return true;
         TileReachCheckSettings reach = TileReachCheckSettings.Pylons;
+        bool? modNear = null;
         foreach (int type in TileID.Sets.CountsAsPylon)
-            if (type != TileID.TeleportationPylon && player.IsTileTypeInInteractionRange(type, reach))
+        {
+            if (type == TileID.TeleportationPylon)
+                continue;
+            if (TileLoader.GetTile(type) is ModPylon)
+            {
+                modNear ??= ModPylonInRegion(player, reach);
+                if (!modNear.Value)
+                    continue;
+            }
+            if (player.IsTileTypeInInteractionRange(type, reach))
+                return true;
+        }
+        return false;
+    }
+
+    static bool ModPylonInRegion(Player player, TileReachCheckSettings reach)
+    {
+        bool any = false;
+        foreach (ModTileEntity entity in TileEntityHooks.ByID.Values)
+            if (entity is TEModdedPylon)
+            {
+                any = true;
+                break;
+            }
+        if (!any)
+            return false;
+        reach.GetTileRegion(player, out int lx, out int ly, out int hx, out int hy);
+        foreach (ModTileEntity entity in TileEntityHooks.ByID.Values)
+            if (entity is TEModdedPylon && entity.Position.X <= hx && entity.Position.X + PylonSpan > lx && entity.Position.Y <= hy && entity.Position.Y + PylonSpan > ly)
                 return true;
         return false;
     }

@@ -8,6 +8,7 @@ namespace CsPerf;
 public sealed class CsPerfMod : Mod
 {
     const string Isolated = "Main.DoUpdate_AnimateCursorColors/0";
+    const string NearPylon = "TeleportPylonsSystem.IsPlayerNearAPylon/1";
     const string After = "Main.DoUpdate_AnimateVisualPlayerAura/0";
     const string Burst = "WorldItem.UpdateItem/1";
 
@@ -71,7 +72,7 @@ public sealed class CsPerfMod : Mod
                 Measure.Begin("no C# hook on the targets");
                 break;
             case 420:
-                Measure.End(Isolated, After, Burst);
+                Measure.End(Isolated, After, Burst, NearPylon);
                 break;
             case 480:
                 Stack(1);
@@ -80,21 +81,21 @@ public sealed class CsPerfMod : Mod
                 Measure.Begin("1 pass-through hook per target");
                 break;
             case 840:
-                Measure.End(Isolated, After, Burst);
+                Measure.End(Isolated, After, Burst, NearPylon);
                 Stack(3);
                 break;
             case 900:
                 Measure.Begin("3 pass-through hooks per target");
                 break;
             case 1200:
-                Measure.End(Isolated, After, Burst);
+                Measure.End(Isolated, After, Burst, NearPylon);
                 Stack(0);
                 break;
             case 1260:
                 Measure.Begin("hooks removed (native stub stays)");
                 break;
             case 1560:
-                Measure.End(Isolated, After, Burst);
+                Measure.End(Isolated, After, Burst, NearPylon);
                 Measure.Info("END");
                 break;
         }
