@@ -16,6 +16,8 @@ internal static partial class TileHooks
         if (WorldGen.destroyObject)
             return true;
         Tile cell = Main.tile[i, j];
+        if (!cell.active())
+            return true;
         int frameX = cell.frameX, frameY = cell.frameY, style = TileLoader.StyleAt(i, j);
         data = TileObjectData.GetTileData(cell);
         if (data.IsNull)
@@ -52,6 +54,7 @@ internal static partial class TileHooks
 
         if (stay)
             return true;
+        bool removed = false;
         WorldGen.destroyObject = true;
         try
         {
@@ -62,7 +65,11 @@ internal static partial class TileHooks
                 {
                     Tile t = Main.tile[x, y];
                     if (t.active() && t.type == type)
+                    {
                         WorldGen.KillTile(x, y, false, false, false);
+                        Tile after = Main.tile[x, y];
+                        removed |= !after.active() || after.type != type;
+                    }
                 }
 
             TileLoader.GetTile(type)?.KillMultiTile(left, top, frameX - partFrameX, frameY - partFrameY);
@@ -72,6 +79,8 @@ internal static partial class TileHooks
             WorldGen.destroyObject = false;
         }
 
+        if (!removed)
+            return true;
         for (int x = left - 1; x <= left + data.Width; x++)
             for (int y = top - 1; y <= top + data.Height; y++)
                 WorldGen.TileFrame(x, y, false, false);

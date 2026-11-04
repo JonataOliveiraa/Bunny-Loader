@@ -1,0 +1,16 @@
+{
+  "uid": "7c2e9a14-5b3f-4d81-9e60-2f8a1c7d3b52",
+  "id": "CsStatuePlace",
+  "name": "Test: PlaceTile with a mod statue (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "WorldGen.PlaceTile builds the whole Example Mod statue, a block that cannot die does not recurse, and PostWorldGen counts the statues of a generated world.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csstatueplace <case>: ok | FAIL and csstatueplace END pass=N fail=M.",
+  "updated": "2026-11-04",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ]
+}

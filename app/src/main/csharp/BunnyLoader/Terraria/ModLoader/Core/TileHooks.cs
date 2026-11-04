@@ -55,6 +55,7 @@ internal static partial class TileHooks
             Once("Sound", () => On_WorldGen.KillTile_PlaySounds += Sound);
         if (own)
         {
+            Once("PlaceModObject", () => On_WorldGen.PlaceTile += PlaceModObject);
             Once("Pick", () => On_Player.GetPickaxeDamage += Pick);
             Once("Resting", InstallResting);
         }
@@ -342,6 +343,19 @@ internal static partial class TileHooks
         if (result && placing > 0 && TileObjectData.GetTileData(type, style, 0).IsNull)
             Placed(i, j, type);
         return result;
+    }
+
+    static bool PlaceModObject(On_WorldGen.orig_PlaceTile orig, int i, int j, int type, bool mute, bool force, int player, int style)
+    {
+        if (type < TileID.Count || TileObjectData.GetTileData(type, style, 0).IsNull)
+            return orig(i, j, type, mute, force, player, style);
+        if (i < 0 || j < 0 || i >= Main.maxTilesX || j >= Main.maxTilesY)
+            return false;
+        if (!force && !Collision.EmptyTile(i, j, false) && Main.tileSolid[type])
+            return false;
+        WorldGen.PlaceObject(i, j, type, mute, style);
+        WorldGen.SquareTileFrame(i, j);
+        return true;
     }
 
     static bool PlaceObject(On_TileObjectData.orig_CallPostPlacementPlayerHook orig, int i, int j, int type, int style, int dir, int alternate, TileObject data)
