@@ -10,6 +10,22 @@ public readonly partial struct ItemID
 
         static bool[] preHardmodeLikeBossBag = Array.Empty<bool>();
 
+        static bool[] disableAutomaticPlaceableDrop = Array.Empty<bool>();
+
+        public static bool[] DisableAutomaticPlaceableDrop
+        {
+            get
+            {
+                int count = BossBag.Length;
+                lock (Gate)
+                {
+                    if (disableAutomaticPlaceableDrop.Length < count)
+                        Array.Resize(ref disableAutomaticPlaceableDrop, count);
+                    return disableAutomaticPlaceableDrop;
+                }
+            }
+        }
+
         static bool[] spears = Array.Empty<bool>();
 
         public static bool[] Spears

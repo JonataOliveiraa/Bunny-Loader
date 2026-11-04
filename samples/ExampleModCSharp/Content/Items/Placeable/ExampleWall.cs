@@ -1,3 +1,4 @@
+using ExampleMod.Content.Tiles.Furniture;
 using Terraria;
 using Terraria.ModLoader;
 
@@ -19,7 +20,7 @@ public class ExampleWall : ModItem
     {
         CreateRecipe(4)
             .AddIngredient<ExampleBlock>()
-            .AddTile<Tiles.Furniture.ExampleWorkbench>()
+            .AddTile<ExampleWorkbench>()
             .Register();
     }
 }

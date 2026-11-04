@@ -98,6 +98,14 @@ public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
 
     public static implicit operator T[](GameArray<T> array) => array.IsNull ? Array.Empty<T>() : array.AsSpan().ToArray();
 
+    public static implicit operator GameArray<T>(T[] values)
+    {
+        string name = typeof(T) == typeof(int) ? "Int32" : typeof(T) == typeof(ushort) ? "UInt16" : typeof(T) == typeof(short) ? "Int16" : typeof(T) == typeof(bool) ? "Boolean" : typeof(T) == typeof(byte) ? "Byte" : typeof(T) == typeof(float) ? "Single" : throw new NotSupportedException(typeof(T).Name);
+        GameArray<T> array = New(new GameClass("System", name), values.Length);
+        values.AsSpan().CopyTo(array.AsSpan());
+        return array;
+    }
+
     public Span<T>.Enumerator GetEnumerator() => AsSpan().GetEnumerator();
 
     static void ThrowIndex(int index) => throw new IndexOutOfRangeException($"index {index} out of the game array");

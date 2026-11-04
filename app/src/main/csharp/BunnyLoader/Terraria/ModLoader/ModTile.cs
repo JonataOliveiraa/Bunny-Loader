@@ -55,6 +55,10 @@ public abstract class ModBlockType : ModTexturedType, ILocalizedModType
     public virtual void ModifyLight(int i, int j, ref float r, ref float g, ref float b)
     {
     }
+
+    public virtual void Convert(int i, int j, int conversionType)
+    {
+    }
 }
 
 public abstract class ModTile : ModBlockType
@@ -184,6 +188,26 @@ public abstract class ModTile : ModBlockType
     public virtual bool GrowSapling(int i, int j, bool underground, int treeHeightAddon, bool ignoreWalls) => false;
 
     public virtual void PostSetDefaults()
+    {
+    }
+
+    public virtual void DropCritterChance(int i, int j, ref int wormChance, ref int grassHopperChance, ref int jungleGrubChance)
+    {
+    }
+
+    public virtual void HitSwitch(int i, int j)
+    {
+    }
+
+    public virtual bool SwitchTiles(int i, int j, Entity entity, Vector2 position, int width, int height, Vector2 oldPosition, int objType) => false;
+
+    public virtual void FloorVisuals(Player player)
+    {
+    }
+
+    public virtual bool HasWalkDust() => false;
+
+    public virtual void WalkDust(ref int dustType, ref bool makeDust, ref Color color)
     {
     }
 

@@ -209,6 +209,7 @@ public static unsafe partial class TileLoader
         }
 
         TileHooks.InstallExtras(tile);
+        TileHooks.InstallWorld(tile);
         if (!subscribed)
         {
             Host.Native()->OnTilesInstalled(&Installed);
@@ -233,6 +234,7 @@ public static unsafe partial class TileLoader
     internal static void Register(GlobalTile tile)
     {
         globals.Add(tile);
+        TileHooks.InstallWorld(tile);
         uint flags = Flags(tile);
         if (Host.Native()->TileEvents(-1, flags, &Event) == 0)
             throw new InvalidOperationException($"{tile.FullName}: native global tile hooks could not be installed");
@@ -329,7 +331,7 @@ public static unsafe partial class TileLoader
             foreach (ModItem item in mod.GetContent<ModItem>())
             {
                 Item template = new(item.Type);
-                if (GetTile(template.createTile) == null)
+                if (ItemID.Sets.DisableAutomaticPlaceableDrop[item.Type] || GetTile(template.createTile) == null)
                     continue;
                 drops.TryAdd((template.createTile, template.placeStyle), item.Type);
                 drops.TryAdd((template.createTile, -1), item.Type);

@@ -1,4 +1,4 @@
-using Terraria;
+using ExampleMod.Content.Tiles.Furniture;
 using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Placeable;
@@ -19,7 +19,7 @@ public class ExampleWallAdvanced : ModItem
     {
         CreateRecipe(4)
             .AddIngredient<ExampleBlock>()
-            .AddTile<Tiles.Furniture.ExampleWorkbench>()
+            .AddTile<ExampleWorkbench>()
             .Register();
     }
 }

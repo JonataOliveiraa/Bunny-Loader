@@ -1,9 +1,17 @@
 # Novidades
 
+## 0.39.0
+
+- Estátua, armadilha, bloco faiscante, gema, erva com sementes e fogo vivo.
+- Blocos animados, bloco inclinado que ativa fios e a malha ardente.
+- Caixa de pesca, os três entulhos e a vitrine de `TileObjectData`.
+- Árvores sacudidas soltam itens novos e os girassóis crescem no bloco de
+  exemplo.
+
 ## 0.38.0
 
 - Os móveis que faltavam: porta, mesa, privada, pia, relógio, plataforma,
-  lustre com sete estilos e estandarte largo.
+  lustre com seis estilos e estandarte largo.
 - A tocha, a tocha de água, a luminária e a fogueira, com chamas e partículas.
 - Tochas de qualquer tipo no Extrator viram outras tochas.
 

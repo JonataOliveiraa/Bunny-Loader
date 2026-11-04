@@ -9,7 +9,7 @@ using Terraria.ModLoader.Core;
 
 namespace Terraria.ModLoader;
 
-public static unsafe class WallLoader
+public static unsafe partial class WallLoader
 {
     static ModWall?[] walls = new ModWall?[WallID.Count];
 

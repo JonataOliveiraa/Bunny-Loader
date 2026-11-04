@@ -1,0 +1,17 @@
+{
+  "uid": "c41e7f90-2a5d-4b63-8f17-9d06e3b2a7c8",
+  "id": "CsExWorld",
+  "name": "Test: Example Mod tiles and world (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "The C# Example Mod's statue, crate, gemspark, rubble, herb, trap and animated tiles in the world.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexworld SHOT <name>, csexworld <case>: ok | FAIL and csexworld END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

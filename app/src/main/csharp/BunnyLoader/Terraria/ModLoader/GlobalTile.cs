@@ -68,6 +68,16 @@ public abstract class GlobalTile : ModType
     {
     }
 
+    public virtual void PreShakeTree(int x, int y, Enums.TreeTypes treeType)
+    {
+    }
+
+    public virtual bool ShakeTree(int x, int y, Enums.TreeTypes treeType) => false;
+
+    public virtual void OnTileConverted(int i, int j, int fromType, int toType, int conversionType)
+    {
+    }
+
     public virtual void EmitParticles(int i, int j, Tile tileCache, ushort typeCache, short tileFrameX, short tileFrameY, Color tileLight, bool visible)
     {
     }

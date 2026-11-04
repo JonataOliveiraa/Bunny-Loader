@@ -2,6 +2,13 @@ using Terraria.DataStructures;
 
 namespace Terraria.DataStructures
 {
+    public readonly partial struct EntitySource_ShakeTree
+    {
+        public EntitySource_ShakeTree(int x, int y) : this(New(x, y).Pointer)
+        {
+        }
+    }
+
     public readonly partial struct EntitySource_TileBreak
     {
         public EntitySource_TileBreak(int tileCoordsX, int tileCoordsY, string? context = null) : this(New(tileCoordsX, tileCoordsY).Pointer) { }

@@ -487,6 +487,89 @@ Items: {
 		DisplayName: Example Wide Banner
 		Tooltip: This banner is wider than all the others!
 	}
+
+	ExampleCutTile: {
+		DisplayName: Fragile Boulder Trap
+		Tooltip: ""
+	}
+
+	ExampleGem: {
+		DisplayName: Example Gem
+		Tooltip: ""
+	}
+
+	ExampleGemsparkBlock: {
+		DisplayName: Example Gemspark Block
+		Tooltip: ""
+	}
+
+	ExampleHerbSeeds: {
+		DisplayName: Example Herb Seeds
+		Tooltip: ""
+	}
+
+	ExampleLivingFire: {
+		DisplayName: Example Living Fire Block
+		Tooltip: ""
+	}
+
+	ExampleSlopedTile: {
+		DisplayName: Example Sloped Tile
+		Tooltip: '''
+			Example tile that can be sloped but is not solid
+			Activates when a player passes through it in the indicated direction
+			'''
+	}
+
+	ExampleStatue: {
+		DisplayName: Example Statue
+		Tooltip: The power of examplium flows in this inanimate fish
+	}
+
+	ExampleTrap: {
+		DisplayName: Example Trap
+		Tooltip: ""
+	}
+
+	ExampleFishingCrate: {
+		DisplayName: Example Fishing Crate
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+	}
+
+	ExampleAnimatedTileItem: {
+		DisplayName: Red Firefly in a Bottle
+		Tooltip: ""
+	}
+
+	ExampleAnimatedGlowmaskTileItem: {
+		DisplayName: Example Animated Glowmask Tile Item
+		Tooltip: ""
+	}
+
+	ExampleTransparentShapedTileItem: {
+		DisplayName: Fiery Mesh
+		Tooltip: "'Touch this to BURN!!'"
+	}
+
+	TileObjectDataShowcaseStyle0: {
+		DisplayName: TileObjectData Showcase Style 0 - Gold
+		Tooltip: Place between gold ore tiles
+	}
+
+	TileObjectDataShowcaseStyle1: {
+		DisplayName: TileObjectData Showcase Style 1 - Silver
+		Tooltip: Place between silver ore tiles
+	}
+
+	TileObjectDataShowcaseStyle2: {
+		DisplayName: TileObjectData Showcase Style 2 - Copper
+		Tooltip: Place between copper ore tiles
+	}
+
+	TileObjectDataShowcaseStyle3: {
+		DisplayName: TileObjectData Showcase Style 3 - ExampleBlock
+		Tooltip: Place between ExampleBlock tiles
+	}
 }
 
 Conditions: {
@@ -618,6 +701,10 @@ Biomes: {
 }
 
 Tiles: {
+	ExampleAnimatedTile.MapEntry: Red Firefly in a Bottle
+	ExampleFishingCrate.MapEntry: Crate
+	ExampleHerb.MapEntry: Example Herb
+	ExampleExposedGem.MapEntry: Example Gem
 	ExampleSign: {
 		DefaultSignText: Interact with me!
 		MapEntry: Example Sign

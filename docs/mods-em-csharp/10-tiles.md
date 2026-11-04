@@ -107,6 +107,21 @@ A tile that sways sets `TileID.Sets.MultiTileSway`, and from `PreDraw` its top l
 
 `PostSetDefaults` runs right after the loader's own defaults, for what they would otherwise override (`Main.tileNoSunLight` on a solid tile). Town NPCs do not open or close mod doors yet: the game checks the door's number inside the NPC's AI.
 
+## Floors, switches, critters and tree shakes
+
+| Hook | When |
+|---|---|
+| `FloorVisuals(Player)` | Every frame a player stands on the tile |
+| `HasWalkDust()`, `WalkDust(ref dustType, ref makeDust, ref color)` | The dust a player kicks up walking on the tile |
+| `DropCritterChance(i, j, ref worm, ref grasshopper, ref grub)` | When the tile breaks; a chance of `n` is one in `n` |
+| `HitSwitch(i, j)` | A player or a mechanism uses the tile as a switch; `Wiring.HitSwitchAndSync` also tells the others |
+| `SwitchTiles(i, j, entity, position, width, height, oldPosition, objType)` | An entity moves through the tile; `true` stops the search |
+| `GlobalTile.PreShakeTree(x, y, treeType)`, `ShakeTree(x, y, treeType)` | A tree is shaken. `ShakeTree` returning `true` replaces the game's drop. `NPCLoader.blockLoot` blocks item types until the shake ends |
+
+`FlexibleTileWand.RubblePlacementSmall`, `Medium` and `Large` take a mod's fake rubble with `AddVariations`. `ItemID.Sets.DisableAutomaticPlaceableDrop` keeps an item from becoming the drop of the tile it places.
+
+Not on the phone: `ModifyFrameMerge`, `PostTileFrame`, `ChangeWaterfallStyle`, `GlobalWall`, `TileID.Sets.CanBeSloped`, `CanPlaceNextToNonSolidTile` and `IgnoredByGrowingSaplings`, because they run in the middle of the game's framing, waterfall or placement code, which C# can only enter at the start and at the end.
+
 ## Chairs and beds
 
 Set `TileID.Sets.CanBeSatOnForPlayers`/`CanBeSatOnForNPCs` or `CanBeSleptIn`, then adjust where the entity rests with `ModifySittingTargetInfo` and `ModifySleepingTargetInfo`, as in tModLoader:

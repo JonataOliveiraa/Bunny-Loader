@@ -8,6 +8,8 @@ public static class UtilsExtensions
 {
     public static bool NextBool(this UnifiedRandom r) => r.Next(2) == 0;
 
+    public static Vector2 ToWorldCoordinates(this Point p, float autoAddX = 8f, float autoAddY = 8f) => new Vector2(p.X * 16 + autoAddX, p.Y * 16 + autoAddY);
+
     public static T Next<T>(this UnifiedRandom r, System.Collections.Generic.IList<T> choices) => choices[r.Next(choices.Count)];
 
     public static bool NextBool(this UnifiedRandom r, int consequent)

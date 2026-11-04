@@ -176,6 +176,9 @@ Terraria.ObjectData.TileObjectData
 Terraria.GameContent.Drawing.TileDrawing
 Terraria.GameContent.ExtractinatorHelper
 Terraria.Animation
+Terraria.DataStructures.EntitySource_ShakeTree
+Terraria.GameContent.FlexibleTileWand
+Terraria.ID.BiomeConversionID
 Terraria.GameContent.DoorOpeningHelper
 !Terraria.GameContent.Drawing.TileDrawing.IsVisible
 !Terraria.Main.SceneMetrics

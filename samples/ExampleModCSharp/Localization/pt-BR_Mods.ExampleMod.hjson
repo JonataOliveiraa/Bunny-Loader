@@ -487,6 +487,89 @@ Items: {
 		DisplayName: Estandarte Largo de Exemplo
 		Tooltip: Este estandarte é mais largo que todos os outros!
 	}
+
+	ExampleCutTile: {
+		DisplayName: Armadilha de Pedra Frágil
+		Tooltip: ""
+	}
+
+	ExampleGem: {
+		DisplayName: Gema de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleGemsparkBlock: {
+		DisplayName: Bloco Faiscante de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleHerbSeeds: {
+		DisplayName: Sementes de Erva de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleLivingFire: {
+		DisplayName: Bloco de Fogo Vivo de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleSlopedTile: {
+		DisplayName: Bloco Inclinado de Exemplo
+		Tooltip: '''
+			Bloco de exemplo que pode ser inclinado, mas não é sólido
+			Ativa quando um jogador passa por ele na direção indicada
+			'''
+	}
+
+	ExampleStatue: {
+		DisplayName: Estátua de Exemplo
+		Tooltip: O poder do exemplium flui neste peixe inanimado
+	}
+
+	ExampleTrap: {
+		DisplayName: Armadilha de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleFishingCrate: {
+		DisplayName: Caixa de Pesca de Exemplo
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+	}
+
+	ExampleAnimatedTileItem: {
+		DisplayName: Vaga-lume Vermelho na Garrafa
+		Tooltip: ""
+	}
+
+	ExampleAnimatedGlowmaskTileItem: {
+		DisplayName: Bloco Animado Brilhante de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleTransparentShapedTileItem: {
+		DisplayName: Malha Ardente
+		Tooltip: "'Toque nisto para QUEIMAR!!'"
+	}
+
+	TileObjectDataShowcaseStyle0: {
+		DisplayName: Vitrine TileObjectData Estilo 0 - Ouro
+		Tooltip: Coloque entre blocos de minério de ouro
+	}
+
+	TileObjectDataShowcaseStyle1: {
+		DisplayName: Vitrine TileObjectData Estilo 1 - Prata
+		Tooltip: Coloque entre blocos de minério de prata
+	}
+
+	TileObjectDataShowcaseStyle2: {
+		DisplayName: Vitrine TileObjectData Estilo 2 - Cobre
+		Tooltip: Coloque entre blocos de minério de cobre
+	}
+
+	TileObjectDataShowcaseStyle3: {
+		DisplayName: Vitrine TileObjectData Estilo 3 - ExampleBlock
+		Tooltip: Coloque entre blocos ExampleBlock
+	}
 }
 
 Conditions: {
@@ -617,6 +700,10 @@ Biomes: {
 }
 
 Tiles: {
+	ExampleAnimatedTile.MapEntry: Vaga-lume Vermelho na Garrafa
+	ExampleFishingCrate.MapEntry: Caixa
+	ExampleHerb.MapEntry: Erva de Exemplo
+	ExampleExposedGem.MapEntry: Gema de Exemplo
 	ExampleSign: {
 		DefaultSignText: Interaja comigo!
 		MapEntry: Placa de Exemplo

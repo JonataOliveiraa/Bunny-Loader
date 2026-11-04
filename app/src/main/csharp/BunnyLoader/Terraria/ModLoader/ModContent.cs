@@ -280,6 +280,8 @@ public static class ModContent
                 Run(mod, "PostSetupContent", mod.PostSetupContent);
                 foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostSetupContent", system.PostSetupContent);
             }
+            try { BiomeConversionLoader.PostSetupContent(); }
+            catch (Exception e) { Core.ItemHooks.Report("BiomeConversionLoader.PostSetupContent", e); }
             try { TownShopHooks.ContentReady(); }
             catch (Exception e) { Log.Error($"NPC shops: the tables could not be set up: {e}"); }
             try { NPCLootHooks.ContentReady(); }

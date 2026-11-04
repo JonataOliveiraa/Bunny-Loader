@@ -47,4 +47,16 @@ public unsafe partial struct Tile
     public bool HasTile => active();
 
     public bool HasUnactuatedTile => nactive();
+
+    public bool HasActuator
+    {
+        get => actuator();
+        set => actuator(value);
+    }
+
+    public bool IsActuated
+    {
+        get => inActive();
+        set => inActive(value);
+    }
 }
