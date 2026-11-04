@@ -126,3 +126,23 @@ ExamplePiercingProjectileItem:
     DisplayName: Example Piercing Projectile Item
     Tooltip: ""
 }
+ExampleArrow:
+{
+    DisplayName: Example Arrow
+    Tooltip: ""
+}
+ExampleCustomAmmo:
+{
+    DisplayName: Example Custom Ammo
+    Tooltip: Chases enemies through walls
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Example Gravity Debuff Bullet
+    Tooltip: ""
+}
+ExampleRocket:
+{
+    DisplayName: Example Rocket
+    Tooltip: "{$ItemTooltip.RocketI}"
+}

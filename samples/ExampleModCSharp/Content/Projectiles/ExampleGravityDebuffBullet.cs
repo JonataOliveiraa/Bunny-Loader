@@ -61,7 +61,7 @@ namespace ExampleMod.Content.Projectiles
         }
 
         public override void OnHitNPC(NPC target, NPC.HitInfo hit, int damageDone) {
-            if (ModContent.TryFind<ModBuff>("ExampleMod/ExampleGravityDebuff", out var buff)) target.AddBuff(buff.Type, 600);
+            target.AddBuff(ModContent.BuffType<ExampleGravityDebuff>(), 600);
         }
     }
 }

@@ -126,3 +126,23 @@ ExamplePiercingProjectileItem:
     DisplayName: Item de projétil perfurante de exemplo
     Tooltip: ""
 }
+ExampleArrow:
+{
+    DisplayName: Flecha de exemplo
+    Tooltip: ""
+}
+ExampleCustomAmmo:
+{
+    DisplayName: Munição personalizada de exemplo
+    Tooltip: Persegue inimigos através das paredes
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Bala de penalidade de gravidade de exemplo
+    Tooltip: ""
+}
+ExampleRocket:
+{
+    DisplayName: Foguete de exemplo
+    Tooltip: "{$ItemTooltip.RocketI}"
+}

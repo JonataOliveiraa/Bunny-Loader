@@ -24,7 +24,7 @@ namespace ExampleMod.Content.Items.Weapons
                 TagDamagePercent = ExampleWhipAdvancedTagDamagePercent,
                 ProcDamageMultiplier = 1.75f,
 
-                PlayerBuffId = ModContent.TryFind<ModBuff>("ExampleMod/ExampleWhipAdvancedPlayerBuff", out var buff) ? buff.Type : 0,
+                PlayerBuffId = ModContent.BuffType<ExampleWhipAdvancedPlayerBuff>(),
                 PlayerBuffTime = 180
             };
         }

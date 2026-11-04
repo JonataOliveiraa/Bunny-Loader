@@ -25,7 +25,7 @@ namespace ExampleMod.Content.Items.Weapons
             Item.value = Item.buyPrice(gold: 1);
 
             Item.shoot = ModContent.ProjectileType<Projectiles.ExampleHomingProjectile>();
-            Item.useAmmo = ModContent.TryFind<ModItem>("ExampleMod/ExampleCustomAmmo", out var ammo) ? ammo.Type : 0;
+            Item.useAmmo = ModContent.ItemType<Ammo.ExampleCustomAmmo>();
         }
 
         public override void AddRecipes() {

@@ -78,3 +78,44 @@ The unchanged baseline compiled with 0 errors (100 existing warnings). C1 compil
 - C2 ammo/buffs and C5 paper-airplane drop are looked up by full mod/name until those blocks arrive. If absent, only the dependency is skipped. Restore direct generic references as the owning Codex blocks are completed.
 - HitModifiersShowcase mode 7's dodge application awaits the C3 ExampleDamageModificationPlayer and C2 ExampleDodgeBuff.
 - The other session's networking message enum and dispatch for custom use style must be merged before restoring that explicit direction synchronization.
+
+
+## C2 — ammo and buffs
+
+Validation: required Release build passed with 0 errors and 108 warnings.
+
+### API added
+
+- `NPC.GravityMultiplier` in `NPC.Gravity.TML.cs`, backed by weak per-NPC state in `Core/NPCGravityHooks.cs`. State resets at `NPC.UpdateNPC_BuffFlagsReset`, before buff updates; `NPC.UpdateNPC_UpdateGravity(out float)` applies the multiplier after the mobile game resets its static NPC.gravity. These native points are confirmed in the proxies and dump. The PC/tML source confirms why buff-time gravity must survive the later native reset. This adapter currently covers modifications made before UpdateNPC_UpdateGravity; later AI modifications require a separate application point.
+- `Player.MeleeEnchantActive` in `Player.MeleeEnchant.TML.cs` maps onto the existing native byte meleeEnchant (255 for a custom enchantment, 0 to clear). The field is present in the mobile proxy.
+- `Player.SetCCed` in `Player.CrowdControl.TML.cs` adds a per-player crowd-control flag. `Core/PlayerCrowdControlHooks.cs` resets it at native ResetEffects and extends native get_CCed without replacing vanilla control conditions. Both native hooks are confirmed in the proxy.
+- `Condition.NpcIsPresent` in `Condition.cs` follows the upstream localization/name/predicate implementation. The sample provides the condition text in new global Conditions localization files. Native NPC.AnyNPCs and Lang.GetNPCName are existing proxies.
+- C1's temporary ammo, gravity-bullet, javelin-buff and whip-buff lookups are replaced with direct generic references now that those types exist.
+
+### To test in game
+
+| Examples | Checks |
+| --- | --- |
+| ExampleArrow | Research count, arrow ammo selection, projectile speed/damage and workbench recipe. |
+| ExampleCustomAmmo | Custom ammo category equals its own item type; custom gun consumes only this ammo and fires homing projectiles. |
+| ExampleGravityDebuffBullet | Bullet selection, penetration/trail and gravity effect on hit NPCs. |
+| ExampleRocket | Five launcher mappings, specialist damage, conservation, recipes and Cyborg condition. |
+| AbsorbTeamDamageBuff | Hidden duration/save flags; C3 player-state linkage and teammate damage redirection. |
+| AnimatedBuff | Four-frame icon, one-second animation step and 10% generic damage increase. |
+| ExampleCrowdControlledDebuff | Suppression of movement/items, pulley and mount cancellation, forced gravity, tint and touch controls. |
+| ExampleDodgeBuff | C3 dodge flag, consumption, cooldown, held-weapon restriction and visuals. |
+| ExampleGravityDebuff | Gravity varies by cosine; native gravity reset does not erase it or leak into another NPC. The source Counter is shared by the singleton buff, as upstream. |
+| ExampleJavelinDebuff | Bone-javelin immunity inheritance; C4 sticking-javelin damage-over-time linkage. |
+| ExampleWeaponImbue | Flask exclusion/persistence flags, native melee enchantment marker and C3 hit/enchantment effects. |
+| ExampleWhipAdvancedPlayerBuff | 12% summon-melee attack-speed bonus and native whip tag application. |
+
+### Left out
+
+No C2 game behavior has been substituted with an invented native member. Player/global-NPC flags owned by later Codex blocks are temporarily omitted below and must be restored with those blocks.
+
+### Unresolved references
+
+- AbsorbTeamDamageBuff's description currently uses the upstream constant 30 and its Update awaits ExampleDamageModificationPlayer in C3.
+- ExampleDodgeBuff.Update awaits ExampleDamageModificationPlayer in C3.
+- ExampleWeaponImbue's custom state awaits ExampleWeaponEnchantmentPlayer in C3; the native enchantment marker is already active.
+- ExampleJavelinDebuff.Update awaits DamageOverTimeGlobalNPC in C4.

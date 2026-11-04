@@ -170,7 +170,7 @@ namespace ExampleMod.Content.Projectiles
             Projectile.netUpdate = true;
             Projectile.damage = 0;
 
-            if (ModContent.TryFind<ModBuff>("ExampleMod/ExampleJavelinDebuff", out var buff)) target.AddBuff(buff.Type, 900);
+            target.AddBuff(ModContent.BuffType<Buffs.ExampleJavelinDebuff>(), 900);
 
             Projectile.KillOldestJavelin(Projectile.whoAmI, Type, target.whoAmI, stickingJavelins);
         }

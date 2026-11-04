@@ -9,6 +9,8 @@ public sealed record Condition(LocalizedText Description, Func<bool> Predicate)
 {
     public Condition(string LocalizationKey, Func<bool> Predicate) : this(Language.GetOrRegister(LocalizationKey, () => Readable(LocalizationKey)), Predicate) { }
 
+    public static Condition NpcIsPresent(int npcId) => new(Language.GetOrRegister("Conditions.NpcIsPresent", () => "Requires {0} to be present").WithFormatArgs(Lang.GetNPCName(npcId)), () => NPC.AnyNPCs(npcId));
+
     public bool IsMet() => Predicate();
 
     static string Readable(string key) => Regex.Replace(key[(key.LastIndexOf('.') + 1)..], "([a-z0-9])([A-Z])", "$1 $2");
