@@ -146,3 +146,73 @@ ExampleRocket:
     DisplayName: Example Rocket
     Tooltip: "{$ItemTooltip.RocketI}"
 }
+ExampleInfoAccessory:
+{
+    DisplayName: Example Info Accessory
+    Tooltip: Displays how many minions you have summoned
+}
+ExamplePotionDelayAccessory:
+{
+    DisplayName: Example Potion Delay Accessory
+    Tooltip:
+        '''
+        Decreases the total cooldown of healing potions by {0} seconds
+        {$CommonItemTooltip.ReducesHealingPotionCooldownByPercent@1}
+        '''
+}
+ExampleHood:
+{
+    DisplayName: Example Hood
+    Tooltip: This is a modded hood.
+    SetBonus:
+        '''
+        Double tap or hold {1} to toggle various armor shadow effects
+        {$CommonItemTooltip.PercentReducedManaCost}
+        '''
+    SetBonusKeyUp: Up
+    SetBonusKeyDown: Down
+}
+ExampleTallHelmet:
+{
+    DisplayName: Example Tall Helmet
+    Tooltip: This is a tall modded helmet.
+}
+AbsorbTeamDamageAccessory:
+{
+    DisplayName: Absorb Team Damage Accessory
+    Tooltip: Absorbs {0}% of damage done to players on your team when above {1}% life
+}
+ExampleMultiExtraJumpAccessory:
+{
+    DisplayName: Example Multiple-Use Extra Jump Accessory
+    Tooltip:
+        '''
+        Allows the user to perform an example mid-air extra jump
+        This accessory has <JUMPS> jumps remaining
+        '''
+}
+CameraModifierShowcase:
+{
+    DisplayName: Camera Modifier Showcase
+    Tooltip: ""
+}
+RubyEarrings:
+{
+    DisplayName: Ruby Earrings
+    Tooltip: ""
+}
+SapphireEarrings:
+{
+    DisplayName: Sapphire Earrings
+    Tooltip: ""
+}
+SimpleAccessory:
+{
+    DisplayName: Simple Accessory
+    Tooltip: Minion and sentry attacks cause frostburn
+}
+ExampleSpecialGlideWings:
+{
+    DisplayName: Example Special Glide Wings
+    Tooltip: ""
+}

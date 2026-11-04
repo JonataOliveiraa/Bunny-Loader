@@ -8,7 +8,7 @@ namespace ExampleMod.Content.Buffs
 {
     public class AbsorbTeamDamageBuff : ModBuff
     {
-        public override LocalizedText Description => base.Description.WithFormatArgs(30);
+        public override LocalizedText Description => base.Description.WithFormatArgs(AbsorbTeamDamageAccessory.DamageAbsorptionPercent);
 
         public override void SetStaticDefaults() {
             Main.buffNoSave[Type] = true;
@@ -16,7 +16,7 @@ namespace ExampleMod.Content.Buffs
         }
 
         public override void Update(Player player, ref int buffIndex) {
-
+            player.GetModPlayer<ExampleDamageModificationPlayer>().defendedByAbsorbTeamDamageEffect = true;
         }
     }
 }

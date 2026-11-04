@@ -12,6 +12,7 @@ internal static unsafe class PlayerUpdateHooks
 
     internal static void Install(Func<string, bool> has)
     {
+        PlayerExampleHooks.Install(has);
         if (has(nameof(ModPlayer.PostUpdateMiscEffects))) ItemHooks.Once("PlayerMiscEffects", () => On_Player.CapAttackSpeeds += CapAttackSpeeds);
         if (has(nameof(ModPlayer.PostUpdateRunSpeeds))) WantRunSpeeds();
         if (has(nameof(ModPlayer.PreUpdateMovement)))
@@ -124,8 +125,8 @@ internal static unsafe class PlayerUpdateHooks
 
     static void RefreshInfoAccs(On_Player.orig_RefreshInfoAccs orig, Player self)
     {
-        orig(self);
         PlayerLoader.Each(self, nameof(ModPlayer.ResetInfoAccessories), m => m.ResetInfoAccessories());
+        orig(self);
     }
 
     static int SetBonusKey => Main.ReversedUpDownArmorSetBonuses ? 1 : 0;

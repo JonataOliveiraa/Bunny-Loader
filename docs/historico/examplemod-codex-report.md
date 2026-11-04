@@ -119,3 +119,58 @@ No C2 game behavior has been substituted with an invented native member. Player/
 - ExampleDodgeBuff.Update awaits ExampleDamageModificationPlayer in C3.
 - ExampleWeaponImbue's custom state awaits ExampleWeaponEnchantmentPlayer in C3; the native enchantment marker is already active.
 - ExampleJavelinDebuff.Update awaits DamageOverTimeGlobalNPC in C4.
+
+
+## C3 — player and accessories
+
+Validation: required Release build passed with 0 errors and 116 warnings.
+
+### API added
+
+- `ModItem`/`GlobalItem.UpdateVisibleAccessory`, `UpdateItemDye`, and `UpdateInfoAccessory`: `Core/ItemVisibilityHooks.cs` dispatches after native Player.UpdateVisibleAccessory, UpdateItemDye and RefreshInfoAccsFromItemType. RefreshInfoAccs scopes actual inventory, effective armor and eligible Void Bag items, so per-item state survives the native type-only callback. These native methods and fields are confirmed in mobile proxies. The inventory/armor/void traversal order follows the PC source and needs mobile runtime verification.
+- `ModPlayer.RefreshInfoAccessoriesFromTeamPlayers` and `EmitEnchantmentVisualsAt`: `Core/PlayerExampleHooks.cs` hooks native Player.RefreshInfoAccsFromTeamPlayers and Projectile.EmitEnchantmentVisualsAt. Team copying uses active, alive teammates within 800 pixels; the original native method runs first. Custom ResetInfoAccessories now runs before native RefreshInfoAccs, matching the original reset-before-recalculation ordering.
+- `Player.PotionDelayModifier` and `Core/PlayerPotionDelayHooks.cs`: weak per-player StatModifier resets at native ResetEffects. Existing ItemHealHooks applies it to the native healing-potion sickness duration after item/global modifiers and before ApplyPotionDelay vetoes. Native Philosopher's Stone reduction already occurred; it is not applied twice.
+- `Chest.GetItem`/`SetItem` in `Chest.TML.cs`: uses the existing native ExpandChestItem/StoreChestItem bridge and real ChestItem.SetToItem, then synchronizes InventoryStorage. The example captures the chest and writes the consumed item back before SyncChestItem. Chest slots in mobile are compact structs, not Item references. Native C++ mod-item sidecar serialization is retained.
+- `PlayerEyeHelper.CurrentEyeState`, `CurrentEyeFrame`, and `TimeInState`: direct adapters to native eye state/time/frame in `GameContent/PlayerEyeHelper.TML.cs`.
+- `Main.ActivePlayers`, `Projectile.IsMinionOrSentryRelated`, UtilsExtensions.Next/GetTrueIndexes/MultiplyRGBA, ModTypeLookup registration/legacy aliases. Native member forwarding is used where present; custom collections are managed.
+- `Graphics/CameraModifiers/CameraModifierStack.TML.cs`: managed camera modifier list executes after native ApplyTo, replaces matching managed unique identities and removes finished modifiers. Native CameraInfo and ApplyTo are confirmed. Native interfaces cannot be implemented by managed C# objects, so the sample aliases the managed interface explicitly.
+- `Graphics/Renderers/ParticleRenderer.TML.cs`: managed particle list joins native Update/Draw/Clear, passing the real native renderer settings. Victory pose icons use this bridge. All three hook points are confirmed in the proxy; whether the mobile renderer visits an otherwise empty list must be verified in game.
+- `BuilderToggle`, BuilderToggleDrawParams and `Core/BuilderToggleHooks.cs`: real custom state appended to Player.builderAccStatus, drawing/input after native GUIBuilderAccToggles.Draw, custom ordering, hover drawing, tooltip, left cycling and right actions. IDs derive from the native initialized array length. State initialization, native player save compatibility and touch input require testing. Custom controls are appended below the native panel; ordering relative to a vanilla anchor does not insert inside that panel.
+- `InfoDisplay` and `Core/InfoDisplayHooks.cs`: native GUIAccessoryInfo.Draw draws custom active icons/text below its native region, using the existing sprite batch. The sample's empty-count inactive color is supported. Mobile UI scaling, placement, visibility and touch require testing; custom shadow colors and native panel hide controls are not integrated.
+- `Core/CustomContentSetup.cs` joins ModContent.ContentReady and runs SetupContent once for custom types registered through ModTypeLookup. This enables the upstream ModVictoryPose registration lifecycle as well as BuilderToggle/InfoDisplay.
+- ActiveSoundHooks now plays ordinary non-trackable native styles through native PlaySound and applies explicit pitch. Trackable styles retain active-sound callbacks; requests to track a non-trackable style fail explicitly.
+- Restored C2 team-damage, dodge and weapon-imbue player links, and C1 HitModifiersShowcase's dodge mode now that their C3 player types exist.
+
+### To test in game
+
+| Examples | Checks |
+| --- | --- |
+| RubyEarrings / SapphireEarrings / AnglerEarring | Male/female textures, hair and head alignment, functional/social visibility, hide toggles, dye and shaders, reverse gravity, frozen/wet draw states. |
+| ExampleHood / ExampleArmorSetBonusPlayer | Full armor set, 10% mana reduction, translated up/down hint, double-tap/hold selection through all shadow styles, custom tinted clones and restoration of draw colors. |
+| ExampleBlinkingPlayer | Eye state/frame/time on damage, eating, sleep, darkness, long-duration blink and multiplayer players. |
+| ExampleDamageModificationPlayer / AbsorbTeamDamageAccessory | 30% teammate transfer, life threshold, 800-pixel range, closest wearer tie-breaking, cooldown/dodge consumption, projectile/item hits, PvP, host/client authority and dust/sound. Explicit custom synchronization is pending. |
+| ExampleInfoAccessory / ExampleInfoDisplayPlayer / ExampleInfoDisplay | Inventory, equipment and Void Bag activation, reset after removal, nearby teammate sharing, minion count and inactive text. |
+| ExampleRecipeMaterialPlayer | Standing over either chest half, locked chests, dressers, empty/deleted/open chests; crafting consumes the actual slots and preserves mod item data; remote clients receive the updated slots. |
+| SimpleModPlayer / SimpleAccessory / ExampleWeaponEnchantmentPlayer | All original item/projectile enchantment hit and visual paths, minion/sentry frostburn, effects reset and native enchantment exclusion. |
+| Builder toggles / FreeBaitBuilderToggle | Active rules, colors/light dimming, left/right actions, custom order, translated hover, free bait gift, touch, UI scale and saving/reloading states. |
+| Victory poses | Custom registration/static setup, boss/non-boss selection, cheer text, arm poses and cancellation, fireworks, particle icon lifetime, death/end timing; host/client synchronization is pending. |
+| CameraModifierShowcase / ExampleCameraModifier | Smooth focus/return, priority/identity replacement, menu focus and use during camera shake. |
+| ExampleMultiExtraJumpAccessory | Three uses, recharging, tooltip count, dust and sound pitch; platform/reverse gravity and other extra jumps. |
+| ExamplePotionDelayAccessory | 10-second flat reduction and 15% multiplier, with/without Philosopher's Stone, quick heal and manual use, healing item hook interactions. |
+| ExampleSpecialGlideWings / ExampleTallHelmet | Flight speed/ascent, visible wings, tall helmet sprite bounds and hair alignment. |
+
+### Left out
+
+- `Common/Players/ExampleAccessorySlot.cs` is excluded: custom accessory storage, save/network, equipment traversal and UI slot binding have no matching implementation. A fake extra slot would imply effects and persistence that are absent.
+- ExampleSpecialGlideWings.WingGlidingSpeeds: no equivalent native hook exposing the same ref inputs was confirmed. Normal wing stats and vertical speeds remain. Optional recipe sorting is omitted because the mobile recipe wrapper does not provide SortBefore.
+- ExampleTallHelmet's tML-only IsTallHat set: native drawing hardcodes tall hats. The item and normal head/hair metadata remain; custom tall-hat offset integration is absent.
+- Explicit dodge/victory-pose sends and server relay await the other half's ExampleMod.Networking.cs. Receive handlers remain with bounds checks. No unhandled packets are emitted.
+- PotionDelayModifier changes affect the next consumed potion; changing the accessory during existing potion sickness does not rescale that running timer. Native Philosopher's Stone ordering also precedes the loader's item ModifyPotionDelay point.
+- Builder toggle state is stored in the native array, but a name-based custom-state save/migration format is not added. Camera screen-shake settings cannot be checked through the PC-only Main.UseScreenShake member, absent from mobile. Native and managed camera modifiers execute in separate groups.
+- VictoryPoseID uses managed name lookup/sets initialized after registration; tML named-set metadata and ReinitializeDuringResizeArrays attribute are absent.
+- SoundStyle.Type and PitchVariance overrides on native styles are not fully integrated by the existing sound adapter; the native style is used with the explicit pitch supported above. Observe the fireworks thunder category and jump sound variation.
+
+### Unresolved references
+
+- The other half's networking enum/dispatcher is still absent on master. Restore custom use-style direction, dodge effects and victory-pose send/relay paths after it arrives.
+- C2 ExampleJavelinDebuff still awaits C4 DamageOverTimeGlobalNPC. All other C2 player links and C1 dodge links are resolved in this block.

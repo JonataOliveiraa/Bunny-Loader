@@ -18,6 +18,14 @@ internal static unsafe class ActiveSoundHooks
     internal static SlotId Play(in SoundStyle style, Vector2? position, SoundUpdateCallback? callback)
     {
         if (style.Pointer == 0) throw new NotSupportedException("Tracked sounds require a native SoundStyle; Android sound-pool playback does not expose active sound instances.");
+        var legacy = new LegacySoundStyle(style.Pointer);
+        if (!legacy.IsTrackable)
+        {
+            if (callback != null || style.IsLooped) throw new NotSupportedException("This native sound style does not support tracked playback.");
+            if (position is Vector2 at) SoundEngine.PlaySound(legacy, at, style.Pitch);
+            else SoundEngine.PlaySound(legacy, -1, -1, style.Pitch);
+            return default;
+        }
         SlotId slot;
         if (style.IsLooped)
         {
@@ -29,6 +37,7 @@ internal static unsafe class ActiveSoundHooks
             slot = SoundEngine.PlayTrackedLoopedSound(style, position ?? Main.LocalPlayer.Center, condition, default);
         }
         else slot = position is Vector2 at ? SoundEngine.PlayTrackedSound(style, at, default) : SoundEngine.PlayTrackedSound(style);
+        if (style.Pitch != 0f && SoundEngine.TryGetActiveSound(slot, out ActiveSound pitched)) pitched.Pitch += style.Pitch;
         if (callback != null && SoundEngine.TryGetActiveSound(slot, out ActiveSound sound))
         {
             if (!callback(sound)) sound.Stop();

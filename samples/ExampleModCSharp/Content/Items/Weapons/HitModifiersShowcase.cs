@@ -128,6 +128,12 @@ namespace ExampleMod.Content.Items.Weapons
             if (mode == 6) {
                 target.AddBuff(ModContent.BuffType<ExampleDefenseDebuff>(), 600);
             }
+            else if (mode == 7) {
+                var damageModificationPlayer = player.GetModPlayer<ExampleDamageModificationPlayer>();
+                if (damageModificationPlayer.exampleDodgeCooldown == 0) {
+                    player.AddBuff(ModContent.BuffType<ExampleDodgeBuff>(), 1800);
+                }
+            }
 
         }
 
@@ -153,6 +159,12 @@ namespace ExampleMod.Content.Items.Weapons
             if (mode == 6) {
 
                 target.AddBuff(ModContent.BuffType<ExampleDefenseDebuff>(), 600);
+            }
+            else if (mode == 7) {
+                var damageModificationPlayer = player.GetModPlayer<ExampleDamageModificationPlayer>();
+                if (damageModificationPlayer.exampleDodgeCooldown == 0) {
+                    player.AddBuff(ModContent.BuffType<ExampleDodgeBuff>(), 1800);
+                }
             }
 
         }

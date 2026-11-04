@@ -440,6 +440,15 @@ Terraria.GameContent.Drawing.ParticleOrchestrator
 !Terraria.Mount+MountDelegatesData.MinecartLandingSound
 !Terraria.Mount+MountDelegatesData.MinecartBumperSound
 Terraria.DataStructures.CachedProjectileCounterBuffTextHandler
+Terraria.Graphics.CameraModifiers.CameraModifierStack
+Terraria.Graphics.CameraModifiers.CameraInfo
+Terraria.Graphics.Renderers.ParticleRenderer
+Terraria.Graphics.Renderers.ParticleRendererSettings
+Terraria.FocusHelper
+Terraria.ChestItem
+Terraria.GameContent.PlayerEyeHelper
+GUIBuilderAccToggles
+GUIAccessoryInfo
 Terraria.Graphics.Shaders.GameShaders
 Terraria.DataStructures.SettingsForCharacterPreview
 !Terraria.ID.BuffID+Sets.BuffTextHandlers

@@ -15,7 +15,7 @@ namespace ExampleMod.Content.Buffs
         }
 
         public override void Update(Player player, ref int buffIndex) {
-
+            player.GetModPlayer<ExampleWeaponEnchantmentPlayer>().exampleWeaponImbue = true;
             player.MeleeEnchantActive = true;
         }
     }

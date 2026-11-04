@@ -275,6 +275,7 @@ public static class ModContent
             catch (Exception e) { Log.Error($"tiles: setup failed: {e}"); }
             try { PlantLoader.FinishSetup(); }
             catch (Exception e) { Log.Error($"trees: setup failed: {e}"); }
+            CustomContentSetup.ContentReady();
             foreach (Mod mod in mods)
             {
                 Run(mod, "PostSetupContent", mod.PostSetupContent);

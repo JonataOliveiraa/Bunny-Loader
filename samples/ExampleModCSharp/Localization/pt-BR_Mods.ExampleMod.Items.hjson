@@ -146,3 +146,73 @@ ExampleRocket:
     DisplayName: Foguete de exemplo
     Tooltip: "{$ItemTooltip.RocketI}"
 }
+ExampleInfoAccessory:
+{
+    DisplayName: Acessório de informações de exemplo
+    Tooltip: Mostra quantos lacaios você invocou
+}
+ExamplePotionDelayAccessory:
+{
+    DisplayName: Acessório de recarga de poções de exemplo
+    Tooltip:
+        '''
+        Reduz a recarga total de poções de cura em {0} segundos
+        {$CommonItemTooltip.ReducesHealingPotionCooldownByPercent@1}
+        '''
+}
+ExampleHood:
+{
+    DisplayName: Capuz de exemplo
+    Tooltip: Este é um capuz modificado.
+    SetBonus:
+        '''
+        Toque duas vezes ou segure {1} para alternar os efeitos de sombra da armadura
+        {$CommonItemTooltip.PercentReducedManaCost}
+        '''
+    SetBonusKeyUp: Cima
+    SetBonusKeyDown: Baixo
+}
+ExampleTallHelmet:
+{
+    DisplayName: Capacete alto de exemplo
+    Tooltip: Este é um capacete alto modificado.
+}
+AbsorbTeamDamageAccessory:
+{
+    DisplayName: Acessório de absorção de dano da equipe
+    Tooltip: Absorve {0}% do dano recebido pelos jogadores da sua equipe enquanto você tiver mais de {1}% de vida
+}
+ExampleMultiExtraJumpAccessory:
+{
+    DisplayName: Acessório de salto extra com múltiplos usos de exemplo
+    Tooltip:
+        '''
+        Permite realizar um salto extra no ar
+        Este acessório tem <JUMPS> saltos restantes
+        '''
+}
+CameraModifierShowcase:
+{
+    DisplayName: Demonstração de modificador de câmera
+    Tooltip: ""
+}
+RubyEarrings:
+{
+    DisplayName: Brincos de rubi
+    Tooltip: ""
+}
+SapphireEarrings:
+{
+    DisplayName: Brincos de safira
+    Tooltip: ""
+}
+SimpleAccessory:
+{
+    DisplayName: Acessório simples
+    Tooltip: Ataques de lacaios e sentinelas causam queimadura de gelo
+}
+ExampleSpecialGlideWings:
+{
+    DisplayName: Asas de planeio especial de exemplo
+    Tooltip: ""
+}

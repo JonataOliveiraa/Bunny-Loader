@@ -114,6 +114,12 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void UpdateAccessory(Item item, Player player, bool hideVisual) { }
 
+    public virtual void UpdateVisibleAccessory(Item item, Player player, bool hideVisual) { }
+
+    public virtual void UpdateItemDye(Item item, Player player, int dye, bool hideVisual) { }
+
+    public virtual void UpdateInfoAccessory(Item item, Player player) { }
+
     public virtual void UpdateVanity(Item item, Player player) { }
 
     public virtual string IsArmorSet(Item head, Item body, Item legs) => "";

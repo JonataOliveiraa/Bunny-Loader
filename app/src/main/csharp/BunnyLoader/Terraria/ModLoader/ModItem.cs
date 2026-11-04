@@ -142,6 +142,12 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void UpdateAccessory(Player player, bool hideVisual) { }
 
+    public virtual void UpdateVisibleAccessory(Player player, bool hideVisual) { }
+
+    public virtual void UpdateItemDye(Player player, int dye, bool hideVisual) { }
+
+    public virtual void UpdateInfoAccessory(Player player) { }
+
     public virtual void UpdateVanity(Player player) { }
 
     public virtual void EquipFrameEffects(Player player, EquipType type) { }

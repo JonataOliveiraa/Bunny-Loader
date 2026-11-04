@@ -1,0 +1,14 @@
+ExampleBuilderToggleDimmedLight:
+{
+    OnText: Exemplo ativado
+    OffText: Exemplo desativado
+}
+ExampleBuilderToggle:
+{
+    CurrentColor: Cor: {0}
+    Color_0: Vermelho
+    Color_1: Azul
+    Color_2: Verde
+    Color_3: Amarelo
+}
+FreeBaitBuilderToggle.NameText: Isca grátis: {0}
