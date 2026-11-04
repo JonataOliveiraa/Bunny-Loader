@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System;
@@ -172,169 +173,323 @@ public static class ModContent
         }
     }
 
+    const int SliceMilliseconds = 16;
+
+    static IEnumerator<int>? setup;
+
     [UnmanagedCallersOnly]
-    internal static void ContentReady()
+    internal static int ContentReady()
     {
         try
         {
-            Mod[] mods = Host.Mods;
-            ServerSyncHooks.Install();
-            BunnyLoader.ScreenEffectsSetting.Install();
-            BunnyLoader.ScreenFxCommand.Install();
-            Terraria.ID.SetFactory.GrowToContent();
-            SystemLoader.ResizeArrays();
-            SystemLoader.OnLocalizationsLoaded();
-            foreach (Mod mod in mods)
+            setup ??= SetupSteps().GetEnumerator();
+            long end = Stopwatch.GetTimestamp() + Stopwatch.Frequency * SliceMilliseconds / 1000;
+            do
             {
-                foreach (GlobalType global in mod.GetContent<GlobalType>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
-                foreach (GlobalBuff global in mod.GetContent<GlobalBuff>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                if (!setup.MoveNext()) return 0;
             }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModRarity rarity in mod.GetContent<ModRarity>()) Run(mod, $"{rarity.Name}.SetStaticDefaults", rarity.SetupContent);
-            }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModEmoteBubble emote in mod.GetContent<ModEmoteBubble>()) Run(mod, $"{emote.Name}.SetStaticDefaults", emote.SetupContent);
-                foreach (ModBossBar bar in mod.GetContent<ModBossBar>()) Run(mod, $"{bar.Name}.SetStaticDefaults", bar.SetupContent);
-                foreach (GlobalBossBar bar in mod.GetContent<GlobalBossBar>()) Run(mod, $"{bar.Name}.SetStaticDefaults", bar.SetupContent);
-            }
-            foreach (Mod mod in mods)
-            {
-                foreach (DamageClass damageClass in mod.GetContent<DamageClass>()) Run(mod, $"{damageClass.Name}.SetStaticDefaults", damageClass.SetupContent);
-            }
-            foreach (Mod mod in mods)
-            {
-                foreach (ExtraJump jump in mod.GetContent<ExtraJump>()) Run(mod, $"{jump.Name}.SetStaticDefaults", jump.SetupContent);
-            }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModResourceOverlay overlay in mod.GetContent<ModResourceOverlay>()) Run(mod, $"{overlay.Name}.SetStaticDefaults", overlay.SetupContent);
-            }
-            try { MountLoader.ResizeArrays(); }
-            catch (Exception e) { Log.Error($"mounts: the tables could not be resized: {e}"); }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModMount mount in mod.GetContent<ModMount>()) Run(mod, $"{mount.Name}.SetStaticDefaults", mount.SetupContent);
-            }
-            try { HairLoader.ResizeArrays(); }
-            catch (Exception e) { Log.Error($"hairs: the tables could not be resized: {e}"); }
-            try { GoreLoader.ResizeArrays(); }
-            catch (Exception e) { Log.Error($"gores: the tables could not be resized: {e}"); }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModGore gore in mod.GetContent<ModGore>())
-                {
-                    Run(mod, $"{gore.Name}.SetStaticDefaults", gore.SetupContent);
-                    if (gore.UpdateType > 0) GoreHooks.WantUpdate();
-                }
-            }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModHair hair in mod.GetContent<ModHair>()) Run(mod, $"{hair.Name}.SetStaticDefaults", hair.SetupContent);
-            }
-            try
-            {
-                WaterStylesLoader.ResizeArrays();
-                WaterFallStylesLoader.ResizeArrays();
-                BackgroundTextureLoader.ResizeArrays();
-                CloudLoader.ResizeArrays();
-            }
-            catch (Exception e) { Log.Error($"water and backgrounds: the tables could not be resized: {e}"); }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModWaterStyle style in mod.GetContent<ModWaterStyle>()) Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
-                foreach (ModWaterfallStyle style in mod.GetContent<ModWaterfallStyle>()) Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
-                foreach (ModBackgroundStyle style in mod.GetContent<ModBackgroundStyle>()) Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
-                foreach (GlobalBackgroundStyle global in mod.GetContent<GlobalBackgroundStyle>()) Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
-                foreach (ModSceneEffect effect in mod.GetContent<ModSceneEffect>()) Run(mod, $"{effect.Name}.SetStaticDefaults", effect.SetupContent);
-                foreach (ModCloud cloud in mod.GetContent<ModCloud>()) Run(mod, $"{cloud.Name}.SetStaticDefaults", cloud.SetupContent);
-                foreach (ModMenu menu in mod.GetContent<ModMenu>()) Run(mod, $"{menu.Name}.SetStaticDefaults", menu.SetupContent);
-            }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModCommand command in mod.GetContent<ModCommand>()) Run(mod, $"{command.Name}.SetStaticDefaults", command.SetupContent);
-                foreach (ModAchievement achievement in mod.GetContent<ModAchievement>()) Run(mod, $"{achievement.Name}.SetStaticDefaults", achievement.SetupContent);
-            }
-            try { AchievementLoader.FinishSetup(); }
-            catch (Exception e) { Log.Error($"achievements: the saved progress could not be read: {e}"); }
-            try { ExtraJumpLoader.ResizeArrays(); }
-            catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
-            foreach (Mod mod in mods)
-            {
-                foreach (PlayerDrawLayer layer in mod.GetContent<PlayerDrawLayer>()) Run(mod, $"{layer.Name}.SetStaticDefaults", layer.SetupContent);
-            }
-            try { PlayerDrawLayerLoader.ResizeArrays(); }
-            catch (Exception e) { Log.Error($"player draw layers: the order could not be set up: {e}"); }
-            try { PrefixLoader.ContentReady(); }
-            catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
-            foreach (Mod mod in mods)
-            {
-                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.SetStaticDefaults", system.SetupContent);
-            }
-            try { TileLoader.ContentReady(); }
-            catch (Exception e) { Log.Error($"tiles: setup failed: {e}"); }
-            try { PlantLoader.FinishSetup(); }
-            catch (Exception e) { Log.Error($"trees: setup failed: {e}"); }
-            CustomContentSetup.ContentReady();
-            foreach (Mod mod in mods)
-            {
-                Run(mod, "PostSetupContent", mod.PostSetupContent);
-                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostSetupContent", system.PostSetupContent);
-            }
-            try { BiomeConversionLoader.PostSetupContent(); }
-            catch (Exception e) { Core.ItemHooks.Report("BiomeConversionLoader.PostSetupContent", e); }
-            try { TownShopHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"NPC shops: the tables could not be set up: {e}"); }
-            try { NPCLootHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"NPC loot: the tables could not be set up: {e}"); }
-            try { ItemLootHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"item loot: the tables could not be set up: {e}"); }
-            try { BannerHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"banners: the tables could not be set up: {e}"); }
-            try { BestiaryHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"bestiary: the entries could not be set up: {e}"); }
-            try { NPCProfileHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"town NPC profiles: they could not be set up: {e}"); }
-            try { ItemOpenHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
-            try { AnglerQuestHooks.ContentReady(); }
-            catch (Exception e) { Log.Error($"angler quests: the quest fish could not be added: {e}"); }
-            try { TouchButtonLoader.ContentReady(); }
-            catch (Exception e) { Log.Error($"touch buttons: the saved layout could not be applied: {e}"); }
-            foreach (Mod mod in mods)
-            {
-                Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);
-                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.AddRecipeGroups", system.AddRecipeGroups);
-            }
-            RecipeLoader.BeginSetup();
-            foreach (Mod mod in mods)
-            {
-                RecipeLoader.SetCurrentMod(mod);
-                Run(mod, "AddRecipes", mod.AddRecipes);
-                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.AddRecipes", system.AddRecipes);
-                foreach (ModItem item in mod.GetContent<ModItem>()) Run(mod, $"{item.Name}.AddRecipes", item.AddRecipes);
-                foreach (GlobalItem global in mod.GetContent<GlobalItem>()) Run(mod, $"{global.Name}.AddRecipes", global.AddRecipes);
-            }
-            foreach (Mod mod in mods)
-            {
-                RecipeLoader.SetCurrentMod(mod);
-                Run(mod, "PostAddRecipes", mod.PostAddRecipes);
-                foreach (ModSystem system in SystemLoader.Of(mod)) Run(mod, $"{system.Name}.PostAddRecipes", system.PostAddRecipes);
-            }
-            RecipeLoader.EndSetup();
-            SystemLoader.PostSetupRecipes();
-            MenuLoader.Ready = true;
-            foreach (Mod mod in mods)
-            {
-                bool created = mod.GetContent<ModItem>().Any(i => ItemHooks.Overrides(i.GetType(), typeof(ModItem), nameof(ModItem.OnCreated))) ||
-                               mod.GetContent<GlobalItem>().Any(g => ItemHooks.Overrides(g.GetType(), typeof(GlobalItem), nameof(GlobalItem.OnCreated)));
-                if (created) RecipeLoader.WantCraft();
-            }
+            while (Stopwatch.GetTimestamp() < end);
+            return 1;
         }
         catch (Exception e)
         {
             Log.Error($"content setup failed: {e}");
+            return 0;
+        }
+    }
+
+    static IEnumerable<int> SetupSteps()
+    {
+        Mod[] mods = Host.Mods;
+        ServerSyncHooks.Install();
+        BunnyLoader.ScreenEffectsSetting.Install();
+        BunnyLoader.ScreenFxCommand.Install();
+        Terraria.ID.SetFactory.GrowToContent();
+        SystemLoader.ResizeArrays();
+        SystemLoader.OnLocalizationsLoaded();
+        foreach (Mod mod in mods)
+        {
+            foreach (GlobalType global in mod.GetContent<GlobalType>())
+            {
+                Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                yield return 0;
+            }
+            foreach (GlobalBuff global in mod.GetContent<GlobalBuff>())
+            {
+                Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                yield return 0;
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            foreach (ModRarity rarity in mod.GetContent<ModRarity>())
+            {
+                Run(mod, $"{rarity.Name}.SetStaticDefaults", rarity.SetupContent);
+                yield return 0;
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            foreach (ModEmoteBubble emote in mod.GetContent<ModEmoteBubble>())
+            {
+                Run(mod, $"{emote.Name}.SetStaticDefaults", emote.SetupContent);
+                yield return 0;
+            }
+            foreach (ModBossBar bar in mod.GetContent<ModBossBar>())
+            {
+                Run(mod, $"{bar.Name}.SetStaticDefaults", bar.SetupContent);
+                yield return 0;
+            }
+            foreach (GlobalBossBar bar in mod.GetContent<GlobalBossBar>())
+            {
+                Run(mod, $"{bar.Name}.SetStaticDefaults", bar.SetupContent);
+                yield return 0;
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            foreach (DamageClass damageClass in mod.GetContent<DamageClass>())
+            {
+                Run(mod, $"{damageClass.Name}.SetStaticDefaults", damageClass.SetupContent);
+                yield return 0;
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            foreach (ExtraJump jump in mod.GetContent<ExtraJump>())
+            {
+                Run(mod, $"{jump.Name}.SetStaticDefaults", jump.SetupContent);
+                yield return 0;
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            foreach (ModResourceOverlay overlay in mod.GetContent<ModResourceOverlay>())
+            {
+                Run(mod, $"{overlay.Name}.SetStaticDefaults", overlay.SetupContent);
+                yield return 0;
+            }
+        }
+        try { MountLoader.ResizeArrays(); }
+        catch (Exception e) { Log.Error($"mounts: the tables could not be resized: {e}"); }
+        yield return 0;
+        foreach (Mod mod in mods)
+        {
+            foreach (ModMount mount in mod.GetContent<ModMount>())
+            {
+                Run(mod, $"{mount.Name}.SetStaticDefaults", mount.SetupContent);
+                yield return 0;
+            }
+        }
+        try { HairLoader.ResizeArrays(); }
+        catch (Exception e) { Log.Error($"hairs: the tables could not be resized: {e}"); }
+        yield return 0;
+        try { GoreLoader.ResizeArrays(); }
+        catch (Exception e) { Log.Error($"gores: the tables could not be resized: {e}"); }
+        yield return 0;
+        foreach (Mod mod in mods)
+        {
+            foreach (ModGore gore in mod.GetContent<ModGore>())
+            {
+                Run(mod, $"{gore.Name}.SetStaticDefaults", gore.SetupContent);
+                yield return 0;
+                if (gore.UpdateType > 0) GoreHooks.WantUpdate();
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            foreach (ModHair hair in mod.GetContent<ModHair>())
+            {
+                Run(mod, $"{hair.Name}.SetStaticDefaults", hair.SetupContent);
+                yield return 0;
+            }
+        }
+        try
+        {
+            WaterStylesLoader.ResizeArrays();
+            WaterFallStylesLoader.ResizeArrays();
+            BackgroundTextureLoader.ResizeArrays();
+            CloudLoader.ResizeArrays();
+        }
+        catch (Exception e) { Log.Error($"water and backgrounds: the tables could not be resized: {e}"); }
+        yield return 0;
+        foreach (Mod mod in mods)
+        {
+            foreach (ModWaterStyle style in mod.GetContent<ModWaterStyle>())
+            {
+                Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
+                yield return 0;
+            }
+            foreach (ModWaterfallStyle style in mod.GetContent<ModWaterfallStyle>())
+            {
+                Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
+                yield return 0;
+            }
+            foreach (ModBackgroundStyle style in mod.GetContent<ModBackgroundStyle>())
+            {
+                Run(mod, $"{style.Name}.SetStaticDefaults", style.SetupContent);
+                yield return 0;
+            }
+            foreach (GlobalBackgroundStyle global in mod.GetContent<GlobalBackgroundStyle>())
+            {
+                Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                yield return 0;
+            }
+            foreach (ModSceneEffect effect in mod.GetContent<ModSceneEffect>())
+            {
+                Run(mod, $"{effect.Name}.SetStaticDefaults", effect.SetupContent);
+                yield return 0;
+            }
+            foreach (ModCloud cloud in mod.GetContent<ModCloud>())
+            {
+                Run(mod, $"{cloud.Name}.SetStaticDefaults", cloud.SetupContent);
+                yield return 0;
+            }
+            foreach (ModMenu menu in mod.GetContent<ModMenu>())
+            {
+                Run(mod, $"{menu.Name}.SetStaticDefaults", menu.SetupContent);
+                yield return 0;
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            foreach (ModCommand command in mod.GetContent<ModCommand>())
+            {
+                Run(mod, $"{command.Name}.SetStaticDefaults", command.SetupContent);
+                yield return 0;
+            }
+            foreach (ModAchievement achievement in mod.GetContent<ModAchievement>())
+            {
+                Run(mod, $"{achievement.Name}.SetStaticDefaults", achievement.SetupContent);
+                yield return 0;
+            }
+        }
+        try { AchievementLoader.FinishSetup(); }
+        catch (Exception e) { Log.Error($"achievements: the saved progress could not be read: {e}"); }
+        yield return 0;
+        try { ExtraJumpLoader.ResizeArrays(); }
+        catch (Exception e) { Log.Error($"extra jumps: the order could not be set up: {e}"); }
+        yield return 0;
+        foreach (Mod mod in mods)
+        {
+            foreach (PlayerDrawLayer layer in mod.GetContent<PlayerDrawLayer>())
+            {
+                Run(mod, $"{layer.Name}.SetStaticDefaults", layer.SetupContent);
+                yield return 0;
+            }
+        }
+        try { PlayerDrawLayerLoader.ResizeArrays(); }
+        catch (Exception e) { Log.Error($"player draw layers: the order could not be set up: {e}"); }
+        yield return 0;
+        try { PrefixLoader.ContentReady(); }
+        catch (Exception e) { Log.Error($"prefixes: the tables could not be set up: {e}"); }
+        yield return 0;
+        foreach (Mod mod in mods)
+        {
+            foreach (ModSystem system in SystemLoader.Of(mod))
+            {
+                Run(mod, $"{system.Name}.SetStaticDefaults", system.SetupContent);
+                yield return 0;
+            }
+        }
+        try { TileLoader.ContentReady(); }
+        catch (Exception e) { Log.Error($"tiles: setup failed: {e}"); }
+        yield return 0;
+        try { PlantLoader.FinishSetup(); }
+        catch (Exception e) { Log.Error($"trees: setup failed: {e}"); }
+        yield return 0;
+        CustomContentSetup.ContentReady();
+        foreach (Mod mod in mods)
+        {
+            Run(mod, "PostSetupContent", mod.PostSetupContent);
+            yield return 0;
+            foreach (ModSystem system in SystemLoader.Of(mod))
+            {
+                Run(mod, $"{system.Name}.PostSetupContent", system.PostSetupContent);
+                yield return 0;
+            }
+        }
+        try { BiomeConversionLoader.PostSetupContent(); }
+        catch (Exception e) { Core.ItemHooks.Report("BiomeConversionLoader.PostSetupContent", e); }
+        yield return 0;
+        try { TownShopHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"NPC shops: the tables could not be set up: {e}"); }
+        yield return 0;
+        try { NPCLootHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"NPC loot: the tables could not be set up: {e}"); }
+        yield return 0;
+        try { ItemLootHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"item loot: the tables could not be set up: {e}"); }
+        yield return 0;
+        try { BannerHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"banners: the tables could not be set up: {e}"); }
+        yield return 0;
+        try { BestiaryHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"bestiary: the entries could not be set up: {e}"); }
+        yield return 0;
+        try { NPCProfileHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"town NPC profiles: they could not be set up: {e}"); }
+        yield return 0;
+        try { ItemOpenHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"item hooks: the right click items could not be listed: {e}"); }
+        yield return 0;
+        try { AnglerQuestHooks.ContentReady(); }
+        catch (Exception e) { Log.Error($"angler quests: the quest fish could not be added: {e}"); }
+        yield return 0;
+        try { TouchButtonLoader.ContentReady(); }
+        catch (Exception e) { Log.Error($"touch buttons: the saved layout could not be applied: {e}"); }
+        yield return 0;
+        foreach (Mod mod in mods)
+        {
+            Run(mod, "AddRecipeGroups", mod.AddRecipeGroups);
+            yield return 0;
+            foreach (ModSystem system in SystemLoader.Of(mod))
+            {
+                Run(mod, $"{system.Name}.AddRecipeGroups", system.AddRecipeGroups);
+                yield return 0;
+            }
+        }
+        RecipeLoader.BeginSetup();
+        foreach (Mod mod in mods)
+        {
+            RecipeLoader.SetCurrentMod(mod);
+            Run(mod, "AddRecipes", mod.AddRecipes);
+            yield return 0;
+            foreach (ModSystem system in SystemLoader.Of(mod))
+            {
+                Run(mod, $"{system.Name}.AddRecipes", system.AddRecipes);
+                yield return 0;
+            }
+            foreach (ModItem item in mod.GetContent<ModItem>())
+            {
+                Run(mod, $"{item.Name}.AddRecipes", item.AddRecipes);
+                yield return 0;
+            }
+            foreach (GlobalItem global in mod.GetContent<GlobalItem>())
+            {
+                Run(mod, $"{global.Name}.AddRecipes", global.AddRecipes);
+                yield return 0;
+            }
+        }
+        foreach (Mod mod in mods)
+        {
+            RecipeLoader.SetCurrentMod(mod);
+            Run(mod, "PostAddRecipes", mod.PostAddRecipes);
+            yield return 0;
+            foreach (ModSystem system in SystemLoader.Of(mod))
+            {
+                Run(mod, $"{system.Name}.PostAddRecipes", system.PostAddRecipes);
+                yield return 0;
+            }
+        }
+        RecipeLoader.EndSetup();
+        SystemLoader.PostSetupRecipes();
+        MenuLoader.Ready = true;
+        foreach (Mod mod in mods)
+        {
+            bool created = mod.GetContent<ModItem>().Any(i => ItemHooks.Overrides(i.GetType(), typeof(ModItem), nameof(ModItem.OnCreated))) ||
+                           mod.GetContent<GlobalItem>().Any(g => ItemHooks.Overrides(g.GetType(), typeof(GlobalItem), nameof(GlobalItem.OnCreated)));
+            if (created) RecipeLoader.WantCraft();
         }
     }
 

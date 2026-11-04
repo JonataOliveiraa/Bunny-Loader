@@ -941,13 +941,15 @@ void hkDoUpdate(Il2CppObject* self, Il2CppObject* gt, const MethodInfo* m) {
     readNamesSlice();
     tickPowers();
     tickModLanguage();
-    tickModItems();
-    tickModProjectiles();
-    tickModNpcs();
-    tickModBuffs();
-    tickModDusts();
-    tickModTiles();
-    tickModWalls();
+    if (gameInitialized()) {
+        tickModItems();
+        tickModProjectiles();
+        tickModNpcs();
+        tickModBuffs();
+        tickModDusts();
+        tickModTiles();
+        tickModWalls();
+    }
     tickTexturePacks();
     tickFontPacks();
     tickContentReady();

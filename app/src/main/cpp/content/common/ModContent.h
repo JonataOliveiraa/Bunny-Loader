@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace bl::runtime {
 
@@ -9,7 +10,7 @@ namespace bl::runtime {
  * criados. E a hora do PostSetupContent do tModLoader: receitas de mod,
  * entradas do Bestiario.
  */
-using ContentReadyHook = void (*)();
+using ContentReadyHook = int32_t (*)();
 void addContentReadyHook(ContentReadyHook hook);
 void tickContentReady();
 
@@ -18,5 +19,6 @@ void tickContentReady();
  * inicio rapido (boot/QuickStart) so entra no mundo depois disso.
  */
 bool contentSettled();
+bool contentFinished();
 
 } // namespace bl::runtime

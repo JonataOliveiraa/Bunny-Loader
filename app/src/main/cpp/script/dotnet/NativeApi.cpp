@@ -108,7 +108,7 @@ struct NativeApi {
     void (*prepareItem)(void* item, int32_t type);
     void (*finishItem)(void* item, int32_t type);
     void (*onItemsInstalled)(void (*callback)(int32_t first, int32_t last));
-    void (*onContentReady)(void (*callback)());
+    void (*onContentReady)(int32_t (*callback)());
     int32_t (*isGameThread)();
     void* (*requestModTexture)(const char* file, const char* assetName);
     void* (*requestVanillaTexture)(const char* name, int32_t* missingOnMobile);
@@ -608,7 +608,7 @@ void nativeOnItemsInstalled(void (*callback)(int32_t first, int32_t last)) {
     runtime::addItemsInstalledHook(reinterpret_cast<runtime::ItemsInstalledHook>(callback));
 }
 
-void nativeOnContentReady(void (*callback)()) {
+void nativeOnContentReady(int32_t (*callback)()) {
     runtime::addContentReadyHook(callback);
 }
 

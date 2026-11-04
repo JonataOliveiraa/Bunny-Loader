@@ -18,11 +18,16 @@ namespace bl::runtime {
  *  3. Na tela de titulo, com o conteudo de mod pronto, faz o que os botoes
  *     "Jogar" das duas listas fazem (tickQuickStart).
  *
- * Tudo so com config().fastBoot; desligado, nada aqui instala ou roda.
+ * As partes 2 e 3 so com config().fastBoot. O hook do splash vale sempre: ele
+ * segura a abertura ate os mods carregarem e, depois dela, mantem a tela de
+ * carga ate o conteudo de mod ficar pronto.
  */
 
 /** Hook no Main.DrawSplash. Idempotente: o boot() e a sonda chamam. */
-void installFastIntro();
+void installSplashHook();
+
+void markProbeFinished();
+bool gameInitialized();
 
 /** Na sonda: volta quando o jogo termina de carregar, ou depois de `max`. */
 void waitForGameLoaded(std::chrono::milliseconds max);

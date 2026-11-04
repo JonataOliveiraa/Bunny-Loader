@@ -19,6 +19,7 @@ namespace {
 constexpr int kMaxReadyHooks = 4;
 std::atomic<ContentReadyHook> g_hooks[kMaxReadyHooks]{};
 bool g_done = false;
+bool g_finished = false;
 
 struct Refs {
     FieldInfo *itemDrops = nullptr, *bestiary = nullptr, *numRecipes = nullptr;
@@ -70,16 +71,27 @@ bool contentSettled() {
 }
 
 void tickContentReady() {
-    if (g_done) return;
+    if (g_finished) return;
     if (!g_hooks[0].load(std::memory_order_acquire)) return;
-    if (!contentSettled()) return;
-    g_done = true;
-    const Refs& r = refs();
-    if (!r.ok) return;
-    BL_INFO("conteudo de mod: pronto (receitas do jogo: %d)", readStatic<int32_t>(r.numRecipes));
-    for (const auto& slot : g_hooks) {
-        if (ContentReadyHook hook = slot.load(std::memory_order_acquire)) hook();
+    if (!g_done) {
+        if (!contentSettled()) return;
+        g_done = true;
+        const Refs& r = refs();
+        if (!r.ok) {
+            g_finished = true;
+            return;
+        }
+        BL_INFO("conteudo de mod: pronto (receitas do jogo: %d)", readStatic<int32_t>(r.numRecipes));
     }
+    bool more = false;
+    for (const auto& slot : g_hooks) {
+        if (ContentReadyHook hook = slot.load(std::memory_order_acquire)) more |= hook() != 0;
+    }
+    g_finished = !more;
+}
+
+bool contentFinished() {
+    return g_finished || !g_hooks[0].load(std::memory_order_acquire);
 }
 
 } // namespace bl::runtime

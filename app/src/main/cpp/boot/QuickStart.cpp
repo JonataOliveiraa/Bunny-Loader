@@ -34,6 +34,11 @@ constexpr double kSplashSeconds = 620 / 60.0;
 // O fim do splash poe Main.fadeCounter = 120: o titulo sai do preto em 2 s.
 // Com o inicio rapido, um quarto disso.
 constexpr int32_t kTitleFadeFrames = 30;
+constexpr int64_t kHoldFrames = 558;
+constexpr int64_t kQuickSplashHoldFrames = 120;
+constexpr double kHoldLimitSeconds = 300;
+constexpr uint32_t kWhite = 0xFFFFFFFF;
+constexpr uint32_t kBlack = 0xFF000000;
 // Janela de popup do jogo por cima do titulo (menuMode fora de 0): espera
 // ela fechar ate este tempo antes de desistir de entrar sozinho.
 constexpr double kTitleWaitSeconds = 30;
@@ -76,6 +81,9 @@ std::mutex g_loadedMutex;
 std::condition_variable g_loadedCv;
 bool g_gameLoaded = false;              // Main._isAsyncLoadComplete ja foi visto
 std::atomic<bool> g_coreReady{false};   // a sonda carregou os mods e o nucleo
+std::atomic<bool> g_probeFinished{false};
+std::atomic<bool> g_splashHooked{false};
+std::atomic<bool> g_splashOver{false};
 
 // Main e o cronometro do splash. Resolvido no install.
 struct IntroRefs {
@@ -83,6 +91,10 @@ struct IntroRefs {
     FieldInfo* showSplash = nullptr;          // Main.showSplash
     FieldInfo* splashTimer = nullptr;         // Main.splashTimer (Stopwatch)
     FieldInfo* fadeCounter = nullptr;         // Main.fadeCounter
+    FieldInfo* spriteBatch = nullptr;
+    const MethodInfo* loadingFlower = nullptr;
+    int32_t quickSplash = -1;
+    int32_t splashFrameCount = -1;
 } g_intro;
 
 bool staticBool(FieldInfo* f) {
@@ -98,7 +110,34 @@ DrawSplashFn g_origDrawSplash = nullptr;
 
 // Thread do jogo (so o DrawSplash mexe).
 bool g_splashCut = false;
+bool g_titleHeld = false;
 bool g_titleLogged = false;
+
+struct SplashClock {
+    Il2CppObject* timer = nullptr;
+    int32_t elapsedOffset = -1;
+    int64_t frequency = 0;
+    int64_t ms = 0;
+};
+
+bool readSplashClock(SplashClock& clock) {
+    auto& a = il2cpp::api();
+    a.field_static_get_value(g_intro.splashTimer, &clock.timer);
+    if (!clock.timer) return false;
+    static FieldInfo* const frequencyField = il2cpp::findField(clock.timer->klass, "Frequency");
+    static const int32_t elapsedOffset = il2cpp::fieldOffset(clock.timer->klass, "elapsed");
+    static const MethodInfo* const elapsedMs =
+        a.class_get_method_from_name(clock.timer->klass, "get_ElapsedMilliseconds", 0);
+    if (!frequencyField || elapsedOffset < 0 || !elapsedMs) return false;
+    clock.elapsedOffset = elapsedOffset;
+    a.field_static_get_value(frequencyField, &clock.frequency);
+    if (clock.frequency <= 0) return false;
+    Il2CppObject* exc = nullptr;
+    Il2CppObject* boxed = a.runtime_invoke(elapsedMs, clock.timer, nullptr, &exc);
+    if (exc || !boxed) return false;
+    clock.ms = *reinterpret_cast<int64_t*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
+    return true;
+}
 
 /**
  * Adianta o cronometro do splash para depois do fim dele.
@@ -115,34 +154,99 @@ bool g_titleLogged = false;
  * @return os segundos que o splash ainda ia durar, ou -1 se nao deu.
  */
 double advanceSplashTimer() {
-    auto& a = il2cpp::api();
-    Il2CppObject* timer = nullptr;
-    a.field_static_get_value(g_intro.splashTimer, &timer);
-    if (!timer) return -1;
-    static FieldInfo* const frequencyField = il2cpp::findField(timer->klass, "Frequency");
-    static const int32_t elapsedOffset = il2cpp::fieldOffset(timer->klass, "elapsed");
-    static const MethodInfo* const elapsedMs =
-        a.class_get_method_from_name(timer->klass, "get_ElapsedMilliseconds", 0);
-    if (!frequencyField || elapsedOffset < 0 || !elapsedMs) return -1;
-    int64_t frequency = 0;
-    a.field_static_get_value(frequencyField, &frequency);
-    if (frequency <= 0) return -1;
-
     // Quanto ja correu, pela conta do proprio jogo: e o que diz quanto o
     // splash ainda ia durar.
-    Il2CppObject* exc = nullptr;
-    Il2CppObject* boxed = a.runtime_invoke(elapsedMs, timer, nullptr, &exc);
-    if (exc || !boxed) return -1;
-    const int64_t ms = *reinterpret_cast<int64_t*>(reinterpret_cast<char*>(boxed) + sizeof(Il2CppObject));
+    SplashClock clock;
+    if (!readSplashClock(clock)) return -1;
+    field<int64_t>(clock.timer, clock.elapsedOffset) += clock.frequency * kSkipSeconds;
+    return std::max(0.0, kSplashSeconds - static_cast<double>(clock.ms) / 1000.0);
+}
 
-    field<int64_t>(timer, elapsedOffset) += frequency * kSkipSeconds;
-    return std::max(0.0, kSplashSeconds - static_cast<double>(ms) / 1000.0);
+bool holdSplashTimer(Il2CppObject* self) {
+    SplashClock clock;
+    if (!readSplashClock(clock)) return false;
+    const bool quick = g_intro.quickSplash >= 0 && field<uint8_t>(self, g_intro.quickSplash) != 0;
+    const int64_t limit = (quick ? kQuickSplashHoldFrames : kHoldFrames) * 1000 / 60;
+    if (clock.ms < limit) return false;
+    field<int64_t>(clock.timer, clock.elapsedOffset) -= (clock.ms - limit) * clock.frequency / 1000;
+    return true;
+}
+
+bool invokeDraw(const MethodInfo* method, void* target, void** args) {
+    Il2CppObject* exc = nullptr;
+    il2cpp::api().runtime_invoke(method, target, args, &exc);
+    return !exc;
+}
+
+void drawLoadingFlower(Il2CppObject* self) {
+    auto& a = il2cpp::api();
+    Il2CppObject* batch = nullptr;
+    a.field_static_get_value(g_intro.spriteBatch, &batch);
+    if (!batch) return;
+    static const MethodInfo* const begin = a.class_get_method_from_name(batch->klass, "Begin", 2);
+    static const MethodInfo* const end = a.class_get_method_from_name(batch->klass, "End", 0);
+    static bool broken = false;
+    if (broken || !begin || !end) return;
+    int32_t sortMode = 0;
+    uint8_t deferred = 1;
+    void* beginArgs[2] = {&sortMode, &deferred};
+    uint32_t color = kWhite;
+    void* flowerArgs[1] = {&color};
+    broken = !invokeDraw(begin, batch, beginArgs) ||
+             !invokeDraw(g_intro.loadingFlower, self, flowerArgs) ||
+             !invokeDraw(end, batch, nullptr);
+    if (broken) BL_ERROR("startup: the loading flower could not be drawn");
+}
+
+void drawLoadingScreen(Il2CppObject* self) {
+    auto& a = il2cpp::api();
+    static const MethodInfo* const getDevice = a.class_get_method_from_name(self->klass, "get_GraphicsDevice", 0);
+    if (getDevice) {
+        Il2CppObject* exc = nullptr;
+        Il2CppObject* device = a.runtime_invoke(getDevice, self, nullptr, &exc);
+        static const MethodInfo* const clear = device ? a.class_get_method_from_name(device->klass, "Clear", 1) : nullptr;
+        if (!exc && device && clear) {
+            uint32_t black = kBlack;
+            void* args[1] = {&black};
+            invokeDraw(clear, device, args);
+        }
+    }
+    drawLoadingFlower(self);
+    if (g_intro.splashFrameCount >= 0) {
+        float& frame = field<float>(self, g_intro.splashFrameCount);
+        frame += 1;
+        if (frame >= 70) frame = 0;
+    }
+}
+
+void showTitle() {
+    uint8_t off = 0;
+    il2cpp::api().field_static_set_value(g_intro.showSplash, &off);
+    g_titleHeld = false;
+    g_titleLogged = true;
+    if (g_splashCut) {
+        int32_t fade = kTitleFadeFrames;
+        il2cpp::api().field_static_set_value(g_intro.fadeCounter, &fade);
+    }
+    BL_INFO("startup: title on screen at %.1f s", sinceStart());
 }
 
 void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* m) {
+    const bool expired = sinceStart() > kHoldLimitSeconds;
+    if (expired && (g_titleHeld || !g_probeFinished.load(std::memory_order_acquire))) {
+        static bool warned = false;
+        if (!warned) BL_WARN("startup: mods still loading after %.0f s; showing the title anyway", kHoldLimitSeconds);
+        warned = true;
+    }
+    if (g_titleHeld) {
+        drawLoadingScreen(self);
+        if (runtime::contentFinished() || expired) showTitle();
+        return;
+    }
+
     // O jogo marca o fim da carga DENTRO do DrawSplash; aqui ve-se no quadro
     // seguinte. Com os mods ja carregados, o splash acaba agora.
-    if (!g_splashCut && staticBool(g_intro.asyncLoadComplete) &&
+    if (config().fastBoot && !g_splashCut && staticBool(g_intro.asyncLoadComplete) &&
         g_coreReady.load(std::memory_order_acquire) && !runtime::texturePacksBusy()) {
         const double left = advanceSplashTimer();
         g_splashCut = true;
@@ -153,6 +257,9 @@ void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* 
             BL_WARN("inicio rapido: cronometro do splash nao encontrado; abertura normal");
         }
     }
+    const bool loaded = expired ||
+        (g_probeFinished.load(std::memory_order_acquire) && !runtime::texturePacksBusy());
+    const bool held = !loaded && holdSplashTimer(self);
 
     g_origDrawSplash(self, gameTime, m);
 
@@ -162,15 +269,19 @@ void hkDrawSplash(Il2CppObject* self, Il2CppObject* gameTime, const MethodInfo* 
             g_gameLoaded = true;
         }
         g_loadedCv.notify_all();
-        BL_INFO("inicio rapido: jogo carregado em %.1f s", sinceStart());
+        BL_INFO("startup: game content loaded at %.1f s", sinceStart());
     }
+    if (held) drawLoadingFlower(self);
     if (!g_titleLogged && !staticBool(g_intro.showSplash)) {
-        g_titleLogged = true;
-        if (g_splashCut) {
-            int32_t fade = kTitleFadeFrames;
-            il2cpp::api().field_static_set_value(g_intro.fadeCounter, &fade);
+        g_splashOver.store(true, std::memory_order_release);
+        if (runtime::contentFinished() || expired) {
+            showTitle();
+        } else {
+            uint8_t on = 1;
+            il2cpp::api().field_static_set_value(g_intro.showSplash, &on);
+            g_titleHeld = true;
+            BL_INFO("startup: splash over at %.1f s; waiting for mod content", sinceStart());
         }
-        BL_INFO("inicio rapido: titulo em %.1f s", sinceStart());
     }
 }
 
@@ -450,29 +561,40 @@ int32_t menuMode() {
 
 } // namespace
 
-void installFastIntro() {
-    if (!config().fastBoot) return;
+void installSplashHook() {
     static std::once_flag once;
     std::call_once(once, [] {
         auto& a = il2cpp::api();
         Il2CppClass* main = il2cpp::findClass({"Terraria", "Main", {}});
-        if (!main) { BL_ERROR("inicio rapido: Terraria.Main nao encontrada"); return; }
+        if (!main) { BL_ERROR("startup: Terraria.Main not found"); return; }
         g_intro.asyncLoadComplete = il2cpp::findField(main, "_isAsyncLoadComplete");
         g_intro.showSplash = il2cpp::findField(main, "showSplash");
         g_intro.splashTimer = il2cpp::findField(main, "splashTimer");
         g_intro.fadeCounter = il2cpp::findField(main, "fadeCounter");
+        g_intro.spriteBatch = il2cpp::findField(main, "spriteBatch");
+        g_intro.loadingFlower = a.class_get_method_from_name(main, "DrawSplash_LoadingFlower", 1);
+        g_intro.quickSplash = il2cpp::fieldOffset(main, "quickSplash");
+        g_intro.splashFrameCount = il2cpp::fieldOffset(main, "_splashFrameCount");
         const MethodInfo* drawSplash = a.class_get_method_from_name(main, "DrawSplash", 1);
         if (!g_intro.asyncLoadComplete || !g_intro.showSplash || !g_intro.splashTimer ||
-            !g_intro.fadeCounter || !drawSplash) {
-            BL_ERROR("inicio rapido: campos do splash nao encontrados; abertura normal");
+            !g_intro.fadeCounter || !g_intro.spriteBatch || !g_intro.loadingFlower || !drawSplash) {
+            BL_ERROR("startup: splash fields not found; normal intro");
             return;
         }
         if (!hook::install(drawSplash, hkDrawSplash, &g_origDrawSplash)) {
-            BL_ERROR("inicio rapido: falha ao hookar Main.DrawSplash; abertura normal");
+            BL_ERROR("startup: Main.DrawSplash could not be hooked; normal intro");
             return;
         }
-        BL_DEBUG("inicio rapido: hook do splash instalado (%.1f s)", sinceStart());
+        g_splashHooked.store(true, std::memory_order_release);
+        BL_DEBUG("startup: splash hook installed (%.1f s)", sinceStart());
     });
+}
+
+void markProbeFinished() { g_probeFinished.store(true, std::memory_order_release); }
+
+bool gameInitialized() {
+    return g_splashOver.load(std::memory_order_acquire) || !g_splashHooked.load(std::memory_order_acquire) ||
+           !staticBool(g_intro.showSplash);
 }
 
 void waitForGameLoaded(std::chrono::milliseconds max) {
@@ -504,7 +626,7 @@ void tickQuickStart() {
     // Alguem entrou na mao antes de nos: nao ha o que fazer.
     if (inWorld()) { g_entryDone = true; return; }
     if (g_intro.showSplash && staticBool(g_intro.showSplash)) return;
-    if (!contentSettled()) return;
+    if (!contentSettled() || !contentFinished()) return;
 
     const double now = sinceStart();
     if (g_settledAt < 0) g_settledAt = now;

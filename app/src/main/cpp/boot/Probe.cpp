@@ -88,12 +88,12 @@ void waitGameContentLoaded() {
 }
 
 void probeThread() {
-    // O prazo fixo, com uma saida: com o inicio rapido, o hook do splash
-    // avisa quando o jogo termina de carregar (Main._isAsyncLoadComplete).
-    // Nesse ponto a thread do jogo so desenha o splash; e a janela mais calma
-    // para carregar os mods. Nao da para decidir aqui pela config: esta thread
-    // nasce no load da libbunny, ANTES de o NativeBridge.init entregar a
-    // config. Sem o inicio rapido ninguem avisa, e a espera e a de sempre.
+    struct Finished {
+        ~Finished() { markProbeFinished(); }
+    } finished;
+    // O prazo fixo, com uma saida: o hook do splash avisa quando o jogo termina
+    // de carregar (Main._isAsyncLoadComplete). Nesse ponto a thread do jogo so
+    // desenha o splash; e a janela mais calma para carregar os mods.
     BL_DEBUG("sonda: aguardando o jogo assentar (no maximo %d ms)...", kSettleMs);
     waitForGameLoaded(std::chrono::milliseconds(kSettleMs));
 
@@ -121,6 +121,7 @@ void probeThread() {
                 return;
             }
             BL_DEBUG("sonda: RESOLUCAO OK");
+            installSplashHook();
             waitGameContentLoaded();
 
             script::installConsoleLog();
@@ -145,9 +146,6 @@ void probeThread() {
             installModTileSave();
             installModNpcSave();
             ui::installCheatButton();
-            // Inicio rapido: sem o watcher do il2cpp_init o hook do splash
-            // entra so agora; com os mods carregados, o splash pode acabar.
-            installFastIntro();
             markCoreReady();
             return;
         }

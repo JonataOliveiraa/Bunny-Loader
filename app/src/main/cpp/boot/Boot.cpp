@@ -48,11 +48,11 @@ void boot() {
     // A sonda tambem espera o jogo assentar antes de tocar no il2cpp, o que
     // aqui, dentro do proprio il2cpp_init, nao daria para fazer.
 
-    // Inicio rapido: o hook do splash entra agora, antes do primeiro quadro;
-    // e ele que acorda a sonda quando o jogo termina de carregar. Sem este
-    // caminho (watcher sem hook, como ja foi no MuMu), a sonda instala depois
-    // dos 10 s dela, ainda a tempo de encurtar o splash.
-    installFastIntro();
+    // O hook do splash entra agora, antes do primeiro quadro; e ele que acorda
+    // a sonda quando o jogo termina de carregar. Sem este caminho (watcher sem
+    // hook, como ja foi no MuMu), a sonda instala depois dos 10 s dela, ainda a
+    // tempo de segurar o splash.
+    installSplashHook();
     prepareTexturePacks(config().modsDir, config().enabledMods);
 
     // TODO(Fase 3): installProjectileHooks() e demais hooks de runtime.
