@@ -44,7 +44,7 @@
 
         <provider
             android:name=".mods.ModSourcesDocumentsProvider"
-            android:authorities="com.bunnyloader.documents"
+            android:authorities="${applicationId}.documents"
             android:exported="true"
             android:grantUriPermissions="true"
             android:permission="android.permission.MANAGE_DOCUMENTS">

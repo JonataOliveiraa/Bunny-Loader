@@ -178,6 +178,8 @@ Zip the **contents** of `MinisharkTurbo/` (so the zip has `manifest.json` and
 `MinisharkTurbo.dll` at its root; leave out the `.csproj`, `bin/` and `obj/`)
 and import it on the phone: *Packages* tab → *Import package*.
 
+In the beta app, replace `com.bunnyloader` with `com.bunnyloader.beta` in the paths below.
+
 Installed mods live in `Android/data/com.bunnyloader/bunny_packs/<uid>/`, so
 copying the folder there works too. During development, adb is the fastest
 (send a `.tar` and extract it: on some devices `adb push` of a folder with

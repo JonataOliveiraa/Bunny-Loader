@@ -1,6 +1,6 @@
 export MSYS_NO_PATHCONV=1
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && (pwd -W 2>/dev/null || pwd))"
-pkg=com.bunnyloader
+pkg="${BL_PKG:-com.bunnyloader}"
 data=/sdcard/Android/data/$pkg
 shots="$here/out"
 tmpdir="$(mktemp -d)"

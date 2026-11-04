@@ -19,6 +19,7 @@ val csharpEnabled = (project.findProperty("bl.csharp") as String?)?.toBoolean() 
 
 // O app de medicao dos hooks C# (ver BENCH_TESTS).
 val benchBuild = (project.findProperty("bl.bench") as String?)?.toBoolean() ?: false
+val betaBuild = (project.findProperty("bl.beta") as String?)?.toBoolean() ?: false
 
 val hasGameFont = file("src/main/res/font/bunny.ttf").isFile
 val fontDir = file(if (hasGameFont) "src/main/res/font" else "src/fontFallback/res/font")
@@ -90,7 +91,12 @@ android {
             // versionCode igual) e o personagem e o mundo criados la ficam.
             versionCode = (System.currentTimeMillis() / 60_000).toInt()
         }
-        manifestPlaceholders["appLabel"] = if (benchBuild) "Bunny Loader Bench" else "@string/app_name"
+        if (betaBuild) applicationIdSuffix = ".beta"
+        manifestPlaceholders["appLabel"] = when {
+            benchBuild -> "Bunny Loader Bench"
+            betaBuild -> "Bunny Loader Beta"
+            else -> "@string/app_name"
+        }
         buildConfigField("boolean", "BENCH", benchBuild.toString())
 
         // Só arm64. O runtime do jogo é integrado e existe apenas para

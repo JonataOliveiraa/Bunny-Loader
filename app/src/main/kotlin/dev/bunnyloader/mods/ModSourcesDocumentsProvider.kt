@@ -203,7 +203,7 @@ class ModSourcesDocumentsProvider : DocumentsProvider() {
     }
 
     companion object {
-        const val AUTHORITY = "com.bunnyloader.documents"
+        const val AUTHORITY = dev.bunnyloader.BuildConfig.APPLICATION_ID + ".documents"
         private val ROOT_COLUMNS = arrayOf(
             Root.COLUMN_ROOT_ID, Root.COLUMN_DOCUMENT_ID, Root.COLUMN_TITLE, Root.COLUMN_SUMMARY,
             Root.COLUMN_FLAGS, Root.COLUMN_MIME_TYPES, Root.COLUMN_AVAILABLE_BYTES, Root.COLUMN_ICON,
