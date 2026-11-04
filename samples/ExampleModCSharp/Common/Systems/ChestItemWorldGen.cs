@@ -20,7 +20,7 @@ public class ChestItemWorldGen : ModSystem
         for (int chestIndex = 0; chestIndex < Main.maxChests; chestIndex++)
         {
             Chest chest = Main.chest[chestIndex];
-            if (chest == null)
+            if (chest.IsNull)
             {
                 continue;
             }
