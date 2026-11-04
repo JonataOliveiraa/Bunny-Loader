@@ -120,9 +120,8 @@ sealed class Emitter
         string addArg = add.Params[0].Use.FromRaw("__g"), removeArg = remove.Params[0].Use.FromRaw("__g");
         string keyLit = Literal(key)!;
         sb.Append(ind).Append($"static {RT}.MethodRef __em{id};\n");
-        sb.Append(ind).Append($"static readonly int[] __eL{id} = {{ {string.Join(", ", add.Layout)} }};\n");
         sb.Append(ind).Append($"static nint __ek{id};\n");
-        sb.Append(ind).Append($"static nint __EK{id} => __ek{id} != 0 ? __ek{id} : (__ek{id} = {RT}.GameDelegates.ParamClass({G}.Method(ref __em{id}, {classExpr}, {Literal(add.Signature)}, __eL{id}).Info, 0));\n");
+        sb.Append(ind).Append($"static nint __EK{id} => __ek{id} != 0 ? __ek{id} : (__ek{id} = {RT}.GameDelegates.ParamClass({G}.Method(ref __em{id}, {classExpr}, {Literal(add.Signature)}, {LayoutLiteral(add.Layout)}).Info, 0));\n");
         sb.Append(ind).Append($"public {st}event {managed}? {name}\n").Append(ind).Append("{\n");
         sb.Append(ind).Append($"    add {{ {keep}{RT}.GameDelegates.Add(value, {keyLit}, {owner}, __EK{id}, {bridge}.Fn, __g => {self}{addName}({addArg})); }}\n");
         sb.Append(ind).Append($"    remove {{ {keep}{RT}.GameDelegates.Remove(value, {keyLit}, {owner}, __g => {self}{removeName}({removeArg})); }}\n");
@@ -281,6 +280,9 @@ sealed class Emitter
         };
     }
 
+    static string LayoutLiteral(int[] layout) =>
+        "\"" + string.Concat(layout.Select(size => $"\\u{size + 1:x4}")) + "\"";
+
     public static string? Literal(object v) => v switch
     {
         bool b => b ? "true" : "false",
@@ -429,7 +431,6 @@ sealed class Emitter
         int id = uid++;
         Methods++;
         sb.Append(ind).Append($"static {RT}.MethodRef __m{id};\n");
-        sb.Append(ind).Append($"static readonly int[] __L{id} = {{ {string.Join(", ", m.Layout)} }};\n");
         if (m.IsVirtual) sb.Append(ind).Append($"static {RT}.VirtualCache? __v{id};\n");
         string sig = Emitter.Literal(m.Signature)!;
         string isStatic = m.IsStatic || m.IsCtor ? "static " : "";
@@ -439,7 +440,7 @@ sealed class Emitter
             sb.Append(ind).Append($"{access} static {self} {name}({ParamList(m, true)})\n");
             sb.Append(ind).Append("{\n");
             string b0 = ind + "    ";
-            sb.Append(b0).Append($"ref readonly var __m = ref {G}.Method(ref __m{id}, {classExpr}, {sig}, __L{id});\n");
+            sb.Append(b0).Append($"ref readonly var __m = ref {G}.Method(ref __m{id}, {classExpr}, {sig}, {LayoutLiteral(m.Layout)});\n");
             if (m.OwnerIsStruct)
             {
                 sb.Append(b0).Append($"{self} __obj = default;\n");
@@ -460,7 +461,7 @@ sealed class Emitter
         sb.Append(ind).Append($"{access} {isStatic}{unsafeRet} {name}({ParamList(m, true)})\n");
         sb.Append(ind).Append("{\n");
         string bb = ind + "    ";
-        sb.Append(bb).Append($"ref readonly var __m = ref {G}.Method(ref __m{id}, {classExpr}, {sig}, __L{id});\n");
+        sb.Append(bb).Append($"ref readonly var __m = ref {G}.Method(ref __m{id}, {classExpr}, {sig}, {LayoutLiteral(m.Layout)});\n");
         string fn = "__m.Fn", info = "__m.Info";
         string? self2 = null;
         if (!m.IsStatic)
@@ -540,7 +541,7 @@ sealed class Emitter
         string b = ind + "    ";
         foreach ((int i, var d) in delegates)
         {
-            sb.Append(b).Append($"nint __d{i} = {RT}.GameDelegates.Create({m.Params[i].Name}, {RT}.GameDelegates.ParamClass({G}.Method(ref __m{id}, {classExpr}, {sig}, __L{id}).Info, {i}), {d.Bridge}.Fn);\n");
+            sb.Append(b).Append($"nint __d{i} = {RT}.GameDelegates.Create({m.Params[i].Name}, {RT}.GameDelegates.ParamClass({G}.Method(ref __m{id}, {classExpr}, {sig}, {LayoutLiteral(m.Layout)}).Info, {i}), {d.Bridge}.Fn);\n");
             sb.Append(b).Append($"using var __h{i} = __d{i} != 0 ? new {RT}.GameHandle(__d{i}) : null;\n");
         }
         bool isVoid = !m.IsCtor && m.Plan.Ret.Use.Abi == AbiClass.Void && !m.Plan.Ret.ByRef;
@@ -575,22 +576,25 @@ sealed class Emitter
         sb.Append(ind).Append($"public delegate {retCs} {hook}({orig} orig{(fullParams.Length > 0 ? ", " + fullParams : "")});\n");
         sb.Append(ind).Append($"public static event {hook} {eventName}\n");
         sb.Append(ind).Append("{\n");
-        sb.Append(ind).Append($"    add => __h{id}.Add(value);\n");
-        sb.Append(ind).Append($"    remove => __h{id}.Remove(value);\n");
+        sb.Append(ind).Append($"    add => __H{id}.__h{id}.Add(value);\n");
+        sb.Append(ind).Append($"    remove => __H{id}.__h{id}.Remove(value);\n");
         sb.Append(ind).Append("}\n");
+        sb.Append(ind).Append($"static unsafe class __H{id}\n");
+        sb.Append(ind).Append("{\n");
+        string outer = ind;
+        ind += "    ";
         sb.Append(ind).Append($"static {RT}.MethodRef __m{id};\n");
-        sb.Append(ind).Append($"static readonly int[] __L{id} = {{ {string.Join(", ", m.Layout)} }};\n");
         sb.Append(ind).Append($"static nint* __s{id};\n");
         sb.Append(ind).Append($"[global::System.ThreadStatic] static int __r{id};\n");
         if (!isVoid) sb.Append(ind).Append($"[global::System.ThreadStatic] static {retCs} __l{id};\n");
-        sb.Append(ind).Append($"static readonly global::BunnyLoader.Hooks.HookChain<{hook}, {orig}> __h{id} = new(\n");
+        sb.Append(ind).Append($"internal static readonly global::BunnyLoader.Hooks.HookChain<{hook}, {orig}> __h{id} = new(\n");
         sb.Append(ind).Append($"    (__hk, __nx) => ({fullParams}) => __hk(__nx{(argNames.Length > 0 ? ", " + argNames : "")}),\n");
         sb.Append(ind).Append($"    __o{id}, __i{id});\n");
 
         string rawTypes = string.Join(", ", m.Plan.Raw.Select(r => r.Type).Append(ret.RawType));
         sb.Append(ind).Append($"static void __i{id}()\n");
         sb.Append(ind).Append("{\n");
-        sb.Append(ind).Append($"    ref readonly var __m = ref {G}.Method(ref __m{id}, {classExpr}, {sig}, __L{id});\n");
+        sb.Append(ind).Append($"    ref readonly var __m = ref {G}.Method(ref __m{id}, {classExpr}, {sig}, {LayoutLiteral(m.Layout)});\n");
         sb.Append(ind).Append($"    __s{id} = (nint*)global::BunnyLoader.Hook.Install(__m.Info, (nint)(delegate* unmanaged<{rawTypes}>)&__n{id}).OriginalSlot;\n");
         sb.Append(ind).Append("}\n");
 
@@ -673,5 +677,6 @@ sealed class Emitter
             sb.Append(t).Append("return default;\n");
         }
         sb.Append(ind).Append("}\n");
+        sb.Append(outer).Append("}\n");
     }
 }

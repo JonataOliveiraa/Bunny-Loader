@@ -106,6 +106,19 @@ public static unsafe class GameInterop
         return ref slot;
     }
 
+    public static ref readonly MethodRef Method(ref MethodRef slot, GameClass cls, string signature, string layout)
+    {
+        if (slot.Fn == IntPtr.Zero) ResolveMethod(ref slot, cls, signature, DecodeLayout(layout));
+        return ref slot;
+    }
+
+    static int[] DecodeLayout(string layout)
+    {
+        int[] sizes = new int[layout.Length];
+        for (int i = 0; i < sizes.Length; i++) sizes[i] = layout[i] - 1;
+        return sizes;
+    }
+
     static void ResolveMethod(ref MethodRef slot, GameClass cls, string signature, int[] layout)
     {
         IntPtr info;

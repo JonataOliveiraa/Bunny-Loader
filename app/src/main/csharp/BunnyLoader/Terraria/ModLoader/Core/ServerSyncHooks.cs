@@ -44,9 +44,14 @@ internal static unsafe class ServerSyncHooks
         ModNet.SetHello(hello.ToJsonString());
         Host.Native()->NetHelloListen(&Hello);
         Active = true;
+        Log.Info($"server sync: {ownMods.Count} mods");
+    }
+
+    internal static void InstallMenus()
+    {
+        if (!Active) return;
         HostSettingsMenu.Install();
         ServerSyncMenu.Install();
-        Log.Info($"server sync: {ownMods.Count} mods");
     }
 
     static JsonObject? PackInfo()

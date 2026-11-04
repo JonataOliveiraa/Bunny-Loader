@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime;
 using System.Runtime.InteropServices;
 using System;
 using BunnyLoader.Interop;
@@ -202,11 +203,17 @@ public static class ModContent
     {
         Mod[] mods = Host.Mods;
         ServerSyncHooks.Install();
+        yield return 0;
+        ServerSyncHooks.InstallMenus();
+        yield return 0;
         BunnyLoader.ScreenEffectsSetting.Install();
         BunnyLoader.ScreenFxCommand.Install();
+        yield return 0;
         Terraria.ID.SetFactory.GrowToContent();
+        yield return 0;
         SystemLoader.ResizeArrays();
         SystemLoader.OnLocalizationsLoaded();
+        yield return 0;
         foreach (Mod mod in mods)
         {
             foreach (GlobalType global in mod.GetContent<GlobalType>())
@@ -418,8 +425,7 @@ public static class ModContent
         try { NPCLootHooks.ContentReady(); }
         catch (Exception e) { Log.Error($"NPC loot: the tables could not be set up: {e}"); }
         yield return 0;
-        try { ItemLootHooks.ContentReady(); }
-        catch (Exception e) { Log.Error($"item loot: the tables could not be set up: {e}"); }
+        foreach (int step in Guarded(ItemLootHooks.ContentReady(), "item loot: the tables could not be set up")) yield return step;
         yield return 0;
         try { BannerHooks.ContentReady(); }
         catch (Exception e) { Log.Error($"banners: the tables could not be set up: {e}"); }
@@ -490,6 +496,25 @@ public static class ModContent
             bool created = mod.GetContent<ModItem>().Any(i => ItemHooks.Overrides(i.GetType(), typeof(ModItem), nameof(ModItem.OnCreated))) ||
                            mod.GetContent<GlobalItem>().Any(g => ItemHooks.Overrides(g.GetType(), typeof(GlobalItem), nameof(GlobalItem.OnCreated)));
             if (created) RecipeLoader.WantCraft();
+        }
+        Log.Info($"startup: C# compiled {JitInfo.GetCompiledMethodCount(false)} methods, {JitInfo.GetCompiledILBytes(false) / 1024} KB of IL, {JitInfo.GetCompilationTime(false).TotalMilliseconds:F0} ms of JIT");
+    }
+
+    static IEnumerable<int> Guarded(IEnumerable<int> steps, string failure)
+    {
+        using IEnumerator<int> step = steps.GetEnumerator();
+        while (true)
+        {
+            try
+            {
+                if (!step.MoveNext()) yield break;
+            }
+            catch (Exception e)
+            {
+                Log.Error($"{failure}: {e}");
+                yield break;
+            }
+            yield return 0;
         }
     }
 

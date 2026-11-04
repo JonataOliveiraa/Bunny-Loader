@@ -16,7 +16,7 @@ internal static unsafe class ItemTooltipDraw
     const string DrawStringSignature =
         "void DrawString(SpriteFont spriteFont, string text, Vector2 position, Color color, float rotation, Vector2 origin, float scale, SpriteEffects effects, float layerDepth)";
 
-    static readonly Regex Tag = new(@"\[c/([0-9a-fA-F]{6}):([^\]]*)\]", RegexOptions.Compiled);
+    static readonly Regex Tag = new(@"\[c/([0-9a-fA-F]{6}):([^\]]*)\]");
 
     static Hook? drawString, measure, tooltip;
 

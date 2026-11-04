@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -85,9 +86,20 @@ internal static unsafe class ItemHooks
 
     internal static GlobalItem?[] GlobalsOf(Item item) => ItemLoader.Globals.Slots(item) ?? Array.Empty<GlobalItem?>();
 
+    static readonly ConcurrentDictionary<(Type, Type), HashSet<string>> OverrideNames = new();
+
     internal static bool Overrides(Type type, Type baseType, string name) =>
-        type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Any(m => m.Name == name && m.DeclaringType != baseType && m.GetBaseDefinition().DeclaringType == baseType);
+        OverrideNames.GetOrAdd((type, baseType), static key => FindOverrides(key.Item1, key.Item2)).Contains(name);
+
+    static HashSet<string> FindOverrides(Type type, Type baseType)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (method.DeclaringType != baseType && method.GetBaseDefinition().DeclaringType == baseType) names.Add(method.Name);
+        }
+        return names;
+    }
 
     internal static void Once(string key, Action install)
     {

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using BunnyLoader.Interop;
 using Terraria.GameContent.ItemDropRules;
 using Terraria.ID;
@@ -29,17 +30,19 @@ internal static class ItemLootHooks
         ItemOpenHooks.Install(static name => name == nameof(ModItem.ModifyItemLoot), true);
     }
 
-    internal static void ContentReady()
+    internal static IEnumerable<int> ContentReady()
     {
-        if (!wanted || Main.ItemDropsDB.IsNull) return;
+        if (!wanted || Main.ItemDropsDB.IsNull) yield break;
+        bool anyGlobal = Array.Exists(ItemLoader.Globals.Templates, static g => ItemHooks.Overrides(g.GetType(), typeof(GlobalItem), nameof(GlobalItem.ModifyItemLoot)));
         Item sample = Item.New();
         using var pin = new GameHandle(sample.Pointer);
-        for (int type = 1; type < ItemID.Sets.OpenableBag.Length; type++)
+        for (int type = anyGlobal ? 1 : ItemID.Count; type < ItemID.Sets.OpenableBag.Length; type++)
         {
+            if (!anyGlobal && !(ItemLoader.Get(type) is ModItem template && OverridesLoot(template))) continue;
             sample.SetDefaults(type, default);
             var loot = new ItemLoot(type, Main.ItemDropsDB);
             ModItem? own = ItemLoader.InstanceOf(sample);
-            if (own != null && ItemHooks.Overrides(own.GetType(), typeof(ModItem), nameof(ModItem.ModifyItemLoot)))
+            if (own != null && OverridesLoot(own))
             {
                 try { own.ModifyItemLoot(loot); }
                 catch (Exception e) { ItemHooks.Report($"{own.FullName}.ModifyItemLoot", e); }
@@ -51,8 +54,11 @@ internal static class ItemLootHooks
                 try { if (global.AppliesToEntity(sample, false)) global.ModifyItemLoot(sample, loot); }
                 catch (Exception e) { ItemHooks.Report($"{global.FullName}.ModifyItemLoot", e); }
             }
+            yield return 0;
         }
     }
+
+    static bool OverridesLoot(ModItem item) => ItemHooks.Overrides(item.GetType(), typeof(ModItem), nameof(ModItem.ModifyItemLoot));
 
     internal static void Open(Item item, Player player)
     {

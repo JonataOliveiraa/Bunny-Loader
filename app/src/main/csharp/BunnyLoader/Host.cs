@@ -154,7 +154,7 @@ internal static unsafe class Host
         string name = Path.GetFileName(entry);
         List<string> references = ModBuild.References(AppContext.BaseDirectory);
         List<string> modReferences = DependencyAssemblies(dependencies);
-        string api = ModBuild.ApiVersion(references, modReferences);
+        string api = ModBuild.ApiVersion(typeof(Host).Assembly.GetName().Version?.ToString() ?? "0.0.0.0", modReferences);
         if (ModBuild.IsCurrent(project, name, api, out string reason)) return ModBuild.DllPath(project, name);
         Log.Info($"mod {uid}: compiling {name} ({reason})");
         return Compile(uid, project, name, references, modReferences);

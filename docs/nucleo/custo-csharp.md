@@ -150,6 +150,147 @@ the `TEModdedPylon` entities first and scans only when one is inside that
 region: on MuMu, with ExampleModCSharp, 150-180 µs per frame before and
 21-24 µs after (`csperf` now reports it as a focus hook).
 
+## Time to the title screen (2026-11-04)
+
+Measured on MuMu `127.0.0.1:16384`, from the tap on Play to `startup: title on
+screen`, with the mod already compiled. Old and new `BunnyLoader.dll` swapped
+in place on the same device, in alternating rounds: six boots each with
+ExampleModCSharp, four each with a generated mod of 1500 `ModItem` classes
+with one texture file each. Both sets also have `csauto`. Medians, in seconds.
+The phone is further down: there, the opening animation hides most of the gain.
+
+| Stage | ExampleMod before | ExampleMod after | 1500 items before | 1500 items after |
+|---|--:|--:|--:|--:|
+| Game content loaded | 6.6 | 6.5 | 9.8 | 9.4 |
+| `Host.LoadMod`, all mods | 19.4 | 8.4 | 51.6 | 10.3 |
+| `Initialize_AlmostEverything` and fade | 3.6 | 3.6 | 3.3 | 3.0 |
+| Native install (`tickMod*`) | 1.9 | 2.0 | 3.2 | 3.4 |
+| `ContentReady` | 4.8 | 2.5 | 1.7 | 1.3 |
+| **Title on screen** | **36.3** | **22.9** | **69.5** | **28.1** |
+
+MuMu drifts: some boots ran 10 to 30 s slower than their neighbours, with the
+old DLL and with the new one. Medians and the alternating rounds are what make
+the columns comparable.
+
+### What `Host.LoadMod` spent
+
+With ExampleModCSharp the load thread spends about 80% of its time in the JIT.
+JIT time here is self time per method from a Mono profiler callback, starting
+at `Host.Initialize`. It includes class loading done during compilation and
+excludes nested compilations. `System.Runtime.JitInfo.GetCompilationTime`
+counts nested compilations twice and reads higher: 10.0 s against the 7.9 s
+below.
+
+| JIT, whole boot | Before | After |
+|---|--:|--:|
+| Self time | 20.1 s | 7.9 s |
+| of which `On_*` hook classes | 10.8 s | 1.4 s |
+| of which `On_*` static constructors | 6.6 s | 0 |
+| Methods compiled | 10393 | 10787 |
+
+Before, the generated `On_Main` created the `HookChain` and the layout array of
+all its 1373 methods in one static constructor, 2.1 s for that method alone,
+and `On_Player` 1.2 s. The first touch of an `On_*` class also loaded a generic
+type per hook. A mod uses few of them: ExampleModCSharp installs 372 of the
+10626 hooks.
+
+Three changes in the generated code and the load path:
+
+1. Each hook now lives in its own nested class (`On_Main.__H12345`), loaded on
+   first use. A hook actually installed costs about 4.8 ms of JIT on MuMu.
+2. Method layouts are string literals read only on the first resolve, not
+   `int[]` fields filled by each proxy's static constructor. Together with the
+   nested classes this adds about 0.4 MB to the API (30.8 MB to 31.3 MB, built
+   the same way).
+3. Reading the API version no longer loads `System.Reflection.Metadata`
+   (360 methods), and the tooltip tag regex is no longer `RegexOptions.Compiled`
+   (about 200 ms of `DynamicMethod` at load).
+
+The rest is real work, and the part that scaled badly was one function.
+`ItemHooks.Overrides` called `GetMethods` on every question, and registering an
+item asks more than 100 of them: 23 ms per `ModItem`, 20 of them outside the
+JIT. That is most of the 41 s the 1500-item column lost. It now builds the set
+of overridden names once per type: about 2.3 ms per item, of which 0.3 ms is
+JIT.
+
+### `ContentReady`
+
+The 2.1 s step was `ItemLootHooks.ContentReady`, with 47 ms of JIT. It ran
+`SetDefaults` on every item and reflection per item per `GlobalItem`, in one
+slice. It now skips vanilla items unless a `GlobalItem` overrides
+`ModifyItemLoot`, and yields after each item. `csnpcloot` covers that case.
+
+| | Before | After |
+|---|--:|--:|
+| Longest step, three boots | 2539 ms (item loot) | 316 ms (`ServerSyncHooks.Install`) |
+| Next longest | 506 ms | 290 ms (`BestiaryHooks`) |
+
+### Native install with many items
+
+`tickModItems` is one block in one frame: 1.9 s for 1564 items on MuMu (1500
+plus the 64 reserve items), about 1.2 ms per item, and only 0.2 s more with one
+texture file per item than with one shared texture. The duplicate check in
+`registerModItem` is quadratic but does not show up at this size. The screen
+holds the flower for those 2 s, so it is not split.
+
+The Calamity pack on the phone is a texture pack and adds no items, so it says
+nothing about this path. It was not used as load.
+
+### On a phone
+
+Samsung Galaxy A15 (SM-A156M), `com.bunnyloader.beta`, one mod at a time, without
+`csauto`, already compiled: ExampleModCSharp, then the generated mod of 1500
+items. Four boots each, old and new DLL alternating. Medians, in seconds.
+
+| Stage | ExampleMod before | ExampleMod after | 1500 items before | 1500 items after |
+|---|--:|--:|--:|--:|
+| Game content loaded | 3.5 | 3.5 | 3.5 | 3.6 |
+| `Host.LoadMod` | 8.3 | 2.5 | 11.3 | 2.5 |
+| From the end of `LoadMod` to the end of the splash | 2.9 | 8.4 | 1.7 | 7.7 |
+| Native install (`tickMod*`) | 1.0 | 1.0 | 1.4 | 1.5 |
+| `ContentReady` | 2.5 | 1.3 | 0.7 | 0.4 |
+| **Title on screen** | **18.1** | **17.0** | **18.6** | **15.8** |
+
+`Host.LoadMod` is 3.3 to 4.5 times faster, but the title moved by 1.1 s and 2.8 s,
+because the game's own splash timer now decides. Mods are ready at about 6 s, and the
+screen then waits for the animation to reach its end, at about 15 s. On MuMu
+the mods were the slower of the two, so the gain shows there. Cutting the splash
+once mods are ready already exists, under Quick start
+(`config().fastBoot`, `advanceSplashTimer`). Doing it on every boot would remove
+most of that 8.4 s wait, but the logo screen stays by decision (2026-11-04).
+
+The longest `ContentReady` step on the phone is 163 ms. `startup: C# compiled`
+reports about 10700 methods and 3.2 to 3.8 s of JIT.
+
+### Still open
+
+- 7.9 s of JIT remain on MuMu, 2.9 s of it in the base library, and about 2.5 s
+  on the phone by the same `JitInfo` count at the end of `LoadMod`. Only
+  precompiling would remove it: Mono AOT, with the package
+  `Microsoft.NETCore.App.Runtime.AOT.win-x64.Cross.android-arm64` 10.0.14.
+  Not tried; it adds a build step and grows the APK.
+- `Layouts.Verify` runs on every boot, about 0.2 s in `StructLayouts..cctor`.
+- The first time a mod compiles on the device costs about 77 s on MuMu on top
+  of this (332 files, 21294 lines). The title came up at 109 s in that run.
+
+### How to measure
+
+The log line `startup: C# compiled N methods, K KB of IL, T ms of JIT` comes at
+the end of `ContentReady` on every boot, phone included. `T` is the `JitInfo`
+number.
+
+`tools/startup/` has the rest:
+
+- `bootrun.sh <out dir> <label> <runs> <uid>...` makes cold boots and keeps the
+  logs. On a phone, set `DEVICE`, `BL_PKG` and `TAP` (the Play button: `1211 842`
+  in landscape, `538 2118` in portrait; the launcher follows the phone). It needs
+  the `csauto` pack on the device. `table.py <glob>...` prints the stages above.
+- `genmany.py <out dir> [N]` writes the pack of many items.
+- `jitprof.c` is the profiler callback, built with the NDK clang into a `.so`.
+  Copy it to `files/libjitprof.so`, add `StartupProfile.cs` to the API, and call
+  `JitStart()` in `Host.Initialize` and `JitDump()` at the end of
+  `ContentReady`. `jitreport.py` reads the `files/jitprof.txt` it writes.
+
 ## Against the engine of 0.3.3
 
 Measured on the same phone on 2026-11-03: see

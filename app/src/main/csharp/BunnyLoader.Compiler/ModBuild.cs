@@ -65,9 +65,12 @@ public static class ModBuild
         throw new FileNotFoundException("BunnyLoader.dll is not among the references");
     }
 
-    public static string ApiVersion(IEnumerable<string> references, IReadOnlyList<string> modReferences)
+    public static string ApiVersion(IEnumerable<string> references, IReadOnlyList<string> modReferences) =>
+        ApiVersion(ApiVersion(references), modReferences);
+
+    public static string ApiVersion(string apiVersion, IReadOnlyList<string> modReferences)
     {
-        var api = new StringBuilder(ApiVersion(references));
+        var api = new StringBuilder(apiVersion);
         var sorted = new List<string>(modReferences);
         sorted.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));
         foreach (string path in sorted)
