@@ -1,0 +1,40 @@
+AbsorbTeamDamageBuff:
+{
+    DisplayName: Absorb Team Damage Buff
+    Description: "{0}% of damage taken will be redirected to another player"
+}
+AnimatedBuff:
+{
+    DisplayName: Animated Buff
+    Description: Animates and increases all damage by {0}%.
+}
+ExampleCrowdControlledDebuff:
+{
+    DisplayName: Example Crowd Controlled Debuff
+    Description: You can't move your arms or legs
+}
+ExampleDodgeBuff:
+{
+    DisplayName: Example Dodge Buff
+    Description: You will dodge the next attack
+}
+ExampleGravityDebuff:
+{
+    DisplayName: Example Gravity Debuff
+    Description: Gravity has gone wild.
+}
+ExampleJavelinDebuff:
+{
+    DisplayName: Example Javelin Debuff
+    Description: Losing life
+}
+ExampleWeaponImbue:
+{
+    DisplayName: Example Weapon Imbue
+    Description: "{$Items.ExampleFlask.Tooltip}"
+}
+ExampleWhipAdvancedPlayerBuff:
+{
+    DisplayName: Example Whippin'!
+    Description: Whip speed is increased
+}

@@ -14,6 +14,7 @@ internal static class ItemWorldHooks
             if (global) globalExtract = true;
             ItemHooks.Once("ItemExtractinator", () => On_Player.ExtractinatorUse += ExtractinatorUse);
         }
+        ItemSpawnHooks.Install(has);
         if (!has(nameof(ModItem.PostUpdate))) return;
         if (global) globalUpdate = true;
         ItemHooks.Once("ItemPostUpdate", () => On_WorldItem.UpdateItem += UpdateItem);

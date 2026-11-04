@@ -232,7 +232,7 @@ internal static unsafe class ItemHealHooks
                 try { g.ModifyPotionDelay(item, player, ref delay); }
                 catch (Exception e) { ItemHooks.Report($"{g.FullName}.ModifyPotionDelay", e); }
             }
-            delay = Clamp(delay, 0);
+            delay = Clamp(PlayerPotionDelayHooks.Apply(player, delay), 0);
             allowed &= PlayerLoader.All(player, nameof(ModPlayer.ApplyPotionDelay), (item, delay), static (pm, s) => pm.ApplyPotionDelay(s.item, s.delay));
             if (m != null)
             {

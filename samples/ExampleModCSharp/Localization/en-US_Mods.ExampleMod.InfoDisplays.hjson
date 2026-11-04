@@ -1,0 +1,6 @@
+ExampleInfoDisplay:
+{
+    DisplayName: Minion Count
+    CurrentMinions: "{0} minions"
+    NoMinions: No minions
+}

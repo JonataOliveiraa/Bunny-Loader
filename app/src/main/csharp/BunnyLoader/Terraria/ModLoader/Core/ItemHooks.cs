@@ -42,6 +42,8 @@ internal static unsafe class ItemHooks
         if (Has(nameof(ModItem.UpdateInventory)))
             Once("Inventory", () => updateEquips = Raw("void UpdateEquips(int i)",
                 (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, void>)&UpdateEquips));
+        ItemExampleHooks.Install(Has);
+        ItemVisibilityHooks.Install(Has);
         ItemHealHooks.Install(Has);
         ItemPickupHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemDrawHooks.Install(Has, baseType == typeof(GlobalItem));

@@ -1,0 +1,218 @@
+ExampleBugNet:
+{
+    DisplayName: Rede de insetos de exemplo
+    Tooltip:
+        '''
+        Usada para capturar criaturas
+        Tem {0}% de chance de capturar criaturas de lava
+        A chance aumenta para {1}% com o efeito da Poção de calor
+        Tem {2}% de chance de duplicar as criaturas capturadas
+        '''
+}
+ExampleGolfClub:
+{
+    DisplayName: Taco de golfe de exemplo (driver)
+    Tooltip: "{$CommonItemTooltip.GolfDriver}"
+}
+ExampleInteractableProjectileItem:
+{
+    DisplayName: Item de projétil interativo de exemplo
+    Tooltip: ""
+}
+ExampleMagicMirror:
+{
+    DisplayName: Espelho mágico de exemplo
+    Tooltip: ""
+}
+ExampleAdvancedFlail:
+{
+    DisplayName: Mangual avançado de exemplo
+    Tooltip: Um mangual modificado com comportamento personalizado.
+}
+ExampleCloneWeapon:
+{
+    DisplayName: Meowmere V2
+    Tooltip: Semelhante a {$ItemName.Meowmere} [i:Meowmere]
+}
+ExampleCustomAmmoGun:
+{
+    DisplayName: Arma de munição personalizada de exemplo
+    Tooltip: Usa ExampleCustomAmmo como munição e dispara projéteis teleguiados
+}
+ExampleCustomSwingSword:
+{
+    DisplayName: Espada de golpe personalizado de exemplo
+    Tooltip:
+        '''
+        Uma espada com animação de golpe personalizada feita com projéteis
+        Use várias vezes para alternar os ataques
+        '''
+}
+ExampleCustomUseStyleWeapon:
+{
+    DisplayName: Arma de estilo de uso personalizado de exemplo
+    Tooltip: ""
+}
+ExampleHeldProjectileWeapon:
+{
+    DisplayName: Arma de projétil empunhado de exemplo
+    Tooltip: ""
+}
+ExampleJavelin:
+{
+    DisplayName: Dardo de exemplo
+    Tooltip: ""
+}
+ExampleJoustingLance:
+{
+    DisplayName: Lança de justa de exemplo
+    Tooltip:
+        '''
+        {$ItemTooltip.HallowJoustingLance}
+        Uma lança de justa modificada.
+        '''
+}
+ExampleShootingSword:
+{
+    DisplayName: Espada atiradora de exemplo
+    Tooltip: Uma espada modificada que dispara projéteis como os da Fúria das estrelas.
+}
+ExampleSpecificAmmoGun:
+{
+    DisplayName: Rifle de exemplo
+    Tooltip:
+        '''
+        Não aceita balas amaldiçoadas como munição
+        Dispara três tiros em rápida sucessão
+        Cada tiro tem uma chance diferente de consumir munição
+        O primeiro tiro tem {0}% de chance de não consumir balas
+        O segundo tiro tem {1}% de chance de não consumir balas
+        O último tiro tem {2}% de chance de não consumir balas
+        Tiros que consomem munição causam {3}% a mais de dano
+        '''
+}
+ExampleStaff:
+{
+    DisplayName: Cajado de exemplo
+    Tooltip: Uma arma mágica de cajado modificada
+}
+ExampleWhipAdvanced:
+{
+    DisplayName: Chicote avançado de exemplo
+    Tooltip:
+        '''
+        {0}% de dano adicional de marca de invocação no próximo acerto de lacaio ou sentinela
+        {$CommonItemTooltip.Whips}
+        Segure para aumentar o alcance
+        '''
+}
+HitModifiersShowcase:
+{
+    DisplayName: Demonstração de modificadores de acerto
+    Tooltip: ""
+    Switching: Alternando para o modo nº {0}: {1}
+    CurrentMode: Modo nº {0}: {1}
+    Mode_0: Comportamento normal de dano
+    Mode_1: Variação de dano desativada
+    Mode_2: "{0}% de repulsão adicional"
+    Mode_3: "{0}% de dano crítico adicional"
+    Mode_4: "{0} de penetração de armadura adicional. Teste contra inimigos com defesa alta"
+    Mode_5: "{0}% de penetração de armadura adicional. Ignora {0}% da defesa do inimigo"
+    Mode_6: Aplica ExampleDefenseDebuff, reduzindo a defesa em {0}%
+    Mode_7: Ao acertar, concede ExampleDodgeBuff para esquivar do próximo golpe
+}
+ExamplePiercingProjectileItem:
+{
+    DisplayName: Item de projétil perfurante de exemplo
+    Tooltip: ""
+}
+ExampleArrow:
+{
+    DisplayName: Flecha de exemplo
+    Tooltip: ""
+}
+ExampleCustomAmmo:
+{
+    DisplayName: Munição personalizada de exemplo
+    Tooltip: Persegue inimigos através das paredes
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Bala de penalidade de gravidade de exemplo
+    Tooltip: ""
+}
+ExampleRocket:
+{
+    DisplayName: Foguete de exemplo
+    Tooltip: "{$ItemTooltip.RocketI}"
+}
+ExampleInfoAccessory:
+{
+    DisplayName: Acessório de informações de exemplo
+    Tooltip: Mostra quantos lacaios você invocou
+}
+ExamplePotionDelayAccessory:
+{
+    DisplayName: Acessório de recarga de poções de exemplo
+    Tooltip:
+        '''
+        Reduz a recarga total de poções de cura em {0} segundos
+        {$CommonItemTooltip.ReducesHealingPotionCooldownByPercent@1}
+        '''
+}
+ExampleHood:
+{
+    DisplayName: Capuz de exemplo
+    Tooltip: Este é um capuz modificado.
+    SetBonus:
+        '''
+        Toque duas vezes ou segure {1} para alternar os efeitos de sombra da armadura
+        {$CommonItemTooltip.PercentReducedManaCost}
+        '''
+    SetBonusKeyUp: Cima
+    SetBonusKeyDown: Baixo
+}
+ExampleTallHelmet:
+{
+    DisplayName: Capacete alto de exemplo
+    Tooltip: Este é um capacete alto modificado.
+}
+AbsorbTeamDamageAccessory:
+{
+    DisplayName: Acessório de absorção de dano da equipe
+    Tooltip: Absorve {0}% do dano recebido pelos jogadores da sua equipe enquanto você tiver mais de {1}% de vida
+}
+ExampleMultiExtraJumpAccessory:
+{
+    DisplayName: Acessório de salto extra com múltiplos usos de exemplo
+    Tooltip:
+        '''
+        Permite realizar um salto extra no ar
+        Este acessório tem <JUMPS> saltos restantes
+        '''
+}
+CameraModifierShowcase:
+{
+    DisplayName: Demonstração de modificador de câmera
+    Tooltip: ""
+}
+RubyEarrings:
+{
+    DisplayName: Brincos de rubi
+    Tooltip: ""
+}
+SapphireEarrings:
+{
+    DisplayName: Brincos de safira
+    Tooltip: ""
+}
+SimpleAccessory:
+{
+    DisplayName: Acessório simples
+    Tooltip: Ataques de lacaios e sentinelas causam queimadura de gelo
+}
+ExampleSpecialGlideWings:
+{
+    DisplayName: Asas de planeio especial de exemplo
+    Tooltip: ""
+}

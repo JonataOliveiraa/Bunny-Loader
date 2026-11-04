@@ -1,0 +1,14 @@
+ExampleBuilderToggleDimmedLight:
+{
+    OnText: Example On
+    OffText: Example Off
+}
+ExampleBuilderToggle:
+{
+    CurrentColor: Color: {0}
+    Color_0: Red
+    Color_1: Blue
+    Color_2: Green
+    Color_3: Yellow
+}
+FreeBaitBuilderToggle.NameText: Free Bait: {0}

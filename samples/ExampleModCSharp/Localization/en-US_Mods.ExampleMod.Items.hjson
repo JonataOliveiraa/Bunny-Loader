@@ -1,0 +1,218 @@
+ExampleBugNet:
+{
+    DisplayName: Example Bug Net
+    Tooltip:
+        '''
+        Used to catch critters
+        Has a {0}% chance to successfully catch lava critters
+        This increases to {1}% if the Warmth Potion buff is active
+        Has a {2}% chance to duplicate caught critters
+        '''
+}
+ExampleGolfClub:
+{
+    DisplayName: Example Golf Club (Driver)
+    Tooltip: "{$CommonItemTooltip.GolfDriver}"
+}
+ExampleInteractableProjectileItem:
+{
+    DisplayName: Example Interactable Projectile Item
+    Tooltip: ""
+}
+ExampleMagicMirror:
+{
+    DisplayName: Example Magic Mirror
+    Tooltip: ""
+}
+ExampleAdvancedFlail:
+{
+    DisplayName: Example Advanced Flail
+    Tooltip: This is a modded flail with custom behavior.
+}
+ExampleCloneWeapon:
+{
+    DisplayName: Meowmere V2
+    Tooltip: Similar to {$ItemName.Meowmere} [i:Meowmere]
+}
+ExampleCustomAmmoGun:
+{
+    DisplayName: Example Custom Ammo Gun
+    Tooltip: Uses ExampleCustomAmmo as ammo and shooting HomingProjectiles
+}
+ExampleCustomSwingSword:
+{
+    DisplayName: Example Custom Swing Sword
+    Tooltip:
+        '''
+        This is a sword with a custom swinging animation made with projectiles
+        Use more than once to cycle through attacks
+        '''
+}
+ExampleCustomUseStyleWeapon:
+{
+    DisplayName: Example Custom UseStyle Weapon
+    Tooltip: ""
+}
+ExampleHeldProjectileWeapon:
+{
+    DisplayName: Example Held Projectile Weapon
+    Tooltip: ""
+}
+ExampleJavelin:
+{
+    DisplayName: Example Javelin
+    Tooltip: ""
+}
+ExampleJoustingLance:
+{
+    DisplayName: Example Jousting Lance
+    Tooltip:
+        '''
+        {$ItemTooltip.HallowJoustingLance}
+        This is a modded jousting lance.
+        '''
+}
+ExampleShootingSword:
+{
+    DisplayName: Example Shooting Sword
+    Tooltip: This is a modded sword that shoots Star Wrath-like projectiles.
+}
+ExampleSpecificAmmoGun:
+{
+    DisplayName: Example Rifle
+    Tooltip:
+        '''
+        Does not accept cursed bullets as ammunition
+        Fires three rounds in rapid succession
+        Each shot consumes ammunition with a different chance
+        The first shot has a {0}% chance to not consume bullets
+        The second shot has a {1}% chance to not consume bullets
+        The last shot has a {2}% chance to not consume bullets
+        Shots that consume ammunition have their damage boosted by {3}%
+        '''
+}
+ExampleStaff:
+{
+    DisplayName: Example Staff
+    Tooltip: This is a modded magic staff weapon
+}
+ExampleWhipAdvanced:
+{
+    DisplayName: Example Whip Advanced
+    Tooltip:
+        '''
+        {0}% extra summon tag damage to the next minion or sentry hit
+        {$CommonItemTooltip.Whips}
+        Hold for longer reach
+        '''
+}
+HitModifiersShowcase:
+{
+    DisplayName: Hit Modifiers Showcase
+    Tooltip: ""
+    Switching: Switching to mode #{0}: {1}
+    CurrentMode: Mode #{0}: {1}
+    Mode_0: Normal damage behavior
+    Mode_1: Damage variation disabled
+    Mode_2: "{0}% extra knockback"
+    Mode_3: "{0}% extra critical hit damage"
+    Mode_4: "{0} extra armor penetration. Test against high defense enemy"
+    Mode_5: "{0}% extra armor penetration. Ignores {0}% of enemy defense"
+    Mode_6: Will apply ExampleDefenseDebuff, reducing defense by {0}%
+    Mode_7: On hit, gives player ExampleDodgeBuff to dodge the next hit
+}
+ExamplePiercingProjectileItem:
+{
+    DisplayName: Example Piercing Projectile Item
+    Tooltip: ""
+}
+ExampleArrow:
+{
+    DisplayName: Example Arrow
+    Tooltip: ""
+}
+ExampleCustomAmmo:
+{
+    DisplayName: Example Custom Ammo
+    Tooltip: Chases enemies through walls
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Example Gravity Debuff Bullet
+    Tooltip: ""
+}
+ExampleRocket:
+{
+    DisplayName: Example Rocket
+    Tooltip: "{$ItemTooltip.RocketI}"
+}
+ExampleInfoAccessory:
+{
+    DisplayName: Example Info Accessory
+    Tooltip: Displays how many minions you have summoned
+}
+ExamplePotionDelayAccessory:
+{
+    DisplayName: Example Potion Delay Accessory
+    Tooltip:
+        '''
+        Decreases the total cooldown of healing potions by {0} seconds
+        {$CommonItemTooltip.ReducesHealingPotionCooldownByPercent@1}
+        '''
+}
+ExampleHood:
+{
+    DisplayName: Example Hood
+    Tooltip: This is a modded hood.
+    SetBonus:
+        '''
+        Double tap or hold {1} to toggle various armor shadow effects
+        {$CommonItemTooltip.PercentReducedManaCost}
+        '''
+    SetBonusKeyUp: Up
+    SetBonusKeyDown: Down
+}
+ExampleTallHelmet:
+{
+    DisplayName: Example Tall Helmet
+    Tooltip: This is a tall modded helmet.
+}
+AbsorbTeamDamageAccessory:
+{
+    DisplayName: Absorb Team Damage Accessory
+    Tooltip: Absorbs {0}% of damage done to players on your team when above {1}% life
+}
+ExampleMultiExtraJumpAccessory:
+{
+    DisplayName: Example Multiple-Use Extra Jump Accessory
+    Tooltip:
+        '''
+        Allows the user to perform an example mid-air extra jump
+        This accessory has <JUMPS> jumps remaining
+        '''
+}
+CameraModifierShowcase:
+{
+    DisplayName: Camera Modifier Showcase
+    Tooltip: ""
+}
+RubyEarrings:
+{
+    DisplayName: Ruby Earrings
+    Tooltip: ""
+}
+SapphireEarrings:
+{
+    DisplayName: Sapphire Earrings
+    Tooltip: ""
+}
+SimpleAccessory:
+{
+    DisplayName: Simple Accessory
+    Tooltip: Minion and sentry attacks cause frostburn
+}
+ExampleSpecialGlideWings:
+{
+    DisplayName: Example Special Glide Wings
+    Tooltip: ""
+}

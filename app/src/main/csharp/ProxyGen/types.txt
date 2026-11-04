@@ -5,6 +5,7 @@ Terraria.Main
 Terraria.Entity
 Terraria.Player
 Terraria.Item
+Terraria.Item+NewItemModifier
 Terraria.NPC
 Terraria.Projectile
 Terraria.WorldGen
@@ -20,6 +21,9 @@ Terraria.ID.BuffID
 Terraria.ID.DustID
 Terraria.ID.ItemUseStyleID
 Terraria.ID.SoundID
+Terraria.ID.SetFactory
+Terraria.GameContent.Items.UniqueTagEffect
+Terraria.GameInput.PlayerInput
 Terraria.ID.AmmoID
 Terraria.ID.AmmoID.Sets
 Microsoft.Xna.Framework.Graphics.Texture2D
@@ -86,6 +90,8 @@ Terraria.Achievements.Achievement
 Terraria.Achievements.AchievementManager
 Terraria.Achievements.AchievementCondition
 Terraria.Audio.LegacySoundPlayer
+Terraria.Audio.ActiveSound
+Terraria.Audio.ProjectileAudioTracker
 Terraria.Audio.LegacySoundStyle
 Terraria.Audio.SoundEngine
 Terraria.Chat.ChatHelper
@@ -134,6 +140,9 @@ Terraria.ID.NPCID.Sets.NPCBestiaryDrawModifiers
 Terraria.GameContent.BannerSystem.NetBannersModule
 Terraria.GameContent.CraftingRequests
 Terraria.GameContent.Creative.CreativeItemSacrificesCatalog
+Terraria.GameContent.Golf.GolfHelper
+Terraria.GameContent.Golf.GolfHelper+ClubProperties
+Terraria.GameContent.Tile_Entities.TEDisplayDoll
 Terraria.GameContent.DestinationInventory
 Terraria.GameContent.Events.LanternNight
 Terraria.GameContent.Generation.PassLegacy
@@ -429,6 +438,8 @@ Terraria.DataStructures.TrackedProjectileReference
 Terraria.DataStructures.EntitySource_TileBreak 
 Terraria.ID.ProjectileDrawLayerID
 Terraria.ID.ExtrasID
+Terraria.GameContent.Items.TagDamageChanges
+Terraria.GameContent.Items.TagEffectStack
 Terraria.GameContent.Items.WhipTagEffect
 Terraria.DelegateMethods
 Terraria.GameContent.Drawing.ParticleOrchestrator
@@ -438,6 +449,15 @@ Terraria.GameContent.Drawing.ParticleOrchestrator
 !Terraria.Mount+MountDelegatesData.MinecartLandingSound
 !Terraria.Mount+MountDelegatesData.MinecartBumperSound
 Terraria.DataStructures.CachedProjectileCounterBuffTextHandler
+Terraria.Graphics.CameraModifiers.CameraModifierStack
+Terraria.Graphics.CameraModifiers.CameraInfo
+Terraria.Graphics.Renderers.ParticleRenderer
+Terraria.Graphics.Renderers.ParticleRendererSettings
+Terraria.FocusHelper
+Terraria.ChestItem
+Terraria.GameContent.PlayerEyeHelper
+GUIBuilderAccToggles
+GUIAccessoryInfo
 Terraria.Graphics.Shaders.GameShaders
 Terraria.DataStructures.SettingsForCharacterPreview
 !Terraria.ID.BuffID+Sets.BuffTextHandlers

@@ -1,0 +1,40 @@
+AbsorbTeamDamageBuff:
+{
+    DisplayName: Absorção de dano da equipe
+    Description: "{0}% do dano recebido será redirecionado a outro jogador"
+}
+AnimatedBuff:
+{
+    DisplayName: Efeito animado
+    Description: Anima e aumenta todo o dano em {0}%.
+}
+ExampleCrowdControlledDebuff:
+{
+    DisplayName: Imobilização de exemplo
+    Description: Você não consegue mover os braços nem as pernas
+}
+ExampleDodgeBuff:
+{
+    DisplayName: Esquiva de exemplo
+    Description: Você se esquivará do próximo ataque
+}
+ExampleGravityDebuff:
+{
+    DisplayName: Penalidade de gravidade de exemplo
+    Description: A gravidade enlouqueceu.
+}
+ExampleJavelinDebuff:
+{
+    DisplayName: Penalidade de dardo de exemplo
+    Description: Perdendo vida
+}
+ExampleWeaponImbue:
+{
+    DisplayName: Imbuição de arma de exemplo
+    Description: "{$Items.ExampleFlask.Tooltip}"
+}
+ExampleWhipAdvancedPlayerBuff:
+{
+    DisplayName: Chicoteando!
+    Description: A velocidade do chicote aumentou
+}

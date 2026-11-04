@@ -1,0 +1,6 @@
+ExampleInfoDisplay:
+{
+    DisplayName: Quantidade de lacaios
+    CurrentMinions: "{0} lacaios"
+    NoMinions: Nenhum lacaio
+}

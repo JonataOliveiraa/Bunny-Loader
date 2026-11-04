@@ -33,6 +33,10 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void ResetInfoAccessories() { }
 
+    public virtual void RefreshInfoAccessoriesFromTeamPlayers(Player otherPlayer) { }
+
+    public virtual void EmitEnchantmentVisualsAt(Projectile projectile, Microsoft.Xna.Framework.Vector2 boxPosition, int boxWidth, int boxHeight) { }
+
     public virtual void NaturalLifeRegen(ref float regen) { }
 
     public virtual void UpdateAutopause() { }

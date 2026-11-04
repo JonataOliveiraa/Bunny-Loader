@@ -61,6 +61,7 @@ internal static unsafe class ProjectileHooks
         if (Has(nameof(ModProjectile.GetAlpha)) || Has(nameof(ModProjectile.PreDraw))) ItemHooks.Once("ProjectileAlpha", () => On_Projectile.GetAlpha += GetAlpha);
         if (Has(nameof(ModProjectile.PreDraw)) || Has(nameof(ModProjectile.PostDraw)) || Has(nameof(ModProjectile.PreDrawExtras)))
             ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+        ProjectileExampleHooks.Install(Has);
         ProjectileHitHooks.Install(Has);
         ProjectileGrappleHooks.Install(Has);
         ProjectileNetHooks.Install(Has);
@@ -133,7 +134,7 @@ internal static unsafe class ProjectileHooks
                     ProjectileLoader.Return(outer, outerInstance);
                 }
             }
-            else orig(self);
+            else if (instance?.UsesExplosiveMarker != true) orig(self);
             ProjectileLoader.AI(self);
         }
         ProjectileLoader.PostAI(self);

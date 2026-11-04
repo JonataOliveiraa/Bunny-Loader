@@ -1,0 +1,76 @@
+ActiveSoundShowcaseProjectile:
+{
+    DisplayName: Active Sound Showcase Projectile
+}
+ExampleAdvancedFlailProjectile:
+{
+    DisplayName: Example Advanced Flail
+}
+ExampleArrowProjectile:
+{
+    DisplayName: Example Arrow Projectile
+}
+ExampleCloneProjectile:
+{
+    DisplayName: Meowmere V2
+}
+ExampleCustomSwingProjectile:
+{
+    DisplayName: Example Custom Swing Projectile
+}
+ExampleExplosive:
+{
+    DisplayName: Example Explosive
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Example Gravity Debuff Bullet
+}
+ExampleHeldProjectileWeaponProjectile:
+{
+    DisplayName: Example Held Projectile Weapon Projectile
+}
+ExampleHomingProjectile:
+{
+    DisplayName: Example Homing Projectile
+}
+ExampleInteractableProjectile:
+{
+    DisplayName: Example Interactable Projectile
+}
+ExampleJavelinProjectile:
+{
+    DisplayName: Example Javelin Projectile
+}
+ExampleJoustingLanceProjectile:
+{
+    DisplayName: Example Jousting Lance
+}
+ExamplePaperAirplaneProjectile:
+{
+    DisplayName: Example Paper Airplane Projectile
+}
+ExamplePiercingProjectile:
+{
+    DisplayName: Example Piercing Projectile
+}
+ExampleWhipProjectileAdvanced:
+{
+    DisplayName: Example Whip Projectile Advanced
+}
+ExampleGrenadeProjectile:
+{
+    DisplayName: Example Grenade Projectile
+}
+ExampleProximityMineProjectile:
+{
+    DisplayName: Example Proximity Mine Projectile
+}
+ExampleRocketProjectile:
+{
+    DisplayName: Example Rocket Projectile
+}
+ExampleSnowmanRocketProjectile:
+{
+    DisplayName: Example Snowman Rocket Projectile
+}

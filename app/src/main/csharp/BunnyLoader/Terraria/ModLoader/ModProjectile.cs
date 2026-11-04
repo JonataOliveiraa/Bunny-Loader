@@ -16,6 +16,8 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
 
     public virtual LocalizedText DisplayName => this.GetLocalization(nameof(DisplayName), PrettyPrintName);
 
+    internal bool UsesExplosiveMarker;
+
     public int AIType { get; set; }
 
     public int CooldownSlot { get; set; } = -1;
@@ -76,6 +78,10 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
     public virtual bool PreKill(int timeLeft) => true;
 
     public virtual void OnKill(int timeLeft) { }
+
+    public virtual void PrepareBombToBlow() { }
+
+    public virtual bool DisplayDollSettings(Player doll, Terraria.GameContent.Tile_Entities.TEDisplayDoll.DisplayDollPose pose, ref int aiStyle, ref int aiType) => true;
 
     public virtual bool? CanDamage() => null;
 

@@ -18,7 +18,11 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void AddRecipes() { }
 
+    public virtual void OnSpawn(WorldItem item, IEntitySource source) { }
+
     public virtual void OnCreated(Item item, ItemCreationContext context) { }
+
+    public virtual bool? CanCatchNPC(Item item, NPC target, Player player) => null;
 
     public virtual bool CanUseItem(Item item, Player player) => true;
 
@@ -109,6 +113,12 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual void UpdateEquip(Item item, Player player) { }
 
     public virtual void UpdateAccessory(Item item, Player player, bool hideVisual) { }
+
+    public virtual void UpdateVisibleAccessory(Item item, Player player, bool hideVisual) { }
+
+    public virtual void UpdateItemDye(Item item, Player player, int dye, bool hideVisual) { }
+
+    public virtual void UpdateInfoAccessory(Item item, Player player) { }
 
     public virtual void UpdateVanity(Item item, Player player) { }
 

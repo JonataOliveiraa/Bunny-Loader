@@ -66,19 +66,48 @@ internal static class PlayerWorldHooks
                 On_Main.NPCChatText_DoNurseHeal += DoNurseHeal;
                 WantBuyItem();
             });
-        if (has(nameof(ModPlayer.CanCatchNPC)) || has(nameof(ModPlayer.OnCatchNPC)))
-            ItemHooks.Once("PlayerCatching", () =>
-            {
-                On_Player.ItemCheck_CatchCritters += CatchCritters;
-                On_NPC.CatchNPC += CatchNPC;
-                PlayerHurtHooks.Want();
-            });
+        if (has(nameof(ModPlayer.CanCatchNPC)) || has(nameof(ModPlayer.OnCatchNPC))) WantCatching();
         if (has(nameof(ModPlayer.AddStartingItems)) || has(nameof(ModPlayer.ModifyStartingInventory)))
             ItemHooks.Once("PlayerStartingItems", () =>
             {
                 On_GUIPlayerCreateMenu.SetupStartingItems += SetupStartingItems;
                 On_Player.DropItems += DropItems;
             });
+    }
+
+    internal static void WantCatching() => ItemHooks.Once("PlayerCatching", () =>
+    {
+        On_Player.ItemCheck_CatchCritters += CatchCritters;
+        On_NPC.CatchNPC += CatchNPC;
+        PlayerHurtHooks.Want();
+    });
+
+    static bool? CanCatch(Player player, NPC npc, Item item)
+    {
+        bool? result = PlayerLoader.Nullable(player, nameof(ModPlayer.CanCatchNPC), (npc, item), static (m, s) => m.CanCatchNPC(s.npc, s.item));
+        if (result == false) return false;
+        if (ItemHooks.ModItemOf(item) is ModItem m)
+        {
+            try
+            {
+                bool? allowed = m.CanCatchNPC(npc, player);
+                if (allowed == false) return false;
+                if (allowed == true) result = true;
+            }
+            catch (Exception e) { ItemHooks.Report($"{m.FullName}.CanCatchNPC", e); }
+        }
+        foreach (GlobalItem? g in ItemHooks.GlobalsOf(item))
+        {
+            if (g == null) continue;
+            try
+            {
+                bool? allowed = g.CanCatchNPC(item, npc, player);
+                if (allowed == false) return false;
+                if (allowed == true) result = true;
+            }
+            catch (Exception e) { ItemHooks.Report($"{g.FullName}.CanCatchNPC", e); }
+        }
+        return result;
     }
 
     static void WantBuyItem() => ItemHooks.Once("PlayerBuyItem", () => On_Player.BuyItem += BuyItem);
@@ -288,7 +317,7 @@ internal static class PlayerWorldHooks
                 if (box.X >= itemRectangle.X + itemRectangle.Width || itemRectangle.X >= box.X + box.Width ||
                     box.Y >= itemRectangle.Y + itemRectangle.Height || itemRectangle.Y >= box.Y + box.Height)
                     continue;
-                bool? decision = PlayerLoader.Nullable(self, nameof(ModPlayer.CanCatchNPC), (npc, sItem), static (m, s) => m.CanCatchNPC(s.npc, s.sItem));
+                bool? decision = CanCatch(self, npc, sItem);
                 if (decision == false)
                 {
                     blocked.Add((npc, npc.catchItem));
@@ -311,7 +340,7 @@ internal static class PlayerWorldHooks
         Player player = scope?.Player ?? Main.player[who >= 0 && who < 255 ? who : Main.myPlayer];
         NPC npc = Main.npc[i];
         Item item = scope?.Item ?? player.inventory[player.selectedItem];
-        if (scope == null && PlayerLoader.Nullable(player, nameof(ModPlayer.CanCatchNPC), (npc, item), static (m, s) => m.CanCatchNPC(s.npc, s.item)) == false) return;
+        if (scope == null && CanCatch(player, npc, item) == false) return;
         orig(i, who);
         PlayerLoader.Each(player, nameof(ModPlayer.OnCatchNPC), (npc, item), static (m, s) => m.OnCatchNPC(s.npc, s.item, false));
     }

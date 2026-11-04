@@ -96,7 +96,6 @@ public readonly partial struct SoundStyle
 
     public static implicit operator SoundStyle(int type) => new(type);
 
-    public static implicit operator SoundStyle(LegacySoundStyle style) => new(style.Pointer);
 
     public static implicit operator LegacySoundStyle(SoundStyle style) => style.Legacy;
 }
