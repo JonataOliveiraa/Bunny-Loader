@@ -147,6 +147,11 @@ public static unsafe class ProjectileLoader
         Globals.Finish(self, slots);
         Host.Native()->FinishProjectile(self.Pointer, Type);
         GlobalSetDefaults(self);
+        if (ProjectileID.Sets.Explosive[Type] && self.aiStyle == 0)
+        {
+            instance.UsesExplosiveMarker = true;
+            self.aiStyle = 16;
+        }
     }
 
     static void GlobalSetDefaults(Projectile projectile)

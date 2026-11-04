@@ -34,9 +34,15 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void AddRecipes() { }
 
+    public virtual void OnSpawn(WorldItem item, IEntitySource source) { }
+
     public Recipe CreateRecipe(int amount = 1) => Recipe.Create(Type, amount);
 
     public virtual void OnCreated(ItemCreationContext context) { }
+
+    public virtual bool? CanCatchNPC(NPC target, Player player) => null;
+
+    public virtual Terraria.GameContent.Golf.GolfHelper.ClubProperties? GetGolfClubProperties() => null;
 
     public virtual bool CanUseItem(Player player) => true;
 

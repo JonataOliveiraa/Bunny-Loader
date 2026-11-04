@@ -4,7 +4,7 @@ using Terraria.Utilities;
 
 namespace Terraria;
 
-public static class UtilsExtensions
+public static partial class UtilsExtensions
 {
     public static bool NextBool(this UnifiedRandom r) => r.Next(2) == 0;
 

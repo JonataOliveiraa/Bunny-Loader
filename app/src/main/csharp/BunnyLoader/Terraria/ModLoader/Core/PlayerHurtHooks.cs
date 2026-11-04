@@ -123,6 +123,7 @@ internal static class PlayerHurtHooks
                 ProjectileLoader.OnHitPlayer(projectile, self, info);
                 PlayerLoader.Each(self, nameof(ModPlayer.OnHitByProjectile), (projectile, info), static (m, s) => m.OnHitByProjectile(s.projectile, s.info));
             }
+            ItemUseState.OnHurt(self);
             PlayerLoader.Each(self, nameof(ModPlayer.OnHurt), info, static (m, i) => m.OnHurt(i));
             if (!self.dead && self.statLife > 0) PlayerLoader.Each(self, nameof(ModPlayer.PostHurt), info, static (m, i) => m.PostHurt(i));
         }

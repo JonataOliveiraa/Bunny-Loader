@@ -8,6 +8,7 @@ internal static class ItemWorldHooks
 
     public static void Install(Func<string, bool> has, bool global)
     {
+        ItemSpawnHooks.Install(has);
         if (!has(nameof(ModItem.PostUpdate))) return;
         if (global) globalUpdate = true;
         ItemHooks.Once("ItemPostUpdate", () => On_WorldItem.UpdateItem += UpdateItem);

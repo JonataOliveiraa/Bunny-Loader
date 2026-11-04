@@ -17,7 +17,7 @@ using Terraria.ModLoader.IO;
 
 namespace Terraria.ModLoader;
 
-public static unsafe class ItemLoader
+public static unsafe partial class ItemLoader
 {
     static readonly object Gate = new();
 

@@ -32,6 +32,10 @@ public abstract class GlobalProjectile : GlobalType<Projectile, GlobalProjectile
 
     public virtual void OnKill(Projectile projectile, int timeLeft) { }
 
+    public virtual void PrepareBombToBlow(Projectile projectile) { }
+
+    public virtual bool DisplayDollSettings(Projectile projectile, Player doll, Terraria.GameContent.Tile_Entities.TEDisplayDoll.DisplayDollPose pose, ref int aiStyle, ref int aiType) => true;
+
     public virtual bool? CanCutTiles(Projectile projectile) => null;
 
     public virtual void CutTiles(Projectile projectile) { }

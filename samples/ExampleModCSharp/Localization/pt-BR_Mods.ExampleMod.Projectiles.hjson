@@ -1,0 +1,76 @@
+ActiveSoundShowcaseProjectile:
+{
+    DisplayName: Projétil de demonstração de som ativo
+}
+ExampleAdvancedFlailProjectile:
+{
+    DisplayName: Mangual avançado de exemplo
+}
+ExampleArrowProjectile:
+{
+    DisplayName: Projétil de flecha de exemplo
+}
+ExampleCloneProjectile:
+{
+    DisplayName: Meowmere V2
+}
+ExampleCustomSwingProjectile:
+{
+    DisplayName: Projétil de golpe personalizado de exemplo
+}
+ExampleExplosive:
+{
+    DisplayName: Explosivo de exemplo
+}
+ExampleGravityDebuffBullet:
+{
+    DisplayName: Bala de penalidade de gravidade de exemplo
+}
+ExampleHeldProjectileWeaponProjectile:
+{
+    DisplayName: Projétil de arma empunhada de exemplo
+}
+ExampleHomingProjectile:
+{
+    DisplayName: Projétil teleguiado de exemplo
+}
+ExampleInteractableProjectile:
+{
+    DisplayName: Projétil interativo de exemplo
+}
+ExampleJavelinProjectile:
+{
+    DisplayName: Projétil de dardo de exemplo
+}
+ExampleJoustingLanceProjectile:
+{
+    DisplayName: Lança de justa de exemplo
+}
+ExamplePaperAirplaneProjectile:
+{
+    DisplayName: Projétil de avião de papel de exemplo
+}
+ExamplePiercingProjectile:
+{
+    DisplayName: Projétil perfurante de exemplo
+}
+ExampleWhipProjectileAdvanced:
+{
+    DisplayName: Projétil de chicote avançado de exemplo
+}
+ExampleGrenadeProjectile:
+{
+    DisplayName: Projétil de granada de exemplo
+}
+ExampleProximityMineProjectile:
+{
+    DisplayName: Projétil de mina de proximidade de exemplo
+}
+ExampleRocketProjectile:
+{
+    DisplayName: Projétil de foguete de exemplo
+}
+ExampleSnowmanRocketProjectile:
+{
+    DisplayName: Projétil de foguete de boneco de neve de exemplo
+}

@@ -18,7 +18,11 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void AddRecipes() { }
 
+    public virtual void OnSpawn(WorldItem item, IEntitySource source) { }
+
     public virtual void OnCreated(Item item, ItemCreationContext context) { }
+
+    public virtual bool? CanCatchNPC(Item item, NPC target, Player player) => null;
 
     public virtual bool CanUseItem(Item item, Player player) => true;
 
