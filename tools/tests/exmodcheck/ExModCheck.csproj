@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <OutDir>$(MSBuildThisFileDirectory)obj/out/</OutDir>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../../samples/ExampleModCSharp/**/*.cs" Exclude="../../../samples/ExampleModCSharp/bin/**;../../../samples/ExampleModCSharp/obj/**" />
+    <ProjectReference Include="../../../app/src/main/csharp/BunnyLoader/BunnyLoader.csproj" Private="false" />
+  </ItemGroup>
+
+</Project>
