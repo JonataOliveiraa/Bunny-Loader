@@ -10,6 +10,10 @@ find_package(shadowhook REQUIRED CONFIG)
 
 # Nossos fontes C++ (recursivo).
 file(GLOB_RECURSE BL_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+list(FILTER BL_SOURCES EXCLUDE REGEX "/compile/")
+
+add_library(blcompile SHARED compile/CompilerHost.cpp)
+target_link_libraries(blcompile log dl)
 
 # O trampolim da chamada guardada (il2cpp/GuardedCall.h), em assembly.
 file(GLOB_RECURSE BL_ASM_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.S)

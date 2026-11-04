@@ -50,7 +50,7 @@ class RestartActivity : Activity() {
                     handler.postDelayed(this, POLL_MS)
                     return
                 }
-                startActivity(Intent(this@RestartActivity, GameActivity::class.java))
+                startActivity(dev.bunnyloader.compile.CompileActivity.gameIntent(this@RestartActivity))
                 finish()
                 @Suppress("DEPRECATION")
                 overridePendingTransition(0, 0)
@@ -76,7 +76,7 @@ class RestartActivity : Activity() {
     }
 
     /** O girassol do jogo abrindo e fechando: spr_loading, 19 quadros de 52x54. */
-    private class Sunflower(context: Context) : View(context) {
+    internal class Sunflower(context: Context) : View(context) {
         private val strip: Bitmap? = runCatching {
             BitmapFactory.decodeResource(context.resources, R.drawable.spr_loading,
                 BitmapFactory.Options().apply { inScaled = false })

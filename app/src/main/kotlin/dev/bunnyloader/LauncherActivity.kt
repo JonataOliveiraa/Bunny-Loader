@@ -255,7 +255,7 @@ private fun LauncherScreen(shell: Shell) {
                     onSelect = { tab = it; openMod = null },
                     onStart = {
                         val status = Eligibility.check(ctx)
-                        if (status == Eligibility.Status.OK) ctx.startActivity(Intent(ctx, GameActivity::class.java))
+                        if (status == Eligibility.Status.OK) ctx.startActivity(dev.bunnyloader.compile.CompileActivity.gameIntent(ctx))
                         else blocked = status
                     },
                 )

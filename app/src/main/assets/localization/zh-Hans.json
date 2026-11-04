@@ -438,5 +438,8 @@
   "ModBuiltAndInstalled": "%1$s 已构建并安装，重新打开游戏即可加载。",
   "PackageCreated": "资源包已生成：%1$s",
   "Create": "创建",
-  "Author": "作者"
+  "Author": "作者",
+  "CompilingMod": "正在编译 %1$s...",
+  "CompileFailed": "模组编译失败",
+  "OpenGameAnyway": "仍然打开"
 }

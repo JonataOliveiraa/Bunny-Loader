@@ -8,15 +8,21 @@ namespace BunnyLoader.Compiler;
 public static unsafe class NativeEntry
 {
     [UnmanagedCallersOnly]
-    static byte* Build(byte* entry, byte* runtimeDir, int force)
+    static byte* Build(byte* entry, byte* runtimeDir, int force) => Run(entry, runtimeDir, null, force);
+
+    [UnmanagedCallersOnly]
+    static byte* Build(byte* entry, byte* runtimeDir, byte* modReferences, int force) => Run(entry, runtimeDir, modReferences, force);
+
+    static byte* Run(byte* entry, byte* runtimeDir, byte* modReferences, int force)
     {
         var text = new StringBuilder();
         try
         {
             string entryPath = Marshal.PtrToStringUTF8((IntPtr)entry)!;
             string runtime = Marshal.PtrToStringUTF8((IntPtr)runtimeDir)!;
+            string[] mods = (Marshal.PtrToStringUTF8((IntPtr)modReferences) ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
             BuildResult r = ModCompiler.Build(Path.GetDirectoryName(entryPath)!, Path.GetFileName(entryPath),
-                ModBuild.References(runtime), force != 0);
+                ModBuild.References(runtime), force != 0, mods);
             text.Append(r.ToReport());
         }
         catch (Exception e)

@@ -156,11 +156,18 @@ library over Roslyn, the C# compiler. The same library runs:
 
 | Where | When | How it starts |
 |---|---|---|
-| Bunny Loader | loading a mod whose `bin/` stamp does not match | `Host.LoadMod`, in the game's Mono |
+| Bunny Loader, before the game | Play, Restart or the BL Editor's Test, when a mod with sources looks out of date | `CompileActivity`, in its own `:compile` process (`app/src/main/cpp/compile/CompilerHost.cpp`) |
+| Bunny Loader, in the game | loading a mod whose `bin/` stamp still does not match | `Host.LoadMod`, in the game's Mono |
 | The catalog app | uploading the package, before publishing | its own Mono (`catalog/src/main/cpp/CompilerHost.cpp`) |
 | A PC | `tools/mods/publish.py` and the manager site | `tools/mods/csbuild` on the PC's .NET |
 
-All three compile against the same `references.txt` with the same options,
+Compiling before the game shows the errors with the game still closed: in a
+dialog on the launcher, or back in the BL Editor after Test. The launcher decides
+by file dates (`SourceBuild.looksCurrent`), without starting Mono; the compile
+in the game stays as the fallback, for a mod that arrives some other way or a
+compile process that died.
+
+All of them compile against the same `references.txt` with the same options,
 and Roslyn's deterministic mode makes the output identical, so a stamp
 written in one place is valid in the others.
 

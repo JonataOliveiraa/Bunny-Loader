@@ -313,6 +313,24 @@ class ModRepository(private val context: Context) {
     fun enabledSpecs(): List<String> =
         list().filter { !it.isOutdated && isEnabled(it.uid) }.mapNotNull { m -> nativeEntry(m)?.let { "${m.uid}=$it" } }
 
+    fun enabledSourceBuilds(): List<SourceBuild> {
+        val outputs = mutableListOf<Pair<ModManifest, String>>()
+        val builds = mutableListOf<SourceBuild>()
+        for (m in list()) {
+            if (m.isOutdated || !isEnabled(m.uid) || m.packType != PackType.MOD) continue
+            val dir = dirOf(m.uid) ?: continue
+            val entry = entryOf(dir) ?: continue
+            val source = entry.extension.equals("cs", ignoreCase = true)
+            if (source) {
+                val references = outputs.filter { (other, _) -> other.uid in m.dependencies || other.id in m.dependencies }
+                    .map { it.second }
+                builds += SourceBuild(m.id, entry.path, references)
+            }
+            outputs += m to if (source) File(dir, "bin/${m.id}.dll").path else entry.path
+        }
+        return builds
+    }
+
     private fun nativeEntry(m: ModManifest): String? = when (m.packType) {
         PackType.TEXTURE -> "@texture"
         PackType.FONT -> "@font"

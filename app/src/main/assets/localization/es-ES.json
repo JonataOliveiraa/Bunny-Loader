@@ -438,5 +438,8 @@
   "ModBuiltAndInstalled": "%1$s creado e instalado. Vuelve a abrir el juego.",
   "PackageCreated": "Paquete creado: %1$s",
   "Create": "Crear",
-  "Author": "Autor"
+  "Author": "Autor",
+  "CompilingMod": "Compilando %1$s...",
+  "CompileFailed": "El mod no se compiló",
+  "OpenGameAnyway": "Abrir de todos modos"
 }

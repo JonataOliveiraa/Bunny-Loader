@@ -438,5 +438,8 @@
   "ModBuiltAndInstalled": "บิลด์และติดตั้ง %1$s แล้ว เปิดเกมใหม่เพื่อโหลด",
   "PackageCreated": "สร้างแพ็กเกจแล้ว: %1$s",
   "Create": "สร้าง",
-  "Author": "ผู้สร้าง"
+  "Author": "ผู้สร้าง",
+  "CompilingMod": "กำลังคอมไพล์ %1$s...",
+  "CompileFailed": "คอมไพล์ม็อดไม่สำเร็จ",
+  "OpenGameAnyway": "เปิดต่อไป"
 }

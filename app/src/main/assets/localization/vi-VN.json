@@ -438,5 +438,8 @@
   "ModBuiltAndInstalled": "Đã dựng và cài %1$s. Mở lại trò chơi để tải.",
   "PackageCreated": "Đã tạo gói: %1$s",
   "Create": "Tạo",
-  "Author": "Tác giả"
+  "Author": "Tác giả",
+  "CompilingMod": "Đang biên dịch %1$s...",
+  "CompileFailed": "Không biên dịch được mod",
+  "OpenGameAnyway": "Vẫn mở"
 }

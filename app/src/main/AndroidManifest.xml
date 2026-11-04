@@ -72,6 +72,14 @@
             android:screenOrientation="sensorLandscape"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
+        <activity
+            android:name=".compile.CompileActivity"
+            android:exported="false"
+            android:process=":compile"
+            android:excludeFromRecents="true"
+            android:configChanges="mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize|layoutDirection|fontScale|density"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
         <!-- Hospeda o Terraria no NOSSO processo. Config espelhada da
              com.unity3d.player.UnityPlayerActivity do jogo. Processo separado:
              fechar o jogo derruba Unity+IL2CPP sem matar a UI do launcher. -->

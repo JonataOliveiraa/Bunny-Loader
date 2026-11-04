@@ -271,7 +271,11 @@ reports about 10700 methods and 3.2 to 3.8 s of JIT.
   Not tried; it adds a build step and grows the APK.
 - `Layouts.Verify` runs on every boot, about 0.2 s in `StructLayouts..cctor`.
 - The first time a mod compiles on the device costs about 77 s on MuMu on top
-  of this (332 files, 21294 lines). The title came up at 109 s in that run.
+  of this (332 files, 21294 lines). The title came up at 109 s in that run. On
+  the Galaxy A15 it costs 12.8 s in the `:compile` process, before the game
+  opens, and the game then compiles about 10700 methods with the JIT instead of
+  33700. The time to the title is about the same; what changes is that the
+  errors come first and the game process no longer runs Roslyn.
 
 ### How to measure
 

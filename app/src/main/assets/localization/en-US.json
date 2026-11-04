@@ -438,5 +438,8 @@
   "ModBuiltAndInstalled": "%1$s built and installed. Reopen the game to load it.",
   "PackageCreated": "Package created: %1$s",
   "Create": "Create",
-  "Author": "Author"
+  "Author": "Author",
+  "CompilingMod": "Compiling %1$s...",
+  "CompileFailed": "The mod did not compile",
+  "OpenGameAnyway": "Open anyway"
 }

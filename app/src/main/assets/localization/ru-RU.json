@@ -438,5 +438,8 @@
   "ModBuiltAndInstalled": "%1$s собран и установлен. Перезапустите игру.",
   "PackageCreated": "Пакет создан: %1$s",
   "Create": "Создать",
-  "Author": "Автор"
+  "Author": "Автор",
+  "CompilingMod": "Компиляция %1$s...",
+  "CompileFailed": "Мод не скомпилирован",
+  "OpenGameAnyway": "Всё равно открыть"
 }
