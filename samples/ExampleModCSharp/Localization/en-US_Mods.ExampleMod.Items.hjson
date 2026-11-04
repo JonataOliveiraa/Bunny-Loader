@@ -216,3 +216,8 @@ ExampleSpecialGlideWings:
     DisplayName: Example Special Glide Wings
     Tooltip: ""
 }
+ExampleExplosive:
+{
+    DisplayName: Example Explosive
+    Tooltip: "{$ItemTooltip.Dynamite}"
+}

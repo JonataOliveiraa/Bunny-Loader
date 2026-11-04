@@ -78,6 +78,7 @@ public static class SnippetCompiler
                 OutputKind.DynamicallyLinkedLibrary,
                 optimizationLevel: OptimizationLevel.Debug,
                 allowUnsafe: true,
+                concurrentBuild: false,
                 nullableContextOptions: NullableContextOptions.Disable));
         using var dll = new MemoryStream();
         emitted = compilation.Emit(dll);

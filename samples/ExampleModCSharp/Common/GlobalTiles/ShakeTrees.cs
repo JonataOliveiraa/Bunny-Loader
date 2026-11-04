@@ -30,7 +30,7 @@ public class GlobalShakeTrees : GlobalTile
 
         if (treeType == TreeTypes.Snow && WorldGen.genRand.NextBool(20))
         {
-            Projectile.NewProjectile(new EntitySource_ShakeTree(x, y), x * 16, y * 16, Main.rand.Next(-16, 16), 0f, ProjectileID.PaperAirplaneA, Damage: 4, KnockBack: 1f, Owner: Main.myPlayer);
+            Projectile.NewProjectile(new EntitySource_ShakeTree(x, y), x * 16, y * 16, Main.rand.Next(-16, 16), 0f, ModContent.ProjectileType<Content.Projectiles.ExamplePaperAirplaneProjectile>(), Damage: 4, KnockBack: 1f, Owner: Main.myPlayer);
             return true;
         }
 

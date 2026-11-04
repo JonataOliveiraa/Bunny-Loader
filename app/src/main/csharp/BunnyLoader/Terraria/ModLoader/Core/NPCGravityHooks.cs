@@ -11,7 +11,7 @@ internal static class NPCGravityHooks
     {
         ItemHooks.Once("NPCGravityMultiplier", () =>
         {
-            On_NPC.UpdateNPC_BuffFlagsReset += Reset;
+            On_NPC.UpdateNPC_BuffSetFlags += Reset;
             On_NPC.UpdateNPC_UpdateGravity += UpdateGravity;
         });
         State? value = States.Get(npc.Pointer);
@@ -19,10 +19,10 @@ internal static class NPCGravityHooks
         return value;
     }
 
-    static void Reset(On_NPC.orig_UpdateNPC_BuffFlagsReset orig, NPC npc)
+    static void Reset(On_NPC.orig_UpdateNPC_BuffSetFlags orig, NPC npc, bool lowerBuffTime)
     {
-        orig(npc);
-        if (States.Get(npc.Pointer) is State state) state.Multiplier = MultipliableFloat.One;
+        if (lowerBuffTime && States.Get(npc.Pointer) is State state) state.Multiplier = MultipliableFloat.One;
+        orig(npc, lowerBuffTime);
     }
 
     static void UpdateGravity(On_NPC.orig_UpdateNPC_UpdateGravity orig, NPC npc, out float maxFallSpeed)

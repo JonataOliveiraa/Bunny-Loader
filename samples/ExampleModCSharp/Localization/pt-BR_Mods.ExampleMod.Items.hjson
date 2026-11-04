@@ -216,3 +216,8 @@ ExampleSpecialGlideWings:
     DisplayName: Asas de planeio especial de exemplo
     Tooltip: ""
 }
+ExampleExplosive:
+{
+    DisplayName: Explosivo de Exemplo
+    Tooltip: "{$ItemTooltip.Dynamite}"
+}

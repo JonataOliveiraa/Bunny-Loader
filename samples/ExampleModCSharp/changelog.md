@@ -1,5 +1,17 @@
 # Novidades
 
+## 0.40.0
+
+- Armas novas: mangual avançado, espada de golpe próprio, arma de projétil
+  segurado, dardo que gruda, lança de justa, chicote avançado, foguetes e bomba
+  com fragmentos.
+- Rede, taco de golfe e espelho mágico de exemplo.
+- Munições e buffs: flecha, bala de gravidade, munição própria, foguete, buff
+  animado e esquiva.
+- Acessórios e armadura: brincos com camada de desenho própria, informação no
+  HUD, botões de construção, pulo múltiplo, asas de planar e elmo alto.
+- Poses de vitória e câmera guiada.
+
 ## 0.39.0
 
 - Estátua, armadilha, bloco faiscante, gema, erva com sementes e fogo vivo.

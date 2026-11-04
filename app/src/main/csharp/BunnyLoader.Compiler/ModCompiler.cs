@@ -88,7 +88,7 @@ public static class ModCompiler
                 optimizationLevel: OptimizationLevel.Release,
                 allowUnsafe: true,
                 deterministic: true,
-                concurrentBuild: true,
+                concurrentBuild: false,
                 nullableContextOptions: NullableContextOptions.Enable));
 
         using var dll = new MemoryStream();

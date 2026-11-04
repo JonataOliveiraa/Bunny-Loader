@@ -692,6 +692,30 @@ game's `HidesHead`, inverted), `ArmorIDs.Body.Sets.HidesTopSkin`, and
 is on. On the phone `Item.backSlot` and the other slots are `sbyte`, and the
 `WaspNest` swaps the bee type with `On_Player.beeType` where tModLoader uses IL.
 
+## Other item, projectile and player hooks
+
+| Member | What it does |
+|---|---|
+| `ModItem`/`GlobalItem.CanCatchNPC(target, player)` | `false` forbids catching the NPC with this item, `true` allows it outside the game's tools, `null` keeps the game's rule. `ItemID.Sets.CatchingTool[type]` makes the item swing as a net |
+| `ModItem.GetGolfClubProperties` | The club's shot. Use `ItemID.Sets.IsAGolfClub[type]` |
+| `ModItem`/`GlobalItem.OnSpawn(item, source)` | An item enters the world, before it goes over the network |
+| `ModItem`/`GlobalItem.UpdateVisibleAccessory`, `UpdateItemDye`, `UpdateInfoAccessory` | A visible accessory, its dye and an information accessory, in the inventory too |
+| `ItemLoader.RegisterUseStyle(mod, name)` | A new `useStyle`, handled by the `UseStyle` hook |
+| `ModProjectile`/`GlobalProjectile.PrepareBombToBlow`, `DisplayDollSettings` | The moment before an explosion, and the pose on a display doll |
+| `ProjectileID.Sets.Explosive[type]` | The projectile follows the game's explosive rules. An `aiStyle` of 0 keeps your `AI` as the only one running |
+| `ModPlayer.RefreshInfoAccessoriesFromTeamPlayers`, `EmitEnchantmentVisualsAt` | Information shared by teammates, and enchantment visuals on a hitbox |
+| `Item.StopAnimationOnHurt`, `Item.NetStateChanged()` | The use ends when the player is hurt; sends the item's state again |
+| `Player.ItemUsesThisAnimation`, `SetCCed()`, `MeleeEnchantActive`, `PotionDelayModifier` | Shots of this use; crowd control until the next frame; a custom melee enchantment; the potion sickness time |
+| `NPC.GravityMultiplier` | Set in a buff's `Update`; it returns to one every frame |
+| `Chest.GetItem(slot)`, `SetItem(slot, item)` | A chest slot as an `Item`, with the mod's data |
+| `BuilderToggle`, `InfoDisplay` | New builder toggles and information lines; they appear below the game's own |
+| `Main.instance.CameraModifiers.Add`, `Main.ParticleSystem_World_BehindPlayers.Add` | Take a C# `IModCameraModifier` and a C# `IModParticle`; the game's own interfaces cannot be implemented from C# |
+| `SoundEngine.PlaySound(style, position, callback)`, `TryGetActiveSound` | A sound you keep following while it plays |
+
+`ItemID.Sets.Factory` and the factories of `ProjectileID`, `NPCID`, `BuffID`, `TileID` and `WallID` only cover mod content from `SetStaticDefaults` on. Create those sets there, not in a field initializer, since `ReinitializeDuringResizeArrays` does not exist here.
+
+Not on the phone: `ExampleAccessorySlot` (a `ModAccessorySlot` needs storage, saving and its own UI slot), `ModItem.WingGlidingSpeeds`, `ArmorIDs.Head.Sets.IsTallHat` and the `PauseBehavior` of a `SoundStyle`.
+
 ## Damage classes: `DamageClass`
 
 An item's class is `Item.DamageType`, as in tModLoader:

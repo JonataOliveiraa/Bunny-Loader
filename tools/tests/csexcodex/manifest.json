@@ -1,0 +1,17 @@
+{
+  "uid": "94ac78ab-876c-4dad-a683-502e3a4d135e",
+  "id": "CsExCodex",
+  "name": "Test: Example Mod blocks C1 to C3 (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Uses every item, buff and projectile of the C# Example Mod blocks C1 to C3 and checks the item sets, the explosive and the gravity debuff.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexcodex SHOT <name>, csexcodex <case>: ok | FAIL and csexcodex END pass=N fail=M.",
+  "updated": "2026-11-04",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

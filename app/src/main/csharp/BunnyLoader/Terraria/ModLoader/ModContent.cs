@@ -181,6 +181,7 @@ public static class ModContent
             ServerSyncHooks.Install();
             BunnyLoader.ScreenEffectsSetting.Install();
             BunnyLoader.ScreenFxCommand.Install();
+            Terraria.ID.SetFactory.GrowToContent();
             SystemLoader.ResizeArrays();
             SystemLoader.OnLocalizationsLoaded();
             foreach (Mod mod in mods)
