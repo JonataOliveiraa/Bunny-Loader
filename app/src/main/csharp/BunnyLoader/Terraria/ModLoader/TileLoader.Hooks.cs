@@ -25,6 +25,8 @@ public static partial class TileLoader
 
         internal static GlobalTile[] DrawEffects = Array.Empty<GlobalTile>();
 
+        internal static GlobalTile[] EmitParticles = Array.Empty<GlobalTile>();
+
         internal static GlobalTile[] Drop = Array.Empty<GlobalTile>();
 
         internal static GlobalTile[] HitWire = Array.Empty<GlobalTile>();
@@ -91,6 +93,7 @@ public static partial class TileLoader
         Hooks.NearbyEffects = globals.Where(g => Overrides(g, nameof(GlobalTile.NearbyEffects))).ToArray();
         Hooks.NumDust = globals.Where(g => Overrides(g, nameof(GlobalTile.NumDust))).ToArray();
         Hooks.PlaceInWorld = globals.Where(g => Overrides(g, nameof(GlobalTile.PlaceInWorld))).ToArray();
+        Hooks.EmitParticles = globals.Where(g => Overrides(g, nameof(GlobalTile.EmitParticles))).ToArray();
         Hooks.PostDraw = globals.Where(g => Overrides(g, nameof(GlobalTile.PostDraw))).ToArray();
         Hooks.PreDraw = globals.Where(g => Overrides(g, nameof(GlobalTile.PreDraw))).ToArray();
         Hooks.PreHitWire = globals.Where(g => Overrides(g, nameof(GlobalTile.PreHitWire))).ToArray();

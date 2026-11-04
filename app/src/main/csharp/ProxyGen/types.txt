@@ -174,6 +174,11 @@ Terraria.Netplay
 Terraria.ObjectData.TileObjectData
 !Terraria.ObjectData.TileObjectData.CoordinateHeights
 Terraria.GameContent.Drawing.TileDrawing
+Terraria.GameContent.ExtractinatorHelper
+Terraria.Animation
+Terraria.GameContent.DoorOpeningHelper
+!Terraria.GameContent.Drawing.TileDrawing.IsVisible
+!Terraria.Main.SceneMetrics
 Terraria.DataStructures.TileDrawInfo
 Terraria.Enums.AnchorType
 Terraria.Player.Hooks
@@ -256,6 +261,7 @@ Terraria.GameContent.UI.ResourceSets.PlayerStatsSnapshot
 !Terraria.GameContent.Bestiary.BestiaryEntry.Info
 !Terraria.ID.NPCID+Sets.NPCBestiaryDrawOffset
 !Terraria.ID.ContentSamples.NpcBestiaryRarityStars
+!Terraria.ID.ContentSamples.ItemsByType
 Terraria.ID.MountID
 Terraria.ID.MountID.Sets
 !Terraria.Mount._mountSpecificData

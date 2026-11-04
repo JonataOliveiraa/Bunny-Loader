@@ -69,6 +69,8 @@ public abstract class ModTile : ModBlockType
 
     public virtual string HighlightTexture => Texture + "_Highlight";
 
+    public bool IsDoor => ID.TileID.Sets.OpenDoorID[Type] != -1 || ID.TileID.Sets.CloseDoorID[Type] != -1;
+
     public override string LocalizationCategory => "Tiles";
 
     protected sealed override void Register() => TileLoader.Register(this);
@@ -180,4 +182,22 @@ public abstract class ModTile : ModBlockType
     }
 
     public virtual bool GrowSapling(int i, int j, bool underground, int treeHeightAddon, bool ignoreWalls) => false;
+
+    public virtual void PostSetDefaults()
+    {
+    }
+
+    public virtual float GetTorchLuck(Player player) => 0f;
+
+    public virtual void EmitParticles(int i, int j, Tile tile, short tileFrameX, short tileFrameY, Color tileLight, bool visible)
+    {
+    }
+
+    public virtual void GetTileFlameData(int i, int j, ref TileDrawing.TileFlameData tileFlameData)
+    {
+    }
+
+    public virtual void AdjustMultiTileVineParameters(int i, int j, ref float? overrideWindCycle, ref float windPushPowerX, ref float windPushPowerY, ref bool dontRotateTopTiles, ref float totalWindMultiplier, ref Texture2D glowTexture, ref Color glowColor)
+    {
+    }
 }

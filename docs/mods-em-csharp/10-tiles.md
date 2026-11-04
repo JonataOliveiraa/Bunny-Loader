@@ -25,7 +25,7 @@ public sealed class ExampleBlock : ModTile
     }
 }
 
-public sealed class ExampleBlockItem : ModItem
+public sealed class ExampleBlock : ModItem
 {
     public override void SetDefaults() => Item.DefaultToPlaceableTile(ModContent.TileType<ExampleBlock>());
 }
@@ -89,6 +89,23 @@ On mobile, a touch needs a cursor item icon before it reaches `RightClick`. The 
 Global hook arrays are prepared once at content setup. Crafting station aliases are merged per tile type, and adjacency updates visit only types with extra aliases. Tile and NPC statue handlers share a wiring scope, so global pre/post wiring hooks run once around king/queen statue handling regardless of installation order.
 
 The native filter avoids entering C# for unmarked types during framing, random updates and native draw-data processing. Area scans return only matching cells into reused buffers. Reflection runs during registration, rather than once per cell. Drawing uses the mobile overlay path; specialized vanilla slope, paint, glow and liquid rendering remain in the game's renderer.
+
+`EmitParticles(i, j, tile, tileFrameX, tileFrameY, tileLight, visible)` is where a tile spawns its dust or gore. The game asks about one tile in four, per frame, and only while it is active and not paused; `GlobalTile` has it too. `GetTileFlameData` fills a `TileDrawing.TileFlameData` with the flame the game draws over the tile. `TileLoader.SetDrawPositions` and `SetAnimationFrame` give a `PostDraw` the same frame the tile is drawn with, and `Animation.RegisterTemporaryAnimation(frameRate, frames)` makes an animation type for `Animation.NewTemporaryAnimation`.
+
+A tile that sways sets `TileID.Sets.MultiTileSway`, and from `PreDraw` its top left calls `Main.instance.TilesRenderer.AddSpecialPoint(i, j, TileDrawing.TileCounterType.MultiTileVine)`. `AdjustMultiTileVineParameters` changes the wind, the push and the glow. With this hook the tile is drawn by Bunny Loader, so paint shaders and the Spelunker or Dangersense outline do not apply to it.
+
+`Main.tile[x, y].TileFrameX += 18` works as in tModLoader. The indexer returns a reference to one of a few reused slots, so keep the tile in a local (`Tile tile = Main.tile[x, y]`), never a `ref Tile`.
+
+## Doors, torches, clocks and sinks
+
+| Set | Effect |
+|---|---|
+| `TileID.Sets.OpenDoorID[closed]`, `CloseDoorID[open]` | The two tiles of a door. `WorldGen.OpenDoor`, `CloseDoor`, a touch and the automatic door option work with them, and `ModTile.IsDoor` says it is one |
+| `TileID.Sets.Torches` with `GetTorchLuck(Player)` | Luck counted when the torch is near or held. Mod torches are weighed apart from the game's: both add to `torchLuck`, which stays between 0 and 1 |
+| `TileID.Sets.Clock` | Counts as a clock for the player's info display (`SceneMetrics.HasClock`) |
+| `CountsAsHoneyForCrafting`, `CountsAsLavaForCrafting` | Next to `CountsAsWaterForCrafting`, the tile also works as those liquids in recipes |
+
+`PostSetDefaults` runs right after the loader's own defaults, for what they would otherwise override (`Main.tileNoSunLight` on a solid tile). Town NPCs do not open or close mod doors yet: the game checks the door's number inside the NPC's AI.
 
 ## Chairs and beds
 
@@ -234,7 +251,7 @@ public class ExampleWall : ModWall
     public override void NumDust(int i, int j, bool fail, ref int num) => num = fail ? 1 : 3;
 }
 
-public class ExampleWallItem : ModItem
+public class ExampleWall : ModItem
 {
     public override void SetDefaults() => Item.DefaultToPlaceableWall(ModContent.WallType<ExampleWall>());
 }
@@ -365,7 +382,7 @@ The native backend saves tile coordinates, type keys, frames and tile headers, r
 
 ## Examples and validation
 
-`ExampleModCSharp` includes the original ExampleMod block and workbench textures, `ExampleBlockItem`, the workbench item, a crafting station alias and a recipe requiring the custom workbench.
+`ExampleModCSharp` includes the original ExampleMod block and workbench textures, `ExampleBlock`, the workbench item, a crafting station alias and a recipe requiring the custom workbench.
 
 ```sh
 DEVICE=127.0.0.1:16416 bash tools/tests/run-cs.sh cstile

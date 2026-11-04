@@ -7,6 +7,8 @@ namespace Terraria;
 
 public readonly partial struct Player
 {
+    public HashSet<int> NearbyModTorch => Terraria.ModLoader.Core.TileHooks.ModTorches(whoAmI);
+
     public bool HasBuff(int type) => FindBuffIndex(type) != -1;
 
     public const int LifeCrystalMax = 15;

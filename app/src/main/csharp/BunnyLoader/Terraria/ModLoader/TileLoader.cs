@@ -132,7 +132,8 @@ public static unsafe partial class TileLoader
         {
             "PostDraw",
             "DrawEffects",
-            "SpecialDraw"
+            "SpecialDraw",
+            "EmitParticles"
         },
         Array.Empty<string>(),
         new[]
@@ -155,6 +156,10 @@ public static unsafe partial class TileLoader
     public static ModTile? GetTile(int type) => (uint)type < (uint)tiles.Length ? tiles[type] : null;
 
     internal static ModTile? At(int i, int j) => GetTile(Main.tile[i, j].type);
+
+    static bool[] emitters = Array.Empty<bool>();
+
+    internal static bool EmitsParticles(int type) => (uint)type < (uint)emitters.Length && emitters[type];
 
     internal static bool Has(ModTile tile, int bit) => (methods[tile.Type] & (1u << bit)) != 0;
 
@@ -197,6 +202,13 @@ public static unsafe partial class TileLoader
         }
 
         tiles[type] = tile;
+        if (Overrides(tile, nameof(ModTile.EmitParticles)))
+        {
+            Array.Resize(ref emitters, Math.Max(emitters.Length, type + 1));
+            emitters[type] = true;
+        }
+
+        TileHooks.InstallExtras(tile);
         if (!subscribed)
         {
             Host.Native()->OnTilesInstalled(&Installed);
@@ -250,6 +262,14 @@ public static unsafe partial class TileLoader
                     Main.tileObsidianKill[i] = true;
                 if (Main.tileSolid[i])
                     Main.tileNoSunLight[i] = true;
+                tile.PostSetDefaults();
+                if (tile.IsDoor)
+                    TileHooks.InstallDoors();
+                if (TileID.Sets.Clock[i])
+                {
+                    Mark(i, 1u << 9);
+                    TileHooks.Install(1u << 9, false);
+                }
                 Host.Native()->TileAnimation(i, tile.AnimationFrameHeight);
                 if (Overrides(tile, nameof(ModTile.AnimateTile)))
                     animated.Add(tile);
@@ -354,6 +374,39 @@ public static unsafe partial class TileLoader
     }
 
     public static int GetItemDropFromTypeAndStyle(int type, int style = 0) => DropType(type, style);
+
+    public static void SetDrawPositions(int i, int j, ref int width, ref int offsetY, ref int height, ref short tileFrameX, ref short tileFrameY)
+    {
+        Tile tile = Main.tile[i, j];
+        int type = tile.type;
+        GetTile(type)?.SetDrawPositions(i, j, ref width, ref offsetY, ref height, ref tileFrameX, ref tileFrameY);
+    }
+
+    public static void SetAnimationFrame(int type, int i, int j, ref int frameXOffset, ref int frameYOffset)
+    {
+        if (GetTile(type) is not ModTile tile)
+            return;
+        frameYOffset = tile.AnimationFrameHeight * Main.tileFrame[type];
+        tile.AnimateIndividualTile(type, i, j, ref frameXOffset, ref frameYOffset);
+    }
+
+    public static int OpenDoorID(Tile tile)
+    {
+        if (GetTile(tile.type) is ModTile mod)
+            return TileID.Sets.OpenDoorID[mod.Type];
+        return tile.type == TileID.ClosedDoor && (tile.frameY < 594 || tile.frameY > 646 || tile.frameX >= 54) ? TileID.OpenDoor : -1;
+    }
+
+    public static int CloseDoorID(Tile tile)
+    {
+        if (GetTile(tile.type) is ModTile mod)
+            return TileID.Sets.CloseDoorID[mod.Type];
+        return tile.type == TileID.OpenDoor ? TileID.ClosedDoor : -1;
+    }
+
+    public static bool IsClosedDoor(Tile tile) => IsClosedDoor(tile.type);
+
+    public static bool IsClosedDoor(int type) => GetTile(type) != null ? TileID.Sets.OpenDoorID[type] > -1 : type == TileID.ClosedDoor;
 
     internal static int DropType(int type, int style)
     {

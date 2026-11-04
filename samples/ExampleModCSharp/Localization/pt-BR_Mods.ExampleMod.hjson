@@ -133,12 +133,12 @@ Items: {
 		Tooltip: ""
 	}
 
-	ExampleWallItem: {
+	ExampleWall: {
 		DisplayName: Parede de Exemplo
 		Tooltip: Esta é uma parede de mod.
 	}
 
-	ExampleWallAdvancedItem: {
+	ExampleWallAdvanced: {
 		DisplayName: Parede de Exemplo Avançada
 		Tooltip: Esta é uma parede de mod avançada.
 	}
@@ -425,6 +425,67 @@ Items: {
 			'''
 		RemoveMe: Esta linha não aparece no jogo
 		Face: Estou ótimo!
+	}
+
+	ExampleTorch: {
+		DisplayName: Tocha de Exemplo
+		Tooltip: Esta é uma tocha de mod.
+	}
+
+	ExampleWaterTorch: {
+		DisplayName: Tocha de Água de Exemplo
+		Tooltip: "{$ItemTooltip.IchorTorch}"
+	}
+
+	ExampleLamp.DisplayName: Luminária de Exemplo
+
+	ExampleCampfire: {
+		DisplayName: Fogueira de Exemplo
+		Tooltip: "{$ItemTooltip.Campfire}"
+	}
+
+	ExampleChandelier: {
+		DisplayName: Lustre de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleClock: {
+		DisplayName: Relógio de Exemplo
+		Tooltip: Este é um relógio de mod.
+	}
+
+	ExampleDoor: {
+		DisplayName: Porta de Exemplo
+		Tooltip: Esta é uma porta de mod.
+	}
+
+	ExamplePlatform: {
+		DisplayName: Plataforma de Exemplo
+		Tooltip: Esta é uma plataforma de mod.
+	}
+
+	ExampleSink: {
+		DisplayName: Pia de Exemplo
+		Tooltip:
+			'''
+			Conta como fonte de água, lava e mel
+			'Uma pena que ainda não existem líquidos de exemplo'
+			'''
+	}
+
+	ExampleTable: {
+		DisplayName: Mesa de Exemplo
+		Tooltip: Esta é uma mesa de mod.
+	}
+
+	ExampleToilet: {
+		DisplayName: Privada de Exemplo
+		Tooltip: Esta é uma privada de mod.
+	}
+
+	ExampleWideBanner: {
+		DisplayName: Estandarte Largo de Exemplo
+		Tooltip: Este estandarte é mais largo que todos os outros!
 	}
 }
 

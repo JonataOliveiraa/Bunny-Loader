@@ -1,5 +1,12 @@
 # Novidades
 
+## 0.38.0
+
+- Os móveis que faltavam: porta, mesa, privada, pia, relógio, plataforma,
+  lustre com sete estilos e estandarte largo.
+- A tocha, a tocha de água, a luminária e a fogueira, com chamas e partículas.
+- Tochas de qualquer tipo no Extrator viram outras tochas.
+
 ## 0.37.0
 
 - Os prefixos de exemplo: o Exemplar, o Exemplar Derivado e o Resistente

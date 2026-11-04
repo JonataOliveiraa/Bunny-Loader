@@ -42,6 +42,12 @@ public readonly partial struct Item : IEntityWithGlobals<GlobalItem>
 
     public bool CountsAsClass(DamageClass damageClass) => DamageType.CountsAsClass(damageClass);
 
+    public void DefaultToTorch(int tileIDToPlace, int tileStyleToPlace, bool allowWaterPlacement = false)
+    {
+        DefaultToTorch(tileStyleToPlace, allowWaterPlacement);
+        createTile = tileIDToPlace;
+    }
+
     public Item(int setDefaultsToType, int stack = 1, int prefix = 0)
     {
         Item item = New();

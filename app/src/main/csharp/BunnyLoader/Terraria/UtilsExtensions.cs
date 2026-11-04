@@ -8,6 +8,8 @@ public static class UtilsExtensions
 {
     public static bool NextBool(this UnifiedRandom r) => r.Next(2) == 0;
 
+    public static T Next<T>(this UnifiedRandom r, System.Collections.Generic.IList<T> choices) => choices[r.Next(choices.Count)];
+
     public static bool NextBool(this UnifiedRandom r, int consequent)
     {
         if (consequent < 1) throw new ArgumentOutOfRangeException(nameof(consequent), "consequent must be greater than or equal to 1.");

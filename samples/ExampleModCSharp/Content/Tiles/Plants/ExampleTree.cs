@@ -57,7 +57,7 @@ public class ExampleTree : ModTree
 
     public override bool Shake(int x, int y, ref bool createLeaves)
     {
-        Item.NewItem(WorldGen.GetItemSource_FromTreeShake(x, y), new Vector2(x, y) * 16, ModContent.ItemType<Items.Placeable.ExampleBlockItem>());
+        Item.NewItem(WorldGen.GetItemSource_FromTreeShake(x, y), new Vector2(x, y) * 16, ModContent.ItemType<Items.Placeable.ExampleBlock>());
         return false;
     }
 

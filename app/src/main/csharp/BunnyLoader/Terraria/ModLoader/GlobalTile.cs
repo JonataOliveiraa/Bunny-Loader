@@ -68,6 +68,10 @@ public abstract class GlobalTile : ModType
     {
     }
 
+    public virtual void EmitParticles(int i, int j, Tile tileCache, ushort typeCache, short tileFrameX, short tileFrameY, Color tileLight, bool visible)
+    {
+    }
+
     public virtual void DrawEffects(int i, int j, int type, SpriteBatch spriteBatch, ref TileDrawInfo drawData)
     {
     }

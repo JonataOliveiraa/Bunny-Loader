@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Terraria.DataStructures;
 using Terraria.GameContent;
 using Terraria.GameContent.Drawing;
+using Terraria.ID;
 using Terraria.ObjectData;
 
 namespace Terraria.ModLoader.Core;
@@ -50,6 +51,7 @@ internal static unsafe partial class TileHooks
             Once("Draw", () => On_TileDrawing.PostDrawTiles += Draw);
             Once("Special", () => On_TileDrawing.AddSpecialLegacyPoint_Point += AddSpecial);
             Once("SpecialXY", () => On_TileDrawing.AddSpecialLegacyPoint_int_int += AddSpecialXY);
+            Once("SpecialPoint", () => On_TileDrawing.AddSpecialPoint += AddSpecialPoint);
         }
 
         if ((flags & (1u << 10)) != 0)
@@ -131,6 +133,11 @@ internal static unsafe partial class TileHooks
         {
             int i = nearbyCells[k * 3], j = nearbyCells[k * 3 + 1], type = nearbyCells[k * 3 + 2];
             TileLoader.GetTile(type)?.NearbyEffects(i, j, closer);
+            if (!closer && TileID.Sets.Clock[type])
+            {
+                SceneMetrics metrics = ScanningMetrics;
+                metrics.HasClock = true;
+            }
             foreach (GlobalTile global in TileLoader.Hooks.NearbyEffects)
                 global.NearbyEffects(i, j, type, closer);
         }
@@ -150,6 +157,14 @@ internal static unsafe partial class TileHooks
             special.Add(new Point(x, y));
         else
             orig(self, x, y);
+    }
+
+    static void AddSpecialPoint(On_TileDrawing.orig_AddSpecialPoint orig, TileDrawing self, int x, int y, TileDrawing.TileCounterType type)
+    {
+        if (drawing && type == TileDrawing.TileCounterType.MultiTileVine)
+            vines.Add(new Point(x, y));
+        else
+            orig(self, x, y, type);
     }
 
     internal static void AddVine(int i, int j)
@@ -189,6 +204,7 @@ internal static unsafe partial class TileHooks
                     if (!cell.active() || cell.type != type)
                         continue;
                     ModTile? mod = TileLoader.GetTile(type);
+                    EmitParticles(self, mod, cell, i, j, type);
                     bool draw = true, hidden = TileLoader.Hooks.PreDraw.Length > 0 || TileLoader.Hooks.DrawEffects.Length > 0 || (mod != null && TileLoader.Has(mod, 13));
                     if (!hidden)
                     {

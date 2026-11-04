@@ -3,7 +3,7 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Placeable;
 
-public class ExampleWallAdvancedItem : ModItem
+public class ExampleWall : ModItem
 {
     public override void SetStaticDefaults()
     {
@@ -12,13 +12,13 @@ public class ExampleWallAdvancedItem : ModItem
 
     public override void SetDefaults()
     {
-        Item.DefaultToPlaceableWall(ModContent.WallType<Walls.ExampleWallAdvanced>());
+        Item.DefaultToPlaceableWall(ModContent.WallType<Walls.ExampleWall>());
     }
 
     public override void AddRecipes()
     {
         CreateRecipe(4)
-            .AddIngredient<ExampleBlockItem>()
+            .AddIngredient<ExampleBlock>()
             .AddTile<Tiles.Furniture.ExampleWorkbench>()
             .Register();
     }

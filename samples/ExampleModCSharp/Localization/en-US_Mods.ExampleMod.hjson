@@ -133,12 +133,12 @@ Items: {
 		Tooltip: ""
 	}
 
-	ExampleWallItem: {
+	ExampleWall: {
 		DisplayName: Example Wall
 		Tooltip: This is a modded wall.
 	}
 
-	ExampleWallAdvancedItem: {
+	ExampleWallAdvanced: {
 		DisplayName: Example Wall Advanced
 		Tooltip: This is an advanced modded wall.
 	}
@@ -425,6 +425,67 @@ Items: {
 			'''
 		RemoveMe: This tooltip won't show in-game
 		Face: I'm feeling just fine!
+	}
+
+	ExampleTorch: {
+		DisplayName: Example Torch
+		Tooltip: This is a modded torch.
+	}
+
+	ExampleWaterTorch: {
+		DisplayName: Example Water Torch
+		Tooltip: "{$ItemTooltip.IchorTorch}"
+	}
+
+	ExampleLamp.DisplayName: Example Lamp
+
+	ExampleCampfire: {
+		DisplayName: Example Campfire
+		Tooltip: "{$ItemTooltip.Campfire}"
+	}
+
+	ExampleChandelier: {
+		DisplayName: Example Chandelier
+		Tooltip: ""
+	}
+
+	ExampleClock: {
+		DisplayName: Example Clock
+		Tooltip: This is a modded clock.
+	}
+
+	ExampleDoor: {
+		DisplayName: Example Door
+		Tooltip: This is a modded door.
+	}
+
+	ExamplePlatform: {
+		DisplayName: Example Platform
+		Tooltip: This is a modded platform.
+	}
+
+	ExampleSink: {
+		DisplayName: Example Sink
+		Tooltip:
+			'''
+			Counts as a water, lava, and honey source
+			'A shame there's no example liquids (yet)'
+			'''
+	}
+
+	ExampleTable: {
+		DisplayName: Example Table
+		Tooltip: This is a modded table.
+	}
+
+	ExampleToilet: {
+		DisplayName: Example Toilet
+		Tooltip: This is a modded toilet.
+	}
+
+	ExampleWideBanner: {
+		DisplayName: Example Wide Banner
+		Tooltip: This banner is wider than all the others!
 	}
 }
 

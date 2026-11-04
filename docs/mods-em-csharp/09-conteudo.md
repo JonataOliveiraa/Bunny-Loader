@@ -576,7 +576,9 @@ menu and the Guide. Crafting runs `ModItem.OnCreated` and
 
 The Chlorophyte Extractinator trades through `ItemTrader`. In
 `SetStaticDefaults`, `ItemTrader.ChlorophyteExtractinator.AddOption_OneWay(Type,
-5, ItemID.ChlorophyteBar, 2)` takes 5 of your item and gives 2 bars.
+5, ItemID.ChlorophyteBar, 2)` takes 5 of your item and gives 2 bars. The plain
+Extractinator rolls by `ItemID.Sets.ExtractinatorMode`, and
+`ModItem.ExtractinatorUse` and `GlobalItem.ExtractinatorUse` can change what comes out.
 
 ## Armor, accessories and wings
 

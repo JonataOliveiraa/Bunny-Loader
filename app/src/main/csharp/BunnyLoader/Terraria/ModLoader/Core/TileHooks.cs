@@ -507,7 +507,14 @@ internal static partial class TileHooks
                     player.adjTile[extra] = true;
             }
         }
+
+        foreach (int type in honeySources)
+            player.adjHoney |= player.adjTile[type];
+        foreach (int type in lavaSources)
+            player.adjLava |= player.adjTile[type];
     }
+
+    static int[] honeySources = Array.Empty<int>(), lavaSources = Array.Empty<int>();
 
     internal static void SetupAdjacency()
     {
@@ -524,7 +531,19 @@ internal static partial class TileHooks
         }
 
         adjacency = entries.ToArray();
-        if (adjacency.Length > 0)
+        var honey = new List<int>();
+        var lava = new List<int>();
+        for (int type = 0; type < TileLoader.TileCount; type++)
+        {
+            if (TileID.Sets.CountsAsHoneyForCrafting[type])
+                honey.Add(type);
+            if (TileID.Sets.CountsAsLavaForCrafting[type])
+                lava.Add(type);
+        }
+
+        honeySources = honey.ToArray();
+        lavaSources = lava.ToArray();
+        if (adjacency.Length > 0 || honey.Count > 0 || lava.Count > 0)
             Once("Adj", () => On_Player.AdjTiles += Adj);
     }
 
@@ -580,6 +599,8 @@ internal static partial class TileHooks
         if (!fresh)
             return;
         if (mod?.RightClick(i, j) == true)
+            player.tileInteractionHappened = true;
+        else if (mod != null && mod.IsDoor && ToggleDoor(player, i, j, type))
             player.tileInteractionHappened = true;
         else if (mod != null && !right && MusicLoader.IsModMusicBox(type))
         {

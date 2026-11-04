@@ -3,7 +3,7 @@ using Terraria.ModLoader;
 
 namespace ExampleMod.Content.Items.Placeable;
 
-public sealed class ExampleBlockItem : ModItem
+public sealed class ExampleBlock : ModItem
 {
     public override void SetStaticDefaults() => Item.ResearchUnlockCount = 100;
 

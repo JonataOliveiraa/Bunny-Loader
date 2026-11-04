@@ -1,0 +1,17 @@
+{
+  "uid": "5d82b7e1-6c34-4a09-9e21-7f3c1a8d6b02",
+  "id": "CsExTiles",
+  "name": "Test: Example Mod furniture (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "The C# Example Mod's furniture, torch, lamp, campfire, chandelier, banner and door placed in the world.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csextiles SHOT <name>, csextiles <case>: ok | FAIL and csextiles END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

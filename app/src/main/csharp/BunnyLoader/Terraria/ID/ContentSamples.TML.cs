@@ -10,6 +10,30 @@ public static partial class ContentSamples
 
     public static ProjectileSamples ProjectilesByType { get; } = new();
 
+    public static ItemSamples ItemsByType { get; } = new();
+
+    public sealed class ItemSamples
+    {
+        readonly Dictionary<int, Item> samples = new();
+
+        public Item this[int type] => TryGetValue(type, out Item sample) ? sample : throw new KeyNotFoundException($"ItemsByType has no item {type}");
+
+        public bool ContainsKey(int type) => type >= 0 && type < ItemLoader.ItemCount;
+
+        public bool TryGetValue(int type, out Item sample)
+        {
+            sample = default;
+            if (!ContainsKey(type)) return false;
+            lock (samples)
+            {
+                if (samples.TryGetValue(type, out sample)) return true;
+                sample = new Item(type);
+                samples[type] = sample;
+                return true;
+            }
+        }
+    }
+
     public sealed class ProjectileSamples
     {
         readonly Dictionary<int, Projectile> samples = new();

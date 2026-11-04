@@ -180,6 +180,10 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void PostUpdate(WorldItem item) { }
 
+    public virtual void ExtractinatorUse(int extractinatorBlockType, ref int resultType, ref int resultStack)
+    {
+    }
+
     public virtual void GrabRange(WorldItem item, Player player, ref int grabRange) { }
 
     public virtual bool GrabStyle(WorldItem item, Player player) => false;

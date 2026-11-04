@@ -5,6 +5,17 @@ namespace Terraria;
 
 public readonly partial struct Main
 {
+    static SceneMetrics currentSceneMetrics;
+
+    public static ref SceneMetrics SceneMetrics
+    {
+        get
+        {
+            currentSceneMetrics = _usingSeparateCameraSceneMetrics ? _cameraSceneMetrics : _playerSceneMetrics;
+            return ref currentSceneMetrics;
+        }
+    }
+
     public static Color DiscoColor => new(DiscoR, DiscoG, DiscoB);
 
     public static void NewText(object o, Color? color = null) =>

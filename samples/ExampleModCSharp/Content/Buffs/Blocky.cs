@@ -26,7 +26,7 @@ public class Blocky : ModBuff
 
             if (Main.myPlayer == player.whoAmI && Main.time % 1000 == 0)
             {
-                player.QuickSpawnItem(player.GetSource_Buff(buffIndex), ModContent.ItemType<ExampleBlockItem>());
+                player.QuickSpawnItem(player.GetSource_Buff(buffIndex), ModContent.ItemType<ExampleBlock>());
             }
 
             player.jumpSpeedBoost += 4.8f;
