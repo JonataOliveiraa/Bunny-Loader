@@ -405,6 +405,27 @@ Items: {
 			Solta abelhas ao levar dano
 			'''
 	}
+
+	ExampleSoul: {
+		DisplayName: Alma de Exemplo
+		Tooltip: "'A essência das criaturas de exemplo'"
+	}
+
+	ExampleBar: {
+		DisplayName: Barra de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleTooltipsItem: {
+		DisplayName: Exemplo de Tooltip
+		Tooltip:
+			'''
+			Como você está hoje?
+			[c/FF0000:Cores ][c/00FF00:são ][c/0000FF:legais ]e os itens também: [i:5236][i:5230][i:1508]
+			'''
+		RemoveMe: Esta linha não aparece no jogo
+		Face: Estou ótimo!
+	}
 }
 
 Conditions: {
@@ -633,4 +654,20 @@ UI: {
 
 Common: {
 	PaperAirplane: Aviãozinho de Papel
+}
+
+Prefixes: {
+	PowerTooltip: "{0:+0;-#} de Poder"
+
+	ExamplePrefix: {
+		DisplayName: Exemplar
+		AdditionalTooltip: Mais Poder
+	}
+
+	ExampleDerivedPrefix: {
+		DisplayName: Exemplar Derivado
+		AdditionalTooltip: Ainda Mais Poder
+	}
+
+	ExampleAccessoryPrefix.DisplayName: Resistente Exemplar
 }

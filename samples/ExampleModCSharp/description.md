@@ -10,7 +10,7 @@ Loader só confere o selo. Dá para abrir os arquivos e usar como modelo.
   (espada curta, lança, mangual, ioiô, chicote, espada de energia e as de
   longe e mágicas), ferramentas (picareta, martelo-machado, broca, gancho,
   vara de pesca), armaduras com bônus de conjunto, acessórios, asas, poções,
-  munição, raridades e receitas.
+  munição, barras, raridades, prefixos, tooltips e receitas.
 - **Jogador e buffs**: `ModPlayer`, buffs, cabelos, montarias, carrinho de
   mina, lacaio, sentinela, mascotes, barras de vida e mana.
 - **Projéteis, poeiras e gores**.

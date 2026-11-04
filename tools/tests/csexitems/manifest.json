@@ -1,0 +1,17 @@
+{
+  "uid": "9b1f6a2c-3d47-4f58-8c10-5e2a7d9b4c36",
+  "id": "CsExItems",
+  "name": "Test: Example Mod prefixes, tooltips, soul and bar (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "The C# Example Mod's three prefixes, its tooltip item, its soul on the ground and its bar placed on a tile.",
+  "description": "Needs samples/ExampleModCSharp enabled next to it. Logs csexitems SHOT <name>, csexitems <case>: ok | FAIL and csexitems END pass=N fail=M.",
+  "updated": "2026-11-03",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

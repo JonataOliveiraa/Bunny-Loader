@@ -1,5 +1,14 @@
 # Novidades
 
+## 0.37.0
+
+- Os prefixos de exemplo: o Exemplar, o Exemplar Derivado e o Resistente
+  Exemplar, para acessórios.
+- O item de tooltips, com linhas coloridas e ícones de itens.
+- A Alma de Exemplo, que flutua, anima e brilha no chão.
+- A Barra de Exemplo, que se coloca no chão e troca no Extrator de Clorofita.
+  A espada de energia agora pede 12 barras.
+
 ## 0.36.0
 
 - As botas de exemplo, com todos os efeitos e o rastro de chamas.

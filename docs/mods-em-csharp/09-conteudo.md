@@ -270,6 +270,7 @@ Picking an item up from the ground:
 | `GrabStyle(WorldItem item, Player player)` | Every frame the item is pulled toward the player | `true`: you moved it (change its `WorldItem`'s `velocity` or `position`) and the game does not |
 | `ItemSpace(Player player)` | When the inventory is full | `true`: it is picked up anyway (pair it with `OnPickup`) |
 | `OnPickup(WorldItem item, Player player)` | When the player touches the item | `false`: the item leaves the ground and does not go into the inventory |
+| `PostUpdate(WorldItem item)` | Every frame the item is on the ground, after the game moved it | Glow, dust, anything else: `Lighting.AddLight(item.Center, ...)` |
 
 An item on the ground is a `WorldItem` that holds the `Item`
 (`WorldItem.inner`), as in tModLoader. The pickup hooks get it, with the position
@@ -330,8 +331,12 @@ The game's lines have `Mod` `"Terraria"` and tModLoader's names
 `Tooltip0`, `Tooltip1`..., `Material`, `PrefixDamage`, `SetBonus`...).
 `Hide()` takes a line out; `IsModifier`/`IsModifierBad` draw it in the green
 or red of a prefix line. A `GlobalItem` gets `ModifyTooltips(Item item,
-List<TooltipLine> tooltips)` for any item, after the `ModItem`. `OverrideColor` gives a line its own color, and `[c/RRGGBB:text]` colors a
-part of a line (the phone's game has no such tags; Bunny Loader draws them).
+List<TooltipLine> tooltips)` for any item, after the `ModItem`. `OverrideColor` (or `Color`, its short form) gives a line its own color, and
+`[c/RRGGBB:text]` colors a part of a line (the phone's game has no such tags;
+Bunny Loader draws them). `[i:type]` draws an item's icon; the phone's font
+reads only that form, so `[i/s123:1508]` shows up as plain text.
+`Colors.PrefixGood` and `Colors.PrefixBad` are the green and red of prefix
+lines.
 
 Drawing the tooltip yourself, as in tModLoader:
 
@@ -497,8 +502,13 @@ weighs 1). The game applies the stats (a prefix whose stats change nothing on
 an item does not roll there), then `Apply(Item item)` runs;
 `ApplyAccessoryEffects(Player player)` runs every frame while the accessory
 is equipped, and `GetTooltipLines(Item item)` adds lines after the game's
-prefix lines. The name comes from `Mods.<Mod>.Prefixes.<Name>.DisplayName`.
-Prefix numbers are saved by name, so they may change between sessions.
+prefix lines. The name comes from `Mods.<Mod>.Prefixes.<Name>.DisplayName`,
+and the game writes it before the item's name, with a space. Prefix numbers
+are saved by name, so they may change between sessions.
+
+See `Content/Prefixes` in the Example Mod: `ExamplePrefix` scales by a `Power`
+property, `ExampleDerivedPrefix` only overrides it, and `ExampleAccessoryPrefix`
+gives defense from `ApplyAccessoryEffects`.
 
 An item decides too: `AllowPrefix(int pre)`, `ChoosePrefix(UnifiedRandom
 rand)` (a number forces that prefix), `PrefixChance(int pre, UnifiedRandom
@@ -563,6 +573,10 @@ tiles as stations (`AddTile<T>()`, with `ModTile`). The game has 3603 recipes
 and stops at 3700: the ones past it are added by Bunny Loader to the crafting
 menu and the Guide. Crafting runs `ModItem.OnCreated` and
 `GlobalItem.OnCreated` with a `RecipeItemCreationContext`.
+
+The Chlorophyte Extractinator trades through `ItemTrader`. In
+`SetStaticDefaults`, `ItemTrader.ChlorophyteExtractinator.AddOption_OneWay(Type,
+5, ItemID.ChlorophyteBar, 2)` takes 5 of your item and gives 2 bars.
 
 ## Armor, accessories and wings
 

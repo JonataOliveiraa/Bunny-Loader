@@ -434,3 +434,5 @@ Terraria.DataStructures.SettingsForCharacterPreview
 !Terraria.ID.BuffID+Sets.BuffTextHandlers
 Terraria.DataStructures.IBuffTextHandler
 Terraria.Graphics.Shaders.ArmorShaderDataSet
+Terraria.ID.Colors
+Terraria.GameContent.ItemTrader

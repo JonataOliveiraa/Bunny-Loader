@@ -178,6 +178,8 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual bool ApplyPotionDelay(Player player, int potionDelay) => true;
 
+    public virtual void PostUpdate(WorldItem item) { }
+
     public virtual void GrabRange(WorldItem item, Player player, ref int grabRange) { }
 
     public virtual bool GrabStyle(WorldItem item, Player player) => false;

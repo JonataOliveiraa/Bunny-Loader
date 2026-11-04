@@ -16,6 +16,12 @@ public class TooltipLine
 
     public Color? OverrideColor;
 
+    public Color Color
+    {
+        get => OverrideColor ?? Color.White;
+        set => OverrideColor = value;
+    }
+
     public bool OneDropLogo;
 
     internal string Role = "";

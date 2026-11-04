@@ -1,3 +1,4 @@
+using ExampleMod.Content.Items.Placeable;
 using ExampleMod.Content.Projectiles;
 using Microsoft.Xna.Framework;
 using Terraria;
@@ -41,7 +42,7 @@ public class ExampleSwingingEnergySword : ModItem
     public override void AddRecipes()
     {
         CreateRecipe()
-            .AddIngredient<ExampleItem>(12)
+            .AddIngredient<ExampleBar>(12)
             .AddTile(TileID.MythrilAnvil)
             .Register();
     }

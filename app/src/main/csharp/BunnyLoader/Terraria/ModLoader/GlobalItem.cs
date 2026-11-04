@@ -150,6 +150,8 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual bool ApplyPotionDelay(Item item, Player player, int potionDelay) => true;
 
+    public virtual void PostUpdate(WorldItem item) { }
+
     public virtual void GrabRange(WorldItem item, Player player, ref int grabRange) { }
 
     public virtual bool GrabStyle(WorldItem item, Player player) => false;
