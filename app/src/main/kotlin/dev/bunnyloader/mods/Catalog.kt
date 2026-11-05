@@ -119,11 +119,28 @@ class Catalog(private val context: Context) {
     fun isInstalled(uid: String): Boolean = repo.hasEntry(uid)
 
     /** Copia o pacote para onde o motor procura. Substitui se já existir. */
-    fun install(entry: Entry) {
+    fun install(entry: Entry, onProgress: (Float) -> Unit = {}) {
         val target = File(repo.modsDir, entry.uid)
-        target.deleteRecursively()
-        target.mkdirs()
-        copyTree(entry.assetDir, target)
+        val staging = File(repo.modsDir, ".catalog-${entry.uid}")
+        staging.deleteRecursively()
+        check(staging.mkdirs()) { "cannot create ${staging.path}" }
+        var copied = 0L
+        val total = entry.sizeBytes.coerceAtLeast(1L)
+        try {
+            copyTree(entry.assetDir, staging) { bytes ->
+                copied += bytes
+                onProgress((copied.toFloat() / total).coerceAtMost(1f))
+            }
+            val old = File(repo.modsDir, ".old-${entry.uid}-${System.currentTimeMillis()}")
+            check(!target.exists() || target.renameTo(old)) { "cannot replace ${target.path}" }
+            if (!staging.renameTo(target)) {
+                old.renameTo(target)
+                error("cannot move ${staging.path} to ${target.path}")
+            }
+            old.deleteRecursively()
+        } finally {
+            staging.deleteRecursively()
+        }
     }
 
     fun uninstall(uid: String) {
@@ -141,7 +158,7 @@ class Catalog(private val context: Context) {
     fun seedOnFirstRun() {
         val prefs = context.getSharedPreferences("catalog", Context.MODE_PRIVATE)
         if (prefs.getBoolean(SEEDED, false)) return
-        entries.firstOrNull { it.manifest.featured }?.let(::install)
+        entries.firstOrNull { it.manifest.featured }?.let { install(it) }
         prefs.edit().putBoolean(SEEDED, true).apply()
     }
 
@@ -336,7 +353,7 @@ class Catalog(private val context: Context) {
     private fun read(dir: String, name: String): ByteArray =
         context.assets.open("$dir/$name").use { it.readBytes() }
 
-    private fun copyTree(assetDir: String, target: File) {
+    private fun copyTree(assetDir: String, target: File, onBytes: (Long) -> Unit) {
         val children = runCatching { context.assets.list(assetDir)?.toList() }.getOrNull().orEmpty()
         if (children.isEmpty()) return
         for (child in children) {
@@ -344,12 +361,13 @@ class Catalog(private val context: Context) {
             val grandChildren = runCatching { context.assets.list(path)?.toList() }
                 .getOrNull().orEmpty()
             if (grandChildren.isEmpty()) {
-                context.assets.open(path).use { input ->
-                    File(target, child).outputStream().use(input::copyTo)
+                val bytes = context.assets.open(path).use { input ->
+                    File(target, child).outputStream().use { input.copyTo(it) }
                 }
+                onBytes(bytes)
             } else {
                 val sub = File(target, child).apply { mkdirs() }
-                copyTree(path, sub)
+                copyTree(path, sub, onBytes)
             }
         }
     }

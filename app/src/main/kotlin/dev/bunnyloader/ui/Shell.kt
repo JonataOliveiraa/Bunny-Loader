@@ -458,7 +458,32 @@ class Shell(context: Context) {
     }
 
     fun install(entry: Catalog.Entry) {
-        mutatePackages { catalog.install(entry) }
+        if (entry.uid in downloads) return
+        downloads = downloads + (entry.uid to 0f)
+        downloadErrors = downloadErrors - entry.uid
+        scope.launch {
+            var shown = -1
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    installLock.withLock {
+                        catalog.install(entry) { p ->
+                            val pct = (p * 100).toInt()
+                            if (pct != shown) {
+                                shown = pct
+                                scope.launch {
+                                    if (entry.uid in downloads) downloads = downloads + (entry.uid to p)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            downloads = downloads - entry.uid
+            result.onFailure {
+                downloadErrors = downloadErrors + (entry.uid to (it.message ?: tr("PackagesChangeFailed")))
+            }
+            rescan()
+        }
     }
 
     /** O import do seletor em andamento: de 0 a 1; null fora dele (a janela de progresso). */

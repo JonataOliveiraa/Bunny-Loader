@@ -76,6 +76,7 @@ object Bl {
 
     /** Fundo do cartão de um pacote ligado, em Pacotes: o verde do "Ligado" do jogo, escurecido. */
     val EnabledPanel = Color(0xFF2B5A3A)
+    val DisabledPanel get() = palette.disabledPanel
 
     /** Mod recém-publicado no topo do Explorar: o dourado de item raro, escurecido. */
     val NewPanel = Color(0xFF5A4A2B)
@@ -109,6 +110,7 @@ class UiPalette(
     val gamePanel: Color,
     val frameBorder: Color,
     val frameFill: Color,
+    val disabledPanel: Color = panel,
 ) {
     companion object {
         val CLASSIC = UiPalette(
@@ -140,6 +142,7 @@ class UiPalette(
             panel = Color(0xFF1E4634), button = Color(0xFF7E2430), buttonPressed = Color(0xFFD8A835),
             select = Color(0xFF285A42), titleFill = Color(0xFFB02A3A), gamePanel = Color(0xFF2A5E44),
             frameBorder = Color(0xFF4E7A5E), frameFill = Color(0xFF0D2218),
+            disabledPanel = Color(0xFF4A2630),
         )
     }
 }

@@ -15,7 +15,7 @@ bak="$data/phonebak"
 restore() {
     adb -s "$dev" shell am force-stop $pkg
     adb -s "$dev" shell "[ -d $bak ] || exit 0; cp $bak/$player.plr* $data/Players/; cp $bak/$world.wld* $data/Worlds/; for f in mods mod_order settings; do [ -s $bak/\$f.xml ] || { echo empty backup \$f; exit 1; }; cp $bak/\$f.xml /data/local/tmp/\$f.xml; chmod 644 /data/local/tmp/\$f.xml; run-as $pkg cp /data/local/tmp/\$f.xml shared_prefs/\$f.xml; rm -f /data/local/tmp/\$f.xml; [ -n \"\$(run-as $pkg cat shared_prefs/\$f.xml)\" ] || { echo restore failed \$f; exit 1; }; done; rm -rf $bak" || { echo "!! restore failed, backup kept in $bak" >&2; return 1; }
-    adb -s "$dev" shell "run-as $pkg rm -f files/dotnet/.stamp"
+    adb -s "$dev" shell "run-as $pkg rm -f files/dotnet/.stamp; run-as $pkg sed -i '/appUpdateTime/d' shared_prefs/catalog.xml"
     for pack in "${@:-}"; do
         [ -n "$pack" ] || continue
         adb -s "$dev" shell "rm -rf $data/bunny_packs/$(uid "$pack")"
@@ -46,7 +46,7 @@ for pack in "$root/samples/ExampleModCSharp" "$here/$test"; do
     tar --force-local --exclude=bin --exclude=obj --exclude=src -C "$pack" -cf "$tmp/pack.tar" .
     u=$(uid "$pack")
     adb -s "$dev" push "$tmp/pack.tar" /data/local/tmp/blpack.tar >/dev/null 2>&1
-    adb -s "$dev" shell "mkdir -p $data/bunny_packs/$u; tar -xf /data/local/tmp/blpack.tar -C $data/bunny_packs/$u 2>/dev/null; rm -f /data/local/tmp/blpack.tar"
+    adb -s "$dev" shell "mkdir -p $data/bunny_packs/$u; tar -xf /data/local/tmp/blpack.tar -C $data/bunny_packs/$u 2>/dev/null; chmod -R 777 $data/bunny_packs/$u 2>/dev/null; rm -f /data/local/tmp/blpack.tar"
     printf '    <boolean name="%s" value="true" />\n' "$u" >> "$tmp/mods.xml"
     order="$order${order:+,}&quot;$u&quot;"
 done

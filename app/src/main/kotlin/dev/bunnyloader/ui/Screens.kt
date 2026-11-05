@@ -658,7 +658,7 @@ fun PacotesTab(shell: Shell, onOpen: (String) -> Unit) {
         ) { index, modifier, preview ->
             val e = packages[index]
             // Ligado: o cartão inteiro fica verde, e a lista se lê de longe.
-            val fill = if (e.uid in shell.enabled) Bl.EnabledPanel else Bl.Panel
+            val fill = if (e.uid in shell.enabled) Bl.EnabledPanel else Bl.DisabledPanel
             // As setas movem em relação ao vizinho VISÍVEL: com o filtro de
             // tipo, o vizinho na ordem completa pode ser de outra lista.
             ModRow(e, shell.catalog, { if (!preview) onOpen(e.uid) }, modifier, fill = fill, besideIcon = if (manualOrder) ({
