@@ -126,6 +126,7 @@ class Prefs(context: Context) {
         Biome.entries.firstOrNull { it.name == choice }?.let { return it }
         // No automático, a semana do Halloween é dele (20/10 a 2/11).
         if (isHalloweenSeason(java.util.Calendar.getInstance())) return Biome.HALLOWEEN
+        if (isChristmasSeason(java.util.Calendar.getInstance())) return Biome.CHRISTMAS
         val next = (p.getInt(LAST_SCENERY, -1) + 1).mod(Biome.entries.size)
         p.edit().putInt(LAST_SCENERY, next).apply()
         return Biome.entries[next]
@@ -163,3 +164,7 @@ internal fun isHalloweenSeason(now: java.util.Calendar): Boolean {
         else -> false
     }
 }
+
+internal fun isChristmasSeason(now: java.util.Calendar): Boolean =
+    now.get(java.util.Calendar.MONTH) == java.util.Calendar.DECEMBER &&
+        now.get(java.util.Calendar.DAY_OF_MONTH) >= 15

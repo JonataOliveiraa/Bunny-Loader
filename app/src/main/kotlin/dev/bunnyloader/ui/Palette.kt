@@ -136,6 +136,11 @@ class UiPalette(
             select = Color(0xFF4B3F8E), titleFill = Color(0xFFB0559E), gamePanel = Color(0xFF54479A),
             frameBorder = Color(0xFF6A5DA6), frameFill = Color(0xFF1C1636),
         )
+        val CHRISTMAS = UiPalette(
+            panel = Color(0xFF1E4634), button = Color(0xFF7E2430), buttonPressed = Color(0xFFD8A835),
+            select = Color(0xFF285A42), titleFill = Color(0xFFB02A3A), gamePanel = Color(0xFF2A5E44),
+            frameBorder = Color(0xFF4E7A5E), frameFill = Color(0xFF0D2218),
+        )
     }
 }
 

@@ -91,10 +91,15 @@ enum class Biome(
         SceneLayer(R.drawable.bg_hallow_far, 0.10f, 0.22f),
         SceneLayer(R.drawable.bg_hallow_near, 0.38f, 0.36f),
     ), UiPalette.HALLOW, HALLOW_SKY),
+    CHRISTMAS("Christmas", listOf(
+        SceneLayer(R.drawable.bg_xmas_far, 0.08f, 0.27f),
+        SceneLayer(R.drawable.bg_xmas_mid, 0.20f, 0.33f),
+        SceneLayer(R.drawable.bg_xmas_near, 0.38f, 0.36f),
+    ), UiPalette.CHRISTMAS, CHRISTMAS_SKY, SkyBody.FROST_MOON, Color(0xFF5A6A9A)),
 }
 
 /** O que anda no céu: sol e lua pelo relógio, a Lua de Abóbora parada, ou nada. */
-internal enum class SkyBody { SUN_AND_MOON, PUMPKIN_MOON, NONE }
+internal enum class SkyBody { SUN_AND_MOON, PUMPKIN_MOON, FROST_MOON, NONE }
 
 /** Uma camada: quanto ela anda com a câmera, e onde fica o topo dela (fração da altura). */
 class SceneLayer(val res: Int, val parallax: Float, val top: Float)
@@ -134,6 +139,7 @@ private val SKY = listOf(
 // branca): a arte deles já vem com a cor da noite.
 private val HALLOWEEN_SKY = listOf(SkyKey(0f, 0x12061E, 0x8A3A34, 0xFFFFFF))
 private val MUSHROOM_SKY = listOf(SkyKey(0f, 0x040818, 0x16306A, 0xFFFFFF))
+private val CHRISTMAS_SKY = listOf(SkyKey(0f, 0x0A1030, 0x2E3E7A, 0x8C9CD8))
 
 private val DESERT_SKY = listOf(
     SkyKey(0f, 0x0A0C22, 0x2A2850, 0x5A5482),
@@ -173,14 +179,23 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
     val floors = remember(biome) { layers.map { it.bottomColor() } }
     val cloudArt = CLOUD_SPRITES.map { ImageBitmap.imageResource(it) }
     val sun = ImageBitmap.imageResource(R.drawable.bg_sun)
-    val moon = ImageBitmap.imageResource(
-        if (biome.body == SkyBody.PUMPKIN_MOON) R.drawable.bg_moon_pumpkin else R.drawable.bg_moon)
+    val moon = ImageBitmap.imageResource(when (biome.body) {
+        SkyBody.PUMPKIN_MOON -> R.drawable.bg_moon_pumpkin
+        SkyBody.FROST_MOON -> R.drawable.bg_moon_frost
+        else -> R.drawable.bg_moon
+    })
     val starArt = ImageBitmap.imageResource(R.drawable.bg_star)
     val halloween = if (biome == Biome.HALLOWEEN) HalloweenArt(
         ImageBitmap.imageResource(R.drawable.spr_bat),
         ImageBitmap.imageResource(R.drawable.spr_ghost),
         ImageBitmap.imageResource(R.drawable.spr_horseman),
         ImageBitmap.imageResource(R.drawable.spr_jack_o_lantern),
+    ) else null
+    val christmas = if (biome == Biome.CHRISTMAS) ChristmasArt(
+        ImageBitmap.imageResource(R.drawable.spr_xmas_tree),
+        ImageBitmap.imageResource(R.drawable.spr_xmas_lights),
+        ImageBitmap.imageResource(R.drawable.spr_present),
+        ImageBitmap.imageResource(R.drawable.spr_santa),
     ) else null
 
     val clouds = remember {
@@ -236,7 +251,7 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
                 drawBody(moon, moonFrame * moon.width, moon.width, p, horizon, arc, s)
             }
             // Cheia, grande e parada no alto: a noite da Lua de Abóbora.
-            SkyBody.PUMPKIN_MOON -> drawBody(moon, 0, moon.width, 0.82f, horizon, arc, s * 2)
+            SkyBody.PUMPKIN_MOON, SkyBody.FROST_MOON -> drawBody(moon, 0, moon.width, 0.82f, horizon, arc, s * 2)
             SkyBody.NONE -> Unit
         }
 
@@ -254,6 +269,7 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
         }
         // As abóboras acesas ficam mesmo sem efeitos: são do cenário, não do clima.
         if (halloween != null) drawJackOLanterns(halloween.jack, layers.last(), biome.layers.last(), cam, s, t)
+        if (christmas != null) drawChristmasTrees(christmas, layers.last(), biome.layers.last(), cam, s, t)
 
         if (effects) {
             // A noite escurece as partículas, mas não a ponto de sumirem; e o
@@ -270,6 +286,7 @@ fun Scenery(biome: Biome, pan: () -> Float, time: () -> Float, modifier: Modifie
                 Biome.MUSHROOM -> drawSpores(t, fx)
                 Biome.DESERT -> drawSand(t, fx, light)
                 Biome.HALLOW -> drawPixieDust(t, fx, light, night)
+                Biome.CHRISTMAS -> if (christmas != null) drawChristmas(t, s, fx, christmas, biome.layers.last())
             }
         }
     }
@@ -375,6 +392,56 @@ private fun DrawScope.drawJackOLanterns(jack: ImageBitmap, ground: ImageBitmap, 
             drawSprite(jack, x, y, s)
         }
         x0 += w
+    }
+}
+
+private class ChristmasArt(val tree: ImageBitmap, val lights: ImageBitmap, val present: ImageBitmap, val santa: ImageBitmap)
+
+private const val XMAS_GROUND = 446f
+
+private val XMAS_TREES = listOf(0.30f, 0.72f)
+
+private fun DrawScope.drawChristmasTrees(art: ChristmasArt, ground: ImageBitmap, layer: SceneLayer,
+                                         cam: Float, s: Int, t: Float) {
+    val w = ground.width * s
+    val base = layer.top * size.height + XMAS_GROUND * s
+    val light = (t * 60f / 17f).toInt() % 4
+    var x0 = -(cam * layer.parallax * s).mod(w.toFloat())
+    while (x0 < size.width) {
+        for ((k, at) in XMAS_TREES.withIndex()) {
+            val x = x0 + at * w
+            if (x < -96f * s || x > size.width + 32f * s) continue
+            val top = base - art.tree.height * s
+            val cx = x + art.tree.width * s / 2f
+            val cy = base - art.tree.height * s * 0.45f
+            val pulse = 0.85f + 0.15f * sin(t * 2.1f + k * 1.7f)
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(Color(0xFFFFD27A).copy(alpha = 0.32f * pulse), Color.Transparent),
+                    center = Offset(cx, cy), radius = 90f * s,
+                ),
+                radius = 90f * s, center = Offset(cx, cy),
+            )
+            drawSprite(art.tree, x, top, s)
+            drawFrame(art.lights, (light + k) % 4, 128, x, top, s)
+            for (dx in listOf(-10f, 52f, 66f)) {
+                drawSprite(art.present, x + dx * s, base - art.present.height * s, s)
+            }
+        }
+        x0 += w
+    }
+}
+
+private fun DrawScope.drawChristmas(t: Float, s: Int, fx: Int, art: ChristmasArt, layer: SceneLayer) {
+    drawSnow(t, fx, 1f)
+    val w = 42f * s
+    val speed = 45f * s
+    val travel = (size.width + w * 2) / speed
+    val run = t.mod(travel + 25f)
+    if (run < travel) {
+        val x = size.width + w - run * speed
+        val y = layer.top * size.height + XMAS_GROUND * s - 56f * s
+        drawFrame(art.santa, 2 + (t * 16f).toInt() % 14, 56, x, y, s)
     }
 }
 

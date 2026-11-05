@@ -47,7 +47,7 @@ import kotlin.math.sin
  * Tudo é função do tempo ([ThemeFx.time]) e do lugar do cartão na composição:
  * nada é guardado por partícula, nada recompõe — só redesenha.
  */
-enum class CardFx { NONE, SWAY, WET, BUBBLES, FROST, WEB, SPORES, SAND, SPARKLE }
+enum class CardFx { NONE, SWAY, WET, BUBBLES, FROST, WEB, SPORES, SAND, SPARKLE, LIGHTS }
 
 class ThemeFx(val card: CardFx, val time: State<Float>, val paused: () -> Boolean = { false })
 
@@ -73,6 +73,7 @@ fun Biome.cardFx(): CardFx = when (this) {
     Biome.MUSHROOM -> CardFx.SPORES
     Biome.DESERT -> CardFx.SAND
     Biome.HALLOW -> CardFx.SPARKLE
+    Biome.CHRISTMAS -> CardFx.LIGHTS
 }
 
 /** Um número de 0 a 1 que não muda para o mesmo cartão. */
@@ -121,6 +122,7 @@ fun BoxScope.CardFxOverlay(fx: ThemeFx, seed: Int) {
         CardFx.SPORES -> { t -> drawCardSpores(t, seed) }
         CardFx.SAND -> { t -> drawCardSand(t, seed) }
         CardFx.SPARKLE -> { t -> drawSparkles(t, seed) }
+        CardFx.LIGHTS -> { t -> drawLights(t, seed) }
         else -> return
     }
     Spacer(Modifier.matchParentSize().clip(CardShape).drawBehind { if (!fx.paused()) draw(fx.time.value) })
@@ -261,5 +263,34 @@ private fun DrawScope.drawSparkles(t: Float, seed: Int) {
         val c = colors[k].copy(alpha = a * 0.9f)
         drawRect(c, Offset(x, y - px), Size(px, px * 3))
         drawRect(c, Offset(x - px, y), Size(px * 3, px))
+    }
+}
+
+private val BULBS = listOf(Color(0xFFFF4A4A), Color(0xFF4AE05A), Color(0xFFFFD24A), Color(0xFF4AA8FF))
+
+private fun DrawScope.drawLights(t: Float, seed: Int) {
+    val px = 2.dp.toPx()
+    val gap = 18.dp.toPx()
+    val wire = Color(0xFF1A2A1E)
+    val count = (size.width / gap).toInt().coerceAtLeast(2)
+    val step = size.width / count
+    val shift = (unit(seed, 230) * 4).toInt()
+    val beat = (t * 1.6f).toInt()
+    var x = 0f
+    while (x < size.width) {
+        val q = (x % step) / step
+        drawRect(wire, Offset(x, px + sin(q * PI.toFloat()) * px * 2), Size(px, px / 2 + px / 2))
+        x += px
+    }
+    for (k in 0 until count) {
+        val bx = step * (k + 0.5f) - px
+        val by = px * 3.5f
+        val c = BULBS[(k + shift) % BULBS.size]
+        val lit = (beat + k) % 2 == 0
+        val a = if (lit) 1f else 0.45f
+        if (lit) drawRect(c.copy(alpha = 0.25f), Offset(bx - px, by - px * 0.5f), Size(px * 4, px * 4))
+        drawRect(wire, Offset(bx + px * 0.5f, by - px), Size(px, px))
+        drawRect(c.copy(alpha = a), Offset(bx, by), Size(px * 2, px * 2.5f))
+        if (lit) drawRect(Color.White.copy(alpha = 0.7f), Offset(bx, by), Size(px * 0.5f + px * 0.5f, px))
     }
 }
