@@ -10,6 +10,13 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="com.android.vending.CHECK_LICENSE" />
 
+    <!-- O BL Editor (com.bunnyloader.editor) é outro APK: só ele, assinado com
+         a mesma chave, abre a EditorBridgeActivity. Ele declara a mesma
+         permissão, para valer em qualquer ordem de instalação. -->
+    <permission
+        android:name="com.bunnyloader.permission.EDITOR"
+        android:protectionLevel="signature" />
+
     <!-- A detecção consulta o Terraria instalado — no Android 11+
          é preciso declarar visibilidade de pacotes. -->
     <queries>
@@ -59,6 +66,28 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- O "salvar instala" do BL Editor: call("install", projeto), sem tela. -->
+        <provider
+            android:name=".mods.EditorBridgeProvider"
+            android:authorities="${applicationId}.editorbridge"
+            android:exported="true"
+            android:permission="com.bunnyloader.permission.EDITOR" />
+
+        <!-- Conectar e "Testar" do BL Editor. Transparente: quem aparece
+             enquanto empacota é o editor. -->
+        <activity
+            android:name=".EditorBridgeActivity"
+            android:exported="true"
+            android:permission="com.bunnyloader.permission.EDITOR"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="com.bunnyloader.action.CONNECT_EDITOR" />
+                <action android:name="com.bunnyloader.action.TEST_SOURCE" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

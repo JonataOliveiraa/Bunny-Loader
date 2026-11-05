@@ -16,7 +16,6 @@ import java.io.IOException
 
 /** SAF view of the app-private ModSources directory. */
 class ModSourcesDocumentsProvider : DocumentsProvider() {
-    private val rootId = "mod-sources"
 
     private fun rootDirectory(): File {
         val context = requireNotNull(context)
@@ -33,9 +32,9 @@ class ModSourcesDocumentsProvider : DocumentsProvider() {
         val columns = projection ?: ROOT_COLUMNS
         return MatrixCursor(columns).apply {
             val values = mapOf<String, Any?>(
-                Root.COLUMN_ROOT_ID to rootId, Root.COLUMN_DOCUMENT_ID to rootId,
+                Root.COLUMN_ROOT_ID to ROOT_ID, Root.COLUMN_DOCUMENT_ID to ROOT_ID,
                 Root.COLUMN_TITLE to "ModSources", Root.COLUMN_SUMMARY to "Mod source projects",
-                Root.COLUMN_FLAGS to (Root.FLAG_SUPPORTS_CREATE or Root.FLAG_LOCAL_ONLY),
+                Root.COLUMN_FLAGS to (Root.FLAG_SUPPORTS_CREATE or Root.FLAG_SUPPORTS_IS_CHILD or Root.FLAG_LOCAL_ONLY),
                 Root.COLUMN_MIME_TYPES to "*/*", Root.COLUMN_AVAILABLE_BYTES to rootDirectory().usableSpace,
                 Root.COLUMN_ICON to R.mipmap.ic_launcher,
             )
@@ -140,7 +139,7 @@ class ModSourcesDocumentsProvider : DocumentsProvider() {
 
     private fun resolve(id: String): File {
         val root = rootDirectory()
-        if (id == rootId) return root
+        if (id == ROOT_ID) return root
         if (!id.startsWith("d:")) throw FileNotFoundException("Invalid document ID")
         val relative = try {
             String(Base64.decode(id.substring(2), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING), Charsets.UTF_8)
@@ -159,7 +158,7 @@ class ModSourcesDocumentsProvider : DocumentsProvider() {
         val root = rootDirectory()
         verifyContained(file)
         val relative = file.canonicalFile.relativeTo(root).path.replace(File.separatorChar, '/')
-        if (relative.isEmpty()) return rootId
+        if (relative.isEmpty()) return ROOT_ID
         return "d:" + Base64.encodeToString(relative.toByteArray(Charsets.UTF_8), Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
     }
 
@@ -195,7 +194,7 @@ class ModSourcesDocumentsProvider : DocumentsProvider() {
     }
 
     private fun mimeType(file: File): String = when (file.extension.lowercase()) {
-        "js", "json", "md", "txt", "hjson" -> "text/plain"
+        "js", "cs", "json", "md", "txt", "hjson" -> "text/plain"
         "png" -> "image/png"
         "jpg", "jpeg" -> "image/jpeg"
         "zip", "bl" -> "application/zip"
@@ -204,6 +203,7 @@ class ModSourcesDocumentsProvider : DocumentsProvider() {
 
     companion object {
         const val AUTHORITY = dev.bunnyloader.BuildConfig.APPLICATION_ID + ".documents"
+        const val ROOT_ID = "mod-sources"
         private val ROOT_COLUMNS = arrayOf(
             Root.COLUMN_ROOT_ID, Root.COLUMN_DOCUMENT_ID, Root.COLUMN_TITLE, Root.COLUMN_SUMMARY,
             Root.COLUMN_FLAGS, Root.COLUMN_MIME_TYPES, Root.COLUMN_AVAILABLE_BYTES, Root.COLUMN_ICON,
