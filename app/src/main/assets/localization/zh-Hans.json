@@ -102,6 +102,8 @@
   "LicenseSummary": "源代码可用于非商业用途（PolyForm Noncommercial 1.0.0）。Terraria、Unity、字体和每个模组都有各自的所有者和许可证。",
   "TextNotInApk": "APK 中未包含该文本。",
   "Close": "关闭",
+  "ViewIcons": "图标",
+  "ViewList": "详细列表",
   "Description": "描述",
   "Changelog": "更新日志",
   "Credits": "制作人员",

@@ -101,39 +101,40 @@ final class DevTools {
      * linha, e sem nenhum a linha nem aparece.
      */
     static View menuButtons(final Activity act) {
-        LinearLayout row = new LinearLayout(act);
-        row.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout col = new LinearLayout(act);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setGravity(Gravity.CENTER_HORIZONTAL);
         if (!CheatBridge.sRestartOn && !CheatBridge.sEditorOn) {
-            row.setVisibility(View.GONE);
-            return row;
-        }
-        View restart = pill(act, icon(act, bloom(act), 18), tr("Restart"), BUTTON, 9f);
-        restart.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) { confirmRestart(act); }
-        });
-        View console = pill(act, consoleBadge(act, 10), tr("Editor"), BUTTON, 9f);
-        console.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                openConsole(act);
-            }
-        });
-        boolean both = CheatBridge.sRestartOn && CheatBridge.sEditorOn;
-        if (CheatBridge.sRestartOn) {
-            LinearLayout.LayoutParams l = new LinearLayout.LayoutParams(0, px(act, 30), 1f);
-            if (both) l.rightMargin = px(act, 2);
-            row.addView(restart, l);
+            col.setVisibility(View.GONE);
+            return col;
         }
         if (CheatBridge.sEditorOn) {
-            LinearLayout.LayoutParams r = new LinearLayout.LayoutParams(0, px(act, 30), 1f);
-            if (both) r.leftMargin = px(act, 2);
-            row.addView(console, r);
+            FrameLayout console = new FrameLayout(act);
+            console.setBackground(CheatBridge.actionBackground(act, false));
+            console.setContentDescription(tr("Editor"));
+            console.addView(consoleBadge(act, 10), new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+            console.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { openConsole(act); }
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(act, 44), px(act, 30));
+            lp.topMargin = px(act, 4);
+            col.addView(console, lp);
         }
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.topMargin = px(act, 4);
-        lp.bottomMargin = px(act, 2);
-        row.setLayoutParams(lp);
-        return row;
+        if (CheatBridge.sRestartOn) {
+            FrameLayout restart = new FrameLayout(act);
+            restart.setBackground(CheatBridge.actionBackground(act, false));
+            restart.setContentDescription(tr("Restart"));
+            restart.addView(icon(act, bloom(act), 20), new FrameLayout.LayoutParams(
+                px(act, 20), px(act, 20), Gravity.CENTER));
+            restart.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { confirmRestart(act); }
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(act, 44), px(act, 30));
+            lp.topMargin = px(act, 4);
+            col.addView(restart, lp);
+        }
+        return col;
     }
 
     /** "</>" na fonte do jogo, o simbolo do console. */

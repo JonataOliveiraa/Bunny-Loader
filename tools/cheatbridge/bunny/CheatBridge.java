@@ -26,7 +26,10 @@ import android.text.Spanned;
 import android.text.style.TypefaceSpan;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.ColorFilter;
+import android.graphics.Path;
+import android.graphics.PixelFormat;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -38,6 +41,8 @@ import android.text.TextWatcher;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.GridView;
+import android.widget.HorizontalScrollView;
 import android.widget.ListView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -150,7 +155,9 @@ public class CheatBridge {
     // Botao de acao (o +, a bandeira, os da coluna do X): um tom acima do
     // painel, com borda clara. No escuro de antes ele sumia no fundo.
     static final int BUTTON      = 0xFF5268B6;
-    static final int BUTTON_EDGE = 0xFFA4B2EA;
+    static final int WELL = 0xFF2C3A6B;
+    static final int GOLD = 0xFFE9B43A, GOLD_OUTLINE = 0xFF3A2608;
+    static final int SELECTED = 0xFF4A5FB0, SELECTED_OUTLINE = 0xFFEBE27F;
 
     private static Activity sActivity;
     static View sOverlay;
@@ -498,6 +505,8 @@ public class CheatBridge {
         final int defaultQty;
         /** FOLDERS: as pastas do mod. */
         Section[] children;
+        int tab;
+        boolean iconTabs, modsRoot;
 
         /** Os ids que a lista mostra, na ordem. Do catalogo, sem copia. */
         int[] ids;
@@ -562,10 +571,9 @@ public class CheatBridge {
         /** A entrada "Mods": um por linha. Icone do primeiro mod. */
         static Section mods(Section[] mods) {
             Section first = mods[0];
-            Section s = new Section(tr("Mods"), FOLDERS, ALL_CLASSES, null, null, null, first.iconItem, 0);
-            s.iconFile = first.iconFile;
-            s.iconKind = first.iconKind;
+            Section s = new Section(tr("Mods"), FOLDERS, ALL_CLASSES, null, null, "ic_folder", first.iconItem, 0);
             s.children = mods;
+            s.modsRoot = true;
             s.childOne = "ModCountOne";
             s.childMany = "ModCountOther";
             return s;
@@ -721,9 +729,7 @@ public class CheatBridge {
         ArrayList<Section> l = new ArrayList<Section>();
         // Sigilo Celestial. A Estrela Cadente era a primeira ideia, mas o PNG
         // dela e uma tira de 8 quadros e saia como um risco.
-        l.add(Section.powers(tr("Superpowers"), 3601, G_PLAYER, G_WORLD));
-        // Medalhao da Lua de Abobora. Os eventos sao acoes: nada fica ligado.
-        l.add(Section.powers(tr("Events"), 1844, G_EVENTS));
+        l.add(Section.powers(tr("Superpowers"), 3601, G_PLAYER, G_WORLD, G_EVENTS));
 
         Section[] items = {
             Section.items(tr("AllItems"), ALL_CLASSES, "ic_sec_tudo_item", 0, 9999),
@@ -739,7 +745,9 @@ public class CheatBridge {
             classGroup(tr("BlocksAndFurniture"), CL_BLOCK, "ic_sec_blocos", 0, 9999),
             classGroup(tr("Other"), CL_OTHER, null, 29, 9999),          // Cristal de Vida
         };
-        l.add(Section.group(tr("Items"), "ic_sec_tudo_item", 0, SPR_ITEM, items));
+        Section itemGroup = Section.group(tr("Items"), "ic_sec_tudo_item", 0, SPR_ITEM, items);
+        itemGroup.iconTabs = true;
+        l.add(itemGroup);
 
         Section[] npcs = {
             Section.npcClass(tr("FilterAll"), -1), Section.npcClass(tr("Bosses"), NPC_BOSS),
@@ -1093,30 +1101,10 @@ public class CheatBridge {
         return Math.max(m.widthPixels, m.heightPixels) / unit(a);
     }
 
-    /**
-     * Coluna das secoes. Fixa: mais estreita, "Superpoderes" e "Poções e comida"
-     * quebravam em duas linhas.
-     */
-    private static final float ASIDE = 200;
-
-    /** O que sobra para a coluna da direita: tira coluna, margens e respiros. */
     private static float contentUnits(Activity a) {
-        return widthUnits(a) - ASIDE - RAIL - 68;
+        return widthUnits(a) - SIDE - RAIL - 60;
     }
 
-    /** Barra de quantidade: encolhe antes de espremer a busca. */
-    private static float barUnits(Activity a) {
-        return Math.max(90f, Math.min(140f, contentUnits(a) - 480f));
-    }
-
-    /**
-     * Colunas da grade de poderes: cada cartao pede ~240 unidades para o nome
-     * mais comprido ("Super velocidade x3") caber inteiro.
-     */
-    private static int powerColumns(Activity a) {
-        int n = (int) (contentUnits(a) / 240);
-        return n < 2 ? 2 : n > 4 ? 4 : n;
-    }
 
     /**
      * Tamanho de texto em pixels, e nao em sp: sp soma a escala de fonte do
@@ -1127,28 +1115,132 @@ public class CheatBridge {
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, size * TEXT_SCALE * unit(a));
     }
 
-    /** Marca do item escolhido na coluna: faixa clara, sem moldura preta. */
-    private static GradientDrawable highlight(Activity a) {
-        GradientDrawable d = new GradientDrawable();
-        d.setColor(PANEL_LIT);
-        d.setCornerRadius(px(a, 6));
-        return d;
+    private static final int[] CORNER_LARGE = {4, 2, 1, 1}, CORNER_SMALL = {2, 1};
+
+    static final class PixelPanel extends Drawable {
+        private final int fill, light, dark, outline;
+        private final int[] steps, innerSteps;
+        private final float b;
+        private final Paint paint = new Paint();
+        private final Path outer = new Path(), inner = new Path();
+
+        PixelPanel(float artPixel, int fill, int outline, boolean raised, boolean large) {
+            this.b = artPixel;
+            this.fill = fill;
+            this.outline = outline;
+            int lit = mix(fill, 0xFFFFFFFF, 0.14f), shade = mix(fill, 0xFF0D0F1A, 0.45f);
+            this.light = raised ? lit : shade;
+            this.dark = raised ? shade : lit;
+            this.steps = large ? CORNER_LARGE : CORNER_SMALL;
+            this.innerSteps = erode(steps);
+        }
+
+        @Override protected void onBoundsChange(Rect r) {
+            stepped(outer, r.left, r.top, r.right, r.bottom, steps);
+            stepped(inner, r.left + b, r.top + b, r.right - b, r.bottom - b, innerSteps);
+        }
+
+        private void stepped(Path p, float l, float t, float r, float bo, int[] s) {
+            p.reset();
+            int n = s.length;
+            if (n == 0 || r - l < b * s[0] * 2 + b || bo - t < b * n * 2 + b) {
+                p.addRect(l, t, r, bo, Path.Direction.CW);
+                return;
+            }
+            float[] xs = new float[n * 2 + 1], ys = new float[n * 2 + 1];
+            xs[0] = 0; ys[0] = n * b;
+            int k = 1;
+            for (int i = n - 1; i >= 0; i--) {
+                xs[k] = s[i] * b; ys[k++] = (i + 1) * b;
+                xs[k] = s[i] * b; ys[k++] = i * b;
+            }
+            p.moveTo(l + xs[0], t + ys[0]);
+            for (int i = 0; i < k; i++) p.lineTo(l + xs[i], t + ys[i]);
+            for (int i = k - 1; i >= 0; i--) p.lineTo(r - xs[i], t + ys[i]);
+            for (int i = 0; i < k; i++) p.lineTo(r - xs[i], bo - ys[i]);
+            for (int i = k - 1; i >= 0; i--) p.lineTo(l + xs[i], bo - ys[i]);
+            p.close();
+        }
+
+        @Override public void draw(Canvas c) {
+            Rect r = getBounds();
+            paint.setColor(outline);
+            c.drawPath(outer, paint);
+            int saved = c.save();
+            c.clipPath(inner);
+            paint.setColor(fill);
+            c.drawRect(r, paint);
+            paint.setColor(light);
+            c.drawRect(r.left + b, r.top + b, r.right - b, r.top + 2 * b, paint);
+            c.drawRect(r.left + b, r.top + b, r.left + 2 * b, r.bottom - b, paint);
+            paint.setColor(dark);
+            c.drawRect(r.left + b, r.bottom - 2 * b, r.right - b, r.bottom - b, paint);
+            c.drawRect(r.right - 2 * b, r.top + b, r.right - b, r.bottom - b, paint);
+            c.restoreToCount(saved);
+        }
+
+        @Override public void setAlpha(int alpha) { }
+        @Override public void setColorFilter(ColorFilter f) { }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
     }
 
-    /** Painel de fora: mesma cara, canto mais generoso. */
-    static GradientDrawable panelBig(Activity a, int fill, int stroke) {
-        GradientDrawable d = panel(a, fill, stroke);
-        d.setCornerRadius(px(a, 12));
-        return d;
+    private static int[] erode(int[] s) {
+        int n = s.length;
+        int[] ind = new int[n + 2];
+        System.arraycopy(s, 0, ind, 0, n);
+        int[] out = new int[n];
+        int len = 0;
+        for (int y = 1; y <= n; y++) {
+            int v = Math.max(ind[y] + 1, Math.max(ind[y - 1], ind[y + 1])) - 1;
+            out[y - 1] = v;
+            if (v > 0) len = y;
+        }
+        return Arrays.copyOf(out, len);
     }
 
-    /** Painel do Terraria: contorno escuro, corpo azul. */
-    static GradientDrawable panel(Activity a, int fill, int stroke) {
-        GradientDrawable d = new GradientDrawable();
-        d.setColor(fill);
-        d.setStroke(px(a, 2), stroke);
-        d.setCornerRadius(px(a, 3));
-        return d;
+    static int mix(int a, int b, float t) {
+        int r = Math.round(((a >> 16) & 0xFF) + (((b >> 16) & 0xFF) - ((a >> 16) & 0xFF)) * t);
+        int g = Math.round(((a >> 8) & 0xFF) + (((b >> 8) & 0xFF) - ((a >> 8) & 0xFF)) * t);
+        int bl = Math.round((a & 0xFF) + ((b & 0xFF) - (a & 0xFF)) * t);
+        return 0xFF000000 | (r << 16) | (g << 8) | bl;
+    }
+
+    static Drawable pixel(Activity a, int fill, boolean raised, boolean large, int outline) {
+        return new PixelPanel(Math.max(1, px(a, 2)), fill, outline, raised, large);
+    }
+
+    static Drawable pixel(Activity a, int fill, boolean raised, boolean large) {
+        return pixel(a, fill, raised, large, OUTLINE);
+    }
+
+    static Drawable well(Activity a, boolean large) {
+        return pixel(a, WELL, false, large);
+    }
+
+    static Drawable gold(Activity a, boolean large) {
+        return pixel(a, GOLD, true, large, GOLD_OUTLINE);
+    }
+
+    static Drawable selected(Activity a, boolean large) {
+        return pixel(a, SELECTED, false, large, SELECTED_OUTLINE);
+    }
+
+    static Drawable panelBig(Activity a, int fill, int stroke) {
+        return pixel(a, fill, fill != PANEL_DARK, true, stroke);
+    }
+
+    static Drawable panel(Activity a, int fill, int stroke) {
+        return pixel(a, fill, fill != PANEL_DARK, false, stroke);
+    }
+
+    static View seam(Activity a, boolean vertical) {
+        View v = new View(a);
+        v.setBackgroundColor(OUTLINE);
+        int t = Math.max(1, px(a, 2));
+        v.setLayoutParams(vertical
+            ? new LinearLayout.LayoutParams(t, LinearLayout.LayoutParams.MATCH_PARENT)
+            : new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, t));
+        return v;
     }
 
     /**
@@ -1756,24 +1848,25 @@ public class CheatBridge {
         act.addContentView(sOverlay, lp);
     }
 
+    private static final float SIDE = 58;
+
     private static View buildMenu(final Activity act) {
         loadModItems();
         final Section[] all = sections();
-        // O menu abre nos poderes, que nao dependem de nome nenhum. Pedir o
-        // catalogo ja aqui o monta em segundo plano enquanto a pessoa olha a
-        // grade: quando ela for aos itens, a lista ja esta pronta.
         withCatalog(act, null);
 
         FrameLayout root = new FrameLayout(act);
         root.setBackgroundColor(SCRIM);
         noAutofill(root);
-        // Clique no escuro nao atravessa para o jogo.
         root.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) { }
         });
 
         LinearLayout body = new LinearLayout(act);
         body.setOrientation(LinearLayout.HORIZONTAL);
+        body.setBackground(panelBig(act, PANEL, OUTLINE));
+        int edge = px(act, 4);
+        body.setPadding(edge, edge, edge, edge);
         FrameLayout.LayoutParams blp = new FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT);
         blp.setMargins(px(act, 14), px(act, 14), px(act, 14), px(act, 14));
@@ -1781,86 +1874,52 @@ public class CheatBridge {
         root.addView(body);
         sMenuBody = body;
 
-        // ---- coluna da direita (criada antes: o aside precisa preenche-la) ----
-        // O painel tem o conteudo da secao e, na borda direita, a coluna do X.
         final LinearLayout content = new LinearLayout(act);
         content.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout frame = new LinearLayout(act);
-        frame.setOrientation(LinearLayout.HORIZONTAL);
-        frame.setBackground(panelBig(act, PANEL, OUTLINE));
-        frame.setPadding(px(act, 10), px(act, 8), px(act, 6), px(act, 8));
+        content.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
 
-        // ---- coluna da esquerda ----
         LinearLayout aside = new LinearLayout(act);
         aside.setOrientation(LinearLayout.VERTICAL);
-        aside.setBackground(panelBig(act, PANEL, OUTLINE));
-        aside.setPadding(px(act, 10), px(act, 10), px(act, 10), px(act, 10));
-
-        LinearLayout head = new LinearLayout(act);
-        head.setOrientation(LinearLayout.HORIZONTAL);
-        head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(icon(act, sprite(act, "ic_bunny_head"), 32));
-        LinearLayout titles = new LinearLayout(act);
-        titles.setOrientation(LinearLayout.VERTICAL);
-        titles.setPadding(px(act, 8), 0, 0, 0);
-        titles.addView(text(act, tr("ModMenu"), 17, INK));
-        titles.addView(text(act, "BUNNY LOADER", 9, INK_DIM));
-        head.addView(titles);
-        aside.addView(head);
-        aside.addView(DevTools.menuButtons(act));
+        aside.setGravity(Gravity.CENTER_HORIZONTAL);
+        aside.setPadding(0, px(act, 6), 0, px(act, 4));
+        ImageView logo = icon(act, sprite(act, "ic_bunny_head"), 28);
+        LinearLayout.LayoutParams llp = new LinearLayout.LayoutParams(px(act, 28), px(act, 28));
+        llp.bottomMargin = px(act, 4);
+        aside.addView(logo, llp);
 
         final ScrollView asideScroll = new ScrollView(act);
+        asideScroll.setVerticalScrollBarEnabled(false);
         final LinearLayout asideList = new LinearLayout(act);
         asideList.setOrientation(LinearLayout.VERTICAL);
+        asideList.setGravity(Gravity.CENTER_HORIZONTAL);
         asideScroll.addView(asideList);
         aside.addView(asideScroll, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+            LinearLayout.LayoutParams.WRAP_CONTENT, 0, 1f));
 
-        // So os botoes: as categorias ficam dentro de cada um.
         final View[] buttons = new View[all.length];
-        asideList.setPadding(0, px(act, 8), 0, 0);
         for (int i = 0; i < all.length; i++) {
-            final Section s = all[i];
             final int index = i;
-            LinearLayout b = new LinearLayout(act);
-            b.setOrientation(LinearLayout.HORIZONTAL);
-            b.setGravity(Gravity.CENTER_VERTICAL);
-            b.setPadding(px(act, 8), px(act, 6), px(act, 10), px(act, 6));
-            b.addView(sectionIcon(act, s, 22));
-            TextView label = text(act, s.title, 14, INK);
-            label.setSingleLine(true);
-            label.setPadding(px(act, 8), 0, 0, 0);
-            b.addView(label);
+            FrameLayout b = new FrameLayout(act);
+            b.setContentDescription(all[i].title);
+            ImageView ic = sectionIcon(act, all[i], 26);
+            b.addView(ic, new FrameLayout.LayoutParams(px(act, 26), px(act, 26), Gravity.CENTER));
             b.setOnClickListener(new View.OnClickListener() {
                 @Override public void onClick(View v) {
                     select(act, content, all, buttons, index);
                 }
             });
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-            lp.bottomMargin = px(act, 1);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(px(act, 44), px(act, 44));
+            lp.topMargin = px(act, 4);
             asideList.addView(b, lp);
             buttons[i] = b;
         }
+        aside.addView(DevTools.menuButtons(act));
 
-        LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(
-            px(act, ASIDE), LinearLayout.LayoutParams.MATCH_PARENT);
-        alp.rightMargin = px(act, 10);
-        body.addView(aside, alp);
-        frame.addView(content, new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
-        View seam = new View(act);
-        seam.setBackgroundColor(OUTLINE);
-        LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(
-            Math.max(1, px(act, 1)), LinearLayout.LayoutParams.MATCH_PARENT);
-        slp.leftMargin = px(act, 8);
-        slp.rightMargin = px(act, 5);
-        frame.addView(seam, slp);
-        frame.addView(rail(act), new LinearLayout.LayoutParams(
-            px(act, RAIL), LinearLayout.LayoutParams.MATCH_PARENT));
-        body.addView(frame, new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+        body.addView(aside, new LinearLayout.LayoutParams(px(act, SIDE), LinearLayout.LayoutParams.MATCH_PARENT));
+        body.addView(seam(act, true));
+        body.addView(content, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+        body.addView(seam(act, true));
+        body.addView(rail(act), new LinearLayout.LayoutParams(px(act, RAIL), LinearLayout.LayoutParams.MATCH_PARENT));
 
         select(act, content, all, buttons, 0);
         return root;
@@ -1891,8 +1950,8 @@ public class CheatBridge {
      * Fundo de todo botao (a coluna do X, os cartoes de poder, as pastas, o
      * "Desligar tudo"): um tom acima do painel, com borda clara; ligado, verde.
      */
-    static GradientDrawable actionBackground(Activity a, boolean on) {
-        return panel(a, on ? GRASS : BUTTON, on ? GRASS_LIT : BUTTON_EDGE);
+    static Drawable actionBackground(Activity a, boolean on) {
+        return pixel(a, on ? GRASS : BUTTON, true, false);
     }
 
     private static ImageView railButton(Activity act, LinearLayout col, Bitmap bmp, String name) {
@@ -1916,6 +1975,7 @@ public class CheatBridge {
         LinearLayout col = new LinearLayout(act);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER_HORIZONTAL);
+        col.setPadding(0, px(act, 4), 0, 0);
 
         ImageView close = icon(act, sprite(act, "ic_fechar"), 40);
         close.setContentDescription(tr("Close"));
@@ -2456,316 +2516,301 @@ public class CheatBridge {
         }
     }
 
-    private static final long TIME_FLASH_MS = 400;
-
-    /**
-     * Barra de quantidade desenhada a mao, com a cara do jogo.
-     *
-     * A SeekBar do Android traz o tema do aparelho junto — pilula cinza, bolinha
-     * com halo de toque, a cor de destaque do sistema — e destoa de tudo em
-     * volta. Aqui e um sulco escuro, o preenchido em verde e uma alca, tudo de
-     * canto reto e com contorno, que e como o Terraria desenha barra.
-     *
-     * Com teto alto (9999 itens), a barra anda em curva: linear, cada pixel
-     * valia dezenas de itens e nao dava para pedir 5. Assim o comeco da barra
-     * e fino (um decimo dela chega a ~100) e o fim chega ao teto.
-     */
-    private static final class Range extends View {
-        private final int max;
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final float border, handle;
-        private int value;
-        Runnable onChange;
-
-        Range(Activity a, int max, int initial) {
-            super(a);
-            this.max = max < 1 ? 1 : max;
-            this.value = initial;
-            this.border = px(a, 2);
-            this.handle = px(a, 13);
-        }
-
-        int value() { return value; }
-
-        /** Posicao (0..1) -> valor, e o inverso. Curva so com teto alto. */
-        private boolean curved() { return max > 1000; }
-        private float toPosition(int v) {
-            float t = (v - 1) / (float) (max - 1 == 0 ? 1 : max - 1);
-            return curved() ? (float) Math.sqrt(t) : t;
-        }
-        private int fromPosition(float t) {
-            float f = curved() ? t * t : t;
-            return 1 + Math.round(f * (max - 1));
-        }
-
-        @Override protected void onMeasure(int wSpec, int hSpec) {
-            setMeasuredDimension(resolveSize(px((Activity) getContext(), barUnits((Activity) getContext())), wSpec),
-                                 resolveSize((int) (handle * 1.7f + px((Activity) getContext(), 4)), hSpec));
-        }
-
-        @Override protected void onDraw(Canvas c) {
-            final float mid = getHeight() / 2f;
-            final float groove = px((Activity) getContext(), 10);
-            final float x0 = handle / 2f, x1 = getWidth() - handle / 2f;
-            final float top = mid - groove / 2f, base = mid + groove / 2f;
-
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(OUTLINE);
-            c.drawRect(x0 - border, top - border, x1 + border, base + border, paint);
-            paint.setColor(PANEL_DARK);
-            c.drawRect(x0, top, x1, base, paint);
-
-            final float cx = x0 + (x1 - x0) * toPosition(value);
-            if (cx > x0) {
-                paint.setColor(GRASS);
-                c.drawRect(x0, top, cx, base, paint);
-            }
-
-            // A alca e MAIS ALTA que o sulco e e BRANCA: dentro do verde do
-            // preenchido, uma alca verde sumia — virava uma listra e ninguem
-            // via onde pegar.
-            final float handleH = handle * 1.7f;
-            final float ax = cx - handle / 2f, ay = mid - handleH / 2f;
-            paint.setColor(OUTLINE);
-            c.drawRect(ax, ay, ax + handle, ay + handleH, paint);
-            paint.setColor(0xFFFFFFFF);
-            c.drawRect(ax + border, ay + border, ax + handle - border, ay + handleH - border, paint);
-            // Meia sombra embaixo: e assim que o jogo da volume a um botao.
-            paint.setColor(0xFFB9C0D4);
-            c.drawRect(ax + border, mid + handleH / 6f, ax + handle - border, ay + handleH - border, paint);
-        }
-
-        @Override public boolean onTouchEvent(MotionEvent e) {
-            switch (e.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_MOVE:
-                case MotionEvent.ACTION_UP:
-                    final float x0 = handle / 2f, x1 = getWidth() - handle / 2f;
-                    float t = (e.getX() - x0) / Math.max(1f, x1 - x0);
-                    if (t < 0) t = 0; else if (t > 1) t = 1;
-                    int next = fromPosition(t);
-                    if (next != value) {
-                        value = next;
-                        invalidate();
-                        if (onChange != null) onChange.run();
-                    }
-                    // Segura o gesto: sem isto a ListView rouba o arrasto.
-                    getParent().requestDisallowInterceptTouchEvent(true);
-                    return true;
-                default:
-                    return super.onTouchEvent(e);
-            }
-        }
-    }
-
-    /** Teto do slider: a pilha cheia do jogo (9999) e 99 NPCs de uma vez. */
-    private static final int MAX_ITEM = 9999;
-    private static final int MAX_NPC = 99;
-    /** Buff: o slider e a duracao, em minutos. */
-    private static final int MAX_BUFF_MIN = 60;
+    private static final int[] QTY_ITEM = {1, 10, 99, 9999};
+    private static final int[] QTY_NPC = {1, 5, 10, 50};
+    private static final int[] QTY_BUFF = {1, 5, 15, 60};
+    private static final int[] sQtyChoice = {-1, -1, -1};
 
     private static String qtyText(Section s, int n) {
         return s.buff() ? n + " min" : "x" + n;
     }
 
-    /**
-     * O topo da coluna, numa linha so: icone, titulo e contagem a esquerda.
-     *
-     * Eram tres faixas empilhadas de ponta a ponta — titulo com subtitulo, a
-     * barra de quantidade esticada na largura inteira, a busca tambem. Nenhuma
-     * das tres precisa da largura toda, e cada faixa era uma linha de lista a
-     * menos na tela. Lado a lado, o que e fixo fica do tamanho que tem.
-     */
-    private static LinearLayout buildHeader(Activity act, Section s, TextView countLabel) {
-        return buildHeader(act, s, countLabel, null);
+    private static int[] qtyOptions(Section s) {
+        return s.npc() ? QTY_NPC : s.buff() ? QTY_BUFF : QTY_ITEM;
     }
 
-    /** Com `back`, uma seta de voltar na frente (dentro das pastas de um mod). */
-    private static LinearLayout buildHeader(Activity act, Section s, TextView countLabel,
-                                            final Runnable back) {
-        LinearLayout t = new LinearLayout(act);
-        t.setOrientation(LinearLayout.HORIZONTAL);
-        t.setGravity(Gravity.CENTER_VERTICAL);
-        if (back != null) {
-            // A seta do jogo (UI/TexturePackButtons), a mesma do pacote de texturas.
-            ImageView arrow = icon(act, sprite(act, "ic_seta_esq"), 34);
-            arrow.setContentDescription(tr("Back"));
-            // Area de toque maior que o desenho: a seta fica no canto.
-            arrow.setPadding(px(act, 6), px(act, 6), px(act, 10), px(act, 6));
-            arrow.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) { back.run(); }
-            });
-            t.addView(arrow);
-        }
-        t.addView(sectionIcon(act, s, 26));
-        TextView titleView = text(act, s.title, 17, INK);
-        titleView.setPadding(px(act, 8), 0, 0, 0);
-        titleView.setSingleLine(true);
-        t.addView(titleView);
-        if (countLabel != null) {
-            countLabel.setPadding(px(act, 8), 0, 0, 0);
-            t.addView(countLabel);
-        }
-        return t;
+    private static int qtyDefault(Section s) {
+        int chosen = sQtyChoice[s.spriteKind()];
+        if (chosen > 0) return chosen;
+        if (s.npc()) return 1;
+        if (s.buff()) return 5;
+        return s.defaultQty > 1 ? 9999 : 1;
     }
 
-    /** A secao na tela agora: quem espera o catalogo so redesenha se for ela. */
     private static int sCurrentSection = -1;
-    /** Espera depois da ultima tecla antes de filtrar. */
     private static final int SEARCH_DELAY_MS = 150;
+    private static final long GIVEN_FLASH_MS = 1200;
 
-    /** Troca a secao mostrada e marca o botao escolhido. */
     private static void select(final Activity act, final LinearLayout content,
                                final Section[] all, final View[] buttons, final int index) {
         sCurrentSection = index;
         for (int i = 0; i < buttons.length; i++) {
-            // So o escolhido tem fundo. Antes cada item da coluna era um
-            // retangulo azul-escuro com contorno preto, e onze deles empilhados
-            // viravam uma parede de caixas — o que se via era a moldura, nao a
-            // lista.
-            buttons[i].setBackground(i == index ? highlight(act) : null);
+            buttons[i].setBackground(i == index ? gold(act, true) : well(act, true));
         }
         final Section s = all[index];
-        if (s.kind == Section.POWER) { content.removeAllViews(); showPowers(act, content, s); return; }
-        open(act, content, s, index, null);
+        content.removeAllViews();
+        if (s.kind == Section.POWER) { showPowers(act, content, s); return; }
+        if (s.modsRoot) { showMods(act, content, s, index); return; }
+        showBrowser(act, content, s, index);
     }
 
-    /**
-     * Mostra uma entrada, de qualquer nivel: categorias (FOLDERS) ou a lista.
-     * `back`, se houver, e a seta de voltar ao nivel de cima. `index` e o
-     * botao do aside de onde se veio: o que chega depois (o catalogo ficou
-     * pronto) so redesenha se a pessoa ainda estiver nele.
-     */
-    private static void open(final Activity act, final LinearLayout content, final Section s,
-                             final int index, final Runnable back) {
-        if (s.kind == Section.FOLDERS) { showFolders(act, content, s, index, back); return; }
-        final Runnable[] redraw = { null };
-        redraw[0] = new Runnable() {
+    private static ArrayList<Section> visibleChildren(Section parent) {
+        ArrayList<Section> shown = new ArrayList<Section>();
+        if (parent.children == null) return shown;
+        for (Section f : parent.children) {
+            if (f.kind == Section.FOLDERS) {
+                if (!parent.fromCatalog || f.children.length == 0) { shown.add(f); continue; }
+                Section first = f.children[0];
+                first.load();
+                if (first.total() > 0) shown.add(f);
+                continue;
+            }
+            f.load();
+            if (!parent.fromCatalog || f.subClass < 0 || f.total() > 0) shown.add(f);
+        }
+        return shown;
+    }
+
+    private static TextView crumbText(Activity act, String s, boolean dim) {
+        TextView t = text(act, s, dim ? 12 : 15, dim ? INK_DIM : INK);
+        t.setSingleLine(true);
+        t.setPadding(px(act, 6), 0, 0, 0);
+        return t;
+    }
+
+    private static LinearLayout crumbs(Activity act, Section icon, String... parts) {
+        LinearLayout t = new LinearLayout(act);
+        t.setOrientation(LinearLayout.HORIZONTAL);
+        t.setGravity(Gravity.CENTER_VERTICAL);
+        t.addView(sectionIcon(act, icon, 24));
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i] == null) continue;
+            if (i > 0) t.addView(crumbText(act, "›", true));
+            t.addView(crumbText(act, parts[i], false));
+        }
+        return t;
+    }
+
+    private static TextView chip(Activity act, String label, boolean on) {
+        TextView b = text(act, label, 12, INK);
+        b.setSingleLine(true);
+        b.setGravity(Gravity.CENTER);
+        b.setPadding(px(act, 10), px(act, 4), px(act, 10), px(act, 4));
+        b.setBackground(on ? gold(act, false) : well(act, false));
+        return b;
+    }
+
+    private static void addSpaced(Activity act, LinearLayout row, View v, int w, int h) {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(w, h);
+        lp.rightMargin = px(act, 3);
+        row.addView(v, lp);
+    }
+
+    private static View iconTab(Activity act, Section s, boolean on) {
+        FrameLayout b = new FrameLayout(act);
+        b.setContentDescription(s.title);
+        b.setBackground(on ? gold(act, false) : well(act, false));
+        b.addView(sectionIcon(act, s, 22), new FrameLayout.LayoutParams(px(act, 22), px(act, 22), Gravity.CENTER));
+        return b;
+    }
+
+    private static View loadingPage(Activity act, LinearLayout content, Section s, Runnable redraw) {
+        content.addView(crumbs(act, s, s.title), new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 34)));
+        View v = loadingView(act, tr("ReadingGameCatalog"));
+        content.addView(v, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+        withCatalog(act, redraw);
+        return v;
+    }
+
+    private static void showBrowser(final Activity act, final LinearLayout content,
+                                    final Section group, final int index) {
+        content.removeAllViews();
+        final Runnable redraw = new Runnable() {
             @Override public void run() {
-                if (sCurrentSection == index) showList(act, content, s, redraw[0], back);
+                if (sCurrentSection == index) showBrowser(act, content, group, index);
             }
         };
-        showList(act, content, s, redraw[0], back);
-    }
+        if (sCatalog == null) { loadingPage(act, content, group, redraw); return; }
 
-    /** "12 categorias", "1 pasta", "340 itens": o que uma linha tem dentro. */
-    private static String contents(Section f) {
-        if (f.kind == Section.FOLDERS) {
-            int n = f.children.length;
-            return childCount(f, n);
-        }
-        int n = f.total();
-        return tr(f.npc() ? (n == 1 ? "NpcCountOne" : "NpcCountOther")
-                  : f.buff() ? (n == 1 ? "BuffCountOne" : "BuffCountOther")
-                  : (n == 1 ? "ItemCountOne" : "ItemCountOther"), n);
-    }
-
-    private static String childCount(Section section, int n) {
-        return tr(n == 1 ? section.childOne : section.childMany, n);
-    }
-
-    /**
-     * Uma entrada com categorias dentro (Itens, NPCs, um mod...), uma por
-     * linha. Tocar abre a categoria (outra lista de categorias, ou a lista de
-     * itens), que tem a seta de voltar para ca.
-     */
-    private static void showFolders(final Activity act, final LinearLayout content,
-                                    final Section mod, final int index, final Runnable up) {
-        content.removeAllViews();
-        if (mod.fromCatalog && sCatalog == null) {
-            // As subcategorias vem do catalogo: o girassol ate ele ficar pronto.
-            content.addView(buildHeader(act, mod, null, up));
-            content.addView(loadingView(act, tr("ReadingGameCatalog")),
-                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-            withCatalog(act, new Runnable() {
-                @Override public void run() {
-                    if (sCurrentSection == index) showFolders(act, content, mod, index, up);
-                }
-            });
+        final ArrayList<Section> level1 = visibleChildren(group);
+        if (level1.isEmpty()) {
+            content.addView(crumbs(act, group, group.title));
             return;
         }
-        // Subcategoria vazia (nenhum item dela neste jogo) nao aparece.
-        final ArrayList<Section> shown = new ArrayList<Section>();
-        for (Section f : mod.children) {
-            if (f.kind != Section.FOLDERS) f.load();
-            if (!mod.fromCatalog || f.kind == Section.FOLDERS || f.subClass < 0 || f.total() > 0) shown.add(f);
+        if (group.tab >= level1.size()) group.tab = 0;
+        final Section cur = level1.get(group.tab);
+        Section leaf = cur;
+        ArrayList<Section> level2 = null;
+        if (cur.kind == Section.FOLDERS) {
+            level2 = visibleChildren(cur);
+            if (cur.tab >= level2.size()) cur.tab = 0;
+            leaf = level2.isEmpty() ? null : level2.get(cur.tab);
         }
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = px(act, 6);
-        int n = shown.size();
-        content.addView(buildHeader(act, mod, text(act, childCount(mod, n),
-            10, INK_DIM), up), lp);
 
-        final Runnable back = new Runnable() {
-            @Override public void run() {
-                if (sCurrentSection == index) showFolders(act, content, mod, index, up);
-            }
-        };
-        LinearLayout rows = new LinearLayout(act);
-        rows.setOrientation(LinearLayout.VERTICAL);
-        for (final Section folder : shown) {
-            LinearLayout r = new LinearLayout(act);
-            r.setOrientation(LinearLayout.HORIZONTAL);
-            r.setGravity(Gravity.CENTER_VERTICAL);
-            r.setPadding(px(act, 6), px(act, 6), px(act, 6), px(act, 6));
-            r.addView(sectionIcon(act, folder, 30));
-            TextView name = text(act, folder.title, 14, INK);
-            name.setPadding(px(act, 8), 0, 0, 0);
-            r.addView(name);
-            TextView count = text(act, contents(folder), 10, INK_DIM);
-            count.setPadding(px(act, 8), 0, 0, px(act, 2));
-            r.addView(count, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-            ImageView enter = icon(act, sprite(act, "ic_seta_dir"), 20);   // seta de entrar
-            r.addView(enter);
-            r.setBackground(actionBackground(act, false));
-            r.setOnClickListener(new View.OnClickListener() {
-                @Override public void onClick(View v) { open(act, content, folder, index, back); }
+        LinearLayout tabs = new LinearLayout(act);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabs.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout first = new LinearLayout(act);
+        first.setOrientation(LinearLayout.HORIZONTAL);
+        first.setGravity(Gravity.CENTER_VERTICAL);
+        for (int i = 0; i < level1.size(); i++) {
+            final int k = i;
+            Section c = level1.get(i);
+            View b = group.iconTabs ? iconTab(act, c, i == group.tab) : chip(act, c.title, i == group.tab);
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { group.tab = k; showBrowser(act, content, group, index); }
             });
-            LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-            rp.bottomMargin = px(act, 4);
-            rows.addView(r, rp);
+            if (group.iconTabs) addSpaced(act, first, b, px(act, 34), px(act, 32));
+            else addSpaced(act, first, b, LinearLayout.LayoutParams.WRAP_CONTENT, px(act, 30));
         }
-        ScrollView scroll = new ScrollView(act);
-        scroll.addView(rows);
-        content.addView(scroll, new LinearLayout.LayoutParams(
+        HorizontalScrollView firstScroll = new HorizontalScrollView(act);
+        firstScroll.setHorizontalScrollBarEnabled(false);
+        firstScroll.addView(first);
+        if (level2 != null && level2.size() > 1) {
+            tabs.addView(firstScroll, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            View sep = seam(act, true);
+            LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(Math.max(1, px(act, 2)), px(act, 24));
+            sp.leftMargin = px(act, 4);
+            sp.rightMargin = px(act, 7);
+            tabs.addView(sep, sp);
+            LinearLayout second = new LinearLayout(act);
+            second.setOrientation(LinearLayout.HORIZONTAL);
+            second.setGravity(Gravity.CENTER_VERTICAL);
+            for (int i = 0; i < level2.size(); i++) {
+                final int k = i;
+                TextView b = chip(act, level2.get(i).title, i == cur.tab);
+                b.setOnClickListener(new View.OnClickListener() {
+                    @Override public void onClick(View v) { cur.tab = k; showBrowser(act, content, group, index); }
+                });
+                addSpaced(act, second, b, LinearLayout.LayoutParams.WRAP_CONTENT, px(act, 28));
+            }
+            HorizontalScrollView secondScroll = new HorizontalScrollView(act);
+            secondScroll.setHorizontalScrollBarEnabled(false);
+            secondScroll.addView(second);
+            tabs.addView(secondScroll, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        } else {
+            tabs.addView(firstScroll, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        }
+
+        if (leaf == null) {
+            content.addView(crumbs(act, group, group.title, cur.title));
+            content.addView(tabs);
+            return;
+        }
+        showGrid(act, content, leaf, crumbs(act, group, group.title, cur.title), tabs);
+    }
+
+    private static void showMods(final Activity act, final LinearLayout content,
+                                 final Section mods, final int index) {
+        content.removeAllViews();
+        if (mods.tab >= mods.children.length) mods.tab = 0;
+        final Section mod = mods.children[mods.tab];
+
+        LinearLayout row = new LinearLayout(act);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        content.addView(row, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
+
+        LinearLayout list = new LinearLayout(act);
+        list.setOrientation(LinearLayout.VERTICAL);
+        list.setPadding(0, 0, px(act, 6), 0);
+        for (int i = 0; i < mods.children.length; i++) {
+            final int k = i;
+            Section m = mods.children[i];
+            LinearLayout b = new LinearLayout(act);
+            b.setOrientation(LinearLayout.HORIZONTAL);
+            b.setGravity(Gravity.CENTER_VERTICAL);
+            b.setPadding(px(act, 7), px(act, 5), px(act, 7), px(act, 5));
+            b.setBackground(i == mods.tab ? gold(act, true) : well(act, true));
+            b.addView(sectionIcon(act, m, 26));
+            TextView name = text(act, m.title, 12, INK);
+            name.setSingleLine(true);
+            name.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            name.setPadding(px(act, 7), 0, 0, 0);
+            b.addView(name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { mods.tab = k; showMods(act, content, mods, index); }
+            });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, px(act, 42));
+            lp.bottomMargin = px(act, 4);
+            list.addView(b, lp);
+        }
+        ScrollView listScroll = new ScrollView(act);
+        listScroll.setVerticalScrollBarEnabled(false);
+        listScroll.addView(list);
+        row.addView(listScroll, new LinearLayout.LayoutParams(px(act, 200), LinearLayout.LayoutParams.MATCH_PARENT));
+        row.addView(seam(act, true));
+
+        final LinearLayout inner = new LinearLayout(act);
+        inner.setOrientation(LinearLayout.VERTICAL);
+        inner.setPadding(px(act, 8), 0, 0, 0);
+        row.addView(inner, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f));
+        showModFolders(act, inner, mod, index);
     }
 
-    /**
-     * A lista de uma secao (ou pasta): busca, quantidade, linhas. `redraw`
-     * mostra de novo quando o catalogo fica pronto; `back`, se houver, e a seta
-     * de voltar (pasta de mod).
-     */
-    private static void showList(final Activity act, final LinearLayout content, final Section s,
-                                 final Runnable redraw, final Runnable back) {
-        s.filtered = null;   // filtro e da visita, nao da secao
-        content.removeAllViews();
-
-        if (!s.load()) {
-            // O girassol gira enquanto o catalogo monta em segundo plano; quando
-            // ele fica pronto, a secao se redesenha sozinha — se a pessoa ainda
-            // estiver nela.
-            content.addView(buildHeader(act, s, null, back));
-            content.addView(loadingView(act, tr("ReadingGameCatalog")),
-                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-            withCatalog(act, redraw);
-            return;
+    private static void showModFolders(final Activity act, final LinearLayout inner,
+                                       final Section mod, final int index) {
+        inner.removeAllViews();
+        final Runnable redraw = new Runnable() {
+            @Override public void run() {
+                if (sCurrentSection == index) showModFolders(act, inner, mod, index);
+            }
+        };
+        if (sCatalog == null) { loadingPage(act, inner, mod, redraw); return; }
+        if (mod.tab >= mod.children.length) mod.tab = 0;
+        Section leaf = mod.children[mod.tab];
+        LinearLayout tabs = new LinearLayout(act);
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        for (int i = 0; i < mod.children.length; i++) {
+            final int k = i;
+            Section f = mod.children[i];
+            LinearLayout b = new LinearLayout(act);
+            b.setOrientation(LinearLayout.HORIZONTAL);
+            b.setGravity(Gravity.CENTER_VERTICAL);
+            b.setPadding(px(act, 8), 0, px(act, 10), 0);
+            b.setBackground(i == mod.tab ? gold(act, false) : well(act, false));
+            b.addView(sectionIcon(act, f, 20));
+            TextView name = text(act, f.title, 12, INK);
+            name.setSingleLine(true);
+            name.setPadding(px(act, 5), 0, 0, 0);
+            b.addView(name);
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { mod.tab = k; showModFolders(act, inner, mod, index); }
+            });
+            addSpaced(act, tabs, b, LinearLayout.LayoutParams.WRAP_CONTENT, px(act, 30));
         }
+        HorizontalScrollView scroll = new HorizontalScrollView(act);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.addView(tabs);
+        showGrid(act, inner, leaf, crumbs(act, mod, mod.title), scroll);
+    }
 
-        // ---- topo: titulo | busca | quantidade ----
-        final TextView countLabel = text(act, String.valueOf(s.total()), 10, INK_DIM);
-        LinearLayout headerRow = buildHeader(act, s, countLabel, back);
+    private static final class CellViews {
+        ImageView sprite;
+        TextView given;
+        int state = -1;
+    }
+
+    private static void showGrid(final Activity act, final LinearLayout content, final Section s,
+                                 View title, View tabs) {
+        s.filtered = null;
+        s.load();
+
+        LinearLayout header = new LinearLayout(act);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(title, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         LinearLayout searchBox = new LinearLayout(act);
         searchBox.setOrientation(LinearLayout.HORIZONTAL);
         searchBox.setGravity(Gravity.CENTER_VERTICAL);
-        searchBox.setBackground(panel(act, PANEL_DARK, OUTLINE));
-        searchBox.setPadding(px(act, 6), 0, px(act, 6), 0);
-        searchBox.addView(icon(act, sprite(act, "ic_lupa"), 16));
-
+        searchBox.setBackground(well(act, false));
+        searchBox.setPadding(px(act, 8), 0, px(act, 6), 0);
+        searchBox.addView(icon(act, sprite(act, "ic_lupa"), 14));
         final EditText searchField = new EditText(act);
         searchField.setSingleLine(true);
         searchField.setBackground(null);
@@ -2778,9 +2823,7 @@ public class CheatBridge {
         noAutofill(searchField);
         applyTextSize(act, searchField, 11);
         searchField.setTypeface(font(act));
-        searchField.setPadding(px(act, 6), px(act, 3), 0, px(act, 3));
-        // Sem a tela cheia de edicao que o Android poe por cima do jogo com o
-        // aparelho deitado: o teclado abre embaixo e a busca fica a vista.
+        searchField.setPadding(px(act, 6), px(act, 2), 0, px(act, 2));
         searchField.setImeOptions(android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI
             | android.view.inputmethod.EditorInfo.IME_FLAG_NO_FULLSCREEN
             | android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
@@ -2789,105 +2832,273 @@ public class CheatBridge {
         });
         searchBox.addView(searchField, new LinearLayout.LayoutParams(
             0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(0, px(act, 32), 1f);
+        bp.leftMargin = px(act, 10);
+        bp.rightMargin = px(act, 8);
+        header.addView(searchBox, bp);
 
-        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        bp.leftMargin = px(act, 12);
-        bp.rightMargin = px(act, 12);
-        headerRow.addView(searchBox, bp);
+        final Runnable[] applyMode = { null };
+        final View[] modeButtons = new View[2];
+        for (int m = 0; m < 2; m++) {
+            final boolean list = m == 1;
+            FrameLayout b = new FrameLayout(act);
+            b.setContentDescription(tr(list ? "ViewList" : "ViewIcons"));
+            b.setBackground(list == listMode(act) ? gold(act, false) : well(act, false));
+            ImageView ic = new ImageView(act);
+            setBitmap(act, ic, modeIcon(list));
+            b.addView(ic, new FrameLayout.LayoutParams(px(act, 18), px(act, 18), Gravity.CENTER));
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    if (list == listMode(act)) return;
+                    setListMode(act, list);
+                    modeButtons[0].setBackground(list ? well(act, false) : gold(act, false));
+                    modeButtons[1].setBackground(list ? gold(act, false) : well(act, false));
+                    if (applyMode[0] != null) applyMode[0].run();
+                }
+            });
+            modeButtons[m] = b;
+            LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(px(act, 32), px(act, 32));
+            mp.rightMargin = px(act, m == 1 ? 8 : 3);
+            header.addView(b, mp);
+        }
 
-        final int max = s.npc() ? MAX_NPC : s.buff() ? MAX_BUFF_MIN : MAX_ITEM;
-        final int initial = Math.min(max, Math.max(1, s.defaultQty));
-        final int[] qty = { initial };
-        final TextView qtyLabel = text(act, qtyText(s, initial), 12, INK);
-        // Largura de "x9999" fixa: sem isto a barra pulava para o lado a cada
-        // digito que o numero ganhava ou perdia.
-        qtyLabel.setWidth((int) Math.ceil(qtyLabel.getPaint().measureText(
-            qtyText(s, max))) + qtyLabel.getPaddingLeft() + qtyLabel.getPaddingRight());
-        qtyLabel.setSingleLine(true);
-        qtyLabel.setGravity(Gravity.END);
-        final Range qtyBar = new Range(act, max, initial);
-        qtyBar.onChange = new Runnable() {
+        final int[] qty = { qtyDefault(s) };
+        final int[] options = qtyOptions(s);
+        final TextView[] qtyButtons = new TextView[options.length];
+        for (int i = 0; i < options.length; i++) {
+            final int n = options[i];
+            final TextView b = text(act, qtyText(s, n), 12, INK);
+            b.setSingleLine(true);
+            b.setGravity(Gravity.CENTER);
+            b.setPadding(px(act, 7), 0, px(act, 7), 0);
+            b.setMinWidth(px(act, 38));
+            b.setBackground(actionBackground(act, n == qty[0]));
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    qty[0] = n;
+                    sQtyChoice[s.spriteKind()] = n;
+                    for (int k = 0; k < options.length; k++) {
+                        qtyButtons[k].setBackground(actionBackground(act, options[k] == n));
+                    }
+                }
+            });
+            qtyButtons[i] = b;
+            LinearLayout.LayoutParams qp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, px(act, 32));
+            qp.leftMargin = px(act, 3);
+            header.addView(b, qp);
+        }
+        content.addView(header, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        if (tabs != null) {
+            LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            tp.topMargin = px(act, 6);
+            content.addView(tabs, tp);
+        }
+
+        final LinearLayout strip = new LinearLayout(act);
+        strip.setOrientation(LinearLayout.HORIZONTAL);
+        strip.setGravity(Gravity.CENTER_VERTICAL);
+        strip.setBackground(well(act, false));
+        strip.setPadding(px(act, 10), 0, px(act, 10), 0);
+        final ImageView stripSprite = icon(act, null, 24);
+        strip.addView(stripSprite);
+        final TextView stripName = text(act, "", 14, INK);
+        stripName.setSingleLine(true);
+        stripName.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        stripName.setPadding(px(act, 8), 0, 0, 0);
+        strip.addView(stripName, new LinearLayout.LayoutParams(
+            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        final TextView stripId = text(act, "", 11, INK_DIM);
+        stripId.setPadding(px(act, 8), 0, px(act, 12), 0);
+        strip.addView(stripId);
+        final TextView countLabel = text(act, "", 11, INK_DIM);
+        strip.addView(countLabel);
+
+        final int[] selectedId = { -1 };
+        final int[] givenId = { -1 };
+        final Runnable showSelected = new Runnable() {
             @Override public void run() {
-                qty[0] = qtyBar.value();
-                qtyLabel.setText(qtyText(s, qty[0]));
+                int id = selectedId[0];
+                if (id < 0) {
+                    setBitmap(act, stripSprite, null);
+                    stripName.setText("");
+                    stripId.setText("");
+                    return;
+                }
+                int k = -1;
+                for (int i = 0; i < s.total(); i++) if (s.ids[i] == id) { k = i; break; }
+                String raw = k >= 0 ? s.nameAt(k) : null;
+                stripName.setText(raw == null || raw.length() == 0 ? ("#" + id) : raw);
+                stripId.setText((s.npc() ? "NPC " : s.buff() ? "buff " : "id ") + id);
+                requestSprite(act, stripSprite, s.spriteKind(), id);
             }
         };
-        headerRow.addView(qtyLabel);
-        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(
-            px(act, barUnits(act)), LinearLayout.LayoutParams.WRAP_CONTENT);
-        rp.leftMargin = px(act, 6);
-        headerRow.addView(qtyBar, rp);
-
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = px(act, 6);
-        content.addView(headerRow, lp);
+        final Runnable showCount = new Runnable() {
+            @Override public void run() {
+                int n = s.filtered == null ? s.total() : s.count();
+                countLabel.setText(s.filtered == null ? contents(s) : tr("CountOfTotal", n, s.total()));
+            }
+        };
+        showCount.run();
 
         if (s.total() == 0) {
-            content.addView(text(act, s.npc() ? tr("NoNPCsHere") : s.buff() ? tr("NoBuffsHere")
-                : tr("ItemClassesMissing"), 12, INK_DIM));
+            TextView empty = text(act, s.npc() ? tr("NoNPCsHere") : s.buff() ? tr("NoBuffsHere")
+                : tr("ItemClassesMissing"), 12, INK_DIM);
+            empty.setGravity(Gravity.CENTER);
+            content.addView(empty, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
             return;
         }
 
-        // ---- lista ----
-        //
-        // ListView, e nao ScrollView com tudo dentro: "Todos os itens" tem 6147
-        // linhas, e montar 6147 Views de uma vez trava o jogo por segundos. A
-        // ListView so monta o que cabe na tela e reaproveita ao rolar.
-        final ListView list = new ListView(act);
-        // Uma linha quase invisivel entre as linhas, no lugar da borda preta
-        // arredondada que cada card tinha: com 6147 deles, a tela virava uma
-        // grade de caixinhas em vez de uma lista.
-        list.setDivider(new android.graphics.drawable.ColorDrawable(0x22FFFFFF));
-        list.setDividerHeight(Math.max(1, px(act, 1)));
-        list.setCacheColorHint(0);
+        final FrameLayout holder = new FrameLayout(act);
+        final android.widget.AbsListView[] view = { null };
+        final int cell = px(act, 46);
         final BaseAdapter adapter = new BaseAdapter() {
             @Override public int getCount() { return s.count(); }
             @Override public Object getItem(int i) { return null; }
             @Override public long getItemId(int i) { return i; }
             @Override public View getView(int i, View recycled, ViewGroup parent) {
-                return row(act, s, s.indexAt(i), qty, recycled);
+                if (parent instanceof ListView) return row(act, s, s.indexAt(i), recycled, selectedId[0], givenId[0], qty[0]);
+                return cell(act, s, s.indexAt(i), recycled, cell, selectedId[0], givenId[0], qty[0]);
             }
         };
-        list.setAdapter(adapter);
-        // Filtra quando a pessoa PARA de digitar, e nao a cada letra: "espada"
-        // eram seis passadas por 6146 nomes, cinco delas jogadas fora.
+        final android.widget.AdapterView.OnItemClickListener give = new android.widget.AdapterView.OnItemClickListener() {
+            @Override public void onItemClick(android.widget.AdapterView<?> p, View v, int position, long l) {
+                final int id = s.ids[s.indexAt(position)];
+                int n = qty[0] < 1 ? 1 : qty[0];
+                if (s.buff()) nOnBuff(id, n * 60);
+                else if (s.npc()) nOnSpawn(id, n);
+                else nOnGive(id, n);
+                selectedId[0] = id;
+                givenId[0] = id;
+                showSelected.run();
+                adapter.notifyDataSetChanged();
+                holder.postDelayed(new Runnable() {
+                    @Override public void run() {
+                        if (givenId[0] != id) return;
+                        givenId[0] = -1;
+                        adapter.notifyDataSetChanged();
+                    }
+                }, GIVEN_FLASH_MS);
+            }
+        };
+        applyMode[0] = new Runnable() {
+            @Override public void run() {
+                int first = view[0] == null ? 0 : view[0].getFirstVisiblePosition();
+                android.widget.AbsListView v;
+                if (listMode(act)) {
+                    ListView l = new ListView(act);
+                    l.setDivider(new android.graphics.drawable.ColorDrawable(0));
+                    l.setDividerHeight(px(act, 3));
+                    v = l;
+                } else {
+                    GridView g = new GridView(act);
+                    g.setColumnWidth(cell);
+                    g.setNumColumns(GridView.AUTO_FIT);
+                    g.setStretchMode(GridView.STRETCH_COLUMN_WIDTH);
+                    g.setHorizontalSpacing(px(act, 4));
+                    g.setVerticalSpacing(px(act, 4));
+                    v = g;
+                }
+                v.setSelector(new android.graphics.drawable.ColorDrawable(0));
+                v.setCacheColorHint(0);
+                v.setVerticalScrollBarEnabled(false);
+                v.setAdapter(adapter);
+                v.setOnItemClickListener(give);
+                holder.removeAllViews();
+                holder.addView(v, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+                v.setSelection(first);
+                view[0] = v;
+            }
+        };
+        applyMode[0].run();
+        LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+        gp.topMargin = px(act, 6);
+        gp.bottomMargin = px(act, 6);
+        content.addView(holder, gp);
+        content.addView(strip, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 36)));
+
         final Runnable[] pending = { null };
         searchField.addTextChangedListener(new TextWatcher() {
             @Override public void onTextChanged(CharSequence t, int a1, int b1, int c1) {
-                if (pending[0] != null) list.removeCallbacks(pending[0]);
+                if (pending[0] != null) holder.removeCallbacks(pending[0]);
                 final String term = t.toString();
                 pending[0] = new Runnable() {
                     @Override public void run() {
                         s.applyFilter(term);
-                        countLabel.setText(s.filtered == null ? String.valueOf(s.total())
-                                                          : tr("CountOfTotal", s.count(), s.total()));
+                        showCount.run();
                         adapter.notifyDataSetChanged();
-                        list.setSelection(0);
+                        if (view[0] != null) view[0].setSelection(0);
                     }
                 };
-                list.postDelayed(pending[0], SEARCH_DELAY_MS);
+                holder.postDelayed(pending[0], SEARCH_DELAY_MS);
             }
             @Override public void beforeTextChanged(CharSequence t, int a1, int b1, int c1) { }
             @Override public void afterTextChanged(Editable e) { }
         });
-        content.addView(list, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
     }
 
-    /** As partes de uma linha, para trocar o conteudo em vez de remontar. */
+    private static Boolean sListMode;
+
+    private static boolean listMode(Activity act) {
+        if (sListMode == null) {
+            boolean v = false;
+            try { v = act.getSharedPreferences(PREFS, Activity.MODE_PRIVATE).getBoolean("listMode", false); }
+            catch (Throwable t) { }
+            sListMode = v;
+        }
+        return sListMode;
+    }
+
+    private static void setListMode(Activity act, boolean on) {
+        sListMode = on;
+        try { act.getSharedPreferences(PREFS, Activity.MODE_PRIVATE).edit().putBoolean("listMode", on).apply(); }
+        catch (Throwable t) { }
+    }
+
+    private static final Bitmap[] sModeIcons = new Bitmap[2];
+
+    private static Bitmap modeIcon(boolean list) {
+        int k = list ? 1 : 0;
+        if (sModeIcons[k] != null) return sModeIcons[k];
+        int size = 11;
+        Bitmap b = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        int ink = 0xFFFFFFFF, edge = 0xFF000000;
+        for (int y = 1; y < size - 1; y++) {
+            for (int x = 1; x < size - 1; x++) {
+                int ix = x - 1, iy = y - 1;
+                boolean on = list ? (iy % 3 != 2 && ix != 2) : (ix % 5 != 4 && iy % 5 != 4);
+                if (on) b.setPixel(x, y, ink);
+            }
+        }
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                if (b.getPixel(x, y) != 0) continue;
+                boolean near = (x > 0 && b.getPixel(x - 1, y) == ink) || (x < size - 1 && b.getPixel(x + 1, y) == ink)
+                    || (y > 0 && b.getPixel(x, y - 1) == ink) || (y < size - 1 && b.getPixel(x, y + 1) == ink);
+                if (near) b.setPixel(x, y, edge);
+            }
+        }
+        sModeIcons[k] = b;
+        return b;
+    }
+
     private static final class RowViews {
-        ImageView sprite;
-        TextView name, detail;
-        ImageView action;
+        ImageView sprite, action;
+        TextView name, detail, given;
+        int state = -1;
     }
 
-    /** Uma linha: sprite, nome, id e o botao de acao. */
-    private static View row(final Activity act, final Section s, final int i,
-                            final int[] qty, View recycled) {
-        final RowViews L;
+    private static View row(Activity act, Section s, int i, View recycled,
+                            int selectedId, int givenId, int qty) {
         LinearLayout r;
+        RowViews L;
         if (recycled instanceof LinearLayout && recycled.getTag() instanceof RowViews) {
             r = (LinearLayout) recycled;
             L = (RowViews) recycled.getTag();
@@ -2896,94 +3107,151 @@ public class CheatBridge {
             r = new LinearLayout(act);
             r.setOrientation(LinearLayout.HORIZONTAL);
             r.setGravity(Gravity.CENTER_VERTICAL);
-            r.setPadding(px(act, 6), px(act, 4), px(act, 6), px(act, 4));
-
+            r.setPadding(px(act, 8), px(act, 5), px(act, 6), px(act, 5));
             L.sprite = icon(act, null, 30);
             r.addView(L.sprite);
-
-            // Nome e id na MESMA linha: empilhados, cada linha da lista gastava
-            // uma altura de texto a mais, e na escala do jogo isso e uma linha
-            // inteira de lista a menos por tela.
             LinearLayout labels = new LinearLayout(act);
             labels.setOrientation(LinearLayout.HORIZONTAL);
             labels.setGravity(Gravity.BOTTOM);
-            labels.setPadding(px(act, 8), 0, 0, 0);
+            labels.setPadding(px(act, 10), 0, 0, 0);
             L.name = text(act, "", 14, INK);
+            L.name.setSingleLine(true);
             L.detail = text(act, "", 10, INK_DIM);
             L.detail.setPadding(px(act, 8), 0, 0, px(act, 2));
+            L.given = text(act, "", 11, GRASS_LIT);
+            L.given.setPadding(px(act, 10), 0, 0, px(act, 1));
             labels.addView(L.name);
             labels.addView(L.detail);
-            r.addView(labels, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
-            // So o sinal, sem palavra: a acao ja esta dita pela secao. Caixa
-            // clara e grande, que o polegar acerta sem mirar.
+            labels.addView(L.given);
+            r.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             L.action = new ImageView(act);
             L.action.setScaleType(ImageView.ScaleType.FIT_CENTER);
             L.action.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
             L.action.setBackground(actionBackground(act, false));
-            r.addView(L.action, new LinearLayout.LayoutParams(px(act, 50), px(act, 38)));
-
-            r.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
+            r.addView(L.action, new LinearLayout.LayoutParams(px(act, 46), px(act, 34)));
+            r.setLayoutParams(new android.widget.AbsListView.LayoutParams(
+                android.widget.AbsListView.LayoutParams.MATCH_PARENT,
+                android.widget.AbsListView.LayoutParams.WRAP_CONTENT));
             r.setTag(L);
         }
-
         final int id = s.ids[i];
-        final String rawName = s.nameAt(i);
-        // Id sem nome na Localization (buraco na tabela): mostra o id, que e o
-        // que o jogador precisa para saber o que pediu.
-        final String name = (rawName == null || rawName.length() == 0) ? ("#" + id) : rawName;
-
-        requestSprite(act, L.sprite, s.spriteKind(), id);
-        L.name.setText(name);
+        String raw = s.nameAt(i);
+        L.name.setText(raw == null || raw.length() == 0 ? ("#" + id) : raw);
         L.detail.setText(s.npc() ? ("NPC " + id) : s.buff() ? ("buff " + id) : ("id " + id));
-        L.action.setContentDescription(s.npc() ? tr("Summon") : s.buff() ? tr("Apply") : tr("Get"));
+        int state = id == selectedId ? 1 : 0;
+        if (L.state != state) {
+            r.setBackground(state == 1 ? selected(act, false) : well(act, false));
+            L.state = state;
+        }
+        L.given.setText(id == givenId ? qtyText(s, qty).replace(" min", "m").replace("x", "+") : "");
         setBitmap(act, L.action, sprite(act, s.npc() ? "ic_invocar" : "ic_pegar"));
-        L.action.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                int n = qty[0] < 1 ? 1 : qty[0];
-                if (s.buff()) {
-                    nOnBuff(id, n * 60);
-                } else if (s.npc()) {
-                    // A contagem vai JUNTO: o nativo guarda o pedido num slot
-                    // so, consumido uma vez por quadro, entao dez chamadas
-                    // seguidas viravam um NPC.
-                    nOnSpawn(id, n);
-                } else {
-                    nOnGive(id, n);
-                }
-            }
-        });
+        requestSprite(act, L.sprite, s.spriteKind(), id);
         return r;
     }
 
-    // ------------------------------ grade de poderes ------------------------------
+    private static String contents(Section f) {
+        int n = f.total();
+        return tr(f.npc() ? (n == 1 ? "NpcCountOne" : "NpcCountOther")
+                  : f.buff() ? (n == 1 ? "BuffCountOne" : "BuffCountOther")
+                  : (n == 1 ? "ItemCountOne" : "ItemCountOther"), n);
+    }
 
-    /**
-     * Cartoes de liga/desliga. Tocar avanca o nivel: desligado, x2, x5, x10,
-     * desligado. Um cartao so por poder, em vez de um botao por nivel, porque a
-     * grade inteira tem de caber sem rolar.
-     */
-    private static void showPowers(final Activity act, LinearLayout content, Section s) {
-        readWorldState();
-        // So acao (a pagina Eventos): sem "Desligar tudo" e sem a contagem de
-        // ligados, que e dos interruptores da outra pagina.
-        boolean toggles = false;
-        for (int g : s.powerGroups) {
-            for (int id : POWER_GROUPS[g]) if (!isAction(id)) toggles = true;
+    private static View cell(Activity act, Section s, int i, View recycled, int size,
+                             int selectedId, int givenId, int qty) {
+        FrameLayout c;
+        CellViews L;
+        if (recycled instanceof FrameLayout && recycled.getTag() instanceof CellViews) {
+            c = (FrameLayout) recycled;
+            L = (CellViews) recycled.getTag();
+        } else {
+            c = new FrameLayout(act);
+            c.setLayoutParams(new android.widget.AbsListView.LayoutParams(
+                android.widget.AbsListView.LayoutParams.MATCH_PARENT, size));
+            L = new CellViews();
+            L.sprite = new ImageView(act);
+            L.sprite.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            c.addView(L.sprite, new FrameLayout.LayoutParams(px(act, 32), px(act, 32), Gravity.CENTER));
+            L.given = text(act, "", 10, GRASS_LIT);
+            L.given.setSingleLine(true);
+            FrameLayout.LayoutParams gl = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM | Gravity.RIGHT);
+            gl.rightMargin = px(act, 3);
+            c.addView(L.given, gl);
+            c.setTag(L);
         }
-        final TextView activeLabel = text(act, "", 10, INK_DIM);
-        sActiveLabel = toggles ? activeLabel : null;
-        LinearLayout headerRow = buildHeader(act, s, activeLabel);
+        final int id = s.ids[i];
+        String raw = s.nameAt(i);
+        c.setContentDescription(raw == null || raw.length() == 0 ? ("#" + id) : raw);
+        int state = id == selectedId ? 1 : 0;
+        if (L.state != state) {
+            c.setBackground(state == 1 ? selected(act, true) : well(act, true));
+            L.state = state;
+        }
+        if (id == givenId) {
+            L.given.setText(qtyText(s, qty).replace(" min", "m").replace("x", "+"));
+            L.given.setVisibility(View.VISIBLE);
+        } else {
+            L.given.setVisibility(View.GONE);
+        }
+        requestSprite(act, L.sprite, s.spriteKind(), id);
+        return c;
+    }
+
+    private static int sPowerTab, sPowerSel = -1;
+    private static final int[] GROUP_ICON = {58, 1315, 1844};
+
+    private static int powerColumns(Activity a) {
+        int n = (int) (contentUnits(a) / 132);
+        return n < 3 ? 3 : n > 8 ? 8 : n;
+    }
+
+    private static void showPowers(final Activity act, final LinearLayout content, final Section s) {
+        content.removeAllViews();
+        readWorldState();
+        if (sPowerTab >= s.powerGroups.length) sPowerTab = 0;
+        final int g = s.powerGroups[sPowerTab];
+        final int[] group = POWER_GROUPS[g];
+        if (sPowerSel < 0 || Arrays.binarySearch(sortedCopy(group), sPowerSel) < 0) sPowerSel = group[0];
+
+        LinearLayout header = new LinearLayout(act);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        for (int i = 0; i < s.powerGroups.length; i++) {
+            final int k = i;
+            int gi = s.powerGroups[i];
+            LinearLayout b = new LinearLayout(act);
+            b.setOrientation(LinearLayout.HORIZONTAL);
+            b.setGravity(Gravity.CENTER_VERTICAL);
+            b.setPadding(px(act, 9), 0, px(act, 11), 0);
+            b.setBackground(i == sPowerTab ? gold(act, false) : well(act, false));
+            b.addView(icon(act, spriteJa(act, SPR_ITEM, GROUP_ICON[gi]), 20));
+            TextView t = text(act, tr(POWER_GROUP_NAME[gi]), 13, INK);
+            t.setSingleLine(true);
+            t.setPadding(px(act, 6), 0, 0, 0);
+            b.addView(t);
+            b.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) { sPowerTab = k; sPowerSel = -1; showPowers(act, content, s); }
+            });
+            addSpaced(act, header, b, LinearLayout.LayoutParams.WRAP_CONTENT, px(act, 32));
+        }
+        header.addView(new View(act), new LinearLayout.LayoutParams(0, 1, 1f));
 
         final View[] cards = new View[POWER_NAME.length];
-        View spacer = new View(act);
-        headerRow.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1f));
-        TextView offButton = text(act, tr("TurnOffAll"), 11, INK);
+        final LinearLayout offButton = new LinearLayout(act);
+        offButton.setOrientation(LinearLayout.HORIZONTAL);
+        offButton.setGravity(Gravity.CENTER_VERTICAL);
         offButton.setBackground(actionBackground(act, false));
-        offButton.setPadding(px(act, 10), px(act, 5), px(act, 10), px(act, 5));
+        offButton.setPadding(px(act, 7), 0, px(act, 10), 0);
+        final TextView activeLabel = text(act, "", 10, INK);
+        activeLabel.setGravity(Gravity.CENTER);
+        activeLabel.setMinWidth(px(act, 18));
+        activeLabel.setBackground(pixel(act, GRASS, true, false));
+        offButton.addView(activeLabel, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, px(act, 18)));
+        TextView offText = text(act, tr("TurnOffAll"), 12, INK);
+        offText.setPadding(px(act, 6), 0, 0, 0);
+        offButton.addView(offText);
         offButton.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 for (int i = 0; i < sPowerLevels.length; i++) {
@@ -2997,140 +3265,180 @@ public class CheatBridge {
                 updateActiveCount(activeLabel);
             }
         });
-        if (toggles) headerRow.addView(offButton);
+        header.addView(offButton, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, px(act, 32)));
+        sActiveLabel = activeLabel;
+        content.addView(header, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = px(act, 6);
-        content.addView(headerRow, lp);
+        final LinearLayout strip = new LinearLayout(act);
+        strip.setOrientation(LinearLayout.HORIZONTAL);
+        strip.setGravity(Gravity.CENTER_VERTICAL);
+        strip.setBackground(well(act, false));
+        strip.setPadding(px(act, 10), 0, px(act, 10), 0);
+        final ImageView stripIcon = icon(act, null, 22);
+        strip.addView(stripIcon);
+        final TextView stripName = text(act, "", 14, INK);
+        stripName.setSingleLine(true);
+        stripName.setPadding(px(act, 8), 0, 0, 0);
+        strip.addView(stripName);
+        final TextView stripDesc = text(act, "", 12, INK_DIM);
+        stripDesc.setSingleLine(true);
+        stripDesc.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        stripDesc.setPadding(px(act, 10), 0, 0, 0);
+        strip.addView(stripDesc, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+        final TextView stripLevels = text(act, "", 11, INK_DIM);
+        stripLevels.setSingleLine(true);
+        stripLevels.setPadding(px(act, 10), 0, 0, 0);
+        strip.addView(stripLevels);
+        final Runnable showSelected = new Runnable() {
+            @Override public void run() {
+                int id = sPowerSel;
+                setBitmap(act, stripIcon, powerIcon(act, id));
+                stripName.setText(tr(POWER_NAME[id]));
+                boolean off = isWorldState(id) && sWorld[worldSlot(id)] < 0;
+                stripDesc.setText(off ? tr("EnterWorld") : tr(POWER_DESC[id]));
+                StringBuilder lv = new StringBuilder();
+                if (POWER_LEVELS[id].length > 1) {
+                    for (int k = 0; k < POWER_LEVELS[id].length; k++) {
+                        if (k > 0) lv.append("  ·  ");
+                        lv.append(tr(POWER_LEVELS[id][k]));
+                    }
+                }
+                stripLevels.setText(lv.toString());
+            }
+        };
 
         final int columns = powerColumns(act);
         LinearLayout grid = new LinearLayout(act);
         grid.setOrientation(LinearLayout.VERTICAL);
-        for (int n = 0; n < s.powerGroups.length; n++) {
-            final int g = s.powerGroups[n];
-            // Um grupo so (Eventos): o titulo da pagina ja diz.
-            if (s.powerGroups.length > 1) {
-                TextView groupTitle = text(act, tr(POWER_GROUP_NAME[g]), 13, INK_DIM);
-                groupTitle.setPadding(px(act, 4), px(act, n == 0 ? 0 : 10), 0, px(act, 2));
-                grid.addView(groupTitle);
+        LinearLayout queue = null;
+        for (int k = 0; k < group.length; k++) {
+            if (k % columns == 0) {
+                queue = new LinearLayout(act);
+                queue.setOrientation(LinearLayout.HORIZONTAL);
+                grid.addView(queue, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, px(act, 70)));
             }
-            final int[] group = POWER_GROUPS[g];
-            LinearLayout queue = null;
-            for (int k = 0; k < group.length; k++) {
-                if (k % columns == 0) {
-                    queue = new LinearLayout(act);
-                    queue.setOrientation(LinearLayout.HORIZONTAL);
-                    grid.addView(queue, new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT));
-                }
-                final int id = group[k];
-                final View c = powerCard(act, id);
-                c.setOnClickListener(new View.OnClickListener() {
-                    @Override public void onClick(View v) {
-                        if (isAction(id)) {
-                            nSetPower(id, 1);
-                            flashActionCard(act, c, id);
-                            return;
-                        }
-                        if (isWorldState(id)) {
-                            toggleWorldState(act, id);
-                            paintPowerCard(act, c, id);
-                            return;
-                        }
+            final int id = group[k];
+            final View c = powerCard(act, id);
+            c.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    int previous = sPowerSel;
+                    sPowerSel = id;
+                    if (previous >= 0 && previous != id && cards[previous] != null) {
+                        paintPowerCard(act, cards[previous], previous);
+                    }
+                    if (isAction(id)) {
+                        nSetPower(id, 1);
+                        flashActionCard(act, c, id);
+                    } else if (isWorldState(id)) {
+                        toggleWorldState(act, id);
+                        paintPowerCard(act, c, id);
+                    } else {
                         sPowerLevels[id] = (sPowerLevels[id] + 1) % (POWER_LEVELS[id].length + 1);
                         nSetPower(id, sPowerLevels[id]);
                         paintPowerCard(act, c, id);
                         savePowers(act);
                         updateActiveCount(activeLabel);
                     }
-                });
-                cards[id] = c;
-                LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
-                cp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
-                queue.addView(c, cp);
-            }
-            // Fila incompleta: o que falta vira espaco, para os cartoes da
-            // ultima fila terem a largura dos de cima.
-            //
-            // Com cartoes INVISIVEIS, e nao com espacadores: dentro da rolagem
-            // a altura da fila vem dos cartoes, e um espacador de 1 px deixava
-            // o cartao sozinho da ultima fila com altura zero (ele sumia).
-            int remainder = (columns - group.length % columns) % columns;
-            for (int i = 0; i < remainder; i++) {
-                View filler = powerCard(act, group[0]);
-                filler.setVisibility(View.INVISIBLE);
-                LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
-                fp.setMargins(px(act, 3), px(act, 3), px(act, 3), px(act, 3));
-                queue.addView(filler, fp);
-            }
+                    showSelected.run();
+                }
+            });
+            cards[id] = c;
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+            cp.setMargins(px(act, 2), px(act, 2), px(act, 2), px(act, 2));
+            queue.addView(c, cp);
+        }
+        int remainder = (columns - group.length % columns) % columns;
+        for (int i = 0; i < remainder; i++) {
+            View filler = powerCard(act, group[0]);
+            filler.setVisibility(View.INVISIBLE);
+            LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.MATCH_PARENT, 1f);
+            fp.setMargins(px(act, 2), px(act, 2), px(act, 2), px(act, 2));
+            queue.addView(filler, fp);
         }
 
         ScrollView scroll = new ScrollView(act);
+        scroll.setVerticalScrollBarEnabled(false);
         scroll.addView(grid);
-        content.addView(scroll, new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f));
-        if (toggles) updateActiveCount(activeLabel);
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f);
+        sp.topMargin = px(act, 6);
+        sp.bottomMargin = px(act, 6);
+        content.addView(scroll, sp);
+        content.addView(strip, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, px(act, 36)));
+        showSelected.run();
+        updateActiveCount(activeLabel);
     }
 
-    /** As partes de um cartao de poder, para repintar sem remontar. */
+    private static int[] sortedCopy(int[] v) {
+        int[] c = Arrays.copyOf(v, v.length);
+        Arrays.sort(c);
+        return c;
+    }
+
     private static final class PowerCardViews {
-        TextView nameLabel, levelLabel, desc;
+        TextView nameLabel, levelLabel;
         ImageView icon;
     }
 
     private static View powerCard(Activity act, int id) {
         PowerCardViews k = new PowerCardViews();
-        LinearLayout c = new LinearLayout(act);
-        c.setOrientation(LinearLayout.HORIZONTAL);
-        c.setGravity(Gravity.CENTER_VERTICAL);
-        c.setPadding(px(act, 8), px(act, 6), px(act, 8), px(act, 6));
-        String res = powerRes(id);
-        k.icon = icon(act, res != null ? sprite(act, res) : spriteJa(act, SPR_ITEM, POWER_ICON[id]), 30);
-        c.addView(k.icon);
-
-        LinearLayout texts = new LinearLayout(act);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        texts.setPadding(px(act, 8), 0, 0, 0);
-        LinearLayout topRow = new LinearLayout(act);
-        topRow.setOrientation(LinearLayout.HORIZONTAL);
-        topRow.setGravity(Gravity.BOTTOM);
-        k.nameLabel = text(act, tr(POWER_NAME[id]), 13, INK);
+        FrameLayout c = new FrameLayout(act);
+        LinearLayout col = new LinearLayout(act);
+        col.setOrientation(LinearLayout.VERTICAL);
+        col.setGravity(Gravity.CENTER);
+        col.setPadding(px(act, 4), px(act, 4), px(act, 4), px(act, 4));
+        k.icon = icon(act, powerIcon(act, id), 28);
+        col.addView(k.icon);
+        k.nameLabel = text(act, tr(POWER_NAME[id]), 11, INK);
         k.nameLabel.setSingleLine(true);
-        k.levelLabel = text(act, "", 11, GRASS_LIT);
-        k.levelLabel.setPadding(px(act, 6), 0, 0, 0);
-        topRow.addView(k.nameLabel);
-        topRow.addView(k.levelLabel);
-        texts.addView(topRow);
-        k.desc = text(act, tr(POWER_DESC[id]), 9, INK_DIM);
-        texts.addView(k.desc);
-        c.addView(texts, new LinearLayout.LayoutParams(
-            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
-
+        k.nameLabel.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        k.nameLabel.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        np.topMargin = px(act, 3);
+        col.addView(k.nameLabel, np);
+        c.addView(col, new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        k.levelLabel = text(act, "", 9, GRASS_LIT);
+        k.levelLabel.setSingleLine(true);
+        k.levelLabel.setPadding(px(act, 4), 0, px(act, 4), 0);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
+            Gravity.TOP | Gravity.RIGHT);
+        lp.topMargin = px(act, 4);
+        lp.rightMargin = px(act, 4);
+        c.addView(k.levelLabel, lp);
         c.setTag(k);
         paintPowerCard(act, c, id);
         return c;
     }
 
-    /** Desligado e o fundo de botao; ligado e verde, como o jogo marca o que esta ativo. */
+    private static void setBadge(Activity act, TextView t, String label, boolean bright) {
+        t.setText(label);
+        t.setTextColor(bright ? 0xFFFFF36B : GRASS_LIT);
+        t.setBackground(label.length() == 0 ? null : pixel(act, OUTLINE, true, false));
+    }
+
+    private static Drawable cardBackground(Activity act, int id, boolean on) {
+        if (on) return pixel(act, GRASS, true, true);
+        return id == sPowerSel ? selected(act, true) : well(act, true);
+    }
+
     private static void paintPowerCard(Activity act, View c, int id) {
         PowerCardViews k = (PowerCardViews) c.getTag();
         if (isWorldState(id)) { paintWorldCard(act, c, k, id); return; }
         int n = sPowerLevels[id];
         boolean on = n > 0;
-        c.setBackground(actionBackground(act, on));
-        k.levelLabel.setText(on && POWER_LEVELS[id].length > 1 ? tr(POWER_LEVELS[id][n - 1]) : "");
-        k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
-        k.desc.setTextColor(on ? INK : INK_DIM);
+        c.setBackground(cardBackground(act, id, on));
+        setBadge(act, k.levelLabel, on && POWER_LEVELS[id].length > 1 ? tr(POWER_LEVELS[id][n - 1]) : "", on);
     }
 
-    /**
-     * Hardmode e infeccao parada verdes quando ligados; dificuldade verde acima
-     * do Classico, com o icone do modo em que o mundo esta.
-     */
     private static void paintWorldCard(Activity act, View c, PowerCardViews k, int id) {
         int v = sWorld[worldSlot(id)];
         boolean on = v > 0;
@@ -3138,25 +3446,16 @@ public class CheatBridge {
             int m = v < 0 ? 0 : Math.min(v, GAME_MODE_ICON.length - 1);
             setBitmap(act, k.icon, sprite(act, GAME_MODE_ICON[m]));
         }
-        c.setBackground(actionBackground(act, on));
+        c.setBackground(cardBackground(act, id, on));
         String label = v < 0 ? "" : id != P_DIFFICULTY ? (v == 1 ? tr("On") : "")
                                                        : tr(GAME_MODE[Math.min(v, GAME_MODE.length - 1)]);
-        k.levelLabel.setText(label);
-        k.levelLabel.setTextColor(on ? 0xFFFFF36B : GRASS_LIT);
-        k.desc.setText(v < 0 ? tr("EnterWorld") : tr(POWER_DESC[id]));
-        k.desc.setTextColor(on ? INK : INK_DIM);
+        setBadge(act, k.levelLabel, label, on);
     }
 
-    /**
-     * Acao executada: o cartao fica verde com "Feito!" e volta sozinho. O jogo
-     * roda o pedido no proximo quadro; se falhar, o painel de erro abre.
-     */
     private static void flashActionCard(final Activity act, final View c, final int id) {
         PowerCardViews k = (PowerCardViews) c.getTag();
-        c.setBackground(actionBackground(act, true));
-        k.levelLabel.setText(tr("ActionDone"));
-        k.levelLabel.setTextColor(0xFFFFF36B);
-        k.desc.setTextColor(INK);
+        c.setBackground(cardBackground(act, id, true));
+        setBadge(act, k.levelLabel, tr("ActionDone"), true);
         c.postDelayed(new Runnable() {
             @Override public void run() {
                 paintPowerCard(act, c, id);
@@ -3167,7 +3466,9 @@ public class CheatBridge {
     private static void updateActiveCount(TextView t) {
         int n = 0;
         for (int v : sPowerLevels) if (v > 0) n++;
-        t.setText(n == 0 ? "" : tr(n == 1 ? "EnabledCountOne" : "EnabledCountOther", n));
+        t.setText(String.valueOf(n));
+        View button = (View) t.getParent();
+        if (button != null) button.setVisibility(n == 0 ? View.INVISIBLE : View.VISIBLE);
     }
 
     // --- painel de erro ------------------------------------------------------

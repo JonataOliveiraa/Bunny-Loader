@@ -102,6 +102,8 @@
   "LicenseSummary": "Исходный код доступен для некоммерческого использования (PolyForm Noncommercial 1.0.0). Terraria, Unity, шрифт и каждый мод имеют своих владельцев и лицензии.",
   "TextNotInApk": "Текст не включён в APK.",
   "Close": "Закрыть",
+  "ViewIcons": "Значки",
+  "ViewList": "Подробный список",
   "Description": "Описание",
   "Changelog": "Изменения",
   "Credits": "Авторы",
