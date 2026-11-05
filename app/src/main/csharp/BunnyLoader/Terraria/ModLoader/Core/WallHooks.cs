@@ -61,6 +61,8 @@ internal static unsafe class WallHooks
         Once("Drop", () => On_WorldGen.KillWall_DropItems += Drop);
         Once("Drops", () => On_WorldGen.KillWall_GetItemDrops += Drops);
         uint flags = 0;
+        if (Overrides(wall, nameof(ModWall.CanBeTeleportedTo)))
+            PlayerWorldHooks.WantTeleport();
         if (Overrides(wall, nameof(ModWall.WallFrame)))
             flags |= FrameFlag;
         if (Overrides(wall, nameof(ModWall.RandomUpdate)))

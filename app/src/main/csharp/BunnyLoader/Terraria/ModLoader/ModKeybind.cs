@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using Microsoft.Xna.Framework;
 using Terraria.GameInput;
 using Terraria.Localization;
 
@@ -83,7 +84,7 @@ public class ModKeybind
     public override string ToString() => FullName;
 }
 
-public sealed class ModTouchButton : ModKeybind
+public class ModTouchButton : ModKeybind
 {
     internal ModTouchButton(Mod mod, string name, string defaultBinding) : base(mod, name, defaultBinding) { }
 
@@ -104,4 +105,15 @@ public sealed class ModTouchButton : ModKeybind
     public Action<Player>? OnPress { get; set; }
 
     public bool IsBound => TouchButtonLoader.IsBound(this);
+}
+
+public sealed class ModTouchJoystick : ModTouchButton
+{
+    internal ModTouchJoystick(Mod mod, string name) : base(mod, name, "") { }
+
+    public Vector2 Direction { get; internal set; }
+
+    public bool Aiming => Current;
+
+    public Action<Player, Vector2>? OnRelease { get; set; }
 }

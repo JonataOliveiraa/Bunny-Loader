@@ -28,9 +28,10 @@ internal static class SystemDrawHooks
         if (has(nameof(ModSystem.ModifyInterfaceLayers))) InterfaceLayerHooks.Install();
         if (has(nameof(ModSystem.PreDrawMapIconOverlay))) preMapIcons = true;
         if (has(nameof(ModSystem.PostDrawFullscreenMap))) postFullscreenMap = true;
-        if (preMapIcons || postFullscreenMap)
-            ItemHooks.Once("SystemMapIcons", () => On_MapIconOverlay.Draw += DrawMapIcons);
+        if (preMapIcons || postFullscreenMap) WantMapIcons();
     }
+
+    internal static void WantMapIcons() => ItemHooks.Once("SystemMapIcons", () => On_MapIconOverlay.Draw += DrawMapIcons);
 
     internal static void ModifyTransformMatrix()
     {
@@ -100,7 +101,12 @@ internal static class SystemDrawHooks
                 for (int i = 0; i < Layers.Count && firstHidden < 0; i++)
                     if (HiddenLayers.Contains(Layers[i].Pointer)) firstHidden = i;
         }
-        if (firstHidden < 0)
+        if (MapLayerLoader.Any && !list.IsNull)
+        {
+            var context = MapOverlayDrawContext.New(mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha / 255f);
+            MapLayerLoader.Draw(list, ref context, ref text, static layer => HiddenLayers.Contains(layer.Pointer));
+        }
+        else if (firstHidden < 0)
         {
             orig(self, mapPosition, mapOffset, clippingRect, mapScale, drawScale, alpha, ref text);
         }

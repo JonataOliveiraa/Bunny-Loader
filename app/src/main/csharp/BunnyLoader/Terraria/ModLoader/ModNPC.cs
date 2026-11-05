@@ -55,6 +55,16 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
 
     public virtual string BossHeadTexture => Texture + "_Head_Boss";
 
+    int drawOffsetY;
+
+    public int DrawOffsetY
+    {
+        get => drawOffsetY;
+        set { drawOffsetY = value; NPCDrawOffsetHooks.Install(); }
+    }
+
+    public bool TownNPCStayingHomeless { get; set; }
+
     protected sealed override NPC CreateTemplateEntity() => default;
 
     protected sealed override void Register() => NPCLoader.Register(this);

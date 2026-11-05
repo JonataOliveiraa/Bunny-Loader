@@ -44,18 +44,25 @@ namespace ExampleMod.Content.Items.Weapons
     {
         public float swingAngle;
 
+        public void SyncDirection(int whoAmI)
+        {
+            ModPacket packet = Mod.GetPacket();
+            packet.Write((byte)ExampleMod.MessageType.SendCustomUseStylePlayerDirection);
+            packet.Write((byte)whoAmI);
+            packet.Write(swingAngle);
+            packet.Send(ignoreClient: whoAmI);
+        }
+
         public static void ReceiveDirection(BinaryReader reader, int whoAmI)
         {
             int player = reader.ReadByte();
             float angle = reader.ReadSingle();
             if ((Main.netMode & NetmodeID.Server) != 0) player = whoAmI;
             if ((uint)player >= (uint)Main.maxPlayers || !float.IsFinite(angle)) return;
-            Main.player[player].GetModPlayer<ExampleCustomUseStylePlayer>().swingAngle = angle;
+            ExampleCustomUseStylePlayer useStylePlayer = Main.player[player].GetModPlayer<ExampleCustomUseStylePlayer>();
+            useStylePlayer.swingAngle = angle;
+            if ((Main.netMode & NetmodeID.Server) != 0) useStylePlayer.SyncDirection(player);
         }
-
-
-
-
     }
 
     public static class ExampleCustomUseStyleItemSets
@@ -106,7 +113,9 @@ namespace ExampleMod.Content.Items.Weapons
 
                 useStylePlayer.swingAngle = ((Main.MouseWorld - player.MountedCenter) * new Vector2(1, player.gravDir)).ToRotation();
 
-
+                if ((Main.netMode & NetmodeID.MultiplayerClient) != 0) {
+                    useStylePlayer.SyncDirection(Main.myPlayer);
+                }
             }
 
             if (player.isDisplayDollOrInanimate) {

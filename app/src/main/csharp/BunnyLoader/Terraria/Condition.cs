@@ -11,12 +11,36 @@ public sealed record Condition(LocalizedText Description, Func<bool> Predicate)
 
     public static Condition NpcIsPresent(int npcId) => new(Language.GetOrRegister("Conditions.NpcIsPresent", () => "Requires {0} to be present").WithFormatArgs(Lang.GetNPCName(npcId)), () => NPC.AnyNPCs(npcId));
 
+    public static Condition GolfScoreOver(int score) => new(Language.GetOrRegister("Conditions.GolfScoreOver", () => "When the player has a golf score of {0} or more").WithFormatArgs(score), () => Me.golferScoreAccumulated >= score);
+
+    static float BestiaryCompletion()
+    {
+        var report = Main.GetBestiaryProgressReport();
+        return report.EntriesTotal == 0 ? 1f : report.CompletionAmountTotal / report.EntriesTotal;
+    }
+
+    public static Condition BestiaryFilledPercent(int percent)
+    {
+        if (percent >= 100) return new(Language.GetOrRegister("Conditions.BestiaryFull", () => "When the Bestiary has been filled completely"), () => BestiaryCompletion() >= 1f);
+        return new(Language.GetOrRegister("Conditions.BestiaryPercentage", () => "When the Bestiary is {0}% filled or more").WithFormatArgs(percent), () => BestiaryCompletion() >= percent / 100f);
+    }
+
+    public static Condition CurrentPriceAdjustmentUnder(float priceModifier) => new(Language.GetOrRegister("Conditions.CurrentPriceAdjustmentUnder", () => "When the vendor's price modifier is {0} or less").WithFormatArgs(priceModifier), () => Me.currentShoppingSettings.PriceAdjustment <= priceModifier);
+
+    public static Condition CurrentPriceAdjustmentOver(float priceModifier) => new(Language.GetOrRegister("Conditions.CurrentPriceAdjustmentOver", () => "When the vendor's price modifier is {0} or more").WithFormatArgs(priceModifier), () => Me.currentShoppingSettings.PriceAdjustment >= priceModifier);
+
     public bool IsMet() => Predicate();
 
     static string Readable(string key) => Regex.Replace(key[(key.LastIndexOf('.') + 1)..], "([a-z0-9])([A-Z])", "$1 $2");
 
     static Player Me => Main.LocalPlayer;
 
+    public static readonly Condition HappyWindyDay = new(Language.GetOrRegister("Conditions.HappyWindyDay", () => "During a happy windy day"), () => Main.IsItAHappyWindyDay);
+    public static readonly Condition MoonPhasesQuarter0 = new("Conditions.MoonPhasesQuarter0", () => Main.moonPhase / 2 == 0);
+    public static readonly Condition MoonPhasesQuarter1 = new("Conditions.MoonPhasesQuarter1", () => Main.moonPhase / 2 == 1);
+    public static readonly Condition MoonPhasesQuarter2 = new("Conditions.MoonPhasesQuarter2", () => Main.moonPhase / 2 == 2);
+    public static readonly Condition MoonPhasesQuarter3 = new("Conditions.MoonPhasesQuarter3", () => Main.moonPhase / 2 == 3);
+    public static readonly Condition IsNpcShimmered = new("Conditions.IsNpcShimmered", () => (uint)Me.talkNPC < 200u && Main.npc[Me.talkNPC].IsShimmerVariant);
     public static readonly Condition NearWater = new("Conditions.NearWater", () => Me.adjWaterSource || Me.adjTile[TileID.Sinks]);
     public static readonly Condition NearLava = new("Conditions.NearLava", () => Me.adjLava);
     public static readonly Condition NearHoney = new("Conditions.NearHoney", () => Me.adjHoney);

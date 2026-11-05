@@ -1,209 +1,219 @@
 using ExampleMod.Content.Items.Placeable.Banners;
-using Terraria.ModLoader.Utilities;
 using Microsoft.Xna.Framework;
 using System;
 using Terraria;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
+using Terraria.ModLoader.Utilities;
 
 namespace ExampleMod.Content.NPCs
 {
+    public class ExampleCustomAISlimeNPC : ModNPC
+    {
+        private enum ActionState
+        {
+            Asleep,
+            Notice,
+            Jump,
+            Hover,
+            Fall
+        }
 
-	public class ExampleCustomAISlimeNPC : ModNPC
-	{
+        private enum Frame
+        {
+            Asleep,
+            Notice,
+            Falling,
+            Flutter1,
+            Flutter2,
+            Flutter3
+        }
 
-		private enum ActionState
-		{
-			Asleep,
-			Notice,
-			Jump,
-			Hover,
-			Fall
-		}
+        public ref float AI_State => ref NPC.ai[0];
+        public ref float AI_Timer => ref NPC.ai[1];
+        public ref float AI_FlutterTime => ref NPC.ai[2];
 
-		private enum Frame
-		{
-			Asleep,
-			Notice,
-			Falling,
-			Flutter1,
-			Flutter2,
-			Flutter3
-		}
+        public static LocalizedText GotStompedText { get; private set; }
 
-		public ref float AI_State => ref NPC.ai[0];
-		public ref float AI_Timer => ref NPC.ai[1];
-		public ref float AI_FlutterTime => ref NPC.ai[2];
+        public override void SetStaticDefaults() {
+            Main.npcFrameCount[Type] = 6;
 
-		public static LocalizedText GotStompedText { get; private set; }
+            NPCID.Sets.ShimmerTransformToNPC[Type] = NPCID.ShimmerSlime;
 
-		public override void SetStaticDefaults() {
-			Main.npcFrameCount[Type] = 6;
+            NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Poisoned] = true;
+            NPCID.Sets.SpecificDebuffImmunity[Type][ModContent.BuffType<Buffs.ExampleGravityDebuff>()] = true;
 
-			NPCID.Sets.ShimmerTransformToNPC[Type] = NPCID.ShimmerSlime;
+            GotStompedText = this.GetLocalization("GotStomped");
+        }
 
-			NPCID.Sets.SpecificDebuffImmunity[Type][BuffID.Poisoned] = true;
+        public override void SetDefaults() {
+            NPC.width = 36;
+            NPC.height = 36;
+            NPC.aiStyle = -1;
+            NPC.damage = 7;
+            NPC.defense = 2;
+            NPC.lifeMax = 25;
+            NPC.HitSound = SoundID.NPCHit1;
+            NPC.DeathSound = SoundID.NPCDeath1;
+            NPC.value = 25f;
 
-			GotStompedText = this.GetLocalization("GotStomped");
-		}
+            Banner = Type;
+            BannerItem = ModContent.ItemType<ExampleCustomAISlimeNPCBanner>();
+        }
 
-		public override void SetDefaults() {
-			NPC.width = 36;
-			NPC.height = 36;
-			NPC.aiStyle = -1;
-			NPC.damage = 7;
-			NPC.defense = 2;
-			NPC.lifeMax = 25;
-			NPC.HitSound = SoundID.NPCHit1;
-			NPC.DeathSound = SoundID.NPCDeath1;
-			NPC.value = 25f;
+        public override float SpawnChance(NPC.Spawner spawner) {
+            return SpawnCondition.OverworldDaySlime.Chance * 0.1f;
+        }
 
-			Banner = Type;
-			BannerItem = ModContent.ItemType<ExampleCustomAISlimeNPCBanner>();
-		}
+        public override void AI() {
+            switch (AI_State) {
+                case (float)ActionState.Asleep:
+                    FallAsleep();
+                    break;
+                case (float)ActionState.Notice:
+                    Notice();
+                    break;
+                case (float)ActionState.Jump:
+                    Jump();
+                    break;
+                case (float)ActionState.Hover:
+                    Hover();
+                    break;
+                case (float)ActionState.Fall:
+                    if (NPC.velocity.Y == 0) {
+                        NPC.velocity.X = 0;
+                        AI_State = (float)ActionState.Asleep;
+                        AI_Timer = 0;
+                    }
 
-		public override void AI() {
+                    break;
+            }
+        }
 
-			switch (AI_State) {
-				case (float)ActionState.Asleep:
-					FallAsleep();
-					break;
-				case (float)ActionState.Notice:
-					Notice();
-					break;
-				case (float)ActionState.Jump:
-					Jump();
-					break;
-				case (float)ActionState.Hover:
-					Hover();
-					break;
-				case (float)ActionState.Fall:
-					if (NPC.velocity.Y == 0) {
-						NPC.velocity.X = 0;
-						AI_State = (float)ActionState.Asleep;
-						AI_Timer = 0;
-					}
+        public override void FindFrame(int frameHeight) {
+            NPC.spriteDirection = NPC.direction;
 
-					break;
-			}
-		}
+            switch (AI_State) {
+                case (float)ActionState.Asleep:
 
-		public override void FindFrame(int frameHeight) {
+                    NPC.frame.Y = (int)Frame.Asleep * frameHeight;
+                    break;
+                case (float)ActionState.Notice:
 
-			NPC.spriteDirection = NPC.direction;
+                    if (AI_Timer < 10) {
+                        NPC.frame.Y = (int)Frame.Notice * frameHeight;
+                    }
+                    else {
+                        NPC.frame.Y = (int)Frame.Asleep * frameHeight;
+                    }
 
-			switch (AI_State) {
-				case (float)ActionState.Asleep:
+                    break;
+                case (float)ActionState.Jump:
+                    NPC.frame.Y = (int)Frame.Falling * frameHeight;
+                    break;
+                case (float)ActionState.Hover:
 
-					NPC.frame.Y = (int)Frame.Asleep * frameHeight;
-					break;
-				case (float)ActionState.Notice:
+                    NPC.frameCounter++;
 
-					if (AI_Timer < 10) {
-						NPC.frame.Y = (int)Frame.Notice * frameHeight;
-					}
-					else {
-						NPC.frame.Y = (int)Frame.Asleep * frameHeight;
-					}
+                    if (NPC.frameCounter < 10) {
+                        NPC.frame.Y = (int)Frame.Flutter1 * frameHeight;
+                    }
+                    else if (NPC.frameCounter < 20) {
+                        NPC.frame.Y = (int)Frame.Flutter2 * frameHeight;
+                    }
+                    else if (NPC.frameCounter < 30) {
+                        NPC.frame.Y = (int)Frame.Flutter3 * frameHeight;
+                    }
+                    else {
+                        NPC.frameCounter = 0;
+                    }
 
-					break;
-				case (float)ActionState.Jump:
-					NPC.frame.Y = (int)Frame.Falling * frameHeight;
-					break;
-				case (float)ActionState.Hover:
+                    break;
+                case (float)ActionState.Fall:
+                    NPC.frame.Y = (int)Frame.Falling * frameHeight;
+                    break;
+            }
+        }
 
-					NPC.frameCounter++;
+        public override bool? CanFallThroughPlatforms() {
+            if (AI_State == (float)ActionState.Fall && NPC.HasValidTarget && Main.player[NPC.target].Top.Y > NPC.Bottom.Y) {
+                return true;
+            }
 
-					if (NPC.frameCounter < 10) {
-						NPC.frame.Y = (int)Frame.Flutter1 * frameHeight;
-					}
-					else if (NPC.frameCounter < 20) {
-						NPC.frame.Y = (int)Frame.Flutter2 * frameHeight;
-					}
-					else if (NPC.frameCounter < 30) {
-						NPC.frame.Y = (int)Frame.Flutter3 * frameHeight;
-					}
-					else {
-						NPC.frameCounter = 0;
-					}
+            return false;
+        }
 
-					break;
-				case (float)ActionState.Fall:
-					NPC.frame.Y = (int)Frame.Falling * frameHeight;
-					break;
-			}
-		}
+        private void FallAsleep() {
+            NPC.TargetClosest(true);
 
-		private void FallAsleep() {
+            if (NPC.HasValidTarget && Main.player[NPC.target].Distance(NPC.Center) < 500f) {
+                AI_State = (float)ActionState.Notice;
+                AI_Timer = 0;
+            }
+        }
 
-			NPC.TargetClosest(true);
+        private void Notice() {
+            if (Main.player[NPC.target].Distance(NPC.Center) < 250f) {
+                AI_Timer++;
 
-			if (NPC.HasValidTarget && Main.player[NPC.target].Distance(NPC.Center) < 500f) {
+                if (AI_Timer >= 20) {
+                    AI_State = (float)ActionState.Jump;
+                    AI_Timer = 0;
+                }
+            }
+            else {
+                NPC.TargetClosest(true);
 
-				AI_State = (float)ActionState.Notice;
-				AI_Timer = 0;
-			}
-		}
+                if (!NPC.HasValidTarget || Main.player[NPC.target].Distance(NPC.Center) > 500f) {
+                    AI_State = (float)ActionState.Asleep;
+                    AI_Timer = 0;
+                }
+            }
+        }
 
-		private void Notice() {
+        private void Jump() {
+            AI_Timer++;
 
-			if (Main.player[NPC.target].Distance(NPC.Center) < 250f) {
+            if (AI_Timer == 1) {
+                NPC.velocity = new Vector2(NPC.direction * 2, -10f);
+            }
+            else if (AI_Timer > 40) {
+                AI_State = (float)ActionState.Hover;
+                AI_Timer = 0;
+            }
+        }
 
-				AI_Timer++;
+        private void Hover() {
+            AI_Timer++;
 
-				if (AI_Timer >= 20) {
-					AI_State = (float)ActionState.Jump;
-					AI_Timer = 0;
-				}
-			}
-			else {
-				NPC.TargetClosest(true);
+            if (AI_Timer == 1 && Main.netMode != NetmodeID.MultiplayerClient) {
+                AI_FlutterTime = Main.rand.NextBool() ? 100 : 50;
 
-				if (!NPC.HasValidTarget || Main.player[NPC.target].Distance(NPC.Center) > 500f) {
+                NPC.netUpdate = true;
+            }
 
-					AI_State = (float)ActionState.Asleep;
-					AI_Timer = 0;
-				}
-			}
-		}
+            NPC.velocity += new Vector2(0, -.35f);
 
-		private void Jump() {
-			AI_Timer++;
+            if (Math.Abs(NPC.velocity.X) < 2) {
+                NPC.velocity += new Vector2(NPC.direction * .05f, 0);
+            }
 
-			if (AI_Timer == 1) {
+            if (AI_Timer > AI_FlutterTime) {
+                AI_State = (float)ActionState.Fall;
+                AI_Timer = 0;
+            }
+        }
 
-				NPC.velocity = new Vector2(NPC.direction * 2, -10f);
-			}
-			else if (AI_Timer > 40) {
-
-				AI_State = (float)ActionState.Hover;
-				AI_Timer = 0;
-			}
-		}
-
-		private void Hover() {
-			AI_Timer++;
-
-			if (AI_Timer == 1 && Main.netMode != NetmodeID.MultiplayerClient) {
-
-				AI_FlutterTime = Main.rand.NextBool() ? 100 : 50;
-
-				NPC.netUpdate = true;
-			}
-
-			NPC.velocity += new Vector2(0, -.35f);
-
-			if (Math.Abs(NPC.velocity.X) < 2) {
-				NPC.velocity += new Vector2(NPC.direction * .05f, 0);
-			}
-
-			if (AI_Timer > AI_FlutterTime) {
-				AI_State = (float)ActionState.Fall;
-				AI_Timer = 0;
-			}
-		}
-
-		public override float SpawnChance(NPC.Spawner spawner) => SpawnCondition.OverworldDaySlime.Chance * 0.1f;
-	}
+        public override bool ModifyCollisionData(Rectangle victimHitbox, ref int immunityCooldownSlot, ref MultipliableFloat damageMultiplier, ref Rectangle npcHitbox) {
+            if (AI_State == (float)ActionState.Fall) {
+                Rectangle extraDamageHitbox = new Rectangle(npcHitbox.X + 12, npcHitbox.Y + 18, npcHitbox.Width - 24, npcHitbox.Height - 18);
+                if (victimHitbox.Intersects(extraDamageHitbox)) {
+                    damageMultiplier *= 2f;
+                    Main.NewText(GotStompedText.Value);
+                }
+            }
+            return true;
+        }
+    }
 }

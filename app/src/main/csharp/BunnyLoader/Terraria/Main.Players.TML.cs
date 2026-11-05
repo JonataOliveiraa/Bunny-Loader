@@ -4,6 +4,19 @@ namespace Terraria;
 
 public readonly partial struct Main
 {
+    public static IEnumerable<WorldItem> ActiveItems
+    {
+        get
+        {
+            var items = item;
+            for (int i = 0; i < maxItems && i < items.Length; i++)
+            {
+                WorldItem current = items[i];
+                if (!current.IsNull && current.active) yield return current;
+            }
+        }
+    }
+
     public static IEnumerable<Player> ActivePlayers
     {
         get

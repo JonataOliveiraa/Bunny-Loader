@@ -18,6 +18,13 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void AddRecipes() { }
 
+    public virtual bool CanStack(Item destination, Item source) => true;
+    public virtual bool CanStackInWorld(WorldItem destination, WorldItem source) => true;
+    public virtual void OnStack(Item destination, Item source, int numToTransfer) { }
+    public virtual void SplitStack(Item destination, Item source, int numToTransfer) { }
+    public virtual void SaveData(Item item, Terraria.ModLoader.IO.TagCompound tag) { }
+    public virtual void LoadData(Item item, Terraria.ModLoader.IO.TagCompound tag) { }
+
     public virtual void OnSpawn(WorldItem item, IEntitySource source) { }
 
     public virtual void OnCreated(Item item, ItemCreationContext context) { }
@@ -193,6 +200,8 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
     public virtual void RightClick(Item item, Player player) { }
 
     public virtual bool ConsumeItem(Item item, Player player) => true;
+
+    public virtual void OnConsumeItem(Item item, Player player) { }
 
     public virtual void ModifyTooltips(Item item, List<TooltipLine> tooltips) { }
 

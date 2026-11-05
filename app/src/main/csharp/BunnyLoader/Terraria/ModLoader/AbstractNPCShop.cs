@@ -26,6 +26,7 @@ public abstract class AbstractNPCShop
         public bool ConditionsMet() { foreach (Condition condition in conditions) if (!condition.IsMet()) return false; return true; }
     }
 
+    internal int Index = -1;
     public int NpcType { get; }
     public string Name { get; }
     public string FullName => NPCShopDatabase.GetShopName(NpcType, Name);

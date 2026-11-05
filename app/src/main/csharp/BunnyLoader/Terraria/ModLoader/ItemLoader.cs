@@ -400,9 +400,18 @@ public static unsafe partial class ItemLoader
 
     internal static string? SavedText(ModItem instance)
     {
-        if (instance.LoadFailed || !Overrides(instance, nameof(ModItem.SaveData))) return instance.SavedData;
+        if (instance.LoadFailed) return instance.SavedData;
         var tag = new TagCompound();
-        instance.SaveData(tag);
+        if (Overrides(instance, nameof(ModItem.SaveData))) instance.SaveData(tag);
+        var globalData = new TagCompound();
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(instance.Item))
+        {
+            if (global == null || !ItemHooks.Wants(global, nameof(GlobalItem.SaveData))) continue;
+            var saved = new TagCompound();
+            global.SaveData(instance.Item, saved);
+            if (saved.Count > 0) globalData[global.FullName] = saved;
+        }
+        if (globalData.Count > 0) tag["BunnyLoader:GlobalItems"] = globalData;
         string text = tag.Count == 0 ? "" : TagJson.Write(tag);
         instance.SavedData = text;
         return text;
@@ -414,6 +423,14 @@ public static unsafe partial class ItemLoader
         instance.LoadFailed = true;
         TagCompound tag = text.Length == 0 ? new TagCompound() : TagJson.Read(text);
         if (Overrides(instance, nameof(ModItem.LoadData))) instance.LoadData(tag);
+        if (tag.TryGet<TagCompound>("BunnyLoader:GlobalItems", out var globalData))
+        {
+            foreach (GlobalItem? global in ItemHooks.GlobalsOf(instance.Item))
+            {
+                if (global == null || !ItemHooks.Wants(global, nameof(GlobalItem.LoadData))) continue;
+                global.LoadData(instance.Item, globalData.Get<TagCompound>(global.FullName) ?? new TagCompound());
+            }
+        }
         instance.LoadFailed = false;
     }
 

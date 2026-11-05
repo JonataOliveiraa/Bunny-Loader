@@ -30,6 +30,8 @@ public abstract class ModWall : ModBlockType
 
     public virtual bool Drop(int i, int j, ref int type) => true;
 
+    public virtual bool CanBeTeleportedTo(int i, int j, Player player, string context) => true;
+
     public virtual void KillWall(int i, int j, ref bool fail)
     {
     }

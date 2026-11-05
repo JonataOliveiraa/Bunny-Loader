@@ -1,3 +1,4 @@
+using Terraria.Enums;
 using System;
 using System.IO;
 using BunnyLoader;
@@ -145,6 +146,12 @@ public class ExampleLastPrismBeam : ModProjectile
         foreach (float sample in laserScanResults)
             averageLengthSample += sample;
         return averageLengthSample / NumSamplePoints;
+    }
+
+    public override void CutTiles()
+    {
+        DelegateMethods.tilecut_0 = TileCuttingContext.AttackProjectile;
+        Utils.PlotTileLine(Projectile.Center, Projectile.Center + Projectile.velocity * BeamLength, Projectile.width * Projectile.scale, DelegateMethods.CutTiles);
     }
 
     public override bool? Colliding(Rectangle projHitbox, Rectangle targetHitbox)

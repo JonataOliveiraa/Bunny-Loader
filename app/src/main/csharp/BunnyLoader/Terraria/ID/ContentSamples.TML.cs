@@ -6,6 +6,12 @@ namespace Terraria.ID;
 
 public static partial class ContentSamples
 {
+    public static BunnyLoader.Interop.GameString BestiaryCreditId(int npcNetId)
+    {
+        new BunnyLoader.Interop.GameDictionary(NpcBestiaryCreditIdsByNpcNetIds).TryGetValue(npcNetId, out BunnyLoader.Interop.GameString id);
+        return id;
+    }
+
     public static BestiaryRarityStars NpcBestiaryRarityStars { get; } = new();
 
     public static ProjectileSamples ProjectilesByType { get; } = new();

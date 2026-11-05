@@ -34,6 +34,11 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void AddRecipes() { }
 
+    public virtual bool CanStack(Item source) => true;
+    public virtual bool CanStackInWorld(WorldItem destination, WorldItem source) => true;
+    public virtual void OnStack(Item source, int numToTransfer) { }
+    public virtual void SplitStack(Item source, int numToTransfer) { }
+
     public virtual void OnSpawn(WorldItem item, IEntitySource source) { }
 
     public Recipe CreateRecipe(int amount = 1) => Recipe.Create(Type, amount);
@@ -229,6 +234,8 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
     public virtual void RightClick(Player player) { }
 
     public virtual bool ConsumeItem(Player player) => true;
+
+    public virtual void OnConsumeItem(Player player) { }
 
     public virtual void ModifyTooltips(List<TooltipLine> tooltips) { }
 

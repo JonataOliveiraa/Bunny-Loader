@@ -45,6 +45,8 @@ internal static unsafe class ItemHooks
                 (IntPtr)(delegate* unmanaged<IntPtr, int, IntPtr, void>)&UpdateEquips));
         ItemExampleHooks.Install(Has);
         ItemVisibilityHooks.Install(Has);
+        ItemStackHooks.Install(Has);
+        ItemConsumeHooks.Install(Has);
         ItemHealHooks.Install(Has);
         ItemPickupHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemDrawHooks.Install(Has, baseType == typeof(GlobalItem));

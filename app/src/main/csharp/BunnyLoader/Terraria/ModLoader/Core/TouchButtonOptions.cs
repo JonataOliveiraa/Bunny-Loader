@@ -35,7 +35,15 @@ internal static unsafe class TouchButtonOptions
 
     static int PerPage => Math.Max(1, (vanilla?.Length ?? 27) - 2);
 
-    static int Pages => (TouchButtonLoader.Count + PerPage - 1) / PerPage;
+    static List<int> PlainActions()
+    {
+        var list = new List<int>();
+        foreach (ModTouchButton button in TouchButtonLoader.Buttons)
+            if (button is not ModTouchJoystick) list.Add(TouchButtonLoader.ActionOf(button));
+        return list;
+    }
+
+    static int Pages => (PlainActions().Count + PerPage - 1) / PerPage;
 
     internal static void Install()
     {
@@ -72,12 +80,33 @@ internal static unsafe class TouchButtonOptions
             if (!grid.IsNull) lines = Math.Max(1, grid.ItemLineCount);
         }
         Apply();
+        ApplyAxis(config);
+    }
+
+    static void ApplyAxis(VirtualInputControllerControlConfiguration_Layout config)
+    {
+        if (config.AxisControls.IsNull) return;
+        var wanted = new List<int>();
+        foreach (ContolType action in config.AxisControls)
+            if ((int)action < TouchButtonLoader.FirstAction) wanted.Add((int)action);
+        foreach (ModTouchButton button in TouchButtonLoader.Buttons)
+            if (button is ModTouchJoystick) wanted.Add(TouchButtonLoader.ActionOf(button));
+        if (!Same(config.AxisControls, wanted))
+        {
+            GameArray<ContolType> list = config.AxisControls.Length != wanted.Count ? config.AxisControls.Resized(wanted.Count) : config.AxisControls;
+            for (int i = 0; i < wanted.Count; i++) list[i] = (ContolType)wanted[i];
+            config.AxisControls = list;
+        }
+        ItemGrid_Layout grid = config.PulldownOptionGridAxis;
+        if (grid.IsNull || grid.ItemCount >= wanted.Count) return;
+        grid.ItemCount = wanted.Count;
     }
 
     static List<int> Build()
     {
         var list = new List<int>();
-        int count = TouchButtonLoader.Count;
+        List<int> plain = PlainActions();
+        int count = plain.Count;
         if (page <= 0 || count == 0)
         {
             list.AddRange(vanilla!);
@@ -86,7 +115,7 @@ internal static unsafe class TouchButtonOptions
         }
         list.Add(BackAction);
         int first = (page - 1) * PerPage;
-        for (int i = first; i < Math.Min(count, first + PerPage); i++) list.Add(TouchButtonLoader.FirstAction + i);
+        for (int i = first; i < Math.Min(count, first + PerPage); i++) list.Add(plain[i]);
         if (page < Pages) list.Add(MoreAction);
         return list;
     }
@@ -121,8 +150,8 @@ internal static unsafe class TouchButtonOptions
 
     static int PageOf(int action)
     {
-        int index = action - TouchButtonLoader.FirstAction;
-        return index >= 0 && index < TouchButtonLoader.Count ? index / PerPage + 1 : 0;
+        int index = PlainActions().IndexOf(action);
+        return index >= 0 ? index / PerPage + 1 : 0;
     }
 
     static void PulldownOptionDraw(On_GUIVirtualInputControllerEdit_ControlPanel_ControlPanelActionSetting.orig_PulldownOptionDraw orig, ActionSetting self,

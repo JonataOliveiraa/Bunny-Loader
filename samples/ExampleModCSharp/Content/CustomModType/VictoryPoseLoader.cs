@@ -26,8 +26,7 @@ namespace ExampleMod.Content.CustomModType
             bool success = victoryPosePlayer.StartPose(pose);
             if (success) {
                 if ((Main.netMode & NetmodeID.MultiplayerClient) != 0) {
-
-
+                    VictoryPosePlayer.SendStartVictoryPoseMessage(Main.myPlayer, victoryPosePlayer.activeVictoryPose);
                 }
             }
             return success;
@@ -39,8 +38,7 @@ namespace ExampleMod.Content.CustomModType
                 victoryPosePlayer.EndPose();
 
                 if ((Main.netMode & NetmodeID.MultiplayerClient) != 0) {
-
-
+                    VictoryPosePlayer.SendCancelVictoryPoseMessage(Main.myPlayer);
                 }
             }
         }

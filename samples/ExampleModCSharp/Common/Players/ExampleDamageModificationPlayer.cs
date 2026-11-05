@@ -101,6 +101,9 @@ namespace ExampleMod.Common.Players
             Player.ClearBuff(ModContent.BuffType<ExampleDodgeBuff>());
             exampleDodgeCooldown = 180;
 
+            if (Main.netMode != NetmodeID.SinglePlayer) {
+                SendExampleDodgeMessage(Player.whoAmI);
+            }
         }
 
         public static void HandleExampleDodgeMessage(BinaryReader reader, int whoAmI) {
@@ -112,9 +115,17 @@ namespace ExampleMod.Common.Players
             if (player < 0 || player >= Main.player.Length || Main.player[player].IsNull) return;
             Main.player[player].GetModPlayer<ExampleDamageModificationPlayer>().ExampleDodgeEffects();
 
+            if ((Main.netMode & NetmodeID.Server) != 0) {
+                SendExampleDodgeMessage(player);
+            }
         }
 
-
+        public static void SendExampleDodgeMessage(int whoAmI) {
+            ModPacket packet = ModContent.GetInstance<ExampleMod>().GetPacket();
+            packet.Write((byte)ExampleMod.MessageType.ExampleDodge);
+            packet.Write((byte)whoAmI);
+            packet.Send(ignoreClient: whoAmI);
+        }
 
         public override void ModifyHurt(ref Player.HurtModifiers modifiers) {
             if (defendedByAbsorbTeamDamageEffect && Player == Main.LocalPlayer && TeammateCanAbsorbDamage()) {

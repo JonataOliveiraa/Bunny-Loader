@@ -13,6 +13,8 @@ namespace Terraria.ModLoader;
 
 public static class ModContent
 {
+    public static int GetModHeadSlot(string texture) => NPCHeadLoader.GetHeadSlot(texture);
+
     static readonly Dictionary<Type, object> Instances = new();
 
     static readonly Dictionary<string, List<IModType>> ByName = new(StringComparer.Ordinal);
@@ -224,6 +226,11 @@ public static class ModContent
             foreach (GlobalBuff global in mod.GetContent<GlobalBuff>())
             {
                 Run(mod, $"{global.Name}.SetStaticDefaults", global.SetupContent);
+                yield return 0;
+            }
+            foreach (ModPlayer player in mod.GetContent<ModPlayer>())
+            {
+                Run(mod, $"{player.Name}.SetStaticDefaults", player.SetupContent);
                 yield return 0;
             }
         }

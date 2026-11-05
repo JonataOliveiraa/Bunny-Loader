@@ -36,6 +36,7 @@ internal static unsafe class LocalizationLoader
                 Log.Error($"mod {mod.Uid}: {relative}: {e.Message}");
             }
         }
+        Language.InstallModVariations();
         LoadLegacyJson(mod, all);
         ResolveReferences(all);
         lock (ByMod) ByMod[mod] = all;

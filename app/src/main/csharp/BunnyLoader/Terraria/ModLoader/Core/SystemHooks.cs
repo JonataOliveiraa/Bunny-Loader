@@ -30,6 +30,7 @@ internal static unsafe class SystemHooks
         }
 
         SystemDrawHooks.Install(name => Has(type, name));
+        if (Has(type, nameof(ModSystem.ModifyGameTipVisibility))) GameTipHooks.Install();
         SystemNetHooks.Install(name => Has(type, name));
         if (Any(nameof(ModSystem.ModifyTransformMatrix))) Stage(Transform);
         if (Any(nameof(ModSystem.PreUpdatePlayers))) Stage(PlayersBegin);

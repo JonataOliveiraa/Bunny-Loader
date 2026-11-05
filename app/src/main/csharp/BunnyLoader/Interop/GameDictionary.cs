@@ -37,7 +37,13 @@ public readonly unsafe struct GameDictionary
 
     static void Value<T>(ref GameCall call, T* value) where T : unmanaged
     {
-        if (sizeof(T) > 16) call.Arg((IntPtr)value);
+        if (typeof(T) == typeof(Microsoft.Xna.Framework.Vector2))
+        {
+            var vector = *(Microsoft.Xna.Framework.Vector2*)value;
+            call.Arg(vector.X);
+            call.Arg(vector.Y);
+        }
+        else if (sizeof(T) > 16) call.Arg((IntPtr)value);
         else call.Arg(*value);
     }
 

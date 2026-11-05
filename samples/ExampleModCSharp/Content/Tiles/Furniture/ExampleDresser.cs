@@ -1,195 +1,188 @@
-using ExampleMod.Content.Dusts;
 using Microsoft.Xna.Framework.Graphics;
+using ExampleMod.Content.Dusts;
+using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.Audio;
 using Terraria.DataStructures;
+using Terraria.GameContent.ObjectInteractions;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
 using Terraria.ObjectData;
 
-namespace ExampleMod.Content.Tiles.Furniture;
-
-public class ExampleDresser : ModTile
+namespace ExampleMod.Content.Tiles.Furniture
 {
-    public override void SetStaticDefaults()
+    public class ExampleDresser : ModTile
     {
-        Main.tileSolidTop[Type] = true;
-        Main.tileFrameImportant[Type] = true;
-        Main.tileNoAttach[Type] = true;
-        Main.tileTable[Type] = true;
-        Main.tileContainer[Type] = true;
-        Main.tileLavaDeath[Type] = true;
-        TileID.Sets.HasOutlines[Type] = true;
-        TileID.Sets.DisableSmartCursor[Type] = true;
-        TileID.Sets.BasicDresser[Type] = true;
-        TileID.Sets.AvoidedByNPCs[Type] = true;
-        TileID.Sets.InteractableByNPCs[Type] = true;
-        TileID.Sets.IsAContainer[Type] = true;
-        TileID.Sets.RoomNeeds.CountsAsTable[Type] = true;
+        public override void SetStaticDefaults() {
+            Main.tileSolidTop[Type] = true;
+            Main.tileFrameImportant[Type] = true;
+            Main.tileNoAttach[Type] = true;
+            Main.tileTable[Type] = true;
+            Main.tileContainer[Type] = true;
+            Main.tileLavaDeath[Type] = true;
+            TileID.Sets.HasOutlines[Type] = true;
+            TileID.Sets.DisableSmartCursor[Type] = true;
+            TileID.Sets.BasicDresser[Type] = true;
+            TileID.Sets.AvoidedByNPCs[Type] = true;
+            TileID.Sets.InteractableByNPCs[Type] = true;
+            TileID.Sets.IsAContainer[Type] = true;
+            TileID.Sets.RoomNeeds.CountsAsTable[Type] = true;
 
-        AdjTiles = [TileID.Dressers];
-        DustType = ModContent.DustType<Sparkle>();
+            AdjTiles = [TileID.Dressers];
+            DustType = ModContent.DustType<Sparkle>();
 
-        AddMapEntry(new Color(200, 200, 200), CreateMapEntryName());
+            AddMapEntry(new Color(200, 200, 200), CreateMapEntryName());
 
-        TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
-        TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(Chest.FindEmptyChest, -1, 0, true);
-        TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(Chest.AfterPlacement_Hook, -1, 0, false);
-        TileObjectData.newTile.AnchorInvalidTiles = [
-            TileID.MagicalIceBlock,
-            TileID.Boulder,
-            TileID.BouncyBoulder,
-            TileID.LifeCrystalBoulder,
-            TileID.RollingCactus
-        ];
-        TileObjectData.newTile.LavaDeath = false;
-        TileObjectData.addTile(Type);
-    }
+            TileObjectData.newTile.CopyFrom(TileObjectData.Style3x2);
+            TileObjectData.newTile.HookCheckIfCanPlace = new PlacementHook(Chest.FindEmptyChest, -1, 0, true);
+            TileObjectData.newTile.HookPostPlaceMyPlayer = new PlacementHook(Chest.AfterPlacement_Hook, -1, 0, false);
+            TileObjectData.newTile.AnchorInvalidTiles = [
+                TileID.MagicalIceBlock,
+                TileID.Boulder,
+                TileID.BouncyBoulder,
+                TileID.LifeCrystalBoulder,
+                TileID.RollingCactus
+            ];
+            TileObjectData.newTile.LavaDeath = false;
+            TileObjectData.addTile(Type);
+        }
 
-    public override LocalizedText DefaultContainerName(int frameX, int frameY)
-    {
-        return CreateMapEntryName();
-    }
+        public override LocalizedText DefaultContainerName(int frameX, int frameY) {
+            return CreateMapEntryName();
+        }
 
-    public override bool RightClick(int i, int j)
-    {
-        Player player = Main.LocalPlayer;
-        int left = Main.tile[i, j].TileFrameX / 18;
-        left %= 3;
-        left = i - left;
-        int top = j - Main.tile[i, j].TileFrameY / 18;
-        if (Main.tile[i, j].TileFrameY == 0)
-        {
-            Main.CancelClothesWindow(true);
-            Main.mouseRightRelease = false;
-            player.CloseSign();
-            player.SetTalkNPC(-1);
-            Main.npcChatCornerItem = 0;
-            Main.npcChatText = "";
-            if (Main.editChest)
-            {
-                SoundEngine.PlaySound(SoundID.MenuTick);
-                Main.editChest = false;
-                Main.npcChatText = string.Empty;
-            }
+        public override bool HasSmartInteract(int i, int j, SmartInteractScanSettings settings) {
+            return true;
+        }
 
-            if (player.editedChestName)
-            {
-                NetMessage.SendData(MessageID.SyncPlayerChest, text: NetworkText.FromLiteral(Main.chest[player.chest].name), number: player.chest, number2: 1f);
-                player.editedChestName = false;
-            }
+        public override void ModifySmartInteractCoords(ref int width, ref int height, ref int frameWidth, ref int frameHeight, ref int extraY) {
+            width = 3;
+            height = 1;
+            extraY = 0;
+        }
 
-            if (Main.netMode == NetmodeID.MultiplayerClient)
-            {
-                if (left == player.chestX && top == player.chestY && player.chest != -1)
-                {
-                    player.chest = -1;
-                    SoundEngine.PlaySound(SoundID.MenuClose);
+        public override bool RightClick(int i, int j) {
+            Player player = Main.LocalPlayer;
+            int left = Main.tile[i, j].TileFrameX / 18;
+            left %= 3;
+            left = i - left;
+            int top = j - Main.tile[i, j].TileFrameY / 18;
+            if (Main.tile[i, j].TileFrameY == 0) {
+                Main.CancelClothesWindow(true);
+                Main.mouseRightRelease = false;
+                player.CloseSign();
+                player.SetTalkNPC(-1);
+                Main.npcChatCornerItem = 0;
+                Main.npcChatText = "";
+                if (Main.editChest) {
+                    SoundEngine.PlaySound(SoundID.MenuTick);
+                    Main.editChest = false;
+                    Main.npcChatText = string.Empty;
                 }
-                else
-                {
-                    NetMessage.SendData(MessageID.RequestChestOpen, number: left, number2: top);
-                    Main.stackSplit = 600;
+                if (player.editedChestName) {
+                    NetMessage.SendData(MessageID.SyncPlayerChest, text: NetworkText.FromLiteral(Main.chest[player.chest].name), number: player.chest, number2: 1f);
+                    player.editedChestName = false;
                 }
-            }
-            else
-            {
-                player.piggyBankProjTracker.Clear();
-                player.voidLensChest.Clear();
-                int chestIndex = Chest.FindChest(left, top);
-                if (chestIndex != -1)
-                {
-                    Main.stackSplit = 600;
-                    if (chestIndex == player.chest)
-                    {
+                if ((Main.netMode & NetmodeID.MultiplayerClient) != 0) {
+                    if (left == player.chestX && top == player.chestY && player.chest != -1) {
                         player.chest = -1;
                         SoundEngine.PlaySound(SoundID.MenuClose);
                     }
-                    else if (chestIndex != player.chest && player.chest == -1)
-                    {
-                        player.OpenChest(left, top, chestIndex);
-                        SoundEngine.PlaySound(SoundID.MenuOpen);
+                    else {
+                        NetMessage.SendData(MessageID.RequestChestOpen, number: left, number2: top);
+                        Main.stackSplit = 600;
                     }
-                    else
-                    {
-                        player.OpenChest(left, top, chestIndex);
-                        SoundEngine.PlaySound(SoundID.MenuTick);
+                }
+                else {
+                    player.piggyBankProjTracker.Clear();
+                    player.voidLensChest.Clear();
+                    int chestIndex = Chest.FindChest(left, top);
+                    if (chestIndex != -1) {
+                        Main.stackSplit = 600;
+                        if (chestIndex == player.chest) {
+                            player.chest = -1;
+                            SoundEngine.PlaySound(SoundID.MenuClose);
+                        }
+                        else if (chestIndex != player.chest && player.chest == -1) {
+                            player.OpenChest(left, top, chestIndex);
+                            SoundEngine.PlaySound(SoundID.MenuOpen);
+                        }
+                        else {
+                            player.OpenChest(left, top, chestIndex);
+                            SoundEngine.PlaySound(SoundID.MenuTick);
+                        }
                     }
                 }
             }
-        }
-        else
-        {
-            Main.playerInventory = false;
-            player.chest = -1;
-            player.SetTalkNPC(-1);
-            Main.npcChatCornerItem = 0;
-            Main.npcChatText = "";
-            Main.interactedDresserTopLeftX = left;
-            Main.interactedDresserTopLeftY = top;
-            Main.OpenClothesWindow();
-        }
-
-        return true;
-    }
-
-    public void MouseOverNearAndFarSharedLogic(Player player, int i, int j)
-    {
-        Tile tile = Main.tile[i, j];
-        int left = i;
-        int top = j;
-        left -= tile.TileFrameX % 54 / 18;
-        if (tile.TileFrameY % 36 != 0)
-        {
-            top--;
+            else {
+                Main.playerInventory = false;
+                player.chest = -1;
+                player.SetTalkNPC(-1);
+                Main.npcChatCornerItem = 0;
+                Main.npcChatText = "";
+                Main.interactedDresserTopLeftX = left;
+                Main.interactedDresserTopLeftY = top;
+                Main.OpenClothesWindow();
+            }
+            return true;
         }
 
-        int chestIndex = Chest.FindChest(left, top);
-        player.cursorItemIconID = -1;
-        if (chestIndex < 0)
-        {
-            player.cursorItemIconText = Language.GetTextValue("LegacyDresserType.0");
+        public void MouseOverNearAndFarSharedLogic(Player player, int i, int j) {
+            Tile tile = Main.tile[i, j];
+            int left = i;
+            int top = j;
+            left -= tile.TileFrameX % 54 / 18;
+            if (tile.TileFrameY % 36 != 0) {
+                top--;
+            }
+            int chestIndex = Chest.FindChest(left, top);
+            player.cursorItemIconID = -1;
+            if (chestIndex < 0) {
+                player.cursorItemIconText = Language.GetTextValue("LegacyDresserType.0");
+            }
+            else {
+                string defaultName = TileLoader.DefaultContainerName(tile.TileType, tile.TileFrameX, tile.TileFrameY);
+
+                if (Main.chest[chestIndex].name != "") {
+                    player.cursorItemIconText = Main.chest[chestIndex].name;
+                }
+                else {
+                    player.cursorItemIconText = defaultName;
+                }
+                if (player.cursorItemIconText == defaultName) {
+                    player.cursorItemIconID = ModContent.ItemType<Items.Placeable.Furniture.ExampleDresser>();
+                    player.cursorItemIconText = "";
+                }
+            }
+            player.noThrow = 2;
+            player.cursorItemIconEnabled = true;
         }
-        else
-        {
-            string defaultName = TileLoader.DefaultContainerName(tile.TileType, tile.TileFrameX, tile.TileFrameY);
-            player.cursorItemIconText = Main.chest[chestIndex].name != "" ? Main.chest[chestIndex].name : defaultName;
-            if (player.cursorItemIconText == defaultName)
-            {
-                player.cursorItemIconID = ModContent.ItemType<Items.Placeable.Furniture.ExampleDresser>();
+
+        public override void MouseOverFar(int i, int j) {
+            Player player = Main.LocalPlayer;
+            MouseOverNearAndFarSharedLogic(player, i, j);
+            if (player.cursorItemIconText == "") {
+                player.cursorItemIconEnabled = false;
+                player.cursorItemIconID = ItemID.None;
+            }
+        }
+
+        public override void MouseOver(int i, int j) {
+            Player player = Main.LocalPlayer;
+            MouseOverNearAndFarSharedLogic(player, i, j);
+            if (Main.tile[i, j].TileFrameY > 0) {
+                player.cursorItemIconID = ItemID.FamiliarShirt;
                 player.cursorItemIconText = "";
             }
         }
 
-        player.noThrow = 2;
-        player.cursorItemIconEnabled = true;
-    }
-
-    public override void MouseOverFar(int i, int j)
-    {
-        Player player = Main.LocalPlayer;
-        MouseOverNearAndFarSharedLogic(player, i, j);
-        if (player.cursorItemIconText == "")
-        {
-            player.cursorItemIconEnabled = false;
-            player.cursorItemIconID = ItemID.None;
+        public override void NumDust(int i, int j, bool fail, ref int num) {
+            num = fail ? 1 : 3;
         }
-    }
 
-    public override void MouseOver(int i, int j)
-    {
-        Player player = Main.LocalPlayer;
-        MouseOverNearAndFarSharedLogic(player, i, j);
-        if (Main.tile[i, j].TileFrameY > 0)
-        {
-            player.cursorItemIconID = ItemID.FamiliarShirt;
-            player.cursorItemIconText = "";
+        public override void KillMultiTile(int i, int j, int frameX, int frameY) {
+            Chest.DestroyChest(i, j);
         }
-    }
-
-    public override void KillMultiTile(int i, int j, int frameX, int frameY)
-    {
-        Chest.DestroyChest(i, j);
     }
 }

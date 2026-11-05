@@ -35,6 +35,19 @@ namespace Terraria
         public IEntitySource GetSource_FromThis(string? context = null) => EntitySource_Parent.New(this);
 
         public IEntitySource GetSource_Loot(string? context = null) => GetItemSource_Loot();
+
+        public IEntitySource GetSource_Death(string? context = null) => EntitySource_Parent.New(this);
+
+        public IEntitySource GetSource_FromAI(string? context = null) => EntitySource_Parent.New(this);
+
+        public IEntitySource GetSource_GiftOrReward(string? context = null) => EntitySource_Parent.New(this);
+    }
+
+    public readonly partial struct Entity
+    {
+        public static IEntitySource GetSource_TownSpawn() => EntitySource_SpawnNPC.New();
+
+        public static IEntitySource GetSource_NaturalSpawn() => EntitySource_SpawnNPC.New();
     }
 
     public readonly partial struct Projectile

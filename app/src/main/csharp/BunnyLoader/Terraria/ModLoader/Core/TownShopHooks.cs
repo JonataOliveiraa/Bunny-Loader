@@ -33,9 +33,33 @@ internal static class TownShopHooks
     static void SetupShop(On_InventoryStorage.orig_SetupShop orig, InventoryStorage storage, int type)
     {
         orig(storage, type);
-        if (!NPCShopDatabase.ByIndex.TryGetValue(type, out NPCShop? shop)) return;
-        try { Fill(storage, shop); }
+        if (!NPCShopDatabase.ByIndex.TryGetValue(type, out AbstractNPCShop? shop)) return;
+        try
+        {
+            if (shop is NPCShop ordinary) Fill(storage, ordinary);
+            else FillCustom(storage, shop);
+        }
         catch (Exception e) { ItemHooks.Report($"NPC shop {shop.FullName}", e); }
+    }
+
+    static void FillCustom(InventoryStorage storage, AbstractNPCShop shop)
+    {
+        var native = storage.item;
+        NPC npc = TownNPCHooks.TalkingTo();
+        if (npc.IsNull || npc.type != shop.NpcType) npc = default;
+        Item[] items = new Item[native.Length];
+        shop.FillShop(items, npc, out _);
+        for (int i = 0; i < native.Length; i++)
+        {
+            Item item = items[i];
+            if (item.IsNull)
+            {
+                item = Item.New();
+                item.SetDefaults(0, default);
+            }
+            item.isAShopItem = true;
+            native[i] = item;
+        }
     }
 
     static void Fill(InventoryStorage storage, NPCShop shop)

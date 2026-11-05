@@ -46,19 +46,9 @@ internal static class PlayerWorldHooks
         if (has(nameof(ModPlayer.OnPickup))) ItemHooks.Once("PlayerPickup", () => On_Player.PickupItem += PickupItem);
         if (has(nameof(ModPlayer.HoverSlot))) ItemHooks.Once("PlayerHoverSlot", () => On_ItemSlot.OverrideHover_ItemArray_int_int += OverrideHover);
         if (has(nameof(ModPlayer.ShiftClickSlot))) ItemHooks.Once("PlayerShiftClickSlot", () => On_ItemSlot.OverrideLeftClick += OverrideLeftClick);
-        if (has(nameof(ModPlayer.CanBeTeleportedTo)))
-            ItemHooks.Once("PlayerTeleport", () =>
-            {
-                On_Player.Teleport += Teleport;
-                On_Player.UnityTeleport += UnityTeleport;
-            });
+        if (has(nameof(ModPlayer.CanBeTeleportedTo))) WantTeleport();
         if (has(nameof(ModPlayer.CanBuyItem)) || has(nameof(ModPlayer.PostBuyItem)) || has(nameof(ModPlayer.CanSellItem)) || has(nameof(ModPlayer.PostSellItem)))
-            ItemHooks.Once("PlayerShop", () =>
-            {
-                On_ItemSlot.HandleShopSlot += HandleShopSlot;
-                On_Player.SellItem += SellItem;
-                WantBuyItem();
-            });
+            WantBoughtItems();
         if (has(nameof(ModPlayer.ModifyNursePrice)) || has(nameof(ModPlayer.ModifyNurseHeal)) || has(nameof(ModPlayer.PostNurseHeal)))
             ItemHooks.Once("PlayerNurse", () =>
             {
@@ -108,6 +98,16 @@ internal static class PlayerWorldHooks
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.CanCatchNPC", e); }
         }
         return result;
+    }
+
+    internal static void WantBoughtItems()
+    {
+        ItemHooks.Once("PlayerShop", () =>
+        {
+            On_ItemSlot.HandleShopSlot += HandleShopSlot;
+            On_Player.SellItem += SellItem;
+            WantBuyItem();
+        });
     }
 
     static void WantBuyItem() => ItemHooks.Once("PlayerBuyItem", () => On_Player.BuyItem += BuyItem);
@@ -174,9 +174,24 @@ internal static class PlayerWorldHooks
         return orig(inv, context, slot);
     }
 
+    internal static void WantTeleport() => ItemHooks.Once("PlayerTeleport", () =>
+    {
+        On_Player.Teleport += Teleport;
+        On_Player.UnityTeleport += UnityTeleport;
+    });
+
+    static bool WallAllows(Player self, Vector2 position, string context)
+    {
+        int x = (int)(position.X / 16f), y = (int)(position.Y / 16f);
+        if (x < 0 || y < 0 || x >= Main.maxTilesX || y >= Main.maxTilesY) return true;
+        ModWall? wall = WallLoader.GetWall(Main.tile[x, y].WallType);
+        return wall == null || wall.CanBeTeleportedTo(x, y, self, context);
+    }
+
     static void Teleport(On_Player.orig_Teleport orig, Player self, Vector2 newPos, int Style, int extraInfo)
     {
         string context = Style == 1 ? "TeleportRod" : Style == 2 ? "TeleportationPotion" : "Teleport";
+        if ((Style == 1 || Style == 2) && !WallAllows(self, newPos, context)) return;
         if (PlayerLoader.All(self, nameof(ModPlayer.CanBeTeleportedTo), (newPos, context), static (m, s) => m.CanBeTeleportedTo(s.newPos, s.context)))
             orig(self, newPos, Style, extraInfo);
     }
@@ -195,6 +210,7 @@ internal static class PlayerWorldHooks
         shop = scope;
         try { orig(inv, slot, rightClickIsValid, leftClickIsValid); }
         finally { shop = outer; }
+        if (scope.Bought && !Main.mouseItem.IsNull) ItemLoader.OnCreated(Main.mouseItem, new BuyItemCreationContext(scope.Item));
         if (scope.Bought)
             PlayerLoader.Each(player, nameof(ModPlayer.PostBuyItem), (scope.Vendor, scope.Inventory, Main.mouseItem),
                 static (m, s) => m.PostBuyItem(s.Vendor, s.Inventory, s.mouseItem));

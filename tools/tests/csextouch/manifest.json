@@ -1,0 +1,17 @@
+{
+  "uid": "a1c94e07-52d3-4f8b-8e16-9b7d3c2f6a40",
+  "id": "CsExTouch",
+  "name": "Test: Example Mod touch button, hold button, joystick and chat pages (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Binds the C# Example Mod buttons to the active profile and logs what touches do.",
+  "description": "Needs samples/ExampleModCSharp next to it. Logs csextouch READY, CHAT, END pass=N fail=M.",
+  "updated": "2026-11-04",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

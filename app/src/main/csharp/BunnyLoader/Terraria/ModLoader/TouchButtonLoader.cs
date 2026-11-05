@@ -35,7 +35,9 @@ public static class TouchButtonLoader
 
     public static ModTouchButton RegisterButton(Mod mod, string name) => Register(mod, name, "");
 
-    internal static ModTouchButton Register(Mod mod, string name, string defaultBinding)
+    public static ModTouchJoystick RegisterJoystick(Mod mod, string name) => (ModTouchJoystick)Register(mod, name, "", true);
+
+    internal static ModTouchButton Register(Mod mod, string name, string defaultBinding, bool joystick = false)
     {
         ArgumentNullException.ThrowIfNull(mod);
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("the button needs a name", nameof(name));
@@ -45,7 +47,8 @@ public static class TouchButtonLoader
         lock (Gate)
         {
             if (byKey.TryGetValue(key, out ModTouchButton? known)) return known;
-            button = new ModTouchButton(mod, name, defaultBinding) { Index = buttons.Count };
+            button = joystick ? new ModTouchJoystick(mod, name) : new ModTouchButton(mod, name, defaultBinding);
+            button.Index = buttons.Count;
             buttons.Add(button);
             byKey[key] = button;
             Volatile.Write(ref snapshot, buttons.ToArray());
@@ -54,7 +57,7 @@ public static class TouchButtonLoader
         return button;
     }
 
-    internal static int ActionOf(ModKeybind button) => FirstAction + button.Index;
+    public static int ActionOf(ModKeybind button) => FirstAction + button.Index;
 
     internal static int QuickOf(ModKeybind button) => QuickBase + button.Index;
 

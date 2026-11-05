@@ -32,6 +32,7 @@ internal static unsafe class TouchButtonHooks
             orig(self);
         };
         On_GUIVirtualInputController.HandleTouchCursorDown += HandleTouchCursorDown;
+        TouchJoystickHooks.Install();
         On_GUIVirtualInputControllerEdit.Draw += (orig, self) =>
         {
             Guard("editor", () => Ensure(false));
@@ -290,6 +291,7 @@ internal static unsafe class TouchButtonHooks
     static void Statics()
     {
         VirtualControlsButtonConfiguration_Layout.ButtonStyles = Mapped(VirtualControlsButtonConfiguration_Layout.ButtonStyles, _ => 0, _ => 0);
+        VirtualControlsAxisConfiguration_Layout.AxisStyles = Mapped(VirtualControlsAxisConfiguration_Layout.AxisStyles, _ => 0, _ => 1);
         GUIVirtualInputController.QuickActionControlFromLayoutControl =
             Mapped(GUIVirtualInputController.QuickActionControlFromLayoutControl, _ => TouchButtonLoader.QuickUnbound, TouchButtonLoader.QuickOf);
         GUIVirtualInputController.ButtonControlFromLayoutControl = Mapped(GUIVirtualInputController.ButtonControlFromLayoutControl, _ => 0, TouchButtonLoader.ControlOf);

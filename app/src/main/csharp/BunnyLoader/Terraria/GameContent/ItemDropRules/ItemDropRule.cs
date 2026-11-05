@@ -7,6 +7,22 @@ namespace Terraria.GameContent.ItemDropRules;
 
 public static class ItemDropRule
 {
+    public static IItemDropRule Coins(long value, bool withRandomBonus)
+    {
+        if (value >= 1000000) return Common(74, 1, (int)(value / 1000000), (int)(value / 1000000));
+        if (value >= 10000) return Common(73, 1, (int)(value / 10000), (int)(value / 10000));
+        if (value >= 100) return Common(72, 1, (int)(value / 100), (int)(value / 100));
+        return Common(71, 1, (int)value, (int)value);
+    }
+
+    public static IItemDropRule CoinsBasedOnNPCValue(int npcId)
+    {
+        NPC npc = NPC.New();
+        using GameHandle pin = new(npc.Pointer);
+        npc.SetDefaults(npcId, default);
+        return Coins((long)npc.value, true);
+    }
+
     public static IItemDropRule Common(int itemId, int chanceDenominator = 1, int minimumDropped = 1, int maximumDropped = 1) => DropRuleInterop.Wrap(N.ItemDropRule.Common(itemId, chanceDenominator, minimumDropped, maximumDropped));
     public static IItemDropRule BossBag(int itemId) => DropRuleInterop.Wrap(N.ItemDropRule.BossBag(itemId));
     public static IItemDropRule BossBagByCondition(IItemDropRuleCondition condition, int itemId) => DropRuleInterop.Wrap(N.ItemDropRule.BossBagByCondition(DropRuleInterop.ToNative(condition), itemId));

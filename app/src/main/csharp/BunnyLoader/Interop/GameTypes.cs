@@ -68,8 +68,12 @@ public readonly unsafe struct GameString : IGameObject
 }
 
 [CollectionBuilder(typeof(GameArrayBuilder), nameof(GameArrayBuilder.Create))]
-public readonly unsafe struct GameArray<T> : IGameObject where T : unmanaged
+public readonly unsafe struct GameArray<T> : IGameObject, System.Collections.Generic.IEnumerable<T> where T : unmanaged
 {
+    System.Collections.Generic.IEnumerator<T> System.Collections.Generic.IEnumerable<T>.GetEnumerator() => ((System.Collections.Generic.IEnumerable<T>)(T[])this).GetEnumerator();
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => ((T[])this).GetEnumerator();
+
     public readonly IntPtr Pointer;
 
     public GameArray(IntPtr pointer) => Pointer = pointer;
@@ -134,7 +138,7 @@ public static class GameArrayBuilder
         TypeCode.Single => new GameClass("System", "Single"),
         TypeCode.Double => new GameClass("System", "Double"),
         TypeCode.Char => new GameClass("System", "Char"),
-        _ => throw new NotSupportedException($"a collection expression can only make a game array of numbers or bools, not {type.Name}"),
+        _ => type.IsValueType && type.Namespace != null ? new GameClass(type.Namespace, type.Name) : throw new NotSupportedException($"a collection expression can only make a game array of numbers, bools or game structs, not {type.Name}"),
     };
 }
 

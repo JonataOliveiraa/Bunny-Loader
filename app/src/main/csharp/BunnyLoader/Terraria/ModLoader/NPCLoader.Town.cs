@@ -69,7 +69,7 @@ public static partial class NPCLoader
         ModNPC? own = InstanceOf(npc);
         if (own != null)
         {
-            try { chat = own.GetChat(); }
+            try { chat = Lang.FormatChat(npc, own.GetChat()); }
             catch (Exception e) { ItemHooks.Report($"{own.FullName}.GetChat", e); }
         }
         foreach (GlobalNPC? global in Slots(npc))

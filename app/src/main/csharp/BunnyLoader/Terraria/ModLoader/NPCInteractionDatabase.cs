@@ -6,12 +6,12 @@ namespace Terraria.ModLoader;
 
 public sealed class NPCInteractionDatabase
 {
-    public static NPCInteraction CloseButton = new DedicatedButton("CloseChat");
+    public static NPCInteraction CloseButton = new NPCInteractions.Actions.CloseChat();
     public static NPCInteraction HappinessButton = new DedicatedButton("ReportHappiness");
     public static NPCInteraction HousingButton = new DedicatedButton("RequestHome");
     public static NPCInteraction PetButton = new DedicatedButton("PetAnimal");
 
-    internal sealed class DedicatedButton : NPCInteraction
+    public class DedicatedButton : NPCInteraction
     {
         static readonly int[] Layout = { -1 };
         readonly GameClass type;

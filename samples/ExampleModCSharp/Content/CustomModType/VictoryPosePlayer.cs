@@ -113,9 +113,18 @@ namespace ExampleMod.Content.CustomModType
                 Main.player[player].GetModPlayer<VictoryPosePlayer>().StartPoseDirect(pose);
             }
 
+            if ((Main.netMode & NetmodeID.Server) != 0) {
+                SendStartVictoryPoseMessage(player, pose);
+            }
         }
 
-
+        public static void SendStartVictoryPoseMessage(int whoAmI, ModVictoryPose pose) {
+            ModPacket packet = ModContent.GetInstance<ExampleMod>().GetPacket();
+            packet.Write((byte)ExampleMod.MessageType.StartVictoryPose);
+            packet.Write((byte)whoAmI);
+            packet.Write(pose.Type);
+            packet.Send(ignoreClient: whoAmI);
+        }
 
         public static void HandleCancelVictoryPoseMessage(BinaryReader reader, int whoAmI) {
             int player = reader.ReadByte();
@@ -127,9 +136,17 @@ namespace ExampleMod.Content.CustomModType
                 Main.player[player].GetModPlayer<VictoryPosePlayer>().EndPose();
             }
 
+            if ((Main.netMode & NetmodeID.Server) != 0) {
+                SendCancelVictoryPoseMessage(player);
+            }
         }
 
-
+        public static void SendCancelVictoryPoseMessage(int whoAmI) {
+            ModPacket packet = ModContent.GetInstance<ExampleMod>().GetPacket();
+            packet.Write((byte)ExampleMod.MessageType.CancelVictoryPose);
+            packet.Write((byte)whoAmI);
+            packet.Send(ignoreClient: whoAmI);
+        }
     }
 
     public class PoseIconParticle : IParticle

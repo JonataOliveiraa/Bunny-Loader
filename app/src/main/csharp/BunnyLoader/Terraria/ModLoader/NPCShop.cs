@@ -10,7 +10,6 @@ public class NPCShop : AbstractNPCShop
     public IReadOnlyList<Entry> Entries => entries;
     protected override IEnumerable<AbstractNPCShop.Entry> AllEntries => entries;
     public bool FillLastSlot { get; private set; }
-    internal int Index = -1;
     internal bool Vanilla, Modified;
     public NPCShop(int npcType, string name = "Shop") : base(npcType, name) { }
     public Entry GetEntry(int item) => entries.First(e => e.Item.type == item);

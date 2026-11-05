@@ -6,6 +6,8 @@ public readonly unsafe partial struct TileData
 
     static int nextSlot;
 
+    public ref Tile this[Microsoft.Xna.Framework.Point position] => ref this[position.X, position.Y];
+
     public ref Tile this[int x, int y]
     {
         get

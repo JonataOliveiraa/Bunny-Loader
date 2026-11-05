@@ -2,6 +2,18 @@ namespace Terraria;
 
 public unsafe partial struct Tile
 {
+    public byte LiquidAmount
+    {
+        get => liquid;
+        set => liquid = value;
+    }
+
+    public int LiquidType
+    {
+        get => liquidType();
+        set => liquidType(value);
+    }
+
     public ushort TileType
     {
         get => type;

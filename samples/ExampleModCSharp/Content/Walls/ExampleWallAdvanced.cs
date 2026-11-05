@@ -1,64 +1,60 @@
-using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using ExampleMod.Common.Systems;
+using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace ExampleMod.Content.Walls;
-
-public class ExampleWallAdvanced : ModWall
+namespace ExampleMod.Content.Walls
 {
-    public override void SetStaticDefaults()
+    public class ExampleWallAdvanced : ModWall
     {
-        Main.wallHouse[Type] = true;
-        Main.wallBlend[Type] = WallID.CogWall;
+        public override void SetStaticDefaults() {
+            Main.wallHouse[Type] = true;
+            Main.wallBlend[Type] = WallID.CogWall;
 
-        DustType = DustID.Stone;
+            DustType = DustID.Stone;
 
-        AddMapEntry(new Color(68, 68, 68));
-    }
-
-    public override bool CreateDust(int i, int j, ref int type)
-    {
-        type = DustType;
-        if (Main.tile[i, j].WallFrameNumber == 0)
-            type = DustID.GemEmerald;
-        return true;
-    }
-
-    public override void NumDust(int i, int j, bool fail, ref int num)
-    {
-        num = fail ? 3 : 10;
-    }
-
-    public override void AnimateWall(ref byte frame, ref byte frameCounter)
-    {
-        if (++frameCounter >= 5)
-        {
-            frameCounter = 0;
-            frame = (byte)(++frame % 2);
+            AddMapEntry(new Color(68, 68, 68));
         }
-    }
 
-    public override void ModifyLight(int i, int j, ref float r, ref float g, ref float b)
-    {
-        if (!Main.dayTime)
-        {
-            r = 0.1f;
-            g = 0.5f;
-            b = 0f;
+        public override bool CreateDust(int i, int j, ref int type) {
+            type = DustType;
+            if (Main.tile[i, j].WallFrameNumber == 0)
+                type = DustID.GemEmerald;
+            return true;
         }
-    }
 
-    public override bool WallFrame(int i, int j, bool randomizeFrame, ref int style, ref int frameNumber)
-    {
-        if (randomizeFrame)
-        {
-            if (frameNumber == 0 && WorldGen.genRand.NextBool(3, 4))
-            {
-                frameNumber = WorldGen.genRand.Next(1, 3);
+        public override void NumDust(int i, int j, bool fail, ref int num) {
+            num = fail ? 3 : 10;
+        }
+
+        public override void AnimateWall(ref byte frame, ref byte frameCounter) {
+            if (++frameCounter >= 5) {
+                frameCounter = 0;
+                frame = (byte)(++frame % 2);
             }
         }
-        return base.WallFrame(i, j, randomizeFrame, ref style, ref frameNumber);
+
+        public override void ModifyLight(int i, int j, ref float r, ref float g, ref float b) {
+            if (!Main.dayTime) {
+                r = 0.1f;
+                g = 0.5f;
+                b = 0f;
+            }
+        }
+
+        public override bool WallFrame(int i, int j, bool randomizeFrame, ref int style, ref int frameNumber) {
+            if (randomizeFrame) {
+                if (frameNumber == 0 && WorldGen.genRand.NextBool(3, 4)) {
+                    frameNumber = WorldGen.genRand.Next(1, 3);
+                }
+            }
+            return base.WallFrame(i, j, randomizeFrame, ref style, ref frameNumber);
+        }
+
+        public override bool CanBeTeleportedTo(int i, int j, Player player, string context) {
+            return DownedBossSystem.downedMinionBoss;
+        }
     }
 }

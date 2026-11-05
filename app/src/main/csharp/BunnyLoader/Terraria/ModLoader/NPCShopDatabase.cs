@@ -8,7 +8,7 @@ namespace Terraria.ModLoader;
 public static class NPCShopDatabase
 {
     static readonly Dictionary<string, AbstractNPCShop> Shops = new(StringComparer.Ordinal);
-    internal static readonly Dictionary<int, NPCShop> ByIndex = new();
+    internal static readonly Dictionary<int, AbstractNPCShop> ByIndex = new();
     static int nextIndex = 99;
     public static IEnumerable<AbstractNPCShop> AllShops => Shops.Values;
     public static readonly ISet<string> NoPylons = new HashSet<string>
@@ -29,11 +29,10 @@ public static class NPCShopDatabase
     {
         ArgumentNullException.ThrowIfNull(shop);
         if (Shops.ContainsKey(shop.FullName)) throw new ArgumentException($"Shop '{shop.FullName}' is already registered");
-        if (shop is not NPCShop ordinary) throw new NotSupportedException("Mobile shop registration requires NPCShop");
         if (nextIndex <= 25) throw new InvalidOperationException("Mobile NPC shop slots are exhausted");
-        ordinary.Index = nextIndex--;
+        shop.Index = nextIndex--;
         Shops.Add(shop.FullName, shop);
-        ByIndex.Add(ordinary.Index, ordinary);
+        ByIndex.Add(shop.Index, shop);
         TownShopHooks.Install();
     }
 
@@ -48,8 +47,13 @@ public static class NPCShopDatabase
             ByIndex.Add(shop.Index, shop);
         }
         for (int type = 697; type < NPCLoader.NPCCount; type++) NPCLoader.AddShops(type);
-        foreach (NPCShop shop in ByIndex.Values)
+        foreach (AbstractNPCShop custom in ByIndex.Values)
         {
+            if (custom is not NPCShop shop)
+            {
+                custom.FinishSetup();
+                continue;
+            }
             if (shop.Vanilla) continue;
             NPCLoader.ModifyShop(shop);
             Core.PylonHooks.AddShopEntries(shop);
@@ -60,7 +64,7 @@ public static class NPCShopDatabase
 
     public static void OpenShop(string fullName)
     {
-        if (!TryGetNPCShop(fullName, out NPCShop shop) || shop.Index < 0) throw new ArgumentException($"Shop '{fullName}' is not registered", nameof(fullName));
+        if (!Shops.TryGetValue(fullName, out AbstractNPCShop? shop) || shop.Index < 0) throw new ArgumentException($"Shop '{fullName}' is not registered", nameof(fullName));
         Main.instance.OpenShop(shop.Index);
         if (!GUIInstance.Active.IsNull) GUIInstance.Active.GUIPageIcons.OpenUI((GUIPageIcons.Category)2, (GUIPageIcons.Category)4);
     }

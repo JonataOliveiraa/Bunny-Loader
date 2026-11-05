@@ -55,6 +55,14 @@ internal static class BossBarHooks
 
     static void Update(On_BigProgressBarSystem.orig_Update orig, BigProgressBarSystem self)
     {
+        ModBossBarStyle style = BossBarLoader.CurrentStyle;
+        if (!style.PreventUpdate) UpdateBar(orig, self);
+        try { style.Update(self._currentBar, ref self._info); }
+        catch (Exception e) { ItemHooks.Report("ModBossBarStyle.Update", e); }
+    }
+
+    static void UpdateBar(On_BigProgressBarSystem.orig_Update orig, BigProgressBarSystem self)
+    {
         orig(self);
         bar = null;
         index = -1;
@@ -109,7 +117,10 @@ internal static class BossBarHooks
         ModBossBar? own = bar;
         if (own == null || (uint)index >= 200u)
         {
-            orig(self, spriteBatch);
+            ModBossBarStyle style = BossBarLoader.CurrentStyle;
+            if (!style.PreventDraw) orig(self, spriteBatch);
+            try { style.Draw(spriteBatch, self._currentBar, self._info); }
+            catch (Exception e) { ItemHooks.Report("ModBossBarStyle.Draw", e); }
             return;
         }
         try { DrawModBar(own, Main.npc[index], spriteBatch); }

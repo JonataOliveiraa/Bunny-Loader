@@ -75,6 +75,10 @@ VirtualControlsProfile_Layout
 VirtualControlsBinding_Layout
 VirtualControlsHardwareConfiguration_Layout
 VirtualControlsSlotTypeMapping_Layout
+VirtualControlsAxisConfiguration_Layout
+GUIAxis
+Cursor
+Axis_Layout
 GUIWorldSelectMenu
 KeyboardInput
 KeyboardMappings_Layout
@@ -127,6 +131,8 @@ Terraria.GameContent.Achievements.AchievementsHelper
 Terraria.GameContent.BannerSystem
 Terraria.GameContent.UI.BigProgressBar.BigProgressBarSystem
 Terraria.GameContent.UI.BigProgressBar.BigProgressBarInfo
+Terraria.GameContent.UI.BigProgressBar.BigProgressBarHelper
+Terraria.GameContent.UI.BigProgressBar.IBigProgressBar
 Terraria.GameContent.Bestiary.BestiaryDatabase
 Terraria.GameContent.Bestiary.BestiaryEntry
 Terraria.GameContent.Bestiary.BestiaryDatabaseNPCsPopulator
@@ -172,6 +178,7 @@ Terraria.Lighting
 Terraria.Localization.LanguageManager
 Terraria.Localization.NetworkText
 !Terraria.Localization.NetworkText.ToString
+!Terraria.Localization.LocalizedText.ToString
 Terraria.Map.TeleportPylonsMapLayer
 Terraria.MessageBuffer
 Terraria.NPC.Spawner
@@ -382,6 +389,10 @@ Terraria.Map.MapHelper
 GUIMap
 Terraria.Map.MapIconOverlay
 Terraria.Map.IMapLayer
+Terraria.Map.DigtoiseMapLayer
+Terraria.Map.BossBagMapLayer
+Terraria.Map.SpawnMapLayer
+Terraria.Map.TeamBasedSpawnMapLayer
 Terraria.Map.MapOverlayDrawContext
 
 Terraria.WorldBuilding.GenPass
@@ -453,6 +464,19 @@ Terraria.Graphics.CameraModifiers.CameraModifierStack
 Terraria.Graphics.CameraModifiers.CameraInfo
 Terraria.Graphics.Renderers.ParticleRenderer
 Terraria.Graphics.Renderers.ParticleRendererSettings
+Terraria.Achievements.ConditionFloatTracker
+Terraria.ID.CustomCurrencyID
+Terraria.ID.LiquidID
+Terraria.DataStructures.EntitySource_SpawnNPC
+Terraria.Graphics.CameraModifiers.PunchCameraModifier
+Terraria.GameContent.Bestiary.CommonEnemyUICollectionInfoProvider
+Terraria.GameContent.Bestiary.BestiaryPortraitBackgroundProviderPreferenceInfoElement
+Terraria.GameContent.Bestiary.MoonLordPortraitBackgroundProviderBestiaryInfoElement
+Terraria.DataStructures.EntitySource_DebugCommand
+Terraria.GameContent.UI.CustomCurrencySingleCoin
+Terraria.GameContent.UI.CustomCurrencyManager
+Terraria.GameContent.UI.CustomCurrencySystem
+Terraria.GameContent.UI.GameTipsDisplay
 Terraria.FocusHelper
 Terraria.ChestItem
 Terraria.GameContent.PlayerEyeHelper
@@ -465,3 +489,7 @@ Terraria.DataStructures.IBuffTextHandler
 Terraria.Graphics.Shaders.ArmorShaderDataSet
 Terraria.ID.Colors
 Terraria.GameContent.ItemTrader
+!Terraria.ID.NPCID+Sets.NPCPortraits
+!Terraria.ID.NPCID+Sets.NPCPortraitsCloseUpOffsets
+!Terraria.ID.NPCID+Sets.NPCPortraitsFullBodyRetroOffsets
+!Terraria.ID.NPCID+Sets.BasicPortrait
