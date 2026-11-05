@@ -231,8 +231,14 @@ class ModSources(val root: File, private val basicSwordImage: (() -> InputStream
         check(manifest.name.isNotBlank(), "O nome do mod não pode ficar vazio")
         check(manifest.version.isNotBlank() && manifest.version.none { it.isISOControl() }, "A versão do mod é inválida")
         check(manifest.blVersion == ModRepository.BL_VERSION, "O manifesto deve usar blVersion ${ModRepository.BL_VERSION}")
-        check(manifest.type == "mod", "O tipo do manifesto deve ser mod")
-        check(manifest.entryNames.any { safePath(directory, it).isFile }, "O projeto não tem ${manifest.id}.cs na raiz")
+        when (manifest.packType) {
+            PackType.TEXTURE -> check(TexturePackFiles.hasImages(directory), "O pacote de textura não tem PNGs em Images/")
+            PackType.FONT -> check(TexturePackFiles.hasFonts(directory), "O pacote de fonte não tem .json em Fonts/")
+            PackType.MOD -> {
+                check(manifest.type == "mod", "O tipo do manifesto deve ser mod, texture ou font")
+                check(manifest.entryNames.any { safePath(directory, it).isFile }, "O projeto não tem ${manifest.id}.cs na raiz")
+            }
+        }
     }
 
     fun projectDirectoryPath(key: String): File {

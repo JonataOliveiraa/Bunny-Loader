@@ -214,7 +214,7 @@ class ModSourcesTest {
             valid.copy(version = "1\n2") to "versão",
             valid.copy(blVersion = 2) to "blVersion",
             valid.copy(blVersion = 4) to "blVersion",
-            valid.copy(type = "texture") to "tipo",
+            valid.copy(type = "banana") to "tipo",
         )
         for ((manifest, error) in invalid) {
             sources.writeText("Teste", "manifest.json", json.encodeToString(manifest))
@@ -223,6 +223,43 @@ class ModSourcesTest {
             assertNotNull(sources.list().single().error)
         }
         assertFalse(temporary.root.listFiles()!!.any { it.name.startsWith(".bunny-mod-") })
+    }
+
+    private fun pack(type: String): ModManifest {
+        val manifest = ModManifest(uid = "19e3900c-83a2-4e9f-9724-1a38f82dcae9", id = "meupacote", name = "Meu pacote",
+            version = "1.0.0", author = "Autor", type = type, blVersion = ModRepository.BL_VERSION)
+        val folder = File(temporary.root, "sources/meupacote").apply { mkdirs() }
+        File(folder, "manifest.json").writeText(json.encodeToString(manifest))
+        return manifest
+    }
+
+    @Test fun texturePackBuildsWithoutModClassOnceItHasImages() {
+        val sources = sources()
+        val manifest = pack("texture")
+        rejects("Images") { sources.build("meupacote", output()) }
+        assertNotNull(sources.list().single().error)
+        val image = File(sources.root, "meupacote/Images/UI/Item_1.png").apply { parentFile!!.mkdirs() }
+        image.writeBytes(byteArrayOf(1, 2, 3))
+        assertNull(sources.list().single().error)
+        assertEquals(manifest.uid, sources.build("meupacote", output()).uid)
+        ZipFile(output()).use { zip ->
+            assertNotNull(zip.getEntry("manifest.json"))
+            assertTrue(zip.getInputStream(zip.getEntry("Images/UI/Item_1.png")).readBytes().contentEquals(byteArrayOf(1, 2, 3)))
+        }
+    }
+
+    @Test fun fontPackBuildsWithoutModClassOnceItHasFonts() {
+        val sources = sources()
+        val manifest = pack("font")
+        rejects("Fonts") { sources.build("meupacote", output()) }
+        val font = File(sources.root, "meupacote/Fonts/Mouse_Text.json").apply { parentFile!!.mkdirs() }
+        font.writeText("{}")
+        File(font.parentFile, "Mouse_Text.0.png").writeBytes(byteArrayOf(1))
+        assertEquals(manifest.uid, sources.build("meupacote", output()).uid)
+        ZipFile(output()).use { zip ->
+            assertNotNull(zip.getEntry("Fonts/Mouse_Text.json"))
+            assertNotNull(zip.getEntry("Fonts/Mouse_Text.0.png"))
+        }
     }
 
     @Test fun entryIsTheModClassFileAtTheRoot() {
