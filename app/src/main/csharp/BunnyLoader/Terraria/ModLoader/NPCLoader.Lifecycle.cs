@@ -94,8 +94,14 @@ public static unsafe partial class NPCLoader
         ModNPC? own = InstanceOf(npc);
         var previous = NPCEventHooks.Borrowing;
         NPCEventHooks.Borrowing = new() { Pointer = npc.Pointer, Instance = own };
+        bool actsLike = !npc.townNPC && npc.type >= ID.NPCID.Count && npc.type < ID.NPCID.Sets.ActsLikeTownNPC.Length && ID.NPCID.Sets.ActsLikeTownNPC[npc.type];
+        if (actsLike) npc.townNPC = true;
         try { Host.Native()->NPCOriginal(npc.Pointer, 1, own?.AnimationType ?? 0); }
-        finally { NPCEventHooks.Borrowing = previous; }
+        finally
+        {
+            if (actsLike) npc.townNPC = false;
+            NPCEventHooks.Borrowing = previous;
+        }
         if (Has(own, NPCMethod.FindFrame))
         {
             try { own!.FindFrame(frameHeight); }

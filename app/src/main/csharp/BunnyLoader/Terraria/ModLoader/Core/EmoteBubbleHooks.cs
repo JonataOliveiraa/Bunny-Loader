@@ -12,6 +12,8 @@ namespace Terraria.ModLoader.Core;
 
 internal static unsafe class EmoteBubbleHooks
 {
+    internal const byte KindEmote = 13;
+
     static readonly Dictionary<int, IntPtr> live = new();
     static readonly List<(int Id, IntPtr Bubble, int Frame, int Counter)> saved = new();
     static ModEmoteBubble? menuEmote;
@@ -35,6 +37,7 @@ internal static unsafe class EmoteBubbleHooks
         On_GUIEmotesWindow.GetEmotesCritters += (orig, self, emotes) => { orig(self, emotes); AddToMenu(emotes, 5); };
         On_GUIEmotesWindow.GetEmotesBosses += (orig, self, emotes) => { orig(self, emotes); AddToMenu(emotes, 6); };
         On_GUIEmotesWindow.EmoteDraw += EmoteDraw;
+        On_GUIEmotesWindow.EmoteOver += EmoteOver;
         On_GUIEmotesWindow.GetFrame += GetMenuFrame;
     });
 
@@ -216,6 +219,31 @@ internal static unsafe class EmoteBubbleHooks
             Host.Native()->SetEmoteMenuIcon(IntPtr.Zero);
             menuEmote = null;
         }
+    }
+
+    static void EmoteOver(On_GUIEmotesWindow.orig_EmoteOver orig, GUIEmotesWindow self, int index)
+    {
+        var entries = new GameList(self._emoteEntries);
+        int id = (uint)index < (uint)entries.Count ? entries.Get<int>(index) : -1;
+        if (EmoteBubbleLoader.GetEmoteBubble(id) == null || Main.mouseLeft || Main.mouseLeftRelease)
+        {
+            orig(self, index);
+            return;
+        }
+        self.emoteOver = index;
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+        {
+            byte[] packet = { KindEmote, (byte)id, (byte)(id >> 8) };
+            ModNet.Send(packet, packet.Length, -1, -1);
+        }
+        else EmoteBubble.MakePlayerEmote(Main.LocalPlayer, id);
+    }
+
+    internal static void Receive(System.IO.BinaryReader reader, int from)
+    {
+        int id = reader.ReadInt16();
+        if ((ModNet.NetMode & 2) == 0 || (uint)from >= Main.maxPlayers || EmoteBubbleLoader.GetEmoteBubble(id) == null) return;
+        EmoteBubble.MakePlayerEmote(Main.player[from], id);
     }
 
     static bool MenuIconReady()

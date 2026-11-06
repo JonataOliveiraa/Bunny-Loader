@@ -22,7 +22,7 @@ namespace bl::runtime {
  * A cabeca do NPC `type` (PNG). `variant` 0: a normal (TypeToDefaultHeadIndex);
  * 1: a de depois do shimmer (o perfil de morador a usa). Antes da instalacao.
  */
-void setModNpcHead(int type, int variant, const std::string& texturePath, const std::string& assetName);
+int setModNpcHead(int type, int variant, const std::string& texturePath, const std::string& assetName);
 
 /** O indice da cabeca do NPC de mod `type` (variante 0/1) em TextureAssets.NpcHead, ou -1. */
 int modNpcHeadSlot(int type, int variant = 0);

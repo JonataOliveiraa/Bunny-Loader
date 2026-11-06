@@ -17,6 +17,8 @@ internal static class TagConvert
                 return value;
             case TagSerializable serializable:
                 return TagSerializableIO.Serialize(serializable);
+            case Item item:
+                return ItemIO.Save(item);
             case sbyte sb:
                 return (byte)sb;
             case ushort us:
@@ -58,6 +60,7 @@ internal static class TagConvert
         if (value == null) return Empty(type);
         if (target.IsInstanceOfType(value) && target != typeof(object)) return value;
         if (target == typeof(object)) return value;
+        if (target == typeof(Item) && value is TagCompound saved) return ItemIO.Load(saved);
         if (value is TagCompound compound && typeof(TagSerializable).IsAssignableFrom(target)) return TagSerializableIO.Deserialize(target, compound);
         if (target == typeof(bool)) return Convert.ToDouble(value, CultureInfo.InvariantCulture) != 0;
         if (target.IsEnum) return Enum.ToObject(target, Convert.ToInt64(value, CultureInfo.InvariantCulture));

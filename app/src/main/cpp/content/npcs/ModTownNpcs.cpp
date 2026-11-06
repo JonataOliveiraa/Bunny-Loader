@@ -21,9 +21,11 @@ namespace {
 // O cabecalho de um array IL2CPP: o laco compilado anda em bytes a partir dele.
 constexpr uint32_t kArrayHeader = 32;
 
+constexpr int kVanillaHeads = 81;   // NPCHeadID.Count
+
 struct Head {
     int type;
-    int variant;   // 0 normal, 1 shimmer
+    int variant;
     std::string texture, assetName;
     int slot = -1;
     uint32_t asset = 0;   // gchandle do Asset<Texture2D>
@@ -33,7 +35,6 @@ std::mutex g_mx;
 std::vector<Head> g_heads;
 // type -> slot, lido a cada desenho de cabeca: montado na instalacao, so lido depois.
 std::unordered_map<int, int> g_slotOf;
-std::unordered_map<int, int> g_shimmerSlotOf;
 int g_vanillaHeads = 0;
 int g_headTotal = 0;     // NpcHead com as de mod (as que carregaram)
 bool g_installed = false;
@@ -102,7 +103,7 @@ HeadIndexFn g_origHeadIndex = nullptr;
 int32_t hkHeadIndex(int32_t type, const MethodInfo* m) {
     if (type >= kVanillaNpcCount) {
         auto it = g_slotOf.find(type);
-        if (it != g_slotOf.end()) return it->second;
+        return it != g_slotOf.end() ? it->second : 0;
     }
     return g_origHeadIndex(type, m);
 }
@@ -185,23 +186,27 @@ constexpr LoopPatch kLoopPatches[] = {
 
 } // namespace
 
-void setModNpcHead(int type, int variant, const std::string& texturePath, const std::string& assetName) {
+int setModNpcHead(int type, int variant, const std::string& texturePath, const std::string& assetName) {
     std::lock_guard<std::mutex> l(g_mx);
     for (Head& h : g_heads) {
         if (h.type == type && h.variant == variant) {
             h.texture = texturePath;
             h.assetName = assetName;
-            return;
+            return h.slot;
         }
     }
-    g_heads.push_back({type, variant, texturePath, assetName});
+    Head head{type, variant, texturePath, assetName};
+    head.slot = kVanillaHeads + static_cast<int>(g_heads.size());
+    g_heads.push_back(head);
+    return head.slot;
 }
 
 int modNpcHeadSlot(int type, int variant) {
-    if (!g_installed) return -1;
-    const auto& map = variant == 1 ? g_shimmerSlotOf : g_slotOf;
-    auto it = map.find(type);
-    return it == map.end() ? -1 : it->second;
+    std::lock_guard<std::mutex> l(g_mx);
+    for (const Head& h : g_heads) {
+        if (h.type == type && h.variant == variant) return h.slot;
+    }
+    return -1;
 }
 
 void prepareTownNpcs(int totalTypes) {
@@ -252,29 +257,30 @@ void installTownNpcs(int totalTypes) {
     }
     std::lock_guard<std::mutex> l(g_mx);
     g_vanillaHeads = static_cast<int>(heads->length);
-    int slot = g_vanillaHeads;
+    if (g_vanillaHeads != kVanillaHeads) {
+        BL_ERROR("town NPC heads: the game has %d heads, expected %d", g_vanillaHeads, kVanillaHeads);
+    }
     for (Head& h : g_heads) {
         int w = 0, hgt = 0;
         Il2CppObject* asset = content::loadTextureAsset(h.texture, nullptr, 0, h.assetName, &w, &hgt);
         if (!asset) continue;
         h.asset = il2cpp::api().gchandle_new(asset, false);
-        h.slot = slot++;
-        (h.variant == 1 ? g_shimmerSlotOf : g_slotOf)[h.type] = h.slot;
+        if (h.variant == 0) g_slotOf[h.type] = h.slot;
     }
-    g_headTotal = slot;
-    if (g_slotOf.empty() && g_shimmerSlotOf.empty()) return;
-    applyHeads();
-    growHeadTables(slot);
+    g_headTotal = kVanillaHeads + static_cast<int>(g_heads.size());
     if (!hook::install(r.headIndex, hkHeadIndex, &g_origHeadIndex)) {
         BL_ERROR("moradores de mod: sem hook em NPC.TypeToDefaultHeadIndex; morador de mod sem cabeca");
         return;
     }
+    if (g_heads.empty()) return;
+    applyHeads();
+    growHeadTables(g_headTotal);
     BL_DEBUG("moradores de mod: %zu cabeca(s) em TextureAssets.NpcHead (%d..%d)",
-             g_slotOf.size() + g_shimmerSlotOf.size(), g_vanillaHeads, slot - 1);
+             g_heads.size(), g_vanillaHeads, g_headTotal - 1);
 }
 
 void watchTownNpcs() {
-    if (!g_installed || (g_slotOf.empty() && g_shimmerSlotOf.empty())) return;
+    if (!g_installed || g_heads.empty()) return;
     const Refs& r = refs();
     Il2CppArray* heads = readStatic(r.npcHead);
     const int total = g_headTotal;

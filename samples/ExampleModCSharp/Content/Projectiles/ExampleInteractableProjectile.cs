@@ -23,6 +23,7 @@ namespace ExampleMod.Content.Projectiles
         }
 
         public override void SetStaticDefaults() {
+            ProjectileID.Sets.IsInteractable[Type] = true;
             ProjectileID.Sets.InteractableProjectileItemIcons[Type] = ModContent.ItemType<ExampleInteractableProjectileItem>();
             Main.projFrames[Type] = 5;
         }

@@ -3095,6 +3095,38 @@ public class CheatBridge {
         int state = -1;
     }
 
+    private static void scrollLongName(final TextView label) {
+        if (label.getTag() instanceof Runnable) label.removeCallbacks((Runnable) label.getTag());
+        label.scrollTo(0, 0);
+        Runnable tick = new Runnable() {
+            private int position;
+            private int wait = 45;
+
+            @Override public void run() {
+                if (label.getLayout() == null || label.getWidth() == 0) {
+                    label.postDelayed(this, 100);
+                    return;
+                }
+                int overflow = (int) label.getLayout().getLineWidth(0) - label.getWidth();
+                if (overflow <= 0) return;
+                if (wait > 0) {
+                    wait--;
+                } else if (position < overflow) {
+                    position = Math.min(overflow, position + 2);
+                    label.scrollTo(position, 0);
+                    if (position == overflow) wait = 45;
+                } else {
+                    position = 0;
+                    label.scrollTo(0, 0);
+                    wait = 45;
+                }
+                label.postDelayed(this, 33);
+            }
+        };
+        label.setTag(tick);
+        label.postDelayed(tick, 100);
+    }
+
     private static View row(Activity act, Section s, int i, View recycled,
                             int selectedId, int givenId, int qty) {
         LinearLayout r;
@@ -3116,11 +3148,12 @@ public class CheatBridge {
             labels.setPadding(px(act, 10), 0, 0, 0);
             L.name = text(act, "", 14, INK);
             L.name.setSingleLine(true);
+            L.name.setHorizontallyScrolling(true);
             L.detail = text(act, "", 10, INK_DIM);
             L.detail.setPadding(px(act, 8), 0, 0, px(act, 2));
             L.given = text(act, "", 11, GRASS_LIT);
             L.given.setPadding(px(act, 10), 0, 0, px(act, 1));
-            labels.addView(L.name);
+            labels.addView(L.name, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
             labels.addView(L.detail);
             labels.addView(L.given);
             r.addView(labels, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
@@ -3137,6 +3170,7 @@ public class CheatBridge {
         final int id = s.ids[i];
         String raw = s.nameAt(i);
         L.name.setText(raw == null || raw.length() == 0 ? ("#" + id) : raw);
+        scrollLongName(L.name);
         L.detail.setText(s.npc() ? ("NPC " + id) : s.buff() ? ("buff " + id) : ("id " + id));
         int state = id == selectedId ? 1 : 0;
         if (L.state != state) {

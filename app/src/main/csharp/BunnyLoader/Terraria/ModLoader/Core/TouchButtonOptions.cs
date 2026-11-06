@@ -22,8 +22,14 @@ internal static unsafe class TouchButtonOptions
     static int[]? vanilla;
     static int lines = 1;
     static int page;
-    static int drawFrame, lastOptionFrame = int.MinValue;
+    static IntPtr openSetting;
+    static GameHandle? openPin;
+    const int ApplyDelayFrames = 1;
+
+    const int SwallowFrames = 3;
+
     static bool capturing, clicked;
+    static int applyDelay, swallowClick;
 
     internal static int ModsAction => TouchButtonLoader.FirstAction + TouchButtonLoader.Count;
 
@@ -50,11 +56,14 @@ internal static unsafe class TouchButtonOptions
         On_GUIVirtualInputControllerEdit_ControlPanel_ControlPanelActionSetting.PulldownOptionDraw += PulldownOptionDraw;
         On_GUIVirtualInputControllerEdit.Draw += (orig, self) =>
         {
-            drawFrame++;
-            if (page != 0 && drawFrame - lastOptionFrame > 2)
+            if (openSetting != IntPtr.Zero && !new ActionSetting(openSetting).displayOptions)
+                CloseList();
+            if (swallowClick > 0)
+                swallowClick--;
+            if (applyDelay > 0 && --applyDelay == 0)
             {
-                page = 0;
-                Apply();
+                try { Apply(); }
+                catch (Exception e) { ItemHooks.Report("TouchButtons: change page", e); }
             }
             orig(self);
         };
@@ -132,10 +141,17 @@ internal static unsafe class TouchButtonOptions
             GameArray<ContolType> list = current.IsNull || current.Length != wanted.Count ? current.Resized(wanted.Count) : current;
             for (int i = 0; i < wanted.Count; i++) list[i] = (ContolType)wanted[i];
             config.ButtonControls = list;
+            current = list;
+        }
+        if (openSetting != IntPtr.Zero && !new ActionSetting(openSetting).axisOptions)
+        {
+            var setting = new ActionSetting(openSetting);
+            setting.controlOptions = current;
+            setting.selectedOption = wanted.IndexOf((int)setting.GetControlType());
         }
         ItemGrid_Layout grid = config.PulldownOptionGrid;
         if (grid.IsNull) return;
-        int items = (wanted.Count + lines - 1) / lines * lines;
+        int items = wanted.Count;
         if (grid.ItemLineCount != lines) grid.ItemLineCount = lines;
         if (grid.ItemCount != items) grid.ItemCount = items;
     }
@@ -154,25 +170,41 @@ internal static unsafe class TouchButtonOptions
         return index >= 0 ? index / PerPage + 1 : 0;
     }
 
+    static void CloseList()
+    {
+        openSetting = IntPtr.Zero;
+        openPin = null;
+        if (page == 0)
+            return;
+        page = 0;
+        Apply();
+    }
+
+    static void OpenList(ActionSetting setting)
+    {
+        openSetting = setting.Pointer;
+        openPin = new GameHandle(setting.Pointer);
+        try
+        {
+            int wanted = PageOf((int)setting.GetControlType());
+            if (wanted != page)
+            {
+                page = wanted;
+                applyDelay = ApplyDelayFrames;
+            }
+        }
+        catch (Exception e) { ItemHooks.Report("TouchButtons: open the list", e); }
+    }
+
     static void PulldownOptionDraw(On_GUIVirtualInputControllerEdit_ControlPanel_ControlPanelActionSetting.orig_PulldownOptionDraw orig, ActionSetting self,
         ItemGrid_Layout gridLayout, int index, Vector2 position, float scale)
     {
-        if (drawFrame - lastOptionFrame > 1)
-        {
-            try
-            {
-                int wanted = PageOf((int)self.GetControlType());
-                if (wanted != page)
-                {
-                    page = wanted;
-                    Apply();
-                }
-            }
-            catch (Exception e) { ItemHooks.Report("TouchButtons: open the list", e); }
-        }
-        lastOptionFrame = drawFrame;
+        if (self.Pointer != openSetting)
+            OpenList(self);
         GameArray<ContolType> options = self.controlOptions;
-        int action = !options.IsNull && index >= 0 && index < options.Length ? (int)options[index] : -1;
+        if (options.IsNull || index < 0 || index >= options.Length)
+            return;
+        int action = (int)options[index];
         if (!IsPageAction(action))
         {
             orig(self, gridLayout, index, position, scale);
@@ -183,14 +215,12 @@ internal static unsafe class TouchButtonOptions
         try { orig(self, gridLayout, index, position, scale); }
         finally { capturing = false; }
         if (!clicked) return;
-        self.selectedOption = index;
+        swallowClick = SwallowFrames;
+        Main.mouseLeftRelease = true;
         page = action == ModsAction ? 1 : action == MoreAction ? page + 1 : page - 1;
         page = Math.Clamp(page, 0, Pages);
-        try
-        {
-            SoundEngine.PlaySound(12);
-            Apply();
-        }
+        applyDelay = ApplyDelayFrames;
+        try { SoundEngine.PlaySound(12); }
         catch (Exception e) { ItemHooks.Report("TouchButtons: change page", e); }
     }
 
@@ -212,6 +242,8 @@ internal static unsafe class TouchButtonOptions
         call.Arg(disablePressedState);
         call.Arg(method);
         int state = (int)ItemHooks.Original(ref call, hook, "GUITransactionButton.Draw");
+        if (swallowClick > 0 && state == ClickedState)
+            return OverState;
         if (!capturing || state != ClickedState) return state;
         clicked = true;
         return OverState;

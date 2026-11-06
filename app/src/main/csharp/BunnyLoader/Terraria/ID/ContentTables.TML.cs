@@ -142,6 +142,8 @@ public readonly partial struct ProjectileID
 {
     public static unsafe partial class Sets
     {
+        public static readonly ContentBoolTable IsInteractable = new() { 525, 734, 960, 1093, 1094, 1098, 1112 };
+
         public sealed class FallingBlockTileItemInfo
         {
             public FallingBlockTileItemInfo(int TileType, int ItemType = 0)

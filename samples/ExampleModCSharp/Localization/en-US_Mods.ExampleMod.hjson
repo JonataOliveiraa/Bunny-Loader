@@ -165,7 +165,7 @@ Items: {
 
 	CustomItemDrawingShowcase: {
 		DisplayName: Custom Item Drawing Showcase
-		Tooltip: "{InputTrigger_ToggleOrOpen} to cycle draw mode examples"
+		Tooltip: Tap Open in the inventory to cycle draw mode examples
 		RightClick: Switching to drawMode #{0}: {1}
 		DrawMode_0: Draw an overlay/glowmask
 		DrawMode_1: Scale drawing to make a pulse effect similar to Soul items

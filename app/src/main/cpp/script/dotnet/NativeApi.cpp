@@ -1065,8 +1065,7 @@ const NativeApi kNativeApi{
     [](uint32_t flags, runtime::NpcLootCallback callback) -> int32_t { return runtime::installNpcLootHooks(flags, callback) ? 1 : 0; },
     [](int32_t type, int32_t variant, const char* texture, const char* asset) -> int32_t {
         if (!texture || !*texture || !asset || !fileExists(texture)) return 0;
-        runtime::setModNpcHead(type, variant, texture, asset);
-        return 1;
+        return runtime::setModNpcHead(type, variant, texture, asset);
     },
     [](int32_t type, int32_t variant) -> int32_t { return runtime::modNpcHeadSlot(type, variant); },
     [](int32_t type, uint32_t flags, runtime::NpcTownCallback callback) -> int32_t { return runtime::installNpcTownHooks(type, flags, profile::wrap(callback, "NPCTown")) ? 1 : 0; },

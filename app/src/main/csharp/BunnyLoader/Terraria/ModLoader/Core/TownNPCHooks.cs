@@ -13,7 +13,6 @@ internal static class TownNPCHooks
 {
     static readonly Dictionary<int, NPCInteractionList> Interactions = new();
     static string vanillaFirst = "", vanillaSecond = "";
-    static GUINPCDialogue dialogue;
     static int healCost;
     static bool passThrough;
     const int OptionsPerPage = 2;
@@ -172,6 +171,7 @@ internal static class TownNPCHooks
         passThrough = true;
         try
         {
+            GUINPCDialogue dialogue = GUIInstance.Active.GUINPCDialogue;
             if (first) dialogue.Option1Clicked(healCost);
             else dialogue.Option2Clicked();
         }
@@ -349,7 +349,6 @@ internal static class TownNPCHooks
     {
         NPC npc = TalkingTo();
         if (npc.IsNull || passThrough) { orig(self, healCost); return; }
-        dialogue = self;
         TownNPCHooks.healCost = healCost;
         Click(npc, true, () => orig(self, healCost));
     }
@@ -358,7 +357,6 @@ internal static class TownNPCHooks
     {
         NPC npc = TalkingTo();
         if (npc.IsNull || passThrough) { orig(self); return; }
-        dialogue = self;
         Click(npc, false, () => orig(self));
     }
 

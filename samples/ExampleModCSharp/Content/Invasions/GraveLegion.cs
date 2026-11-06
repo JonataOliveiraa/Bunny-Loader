@@ -28,6 +28,8 @@ namespace ExampleMod.Content.Invasions
 
         public override int SpawnRate => 40;
 
+        public override int Music => MusicID.PumpkinMoon;
+
         public override int MaxSpawns => 10;
 
         public override void OnComplete() {

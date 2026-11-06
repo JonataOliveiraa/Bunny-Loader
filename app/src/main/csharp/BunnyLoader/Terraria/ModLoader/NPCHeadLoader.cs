@@ -7,32 +7,18 @@ namespace Terraria.ModLoader;
 
 public static unsafe class NPCHeadLoader
 {
-    static readonly Dictionary<string, (int Type, int Variant)> Types = new(StringComparer.Ordinal);
-    static readonly List<(Mod Mod, string Texture)> Pending = new();
+    static readonly Dictionary<string, int> Slots = new(StringComparer.Ordinal);
+    static readonly Dictionary<int, int> Defaults = new();
+    static int extras;
 
     internal static void Register(ModNPC npc)
     {
         if (Attribute.IsDefined(npc.GetType(), typeof(AutoloadHead)))
-            Reserve(npc.Type, 0, ItemLoader.ResolveTexture(npc, npc.HeadTexture), npc.HeadTexture, npc.FullName);
-        for (int i = Pending.Count - 1; i >= 0; i--)
-        {
-            if (Pending[i].Mod != npc.Mod) continue;
-            Reserve(npc.Type, 1, File(Pending[i].Mod, Pending[i].Texture), Pending[i].Texture, npc.FullName);
-            Pending.RemoveAt(i);
-        }
+            Defaults[npc.Type] = Reserve(npc.Type, 0, ItemLoader.ResolveTexture(npc, npc.HeadTexture), npc.HeadTexture, npc.FullName);
     }
 
-    internal static int Add(Mod mod, int npcType, string texture)
-    {
-        if (NPCLoader.GetNPC(npcType) is ModNPC npc && npc.Type == npcType)
-        {
-            Reserve(npcType, 1, File(mod, texture), texture, npc.FullName);
-            return GetHeadSlot(texture);
-        }
-        File(mod, texture);
-        Pending.Add((mod, texture));
-        return -1;
-    }
+    internal static int Add(Mod mod, int npcType, string texture) =>
+        Slots.TryGetValue(texture, out int slot) ? slot : Reserve(npcType, ++extras, File(mod, texture), texture, mod.Name);
 
     static string File(Mod mod, string texture)
     {
@@ -43,19 +29,21 @@ public static unsafe class NPCHeadLoader
         return file != null && System.IO.File.Exists(file) ? file : throw new FileNotFoundException($"{mod.Name}: NPC head texture '{texture}' not found", texture);
     }
 
-    static void Reserve(int type, int variant, string file, string texture, string owner)
+    static int Reserve(int type, int variant, string file, string texture, string owner)
     {
         byte* path = Host.Utf8(file), asset = Host.Utf8(texture);
         try
         {
-            if (Host.Native()->ReserveTownHead(type, variant, path, asset) == 0)
+            int slot = Host.Native()->ReserveTownHead(type, variant, path, asset);
+            if (slot <= 0)
                 throw new InvalidOperationException($"{owner}: town NPC head could not be registered");
-            Types[texture] = (type, variant);
+            Slots[texture] = slot;
+            return slot;
         }
         finally { Host.FreeUtf8(path); Host.FreeUtf8(asset); }
     }
 
-    public static int GetHeadSlot(string texture) => Types.TryGetValue(texture, out var head) ? Host.Native()->TownHeadSlot(head.Type, head.Variant) : -1;
+    public static int GetHeadSlot(string texture) => Slots.TryGetValue(texture, out int slot) ? slot : -1;
 
-    public static int GetNPCHeadSlot(int type) => Host.Native()->TownHeadSlot(type, 0);
+    public static int GetNPCHeadSlot(int type) => Defaults.TryGetValue(type, out int slot) ? slot : -1;
 }

@@ -14,6 +14,8 @@ namespace ExampleMod.Content.Invasions
 
         public override int SpawnRate => 90;
 
+        public override int Music => MusicID.PirateInvasion;
+
         public override int MaxSpawns => 3;
 
         public override bool CanStart() => !Main.dayTime;

@@ -92,7 +92,7 @@ internal static unsafe class NPCProfileHooks
                     *result = texture.GameAsset;
                     return texture.GameAsset != IntPtr.Zero ? 1 : 0;
                 case Head:
-                    *result = profile.GetHeadTextureIndex(npc);
+                    *result = Math.Max(0, profile.GetHeadTextureIndex(npc));
                     return 1;
             }
         }

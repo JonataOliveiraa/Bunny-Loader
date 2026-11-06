@@ -231,7 +231,7 @@ internal static unsafe class TouchButtonHooks
         {
             Texture2D texture = default;
             if (TouchButtonLoader.ByAction(controlType) is ModTouchButton button) texture = TouchButtonLoader.Texture(button);
-            else if (controlType == TouchButtonOptions.ModsAction) texture = BunnyHead();
+            else if (TouchButtonOptions.IsPageAction(controlType)) texture = BunnyHead();
             if (!texture.IsNull)
             {
                 *tex = texture.Pointer;

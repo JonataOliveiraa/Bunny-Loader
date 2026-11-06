@@ -561,7 +561,8 @@ void classifyModItems(const ItemFields& o) {
         const bool unique = (c == kClassMelee || c == kClassRanged || c == kClassMagic ||
                             c == kClassSummon || c == kClassTool || c == kClassAccessory ||
                             c == kClassArmor) && !field<uint8_t>(scratch, o.consumable);
-        g_itemStack[static_cast<size_t>(id)] = unique ? 1 : field<int32_t>(scratch, o.maxStack);
+        const int declared = field<int32_t>(scratch, o.maxStack);
+        g_itemStack[static_cast<size_t>(id)] = unique ? 1 : (declared > 1 ? declared : 9999);
         ++done;
     }
     if (done) BL_DEBUG("cheats: %d item(ns) de mod classificado(s)", done);
@@ -719,7 +720,8 @@ bool classifyUntil(TimePoint deadline) {
         const bool unique = (c == kClassMelee || c == kClassRanged || c == kClassMagic ||
                             c == kClassSummon || c == kClassTool || c == kClassAccessory ||
                             c == kClassArmor) && !field<uint8_t>(item, o.consumable);
-        g_itemStack[id] = unique ? 1 : field<int32_t>(item, o.maxStack);
+        const int declared = field<int32_t>(item, o.maxStack);
+        g_itemStack[id] = unique ? 1 : (id >= kVanillaItemCount && declared <= 1 ? 9999 : declared);
         ++k.readCount;
     }
 

@@ -165,7 +165,7 @@ Items: {
 
 	CustomItemDrawingShowcase: {
 		DisplayName: Demonstração de Desenho de Item
-		Tooltip: "{InputTrigger_ToggleOrOpen} para alternar os modos de desenho"
+		Tooltip: Toque em Abrir no inventário para alternar os modos de desenho
 		RightClick: "Mudando para o drawMode #{0}: {1}"
 		DrawMode_0: Desenha uma sobreposição (glowmask)
 		DrawMode_1: Muda a escala para pulsar como os itens de alma

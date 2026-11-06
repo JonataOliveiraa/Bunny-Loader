@@ -1,0 +1,17 @@
+{
+  "uid": "8adf9785-45db-437c-a26a-59e98a0d0963",
+  "id": "CsBugs",
+  "name": "Test: reported bugs",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks the bugs reported on the Example Mod.",
+  "description": "Compile with tools/tests/build-cs.sh csbugs.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

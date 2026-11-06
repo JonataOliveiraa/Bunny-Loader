@@ -339,6 +339,17 @@ internal static unsafe class ProjectileHooks
         ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
     }
 
+    internal static void WantInteractable(ModProjectile projectile)
+    {
+        if (!ProjectileID.Sets.IsInteractable[projectile.Type])
+            return;
+        ItemHooks.Once("ProjectileInteractable", () => On_Projectile.IsInteractable += IsInteractable);
+        ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+    }
+
+    static bool IsInteractable(On_Projectile.orig_IsInteractable orig, Projectile self) =>
+        self.type >= ProjectileID.Count ? ProjectileID.Sets.IsInteractable[self.type] : orig(self);
+
     static void DrawGlow(Projectile proj)
     {
         if (!glows.TryGetValue(proj.type, out var glow) || ProjectileLoader.InstanceOf(proj) is not ModProjectile mod)
@@ -363,8 +374,23 @@ internal static unsafe class ProjectileHooks
         }
         Player player = overridePlayer.IsNull ? Main.player[proj.owner] : overridePlayer;
         IntPtr outer = ProjectileLoader.Borrow(proj, ProjectileLoader.InstanceOf(proj), out ModProjectile? outerInstance);
+        bool tapped = proj.type >= ProjectileID.Count && ProjectileID.Sets.IsInteractable[proj.type] && Main.LocalPlayer.checkProjectilesFrame == XNAUnityRunner._frame;
+        bool right = Main.mouseRight, release = Main.mouseRightRelease;
+        if (tapped)
+        {
+            Main.mouseRight = true;
+            Main.mouseRightRelease = true;
+        }
         try { Draw(orig, self, proj, overridePlayer, player, draw, wantsExtras); }
-        finally { ProjectileLoader.Return(outer, outerInstance); }
+        finally
+        {
+            if (tapped)
+            {
+                Main.mouseRight = right;
+                Main.mouseRightRelease = release;
+            }
+            ProjectileLoader.Return(outer, outerInstance);
+        }
     }
 
     static void Draw(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer, Player player, bool draw, bool wantsExtras)

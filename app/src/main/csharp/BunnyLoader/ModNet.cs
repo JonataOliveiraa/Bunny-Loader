@@ -102,6 +102,12 @@ internal static unsafe class ModNet
                 ConfigNetHooks.Receive(reader, from);
                 return;
             }
+            if (kind == EmoteBubbleHooks.KindEmote)
+            {
+                name = "emote";
+                EmoteBubbleHooks.Receive(reader, from);
+                return;
+            }
             if (kind == InvasionLoader.KindInvasion)
             {
                 name = "invasion";

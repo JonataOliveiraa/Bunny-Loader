@@ -432,7 +432,7 @@ namespace ExampleMod.Content.NPCs
         public override int? PickEmote(Player closestPlayer, List<int> emoteList, WorldUIAnchor otherAnchor) {
             int type = ModContent.EmoteBubbleType<MinionBossEmote>();
 
-            if (NPC.Is(otherAnchor.entity) && new NPC(otherAnchor.entity.Pointer).type == NPCID.Demolitionist) {
+            if (!otherAnchor.IsNull && !otherAnchor.entity.IsNull && NPC.Is(otherAnchor.entity) && new NPC(otherAnchor.entity.Pointer).type == NPCID.Demolitionist) {
                 type = EmoteID.EmotionAnger;
             }
 
