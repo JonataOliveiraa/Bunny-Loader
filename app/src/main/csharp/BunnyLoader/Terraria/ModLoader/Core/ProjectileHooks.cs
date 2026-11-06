@@ -329,11 +329,34 @@ internal static unsafe class ProjectileHooks
         return orig(self, newColor);
     }
 
+    static readonly Dictionary<int, ReLogic.Content.Asset<Texture2D>> glows = new();
+
+    internal static void WantGlow(ModProjectile projectile)
+    {
+        if (!ModContent.RequestIfExists<Texture2D>(projectile.GlowTexture, out var glow))
+            return;
+        glows[projectile.Type] = glow;
+        ItemHooks.Once("ProjectileDraw", () => On_Main.DrawProjDirect += DrawProjDirect);
+    }
+
+    static void DrawGlow(Projectile proj)
+    {
+        if (!glows.TryGetValue(proj.type, out var glow) || ProjectileLoader.InstanceOf(proj) is not ModProjectile mod)
+            return;
+        Texture2D texture = TextureAssets.Projectile[proj.type].Value;
+        int frames = Main.projFrames[proj.type], width = texture.Width, height = texture.Height;
+        float originX = (width - proj.width) * 0.5f + proj.width * 0.5f + mod.DrawOriginOffsetX;
+        Rectangle source = frames > 1 ? new Rectangle(0, height / frames * proj.frame, width, height / frames - 1) : new Rectangle(0, 0, width, height);
+        Vector2 position = proj.position - Main.screenPosition + new Vector2(originX + mod.DrawOffsetX, proj.height / 2 + proj.gfxOffY);
+        Vector2 origin = new(originX, proj.height / 2 - mod.DrawOriginOffsetY);
+        Main.EntitySpriteDraw(glow.Value, position, source, new Color(250, 250, 250, proj.alpha), proj.rotation, origin, proj.scale, proj.spriteDirection == -1 ? SpriteEffects.FlipHorizontally : SpriteEffects.None);
+    }
+
     static void DrawProjDirect(On_Main.orig_DrawProjDirect orig, Main self, Projectile proj, Player overridePlayer)
     {
         bool draw = Wants(proj, nameof(ModProjectile.PreDraw)) || Wants(proj, nameof(ModProjectile.PostDraw));
         bool wantsExtras = Wants(proj, nameof(ModProjectile.PreDrawExtras));
-        if (!draw && !wantsExtras)
+        if (!draw && !wantsExtras && !glows.ContainsKey(proj.type))
         {
             orig(self, proj, overridePlayer);
             return;
@@ -373,6 +396,8 @@ internal static unsafe class ProjectileHooks
                 drawLight = outer;
                 if (split) Host.Native()->EndProjectileDrawSplit();
             }
+            if (sprite)
+                DrawGlow(proj);
         }
         if (draw) ProjectileLoader.PostDraw(proj, player, light);
     }

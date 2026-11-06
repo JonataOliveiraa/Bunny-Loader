@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using BunnyLoader;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Terraria.Audio;
 using Terraria.DataStructures;
 
@@ -29,6 +30,8 @@ internal static unsafe class WallHooks
 
     [ThreadStatic]
     static bool failing, dropping;
+
+    static int exploding;
 
     [ThreadStatic]
     static int frameX, frameY, frameNumber;
@@ -182,6 +185,9 @@ internal static unsafe class WallHooks
                 On_WorldGen.UpdateWorld_UndergroundTile += GlobalRandomUnder;
             });
         if (Overrides(wall, nameof(GlobalWall.PlaceInWorld))) Once("GlobalPlace", () => On_WorldGen.PlaceWall += GlobalPlace);
+        if (Overrides(wall, nameof(GlobalWall.CanPlace))) WantCanPlace();
+        if (Overrides(wall, nameof(GlobalWall.CanExplode))) WantCanExplode();
+        if (Overrides(wall, nameof(GlobalWall.PreDraw)) || Overrides(wall, nameof(GlobalWall.PostDraw))) WantDraw();
         if (Overrides(wall, nameof(GlobalWall.ModifyLight)))
         {
             Once("GlobalLight", () => On_Lighting.LightTiles += GlobalLight);
@@ -238,6 +244,12 @@ internal static unsafe class WallHooks
         uint flags = 0;
         if (Overrides(wall, nameof(ModWall.OnWallConverted)))
             WantConverted();
+        if (Overrides(wall, nameof(ModBlockType.CanPlace)))
+            WantCanPlace();
+        if (Overrides(wall, nameof(ModBlockType.CanExplode)))
+            WantCanExplode();
+        if (Overrides(wall, nameof(ModBlockType.PreDraw)) || Overrides(wall, nameof(ModBlockType.PostDraw)))
+            WantDraw();
         if (Overrides(wall, nameof(ModWall.CanBeTeleportedTo)))
             PlayerWorldHooks.WantTeleport();
         if (Overrides(wall, nameof(ModWall.WallFrame)))
@@ -261,9 +273,126 @@ internal static unsafe class WallHooks
             throw new InvalidOperationException($"{wall.FullName}: native wall hooks could not be installed");
     }
 
+    static void WantCanPlace() => Once("CanPlace", () => On_Player.PlaceThing_Walls += PlaceThingWalls);
+
+    static void WantCanExplode()
+    {
+        Once("Kill", () => On_WorldGen.KillWall += Kill);
+        Once("CanExplode", () => On_Projectile.ExplodeTiles += ExplodeTiles);
+    }
+
+    static void WantDraw() => Once("WallDraw", () => GameContent.Drawing.On_WallDrawing.DrawWalls += DrawWalls);
+
+    static void PlaceThingWalls(On_Player.orig_PlaceThing_Walls orig, Player self)
+    {
+        int type = self.HeldItem.createWall;
+        if (type > 0)
+        {
+            int i = Player.tileTargetX, j = Player.tileTargetY;
+            if (WallLoader.GetWall(type)?.CanPlace(i, j) == false)
+                return;
+            foreach (GlobalWall global in WallLoader.Globals)
+                if (!global.CanPlace(i, j, type))
+                    return;
+        }
+        orig(self);
+    }
+
+    static void ExplodeTiles(On_Projectile.orig_ExplodeTiles orig, Projectile self, Vector2 compareSpot, int radius, int minI, int maxI, int minJ, int maxJ, bool wallSplode, bool explodeHardmodeOres)
+    {
+        exploding++;
+        try { orig(self, compareSpot, radius, minI, maxI, minJ, maxJ, wallSplode, explodeHardmodeOres); }
+        finally { exploding--; }
+    }
+
+    static bool CanExplode(int i, int j, int type)
+    {
+        if (WallLoader.GetWall(type)?.CanExplode(i, j) == false)
+            return false;
+        foreach (GlobalWall global in WallLoader.Globals)
+            if (!global.CanExplode(i, j, type))
+                return false;
+        return true;
+    }
+
+    static readonly List<(int X, int Y)> hiddenWalls = new();
+
+    static void DrawWalls(GameContent.Drawing.On_WallDrawing.orig_DrawWalls orig, GameContent.Drawing.WallDrawing self)
+    {
+        int extra = Main.drawToScreen ? 2 : Main.offScreenRange / 16;
+        int left = Math.Max((int)Main.screenPosition.X / 16 - extra, 0), top = Math.Max((int)Main.screenPosition.Y / 16 - extra, 0);
+        int right = Math.Min((int)Main.screenPosition.X / 16 + Main.screenWidth / 16 + extra + 1, Main.maxTilesX - 1), bottom = Math.Min((int)Main.screenPosition.Y / 16 + Main.screenHeight / 16 + extra + 1, Main.maxTilesY - 1);
+        SpriteBatch batch = Main.spriteBatch;
+        BeginDraw(batch, out bool begun);
+        for (int j = top; j <= bottom; j++)
+            for (int i = left; i <= right; i++)
+            {
+                Tile tile = Main.tile[i, j];
+                int type = tile.wall;
+                if (type == 0 || tile.invisibleWall())
+                    continue;
+                bool draw = true;
+                foreach (GlobalWall global in WallLoader.Globals)
+                {
+                    try { draw &= global.PreDraw(i, j, type, batch); }
+                    catch (Exception e) { ItemHooks.Report($"{global.FullName}.PreDraw", e); }
+                }
+                if (WallLoader.GetWall(type) is ModWall wall)
+                {
+                    try { draw &= wall.PreDraw(i, j, batch); }
+                    catch (Exception e) { ItemHooks.Report($"{wall.FullName}.PreDraw", e); }
+                }
+                if (!draw)
+                {
+                    tile.invisibleWall(true);
+                    hiddenWalls.Add((i, j));
+                }
+            }
+        EndDraw(batch, begun);
+        orig(self);
+        foreach (var (x, y) in hiddenWalls)
+            Main.tile[x, y].invisibleWall(false);
+        hiddenWalls.Clear();
+        BeginDraw(batch, out begun);
+        for (int j = top; j <= bottom; j++)
+            for (int i = left; i <= right; i++)
+            {
+                Tile tile = Main.tile[i, j];
+                int type = tile.wall;
+                if (type == 0 || tile.invisibleWall())
+                    continue;
+                if (WallLoader.GetWall(type) is ModWall wall)
+                {
+                    try { wall.PostDraw(i, j, batch); }
+                    catch (Exception e) { ItemHooks.Report($"{wall.FullName}.PostDraw", e); }
+                }
+                foreach (GlobalWall global in WallLoader.Globals)
+                {
+                    try { global.PostDraw(i, j, type, batch); }
+                    catch (Exception e) { ItemHooks.Report($"{global.FullName}.PostDraw", e); }
+                }
+            }
+        EndDraw(batch, begun);
+    }
+
+    static void BeginDraw(SpriteBatch batch, out bool begun)
+    {
+        begun = batch._beginCalled;
+        if (!begun)
+            batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, Main.DefaultSamplerState, DepthStencilState.None, Main.Rasterizer, default, Main.Transform, true);
+    }
+
+    static void EndDraw(SpriteBatch batch, bool begun)
+    {
+        if (!begun)
+            batch.End();
+    }
+
     static void Kill(On_WorldGen.orig_KillWall orig, int i, int j, bool fail)
     {
         int wallType = Main.tile[i, j].wall;
+        if (exploding > 0 && wallType != 0 && !CanExplode(i, j, wallType))
+            return;
         ModWall? wall = WallLoader.GetWall(wallType);
         if (wall == null && (wallType == 0 || WallLoader.Globals.Count == 0))
         {

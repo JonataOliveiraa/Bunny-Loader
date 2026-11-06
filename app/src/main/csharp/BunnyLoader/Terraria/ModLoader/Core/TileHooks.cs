@@ -90,7 +90,10 @@ internal static partial class TileHooks
         if (Has(16))
             Once("Far", () => On_Player.TileInteractionsCheckLongDistance += Far);
         if (Has(27))
+        {
             Once("Smart", () => GameContent.ObjectInteractions.On_TileSmartInteractCandidateProvider.FillPotentialTargetTiles += Smart);
+            Once("SmartCandidate", () => GameContent.ObjectInteractions.On_TileSmartInteractCandidateProvider.ProvideCandidate += SmartCandidate);
+        }
         InstallDrawing(flags);
     }
 
@@ -123,6 +126,78 @@ internal static partial class TileHooks
             if (!targets.Contains(value))
                 targets.Add(value);
         }
+    }
+
+    static bool SmartCandidate(GameContent.ObjectInteractions.On_TileSmartInteractCandidateProvider.orig_ProvideCandidate orig, GameContent.ObjectInteractions.TileSmartInteractCandidateProvider self, GameContent.ObjectInteractions.SmartInteractScanSettings settings, out GameContent.ObjectInteractions.ISmartInteractCandidate candidate)
+    {
+        bool result = orig(self, settings, out candidate);
+        var targets = new GameList(self.targets);
+        int closestX = -1, closestY = -1;
+        float best = -1f;
+        bool any = false;
+        Vector2 mouse = settings.mousevec;
+        for (int k = 0; k < targets.Count; k++)
+        {
+            int value = targets.Get<int>(k);
+            int x = value & 0xFFFF, y = value >> 16;
+            any |= Main.tile[x, y].type >= ID.TileID.Count;
+            float distance = Vector2.Distance(new Vector2(x * 16 + 8, y * 16 + 8), mouse);
+            if (best == -1f || distance <= best)
+            {
+                best = distance;
+                closestX = x;
+                closestY = y;
+            }
+        }
+        if (!any)
+            return result;
+        if (!Collision.InTileBounds(closestX, closestY, settings.LX, settings.LY, settings.HX, settings.HY))
+            closestX = closestY = -1;
+        int mouseX = (int)mouse.X / 16, mouseY = (int)mouse.Y / 16, aimedX = -1, aimedY = -1;
+        bool chosen = false, full = settings.FullInteraction;
+        var added = new GameDictionary(self.AddedTileObjects);
+        var selected = new GameDictionary(Main.SmartInteractTileCoordsSelected);
+        for (int k = 0; k < targets.Count; k++)
+        {
+            int value = targets.Get<int>(k);
+            int x = value & 0xFFFF, y = value >> 16;
+            Tile tile = Main.tile[x, y];
+            if (tile.type < ID.TileID.Count)
+                continue;
+            int width = 0, height = 0, frameWidth = 18, frameHeight = 18, extraY = 2;
+            TileLoader.ModifySmartInteractCoords(tile.type, ref width, ref height, ref frameWidth, ref frameHeight, ref extraY);
+            if (width == 0 || height == 0)
+                continue;
+            int left = x - tile.frameX % (frameWidth * width) / frameWidth;
+            int top = y - tile.frameY % (frameHeight * height + extraY) / frameHeight;
+            int key = left | top << 16;
+            if (added.ContainsKey(key))
+                continue;
+            added.Set(key, true);
+            bool closest = Collision.InTileBounds(closestX, closestY, left, top, left + width - 1, top + height - 1);
+            bool aimed = Collision.InTileBounds(mouseX, mouseY, left, top, left + width - 1, top + height - 1);
+            if (aimed)
+            {
+                aimedX = mouseX;
+                aimedY = mouseY;
+            }
+            bool pick = closest && (full || aimed) && !chosen;
+            if (pick || full)
+            {
+                for (int a = left; a < left + width; a++)
+                    for (int b = top; b < top + height; b++)
+                        selected.Set(a | b << 16, pick);
+                Main.SmartInteractTileCoordsCount++;
+            }
+            chosen |= pick;
+        }
+        if (settings.DemandOnlyZeroDistanceTargets && aimedX != -1)
+        {
+            self._candidate.Reuse(true, 0f, aimedX, aimedY, settings.LX - 10, settings.LY - 10, settings.HX + 10, settings.HY + 10);
+            candidate = new GameContent.ObjectInteractions.ISmartInteractCandidate(self._candidate.Pointer);
+            return true;
+        }
+        return result;
     }
 
     internal static void InstallMusicBoxes()

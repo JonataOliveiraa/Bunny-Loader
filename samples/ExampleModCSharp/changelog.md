@@ -1,5 +1,16 @@
 # Novidades
 
+## 0.41.0
+
+- Areia de exemplo que cai, com a bola da pistola de areia e a vara que a move.
+- Solução de exemplo e solução infernal para o Clentaminador.
+- Cacto de exemplo, que nasce na areia de exemplo.
+- Tintura e tintura de cabelo.
+- Placa de pressão com peso.
+- Pilar instável, que liga e desliga sozinho.
+- Fósseis e paredes de fóssil que se convertem com as soluções do jogo.
+- Duas invasões: Cruzada dos Paladinos e Legião da Sepultura, de Animatak_.
+
 ## 0.40.0
 
 - Armas novas: mangual avançado, espada de golpe próprio, arma de projétil

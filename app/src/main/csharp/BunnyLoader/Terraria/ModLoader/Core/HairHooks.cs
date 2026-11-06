@@ -26,6 +26,7 @@ internal static class HairHooks
         On_Player.GetHairSettings += GetHairSettings;
         On_Player.InternalSavePlayerFile += InternalSavePlayerFile;
         On_Player.LoadPlayer += LoadPlayer;
+        On_GUIPlayerCreateMenu.RandomisePlayer += RandomisePlayer;
         ItemNetHooks.WantSendData();
         ItemNetHooks.AfterSend += AfterSend;
     });
@@ -130,6 +131,20 @@ internal static class HairHooks
         if (player.IsNull || HairLoader.GetHair(player.hair) is not ModHair hair) return;
         byte[] packet = Packet(number, hair.Type);
         ModNet.Send(packet, packet.Length, remote, ignore);
+    }
+
+    static void RandomisePlayer(On_GUIPlayerCreateMenu.orig_RandomisePlayer orig, GUIPlayerCreateMenu self, bool randomisePitch)
+    {
+        orig(self, randomisePitch);
+        Player player = Main.PendingPlayer;
+        if (player.IsNull || HairLoader.GetHair(player.hair) is not ModHair hair)
+            return;
+        player.Male = hair.RandomizedCharacterCreationGender switch
+        {
+            Gender.Male => true,
+            Gender.Female => false,
+            _ => Main.rand.NextBool(),
+        };
     }
 
     internal static void Receive(BinaryReader reader, int from)

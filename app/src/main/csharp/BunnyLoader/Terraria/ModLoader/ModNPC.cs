@@ -63,7 +63,13 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
         set { drawOffsetY = value; NPCDrawOffsetHooks.Install(); }
     }
 
-    public bool TownNPCStayingHomeless { get; set; }
+    public bool TownNPCStayingHomeless
+    {
+        get => townNPCStayingHomeless;
+        set { townNPCStayingHomeless = value; if (value) TownNPCFlagHooks.WantStayingHomeless(); }
+    }
+
+    bool townNPCStayingHomeless;
 
     protected sealed override NPC CreateTemplateEntity() => default;
 

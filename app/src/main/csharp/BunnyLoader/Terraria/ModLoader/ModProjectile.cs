@@ -40,6 +40,7 @@ public abstract class ModProjectile : ModType<Projectile, ModProjectile>, ILocal
     {
         AutoStaticDefaults();
         SetStaticDefaults();
+        Core.ProjectileHooks.WantGlow(this);
     }
 
     public virtual void SetDefaults() { }

@@ -1,0 +1,17 @@
+{
+  "uid": "1da0a808-1776-485a-9b16-edb02a49b879",
+  "id": "CsBlockF",
+  "name": "Test: block F",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks API that used to have no effect.",
+  "description": "Compile with tools/tests/build-cs.sh csblockf.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
