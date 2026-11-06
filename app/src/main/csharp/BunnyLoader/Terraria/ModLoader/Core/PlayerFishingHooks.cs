@@ -39,13 +39,7 @@ internal static unsafe class PlayerFishingHooks
         if (has(nameof(ModPlayer.GetFishingLevel))) ItemHooks.Once("PlayerFishingLevel", () => On_Player.GetFishingConditions += GetFishingConditions);
         if (has(nameof(ModPlayer.ModifyFishingAttempt))) ItemHooks.Once("PlayerFishingAttempt", () => On_Projectile.FishingCheck_ProbeForQuestFish += ProbeForQuestFish);
         if (has(nameof(ModPlayer.CatchFish))) ItemHooks.Once("PlayerCatchFish", () => On_Projectile.FishingCheck_RollItemDrop += RollItemDrop);
-        if (has(nameof(ModPlayer.ModifyCaughtFish)))
-            ItemHooks.Once("PlayerCaughtFish", () =>
-            {
-                On_Projectile.AI_061_FishingBobber_GiveItemToPlayer += GiveItemToPlayer;
-                On_Player.QuickSpawnItem_IEntitySource_Item += QuickSpawnItem;
-                On_Player.QuickSpawnItem_IEntitySource_Item_GetItemSettings += QuickSpawnItemWithSettings;
-            });
+        if (has(nameof(ModPlayer.ModifyCaughtFish))) WantCaught();
         if (has(nameof(ModPlayer.CanConsumeBait)))
             ItemHooks.Once("PlayerConsumeBait", () =>
             {
@@ -144,6 +138,13 @@ internal static unsafe class PlayerFishingHooks
             PopupText.AssignAsSonarText(PopupText.NewText(state.Sonar, state.Position));
     }
 
+    internal static void WantCaught() => ItemHooks.Once("PlayerCaughtFish", () =>
+    {
+        On_Projectile.AI_061_FishingBobber_GiveItemToPlayer += GiveItemToPlayer;
+        On_Player.QuickSpawnItem_IEntitySource_Item += QuickSpawnItem;
+        On_Player.QuickSpawnItem_IEntitySource_Item_GetItemSettings += QuickSpawnItemWithSettings;
+    });
+
     static void GiveItemToPlayer(On_Projectile.orig_AI_061_FishingBobber_GiveItemToPlayer orig, Projectile self, Player thePlayer, int itemType)
     {
         Player outer = fishing;
@@ -163,6 +164,7 @@ internal static unsafe class PlayerFishingHooks
         if (!caughtPending || fishing != player) return;
         caughtPending = false;
         PlayerLoader.Each(player, nameof(ModPlayer.ModifyCaughtFish), item, static (m, i) => m.ModifyCaughtFish(i));
+        ItemLoader.CaughtFishStack(item);
     }
 
     static void QuickSpawnItem(On_Player.orig_QuickSpawnItem_IEntitySource_Item orig, Player self, IEntitySource source, Item item)

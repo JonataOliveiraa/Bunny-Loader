@@ -89,6 +89,8 @@ public static class SystemLoader
 
     public static void PostSetupRecipes() => Run(nameof(ModSystem.PostSetupRecipes), s => s.PostSetupRecipes());
 
+    public static void PostWorldLoad() => Run(nameof(ModSystem.PostWorldLoad), s => s.PostWorldLoad());
+
     public static void OnWorldLoad() => Run(nameof(ModSystem.OnWorldLoad), s => s.OnWorldLoad());
 
     public static void OnWorldUnload() => Run(nameof(ModSystem.OnWorldUnload), s => s.OnWorldUnload());

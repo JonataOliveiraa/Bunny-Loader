@@ -180,6 +180,10 @@ public abstract class GlobalNPC : GlobalType<NPC, GlobalNPC>
 
     public virtual void SetupTravelShop(int[] shop, ref int nextSlot) { }
 
+    public virtual void ModifyNPCHappiness(NPC npc, int primaryPlayerBiome, ShopHelper shopHelperInstance, bool[] nearbyNPCsByType)
+    {
+    }
+
     public virtual void TownNPCAttackStrength(NPC npc, ref int damage, ref float knockback) { }
 
     public virtual void TownNPCAttackCooldown(NPC npc, ref int cooldown, ref int randExtraCooldown) { }

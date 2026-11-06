@@ -73,6 +73,14 @@ public static unsafe partial class WallLoader
         }
     }
 
+    internal static readonly List<GlobalWall> Globals = new();
+
+    internal static void Register(GlobalWall wall)
+    {
+        Globals.Add(wall);
+        WallHooks.Register(wall);
+    }
+
     internal static void AddMapEntry(ModWall wall, Color color, LocalizedText name)
     {
         byte* key = Host.Utf8(name.Key ?? wall.FullName);

@@ -184,7 +184,11 @@ internal static class PlayerWorldHooks
     {
         int x = (int)(position.X / 16f), y = (int)(position.Y / 16f);
         if (x < 0 || y < 0 || x >= Main.maxTilesX || y >= Main.maxTilesY) return true;
-        ModWall? wall = WallLoader.GetWall(Main.tile[x, y].WallType);
+        int type = Main.tile[x, y].WallType;
+        foreach (GlobalWall global in WallLoader.Globals)
+            if (!global.CanBeTeleportedTo(x, y, type, self, context))
+                return false;
+        ModWall? wall = WallLoader.GetWall(type);
         return wall == null || wall.CanBeTeleportedTo(x, y, self, context);
     }
 

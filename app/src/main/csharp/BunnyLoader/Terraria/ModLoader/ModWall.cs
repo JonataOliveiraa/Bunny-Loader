@@ -41,4 +41,8 @@ public abstract class ModWall : ModBlockType
     }
 
     public virtual bool WallFrame(int i, int j, bool randomizeFrame, ref int style, ref int frameNumber) => true;
+
+    public virtual void OnWallConverted(int i, int j, int fromType, int toType, int conversionType)
+    {
+    }
 }

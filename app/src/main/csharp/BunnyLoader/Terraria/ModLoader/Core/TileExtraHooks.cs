@@ -13,8 +13,31 @@ internal static unsafe partial class TileHooks
 
     internal static HashSet<int> ModTorches(int player) => modTorches[player] ??= new HashSet<int>();
 
+    internal static void WantReplace(ModType tile)
+    {
+        if (TileLoader.Overrides(tile, nameof(ModTile.ReplaceTile)))
+            Once("ReplaceTile", () => On_WorldGen.ReplaceTile_DoActualReplacement += ReplaceTile);
+    }
+
+    static void ReplaceTile(On_WorldGen.orig_ReplaceTile_DoActualReplacement orig, int targetType, int targetStyle, int topLeftX, int topLeftY, Tile t)
+    {
+        int replaced = t.TileType;
+        orig(targetType, targetStyle, topLeftX, topLeftY, t);
+        foreach (GlobalTile global in TileLoader.Globals)
+        {
+            try { global.ReplaceTile(topLeftX, topLeftY, replaced, targetType, targetStyle); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.ReplaceTile", e); }
+        }
+        if (TileLoader.GetTile(replaced) is ModTile tile)
+        {
+            try { tile.ReplaceTile(topLeftX, topLeftY, targetType, targetStyle); }
+            catch (Exception e) { ItemHooks.Report($"{tile.FullName}.ReplaceTile", e); }
+        }
+    }
+
     internal static void InstallExtras(ModTile tile)
     {
+        WantReplace(tile);
         if (TileLoader.Overrides(tile, nameof(ModTile.GetTorchLuck)))
         {
             Once("TorchRow", () => On_Player.TryRecalculatingTorchLuck += TorchRow);

@@ -21,10 +21,43 @@ public sealed class TestPylonEntity : TEModdedPylon
 {
 }
 
+public sealed class CountingPylon : GlobalPylon
+{
+    public static int Npc, Biome, Post, Icons, Place;
+    public static bool RefusePlace;
+
+    public override bool PreDrawMapIcon(ref MapOverlayDrawContext context, ref string mouseOverText, ref TeleportPylonInfo pylonInfo, ref bool isNearPylon, ref Color drawColor, ref float deselectedScale, ref float selectedScale)
+    {
+        Icons++;
+        return true;
+    }
+
+    public override bool? PreCanPlacePylon(int x, int y, int tileType, TeleportPylonType pylonType)
+    {
+        Place++;
+        return RefusePlace ? false : null;
+    }
+
+    public override bool? ValidTeleportCheck_PreNPCCount(TeleportPylonInfo pylonInfo, ref int defaultNecessaryNPCCount)
+    {
+        Npc++;
+        return null;
+    }
+
+    public override bool? ValidTeleportCheck_PreBiomeRequirements(TeleportPylonInfo pylonInfo, SceneMetrics sceneData)
+    {
+        Biome++;
+        return null;
+    }
+
+    public override void PostValidTeleportCheck(TeleportPylonInfo destinationPylonInfo, TeleportPylonInfo nearbyPylonInfo, ref bool destinationPylonValid, ref bool validNearbyPylonFound, ref string errorKey) => Post++;
+}
+
 public abstract class PylonBase : ModPylon
 {
     public static int NpcChecks, BiomeChecks, MapIcons, Crystals;
     public static bool BiomeOk;
+    public static int DestinationChecks, NearbyChecks;
 
     Asset<Texture2D> mapIcon = null!, crystal = null!;
 
@@ -68,6 +101,7 @@ public abstract class PylonBase : ModPylon
 
 public sealed class TestPylon : PylonBase
 {
+    public override void ValidTeleportCheck_NearbyPostCheck(TeleportPylonInfo nearbyPylonInfo, ref bool destinationPylonValid, ref bool anyNearbyValidPylon, ref string errorKey) => NearbyChecks++;
 }
 
 public sealed class TestPylonFar : PylonBase
@@ -77,6 +111,10 @@ public sealed class TestPylonFar : PylonBase
         BiomeChecks++;
         return BiomeOk;
     }
+
+    public override void ValidTeleportCheck_DestinationPostCheck(TeleportPylonInfo destinationPylonInfo, ref bool destinationPylonValid, ref string errorKey) => DestinationChecks++;
+
+    public override void ModifyTeleportationPosition(TeleportPylonInfo destinationPylonInfo, ref Vector2 teleportationPosition) => teleportationPosition.X += 32;
 }
 
 public sealed class TestPylonItem : ModItem
@@ -147,6 +185,7 @@ public sealed class CsPylonMod : Mod
                 break;
             case 120:
                 Report("DrawMapIcon draws the mod pylons on the full map", PylonBase.MapIcons > 0, $"calls={PylonBase.MapIcons}");
+        Report("GlobalPylon.PreDrawMapIcon runs before the icon", CountingPylon.Icons > 0, $"calls={CountingPylon.Icons}");
                 Main.mapFullscreen = false;
                 WorldGen.KillTile(nearX, nearFloor - 4);
                 break;
@@ -169,7 +208,7 @@ public sealed class CsPylonMod : Mod
 
     static void Registration()
     {
-        Report("pylon types come after the game's and count as pylons", (int)Near.PylonType == 11 && (int)Far.PylonType == 12 && TileID.Sets.CountsAsPylon.Contains(Near.Type) && TileID.Sets.CountsAsPylon.Contains(597),
+        Report("pylon types come after the game's and count as pylons", (int)Near.PylonType >= 11 && (int)Far.PylonType == (int)Near.PylonType + 1 && TileID.Sets.CountsAsPylon.Contains(Near.Type) && TileID.Sets.CountsAsPylon.Contains(597),
             $"near={(int)Near.PylonType} far={(int)Far.PylonType} counts={string.Join(",", TileID.Sets.CountsAsPylon)}");
     }
 
@@ -178,6 +217,14 @@ public sealed class CsPylonMod : Mod
         for (int x = left - 1; x <= left + 3; x++)
             for (int y = floor - 6; y < floor; y++)
                 WorldGen.KillTile(x, y, false, false, true);
+        for (int x = left - 1; x <= left + 3; x++)
+        {
+            Tile ground = Main.tile[x, floor];
+            ground.TileType = TileID.Stone;
+            ground.HasTile = true;
+            ground.slope(0);
+            ground.halfBrick(false);
+        }
         int originX = left + 1, originY = floor - 1;
         if (!TileObject.CanPlace(originX, originY, type, 0, 1, out TileObject data, false, default) || !TileObject.Place(data)) return false;
         TileObjectData.CallPostPlacementPlayerHook(originX, originY, type, 0, 1, 0, data);
@@ -192,6 +239,11 @@ public sealed class CsPylonMod : Mod
             $"near={near} far={far} entity={entity}");
         bool second = TileObject.CanPlace(nearX + 20, nearFloor - 1, Near.Type, 0, 1, out _, false, default);
         Report("CanPlacePylon allows one pylon of a type", !second, $"second={second}");
+        int asked = CountingPylon.Place;
+        CountingPylon.RefusePlace = true;
+        bool refused = !TileObject.CanPlace(nearX + 34, nearFloor - 1, TileID.TeleportationPylon, 0, 1, out _, false, default);
+        CountingPylon.RefusePlace = false;
+        Report("GlobalPylon.PreCanPlacePylon runs and can refuse", refused && CountingPylon.Place > asked, $"refused={refused} calls={CountingPylon.Place}");
     }
 
     static bool Listed(ModPylon pylon, int x, int y)
@@ -233,7 +285,11 @@ public sealed class CsPylonMod : Mod
         PylonBase.BiomeOk = true;
         Main.PylonSystem.RequestTeleportation(target, player);
         bool moved = Math.Abs(player.position.X / 16 - farX) < 6;
-        Report("ValidTeleportCheck_BiomeRequirements can refuse the destination", stayed && biome == 1, $"stayed={stayed} biomeChecks={biome}");
+        Vector2 expected = target.PositionInTiles.ToWorldCoordinates() - new Vector2(0f, player.HeightOffsetBoost) + new Vector2(32, 0);
+        Report("ModifyTeleportationPosition moves the arrival", Math.Abs(player.position.X - expected.X) < 40 && player.position.X >= target.PositionInTiles.ToWorldCoordinates().X, $"at={player.position.X} expected={expected.X}");
+        Report("DestinationPostCheck and NearbyPostCheck run", PylonBase.DestinationChecks >= 2 && PylonBase.NearbyChecks >= 1, $"destination={PylonBase.DestinationChecks} nearby={PylonBase.NearbyChecks}");
+        Report("GlobalPylon teleport checks run", CountingPylon.Npc >= 2 && CountingPylon.Biome >= 2 && CountingPylon.Post == 2, $"npc={CountingPylon.Npc} biome={CountingPylon.Biome} post={CountingPylon.Post}");
+        Report("ValidTeleportCheck_BiomeRequirements can refuse the destination", stayed && biome >= 1, $"stayed={stayed} biomeChecks={biome}");
         Report("teleporting to a mod pylon checks NPCs through ValidTeleportCheck_NPCCount", moved && PylonBase.NpcChecks >= 2,
             $"moved={moved} at={player.position.X / 16:0},{player.position.Y / 16:0} npcChecks={PylonBase.NpcChecks}");
         player.Teleport(start, 0, 0);

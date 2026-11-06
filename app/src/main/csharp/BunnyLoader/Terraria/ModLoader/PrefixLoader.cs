@@ -114,6 +114,8 @@ public static unsafe class PrefixLoader
         });
     }
 
+    internal static void WantApplyHook() => WantApply();
+
     static void WantApply() => ItemHooks.Once("PrefixApply", () => apply = ItemHooks.Raw("Terraria", "Item",
         "bool Prefix(int prefixWeWant, out bool rolledPrefixIsTopTier)",
         (IntPtr)(delegate* unmanaged<IntPtr, int, byte*, IntPtr, byte>)&Prefix));
@@ -511,6 +513,7 @@ public static unsafe class PrefixLoader
             }
         }
         catch (Exception e) { ItemHooks.Report("ModPrefix.Apply", e); }
+        ItemLoader.ApplyPrefix(item, item.prefix);
         return ok;
     }
 

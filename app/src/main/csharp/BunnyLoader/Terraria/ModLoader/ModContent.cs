@@ -88,6 +88,8 @@ public static class ModContent
         return false;
     }
 
+    public static Terraria.GameContent.TeleportPylonType PylonType<T>() where T : ModPylon => GetInstance<T>().PylonType;
+
     public static bool TryFind<T>(string modName, string name, out T value) where T : IModType =>
         TryFind(modName + "/" + name, out value);
 

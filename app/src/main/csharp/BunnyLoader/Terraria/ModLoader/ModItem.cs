@@ -45,6 +45,26 @@ public abstract class ModItem : ModType<Item, ModItem>, ILocalizedModType
 
     public virtual void OnCreated(ItemCreationContext context) { }
 
+    public virtual void OnCraft(Recipe recipe) { }
+
+    public virtual bool ReforgePrice(ref long reforgePrice, ref bool canApplyDiscount) => true;
+
+    public virtual bool CanReforge() => true;
+
+    public virtual void PreReforge() { }
+
+    public virtual void PostReforge() { }
+
+    public virtual void ApplyPrefix(int pre) { }
+
+    public virtual void AutoDefaults() { }
+
+    public virtual Vector2? HoldoutOrigin() => null;
+
+    public virtual void CaughtFishStack(ref int stack) { }
+
+    public virtual bool ModifyItemDraw(ref PlayerDrawSet drawInfo, ref DrawData drawData, ref DrawData? coloredDrawData, ref DrawData? glowMaskDrawData) => true;
+
     public virtual bool? CanCatchNPC(NPC target, Player player) => null;
 
     public virtual Terraria.GameContent.Golf.GolfHelper.ClubProperties? GetGolfClubProperties() => null;

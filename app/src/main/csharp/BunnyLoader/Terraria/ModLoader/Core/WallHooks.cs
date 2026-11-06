@@ -53,6 +53,181 @@ internal static unsafe class WallHooks
         return false;
     }
 
+    static bool Overrides(GlobalWall wall, string name)
+    {
+        foreach (var method in wall.GetType().GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            if (method.Name == name && method.GetBaseDefinition().DeclaringType == typeof(GlobalWall) && method.DeclaringType != typeof(GlobalWall))
+                return true;
+        return false;
+    }
+
+    static void Converted(On_WorldGen.orig_Convert_ActuallyConvertWall orig, int conversionType, int x, int y, ref Tile tile, int newType)
+    {
+        int from = tile.wall;
+        orig(conversionType, x, y, ref tile, newType);
+        int to = tile.wall;
+        if (from == to)
+            return;
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try { global.OnWallConverted(x, y, from, to, conversionType); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.OnWallConverted", e); }
+        }
+        WallLoader.GetWall(from)?.OnWallConverted(x, y, from, to, conversionType);
+        WallLoader.GetWall(to)?.OnWallConverted(x, y, from, to, conversionType);
+    }
+
+    static void WantConverted() => Once("Converted", () => On_WorldGen.Convert_ActuallyConvertWall += Converted);
+
+    static void WantKill()
+    {
+        Once("Kill", () => On_WorldGen.KillWall += Kill);
+        Once("Dust", () => On_WorldGen.KillWall_MakeWallDust += MakeDust);
+        Once("Sound", () => On_WorldGen.KillWall_PlaySounds += Sound);
+        Once("Drop", () => On_WorldGen.KillWall_DropItems += Drop);
+        Once("Drops", () => On_WorldGen.KillWall_GetItemDrops += Drops);
+    }
+
+    static void GlobalFrame(On_Framing.orig_WallFrame orig, int i, int j, bool resetFrame)
+    {
+        Tile tile = Main.tile[i, j];
+        int type = tile.wall;
+        if (type == 0 || !BuildLookup())
+        {
+            orig(i, j, resetFrame);
+            return;
+        }
+
+        int oldX = tile.WallFrameX, oldY = tile.WallFrameY, oldNumber = tile.WallFrameNumber;
+        orig(i, j, resetFrame);
+        int x = tile.WallFrameX, y = tile.WallFrameY, number = tile.WallFrameNumber;
+        bool known = styles.TryGetValue((x, y, number), out int style);
+        int newStyle = style, newNumber = number;
+        bool keep = true;
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try { keep &= global.WallFrame(i, j, type, resetFrame, ref newStyle, ref newNumber); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.WallFrame", e); }
+        }
+        if (!keep)
+        {
+            if (tile.WallFrameX == x && tile.WallFrameY == y && tile.WallFrameNumber == number)
+            {
+                tile.WallFrameX = oldX;
+                tile.WallFrameY = oldY;
+                tile.WallFrameNumber = oldNumber;
+            }
+            return;
+        }
+
+        if (known && newStyle == style && newNumber == number)
+            return;
+        var lookup = Framing.wallFrameLookup;
+        if ((uint)newStyle >= (uint)lookup.Length || lookup[newStyle].IsNull || (uint)newNumber >= (uint)lookup[newStyle].Length)
+            return;
+        Point16 point = lookup[newStyle][newNumber];
+        tile.WallFrameNumber = newNumber;
+        tile.WallFrameX = point.X;
+        tile.WallFrameY = point.Y;
+    }
+
+    static void GlobalRandomOver(On_WorldGen.orig_UpdateWorld_OvergroundTile orig, int i, int j, bool checkNPCSpawns, int wallDist)
+    {
+        orig(i, j, checkNPCSpawns, wallDist);
+        GlobalRandom(i, j, false);
+    }
+
+    static void GlobalRandomUnder(On_WorldGen.orig_UpdateWorld_UndergroundTile orig, int i, int j, bool checkNPCSpawns, int wallDist)
+    {
+        orig(i, j, checkNPCSpawns, wallDist);
+        GlobalRandom(i, j, true);
+    }
+
+    static void GlobalRandom(int i, int j, bool underground)
+    {
+        int type = Main.tile[i, j].wall;
+        if (type == 0)
+            return;
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try { global.RandomUpdate(i, j, type, underground); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.RandomUpdate", e); }
+        }
+    }
+
+    static void GlobalPlace(On_WorldGen.orig_PlaceWall orig, int i, int j, int type, bool mute)
+    {
+        int before = Main.tile[i, j].wall;
+        orig(i, j, type, mute);
+        if (Main.tile[i, j].wall == before || Main.tile[i, j].wall != type)
+            return;
+        Item item = Main.LocalPlayer.HeldItem;
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try { global.PlaceInWorld(i, j, type, item); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.PlaceInWorld", e); }
+        }
+    }
+
+    internal static void Register(GlobalWall wall)
+    {
+        WantKill();
+        PlayerWorldHooks.WantTeleport();
+        if (Overrides(wall, nameof(GlobalWall.OnWallConverted))) WantConverted();
+        if (Overrides(wall, nameof(GlobalWall.WallFrame))) Once("GlobalFrame", () => On_Framing.WallFrame += GlobalFrame);
+        if (Overrides(wall, nameof(GlobalWall.RandomUpdate)))
+            Once("GlobalRandom", () =>
+            {
+                On_WorldGen.UpdateWorld_OvergroundTile += GlobalRandomOver;
+                On_WorldGen.UpdateWorld_UndergroundTile += GlobalRandomUnder;
+            });
+        if (Overrides(wall, nameof(GlobalWall.PlaceInWorld))) Once("GlobalPlace", () => On_WorldGen.PlaceWall += GlobalPlace);
+        if (Overrides(wall, nameof(GlobalWall.ModifyLight)))
+        {
+            Once("GlobalLight", () => On_Lighting.LightTiles += GlobalLight);
+            Once("ApplyGlobalLight", () => On_Main.DoUpdateInWorld += ApplyGlobalLight);
+        }
+    }
+
+    static readonly List<(int X, int Y, int Type, Vector3 Color)> globalLights = new();
+
+    static void GlobalLight(On_Lighting.orig_LightTiles orig, int firstX, int lastX, int firstY, int lastY)
+    {
+        orig(firstX, lastX, firstY, lastY);
+        globalLights.Clear();
+        int left = Math.Max(firstX - 28, 0), right = Math.Min(lastX + 28, Main.maxTilesX - 1);
+        int top = Math.Max(firstY - 28, 0), bottom = Math.Min(lastY + 28, Main.maxTilesY - 1);
+        for (int j = top; j <= bottom; j++)
+            for (int i = left; i <= right; i++)
+            {
+                int type = Main.tile[i, j].wall;
+                if (type == 0)
+                    continue;
+                float r = 0, g = 0, b = 0;
+                foreach (GlobalWall global in WallLoader.Globals)
+                {
+                    try { global.ModifyLight(i, j, type, ref r, ref g, ref b); }
+                    catch (Exception e) { ItemHooks.Report($"{global.FullName}.ModifyLight", e); }
+                }
+                if (r != 0 || g != 0 || b != 0)
+                    globalLights.Add((i, j, type, new Vector3(r, g, b)));
+            }
+    }
+
+    static void ApplyGlobalLight(On_Main.orig_DoUpdateInWorld orig, Main self)
+    {
+        orig(self);
+        if (Main.gameMenu)
+        {
+            globalLights.Clear();
+            return;
+        }
+
+        foreach (var entry in globalLights)
+            if (Main.tile[entry.X, entry.Y].wall == entry.Type)
+                Lighting.AddLight(entry.X, entry.Y, entry.Color.X, entry.Color.Y, entry.Color.Z);
+    }
+
     internal static void Register(ModWall wall)
     {
         Once("Kill", () => On_WorldGen.KillWall += Kill);
@@ -61,6 +236,8 @@ internal static unsafe class WallHooks
         Once("Drop", () => On_WorldGen.KillWall_DropItems += Drop);
         Once("Drops", () => On_WorldGen.KillWall_GetItemDrops += Drops);
         uint flags = 0;
+        if (Overrides(wall, nameof(ModWall.OnWallConverted)))
+            WantConverted();
         if (Overrides(wall, nameof(ModWall.CanBeTeleportedTo)))
             PlayerWorldHooks.WantTeleport();
         if (Overrides(wall, nameof(ModWall.WallFrame)))
@@ -86,15 +263,27 @@ internal static unsafe class WallHooks
 
     static void Kill(On_WorldGen.orig_KillWall orig, int i, int j, bool fail)
     {
-        if (WallLoader.GetWall(Main.tile[i, j].wall) is not ModWall wall)
+        int wallType = Main.tile[i, j].wall;
+        ModWall? wall = WallLoader.GetWall(wallType);
+        if (wall == null && (wallType == 0 || WallLoader.Globals.Count == 0))
         {
             orig(i, j, fail);
             return;
         }
 
-        wall.KillWall(i, j, ref fail);
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try { global.KillWall(i, j, wallType, ref fail); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.KillWall", e); }
+        }
+        wall?.KillWall(i, j, ref fail);
         int count = fail ? 1 : 3;
-        wall.NumDust(i, j, fail, ref count);
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try { global.NumDust(i, j, wallType, fail, ref count); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.NumDust", e); }
+        }
+        wall?.NumDust(i, j, fail, ref count);
         int previousBudget = dustBudget;
         bool previousFail = failing;
         dustBudget = Math.Max(0, count);
@@ -114,7 +303,8 @@ internal static unsafe class WallHooks
 
     static void MakeDust(On_WorldGen.orig_KillWall_MakeWallDust orig, int i, int j, Tile tile)
     {
-        if (WallLoader.GetWall(tile.wall) is not ModWall wall)
+        ModWall? wall = WallLoader.GetWall(tile.wall);
+        if (wall == null && WallLoader.Globals.Count == 0)
         {
             orig(i, j, tile);
             return;
@@ -127,7 +317,24 @@ internal static unsafe class WallHooks
             dustBudget--;
         }
 
-        int type = wall.DustType;
+        int type = wall?.DustType ?? -1;
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try
+            {
+                if (!global.CreateDust(i, j, tile.wall, ref type))
+                    return;
+            }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.CreateDust", e); }
+        }
+        if (wall == null)
+        {
+            if (type < 0)
+                orig(i, j, tile);
+            else
+                Dust.NewDust(new Vector2(i * 16, j * 16), 16, 16, type, 0, 0, 0, default, 1);
+            return;
+        }
         if (!wall.CreateDust(i, j, ref type) || type < 0)
             return;
         Dust.NewDust(new Vector2(i * 16, j * 16), 16, 16, type, 0, 0, 0, default, 1);
@@ -135,6 +342,15 @@ internal static unsafe class WallHooks
 
     static void Sound(On_WorldGen.orig_KillWall_PlaySounds orig, int i, int j, Tile tile)
     {
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try
+            {
+                if (!global.KillSound(i, j, tile.wall, failing))
+                    return;
+            }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.KillSound", e); }
+        }
         if (WallLoader.GetWall(tile.wall) is not ModWall wall)
         {
             orig(i, j, tile);
@@ -148,14 +364,24 @@ internal static unsafe class WallHooks
 
     static void Drop(On_WorldGen.orig_KillWall_DropItems orig, int i, int j, Tile tile)
     {
-        if (WallLoader.GetWall(tile.wall) is not ModWall wall)
+        ModWall? wall = WallLoader.GetWall(tile.wall);
+        if (wall == null && WallLoader.Globals.Count == 0)
         {
             orig(i, j, tile);
             return;
         }
 
-        int type = WallLoader.ItemDrop(wall);
-        if (!wall.Drop(i, j, ref type))
+        int type = wall != null ? WallLoader.ItemDrop(wall) : VanillaDrops(tile);
+        foreach (GlobalWall global in WallLoader.Globals)
+        {
+            try
+            {
+                if (!global.Drop(i, j, tile.wall, ref type))
+                    return;
+            }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.Drop", e); }
+        }
+        if (wall != null && !wall.Drop(i, j, ref type))
             return;
         int previous = dropOverride;
         bool wasDropping = dropping;
@@ -172,11 +398,25 @@ internal static unsafe class WallHooks
         }
     }
 
+    static int VanillaDrops(Tile tile)
+    {
+        bool was = dropping;
+        dropping = false;
+        try
+        {
+            return WorldGen.KillWall_GetItemDrops(tile);
+        }
+        finally
+        {
+            dropping = was;
+        }
+    }
+
     static int Drops(On_WorldGen.orig_KillWall_GetItemDrops orig, Tile tile)
     {
-        if (WallLoader.GetWall(tile.wall) is not ModWall wall)
-            return orig(tile);
-        return dropping ? dropOverride : WallLoader.ItemDrop(wall);
+        if (dropping)
+            return dropOverride;
+        return WallLoader.GetWall(tile.wall) is ModWall wall ? WallLoader.ItemDrop(wall) : orig(tile);
     }
 
     static void Animate(On_Main.orig_DoUpdate_AnimateWalls orig)

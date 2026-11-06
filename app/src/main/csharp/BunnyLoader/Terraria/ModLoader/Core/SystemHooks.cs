@@ -264,6 +264,7 @@ internal static unsafe class SystemHooks
         orig(canCheckFileState);
         SystemLoader.OnWorldLoad();
         LoadData();
+        SystemLoader.PostWorldLoad();
     }
 
     static string? DataFile() => Main.worldPathName is { Length: > 0 } path ? path + ".bl.json" : null;

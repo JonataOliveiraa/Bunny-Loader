@@ -115,4 +115,8 @@ public abstract class GlobalTile : ModType
     public virtual bool CanReplace(int i, int j, int type, int tileTypeBeingPlaced) => true;
 
     public virtual int[] AdjTiles(int type) => Array.Empty<int>();
+
+    public virtual void ReplaceTile(int i, int j, int type, int targetType, int targetStyle)
+    {
+    }
 }

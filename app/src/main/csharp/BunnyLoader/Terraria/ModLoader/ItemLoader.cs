@@ -90,6 +90,155 @@ public static unsafe partial class ItemLoader
         }
     }
 
+    public static bool ReforgePrice(Item item, ref long reforgePrice, ref bool canApplyDiscount)
+    {
+        bool apply = true;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { apply &= modItem.ReforgePrice(ref reforgePrice, ref canApplyDiscount); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.ReforgePrice", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { apply &= global.ReforgePrice(item, ref reforgePrice, ref canApplyDiscount); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.ReforgePrice", e); }
+        }
+        return apply;
+    }
+
+    public static bool CanReforge(Item item)
+    {
+        bool can = true;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { can &= modItem.CanReforge(); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.CanReforge", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { can &= global.CanReforge(item); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.CanReforge", e); }
+        }
+        return can;
+    }
+
+    public static void PreReforge(Item item)
+    {
+        if (item.IsNull) return;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { modItem.PreReforge(); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.PreReforge", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { global.PreReforge(item); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.PreReforge", e); }
+        }
+    }
+
+    public static void PostReforge(Item item)
+    {
+        if (item.IsNull) return;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { modItem.PostReforge(); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.PostReforge", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { global.PostReforge(item); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.PostReforge", e); }
+        }
+    }
+
+    public static void ApplyPrefix(Item item, int pre)
+    {
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { modItem.ApplyPrefix(pre); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.ApplyPrefix", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { global.ApplyPrefix(item, pre); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.ApplyPrefix", e); }
+        }
+    }
+
+    public static void HoldoutOrigin(Player player, ref Vector2 origin) => HoldoutOrigin(player.HeldItem, player, ref origin);
+
+    internal static void HoldoutOrigin(Item item, Player player, ref Vector2 origin)
+    {
+        Vector2 modOrigin = default;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { modOrigin = modItem.HoldoutOrigin() ?? modOrigin; }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.HoldoutOrigin", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { modOrigin = global.HoldoutOrigin(item.type) ?? modOrigin; }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.HoldoutOrigin", e); }
+        }
+        modOrigin.X *= player.direction;
+        modOrigin.Y *= -player.gravDir;
+        origin += modOrigin;
+    }
+
+    public static void CaughtFishStack(Item item)
+    {
+        int stack = item.stack;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { modItem.CaughtFishStack(ref stack); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.CaughtFishStack", e); }
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { global.CaughtFishStack(item.type, ref stack); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.CaughtFishStack", e); }
+        }
+        item.stack = stack;
+    }
+
+    public static void ModifyItemDraw(Item item, PlayerDrawSet drawInfo, DrawData drawData, DrawData? coloredDrawData, DrawData? glowmaskDrawData)
+    {
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { global.PreModifyItemDraw(item, ref drawInfo, ref drawData, ref coloredDrawData, ref glowmaskDrawData); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.PreModifyItemDraw", e); }
+        }
+        bool draw = true;
+        if (ItemHooks.ModItemOf(item) is ModItem modItem)
+        {
+            try { draw = modItem.ModifyItemDraw(ref drawInfo, ref drawData, ref coloredDrawData, ref glowmaskDrawData); }
+            catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.ModifyItemDraw", e); }
+        }
+        if (draw)
+        {
+            drawInfo.DrawDataCache.Add(drawData);
+            if (coloredDrawData.HasValue)
+                drawInfo.DrawDataCache.Add(coloredDrawData.Value);
+            if (glowmaskDrawData.HasValue)
+                drawInfo.DrawDataCache.Add(glowmaskDrawData.Value);
+        }
+        foreach (GlobalItem? global in ItemHooks.GlobalsOf(item))
+        {
+            if (global == null) continue;
+            try { global.PostModifyItemDraw(item, ref drawInfo, drawData, coloredDrawData, glowmaskDrawData); }
+            catch (Exception e) { ItemHooks.Report($"{global.FullName}.PostModifyItemDraw", e); }
+        }
+    }
+
     public static ModItem? GetItem(int type) => Get(type);
 
     internal static ModItem? Get(int type)
@@ -217,6 +366,7 @@ public static unsafe partial class ItemLoader
         {
             try
             {
+                instance.AutoDefaults();
                 instance.SetDefaults();
             }
             catch (Exception e)
@@ -338,6 +488,8 @@ public static unsafe partial class ItemLoader
     static Item DeepClone(On_Item.orig_DeepClone orig, Item self) => CopyInstances(self, orig(self));
 
     static Item ClientClone(On_Item.orig_clientClone orig, Item self, Item cloneDestination) => CopyInstances(self, orig(self, cloneDestination));
+
+    internal static void KeepInstances(Item original, Item copy) => CopyInstances(original, copy);
 
     static Item CopyInstances(Item self, Item copy)
     {

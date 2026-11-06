@@ -275,6 +275,8 @@ public abstract class ModPlayer : ModType<Player, ModPlayer>
 
     public virtual void ModifyCaughtFish(Item fish) { }
 
+    public virtual void SetControls() { }
+
     public virtual bool? CanConsumeBait(Item bait) => null;
 
     public virtual void GetFishingLevel(Item fishingRod, Item bait, ref float fishingLevel) { }

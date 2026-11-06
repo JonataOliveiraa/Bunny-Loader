@@ -50,6 +50,11 @@ internal static unsafe class ItemHooks
         ItemHealHooks.Install(Has);
         ItemPickupHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemDrawHooks.Install(Has, baseType == typeof(GlobalItem));
+        ItemHeldDrawHooks.Install(Has);
+        if (Has(nameof(ModItem.OnCraft))) RecipeLoader.WantCraft();
+        ItemReforgeHooks.Install(Has);
+        if (Has(nameof(ModItem.CaughtFishStack))) PlayerFishingHooks.WantCaught();
+        if (Has(nameof(ModItem.ApplyPrefix))) PrefixLoader.WantApplyHook();
         ItemOpenHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemNetHooks.Install(Has, baseType == typeof(GlobalItem));
         ItemTooltipHooks.Install(Has, baseType == typeof(GlobalItem));

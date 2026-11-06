@@ -30,7 +30,7 @@ internal static unsafe class PlayerUpdateHooks
                 if (Host.Native()->OnNaturalRegen(&NaturalRegen) == 0) Log.Error("player hooks: NaturalLifeRegen is not hooked");
             });
         if (has(nameof(ModPlayer.UpdateAutopause))) ItemHooks.Once("PlayerAutopause", () => On_Main.DoUpdate_WhilePaused += WhilePaused);
-        if (has(nameof(ModPlayer.ProcessTriggers))) ItemHooks.Once("PlayerTriggers", () => On_TriggersSet.CopyInto += CopyInto);
+        if (has(nameof(ModPlayer.ProcessTriggers)) || has(nameof(ModPlayer.SetControls))) ItemHooks.Once("PlayerTriggers", () => On_TriggersSet.CopyInto += CopyInto);
         if (has(nameof(ModPlayer.ResetInfoAccessories)))
             ItemHooks.Once("PlayerInfoAccessories", () => On_Player.RefreshInfoAccs += RefreshInfoAccs);
         if (has(nameof(ModPlayer.ArmorSetBonusActivated))) ItemHooks.Once("PlayerSetBonusActivated", () => On_Player.KeyDoubleTap += KeyDoubleTap);
@@ -120,7 +120,9 @@ internal static unsafe class PlayerUpdateHooks
     static void CopyInto(On_TriggersSet.orig_CopyInto orig, TriggersSet self, Player p)
     {
         orig(self, p);
-        if (p.whoAmI == Main.myPlayer) PlayerLoader.Each(p, nameof(ModPlayer.ProcessTriggers), self, static (m, t) => m.ProcessTriggers(t));
+        if (p.whoAmI != Main.myPlayer) return;
+        PlayerLoader.Each(p, nameof(ModPlayer.ProcessTriggers), self, static (m, t) => m.ProcessTriggers(t));
+        PlayerLoader.Each(p, nameof(ModPlayer.SetControls), m => m.SetControls());
     }
 
     static void RefreshInfoAccs(On_Player.orig_RefreshInfoAccs orig, Player self)

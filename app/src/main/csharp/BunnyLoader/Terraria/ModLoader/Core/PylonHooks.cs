@@ -20,7 +20,9 @@ namespace Terraria.ModLoader.Core;
 
 internal static class PylonHooks
 {
-    const int FirstPylonType = 11, PylonSpan = 4;
+    internal const int FirstPylonType = 11;
+
+    const int PylonSpan = 4;
 
     static readonly GameClass ObjectClass = new("System", "Object");
 
@@ -33,6 +35,14 @@ internal static class PylonHooks
     static int requests, npcChecks;
 
     internal static IReadOnlyList<ModPylon> Pylons => pylons;
+
+    internal static readonly List<GlobalPylon> Globals = new();
+
+    internal static void Add(GlobalPylon pylon)
+    {
+        Globals.Add(pylon);
+        ItemHooks.Once("Pylons", Install);
+    }
 
     internal static ModPylon? OfPylonType(int type) => type >= FirstPylonType && type - FirstPylonType < pylons.Count ? pylons[type - FirstPylonType] : null;
 
@@ -187,48 +197,133 @@ internal static class PylonHooks
         return false;
     }
 
-    static bool AcceptsBiome(TeleportPylonsSystem system, ModPylon pylon, TeleportPylonInfo info)
+    static bool EnoughNPCsAround(TeleportPylonsSystem system, TeleportPylonInfo info, Player player)
+    {
+        int count = system.HowManyNPCsDoesPylonNeed(info, player);
+        if (PylonLoader.ValidTeleportCheck_PreNPCCount(info, ref count) is bool value)
+            return value;
+        if (OfPylonType((int)info.TypeOfPylon) is ModPylon pylon)
+            return pylon.ValidTeleportCheck_NPCCount(info, count);
+        return count <= 0 || EnoughNPCs(count, info.PositionInTiles);
+    }
+
+    static bool AcceptsTeleport(TeleportPylonsSystem system, TeleportPylonInfo info, Player player)
     {
         SceneMetrics metrics = system._sceneMetrics;
-        var settings = new SceneMetricsScanSettings { BiomeScanCenterPositionInWorld = info.PositionInTiles.ToWorldCoordinates() };
-        metrics.Scan(settings);
-        return pylon.ValidTeleportCheck_BiomeRequirements(info, metrics);
+        metrics.Scan(new SceneMetricsScanSettings { BiomeScanCenterPositionInWorld = info.PositionInTiles.ToWorldCoordinates() });
+        if (PylonLoader.ValidTeleportCheck_PreBiomeRequirements(info, metrics) is bool value)
+            return value;
+        if (OfPylonType((int)info.TypeOfPylon) is ModPylon pylon)
+            return pylon.ValidTeleportCheck_BiomeRequirements(info, metrics);
+        return system.DoesPylonAcceptTeleportation(info, player);
+    }
+
+    static void Port(TeleportPylonsSystem system, TeleportPylonInfo info, int playerIndex)
+    {
+        Player player = Main.player[playerIndex];
+        string? key = null;
+        bool valid = TeleportPylonsSystem.IsPlayerNearAPylon(player);
+        if (!valid)
+            key = "Net.CannotTeleportToPylonBecausePlayerIsNotNearAPylon";
+        if (valid)
+        {
+            valid = EnoughNPCsAround(system, info, player);
+            if (!valid)
+                key = "Net.CannotTeleportToPylonBecauseNotEnoughNPCs";
+        }
+        if (valid)
+        {
+            if (!NPC.downedPlantBoss && info.PositionInTiles.Y > Main.worldSurface && Framing.GetTileSafely(info.PositionInTiles.X, info.PositionInTiles.Y).wall == WallID.LihzahrdBrickUnsafe)
+                valid = false;
+            if (!valid)
+                key = "Net.CannotTeleportToPylonBecauseAccessingLihzahrdTempleEarly";
+        }
+        if (valid)
+        {
+            valid = AcceptsTeleport(system, info, player);
+            if (!valid)
+                key = "Net.CannotTeleportToPylonBecauseNotMeetingBiomeRequirements";
+        }
+
+        if (OfPylonType((int)info.TypeOfPylon) is ModPylon destination)
+            destination.ValidTeleportCheck_DestinationPostCheck(info, ref valid, ref key!);
+
+        TeleportPylonInfo nearby = default;
+        bool nearbyValid = false;
+        int progress = 0;
+        GameList list = List(system);
+        for (int k = 0; k < list.Count; k++)
+        {
+            TeleportPylonInfo other = list.Get<TeleportPylonInfo>(k);
+            if (!player.InTileEntityInteractionRange(other.PositionInTiles.X, other.PositionInTiles.Y, 3, 4, TileReachCheckSettings.Pylons))
+                continue;
+            nearby = other;
+            if (progress < 1)
+                progress = 1;
+            if (!EnoughNPCsAround(system, other, player))
+                continue;
+            if (progress < 2)
+                progress = 2;
+            if (AcceptsTeleport(system, other, player))
+            {
+                nearbyValid = true;
+                break;
+            }
+        }
+        if (!nearbyValid)
+            key = progress switch
+            {
+                1 => "Net.CannotTeleportToPylonBecauseNotEnoughNPCsAtCurrentPylon",
+                2 => "Net.CannotTeleportToPylonBecauseNotMeetingBiomeRequirements",
+                _ => "Net.CannotTeleportToPylonBecausePlayerIsNotNearAPylon",
+            };
+
+        if (OfPylonType((int)nearby.TypeOfPylon) is ModPylon nearbyPylon)
+            nearbyPylon.ValidTeleportCheck_NearbyPostCheck(nearby, ref valid, ref nearbyValid, ref key!);
+        PylonLoader.PostValidTeleportCheck(info, nearby, ref valid, ref nearbyValid, ref key!);
+
+        if (valid && nearbyValid)
+        {
+            Vector2 target = info.PositionInTiles.ToWorldCoordinates() - new Vector2(0f, player.HeightOffsetBoost);
+            if (OfPylonType((int)info.TypeOfPylon) is ModPylon final)
+                final.ModifyTeleportationPosition(info, ref target);
+            int style = 9, pylonType = (int)info.TypeOfPylon;
+            player.Teleport(target, style, pylonType);
+            player.velocity = Vector2.Zero;
+            if ((Main.netMode & NetmodeID.Server) == 0)
+                return;
+            RemoteClient.CheckSection(player.whoAmI, player.position);
+            NetMessage.SendData(MessageID.TeleportEntity, -1, -1, default, 0, player.whoAmI, target.X, target.Y, style, 0, pylonType);
+        }
+        else
+        {
+            ChatHelper.SendChatMessageToClient(NetworkText.FromKey(key ?? "Net.CannotTeleportToPylonBecausePlayerIsNotNearAPylon", GameArray<GameObject>.New(ObjectClass, 0)), new Color(255, 240, 20), playerIndex);
+        }
     }
 
     static void HandleRequest(On_TeleportPylonsSystem.orig_HandleTeleportRequest orig, TeleportPylonsSystem system, TeleportPylonInfo info, int playerIndex)
     {
-        ModPylon? pylon = OfPylonType((int)info.TypeOfPylon);
-        try
+        var restored = stripped;
+        if (restored != null)
         {
-            if (pylon != null && !AcceptsBiome(system, pylon, info))
-            {
-                ChatHelper.SendChatMessageToClient(NetworkText.FromKey("Net.CannotTeleportToPylonBecauseNotMeetingBiomeRequirements", GameArray<GameObject>.New(ObjectClass, 0)), new Color(255, 240, 20), playerIndex);
-                return;
-            }
-        }
-        catch (Exception e)
-        {
-            ItemHooks.Report($"{pylon!.FullName}.ValidTeleportCheck_BiomeRequirements", e);
-            return;
-        }
-
-        var back = stripped;
-        if (back != null)
-        {
-            GameList list = List(system);
-            foreach (var entry in back)
-                list.Add(Info(entry));
+            GameList strippedList = List(system);
+            foreach (var entry in restored)
+                strippedList.Add(Info(entry));
         }
 
         requests++;
         try
         {
-            orig(system, info, playerIndex);
+            Port(system, info, playerIndex);
+        }
+        catch (Exception e)
+        {
+            ItemHooks.Report("TeleportPylonsSystem.HandleTeleportRequest", e);
         }
         finally
         {
             requests--;
-            if (back != null)
+            if (restored != null)
                 Strip(List(system));
         }
     }
@@ -255,8 +350,26 @@ internal static class PylonHooks
         return orig(count, center);
     }
 
+    static TeleportPylonType? VanillaPylonOf(int type, int style) =>
+        type == TileID.TeleportationPylon ? (TeleportPylonType)style : null;
+
     static bool CanPlace(On_TileObject.orig_CanPlace orig, int x, int y, int type, int style, int dir, out TileObject objectData, bool onlyCheck, GameNullable<int> forcedRandom)
     {
+        ModPylon? modPylon = TileLoader.GetTile(type) as ModPylon;
+        TeleportPylonType? pylonType = modPylon?.PylonType ?? VanillaPylonOf(type, style);
+        if (pylonType is TeleportPylonType placing && Globals.Count > 0)
+        {
+            bool? decision = PylonLoader.PreCanPlacePylon(x, y, type, placing);
+            if (decision == false)
+            {
+                objectData = default;
+                return false;
+            }
+
+            if (decision == true)
+                return orig(x, y, type, style, dir, out objectData, onlyCheck, forcedRandom);
+        }
+
         if (TileLoader.GetTile(type) is ModPylon pylon)
         {
             bool allowed;
@@ -315,7 +428,14 @@ internal static class PylonHooks
                 continue;
             try
             {
-                pylon.DrawMapIcon(ref context, ref mouseOver, info, near, color, 1f, 2f);
+                bool nearNow = near;
+                Color iconColor = color;
+                float deselected = 1f, selected = 2f;
+                bool draw = true;
+                foreach (GlobalPylon global in Globals)
+                    draw &= global.PreDrawMapIcon(ref context, ref mouseOver, ref info, ref nearNow, ref iconColor, ref deselected, ref selected);
+                if (draw)
+                    pylon.DrawMapIcon(ref context, ref mouseOver, info, nearNow, iconColor, deselected, selected);
             }
             catch (Exception e)
             {

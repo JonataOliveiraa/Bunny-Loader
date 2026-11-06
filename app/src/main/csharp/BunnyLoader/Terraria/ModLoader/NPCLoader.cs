@@ -70,6 +70,7 @@ public static unsafe partial class NPCLoader
         npc.Type = type;
         npc.Hooks = NPCEventHooks.Install(npc.GetType(), typeof(ModNPC), type);
         npc.Extra = NPCExtraHooks.Install(npc.GetType(), typeof(ModNPC));
+        NPCHappinessHooks.Want(npc.GetType(), typeof(ModNPC));
         ReserveBossHead(npc);
         NPCHeadLoader.Register(npc);
         lock (Gate)
@@ -93,6 +94,7 @@ public static unsafe partial class NPCLoader
         Globals.Add(global);
         global.Hooks = NPCEventHooks.Install(global.GetType(), typeof(GlobalNPC), -1);
         global.Extra = NPCExtraHooks.Install(global.GetType(), typeof(GlobalNPC));
+        NPCHappinessHooks.Want(global.GetType(), typeof(GlobalNPC));
         NPCEventHooks.Want(-1, 64);
         ItemHooks.Once("NPCDefaultsScaling", () => On_NPC.ScaleStats += NPCDefaultsHooks.BeforeScaling);
         EnsureHooked();

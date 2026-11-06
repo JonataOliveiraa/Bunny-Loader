@@ -37,6 +37,8 @@ public abstract partial class ModSystem : ModType
 
     public virtual void OnWorldLoad() { }
 
+    public virtual void PostWorldLoad() { }
+
     public virtual void OnWorldUnload() { }
 
     public virtual void ClearWorld() { }

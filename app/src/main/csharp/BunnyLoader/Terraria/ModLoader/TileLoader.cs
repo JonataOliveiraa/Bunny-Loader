@@ -22,6 +22,8 @@ public static unsafe partial class TileLoader
 
     static readonly List<GlobalTile> globals = new();
 
+    internal static IReadOnlyList<GlobalTile> Globals => globals;
+
     static readonly Dictionary<(int, int), int> drops = new();
 
     static readonly List<ModTile> animated = new();
@@ -235,6 +237,7 @@ public static unsafe partial class TileLoader
     {
         globals.Add(tile);
         TileHooks.InstallWorld(tile);
+        TileHooks.WantReplace(tile);
         uint flags = Flags(tile);
         if (Host.Native()->TileEvents(-1, flags, &Event) == 0)
             throw new InvalidOperationException($"{tile.FullName}: native global tile hooks could not be installed");

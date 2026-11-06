@@ -99,15 +99,16 @@ Measuring what really breaks on a host stays in group M12.
 
 | Hooks | Decision |
 |---|---|
-| `ModItem`/`GlobalItem`: `OnCraft`, `CanReforge`, `PreReforge`, `PostReforge`, `ReforgePrice`, `HoldoutOrigin`, `CaughtFishStack` | Add. Reforging goes through `GUIReforge` on the phone: read it first |
-| `ModPlayer.SetControls` | Add |
-| `ModSystem.PostWorldLoad` | Add |
-| `GlobalWall` (whole class, 5 members), `ModWall.OnWallConverted` | Add |
-| `ModItem`/`GlobalItem`: `ModifyItemDraw`, `PreModifyItemDraw`, `PostModifyItemDraw` | Add for `CustomItemDrawingShowcase` |
-| `ModPylon`: `ModifyTeleportationPosition`, `ValidTeleportCheck_DestinationPostCheck`, `ValidTeleportCheck_NearbyPostCheck`; `GlobalPylon` (5 members) | Add, with the advanced pylon in E3 |
-| `ModNPC`/`GlobalNPC.ModifyNPCHappiness` | Add if the phone's happiness code allows it |
-| `FlailStats`, `FlailSpinCollisionRange`, `WingGlidingSpeeds`, `ApplyPrefix`, `AutoDefaults` | Add if cheap, otherwise list as out |
-| `AutoSelect`, `ReplaceTile`, `PreDrawPlacementPreview`, `PostDrawPlacementPreview`, `PreDrawInEmoteMenu`, `PostDrawInEmoteMenu` | Add if cheap, otherwise list as out |
+| `ModItem.OnCraft`; `ModItem`/`GlobalItem`: `CanReforge`, `PreReforge`, `PostReforge`, `ReforgePrice`, `HoldoutOrigin`, `CaughtFishStack`, `ApplyPrefix`; `ModItem.AutoDefaults` | Done. tML has no `GlobalItem.OnCraft`. Reforging on the phone resets the item with `netDefaults`, which also lost mod instance data; `ItemReforgeHooks` keeps it |
+| `ModPlayer.SetControls` | Done, right after `ProcessTriggers`, because the method body cannot be hooked in the middle |
+| `ModSystem.PostWorldLoad` | Done |
+| `GlobalWall` (whole class), `ModWall.OnWallConverted` | Done. `PreDraw`, `PostDraw`, `CanPlace` and `CanExplode` of `GlobalWall` exist for tML source compatibility but have no effect yet, see block F |
+| `ModItem`/`GlobalItem`: `ModifyItemDraw`, `PreModifyItemDraw`, `PostModifyItemDraw` | Done, by reading back what `DrawPlayer_27_HeldItem` added |
+| `ModPylon`: `ModifyTeleportationPosition`, `ValidTeleportCheck_DestinationPostCheck`, `ValidTeleportCheck_NearbyPostCheck`; `GlobalPylon` | Done, through a C# port of `HandleTeleportRequest`, as the phone inlines the checks |
+| `ModNPC`/`GlobalNPC.ModifyNPCHappiness` | Done on `AllPersonalitiesModifier.ModifyShopPrice`. The call is commented out in tML itself. `primaryPlayerBiome` is always 0: the phone's `HelperInfo` has no such field |
+| `ReplaceTile` | Done |
+| `FlailStats` | Does not exist in tML, dropped from this table |
+| `FlailSpinCollisionRange`, `WingGlidingSpeeds`, `AutoSelect`, `PreDrawPlacementPreview`, `PostDrawPlacementPreview`, `PreDrawInEmoteMenu`, `PostDrawInEmoteMenu` | Out: all are in the middle of game methods (`AI_015_Flails`, `Player.Update`, `SmartSelectLookup`, `TileObject.DrawPreview`), or in a UI the phone does not have |
 | `CanResearch`, `OnResearched` | Out, with `ExampleResearchPresent` |
 | `ModifyFrameMerge`, `PostTileFrame`, `PostSetupTileMerge`, `ChangeWaterfallStyle`, `IsTileBiomeSightable`, `RequiresScreenTarget` | Out: mid-method in `WorldGen.TileFrame` or tied to PC rendering |
 

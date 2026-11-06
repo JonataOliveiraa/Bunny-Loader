@@ -111,6 +111,10 @@ public abstract class ModTile : ModBlockType
     {
     }
 
+    public virtual void ReplaceTile(int i, int j, int targetType, int targetStyle)
+    {
+    }
+
     public virtual void NearbyEffects(int i, int j, bool closer)
     {
     }

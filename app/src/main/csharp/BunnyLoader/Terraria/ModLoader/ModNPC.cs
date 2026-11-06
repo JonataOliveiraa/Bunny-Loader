@@ -239,6 +239,10 @@ public abstract class ModNPC : ModType<NPC, ModNPC>, ILocalizedModType
 
     public virtual void ModifyActiveShop(string shopName, Item[] items) { }
 
+    public virtual void ModifyNPCHappiness(int primaryPlayerBiome, ShopHelper shopHelperInstance, bool[] nearbyNPCsByType)
+    {
+    }
+
     public virtual void TownNPCAttackStrength(ref int damage, ref float knockback) { }
 
     public virtual void TownNPCAttackCooldown(ref int cooldown, ref int randExtraCooldown) { }

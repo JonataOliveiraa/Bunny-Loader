@@ -29,6 +29,24 @@ public abstract class GlobalItem : GlobalType<Item, GlobalItem>
 
     public virtual void OnCreated(Item item, ItemCreationContext context) { }
 
+    public virtual bool ReforgePrice(Item item, ref long reforgePrice, ref bool canApplyDiscount) => true;
+
+    public virtual bool CanReforge(Item item) => true;
+
+    public virtual void PreReforge(Item item) { }
+
+    public virtual void PostReforge(Item item) { }
+
+    public virtual void ApplyPrefix(Item item, int pre) { }
+
+    public virtual Vector2? HoldoutOrigin(int type) => null;
+
+    public virtual void CaughtFishStack(int type, ref int stack) { }
+
+    public virtual void PreModifyItemDraw(Item item, ref PlayerDrawSet drawInfo, ref DrawData drawData, ref DrawData? coloredDrawData, ref DrawData? glowMaskDrawData) { }
+
+    public virtual void PostModifyItemDraw(Item item, ref PlayerDrawSet drawInfo, DrawData drawData, DrawData? coloredDrawData, DrawData? glowmaskDrawData) { }
+
     public virtual bool? CanCatchNPC(Item item, NPC target, Player player) => null;
 
     public virtual bool CanUseItem(Item item, Player player) => true;

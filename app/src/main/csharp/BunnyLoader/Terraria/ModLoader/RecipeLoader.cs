@@ -479,6 +479,11 @@ public static class RecipeLoader
                     catch (Exception e) { ItemHooks.Report("Recipe OnCraft callback", e); }
                 }
             }
+            if (ItemHooks.ModItemOf(result) is ModItem modItem)
+            {
+                try { modItem.OnCraft(recipe); }
+                catch (Exception e) { ItemHooks.Report($"{modItem.FullName}.OnCraft", e); }
+            }
             ItemLoader.OnCreated(result, new RecipeItemCreationContext(recipe, consumed, destination));
         }
         catch (Exception e) { ItemHooks.Report("Recipe OnCraft", e); }

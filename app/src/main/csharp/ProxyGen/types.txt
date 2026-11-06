@@ -70,7 +70,10 @@ GUITransactionButton
 GUIVirtualInputController
 GUIVirtualInputControllerEdit
 GUIVirtualInputControllerEdit_ControlPanel+ControlPanelActionSetting
+Terraria.RemoteClient
 GUIQuickActionButton
+GUIReforge
+GUIReforgePopup
 GUIPulldownSetting
 ItemGrid_Layout
 VirtualControlsProfile_Layout
