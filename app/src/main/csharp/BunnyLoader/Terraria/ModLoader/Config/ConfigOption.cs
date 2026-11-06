@@ -69,6 +69,10 @@ internal sealed class ConfigOption
 
     internal LabelKeyAttribute? LabelKey { get; }
 
+    (string Culture, string Text)? labelCache;
+
+    (string Culture, string? Text)? tooltipCache;
+
     internal LabelArgsAttribute? LabelArgs { get; }
 
     internal TooltipKeyAttribute? TooltipKey { get; }
@@ -264,18 +268,26 @@ internal sealed class ConfigOption
 
     internal string Label(ModConfig config)
     {
+        string culture = Language.ActiveCulture.Name ?? "";
+        if (labelCache is { } cached && cached.Culture == culture)
+            return cached.Text;
         string key = LabelKey != null && !LabelKey.malformed ? LabelKey.key : $"Mods.{config.Mod.Name}.Configs.{config.Name}.{Name}.Label";
-        string text = Language.GetOrRegister(key, () => Regex.Replace(Name, "([a-z0-9])([A-Z])", "$1 $2")).Value ?? Name;
-        return LabelArgs != null && LabelArgs.args.Length > 0 ? Formatting.Apply(text, LabelArgs.args) : text;
+        LocalizedText text = Language.GetOrRegister(key, () => Regex.Replace(Name, "([a-z0-9])([A-Z])", "$1 $2"));
+        string label = ConfigManager.FormatTextAttribute(text, LabelArgs?.args) ?? Name;
+        labelCache = (culture, label);
+        return label;
     }
 
     internal string? Tooltip(ModConfig config)
     {
+        string culture = Language.ActiveCulture.Name ?? "";
+        if (tooltipCache is { } cached && cached.Culture == culture)
+            return cached.Text;
         string key = TooltipKey != null && !TooltipKey.malformed ? TooltipKey.key : $"Mods.{config.Mod.Name}.Configs.{config.Name}.{Name}.Tooltip";
-        string text = Language.GetOrRegister(key, () => "").Value ?? "";
-        if (TooltipArgs != null && TooltipArgs.args.Length > 0)
-            text = Formatting.Apply(text, TooltipArgs.args);
-        return string.IsNullOrWhiteSpace(text) ? null : text;
+        string? text = ConfigManager.FormatTextAttribute(Language.GetOrRegister(key, () => ""), TooltipArgs?.args);
+        text = string.IsNullOrWhiteSpace(text) ? null : text;
+        tooltipCache = (culture, text);
+        return text;
     }
 
     internal string? HeaderText(ModConfig config)
@@ -283,9 +295,9 @@ internal sealed class ConfigOption
         if (Header == null || Header.malformed)
             return null;
         if (Header.key != null)
-            return Language.GetTextValue(Header.key);
+            return ConfigManager.ResolveItemTags(Language.GetTextValue(Header.key));
         string id = Header.identifier!;
-        return Language.GetOrRegister($"Mods.{config.Mod.Name}.Configs.{config.Name}.Headers.{id}", () => Regex.Replace(id, "([a-z0-9])([A-Z])", "$1 $2")).Value;
+        return ConfigManager.ResolveItemTags(Language.GetOrRegister($"Mods.{config.Mod.Name}.Configs.{config.Name}.Headers.{id}", () => Regex.Replace(id, "([a-z0-9])([A-Z])", "$1 $2")).Value ?? id);
     }
 
     internal string ChoiceLabel(ModConfig config, int index)

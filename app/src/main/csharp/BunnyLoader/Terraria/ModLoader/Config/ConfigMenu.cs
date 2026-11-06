@@ -11,6 +11,7 @@ using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.Localization;
 using Terraria.ModLoader.Core;
+using Terraria.UI.Chat;
 
 namespace Terraria.ModLoader.Config;
 
@@ -83,7 +84,7 @@ internal static unsafe class ConfigMenu
 
     sealed class Parts
     {
-        internal String_Layout Empty, Header, Label;
+        internal String_Layout Empty, Header, Label, RowLabel;
 
         internal Panel_Layout Divider, ChoiceOn, ChoiceOff, Swatch, Greyout, PopBacking;
 
@@ -93,8 +94,9 @@ internal static unsafe class ConfigMenu
     }
 
     const float TipInset = 10, TipGap = 10, TipSize = 0.62f, TipWidth = 0.82f, TipMaxLines = 24,
-        Gap = 4, HeaderExtra = 8, SwatchInset = 4, CycleX = 24, PopupMargin = 8, DragPx = 8, Friction = 0.92f, IconScale = 1.1f;
-    const int ScreenAnchor = 0, TopLeft = 9, Center = 18, Middle = 16, MenuOpenSound = 10, MenuCloseSound = 11, TickSound = 12, SettingNone = 192, General = 0;
+        Gap = 4, HeaderExtra = 8, SwatchInset = 4, CycleX = 24, PopupMargin = 8, DragPx = 8, Friction = 0.92f, IconScale = 1.1f,
+        LabelGap = 8, LabelMinRoom = 0.3f, MarqueeSpeed = 40, MarqueePause = 1.5f, TrackScanStep = 4, PulldownArrow = 56;
+    const int ScreenAnchor = 0, TopLeft = 9, Center = 18, MiddleLeft = 17, MenuOpenSound = 10, MenuCloseSound = 11, TickSound = 12, SettingNone = 192, General = 0;
     const string IconId = "bunny/coelho_cabeca_cs";
 
     static readonly List<GameHandle> kept = new();
@@ -121,6 +123,11 @@ internal static unsafe class ConfigMenu
     static Popup? popup;
     static Tip? tip;
     static readonly List<Rectangle> tipRects = new();
+    static readonly Dictionary<(nint Layout, int Width), float> trackOffsets = new();
+    static readonly Dictionary<(string Text, byte R, byte G, byte B, byte A), GameHandle> snippets = new();
+    static readonly System.Text.RegularExpressions.Regex ColorTag = new(@"\[c/[^:\]]*:([^\]]*)\]");
+    static Rectangle listArea;
+    static float labelEnd;
     static Action? onClose;
     static bool fromCode;
     static (ModConfig Config, string Name, bool Center)? scrollTo;
@@ -557,7 +564,7 @@ internal static unsafe class ConfigMenu
             mod = DrawTabs(s, mods, mod);
         selected = mod;
         string title = mod != null ? (string.IsNullOrEmpty(mod.DisplayName) ? mod.Name : mod.DisplayName) : Text("ModConfigButton");
-        GUIStringButton.DrawButton(s.Title, title, ref titleScale, false, true);
+        DrawTitle(s, title);
         DrawList(s, mod);
         string? action = DrawActions(mod);
         try { DrawPopup(s); }
@@ -597,6 +604,28 @@ internal static unsafe class ConfigMenu
             else
                 Close();
         }
+    }
+
+    static void DrawTitle(SettingsOverlay_Layout s, string title)
+    {
+        StringButton_Layout layout = s.Title;
+        SpriteFont font = layout.GetFont();
+        float measured = font.IsNull ? 0 : font.MeasureString(title).X * layout.Scale;
+        Rectangle region = GUIStringButton.Region(layout);
+        float room = region.Width - TipInset * 2;
+        if (measured <= room)
+        {
+            GUIStringButton.DrawButton(layout, title, ref titleScale, false, true);
+            return;
+        }
+
+        GUIStringButton.DrawButton(layout, "", ref titleScale, false, true);
+        String_Layout label = PartsOf(s).RowLabel;
+        label.Scale = room / Math.Max(1, Measure(label.GetFont(), title));
+        SetAlignment(label, Center);
+        label.Location = new Vector2(region.X + region.Width / 2f, region.Y + region.Height / 2f);
+        GUIString.Draw(label, title, layout.DisabledTextColour, false);
+        SetAlignment(label, MiddleLeft);
     }
 
     static string? DrawActions(Mod? mod)
@@ -863,12 +892,15 @@ internal static unsafe class ConfigMenu
             Swatch = CopyPanel(t.Option1Enabled),
             Cycle = CopyString(s.SliderTemplate.Value),
             Label = CopyString(t.Option1Label),
+            RowLabel = ToScreen(CopyString(t.ToggleButton.Label)),
             Greyout = PanelToScreen(CopyPanel(p.PulldownGreyout)),
             PopBacking = PanelToScreen(CopyPanel(p.PulldownBacking)),
             Option = option
         };
         SetAlignment(empty, TopLeft);
         SetAlignment(header, Center);
+        SetAlignment(parts.RowLabel, MiddleLeft);
+        parts.Greyout.AnchorForSize = false;
         return parts;
     }
 
@@ -973,6 +1005,7 @@ internal static unsafe class ConfigMenu
         }
 
         Rectangle area = Rect(left, top, width, bottom - top);
+        listArea = area;
         Scroll(area, total, left, top, width, bottom);
         tipRects.Clear();
         Rectangle saved = ControlAnchor._gridItemRegion;
@@ -1090,6 +1123,112 @@ internal static unsafe class ConfigMenu
         GUIString.Draw(label, text, color, false);
     }
 
+    static float MarqueeOffset(float overflow)
+    {
+        float travel = overflow / MarqueeSpeed;
+        float t = (float)(Environment.TickCount64 / 1000.0 % (2 * (MarqueePause + travel)));
+        if (t < MarqueePause)
+            return 0;
+        t -= MarqueePause;
+        if (t < travel)
+            return overflow * t / travel;
+        t -= travel;
+        if (t < MarqueePause)
+            return overflow;
+        return overflow * (1 - (t - MarqueePause) / travel);
+    }
+
+    static bool HasColorTag(string text) => text.Contains("[c/");
+
+    static float Measure(SpriteFont font, string text) =>
+        font.IsNull ? 0 : font.MeasureString(HasColorTag(text) ? ColorTag.Replace(text, "$1") : text).X;
+
+    static GameArray<TextSnippet> SnippetsOf(string text, Color color)
+    {
+        var key = (text, color.R, color.G, color.B, color.A);
+        if (!snippets.TryGetValue(key, out GameHandle? kept))
+            snippets[key] = kept = new GameHandle(ChatManager.ParseMessage(text, color, -1).Pointer);
+        return new GameArray<TextSnippet>(kept.Target);
+    }
+
+    static void DrawTagged(String_Layout label, string text, Color color)
+    {
+        if (HasColorTag(text))
+            GUIString.Draw(label, SnippetsOf(text, color), out int _, -1, 100);
+        else
+            GUIString.Draw(label, text, color, false);
+    }
+
+    static void DrawFitted(String_Layout label, string text, Color color, float x, float y, float room, float measured)
+    {
+        float overflow = measured - room;
+        if (overflow <= 0)
+        {
+            label.Location = new Vector2(x, y);
+            DrawTagged(label, text, color);
+            return;
+        }
+
+        Rectangle r = ControlAnchor._gridItemRegion;
+        float clipTop = Math.Max(r.Y, listArea.Y), clipBottom = Math.Min(r.Y + r.Height, listArea.Y + listArea.Height);
+        if (clipBottom <= clipTop)
+            return;
+        Rectangle clip = Rect(x, clipTop, room, clipBottom - clipTop);
+        label.Location = new Vector2(x - MarqueeOffset(overflow), y);
+        SpriteBatchItem.DisabledClipping();
+        SpriteBatchItem.EnableFullClipping(clip, clip, Main.spriteBatch);
+        try { DrawTagged(label, text, color); }
+        finally
+        {
+            SpriteBatchItem.DisabledClipping();
+            SpriteBatchItem.EnableClipping(listArea, listArea, Main.spriteBatch, true);
+        }
+    }
+
+    static void DrawRowLabel(Parts p, Row row, String_Layout template, string text, Color color, float right)
+    {
+        Rectangle r = ControlAnchor._gridItemRegion;
+        String_Layout label = p.RowLabel;
+        label.Scale = template.Scale;
+        label.RenderFont = template.RenderFont;
+        float measured = Measure(template.GetFont(), text) * template.Scale;
+        float x = r.X + TipInset;
+        float reserve = TipOf(row) != null ? r.Height * TipSize + TipGap : 0;
+        float room = Math.Max(right - LabelGap - reserve - x, r.Width * LabelMinRoom);
+        labelEnd = x + Math.Min(measured, room);
+        DrawFitted(label, text, color, x, r.Y + r.Height / 2f, room, measured);
+    }
+
+    static void DrawButtonLabel(Parts p, Row row, TransactionButton_Layout button, string text, bool enabled, float right) =>
+        DrawRowLabel(p, row, button.Label, text, enabled ? button.Label.Color : button.DisabledLabelColour, right);
+
+    static float SegmentsLeft(SettingsOverlayToggle_Layout t, int n)
+    {
+        var seg = Segments(t, n);
+        return Math.Min(SegmentCenter(t, seg.XOf(0)).X, SegmentCenter(t, seg.XOf(n - 1)).X) - seg.Each / 2;
+    }
+
+    static float TrackLeft(Slider_Layout layout)
+    {
+        Rectangle r = ControlAnchor._gridItemRegion;
+        var key = (layout.Pointer, r.Width);
+        if (!trackOffsets.TryGetValue(key, out float offset))
+        {
+            offset = r.Width;
+            for (float dx = 0; dx < r.Width; dx += TrackScanStep)
+            {
+                if (!GUISlider.IsCursorOver(new Vector2(r.X + dx, r.Y + r.Height / 2f), layout))
+                    continue;
+                offset = dx;
+                break;
+            }
+
+            trackOffsets[key] = offset;
+        }
+
+        return r.X + offset;
+    }
+
     static RowState StateOf(Row row)
     {
         if (!rowState.TryGetValue(row.Key, out RowState? st))
@@ -1122,16 +1261,16 @@ internal static unsafe class ConfigMenu
         {
             case "header": DrawHeader(p, row); break;
             case "toggle": DrawToggle(s, p, row, enabled); break;
-            case "range": DrawRange(s, row, enabled); break;
+            case "range": DrawRange(s, p, row, enabled); break;
             case "radio": DrawRadio(s, p, row, enabled); break;
-            case "dropdown": DrawDropdown(s, row, enabled); break;
+            case "dropdown": DrawDropdown(s, p, row, enabled); break;
             case "cycle": DrawCycle(s, p, row, enabled); break;
             case "definition": DrawDefinition(s, p, row, enabled); break;
-            case "definitionslider": DrawDefinitionSlider(s, row, enabled); break;
+            case "definitionslider": DrawDefinitionSlider(s, p, row, enabled); break;
             case "color": DrawColor(s, p, row, enabled); break;
             case "hue":
             case "saturation":
-            case "lightness": DrawColorPart(s, row, enabled); break;
+            case "lightness": DrawColorPart(s, p, row, enabled); break;
         }
     }
 
@@ -1142,9 +1281,20 @@ internal static unsafe class ConfigMenu
         divider.Size = new Vector2(r.Width, divider.Size.Y);
         divider.Location = new Vector2(r.X + r.Width / 2f, r.Y + r.Height - divider.Size.Y / 2);
         GUIPanel.Draw(divider, false, default, default, default);
-        SetAlignment(p.Header, Middle | 2);
-        p.Header.Location = new Vector2(r.X + r.Width / 2f, r.Y + r.Height / 2f - 2);
-        GUIString.Draw(p.Header, row.Header ?? "", new Color(255, 255, 255, 255), false);
+        string text = row.Header ?? "";
+        float measured = Measure(p.Header.GetFont(), text) * p.Header.Scale;
+        float room = r.Width - TipInset * 2;
+        float y = r.Y + r.Height / 2f - 2;
+        if (measured <= room)
+        {
+            SetAlignment(p.Header, Center);
+            p.Header.Location = new Vector2(r.X + r.Width / 2f, y);
+            DrawTagged(p.Header, text, new Color(255, 255, 255, 255));
+            return;
+        }
+
+        SetAlignment(p.Header, MiddleLeft);
+        DrawFitted(p.Header, text, new Color(255, 255, 255, 255), r.X + TipInset, y, room, measured);
     }
 
     static string Label(Row row) => row.Option!.Label(row.Entry.Active);
@@ -1162,7 +1312,8 @@ internal static unsafe class ConfigMenu
     {
         RowState st = StateOf(row);
         var t = enabled ? s.ToggleTemplate : s.DisabledToggleTemplate;
-        var state = GUITransactionButton.Draw(t.ToggleButton, default(Item), Label(row), !enabled, ref st.Scale, false, Focus(), false, false);
+        var state = GUITransactionButton.Draw(t.ToggleButton, default(Item), "", !enabled, ref st.Scale, false, Focus(), false, false);
+        DrawButtonLabel(p, row, t.ToggleButton, Label(row), enabled, SegmentsLeft(t, 2));
         bool value = (bool)row.Option!.Get(row.Entry.View)!;
         if (enabled && state == GUITransactionButton.InputState.Clicked && !RowBlocked())
         {
@@ -1190,11 +1341,11 @@ internal static unsafe class ConfigMenu
 
     delegate bool SliderDraw(Slider_Layout layout, bool disablePick, ref float value, GUISlider.DragState drag, bool forceOver);
 
-    static float? DrawSlider(SettingsOverlay_Layout s, Row row, string title, bool enabled, Slider_Layout layout, float value01, SliderDraw draw)
+    static float? DrawSlider(SettingsOverlay_Layout s, Row row, bool enabled, Slider_Layout layout, float value01, SliderDraw draw)
     {
         var t = s.SliderTemplate;
         RowState st = StateOf(row);
-        GUITransactionButton.Draw(t.Title, default(Item), title, !enabled, ref st.Scale, false, Focus(), false, false);
+        GUITransactionButton.Draw(t.Title, default(Item), "", !enabled, ref st.Scale, false, Focus(), false, false);
         if (st.Drag.IsNull)
             st.Drag = new GUISlider.DragState(Keep(GUISlider.DragState.New().Pointer));
         st.Value = value01;
@@ -1210,24 +1361,25 @@ internal static unsafe class ConfigMenu
         return mine ? st.Value : null;
     }
 
-    static void DrawValue(SettingsOverlay_Layout s, string text, bool enabled)
+    static void DrawSliderValue(SettingsOverlay_Layout s, Parts p, Row row, string title, Slider_Layout layout, string text, bool enabled)
     {
         var t = s.SliderTemplate;
         GUIString.Draw(t.Value, text, enabled ? t.Value.Color : t.DisabledValueColor, false);
+        DrawButtonLabel(p, row, t.Title, title, enabled, Math.Min(TrackLeft(layout), GUIString.GetRegion(t.Value, text).X));
     }
 
-    static void DrawRange(SettingsOverlay_Layout s, Row row, bool enabled)
+    static void DrawRange(SettingsOverlay_Layout s, Parts p, Row row, bool enabled)
     {
         ConfigOption o = row.Option!;
         double current = Convert.ToDouble(o.Get(row.Entry.View), System.Globalization.CultureInfo.InvariantCulture);
-        float? v = DrawSlider(s, row, Label(row), enabled, s.SliderTemplate.Option, (float)((current - o.Min) / (o.Max - o.Min)),
+        float? v = DrawSlider(s, row, enabled, s.SliderTemplate.Option, (float)((current - o.Min) / (o.Max - o.Min)),
             (Slider_Layout l, bool disable, ref float value, GUISlider.DragState drag, bool force) => GUISlider.Draw(l, disable, ref value, drag, default(GUISlider.DrawBackingHandler), force, -1, -1, false));
         if (v != null)
             SetValue(row, o.Min + v.Value * (o.Max - o.Min));
         double shown = Convert.ToDouble(o.Get(row.Entry.View), System.Globalization.CultureInfo.InvariantCulture);
         string stepText = o.Step.ToString(System.Globalization.CultureInfo.InvariantCulture);
         int digits = o.Integer ? 0 : stepText.Contains('.') ? stepText.Split('.')[1].Length : 0;
-        DrawValue(s, shown.ToString("F" + digits, System.Globalization.CultureInfo.InvariantCulture), enabled);
+        DrawSliderValue(s, p, row, Label(row), s.SliderTemplate.Option, shown.ToString("F" + digits, System.Globalization.CultureInfo.InvariantCulture), enabled);
     }
 
     static int ChoiceIndex(Row row)
@@ -1241,9 +1393,10 @@ internal static unsafe class ConfigMenu
         ConfigOption o = row.Option!;
         RowState st = StateOf(row);
         var t = s.ToggleTemplate;
-        var state = GUITransactionButton.Draw(t.ToggleButton, default(Item), Label(row), !enabled, ref st.Scale, false, Focus(), false, false);
+        var state = GUITransactionButton.Draw(t.ToggleButton, default(Item), "", !enabled, ref st.Scale, false, Focus(), false, false);
         int n = o.Choices.Length;
         var seg = Segments(t, n);
+        DrawButtonLabel(p, row, t.ToggleButton, Label(row), enabled, SegmentsLeft(t, n));
         if (enabled && state == GUITransactionButton.InputState.Clicked && !RowBlocked())
         {
             int picked = -1;
@@ -1276,7 +1429,7 @@ internal static unsafe class ConfigMenu
             DrawLabel(p, t.Option1Label, seg.XOf(i), seg.Each, o.ChoiceLabel(row.Entry.Active, i), i == chosen && enabled ? t.Option1Label.Color : t.Option1DisabledLabelColour, true);
     }
 
-    static void DrawDropdown(SettingsOverlay_Layout s, Row row, bool enabled)
+    static void DrawDropdown(SettingsOverlay_Layout s, Parts parts, Row row, bool enabled)
     {
         ConfigOption o = row.Option!;
         RowState st = StateOf(row);
@@ -1285,7 +1438,10 @@ internal static unsafe class ConfigMenu
         int index = ChoiceIndex(row);
         string value = index >= 0 ? o.ChoiceLabel(row.Entry.Active, index) : "";
         var state = GUITransactionButton.Draw(p.PulldownButton, default(Item), value, !enabled, ref st.Scale, isOpen, Focus(), false, false);
-        GUIString.Draw(p.PulldownTitle, Label(row), enabled ? p.PulldownTitle.Color : p.DisabledPulldownLabelColour, false);
+        Rectangle region = GUITransactionButton.GetRegion(p.PulldownButton);
+        String_Layout valueLabel = p.PulldownButton.Label;
+        float valueLeft = region.X + region.Width - PulldownArrow - Measure(valueLabel.GetFont(), value) * valueLabel.Scale;
+        DrawRowLabel(parts, row, p.PulldownTitle, Label(row), enabled ? p.PulldownTitle.Color : p.DisabledPulldownLabelColour, Math.Max(region.X, valueLeft));
         if (enabled && state == GUITransactionButton.InputState.Clicked && !RowBlocked())
         {
             popup = new Popup { Row = row, Rect = ControlAnchor._gridItemRegion, Scales = Enumerable.Repeat(1f, o.Choices.Length).ToArray() };
@@ -1381,20 +1537,17 @@ internal static unsafe class ConfigMenu
         }
     }
 
+    static string? TipOf(Row row) => row.Option == null || row.Kind is "header" or "hue" or "saturation" or "lightness" ? null : row.Option.Tooltip(row.Entry.Active);
+
     static void DrawTipButton(SettingsOverlay_Layout s, Parts p, Row row, float top, float bottom)
     {
-        if (row.Option == null || row.Kind is "header" or "hue" or "saturation" or "lightness")
-            return;
-        string? text = row.Option.Tooltip(row.Entry.Active);
+        string? text = TipOf(row);
         if (text == null)
             return;
         Rectangle r = ControlAnchor._gridItemRegion;
-        String_Layout label = s.ToggleTemplate.ToggleButton.Label;
-        SpriteFont font = label.GetFont();
         string title = Label(row);
-        float measured = font.IsNull ? 0 : font.MeasureString(title).X * label.Scale;
         float size = r.Height * TipSize;
-        float x = r.X + TipInset + measured + TipGap;
+        float x = labelEnd + TipGap;
         float y = r.Y + (r.Height - size) / 2;
         if (y < top || y + size > bottom)
             return;
@@ -1463,19 +1616,37 @@ internal static unsafe class ConfigMenu
         String_Layout body = parts.Empty;
         SpriteFont font = body.GetFont();
         float width = frame.Width * TipWidth;
-        List<string> lines = font.IsNull ? new List<string> { t.Text } : Wrap(font, body.Scale, t.Text, width - 4 * PopupMargin);
+        float inner = width - 4 * PopupMargin;
+        bool tagged = !font.IsNull && HasColorTag(t.Text);
+        List<string> lines = tagged || font.IsNull ? new List<string> { t.Text } : Wrap(font, body.Scale, t.Text, inner);
         if (lines.Count > TipMaxLines)
             lines.RemoveRange((int)TipMaxLines, lines.Count - (int)TipMaxLines);
+        string plainTitle = ColorTag.Replace(t.Title, "$1");
+        List<string> titleLines = font.IsNull ? new List<string> { plainTitle } : Wrap(font, parts.Header.Scale, plainTitle, inner);
         float lineH = font.IsNull ? 24 : font.MeasureString("Ag").Y * body.Scale;
-        float titleH = font.IsNull ? 28 : font.MeasureString("Ag").Y * parts.Header.Scale;
-        float height = PopupMargin * 4 + titleH + lineH * lines.Count;
+        float titleLineH = font.IsNull ? 28 : font.MeasureString("Ag").Y * parts.Header.Scale;
+        float titleH = titleLineH * titleLines.Count;
+        float bodyH = tagged ? ChatManager.GetStringSize(font, SnippetsOf(t.Text, body.Color), new Vector2(body.Scale, body.Scale), inner).Y : lineH * lines.Count;
+        float height = PopupMargin * 4 + titleH + bodyH;
         float x0 = frame.X + (frame.Width - width) / 2, y0 = frame.Y + Math.Max(PopupMargin, (frame.Height - height) / 2);
         parts.PopBacking.Location = new Vector2(x0 + width / 2, y0 + height / 2);
         parts.PopBacking.Size = new Vector2(width, height);
         GUIPanel.Draw(parts.PopBacking, false, default, default, default);
-        parts.Header.Location = new Vector2(x0 + width / 2, y0 + PopupMargin + titleH / 2);
-        GUIString.Draw(parts.Header, t.Title, new Color(255, 255, 255, 255), false);
+        SetAlignment(parts.Header, Center);
+        for (int i = 0; i < titleLines.Count; i++)
+        {
+            parts.Header.Location = new Vector2(x0 + width / 2, y0 + PopupMargin + titleLineH * (i + 0.5f));
+            GUIString.Draw(parts.Header, titleLines[i], new Color(255, 255, 255, 255), false);
+        }
+
         float y = y0 + PopupMargin * 2 + titleH;
+        if (tagged)
+        {
+            body.Location = new Vector2(x0 + PopupMargin * 2, y);
+            GUIString.Draw(body, SnippetsOf(t.Text, body.Color), out int _, inner, (int)TipMaxLines);
+            lines.Clear();
+        }
+
         foreach (string line in lines)
         {
             body.Location = new Vector2(x0 + PopupMargin * 2, y);
@@ -1501,10 +1672,12 @@ internal static unsafe class ConfigMenu
         ConfigOption o = row.Option!;
         RowState st = StateOf(row);
         int index = ChoiceIndex(row);
-        var state = GUITransactionButton.Draw(s.ToggleTemplate.ToggleButton, default(Item), Label(row), !enabled, ref st.Scale, false, Focus(), false, false);
+        var state = GUITransactionButton.Draw(s.ToggleTemplate.ToggleButton, default(Item), "", !enabled, ref st.Scale, false, Focus(), false, false);
         String_Layout value = s.SliderTemplate.Value;
         p.Cycle.Location = new Vector2(CycleX, value.Location.Y);
-        GUIString.Draw(p.Cycle, "<  " + (index >= 0 ? o.ChoiceLabel(row.Entry.Active, index) : "") + "  >", enabled ? value.Color : s.SliderTemplate.DisabledValueColor, false);
+        string shown = "<  " + (index >= 0 ? o.ChoiceLabel(row.Entry.Active, index) : "") + "  >";
+        GUIString.Draw(p.Cycle, shown, enabled ? value.Color : s.SliderTemplate.DisabledValueColor, false);
+        DrawButtonLabel(p, row, s.ToggleTemplate.ToggleButton, Label(row), enabled, GUIString.GetRegion(p.Cycle, shown).X);
         if (enabled && state == GUITransactionButton.InputState.Clicked && !RowBlocked())
         {
             SetValue(row, o.Choices[(index + 1) % o.Choices.Length]);
@@ -1519,10 +1692,12 @@ internal static unsafe class ConfigMenu
         ConfigOption o = row.Option!;
         RowState st = StateOf(row);
         var current = (EntityDefinition)o.Get(row.Entry.View)!;
-        var state = GUITransactionButton.Draw(s.ToggleTemplate.ToggleButton, default(Item), Label(row), !enabled, ref st.Scale, false, Focus(), false, false);
+        var state = GUITransactionButton.Draw(s.ToggleTemplate.ToggleButton, default(Item), "", !enabled, ref st.Scale, false, Focus(), false, false);
         String_Layout value = s.SliderTemplate.Value;
         p.Cycle.Location = new Vector2(CycleX, value.Location.Y);
-        GUIString.Draw(p.Cycle, "<  " + current.DisplayName + "  >", enabled ? value.Color : s.SliderTemplate.DisabledValueColor, false);
+        string shown = "<  " + current.DisplayName + "  >";
+        GUIString.Draw(p.Cycle, shown, enabled ? value.Color : s.SliderTemplate.DisabledValueColor, false);
+        DrawButtonLabel(p, row, s.ToggleTemplate.ToggleButton, Label(row), enabled, GUIString.GetRegion(p.Cycle, shown).X);
         if (enabled && state == GUITransactionButton.InputState.Clicked && !RowBlocked())
         {
             int span = current.MaxType - current.MinType + 1;
@@ -1534,12 +1709,12 @@ internal static unsafe class ConfigMenu
         }
     }
 
-    static void DrawDefinitionSlider(SettingsOverlay_Layout s, Row row, bool enabled)
+    static void DrawDefinitionSlider(SettingsOverlay_Layout s, Parts p, Row row, bool enabled)
     {
         ConfigOption o = row.Option!;
         var current = (EntityDefinition)o.Get(row.Entry.View)!;
         int span = Math.Max(1, current.MaxType - current.MinType);
-        float? v = DrawSlider(s, row, "   ID", enabled, s.SliderTemplate.Option, (DefinitionType(current) - current.MinType) / (float)span,
+        float? v = DrawSlider(s, row, enabled, s.SliderTemplate.Option, (DefinitionType(current) - current.MinType) / (float)span,
             (Slider_Layout l, bool disable, ref float value, GUISlider.DragState drag, bool force) => GUISlider.Draw(l, disable, ref value, drag, default(GUISlider.DrawBackingHandler), force, -1, -1, false));
         if (v != null)
         {
@@ -1548,7 +1723,7 @@ internal static unsafe class ConfigMenu
                 o.Set(row.Entry.View, current.AtType(next));
         }
 
-        DrawValue(s, DefinitionType((EntityDefinition)o.Get(row.Entry.View)!).ToString(System.Globalization.CultureInfo.InvariantCulture), enabled);
+        DrawSliderValue(s, p, row, "   ID", s.SliderTemplate.Option, DefinitionType((EntityDefinition)o.Get(row.Entry.View)!).ToString(System.Globalization.CultureInfo.InvariantCulture), enabled);
     }
 
     static float[] ToHsl(Color c)
@@ -1609,7 +1784,7 @@ internal static unsafe class ConfigMenu
     {
         RowState st = StateOf(row);
         var t = s.ToggleTemplate;
-        GUITransactionButton.Draw(t.ToggleButton, default(Item), Label(row), !enabled, ref st.Scale, false, Focus(), false, false);
+        GUITransactionButton.Draw(t.ToggleButton, default(Item), "", !enabled, ref st.Scale, false, Focus(), false, false);
         Color color = (Color)row.Option!.Get(row.Entry.View)!;
         var seg = Segments(t, 1);
         p.Swatch.Location = new Vector2(seg.XOf(0), seg.Y);
@@ -1619,9 +1794,10 @@ internal static unsafe class ConfigMenu
         Main.spriteBatch.Draw(TextureAssets.MagicPixel.Value, Rect(box.X + SwatchInset, box.Y + SwatchInset, box.Width - SwatchInset * 2, box.Height - SwatchInset * 2), new Color(color.R, color.G, color.B, 255));
         String_Layout value = s.SliderTemplate.Value;
         GUIString.Draw(value, Hex(color), enabled ? value.Color : s.SliderTemplate.DisabledValueColor, false);
+        DrawButtonLabel(p, row, t.ToggleButton, Label(row), enabled, Math.Min(box.X, GUIString.GetRegion(value, Hex(color)).X));
     }
 
-    static void DrawColorPart(SettingsOverlay_Layout s, Row row, bool enabled)
+    static void DrawColorPart(SettingsOverlay_Layout s, Parts p, Row row, bool enabled)
     {
         var t = s.SliderTemplate;
         float[] hsl = HslOf(row);
@@ -1641,7 +1817,7 @@ internal static unsafe class ConfigMenu
         float? v;
         try
         {
-            v = DrawSlider(s, row, title, enabled, layout, hsl[index], draw);
+            v = DrawSlider(s, row, enabled, layout, hsl[index], draw);
         }
         finally
         {
@@ -1660,6 +1836,6 @@ internal static unsafe class ConfigMenu
             SetValue(row, updated);
         }
 
-        DrawValue(s, (int)MathF.Round(hsl[index] * 100) + "%", enabled);
+        DrawSliderValue(s, p, row, title, layout, (int)MathF.Round(hsl[index] * 100) + "%", enabled);
     }
 }

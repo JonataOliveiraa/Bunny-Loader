@@ -26,6 +26,47 @@ public static class ConfigManager
 
     public static string ModConfigPath => Path.Combine(SavePath(), "ModConfigs");
 
+    internal static string? FormatTextAttribute(LocalizedText text, object[]? args)
+    {
+        string? value = text.Value;
+        if (value == null)
+            return null;
+        if (args != null && args.Length > 0)
+        {
+            object[] resolved = (object[])args.Clone();
+            for (int i = 0; i < resolved.Length; i++)
+                if (resolved[i] is string s && s.StartsWith('$'))
+                    resolved[i] = Language.GetTextValue(FindKeyInScope(s.Substring(1), text.Key ?? ""));
+            value = Formatting.Apply(value, resolved);
+        }
+
+        return ResolveItemTags(value);
+    }
+
+    static string FindKeyInScope(string key, string scope)
+    {
+        if (LanguageManager.Instance.Exists(key))
+            return key;
+        string[] splitKey = scope.Split('.');
+        for (int j = splitKey.Length - 1; j >= 0; j--)
+        {
+            string combinedKey = string.Join(".", splitKey.Take(j + 1)) + "." + key;
+            if (LanguageManager.Instance.Exists(combinedKey))
+                return combinedKey;
+        }
+
+        return key;
+    }
+
+    internal static string ResolveItemTags(string text) => System.Text.RegularExpressions.Regex.Replace(text, @"\[i(/[^:\]]*)?:([^\]]+)\]", match =>
+    {
+        string name = match.Groups[2].Value;
+        if (int.TryParse(name, out _))
+            return match.Value;
+        int type = ModContent.TryFind(name, out ModItem item) ? item.Type : ItemID.Search.TryGetId(name, out int id) ? id : 0;
+        return type > 0 ? $"[i{match.Groups[1].Value}:{type}]" : match.Value;
+    });
+
     static string SavePath()
     {
         if (savePath != null)

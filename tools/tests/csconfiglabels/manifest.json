@@ -1,0 +1,17 @@
+{
+  "uid": "8c1f4b72-6a9d-4e35-b0c7-2d8e5f1a9c34",
+  "id": "CsConfigLabels",
+  "name": "Test: long ModConfig labels (C#)",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Opens the ExampleMod label showcase and a config with long labels on every row kind, then logs a screenshot request for each state.",
+  "description": "Build with tools/tests/build-cs.sh csconfiglabels. Run with tools/tests/run-phone.sh csconfiglabels; screenshots go to the test shots folder.",
+  "updated": "2026-11-06",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}
