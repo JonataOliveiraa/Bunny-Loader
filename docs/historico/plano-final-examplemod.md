@@ -38,7 +38,8 @@ The 58 split like this:
 
 ## 2. Order of work
 
-1. Close the Music Box fix: run `csmusicbox` and `csmusic`, then commit it.
+1. Close the Music Box fix, committed and shipped in 0.5.1-beta: run `csmusicbox`
+   and `csmusic` on the phone with that APK.
 2. Block A, API fixes.
 3. Block B, missing hooks.
 4. Block C, town attack drawing.
