@@ -8,7 +8,8 @@ A mod is compiled ahead of time (on your PC or by the phone itself), it gets
 and autocomplete) and the tModLoader content classes: `ModItem`, `ModNPC`,
 `ModProjectile`, `ModTile`, `ModSystem`, `ModConfig` and the others in guides
 9 to 23. What the phone does differently from tModLoader is in
-[Bunny Loader × tModLoader](05-comparacao.md).
+[Bunny Loader × tModLoader](05-comparacao.md). Every class and member, side by
+side with tModLoader, is in the [API reference](referencia/README.md).
 
 Here is a whole C# mod. If you have ever seen a tModLoader hook, you already
 know how to read it:

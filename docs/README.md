@@ -32,6 +32,10 @@ the game in typed, compiled C#, and the tModLoader content classes.
 20. [Interface](mods-em-csharp/20-interface.md)
 21. [Screen effects](mods-em-csharp/21-efeitos-de-tela.md)
 22. [Fonts and texture packs](mods-em-csharp/22-fontes-e-pacotes.md)
+23. [Invasions](mods-em-csharp/23-invasoes.md)
+
+[**API reference**](mods-em-csharp/referencia/README.md): every class and member,
+explained and compared with tModLoader.
 
 ## For people working on Bunny Loader
 

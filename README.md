@@ -22,6 +22,7 @@
   <a href="https://github.com/JonataOliveiraa/Bunny-Loader/releases">Download</a> ·
   <a href="docs/mods-em-csharp/README.md">Make a mod</a> ·
   <a href="docs/README.md">Documentation</a> ·
+  <a href="docs/mods-em-csharp/referencia/README.md">API reference</a> ·
   <a href="https://discord.gg/HgH3CfC8yV">Community</a>
 </p>
 
@@ -81,6 +82,8 @@ learning material too**:
 - Then [Bunny Loader × tModLoader](docs/mods-em-csharp/05-comparacao.md): the
   short list of what the phone does differently (no IL editing, `Item.New()`,
   touch instead of mouse...).
+- The [Bunny Loader API reference](docs/mods-em-csharp/referencia/README.md):
+  every class and member, side by side with tModLoader.
 
 A whole mod, which compiles the same in tModLoader:
 
@@ -110,6 +113,7 @@ each version is in [`changelogs/`](changelogs/).
 | | |
 |---|---|
 | [Making mods in C#](docs/mods-em-csharp/README.md) | The guides, from the first mod to screen effects: hooks, `ref`/`out`, values and objects, content classes, tiles, systems, world generation, biomes, menus, sounds, configs, commands, achievements, touch buttons, interface, fonts and packs. |
+| [API reference](docs/mods-em-csharp/referencia/README.md) | Every class and member, explained and compared with tModLoader: what is the same, what differs, what exists only here and what is missing. |
 | [Bunny Loader × tModLoader](docs/mods-em-csharp/05-comparacao.md) | What is equal and what differs. |
 | [Performance](docs/mods-em-csharp/06-desempenho.md) | Measured on a real phone, and how to write a fast mod. |
 | [Migration to C#](docs/mods-em-csharp/07-migracao-para-csharp.md) | For mods made before 0.4.0. |
