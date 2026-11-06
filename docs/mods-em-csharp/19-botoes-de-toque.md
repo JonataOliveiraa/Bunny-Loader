@@ -54,6 +54,42 @@ dash.OnPress = player => player.velocity.X = 12 * player.direction;
 dash.Enabled = () => !Main.LocalPlayer.mount.Active;
 ```
 
+## `ModTouchJoystick`
+
+`TouchButtonLoader.RegisterJoystick(Mod, name)` gives a button the player drags
+to aim, like the game's own aim stick. It has everything `ModTouchButton` has,
+plus:
+
+| Member | What it does |
+| --- | --- |
+| `Direction` | where the stick points now, as a `Vector2`; `Vector2.Zero` at rest |
+| `Aiming` | whether the player is holding it; the same as `Current` |
+| `OnRelease` | an `Action<Player, Vector2>` run when it is let go, with the last direction |
+
+```csharp
+public class AimSystem : ModSystem
+{
+    public static ModTouchJoystick Aim { get; private set; }
+
+    public override void Load() => Aim = TouchButtonLoader.RegisterJoystick(Mod, "Aim");
+}
+
+public class AimPlayer : ModPlayer
+{
+    public override void OnEnterWorld() => AimSystem.Aim.OnRelease = Shoot;
+
+    static void Shoot(Player player, Vector2 direction)
+    {
+        Projectile.NewProjectile(player.GetSource_FromThis(), player.Center, direction.SafeNormalize(Vector2.UnitX) * 12f, ProjectileID.WoodenArrowFriendly, 10, 1f, player.whoAmI);
+    }
+}
+```
+
+Read `Direction` in `ProcessTriggers` to show where it aims while it is held.
+
+Example: `samples/ExampleModCSharp/Common/Systems/TouchButtonSystem.cs` and
+`Common/Players/ExampleTouchButtonPlayer.cs`. Test pack: `tools/tests/csextouch`.
+
 ## In the controls editor
 
 The game's action list keeps its size: after the game's actions comes

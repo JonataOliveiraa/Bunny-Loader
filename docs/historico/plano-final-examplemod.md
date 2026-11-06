@@ -260,6 +260,20 @@ the type directly.
 | `ExampleGlobalWall` | None |
 | `ExampleWorldHeaderSystem` | Data only: no `UIWorldListItem` on the phone |
 
+Result: all ported (`csexe3` 25 checks, MuMu and phone; `csexmp` on two MuMus, host
+5 and client 7).
+
+- Cactus: `GrowCactus` and `CheckCactus` read the ground in the middle, so the mod
+  sand under the plant is swapped for vanilla sand during `orig`. The texture
+  needs a native hook, `TileTextureHook.cpp`, filtered to types 80 and 227.
+- Sand: `GetSandfallProjData` by table; `Projectile.Kill` runs a port of the
+  landing with `aiStyle` 0 during `orig`.
+- Dye: `BindShader` writes the game's list and dictionary. A mod `Effect` does not
+  load on Unity, so `ExampleDye` uses one of the game's passes. Mod items now take
+  `dye` and `hairDye` before `SetDefaults`, as tML does.
+- Pressure plate: port of `UpdatePlayerPosition` for mod plates of kind -3.
+- `tileFrameImportant`: see block F. Without that fix sand does not fall.
+
 ### Not for now: `ExampleAccessorySlot` (D2)
 
 `ModAccessorySlot` is not implemented for now: the phone's inventory screen is
@@ -293,6 +307,26 @@ reason so the modder sees a warning.
   calls, so read each one: `ModProjectile.GlowTexture`,
   `ModTile.ModifySmartInteractCoords`, `ModHair.AltTexture`,
   `ModHair.RandomizedCharacterCreationGender`.
+
+Result: nothing needed `[Obsolete]`, all of it works now (`csblockf`, 17 checks,
+MuMu and phone).
+
+| Member | How |
+|---|---|
+| `ActsLikeTownNPC` | Hooks on `isLikeATownNPC` (a real call in 14 places), `CanBeTalkedTo` and `CanTalk` (inlined there), and `townNPC` on for the length of `TrySyncingUniqueTownNPCData`. Installed only if a mod sets it |
+| `TownNPCStayingHomeless` | `CanShowHomelessText`, `GUINPCDialogue.TalkingToHomeless`, and hiding those NPCs for the length of `UpdatePrioritizedTownNPC` and `GUIHousingMenu.RefreshNPCEntries` |
+| `GlowTexture` | Drawn after the sprite in `DrawProjDirect`, frames and offsets as in tML |
+| `ModifySmartInteractCoords`, `HasSmartInteract` | The second did not work either: `ProvideCandidate` has a `switch` by type where any mod tile has size 0. The loop for mod tiles is ported to C#, after `orig` |
+| `AltTexture` | Already worked, in `AutoStaticDefaults`: the name search missed it |
+| `RandomizedCharacterCreationGender` | After `GUIPlayerCreateMenu.RandomisePlayer`, as `Male` swaps the skin variant by itself |
+| Wall `CanPlace`, `CanExplode` | `PlaceThing_Walls`; a scope around `ExplodeTiles` read in the `KillWall` hook |
+| Wall `PreDraw`, `PostDraw` | Around `WallDrawing.DrawWalls`. `PreDraw` runs before all the walls, not cell by cell, because the phone draws walls on threads; `false` hides the wall with the echo flag for that pass. This covers `ModWall` too, which had the same gap through `ModBlockType` |
+
+Found on the way: every mod tile was born with `tileFrameImportant` true. The
+tables grow with their most common value, and they grow after the game fills
+them, where most tiles are furniture. A mod block never ran the block framing, so
+it did not merge with its neighbours and sand did not fall. `TileLoader` now
+clears the tables before `SetStaticDefaults`, as tML starts them.
 
 ## 9. Block G: closing
 

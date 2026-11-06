@@ -64,7 +64,7 @@ game's parameters. Hooks follow the game they run on.)
 | The game | Terraria for PC | Terraria **Mobile**: some members differ (`Main.myPlayer` is a property, `Color` is in `Microsoft.Xna.Framework.Graphics`, a few XNA methods throw `NotImplementedException`) |
 | IL editing (`IL_Player.Update += ...`) | yes | **no, and it cannot exist**: the mobile game is compiled to machine code (IL2CPP), so there is no IL to edit. Use `On_` hooks |
 | Creating a game object | `new Item()` | `Item.New()` ([why](04-valores-e-objetos.md#objects-new-not-new)) |
-| `int?`, `Item[]` from the game | the C# types | `GameNullable<int>`, `GameArray<Item>` (index and `HasValue` work the same; LINQ on game arrays does not) |
+| `int?`, `Item[]` from the game | the C# types | `GameNullable<int>`, `GameArray<Item>` (index and `HasValue` work the same; `foreach` and LINQ work on game arrays too, over a copy of the whole array, so use a plain `for` in code that runs every frame) |
 | Game `List<T>` / `Dictionary<K, V>` | the C# types | `GameList` / `GameDictionary` handles |
 | Overload names in hooks | `SacrificeItem_refItem_refInt32_bool_bool` | `SacrificeItem_refItem_outint_bool_bool` (keyword names, `out` written as `out`) |
 | Input | mouse and keyboard, `ModKeybind` | touch: `ModKeybind` becomes an on-screen button ([guide 19](19-botoes-de-toque.md)); hover becomes a tap |
