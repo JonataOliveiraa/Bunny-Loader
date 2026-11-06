@@ -112,8 +112,7 @@ namespace ExampleMod.Content.Projectiles
             SoundEngine.PlaySound(SoundID.Item10, Projectile.position);
 
             if (Projectile.owner == Main.myPlayer && !Projectile.noDropItem) {
-                if (!ModContent.TryFind<ModItem>("ExampleMod/ExamplePaperAirplane", out var item)) return;
-                int dropItemType = item.Type;
+                int dropItemType = ModContent.ItemType<Items.ExamplePaperAirplane>();
 
                 Item.RequestNewItem(Projectile.GetSource_DropAsItem(), Projectile.Center, dropItemType);
             }

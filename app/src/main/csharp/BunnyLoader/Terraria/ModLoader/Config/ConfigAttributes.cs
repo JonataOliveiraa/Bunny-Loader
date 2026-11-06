@@ -341,3 +341,25 @@ public class DefaultDictionaryKeyValueAttribute : Attribute
 
     public DefaultDictionaryKeyValueAttribute(object value) => Value = value;
 }
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class JsonDefaultListValueAttribute : Attribute
+{
+    public string Json { get; }
+
+    public JsonDefaultListValueAttribute(string json)
+    {
+        Json = json;
+    }
+}
+
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
+public class JsonDefaultDictionaryKeyValueAttribute : Attribute
+{
+    public string Json { get; }
+
+    public JsonDefaultDictionaryKeyValueAttribute(string json)
+    {
+        Json = json;
+    }
+}

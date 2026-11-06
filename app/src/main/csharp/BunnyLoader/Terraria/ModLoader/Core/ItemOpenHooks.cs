@@ -20,6 +20,8 @@ internal static unsafe class ItemOpenHooks
 
     public static void Install(Func<string, bool> has, bool global)
     {
+        if (has(nameof(ModItem.ConsumeItem)))
+            ItemHooks.Once("UseConsume", () => On_Player.ItemCheck_StartActualUse += StartActualUse);
         if (!has(nameof(ModItem.CanRightClick)) && !has(nameof(ModItem.RightClick)) && !has(nameof(ModItem.ConsumeItem)) && !has(nameof(ModItem.ModifyItemLoot))) return;
         wanted = true;
         if (global) globalWanted = true;
@@ -104,6 +106,29 @@ internal static unsafe class ItemOpenHooks
             catch (Exception e) { ItemHooks.Report($"{g.FullName}.RightClick", e); }
         }
     }
+
+    static void StartActualUse(On_Player.orig_ItemCheck_StartActualUse orig, Player self, Item sItem)
+    {
+        orig(self, sItem);
+        if (self.whoAmI != Main.myPlayer || !sItem.consumable)
+            return;
+        int type = sItem.type;
+        var force = ItemID.Sets.ForceConsumption;
+        if ((uint)type >= (uint)force.Length || (force[type].HasValue && !refused.Contains(type)))
+            return;
+        if (ConsumeItem(sItem, self))
+        {
+            if (refused.Remove(type))
+                force[type] = default;
+        }
+        else
+        {
+            refused.Add(type);
+            force[type] = new GameNullable<bool>(false);
+        }
+    }
+
+    static readonly HashSet<int> refused = new();
 
     static bool ConsumeItem(Item item, Player player)
     {

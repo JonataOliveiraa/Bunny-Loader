@@ -1,4 +1,97 @@
 Items: {
+	ActiveSoundShowcase: {
+		DisplayName: Demonstração de Som Ativo
+		Tooltip: ""
+	}
+
+	ExampleMultiUseItem: {
+		DisplayName: Item de Múltiplos Usos de Exemplo
+		Tooltip: Pode ser usado {0} vezes
+	}
+
+	PlanteraItem: {
+		DisplayName: Plantera
+		Tooltip: A ira da selva
+	}
+
+	ExampleBasicFish: {
+		DisplayName: Peixe Básico de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleDataItem: {
+		DisplayName: Batata Quente
+		Tooltip: Algo mágico acontece quando o tempo acaba...
+		Countdown: Faltam {0} segundos!
+	}
+
+	ExamplePaperAirplane: {
+		DisplayName: Avião de Papel de Exemplo
+		Tooltip: Este é um avião de papel de mod.
+	}
+
+	ExampleCanStackItem: {
+		DisplayName: "Item CanStack de Exemplo: Saco de Presente"
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+		CraftedPlayerNameCannotOpen: Você fabricou este saco e não pode abri-lo!
+		CraftedPlayerNameOther: Este é um saco de {0}, abra para ganhar um presente!
+		CraftedPlayerNameEmpty: Este saco não foi fabricado e não fará nada
+	}
+
+	ExampleStackableDurabilityItem: {
+		DisplayName: Item Empilhável com Durabilidade de Exemplo
+		Tooltip: ""
+		Durability: "Durabilidade: {0}%"
+	}
+
+	ExampleFlask: {
+		DisplayName: Frasco de Exemplo
+		Tooltip: Ataques corpo a corpo e de chicote reduzem a defesa dos inimigos
+	}
+
+	CustomItemDrawingShowcase: {
+		DisplayName: Demonstração de Desenho de Item
+		Tooltip: "{InputTrigger_ToggleOrOpen} para alternar os modos de desenho"
+		RightClick: "Mudando para o drawMode #{0}: {1}"
+		DrawMode_0: Desenha uma sobreposição (glowmask)
+		DrawMode_1: Muda a escala para pulsar como os itens de alma
+		DrawMode_2: Desenha uma textura atrás do item
+		DrawMode_3: Desenha um contorno como o da bolsa de chefe
+		DrawMode_4: Desenha o item balançando para os lados
+	}
+
+	HoldStyleShowcase: {
+		DisplayName: Demonstração de Estilo de Empunhar
+		Tooltip:
+			'''
+			Este item mostra cada HoldStyle.
+			{InputTrigger_InteractWithTile} para alternar os HoldStyles.
+			'''
+		Switching: Mudando para ItemHoldStyleID #{0}
+		ThisIs: Este é o ItemHoldStyleID #{0}
+	}
+
+	UseStyleShowcase: {
+		DisplayName: Demonstração de Estilo de Uso
+		Tooltip:
+			'''
+			Este item mostra cada UseStyle.
+			{InputTrigger_InteractWithTile} para alternar os UseStyles.
+			'''
+		Switching: Mudando para ItemUseStyleID #{0}
+		ThisIs: Este é o ItemUseStyleID #{0}
+	}
+
+	ShimmerShowcaseConditions: {
+		DisplayName: Demonstração de Condições do Fulgor
+		Tooltip: ""
+	}
+
+	ShimmerShowcaseCustomShimmerResult: {
+		DisplayName: Demonstração de Resultado Personalizado do Fulgor
+		Tooltip: ""
+	}
+
 	ExampleCustomAISlimeNPCBanner: {
 		DisplayName: "Bandeira de {$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
 		Tooltip: "{$CommonItemTooltip.BannerBonus}{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"

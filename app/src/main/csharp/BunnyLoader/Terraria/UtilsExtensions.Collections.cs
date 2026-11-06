@@ -6,6 +6,10 @@ namespace Terraria;
 
 public static partial class UtilsExtensions
 {
+    public static bool IndexInRange<T>(this T[] t, int index) => index >= 0 && index < t.Length;
+
+    public static bool IndexInRange<T>(this List<T> t, int index) => index >= 0 && index < t.Count;
+
     public static int[] GetTrueIndexes(this bool[] values)
     {
         var result = new List<int>();

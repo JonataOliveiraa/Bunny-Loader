@@ -50,3 +50,495 @@ ModConfigShowcaseAcceptClientChanges: {
 	OnlyChangeableDuringNight.Label: Só Muda à Noite
 	SomeNumber.Label: Um Número
 }
+
+Common: {
+	LocalizedLabel: This Label is from the localization files: {$Mods.ExampleMod.Common.PaperAirplane}
+	LocalizedTooltip: This tooltip is from the localization files.
+	LocalizedHeader: Headers can help organize
+	LocalizedLabelDynamic: Localized Label Dynamic
+	InterpolatedLabel: Item: [i:{0}]. Number: {1} {^1:change;changes}. Text: {2}. Localized Text: {3}.
+	InterpolatedTooltip: "[c/{1}:Use to disable the] [c/{2}:{0}] [c/{1}:feature]"
+}
+
+ModConfigShowcaseAccessibility: {
+	DisplayName: "Vitrine F: Acessibilidade"
+
+	Public: {
+		Label: Public
+		Tooltip: ""
+	}
+
+	pair: {
+		Label: pair
+		Tooltip: ""
+	}
+
+	Getter: {
+		Label: Getter
+		Tooltip: ""
+	}
+
+	AutoProperty: {
+		Label: Auto Property
+		Tooltip: ""
+	}
+
+	Property: {
+		Label: Property
+		Tooltip: ""
+	}
+
+	PresetA: {
+		Label: Preset A
+		Tooltip: ""
+	}
+
+	PresetB: {
+		Label: Preset B
+		Tooltip: ""
+	}
+
+	Data1: {
+		Label: Data1
+		Tooltip: ""
+	}
+
+	Data2: {
+		Label: Data2
+		Tooltip: ""
+	}
+
+	IgnoreWithLabelGetter: {
+		Label: Ignore With Label Getter
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseDataTypes: {
+	DisplayName: "Vitrine A: Tipos de dados"
+
+	SomeBool: {
+		Label: Algum Bool
+		Tooltip: ""
+	}
+
+	SomeInt: {
+		Label: Algum Int
+		Tooltip: ""
+	}
+
+	SomeFloat: {
+		Label: Algum Float
+		Tooltip: ""
+	}
+
+	SomeString: {
+		Label: Algum String
+		Tooltip: ""
+	}
+
+	SomeEnum: {
+		Label: Algum Enum
+		Tooltip: ""
+	}
+
+	SomeByte: {
+		Label: Algum Byte
+		Tooltip: ""
+	}
+
+	SomeUInt: {
+		Label: Algum UInt
+		Tooltip: ""
+	}
+
+	SomeLong: {
+		Label: Algum Long
+		Tooltip: ""
+	}
+
+	SomeULong: {
+		Label: Algum ULong
+		Tooltip: ""
+	}
+
+	SomeColor: {
+		Label: Algum Color
+		Tooltip: ""
+	}
+
+	SomeVector2: {
+		Label: Algum Vector2
+		Tooltip: ""
+	}
+
+	SomePoint: {
+		Label: Algum Point
+		Tooltip: ""
+	}
+
+	SomeArray: {
+		Label: Algum Array
+		Tooltip: ""
+	}
+
+	SomeList: {
+		Label: Algum List
+		Tooltip: ""
+	}
+
+	SomeDictionary: {
+		Label: Algum Dicionário
+		Tooltip: ""
+	}
+
+	SomeSet: {
+		Label: Algum Set
+		Tooltip: ""
+	}
+
+	SomeClassA: {
+		Label: Algum Class A
+		Tooltip: ""
+	}
+
+	itemDefinitionExample: {
+		Label: ItemDefinition Exemplo
+		Tooltip: ""
+	}
+
+	npcDefinitionExample: {
+		Label: NPCDefinition Exemplo
+		Tooltip: ""
+	}
+
+	projectileDefinitionExample: {
+		Label: ProjectileDefinition Exemplo
+		Tooltip: ""
+	}
+
+	CustomKey: {
+		Label: Custom Key
+		Tooltip: ""
+	}
+
+	prefixDefinitionDictionaryExample: {
+		Label: PrefixDefinition Dicionário Exemplo
+		Tooltip: ""
+	}
+
+	buffDefinitionExample: {
+		Label: BuffDefinition Exemplo
+		Tooltip: ""
+	}
+
+	tileDefinitionExample: {
+		Label: TileDefinition Exemplo
+		Tooltip: ""
+	}
+
+	wallDefinitionExample: {
+		Label: WallDefinition Exemplo
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseDefaultValues: {
+	DisplayName: "Vitrine D: Valores padrão"
+
+	SimpleDefaultInt: {
+		Label: Simple Padrão Int
+		Tooltip: ""
+	}
+
+	SomeColor: {
+		Label: Algum Color
+		Tooltip: ""
+	}
+
+	SomeVector2: {
+		Label: Algum Vector2
+		Tooltip: ""
+	}
+
+	EnumExample2: {
+		Label: Enum Exemplo2
+		Tooltip: ""
+	}
+
+	ArrayOfString: {
+		Label: Vetor de String
+		Tooltip: ""
+	}
+
+	FavoritePokemon: {
+		Label: Pokémon favorito
+		Tooltip: ""
+	}
+
+	ListOfInts: {
+		Label: Lista de Ints
+		Tooltip: ""
+	}
+
+	ListOfVector2: {
+		Label: Lista de Vector2
+		Tooltip: ""
+	}
+
+	ListOfItemDefinition: {
+		Label: Lista de Item Definition
+		Tooltip: ""
+	}
+
+	DictionaryDefaults: {
+		Label: Dicionário Padrãos
+		Tooltip: ""
+	}
+
+	DictionaryDefaults2: {
+		Label: Dicionário Padrãos2
+		Tooltip: ""
+	}
+
+	EnumExample1: {
+		Label: Enum Exemplo1
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseLabels: {
+	DisplayName: "Vitrine C: Rótulos"
+
+	SomeFloat: {
+		Label: Este é um float
+		Tooltip: Este texto aparece ao passar o dedo
+	}
+
+	LocalizedLabel.Label: Localized Label
+
+	pairExample: {
+		Label: Pair Exemplo
+		Tooltip: ""
+	}
+
+	ListOfPair: {
+		Label: Lista de Pair
+		Tooltip: ""
+	}
+
+	TypicalHeader: {
+		Label: Typical Cabeçalho
+		Tooltip: ""
+	}
+
+	LocalizedHeader: {
+		Label: Localized Cabeçalho
+		Tooltip: ""
+	}
+
+	CoolHeader: {
+		Label: Cool Cabeçalho
+		Tooltip: ""
+	}
+
+	simpleDataExample2: {
+		Label: OverridenColor SimpleData
+		Tooltip: ""
+	}
+
+	LocalizedLabelDynamic.Tooltip: ""
+
+	Headers: {
+		HeaderIdentifier: Headers Section
+		ChatTagExample: "[i:19][c/00FF00:Green Text][i:ExampleMod/ExampleItem]"
+	}
+
+	StringFormatting: {
+		Label: "Percent: {0:p2}, Num: {1:N0}, Pad: {2,4:D4}, Percision: {3:0.000}"
+		Tooltip: ""
+	}
+}
+
+ModConfigShowcaseSubpages: {
+	DisplayName: "Vitrine E: Subpáginas"
+
+	gradient: {
+		Label: gradient
+		Tooltip: ""
+	}
+
+	subConfigExample: {
+		Label: Sub Config Exemplo - Click me
+		Tooltip: ""
+	}
+
+	DictionaryofSubConfigExample: {
+		Label: Dicionárioof Sub Config Exemplo
+		Tooltip: ""
+	}
+
+	SeparateListOfPairs: {
+		Label: Subpage Lista de Pairs
+		Tooltip: ""
+	}
+
+	pair: {
+		Label: Special Pair
+		Tooltip: ""
+	}
+
+	Headers.SeparatePageExamples: SeparatePage Examples
+}
+
+Pair: {
+	Tooltip: Pair is a simple class holding a bool and an int
+
+	enabled: {
+		Label: enabled
+		Tooltip: ""
+	}
+
+	boost: {
+		Label: boost
+		Tooltip: ""
+	}
+}
+
+SimpleData: {
+	Tooltip: ""
+
+	Headers: {
+		FirstHeader: Awesome
+		SecondHeader: Enabled
+	}
+
+	boost: {
+		Label: boost
+		Tooltip: ""
+	}
+
+	percent: {
+		Label: percent
+		Tooltip: ""
+	}
+
+	enabled: {
+		Label: enabled
+		Tooltip: ""
+	}
+
+	FavoritePokemon: {
+		Label: Pokémon favorito
+		Tooltip: ""
+	}
+}
+
+Gradient: {
+	Tooltip: Represents a gradient from one color to another
+
+	start: {
+		Label: start
+		Tooltip: The color the gradient starts at
+	}
+
+	end: {
+		Label: end
+		Tooltip: The color the gradient ends at
+	}
+}
+
+ComplexData: {
+	Tooltip: ""
+
+	ListOfInts: {
+		Label: List Of Ints
+		Tooltip: ""
+	}
+
+	nestedSimple: {
+		Label: nested Simple
+		Tooltip: ""
+	}
+
+	IncrementalFloat: {
+		Label: Incremental Float
+		Tooltip: ""
+	}
+}
+
+SubConfigExample: {
+	Tooltip: ""
+
+	boost: {
+		Label: boost
+		Tooltip: ""
+	}
+
+	percent: {
+		Label: percent
+		Tooltip: ""
+	}
+
+	enabled: {
+		Label: enabled
+		Tooltip: ""
+	}
+
+	SubA: {
+		Label: Sub A
+		Tooltip: ""
+	}
+
+	SubB: {
+		Label: Even More Sub
+		Tooltip: ""
+	}
+}
+
+SubSubConfigExample: {
+	Tooltip: ""
+
+	whoa: {
+		Label: whoa
+		Tooltip: ""
+	}
+}
+
+Corner: {
+	Tooltip: Anchor Position
+
+	TopLeft: {
+		Label: Top Left
+		Tooltip: ""
+	}
+
+	TopRight: {
+		Label: Top Right
+		Tooltip: ""
+	}
+
+	BottomLeft: {
+		Label: Bottom Left
+		Tooltip: ""
+	}
+
+	BottomRight: {
+		Label: Bottom Right
+		Tooltip: ""
+	}
+}
+
+ClassUsedAsKey: {
+	Tooltip: ""
+
+	SomeBool: {
+		Label: Algum Bool
+		Tooltip: ""
+	}
+
+	SomeNumber: {
+		Label: Algum Number
+		Tooltip: ""
+	}
+}

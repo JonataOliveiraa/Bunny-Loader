@@ -1,4 +1,97 @@
 Items: {
+	ActiveSoundShowcase: {
+		DisplayName: Active Sound Showcase
+		Tooltip: ""
+	}
+
+	ExampleMultiUseItem: {
+		DisplayName: Example Multi Use Item
+		Tooltip: Can be used {0} times
+	}
+
+	PlanteraItem: {
+		DisplayName: Plantera
+		Tooltip: The wrath of the jungle
+	}
+
+	ExampleBasicFish: {
+		DisplayName: Example Basic Fish
+		Tooltip: ""
+	}
+
+	ExampleDataItem: {
+		DisplayName: Hot Potato
+		Tooltip: Something magical happens when the timer runs out...
+		Countdown: You have {0} seconds left!
+	}
+
+	ExamplePaperAirplane: {
+		DisplayName: Example Paper Airplane
+		Tooltip: This is a modded paper airplane.
+	}
+
+	ExampleCanStackItem: {
+		DisplayName: Example CanStack Item: Gift Bag
+		Tooltip: "{$CommonItemTooltip.RightClickToOpen}"
+		CraftedPlayerNameCannotOpen: You crafted this bag and cannot open it!
+		CraftedPlayerNameOther: This is a bag from {0}, open it to receive a gift!
+		CraftedPlayerNameEmpty: This bag was not crafted, it will do nothing
+	}
+
+	ExampleStackableDurabilityItem: {
+		DisplayName: Example Stackable Durability Item
+		Tooltip: ""
+		Durability: Durability: {0}%
+	}
+
+	ExampleFlask: {
+		DisplayName: Flask of Example
+		Tooltip: Melee and Whip attacks decrease enemies defense
+	}
+
+	CustomItemDrawingShowcase: {
+		DisplayName: Custom Item Drawing Showcase
+		Tooltip: "{InputTrigger_ToggleOrOpen} to cycle draw mode examples"
+		RightClick: Switching to drawMode #{0}: {1}
+		DrawMode_0: Draw an overlay/glowmask
+		DrawMode_1: Scale drawing to make a pulse effect similar to Soul items
+		DrawMode_2: Draw a texture behind the item
+		DrawMode_3: Draw a highlight border similar to the Boss Bag visual effect
+		DrawMode_4: Draws the item rocking left and right
+	}
+
+	HoldStyleShowcase: {
+		DisplayName: Hold Style Showcase
+		Tooltip:
+			'''
+			This item showcases each HoldStyle.
+			{InputTrigger_InteractWithTile} to cycle through HoldStyles.
+			'''
+		Switching: Switching to ItemHoldStyleID #{0}
+		ThisIs: This is ItemHoldStyleID #{0}
+	}
+
+	UseStyleShowcase: {
+		DisplayName: Use Style Showcase
+		Tooltip:
+			'''
+			This item showcases each UseStyle.
+			{InputTrigger_InteractWithTile} to cycle through UseStyles.
+			'''
+		Switching: Switching to ItemUseStyleID #{0}
+		ThisIs: This is ItemUseStyleID #{0}
+	}
+
+	ShimmerShowcaseConditions: {
+		DisplayName: Shimmer Showcase Conditions
+		Tooltip: ""
+	}
+
+	ShimmerShowcaseCustomShimmerResult: {
+		DisplayName: Shimmer Showcase Custom Shimmer Result
+		Tooltip: ""
+	}
+
 	ExampleCustomAISlimeNPCBanner: {
 		DisplayName: "{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName} Banner"
 		Tooltip: "{$CommonItemTooltip.BannerBonus}{$Mods.ExampleMod.NPCs.ExampleCustomAISlimeNPC.DisplayName}"
