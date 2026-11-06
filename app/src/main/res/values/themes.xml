@@ -1,4 +1,6 @@
 <resources>
     <!-- Tema base do launcher. Compose desenha por cima; parent sem ActionBar. -->
-    <style name="Theme.BunnyLoader" parent="android:Theme.Material.NoActionBar" />
+    <style name="Theme.BunnyLoader" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@drawable/splash_window</item>
+    </style>
 </resources>

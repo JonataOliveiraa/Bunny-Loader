@@ -80,7 +80,7 @@ android {
         minSdk = 24
         targetSdk = 34
         versionCode = commitCount
-        versionName = "0.5.1-beta"
+        versionName = "0.5.2-beta"
 
         // -Pbl.bench=true: o app de medicao (com.bunnyloader.bench), ao lado
         // do Bunny Loader de verdade. Traz os testes de BENCH_TESTS ligados e

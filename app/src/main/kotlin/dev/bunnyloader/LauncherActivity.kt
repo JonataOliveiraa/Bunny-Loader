@@ -55,7 +55,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import dev.bunnyloader.game.Eligibility
+import dev.bunnyloader.ui.AppSplash
 import dev.bunnyloader.ui.Bl
 import dev.bunnyloader.ui.ExplorarTab
 import dev.bunnyloader.ui.InicioTab
@@ -102,7 +106,26 @@ class LauncherActivity : ComponentActivity() {
                 return modelClass.cast(LauncherState(Shell(applicationContext)))
             }
         })[LauncherState::class.java]
-        setContent { LauncherScreen(model.shell) }
+        window.setBackgroundDrawableResource(R.color.splash_background)
+        setContent {
+            var splash by rememberSaveable { mutableStateOf(true) }
+            Box(Modifier.fillMaxSize()) {
+                LauncherScreen(model.shell, showDialogs = !splash)
+                if (splash) AppSplash({ !model.shell.refreshingPackages }) { splash = false }
+            }
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideNavigationBar()
+    }
+
+    private fun hideNavigationBar() {
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.navigationBars())
+        }
     }
 }
 
@@ -119,7 +142,7 @@ private enum class Tab(val icon: Int, val label: String) {
 }
 
 @Composable
-private fun LauncherScreen(shell: Shell) {
+private fun LauncherScreen(shell: Shell, showDialogs: Boolean) {
     val ctx = LocalContext.current
     val prefs = remember { Prefs(ctx) }
     // Saveable: o seletor de arquivos (foto do perfil, mundos) pode fazer o
@@ -262,9 +285,9 @@ private fun LauncherScreen(shell: Shell) {
             }
         }
         if (immersive) ImmersiveOverlay { immersive = false }
-        ModUpdatesDialog(shell)
+        if (showDialogs) ModUpdatesDialog(shell)
         blocked?.let { GameBlockedDialog(it) { blocked = null } }
-        if (askLanguage) LanguageConfirmDialog {
+        if (showDialogs && askLanguage) LanguageConfirmDialog {
             prefs.launchedBefore = true
             askLanguage = false
         }
