@@ -50,6 +50,7 @@ GUIBuffs
 GUIClothesWindow
 GUICraftGuidePopup
 GUIHearts
+GUIHousingMenu
 GUIInputRegionManager
 GUIInstance
 GUIMana
@@ -72,6 +73,12 @@ GUIVirtualInputControllerEdit
 GUIVirtualInputControllerEdit_ControlPanel+ControlPanelActionSetting
 Terraria.RemoteClient
 GUIEvents
+Terraria.GameContent.PressurePlateHelper
+!Terraria.GameContent.PressurePlateHelper.PressurePlatesPressed
+Terraria.Graphics.Shaders.ArmorShaderData
+Terraria.Graphics.Shaders.HairShaderDataSet
+Terraria.Graphics.Shaders.HairShaderData
+Terraria.GameContent.Dyes.LegacyHairShaderData
 GUIQuickActionButton
 GUIReforge
 GUIReforgePopup
@@ -196,6 +203,7 @@ Terraria.Netplay
 Terraria.ObjectData.TileObjectData
 !Terraria.ObjectData.TileObjectData.CoordinateHeights
 Terraria.GameContent.Drawing.TileDrawing
+Terraria.GameContent.Drawing.WallDrawing
 Terraria.GameContent.ExtractinatorHelper
 Terraria.Animation
 Terraria.DataStructures.EntitySource_ShakeTree

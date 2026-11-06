@@ -366,6 +366,8 @@ public static unsafe partial class ItemLoader
         {
             try
             {
+                self.dye = (byte)Graphics.Shaders.GameShaders.Armor.GetShaderIdFromItemId(type);
+                self.hairDye = Graphics.Shaders.GameShaders.Hair.GetShaderIdFromItemId(type);
                 instance.AutoDefaults();
                 instance.SetDefaults();
             }

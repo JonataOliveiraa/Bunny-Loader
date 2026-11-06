@@ -155,6 +155,10 @@ public static unsafe partial class TileLoader
 
     public static int TileCount => tiles.Length;
 
+    public static bool CanGrowModCactus(int type) => PlantLoader.Exists(TileID.Cactus, type);
+
+    public static Texture2D? GetCactusTexture(int type) => PlantLoader.Get<ModCactus>(TileID.Cactus, type)?.GetTexture().Value;
+
     public static ModTile? GetTile(int type) => (uint)type < (uint)tiles.Length ? tiles[type] : null;
 
     internal static ModTile? At(int i, int j) => GetTile(Main.tile[i, j].type);
@@ -253,6 +257,40 @@ public static unsafe partial class TileLoader
         return flags;
     }
 
+    static void ResetTables(int type)
+    {
+        Main.tileFrameImportant[type] = false;
+        Main.tileSolid[type] = false;
+        Main.tileSolidTop[type] = false;
+        Main.tileNoAttach[type] = false;
+        Main.tileLavaDeath[type] = false;
+        Main.tileWaterDeath[type] = false;
+        Main.tileCut[type] = false;
+        Main.tileTable[type] = false;
+        Main.tileBlockLight[type] = false;
+        Main.tileNoSunLight[type] = false;
+        Main.tileLighted[type] = false;
+        Main.tileNoFail[type] = false;
+        Main.tileObsidianKill[type] = false;
+        Main.tileMergeDirt[type] = false;
+        Main.tileBrick[type] = false;
+    }
+
+    public static void ModifySmartInteractCoords(int type, ref int width, ref int height, ref int frameWidth, ref int frameHeight, ref int extraY)
+    {
+        if (GetTile(type) is not ModTile tile)
+            return;
+        TileObjectData data = TileObjectData.GetTileData(type, 0);
+        if (data.IsNull)
+            return;
+        width = data.Width;
+        height = data.Height;
+        frameWidth = data.CoordinateWidth + data.CoordinatePadding;
+        frameHeight = data.CoordinateHeights[0] + data.CoordinatePadding;
+        extraY = data.CoordinateFullHeight % frameHeight;
+        tile.ModifySmartInteractCoords(ref width, ref height, ref frameWidth, ref frameHeight, ref extraY);
+    }
+
     [UnmanagedCallersOnly]
     static void Installed(int first, int last)
     {
@@ -262,6 +300,7 @@ public static unsafe partial class TileLoader
                 continue;
             try
             {
+                ResetTables(i);
                 tile.SetupContent();
                 if (Main.tileLavaDeath[i])
                     Main.tileObsidianKill[i] = true;

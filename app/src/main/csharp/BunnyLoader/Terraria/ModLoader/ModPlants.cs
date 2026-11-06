@@ -53,7 +53,30 @@ public static class PlantLoader
         return plantLookup.TryGetValue((plantTileID, growsOnTileID), out IPlant? plant) ? (T)plant : default!;
     }
 
-    internal static void FinishSetup() => TreeHooks.Setup();
+    public static bool Exists(int plantTileID, int growsOnTileID) => plantLookup.ContainsKey((plantTileID, growsOnTileID));
+
+    public static Asset<Texture2D>? GetCactusFruitTexture(int type) => Get<ModCactus>(TileID.Cactus, type)?.GetFruitTexture();
+
+    internal static void FinishSetup()
+    {
+        TreeHooks.Setup();
+        CactusHooks.Setup();
+    }
+}
+
+public abstract class ModCactus : IPlant
+{
+    public int PlantTileId => TileID.Cactus;
+
+    public int VanillaCount => 1;
+
+    public int[] GrowsOnTileId { get; set; } = Array.Empty<int>();
+
+    public abstract void SetStaticDefaults();
+
+    public abstract Asset<Texture2D> GetTexture();
+
+    public abstract Asset<Texture2D> GetFruitTexture();
 }
 
 public abstract class ModTree : ITree

@@ -11,6 +11,7 @@
 #include "content/tiles/ModTileMap.h"
 #include "content/tiles/TileEvents.h"
 #include "content/walls/ModWalls.h"
+#include "content/tiles/TileTextureHook.h"
 #include "content/walls/WallEvents.h"
 #include "content/tiles/ModTrees.h"
 #include "content/common/BunnyHeadIcon.h"
@@ -222,6 +223,7 @@ struct NativeApi {
     void* (*newDelegate)(void* klass, void* fn, void** target);
     void* (*paramClass)(void* method, int32_t parameter);
     void (*setBuffTexts)(int32_t type, const char* displayName, const char* description);
+    int32_t (*installTileTextureHook)(int32_t firstType, int32_t secondType, void* (*callback)(int32_t, int32_t, int32_t));
 };
 
 // Exportados pela libil2cpp que a il2cpp::Api nao carrega.
@@ -1153,6 +1155,9 @@ const NativeApi kNativeApi{
     nativeNewDelegate,
     nativeParamClass,
     nativeSetBuffTexts,
+    [](int32_t firstType, int32_t secondType, void* (*callback)(int32_t, int32_t, int32_t)) -> int32_t {
+        return runtime::installTileTextureHook(firstType, secondType, callback) ? 1 : 0;
+    },
 };
 
 } // namespace

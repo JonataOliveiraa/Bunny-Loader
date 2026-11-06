@@ -1,0 +1,17 @@
+{
+  "uid": "88c086fc-e4da-4f34-a932-f701b4dd7793",
+  "id": "CsExMp",
+  "name": "Test: examples in multiplayer",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks falling sand, cactus, pylon entities, teleport and pressure plates over the network.",
+  "description": "Compile with tools/tests/build-cs.sh csexmp.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

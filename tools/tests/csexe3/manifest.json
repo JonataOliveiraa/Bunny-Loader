@@ -1,0 +1,17 @@
+{
+  "uid": "46706103-f4e9-4914-a207-8570363e46e4",
+  "id": "CsExE3",
+  "name": "Test: Example Mod block E3",
+  "version": "1.0.0",
+  "author": "test",
+  "category": "Utilidade",
+  "summary": "Checks the E3 examples.",
+  "description": "Compile with tools/tests/build-cs.sh csexe3.",
+  "updated": "2026-11-05",
+  "blVersion": 3,
+  "gameVersion": [
+    301720,
+    301720
+  ],
+  "dependencies": []
+}

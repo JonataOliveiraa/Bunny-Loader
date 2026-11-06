@@ -1,3 +1,8 @@
+MessageInfo: {
+	UnstablePylonIsOff: O pilar instável está desligado.
+	NearbyUnstablePylonIsOff: O pilar instável por perto está desligado.
+}
+
 Invasions: {
 	PaladinCrusade: {
 		DisplayName: Cruzada dos Paladinos
@@ -12,6 +17,84 @@ Invasions: {
 }
 
 Items: {
+	ExampleSandBlock: {
+		DisplayName: Bloco de Areia de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleSandRod: {
+		DisplayName: Vara de Areia de Exemplo
+		Tooltip: Permite mover a areia de exemplo
+	}
+
+	ExampleSolution: {
+		DisplayName: Solução de Exemplo
+		Tooltip:
+			'''
+			Usada pelo Clentaminador
+			Espalha o Exemplo
+			'''
+	}
+
+	ExampleHellSolution: {
+		DisplayName: Solução Infernal de Exemplo
+		Tooltip:
+			'''
+			Usada pelo Clentaminador
+			Espalha o Inferno
+			'''
+	}
+
+	ExampleDye: {
+		DisplayName: Tintura de Exemplo
+		Tooltip: ""
+	}
+
+	ExampleHairDye: {
+		DisplayName: Tintura de Cabelo de Exemplo
+		Tooltip: Deixa o cabelo com as cores do arco-íris
+	}
+
+	ExamplePressurePlate: {
+		DisplayName: Placa de Pressão de Exemplo
+		Tooltip: ""
+	}
+
+	ExamplePylonItemAdvanced: {
+		DisplayName: Pilar Avançado de Exemplo
+		Tooltip: Pilar instável: precisa de um clique para ligar
+	}
+
+	HallowedFossilTileItem: {
+		DisplayName: Fóssil Consagrado
+		Tooltip: ""
+	}
+
+	CorruptFossilTileItem: {
+		DisplayName: Fóssil Corrompido
+		Tooltip: ""
+	}
+
+	CrimsonFossilTileItem: {
+		DisplayName: Fóssil Carmim
+		Tooltip: ""
+	}
+
+	HallowedFossilWallItem: {
+		DisplayName: Parede de Fóssil Consagrado
+		Tooltip: ""
+	}
+
+	CorruptFossilWallItem: {
+		DisplayName: Parede de Fóssil Corrompido
+		Tooltip: ""
+	}
+
+	CrimsonFossilWallItem: {
+		DisplayName: Parede de Fóssil Carmim
+		Tooltip: ""
+	}
+
 	ConsecratedAxe: {
 		DisplayName: Machado Consagrado
 		Tooltip:

@@ -8,6 +8,7 @@ adb connect "$client" >/dev/null 2>&1
 run() {
     local test="$1" env=()
     [ "${NOENV:-0}" = 1 ] || env=(csenv)
+    [ "${SAMPLE:-0}" = 1 ] && env+=("$(cd "$here/../.." && (pwd -W 2>/dev/null || pwd))/samples/ExampleModCSharp")
     prepare "$host" 1 "$test" "${env[@]}"
     prepare "$client" 0 "$test" "${env[@]}"
     launch "$host"
